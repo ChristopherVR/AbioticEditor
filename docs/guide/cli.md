@@ -1,8 +1,8 @@
 # Command-line tool
 
 `abioticeditor` is a headless CLI for scripting and server administration. It wraps the same
-Core library as the desktop app, so anything it writes is **byte-identical** to what the app
-would write. Run `abioticeditor --help` for the full surface.
+Core library as the desktop app, so it writes the same output the app would. Run
+`abioticeditor --help` for the full surface.
 
 ## Common commands
 

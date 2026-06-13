@@ -1,8 +1,8 @@
 # Desktop app
 
 The desktop editor is a .NET MAUI app that runs unpackaged on Windows (and on macOS via
-Mac Catalyst). It's a thin front-end over the shared Core engine, so every edit it writes
-is byte-identical to what the CLI produces.
+Mac Catalyst). It's a thin front-end over the shared Core engine, so it writes the same
+output as the CLI.
 
 ## Workflow
 
@@ -12,14 +12,14 @@ is byte-identical to what the CLI produces.
      `Admin.ini` and each world's `SandboxSettings.ini` and lists them under **CONFIG FILES**
      in the sidebar.
 2. Pick a file from the sidebar:
-   - **Player saves** open the player editor — vitals, inventory, equipment, skills, traits,
-     recipes, codex, transmog, spawn point, achievements, and SteamID change.
-   - **World saves** open the world editor — containers, quest flags, doors, dropped items,
+   - **Player saves** open the player editor: vitals, inventory, equipment, skills, traits,
+     recipes, codex, transmog, spawn point, achievements, and SteamID.
+   - **World saves** open the world editor: containers, quest flags, doors, dropped items,
      NPCs, bases, and story progression.
    - **The metadata save** edits story state.
 3. Edits are **staged until you press SAVE**. Every write keeps a `.bak` of the previous
    file next to it.
-4. **Quest flags are gated by story prerequisites** — the editor offers to set missing
+4. **Quest flags are gated by story prerequisites.** The editor offers to set missing
    prerequisite flags rather than letting you create an inconsistent story state.
 5. **JSON export/import** gives you the full save as editable text for anything the UI does
    not cover.
@@ -30,9 +30,9 @@ staged change and records any save content this build does not recognize.
 ## Game data and icons
 
 Item, recipe, skill, flag, fish, and trait catalogs (and item icons) come from the
-installed game's pak archives, read through a bundled type-mappings file. **Everything
-degrades gracefully when the game isn't present** — catalogs come back empty and icons
-no-op, but the editor still opens and edits saves.
+installed game's pak archives, read through a bundled type-mappings file. **When the game
+isn't installed, these catalogs come back empty and icons are skipped**, but the editor
+still opens and edits saves.
 
 ## Keeping the game build in sync (usmap)
 
@@ -47,5 +47,5 @@ asset-backed features degrade.
 ## Updates
 
 The app checks GitHub Releases from its **Settings ▸ Updates** card. When a newer build is
-available it downloads the matching asset and replaces the running install in place — no
-installer, no admin prompt.
+available it downloads the matching asset and replaces the running install in place, with no
+installer and no admin prompt.

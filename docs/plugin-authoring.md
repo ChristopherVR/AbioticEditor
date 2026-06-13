@@ -23,7 +23,7 @@ The host scans your entry assembly for the **single** public, parameterless type
 `IAbioticPlugin`, instantiates it, and calls `Configure` once. Register your capabilities on
 `registry`; keep `Configure` cheap (no heavy work, no UI).
 
-## 2. The project file — the shared-assembly rule
+## 2. The project file: the shared-assembly rule
 
 Reference the SDK (and Core/MAUI if you use them) to **compile**, but don't **ship** them:
 the host provides them at runtime and unifies the types (see
@@ -117,13 +117,13 @@ public sealed class MaxSkillsOperation : ISaveOperation
 Rules of the road:
 
 - **Mutate `ctx.Save` in place**, then call `ctx.MarkChanged()`. If you don't mark a change,
-  the host skips the write *and* the backup — that's how a "nothing to do" run stays clean.
+  the host skips the write *and* the backup, which is how a "nothing to do" run stays clean.
 - **Never write the file yourself.** The host owns persistence, `.bak` backups, and the
   dry-run gate (`ctx.IsDryRun`). Do your full computation regardless so the reported
   `ChangeCount` is honest.
 - **Don't lower over-cap values** unless that's the point; respect what's already there.
 - You can drop Core entirely and manipulate `ctx.Save.Properties` (raw `FPropertyTag`s) if you
-  only want a `UeSaveGame` dependency — Core just gives you the typed catalogs and readers.
+  only want a `UeSaveGame` dependency; Core just gives you the typed catalogs and readers.
 
 Run it:
 
@@ -199,8 +199,8 @@ cost until you read it) and `ActiveSaveChanged` fires when the user switches fil
 **Lifetime / cleanup.** When the tool panel closes the host disposes the context (which
 severs every `ActiveSaveChanged` subscription) and disposes the view and its `BindingContext`
 if they implement `IDisposable`. So if your view-model subscribes to `ActiveSaveChanged`,
-implement `IDisposable` and unsubscribe in `Dispose()` — the textbook pattern that keeps the
-view-model (and any save it parsed) from outliving its panel:
+implement `IDisposable` and unsubscribe in `Dispose()`. This keeps the view-model (and any
+save it parsed) from outliving its panel:
 
 ```csharp
 public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
@@ -212,7 +212,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
 }
 ```
 
-**Full MVVM with XAML** is supported — see the `SaveInspector` sample: a compiled
+**Full MVVM with XAML** is supported; see the `SaveInspector` sample: a compiled
 `ContentView` (`InspectorView.xaml`, `x:DataType` for compiled bindings) bound to an
 `InspectorViewModel` (`INotifyPropertyChanged`, `IDisposable`, a `Command`, an
 `ObservableCollection`). The tool just returns `new InspectorView(new InspectorViewModel(ctx))`.
@@ -253,13 +253,13 @@ public void Configure(IPluginRegistry registry, IPluginHost host)
 ```
 
 Handlers run when the host raises that event (see the table in [`plugins.md`](plugins.md#event-handler-events)
-for the names and payloads). Keep them quick and non-throwing — the host logs and isolates
+for the names and payloads). Keep them quick and non-throwing: the host logs and isolates
 failures, but a slow handler stalls the action that fired it.
 
 ## 9. A JavaScript plugin (no build step)
 
 Set `"runtime": "javascript"` and `"entryScript": "plugin.js"` in the manifest, and write a
-`.js` file that registers capabilities on the `abiotic` host object. No project, no compile —
+`.js` file that registers capabilities on the `abiotic` host object. No project, no compile,
 just two files in a folder.
 
 ```javascript
@@ -298,10 +298,10 @@ recursion/time) but, like managed plugins, is not a hard security boundary. See 
 
 ## 9b. A web tool (HTML / React UI)
 
-A plugin can render its UI as a web page in a `WebView` instead of native controls — ideal for
-shipping a **React** (or any web) front-end. The page talks to the plugin over a bridge.
+A plugin can render its UI as a web page in a `WebView` instead of native controls, which is
+ideal for shipping a **React** (or any web) front-end. The page talks to the plugin over a bridge.
 
-JavaScript (inline HTML pulling React from a CDN — no build step):
+JavaScript (inline HTML pulling React from a CDN, no build step):
 
 ```javascript
 var HTML = `<!doctype html><html><head>
@@ -336,7 +336,7 @@ The page gets, from the host-injected bridge:
 
 `ctx` in `handleMessage` exposes `activeSavePath`, `activeSaveKind`, and `playerSummaryJson()`.
 To **edit** from a web tool, have the page request an action and run an `ISaveOperation` so the
-write keeps its backup — don't mutate the save from the page.
+write keeps its backup; don't mutate the save from the page.
 
 **Offline / bundled apps.** Instead of inline HTML, serve a folder (a production SPA build or a
 plain offline page): set `rootDirectory` (relative paths resolve against the plugin folder) and
@@ -347,7 +347,7 @@ plain offline page): set `rootDirectory` (relative paths resolve against the plu
 > Subresource Integrity hashes.
 
 **A full Vite + React app.** The `ReactAppDashboard` sample is a real `npm`/Vite project (under
-`app/`) — `package.json`, JSX, components, the lot — built to a single self-contained file the
+`app/`) with `package.json`, JSX, and components, built to a single self-contained file the
 plugin serves. Two Vite settings make it work inside the editor's `file://` WebView:
 `base: "./"` (relative asset URLs) and `vite-plugin-singlefile` (inline all JS/CSS, so there are no
 ES-module `<script>` requests the `file://` origin would block). Build with
@@ -369,8 +369,8 @@ abiotic.ui.openPlugins();
 
 These are fire-and-forget from JavaScript (the Jint engine is synchronous; the GUI marshals each
 onto the UI thread). In the CLI and tests `host.Ui` is a no-op, so the same plugin runs everywhere.
-A **web tool's React UI** drives the app by having its `handleMessage` call `abiotic.ui.*` — e.g.
-the React "Max skills" button does `abiotic.request({type:"runOperation"})`, and the plugin's
+A **web tool's React UI** drives the app by having its `handleMessage` call `abiotic.ui.*`. For
+example, the React "Max skills" button does `abiotic.request({type:"runOperation"})`, and the plugin's
 handler calls `abiotic.ui.runSaveOperation(...)`, so a click in the web UI performs a real,
 backed-up edit. See `ReactAppDashboard`.
 
@@ -406,7 +406,7 @@ Reachable from `Configure` and every capability context:
 |--------|-----|
 | `Log` | `Info/Warn/Error` → the editor log, tagged with your id |
 | `DataDirectory` | a writable, per-plugin folder for settings/caches |
-| `HostKind` | `"gui"` or `"cli"` — tailor behaviour without a framework reference |
+| `HostKind` | `"gui"` or `"cli"`, to tailor behaviour without a framework reference |
 | `HostVersion` / `SdkVersion` | version checks at runtime |
 
 ## Checklist

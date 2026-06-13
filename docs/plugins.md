@@ -1,21 +1,21 @@
-# Plugin system — architecture & rationale
+# Plugin system: architecture and rationale
 
 The editor supports **plugins**: independently-built units that extend the app, the CLI, and
 the core without being part of the product's own source tree. A plugin is either a compiled
 **.NET assembly** (`.dll`) or a **JavaScript file** (`.js`, run on the bundled Jint engine).
 Either kind can add:
 
-- **Save operations** — scripted read/modify passes over a save (cheats, bulk edits, or
+- **Save operations:** scripted read/modify passes over a save (cheats, bulk edits, or
   *fixes* for fields a game patch changed). Runnable from the CLI (`plugins run`) and the
   GUI (the Plugins panel).
-- **Console commands** — whole new CLI verbs (`abioticeditor <your-command>`), indistinguishable
+- **Console commands:** whole new CLI verbs (`abioticeditor <your-command>`), indistinguishable
   from built-ins.
-- **Editor tools** — UI panels (dynamic MAUI component loading) hosted inside the GUI.
-- **Web tools** — UI panels rendered as **HTML in a web view**, so a plugin can ship a
-  **React** (or any web) front-end with a JavaScript↔host bridge.
-- **Menu actions** — click-to-run menu items in the GUI (a top-level **Plugins** menu and the
+- **Editor tools:** UI panels (dynamic MAUI component loading) hosted inside the GUI.
+- **Web tools:** UI panels rendered as **HTML in a web view**, so a plugin can ship a
+  **React** (or any web) front-end with a JavaScript-to-host bridge.
+- **Menu actions:** click-to-run menu items in the GUI (a top-level **Plugins** menu and the
   Plugins panel).
-- **Event handlers** — code that runs when something happens (a save is opened or written, the
+- **Event handlers:** code that runs when something happens (a save is opened or written, the
   app starts). This is the "trigger when X occurs" extension point.
 
 One plugin may provide any mix of these.
@@ -40,7 +40,7 @@ and the library itself. Three forces shaped the design:
 2. **The dangerous part stays in the host.** Writing save bytes, keeping `.bak` backups, and
    honouring `--dry-run` are done by the host (`SaveOperationRunner`), never by plugin code.
    A plugin only *mutates an in-memory model and says "I changed something"*; the host
-   decides whether and how to persist. Every operation — first-party or third-party — gets
+   decides whether and how to persist. Every operation, first-party or third-party, gets
    the same backup guarantee.
 
 3. **Discovery must be cheap and safe.** Listing, validating, version-checking, and
@@ -72,8 +72,8 @@ AbioticEditor.Cli        AbioticEditor.App
    to System.CommandLine)
 ```
 
-The sample plugins under `plugins/` reference the SDK and Core but ship **neither** — see
-[the shared-assembly rule](#the-shared-assembly-rule).
+The sample plugins under `plugins/` reference the SDK and Core but ship **neither** (see
+[the shared-assembly rule](#the-shared-assembly-rule)).
 
 ## How a plugin is found and loaded
 
@@ -98,10 +98,10 @@ Each plugin is a **subfolder** containing a `plugin.json` and its DLL(s):
 
 Loading is **two-phase**:
 
-1. **Discover** — read every `plugin.json`, validate it, dedupe by `id` (first root wins).
+1. **Discover:** read every `plugin.json`, validate it, dedupe by `id` (first root wins).
    No assemblies are loaded. This is what powers `plugins list` and the GUI list, and it is
    safe to run against an untrusted folder.
-2. **Load** (only for enabled, version-compatible plugins) — create an isolated
+2. **Load** (only for enabled, version-compatible plugins): create an isolated
    `PluginLoadContext`, load the entry assembly, find the single `IAbioticPlugin`, call
    `Configure(registry, host)`, and record the capabilities it registers. A plugin that
    throws here is marked **Failed** with its error; it never takes the host down.
@@ -150,7 +150,7 @@ All four sample `.csproj`s follow this rule and are the canonical examples.
 }
 ```
 
-Validation is strict on the two fields the loader trusts (`id`, `entryAssembly` — which must
+Validation is strict on the two fields the loader trusts (`id`, and `entryAssembly`, which must
 be a bare `.dll` file name, never a path, so a manifest can't aim the loader at an arbitrary
 DLL) and lenient on the descriptive ones. `minHostVersion` turns "built against a newer SDK"
 into an early, clear *"requires plugin SDK x but host provides y"* instead of a runtime
@@ -170,12 +170,12 @@ rewrites the file. Identical behaviour in the CLI and the GUI.
 Declares `Name`, `Description`, framework-neutral `Arguments`/`Options`, and
 `InvokeAsync(context)` returning an exit code. The CLI's `PluginCliBridge` turns this into a
 real `System.CommandLine` subcommand (with help and the standard 0/1/2 exit codes). A name
-that collides with a built-in (or another plugin) is **skipped with a warning** — a plugin
+that collides with a built-in (or another plugin) is **skipped with a warning**, so a plugin
 can never shadow a shipped command.
 
 ### Editor tool (`IEditorTool`)
 A UI panel for the GUI. `CreateView(context)` returns a `Microsoft.Maui.Controls.View` typed
-as `object` — **that single seam is why the SDK has no MAUI dependency**: the plugin (not the
+as `object`. **That single seam is why the SDK has no MAUI dependency**: the plugin (not the
 SDK) takes the MAUI reference, and the GUI casts the result back. The context gives a
 read-only window onto the open save (`ActiveSave`, lazily loaded) and an `ActiveSaveChanged`
 event so a tool refreshes when the user switches files. When the panel closes the host
@@ -184,14 +184,14 @@ disposes the context (severing `ActiveSaveChanged` subscribers) and the view/its
 view-model that subscribes should implement `IDisposable` and unsubscribe. The CLI ignores
 editor tools.
 
-### Web tool (`IWebTool`) — HTML/React UIs
+### Web tool (`IWebTool`): HTML/React UIs
 A UI whose front-end is **HTML** rendered in a MAUI `WebView`, rather than native controls. This
 is how a plugin ships a **React** (or Vue/Svelte/plain-HTML) interface, and it pairs especially
 well with JavaScript plugins. `CreateContent(ctx)` returns either inline HTML
 (`WebToolContent.FromHtml`, e.g. a page that pulls React from a CDN) or a directory of static
 assets (`WebToolContent.FromDirectory`, e.g. a production SPA build; a relative path resolves
-against the plugin's own folder). The SDK never references a web-view type — content moves out as
-HTML, messages move across the bridge as strings — so the contract stays host-agnostic.
+against the plugin's own folder). The SDK never references a web-view type; content moves out as
+HTML and messages move across the bridge as strings, so the contract stays host-agnostic.
 
 **The bridge.** The host (`WebToolHostPage`) injects a small script giving the page
 `abiotic.request(obj)` (returns a Promise), `abiotic.log(msg)`, and `abiotic.onEvent(fn)`. It uses
@@ -204,20 +204,20 @@ and the plugin answers from C#/JS (e.g. reading the open save). Editing should s
 `ISaveOperation` (the page asks the host to run one) so writes keep the backup path. JavaScript
 plugins register web tools with `abiotic.registerWebTool({ id, title, html | rootDirectory,
 handleMessage })`; the message handler gets a `ctx` with `activeSavePath`, `activeSaveKind`, and a
-ready-made `ctx.playerSummaryJson()`. A directory `rootDirectory` may be relative — it resolves
+ready-made `ctx.playerSummaryJson()`. A directory `rootDirectory` may be relative, resolving
 against the plugin's folder, so a plugin can ship a built SPA (e.g. a Vite + React `dist/`) and
 point at it. The `ReactAppDashboard` sample is exactly that: a real `npm`/Vite project built to a
 single self-contained `index.html` (via `vite-plugin-singlefile` + `base: "./"`, so it works from a
 `file://` URL).
 
-### Driving the app — the host-UI bridge (`IHostUi` / `abiotic.ui`)
+### Driving the app: the host-UI bridge (`IHostUi` / `abiotic.ui`)
 Plugins can interact with the app, not just read it. `IPluginHost.Ui` (an `IHostUi`) exposes
 `ShowAlertAsync`/`ConfirmAsync`/`ToastAsync`, `RunSaveOperationAsync(id)` (runs a registered
 operation against the open save through the backup/write path, then reloads), `ReloadOpenSaveAsync`,
 and `OpenSettingsAsync`/`OpenPluginsPanelAsync`. The GUI implements it (`AppHostUi`, marshalling
 each call onto the UI thread); the CLI and tests get `NullHostUi`, which no-ops, so plugin code
 stays portable. JavaScript plugins reach it as `abiotic.ui` (e.g. `abiotic.ui.toast("hi")`,
-`abiotic.ui.runSaveOperation("max-skills")`) — fire-and-forget, since the Jint engine is
+`abiotic.ui.runSaveOperation("max-skills")`), fire-and-forget, since the Jint engine is
 synchronous. A web tool's React UI can therefore trigger real editor actions by asking its
 `handleMessage` to call `abiotic.ui.*`.
 
@@ -235,9 +235,9 @@ others or the action that fired the event). Well-known events (`PluginEvents`):
 
 | Event | Raised by | Payload |
 |---|---|---|
-| `app.started` | GUI startup, after plugins load | — |
+| `app.started` | GUI startup, after plugins load | (none) |
 | `save.opened` | GUI, after a save parses | `savePath`, `saveKind` |
-| `save.closed` | GUI, when the editor clears | — |
+| `save.closed` | GUI, when the editor clears | (none) |
 | `save.written` | CLI/GUI, after a plugin save operation writes | `savePath`, `saveKind`, `operationId` |
 
 The hosts choose where to raise; Core supplies the dispatch. A plugin event handler is the
@@ -248,7 +248,7 @@ mechanism behind "do X automatically whenever Y happens."
 A plugin whose manifest sets `"runtime": "javascript"` and `"entryScript": "plugin.js"` is run
 on **Jint**, a pure-managed ECMAScript interpreter bundled in Core. Pure-managed matters: it
 works on every target (desktop, mobile, CLI) with no native dependency, unlike V8-based
-engines. A JavaScript plugin needs **no build step** — it is just a `.js` file next to a
+engines. A JavaScript plugin needs **no build step**: it is just a `.js` file next to a
 `plugin.json`.
 
 `JavaScriptPlugin` adapts a script into the same `IAbioticPlugin` the managed path produces, so
@@ -266,7 +266,7 @@ abiotic.log.info("..."); abiotic.log.warn("..."); abiotic.log.error("...");
 Each registered JS callback is wrapped by a CLR adapter (`JsSaveOperation`/`JsConsoleCommand`/
 `JsMenuAction`/event delegate) that builds a JS-friendly context facade and invokes the
 function. Member access is case-insensitive, so scripts use natural camelCase (`ctx.markChanged()`
-maps to the CLR `MarkChanged`). Save operations get `ctx.player` — a focused facade
+maps to the CLR `MarkChanged`). Save operations get `ctx.player`, a focused facade
 (`money`, `setAllSkillLevels(n)`, …) that edits through the host writer and marks the context
 changed so the runner persists it.
 
@@ -281,7 +281,7 @@ funnel through one lock (`JsRuntime`). As with managed plugins, JS still runs in
 - **No sandbox.** Loaded plugins run fully trusted. The defences are *procedural*: a manifest
   must exist and validate before any code loads; plugins are listed with provenance and a
   load state; each can be disabled; the entry assembly can't be a path. None of this contains
-  hostile code — it makes loading deliberate.
+  hostile code; it makes loading deliberate.
 - **Surface the trust decision.** Both the CLI (`plugins list`) and the GUI (Settings →
   Manage Plugins) state that plugins run with full trust and show where they came from.
 - **Writes are still safe-by-construction.** Even a buggy operation can't lose data silently:

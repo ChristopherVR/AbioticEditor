@@ -6,7 +6,7 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: 'Abiotic Editor',
   description:
-    'A byte-perfect save-game editor for Abiotic Factor — desktop app, scriptable CLI, and a plugin SDK over one shared engine.',
+    'A save-game editor for Abiotic Factor: desktop app, scriptable CLI, and a plugin SDK over one shared engine.',
   base: '/AbioticEditor/',
   lang: 'en-US',
   cleanUrls: true,
@@ -37,7 +37,7 @@ export default defineConfig({
       'meta',
       {
         name: 'og:description',
-        content: 'Byte-perfect save editing for Abiotic Factor.',
+        content: 'A save-game editor for Abiotic Factor.',
       },
     ],
   ],

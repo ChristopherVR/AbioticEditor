@@ -10,6 +10,69 @@
  */
 
 /* ----------------------------------------------------------------------------
+ * LIGHT — Cascade Light (paper-blue facility readout)
+ *
+ * Light lives in :root as the base; dark overrides it in .dark below. Order
+ * matters: :root and .dark have equal specificity, so the dark block has to
+ * come last for the appearance toggle to take effect.
+ * ------------------------------------------------------------------------- */
+:root {
+  --af-shell: #dce6ee;
+  --af-page: #e9f1f7;
+  --af-panel: #f4f9fd;
+  --af-elevated: #ffffff;
+  --af-divider: #c8d8e4;
+  --af-border: #b5c9d8;
+
+  --af-text-1: #16242f;
+  --af-text-2: #3e586c;
+  --af-text-3: #718999;
+
+  --af-cyan: #1b8c94;
+  --af-blue: #0f86c4;
+  --af-orange: #c76408;
+  --af-orange-bright: #e07a12;
+  --af-orange-dim: #9c4f07;
+  --af-yellow: #a87f04;
+  --af-red: #c03a22;
+  --af-hazard-dark: #1f2a16;
+
+  --vp-c-bg: var(--af-page);
+  --vp-c-bg-alt: var(--af-shell);
+  --vp-c-bg-soft: var(--af-panel);
+  --vp-c-bg-elv: var(--af-elevated);
+  --vp-c-gutter: #cdd9e3;
+
+  --vp-c-text-1: var(--af-text-1);
+  --vp-c-text-2: var(--af-text-2);
+  --vp-c-text-3: var(--af-text-3);
+
+  --vp-c-divider: var(--af-divider);
+  --vp-c-border: var(--af-border);
+
+  --vp-c-brand-1: #0e6fa8;
+  --vp-c-brand-2: #0f86c4;
+  --vp-c-brand-3: #1273b8;
+  --vp-c-brand-soft: rgba(18, 115, 184, 0.12);
+
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #c76408 20%, #b8890a);
+  --vp-home-hero-image-background-image: linear-gradient(
+    135deg,
+    rgba(15, 134, 196, 0.35),
+    rgba(27, 140, 148, 0.35)
+  );
+  --vp-home-hero-image-filter: blur(56px);
+
+  --vp-c-tip-1: #1b8c94;
+  --vp-c-tip-soft: rgba(27, 140, 148, 0.12);
+  --vp-c-warning-1: #a87f04;
+  --vp-c-warning-soft: rgba(168, 127, 4, 0.12);
+  --vp-c-danger-1: #c03a22;
+  --vp-c-danger-soft: rgba(192, 58, 34, 0.12);
+}
+
+/* ----------------------------------------------------------------------------
  * DARK — Cascade Dark (the shipped, game-accurate look)
  * ------------------------------------------------------------------------- */
 .dark {
@@ -77,65 +140,6 @@
 }
 
 /* ----------------------------------------------------------------------------
- * LIGHT — Cascade Light (paper-blue facility readout)
- * ------------------------------------------------------------------------- */
-:root {
-  --af-shell: #dce6ee;
-  --af-page: #e9f1f7;
-  --af-panel: #f4f9fd;
-  --af-elevated: #ffffff;
-  --af-divider: #c8d8e4;
-  --af-border: #b5c9d8;
-
-  --af-text-1: #16242f;
-  --af-text-2: #3e586c;
-  --af-text-3: #718999;
-
-  --af-cyan: #1b8c94;
-  --af-blue: #0f86c4;
-  --af-orange: #c76408;
-  --af-orange-bright: #e07a12;
-  --af-orange-dim: #9c4f07;
-  --af-yellow: #a87f04;
-  --af-red: #c03a22;
-  --af-hazard-dark: #1f2a16;
-
-  --vp-c-bg: var(--af-page);
-  --vp-c-bg-alt: var(--af-shell);
-  --vp-c-bg-soft: var(--af-panel);
-  --vp-c-bg-elv: var(--af-elevated);
-  --vp-c-gutter: #cdd9e3;
-
-  --vp-c-text-1: var(--af-text-1);
-  --vp-c-text-2: var(--af-text-2);
-  --vp-c-text-3: var(--af-text-3);
-
-  --vp-c-divider: var(--af-divider);
-  --vp-c-border: var(--af-border);
-
-  --vp-c-brand-1: #0e6fa8;
-  --vp-c-brand-2: #0f86c4;
-  --vp-c-brand-3: #1273b8;
-  --vp-c-brand-soft: rgba(18, 115, 184, 0.12);
-
-  --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: linear-gradient(120deg, #c76408 20%, #b8890a);
-  --vp-home-hero-image-background-image: linear-gradient(
-    135deg,
-    rgba(15, 134, 196, 0.35),
-    rgba(27, 140, 148, 0.35)
-  );
-  --vp-home-hero-image-filter: blur(56px);
-
-  --vp-c-tip-1: #1b8c94;
-  --vp-c-tip-soft: rgba(27, 140, 148, 0.12);
-  --vp-c-warning-1: #a87f04;
-  --vp-c-warning-soft: rgba(168, 127, 4, 0.12);
-  --vp-c-danger-1: #c03a22;
-  --vp-c-danger-soft: rgba(192, 58, 34, 0.12);
-}
-
-/* ----------------------------------------------------------------------------
  * Hazard-orange CTA buttons (the game reserves orange for primary actions)
  * ------------------------------------------------------------------------- */
 :root,
@@ -164,28 +168,6 @@
 /* ----------------------------------------------------------------------------
  * Facility flourishes
  * ------------------------------------------------------------------------- */
-
-/* Hazard stripe under the top nav — the game's caution-tape motif. */
-.VPNavBar {
-  position: relative;
-}
-.VPNavBar::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 2px;
-  background-image: repeating-linear-gradient(
-    -45deg,
-    var(--af-yellow) 0,
-    var(--af-yellow) 9px,
-    var(--af-hazard-dark) 9px,
-    var(--af-hazard-dark) 18px
-  );
-  opacity: 0.85;
-  z-index: 1;
-}
 
 /* Signage feel for the hero title. */
 .VPHero .name,
