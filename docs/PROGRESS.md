@@ -9,8 +9,8 @@ host-UI bridge + Vite sample).
 - **New project `src/AbioticEditor.Updater`** (net10.0, zero deps - no MAUI/Core/CUE4Parse) so
   both the CLI and the app can reference and bundle it. Talks to the GitHub Releases API,
   downloads the matching asset, and replaces the running install IN PURE MANAGED CODE.
-  - Pieces: `UpdaterOptions` (holds the **PLACEHOLDER repo coords** `YOUR_GITHUB_USERNAME`/
-    `AbioticEditor` for the user to change; `ForCli()`/`ForApp()` presets pick assets by
+  - Pieces: `UpdaterOptions` (defaults to the real repo coords `ChristopherVR`/`AbioticEditor`;
+    blanking/sentinel owner re-flags it unconfigured; `ForCli()`/`ForApp()` presets pick assets by
     keyword `cli|app` + `win-x64`); `GitHubReleaseClient` (releases/latest or list, System.Text.Json,
     User-Agent required); `ReleaseVersion` (lenient semver parse + compare, pre-release aware);
     `AssetSelector` (all-keywords-match, installable-ext preferred); `UpdateChecker`/

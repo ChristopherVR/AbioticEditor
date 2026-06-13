@@ -10,22 +10,26 @@ namespace AbioticEditor.Updater;
 public sealed class UpdaterOptions
 {
     // ---------------------------------------------------------------------------------
-    //  PLACEHOLDER - there is no GitHub repository yet. Change these two values to the
-    //  real owner/name once the project is published, e.g. ("acme", "AbioticEditor").
-    //  Everything else (release lookup, asset URLs) is derived from them.
+    //  Releases live at github.com/ChristopherVR/AbioticEditor. Change DefaultOwner /
+    //  DefaultRepository below to retarget; everything else (release lookup, asset URLs)
+    //  is derived from them. Blanking the owner (or reverting it to PlaceholderOwner)
+    //  re-flags the updater as unconfigured.
     // ---------------------------------------------------------------------------------
 
-    /// <summary>GitHub account or organisation that owns the releases repo. <b>CHANGE ME.</b></summary>
+    /// <summary>GitHub account that owns the releases repo by default.</summary>
+    public const string DefaultOwner = "ChristopherVR";
+
+    /// <summary>GitHub repository name that publishes the releases by default.</summary>
+    public const string DefaultRepository = "AbioticEditor";
+
+    /// <summary>Sentinel owner that marks the updater as not-yet-configured.</summary>
     public const string PlaceholderOwner = "YOUR_GITHUB_USERNAME";
 
-    /// <summary>GitHub repository name that publishes the releases. <b>CHANGE ME.</b></summary>
-    public const string PlaceholderRepository = "AbioticEditor";
-
     /// <summary>GitHub account or organisation that owns the releases repo.</summary>
-    public string RepositoryOwner { get; set; } = PlaceholderOwner;
+    public string RepositoryOwner { get; set; } = DefaultOwner;
 
     /// <summary>GitHub repository name that publishes the releases.</summary>
-    public string RepositoryName { get; set; } = PlaceholderRepository;
+    public string RepositoryName { get; set; } = DefaultRepository;
 
     /// <summary>
     /// Optional GitHub token. Only needed for a private repo or to lift the 60/hour

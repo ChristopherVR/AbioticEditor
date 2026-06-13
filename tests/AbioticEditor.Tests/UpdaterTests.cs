@@ -141,16 +141,25 @@ public sealed class UpdaterTests
     }
 
     [Fact]
-    public void Placeholder_options_are_reported_as_unconfigured()
+    public void Default_options_target_the_real_releases_repo()
     {
-        Assert.True(new UpdaterOptions().IsPlaceholderRepository);
-        Assert.True(UpdaterOptions.ForCli().IsPlaceholderRepository);
+        // Defaults now point at the published repo, so the updater is configured.
+        Assert.False(new UpdaterOptions().IsPlaceholderRepository);
+        Assert.False(UpdaterOptions.ForCli().IsPlaceholderRepository);
+        Assert.Equal(
+            "https://api.github.com/repos/ChristopherVR/AbioticEditor",
+            new UpdaterOptions().ApiBaseUrl);
+    }
 
-        var configured = UpdaterOptions.ForApp();
-        configured.RepositoryOwner = "acme";
-        configured.RepositoryName = "AbioticEditor";
-        Assert.False(configured.IsPlaceholderRepository);
-        Assert.Equal("https://api.github.com/repos/acme/AbioticEditor", configured.ApiBaseUrl);
+    [Fact]
+    public void Blank_or_sentinel_owner_is_reported_as_unconfigured()
+    {
+        var unset = UpdaterOptions.ForApp();
+        unset.RepositoryOwner = UpdaterOptions.PlaceholderOwner;
+        Assert.True(unset.IsPlaceholderRepository);
+
+        unset.RepositoryOwner = "   ";
+        Assert.True(unset.IsPlaceholderRepository);
     }
 
     private sealed class TempDir : IDisposable
