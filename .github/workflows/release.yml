@@ -15,6 +15,9 @@ name: Release
 #      and pushes a vX.Y.Z tag on that commit.
 #   4. `build` publishes the 7 release artifacts off the new tag.
 #   5. `publish` attaches them to a GitHub Release.
+#   6. `nuget` packs AbioticEditor.Core + AbioticEditor.Plugins.Abstractions off
+#      the new tag and pushes them to nuget.org (needs the NUGET_API_KEY secret;
+#      the push step is skipped, not failed, when the secret is absent).
 #
 # Loop safety: pushes made with the default GITHUB_TOKEN do not retrigger
 # workflows. The job-level `if` guard (skip on chore(release)/[skip ci]) is
@@ -22,7 +25,8 @@ name: Release
 
 on:
   push:
-    branches: [main]
+    # master and main are aliased branches for this repo; release from either.
+    branches: [main, master]
 
 concurrency:
   group: release
@@ -147,7 +151,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add Directory.Build.props CHANGELOG.md
           git commit -m "chore(release): ${TAG} [skip ci]"
-          git push origin HEAD:main
+          # Push the bump back to whichever aliased branch triggered the run (main or master).
+          git push origin "HEAD:${{ github.ref_name }}"
           # Tag the release commit we just pushed.
           git tag "$TAG"
           git push origin "$TAG"
@@ -323,3 +328,56 @@ jobs:
             dist/AbioticEditor-app-win-x64.zip
             dist/AbioticEditor-app-osx-x64.zip
             dist/AbioticEditor-app-osx-arm64.zip
+
+  # Pack the library packages off the new tag and push them to nuget.org.
+  # AbioticEditor.Plugins.Abstractions is what plugin authors compile against;
+  # AbioticEditor.Core is the full engine. Both bundle their Apache-2.0 submodule
+  # DLLs (UeSaveGame / CUE4Parse) since those are not on NuGet — see the csproj
+  # _BundleSubmoduleAssemblies targets and THIRD-PARTY-NOTICES.txt.
+  nuget:
+    needs: version
+    if: needs.version.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+          # Packing Core/Abstractions compiles them, which requires the submodules.
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+          dotnet-quality: ga
+
+      - name: Pack packages
+        # Version is inherited from Directory.Build.props, already bumped on the tagged
+        # commit. ContinuousIntegrationBuild=true makes the build deterministic.
+        run: |
+          set -euo pipefail
+          dotnet pack src/AbioticEditor.Plugins.Abstractions -c Release \
+            -p:ContinuousIntegrationBuild=true -o nupkgs
+          dotnet pack src/AbioticEditor.Core -c Release \
+            -p:ContinuousIntegrationBuild=true -o nupkgs
+          ls -l nupkgs
+
+      - name: Upload packages as build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: nuget-packages
+          path: nupkgs/*.nupkg
+          if-no-files-found: error
+
+      - name: Push to nuget.org
+        # Skipped (not failed) until the NUGET_API_KEY secret is configured, so the
+        # rest of the release still succeeds. --skip-duplicate makes re-runs idempotent.
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        if: ${{ env.NUGET_API_KEY != '' }}
+        run: >-
+          dotnet nuget push "nupkgs/*.nupkg"
+          --api-key "$NUGET_API_KEY"
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
