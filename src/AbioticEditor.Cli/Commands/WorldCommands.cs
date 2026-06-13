@@ -119,7 +119,13 @@ internal static class WorldCommands
             foreach (var f in e.Fields)
             {
                 var editable = f.Editable ? "" : " (read-only)";
-                var options = f.Options is { Count: > 0 } ? $"  [{string.Join("|", f.Options)}]" : "";
+                // Show small choice lists inline; summarise large ones (e.g. the 134 teleporter tags).
+                var options = f.Options switch
+                {
+                    { Count: > 0 and <= 12 } o => $"  [{string.Join("|", o)}]",
+                    { Count: > 12 } o => $"  ({o.Count} choices — see --json)",
+                    _ => "",
+                };
                 Console.WriteLine($"      {f.Id,-22}= {f.Value}{editable}{options}");
             }
             i++;

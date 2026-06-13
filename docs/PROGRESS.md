@@ -5,6 +5,28 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-28: Teleporter Pad tag editor (the real teleporter "tags") (2026-06-13)
+- User pointed out the Teleporter Pad has **134 selectable tags** (wiki). Found where they live:
+  a placed pad is a `Deployed_TeleporterPad_C` entry in **DeployedObjectMap**, and its tag is an
+  integer `TeleporterFrequency` inside `ChangableData_` (sic) → `DynamicProperties_` (array of
+  `DynamicProperty{Key:EDynamicProperty enum, Value:int}`). 0 = unassigned, 1..133 = named tags.
+- **Recovered the tag order** from the wiki table read **column-major** (its columns are coherent
+  groups: NATO A-M / N-Z / region names / damage types / …), then **verified against real save
+  data**: every tagged pad in the ClientSaved Facility fixture resolves to a sensible region tag
+  (27→Facility, 33→Power Services, 34→The Reactors, 122→Far Garden, 124→Some Distant Shore [a
+  linked pair], 133→Voussoir). `TeleporterTagCatalog` holds the 133 names (134 choices incl.
+  "(none)") with `Label(freq)`/`Frequency(name)`; out-of-range round-trips as `Tag #N`.
+- **`TeleporterPadFeature`** (implements `IWorldMapFeature` directly - filters DeployedObjectMap to
+  the pad class, digs into the nested dynamic-property array): editable `tag` (Choice over the 134)
+  + `frequency` (raw int 0..133). Lossless; pads sharing a tag link. Auto-discovered, so it appears
+  in CLI `world` (`world show … teleporter-pads`, `world set … tag "The Reactors"`) and the App
+  WorldMapsPage with no extra wiring. CLI `show` summarises big choice lists ("134 choices — see
+  --json").
+- This supersedes Round-27's PortalMap note: PortalMap = fixed world teleporters (active only); the
+  player-facing teleporter **tags** are the Teleporter Pad frequencies handled here.
+- **+6 tests** (`TeleporterPadFeatureTests`: catalog 134/mapping, read 22 pads, tag↔frequency edit
+  + round-trip, rejects). **380 tests green**; Core/CLI build clean.
+
 ## Round-27: editable world-state maps (Features framework + 10 maps) (2026-06-13)
 - Made every previously-unmodeled world-save map editable. New **`Core/WorldSaves/Features/`**
   framework: `IWorldMapFeature` (typed `WorldMapEntry`/`WorldMapField` rows; field factories
