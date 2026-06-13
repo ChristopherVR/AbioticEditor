@@ -92,10 +92,11 @@ public sealed class TeleporterPadFeature : IWorldMapFeature
                 {
                     return WorldEditResult.Failure($"'{value}' is not a valid integer.");
                 }
-                if (target < 0 || target > TeleporterTagCatalog.MaxFrequency)
+                // Forward-compat: don't cap at the known max - a future DLC may add tags beyond
+                // 133. Only a negative value is invalid (0 = unassigned).
+                if (target < 0)
                 {
-                    return WorldEditResult.Failure(
-                        $"frequency must be 0..{TeleporterTagCatalog.MaxFrequency} (0 = unassigned).");
+                    return WorldEditResult.Failure("frequency cannot be negative (0 = unassigned).");
                 }
                 break;
             default:
@@ -115,12 +116,17 @@ public sealed class TeleporterPadFeature : IWorldMapFeature
     private static WorldMapField[] BuildFields(int? frequency)
     {
         var freq = frequency ?? 0;
+        var tagHint = TeleporterTagCatalog.IsKnown(freq)
+            ? "Pads sharing a tag link together; '(none)' is unassigned."
+            : "This pad uses a tag this build has no name for (a newer game/DLC version?); "
+                + "it's shown by number and preserved. Pick a known tag or edit the raw frequency.";
         return new[]
         {
-            WorldMapField.Choice("tag", "Tag", TeleporterTagCatalog.Label(freq), TeleporterTagCatalog.Choices,
-                hint: "Pads sharing a tag link together; '(none)' is unassigned."),
+            WorldMapField.Choice("tag", "Tag", TeleporterTagCatalog.Label(freq),
+                TeleporterTagCatalog.ChoicesFor(freq), hint: tagHint),
             WorldMapField.Integer("frequency", "Frequency (raw)", freq,
-                hint: $"The raw tag index 0..{TeleporterTagCatalog.MaxFrequency} (0 = unassigned)."),
+                hint: $"The raw tag index (0 = unassigned, 1..{TeleporterTagCatalog.MaxFrequency} known; "
+                    + "higher values from a future update are allowed and shown as Unknown)."),
         };
     }
 

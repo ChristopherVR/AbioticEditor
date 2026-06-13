@@ -18,6 +18,13 @@ public static class TeleporterTagCatalog
     /// <summary>The label shown for the unassigned frequency (index 0).</summary>
     public const string None = "(none)";
 
+    /// <summary>
+    /// Prefix for a frequency the editor has no name for - a value beyond the known list, e.g. a
+    /// tag added by a future DLC. Kept stable so the label round-trips back to its number through
+    /// <see cref="Frequency"/>.
+    /// </summary>
+    public const string UnknownPrefix = "Unknown #";
+
     /// <summary>The 133 named tags, in game frequency order (this[0] is frequency 1).</summary>
     private static readonly string[] Names =
     {
@@ -70,9 +77,13 @@ public static class TeleporterTagCatalog
     public static IReadOnlyList<string> Choices { get; } =
         new[] { None }.Concat(Names).ToArray();
 
+    /// <summary>True when <paramref name="frequency"/> maps to a name this build knows.</summary>
+    public static bool IsKnown(int frequency) => frequency >= 0 && frequency <= Names.Length;
+
     /// <summary>
     /// The tag label for a frequency value: <see cref="None"/> for 0, the name for 1..133, or
-    /// <c>"Tag #N"</c> for an out-of-range value (so an unknown future tag still round-trips).
+    /// <c>"Unknown #N"</c> for any higher value (so a tag added by a future DLC still displays and
+    /// round-trips even though we don't know its name). Negative values are shown verbatim too.
     /// </summary>
     public static string Label(int frequency)
     {
@@ -84,12 +95,13 @@ public static class TeleporterTagCatalog
         {
             return Names[frequency - 1];
         }
-        return $"Tag #{frequency.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+        return UnknownPrefix + frequency.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
     /// <summary>
-    /// The frequency value for a tag label (case-insensitive; <see cref="None"/> → 0, or a
-    /// <c>"Tag #N"</c> form → N). Returns null when the label isn't a known tag.
+    /// The frequency value for a tag label (case-insensitive; <see cref="None"/> → 0, a known name
+    /// → its index, or an <c>"Unknown #N"</c>/<c>"Tag #N"</c> form → N for forward compatibility).
+    /// Returns null when the label isn't a recognizable tag.
     /// </summary>
     public static int? Frequency(string? label)
     {
@@ -109,12 +121,29 @@ public static class TeleporterTagCatalog
                 return i + 1;
             }
         }
-        if (trimmed.StartsWith("Tag #", StringComparison.OrdinalIgnoreCase)
-            && int.TryParse(trimmed[5..], System.Globalization.NumberStyles.Integer,
+        // Forward-compat: an unknown-tag label carries its raw number after the '#'.
+        var hash = trimmed.IndexOf('#', StringComparison.Ordinal);
+        if (hash >= 0
+            && int.TryParse(trimmed[(hash + 1)..].Trim(), System.Globalization.NumberStyles.Integer,
                 System.Globalization.CultureInfo.InvariantCulture, out var n))
         {
             return n;
         }
         return null;
+    }
+
+    /// <summary>
+    /// The picker choices for a pad currently on <paramref name="frequency"/>: the standard
+    /// <see cref="Choices"/>, plus the current value's <c>"Unknown #N"</c> label appended when it
+    /// falls outside the known list - so a DLC tag we can't name is still shown and selectable.
+    /// </summary>
+    public static IReadOnlyList<string> ChoicesFor(int frequency)
+    {
+        if (IsKnown(frequency))
+        {
+            return Choices;
+        }
+        var list = new List<string>(Choices) { Label(frequency) };
+        return list;
     }
 }

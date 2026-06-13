@@ -24,8 +24,14 @@ host-UI bridge + Vite sample).
   --json").
 - This supersedes Round-27's PortalMap note: PortalMap = fixed world teleporters (active only); the
   player-facing teleporter **tags** are the Teleporter Pad frequencies handled here.
-- **+6 tests** (`TeleporterPadFeatureTests`: catalog 134/mapping, read 22 pads, tag↔frequency edit
-  + round-trip, rejects). **380 tests green**; Core/CLI build clean.
+- **Forward-compatible (for the upcoming DLC)**: a frequency beyond the known 133 is not rejected -
+  it's displayed as `Unknown #N`, preserved, and the `tag` picker appends that value so it stays
+  selectable (`ChoicesFor(freq)`); the raw `frequency` field accepts any non-negative int. When a
+  DLC adds tags we can't name from saves, they show as Unknown rather than breaking; adding the real
+  names later is a one-line edit to `TeleporterTagCatalog`.
+- **+8 tests** (`TeleporterPadFeatureTests`: catalog 134/mapping, unknown-tag forward-compat, read 22
+  pads, tag↔frequency edit + round-trip, future-frequency accepted, rejects). **382 tests green**;
+  Core/CLI build clean.
 
 ## Round-27: editable world-state maps (Features framework + 10 maps) (2026-06-13)
 - Made every previously-unmodeled world-save map editable. New **`Core/WorldSaves/Features/`**

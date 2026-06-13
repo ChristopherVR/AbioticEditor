@@ -51,10 +51,24 @@ public sealed class TeleporterPadFeatureTests
         Assert.Equal(27, TeleporterTagCatalog.Frequency("Facility"));
         Assert.Equal(1, TeleporterTagCatalog.Frequency("alpha")); // case-insensitive
         Assert.Null(TeleporterTagCatalog.Frequency("not-a-tag"));
+    }
 
-        // Out-of-range round-trips via the "Tag #N" form.
-        Assert.Equal("Tag #200", TeleporterTagCatalog.Label(200));
+    [Fact]
+    public void Catalog_handles_unknown_future_tags_for_forward_compat()
+    {
+        // A frequency beyond the known list (e.g. a DLC tag) displays as Unknown and round-trips.
+        Assert.False(TeleporterTagCatalog.IsKnown(200));
+        Assert.Equal("Unknown #200", TeleporterTagCatalog.Label(200));
+        Assert.Equal(200, TeleporterTagCatalog.Frequency("Unknown #200"));
+        // The older "Tag #N" form is still accepted on the way in.
         Assert.Equal(200, TeleporterTagCatalog.Frequency("Tag #200"));
+
+        // The picker choices grow to include the current unknown value so it stays selectable.
+        var choices = TeleporterTagCatalog.ChoicesFor(200);
+        Assert.Equal(135, choices.Count);
+        Assert.Contains("Unknown #200", choices);
+        // A known value uses the plain 134-choice list.
+        Assert.Equal(134, TeleporterTagCatalog.ChoicesFor(27).Count);
     }
 
     // ---------- feature ----------
@@ -161,9 +175,32 @@ public sealed class TeleporterPadFeatureTests
         var key = feature.Read(save)[0].Key;
 
         Assert.True(feature.SetField(save, key, "tag", "Nonexistent Tag").IsError);
-        Assert.True(feature.SetField(save, key, "frequency", "999").IsError); // out of range
+        Assert.True(feature.SetField(save, key, "frequency", "-1").IsError); // negative
         Assert.True(feature.SetField(save, key, "frequency", "notanint").IsError);
         Assert.True(feature.SetField(save, key, "nope", "1").IsError);
         Assert.True(feature.SetField(save, "no-such-pad", "tag", "Alpha").IsError);
+    }
+
+    [Fact]
+    public void SetField_accepts_future_frequency_and_shows_it_as_unknown()
+    {
+        var save = LoadFacility();
+        if (save is null)
+        {
+            return;
+        }
+        var feature = WorldMapFeatures.Find("teleporter-pads")!;
+        var key = feature.Read(save)[0].Key;
+
+        // A value beyond the known 133 (a hypothetical DLC tag) is allowed, not rejected.
+        var result = feature.SetField(save, key, "frequency", "200");
+        Assert.True(result.Changed);
+        Assert.False(result.IsError);
+
+        var entry = feature.Read(save).Single(e => e.Key == key);
+        var tag = entry.Fields.Single(f => f.Id == "tag");
+        Assert.Equal("Unknown #200", tag.Value);
+        Assert.Contains("Unknown #200", tag.Options!); // selectable in the picker
+        Assert.Equal("200", entry.Fields.Single(f => f.Id == "frequency").Value);
     }
 }
