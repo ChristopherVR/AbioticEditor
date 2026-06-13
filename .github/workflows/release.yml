@@ -3,15 +3,18 @@ name: Release
 # Conventional-Commits driven release on every push to main.
 #
 # Flow:
-#   1. `version` job uses git-cliff to compute the next semver from the
+#   1. `test` builds Core and runs the xUnit suite. EVERYTHING below depends on
+#      it, so a failing build or test never produces a release commit, tag, or
+#      artifacts — the pipeline simply stops.
+#   2. `version` job uses git-cliff to compute the next semver from the
 #      commit history. If nothing releasable changed, it sets released=false
 #      and the rest of the pipeline is skipped.
-#   2. It rewrites <Version> in Directory.Build.props (the single source of
+#   3. It rewrites <Version> in Directory.Build.props (the single source of
 #      truth — the App inherits ApplicationDisplayVersion=$(Version)),
 #      regenerates CHANGELOG.md, commits "chore(release): vX.Y.Z [skip ci]",
 #      and pushes a vX.Y.Z tag on that commit.
-#   3. `build` publishes the 7 release artifacts off the new tag.
-#   4. `publish` attaches them to a GitHub Release.
+#   4. `build` publishes the 7 release artifacts off the new tag.
+#   5. `publish` attaches them to a GitHub Release.
 #
 # Loop safety: pushes made with the default GITHUB_TOKEN do not retrigger
 # workflows. The job-level `if` guard (skip on chore(release)/[skip ci]) is
@@ -29,7 +32,37 @@ permissions:
   contents: write
 
 jobs:
+  # Gate: build Core and run the xUnit suite. Every job below `needs:` this one,
+  # so a failing build or test stops the pipeline before any version bump, tag,
+  # or release is produced.
+  test:
+    runs-on: ubuntu-latest
+    # Skip on the bot's own release-bump commit (same guard as `version`).
+    if: >-
+      ${{ !contains(github.event.head_commit.message, 'chore(release)') &&
+          !contains(github.event.head_commit.message, '[skip ci]') }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # The tests build Core, which depends on the submodules
+          # (UeSaveGame + CUE4Parse). Without them the build fails.
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          dotnet-quality: ga
+
+      - name: Run tests
+        # The suite skips fixture-backed tests gracefully when a fixture is
+        # absent, so it is green on a clean CI checkout. The CUE4Parse-Natives
+        # "cmake is not recognized" line during the build is benign.
+        run: dotnet test tests/AbioticEditor.Tests -f net10.0 -c Release
+
   version:
+    needs: test
     runs-on: ubuntu-latest
     # Do not run on the bot's own release-bump commit.
     if: >-
