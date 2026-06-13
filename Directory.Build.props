@@ -17,5 +17,23 @@
          (submodules are shielded by submodules/Directory.Build.props). -->
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!-- NuGet package metadata shared by the packable projects (Core + Plugins.Abstractions).
+         Nothing here packs by default: IsPackable is off, and each package project opts in
+         with <IsPackable>true</IsPackable>. These authorship/repo/license fields are harmless
+         on the non-packable projects (App/Cli/Updater/Tests) and also flow into assembly
+         attributes. -->
+    <IsPackable>false</IsPackable>
+    <Authors>Christopher van Rooyen</Authors>
+    <Company>Christopher van Rooyen</Company>
+    <Copyright>Copyright (c) 2026 Christopher van Rooyen</Copyright>
+    <PackageProjectUrl>https://github.com/ChristopherVR/AbioticEditor</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ChristopherVR/AbioticEditor</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <!-- Source Link: embed repo/commit info and the untracked sources for debugging. -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 </Project>

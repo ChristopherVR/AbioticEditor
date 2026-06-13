@@ -357,10 +357,13 @@ jobs:
         # commit. ContinuousIntegrationBuild=true makes the build deterministic.
         run: |
           set -euo pipefail
+          # PackSubmodules=true bundles the Apache-2.0 submodule DLLs into the packages and
+          # suppresses their (non-NuGet) ProjectReference dependencies. It is ONLY set here,
+          # so normal app/CLI/test builds keep their transitive access to those assemblies.
           dotnet pack src/AbioticEditor.Plugins.Abstractions -c Release \
-            -p:ContinuousIntegrationBuild=true -o nupkgs
+            -p:ContinuousIntegrationBuild=true -p:PackSubmodules=true -o nupkgs
           dotnet pack src/AbioticEditor.Core -c Release \
-            -p:ContinuousIntegrationBuild=true -o nupkgs
+            -p:ContinuousIntegrationBuild=true -p:PackSubmodules=true -o nupkgs
           ls -l nupkgs
 
       - name: Upload packages as build artifacts

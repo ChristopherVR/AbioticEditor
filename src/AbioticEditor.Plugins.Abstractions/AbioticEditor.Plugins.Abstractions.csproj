@@ -16,13 +16,46 @@
     <!-- This is the surface third parties compile against; keep it pinned + discoverable. -->
     <AssemblyName>AbioticEditor.Plugins.Abstractions</AssemblyName>
     <RootNamespace>AbioticEditor.Plugins</RootNamespace>
-    <Version>1.0.0</Version>
+    <!-- Version comes from Directory.Build.props (<Version>, bumped by the release workflow). -->
+
+    <!-- NuGet package (published to nuget.org by .github/workflows/release.yml). -->
+    <IsPackable>true</IsPackable>
+    <PackageId>AbioticEditor.Plugins.Abstractions</PackageId>
+    <Title>Abiotic Editor Plugin SDK</Title>
+    <Description>The host-agnostic SDK that Abiotic Factor save-editor plugins compile against: plugin contracts, manifest types, and the save-operation API. Bundles the UeSaveGame model (Apache-2.0) it forwards. Compile a plugin against this and it runs identically in the desktop app, the CLI, or a test.</Description>
+    <PackageTags>abiotic-factor;save-editor;plugin;sdk;gvas;unreal-engine</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- We bundle the referenced submodule DLLs into the package (see _BundleSubmoduleAssemblies)
+         because they are not published on NuGet. Suppress the ProjectReference-derived deps. -->
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);_BundleSubmoduleAssemblies</TargetsForTfmSpecificBuildOutput>
   </PropertyGroup>
 
   <ItemGroup>
     <!-- Save operations receive the raw UeSaveGame model, so the SDK forwards that type.
-         UeSaveGame has no further package dependencies, so this stays lightweight. -->
-    <ProjectReference Include="..\..\submodules\UeSaveGame\UeSaveGame\UeSaveGame.csproj" />
+         UeSaveGame has no further package dependencies, so this stays lightweight.
+         When packing (PackSubmodules=true) PrivateAssets=all bundles its DLL into this package
+         instead of declaring a (non-existent on NuGet) dependency; on a normal build the default
+         lets UeSaveGame flow transitively to the App/CLI, which use the type directly. -->
+    <ProjectReference Include="..\..\submodules\UeSaveGame\UeSaveGame\UeSaveGame.csproj">
+      <PrivateAssets Condition="'$(PackSubmodules)' == 'true'">all</PrivateAssets>
+    </ProjectReference>
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- Packed into the package root. -->
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\THIRD-PARTY-NOTICES.txt" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <!-- Bundle the Apache-2.0 UeSaveGame assembly alongside our own DLL in lib/<tfm>/.
+       Only active when packing with PackSubmodules=true (matches the PrivateAssets gating). -->
+  <Target Name="_BundleSubmoduleAssemblies" DependsOnTargets="ResolveReferences"
+          Condition="'$(PackSubmodules)' == 'true'">
+    <ItemGroup>
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths)"
+        Condition="'%(ReferenceCopyLocalPaths.ReferenceSourceTarget)' == 'ProjectReference' and '%(ReferenceCopyLocalPaths.FileName)%(ReferenceCopyLocalPaths.Extension)' == 'UeSaveGame.dll'" />
+    </ItemGroup>
+  </Target>
 
 </Project>
