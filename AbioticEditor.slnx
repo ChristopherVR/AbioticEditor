@@ -1,0 +1,36 @@
+<Solution>
+  <Folder Name="/submodules/">
+    <!-- Every submodule project our projects reference must be listed here, or the
+         IDE's solution-based workspace never loads them and their types show as
+         unresolved in the editor (builds still work via ProjectReference). -->
+    <Project Path="submodules/UeSaveGame/UeSaveGame/UeSaveGame.csproj" />
+    <Project Path="submodules/UeSaveGame/UeSaveGame.Json/UeSaveGame.Json.csproj" />
+    <Project Path="submodules/CUE4Parse/CUE4Parse/CUE4Parse.csproj" />
+    <Project Path="submodules/CUE4Parse/CUE4Parse-Conversion/CUE4Parse-Conversion.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/AbioticEditor.App/AbioticEditor.App.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/AbioticEditor.Core/AbioticEditor.Core.csproj" />
+    <Project Path="src/AbioticEditor.Cli/AbioticEditor.Cli.csproj" />
+    <Project Path="src/AbioticEditor.Plugins.Abstractions/AbioticEditor.Plugins.Abstractions.csproj" />
+    <Project Path="src/AbioticEditor.Updater/AbioticEditor.Updater.csproj" />
+  </Folder>
+  <Folder Name="/plugins/">
+    <!-- Sample plugins. They are NOT part of the app; they build into standalone DLLs that
+         drop into a plugins folder. The two headless samples build with the .NET SDK; the
+         two UI samples need the MAUI workload (build them per-TFM as their .csproj notes). -->
+    <Project Path="plugins/MaxSkills/MaxSkills.csproj" />
+    <Project Path="plugins/SaveStats/SaveStats.csproj" />
+    <Project Path="plugins/PlaytimeDashboard/PlaytimeDashboard.csproj" />
+    <Project Path="plugins/SaveInspector/SaveInspector.csproj" />
+    <Project Path="plugins/RepairNeeds/RepairNeeds.csproj" />
+    <Project Path="plugins/GrantFlag/GrantFlag.csproj" />
+    <Project Path="plugins/VersionShim/VersionShim.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AbioticEditor.Tests/AbioticEditor.Tests.csproj" />
+    <Project Path="tests/AbioticEditor.Probes/AbioticEditor.Probes.csproj" />
+  </Folder>
+</Solution>

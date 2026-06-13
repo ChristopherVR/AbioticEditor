@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The public plugin SDK. Plugin authors reference ONLY this assembly (plus, if they
+    manipulate save bytes directly, UeSaveGame which it forwards). It is deliberately:
+      * host-agnostic   - no MAUI, no System.CommandLine, no CUE4Parse. A plugin compiled
+                          against it runs identically inside the GUI, the CLI, or a test.
+      * tiny + stable   - contracts only, so its version is the host-compatibility contract
+                          (see PluginManifest.MinHostVersion / IPluginHost.SdkVersion).
+    Everything that LOADS plugins lives in AbioticEditor.Core; nothing here touches disk.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Platforms>x64</Platforms>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- This is the surface third parties compile against; keep it pinned + discoverable. -->
+    <AssemblyName>AbioticEditor.Plugins.Abstractions</AssemblyName>
+    <RootNamespace>AbioticEditor.Plugins</RootNamespace>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Save operations receive the raw UeSaveGame model, so the SDK forwards that type.
+         UeSaveGame has no further package dependencies, so this stays lightweight. -->
+    <ProjectReference Include="..\..\submodules\UeSaveGame\UeSaveGame\UeSaveGame.csproj" />
+  </ItemGroup>
+
+</Project>

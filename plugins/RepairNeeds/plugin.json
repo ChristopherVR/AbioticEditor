@@ -1,0 +1,11 @@
+{
+  "id": "com.abioticeditor.samples.repair-needs",
+  "name": "Repair Needs",
+  "version": "1.0.0",
+  "author": "Abiotic Editor samples",
+  "description": "Adds a 'repair-needs' save operation that tops every survival need back to full on a player save (also fixes needs that read as 0).",
+  "entryAssembly": "RepairNeeds.dll",
+  "minHostVersion": "1.0.0",
+  "capabilities": ["saveOperation"],
+  "enabled": true
+}

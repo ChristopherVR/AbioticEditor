@@ -1,0 +1,389 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             x:Class="AbioticEditor.App.Views.Player.PlayerInventoryTab"
+             x:DataType="vm:MainViewModel">
+
+    <!-- Inventory: AF-style paper-doll layout -->
+    <Border Style="{StaticResource AfPanel}" Padding="20,16"
+
+            IsVisible="{Binding PlayerEditor.IsInventoryTab, FallbackValue=False}">
+        <VerticalStackLayout Spacing="16">
+
+            <!-- Header: title + occupied count + filename -->
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="24">
+                <Label Grid.Column="0" Text="INVENTORY" Style="{StaticResource AfH2}" VerticalOptions="Center" />
+                <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                    <Label Text="OCCUPIED" Style="{StaticResource AfFieldLabel}" />
+                    <Label Style="{StaticResource AfReadout}" FontSize="16">
+                        <Label.Text>
+                            <MultiBinding StringFormat="{}{0} / {1}">
+                                <Binding Path="PlayerEditor.OccupiedSlotCount" />
+                                <Binding Path="PlayerEditor.TotalSlotCount" />
+                            </MultiBinding>
+                        </Label.Text>
+                    </Label>
+                </VerticalStackLayout>
+                <Label Grid.Column="2" Text="{Binding PlayerEditor.FileName}"
+                       Style="{StaticResource AfStatusText}" VerticalOptions="Center" />
+            </Grid>
+            <BoxView Style="{StaticResource AfHazardStripe}" />
+
+            <!-- Three-column body like the game: character/equipment · hotbar ·
+                 pockets. Stacks vertically on narrow widths. -->
+            <controls:AdaptiveGrid ColumnDefinitions="2*,Auto,3*" ColumnSpacing="14">
+
+                <!-- Equipment paper-doll — character-pane glow like the game -->
+                <Border Grid.Column="0"
+                        BackgroundColor="{StaticResource AfShellBackground}"
+                        Stroke="{DynamicResource AfBorderSubtleBrush}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 6"
+                        Padding="14,12">
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Grid.Column="0" Text="EQUIPMENT" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="0" HorizontalOptions="End">
+                                <Label Text="WEIGHT" Style="{StaticResource AfFieldLabel}" HorizontalTextAlignment="End" />
+                                <Label Text="{Binding PlayerEditor.TotalWeight, StringFormat='{0:F1} kg'}"
+                                       Style="{StaticResource AfReadout}" FontSize="20"
+                                       HorizontalTextAlignment="End" />
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <!-- 3-column paper-doll grid, items positioned by slot semantics -->
+                        <Grid RowDefinitions="*,*,*,*,*,*"
+                              ColumnDefinitions="*,*,*"
+                              RowSpacing="6" ColumnSpacing="6">
+
+                            <!-- Row 0: head -->
+                            <ContentView Grid.Row="0" Grid.Column="1" BindingContext="{Binding PlayerEditor.Helmet}" ControlTemplate="{StaticResource EquipmentSlotTemplate}">
+                                <ContentView.GestureRecognizers>
+                                    <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnSlotTapped" />
+                                    <DragGestureRecognizer CanDrag="True" DragStarting="OnSlotDragStarting" />
+                                    <DropGestureRecognizer AllowDrop="True" Drop="OnSlotDrop" />
+                                </ContentView.GestureRecognizers>
+                            </ContentView>
+
+                            <!-- Row 1: headlamp / chest / trinketA -->
+                            <ContentView Grid.Row="1" Grid.Column="0" BindingContext="{Binding PlayerEditor.Headlamp}" ControlTemplate="{StaticResource EquipmentSlotTemplate}">
+                                <ContentView.GestureRecognizers>
+                                    <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnSlotTapped" />
+                                    <DragGestureRecognizer CanDrag="True" DragStarting="OnSlotDragStarting" />
+                                    <DropGestureRecognizer AllowDrop="True" Drop="OnSlotDrop" />
+                                </ContentView.GestureRecognizers>
+                            </ContentView>
+                            <ContentView Grid.Row="1" Grid.Column="1" BindingContext="{Binding PlayerEditor.Chest}"    ControlTemplate="{StaticResource EquipmentSlotTemplate}">
+                                <ContentView.GestureRecognizers>
+                                    <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnSlotTapped" />
+                                    <DragGestureRecognizer CanDrag="True" DragStarting="OnSlotDragStarting" />
+                                    <DropGestureRecognizer AllowDrop="True" Drop="OnSlotDrop" />
+                                </ContentView.GestureRecognizers>
+                            </ContentView>
+                            <ContentView Grid.Row="1" Grid.Column="2" BindingContext="{Binding PlayerEditor.TrinketA}" ControlTemplate="{StaticResource EquipmentSlotTemplate}">
+                                <ContentView.GestureRecognizers>
+                                    <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnSlotTapped" />
+                                    <DragGestureRecognizer CanDrag="True" DragStarting="OnSlotDragStarting" />
+                                    <DropGestureRecognizer AllowDrop="True" Drop="OnSlotDrop" />
+                                </ContentView.GestureRecognizers>
+                            </ContentView>
+
+                            <!-- Row 2: arms / shield / trinketB -->
+                            <ContentView Grid.Row="2" Grid.Column="0" BindingContext="{Binding PlayerEditor.Arms}"     ControlTemplate="{StaticResource EquipmentSlotTemplate}">
+                                <ContentView.GestureRecognizers>
+                                    <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnSlotTapped" />
+                                    <DragGestureRecognizer CanDrag="True" DragStarting="OnSlotDragStarting" />
+                                    <DropGestureRecognizer AllowDrop="True" Drop="OnSlotDrop" />
+                                </ContentView.GestureRecognizers>
+                            </ContentView>
+                            <ContentView Grid.Row="2" Grid.Column="1" BindingContext="{Binding PlayerEditor.Backpack}" ControlTemplate="{StaticResource EquipmentSlotTemplate}">
+                                <ContentView.GestureRecognizers>
+                                    <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnSlotTapped" />
+                                    <DragGestureRecognizer CanDrag="True" DragStarting="OnSlotDragStarting" />
+                                    <DropGestureRecognizer AllowDrop="True" Drop="OnSlotDrop" />
+                                </ContentView.GestureRecognizers>
+                            </ContentView>
+                            <ContentView Grid.Row="2" Grid.Column="2" BindingContext="{Binding PlayerEditor.Shield}"   ControlTemplate="{StaticResource EquipmentSlotTemplate}">
+                                <ContentView.GestureRecognizers>
+                                    <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnSlotTapped" />
+                                    <DragGestureRecognizer CanDrag="True" DragStarting="OnSlotDragStarting" />
+                                    <DropGestureRecognizer AllowDrop="True" Drop="OnSlotDrop" />
+                                </ContentView.GestureRecognizers>
+                            </ContentView>
+
+                            <!-- Row 3: watch / legs / tool -->
+                            <ContentView Grid.Row="3" Grid.Column="0" BindingContext="{Binding PlayerEditor.Watch}"    ControlTemplate="{StaticResource EquipmentSlotTemplate}">
+                                <ContentView.GestureRecognizers>
+                                    <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnSlotTapped" />
+                                    <DragGestureRecognizer CanDrag="True" DragStarting="OnSlotDragStarting" />
+                                    <DropGestureRecognizer AllowDrop="True" Drop="OnSlotDrop" />
+                                </ContentView.GestureRecognizers>
+                            </ContentView>
+                            <ContentView Grid.Row="3" Grid.Column="1" BindingContext="{Binding PlayerEditor.Legs}"     ControlTemplate="{StaticResource EquipmentSlotTemplate}">
+                                <ContentView.GestureRecognizers>
+                                    <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnSlotTapped" />
+                                    <DragGestureRecognizer CanDrag="True" DragStarting="OnSlotDragStarting" />
+                                    <DropGestureRecognizer AllowDrop="True" Drop="OnSlotDrop" />
+                                </ContentView.GestureRecognizers>
+                            </ContentView>
+                            <ContentView Grid.Row="3" Grid.Column="2" BindingContext="{Binding PlayerEditor.Tool}"     ControlTemplate="{StaticResource EquipmentSlotTemplate}">
+                                <ContentView.GestureRecognizers>
+                                    <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnSlotTapped" />
+                                    <DragGestureRecognizer CanDrag="True" DragStarting="OnSlotDragStarting" />
+                                    <DropGestureRecognizer AllowDrop="True" Drop="OnSlotDrop" />
+                                </ContentView.GestureRecognizers>
+                            </ContentView>
+
+                            <!-- Row 4: TrinketB / - / - -->
+                            <ContentView Grid.Row="4" Grid.Column="1" BindingContext="{Binding PlayerEditor.TrinketB}" ControlTemplate="{StaticResource EquipmentSlotTemplate}">
+                                <ContentView.GestureRecognizers>
+                                    <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnSlotTapped" />
+                                    <DragGestureRecognizer CanDrag="True" DragStarting="OnSlotDragStarting" />
+                                    <DropGestureRecognizer AllowDrop="True" Drop="OnSlotDrop" />
+                                </ContentView.GestureRecognizers>
+                            </ContentView>
+
+                            <!-- Row 5: spare empties (if any) -->
+                            <ContentView Grid.Row="5" Grid.Column="0" BindingContext="{Binding PlayerEditor.EyesEmpty}"  ControlTemplate="{StaticResource EquipmentSlotTemplate}">
+                                <ContentView.GestureRecognizers>
+                                    <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnSlotTapped" />
+                                    <DragGestureRecognizer CanDrag="True" DragStarting="OnSlotDragStarting" />
+                                    <DropGestureRecognizer AllowDrop="True" Drop="OnSlotDrop" />
+                                </ContentView.GestureRecognizers>
+                            </ContentView>
+                            <ContentView Grid.Row="5" Grid.Column="2" BindingContext="{Binding PlayerEditor.ExtraEmpty}" ControlTemplate="{StaticResource EquipmentSlotTemplate}">
+                                <ContentView.GestureRecognizers>
+                                    <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnSlotTapped" />
+                                    <DragGestureRecognizer CanDrag="True" DragStarting="OnSlotDragStarting" />
+                                    <DropGestureRecognizer AllowDrop="True" Drop="OnSlotDrop" />
+                                </ContentView.GestureRecognizers>
+                            </ContentView>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Main backpack grid — in-game POCKETS pane (themed chrome) -->
+                <Border Grid.Column="2"
+                        BackgroundColor="{DynamicResource AfShellBackground}"
+                        Stroke="{DynamicResource AfBorderSubtleBrush}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 6"
+                        Padding="14,12">
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Grid.Column="0" Text="{Binding PlayerEditor.BackpackTitle}"
+                                   Style="{StaticResource AfFieldLabel}"
+                                   TextColor="{DynamicResource AfAmber}" FontSize="12" CharacterSpacing="5" />
+                            <Label Grid.Column="1"
+                                   Text="{Binding PlayerEditor.Main.Count, StringFormat='{0} SLOTS'}"
+                                   Style="{StaticResource AfStatusText}" />
+                        </Grid>
+                        <CollectionView ItemsSource="{Binding PlayerEditor.Main}"
+                                        SelectionMode="None"
+                                        controls:ResponsiveLayout.ItemWidth="96"
+                                        controls:ResponsiveLayout.MaxSpan="8">
+                            <CollectionView.ItemsLayout>
+                                <GridItemsLayout Orientation="Vertical" Span="6"
+                                                 HorizontalItemSpacing="6" VerticalItemSpacing="6" />
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="items:InventorySlotViewModel">
+                                    <Border BackgroundColor="{StaticResource AfPanelBackground}"
+                                            Stroke="{StaticResource AfBorderSubtleBrush}"
+                                            StrokeThickness="1"
+                                            StrokeShape="Rectangle"
+                                            HeightRequest="98"
+                                            Padding="0">
+                                        <Border.Triggers>
+                                            <!-- The slot open in the slot editor gets the hazard ring -->
+                                            <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                                <Setter Property="Stroke" Value="{StaticResource AfHazardYellowBrush}" />
+                                                <Setter Property="StrokeThickness" Value="2" />
+                                                <Setter Property="BackgroundColor" Value="{StaticResource AfPanelHover}" />
+                                            </DataTrigger>
+                                        </Border.Triggers>
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnSlotTapped" />
+                                            <DragGestureRecognizer CanDrag="True" DragStarting="OnSlotDragStarting" />
+                                            <DropGestureRecognizer AllowDrop="True" Drop="OnSlotDrop" />
+                                        </Border.GestureRecognizers>
+                                        <Grid RowDefinitions="*,Auto" Padding="3">
+                                            <Image Grid.Row="0" Source="{Binding IconPath}" Aspect="AspectFit"
+                                                   IsVisible="{Binding HasIcon}" />
+                                            <Label Grid.Row="0" Text="{Binding Index, StringFormat='[{0:D2}]'}"
+                                                   FontFamily="Digital7" FontSize="14"
+                                                   TextColor="{StaticResource AfTextMuted}"
+                                                   HorizontalOptions="Start" VerticalOptions="Start"
+                                                   IsVisible="{Binding HasIcon, Converter={StaticResource BoolNegate}}" />
+                                            <Label Grid.Row="0" Text="{Binding CountText}"
+                                                   FontFamily="Digital7" FontSize="16"
+                                                   TextColor="{StaticResource AfTerminalGreen}"
+                                                   HorizontalOptions="End" VerticalOptions="End"
+                                                   IsVisible="{Binding ShowCount}" />
+                                            <Label Grid.Row="0" Text="▲"
+                                                   FontSize="12" FontAttributes="Bold"
+                                                   TextColor="{StaticResource AfHazardYellow}"
+                                                   HorizontalOptions="End" VerticalOptions="Start"
+                                                   Margin="0,-2,2,0"
+                                                   IsVisible="{Binding IsUpgradable}" />
+                                            <!-- Special backpack slot (cold/freezer/shielded/warm) -->
+                                            <Label Grid.Row="0" Text="{Binding Role}"
+                                                   FontSize="7" CharacterSpacing="1"
+                                                   TextColor="{DynamicResource AfAmber}"
+                                                   HorizontalOptions="Center" VerticalOptions="Start"
+                                                   IsVisible="{Binding HasRole}" />
+                                            <Label Grid.Row="1" Text="{Binding DisplayName}"
+                                                   FontSize="9"
+                                                   TextColor="{StaticResource AfTextSecondary}"
+                                                   LineBreakMode="TailTruncation" MaxLines="1"
+                                                   HorizontalTextAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                        <!-- Pocket footer like the game: money + sort + drop -->
+                        <Grid ColumnDefinitions="Auto,110,*,Auto,Auto" ColumnSpacing="10">
+                            <Label Grid.Column="0" Text="MONEY" Style="{StaticResource AfFieldLabel}"
+                                   TextColor="{DynamicResource AfAmber}" VerticalOptions="Center" />
+                            <Entry Grid.Column="1"
+                                   Text="{Binding PlayerEditor.Money, Mode=TwoWay}" Keyboard="Numeric"
+                                   FontFamily="Digital7" FontSize="16"
+                                   TextColor="{StaticResource AfTerminalGreen}"
+                                   HorizontalTextAlignment="Center" VerticalOptions="Center" />
+                            <Button Grid.Column="3" Text="SORT"
+                                    Style="{StaticResource AfGhostButton}"
+                                    ToolTipProperties.Text="Sorts the backpack: items grouped by category and name, empties last."
+                                    Clicked="OnSortBackpack" />
+                            <Button Grid.Column="4" Text="DROP ITEM"
+                                    BackgroundColor="{StaticResource AfAlertRed}"
+                                    TextColor="{StaticResource AfTextOnAccent}"
+                                    FontSize="11" Padding="14,6"
+                                    IsEnabled="{Binding ActiveSlot.IsEmpty, Converter={StaticResource BoolNegate}, FallbackValue=False}"
+                                    ToolTipProperties.Text="Select an occupied slot, then DROP places that item on the world ground near you. On SAVE it is written to the world save and appears in NEARBY GROUND ITEMS (.bak kept)."
+                                    Clicked="OnDropActiveItem" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Hotbar: vertical numbered column beside the character, like the game -->
+                <Border Grid.Column="1" WidthRequest="126"
+                        BackgroundColor="{StaticResource AfShellBackground}"
+                        Stroke="{StaticResource AfBorderSubtleBrush}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 6"
+                        Padding="8,12">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="HOTBAR" Style="{StaticResource AfFieldLabel}" HorizontalTextAlignment="Center" />
+                    <CollectionView ItemsSource="{Binding PlayerEditor.Hotbar}"
+                                    SelectionMode="None"
+                                    controls:ResponsiveLayout.ItemWidth="96"
+                                    controls:ResponsiveLayout.MaxSpan="8">
+                        <CollectionView.ItemsLayout>
+                            <GridItemsLayout Orientation="Vertical" Span="1"
+                                             HorizontalItemSpacing="6" VerticalItemSpacing="6" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="items:InventorySlotViewModel">
+                                <Border BackgroundColor="{StaticResource AfPanelBackground}"
+                                        Stroke="{StaticResource AfBorderSubtleBrush}"
+                                        StrokeThickness="1"
+                                        StrokeShape="Rectangle"
+                                        HeightRequest="98"
+                                        Padding="0">
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                            <Setter Property="Stroke" Value="{StaticResource AfHazardYellowBrush}" />
+                                            <Setter Property="StrokeThickness" Value="2" />
+                                            <Setter Property="BackgroundColor" Value="{StaticResource AfPanelHover}" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnSlotTapped" />
+                                        <DragGestureRecognizer CanDrag="True" DragStarting="OnSlotDragStarting" />
+                                        <DropGestureRecognizer AllowDrop="True" Drop="OnSlotDrop" />
+                                    </Border.GestureRecognizers>
+                                    <Grid RowDefinitions="*,Auto" Padding="3">
+                                        <Image Grid.Row="0" Source="{Binding IconPath}" Aspect="AspectFit"
+                                               IsVisible="{Binding HasIcon}" />
+                                        <Border Grid.Row="0"
+                                                BackgroundColor="{StaticResource AfAccentOrange}"
+                                                StrokeThickness="0"
+                                                StrokeShape="Rectangle"
+                                                WidthRequest="18" HeightRequest="18"
+                                                HorizontalOptions="Start" VerticalOptions="Start"
+                                                Padding="0">
+                                            <Label Text="{Binding Index}"
+                                                   FontFamily="Digital7" FontSize="14"
+                                                   TextColor="{StaticResource AfTextOnAccent}"
+                                                   HorizontalOptions="Center" VerticalOptions="Center" />
+                                        </Border>
+                                        <Label Grid.Row="0" Text="{Binding CountText}"
+                                               FontFamily="Digital7" FontSize="16"
+                                               TextColor="{StaticResource AfTerminalGreen}"
+                                               HorizontalOptions="End" VerticalOptions="End"
+                                               IsVisible="{Binding ShowCount}" />
+                                        <Label Grid.Row="0" Text="▲"
+                                               FontSize="12" FontAttributes="Bold"
+                                               TextColor="{StaticResource AfHazardYellow}"
+                                               HorizontalOptions="End" VerticalOptions="Start"
+                                               Margin="0,-2,2,0"
+                                               IsVisible="{Binding IsUpgradable}" />
+                                        <Label Grid.Row="1" Text="{Binding DisplayName}"
+                                               FontSize="9"
+                                               TextColor="{StaticResource AfTextSecondary}"
+                                               LineBreakMode="TailTruncation" MaxLines="1"
+                                               HorizontalTextAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+                </Border>
+            </controls:AdaptiveGrid>
+
+            <!-- Dropped items lying within reach of the player's saved position:
+                 PICK UP stages them into the first empty backpack slot; the world
+                 save's ground entry is removed when the player save is SAVEd. -->
+            <Border BackgroundColor="{StaticResource AfShellBackground}"
+                    Stroke="{StaticResource AfBorderSubtleBrush}"
+                    StrokeThickness="1" StrokeShape="Rectangle"
+                    Padding="14,10"
+                    IsVisible="{Binding HasNearbyGroundItems}">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="ON THE GROUND NEARBY" Style="{StaticResource AfFieldLabel}" FontSize="12"
+                           TextColor="{StaticResource AfAmber}" CharacterSpacing="5" />
+                    <Label Text="Items dropped within reach of where this player last stood. PICK UP moves one into the first empty backpack slot (staged); SAVE writes the inventory and removes it from the ground (.bak kept). DISCARD leaves it lying there."
+                           Style="{StaticResource AfMuted}" FontSize="10" LineBreakMode="WordWrap" />
+                    <VerticalStackLayout Spacing="4"
+                                         BindableLayout.ItemsSource="{Binding NearbyGroundItems}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="vm:GroundItemOption">
+                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12"
+                                      BackgroundColor="{StaticResource AfPanelBackground}"
+                                      Padding="10,6">
+                                    <VerticalStackLayout Grid.Column="0" Spacing="1" VerticalOptions="Center">
+                                        <Label Text="{Binding DisplayName}"
+                                               Style="{StaticResource AfFieldValue}" FontSize="12" />
+                                        <Label Text="{Binding Detail}"
+                                               Style="{StaticResource AfStatusText}" FontSize="9" />
+                                    </VerticalStackLayout>
+                                    <Button Grid.Column="2" Text="PICK UP"
+                                            FontSize="10" Padding="12,4"
+                                            BackgroundColor="{StaticResource AfTerminalGreen}"
+                                            TextColor="{StaticResource AfTextOnAccent}"
+                                            Clicked="OnPickUpGroundItem"
+                                            VerticalOptions="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </Border>
+</ContentView>

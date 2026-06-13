@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:world="clr-namespace:AbioticEditor.App.Views.World"
+             xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             x:Class="AbioticEditor.App.Views.World.WorldEditorView"
+             x:DataType="vm:MainViewModel"
+             IsVisible="{Binding HasWorldEditor}">
+
+    <!-- World save editor -->
+    <Border Style="{StaticResource AfPanel}" Padding="20,16"
+            controls:Fx.Reveal="True"
+            IsVisible="{Binding HasWorldEditor}">
+        <VerticalStackLayout Spacing="14">
+
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                <Label Grid.Column="0" Text="WORLD SAVE" Style="{StaticResource AfH2}" VerticalOptions="Center" />
+                <Label Grid.Column="1"
+                       Text="{Binding WorldEditor.FileName}"
+                       Style="{StaticResource AfStatusText}"
+                       VerticalOptions="Center" />
+            </Grid>
+
+            <!-- Summary chips -->
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="24">
+                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                    <Label Text="CONTAINERS" Style="{StaticResource AfFieldLabel}" />
+                    <Label Text="{Binding WorldEditor.ContainerCount}"
+                           Style="{StaticResource AfReadout}" FontSize="18" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                    <Label Text="WITH CONTENTS" Style="{StaticResource AfFieldLabel}" />
+                    <Label Text="{Binding WorldEditor.NonEmptyCount}"
+                           Style="{StaticResource AfReadout}" FontSize="18" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="2" Spacing="2">
+                    <Label Text="STATUS" Style="{StaticResource AfFieldLabel}" />
+                    <Label Text="{Binding WorldEditor.SaveStatus, FallbackValue='Ready'}"
+                           Style="{StaticResource AfMuted}" FontSize="13" VerticalOptions="Center" />
+                </VerticalStackLayout>
+            </Grid>
+
+            <!-- World clock (Facility save's TimeOfDay struct) -->
+            <controls:AdaptiveGrid ColumnDefinitions="Auto,90,Auto,*,Auto" ColumnSpacing="12" CompactWidth="560"
+                                   IsVisible="{Binding WorldEditor.HasWorldClock, FallbackValue=False}">
+                <Label Grid.Column="0" Text="WORLD DAY" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Entry Grid.Column="1"
+                       Text="{Binding WorldEditor.WorldDay, Mode=TwoWay}"
+                       Keyboard="Numeric"
+                       FontFamily="Digital7" FontSize="16"
+                       TextColor="{StaticResource AfTerminalGreen}"
+                       HorizontalTextAlignment="Center" VerticalOptions="Center" />
+                <Label Grid.Column="2" Text="TIME OF DAY" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Slider Grid.Column="3" Minimum="0" Maximum="86400"
+                        Value="{Binding WorldEditor.WorldTimeSeconds, Mode=TwoWay}"
+                        MinimumTrackColor="{StaticResource AfHazardYellow}"
+                        MaximumTrackColor="{StaticResource AfPanelElevated}"
+                        ThumbColor="{StaticResource AfTerminalGreen}"
+                        VerticalOptions="Center" />
+                <Label Grid.Column="4" Text="{Binding WorldEditor.WorldTimeText}"
+                       Style="{StaticResource AfReadout}" FontSize="16" VerticalOptions="Center" />
+            </controls:AdaptiveGrid>
+
+            <!-- First-entered day (region saves) -->
+            <Grid ColumnDefinitions="Auto,90,*" ColumnSpacing="12"
+                  IsVisible="{Binding WorldEditor.HasDayDiscovered, FallbackValue=False}">
+                <Label Grid.Column="0" Text="DAY DISCOVERED" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Entry Grid.Column="1"
+                       Text="{Binding WorldEditor.DayDiscovered, Mode=TwoWay}"
+                       Keyboard="Numeric"
+                       FontFamily="Digital7" FontSize="16"
+                       TextColor="{StaticResource AfTerminalGreen}"
+                       HorizontalTextAlignment="Center" VerticalOptions="Center" />
+                <Label Grid.Column="2"
+                       Text="The in-game day this region was first entered (drives the day counter shown on its map pamphlet)."
+                       Style="{StaticResource AfMuted}" FontSize="10" VerticalOptions="Center" />
+            </Grid>
+
+            <BoxView Style="{StaticResource AfHazardStripe}" />
+
+            <!-- ===== Tab bar (scrollable strip) ===== -->
+            <ScrollView Orientation="Horizontal"
+                        HorizontalScrollBarVisibility="Never">
+                <HorizontalStackLayout Spacing="4">
+                    <!-- The metadata save holds only story/recipes — no containers,
+                         flags or doors; hide those tabs there entirely. -->
+                    <Button Text="CONTAINERS" Style="{StaticResource AfTabButton}"
+                            Command="{Binding WorldEditor.ShowContainersCommand}"
+                            BackgroundColor="{Binding WorldEditor.IsContainersTab, Converter={StaticResource TabBrush}}"
+                            IsVisible="{Binding WorldEditor.IsMetadataSave, Converter={StaticResource BoolNegate}}" />
+                    <Button Text="QUEST FLAGS" Style="{StaticResource AfTabButton}"
+                            Command="{Binding WorldEditor.ShowFlagsCommand}"
+                            BackgroundColor="{Binding WorldEditor.IsFlagsTab, Converter={StaticResource TabBrush}}"
+                            IsVisible="{Binding WorldEditor.IsMetadataSave, Converter={StaticResource BoolNegate}}" />
+                    <Button Text="DOORS" Style="{StaticResource AfTabButton}"
+                            Command="{Binding WorldEditor.ShowDoorsCommand}"
+                            BackgroundColor="{Binding WorldEditor.IsDoorsTab, Converter={StaticResource TabBrush}}"
+                            IsVisible="{Binding WorldEditor.IsMetadataSave, Converter={StaticResource BoolNegate}}" />
+                    <Button Text="DROPPED" Style="{StaticResource AfTabButton}"
+                            Command="{Binding WorldEditor.ShowDroppedCommand}"
+                            BackgroundColor="{Binding WorldEditor.IsDroppedTab, Converter={StaticResource TabBrush}}"
+                            IsVisible="{Binding WorldEditor.HasDroppedItems}" />
+                    <Button Text="NPCS" Style="{StaticResource AfTabButton}"
+                            Command="{Binding WorldEditor.ShowNpcsCommand}"
+                            BackgroundColor="{Binding WorldEditor.IsNpcsTab, Converter={StaticResource TabBrush}}"
+                            IsVisible="{Binding WorldEditor.HasNpcs}" />
+                    <Button Text="BASES" Style="{StaticResource AfTabButton}"
+                            Command="{Binding WorldEditor.ShowBasesCommand}"
+                            BackgroundColor="{Binding WorldEditor.IsBasesTab, Converter={StaticResource TabBrush}}"
+                            IsVisible="{Binding WorldEditor.HasBases}" />
+                    <Button Text="STORY" Style="{StaticResource AfTabButton}"
+                            Command="{Binding WorldEditor.ShowMetaCommand}"
+                            BackgroundColor="{Binding WorldEditor.IsMetaTab, Converter={StaticResource TabBrush}}"
+                            IsVisible="{Binding WorldEditor.IsMetadataSave}" />
+                    <Button Text="TRADERS" Style="{StaticResource AfTabButton}"
+                            Command="{Binding WorldEditor.ShowTradersCommand}"
+                            BackgroundColor="{Binding WorldEditor.IsTradersTab, Converter={StaticResource TabBrush}}"
+                            IsVisible="{Binding WorldEditor.IsMetadataSave}" />
+                    <Button Text="CONTAINMENT" Style="{StaticResource AfTabButton}"
+                            Command="{Binding WorldEditor.ShowContainmentCommand}"
+                            BackgroundColor="{Binding WorldEditor.IsContainmentTab, Converter={StaticResource TabBrush}}"
+                            IsVisible="{Binding WorldEditor.IsMetadataSave}" />
+                    <Button Text="RAW JSON" Style="{StaticResource AfTabButton}"
+                            Command="{Binding WorldEditor.ShowRawCommand}"
+                            BackgroundColor="{Binding WorldEditor.IsRawTab, Converter={StaticResource TabBrush}}" />
+                </HorizontalStackLayout>
+            </ScrollView>
+
+            <!-- Lazily realized per tab (see LazyView): only opened tabs join the live tree. -->
+            <controls:LazyView IsActive="{Binding WorldEditor.IsDroppedTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><world:WorldDroppedTab /></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding WorldEditor.IsNpcsTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><world:WorldNpcsTab /></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding WorldEditor.IsBasesTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><world:WorldBasesTab /></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding WorldEditor.IsMetaTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><world:WorldStoryTab /></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding WorldEditor.IsTradersTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><world:WorldTradersTab /></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding WorldEditor.IsContainmentTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><world:WorldContainmentTab /></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding WorldEditor.IsContainersTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><world:WorldContainersTab /></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding WorldEditor.IsFlagsTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><world:WorldFlagsTab /></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding WorldEditor.IsDoorsTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><world:WorldDoorsTab /></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding WorldEditor.IsRawTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><world:WorldRawTab /></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+        </VerticalStackLayout>
+    </Border>
+</ContentView>

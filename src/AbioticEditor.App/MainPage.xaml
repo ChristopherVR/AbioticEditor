@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:views="clr-namespace:AbioticEditor.App.Views"
+             xmlns:player="clr-namespace:AbioticEditor.App.Views.Player"
+             xmlns:world="clr-namespace:AbioticEditor.App.Views.World"
+             x:Class="AbioticEditor.App.MainPage"
+             x:Name="Root"
+             x:DataType="vm:MainViewModel"
+             Title="Abiotic Factor — Save Editor"
+             BackgroundColor="{StaticResource AfPageBackground}"
+             Shell.NavBarIsVisible="False">
+
+    <Grid RowDefinitions="Auto,3,*,Auto"
+          ColumnDefinitions="*"
+          RowSpacing="0">
+
+        <views:HeaderBarView x:Name="HeaderBar" Grid.Row="0" />
+
+        <!-- Hazard stripe under the header -->
+        <BoxView Grid.Row="1" Style="{StaticResource AfHazardStripe}" />
+
+        <!-- ===== Main body: three inline panes on desktop. Below the drawer
+             threshold the two side panes re-home into the overlay hosts at the end
+             of this grid and slide in over the editor (with a tap-to-close scrim),
+             so the editor always keeps the full width on phones. ===== -->
+        <Grid Grid.Row="2">
+            <Grid x:Name="BodyColumns" ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="0">
+
+                <ContentView x:Name="FileSidebarInlineHost" Grid.Column="0">
+                    <views:FileSidebarView x:Name="FileSidebar" WidthRequest="340" />
+                </ContentView>
+
+                <!-- Left splitter: drag to resize the save list, click the chevron to
+                     show/hide it. Lives with the pane, not in the nav bar. -->
+                <Grid x:Name="FileSplitter" Grid.Column="1"
+                      WidthRequest="16" RowDefinitions="Auto,*"
+                      BackgroundColor="{StaticResource AfPanelElevated}">
+                    <Button x:Name="FileToggleButton" Grid.Row="0"
+                            Text="&#xE5CB;"
+                            FontFamily="MaterialSymbols" FontSize="14"
+                            BackgroundColor="Transparent"
+                            TextColor="{StaticResource AfTextSecondary}"
+                            Padding="0" Margin="0,10,0,0"
+                            WidthRequest="16" HeightRequest="26"
+                            VerticalOptions="Start"
+                            ToolTipProperties.Text="Show or hide the save-file list"
+                            Clicked="OnToggleFilePane" />
+                    <Border Grid.Row="1" x:Name="FileSplitterGrip"
+                            BackgroundColor="{StaticResource AfPanelElevated}">
+                        <Border.GestureRecognizers>
+                            <PanGestureRecognizer PanUpdated="OnFileSplitterPan" />
+                        </Border.GestureRecognizers>
+                        <BoxView WidthRequest="2" HeightRequest="40" CornerRadius="1"
+                                 Color="{StaticResource AfTextMuted}"
+                                 HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
+                </Grid>
+
+                <!-- Detail panel: fixed header (row 0) over a bounded editor region (row 1).
+                     Pulling the editors out of one page-level ScrollView lets each tabbed editor
+                     scroll internally, so switching tabs re-lays-out only the open tab (and lists
+                     virtualize within the viewport) instead of re-measuring the whole editor. -->
+                <Grid Grid.Column="2" Padding="0" RowDefinitions="Auto,*">
+                    <VerticalStackLayout Grid.Row="0" Padding="32,28,32,12" Spacing="16">
+
+                        <!-- Compact selected-save header: title + meta chips + save controls -->
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                            <VerticalStackLayout Grid.Column="0" Spacing="3" VerticalOptions="Center">
+                                <Label Text="{Binding SelectedSave.DisplayName, FallbackValue='— select a save from the sidebar —'}"
+                                       Style="{StaticResource AfH1}"
+                                       LineBreakMode="MiddleTruncation" />
+                                <HorizontalStackLayout Spacing="12">
+                                    <Label Text="{Binding SelectedSave.KindLabel, FallbackValue=''}"
+                                           Style="{StaticResource AfFieldLabel}"
+                                           TextColor="{StaticResource AfAccentOrange}"
+                                           VerticalOptions="Center" />
+                                    <Label Text="{Binding SelectedSave.SizeText, FallbackValue=''}"
+                                           Style="{StaticResource AfStatusText}" VerticalOptions="Center" />
+                                    <Label Text="{Binding PlayerEditor.SaveStatus}"
+                                           Style="{StaticResource AfMuted}" FontSize="11" VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+
+                            <!-- Player save controls — always visible at the top, no scrolling to save -->
+                            <HorizontalStackLayout Grid.Column="1" Spacing="10" VerticalOptions="Center"
+                                                   IsVisible="{Binding HasPlayerEditor}">
+                                <HorizontalStackLayout Spacing="8" VerticalOptions="Center"
+                                                       IsVisible="{Binding PlayerEditor.IsDirty, FallbackValue=False}">
+                                    <BoxView WidthRequest="8" HeightRequest="8" CornerRadius="4"
+                                             BackgroundColor="{StaticResource AfHazardYellow}" VerticalOptions="Center" />
+                                    <Label Text="UNSAVED" Style="{StaticResource AfFieldLabel}"
+                                           TextColor="{StaticResource AfHazardYellow}" VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                                <Button Text="REVERT"
+                                        BackgroundColor="{StaticResource AfPanelElevated}"
+                                        TextColor="{StaticResource AfTextPrimary}"
+                                        Command="{Binding PlayerEditor.RevertCommand}" />
+                                <Button Text="SAVE"
+                                        Command="{Binding PlayerEditor.SaveCommand}" />
+                            </HorizontalStackLayout>
+
+                            <!-- World save controls -->
+                            <HorizontalStackLayout Grid.Column="1" Spacing="10" VerticalOptions="Center"
+                                                   IsVisible="{Binding HasWorldEditor}">
+                                <HorizontalStackLayout Spacing="8" VerticalOptions="Center"
+                                                       IsVisible="{Binding WorldEditor.IsDirty, FallbackValue=False}">
+                                    <BoxView WidthRequest="8" HeightRequest="8" CornerRadius="4"
+                                             BackgroundColor="{StaticResource AfHazardYellow}" VerticalOptions="Center" />
+                                    <Label Text="UNSAVED" Style="{StaticResource AfFieldLabel}"
+                                           TextColor="{StaticResource AfHazardYellow}" VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                                <Button Text="REVERT"
+                                        BackgroundColor="{StaticResource AfPanelElevated}"
+                                        TextColor="{StaticResource AfTextPrimary}"
+                                        Command="{Binding WorldEditor.RevertCommand}" />
+                                <Button Text="SAVE"
+                                        Command="{Binding WorldEditor.SaveCommand}" />
+                            </HorizontalStackLayout>
+                        </Grid>
+
+                        <BoxView Style="{StaticResource AfDivider}" />
+
+                        <!-- Loading indicator (the Facility save parses for several seconds) -->
+                        <Border Style="{StaticResource AfPanel}" Padding="20,24"
+                                IsVisible="{Binding IsLoadingEditor}">
+                            <HorizontalStackLayout Spacing="14" HorizontalOptions="Center">
+                                <ActivityIndicator IsRunning="{Binding IsLoadingEditor}"
+                                                   WidthRequest="22" HeightRequest="22"
+                                                   Color="{StaticResource AfAccentOrange}"
+                                                   VerticalOptions="Center" />
+                                <Label Text="PARSING SAVE — large world saves can take a few seconds…"
+                                       Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                        </Border>
+
+                        <!-- Error banner -->
+                        <Border BackgroundColor="{StaticResource AfPanelElevated}"
+                                Stroke="{StaticResource AfAlertRedBrush}"
+                                StrokeThickness="1"
+                                StrokeShape="Rectangle"
+                                Padding="16,12"
+                                IsVisible="{Binding SelectedSave.LoadError, Converter={StaticResource NullToBoolConverter}}">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="PARSE ERROR"
+                                       Style="{StaticResource AfFieldLabel}"
+                                       TextColor="{StaticResource AfAlertRed}" />
+                                <Label Text="{Binding SelectedSave.LoadError}"
+                                       Style="{StaticResource AfFieldValue}"
+                                       TextColor="{StaticResource AfTextPrimary}" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- Save-version compatibility banners (newer/unknown saves) -->
+                        <Border BackgroundColor="{StaticResource AfPanelElevated}"
+                                Stroke="{StaticResource AfHazardYellowBrush}"
+                                StrokeThickness="1" StrokeShape="Rectangle" Padding="16,10"
+                                IsVisible="{Binding PlayerEditor.HasCompatibilityWarning, FallbackValue=False}">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="⚠ SAVE VERSION WARNING" Style="{StaticResource AfFieldLabel}"
+                                       TextColor="{StaticResource AfHazardYellow}" />
+                                <Label Text="{Binding PlayerEditor.CompatibilityWarning}"
+                                       Style="{StaticResource AfFieldValue}" FontSize="12" LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border BackgroundColor="{StaticResource AfPanelElevated}"
+                                Stroke="{StaticResource AfHazardYellowBrush}"
+                                StrokeThickness="1" StrokeShape="Rectangle" Padding="16,10"
+                                IsVisible="{Binding WorldEditor.HasCompatibilityWarning, FallbackValue=False}">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="⚠ SAVE VERSION WARNING" Style="{StaticResource AfFieldLabel}"
+                                       TextColor="{StaticResource AfHazardYellow}" />
+                                <Label Text="{Binding WorldEditor.CompatibilityWarning}"
+                                       Style="{StaticResource AfFieldValue}" FontSize="12" LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                    </VerticalStackLayout>
+
+                    <!-- Editor region: bounded viewport. The tabbed player/world editors manage
+                         their own per-tab scrolling; the single-page views scroll as a whole. All
+                         four overlap and are gated by IsVisible (only one editor is ever active). -->
+                    <Grid Grid.Row="1" Padding="32,0,32,16">
+                        <player:PlayerEditorView />
+                        <ScrollView IsVisible="{Binding HasWorldEditor}">
+                            <world:WorldEditorView />
+                        </ScrollView>
+                        <ScrollView IsVisible="{Binding HasIniEditor}">
+                            <views:IniEditorView />
+                        </ScrollView>
+                        <ScrollView IsVisible="{Binding HasNoEditor}">
+                            <views:EmptyStateView />
+                        </ScrollView>
+                    </Grid>
+                </Grid>
+
+                <!-- Right splitter: drag to resize the slot editor, click the chevron to
+                     show/hide it. -->
+                <Grid x:Name="SlotSplitter" Grid.Column="3"
+                      WidthRequest="16" RowDefinitions="Auto,*"
+                      BackgroundColor="{StaticResource AfPanelElevated}">
+                    <Button x:Name="SlotToggleButton" Grid.Row="0"
+                            Text="&#xE5CC;"
+                            FontFamily="MaterialSymbols" FontSize="14"
+                            BackgroundColor="Transparent"
+                            TextColor="{StaticResource AfTextSecondary}"
+                            Padding="0" Margin="0,10,0,0"
+                            WidthRequest="16" HeightRequest="26"
+                            VerticalOptions="Start"
+                            ToolTipProperties.Text="Show or hide the slot editor &amp; item catalog"
+                            Clicked="OnToggleSlotPane" />
+                    <Border Grid.Row="1" x:Name="SlotSplitterGrip"
+                            BackgroundColor="{StaticResource AfPanelElevated}">
+                        <Border.GestureRecognizers>
+                            <PanGestureRecognizer PanUpdated="OnSlotSplitterPan" />
+                        </Border.GestureRecognizers>
+                        <BoxView WidthRequest="2" HeightRequest="40" CornerRadius="1"
+                                 Color="{StaticResource AfTextMuted}"
+                                 HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
+                </Grid>
+
+                <ContentView x:Name="SlotSidebarInlineHost" Grid.Column="4">
+                    <views:SlotSidebarView x:Name="SlotSidebar" WidthRequest="400" />
+                </ContentView>
+            </Grid>
+
+            <!-- Drawer scrim: dims the editor while an overlay pane is open; tap closes. -->
+            <BoxView x:Name="DrawerScrim"
+                     BackgroundColor="#000000"
+                     Opacity="0"
+                     IsVisible="False">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnScrimTapped" />
+                </BoxView.GestureRecognizers>
+            </BoxView>
+
+            <!-- Overlay drawer hosts: the side panes re-home here on narrow widths. -->
+            <ContentView x:Name="FileSidebarOverlayHost"
+                         HorizontalOptions="Start"
+                         IsVisible="False" />
+            <ContentView x:Name="SlotSidebarOverlayHost"
+                         HorizontalOptions="End"
+                         IsVisible="False" />
+        </Grid>
+
+        <views:StatusBarView x:Name="StatusBar" Grid.Row="3" />
+
+        <!-- In-app modal dialog: spans the whole page, above the body and status bar.
+             Hidden until DialogViewModel.Current opens it. -->
+        <views:DialogHostView x:Name="DialogHost" Grid.RowSpan="4" />
+
+    </Grid>
+</ContentPage>

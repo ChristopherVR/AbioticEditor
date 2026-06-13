@@ -1,0 +1,11 @@
+{
+  "id": "com.abioticeditor.samples.max-skills",
+  "name": "Max Skills",
+  "version": "1.0.0",
+  "author": "Abiotic Editor samples",
+  "description": "Adds a 'max-skills' save operation that levels every skill on a player save to a target level.",
+  "entryAssembly": "MaxSkills.dll",
+  "minHostVersion": "1.0.0",
+  "capabilities": ["saveOperation"],
+  "enabled": true
+}

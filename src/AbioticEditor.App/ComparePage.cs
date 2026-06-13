@@ -1,0 +1,529 @@
+using System.Collections.ObjectModel;
+
+using AbioticEditor.App.ViewModels;
+using AbioticEditor.App.Views;
+using AbioticEditor.Core.Compare;
+using AbioticEditor.Core.Saves;
+
+using CommunityToolkit.Maui.Storage;
+
+namespace AbioticEditor.App;
+
+/// <summary>
+/// Modal save-comparison sheet. Diffs two save files, or two folders of saves (e.g. a world
+/// vs one of its backups), and lists every property-level difference. Built in code so it
+/// picks up the live palette - mirrors <see cref="SettingsPage"/>.
+/// </summary>
+public sealed class ComparePage : ContentPage
+{
+    private enum CompareMode { Files, Folders }
+
+    private readonly MainViewModel _vm;
+    private CompareMode _mode = CompareMode.Files;
+    private string? _pathA;
+    private string? _pathB;
+
+    private Label _slotALabel = null!;
+    private Label _slotBLabel = null!;
+    private Button _compareButton = null!;
+    private ActivityIndicator _busy = null!;
+    private VerticalStackLayout _resultsHost = null!;
+    private Label _summaryLabel = null!;
+
+    public ComparePage(MainViewModel vm)
+    {
+        _vm = vm;
+        Title = "Compare";
+        BackgroundColor = Res("AfPageBackground");
+
+        // Default the first slot to whatever the editor currently has open / loaded.
+        _pathA = _vm.SelectedSave?.FullPath ?? _vm.Saves.FirstOrDefault()?.FullPath;
+
+        Content = BuildContent();
+        RefreshSlotLabels();
+    }
+
+    private static Color Res(string key) => (Color)Application.Current!.Resources[key];
+
+    private View BuildContent()
+    {
+        var accent = Res("AfAccentOrange");
+        var muted = Res("AfTextSecondary");
+
+        var modeToggle = ModalChrome.Segmented(
+            new[] { "FILE vs FILE", "FOLDER vs FOLDER" },
+            selected: _mode == CompareMode.Files ? 0 : 1,
+            onChange: i => SetMode(i == 0 ? CompareMode.Files : CompareMode.Folders));
+
+        _slotALabel = new Label { TextColor = muted, FontSize = 12, LineBreakMode = LineBreakMode.MiddleTruncation };
+        _slotBLabel = new Label { TextColor = muted, FontSize = 12, LineBreakMode = LineBreakMode.MiddleTruncation };
+
+        var browseA = ModalChrome.Button("BROWSE…", primary: false);
+        browseA.Clicked += async (_, _) => await PickAsync(isA: true);
+        var browseB = ModalChrome.Button("BROWSE…", primary: false);
+        browseB.Clicked += async (_, _) => await PickAsync(isA: false);
+
+        // Quick-pick from the saves already loaded in the editor (file mode only).
+        var quickA = BuildQuickPicker(isA: true);
+        var quickB = BuildQuickPicker(isA: false);
+
+        _compareButton = new Button { Text = "COMPARE" };
+        _compareButton.Clicked += async (_, _) => await RunCompareAsync();
+
+        _busy = new ActivityIndicator { IsRunning = false, IsVisible = false, Color = accent, HeightRequest = 22, VerticalOptions = LayoutOptions.Center };
+
+        _summaryLabel = new Label { FontSize = 13, FontFamily = "OpenSansSemibold", IsVisible = false };
+        // Holds the rendered result cards (semantic sections + raw deep-dive); appended to
+        // the scaffold body directly so each result is its own facility card.
+        _resultsHost = new VerticalStackLayout { Spacing = 14 };
+
+        var modeCard = ModalChrome.Card("MODE",
+            "Two player saves get a readable, side-by-side summary (recipes, fish, skills…); any saves also expose the full raw property diff. Folder mode diffs a world against one of its backups.",
+            modeToggle);
+
+        var sourcesCard = ModalChrome.Card("SOURCES", null,
+            ModalChrome.SubLabel("A  ·  first / old"),
+            new HorizontalStackLayout { Spacing = 10, Children = { quickA, browseA } },
+            _slotALabel,
+            new BoxView { HeightRequest = 6, Color = Colors.Transparent },
+            ModalChrome.SubLabel("B  ·  second / new"),
+            new HorizontalStackLayout { Spacing = 10, Children = { quickB, browseB } },
+            _slotBLabel);
+
+        var runCard = ModalChrome.Card("COMPARE", null,
+            new HorizontalStackLayout { Spacing = 12, Children = { _compareButton, _busy } },
+            _summaryLabel);
+
+        var close = ModalChrome.Button("CLOSE", primary: false);
+        close.Clicked += async (_, _) => await Navigation.PopModalAsync();
+
+        return ModalChrome.Scaffold(
+            "SAVE DIAGNOSTICS", "Compare Saves",
+            new View[] { modeCard, sourcesCard, runCard, _resultsHost },
+            ModalChrome.Footer(close),
+            maxWidth: 980);
+    }
+
+    /// <summary>A picker of the editor's currently loaded saves, for quick file selection.</summary>
+    private Picker BuildQuickPicker(bool isA)
+    {
+        var picker = new Picker
+        {
+            Title = "Loaded saves…",
+            FontSize = 11,
+            WidthRequest = 320,
+            IsVisible = _mode == CompareMode.Files,
+        };
+        foreach (var s in _vm.Saves)
+        {
+            picker.Items.Add(s.DisplayName);
+        }
+        picker.SelectedIndexChanged += (_, _) =>
+        {
+            if (picker.SelectedIndex < 0 || picker.SelectedIndex >= _vm.Saves.Count) return;
+            var path = _vm.Saves[picker.SelectedIndex].FullPath;
+            if (isA) _pathA = path; else _pathB = path;
+            RefreshSlotLabels();
+        };
+        return picker;
+    }
+
+    private void SetMode(CompareMode mode)
+    {
+        if (_mode == mode) return;
+        _mode = mode;
+        _pathA = _pathB = null;
+        ClearResults();
+        // Rebuild so the quick-pickers show/hide for the new mode.
+        Content = BuildContent();
+        RefreshSlotLabels();
+    }
+
+    private void RefreshSlotLabels()
+    {
+        _slotALabel.Text = _pathA is null ? "(nothing selected)" : _pathA;
+        _slotBLabel.Text = _pathB is null ? "(nothing selected)" : _pathB;
+    }
+
+    private async Task PickAsync(bool isA)
+    {
+        try
+        {
+            string? picked;
+            if (_mode == CompareMode.Folders)
+            {
+                var result = await FolderPicker.PickAsync(CancellationToken.None);
+                if (!result.IsSuccessful || result.Folder is null) return;
+                picked = result.Folder.Path;
+            }
+            else
+            {
+                var savType = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+                {
+                    { DevicePlatform.WinUI, new[] { ".sav" } },
+                    { DevicePlatform.MacCatalyst, new[] { "sav", "public.data" } },
+                });
+                var result = await FilePicker.PickAsync(new PickOptions { PickerTitle = "Pick a .sav file", FileTypes = savType });
+                if (result is null) return;
+                picked = result.FullPath;
+            }
+
+            if (isA) _pathA = picked; else _pathB = picked;
+            RefreshSlotLabels();
+        }
+        catch (Exception ex) when (!IsCancellation(ex))
+        {
+            await ViewUtils.AlertAsync(this, "Picker failed", ex.Message);
+        }
+    }
+
+    private static bool IsCancellation(Exception ex) =>
+        ex is OperationCanceledException || ex.Message.Contains("cancel", StringComparison.OrdinalIgnoreCase);
+
+    private async Task RunCompareAsync()
+    {
+        if (string.IsNullOrEmpty(_pathA) || string.IsNullOrEmpty(_pathB))
+        {
+            await ViewUtils.AlertAsync(this, "Pick two items", "Choose both A and B before comparing.");
+            return;
+        }
+
+        ClearResults();
+        _busy.IsVisible = _busy.IsRunning = true;
+        _compareButton.IsEnabled = false;
+
+        try
+        {
+            if (_mode == CompareMode.Folders)
+            {
+                var folderDiff = await Task.Run(() => SaveFolderComparer.Compare(_pathA!, _pathB!));
+                ShowFolderResult(folderDiff);
+            }
+            else
+            {
+                // Make sure the catalogs are ready so the semantic view resolves names + icons.
+                await Services.GameDataServices.EnsureLoadedAsync();
+                var diff = await Task.Run(() => SaveComparer.CompareFiles(_pathA!, _pathB!));
+                var semantic = await Task.Run(() => TryBuildSemantic(_pathA!, _pathB!));
+                ShowFileResult(diff, semantic);
+            }
+        }
+        catch (Exception ex)
+        {
+            await ViewUtils.AlertAsync(this, "Comparison failed", ex.Message);
+        }
+        finally
+        {
+            _busy.IsVisible = _busy.IsRunning = false;
+            _compareButton.IsEnabled = true;
+        }
+    }
+
+    private void ClearResults()
+    {
+        _resultsHost.Children.Clear();
+        _summaryLabel.IsVisible = false;
+    }
+
+    /// <summary>
+    /// Builds a domain-aware semantic diff when both files are the same kind: two player saves
+    /// → player sections, two world saves → world sections. Null when they aren't a matched,
+    /// supported pair (the raw property diff covers those).
+    /// </summary>
+    private static (string Kind, List<SemanticSection> Sections)? TryBuildSemantic(string a, string b)
+    {
+        try
+        {
+            var pa = Core.PlayerSaves.PlayerSaveReader.ReadFromFile(a);
+            var pb = Core.PlayerSaves.PlayerSaveReader.ReadFromFile(b);
+            return ("PLAYER", PlayerSemanticDiff.Build(pa, pb));
+        }
+        catch
+        {
+            // Not both player saves - try world.
+        }
+
+        try
+        {
+            var wa = Core.WorldSaves.WorldSaveReader.ReadFromFile(a);
+            var wb = Core.WorldSaves.WorldSaveReader.ReadFromFile(b);
+            return ("WORLD", WorldSemanticDiff.Build(wa, wb));
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void ShowFileResult(SaveDiff diff, (string Kind, List<SemanticSection> Sections)? semantic)
+    {
+        _summaryLabel.IsVisible = true;
+        _summaryLabel.TextColor = diff.AreIdentical || diff.AreMeaningfullyIdentical
+            ? Res("AfTerminalGreen")
+            : Res("AfTextPrimary");
+        _summaryLabel.Text = diff.AreIdentical
+            ? "✓ The two saves are identical."
+            : diff.AreMeaningfullyIdentical
+                ? $"✓ No gameplay differences ({diff.NoiseCount} identity/clock/instance/position only)."
+                : $"{diff.MeaningfulSummary}.";
+
+        if (diff.LeftSaveClass != diff.RightSaveClass)
+        {
+            _resultsHost.Children.Add(Warn($"Save classes differ: A='{diff.LeftSaveClass}'  B='{diff.RightSaveClass}'."));
+        }
+        if (diff.Truncated)
+        {
+            _resultsHost.Children.Add(Warn("Saves too large to flatten completely - some differences may be missing."));
+        }
+
+        // Domain-aware, summary-first view when both saves are the same supported kind; the
+        // raw property diff stays available below as a deep-dive.
+        if (semantic is { } sem)
+        {
+            if (sem.Sections.Count == 0)
+            {
+                _resultsHost.Children.Add(ModalChrome.Card($"{sem.Kind} SUMMARY",
+                    "No meaningful differences in the tracked categories."));
+            }
+            else
+            {
+                _resultsHost.Children.Add(BuildOverviewCard(sem.Sections));
+                foreach (var section in sem.Sections)
+                {
+                    _resultsHost.Children.Add(PlayerSemanticDiff.RenderSection(section));
+                }
+            }
+        }
+
+        if (!diff.AreIdentical)
+        {
+            _resultsHost.Children.Add(BuildRawCard(diff, startExpanded: semantic is null));
+        }
+    }
+
+    /// <summary>A leading "what changed" card: one line per differing category.</summary>
+    private View BuildOverviewCard(IReadOnlyList<SemanticSection> sections)
+    {
+        var rows = new List<View>();
+        foreach (var s in sections)
+        {
+            rows.Add(new Label
+            {
+                Text = $"• {s.Title} — {s.Summary}",
+                Style = ModalChrome.St("AfFieldValue"),
+                FontSize = 12,
+            });
+        }
+        return ModalChrome.Card("WHAT'S DIFFERENT", "A quick map of the categories that changed - details follow below.", rows.ToArray());
+    }
+
+    /// <summary>The raw property diff, collapsed by default behind a toggle, with a noise switch.</summary>
+    private View BuildRawCard(SaveDiff diff, bool startExpanded)
+    {
+        var listHost = new VerticalStackLayout();
+        void Rebuild(bool includeNoise) { listHost.Children.Clear(); listHost.Children.Add(BuildDiffList(diff, includeNoise)); }
+
+        var content = new VerticalStackLayout { Spacing = 10, IsVisible = startExpanded };
+        if (diff.NoiseCount > 0)
+        {
+            var noiseSwitch = new Switch { IsToggled = false, VerticalOptions = LayoutOptions.Center };
+            noiseSwitch.Toggled += (_, e) => Rebuild(e.Value);
+            content.Children.Add(new HorizontalStackLayout
+            {
+                Spacing = 8,
+                Children =
+                {
+                    noiseSwitch,
+                    new Label
+                    {
+                        Text = $"Show {diff.NoiseCount} identity / clock / instance / position difference(s)",
+                        FontSize = 11,
+                        TextColor = Res("AfTextSecondary"),
+                        VerticalOptions = LayoutOptions.Center,
+                    },
+                },
+            });
+        }
+        Rebuild(false);
+        content.Children.Add(listHost);
+
+        var toggle = ModalChrome.Button(startExpanded ? "HIDE RAW DIFFERENCES" : "SHOW RAW DIFFERENCES", primary: false);
+        toggle.HorizontalOptions = LayoutOptions.Start;
+        toggle.Clicked += (_, _) =>
+        {
+            content.IsVisible = !content.IsVisible;
+            toggle.Text = content.IsVisible ? "HIDE RAW DIFFERENCES" : "SHOW RAW DIFFERENCES";
+        };
+
+        return ModalChrome.Card("RAW PROPERTY DIFF",
+            $"Every property-level difference ({diff.MeaningfulCount} gameplay, {diff.NoiseCount} other). Deep-dive when the summary isn't enough.",
+            toggle, content);
+    }
+
+    private void ShowFolderResult(FolderDiff folderDiff)
+    {
+        _summaryLabel.IsVisible = true;
+        _summaryLabel.TextColor = folderDiff.AreIdentical ? Res("AfTerminalGreen") : Res("AfTextPrimary");
+        _summaryLabel.Text = folderDiff.AreIdentical
+            ? "✓ The two folders are identical."
+            : $"{folderDiff.DifferingCount} differing · {folderDiff.IdenticalCount} identical · "
+              + $"{folderDiff.OnlyLeftCount} only in A · {folderDiff.OnlyRightCount} only in B"
+              + (folderDiff.ErrorCount > 0 ? $" · {folderDiff.ErrorCount} error(s)" : string.Empty);
+
+        var rows = new ObservableCollection<FolderRow>(folderDiff.Files.Select(f => new FolderRow(f)));
+        var list = new CollectionView
+        {
+            ItemsSource = rows,
+            SelectionMode = SelectionMode.Single,
+            HeightRequest = 460,
+            ItemTemplate = new DataTemplate(() =>
+            {
+                var glyph = new Label { FontFamily = "OpenSansSemibold", FontSize = 12, WidthRequest = 70, VerticalOptions = LayoutOptions.Center };
+                glyph.SetBinding(Label.TextProperty, nameof(FolderRow.Tag));
+                glyph.SetBinding(Label.TextColorProperty, nameof(FolderRow.Color));
+
+                var name = new Label { FontSize = 12, VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.MiddleTruncation };
+                name.SetBinding(Label.TextProperty, nameof(FolderRow.Text));
+
+                var grid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star) }, Padding = new Thickness(2, 4) };
+                grid.Add(glyph, 0, 0);
+                grid.Add(name, 1, 0);
+                return grid;
+            }),
+        };
+        list.SelectionChanged += async (_, e) =>
+        {
+            if (e.CurrentSelection.FirstOrDefault() is FolderRow row)
+            {
+                ((CollectionView)list).SelectedItem = null;
+                if (row.Entry.Status == FolderEntryStatus.Differs && row.Entry.Diff is not null)
+                {
+                    await Navigation.PushModalAsync(new DiffDetailPage(row.Entry.RelativePath, row.Entry.Diff));
+                }
+            }
+        };
+
+        _resultsHost.Children.Add(new Label
+        {
+            Text = "Tap a differing file to see its property differences.",
+            FontSize = 11,
+            TextColor = Res("AfTextSecondary"),
+            Margin = new Thickness(0, 6, 0, 0),
+        });
+        _resultsHost.Children.Add(list);
+    }
+
+    /// <summary>Shared difference list, virtualized so big saves stay responsive.</summary>
+    internal static View BuildDiffList(SaveDiff diff, bool includeNoise = false)
+    {
+        var source = includeNoise ? diff.Differences : diff.Differences.Where(d => !d.IsNoise);
+        var rows = new ObservableCollection<DiffRow>(source.Select(d => new DiffRow(d)));
+        return new CollectionView
+        {
+            ItemsSource = rows,
+            HeightRequest = 460,
+            ItemTemplate = new DataTemplate(() =>
+            {
+                var glyph = new Label { FontFamily = "OpenSansSemibold", FontSize = 13, WidthRequest = 16, VerticalOptions = LayoutOptions.Start };
+                glyph.SetBinding(Label.TextProperty, nameof(DiffRow.Glyph));
+                glyph.SetBinding(Label.TextColorProperty, nameof(DiffRow.Color));
+
+                var path = new Label { FontSize = 12, FontFamily = "OpenSansSemibold" };
+                path.SetBinding(Label.TextProperty, nameof(DiffRow.Path));
+
+                var detail = new Label { FontSize = 11, TextColor = Res("AfTextSecondary") };
+                detail.SetBinding(Label.TextProperty, nameof(DiffRow.Detail));
+
+                var text = new VerticalStackLayout { Spacing = 1, Children = { path, detail } };
+
+                var grid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 8, Padding = new Thickness(2, 5) };
+                grid.Add(glyph, 0, 0);
+                grid.Add(text, 1, 0);
+                return grid;
+            }),
+        };
+    }
+
+    private static Label Warn(string text) => new()
+    {
+        Text = "⚠ " + text,
+        FontSize = 11,
+        TextColor = Res("AfHazardYellow"),
+        Margin = new Thickness(0, 4, 0, 0),
+    };
+
+    // ===== Row view models =====
+
+    private sealed class DiffRow
+    {
+        public DiffRow(SaveLeafDiff d)
+        {
+            // Tag non-gameplay rows so it's clear why they're folded away by default.
+            var suffix = d.IsNoise ? $"   [{d.Category.ToString().ToLowerInvariant()}]" : string.Empty;
+            Path = d.Path;
+            (Glyph, Color, Detail) = d.Kind switch
+            {
+                SaveDiffKind.Added => ("+", Res("AfTerminalGreen"), (d.Right ?? string.Empty) + suffix),
+                SaveDiffKind.Removed => ("−", Res("AfAlertRed"), (d.Left ?? string.Empty) + suffix),
+                _ => ("~", Res("AfHazardYellow"), $"{d.Left}  →  {d.Right}{suffix}"),
+            };
+        }
+
+        public string Glyph { get; }
+        public Color Color { get; }
+        public string Path { get; }
+        public string Detail { get; }
+    }
+
+    private sealed class FolderRow
+    {
+        public FolderRow(FolderFileComparison entry)
+        {
+            Entry = entry;
+            (Tag, Color) = entry.Status switch
+            {
+                FolderEntryStatus.Identical => ("==", Res("AfTextMuted")),
+                FolderEntryStatus.Differs => ("~~", Res("AfHazardYellow")),
+                FolderEntryStatus.OnlyLeft => ("A only", Res("AfAlertRed")),
+                FolderEntryStatus.OnlyRight => ("B only", Res("AfTerminalGreen")),
+                _ => ("error", Res("AfAlertRed")),
+            };
+            Text = entry.Status switch
+            {
+                FolderEntryStatus.Differs when entry.Diff is not null =>
+                    $"{entry.RelativePath}  ({entry.Diff.MeaningfulCount} gameplay, {entry.DifferenceCount} total)",
+                FolderEntryStatus.Differs => $"{entry.RelativePath}  ({entry.DifferenceCount} difference(s))",
+                FolderEntryStatus.Error => $"{entry.RelativePath}  ({entry.Error})",
+                _ => entry.RelativePath,
+            };
+        }
+
+        public FolderFileComparison Entry { get; }
+        public string Tag { get; }
+        public Color Color { get; }
+        public string Text { get; }
+    }
+}
+
+/// <summary>Modal showing one file's property differences (folder-comparison drill-down).</summary>
+internal sealed class DiffDetailPage : ContentPage
+{
+    public DiffDetailPage(string title, SaveDiff diff)
+    {
+        Title = title;
+        BackgroundColor = (Color)Application.Current!.Resources["AfPageBackground"];
+
+        var close = ModalChrome.Button("CLOSE", primary: false);
+        close.Clicked += async (_, _) => await Navigation.PopModalAsync();
+
+        var card = ModalChrome.Card(title.ToUpperInvariant(),
+            $"{diff.MeaningfulSummary}.",
+            ComparePage.BuildDiffList(diff));
+
+        Content = ModalChrome.Scaffold(
+            "FILE DIFFERENCES", title,
+            new View[] { card },
+            ModalChrome.Footer(close),
+            maxWidth: 980);
+    }
+}

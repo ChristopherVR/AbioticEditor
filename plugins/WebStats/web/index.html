@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Web Stats</title>
+<style>
+  :root { color-scheme: dark; }
+  body { font-family: system-ui, sans-serif; background: #0c1a24; color: #dceff9; margin: 0; padding: 18px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #8fb8d0; font-size: 12px; margin-bottom: 14px; }
+  .stats { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .stat { background: #132736; border: 1px solid #224158; border-radius: 8px; padding: 10px 16px; min-width: 90px; }
+  .stat .v { font-size: 22px; font-weight: 700; color: #71c5f6; }
+  .stat .l { font-size: 11px; color: #8fb8d0; text-transform: uppercase; letter-spacing: 1px; }
+  button { background: #f89a4f; color: #07121a; border: 0; border-radius: 6px; padding: 8px 16px; font-weight: 700; cursor: pointer; }
+  ul { list-style: none; padding: 0; } li { padding: 4px 0; border-bottom: 1px solid #1b3648; }
+</style>
+</head>
+<body>
+<h1>Web Stats</h1>
+<div class="sub">An offline HTML web tool (no framework, no CDN) — reads the save via the host bridge.</div>
+<div id="content">Loading…</div>
+<button onclick="load()">Refresh</button>
+
+<script>
+  // The bridge (window.abiotic) is injected by the host after the page loads, so wait for it.
+  function whenReady(fn) {
+    if (window.abiotic && window.abiotic.request) { fn(); }
+    else { setTimeout(function () { whenReady(fn); }, 50); }
+  }
+
+  function render(data) {
+    var el = document.getElementById("content");
+    if (data.skillCount === undefined) {
+      el.innerHTML = "<p>Open a player save in the editor, then refresh.</p>";
+      return;
+    }
+    var stats =
+      stat("Money", data.money) + stat("Skills", data.skillCount) +
+      stat("Top level", data.topLevel) + stat("Recipes", data.recipeCount);
+    var skills = (data.skills || []).map(function (s) {
+      return "<li>" + esc(s.name) + " — Lv " + s.level + " (" + Math.round(s.xp) + " XP)</li>";
+    }).join("");
+    el.innerHTML =
+      "<h2>" + esc(data.file || "Player save") + "</h2>" +
+      "<div class='stats'>" + stats + "</div><h3>Skills</h3><ul>" + skills + "</ul>";
+  }
+
+  function stat(label, value) {
+    return "<div class='stat'><div class='v'>" + (value === undefined ? "-" : value) +
+           "</div><div class='l'>" + label + "</div></div>";
+  }
+  function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }); }
+
+  function load() {
+    whenReady(function () {
+      abiotic.request({ type: "playerSummary" })
+        .then(render)
+        .catch(function (e) { document.getElementById("content").textContent = "Error: " + e; });
+    });
+  }
+
+  whenReady(load);
+</script>
+</body>
+</html>

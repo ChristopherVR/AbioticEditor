@@ -1,0 +1,11 @@
+{
+  "id": "com.abioticeditor.samples.playtime-dashboard",
+  "name": "Playtime Dashboard",
+  "version": "1.0.0",
+  "author": "Abiotic Editor samples",
+  "description": "Adds a 'Dashboard' UI tool to the Plugins panel that shows headline numbers for the open save.",
+  "entryAssembly": "PlaytimeDashboard.dll",
+  "minHostVersion": "1.0.0",
+  "capabilities": ["editorTool"],
+  "enabled": true
+}

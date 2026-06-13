@@ -1,0 +1,91 @@
+using AbioticEditor.App.Services;
+
+namespace AbioticEditor.App;
+
+/// <summary>
+/// Language chooser. Shown automatically on first run (no language stored yet), pre-selecting
+/// the OS language, and also reachable from Settings. Built in code (like SettingsPage); picking
+/// a language applies it live and rebuilds this page so its own text switches immediately.
+/// </summary>
+public sealed class LanguagePage : ContentPage
+{
+    private string _selected;
+
+    public LanguagePage()
+    {
+        _selected = LocalizationService.HasChosenLanguage
+            ? LocalizationService.CurrentCode
+            : LocalizationService.OsDefaultCode;
+        BackgroundColor = (Color)Application.Current!.Resources["AfPageBackground"];
+        Build();
+    }
+
+    private static string T(string key) => LocalizationResourceManager.Instance[key];
+
+    private void Build()
+    {
+        Title = T("Settings_Language");
+        var accent = (Color)Application.Current!.Resources["AfAccentOrange"];
+        var muted = (Color)Application.Current.Resources["AfTextSecondary"];
+        var panel = (Color)Application.Current.Resources["AfPanelElevated"];
+        var primary = (Color)Application.Current.Resources["AfTextPrimary"];
+        var onAccent = (Color)Application.Current.Resources["AfTextOnAccent"];
+
+        var stack = new VerticalStackLayout
+        {
+            Padding = new Thickness(28, 32),
+            Spacing = 8,
+            MaximumWidthRequest = 520,
+        };
+        stack.Children.Add(new Label
+        {
+            Text = T("Language_Title"),
+            FontFamily = "OpenSansSemibold",
+            FontSize = 22,
+            CharacterSpacing = 1,
+        });
+        stack.Children.Add(new Label
+        {
+            Text = T("Language_Subtitle"),
+            FontSize = 12,
+            TextColor = muted,
+            Margin = new Thickness(0, 0, 0, 12),
+        });
+
+        foreach (var lang in LocalizationService.Available)
+        {
+            var isSelected = lang.Code == _selected;
+            var isOsDefault = lang.Code == LocalizationService.OsDefaultCode;
+            var name = isOsDefault ? $"{lang.NativeName}  ·  {T("Language_SystemDefault")}" : lang.NativeName;
+
+            var button = new Button
+            {
+                Text = (isSelected ? "●  " : "○  ") + name,
+                HorizontalOptions = LayoutOptions.Fill,
+                BackgroundColor = isSelected ? accent : panel,
+                TextColor = isSelected ? onAccent : primary,
+            };
+            var code = lang.Code;
+            button.Clicked += (_, _) =>
+            {
+                _selected = code;
+                LocalizationService.SetLanguage(code); // applies live + persists
+                Build();                                // rebuild so this page re-localizes too
+            };
+            stack.Children.Add(button);
+        }
+
+        var continueButton = new Button { Text = T("Language_Continue"), Margin = new Thickness(0, 16, 0, 0) };
+        continueButton.Clicked += async (_, _) =>
+        {
+            LocalizationService.SetLanguage(_selected); // confirm (persists even if unchanged)
+            if (Navigation.ModalStack.Count > 0)
+            {
+                await Navigation.PopModalAsync();
+            }
+        };
+        stack.Children.Add(continueButton);
+
+        Content = new ScrollView { Content = stack };
+    }
+}

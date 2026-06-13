@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             x:Class="AbioticEditor.App.Views.World.WorldDroppedTab"
+             x:DataType="vm:MainViewModel">
+
+    <!-- ============== TAB: Dropped items ============== -->
+    <VerticalStackLayout Spacing="12"
+                         IsVisible="{Binding WorldEditor.IsDroppedTab}">
+        <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="12">
+            <Label Grid.Column="0" Text="ITEMS ON THE GROUND" Style="{StaticResource AfH2}" FontSize="18" VerticalOptions="Center" />
+            <Label Grid.Column="1" Text="{Binding WorldEditor.DroppedSummary}"
+                   Style="{StaticResource AfReadout}" VerticalOptions="Center" />
+            <Button Grid.Column="2" Text="RESTORE"
+                    FontSize="10" Padding="10,4"
+                    BackgroundColor="{StaticResource AfPanelElevated}"
+                    TextColor="{StaticResource AfTextPrimary}"
+                    Command="{Binding WorldEditor.RestoreDroppedCommand}" />
+            <Button Grid.Column="3" Text="DELETE ALL SHOWN"
+                    BackgroundColor="{StaticResource AfAlertRed}"
+                    TextColor="{StaticResource AfTextOnAccent}"
+                    Command="{Binding WorldEditor.DeleteVisibleDroppedCommand}" />
+        </Grid>
+        <Label Text="Long-lived worlds accumulate hundreds of ground items, which costs real in-game performance. Mark items for deletion here (nothing is removed until you press SAVE; a .bak backup is kept). Search to target specific litter, e.g. 'rotten'."
+               Style="{StaticResource AfMuted}" FontSize="11" />
+        <Entry Text="{Binding WorldEditor.DroppedFilter, Mode=TwoWay}"
+               Placeholder="Filter ground items by name or id…"
+               BackgroundColor="{StaticResource AfPanelElevated}"
+               TextColor="{StaticResource AfTextPrimary}" />
+        <Border BackgroundColor="{StaticResource AfShellBackground}"
+                Stroke="{StaticResource AfBorderSubtleBrush}"
+                StrokeThickness="1" StrokeShape="Rectangle"
+                Padding="0" HeightRequest="520">
+            <CollectionView ItemsSource="{Binding WorldEditor.VisibleDroppedItems}">
+                <CollectionView.EmptyView>
+                    <Label Text="No ground items match." Style="{StaticResource AfMuted}" Padding="16" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="items:DroppedItemViewModel">
+                        <!-- Explicit background keeps the whole row clickable on WinUI -->
+                        <Grid Padding="14,6" ColumnDefinitions="*,Auto" ColumnSpacing="12"
+                              BackgroundColor="{StaticResource AfPanelBackground}">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnDroppedItemTapped" />
+                            </Grid.GestureRecognizers>
+                            <VerticalStackLayout Grid.Column="0" Spacing="1" VerticalOptions="Center">
+                                <Label Text="{Binding DisplayName}"
+                                       Style="{StaticResource AfFieldValue}" FontSize="13" />
+                                <Label Text="{Binding SubText}"
+                                       Style="{StaticResource AfStatusText}" FontSize="10" />
+                            </VerticalStackLayout>
+                            <Button Grid.Column="1" Text="DELETE"
+                                    FontSize="10" Padding="10,3"
+                                    BackgroundColor="{StaticResource AfPanelElevated}"
+                                    TextColor="{StaticResource AfAlertRed}"
+                                    Command="{Binding DeleteCommand}"
+                                    VerticalOptions="Center" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Border>
+    </VerticalStackLayout>
+</ContentView>

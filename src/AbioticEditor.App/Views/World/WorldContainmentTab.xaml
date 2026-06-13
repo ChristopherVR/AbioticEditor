@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             x:Class="AbioticEditor.App.Views.World.WorldContainmentTab"
+             x:DataType="vm:MainViewModel">
+
+    <!-- ============== TAB: Containment + world unlocks (metadata save) ============== -->
+    <Border BackgroundColor="{StaticResource AfShellBackground}"
+            Stroke="{StaticResource AfBorderSubtleBrush}"
+            StrokeThickness="1" StrokeShape="Rectangle"
+            Padding="20,16"
+
+            IsVisible="{Binding WorldEditor.IsContainmentTab}">
+        <VerticalStackLayout Spacing="16">
+
+            <!-- Leyak / Krasue containment units -->
+            <Label Text="CONTAINMENT UNITS" Style="{StaticResource AfH2}" FontSize="18" />
+            <Label Text="Entities currently trapped in deployed containment units (the metadata save's LeyakContainmentIDs map). Tap an entry to see what the creature looks like and which facility sector its unit sits in. RELEASE removes the link — the creature roams free again on next load (the unit itself stays deployed in the Facility save). Staged until SAVE."
+                   Style="{StaticResource AfMuted}" FontSize="11" LineBreakMode="WordWrap" />
+
+            <Label Text="Nothing is contained in this world right now. Build a containment unit and trap a creature (Leyak, Krasue) in-game; the entry appears here."
+                   Style="{StaticResource AfStatusText}" FontSize="11"
+                   IsVisible="{Binding WorldEditor.HasLeyakContainments, Converter={StaticResource BoolNegate}, FallbackValue=False}" />
+
+            <VerticalStackLayout Spacing="8"
+                                 BindableLayout.ItemsSource="{Binding WorldEditor.LeyakContainments}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="items:LeyakContainmentViewModel">
+                        <Border BackgroundColor="{StaticResource AfPanelBackground}"
+                                Stroke="{StaticResource AfBorderSubtleBrush}"
+                                StrokeThickness="1" StrokeShape="Rectangle"
+                                Padding="12,8">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnContainmentTapped" />
+                            </Border.GestureRecognizers>
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                                <Border Grid.Column="0"
+                                        BackgroundColor="{StaticResource AfTerminalGreenDim}"
+                                        StrokeThickness="0" StrokeShape="Rectangle"
+                                        Padding="8,3" VerticalOptions="Center">
+                                    <Label Text="CONTAINED"
+                                           FontFamily="OpenSansSemibold" FontSize="9"
+                                           CharacterSpacing="2"
+                                           TextColor="{StaticResource AfTextPrimary}" />
+                                </Border>
+                                <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                                    <Label Text="{Binding ShownName}"
+                                           Style="{StaticResource AfFieldValue}" FontSize="13" />
+                                    <Label Text="{Binding ShownTapHint}"
+                                           Style="{StaticResource AfStatusText}" FontSize="8" />
+                                </VerticalStackLayout>
+                                <Button Grid.Column="2" Text="RELEASE"
+                                        FontSize="10" Padding="12,4"
+                                        BackgroundColor="{StaticResource AfAlertRed}"
+                                        TextColor="{StaticResource AfTextOnAccent}"
+                                        ToolTipProperties.Text="Removes this creature's containment link (it escapes). Staged until SAVE; REVERT restores it."
+                                        Command="{Binding ReleaseCommand}"
+                                        VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
+            <!-- Inline detail for the selected containment -->
+            <Border BackgroundColor="{StaticResource AfPanelBackground}"
+                    Stroke="{StaticResource AfAmberBrush}"
+                    StrokeThickness="1" StrokeShape="Rectangle"
+                    Padding="16,12"
+                    IsVisible="{Binding WorldEditor.HasSelectedContainment}">
+                <Grid ColumnDefinitions="140,*" ColumnSpacing="16">
+                    <Border Grid.Column="0" WidthRequest="136" HeightRequest="136"
+                            BackgroundColor="#000000"
+                            StrokeThickness="0" StrokeShape="Rectangle" Padding="2"
+                            VerticalOptions="Start">
+                        <Image Source="{Binding WorldEditor.SelectedContainment.ImagePath}"
+                               Aspect="AspectFit"
+                               IsVisible="{Binding WorldEditor.SelectedContainment.HasImage}" />
+                    </Border>
+                    <VerticalStackLayout Grid.Column="1" Spacing="6">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Grid.Column="0"
+                                   Text="{Binding WorldEditor.SelectedContainment.DisplayName}"
+                                   Style="{StaticResource AfH2}" FontSize="16" VerticalOptions="Center" />
+                            <Button Grid.Column="1" Text="✕"
+                                    FontSize="11" Padding="8,2" VerticalOptions="Start"
+                                    BackgroundColor="{StaticResource AfPanelElevated}"
+                                    TextColor="{StaticResource AfTextPrimary}"
+                                    Clicked="OnCloseContainmentDetail" />
+                        </Grid>
+                        <Label Text="{Binding WorldEditor.SelectedContainment.Lore}"
+                               Style="{StaticResource AfFieldValue}" FontSize="12" LineBreakMode="WordWrap" />
+                        <Label Text="CONTAINED IN" Style="{StaticResource AfFieldLabel}" />
+                        <Label Text="{Binding WorldEditor.SelectedContainment.RegionText}"
+                               Style="{StaticResource AfReadout}" FontSize="13"
+                               TextColor="{StaticResource AfTerminalGreen}" LineBreakMode="WordWrap" />
+                        <Label Text="{Binding WorldEditor.SelectedContainment.ContainmentId, StringFormat='Containment unit GUID: {0}'}"
+                               Style="{StaticResource AfStatusText}" FontSize="9"
+                               LineBreakMode="MiddleTruncation" />
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+
+            <BoxView Style="{StaticResource AfDivider}" />
+
+            <!-- World-wide discovery (GlobalUnlocks): shared by every player in the world -->
+            <VerticalStackLayout Spacing="8"
+                                 IsVisible="{Binding WorldEditor.HasWorldUnlocks, FallbackValue=False}">
+                <Label Text="WORLD UNLOCKS" Style="{StaticResource AfH2}" FontSize="18" />
+                <Label Text="The game shares discovery world-wide on top of each player's own lists: items seen, emails, journal pages and compendium sections unlocked by ANY player land here. Bulk unlocks are additive and staged until SAVE."
+                       Style="{StaticResource AfMuted}" FontSize="11" LineBreakMode="WordWrap" />
+
+                <Grid ColumnDefinitions="160,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10" ColumnSpacing="16">
+                    <Label Grid.Row="0" Grid.Column="0" Text="ITEMS SEEN" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                    <Label Grid.Row="0" Grid.Column="1" Text="{Binding WorldEditor.WorldItemsSeenText}"
+                           Style="{StaticResource AfReadout}" VerticalOptions="Center" />
+                    <Button Grid.Row="0" Grid.Column="2" Text="DISCOVER ALL"
+                            FontSize="10" Padding="10,4"
+                            BackgroundColor="{StaticResource AfPanelElevated}"
+                            TextColor="{StaticResource AfTextPrimary}"
+                            Clicked="OnUnlockAllWorldItems" />
+
+                    <Label Grid.Row="1" Grid.Column="0" Text="EMAILS READ" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                    <Label Grid.Row="1" Grid.Column="1" Text="{Binding WorldEditor.WorldEmailsText}"
+                           Style="{StaticResource AfReadout}" VerticalOptions="Center" />
+                    <Button Grid.Row="1" Grid.Column="2" Text="READ ALL"
+                            FontSize="10" Padding="10,4"
+                            BackgroundColor="{StaticResource AfPanelElevated}"
+                            TextColor="{StaticResource AfTextPrimary}"
+                            Clicked="OnUnlockAllWorldEmails" />
+
+                    <Label Grid.Row="2" Grid.Column="0" Text="JOURNAL PAGES" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                    <Label Grid.Row="2" Grid.Column="1" Text="{Binding WorldEditor.WorldJournalsText}"
+                           Style="{StaticResource AfReadout}" VerticalOptions="Center" />
+                    <Button Grid.Row="2" Grid.Column="2" Text="FIND ALL"
+                            FontSize="10" Padding="10,4"
+                            BackgroundColor="{StaticResource AfPanelElevated}"
+                            TextColor="{StaticResource AfTextPrimary}"
+                            Clicked="OnUnlockAllWorldJournals" />
+
+                    <Label Grid.Row="3" Grid.Column="0" Text="COMPENDIUM" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                    <Label Grid.Row="3" Grid.Column="1" Text="{Binding WorldEditor.WorldCompendiumText}"
+                           Style="{StaticResource AfReadout}" VerticalOptions="Center" />
+                    <Button Grid.Row="3" Grid.Column="2" Text="UNLOCK ALL"
+                            FontSize="10" Padding="10,4"
+                            BackgroundColor="{StaticResource AfHazardYellow}"
+                            TextColor="{StaticResource AfTextOnAccent}"
+                            Clicked="OnUnlockAllWorldCompendium" />
+                </Grid>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </Border>
+</ContentView>

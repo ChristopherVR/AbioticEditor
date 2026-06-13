@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Sample FIX-UP plugin: adds a named entry to a world save's WorldFlags array. This is the
+    "add an unknown/missing flag" repair - e.g. re-arm a quest trigger a patch dropped, or set
+    a flag the editor's UI doesn't know about yet. It edits the property tree directly through
+    UeSaveGame (no typed world reader needed), which is the lowest-level fix-up pattern.
+
+    Dependency model matches the other samples: reference SDK + Core to compile, ship neither.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Platforms>x64</Platforms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>GrantFlag</AssemblyName>
+    <RootNamespace>AbioticEditor.Samples.GrantFlag</RootNamespace>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AbioticEditor.Plugins.Abstractions\AbioticEditor.Plugins.Abstractions.csproj" Private="false" ExcludeAssets="runtime" />
+    <ProjectReference Include="..\..\src\AbioticEditor.Core\AbioticEditor.Core.csproj" Private="false" ExcludeAssets="runtime" />
+    <ProjectReference Include="..\..\submodules\UeSaveGame\UeSaveGame\UeSaveGame.csproj" Private="false" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="plugin.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

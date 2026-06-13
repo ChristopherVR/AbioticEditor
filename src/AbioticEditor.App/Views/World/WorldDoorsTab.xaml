@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             x:Class="AbioticEditor.App.Views.World.WorldDoorsTab"
+             x:DataType="vm:MainViewModel"
+             IsVisible="{Binding WorldEditor.IsDoorsTab}">
+
+    <VerticalStackLayout Spacing="14">
+        <!-- ============== TAB: Doors ============== -->
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+            <Label Grid.Column="0" Text="{Binding WorldEditor.DoorsRegionTitle}" Style="{StaticResource AfH2}" FontSize="18" VerticalOptions="Center" />
+            <Label Grid.Column="1"
+                   Text="{Binding WorldEditor.Doors.Count, StringFormat='{0} DOORS'}"
+                   Style="{StaticResource AfReadout}" FontSize="14"
+                   VerticalOptions="Center" />
+        </Grid>
+
+        <!-- Where these doors live: the sector's own card art (the game
+             ships no per-door imagery — verified against all GUI textures) -->
+        <Border BackgroundColor="#000000" StrokeThickness="0" StrokeShape="RoundRectangle 4"
+                HeightRequest="110" Padding="0"
+                IsVisible="{Binding WorldEditor.HasDoorsRegionCard, FallbackValue=False}">
+            <Grid>
+                <Image Source="{Binding WorldEditor.DoorsRegionCardPath}" Aspect="AspectFill" Opacity="0.85" />
+                <Label Text="All doors below are in this sector — toggle their open/locked state; positions are listed per door."
+                       Style="{StaticResource AfStatusText}" FontSize="10"
+                       VerticalOptions="End" Margin="10,0,0,6" />
+            </Grid>
+        </Border>
+
+        <!-- Door search -->
+        <Entry Text="{Binding WorldEditor.DoorFilter, Mode=TwoWay}"
+               Placeholder="Filter doors by name, map, kind, lock type, or state…"
+               BackgroundColor="{StaticResource AfPanelElevated}"
+               TextColor="{StaticResource AfTextPrimary}" />
+
+        <Border BackgroundColor="{StaticResource AfShellBackground}"
+                Stroke="{StaticResource AfBorderSubtleBrush}"
+                StrokeThickness="1"
+                StrokeShape="Rectangle"
+                Padding="0"
+                HeightRequest="540"
+>
+            <CollectionView ItemsSource="{Binding WorldEditor.VisibleDoors}"
+                            SelectionMode="Single"
+                            SelectedItem="{Binding WorldEditor.SelectedDoor, Mode=TwoWay}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="items:WorldDoorViewModel">
+                        <Border BackgroundColor="{StaticResource AfPanelBackground}"
+                                Stroke="{StaticResource AfBorderSubtleBrush}"
+                                StrokeThickness="0,0,0,1"
+                                StrokeShape="Rectangle"
+                                Padding="14,10">
+                            <Grid ColumnDefinitions="*,Auto,Auto,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="14" RowSpacing="6">
+
+                                <!-- Row 0: friendly class + lock chip + kind chip -->
+                                <HorizontalStackLayout Grid.Row="0" Grid.Column="0" Spacing="10" VerticalOptions="Center">
+                                    <Border BackgroundColor="{StaticResource AfPanelElevated}"
+                                            StrokeThickness="0" Padding="6,2"
+                                            StrokeShape="Rectangle">
+                                        <Label Text="{Binding KindLabel}"
+                                               FontFamily="OpenSansSemibold" FontSize="9"
+                                               CharacterSpacing="2"
+                                               TextColor="{StaticResource AfAccentOrange}" />
+                                    </Border>
+                                    <Label Text="{Binding FriendlyClass}"
+                                           Style="{StaticResource AfH2}" FontSize="14"
+                                           VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+
+                                <Border Grid.Row="0" Grid.Column="1"
+                                        BackgroundColor="{StaticResource AfPanelElevated}"
+                                        Stroke="{StaticResource AfHazardYellowBrush}"
+                                        StrokeThickness="1" StrokeShape="Rectangle"
+                                        Padding="8,2" VerticalOptions="Center">
+                                    <Label Text="{Binding LockChip}"
+                                           FontFamily="OpenSansSemibold" FontSize="9"
+                                           CharacterSpacing="2"
+                                           TextColor="{StaticResource AfHazardYellow}" />
+                                </Border>
+
+                                <HorizontalStackLayout Grid.Row="0" Grid.Column="2" Spacing="6" VerticalOptions="Center">
+                                    <Label Text="NO RESET" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                    <CheckBox IsChecked="{Binding NoReset, Mode=TwoWay}"
+                                              Color="{StaticResource AfHazardYellow}" />
+                                </HorizontalStackLayout>
+
+                                <!-- Row 1: state controls -->
+                                <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                                       Spacing="10" VerticalOptions="Center">
+                                    <Label Text="STATE" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+
+                                    <!-- Simple-door state picker -->
+                                    <Picker ItemsSource="{Binding AllStateLabels}"
+                                            SelectedItem="{Binding FriendlyStateForPicker, Mode=TwoWay}"
+                                            BackgroundColor="{StaticResource AfPanelElevated}"
+                                            TextColor="{StaticResource AfTerminalGreen}"
+                                            FontFamily="Digital7"
+                                            WidthRequest="180"
+                                            IsVisible="{Binding IsSimple}" />
+
+                                    <!-- Security-door open toggle -->
+                                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center"
+                                                           IsVisible="{Binding IsSecurity}">
+                                        <Label Text="OPEN" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                        <CheckBox IsChecked="{Binding IsDoorOpen, Mode=TwoWay}"
+                                                  Color="{StaticResource AfTerminalGreen}" />
+                                    </HorizontalStackLayout>
+
+                                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center"
+                                                           IsVisible="{Binding IsSimple}">
+                                        <Label Text="ONE-WAY UNLOCKED" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                        <CheckBox IsChecked="{Binding OneWayUnlocked, Mode=TwoWay}"
+                                                  Color="{StaticResource AfTerminalGreen}" />
+                                    </HorizontalStackLayout>
+                                </HorizontalStackLayout>
+
+                                <!-- Row 2: location subtitle -->
+                                <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4"
+                                       Text="{Binding DisplaySubtitle}"
+                                       Style="{StaticResource AfStatusText}"
+                                       LineBreakMode="TailTruncation" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Border>
+    </VerticalStackLayout>
+</ContentView>

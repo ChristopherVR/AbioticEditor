@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Platforms>x64</Platforms>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- CA1707: underscore_separated test names are the xunit convention. -->
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AbioticEditor.Core\AbioticEditor.Core.csproj" />
+    <ProjectReference Include="..\..\src\AbioticEditor.Plugins.Abstractions\AbioticEditor.Plugins.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\AbioticEditor.Updater\AbioticEditor.Updater.csproj" />
+    <ProjectReference Include="..\..\submodules\UeSaveGame\UeSaveGame\UeSaveGame.csproj" />
+    <ProjectReference Include="..\..\submodules\UeSaveGame\UeSaveGame.Json\UeSaveGame.Json.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Sample fix-up plugins, referenced so PluginFixupTests exercises the real operations. -->
+    <ProjectReference Include="..\..\plugins\RepairNeeds\RepairNeeds.csproj" />
+    <ProjectReference Include="..\..\plugins\GrantFlag\GrantFlag.csproj" />
+    <ProjectReference Include="..\..\plugins\VersionShim\VersionShim.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

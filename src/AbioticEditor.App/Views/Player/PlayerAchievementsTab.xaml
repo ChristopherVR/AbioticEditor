@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             x:Class="AbioticEditor.App.Views.Player.PlayerAchievementsTab"
+             x:DataType="vm:MainViewModel">
+
+    <!-- ===== Player TAB: Achievements (local cache + Steam web) ===== -->
+    <Border Style="{StaticResource AfPanel}" Padding="20,16"
+
+            IsVisible="{Binding PlayerEditor.IsAchievementsTab, FallbackValue=False}">
+        <VerticalStackLayout Spacing="12">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="14">
+                <Label Grid.Column="0" Text="STEAM ACHIEVEMENTS" Style="{StaticResource AfH2}" VerticalOptions="Center" />
+                <Label Grid.Column="1" Text="{Binding PlayerEditor.AchievementsVm.Summary}"
+                       Style="{StaticResource AfReadout}" FontSize="16" VerticalOptions="Center" />
+                <HorizontalStackLayout Grid.Column="2" Spacing="8" VerticalOptions="Center"
+                                       IsVisible="{Binding PlayerEditor.AchievementsVm.IsSignedIn, FallbackValue=False}">
+                    <Label Text="SIGNED IN ·" Style="{StaticResource AfFieldLabel}"
+                           TextColor="{StaticResource AfHazardYellow}" VerticalOptions="Center"
+                           ToolTipProperties.Text="A Steam session cookie is stored (OS-protected) - CHECK STEAM queries as that account." />
+                    <Button Text="SIGN OUT"
+                            Style="{StaticResource AfGhostButton}" FontSize="10" Padding="12,5"
+                            ToolTipProperties.Text="Clears the stored Steam session cookie from memory and secure storage."
+                            Command="{Binding PlayerEditor.AchievementsVm.SignOutCommand}" />
+                </HorizontalStackLayout>
+                <Button Grid.Column="3" Text="CHECK STEAM"
+                        ToolTipProperties.Text="Verifies against steamcommunity.com (needs a public profile or an in-app sign-in) - adds icons, unlock dates and the authoritative unlock state. The local cache only refreshes while Steam runs."
+                        Command="{Binding PlayerEditor.AchievementsVm.CheckSteamCommand}" />
+            </Grid>
+            <BoxView Style="{StaticResource AfHazardStripe}" />
+            <Label Text="{Binding PlayerEditor.AchievementsVm.Status}"
+                   Style="{StaticResource AfMuted}" FontSize="11" />
+
+            <!-- Gated profile: the anonymous query was denied - offer the signed-in path -->
+            <Border BackgroundColor="{StaticResource AfPanelElevated}"
+                    Stroke="{StaticResource AfHazardYellowBrush}"
+                    StrokeThickness="1" StrokeShape="Rectangle"
+                    Padding="14,10"
+                    IsVisible="{Binding PlayerEditor.AchievementsVm.ProfileGated, FallbackValue=False}">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="⚠ THIS PROFILE NEEDS A SIGNED-IN STEAM SESSION"
+                           Style="{StaticResource AfFieldLabel}"
+                           TextColor="{StaticResource AfHazardYellow}" />
+                    <Label Text="The editor checks Steam anonymously, so profiles with non-public Game details come back empty. Sign in to Steam inside the app and CHECK STEAM reuses that session (works for your own account and friends). Alternatively view the page in your browser, or make Game details public so the anonymous check succeeds."
+                           Style="{StaticResource AfMuted}" FontSize="11" LineBreakMode="WordWrap" />
+                    <HorizontalStackLayout Spacing="10">
+                        <Button Text="SIGN IN (IN-APP)"
+                                FontSize="10" Padding="12,5"
+                                BackgroundColor="{StaticResource AfHazardYellow}"
+                                TextColor="{StaticResource AfTextOnAccent}"
+                                ToolTipProperties.Text="Opens Steam's sign-in page in a window inside the editor; the captured session is then used for the achievements check. Your password goes to Steam only."
+                                Command="{Binding PlayerEditor.AchievementsVm.SignInInAppCommand}" />
+                        <Button Text="VIEW IN BROWSER"
+                                Style="{StaticResource AfGhostButton}" FontSize="10" Padding="12,5"
+                                ToolTipProperties.Text="Opens the Steam community sign-in in your browser, then redirects to this profile's Abiotic Factor achievements page."
+                                Command="{Binding PlayerEditor.AchievementsVm.SignInAndViewCommand}" />
+                        <Button Text="PRIVACY SETTINGS"
+                                Style="{StaticResource AfGhostButton}" FontSize="10" Padding="12,5"
+                                ToolTipProperties.Text="Opens your Steam privacy settings - set 'Game details' to Public, wait a few minutes, then CHECK STEAM again."
+                                Command="{Binding PlayerEditor.AchievementsVm.OpenPrivacySettingsCommand}" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+                <Entry Grid.Column="0"
+                       Text="{Binding PlayerEditor.AchievementsVm.SearchText, Mode=TwoWay}"
+                       Placeholder="Search achievements..."
+                       BackgroundColor="{StaticResource AfPanelElevated}"
+                       TextColor="{StaticResource AfTextPrimary}" />
+                <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+                    <CheckBox IsChecked="{Binding PlayerEditor.AchievementsVm.ShowSpoilers, Mode=TwoWay}"
+                              Color="{StaticResource AfAlertRed}" />
+                    <Label Text="SHOW SPOILERS" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center"
+                           ToolTipProperties.Text="Many of the game's achievements are hidden story spoilers. This mirrors the app-wide Spoiler protection setting (checked = show everything). You can also tap any single CLASSIFIED row to reveal just that one." />
+                </HorizontalStackLayout>
+                <Picker Grid.Column="2"
+                        Title="Compare with..."
+                        WidthRequest="200"
+                        ItemsSource="{Binding PlayerEditor.AchievementsVm.CompareCandidates}"
+                        SelectedItem="{Binding PlayerEditor.AchievementsVm.SelectedCompare, Mode=TwoWay}"
+                        BackgroundColor="{StaticResource AfPanelElevated}"
+                        TextColor="{StaticResource AfTextPrimary}"
+                        IsVisible="{Binding PlayerEditor.AchievementsVm.HasCompareCandidates}" />
+            </Grid>
+
+            <Border BackgroundColor="{StaticResource AfShellBackground}"
+                    Stroke="{StaticResource AfBorderSubtleBrush}"
+                    StrokeThickness="1" StrokeShape="Rectangle"
+                    Padding="0" HeightRequest="600">
+                <CollectionView ItemsSource="{Binding PlayerEditor.AchievementsVm.Visible}">
+                    <CollectionView.EmptyView>
+                        <Label Text="No achievement data - try CHECK STEAM." Style="{StaticResource AfMuted}" Padding="16" />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="items:AchievementRowViewModel">
+                            <Grid Padding="14,8" ColumnDefinitions="44,Auto,*,Auto" ColumnSpacing="14"
+                                  BackgroundColor="Transparent">
+                                <Grid.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding RevealCommand}" />
+                                </Grid.GestureRecognizers>
+                                <Border Grid.Column="0" WidthRequest="40" HeightRequest="40"
+                                        BackgroundColor="{StaticResource AfPanelElevated}"
+                                        StrokeThickness="0" StrokeShape="Rectangle" Padding="0"
+                                        VerticalOptions="Center">
+                                    <Image Source="{Binding ShownIcon}" Aspect="AspectFit"
+                                           IsVisible="{Binding HasIcon}" />
+                                </Border>
+                                <Border Grid.Column="1"
+                                        BackgroundColor="{Binding Unlocked, Converter={StaticResource TabBrush}}"
+                                        StrokeThickness="0" StrokeShape="Rectangle"
+                                        Padding="8,3" VerticalOptions="Center" WidthRequest="92">
+                                    <Label Text="{Binding StatusLabel}"
+                                           FontFamily="OpenSansSemibold" FontSize="9"
+                                           CharacterSpacing="2" HorizontalOptions="Center"
+                                           TextColor="{StaticResource AfTextOnAccent}" />
+                                </Border>
+                                <VerticalStackLayout Grid.Column="2" Spacing="1" VerticalOptions="Center">
+                                    <Label Text="{Binding ShownTitle}"
+                                           Style="{StaticResource AfFieldValue}" FontSize="13" />
+                                    <Label Text="{Binding ShownDescription}"
+                                           Style="{StaticResource AfMuted}" FontSize="11"
+                                           LineBreakMode="WordWrap" />
+                                    <Label Text="{Binding UnlockedAtText}"
+                                           Style="{StaticResource AfStatusText}" FontSize="9" />
+                                </VerticalStackLayout>
+                                <Label Grid.Column="3" Text="{Binding CompareLabel}"
+                                       Style="{StaticResource AfFieldLabel}"
+                                       TextColor="{StaticResource AfHazardYellow}"
+                                       VerticalOptions="Center"
+                                       IsVisible="{Binding HasCompare}" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Border>
+        </VerticalStackLayout>
+    </Border>
+</ContentView>

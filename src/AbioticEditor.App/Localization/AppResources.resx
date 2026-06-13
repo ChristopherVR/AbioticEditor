@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    Default (neutral / English) UI strings. Per-language files (AppResources.<code>.resx)
+    override individual keys; anything not translated falls back to this file.
+    Look up at runtime via LocalizationResourceManager.Instance["Key"] (code) or the
+    {loc:Localize Key} markup extension (XAML).
+  -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="Language_Title" xml:space="preserve"><value>Choose your language</value></data>
+  <data name="Language_Subtitle" xml:space="preserve"><value>Select the language for the editor. You can change this any time in Settings.</value></data>
+  <data name="Language_Continue" xml:space="preserve"><value>CONTINUE</value></data>
+  <data name="Language_SystemDefault" xml:space="preserve"><value>System default</value></data>
+
+  <data name="Settings_Title" xml:space="preserve"><value>SETTINGS</value></data>
+  <data name="Settings_Theme" xml:space="preserve"><value>THEME</value></data>
+  <data name="Settings_Language" xml:space="preserve"><value>LANGUAGE</value></data>
+  <data name="Settings_Language_Hint" xml:space="preserve"><value>The editor's display language. Applies immediately.</value></data>
+  <data name="Settings_Diagnostics" xml:space="preserve"><value>DIAGNOSTICS</value></data>
+  <data name="Settings_Plugins" xml:space="preserve"><value>PLUGINS</value></data>
+  <data name="Settings_Spoilers" xml:space="preserve"><value>SPOILERS</value></data>
+  <data name="Settings_GameData" xml:space="preserve"><value>GAME DATA</value></data>
+  <data name="Settings_About" xml:space="preserve"><value>ABOUT</value></data>
+  <data name="Settings_LightMode" xml:space="preserve"><value>Light mode</value></data>
+  <data name="Settings_DiagnosticLogging" xml:space="preserve"><value>Diagnostic logging</value></data>
+
+  <data name="Common_Save" xml:space="preserve"><value>SAVE</value></data>
+  <data name="Common_Revert" xml:space="preserve"><value>REVERT</value></data>
+  <data name="Common_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Common_Close" xml:space="preserve"><value>CLOSE</value></data>
+  <data name="Common_Ok" xml:space="preserve"><value>OK</value></data>
+
+  <data name="Header_Home" xml:space="preserve"><value>HOME</value></data>
+  <data name="Header_Files" xml:space="preserve"><value>FILES</value></data>
+  <data name="Header_Tools" xml:space="preserve"><value>TOOLS</value></data>
+  <data name="Header_OpenFolder" xml:space="preserve"><value>OPEN FOLDER</value></data>
+</root>

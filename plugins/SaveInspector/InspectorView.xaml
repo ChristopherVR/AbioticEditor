@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:AbioticEditor.Samples.SaveInspector"
+             x:Class="AbioticEditor.Samples.SaveInspector.InspectorView"
+             x:DataType="local:InspectorViewModel">
+    <!--
+        Real compiled XAML shipped inside a plugin. x:DataType enables compiled bindings
+        against InspectorViewModel, so this is a fully type-checked MVVM view - the same
+        authoring experience as a view inside the host app, but loaded dynamically.
+    -->
+    <Grid RowDefinitions="Auto,Auto,*" Padding="20" RowSpacing="12">
+
+        <VerticalStackLayout Grid.Row="0" Spacing="2">
+            <Label Text="SAVE INSPECTOR" FontSize="18" FontAttributes="Bold" />
+            <Label Text="{Binding FileName}" FontSize="13" Opacity="0.8" />
+            <Label Text="{Binding Summary}" FontSize="12" Opacity="0.7" LineBreakMode="WordWrap" />
+        </VerticalStackLayout>
+
+        <Button Grid.Row="1"
+                Text="REFRESH"
+                HorizontalOptions="Start"
+                Command="{Binding RefreshCommand}" />
+
+        <Grid Grid.Row="2">
+            <!-- Empty state shown when there are no skill rows. -->
+            <Label Text="No skills to show for this save."
+                   IsVisible="{Binding ShowEmptyState}"
+                   Opacity="0.6"
+                   VerticalOptions="Start" />
+
+            <CollectionView ItemsSource="{Binding Skills}"
+                            IsVisible="{Binding HasSkills}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="local:SkillRow">
+                        <Grid ColumnDefinitions="*,Auto,Auto" Padding="0,6" ColumnSpacing="12">
+                            <Label Grid.Column="0" Text="{Binding Name}" VerticalOptions="Center" />
+                            <Label Grid.Column="1" Text="{Binding LevelText}" FontAttributes="Bold" VerticalOptions="Center" />
+                            <Label Grid.Column="2" Text="{Binding XpText}" Opacity="0.7" VerticalOptions="Center" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+    </Grid>
+</ContentView>

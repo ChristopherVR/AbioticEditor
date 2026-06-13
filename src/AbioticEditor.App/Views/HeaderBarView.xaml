@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             x:Class="AbioticEditor.App.Views.HeaderBarView"
+             x:DataType="vm:MainViewModel">
+
+    <ContentView.Resources>
+        <!-- Material-style round icon button for top-bar actions -->
+        <Style x:Key="AfIconButton" TargetType="Button">
+            <Setter Property="FontFamily" Value="MaterialSymbols" />
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="BackgroundColor" Value="Transparent" />
+            <Setter Property="TextColor" Value="{StaticResource AfTextSecondary}" />
+            <Setter Property="WidthRequest" Value="42" />
+            <Setter Property="HeightRequest" Value="42" />
+            <Setter Property="CornerRadius" Value="21" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="BorderWidth" Value="0" />
+            <Setter Property="VerticalOptions" Value="Center" />
+            <Setter Property="VisualStateManager.VisualStateGroups">
+                <VisualStateGroupList>
+                    <VisualStateGroup x:Name="CommonStates">
+                        <VisualState x:Name="Normal" />
+                        <VisualState x:Name="PointerOver">
+                            <VisualState.Setters>
+                                <Setter Property="BackgroundColor" Value="{StaticResource AfPanelElevated}" />
+                                <Setter Property="TextColor" Value="{StaticResource AfTextPrimary}" />
+                            </VisualState.Setters>
+                        </VisualState>
+                    </VisualStateGroup>
+                </VisualStateGroupList>
+            </Setter>
+        </Style>
+    </ContentView.Resources>
+
+    <!-- ===== Branded header ===== -->
+    <Border Style="{StaticResource AfChrome}" Padding="0">
+        <Grid ColumnDefinitions="Auto,*,Auto"
+              RowDefinitions="*"
+              Padding="20,14"
+              ColumnSpacing="20">
+
+            <!-- Logo block: real extracted logo when available, fallback wordmark otherwise -->
+            <HorizontalStackLayout Grid.Column="0" Spacing="14" VerticalOptions="Center">
+                <!-- Real logo from AF paks -->
+                <Image Source="{Binding LogoPath}"
+                       HeightRequest="48"
+                       Aspect="AspectFit"
+                       IsVisible="{Binding HasLogo}"
+                       VerticalOptions="Center" />
+
+                <!-- Fallback when game install / mappings unavailable -->
+                <HorizontalStackLayout Spacing="14"
+                                       VerticalOptions="Center"
+                                       IsVisible="{Binding HasLogo, Converter={StaticResource BoolNegate}}">
+                    <Border BackgroundColor="{StaticResource AfAccentOrange}"
+                            WidthRequest="34" HeightRequest="34"
+                            StrokeThickness="0"
+                            StrokeShape="Rectangle">
+                        <Label Text="AF"
+                               TextColor="{StaticResource AfTextOnAccent}"
+                               FontFamily="OpenSansSemibold"
+                               FontSize="14"
+                               CharacterSpacing="2"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+                    </Border>
+                    <Label Text="ABIOTIC FACTOR"
+                           Style="{StaticResource AfWordmark}"
+                           VerticalOptions="Center" />
+                </HorizontalStackLayout>
+
+                <Label x:Name="VersionLabel"
+                       Text="SAVE EDITOR · v0.5"
+                       Style="{StaticResource AfStatusText}"
+                       VerticalOptions="Center" />
+            </HorizontalStackLayout>
+
+            <!-- Active folder breadcrumb (hidden on narrow widths via SetCompact) -->
+            <VerticalStackLayout x:Name="FolderBreadcrumb"
+                                 Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                <Label Text="ACTIVE SAVE FOLDER"
+                       Style="{StaticResource AfFieldLabel}" />
+                <Label Text="{Binding FolderPath, FallbackValue='— none selected —'}"
+                       Style="{StaticResource AfReadout}"
+                       LineBreakMode="MiddleTruncation" />
+            </VerticalStackLayout>
+
+            <!-- Controls: icon actions (Material top-bar style) + primary CTA -->
+            <HorizontalStackLayout Grid.Column="2" Spacing="2" VerticalOptions="Center">
+                <ActivityIndicator IsRunning="{Binding IsScanning}"
+                                   IsVisible="{Binding IsScanning}"
+                                   WidthRequest="18" HeightRequest="18"
+                                   Margin="0,0,6,0"
+                                   VerticalOptions="Center" />
+
+                <!-- home -->
+                <Button Style="{StaticResource AfIconButton}"
+                        Text="&#xE88A;"
+                        Margin="0,0,4,0"
+                        ToolTipProperties.Text="Home — start page with all detected worlds"
+                        Clicked="OnHomeClicked" />
+
+                <!-- primary CTA: filled tonal button with leading folder_open glyph -->
+                <Border BackgroundColor="{StaticResource AfAccentOrange}"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 8"
+                        Padding="14,9"
+                        VerticalOptions="Center">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnOpenFolderTapped" />
+                    </Border.GestureRecognizers>
+                    <HorizontalStackLayout Spacing="8">
+                        <Label Text="&#xE2C8;"
+                               FontFamily="MaterialSymbols"
+                               FontSize="18"
+                               TextColor="{StaticResource AfTextOnAccent}"
+                               VerticalOptions="Center" />
+                        <Label Text="OPEN FOLDER"
+                               FontFamily="OpenSansSemibold"
+                               FontSize="12"
+                               CharacterSpacing="1"
+                               TextColor="{StaticResource AfTextOnAccent}"
+                               VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                </Border>
+            </HorizontalStackLayout>
+        </Grid>
+    </Border>
+</ContentView>

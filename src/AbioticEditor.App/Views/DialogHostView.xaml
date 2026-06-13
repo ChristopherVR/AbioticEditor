@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             x:Class="AbioticEditor.App.Views.DialogHostView"
+             x:DataType="vm:DialogViewModel"
+             IsVisible="False"
+             InputTransparent="False">
+
+    <Grid>
+        <!-- Scrim: dims everything behind; tap to dismiss (= cancel). -->
+        <BoxView x:Name="Scrim"
+                 BackgroundColor="#000000"
+                 Opacity="0">
+            <BoxView.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnScrimTapped" />
+            </BoxView.GestureRecognizers>
+        </BoxView>
+
+        <!-- Card -->
+        <Border x:Name="Card"
+                Style="{StaticResource AfPanel}"
+                BackgroundColor="{DynamicResource AfShellBackground}"
+                Stroke="{DynamicResource AfAccentOrangeBrush}"
+                StrokeThickness="1"
+                Padding="0"
+                Opacity="0"
+                Scale="0.92"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                WidthRequest="520"
+                MaximumWidthRequest="520"
+                Margin="24">
+            <VerticalStackLayout Spacing="0">
+                <!-- Accent header strip -->
+                <BoxView HeightRequest="3" BackgroundColor="{DynamicResource AfAccentOrange}" />
+
+                <VerticalStackLayout Padding="24,20,24,18" Spacing="12">
+                    <Label Text="{Binding Title}"
+                           Style="{StaticResource AfH2}"
+                           FontSize="16"
+                           IsVisible="{Binding HasTitle}"
+                           LineBreakMode="WordWrap" />
+                    <Label Text="{Binding Message}"
+                           Style="{StaticResource AfFieldValue}"
+                           FontSize="13"
+                           LineBreakMode="WordWrap" />
+
+                    <!-- Optional single-line text field (PromptAsync) -->
+                    <Border IsVisible="{Binding ShowInput}"
+                            BackgroundColor="{DynamicResource AfPanelElevated}"
+                            Stroke="{DynamicResource AfDividerBrush}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 6"
+                            Padding="10,2">
+                        <Entry x:Name="InputField"
+                               Text="{Binding InputText, Mode=TwoWay}"
+                               Placeholder="{Binding InputPlaceholder}"
+                               TextColor="{DynamicResource AfTextPrimary}"
+                               PlaceholderColor="{DynamicResource AfTextMuted}"
+                               BackgroundColor="Transparent"
+                               FontSize="14" />
+                    </Border>
+
+                    <!-- Buttons, right-aligned; affirmative reads last -->
+                    <FlexLayout BindableLayout.ItemsSource="{Binding Actions}"
+                                Direction="Row"
+                                Wrap="Wrap"
+                                JustifyContent="End"
+                                AlignItems="Center"
+                                Margin="0,8,0,0">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="vm:DialogActionViewModel">
+                                <Button Text="{Binding Text}"
+                                        Command="{Binding Command}"
+                                        BackgroundColor="{Binding BackgroundColor}"
+                                        TextColor="{Binding TextColor}"
+                                        FontSize="12"
+                                        Padding="18,9"
+                                        Margin="8,4,0,0"
+                                        MinimumWidthRequest="96" />
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </FlexLayout>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </Border>
+    </Grid>
+</ContentView>

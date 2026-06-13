@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             x:Class="AbioticEditor.App.Views.Player.PlayerCharacterTab"
+             x:Name="Root"
+             x:DataType="vm:MainViewModel"
+             IsVisible="{Binding PlayerEditor.IsCharacterTab, FallbackValue=False}">
+
+    <VerticalStackLayout Spacing="22">
+
+        <!-- ===== Player TAB: Character (background + traits) ===== -->
+        <Border Style="{StaticResource AfPanel}" Padding="20,16"
+
+                IsVisible="{Binding PlayerEditor.IsCharacterTab, FallbackValue=False}">
+            <VerticalStackLayout Spacing="12">
+                <Label Text="CHARACTER" Style="{StaticResource AfH2}" />
+                <BoxView Style="{StaticResource AfHazardStripe}" />
+
+                <controls:AdaptiveGrid ColumnDefinitions="110,260,*" ColumnSpacing="12" CompactWidth="560">
+                    <Label Grid.Column="0" Text="BACKGROUND" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                    <Picker Grid.Column="1"
+                            ItemsSource="{Binding PlayerEditor.KnownBackgrounds}"
+                            SelectedItem="{Binding PlayerEditor.SelectedBackground, Mode=TwoWay}"
+                            BackgroundColor="{StaticResource AfPanelElevated}"
+                            TextColor="{StaticResource AfTerminalGreen}" />
+                    <Label Grid.Column="2"
+                           Text="Changing the background does not re-apply its skill bonuses or starting gear — it only changes the save's job id."
+                           Style="{StaticResource AfMuted}" FontSize="10" VerticalOptions="Center" />
+                </controls:AdaptiveGrid>
+
+                <BoxView Style="{StaticResource AfDivider}" />
+
+                <Label Text="TRAITS" Style="{StaticResource AfFieldLabel}" FontSize="12" TextColor="{StaticResource AfAmber}" CharacterSpacing="5" />
+                <FlexLayout Wrap="Wrap" Direction="Row"
+                            BindableLayout.ItemsSource="{Binding PlayerEditor.Traits}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="items:TraitItemViewModel">
+                            <Border BackgroundColor="{StaticResource AfPanelElevated}"
+                                    Stroke="{StaticResource AfBorderSubtleBrush}"
+                                    StrokeThickness="1" StrokeShape="Rectangle"
+                                    Padding="10,4" Margin="0,0,8,8"
+                                    ToolTipProperties.Text="{Binding Tooltip}">
+                                <HorizontalStackLayout Spacing="8">
+                                    <Label Text="{Binding DisplayName}"
+                                           Style="{StaticResource AfFieldValue}" FontSize="12"
+                                           VerticalOptions="Center" />
+                                    <Label Text="{Binding Id}"
+                                           Style="{StaticResource AfStatusText}" FontSize="9"
+                                           VerticalOptions="Center" />
+                                    <Button Text="✕"
+                                            FontSize="10" Padding="6,0"
+                                            HeightRequest="22"
+                                            BackgroundColor="{StaticResource AfPanelBackground}"
+                                            TextColor="{StaticResource AfAlertRed}"
+                                            Command="{Binding Source={x:Reference Root}, Path=BindingContext.PlayerEditor.RemoveTraitCommand}"
+                                            CommandParameter="{Binding}" />
+                                </HorizontalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </FlexLayout>
+
+                <!-- Trait browser: read what a trait does BEFORE adding it -->
+                <Entry Text="{Binding PlayerEditor.TraitSearchText, Mode=TwoWay}"
+                       Placeholder="Search traits to add..."
+                       BackgroundColor="{StaticResource AfPanelElevated}"
+                       TextColor="{StaticResource AfTextPrimary}" />
+                <Border BackgroundColor="{StaticResource AfShellBackground}"
+                        Stroke="{StaticResource AfBorderSubtleBrush}"
+                        StrokeThickness="1" StrokeShape="Rectangle"
+                        Padding="0" HeightRequest="220">
+                    <CollectionView ItemsSource="{Binding PlayerEditor.VisibleTraitOptions}">
+                        <CollectionView.EmptyView>
+                            <Label Text="No traits match (or all are already applied)." Style="{StaticResource AfMuted}" Padding="12" />
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="items:TraitBrowserRow">
+                                <Grid Padding="12,6" ColumnDefinitions="170,Auto,*,Auto" ColumnSpacing="12">
+                                    <Label Grid.Column="0" Text="{Binding DisplayName}"
+                                           Style="{StaticResource AfFieldValue}" FontSize="12"
+                                           VerticalOptions="Center" />
+                                    <Label Grid.Column="1" Text="{Binding CostText}"
+                                           Style="{StaticResource AfReadout}" FontSize="13"
+                                           VerticalOptions="Center" />
+                                    <Label Grid.Column="2" Text="{Binding Description}"
+                                           Style="{StaticResource AfMuted}" FontSize="11"
+                                           LineBreakMode="WordWrap"
+                                           VerticalOptions="Center" />
+                                    <Button Grid.Column="3" Text="ADD"
+                                            FontSize="10" Padding="10,3"
+                                            BackgroundColor="{StaticResource AfPanelElevated}"
+                                            TextColor="{StaticResource AfTerminalGreen}"
+                                            Command="{Binding Source={x:Reference Root}, Path=BindingContext.PlayerEditor.AddTraitRowCommand}"
+                                            CommandParameter="{Binding}"
+                                            VerticalOptions="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Border>
+
+            </VerticalStackLayout>
+        </Border>
+
+        <!-- ===== Player TAB: Character (continued) — appearance ===== -->
+        <Border Style="{StaticResource AfPanel}" Padding="20,16"
+                IsVisible="{Binding PlayerEditor.IsCharacterTab, FallbackValue=False}">
+            <VerticalStackLayout Spacing="12">
+                <!-- ===== Appearance (per-account ScientistCustomization save) ===== -->
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                    <Label Grid.Column="0" Text="APPEARANCE (HEAD / HAIR / CLOTHING)" Style="{StaticResource AfFieldLabel}" FontSize="12" TextColor="{StaticResource AfAmber}" CharacterSpacing="5" VerticalOptions="Center" />
+                    <Picker Grid.Column="1" WidthRequest="90"
+                            ItemsSource="{Binding PlayerEditor.Appearance.Slots}"
+                            SelectedItem="{Binding PlayerEditor.Appearance.SelectedSlot, Mode=TwoWay}"
+                            IsVisible="{Binding PlayerEditor.Appearance.HasMultipleSlots, FallbackValue=False}" />
+                    <Button Grid.Column="2" Text="SAVE APPEARANCE"
+                            FontSize="10" Padding="10,4"
+                            Command="{Binding PlayerEditor.Appearance.SaveCommand}" />
+                </Grid>
+                <Label Text="{Binding PlayerEditor.Appearance.Status}"
+                       Style="{StaticResource AfMuted}" FontSize="10" LineBreakMode="WordWrap" />
+                <Label Text="{Binding PlayerEditor.Appearance.VoiceNote}"
+                       Style="{StaticResource AfStatusText}" FontSize="9"
+                       IsVisible="{Binding PlayerEditor.Appearance.IsAvailable, FallbackValue=False}" />
+                <FlexLayout Wrap="Wrap" Direction="Row"
+                            BindableLayout.ItemsSource="{Binding PlayerEditor.Appearance.Fields}"
+                            IsVisible="{Binding PlayerEditor.Appearance.IsAvailable, FallbackValue=False}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="items:CustomizationFieldViewModel">
+                            <VerticalStackLayout Spacing="2" Margin="0,0,14,10"
+                                                 FlexLayout.Basis="230" FlexLayout.Grow="1">
+                                <Label Text="{Binding Label}" Style="{StaticResource AfFieldLabel}" FontSize="9" />
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                                    <!-- Live preview: the option's own icon render, or a color swatch -->
+                                    <Border Grid.Column="0" WidthRequest="72" HeightRequest="72"
+                                            BackgroundColor="#000000"
+                                            Stroke="{StaticResource AfBorderSubtleBrush}"
+                                            StrokeThickness="1" StrokeShape="RoundRectangle 4"
+                                            Padding="0" VerticalOptions="Center"
+                                            IsVisible="{Binding HasPreviewIcon}">
+                                        <Image Source="{Binding PreviewIconPath}" Aspect="AspectFill" />
+                                    </Border>
+                                    <BoxView Grid.Column="0" WidthRequest="56" HeightRequest="36"
+                                             Color="{Binding SwatchColor}"
+                                             VerticalOptions="Center"
+                                             IsVisible="{Binding HasSwatch}" />
+                                    <Picker Grid.Column="1"
+                                            ItemsSource="{Binding Options}"
+                                            ItemDisplayBinding="{Binding DisplayName}"
+                                            SelectedItem="{Binding Selected, Mode=TwoWay}"
+                                            VerticalOptions="Center" />
+                                </Grid>
+                            </VerticalStackLayout>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </FlexLayout>
+
+            </VerticalStackLayout>
+        </Border>
+    </VerticalStackLayout>
+</ContentView>

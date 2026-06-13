@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="Language_Title" xml:space="preserve"><value>Elige tu idioma</value></data>
+  <data name="Language_Subtitle" xml:space="preserve"><value>Selecciona el idioma del editor. Puedes cambiarlo cuando quieras en Ajustes.</value></data>
+  <data name="Language_Continue" xml:space="preserve"><value>CONTINUAR</value></data>
+  <data name="Language_SystemDefault" xml:space="preserve"><value>Predeterminado del sistema</value></data>
+
+  <data name="Settings_Title" xml:space="preserve"><value>AJUSTES</value></data>
+  <data name="Settings_Theme" xml:space="preserve"><value>TEMA</value></data>
+  <data name="Settings_Language" xml:space="preserve"><value>IDIOMA</value></data>
+  <data name="Settings_Language_Hint" xml:space="preserve"><value>El idioma de la interfaz. Se aplica de inmediato.</value></data>
+  <data name="Settings_Diagnostics" xml:space="preserve"><value>DIAGNÓSTICO</value></data>
+  <data name="Settings_Plugins" xml:space="preserve"><value>COMPLEMENTOS</value></data>
+  <data name="Settings_Spoilers" xml:space="preserve"><value>SPOILERS</value></data>
+  <data name="Settings_GameData" xml:space="preserve"><value>DATOS DEL JUEGO</value></data>
+  <data name="Settings_About" xml:space="preserve"><value>ACERCA DE</value></data>
+  <data name="Settings_LightMode" xml:space="preserve"><value>Modo claro</value></data>
+  <data name="Settings_DiagnosticLogging" xml:space="preserve"><value>Registro de diagnóstico</value></data>
+
+  <data name="Common_Save" xml:space="preserve"><value>GUARDAR</value></data>
+  <data name="Common_Revert" xml:space="preserve"><value>REVERTIR</value></data>
+  <data name="Common_Cancel" xml:space="preserve"><value>Cancelar</value></data>
+  <data name="Common_Close" xml:space="preserve"><value>CERRAR</value></data>
+  <data name="Common_Ok" xml:space="preserve"><value>OK</value></data>
+
+  <data name="Header_Home" xml:space="preserve"><value>INICIO</value></data>
+  <data name="Header_Files" xml:space="preserve"><value>ARCHIVOS</value></data>
+  <data name="Header_Tools" xml:space="preserve"><value>HERRAMIENTAS</value></data>
+  <data name="Header_OpenFolder" xml:space="preserve"><value>ABRIR CARPETA</value></data>
+</root>

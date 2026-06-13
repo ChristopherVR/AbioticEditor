@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Sample FIX-UP plugin: tops every survival need (hunger/thirst/sanity/fatigue/continence)
+    back to full on a player save. Doubles as a repair for the delta-serialization gotcha
+    where a missing stat tag reads as 0 - running this writes the tag at 100.
+
+    Same dependency model as MaxSkills: reference the SDK + Core to compile against real
+    types, but Private=false / ExcludeAssets=runtime so the output is just RepairNeeds.dll +
+    plugin.json; the host unifies the shared assemblies at load time.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Platforms>x64</Platforms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>RepairNeeds</AssemblyName>
+    <RootNamespace>AbioticEditor.Samples.RepairNeeds</RootNamespace>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AbioticEditor.Plugins.Abstractions\AbioticEditor.Plugins.Abstractions.csproj" Private="false" ExcludeAssets="runtime" />
+    <ProjectReference Include="..\..\src\AbioticEditor.Core\AbioticEditor.Core.csproj" Private="false" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="plugin.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

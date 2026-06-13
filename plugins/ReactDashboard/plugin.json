@@ -1,0 +1,12 @@
+{
+  "id": "com.abioticeditor.samples.react-dashboard",
+  "name": "React Dashboard",
+  "version": "1.0.0",
+  "author": "Abiotic Editor samples",
+  "description": "A JavaScript plugin whose UI is a React app rendered in a web view; it reads the open player save through the host bridge.",
+  "runtime": "javascript",
+  "entryScript": "plugin.js",
+  "minHostVersion": "1.0.0",
+  "capabilities": ["webTool", "eventHandler"],
+  "enabled": true
+}

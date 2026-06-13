@@ -1,0 +1,12 @@
+{
+  "id": "com.abioticeditor.samples.hello-script",
+  "name": "Hello Script",
+  "version": "1.0.0",
+  "author": "Abiotic Editor samples",
+  "description": "A JavaScript plugin: a 'rich-player' save operation, a 'js-greet' command, a menu action, and a save.written event handler.",
+  "runtime": "javascript",
+  "entryScript": "plugin.js",
+  "minHostVersion": "1.0.0",
+  "capabilities": ["saveOperation", "consoleCommand", "menuAction", "eventHandler"],
+  "enabled": true
+}

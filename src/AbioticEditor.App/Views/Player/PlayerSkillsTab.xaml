@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             x:Class="AbioticEditor.App.Views.Player.PlayerSkillsTab"
+             x:DataType="vm:MainViewModel">
+
+    <!-- Skills editor -->
+    <Border Style="{StaticResource AfPanel}" Padding="20,16"
+
+            IsVisible="{Binding PlayerEditor.IsSkillsTab, FallbackValue=False}">
+        <VerticalStackLayout Spacing="12">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                <Label Grid.Column="0" Text="SKILLS" Style="{StaticResource AfH2}" VerticalOptions="Center" />
+                <Label Grid.Column="1"
+                       Text="LEVEL 0–20 · SET LEVEL SNAPS XP TO THRESHOLD"
+                       Style="{StaticResource AfStatusText}" VerticalOptions="Center"
+                       LineBreakMode="TailTruncation" HorizontalOptions="End" />
+                <Button Grid.Column="2" Text="MAX ALL"
+                        BackgroundColor="{StaticResource AfHazardYellow}"
+                        TextColor="{StaticResource AfTextOnAccent}"
+                        Clicked="OnMaxAllSkills" />
+            </Grid>
+            <BoxView Style="{StaticResource AfHazardStripe}" />
+            <Label Text="Tap a milestone for its full detail in the slot panel. Milestone counts vary per skill, and locked perks stay sealed (hidden in-game) until you reach the level - or tap one to override clearance."
+                   Style="{StaticResource AfMuted}" FontSize="10" LineBreakMode="WordWrap" />
+
+            <!-- Skill cards in a uniform adaptive grid: the column count follows the
+                 width (1 on phones up to 3 on wide monitors) and every card keeps the
+                 same width - no more lone last card stretched across the full row. -->
+            <CollectionView ItemsSource="{Binding PlayerEditor.Skills}"
+                            SelectionMode="None"
+                            controls:ResponsiveLayout.ItemWidth="430"
+                            controls:ResponsiveLayout.MaxSpan="3">
+                <CollectionView.ItemsLayout>
+                    <GridItemsLayout Orientation="Vertical" Span="2"
+                                     HorizontalItemSpacing="10" VerticalItemSpacing="10" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="items:SkillViewModel">
+                        <Border BackgroundColor="{StaticResource AfShellBackground}"
+                                Stroke="{StaticResource AfBorderSubtleBrush}"
+                                StrokeThickness="1" StrokeShape="RoundRectangle 6"
+                                Padding="14,12"
+                                ToolTipProperties.Text="{Binding Description}">
+                            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+
+                                <!-- Header: icon · name+passive · LV entry · MAX -->
+                                <Grid Grid.Row="0" ColumnDefinitions="40,*,Auto,64,Auto" ColumnSpacing="10">
+                                    <Border Grid.Column="0" WidthRequest="38" HeightRequest="38"
+                                            BackgroundColor="{StaticResource AfPanelElevated}"
+                                            StrokeThickness="0" StrokeShape="RoundRectangle 4"
+                                            Padding="4" VerticalOptions="Center">
+                                        <Image Source="{Binding IconPath}" Aspect="AspectFit"
+                                               IsVisible="{Binding HasIcon}" />
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                                        <Label Text="{Binding DisplayName}"
+                                               Style="{StaticResource AfFieldValue}"
+                                               FontSize="15" FontFamily="OpenSansSemibold" />
+                                        <Label Text="{Binding PassiveText}"
+                                               Style="{StaticResource AfStatusText}" FontSize="9"
+                                               LineBreakMode="TailTruncation" MaxLines="1"
+                                               ToolTipProperties.Text="{Binding PassiveText}" />
+                                    </VerticalStackLayout>
+                                    <Label Grid.Column="2" Text="LV" Style="{StaticResource AfFieldLabel}"
+                                           VerticalOptions="Center" />
+                                    <Entry Grid.Column="3"
+                                           Text="{Binding Level, Mode=TwoWay}"
+                                           Keyboard="Numeric"
+                                           FontFamily="Digital7" FontSize="20"
+                                           TextColor="{StaticResource AfTerminalGreen}"
+                                           HorizontalTextAlignment="Center"
+                                           VerticalOptions="Center" />
+                                    <Button Grid.Column="4" Text="MAX"
+                                            Style="{StaticResource AfGhostButton}"
+                                            FontSize="9" Padding="8,3"
+                                            Command="{Binding MaxCommand}"
+                                            IsEnabled="{Binding IsMaxed, Converter={StaticResource BoolNegate}}"
+                                            VerticalOptions="Center" />
+                                </Grid>
+
+                                <!-- XP slider (0 .. level-20 threshold) + raw XP entry -->
+                                <Grid Grid.Row="1" ColumnDefinitions="*,Auto,90" ColumnSpacing="10">
+                                    <Slider Grid.Column="0"
+                                            Minimum="0"
+                                            Maximum="{Binding MaxXp}"
+                                            Value="{Binding XpSliderValue, Mode=TwoWay}"
+                                            MinimumTrackColor="{StaticResource AfAccentOrange}"
+                                            MaximumTrackColor="{StaticResource AfPanelElevated}"
+                                            ThumbColor="{StaticResource AfTerminalGreen}"
+                                            ToolTipProperties.Text="Drag to set raw XP - the level re-derives from it."
+                                            VerticalOptions="Center" />
+                                    <Label Grid.Column="1" Text="{Binding XpText}"
+                                           Style="{StaticResource AfStatusText}" FontSize="10"
+                                           VerticalOptions="Center" />
+                                    <Entry Grid.Column="2"
+                                           Text="{Binding Xp, Mode=TwoWay}"
+                                           Keyboard="Numeric"
+                                           FontFamily="Digital7" FontSize="13"
+                                           TextColor="{StaticResource AfTextSecondary}"
+                                           HorizontalTextAlignment="Center"
+                                           ToolTipProperties.Text="Raw XP — level re-derives from it."
+                                           VerticalOptions="Center" />
+                                </Grid>
+
+                                <!-- Milestone track: each perk with its effect spelled out.
+                                     Filled = unlocked at the current level. -->
+                                <FlexLayout Grid.Row="2" Wrap="Wrap" Direction="Row"
+                                            BindableLayout.ItemsSource="{Binding Milestones}"
+                                            IsVisible="{Binding HasMilestones}">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="items:SkillMilestoneViewModel">
+                                            <Border BackgroundColor="{StaticResource AfPanelBackground}"
+                                                    Stroke="{StaticResource AfBorderSubtleBrush}"
+                                                    StrokeThickness="1" StrokeShape="RoundRectangle 5"
+                                                    Padding="8,4" Margin="0,0,5,5"
+                                                    FlexLayout.Basis="180" FlexLayout.Grow="1"
+                                                    ToolTipProperties.Text="{Binding Tooltip}">
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnMilestoneTapped" />
+                                                </Border.GestureRecognizers>
+                                                <Border.Triggers>
+                                                    <DataTrigger TargetType="Border"
+                                                                 Binding="{Binding IsUnlocked}" Value="True">
+                                                        <Setter Property="BackgroundColor" Value="{StaticResource AfTerminalGreenDim}" />
+                                                        <Setter Property="Stroke" Value="{StaticResource AfTerminalGreenBrush}" />
+                                                    </DataTrigger>
+                                                </Border.Triggers>
+                                                <VerticalStackLayout Spacing="1">
+                                                    <Label Text="{Binding ChipText}"
+                                                           FontSize="10" FontFamily="OpenSansSemibold"
+                                                           TextColor="{StaticResource AfTextMuted}">
+                                                        <Label.Triggers>
+                                                            <DataTrigger TargetType="Label"
+                                                                         Binding="{Binding IsUnlocked}" Value="True">
+                                                                <Setter Property="TextColor" Value="{StaticResource AfTextPrimary}" />
+                                                            </DataTrigger>
+                                                        </Label.Triggers>
+                                                    </Label>
+                                                    <Label Text="{Binding ShownEffect}"
+                                                           FontSize="8.5"
+                                                           TextColor="{StaticResource AfTextMuted}"
+                                                           LineBreakMode="WordWrap">
+                                                        <Label.Triggers>
+                                                            <DataTrigger TargetType="Label"
+                                                                         Binding="{Binding IsUnlocked}" Value="True">
+                                                                <Setter Property="TextColor" Value="{StaticResource AfTextSecondary}" />
+                                                            </DataTrigger>
+                                                        </Label.Triggers>
+                                                    </Label>
+                                                </VerticalStackLayout>
+                                            </Border>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </FlexLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </VerticalStackLayout>
+    </Border>
+</ContentView>

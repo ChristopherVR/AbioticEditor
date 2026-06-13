@@ -1,0 +1,12 @@
+{
+  "id": "com.abioticeditor.samples.web-stats",
+  "name": "Web Stats",
+  "version": "1.0.0",
+  "author": "Abiotic Editor samples",
+  "description": "A JavaScript plugin with an offline HTML web tool (no CDN) served from a bundled folder, reading the save via the host bridge.",
+  "runtime": "javascript",
+  "entryScript": "plugin.js",
+  "minHostVersion": "1.0.0",
+  "capabilities": ["webTool"],
+  "enabled": true
+}

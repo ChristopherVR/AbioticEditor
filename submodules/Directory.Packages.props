@@ -1,0 +1,8 @@
+<Project>
+  <!-- The submodules (CUE4Parse, UeSaveGame) are external codebases that pin their own
+       package versions inline. Stop the repo root's central package management from
+       flowing into them. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,11 @@
+{
+  "id": "com.abioticeditor.samples.save-inspector",
+  "name": "Save Inspector",
+  "version": "1.0.0",
+  "author": "Abiotic Editor samples",
+  "description": "A full-MVVM UI tool (XAML + view-model) that lists the open player save's skills and headline stats.",
+  "entryAssembly": "SaveInspector.dll",
+  "minHostVersion": "1.0.0",
+  "capabilities": ["editorTool"],
+  "enabled": true
+}

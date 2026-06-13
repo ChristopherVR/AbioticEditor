@@ -1,0 +1,4 @@
+node_modules/
+*.local
+# dist/ is intentionally NOT ignored: the built single-file app ships with the plugin so it
+# runs without a build step. Rebuild it with `npm install && npm run build`.

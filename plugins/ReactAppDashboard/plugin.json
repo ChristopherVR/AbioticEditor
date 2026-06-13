@@ -1,0 +1,12 @@
+{
+  "id": "com.abioticeditor.samples.react-app-dashboard",
+  "name": "React App Dashboard",
+  "version": "1.0.0",
+  "author": "Abiotic Editor samples",
+  "description": "A full Vite + React app (built to a single file) running as a plugin web tool, with a save operation it can trigger and toasts it can raise in the app.",
+  "runtime": "javascript",
+  "entryScript": "plugin.js",
+  "minHostVersion": "1.0.0",
+  "capabilities": ["webTool", "saveOperation", "eventHandler"],
+  "enabled": true
+}

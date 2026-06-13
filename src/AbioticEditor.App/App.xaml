@@ -1,0 +1,91 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:AbioticEditor.App"
+             xmlns:conv="clr-namespace:AbioticEditor.App.Converters"
+             x:Class="AbioticEditor.App.App"
+             UserAppTheme="Dark">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
+                <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
+                <ResourceDictionary Source="Resources/Styles/AbioticStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <conv:NotNullOrEmptyConverter x:Key="NullToBoolConverter" />
+            <conv:BoolNegateConverter x:Key="BoolNegate" />
+            <conv:WarningBorderBrushConverter x:Key="WarningBorderBrush" />
+            <conv:TabBrushConverter x:Key="TabBrush" />
+            <conv:UnlockedLabelConverter x:Key="UnlockedLabel" />
+
+            <!-- Reusable equipment slot template used by the paper-doll grid -->
+            <ControlTemplate x:Key="EquipmentSlotTemplate">
+                <Border BackgroundColor="{StaticResource AfPanelBackground}"
+                        Stroke="{TemplateBinding BindingContext.HasValidationWarning, Converter={StaticResource WarningBorderBrush}}"
+                        StrokeThickness="1"
+                        StrokeShape="Rectangle"
+                        HeightRequest="92"
+                        Padding="0">
+                    <Grid RowDefinitions="*,Auto" Padding="3">
+                        <!-- Filled state: real icon -->
+                        <Image Grid.Row="0"
+                               Source="{TemplateBinding BindingContext.IconPath}"
+                               Aspect="AspectFit"
+                               IsVisible="{TemplateBinding BindingContext.HasIcon}" />
+
+                        <!-- Empty state for equipment: role label dead-centre -->
+                        <Label Grid.Row="0"
+                               Text="{TemplateBinding BindingContext.Role}"
+                               FontFamily="OpenSansSemibold"
+                               FontSize="10"
+                               CharacterSpacing="3"
+                               TextColor="{StaticResource AfTextMuted}"
+                               HorizontalTextAlignment="Center"
+                               VerticalOptions="Center"
+                               IsVisible="{TemplateBinding BindingContext.ShowRolePlaceholder}" />
+
+                        <!-- Stack count, top-right -->
+                        <Label Grid.Row="0"
+                               Text="{TemplateBinding BindingContext.CountText}"
+                               FontFamily="Digital7"
+                               FontSize="14"
+                               TextColor="{StaticResource AfTerminalGreen}"
+                               HorizontalOptions="End"
+                               VerticalOptions="End"
+                               IsVisible="{TemplateBinding BindingContext.ShowCount}" />
+
+                        <!-- Upgradable badge (in-game style up-arrow) -->
+                        <Label Grid.Row="0"
+                               Text="▲"
+                               FontSize="12"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource AfHazardYellow}"
+                               HorizontalOptions="End"
+                               VerticalOptions="Start"
+                               Margin="0,-2,2,0"
+                               IsVisible="{TemplateBinding BindingContext.IsUpgradable}" />
+
+                        <!-- Item name (only when populated) -->
+                        <Label Grid.Row="1"
+                               Text="{TemplateBinding BindingContext.DisplayName}"
+                               FontSize="9"
+                               TextColor="{StaticResource AfTextSecondary}"
+                               LineBreakMode="TailTruncation"
+                               MaxLines="1"
+                               HorizontalTextAlignment="Center" />
+
+                        <!-- Selected ring: this slot is the one open in the slot editor -->
+                        <Border Grid.Row="0" Grid.RowSpan="2"
+                                Margin="-3"
+                                BackgroundColor="Transparent"
+                                Stroke="{StaticResource AfHazardYellowBrush}"
+                                StrokeThickness="2"
+                                StrokeShape="Rectangle"
+                                InputTransparent="True"
+                                IsVisible="{TemplateBinding BindingContext.IsSelected}" />
+                    </Grid>
+                </Border>
+            </ControlTemplate>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

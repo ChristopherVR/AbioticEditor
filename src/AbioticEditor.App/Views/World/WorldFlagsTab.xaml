@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             x:Class="AbioticEditor.App.Views.World.WorldFlagsTab"
+             x:Name="Root"
+             x:DataType="vm:MainViewModel"
+             IsVisible="{Binding WorldEditor.IsFlagsTab}">
+
+    <VerticalStackLayout Spacing="14">
+        <!-- ============== TAB: Quest flags ============== -->
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+            <Label Grid.Column="0" Text="QUEST FLAGS" Style="{StaticResource AfH2}" FontSize="18" VerticalOptions="Center" />
+            <VerticalStackLayout Grid.Column="1" Spacing="0" VerticalOptions="Center" HorizontalOptions="End">
+                <Label Text="IN THIS FILE" Style="{StaticResource AfFieldLabel}" HorizontalTextAlignment="End" />
+                <Label Text="{Binding WorldEditor.Flags.Count}" Style="{StaticResource AfReadout}" FontSize="18"
+                       HorizontalTextAlignment="End" />
+            </VerticalStackLayout>
+        </Grid>
+
+        <Label Text="These are the quest flags this world has actually reached — the one-way switches stored in THIS save. The full story state lives in WorldSave_Facility.sav; region files carry only the flags for their own area. Setting one here can skip forward (the game may pull in prerequisites that cascade to the metadata save and other worlds); clearing one rewinds that event."
+               Style="{StaticResource AfMuted}" FontSize="10" LineBreakMode="WordWrap" />
+
+        <!-- How quests work -->
+        <Border BackgroundColor="{StaticResource AfShellBackground}"
+                Stroke="{StaticResource AfBorderSubtleBrush}"
+                StrokeThickness="1" StrokeShape="Rectangle"
+                Padding="14,10">
+            <VerticalStackLayout Spacing="4">
+                <Label Text="HOW QUESTS WORK" Style="{StaticResource AfFieldLabel}" TextColor="{StaticResource AfAmber}" />
+                <Label Style="{StaticResource AfMuted}" FontSize="11" LineBreakMode="WordWrap"
+                       Text="The world remembers events as named flags - one-way switches the game sets when something happens (a door opened, an NPC met, a sector completed). The main story is a linear chain: Office &gt; Manufacturing West &gt; Labs &gt; Security &gt; Hydroplant &gt; Reactors &gt; Residence; each chapter is triggered by one specific flag (marked STORY below, numbered in story order). TOGGLE sets or clears a flag in this save: setting a STORY flag makes the world believe that event happened (skipping forward), clearing one rewinds it - but items/doors already changed by the event stay changed. Ordinary flags only gate small things like tutorial popups and TV tips. The current chapter pointer itself lives in WorldSave_MetaData's STORY tab." />
+            </VerticalStackLayout>
+        </Border>
+
+        <!-- Filter + add -->
+        <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="14">
+            <Entry Grid.Column="0"
+                   Text="{Binding WorldEditor.FlagFilter, Mode=TwoWay}"
+                   Placeholder="Filter by area, friendly or raw name…"
+                   BackgroundColor="{StaticResource AfPanelElevated}"
+                   TextColor="{StaticResource AfTextPrimary}" />
+            <Entry Grid.Column="1"
+                   Text="{Binding WorldEditor.NewFlagText, Mode=TwoWay}"
+                   Placeholder="Add new flag name…"
+                   BackgroundColor="{StaticResource AfPanelElevated}"
+                   TextColor="{StaticResource AfTextPrimary}" />
+            <Button Grid.Column="2"
+                    Text="ADD FLAG"
+                    Command="{Binding WorldEditor.AddFlagCommand}" />
+        </Grid>
+
+        <Border BackgroundColor="{StaticResource AfShellBackground}"
+                Stroke="{StaticResource AfBorderSubtleBrush}"
+                StrokeThickness="1"
+                StrokeShape="Rectangle"
+                Padding="0"
+                HeightRequest="500"
+>
+            <CollectionView ItemsSource="{Binding WorldEditor.VisibleFlagGroups}"
+                            IsGrouped="True"
+                            SelectionMode="Single"
+                            SelectedItem="{Binding WorldEditor.SelectedFlag, Mode=TwoWay}">
+                <CollectionView.GroupHeaderTemplate>
+                    <DataTemplate x:DataType="items:FlagGroup">
+                        <Grid Padding="12,14,12,4" ColumnDefinitions="*,Auto">
+                            <Label Grid.Column="0" Text="{Binding Title}"
+                                   Style="{StaticResource AfFieldLabel}"
+                                   FontSize="11" CharacterSpacing="4"
+                                   TextColor="{StaticResource AfAmber}" />
+                            <Label Grid.Column="1" Text="{Binding Count}"
+                                   Style="{StaticResource AfStatusText}" FontSize="10" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.GroupHeaderTemplate>
+                <CollectionView.EmptyView>
+                    <Label Text="This save has no quest flags yet (or none match the filter)." Style="{StaticResource AfMuted}" Padding="16" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="items:FlagItemViewModel">
+                        <!-- Explicit background: a null-background Grid is hit-test
+                             transparent on WinUI, so clicks between labels would not
+                             select the row (detail pane never opens). -->
+                        <Grid Padding="12,8" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10"
+                              BackgroundColor="{StaticResource AfPanelBackground}">
+                            <Border Grid.Column="0"
+                                    BackgroundColor="{Binding CategoryColor}"
+                                    StrokeThickness="0"
+                                    StrokeShape="Rectangle"
+                                    Padding="6,2"
+                                    VerticalOptions="Center">
+                                <Label Text="{Binding CategoryLabel}"
+                                       FontFamily="OpenSansSemibold"
+                                       FontSize="9"
+                                       CharacterSpacing="2"
+                                       TextColor="{StaticResource AfTextOnAccent}" />
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                                <Label Text="{Binding ShownFriendlyName}"
+                                       Style="{StaticResource AfFieldValue}"
+                                       FontSize="13"
+                                       LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding ShownRawName}"
+                                       Style="{StaticResource AfStatusText}"
+                                       FontSize="10"
+                                       LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding ShownStoryChapterText}"
+                                       FontFamily="OpenSansSemibold"
+                                       FontSize="9" CharacterSpacing="1"
+                                       TextColor="{StaticResource AfAccentOrange}"
+                                       LineBreakMode="TailTruncation"
+                                       IsVisible="{Binding ShowStoryTrigger}" />
+                                <Label Text="{Binding ShownDescription}"
+                                       Style="{StaticResource AfMuted}"
+                                       FontSize="9.5"
+                                       LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                            <Button Grid.Column="2"
+                                    Text="CLEAR"
+                                    FontSize="10"
+                                    Padding="10,4"
+                                    IsEnabled="{Binding CanAct}"
+                                    BackgroundColor="{StaticResource AfAccentOrange}"
+                                    TextColor="{StaticResource AfTextOnAccent}"
+                                    Command="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.ToggleFlagCommand}"
+                                    CommandParameter="{Binding}" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Border>
+    </VerticalStackLayout>
+</ContentView>

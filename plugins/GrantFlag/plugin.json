@@ -1,0 +1,11 @@
+{
+  "id": "com.abioticeditor.samples.grant-flag",
+  "name": "Grant World Flag",
+  "version": "1.0.0",
+  "author": "Abiotic Editor samples",
+  "description": "Adds a 'grant-flag' save operation that inserts a named entry into a world save's WorldFlags array (forward-compatible fix-up).",
+  "entryAssembly": "GrantFlag.dll",
+  "minHostVersion": "1.0.0",
+  "capabilities": ["saveOperation"],
+  "enabled": true
+}

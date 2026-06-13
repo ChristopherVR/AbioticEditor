@@ -1,0 +1,21 @@
+{
+  "name": "abiotic-react-app-dashboard",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "A full Vite + React app that runs as an Abiotic Editor plugin web tool.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.0.7",
+    "vite-plugin-singlefile": "^2.1.0"
+  }
+}

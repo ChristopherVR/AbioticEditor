@@ -1,0 +1,11 @@
+{
+  "id": "com.abioticeditor.samples.version-shim",
+  "name": "Version Shim",
+  "version": "1.0.0",
+  "author": "Abiotic Editor samples",
+  "description": "Recovers a save whose SaveGameVersion field is an unsupported value by rewriting it to the modern supported version (demonstrates the ISaveUpgrader hook).",
+  "entryAssembly": "VersionShim.dll",
+  "minHostVersion": "1.0.0",
+  "capabilities": ["saveUpgrader"],
+  "enabled": true
+}

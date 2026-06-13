@@ -1,0 +1,6 @@
+[submodule "submodules/UeSaveGame"]
+	path = submodules/UeSaveGame
+	url = https://github.com/CrystalFerrai/UeSaveGame.git
+[submodule "submodules/CUE4Parse"]
+	path = submodules/CUE4Parse
+	url = https://github.com/FabianFG/CUE4Parse.git

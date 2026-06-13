@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             x:Class="AbioticEditor.App.Views.EmptyStateView"
+             x:DataType="vm:MainViewModel">
+
+    <!-- Empty state shown when no save selected -->
+    <Border Style="{StaticResource AfPanel}" Padding="32,40"
+            controls:Fx.Reveal="True"
+            IsVisible="{Binding HasNoEditor}">
+        <VerticalStackLayout Spacing="14" HorizontalOptions="Center">
+            <Label Text="ABIOTIC FACTOR SAVE EDITOR"
+                   Style="{StaticResource AfH2}" HorizontalTextAlignment="Center" />
+            <Label Text="Open your save folder (usually …\AppData\Local\AbioticFactor\Saved\SaveGames\&lt;steamid&gt;\Worlds\&lt;WorldName&gt;), then pick a player or world save from the sidebar."
+                   Style="{StaticResource AfMuted}" HorizontalTextAlignment="Center"
+                   MaximumWidthRequest="560" />
+            <Label Text="Players: stats · inventory · skills · traits · recipes · codex · achievements&#10;Worlds: containers · quest flags · doors · ground items · story progression"
+                   Style="{StaticResource AfStatusText}" HorizontalTextAlignment="Center" />
+            <Button Text="OPEN FOLDER"
+                    HorizontalOptions="Center"
+                    Clicked="OnOpenFolderClicked" />
+            <Label Text="You can also drop a save folder anywhere on this window."
+                   Style="{StaticResource AfMuted}" FontSize="10" HorizontalTextAlignment="Center" />
+            <Label Text="Every write keeps a .bak backup next to the save."
+                   Style="{StaticResource AfMuted}" FontSize="10" HorizontalTextAlignment="Center" />
+
+            <!-- Worlds found on this machine: client saves + dedicated-server installs. -->
+            <VerticalStackLayout Spacing="8" Margin="0,20,0,0"
+                                 IsVisible="{Binding HasDiscoveredWorlds}">
+                <Label Text="WORLDS FOUND ON THIS MACHINE"
+                       Style="{StaticResource AfFieldLabel}"
+                       TextColor="{StaticResource AfAmber}"
+                       CharacterSpacing="3"
+                       HorizontalTextAlignment="Center" />
+                <Label Text="Save folders detected automatically from the game client and any installed dedicated server. Pick one, or use OPEN FOLDER / drag a folder in."
+                       Style="{StaticResource AfMuted}" FontSize="10"
+                       HorizontalTextAlignment="Center"
+                       MaximumWidthRequest="620" />
+                <VerticalStackLayout Spacing="8"
+                                     MaximumWidthRequest="620"
+                                     BindableLayout.ItemsSource="{Binding DiscoveredWorlds}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="vm:DiscoveredWorldOption">
+                            <Border BackgroundColor="{StaticResource AfPanelElevated}"
+                                    Stroke="{StaticResource AfBorderSubtleBrush}"
+                                    StrokeThickness="1" StrokeShape="Rectangle"
+                                    Padding="14,10">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnDiscoveredWorldTapped" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12"
+                                      RowDefinitions="Auto,Auto,Auto" RowSpacing="2">
+                                    <HorizontalStackLayout Grid.Row="0" Grid.Column="0" Spacing="10">
+                                        <Label Text="{Binding Name}"
+                                               FontFamily="OpenSansSemibold" FontSize="16"
+                                               TextColor="{StaticResource AfTextPrimary}"
+                                               VerticalOptions="Center" />
+                                        <Border BackgroundColor="{StaticResource AfAmber}"
+                                                StrokeThickness="0" StrokeShape="Rectangle"
+                                                Padding="6,2" VerticalOptions="Center"
+                                                ToolTipProperties.Text="{Binding SourceHint}">
+                                            <Label Text="{Binding SourceLabel}"
+                                                   FontFamily="OpenSansSemibold" FontSize="8"
+                                                   CharacterSpacing="2"
+                                                   TextColor="{StaticResource AfTextOnAccent}" />
+                                        </Border>
+                                    </HorizontalStackLayout>
+                                    <Label Grid.Row="1" Grid.Column="0"
+                                           Text="{Binding Detail}"
+                                           Style="{StaticResource AfStatusText}" FontSize="10" />
+                                    <Label Grid.Row="2" Grid.Column="0"
+                                           Text="{Binding FolderPath}"
+                                           Style="{StaticResource AfMuted}" FontSize="9"
+                                           LineBreakMode="MiddleTruncation" MaxLines="1" />
+                                    <Button Grid.Row="0" Grid.RowSpan="3" Grid.Column="1"
+                                            Text="LOAD"
+                                            FontSize="11" Padding="18,8"
+                                            VerticalOptions="Center"
+                                            Clicked="OnDiscoveredWorldClicked" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </Border>
+</ContentView>

@@ -1,0 +1,6 @@
+<Project>
+  <!-- Intentional shield: stops the repo root's Directory.Build.props (analyzers,
+       implicit usings, nullable) from flowing into the external submodules.
+       CUE4Parse ships its own Directory.Build.props; UeSaveGame relies on csproj
+       settings alone. Both must build exactly as upstream intends. -->
+</Project>

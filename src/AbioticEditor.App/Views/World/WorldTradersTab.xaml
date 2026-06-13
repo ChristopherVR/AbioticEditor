@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             x:Class="AbioticEditor.App.Views.World.WorldTradersTab"
+             x:DataType="vm:MainViewModel">
+
+    <!-- ============== TAB: Traders (metadata save) ============== -->
+    <Border BackgroundColor="{StaticResource AfShellBackground}"
+            Stroke="{StaticResource AfBorderSubtleBrush}"
+            StrokeThickness="1" StrokeShape="Rectangle"
+            Padding="20,16"
+
+            IsVisible="{Binding WorldEditor.IsTradersTab}">
+        <VerticalStackLayout Spacing="14">
+            <Label Text="TRADERS" Style="{StaticResource AfH2}" FontSize="18" />
+            <Label Text="Everyone who barters in the Facility, from the game's own DT_NPC_Traders table plus wiki lore. A trader (and pieces of its stock) only appears once the matching world flag is set; those flags live in WorldSave_Facility.sav. Tap a card to open it in the side panel, where you can see each item with its icon, inspect what it is, and pick exactly which locked items to unlock. Trading itself is barter; no money is involved."
+                   Style="{StaticResource AfMuted}" FontSize="11" />
+            <BoxView Style="{StaticResource AfDivider}" />
+
+            <CollectionView ItemsSource="{Binding WorldEditor.TraderCards}" SelectionMode="None">
+                <CollectionView.ItemsLayout>
+                    <GridItemsLayout Orientation="Vertical" Span="2"
+                                     HorizontalItemSpacing="10" VerticalItemSpacing="10" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="items:TraderCardViewModel">
+                        <Border BackgroundColor="{StaticResource AfPanelBackground}"
+                                Stroke="{StaticResource AfBorderSubtleBrush}"
+                                StrokeThickness="1" StrokeShape="Rectangle"
+                                Padding="12,10">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnTraderCardTapped" />
+                            </Border.GestureRecognizers>
+                            <Grid ColumnDefinitions="86,*" ColumnSpacing="12">
+                                <Border Grid.Column="0" WidthRequest="82" HeightRequest="82"
+                                        BackgroundColor="{StaticResource AfPanelElevated}"
+                                        StrokeThickness="0" StrokeShape="Rectangle" Padding="2"
+                                        VerticalOptions="Start">
+                                    <Image Source="{Binding PortraitPath}" Aspect="AspectFit"
+                                           IsVisible="{Binding ShowPortrait}" />
+                                </Border>
+                                <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                    <Label Text="{Binding ShownName}" Style="{StaticResource AfH2}" FontSize="14" />
+                                    <Label Text="{Binding ShownWhere}" Style="{StaticResource AfStatusText}" FontSize="10" LineBreakMode="WordWrap" />
+                                    <Label Text="{Binding ShownBlurb}" Style="{StaticResource AfMuted}" FontSize="10" LineBreakMode="WordWrap" />
+                                    <Label Text="{Binding ShownSellsText, StringFormat='Sells: {0}'}"
+                                           Style="{StaticResource AfFieldValue}" FontSize="10" LineBreakMode="WordWrap"
+                                           IsVisible="{Binding ShownSellsText, Converter={StaticResource NullToBoolConverter}}" />
+                                    <Label Text="{Binding ShownAvailabilityText}"
+                                           Style="{StaticResource AfStatusText}" FontSize="9"
+                                           TextColor="{StaticResource AfAccentOrange}"
+                                           LineBreakMode="WordWrap" />
+                                    <Label Text="{Binding ShownTapHint}"
+                                           Style="{StaticResource AfStatusText}" FontSize="8"
+                                           TextColor="{StaticResource AfAmber}" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </VerticalStackLayout>
+    </Border>
+</ContentView>

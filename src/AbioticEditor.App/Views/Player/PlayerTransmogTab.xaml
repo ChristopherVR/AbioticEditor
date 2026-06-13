@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             x:Class="AbioticEditor.App.Views.Player.PlayerTransmogTab"
+             x:DataType="vm:MainViewModel">
+
+    <!-- ===== Player TAB: Transmog (cosmetic armor overrides) ===== -->
+    <Border Style="{StaticResource AfPanel}" Padding="20,16"
+
+            IsVisible="{Binding PlayerEditor.IsTransmogTab, FallbackValue=False}">
+        <VerticalStackLayout Spacing="12">
+            <Label Text="ARMOR TRANSMOG" Style="{StaticResource AfH2}" />
+            <BoxView Style="{StaticResource AfHazardStripe}" />
+            <VerticalStackLayout Spacing="8"
+                                 IsVisible="{Binding PlayerEditor.HasTransmog, FallbackValue=False}">
+                <Label Text="ARMOR TRANSMOG" Style="{StaticResource AfFieldLabel}" FontSize="12" TextColor="{StaticResource AfAmber}" CharacterSpacing="5" />
+                <Label Text="Cosmetic items shown over each armor slot (the Transmogrifier's purple slots). Only the item id matters — stats stay on the real gear. Tap a slot to edit; stage + SAVE."
+                       Style="{StaticResource AfMuted}" FontSize="10" />
+                <CollectionView ItemsSource="{Binding PlayerEditor.Transmog}"
+                                SelectionMode="None" HeightRequest="104">
+                    <CollectionView.ItemsLayout>
+                        <GridItemsLayout Orientation="Vertical" Span="6"
+                                         HorizontalItemSpacing="6" VerticalItemSpacing="6" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="items:InventorySlotViewModel">
+                            <Border BackgroundColor="{StaticResource AfPanelBackground}"
+                                    Stroke="{DynamicResource AfBorderSubtleBrush}"
+                                    StrokeThickness="1" StrokeShape="Rectangle"
+                                    HeightRequest="96" Padding="0">
+                                <Border.Triggers>
+                                    <!-- The slot open in the slot editor gets the hazard ring -->
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                        <Setter Property="Stroke" Value="{StaticResource AfHazardYellowBrush}" />
+                                        <Setter Property="StrokeThickness" Value="2" />
+                                        <Setter Property="BackgroundColor" Value="{StaticResource AfPanelHover}" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnSlotTapped" />
+                                    <DragGestureRecognizer CanDrag="True" DragStarting="OnSlotDragStarting" />
+                                    <DropGestureRecognizer AllowDrop="True" Drop="OnSlotDrop" />
+                                </Border.GestureRecognizers>
+                                <Grid RowDefinitions="*,Auto" Padding="3">
+                                    <Image Grid.Row="0" Source="{Binding IconPath}" Aspect="AspectFit"
+                                           IsVisible="{Binding HasIcon}" />
+                                    <!-- Empty: the body part this transmog slot skins -->
+                                    <Label Grid.Row="0" Text="{Binding Role}"
+                                           FontFamily="OpenSansSemibold" FontSize="10"
+                                           CharacterSpacing="3"
+                                           TextColor="{StaticResource AfTextMuted}"
+                                           HorizontalTextAlignment="Center" VerticalOptions="Center"
+                                           IsVisible="{Binding ShowRolePlaceholder}" />
+                                    <!-- Occupied: small role tag so it's clear what part it skins -->
+                                    <Label Grid.Row="0" Text="{Binding Role}"
+                                           FontSize="7" CharacterSpacing="1"
+                                           TextColor="{DynamicResource AfAmber}"
+                                           HorizontalOptions="Start" VerticalOptions="Start"
+                                           IsVisible="{Binding HasIcon}" />
+                                    <Label Grid.Row="1" Text="{Binding DisplayName}"
+                                           FontSize="9"
+                                           TextColor="{StaticResource AfTextSecondary}"
+                                           LineBreakMode="TailTruncation" MaxLines="1"
+                                           HorizontalTextAlignment="Center" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                <Label Text="VISIBILITY (the eye toggles — unchecked hides that armor piece's visuals entirely)"
+                       Style="{StaticResource AfStatusText}" FontSize="9" />
+                <FlexLayout Wrap="Wrap" Direction="Row"
+                            BindableLayout.ItemsSource="{Binding PlayerEditor.VisibleTransmogToggles}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="items:TransmogToggleViewModel">
+                            <HorizontalStackLayout Spacing="0" Margin="0,0,10,2">
+                                <CheckBox IsChecked="{Binding IsVisible, Mode=TwoWay}"
+                                          Color="{StaticResource AfTerminalGreen}" />
+                                <Label Text="{Binding Label}" Style="{StaticResource AfStatusText}"
+                                       FontSize="9" VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </FlexLayout>
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </Border>
+</ContentView>

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             x:Class="AbioticEditor.App.Views.StatusBarView"
+             x:DataType="vm:MainViewModel">
+
+    <ContentView.Resources>
+        <!-- Material-style outlined pill used for the footer actions -->
+        <Style x:Key="AfFooterAction" TargetType="Border">
+            <Setter Property="BackgroundColor" Value="Transparent" />
+            <Setter Property="Stroke" Value="{StaticResource AfDividerBrush}" />
+            <Setter Property="StrokeThickness" Value="1" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 16" />
+            <Setter Property="Padding" Value="13,6" />
+            <Setter Property="VerticalOptions" Value="Center" />
+            <Setter Property="VisualStateManager.VisualStateGroups">
+                <VisualStateGroupList>
+                    <VisualStateGroup x:Name="CommonStates">
+                        <VisualState x:Name="Normal" />
+                        <VisualState x:Name="PointerOver">
+                            <VisualState.Setters>
+                                <Setter Property="BackgroundColor" Value="{StaticResource AfPanelElevated}" />
+                                <Setter Property="Stroke" Value="{StaticResource AfAccentOrangeBrush}" />
+                            </VisualState.Setters>
+                        </VisualState>
+                    </VisualStateGroup>
+                </VisualStateGroupList>
+            </Setter>
+        </Style>
+    </ContentView.Resources>
+
+    <!-- ===== Status bar ===== -->
+    <Border Style="{StaticResource AfChrome}" Padding="16,8">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto" ColumnSpacing="12">
+            <!-- live status -->
+            <BoxView Grid.Column="0"
+                     WidthRequest="8" HeightRequest="8"
+                     CornerRadius="4"
+                     BackgroundColor="{StaticResource AfTerminalGreen}"
+                     VerticalOptions="Center" />
+            <Label Grid.Column="1"
+                   Text="{Binding StatusMessage, FallbackValue='READY · POINT AT A SAVE FOLDER TO BEGIN'}"
+                   Style="{StaticResource AfStatusText}"
+                   LineBreakMode="TailTruncation"
+                   VerticalOptions="Center" />
+
+            <!-- logging hint -->
+            <Label Grid.Column="2"
+                   Text="{Binding LoggingStatusText}"
+                   Style="{StaticResource AfStatusText}" FontSize="10"
+                   TextColor="{StaticResource AfTextMuted}"
+                   VerticalOptions="Center"
+                   Margin="0,0,4,0"
+                   ToolTipProperties.Text="Diagnostic log of save loads/writes, JSON export/import and asset mounting. Toggle in SETTINGS." />
+
+            <!-- COMPARE -->
+            <Border Grid.Column="3" Style="{StaticResource AfFooterAction}"
+                    ToolTipProperties.Text="Diff two save files, or two folders of saves (world vs backup)">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnCompareTapped" />
+                </Border.GestureRecognizers>
+                <HorizontalStackLayout Spacing="7">
+                    <Label Text="&#xE915;" FontFamily="MaterialSymbols" FontSize="16"
+                           TextColor="{StaticResource AfAccentOrange}" VerticalOptions="Center" />
+                    <Label Text="COMPARE" FontFamily="OpenSansSemibold" FontSize="10" CharacterSpacing="1.5"
+                           TextColor="{StaticResource AfTextPrimary}" VerticalOptions="Center" />
+                </HorizontalStackLayout>
+            </Border>
+
+            <!-- SETTINGS -->
+            <Border Grid.Column="4" Style="{StaticResource AfFooterAction}"
+                    ToolTipProperties.Text="Theme, light/dark mode, diagnostic logging, usmap import">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnSettingsTapped" />
+                </Border.GestureRecognizers>
+                <HorizontalStackLayout Spacing="7">
+                    <Label Text="&#xE8B8;" FontFamily="MaterialSymbols" FontSize="16"
+                           TextColor="{StaticResource AfAccentOrange}" VerticalOptions="Center" />
+                    <Label Text="SETTINGS" FontFamily="OpenSansSemibold" FontSize="10" CharacterSpacing="1.5"
+                           TextColor="{StaticResource AfTextPrimary}" VerticalOptions="Center" />
+                </HorizontalStackLayout>
+            </Border>
+
+            <Label Grid.Column="5"
+                   Text="UESAVEGAME · MAUI"
+                   Style="{StaticResource AfStatusText}" FontSize="10"
+                   TextColor="{StaticResource AfTextMuted}"
+                   VerticalOptions="Center" />
+        </Grid>
+    </Border>
+</ContentView>

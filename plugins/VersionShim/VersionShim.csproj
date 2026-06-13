@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Sample UPGRADER plugin: recovers a save whose GVAS SaveGameVersion field holds a value the
+    editor's UeSaveGame doesn't support (the exact thing that makes LoadFrom throw after a game
+    update), by rewriting it to the modern supported version. Works purely on the raw bytes +
+    the header probe, so it needs only the SDK - not Core or UeSaveGame.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Platforms>x64</Platforms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>VersionShim</AssemblyName>
+    <RootNamespace>AbioticEditor.Samples.VersionShim</RootNamespace>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AbioticEditor.Plugins.Abstractions\AbioticEditor.Plugins.Abstractions.csproj" Private="false" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="plugin.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

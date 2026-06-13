@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             x:Class="AbioticEditor.App.Views.IniEditorView"
+             x:DataType="vm:MainViewModel">
+
+    <!-- Ini editor (server Admin.ini / SandboxSettings.ini / client config) -->
+    <Border Style="{StaticResource AfPanel}" Padding="24,20"
+            controls:Fx.Reveal="True"
+            IsVisible="{Binding HasIniEditor}">
+        <VerticalStackLayout Spacing="16" BindingContext="{Binding IniEditor}"
+                             x:DataType="vm:IniEditorViewModel">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                <VerticalStackLayout Grid.Column="0" Spacing="3">
+                    <HorizontalStackLayout Spacing="10">
+                        <Label Text="{Binding FileName}" Style="{StaticResource AfH2}" />
+                        <Border BackgroundColor="{StaticResource AfAmber}"
+                                StrokeThickness="0" StrokeShape="Rectangle"
+                                Padding="6,2" VerticalOptions="Center">
+                            <Label Text="{Binding KindLabel}"
+                                   FontFamily="OpenSansSemibold" FontSize="9"
+                                   CharacterSpacing="2"
+                                   TextColor="{StaticResource AfTextOnAccent}" />
+                        </Border>
+                    </HorizontalStackLayout>
+                    <Label Text="{Binding FilePath}"
+                           Style="{StaticResource AfStatusText}" FontSize="10"
+                           LineBreakMode="MiddleTruncation" />
+                    <Label Text="{Binding Description}"
+                           Style="{StaticResource AfMuted}" />
+                </VerticalStackLayout>
+                <Button Grid.Column="1" Text="REVERT"
+                        Style="{StaticResource AfGhostButton}"
+                        VerticalOptions="Center"
+                        Clicked="OnIniRevertClicked" />
+                <Button Grid.Column="2" Text="SAVE INI"
+                        FontSize="11" Padding="16,6"
+                        VerticalOptions="Center"
+                        IsEnabled="{Binding IsDirty}"
+                        Clicked="OnIniSaveClicked" />
+            </Grid>
+            <Label Text="{Binding StatusMessage}"
+                   Style="{StaticResource AfStatusText}"
+                   IsVisible="{Binding StatusMessage, Converter={StaticResource NullToBoolConverter}}" />
+
+            <VerticalStackLayout Spacing="14"
+                                 BindableLayout.ItemsSource="{Binding Sections}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="vm:IniSectionViewModel">
+                        <Border Style="{StaticResource AfPanel}" Padding="16,12">
+                            <VerticalStackLayout Spacing="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Grid.Column="0" Text="{Binding Header}"
+                                           Style="{StaticResource AfFieldLabel}"
+                                           TextColor="{StaticResource AfAmber}" />
+                                    <Button Grid.Column="1" Text="+ ADD"
+                                            Style="{StaticResource AfGhostButton}"
+                                            FontSize="9" Padding="8,3"
+                                            IsVisible="{Binding CanAddEntry}"
+                                            Clicked="OnIniAddEntryClicked" />
+                                </Grid>
+                                <VerticalStackLayout Spacing="4"
+                                                     BindableLayout.ItemsSource="{Binding Entries}">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:IniEntryViewModel">
+                                            <!-- Sandbox keys run long (…FromCreaturesMultiplier); the
+                                                 column must fit them whole, tooltip as a last resort. -->
+                                            <Grid ColumnDefinitions="320,*,Auto" ColumnSpacing="10">
+                                                <Label Grid.Column="0" Text="{Binding Key}"
+                                                       Style="{StaticResource AfFieldValue}" FontSize="12"
+                                                       VerticalOptions="Center"
+                                                       LineBreakMode="TailTruncation"
+                                                       ToolTipProperties.Text="{Binding Key}" />
+                                                <Entry Grid.Column="1" Text="{Binding Value, Mode=TwoWay}"
+                                                       FontSize="12" />
+                                                <Button Grid.Column="2" Text="✕"
+                                                        Style="{StaticResource AfGhostButton}"
+                                                        FontSize="10" Padding="8,3"
+                                                        Clicked="OnIniRemoveEntryClicked" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </VerticalStackLayout>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </Border>
+</ContentView>

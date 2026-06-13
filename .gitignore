@@ -1,0 +1,25 @@
+# --- .NET ---
+**/bin/
+**/obj/
+.vs/
+*.user
+*.suo
+*.bak
+
+# Publish output
+/publish/
+
+# Temporary build/test scratch dirs created by tooling.
+.tmp-*/
+
+# Screenshot/scratch output from tools/capture.ps1
+/tools/shots/
+
+# Game-client litter (pipeline caches, crash logs) — never repo content.
+Saved/
+*.upipelinecache
+
+# Raw JSON exports written next to .sav files (artifacts, not fixtures).
+# NOTE: the checked-in test fixtures live at tests/fixtures/ and must
+# stay committable — do not add a global *.sav or fixtures ignore here.
+*.sav.json

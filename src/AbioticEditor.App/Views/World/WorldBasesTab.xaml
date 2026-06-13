@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             x:Class="AbioticEditor.App.Views.World.WorldBasesTab"
+             x:DataType="vm:MainViewModel">
+
+    <!-- ============== TAB: Bases ============== -->
+    <VerticalStackLayout Spacing="12"
+                         IsVisible="{Binding WorldEditor.IsBasesTab}">
+        <Label Text="BASE MANAGER" Style="{StaticResource AfH2}" FontSize="18" />
+        <Label Text="Crafting benches anchor a base; everything deployed within ~30 m joins it. Select a base to see its composition and find it on the map (benches orange, containers green). Click one of its containers below and it opens right here over the map for editing."
+               Style="{StaticResource AfMuted}" FontSize="11" />
+
+        <controls:AdaptiveGrid ColumnDefinitions="2*,3*" ColumnSpacing="16" HeightRequest="360"
+                               StackedChildHeight="300">
+            <Border Grid.Column="0"
+                    BackgroundColor="{StaticResource AfShellBackground}"
+                    Stroke="{StaticResource AfBorderSubtleBrush}"
+                    StrokeThickness="1" StrokeShape="Rectangle" Padding="0">
+                <CollectionView ItemsSource="{Binding WorldEditor.Bases}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding WorldEditor.SelectedBase, Mode=TwoWay}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="items:WorldBaseViewModel">
+                            <VerticalStackLayout Padding="14,8" Spacing="2">
+                                <Label Text="{Binding Name}" Style="{StaticResource AfFieldValue}" FontSize="14" />
+                                <Label Text="{Binding AnchorText}" Style="{StaticResource AfStatusText}" FontSize="10"
+                                       TextColor="{StaticResource AfAccentOrange}" />
+                                <Label Text="{Binding Summary}" Style="{StaticResource AfStatusText}" FontSize="10" />
+                            </VerticalStackLayout>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Border>
+
+            <!-- Map cell: the top-down base map, replaced in place by the opened
+                 container's slot grid while one is selected below. -->
+            <Grid Grid.Column="1">
+                <Border BackgroundColor="{StaticResource AfShellBackground}"
+                        Stroke="{StaticResource AfBorderSubtleBrush}"
+                        StrokeThickness="1" StrokeShape="Rectangle" Padding="2"
+                        IsVisible="{Binding WorldEditor.ShowBaseMap, FallbackValue=True}">
+                    <GraphicsView Drawable="{Binding WorldEditor.BaseMap}" />
+                </Border>
+
+                <Border BackgroundColor="{StaticResource AfShellBackground}"
+                        Stroke="{StaticResource AfTerminalGreenBrush}"
+                        StrokeThickness="1" StrokeShape="Rectangle" Padding="12,10"
+
+                        IsVisible="{Binding WorldEditor.HasSelectedBaseContainer, FallbackValue=False}">
+                    <Grid RowDefinitions="Auto,*" RowSpacing="8">
+                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                            <VerticalStackLayout Grid.Column="0" Spacing="1" VerticalOptions="Center">
+                                <Label Text="{Binding WorldEditor.SelectedBaseContainer.DisplayName}"
+                                       Style="{StaticResource AfH2}" FontSize="15"
+                                       LineBreakMode="TailTruncation" />
+                                <Label Text="Tap a slot to edit it in the slot editor; drag the catalog onto slots to add items."
+                                       Style="{StaticResource AfStatusText}" FontSize="9" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1"
+                                   Text="{Binding WorldEditor.SelectedBaseContainer.CountText}"
+                                   Style="{StaticResource AfReadout}" FontSize="14" VerticalOptions="Center" />
+                            <Button Grid.Column="2" Text="✕  MAP"
+                                    FontSize="10" Padding="10,4"
+                                    BackgroundColor="{StaticResource AfPanelElevated}"
+                                    TextColor="{StaticResource AfTextPrimary}"
+                                    ToolTipProperties.Text="Close the container and show the base map again"
+                                    Clicked="OnCloseBaseContainer"
+                                    VerticalOptions="Center" />
+                        </Grid>
+
+                        <CollectionView Grid.Row="1"
+                                        ItemsSource="{Binding WorldEditor.SelectedBaseContainer.Slots}"
+                                        SelectionMode="None"
+                                        controls:ResponsiveLayout.ItemWidth="96"
+                                        controls:ResponsiveLayout.MaxSpan="8">
+                            <CollectionView.ItemsLayout>
+                                <GridItemsLayout Orientation="Vertical" Span="4"
+                                                 HorizontalItemSpacing="6" VerticalItemSpacing="6" />
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="items:InventorySlotViewModel">
+                                    <Border BackgroundColor="{StaticResource AfPanelBackground}"
+                                            Stroke="{StaticResource AfBorderSubtleBrush}"
+                                            StrokeThickness="1"
+                                            StrokeShape="Rectangle"
+                                            HeightRequest="98"
+                                            Padding="0">
+                                        <Border.Triggers>
+                                            <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                                <Setter Property="Stroke" Value="{StaticResource AfHazardYellowBrush}" />
+                                                <Setter Property="StrokeThickness" Value="2" />
+                                                <Setter Property="BackgroundColor" Value="{StaticResource AfPanelHover}" />
+                                            </DataTrigger>
+                                        </Border.Triggers>
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnSlotTapped" />
+                                            <DragGestureRecognizer CanDrag="True" DragStarting="OnSlotDragStarting" />
+                                            <DropGestureRecognizer AllowDrop="True" Drop="OnSlotDrop" />
+                                        </Border.GestureRecognizers>
+                                        <Grid RowDefinitions="*,Auto" Padding="3">
+                                            <Image Grid.Row="0" Source="{Binding IconPath}" Aspect="AspectFit"
+                                                   IsVisible="{Binding HasIcon}" />
+                                            <Label Grid.Row="0" Text="{Binding Index, StringFormat='[{0:D2}]'}"
+                                                   FontFamily="Digital7" FontSize="14"
+                                                   TextColor="{StaticResource AfTextMuted}"
+                                                   HorizontalOptions="Start" VerticalOptions="Start"
+                                                   IsVisible="{Binding HasIcon, Converter={StaticResource BoolNegate}}" />
+                                            <Label Grid.Row="0" Text="{Binding CountText}"
+                                                   FontFamily="Digital7" FontSize="16"
+                                                   TextColor="{StaticResource AfTerminalGreen}"
+                                                   HorizontalOptions="End" VerticalOptions="End"
+                                                   IsVisible="{Binding ShowCount}" />
+                                            <Label Grid.Row="0" Text="▲"
+                                                   FontSize="12" FontAttributes="Bold"
+                                                   TextColor="{StaticResource AfHazardYellow}"
+                                                   HorizontalOptions="End" VerticalOptions="Start"
+                                                   Margin="0,-2,2,0"
+                                                   IsVisible="{Binding IsUpgradable}" />
+                                            <Label Grid.Row="1" Text="{Binding DisplayName}"
+                                                   FontSize="9"
+                                                   TextColor="{StaticResource AfTextSecondary}"
+                                                   LineBreakMode="TailTruncation" MaxLines="1"
+                                                   HorizontalTextAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </Grid>
+                </Border>
+            </Grid>
+        </controls:AdaptiveGrid>
+
+        <controls:AdaptiveGrid ColumnDefinitions="2*,3*" ColumnSpacing="16"
+                               IsVisible="{Binding WorldEditor.HasSelectedBase}">
+            <Border Grid.Column="0"
+                    BackgroundColor="{StaticResource AfShellBackground}"
+                    Stroke="{StaticResource AfBorderSubtleBrush}"
+                    StrokeThickness="1" StrokeShape="Rectangle" Padding="14,10">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="CRAFTING BENCHES" Style="{StaticResource AfFieldLabel}"
+                           TextColor="{StaticResource AfAccentOrange}" />
+                    <VerticalStackLayout Spacing="4"
+                                         BindableLayout.ItemsSource="{Binding WorldEditor.SelectedBase.Benches}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="items:BenchRow">
+                                <VerticalStackLayout Spacing="0">
+                                    <Label Text="{Binding Name}"
+                                           Style="{StaticResource AfFieldValue}" FontSize="12"
+                                           TextColor="{StaticResource AfAccentOrange}" />
+                                    <Label Text="{Binding Detail}"
+                                           Style="{StaticResource AfStatusText}" FontSize="9" />
+                                </VerticalStackLayout>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                    <Label Text="No crafting bench in this group."
+                           Style="{StaticResource AfMuted}" FontSize="10"
+                           IsVisible="{Binding WorldEditor.SelectedBase.HasBenches, Converter={StaticResource BoolNegate}}" />
+                    <BoxView Style="{StaticResource AfDivider}" />
+                    <Label Text="COMPOSITION" Style="{StaticResource AfFieldLabel}" />
+                    <Label Text="{Binding WorldEditor.SelectedBase.Composition}"
+                           Style="{StaticResource AfFieldValue}" FontSize="11" />
+                </VerticalStackLayout>
+            </Border>
+            <Border Grid.Column="1"
+                    BackgroundColor="{StaticResource AfShellBackground}"
+                    Stroke="{StaticResource AfBorderSubtleBrush}"
+                    StrokeThickness="1" StrokeShape="Rectangle" Padding="0">
+                <VerticalStackLayout Spacing="0">
+                    <Label Text="CONTAINERS IN THIS BASE — CLICK ONE TO OPEN IT ON THE MAP"
+                           Style="{StaticResource AfFieldLabel}" Padding="14,8,14,4" />
+                    <CollectionView ItemsSource="{Binding WorldEditor.SelectedBaseContainers}"
+                                    SelectionMode="Single"
+                                    SelectedItem="{Binding WorldEditor.SelectedBaseContainer, Mode=TwoWay}"
+                                    HeightRequest="220">
+                        <CollectionView.EmptyView>
+                            <Label Text="No containers with items in this base." Style="{StaticResource AfMuted}" Padding="14" />
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="items:WorldContainerViewModel">
+                                <!-- Explicit background keeps the whole row clickable on WinUI -->
+                                <Grid Padding="14,7" ColumnDefinitions="*,Auto" ColumnSpacing="12"
+                                      BackgroundColor="{StaticResource AfShellBackground}">
+                                    <Label Grid.Column="0" Text="{Binding DisplayName}"
+                                           Style="{StaticResource AfFieldValue}" FontSize="12" VerticalOptions="Center"
+                                           LineBreakMode="TailTruncation" />
+                                    <Label Grid.Column="1" Text="{Binding CountText}"
+                                           Style="{StaticResource AfReadout}" FontSize="13" VerticalOptions="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+        </controls:AdaptiveGrid>
+    </VerticalStackLayout>
+</ContentView>

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:player="clr-namespace:AbioticEditor.App.Views.Player"
+             xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             x:Class="AbioticEditor.App.Views.Player.PlayerEditorView"
+             x:DataType="vm:MainViewModel"
+             VerticalOptions="Fill"
+             IsVisible="{Binding HasPlayerEditor}">
+
+    <!-- Fixed tab bar (row 0) + a filling tab host (row 1). The host is a bounded viewport, so
+         each tab scrolls inside its OWN ScrollView instead of the whole editor living in one
+         page-level scroll. Switching tabs therefore re-lays-out only the tab you open (a bounded
+         area), not the entire editor - which is what made every click feel heavy. -->
+    <Grid RowDefinitions="Auto,*" RowSpacing="14">
+
+        <!-- Player editor tab bar (GATEPal-style sections). Horizontally
+             scrollable so every tab keeps a readable size on any width. -->
+        <ScrollView Grid.Row="0" Orientation="Horizontal"
+                    HorizontalScrollBarVisibility="Never">
+            <HorizontalStackLayout Spacing="4">
+                <Button Text="GENERAL" Style="{StaticResource AfTabButton}"
+                        Command="{Binding PlayerEditor.ShowGeneralCommand}"
+                        BackgroundColor="{Binding PlayerEditor.IsGeneralTab, Converter={StaticResource TabBrush}}" />
+                <Button Text="VITALS" Style="{StaticResource AfTabButton}"
+                        Command="{Binding PlayerEditor.ShowVitalsCommand}"
+                        BackgroundColor="{Binding PlayerEditor.IsVitalsTab, Converter={StaticResource TabBrush}}" />
+                <Button Text="CHARACTER" Style="{StaticResource AfTabButton}"
+                        Command="{Binding PlayerEditor.ShowCharacterCommand}"
+                        BackgroundColor="{Binding PlayerEditor.IsCharacterTab, Converter={StaticResource TabBrush}}" />
+                <Button Text="TRANSMOG" Style="{StaticResource AfTabButton}"
+                        Command="{Binding PlayerEditor.ShowTransmogCommand}"
+                        BackgroundColor="{Binding PlayerEditor.IsTransmogTab, Converter={StaticResource TabBrush}}" />
+                <Button Text="SPAWN" Style="{StaticResource AfTabButton}"
+                        Command="{Binding PlayerEditor.ShowSpawnCommand}"
+                        BackgroundColor="{Binding PlayerEditor.IsSpawnTab, Converter={StaticResource TabBrush}}" />
+                <Button Text="INVENTORY" Style="{StaticResource AfTabButton}"
+                        Command="{Binding PlayerEditor.ShowInventoryCommand}"
+                        BackgroundColor="{Binding PlayerEditor.IsInventoryTab, Converter={StaticResource TabBrush}}" />
+                <Button Text="SKILLS" Style="{StaticResource AfTabButton}"
+                        Command="{Binding PlayerEditor.ShowSkillsCommand}"
+                        BackgroundColor="{Binding PlayerEditor.IsSkillsTab, Converter={StaticResource TabBrush}}" />
+                <Button Text="RECIPES" Style="{StaticResource AfTabButton}"
+                        Command="{Binding PlayerEditor.ShowRecipesCommand}"
+                        BackgroundColor="{Binding PlayerEditor.IsRecipesTab, Converter={StaticResource TabBrush}}" />
+                <Button Text="GATEPAL" Style="{StaticResource AfTabButton}"
+                        Command="{Binding PlayerEditor.ShowCodexCommand}"
+                        BackgroundColor="{Binding PlayerEditor.IsCodexTab, Converter={StaticResource TabBrush}}" />
+                <Button Text="ACHIEVE" Style="{StaticResource AfTabButton}"
+                        Command="{Binding PlayerEditor.ShowAchievementsCommand}"
+                        BackgroundColor="{Binding PlayerEditor.IsAchievementsTab, Converter={StaticResource TabBrush}}" />
+                <Button Text="DATA" Style="{StaticResource AfTabButton}"
+                        Command="{Binding PlayerEditor.ShowRawCommand}"
+                        BackgroundColor="{Binding PlayerEditor.IsRawTab, Converter={StaticResource TabBrush}}" />
+            </HorizontalStackLayout>
+        </ScrollView>
+
+        <!-- Tab host: all tabs overlap in one cell; only the active one is visible (LazyView).
+             Each tab is built on first open and wrapped in its own ScrollView (a bounded
+             viewport from the * row above). -->
+        <Grid Grid.Row="1">
+            <controls:LazyView IsActive="{Binding PlayerEditor.IsGeneralTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><ScrollView><player:PlayerGeneralTab /></ScrollView></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding PlayerEditor.IsVitalsTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><ScrollView><player:PlayerVitalsTab /></ScrollView></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding PlayerEditor.IsCharacterTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><ScrollView><player:PlayerCharacterTab /></ScrollView></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding PlayerEditor.IsTransmogTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><ScrollView><player:PlayerTransmogTab /></ScrollView></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding PlayerEditor.IsSpawnTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><ScrollView><player:PlayerSpawnTab /></ScrollView></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding PlayerEditor.IsInventoryTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><ScrollView><player:PlayerInventoryTab /></ScrollView></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding PlayerEditor.IsSkillsTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><ScrollView><player:PlayerSkillsTab /></ScrollView></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding PlayerEditor.IsRecipesTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><ScrollView><player:PlayerRecipesTab /></ScrollView></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding PlayerEditor.IsCodexTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><ScrollView><player:PlayerCodexTab /></ScrollView></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding PlayerEditor.IsAchievementsTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><ScrollView><player:PlayerAchievementsTab /></ScrollView></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding PlayerEditor.IsRawTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><ScrollView><player:PlayerRawTab /></ScrollView></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+        </Grid>
+    </Grid>
+</ContentView>

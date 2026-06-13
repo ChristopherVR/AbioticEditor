@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             x:Class="AbioticEditor.App.Views.World.WorldStoryTab"
+             x:DataType="vm:MainViewModel">
+
+    <!-- ============== TAB: Story / metadata ============== -->
+    <Border BackgroundColor="{StaticResource AfShellBackground}"
+            Stroke="{StaticResource AfBorderSubtleBrush}"
+            StrokeThickness="1"
+            StrokeShape="Rectangle"
+            Padding="20,16"
+
+            IsVisible="{Binding WorldEditor.IsMetaTab}">
+        <VerticalStackLayout Spacing="16">
+            <Label Text="MAIN QUEST PROGRESSION" Style="{StaticResource AfH2}" FontSize="18" />
+            <Label Text="How story state is split: THIS file (metadata) holds the current-chapter pointer; what a chapter shows as DONE comes from TRIGGER FLAGS stored in WorldSave_Facility.sav. Pressing SET handles both at once: it moves the pointer, adds every trigger flag up to that chapter and clears the flags past it (the Facility file is written immediately with a .bak; the pointer itself stages until SAVE)."
+                   Style="{StaticResource AfMuted}" FontSize="11" />
+            <BoxView Style="{StaticResource AfDivider}" />
+
+            <Grid ColumnDefinitions="180,300,*,Auto" ColumnSpacing="16">
+                <Label Grid.Column="0" Text="MINUTES PLAYED" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Entry Grid.Column="1"
+                       Text="{Binding WorldEditor.MinutesPassed, Mode=TwoWay}"
+                       Keyboard="Numeric"
+                       FontFamily="Digital7" FontSize="18"
+                       TextColor="{StaticResource AfTerminalGreen}"
+                       BackgroundColor="{StaticResource AfPanelElevated}" />
+                <Label Grid.Column="2"
+                       Text="{Binding WorldEditor.PlaytimeText}"
+                       Style="{StaticResource AfReadout}" VerticalOptions="Center" />
+                <Label Grid.Column="3"
+                       Text="{Binding WorldEditor.LastPlayedText, StringFormat='LAST PLAYED {0}'}"
+                       Style="{StaticResource AfStatusText}" VerticalOptions="Center"
+                       IsVisible="{Binding WorldEditor.HasLastPlayed, FallbackValue=False}" />
+            </Grid>
+
+            <BoxView Style="{StaticResource AfDivider}" />
+
+            <!-- Chapter checklist -->
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                <Label Grid.Column="0" Text="CHAPTERS — SET REWINDS OR SKIPS THE STORY AND SYNCS ITS TRIGGER FLAGS" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Label Grid.Column="1"
+                       Text="{Binding WorldEditor.StoryChapterIndexText}"
+                       Style="{StaticResource AfReadout}" VerticalOptions="Center" />
+            </Grid>
+            <Border BackgroundColor="{StaticResource AfPanelBackground}"
+                    Stroke="{StaticResource AfBorderSubtleBrush}"
+                    StrokeThickness="1" StrokeShape="Rectangle"
+                    Padding="0" HeightRequest="420">
+                <CollectionView ItemsSource="{Binding WorldEditor.ChapterList}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding WorldEditor.SelectedChapter, Mode=TwoWay}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="items:StoryChapterItemViewModel">
+                            <Grid Padding="14,7" ColumnDefinitions="34,16,*,Auto,Auto,Auto" ColumnSpacing="12"
+                                  ToolTipProperties.Text="{Binding Summary}">
+                                <Label Grid.Column="0" Text="{Binding NumberText}"
+                                       FontFamily="Digital7" FontSize="16"
+                                       TextColor="{StaticResource AfTextMuted}"
+                                       VerticalOptions="Center" />
+                                <BoxView Grid.Column="1" WidthRequest="8" HeightRequest="8" CornerRadius="4"
+                                         BackgroundColor="{StaticResource AfTerminalGreen}"
+                                         VerticalOptions="Center"
+                                         IsVisible="{Binding IsReached}" />
+                                <VerticalStackLayout Grid.Column="2" Spacing="1" VerticalOptions="Center">
+                                    <Label Text="{Binding Title}"
+                                           Style="{StaticResource AfFieldValue}" FontSize="13" />
+                                    <Label Text="{Binding Summary}"
+                                           Style="{StaticResource AfMuted}" FontSize="10"
+                                           LineBreakMode="TailTruncation"
+                                           IsVisible="{Binding HasSummary}" />
+                                    <Label Text="{Binding MissingDependenciesText}"
+                                           Style="{StaticResource AfStatusText}" FontSize="9"
+                                           TextColor="{StaticResource AfAmber}"
+                                           LineBreakMode="TailTruncation"
+                                           IsVisible="{Binding HasMissingDependencies}" />
+                                </VerticalStackLayout>
+                                <!-- Linear status: DONE / READY / LOCKED -->
+                                <Label Grid.Column="3" Text="{Binding StatusText}"
+                                       Style="{StaticResource AfFieldLabel}" VerticalOptions="Center">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding StatusText}" Value="DONE">
+                                            <Setter Property="TextColor" Value="{StaticResource AfTerminalGreen}" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Label" Binding="{Binding StatusText}" Value="READY">
+                                            <Setter Property="TextColor" Value="{StaticResource AfHazardYellow}" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Label" Binding="{Binding StatusText}" Value="LOCKED">
+                                            <Setter Property="TextColor" Value="{StaticResource AfTextMuted}" />
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                                <Border Grid.Column="4"
+                                        BackgroundColor="{StaticResource AfAccentOrange}"
+                                        StrokeThickness="0" StrokeShape="Rectangle"
+                                        Padding="8,2" VerticalOptions="Center"
+                                        IsVisible="{Binding IsCurrent}">
+                                    <Label Text="CURRENT"
+                                           FontFamily="OpenSansSemibold" FontSize="9"
+                                           CharacterSpacing="2"
+                                           TextColor="{StaticResource AfTextOnAccent}" />
+                                </Border>
+                                <Button Grid.Column="5" Text="SET"
+                                        FontSize="10" Padding="10,3"
+                                        BackgroundColor="{StaticResource AfPanelElevated}"
+                                        TextColor="{StaticResource AfTextPrimary}"
+                                        Command="{Binding SetCommand}"
+                                        IsEnabled="{Binding IsCurrent, Converter={StaticResource BoolNegate}}"
+                                        VerticalOptions="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Border>
+
+            <BoxView Style="{StaticResource AfDivider}" />
+
+            <Label Text="Containment units (trapped Leyak/Krasue) and world-wide unlocks moved to the CONTAINMENT tab."
+                   Style="{StaticResource AfMuted}" FontSize="10" />
+
+            <Grid ColumnDefinitions="180,*,Auto,Auto" ColumnSpacing="16">
+                <Label Grid.Column="0" Text="WORLD RECIPES" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Label Grid.Column="1" Text="{Binding WorldEditor.GlobalRecipeBrowser.CountText}"
+                       Style="{StaticResource AfReadout}" VerticalOptions="Center" />
+                <Entry Grid.Column="2"
+                       Text="{Binding WorldEditor.GlobalRecipeBrowser.SearchText, Mode=TwoWay}"
+                       Placeholder="Search recipes…"
+                       WidthRequest="240"
+                       BackgroundColor="{StaticResource AfPanelElevated}"
+                       TextColor="{StaticResource AfTextPrimary}" />
+                <Button Grid.Column="3" Text="UNLOCK ALL"
+                        BackgroundColor="{StaticResource AfHazardYellow}"
+                        TextColor="{StaticResource AfTextOnAccent}"
+                        Command="{Binding WorldEditor.GlobalRecipeBrowser.UnlockAllCommand}" />
+            </Grid>
+            <Border BackgroundColor="{StaticResource AfPanelBackground}"
+                    Stroke="{StaticResource AfBorderSubtleBrush}"
+                    StrokeThickness="1" StrokeShape="Rectangle"
+                    Padding="0" HeightRequest="320">
+                <CollectionView ItemsSource="{Binding WorldEditor.GlobalRecipeBrowser.VisibleRecipes}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding WorldEditor.GlobalRecipeBrowser.SelectedRecipe, Mode=TwoWay}">
+                    <CollectionView.EmptyView>
+                        <Label Text="No recipes match (or game data is unavailable)." Style="{StaticResource AfMuted}" Padding="16" />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="items:RecipeRowViewModel">
+                            <Grid Padding="14,4" ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="12"
+                                  ToolTipProperties.Text="{Binding Description}">
+                                <CheckBox Grid.Column="0"
+                                          IsChecked="{Binding IsUnlocked, Mode=TwoWay}"
+                                          Color="{StaticResource AfTerminalGreen}"
+                                          VerticalOptions="Center" />
+                                <Border Grid.Column="1" WidthRequest="32" HeightRequest="32"
+                                        BackgroundColor="{StaticResource AfShellBackground}"
+                                        Stroke="{StaticResource AfBorderSubtleBrush}"
+                                        StrokeThickness="1" StrokeShape="Rectangle"
+                                        Padding="2" VerticalOptions="Center">
+                                    <Image Source="{Binding IconPath}" Aspect="AspectFit"
+                                           IsVisible="{Binding HasIcon}" />
+                                </Border>
+                                <VerticalStackLayout Grid.Column="2" Spacing="1" VerticalOptions="Center">
+                                    <Label Text="{Binding DisplayName}"
+                                           Style="{StaticResource AfFieldValue}" FontSize="13" />
+                                    <Label Text="{Binding SubText}"
+                                           Style="{StaticResource AfStatusText}" FontSize="10" />
+                                </VerticalStackLayout>
+                                <Label Grid.Column="3" Text="{Binding StatusLabel}"
+                                       Style="{StaticResource AfFieldLabel}"
+                                       TextColor="{StaticResource AfTerminalGreen}"
+                                       VerticalOptions="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Border>
+            <Label Text="Why is this on the METADATA file? The game stores world-wide research here (GlobalRecipesUnlocked/Researched) — recipes researched once at a bench become available to EVERY player in the world. Per-player recipe knowledge is separate: edit it on a player save's RECIPES tab. Unlocking here updates both the unlocked and researched lists."
+                   Style="{StaticResource AfMuted}" FontSize="10" />
+        </VerticalStackLayout>
+    </Border>
+</ContentView>

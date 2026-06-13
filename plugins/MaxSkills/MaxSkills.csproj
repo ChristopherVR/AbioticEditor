@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Sample plugin: a save operation that levels every skill on a player save.
+
+    Dependency model that every managed plugin follows:
+      * It REFERENCES the host assemblies (the plugin SDK, and here AbioticEditor.Core for
+        the skill catalog + typed reader/writer) so it compiles against real types.
+      * It does NOT SHIP them: Private=false / ExcludeAssets=runtime keeps them out of the
+        plugin's output folder. At load time the host's PluginLoadContext unifies these
+        "shared" assemblies to the host's own copies, so the plugin's ISaveOperation is the
+        SAME type the host expects. The output is just MaxSkills.dll + plugin.json - exactly
+        what you drop into a plugins folder.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Platforms>x64</Platforms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Plugins are loaded by reflection, never referenced; no need to produce a ref assembly. -->
+    <AssemblyName>MaxSkills</AssemblyName>
+    <RootNamespace>AbioticEditor.Samples.MaxSkills</RootNamespace>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Private=false: compile against these, but let the host provide them at runtime. -->
+    <ProjectReference Include="..\..\src\AbioticEditor.Plugins.Abstractions\AbioticEditor.Plugins.Abstractions.csproj" Private="false" ExcludeAssets="runtime" />
+    <ProjectReference Include="..\..\src\AbioticEditor.Core\AbioticEditor.Core.csproj" Private="false" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The manifest ships next to the DLL and is what the host reads first. -->
+    <None Update="plugin.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

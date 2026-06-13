@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             x:Class="AbioticEditor.App.Views.World.WorldContainersTab"
+             x:DataType="vm:MainViewModel"
+             IsVisible="{Binding WorldEditor.IsContainersTab}">
+
+    <VerticalStackLayout Spacing="14">
+        <!-- Filter row -->
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+            <Entry Grid.Column="0"
+                   Text="{Binding WorldEditor.Filter, Mode=TwoWay}"
+                   Placeholder="Filter by class name or id…"
+                   BackgroundColor="{StaticResource AfPanelElevated}"
+                   TextColor="{StaticResource AfTextPrimary}" />
+            <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">
+                <CheckBox IsChecked="{Binding WorldEditor.HideEmpty, Mode=TwoWay}"
+                          Color="{StaticResource AfAccentOrange}" />
+                <Label Text="HIDE EMPTY" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+            </HorizontalStackLayout>
+        </Grid>
+
+        <!-- Two-column body: container list + selected slots -->
+        <controls:AdaptiveGrid ColumnDefinitions="2*,3*" ColumnSpacing="20" HeightRequest="560"
+                               StackedChildHeight="400"
+                               IsVisible="{Binding WorldEditor.IsContainersTab}">
+
+            <Border Grid.Column="0"
+                    BackgroundColor="{StaticResource AfShellBackground}"
+                    Stroke="{StaticResource AfBorderSubtleBrush}"
+                    StrokeThickness="1"
+                    StrokeShape="Rectangle"
+                    Padding="0">
+                <CollectionView ItemsSource="{Binding WorldEditor.VisibleContainers}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding WorldEditor.SelectedContainer, Mode=TwoWay}">
+                    <CollectionView.EmptyView>
+                        <Label Text="No containers match filter."
+                               Style="{StaticResource AfMuted}" Padding="16" />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="items:WorldContainerViewModel">
+                            <Grid Padding="12,8" RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
+                                <Grid.GestureRecognizers>
+                                    <DropGestureRecognizer AllowDrop="True" Drop="OnContainerDrop" />
+                                </Grid.GestureRecognizers>
+                                <Label Grid.Row="0" Grid.Column="0"
+                                       Text="{Binding DisplayName}"
+                                       Style="{StaticResource AfFieldValue}"
+                                       FontSize="13"
+                                       LineBreakMode="MiddleTruncation" />
+                                <Label Grid.Row="0" Grid.Column="1"
+                                       Text="{Binding CountText}"
+                                       Style="{StaticResource AfReadout}"
+                                       FontSize="13" />
+                                <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                       Text="{Binding Id}"
+                                       Style="{StaticResource AfStatusText}"
+                                       LineBreakMode="TailTruncation" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Border>
+
+            <!-- Selected container's slots.
+                 Explicit absolute bindings, no BindingContext switching
+                 and no nested ScrollView - that combination corrupted
+                 the WinUI layout whenever a container was selected. -->
+            <Border Grid.Column="1"
+                    BackgroundColor="{StaticResource AfShellBackground}"
+                    Stroke="{StaticResource AfBorderSubtleBrush}"
+                    StrokeThickness="1"
+                    StrokeShape="Rectangle"
+                    Padding="14,12">
+                <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="8">
+
+                    <VerticalStackLayout Grid.Row="0" Spacing="2"
+                                         IsVisible="{Binding WorldEditor.HasSelectedContainer, Converter={StaticResource BoolNegate}}">
+                        <Label Text="SELECT A CONTAINER" Style="{StaticResource AfFieldLabel}" />
+                        <Label Text="Pick a container from the list to inspect or edit its slots. Tap a slot to edit it in the right panel."
+                               Style="{StaticResource AfMuted}" />
+                    </VerticalStackLayout>
+
+                    <Label Grid.Row="0"
+                           Text="{Binding WorldEditor.SelectedContainer.DisplayName}"
+                           Style="{StaticResource AfH2}" FontSize="18"
+                           IsVisible="{Binding WorldEditor.HasSelectedContainer}" />
+                    <Label Grid.Row="1"
+                           Text="{Binding WorldEditor.SelectedContainer.Id}"
+                           Style="{StaticResource AfStatusText}"
+                           LineBreakMode="TailTruncation"
+                           IsVisible="{Binding WorldEditor.HasSelectedContainer}" />
+                    <BoxView Grid.Row="2" Style="{StaticResource AfDivider}"
+                             IsVisible="{Binding WorldEditor.HasSelectedContainer}" />
+
+                    <CollectionView Grid.Row="3"
+                                    ItemsSource="{Binding WorldEditor.SelectedContainer.Slots}"
+                                    SelectionMode="None"
+                                    controls:ResponsiveLayout.ItemWidth="96"
+                                    controls:ResponsiveLayout.MaxSpan="8"
+                                    IsVisible="{Binding WorldEditor.HasSelectedContainer}">
+                        <CollectionView.ItemsLayout>
+                            <GridItemsLayout Orientation="Vertical" Span="6"
+                                             HorizontalItemSpacing="6" VerticalItemSpacing="6" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="items:InventorySlotViewModel">
+                                <Border BackgroundColor="{StaticResource AfPanelBackground}"
+                                        Stroke="{StaticResource AfBorderSubtleBrush}"
+                                        StrokeThickness="1"
+                                        StrokeShape="Rectangle"
+                                        HeightRequest="98"
+                                        Padding="0">
+                                    <Border.Triggers>
+                                        <!-- The slot open in the slot editor gets the hazard ring -->
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                            <Setter Property="Stroke" Value="{StaticResource AfHazardYellowBrush}" />
+                                            <Setter Property="StrokeThickness" Value="2" />
+                                            <Setter Property="BackgroundColor" Value="{StaticResource AfPanelHover}" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnSlotTapped" />
+                                        <DragGestureRecognizer CanDrag="True" DragStarting="OnSlotDragStarting" />
+                                        <DropGestureRecognizer AllowDrop="True" Drop="OnSlotDrop" />
+                                    </Border.GestureRecognizers>
+                                    <Grid RowDefinitions="*,Auto" Padding="3">
+                                        <Image Grid.Row="0" Source="{Binding IconPath}" Aspect="AspectFit"
+                                               IsVisible="{Binding HasIcon}" />
+                                        <Label Grid.Row="0" Text="{Binding Index, StringFormat='[{0:D2}]'}"
+                                               FontFamily="Digital7" FontSize="14"
+                                               TextColor="{StaticResource AfTextMuted}"
+                                               HorizontalOptions="Start" VerticalOptions="Start"
+                                               IsVisible="{Binding HasIcon, Converter={StaticResource BoolNegate}}" />
+                                        <Label Grid.Row="0" Text="{Binding CountText}"
+                                               FontFamily="Digital7" FontSize="16"
+                                               TextColor="{StaticResource AfTerminalGreen}"
+                                               HorizontalOptions="End" VerticalOptions="End"
+                                               IsVisible="{Binding ShowCount}" />
+                                        <Label Grid.Row="0" Text="▲"
+                                               FontSize="12" FontAttributes="Bold"
+                                               TextColor="{StaticResource AfHazardYellow}"
+                                               HorizontalOptions="End" VerticalOptions="Start"
+                                               Margin="0,-2,2,0"
+                                               IsVisible="{Binding IsUpgradable}" />
+                                        <!-- Special backpack slot (cold/freezer/shielded/warm) -->
+                                        <Label Grid.Row="0" Text="{Binding Role}"
+                                               FontSize="7" CharacterSpacing="1"
+                                               TextColor="{DynamicResource AfAmber}"
+                                               HorizontalOptions="Center" VerticalOptions="Start"
+                                               IsVisible="{Binding HasRole}" />
+                                        <Label Grid.Row="1" Text="{Binding DisplayName}"
+                                               FontSize="9"
+                                               TextColor="{StaticResource AfTextSecondary}"
+                                               LineBreakMode="TailTruncation" MaxLines="1"
+                                               HorizontalTextAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Grid>
+            </Border>
+        </controls:AdaptiveGrid>
+
+        <Label Text="Drag a slot onto a container in the list to move the item into that container's first empty slot."
+               Style="{StaticResource AfMuted}" />
+    </VerticalStackLayout>
+</ContentView>

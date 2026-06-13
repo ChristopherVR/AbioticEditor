@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:core="clr-namespace:AbioticEditor.Core.Saves;assembly=AbioticEditor.Core"
+             xmlns:views="clr-namespace:AbioticEditor.App.Views"
+             x:Class="AbioticEditor.App.Views.FileSidebarView"
+             x:Name="Root"
+             x:DataType="vm:MainViewModel">
+
+    <Border BackgroundColor="{StaticResource AfPanelBackground}"
+            Stroke="{StaticResource AfDividerBrush}"
+            StrokeThickness="0,0,1,0"
+            StrokeShape="Rectangle"
+            Padding="0">
+        <Grid RowDefinitions="Auto,*,Auto">
+            <VerticalStackLayout Grid.Row="0" Padding="16,14,16,10" Spacing="8">
+                <Label Text="SAVE FILES"
+                       Style="{StaticResource AfFieldLabel}" />
+
+                <!-- Sidebar-wide search filter -->
+                <Border BackgroundColor="{StaticResource AfPanelElevated}"
+                        Stroke="{StaticResource AfDividerBrush}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 8"
+                        Padding="10,0"
+                        HeightRequest="38">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                        <Label Grid.Column="0" Text="&#xE8B6;"
+                               FontFamily="MaterialSymbols"
+                               FontSize="17"
+                               TextColor="{StaticResource AfTextMuted}"
+                               VerticalOptions="Center" />
+                        <Entry Grid.Column="1"
+                               x:Name="SearchEntry"
+                               HandlerChanged="OnSearchEntryHandlerChanged"
+                               Text="{Binding SidebarFilter, Mode=TwoWay}"
+                               Placeholder="Search saves &amp; config"
+                               TextColor="{StaticResource AfTextPrimary}"
+                               PlaceholderColor="{StaticResource AfTextMuted}"
+                               BackgroundColor="Transparent"
+                               FontSize="13"
+                               HeightRequest="38"
+                               VerticalOptions="Center" />
+                        <Button Grid.Column="2" Text="&#xE5CD;"
+                                FontFamily="MaterialSymbols"
+                                FontSize="15"
+                                IsVisible="{Binding HasSidebarFilter}"
+                                Command="{Binding ClearSidebarFilterCommand}"
+                                BackgroundColor="Transparent"
+                                TextColor="{StaticResource AfTextMuted}"
+                                Padding="0" HeightRequest="26" WidthRequest="26"
+                                CornerRadius="13"
+                                ToolTipProperties.Text="Clear filter"
+                                VerticalOptions="Center" />
+                    </Grid>
+                </Border>
+
+                <Label Text="{Binding Saves.Count, StringFormat='{0} item(s)'}"
+                       Style="{StaticResource AfMuted}" />
+            </VerticalStackLayout>
+
+            <CollectionView Grid.Row="1"
+                            ItemsSource="{Binding SaveGroups}"
+                            IsGrouped="True"
+                            SelectionMode="Single"
+                            SelectedItem="{Binding SelectedSave, Mode=TwoWay}"
+                            SelectionChangedCommand="{x:Null}">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="24" Spacing="6">
+                        <Label Text="NO FOLDER LOADED"
+                               Style="{StaticResource AfFieldLabel}" />
+                        <Label Text="Click OPEN FOLDER to point at a Cascade save directory."
+                               Style="{StaticResource AfMuted}" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.GroupHeaderTemplate>
+                    <DataTemplate x:DataType="items:SaveGroup">
+                        <Grid Padding="14,12,14,4" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                            <Label Grid.Column="0" Text="{Binding Title}"
+                                   Style="{StaticResource AfFieldLabel}"
+                                   TextColor="{StaticResource AfAmber}"
+                                   CharacterSpacing="3"
+                                   VerticalOptions="Center" />
+                            <Label Grid.Column="1" Text="{Binding Count}"
+                                   Style="{StaticResource AfStatusText}" FontSize="10"
+                                   VerticalOptions="Center" />
+                            <!-- "+" add-player affordance, PLAYERS group only -->
+                            <Border Grid.Column="2"
+                                    IsVisible="{Binding IsPlayers}"
+                                    BackgroundColor="{StaticResource AfAccentOrange}"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 13"
+                                    WidthRequest="26" HeightRequest="26"
+                                    Padding="0"
+                                    ToolTipProperties.Text="Add a player (new or copied from an existing one)"
+                                    VerticalOptions="Center">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnAddPlayerTapped" />
+                                </Border.GestureRecognizers>
+                                <Label Text="&#xE145;"
+                                       FontFamily="MaterialSymbols"
+                                       FontSize="17"
+                                       TextColor="{StaticResource AfTextOnAccent}"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.GroupHeaderTemplate>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="core:SaveFileSummary">
+                        <Grid Style="{StaticResource AfSidebarItem}"
+                              RowDefinitions="Auto,Auto"
+                              ColumnDefinitions="Auto,*">
+                            <FlyoutBase.ContextFlyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Text="{x:Static views:FileRevealer.RevealLabel}"
+                                                    Clicked="OnRevealFileClicked" />
+                                </MenuFlyout>
+                            </FlyoutBase.ContextFlyout>
+                            <BoxView Grid.RowSpan="2"
+                                     Grid.Column="0"
+                                     WidthRequest="3"
+                                     BackgroundColor="{Binding KindColor}"
+                                     VerticalOptions="Fill"
+                                     Margin="0,0,10,0" />
+                            <Label Grid.Row="0" Grid.Column="1"
+                                   Text="{Binding DisplayName}"
+                                   Style="{StaticResource AfFieldValue}"
+                                   FontSize="13"
+                                   LineBreakMode="MiddleTruncation" />
+                            <HorizontalStackLayout Grid.Row="1" Grid.Column="1" Spacing="8">
+                                <Border BackgroundColor="{Binding KindColor}"
+                                        StrokeThickness="0" StrokeShape="Rectangle"
+                                        Padding="5,1">
+                                    <Label Text="{Binding KindLabel}"
+                                           FontFamily="OpenSansSemibold" FontSize="8"
+                                           CharacterSpacing="2"
+                                           TextColor="{StaticResource AfTextOnAccent}" />
+                                </Border>
+                                <Label Text="{Binding SizeText}"
+                                       Style="{StaticResource AfStatusText}" FontSize="10"
+                                       VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Ini files near the save tree (server Admin.ini, per-world
+                 SandboxSettings.ini, client config). -->
+            <VerticalStackLayout Grid.Row="2" IsVisible="{Binding HasConfigFiles}">
+                <BoxView Style="{StaticResource AfDivider}" />
+                <Label Text="CONFIG FILES"
+                       Style="{StaticResource AfFieldLabel}"
+                       TextColor="{StaticResource AfAmber}"
+                       CharacterSpacing="3"
+                       Padding="16,10,16,4" />
+                <CollectionView ItemsSource="{Binding VisibleConfigFiles}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding SelectedConfigFile, Mode=TwoWay}"
+                                HeightRequest="160">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ConfigFileOption">
+                            <Grid Style="{StaticResource AfSidebarItem}"
+                                  ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                <FlyoutBase.ContextFlyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem Text="{x:Static views:FileRevealer.RevealLabel}"
+                                                        Clicked="OnRevealFileClicked" />
+                                    </MenuFlyout>
+                                </FlyoutBase.ContextFlyout>
+                                <Border Grid.Column="0"
+                                        BackgroundColor="{StaticResource AfAmber}"
+                                        StrokeThickness="0" StrokeShape="Rectangle"
+                                        Padding="5,1" VerticalOptions="Center">
+                                    <Label Text="{Binding KindChip}"
+                                           FontFamily="OpenSansSemibold" FontSize="8"
+                                           CharacterSpacing="2"
+                                           TextColor="{StaticResource AfTextOnAccent}" />
+                                </Border>
+                                <Label Grid.Column="1" Text="{Binding Name}"
+                                       Style="{StaticResource AfFieldValue}" FontSize="12"
+                                       VerticalOptions="Center"
+                                       LineBreakMode="MiddleTruncation" />
+                                <Label Grid.Column="2" Text="{Binding Detail}"
+                                       Style="{StaticResource AfStatusText}" FontSize="9"
+                                       VerticalOptions="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+        </Grid>
+    </Border>
+</ContentView>

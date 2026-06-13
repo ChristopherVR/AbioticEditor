@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             x:Class="AbioticEditor.App.Views.Player.PlayerCodexTab"
+             x:Name="Root"
+             x:DataType="vm:MainViewModel">
+
+    <!-- ===== Player TAB: GATEPal (emails / journal / compendium / fish) ===== -->
+    <Border Style="{StaticResource AfPanel}" Padding="0"
+
+            IsVisible="{Binding PlayerEditor.IsCodexTab, FallbackValue=False}">
+        <VerticalStackLayout Spacing="0">
+            <!-- GATEPal journal chrome, after the in-game PDA: header surface,
+                 cyan JOURNAL title with a terminal glow, weekday strip. Themed so it
+                 tracks the active palette instead of a fixed light page. -->
+            <Grid BackgroundColor="{DynamicResource AfPanelElevated}" Padding="16,10" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="14">
+                <Label Grid.Column="0" Text="JOURNAL"
+                       FontFamily="OpenSansSemibold" FontSize="22" CharacterSpacing="4"
+                       TextColor="{DynamicResource AfTerminalGreen}" VerticalOptions="Center">
+                    <Label.Shadow>
+                        <Shadow Brush="{DynamicResource AfTerminalGreenBrush}" Opacity="0.6" Radius="8" Offset="0,0" />
+                    </Label.Shadow>
+                </Label>
+                <!-- Weekday strip like the PDA date bar -->
+                <HorizontalStackLayout Grid.Column="1" Spacing="10" VerticalOptions="Center" Margin="10,0,0,0">
+                    <Label Text="S" FontSize="11" TextColor="{DynamicResource AfTextMuted}" />
+                    <Label Text="M" FontSize="11" TextColor="{DynamicResource AfTextMuted}" />
+                    <Label Text="T" FontSize="11" TextColor="{DynamicResource AfTextPrimary}" FontAttributes="Bold" />
+                    <Label Text="W" FontSize="11" TextColor="{DynamicResource AfTextMuted}" />
+                    <Label Text="T" FontSize="11" TextColor="{DynamicResource AfTextMuted}" />
+                    <Label Text="F" FontSize="11" TextColor="{DynamicResource AfTextMuted}" />
+                    <Label Text="S" FontSize="11" TextColor="{DynamicResource AfTextMuted}" />
+                </HorizontalStackLayout>
+                <Label Grid.Column="2" Text="Mar 7, 93"
+                       FontSize="12" TextColor="{DynamicResource AfTextPrimary}" FontAttributes="Bold" VerticalOptions="Center" />
+                <Label Grid.Column="3" Text="{Binding PlayerEditor.Codex.CountText}"
+                       FontSize="12" TextColor="{DynamicResource AfTerminalGreenDim}" FontAttributes="Bold" VerticalOptions="Center" />
+            </Grid>
+            <BoxView HeightRequest="2" BackgroundColor="{DynamicResource AfTerminalGreenDim}" />
+            <VerticalStackLayout Spacing="12" Padding="20,14">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="14">
+                <Label Grid.Column="0" Text="" IsVisible="False" />
+                <Button Grid.Column="2" Text="MARK ALL READ"
+                        BackgroundColor="{StaticResource AfHazardYellow}"
+                        TextColor="{StaticResource AfTextOnAccent}"
+                        Command="{Binding PlayerEditor.Codex.MarkAllReadCommand}" />
+            </Grid>
+
+            <!-- App tiles: the PDA's compendium index (charcoal panel, uppercase
+                 tiles). Tile strip scrolls; search wraps below on any width. -->
+            <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                <HorizontalStackLayout Spacing="8">
+                    <Button Text="✉ E-MAIL" FontSize="11" Padding="14,8" CornerRadius="6"
+                            BackgroundColor="{Binding PlayerEditor.Codex.IsEmailsSection, Converter={StaticResource TabBrush}}"
+                            TextColor="{StaticResource AfTextPrimary}"
+                            Command="{Binding PlayerEditor.Codex.ShowEmailsCommand}" />
+                    <Button Text="✎ NOTES" FontSize="11" Padding="14,8" CornerRadius="6"
+                            BackgroundColor="{Binding PlayerEditor.Codex.IsJournalSection, Converter={StaticResource TabBrush}}"
+                            TextColor="{StaticResource AfTextPrimary}"
+                            Command="{Binding PlayerEditor.Codex.ShowJournalCommand}" />
+                    <Button Text="◈ COMPENDIUM" FontSize="11" Padding="14,8" CornerRadius="6"
+                            BackgroundColor="{Binding PlayerEditor.Codex.IsCompendiumSection, Converter={StaticResource TabBrush}}"
+                            TextColor="{StaticResource AfTextPrimary}"
+                            Command="{Binding PlayerEditor.Codex.ShowCompendiumCommand}" />
+                    <Button Text="🐟 FISH" FontSize="11" Padding="14,8" CornerRadius="6"
+                            BackgroundColor="{Binding PlayerEditor.Codex.IsFishSection, Converter={StaticResource TabBrush}}"
+                            TextColor="{StaticResource AfTextPrimary}"
+                            Command="{Binding PlayerEditor.Codex.ShowFishCommand}" />
+                </HorizontalStackLayout>
+            </ScrollView>
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <Entry Grid.Column="0"
+                       Text="{Binding PlayerEditor.Codex.SearchText, Mode=TwoWay}"
+                       Placeholder="Search titles, senders and full text…"
+                       BackgroundColor="{StaticResource AfPanelElevated}"
+                       TextColor="{StaticResource AfTextPrimary}" />
+                <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+                    <CheckBox IsChecked="{Binding PlayerEditor.Codex.UnreadOnly, Mode=TwoWay}"
+                              Color="{StaticResource AfHazardYellow}" />
+                    <Label Text="UNREAD ONLY" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                </HorizontalStackLayout>
+            </Grid>
+
+            <!-- Compendium app categories (the GATEPal compendium apps) -->
+            <HorizontalStackLayout Spacing="6"
+                                   IsVisible="{Binding PlayerEditor.Codex.IsCompendiumSection}"
+                                   BindableLayout.ItemsSource="{Binding PlayerEditor.Codex.CompendiumCategories}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="items:CompendiumCategory">
+                        <Button Text="{Binding Label}" Style="{StaticResource AfChipButton}" Margin="0,0,4,4"
+                                Command="{Binding Source={x:Reference Root}, Path=BindingContext.PlayerEditor.Codex.SelectCompendiumCategoryCommand}"
+                                CommandParameter="{Binding}" />
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </HorizontalStackLayout>
+
+            <!-- Master list + reading pane (stacks vertically on narrow widths) -->
+            <controls:AdaptiveGrid ColumnDefinitions="2*,3*" ColumnSpacing="16" HeightRequest="600"
+                                   StackedChildHeight="420">
+                <Border Grid.Column="0"
+                        BackgroundColor="{StaticResource AfShellBackground}"
+                        Stroke="{StaticResource AfBorderSubtleBrush}"
+                        StrokeThickness="1" StrokeShape="Rectangle"
+                        Padding="0">
+                    <CollectionView ItemsSource="{Binding PlayerEditor.Codex.VisibleItems}"
+                                    SelectionMode="Single"
+                                    SelectedItem="{Binding PlayerEditor.Codex.Selected, Mode=TwoWay}">
+                        <CollectionView.EmptyView>
+                            <Label Text="Nothing matches (or game data is unavailable)." Style="{StaticResource AfMuted}" Padding="16" />
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="items:CodexItemViewModel">
+                                <Grid Padding="12,6" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
+                                    <CheckBox Grid.Column="0"
+                                              IsChecked="{Binding IsKnown, Mode=TwoWay}"
+                                              IsEnabled="{Binding CanToggle}"
+                                              Color="{StaticResource AfTerminalGreen}"
+                                              VerticalOptions="Center" />
+                                    <Image Grid.Column="1" WidthRequest="30" HeightRequest="30" Aspect="AspectFit"
+                                           Source="{Binding IconPath}"
+                                           IsVisible="{Binding ShowIcon}"
+                                           VerticalOptions="Center" />
+                                    <VerticalStackLayout Grid.Column="2" Spacing="1" VerticalOptions="Center">
+                                        <Label Text="{Binding ShownTitle}"
+                                               Style="{StaticResource AfFieldValue}" FontSize="12"
+                                               LineBreakMode="TailTruncation" />
+                                        <Label Text="{Binding ShownSubtitle}"
+                                               Style="{StaticResource AfStatusText}" FontSize="10"
+                                               LineBreakMode="TailTruncation"
+                                               IsVisible="{Binding ShowSubtitle}" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Border>
+
+                <!-- Reading pane -->
+                <Border Grid.Column="1"
+                        BackgroundColor="{StaticResource AfShellBackground}"
+                        Stroke="{StaticResource AfBorderSubtleBrush}"
+                        StrokeThickness="1" StrokeShape="Rectangle"
+                        Padding="18,14">
+                    <Grid>
+                        <Label Text="Select an entry to read it."
+                               Style="{StaticResource AfMuted}"
+                               IsVisible="{Binding PlayerEditor.Codex.HasSelection, Converter={StaticResource BoolNegate}}" />
+                        <ScrollView IsVisible="{Binding PlayerEditor.Codex.HasSelection}">
+                            <VerticalStackLayout Spacing="10">
+                                <Label Text="{Binding PlayerEditor.Codex.Selected.Title}"
+                                       Style="{StaticResource AfH2}" FontSize="18" />
+                                <Label Text="{Binding PlayerEditor.Codex.Selected.Subtitle}"
+                                       Style="{StaticResource AfStatusText}"
+                                       IsVisible="{Binding PlayerEditor.Codex.Selected.HasSubtitle, FallbackValue=False}" />
+
+                                <!-- Wiki image (fish): real art from abioticfactor.wiki.gg, downloaded
+                                     once and cached locally. Collapses when no image resolves. -->
+                                <HorizontalStackLayout Spacing="8"
+                                                       IsVisible="{Binding PlayerEditor.Codex.Selected.IsWikiImageLoading, FallbackValue=False}">
+                                    <ActivityIndicator IsRunning="True" WidthRequest="16" HeightRequest="16" />
+                                    <Label Text="Fetching image from the wiki..."
+                                           Style="{StaticResource AfMuted}" FontSize="10" VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                                <VerticalStackLayout Spacing="3"
+                                                     IsVisible="{Binding PlayerEditor.Codex.Selected.HasWikiImage, FallbackValue=False}">
+                                    <Border BackgroundColor="#000000" StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 4"
+                                            HeightRequest="150" Padding="10">
+                                        <Image Source="{Binding PlayerEditor.Codex.Selected.WikiImagePath}"
+                                               Aspect="AspectFit" />
+                                    </Border>
+                                    <Label Text="Image: abioticfactor.wiki.gg"
+                                           Style="{StaticResource AfMuted}" FontSize="8" />
+                                </VerticalStackLayout>
+
+                                <!-- Fish: what catching it unlocks (a new bait, with its icon). Tapping
+                                     the bait opens it in the slot editor. -->
+                                <VerticalStackLayout Spacing="6"
+                                                     IsVisible="{Binding PlayerEditor.Codex.Selected.ShowFishDetailDivider, FallbackValue=False}">
+                                    <BoxView Style="{StaticResource AfDivider}" />
+                                    <Label Text="WHEN YOU CATCH IT" Style="{StaticResource AfFieldLabel}"
+                                           TextColor="{DynamicResource AfTerminalGreen}" />
+                                    <Border BackgroundColor="{DynamicResource AfPanelBackground}"
+                                            Stroke="{DynamicResource AfBorderSubtleBrush}"
+                                            StrokeThickness="1" StrokeShape="RoundRectangle 4"
+                                            Padding="8,6"
+                                            IsVisible="{Binding PlayerEditor.Codex.Selected.HasFishUnlock, FallbackValue=False}">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnFishUnlockBaitTapped" />
+                                        </Border.GestureRecognizers>
+                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                            <Border Grid.Column="0" WidthRequest="48" HeightRequest="48"
+                                                    BackgroundColor="{DynamicResource AfPanelElevated}"
+                                                    StrokeThickness="0" StrokeShape="RoundRectangle 4"
+                                                    Padding="3" VerticalOptions="Center">
+                                                <Image Source="{Binding PlayerEditor.Codex.Selected.FishUnlockBaitIconPath}"
+                                                       Aspect="AspectFit"
+                                                       IsVisible="{Binding PlayerEditor.Codex.Selected.HasFishBaitIcon, FallbackValue=False}" />
+                                            </Border>
+                                            <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                                                <Label Text="UNLOCKS THE BAIT" Style="{StaticResource AfFieldLabel}" FontSize="9" />
+                                                <Label Text="{Binding PlayerEditor.Codex.Selected.FishUnlockName}"
+                                                       Style="{StaticResource AfFieldValue}" FontSize="13" LineBreakMode="WordWrap" />
+                                            </VerticalStackLayout>
+                                            <Label Grid.Column="2" Text="OPEN ›"
+                                                   Style="{StaticResource AfFieldLabel}" FontSize="9"
+                                                   TextColor="{DynamicResource AfTerminalGreen}" VerticalOptions="Center" />
+                                        </Grid>
+                                    </Border>
+                                    <Label Text="{Binding PlayerEditor.Codex.Selected.FishXpText}"
+                                           Style="{StaticResource AfStatusText}" FontSize="11"
+                                           TextColor="{DynamicResource AfHazardYellow}"
+                                           IsVisible="{Binding PlayerEditor.Codex.Selected.HasFishXp, FallbackValue=False}" />
+                                </VerticalStackLayout>
+
+                                <!-- Fish: what's needed to land it (location, story flags, time) -->
+                                <VerticalStackLayout Spacing="4"
+                                                     IsVisible="{Binding PlayerEditor.Codex.Selected.HasFishCatchRequirements, FallbackValue=False}">
+                                    <Label Text="TO CATCH IT" Style="{StaticResource AfFieldLabel}"
+                                           TextColor="{DynamicResource AfAmber}" />
+                                    <VerticalStackLayout Spacing="3"
+                                                         BindableLayout.ItemsSource="{Binding PlayerEditor.Codex.Selected.FishCatchLines}">
+                                        <BindableLayout.ItemTemplate>
+                                            <DataTemplate x:DataType="x:String">
+                                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                                    <Label Grid.Column="0" Text="•" Style="{StaticResource AfFieldValue}"
+                                                           TextColor="{DynamicResource AfAmber}" VerticalOptions="Start" />
+                                                    <Label Grid.Column="1" Text="{Binding}"
+                                                           Style="{StaticResource AfFieldValue}" FontSize="12"
+                                                           LineBreakMode="WordWrap" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </BindableLayout.ItemTemplate>
+                                    </VerticalStackLayout>
+                                    <!-- The specific bait to equip (rare variants) - tappable into the slot editor -->
+                                    <Border BackgroundColor="{DynamicResource AfPanelBackground}"
+                                            Stroke="{DynamicResource AfAmberBrush}"
+                                            StrokeThickness="1" StrokeShape="RoundRectangle 4"
+                                            Padding="8,6" Margin="0,4,0,0"
+                                            IsVisible="{Binding PlayerEditor.Codex.Selected.HasFishRequiredBait, FallbackValue=False}">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnFishRequiredBaitTapped" />
+                                        </Border.GestureRecognizers>
+                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                            <Border Grid.Column="0" WidthRequest="48" HeightRequest="48"
+                                                    BackgroundColor="{DynamicResource AfPanelElevated}"
+                                                    StrokeThickness="0" StrokeShape="RoundRectangle 4"
+                                                    Padding="3" VerticalOptions="Center">
+                                                <Image Source="{Binding PlayerEditor.Codex.Selected.FishRequiredBaitIconPath}"
+                                                       Aspect="AspectFit"
+                                                       IsVisible="{Binding PlayerEditor.Codex.Selected.HasFishRequiredBaitIcon, FallbackValue=False}" />
+                                            </Border>
+                                            <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                                                <Label Text="EQUIP THIS BAIT" Style="{StaticResource AfFieldLabel}" FontSize="9" />
+                                                <Label Text="{Binding PlayerEditor.Codex.Selected.FishRequiredBaitName}"
+                                                       Style="{StaticResource AfFieldValue}" FontSize="13" LineBreakMode="WordWrap" />
+                                            </VerticalStackLayout>
+                                            <Label Grid.Column="2" Text="OPEN ›"
+                                                   Style="{StaticResource AfFieldLabel}" FontSize="9"
+                                                   TextColor="{DynamicResource AfAmber}" VerticalOptions="Center" />
+                                        </Grid>
+                                    </Border>
+                                </VerticalStackLayout>
+
+                                <!-- Kill tally editor (compendium entries with kill-requirement sections) -->
+                                <Grid ColumnDefinitions="Auto,90,*" ColumnSpacing="12"
+                                      IsVisible="{Binding PlayerEditor.Codex.Selected.HasKillTracking, FallbackValue=False}">
+                                    <Label Grid.Column="0" Text="KILLS" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                    <Entry Grid.Column="1"
+                                           Text="{Binding PlayerEditor.Codex.Selected.KillCount, Mode=TwoWay}"
+                                           IsEnabled="{Binding PlayerEditor.Codex.Selected.CanEditKills}"
+                                           Keyboard="Numeric"
+                                           FontFamily="Digital7" FontSize="16"
+                                           TextColor="{StaticResource AfTerminalGreen}"
+                                           BackgroundColor="{StaticResource AfPanelElevated}"
+                                           HorizontalTextAlignment="Center" />
+                                    <Label Grid.Column="2"
+                                           Text="{Binding PlayerEditor.Codex.Selected.KillText}"
+                                           Style="{StaticResource AfMuted}" FontSize="11" VerticalOptions="Center" />
+                                </Grid>
+
+                                <BoxView Style="{StaticResource AfDivider}" />
+                                <Label Text="{Binding PlayerEditor.Codex.Selected.Body}"
+                                       Style="{StaticResource AfFieldValue}" FontSize="13"
+                                       LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                        </ScrollView>
+                    </Grid>
+                </Border>
+            </controls:AdaptiveGrid>
+            <Label Text="Emails, journal, compendium and fish states are all editable (stage + SAVE). Compendium entries unlock into the matching section lists automatically."
+                   Style="{StaticResource AfMuted}" FontSize="10" />
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </Border>
+</ContentView>

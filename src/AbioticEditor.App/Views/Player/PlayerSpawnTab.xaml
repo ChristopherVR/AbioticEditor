@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             x:Class="AbioticEditor.App.Views.Player.PlayerSpawnTab"
+             x:DataType="vm:MainViewModel">
+
+    <!-- ===== Player TAB: Spawn (home & respawn) ===== -->
+    <Border Style="{StaticResource AfPanel}" Padding="20,16"
+
+            IsVisible="{Binding PlayerEditor.IsSpawnTab, FallbackValue=False}">
+        <VerticalStackLayout Spacing="12">
+            <Label Text="SPAWN &amp; HOME" Style="{StaticResource AfH2}" />
+            <BoxView Style="{StaticResource AfHazardStripe}" />
+            <Label Text="HOME &amp; RESPAWN" Style="{StaticResource AfFieldLabel}" FontSize="12" TextColor="{StaticResource AfAmber}" CharacterSpacing="5" />
+
+            <!-- Editable last-safe location + region -->
+            <controls:AdaptiveGrid ColumnDefinitions="Auto,110,Auto,110,Auto,110,Auto,*" ColumnSpacing="8"
+                                   CompactWidth="640">
+                <Label Grid.Column="0" Text="X" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Entry Grid.Column="1" Text="{Binding PlayerEditor.RespawnX, Mode=TwoWay, StringFormat='{0:F0}'}"
+                       Keyboard="Numeric" FontFamily="Digital7" FontSize="15"
+                       TextColor="{StaticResource AfTerminalGreen}" HorizontalTextAlignment="Center" />
+                <Label Grid.Column="2" Text="Y" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Entry Grid.Column="3" Text="{Binding PlayerEditor.RespawnY, Mode=TwoWay, StringFormat='{0:F0}'}"
+                       Keyboard="Numeric" FontFamily="Digital7" FontSize="15"
+                       TextColor="{StaticResource AfTerminalGreen}" HorizontalTextAlignment="Center" />
+                <Label Grid.Column="4" Text="Z" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Entry Grid.Column="5" Text="{Binding PlayerEditor.RespawnZ, Mode=TwoWay, StringFormat='{0:F0}'}"
+                       Keyboard="Numeric" FontFamily="Digital7" FontSize="15"
+                       TextColor="{StaticResource AfTerminalGreen}" HorizontalTextAlignment="Center" />
+                <Label Grid.Column="6" Text="REGION" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" Margin="10,0,0,0" />
+                <Picker Grid.Column="7"
+                        ItemsSource="{Binding PlayerEditor.LevelOptions}"
+                        SelectedItem="{Binding PlayerEditor.SelectedLevel, Mode=TwoWay}"
+                        Title="Pick the region (level) of the spawn point…" />
+            </controls:AdaptiveGrid>
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                <Label Grid.Column="0" Text="RESPAWN TERMINAL" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Picker Grid.Column="1"
+                        ItemsSource="{Binding PlayerEditor.TerminalOptions}"
+                        SelectedItem="{Binding PlayerEditor.SelectedTerminal, Mode=TwoWay}"
+                        Title="Pick the punch-card terminal to respawn at…" />
+            </Grid>
+
+            <!-- Spawn-to-bed picker -->
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                <Label Grid.Column="0" Text="BEDS" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Picker Grid.Column="1"
+                        ItemsSource="{Binding BedOptions}"
+                        SelectedItem="{Binding SelectedBedOption, Mode=TwoWay}"
+                        Title="Choose a bed…" />
+                <Button Grid.Column="2" Text="SET SPAWN HERE"
+                        FontSize="10" Padding="10,4"
+                        BackgroundColor="{StaticResource AfTerminalGreen}"
+                        TextColor="{StaticResource AfTextOnAccent}"
+                        Command="{Binding SetSpawnToBedCommand}" />
+            </Grid>
+            <HorizontalStackLayout Spacing="6"
+                                   IsVisible="{Binding HasHomeBed, FallbackValue=False}">
+                <Label Text="HOME BED:" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Label Text="{Binding HomeBedText}"
+                       Style="{StaticResource AfFieldValue}" FontSize="12"
+                       TextColor="{StaticResource AfTerminalGreen}" VerticalOptions="Center" />
+            </HorizontalStackLayout>
+            <Label Text="The spawn point is the last safe location + region above (stage + SAVE). SET SPAWN HERE copies a bed's position; pick the region the bed is in if it differs. Sleeping bags rest without moving the spawn."
+                   Style="{StaticResource AfMuted}" FontSize="10" />
+        </VerticalStackLayout>
+    </Border>
+</ContentView>
