@@ -35,7 +35,7 @@
     <PackageVersion Include="AssetRipper.TextureDecoder" Version="2.6.2" />
     <PackageVersion Include="Blake3" Version="2.2.1" />
     <PackageVersion Include="BouncyCastle.Cryptography" Version="2.6.2" />
-    <PackageVersion Include="FixedMathSharp" Version="4.0.1" />
+    <PackageVersion Include="FixedMathSharp" Version="5.0.0" />
     <PackageVersion Include="Fmod5Sharp" Version="3.1.0" />
     <PackageVersion Include="GenericReader" Version="2.3.0" />
     <PackageVersion Include="Infrablack.UE4Config" Version="0.7.2.97" />
