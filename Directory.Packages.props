@@ -21,7 +21,7 @@
     <!-- JavaScript plugin runtime. Jint is a pure-managed ES interpreter (no native deps),
          so it works across every MAUI target (android/ios/maccatalyst/windows) and the CLI
          alike - unlike V8-based engines that ship platform-specific natives. -->
-    <PackageVersion Include="Jint" Version="4.4.1" />
+    <PackageVersion Include="Jint" Version="4.9.3" />
 
     <!-- Transitive overrides: CUE4Parse references Microsoft.Bcl.Memory 9.0.0, which
          has a known vulnerability (GHSA-73j8-2gch-69rq, patched in 9.0.14). -->
