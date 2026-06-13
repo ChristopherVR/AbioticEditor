@@ -1,0 +1,15 @@
+{
+  "name": "abiotic-editor-docs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "VitePress documentation site for Abiotic Editor, deployed to GitHub Pages.",
+  "scripts": {
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.4"
+  }
+}

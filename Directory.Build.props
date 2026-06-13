@@ -5,6 +5,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
 
+    <!-- Single source of truth for the product version. The release workflow
+         (.github/workflows/release.yml) rewrites this <Version> on each
+         Conventional-Commits release; every assembly's Assembly/File/Informational
+         version and the MAUI App's ApplicationDisplayVersion inherit it. The
+         submodules are shielded from this file by submodules/Directory.Build.props,
+         so CUE4Parse/UeSaveGame keep their own versions. -->
+    <Version>1.0.0</Version>
+
     <!-- Code analysis: .NET analyzers at the recommended level for our own projects
          (submodules are shielded by submodules/Directory.Build.props). -->
     <AnalysisLevel>latest-recommended</AnalysisLevel>

@@ -1,0 +1,43 @@
+version: 2
+
+# NOTE: the `gitsubmodule` ecosystem is intentionally OMITTED.
+# submodules/UeSaveGame and submodules/CUE4Parse are pinned to deliberately
+# validated commits (see README "Why submodules?"): the editor depends on
+# exact GVAS round-trip and current-master CUE4Parse behavior, and a pinned
+# commit guarantees a tested combination. Bumps are done by hand after
+# re-validating against the test fixtures — Dependabot must not move them.
+
+updates:
+  # --- .NET / NuGet (packages are centrally managed in Directory.Packages.props) ---
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      nuget-minor-patch:
+        update-types:
+          - minor
+          - patch
+
+  # --- VitePress docs site ---
+  - package-ecosystem: npm
+    directory: /docs
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      npm-all:
+        patterns:
+          - "*"
+
+  # --- GitHub Actions used by the workflows ---
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      actions-all:
+        patterns:
+          - "*"

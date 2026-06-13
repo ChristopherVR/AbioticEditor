@@ -1,0 +1,77 @@
+# git-cliff configuration — Conventional-Commits changelog + semver bump.
+# Docs: https://git-cliff.org/docs/configuration
+#
+# Used by .github/workflows/release.yml to (a) compute the next version
+# (`git cliff --bumped-version`) and (b) regenerate CHANGELOG.md (`git cliff --bump`).
+
+[changelog]
+# Minimal header/footer — the per-release notes file extracts only the body.
+header = """
+# Changelog
+
+All notable changes to this project are documented here.\n
+"""
+# Tera template for the changelog body, newest release first.
+body = """
+{% if version %}\
+## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+## [Unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | upper_first }}
+{% for commit in commits %}\
+- {{ commit.message | upper_first }}\
+{% endfor %}
+{% endfor %}\n
+"""
+footer = ""
+trim = true
+# Emit output even when there are no releasable commits, so downstream
+# `--bumped-version` does not error on an empty body.
+render_always = true
+
+[git]
+# Parse commit messages according to the Conventional Commits spec...
+conventional_commits = true
+# ...and drop anything that is not a conventional commit from the changelog.
+filter_unconventional = true
+require_conventional = false
+# Split commits on newlines (treat each as its own conventional commit).
+split_commits = false
+
+# Regex parsers map commit subjects to changelog groups. `skip = true`
+# removes a commit entirely (release bumps, merges, CI noise).
+commit_parsers = [
+  { message = "^chore\\(release\\)", skip = true },
+  { message = "^chore\\(deps?\\)", skip = true },
+  { message = "^[Mm]erge ", skip = true },
+  { body = ".*\\[skip ci\\].*", skip = true },
+  { message = "^feat", group = "Features" },
+  { message = "^fix", group = "Bug Fixes" },
+  { message = "^perf", group = "Performance" },
+  { message = "^refactor", group = "Refactor" },
+  { message = "^doc", group = "Documentation" },
+  { message = "^style", group = "Styling" },
+  { message = "^test", group = "Testing" },
+  { message = "^build", group = "Build" },
+  { message = "^ci", group = "CI" },
+  { message = "^chore", group = "Miscellaneous Tasks" },
+  { message = "^revert", group = "Revert" },
+  # Anything else conventional but unrecognised.
+  { message = ".*", group = "Other" },
+]
+
+# Skip merge commits at the git level too (belt-and-suspenders with the parser).
+filter_commits = false
+# Only tags matching `vX.Y.Z` count as releases for version computation.
+tag_pattern = "v[0-9]*"
+# Never error the whole run on a single unmatched commit.
+topo_order = false
+sort_commits = "newest"
+
+[bump]
+# Conventional-Commits semver rules:
+#   feat  -> minor, fix/perf/etc -> patch, BREAKING CHANGE / `!` -> major.
+features_always_bump_minor = true
+breaking_always_bump_major = true

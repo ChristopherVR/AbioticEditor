@@ -42,8 +42,11 @@
 		<!-- App Identifier -->
 		<ApplicationId>com.companyname.abioticeditor.app</ApplicationId>
 
-		<!-- Versions -->
-		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+		<!-- Versions. ApplicationDisplayVersion inherits the repo-wide <Version>
+		     (root Directory.Build.props), the single source of truth bumped by the
+		     release workflow. ApplicationVersion (the integer build number) is left
+		     at 1 for local builds and overridden in CI with -p:ApplicationVersion=<run>. -->
+		<ApplicationDisplayVersion>$(Version)</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>
 
 		<!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->

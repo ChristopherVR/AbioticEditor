@@ -1,0 +1,212 @@
+/**
+ * Abiotic Factor "facility" theme for VitePress.
+ *
+ * Colors are lifted verbatim from the app's ThemeService Cascade palettes
+ * (src/AbioticEditor.App/Services/ThemeService.cs):
+ *   - dark  (.dark)  -> Cascade Dark : blue-teal facility chrome, cyan readouts
+ *   - light (:root)  -> Cascade Light: paper-blue surfaces, darkened accents
+ * Hazard orange / caution yellow are reserved for calls-to-action and warnings,
+ * exactly as in the game's inventory UI.
+ */
+
+/* ----------------------------------------------------------------------------
+ * DARK — Cascade Dark (the shipped, game-accurate look)
+ * ------------------------------------------------------------------------- */
+.dark {
+  --af-shell: #081119;
+  --af-page: #0c1a24;
+  --af-panel: #132736;
+  --af-elevated: #1b3648;
+  --af-hover: #26475d;
+  --af-divider: #2e5471;
+  --af-border: #224158;
+
+  --af-text-1: #dceff9;
+  --af-text-2: #8fb8d0;
+  --af-text-3: #587c93;
+
+  --af-cyan: #7fe9e2; /* terminal readout            */
+  --af-cyan-bright: #8cfffb; /* item-name highlight   */
+  --af-blue: #71c5f6; /* POCKETS header              */
+  --af-orange: #f89a4f; /* hazard / CTA              */
+  --af-orange-bright: #ffb347;
+  --af-orange-dim: #b86f33;
+  --af-yellow: #ffe563; /* caution                   */
+  --af-red: #e25b4b;
+  --af-hazard-dark: #0a1721;
+
+  /* VitePress surface tokens */
+  --vp-c-bg: var(--af-page);
+  --vp-c-bg-alt: var(--af-shell);
+  --vp-c-bg-soft: var(--af-panel);
+  --vp-c-bg-elv: var(--af-elevated);
+  --vp-c-gutter: #050d13;
+
+  --vp-c-text-1: var(--af-text-1);
+  --vp-c-text-2: var(--af-text-2);
+  --vp-c-text-3: var(--af-text-3);
+
+  --vp-c-divider: var(--af-divider);
+  --vp-c-border: var(--af-border);
+
+  /* Brand = cyan terminal readouts (links, active nav, accents) */
+  --vp-c-brand-1: var(--af-cyan);
+  --vp-c-brand-2: var(--af-cyan-bright);
+  --vp-c-brand-3: var(--af-blue);
+  --vp-c-brand-soft: rgba(127, 233, 226, 0.14);
+
+  /* Hero name signage: hazard orange -> caution yellow */
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #f89a4f 20%, #ffe563);
+  --vp-home-hero-image-background-image: linear-gradient(
+    135deg,
+    rgba(127, 233, 226, 0.55),
+    rgba(113, 197, 246, 0.55)
+  );
+  --vp-home-hero-image-filter: blur(56px);
+
+  /* Custom blocks mapped to the game's signal colors */
+  --vp-c-tip-1: var(--af-cyan);
+  --vp-c-tip-2: var(--af-blue);
+  --vp-c-tip-soft: rgba(127, 233, 226, 0.12);
+  --vp-c-note-1: var(--af-blue);
+  --vp-c-warning-1: var(--af-yellow);
+  --vp-c-warning-soft: rgba(255, 229, 99, 0.12);
+  --vp-c-danger-1: var(--af-red);
+  --vp-c-danger-soft: rgba(226, 91, 75, 0.12);
+}
+
+/* ----------------------------------------------------------------------------
+ * LIGHT — Cascade Light (paper-blue facility readout)
+ * ------------------------------------------------------------------------- */
+:root {
+  --af-shell: #dce6ee;
+  --af-page: #e9f1f7;
+  --af-panel: #f4f9fd;
+  --af-elevated: #ffffff;
+  --af-divider: #c8d8e4;
+  --af-border: #b5c9d8;
+
+  --af-text-1: #16242f;
+  --af-text-2: #3e586c;
+  --af-text-3: #718999;
+
+  --af-cyan: #1b8c94;
+  --af-blue: #0f86c4;
+  --af-orange: #c76408;
+  --af-orange-bright: #e07a12;
+  --af-orange-dim: #9c4f07;
+  --af-yellow: #a87f04;
+  --af-red: #c03a22;
+  --af-hazard-dark: #1f2a16;
+
+  --vp-c-bg: var(--af-page);
+  --vp-c-bg-alt: var(--af-shell);
+  --vp-c-bg-soft: var(--af-panel);
+  --vp-c-bg-elv: var(--af-elevated);
+  --vp-c-gutter: #cdd9e3;
+
+  --vp-c-text-1: var(--af-text-1);
+  --vp-c-text-2: var(--af-text-2);
+  --vp-c-text-3: var(--af-text-3);
+
+  --vp-c-divider: var(--af-divider);
+  --vp-c-border: var(--af-border);
+
+  --vp-c-brand-1: #0e6fa8;
+  --vp-c-brand-2: #0f86c4;
+  --vp-c-brand-3: #1273b8;
+  --vp-c-brand-soft: rgba(18, 115, 184, 0.12);
+
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #c76408 20%, #b8890a);
+  --vp-home-hero-image-background-image: linear-gradient(
+    135deg,
+    rgba(15, 134, 196, 0.35),
+    rgba(27, 140, 148, 0.35)
+  );
+  --vp-home-hero-image-filter: blur(56px);
+
+  --vp-c-tip-1: #1b8c94;
+  --vp-c-tip-soft: rgba(27, 140, 148, 0.12);
+  --vp-c-warning-1: #a87f04;
+  --vp-c-warning-soft: rgba(168, 127, 4, 0.12);
+  --vp-c-danger-1: #c03a22;
+  --vp-c-danger-soft: rgba(192, 58, 34, 0.12);
+}
+
+/* ----------------------------------------------------------------------------
+ * Hazard-orange CTA buttons (the game reserves orange for primary actions)
+ * ------------------------------------------------------------------------- */
+:root,
+.dark {
+  --vp-button-brand-border: transparent;
+  --vp-button-brand-text: var(--af-hazard-dark);
+  --vp-button-brand-bg: var(--af-orange);
+  --vp-button-brand-hover-border: transparent;
+  --vp-button-brand-hover-text: #07121a;
+  --vp-button-brand-hover-bg: var(--af-orange-bright);
+  --vp-button-brand-active-border: transparent;
+  --vp-button-brand-active-text: #07121a;
+  --vp-button-brand-active-bg: var(--af-orange-dim);
+}
+
+.dark {
+  --vp-button-brand-text: #07121a;
+}
+
+:root {
+  --vp-button-brand-text: #fff6e2;
+  --vp-button-brand-hover-text: #fff6e2;
+  --vp-button-brand-active-text: #fff6e2;
+}
+
+/* ----------------------------------------------------------------------------
+ * Facility flourishes
+ * ------------------------------------------------------------------------- */
+
+/* Hazard stripe under the top nav — the game's caution-tape motif. */
+.VPNavBar {
+  position: relative;
+}
+.VPNavBar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--af-yellow) 0,
+    var(--af-yellow) 9px,
+    var(--af-hazard-dark) 9px,
+    var(--af-hazard-dark) 18px
+  );
+  opacity: 0.85;
+  z-index: 1;
+}
+
+/* Signage feel for the hero title. */
+.VPHero .name,
+.VPHero .text {
+  letter-spacing: 0.01em;
+}
+.VPHero .name {
+  text-transform: uppercase;
+}
+
+/* Cyan terminal accent on blockquotes. */
+.vp-doc blockquote {
+  border-left-color: var(--vp-c-brand-1);
+}
+
+/* Brand-tinted active sidebar item + inline code. */
+.vp-doc :not(pre) > code {
+  color: var(--vp-c-brand-1);
+}
+
+/* A subtle scanline-free panel feel for code groups/cards. */
+.vp-doc div[class*='language-'] {
+  border: 1px solid var(--vp-c-border);
+}
