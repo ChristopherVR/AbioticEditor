@@ -67,6 +67,8 @@ public sealed record WorldMapField(
         => new(id, label, value ? "true" : "false", WorldFieldKind.Bool, Editable: true, Options: null, Hint: hint);
 
     /// <summary>An editable integer field.</summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1720:Identifier contains type name",
+        Justification = "'Integer' is the clearest name for a whole-number field kind.")]
     public static WorldMapField Integer(string id, string label, long value, string? hint = null)
         => new(id, label, value.ToString(System.Globalization.CultureInfo.InvariantCulture),
             WorldFieldKind.Integer, Editable: true, Options: null, Hint: hint);
@@ -85,7 +87,11 @@ public sealed record WorldMapField(
 public enum WorldFieldKind
 {
     Text,
+
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1720:Identifier contains type name",
+        Justification = "'Integer' is the clearest name for a whole-number field kind.")]
     Integer,
+
     Number,
     Bool,
     Enum,

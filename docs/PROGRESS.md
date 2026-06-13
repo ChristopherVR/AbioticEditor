@@ -5,6 +5,44 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-27: editable world-state maps (Features framework + 10 maps) (2026-06-13)
+- Made every previously-unmodeled world-save map editable. New **`Core/WorldSaves/Features/`**
+  framework: `IWorldMapFeature` (typed `WorldMapEntry`/`WorldMapField` rows; field factories
+  ReadOnly/Bool/Integer/Number/Choice; `WorldEditResult`), `WorldMapFeatureBase` (implement
+  `ReadFields`+`ApplyField`; `ShortLabel`, `ResolveChoice`), `WorldMapAccessor` (public
+  read/write helpers mirroring the reader/writer idiom: `Entries/FindEntry/HasMap`, `SetBool/
+  SetInt/SetDouble/SetFloat/SetString/SetName/SetEnumByte/SetVector`, parse helpers), and
+  `WorldMapFeatures` (**reflection-discovered registry** - drop in a class, it's auto-registered;
+  `IsKnownMap` makes `WorldSaveReader.LogUnmodeledKeys` stop flagging the map as unknown). Edits
+  are lossless (patch existing leaves only).
+- **10 feature modules** (one per map, built by parallel agents over a verified template):
+  `ElevatorMapFeature` (topOpen), `ButtonMapFeature` (pressedOnce/enabled/activated/noReset),
+  `ResourceNodeMapFeature` (harvested/dayPickedUp - un-harvest to refill a node), `NpcSpawnMapFeature`
+  (cooldownRemaining/spawnCount/spawnedOnce/…), `TriggerMapFeature` (timesTriggered),
+  `VehicleMapFeature` (driveable/destroyed + read-only class/inventory count),
+  `PowerSocketMapFeature` (hasTimer editable; timerMode read-only - only one enumerator observed,
+  full E_PowerTimerModes set unknown), `PortalMapFeature` (active), `TramMapFeature` (read-only
+  viewer: station + inventory count), `ServerEntitlementsFeature` (metadata; comma-separated
+  per-SteamID entitlement list, array-replace round-trip).
+- **PortalMap "tag" finding (user asked to edit teleporter tags from a built-in list)**: the saved
+  `SaveData_PortalStruct` has ONLY `ActorPath_` + `PortalActive_` - **no tag/channel leaf**, verified
+  across Facility/Salem. Teleporter linking is NOT in PortalMap: the handheld Personal Teleporter
+  syncs via the item's `PlayerMadeString_` = target bench's DeployedObjectMap GUID (see
+  `TeleporterLinkTests`); placed teleporter labels are `Deployed_Sign_C` `PlayerMadeString_` text;
+  deployables carry an (empty in saves) `GameplayTags_` container. No built-in allowed-tag vocabulary
+  exists in saves/tables. So portals ship `active` only; the tag editor is deferred until a real
+  DeployedObjectMap teleporter-tag vocabulary is sourced (documented in `PortalMapFeature` XML).
+- **CLI** `world` group (`Cli/Commands/WorldCommands.cs`, generic over the registry): `world list
+  <save>` (features present + entry counts), `world show <save> <feature> [--json] [--limit]`
+  (entries + fields), `world set <save> <feature> <#index|key|substring> <field> <value> [--dry-run]`
+  (writes with .bak). Verified live on a Facility copy (list 9 features, show elevators, dry-run,
+  real button edit + .bak).
+- **App**: `WorldMapsPage` modal (Settings → EDIT WORLD MAPS) - generic over the registry: pick
+  world save → pick feature → virtualized entry list → tap an entry → typed field editors (Switch/
+  Picker/Entry) → SAVE (writes .bak). Builds clean (net10.0-windows); NOT screenshot-verified.
+- **+47 tests** (`tests/.../Features/*` - read/edit/round-trip/reject per feature). **374 tests
+  green**; Core/CLI/App build clean (new files 0-warning).
+
 ## Round-26: self-updater (new AbioticEditor.Updater project) + log fix (2026-06-13)
 - **New project `src/AbioticEditor.Updater`** (net10.0, zero deps - no MAUI/Core/CUE4Parse) so
   both the CLI and the app can reference and bundle it. Talks to the GitHub Releases API,

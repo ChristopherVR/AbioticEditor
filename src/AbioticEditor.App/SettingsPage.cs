@@ -103,6 +103,15 @@ public sealed class SettingsPage : ContentPage
             pluginToggles,
             new HorizontalStackLayout { Spacing = 10, Children = { managePlugins } });
 
+        // ----- WORLD MAPS -----
+        var worldMaps = new Button { Text = "EDIT WORLD MAPS" };
+        worldMaps.Clicked += async (_, _) => await Navigation.PushModalAsync(new WorldMapsPage(_vm));
+        var worldMapsCard = ModalChrome.Card("WORLD MAPS",
+            "Edit per-actor world-state maps that aren't in the main editor: elevators, buttons, "
+                + "resource nodes, NPC spawners, power sockets, vehicles, portals, triggers and more. "
+                + "Pick a world save, choose a feature, and edit an entry's fields (every save keeps a .bak).",
+            new HorizontalStackLayout { Spacing = 10, Children = { worldMaps } });
+
         // ----- UPDATES -----
         var updatesCard = BuildUpdatesCard();
 
@@ -115,7 +124,7 @@ public sealed class SettingsPage : ContentPage
 
         return ModalChrome.Scaffold(
             "EDITOR CONFIGURATION", "Settings",
-            new View[] { themeCard, languageCard, diagnosticsCard, spoilerCard, gameDataCard, pluginsCard, updatesCard, aboutCard },
+            new View[] { themeCard, languageCard, diagnosticsCard, spoilerCard, gameDataCard, worldMapsCard, pluginsCard, updatesCard, aboutCard },
             ModalChrome.Footer(close),
             maxWidth: 620);
     }

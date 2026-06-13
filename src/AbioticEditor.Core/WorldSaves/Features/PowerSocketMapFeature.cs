@@ -83,7 +83,8 @@ public sealed class PowerSocketMapFeature : WorldMapFeatureBase
                 hint: "true = a timer is armed on this socket; false = no timer active."),
             WorldMapField.ReadOnly("timerMode", "Timer mode", timerMode,
                 hint: "E_PowerTimerModes enumerator value. Read-only: only NewEnumerator0 observed in saves; full enum set unknown."),
-            WorldMapField.ReadOnly("extraDevices", "Extra powered devices", extraDeviceCount.ToString(),
+            WorldMapField.ReadOnly("extraDevices", "Extra powered devices",
+                extraDeviceCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 hint: "Number of additional device asset IDs in the ExtraPoweredDeviceAssetIDs array."),
         };
     }

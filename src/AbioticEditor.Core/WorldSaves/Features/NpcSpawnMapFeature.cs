@@ -83,7 +83,7 @@ public sealed class NpcSpawnMapFeature : WorldMapFeatureBase
     /// <inheritdoc/>
     protected override WorldEditResult ApplyField(IList<FPropertyTag> props, string fieldId, string? value)
     {
-        return fieldId.ToLowerInvariant() switch
+        return fieldId switch
         {
             FieldCooldownRemaining => ApplyCooldownRemaining(props, value),
             FieldLastDayOnCooldown => ApplyLastDayOnCooldown(props, value),

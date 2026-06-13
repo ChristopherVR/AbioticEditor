@@ -29,7 +29,7 @@ public static class WorldMapFeatures
         return All.Where(f => f.AppliesTo(save)).ToArray();
     }
 
-    private static IReadOnlyList<IWorldMapFeature> Discover()
+    private static IWorldMapFeature[] Discover()
     {
         var contract = typeof(IWorldMapFeature);
         var found = new List<IWorldMapFeature>();
