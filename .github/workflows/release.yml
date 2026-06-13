@@ -43,14 +43,14 @@ jobs:
           !contains(github.event.head_commit.message, '[skip ci]') }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # The tests build Core, which depends on the submodules
           # (UeSaveGame + CUE4Parse). Without them the build fails.
           submodules: recursive
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
           dotnet-quality: ga
@@ -74,7 +74,7 @@ jobs:
       released: ${{ steps.compute.outputs.released }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # Full history + tags are required for git-cliff to compute the bump.
           # No submodules needed: this job does not compile any .NET project.
@@ -154,7 +154,7 @@ jobs:
 
       - name: Upload release notes
         if: steps.compute.outputs.released == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-notes
           path: RELEASE_NOTES.md
@@ -200,14 +200,14 @@ jobs:
             os: macos-latest
     steps:
       - name: Checkout release tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ needs.version.outputs.tag }}
           # .NET builds REQUIRE the submodules (Core -> UeSaveGame + CUE4Parse).
           submodules: recursive
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
           # If the .NET 10 SDK is not yet available as GA on the hosted runners,
@@ -287,7 +287,7 @@ jobs:
 
       # --- Upload ------------------------------------------------------------
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
           path: ${{ matrix.artifact }}.zip
@@ -299,7 +299,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           # Flatten every artifact (the 7 zips + the release notes) into ./dist.
           path: dist
@@ -309,7 +309,7 @@ jobs:
         run: ls -R dist
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.version.outputs.tag }}
           name: ${{ needs.version.outputs.tag }}
