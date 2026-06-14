@@ -75,6 +75,10 @@ jobs:
       version: ${{ steps.compute.outputs.version }}
       tag: ${{ steps.compute.outputs.tag }}
       released: ${{ steps.compute.outputs.released }}
+      # True when re-publishing an existing tag that never shipped a GitHub Release
+      # (an orphaned tag from a prior failed build/publish). The bump/commit/tag
+      # steps are skipped in that case - only build+publish re-run.
+      republish: ${{ steps.compute.outputs.republish }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -91,6 +95,8 @@ jobs:
 
       - name: Compute next version
         id: compute
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -108,17 +114,41 @@ jobs:
           version="${bumped#v}"
 
           if [ "$bumped" = "$latest_tag" ]; then
+            # Nothing new to bump. But a tag can exist without ever having published
+            # a GitHub Release (a prior build/publish failed after the tag was pushed).
+            # Such an orphaned tag would otherwise never ship, so re-run build+publish
+            # for it instead of skipping.
+            if [ -n "$latest_tag" ]; then
+              status="$(curl -sS -o /dev/null -w '%{http_code}' \
+                -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+                -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${latest_tag}" || echo "000")"
+              if [ "$status" != "200" ]; then
+                echo "Tag ${latest_tag} has no published release (HTTP ${status}); re-publishing it."
+                {
+                  echo "released=true"
+                  echo "republish=true"
+                  echo "version=${latest_tag#v}"
+                  echo "tag=${latest_tag}"
+                } >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+              echo "Tag ${latest_tag} already has a published release."
+            fi
             echo "No releasable commits since ${latest_tag}; skipping release."
             echo "released=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
           echo "released=true" >> "$GITHUB_OUTPUT"
+          echo "republish=false" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
+      # The bump / changelog / commit / tag steps only apply to a NEW version. A
+      # republish reuses the existing tag and its already-committed props bump.
       - name: Bump <Version> in Directory.Build.props
-        if: steps.compute.outputs.released == 'true'
+        if: steps.compute.outputs.released == 'true' && steps.compute.outputs.republish != 'true'
         env:
           VERSION: ${{ steps.compute.outputs.version }}
         run: |
@@ -129,19 +159,30 @@ jobs:
           grep -n "<Version>" Directory.Build.props
 
       - name: Regenerate CHANGELOG.md
-        if: steps.compute.outputs.released == 'true'
+        if: steps.compute.outputs.released == 'true' && steps.compute.outputs.republish != 'true'
         run: |
           set -euo pipefail
           # Full changelog, newest first, including the about-to-be-released version.
           git cliff --bump -o CHANGELOG.md
-          # This release's notes only (unreleased commits tagged as the new version),
-          # with the changelog header stripped, for use as the GitHub Release body.
-          git cliff --unreleased --bump --strip header -o RELEASE_NOTES.md
+
+      # Release-notes body for the GitHub Release. Generated BEFORE the tag is
+      # pushed: for a new version the notes are the unreleased commits (`--bump`
+      # treats them as the next version); for a republish they are the existing
+      # tag's section (`--latest`).
+      - name: Generate release notes
+        if: steps.compute.outputs.released == 'true'
+        run: |
+          set -euo pipefail
+          if [ "${{ steps.compute.outputs.republish }}" = "true" ]; then
+            git cliff --latest --strip header -o RELEASE_NOTES.md
+          else
+            git cliff --unreleased --bump --strip header -o RELEASE_NOTES.md
+          fi
           echo "----- RELEASE_NOTES.md -----"
           cat RELEASE_NOTES.md
 
       - name: Commit, push, and tag
-        if: steps.compute.outputs.released == 'true'
+        if: steps.compute.outputs.released == 'true' && steps.compute.outputs.republish != 'true'
         env:
           TAG: ${{ steps.compute.outputs.tag }}
         run: |
