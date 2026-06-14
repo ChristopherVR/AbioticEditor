@@ -38,4 +38,21 @@ skills, traits, recipes, codex, transmog, spawn point, achievements, SteamID), w
 story metadata save. Edits stage until you save, and quest-flag changes are gated by story
 prerequisites so you can't create an inconsistent narrative state.
 
+![The editor with a save folder loaded](/screenshots/01-loaded.png)
+
+## See it in action
+
+Everything is a friendly control over the real save data, with the game's own item icons,
+recipe names, and quest text pulled straight from your installed copy of the game.
+
+| | |
+|---|---|
+| ![Inventory](/screenshots/11-player-inventory.png) | ![Skills](/screenshots/12-player-skills.png) |
+| **Inventory**: every slot, real icons, a full item catalogue. | **Skills**: levels, XP, and milestone perks for all fifteen skills. |
+| ![Recipes](/screenshots/13-player-recipes.png) | ![Quest flags](/screenshots/21-world-questflags.png) |
+| **Recipes**: your whole crafting book, searchable and filterable. | **Quest flags**: story progress, grouped by chapter, prerequisite-safe. |
+
+There's a full walkthrough with screenshots of every screen in the
+**[Desktop app guide](/guide/desktop-app)**.
+
 Not sure where to begin? Head to **[Getting started](/guide/getting-started)**.

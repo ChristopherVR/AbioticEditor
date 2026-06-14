@@ -13,6 +13,10 @@ abioticeditor export-json <save.sav> -o out.json # lossless JSON dump
 abioticeditor import-json <save.sav> in.json     # rebuild the save from JSON
 abioticeditor flags list <world.sav>             # quest flags (--filter to narrow)
 abioticeditor flags set <world.sav> <flag>       # set a flag (--clear, --force)
+abioticeditor world list <world.sav>             # editable world-state maps (elevators, nodes, …)
+abioticeditor world show <world.sav> <feature>   # entries + fields for one map
+abioticeditor world set <world.sav> <feature> <entry> <field> <value>
+abioticeditor compare <a> <b>                    # diff two saves, or two folders of saves
 abioticeditor steamid <player.sav> <newid64>     # reassign the owning Steam account
 abioticeditor ini list <file.ini>                # sections of an ini file
 abioticeditor ini get/set <file.ini> ...         # read or edit ini values

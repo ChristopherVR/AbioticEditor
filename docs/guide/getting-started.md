@@ -5,6 +5,13 @@ It reads and writes the game's GVAS save files, understands the game's own data 
 (items, recipes, skills, quest flags, story progression) by mounting the installed game's
 pak archives, and ships both a desktop app and a command-line tool.
 
+In plain terms: it opens the `.sav` files Abiotic Factor writes to disk and shows you what's
+inside as clickable controls (sliders for your needs, a grid for your inventory, a checklist
+for recipes), so you can change your run (or repair it) without a hex editor. Edits stage
+until you press **SAVE**, and every write keeps a `.bak` backup.
+
+![The editor with a save folder loaded](/screenshots/01-loaded.png)
+
 ## Install
 
 Grab the latest build for your platform from the
