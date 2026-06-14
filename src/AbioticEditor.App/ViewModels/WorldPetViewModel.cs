@@ -117,8 +117,63 @@ public sealed class WorldPetViewModel : INotifyPropertyChanged
 
     public string FriendlyClass => PetCatalog.FriendlyName(_npcClass) ?? _original.ShortClass;
 
-    /// <summary>A single-letter avatar token (family initial) for the list, in lieu of an icon.</summary>
+    /// <summary>A single-letter avatar token (family initial), shown until the image loads.</summary>
     public string Avatar => FamilyName.Length > 0 ? FamilyName[..1] : "?";
+
+    // ----- appearance (in-pak compendium portrait, like the containment creatures) -----
+
+    private string? _imagePath;
+    private bool _imageRequested;
+
+    /// <summary>Extracted bestiary portrait for this pet, or null while loading / when absent.</summary>
+    public string? ImagePath
+    {
+        get => _imagePath;
+        private set { if (_imagePath != value) { _imagePath = value; Notify(nameof(ImagePath), nameof(HasImage)); } }
+    }
+
+    public bool HasImage => _imagePath is not null;
+
+    /// <summary>Loads the pet portrait once, off-thread. Called when the pet is selected.</summary>
+    public void EnsureImage()
+    {
+        if (_imageRequested) return;
+        _imageRequested = true;
+        LoadImage();
+    }
+
+    private void ReloadImage()
+    {
+        _imageRequested = false;
+        ImagePath = null;
+        EnsureImage();
+    }
+
+    private void LoadImage()
+    {
+        var provider = Services.GameDataServices.Provider;
+        if (provider is null) return;
+        var refs = PetCatalog.CompendiumTextureRefs(_npcClass);
+        _ = Task.Run(() =>
+        {
+            foreach (var r in refs)
+            {
+                try
+                {
+                    var path = provider.ExtractTextureByGameRef(r);
+                    if (path is not null)
+                    {
+                        MainThread.BeginInvokeOnMainThread(() => ImagePath = path);
+                        return;
+                    }
+                }
+                catch
+                {
+                    // Portraits are cosmetic.
+                }
+            }
+        });
+    }
 
     public string Name
     {
@@ -186,6 +241,7 @@ public sealed class WorldPetViewModel : INotifyPropertyChanged
             _npcClass = match.ClassPath;
             Notify(nameof(SelectedVariantName), nameof(DisplayName), nameof(FamilyName),
                 nameof(FriendlyClass), nameof(Avatar), nameof(IsDirty));
+            ReloadImage(); // mutating the creature changes which portrait to show
             _onChanged();
         }
     }
@@ -287,6 +343,7 @@ public sealed class WorldPetViewModel : INotifyPropertyChanged
         _npcClass = _original.NpcClass;
         Notify(nameof(SelectedVariantName), nameof(DisplayName), nameof(FamilyName),
             nameof(FriendlyClass), nameof(Avatar), nameof(StatusText));
+        ReloadImage();
     }
 
     private void Notify(params string[] names)

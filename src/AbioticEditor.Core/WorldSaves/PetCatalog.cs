@@ -118,6 +118,55 @@ public static class PetCatalog
     /// <summary>The offline curated variant list (no paks required).</summary>
     public static IReadOnlyList<PetVariant> Curated => _curated;
 
+    private const string CompendiumDir = "/Game/Textures/GUI/Compendium/Entries/T_Compendium_";
+
+    // Pets whose bestiary texture name the heuristic below can't reconstruct from the class.
+    private static readonly Dictionary<string, string> CompendiumOverrides =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["NPC_Monster_Pest_Rattus"] = "RattusPestis", // not "RattusPest"/"PestRattus"
+        };
+
+    /// <summary>
+    /// Ordered in-pak compendium portrait refs to try for a pet's appearance
+    /// (<c>/Game/...</c> object paths for
+    /// <see cref="Assets.GameAssetProvider.ExtractTextureByGameRef"/>), most-likely first.
+    /// The game's bestiary art is named by variant, e.g. <c>T_Compendium_ElectroPest</c>,
+    /// <c>T_Compendium_PeccarySow</c>; this reconstructs both word orders from the blueprint
+    /// class and falls back to the family base. Empty for an empty input; a class with no
+    /// portrait (e.g. the Mystagogue summon) simply yields refs that don't resolve.
+    /// </summary>
+    public static IReadOnlyList<string> CompendiumTextureRefs(string? classOrShort)
+    {
+        var shortClass = ShortOf(classOrShort);
+        if (shortClass.Length == 0) return Array.Empty<string>();
+
+        var names = new List<string>();
+        if (CompendiumOverrides.TryGetValue(shortClass, out var ov)) names.Add(ov);
+
+        var s = shortClass;
+        foreach (var p in new[] { "NPC_Monster_", "NPC_" })
+        {
+            if (s.StartsWith(p, StringComparison.Ordinal)) { s = s[p.Length..]; break; }
+        }
+        var parts = s.Split('_', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length > 0)
+        {
+            names.Add(string.Concat(parts));                                  // PeccarySow, Pest
+            if (parts.Length >= 2)
+            {
+                names.Add(parts[^1] + string.Concat(parts[..^1]));           // ElectroPest (variant+family)
+            }
+            names.Add(parts[^1]);                                             // family base
+            names.Add(parts[0]);
+        }
+
+        return names
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(n => CompendiumDir + n)
+            .ToList();
+    }
+
     /// <summary>The short class-name (without <c>_C</c>) of a full path or short string.</summary>
     public static string ShortOf(string? classOrShort)
     {

@@ -672,6 +672,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
             if (Set(ref _selectedPet, value))
             {
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasSelectedPet)));
+                value?.EnsureImage();
             }
         }
     }
@@ -783,6 +784,10 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     /// <summary>Jumps to a vehicle's on-board storage in the CONTAINERS tab (filtered to it).</summary>
     private void OpenVehicleInventory(string vehicleId)
     {
+        // A vehicle's on-board storage is usually empty; HideEmpty (on by default) would drop
+        // the matched container before the keyword filter even runs, so the jump "finds
+        // nothing". Turn it off so the targeted container always shows.
+        HideEmpty = false;
         Filter = vehicleId;
         ActiveTab = WorldTab.Containers;
     }

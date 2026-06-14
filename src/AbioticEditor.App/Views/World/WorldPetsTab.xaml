@@ -36,10 +36,15 @@
                                         BackgroundColor="{StaticResource AfTerminalGreenDim}"
                                         StrokeThickness="0" StrokeShape="RoundRectangle 6"
                                         VerticalOptions="Center">
-                                    <Label Text="{Binding Avatar}"
-                                           FontFamily="OpenSansSemibold" FontSize="15"
-                                           TextColor="{StaticResource AfTextPrimary}"
-                                           HorizontalOptions="Center" VerticalOptions="Center" />
+                                    <Grid>
+                                        <Label Text="{Binding Avatar}"
+                                               FontFamily="OpenSansSemibold" FontSize="15"
+                                               TextColor="{StaticResource AfTextPrimary}"
+                                               HorizontalOptions="Center" VerticalOptions="Center" />
+                                        <!-- Thumbnail appears once the portrait has been extracted. -->
+                                        <Image Source="{Binding ImagePath}" Aspect="AspectFill"
+                                               IsVisible="{Binding HasImage}" />
+                                    </Grid>
                                 </Border>
                                 <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
                                     <Label Text="{Binding DisplayName}" Style="{StaticResource AfFieldValue}" FontSize="13"
@@ -71,6 +76,13 @@
                                    Style="{StaticResource AfH2}" FontSize="18" />
                             <Label Text="{Binding WorldEditor.SelectedPet.FriendlyClass}"
                                    Style="{StaticResource AfStatusText}" />
+
+                            <!-- Appearance: the in-game bestiary portrait for this creature -->
+                            <Border BackgroundColor="#000000" StrokeThickness="0" StrokeShape="RoundRectangle 4"
+                                    HeightRequest="170" Padding="10" HorizontalOptions="Fill"
+                                    IsVisible="{Binding WorldEditor.SelectedPet.HasImage, FallbackValue=False}">
+                                <Image Source="{Binding WorldEditor.SelectedPet.ImagePath}" Aspect="AspectFit" />
+                            </Border>
 
                             <!-- Summon notice -->
                             <Border BackgroundColor="{StaticResource AfPanelElevated}"
