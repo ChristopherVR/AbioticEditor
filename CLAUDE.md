@@ -6,6 +6,13 @@ A save-game editor for **Abiotic Factor** (a Unreal Engine GVAS game). It reads/
 files byte-for-byte and understands the game's own data tables by mounting the installed game's
 pak archives. Ships a .NET MAUI desktop app and a CLI, both thin front-ends over a shared Core.
 
+## Git workflow
+
+This repo uses **trunk-based development**: commit straight to `main` and push. Do **not**
+create a feature branch unless the user explicitly asks for one. The release automation
+(`.github/workflows/release.yml`) is driven by Conventional-Commits on `main`, so commit
+messages must follow that convention.
+
 ## Build / test commands
 
 Requires the **.NET 10 SDK**. Clone with `--recursive` (or `git submodule update --init`); the
