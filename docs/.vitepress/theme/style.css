@@ -192,3 +192,21 @@
 .vp-doc div[class*='language-'] {
   border: 1px solid var(--vp-c-border);
 }
+
+/* Click-to-enlarge: content images zoom into a lightbox (see theme/index.ts).
+   The zoom-in cursor signals they are interactive; the zoomed-out state keeps
+   a soft border so screenshots read as framed panels. */
+.vp-doc img {
+  cursor: zoom-in;
+  border-radius: 6px;
+}
+
+/* medium-zoom's backdrop, tinted to the facility palette. */
+.medium-zoom-overlay {
+  z-index: var(--vp-z-index-backdrop, 60);
+}
+.medium-zoom-image--opened {
+  z-index: calc(var(--vp-z-index-backdrop, 60) + 1);
+  cursor: zoom-out;
+  border-radius: 6px;
+}
