@@ -24,7 +24,7 @@ export default defineConfig({
   // These docs were authored for GitHub's renderer, where literal angle brackets
   // in prose (e.g. <WorldName>, <steamid>) and type names are plain text. With
   // raw-HTML passthrough off, markdown-it escapes them instead of handing the Vue
-  // compiler malformed tags — so the source notes build unchanged.
+  // compiler malformed tags, so the source notes build unchanged.
   markdown: {
     html: false,
   },
@@ -69,6 +69,8 @@ export default defineConfig({
         items: [
           { text: 'Plugin system', link: '/plugins' },
           { text: 'Authoring guide', link: '/plugin-authoring' },
+          { text: 'Building & installing', link: '/plugin-building' },
+          { text: 'Sample catalog', link: '/plugin-samples' },
           { text: 'Plugin fix-ups', link: '/plugin-fixups' },
         ],
       },

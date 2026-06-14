@@ -1,8 +1,8 @@
-# React App Dashboard — sample plugin
+# React App Dashboard (sample plugin)
 
 A **full Vite + React application** that runs as an Abiotic Editor plugin web tool. Unlike the
 `ReactDashboard` sample (a single inline HTML string pulling React from a CDN), this is a real
-front-end project with `package.json`, Vite, JSX, components, and a build step — exactly how
+front-end project with `package.json`, Vite, JSX, components, and a build step, exactly how
 you'd ship a production plugin UI.
 
 ## Layout
@@ -33,7 +33,7 @@ npm run build      # produces app/dist/index.html (one self-contained file)
 
 The plugin's web tool points at `app/dist` (`rootDirectory`), so once built it runs with no
 further steps. `vite-plugin-singlefile` inlines all JS/CSS into one `index.html` and
-`base: "./"` keeps paths relative — both are needed so the page works when the editor serves it
+`base: "./"` keeps paths relative; both are needed so the page works when the editor serves it
 from a `file://` URL inside a WebView (ES-module `<script>` requests would otherwise be blocked
 by the `file://` CORS policy).
 
