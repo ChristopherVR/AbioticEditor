@@ -31,11 +31,17 @@
          NuGet packages bundle those submodule DLLs directly (PrivateAssets=all on the
          ProjectReferences), so the submodules' own package dependencies do not flow into
          AbioticEditor.Core.nupkg automatically. Versions MUST match
-         submodules/CUE4Parse/Directory.Packages.props (the source of truth); keep in sync. -->
+         submodules/CUE4Parse/Directory.Packages.props (the source of truth); keep in sync.
+
+         Do NOT let Dependabot bump these in isolation: a version higher than CUE4Parse
+         declares either trips NU1608 (for its exact `[ ]` pins) or, worse, silently ships a
+         transitive version the bundled CUE4Parse/UeSaveGame DLLs were never built or tested
+         against. The CUE4Parse-mirrored packages are excluded in .github/dependabot.yml for
+         this reason; bump them only by advancing the CUE4Parse submodule and mirroring here. -->
     <PackageVersion Include="AssetRipper.TextureDecoder" Version="2.6.2" />
     <PackageVersion Include="Blake3" Version="2.2.1" />
     <PackageVersion Include="BouncyCastle.Cryptography" Version="2.6.2" />
-    <PackageVersion Include="FixedMathSharp" Version="5.0.0" />
+    <PackageVersion Include="FixedMathSharp" Version="4.0.1" />
     <PackageVersion Include="Fmod5Sharp" Version="3.1.0" />
     <PackageVersion Include="GenericReader" Version="2.3.0" />
     <PackageVersion Include="Infrablack.UE4Config" Version="0.7.2.97" />
@@ -47,8 +53,10 @@
     <PackageVersion Include="Oodle.NET" Version="2.2.0" />
     <PackageVersion Include="Serilog" Version="4.3.1" />
     <PackageVersion Include="Serilog.Sinks.Console" Version="6.1.1" />
-    <PackageVersion Include="SharpGLTF.Core" Version="1.0.6" />
-    <PackageVersion Include="SharpGLTF.Toolkit" Version="1.0.6" />
+    <!-- Prerelease on purpose: CUE4Parse pins this exact alpha. It is the dep that makes Core's
+         stable package carry a prerelease dependency (NU5104, NoWarn'd in AbioticEditor.Core.csproj). -->
+    <PackageVersion Include="SharpGLTF.Core" Version="1.0.0-alpha0023" />
+    <PackageVersion Include="SharpGLTF.Toolkit" Version="1.0.0-alpha0023" />
     <PackageVersion Include="SixLabors.ImageSharp" Version="[3.1.12]" />
     <!-- Exact-pinned to match CUE4Parse-Conversion's hard `= 2.88.9` constraint (the source of
          truth above). A higher version trips NU1608 because CUE4Parse pins SkiaSharp exactly. -->
@@ -59,7 +67,7 @@
          PNG encode/decode we do (no text rendering). -->
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="[2.88.9]" />
     <PackageVersion Include="SubstreamSharp" Version="1.0.3" />
-    <PackageVersion Include="System.IO.Hashing" Version="10.0.9" />
+    <PackageVersion Include="System.IO.Hashing" Version="10.0.8" />
     <PackageVersion Include="VGAudio" Version="2.2.1" />
     <PackageVersion Include="Zlib-ng.NET" Version="1.2.0" />
     <PackageVersion Include="ZstdSharp.Port" Version="0.8.8" />

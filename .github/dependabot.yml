@@ -19,6 +19,39 @@ updates:
         update-types:
           - minor
           - patch
+    # The CUE4Parse / UeSaveGame transitive deps are RE-DECLARED in
+    # Directory.Packages.props and MUST match the versions the bundled submodule
+    # DLLs were built against (submodules/CUE4Parse/Directory.Packages.props is the
+    # source of truth). Dependabot bumping any of these in isolation either trips
+    # NU1608 (CUE4Parse exact-pins SkiaSharp / SixLabors) or silently ships an
+    # untested transitive version. They move ONLY when the CUE4Parse submodule is
+    # advanced and the new versions are mirrored here by hand.
+    ignore:
+      - dependency-name: AssetRipper.TextureDecoder
+      - dependency-name: Blake3
+      - dependency-name: BouncyCastle.Cryptography
+      - dependency-name: FixedMathSharp
+      - dependency-name: Fmod5Sharp
+      - dependency-name: GenericReader
+      - dependency-name: Infrablack.UE4Config
+      - dependency-name: K4os.Compression.LZ4.Streams
+      - dependency-name: LZMA-SDK
+      - dependency-name: Newtonsoft.Json
+      - dependency-name: OffiUtils
+      - dependency-name: OodleSharp
+      - dependency-name: Oodle.NET
+      - dependency-name: Serilog
+      - dependency-name: Serilog.Sinks.Console
+      - dependency-name: SharpGLTF.Core
+      - dependency-name: SharpGLTF.Toolkit
+      - dependency-name: SixLabors.ImageSharp
+      - dependency-name: SkiaSharp
+      - dependency-name: SkiaSharp.NativeAssets.Linux.NoDependencies
+      - dependency-name: SubstreamSharp
+      - dependency-name: System.IO.Hashing
+      - dependency-name: VGAudio
+      - dependency-name: Zlib-ng.NET
+      - dependency-name: ZstdSharp.Port
 
   # --- VitePress docs site ---
   - package-ecosystem: npm
