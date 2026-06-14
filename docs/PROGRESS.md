@@ -5,6 +5,23 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-29: reader/writer validation tests (reversibility + isolation) (2026-06-14)
+- User wanted explicit proof the readers/writers round-trip safely. New
+  `tests/.../SaveReaderWriterValidationTests.cs` (+8 tests) asserts two properties the
+  existing "mutation persists" tests don't:
+  - REVERSIBILITY (byte identity): load -> change a few values -> change them back -> the
+    re-serialized bytes equal the original file. Covers player skills + traits and world
+    flags + a security-door open flag. Deliberately uses only patch-in-place fields (no
+    ApplyStats/ApplyInventory, which materialize delta-omitted siblings on write and so are
+    not reversible by design).
+  - ISOLATION (surgical edit): one change -> write -> reload from disk -> diff against the
+    original with `SaveComparer.CompareFiles`. Player skill XP and world flag/door edits each
+    produce EXACTLY one leaf diff (1 Changed / 1 Added / 0 else) at the expected path; the
+    container-slot edit asserts every diff is confined to that one container's subtree
+    (ApplyContainers can materialize sparse slot fields, so it's a subtree-confinement check,
+    not a single-leaf check).
+- **390 tests green** (was 382). No production code changed.
+
 ## Round-28: Teleporter Pad tag editor (the real teleporter "tags") (2026-06-13)
 - User pointed out the Teleporter Pad has **134 selectable tags** (wiki). Found where they live:
   a placed pad is a `Deployed_TeleporterPad_C` entry in **DeployedObjectMap**, and its tag is an
