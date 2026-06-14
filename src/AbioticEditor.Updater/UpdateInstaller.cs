@@ -35,10 +35,18 @@ public sealed class UpdateInstaller
     {
         ArgumentNullException.ThrowIfNull(asset);
         var workingDir = UpdatePaths.WorkingDirectoryFor(tag);
-        var downloadPath = Path.Combine(workingDir, asset.Name);
 
-        _log.Info($"Downloading {asset.Name} -> {downloadPath}");
-        await DownloadFileAsync(asset.DownloadUrl, downloadPath, progress, cancellationToken)
+        // The asset name comes from the release JSON; reduce it to a bare file name so a crafted
+        // name like "..\..\evil.zip" can't write outside the working folder (zip-slip's sibling).
+        var safeName = Path.GetFileName(asset.Name);
+        if (string.IsNullOrWhiteSpace(safeName))
+        {
+            throw new UpdaterException($"release asset has an invalid name: '{asset.Name}'.");
+        }
+        var downloadPath = Path.Combine(workingDir, safeName);
+
+        _log.Info($"Downloading {safeName} -> {downloadPath}");
+        await DownloadFileAsync(asset.DownloadUrl, downloadPath, asset.Size, progress, cancellationToken)
             .ConfigureAwait(false);
 
         var stagedDir = Path.Combine(workingDir, "staged");
@@ -48,7 +56,7 @@ public sealed class UpdateInstaller
         }
         Directory.CreateDirectory(stagedDir);
 
-        if (IsZip(asset.Name))
+        if (IsZip(safeName))
         {
             _log.Info($"Extracting archive to {stagedDir}");
             ZipFile.ExtractToDirectory(downloadPath, stagedDir, overwriteFiles: true);
@@ -57,11 +65,11 @@ public sealed class UpdateInstaller
         else
         {
             // A bare installer/executable: stage the file as-is for the host to run/copy.
-            var dest = Path.Combine(stagedDir, asset.Name);
+            var dest = Path.Combine(stagedDir, safeName);
             File.Copy(downloadPath, dest, overwrite: true);
         }
 
-        return new StagedUpdate(tag, workingDir, stagedDir, downloadPath, asset.Name);
+        return new StagedUpdate(tag, workingDir, stagedDir, downloadPath, safeName);
     }
 
     /// <summary>
@@ -139,7 +147,7 @@ public sealed class UpdateInstaller
     }
 
     private async Task DownloadFileAsync(
-        string url, string destination, IProgress<double>? progress, CancellationToken cancellationToken)
+        string url, string destination, long expectedSize, IProgress<double>? progress, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         if (_http.DefaultRequestHeaders.UserAgent.Count == 0)
@@ -157,24 +165,53 @@ public sealed class UpdateInstaller
         }
 
         var total = response.Content.Headers.ContentLength;
-        await using var source = await response.Content
-            .ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-        await using var target = new FileStream(
-            destination, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true);
-
-        var buffer = new byte[81920];
         long readTotal = 0;
-        int read;
-        while ((read = await source.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+
+        // Stream to disk inside an explicit scope so the file handle is closed before any
+        // verification/cleanup below (FileShare.None would otherwise block the delete).
+        await using (var source = await response.Content
+            .ReadAsStreamAsync(cancellationToken).ConfigureAwait(false))
+        await using (var target = new FileStream(
+            destination, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true))
         {
-            await target.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
-            readTotal += read;
-            if (total is > 0)
+            var buffer = new byte[81920];
+            int read;
+            while ((read = await source.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
             {
-                progress?.Report((double)readTotal / total.Value);
+                await target.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+                readTotal += read;
+                if (total is > 0)
+                {
+                    progress?.Report((double)readTotal / total.Value);
+                }
             }
         }
+
+        // Verify the whole asset arrived. A truncated/substituted body (dropped connection,
+        // captive portal, proxy) must not be extracted and applied over the install.
+        if (expectedSize > 0 && readTotal != expectedSize)
+        {
+            TryDelete(destination);
+            throw new UpdaterException(
+                $"Download incomplete for {url}: expected {expectedSize} bytes but received {readTotal}.");
+        }
+
         progress?.Report(1.0);
+    }
+
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch
+        {
+            // Best-effort cleanup of the partial download.
+        }
     }
 
     private static bool IsZip(string name)

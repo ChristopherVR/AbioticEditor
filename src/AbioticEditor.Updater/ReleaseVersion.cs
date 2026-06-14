@@ -125,7 +125,47 @@ public sealed class ReleaseVersion : IComparable<ReleaseVersion>, IEquatable<Rel
         {
             return -1;
         }
-        return string.CompareOrdinal(Prerelease, other.Prerelease);
+        return ComparePrerelease(Prerelease, other.Prerelease);
+    }
+
+    /// <summary>
+    /// Compares two pre-release suffixes by SemVer precedence: dot-separated identifiers,
+    /// numeric ones compared numerically (so <c>rc.2</c> &lt; <c>rc.10</c>), numeric ranked
+    /// below alphanumeric, and a longer run of otherwise-equal identifiers ranked higher.
+    /// </summary>
+    private static int ComparePrerelease(string a, string b)
+    {
+        var ai = a.Split('.');
+        var bi = b.Split('.');
+        var shared = Math.Min(ai.Length, bi.Length);
+        for (var i = 0; i < shared; i++)
+        {
+            var cmp = CompareIdentifier(ai[i], bi[i]);
+            if (cmp != 0)
+            {
+                return cmp;
+            }
+        }
+        return ai.Length.CompareTo(bi.Length);
+    }
+
+    private static int CompareIdentifier(string a, string b)
+    {
+        var aNumeric = TryInt(a, out var an);
+        var bNumeric = TryInt(b, out var bn);
+        if (aNumeric && bNumeric)
+        {
+            return an.CompareTo(bn);
+        }
+        if (aNumeric)
+        {
+            return -1; // a numeric identifier has lower precedence than an alphanumeric one
+        }
+        if (bNumeric)
+        {
+            return 1;
+        }
+        return string.CompareOrdinal(a, b);
     }
 
     /// <summary>True when <paramref name="other"/> is strictly newer than this version.</summary>
