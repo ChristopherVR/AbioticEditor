@@ -5,10 +5,11 @@
     <Platforms>x64</Platforms>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- CS1591: this engine has a large undocumented public surface; ship the XML doc for the
-         members that ARE documented without failing on the rest. NU5104: CUE4Parse depends on
+    <!-- CS1591/CS1573: this engine has a large public surface; many members (and record
+         parameters) are documented at the type level rather than per-parameter. Ship the XML
+         doc for what IS documented without failing on the rest. NU5104: CUE4Parse depends on
          SharpGLTF prerelease, so our stable package legitimately carries a prerelease dependency. -->
-    <NoWarn>$(NoWarn);CS1591;NU5104</NoWarn>
+    <NoWarn>$(NoWarn);CS1591;CS1573;NU5104</NoWarn>
 
     <!-- NuGet package (published to nuget.org by .github/workflows/release.yml). -->
     <IsPackable>true</IsPackable>
@@ -29,7 +30,7 @@
 
   <ItemGroup>
     <!-- Plugin SDK: published as its own package, so it flows as a normal package dependency
-         (and supplies UeSaveGame, which it bundles — so Core does NOT bundle UeSaveGame again). -->
+         (and supplies UeSaveGame, which it bundles, so Core does NOT bundle UeSaveGame again). -->
     <ProjectReference Include="..\AbioticEditor.Plugins.Abstractions\AbioticEditor.Plugins.Abstractions.csproj" />
 
     <!-- Submodule project references. When packing (PackSubmodules=true, set by the release
@@ -55,7 +56,7 @@
     <!-- Transitive dependencies of the bundled CUE4Parse / UeSaveGame.Json assemblies.
          Because those projects are bundled (PrivateAssets=all), their own package
          dependencies do not flow into this package automatically, so they are re-declared
-         here as real package dependencies (restored from their own publishers — NOT
+         here as real package dependencies (restored from their own publishers, NOT
          redistributed by us). Versions are centrally managed in Directory.Packages.props
          and MUST match submodules/CUE4Parse/Directory.Packages.props. -->
     <PackageReference Include="AssetRipper.TextureDecoder" />

@@ -57,6 +57,16 @@
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+
+		<!-- Warnings are errors repo-wide (root Directory.Build.props). These two are micro-perf
+		     analyzer rules that fire pervasively against this project's deliberate imperative
+		     UI-builder style and are not worth churning the view tree for:
+		       CA1859 - the BuildXxx() view factories return the View base type on purpose, to keep
+		                callers decoupled from the concrete layout control they happen to produce.
+		       CA1861 - one-shot constant arrays (file-picker types, segmented-control labels) built
+		                once when a page is constructed; caching them as static fields buys nothing.
+		     Correctness/nullability/obsolete-API warnings are still enforced. -->
+		<NoWarn>$(NoWarn);CA1859;CA1861</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>

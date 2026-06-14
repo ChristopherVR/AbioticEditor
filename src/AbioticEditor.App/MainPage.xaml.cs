@@ -62,13 +62,13 @@ public partial class MainPage : ContentPage
                 {
                     var context = Services.PluginService.CreateMenuActionContext(
                         cap, _vm.SelectedSave?.FullPath,
-                        message => DisplayAlert(cap.Value.Title, message, "OK"));
+                        message => DisplayAlertAsync(cap.Value.Title, message, "OK"));
                     await cap.Value.InvokeAsync(context);
                 }
                 catch (Exception ex)
                 {
                     cap.Plugin.Host?.Log.Error("menu action failed", ex);
-                    await DisplayAlert(cap.Value.Title, $"The action failed: {ex.Message}", "OK");
+                    await DisplayAlertAsync(cap.Value.Title, $"The action failed: {ex.Message}", "OK");
                 }
             };
             menu.Add(item);

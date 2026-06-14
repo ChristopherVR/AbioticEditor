@@ -353,7 +353,7 @@ internal static class WorldSemanticDiff
 
     private static void AddCountScalar(SemanticSection s, string label, int a, int b)
     {
-        if (a != b) s.Scalars.Add(new SemanticScalar(label, a.ToString(), b.ToString()));
+        if (a != b) s.Scalars.Add(new SemanticScalar(label, a.ToString(System.Globalization.CultureInfo.InvariantCulture), b.ToString(System.Globalization.CultureInfo.InvariantCulture)));
     }
 
     private static string ChapterName(string? row)
@@ -365,7 +365,7 @@ internal static class WorldSemanticDiff
         if (!string.IsNullOrEmpty(d.DoorState)) parts.Add(d.DoorState!);
         if (d.OneWayUnlocked == true) parts.Add("one-way unlocked");
         if (d.IsDoorOpen == true) parts.Add("open");
-        return parts.Count > 0 ? string.Join(", ", parts) : "—";
+        return parts.Count > 0 ? string.Join(", ", parts) : "-";
     }
 
     private static string NpcState(WorldNpc n)

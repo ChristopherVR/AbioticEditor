@@ -76,7 +76,7 @@ public sealed class TriggerMapFeatureTests
         // Use a value that differs from the current one: toggle between 0 and before+1.
         var newValue = before == 0 ? 1 : 0;
 
-        var result = feature.SetField(save, entry.Key, "timesTriggered", newValue.ToString());
+        var result = feature.SetField(save, entry.Key, "timesTriggered", newValue.ToString(System.Globalization.CultureInfo.InvariantCulture));
         Assert.True(result.Changed);
         Assert.False(result.IsError);
 

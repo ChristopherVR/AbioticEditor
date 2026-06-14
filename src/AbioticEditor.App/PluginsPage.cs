@@ -173,11 +173,11 @@ public sealed class PluginsPage : ContentPage
         {
             if (!d.SetEnabled(e.Value))
             {
-                await DisplayAlert("Plugins", "Could not update the plugin manifest (read-only folder?).", "OK");
+                await DisplayAlertAsync("Plugins", "Could not update the plugin manifest (read-only folder?).", "OK");
                 enableSwitch.IsToggled = d.Manifest.Enabled;
                 return;
             }
-            await DisplayAlert("Plugins",
+            await DisplayAlertAsync("Plugins",
                 $"{d.Manifest.Name} {(e.Value ? "enabled" : "disabled")}. Restart the app to apply.", "OK");
         };
         titleRow.Add(enableSwitch, 1, 0);
@@ -241,7 +241,7 @@ public sealed class PluginsPage : ContentPage
         Button run)
     {
         var op = capability.Value;
-        var confirm = await DisplayAlert(
+        var confirm = await DisplayAlertAsync(
             op.DisplayName,
             $"Run '{op.DisplayName}' on {Path.GetFileName(savePath)}?\n\n"
             + "This writes the file immediately (a .bak is kept) and reloads the editor, discarding unsaved edits.",
@@ -258,11 +258,11 @@ public sealed class PluginsPage : ContentPage
             var outcome = await PluginService.RunOperationAsync(capability, savePath, parameters, dryRun: false);
             if (!outcome.Result.Success)
             {
-                await DisplayAlert(op.DisplayName, $"Failed: {outcome.Result.Message}", "OK");
+                await DisplayAlertAsync(op.DisplayName, $"Failed: {outcome.Result.Message}", "OK");
                 return;
             }
 
-            await DisplayAlert(op.DisplayName,
+            await DisplayAlertAsync(op.DisplayName,
                 $"{outcome.Result.Message}\n\n{(outcome.Wrote ? "Save written (.bak kept). Reloading editor." : "No change was needed.")}",
                 "OK");
 
@@ -326,7 +326,7 @@ public sealed class PluginsPage : ContentPage
         catch (Exception ex)
         {
             capability.Plugin.Host?.Log.Error("web tool failed to open", ex);
-            await DisplayAlert(capability.Value.Title, $"The web tool failed to open: {ex.Message}", "OK");
+            await DisplayAlertAsync(capability.Value.Title, $"The web tool failed to open: {ex.Message}", "OK");
         }
     }
 
@@ -355,13 +355,13 @@ public sealed class PluginsPage : ContentPage
             var context = PluginService.CreateMenuActionContext(
                 capability,
                 _vm.SelectedSave?.FullPath,
-                message => DisplayAlert(capability.Value.Title, message, "OK"));
+                message => DisplayAlertAsync(capability.Value.Title, message, "OK"));
             await capability.Value.InvokeAsync(context);
         }
         catch (Exception ex)
         {
             capability.Plugin.Host?.Log.Error("menu action failed", ex);
-            await DisplayAlert(capability.Value.Title, $"The action failed: {ex.Message}", "OK");
+            await DisplayAlertAsync(capability.Value.Title, $"The action failed: {ex.Message}", "OK");
         }
     }
 
@@ -373,7 +373,7 @@ public sealed class PluginsPage : ContentPage
             var view = capability.Value.CreateView(context);
             if (view is not View mauiView)
             {
-                await DisplayAlert(capability.Value.Title,
+                await DisplayAlertAsync(capability.Value.Title,
                     "This tool returned a view the host could not display.", "OK");
                 return;
             }
@@ -383,7 +383,7 @@ public sealed class PluginsPage : ContentPage
         catch (Exception ex)
         {
             capability.Plugin.Host?.Log.Error("editor tool failed to open", ex);
-            await DisplayAlert(capability.Value.Title, $"The tool failed to open: {ex.Message}", "OK");
+            await DisplayAlertAsync(capability.Value.Title, $"The tool failed to open: {ex.Message}", "OK");
         }
     }
 }

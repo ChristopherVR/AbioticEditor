@@ -37,7 +37,7 @@ public sealed record SaveVersionInfo(
 /// When a game update ships: re-validate the fixtures, bump the affected
 /// <see cref="Entries"/> rows and <see cref="ValidatedGameBuild"/> here, and everything
 /// downstream (load-time warnings, <see cref="CompatibilityReport"/>s, the legacy
-/// <see cref="SaveClasses.SaveCompatibility"/> surface) follows automatically.
+/// <see cref="SaveCompatibility"/> surface) follows automatically.
 /// </summary>
 public static class SaveVersionRegistry
 {

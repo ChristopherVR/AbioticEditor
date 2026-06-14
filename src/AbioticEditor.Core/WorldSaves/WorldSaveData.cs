@@ -40,7 +40,7 @@ public sealed class WorldSaveData
     /// <summary>
     /// The ABF_SAVE_VERSION from the save's custom header, or null when the save class
     /// wasn't one of our registered <c>[SaveClassPath]</c> classes. Known-good value:
-    /// <see cref="SaveClasses.SaveCompatibility.KnownGoodWorldVersion"/>.
+    /// <see cref="Compatibility.SaveCompatibility.KnownGoodWorldVersion"/>.
     /// </summary>
     public int? AbfVersion => (Raw.CustomSaveClass as SaveClasses.AbioticWorldSave)?.Version;
 

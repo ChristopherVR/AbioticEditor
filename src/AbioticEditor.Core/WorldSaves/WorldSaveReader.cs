@@ -214,7 +214,7 @@ public static class WorldSaveReader
     /// Reads <c>NarrativeNPCMap</c> (story NPCs / traders) and <c>PetNPC</c> (tamed
     /// companions) - both carry the same <c>SaveData_NPCState_Struct</c>.
     /// </summary>
-    private static IReadOnlyList<WorldNpc> ReadNpcs(SaveGame save)
+    private static List<WorldNpc> ReadNpcs(SaveGame save)
     {
         var result = new List<WorldNpc>();
         ReadNpcMap(save, "NarrativeNPCMap", isPet: false, result);

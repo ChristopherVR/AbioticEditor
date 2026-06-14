@@ -302,14 +302,14 @@ public sealed class ComparePage : ContentPage
     }
 
     /// <summary>A leading "what changed" card: one line per differing category.</summary>
-    private View BuildOverviewCard(IReadOnlyList<SemanticSection> sections)
+    private static View BuildOverviewCard(IReadOnlyList<SemanticSection> sections)
     {
         var rows = new List<View>();
         foreach (var s in sections)
         {
             rows.Add(new Label
             {
-                Text = $"• {s.Title} — {s.Summary}",
+                Text = $"• {s.Title}: {s.Summary}",
                 Style = ModalChrome.St("AfFieldValue"),
                 FontSize = 12,
             });
@@ -318,7 +318,7 @@ public sealed class ComparePage : ContentPage
     }
 
     /// <summary>The raw property diff, collapsed by default behind a toggle, with a noise switch.</summary>
-    private View BuildRawCard(SaveDiff diff, bool startExpanded)
+    private static View BuildRawCard(SaveDiff diff, bool startExpanded)
     {
         var listHost = new VerticalStackLayout();
         void Rebuild(bool includeNoise) { listHost.Children.Clear(); listHost.Children.Add(BuildDiffList(diff, includeNoise)); }
@@ -393,7 +393,7 @@ public sealed class ComparePage : ContentPage
         };
         list.SelectionChanged += async (_, e) =>
         {
-            if (e.CurrentSelection.FirstOrDefault() is FolderRow row)
+            if ((e.CurrentSelection.Count > 0 ? e.CurrentSelection[0] : null) is FolderRow row)
             {
                 ((CollectionView)list).SelectedItem = null;
                 if (row.Entry.Status == FolderEntryStatus.Differs && row.Entry.Diff is not null)

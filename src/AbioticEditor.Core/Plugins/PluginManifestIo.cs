@@ -134,7 +134,7 @@ public static class PluginManifestIo
 
     /// <summary>
     /// Coerces common version spellings (a bare <c>"1"</c> or <c>"1.2"</c>) into something
-    /// <see cref="Version.TryParse"/> accepts, so authors can write friendly strings.
+    /// <see cref="Version.TryParse(string?, out Version?)"/> accepts, so authors can write friendly strings.
     /// </summary>
     public static string NormalizeVersion(string? raw)
     {

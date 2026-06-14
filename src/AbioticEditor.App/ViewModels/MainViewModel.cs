@@ -655,7 +655,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         var claimedByOther = bed.OwnerSteamId is { } owner && owner != playerId;
         if (claimedByOther)
         {
-            var ownerLabel = bed.OwnerName is { Length: > 0 } n ? n : bed.OwnerSteamId!.Value.ToString();
+            var ownerLabel = bed.OwnerName is { Length: > 0 } n ? n : bed.OwnerSteamId!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
             var confirmed = await DialogViewModel.Current.ConfirmAsync(
                 "Bed belongs to another player",
                 $"This bed is claimed by {ownerLabel}. Setting your spawn here reassigns the claim to this " +

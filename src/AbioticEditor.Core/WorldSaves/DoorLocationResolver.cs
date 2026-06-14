@@ -35,7 +35,7 @@ public static class DoorLocationResolver
     public static DoorWorldLocation? Resolve(GameAssetProvider provider, string? mapName, string actorName)
         => ForMap(provider, mapName).TryGetValue(actorName, out var loc) ? loc : null;
 
-    private static IReadOnlyDictionary<string, DoorWorldLocation> Load(GameAssetProvider provider, string mapName)
+    private static Dictionary<string, DoorWorldLocation> Load(GameAssetProvider provider, string mapName)
     {
         var result = new Dictionary<string, DoorWorldLocation>(StringComparer.OrdinalIgnoreCase);
         // Level packages need the explicit .umap extension; the .uasset default that

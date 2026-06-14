@@ -69,7 +69,7 @@ public sealed class PlayerSaveData
     /// <summary>
     /// The ABF_SAVE_VERSION from the save's custom header, or null when the save class
     /// wasn't one of our registered <c>[SaveClassPath]</c> classes. Known-good value:
-    /// <see cref="SaveClasses.SaveCompatibility.KnownGoodCharacterVersion"/>.
+    /// <see cref="Compatibility.SaveCompatibility.KnownGoodCharacterVersion"/>.
     /// </summary>
     public int? AbfVersion => (Raw.CustomSaveClass as SaveClasses.AbioticCharacterSave)?.Version;
 

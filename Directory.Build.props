@@ -3,7 +3,11 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <!-- Warnings are errors for OUR projects (src/, tests/). The submodules are shielded by
+         submodules/Directory.Build.props (and CUE4Parse by its own), so vendored CUE4Parse/
+         UeSaveGame warnings (and the NU1903 audit notice on their pinned dependencies) stay
+         warnings and never fail the build. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 
     <!-- Single source of truth for the product version. The release workflow
          (.github/workflows/release.yml) rewrites this <Version> on each

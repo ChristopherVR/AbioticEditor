@@ -194,7 +194,7 @@ public sealed class WorldMapsPage : ContentPage
         };
         list.SelectionChanged += (_, e) =>
         {
-            if (e.CurrentSelection.FirstOrDefault() is EntryRow row)
+            if ((e.CurrentSelection.Count > 0 ? e.CurrentSelection[0] : null) is EntryRow row)
             {
                 ShowEntryDetail(row.Key);
             }

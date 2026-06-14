@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Globalization;
 
 namespace AbioticEditor.Core.Compare;
@@ -88,6 +89,8 @@ public static class SaveDiffClassifier
         return SaveDiffCategory.Gameplay;
     }
 
+    private static readonly SearchValues<char> OpenBrackets = SearchValues.Create("[{");
+
     private static string LeafName(string path)
     {
         // Drop array "[i]" / map "{key}" suffixes, then take the segment after the last dot.
@@ -95,7 +98,7 @@ public static class SaveDiffClassifier
         // Trim a trailing [..] or {..}.
         if (end > 0 && (path[end - 1] == ']' || path[end - 1] == '}'))
         {
-            var open = path.LastIndexOfAny(new[] { '[', '{' });
+            var open = path.AsSpan().LastIndexOfAny(OpenBrackets);
             if (open >= 0) end = open;
         }
         var dot = path.LastIndexOf('.', Math.Max(0, end - 1));

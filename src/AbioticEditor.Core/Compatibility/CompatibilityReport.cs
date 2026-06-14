@@ -73,7 +73,7 @@ public sealed class CompatibilityReport
 
 /// <summary>
 /// The shared user-facing message texts, used both by <see cref="CompatibilityReport"/>
-/// and the legacy <see cref="SaveClasses.SaveCompatibility"/> surface so the wording
+/// and the legacy <see cref="SaveCompatibility"/> surface so the wording
 /// never drifts apart.
 /// </summary>
 internal static class CompatibilityMessages

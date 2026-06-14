@@ -9,6 +9,9 @@ namespace AbioticEditor.Tests;
 /// </summary>
 public sealed class UpdaterTests
 {
+    private static readonly string[] CliWin = ["cli", "win-x64"];
+    private static readonly string[] AppWin = ["app", "win-x64"];
+
     // ---------- ReleaseVersion ----------
 
     [Theory]
@@ -70,11 +73,11 @@ public sealed class UpdaterTests
             "AbioticEditor-app-win-x64.zip",
             "AbioticEditor-cli-linux-x64.zip");
 
-        var cli = AssetSelector.Select(release, new[] { "cli", "win-x64" });
+        var cli = AssetSelector.Select(release, CliWin);
         Assert.NotNull(cli);
         Assert.Equal("AbioticEditor-cli-win-x64.zip", cli!.Name);
 
-        var app = AssetSelector.Select(release, new[] { "app", "win-x64" });
+        var app = AssetSelector.Select(release, AppWin);
         Assert.Equal("AbioticEditor-app-win-x64.zip", app!.Name);
     }
 
@@ -85,13 +88,13 @@ public sealed class UpdaterTests
             "AbioticEditor-cli-win-x64.zip.sha256",
             "AbioticEditor-cli-win-x64.zip");
 
-        var chosen = AssetSelector.Select(release, new[] { "cli", "win-x64" });
+        var chosen = AssetSelector.Select(release, CliWin);
         Assert.Equal("AbioticEditor-cli-win-x64.zip", chosen!.Name);
     }
 
     [Fact]
     public void AssetSelector_returns_null_when_nothing_matches()
-        => Assert.Null(AssetSelector.Select(ReleaseWith("readme.txt"), new[] { "cli", "win-x64" }));
+        => Assert.Null(AssetSelector.Select(ReleaseWith("readme.txt"), CliWin));
 
     // ---------- InPlaceReplacer + UpdateCleanup ----------
 
