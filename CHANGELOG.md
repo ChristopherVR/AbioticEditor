@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here.
 
+## [1.1.3] - 2026-06-14
+
+### Bug Fixes
+- Stop dialog-host theme leak, dead-click reselect, stacked leave-gates- Verify download size, block asset-name traversal, fix prerelease order- Close save-write corruption, pet-XP loss, and icon-cache races
+
+### Miscellaneous Tasks
+- Point bucket at v1.1.2 [skip ci]
+
 ## [1.1.2] - 2026-06-14
 
 ### Documentation
