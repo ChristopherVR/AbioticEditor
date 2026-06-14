@@ -24,7 +24,7 @@ public sealed class AdaptiveGrid : Grid
     }
 
     /// <summary>
-    /// Height given, while stacked, to children that declare none — only applied when
+    /// Height given, while stacked, to children that declare none; only applied when
     /// the grid itself had a fixed height (i.e. children were sized by the grid).
     /// </summary>
     public double StackedChildHeight

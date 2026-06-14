@@ -20,7 +20,7 @@
             </VerticalStackLayout>
         </Grid>
 
-        <Label Text="These are the quest flags this world has actually reached — the one-way switches stored in THIS save. The full story state lives in WorldSave_Facility.sav; region files carry only the flags for their own area. Setting one here can skip forward (the game may pull in prerequisites that cascade to the metadata save and other worlds); clearing one rewinds that event."
+        <Label Text="These are the quest flags this world has actually reached, the one-way switches stored in THIS save. The full story state lives in WorldSave_Facility.sav; region files carry only the flags for their own area. Setting one here can skip forward (the game may pull in prerequisites that cascade to the metadata save and other worlds); clearing one rewinds that event."
                Style="{StaticResource AfMuted}" FontSize="10" LineBreakMode="WordWrap" />
 
         <!-- How quests work -->

@@ -41,7 +41,7 @@ public class GameAssetProviderTests
         if (provider is null) return;
         if (provider.HasMappings)
         {
-            _output.WriteLine("Mappings present — skipping the no-mappings assertion.");
+            _output.WriteLine("Mappings present; skipping the no-mappings assertion.");
             return;
         }
 
@@ -59,7 +59,7 @@ public class GameAssetProviderTests
         if (!provider.HasMappings)
         {
             _output.WriteLine(
-                $"Skipping — no .usmap mapping file. Place one at " +
+                $"Skipping: no .usmap mapping file. Place one at " +
                 $"{Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AbioticEditor", "mappings", "Mappings.usmap")} " +
                 $"to enable texture extraction. See README.");
             return;

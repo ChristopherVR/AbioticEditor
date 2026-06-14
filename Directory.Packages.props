@@ -1,6 +1,6 @@
 <Project>
   <!-- Central package management for the editor's own projects. The submodules are
-       opted out via submodules/Directory.Packages.props — they pin their own versions. -->
+       opted out via submodules/Directory.Packages.props, so they pin their own versions. -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <!-- Lets the PackageVersion list below override vulnerable transitive versions
@@ -15,12 +15,12 @@
     <PackageVersion Include="CommunityToolkit.Maui" Version="14.2.0" />
 
     <!-- CLI. The GA 2.0 line replaced the beta4 SetHandler API with SetAction +
-         ParseResult — Program.cs's Build().Parse(args).InvokeAsync() is GA-shaped. -->
+         ParseResult; Program.cs's Build().Parse(args).InvokeAsync() is GA-shaped. -->
     <PackageVersion Include="System.CommandLine" Version="2.0.9" />
 
     <!-- JavaScript plugin runtime. Jint is a pure-managed ES interpreter (no native deps),
          so it works across every MAUI target (android/ios/maccatalyst/windows) and the CLI
-         alike - unlike V8-based engines that ship platform-specific natives. -->
+         alike, unlike V8-based engines that ship platform-specific natives. -->
     <PackageVersion Include="Jint" Version="4.9.3" />
 
     <!-- Transitive overrides: CUE4Parse references Microsoft.Bcl.Memory 9.0.0, which
@@ -31,7 +31,7 @@
          NuGet packages bundle those submodule DLLs directly (PrivateAssets=all on the
          ProjectReferences), so the submodules' own package dependencies do not flow into
          AbioticEditor.Core.nupkg automatically. Versions MUST match
-         submodules/CUE4Parse/Directory.Packages.props (the source of truth) — keep in sync. -->
+         submodules/CUE4Parse/Directory.Packages.props (the source of truth); keep in sync. -->
     <PackageVersion Include="AssetRipper.TextureDecoder" Version="2.6.2" />
     <PackageVersion Include="Blake3" Version="2.2.1" />
     <PackageVersion Include="BouncyCastle.Cryptography" Version="2.6.2" />

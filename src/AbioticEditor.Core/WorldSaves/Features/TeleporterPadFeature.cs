@@ -131,7 +131,7 @@ public sealed class TeleporterPadFeature : IWorldMapFeature
     }
 
     private static string LabelFor(int? frequency)
-        => $"Teleporter Pad — {TeleporterTagCatalog.Label(frequency ?? 0)}";
+        => $"Teleporter Pad: {TeleporterTagCatalog.Label(frequency ?? 0)}";
 
     /// <summary>True when a deployable entry's class is the teleporter pad blueprint.</summary>
     private static bool IsPad(IList<FPropertyTag> deployableProps)

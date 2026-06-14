@@ -212,7 +212,7 @@ public sealed class CodexItemViewModel : INotifyPropertyChanged
 
     public string? FishUnlockName => FishUnlockBaitEntry?.DisplayName;
 
-    /// <summary>Item id of the unlocked bait — opens it in the slot editor when tapped.</summary>
+    /// <summary>Item id of the unlocked bait; opens it in the slot editor when tapped.</summary>
     public string? FishUnlockBaitItemId => FishUnlockBaitEntry?.Id;
 
     public string? FishRequiredBaitName => FishRequiredBaitEntry?.DisplayName;
@@ -524,7 +524,7 @@ public sealed class CodexViewModel : INotifyPropertyChanged
         var parts = e.Sections.Select(s => string.IsNullOrEmpty(s.Sender)
             ? s.Text
             : $"FROM: {s.Sender}\n\n{s.Text}");
-        var body = string.Join("\n\n— — —\n\n", parts);
+        var body = string.Join("\n\n- - -\n\n", parts);
         if (e.AttachmentRecipes.Count > 0)
         {
             body += $"\n\nATTACHMENT UNLOCKS RECIPE: {string.Join(", ", e.AttachmentRecipes)}";

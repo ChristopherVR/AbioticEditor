@@ -1,9 +1,9 @@
-// React Dashboard — a JavaScript plugin whose UI is a React app.
+// React Dashboard: a JavaScript plugin whose UI is a React app.
 //
 // This demonstrates HTML/React rendering for JS plugins: the plugin registers a *web tool*
 // whose page is a self-contained React app (React + Babel loaded from a CDN, so there is no
 // build step). The page talks to the plugin over the host bridge: `abiotic.request(obj)`
-// returns a Promise that the plugin's `handleMessage` resolves — here, with a JSON summary of
+// returns a Promise that the plugin's `handleMessage` resolves, here with a JSON summary of
 // the open player save read through the host. `abiotic.onEvent` lets the page refresh when the
 // host pushes an event.
 

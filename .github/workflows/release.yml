@@ -5,12 +5,12 @@ name: Release
 # Flow:
 #   1. `test` builds Core and runs the xUnit suite. EVERYTHING below depends on
 #      it, so a failing build or test never produces a release commit, tag, or
-#      artifacts — the pipeline simply stops.
+#      artifacts; the pipeline simply stops.
 #   2. `version` job uses git-cliff to compute the next semver from the
 #      commit history. If nothing releasable changed, it sets released=false
 #      and the rest of the pipeline is skipped.
 #   3. It rewrites <Version> in Directory.Build.props (the single source of
-#      truth — the App inherits ApplicationDisplayVersion=$(Version)),
+#      truth, since the App inherits ApplicationDisplayVersion=$(Version)),
 #      regenerates CHANGELOG.md, commits "chore(release): vX.Y.Z [skip ci]",
 #      and pushes a vX.Y.Z tag on that commit.
 #   4. `build` publishes the 7 release artifacts off the new tag.
@@ -332,7 +332,7 @@ jobs:
   # Pack the library packages off the new tag and push them to nuget.org.
   # AbioticEditor.Plugins.Abstractions is what plugin authors compile against;
   # AbioticEditor.Core is the full engine. Both bundle their Apache-2.0 submodule
-  # DLLs (UeSaveGame / CUE4Parse) since those are not on NuGet — see the csproj
+  # DLLs (UeSaveGame / CUE4Parse) since those are not on NuGet; see the csproj
   # _BundleSubmoduleAssemblies targets and THIRD-PARTY-NOTICES.txt.
   nuget:
     needs: version

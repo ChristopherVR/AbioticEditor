@@ -102,7 +102,7 @@
                                            FontFamily="Digital7" FontSize="13"
                                            TextColor="{StaticResource AfTextSecondary}"
                                            HorizontalTextAlignment="Center"
-                                           ToolTipProperties.Text="Raw XP — level re-derives from it."
+                                           ToolTipProperties.Text="Raw XP; level re-derives from it."
                                            VerticalOptions="Center" />
                                 </Grid>
 

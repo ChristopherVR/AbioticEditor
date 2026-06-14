@@ -10,7 +10,7 @@ namespace AbioticEditor.Tests.Features;
 /// <c>ButtonMap</c>), reads entries, edits the <c>enabled</c> field, and confirms the change
 /// both re-reads correctly and survives a save/reload round trip.
 ///
-/// <para>Mirrors <see cref="ElevatorMapFeatureTests"/> — the fixture is optional; every test
+/// <para>Mirrors <see cref="ElevatorMapFeatureTests"/>; the fixture is optional, and every test
 /// skips gracefully when <c>WorldSave_Facility.sav</c> is absent.</para>
 /// </summary>
 public sealed class ButtonMapFeatureTests

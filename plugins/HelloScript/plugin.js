@@ -1,8 +1,8 @@
-// Hello Script — a JavaScript plugin for the Abiotic Editor.
+// Hello Script: a JavaScript plugin for the Abiotic Editor.
 //
 // JS plugins are first-class: they register the same capabilities managed (.dll) plugins do,
 // through the `abiotic` host object. The script runs once at load; registration happens as a
-// side effect of these calls. Authoring is plain ECMAScript on the bundled Jint engine — no
+// side effect of these calls. Authoring is plain ECMAScript on the bundled Jint engine, with no
 // build step, just a .js file next to a plugin.json with "runtime": "javascript".
 
 abiotic.log.info("hello-script loading on host '" + abiotic.hostKind + "'");
@@ -42,7 +42,7 @@ abiotic.registerCommand({
     ],
     invoke: function (ctx) {
         var who = ctx.getOption("name", "scientist");
-        ctx.print("Hello, " + who + " — from a JavaScript plugin.");
+        ctx.print("Hello, " + who + " - from a JavaScript plugin.");
         return 0; // exit code
     }
 });

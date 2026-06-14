@@ -19,13 +19,13 @@
         </Grid>
 
         <!-- Where these doors live: the sector's own card art (the game
-             ships no per-door imagery — verified against all GUI textures) -->
+             ships no per-door imagery, verified against all GUI textures) -->
         <Border BackgroundColor="#000000" StrokeThickness="0" StrokeShape="RoundRectangle 4"
                 HeightRequest="110" Padding="0"
                 IsVisible="{Binding WorldEditor.HasDoorsRegionCard, FallbackValue=False}">
             <Grid>
                 <Image Source="{Binding WorldEditor.DoorsRegionCardPath}" Aspect="AspectFill" Opacity="0.85" />
-                <Label Text="All doors below are in this sector — toggle their open/locked state; positions are listed per door."
+                <Label Text="All doors below are in this sector; toggle their open/locked state, and positions are listed per door."
                        Style="{StaticResource AfStatusText}" FontSize="10"
                        VerticalOptions="End" Margin="10,0,0,6" />
             </Grid>

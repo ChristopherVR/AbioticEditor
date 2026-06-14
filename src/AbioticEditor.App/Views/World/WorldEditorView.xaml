@@ -83,8 +83,8 @@
             <ScrollView Orientation="Horizontal"
                         HorizontalScrollBarVisibility="Never">
                 <HorizontalStackLayout Spacing="4">
-                    <!-- The metadata save holds only story/recipes — no containers,
-                         flags or doors; hide those tabs there entirely. -->
+                    <!-- The metadata save holds only story/recipes (no containers,
+                         flags or doors); hide those tabs there entirely. -->
                     <Button Text="CONTAINERS" Style="{StaticResource AfTabButton}"
                             Command="{Binding WorldEditor.ShowContainersCommand}"
                             BackgroundColor="{Binding WorldEditor.IsContainersTab, Converter={StaticResource TabBrush}}"

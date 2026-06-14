@@ -82,7 +82,7 @@
                                  Grid.Column="1" Spacing="2" VerticalOptions="Center">
                 <Label Text="ACTIVE SAVE FOLDER"
                        Style="{StaticResource AfFieldLabel}" />
-                <Label Text="{Binding FolderPath, FallbackValue='— none selected —'}"
+                <Label Text="{Binding FolderPath, FallbackValue='None selected'}"
                        Style="{StaticResource AfReadout}"
                        LineBreakMode="MiddleTruncation" />
             </VerticalStackLayout>
@@ -99,7 +99,7 @@
                 <Button Style="{StaticResource AfIconButton}"
                         Text="&#xE88A;"
                         Margin="0,0,4,0"
-                        ToolTipProperties.Text="Home — start page with all detected worlds"
+                        ToolTipProperties.Text="Home: start page with all detected worlds"
                         Clicked="OnHomeClicked" />
 
                 <!-- primary CTA: filled tonal button with leading folder_open glyph -->

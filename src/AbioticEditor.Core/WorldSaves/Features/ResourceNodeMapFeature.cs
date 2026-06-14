@@ -11,9 +11,9 @@ namespace AbioticEditor.Core.WorldSaves.Features;
 ///
 /// <para>Fields exposed per entry:</para>
 /// <list type="bullet">
-///   <item><description><c>position</c> — world position (read-only display string, may be absent).</description></item>
-///   <item><description><c>harvested</c> — whether the node has already been picked up (editable bool).</description></item>
-///   <item><description><c>dayPickedUp</c> — in-game day the node was harvested (editable integer).</description></item>
+///   <item><description><c>position</c>: world position (read-only display string, may be absent).</description></item>
+///   <item><description><c>harvested</c>: whether the node has already been picked up (editable bool).</description></item>
+///   <item><description><c>dayPickedUp</c>: in-game day the node was harvested (editable integer).</description></item>
 /// </list>
 /// </summary>
 public sealed class ResourceNodeMapFeature : WorldMapFeatureBase
@@ -49,7 +49,7 @@ public sealed class ResourceNodeMapFeature : WorldMapFeatureBase
                 "position",
                 "Position",
                 FormattableString.Invariant($"{x:0.###}, {y:0.###}, {z:0.###}"),
-                hint: "World position (x, y, z) — read-only"));
+                hint: "World position (x, y, z), read-only"));
         }
 
         // Editable: has the node been harvested?

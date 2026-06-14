@@ -163,7 +163,7 @@
                     </Grid>
                 </Border>
             </controls:AdaptiveGrid>
-            <Label Text="Click a recipe for its full wiki-style detail. Toggling a checkbox stages the change — press SAVE in the STRUCTURED tab header to write it."
+            <Label Text="Click a recipe for its full wiki-style detail. Toggling a checkbox stages the change; press SAVE in the STRUCTURED tab header to write it."
                    Style="{StaticResource AfMuted}" FontSize="10" />
         </VerticalStackLayout>
     </Border>

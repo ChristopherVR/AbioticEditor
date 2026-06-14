@@ -15,16 +15,16 @@
 # Screenshot/scratch output from tools/capture.ps1
 /tools/shots/
 
-# Game-client litter (pipeline caches, crash logs) — never repo content.
+# Game-client litter (pipeline caches, crash logs); never repo content.
 Saved/
 *.upipelinecache
 
-# VitePress docs site (docs/) — node deps and build output, not source.
+# VitePress docs site (docs/): node deps and build output, not source.
 docs/node_modules/
 docs/.vitepress/dist/
 docs/.vitepress/cache/
 
 # Raw JSON exports written next to .sav files (artifacts, not fixtures).
 # NOTE: the checked-in test fixtures live at tests/fixtures/ and must
-# stay committable — do not add a global *.sav or fixtures ignore here.
+# stay committable, so do not add a global *.sav or fixtures ignore here.
 *.sav.json

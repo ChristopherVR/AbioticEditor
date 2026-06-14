@@ -195,7 +195,7 @@ public sealed class NpcSpawnMapFeatureTests
             .FirstOrDefault(e => e.Fields.Single(f => f.Id == "cooldownRemaining").Value != "0");
         if (entry is null)
         {
-            return; // all already at 0 — skip
+            return; // all already at 0, skip
         }
 
         var result = feature.SetField(save, entry.Key, "cooldownRemaining", "0");

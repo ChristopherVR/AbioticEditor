@@ -36,7 +36,7 @@
                  pockets. Stacks vertically on narrow widths. -->
             <controls:AdaptiveGrid ColumnDefinitions="2*,Auto,3*" ColumnSpacing="14">
 
-                <!-- Equipment paper-doll — character-pane glow like the game -->
+                <!-- Equipment paper-doll: character-pane glow like the game -->
                 <Border Grid.Column="0"
                         BackgroundColor="{StaticResource AfShellBackground}"
                         Stroke="{DynamicResource AfBorderSubtleBrush}"
@@ -165,7 +165,7 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Main backpack grid — in-game POCKETS pane (themed chrome) -->
+                <!-- Main backpack grid: in-game POCKETS pane (themed chrome) -->
                 <Border Grid.Column="2"
                         BackgroundColor="{DynamicResource AfShellBackground}"
                         Stroke="{DynamicResource AfBorderSubtleBrush}"

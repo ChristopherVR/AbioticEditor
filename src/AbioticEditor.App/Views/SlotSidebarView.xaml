@@ -10,7 +10,7 @@
     <!-- ===== Right slot-editor sidebar =====
          Every binding inside uses explicit Source={x:Reference Root} to bypass
          BindingContext propagation, which we found unreliable in MAUI 10 here.
-         NOTE: this must be a Grid, not a Border — Border>ScrollView never
+         NOTE: this must be a Grid, not a Border, because Border>ScrollView never
          measures its content on the WinUI backend (children get empty rects). -->
     <Grid BackgroundColor="{StaticResource AfPanelBackground}"
           ColumnDefinitions="1,*">
@@ -484,11 +484,11 @@
                         <Label Text="WHAT THEY ACCEPT AS PAYMENT" Style="{StaticResource AfFieldLabel}" />
                         <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedTrader.AcceptsText}"
                                Style="{StaticResource AfFieldValue}" FontSize="11" LineBreakMode="WordWrap" />
-                        <Label Text="Trading is barter — hand over the items above to buy from the stock below."
+                        <Label Text="Trading is barter; hand over the items above to buy from the stock below."
                                Style="{StaticResource AfMuted}" FontSize="8" LineBreakMode="WordWrap" />
 
                         <BoxView Style="{StaticResource AfDivider}" />
-                        <Label Text="WHAT THEY SELL — TAP AN ITEM TO INSPECT · TICK LOCKED ITEMS TO UNLOCK" Style="{StaticResource AfFieldLabel}" />
+                        <Label Text="WHAT THEY SELL · TAP AN ITEM TO INSPECT · TICK LOCKED ITEMS TO UNLOCK" Style="{StaticResource AfFieldLabel}" />
                         <CollectionView ItemsSource="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedTrader.OfferDetails}"
                                         SelectionMode="None"
                                         HeightRequest="300">
@@ -694,7 +694,7 @@
                                       Color="{StaticResource AfTerminalGreen}" VerticalOptions="Center" />
                             <Label Grid.Column="3" Text="ONE-WAY UNLOCKED" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                         </Grid>
-                        <Label Text="Changes stage like everything else — press SAVE to write."
+                        <Label Text="Changes stage like everything else; press SAVE to write."
                                Style="{StaticResource AfMuted}" FontSize="9" />
                     </VerticalStackLayout>
                 </Border>
@@ -749,7 +749,7 @@
                                       Color="{StaticResource AfTerminalGreen}" VerticalOptions="Center" />
                             <Label Grid.Column="1" Text="RESEARCHED IN THIS WORLD" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                         </Grid>
-                        <Label Text="Changes stage like everything else — press SAVE to write."
+                        <Label Text="Changes stage like everything else; press SAVE to write."
                                Style="{StaticResource AfMuted}" FontSize="9" />
                     </VerticalStackLayout>
                 </Border>
@@ -808,7 +808,7 @@
                                     IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedFlagCanEnable, Converter={StaticResource BoolNegate}, FallbackValue=False}"
                                     Clicked="OnEnableFlagPrereqs" />
                         </HorizontalStackLayout>
-                        <Label Text="Enabling is blocked until prerequisites are set — the game never produces out-of-order story state. Stage + SAVE to write."
+                        <Label Text="Enabling is blocked until prerequisites are set, since the game never produces out-of-order story state. Stage + SAVE to write."
                                Style="{StaticResource AfMuted}" FontSize="9" LineBreakMode="WordWrap" />
                     </VerticalStackLayout>
                 </Border>

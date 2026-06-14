@@ -42,7 +42,7 @@
 
             <!-- Chapter checklist -->
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                <Label Grid.Column="0" Text="CHAPTERS — SET REWINDS OR SKIPS THE STORY AND SYNCS ITS TRIGGER FLAGS" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Label Grid.Column="0" Text="CHAPTERS: SET REWINDS OR SKIPS THE STORY AND SYNCS ITS TRIGGER FLAGS" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                 <Label Grid.Column="1"
                        Text="{Binding WorldEditor.StoryChapterIndexText}"
                        Style="{StaticResource AfReadout}" VerticalOptions="Center" />
@@ -178,7 +178,7 @@
                     </CollectionView.ItemTemplate>
                 </CollectionView>
             </Border>
-            <Label Text="Why is this on the METADATA file? The game stores world-wide research here (GlobalRecipesUnlocked/Researched) — recipes researched once at a bench become available to EVERY player in the world. Per-player recipe knowledge is separate: edit it on a player save's RECIPES tab. Unlocking here updates both the unlocked and researched lists."
+            <Label Text="Why is this on the METADATA file? The game stores world-wide research here (GlobalRecipesUnlocked/Researched): recipes researched once at a bench become available to EVERY player in the world. Per-player recipe knowledge is separate: edit it on a player save's RECIPES tab. Unlocking here updates both the unlocked and researched lists."
                    Style="{StaticResource AfMuted}" FontSize="10" />
         </VerticalStackLayout>
     </Border>

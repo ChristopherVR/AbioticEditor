@@ -19,7 +19,7 @@
 </head>
 <body>
 <h1>Web Stats</h1>
-<div class="sub">An offline HTML web tool (no framework, no CDN) — reads the save via the host bridge.</div>
+<div class="sub">An offline HTML web tool (no framework, no CDN) that reads the save via the host bridge.</div>
 <div id="content">Loading…</div>
 <button onclick="load()">Refresh</button>
 
@@ -40,7 +40,7 @@
       stat("Money", data.money) + stat("Skills", data.skillCount) +
       stat("Top level", data.topLevel) + stat("Recipes", data.recipeCount);
     var skills = (data.skills || []).map(function (s) {
-      return "<li>" + esc(s.name) + " — Lv " + s.level + " (" + Math.round(s.xp) + " XP)</li>";
+      return "<li>" + esc(s.name) + ": Lv " + s.level + " (" + Math.round(s.xp) + " XP)</li>";
     }).join("");
     el.innerHTML =
       "<h2>" + esc(data.file || "Player save") + "</h2>" +

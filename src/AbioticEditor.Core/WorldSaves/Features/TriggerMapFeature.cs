@@ -37,8 +37,8 @@ public sealed class TriggerMapFeature : WorldMapFeatureBase
     /// <summary>
     /// Exposes two fields per entry:
     /// <list type="bullet">
-    ///   <item><c>triggerId</c> — read-only; the unique trigger name (equals the map key).</item>
-    ///   <item><c>timesTriggered</c> — editable integer; fire count for this trigger.</item>
+    ///   <item><c>triggerId</c>: read-only; the unique trigger name (equals the map key).</item>
+    ///   <item><c>timesTriggered</c>: editable integer; fire count for this trigger.</item>
     /// </list>
     /// </summary>
     protected override IReadOnlyList<WorldMapField> ReadFields(IList<FPropertyTag> props)

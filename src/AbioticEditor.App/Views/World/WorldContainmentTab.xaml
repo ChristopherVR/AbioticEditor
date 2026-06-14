@@ -18,7 +18,7 @@
 
             <!-- Leyak / Krasue containment units -->
             <Label Text="CONTAINMENT UNITS" Style="{StaticResource AfH2}" FontSize="18" />
-            <Label Text="Entities currently trapped in deployed containment units (the metadata save's LeyakContainmentIDs map). Tap an entry to see what the creature looks like and which facility sector its unit sits in. RELEASE removes the link — the creature roams free again on next load (the unit itself stays deployed in the Facility save). Staged until SAVE."
+            <Label Text="Entities currently trapped in deployed containment units (the metadata save's LeyakContainmentIDs map). Tap an entry to see what the creature looks like and which facility sector its unit sits in. RELEASE removes the link, so the creature roams free again on next load (the unit itself stays deployed in the Facility save). Staged until SAVE."
                    Style="{StaticResource AfMuted}" FontSize="11" LineBreakMode="WordWrap" />
 
             <Label Text="Nothing is contained in this world right now. Build a containment unit and trap a creature (Leyak, Krasue) in-game; the entry appears here."

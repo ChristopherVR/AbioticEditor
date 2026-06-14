@@ -10,7 +10,7 @@
     <!-- ============== TAB: NPCs & traders ============== -->
     <VerticalStackLayout Spacing="12"
                          IsVisible="{Binding WorldEditor.IsNpcsTab}">
-        <Label Text="NPCS IN THIS WORLD — STORY + PETS" Style="{StaticResource AfH2}" FontSize="18" />
+        <Label Text="NPCS IN THIS WORLD: STORY + PETS" Style="{StaticResource AfH2}" FontSize="18" />
         <Label Text="Live NPC records in this save: story NPCs / traders plus tamed pet companions (named pets show their given name). DEAD revives or kills the actor; the narrative state byte controls their story stage (the game's enum has no readable names - change it only if you know the target stage)."
                Style="{StaticResource AfMuted}" FontSize="11" />
         <Border BackgroundColor="{StaticResource AfShellBackground}"
@@ -58,7 +58,7 @@
                                     FontSize="10" Padding="10,3"
                                     BackgroundColor="{StaticResource AfTerminalGreen}"
                                     TextColor="{StaticResource AfTextOnAccent}"
-                                    ToolTipProperties.Text="Bring this NPC back (alive + default script phase). Most dead entries are story-scripted departures — reviving may resurrect an actor the plot already moved elsewhere."
+                                    ToolTipProperties.Text="Bring this NPC back (alive + default script phase). Most dead entries are story-scripted departures, so reviving may resurrect an actor the plot already moved elsewhere."
                                     IsVisible="{Binding CanRevive}"
                                     Clicked="OnReviveNpc"
                                     VerticalOptions="Center" />

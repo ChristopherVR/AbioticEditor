@@ -68,7 +68,7 @@ public partial class SlotSidebarView : ContentView
         var confirmed = await ViewUtils.ConfirmAsync(this,
             $"Unlock {trader.SelectedStockFlags.Count} item(s) from {trader.Name}?",
             $"This sets {flags.Count} world flag(s) in {target}:\n\n{string.Join("\n", flags)}\n\n" +
-            "These are story/progression flags — anything else gated by them also unlocks. " +
+            "These are story/progression flags, so anything else gated by them also unlocks. " +
             (we.IsMetadataSave
                 ? "The Facility save is written immediately (a .bak is kept)."
                 : "Changes are staged; press SAVE to write."),
@@ -94,7 +94,7 @@ public partial class SlotSidebarView : ContentView
         var confirmed = await ViewUtils.ConfirmAsync(this,
             $"Unlock all of {trader.Name}?",
             $"This sets {missing.Count} world flag(s) in {target}:\n\n{string.Join("\n", missing)}\n\n" +
-            "These are story/progression flags — anything else gated by them (quests, doors, spawns) " +
+            "These are story/progression flags, so anything else gated by them (quests, doors, spawns) " +
             "also unlocks. " +
             (we.IsMetadataSave
                 ? "The Facility save is written immediately (a .bak is kept)."

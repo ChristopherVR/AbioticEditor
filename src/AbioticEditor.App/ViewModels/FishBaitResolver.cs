@@ -110,7 +110,7 @@ public sealed partial class FishBaitResolver
         // Some periods are impossible (multiplier 0): say exactly when it CAN be caught.
         if (open.Count < periods.Length)
         {
-            var when = open.Count == 0 ? "(never bites — check the wiki)" : Join(open);
+            var when = open.Count == 0 ? "(never bites; check the wiki)" : Join(open);
             return best.Count > 0 && best.Count < open.Count
                 ? $"Only bites at {when} (best at {Join(best)})."
                 : $"Only bites at {when}.";

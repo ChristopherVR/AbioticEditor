@@ -27,7 +27,7 @@
                             BackgroundColor="{StaticResource AfPanelElevated}"
                             TextColor="{StaticResource AfTerminalGreen}" />
                     <Label Grid.Column="2"
-                           Text="Changing the background does not re-apply its skill bonuses or starting gear — it only changes the save's job id."
+                           Text="Changing the background does not re-apply its skill bonuses or starting gear; it only changes the save's job id."
                            Style="{StaticResource AfMuted}" FontSize="10" VerticalOptions="Center" />
                 </controls:AdaptiveGrid>
 
@@ -105,7 +105,7 @@
             </VerticalStackLayout>
         </Border>
 
-        <!-- ===== Player TAB: Character (continued) — appearance ===== -->
+        <!-- ===== Player TAB: Character (continued): appearance ===== -->
         <Border Style="{StaticResource AfPanel}" Padding="20,16"
                 IsVisible="{Binding PlayerEditor.IsCharacterTab, FallbackValue=False}">
             <VerticalStackLayout Spacing="12">

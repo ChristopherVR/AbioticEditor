@@ -1,11 +1,11 @@
-# git-cliff configuration — Conventional-Commits changelog + semver bump.
+# git-cliff configuration for Conventional-Commits changelog + semver bump.
 # Docs: https://git-cliff.org/docs/configuration
 #
 # Used by .github/workflows/release.yml to (a) compute the next version
 # (`git cliff --bumped-version`) and (b) regenerate CHANGELOG.md (`git cliff --bump`).
 
 [changelog]
-# Minimal header/footer — the per-release notes file extracts only the body.
+# Minimal header/footer; the per-release notes file extracts only the body.
 header = """
 # Changelog
 

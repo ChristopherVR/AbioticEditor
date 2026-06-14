@@ -100,8 +100,8 @@ public class CodexTests
         Assert.Equal("Fishing.Bait.Antefish", anteRare.RequiredBaitTag);
         Assert.True(anteRare.RequiresSpecialCatch);
 
-        // Most bait gameplay tags resolve to a real craftable bait item (a few fish — e.g.
-        // Fogfish — have no craftable bait; the UI just omits the bait row for those).
+        // Most bait gameplay tags resolve to a real craftable bait item (a few fish, e.g.
+        // Fogfish, have no craftable bait; the UI just omits the bait row for those).
         var cat = ItemCatalog.LoadFrom(provider);
         var baitByTag = cat.Entries
             .SelectMany(e => e.Tags.Where(t => t.StartsWith("Fishing.Bait", StringComparison.OrdinalIgnoreCase))

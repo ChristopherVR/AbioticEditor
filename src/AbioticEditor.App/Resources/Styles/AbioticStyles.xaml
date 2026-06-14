@@ -171,7 +171,7 @@
     </Style>
 
     <Style x:Key="AfWordmark" TargetType="Label">
-        <!-- Used for the title in the branded header — digital-7 reads as the AF brand. -->
+        <!-- Used for the title in the branded header; digital-7 reads as the AF brand. -->
         <Setter Property="FontFamily" Value="Digital7" />
         <Setter Property="FontSize" Value="22" />
         <Setter Property="TextColor" Value="{DynamicResource AfTextPrimary}" />

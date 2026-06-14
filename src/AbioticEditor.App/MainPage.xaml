@@ -8,7 +8,7 @@
              x:Class="AbioticEditor.App.MainPage"
              x:Name="Root"
              x:DataType="vm:MainViewModel"
-             Title="Abiotic Factor — Save Editor"
+             Title="Abiotic Factor: Save Editor"
              BackgroundColor="{StaticResource AfPageBackground}"
              Shell.NavBarIsVisible="False">
 
@@ -68,7 +68,7 @@
                         <!-- Compact selected-save header: title + meta chips + save controls -->
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                             <VerticalStackLayout Grid.Column="0" Spacing="3" VerticalOptions="Center">
-                                <Label Text="{Binding SelectedSave.DisplayName, FallbackValue='— select a save from the sidebar —'}"
+                                <Label Text="{Binding SelectedSave.DisplayName, FallbackValue='Select a save from the sidebar'}"
                                        Style="{StaticResource AfH1}"
                                        LineBreakMode="MiddleTruncation" />
                                 <HorizontalStackLayout Spacing="12">
@@ -83,7 +83,7 @@
                                 </HorizontalStackLayout>
                             </VerticalStackLayout>
 
-                            <!-- Player save controls — always visible at the top, no scrolling to save -->
+                            <!-- Player save controls: always visible at the top, no scrolling to save -->
                             <HorizontalStackLayout Grid.Column="1" Spacing="10" VerticalOptions="Center"
                                                    IsVisible="{Binding HasPlayerEditor}">
                                 <HorizontalStackLayout Spacing="8" VerticalOptions="Center"
@@ -130,7 +130,7 @@
                                                    WidthRequest="22" HeightRequest="22"
                                                    Color="{StaticResource AfAccentOrange}"
                                                    VerticalOptions="Center" />
-                                <Label Text="PARSING SAVE — large world saves can take a few seconds…"
+                                <Label Text="PARSING SAVE: large world saves can take a few seconds…"
                                        Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                             </HorizontalStackLayout>
                         </Border>

@@ -2121,7 +2121,7 @@ public sealed class LeyakContainmentViewModel : INotifyPropertyChanged
                 return;
             }
             var terminal = Core.PlayerSaves.RespawnTerminalCatalog.NearestTo(unit.X, unit.Y, unit.Z);
-            RegionText = $"{terminal.LocationName} — at world position ({unit.X:0}, {unit.Y:0}, {unit.Z:0}).";
+            RegionText = $"{terminal.LocationName}, at world position ({unit.X:0}, {unit.Y:0}, {unit.Z:0}).";
         }
         catch
         {

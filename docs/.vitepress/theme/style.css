@@ -10,7 +10,7 @@
  */
 
 /* ----------------------------------------------------------------------------
- * LIGHT — Cascade Light (paper-blue facility readout)
+ * LIGHT: Cascade Light (paper-blue facility readout)
  *
  * Light lives in :root as the base; dark overrides it in .dark below. Order
  * matters: :root and .dark have equal specificity, so the dark block has to
@@ -73,7 +73,7 @@
 }
 
 /* ----------------------------------------------------------------------------
- * DARK — Cascade Dark (the shipped, game-accurate look)
+ * DARK: Cascade Dark (the shipped, game-accurate look)
  * ------------------------------------------------------------------------- */
 .dark {
   --af-shell: #081119;

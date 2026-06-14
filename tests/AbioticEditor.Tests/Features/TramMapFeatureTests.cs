@@ -12,7 +12,7 @@ namespace AbioticEditor.Tests.Features;
 /// error result.
 ///
 /// <para>All tests skip gracefully when the fixture file <c>WorldSave_Facility.sav</c> is
-/// absent — the same pattern used by <see cref="ElevatorMapFeatureTests"/> and every other
+/// absent, the same pattern used by <see cref="ElevatorMapFeatureTests"/> and every other
 /// feature test in this suite.</para>
 /// </summary>
 public sealed class TramMapFeatureTests
@@ -97,7 +97,7 @@ public sealed class TramMapFeatureTests
         Assert.True(r2.IsError, "SetField for 'inventories' should return an error");
 
         // An unknown field must also be rejected (error comes from the base class for unknown
-        // entry, or from ApplyField for known entry + unknown field — both are errors).
+        // entry, or from ApplyField for known entry + unknown field; both are errors).
         var r3 = feature.SetField(save, key, "nope", "anything");
         Assert.True(r3.IsError, "SetField for unknown field should return an error");
 

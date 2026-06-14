@@ -51,7 +51,7 @@ public sealed class TramMapFeature : WorldMapFeatureBase
 
     /// <inheritdoc/>
     public override string Description =>
-        "View tram state (last station, on-board inventory count) — currently view-only; no fields can be edited.";
+        "View tram state (last station, on-board inventory count); currently view-only, no fields can be edited.";
 
     /// <summary>
     /// Reads the tram entry struct into two read-only display fields.
@@ -71,7 +71,7 @@ public sealed class TramMapFeature : WorldMapFeatureBase
         //
         // Because SoftObjectPathStruct is declared internal we cannot pattern-match against
         // it directly from this assembly. Instead we read the public Value property via
-        // reflection — this is stable: the property has been public since the type was
+        // reflection. This is stable: the property has been public since the type was
         // introduced and is unlikely to be renamed. We fall back to null on any reflection
         // failure so the display field simply shows nothing rather than throwing.
         string? lastStation = null;
@@ -117,7 +117,7 @@ public sealed class TramMapFeature : WorldMapFeatureBase
     /// this method rejects every write until a validated path-picker is available. The
     /// read path is unaffected and works normally.</para>
     /// </remarks>
-    /// <param name="props">Unused — no field can be patched.</param>
+    /// <param name="props">Unused; no field can be patched.</param>
     /// <param name="fieldId">The field the caller wanted to set.</param>
     /// <param name="value">The value the caller supplied.</param>
     /// <returns>A <see cref="WorldEditResult"/> with <see cref="WorldEditResult.IsError"/> true.</returns>

@@ -28,7 +28,7 @@ public static class SpoilerService
     public const string Skill = "skill";
 
     /// <summary>Lore-flavoured mask copy (the facility's redaction stamps).</summary>
-    public const string ClassifiedTitle = "▓ CLASSIFIED — CLEARANCE REQUIRED";
+    public const string ClassifiedTitle = "▓ CLASSIFIED: CLEARANCE REQUIRED";
     public const string ClassifiedShort = "▓ CLASSIFIED";
     public const string Redacted = "[ DATA EXPUNGED ]";
     public const string ClassifiedHint = "Above your current clearance. Tap to override and reveal (you'll keep seeing it).";

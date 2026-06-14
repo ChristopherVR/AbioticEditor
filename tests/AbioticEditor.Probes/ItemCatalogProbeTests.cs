@@ -28,7 +28,7 @@ public class ItemCatalogProbeTests
         var mappings = GameAssetProvider.FindConventionalMappings();
         if (mappings is null)
         {
-            _output.WriteLine("No mappings.usmap — can't decode datatable properties.");
+            _output.WriteLine("No mappings.usmap; can't decode datatable properties.");
             return;
         }
 

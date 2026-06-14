@@ -185,7 +185,7 @@ public class DoorProbeTests
         var mappings = GameAssetProvider.FindConventionalMappings();
         if (mappings is null)
         {
-            _output.WriteLine("No mappings — skipping detailed inspection");
+            _output.WriteLine("No mappings; skipping detailed inspection");
             return;
         }
 

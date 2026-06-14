@@ -124,7 +124,7 @@ public class HealthAndRecipeTests
         var provider = GameAssetProvider.CreateForLocalInstall();
         if (provider is null || !provider.HasMappings)
         {
-            _output.WriteLine("No install/mappings — skipping.");
+            _output.WriteLine("No install/mappings; skipping.");
             return;
         }
 

@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
 
     <!--
-    Abiotic Factor palette — the game's own UI language: desaturated blue-teal
+    Abiotic Factor palette, the game's own UI language: desaturated blue-teal
     facility panes (inventory pane #306481 / outline #5292B7), cyan data readouts
     (#8CFFFB item names), POCKETS-header blue section titles (#71C5F6), hazard
     orange/yellow reserved for calls-to-action and warnings. ThemeService overwrites

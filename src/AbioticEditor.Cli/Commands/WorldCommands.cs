@@ -123,7 +123,7 @@ internal static class WorldCommands
                 var options = f.Options switch
                 {
                     { Count: > 0 and <= 12 } o => $"  [{string.Join("|", o)}]",
-                    { Count: > 12 } o => $"  ({o.Count} choices — see --json)",
+                    { Count: > 12 } o => $"  ({o.Count} choices, see --json)",
                     _ => "",
                 };
                 Console.WriteLine($"      {f.Id,-22}= {f.Value}{editable}{options}");

@@ -5,7 +5,7 @@ version: 2
 # validated commits (see README "Why submodules?"): the editor depends on
 # exact GVAS round-trip and current-master CUE4Parse behavior, and a pinned
 # commit guarantees a tested combination. Bumps are done by hand after
-# re-validating against the test fixtures — Dependabot must not move them.
+# re-validating against the test fixtures; Dependabot must not move them.
 
 updates:
   # --- .NET / NuGet (packages are centrally managed in Directory.Packages.props) ---

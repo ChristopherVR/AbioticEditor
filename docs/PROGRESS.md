@@ -20,7 +20,7 @@ host-UI bridge + Vite sample).
   the pad class, digs into the nested dynamic-property array): editable `tag` (Choice over the 134)
   + `frequency` (raw int 0..133). Lossless; pads sharing a tag link. Auto-discovered, so it appears
   in CLI `world` (`world show … teleporter-pads`, `world set … tag "The Reactors"`) and the App
-  WorldMapsPage with no extra wiring. CLI `show` summarises big choice lists ("134 choices — see
+  WorldMapsPage with no extra wiring. CLI `show` summarises big choice lists ("134 choices, see
   --json").
 - This supersedes Round-27's PortalMap note: PortalMap = fixed world teleporters (active only); the
   player-facing teleporter **tags** are the Teleporter Pad frequencies handled here.
@@ -357,17 +357,17 @@ host-UI bridge + Vite sample).
 - **JS `abiotic.registerWebTool`** (`JsWebTool` + `JsWebToolContext.playerSummaryJson()`).
 - **Host-UI bridge** (`IHostUi` + `NullHostUi` in SDK; `IPluginHost.Ui`; Core
   `PluginHostEnvironment.HostUi`; App `AppHostUi` marshals to UI thread; JS `abiotic.ui`):
-  plugins drive the app — `showAlert/confirm/toast`, `runSaveOperation(id)` (runs through the
+  plugins drive the app via `showAlert/confirm/toast`, `runSaveOperation(id)` (runs through the
   backup/write path + reloads), `reloadSave`, `openSettings/openPlugins`. Installed in App ctor
   via `PluginService.InstallHostUi`. CLI/tests get the no-op NullHostUi.
 - **3 web JS samples**: `ReactDashboard` (inline React from CDN), `WebStats` (offline HTML in a
-  bundled `web/` folder), and **`ReactAppDashboard`** — a real Vite+React project (`app/`:
+  bundled `web/` folder), and **`ReactAppDashboard`**, a real Vite+React project (`app/`:
   package.json, vite.config base:'./' + vite-plugin-singlefile, src/*) built to a single
   self-contained `dist/index.html`; its React UI reads the save AND drives the app (Max-skills
   button → `abiotic.ui.runSaveOperation`, toast button → `abiotic.ui.toast`). `npm run build`
   verified (147KB inlined, no external scripts → file:// safe).
 - `WebToolContext` re-reads the save per request (live dashboard sees edits). NOTE: the user
-  concurrently added an `ISaveUpgrader` capability (saveUpgrader token) — integrated alongside.
+  concurrently added an `ISaveUpgrader` capability (saveUpgrader token), integrated alongside.
 - **Verified**: Core/CLI build clean; App builds clean to temp output; Vite app builds; CLI loads
   all web samples (ReactAppDashboard registers its save op). **306 tests green** (+ web-tool
   registration/bridge round-trip, JS→app-UI bridge: showAlert/toast/runSaveOperation reach host).
@@ -408,7 +408,7 @@ host-UI bridge + Vite sample).
   System.CommandLine; refs only UeSaveGame). Host-agnostic contracts plugin authors compile
   against: `IAbioticPlugin` (single entry, `Configure(registry, host)`), `IPluginHost`/
   `IPluginLog`/`IPluginRegistry`, `PluginManifest` (+`PluginCapabilities` tokens), and three
-  capability interfaces — `ISaveOperation` (+context/result/params, `SaveKind`), `IConsoleCommand`
+  capability interfaces: `ISaveOperation` (+context/result/params, `SaveKind`), `IConsoleCommand`
   (+neutral arg/option/context), `IEditorTool` (UI view returned as `object` so the SDK stays
   MAUI-free). CA1716 on `Error` suppressed (GlobalSuppressions, justified).
 - **Hosting in `Core/Plugins/`**: `PluginPaths` (user `%LOCALAPPDATA%\AbioticEditor\plugins`
@@ -442,7 +442,7 @@ host-UI bridge + Vite sample).
   guard. **290 assertion tests green** (21 new `PluginTests`: manifest IO, discovery+dedup,
   kind detection, runner write/backup/dry-run/no-change/required-params).
 
-## Round-14: fish journal detail — unlocks + catch requirements (2026-06-13)
+## Round-14: fish journal detail (unlocks + catch requirements) (2026-06-13)
 - **DT_Fish fully modelled** (`CodexCatalog.FishDefinition` + `BuildFish`): besides item/rare,
   now carries `Location` (FishName FText = water/biome), `UnlockRecipeId` (RecipeToUnlock),
   `RequiredWorldFlag`, `RequiredDlcId`, `RequiredBaitTag` (first `Fishing.Bait.*` tag in the
@@ -458,7 +458,7 @@ host-UI bridge + Vite sample).
   - TO CATCH IT: location ("cast where there's …"), story-flag gate, a **specific** time-of-day
     sentence computed from the multipliers (e.g. "Only bites at night", "Bites best at dawn,
     midday and dusk"), DLC, plus an EQUIP-THIS-BAIT row naming the exact required bait
-    (rare variants; resolved from RequiredBaitTag) — also tappable.
+    (rare variants; resolved from RequiredBaitTag), also tappable.
   - Tapping either bait calls `MainViewModel.ShowItemEncyclopedia(baitId)`; `ShowItemPalette`
     now also surfaces on the codex tab once an item is selected, so the bait opens in the slot
     editor sidebar (same path as the dropped-item encyclopedia).
@@ -685,10 +685,10 @@ frontend can reuse them. Move data (records/strings), not behaviour - no descrip
 
 ## Round-8: phantom-dirty fix + nav/ini polish (2026-06-13)
 - **Phantom discard dialog on tab→save switch FIXED**: two binding write-backs were
-  dirtying clean player saves. (1) SKILLS XP slider clamp-wrote real XP — `MaxXp` now
+  dirtying clean player saves. (1) SKILLS XP slider clamp-wrote real XP, so `MaxXp` now
   accommodates over-cap end-game XP, `XpSliderValue` rejects the platform slider's
   default-range (0..1) init-clamp (`value <= 1 && _xp > 1`) and tolerates sub-0.5 drift;
-  (2) SPAWN region/terminal pickers replayed stored values during binding churn — snaps
+  (2) SPAWN region/terminal pickers replayed stored values during binding churn, so snaps
   now guard against the save's own baseline. Diagnostics: `PlayerEditorViewModel.DescribeDirty()`
   lists every dirty contributor; the leave-gate logs `Leave-gate for <file>: …` when a
   player save is dirty (App channel). Fixture tab-walk + save-switch now clean.

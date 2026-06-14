@@ -1,7 +1,7 @@
-// Web Stats — a JavaScript plugin with an OFFLINE HTML web tool.
+// Web Stats: a JavaScript plugin with an OFFLINE HTML web tool.
 //
 // Unlike ReactDashboard (inline HTML pulling React from a CDN), this one serves a bundled
-// folder of static assets — no internet, no build step, no framework. It shows the
+// folder of static assets: no internet, no build step, no framework. It shows the
 // directory-served path: `rootDirectory` is resolved against the plugin's own folder, so the
 // page lives in ./web/index.html and talks to the plugin through the same host bridge.
 

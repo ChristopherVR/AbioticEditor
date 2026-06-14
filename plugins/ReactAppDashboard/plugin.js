@@ -1,4 +1,4 @@
-// React App Dashboard — the JavaScript glue for a full Vite + React plugin UI.
+// React App Dashboard: the JavaScript glue for a full Vite + React plugin UI.
 //
 // The UI is a real Vite + React app under ./app, built to a single self-contained file at
 // ./app/dist/index.html. This script:

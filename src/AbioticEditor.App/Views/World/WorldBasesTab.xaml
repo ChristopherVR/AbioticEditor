@@ -172,7 +172,7 @@
                     Stroke="{StaticResource AfBorderSubtleBrush}"
                     StrokeThickness="1" StrokeShape="Rectangle" Padding="0">
                 <VerticalStackLayout Spacing="0">
-                    <Label Text="CONTAINERS IN THIS BASE — CLICK ONE TO OPEN IT ON THE MAP"
+                    <Label Text="CONTAINERS IN THIS BASE: CLICK ONE TO OPEN IT ON THE MAP"
                            Style="{StaticResource AfFieldLabel}" Padding="14,8,14,4" />
                     <CollectionView ItemsSource="{Binding WorldEditor.SelectedBaseContainers}"
                                     SelectionMode="Single"
