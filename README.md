@@ -162,7 +162,32 @@ the CLI via `abioticeditor update`).
 | `AbioticEditor-cli-linux-x64.zip` | Command-line tool (Linux) |
 | `AbioticEditor-cli-osx-x64.zip` / `-osx-arm64.zip` | Command-line tool (macOS) |
 
-> macOS builds are unsigned, so Gatekeeper warns on first launch; right-click the app and
+Each release also ships a `SHA256SUMS.txt` so you can verify a download.
+
+### Windows: "unknown publisher" / SmartScreen
+
+The Windows builds are **not code-signed** (a certificate that clears those warnings costs
+money this free, fan-made tool doesn't spend). So Windows will say the publisher is unknown,
+and SmartScreen / your antivirus may warn the first time you run it. The download is safe;
+the warning is just the absence of a paid signature. You have two ways around it:
+
+**Install with [Scoop](https://scoop.sh/) (no warning).** A command-line install skips the
+SmartScreen prompt entirely and gives you one-command upgrades:
+
+```console
+scoop bucket add abiotic-editor https://github.com/ChristopherVR/AbioticEditor
+scoop install abiotic-editor          # desktop app
+scoop install abiotic-editor-cli      # command-line tool
+scoop update  abiotic-editor          # later, to upgrade
+```
+
+Scoop verifies each download against the SHA-256 pinned in the manifest before extracting it.
+
+**Or run the zip download directly.** Right-click the downloaded `.zip` ▸ **Properties** ▸
+tick **Unblock** ▸ **OK**, then unzip and run `AbioticEditor.App.exe`. If SmartScreen still
+shows "Windows protected your PC", click **More info ▸ Run anyway**.
+
+> macOS builds are unsigned too, so Gatekeeper warns on first launch; right-click the app and
 > choose **Open** to run it.
 
 ### Where are my saves?

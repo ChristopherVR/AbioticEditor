@@ -364,6 +364,14 @@ jobs:
     if: needs.version.outputs.released == 'true'
     runs-on: ubuntu-latest
     steps:
+      # Check out main so we can refresh and commit the Scoop bucket manifests
+      # (bucket/*.json) after we know the published assets' hashes. No submodules:
+      # this job does not compile anything.
+      - name: Checkout main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+
       - name: Download all artifacts
         uses: actions/download-artifact@v8
         with:
@@ -373,6 +381,15 @@ jobs:
 
       - name: Show downloaded files
         run: ls -R dist
+
+      # SHA-256 of every published zip, attached to the release so users can verify
+      # an unsigned download. Also the source of truth for the Scoop manifest hashes.
+      - name: Generate checksums
+        run: |
+          set -euo pipefail
+          ( cd dist && sha256sum *.zip > SHA256SUMS.txt )
+          echo "----- SHA256SUMS.txt -----"
+          cat dist/SHA256SUMS.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
@@ -393,6 +410,56 @@ jobs:
             dist/AbioticEditor-app-win-x64.zip
             dist/AbioticEditor-app-osx-x64.zip
             dist/AbioticEditor-app-osx-arm64.zip
+            dist/SHA256SUMS.txt
+
+      # Point the Scoop bucket at this release: rewrite version + url + hash in the
+      # committed manifests from the actual published Windows zips, then commit back
+      # to main. Scoop installs/upgrades read these, and a CLI install sidesteps the
+      # SmartScreen prompt that a browser download triggers on the unsigned exe.
+      # Runs AFTER the release is published and is best-effort (continue-on-error): a
+      # stale bucket is a minor follow-up, never a reason to fail a shipped release.
+      # Idempotent: on a republish the values are unchanged, so nothing is committed.
+      - name: Refresh and commit Scoop manifests
+        continue-on-error: true
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          app_hash="$(sha256sum dist/AbioticEditor-app-win-x64.zip | cut -d' ' -f1)"
+          cli_hash="$(sha256sum dist/AbioticEditor-cli-win-x64.zip | cut -d' ' -f1)"
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${VERSION}"
+
+          jq --arg v "$VERSION" --arg h "$app_hash" \
+             --arg u "${base}/AbioticEditor-app-win-x64.zip" \
+             '.version=$v | .architecture["64bit"].url=$u | .architecture["64bit"].hash=$h' \
+             bucket/abiotic-editor.json > bucket/abiotic-editor.json.tmp
+          mv bucket/abiotic-editor.json.tmp bucket/abiotic-editor.json
+
+          jq --arg v "$VERSION" --arg h "$cli_hash" \
+             --arg u "${base}/AbioticEditor-cli-win-x64.zip" \
+             '.version=$v | .architecture["64bit"].url=$u | .architecture["64bit"].hash=$h' \
+             bucket/abiotic-editor-cli.json > bucket/abiotic-editor-cli.json.tmp
+          mv bucket/abiotic-editor-cli.json.tmp bucket/abiotic-editor-cli.json
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bucket/abiotic-editor.json bucket/abiotic-editor-cli.json
+          if git diff --cached --quiet; then
+            echo "Scoop manifests already current; nothing to commit."
+            exit 0
+          fi
+          git commit -m "chore(scoop): point bucket at v${VERSION} [skip ci]"
+          # Rebase-retry in case main advanced while this release ran.
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              echo "Pushed Scoop manifest bump."
+              exit 0
+            fi
+            echo "Push rejected (attempt ${attempt}); rebasing on origin/main."
+            git fetch origin main
+            git rebase origin/main
+          done
+          echo "::warning::Could not push Scoop manifest bump after 3 attempts."
 
   # Pack the library packages off the new tag and push them to nuget.org.
   # AbioticEditor.Plugins.Abstractions is what plugin authors compile against;
