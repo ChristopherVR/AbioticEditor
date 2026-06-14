@@ -75,3 +75,10 @@ sort_commits = "newest"
 #   feat  -> minor, fix/perf/etc -> patch, BREAKING CHANGE / `!` -> major.
 features_always_bump_minor = true
 breaking_always_bump_major = true
+# First-release version, used only when the repo has NO tags yet. Without this,
+# git-cliff defaults the first version to "0.1.0" - which has no leading "v" and so
+# fails the tag_pattern check above ("Next version (0.1.0) does not match the tag
+# pattern: v[0-9]*"), breaking `--bumped-version` and `--bump` on the very first run.
+# "v1.0.0" both satisfies the pattern and matches <Version> in Directory.Build.props
+# (the source of truth). Used once; after the first tag exists, that tag drives the bump.
+initial_tag = "v1.0.0"
