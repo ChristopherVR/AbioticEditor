@@ -21,10 +21,14 @@ public sealed class WorldSaveData
         IReadOnlyList<string>? globalRecipes = null,
         IReadOnlyList<WorldDroppedItem>? droppedItems = null,
         IReadOnlyList<WorldNpc>? npcs = null,
-        IReadOnlyList<WorldDeployable>? deployables = null)
+        IReadOnlyList<WorldDeployable>? deployables = null,
+        IReadOnlyList<WorldPet>? pets = null,
+        IReadOnlyList<WorldVehicle>? vehicles = null)
     {
         DroppedItems = droppedItems ?? Array.Empty<WorldDroppedItem>();
         Npcs = npcs ?? Array.Empty<WorldNpc>();
+        Pets = pets ?? Array.Empty<WorldPet>();
+        Vehicles = vehicles ?? Array.Empty<WorldVehicle>();
         Deployables = deployables ?? Array.Empty<WorldDeployable>();
         Raw = raw;
         Containers = containers;
@@ -84,6 +88,12 @@ public sealed class WorldSaveData
 
     /// <summary>Story NPCs / traders (<c>NarrativeNPCMap</c>).</summary>
     public IReadOnlyList<WorldNpc> Npcs { get; }
+
+    /// <summary>Tamed companions (<c>PetNPC</c>).</summary>
+    public IReadOnlyList<WorldPet> Pets { get; }
+
+    /// <summary>Spawned vehicles (<c>VehicleMap</c>, region saves).</summary>
+    public IReadOnlyList<WorldVehicle> Vehicles { get; }
 
     /// <summary>Every player-placed object with its world position (base manager / map).</summary>
     public IReadOnlyList<WorldDeployable> Deployables { get; }

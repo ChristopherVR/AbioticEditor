@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             x:Class="AbioticEditor.App.Views.Player.PlayerPetsTab"
+             x:Name="Root"
+             x:DataType="vm:MainViewModel">
+
+    <!-- ============== Player TAB: Companions (carried pets) ============== -->
+    <VerticalStackLayout Spacing="12" IsVisible="{Binding PlayerEditor.IsPetsTab}">
+        <Label Text="CARRIED PETS / COMPANIONS" Style="{StaticResource AfH2}" FontSize="18" />
+        <Label Text="Pets this player carries as items - in the Companion slot, the hotbar, or the backpack. Click one to rename it, change its variant, set its level (XP) or health, or remove it. Edits stage until SAVE. Move pets between a player and the world with the CLI ('pet send' / 'pet grab')."
+               Style="{StaticResource AfMuted}" FontSize="11" />
+
+        <controls:AdaptiveGrid ColumnDefinitions="2*,3*" ColumnSpacing="16" HeightRequest="560"
+                               StackedChildHeight="420">
+            <!-- Master list -->
+            <Border Grid.Column="0"
+                    BackgroundColor="{StaticResource AfShellBackground}"
+                    Stroke="{StaticResource AfBorderSubtleBrush}"
+                    StrokeThickness="1" StrokeShape="Rectangle" Padding="0">
+                <CollectionView ItemsSource="{Binding PlayerEditor.CarriedPets}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding PlayerEditor.SelectedCarriedPet, Mode=TwoWay}">
+                    <CollectionView.EmptyView>
+                        <Label Text="This player is carrying no pets." Style="{StaticResource AfMuted}" Padding="16" />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="items:CarriedPetViewModel">
+                            <Grid Padding="12,8" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                <VerticalStackLayout Grid.Column="0" Spacing="1" VerticalOptions="Center">
+                                    <Label Text="{Binding DisplayName}" Style="{StaticResource AfFieldValue}" FontSize="13"
+                                           LineBreakMode="TailTruncation" />
+                                    <Label Text="{Binding SlotText}" Style="{StaticResource AfStatusText}" FontSize="10" />
+                                </VerticalStackLayout>
+                                <Label Grid.Column="1" Text="{Binding StatusText}"
+                                       Style="{StaticResource AfFieldLabel}" FontSize="9" VerticalOptions="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Border>
+
+            <!-- Detail editor -->
+            <Border Grid.Column="1"
+                    BackgroundColor="{StaticResource AfShellBackground}"
+                    Stroke="{StaticResource AfBorderSubtleBrush}"
+                    StrokeThickness="1" StrokeShape="Rectangle" Padding="18,14">
+                <Grid>
+                    <Label Text="Select a pet to edit it."
+                           Style="{StaticResource AfMuted}"
+                           IsVisible="{Binding PlayerEditor.HasSelectedCarriedPet, Converter={StaticResource BoolNegate}}" />
+                    <ScrollView IsVisible="{Binding PlayerEditor.HasSelectedCarriedPet}">
+                        <VerticalStackLayout Spacing="12">
+                            <Label Text="{Binding PlayerEditor.SelectedCarriedPet.DisplayName}"
+                                   Style="{StaticResource AfH2}" FontSize="18" />
+                            <Label Text="{Binding PlayerEditor.SelectedCarriedPet.SlotText}"
+                                   Style="{StaticResource AfStatusText}" />
+
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="NAME" Style="{StaticResource AfFieldLabel}" />
+                                <Entry Text="{Binding PlayerEditor.SelectedCarriedPet.Name, Mode=TwoWay}"
+                                       Placeholder="name your pet…"
+                                       BackgroundColor="{StaticResource AfPanelElevated}" TextColor="{StaticResource AfTextPrimary}" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="VARIANT" Style="{StaticResource AfFieldLabel}" />
+                                <Picker ItemsSource="{Binding PlayerEditor.SelectedCarriedPet.VariantNames}"
+                                        SelectedItem="{Binding PlayerEditor.SelectedCarriedPet.SelectedVariantName, Mode=TwoWay}"
+                                        BackgroundColor="{StaticResource AfPanelElevated}" TextColor="{StaticResource AfTextPrimary}" />
+                            </VerticalStackLayout>
+
+                            <BoxView Style="{StaticResource AfDivider}" />
+
+                            <Label Text="LEVEL &amp; XP" Style="{StaticResource AfFieldLabel}" TextColor="{DynamicResource AfHazardYellow}" />
+                            <Grid ColumnDefinitions="Auto,*,Auto,110" ColumnSpacing="10">
+                                <Label Grid.Column="0" Text="LV" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                <Stepper Grid.Column="1" Minimum="0" Maximum="20" Increment="1"
+                                         Value="{Binding PlayerEditor.SelectedCarriedPet.Level, Mode=TwoWay}" VerticalOptions="Center" />
+                                <Label Grid.Column="2" Text="XP" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                <Entry Grid.Column="3" Text="{Binding PlayerEditor.SelectedCarriedPet.Xp, Mode=TwoWay}"
+                                       Keyboard="Numeric" FontFamily="Digital7" FontSize="15"
+                                       TextColor="{StaticResource AfTerminalGreen}" BackgroundColor="{StaticResource AfPanelElevated}"
+                                       HorizontalTextAlignment="Center" />
+                            </Grid>
+
+                            <BoxView Style="{StaticResource AfDivider}" />
+
+                            <Label Text="HEALTH" Style="{StaticResource AfFieldLabel}" TextColor="{DynamicResource AfTerminalGreen}" />
+                            <Grid ColumnDefinitions="Auto,120,Auto,120,Auto" ColumnSpacing="10">
+                                <Label Grid.Column="0" Text="HP" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                <Entry Grid.Column="1" Text="{Binding PlayerEditor.SelectedCarriedPet.Health, Mode=TwoWay}"
+                                       Keyboard="Numeric" FontSize="12"
+                                       BackgroundColor="{StaticResource AfPanelElevated}" TextColor="{StaticResource AfTextPrimary}" />
+                                <Label Grid.Column="2" Text="MAX" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                <Entry Grid.Column="3" Text="{Binding PlayerEditor.SelectedCarriedPet.MaxHealth, Mode=TwoWay}"
+                                       Keyboard="Numeric" FontSize="12"
+                                       BackgroundColor="{StaticResource AfPanelElevated}" TextColor="{StaticResource AfTextPrimary}" />
+                                <Button Grid.Column="4" Text="HEAL" FontSize="10" Padding="10,4"
+                                        BackgroundColor="{StaticResource AfTerminalGreen}" TextColor="{StaticResource AfTextOnAccent}"
+                                        Command="{Binding PlayerEditor.SelectedCarriedPet.HealCommand}" />
+                            </Grid>
+
+                            <BoxView Style="{StaticResource AfDivider}" />
+
+                            <Button Text="REMOVE FROM INVENTORY" FontSize="11" Padding="12,6"
+                                    BackgroundColor="{StaticResource AfAlertRed}" TextColor="{StaticResource AfTextOnAccent}"
+                                    Command="{Binding PlayerEditor.SelectedCarriedPet.DeleteCommand}"
+                                    IsVisible="{Binding PlayerEditor.SelectedCarriedPet.IsDeleted, Converter={StaticResource BoolNegate}, FallbackValue=True}" />
+                            <Button Text="UNDO REMOVE" FontSize="11" Padding="12,6"
+                                    BackgroundColor="{StaticResource AfHazardYellow}" TextColor="{StaticResource AfTextOnAccent}"
+                                    Command="{Binding PlayerEditor.SelectedCarriedPet.DeleteCommand}"
+                                    IsVisible="{Binding PlayerEditor.SelectedCarriedPet.IsDeleted, FallbackValue=False}" />
+
+                            <!-- Move this pet into a world save (cross-save) -->
+                            <BoxView Style="{StaticResource AfDivider}" IsVisible="{Binding PlayerEditor.HasSiblingWorlds}" />
+                            <VerticalStackLayout Spacing="6" IsVisible="{Binding PlayerEditor.HasSiblingWorlds}">
+                                <Label Text="SEND TO A WORLD" Style="{StaticResource AfFieldLabel}"
+                                       TextColor="{DynamicResource AfTerminalGreen}" />
+                                <Picker ItemsSource="{Binding PlayerEditor.SiblingWorlds}"
+                                        SelectedItem="{Binding PlayerEditor.SelectedSiblingWorld, Mode=TwoWay}"
+                                        BackgroundColor="{StaticResource AfPanelElevated}" TextColor="{StaticResource AfTextPrimary}" />
+                                <Button Text="SEND TO WORLD" FontSize="11" Padding="12,6" HorizontalOptions="Start"
+                                        BackgroundColor="{StaticResource AfTerminalGreen}" TextColor="{StaticResource AfTextOnAccent}"
+                                        Command="{Binding PlayerEditor.SendPetToWorldCommand}" />
+                                <Label Text="{Binding PlayerEditor.PetMoveStatus}" Style="{StaticResource AfMuted}" FontSize="10"
+                                       IsVisible="{Binding PlayerEditor.PetMoveStatus, Converter={StaticResource NullToBoolConverter}, FallbackValue=False}" />
+                                <Label Text="Placed at a pet bed in that world (or its origin). Health, level and name carry over. Save other player edits first."
+                                       Style="{StaticResource AfMuted}" FontSize="9" />
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </ScrollView>
+                </Grid>
+            </Border>
+        </controls:AdaptiveGrid>
+    </VerticalStackLayout>
+</ContentView>

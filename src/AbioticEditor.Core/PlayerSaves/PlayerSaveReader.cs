@@ -5,6 +5,7 @@ using UeSaveGame.StructData;
 using AbioticEditor.Core.Saves;
 
 using AbioticEditor.Core.SaveClasses;
+using AbioticEditor.Core.WorldSaves;
 
 namespace AbioticEditor.Core.PlayerSaves;
 
@@ -86,7 +87,8 @@ public static class PlayerSaveReader
             respawnY: respawn.Y,
             respawnZ: respawn.Z,
             respawnLevelGuid: root.GetString("LastSafeWorldGUID_"),
-            terminalRespawnId: root.GetString("TerminalRespawnID_"));
+            terminalRespawnId: root.GetString("TerminalRespawnID_"),
+            carriedPets: ReadCarriedPets(root));
 
         LogUnmodeledKeys(root);
         return data;
@@ -361,5 +363,75 @@ public static class PlayerSaveReader
 
     private static InventoryItemSlot EmptySlot(int index)
         => new(index, null, 0, 0, 0, 0, 0, null, false, null, null);
+
+    // ---------- carried pets ----------
+
+    /// <summary>
+    /// Scans the equipment / hotbar / main arrays for <c>Item.Pet</c> rows and reads each as a
+    /// <see cref="CarriedPet"/> (durability = health, <c>DynamicProperties_</c> = XP / mutation).
+    /// </summary>
+    private static List<CarriedPet> ReadCarriedPets(IList<FPropertyTag> root)
+    {
+        var result = new List<CarriedPet>();
+        ReadCarriedPetsFrom(root, "EquipmentInventory_", PetSlotKind.Equipment, result);
+        ReadCarriedPetsFrom(root, "HotbarInventory_", PetSlotKind.Hotbar, result);
+        ReadCarriedPetsFrom(root, "Inventory_", PetSlotKind.Main, result);
+        return result;
+    }
+
+    private static void ReadCarriedPetsFrom(IList<FPropertyTag> root, string prefix, PetSlotKind kind, List<CarriedPet> result)
+    {
+        if (root.FindByPrefix(prefix)?.Property is not ArrayProperty array || array.Value is null) return;
+
+        for (var i = 0; i < array.Value.Length; i++)
+        {
+            if (array.Value.GetValue(i) is not StructProperty slot || slot.Value is not PropertiesStruct sps) continue;
+
+            string? row = null;
+            if (sps.Properties.FindByPrefix("ItemDataTable_")?.Property is StructProperty rh && rh.Value is PropertiesStruct rhp)
+            {
+                row = rhp.Properties.GetString("RowName");
+            }
+            if (!PetItemCatalog.IsPetItem(row)) continue;
+
+            double health = 0, maxHealth = 0;
+            if (sps.Properties.FindByPrefix("ChangeableData_")?.Property is StructProperty cd && cd.Value is PropertiesStruct cdps)
+            {
+                var p = cdps.Properties;
+                health = p.GetDouble("CurrentItemDurability_");
+                maxHealth = p.GetDouble("MaxItemDurability_");
+            }
+            var name = sps.Properties.FindByPrefix("ChangeableData_")?.Property is StructProperty cd2 && cd2.Value is PropertiesStruct cdp2
+                ? cdp2.Properties.GetString("PlayerMadeString_")
+                : null;
+
+            result.Add(new CarriedPet(
+                kind, i, row!,
+                string.IsNullOrEmpty(name) ? null : name,
+                health, maxHealth,
+                Xp: ReadSlotDynamicInt(sps, "XP"),
+                MutationProgress: ReadSlotDynamicInt(sps, "MutationProgress"),
+                PetMutation: ReadSlotDynamicInt(sps, "PetMutation")));
+        }
+    }
+
+    /// <summary>Reads one int from a slot's <c>ChangeableData_ -> DynamicProperties_</c> by enum tail.</summary>
+    private static int ReadSlotDynamicInt(PropertiesStruct slot, string keySuffix)
+    {
+        if (slot.Properties.FindByPrefix("ChangeableData_")?.Property is not StructProperty cd
+            || cd.Value is not PropertiesStruct cdps) return 0;
+        if (cdps.Properties.FindByPrefix("DynamicProperties_")?.Property is not ArrayProperty ap || ap.Value is null) return 0;
+
+        for (var i = 0; i < ap.Value.Length; i++)
+        {
+            if (ap.Value.GetValue(i) is not StructProperty e || e.Value is not PropertiesStruct eps) continue;
+            var key = eps.Properties.FindByPrefix("Key")?.Property?.Value?.ToString();
+            if (key is not null && key.EndsWith("::" + keySuffix, StringComparison.Ordinal))
+            {
+                return eps.Properties.FindByPrefix("Value")?.Property?.Value switch { int ii => ii, long ll => (int)ll, _ => 0 };
+            }
+        }
+        return 0;
+    }
 
 }

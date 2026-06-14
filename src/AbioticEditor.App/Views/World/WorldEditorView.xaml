@@ -105,6 +105,14 @@
                             Command="{Binding WorldEditor.ShowNpcsCommand}"
                             BackgroundColor="{Binding WorldEditor.IsNpcsTab, Converter={StaticResource TabBrush}}"
                             IsVisible="{Binding WorldEditor.HasNpcs}" />
+                    <Button Text="PETS" Style="{StaticResource AfTabButton}"
+                            Command="{Binding WorldEditor.ShowPetsCommand}"
+                            BackgroundColor="{Binding WorldEditor.IsPetsTab, Converter={StaticResource TabBrush}}"
+                            IsVisible="{Binding WorldEditor.HasPets}" />
+                    <Button Text="VEHICLES" Style="{StaticResource AfTabButton}"
+                            Command="{Binding WorldEditor.ShowVehiclesCommand}"
+                            BackgroundColor="{Binding WorldEditor.IsVehiclesTab, Converter={StaticResource TabBrush}}"
+                            IsVisible="{Binding WorldEditor.HasVehicles}" />
                     <Button Text="BASES" Style="{StaticResource AfTabButton}"
                             Command="{Binding WorldEditor.ShowBasesCommand}"
                             BackgroundColor="{Binding WorldEditor.IsBasesTab, Converter={StaticResource TabBrush}}"
@@ -133,6 +141,12 @@
             </controls:LazyView>
             <controls:LazyView IsActive="{Binding WorldEditor.IsNpcsTab}">
                 <controls:LazyView.ContentTemplate><DataTemplate><world:WorldNpcsTab /></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding WorldEditor.IsPetsTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><world:WorldPetsTab /></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding WorldEditor.IsVehiclesTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><world:WorldVehiclesTab /></DataTemplate></controls:LazyView.ContentTemplate>
             </controls:LazyView>
             <controls:LazyView IsActive="{Binding WorldEditor.IsBasesTab}">
                 <controls:LazyView.ContentTemplate><DataTemplate><world:WorldBasesTab /></DataTemplate></controls:LazyView.ContentTemplate>

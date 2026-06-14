@@ -54,6 +54,7 @@ public static class WorldSaveReader
         var containers = new List<WorldContainer>();
         containers.AddRange(ReadDeployedContainers(save));
         containers.AddRange(ReadCustomInventoryContainers(save));
+        containers.AddRange(ReadVehicleContainers(save));
 
         var flags = ReadWorldFlags(save);
         var doors = ReadDoors(save);
@@ -65,11 +66,13 @@ public static class WorldSaveReader
         var globalRecipes = ReadGlobalRecipes(save);
         var droppedItems = ReadDroppedItems(save);
         var npcs = ReadNpcs(save);
+        var pets = ReadPets(save);
+        var vehicles = ReadVehicles(save);
         var deployables = ReadDeployables(save);
 
         LogUnmodeledKeys(save);
 
-        return new WorldSaveData(save, containers, flags, doors, story, minutes, globalRecipes, droppedItems, npcs, deployables);
+        return new WorldSaveData(save, containers, flags, doors, story, minutes, globalRecipes, droppedItems, npcs, deployables, pets, vehicles);
     }
 
     // Top-level prefixes this reader consumes. Anything else in a save is data the
@@ -211,15 +214,102 @@ public static class WorldSaveReader
     }
 
     /// <summary>
-    /// Reads <c>NarrativeNPCMap</c> (story NPCs / traders) and <c>PetNPC</c> (tamed
-    /// companions) - both carry the same <c>SaveData_NPCState_Struct</c>.
+    /// Reads <c>NarrativeNPCMap</c> (story NPCs / traders). Tamed companions live in
+    /// <c>PetNPC</c> and are read separately by <see cref="ReadPets"/>; both maps share
+    /// the same <c>SaveData_NPCState_Struct</c>, but pets fill the pet-specific fields.
     /// </summary>
     private static List<WorldNpc> ReadNpcs(SaveGame save)
     {
         var result = new List<WorldNpc>();
         ReadNpcMap(save, "NarrativeNPCMap", isPet: false, result);
-        ReadNpcMap(save, "PetNPC", isPet: true, result);
         return result;
+    }
+
+    /// <summary>
+    /// Reads the <c>PetNPC</c> map: per-pet name, life flag, creature class, location,
+    /// per-limb health (<c>CurrentHealthMap_</c>) and XP (<c>DynamicProperties_</c>).
+    /// </summary>
+    private static List<WorldPet> ReadPets(SaveGame save)
+    {
+        var result = new List<WorldPet>();
+        var pairs = GetMapPairs(save.Properties, "PetNPC");
+        if (pairs is null) return result;
+
+        foreach (var kvp in pairs)
+        {
+            var id = ExtractMapKeyString(kvp.Key);
+            if (id is null) continue;
+            if (kvp.Value is not StructProperty sp || sp.Value is not PropertiesStruct ps) continue;
+
+            var p = ps.Properties;
+            var isDead = p.TryGetBool("IsDead_") ?? false;
+            var state = p.FindByPrefix("NarrativeState_")?.Property?.Value?.ToString();
+            var customName = p.FindByPrefix("CustomName_")?.Property?.Value?.ToString();
+            var npcClass = p.FindByPrefix("NPCClass_")?.Property?.Value?.ToString();
+
+            double x = 0, y = 0, z = 0;
+            if (p.FindByPrefix("Location_")?.Property is StructProperty locSp && locSp.Value is VectorStruct loc)
+            {
+                x = loc.Value.X;
+                y = loc.Value.Y;
+                z = loc.Value.Z;
+            }
+
+            var limbs = ReadLimbHealth(p);
+            var xp = ReadDynamicInt(p, "XP");
+
+            result.Add(new WorldPet(
+                id, isDead, npcClass, x, y, z,
+                string.IsNullOrEmpty(customName) ? null : customName,
+                limbs, xp, state));
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Reads <c>CurrentHealthMap_</c>: a map of <c>EBodyLimbs::*</c> (EnumProperty) to a
+    /// DoubleProperty current-health value. Keyed by the full enum string.
+    /// </summary>
+    private static Dictionary<string, double> ReadLimbHealth(IList<FPropertyTag> props)
+    {
+        var dict = new Dictionary<string, double>(StringComparer.Ordinal);
+        if (props.FindByPrefix("CurrentHealthMap_")?.Property is MapProperty mp && mp.Value is not null)
+        {
+            foreach (var kv in mp.Value)
+            {
+                var key = kv.Key?.Value?.ToString();
+                if (key is null) continue;
+                dict[key] = kv.Value?.Value is double d ? d : 0;
+            }
+        }
+        return dict;
+    }
+
+    /// <summary>
+    /// Reads one int from <c>DynamicProperties_</c> - an array of {Key (EnumProperty
+    /// <c>EDynamicProperty::*</c>), Value (IntProperty)} structs. Matches by enum tail
+    /// (e.g. <paramref name="keySuffix"/> = "XP"); returns 0 when absent.
+    /// </summary>
+    private static int ReadDynamicInt(IList<FPropertyTag> props, string keySuffix)
+    {
+        if (props.FindByPrefix("DynamicProperties_")?.Property is not ArrayProperty ap || ap.Value is null)
+            return 0;
+
+        for (var i = 0; i < ap.Value.Length; i++)
+        {
+            if (ap.Value.GetValue(i) is not StructProperty esp || esp.Value is not PropertiesStruct eps) continue;
+            var key = eps.Properties.FindByPrefix("Key")?.Property?.Value?.ToString();
+            if (key is not null && key.EndsWith("::" + keySuffix, StringComparison.Ordinal))
+            {
+                return eps.Properties.FindByPrefix("Value")?.Property?.Value switch
+                {
+                    int ii => ii,
+                    long ll => (int)ll,
+                    _ => 0,
+                };
+            }
+        }
+        return 0;
     }
 
     private static void ReadNpcMap(SaveGame save, string prefix, bool isPet, List<WorldNpc> result)
@@ -249,6 +339,85 @@ public static class WorldSaveReader
             }
             result.Add(new WorldNpc(id, isDead, state, x, y, z, isPet, customName, npcClass));
         }
+    }
+
+    /// <summary>
+    /// Reads <c>VehicleMap</c> (region saves): spawned vehicle actors with class, transform,
+    /// driveable/destroyed flags, and on-board inventory count. The on-board storage itself is
+    /// surfaced as <see cref="WorldContainerSource.Vehicle"/> containers (see
+    /// <see cref="ReadVehicleContainers"/>) so it reuses the full container slot editor.
+    /// </summary>
+    private static List<WorldVehicle> ReadVehicles(SaveGame save)
+    {
+        var result = new List<WorldVehicle>();
+        var pairs = GetMapPairs(save.Properties, "VehicleMap");
+        if (pairs is null) return result;
+
+        foreach (var kvp in pairs)
+        {
+            var id = ExtractMapKeyString(kvp.Key);
+            if (id is null) continue;
+            if (kvp.Value is not StructProperty sp || sp.Value is not PropertiesStruct ps) continue;
+
+            var p = ps.Properties;
+            var vehicleId = p.GetString("VehicleID_");
+            var vehicleClass = p.FindByPrefix("Class_")?.Property?.Value?.ToString();
+            var driveable = p.TryGetBool("VehicleDriveable_") ?? false;
+            var destroyed = p.TryGetBool("VehicleDestroyed_") ?? false;
+            var (x, y, z, qx, qy, qz, qw) = ReadTransform(p);
+
+            var inventories = ReadContainerInventoriesArray(p);
+            var itemCount = inventories.Sum(inv => inv.Slots.Count(s => !s.IsEmpty && s.ItemId != "Empty"));
+
+            result.Add(new WorldVehicle(
+                id, vehicleId, vehicleClass, driveable, destroyed,
+                x, y, z, qx, qy, qz, qw, itemCount, inventories.Count > 0));
+        }
+        return result;
+    }
+
+    /// <summary>Vehicle on-board storage as editable containers (mirrors <see cref="ReadDeployedContainers"/>).</summary>
+    private static IEnumerable<WorldContainer> ReadVehicleContainers(SaveGame save)
+    {
+        var pairs = GetMapPairs(save.Properties, "VehicleMap");
+        if (pairs is null) yield break;
+
+        foreach (var kvp in pairs)
+        {
+            var key = ExtractMapKeyString(kvp.Key);
+            if (key is null) continue;
+            if (kvp.Value is not StructProperty sp || sp.Value is not PropertiesStruct ps) continue;
+
+            var inventories = ReadContainerInventoriesArray(ps.Properties);
+            if (inventories.Count == 0) continue;
+
+            var className = ExtractClassName(ps.Properties);
+            yield return new WorldContainer(key, WorldContainerSource.Vehicle, className, inventories);
+        }
+    }
+
+    /// <summary>Reads a <c>Transform_</c> struct's translation (vector) and rotation (quaternion).</summary>
+    private static (double X, double Y, double Z, double QX, double QY, double QZ, double QW) ReadTransform(
+        IList<FPropertyTag> props)
+    {
+        double x = 0, y = 0, z = 0, qx = 0, qy = 0, qz = 0, qw = 1;
+        if (props.FindByPrefix("Transform_")?.Property is StructProperty tsp && tsp.Value is PropertiesStruct tps)
+        {
+            if (tps.Properties.FindByPrefix("Translation")?.Property is StructProperty trsp && trsp.Value is VectorStruct vec)
+            {
+                x = vec.Value.X;
+                y = vec.Value.Y;
+                z = vec.Value.Z;
+            }
+            if (tps.Properties.FindByPrefix("Rotation")?.Property is StructProperty rsp && rsp.Value is QuatStruct q)
+            {
+                qx = q.Value.X;
+                qy = q.Value.Y;
+                qz = q.Value.Z;
+                qw = q.Value.W;
+            }
+        }
+        return (x, y, z, qx, qy, qz, qw);
     }
 
     /// <summary>

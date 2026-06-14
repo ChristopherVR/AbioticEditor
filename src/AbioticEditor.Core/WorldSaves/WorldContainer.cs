@@ -10,6 +10,9 @@ public enum WorldContainerSource
 {
     Deployed,
     Custom,
+
+    /// <summary>On-board storage of a <c>VehicleMap</c> actor (keyed by the vehicle's spawn path).</summary>
+    Vehicle,
 }
 
 /// <summary>

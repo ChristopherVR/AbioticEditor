@@ -38,6 +38,9 @@
                 <Button Text="INVENTORY" Style="{StaticResource AfTabButton}"
                         Command="{Binding PlayerEditor.ShowInventoryCommand}"
                         BackgroundColor="{Binding PlayerEditor.IsInventoryTab, Converter={StaticResource TabBrush}}" />
+                <Button Text="COMPANIONS" Style="{StaticResource AfTabButton}"
+                        Command="{Binding PlayerEditor.ShowPetsCommand}"
+                        BackgroundColor="{Binding PlayerEditor.IsPetsTab, Converter={StaticResource TabBrush}}" />
                 <Button Text="SKILLS" Style="{StaticResource AfTabButton}"
                         Command="{Binding PlayerEditor.ShowSkillsCommand}"
                         BackgroundColor="{Binding PlayerEditor.IsSkillsTab, Converter={StaticResource TabBrush}}" />
@@ -77,6 +80,9 @@
             </controls:LazyView>
             <controls:LazyView IsActive="{Binding PlayerEditor.IsInventoryTab}">
                 <controls:LazyView.ContentTemplate><DataTemplate><ScrollView><player:PlayerInventoryTab /></ScrollView></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding PlayerEditor.IsPetsTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><ScrollView><player:PlayerPetsTab /></ScrollView></DataTemplate></controls:LazyView.ContentTemplate>
             </controls:LazyView>
             <controls:LazyView IsActive="{Binding PlayerEditor.IsSkillsTab}">
                 <controls:LazyView.ContentTemplate><DataTemplate><ScrollView><player:PlayerSkillsTab /></ScrollView></DataTemplate></controls:LazyView.ContentTemplate>

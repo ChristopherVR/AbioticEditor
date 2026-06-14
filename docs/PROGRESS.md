@@ -5,6 +5,64 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-32: cross-save pet movement (world PetNPC <-> player hotbar) (2026-06-14)
+- A carried pet is an ordinary `Item.Pet` inventory item (not a PetNPC): in the Companion slot
+  (`EquipmentInventory_[12]`), a hotbar slot, or backpack. Item rows like `Skink_Magma_Crafted`
+  ("Magma Skink (Weapon)" BioCannon), `Pest_Leyak`, `Sow`. Health = `CurrentItemDurability_`;
+  name = `PlayerMadeString_`; XP/`MutationProgress`/`PetMutation` in the slot
+  `ChangeableData_ -> DynamicProperties_`. The item table has no NPC-class field, so the
+  item<->creature bridge is by shared friendly name (`PetItemCatalog` <-> `PetCatalog`, 22 rows).
+- Core: `CarriedPet` + `PlayerSaveReader.ReadCarriedPets` + `PlayerSaveData.CarriedPets`;
+  `PlayerSaveWriter.ApplyCarriedPet/AddCarriedPetToSlot/RemoveCarriedPet`; `WorldSaveWriter.AddPet`
+  (clone+rekey a PetNPC); `PetTransfer.WorldToPlayer/PlayerToWorld`; `PetSaveLocator` (sibling
+  saves). Moved pets keep variant/name/XP, arrive at full health (per-limb<->durability is lossy).
+- **Fabrication gotcha:** UE5.4 stores the enum type in the property tag's complete-type-name
+  parameters AND struct arrays carry an internal prototype, so a `DynamicProperties` element can't
+  be built blind. `PetDynamicProperties` reuses an existing element's tag `Type` and, for a slot
+  with no array, grafts a detached clone of one (prototype intact). Verified round-trip.
+- CLI: `pet hotbar` (list carried), `pet send <world> <pet> --to <player> [--companion|--hotbar]`,
+  `pet grab <player> <#i> --to <world> [--x --y --z]`. App: player COMPANIONS tab
+  (`PlayerPetsTab` + `CarriedPetViewModel`) lists + edits carried pets (name/variant/level/health).
+- In-GUI cross-save move: world PETS tab "Send to player" (Companion/hotbar) + player COMPANIONS
+  "Send to world" (placed at a pet bed when the world has one). Immediate both-file write with a
+  `.bak` each, guarded on unsaved changes; sibling saves resolved via `PetSaveLocator`.
+- Best-effort 1:1 health: durability = sum of world per-limb HP; on return it's distributed across
+  the (same-class-preferred) clone template's limbs proportionally. Not exact (no world max-HP /
+  differing limb sets) but preserves the HP total.
+- **410 tests green** (+4 transfer/catalog tests).
+
+## Round-31: comprehensive Vehicle system (2026-06-14)
+- VehicleMap (region saves) was previously only the limited generic `VehicleMapFeature`
+  (driveable/destroyed bools). Now a first-class system. Probed the struct: `Class_`,
+  `VehicleID_` (= spawn actor path = map key), `Transform_` (Rotation quat / Translation /
+  Scale3D), `ContainerInventories_` (standard slot arrays), `VehicleDriveable_`,
+  `VehicleDestroyed_`. No "lock" field - "unlocked" maps to drivable.
+- Core: `WorldVehicle` + `WorldSaveReader.ReadVehicles`; on-board storage surfaced as
+  `WorldContainerSource.Vehicle` containers so it reuses the full slot editor +
+  `ApplyContainers`. `WorldSaveWriter.ApplyVehicles` patches driveable/destroyed/transform
+  (translation + rotation). `VehicleCatalog` (friendly names + wiki-image candidates, pak
+  enumeration). **Reset-to-spawn**: `GameAssetProvider.TryGetActorTransform` resolves the
+  `VehicleSpawn_*` actor's world transform from the cooked level via CUE4Parse (verified it
+  returns sensible coords differing from the driven position); degrades when no install.
+- CLI: `vehicle list/info/unlock/lock/repair/wreck/move/reset`. App: VEHICLES tab,
+  Fish-style master-detail (`WorldVehiclesTab` + `WorldVehicleViewModel`) - appearance via
+  wiki image, region + location, drivable/wrecked toggles, X/Y/Z move, reset-to-spawn,
+  "open inventory" jumps to the CONTAINERS tab filtered to the vehicle.
+- **406 tests green** (+3 vehicle round-trip/inventory tests).
+
+## Round-30: first-class Pet system, split from NPCs (2026-06-14)
+- Pets were mixed into the NPCS tab (rename + revive only). Now their own PETS tab and
+  editor. PetNPC struct: `IsDead_` (only life flag), `CurrentHealthMap_` (per-limb
+  `EBodyLimbs::*` -> double; no "downed" field, derived from health), `NPCClass_` (mutation
+  target), `DynamicProperties_::XP` (level 0-20), `CustomName_`.
+- Core: `WorldPet` + `ReadPets`/`ApplyPets`/`RemovePet`; `PetCatalog` (4 families
+  Pest/Peccary/Skink/Other; curated table merged with pak-enumerated `NPC_*`; new families =
+  one token); `PetHealth` (status/heal/down/revive). CLI: `pet` group. App: PETS tab,
+  master-detail `WorldPetViewModel` (name, health/heal/down/revive, dead, level/XP slider,
+  upgrade/downgrade variant picker, delete). Exor/Mystagogue summons shown read-only.
+- NPCS tab is now narrative-NPCs-only (pet columns dropped). Assign-to-bed/companion is
+  Phase 2 (needs a probe of a stored/carried pet - format not in the repo yet).
+
 ## Round-29: reader/writer validation tests (reversibility + isolation) (2026-06-14)
 - User wanted explicit proof the readers/writers round-trip safely. New
   `tests/.../SaveReaderWriterValidationTests.cs` (+8 tests) asserts two properties the
