@@ -103,8 +103,14 @@ public static class SaveUpgradeService
             if (persist)
             {
                 // Keep the pre-upgrade original under a distinct suffix (separate from the
-                // editor's normal .bak) so a bad upgrade is always recoverable.
-                File.Copy(filePath, filePath + ".preupgrade.bak", overwrite: true);
+                // editor's normal .bak) so a bad upgrade is always recoverable. Write it only
+                // once: a later run must not overwrite the genuine original with an
+                // already-partially-upgraded file.
+                var preUpgrade = filePath + ".preupgrade.bak";
+                if (!File.Exists(preUpgrade))
+                {
+                    File.Copy(filePath, preUpgrade, overwrite: false);
+                }
                 await File.WriteAllBytesAsync(filePath, result.UpgradedBytes, cancellationToken).ConfigureAwait(false);
                 persisted = true;
             }

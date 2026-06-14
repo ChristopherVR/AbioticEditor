@@ -402,10 +402,18 @@ public static class WorldSaveWriter
 
         var weights = hm.Value.Select(kv => kv.Value?.Value is double d ? d : 0).ToList();
         var sum = weights.Sum();
+        if (sum <= 0)
+        {
+            // The template carries no proportional info (every limb is zero), so we can't tell
+            // which limbs the species actually tracks. Spreading total/count would put health on
+            // untracked limbs and skew MaxLimb/Status; arrive at full instead (same as no-total).
+            foreach (var kv in hm.Value) if (kv.Value is not null) kv.Value.Value = FullLimbHealthOnArrival;
+            return;
+        }
         for (var i = 0; i < hm.Value.Count; i++)
         {
             if (hm.Value[i].Value is not { } slot) continue;
-            slot.Value = sum > 0 ? total * (weights[i] / sum) : total / hm.Value.Count;
+            slot.Value = total * (weights[i] / sum);
         }
     }
 
@@ -429,26 +437,15 @@ public static class WorldSaveWriter
     }
 
     /// <summary>
-    /// Patches one int inside <c>DynamicProperties_</c> (matched by <c>EDynamicProperty::*</c>
-    /// enum tail, e.g. "XP"). No-op when the pet has no such entry - the writer never
-    /// fabricates an array element, which would risk an unloadable save.
+    /// Sets one int inside <c>DynamicProperties_</c> (matched by <c>EDynamicProperty::*</c>
+    /// enum tail, e.g. "XP"). When the key is absent but the array exists, a new element is
+    /// appended by cloning the array's own element tag types (the verified-safe technique in
+    /// <see cref="PetDynamicProperties.SetOrAdd"/>), so an edit to a pet whose XP entry was
+    /// delta-omitted is no longer silently lost. Only truly a no-op when the pet has no
+    /// <c>DynamicProperties_</c> array at all (nothing to clone a prototype from).
     /// </summary>
     private static void ApplyDynamicInt(IList<FPropertyTag> props, string keySuffix, int value)
-    {
-        if (props.FindByPrefix("DynamicProperties_")?.Property is not ArrayProperty ap || ap.Value is null) return;
-
-        for (var i = 0; i < ap.Value.Length; i++)
-        {
-            if (ap.Value.GetValue(i) is not StructProperty esp || esp.Value is not PropertiesStruct eps) continue;
-            var key = eps.Properties.FindByPrefix("Key")?.Property?.Value?.ToString();
-            if (key is not null && key.EndsWith("::" + keySuffix, StringComparison.Ordinal))
-            {
-                var valProp = eps.Properties.FindByPrefix("Value")?.Property;
-                if (valProp is not null) valProp.Value = value;
-                return;
-            }
-        }
-    }
+        => PetDynamicProperties.SetOrAdd(props, keySuffix, value);
 
     /// <summary>
     /// Sets a <see cref="SoftObjectProperty"/> value from a full
@@ -773,9 +770,7 @@ public static class WorldSaveWriter
         Diagnostics.EditorLog.Info("WorldSave", $"Writing {path} (previous content kept as {Path.GetFileName(path)}.bak)");
         try
         {
-            Saves.SaveBackup.CreateFor(path);
-            using var fs = File.Create(path);
-            data.Raw.WriteTo(fs);
+            Saves.SaveBackup.WriteWithBackup(path, data.Raw.WriteTo);
         }
         catch (Exception ex)
         {

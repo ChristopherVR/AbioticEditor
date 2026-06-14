@@ -111,7 +111,9 @@ public sealed class TeleporterPadFeature : IWorldMapFeature
         }
 
         int target;
-        switch (fieldId)
+        // Match field ids case-insensitively, like every other WorldMapFeatureBase feature, so a
+        // caller passing "Tag"/"Frequency" isn't rejected as unknown.
+        switch (fieldId?.Trim().ToLowerInvariant())
         {
             case "tag":
                 var freq = TeleporterTagCatalog.Frequency(value);
@@ -216,7 +218,16 @@ public sealed class TeleporterPadFeature : IWorldMapFeature
     private static int? GetFrequency(IList<FPropertyTag> deployableProps)
     {
         var entry = DynamicPropertyEntry(deployableProps);
-        return entry?.FindByPrefix("Value")?.Property?.Value is int v ? v : null;
+        // Tolerate whatever integer width the build stored the value as (Int/Int64/byte), so a
+        // linked pad isn't shown as '(none)' just because its frequency serialized as a long.
+        return entry?.FindByPrefix("Value")?.Property?.Value switch
+        {
+            int v => v,
+            long l => (int)l,
+            short s => s,
+            byte b => b,
+            _ => null,
+        };
     }
 
     private static bool SetFrequency(IList<FPropertyTag> deployableProps, int frequency)
@@ -226,7 +237,17 @@ public sealed class TeleporterPadFeature : IWorldMapFeature
         {
             return false;
         }
-        valueProp.Value = frequency;
+        // Set the value as the CLR type the property serializes as (an IntProperty writes
+        // (int)Value, an Int64Property writes (long)Value, etc.), NOT as whatever type happens to
+        // be boxed in Value right now - the reader can leave a 32-bit IntProperty holding a boxed
+        // long, and writing the wrong width back throws an InvalidCastException at serialize time.
+        valueProp.Value = valueProp switch
+        {
+            Int64Property => (long)frequency,
+            UInt64Property => (ulong)frequency,
+            UInt32Property => (uint)frequency,
+            _ => frequency,
+        };
         return true;
     }
 }

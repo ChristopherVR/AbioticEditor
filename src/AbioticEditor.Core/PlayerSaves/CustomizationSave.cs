@@ -148,9 +148,7 @@ public sealed class CustomizationSaveFile
                 tag.Property.Value = new FString(value);
             }
 
-            Saves.SaveBackup.CreateFor(FilePath);
-            using var output = File.Create(FilePath);
-            save.WriteTo(output);
+            Saves.SaveBackup.WriteWithBackup(FilePath, save.WriteTo);
         }
         catch (Exception ex)
         {

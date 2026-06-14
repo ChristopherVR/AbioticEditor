@@ -87,8 +87,7 @@ public static class SaveJsonBridge
             using var savOut = new MemoryStream();
             serializer.ConvertFromJson(jsonIn, savOut);
 
-            Saves.SaveBackup.CreateFor(savPath);
-            File.WriteAllBytes(savPath, savOut.ToArray());
+            Saves.SaveBackup.WriteWithBackup(savPath, savOut.WriteTo);
         }
         catch (Exception ex)
         {

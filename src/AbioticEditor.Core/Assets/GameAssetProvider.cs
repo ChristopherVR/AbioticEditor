@@ -23,6 +23,10 @@ public sealed class GameAssetProvider : IDisposable
 {
     private readonly DefaultFileProvider _provider;
     private readonly string _cacheDir;
+    // CUE4Parse package loading mutates the provider's internal package cache and is not
+    // guaranteed thread-safe. Icon/texture extraction runs from many fire-and-forget tasks at
+    // once, so every package-load entry point serializes through this lock.
+    private readonly object _providerLoadLock = new();
     private bool _disposed;
 
     private GameAssetProvider(DefaultFileProvider provider, string cacheDir)
@@ -224,8 +228,31 @@ public sealed class GameAssetProvider : IDisposable
         using var image = SKImage.FromPixelCopy(info, decoded.Data);
         if (image is null) return null;
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-        using var stream = File.Create(cachePath);
-        data.SaveTo(stream);
+
+        // Two tasks can extract the same icon at once (File.Create is exclusive, so a naive
+        // write would throw a sharing violation on the loser). Write to a unique temp then
+        // atomically publish; if another task published first, keep theirs.
+        var temp = cachePath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            using (var stream = File.Create(temp))
+            {
+                data.SaveTo(stream);
+            }
+            try
+            {
+                File.Move(temp, cachePath, overwrite: false);
+            }
+            catch (IOException) when (File.Exists(cachePath))
+            {
+                TryDeleteFile(temp);
+            }
+        }
+        catch
+        {
+            TryDeleteFile(temp);
+            throw;
+        }
 
         return cachePath;
     }
@@ -259,18 +286,21 @@ public sealed class GameAssetProvider : IDisposable
         // Try the conventional object path first: `path/Name.Name`.
         var assetName = Path.GetFileName(assetPath);
         var objectPath = $"{assetPath}.{assetName}";
-        if (_provider.TryLoadPackageObject<UTexture2D>(objectPath, out var direct))
+        lock (_providerLoadLock)
         {
-            return direct;
-        }
-
-        // Fall back to enumerating all exports in the package and returning the first
-        // UTexture2D we find. Some assets use a non-matching export name.
-        if (_provider.TryLoadPackage(assetPath, out var package))
-        {
-            foreach (var export in package.GetExports())
+            if (_provider.TryLoadPackageObject<UTexture2D>(objectPath, out var direct))
             {
-                if (export is UTexture2D tex) return tex;
+                return direct;
+            }
+
+            // Fall back to enumerating all exports in the package and returning the first
+            // UTexture2D we find. Some assets use a non-matching export name.
+            if (_provider.TryLoadPackage(assetPath, out var package))
+            {
+                foreach (var export in package.GetExports())
+                {
+                    if (export is UTexture2D tex) return tex;
+                }
             }
         }
         return null;
@@ -321,7 +351,10 @@ public sealed class GameAssetProvider : IDisposable
     internal CUE4Parse.UE4.Assets.IPackage LoadPackageInternal(string packagePath)
     {
         ThrowIfDisposed();
-        return _provider.LoadPackage(packagePath);
+        lock (_providerLoadLock)
+        {
+            return _provider.LoadPackage(packagePath);
+        }
     }
 
     /// <summary>
@@ -337,9 +370,13 @@ public sealed class GameAssetProvider : IDisposable
         if (string.IsNullOrEmpty(actorObjectPath) || _disposed) return null;
         try
         {
-            if (!_provider.TryLoadPackageObject(actorObjectPath, out var actor) || actor is null)
+            CUE4Parse.UE4.Assets.Exports.UObject? actor;
+            lock (_providerLoadLock)
             {
-                return null;
+                if (!_provider.TryLoadPackageObject(actorObjectPath, out actor) || actor is null)
+                {
+                    return null;
+                }
             }
 
             // The transform lives on the actor's RootComponent (a scene component export).
@@ -355,6 +392,21 @@ public sealed class GameAssetProvider : IDisposable
         {
             Diagnostics.EditorLog.Warn("Assets", $"Could not resolve spawn transform for {actorObjectPath}: {ex.Message}");
             return null;
+        }
+    }
+
+    private static void TryDeleteFile(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch
+        {
+            // Best-effort cleanup of a temp extraction file; nothing actionable if it lingers.
         }
     }
 

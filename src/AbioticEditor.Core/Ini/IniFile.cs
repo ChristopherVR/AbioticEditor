@@ -135,8 +135,27 @@ public sealed class IniFile
             return (new UnicodeEncoding(bigEndian: true, byteOrderMark: true), true);
         }
 
-        // No BOM: strict UTF-8 if the bytes are valid, otherwise Latin-1 (a lossless
-        // byte↔char mapping) so unknown legacy bytes survive the round trip.
+        // No BOM, but a NUL byte never appears in real UTF-8/Latin-1 ini text - it is the
+        // tell-tale of BOM-less UTF-16 (ASCII interleaved with zero high/low bytes). Detect it
+        // by which parity of byte positions is mostly zero, so a BOM-less UTF-16 file isn't
+        // misread as UTF-8 (NUL is valid UTF-8) and corrupted on save. UE normally emits a BOM
+        // for UTF-16, so this is a belt-and-suspenders guard.
+        if (Array.IndexOf(bytes, (byte)0) >= 0)
+        {
+            int evenNul = 0, oddNul = 0;
+            for (var i = 0; i < bytes.Length; i++)
+            {
+                if (bytes[i] != 0) continue;
+                if ((i & 1) == 0) evenNul++; else oddNul++;
+            }
+            // ASCII in UTF-16LE zeroes the high byte (odd index); UTF-16BE zeroes the low byte.
+            return oddNul >= evenNul
+                ? (new UnicodeEncoding(bigEndian: false, byteOrderMark: false), false)
+                : (new UnicodeEncoding(bigEndian: true, byteOrderMark: false), false);
+        }
+
+        // strict UTF-8 if the bytes are valid, otherwise Latin-1 (a lossless byte<->char
+        // mapping) so unknown legacy bytes survive the round trip.
         try
         {
             var strict = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
@@ -198,8 +217,11 @@ public sealed class IniFile
                     result.Add(new IniSection(this, line));
                     sawHeader = true;
                 }
-                else if (!sawHeader && result.Count == 0 && line.Kind == IniLineKind.KeyValue)
+                else if (!sawHeader && result.Count == 0 && line.Kind != IniLineKind.Blank)
                 {
+                    // Any non-blank content before the first [header] forms the preamble section,
+                    // not just a bare Key=Value. A comment- or stray-content-led preamble is then
+                    // addressable via FindSection(null) so keys can be read/added there.
                     result.Insert(0, new IniSection(this, headerLine: null));
                 }
             }

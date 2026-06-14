@@ -92,9 +92,9 @@ public static class SaveOperationRunner
         var shouldWrite = result.Success && context.HasChanges && !dryRun;
         if (shouldWrite)
         {
-            SaveBackup.CreateFor(filePath);
-            using var outStream = File.Create(filePath);
-            save.WriteTo(outStream);
+            // Backup + atomic temp-then-replace: a failure during WriteTo can never truncate the
+            // live save, and a missing .bak is therefore no longer catastrophic.
+            SaveBackup.WriteWithBackup(filePath, save.WriteTo);
         }
 
         return new RunOutcome(result, shouldWrite, kind);

@@ -547,9 +547,7 @@ public static class PlayerSaveWriter
         Diagnostics.EditorLog.Info("PlayerSave", $"Writing {path} (previous content kept as {Path.GetFileName(path)}.bak)");
         try
         {
-            Saves.SaveBackup.CreateFor(path);
-            using var fs = File.Create(path);
-            data.Raw.WriteTo(fs);
+            Saves.SaveBackup.WriteWithBackup(path, data.Raw.WriteTo);
         }
         catch (Exception ex)
         {
