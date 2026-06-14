@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here.
 
+## [1.1.0] - 2026-06-14
+
+### Bug Fixes
+- Use the real Teleporter Pad image; show nothing when no image exists- Only show a feature image when the wiki really pictures it- Keep pets in the hotbar/Companion slot, never the backpack- Keep the right sidebar to a single detail context- Wrap the editor tab bar so every tab stays visible
+
+### Features
+- Name, picture, link and remove world-state map entries- Show pet portrait; fix vehicle open-container jump- Move world-state map editing into world-editor tabs- Correct containment/vehicle art and group vehicles by world
+
 ## [1.0.1] - 2026-06-14
 
 ### Miscellaneous Tasks
