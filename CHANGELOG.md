@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here.
 
+## [1.1.2] - 2026-06-14
+
+### Documentation
+- Note trunk-based development (commit to main, no branches)
+
 ## [1.1.1] - 2026-06-14
 
 ### Bug Fixes
