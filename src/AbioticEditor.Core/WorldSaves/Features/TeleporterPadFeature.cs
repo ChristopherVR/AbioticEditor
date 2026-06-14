@@ -50,20 +50,55 @@ public sealed class TeleporterPadFeature : IWorldMapFeature
         return false;
     }
 
+    /// <summary>Teleporter pads are placed deployables; removing one here is unsafe, so it's off.</summary>
+    public bool SupportsRemoval => false;
+
+    /// <inheritdoc/>
+    public WorldEditResult Remove(SaveGame save, string entryKey)
+        => WorldEditResult.Failure("Teleporter pads can't be removed here (pick them up in-game).");
+
     public IReadOnlyList<WorldMapEntry> Read(SaveGame save)
     {
         ArgumentNullException.ThrowIfNull(save);
-        var result = new List<WorldMapEntry>();
+        // First pass: collect every pad with its frequency so each pad can show which other
+        // pads it links to (same non-zero frequency = same teleporter network).
+        var pads = new List<(string Key, int Freq)>();
         foreach (var entry in WorldMapAccessor.Entries(save, MapName))
         {
-            if (!IsPad(entry.Props))
+            if (IsPad(entry.Props))
             {
-                continue;
+                pads.Add((entry.Key, GetFrequency(entry.Props) ?? 0));
             }
-            var frequency = GetFrequency(entry.Props);
-            result.Add(new WorldMapEntry(entry.Key, LabelFor(frequency), BuildFields(frequency)));
+        }
+
+        var result = new List<WorldMapEntry>(pads.Count);
+        for (var i = 0; i < pads.Count; i++)
+        {
+            var (key, freq) = pads[i];
+            var linked = LinkSummary(pads, i, freq);
+            result.Add(new WorldMapEntry(key, LabelFor(i + 1, freq), BuildFields(freq, linked)));
         }
         return result;
+    }
+
+    /// <summary>Human description of which other pads share this pad's tag (its link network).</summary>
+    private static string LinkSummary(List<(string Key, int Freq)> pads, int index, int freq)
+    {
+        if (freq == 0)
+        {
+            return "(unassigned - not linked to any pad)";
+        }
+        var others = new List<string>();
+        for (var j = 0; j < pads.Count; j++)
+        {
+            if (j != index && pads[j].Freq == freq)
+            {
+                others.Add($"Pad {j + 1}");
+            }
+        }
+        return others.Count == 0
+            ? "(only this pad uses this tag - set another pad to the same tag to link them)"
+            : string.Join(", ", others);
     }
 
     public WorldEditResult SetField(SaveGame save, string entryKey, string fieldId, string? value)
@@ -113,9 +148,9 @@ public sealed class TeleporterPadFeature : IWorldMapFeature
             : WorldEditResult.Failure("this pad has no TeleporterFrequency property to set.");
     }
 
-    private static WorldMapField[] BuildFields(int? frequency)
+    private static WorldMapField[] BuildFields(int frequency, string linkedSummary)
     {
-        var freq = frequency ?? 0;
+        var freq = frequency;
         var tagHint = TeleporterTagCatalog.IsKnown(freq)
             ? "Pads sharing a tag link together; '(none)' is unassigned."
             : "This pad uses a tag this build has no name for (a newer game/DLC version?); "
@@ -127,11 +162,13 @@ public sealed class TeleporterPadFeature : IWorldMapFeature
             WorldMapField.Integer("frequency", "Frequency (raw)", freq,
                 hint: $"The raw tag index (0 = unassigned, 1..{TeleporterTagCatalog.MaxFrequency} known; "
                     + "higher values from a future update are allowed and shown as Unknown)."),
+            WorldMapField.ReadOnly("linkedWith", "Linked pads", linkedSummary,
+                hint: "Pads sharing this pad's tag teleport to each other. Give two pads the same Tag to link them."),
         };
     }
 
-    private static string LabelFor(int? frequency)
-        => $"Teleporter Pad: {TeleporterTagCatalog.Label(frequency ?? 0)}";
+    private static string LabelFor(int ordinal, int frequency)
+        => $"Teleporter Pad {ordinal}: {TeleporterTagCatalog.Label(frequency)}";
 
     /// <summary>True when a deployable entry's class is the teleporter pad blueprint.</summary>
     private static bool IsPad(IList<FPropertyTag> deployableProps)

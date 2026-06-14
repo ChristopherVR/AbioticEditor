@@ -30,6 +30,9 @@ public sealed class ServerEntitlementsFeature : WorldMapFeatureBase
     public override string Description =>
         "Per-player server entitlements/permissions, keyed by SteamID64.";
 
+    /// <summary>Entitlement entries are server metadata, not removable level actors.</summary>
+    public override bool SupportsRemoval => false;
+
     /// <summary>The key is already a bare SteamID64; show it verbatim.</summary>
     protected override string LabelFor(string key, IList<FPropertyTag> props) => key;
 

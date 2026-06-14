@@ -48,7 +48,15 @@ public sealed class PowerSocketMapFeature : WorldMapFeatureBase
 
     /// <inheritdoc/>
     public override string Description =>
-        "View power-socket state and arm or disarm the timer for each socket.";
+        "View power-socket state and arm or disarm the timer for each socket. Remove a socket to reset it.";
+
+    /// <summary>Socket keys are raw GUIDs, so number them and note what's plugged in.</summary>
+    protected override string LabelFor(int ordinal, string key, IList<FPropertyTag> props)
+    {
+        var device = props.GetString(PluggedInDevicePrefix);
+        var plugged = !string.IsNullOrWhiteSpace(device) && device is not ("-1" or "None");
+        return plugged ? $"Power Socket {ordinal} (in use)" : $"Power Socket {ordinal}";
+    }
 
     /// <summary>
     /// Reads one power-socket entry's struct into the typed display/edit fields:

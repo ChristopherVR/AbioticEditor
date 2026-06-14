@@ -38,6 +38,13 @@ public sealed class ButtonMapFeature : WorldMapFeatureBase
     public override string Description =>
         "Set whether each interactive button has been pressed, is enabled, is activated, or skips the next reset.";
 
+    /// <summary>Prefer the button's own ID string for the list label; fall back to a number.</summary>
+    protected override string LabelFor(int ordinal, string key, IList<FPropertyTag> props)
+    {
+        var id = props.GetString(ButtonIdPrefix);
+        return string.IsNullOrWhiteSpace(id) || id is "None" ? $"Button {ordinal}" : $"Button {ordinal}: {id}";
+    }
+
     // ── ReadFields ────────────────────────────────────────────────────────────────────────────
 
     /// <inheritdoc/>

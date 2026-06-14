@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using AbioticEditor.Core.Assets;
 using AbioticEditor.Core.WorldSaves.Features;
 using UeSaveGame;
 
@@ -23,6 +24,9 @@ public sealed class WorldFeatureTabViewModel : INotifyPropertyChanged
     private readonly Action _onChanged;
     private WorldFeatureEntryViewModel? _selectedEntry;
     private bool _isActive;
+    private string? _wikiImagePath;
+    private bool _isWikiImageLoading;
+    private bool _wikiImageRequested;
 
     public WorldFeatureTabViewModel(
         IWorldMapFeature feature, SaveGame raw, Action onChanged, Action<WorldFeatureTabViewModel> onSelect)
@@ -30,7 +34,8 @@ public sealed class WorldFeatureTabViewModel : INotifyPropertyChanged
         _feature = feature;
         _raw = raw;
         _onChanged = onChanged;
-        Entries = feature.Read(raw).Select(e => new WorldFeatureEntryViewModel(this, e)).ToList();
+        Entries = new ObservableCollection<WorldFeatureEntryViewModel>(
+            feature.Read(raw).Select(e => new WorldFeatureEntryViewModel(this, e)));
         SelectCommand = new RelayCommand(() => onSelect(this));
     }
 
@@ -46,12 +51,15 @@ public sealed class WorldFeatureTabViewModel : INotifyPropertyChanged
     /// <summary>One-line explanation shown above the master-detail panes.</summary>
     public string Description => _feature.Description;
 
-    public IReadOnlyList<WorldFeatureEntryViewModel> Entries { get; }
+    public ObservableCollection<WorldFeatureEntryViewModel> Entries { get; }
 
     public int Count => Entries.Count;
 
     /// <summary>Command bound by the dynamic tab button; activates this tab on the owner.</summary>
     public ICommand SelectCommand { get; }
+
+    /// <summary>True when this feature's entries can be removed (drives the REMOVE button).</summary>
+    public bool SupportsRemoval => _feature.SupportsRemoval;
 
     /// <summary>True when this is the visible world tab (drives the button highlight).</summary>
     public bool IsActive
@@ -68,13 +76,67 @@ public sealed class WorldFeatureTabViewModel : INotifyPropertyChanged
             if (Set(ref _selectedEntry, value))
             {
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasSelectedEntry)));
+                // First selection lazily fetches the one representative wiki image for this type.
+                if (value is not null) RequestWikiImage();
             }
         }
     }
 
     public bool HasSelectedEntry => _selectedEntry is not null;
 
-    public bool IsDirty => Entries.Any(e => e.IsDirty);
+    // ---------- per-type wiki image (one picture for the whole feature) ----------
+
+    /// <summary>Local path to the cached wiki image for this feature type, or null.</summary>
+    public string? WikiImagePath
+    {
+        get => _wikiImagePath;
+        private set
+        {
+            if (Set(ref _wikiImagePath, value))
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasWikiImage)));
+            }
+        }
+    }
+
+    public bool HasWikiImage => _wikiImagePath is not null;
+
+    public bool IsWikiImageLoading
+    {
+        get => _isWikiImageLoading;
+        private set => Set(ref _isWikiImageLoading, value);
+    }
+
+    /// <summary>Required credit line shown under any displayed wiki image.</summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static",
+        Justification = "Bound from XAML, which requires an instance property.")]
+    public string WikiAttribution => WikiImageCache.AttributionText;
+
+    private void RequestWikiImage()
+    {
+        if (_wikiImageRequested) return;
+        var candidates = FeatureWikiImageCatalog.CandidatesFor(_feature.Id);
+        if (candidates.Count == 0) return;
+        _wikiImageRequested = true;
+        IsWikiImageLoading = true;
+        _ = LoadWikiImageAsync(candidates);
+    }
+
+    private async Task LoadWikiImageAsync(IReadOnlyList<string> candidates)
+    {
+        string? path = null;
+        try { path = await WikiImageCache.Default.GetFirstAsync(candidates).ConfigureAwait(false); }
+        catch { /* offline / not found - fall through to the no-image caption */ }
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            WikiImagePath = path;
+            IsWikiImageLoading = false;
+        });
+    }
+
+    // ---------- dirty / save / revert ----------
+
+    public bool IsDirty => Entries.Any(e => e.IsDirty || e.IsDeleted);
 
     internal WorldEditResult ApplyField(string entryKey, string fieldId, string? value)
         => _feature.SetField(_raw, entryKey, fieldId, value);
@@ -85,9 +147,23 @@ public sealed class WorldFeatureTabViewModel : INotifyPropertyChanged
         _onChanged();
     }
 
-    /// <summary>After a successful SAVE, adopt the current values as the new clean baseline.</summary>
+    /// <summary>Writes staged removals into the raw tree (called during SAVE, before the writer runs).</summary>
+    public void ApplyPendingDeletions()
+    {
+        foreach (var entry in Entries.Where(e => e.IsDeleted).ToList())
+        {
+            _feature.Remove(_raw, entry.Key);
+        }
+    }
+
+    /// <summary>After a successful SAVE: drop removed rows and adopt current values as the baseline.</summary>
     public void AcceptBaseline()
     {
+        foreach (var entry in Entries.Where(e => e.IsDeleted).ToList())
+        {
+            if (ReferenceEquals(_selectedEntry, entry)) SelectedEntry = null;
+            Entries.Remove(entry);
+        }
         foreach (var entry in Entries)
         {
             entry.AcceptBaseline();
@@ -95,7 +171,7 @@ public sealed class WorldFeatureTabViewModel : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsDirty)));
     }
 
-    /// <summary>Restores every field to its loaded value (patching the raw tree back).</summary>
+    /// <summary>Restores every field to its loaded value and un-stages any removals.</summary>
     public void Revert()
     {
         foreach (var entry in Entries)
@@ -120,6 +196,7 @@ public sealed class WorldFeatureTabViewModel : INotifyPropertyChanged
 public sealed class WorldFeatureEntryViewModel : INotifyPropertyChanged
 {
     private readonly WorldFeatureTabViewModel _tab;
+    private bool _isDeleted;
 
     public WorldFeatureEntryViewModel(WorldFeatureTabViewModel tab, WorldMapEntry entry)
     {
@@ -128,6 +205,8 @@ public sealed class WorldFeatureEntryViewModel : INotifyPropertyChanged
         Label = entry.Label;
         Fields = new ObservableCollection<WorldFeatureFieldViewModel>(
             entry.Fields.Select(f => new WorldFeatureFieldViewModel(this, f)));
+        RemoveCommand = new RelayCommand(() => IsDeleted = true, () => _tab.SupportsRemoval && !_isDeleted);
+        RestoreCommand = new RelayCommand(() => IsDeleted = false, () => _isDeleted);
     }
 
     public string Key { get; }
@@ -135,6 +214,33 @@ public sealed class WorldFeatureEntryViewModel : INotifyPropertyChanged
     public string Label { get; }
 
     public ObservableCollection<WorldFeatureFieldViewModel> Fields { get; }
+
+    /// <summary>True when this feature's entries can be removed (drives the REMOVE button).</summary>
+    public bool SupportsRemoval => _tab.SupportsRemoval;
+
+    /// <summary>Staged for removal on the next SAVE (kept in the list, shown struck-through).</summary>
+    public bool IsDeleted
+    {
+        get => _isDeleted;
+        set
+        {
+            if (_isDeleted == value) return;
+            _isDeleted = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsDeleted)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsNotDeleted)));
+            (RemoveCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (RestoreCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            _tab.OnEntryChanged();
+        }
+    }
+
+    public bool IsNotDeleted => !_isDeleted;
+
+    /// <summary>Stages this entry for removal on the next SAVE.</summary>
+    public ICommand RemoveCommand { get; }
+
+    /// <summary>Un-stages a pending removal.</summary>
+    public ICommand RestoreCommand { get; }
 
     /// <summary>Compact editable-field summary shown under the entry name in the list.</summary>
     public string Summary => string.Join("   ",
@@ -162,6 +268,7 @@ public sealed class WorldFeatureEntryViewModel : INotifyPropertyChanged
 
     public void Revert()
     {
+        IsDeleted = false;
         foreach (var field in Fields)
         {
             field.RevertToBaseline();

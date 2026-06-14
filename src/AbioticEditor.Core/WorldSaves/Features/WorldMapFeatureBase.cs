@@ -24,9 +24,11 @@ public abstract class WorldMapFeatureBase : IWorldMapFeature
     public IReadOnlyList<WorldMapEntry> Read(SaveGame save)
     {
         var list = new List<WorldMapEntry>();
+        var ordinal = 0;
         foreach (var entry in WorldMapAccessor.Entries(save, MapName))
         {
-            list.Add(new WorldMapEntry(entry.Key, LabelFor(entry.Key, entry.Props), ReadFields(entry.Props)));
+            ordinal++;
+            list.Add(new WorldMapEntry(entry.Key, LabelFor(ordinal, entry.Key, entry.Props), ReadFields(entry.Props)));
         }
         return list;
     }
@@ -42,11 +44,35 @@ public abstract class WorldMapFeatureBase : IWorldMapFeature
         return ApplyField(props, fieldId, value);
     }
 
+    /// <inheritdoc/>
+    public virtual bool SupportsRemoval => true;
+
+    /// <inheritdoc/>
+    public virtual WorldEditResult Remove(SaveGame save, string entryKey)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (!SupportsRemoval)
+        {
+            return WorldEditResult.Failure($"{DisplayName} entries can't be removed.");
+        }
+        return WorldMapAccessor.RemoveEntry(save, MapName, entryKey)
+            ? WorldEditResult.Success
+            : WorldEditResult.Failure($"no entry '{entryKey}' in {MapName}.");
+    }
+
     /// <summary>Reads one entry's struct into the typed fields shown to the user.</summary>
     protected abstract IReadOnlyList<WorldMapField> ReadFields(IList<FPropertyTag> props);
 
     /// <summary>Patches one field of one entry's struct. Validate here; never throw.</summary>
     protected abstract WorldEditResult ApplyField(IList<FPropertyTag> props, string fieldId, string? value);
+
+    /// <summary>
+    /// A short, readable name for an entry. Override the ordinal overload for map-specific
+    /// labels; the 1-based <paramref name="ordinal"/> lets GUID-keyed maps (no actor name in the
+    /// key) number their entries (e.g. "Power Socket 3").
+    /// </summary>
+    protected virtual string LabelFor(int ordinal, string key, IList<FPropertyTag> props)
+        => LabelFor(key, props);
 
     /// <summary>A short, readable name for an entry key. Override for map-specific labels.</summary>
     protected virtual string LabelFor(string key, IList<FPropertyTag> props) => ShortLabel(key);

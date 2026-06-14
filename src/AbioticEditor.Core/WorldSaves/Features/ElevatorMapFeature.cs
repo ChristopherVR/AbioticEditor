@@ -27,6 +27,10 @@ public sealed class ElevatorMapFeature : WorldMapFeatureBase
     public override string Description =>
         "Set whether each fixed elevator is parked at its top stop (call it up or down).";
 
+    /// <summary>Elevator actor keys carry no friendly name, so number them for the list.</summary>
+    protected override string LabelFor(int ordinal, string key, IList<FPropertyTag> props)
+        => $"Elevator {ordinal}";
+
     protected override IReadOnlyList<WorldMapField> ReadFields(IList<FPropertyTag> props)
     {
         var atTop = props.TryGetBool(TopOpenPrefix) ?? false;

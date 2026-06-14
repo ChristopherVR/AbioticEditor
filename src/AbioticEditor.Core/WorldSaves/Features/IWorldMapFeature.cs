@@ -43,6 +43,19 @@ public interface IWorldMapFeature
     /// save afterwards (keeping a .bak) only when <see cref="WorldEditResult.Changed"/> is true.
     /// </summary>
     WorldEditResult SetField(SaveGame save, string entryKey, string fieldId, string? value);
+
+    /// <summary>
+    /// True when an entry can be removed from this map. Removal drops the actor's persisted
+    /// state so the game re-creates it at its blueprint default on next load. Off for maps where
+    /// deleting a shared/metadata entry would be unsafe (e.g. teleporter pads, entitlements).
+    /// </summary>
+    bool SupportsRemoval { get; }
+
+    /// <summary>
+    /// Removes one entry from the map. Returns <see cref="WorldEditResult.Failure"/> (never
+    /// throws) for an unknown key or when <see cref="SupportsRemoval"/> is false.
+    /// </summary>
+    WorldEditResult Remove(SaveGame save, string entryKey);
 }
 
 /// <summary>One row of a feature: a map entry (one actor) and its editable fields.</summary>

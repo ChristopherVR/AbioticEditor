@@ -2158,6 +2158,9 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
                 {
                     WorldSaveWriter.ApplyGlobalUnlockArray(_data, prefix, values);
                 }
+                // Feature-map field edits already patched the raw tree; staged removals are
+                // applied here (just before the write) so a reverted delete never touches disk.
+                foreach (var t in _featureTabs) t.ApplyPendingDeletions();
                 WorldSaveWriter.WriteToFile(_data, _path);
             });
             foreach (var s in AllContainers.SelectMany(c => c.Slots)) s.AcceptCurrentAsBaseline();

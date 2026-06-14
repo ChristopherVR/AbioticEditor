@@ -42,10 +42,15 @@ public sealed class PortalMapFeature : WorldMapFeatureBase
 
     public override string MapName => "PortalMap";
 
-    public override string DisplayName => "Portals (Teleporters)";
+    public override string DisplayName => "World Teleporters";
 
     public override string Description =>
-        "Set whether each fixed world teleporter pad is active (unlocked/usable).";
+        "Fixed in-level teleporters: toggle whether each is active (unlocked/usable). These have no "
+        + "tag/link (their destinations are baked into the level); to LINK teleporters use the Teleporter Pads tab.";
+
+    /// <summary>Fixed teleporter actor keys carry no friendly name, so number them.</summary>
+    protected override string LabelFor(int ordinal, string key, IList<FPropertyTag> props)
+        => $"World Teleporter {ordinal}";
 
     protected override IReadOnlyList<WorldMapField> ReadFields(IList<FPropertyTag> props)
     {
