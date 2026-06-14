@@ -3,34 +3,33 @@ namespace AbioticEditor.Core.WorldSaves.Features;
 /// <summary>
 /// Maps a world-state feature (by <see cref="IWorldMapFeature.Id"/>) to candidate
 /// abioticfactor.wiki.gg image file names, so a feature tab can show one representative picture
-/// of that structure type. The image is per <i>type</i> (all elevators share the elevator image),
-/// since these are fixed level actors with no per-entry art.
+/// of that structure type. The image is per <i>type</i> (every tram shares the tram image).
 ///
-/// <para>Researched 2026-06 (same finding as <see cref="AbioticEditor.Core.WorldSaves.DoorWikiImageCatalog"/>):
-/// the wiki pictures the placed <b>teleporter</b> items but has no clean structure renders for
-/// elevators, buttons or power sockets - "Teleporter" is a disambiguation page, and elevators/
-/// buttons appear only in walkthrough prose. So the elevator/button/socket entries are best-effort
-/// candidate names that usually miss; <see cref="AbioticEditor.Core.Assets.WikiImageCache"/>
-/// resolves the first that exists and the UI shows an honest "no image" caption otherwise. If the
-/// wiki later adds art under one of these names it lights up with no code change.</para>
+/// <para><b>Researched 2026-06 (same finding as
+/// <see cref="AbioticEditor.Core.WorldSaves.DoorWikiImageCatalog"/>): the wiki does not picture
+/// these fixed world-state structures.</b> "Teleporter" is a disambiguation page; the only
+/// teleporter images are the Personal Teleporter <i>item</i> icon and a <i>tooltip</i> screenshot
+/// (neither is the placed pad, so showing them would be misleading). "Power" is a disambiguation
+/// page with no socket/outlet render. Elevators and buttons appear only in walkthrough prose, and
+/// triggers are invisible logic volumes that can't be pictured anywhere. So those features map to
+/// nothing and the UI shows an honest "no wiki image" note instead of a wrong picture.</para>
+///
+/// <para>The one fixed structure the wiki actually pictures is the <b>Tram</b>
+/// (<c>Vehicle_-_Tram.png</c>, the same render the vehicle and door catalogs use). If the wiki
+/// later adds real structure art, add its verified file name here and it lights up with no other
+/// code change.</para>
 /// </summary>
 public static class FeatureWikiImageCatalog
 {
     private static readonly Dictionary<string, string[]> ByFeatureId =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            // Placed teleporter pads - the Personal Teleporter item (verified file names).
-            ["teleporter-pads"] = ["Itemicon_personalteleporter.png", "Named_personal_teleporter.png"],
-            // Fixed world teleporters: no dedicated render exists; the teleporter item icon is the
-            // closest representative picture.
-            ["portals"] = ["Itemicon_personalteleporter.png", "Named_personal_teleporter.png"],
-            // Best-effort (usually miss - the wiki has no elevator/button/socket structure art).
-            ["elevators"] = ["Elevator.png", "Facility_Elevator.png", "Elevator_Shaft.png"],
-            ["buttons"] = ["Button.png", "Pushable_Button.png", "Switch.png"],
-            ["power-sockets"] = ["Itemicon_powersocket.png", "Power_Socket.png", "Wall_Outlet.png"],
+            // The only fixed world-state structure with a real wiki render.
+            ["trams"] = ["Vehicle_-_Tram.png"],
         };
 
-    /// <summary>Candidate wiki image file names for a feature, best first. Empty when none known.</summary>
+    /// <summary>Candidate wiki image file names for a feature, best first. Empty when the wiki
+    /// has no picture of this structure type (the common case - see class docs).</summary>
     public static IReadOnlyList<string> CandidatesFor(string featureId)
         => featureId is not null && ByFeatureId.TryGetValue(featureId, out var files)
             ? files

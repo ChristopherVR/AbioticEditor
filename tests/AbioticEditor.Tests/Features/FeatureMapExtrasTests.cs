@@ -77,15 +77,21 @@ public sealed class FeatureMapExtrasTests
     // ---------- wiki image catalog ----------
 
     [Fact]
-    public void Image_catalog_covers_the_visual_feature_types()
+    public void Image_catalog_only_maps_structures_the_wiki_actually_pictures()
     {
-        Assert.NotEmpty(FeatureWikiImageCatalog.CandidatesFor("teleporter-pads"));
-        Assert.NotEmpty(FeatureWikiImageCatalog.CandidatesFor("elevators"));
-        Assert.NotEmpty(FeatureWikiImageCatalog.CandidatesFor("buttons"));
-        // The verified real teleporter icon is first in the pad list.
-        Assert.Equal("Itemicon_personalteleporter.png", FeatureWikiImageCatalog.CandidatesFor("teleporter-pads")[0]);
-        // A feature with no image has an empty (never-null) candidate list.
-        Assert.Empty(FeatureWikiImageCatalog.CandidatesFor("server-entitlements"));
+        // The tram is the one fixed world-state structure with a real wiki render.
+        var trams = FeatureWikiImageCatalog.CandidatesFor("trams");
+        Assert.Single(trams);
+        Assert.Equal("Vehicle_-_Tram.png", trams[0]);
+
+        // The wiki does not picture these structures (item icons/tooltips/invisible volumes are
+        // not the placed actor), so they map to nothing - the UI shows an honest "no image" note.
+        Assert.Empty(FeatureWikiImageCatalog.CandidatesFor("teleporter-pads"));
+        Assert.Empty(FeatureWikiImageCatalog.CandidatesFor("portals"));
+        Assert.Empty(FeatureWikiImageCatalog.CandidatesFor("power-sockets"));
+        Assert.Empty(FeatureWikiImageCatalog.CandidatesFor("elevators"));
+        Assert.Empty(FeatureWikiImageCatalog.CandidatesFor("buttons"));
+        Assert.Empty(FeatureWikiImageCatalog.CandidatesFor("triggers"));
     }
 
     // ---------- removal ----------
