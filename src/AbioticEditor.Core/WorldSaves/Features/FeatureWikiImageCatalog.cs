@@ -5,26 +5,22 @@ namespace AbioticEditor.Core.WorldSaves.Features;
 /// abioticfactor.wiki.gg image file names, so a feature tab can show one representative picture
 /// of that structure type. The image is per <i>type</i> (every tram shares the tram image).
 ///
-/// <para><b>Researched 2026-06 (same finding as
-/// <see cref="AbioticEditor.Core.WorldSaves.DoorWikiImageCatalog"/>): the wiki does not picture
-/// these fixed world-state structures.</b> "Teleporter" is a disambiguation page; the only
-/// teleporter images are the Personal Teleporter <i>item</i> icon and a <i>tooltip</i> screenshot
-/// (neither is the placed pad, so showing them would be misleading). "Power" is a disambiguation
-/// page with no socket/outlet render. Elevators and buttons appear only in walkthrough prose, and
-/// triggers are invisible logic volumes that can't be pictured anywhere. So those features map to
-/// nothing and the UI shows an honest "no wiki image" note instead of a wrong picture.</para>
-///
-/// <para>The one fixed structure the wiki actually pictures is the <b>Tram</b>
-/// (<c>Vehicle_-_Tram.png</c>, the same render the vehicle and door catalogs use). If the wiki
-/// later adds real structure art, add its verified file name here and it lights up with no other
-/// code change.</para>
+/// <para>Only structures the wiki actually pictures are mapped: the <b>Teleporter Pad</b>
+/// (<c>/wiki/Teleporter_Pad</c>) and the <b>Tram</b> (<c>/wiki/Tram</c>). The other fixed
+/// world-state structures (power sockets, elevators, buttons, fixed world teleporters, triggers)
+/// have no wiki render - "Teleporter"/"Power" are disambiguation pages, elevators/buttons appear
+/// only in walkthrough prose, and triggers are invisible logic volumes - so they map to nothing
+/// and the feature tab simply shows no image for them. Add a verified file name here if the wiki
+/// later pictures one.</para>
 /// </summary>
 public static class FeatureWikiImageCatalog
 {
     private static readonly Dictionary<string, string[]> ByFeatureId =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            // The only fixed world-state structure with a real wiki render.
+            // Placed teleporter pads - the crafted teleporter (lodestone) infobox image.
+            ["teleporter-pads"] = ["Itemicon_craftedteleporter_lodestone.png"],
+            // The tram - the same render the vehicle/door catalogs use.
             ["trams"] = ["Vehicle_-_Tram.png"],
         };
 

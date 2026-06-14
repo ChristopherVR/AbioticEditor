@@ -79,14 +79,17 @@ public sealed class FeatureMapExtrasTests
     [Fact]
     public void Image_catalog_only_maps_structures_the_wiki_actually_pictures()
     {
-        // The tram is the one fixed world-state structure with a real wiki render.
+        // The Teleporter Pad and the Tram are the fixed structures the wiki actually pictures.
+        var pads = FeatureWikiImageCatalog.CandidatesFor("teleporter-pads");
+        Assert.Single(pads);
+        Assert.Equal("Itemicon_craftedteleporter_lodestone.png", pads[0]);
+
         var trams = FeatureWikiImageCatalog.CandidatesFor("trams");
         Assert.Single(trams);
         Assert.Equal("Vehicle_-_Tram.png", trams[0]);
 
-        // The wiki does not picture these structures (item icons/tooltips/invisible volumes are
-        // not the placed actor), so they map to nothing - the UI shows an honest "no image" note.
-        Assert.Empty(FeatureWikiImageCatalog.CandidatesFor("teleporter-pads"));
+        // The wiki does not picture these structures, so they map to nothing and the tab shows
+        // no image at all for them.
         Assert.Empty(FeatureWikiImageCatalog.CandidatesFor("portals"));
         Assert.Empty(FeatureWikiImageCatalog.CandidatesFor("power-sockets"));
         Assert.Empty(FeatureWikiImageCatalog.CandidatesFor("elevators"));

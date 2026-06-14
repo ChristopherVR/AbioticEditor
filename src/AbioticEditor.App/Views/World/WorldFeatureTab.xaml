@@ -75,9 +75,6 @@
                                 </Border>
                                 <Label Text="{Binding WikiAttribution}" Style="{StaticResource AfMuted}" FontSize="8" />
                             </VerticalStackLayout>
-                            <Label Text="No wiki image for this structure type."
-                                   Style="{StaticResource AfMuted}" FontSize="9"
-                                   IsVisible="{Binding WikiImageUnavailable, FallbackValue=False}" />
 
                             <VerticalStackLayout Spacing="12" BindingContext="{Binding SelectedEntry}"
                                                  x:DataType="vm:WorldFeatureEntryViewModel">

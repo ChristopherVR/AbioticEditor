@@ -27,7 +27,6 @@ public sealed class WorldFeatureTabViewModel : INotifyPropertyChanged
     private string? _wikiImagePath;
     private bool _isWikiImageLoading;
     private bool _wikiImageRequested;
-    private bool _wikiImageUnavailable;
 
     public WorldFeatureTabViewModel(
         IWorldMapFeature feature, SaveGame raw, Action onChanged, Action<WorldFeatureTabViewModel> onSelect)
@@ -108,16 +107,6 @@ public sealed class WorldFeatureTabViewModel : INotifyPropertyChanged
         private set => Set(ref _isWikiImageLoading, value);
     }
 
-    /// <summary>
-    /// True once we know there's no picture to show (the wiki doesn't render this structure type,
-    /// or the fetch missed). Drives an honest "no wiki image" note instead of a blank gap.
-    /// </summary>
-    public bool WikiImageUnavailable
-    {
-        get => _wikiImageUnavailable;
-        private set => Set(ref _wikiImageUnavailable, value);
-    }
-
     /// <summary>Required credit line shown under any displayed wiki image.</summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static",
         Justification = "Bound from XAML, which requires an instance property.")]
@@ -128,13 +117,9 @@ public sealed class WorldFeatureTabViewModel : INotifyPropertyChanged
         if (_wikiImageRequested) return;
         _wikiImageRequested = true;
         var candidates = FeatureWikiImageCatalog.CandidatesFor(_feature.Id);
-        if (candidates.Count == 0)
-        {
-            // The wiki has no picture of this structure type (power sockets, elevators, triggers,
-            // teleporter pads, ...) - say so rather than leaving a blank gap.
-            WikiImageUnavailable = true;
-            return;
-        }
+        // Structures the wiki doesn't picture (power sockets, elevators, triggers, ...) simply
+        // show no image.
+        if (candidates.Count == 0) return;
         IsWikiImageLoading = true;
         _ = LoadWikiImageAsync(candidates);
     }
@@ -143,12 +128,11 @@ public sealed class WorldFeatureTabViewModel : INotifyPropertyChanged
     {
         string? path = null;
         try { path = await WikiImageCache.Default.GetFirstAsync(candidates).ConfigureAwait(false); }
-        catch { /* offline / not found - fall through to the no-image note */ }
+        catch { /* offline / not found - just show no image */ }
         MainThread.BeginInvokeOnMainThread(() =>
         {
             WikiImagePath = path;
             IsWikiImageLoading = false;
-            WikiImageUnavailable = path is null;
         });
     }
 
