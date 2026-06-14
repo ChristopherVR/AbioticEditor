@@ -130,6 +130,17 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         foreach (var d in _droppedItems) d.Slot.PropertyChanged += OnSlotChanged;
 
         Npcs = data.Npcs.Select(n => new WorldNpcViewModel(n, Refresh)).ToList();
+
+        // Pets get their own tab and a Fish-style detail editor. The variant catalog is
+        // built once (merged from paks when present, curated otherwise) and shared by every
+        // pet's upgrade picker.
+        var petVariants = PetCatalog.BuildVariants(Services.GameDataServices.Provider);
+        _pets = data.Pets.Select(p => new WorldPetViewModel(p, Refresh, petVariants)).ToList();
+
+        // Vehicles (region saves). On-board storage is editable via the CONTAINERS tab
+        // (vehicle inventories load as Vehicle-source containers); OpenVehicleInventory jumps there.
+        _vehicles = data.Vehicles.Select(v => new WorldVehicleViewModel(v, Refresh, OpenVehicleInventory)).ToList();
+
         if (IsMetadataSave)
         {
             // Metadata saves have no containers/doors - open on the story tab.
@@ -615,6 +626,133 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     public IReadOnlyList<WorldNpcViewModel> Npcs { get; }
     public bool HasNpcs => Npcs.Count > 0;
     private bool AreNpcsDirty() => Npcs.Any(n => n.IsDirty);
+
+    // ---------- Pets (PetNPC) ----------
+
+    private List<WorldPetViewModel> _pets = new();
+    private WorldPetViewModel? _selectedPet;
+
+    public IReadOnlyList<WorldPetViewModel> Pets => _pets;
+    public bool HasPets => _pets.Count > 0;
+    private bool ArePetsDirty() => _pets.Any(p => p.IsDirty);
+
+    /// <summary>The pet shown in the detail pane (master-detail, like the Fish codex).</summary>
+    public WorldPetViewModel? SelectedPet
+    {
+        get => _selectedPet;
+        set
+        {
+            if (Set(ref _selectedPet, value))
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasSelectedPet)));
+            }
+        }
+    }
+
+    public bool HasSelectedPet => _selectedPet is not null;
+
+    // ---------- Send a pet to a player (cross-save) ----------
+
+    private IReadOnlyList<SaveTarget>? _siblingPlayers;
+    private SaveTarget? _selectedSiblingPlayer;
+    private bool _sendToCompanion = true;
+    private string? _petMoveStatus;
+
+    /// <summary>Player saves found next to this world (in a sibling PlayerData/ dir).</summary>
+    public IReadOnlyList<SaveTarget> SiblingPlayers => _siblingPlayers ??=
+        PetSaveLocator.SiblingPlayerSaves(_path).Select(p => new SaveTarget(p, System.IO.Path.GetFileName(p))).ToList();
+
+    public bool HasSiblingPlayers => SiblingPlayers.Count > 0;
+
+    public SaveTarget? SelectedSiblingPlayer
+    {
+        get => _selectedSiblingPlayer ??= (SiblingPlayers.Count > 0 ? SiblingPlayers[0] : null);
+        set => Set(ref _selectedSiblingPlayer, value);
+    }
+
+    /// <summary>True = place in the Companion slot; false = first free hotbar slot.</summary>
+    public bool SendToCompanion { get => _sendToCompanion; set => Set(ref _sendToCompanion, value); }
+
+    /// <summary>Last cross-save move result, shown under the button.</summary>
+    public string? PetMoveStatus { get => _petMoveStatus; private set => Set(ref _petMoveStatus, value); }
+
+    public ICommand SendPetToPlayerCommand { get; private set; } = null!;
+
+    private async Task SendPetToPlayerAsync()
+    {
+        var pet = _selectedPet;
+        if (pet is null) return;
+        if (SelectedSiblingPlayer is not { } target)
+        {
+            PetMoveStatus = "No player save was found next to this world.";
+            return;
+        }
+        if (IsDirty)
+        {
+            PetMoveStatus = "Save or revert your other world changes first.";
+            return;
+        }
+        try
+        {
+            var player = Core.PlayerSaves.PlayerSaveReader.ReadFromFile(target.Path);
+            var kind = SendToCompanion ? Core.PlayerSaves.PetSlotKind.Equipment : Core.PlayerSaves.PetSlotKind.Hotbar;
+            var result = await Task.Run(() =>
+            {
+                var r = PetTransfer.WorldToPlayer(_data, pet.Id, player, kind);
+                if (r.Ok)
+                {
+                    // Write the gaining file (player) first, then the world that lost the pet.
+                    Core.PlayerSaves.PlayerSaveWriter.WriteToFile(player, target.Path);
+                    WorldSaveWriter.WriteToFile(_data, _path);
+                }
+                return r;
+            });
+            if (!result.Ok) { PetMoveStatus = result.Message; return; }
+
+            _pets.Remove(pet);
+            if (ReferenceEquals(_selectedPet, pet)) SelectedPet = null;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Pets)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasPets)));
+            PetMoveStatus = $"{result.Message} -> {target.Name}";
+            Refresh();
+        }
+        catch (Exception ex)
+        {
+            PetMoveStatus = $"Move failed: {ex.Message}";
+        }
+    }
+
+    // ---------- Vehicles (VehicleMap) ----------
+
+    private readonly List<WorldVehicleViewModel> _vehicles;
+    private WorldVehicleViewModel? _selectedVehicle;
+
+    public IReadOnlyList<WorldVehicleViewModel> Vehicles => _vehicles;
+    public bool HasVehicles => _vehicles.Count > 0;
+    private bool AreVehiclesDirty() => _vehicles.Any(v => v.IsDirty);
+
+    /// <summary>The vehicle shown in the detail pane (master-detail). Triggers its async loads.</summary>
+    public WorldVehicleViewModel? SelectedVehicle
+    {
+        get => _selectedVehicle;
+        set
+        {
+            if (Set(ref _selectedVehicle, value))
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasSelectedVehicle)));
+                value?.OnSelected();
+            }
+        }
+    }
+
+    public bool HasSelectedVehicle => _selectedVehicle is not null;
+
+    /// <summary>Jumps to a vehicle's on-board storage in the CONTAINERS tab (filtered to it).</summary>
+    private void OpenVehicleInventory(string vehicleId)
+    {
+        Filter = vehicleId;
+        ActiveTab = WorldTab.Containers;
+    }
 
     private IReadOnlyList<TraderCardViewModel>? _traderCards;
 
@@ -1614,7 +1752,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         {
             if (Set(ref _activeTab, value))
             {
-                foreach (var n in new[] { nameof(IsContainersTab), nameof(IsFlagsTab), nameof(IsDoorsTab), nameof(IsDroppedTab), nameof(IsNpcsTab), nameof(IsBasesTab), nameof(IsMetaTab), nameof(IsTradersTab), nameof(IsContainmentTab), nameof(IsRawTab) })
+                foreach (var n in new[] { nameof(IsContainersTab), nameof(IsFlagsTab), nameof(IsDoorsTab), nameof(IsDroppedTab), nameof(IsNpcsTab), nameof(IsPetsTab), nameof(IsVehiclesTab), nameof(IsBasesTab), nameof(IsMetaTab), nameof(IsTradersTab), nameof(IsContainmentTab), nameof(IsRawTab) })
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
             }
         }
@@ -1625,6 +1763,8 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     public bool IsDoorsTab => _activeTab == WorldTab.Doors;
     public bool IsDroppedTab => _activeTab == WorldTab.Dropped;
     public bool IsNpcsTab => _activeTab == WorldTab.Npcs;
+    public bool IsPetsTab => _activeTab == WorldTab.Pets;
+    public bool IsVehiclesTab => _activeTab == WorldTab.Vehicles;
     public bool IsBasesTab => _activeTab == WorldTab.Bases;
     public bool IsRawTab => _activeTab == WorldTab.Raw;
     public bool IsMetaTab => _activeTab == WorldTab.Meta;
@@ -1640,6 +1780,8 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     public ICommand ShowDoorsCommand { get; private set; } = null!;
     public ICommand ShowDroppedCommand { get; private set; } = null!;
     public ICommand ShowNpcsCommand { get; private set; } = null!;
+    public ICommand ShowPetsCommand { get; private set; } = null!;
+    public ICommand ShowVehiclesCommand { get; private set; } = null!;
     public ICommand ShowBasesCommand { get; private set; } = null!;
     public ICommand ShowMetaCommand { get; private set; } = null!;
     public ICommand ShowTradersCommand { get; private set; } = null!;
@@ -1653,6 +1795,9 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         ShowDoorsCommand = new RelayCommand(() => ActiveTab = WorldTab.Doors);
         ShowDroppedCommand = new RelayCommand(() => ActiveTab = WorldTab.Dropped);
         ShowNpcsCommand = new RelayCommand(() => ActiveTab = WorldTab.Npcs);
+        ShowPetsCommand = new RelayCommand(() => ActiveTab = WorldTab.Pets);
+        ShowVehiclesCommand = new RelayCommand(() => ActiveTab = WorldTab.Vehicles);
+        SendPetToPlayerCommand = new RelayCommand(async () => await SendPetToPlayerAsync());
         ShowBasesCommand = new RelayCommand(() => ActiveTab = WorldTab.Bases);
         ShowMetaCommand = new RelayCommand(() => ActiveTab = WorldTab.Meta);
         ShowTradersCommand = new RelayCommand(() => ActiveTab = WorldTab.Traders);
@@ -1787,6 +1932,8 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         || AreDoorsDirty()
         || AreDroppedDirty()
         || AreNpcsDirty()
+        || ArePetsDirty()
+        || AreVehiclesDirty()
         || IsMetaDirty()
         || AreExtrasDirty();
 
@@ -1826,6 +1973,9 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
             var droppedUpdates = _droppedItems.Where(d => !d.IsDeleted && d.Slot.IsDirty).Select(d => d.ToCurrent()).ToList();
             var droppedDeletions = _droppedItems.Where(d => d.IsDeleted).Select(d => d.Id).ToList();
             var npcUpdates = Npcs.Where(n => n.IsDirty).Select(n => n.ToCurrent()).ToList();
+            var petUpdates = _pets.Where(p => !p.IsDeleted && p.IsDirty).Select(p => p.ToCurrent()).ToList();
+            var petDeletions = _pets.Where(p => p.IsDeleted).Select(p => p.Id).ToList();
+            var vehicleUpdates = _vehicles.Where(v => v.IsDirty).Select(v => v.ToCurrent()).ToList();
             var clockDirty = _hasWorldClock
                 && (Math.Abs(_clockSeconds - _clockSecondsBaseline) > 0.5 || _clockDay != _clockDayBaseline);
             var clockSeconds = _clockSeconds;
@@ -1850,6 +2000,18 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
                 if (npcUpdates.Count > 0)
                 {
                     WorldSaveWriter.ApplyNpcs(_data, npcUpdates);
+                }
+                if (petUpdates.Count > 0)
+                {
+                    WorldSaveWriter.ApplyPets(_data, petUpdates);
+                }
+                foreach (var petId in petDeletions)
+                {
+                    WorldSaveWriter.RemovePet(_data, petId);
+                }
+                if (vehicleUpdates.Count > 0)
+                {
+                    WorldSaveWriter.ApplyVehicles(_data, vehicleUpdates);
                 }
                 if (isMeta && !string.IsNullOrEmpty(storySnapshot))
                 {
@@ -1902,6 +2064,15 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
             foreach (var d in _droppedItems) d.Slot.AcceptCurrentAsBaseline();
             OnDroppedItemChanged();
             foreach (var n in Npcs) n.AcceptBaseline();
+            if (petDeletions.Count > 0)
+            {
+                if (_selectedPet is not null && _selectedPet.IsDeleted) SelectedPet = null;
+                _pets.RemoveAll(p => p.IsDeleted);
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Pets)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasPets)));
+            }
+            foreach (var p in _pets) p.AcceptBaseline();
+            foreach (var v in _vehicles) v.AcceptBaseline();
             SaveStatus = $"Saved at {DateTime.Now:HH:mm:ss}";
         }
         catch (Exception ex)
@@ -1952,6 +2123,8 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         }
         OnDroppedItemChanged();
         foreach (var n in Npcs) n.Revert();
+        foreach (var p in _pets) p.Revert();
+        foreach (var v in _vehicles) v.Revert();
         SaveStatus = null;
     }
 
@@ -1981,7 +2154,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     }
 }
 
-public enum WorldTab { Containers, Flags, Doors, Dropped, Npcs, Bases, Meta, Traders, Containment, Raw }
+public enum WorldTab { Containers, Flags, Doors, Dropped, Npcs, Pets, Vehicles, Bases, Meta, Traders, Containment, Raw }
 
 /// <summary>
 /// One entry of the metadata save's <c>LeyakContainmentIDs</c> map: a contained

@@ -34,6 +34,8 @@ public static class CommandTree
         root.Subcommands.Add(SteamIdCommand.Build(quiet));
         root.Subcommands.Add(IniCommands.Build(quiet));
         root.Subcommands.Add(WorldCommands.Build(quiet));
+        root.Subcommands.Add(PetCommands.Build(quiet));
+        root.Subcommands.Add(VehicleCommands.Build(quiet));
         root.Subcommands.Add(VersionCommand.Build());
         root.Subcommands.Add(UpdateCommand.Build(quiet));
 

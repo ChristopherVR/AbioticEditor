@@ -10,8 +10,8 @@
     <!-- ============== TAB: NPCs & traders ============== -->
     <VerticalStackLayout Spacing="12"
                          IsVisible="{Binding WorldEditor.IsNpcsTab}">
-        <Label Text="NPCS IN THIS WORLD: STORY + PETS" Style="{StaticResource AfH2}" FontSize="18" />
-        <Label Text="Live NPC records in this save: story NPCs / traders plus tamed pet companions (named pets show their given name). DEAD revives or kills the actor; the narrative state byte controls their story stage (the game's enum has no readable names - change it only if you know the target stage)."
+        <Label Text="STORY NPCS &amp; TRADERS IN THIS WORLD" Style="{StaticResource AfH2}" FontSize="18" />
+        <Label Text="Live story-NPC / trader records in this save. REVIVE brings a removed actor back; the narrative state byte controls their story stage (the game's enum has no readable names - change it only if you know the target stage). Tamed pets now have their own PETS tab."
                Style="{StaticResource AfMuted}" FontSize="11" />
         <Border BackgroundColor="{StaticResource AfShellBackground}"
                 Stroke="{StaticResource AfBorderSubtleBrush}"
@@ -21,29 +21,13 @@
                                  BindableLayout.ItemsSource="{Binding WorldEditor.Npcs}">
                 <BindableLayout.ItemTemplate>
                     <DataTemplate x:DataType="items:WorldNpcViewModel">
-                        <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto,220" ColumnSpacing="14">
+                        <Grid ColumnDefinitions="*,Auto,Auto,Auto,220" ColumnSpacing="14">
                             <VerticalStackLayout Grid.Column="0" Spacing="1" VerticalOptions="Center">
                                 <Label Text="{Binding ActorName}" Style="{StaticResource AfFieldValue}" FontSize="13" />
                                 <Label Text="{Binding ContextText}" Style="{StaticResource AfStatusText}" FontSize="9"
                                        LineBreakMode="WordWrap" />
                             </VerticalStackLayout>
-                            <Border Grid.Column="1"
-                                    BackgroundColor="{StaticResource AfTerminalGreenDim}"
-                                    StrokeThickness="0" StrokeShape="Rectangle"
-                                    Padding="6,2" VerticalOptions="Center"
-                                    IsVisible="{Binding IsPet}">
-                                <Label Text="PET"
-                                       FontFamily="OpenSansSemibold" FontSize="9"
-                                       CharacterSpacing="2"
-                                       TextColor="{StaticResource AfTextPrimary}" />
-                            </Border>
-                            <Entry Grid.Column="2" WidthRequest="140" FontSize="11"
-                                   Text="{Binding PetName, Mode=TwoWay}"
-                                   Placeholder="name your pet…"
-                                   ToolTipProperties.Text="The pet's given name, as shown above its head in-game. Staged until SAVE."
-                                   IsVisible="{Binding IsPet}"
-                                   VerticalOptions="Center" />
-                            <Label Grid.Column="3" Text="{Binding StatusText}"
+                            <Label Grid.Column="1" Text="{Binding StatusText}"
                                    Style="{StaticResource AfFieldLabel}" VerticalOptions="Center">
                                 <Label.Triggers>
                                     <DataTrigger TargetType="Label" Binding="{Binding IsDead}" Value="True">
@@ -54,7 +38,7 @@
                                     </DataTrigger>
                                 </Label.Triggers>
                             </Label>
-                            <Button Grid.Column="4" Text="REVIVE"
+                            <Button Grid.Column="2" Text="REVIVE"
                                     FontSize="10" Padding="10,3"
                                     BackgroundColor="{StaticResource AfTerminalGreen}"
                                     TextColor="{StaticResource AfTextOnAccent}"
@@ -62,10 +46,10 @@
                                     IsVisible="{Binding CanRevive}"
                                     Clicked="OnReviveNpc"
                                     VerticalOptions="Center" />
-                            <Label Grid.Column="5" Text="SCRIPT PHASE" Style="{StaticResource AfFieldLabel}" FontSize="8"
+                            <Label Grid.Column="3" Text="SCRIPT PHASE" Style="{StaticResource AfFieldLabel}" FontSize="8"
                                    ToolTipProperties.Text="Game-internal dialogue/script phase (0-5), not quest progress. Every living NPC sits at 3."
                                    VerticalOptions="Center" />
-                            <Picker Grid.Column="6"
+                            <Picker Grid.Column="4"
                                     ItemsSource="{Binding StateOptions}"
                                     SelectedItem="{Binding State, Mode=TwoWay}"
                                     FontSize="11"

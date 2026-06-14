@@ -10,6 +10,11 @@ using SkiaSharp;
 
 namespace AbioticEditor.Core.Assets;
 
+/// <summary>A world transform resolved from a cooked level: translation + rotation quaternion.</summary>
+public readonly record struct ActorTransform(
+    double X, double Y, double Z,
+    double QuatX, double QuatY, double QuatZ, double QuatW);
+
 /// <summary>
 /// Loads Abiotic Factor's pak archives and exposes high-level asset extraction.
 /// Extracted bytes are cached on disk under <see cref="CacheDirectory"/>.
@@ -317,6 +322,40 @@ public sealed class GameAssetProvider : IDisposable
     {
         ThrowIfDisposed();
         return _provider.LoadPackage(packagePath);
+    }
+
+    /// <summary>
+    /// Resolves a placed actor's world transform from a cooked level package - used to find a
+    /// vehicle's original spawn position (the <c>VehicleSpawn_*</c> actor named by its save key).
+    /// Returns translation (X,Y,Z) and rotation as a quaternion (X,Y,Z,W), or null when the
+    /// actor / level / mappings can't be resolved (graceful: callers disable "reset to spawn").
+    /// <paramref name="actorObjectPath"/> is the full object path, e.g.
+    /// <c>/Game/Maps/Facility_MFWest.Facility_MFWest:PersistentLevel.VehicleSpawn_Forklift_C_3</c>.
+    /// </summary>
+    public ActorTransform? TryGetActorTransform(string? actorObjectPath)
+    {
+        if (string.IsNullOrEmpty(actorObjectPath) || _disposed) return null;
+        try
+        {
+            if (!_provider.TryLoadPackageObject(actorObjectPath, out var actor) || actor is null)
+            {
+                return null;
+            }
+
+            // The transform lives on the actor's RootComponent (a scene component export).
+            var root = actor.GetOrDefault<CUE4Parse.UE4.Assets.Exports.UObject?>("RootComponent");
+            var holder = root ?? actor;
+
+            var loc = holder.GetOrDefault<CUE4Parse.UE4.Objects.Core.Math.FVector>("RelativeLocation");
+            var rot = holder.GetOrDefault<CUE4Parse.UE4.Objects.Core.Math.FRotator>("RelativeRotation");
+            var q = rot.Quaternion();
+            return new ActorTransform(loc.X, loc.Y, loc.Z, q.X, q.Y, q.Z, q.W);
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.EditorLog.Warn("Assets", $"Could not resolve spawn transform for {actorObjectPath}: {ex.Message}");
+            return null;
+        }
     }
 
     private void ThrowIfDisposed()

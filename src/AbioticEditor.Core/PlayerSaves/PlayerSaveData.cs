@@ -35,8 +35,10 @@ public sealed class PlayerSaveData
         double respawnY = 0,
         double respawnZ = 0,
         string? respawnLevelGuid = null,
-        string? terminalRespawnId = null)
+        string? terminalRespawnId = null,
+        IReadOnlyList<CarriedPet>? carriedPets = null)
     {
+        CarriedPets = carriedPets ?? Array.Empty<CarriedPet>();
         KillCounts = killCounts;
         FishCaught = fishCaught;
         TransmogSlots = transmogSlots ?? Array.Empty<InventoryItemSlot>();
@@ -131,6 +133,12 @@ public sealed class PlayerSaveData
 
     /// <summary>Caught fish rows (<c>Compendium_Fish_</c>); rows of DT_Fish.</summary>
     public IReadOnlyList<string> FishCaught { get; }
+
+    /// <summary>
+    /// Pets carried in inventory (hotbar / Companion slot / backpack) - <c>Item.Pet</c> item
+    /// rows with health as durability and XP / mutation in <c>DynamicProperties_</c>.
+    /// </summary>
+    public IReadOnlyList<CarriedPet> CarriedPets { get; }
 
     /// <summary>
     /// The 6 <c>TransmogInventory_</c> slots - the cosmetic item shown over each

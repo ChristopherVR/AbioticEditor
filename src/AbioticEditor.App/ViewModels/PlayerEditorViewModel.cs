@@ -61,6 +61,7 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
         Main = BuildSlotList(InventoryKind.Main, data.Inventory.Main,
             Services.GameDataServices.BackpackSlots.For(backpackId));
         Transmog = BuildSlotList(InventoryKind.Main, data.TransmogSlots, TransmogRoleMap);
+        _carriedPets = data.CarriedPets.Select(p => new CarriedPetViewModel(p, Refresh)).ToList();
         TransmogToggles = data.TransmogVisibility
             .Select((v, i) => new TransmogToggleViewModel(i, v, Refresh))
             .ToList();
@@ -121,6 +122,8 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
         ShowTransmogCommand = new RelayCommand(() => ActiveTab = PlayerTab.Transmog);
         ShowSpawnCommand = new RelayCommand(() => ActiveTab = PlayerTab.Spawn);
         ShowInventoryCommand = new RelayCommand(() => ActiveTab = PlayerTab.Inventory);
+        ShowPetsCommand = new RelayCommand(() => ActiveTab = PlayerTab.Pets);
+        SendPetToWorldCommand = new RelayCommand(async () => await SendPetToWorldAsync());
         ShowSkillsCommand = new RelayCommand(() => ActiveTab = PlayerTab.Skills);
         ShowRecipesCommand = new RelayCommand(() => ActiveTab = PlayerTab.Recipes);
         ShowCodexCommand = new RelayCommand(() => ActiveTab = PlayerTab.Codex);
@@ -456,7 +459,7 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
 
     // ---------- Tabs ----------
 
-    public enum PlayerTab { General, Vitals, Character, Transmog, Spawn, Inventory, Skills, Recipes, Codex, Achievements, Raw }
+    public enum PlayerTab { General, Vitals, Character, Transmog, Spawn, Inventory, Pets, Skills, Recipes, Codex, Achievements, Raw }
 
     private PlayerTab _activeTab = PlayerTab.Vitals;
     private string? _rawStatus;
@@ -468,7 +471,7 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
         {
             if (_activeTab == value) return;
             _activeTab = value;
-            foreach (var n in new[] { nameof(IsGeneralTab), nameof(IsVitalsTab), nameof(IsCharacterTab), nameof(IsTransmogTab), nameof(IsSpawnTab), nameof(IsInventoryTab), nameof(IsSkillsTab), nameof(IsRecipesTab), nameof(IsCodexTab), nameof(IsAchievementsTab), nameof(IsRawTab) })
+            foreach (var n in new[] { nameof(IsGeneralTab), nameof(IsVitalsTab), nameof(IsCharacterTab), nameof(IsTransmogTab), nameof(IsSpawnTab), nameof(IsInventoryTab), nameof(IsPetsTab), nameof(IsSkillsTab), nameof(IsRecipesTab), nameof(IsCodexTab), nameof(IsAchievementsTab), nameof(IsRawTab) })
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
         }
     }
@@ -479,6 +482,7 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
     public bool IsTransmogTab => _activeTab == PlayerTab.Transmog;
     public bool IsSpawnTab => _activeTab == PlayerTab.Spawn;
     public bool IsInventoryTab => _activeTab == PlayerTab.Inventory;
+    public bool IsPetsTab => _activeTab == PlayerTab.Pets;
     public bool IsSkillsTab => _activeTab == PlayerTab.Skills;
     public bool IsRecipesTab => _activeTab == PlayerTab.Recipes;
     public bool IsCodexTab => _activeTab == PlayerTab.Codex;
@@ -496,6 +500,7 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
     public ICommand ShowSkillsCommand { get; private set; } = null!;
     public ICommand ShowRecipesCommand { get; private set; } = null!;
     public ICommand ShowCodexCommand { get; private set; } = null!;
+    public ICommand ShowPetsCommand { get; private set; } = null!;
     public ICommand ShowAchievementsCommand { get; private set; } = null!;
     public ICommand ShowRawCommand { get; private set; } = null!;
     public ICommand ExportJsonCommand { get; private set; } = null!;
@@ -914,7 +919,111 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
         private set => Set(ref _saveStatus, value);
     }
 
+    // ---------- Carried pets (Companion slot / hotbar pet items) ----------
+
+    private readonly List<CarriedPetViewModel> _carriedPets;
+    private CarriedPetViewModel? _selectedCarriedPet;
+
+    public IReadOnlyList<CarriedPetViewModel> CarriedPets => _carriedPets;
+    public bool HasCarriedPets => _carriedPets.Count > 0;
+    private bool ArePetsDirty() => _carriedPets.Any(p => p.IsDirty);
+
+    /// <summary>The carried pet shown in the COMPANIONS detail pane.</summary>
+    public CarriedPetViewModel? SelectedCarriedPet
+    {
+        get => _selectedCarriedPet;
+        set
+        {
+            if (ReferenceEquals(_selectedCarriedPet, value)) return;
+            _selectedCarriedPet = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedCarriedPet)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasSelectedCarriedPet)));
+        }
+    }
+
+    public bool HasSelectedCarriedPet => _selectedCarriedPet is not null;
+
+    // ---------- Send a carried pet to the world (cross-save) ----------
+
+    private IReadOnlyList<SaveTarget>? _siblingWorlds;
+    private SaveTarget? _selectedSiblingWorld;
+    private string? _petMoveStatus;
+
+    /// <summary>World saves found next to this player (one folder up from PlayerData/).</summary>
+    public IReadOnlyList<SaveTarget> SiblingWorlds => _siblingWorlds ??=
+        Core.WorldSaves.PetSaveLocator.SiblingWorldSaves(_path)
+            .Select(p => new SaveTarget(p, Path.GetFileName(p))).ToList();
+
+    public bool HasSiblingWorlds => SiblingWorlds.Count > 0;
+
+    public SaveTarget? SelectedSiblingWorld
+    {
+        get => _selectedSiblingWorld ??= (SiblingWorlds.Count > 0 ? SiblingWorlds[0] : null);
+        set
+        {
+            if (ReferenceEquals(_selectedSiblingWorld, value)) return;
+            _selectedSiblingWorld = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedSiblingWorld)));
+        }
+    }
+
+    public string? PetMoveStatus
+    {
+        get => _petMoveStatus;
+        private set { _petMoveStatus = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PetMoveStatus))); }
+    }
+
+    public ICommand SendPetToWorldCommand { get; private set; } = null!;
+
+    private async Task SendPetToWorldAsync()
+    {
+        var pet = _selectedCarriedPet;
+        if (pet is null) return;
+        if (SelectedSiblingWorld is not { } target)
+        {
+            PetMoveStatus = "No world save was found next to this player.";
+            return;
+        }
+        if (IsDirty)
+        {
+            PetMoveStatus = "Save or revert your other player changes first.";
+            return;
+        }
+        try
+        {
+            var world = Core.WorldSaves.WorldSaveReader.ReadFromFile(target.Path);
+            var bed = world.Deployables.FirstOrDefault(d => d.IsPetBed);
+            double x = bed?.X ?? 0, y = bed?.Y ?? 0, z = bed?.Z ?? 0;
+            var result = await Task.Run(() =>
+            {
+                var r = Core.WorldSaves.PetTransfer.PlayerToWorld(_data, pet.Slot, pet.Index, world, x, y, z);
+                if (r.Ok)
+                {
+                    // Write the gaining file (world) first, then the player that lost the pet.
+                    Core.WorldSaves.WorldSaveWriter.WriteToFile(world, target.Path);
+                    PlayerSaveWriter.WriteToFile(_data, _path);
+                }
+                return r;
+            });
+            if (!result.Ok) { PetMoveStatus = result.Message; return; }
+
+            _carriedPets.Remove(pet);
+            if (ReferenceEquals(_selectedCarriedPet, pet)) SelectedCarriedPet = null;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CarriedPets)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasCarriedPets)));
+            PetMoveStatus = bed is not null
+                ? $"{result.Message} (placed at a pet bed in {target.Name})"
+                : $"{result.Message} -> {target.Name}";
+            Refresh();
+        }
+        catch (Exception ex)
+        {
+            PetMoveStatus = $"Move failed: {ex.Message}";
+        }
+    }
+
     public bool IsDirty =>
+        ArePetsDirty() ||
         Drifted(_hunger, _baseline.Hunger) ||
         Drifted(_thirst, _baseline.Thirst) ||
         Drifted(_sanity, _baseline.Sanity) ||
@@ -1137,11 +1246,17 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
             var updatedMaps = _mapsUnlocked.ToList();
             var updatedTransmog = Transmog.Select(s => s.ToCurrentSlot()).ToList();
             var updatedTransmogVisibility = TransmogToggles.Select(t => t.IsVisible).ToList();
+            // Carried-pet edits/deletions are applied AFTER ApplyInventory so the pet-specific
+            // fields (health/XP/mutation via the pet writers) win over the generic slot pass.
+            var petEdits = _carriedPets.Where(p => !p.IsDeleted && p.IsDirty).Select(p => p.ToCurrent()).ToList();
+            var petDeletes = _carriedPets.Where(p => p.IsDeleted).Select(p => (p.Slot, p.Index)).ToList();
 
             await Task.Run(() =>
             {
                 PlayerSaveWriter.ApplyStats(_data, updatedStats);
                 PlayerSaveWriter.ApplyInventory(_data, updatedInv);
+                foreach (var p in petEdits) PlayerSaveWriter.ApplyCarriedPet(_data, p);
+                foreach (var (kind, idx) in petDeletes) PlayerSaveWriter.RemoveCarriedPet(_data, kind, idx);
                 PlayerSaveWriter.ApplySkills(_data, updatedSkills);
                 PlayerSaveWriter.ApplyTraits(_data, updatedTraits);
                 if (!string.IsNullOrEmpty(updatedPhd))
@@ -1183,6 +1298,14 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
             {
                 s.AcceptCurrentAsBaseline();
             }
+            if (petDeletes.Count > 0)
+            {
+                if (_selectedCarriedPet is not null && _selectedCarriedPet.IsDeleted) SelectedCarriedPet = null;
+                _carriedPets.RemoveAll(p => p.IsDeleted);
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CarriedPets)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasCarriedPets)));
+            }
+            foreach (var p in _carriedPets) p.AcceptBaseline();
             foreach (var s in Skills)
             {
                 s.AcceptCurrentAsBaseline();
@@ -1216,6 +1339,7 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
 
     public void Revert()
     {
+        foreach (var p in _carriedPets) p.Revert();
         Hunger = _baseline.Hunger;
         Thirst = _baseline.Thirst;
         Sanity = _baseline.Sanity;
