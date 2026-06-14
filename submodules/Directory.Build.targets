@@ -1,0 +1,33 @@
+<Project>
+  <!--
+    Neutralize the OPTIONAL CUE4Parse-Natives C++ build (the ACL animation /
+    texture decoder compiled via CMake).
+
+    CUE4Parse/CUE4Parse.csproj hooks a "Build-Natives" target into BeforeBuild that
+    shells out to CMake (configure, then build). We redefine that same-named target
+    here as an empty, unhooked no-op. Directory.Build.targets is auto-imported at the END of
+    every project, so this definition wins (last one wins) and drops the BeforeBuild
+    hook — the CMake build never runs.
+
+    Why disable it:
+      * It is OPTIONAL. Managed parsing/extraction works without the native decoder and
+        the editor degrades gracefully (see CLAUDE.md). Save editing and game data-table
+        reading — everything the CLI and App actually do — need no natives.
+      * It is environment-fragile. On macOS runners `cmake` IS present, so the build
+        actually compiles, and the vendored ACL library fails to compile under AppleClang
+        17 (-Wmissing-template-arg-list-after-template-kw), which broke the release build.
+        On Windows there is no `cmake`, so it was already skipped (the "benign"
+        CUE4Parse-Natives-build-failed line CLAUDE.md mentions).
+      * Disabling it makes every build deterministic and removes a slow CMake step.
+
+    Reach: the submodules have no closer Directory.Build.targets, so this applies to
+    CUE4Parse and CUE4Parse-Conversion; UeSaveGame just gets an unused empty target.
+    (The props shield submodules/Directory.Build.props does NOT reach CUE4Parse because
+    CUE4Parse ships its own Directory.Build.props — but it has no .targets, so this does.)
+
+    REVISIT when advancing the CUE4Parse submodule: if upstream renames or restructures
+    "Build-Natives", this override stops matching and the native build — and the macOS
+    failure — can return.
+  -->
+  <Target Name="Build-Natives" />
+</Project>
