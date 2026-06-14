@@ -1,0 +1,30 @@
+AbioticEditor
+Copyright (c) 2026 The AbioticEditor contributors
+https://github.com/ChristopherVR/AbioticEditor
+
+This product is licensed under the Apache License, Version 2.0 (see the
+LICENSE file).
+
+Per Section 4(d) of that license, any distribution of this work or of a
+derivative work (including a fork) must reproduce the attribution notices in
+this NOTICE file. In other words: you may freely use, modify, and redistribute
+AbioticEditor, but you must keep the attribution above to the original project
+and its contributors.
+
+----------------------------------------------------------------------------
+Third-party components
+----------------------------------------------------------------------------
+
+This product redistributes and/or builds upon the following third-party
+components. A complete set of third-party attributions and license texts is
+maintained in THIRD-PARTY-NOTICES.txt.
+
+  * UeSaveGame, UeSaveGame.Json
+      Copyright (c) Crystal Ferrai
+      https://github.com/CrystalFerrai/UeSaveGame
+      Licensed under the Apache License, Version 2.0.
+
+  * CUE4Parse, CUE4Parse-Conversion
+      Copyright (c) the CUE4Parse contributors
+      https://github.com/FabianFG/CUE4Parse
+      Licensed under the Apache License, Version 2.0.

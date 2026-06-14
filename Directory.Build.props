@@ -34,7 +34,7 @@
     <PackageProjectUrl>https://github.com/ChristopherVR/AbioticEditor</PackageProjectUrl>
     <RepositoryUrl>https://github.com/ChristopherVR/AbioticEditor</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <!-- Source Link: embed repo/commit info and the untracked sources for debugging. -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>

@@ -2,8 +2,8 @@ THIRD-PARTY NOTICES
 ===================
 
 The AbioticEditor NuGet packages (AbioticEditor.Core and
-AbioticEditor.Plugins.Abstractions) are distributed under the MIT License
-(see LICENSE).
+AbioticEditor.Plugins.Abstractions) are distributed under the Apache License,
+Version 2.0 (see LICENSE and NOTICE).
 
 For convenience, these packages REDISTRIBUTE the compiled assemblies of the
 following third-party components. Each is licensed under the Apache License,

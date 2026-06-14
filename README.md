@@ -317,6 +317,14 @@ npm run docs:build      # production build
 The deeper save-format research notes and the running session log (`docs/PROGRESS.md`) also
 live there.
 
+### License
+
+AbioticEditor is licensed under the [Apache License, Version 2.0](LICENSE). You may use,
+modify, and redistribute it freely, including for commercial purposes. If you fork or otherwise
+distribute it, you must retain the attribution in the [NOTICE](NOTICE) file (Apache 2.0,
+section 4(d)) and state any changes you made. Third-party attributions are listed in
+[THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).
+
 ---
 
 <div align="center">
