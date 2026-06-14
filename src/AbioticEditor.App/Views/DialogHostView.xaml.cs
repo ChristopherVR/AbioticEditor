@@ -18,8 +18,22 @@ public partial class DialogHostView : ContentView
     {
         InitializeComponent();
         BindingContext = _vm;
+        // _vm is the process-wide DialogViewModel.Current singleton, but a theme switch rebuilds
+        // the whole page tree (this view included). Subscribing for the lifetime of the view would
+        // leave every superseded host rooted on the singleton's event - a per-switch leak that also
+        // runs the open/close animation on detached visuals. Tie the subscription to load/unload.
+        Loaded += OnHostLoaded;
+        Unloaded += OnHostUnloaded;
+    }
+
+    private void OnHostLoaded(object? sender, EventArgs e)
+    {
+        _vm.PropertyChanged -= OnDialogPropertyChanged; // idempotent: Loaded can fire more than once
         _vm.PropertyChanged += OnDialogPropertyChanged;
     }
+
+    private void OnHostUnloaded(object? sender, EventArgs e)
+        => _vm.PropertyChanged -= OnDialogPropertyChanged;
 
     private void OnDialogPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {

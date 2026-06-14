@@ -402,6 +402,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private SaveFileSummary? _loadedSave;
     private SaveFileSummary? _pendingSelection;
     private bool _switchRunning;
+    private bool _leaveGateOpen;
 
     public SaveFileSummary? SelectedSave
     {
@@ -472,34 +473,47 @@ public sealed class MainViewModel : INotifyPropertyChanged
             : null;
         if (dirtyName is null) return true;
 
-        // A phantom dialog (binding write-back posing as an edit) names its source
-        // here - check the log when the gate appears without any deliberate change.
-        if (PlayerEditor?.IsDirty == true)
+        // Reentrancy guard: GoHomeAsync, LoadFolderGuardedAsync, SwitchConfigFileAsync and
+        // RequestSwitchAsync all reach this gate, and a second navigation arriving while the
+        // dialog is up would stack a second dialog and could double-save. The first decision
+        // wins; a concurrent navigation is treated as "stay" until it resolves.
+        if (_leaveGateOpen) return false;
+        _leaveGateOpen = true;
+        try
         {
-            EditorLog.Info("App", $"Leave-gate for {dirtyName}: {PlayerEditor.DescribeDirty()}");
+            // A phantom dialog (binding write-back posing as an edit) names its source
+            // here - check the log when the gate appears without any deliberate change.
+            if (PlayerEditor?.IsDirty == true)
+            {
+                EditorLog.Info("App", $"Leave-gate for {dirtyName}: {PlayerEditor.DescribeDirty()}");
+            }
+
+            // In-app dialog: [Cancel, Discard changes, Save and continue].
+            var choice = await DialogViewModel.Current.ShowAsync(
+                $"{dirtyName} has unsaved changes",
+                "You have staged edits that haven't been written to the save yet. " +
+                "Save them, discard them, or stay on this editor.",
+                ("Cancel", DialogTone.Neutral),
+                ("Discard changes", DialogTone.Danger),
+                ("Save and continue", DialogTone.Primary));
+
+            switch (choice)
+            {
+                case 2: // Save and continue
+                    if (PlayerEditor?.IsDirty == true) await PlayerEditor.SaveAsync();
+                    else if (WorldEditor?.IsDirty == true) await WorldEditor.SaveAsync();
+                    else IniEditor?.Save();
+                    return true;
+                case 1: // Discard changes
+                    EditorLog.Info("App", $"User discarded staged changes in {dirtyName}.");
+                    return true;
+                default: // Cancel / dismissed
+                    return false;
+            }
         }
-
-        // In-app dialog: [Cancel, Discard changes, Save and continue].
-        var choice = await DialogViewModel.Current.ShowAsync(
-            $"{dirtyName} has unsaved changes",
-            "You have staged edits that haven't been written to the save yet. " +
-            "Save them, discard them, or stay on this editor.",
-            ("Cancel", DialogTone.Neutral),
-            ("Discard changes", DialogTone.Danger),
-            ("Save and continue", DialogTone.Primary));
-
-        switch (choice)
+        finally
         {
-            case 2: // Save and continue
-                if (PlayerEditor?.IsDirty == true) await PlayerEditor.SaveAsync();
-                else if (WorldEditor?.IsDirty == true) await WorldEditor.SaveAsync();
-                else IniEditor?.Save();
-                return true;
-            case 1: // Discard changes
-                EditorLog.Info("App", $"User discarded staged changes in {dirtyName}.");
-                return true;
-            default: // Cancel / dismissed
-                return false;
+            _leaveGateOpen = false;
         }
     }
 
@@ -521,6 +535,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
         WorldEditor = null;
         IniEditor = null;
         ActiveSlot = null;
+        // Clear the loaded-save marker too: otherwise re-selecting the save we just closed hits
+        // the ReferenceEquals(target, _loadedSave) short-circuit in RequestSwitchAsync and is a
+        // no-op (the editor never reopens).
+        _loadedSave = null;
         _ = DiscoverWorldsAsync();
     }
 
@@ -1029,6 +1047,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         PlayerEditor = null;
         WorldEditor = null;
         ActiveSlot = null;
+        // See GoHomeAsync: clear the loaded-save marker so returning to the previously open save
+        // isn't swallowed by the ReferenceEquals(target, _loadedSave) short-circuit.
+        _loadedSave = null;
 
         // Let the editor that was just torn down finish detaching before the ini view
         // binds: a still-focused Entry whose platform handler is already disconnected
