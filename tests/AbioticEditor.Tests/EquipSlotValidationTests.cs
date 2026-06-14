@@ -1,5 +1,6 @@
 using AbioticEditor.Core.Assets;
 using AbioticEditor.Core.Items;
+using AbioticEditor.Core.WorldSaves;
 using Xunit.Abstractions;
 
 namespace AbioticEditor.Tests;
@@ -66,6 +67,48 @@ public class EquipSlotValidationTests
         // Non-equippable values (0 Hotbar / 1 InventoryBackpack) say "not equippable".
         Assert.Contains("Not equippable", EquipSlotTypes.ValidateForRole("HEAD", Entry(0))!);
         Assert.Contains("Not equippable", EquipSlotTypes.ValidateForRole("TRINKET", Entry(1))!);
+    }
+
+    // ---------------------------------------------- hotbar-only pets rule
+
+    [Theory]
+    [InlineData(EquipSlotTypes.Companion, true)] // 21 - pet / Companion item
+    [InlineData(0, false)]   // Hotbar
+    [InlineData(1, false)]   // InventoryBackpack (ordinary item)
+    [InlineData(5, false)]   // EquipmentSlot_Head
+    [InlineData(EquipSlotTypes.All, false)]
+    public void IsHotbarOnly_IsTrueOnlyForCompanionSlotItems(int equipSlot, bool expected)
+    {
+        Assert.Equal(expected, EquipSlotTypes.IsHotbarOnly(Entry(equipSlot)));
+    }
+
+    [Fact]
+    public void IsHotbarOnly_NullEntry_IsFalse()
+    {
+        Assert.False(EquipSlotTypes.IsHotbarOnly(null));
+    }
+
+    /// <summary>
+    /// Every curated pet item row carries EquipSlot 21 (EquipmentSlot_Companion) and the
+    /// Item.Pet tag - the signal the editor uses to keep pests / weapon-form pets out of
+    /// the backpack. Guards against a future game version moving them to another slot.
+    /// </summary>
+    [Fact]
+    public void RealPetRows_AllCarryCompanionSlotAndPetTag()
+    {
+        using var provider = GameAssetProvider.CreateForLocalInstall();
+        if (provider is null || !provider.HasMappings) return;
+
+        var catalog = ItemCatalog.LoadFrom(provider);
+        foreach (var pet in PetItemCatalog.Items)
+        {
+            var entry = catalog.Find(pet.ItemRow);
+            Assert.NotNull(entry);
+            _output.WriteLine($"{pet.ItemRow}: EquipSlot={entry!.EquipSlot} tags=[{string.Join(",", entry.Tags)}]");
+            Assert.Equal(EquipSlotTypes.Companion, entry.EquipSlot);
+            Assert.True(EquipSlotTypes.IsHotbarOnly(entry));
+            Assert.Contains("Item.Pet", entry.Tags);
+        }
     }
 
     // -------------------------------------------- catalog-driven (real rows)

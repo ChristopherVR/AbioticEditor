@@ -46,8 +46,9 @@ public static class SlotInteractions
         if (e.Data?.Properties.TryGetValue("paletteItem", out var paletteObj) == true
             && paletteObj is PaletteItemViewModel palette)
         {
-            // Equipment slots reject items that don't fit (same rule the game enforces).
-            if (InventorySlotViewModel.ValidateForRole(target.Role, palette.Entry) is { } problem)
+            // Slots reject items that don't fit (same rules the game enforces): equipment
+            // role mismatch, and pets dropped into the backpack (hotbar / Companion only).
+            if (InventorySlotViewModel.ValidateForSlot(target.Kind, target.Role, palette.Entry) is { } problem)
             {
                 vm.StatusMessage = $"Blocked: {problem}.";
                 e.Handled = true;
@@ -63,15 +64,15 @@ public static class SlotInteractions
         if (e.Data?.Properties.TryGetValue("src", out var srcObj) != true) return;
         if (srcObj is not InventorySlotViewModel src || src == target) return;
 
-        // Swap validation both ways: the dragged item must fit the target's role and
-        // the displaced item must fit the source's role.
-        if (InventorySlotViewModel.ValidateForRole(target.Role, src.Entry) is { } targetProblem)
+        // Swap validation both ways: the dragged item must fit the target slot and
+        // the displaced item must fit the source slot (role fit + hotbar-only pets).
+        if (InventorySlotViewModel.ValidateForSlot(target.Kind, target.Role, src.Entry) is { } targetProblem)
         {
             vm.StatusMessage = $"Blocked: {targetProblem}.";
             e.Handled = true;
             return;
         }
-        if (!target.IsEmpty && InventorySlotViewModel.ValidateForRole(src.Role, target.Entry) is { } srcProblem)
+        if (!target.IsEmpty && InventorySlotViewModel.ValidateForSlot(src.Kind, src.Role, target.Entry) is { } srcProblem)
         {
             vm.StatusMessage = $"Blocked swap: {srcProblem}.";
             e.Handled = true;
@@ -141,6 +142,10 @@ public static class SlotInteractions
         var item = ViewUtils.FindBoundContext<PaletteItemViewModel>(sender);
         if (item is null) return;
 
+        // Pets are hotbar-only: when auto-picking a destination, prefer the hotbar so a
+        // quick-give never lands them in the backpack (where the game would reject them).
+        var hotbarOnly = Core.Items.EquipSlotTypes.IsHotbarOnly(item.Entry);
+
         InventorySlotViewModel? target = null;
         if (vm.ActiveSlot is { IsEmpty: true } active)
         {
@@ -148,7 +153,9 @@ public static class SlotInteractions
         }
         else if (vm.PlayerEditor is { } pe)
         {
-            target = pe.Main.FirstOrDefault(s => s.IsEmpty) ?? pe.Hotbar.FirstOrDefault(s => s.IsEmpty);
+            target = hotbarOnly
+                ? pe.Hotbar.FirstOrDefault(s => s.IsEmpty)
+                : pe.Main.FirstOrDefault(s => s.IsEmpty) ?? pe.Hotbar.FirstOrDefault(s => s.IsEmpty);
         }
         else if (vm.WorldEditor is { SelectedContainer: { } container })
         {
@@ -157,7 +164,16 @@ public static class SlotInteractions
 
         if (target is null)
         {
-            vm.StatusMessage = "No empty slot available to give the item to.";
+            vm.StatusMessage = hotbarOnly
+                ? "No empty hotbar slot - pets can only go in the hotbar or Companion slot."
+                : "No empty slot available to give the item to.";
+            return;
+        }
+
+        // Honor the same placement rules as drag-drop (e.g. a pet onto a selected backpack slot).
+        if (InventorySlotViewModel.ValidateForSlot(target.Kind, target.Role, item.Entry) is { } problem)
+        {
+            vm.StatusMessage = $"Blocked: {problem}.";
             return;
         }
 

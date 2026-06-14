@@ -15,6 +15,13 @@ public static class EquipSlotTypes
     public const int All = 2;
 
     /// <summary>
+    /// EquipmentSlot_Companion (the active-pet slot, equipment index 12). Every pet item
+    /// (the <c>Item.Pet</c> rows: pests, skinks, peccaries, and the BioCannon weapon forms)
+    /// carries this as its <c>EquipSlot</c>, so the value doubles as a "this is a pet" marker.
+    /// </summary>
+    public const int Companion = 21;
+
+    /// <summary>
     /// Editor slot role (as used by the equipment/transmog role maps) -> the
     /// E_InventorySlotType enumerator number an item must carry to fit that slot.
     /// Both trinket UI slots accept slot-type 16 (no item row carries 20/Trinket2).
@@ -77,6 +84,16 @@ public static class EquipSlotTypes
             "enumerator not in E_InventorySlotType display map - newer game version?");
         return $"slot type {slotType}";
     }
+
+    /// <summary>
+    /// True for items the game keeps to the hotbar and the Companion equipment slot only:
+    /// every pet item carries <c>EquipSlot</c> = <see cref="Companion"/> (21). The game does
+    /// not let a live pet sit loose in the backpack / a storage container, so the editor
+    /// blocks that placement too. (Equivalent to testing the <c>Item.Pet</c> gameplay tag;
+    /// EquipSlot is the value already surfaced on every <see cref="ItemCatalogEntry"/>.)
+    /// </summary>
+    public static bool IsHotbarOnly(ItemCatalogEntry? entry)
+        => entry is { EquipSlot: Companion };
 
     /// <summary>Does <paramref name="entry"/> fit a slot with the given role?</summary>
     public static bool Accepts(ItemCatalogEntry? entry, string? role)

@@ -845,14 +845,22 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         if (PlayerEditor is not { } pe) return;
 
-        var target = pe.Main.FirstOrDefault(s => s.IsEmpty);
+        var s = option.Item.Slot;
+
+        // Pets are hotbar-only: route them to a free hotbar slot, never the backpack
+        // (the game keeps pets in the hotbar / Companion slot, see EquipSlotTypes.IsHotbarOnly).
+        var hotbarOnly = Core.Items.EquipSlotTypes.IsHotbarOnly(Services.GameDataServices.Catalog?.Find(s.ItemId));
+        var target = hotbarOnly
+            ? pe.Hotbar.FirstOrDefault(slot => slot.IsEmpty)
+            : pe.Main.FirstOrDefault(slot => slot.IsEmpty);
         if (target is null)
         {
-            StatusMessage = "No empty backpack slot - drop or move something first.";
+            StatusMessage = hotbarOnly
+                ? "No empty hotbar slot - pets can only go in the hotbar or Companion slot."
+                : "No empty backpack slot - drop or move something first.";
             return;
         }
 
-        var s = option.Item.Slot;
         target.ItemId = s.ItemId;
         target.Count = s.Count;
         target.Durability = s.Durability;

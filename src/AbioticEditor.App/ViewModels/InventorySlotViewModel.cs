@@ -189,12 +189,14 @@ public sealed class InventorySlotViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Equipment slot type validation: enum-first, comparing the item row's
-    /// <c>EquipSlot</c> (E_InventorySlotType) against the slot role's expected type.
-    /// See <see cref="EquipSlotTypes"/> and dotnet/docs/research-slot-types.md.
+    /// Slot-fit validation for the item currently in this slot. Layers two rules:
+    /// equipment role fit (enum-first, comparing the row's <c>EquipSlot</c> against the
+    /// slot role's expected type) and the hotbar-only-pet rule (see
+    /// <see cref="ValidateForSlot"/>). See <see cref="EquipSlotTypes"/> and
+    /// dotnet/docs/research-slot-types.md.
     /// </summary>
     public string? ValidationWarning
-        => IsEmpty || !HasRole ? null : ValidateForRole(Role, Entry);
+        => IsEmpty ? null : ValidateForSlot(Kind, Role, Entry);
 
     /// <summary>
     /// Prospective slot-fit check, usable BEFORE assigning an item (drop validation).
@@ -202,6 +204,21 @@ public sealed class InventorySlotViewModel : INotifyPropertyChanged
     /// </summary>
     public static string? ValidateForRole(string? Role, ItemCatalogEntry? Entry)
         => EquipSlotTypes.ValidateForRole(Role, Entry);
+
+    /// <summary>
+    /// Prospective placement check for a target slot, usable BEFORE assigning an item.
+    /// Beyond the equipment role fit, it enforces the game's hotbar-only-pet rule: a pet
+    /// item (pests, skinks, peccaries, BioCannon weapon forms) may live in the hotbar or
+    /// the Companion equipment slot, but never loose in a Main (backpack / storage) slot.
+    /// Returns a human-readable problem or null when the item fits.
+    /// </summary>
+    public static string? ValidateForSlot(InventoryKind kind, string? role, ItemCatalogEntry? entry)
+    {
+        if (EquipSlotTypes.ValidateForRole(role, entry) is { } roleProblem) return roleProblem;
+        if (kind == InventoryKind.Main && EquipSlotTypes.IsHotbarOnly(entry))
+            return "Pets are hotbar-only - not allowed in the backpack";
+        return null;
+    }
 
     public bool HasValidationWarning => ValidationWarning is not null;
 
