@@ -1,21 +1,21 @@
 {
-    "version": "1.1.1",
-    "description": "A save-game editor for Abiotic Factor (command-line tool).",
-    "homepage": "https://github.com/ChristopherVR/AbioticEditor",
-    "license": "Apache-2.0",
-    "architecture": {
-        "64bit": {
-            "url": "https://github.com/ChristopherVR/AbioticEditor/releases/download/v1.1.1/AbioticEditor-cli-win-x64.zip",
-            "hash": "1db382e35aed7fd8b9c4745b657f5d110e297f23caf0a650b10a4d335f8358a4"
-        }
-    },
-    "bin": "abioticeditor.exe",
-    "checkver": "github",
-    "autoupdate": {
-        "architecture": {
-            "64bit": {
-                "url": "https://github.com/ChristopherVR/AbioticEditor/releases/download/v$version/AbioticEditor-cli-win-x64.zip"
-            }
-        }
+  "version": "1.1.2",
+  "description": "A save-game editor for Abiotic Factor (command-line tool).",
+  "homepage": "https://github.com/ChristopherVR/AbioticEditor",
+  "license": "Apache-2.0",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/ChristopherVR/AbioticEditor/releases/download/v1.1.2/AbioticEditor-cli-win-x64.zip",
+      "hash": "a175817009f2247701931ca8adbfb4f30ac53b6f40a27b76f9cf85ef783d7237"
     }
+  },
+  "bin": "abioticeditor.exe",
+  "checkver": "github",
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/ChristopherVR/AbioticEditor/releases/download/v$version/AbioticEditor-cli-win-x64.zip"
+      }
+    }
+  }
 }
