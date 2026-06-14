@@ -129,6 +129,18 @@
                             Command="{Binding WorldEditor.ShowContainmentCommand}"
                             BackgroundColor="{Binding WorldEditor.IsContainmentTab, Converter={StaticResource TabBrush}}"
                             IsVisible="{Binding WorldEditor.IsMetadataSave}" />
+                    <!-- One tab per applicable world-state feature map (power sockets, resource
+                         nodes, NPC spawns, triggers, elevators, buttons, portals, trams, ...). -->
+                    <HorizontalStackLayout Spacing="4"
+                                           BindableLayout.ItemsSource="{Binding WorldEditor.FeatureTabs}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="vm:WorldFeatureTabViewModel">
+                                <Button Text="{Binding Title}" Style="{StaticResource AfTabButton}"
+                                        Command="{Binding SelectCommand}"
+                                        BackgroundColor="{Binding IsActive, Converter={StaticResource TabBrush}}" />
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </HorizontalStackLayout>
                     <Button Text="RAW JSON" Style="{StaticResource AfTabButton}"
                             Command="{Binding WorldEditor.ShowRawCommand}"
                             BackgroundColor="{Binding WorldEditor.IsRawTab, Converter={StaticResource TabBrush}}" />
@@ -168,6 +180,9 @@
             </controls:LazyView>
             <controls:LazyView IsActive="{Binding WorldEditor.IsDoorsTab}">
                 <controls:LazyView.ContentTemplate><DataTemplate><world:WorldDoorsTab /></DataTemplate></controls:LazyView.ContentTemplate>
+            </controls:LazyView>
+            <controls:LazyView IsActive="{Binding WorldEditor.IsFeatureTab}">
+                <controls:LazyView.ContentTemplate><DataTemplate><world:WorldFeatureTab /></DataTemplate></controls:LazyView.ContentTemplate>
             </controls:LazyView>
             <controls:LazyView IsActive="{Binding WorldEditor.IsRawTab}">
                 <controls:LazyView.ContentTemplate><DataTemplate><world:WorldRawTab /></DataTemplate></controls:LazyView.ContentTemplate>

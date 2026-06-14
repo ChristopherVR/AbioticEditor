@@ -5,6 +5,46 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-34: world-state feature maps moved from the Settings modal into world-editor tabs (2026-06-14)
+- The world-state maps (power sockets, resource nodes, NPC spawns, triggers, elevators, buttons,
+  portals, trams, server entitlements, teleporter pads, ...) used to be editable only through the
+  generic `WorldMapsPage` modal launched from Settings -> EDIT WORLD MAPS. They are now first-class
+  world-editor tabs that look and feel like the Fish/Vehicles master-detail editors.
+- App-only change (Core `Features` framework unchanged): a new generic
+  `WorldFeatureTabViewModel` (+ entry/field VMs) wraps any `IWorldMapFeature`, and a single shared
+  `Views/World/WorldFeatureTab.xaml` renders the master entry list + the selected entry's typed
+  fields (read-only Label, Switch for bool, Picker for choice, Entry for numeric/text). Free-text/
+  numeric fields commit on unfocus/return (code-behind reads the field VM off `BindingContext`);
+  bools/choices apply immediately. Edits patch the live save tree through the feature and stage
+  until the world editor's SAVE (keeps a .bak); REVERT restores each field.
+- `WorldEditorViewModel` builds `FeatureTabs` from `WorldMapFeatures.ApplicableTo(_data.Raw)` at
+  load, adds `WorldTab.Feature` + `IsFeatureTab` + `SelectedFeatureTab` + `SelectFeatureTab`, folds
+  feature dirtiness into `IsDirty`, and accepts/reverts feature baselines in Save/Revert.
+  `WorldEditorView.xaml` renders one dynamic tab button per applicable feature (a `BindableLayout`
+  over `FeatureTabs`, each button bound to the tab VM's `SelectCommand`/`IsActive`) plus a
+  `LazyView` host. The Settings WORLD MAPS card and `WorldMapsPage.cs` are removed; the CLI `world`
+  group is unchanged. Builds clean (net10.0-windows); NOT screenshot-verified.
+
+## Round-33: enforce hotbar-only pets in the inventory editor (2026-06-14)
+- Bug: the player inventory editor let pests and weapon-form pets be dropped/given into the
+  Main backpack, which the game forbids (pets live in the hotbar or the Companion slot only).
+- Probed ItemTable_Global: every `Item.Pet` row (all 22 in `PetItemCatalog`, incl. `biocannon`
+  / `Skink_Magma_Crafted` weapon forms and every `Pest_*`/`Peccary`) carries
+  `EquipSlot = 21` (EquipmentSlot_Companion) and the `Item.Pet` tag. **No item carries
+  EquipSlot 0 (Hotbar)** - the hotbar/backpack split is NOT encoded generically; the pet rule
+  is keyed on the Companion EquipSlot. Ordinary items carry EquipSlot 1 (InventoryBackpack).
+- Core: `EquipSlotTypes.Companion` (21) + `IsHotbarOnly(entry)` (== Companion EquipSlot).
+- App: `InventorySlotViewModel.ValidateForSlot(kind, role, entry)` layers the role-fit check
+  with "no hotbar-only item in a Main slot"; `ValidationWarning` now flags such a slot.
+  Wired into `SlotInteractions` (palette drop, slot swap both ways, double-tap quick-give) and
+  `MainViewModel.PickUpGroundItem` - quick-give and ground-pickup now route pets to the hotbar
+  (never the backpack). The existing role check already blocked pets from non-Companion
+  equipment slots; the gap was only the role-less Hotbar/Main slots. CLI `pet` was already
+  correct (only places Companion/Hotbar). World-storage containers (also `InventoryKind.Main`)
+  share the block.
+- Tests: `EquipSlotValidationTests` gains `IsHotbarOnly_*` theory + a real-catalog assertion
+  that every pet row is Companion-slot + `Item.Pet`-tagged.
+
 ## Round-32: cross-save pet movement (world PetNPC <-> player hotbar) (2026-06-14)
 - A carried pet is an ordinary `Item.Pet` inventory item (not a PetNPC): in the Companion slot
   (`EquipmentInventory_[12]`), a hotbar slot, or backpack. Item rows like `Skink_Magma_Crafted`

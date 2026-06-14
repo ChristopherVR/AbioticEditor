@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             x:Class="AbioticEditor.App.Views.World.WorldFeatureTab"
+             x:Name="Root"
+             x:DataType="vm:MainViewModel">
+
+    <!-- ============== TAB: World-state feature map (power sockets, resource nodes, NPC spawns, triggers, ...) ============== -->
+    <VerticalStackLayout IsVisible="{Binding WorldEditor.IsFeatureTab}">
+      <VerticalStackLayout Spacing="12"
+                           BindingContext="{Binding WorldEditor.SelectedFeatureTab}"
+                           x:DataType="vm:WorldFeatureTabViewModel">
+        <Label Text="{Binding Title, StringFormat='{0} IN THIS WORLD'}" Style="{StaticResource AfH2}" FontSize="18" />
+        <Label Text="{Binding Description}" Style="{StaticResource AfMuted}" FontSize="11" />
+        <Label Text="Click an entry to edit its fields. Edits stage until SAVE; every write keeps a .bak."
+               Style="{StaticResource AfMuted}" FontSize="11" />
+
+        <controls:AdaptiveGrid ColumnDefinitions="2*,3*" ColumnSpacing="16" HeightRequest="620"
+                               StackedChildHeight="440">
+            <!-- Master list: entries (one actor each) -->
+            <Border Grid.Column="0"
+                    BackgroundColor="{StaticResource AfShellBackground}"
+                    Stroke="{StaticResource AfBorderSubtleBrush}"
+                    StrokeThickness="1" StrokeShape="Rectangle"
+                    Padding="0">
+                <CollectionView ItemsSource="{Binding Entries}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding SelectedEntry, Mode=TwoWay}">
+                    <CollectionView.EmptyView>
+                        <Label Text="This map has no entries in this save." Style="{StaticResource AfMuted}" Padding="16" />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:WorldFeatureEntryViewModel">
+                            <VerticalStackLayout Spacing="1" Padding="12,8">
+                                <Label Text="{Binding Label}" Style="{StaticResource AfFieldValue}" FontSize="13"
+                                       LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding Summary}" Style="{StaticResource AfStatusText}" FontSize="10"
+                                       LineBreakMode="TailTruncation" />
+                            </VerticalStackLayout>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Border>
+
+            <!-- Detail editor: the selected entry's typed fields -->
+            <Border Grid.Column="1"
+                    BackgroundColor="{StaticResource AfShellBackground}"
+                    Stroke="{StaticResource AfBorderSubtleBrush}"
+                    StrokeThickness="1" StrokeShape="Rectangle"
+                    Padding="18,14">
+                <Grid>
+                    <Label Text="Select an entry to edit it."
+                           Style="{StaticResource AfMuted}"
+                           IsVisible="{Binding HasSelectedEntry, Converter={StaticResource BoolNegate}}" />
+                    <ScrollView IsVisible="{Binding HasSelectedEntry}">
+                        <VerticalStackLayout Spacing="12" BindingContext="{Binding SelectedEntry}"
+                                             x:DataType="vm:WorldFeatureEntryViewModel">
+                            <Label Text="{Binding Label}" Style="{StaticResource AfH2}" FontSize="16" />
+                            <Label Text="{Binding Key}" Style="{StaticResource AfStatusText}" FontSize="9"
+                                   LineBreakMode="MiddleTruncation" />
+
+                            <BoxView Style="{StaticResource AfDivider}" />
+
+                            <VerticalStackLayout Spacing="14" BindableLayout.ItemsSource="{Binding Fields}">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:WorldFeatureFieldViewModel">
+                                        <VerticalStackLayout Spacing="3">
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                                <Label Grid.Column="0" Text="{Binding Label}"
+                                                       Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+
+                                                <!-- read-only display -->
+                                                <Label Grid.Column="1" Text="{Binding Value, FallbackValue='(none)'}"
+                                                       Style="{StaticResource AfFieldValue}" FontSize="12"
+                                                       VerticalOptions="Center"
+                                                       IsVisible="{Binding IsReadOnly}" />
+
+                                                <!-- boolean -->
+                                                <Switch Grid.Column="1"
+                                                        IsToggled="{Binding BoolValue, Mode=TwoWay}"
+                                                        OnColor="{StaticResource AfTerminalGreen}"
+                                                        VerticalOptions="Center"
+                                                        IsVisible="{Binding IsBool}" />
+
+                                                <!-- choice -->
+                                                <Picker Grid.Column="1" FontSize="12" WidthRequest="240"
+                                                        ItemsSource="{Binding Options}"
+                                                        SelectedItem="{Binding SelectedOption, Mode=TwoWay}"
+                                                        IsVisible="{Binding IsChoice}" />
+
+                                                <!-- free-text / numeric (committed on unfocus/return) -->
+                                                <Entry Grid.Column="1" FontSize="12" WidthRequest="220"
+                                                       Text="{Binding Draft, Mode=TwoWay}"
+                                                       BackgroundColor="{StaticResource AfPanelElevated}"
+                                                       TextColor="{StaticResource AfTextPrimary}"
+                                                       Unfocused="OnFieldEntryUnfocused"
+                                                       Completed="OnFieldEntryCompleted"
+                                                       IsVisible="{Binding IsTextLike}" />
+                                            </Grid>
+
+                                            <Label Text="{Binding Hint}" Style="{StaticResource AfMuted}" FontSize="10"
+                                                   IsVisible="{Binding Hint, Converter={StaticResource NullToBoolConverter}}" />
+                                            <Label Text="{Binding Error}" Style="{StaticResource AfMuted}" FontSize="10"
+                                                   TextColor="{StaticResource AfAlertRed}"
+                                                   IsVisible="{Binding HasError}" />
+                                        </VerticalStackLayout>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </ScrollView>
+                </Grid>
+            </Border>
+        </controls:AdaptiveGrid>
+      </VerticalStackLayout>
+    </VerticalStackLayout>
+</ContentView>
