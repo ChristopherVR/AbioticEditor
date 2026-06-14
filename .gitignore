@@ -12,6 +12,9 @@
 # Temporary build/test scratch dirs created by tooling.
 .tmp-*/
 
+# Playwright MCP page snapshots (transient tool output, not repo content).
+.playwright-mcp/
+
 # Screenshot/scratch output from tools/capture.ps1
 /tools/shots/
 
