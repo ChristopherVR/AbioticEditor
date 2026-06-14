@@ -22,23 +22,36 @@
                     Stroke="{StaticResource AfBorderSubtleBrush}"
                     StrokeThickness="1" StrokeShape="Rectangle"
                     Padding="0">
-                <CollectionView ItemsSource="{Binding WorldEditor.Vehicles}"
+                <CollectionView ItemsSource="{Binding WorldEditor.VehicleGroups}"
+                                IsGrouped="True"
                                 SelectionMode="Single"
                                 SelectedItem="{Binding WorldEditor.SelectedVehicle, Mode=TwoWay}">
                     <CollectionView.EmptyView>
                         <Label Text="No vehicles in this save (vehicles live in region saves)." Style="{StaticResource AfMuted}" Padding="16" />
                     </CollectionView.EmptyView>
+                    <CollectionView.GroupHeaderTemplate>
+                        <DataTemplate x:DataType="items:VehicleWorldGroup">
+                            <Grid BackgroundColor="{StaticResource AfPanelElevated}" Padding="12,6" ColumnDefinitions="*,Auto">
+                                <Label Grid.Column="0" Text="{Binding World}"
+                                       Style="{StaticResource AfFieldLabel}" FontSize="11"
+                                       TextColor="{DynamicResource AfTerminalGreen}" VerticalOptions="Center" />
+                                <Label Grid.Column="1" Text="{Binding CountText}"
+                                       Style="{StaticResource AfStatusText}" FontSize="9" VerticalOptions="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.GroupHeaderTemplate>
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="items:WorldVehicleViewModel">
                             <Grid Padding="12,8" ColumnDefinitions="*,Auto" ColumnSpacing="12">
                                 <VerticalStackLayout Grid.Column="0" Spacing="1" VerticalOptions="Center">
                                     <Label Text="{Binding DisplayName}" Style="{StaticResource AfFieldValue}" FontSize="13"
                                            LineBreakMode="TailTruncation" />
-                                    <Label Text="{Binding Region}" Style="{StaticResource AfStatusText}" FontSize="10"
-                                           LineBreakMode="TailTruncation" />
+                                    <Label Text="Display only" Style="{StaticResource AfStatusText}" FontSize="9"
+                                           IsVisible="{Binding IsDisplayOnly}" />
                                 </VerticalStackLayout>
                                 <Label Grid.Column="1" Text="{Binding StateText}"
-                                       Style="{StaticResource AfFieldLabel}" FontSize="9" VerticalOptions="Center" />
+                                       Style="{StaticResource AfFieldLabel}" FontSize="9" VerticalOptions="Center"
+                                       IsVisible="{Binding IsEditable}" />
                             </Grid>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
@@ -59,8 +72,11 @@
                         <VerticalStackLayout Spacing="12">
                             <Label Text="{Binding WorldEditor.SelectedVehicle.DisplayName}"
                                    Style="{StaticResource AfH2}" FontSize="18" />
-                            <Label Text="{Binding WorldEditor.SelectedVehicle.Region, StringFormat='Region: {0}'}"
+                            <Label Text="{Binding WorldEditor.SelectedVehicle.Region, StringFormat='World: {0}'}"
                                    Style="{StaticResource AfStatusText}" />
+                            <Label Text="Display only - this vehicle has no editable drivable / wrecked / move state."
+                                   Style="{StaticResource AfMuted}" FontSize="10" LineBreakMode="WordWrap"
+                                   IsVisible="{Binding WorldEditor.SelectedVehicle.IsDisplayOnly, FallbackValue=False}" />
 
                             <!-- Appearance (abioticfactor.wiki.gg) -->
                             <HorizontalStackLayout Spacing="8"
@@ -77,47 +93,60 @@
                                 <Label Text="Image: abioticfactor.wiki.gg" Style="{StaticResource AfMuted}" FontSize="8" />
                             </VerticalStackLayout>
 
-                            <BoxView Style="{StaticResource AfDivider}" />
+                            <!-- Editable controls: hidden for display-only vehicles (Sleigh, Tram, Minecart) -->
+                            <VerticalStackLayout Spacing="12"
+                                                 IsVisible="{Binding WorldEditor.SelectedVehicle.IsEditable, FallbackValue=False}">
+                                <BoxView Style="{StaticResource AfDivider}" />
 
-                            <!-- State: drivable (unlock) + wrecked -->
-                            <Label Text="STATE" Style="{StaticResource AfFieldLabel}" TextColor="{DynamicResource AfTerminalGreen}" />
-                            <HorizontalStackLayout Spacing="20">
-                                <HorizontalStackLayout Spacing="6">
-                                    <CheckBox IsChecked="{Binding WorldEditor.SelectedVehicle.Driveable, Mode=TwoWay}"
-                                              Color="{StaticResource AfTerminalGreen}" />
-                                    <Label Text="DRIVABLE (UNLOCKED)" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                <!-- State: drivable (unlock) + wrecked -->
+                                <Label Text="STATE" Style="{StaticResource AfFieldLabel}" TextColor="{DynamicResource AfTerminalGreen}" />
+                                <HorizontalStackLayout Spacing="20">
+                                    <HorizontalStackLayout Spacing="6">
+                                        <CheckBox IsChecked="{Binding WorldEditor.SelectedVehicle.Driveable, Mode=TwoWay}"
+                                                  Color="{StaticResource AfTerminalGreen}" />
+                                        <Label Text="DRIVABLE (UNLOCKED)" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                    </HorizontalStackLayout>
+                                    <HorizontalStackLayout Spacing="6">
+                                        <CheckBox IsChecked="{Binding WorldEditor.SelectedVehicle.Destroyed, Mode=TwoWay}"
+                                                  Color="{StaticResource AfAlertRed}" />
+                                        <Label Text="WRECKED" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                    </HorizontalStackLayout>
                                 </HorizontalStackLayout>
-                                <HorizontalStackLayout Spacing="6">
-                                    <CheckBox IsChecked="{Binding WorldEditor.SelectedVehicle.Destroyed, Mode=TwoWay}"
-                                              Color="{StaticResource AfAlertRed}" />
-                                    <Label Text="WRECKED" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
-                                </HorizontalStackLayout>
-                            </HorizontalStackLayout>
 
-                            <BoxView Style="{StaticResource AfDivider}" />
+                                <BoxView Style="{StaticResource AfDivider}" />
 
-                            <!-- Location + move + reset -->
-                            <Label Text="LOCATION" Style="{StaticResource AfFieldLabel}" TextColor="{DynamicResource AfHazardYellow}" />
-                            <Grid ColumnDefinitions="Auto,*,Auto,*,Auto,*" ColumnSpacing="8">
-                                <Label Grid.Column="0" Text="X" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
-                                <Entry Grid.Column="1" Text="{Binding WorldEditor.SelectedVehicle.X, Mode=TwoWay}"
-                                       Keyboard="Numeric" FontSize="12"
-                                       BackgroundColor="{StaticResource AfPanelElevated}" TextColor="{StaticResource AfTextPrimary}" />
-                                <Label Grid.Column="2" Text="Y" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
-                                <Entry Grid.Column="3" Text="{Binding WorldEditor.SelectedVehicle.Y, Mode=TwoWay}"
-                                       Keyboard="Numeric" FontSize="12"
-                                       BackgroundColor="{StaticResource AfPanelElevated}" TextColor="{StaticResource AfTextPrimary}" />
-                                <Label Grid.Column="4" Text="Z" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
-                                <Entry Grid.Column="5" Text="{Binding WorldEditor.SelectedVehicle.Z, Mode=TwoWay}"
-                                       Keyboard="Numeric" FontSize="12"
-                                       BackgroundColor="{StaticResource AfPanelElevated}" TextColor="{StaticResource AfTextPrimary}" />
-                            </Grid>
-                            <Label Text="{Binding WorldEditor.SelectedVehicle.SpawnStatusText}"
-                                   Style="{StaticResource AfMuted}" FontSize="10" />
-                            <Button Text="RESET TO SPAWN" FontSize="10" Padding="10,4" HorizontalOptions="Start"
-                                    BackgroundColor="{StaticResource AfHazardYellow}"
-                                    TextColor="{StaticResource AfTextOnAccent}"
-                                    Command="{Binding WorldEditor.SelectedVehicle.ResetToSpawnCommand}" />
+                                <!-- Location + move + reset -->
+                                <Label Text="LOCATION" Style="{StaticResource AfFieldLabel}" TextColor="{DynamicResource AfHazardYellow}" />
+                                <Grid ColumnDefinitions="Auto,*,Auto,*,Auto,*" ColumnSpacing="8">
+                                    <Label Grid.Column="0" Text="X" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                    <Entry Grid.Column="1" Text="{Binding WorldEditor.SelectedVehicle.X, Mode=TwoWay}"
+                                           Keyboard="Numeric" FontSize="12"
+                                           BackgroundColor="{StaticResource AfPanelElevated}" TextColor="{StaticResource AfTextPrimary}" />
+                                    <Label Grid.Column="2" Text="Y" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                    <Entry Grid.Column="3" Text="{Binding WorldEditor.SelectedVehicle.Y, Mode=TwoWay}"
+                                           Keyboard="Numeric" FontSize="12"
+                                           BackgroundColor="{StaticResource AfPanelElevated}" TextColor="{StaticResource AfTextPrimary}" />
+                                    <Label Grid.Column="4" Text="Z" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                    <Entry Grid.Column="5" Text="{Binding WorldEditor.SelectedVehicle.Z, Mode=TwoWay}"
+                                           Keyboard="Numeric" FontSize="12"
+                                           BackgroundColor="{StaticResource AfPanelElevated}" TextColor="{StaticResource AfTextPrimary}" />
+                                </Grid>
+                                <Label Text="{Binding WorldEditor.SelectedVehicle.SpawnStatusText}"
+                                       Style="{StaticResource AfMuted}" FontSize="10" />
+                                <Button Text="RESET TO SPAWN" FontSize="10" Padding="10,4" HorizontalOptions="Start"
+                                        BackgroundColor="{StaticResource AfHazardYellow}"
+                                        TextColor="{StaticResource AfTextOnAccent}"
+                                        Command="{Binding WorldEditor.SelectedVehicle.ResetToSpawnCommand}" />
+                            </VerticalStackLayout>
+
+                            <!-- Display-only vehicles: show the position read-only, no edit affordances -->
+                            <VerticalStackLayout Spacing="6"
+                                                 IsVisible="{Binding WorldEditor.SelectedVehicle.IsDisplayOnly, FallbackValue=False}">
+                                <BoxView Style="{StaticResource AfDivider}" />
+                                <Label Text="LOCATION" Style="{StaticResource AfFieldLabel}" TextColor="{DynamicResource AfHazardYellow}" />
+                                <Label Text="{Binding WorldEditor.SelectedVehicle.LocationText}"
+                                       Style="{StaticResource AfReadout}" FontSize="13" />
+                            </VerticalStackLayout>
 
                             <BoxView Style="{StaticResource AfDivider}" />
 

@@ -29,80 +29,96 @@
                                  BindableLayout.ItemsSource="{Binding WorldEditor.LeyakContainments}">
                 <BindableLayout.ItemTemplate>
                     <DataTemplate x:DataType="items:LeyakContainmentViewModel">
-                        <Border BackgroundColor="{StaticResource AfPanelBackground}"
-                                Stroke="{StaticResource AfBorderSubtleBrush}"
-                                StrokeThickness="1" StrokeShape="Rectangle"
-                                Padding="12,8">
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnContainmentTapped" />
-                            </Border.GestureRecognizers>
-                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
-                                <Border Grid.Column="0"
-                                        BackgroundColor="{StaticResource AfTerminalGreenDim}"
-                                        StrokeThickness="0" StrokeShape="Rectangle"
-                                        Padding="8,3" VerticalOptions="Center">
-                                    <Label Text="CONTAINED"
-                                           FontFamily="OpenSansSemibold" FontSize="9"
-                                           CharacterSpacing="2"
-                                           TextColor="{StaticResource AfTextPrimary}" />
-                                </Border>
-                                <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
-                                    <Label Text="{Binding ShownName}"
-                                           Style="{StaticResource AfFieldValue}" FontSize="13" />
-                                    <Label Text="{Binding ShownTapHint}"
-                                           Style="{StaticResource AfStatusText}" FontSize="8" />
-                                </VerticalStackLayout>
-                                <Button Grid.Column="2" Text="RELEASE"
-                                        FontSize="10" Padding="12,4"
-                                        BackgroundColor="{StaticResource AfAlertRed}"
-                                        TextColor="{StaticResource AfTextOnAccent}"
-                                        ToolTipProperties.Text="Removes this creature's containment link (it escapes). Staged until SAVE; REVERT restores it."
-                                        Command="{Binding ReleaseCommand}"
-                                        VerticalOptions="Center" />
-                            </Grid>
-                        </Border>
+                        <!-- Row header + its own inline detail, so the image/info expands
+                             directly under the entry the user tapped (not at the list foot). -->
+                        <VerticalStackLayout Spacing="0">
+                            <Border BackgroundColor="{StaticResource AfPanelBackground}"
+                                    Stroke="{StaticResource AfBorderSubtleBrush}"
+                                    StrokeThickness="1" StrokeShape="Rectangle"
+                                    Padding="12,8">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnContainmentTapped" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                                    <Border Grid.Column="0"
+                                            BackgroundColor="{StaticResource AfTerminalGreenDim}"
+                                            StrokeThickness="0" StrokeShape="Rectangle"
+                                            Padding="8,3" VerticalOptions="Center">
+                                        <Label Text="CONTAINED"
+                                               FontFamily="OpenSansSemibold" FontSize="9"
+                                               CharacterSpacing="2"
+                                               TextColor="{StaticResource AfTextPrimary}" />
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                                        <Label Text="{Binding ShownName}"
+                                               Style="{StaticResource AfFieldValue}" FontSize="13" />
+                                        <Label Text="{Binding ShownTapHint}"
+                                               Style="{StaticResource AfStatusText}" FontSize="8" />
+                                    </VerticalStackLayout>
+                                    <Button Grid.Column="2" Text="RELEASE"
+                                            FontSize="10" Padding="12,4"
+                                            BackgroundColor="{StaticResource AfAlertRed}"
+                                            TextColor="{StaticResource AfTextOnAccent}"
+                                            ToolTipProperties.Text="Removes this creature's containment link (it escapes). Staged until SAVE; REVERT restores it."
+                                            Command="{Binding ReleaseCommand}"
+                                            VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+
+                            <!-- Inline detail for THIS containment (expands on tap) -->
+                            <Border BackgroundColor="{StaticResource AfPanelBackground}"
+                                    Stroke="{StaticResource AfAmberBrush}"
+                                    StrokeThickness="1" StrokeShape="Rectangle"
+                                    Margin="0,6,0,0" Padding="16,12"
+                                    IsVisible="{Binding IsExpanded}">
+                                <Grid ColumnDefinitions="140,*" ColumnSpacing="16">
+                                    <VerticalStackLayout Grid.Column="0" Spacing="3" VerticalOptions="Start">
+                                        <Border WidthRequest="136" HeightRequest="136"
+                                                BackgroundColor="#000000"
+                                                StrokeThickness="0" StrokeShape="Rectangle" Padding="2">
+                                            <Image Source="{Binding ImagePath}"
+                                                   Aspect="AspectFit"
+                                                   IsVisible="{Binding HasImage}" />
+                                        </Border>
+                                        <Label Text="Image: abioticfactor.wiki.gg"
+                                               Style="{StaticResource AfMuted}" FontSize="8"
+                                               IsVisible="{Binding ImageIsWiki}" />
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="6">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <Label Grid.Column="0"
+                                                   Text="{Binding DisplayName}"
+                                                   Style="{StaticResource AfH2}" FontSize="16" VerticalOptions="Center" />
+                                            <Button Grid.Column="1" Text="✕"
+                                                    FontSize="11" Padding="8,2" VerticalOptions="Start"
+                                                    BackgroundColor="{StaticResource AfPanelElevated}"
+                                                    TextColor="{StaticResource AfTextPrimary}"
+                                                    Clicked="OnCloseContainmentDetail" />
+                                        </Grid>
+                                        <Label Text="{Binding Lore}"
+                                               Style="{StaticResource AfFieldValue}" FontSize="12" LineBreakMode="WordWrap" />
+                                        <Label Text="CONTAINED IN" Style="{StaticResource AfFieldLabel}" />
+                                        <!-- Place name in a legible body font; only the numeric coordinates
+                                             stay in the Digital7 LCD readout (where letters were unreadable). -->
+                                        <Label Text="{Binding RegionText}"
+                                               Style="{StaticResource AfFieldValue}" FontSize="14" LineBreakMode="WordWrap" />
+                                        <Label Text="{Binding CoordsText}"
+                                               Style="{StaticResource AfReadout}" FontSize="13"
+                                               IsVisible="{Binding HasCoords}" />
+                                        <Label Text="{Binding ContainingSaveText}"
+                                               Style="{StaticResource AfStatusText}" FontSize="10"
+                                               IsVisible="{Binding HasContainingSave}"
+                                               LineBreakMode="WordWrap" />
+                                        <Label Text="{Binding ContainmentId, StringFormat='Containment unit GUID: {0}'}"
+                                               Style="{StaticResource AfStatusText}" FontSize="9"
+                                               LineBreakMode="MiddleTruncation" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </Border>
+                        </VerticalStackLayout>
                     </DataTemplate>
                 </BindableLayout.ItemTemplate>
             </VerticalStackLayout>
-
-            <!-- Inline detail for the selected containment -->
-            <Border BackgroundColor="{StaticResource AfPanelBackground}"
-                    Stroke="{StaticResource AfAmberBrush}"
-                    StrokeThickness="1" StrokeShape="Rectangle"
-                    Padding="16,12"
-                    IsVisible="{Binding WorldEditor.HasSelectedContainment}">
-                <Grid ColumnDefinitions="140,*" ColumnSpacing="16">
-                    <Border Grid.Column="0" WidthRequest="136" HeightRequest="136"
-                            BackgroundColor="#000000"
-                            StrokeThickness="0" StrokeShape="Rectangle" Padding="2"
-                            VerticalOptions="Start">
-                        <Image Source="{Binding WorldEditor.SelectedContainment.ImagePath}"
-                               Aspect="AspectFit"
-                               IsVisible="{Binding WorldEditor.SelectedContainment.HasImage}" />
-                    </Border>
-                    <VerticalStackLayout Grid.Column="1" Spacing="6">
-                        <Grid ColumnDefinitions="*,Auto">
-                            <Label Grid.Column="0"
-                                   Text="{Binding WorldEditor.SelectedContainment.DisplayName}"
-                                   Style="{StaticResource AfH2}" FontSize="16" VerticalOptions="Center" />
-                            <Button Grid.Column="1" Text="✕"
-                                    FontSize="11" Padding="8,2" VerticalOptions="Start"
-                                    BackgroundColor="{StaticResource AfPanelElevated}"
-                                    TextColor="{StaticResource AfTextPrimary}"
-                                    Clicked="OnCloseContainmentDetail" />
-                        </Grid>
-                        <Label Text="{Binding WorldEditor.SelectedContainment.Lore}"
-                               Style="{StaticResource AfFieldValue}" FontSize="12" LineBreakMode="WordWrap" />
-                        <Label Text="CONTAINED IN" Style="{StaticResource AfFieldLabel}" />
-                        <Label Text="{Binding WorldEditor.SelectedContainment.RegionText}"
-                               Style="{StaticResource AfReadout}" FontSize="13"
-                               TextColor="{StaticResource AfTerminalGreen}" LineBreakMode="WordWrap" />
-                        <Label Text="{Binding WorldEditor.SelectedContainment.ContainmentId, StringFormat='Containment unit GUID: {0}'}"
-                               Style="{StaticResource AfStatusText}" FontSize="9"
-                               LineBreakMode="MiddleTruncation" />
-                    </VerticalStackLayout>
-                </Grid>
-            </Border>
 
             <BoxView Style="{StaticResource AfDivider}" />
 

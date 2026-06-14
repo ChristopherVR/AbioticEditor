@@ -6,6 +6,7 @@ using AbioticEditor.App.Services;
 using AbioticEditor.Core;
 using AbioticEditor.Core.Codex;
 using AbioticEditor.Core.WorldSaves;
+using AbioticEditor.Core.WorldSaves.Features;
 
 using AbioticEditor.Core.Saves;
 
@@ -33,6 +34,8 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     private string _flagFilter = string.Empty;
     private string _newFlagText = string.Empty;
     private readonly Dictionary<string, WorldDoorViewModel> _doorBaselines = new();
+    private IReadOnlyList<WorldFeatureTabViewModel> _featureTabs = Array.Empty<WorldFeatureTabViewModel>();
+    private WorldFeatureTabViewModel? _selectedFeatureTab;
 
     public WorldEditorViewModel(WorldSaveData data, string path)
     {
@@ -140,6 +143,18 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         // Vehicles (region saves). On-board storage is editable via the CONTAINERS tab
         // (vehicle inventories load as Vehicle-source containers); OpenVehicleInventory jumps there.
         _vehicles = data.Vehicles.Select(v => new WorldVehicleViewModel(v, Refresh, OpenVehicleInventory)).ToList();
+        VehicleGroups = _vehicles
+            .GroupBy(v => string.IsNullOrEmpty(v.Region) ? "Unknown world" : v.Region)
+            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(g => new VehicleWorldGroup(g.Key, g))
+            .ToList();
+
+        // World-state feature maps (power sockets, resource nodes, NPC spawns, triggers,
+        // elevators, buttons, portals, trams, ...). Each applicable map becomes its own
+        // Fish-style master-detail tab, discovered generically from this save's tree.
+        _featureTabs = WorldMapFeatures.ApplicableTo(data.Raw)
+            .Select(f => new WorldFeatureTabViewModel(f, data.Raw, Refresh, SelectFeatureTab))
+            .ToList();
 
         if (IsMetadataSave)
         {
@@ -420,9 +435,13 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         get => _selectedContainment;
         set
         {
+            var previous = _selectedContainment;
             if (Set(ref _selectedContainment, value))
             {
-                value?.EnsureDetail();
+                // Drive each row's inline detail: collapse the old one, expand the new one
+                // so the image + info appear directly under the row the user tapped.
+                if (previous is not null) previous.IsExpanded = false;
+                if (value is not null) { value.IsExpanded = true; value.EnsureDetail(); }
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasSelectedContainment)));
             }
         }
@@ -433,6 +452,14 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     // The containment unit GUIDs point into the Facility save's DeployedObjectMap;
     // the metadata save itself has no deployables. Read once, off-thread, on demand.
     private Task<IReadOnlyList<WorldDeployable>>? _facilityDeployablesTask;
+
+    /// <summary>
+    /// The save file that physically holds the containment units this save's links point at:
+    /// the sibling <c>WorldSave_Facility.sav</c> for a metadata save, else this save itself.
+    /// Null when the Facility save isn't beside the metadata save on disk.
+    /// </summary>
+    internal string? ContainmentHostPath =>
+        IsMetadataSave ? StoryFlagSync.SiblingFacilityPath(_path) : _path;
 
     internal Task<IReadOnlyList<WorldDeployable>> GetFacilityDeployablesAsync()
         => _facilityDeployablesTask ??= Task.Run<IReadOnlyList<WorldDeployable>>(() =>
@@ -730,6 +757,12 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     public IReadOnlyList<WorldVehicleViewModel> Vehicles => _vehicles;
     public bool HasVehicles => _vehicles.Count > 0;
     private bool AreVehiclesDirty() => _vehicles.Any(v => v.IsDirty);
+
+    /// <summary>
+    /// The same vehicles, grouped by the sub-world they sit in (a region save can span many
+    /// streamed levels and portal pocket-worlds). Drives the grouped list on the VEHICLES tab.
+    /// </summary>
+    public IReadOnlyList<VehicleWorldGroup> VehicleGroups { get; }
 
     /// <summary>The vehicle shown in the detail pane (master-detail). Triggers its async loads.</summary>
     public WorldVehicleViewModel? SelectedVehicle
@@ -1752,7 +1785,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         {
             if (Set(ref _activeTab, value))
             {
-                foreach (var n in new[] { nameof(IsContainersTab), nameof(IsFlagsTab), nameof(IsDoorsTab), nameof(IsDroppedTab), nameof(IsNpcsTab), nameof(IsPetsTab), nameof(IsVehiclesTab), nameof(IsBasesTab), nameof(IsMetaTab), nameof(IsTradersTab), nameof(IsContainmentTab), nameof(IsRawTab) })
+                foreach (var n in new[] { nameof(IsContainersTab), nameof(IsFlagsTab), nameof(IsDoorsTab), nameof(IsDroppedTab), nameof(IsNpcsTab), nameof(IsPetsTab), nameof(IsVehiclesTab), nameof(IsBasesTab), nameof(IsMetaTab), nameof(IsTradersTab), nameof(IsContainmentTab), nameof(IsFeatureTab), nameof(IsRawTab) })
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
             }
         }
@@ -1770,8 +1803,44 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     public bool IsMetaTab => _activeTab == WorldTab.Meta;
     public bool IsTradersTab => _activeTab == WorldTab.Traders;
     public bool IsContainmentTab => _activeTab == WorldTab.Containment;
+    public bool IsFeatureTab => _activeTab == WorldTab.Feature;
 
     public bool HasDroppedItems => _droppedItems.Count > 0;
+
+    // ---------- World-state feature maps (power sockets, resource nodes, NPC spawns, triggers, ...) ----------
+
+    /// <summary>The applicable world-state maps for this save, each its own master-detail tab.</summary>
+    public IReadOnlyList<WorldFeatureTabViewModel> FeatureTabs => _featureTabs;
+
+    public bool HasFeatureTabs => _featureTabs.Count > 0;
+
+    /// <summary>The feature tab currently shown (drives the shared <see cref="Views.World.WorldFeatureTab"/> host).</summary>
+    public WorldFeatureTabViewModel? SelectedFeatureTab
+    {
+        get => _selectedFeatureTab;
+        private set
+        {
+            if (Set(ref _selectedFeatureTab, value))
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasSelectedFeatureTab)));
+            }
+        }
+    }
+
+    public bool HasSelectedFeatureTab => _selectedFeatureTab is not null;
+
+    private void SelectFeatureTab(WorldFeatureTabViewModel? tab)
+    {
+        if (tab is null) return;
+        foreach (var t in _featureTabs)
+        {
+            t.IsActive = ReferenceEquals(t, tab);
+        }
+        SelectedFeatureTab = tab;
+        ActiveTab = WorldTab.Feature;
+    }
+
+    private bool AreFeatureMapsDirty() => _featureTabs.Any(t => t.IsDirty);
 
     // Stored command instances: returning a fresh RelayCommand from each getter would
     // orphan CanExecuteChanged - buttons would never re-enable.
@@ -1934,6 +2003,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         || AreNpcsDirty()
         || ArePetsDirty()
         || AreVehiclesDirty()
+        || AreFeatureMapsDirty()
         || IsMetaDirty()
         || AreExtrasDirty();
 
@@ -2073,6 +2143,9 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
             }
             foreach (var p in _pets) p.AcceptBaseline();
             foreach (var v in _vehicles) v.AcceptBaseline();
+            // Feature-map edits patch the raw tree directly, so WriteToFile already persisted
+            // them; just adopt the new clean baseline for dirty tracking.
+            foreach (var t in _featureTabs) t.AcceptBaseline();
             SaveStatus = $"Saved at {DateTime.Now:HH:mm:ss}";
         }
         catch (Exception ex)
@@ -2125,6 +2198,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         foreach (var n in Npcs) n.Revert();
         foreach (var p in _pets) p.Revert();
         foreach (var v in _vehicles) v.Revert();
+        foreach (var t in _featureTabs) t.Revert();
         SaveStatus = null;
     }
 
@@ -2154,7 +2228,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     }
 }
 
-public enum WorldTab { Containers, Flags, Doors, Dropped, Npcs, Pets, Vehicles, Bases, Meta, Traders, Containment, Raw }
+public enum WorldTab { Containers, Flags, Doors, Dropped, Npcs, Pets, Vehicles, Bases, Meta, Traders, Containment, Feature, Raw }
 
 /// <summary>
 /// One entry of the metadata save's <c>LeyakContainmentIDs</c> map: a contained
@@ -2232,11 +2306,57 @@ public sealed class LeyakContainmentViewModel : INotifyPropertyChanged
 
     public bool HasImage => _imagePath is not null;
 
-    /// <summary>Where the unit sits, e.g. "The Office Sector" or "containment unit not found".</summary>
+    private bool _imageIsWiki;
+
+    /// <summary>True when the shown portrait is bundled fan-wiki art (needs attribution).</summary>
+    public bool ImageIsWiki
+    {
+        get => _imageIsWiki;
+        private set { if (_imageIsWiki != value) { _imageIsWiki = value; Notify(nameof(ImageIsWiki)); } }
+    }
+
+    /// <summary>The facility sector the unit sits in, e.g. "Power Services", or a status line.</summary>
     public string RegionText
     {
         get => _regionText;
         private set { if (_regionText != value) { _regionText = value; Notify(nameof(RegionText)); } }
+    }
+
+    private string? _coordsText;
+
+    /// <summary>Raw world position of the unit (numeric, shown in the LCD readout), or null.</summary>
+    public string? CoordsText
+    {
+        get => _coordsText;
+        private set { if (_coordsText != value) { _coordsText = value; Notify(nameof(CoordsText)); Notify(nameof(HasCoords)); } }
+    }
+
+    public bool HasCoords => _coordsText is not null;
+
+    private string? _containingSaveText;
+
+    /// <summary>
+    /// Which save file actually holds the unit (the Facility region save), and whether that
+    /// save is currently open in the sidebar. Null until the location resolves.
+    /// </summary>
+    public string? ContainingSaveText
+    {
+        get => _containingSaveText;
+        private set { if (_containingSaveText != value) { _containingSaveText = value; Notify(nameof(ContainingSaveText)); Notify(nameof(HasContainingSave)); } }
+    }
+
+    public bool HasContainingSave => _containingSaveText is not null;
+
+    private bool _isExpanded;
+
+    /// <summary>
+    /// True while this row's inline detail (image + location) is shown. The owner keeps it
+    /// exclusive so only the tapped row is expanded at a time.
+    /// </summary>
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set { if (_isExpanded != value) { _isExpanded = value; Notify(nameof(IsExpanded)); } }
     }
 
     /// <summary>Loads the creature image + containment region once, off-thread.</summary>
@@ -2250,19 +2370,23 @@ public sealed class LeyakContainmentViewModel : INotifyPropertyChanged
 
     private void LoadImage()
     {
+        // Prefer the bundled fan-wiki render for known creatures: it is consistent, always
+        // present (no game install needed), and for the Krasue it is the only real portrait
+        // there is. Anything we don't bundle falls back to the creature's own in-pak art.
+        if (BundledImage(Creature) is { } bundled)
+        {
+            ImagePath = bundled;
+            ImageIsWiki = true;   // CC BY-NC-SA: surface requires the attribution line.
+            return;
+        }
+
         var provider = Services.GameDataServices.Provider;
         if (provider is null) return;
-
-        // T_Compendium_<Creature> matches the in-game bestiary art for Leyak/LeyakB.
-        var candidates = new[]
-        {
-            $"/Game/Textures/GUI/Compendium/Entries/T_Compendium_{Creature}",
-            $"/Game/Textures/GUI/Compendium/Entries/T_Compendium_{DisplayName.Replace(" ", "").Replace("(", "").Replace(")", "")}",
-            "/Game/Textures/GUI/Compendium/Entries/T_Compendium_Leyak",
-        };
+        var refs = ContainmentCreatureCatalog.TextureRefs(Creature);
         _ = Task.Run(() =>
         {
-            foreach (var c in candidates)
+            // The creature's OWN compendium art only - never another creature's as a stand-in.
+            foreach (var c in refs)
             {
                 try
                 {
@@ -2281,6 +2405,19 @@ public sealed class LeyakContainmentViewModel : INotifyPropertyChanged
         });
     }
 
+    /// <summary>
+    /// App-bundled fan-wiki portrait for a known creature (<c>Resources/Images/*.png</c>),
+    /// or null for one we don't bundle. The Krasue has no in-pak compendium art at all; the
+    /// Leyak uses its wiki render too so the two read consistently. Wiki source:
+    /// abioticfactor.wiki.gg.
+    /// </summary>
+    private static string? BundledImage(string creature)
+    {
+        if (creature.StartsWith("Krasue", StringComparison.OrdinalIgnoreCase)) return "krasue.png";
+        if (creature.StartsWith("Leyak", StringComparison.OrdinalIgnoreCase)) return "leyak.png";
+        return null;
+    }
+
     private async void LoadRegion()
     {
         try
@@ -2294,12 +2431,31 @@ public sealed class LeyakContainmentViewModel : INotifyPropertyChanged
                 return;
             }
             var terminal = Core.PlayerSaves.RespawnTerminalCatalog.NearestTo(unit.X, unit.Y, unit.Z);
-            RegionText = $"{terminal.LocationName}, at world position ({unit.X:0}, {unit.Y:0}, {unit.Z:0}).";
+            RegionText = terminal.LocationName;
+            CoordsText = $"X {unit.X:0}   Y {unit.Y:0}   Z {unit.Z:0}";
+            ContainingSaveText = BuildContainingSaveText();
         }
         catch
         {
             RegionText = "Could not resolve the containment unit's location.";
         }
+    }
+
+    /// <summary>
+    /// Names the Facility region save that holds the unit and flags whether it is open in
+    /// the sidebar, so the user knows which file to edit (or load) to reach the unit itself.
+    /// </summary>
+    private string BuildContainingSaveText()
+    {
+        var path = _owner.ContainmentHostPath;
+        if (path is null) return "Held in the Facility region save (WorldSave_Facility.sav).";
+
+        var file = System.IO.Path.GetFileName(path);
+        var loaded = AbioticEditor.App.App.SharedViewModel.Saves
+            .Any(s => string.Equals(s.FullPath, path, StringComparison.OrdinalIgnoreCase));
+        return loaded
+            ? $"Held in {file}, which is open in the sidebar."
+            : $"Held in {file} (not currently open in the sidebar).";
     }
 
     private void Notify(string name)
@@ -2317,4 +2473,18 @@ public sealed class FlagGroup : List<FlagItemViewModel>
     }
 
     public string Title { get; }
+}
+
+/// <summary>Vehicles that share one world / sub-level (grouped CollectionView source).</summary>
+public sealed class VehicleWorldGroup : List<WorldVehicleViewModel>
+{
+    public VehicleWorldGroup(string world, IEnumerable<WorldVehicleViewModel> items) : base(items)
+    {
+        World = world;
+    }
+
+    public string World { get; }
+
+    /// <summary>Header count suffix, e.g. "3 vehicles".</summary>
+    public string CountText => Count == 1 ? "1 vehicle" : $"{Count} vehicles";
 }

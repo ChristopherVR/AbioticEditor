@@ -48,6 +48,15 @@ public sealed class WorldVehicleViewModel : INotifyPropertyChanged
     public string ShortClass => _original.ShortClass;
     public string Region => _original.Region;
 
+    /// <summary>
+    /// False for decorative / scripted vehicles (the SnowGlobe Sleigh, Tram, Minecart): they
+    /// are listed and shown, but the detail offers no drivable / wrecked / move controls.
+    /// </summary>
+    public bool IsEditable => VehicleCatalog.IsEditable(_original.VehicleClass);
+
+    /// <summary>Inverse of <see cref="IsEditable"/>, for "display only" UI affordances.</summary>
+    public bool IsDisplayOnly => !IsEditable;
+
     public ICommand ResetToSpawnCommand { get; }
     public ICommand OpenInventoryCommand { get; }
 

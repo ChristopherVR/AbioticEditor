@@ -12,14 +12,27 @@ namespace AbioticEditor.Core.WorldSaves;
 /// </summary>
 public static class VehicleCatalog
 {
-    private static readonly (string Short, string Friendly)[] Curated =
+    // Short class, friendly name, the EXACT wiki File name for its image (verified to resolve
+    // via Special:FilePath), and whether the editor treats it as editable. The wiki's upload
+    // convention is "Vehicle_-_<Name>.png"; the GATE cars and the ATV use names that don't
+    // match their friendly label, so the file is curated rather than guessed. Null WikiImage =
+    // no known wiki image (falls back to the looser guesses in WikiImageCandidates).
+    //
+    // Editable=false marks decorative / scripted / on-rails vehicles (the SnowGlobe Sleigh,
+    // the Tram, the Minecart) whose drivable / wrecked / move state isn't meaningful to edit:
+    // those are shown for reference only, with no toggles.
+    private static readonly (string Short, string Friendly, string? WikiImage, bool Editable)[] Curated =
     {
-        ("ABF_Vehicle_Forklift", "Forklift"),
-        ("ABF_Vehicle_SecurityCart", "Security Cart"),
-        ("ABF_Vehicle_GolfCart", "Golf Cart"),
-        ("ABF_Vehicle_Minecart", "Minecart"),
-        ("ABF_Vehicle_Boat", "Boat"),
-        ("ABF_Vehicle_Canoe", "Canoe"),
+        ("ABF_Vehicle_Forklift",     "Forklift",      "Vehicle_-_Forklift.png",          true),
+        ("ABF_Vehicle_SecurityCart", "Security Cart", "Vehicle_-_GATE_Security_Cart.png", true),
+        ("ABF_Vehicle_SUV",          "SUV",           "Vehicle_-_GATE_SUV.png",           true),
+        ("ABF_Vehicle_Sleigh",       "Sleigh",        "Vehicle_-_Sleigh.png",            false),
+        ("ABF_Vehicle_VOTV_ATV",     "VOTV ATV",      "Vehicle_-_ATV.png",                true),
+        ("ABF_Vehicle_Tram",         "Tram",          "Vehicle_-_Tram.png",              false),
+        ("ABF_Vehicle_GolfCart",     "Golf Cart",     null,                               true),
+        ("ABF_Vehicle_Minecart",     "Minecart",      null,                              false),
+        ("ABF_Vehicle_Boat",         "Boat",          null,                               true),
+        ("ABF_Vehicle_Canoe",        "Canoe",         null,                               true),
     };
 
     /// <summary>Short class-name (without <c>_C</c>) for a full path or short string.</summary>
@@ -35,7 +48,7 @@ public static class VehicleCatalog
     {
         var shortClass = ShortOf(classOrShort);
         if (shortClass.Length == 0) return null;
-        foreach (var (s, friendly) in Curated)
+        foreach (var (s, friendly, _, _) in Curated)
         {
             if (string.Equals(s, shortClass, StringComparison.OrdinalIgnoreCase)) return friendly;
         }
@@ -48,20 +61,48 @@ public static class VehicleCatalog
     }
 
     /// <summary>
+    /// Whether the editor offers edit controls (drivable / wrecked / move) for a vehicle.
+    /// False for decorative / scripted / on-rails vehicles (Sleigh, Tram, Minecart), which
+    /// are shown for reference only. Unknown classes default to editable.
+    /// </summary>
+    public static bool IsEditable(string? classOrShort)
+    {
+        var shortClass = ShortOf(classOrShort);
+        foreach (var (s, _, _, editable) in Curated)
+        {
+            if (string.Equals(s, shortClass, StringComparison.OrdinalIgnoreCase)) return editable;
+        }
+        return true;
+    }
+
+    /// <summary>
     /// Candidate wiki-image file names (tried in order by <see cref="WikiImageCache"/>) for a
     /// vehicle's appearance image. Covers the common upload conventions on the wiki.
     /// </summary>
     public static IReadOnlyList<string> WikiImageCandidates(string? classOrShort)
     {
-        var friendly = FriendlyName(classOrShort);
-        if (string.IsNullOrEmpty(friendly)) return Array.Empty<string>();
-        return new[]
+        var shortClass = ShortOf(classOrShort);
+        var list = new List<string>();
+
+        // The curated, verified wiki File name first (correct for every shipped vehicle).
+        foreach (var (s, _, wiki, _) in Curated)
         {
-            $"{friendly}.png",
-            $"Item Icon - {friendly}.png",
-            $"{friendly} (vehicle).png",
-            $"Itemicon_{friendly.Replace(" ", string.Empty)}.png",
-        };
+            if (string.Equals(s, shortClass, StringComparison.OrdinalIgnoreCase))
+            {
+                if (!string.IsNullOrEmpty(wiki)) list.Add(wiki!);
+                break;
+            }
+        }
+
+        // Looser guesses so a vehicle a future patch adds still has a chance to resolve.
+        var friendly = FriendlyName(classOrShort);
+        if (!string.IsNullOrEmpty(friendly))
+        {
+            list.Add($"Vehicle_-_{friendly!.Replace(' ', '_')}.png");
+            list.Add($"{friendly}.png");
+            list.Add($"Item Icon - {friendly}.png");
+        }
+        return list;
     }
 
     /// <summary>
