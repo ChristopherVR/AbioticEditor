@@ -586,11 +586,65 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private void OnEditorContextChanged(object? sender, PropertyChangedEventArgs e)
     {
+        // Keep the sidebar to a single context: a detail selection becoming active clears the
+        // others, and switching world tabs clears whatever was open on the previous tab.
+        switch (e.PropertyName)
+        {
+            case "HasSelectedDoor" when WorldEditor?.HasSelectedDoor == true:
+                EnsureSingleSidebarContext(SidebarContext.Door); break;
+            case "HasSelectedTrader" when WorldEditor?.HasSelectedTrader == true:
+                EnsureSingleSidebarContext(SidebarContext.Trader); break;
+            case "HasSelectedChapter" when WorldEditor?.HasSelectedChapter == true:
+                EnsureSingleSidebarContext(SidebarContext.Chapter); break;
+            case "HasSelectedFlag" when WorldEditor?.HasSelectedFlag == true:
+                EnsureSingleSidebarContext(SidebarContext.Flag); break;
+            case "HasSelectedWorldRecipe" when WorldEditor?.HasSelectedWorldRecipe == true:
+                EnsureSingleSidebarContext(SidebarContext.WorldRecipe); break;
+            case "HasSelectedMilestone" when PlayerEditor?.HasSelectedMilestone == true:
+                EnsureSingleSidebarContext(SidebarContext.Milestone); break;
+            case "ActiveTab" when ReferenceEquals(sender, WorldEditor):
+                EnsureSingleSidebarContext(SidebarContext.None); break;
+        }
+
         if (e.PropertyName is "IsInventoryTab" or "IsTransmogTab" or "IsContainersTab" or "IsDroppedTab"
             or "IsCodexTab" or "HasSelectedTrader" or "HasSelectedChapter" or "HasSelectedFlag" or "HasSelectedDoor"
             or "HasSelectedWorldRecipe" or "HasSelectedMilestone" or "ActiveTab")
         {
             RaiseSidebarContextChanged();
+        }
+    }
+
+    /// <summary>Which one panel the right sidebar is showing (the others are cleared).</summary>
+    private enum SidebarContext { None, Slot, Door, Trader, Chapter, Flag, WorldRecipe, Milestone }
+
+    private bool _coalescingSidebar;
+
+    /// <summary>
+    /// Enforces that only one sidebar detail context is live at a time. Selecting a slot, door,
+    /// flag, trader, chapter, recipe or milestone clears every other selection so their panels
+    /// can't stack. Re-entrant clears are suppressed (clearing a selection raises its own
+    /// PropertyChanged, which would otherwise loop back in here).
+    /// </summary>
+    private void EnsureSingleSidebarContext(SidebarContext keep)
+    {
+        if (_coalescingSidebar) return;
+        _coalescingSidebar = true;
+        try
+        {
+            if (keep != SidebarContext.Slot) ActiveSlot = null;
+            if (WorldEditor is { } we)
+            {
+                if (keep != SidebarContext.Door) we.SelectedDoor = null;
+                if (keep != SidebarContext.Trader) we.SelectedTrader = null;
+                if (keep != SidebarContext.Chapter) we.SelectedChapter = null;
+                if (keep != SidebarContext.Flag) we.SelectedFlag = null;
+                if (keep != SidebarContext.WorldRecipe) we.GlobalRecipeBrowser.SelectedRecipe = null;
+            }
+            if (keep != SidebarContext.Milestone && PlayerEditor is { } pe) pe.SelectedMilestone = null;
+        }
+        finally
+        {
+            _coalescingSidebar = false;
         }
     }
 
@@ -1137,6 +1191,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 }
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasActiveSlot)));
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsActiveSlotTeleporter)));
+                // Opening a slot owns the sidebar; clear any door/flag/trader/... detail so two
+                // panels never stack (e.g. a door selected on the DOORS tab then a dropped item).
+                if (value is not null) EnsureSingleSidebarContext(SidebarContext.Slot);
                 if (IsActiveSlotTeleporter)
                 {
                     _ = EnsureBenchOptionsAsync();
