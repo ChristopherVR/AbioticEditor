@@ -36,6 +36,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     private readonly Dictionary<string, WorldDoorViewModel> _doorBaselines = new();
     private IReadOnlyList<WorldFeatureTabViewModel> _featureTabs = Array.Empty<WorldFeatureTabViewModel>();
     private WorldFeatureTabViewModel? _selectedFeatureTab;
+    private readonly List<WorldTabButton> _tabs = new();
 
     public WorldEditorViewModel(WorldSaveData data, string path)
     {
@@ -166,6 +167,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         RevertCommand = new RelayCommand(Revert, () => IsDirty && !IsSaving);
         AddFlagCommand = new RelayCommand(AddFlag, () => !string.IsNullOrWhiteSpace(_newFlagText));
         InitTabCommands();
+        BuildTabs();
     }
 
     // ---------- Metadata save: story progression + playtime ----------
@@ -1792,8 +1794,50 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
             {
                 foreach (var n in new[] { nameof(IsContainersTab), nameof(IsFlagsTab), nameof(IsDoorsTab), nameof(IsDroppedTab), nameof(IsNpcsTab), nameof(IsPetsTab), nameof(IsVehiclesTab), nameof(IsBasesTab), nameof(IsMetaTab), nameof(IsTradersTab), nameof(IsContainmentTab), nameof(IsFeatureTab), nameof(IsRawTab) })
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
+                RefreshTabs();
             }
         }
+    }
+
+    /// <summary>
+    /// The full tab strip as one flat, ordered list (fixed tabs + one per applicable feature
+    /// map + RAW JSON), filtered to those that apply to this save. The view binds a wrapping
+    /// FlexLayout to this so every tab is visible across rows instead of overflowing one strip.
+    /// </summary>
+    public IReadOnlyList<WorldTabButton> Tabs => _tabs;
+
+    private void BuildTabs()
+    {
+        void Add(string title, ICommand cmd, Func<bool> active) => _tabs.Add(new WorldTabButton(title, cmd, active));
+
+        if (!IsMetadataSave)
+        {
+            Add("CONTAINERS", ShowContainersCommand, () => IsContainersTab);
+            Add("QUEST FLAGS", ShowFlagsCommand, () => IsFlagsTab);
+            Add("DOORS", ShowDoorsCommand, () => IsDoorsTab);
+        }
+        if (HasDroppedItems) Add("DROPPED", ShowDroppedCommand, () => IsDroppedTab);
+        if (HasNpcs) Add("NPCS", ShowNpcsCommand, () => IsNpcsTab);
+        if (HasPets) Add("PETS", ShowPetsCommand, () => IsPetsTab);
+        if (HasVehicles) Add("VEHICLES", ShowVehiclesCommand, () => IsVehiclesTab);
+        if (HasBases) Add("BASES", ShowBasesCommand, () => IsBasesTab);
+        if (IsMetadataSave)
+        {
+            Add("STORY", ShowMetaCommand, () => IsMetaTab);
+            Add("TRADERS", ShowTradersCommand, () => IsTradersTab);
+            Add("CONTAINMENT", ShowContainmentCommand, () => IsContainmentTab);
+        }
+        foreach (var f in _featureTabs)
+        {
+            var feature = f; // capture
+            Add(feature.Title, feature.SelectCommand, () => IsFeatureTab && feature.IsActive);
+        }
+        Add("RAW JSON", ShowRawCommand, () => IsRawTab);
+    }
+
+    private void RefreshTabs()
+    {
+        foreach (var t in _tabs) t.Refresh();
     }
 
     public bool IsContainersTab => _activeTab == WorldTab.Containers;
@@ -1843,6 +1887,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         }
         SelectedFeatureTab = tab;
         ActiveTab = WorldTab.Feature;
+        RefreshTabs(); // feature->feature keeps ActiveTab==Feature, so refresh highlights here too
     }
 
     private bool AreFeatureMapsDirty() => _featureTabs.Any(t => t.IsDirty);
@@ -2478,6 +2523,31 @@ public sealed class FlagGroup : List<FlagItemViewModel>
     }
 
     public string Title { get; }
+}
+
+/// <summary>
+/// One button in the world editor's wrapping tab strip. <see cref="IsActive"/> is recomputed
+/// (via <see cref="Refresh"/>) whenever the active tab changes, so the highlight tracks
+/// selection without each tab needing its own bound bool on the editor VM.
+/// </summary>
+public sealed class WorldTabButton : INotifyPropertyChanged
+{
+    private readonly Func<bool> _isActive;
+
+    public WorldTabButton(string title, ICommand selectCommand, Func<bool> isActive)
+    {
+        Title = title;
+        SelectCommand = selectCommand;
+        _isActive = isActive;
+    }
+
+    public string Title { get; }
+    public ICommand SelectCommand { get; }
+    public bool IsActive => _isActive();
+
+    public void Refresh() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsActive)));
+
+    public event PropertyChangedEventHandler? PropertyChanged;
 }
 
 /// <summary>Vehicles that share one world / sub-level (grouped CollectionView source).</summary>
