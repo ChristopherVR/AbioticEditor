@@ -50,7 +50,14 @@
     <PackageVersion Include="SharpGLTF.Core" Version="1.0.6" />
     <PackageVersion Include="SharpGLTF.Toolkit" Version="1.0.6" />
     <PackageVersion Include="SixLabors.ImageSharp" Version="[3.1.12]" />
-    <PackageVersion Include="SkiaSharp" Version="[3.119.4]" />
+    <!-- Exact-pinned to match CUE4Parse-Conversion's hard `= 2.88.9` constraint (the source of
+         truth above). A higher version trips NU1608 because CUE4Parse pins SkiaSharp exactly. -->
+    <PackageVersion Include="SkiaSharp" Version="[2.88.9]" />
+    <!-- The base SkiaSharp package ships Windows/macOS natives only; Linux (CI test runner,
+         linux-x64 CLI publish) needs libSkiaSharp.so from this matching-version asset. The
+         NoDependencies variant avoids the libfontconfig system requirement - fine for the
+         PNG encode/decode we do (no text rendering). -->
+    <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="[2.88.9]" />
     <PackageVersion Include="SubstreamSharp" Version="1.0.3" />
     <PackageVersion Include="System.IO.Hashing" Version="10.0.9" />
     <PackageVersion Include="VGAudio" Version="2.2.1" />
