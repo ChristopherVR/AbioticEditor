@@ -167,6 +167,11 @@ jobs:
     needs: version
     if: needs.version.outputs.released == 'true'
     runs-on: ${{ matrix.os }}
+    # The Mac Catalyst legs need Xcode 26.5+ (the .NET 10 MacCatalyst SDK requires
+    # it), which hosted runners may not ship yet. Mark only those legs non-fatal so
+    # a Mac toolchain gap never blocks the Windows / Linux / CLI release; the macOS
+    # artifacts simply go missing until a runner with the right Xcode is available.
+    continue-on-error: ${{ matrix.kind == 'app-mac' }}
     strategy:
       # One failing target should not abandon the others' artifacts.
       fail-fast: false
@@ -261,6 +266,22 @@ jobs:
       # will warn ("cannot be opened because the developer cannot be verified");
       # users must right-click > Open (or clear the quarantine attribute). Add
       # signing/notarization here once an Apple Developer identity is available.
+      # Best-effort: the .NET 10 MacCatalyst SDK requires Xcode 26.5+, but the
+      # runner often defaults to an older Xcode. Select the newest one installed;
+      # if none is new enough the build still fails, but the leg is non-fatal
+      # (continue-on-error above) so the rest of the release proceeds.
+      - name: Select newest installed Xcode (macOS)
+        if: matrix.kind == 'app-mac'
+        run: |
+          set -euo pipefail
+          echo "Installed Xcodes:"
+          ls -d /Applications/Xcode*.app 2>/dev/null || echo "(none found)"
+          latest="$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -n1 || true)"
+          if [ -n "$latest" ]; then
+            sudo xcode-select -s "$latest/Contents/Developer"
+          fi
+          xcodebuild -version || true
+
       - name: Install MAUI workload (macOS)
         if: matrix.kind == 'app-mac'
         run: dotnet workload install maui
@@ -318,7 +339,11 @@ jobs:
           tag_name: ${{ needs.version.outputs.tag }}
           name: ${{ needs.version.outputs.tag }}
           body_path: dist/RELEASE_NOTES.md
-          fail_on_unmatched_files: true
+          # The macOS app zips can be absent when the Mac Catalyst legs fail on a
+          # runner without Xcode 26.5+ (those legs are continue-on-error). Don't fail
+          # the release over them - attach whatever built (Windows, Linux, CLI, and
+          # the macOS apps when they do build).
+          fail_on_unmatched_files: false
           files: |
             dist/AbioticEditor-cli-win-x64.zip
             dist/AbioticEditor-cli-linux-x64.zip
