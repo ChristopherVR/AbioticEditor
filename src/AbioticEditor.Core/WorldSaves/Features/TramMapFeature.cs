@@ -198,9 +198,10 @@ public sealed class TramMapFeature : WorldMapFeatureBase, IWorldMapFeature
         return new[]
         {
             WorldMapField.Choice(LastStationFieldId, "Last station", current, labels,
-                hint: "Re-park this tram at the chosen station. Options are the stations the "
-                    + "save's trams currently occupy (empty stations the level defines but no "
-                    + "tram is parked at can't be listed from the save alone)."),
+                hint: "Re-park this tram at the chosen station. The save only records each tram's "
+                    + "current station, not which line it runs, so this lists every station the "
+                    + "save's trams occupy - it can't restrict the list to just this tram's stops. "
+                    + "Pick a station on this tram's actual line."),
             WorldMapField.ReadOnly("inventories", "Container inventories",
                 inventoryCount.ToString(CultureInfo.InvariantCulture),
                 hint: "Number of on-board storage containers attached to this tram."),

@@ -1845,16 +1845,34 @@ public sealed class MainViewModel : INotifyPropertyChanged
             TeleporterSyncText = null;
             return;
         }
-        var link = _activeSlot?.PlayerMadeString?.TrimEnd(',');
-        if (string.IsNullOrEmpty(link))
+        // A synced teleporter's PlayerMadeString is "<benchGuid>,<benchName>" (the name is the
+        // bench's player-set label, which may be empty). Split it: match the GUID against this
+        // world's benches first, otherwise fall back to the embedded name so a bench in another
+        // region save still shows its friendly name instead of a raw GUID.
+        var raw = _activeSlot?.PlayerMadeString;
+        if (string.IsNullOrWhiteSpace(raw) || raw.Trim(',', ' ').Length == 0)
         {
             TeleporterSyncText = "Not synced to any bench.";
             return;
         }
-        var match = BenchOptions.FirstOrDefault(b => string.Equals(b.Id, link, StringComparison.OrdinalIgnoreCase));
-        TeleporterSyncText = match is not null
-            ? $"Synced to: {match.Label}"
-            : $"Synced to {link} (bench not found in this world - possibly removed or in another region).";
+        var comma = raw.IndexOf(',');
+        var guid = (comma >= 0 ? raw[..comma] : raw).Trim();
+        var embeddedName = comma >= 0 ? raw[(comma + 1)..].Trim() : string.Empty;
+
+        var match = BenchOptions.FirstOrDefault(b => string.Equals(b.Id, guid, StringComparison.OrdinalIgnoreCase));
+        if (match is not null)
+        {
+            TeleporterSyncText = $"Synced to: {match.Label}";
+        }
+        else if (embeddedName.Length > 0)
+        {
+            TeleporterSyncText = $"Synced to: {embeddedName} (a bench in another region save).";
+        }
+        else
+        {
+            var shortId = guid.Length > 8 ? guid[..8] : guid;
+            TeleporterSyncText = $"Synced to bench {shortId}… (not found in the loaded saves - it may have been removed).";
+        }
     }
 
     /// <summary>
