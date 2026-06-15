@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here.
 
+## [1.2.1] - 2026-06-15
+
+### CI
+- Disable macOS app builds
+
+### Miscellaneous Tasks
+- Point bucket at v1.2.0 [skip ci]
+
 ## [1.2.0] - 2026-06-15
 
 ### Features
