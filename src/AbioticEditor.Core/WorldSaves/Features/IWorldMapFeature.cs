@@ -70,12 +70,18 @@ public interface IWorldMapFeature
 /// powers). When set, the UI offers a "go to" action; null when the entry links to nothing.
 /// </param>
 /// <param name="LinkLabel">Button text for the link action (e.g. "Open Crafting Bench"); null when none.</param>
+/// <param name="LinkNeedsHostResolution">
+/// True when the link target could not be resolved within this save and the host must resolve it
+/// folder-wide (e.g. a power socket whose device lives in another region save). The host then fills
+/// in the friendly name and decides whether the link can open anything.
+/// </param>
 public sealed record WorldMapEntry(
     string Key,
     string Label,
     IReadOnlyList<WorldMapField> Fields,
     string? LinkTargetId = null,
-    string? LinkLabel = null);
+    string? LinkLabel = null,
+    bool LinkNeedsHostResolution = false);
 
 /// <summary>One typed, possibly-editable value within a <see cref="WorldMapEntry"/>.</summary>
 public sealed record WorldMapField(

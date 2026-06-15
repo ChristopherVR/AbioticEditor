@@ -525,6 +525,31 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// Resolves a set of plugged-in-device ids to their folder-wide descriptors (friendly name,
+    /// container-ness, source save), so a power-socket tab can show real device names for devices
+    /// that live in another region save. Returns only the ids it could resolve.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<string, Core.WorldSaves.PowerSocketDeviceResolver.DeviceInfo>>
+        ResolveDevicesAsync(IReadOnlyList<string> ids)
+    {
+        var result = new Dictionary<string, Core.WorldSaves.PowerSocketDeviceResolver.DeviceInfo>(
+            StringComparer.OrdinalIgnoreCase);
+        var index = await EnsureDeviceFolderIndexAsync();
+        if (index is null)
+        {
+            return result;
+        }
+        foreach (var id in ids)
+        {
+            if (index.TryGetValue(id, out var info))
+            {
+                result[id] = info;
+            }
+        }
+        return result;
+    }
+
     private async Task<Dictionary<string, Core.WorldSaves.PowerSocketDeviceResolver.DeviceInfo>?>
         EnsureDeviceFolderIndexAsync()
     {
@@ -2059,7 +2084,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
             {
                 var data = await Task.Run(() => WorldSaveReader.ReadFromFile(summary.FullPath));
                 if (token != _loadSequence) return;
-                WorldEditor = new WorldEditorViewModel(data, summary.FullPath, NavigateToWorldDeviceAsync);
+                WorldEditor = new WorldEditorViewModel(
+                    data, summary.FullPath, NavigateToWorldDeviceAsync, ResolveDevicesAsync);
             }
 
             // Notify plugins that a save is now open (after a successful parse).

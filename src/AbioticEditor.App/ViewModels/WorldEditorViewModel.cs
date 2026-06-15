@@ -42,12 +42,19 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     // resolves the folder-wide device index and, if the device is a container in a sibling world
     // save, switches to that save and opens it. Null when no host navigation is wired.
     private readonly Func<string, Task>? _crossWorldNavigate;
+    private readonly Func<IReadOnlyList<string>,
+        Task<IReadOnlyDictionary<string, Core.WorldSaves.PowerSocketDeviceResolver.DeviceInfo>>>? _resolveDevices;
 
-    public WorldEditorViewModel(WorldSaveData data, string path, Func<string, Task>? crossWorldNavigate = null)
+    public WorldEditorViewModel(
+        WorldSaveData data, string path,
+        Func<string, Task>? crossWorldNavigate = null,
+        Func<IReadOnlyList<string>,
+            Task<IReadOnlyDictionary<string, Core.WorldSaves.PowerSocketDeviceResolver.DeviceInfo>>>? resolveDevices = null)
     {
         _data = data;
         _path = path;
         _crossWorldNavigate = crossWorldNavigate;
+        _resolveDevices = resolveDevices;
 
         // The metadata save is story-only (no containers/flags/doors) - open it on the
         // STORY tab instead of an empty containers list.
@@ -166,7 +173,8 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         // feature-tab discovery to avoid showing two Vehicles tabs.
         _featureTabs = WorldMapFeatures.ApplicableTo(data.Raw)
             .Where(f => !string.Equals(f.Id, "vehicles", StringComparison.OrdinalIgnoreCase))
-            .Select(f => new WorldFeatureTabViewModel(f, data.Raw, Refresh, SelectFeatureTab, _path, OpenPoweredDevice))
+            .Select(f => new WorldFeatureTabViewModel(
+                f, data.Raw, Refresh, SelectFeatureTab, _path, OpenPoweredDevice, _resolveDevices))
             .ToList();
 
         if (IsMetadataSave)

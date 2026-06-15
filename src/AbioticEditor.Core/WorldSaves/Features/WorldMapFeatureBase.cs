@@ -29,9 +29,10 @@ public abstract class WorldMapFeatureBase : IWorldMapFeature
         foreach (var entry in WorldMapAccessor.Entries(save, MapName))
         {
             ordinal++;
-            var (linkId, linkLabel) = LinkFor(entry.Key, entry.Props);
+            var (linkId, linkLabel, needsHost) = LinkFor(entry.Key, entry.Props);
             list.Add(new WorldMapEntry(
-                entry.Key, LabelFor(ordinal, entry.Key, entry.Props), ReadFields(entry.Props), linkId, linkLabel));
+                entry.Key, LabelFor(ordinal, entry.Key, entry.Props), ReadFields(entry.Props),
+                linkId, linkLabel, needsHost));
         }
         return list;
     }
@@ -49,8 +50,9 @@ public abstract class WorldMapFeatureBase : IWorldMapFeature
     /// Optional link from one entry to another editable entity (e.g. the container a power socket
     /// powers): returns its target id and a button label, or (null, null) for no link. Default none.
     /// </summary>
-    protected virtual (string? TargetId, string? Label) LinkFor(string key, IList<FPropertyTag> props)
-        => (null, null);
+    protected virtual (string? TargetId, string? Label, bool NeedsHostResolution) LinkFor(
+        string key, IList<FPropertyTag> props)
+        => (null, null, false);
 
     public WorldEditResult SetField(SaveGame save, string entryKey, string fieldId, string? value)
     {

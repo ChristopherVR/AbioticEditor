@@ -86,21 +86,22 @@ public sealed class PowerSocketMapFeature : WorldMapFeatureBase
     /// UI can jump to it in the CONTAINERS tab. Non-container devices (cables, batteries, plug
     /// strips) and cross-save devices get no link (nothing to open here).
     /// </summary>
-    protected override (string? TargetId, string? Label) LinkFor(string key, IList<FPropertyTag> props)
+    protected override (string? TargetId, string? Label, bool NeedsHostResolution) LinkFor(
+        string key, IList<FPropertyTag> props)
     {
         var device = props.GetString(PluggedInDevicePrefix);
         if (PowerSocketDeviceResolver.IsNothingPlugged(device))
         {
-            return (null, null);
+            return (null, null, false);
         }
         if (_deviceIndex.TryGetValue(device!, out var info))
         {
             // Resolved in this save: only containers can be opened (cables/batteries cannot).
-            return info.IsContainer ? (info.Id, $"Open {info.FriendlyName}") : (null, null);
+            return info.IsContainer ? (info.Id, $"Open {info.FriendlyName}", false) : (null, null, false);
         }
-        // Not in this save: the device may live in another region save (the host resolves the
-        // folder-wide index on click and navigates cross-world, or reports if it cannot be found).
-        return (device, "Find plugged-in device");
+        // Not in this save: the device lives in another region save. The host resolves its friendly
+        // name and container-ness folder-wide and fills in the description / open action.
+        return (device, "Find plugged-in device", true);
     }
 
     /// <summary>

@@ -25,6 +25,9 @@ public sealed class WorldFeatureTabViewModel : INotifyPropertyChanged
     private readonly Action _onChanged;
     private readonly string? _saveFileName;
     private readonly Action<string>? _onOpenLink;
+    private readonly Func<IReadOnlyList<string>,
+        Task<IReadOnlyDictionary<string, Core.WorldSaves.PowerSocketDeviceResolver.DeviceInfo>>>? _resolveDevices;
+    private bool _crossWorldResolved;
     private WorldFeatureEntryViewModel? _selectedEntry;
     private bool _isActive;
     private string? _wikiImagePath;
@@ -33,16 +36,61 @@ public sealed class WorldFeatureTabViewModel : INotifyPropertyChanged
 
     public WorldFeatureTabViewModel(
         IWorldMapFeature feature, SaveGame raw, Action onChanged, Action<WorldFeatureTabViewModel> onSelect,
-        string? saveFileName = null, Action<string>? onOpenLink = null)
+        string? saveFileName = null, Action<string>? onOpenLink = null,
+        Func<IReadOnlyList<string>,
+            Task<IReadOnlyDictionary<string, Core.WorldSaves.PowerSocketDeviceResolver.DeviceInfo>>>? resolveDevices = null)
     {
         _feature = feature;
         _raw = raw;
         _onChanged = onChanged;
         _saveFileName = saveFileName;
         _onOpenLink = onOpenLink;
+        _resolveDevices = resolveDevices;
         Entries = new ObservableCollection<WorldFeatureEntryViewModel>(
             feature.Read(raw).Select(e => new WorldFeatureEntryViewModel(this, e)));
         SelectCommand = new RelayCommand(() => onSelect(this));
+    }
+
+    // The id of the field whose cross-world link is resolved into a friendly description. Only the
+    // power-sockets feature has such links today.
+    private const string CrossWorldFieldId = "pluggedInDevice";
+
+    private void ResolveCrossWorldLinks()
+    {
+        if (_crossWorldResolved || _resolveDevices is null)
+        {
+            return;
+        }
+        var pending = Entries
+            .Where(e => e.LinkNeedsHostResolution && e.LinkTargetId is not null)
+            .ToList();
+        if (pending.Count == 0)
+        {
+            return;
+        }
+        _crossWorldResolved = true;
+        _ = ResolveCrossWorldLinksAsync(pending);
+    }
+
+    private async Task ResolveCrossWorldLinksAsync(List<WorldFeatureEntryViewModel> pending)
+    {
+        try
+        {
+            var ids = pending.Select(e => e.LinkTargetId!).Distinct().ToList();
+            var resolved = await _resolveDevices!(ids).ConfigureAwait(false);
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                foreach (var entry in pending)
+                {
+                    resolved.TryGetValue(entry.LinkTargetId!, out var info);
+                    entry.ApplyResolvedDevice(CrossWorldFieldId, info);
+                }
+            });
+        }
+        catch
+        {
+            // Leave the raw "find device" link in place if folder resolution fails.
+        }
     }
 
     /// <summary>
@@ -86,7 +134,15 @@ public sealed class WorldFeatureTabViewModel : INotifyPropertyChanged
     public bool IsActive
     {
         get => _isActive;
-        set => Set(ref _isActive, value);
+        set
+        {
+            if (Set(ref _isActive, value) && value)
+            {
+                // First time shown: resolve any cross-world device links so the list shows friendly
+                // names instead of raw GUIDs (off-thread; updates entries when it returns).
+                ResolveCrossWorldLinks();
+            }
+        }
     }
 
     public WorldFeatureEntryViewModel? SelectedEntry
@@ -221,13 +277,20 @@ public sealed class WorldFeatureEntryViewModel : INotifyPropertyChanged
     private readonly WorldFeatureTabViewModel _tab;
     private bool _isDeleted;
 
+    private string? _linkLabel;
+    private bool _canOpen;
+
     public WorldFeatureEntryViewModel(WorldFeatureTabViewModel tab, WorldMapEntry entry)
     {
         _tab = tab;
         Key = entry.Key;
         Label = entry.Label;
         LinkTargetId = entry.LinkTargetId;
-        LinkLabel = entry.LinkLabel;
+        _linkLabel = entry.LinkLabel;
+        LinkNeedsHostResolution = entry.LinkNeedsHostResolution;
+        // Same-save container links open directly; cross-world links can still be clicked (the host
+        // navigates to the other save). Both are clickable until resolution proves otherwise.
+        _canOpen = entry.LinkTargetId is not null;
         Fields = new ObservableCollection<WorldFeatureFieldViewModel>(
             entry.Fields.Select(f => new WorldFeatureFieldViewModel(this, f)));
         RemoveCommand = new RelayCommand(() => IsDeleted = true, () => _tab.SupportsRemoval && !_isDeleted);
@@ -244,14 +307,59 @@ public sealed class WorldFeatureEntryViewModel : INotifyPropertyChanged
     /// <summary>Id of a linked entity this entry can jump to (e.g. the container a socket powers), or null.</summary>
     public string? LinkTargetId { get; }
 
+    /// <summary>True when the link target must be resolved folder-wide by the host (cross-world device).</summary>
+    public bool LinkNeedsHostResolution { get; }
+
     /// <summary>Button label for the link action (e.g. "Open Crafting Bench"), or null.</summary>
-    public string? LinkLabel { get; }
+    public string? LinkLabel
+    {
+        get => _linkLabel;
+        private set
+        {
+            _linkLabel = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(LinkLabel)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasLink)));
+            (OpenLinkCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        }
+    }
 
     /// <summary>True when this entry links to something openable AND the host supports navigation.</summary>
-    public bool HasLink => LinkTargetId is not null && _tab.OnOpenLink is not null;
+    public bool HasLink => _canOpen && LinkTargetId is not null && _tab.OnOpenLink is not null;
 
     /// <summary>Navigates to the linked entity (the CONTAINERS tab selects the device's container).</summary>
     public ICommand OpenLinkCommand { get; }
+
+    /// <summary>
+    /// Applies a host-resolved cross-world device description: rewrites the plugged-in-device field
+    /// to a friendly name and updates the open action (only containers can be opened). A null
+    /// <paramref name="resolved"/> means the device was not found in any region save.
+    /// </summary>
+    internal void ApplyResolvedDevice(string fieldId, Core.WorldSaves.PowerSocketDeviceResolver.DeviceInfo? resolved)
+    {
+        var field = Fields.FirstOrDefault(f => f.Id == fieldId);
+        if (resolved is null)
+        {
+            field?.OverrideDisplay("Device not found in any region save (it may have been removed)");
+            _canOpen = false;
+            LinkLabel = null;
+            return;
+        }
+
+        var file = resolved.SourceFile is { } sf ? System.IO.Path.GetFileName(sf) : null;
+        var where = file is not null ? $" in {file}" : string.Empty;
+        if (resolved.IsContainer)
+        {
+            field?.OverrideDisplay($"{resolved.FriendlyName} (container{where})");
+            _canOpen = true;
+            LinkLabel = $"Open {resolved.FriendlyName}{where}";
+        }
+        else
+        {
+            field?.OverrideDisplay($"{resolved.FriendlyName}{where}");
+            _canOpen = false;
+            LinkLabel = null;
+        }
+    }
 
     /// <summary>
     /// Friendly area/world this entry lives in (e.g. "Manufacturing West"), inferred from the
@@ -378,6 +486,16 @@ public sealed class WorldFeatureFieldViewModel : INotifyPropertyChanged
 
     /// <summary>Last applied value (read-only display and list summary).</summary>
     public string? Value => _value;
+
+    /// <summary>
+    /// Replaces the displayed value with a host-resolved description (e.g. a cross-world device's
+    /// friendly name). Display-only: it does not change the underlying save value or dirty state.
+    /// </summary>
+    internal void OverrideDisplay(string display)
+    {
+        _value = display;
+        NotifyValueViews();
+    }
 
     /// <summary>Validation message from the last rejected edit, or null.</summary>
     public string? Error
