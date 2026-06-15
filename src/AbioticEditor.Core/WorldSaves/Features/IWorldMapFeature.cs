@@ -62,7 +62,20 @@ public interface IWorldMapFeature
 }
 
 /// <summary>One row of a feature: a map entry (one actor) and its editable fields.</summary>
-public sealed record WorldMapEntry(string Key, string Label, IReadOnlyList<WorldMapField> Fields);
+/// <param name="Key">The map key (actor path or GUID) identifying this entry.</param>
+/// <param name="Label">The readable row label.</param>
+/// <param name="Fields">The typed, optionally-editable fields.</param>
+/// <param name="LinkTargetId">
+/// Optional id of another editable entity this entry points at (e.g. the container a power socket
+/// powers). When set, the UI offers a "go to" action; null when the entry links to nothing.
+/// </param>
+/// <param name="LinkLabel">Button text for the link action (e.g. "Open Crafting Bench"); null when none.</param>
+public sealed record WorldMapEntry(
+    string Key,
+    string Label,
+    IReadOnlyList<WorldMapField> Fields,
+    string? LinkTargetId = null,
+    string? LinkLabel = null);
 
 /// <summary>One typed, possibly-editable value within a <see cref="WorldMapEntry"/>.</summary>
 public sealed record WorldMapField(

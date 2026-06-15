@@ -24,6 +24,7 @@ public sealed class WorldFeatureTabViewModel : INotifyPropertyChanged
     private readonly SaveGame _raw;
     private readonly Action _onChanged;
     private readonly string? _saveFileName;
+    private readonly Action<string>? _onOpenLink;
     private WorldFeatureEntryViewModel? _selectedEntry;
     private bool _isActive;
     private string? _wikiImagePath;
@@ -32,12 +33,13 @@ public sealed class WorldFeatureTabViewModel : INotifyPropertyChanged
 
     public WorldFeatureTabViewModel(
         IWorldMapFeature feature, SaveGame raw, Action onChanged, Action<WorldFeatureTabViewModel> onSelect,
-        string? saveFileName = null)
+        string? saveFileName = null, Action<string>? onOpenLink = null)
     {
         _feature = feature;
         _raw = raw;
         _onChanged = onChanged;
         _saveFileName = saveFileName;
+        _onOpenLink = onOpenLink;
         Entries = new ObservableCollection<WorldFeatureEntryViewModel>(
             feature.Read(raw).Select(e => new WorldFeatureEntryViewModel(this, e)));
         SelectCommand = new RelayCommand(() => onSelect(this));
@@ -48,6 +50,9 @@ public sealed class WorldFeatureTabViewModel : INotifyPropertyChanged
     /// key carries no level token (e.g. a GUID-keyed entry). Null when the host didn't supply it.
     /// </summary>
     internal string? SaveFileName => _saveFileName;
+
+    /// <summary>Opens the entity an entry links to (e.g. the container a socket powers); null when unsupported.</summary>
+    internal Action<string>? OnOpenLink => _onOpenLink;
 
     /// <summary>Stable lowercase token (also the CLI subcommand), e.g. <c>power-sockets</c>.</summary>
     public string Id => _feature.Id;
@@ -221,15 +226,32 @@ public sealed class WorldFeatureEntryViewModel : INotifyPropertyChanged
         _tab = tab;
         Key = entry.Key;
         Label = entry.Label;
+        LinkTargetId = entry.LinkTargetId;
+        LinkLabel = entry.LinkLabel;
         Fields = new ObservableCollection<WorldFeatureFieldViewModel>(
             entry.Fields.Select(f => new WorldFeatureFieldViewModel(this, f)));
         RemoveCommand = new RelayCommand(() => IsDeleted = true, () => _tab.SupportsRemoval && !_isDeleted);
         RestoreCommand = new RelayCommand(() => IsDeleted = false, () => _isDeleted);
+        OpenLinkCommand = new RelayCommand(
+            () => { if (LinkTargetId is { } id) _tab.OnOpenLink?.Invoke(id); },
+            () => HasLink);
     }
 
     public string Key { get; }
 
     public string Label { get; }
+
+    /// <summary>Id of a linked entity this entry can jump to (e.g. the container a socket powers), or null.</summary>
+    public string? LinkTargetId { get; }
+
+    /// <summary>Button label for the link action (e.g. "Open Crafting Bench"), or null.</summary>
+    public string? LinkLabel { get; }
+
+    /// <summary>True when this entry links to something openable AND the host supports navigation.</summary>
+    public bool HasLink => LinkTargetId is not null && _tab.OnOpenLink is not null;
+
+    /// <summary>Navigates to the linked entity (the CONTAINERS tab selects the device's container).</summary>
+    public ICommand OpenLinkCommand { get; }
 
     /// <summary>
     /// Friendly area/world this entry lives in (e.g. "Manufacturing West"), inferred from the

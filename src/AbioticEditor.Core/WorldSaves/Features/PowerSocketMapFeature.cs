@@ -57,12 +57,45 @@ public sealed class PowerSocketMapFeature : WorldMapFeatureBase
     /// </summary>
     public override string RemoveActionLabel => "Disconnect";
 
-    /// <summary>Socket keys are raw GUIDs, so number them and note what's plugged in.</summary>
+    // Device index for the save currently being read, rebuilt once per Read via OnBeginRead so
+    // LabelFor/ReadFields/LinkFor can name the plugged-in device and link to it when it is a
+    // container in this save. PluggedInDeviceAssetID_ shares the DeployedObjectMap key space; see
+    // PowerSocketDeviceResolver. Cross-save devices (a socket here powering a device in another
+    // region save, ~10% in practice) are not in this index, so they show the raw id, not a name.
+    private Dictionary<string, PowerSocketDeviceResolver.DeviceInfo> _deviceIndex = new();
+
+    /// <inheritdoc/>
+    protected override void OnBeginRead(SaveGame save)
+        => _deviceIndex = PowerSocketDeviceResolver.BuildIndex(save);
+
+    /// <summary>Socket keys are raw GUIDs, so number them and name what's plugged in when known.</summary>
     protected override string LabelFor(int ordinal, string key, IList<FPropertyTag> props)
     {
         var device = props.GetString(PluggedInDevicePrefix);
-        var plugged = !string.IsNullOrWhiteSpace(device) && device is not ("-1" or "None");
-        return plugged ? $"Power Socket {ordinal} (in use)" : $"Power Socket {ordinal}";
+        if (PowerSocketDeviceResolver.IsNothingPlugged(device))
+        {
+            return $"Power Socket {ordinal}";
+        }
+        return _deviceIndex.TryGetValue(device!, out var info)
+            ? $"Power Socket {ordinal} ({info.FriendlyName})"
+            : $"Power Socket {ordinal} (in use)";
+    }
+
+    /// <summary>
+    /// Links a socket to the device it powers when that device is a container in this save, so the
+    /// UI can jump to it in the CONTAINERS tab. Non-container devices (cables, batteries, plug
+    /// strips) and cross-save devices get no link (nothing to open here).
+    /// </summary>
+    protected override (string? TargetId, string? Label) LinkFor(string key, IList<FPropertyTag> props)
+    {
+        var device = props.GetString(PluggedInDevicePrefix);
+        if (!PowerSocketDeviceResolver.IsNothingPlugged(device)
+            && _deviceIndex.TryGetValue(device!, out var info)
+            && info.IsContainer)
+        {
+            return (info.Id, $"Open {info.FriendlyName}");
+        }
+        return (null, null);
     }
 
     /// <summary>
@@ -79,7 +112,7 @@ public sealed class PowerSocketMapFeature : WorldMapFeatureBase
     protected override IReadOnlyList<WorldMapField> ReadFields(IList<FPropertyTag> props)
     {
         var socketId = props.GetString(PowerSocketPrefix);
-        var pluggedInDevice = props.GetString(PluggedInDevicePrefix);
+        var pluggedInDevice = DescribeDevice(props.GetString(PluggedInDevicePrefix));
         var hasTimer = props.TryGetBool(HasTimerPrefix) ?? false;
         var timerMode = props.GetEnumString(TimerModePrefix);
 
@@ -92,14 +125,13 @@ public sealed class PowerSocketMapFeature : WorldMapFeatureBase
         {
             WorldMapField.ReadOnly("socketId", "Socket ID", socketId,
                 hint: "The socket's own persistent GUID string (matches the map entry key)."),
-            // pluggedInDevice is the asset id of the device currently drawing power from this
-            // socket. Resolving that id to a friendly device name would require navigating the
-            // device container that owns the id - cross-container/cross-save navigation that does
-            // not exist in this editor and is out of scope here. So we surface the raw id with a
-            // clear label/hint rather than a guessed name.
+            // pluggedInDevice resolves the device asset id to a friendly name (plug board, crafting
+            // bench, battery, ...) using this save's deployable index. When the device is a
+            // container in this save, the detail pane also offers a button to jump to it.
             WorldMapField.ReadOnly("pluggedInDevice", "Plugged-in device", pluggedInDevice,
-                hint: "Asset id of the device currently drawing power from this socket. "
-                    + "\"-1\" or empty means nothing is plugged in."),
+                hint: "The device currently drawing power from this socket. When it is a container "
+                    + "(bench, fridge, crate, ...) in this region you can open it from the link "
+                    + "below. \"Nothing plugged in\" means the socket is free."),
             WorldMapField.Bool("hasTimer", "Timer armed", hasTimer,
                 hint: "Whether this socket's power timer is armed. Set to true to arm the timer, "
                     + "false to disarm it (no timer active)."),
@@ -140,5 +172,25 @@ public sealed class PowerSocketMapFeature : WorldMapFeatureBase
         return WorldMapAccessor.SetBool(props, HasTimerPrefix, wanted)
             ? WorldEditResult.Success
             : WorldEditResult.Failure("the HasTimer field is missing from this power-socket entry.");
+    }
+
+    /// <summary>
+    /// Turns a raw plugged-in-device asset id into a readable description: "nothing plugged in",
+    /// a friendly device name when the id resolves in this save, or the short id when it does not
+    /// (a device in another region save, or a stale reference).
+    /// </summary>
+    private string DescribeDevice(string? assetId)
+    {
+        if (PowerSocketDeviceResolver.IsNothingPlugged(assetId))
+        {
+            return "Nothing plugged in";
+        }
+        if (_deviceIndex.TryGetValue(assetId!, out var info))
+        {
+            var kind = info.IsContainer ? "container" : "device";
+            return $"{info.FriendlyName} ({kind})";
+        }
+        var shortId = assetId!.Length > 8 ? assetId[..8] : assetId;
+        return $"Device {shortId}… (not in this region save)";
     }
 }

@@ -105,6 +105,57 @@ public sealed class WorldFoundationTests
 
     // ---------- bench upgrades ----------
 
+    // ---------- power socket device resolution ----------
+
+    [Fact]
+    public void PowerSocketDeviceResolver_resolves_devices_and_links_containers()
+    {
+        var save = LoadFacility();
+        if (save is null)
+        {
+            return;
+        }
+
+        var index = PowerSocketDeviceResolver.BuildIndex(save);
+        Assert.NotEmpty(index); // the Facility save has deployables
+
+        var feature = (PowerSocketMapFeature)WorldMapFeatures.Find("power-sockets")!;
+        var entries = feature.Read(save);
+        if (entries.Count == 0)
+        {
+            return; // this save carries no power sockets
+        }
+
+        // Every socket's plugged-in-device field is a human description, never a bare 32-hex GUID.
+        foreach (var e in entries)
+        {
+            var device = e.Fields.Single(f => f.Id == "pluggedInDevice").Value;
+            Assert.False(string.IsNullOrEmpty(device));
+            Assert.False(device!.Length == 32 && device.All(Uri.IsHexDigit),
+                $"plugged-in device should be described, not a raw GUID: {device}");
+        }
+
+        // Any entry that links to a device must point at a real container in this save.
+        foreach (var e in entries.Where(e => e.LinkTargetId is not null))
+        {
+            Assert.True(index.TryGetValue(e.LinkTargetId!, out var info) && info.IsContainer);
+            Assert.False(string.IsNullOrWhiteSpace(e.LinkLabel));
+        }
+    }
+
+    [Fact]
+    public void PowerSocketDeviceResolver_friendly_names_and_sentinels()
+    {
+        Assert.True(PowerSocketDeviceResolver.IsNothingPlugged("-1"));
+        Assert.True(PowerSocketDeviceResolver.IsNothingPlugged(""));
+        Assert.True(PowerSocketDeviceResolver.IsNothingPlugged(null));
+        Assert.False(PowerSocketDeviceResolver.IsNothingPlugged("ABCD1234"));
+
+        Assert.Equal("Plug Board", PowerSocketDeviceResolver.FriendlyName("Deployed_Plugboard_C"));
+        Assert.Equal("Crafting Bench", PowerSocketDeviceResolver.FriendlyName("Deployed_CraftingBench_Default_C"));
+        Assert.Equal("Battery", PowerSocketDeviceResolver.FriendlyName("Deployed_Battery_T2_C"));
+    }
+
     [Fact]
     public void BenchUpgradeCatalog_has_known_rows()
     {

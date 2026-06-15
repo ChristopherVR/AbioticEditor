@@ -157,7 +157,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         // elevators, buttons, portals, trams, ...). Each applicable map becomes its own
         // Fish-style master-detail tab, discovered generically from this save's tree.
         _featureTabs = WorldMapFeatures.ApplicableTo(data.Raw)
-            .Select(f => new WorldFeatureTabViewModel(f, data.Raw, Refresh, SelectFeatureTab, _path))
+            .Select(f => new WorldFeatureTabViewModel(f, data.Raw, Refresh, SelectFeatureTab, _path, OpenPoweredDevice))
             .ToList();
 
         if (IsMetadataSave)
@@ -808,6 +808,24 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         HideEmpty = false;
         Filter = vehicleId;
         ActiveTab = WorldTab.Containers;
+    }
+
+    /// <summary>
+    /// Jumps to the CONTAINERS tab and surfaces the container with <paramref name="deviceId"/>,
+    /// used by the power-socket tab's "open the plugged-in device" link. The device id is the same
+    /// GUID a deployed container is keyed by, so filtering by it isolates the right container; we
+    /// also select it directly when it is loaded.
+    /// </summary>
+    private void OpenPoweredDevice(string deviceId)
+    {
+        HideEmpty = false;
+        Filter = deviceId;
+        ActiveTab = WorldTab.Containers;
+        var match = AllContainers.FirstOrDefault(c => string.Equals(c.Id, deviceId, StringComparison.OrdinalIgnoreCase));
+        if (match is not null)
+        {
+            SelectedContainer = match;
+        }
     }
 
     private IReadOnlyList<TraderCardViewModel>? _traderCards;

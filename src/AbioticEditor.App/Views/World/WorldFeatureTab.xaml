@@ -87,6 +87,12 @@
                                 <Label Grid.Column="1" Text="{Binding Area}" Style="{StaticResource AfFieldValue}"
                                        FontSize="12" VerticalOptions="Center" LineBreakMode="TailTruncation" />
                             </Grid>
+                            <!-- Jump to a linked entity (e.g. the container a power socket powers) -->
+                            <Button Text="{Binding LinkLabel}" Command="{Binding OpenLinkCommand}"
+                                    IsVisible="{Binding HasLink}"
+                                    FontSize="10" Padding="12,5" HorizontalOptions="Start"
+                                    BackgroundColor="{StaticResource AfPanelElevated}"
+                                    TextColor="{StaticResource AfTerminalGreen}" />
                             <Label Text="{Binding Key}" Style="{StaticResource AfStatusText}" FontSize="9"
                                    LineBreakMode="MiddleTruncation" />
 

@@ -23,15 +23,34 @@ public abstract class WorldMapFeatureBase : IWorldMapFeature
 
     public IReadOnlyList<WorldMapEntry> Read(SaveGame save)
     {
+        OnBeginRead(save);
         var list = new List<WorldMapEntry>();
         var ordinal = 0;
         foreach (var entry in WorldMapAccessor.Entries(save, MapName))
         {
             ordinal++;
-            list.Add(new WorldMapEntry(entry.Key, LabelFor(ordinal, entry.Key, entry.Props), ReadFields(entry.Props)));
+            var (linkId, linkLabel) = LinkFor(entry.Key, entry.Props);
+            list.Add(new WorldMapEntry(
+                entry.Key, LabelFor(ordinal, entry.Key, entry.Props), ReadFields(entry.Props), linkId, linkLabel));
         }
         return list;
     }
+
+    /// <summary>
+    /// Hook called once at the start of each <see cref="Read"/>, before any entry is processed.
+    /// Lets a feature build a per-read cache (e.g. a device index) that <see cref="ReadFields"/>
+    /// and <see cref="LinkFor"/> then use. Default does nothing.
+    /// </summary>
+    protected virtual void OnBeginRead(SaveGame save)
+    {
+    }
+
+    /// <summary>
+    /// Optional link from one entry to another editable entity (e.g. the container a power socket
+    /// powers): returns its target id and a button label, or (null, null) for no link. Default none.
+    /// </summary>
+    protected virtual (string? TargetId, string? Label) LinkFor(string key, IList<FPropertyTag> props)
+        => (null, null);
 
     public WorldEditResult SetField(SaveGame save, string entryKey, string fieldId, string? value)
     {
