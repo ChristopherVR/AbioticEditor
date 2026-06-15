@@ -212,10 +212,10 @@ jobs:
     # AbioticEditor-app-win-x64-v1.2.0.zip). Computed once here; matrix + needs are both in scope.
     env:
       ASSET_BASENAME: ${{ matrix.artifact }}-v${{ needs.version.outputs.version }}
-    # The Mac Catalyst legs need Xcode 26.5+ (the .NET 10 MacCatalyst SDK requires
-    # it), which hosted runners may not ship yet. Mark only those legs non-fatal so
-    # a Mac toolchain gap never blocks the Windows / Linux / CLI release; the macOS
-    # artifacts simply go missing until a runner with the right Xcode is available.
+    # The Mac Catalyst app legs are DISABLED (commented out of the matrix below) - the .NET 10
+    # MacCatalyst SDK needs Xcode 26.5+ which hosted runners don't reliably ship, so they never
+    # produced an artifact. Re-enable by uncommenting the app-mac matrix entries (and the mac
+    # build steps). continue-on-error is harmless with no app-mac legs (it evaluates to false).
     continue-on-error: ${{ matrix.kind == 'app-mac' }}
     strategy:
       # One failing target should not abandon the others' artifacts.
@@ -243,15 +243,15 @@ jobs:
           - artifact: AbioticEditor-app-win-x64
             kind: app-win
             os: windows-latest
-          # --- App: macOS (Mac Catalyst) ---
-          - artifact: AbioticEditor-app-osx-x64
-            kind: app-mac
-            mac_arch: x64
-            os: macos-latest
-          - artifact: AbioticEditor-app-osx-arm64
-            kind: app-mac
-            mac_arch: arm64
-            os: macos-latest
+          # --- App: macOS (Mac Catalyst) - DISABLED until a runner ships Xcode 26.5+ ---
+          # - artifact: AbioticEditor-app-osx-x64
+          #   kind: app-mac
+          #   mac_arch: x64
+          #   os: macos-latest
+          # - artifact: AbioticEditor-app-osx-arm64
+          #   kind: app-mac
+          #   mac_arch: arm64
+          #   os: macos-latest
     steps:
       - name: Checkout release tag
         uses: actions/checkout@v6
@@ -317,54 +317,17 @@ jobs:
         shell: pwsh
         run: Compress-Archive -Path out/* -DestinationPath "$env:ASSET_BASENAME.zip"
 
-      # --- App: macOS (Mac Catalyst) ----------------------------------------
-      # NOTE: these .app bundles are UNSIGNED and un-notarized. macOS Gatekeeper
-      # will warn ("cannot be opened because the developer cannot be verified");
-      # users must right-click > Open (or clear the quarantine attribute). Add
-      # signing/notarization here once an Apple Developer identity is available.
-      # Best-effort: the .NET 10 MacCatalyst SDK requires Xcode 26.5+, but the
-      # runner often defaults to an older Xcode. Select the newest one installed;
-      # if none is new enough the build still fails, but the leg is non-fatal
-      # (continue-on-error above) so the rest of the release proceeds.
-      - name: Select newest installed Xcode (macOS)
-        if: matrix.kind == 'app-mac'
-        run: |
-          set -euo pipefail
-          echo "Installed Xcodes:"
-          ls -d /Applications/Xcode*.app 2>/dev/null || echo "(none found)"
-          latest="$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -n1 || true)"
-          if [ -n "$latest" ]; then
-            sudo xcode-select -s "$latest/Contents/Developer"
-          fi
-          xcodebuild -version || true
-
-      - name: Install MAUI workload (macOS)
-        if: matrix.kind == 'app-mac'
-        run: dotnet workload install maui
-
-      - name: Build App (Mac Catalyst)
-        if: matrix.kind == 'app-mac'
-        run: >-
-          dotnet build src/AbioticEditor.App
-          -f net10.0-maccatalyst
-          -c Release
-          -p:RuntimeIdentifier=maccatalyst-${{ matrix.mac_arch }}
-          -p:ApplicationVersion=${{ github.run_number }}
-
-      - name: Locate and zip .app bundle (macOS)
-        if: matrix.kind == 'app-mac'
-        run: |
-          set -euo pipefail
-          # Find the produced .app bundle under the Mac Catalyst build output.
-          app_path="$(find src/AbioticEditor.App/bin/Release/net10.0-maccatalyst -maxdepth 3 -type d -name '*.app' | head -n 1)"
-          if [ -z "$app_path" ]; then
-            echo "::error::No .app bundle found under the Mac Catalyst build output."
-            find src/AbioticEditor.App/bin/Release/net10.0-maccatalyst -maxdepth 3 -type d -name '*.app' || true
-            exit 1
-          fi
-          echo "Found app bundle: $app_path"
-          # ditto preserves bundle structure / symlinks better than zip on macOS.
-          ditto -c -k --sequesterRsrc --keepParent "$app_path" "${ASSET_BASENAME}.zip"
+      # --- App: macOS (Mac Catalyst) - DISABLED ------------------------------
+      # The Mac Catalyst app build is commented out: the .NET 10 MacCatalyst SDK
+      # requires Xcode 26.5+ which hosted runners don't reliably ship, so it never
+      # produced an artifact. The steps are preserved in git history; to re-enable,
+      # uncomment the app-mac matrix entries above and restore these steps:
+      #   - Select newest installed Xcode (macOS)
+      #   - Install MAUI workload (macOS)
+      #   - Build App (Mac Catalyst): dotnet build -f net10.0-maccatalyst -c Release
+      #       -p:RuntimeIdentifier=maccatalyst-<arch> -p:ApplicationVersion=<run>
+      #   - Locate the produced .app and zip it with ditto into "${ASSET_BASENAME}.zip"
+      # NOTE: those bundles were UNSIGNED/un-notarized (Gatekeeper warns; right-click > Open).
 
       # --- Upload ------------------------------------------------------------
       - name: Upload artifact
