@@ -1842,6 +1842,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
             if (worldDir is not null)
             {
                 claims = await Task.Run(() => WorldSteamIdPatcher.PatchFolder(worldDir, from, newId));
+                EditorLog.Info("CrossSave",
+                    $"SteamID change {from} -> {newId}: rewrote {claims} bed claim(s) across world saves in "
+                    + $"{Path.GetFileName(worldDir)} (.bak kept per file)");
             }
         }
 

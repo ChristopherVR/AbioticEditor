@@ -4,31 +4,39 @@
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.IniEditorView"
+             x:Name="Root"
              x:DataType="vm:MainViewModel">
 
-    <!-- Ini editor (server Admin.ini / SandboxSettings.ini / client config) -->
+    <!-- Ini editor (server Admin.ini / SandboxSettings.ini / client config).
+         Bindings are anchored to the ContentView root (Source={x:Reference Root})
+         and reach the active file through IniEditor.*, NOT through a nested
+         explicit BindingContext. Switching files reassigns MainViewModel.IniEditor
+         to a brand-new IniEditorViewModel; a nested BindingContext swap does not
+         reliably rebuild the inner BindableLayout here (the same propagation
+         quirk SlotSidebarView works around), which left the editor showing the
+         first-loaded file's sections. Anchoring to the stable root and walking
+         IniEditor.Sections re-resolves every binding on each IniEditor change. -->
     <Border Style="{StaticResource AfPanel}" Padding="24,20"
             controls:Fx.Reveal="True"
             IsVisible="{Binding HasIniEditor}">
-        <VerticalStackLayout Spacing="16" BindingContext="{Binding IniEditor}"
-                             x:DataType="vm:IniEditorViewModel">
+        <VerticalStackLayout Spacing="16">
             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
                 <VerticalStackLayout Grid.Column="0" Spacing="3">
                     <HorizontalStackLayout Spacing="10">
-                        <Label Text="{Binding FileName}" Style="{StaticResource AfH2}" />
+                        <Label Text="{Binding IniEditor.FileName, Source={x:Reference Root}}" Style="{StaticResource AfH2}" />
                         <Border BackgroundColor="{StaticResource AfAmber}"
                                 StrokeThickness="0" StrokeShape="Rectangle"
                                 Padding="6,2" VerticalOptions="Center">
-                            <Label Text="{Binding KindLabel}"
+                            <Label Text="{Binding IniEditor.KindLabel, Source={x:Reference Root}}"
                                    FontFamily="OpenSansSemibold" FontSize="9"
                                    CharacterSpacing="2"
                                    TextColor="{StaticResource AfTextOnAccent}" />
                         </Border>
                     </HorizontalStackLayout>
-                    <Label Text="{Binding FilePath}"
+                    <Label Text="{Binding IniEditor.FilePath, Source={x:Reference Root}}"
                            Style="{StaticResource AfStatusText}" FontSize="10"
                            LineBreakMode="MiddleTruncation" />
-                    <Label Text="{Binding Description}"
+                    <Label Text="{Binding IniEditor.Description, Source={x:Reference Root}}"
                            Style="{StaticResource AfMuted}" />
                 </VerticalStackLayout>
                 <Button Grid.Column="1" Text="REVERT"
@@ -38,15 +46,15 @@
                 <Button Grid.Column="2" Text="SAVE INI"
                         FontSize="11" Padding="16,6"
                         VerticalOptions="Center"
-                        IsEnabled="{Binding IsDirty}"
+                        IsEnabled="{Binding IniEditor.IsDirty, Source={x:Reference Root}}"
                         Clicked="OnIniSaveClicked" />
             </Grid>
-            <Label Text="{Binding StatusMessage}"
+            <Label Text="{Binding IniEditor.StatusMessage, Source={x:Reference Root}}"
                    Style="{StaticResource AfStatusText}"
-                   IsVisible="{Binding StatusMessage, Converter={StaticResource NullToBoolConverter}}" />
+                   IsVisible="{Binding IniEditor.StatusMessage, Source={x:Reference Root}, Converter={StaticResource NullToBoolConverter}}" />
 
             <VerticalStackLayout Spacing="14"
-                                 BindableLayout.ItemsSource="{Binding Sections}">
+                                 BindableLayout.ItemsSource="{Binding IniEditor.Sections, Source={x:Reference Root}}">
                 <BindableLayout.ItemTemplate>
                     <DataTemplate x:DataType="vm:IniSectionViewModel">
                         <Border Style="{StaticResource AfPanel}" Padding="16,12">

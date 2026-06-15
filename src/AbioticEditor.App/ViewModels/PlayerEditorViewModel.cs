@@ -508,6 +508,21 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
 
     public string FilePath => _path;
 
+    /// <summary>Best-effort Steam persona name for this save's account, for logging; null when unknown.</summary>
+    private string? ResolvePersonaName()
+    {
+        try
+        {
+            return Core.Steam.SteamPersonaIndex.LoadMachineAccounts().TryGetValue((ulong)SteamId64, out var name)
+                ? name
+                : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     /// <summary>The sidecar JSON file the export/import workflow uses.</summary>
     public string JsonPath => _path + ".json";
 
@@ -1324,6 +1339,9 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
             Codex.AcceptCurrentAsBaseline();
             (_itemsPickedUpBaseline, _craftedItemsBaseline, _mapsBaseline) =
                 (_itemsPickedUp.Count, _craftedItems.Count, _mapsUnlocked.Count);
+            var persona = ResolvePersonaName();
+            Core.Diagnostics.EditorLog.Info("PlayerSave",
+                $"Saved player {SteamId64}{(persona is null ? string.Empty : $" ({persona})")} - {Path.GetFileName(_path)}");
             SaveStatus = $"Saved at {DateTime.Now:HH:mm:ss}";
         }
         catch (Exception ex)

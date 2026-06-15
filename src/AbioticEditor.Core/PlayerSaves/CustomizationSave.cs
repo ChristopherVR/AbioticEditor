@@ -130,7 +130,10 @@ public sealed class CustomizationSaveFile
     /// </summary>
     public void Save(IReadOnlyDictionary<string, string> newValues)
     {
-        Diagnostics.EditorLog.Info("Customization", $"Writing {FilePath} (+ .bak backup, {newValues.Count} field(s))");
+        // The account (SteamID64) is the name of the folder the customization file lives in.
+        var account = Path.GetFileName(Path.GetDirectoryName(FilePath));
+        Diagnostics.EditorLog.Info("Customization",
+            $"Writing appearance for account {account} - {Path.GetFileName(FilePath)} (+ .bak backup, {newValues.Count} field(s))");
         try
         {
             AbioticSaveClasses.EnsureLoaded();

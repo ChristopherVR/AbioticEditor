@@ -187,6 +187,7 @@ public sealed class IniEditorViewModel : INotifyPropertyChanged
 
             File.Copy(FilePath, FilePath + ".bak", overwrite: true);
             _file.Save(FilePath);
+            EditorLog.Info("Ini", $"Saved {FileName} (backup kept as {FileName}.bak).");
             StatusMessage = $"Saved {FileName} (previous version kept as {FileName}.bak).";
             NotifyDirtyChanged();
         }

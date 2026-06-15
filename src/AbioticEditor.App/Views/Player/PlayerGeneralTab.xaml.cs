@@ -16,7 +16,8 @@ public partial class PlayerGeneralTab : ContentView
         var confirmed = await ViewUtils.ConfirmAsync(this,
             "Change SteamID?",
             $"This renames the save file to Player_{newId}.sav so the game loads it for that account. " +
-            "A .bak copy of the original is kept.\n\nWorld-side data keyed by the old id (claimed beds) is NOT rewritten.",
+            "A .bak copy of the original is kept.\n\nWorld-side bed claims keyed by the old id are rewritten too, " +
+            "so the player keeps their claimed beds (each world save also keeps a .bak).",
             "RENAME", "Cancel");
         if (!confirmed) return;
 

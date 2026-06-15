@@ -120,8 +120,17 @@
                             FontSize="10" Padding="10,4"
                             Command="{Binding PlayerEditor.Appearance.SaveCommand}" />
                 </Grid>
+                <!-- When the file exists: explain what is being edited and where it lives -->
+                <Label Text="{Binding PlayerEditor.Appearance.AvailableCaption}"
+                       Style="{StaticResource AfMuted}" FontSize="10" LineBreakMode="WordWrap"
+                       IsVisible="{Binding PlayerEditor.Appearance.IsAvailable, FallbackValue=False}" />
+                <!-- When the file is missing: explain WHY it is missing and WHAT to do -->
+                <Label Text="{Binding PlayerEditor.Appearance.UnavailableExplanation}"
+                       Style="{StaticResource AfMuted}" FontSize="10" LineBreakMode="WordWrap"
+                       IsVisible="{Binding PlayerEditor.Appearance.IsUnavailable, FallbackValue=True}" />
+                <!-- Transient status (save result / read errors) -->
                 <Label Text="{Binding PlayerEditor.Appearance.Status}"
-                       Style="{StaticResource AfMuted}" FontSize="10" LineBreakMode="WordWrap" />
+                       Style="{StaticResource AfStatusText}" FontSize="9" LineBreakMode="WordWrap" />
                 <Label Text="{Binding PlayerEditor.Appearance.VoiceNote}"
                        Style="{StaticResource AfStatusText}" FontSize="9"
                        IsVisible="{Binding PlayerEditor.Appearance.IsAvailable, FallbackValue=False}" />

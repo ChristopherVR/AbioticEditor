@@ -149,7 +149,31 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
 
     public IReadOnlyList<int> Slots { get; }
     public bool IsAvailable => _file is not null;
+    public bool IsUnavailable => _file is null;
     public bool HasMultipleSlots => Slots.Count > 1;
+
+    /// <summary>Name of the file being edited, e.g. <c>ScientistCustomization_1.sav</c> (empty when none loaded).</summary>
+    public string FileName => _file is not null ? Path.GetFileName(_file.FilePath) : string.Empty;
+
+    /// <summary>
+    /// Caption shown when the appearance file IS available: explains what is being edited
+    /// and where it lives.
+    /// </summary>
+    public string AvailableCaption => _file is null
+        ? string.Empty
+        : $"Appearance is stored in {Path.GetFileName(_file.FilePath)}, a per-character file the game writes under your Steam account. "
+          + "Editing here changes that file directly and keeps a .bak backup. It applies to every world this account plays.";
+
+    /// <summary>
+    /// Friendly explanation shown when the appearance file is NOT available: why it is missing
+    /// and what the user can do about it.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static",
+        Justification = "Bound from XAML; bindings need an instance member.")]
+    public string UnavailableExplanation =>
+        "Appearance editing is unavailable because no ScientistCustomization save was found for this Steam account on this machine. "
+        + "This file is not shipped with the game or the editor: the game writes it the first time you customize your character in-game, "
+        + "and it is per Steam account and per machine. To enable editing, launch Abiotic Factor, customize your character once, then reopen the editor.";
 
     /// <summary>Voice isn't stored anywhere - it follows the chosen head's gender.</summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static",
@@ -248,6 +272,9 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
     private void Notify()
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsAvailable)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsUnavailable)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(FileName)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AvailableCaption)));
         (SaveCommand as RelayCommand)?.RaiseCanExecuteChanged();
     }
 
