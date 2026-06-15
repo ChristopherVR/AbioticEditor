@@ -148,12 +148,32 @@
                                          BindableLayout.ItemsSource="{Binding WorldEditor.SelectedBase.Benches}">
                         <BindableLayout.ItemTemplate>
                             <DataTemplate x:DataType="items:BenchRow">
-                                <VerticalStackLayout Spacing="0">
+                                <VerticalStackLayout Spacing="1" Margin="0,0,0,6">
                                     <Label Text="{Binding Name}"
                                            Style="{StaticResource AfFieldValue}" FontSize="12"
                                            TextColor="{StaticResource AfAccentOrange}" />
                                     <Label Text="{Binding Detail}"
                                            Style="{StaticResource AfStatusText}" FontSize="9" />
+                                    <!-- Installed upgrade modules (BenchUpgrade.* tags); toggle to install/remove. -->
+                                    <Label Text="UPGRADES" Style="{StaticResource AfFieldLabel}" FontSize="9"
+                                           Margin="0,3,0,0"
+                                           IsVisible="{Binding SupportsUpgrades}" />
+                                    <FlexLayout Wrap="Wrap" Direction="Row"
+                                                IsVisible="{Binding SupportsUpgrades}"
+                                                BindableLayout.ItemsSource="{Binding Upgrades}">
+                                        <BindableLayout.ItemTemplate>
+                                            <DataTemplate x:DataType="items:BenchUpgradeEditViewModel">
+                                                <HorizontalStackLayout Spacing="2" Margin="0,0,12,0">
+                                                    <CheckBox IsChecked="{Binding IsInstalled, Mode=TwoWay}"
+                                                              Color="{StaticResource AfAccentOrange}"
+                                                              WidthRequest="30" VerticalOptions="Center" />
+                                                    <Label Text="{Binding DisplayName}"
+                                                           Style="{StaticResource AfStatusText}" FontSize="10"
+                                                           VerticalOptions="Center" />
+                                                </HorizontalStackLayout>
+                                            </DataTemplate>
+                                        </BindableLayout.ItemTemplate>
+                                    </FlexLayout>
                                 </VerticalStackLayout>
                             </DataTemplate>
                         </BindableLayout.ItemTemplate>

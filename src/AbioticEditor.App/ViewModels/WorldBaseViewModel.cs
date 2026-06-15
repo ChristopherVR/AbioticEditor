@@ -1,18 +1,42 @@
+using System.ComponentModel;
 using AbioticEditor.Core.WorldSaves;
+using AbioticEditor.Core.WorldSaves.Features;
 using Microsoft.Maui.Graphics;
+using UeSaveGame;
 
 namespace AbioticEditor.App.ViewModels;
 
 /// <summary>One detected base for the base-manager list.</summary>
 public sealed class WorldBaseViewModel
 {
-    public WorldBaseViewModel(WorldBase source)
+    private readonly SaveGame _raw;
+    private readonly Action _onChanged;
+    private IReadOnlyList<BenchRow>? _benches;
+
+    public WorldBaseViewModel(WorldBase source, SaveGame raw, Action onChanged)
     {
         Source = source;
+        _raw = raw;
+        _onChanged = onChanged;
     }
 
     public WorldBase Source { get; }
     public string Name => Source.Name;
+
+    /// <summary>True when any bench in this base has an upgrade change staged.</summary>
+    public bool IsDirty => Benches.Any(b => b.IsDirty);
+
+    /// <summary>Restores every bench's upgrades to their loaded set.</summary>
+    public void Revert()
+    {
+        foreach (var b in Benches) b.Revert();
+    }
+
+    /// <summary>Adopts the current upgrades as the new baseline (after a successful SAVE).</summary>
+    public void AcceptBaseline()
+    {
+        foreach (var b in Benches) b.AcceptBaseline();
+    }
 
     public string Summary =>
         $"{Source.BenchCount} bench(es) · {Source.Deployables.Count} deployables · "
@@ -34,13 +58,12 @@ public sealed class WorldBaseViewModel
 
     /// <summary>
     /// Every crafting bench in this base, individually: its player-given name (or class),
-    /// position, and whether a teleporter could target it.
+    /// position, and its editable installed upgrades. Built once so toggle/baseline state
+    /// survives repeated reads.
     /// </summary>
-    public IReadOnlyList<BenchRow> Benches => Source.Deployables
+    public IReadOnlyList<BenchRow> Benches => _benches ??= Source.Deployables
         .Where(d => d.IsCraftingBench)
-        .Select(d => new BenchRow(
-            d.DisplayName,
-            $"({d.X:F0}, {d.Y:F0}, {d.Z:F0}) · id {d.Id[..Math.Min(8, d.Id.Length)]}…"))
+        .Select(d => new BenchRow(d, _raw, _onChanged))
         .ToList();
 
     public bool HasBenches => Benches.Count > 0;
@@ -60,8 +83,110 @@ public sealed class WorldBaseViewModel
         .ToList();
 }
 
-/// <summary>One crafting bench row in the base detail.</summary>
-public sealed record BenchRow(string Name, string Detail);
+/// <summary>
+/// One crafting bench in the base detail: its name, world position, and the upgrade modules
+/// installed on it (editable). The upgrades are the <c>BenchUpgrade.*</c> gameplay tags stored
+/// on the bench deployable; see <see cref="BenchUpgradeCatalog"/>.
+/// </summary>
+public sealed class BenchRow
+{
+    public BenchRow(WorldDeployable bench, SaveGame raw, Action onChanged)
+    {
+        Name = bench.DisplayName;
+        Detail = $"({bench.X:F0}, {bench.Y:F0}, {bench.Z:F0}) · id {bench.Id[..Math.Min(8, bench.Id.Length)]}…";
+
+        var props = WorldMapAccessor.FindEntry(raw, "DeployedObjectMap", bench.Id);
+        SupportsUpgrades = props is not null && BenchUpgradeCatalog.SupportsUpgrades(props);
+        if (SupportsUpgrades && props is not null)
+        {
+            var installed = new HashSet<string>(
+                BenchUpgradeCatalog.ReadInstalledRows(props), StringComparer.OrdinalIgnoreCase);
+            Upgrades = BenchUpgradeCatalog.All
+                .Select(u => new BenchUpgradeEditViewModel(props, u, installed.Contains(u.Row), onChanged))
+                .ToList();
+        }
+        else
+        {
+            Upgrades = Array.Empty<BenchUpgradeEditViewModel>();
+        }
+    }
+
+    public string Name { get; }
+
+    public string Detail { get; }
+
+    /// <summary>True when this bench can carry upgrade modules (most crafting/cooking/ammo benches).</summary>
+    public bool SupportsUpgrades { get; }
+
+    public IReadOnlyList<BenchUpgradeEditViewModel> Upgrades { get; }
+
+    public bool IsDirty => Upgrades.Any(u => u.IsDirty);
+
+    public void Revert()
+    {
+        foreach (var u in Upgrades) u.Revert();
+    }
+
+    public void AcceptBaseline()
+    {
+        foreach (var u in Upgrades) u.AcceptBaseline();
+    }
+}
+
+/// <summary>
+/// One toggleable bench upgrade module. Toggling patches the bench's gameplay-tag list in the
+/// raw save tree immediately (so SAVE persists it) and is reversible via <see cref="Revert"/>.
+/// </summary>
+public sealed class BenchUpgradeEditViewModel : INotifyPropertyChanged
+{
+    private readonly IList<FPropertyTag> _props;
+    private readonly string _row;
+    private readonly Action _onChanged;
+    private bool _baseline;
+    private bool _value;
+
+    public BenchUpgradeEditViewModel(IList<FPropertyTag> props, BenchUpgrade upgrade, bool installed, Action onChanged)
+    {
+        _props = props;
+        _row = upgrade.Row;
+        DisplayName = upgrade.DisplayName;
+        _baseline = installed;
+        _value = installed;
+        _onChanged = onChanged;
+    }
+
+    public string DisplayName { get; }
+
+    public bool IsInstalled
+    {
+        get => _value;
+        set
+        {
+            if (_value == value)
+            {
+                return;
+            }
+            BenchUpgradeCatalog.SetInstalled(_props, _row, value);
+            _value = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsInstalled)));
+            _onChanged();
+        }
+    }
+
+    public bool IsDirty => _value != _baseline;
+
+    public void Revert()
+    {
+        if (IsDirty)
+        {
+            IsInstalled = _baseline;
+        }
+    }
+
+    public void AcceptBaseline() => _baseline = _value;
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+}
 
 /// <summary>
 /// Top-down scatter map of every deployable in the world. Crafting benches draw

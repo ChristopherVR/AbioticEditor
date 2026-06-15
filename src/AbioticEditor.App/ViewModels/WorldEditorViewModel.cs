@@ -906,7 +906,8 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     private WorldBaseViewModel? _selectedBase;
 
     public IReadOnlyList<WorldBaseViewModel> Bases
-        => _bases ??= BaseDetector.Detect(_data.Deployables).Select(b => new WorldBaseViewModel(b)).ToList();
+        => _bases ??= BaseDetector.Detect(_data.Deployables)
+            .Select(b => new WorldBaseViewModel(b, _data.Raw, Refresh)).ToList();
 
     /// <summary>This world's deployables (teleporter-sync bench lookup).</summary>
     internal IReadOnlyList<WorldDeployable> Deployables => _data.Deployables;
@@ -2074,8 +2075,13 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         || ArePetsDirty()
         || AreVehiclesDirty()
         || AreFeatureMapsDirty()
+        || AreBasesDirty()
         || IsMetaDirty()
         || AreExtrasDirty();
+
+    // Bench-upgrade edits are staged on the (lazily built) base view-models; null until the
+    // BASES tab is opened, in which case nothing can be dirty yet.
+    private bool AreBasesDirty() => _bases?.Any(b => b.IsDirty) ?? false;
 
     private void ApplyFilter()
     {
@@ -2216,6 +2222,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
             }
             foreach (var p in _pets) p.AcceptBaseline();
             foreach (var v in _vehicles) v.AcceptBaseline();
+            if (_bases is not null) foreach (var b in _bases) b.AcceptBaseline();
             // Feature-map edits patch the raw tree directly, so WriteToFile already persisted
             // them; just adopt the new clean baseline for dirty tracking.
             foreach (var t in _featureTabs) t.AcceptBaseline();
@@ -2272,6 +2279,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         foreach (var p in _pets) p.Revert();
         foreach (var v in _vehicles) v.Revert();
         foreach (var t in _featureTabs) t.Revert();
+        if (_bases is not null) foreach (var b in _bases) b.Revert();
         SaveStatus = null;
     }
 
