@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here.
 
+## [1.3.0] - 2026-06-15
+
+### Bug Fixes
+- INI file switching, appearance guidance, and richer edit logging
+
+### Features
+- Editable crafting-bench upgrades in the Bases tab- Editable trams, per-feature area + remove labels, vehicle/pet fixes, drop NPCs tab- Safer, exportable, richer save comparison; clearer doors; settings language row- Shared area-name catalog, soft-path setter, bench-upgrade tags
+
+### Miscellaneous Tasks
+- Point bucket at v1.2.1 [skip ci]
+
 ## [1.2.1] - 2026-06-15
 
 ### CI
