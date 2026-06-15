@@ -54,6 +54,9 @@ public sealed class TeleporterPadFeature : IWorldMapFeature
     public bool SupportsRemoval => false;
 
     /// <inheritdoc/>
+    public string RemoveActionLabel => "Remove this Entry";
+
+    /// <inheritdoc/>
     public WorldEditResult Remove(SaveGame save, string entryKey)
         => WorldEditResult.Failure("Teleporter pads can't be removed here (pick them up in-game).");
 

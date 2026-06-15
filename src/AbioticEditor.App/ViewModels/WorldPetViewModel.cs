@@ -60,6 +60,18 @@ public sealed class WorldPetViewModel : INotifyPropertyChanged
     private int _xp;
     private string? _npcClass;
     private bool _isDeleted;
+    private string? _worldSaveFileName;
+
+    // The limb keys the creature actually uses, captured once from the loaded save. A limb is
+    // "used" if it had health when loaded; HEAL / DOWN / REVIVE operate over exactly this set so
+    // the transitions stay reversible (DOWN sets every used limb to 0, but a later HEAL still
+    // knows which limbs to raise even though they all read 0 now).
+    private readonly IReadOnlyList<string> _usedLimbKeys;
+
+    // The pet's strongest limb when loaded, used as the "full" target for HEAL / REVIVE. The save
+    // never stores the blueprint maximum, so this loaded peak is our best proxy. Captured once so
+    // it survives a DOWN (which would otherwise zero out every limb and lose the reference value).
+    private readonly double _fullLimbValue;
 
     public WorldPetViewModel(WorldPet source, Action onChanged, IReadOnlyList<PetVariant> variants)
     {
@@ -70,6 +82,14 @@ public sealed class WorldPetViewModel : INotifyPropertyChanged
         _xp = source.Xp;
         _npcClass = source.NpcClass;
         Limbs = source.LimbHealth.Select(kv => new PetLimbViewModel(kv.Key, kv.Value, OnLimbChanged)).ToList();
+
+        // Capture the used-limb set and the "full" value from the loaded state, before any edit.
+        // Fall back to every limb (and a sensible default) when the pet loaded fully downed so the
+        // buttons still have something to act on.
+        var used = PetHealth.TrackedLimbs(source);
+        _usedLimbKeys = used.Count > 0 ? used : source.LimbHealth.Keys.ToList();
+        var loadedMax = PetHealth.MaxLimb(source);
+        _fullLimbValue = loadedMax > 0 ? loadedMax : 100.0;
 
         // The picker lists every editable variant; ensure the pet's own current class is
         // present (even an unknown / summon one) so the selection round-trips.
@@ -275,22 +295,101 @@ public sealed class WorldPetViewModel : INotifyPropertyChanged
 
     public double TotalHealth => Limbs.Sum(l => l.Value);
 
+    // ----- location -----
+    //
+    // A pet only carries world coordinates, not an area/level id, so the best area indication is
+    // the world (region) save it lives in. The save's file name is not known to this VM at
+    // construction; the host (WorldEditorViewModel) can set WorldSaveFileName after building the
+    // pet list so AreaName can resolve via WorldAreaCatalog.FriendlyNameFromSaveFile. Until then,
+    // the raw coordinates are always shown.
+
+    public double X => _original.X;
+    public double Y => _original.Y;
+    public double Z => _original.Z;
+
+    /// <summary>
+    /// The world-save file name (or full path) this pet lives in, e.g.
+    /// <c>WorldSave_Facility_Office1.sav</c>. Optional: set by the host so <see cref="AreaName"/>
+    /// can name the region. Pets carry only coordinates, not an area id, so this is the only way
+    /// to surface a friendly area.
+    /// </summary>
+    public string? WorldSaveFileName
+    {
+        get => _worldSaveFileName;
+        set
+        {
+            if (_worldSaveFileName == value) return;
+            _worldSaveFileName = value;
+            Notify(nameof(WorldSaveFileName), nameof(AreaName), nameof(HasAreaName), nameof(LocationText));
+        }
+    }
+
+    /// <summary>Friendly region/area name derived from <see cref="WorldSaveFileName"/>, or null.</summary>
+    public string? AreaName => WorldAreaCatalog.FriendlyNameFromSaveFile(_worldSaveFileName);
+
+    public bool HasAreaName => !string.IsNullOrEmpty(AreaName);
+
+    /// <summary>Read-only location line: the friendly area (when known) and the raw coordinates.</summary>
+    public string LocationText
+    {
+        get
+        {
+            var coords = $"X {_original.X:0}, Y {_original.Y:0}, Z {_original.Z:0}";
+            var area = AreaName;
+            return string.IsNullOrEmpty(area) ? coords : $"{area}  ({coords})";
+        }
+    }
+
+    // HEAL / DOWN / REVIVE all act over the captured used-limb set (_usedLimbKeys), never over the
+    // currently-tracked (non-zero) limbs, so a DOWN that zeroes every limb does not strand HEAL /
+    // REVIVE with nothing to raise. Each helper sets limb values directly on the VMs and then
+    // refreshes the derived status, so the sliders, totals and status label all update at once.
+
     private void Heal()
     {
-        var healed = PetHealth.HealedLimbs(ToCurrent());
-        ApplyLimbValues(healed);
+        SetUsedLimbs(_fullLimbValue);
+        IsDead = false;
+        AfterStateChange();
     }
 
     private void Down()
     {
-        foreach (var l in Limbs) l.Value = 0;
+        // Down = alive but every used limb at 0 (the game's "critically wounded" state).
+        SetUsedLimbs(0);
+        IsDead = false;
+        AfterStateChange();
     }
 
     private void Revive()
     {
+        // Bring a dead / downed pet back as Hurt: clear the death flag and restore used limbs to a
+        // fraction of full (mirrors the wiki's companion-revive behaviour; at least 1 HP each).
+        var target = _fullLimbValue > 0 ? Math.Max(1, _fullLimbValue * 0.25) : 1;
+        SetUsedLimbs(target);
         IsDead = false;
-        var revived = PetHealth.RevivedLimbs(ToCurrent());
-        ApplyLimbValues(revived);
+        AfterStateChange();
+    }
+
+    /// <summary>Sets every used limb (see <see cref="_usedLimbKeys"/>) to <paramref name="value"/>.</summary>
+    private void SetUsedLimbs(double value)
+    {
+        var keys = new HashSet<string>(_usedLimbKeys, StringComparer.Ordinal);
+        foreach (var l in Limbs)
+        {
+            if (keys.Contains(l.Key)) l.Value = value;
+        }
+    }
+
+    /// <summary>
+    /// Forces the derived status / totals to refresh after a bulk limb change. The per-limb
+    /// <see cref="PetLimbViewModel.Value"/> setter already raises its own change and calls
+    /// <see cref="OnLimbChanged"/>, but a no-op set (e.g. a limb already at the target) raises
+    /// nothing, so re-notify here to keep the status label honest after every button press.
+    /// </summary>
+    private void AfterStateChange()
+    {
+        Notify(nameof(StatusText), nameof(TotalHealth), nameof(IsDirty));
+        _onChanged();
     }
 
     private void ApplyLimbValues(IReadOnlyDictionary<string, double> values)

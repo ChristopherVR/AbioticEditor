@@ -139,7 +139,10 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         // built once (merged from paks when present, curated otherwise) and shared by every
         // pet's upgrade picker.
         var petVariants = PetCatalog.BuildVariants(Services.GameDataServices.Provider);
-        _pets = data.Pets.Select(p => new WorldPetViewModel(p, Refresh, petVariants)).ToList();
+        _pets = new ObservableCollection<WorldPetViewModel>(
+            data.Pets.Select(p => new WorldPetViewModel(p, Refresh, petVariants)));
+        // Pets store only coordinates, so the world-save file is their best area indicator.
+        foreach (var pet in _pets) pet.WorldSaveFileName = _path;
 
         // Vehicles (region saves). On-board storage is editable via the CONTAINERS tab
         // (vehicle inventories load as Vehicle-source containers); OpenVehicleInventory jumps there.
@@ -154,7 +157,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         // elevators, buttons, portals, trams, ...). Each applicable map becomes its own
         // Fish-style master-detail tab, discovered generically from this save's tree.
         _featureTabs = WorldMapFeatures.ApplicableTo(data.Raw)
-            .Select(f => new WorldFeatureTabViewModel(f, data.Raw, Refresh, SelectFeatureTab))
+            .Select(f => new WorldFeatureTabViewModel(f, data.Raw, Refresh, SelectFeatureTab, _path))
             .ToList();
 
         if (IsMetadataSave)
@@ -654,11 +657,16 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
 
     public IReadOnlyList<WorldNpcViewModel> Npcs { get; }
     public bool HasNpcs => Npcs.Count > 0;
+
+    /// <summary>True when this save carries quest-progression flags (only the main Facility save does).</summary>
+    public bool HasQuestFlags => Flags.Count > 0;
     private bool AreNpcsDirty() => Npcs.Any(n => n.IsDirty);
 
     // ---------- Pets (PetNPC) ----------
 
-    private List<WorldPetViewModel> _pets = new();
+    // ObservableCollection (not a plain List) so the pets CollectionView refreshes when a pet
+    // is removed by a cross-save transfer or a staged deletion is committed.
+    private ObservableCollection<WorldPetViewModel> _pets = new();
     private WorldPetViewModel? _selectedPet;
 
     public IReadOnlyList<WorldPetViewModel> Pets => _pets;
@@ -722,6 +730,8 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
             PetMoveStatus = "Save or revert your other world changes first.";
             return;
         }
+        var petLabel = string.IsNullOrWhiteSpace(pet.DisplayName) ? pet.Id : pet.DisplayName;
+        PetMoveStatus = $"Sending {petLabel} to {target.Name}...";
         try
         {
             var player = Core.PlayerSaves.PlayerSaveReader.ReadFromFile(target.Path);
@@ -739,15 +749,21 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
             });
             if (!result.Ok) { PetMoveStatus = result.Message; return; }
 
+            // Cross-save edit: the pet left this world and joined the player save. Log both ends.
+            Core.Diagnostics.EditorLog.Info("CrossSave",
+                $"Pet '{petLabel}' moved from {System.IO.Path.GetFileName(_path)} to player {target.Name} "
+                + $"({System.IO.Path.GetFileName(target.Path)}) as {(SendToCompanion ? "companion" : "hotbar")} item");
+
+            // Removing from the ObservableCollection refreshes the list immediately.
             _pets.Remove(pet);
             if (ReferenceEquals(_selectedPet, pet)) SelectedPet = null;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Pets)));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasPets)));
-            PetMoveStatus = $"{result.Message} -> {target.Name}";
+            PetMoveStatus = $"Sent {petLabel} to {target.Name}. It now lives in that player's save.";
             Refresh();
         }
         catch (Exception ex)
         {
+            Core.Diagnostics.EditorLog.Error("CrossSave", $"Pet move failed for '{petLabel}'", ex);
             PetMoveStatus = $"Move failed: {ex.Message}";
         }
     }
@@ -1813,11 +1829,15 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         if (!IsMetadataSave)
         {
             Add("CONTAINERS", ShowContainersCommand, () => IsContainersTab);
-            Add("QUEST FLAGS", ShowFlagsCommand, () => IsFlagsTab);
+            // Quest flags live only in the main Facility save; every other region save carries
+            // none, so the tab is auto-hidden when this save has no flags rather than showing an
+            // empty editor. (Story-NPC revival etc. is handled through quest flags here.)
+            if (HasQuestFlags) Add("QUEST FLAGS", ShowFlagsCommand, () => IsFlagsTab);
             Add("DOORS", ShowDoorsCommand, () => IsDoorsTab);
         }
         if (HasDroppedItems) Add("DROPPED", ShowDroppedCommand, () => IsDroppedTab);
-        if (HasNpcs) Add("NPCS", ShowNpcsCommand, () => IsNpcsTab);
+        // The NPCS tab was removed: it was an unclear, primitive list. Tamed-pet edits live in the
+        // PETS tab, and story-NPC state is driven by quest flags.
         if (HasPets) Add("PETS", ShowPetsCommand, () => IsPetsTab);
         if (HasVehicles) Add("VEHICLES", ShowVehiclesCommand, () => IsVehiclesTab);
         if (HasBases) Add("BASES", ShowBasesCommand, () => IsBasesTab);
@@ -2190,7 +2210,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
             if (petDeletions.Count > 0)
             {
                 if (_selectedPet is not null && _selectedPet.IsDeleted) SelectedPet = null;
-                _pets.RemoveAll(p => p.IsDeleted);
+                foreach (var dead in _pets.Where(p => p.IsDeleted).ToList()) _pets.Remove(dead);
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Pets)));
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasPets)));
             }

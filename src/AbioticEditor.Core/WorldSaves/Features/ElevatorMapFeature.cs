@@ -27,6 +27,13 @@ public sealed class ElevatorMapFeature : WorldMapFeatureBase
     public override string Description =>
         "Set whether each fixed elevator is parked at its top stop (call it up or down).";
 
+    /// <summary>
+    /// Elevators are fixed level actors: deleting one's persisted state would strip a working
+    /// elevator from the world rather than do anything useful, so the per-entry remove action is
+    /// disabled.
+    /// </summary>
+    public override bool SupportsRemoval => false;
+
     /// <summary>Elevator actor keys carry no friendly name, so number them for the list.</summary>
     protected override string LabelFor(int ordinal, string key, IList<FPropertyTag> props)
         => $"Elevator {ordinal}";

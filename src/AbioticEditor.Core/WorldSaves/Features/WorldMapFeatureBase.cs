@@ -48,6 +48,9 @@ public abstract class WorldMapFeatureBase : IWorldMapFeature
     public virtual bool SupportsRemoval => true;
 
     /// <inheritdoc/>
+    public virtual string RemoveActionLabel => "Remove this Entry";
+
+    /// <inheritdoc/>
     public virtual WorldEditResult Remove(SaveGame save, string entryKey)
     {
         ArgumentNullException.ThrowIfNull(save);

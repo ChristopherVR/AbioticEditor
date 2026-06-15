@@ -44,6 +44,9 @@ public interface IWorldMapFeature
     /// </summary>
     WorldEditResult SetField(SaveGame save, string entryKey, string fieldId, string? value);
 
+    /// <summary>Label for the remove/reset button (e.g. "Remove this Entry", or "Disconnect" for sockets).</summary>
+    string RemoveActionLabel { get; }
+
     /// <summary>
     /// True when an entry can be removed from this map. Removal drops the actor's persisted
     /// state so the game re-creates it at its blueprint default on next load. Off for maps where

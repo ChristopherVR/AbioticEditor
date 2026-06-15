@@ -100,15 +100,17 @@
 
                                 <!-- State: drivable (unlock) + wrecked -->
                                 <Label Text="STATE" Style="{StaticResource AfFieldLabel}" TextColor="{DynamicResource AfTerminalGreen}" />
-                                <HorizontalStackLayout Spacing="20">
-                                    <HorizontalStackLayout Spacing="6">
+                                <HorizontalStackLayout Spacing="28">
+                                    <HorizontalStackLayout Spacing="2">
                                         <CheckBox IsChecked="{Binding WorldEditor.SelectedVehicle.Driveable, Mode=TwoWay}"
-                                                  Color="{StaticResource AfTerminalGreen}" />
+                                                  Color="{StaticResource AfTerminalGreen}"
+                                                  WidthRequest="30" VerticalOptions="Center" />
                                         <Label Text="DRIVABLE (UNLOCKED)" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                                     </HorizontalStackLayout>
-                                    <HorizontalStackLayout Spacing="6">
+                                    <HorizontalStackLayout Spacing="2">
                                         <CheckBox IsChecked="{Binding WorldEditor.SelectedVehicle.Destroyed, Mode=TwoWay}"
-                                                  Color="{StaticResource AfAlertRed}" />
+                                                  Color="{StaticResource AfAlertRed}"
+                                                  WidthRequest="30" VerticalOptions="Center" />
                                         <Label Text="WRECKED" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                                     </HorizontalStackLayout>
                                 </HorizontalStackLayout>
@@ -117,6 +119,12 @@
 
                                 <!-- Location + move + reset -->
                                 <Label Text="LOCATION" Style="{StaticResource AfFieldLabel}" TextColor="{DynamicResource AfHazardYellow}" />
+                                <HorizontalStackLayout Spacing="8"
+                                                       IsVisible="{Binding WorldEditor.SelectedVehicle.HasArea, FallbackValue=False}">
+                                    <Label Text="AREA" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                    <Label Text="{Binding WorldEditor.SelectedVehicle.AreaName}"
+                                           Style="{StaticResource AfReadout}" FontSize="12" VerticalOptions="Center" />
+                                </HorizontalStackLayout>
                                 <Grid ColumnDefinitions="Auto,*,Auto,*,Auto,*" ColumnSpacing="8">
                                     <Label Grid.Column="0" Text="X" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                                     <Entry Grid.Column="1" Text="{Binding WorldEditor.SelectedVehicle.X, Mode=TwoWay}"
@@ -144,6 +152,12 @@
                                                  IsVisible="{Binding WorldEditor.SelectedVehicle.IsDisplayOnly, FallbackValue=False}">
                                 <BoxView Style="{StaticResource AfDivider}" />
                                 <Label Text="LOCATION" Style="{StaticResource AfFieldLabel}" TextColor="{DynamicResource AfHazardYellow}" />
+                                <HorizontalStackLayout Spacing="8"
+                                                       IsVisible="{Binding WorldEditor.SelectedVehicle.HasArea, FallbackValue=False}">
+                                    <Label Text="AREA" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                    <Label Text="{Binding WorldEditor.SelectedVehicle.AreaName}"
+                                           Style="{StaticResource AfReadout}" FontSize="12" VerticalOptions="Center" />
+                                </HorizontalStackLayout>
                                 <Label Text="{Binding WorldEditor.SelectedVehicle.LocationText}"
                                        Style="{StaticResource AfReadout}" FontSize="13" />
                             </VerticalStackLayout>

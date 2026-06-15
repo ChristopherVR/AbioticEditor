@@ -67,7 +67,8 @@ public sealed class ButtonMapFeature : WorldMapFeatureBase
             WorldMapField.Bool("activated", "Activated", activated,
                 hint: "true = the button is in an activated/latched state."),
             WorldMapField.Bool("noReset", "No reset", noReset,
-                hint: "true = the button will not be reset on the next cycle."),
+                hint: "true = the button keeps its current state and is skipped by the next "
+                    + "reset cycle (it won't return to its default)."),
         };
     }
 

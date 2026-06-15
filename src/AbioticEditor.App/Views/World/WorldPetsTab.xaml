@@ -77,6 +77,14 @@
                             <Label Text="{Binding WorldEditor.SelectedPet.FriendlyClass}"
                                    Style="{StaticResource AfStatusText}" />
 
+                            <!-- Location: pets store only world coordinates, so we show those plus the
+                                 region name when the host has supplied the world-save file name. -->
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="LOCATION" Style="{StaticResource AfFieldLabel}" />
+                                <Label Text="{Binding WorldEditor.SelectedPet.LocationText}"
+                                       Style="{StaticResource AfMuted}" FontSize="11" />
+                            </VerticalStackLayout>
+
                             <!-- Appearance: the in-game bestiary portrait for this creature -->
                             <Border BackgroundColor="#000000" StrokeThickness="0" StrokeShape="RoundRectangle 4"
                                     HeightRequest="170" Padding="10" HorizontalOptions="Fill"
@@ -147,16 +155,16 @@
                                                  IsVisible="{Binding WorldEditor.SelectedPet.IsEditable, FallbackValue=False}">
                                 <Label Text="HEALTH" Style="{StaticResource AfFieldLabel}"
                                        TextColor="{DynamicResource AfTerminalGreen}" />
-                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                                    <HorizontalStackLayout Grid.Column="0" Spacing="6" VerticalOptions="Center">
-                                        <CheckBox IsChecked="{Binding WorldEditor.SelectedPet.IsDead, Mode=TwoWay}"
-                                                  Color="{StaticResource AfAlertRed}" />
-                                        <Label Text="DEAD" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
-                                    </HorizontalStackLayout>
-                                    <Label Grid.Column="1" Text="{Binding WorldEditor.SelectedPet.StatusText}"
+                                <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="14">
+                                    <CheckBox Grid.Column="0"
+                                              IsChecked="{Binding WorldEditor.SelectedPet.IsDead, Mode=TwoWay}"
+                                              Color="{StaticResource AfAlertRed}" VerticalOptions="Center" />
+                                    <Label Grid.Column="1" Text="DEAD" Style="{StaticResource AfFieldLabel}"
+                                           VerticalOptions="Center" />
+                                    <Label Grid.Column="2" Text="{Binding WorldEditor.SelectedPet.StatusText}"
                                            Style="{StaticResource AfFieldValue}" FontSize="12" VerticalOptions="Center"
-                                           HorizontalOptions="Center" />
-                                    <Label Grid.Column="2"
+                                           HorizontalOptions="Start" />
+                                    <Label Grid.Column="3"
                                            Text="{Binding WorldEditor.SelectedPet.TotalHealth, StringFormat='Total {0:0}'}"
                                            Style="{StaticResource AfMuted}" FontSize="11" VerticalOptions="Center" />
                                 </Grid>

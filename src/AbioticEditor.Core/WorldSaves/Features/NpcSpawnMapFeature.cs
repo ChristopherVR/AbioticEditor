@@ -53,6 +53,13 @@ public sealed class NpcSpawnMapFeature : WorldMapFeatureBase
     public override string Description =>
         "Reset spawner cooldowns / spawn counts for NPC spawner actors in the region.";
 
+    /// <summary>
+    /// NPC spawners are fixed level actors: deleting one's persisted state would strip the
+    /// spawner from the world rather than do anything useful, so the per-entry remove action is
+    /// disabled. Edit the cooldown/spawn fields instead.
+    /// </summary>
+    public override bool SupportsRemoval => false;
+
     /// <inheritdoc/>
     protected override IReadOnlyList<WorldMapField> ReadFields(IList<FPropertyTag> props)
     {

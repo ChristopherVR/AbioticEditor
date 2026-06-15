@@ -77,9 +77,9 @@ public sealed class FeatureMapExtrasTests
     // ---------- wiki image catalog ----------
 
     [Fact]
-    public void Image_catalog_only_maps_structures_the_wiki_actually_pictures()
+    public void Image_catalog_maps_features_with_representative_images()
     {
-        // The Teleporter Pad and the Tram are the fixed structures the wiki actually pictures.
+        // The Teleporter Pad and the Tram are pictured directly on the wiki.
         var pads = FeatureWikiImageCatalog.CandidatesFor("teleporter-pads");
         Assert.Single(pads);
         Assert.Equal("Itemicon_craftedteleporter_lodestone.png", pads[0]);
@@ -88,11 +88,13 @@ public sealed class FeatureMapExtrasTests
         Assert.Single(trams);
         Assert.Equal("Vehicle_-_Tram.png", trams[0]);
 
+        // Power sockets and elevators now show a representative image as well.
+        Assert.NotEmpty(FeatureWikiImageCatalog.CandidatesFor("power-sockets"));
+        Assert.NotEmpty(FeatureWikiImageCatalog.CandidatesFor("elevators"));
+
         // The wiki does not picture these structures, so they map to nothing and the tab shows
         // no image at all for them.
         Assert.Empty(FeatureWikiImageCatalog.CandidatesFor("portals"));
-        Assert.Empty(FeatureWikiImageCatalog.CandidatesFor("power-sockets"));
-        Assert.Empty(FeatureWikiImageCatalog.CandidatesFor("elevators"));
         Assert.Empty(FeatureWikiImageCatalog.CandidatesFor("buttons"));
         Assert.Empty(FeatureWikiImageCatalog.CandidatesFor("triggers"));
     }
@@ -102,10 +104,15 @@ public sealed class FeatureMapExtrasTests
     [Fact]
     public void Removable_flag_matches_expectation_per_feature()
     {
-        // Simple level-actor maps are removable; shared/metadata maps are not.
+        // Sockets and buttons remain removable (removal resets the actor to its default).
         Assert.True(WorldMapFeatures.Find("power-sockets")!.SupportsRemoval);
-        Assert.True(WorldMapFeatures.Find("elevators")!.SupportsRemoval);
         Assert.True(WorldMapFeatures.Find("buttons")!.SupportsRemoval);
+        // Trams, elevators and NPC spawns opt out of removal: deleting them is confusing or unsafe,
+        // so their "Remove this Entry" button is hidden.
+        Assert.False(WorldMapFeatures.Find("trams")!.SupportsRemoval);
+        Assert.False(WorldMapFeatures.Find("elevators")!.SupportsRemoval);
+        Assert.False(WorldMapFeatures.Find("npc-spawns")!.SupportsRemoval);
+        // Shared/metadata maps are never removable.
         Assert.False(WorldMapFeatures.Find("teleporter-pads")!.SupportsRemoval);
         Assert.False(WorldMapFeatures.Find("server-entitlements")!.SupportsRemoval);
     }

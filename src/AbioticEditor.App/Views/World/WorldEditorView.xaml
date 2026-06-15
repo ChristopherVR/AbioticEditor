@@ -99,9 +99,6 @@
             <controls:LazyView IsActive="{Binding WorldEditor.IsDroppedTab}">
                 <controls:LazyView.ContentTemplate><DataTemplate><world:WorldDroppedTab /></DataTemplate></controls:LazyView.ContentTemplate>
             </controls:LazyView>
-            <controls:LazyView IsActive="{Binding WorldEditor.IsNpcsTab}">
-                <controls:LazyView.ContentTemplate><DataTemplate><world:WorldNpcsTab /></DataTemplate></controls:LazyView.ContentTemplate>
-            </controls:LazyView>
             <controls:LazyView IsActive="{Binding WorldEditor.IsPetsTab}">
                 <controls:LazyView.ContentTemplate><DataTemplate><world:WorldPetsTab /></DataTemplate></controls:LazyView.ContentTemplate>
             </controls:LazyView>

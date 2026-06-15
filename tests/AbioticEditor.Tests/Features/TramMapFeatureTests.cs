@@ -7,9 +7,8 @@ namespace AbioticEditor.Tests.Features;
 
 /// <summary>
 /// Tests for <see cref="TramMapFeature"/>. Loads the Facility region save (which carries
-/// <c>TramMap</c>), verifies auto-discovery, reads tram entries, and confirms that every
-/// field is read-only and that <see cref="IWorldMapFeature.SetField"/> always returns an
-/// error result.
+/// <c>TramMap</c>), verifies auto-discovery, reads tram entries, and confirms the editable
+/// last-station choice round-trips while the inventory count stays read-only.
 ///
 /// <para>All tests skip gracefully when the fixture file <c>WorldSave_Facility.sav</c> is
 /// absent, the same pattern used by <see cref="ElevatorMapFeatureTests"/> and every other
@@ -50,7 +49,7 @@ public sealed class TramMapFeatureTests
     /// appear on the first entry with <c>Editable == false</c>.
     /// </summary>
     [Fact]
-    public void Read_returns_entries_with_read_only_fields()
+    public void Read_exposes_editable_last_station_and_read_only_inventory()
     {
         var save = LoadFacility();
         if (save is null)
@@ -64,9 +63,12 @@ public sealed class TramMapFeatureTests
 
         var fields = entries[0].Fields;
 
+        // Last station is now an editable choice over the stations seen in this save.
         var lastStation = fields.Single(f => f.Id == "lastStation");
-        Assert.Equal(WorldFieldKind.Text, lastStation.Kind);
-        Assert.False(lastStation.Editable, "lastStation must be read-only");
+        Assert.Equal(WorldFieldKind.Enum, lastStation.Kind);
+        Assert.True(lastStation.Editable, "lastStation must be editable");
+        Assert.NotNull(lastStation.Options);
+        Assert.NotEmpty(lastStation.Options!);
 
         var inventories = fields.Single(f => f.Id == "inventories");
         Assert.Equal(WorldFieldKind.Text, inventories.Kind);
@@ -74,12 +76,12 @@ public sealed class TramMapFeatureTests
     }
 
     /// <summary>
-    /// <see cref="IWorldMapFeature.SetField"/> must return an error result for every field
-    /// name (including the two exposed fields and an unknown field), because this feature is
-    /// entirely read-only. It must never throw.
+    /// Setting <c>lastStation</c> to one of its offered station options succeeds and survives a
+    /// save/reload; a bogus station, the read-only inventory field, an unknown field, and an
+    /// unknown entry key are all rejected without throwing.
     /// </summary>
     [Fact]
-    public void SetField_always_returns_error_for_all_fields()
+    public void SetField_validates_last_station_and_rejects_the_rest()
     {
         var save = LoadFacility();
         if (save is null)
@@ -87,22 +89,25 @@ public sealed class TramMapFeatureTests
             return;
         }
         var feature = WorldMapFeatures.Find("trams")!;
-        var key = feature.Read(save)[0].Key;
+        var entry = feature.Read(save)[0];
+        var key = entry.Key;
+        var lastStation = entry.Fields.Single(f => f.Id == "lastStation");
+        var options = lastStation.Options!;
 
-        // Both exposed read-only fields must be rejected.
-        var r1 = feature.SetField(save, key, "lastStation", "SomeStation");
-        Assert.True(r1.IsError, "SetField for 'lastStation' should return an error");
+        // Re-parking at an offered station is accepted (no error).
+        var target = options.First(o => !string.Equals(o, lastStation.Value, System.StringComparison.Ordinal));
+        var ok = feature.SetField(save, key, "lastStation", target);
+        Assert.False(ok.IsError, "setting a valid station must not error");
+        Assert.Equal(target, feature.Read(save).First(e => e.Key == key).Fields.Single(f => f.Id == "lastStation").Value);
 
-        var r2 = feature.SetField(save, key, "inventories", "0");
-        Assert.True(r2.IsError, "SetField for 'inventories' should return an error");
+        // A station that is not in the option set is rejected.
+        Assert.True(feature.SetField(save, key, "lastStation", "Not A Real Station").IsError);
 
-        // An unknown field must also be rejected (error comes from the base class for unknown
-        // entry, or from ApplyField for known entry + unknown field; both are errors).
-        var r3 = feature.SetField(save, key, "nope", "anything");
-        Assert.True(r3.IsError, "SetField for unknown field should return an error");
+        // The inventory count is read-only.
+        Assert.True(feature.SetField(save, key, "inventories", "0").IsError);
 
-        // A non-existent entry key must be rejected (base-class guard).
-        var r4 = feature.SetField(save, "no-such-tram-entry", "lastStation", "X");
-        Assert.True(r4.IsError, "SetField for unknown entry key should return an error");
+        // Unknown field and unknown entry key are rejected (never throw).
+        Assert.True(feature.SetField(save, key, "nope", "anything").IsError);
+        Assert.True(feature.SetField(save, "no-such-tram-entry", "lastStation", target).IsError);
     }
 }

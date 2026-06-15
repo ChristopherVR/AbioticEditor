@@ -33,7 +33,11 @@ public sealed class ResourceNodeMapFeature : WorldMapFeatureBase
 
     /// <inheritdoc/>
     public override string Description =>
-        "View and edit resource node harvest state; set a node back to un-harvested to let it be gathered again.";
+        "Resource nodes are the harvestable spots placed around the world (ore veins, mineable "
+        + "rocks, gatherable plants, and similar). The game tracks whether each has been "
+        + "harvested and on which in-game day, so it can regrow and be gathered again after a "
+        + "delay. Here you can set a node back to un-harvested (so it's available now) or adjust "
+        + "the harvest day.";
 
     /// <inheritdoc/>
     protected override IReadOnlyList<WorldMapField> ReadFields(IList<FPropertyTag> props)
@@ -49,7 +53,8 @@ public sealed class ResourceNodeMapFeature : WorldMapFeatureBase
                 "position",
                 "Position",
                 FormattableString.Invariant($"{x:0.###}, {y:0.###}, {z:0.###}"),
-                hint: "World position (x, y, z), read-only"));
+                hint: "Where this node sits in the world (x, y, z). Read-only - moving a node "
+                    + "would not relocate the harvestable in-game."));
         }
 
         // Editable: has the node been harvested?
@@ -58,7 +63,9 @@ public sealed class ResourceNodeMapFeature : WorldMapFeatureBase
             "harvested",
             "Harvested",
             harvested,
-            hint: "true = node depleted/already harvested; false = node available to gather"));
+            hint: "Whether this node has already been gathered. true = depleted (waiting to "
+                + "regrow); false = available to harvest right now. Set to false to make it "
+                + "gatherable again immediately."));
 
         // Editable: which in-game day it was picked up.
         var dayPickedUp = (int)props.GetLong(DayPickedUpPrefix, defaultValue: 0);
@@ -66,7 +73,8 @@ public sealed class ResourceNodeMapFeature : WorldMapFeatureBase
             "dayPickedUp",
             "Day Picked Up",
             dayPickedUp,
-            hint: "In-game day the node was harvested (0 when not yet picked up)"));
+            hint: "The in-game day this node was last harvested; the game measures regrowth from "
+                + "this day. 0 means it has not been picked up yet."));
 
         return fields;
     }

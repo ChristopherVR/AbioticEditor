@@ -79,6 +79,14 @@
                             <VerticalStackLayout Spacing="12" BindingContext="{Binding SelectedEntry}"
                                                  x:DataType="vm:WorldFeatureEntryViewModel">
                             <Label Text="{Binding Label}" Style="{StaticResource AfH2}" FontSize="16" />
+                            <!-- Area / world this entry lives in (hidden when it can't be inferred) -->
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10"
+                                  IsVisible="{Binding HasArea}">
+                                <Label Grid.Column="0" Text="AREA" Style="{StaticResource AfFieldLabel}"
+                                       FontSize="9" VerticalOptions="Center" />
+                                <Label Grid.Column="1" Text="{Binding Area}" Style="{StaticResource AfFieldValue}"
+                                       FontSize="12" VerticalOptions="Center" LineBreakMode="TailTruncation" />
+                            </Grid>
                             <Label Text="{Binding Key}" Style="{StaticResource AfStatusText}" FontSize="9"
                                    LineBreakMode="MiddleTruncation" />
 
@@ -150,7 +158,7 @@
                                  removal is unsafe, and while a removal is already staged. -->
                             <VerticalStackLayout Spacing="6" IsVisible="{Binding SupportsRemoval}">
                                 <BoxView Style="{StaticResource AfDivider}" />
-                                <Button Text="REMOVE THIS ENTRY" FontSize="10" Padding="12,5" HorizontalOptions="Start"
+                                <Button Text="{Binding RemoveActionText}" FontSize="10" Padding="12,5" HorizontalOptions="Start"
                                         BackgroundColor="{StaticResource AfAlertRed}"
                                         TextColor="{StaticResource AfTextOnAccent}"
                                         IsVisible="{Binding IsNotDeleted}"

@@ -49,6 +49,15 @@ public sealed class WorldVehicleViewModel : INotifyPropertyChanged
     public string Region => _original.Region;
 
     /// <summary>
+    /// Friendly in-game area name for this vehicle's region (e.g. "Manufacturing West"),
+    /// or empty when the region token is unknown. Used for a read-only AREA line by the LOCATION editor.
+    /// </summary>
+    public string AreaName => WorldAreaCatalog.FriendlyName(_original.Region) ?? string.Empty;
+
+    /// <summary>True when <see cref="AreaName"/> is non-empty, gating the AREA readout's visibility.</summary>
+    public bool HasArea => AreaName.Length > 0;
+
+    /// <summary>
     /// False for decorative / scripted vehicles (the SnowGlobe Sleigh, Tram, Minecart): they
     /// are listed and shown, but the detail offers no drivable / wrecked / move controls.
     /// </summary>

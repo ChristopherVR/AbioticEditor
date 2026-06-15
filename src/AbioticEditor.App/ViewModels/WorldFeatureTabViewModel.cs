@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using AbioticEditor.Core.Assets;
+using AbioticEditor.Core.WorldSaves;
 using AbioticEditor.Core.WorldSaves.Features;
 using UeSaveGame;
 
@@ -22,6 +23,7 @@ public sealed class WorldFeatureTabViewModel : INotifyPropertyChanged
     private readonly IWorldMapFeature _feature;
     private readonly SaveGame _raw;
     private readonly Action _onChanged;
+    private readonly string? _saveFileName;
     private WorldFeatureEntryViewModel? _selectedEntry;
     private bool _isActive;
     private string? _wikiImagePath;
@@ -29,15 +31,23 @@ public sealed class WorldFeatureTabViewModel : INotifyPropertyChanged
     private bool _wikiImageRequested;
 
     public WorldFeatureTabViewModel(
-        IWorldMapFeature feature, SaveGame raw, Action onChanged, Action<WorldFeatureTabViewModel> onSelect)
+        IWorldMapFeature feature, SaveGame raw, Action onChanged, Action<WorldFeatureTabViewModel> onSelect,
+        string? saveFileName = null)
     {
         _feature = feature;
         _raw = raw;
         _onChanged = onChanged;
+        _saveFileName = saveFileName;
         Entries = new ObservableCollection<WorldFeatureEntryViewModel>(
             feature.Read(raw).Select(e => new WorldFeatureEntryViewModel(this, e)));
         SelectCommand = new RelayCommand(() => onSelect(this));
     }
+
+    /// <summary>
+    /// The world-save file this tab's entries came from, used to infer an entry's area when its
+    /// key carries no level token (e.g. a GUID-keyed entry). Null when the host didn't supply it.
+    /// </summary>
+    internal string? SaveFileName => _saveFileName;
 
     /// <summary>Stable lowercase token (also the CLI subcommand), e.g. <c>power-sockets</c>.</summary>
     public string Id => _feature.Id;
@@ -60,6 +70,12 @@ public sealed class WorldFeatureTabViewModel : INotifyPropertyChanged
 
     /// <summary>True when this feature's entries can be removed (drives the REMOVE button).</summary>
     public bool SupportsRemoval => _feature.SupportsRemoval;
+
+    /// <summary>
+    /// Upper-cased label for the remove/reset button (e.g. <c>REMOVE THIS ENTRY</c>, or
+    /// <c>DISCONNECT</c> for power sockets), from the feature's <see cref="IWorldMapFeature.RemoveActionLabel"/>.
+    /// </summary>
+    public string RemoveActionText => _feature.RemoveActionLabel.ToUpperInvariant();
 
     /// <summary>True when this is the visible world tab (drives the button highlight).</summary>
     public bool IsActive
@@ -215,10 +231,23 @@ public sealed class WorldFeatureEntryViewModel : INotifyPropertyChanged
 
     public string Label { get; }
 
+    /// <summary>
+    /// Friendly area/world this entry lives in (e.g. "Manufacturing West"), inferred from the
+    /// entry key's level token, falling back to the tab's world-save file name. Empty when neither
+    /// yields a recognisable area.
+    /// </summary>
+    public string Area => WorldAreaCatalog.FriendlyNameFor(Key, _tab.SaveFileName) ?? string.Empty;
+
+    /// <summary>True when an <see cref="Area"/> could be inferred (drives the AREA row's visibility).</summary>
+    public bool HasArea => Area.Length > 0;
+
     public ObservableCollection<WorldFeatureFieldViewModel> Fields { get; }
 
     /// <summary>True when this feature's entries can be removed (drives the REMOVE button).</summary>
     public bool SupportsRemoval => _tab.SupportsRemoval;
+
+    /// <summary>Upper-cased remove-button label for this feature (e.g. <c>DISCONNECT</c>).</summary>
+    public string RemoveActionText => _tab.RemoveActionText;
 
     /// <summary>Staged for removal on the next SAVE (kept in the list, shown struck-through).</summary>
     public bool IsDeleted

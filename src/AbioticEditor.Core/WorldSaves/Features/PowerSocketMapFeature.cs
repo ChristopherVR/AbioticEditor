@@ -48,7 +48,14 @@ public sealed class PowerSocketMapFeature : WorldMapFeatureBase
 
     /// <inheritdoc/>
     public override string Description =>
-        "View power-socket state and arm or disarm the timer for each socket. Remove a socket to reset it.";
+        "View power-socket state and arm or disarm the timer for each socket. Disconnect a socket to reset it.";
+
+    /// <summary>
+    /// The remove action on a socket resets/disconnects it (drops its persisted state so the
+    /// game re-creates the socket at its blueprint default), so the button reads "Disconnect"
+    /// rather than the generic "Remove this Entry".
+    /// </summary>
+    public override string RemoveActionLabel => "Disconnect";
 
     /// <summary>Socket keys are raw GUIDs, so number them and note what's plugged in.</summary>
     protected override string LabelFor(int ordinal, string key, IList<FPropertyTag> props)
@@ -85,12 +92,21 @@ public sealed class PowerSocketMapFeature : WorldMapFeatureBase
         {
             WorldMapField.ReadOnly("socketId", "Socket ID", socketId,
                 hint: "The socket's own persistent GUID string (matches the map entry key)."),
+            // pluggedInDevice is the asset id of the device currently drawing power from this
+            // socket. Resolving that id to a friendly device name would require navigating the
+            // device container that owns the id - cross-container/cross-save navigation that does
+            // not exist in this editor and is out of scope here. So we surface the raw id with a
+            // clear label/hint rather than a guessed name.
             WorldMapField.ReadOnly("pluggedInDevice", "Plugged-in device", pluggedInDevice,
-                hint: "Asset ID of the device currently plugged into this socket; \"-1\" means nothing is plugged in."),
+                hint: "Asset id of the device currently drawing power from this socket. "
+                    + "\"-1\" or empty means nothing is plugged in."),
             WorldMapField.Bool("hasTimer", "Timer armed", hasTimer,
-                hint: "true = a timer is armed on this socket; false = no timer active."),
+                hint: "Whether this socket's power timer is armed. Set to true to arm the timer, "
+                    + "false to disarm it (no timer active)."),
             WorldMapField.ReadOnly("timerMode", "Timer mode", timerMode,
-                hint: "E_PowerTimerModes enumerator value. Read-only: only NewEnumerator0 observed in saves; full enum set unknown."),
+                hint: "E_PowerTimerModes enumerator value. Read-only: only NewEnumerator0 has ever "
+                    + "been observed, so the full set of valid modes is unknown - changing it "
+                    + "blindly could corrupt the socket's behaviour."),
             WorldMapField.ReadOnly("extraDevices", "Extra powered devices",
                 extraDeviceCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 hint: "Number of additional device asset IDs in the ExtraPoweredDeviceAssetIDs array."),
