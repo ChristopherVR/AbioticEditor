@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here.
 
+## [1.5.0] - 2026-06-15
+
+### Bug Fixes
+- Robust cross-world power-socket device resolution + diagnostics
+
+### Features
+- Friendly resource-node names, search filter, location per row
+
+### Miscellaneous Tasks
+- Point bucket at v1.4.0 [skip ci]
+
 ## [1.4.0] - 2026-06-15
 
 ### Bug Fixes
