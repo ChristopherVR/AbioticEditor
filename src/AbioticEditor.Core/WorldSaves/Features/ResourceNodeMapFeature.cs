@@ -39,6 +39,10 @@ public sealed class ResourceNodeMapFeature : WorldMapFeatureBase
         + "delay. Here you can set a node back to un-harvested (so it's available now) or adjust "
         + "the harvest day.";
 
+    /// <summary>Names each node by its harvestable type (e.g. "Leyak Essence") rather than a raw GUID/actor name.</summary>
+    protected override string LabelFor(int ordinal, string key, IList<FPropertyTag> props)
+        => ResourceNodeNaming.FriendlyType(key);
+
     /// <inheritdoc/>
     protected override IReadOnlyList<WorldMapField> ReadFields(IList<FPropertyTag> props)
     {

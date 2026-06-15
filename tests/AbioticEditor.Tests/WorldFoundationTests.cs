@@ -161,6 +161,14 @@ public sealed class WorldFoundationTests
         Assert.Equal("Battery", PowerSocketDeviceResolver.FriendlyName("Deployed_Battery_T2_C"));
     }
 
+    [Theory]
+    [InlineData("/Game/Maps/Facility.Facility:PersistentLevel.Resource_Micronode_LeyakEssence_C_2147263889", "Leyak Essence")]
+    [InlineData("/Game/Maps/Facility_Office2.Facility_Office2:PersistentLevel.ResourceNode_WoodCrate_Office_C_2", "Wood Crate Office")]
+    [InlineData("/Game/Maps/X.X:PersistentLevel.Resource_MicroNode_FireExtinguisher_C_4", "Fire Extinguisher")]
+    [InlineData("/Game/Maps/X.X:PersistentLevel.ResourceNode_GlassPane_C_37", "Glass Pane")]
+    public void ResourceNodeNaming_makes_friendly_type_names(string key, string expected)
+        => Assert.Equal(expected, ResourceNodeNaming.FriendlyType(key));
+
     [Fact]
     public void BenchUpgradeCatalog_has_known_rows()
     {

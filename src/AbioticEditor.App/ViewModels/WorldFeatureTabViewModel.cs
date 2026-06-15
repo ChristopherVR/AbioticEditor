@@ -48,7 +48,59 @@ public sealed class WorldFeatureTabViewModel : INotifyPropertyChanged
         _resolveDevices = resolveDevices;
         Entries = new ObservableCollection<WorldFeatureEntryViewModel>(
             feature.Read(raw).Select(e => new WorldFeatureEntryViewModel(this, e)));
+        VisibleEntries = new ObservableCollection<WorldFeatureEntryViewModel>();
+        // Keep the visible (filtered/sorted) list in sync when entries are dropped on SAVE.
+        Entries.CollectionChanged += (_, _) => RebuildVisibleEntries();
+        RebuildVisibleEntries();
         SelectCommand = new RelayCommand(() => onSelect(this));
+    }
+
+    /// <summary>The entries shown in the list: <see cref="Entries"/> filtered by <see cref="FilterText"/>
+    /// (and, for resource nodes, sorted by area then type so locations and types cluster).</summary>
+    public ObservableCollection<WorldFeatureEntryViewModel> VisibleEntries { get; }
+
+    private string _filterText = string.Empty;
+
+    /// <summary>Free-text filter over the entry list (matches the label, area, and field summary).</summary>
+    public string FilterText
+    {
+        get => _filterText;
+        set
+        {
+            if (Set(ref _filterText, value ?? string.Empty))
+            {
+                RebuildVisibleEntries();
+            }
+        }
+    }
+
+    /// <summary>True when many entries make the search box worthwhile.</summary>
+    public bool ShowFilter => Entries.Count > 8;
+
+    private void RebuildVisibleEntries()
+    {
+        var filter = _filterText.Trim();
+        IEnumerable<WorldFeatureEntryViewModel> q = Entries;
+        if (filter.Length > 0)
+        {
+            q = q.Where(e =>
+                e.Label.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                || e.Area.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                || (e.Summary?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+        // Resource nodes are numerous and span sectors, so cluster them by area then type; other
+        // features keep their natural (ordinal) order.
+        if (string.Equals(_feature.Id, "resource-nodes", StringComparison.OrdinalIgnoreCase))
+        {
+            q = q.OrderBy(e => e.Area, StringComparer.OrdinalIgnoreCase)
+                 .ThenBy(e => e.Label, StringComparer.OrdinalIgnoreCase);
+        }
+
+        VisibleEntries.Clear();
+        foreach (var e in q)
+        {
+            VisibleEntries.Add(e);
+        }
     }
 
     // The id of the field whose cross-world link is resolved into a friendly description. Only the
