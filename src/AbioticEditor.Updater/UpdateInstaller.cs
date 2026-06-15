@@ -245,11 +245,17 @@ public sealed class UpdateInstaller
 
     private static string CurrentExecutablePath()
     {
-        // The host .exe (not the dotnet muxer); falls back to the managed entry assembly.
+        // The host .exe (not the dotnet muxer). Environment.ProcessPath is the OS process image
+        // path and is correct for framework-dependent, self-contained, and single-file publishes
+        // alike. Assembly.Location is empty in a single-file app (IL3000), so fall back to the
+        // app base directory + entry-assembly name instead.
         var processPath = Environment.ProcessPath;
-        return string.IsNullOrEmpty(processPath)
-            ? System.Reflection.Assembly.GetEntryAssembly()?.Location ?? string.Empty
-            : processPath;
+        if (!string.IsNullOrEmpty(processPath))
+        {
+            return processPath;
+        }
+        var entryName = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name;
+        return entryName is null ? string.Empty : Path.Combine(AppContext.BaseDirectory, entryName + ".exe");
     }
 }
 

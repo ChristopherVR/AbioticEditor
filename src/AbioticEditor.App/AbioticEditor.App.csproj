@@ -89,8 +89,14 @@
 
 		<!-- Bundled usmap fallback: copied next to the exe so asset extraction works
 		     out of the box. A user-supplied %LOCALAPPDATA%\AbioticEditor\mappings\
-		     Mappings.usmap takes precedence (see GameAssetProvider.FindConventionalMappings). -->
-		<None Include="..\..\assets\Mappings.usmap" Link="Mappings.usmap" CopyToOutputDirectory="PreserveNewest" />
+		     Mappings.usmap takes precedence (see GameAssetProvider.FindConventionalMappings).
+		     ExcludeFromSingleFile keeps it a loose sidecar next to the single-file exe (a usmap
+		     is game data the user may swap after a game patch, so it must stay replaceable);
+		     CopyToPublishDirectory ensures the single-file publish still emits it. -->
+		<None Include="..\..\assets\Mappings.usmap" Link="Mappings.usmap"
+		      CopyToOutputDirectory="PreserveNewest"
+		      CopyToPublishDirectory="PreserveNewest"
+		      ExcludeFromSingleFile="true" />
 	</ItemGroup>
 
 	<ItemGroup>

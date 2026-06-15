@@ -19,7 +19,7 @@
   "autoupdate": {
     "architecture": {
       "64bit": {
-        "url": "https://github.com/ChristopherVR/AbioticEditor/releases/download/v$version/AbioticEditor-app-win-x64.zip"
+        "url": "https://github.com/ChristopherVR/AbioticEditor/releases/download/v$version/AbioticEditor-app-win-x64-v$version.zip"
       }
     }
   }

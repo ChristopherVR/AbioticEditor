@@ -208,6 +208,10 @@ jobs:
     needs: version
     if: needs.version.outputs.released == 'true'
     runs-on: ${{ matrix.os }}
+    # Every artifact zip carries the release version in its name (e.g.
+    # AbioticEditor-app-win-x64-v1.2.0.zip). Computed once here; matrix + needs are both in scope.
+    env:
+      ASSET_BASENAME: ${{ matrix.artifact }}-v${{ needs.version.outputs.version }}
     # The Mac Catalyst legs need Xcode 26.5+ (the .NET 10 MacCatalyst SDK requires
     # it), which hosted runners may not ship yet. Mark only those legs non-fatal so
     # a Mac toolchain gap never blocks the Windows / Linux / CLI release; the macOS
@@ -280,27 +284,38 @@ jobs:
         if: matrix.kind == 'cli'
         run: |
           cd out
-          zip -r "../${{ matrix.artifact }}.zip" .
+          zip -r "../${ASSET_BASENAME}.zip" .
 
       # --- App: Windows ------------------------------------------------------
       - name: Install MAUI workload (Windows)
         if: matrix.kind == 'app-win'
         run: dotnet workload install maui
 
-      - name: Publish App (Windows, unpackaged)
+      # Self-contained single-file: one AbioticEditor.App.exe with the .NET runtime + all managed
+      # deps bundled (no install, no loose DLLs), plus the Mappings.usmap data sidecar. UseMonoRuntime
+      # =false selects CoreCLR (MAUI otherwise pulls a Mono runtime pack that isn't published for this
+      # SDK band); EnableCompressionInSingleFile shrinks the exe (~419 MB -> ~166 MB); DebugType
+      # =embedded keeps symbols inside the exe instead of a sidecar .pdb.
+      - name: Publish App (Windows, self-contained single file)
         if: matrix.kind == 'app-win'
         run: >-
           dotnet publish src/AbioticEditor.App
           -f net10.0-windows10.0.19041.0
           -c Release
+          -r win-x64
+          --self-contained true
           -p:WindowsPackageType=None
+          -p:UseMonoRuntime=false
+          -p:PublishSingleFile=true
+          -p:EnableCompressionInSingleFile=true
+          -p:DebugType=embedded
           -p:ApplicationVersion=${{ github.run_number }}
           -o out
 
       - name: Zip App (Windows)
         if: matrix.kind == 'app-win'
         shell: pwsh
-        run: Compress-Archive -Path out/* -DestinationPath "${{ matrix.artifact }}.zip"
+        run: Compress-Archive -Path out/* -DestinationPath "$env:ASSET_BASENAME.zip"
 
       # --- App: macOS (Mac Catalyst) ----------------------------------------
       # NOTE: these .app bundles are UNSIGNED and un-notarized. macOS Gatekeeper
@@ -349,14 +364,14 @@ jobs:
           fi
           echo "Found app bundle: $app_path"
           # ditto preserves bundle structure / symlinks better than zip on macOS.
-          ditto -c -k --sequesterRsrc --keepParent "$app_path" "${{ matrix.artifact }}.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$app_path" "${ASSET_BASENAME}.zip"
 
       # --- Upload ------------------------------------------------------------
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
-          path: ${{ matrix.artifact }}.zip
+          path: ${{ env.ASSET_BASENAME }}.zip
           if-no-files-found: error
 
   publish:
@@ -402,14 +417,11 @@ jobs:
           # the release over them - attach whatever built (Windows, Linux, CLI, and
           # the macOS apps when they do build).
           fail_on_unmatched_files: false
+          # Zip names now carry the version (AbioticEditor-<kind>-<rid>-v<version>.zip); attach
+          # whatever built via a glob. The macOS app zips can be absent when the Mac Catalyst legs
+          # fail on a runner without Xcode 26.5+ (those legs are continue-on-error).
           files: |
-            dist/AbioticEditor-cli-win-x64.zip
-            dist/AbioticEditor-cli-linux-x64.zip
-            dist/AbioticEditor-cli-osx-x64.zip
-            dist/AbioticEditor-cli-osx-arm64.zip
-            dist/AbioticEditor-app-win-x64.zip
-            dist/AbioticEditor-app-osx-x64.zip
-            dist/AbioticEditor-app-osx-arm64.zip
+            dist/*.zip
             dist/SHA256SUMS.txt
 
       # Point the Scoop bucket at this release: rewrite version + url + hash in the
@@ -425,18 +437,18 @@ jobs:
           VERSION: ${{ needs.version.outputs.version }}
         run: |
           set -euo pipefail
-          app_hash="$(sha256sum dist/AbioticEditor-app-win-x64.zip | cut -d' ' -f1)"
-          cli_hash="$(sha256sum dist/AbioticEditor-cli-win-x64.zip | cut -d' ' -f1)"
+          app_zip="AbioticEditor-app-win-x64-v${VERSION}.zip"
+          cli_zip="AbioticEditor-cli-win-x64-v${VERSION}.zip"
+          app_hash="$(sha256sum "dist/${app_zip}" | cut -d' ' -f1)"
+          cli_hash="$(sha256sum "dist/${cli_zip}" | cut -d' ' -f1)"
           base="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${VERSION}"
 
-          jq --arg v "$VERSION" --arg h "$app_hash" \
-             --arg u "${base}/AbioticEditor-app-win-x64.zip" \
+          jq --arg v "$VERSION" --arg h "$app_hash" --arg u "${base}/${app_zip}" \
              '.version=$v | .architecture["64bit"].url=$u | .architecture["64bit"].hash=$h' \
              bucket/abiotic-editor.json > bucket/abiotic-editor.json.tmp
           mv bucket/abiotic-editor.json.tmp bucket/abiotic-editor.json
 
-          jq --arg v "$VERSION" --arg h "$cli_hash" \
-             --arg u "${base}/AbioticEditor-cli-win-x64.zip" \
+          jq --arg v "$VERSION" --arg h "$cli_hash" --arg u "${base}/${cli_zip}" \
              '.version=$v | .architecture["64bit"].url=$u | .architecture["64bit"].hash=$h' \
              bucket/abiotic-editor-cli.json > bucket/abiotic-editor-cli.json.tmp
           mv bucket/abiotic-editor-cli.json.tmp bucket/abiotic-editor-cli.json

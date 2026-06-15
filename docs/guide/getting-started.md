@@ -17,13 +17,15 @@ until you press **SAVE**, and every write keeps a `.bak` backup.
 Grab the latest build for your platform from the
 [**Releases page**](https://github.com/ChristopherVR/AbioticEditor/releases/latest):
 
+Each zip's name carries the release version (e.g. `AbioticEditor-app-win-x64-v1.2.0.zip`).
+
 | Download | What it is |
 |---|---|
-| `AbioticEditor-app-win-x64.zip` | Desktop app (Windows) |
-| `AbioticEditor-app-osx-x64.zip` / `-osx-arm64.zip` | Desktop app (macOS, unsigned) |
-| `AbioticEditor-cli-win-x64.zip` | Command-line tool (Windows) |
-| `AbioticEditor-cli-linux-x64.zip` | Command-line tool (Linux) |
-| `AbioticEditor-cli-osx-x64.zip` / `-osx-arm64.zip` | Command-line tool (macOS) |
+| `AbioticEditor-app-win-x64-v<version>.zip` | Desktop app (Windows) - a single self-contained `.exe` (no .NET install needed) plus a `Mappings.usmap` data file |
+| `AbioticEditor-app-osx-x64-v<version>.zip` / `-osx-arm64-…` | Desktop app (macOS, unsigned) |
+| `AbioticEditor-cli-win-x64-v<version>.zip` | Command-line tool (Windows) |
+| `AbioticEditor-cli-linux-x64-v<version>.zip` | Command-line tool (Linux) |
+| `AbioticEditor-cli-osx-x64-v<version>.zip` / `-osx-arm64-…` | Command-line tool (macOS) |
 
 Unzip and run. The app and CLI both self-update from GitHub Releases: the app from its
 **Settings ▸ Updates** card, the CLI via `abioticeditor update`. Each release also ships a
