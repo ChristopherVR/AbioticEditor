@@ -82,8 +82,9 @@
                                            TextColor="{StaticResource AfHazardYellow}" />
                                 </Border>
 
-                                <HorizontalStackLayout Grid.Row="0" Grid.Column="2" Spacing="6" VerticalOptions="Center">
-                                    <Label Text="NO RESET" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                <HorizontalStackLayout Grid.Row="0" Grid.Column="2" Spacing="6" VerticalOptions="Center"
+                                                       ToolTipProperties.Text="When on, the game keeps this door in the state you set and will not restore it to its default (usually locked) state when the area reloads. Leave off for normal doors.">
+                                    <Label Text="KEEP STATE (no auto-reset)" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                                     <CheckBox IsChecked="{Binding NoReset, Mode=TwoWay}"
                                               Color="{StaticResource AfHazardYellow}" />
                                 </HorizontalStackLayout>

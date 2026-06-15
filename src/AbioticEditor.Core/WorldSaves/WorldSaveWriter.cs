@@ -324,12 +324,18 @@ public static class WorldSaveWriter
     /// of the same class already exists it is preferred as the clone template (so the limb set
     /// matches). <paramref name="totalHealth"/> (e.g. a carried pet's durability) is distributed
     /// across the template's limbs to keep the total HP; null fills every limb. Returns the new
-    /// GUID, or null when the map has no entry to clone. Mirrors <see cref="AddDroppedItem"/>.
+    /// GUID, or null when the world has no creature at all to use as a template. Mirrors
+    /// <see cref="AddDroppedItem"/>.
+    ///
+    /// <para>When the world has no pets yet, the entry is cloned from a story NPC instead: the
+    /// <c>PetNPC</c> and <c>NarrativeNPCMap</c> maps share the same NPC-state struct, so a pet can
+    /// be placed into a world that has never had one, as long as it contains some creature.</para>
     /// </summary>
     public static string? AddPet(WorldSaveData data, WorldPet pet, double? totalHealth = null)
     {
-        if (data.Raw.Properties?.FindByPrefix("PetNPC")?.Property is not MapProperty mp
-            || mp.Value is null || mp.Value.Count == 0)
+        // The PetNPC map node must exist to add into (it can be empty - we will clone a template
+        // from the NPC map in that case).
+        if (data.Raw.Properties?.FindByPrefix("PetNPC")?.Property is not MapProperty mp || mp.Value is null)
         {
             return null;
         }
@@ -341,19 +347,12 @@ public static class WorldSaveWriter
             buffer.Position = 0;
             clone = SaveGame.LoadFrom(buffer);
         }
-        if (clone.Properties?.FindByPrefix("PetNPC")?.Property is not MapProperty cloneMap
-            || cloneMap.Value is null || cloneMap.Value.Count == 0)
-        {
-            return null;
-        }
 
-        // Prefer a template of the same class (matching limb structure), else the first entry.
-        var wantShort = PetCatalog.ShortOf(pet.NpcClass);
-        var template = cloneMap.Value.FirstOrDefault(kv =>
-            kv.Value is StructProperty s && s.Value is PropertiesStruct p
-            && string.Equals(PetCatalog.ShortOf(p.Properties.FindByPrefix("NPCClass_")?.Property?.Value?.ToString()),
-                wantShort, StringComparison.OrdinalIgnoreCase));
-        if (template.Key is null) template = cloneMap.Value[0];
+        var template = FindCreatureTemplate(clone, pet.NpcClass);
+        if (template.Key is null)
+        {
+            return null; // no pet and no NPC anywhere to base the entry on
+        }
 
         var key = template.Key;
         var value = template.Value;
@@ -382,6 +381,38 @@ public static class WorldSaveWriter
 
         mp.Value.Add(new KeyValuePair<FProperty, FProperty>(key, value));
         return newId;
+    }
+
+    /// <summary>
+    /// Finds a creature entry to clone a new pet from, preferring (1) a pet of the same class, then
+    /// (2) any pet, then (3) any story NPC (NarrativeNPCMap shares the NPC-state struct). Returns a
+    /// default pair when the world contains no creature at all.
+    /// </summary>
+    private static KeyValuePair<FProperty, FProperty> FindCreatureTemplate(SaveGame clone, string? npcClass)
+    {
+        var wantShort = PetCatalog.ShortOf(npcClass);
+
+        static bool Matches(KeyValuePair<FProperty, FProperty> kv, string? want)
+            => kv.Value is StructProperty s && s.Value is PropertiesStruct p
+               && string.Equals(PetCatalog.ShortOf(p.Properties.FindByPrefix("NPCClass_")?.Property?.Value?.ToString()),
+                   want, StringComparison.OrdinalIgnoreCase);
+
+        var pets = (clone.Properties?.FindByPrefix("PetNPC")?.Property as MapProperty)?.Value;
+        if (pets is { Count: > 0 })
+        {
+            var sameClass = pets.FirstOrDefault(kv => Matches(kv, wantShort));
+            return sameClass.Key is not null ? sameClass : pets[0];
+        }
+
+        // No pets in this world: clone the shared NPC-state struct from a story NPC instead.
+        var npcs = (clone.Properties?.FindByPrefix("NarrativeNPCMap")?.Property as MapProperty)?.Value;
+        if (npcs is { Count: > 0 })
+        {
+            var sameClass = npcs.FirstOrDefault(kv => Matches(kv, wantShort));
+            return sameClass.Key is not null ? sameClass : npcs[0];
+        }
+
+        return default;
     }
 
     /// <summary>

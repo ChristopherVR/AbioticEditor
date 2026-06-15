@@ -88,12 +88,12 @@ public sealed class FeatureMapExtrasTests
         Assert.Single(trams);
         Assert.Equal("Vehicle_-_Tram.png", trams[0]);
 
-        // Power sockets and elevators now show a representative image as well.
+        // Power sockets now show a representative image as well.
         Assert.NotEmpty(FeatureWikiImageCatalog.CandidatesFor("power-sockets"));
-        Assert.NotEmpty(FeatureWikiImageCatalog.CandidatesFor("elevators"));
 
-        // The wiki does not picture these structures, so they map to nothing and the tab shows
-        // no image at all for them.
+        // The wiki does not picture these structures (or the only icons misrepresent them), so
+        // they map to nothing and the tab shows no image at all for them.
+        Assert.Empty(FeatureWikiImageCatalog.CandidatesFor("elevators"));
         Assert.Empty(FeatureWikiImageCatalog.CandidatesFor("portals"));
         Assert.Empty(FeatureWikiImageCatalog.CandidatesFor("buttons"));
         Assert.Empty(FeatureWikiImageCatalog.CandidatesFor("triggers"));

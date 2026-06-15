@@ -162,7 +162,10 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         // World-state feature maps (power sockets, resource nodes, NPC spawns, triggers,
         // elevators, buttons, portals, trams, ...). Each applicable map becomes its own
         // Fish-style master-detail tab, discovered generically from this save's tree.
+        // "vehicles" has a dedicated full-featured Vehicles tab, so exclude it from the generic
+        // feature-tab discovery to avoid showing two Vehicles tabs.
         _featureTabs = WorldMapFeatures.ApplicableTo(data.Raw)
+            .Where(f => !string.Equals(f.Id, "vehicles", StringComparison.OrdinalIgnoreCase))
             .Select(f => new WorldFeatureTabViewModel(f, data.Raw, Refresh, SelectFeatureTab, _path, OpenPoweredDevice))
             .ToList();
 

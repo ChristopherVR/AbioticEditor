@@ -79,7 +79,12 @@ public static class PetTransfer
 
         // Carry the item's durability across as the world pet's total limb health (1:1 best-effort).
         var newId = WorldSaveWriter.AddPet(world, worldPet, carried.Health > 0 ? carried.Health : null);
-        if (newId is null) return new(false, "the target world has no existing pet to clone an entry from.");
+        if (newId is null)
+        {
+            return new(false,
+                "This world has no creature (pet or NPC) to base the new pet on, so it can't be placed here. "
+                + "Choose a world that already contains a pet or a story NPC.");
+        }
 
         PlayerSaveWriter.RemoveCarriedPet(player, kind, index);
         return new(true, $"placed '{carried.DisplayName}' into the world at ({x:F0}, {y:F0}, {z:F0}) (level {carried.Level} and {carried.Health:0} HP preserved).");

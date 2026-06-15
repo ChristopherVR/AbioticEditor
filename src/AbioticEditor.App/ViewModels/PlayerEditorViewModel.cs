@@ -979,6 +979,69 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
             if (ReferenceEquals(_selectedSiblingWorld, value)) return;
             _selectedSiblingWorld = value;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedSiblingWorld)));
+            _ = LoadBedsAsync(value);
+        }
+    }
+
+    // The pet beds in the selected world, loaded off-thread when the world changes, so the user
+    // sends a pet to a chosen bed rather than silently to the first one.
+    private readonly System.Collections.ObjectModel.ObservableCollection<PetBedOption> _siblingWorldBeds = new();
+    private bool _bedsRequested;
+    private PetBedOption? _selectedBed;
+
+    public System.Collections.ObjectModel.ObservableCollection<PetBedOption> SiblingWorldBeds
+    {
+        get
+        {
+            if (!_bedsRequested)
+            {
+                _bedsRequested = true;
+                _ = LoadBedsAsync(SelectedSiblingWorld);
+            }
+            return _siblingWorldBeds;
+        }
+    }
+
+    public bool HasSiblingWorldBeds => _siblingWorldBeds.Count > 0;
+
+    public PetBedOption? SelectedBed
+    {
+        get => _selectedBed;
+        set { _selectedBed = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedBed))); }
+    }
+
+    private async Task LoadBedsAsync(SaveTarget? world)
+    {
+        _siblingWorldBeds.Clear();
+        SelectedBed = null;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasSiblingWorldBeds)));
+        if (world is null)
+        {
+            return;
+        }
+        try
+        {
+            var beds = await Task.Run(() =>
+            {
+                var data = Core.WorldSaves.WorldSaveReader.ReadFromFile(world.Path);
+                var area = Core.WorldSaves.WorldAreaCatalog.FriendlyNameFromSaveFile(world.Path);
+                return data.Deployables.Where(d => d.IsPetBed)
+                    .Select((d, i) => new PetBedOption(
+                        d.X, d.Y, d.Z,
+                        $"Bed {i + 1}: {d.DisplayName}"
+                            + (area is { Length: > 0 } ? $" - {area}" : string.Empty)))
+                    .ToList();
+            });
+            foreach (var b in beds)
+            {
+                _siblingWorldBeds.Add(b);
+            }
+            SelectedBed = _siblingWorldBeds.FirstOrDefault();
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasSiblingWorldBeds)));
+        }
+        catch (Exception ex)
+        {
+            PetMoveStatus = $"Could not read pet beds in {world.Name}: {ex.Message}";
         }
     }
 
@@ -1007,8 +1070,12 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
         try
         {
             var world = Core.WorldSaves.WorldSaveReader.ReadFromFile(target.Path);
-            var bed = world.Deployables.FirstOrDefault(d => d.IsPetBed);
-            double x = bed?.X ?? 0, y = bed?.Y ?? 0, z = bed?.Z ?? 0;
+            // Place the pet at the chosen bed; fall back to any pet bed, else the world origin.
+            var chosen = SelectedBed;
+            var fallbackBed = world.Deployables.FirstOrDefault(d => d.IsPetBed);
+            double x = chosen?.X ?? fallbackBed?.X ?? 0;
+            double y = chosen?.Y ?? fallbackBed?.Y ?? 0;
+            double z = chosen?.Z ?? fallbackBed?.Z ?? 0;
             var result = await Task.Run(() =>
             {
                 var r = Core.WorldSaves.PetTransfer.PlayerToWorld(_data, pet.Slot, pet.Index, world, x, y, z);
@@ -1026,9 +1093,9 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
             if (ReferenceEquals(_selectedCarriedPet, pet)) SelectedCarriedPet = null;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CarriedPets)));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasCarriedPets)));
-            PetMoveStatus = bed is not null
-                ? $"{result.Message} (placed at a pet bed in {target.Name})"
-                : $"{result.Message} -> {target.Name}";
+            var where = chosen?.Label ?? (fallbackBed is not null ? "a pet bed" : "the world origin");
+            PetMoveStatus = $"{result.Message} (placed at {where} in {target.Name})";
+            // The world now has one more pet; refresh the bed list's source world parse is unneeded.
             Refresh();
         }
         catch (Exception ex)
@@ -1440,6 +1507,12 @@ public sealed record WorldLevelOption(string OptionGuid, string Label)
 
 /// <summary>One punch-card respawn terminal option.</summary>
 public sealed record RespawnTerminalOption(string OptionGuid, string Label)
+{
+    public override string ToString() => Label;
+}
+
+/// <summary>One pet bed in a target world a carried pet can be sent to.</summary>
+public sealed record PetBedOption(double X, double Y, double Z, string Label)
 {
     public override string ToString() => Label;
 }

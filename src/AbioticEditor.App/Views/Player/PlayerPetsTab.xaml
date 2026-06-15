@@ -118,17 +118,27 @@
                             <!-- Move this pet into a world save (cross-save) -->
                             <BoxView Style="{StaticResource AfDivider}" IsVisible="{Binding PlayerEditor.HasSiblingWorlds}" />
                             <VerticalStackLayout Spacing="6" IsVisible="{Binding PlayerEditor.HasSiblingWorlds}">
-                                <Label Text="SEND TO A WORLD" Style="{StaticResource AfFieldLabel}"
+                                <Label Text="SEND TO A PET BED" Style="{StaticResource AfFieldLabel}"
                                        TextColor="{DynamicResource AfTerminalGreen}" />
+                                <Label Text="World" Style="{StaticResource AfMuted}" FontSize="9" />
                                 <Picker ItemsSource="{Binding PlayerEditor.SiblingWorlds}"
                                         SelectedItem="{Binding PlayerEditor.SelectedSiblingWorld, Mode=TwoWay}"
                                         BackgroundColor="{StaticResource AfPanelElevated}" TextColor="{StaticResource AfTextPrimary}" />
-                                <Button Text="SEND TO WORLD" FontSize="11" Padding="12,6" HorizontalOptions="Start"
+                                <Label Text="Pet bed" Style="{StaticResource AfMuted}" FontSize="9"
+                                       IsVisible="{Binding PlayerEditor.HasSiblingWorldBeds}" />
+                                <Picker ItemsSource="{Binding PlayerEditor.SiblingWorldBeds}"
+                                        SelectedItem="{Binding PlayerEditor.SelectedBed, Mode=TwoWay}"
+                                        IsVisible="{Binding PlayerEditor.HasSiblingWorldBeds}"
+                                        BackgroundColor="{StaticResource AfPanelElevated}" TextColor="{StaticResource AfTextPrimary}" />
+                                <Label Text="This world has no pet bed - the pet will be placed at the world origin."
+                                       Style="{StaticResource AfMuted}" FontSize="9"
+                                       IsVisible="{Binding PlayerEditor.HasSiblingWorldBeds, Converter={StaticResource BoolNegate}}" />
+                                <Button Text="SEND TO BED" FontSize="11" Padding="12,6" HorizontalOptions="Start"
                                         BackgroundColor="{StaticResource AfTerminalGreen}" TextColor="{StaticResource AfTextOnAccent}"
                                         Command="{Binding PlayerEditor.SendPetToWorldCommand}" />
                                 <Label Text="{Binding PlayerEditor.PetMoveStatus}" Style="{StaticResource AfMuted}" FontSize="10"
                                        IsVisible="{Binding PlayerEditor.PetMoveStatus, Converter={StaticResource NullToBoolConverter}, FallbackValue=False}" />
-                                <Label Text="Placed at a pet bed in that world (or its origin). Health, level and name carry over. Save other player edits first."
+                                <Label Text="Health, level and name carry over. Save other player edits first."
                                        Style="{StaticResource AfMuted}" FontSize="9" />
                             </VerticalStackLayout>
                         </VerticalStackLayout>
