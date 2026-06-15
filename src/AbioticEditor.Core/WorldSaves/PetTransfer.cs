@@ -32,16 +32,13 @@ public static class PetTransfer
         var itemRow = PetItemCatalog.ItemRowFor(pet.NpcClass);
         if (itemRow is null) return new(false, $"no carried-item form is known for '{pet.ShortClass}'.");
 
-        // Companion slot (equipment index 12) is the natural home for an active pet.
-        if (kind == PetSlotKind.Equipment && index < 0) index = 12;
-
         // Best-effort 1:1 health: the carried item's single durability = the world pet's total
         // limb health (its current HP pool). Falls back to a default when the pet has none.
         var total = pet.LimbHealth.Values.Sum();
         var health = total > 0 ? total : PetItemCatalog.DefaultMaxHealth;
 
         var carried = new CarriedPet(
-            kind, index < 0 ? -1 : index, itemRow,
+            kind, -1, itemRow,
             Name: pet.CustomName,
             Health: health,
             MaxHealth: health,
@@ -49,11 +46,44 @@ public static class PetTransfer
             MutationProgress: MutatedProgress,
             PetMutation: MutatedFlag);
 
-        var used = PlayerSaveWriter.AddCarriedPetToSlot(player, kind, index, carried);
-        if (used < 0) return new(false, "no free slot in the target player inventory.");
+        // Place the pet in the chosen destination, but fall back to the other so the move isn't
+        // blocked when (say) the companion slot is occupied or absent while the hotbar has room.
+        // The companion is equipment slot 12; the hotbar uses the first free slot.
+        var (destKind, destIndex) = Place(player, kind, index, carried);
+        if (destIndex < 0)
+        {
+            return new(false,
+                "The target player's companion slot and hotbar are both full. Free a hotbar slot "
+                + "(or the companion/pet slot) in that player save and try again.");
+        }
 
         WorldSaveWriter.RemovePet(world, worldPetId);
-        return new(true, $"moved '{pet.DisplayName}' to player slot {kind}[{used}] (level {pet.Level} and {health:0} HP preserved).");
+        var where = destKind == PetSlotKind.Equipment ? "companion slot" : $"hotbar slot {destIndex}";
+        return new(true, $"moved '{pet.DisplayName}' to the player's {where} (level {pet.Level} and {health:0} HP preserved).");
+    }
+
+    // Companion = equipment slot 12. Tries the preferred destination first, then the other, so a
+    // full/absent companion slot doesn't block a move when the hotbar is free (and vice versa).
+    private static (PetSlotKind Kind, int Index) Place(
+        PlayerSaveData player, PetSlotKind preferred, int requestedIndex, CarriedPet carried)
+    {
+        const int CompanionSlot = 12;
+
+        if (preferred == PetSlotKind.Equipment)
+        {
+            var eqIndex = requestedIndex >= 0 ? requestedIndex : CompanionSlot;
+            var used = PlayerSaveWriter.AddCarriedPetToSlot(player, PetSlotKind.Equipment, eqIndex, carried);
+            if (used >= 0) return (PetSlotKind.Equipment, used);
+
+            used = PlayerSaveWriter.AddCarriedPetToSlot(player, PetSlotKind.Hotbar, -1, carried);
+            return (PetSlotKind.Hotbar, used);
+        }
+
+        var hot = PlayerSaveWriter.AddCarriedPetToSlot(player, PetSlotKind.Hotbar, requestedIndex, carried);
+        if (hot >= 0) return (PetSlotKind.Hotbar, hot);
+
+        var comp = PlayerSaveWriter.AddCarriedPetToSlot(player, PetSlotKind.Equipment, CompanionSlot, carried);
+        return (PetSlotKind.Equipment, comp);
     }
 
     /// <summary>
