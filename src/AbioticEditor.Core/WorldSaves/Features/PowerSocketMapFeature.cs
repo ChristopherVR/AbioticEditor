@@ -196,7 +196,9 @@ public sealed class PowerSocketMapFeature : WorldMapFeatureBase
             var kind = info.IsContainer ? "container" : "device";
             return $"{info.FriendlyName} ({kind})";
         }
-        var shortId = assetId!.Length > 8 ? assetId[..8] : assetId;
-        return $"Device {shortId}… (not in this region save)";
+        // The device lives in another region save (common: sub-level sockets power hub devices).
+        // The host resolves the friendly name folder-wide and rewrites this; until then, the
+        // "Find plugged-in device" link can locate it.
+        return "Device in another region save (use the link below to locate it)";
     }
 }

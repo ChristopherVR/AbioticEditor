@@ -566,20 +566,35 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         _deviceFolderIndex = await Task.Run(() =>
         {
-            var saves = new List<(string FileName, UeSaveGame.SaveGame Save)>();
+            Core.SaveClasses.AbioticSaveClasses.EnsureLoaded();
+            var index = new Dictionary<string, Core.WorldSaves.PowerSocketDeviceResolver.DeviceInfo>(
+                StringComparer.OrdinalIgnoreCase);
+            int files = 0, failed = 0;
+            // Load one save at a time and merge, so the large hub save isn't held in memory next to
+            // every sibling (and a single unreadable save can't sink the whole index).
             foreach (var file in Directory.EnumerateFiles(dir, "WorldSave_*.sav"))
             {
+                files++;
                 try
                 {
-                    using var fs = File.OpenRead(file);
-                    saves.Add((file, UeSaveGame.SaveGame.LoadFrom(fs)));
+                    UeSaveGame.SaveGame save;
+                    using (var fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                    {
+                        save = UeSaveGame.SaveGame.LoadFrom(fs);
+                    }
+                    Core.WorldSaves.PowerSocketDeviceResolver.MergeSave(index, file, save);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // An unreadable or partial save just drops out of the index.
+                    failed++;
+                    EditorLog.Warn("CrossSave",
+                        $"Device index: could not read {Path.GetFileName(file)}: {ex.Message}");
                 }
             }
-            return Core.WorldSaves.PowerSocketDeviceResolver.BuildFolderIndex(saves);
+            EditorLog.Info("CrossSave",
+                $"Built device index from {files} world save(s) in {Path.GetFileName(dir)} "
+                + $"({failed} unreadable): {index.Count} device(s).");
+            return index;
         });
         return _deviceFolderIndex;
     }

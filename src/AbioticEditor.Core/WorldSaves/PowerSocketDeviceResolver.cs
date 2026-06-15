@@ -59,6 +59,14 @@ public static class PowerSocketDeviceResolver
         return index;
     }
 
+    /// <summary>
+    /// Merges one save's deployables into an existing index, tagged with <paramref name="fileName"/>.
+    /// Lets a host build the folder index by loading one save at a time (so a large hub save isn't
+    /// held in memory alongside every sibling). First writer of a GUID wins.
+    /// </summary>
+    public static void MergeSave(Dictionary<string, DeviceInfo> index, string? fileName, SaveGame save)
+        => AddDeployables(index, save, fileName);
+
     private static void AddDeployables(Dictionary<string, DeviceInfo> index, SaveGame save, string? sourceFile)
     {
         foreach (var entry in WorldMapAccessor.Entries(save, "DeployedObjectMap"))
