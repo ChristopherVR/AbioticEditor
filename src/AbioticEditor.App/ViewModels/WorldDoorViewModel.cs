@@ -72,8 +72,10 @@ public sealed class WorldDoorViewModel : INotifyPropertyChanged
             if (Set(ref _doorState, value))
             {
                 _stateLabelsCache = null;
+                _settableStateLabelsCache = null;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(FriendlyState)));
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AllStateLabels)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SettableStateLabels)));
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(FriendlyStateForPicker)));
             }
         }
@@ -113,6 +115,48 @@ public sealed class WorldDoorViewModel : INotifyPropertyChanged
             withUnknown.AddRange(known);
             withUnknown.Add(FriendlyState); // e.g. "State 7" - keeps the raw value selectable
             return _stateLabelsCache = withUnknown;
+        }
+    }
+
+    // The stable states a user would intentionally set from the editor. The
+    // transient animation states (Opening, Closing) and damage states (Jammed,
+    // Broken) are deliberately left out of the normal choices: they map to
+    // E_DoorStates::NewEnumerator0..2.
+    private static readonly IReadOnlyList<string> _settableFriendlyNames = new[]
+    {
+        DoorStateNames.AllFriendlyNames[0], // Closed
+        DoorStateNames.AllFriendlyNames[1], // Open
+        DoorStateNames.AllFriendlyNames[2], // Locked
+    };
+
+    private IReadOnlyList<string>? _settableStateLabelsCache;
+
+    /// <summary>
+    /// The restricted set of door-state labels offered in the simple-door Picker:
+    /// just Closed / Open / Locked, the states a user meaningfully sets. To avoid
+    /// ever silently rewriting a state we didn't surface, the door's CURRENT state
+    /// is appended when it falls outside that set - whether that's an excluded
+    /// stable state (e.g. a save already at Broken) or an unknown/future enumerator.
+    /// Selecting that appended entry back is a no-op (see <see cref="FriendlyStateForPicker"/>).
+    /// </summary>
+    public IReadOnlyList<string> SettableStateLabels
+    {
+        get
+        {
+            // Cached for the same WinUI Picker re-seed reason as AllStateLabels.
+            if (_settableStateLabelsCache is not null) return _settableStateLabelsCache;
+
+            var current = FriendlyState;
+            if (_doorState is null ||
+                _settableFriendlyNames.Contains(current, StringComparer.OrdinalIgnoreCase))
+            {
+                return _settableStateLabelsCache = _settableFriendlyNames;
+            }
+
+            var withCurrent = new List<string>(_settableFriendlyNames.Count + 1);
+            withCurrent.AddRange(_settableFriendlyNames);
+            withCurrent.Add(current); // excluded stable state or unknown/future value - keep it selectable
+            return _settableStateLabelsCache = withCurrent;
         }
     }
 

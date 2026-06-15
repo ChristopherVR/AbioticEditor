@@ -92,6 +92,13 @@ internal static class PlayerSemanticDiff
         }
         AddIf(sections, progression);
 
+        // ----- INVENTORY: slot-by-slot (Equipment / Hotbar / Main), matched by index -----
+        var inventory = new SemanticSection { Title = "Inventory" };
+        AddInventoryDiff(inventory, "Equipment", a.Inventory.Equipment, b.Inventory.Equipment, ByItem);
+        AddInventoryDiff(inventory, "Hotbar", a.Inventory.Hotbar, b.Inventory.Hotbar, ByItem);
+        AddInventoryDiff(inventory, "Backpack", a.Inventory.Main, b.Inventory.Main, ByItem);
+        AddIf(sections, inventory);
+
         // ----- set-difference categories -----
         sections.Add(SetSection("Recipes unlocked", a.Recipes, b.Recipes, ByRecipe));
         sections.Add(SetSection("Fish caught", a.FishCaught, b.FishCaught, ByFish));
@@ -121,6 +128,54 @@ internal static class PlayerSemanticDiff
     private static void AddIf(List<SemanticSection> sections, SemanticSection s)
     {
         if (s.HasContent) sections.Add(s);
+    }
+
+    /// <summary>
+    /// Adds one scalar per slot index that differs between the two inventory arrays, phrased in
+    /// human terms - e.g. <c>"Hotbar slot 3: Pistol (12 ammo) -> Pistol (6 ammo)"</c>. Slots that
+    /// match (same item, count, ammo, durability) are skipped; an emptied or filled slot is shown
+    /// as <c>"(empty)"</c> on the relevant side.
+    /// </summary>
+    private static void AddInventoryDiff(
+        SemanticSection section,
+        string area,
+        IReadOnlyList<InventoryItemSlot> a,
+        IReadOnlyList<InventoryItemSlot> b,
+        Func<string, SemanticItem> byItem)
+    {
+        var count = Math.Max(a.Count, b.Count);
+        for (var i = 0; i < count; i++)
+        {
+            var sa = i < a.Count ? a[i] : null;
+            var sb = i < b.Count ? b[i] : null;
+
+            var ta = SlotText(sa, byItem);
+            var tb = SlotText(sb, byItem);
+            if (string.Equals(ta, tb, StringComparison.Ordinal)) continue;
+
+            section.Scalars.Add(new SemanticScalar($"{area} slot {i + 1}", ta, tb));
+        }
+    }
+
+    /// <summary>A one-line, human-readable description of an inventory slot's contents.</summary>
+    private static string SlotText(InventoryItemSlot? slot, Func<string, SemanticItem> byItem)
+    {
+        if (slot is null || slot.IsEmpty) return "(empty)";
+
+        var name = byItem(slot.ItemId!).DisplayName;
+        var details = new List<string>();
+        if (slot.Count > 1) details.Add($"x{slot.Count}");
+        if (slot.AmmoInMagazine > 0) details.Add($"{slot.AmmoInMagazine} ammo");
+        if (slot.MaxDurability > 0)
+        {
+            details.Add($"{Math.Round(slot.DurabilityPercent * 100)}% durability");
+        }
+        if (slot.LiquidLevel > 0 && !string.IsNullOrEmpty(slot.LiquidType))
+        {
+            details.Add($"{slot.LiquidLevel} {Pretty(slot.LiquidType!)}");
+        }
+
+        return details.Count > 0 ? $"{name} ({string.Join(", ", details)})" : name;
     }
 
     /// <summary>Fallback display name for an unresolved id: "recipe_first_aid" -> "first aid".</summary>

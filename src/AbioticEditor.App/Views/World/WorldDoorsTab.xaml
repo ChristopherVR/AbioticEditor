@@ -89,34 +89,49 @@
                                 </HorizontalStackLayout>
 
                                 <!-- Row 1: state controls -->
-                                <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                                       Spacing="10" VerticalOptions="Center">
-                                    <Label Text="STATE" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                <VerticalStackLayout Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4" Spacing="4">
+                                    <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
+                                        <Label Text="STATE" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
 
-                                    <!-- Simple-door state picker -->
-                                    <Picker ItemsSource="{Binding AllStateLabels}"
-                                            SelectedItem="{Binding FriendlyStateForPicker, Mode=TwoWay}"
-                                            BackgroundColor="{StaticResource AfPanelElevated}"
-                                            TextColor="{StaticResource AfTerminalGreen}"
-                                            FontFamily="Digital7"
-                                            WidthRequest="180"
-                                            IsVisible="{Binding IsSimple}" />
+                                        <!-- Simple-door state picker (restricted to the stable states a
+                                             user would intentionally set; the door's current state is added
+                                             when it falls outside that set so it stays selectable) -->
+                                        <Picker ItemsSource="{Binding SettableStateLabels}"
+                                                SelectedItem="{Binding FriendlyStateForPicker, Mode=TwoWay}"
+                                                BackgroundColor="{StaticResource AfPanelElevated}"
+                                                TextColor="{StaticResource AfTerminalGreen}"
+                                                FontFamily="Digital7"
+                                                WidthRequest="180"
+                                                IsVisible="{Binding IsSimple}" />
 
-                                    <!-- Security-door open toggle -->
-                                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center"
-                                                           IsVisible="{Binding IsSecurity}">
-                                        <Label Text="OPEN" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
-                                        <CheckBox IsChecked="{Binding IsDoorOpen, Mode=TwoWay}"
-                                                  Color="{StaticResource AfTerminalGreen}" />
+                                        <!-- Security-door open toggle -->
+                                        <HorizontalStackLayout Spacing="6" VerticalOptions="Center"
+                                                               IsVisible="{Binding IsSecurity}">
+                                            <Label Text="OPEN" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                            <CheckBox IsChecked="{Binding IsDoorOpen, Mode=TwoWay}"
+                                                      Color="{StaticResource AfTerminalGreen}" />
+                                        </HorizontalStackLayout>
                                     </HorizontalStackLayout>
 
+                                    <!-- What the persisted state means in-game -->
+                                    <Label Text="Locked = stays locked until unlocked in-game; Open / Closed = mechanically open or closed. This sets the door's saved state."
+                                           Style="{StaticResource AfStatusText}" FontSize="10"
+                                           IsVisible="{Binding IsSimple}" />
+                                    <Label Text="Controls whether this security door is saved open or closed."
+                                           Style="{StaticResource AfStatusText}" FontSize="10"
+                                           IsVisible="{Binding IsSecurity}" />
+
+                                    <!-- One-way doors: mark as already opened from the locked side -->
                                     <HorizontalStackLayout Spacing="6" VerticalOptions="Center"
                                                            IsVisible="{Binding IsSimple}">
-                                        <Label Text="ONE-WAY UNLOCKED" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                        <Label Text="ALREADY OPENED (ONE-WAY)" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                                         <CheckBox IsChecked="{Binding OneWayUnlocked, Mode=TwoWay}"
                                                   Color="{StaticResource AfTerminalGreen}" />
                                     </HorizontalStackLayout>
-                                </HorizontalStackLayout>
+                                    <Label Text="One-way doors only: marks the door as already unlocked from its locked side (opened once). Leave off for normal doors."
+                                           Style="{StaticResource AfStatusText}" FontSize="10"
+                                           IsVisible="{Binding IsSimple}" />
+                                </VerticalStackLayout>
 
                                 <!-- Row 2: location subtitle -->
                                 <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4"

@@ -1,6 +1,7 @@
 using AbioticEditor.App.Services;
 using AbioticEditor.App.ViewModels;
 using AbioticEditor.App.Views;
+using AbioticEditor.Core.Diagnostics;
 
 namespace AbioticEditor.App;
 
@@ -16,6 +17,12 @@ public sealed class SettingsPage : ContentPage
     private bool _themeChanged;
     private bool _spoilerChanged;
 
+    // The language code recorded when we last (re)built the sheet. LanguagePage applies the
+    // change live and has no callback, so we compare against this on Appearing (fires when the
+    // chooser modal pops back to us) to log the change and refresh the read-only label.
+    private string _languageCode = Services.LocalizationService.CurrentCode;
+    private Label? _languageValueLabel;
+
     public SettingsPage(MainViewModel vm, Func<Task> rebuildHost)
     {
         _vm = vm;
@@ -23,7 +30,33 @@ public sealed class SettingsPage : ContentPage
         Title = "Settings";
         BackgroundColor = (Color)Application.Current!.Resources["AfPageBackground"];
         Content = BuildContent();
+        Appearing += OnAppearing;
     }
+
+    /// <summary>
+    /// Re-reads the current language when this sheet reappears (e.g. after the LanguagePage
+    /// chooser pops). LanguagePage applies the language live with no callback, so this is where
+    /// we notice the change, log it, and refresh the read-only language label.
+    /// </summary>
+    private void OnAppearing(object? sender, EventArgs e)
+    {
+        var current = Services.LocalizationService.CurrentCode;
+        if (current != _languageCode)
+        {
+            EditorLog.Info("Settings", $"Language changed from {_languageCode} to {current}");
+            _languageCode = current;
+        }
+        if (_languageValueLabel is not null)
+        {
+            _languageValueLabel.Text = CurrentLanguageName();
+        }
+    }
+
+    /// <summary>Native display name for the current language (falls back to the raw code).</summary>
+    private static string CurrentLanguageName()
+        => Services.LocalizationService.Available
+            .FirstOrDefault(l => l.Code == Services.LocalizationService.CurrentCode)?.NativeName
+            ?? Services.LocalizationService.CurrentCode;
 
     private View BuildContent()
     {
@@ -41,13 +74,28 @@ public sealed class SettingsPage : ContentPage
 
         // ----- LANGUAGE -----
         var loc = Services.LocalizationResourceManager.Instance;
-        var currentLanguageName = Services.LocalizationService.Available
-            .FirstOrDefault(l => l.Code == Services.LocalizationService.CurrentCode)?.NativeName
-            ?? Services.LocalizationService.CurrentCode;
-        var languageButton = new Button { Text = currentLanguageName };
-        languageButton.Clicked += async (_, _) => await Navigation.PushModalAsync(new LanguagePage());
+        // Current language is read-only; a separate CHANGE button opens the chooser. OnAppearing
+        // re-reads CurrentCode when the chooser pops, so this label stays in sync.
+        _languageValueLabel = new Label
+        {
+            Text = CurrentLanguageName(),
+            Style = ModalChrome.St("AfFieldValue"),
+            VerticalOptions = LayoutOptions.Center,
+        };
+        var changeLanguageButton = ModalChrome.Button("CHANGE", primary: false);
+        changeLanguageButton.Clicked += async (_, _) => await Navigation.PushModalAsync(new LanguagePage());
+        var languageRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto),
+            },
+        };
+        languageRow.Add(_languageValueLabel, 0, 0);
+        languageRow.Add(changeLanguageButton, 1, 0);
         var languageCard = ModalChrome.Card(loc["Settings_Language"], loc["Settings_Language_Hint"],
-            new HorizontalStackLayout { Spacing = 10, Children = { languageButton } });
+            languageRow);
 
         // ----- DIAGNOSTICS -----
         var logSwitch = new Switch { IsToggled = _vm.DiagnosticLoggingEnabled };
@@ -68,7 +116,13 @@ public sealed class SettingsPage : ContentPage
                 ? "Nothing has been individually revealed yet."
                 : $"{SpoilerService.RevealedCount} item(s) revealed (clearance overridden).";
         RefreshReveals();
-        spoilerSwitch.Toggled += (_, e) => { SpoilerService.Enabled = e.Value; _spoilerChanged = true; };
+        spoilerSwitch.Toggled += (_, e) =>
+        {
+            if (e.Value == SpoilerService.Enabled) return;
+            SpoilerService.Enabled = e.Value;
+            _spoilerChanged = true;
+            EditorLog.Info("Settings", $"Spoilers {(e.Value ? "shown" : "hidden")}");
+        };
         resealButton.Clicked += (_, _) => { SpoilerService.ResetReveals(); RefreshReveals(); _spoilerChanged = true; };
 
         var spoilerCard = ModalChrome.Card("SPOILERS",
@@ -279,9 +333,19 @@ public sealed class SettingsPage : ContentPage
 
     private void ApplyTheme(ThemeAccent accent, bool light)
     {
-        if (accent == ThemeService.Accent && light == ThemeService.IsLight) return;
+        var accentChanged = accent != ThemeService.Accent;
+        var modeChanged = light != ThemeService.IsLight;
+        if (!accentChanged && !modeChanged) return;
         ThemeService.Apply(accent, light);
         _themeChanged = true;
+        if (accentChanged)
+        {
+            EditorLog.Info("Settings", $"Theme accent set to {accent}");
+        }
+        if (modeChanged)
+        {
+            EditorLog.Info("Settings", $"Theme mode set to {(light ? "light" : "dark")}");
+        }
         // Repaint this sheet with the new palette; the host rebuilds on close.
         BackgroundColor = (Color)Application.Current!.Resources["AfPageBackground"];
         Content = BuildContent();

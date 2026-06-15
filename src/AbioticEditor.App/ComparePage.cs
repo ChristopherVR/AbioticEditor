@@ -227,31 +227,63 @@ public sealed class ComparePage : ContentPage
 
     /// <summary>
     /// Builds a domain-aware semantic diff when both files are the same kind: two player saves
-    /// → player sections, two world saves → world sections. Null when they aren't a matched,
-    /// supported pair (the raw property diff covers those).
+    /// → player sections, two world/metadata saves → world sections. Null when they aren't a
+    /// matched, supported pair (the raw property diff covers those).
+    ///
+    /// The save kind is classified from each file's header BEFORE parsing, so a world save is
+    /// never routed through <see cref="Core.PlayerSaves.PlayerSaveReader"/> (which would log a
+    /// scary parse Error and rethrow). Any unexpected failure is caught, logged as a Warn, and
+    /// turned into a null result so a single odd file never crashes the comparison - the raw
+    /// property diff still renders.
     /// </summary>
     private static (string Kind, List<SemanticSection> Sections)? TryBuildSemantic(string a, string b)
     {
         try
         {
-            var pa = Core.PlayerSaves.PlayerSaveReader.ReadFromFile(a);
-            var pb = Core.PlayerSaves.PlayerSaveReader.ReadFromFile(b);
-            return ("PLAYER", PlayerSemanticDiff.Build(pa, pb));
-        }
-        catch
-        {
-            // Not both player saves - try world.
-        }
+            var kindA = ClassifyKind(a);
+            var kindB = ClassifyKind(b);
 
+            // Only a matched, supported pair gets a semantic view. Different kinds (or an
+            // unknown/customization kind) fall through to the raw diff only.
+            if (kindA != kindB) return null;
+
+            if (kindA == Core.Compatibility.SaveKind.Character)
+            {
+                var pa = Core.PlayerSaves.PlayerSaveReader.ReadFromFile(a);
+                var pb = Core.PlayerSaves.PlayerSaveReader.ReadFromFile(b);
+                return ("PLAYER", PlayerSemanticDiff.Build(pa, pb));
+            }
+
+            if (kindA is Core.Compatibility.SaveKind.World or Core.Compatibility.SaveKind.Metadata)
+            {
+                var wa = Core.WorldSaves.WorldSaveReader.ReadFromFile(a);
+                var wb = Core.WorldSaves.WorldSaveReader.ReadFromFile(b);
+                return ("WORLD", WorldSemanticDiff.Build(wa, wb));
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            // Never let a single unreadable / unexpected file throw out of the comparison; the
+            // raw property diff still covers it.
+            Core.Diagnostics.EditorLog.Warn("Compare", $"Semantic diff unavailable for '{a}' / '{b}'", ex);
+            return null;
+        }
+    }
+
+    /// <summary>Classifies a save's kind from its header alone (cheap, never parses the body).</summary>
+    private static Core.Compatibility.SaveKind ClassifyKind(string path)
+    {
         try
         {
-            var wa = Core.WorldSaves.WorldSaveReader.ReadFromFile(a);
-            var wb = Core.WorldSaves.WorldSaveReader.ReadFromFile(b);
-            return ("WORLD", WorldSemanticDiff.Build(wa, wb));
+            var (saveClass, _) = Core.Saves.SaveFolderScanner.ReadHeaderInfo(path);
+            return Core.Compatibility.SaveVersionRegistry.KindOfClassPath(saveClass);
         }
-        catch
+        catch (Exception ex)
         {
-            return null;
+            Core.Diagnostics.EditorLog.Warn("Compare", $"Could not read header for '{path}'", ex);
+            return Core.Compatibility.SaveKind.Unknown;
         }
     }
 
@@ -299,6 +331,85 @@ public sealed class ComparePage : ContentPage
         {
             _resultsHost.Children.Add(BuildRawCard(diff, startExpanded: semantic is null));
         }
+
+        _resultsHost.Children.Add(BuildExportCard(() => Core.Compare.SaveDiffReport.ForFile(diff, BuildSemanticMarkdown(semantic)),
+            $"compare_{Path.GetFileNameWithoutExtension(diff.LeftLabel)}_vs_{Path.GetFileNameWithoutExtension(diff.RightLabel)}.md"));
+    }
+
+    /// <summary>Renders the (App-side) semantic sections as a Markdown block for the export report.</summary>
+    private static string? BuildSemanticMarkdown((string Kind, List<SemanticSection> Sections)? semantic)
+    {
+        if (semantic is not { } sem || sem.Sections.Count == 0) return null;
+
+        var sb = new System.Text.StringBuilder();
+        sb.Append("## ").Append(CapitalizeWord(sem.Kind)).Append(" summary\n\n");
+        foreach (var section in sem.Sections)
+        {
+            sb.Append("### ").Append(section.Title).Append("\n\n");
+            sb.Append('_').Append(section.Summary).Append("_\n\n");
+            foreach (var s in section.Scalars)
+            {
+                sb.Append("- ").Append(s.Label).Append(": ").Append(s.A).Append(" -> ").Append(s.B).Append('\n');
+            }
+            foreach (var item in section.OnlyA)
+            {
+                sb.Append("- only in A: ").Append(item.DisplayName).Append('\n');
+            }
+            foreach (var item in section.OnlyB)
+            {
+                sb.Append("- only in B: ").Append(item.DisplayName).Append('\n');
+            }
+            sb.Append('\n');
+        }
+        return sb.ToString();
+    }
+
+    private static string CapitalizeWord(string s) =>
+        string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s[1..].ToLowerInvariant();
+
+    /// <summary>
+    /// A card with COPY (to clipboard) and SAVE (to a .md file) buttons that export the
+    /// comparison as Markdown. <paramref name="build"/> is deferred so the (potentially large)
+    /// report string is only built on demand.
+    /// </summary>
+    private View BuildExportCard(Func<string> build, string suggestedFileName)
+    {
+        var copy = ModalChrome.Button("COPY MARKDOWN", primary: false);
+        copy.Clicked += async (_, _) =>
+        {
+            try
+            {
+                await Clipboard.SetTextAsync(build());
+                await ViewUtils.AlertAsync(this, "Copied", "The comparison report was copied to the clipboard as Markdown.");
+            }
+            catch (Exception ex)
+            {
+                await ViewUtils.AlertAsync(this, "Export failed", ex.Message);
+            }
+        };
+
+        var save = ModalChrome.Button("SAVE .md", primary: false);
+        save.Clicked += async (_, _) =>
+        {
+            try
+            {
+                var bytes = System.Text.Encoding.UTF8.GetBytes(build());
+                using var stream = new MemoryStream(bytes);
+                var result = await FileSaver.SaveAsync(suggestedFileName, stream, CancellationToken.None);
+                if (result.IsSuccessful)
+                {
+                    await ViewUtils.AlertAsync(this, "Saved", $"Report written to:\n{result.FilePath}");
+                }
+            }
+            catch (Exception ex) when (!IsCancellation(ex))
+            {
+                await ViewUtils.AlertAsync(this, "Export failed", ex.Message);
+            }
+        };
+
+        return ModalChrome.Card("EXPORT",
+            "Copy the full comparison as a Markdown report, or save it to a .md file.",
+            new HorizontalStackLayout { Spacing = 12, Children = { copy, save } });
     }
 
     /// <summary>A leading "what changed" card: one line per differing category.</summary>
@@ -411,6 +522,10 @@ public sealed class ComparePage : ContentPage
             Margin = new Thickness(0, 6, 0, 0),
         });
         _resultsHost.Children.Add(list);
+
+        _resultsHost.Children.Add(BuildExportCard(
+            () => Core.Compare.SaveDiffReport.ForFolder(folderDiff),
+            "folder_compare.md"));
     }
 
     /// <summary>Shared difference list, virtualized so big saves stay responsive.</summary>
