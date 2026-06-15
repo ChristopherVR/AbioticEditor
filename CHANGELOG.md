@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here.
 
+## [1.4.0] - 2026-06-15
+
+### Bug Fixes
+- Resolve teleporter sync name; clarify tram station picker- Pet-to-bed picker, drop duplicate Vehicles tab, door/elevator clarity
+
+### Features
+- Show friendly names for cross-world power-socket devices- True cross-world navigation to a power socket's plugged-in device- Identify and navigate to a power socket's plugged-in device
+
+### Miscellaneous Tasks
+- Point bucket at v1.3.0 [skip ci]
+
 ## [1.3.0] - 2026-06-15
 
 ### Bug Fixes
