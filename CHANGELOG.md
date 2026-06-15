@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here.
 
+## [1.2.0] - 2026-06-15
+
+### Features
+- Version-stamped zips and a self-contained single-file Windows app
+
+### Miscellaneous Tasks
+- Point bucket at v1.1.3 [skip ci]
+
 ## [1.1.3] - 2026-06-14
 
 ### Bug Fixes
