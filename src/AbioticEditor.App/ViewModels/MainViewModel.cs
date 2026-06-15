@@ -459,6 +459,106 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    // Folder-wide device index (GUID -> deployable + the save file it lives in), built lazily from
+    // every WorldSave_*.sav next to the current world save. Resolves a power socket whose plugged-in
+    // device lives in another region save; cleared when the folder changes.
+    private Dictionary<string, Core.WorldSaves.PowerSocketDeviceResolver.DeviceInfo>? _deviceFolderIndex;
+
+    /// <summary>
+    /// True cross-world navigation for a power socket's plugged-in device: finds which region save
+    /// holds the device, switches to it (respecting the leave-dirty-editor gate), and opens the
+    /// device's container. Reports a clear status when the device is not a container or cannot be
+    /// found in any of the world's saves.
+    /// </summary>
+    private async Task NavigateToWorldDeviceAsync(string deviceId)
+    {
+        if (string.IsNullOrWhiteSpace(deviceId)) return;
+        try
+        {
+            StatusMessage = "Searching the world's region saves for the plugged-in device...";
+            var index = await EnsureDeviceFolderIndexAsync();
+            if (index is null || !index.TryGetValue(deviceId, out var info))
+            {
+                StatusMessage =
+                    "Could not find the plugged-in device in any region save here - it may have been removed.";
+                return;
+            }
+            if (!info.IsContainer)
+            {
+                var where = info.SourceFile is { } nf ? $" in {Path.GetFileName(nf)}" : string.Empty;
+                StatusMessage = $"The plugged-in device is a {info.FriendlyName}{where} - it has no inventory to open.";
+                return;
+            }
+
+            // Already in the loaded save (shouldn't normally reach here, but open it directly).
+            if (WorldEditor is { } here && info.SourceFile is { } f
+                && string.Equals(here.FilePath, f, StringComparison.OrdinalIgnoreCase))
+            {
+                here.OpenContainerById(deviceId);
+                StatusMessage = $"Opened {info.FriendlyName}.";
+                return;
+            }
+
+            var target = info.SourceFile is { } path
+                ? Saves.FirstOrDefault(s => string.Equals(s.FullPath, path, StringComparison.OrdinalIgnoreCase))
+                : null;
+            if (target is null)
+            {
+                var fileName = info.SourceFile is { } sf ? Path.GetFileName(sf) : "another save";
+                StatusMessage = $"The device is a {info.FriendlyName} in {fileName}, which isn't in the loaded folder.";
+                return;
+            }
+
+            // Switch to the device's home save (the gate may keep the user on a dirty editor).
+            _selectedSave = target;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedSave)));
+            await RequestSwitchAsync(target);
+
+            if (ReferenceEquals(_loadedSave, target) && WorldEditor is { } we && we.OpenContainerById(deviceId))
+            {
+                StatusMessage = $"Switched to {Path.GetFileName(target.FullPath)} and opened {info.FriendlyName}.";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Could not navigate to the device: {ex.Message}";
+        }
+    }
+
+    private async Task<Dictionary<string, Core.WorldSaves.PowerSocketDeviceResolver.DeviceInfo>?>
+        EnsureDeviceFolderIndexAsync()
+    {
+        if (_deviceFolderIndex is not null)
+        {
+            return _deviceFolderIndex;
+        }
+        var current = _loadedSave?.FullPath ?? WorldEditor?.FilePath;
+        var dir = current is not null ? Path.GetDirectoryName(current) : FolderPath;
+        if (dir is null || !Directory.Exists(dir))
+        {
+            return null;
+        }
+
+        _deviceFolderIndex = await Task.Run(() =>
+        {
+            var saves = new List<(string FileName, UeSaveGame.SaveGame Save)>();
+            foreach (var file in Directory.EnumerateFiles(dir, "WorldSave_*.sav"))
+            {
+                try
+                {
+                    using var fs = File.OpenRead(file);
+                    saves.Add((file, UeSaveGame.SaveGame.LoadFrom(fs)));
+                }
+                catch
+                {
+                    // An unreadable or partial save just drops out of the index.
+                }
+            }
+            return Core.WorldSaves.PowerSocketDeviceResolver.BuildFolderIndex(saves);
+        });
+        return _deviceFolderIndex;
+    }
+
     /// <summary>
     /// Gate for any navigation that would drop the current editor. Saves are written
     /// per file, so leaving a dirty editor needs an explicit decision: save it, discard
@@ -1870,6 +1970,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         // folder's codex/recipe gating can't judge against the previous world's flags.
         _benchCache.Clear();
         _worldFlagCache.Clear();
+        _deviceFolderIndex = null;
         Services.ProgressContext.WorldFlags = null;
         IniEditor = null;
         SelectedConfigFile = null;
@@ -1958,7 +2059,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             {
                 var data = await Task.Run(() => WorldSaveReader.ReadFromFile(summary.FullPath));
                 if (token != _loadSequence) return;
-                WorldEditor = new WorldEditorViewModel(data, summary.FullPath);
+                WorldEditor = new WorldEditorViewModel(data, summary.FullPath, NavigateToWorldDeviceAsync);
             }
 
             // Notify plugins that a save is now open (after a successful parse).

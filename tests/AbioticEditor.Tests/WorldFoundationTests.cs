@@ -135,11 +135,16 @@ public sealed class WorldFoundationTests
                 $"plugged-in device should be described, not a raw GUID: {device}");
         }
 
-        // Any entry that links to a device must point at a real container in this save.
+        // A link either opens a container in THIS save, or is a cross-world candidate whose device
+        // id is not in this save's index (the host resolves it folder-wide on click). Either way it
+        // carries a label, and a same-save link only targets a container (never a cable/battery).
         foreach (var e in entries.Where(e => e.LinkTargetId is not null))
         {
-            Assert.True(index.TryGetValue(e.LinkTargetId!, out var info) && info.IsContainer);
             Assert.False(string.IsNullOrWhiteSpace(e.LinkLabel));
+            if (index.TryGetValue(e.LinkTargetId!, out var info))
+            {
+                Assert.True(info.IsContainer, "a same-save link must target a container");
+            }
         }
     }
 

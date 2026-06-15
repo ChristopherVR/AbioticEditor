@@ -89,13 +89,18 @@ public sealed class PowerSocketMapFeature : WorldMapFeatureBase
     protected override (string? TargetId, string? Label) LinkFor(string key, IList<FPropertyTag> props)
     {
         var device = props.GetString(PluggedInDevicePrefix);
-        if (!PowerSocketDeviceResolver.IsNothingPlugged(device)
-            && _deviceIndex.TryGetValue(device!, out var info)
-            && info.IsContainer)
+        if (PowerSocketDeviceResolver.IsNothingPlugged(device))
         {
-            return (info.Id, $"Open {info.FriendlyName}");
+            return (null, null);
         }
-        return (null, null);
+        if (_deviceIndex.TryGetValue(device!, out var info))
+        {
+            // Resolved in this save: only containers can be opened (cables/batteries cannot).
+            return info.IsContainer ? (info.Id, $"Open {info.FriendlyName}") : (null, null);
+        }
+        // Not in this save: the device may live in another region save (the host resolves the
+        // folder-wide index on click and navigates cross-world, or reports if it cannot be found).
+        return (device, "Find plugged-in device");
     }
 
     /// <summary>

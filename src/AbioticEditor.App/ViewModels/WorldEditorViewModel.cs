@@ -38,10 +38,16 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     private WorldFeatureTabViewModel? _selectedFeatureTab;
     private readonly List<WorldTabButton> _tabs = new();
 
-    public WorldEditorViewModel(WorldSaveData data, string path)
+    // Invoked when a power socket's plugged-in device is not in this save: the host (MainViewModel)
+    // resolves the folder-wide device index and, if the device is a container in a sibling world
+    // save, switches to that save and opens it. Null when no host navigation is wired.
+    private readonly Func<string, Task>? _crossWorldNavigate;
+
+    public WorldEditorViewModel(WorldSaveData data, string path, Func<string, Task>? crossWorldNavigate = null)
     {
         _data = data;
         _path = path;
+        _crossWorldNavigate = crossWorldNavigate;
 
         // The metadata save is story-only (no containers/flags/doors) - open it on the
         // STORY tab instead of an empty containers list.
@@ -818,14 +824,35 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     /// </summary>
     private void OpenPoweredDevice(string deviceId)
     {
-        HideEmpty = false;
-        Filter = deviceId;
-        ActiveTab = WorldTab.Containers;
-        var match = AllContainers.FirstOrDefault(c => string.Equals(c.Id, deviceId, StringComparison.OrdinalIgnoreCase));
-        if (match is not null)
+        if (OpenContainerById(deviceId))
         {
-            SelectedContainer = match;
+            return;
         }
+        // The device is not in this save: hand off to the host to find it across the world's
+        // other region saves and switch there (true cross-world navigation).
+        if (_crossWorldNavigate is not null)
+        {
+            _ = _crossWorldNavigate(deviceId);
+        }
+    }
+
+    /// <summary>
+    /// Selects the container with <paramref name="id"/> and shows it on the CONTAINERS tab.
+    /// Returns false when no such container is loaded in this save (e.g. it lives in another save).
+    /// Used both by the in-save power-socket link and by the host after a cross-world switch.
+    /// </summary>
+    public bool OpenContainerById(string id)
+    {
+        var match = AllContainers.FirstOrDefault(c => string.Equals(c.Id, id, StringComparison.OrdinalIgnoreCase));
+        if (match is null)
+        {
+            return false;
+        }
+        HideEmpty = false;
+        Filter = id;
+        SelectedContainer = match;
+        ActiveTab = WorldTab.Containers;
+        return true;
     }
 
     private IReadOnlyList<TraderCardViewModel>? _traderCards;

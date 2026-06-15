@@ -22,7 +22,9 @@ public static class PowerSocketDeviceResolver
     /// <param name="ClassName">The deployable class (e.g. <c>Deployed_Plugboard_C</c>), or null.</param>
     /// <param name="FriendlyName">A human label (e.g. "Plug Board", "Crafting Bench").</param>
     /// <param name="IsContainer">True when the device has an inventory (can be opened in CONTAINERS).</param>
-    public sealed record DeviceInfo(string Id, string? ClassName, string FriendlyName, bool IsContainer);
+    /// <param name="SourceFile">The world-save file the device lives in (folder index only); null for a same-save index.</param>
+    public sealed record DeviceInfo(
+        string Id, string? ClassName, string FriendlyName, bool IsContainer, string? SourceFile = null);
 
     /// <summary>True when an asset id means "nothing is plugged in" (empty, "-1" or "None").</summary>
     public static bool IsNothingPlugged(string? assetId)
@@ -35,14 +37,41 @@ public static class PowerSocketDeviceResolver
     public static Dictionary<string, DeviceInfo> BuildIndex(SaveGame save)
     {
         var index = new Dictionary<string, DeviceInfo>(StringComparer.OrdinalIgnoreCase);
+        AddDeployables(index, save, sourceFile: null);
+        return index;
+    }
+
+    /// <summary>
+    /// Builds a folder-wide GUID -> device index by merging the deployables of every supplied
+    /// world save, tagging each device with the file it lives in. A socket in one region save can
+    /// power a device in another (commonly the hub <c>WorldSave_Facility.sav</c>); this index
+    /// resolves those cross-save references for navigation. The first save to define a GUID wins
+    /// (GUIDs are unique across the world).
+    /// </summary>
+    public static Dictionary<string, DeviceInfo> BuildFolderIndex(
+        IEnumerable<(string FileName, SaveGame Save)> saves)
+    {
+        var index = new Dictionary<string, DeviceInfo>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (fileName, save) in saves)
+        {
+            AddDeployables(index, save, fileName);
+        }
+        return index;
+    }
+
+    private static void AddDeployables(Dictionary<string, DeviceInfo> index, SaveGame save, string? sourceFile)
+    {
         foreach (var entry in WorldMapAccessor.Entries(save, "DeployedObjectMap"))
         {
+            if (index.ContainsKey(entry.Key))
+            {
+                continue;
+            }
             var className = ExtractClassName(entry.Props);
             var isContainer = entry.Props.FindByPrefix("ContainerInventories_")?.Property is ArrayProperty arr
                 && arr.Value is { Length: > 0 };
-            index[entry.Key] = new DeviceInfo(entry.Key, className, FriendlyName(className), isContainer);
+            index[entry.Key] = new DeviceInfo(entry.Key, className, FriendlyName(className), isContainer, sourceFile);
         }
-        return index;
     }
 
     /// <summary>A short readable label for a deployable class, with curated names for the common ones.</summary>
