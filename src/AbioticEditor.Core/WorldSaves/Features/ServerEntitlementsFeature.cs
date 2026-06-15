@@ -1,25 +1,36 @@
 using AbioticEditor.Core.Saves;
+using AbioticEditor.Core.Steam;
 using UeSaveGame;
 using UeSaveGame.PropertyTypes;
 
 namespace AbioticEditor.Core.WorldSaves.Features;
 
 /// <summary>
-/// Editor for <c>ServerEntitlements</c> (the metadata save): the dedicated-server,
-/// per-player permission/entitlement list. The map is keyed by a player's SteamID64 and each
-/// entry value is a <c>StructProperty -&gt; PropertiesStruct</c> with one member -
-/// <c>Entitlements</c> (an <see cref="ArrayProperty"/> of strings) - listing the entitlements
-/// (e.g. admin grants) that player holds on this server.
+/// Editor for <c>ServerEntitlements</c> (the metadata save): the per-player ownership
+/// entitlements list, keyed by a player's SteamID64. Each entry value is a
+/// <c>StructProperty -&gt; PropertiesStruct</c> with one member, <c>Entitlements</c> (an
+/// <see cref="ArrayProperty"/> of strings) - e.g. <c>EarlyAccess</c>, <c>SupportersEdition</c>.
 ///
-/// <para>The single-field editor model fits by treating the whole list as one
-/// comma-separated text field: read joins the array with <c>", "</c>, apply splits on commas
-/// and replaces the array in place (mirroring <c>WorldSaveWriter.ReplaceNameArray</c>), so the
-/// rest of the entry re-serializes untouched.</para>
+/// <para>Rather than a single comma-separated text blob, every <b>known</b> entitlement is shown
+/// as its own on/off toggle so the player can see all available grants at a glance; any entitlement
+/// already present that this build doesn't recognise is shown as an extra toggle too, so nothing is
+/// hidden or lost. The SteamID key is resolved to the player's Steam persona name where known.</para>
 /// </summary>
 public sealed class ServerEntitlementsFeature : WorldMapFeatureBase
 {
     /// <summary>Save leaf name. The member has no blueprint hash suffix, so this is exact.</summary>
     private const string EntitlementsPrefix = "Entitlements";
+
+    /// <summary>The entitlements the game grants, with friendly labels (extend as more are seen).</summary>
+    private static readonly (string Id, string Label)[] Known =
+    {
+        ("EarlyAccess", "Early Access"),
+        ("SupportersEdition", "Supporter's Edition"),
+    };
+
+    // Steam persona names (SteamID64 -> name) from the local machine, loaded once. Empty when the
+    // accounts file isn't present (e.g. a headless dedicated server), in which case keys show bare.
+    private static IReadOnlyDictionary<ulong, string>? _personaCache;
 
     public override string Id => "server-entitlements";
 
@@ -28,45 +39,72 @@ public sealed class ServerEntitlementsFeature : WorldMapFeatureBase
     public override string DisplayName => "Server Entitlements";
 
     public override string Description =>
-        "Per-player server entitlements/permissions, keyed by SteamID64.";
+        "Per-player ownership entitlements (Early Access, Supporter's Edition), keyed by SteamID64. "
+        + "Toggle an entitlement on or off for each player.";
 
     /// <summary>Entitlement entries are server metadata, not removable level actors.</summary>
     public override bool SupportsRemoval => false;
 
-    /// <summary>The key is already a bare SteamID64; show it verbatim.</summary>
-    protected override string LabelFor(string key, IList<FPropertyTag> props) => key;
+    /// <summary>Show the player's Steam persona name when known, with the SteamID for reference.</summary>
+    protected override string LabelFor(string key, IList<FPropertyTag> props)
+    {
+        if (ulong.TryParse(key, out var id) && Persona.TryGetValue(id, out var name) && name.Length > 0)
+        {
+            return $"{name} ({key})";
+        }
+        return key;
+    }
 
     protected override IReadOnlyList<WorldMapField> ReadFields(IList<FPropertyTag> props)
     {
-        var joined = string.Join(", ", ReadEntitlements(props));
-        return new[]
+        var held = new HashSet<string>(ReadEntitlements(props), StringComparer.OrdinalIgnoreCase);
+        var fields = new List<WorldMapField>();
+
+        // One toggle per known entitlement, so all available grants are visible.
+        foreach (var (id, label) in Known)
         {
-            new WorldMapField("entitlements", "Entitlements", joined, WorldFieldKind.Text,
-                Editable: true, Options: null,
-                Hint: "comma-separated list of entitlement strings"),
-        };
+            fields.Add(WorldMapField.Bool(id, label, held.Contains(id),
+                hint: $"Whether this player holds the {label} entitlement."));
+        }
+
+        // Surface (and preserve) any entitlement this build doesn't know about as its own toggle.
+        foreach (var extra in held.Where(h => !Known.Any(k => string.Equals(k.Id, h, StringComparison.OrdinalIgnoreCase))))
+        {
+            fields.Add(WorldMapField.Bool(extra, extra, value: true,
+                hint: "An entitlement this editor doesn't have a friendly name for; left as-is unless you turn it off."));
+        }
+
+        return fields;
     }
 
     protected override WorldEditResult ApplyField(IList<FPropertyTag> props, string fieldId, string? value)
     {
-        if (!string.Equals(fieldId, "entitlements", StringComparison.OrdinalIgnoreCase))
-        {
-            return WorldEditResult.Failure($"unknown field '{fieldId}' (expected: entitlements).");
-        }
         if (props.FindByPrefix(EntitlementsPrefix)?.Property is not ArrayProperty arr)
         {
             return WorldEditResult.Failure("the Entitlements array is missing from this entry.");
         }
+        if (!WorldMapAccessor.TryParseBool(value, out var wanted))
+        {
+            return WorldEditResult.Failure($"'{value}' is not a boolean (use true/false).");
+        }
 
-        var parsed = ParseList(value);
         var current = ReadEntitlements(props);
-        if (parsed.Count == current.Count
-            && parsed.SequenceEqual(current, StringComparer.Ordinal))
+        var has = current.Contains(fieldId, StringComparer.OrdinalIgnoreCase);
+        if (has == wanted)
         {
             return WorldEditResult.NoChange;
         }
 
-        arr.Value = parsed.Select(s => new FString(s)).ToArray();
+        if (wanted)
+        {
+            current.Add(fieldId);
+        }
+        else
+        {
+            current.RemoveAll(s => string.Equals(s, fieldId, StringComparison.OrdinalIgnoreCase));
+        }
+
+        arr.Value = current.Select(s => new FString(s)).ToArray();
         return WorldEditResult.Success;
     }
 
@@ -94,17 +132,23 @@ public sealed class ServerEntitlementsFeature : WorldMapFeatureBase
         return list;
     }
 
-    /// <summary>Splits a comma-separated value into trimmed, non-empty entitlement strings.</summary>
-    private static List<string> ParseList(string? value)
+    private static IReadOnlyDictionary<ulong, string> Persona
     {
-        if (string.IsNullOrWhiteSpace(value))
+        get
         {
-            return new List<string>();
+            if (_personaCache is not null)
+            {
+                return _personaCache;
+            }
+            try
+            {
+                _personaCache = SteamPersonaIndex.LoadMachineAccounts();
+            }
+            catch
+            {
+                _personaCache = new Dictionary<ulong, string>();
+            }
+            return _personaCache;
         }
-        return value
-            .Split(',')
-            .Select(s => s.Trim())
-            .Where(s => s.Length > 0)
-            .ToList();
     }
 }

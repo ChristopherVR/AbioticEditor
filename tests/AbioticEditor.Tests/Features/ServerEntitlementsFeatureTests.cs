@@ -8,9 +8,8 @@ namespace AbioticEditor.Tests.Features;
 
 /// <summary>
 /// Tests for <see cref="ServerEntitlementsFeature"/>. Loads the metadata save (which carries
-/// <c>ServerEntitlements</c>), reads the single entry, edits the comma-separated entitlements
-/// field, and confirms the change re-reads and survives a save/reload round trip. Mirrors the
-/// <see cref="ElevatorMapFeatureTests"/> shape but against the metadata fixture.
+/// <c>ServerEntitlements</c>), reads an entry's per-entitlement toggles, flips one, and confirms
+/// the change re-reads and survives a save/reload round trip.
 /// </summary>
 public sealed class ServerEntitlementsFeatureTests
 {
@@ -36,7 +35,7 @@ public sealed class ServerEntitlementsFeatureTests
     }
 
     [Fact]
-    public void Read_returns_entries_with_editable_entitlements_field()
+    public void Read_exposes_a_toggle_per_known_entitlement()
     {
         var save = LoadMetaData();
         if (save is null)
@@ -47,13 +46,18 @@ public sealed class ServerEntitlementsFeatureTests
         var entries = feature.Read(save);
 
         Assert.NotEmpty(entries);
-        var field = entries[0].Fields.Single(f => f.Id == "entitlements");
-        Assert.Equal(WorldFieldKind.Text, field.Kind);
-        Assert.True(field.Editable);
+        var fields = entries[0].Fields;
+        // The known entitlements each surface as an editable boolean toggle.
+        foreach (var id in new[] { "EarlyAccess", "SupportersEdition" })
+        {
+            var f = fields.Single(x => x.Id == id);
+            Assert.Equal(WorldFieldKind.Bool, f.Kind);
+            Assert.True(f.Editable);
+        }
     }
 
     [Fact]
-    public void SetField_replaces_entitlements_and_round_trips()
+    public void SetField_toggles_an_entitlement_and_round_trips()
     {
         var save = LoadMetaData();
         if (save is null)
@@ -63,23 +67,22 @@ public sealed class ServerEntitlementsFeatureTests
         var feature = WorldMapFeatures.Find("server-entitlements")!;
         var entry = feature.Read(save)[0];
 
-        var result = feature.SetField(save, entry.Key, "entitlements", "alpha, beta");
+        bool Held(SaveGame s) => string.Equals(
+            feature.Read(s).Single(e => e.Key == entry.Key).Fields.Single(f => f.Id == "EarlyAccess").Value,
+            "true", StringComparison.OrdinalIgnoreCase);
+
+        var before = Held(save);
+        var result = feature.SetField(save, entry.Key, "EarlyAccess", (!before).ToString());
         Assert.True(result.Changed);
         Assert.False(result.IsError);
-
-        // Re-read sees the new value.
-        var after = feature.Read(save).Single(e => e.Key == entry.Key)
-            .Fields.Single(f => f.Id == "entitlements").Value;
-        Assert.Equal("alpha, beta", after);
+        Assert.Equal(!before, Held(save));
 
         // Survives a save/reload round trip.
         using var buffer = new MemoryStream();
         save.WriteTo(buffer);
         buffer.Position = 0;
         var reloaded = SaveGame.LoadFrom(buffer);
-        var persisted = feature.Read(reloaded).Single(e => e.Key == entry.Key)
-            .Fields.Single(f => f.Id == "entitlements").Value;
-        Assert.Equal("alpha, beta", persisted);
+        Assert.Equal(!before, Held(reloaded));
     }
 
     [Fact]
@@ -91,16 +94,16 @@ public sealed class ServerEntitlementsFeatureTests
             return;
         }
         var feature = WorldMapFeatures.Find("server-entitlements")!;
-        var key = feature.Read(save)[0].Key;
+        var entry = feature.Read(save)[0];
+        var current = entry.Fields.Single(f => f.Id == "EarlyAccess").Value;
 
-        feature.SetField(save, key, "entitlements", "alpha, beta");
-        var again = feature.SetField(save, key, "entitlements", "alpha, beta");
+        var again = feature.SetField(save, entry.Key, "EarlyAccess", current);
         Assert.False(again.Changed);
         Assert.False(again.IsError);
     }
 
     [Fact]
-    public void SetField_rejects_unknown_field()
+    public void SetField_rejects_non_boolean_value()
     {
         var save = LoadMetaData();
         if (save is null)
@@ -110,6 +113,6 @@ public sealed class ServerEntitlementsFeatureTests
         var feature = WorldMapFeatures.Find("server-entitlements")!;
         var key = feature.Read(save)[0].Key;
 
-        Assert.True(feature.SetField(save, key, "nope", "x").IsError);
+        Assert.True(feature.SetField(save, key, "EarlyAccess", "not-a-bool").IsError);
     }
 }
