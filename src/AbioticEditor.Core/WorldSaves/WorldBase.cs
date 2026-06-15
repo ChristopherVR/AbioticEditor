@@ -13,8 +13,15 @@ public sealed record WorldDeployable(
     double Z,
     bool HasInventory,
     int StoredItemCount,
-    string? CustomName = null)
+    string? CustomName = null,
+    IReadOnlyList<string>? Upgrades = null)
 {
+    /// <summary>
+    /// Installed bench upgrade rows (e.g. <c>TougherBench</c>) read from the deployable's
+    /// gameplay-tag container; empty for deployables with no upgrades. See
+    /// <see cref="BenchUpgradeCatalog"/>.
+    /// </summary>
+    public IReadOnlyList<string> InstalledUpgrades => Upgrades ?? Array.Empty<string>();
     /// <summary>
     /// Separator the game embeds in a bed's <c>CustomTextDisplay_</c> when claiming:
     /// <c>&lt;steamid64&gt;}|!|{&lt;playerName&gt;</c>. An unclaimed bed carries the bare

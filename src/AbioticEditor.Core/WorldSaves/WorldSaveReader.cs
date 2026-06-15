@@ -207,8 +207,11 @@ public static class WorldSaveReader
 
             var customName = ps.Properties.FindByPrefix("CustomTextDisplay_")?.Property?.Value?.ToString();
 
+            var upgrades = BenchUpgradeCatalog.ReadInstalledRows(ps.Properties);
+
             result.Add(new WorldDeployable(id, className, x, y, z, hasInventory, itemCount,
-                string.IsNullOrWhiteSpace(customName) ? null : customName));
+                string.IsNullOrWhiteSpace(customName) ? null : customName,
+                upgrades.Count > 0 ? upgrades : null));
         }
         return result;
     }

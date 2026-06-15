@@ -106,6 +106,61 @@ public static class WorldMapAccessor
         return true;
     }
 
+    // ---------- soft-object-path leaf (e.g. a tram's LastStation_) ----------
+
+    /// <summary>
+    /// Reads the three components of a <c>SoftObjectPath</c> struct leaf (PackageName,
+    /// AssetName, SubPathString), or null when the leaf is absent or not a soft path.
+    /// </summary>
+    /// <remarks>
+    /// <c>SoftObjectPathStruct</c> is internal to UeSaveGame, so its public <c>Value</c>
+    /// (a <see cref="UeSaveGame.DataTypes.SoftObjectPath"/>) is reached by reflection - the
+    /// same approach <c>TramMapFeature</c> uses for reads.
+    /// </remarks>
+    public static (string? Package, string? Asset, string? SubPath)? GetSoftObjectPath(
+        IList<FPropertyTag> props, string prefix)
+    {
+        if (GetSoftObjectPathValue(props, prefix) is not { } sop)
+        {
+            return null;
+        }
+        return (sop.PackageName?.Value, sop.AssetName?.Value, sop.SubPathString?.Value);
+    }
+
+    /// <summary>
+    /// Sets the <c>SubPathString</c> of an existing <c>SoftObjectPath</c> struct leaf in place,
+    /// leaving PackageName/AssetName untouched (they are constant for a given map). Returns false
+    /// when the leaf is absent or isn't a soft path. Used to re-park a tram at a different station.
+    /// </summary>
+    public static bool SetSoftObjectSubPath(IList<FPropertyTag> props, string prefix, string? subPath)
+    {
+        if (GetSoftObjectPathValue(props, prefix) is not { } sop)
+        {
+            return false;
+        }
+        sop.SubPathString = subPath is null ? null : new FString(subPath);
+        return true;
+    }
+
+    private static UeSaveGame.DataTypes.SoftObjectPath? GetSoftObjectPathValue(
+        IList<FPropertyTag> props, string prefix)
+    {
+        if (props.FindByPrefix(prefix)?.Property is not StructProperty sp || sp.Value is null)
+        {
+            return null;
+        }
+        try
+        {
+            // SoftObjectPathStruct.Value : SoftObjectPath (public property on an internal type).
+            var innerProp = sp.Value.GetType().GetProperty("Value");
+            return innerProp?.GetValue(sp.Value) as UeSaveGame.DataTypes.SoftObjectPath;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
     // ---------- primitive setters (create-on-absent) ----------
 
     /// <summary>
