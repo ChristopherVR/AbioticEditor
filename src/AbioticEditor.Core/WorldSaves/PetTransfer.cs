@@ -58,12 +58,18 @@ public static class PetTransfer
         }
 
         WorldSaveWriter.RemovePet(world, worldPetId);
-        var where = destKind == PetSlotKind.Equipment ? "companion slot" : $"hotbar slot {destIndex}";
+        var where = destKind switch
+        {
+            PetSlotKind.Equipment => "companion slot",
+            PetSlotKind.Hotbar => $"hotbar slot {destIndex}",
+            _ => $"{destKind} slot {destIndex}",
+        };
         return new(true, $"moved '{pet.DisplayName}' to the player's {where} (level {pet.Level} and {health:0} HP preserved).");
     }
 
-    // Companion = equipment slot 12. Tries the preferred destination first, then the other, so a
+    // Places the pet in the requested slot kind, with a companion <-> hotbar fallback so a
     // full/absent companion slot doesn't block a move when the hotbar is free (and vice versa).
+    // Equipment is only valid for a pet at the companion slot (12); other equipment slots are armor.
     private static (PetSlotKind Kind, int Index) Place(
         PlayerSaveData player, PetSlotKind preferred, int requestedIndex, CarriedPet carried)
     {
@@ -79,11 +85,17 @@ public static class PetTransfer
             return (PetSlotKind.Hotbar, used);
         }
 
-        var hot = PlayerSaveWriter.AddCarriedPetToSlot(player, PetSlotKind.Hotbar, requestedIndex, carried);
-        if (hot >= 0) return (PetSlotKind.Hotbar, hot);
+        // Hotbar or Main: place in a free slot of that kind.
+        var direct = PlayerSaveWriter.AddCarriedPetToSlot(player, preferred, requestedIndex, carried);
+        if (direct >= 0) return (preferred, direct);
 
-        var comp = PlayerSaveWriter.AddCarriedPetToSlot(player, PetSlotKind.Equipment, CompanionSlot, carried);
-        return (PetSlotKind.Equipment, comp);
+        // Only the hotbar gets a companion-slot fallback (Main isn't a natural pet home).
+        if (preferred == PetSlotKind.Hotbar)
+        {
+            var comp = PlayerSaveWriter.AddCarriedPetToSlot(player, PetSlotKind.Equipment, CompanionSlot, carried);
+            if (comp >= 0) return (PetSlotKind.Equipment, comp);
+        }
+        return (preferred, -1);
     }
 
     /// <summary>
