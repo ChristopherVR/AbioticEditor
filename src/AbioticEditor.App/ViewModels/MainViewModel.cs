@@ -29,12 +29,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public MainViewModel()
     {
         // Restore the diagnostic-logging switch before anything else runs so early
-        // operations (folder restore, asset mount) land in the log when enabled.
-        _diagnosticLoggingEnabled = Preferences.Default.Get(DiagnosticLoggingPreferenceKey, false);
+        // operations (folder restore, asset mount) land in the log. Default ON so a log is always
+        // available for troubleshooting (one file per day, old files pruned); users can turn it off
+        // in Settings and that choice persists.
+        _diagnosticLoggingEnabled = Preferences.Default.Get(DiagnosticLoggingPreferenceKey, true);
         EditorLog.Enabled = _diagnosticLoggingEnabled;
         if (_diagnosticLoggingEnabled)
         {
-            EditorLog.Info("App", "Editor started (diagnostic logging restored from preferences).");
+            EditorLog.Info("App", $"Editor started. Log: {EditorLog.CurrentLogFilePath}");
         }
 
         // Progress-gate messages (blocked unlocks) land on the status line.
@@ -1187,6 +1189,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
         PlayerEditor = null;
         WorldEditor = null;
         ActiveSlot = null;
+        // Tear down the PREVIOUS ini view before building the next one. Swapping one IniEditor for
+        // another in place keeps the ini view visible, so a still-focused Entry (e.g. an Engine.ini
+        // HistoryBuffer field) is reused/half-rebuilt and the old file's textboxes linger. Nulling
+        // it first hides the view (HasIniEditor -> false) so the focused Entry detaches cleanly, and
+        // the next file builds a fresh list.
+        IniEditor = null;
         // See GoHomeAsync: clear the loaded-save marker so returning to the previously open save
         // isn't swallowed by the ReferenceEquals(target, _loadedSave) short-circuit.
         _loadedSave = null;
@@ -1202,6 +1210,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             try
             {
                 IniEditor = new IniEditorViewModel(next.File.FullPath, next.File.Kind);
+                EditorLog.Info("Ini", $"Opened {next.Name} ({next.File.FullPath}); {IniEditor.Sections.Count} section(s).");
                 StatusMessage = $"Editing {next.Name} - every save keeps a .bak of the previous file.";
                 break;
             }
@@ -2103,6 +2112,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
 
         IsLoadingEditor = true;
+        EditorLog.Info("Open", $"Opening {Path.GetFileName(summary.FullPath)} ({summary.KindLabel}).");
         try
         {
             await GameDataServices.EnsureLoadedAsync();
