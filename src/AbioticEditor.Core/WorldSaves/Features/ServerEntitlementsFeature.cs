@@ -74,8 +74,17 @@ public sealed class ServerEntitlementsFeature : WorldMapFeatureBase
                 hint: "An entitlement this editor doesn't have a friendly name for; left as-is unless you turn it off."));
         }
 
+        // Free-text add field, so a future/unknown entitlement can be granted without a code change.
+        fields.Add(new WorldMapField(AddFieldId, "Add entitlement", string.Empty, WorldFieldKind.Text,
+            Editable: true, Options: null,
+            Hint: "Type a new entitlement id and commit to grant it (appears as its own toggle after "
+                + "the next save/reload). For entitlements this build doesn't know about yet."));
+
         return fields;
     }
+
+    /// <summary>Field id of the free-text "add a new entitlement" input.</summary>
+    private const string AddFieldId = "addEntitlement";
 
     protected override WorldEditResult ApplyField(IList<FPropertyTag> props, string fieldId, string? value)
     {
@@ -83,6 +92,25 @@ public sealed class ServerEntitlementsFeature : WorldMapFeatureBase
         {
             return WorldEditResult.Failure("the Entitlements array is missing from this entry.");
         }
+
+        // The free-text add field takes an entitlement id (not a bool): grant it if new.
+        if (string.Equals(fieldId, AddFieldId, StringComparison.OrdinalIgnoreCase))
+        {
+            var id = value?.Trim();
+            if (string.IsNullOrEmpty(id))
+            {
+                return WorldEditResult.NoChange;
+            }
+            var existing = ReadEntitlements(props);
+            if (existing.Contains(id, StringComparer.OrdinalIgnoreCase))
+            {
+                return WorldEditResult.NoChange;
+            }
+            existing.Add(id);
+            arr.Value = existing.Select(s => new FString(s)).ToArray();
+            return WorldEditResult.Success;
+        }
+
         if (!WorldMapAccessor.TryParseBool(value, out var wanted))
         {
             return WorldEditResult.Failure($"'{value}' is not a boolean (use true/false).");
