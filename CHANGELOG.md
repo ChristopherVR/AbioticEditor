@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here.
 
+## [1.6.0] - 2026-06-16
+
+### Bug Fixes
+- Pet placement respects Main slot kind, not just companion/hotbar- INI switch leaves stale entries; enable + surface diagnostic logging- INI editor was blank - drop the broken Source=Root bindings- Send-pet-to-player falls back between companion slot and hotbar- Wrap the player editor tab bar instead of horizontal scroll
+
+### Features
+- Grant future/unknown server entitlements via a free-text add field- Server entitlements as per-grant toggles with player names
+
+### Miscellaneous Tasks
+- Point bucket at v1.5.0 [skip ci]
+
 ## [1.5.0] - 2026-06-15
 
 ### Bug Fixes
