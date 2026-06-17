@@ -87,8 +87,13 @@ public static class AbioticIniCatalog
     /// Finds the known ini files near <paramref name="path"/> (a save file, a world
     /// folder, or any directory inside a save tree). Walks up a few levels checking each
     /// directory for <c>Admin.ini</c>, <c>SandboxSettings.ini</c> and a
-    /// <c>Config/Windows</c> subtree; a directory containing <c>Admin.ini</c> is treated
-    /// as the server root and its <c>Worlds/*/SandboxSettings.ini</c> are included too.
+    /// <c>Config/Windows</c> subtree.
+    ///
+    /// When <c>Admin.ini</c> is found (dedicated-server root), only the
+    /// <c>SandboxSettings.ini</c> for the world that contains <paramref name="path"/> is
+    /// included - not every world under the server. This prevents sandbox settings from
+    /// sibling worlds leaking into the config panel for the currently loaded world.
+    ///
     /// Results are de-duplicated and ordered by kind, then path.
     /// </summary>
     public static IReadOnlyList<AbioticIniFile> Discover(string path)
@@ -107,7 +112,7 @@ public static class AbioticIniCatalog
         var current = new DirectoryInfo(dir);
         for (var depth = 0; current is not null && depth < MaxWalkUp; depth++, current = current.Parent)
         {
-            ProbeDirectory(current.FullName, found);
+            ProbeDirectory(current.FullName, dir, found);
         }
 
         return found.Values
@@ -116,7 +121,7 @@ public static class AbioticIniCatalog
             .ToList();
     }
 
-    private static void ProbeDirectory(string dir, Dictionary<string, AbioticIniFile> found)
+    private static void ProbeDirectory(string dir, string startDir, Dictionary<string, AbioticIniFile> found)
     {
         var sandbox = Path.Combine(dir, SandboxSettingsFileName);
         if (File.Exists(sandbox))
@@ -127,14 +132,18 @@ public static class AbioticIniCatalog
         var admin = Path.Combine(dir, AdminFileName);
         if (File.Exists(admin))
         {
-            // Server root: sweep every world's SandboxSettings.ini too (Backups is a
-            // sibling of Worlds and is intentionally not traversed).
             Add(found, admin, AbioticIniKind.ServerAdmin);
+
+            // Server root: only include the SandboxSettings.ini for the world that contains
+            // startDir - not every sibling world. Opening "df" must not pull in "Cascade"'s
+            // settings even though both live under the same Worlds/ directory.
             var worlds = Path.Combine(dir, "Worlds");
             if (Directory.Exists(worlds))
             {
                 foreach (var world in Directory.EnumerateDirectories(worlds))
                 {
+                    var fullWorld = Path.GetFullPath(world);
+                    if (!startDir.StartsWith(fullWorld, StringComparison.OrdinalIgnoreCase)) continue;
                     var worldSandbox = Path.Combine(world, SandboxSettingsFileName);
                     if (File.Exists(worldSandbox))
                     {
