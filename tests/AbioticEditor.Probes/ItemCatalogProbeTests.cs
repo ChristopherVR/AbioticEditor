@@ -20,6 +20,38 @@ public class ItemCatalogProbeTests
     }
 
     [Fact]
+    public void Probe_AllItemTables_RowCountsAndDlcItems()
+    {
+        var paks = AfInstallLocator.FindPaksDirectory();
+        if (paks is null) return;
+
+        using var provider = AbioticEditor.Core.Assets.GameAssetProvider.CreateForPaks(paks, mappingsPath: AbioticEditor.Core.Assets.GameAssetProvider.FindConventionalMappings());
+        if (!provider.HasMappings)
+        {
+            _output.WriteLine("No mappings - skipping.");
+            return;
+        }
+
+        var supplemental = AbioticEditor.Core.Items.ItemCatalog.DiscoverSupplementalTables(provider);
+        _output.WriteLine($"Supplemental ItemTable assets found: {supplemental.Count}");
+        foreach (var t in supplemental)
+            _output.WriteLine($"  {t}");
+
+        var catalog = AbioticEditor.Core.Items.ItemCatalog.LoadFrom(provider);
+        _output.WriteLine($"\nTotal catalog size: {catalog.Count} item(s)");
+
+        string[] dlcTerms = { "garden", "greek", "wreath", "arcane_mech", "wax_tablet", "botanist" };
+        _output.WriteLine("\nTemple of Stone / DLC candidate items:");
+        foreach (var entry in catalog.Entries
+            .Where(e => dlcTerms.Any(t => e.Id.Contains(t, StringComparison.OrdinalIgnoreCase)
+                                       || (e.DisplayName?.Contains(t, StringComparison.OrdinalIgnoreCase) ?? false)))
+            .OrderBy(e => e.Id))
+        {
+            _output.WriteLine($"  {entry.Id} | {entry.DisplayName}");
+        }
+    }
+
+    [Fact]
     public void Dump_ItemTableGlobalStructure()
     {
         var paks = AfInstallLocator.FindPaksDirectory();

@@ -6,8 +6,10 @@ using CUE4Parse.UE4.Objects.UObject;
 namespace AbioticEditor.Core.Items;
 
 /// <summary>
-/// In-memory index of every item in AF's <c>ItemTable_Global</c>. Built once from the
-/// user's local install and cached for the session.
+/// In-memory index of every item in AF's item tables. Built once from the user's local
+/// install and cached for the session. <c>ItemTable_Global</c> is the required primary;
+/// all other <c>ItemTable_*.uasset</c> files in the same directory are merged in as
+/// supplemental sources so future DLC tables are picked up without an editor update.
 /// </summary>
 public sealed class ItemCatalog
 {
@@ -24,30 +26,109 @@ public sealed class ItemCatalog
     public ItemCatalogEntry? Find(string? itemId)
         => itemId is not null && _byId.TryGetValue(itemId, out var entry) ? entry : null;
 
+    private const string ItemsDir = "AbioticFactor/Content/Blueprints/Items/";
+    private const string PrimaryTable = "AbioticFactor/Content/Blueprints/Items/ItemTable_Global";
+
+    /// <summary>
+    /// True when <paramref name="assetPath"/> (a mounted pak file path) is an item
+    /// DataTable we don't load by name yet - i.e. any <c>ItemTable_*.uasset</c> in the
+    /// Items directory other than <c>ItemTable_Global</c>. Used so future DLC tables that
+    /// ship alongside the main pak are picked up automatically.
+    /// </summary>
+    public static bool IsSupplementalItemTable(string assetPath)
+    {
+        if (!assetPath.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase)) return false;
+        if (!assetPath.StartsWith(ItemsDir, StringComparison.OrdinalIgnoreCase)) return false;
+
+        var nameStart = assetPath.LastIndexOf('/') + 1;
+        var nameEnd = assetPath.Length - ".uasset".Length;
+        if (nameEnd <= nameStart) return false;
+        var name = assetPath[nameStart..nameEnd];
+
+        return name.StartsWith("ItemTable_", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(name, "ItemTable_Global", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Scans the mounted asset list for <c>ItemTable_*.uasset</c> files other than
+    /// <c>ItemTable_Global</c> and returns their package paths (no extension). Used to
+    /// pick up DLC item tables added by future game patches without an editor update.
+    /// </summary>
+    public static IReadOnlyList<string> DiscoverSupplementalTables(GameAssetProvider provider)
+    {
+        var result = new List<string>();
+        try
+        {
+            foreach (var assetPath in provider.AssetPaths)
+            {
+                if (IsSupplementalItemTable(assetPath))
+                    result.Add(assetPath[..^".uasset".Length]);
+            }
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.EditorLog.Warn("ItemCatalog", "Item table discovery scan failed.", ex);
+        }
+        return result;
+    }
+
     /// <summary>
     /// Loads the catalog using the supplied provider. Requires usmap mappings - throws
     /// <see cref="GameAssetProvider.MappingsRequiredException"/> otherwise.
+    /// <c>ItemTable_Global</c> is loaded first and its rows win on any conflict with
+    /// supplemental tables.
     /// </summary>
     public static ItemCatalog LoadFrom(GameAssetProvider provider)
     {
         if (!provider.HasMappings)
-        {
             throw new GameAssetProvider.MappingsRequiredException("ItemTable_Global");
-        }
 
-        var pkg = provider.LoadPackageInternal("AbioticFactor/Content/Blueprints/Items/ItemTable_Global");
-        var dt = pkg.GetExports().OfType<UDataTable>().FirstOrDefault()
+        // Primary table - required. Throws if absent or malformed.
+        var pkg = provider.LoadPackageInternal(PrimaryTable);
+        var primaryDt = pkg.GetExports().OfType<UDataTable>().FirstOrDefault()
             ?? throw new InvalidDataException("ItemTable_Global has no UDataTable export.");
 
         // Case-insensitive: saves carry mixed-case row names (e.g. "PersonalTeleporter"
         // in the table vs lower-cased ids in some save arrays).
-        var dict = new Dictionary<string, ItemCatalogEntry>(dt.RowMap.Count, StringComparer.OrdinalIgnoreCase);
-        foreach (var kv in dt.RowMap)
+        var dict = new Dictionary<string, ItemCatalogEntry>(primaryDt.RowMap.Count, StringComparer.OrdinalIgnoreCase);
+        foreach (var kv in primaryDt.RowMap)
         {
             var id = kv.Key.Text;
             if (string.IsNullOrEmpty(id)) continue;
             dict[id] = BuildEntry(id, kv.Value);
         }
+
+        // Supplemental tables - best-effort. Any ItemTable_*.uasset in the same directory
+        // that isn't ItemTable_Global is merged in; rows already in Global are skipped so
+        // Global always wins on conflict.
+        var supplemental = DiscoverSupplementalTables(provider);
+        Diagnostics.EditorLog.Info(
+            "ItemCatalog",
+            $"Loaded {dict.Count} rows from ItemTable_Global; merging {supplemental.Count} supplemental table(s).");
+        foreach (var tablePath in supplemental)
+        {
+            try
+            {
+                var suppPkg = provider.LoadPackageInternal(tablePath);
+                var dt = suppPkg.GetExports().OfType<UDataTable>().FirstOrDefault();
+                if (dt is null) continue;
+                var added = 0;
+                foreach (var kv in dt.RowMap)
+                {
+                    var id = kv.Key.Text;
+                    if (string.IsNullOrEmpty(id) || dict.ContainsKey(id)) continue;
+                    dict[id] = BuildEntry(id, kv.Value);
+                    added++;
+                }
+                if (added > 0)
+                    Diagnostics.EditorLog.Info("ItemCatalog", $"  +{added} new row(s) from {tablePath[(tablePath.LastIndexOf('/') + 1)..]}");
+            }
+            catch (Exception ex)
+            {
+                Diagnostics.EditorLog.Warn("ItemCatalog", $"Failed to load supplemental item table '{tablePath}'.", ex);
+            }
+        }
+
         return new ItemCatalog(dict);
     }
 
