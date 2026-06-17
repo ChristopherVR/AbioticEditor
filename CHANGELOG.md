@@ -2,10 +2,18 @@
 
 All notable changes to this project are documented here.
 
+## [1.7.1] - 2026-06-17
+
+### Bug Fixes
+- DOWNLOAD & INSTALL now works from the Settings modal- Config discovery no longer leaks sibling-world sandbox settings
+
+### Miscellaneous Tasks
+- Point bucket at v1.7.0 [skip ci]
+
 ## [1.7.0] - 2026-06-17
 
 ### Features
-- Auto-discover all ItemTable_* files for DLC resilience
+- Add Create New World wizard for starting fresh save games- Auto-discover all ItemTable_* files for DLC resilience
 
 ### Miscellaneous Tasks
 - Point bucket at v1.6.0 [skip ci]
