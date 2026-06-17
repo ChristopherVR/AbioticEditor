@@ -235,9 +235,15 @@ public sealed class SettingsPage : ContentPage
             {
                 return;
             }
-            var ok = await Views.ViewUtils.ConfirmAsync(this, "Install update",
+            // DisplayAlert routes through the native WinUI dialog which works correctly
+            // from within a modal page. The shared DialogViewModel overlay is rendered in
+            // the main page tree and appears invisible behind a modal, so ViewUtils.ConfirmAsync
+            // must not be used here.
+            var ok = await DisplayAlertAsync(
+                "Install update",
                 $"Download and install {available.LatestVersion}? The app will close and reopen.",
-                "Install", "Cancel");
+                "Install",
+                "Cancel");
             if (!ok)
             {
                 return;
@@ -245,17 +251,24 @@ public sealed class SettingsPage : ContentPage
 
             checkButton.IsEnabled = false;
             installButton.IsEnabled = false;
-            var progress = new Progress<double>(p => status.Text = $"Downloading... {(int)(p * 100)}%");
+            installButton.Text = "DOWNLOADING...";
+            var progress = new Progress<double>(p =>
+            {
+                status.Text = $"Downloading... {(int)(p * 100)}%";
+                installButton.Text = $"DOWNLOADING {(int)(p * 100)}%";
+            });
             try
             {
                 status.Text = "Downloading update...";
                 await Services.UpdateService.DownloadInstallAndRestartAsync(available, progress);
                 // If we get here the app is about to quit; leave a note in case it lingers.
                 status.Text = "Installing update; the app will restart...";
+                installButton.Text = "INSTALLING...";
             }
             catch (Exception ex)
             {
                 status.Text = $"Update failed: {ex.Message}";
+                installButton.Text = "DOWNLOAD & INSTALL";
                 checkButton.IsEnabled = true;
                 installButton.IsEnabled = true;
             }
