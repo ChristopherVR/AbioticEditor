@@ -18,9 +18,13 @@
                    MaximumWidthRequest="560" />
             <Label Text="Players: stats · inventory · skills · traits · recipes · codex · achievements&#10;Worlds: containers · quest flags · doors · ground items · story progression"
                    Style="{StaticResource AfStatusText}" HorizontalTextAlignment="Center" />
-            <Button Text="OPEN FOLDER"
-                    HorizontalOptions="Center"
-                    Clicked="OnOpenFolderClicked" />
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
+                <Button Text="OPEN FOLDER"
+                        Clicked="OnOpenFolderClicked" />
+                <Button Text="NEW WORLD"
+                        Style="{StaticResource AfGhostButton}"
+                        Clicked="OnCreateWorldClicked" />
+            </HorizontalStackLayout>
             <Label Text="You can also drop a save folder anywhere on this window."
                    Style="{StaticResource AfMuted}" FontSize="10" HorizontalTextAlignment="Center" />
             <Label Text="Every write keeps a .bak backup next to the save."
