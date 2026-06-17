@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here.
 
+## [1.7.0] - 2026-06-17
+
+### Features
+- Auto-discover all ItemTable_* files for DLC resilience
+
+### Miscellaneous Tasks
+- Point bucket at v1.6.0 [skip ci]
+
 ## [1.6.0] - 2026-06-16
 
 ### Bug Fixes
