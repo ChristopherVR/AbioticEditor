@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here.
 
+## [1.8.1] - 2026-06-18
+
+### Miscellaneous Tasks
+- Point bucket at v1.8.0 [skip ci]
+
 ## [1.8.0] - 2026-06-18
 
 ### Features
