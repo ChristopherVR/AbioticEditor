@@ -907,6 +907,11 @@ public static class WorldSaveWriter
         // Null means "no player text" - never create a tag just to hold null.
         SetString(p, "PlayerMadeString_", newSlot.PlayerMadeString,
             newSlot.PlayerMadeString is null ? null : PlayerSaveWriter.FullNames.PlayerMadeString);
+        // AssetID is the per-instance GUID the game tracks items by; a freshly added item
+        // carries a new id (SlotSwap.FillFromCatalog). Write it create-on-miss so a container
+        // or dropped item the editor added registers in-game. Null leaves the existing id.
+        SetString(p, "AssetID_", newSlot.AssetId,
+            newSlot.AssetId is null ? null : PlayerSaveWriter.FullNames.AssetId);
     }
 
     // ---------- primitive setters ----------

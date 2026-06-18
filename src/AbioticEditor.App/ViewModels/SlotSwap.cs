@@ -44,6 +44,11 @@ internal static class SlotSwap
         target.LiquidType = null;
         target.DynamicState = false;
         target.PlayerMadeString = null;
+        // Every item instance needs a unique AssetID GUID: the game tracks/renders items
+        // by it, so an item with a blank or duplicated id occupies the slot but never shows
+        // in-game. A previously-empty slot carries only a blank/zero AssetID, so mint a fresh
+        // one here (the pet path does the same when it creates an instance).
+        target.AssetId = Guid.NewGuid().ToString("N").ToUpperInvariant();
     }
 
     /// <summary>Reset all mutable item fields to the AF empty-slot sentinel.</summary>
