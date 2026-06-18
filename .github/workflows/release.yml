@@ -537,13 +537,15 @@ jobs:
   #
   # archive_existing_version: true moves the prior version into the file's archive
   # when the new one lands, which is what keeps older releases around but not the
-  # primary download. Runs AFTER `publish` so a failed GitHub release stops it.
+  # primary download. Depends only on `build-app-win` (not `publish`), so the Windows
+  # upload runs as soon as the app zip is ready and never waits for the CLI legs or the
+  # GitHub Release; it downloads the app artifact directly rather than off the release.
   #
   # NOTE: the action is in open beta; pin bumps to a newer v1.0.0-beta.* tag as
   # they ship. Only the Windows app is uploaded - the CLI and non-Windows zips are
   # not part of the Nexus page.
   nexus:
-    needs: [version, publish]
+    needs: [version, build-app-win]
     if: needs.version.outputs.released == 'true'
     runs-on: ubuntu-latest
     steps:
