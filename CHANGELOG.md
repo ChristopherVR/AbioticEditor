@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here.
 
+## [1.8.0] - 2026-06-18
+
+### Features
+- Added nexus mod deployment- Added virus scanning to the release packages
+
+### Miscellaneous Tasks
+- Point bucket at v1.7.1 [skip ci]
+
 ## [1.7.1] - 2026-06-17
 
 ### Bug Fixes
