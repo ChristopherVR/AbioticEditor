@@ -1,0 +1,74 @@
+[center][size=6][b]Abiotic Editor[/b][/size]
+[i]A friendly save-game editor for Abiotic Factor.[/i][/center]
+
+[size=5][b]What is this?[/b][/size]
+
+Abiotic Factor keeps your progress in save files on your PC. Abiotic Editor opens those files and shows everything inside as simple, clickable controls: sliders for your needs, a grid for your inventory, a checklist for recipes. Change what you want, press SAVE, and load the game.
+
+No hex editors. No spreadsheets. No risk to your original saves (it keeps a backup every time you save).
+
+Think of it as a cheat menu, a save-repair kit, and a save inspector rolled into one. It is a fan-made tool and is not part of the game.
+
+[size=5][b]What can I do with it?[/b][/size]
+
+[list]
+[*][b]Tweak a single-player run:[/b] top up your hunger, thirst, sanity and health, max out a skill, give yourself money, unlock a recipe, or hand yourself any item in the game.
+[*][b]Fix a mistake:[/b] revive an NPC you lost, refill a node you harvested, or undo a bad decision.
+[*][b]Run a server:[/b] edit any player's save, change world state, or adjust difficulty and rates in the server config files, no text editing required.
+[*][b]Just look around:[/b] see exactly what the game records about your run, with every value labelled in plain language.
+[/list]
+
+You can edit your vitals, inventory, skills, traits, recipes, journal, appearance, respawn point, quest progress, containers, doors, dropped items, NPCs and tamed pets, your base, and more.
+
+[size=5][b]How do I use it?[/b][/size]
+
+[list=1]
+[*][b]Point it at your save folder.[/b] It usually finds your saves on its own, so most of the time you just click LOAD.
+[*][b]Pick a save and edit it.[/b] Drag a slider, tick a recipe, drop in an item. Nothing is changed yet.
+[*][b]Press SAVE.[/b] Your changes are written, and a backup copy of the old save is kept right next to it, so you can always go back.
+[/list]
+
+[size=5][b]Is it safe?[/b][/size]
+
+Your edits are only staged until you press SAVE, every save keeps a backup file, and the editor refuses to create impossible situations (for example, it offers to set a quest's requirements for you instead of letting you skip ahead into a broken story). It also writes the save in the game's exact format, so anything you do not touch is left exactly as the game wrote it.
+
+That said, it is still a save editor. Please keep your own backups of any saves you really care about.
+
+[size=5][b]Installing on Windows[/b][/size]
+
+Download the latest file from the FILES tab, unzip it anywhere, and run [b]AbioticEditor.App.exe[/b]. No installer and no .NET download needed; everything is bundled.
+
+[b]About the "unknown publisher" warning:[/b] this is a free, fan-made tool, so the download is not signed with a paid certificate. Windows SmartScreen (and sometimes antivirus) may warn you the first time you run it. The download is safe; the warning is just the absence of a paid signature.
+
+To get past it: right-click the downloaded zip, choose [b]Properties[/b], tick [b]Unblock[/b], click [b]OK[/b], then unzip and run. If SmartScreen still shows "Windows protected your PC", click [b]More info[/b] then [b]Run anyway[/b].
+
+Prefer a one-line install with no warning at all? You can install it with Scoop (a Windows package manager) instead. See the documentation link below.
+
+[size=5][b]Where are my saves?[/b][/size]
+
+The editor detects your save folders automatically and lists them on the welcome screen, so you can usually just click LOAD. If you ever need the path by hand:
+
+[list]
+[*][b]Game:[/b] %LOCALAPPDATA%\AbioticFactor\Saved\SaveGames\<your steam id>\Worlds\<world name>
+[*][b]Dedicated server:[/b] the folder that contains your Worlds folder.
+[/list]
+
+[size=5][b]Staying up to date[/b][/size]
+
+The app can update itself: open [b]Settings[/b] then [b]Updates[/b] and it will fetch the latest version for you. You can also just download the newest file here whenever a new version drops.
+
+[size=5][b]For the more technical[/b][/size]
+
+There is also a command-line version for scripting and server admins, and a plugin system if you want to add your own bulk edits or tools. Both are covered in the documentation.
+
+[size=5][b]Help and documentation[/b][/size]
+
+[list]
+[*][b]Full guide and FAQ:[/b] https://christophervr.github.io/AbioticEditor/
+[*][b]Getting started:[/b] https://christophervr.github.io/AbioticEditor/guide/getting-started
+[*][b]Source code and releases:[/b] https://github.com/ChristopherVR/AbioticEditor
+[/list]
+
+If something looks wrong or you have a question, please post in the POSTS tab or open an issue on GitHub. Bug reports and ideas are very welcome.
+
+[center][i]A fan-made tool. Not affiliated with or endorsed by the developers of Abiotic Factor.[/i][/center]

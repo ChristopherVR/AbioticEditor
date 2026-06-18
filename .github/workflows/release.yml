@@ -210,54 +210,31 @@ jobs:
           name: release-notes
           path: RELEASE_NOTES.md
 
+  # CLI artifacts only. The Windows desktop app builds in its own `build-app-win` job
+  # (below) so the Windows-only `nexus` upload can depend on just that job instead of
+  # waiting for these CLI legs. All four CLI RIDs are self-contained and publishable
+  # from Linux, so this matrix is ubuntu-only.
   build:
     needs: version
     if: needs.version.outputs.released == 'true'
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     # Every artifact zip carries the release version in its name (e.g.
-    # AbioticEditor-app-win-x64-v1.2.0.zip). Computed once here; matrix + needs are both in scope.
+    # AbioticEditor-cli-win-x64-v1.2.0.zip). Computed once here; matrix + needs are both in scope.
     env:
       ASSET_BASENAME: ${{ matrix.artifact }}-v${{ needs.version.outputs.version }}
-    # The Mac Catalyst app legs are DISABLED (commented out of the matrix below) - the .NET 10
-    # MacCatalyst SDK needs Xcode 26.5+ which hosted runners don't reliably ship, so they never
-    # produced an artifact. Re-enable by uncommenting the app-mac matrix entries (and the mac
-    # build steps). continue-on-error is harmless with no app-mac legs (it evaluates to false).
-    continue-on-error: ${{ matrix.kind == 'app-mac' }}
     strategy:
       # One failing target should not abandon the others' artifacts.
       fail-fast: false
       matrix:
         include:
-          # --- CLI (self-contained, all 4 RIDs publishable from Linux) ---
           - artifact: AbioticEditor-cli-win-x64
-            kind: cli
             rid: win-x64
-            os: ubuntu-latest
           - artifact: AbioticEditor-cli-linux-x64
-            kind: cli
             rid: linux-x64
-            os: ubuntu-latest
           - artifact: AbioticEditor-cli-osx-x64
-            kind: cli
             rid: osx-x64
-            os: ubuntu-latest
           - artifact: AbioticEditor-cli-osx-arm64
-            kind: cli
             rid: osx-arm64
-            os: ubuntu-latest
-          # --- App: Windows (WinUI, unpackaged) ---
-          - artifact: AbioticEditor-app-win-x64
-            kind: app-win
-            os: windows-latest
-          # --- App: macOS (Mac Catalyst) - DISABLED until a runner ships Xcode 26.5+ ---
-          # - artifact: AbioticEditor-app-osx-x64
-          #   kind: app-mac
-          #   mac_arch: x64
-          #   os: macos-latest
-          # - artifact: AbioticEditor-app-osx-arm64
-          #   kind: app-mac
-          #   mac_arch: arm64
-          #   os: macos-latest
     steps:
       - name: Checkout release tag
         uses: actions/checkout@v6
@@ -275,9 +252,7 @@ jobs:
           # Switch to `preview`/`rc` here if a 10.0 GA SDK is not published yet.
           dotnet-quality: ga
 
-      # --- CLI ---------------------------------------------------------------
       - name: Publish CLI
-        if: matrix.kind == 'cli'
         run: >-
           dotnet publish src/AbioticEditor.Cli
           -c Release
@@ -287,14 +262,49 @@ jobs:
           -o out
 
       - name: Zip CLI
-        if: matrix.kind == 'cli'
         run: |
           cd out
           zip -r "../${ASSET_BASENAME}.zip" .
 
-      # --- App: Windows ------------------------------------------------------
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ env.ASSET_BASENAME }}.zip
+          if-no-files-found: error
+
+  # Windows desktop app, built on its own (not in the CLI matrix above) so the
+  # Windows-only `nexus` upload depends on just this job and never waits for the CLI
+  # legs or the GitHub Release.
+  #
+  # The macOS (Mac Catalyst) app legs are DISABLED: the .NET 10 MacCatalyst SDK needs
+  # Xcode 26.5+ which hosted runners don't reliably ship, so they never produced an
+  # artifact. The steps are preserved in git history; to re-enable, add a sibling
+  # `build-app-mac` job (runs-on macos-latest) that selects the newest Xcode, installs
+  # the MAUI workload, runs `dotnet build -f net10.0-maccatalyst -c Release
+  # -p:RuntimeIdentifier=maccatalyst-<arch>`, then zips the produced .app with ditto.
+  # NOTE: those bundles were UNSIGNED/un-notarized (Gatekeeper warns; right-click > Open).
+  build-app-win:
+    needs: version
+    if: needs.version.outputs.released == 'true'
+    runs-on: windows-latest
+    env:
+      ASSET_BASENAME: AbioticEditor-app-win-x64-v${{ needs.version.outputs.version }}
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+          # .NET builds REQUIRE the submodules (Core -> UeSaveGame + CUE4Parse).
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+          dotnet-quality: ga
+
       - name: Install MAUI workload (Windows)
-        if: matrix.kind == 'app-win'
         run: dotnet workload install maui
 
       # Self-contained single-file: one AbioticEditor.App.exe with the .NET runtime + all managed
@@ -303,7 +313,6 @@ jobs:
       # SDK band); EnableCompressionInSingleFile shrinks the exe (~419 MB -> ~166 MB); DebugType
       # =embedded keeps symbols inside the exe instead of a sidecar .pdb.
       - name: Publish App (Windows, self-contained single file)
-        if: matrix.kind == 'app-win'
         run: >-
           dotnet publish src/AbioticEditor.App
           -f net10.0-windows10.0.19041.0
@@ -319,32 +328,18 @@ jobs:
           -o out
 
       - name: Zip App (Windows)
-        if: matrix.kind == 'app-win'
         shell: pwsh
         run: Compress-Archive -Path out/* -DestinationPath "$env:ASSET_BASENAME.zip"
 
-      # --- App: macOS (Mac Catalyst) - DISABLED ------------------------------
-      # The Mac Catalyst app build is commented out: the .NET 10 MacCatalyst SDK
-      # requires Xcode 26.5+ which hosted runners don't reliably ship, so it never
-      # produced an artifact. The steps are preserved in git history; to re-enable,
-      # uncomment the app-mac matrix entries above and restore these steps:
-      #   - Select newest installed Xcode (macOS)
-      #   - Install MAUI workload (macOS)
-      #   - Build App (Mac Catalyst): dotnet build -f net10.0-maccatalyst -c Release
-      #       -p:RuntimeIdentifier=maccatalyst-<arch> -p:ApplicationVersion=<run>
-      #   - Locate the produced .app and zip it with ditto into "${ASSET_BASENAME}.zip"
-      # NOTE: those bundles were UNSIGNED/un-notarized (Gatekeeper warns; right-click > Open).
-
-      # --- Upload ------------------------------------------------------------
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.artifact }}
+          name: AbioticEditor-app-win-x64
           path: ${{ env.ASSET_BASENAME }}.zip
           if-no-files-found: error
 
   publish:
-    needs: [version, build]
+    needs: [version, build, build-app-win]
     if: needs.version.outputs.released == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -576,6 +571,54 @@ jobs:
           name: AbioticEditor-app-win-x64
           path: dist
 
+      # The `version` job already generated this version's changelog with git-cliff
+      # and uploaded it as the `release-notes` artifact. Reuse it here so the Nexus
+      # version description carries the SAME notes as the GitHub release - one source
+      # of truth, no second changelog to maintain.
+      - name: Download release notes
+        if: steps.gate.outputs.enabled == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: release-notes
+          path: dist-notes
+
+      # Turn the git-cliff notes (## [ver] - date / ### Group / - item) into clean
+      # plain text for the Nexus version description: drop the redundant version
+      # heading (the version field carries it), flatten "### Group" to "Group:", and
+      # keep the bullets. Plain text reads correctly whether or not the field renders
+      # BBCode. Emitted as a multiline step output the upload step consumes.
+      - name: Build NexusMods changelog
+        id: changelog
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          TAG: ${{ needs.version.outputs.tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          notes="dist-notes/RELEASE_NOTES.md"
+          {
+            printf 'Abiotic Editor v%s\n\n' "$VERSION"
+            printf 'What changed in this version:\n\n'
+            if [ -s "$notes" ]; then
+              sed -E \
+                -e '/^##[[:space:]]*\[/d' \
+                -e 's/^###[[:space:]]+(.*)$/\1:/' \
+                "$notes"
+            else
+              printf -- '- See the GitHub release for the full changelog.\n'
+            fi
+            printf '\nFull changelog and SHA-256 checksums:\n'
+            printf 'https://github.com/%s/releases/tag/%s\n' "$REPO" "$TAG"
+          } > nexus_description.txt
+          echo "----- nexus_description.txt -----"
+          cat nexus_description.txt
+          {
+            echo "body<<__NEXUS_EOF__"
+            cat nexus_description.txt
+            echo "__NEXUS_EOF__"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Upload Windows app to NexusMods
         if: steps.gate.outputs.enabled == 'true'
         uses: Nexus-Mods/upload-action@v1.0.0-beta.8
@@ -585,9 +628,7 @@ jobs:
           filename: dist/AbioticEditor-app-win-x64-v${{ needs.version.outputs.version }}.zip
           version: ${{ needs.version.outputs.version }}
           display_name: AbioticEditor v${{ needs.version.outputs.version }} (Windows)
-          description: >-
-            Self-contained Windows desktop build. Full changelog and SHA-256 checksums:
-            https://github.com/${{ github.repository }}/releases/tag/${{ needs.version.outputs.tag }}
+          description: ${{ steps.changelog.outputs.body }}
           category: main
           archive_existing_version: true
 
