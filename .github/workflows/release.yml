@@ -15,7 +15,10 @@ name: Release
 #      and pushes a vX.Y.Z tag on that commit.
 #   4. `build` publishes the 7 release artifacts off the new tag.
 #   5. `publish` attaches them to a GitHub Release.
-#   6. `nuget` packs AbioticEditor.Core + AbioticEditor.Plugins.Abstractions off
+#   6. `scan` uploads every published zip to VirusTotal and appends the per-file
+#      scan permalinks to the release body (needs the VT_API_KEY secret; the job
+#      is skipped, not failed, when the secret is absent).
+#   7. `nuget` packs AbioticEditor.Core + AbioticEditor.Plugins.Abstractions off
 #      the new tag and pushes them to nuget.org (needs the NUGET_API_KEY secret;
 #      the push step is skipped, not failed, when the secret is absent).
 #
@@ -435,6 +438,93 @@ jobs:
             git rebase origin/main
           done
           echo "::warning::Could not push Scoop manifest bump after 3 attempts."
+
+  # Upload every published zip to VirusTotal and append the per-file scan
+  # permalinks to the GitHub Release body, so users can verify an unsigned
+  # download against 70+ engines before running it.
+  #
+  # Needs the VT_API_KEY secret (a free virustotal.com API key). When the secret
+  # is absent the whole job no-ops (a warning, not a failure), so the release
+  # still ships - mirroring how `nuget` handles a missing NUGET_API_KEY.
+  #
+  # Runs AFTER `publish` so the release exists to edit. Idempotent on a republish:
+  # any prior "VirusTotal scan" section is stripped before the fresh links are
+  # appended, so the section never stacks duplicates.
+  scan:
+    needs: [version, publish]
+    if: needs.version.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      # Gate the rest of the job on the secret being present. `if:` cannot read
+      # secrets directly, so surface it as a step output the later steps key on.
+      - name: Check for VirusTotal API key
+        id: gate
+        env:
+          VT_API_KEY: ${{ secrets.VT_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -n "${VT_API_KEY}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::VT_API_KEY secret not set; skipping VirusTotal scan."
+          fi
+
+      - name: Download all artifacts
+        if: steps.gate.outputs.enabled == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          # Flatten every artifact (the 7 zips + the release notes) into ./dist;
+          # only the zips are scanned below.
+          path: dist
+          merge-multiple: true
+
+      # Uploads each file and waits for the analysis id. `analysis` is emitted as a
+      # comma-separated "path=url" list. Large files (the ~166 MB app zip) use VT's
+      # big-file upload endpoint, which the action selects automatically.
+      - name: Scan zips with VirusTotal
+        id: vt
+        if: steps.gate.outputs.enabled == 'true'
+        uses: crazy-max/ghaction-virustotal@v4
+        with:
+          vt_api_key: ${{ secrets.VT_API_KEY }}
+          files: |
+            dist/*.zip
+
+      - name: Append VirusTotal results to the release body
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.version.outputs.tag }}
+          ANALYSIS: ${{ steps.vt.outputs.analysis }}
+        run: |
+          set -euo pipefail
+
+          # Build the markdown section from the "path=url,path=url" analysis output.
+          {
+            echo "## VirusTotal scan"
+            echo
+            echo "Automated multi-engine scan of the published archives:"
+            echo
+            IFS=',' read -ra items <<< "${ANALYSIS}"
+            for item in "${items[@]}"; do
+              [ -z "$item" ] && continue
+              name="${item%%=*}"
+              url="${item#*=}"
+              echo "- [\`$(basename "$name")\`](${url})"
+            done
+          } > vt_section.md
+          echo "----- vt_section.md -----"
+          cat vt_section.md
+
+          # Fetch the current body, drop any prior VirusTotal section (idempotent on
+          # republish), then append the fresh one and write it back.
+          gh release view "$TAG" --json body --jq '.body' > body.md
+          awk 'BEGIN{keep=1} /^## VirusTotal scan/{keep=0} keep{print}' body.md > body.trimmed.md
+          mv body.trimmed.md body.md
+          printf '\n' >> body.md
+          cat vt_section.md >> body.md
+          gh release edit "$TAG" --notes-file body.md
 
   # Pack the library packages off the new tag and push them to nuget.org.
   # AbioticEditor.Plugins.Abstractions is what plugin authors compile against;
