@@ -256,6 +256,23 @@ Handlers run when the host raises that event (see the table in [`plugins.md`](pl
 for the names and payloads). Keep them quick and non-throwing: the host logs and isolates
 failures, but a slow handler stalls the action that fired it.
 
+## 8b. A localization (translate the UI)
+
+A plugin can add a language or override individual UI strings. Contribute them in `Configure`:
+
+```csharp
+registry.AddLocalization("it", new Dictionary<string, string>
+{
+    ["Common_Save"] = "SALVA",
+    ["Header_OpenFolder"] = "APRI CARTELLA",
+});
+```
+
+Or ship a **pure-data pack** with no code at all: set `"runtime": "localization"` and point the
+manifest's `localizations` map at a `.resx`/`.json` file per culture. JavaScript plugins use
+`abiotic.addLocalization(culture, { Key: "text" })`. Full guide, key conventions, and the
+resolution order: [Localization](localization.md).
+
 ## 9. A JavaScript plugin (no build step)
 
 Set `"runtime": "javascript"` and `"entryScript": "plugin.js"` in the manifest, and write a

@@ -32,4 +32,473 @@
   <data name="Header_Files" xml:space="preserve"><value>ARCHIVOS</value></data>
   <data name="Header_Tools" xml:space="preserve"><value>HERRAMIENTAS</value></data>
   <data name="Header_OpenFolder" xml:space="preserve"><value>ABRIR CARPETA</value></data>
+  <data name="Header_ActiveSaveFolder" xml:space="preserve"><value>CARPETA DE GUARDADO ACTIVA</value></data>
+  <data name="Header_HomeTooltip" xml:space="preserve"><value>Inicio: página de inicio con todos los mundos detectados</value></data>
+
+  <!-- Empty -->
+  <data name="Empty_EveryWriteKeepsABakBackupNextToTheSave" xml:space="preserve"><value>Cada escritura conserva una copia de seguridad .bak junto al guardado.</value></data>
+  <data name="Empty_Load" xml:space="preserve"><value>CARGAR</value></data>
+  <data name="Empty_NewWorld" xml:space="preserve"><value>NUEVO MUNDO</value></data>
+  <data name="Empty_OpenFolder" xml:space="preserve"><value>ABRIR CARPETA</value></data>
+  <data name="Empty_OpenYourSaveFolderInstructions" xml:space="preserve"><value>Abre tu carpeta de guardados (normalmente …\AppData\Local\AbioticFactor\Saved\SaveGames\&lt;steamid&gt;\Worlds\&lt;WorldName&gt;) y luego elige un guardado de jugador o de mundo en la barra lateral.</value></data>
+  <data name="Empty_PlayersWorldsSummary" xml:space="preserve"><value>Jugadores: estadísticas · inventario · habilidades · rasgos · recetas · códice · logros
+Mundos: contenedores · indicadores de misión · puertas · objetos en el suelo · progreso de la historia</value></data>
+  <data name="Empty_SaveFoldersDetectedAutomatically" xml:space="preserve"><value>Carpetas de guardado detectadas automáticamente desde el cliente del juego y cualquier servidor dedicado instalado. Elige una, o usa ABRIR CARPETA / arrastra una carpeta aquí.</value></data>
+  <data name="Empty_WorldsFoundOnThisMachine" xml:space="preserve"><value>MUNDOS ENCONTRADOS EN ESTE EQUIPO</value></data>
+  <data name="Empty_YouCanAlsoDropASaveFolderAnywhereOnThisWindow" xml:space="preserve"><value>También puedes soltar una carpeta de guardado en cualquier parte de esta ventana.</value></data>
+
+  <!-- FileSidebar -->
+  <data name="FileSidebar_AddAPlayerNewOrCopiedFromAnExistingOne" xml:space="preserve"><value>Añadir un jugador (nuevo o copiado de uno existente)</value></data>
+  <data name="FileSidebar_ClearFilter" xml:space="preserve"><value>Limpiar filtro</value></data>
+  <data name="FileSidebar_ClickOpenFolderToPointAtACascadeSaveDirectory" xml:space="preserve"><value>Haz clic en ABRIR CARPETA para apuntar a un directorio de guardado de Cascade.</value></data>
+  <data name="FileSidebar_ConfigFiles" xml:space="preserve"><value>ARCHIVOS DE CONFIGURACIÓN</value></data>
+  <data name="FileSidebar_NoFolderLoaded" xml:space="preserve"><value>NINGUNA CARPETA CARGADA</value></data>
+  <data name="FileSidebar_SaveFiles" xml:space="preserve"><value>ARCHIVOS DE GUARDADO</value></data>
+  <data name="FileSidebar_SearchSavesAndConfig" xml:space="preserve"><value>Buscar guardados &amp; configuración</value></data>
+
+  <!-- Ini -->
+  <data name="Ini_Add" xml:space="preserve"><value>+ AÑADIR</value></data>
+  <data name="Ini_Revert" xml:space="preserve"><value>REVERTIR</value></data>
+  <data name="Ini_SaveIni" xml:space="preserve"><value>GUARDAR INI</value></data>
+
+  <!-- Main -->
+  <data name="Main_ParseError" xml:space="preserve"><value>ERROR DE ANÁLISIS</value></data>
+  <data name="Main_ParsingSaveLargeWorldSavesCanTakeAFewSeconds" xml:space="preserve"><value>ANALIZANDO GUARDADO: los guardados de mundos grandes pueden tardar unos segundos…</value></data>
+  <data name="Main_Reload" xml:space="preserve"><value>RECARGAR</value></data>
+  <data name="Main_Revert" xml:space="preserve"><value>REVERTIR</value></data>
+  <data name="Main_Save" xml:space="preserve"><value>GUARDAR</value></data>
+  <data name="Main_ShowOrHideTheSaveFileList" xml:space="preserve"><value>Mostrar u ocultar la lista de archivos de guardado</value></data>
+  <data name="Main_ShowOrHideTheSlotEditorAndItemCatalog" xml:space="preserve"><value>Mostrar u ocultar el editor de ranuras &amp; el catálogo de objetos</value></data>
+  <data name="Main_Unsaved" xml:space="preserve"><value>SIN GUARDAR</value></data>
+
+  <!-- PlayerAchievements -->
+  <data name="PlayerAchievements_CheckSteam" xml:space="preserve"><value>VERIFICAR STEAM</value></data>
+  <data name="PlayerAchievements_CheckSteamTooltip" xml:space="preserve"><value>Verifica contra steamcommunity.com (requiere un perfil público o un inicio de sesión en la app) - añade iconos, fechas de desbloqueo y el estado de desbloqueo autoritativo. La caché local solo se actualiza mientras Steam está en ejecución.</value></data>
+  <data name="PlayerAchievements_CompareWith" xml:space="preserve"><value>Comparar con...</value></data>
+  <data name="PlayerAchievements_GatedProfileHelp" xml:space="preserve"><value>El editor consulta Steam de forma anónima, por lo que los perfiles con detalles del juego no públicos vuelven vacíos. Inicia sesión en Steam dentro de la app y VERIFICAR STEAM reutiliza esa sesión (funciona para tu propia cuenta y para amigos). Como alternativa, abre la página en tu navegador, o haz públicos los detalles del juego para que la consulta anónima tenga éxito.</value></data>
+  <data name="PlayerAchievements_NoAchievementData" xml:space="preserve"><value>No hay datos de logros - prueba VERIFICAR STEAM.</value></data>
+  <data name="PlayerAchievements_PrivacySettings" xml:space="preserve"><value>AJUSTES DE PRIVACIDAD</value></data>
+  <data name="PlayerAchievements_PrivacySettingsTooltip" xml:space="preserve"><value>Abre tus ajustes de privacidad de Steam - establece 'Detalles del juego' en Público, espera unos minutos y vuelve a pulsar VERIFICAR STEAM.</value></data>
+  <data name="PlayerAchievements_SearchPlaceholder" xml:space="preserve"><value>Buscar logros...</value></data>
+  <data name="PlayerAchievements_ShowSpoilers" xml:space="preserve"><value>MOSTRAR SPOILERS</value></data>
+  <data name="PlayerAchievements_ShowSpoilersTooltip" xml:space="preserve"><value>Muchos de los logros del juego son spoilers ocultos de la historia. Esto refleja el ajuste de protección contra spoilers de toda la app (marcado = mostrar todo). También puedes tocar cualquier fila CLASIFICADO para revelar solo esa.</value></data>
+  <data name="PlayerAchievements_SignInInApp" xml:space="preserve"><value>INICIAR SESIÓN (EN LA APP)</value></data>
+  <data name="PlayerAchievements_SignInInAppTooltip" xml:space="preserve"><value>Abre la página de inicio de sesión de Steam en una ventana dentro del editor; la sesión capturada se usa después para la verificación de logros. Tu contraseña va solo a Steam.</value></data>
+  <data name="PlayerAchievements_SignOut" xml:space="preserve"><value>CERRAR SESIÓN</value></data>
+  <data name="PlayerAchievements_SignOutTooltip" xml:space="preserve"><value>Borra la cookie de sesión de Steam guardada en memoria y en el almacenamiento seguro.</value></data>
+  <data name="PlayerAchievements_SignedIn" xml:space="preserve"><value>SESIÓN INICIADA ·</value></data>
+  <data name="PlayerAchievements_SignedInTooltip" xml:space="preserve"><value>Hay una cookie de sesión de Steam guardada (protegida por el SO) - VERIFICAR STEAM consulta como esa cuenta.</value></data>
+  <data name="PlayerAchievements_SteamAchievements" xml:space="preserve"><value>LOGROS DE STEAM</value></data>
+  <data name="PlayerAchievements_ViewInBrowser" xml:space="preserve"><value>VER EN EL NAVEGADOR</value></data>
+  <data name="PlayerAchievements_ViewInBrowserTooltip" xml:space="preserve"><value>Abre el inicio de sesión de la comunidad de Steam en tu navegador y luego redirige a la página de logros de Abiotic Factor de este perfil.</value></data>
+
+  <!-- PlayerCharacter -->
+  <data name="PlayerCharacter_Add" xml:space="preserve"><value>AÑADIR</value></data>
+  <data name="PlayerCharacter_AppearanceHeadHairClothing" xml:space="preserve"><value>APARIENCIA (CABEZA / PELO / ROPA)</value></data>
+  <data name="PlayerCharacter_Background" xml:space="preserve"><value>TRASFONDO</value></data>
+  <data name="PlayerCharacter_BackgroundHelp" xml:space="preserve"><value>Cambiar el trasfondo no vuelve a aplicar sus bonificaciones de habilidad ni el equipo inicial; solo cambia el id de trabajo del guardado.</value></data>
+  <data name="PlayerCharacter_Character" xml:space="preserve"><value>PERSONAJE</value></data>
+  <data name="PlayerCharacter_NoTraitsMatch" xml:space="preserve"><value>Ningún rasgo coincide (o todos ya están aplicados).</value></data>
+  <data name="PlayerCharacter_SaveAppearance" xml:space="preserve"><value>GUARDAR APARIENCIA</value></data>
+  <data name="PlayerCharacter_SearchTraitsPlaceholder" xml:space="preserve"><value>Buscar rasgos para añadir...</value></data>
+  <data name="PlayerCharacter_Traits" xml:space="preserve"><value>RASGOS</value></data>
+
+  <!-- PlayerCodex -->
+  <data name="PlayerCodex_EquipThisBait" xml:space="preserve"><value>EQUIPAR ESTE CEBO</value></data>
+  <data name="PlayerCodex_FetchingImage" xml:space="preserve"><value>Obteniendo imagen de la wiki...</value></data>
+  <data name="PlayerCodex_FooterHelp" xml:space="preserve"><value>Los correos, el diario, el compendio y los estados de peces son todos editables (preparar + GUARDAR). Las entradas del compendio se desbloquean automáticamente en las listas de la sección correspondiente.</value></data>
+  <data name="PlayerCodex_Journal" xml:space="preserve"><value>DIARIO</value></data>
+  <data name="PlayerCodex_Kills" xml:space="preserve"><value>BAJAS</value></data>
+  <data name="PlayerCodex_MarkAllRead" xml:space="preserve"><value>MARCAR TODO COMO LEÍDO</value></data>
+  <data name="PlayerCodex_NothingMatches" xml:space="preserve"><value>Nada coincide (o los datos del juego no están disponibles).</value></data>
+  <data name="PlayerCodex_SearchPlaceholder" xml:space="preserve"><value>Buscar títulos, remitentes y texto completo…</value></data>
+  <data name="PlayerCodex_SelectAnEntry" xml:space="preserve"><value>Selecciona una entrada para leerla.</value></data>
+  <data name="PlayerCodex_ToCatchIt" xml:space="preserve"><value>PARA PESCARLO</value></data>
+  <data name="PlayerCodex_UnlocksTheBait" xml:space="preserve"><value>DESBLOQUEA EL CEBO</value></data>
+  <data name="PlayerCodex_WhenYouCatchIt" xml:space="preserve"><value>CUANDO LO PESQUES</value></data>
+  <data name="PlayerCodex_UnreadOnly" xml:space="preserve"><value>SOLO NO LEÍDOS</value></data>
+
+  <!-- PlayerEditor -->
+  <data name="PlayerEditor_Achieve" xml:space="preserve"><value>LOGROS</value></data>
+  <data name="PlayerEditor_Character" xml:space="preserve"><value>PERSONAJE</value></data>
+  <data name="PlayerEditor_Companions" xml:space="preserve"><value>COMPAÑEROS</value></data>
+  <data name="PlayerEditor_Data" xml:space="preserve"><value>DATOS</value></data>
+  <data name="PlayerEditor_Gatepal" xml:space="preserve"><value>GATEPAL</value></data>
+  <data name="PlayerEditor_General" xml:space="preserve"><value>GENERAL</value></data>
+  <data name="PlayerEditor_Inventory" xml:space="preserve"><value>INVENTARIO</value></data>
+  <data name="PlayerEditor_Recipes" xml:space="preserve"><value>RECETAS</value></data>
+  <data name="PlayerEditor_Skills" xml:space="preserve"><value>HABILIDADES</value></data>
+  <data name="PlayerEditor_Spawn" xml:space="preserve"><value>APARICIÓN</value></data>
+  <data name="PlayerEditor_Transmog" xml:space="preserve"><value>TRANSMOG</value></data>
+  <data name="PlayerEditor_Vitals" xml:space="preserve"><value>SIGNOS VITALES</value></data>
+
+  <!-- PlayerGeneral -->
+  <data name="PlayerGeneral_Account" xml:space="preserve"><value>CUENTA</value></data>
+  <data name="PlayerGeneral_BulkUnlocks" xml:space="preserve"><value>DESBLOQUEOS MASIVOS</value></data>
+  <data name="PlayerGeneral_ChangeSteamId" xml:space="preserve"><value>CAMBIAR STEAM ID</value></data>
+  <data name="PlayerGeneral_ChangeSteamIdHelp" xml:space="preserve"><value>Renombra el archivo Y reescribe el SaveIdentifier interno del guardado (se conserva un .bak del original). Las camas reclamadas en el mundo siguen haciendo referencia al id antiguo.</value></data>
+  <data name="PlayerGeneral_DiscoverAll" xml:space="preserve"><value>DESCUBRIR TODO</value></data>
+  <data name="PlayerGeneral_DiscoverAllItemsTooltip" xml:space="preserve"><value>Añade todos los objetos del catálogo a la lista de objetos vistos de este jugador. Efecto: ya no aparecen distintivos amarillos NUEVO en el inventario, y las pistas del compendio condicionadas a la recogida tratan todo como ya encontrado. No afecta a misiones ni estadísticas.</value></data>
+  <data name="PlayerGeneral_DiscoveryHelp" xml:space="preserve"><value>Qué hacen: OBJETOS VISTOS suprime los distintivos NUEVO; OBJETOS FABRICADOS marca el historial de primera fabricación (usado por las pistas condicionadas a fabricación); MAPAS revela los folletos del mapa del sector en la pantalla del mapa de GATEPal. Ninguno avanza misiones, abre puertas ni cambia estadísticas.</value></data>
+  <data name="PlayerGeneral_General" xml:space="preserve"><value>GENERAL</value></data>
+  <data name="PlayerGeneral_ItemsCrafted" xml:space="preserve"><value>OBJETOS FABRICADOS</value></data>
+  <data name="PlayerGeneral_ItemsSeen" xml:space="preserve"><value>OBJETOS VISTOS</value></data>
+  <data name="PlayerGeneral_Maps" xml:space="preserve"><value>MAPAS</value></data>
+  <data name="PlayerGeneral_MapsTooltip" xml:space="preserve"><value>Los mapas son los folletos de papel que revelan la disposición de cada sector en la pantalla del mapa de GATEPal. DESBLOQUEAR TODO los concede todos como si se hubieran recogido. Puramente informativo - no abre puertas ni avanza misiones.</value></data>
+  <data name="PlayerGeneral_Recipes" xml:space="preserve"><value>RECETAS</value></data>
+  <data name="PlayerGeneral_RecipesHelp" xml:space="preserve"><value>Examina y activa recetas individuales en la pestaña RECETAS de arriba.</value></data>
+  <data name="PlayerGeneral_SteamId64" xml:space="preserve"><value>STEAM ID 64</value></data>
+  <data name="PlayerGeneral_UnlockAll" xml:space="preserve"><value>DESBLOQUEAR TODO</value></data>
+
+  <!-- PlayerInventory -->
+  <data name="PlayerInventory_DropItem" xml:space="preserve"><value>SOLTAR OBJETO</value></data>
+  <data name="PlayerInventory_DropItemTooltip" xml:space="preserve"><value>Selecciona una ranura ocupada y luego SOLTAR coloca ese objeto en el suelo del mundo cerca de ti. Al GUARDAR se escribe en el guardado del mundo y aparece en OBJETOS EN EL SUELO CERCANOS (se conserva un .bak).</value></data>
+  <data name="PlayerInventory_Equipment" xml:space="preserve"><value>EQUIPO</value></data>
+  <data name="PlayerInventory_GroundNearbyHelp" xml:space="preserve"><value>Objetos soltados al alcance de donde este jugador estuvo por última vez. RECOGER mueve uno a la primera ranura libre de la mochila (preparado); GUARDAR escribe el inventario y lo quita del suelo (se conserva un .bak). DESCARTAR lo deja ahí tirado.</value></data>
+  <data name="PlayerInventory_Hotbar" xml:space="preserve"><value>BARRA RÁPIDA</value></data>
+  <data name="PlayerInventory_Inventory" xml:space="preserve"><value>INVENTARIO</value></data>
+  <data name="PlayerInventory_Money" xml:space="preserve"><value>DINERO</value></data>
+  <data name="PlayerInventory_Occupied" xml:space="preserve"><value>OCUPADO</value></data>
+  <data name="PlayerInventory_OnTheGroundNearby" xml:space="preserve"><value>EN EL SUELO CERCA</value></data>
+  <data name="PlayerInventory_PickUp" xml:space="preserve"><value>RECOGER</value></data>
+  <data name="PlayerInventory_Sort" xml:space="preserve"><value>ORDENAR</value></data>
+  <data name="PlayerInventory_SortTooltip" xml:space="preserve"><value>Ordena la mochila: objetos agrupados por categoría y nombre, los vacíos al final.</value></data>
+  <data name="PlayerInventory_Weight" xml:space="preserve"><value>PESO</value></data>
+
+  <!-- PlayerPets -->
+  <data name="PlayerPets_CarriedPetsCompanions" xml:space="preserve"><value>MASCOTAS / COMPAÑEROS TRANSPORTADOS</value></data>
+  <data name="PlayerPets_CarryOverHelp" xml:space="preserve"><value>La salud, el nivel y el nombre se transfieren. Guarda primero otras ediciones del jugador.</value></data>
+  <data name="PlayerPets_Heal" xml:space="preserve"><value>CURAR</value></data>
+  <data name="PlayerPets_Health" xml:space="preserve"><value>SALUD</value></data>
+  <data name="PlayerPets_Hp" xml:space="preserve"><value>HP</value></data>
+  <data name="PlayerPets_IntroHelp" xml:space="preserve"><value>Mascotas que este jugador lleva como objetos - en la ranura de Compañero, la barra rápida o la mochila. Haz clic en una para renombrarla, cambiar su variante, fijar su nivel (XP) o salud, o quitarla. Las ediciones se preparan hasta GUARDAR. Mueve mascotas entre un jugador y el mundo con la CLI ('pet send' / 'pet grab').</value></data>
+  <data name="PlayerPets_LevelAndXp" xml:space="preserve"><value>NIVEL &amp; XP</value></data>
+  <data name="PlayerPets_Lv" xml:space="preserve"><value>LV</value></data>
+  <data name="PlayerPets_Max" xml:space="preserve"><value>MÁX</value></data>
+  <data name="PlayerPets_Name" xml:space="preserve"><value>NOMBRE</value></data>
+  <data name="PlayerPets_NamePlaceholder" xml:space="preserve"><value>nombra tu mascota…</value></data>
+  <data name="PlayerPets_NoBedHelp" xml:space="preserve"><value>Este mundo no tiene cama de mascota - la mascota se colocará en el origen del mundo.</value></data>
+  <data name="PlayerPets_NoPets" xml:space="preserve"><value>Este jugador no lleva ninguna mascota.</value></data>
+  <data name="PlayerPets_PetBed" xml:space="preserve"><value>Cama de mascota</value></data>
+  <data name="PlayerPets_RemoveFromInventory" xml:space="preserve"><value>QUITAR DEL INVENTARIO</value></data>
+  <data name="PlayerPets_SelectAPet" xml:space="preserve"><value>Selecciona una mascota para editarla.</value></data>
+  <data name="PlayerPets_SendToAPetBed" xml:space="preserve"><value>ENVIAR A UNA CAMA DE MASCOTA</value></data>
+  <data name="PlayerPets_SendToBed" xml:space="preserve"><value>ENVIAR A LA CAMA</value></data>
+  <data name="PlayerPets_UndoRemove" xml:space="preserve"><value>DESHACER QUITAR</value></data>
+  <data name="PlayerPets_Variant" xml:space="preserve"><value>VARIANTE</value></data>
+  <data name="PlayerPets_World" xml:space="preserve"><value>Mundo</value></data>
+  <data name="PlayerPets_Xp" xml:space="preserve"><value>XP</value></data>
+
+  <!-- PlayerRaw -->
+  <data name="PlayerRaw_ExportJsonAndOpen" xml:space="preserve"><value>EXPORTAR JSON + ABRIR</value></data>
+  <data name="PlayerRaw_ImportJsonToSave" xml:space="preserve"><value>IMPORTAR JSON → GUARDAR</value></data>
+  <data name="PlayerRaw_RawSaveJson" xml:space="preserve"><value>JSON CRUDO DEL GUARDADO</value></data>
+  <data name="PlayerRaw_RawSaveJsonHelp" xml:space="preserve"><value>El JSON del guardado es demasiado grande para editarlo cómodamente en la app. EXPORTAR escribe un archivo .json junto al guardado y lo abre en tu editor predeterminado; haz ahí tus cambios, guarda y luego IMPORTAR para convertirlo de vuelta en el .sav (se conserva una copia de seguridad .bak del guardado).</value></data>
+
+  <!-- PlayerRecipes -->
+  <data name="PlayerRecipes_CraftedAt" xml:space="preserve"><value>FABRICADO EN</value></data>
+  <data name="PlayerRecipes_FooterHelp" xml:space="preserve"><value>Haz clic en una receta para ver su detalle completo al estilo wiki. Activar una casilla prepara el cambio; pulsa GUARDAR en el encabezado de la pestaña ESTRUCTURADO para escribirlo.</value></data>
+  <data name="PlayerRecipes_Ingredients" xml:space="preserve"><value>INGREDIENTES</value></data>
+  <data name="PlayerRecipes_NoRecipesMatch" xml:space="preserve"><value>Ninguna receta coincide (o los datos del juego no están disponibles).</value></data>
+  <data name="PlayerRecipes_RecipeBook" xml:space="preserve"><value>LIBRO DE RECETAS</value></data>
+  <data name="PlayerRecipes_SearchPlaceholder" xml:space="preserve"><value>Buscar recetas por nombre de objeto o id…</value></data>
+  <data name="PlayerRecipes_SoldBy" xml:space="preserve"><value>VENDIDO POR</value></data>
+  <data name="PlayerRecipes_Tags" xml:space="preserve"><value>ETIQUETAS</value></data>
+  <data name="PlayerRecipes_UnlockAll" xml:space="preserve"><value>DESBLOQUEAR TODO</value></data>
+  <data name="PlayerRecipes_UpgradePath" xml:space="preserve"><value>RUTA DE MEJORA</value></data>
+  <data name="PlayerRecipes_UsedIn" xml:space="preserve"><value>USADO EN</value></data>
+
+  <!-- PlayerSkills -->
+  <data name="PlayerSkills_LevelRangeHint" xml:space="preserve"><value>NIVEL 0–20 · FIJAR EL NIVEL AJUSTA LA XP AL UMBRAL</value></data>
+  <data name="PlayerSkills_Lv" xml:space="preserve"><value>LV</value></data>
+  <data name="PlayerSkills_Max" xml:space="preserve"><value>MÁX</value></data>
+  <data name="PlayerSkills_MaxAll" xml:space="preserve"><value>MÁXIMO TODO</value></data>
+  <data name="PlayerSkills_MilestoneHelp" xml:space="preserve"><value>Toca un hito para ver su detalle completo en el panel de ranura. El número de hitos varía por habilidad, y las ventajas bloqueadas permanecen selladas (ocultas en el juego) hasta que alcanzas el nivel - o toca una para anular el desbloqueo.</value></data>
+  <data name="PlayerSkills_RawXpTooltip" xml:space="preserve"><value>XP cruda; el nivel se vuelve a derivar de ella.</value></data>
+  <data name="PlayerSkills_Skills" xml:space="preserve"><value>HABILIDADES</value></data>
+  <data name="PlayerSkills_XpSliderTooltip" xml:space="preserve"><value>Arrastra para fijar la XP cruda - el nivel se vuelve a derivar de ella.</value></data>
+
+  <!-- PlayerSpawn -->
+  <data name="PlayerSpawn_Beds" xml:space="preserve"><value>CAMAS</value></data>
+  <data name="PlayerSpawn_ChooseBedTitle" xml:space="preserve"><value>Elige una cama…</value></data>
+  <data name="PlayerSpawn_HomeAndRespawn" xml:space="preserve"><value>HOGAR &amp; REAPARICIÓN</value></data>
+  <data name="PlayerSpawn_HomeBed" xml:space="preserve"><value>CAMA HOGAR:</value></data>
+  <data name="PlayerSpawn_PickRegionTitle" xml:space="preserve"><value>Elige la región (nivel) del punto de aparición…</value></data>
+  <data name="PlayerSpawn_PickTerminalTitle" xml:space="preserve"><value>Elige el terminal de tarjeta perforada donde reaparecer…</value></data>
+  <data name="PlayerSpawn_Region" xml:space="preserve"><value>REGIÓN</value></data>
+  <data name="PlayerSpawn_RespawnTerminal" xml:space="preserve"><value>TERMINAL DE REAPARICIÓN</value></data>
+  <data name="PlayerSpawn_SetSpawnHere" xml:space="preserve"><value>FIJAR APARICIÓN AQUÍ</value></data>
+  <data name="PlayerSpawn_SpawnAndHome" xml:space="preserve"><value>APARICIÓN &amp; HOGAR</value></data>
+  <data name="PlayerSpawn_SpawnHelp" xml:space="preserve"><value>El punto de aparición es la última ubicación segura + la región de arriba (preparar + GUARDAR). FIJAR APARICIÓN AQUÍ copia la posición de una cama; elige la región en la que está la cama si difiere. Los sacos de dormir descansan sin mover la aparición.</value></data>
+  <data name="PlayerSpawn_X" xml:space="preserve"><value>X</value></data>
+  <data name="PlayerSpawn_Y" xml:space="preserve"><value>Y</value></data>
+  <data name="PlayerSpawn_Z" xml:space="preserve"><value>Z</value></data>
+
+  <!-- PlayerTransmog -->
+  <data name="PlayerTransmog_ArmorTransmog" xml:space="preserve"><value>TRANSMOG DE ARMADURA</value></data>
+  <data name="PlayerTransmog_TransmogHelp" xml:space="preserve"><value>Objetos cosméticos mostrados sobre cada ranura de armadura (las ranuras moradas del Transmogrificador). Solo importa el id del objeto; las estadísticas permanecen en el equipo real. Toca una ranura para editar; preparar + GUARDAR.</value></data>
+  <data name="PlayerTransmog_Visibility" xml:space="preserve"><value>VISIBILIDAD (el ojo alterna; sin marcar oculta por completo los visuales de esa pieza de armadura)</value></data>
+
+  <!-- PlayerVitals -->
+  <data name="PlayerVitals_BodyHealth" xml:space="preserve"><value>SALUD CORPORAL</value></data>
+  <data name="PlayerVitals_CharacterStats" xml:space="preserve"><value>ESTADÍSTICAS DEL PERSONAJE</value></data>
+  <data name="PlayerVitals_Continence" xml:space="preserve"><value>CONTINENCIA</value></data>
+  <data name="PlayerVitals_CurrentMoney" xml:space="preserve"><value>DINERO ACTUAL</value></data>
+  <data name="PlayerVitals_Fatigue" xml:space="preserve"><value>FATIGA</value></data>
+  <data name="PlayerVitals_Head" xml:space="preserve"><value>CABEZA</value></data>
+  <data name="PlayerVitals_HealAll" xml:space="preserve"><value>CURAR TODO</value></data>
+  <data name="PlayerVitals_Hunger" xml:space="preserve"><value>HAMBRE</value></data>
+  <data name="PlayerVitals_LeftArm" xml:space="preserve"><value>BRAZO IZQUIERDO</value></data>
+  <data name="PlayerVitals_LeftLeg" xml:space="preserve"><value>PIERNA IZQUIERDA</value></data>
+  <data name="PlayerVitals_RightArm" xml:space="preserve"><value>BRAZO DERECHO</value></data>
+  <data name="PlayerVitals_RightLeg" xml:space="preserve"><value>PIERNA DERECHA</value></data>
+  <data name="PlayerVitals_Sanity" xml:space="preserve"><value>CORDURA</value></data>
+  <data name="PlayerVitals_Thirst" xml:space="preserve"><value>SED</value></data>
+  <data name="PlayerVitals_Torso" xml:space="preserve"><value>TORSO</value></data>
+
+  <!-- Slot -->
+  <data name="Slot_AboutThisDoor" xml:space="preserve"><value>SOBRE ESTA PUERTA</value></data>
+  <data name="Slot_AdditivelySetsEveryMissingPrerequisiteFlagStoryOrderSafeThenThisFlagCanBeEnabled" xml:space="preserve"><value>Establece de forma aditiva cada indicador de requisito previo que falte (respetando el orden de la historia), y luego este indicador se puede activar.</value></data>
+  <data name="Slot_AddsEveryChapterTriggerFlagFromTheStartOfTheStoryThroughThisChapterTheDependencySafeWayToUnlockItAdditiveOnlyNeverRemovesFlags" xml:space="preserve"><value>Añade cada indicador desencadenante de capítulo desde el inicio de la historia hasta este capítulo - la forma segura respecto a dependencias de desbloquearlo. Solo aditivo; nunca elimina indicadores.</value></data>
+  <data name="Slot_AmmoInMag" xml:space="preserve"><value>MUNICIÓN EN CARGADOR</value></data>
+  <data name="Slot_BlockedByLinearDependencies" xml:space="preserve"><value>BLOQUEADO POR (DEPENDENCIAS LINEALES)</value></data>
+  <data name="Slot_Cancel" xml:space="preserve"><value>CANCELAR</value></data>
+  <data name="Slot_ChangesStageLikeEverythingElsePressSaveToWrite" xml:space="preserve"><value>Los cambios se preparan como todo lo demás; pulsa GUARDAR para escribir.</value></data>
+  <data name="Slot_ChaptersAreStrictlyLinearAQuestCantReallyBeginUntilEveryEarlierTriggerFlagIsSetStageSaveToWrite" xml:space="preserve"><value>Los capítulos son estrictamente lineales: una misión no puede empezar realmente hasta que todos los indicadores desencadenantes anteriores estén establecidos. Preparar + GUARDAR para escribir.</value></data>
+  <data name="Slot_ChooseABench" xml:space="preserve"><value>Elige una mesa...</value></data>
+  <data name="Slot_ConfirmDismantle" xml:space="preserve"><value>CONFIRMAR DESMONTAR</value></data>
+  <data name="Slot_Count" xml:space="preserve"><value>CANTIDAD</value></data>
+  <data name="Slot_CraftedAt" xml:space="preserve"><value>FABRICADO EN</value></data>
+  <data name="Slot_CraftedBy" xml:space="preserve"><value>FABRICADO POR</value></data>
+  <data name="Slot_Dismantle" xml:space="preserve"><value>DESMONTAR</value></data>
+  <data name="Slot_DismantlePreview" xml:space="preserve"><value>VISTA PREVIA DE DESMONTAJE</value></data>
+  <data name="Slot_Downgrade" xml:space="preserve"><value>DEGRADAR</value></data>
+  <data name="Slot_Durability" xml:space="preserve"><value>DURABILIDAD</value></data>
+  <data name="Slot_EmptySlotDragAnotherSlotsContentsHereToFillOrUseRawJsonToAddANewItem" xml:space="preserve"><value>RANURA VACÍA · Arrastra aquí el contenido de otra ranura para rellenarla, o usa JSON CRUDO para añadir un objeto nuevo.</value></data>
+  <data name="Slot_EnablingIsBlockedUntilPrerequisitesAreSetSinceTheGameNeverProducesOutOfOrderStoryStateStageSaveToWrite" xml:space="preserve"><value>La activación está bloqueada hasta que se establezcan los requisitos previos, ya que el juego nunca produce un estado de historia fuera de orden. Preparar + GUARDAR para escribir.</value></data>
+  <data name="Slot_ExactPosition" xml:space="preserve"><value>POSICIÓN EXACTA</value></data>
+  <data name="Slot_ImageAbioticfactorWikiGg" xml:space="preserve"><value>Imagen: abioticfactor.wiki.gg</value></data>
+  <data name="Slot_Ingredients" xml:space="preserve"><value>INGREDIENTES</value></data>
+  <data name="Slot_ItemCatalog" xml:space="preserve"><value>CATÁLOGO DE OBJETOS</value></data>
+  <data name="Slot_ItemInfo" xml:space="preserve"><value>INFO DEL OBJETO</value></data>
+  <data name="Slot_Liquid" xml:space="preserve"><value>LÍQUIDO</value></data>
+  <data name="Slot_LiquidTypeWhatThisItemIsAllowedToHold" xml:space="preserve"><value>Tipo de líquido (lo que este objeto puede contener)…</value></data>
+  <data name="Slot_Makes" xml:space="preserve"><value>PRODUCE</value></data>
+  <data name="Slot_MaxDurability" xml:space="preserve"><value>DURABILIDAD MÁX</value></data>
+  <data name="Slot_NoItemsMatch" xml:space="preserve"><value>Ningún objeto coincide.</value></data>
+  <data name="Slot_OneWayUnlocked" xml:space="preserve"><value>DESBLOQUEADA EN UN SENTIDO</value></data>
+  <data name="Slot_OnlineMap" xml:space="preserve"><value>MAPA EN LÍNEA</value></data>
+  <data name="Slot_OnlyItemsTheSelectedEquipmentSlotAcceptsAreListedSameRuleTheGameEnforcesUntickToBrowseEverything" xml:space="preserve"><value>Solo se listan los objetos que acepta la ranura de equipo seleccionada (la misma regla que aplica el juego). Desmarca para examinarlo todo.</value></data>
+  <data name="Slot_Open" xml:space="preserve"><value>ABRIR</value></data>
+  <data name="Slot_OpensACommunityInteractiveMapOfTheFacility" xml:space="preserve"><value>Abre un mapa interactivo comunitario del Facility</value></data>
+  <data name="Slot_PerkEffect" xml:space="preserve"><value>EFECTO DE LA VENTAJA</value></data>
+  <data name="Slot_PerksAreDerivedFromTheSkillLevelTheGameGrantsThemAutomaticallyWhenYouReachTheLevelSoASaveEditorNeverWritesThemDirectly" xml:space="preserve"><value>Las ventajas se derivan del nivel de habilidad - el juego las concede automáticamente cuando alcanzas el nivel, por lo que un editor de guardados nunca las escribe directamente.</value></data>
+  <data name="Slot_Prerequisites" xml:space="preserve"><value>REQUISITOS PREVIOS</value></data>
+  <data name="Slot_ReadingTheLevelFromTheGameFiles" xml:space="preserve"><value>Leyendo el nivel de los archivos del juego...</value></data>
+  <data name="Slot_ReplaceThisItemWithItsCraftingRecipeIngredientsSpreadIntoEmptySlotsLikeTheGamesSalvageStation" xml:space="preserve"><value>Reemplaza este objeto por los ingredientes de su receta de fabricación (repartidos en ranuras vacías), como la estación de desguace del juego.</value></data>
+  <data name="Slot_RequiredKey" xml:space="preserve"><value>LLAVE REQUERIDA</value></data>
+  <data name="Slot_ResearchedInThisWorld" xml:space="preserve"><value>INVESTIGADO EN ESTE MUNDO</value></data>
+  <data name="Slot_SearchItemsByNameIdOrTag" xml:space="preserve"><value>Buscar objetos por nombre, id o etiqueta…</value></data>
+  <data name="Slot_SectorCardArtTheWikiHasNoPictureOfThisDoorType" xml:space="preserve"><value>Arte de tarjeta de sector - la wiki no tiene imagen de este tipo de puerta.</value></data>
+  <data name="Slot_SetAsCurrentChapter" xml:space="preserve"><value>FIJAR COMO CAPÍTULO ACTUAL</value></data>
+  <data name="Slot_SetPrerequisites" xml:space="preserve"><value>FIJAR REQUISITOS PREVIOS</value></data>
+  <data name="Slot_SlotEditor" xml:space="preserve"><value>EDITOR DE RANURAS</value></data>
+  <data name="Slot_SoldBy" xml:space="preserve"><value>VENDIDO POR</value></data>
+  <data name="Slot_State" xml:space="preserve"><value>ESTADO</value></data>
+  <data name="Slot_SwapToTheUpgradedItemAtFullDurabilityTheEditorEquivalentOfAnUpgradeBenchUpgradeDTItemUpgrades" xml:space="preserve"><value>Cambia al objeto mejorado con durabilidad completa - el equivalente en el editor de una mejora en la Mesa de Mejora (DT_ItemUpgrades).</value></data>
+  <data name="Slot_Sync" xml:space="preserve"><value>SINCRONIZAR</value></data>
+  <data name="Slot_TapAnItemForItsEncyclopediaEntryDragOntoAnySlotToSpawnItFullStackDurabilityDoubleTapToGiveToTheFirstEmptySlot" xml:space="preserve"><value>Toca un objeto para ver su entrada de enciclopedia. Arrástralo a cualquier ranura para generarlo (pila y durabilidad completas); toca dos veces para darlo a la primera ranura vacía.</value></data>
+  <data name="Slot_TapAnyInventorySlotToEditItHere" xml:space="preserve"><value>Toca cualquier ranura de inventario para editarla aquí.</value></data>
+  <data name="Slot_TeleporterSync" xml:space="preserve"><value>SINCRONIZACIÓN DE TELETRANSPORTADOR</value></data>
+  <data name="Slot_TheLinkIsTheBenchsWorldGuidStoredOnTheItemSameAsSyncingAtABenchInGameStageSaveToWrite" xml:space="preserve"><value>El enlace es el GUID de mundo de la mesa almacenado en el objeto - igual que sincronizar en una mesa en el juego. Preparar + GUARDAR para escribir.</value></data>
+  <data name="Slot_TipDragASlotOntoAnotherToSwapDropOnAContainerInTheWorldEditorsListToMoveItemsBetweenContainers" xml:space="preserve"><value>Consejo: arrastra una ranura sobre otra para intercambiarlas. Suelta sobre un contenedor en la lista del editor de mundo para mover objetos entre contenedores.</value></data>
+  <data name="Slot_ToggleFlag" xml:space="preserve"><value>ALTERNAR INDICADOR</value></data>
+  <data name="Slot_TradingIsBarterHandOverTheItemsAboveToBuyFromTheStockBelow" xml:space="preserve"><value>El comercio es trueque; entrega los objetos de arriba para comprar del inventario de abajo.</value></data>
+  <data name="Slot_TriggerFlag" xml:space="preserve"><value>INDICADOR DESENCADENANTE</value></data>
+  <data name="Slot_UnlockAll" xml:space="preserve"><value>DESBLOQUEAR TODO</value></data>
+  <data name="Slot_UnlockStoryThroughHere" xml:space="preserve"><value>DESBLOQUEAR HISTORIA HASTA AQUÍ</value></data>
+  <data name="Slot_UnlockingWritesTheChosenItemsFlagsPlusAnyFlagsNeededForTheTraderToAppearAtAllIntoWorldSaveFacilitySavABakIsKept" xml:space="preserve"><value>El desbloqueo escribe los indicadores de los objetos elegidos (más cualquier indicador necesario para que el comerciante aparezca siquiera) en WorldSave_Facility.sav (se conserva un .bak).</value></data>
+  <data name="Slot_Unsync" xml:space="preserve"><value>DESINCRONIZAR</value></data>
+  <data name="Slot_Upgrade" xml:space="preserve"><value>MEJORAR</value></data>
+  <data name="Slot_UsedIn" xml:space="preserve"><value>USADO EN</value></data>
+  <data name="Slot_Validation" xml:space="preserve"><value>VALIDACIÓN</value></data>
+  <data name="Slot_WhatTheyAcceptAsPayment" xml:space="preserve"><value>QUÉ ACEPTAN COMO PAGO</value></data>
+  <data name="Slot_WhatTheySellTapAnItemToInspectTickLockedItemsToUnlock" xml:space="preserve"><value>QUÉ VENDEN · TOCA UN OBJETO PARA INSPECCIONARLO · MARCA OBJETOS BLOQUEADOS PARA DESBLOQUEARLOS</value></data>
+  <data name="Slot_Where" xml:space="preserve"><value>DÓNDE</value></data>
+
+  <!-- Status -->
+  <data name="Status_Compare" xml:space="preserve"><value>COMPARAR</value></data>
+  <data name="Status_DiagnosticLogTooltip" xml:space="preserve"><value>Registro de diagnóstico de cargas/escrituras de guardados, exportación/importación de JSON y montaje de assets. Actívalo en AJUSTES.</value></data>
+  <data name="Status_DiffTwoSaveFilesOrTwoFoldersOfSavesWorldVsBackup" xml:space="preserve"><value>Compara dos archivos de guardado, o dos carpetas de guardados (mundo vs copia de seguridad)</value></data>
+  <data name="Status_Settings" xml:space="preserve"><value>AJUSTES</value></data>
+  <data name="Status_ThemeLightDarkModeDiagnosticLoggingUsmapImport" xml:space="preserve"><value>Tema, modo claro/oscuro, registro de diagnóstico, importación de usmap</value></data>
+
+  <!-- WorldBases -->
+  <data name="WorldBases_BaseManager" xml:space="preserve"><value>GESTOR DE BASES</value></data>
+  <data name="WorldBases_BaseManagerIntro" xml:space="preserve"><value>Las mesas de fabricación anclan una base; todo lo desplegado en un radio de ~30 m se une a ella. Selecciona una base para ver su composición y encontrarla en el mapa (mesas en naranja, contenedores en verde). Haz clic en uno de sus contenedores de abajo y se abre aquí mismo sobre el mapa para editarlo.</value></data>
+  <data name="WorldBases_CloseContainerTooltip" xml:space="preserve"><value>Cierra el contenedor y muestra de nuevo el mapa de la base</value></data>
+  <data name="WorldBases_Composition" xml:space="preserve"><value>COMPOSICIÓN</value></data>
+  <data name="WorldBases_ContainersInThisBaseClickToOpen" xml:space="preserve"><value>CONTENEDORES EN ESTA BASE: HAZ CLIC EN UNO PARA ABRIRLO EN EL MAPA</value></data>
+  <data name="WorldBases_CraftingBenches" xml:space="preserve"><value>MESAS DE FABRICACIÓN</value></data>
+  <data name="WorldBases_NoContainersWithItemsInThisBase" xml:space="preserve"><value>No hay contenedores con objetos en esta base.</value></data>
+  <data name="WorldBases_NoCraftingBenchInThisGroup" xml:space="preserve"><value>No hay mesa de fabricación en este grupo.</value></data>
+  <data name="WorldBases_SlotEditorHint" xml:space="preserve"><value>Toca una ranura para editarla en el editor de ranuras; arrastra el catálogo sobre las ranuras para añadir objetos.</value></data>
+  <data name="WorldBases_Upgrades" xml:space="preserve"><value>MEJORAS</value></data>
+
+  <!-- WorldContainers -->
+  <data name="WorldContainers_DragHelp" xml:space="preserve"><value>Arrastra una ranura sobre un contenedor de la lista para mover el objeto a la primera ranura vacía de ese contenedor.</value></data>
+  <data name="WorldContainers_FilterPlaceholder" xml:space="preserve"><value>Filtrar por nombre de clase o id…</value></data>
+  <data name="WorldContainers_HideEmpty" xml:space="preserve"><value>OCULTAR VACÍOS</value></data>
+  <data name="WorldContainers_NoContainersMatch" xml:space="preserve"><value>Ningún contenedor coincide con el filtro.</value></data>
+  <data name="WorldContainers_SelectAContainer" xml:space="preserve"><value>SELECCIONA UN CONTENEDOR</value></data>
+  <data name="WorldContainers_SelectContainerHelp" xml:space="preserve"><value>Elige un contenedor de la lista para inspeccionar o editar sus ranuras. Toca una ranura para editarla en el panel derecho.</value></data>
+
+  <!-- WorldContainment -->
+  <data name="WorldContainment_Compendium" xml:space="preserve"><value>COMPENDIO</value></data>
+  <data name="WorldContainment_Contained" xml:space="preserve"><value>CONTENIDO</value></data>
+  <data name="WorldContainment_ContainedIn" xml:space="preserve"><value>CONTENIDO EN</value></data>
+  <data name="WorldContainment_ContainmentUnits" xml:space="preserve"><value>UNIDADES DE CONTENCIÓN</value></data>
+  <data name="WorldContainment_ContainmentUnitsIntro" xml:space="preserve"><value>Entidades actualmente atrapadas en unidades de contención desplegadas (el mapa LeyakContainmentIDs del guardado de metadatos). Toca una entrada para ver el aspecto de la criatura y en qué sector del Facility se encuentra su unidad. LIBERAR elimina el vínculo, por lo que la criatura vuelve a vagar libre en la próxima carga (la unidad en sí permanece desplegada en el guardado del Facility). Preparado hasta GUARDAR.</value></data>
+  <data name="WorldContainment_DiscoverAll" xml:space="preserve"><value>DESCUBRIR TODO</value></data>
+  <data name="WorldContainment_EmailsRead" xml:space="preserve"><value>CORREOS LEÍDOS</value></data>
+  <data name="WorldContainment_FindAll" xml:space="preserve"><value>ENCONTRAR TODO</value></data>
+  <data name="WorldContainment_ItemsSeen" xml:space="preserve"><value>OBJETOS VISTOS</value></data>
+  <data name="WorldContainment_JournalPages" xml:space="preserve"><value>PÁGINAS DE DIARIO</value></data>
+  <data name="WorldContainment_NothingContained" xml:space="preserve"><value>Ahora mismo no hay nada contenido en este mundo. Construye una unidad de contención y atrapa una criatura (Leyak, Krasue) en el juego; la entrada aparecerá aquí.</value></data>
+  <data name="WorldContainment_ReadAll" xml:space="preserve"><value>LEER TODO</value></data>
+  <data name="WorldContainment_Release" xml:space="preserve"><value>LIBERAR</value></data>
+  <data name="WorldContainment_ReleaseTooltip" xml:space="preserve"><value>Elimina el vínculo de contención de esta criatura (escapa). Preparado hasta GUARDAR; REVERTIR lo restaura.</value></data>
+  <data name="WorldContainment_UnlockAll" xml:space="preserve"><value>DESBLOQUEAR TODO</value></data>
+  <data name="WorldContainment_WorldUnlocks" xml:space="preserve"><value>DESBLOQUEOS DEL MUNDO</value></data>
+  <data name="WorldContainment_WorldUnlocksIntro" xml:space="preserve"><value>El juego comparte el descubrimiento a nivel mundial por encima de las listas propias de cada jugador: objetos vistos, correos, páginas de diario y secciones del compendio desbloqueadas por CUALQUIER jugador acaban aquí. Los desbloqueos masivos son aditivos y se preparan hasta GUARDAR.</value></data>
+
+  <!-- WorldDoors -->
+  <data name="WorldDoors_AlreadyOpenedOneWay" xml:space="preserve"><value>YA ABIERTA (UN SENTIDO)</value></data>
+  <data name="WorldDoors_FilterPlaceholder" xml:space="preserve"><value>Filtrar puertas por nombre, mapa, tipo, tipo de cerradura o estado…</value></data>
+  <data name="WorldDoors_KeepState" xml:space="preserve"><value>MANTENER ESTADO (sin reinicio automático)</value></data>
+  <data name="WorldDoors_KeepStateTooltip" xml:space="preserve"><value>Cuando está activado, el juego mantiene esta puerta en el estado que fijaste y no la restaurará a su estado predeterminado (normalmente bloqueada) cuando la zona se recargue. Déjalo desactivado para puertas normales.</value></data>
+  <data name="WorldDoors_OneWayHelp" xml:space="preserve"><value>Solo puertas de un sentido: marca la puerta como ya desbloqueada desde su lado bloqueado (abierta una vez). Déjalo desactivado para puertas normales.</value></data>
+  <data name="WorldDoors_Open" xml:space="preserve"><value>ABRIR</value></data>
+  <data name="WorldDoors_SectorCaption" xml:space="preserve"><value>Todas las puertas de abajo están en este sector; alterna su estado abierto/bloqueado, y las posiciones se listan por puerta.</value></data>
+  <data name="WorldDoors_SecurityStateHelp" xml:space="preserve"><value>Controla si esta puerta de seguridad se guarda abierta o cerrada.</value></data>
+  <data name="WorldDoors_SimpleStateHelp" xml:space="preserve"><value>Bloqueada = permanece bloqueada hasta que se desbloquee en el juego; Abierta / Cerrada = mecánicamente abierta o cerrada. Esto fija el estado guardado de la puerta.</value></data>
+  <data name="WorldDoors_State" xml:space="preserve"><value>ESTADO</value></data>
+
+  <!-- WorldDropped -->
+  <data name="WorldDropped_Delete" xml:space="preserve"><value>ELIMINAR</value></data>
+  <data name="WorldDropped_DeleteAllShown" xml:space="preserve"><value>ELIMINAR TODO LO MOSTRADO</value></data>
+  <data name="WorldDropped_FilterPlaceholder" xml:space="preserve"><value>Filtrar objetos en el suelo por nombre o id…</value></data>
+  <data name="WorldDropped_GroundItemsIntro" xml:space="preserve"><value>Los mundos de larga duración acumulan cientos de objetos en el suelo, lo que cuesta rendimiento real en el juego. Marca aquí los objetos para eliminar (nada se quita hasta que pulses GUARDAR; se conserva una copia de seguridad .bak). Busca para apuntar a basura específica, p. ej. 'podrido'.</value></data>
+  <data name="WorldDropped_ItemsOnTheGround" xml:space="preserve"><value>OBJETOS EN EL SUELO</value></data>
+  <data name="WorldDropped_NoGroundItems" xml:space="preserve"><value>Ningún objeto en el suelo coincide.</value></data>
+  <data name="WorldDropped_Restore" xml:space="preserve"><value>RESTAURAR</value></data>
+
+  <!-- WorldEditor -->
+  <data name="WorldEditor_Containers" xml:space="preserve"><value>CONTENEDORES</value></data>
+  <data name="WorldEditor_DayDiscovered" xml:space="preserve"><value>DÍA DESCUBIERTO</value></data>
+  <data name="WorldEditor_DayDiscoveredHelp" xml:space="preserve"><value>El día del juego en que se entró por primera vez en esta región (controla el contador de días que se muestra en su folleto de mapa).</value></data>
+  <data name="WorldEditor_Status" xml:space="preserve"><value>ESTADO</value></data>
+  <data name="WorldEditor_TimeOfDay" xml:space="preserve"><value>HORA DEL DÍA</value></data>
+  <data name="WorldEditor_WithContents" xml:space="preserve"><value>CON CONTENIDO</value></data>
+  <data name="WorldEditor_WorldDay" xml:space="preserve"><value>DÍA DEL MUNDO</value></data>
+  <data name="WorldEditor_WorldSave" xml:space="preserve"><value>GUARDADO DEL MUNDO</value></data>
+
+  <!-- WorldFeature -->
+  <data name="WorldFeature_Area" xml:space="preserve"><value>ÁREA</value></data>
+  <data name="WorldFeature_EditHint" xml:space="preserve"><value>Haz clic en una entrada para editar sus campos. Las ediciones se preparan hasta GUARDAR; cada escritura conserva un .bak.</value></data>
+  <data name="WorldFeature_FetchingImage" xml:space="preserve"><value>Obteniendo imagen de la wiki...</value></data>
+  <data name="WorldFeature_NoEntries" xml:space="preserve"><value>Ninguna entrada coincide (o este mapa no tiene ninguna en este guardado).</value></data>
+  <data name="WorldFeature_Removing" xml:space="preserve"><value>ELIMINANDO</value></data>
+  <data name="WorldFeature_Search" xml:space="preserve"><value>Buscar...</value></data>
+  <data name="WorldFeature_SelectEntry" xml:space="preserve"><value>Selecciona una entrada para editarla.</value></data>
+  <data name="WorldFeature_StagedForRemoval" xml:space="preserve"><value>Preparado para eliminación - se borrará al GUARDAR (restablece este actor a su valor predeterminado).</value></data>
+  <data name="WorldFeature_Undo" xml:space="preserve"><value>DESHACER</value></data>
+
+  <!-- WorldFlags -->
+  <data name="WorldFlags_AddFlag" xml:space="preserve"><value>AÑADIR INDICADOR</value></data>
+  <data name="WorldFlags_AddFlagPlaceholder" xml:space="preserve"><value>Añadir nombre de nuevo indicador…</value></data>
+  <data name="WorldFlags_Clear" xml:space="preserve"><value>LIMPIAR</value></data>
+  <data name="WorldFlags_FilterPlaceholder" xml:space="preserve"><value>Filtrar por área, nombre descriptivo o nombre crudo…</value></data>
+  <data name="WorldFlags_FlagsIntro" xml:space="preserve"><value>Estos son los indicadores de misión que este mundo ha alcanzado realmente, los interruptores de un solo sentido almacenados en ESTE guardado. El estado completo de la historia vive en WorldSave_Facility.sav; los archivos de región solo llevan los indicadores de su propia área. Establecer uno aquí puede saltar hacia delante (el juego puede arrastrar requisitos previos que se propaguen al guardado de metadatos y a otros mundos); borrar uno rebobina ese evento.</value></data>
+  <data name="WorldFlags_HowQuestsWork" xml:space="preserve"><value>CÓMO FUNCIONAN LAS MISIONES</value></data>
+  <data name="WorldFlags_HowQuestsWorkBody" xml:space="preserve"><value>El mundo recuerda los eventos como indicadores con nombre - interruptores de un solo sentido que el juego activa cuando algo ocurre (una puerta abierta, un NPC conocido, un sector completado). La historia principal es una cadena lineal: Office &gt; Manufacturing West &gt; Labs &gt; Security &gt; Hydroplant &gt; Reactors &gt; Residence; cada capítulo se desencadena por un indicador específico (marcado STORY abajo, numerado en orden de historia). ALTERNAR establece o borra un indicador en este guardado: establecer un indicador STORY hace que el mundo crea que ese evento ocurrió (saltando hacia delante), borrar uno lo rebobina - pero los objetos/puertas ya cambiados por el evento permanecen cambiados. Los indicadores ordinarios solo controlan cosas pequeñas como ventanas emergentes de tutorial y consejos de la TV. El puntero del capítulo actual en sí vive en la pestaña STORY de WorldSave_MetaData.</value></data>
+  <data name="WorldFlags_InThisFile" xml:space="preserve"><value>EN ESTE ARCHIVO</value></data>
+  <data name="WorldFlags_NoFlags" xml:space="preserve"><value>Este guardado todavía no tiene indicadores de misión (o ninguno coincide con el filtro).</value></data>
+  <data name="WorldFlags_QuestFlags" xml:space="preserve"><value>INDICADORES DE MISIÓN</value></data>
+
+  <!-- WorldNpcs -->
+  <data name="WorldNpcs_NpcsIntro" xml:space="preserve"><value>Registros de NPC de historia / comerciantes activos en este guardado. REVIVIR trae de vuelta a un actor eliminado; el byte de estado narrativo controla su etapa de historia (la enumeración del juego no tiene nombres legibles - cámbialo solo si conoces la etapa objetivo). Las mascotas domesticadas ahora tienen su propia pestaña PETS.</value></data>
+  <data name="WorldNpcs_Revive" xml:space="preserve"><value>REVIVIR</value></data>
+  <data name="WorldNpcs_ReviveTooltip" xml:space="preserve"><value>Trae de vuelta a este NPC (vivo + fase de guion predeterminada). La mayoría de las entradas muertas son salidas guionizadas de la historia, por lo que revivir puede resucitar a un actor que la trama ya movió a otra parte.</value></data>
+  <data name="WorldNpcs_ScriptPhase" xml:space="preserve"><value>FASE DE GUION</value></data>
+  <data name="WorldNpcs_ScriptPhaseTooltip" xml:space="preserve"><value>Fase de diálogo/guion interna del juego (0-5), no el progreso de la misión. Todo NPC vivo está en 3.</value></data>
+  <data name="WorldNpcs_StoryNpcsAndTraders" xml:space="preserve"><value>NPCS DE HISTORIA &amp; COMERCIANTES EN ESTE MUNDO</value></data>
+  <data name="WorldNpcs_TradersMoved" xml:space="preserve"><value>¿Buscas comerciantes? Se movieron a la pestaña TRADERS del guardado de metadatos, donde puedes desbloquear su inventario a nivel mundial.</value></data>
+
+  <!-- WorldPets -->
+  <data name="WorldPets_ArmorSetSummonNotice" xml:space="preserve"><value>Esta es una invocación de conjunto de armadura. Se muestra como referencia pero no es editable.</value></data>
+  <data name="WorldPets_CompanionSlotHint" xml:space="preserve"><value>Ranura de compañero (desactivado = primera ranura libre de la barra rápida)</value></data>
+  <data name="WorldPets_CreatureTypeUpgradeDowngrade" xml:space="preserve"><value>TIPO DE CRIATURA (MEJORAR / DEGRADAR)</value></data>
+  <data name="WorldPets_Dead" xml:space="preserve"><value>MUERTA</value></data>
+  <data name="WorldPets_DeletePetFromWorld" xml:space="preserve"><value>ELIMINAR MASCOTA DEL MUNDO</value></data>
+  <data name="WorldPets_Down" xml:space="preserve"><value>ABATIDA</value></data>
+  <data name="WorldPets_HealToFull" xml:space="preserve"><value>CURAR AL MÁXIMO</value></data>
+  <data name="WorldPets_Health" xml:space="preserve"><value>SALUD</value></data>
+  <data name="WorldPets_LevelAndXp" xml:space="preserve"><value>NIVEL &amp; XP</value></data>
+  <data name="WorldPets_Location" xml:space="preserve"><value>UBICACIÓN</value></data>
+  <data name="WorldPets_Lv" xml:space="preserve"><value>LV</value></data>
+  <data name="WorldPets_Name" xml:space="preserve"><value>NOMBRE</value></data>
+  <data name="WorldPets_NameYourPet" xml:space="preserve"><value>nombra tu mascota…</value></data>
+  <data name="WorldPets_NoPetsInThisWorldSave" xml:space="preserve"><value>No hay mascotas en este guardado de mundo.</value></data>
+  <data name="WorldPets_PerLimbHealthHelp" xml:space="preserve"><value>La salud es el HP actual por miembro. El máximo del blueprint no se almacena, por lo que CURAR sube cada miembro usado al miembro más fuerte de la mascota. Una mascota con todos los miembros a 0 está 'abatida' (herida de gravedad).</value></data>
+  <data name="WorldPets_PetListIntro" xml:space="preserve"><value>Haz clic en una mascota para editarla: renombrar, curar / abatir / revivir, fijar el nivel (XP), o cambiar su tipo de criatura (la mutación del juego - p. ej. un Pest en otro Pest, Peccary o variante de Skink). Eliminar la quita del mundo. Las invocaciones de conjunto de armadura (Exor, Mystagogue) se muestran pero no son editables. Las ediciones se preparan hasta GUARDAR; cada escritura conserva un .bak.</value></data>
+  <data name="WorldPets_Revive" xml:space="preserve"><value>REVIVIR</value></data>
+  <data name="WorldPets_SelectAPetToEditIt" xml:space="preserve"><value>Selecciona una mascota para editarla.</value></data>
+  <data name="WorldPets_SendToAPlayer" xml:space="preserve"><value>ENVIAR A UN JUGADOR</value></data>
+  <data name="WorldPets_SendToPlayer" xml:space="preserve"><value>ENVIAR AL JUGADOR</value></data>
+  <data name="WorldPets_SendToPlayerHelp" xml:space="preserve"><value>La salud, el nivel y el nombre se transfieren; la mascota abandona el mundo. Guarda primero otras ediciones del mundo.</value></data>
+  <data name="WorldPets_TamedPetsInThisWorld" xml:space="preserve"><value>MASCOTAS DOMESTICADAS EN ESTE MUNDO</value></data>
+  <data name="WorldPets_UndoDelete" xml:space="preserve"><value>DESHACER ELIMINAR</value></data>
+  <data name="WorldPets_Xp" xml:space="preserve"><value>XP</value></data>
+
+  <!-- WorldRaw -->
+  <data name="WorldRaw_ExportJsonOpen" xml:space="preserve"><value>EXPORTAR JSON + ABRIR</value></data>
+  <data name="WorldRaw_ImportJsonSave" xml:space="preserve"><value>IMPORTAR JSON → GUARDAR</value></data>
+  <data name="WorldRaw_RawJsonIntro" xml:space="preserve"><value>Los guardados de mundo se serializan en un JSON muy grande (el guardado del Facility ocupa ~100 MB), por lo que editar eso en la app no es práctico. EXPORTAR escribe un archivo .json junto al guardado y lo abre en tu editor predeterminado; IMPORTAR convierte tu archivo editado de vuelta en el .sav (se conserva una copia de seguridad .bak).</value></data>
+  <data name="WorldRaw_RawSaveJson" xml:space="preserve"><value>JSON CRUDO DEL GUARDADO</value></data>
+
+  <!-- WorldStory -->
+  <data name="WorldStory_ChaptersHeader" xml:space="preserve"><value>CAPÍTULOS: FIJAR REBOBINA O SALTA LA HISTORIA Y SINCRONIZA SUS INDICADORES DESENCADENANTES</value></data>
+  <data name="WorldStory_ContainmentMoved" xml:space="preserve"><value>Las unidades de contención (Leyak/Krasue atrapados) y los desbloqueos a nivel mundial se movieron a la pestaña CONTAINMENT.</value></data>
+  <data name="WorldStory_Current" xml:space="preserve"><value>ACTUAL</value></data>
+  <data name="WorldStory_MainQuestProgression" xml:space="preserve"><value>PROGRESO DE LA MISIÓN PRINCIPAL</value></data>
+  <data name="WorldStory_MinutesPlayed" xml:space="preserve"><value>MINUTOS JUGADOS</value></data>
+  <data name="WorldStory_NoRecipes" xml:space="preserve"><value>Ninguna receta coincide (o los datos del juego no están disponibles).</value></data>
+  <data name="WorldStory_SearchRecipes" xml:space="preserve"><value>Buscar recetas…</value></data>
+  <data name="WorldStory_Set" xml:space="preserve"><value>FIJAR</value></data>
+  <data name="WorldStory_StorySplitIntro" xml:space="preserve"><value>Cómo se divide el estado de la historia: ESTE archivo (metadatos) contiene el puntero del capítulo actual; lo que un capítulo muestra como HECHO proviene de los INDICADORES DESENCADENANTES almacenados en WorldSave_Facility.sav. Pulsar FIJAR gestiona ambos a la vez: mueve el puntero, añade cada indicador desencadenante hasta ese capítulo y borra los indicadores posteriores (el archivo del Facility se escribe de inmediato con un .bak; el puntero en sí se prepara hasta GUARDAR).</value></data>
+  <data name="WorldStory_UnlockAll" xml:space="preserve"><value>DESBLOQUEAR TODO</value></data>
+  <data name="WorldStory_WhyMetadata" xml:space="preserve"><value>¿Por qué está esto en el archivo de METADATOS? El juego almacena aquí la investigación a nivel mundial (GlobalRecipesUnlocked/Researched): las recetas investigadas una vez en una mesa quedan disponibles para CADA jugador del mundo. El conocimiento de recetas por jugador es independiente: edítalo en la pestaña RECETAS de un guardado de jugador. Desbloquear aquí actualiza tanto la lista de desbloqueadas como la de investigadas.</value></data>
+  <data name="WorldStory_WorldRecipes" xml:space="preserve"><value>RECETAS DEL MUNDO</value></data>
+
+  <!-- WorldTraders -->
+  <data name="WorldTraders_Traders" xml:space="preserve"><value>COMERCIANTES</value></data>
+  <data name="WorldTraders_TradersIntro" xml:space="preserve"><value>Todos los que comercian en el Facility, de la propia tabla DT_NPC_Traders del juego más el lore de la wiki. Un comerciante (y partes de su inventario) solo aparece una vez que se establece el indicador de mundo correspondiente; esos indicadores viven en WorldSave_Facility.sav. Toca una tarjeta para abrirla en el panel lateral, donde puedes ver cada objeto con su icono, inspeccionar qué es y elegir exactamente qué objetos bloqueados desbloquear. El comercio en sí es trueque; no interviene dinero.</value></data>
+
+  <!-- WorldVehicles -->
+  <data name="WorldVehicles_Area" xml:space="preserve"><value>ÁREA</value></data>
+  <data name="WorldVehicles_DisplayOnly" xml:space="preserve"><value>Solo visualización</value></data>
+  <data name="WorldVehicles_DisplayOnlyNoEditableState" xml:space="preserve"><value>Solo visualización - este vehículo no tiene estado editable de conducible / destrozado / movimiento.</value></data>
+  <data name="WorldVehicles_DrivableUnlocked" xml:space="preserve"><value>CONDUCIBLE (DESBLOQUEADO)</value></data>
+  <data name="WorldVehicles_FetchingImageFromTheWiki" xml:space="preserve"><value>Obteniendo imagen de la wiki...</value></data>
+  <data name="WorldVehicles_Location" xml:space="preserve"><value>UBICACIÓN</value></data>
+  <data name="WorldVehicles_NoVehiclesInThisSave" xml:space="preserve"><value>No hay vehículos en este guardado (los vehículos viven en los guardados de región).</value></data>
+  <data name="WorldVehicles_OnBoardStorage" xml:space="preserve"><value>ALMACENAMIENTO A BORDO</value></data>
+  <data name="WorldVehicles_OpenInventoryContainersTab" xml:space="preserve"><value>ABRIR INVENTARIO (PESTAÑA CONTENEDORES)</value></data>
+  <data name="WorldVehicles_ResetToSpawn" xml:space="preserve"><value>REINICIAR A APARICIÓN</value></data>
+  <data name="WorldVehicles_SelectAVehicleToEditIt" xml:space="preserve"><value>Selecciona un vehículo para editarlo.</value></data>
+  <data name="WorldVehicles_State" xml:space="preserve"><value>ESTADO</value></data>
+  <data name="WorldVehicles_VehicleListIntro" xml:space="preserve"><value>Haz clic en un vehículo para editarlo: alternar si es conducible (desbloqueado) o está destrozado, moverlo, reiniciarlo a su posición de aparición original, o abrir su almacenamiento a bordo. Las ediciones se preparan hasta GUARDAR; cada escritura conserva un .bak.</value></data>
+  <data name="WorldVehicles_VehiclesInThisWorld" xml:space="preserve"><value>VEHÍCULOS EN ESTE MUNDO</value></data>
+  <data name="WorldVehicles_Wrecked" xml:space="preserve"><value>DESTROZADO</value></data>
 </root>

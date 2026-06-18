@@ -32,4 +32,473 @@
   <data name="Header_Files" xml:space="preserve"><value>DATEIEN</value></data>
   <data name="Header_Tools" xml:space="preserve"><value>WERKZEUGE</value></data>
   <data name="Header_OpenFolder" xml:space="preserve"><value>ORDNER ÖFFNEN</value></data>
+  <data name="Header_ActiveSaveFolder" xml:space="preserve"><value>AKTIVER SPEICHERORDNER</value></data>
+  <data name="Header_HomeTooltip" xml:space="preserve"><value>Start: Startseite mit allen erkannten Welten</value></data>
+
+  <!-- Empty -->
+  <data name="Empty_EveryWriteKeepsABakBackupNextToTheSave" xml:space="preserve"><value>Bei jedem Schreibvorgang wird eine .bak-Sicherung neben dem Spielstand abgelegt.</value></data>
+  <data name="Empty_Load" xml:space="preserve"><value>LADEN</value></data>
+  <data name="Empty_NewWorld" xml:space="preserve"><value>NEUE WELT</value></data>
+  <data name="Empty_OpenFolder" xml:space="preserve"><value>ORDNER ÖFFNEN</value></data>
+  <data name="Empty_OpenYourSaveFolderInstructions" xml:space="preserve"><value>Öffnen Sie Ihren Speicherordner (normalerweise …\AppData\Local\AbioticFactor\Saved\SaveGames\&lt;steamid&gt;\Worlds\&lt;WorldName&gt;) und wählen Sie dann in der Seitenleiste einen Spieler- oder Welt-Spielstand aus.</value></data>
+  <data name="Empty_PlayersWorldsSummary" xml:space="preserve"><value>Spieler: Werte · Inventar · Fähigkeiten · Eigenschaften · Rezepte · Kodex · Erfolge
+Welten: Behälter · Quest-Flags · Türen · Bodengegenstände · Story-Fortschritt</value></data>
+  <data name="Empty_SaveFoldersDetectedAutomatically" xml:space="preserve"><value>Speicherordner werden automatisch aus dem Spiel-Client und jedem installierten dedizierten Server erkannt. Wählen Sie einen aus, oder nutzen Sie ORDNER ÖFFNEN / ziehen Sie einen Ordner hinein.</value></data>
+  <data name="Empty_WorldsFoundOnThisMachine" xml:space="preserve"><value>AUF DIESEM COMPUTER GEFUNDENE WELTEN</value></data>
+  <data name="Empty_YouCanAlsoDropASaveFolderAnywhereOnThisWindow" xml:space="preserve"><value>Sie können einen Speicherordner auch an einer beliebigen Stelle dieses Fensters ablegen.</value></data>
+
+  <!-- FileSidebar -->
+  <data name="FileSidebar_AddAPlayerNewOrCopiedFromAnExistingOne" xml:space="preserve"><value>Spieler hinzufügen (neu oder von einem bestehenden kopiert)</value></data>
+  <data name="FileSidebar_ClearFilter" xml:space="preserve"><value>Filter löschen</value></data>
+  <data name="FileSidebar_ClickOpenFolderToPointAtACascadeSaveDirectory" xml:space="preserve"><value>Klicken Sie auf ORDNER ÖFFNEN, um auf ein Cascade-Speicherverzeichnis zu verweisen.</value></data>
+  <data name="FileSidebar_ConfigFiles" xml:space="preserve"><value>KONFIGURATIONSDATEIEN</value></data>
+  <data name="FileSidebar_NoFolderLoaded" xml:space="preserve"><value>KEIN ORDNER GELADEN</value></data>
+  <data name="FileSidebar_SaveFiles" xml:space="preserve"><value>SPIELSTANDDATEIEN</value></data>
+  <data name="FileSidebar_SearchSavesAndConfig" xml:space="preserve"><value>Spielstände &amp; Konfiguration durchsuchen</value></data>
+
+  <!-- Ini -->
+  <data name="Ini_Add" xml:space="preserve"><value>+ HINZUFÜGEN</value></data>
+  <data name="Ini_Revert" xml:space="preserve"><value>ZURÜCKSETZEN</value></data>
+  <data name="Ini_SaveIni" xml:space="preserve"><value>INI SPEICHERN</value></data>
+
+  <!-- Main -->
+  <data name="Main_ParseError" xml:space="preserve"><value>PARSE-FEHLER</value></data>
+  <data name="Main_ParsingSaveLargeWorldSavesCanTakeAFewSeconds" xml:space="preserve"><value>SPIELSTAND WIRD GELESEN: Große Welt-Spielstände können einige Sekunden dauern…</value></data>
+  <data name="Main_Reload" xml:space="preserve"><value>NEU LADEN</value></data>
+  <data name="Main_Revert" xml:space="preserve"><value>ZURÜCKSETZEN</value></data>
+  <data name="Main_Save" xml:space="preserve"><value>SPEICHERN</value></data>
+  <data name="Main_ShowOrHideTheSaveFileList" xml:space="preserve"><value>Die Spielstandliste ein- oder ausblenden</value></data>
+  <data name="Main_ShowOrHideTheSlotEditorAndItemCatalog" xml:space="preserve"><value>Den Slot-Editor &amp; Gegenstandskatalog ein- oder ausblenden</value></data>
+  <data name="Main_Unsaved" xml:space="preserve"><value>NICHT GESPEICHERT</value></data>
+
+  <!-- PlayerAchievements -->
+  <data name="PlayerAchievements_CheckSteam" xml:space="preserve"><value>STEAM PRÜFEN</value></data>
+  <data name="PlayerAchievements_CheckSteamTooltip" xml:space="preserve"><value>Gleicht mit steamcommunity.com ab (benötigt ein öffentliches Profil oder eine In-App-Anmeldung) - fügt Symbole, Freischaltdaten und den maßgeblichen Freischaltstatus hinzu. Der lokale Cache wird nur aktualisiert, während Steam läuft.</value></data>
+  <data name="PlayerAchievements_CompareWith" xml:space="preserve"><value>Vergleichen mit...</value></data>
+  <data name="PlayerAchievements_GatedProfileHelp" xml:space="preserve"><value>Der Editor prüft Steam anonym, daher kommen Profile mit nicht-öffentlichen Spieldetails leer zurück. Melden Sie sich in der App bei Steam an, dann nutzt STEAM PRÜFEN diese Sitzung erneut (funktioniert für Ihr eigenes Konto und für Freunde). Alternativ können Sie die Seite in Ihrem Browser ansehen oder die Spieldetails öffentlich machen, damit die anonyme Prüfung gelingt.</value></data>
+  <data name="PlayerAchievements_NoAchievementData" xml:space="preserve"><value>Keine Erfolgsdaten - versuchen Sie STEAM PRÜFEN.</value></data>
+  <data name="PlayerAchievements_PrivacySettings" xml:space="preserve"><value>DATENSCHUTZEINSTELLUNGEN</value></data>
+  <data name="PlayerAchievements_PrivacySettingsTooltip" xml:space="preserve"><value>Öffnet Ihre Steam-Datenschutzeinstellungen - setzen Sie 'Spieldetails' auf Öffentlich, warten Sie einige Minuten und führen Sie dann erneut STEAM PRÜFEN aus.</value></data>
+  <data name="PlayerAchievements_SearchPlaceholder" xml:space="preserve"><value>Erfolge durchsuchen...</value></data>
+  <data name="PlayerAchievements_ShowSpoilers" xml:space="preserve"><value>SPOILER ANZEIGEN</value></data>
+  <data name="PlayerAchievements_ShowSpoilersTooltip" xml:space="preserve"><value>Viele Erfolge des Spiels sind verborgene Story-Spoiler. Dies spiegelt die app-weite Einstellung zum Spoilerschutz wider (aktiviert = alles anzeigen). Sie können auch eine einzelne als VERTRAULICH markierte Zeile antippen, um nur diese aufzudecken.</value></data>
+  <data name="PlayerAchievements_SignInInApp" xml:space="preserve"><value>ANMELDEN (IN-APP)</value></data>
+  <data name="PlayerAchievements_SignInInAppTooltip" xml:space="preserve"><value>Öffnet die Steam-Anmeldeseite in einem Fenster innerhalb des Editors; die erfasste Sitzung wird dann für die Erfolgsprüfung verwendet. Ihr Passwort geht ausschließlich an Steam.</value></data>
+  <data name="PlayerAchievements_SignOut" xml:space="preserve"><value>ABMELDEN</value></data>
+  <data name="PlayerAchievements_SignOutTooltip" xml:space="preserve"><value>Entfernt das gespeicherte Steam-Sitzungscookie aus dem Speicher und dem sicheren Speicher.</value></data>
+  <data name="PlayerAchievements_SignedIn" xml:space="preserve"><value>ANGEMELDET ·</value></data>
+  <data name="PlayerAchievements_SignedInTooltip" xml:space="preserve"><value>Ein Steam-Sitzungscookie ist gespeichert (vom Betriebssystem geschützt) - STEAM PRÜFEN fragt als dieses Konto ab.</value></data>
+  <data name="PlayerAchievements_SteamAchievements" xml:space="preserve"><value>STEAM-ERFOLGE</value></data>
+  <data name="PlayerAchievements_ViewInBrowser" xml:space="preserve"><value>IM BROWSER ANSEHEN</value></data>
+  <data name="PlayerAchievements_ViewInBrowserTooltip" xml:space="preserve"><value>Öffnet die Steam-Community-Anmeldung in Ihrem Browser und leitet dann zur Abiotic Factor-Erfolgsseite dieses Profils weiter.</value></data>
+
+  <!-- PlayerCharacter -->
+  <data name="PlayerCharacter_Add" xml:space="preserve"><value>HINZUFÜGEN</value></data>
+  <data name="PlayerCharacter_AppearanceHeadHairClothing" xml:space="preserve"><value>AUSSEHEN (KOPF / HAARE / KLEIDUNG)</value></data>
+  <data name="PlayerCharacter_Background" xml:space="preserve"><value>HINTERGRUND</value></data>
+  <data name="PlayerCharacter_BackgroundHelp" xml:space="preserve"><value>Das Ändern des Hintergrunds wendet weder seine Fähigkeitsboni noch die Startausrüstung erneut an; es ändert nur die Job-ID des Spielstands.</value></data>
+  <data name="PlayerCharacter_Character" xml:space="preserve"><value>CHARAKTER</value></data>
+  <data name="PlayerCharacter_NoTraitsMatch" xml:space="preserve"><value>Keine Eigenschaften passen (oder alle sind bereits angewendet).</value></data>
+  <data name="PlayerCharacter_SaveAppearance" xml:space="preserve"><value>AUSSEHEN SPEICHERN</value></data>
+  <data name="PlayerCharacter_SearchTraitsPlaceholder" xml:space="preserve"><value>Eigenschaften zum Hinzufügen suchen...</value></data>
+  <data name="PlayerCharacter_Traits" xml:space="preserve"><value>EIGENSCHAFTEN</value></data>
+
+  <!-- PlayerCodex -->
+  <data name="PlayerCodex_EquipThisBait" xml:space="preserve"><value>DIESEN KÖDER AUSRÜSTEN</value></data>
+  <data name="PlayerCodex_FetchingImage" xml:space="preserve"><value>Bild wird aus dem Wiki abgerufen...</value></data>
+  <data name="PlayerCodex_FooterHelp" xml:space="preserve"><value>E-Mails, Tagebuch, Kompendium und Fischzustände sind alle bearbeitbar (vormerken + SPEICHERN). Kompendium-Einträge werden automatisch in den passenden Abschnittslisten freigeschaltet.</value></data>
+  <data name="PlayerCodex_Journal" xml:space="preserve"><value>TAGEBUCH</value></data>
+  <data name="PlayerCodex_Kills" xml:space="preserve"><value>TÖTUNGEN</value></data>
+  <data name="PlayerCodex_MarkAllRead" xml:space="preserve"><value>ALLE ALS GELESEN MARKIEREN</value></data>
+  <data name="PlayerCodex_NothingMatches" xml:space="preserve"><value>Nichts passt (oder Spieldaten sind nicht verfügbar).</value></data>
+  <data name="PlayerCodex_SearchPlaceholder" xml:space="preserve"><value>Titel, Absender und Volltext durchsuchen…</value></data>
+  <data name="PlayerCodex_SelectAnEntry" xml:space="preserve"><value>Wählen Sie einen Eintrag aus, um ihn zu lesen.</value></data>
+  <data name="PlayerCodex_ToCatchIt" xml:space="preserve"><value>UM IHN ZU FANGEN</value></data>
+  <data name="PlayerCodex_UnlocksTheBait" xml:space="preserve"><value>SCHALTET DEN KÖDER FREI</value></data>
+  <data name="PlayerCodex_UnreadOnly" xml:space="preserve"><value>NUR UNGELESENE</value></data>
+  <data name="PlayerCodex_WhenYouCatchIt" xml:space="preserve"><value>WENN SIE IHN FANGEN</value></data>
+
+  <!-- PlayerEditor -->
+  <data name="PlayerEditor_Achieve" xml:space="preserve"><value>ERFOLGE</value></data>
+  <data name="PlayerEditor_Character" xml:space="preserve"><value>CHARAKTER</value></data>
+  <data name="PlayerEditor_Companions" xml:space="preserve"><value>GEFÄHRTEN</value></data>
+  <data name="PlayerEditor_Data" xml:space="preserve"><value>DATEN</value></data>
+  <data name="PlayerEditor_Gatepal" xml:space="preserve"><value>GATEPAL</value></data>
+  <data name="PlayerEditor_General" xml:space="preserve"><value>ALLGEMEIN</value></data>
+  <data name="PlayerEditor_Inventory" xml:space="preserve"><value>INVENTAR</value></data>
+  <data name="PlayerEditor_Recipes" xml:space="preserve"><value>REZEPTE</value></data>
+  <data name="PlayerEditor_Skills" xml:space="preserve"><value>FÄHIGKEITEN</value></data>
+  <data name="PlayerEditor_Spawn" xml:space="preserve"><value>SPAWN</value></data>
+  <data name="PlayerEditor_Transmog" xml:space="preserve"><value>TRANSMOG</value></data>
+  <data name="PlayerEditor_Vitals" xml:space="preserve"><value>VITALWERTE</value></data>
+
+  <!-- PlayerGeneral -->
+  <data name="PlayerGeneral_Account" xml:space="preserve"><value>KONTO</value></data>
+  <data name="PlayerGeneral_BulkUnlocks" xml:space="preserve"><value>MASSENFREISCHALTUNGEN</value></data>
+  <data name="PlayerGeneral_ChangeSteamId" xml:space="preserve"><value>STEAM-ID ÄNDERN</value></data>
+  <data name="PlayerGeneral_ChangeSteamIdHelp" xml:space="preserve"><value>Benennt die Datei um UND schreibt den internen SaveIdentifier des Spielstands neu (eine .bak des Originals wird behalten). Bettansprüche in der Welt verweisen weiterhin auf die alte ID.</value></data>
+  <data name="PlayerGeneral_DiscoverAll" xml:space="preserve"><value>ALLES ENTDECKEN</value></data>
+  <data name="PlayerGeneral_DiscoverAllItemsTooltip" xml:space="preserve"><value>Fügt jeden Katalog-Gegenstand zur Liste der gesehenen Gegenstände dieses Spielers hinzu. Effekt: keine gelben NEU-Abzeichen mehr im Inventar, und aufsammelbasierte Kompendium-Hinweise behandeln alles als bereits angetroffen. Keine Auswirkung auf Quests oder Werte.</value></data>
+  <data name="PlayerGeneral_DiscoveryHelp" xml:space="preserve"><value>Was diese bewirken: GESEHENE GEGENSTÄNDE unterdrückt NEU-Abzeichen; HERGESTELLTE GEGENSTÄNDE markiert die Erstherstellungs-Historie (von herstellungsbasierten Hinweisen genutzt); KARTEN deckt die Sektorkarten-Broschüren im GATEPal-Kartenbildschirm auf. Keine davon treibt Quests voran, öffnet Türen oder ändert Werte.</value></data>
+  <data name="PlayerGeneral_General" xml:space="preserve"><value>ALLGEMEIN</value></data>
+  <data name="PlayerGeneral_ItemsCrafted" xml:space="preserve"><value>HERGESTELLTE GEGENSTÄNDE</value></data>
+  <data name="PlayerGeneral_ItemsSeen" xml:space="preserve"><value>GESEHENE GEGENSTÄNDE</value></data>
+  <data name="PlayerGeneral_Maps" xml:space="preserve"><value>KARTEN</value></data>
+  <data name="PlayerGeneral_MapsTooltip" xml:space="preserve"><value>Karten sind die Papierbroschüren, die das Layout jedes Sektors im GATEPal-Kartenbildschirm aufdecken. ALLE FREISCHALTEN gewährt alle, als wären sie aufgesammelt worden. Rein informativ - öffnet keine Türen und treibt keine Quests voran.</value></data>
+  <data name="PlayerGeneral_Recipes" xml:space="preserve"><value>REZEPTE</value></data>
+  <data name="PlayerGeneral_RecipesHelp" xml:space="preserve"><value>Durchsuchen und schalten Sie einzelne Rezepte im obigen Tab REZEPTE um.</value></data>
+  <data name="PlayerGeneral_SteamId64" xml:space="preserve"><value>STEAM ID 64</value></data>
+  <data name="PlayerGeneral_UnlockAll" xml:space="preserve"><value>ALLE FREISCHALTEN</value></data>
+
+  <!-- PlayerInventory -->
+  <data name="PlayerInventory_DropItem" xml:space="preserve"><value>GEGENSTAND ABLEGEN</value></data>
+  <data name="PlayerInventory_DropItemTooltip" xml:space="preserve"><value>Wählen Sie einen belegten Slot aus, dann legt ABLEGEN diesen Gegenstand in Ihrer Nähe auf den Weltboden. Beim SPEICHERN wird er in den Welt-Spielstand geschrieben und erscheint unter GEGENSTÄNDE IN DER NÄHE AM BODEN (.bak wird behalten).</value></data>
+  <data name="PlayerInventory_Equipment" xml:space="preserve"><value>AUSRÜSTUNG</value></data>
+  <data name="PlayerInventory_GroundNearbyHelp" xml:space="preserve"><value>Gegenstände, die in Reichweite des letzten Standorts dieses Spielers abgelegt wurden. AUFHEBEN verschiebt einen in den ersten leeren Rucksack-Slot (vorgemerkt); SPEICHERN schreibt das Inventar und entfernt ihn vom Boden (.bak wird behalten). VERWERFEN lässt ihn dort liegen.</value></data>
+  <data name="PlayerInventory_Hotbar" xml:space="preserve"><value>SCHNELLLEISTE</value></data>
+  <data name="PlayerInventory_Inventory" xml:space="preserve"><value>INVENTAR</value></data>
+  <data name="PlayerInventory_Money" xml:space="preserve"><value>GELD</value></data>
+  <data name="PlayerInventory_Occupied" xml:space="preserve"><value>BELEGT</value></data>
+  <data name="PlayerInventory_OnTheGroundNearby" xml:space="preserve"><value>IN DER NÄHE AM BODEN</value></data>
+  <data name="PlayerInventory_PickUp" xml:space="preserve"><value>AUFHEBEN</value></data>
+  <data name="PlayerInventory_Sort" xml:space="preserve"><value>SORTIEREN</value></data>
+  <data name="PlayerInventory_SortTooltip" xml:space="preserve"><value>Sortiert den Rucksack: Gegenstände nach Kategorie und Name gruppiert, leere Slots zuletzt.</value></data>
+  <data name="PlayerInventory_Weight" xml:space="preserve"><value>GEWICHT</value></data>
+
+  <!-- PlayerPets -->
+  <data name="PlayerPets_CarriedPetsCompanions" xml:space="preserve"><value>GETRAGENE HAUSTIERE / GEFÄHRTEN</value></data>
+  <data name="PlayerPets_CarryOverHelp" xml:space="preserve"><value>Gesundheit, Stufe und Name werden übernommen. Speichern Sie zuerst andere Spieleränderungen.</value></data>
+  <data name="PlayerPets_Heal" xml:space="preserve"><value>HEILEN</value></data>
+  <data name="PlayerPets_Health" xml:space="preserve"><value>GESUNDHEIT</value></data>
+  <data name="PlayerPets_Hp" xml:space="preserve"><value>HP</value></data>
+  <data name="PlayerPets_IntroHelp" xml:space="preserve"><value>Haustiere, die dieser Spieler als Gegenstände trägt - im Gefährten-Slot, in der Schnellleiste oder im Rucksack. Klicken Sie eines an, um es umzubenennen, seine Variante zu ändern, seine Stufe (XP) oder Gesundheit festzulegen oder es zu entfernen. Änderungen werden bis zum SPEICHERN vorgemerkt. Verschieben Sie Haustiere mit der CLI zwischen Spieler und Welt ('pet send' / 'pet grab').</value></data>
+  <data name="PlayerPets_LevelAndXp" xml:space="preserve"><value>LEVEL &amp; XP</value></data>
+  <data name="PlayerPets_Lv" xml:space="preserve"><value>LV</value></data>
+  <data name="PlayerPets_Max" xml:space="preserve"><value>MAX</value></data>
+  <data name="PlayerPets_Name" xml:space="preserve"><value>NAME</value></data>
+  <data name="PlayerPets_NamePlaceholder" xml:space="preserve"><value>Benennen Sie Ihr Haustier…</value></data>
+  <data name="PlayerPets_NoBedHelp" xml:space="preserve"><value>Diese Welt hat kein Haustierbett - das Haustier wird am Weltursprung platziert.</value></data>
+  <data name="PlayerPets_NoPets" xml:space="preserve"><value>Dieser Spieler trägt keine Haustiere.</value></data>
+  <data name="PlayerPets_PetBed" xml:space="preserve"><value>Haustierbett</value></data>
+  <data name="PlayerPets_RemoveFromInventory" xml:space="preserve"><value>AUS INVENTAR ENTFERNEN</value></data>
+  <data name="PlayerPets_SelectAPet" xml:space="preserve"><value>Wählen Sie ein Haustier aus, um es zu bearbeiten.</value></data>
+  <data name="PlayerPets_SendToAPetBed" xml:space="preserve"><value>AN EIN HAUSTIERBETT SENDEN</value></data>
+  <data name="PlayerPets_SendToBed" xml:space="preserve"><value>ANS BETT SENDEN</value></data>
+  <data name="PlayerPets_UndoRemove" xml:space="preserve"><value>ENTFERNEN RÜCKGÄNGIG</value></data>
+  <data name="PlayerPets_Variant" xml:space="preserve"><value>VARIANTE</value></data>
+  <data name="PlayerPets_World" xml:space="preserve"><value>Welt</value></data>
+  <data name="PlayerPets_Xp" xml:space="preserve"><value>XP</value></data>
+
+  <!-- PlayerRaw -->
+  <data name="PlayerRaw_ExportJsonAndOpen" xml:space="preserve"><value>JSON EXPORTIEREN + ÖFFNEN</value></data>
+  <data name="PlayerRaw_ImportJsonToSave" xml:space="preserve"><value>JSON IMPORTIEREN → SPEICHERN</value></data>
+  <data name="PlayerRaw_RawSaveJson" xml:space="preserve"><value>ROH-SPIELSTAND-JSON</value></data>
+  <data name="PlayerRaw_RawSaveJsonHelp" xml:space="preserve"><value>Spielstand-JSON ist viel zu groß, um bequem in der App bearbeitet zu werden. EXPORTIEREN schreibt eine .json-Datei neben den Spielstand und öffnet sie in Ihrem Standardeditor; nehmen Sie dort Ihre Änderungen vor, speichern Sie und IMPORTIEREN Sie dann, um sie zurück in die .sav umzuwandeln (eine .bak-Sicherung des Spielstands wird behalten).</value></data>
+
+  <!-- PlayerRecipes -->
+  <data name="PlayerRecipes_CraftedAt" xml:space="preserve"><value>HERGESTELLT AN</value></data>
+  <data name="PlayerRecipes_FooterHelp" xml:space="preserve"><value>Klicken Sie ein Rezept für seine vollständigen wiki-artigen Details an. Das Umschalten eines Kontrollkästchens merkt die Änderung vor; drücken Sie SPEICHERN in der Kopfzeile des Tabs STRUKTURIERT, um sie zu schreiben.</value></data>
+  <data name="PlayerRecipes_Ingredients" xml:space="preserve"><value>ZUTATEN</value></data>
+  <data name="PlayerRecipes_NoRecipesMatch" xml:space="preserve"><value>Keine Rezepte passen (oder Spieldaten sind nicht verfügbar).</value></data>
+  <data name="PlayerRecipes_RecipeBook" xml:space="preserve"><value>REZEPTBUCH</value></data>
+  <data name="PlayerRecipes_SearchPlaceholder" xml:space="preserve"><value>Rezepte nach Gegenstandsname oder ID suchen…</value></data>
+  <data name="PlayerRecipes_SoldBy" xml:space="preserve"><value>VERKAUFT VON</value></data>
+  <data name="PlayerRecipes_Tags" xml:space="preserve"><value>TAGS</value></data>
+  <data name="PlayerRecipes_UnlockAll" xml:space="preserve"><value>ALLE FREISCHALTEN</value></data>
+  <data name="PlayerRecipes_UpgradePath" xml:space="preserve"><value>VERBESSERUNGSPFAD</value></data>
+  <data name="PlayerRecipes_UsedIn" xml:space="preserve"><value>VERWENDET IN</value></data>
+
+  <!-- PlayerSkills -->
+  <data name="PlayerSkills_LevelRangeHint" xml:space="preserve"><value>LEVEL 0–20 · STUFE FESTLEGEN SETZT XP AUF SCHWELLENWERT</value></data>
+  <data name="PlayerSkills_Lv" xml:space="preserve"><value>LV</value></data>
+  <data name="PlayerSkills_Max" xml:space="preserve"><value>MAX</value></data>
+  <data name="PlayerSkills_MaxAll" xml:space="preserve"><value>ALLE MAX</value></data>
+  <data name="PlayerSkills_MilestoneHelp" xml:space="preserve"><value>Tippen Sie einen Meilenstein an, um seine vollständigen Details im Slot-Panel zu sehen. Die Anzahl der Meilensteine variiert je Fähigkeit, und gesperrte Vorteile bleiben versiegelt (im Spiel verborgen), bis Sie die Stufe erreichen - oder tippen Sie einen an, um die Freigabe zu überschreiben.</value></data>
+  <data name="PlayerSkills_RawXpTooltip" xml:space="preserve"><value>Roh-XP; die Stufe wird daraus neu abgeleitet.</value></data>
+  <data name="PlayerSkills_Skills" xml:space="preserve"><value>FÄHIGKEITEN</value></data>
+  <data name="PlayerSkills_XpSliderTooltip" xml:space="preserve"><value>Ziehen, um Roh-XP festzulegen - die Stufe wird daraus neu abgeleitet.</value></data>
+
+  <!-- PlayerSpawn -->
+  <data name="PlayerSpawn_Beds" xml:space="preserve"><value>BETTEN</value></data>
+  <data name="PlayerSpawn_ChooseBedTitle" xml:space="preserve"><value>Wählen Sie ein Bett…</value></data>
+  <data name="PlayerSpawn_HomeAndRespawn" xml:space="preserve"><value>ZUHAUSE &amp; WIEDERBELEBUNG</value></data>
+  <data name="PlayerSpawn_HomeBed" xml:space="preserve"><value>HEIMATBETT:</value></data>
+  <data name="PlayerSpawn_PickRegionTitle" xml:space="preserve"><value>Wählen Sie die Region (Level) des Spawnpunkts…</value></data>
+  <data name="PlayerSpawn_PickTerminalTitle" xml:space="preserve"><value>Wählen Sie das Lochkarten-Terminal, an dem wiederbelebt werden soll…</value></data>
+  <data name="PlayerSpawn_Region" xml:space="preserve"><value>REGION</value></data>
+  <data name="PlayerSpawn_RespawnTerminal" xml:space="preserve"><value>WIEDERBELEBUNGSTERMINAL</value></data>
+  <data name="PlayerSpawn_SetSpawnHere" xml:space="preserve"><value>SPAWN HIER FESTLEGEN</value></data>
+  <data name="PlayerSpawn_SpawnAndHome" xml:space="preserve"><value>SPAWN &amp; ZUHAUSE</value></data>
+  <data name="PlayerSpawn_SpawnHelp" xml:space="preserve"><value>Der Spawnpunkt ist der letzte sichere Ort + die Region oben (vormerken + SPEICHERN). SPAWN HIER FESTLEGEN kopiert die Position eines Betts; wählen Sie die Region, in der sich das Bett befindet, falls sie abweicht. Schlafsäcke lassen rasten, ohne den Spawn zu verschieben.</value></data>
+  <data name="PlayerSpawn_X" xml:space="preserve"><value>X</value></data>
+  <data name="PlayerSpawn_Y" xml:space="preserve"><value>Y</value></data>
+  <data name="PlayerSpawn_Z" xml:space="preserve"><value>Z</value></data>
+
+  <!-- PlayerTransmog -->
+  <data name="PlayerTransmog_ArmorTransmog" xml:space="preserve"><value>RÜSTUNGS-TRANSMOG</value></data>
+  <data name="PlayerTransmog_TransmogHelp" xml:space="preserve"><value>Kosmetische Gegenstände, die über jedem Rüstungs-Slot angezeigt werden (die violetten Slots des Transmogrifizierers). Nur die Gegenstands-ID zählt; die Werte bleiben auf der echten Ausrüstung. Tippen Sie einen Slot zum Bearbeiten an; vormerken + SPEICHERN.</value></data>
+  <data name="PlayerTransmog_Visibility" xml:space="preserve"><value>SICHTBARKEIT (das Auge schaltet um; nicht aktiviert verbirgt die Optik dieses Rüstungsteils vollständig)</value></data>
+
+  <!-- PlayerVitals -->
+  <data name="PlayerVitals_BodyHealth" xml:space="preserve"><value>KÖRPERGESUNDHEIT</value></data>
+  <data name="PlayerVitals_CharacterStats" xml:space="preserve"><value>CHARAKTERWERTE</value></data>
+  <data name="PlayerVitals_Continence" xml:space="preserve"><value>KONTINENZ</value></data>
+  <data name="PlayerVitals_CurrentMoney" xml:space="preserve"><value>AKTUELLES GELD</value></data>
+  <data name="PlayerVitals_Fatigue" xml:space="preserve"><value>ERSCHÖPFUNG</value></data>
+  <data name="PlayerVitals_Head" xml:space="preserve"><value>KOPF</value></data>
+  <data name="PlayerVitals_HealAll" xml:space="preserve"><value>ALLE HEILEN</value></data>
+  <data name="PlayerVitals_Hunger" xml:space="preserve"><value>HUNGER</value></data>
+  <data name="PlayerVitals_LeftArm" xml:space="preserve"><value>LINKER ARM</value></data>
+  <data name="PlayerVitals_LeftLeg" xml:space="preserve"><value>LINKES BEIN</value></data>
+  <data name="PlayerVitals_RightArm" xml:space="preserve"><value>RECHTER ARM</value></data>
+  <data name="PlayerVitals_RightLeg" xml:space="preserve"><value>RECHTES BEIN</value></data>
+  <data name="PlayerVitals_Sanity" xml:space="preserve"><value>GEISTIGE GESUNDHEIT</value></data>
+  <data name="PlayerVitals_Thirst" xml:space="preserve"><value>DURST</value></data>
+  <data name="PlayerVitals_Torso" xml:space="preserve"><value>RUMPF</value></data>
+
+  <!-- Slot -->
+  <data name="Slot_AboutThisDoor" xml:space="preserve"><value>ÜBER DIESE TÜR</value></data>
+  <data name="Slot_AdditivelySetsEveryMissingPrerequisiteFlagStoryOrderSafeThenThisFlagCanBeEnabled" xml:space="preserve"><value>Setzt additiv jedes fehlende Voraussetzungs-Flag (in story-sicherer Reihenfolge), dann kann dieses Flag aktiviert werden.</value></data>
+  <data name="Slot_AddsEveryChapterTriggerFlagFromTheStartOfTheStoryThroughThisChapterTheDependencySafeWayToUnlockItAdditiveOnlyNeverRemovesFlags" xml:space="preserve"><value>Fügt jedes Kapitel-Auslöser-Flag vom Beginn der Story bis zu diesem Kapitel hinzu - der abhängigkeitssichere Weg, es freizuschalten. Nur additiv; entfernt niemals Flags.</value></data>
+  <data name="Slot_AmmoInMag" xml:space="preserve"><value>MUNITION IM MAGAZIN</value></data>
+  <data name="Slot_BlockedByLinearDependencies" xml:space="preserve"><value>BLOCKIERT DURCH (LINEARE ABHÄNGIGKEITEN)</value></data>
+  <data name="Slot_Cancel" xml:space="preserve"><value>ABBRECHEN</value></data>
+  <data name="Slot_ChangesStageLikeEverythingElsePressSaveToWrite" xml:space="preserve"><value>Änderungen werden wie alles andere vorgemerkt; drücken Sie SPEICHERN, um sie zu schreiben.</value></data>
+  <data name="Slot_ChaptersAreStrictlyLinearAQuestCantReallyBeginUntilEveryEarlierTriggerFlagIsSetStageSaveToWrite" xml:space="preserve"><value>Kapitel sind streng linear: Eine Quest kann nicht wirklich beginnen, bis jedes frühere Auslöser-Flag gesetzt ist. Vormerken + SPEICHERN zum Schreiben.</value></data>
+  <data name="Slot_ChooseABench" xml:space="preserve"><value>Wählen Sie eine Werkbank...</value></data>
+  <data name="Slot_ConfirmDismantle" xml:space="preserve"><value>ZERLEGEN BESTÄTIGEN</value></data>
+  <data name="Slot_Count" xml:space="preserve"><value>ANZAHL</value></data>
+  <data name="Slot_CraftedAt" xml:space="preserve"><value>HERGESTELLT AN</value></data>
+  <data name="Slot_CraftedBy" xml:space="preserve"><value>HERGESTELLT VON</value></data>
+  <data name="Slot_Dismantle" xml:space="preserve"><value>ZERLEGEN</value></data>
+  <data name="Slot_DismantlePreview" xml:space="preserve"><value>ZERLEGE-VORSCHAU</value></data>
+  <data name="Slot_Downgrade" xml:space="preserve"><value>HERABSTUFEN</value></data>
+  <data name="Slot_Durability" xml:space="preserve"><value>HALTBARKEIT</value></data>
+  <data name="Slot_EmptySlotDragAnotherSlotsContentsHereToFillOrUseRawJsonToAddANewItem" xml:space="preserve"><value>LEERER SLOT · Ziehen Sie den Inhalt eines anderen Slots hierher, um ihn zu füllen, oder nutzen Sie ROH-JSON, um einen neuen Gegenstand hinzuzufügen.</value></data>
+  <data name="Slot_EnablingIsBlockedUntilPrerequisitesAreSetSinceTheGameNeverProducesOutOfOrderStoryStateStageSaveToWrite" xml:space="preserve"><value>Das Aktivieren ist blockiert, bis die Voraussetzungen gesetzt sind, da das Spiel niemals einen Story-Zustand in falscher Reihenfolge erzeugt. Vormerken + SPEICHERN zum Schreiben.</value></data>
+  <data name="Slot_ExactPosition" xml:space="preserve"><value>GENAUE POSITION</value></data>
+  <data name="Slot_ImageAbioticfactorWikiGg" xml:space="preserve"><value>Bild: abioticfactor.wiki.gg</value></data>
+  <data name="Slot_Ingredients" xml:space="preserve"><value>ZUTATEN</value></data>
+  <data name="Slot_ItemCatalog" xml:space="preserve"><value>GEGENSTANDSKATALOG</value></data>
+  <data name="Slot_ItemInfo" xml:space="preserve"><value>GEGENSTANDSINFO</value></data>
+  <data name="Slot_Liquid" xml:space="preserve"><value>FLÜSSIGKEIT</value></data>
+  <data name="Slot_LiquidTypeWhatThisItemIsAllowedToHold" xml:space="preserve"><value>Flüssigkeitstyp (was dieser Gegenstand enthalten darf)…</value></data>
+  <data name="Slot_Makes" xml:space="preserve"><value>ERGIBT</value></data>
+  <data name="Slot_MaxDurability" xml:space="preserve"><value>MAX. HALTBARKEIT</value></data>
+  <data name="Slot_NoItemsMatch" xml:space="preserve"><value>Keine Gegenstände passen.</value></data>
+  <data name="Slot_OneWayUnlocked" xml:space="preserve"><value>EINWEG-FREIGESCHALTET</value></data>
+  <data name="Slot_OnlineMap" xml:space="preserve"><value>ONLINE-KARTE</value></data>
+  <data name="Slot_OnlyItemsTheSelectedEquipmentSlotAcceptsAreListedSameRuleTheGameEnforcesUntickToBrowseEverything" xml:space="preserve"><value>Es werden nur Gegenstände aufgeführt, die der ausgewählte Ausrüstungs-Slot akzeptiert (dieselbe Regel, die das Spiel durchsetzt). Deaktivieren, um alles zu durchsuchen.</value></data>
+  <data name="Slot_Open" xml:space="preserve"><value>ÖFFNEN</value></data>
+  <data name="Slot_OpensACommunityInteractiveMapOfTheFacility" xml:space="preserve"><value>Öffnet eine interaktive Community-Karte der Facility</value></data>
+  <data name="Slot_PerkEffect" xml:space="preserve"><value>VORTEILS-EFFEKT</value></data>
+  <data name="Slot_PerksAreDerivedFromTheSkillLevelTheGameGrantsThemAutomaticallyWhenYouReachTheLevelSoASaveEditorNeverWritesThemDirectly" xml:space="preserve"><value>Vorteile werden aus der Fähigkeitsstufe abgeleitet - das Spiel gewährt sie automatisch, wenn Sie die Stufe erreichen, daher schreibt ein Spielstand-Editor sie niemals direkt.</value></data>
+  <data name="Slot_Prerequisites" xml:space="preserve"><value>VORAUSSETZUNGEN</value></data>
+  <data name="Slot_ReadingTheLevelFromTheGameFiles" xml:space="preserve"><value>Das Level wird aus den Spieldateien gelesen...</value></data>
+  <data name="Slot_ReplaceThisItemWithItsCraftingRecipeIngredientsSpreadIntoEmptySlotsLikeTheGamesSalvageStation" xml:space="preserve"><value>Ersetzt diesen Gegenstand durch die Zutaten seines Herstellungsrezepts (verteilt auf leere Slots), wie die Bergungsstation des Spiels.</value></data>
+  <data name="Slot_RequiredKey" xml:space="preserve"><value>BENÖTIGTER SCHLÜSSEL</value></data>
+  <data name="Slot_ResearchedInThisWorld" xml:space="preserve"><value>IN DIESER WELT ERFORSCHT</value></data>
+  <data name="Slot_SearchItemsByNameIdOrTag" xml:space="preserve"><value>Gegenstände nach Name, ID oder Tag suchen…</value></data>
+  <data name="Slot_SectorCardArtTheWikiHasNoPictureOfThisDoorType" xml:space="preserve"><value>Sektorkarten-Grafik - das Wiki hat kein Bild dieses Türtyps.</value></data>
+  <data name="Slot_SetAsCurrentChapter" xml:space="preserve"><value>ALS AKTUELLES KAPITEL FESTLEGEN</value></data>
+  <data name="Slot_SetPrerequisites" xml:space="preserve"><value>VORAUSSETZUNGEN SETZEN</value></data>
+  <data name="Slot_SlotEditor" xml:space="preserve"><value>SLOT-EDITOR</value></data>
+  <data name="Slot_SoldBy" xml:space="preserve"><value>VERKAUFT VON</value></data>
+  <data name="Slot_State" xml:space="preserve"><value>ZUSTAND</value></data>
+  <data name="Slot_SwapToTheUpgradedItemAtFullDurabilityTheEditorEquivalentOfAnUpgradeBenchUpgradeDTItemUpgrades" xml:space="preserve"><value>Wechselt zum verbesserten Gegenstand bei voller Haltbarkeit - das Editor-Äquivalent einer Verbesserungsbank-Aufwertung (DT_ItemUpgrades).</value></data>
+  <data name="Slot_Sync" xml:space="preserve"><value>SYNCHRONISIEREN</value></data>
+  <data name="Slot_TapAnItemForItsEncyclopediaEntryDragOntoAnySlotToSpawnItFullStackDurabilityDoubleTapToGiveToTheFirstEmptySlot" xml:space="preserve"><value>Tippen Sie einen Gegenstand für seinen Enzyklopädie-Eintrag an. Ziehen Sie ihn auf einen beliebigen Slot, um ihn zu spawnen (voller Stapel + Haltbarkeit); doppeltippen, um ihn dem ersten leeren Slot zu geben.</value></data>
+  <data name="Slot_TapAnyInventorySlotToEditItHere" xml:space="preserve"><value>Tippen Sie einen beliebigen Inventar-Slot an, um ihn hier zu bearbeiten.</value></data>
+  <data name="Slot_TeleporterSync" xml:space="preserve"><value>TELEPORTER-SYNCHRONISIERUNG</value></data>
+  <data name="Slot_TheLinkIsTheBenchsWorldGuidStoredOnTheItemSameAsSyncingAtABenchInGameStageSaveToWrite" xml:space="preserve"><value>Die Verknüpfung ist die Welt-GUID der Werkbank, die auf dem Gegenstand gespeichert ist - wie das Synchronisieren an einer Werkbank im Spiel. Vormerken + SPEICHERN zum Schreiben.</value></data>
+  <data name="Slot_TipDragASlotOntoAnotherToSwapDropOnAContainerInTheWorldEditorsListToMoveItemsBetweenContainers" xml:space="preserve"><value>Tipp: Ziehen Sie einen Slot auf einen anderen, um zu tauschen. Lassen Sie ihn auf einem Behälter in der Liste des Welt-Editors fallen, um Gegenstände zwischen Behältern zu verschieben.</value></data>
+  <data name="Slot_ToggleFlag" xml:space="preserve"><value>FLAG UMSCHALTEN</value></data>
+  <data name="Slot_TradingIsBarterHandOverTheItemsAboveToBuyFromTheStockBelow" xml:space="preserve"><value>Der Handel erfolgt per Tausch; geben Sie die obigen Gegenstände her, um aus dem unten stehenden Bestand zu kaufen.</value></data>
+  <data name="Slot_TriggerFlag" xml:space="preserve"><value>AUSLÖSER-FLAG</value></data>
+  <data name="Slot_UnlockAll" xml:space="preserve"><value>ALLE FREISCHALTEN</value></data>
+  <data name="Slot_UnlockStoryThroughHere" xml:space="preserve"><value>STORY BIS HIERHER FREISCHALTEN</value></data>
+  <data name="Slot_UnlockingWritesTheChosenItemsFlagsPlusAnyFlagsNeededForTheTraderToAppearAtAllIntoWorldSaveFacilitySavABakIsKept" xml:space="preserve"><value>Das Freischalten schreibt die Flags der gewählten Gegenstände (plus alle Flags, die der Händler überhaupt zum Erscheinen benötigt) in WorldSave_Facility.sav (eine .bak wird behalten).</value></data>
+  <data name="Slot_Unsync" xml:space="preserve"><value>SYNCHRONISIERUNG AUFHEBEN</value></data>
+  <data name="Slot_Upgrade" xml:space="preserve"><value>VERBESSERN</value></data>
+  <data name="Slot_UsedIn" xml:space="preserve"><value>VERWENDET IN</value></data>
+  <data name="Slot_Validation" xml:space="preserve"><value>VALIDIERUNG</value></data>
+  <data name="Slot_WhatTheyAcceptAsPayment" xml:space="preserve"><value>WAS SIE ALS ZAHLUNG AKZEPTIEREN</value></data>
+  <data name="Slot_WhatTheySellTapAnItemToInspectTickLockedItemsToUnlock" xml:space="preserve"><value>WAS SIE VERKAUFEN · TIPPEN SIE EINEN GEGENSTAND AN, UM IHN ZU PRÜFEN · HAKEN SIE GESPERRTE GEGENSTÄNDE AN, UM SIE FREIZUSCHALTEN</value></data>
+  <data name="Slot_Where" xml:space="preserve"><value>WO</value></data>
+
+  <!-- Status -->
+  <data name="Status_Compare" xml:space="preserve"><value>VERGLEICHEN</value></data>
+  <data name="Status_DiagnosticLogTooltip" xml:space="preserve"><value>Diagnoseprotokoll des Ladens/Schreibens von Spielständen, JSON-Export/-Import und Asset-Einbindung. Umschalten in den EINSTELLUNGEN.</value></data>
+  <data name="Status_DiffTwoSaveFilesOrTwoFoldersOfSavesWorldVsBackup" xml:space="preserve"><value>Zwei Spielstanddateien oder zwei Ordner mit Spielständen vergleichen (Welt vs. Sicherung)</value></data>
+  <data name="Status_Settings" xml:space="preserve"><value>EINSTELLUNGEN</value></data>
+  <data name="Status_ThemeLightDarkModeDiagnosticLoggingUsmapImport" xml:space="preserve"><value>Design, heller/dunkler Modus, Diagnoseprotokollierung, usmap-Import</value></data>
+
+  <!-- WorldBases -->
+  <data name="WorldBases_BaseManager" xml:space="preserve"><value>BASIS-MANAGER</value></data>
+  <data name="WorldBases_BaseManagerIntro" xml:space="preserve"><value>Werkbänke verankern eine Basis; alles, was im Umkreis von ~30 m platziert wird, gehört dazu. Wählen Sie eine Basis aus, um ihre Zusammensetzung zu sehen und sie auf der Karte zu finden (Werkbänke orange, Behälter grün). Klicken Sie unten einen ihrer Behälter an, und er öffnet sich genau hier über der Karte zur Bearbeitung.</value></data>
+  <data name="WorldBases_CloseContainerTooltip" xml:space="preserve"><value>Den Behälter schließen und die Basiskarte wieder anzeigen</value></data>
+  <data name="WorldBases_Composition" xml:space="preserve"><value>ZUSAMMENSETZUNG</value></data>
+  <data name="WorldBases_ContainersInThisBaseClickToOpen" xml:space="preserve"><value>BEHÄLTER IN DIESER BASIS: KLICKEN SIE EINEN AN, UM IHN AUF DER KARTE ZU ÖFFNEN</value></data>
+  <data name="WorldBases_CraftingBenches" xml:space="preserve"><value>WERKBÄNKE</value></data>
+  <data name="WorldBases_NoContainersWithItemsInThisBase" xml:space="preserve"><value>Keine Behälter mit Gegenständen in dieser Basis.</value></data>
+  <data name="WorldBases_NoCraftingBenchInThisGroup" xml:space="preserve"><value>Keine Werkbank in dieser Gruppe.</value></data>
+  <data name="WorldBases_SlotEditorHint" xml:space="preserve"><value>Tippen Sie einen Slot an, um ihn im Slot-Editor zu bearbeiten; ziehen Sie den Katalog auf Slots, um Gegenstände hinzuzufügen.</value></data>
+  <data name="WorldBases_Upgrades" xml:space="preserve"><value>VERBESSERUNGEN</value></data>
+
+  <!-- WorldContainers -->
+  <data name="WorldContainers_DragHelp" xml:space="preserve"><value>Ziehen Sie einen Slot auf einen Behälter in der Liste, um den Gegenstand in den ersten leeren Slot dieses Behälters zu verschieben.</value></data>
+  <data name="WorldContainers_FilterPlaceholder" xml:space="preserve"><value>Nach Klassenname oder ID filtern…</value></data>
+  <data name="WorldContainers_HideEmpty" xml:space="preserve"><value>LEERE AUSBLENDEN</value></data>
+  <data name="WorldContainers_NoContainersMatch" xml:space="preserve"><value>Keine Behälter passen zum Filter.</value></data>
+  <data name="WorldContainers_SelectAContainer" xml:space="preserve"><value>EINEN BEHÄLTER AUSWÄHLEN</value></data>
+  <data name="WorldContainers_SelectContainerHelp" xml:space="preserve"><value>Wählen Sie einen Behälter aus der Liste aus, um seine Slots zu prüfen oder zu bearbeiten. Tippen Sie einen Slot an, um ihn im rechten Panel zu bearbeiten.</value></data>
+
+  <!-- WorldContainment -->
+  <data name="WorldContainment_Compendium" xml:space="preserve"><value>KOMPENDIUM</value></data>
+  <data name="WorldContainment_Contained" xml:space="preserve"><value>EINGESPERRT</value></data>
+  <data name="WorldContainment_ContainedIn" xml:space="preserve"><value>EINGESPERRT IN</value></data>
+  <data name="WorldContainment_ContainmentUnits" xml:space="preserve"><value>EINDÄMMUNGSEINHEITEN</value></data>
+  <data name="WorldContainment_ContainmentUnitsIntro" xml:space="preserve"><value>Wesen, die derzeit in eingesetzten Eindämmungseinheiten gefangen sind (die LeyakContainmentIDs-Map des Metadaten-Spielstands). Tippen Sie einen Eintrag an, um zu sehen, wie das Wesen aussieht und in welchem Facility-Sektor seine Einheit steht. FREILASSEN entfernt die Verknüpfung, sodass das Wesen beim nächsten Laden wieder frei umherstreift (die Einheit selbst bleibt im Facility-Spielstand eingesetzt). Vorgemerkt bis zum SPEICHERN.</value></data>
+  <data name="WorldContainment_DiscoverAll" xml:space="preserve"><value>ALLES ENTDECKEN</value></data>
+  <data name="WorldContainment_EmailsRead" xml:space="preserve"><value>GELESENE E-MAILS</value></data>
+  <data name="WorldContainment_FindAll" xml:space="preserve"><value>ALLE FINDEN</value></data>
+  <data name="WorldContainment_ItemsSeen" xml:space="preserve"><value>GESEHENE GEGENSTÄNDE</value></data>
+  <data name="WorldContainment_JournalPages" xml:space="preserve"><value>TAGEBUCHSEITEN</value></data>
+  <data name="WorldContainment_NothingContained" xml:space="preserve"><value>Im Moment ist in dieser Welt nichts eingesperrt. Bauen Sie eine Eindämmungseinheit und fangen Sie ein Wesen (Leyak, Krasue) im Spiel; der Eintrag erscheint hier.</value></data>
+  <data name="WorldContainment_ReadAll" xml:space="preserve"><value>ALLE LESEN</value></data>
+  <data name="WorldContainment_Release" xml:space="preserve"><value>FREILASSEN</value></data>
+  <data name="WorldContainment_ReleaseTooltip" xml:space="preserve"><value>Entfernt die Eindämmungsverknüpfung dieses Wesens (es entkommt). Vorgemerkt bis zum SPEICHERN; ZURÜCKSETZEN stellt sie wieder her.</value></data>
+  <data name="WorldContainment_UnlockAll" xml:space="preserve"><value>ALLE FREISCHALTEN</value></data>
+  <data name="WorldContainment_WorldUnlocks" xml:space="preserve"><value>WELT-FREISCHALTUNGEN</value></data>
+  <data name="WorldContainment_WorldUnlocksIntro" xml:space="preserve"><value>Das Spiel teilt Entdeckungen weltweit zusätzlich zu den eigenen Listen jedes Spielers: Gesehene Gegenstände, E-Mails, Tagebuchseiten und Kompendium-Abschnitte, die von IRGENDEINEM Spieler freigeschaltet wurden, landen hier. Massenfreischaltungen sind additiv und bis zum SPEICHERN vorgemerkt.</value></data>
+
+  <!-- WorldDoors -->
+  <data name="WorldDoors_AlreadyOpenedOneWay" xml:space="preserve"><value>BEREITS GEÖFFNET (EINWEG)</value></data>
+  <data name="WorldDoors_FilterPlaceholder" xml:space="preserve"><value>Türen nach Name, Karte, Art, Schlosstyp oder Zustand filtern…</value></data>
+  <data name="WorldDoors_KeepState" xml:space="preserve"><value>ZUSTAND BEIBEHALTEN (kein automatisches Zurücksetzen)</value></data>
+  <data name="WorldDoors_KeepStateTooltip" xml:space="preserve"><value>Wenn aktiviert, behält das Spiel diese Tür in dem von Ihnen festgelegten Zustand und setzt sie beim Neuladen des Bereichs nicht auf ihren Standardzustand (meist gesperrt) zurück. Bei normalen Türen deaktiviert lassen.</value></data>
+  <data name="WorldDoors_OneWayHelp" xml:space="preserve"><value>Nur Einwegtüren: Markiert die Tür als bereits von ihrer gesperrten Seite freigeschaltet (einmal geöffnet). Bei normalen Türen deaktiviert lassen.</value></data>
+  <data name="WorldDoors_Open" xml:space="preserve"><value>ÖFFNEN</value></data>
+  <data name="WorldDoors_SectorCaption" xml:space="preserve"><value>Alle Türen unten befinden sich in diesem Sektor; schalten Sie ihren Offen/Gesperrt-Zustand um, und die Positionen sind pro Tür aufgeführt.</value></data>
+  <data name="WorldDoors_SecurityStateHelp" xml:space="preserve"><value>Steuert, ob diese Sicherheitstür offen oder geschlossen gespeichert wird.</value></data>
+  <data name="WorldDoors_SimpleStateHelp" xml:space="preserve"><value>Gesperrt = bleibt gesperrt, bis sie im Spiel entsperrt wird; Offen / Geschlossen = mechanisch offen oder geschlossen. Dies legt den gespeicherten Zustand der Tür fest.</value></data>
+  <data name="WorldDoors_State" xml:space="preserve"><value>ZUSTAND</value></data>
+
+  <!-- WorldDropped -->
+  <data name="WorldDropped_Delete" xml:space="preserve"><value>LÖSCHEN</value></data>
+  <data name="WorldDropped_DeleteAllShown" xml:space="preserve"><value>ALLE ANGEZEIGTEN LÖSCHEN</value></data>
+  <data name="WorldDropped_FilterPlaceholder" xml:space="preserve"><value>Bodengegenstände nach Name oder ID filtern…</value></data>
+  <data name="WorldDropped_GroundItemsIntro" xml:space="preserve"><value>Lang bestehende Welten sammeln Hunderte von Bodengegenständen an, was die tatsächliche Spielleistung kostet. Markieren Sie hier Gegenstände zum Löschen (nichts wird entfernt, bis Sie SPEICHERN drücken; eine .bak-Sicherung wird behalten). Suchen Sie, um gezielt bestimmten Müll zu erfassen, z. B. 'verrottet'.</value></data>
+  <data name="WorldDropped_ItemsOnTheGround" xml:space="preserve"><value>GEGENSTÄNDE AM BODEN</value></data>
+  <data name="WorldDropped_NoGroundItems" xml:space="preserve"><value>Keine Bodengegenstände passen.</value></data>
+  <data name="WorldDropped_Restore" xml:space="preserve"><value>WIEDERHERSTELLEN</value></data>
+
+  <!-- WorldEditor -->
+  <data name="WorldEditor_Containers" xml:space="preserve"><value>BEHÄLTER</value></data>
+  <data name="WorldEditor_DayDiscovered" xml:space="preserve"><value>TAG DER ENTDECKUNG</value></data>
+  <data name="WorldEditor_DayDiscoveredHelp" xml:space="preserve"><value>Der Spieltag, an dem diese Region zuerst betreten wurde (steuert den Tageszähler auf ihrer Kartenbroschüre).</value></data>
+  <data name="WorldEditor_Status" xml:space="preserve"><value>STATUS</value></data>
+  <data name="WorldEditor_TimeOfDay" xml:space="preserve"><value>TAGESZEIT</value></data>
+  <data name="WorldEditor_WithContents" xml:space="preserve"><value>MIT INHALT</value></data>
+  <data name="WorldEditor_WorldDay" xml:space="preserve"><value>WELTTAG</value></data>
+  <data name="WorldEditor_WorldSave" xml:space="preserve"><value>WELT-SPIELSTAND</value></data>
+
+  <!-- WorldFeature -->
+  <data name="WorldFeature_Area" xml:space="preserve"><value>BEREICH</value></data>
+  <data name="WorldFeature_EditHint" xml:space="preserve"><value>Klicken Sie einen Eintrag an, um seine Felder zu bearbeiten. Änderungen werden bis zum SPEICHERN vorgemerkt; bei jedem Schreibvorgang wird eine .bak behalten.</value></data>
+  <data name="WorldFeature_FetchingImage" xml:space="preserve"><value>Bild wird aus dem Wiki abgerufen...</value></data>
+  <data name="WorldFeature_NoEntries" xml:space="preserve"><value>Keine Einträge passen (oder diese Karte hat in diesem Spielstand keine).</value></data>
+  <data name="WorldFeature_Removing" xml:space="preserve"><value>WIRD ENTFERNT</value></data>
+  <data name="WorldFeature_Search" xml:space="preserve"><value>Suchen...</value></data>
+  <data name="WorldFeature_SelectEntry" xml:space="preserve"><value>Wählen Sie einen Eintrag aus, um ihn zu bearbeiten.</value></data>
+  <data name="WorldFeature_StagedForRemoval" xml:space="preserve"><value>Zum Entfernen vorgemerkt - wird beim SPEICHERN gelöscht (setzt diesen Akteur auf seinen Standard zurück).</value></data>
+  <data name="WorldFeature_Undo" xml:space="preserve"><value>RÜCKGÄNGIG</value></data>
+
+  <!-- WorldFlags -->
+  <data name="WorldFlags_AddFlag" xml:space="preserve"><value>FLAG HINZUFÜGEN</value></data>
+  <data name="WorldFlags_AddFlagPlaceholder" xml:space="preserve"><value>Namen des neuen Flags hinzufügen…</value></data>
+  <data name="WorldFlags_Clear" xml:space="preserve"><value>LÖSCHEN</value></data>
+  <data name="WorldFlags_FilterPlaceholder" xml:space="preserve"><value>Nach Bereich, sprechendem oder rohem Namen filtern…</value></data>
+  <data name="WorldFlags_FlagsIntro" xml:space="preserve"><value>Dies sind die Quest-Flags, die diese Welt tatsächlich erreicht hat, die Einweg-Schalter, die in DIESEM Spielstand gespeichert sind. Der vollständige Story-Zustand liegt in WorldSave_Facility.sav; Regionsdateien enthalten nur die Flags für ihren eigenen Bereich. Eines hier zu setzen kann nach vorne springen (das Spiel kann Voraussetzungen einbeziehen, die bis zum Metadaten-Spielstand und anderen Welten durchschlagen); eines zu löschen spult dieses Ereignis zurück.</value></data>
+  <data name="WorldFlags_HowQuestsWork" xml:space="preserve"><value>WIE QUESTS FUNKTIONIEREN</value></data>
+  <data name="WorldFlags_HowQuestsWorkBody" xml:space="preserve"><value>Die Welt merkt sich Ereignisse als benannte Flags - Einweg-Schalter, die das Spiel setzt, wenn etwas geschieht (eine Tür geöffnet, ein NPC getroffen, ein Sektor abgeschlossen). Die Hauptstory ist eine lineare Kette: Office &gt; Manufacturing West &gt; Labs &gt; Security &gt; Hydroplant &gt; Reactors &gt; Residence; jedes Kapitel wird durch ein bestimmtes Flag ausgelöst (unten als STORY markiert, in Story-Reihenfolge nummeriert). UMSCHALTEN setzt oder löscht ein Flag in diesem Spielstand: Ein STORY-Flag zu setzen lässt die Welt glauben, dieses Ereignis sei geschehen (Vorspringen), eines zu löschen spult es zurück - aber Gegenstände/Türen, die das Ereignis bereits geändert hat, bleiben geändert. Gewöhnliche Flags steuern nur Kleinigkeiten wie Tutorial-Pop-ups und TV-Tipps. Der Zeiger auf das aktuelle Kapitel selbst liegt im STORY-Tab von WorldSave_MetaData.</value></data>
+  <data name="WorldFlags_InThisFile" xml:space="preserve"><value>IN DIESER DATEI</value></data>
+  <data name="WorldFlags_NoFlags" xml:space="preserve"><value>Dieser Spielstand hat noch keine Quest-Flags (oder keine passt zum Filter).</value></data>
+  <data name="WorldFlags_QuestFlags" xml:space="preserve"><value>QUEST-FLAGS</value></data>
+
+  <!-- WorldNpcs -->
+  <data name="WorldNpcs_NpcsIntro" xml:space="preserve"><value>Aktive Story-NPC- / Händler-Datensätze in diesem Spielstand. WIEDERBELEBEN bringt einen entfernten Akteur zurück; das Erzählzustands-Byte steuert seine Story-Phase (die Enum des Spiels hat keine lesbaren Namen - ändern Sie es nur, wenn Sie die Zielphase kennen). Gezähmte Haustiere haben jetzt ihren eigenen PETS-Tab.</value></data>
+  <data name="WorldNpcs_Revive" xml:space="preserve"><value>WIEDERBELEBEN</value></data>
+  <data name="WorldNpcs_ReviveTooltip" xml:space="preserve"><value>Diesen NPC zurückbringen (lebendig + Standard-Skriptphase). Die meisten toten Einträge sind story-geskriptete Abgänge, daher kann das Wiederbeleben einen Akteur auferstehen lassen, den die Handlung bereits anderswohin verschoben hat.</value></data>
+  <data name="WorldNpcs_ScriptPhase" xml:space="preserve"><value>SKRIPTPHASE</value></data>
+  <data name="WorldNpcs_ScriptPhaseTooltip" xml:space="preserve"><value>Spielinterne Dialog-/Skriptphase (0-5), kein Quest-Fortschritt. Jeder lebende NPC steht auf 3.</value></data>
+  <data name="WorldNpcs_StoryNpcsAndTraders" xml:space="preserve"><value>STORY-NPCS &amp; HÄNDLER IN DIESER WELT</value></data>
+  <data name="WorldNpcs_TradersMoved" xml:space="preserve"><value>Suchen Sie Händler? Sie sind in den TRADERS-Tab des Metadaten-Spielstands umgezogen, wo Sie ihren Bestand weltweit freischalten können.</value></data>
+
+  <!-- WorldPets -->
+  <data name="WorldPets_ArmorSetSummonNotice" xml:space="preserve"><value>Dies ist eine Rüstungsset-Beschwörung. Sie wird zur Referenz angezeigt, ist aber nicht bearbeitbar.</value></data>
+  <data name="WorldPets_CompanionSlotHint" xml:space="preserve"><value>Gefährten-Slot (aus = erster freier Schnellleisten-Slot)</value></data>
+  <data name="WorldPets_CreatureTypeUpgradeDowngrade" xml:space="preserve"><value>WESENSTYP (HOCHSTUFEN / HERABSTUFEN)</value></data>
+  <data name="WorldPets_Dead" xml:space="preserve"><value>TOT</value></data>
+  <data name="WorldPets_DeletePetFromWorld" xml:space="preserve"><value>HAUSTIER AUS WELT LÖSCHEN</value></data>
+  <data name="WorldPets_Down" xml:space="preserve"><value>AUSGESCHALTET</value></data>
+  <data name="WorldPets_HealToFull" xml:space="preserve"><value>VOLL HEILEN</value></data>
+  <data name="WorldPets_Health" xml:space="preserve"><value>GESUNDHEIT</value></data>
+  <data name="WorldPets_LevelAndXp" xml:space="preserve"><value>LEVEL &amp; XP</value></data>
+  <data name="WorldPets_Location" xml:space="preserve"><value>STANDORT</value></data>
+  <data name="WorldPets_Lv" xml:space="preserve"><value>LV</value></data>
+  <data name="WorldPets_Name" xml:space="preserve"><value>NAME</value></data>
+  <data name="WorldPets_NameYourPet" xml:space="preserve"><value>Benennen Sie Ihr Haustier…</value></data>
+  <data name="WorldPets_NoPetsInThisWorldSave" xml:space="preserve"><value>Keine Haustiere in diesem Welt-Spielstand.</value></data>
+  <data name="WorldPets_PerLimbHealthHelp" xml:space="preserve"><value>Gesundheit ist die aktuelle HP pro Gliedmaße. Das Bauplan-Maximum wird nicht gespeichert, daher hebt HEILEN jede genutzte Gliedmaße auf die stärkste Gliedmaße des Haustiers an. Ein Haustier mit allen Gliedmaßen auf 0 ist 'ausgeschaltet' (kritisch verwundet).</value></data>
+  <data name="WorldPets_PetListIntro" xml:space="preserve"><value>Klicken Sie ein Haustier an, um es zu bearbeiten: umbenennen, heilen / ausschalten / wiederbeleben, Stufe (XP) festlegen oder seinen Wesenstyp ändern (die Mutation des Spiels - z. B. ein Pest in einen anderen Pest, Peccary oder eine Skink-Variante). Löschen entfernt es aus der Welt. Rüstungsset-Beschwörungen (Exor, Mystagogue) werden angezeigt, sind aber nicht bearbeitbar. Änderungen werden bis zum SPEICHERN vorgemerkt; bei jedem Schreibvorgang wird eine .bak behalten.</value></data>
+  <data name="WorldPets_Revive" xml:space="preserve"><value>WIEDERBELEBEN</value></data>
+  <data name="WorldPets_SelectAPetToEditIt" xml:space="preserve"><value>Wählen Sie ein Haustier aus, um es zu bearbeiten.</value></data>
+  <data name="WorldPets_SendToAPlayer" xml:space="preserve"><value>AN EINEN SPIELER SENDEN</value></data>
+  <data name="WorldPets_SendToPlayer" xml:space="preserve"><value>AN SPIELER SENDEN</value></data>
+  <data name="WorldPets_SendToPlayerHelp" xml:space="preserve"><value>Gesundheit, Stufe und Name werden übernommen; das Haustier verlässt die Welt. Speichern Sie zuerst andere Weltänderungen.</value></data>
+  <data name="WorldPets_TamedPetsInThisWorld" xml:space="preserve"><value>GEZÄHMTE HAUSTIERE IN DIESER WELT</value></data>
+  <data name="WorldPets_UndoDelete" xml:space="preserve"><value>LÖSCHEN RÜCKGÄNGIG</value></data>
+  <data name="WorldPets_Xp" xml:space="preserve"><value>XP</value></data>
+
+  <!-- WorldRaw -->
+  <data name="WorldRaw_ExportJsonOpen" xml:space="preserve"><value>JSON EXPORTIEREN + ÖFFNEN</value></data>
+  <data name="WorldRaw_ImportJsonSave" xml:space="preserve"><value>JSON IMPORTIEREN → SPEICHERN</value></data>
+  <data name="WorldRaw_RawJsonIntro" xml:space="preserve"><value>Welt-Spielstände serialisieren zu sehr großem JSON (der Facility-Spielstand ist ~100 MB), daher ist das Bearbeiten in der App nicht praktikabel. EXPORTIEREN schreibt eine .json-Datei neben den Spielstand und öffnet sie in Ihrem Standardeditor; IMPORTIEREN wandelt Ihre bearbeitete Datei zurück in die .sav um (eine .bak-Sicherung wird behalten).</value></data>
+  <data name="WorldRaw_RawSaveJson" xml:space="preserve"><value>ROH-SPIELSTAND-JSON</value></data>
+
+  <!-- WorldStory -->
+  <data name="WorldStory_ChaptersHeader" xml:space="preserve"><value>KAPITEL: FESTLEGEN SPULT DIE STORY ZURÜCK ODER ÜBERSPRINGT SIE UND SYNCHRONISIERT IHRE AUSLÖSER-FLAGS</value></data>
+  <data name="WorldStory_ContainmentMoved" xml:space="preserve"><value>Eindämmungseinheiten (gefangene Leyak/Krasue) und weltweite Freischaltungen sind in den CONTAINMENT-Tab umgezogen.</value></data>
+  <data name="WorldStory_Current" xml:space="preserve"><value>AKTUELL</value></data>
+  <data name="WorldStory_MainQuestProgression" xml:space="preserve"><value>HAUPTQUEST-FORTSCHRITT</value></data>
+  <data name="WorldStory_MinutesPlayed" xml:space="preserve"><value>GESPIELTE MINUTEN</value></data>
+  <data name="WorldStory_NoRecipes" xml:space="preserve"><value>Keine Rezepte passen (oder Spieldaten sind nicht verfügbar).</value></data>
+  <data name="WorldStory_SearchRecipes" xml:space="preserve"><value>Rezepte suchen…</value></data>
+  <data name="WorldStory_Set" xml:space="preserve"><value>FESTLEGEN</value></data>
+  <data name="WorldStory_StorySplitIntro" xml:space="preserve"><value>Wie der Story-Zustand aufgeteilt ist: DIESE Datei (Metadaten) enthält den Zeiger auf das aktuelle Kapitel; was ein Kapitel als ERLEDIGT anzeigt, stammt aus AUSLÖSER-FLAGS, die in WorldSave_Facility.sav gespeichert sind. Das Drücken von FESTLEGEN erledigt beides auf einmal: Es verschiebt den Zeiger, fügt jedes Auslöser-Flag bis zu diesem Kapitel hinzu und löscht die Flags danach (die Facility-Datei wird sofort mit einer .bak geschrieben; der Zeiger selbst wird bis zum SPEICHERN vorgemerkt).</value></data>
+  <data name="WorldStory_UnlockAll" xml:space="preserve"><value>ALLE FREISCHALTEN</value></data>
+  <data name="WorldStory_WhyMetadata" xml:space="preserve"><value>Warum ist das in der METADATA-Datei? Das Spiel speichert hier die weltweite Forschung (GlobalRecipesUnlocked/Researched): Rezepte, die einmal an einer Werkbank erforscht wurden, werden für JEDEN Spieler in der Welt verfügbar. Das rezeptbezogene Wissen pro Spieler ist getrennt: Bearbeiten Sie es im RECIPES-Tab eines Spieler-Spielstands. Das Freischalten hier aktualisiert sowohl die freigeschalteten als auch die erforschten Listen.</value></data>
+  <data name="WorldStory_WorldRecipes" xml:space="preserve"><value>WELT-REZEPTE</value></data>
+
+  <!-- WorldTraders -->
+  <data name="WorldTraders_Traders" xml:space="preserve"><value>HÄNDLER</value></data>
+  <data name="WorldTraders_TradersIntro" xml:space="preserve"><value>Alle, die in der Facility tauschen, aus der spieleigenen Tabelle DT_NPC_Traders plus Wiki-Hintergrundwissen. Ein Händler (und Teile seines Bestands) erscheint erst, sobald das passende Welt-Flag gesetzt ist; diese Flags liegen in WorldSave_Facility.sav. Tippen Sie eine Karte an, um sie im Seitenpanel zu öffnen, wo Sie jeden Gegenstand mit seinem Symbol sehen, prüfen können, was er ist, und genau auswählen können, welche gesperrten Gegenstände freigeschaltet werden sollen. Der Handel selbst ist Tauschhandel; es ist kein Geld beteiligt.</value></data>
+
+  <!-- WorldVehicles -->
+  <data name="WorldVehicles_Area" xml:space="preserve"><value>BEREICH</value></data>
+  <data name="WorldVehicles_DisplayOnly" xml:space="preserve"><value>Nur Anzeige</value></data>
+  <data name="WorldVehicles_DisplayOnlyNoEditableState" xml:space="preserve"><value>Nur Anzeige - dieses Fahrzeug hat keinen bearbeitbaren Fahrbar-/Wrack-/Bewegungszustand.</value></data>
+  <data name="WorldVehicles_DrivableUnlocked" xml:space="preserve"><value>FAHRBAR (FREIGESCHALTET)</value></data>
+  <data name="WorldVehicles_FetchingImageFromTheWiki" xml:space="preserve"><value>Bild wird aus dem Wiki abgerufen...</value></data>
+  <data name="WorldVehicles_Location" xml:space="preserve"><value>STANDORT</value></data>
+  <data name="WorldVehicles_NoVehiclesInThisSave" xml:space="preserve"><value>Keine Fahrzeuge in diesem Spielstand (Fahrzeuge liegen in Regions-Spielständen).</value></data>
+  <data name="WorldVehicles_OnBoardStorage" xml:space="preserve"><value>BORD-STAURAUM</value></data>
+  <data name="WorldVehicles_OpenInventoryContainersTab" xml:space="preserve"><value>INVENTAR ÖFFNEN (BEHÄLTER-TAB)</value></data>
+  <data name="WorldVehicles_ResetToSpawn" xml:space="preserve"><value>AUF SPAWN ZURÜCKSETZEN</value></data>
+  <data name="WorldVehicles_SelectAVehicleToEditIt" xml:space="preserve"><value>Wählen Sie ein Fahrzeug aus, um es zu bearbeiten.</value></data>
+  <data name="WorldVehicles_State" xml:space="preserve"><value>ZUSTAND</value></data>
+  <data name="WorldVehicles_VehicleListIntro" xml:space="preserve"><value>Klicken Sie ein Fahrzeug an, um es zu bearbeiten: umschalten, ob es fahrbar (freigeschaltet) oder ein Wrack ist, es bewegen, auf seine ursprüngliche Spawn-Position zurücksetzen oder seinen Bord-Stauraum öffnen. Änderungen werden bis zum SPEICHERN vorgemerkt; bei jedem Schreibvorgang wird eine .bak behalten.</value></data>
+  <data name="WorldVehicles_VehiclesInThisWorld" xml:space="preserve"><value>FAHRZEUGE IN DIESER WELT</value></data>
+  <data name="WorldVehicles_Wrecked" xml:space="preserve"><value>WRACK</value></data>
 </root>

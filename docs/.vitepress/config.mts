@@ -48,6 +48,7 @@ export default defineConfig({
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
       { text: 'Plugins', link: '/plugins' },
+      { text: 'Localization', link: '/localization' },
       { text: 'Save format', link: '/player-save-schema' },
       {
         text: 'Download',
@@ -72,6 +73,12 @@ export default defineConfig({
           { text: 'Building & installing', link: '/plugin-building' },
           { text: 'Sample catalog', link: '/plugin-samples' },
           { text: 'Plugin fix-ups', link: '/plugin-fixups' },
+        ],
+      },
+      {
+        text: 'Localization',
+        items: [
+          { text: 'Translating the editor', link: '/localization' },
         ],
       },
       {
