@@ -536,6 +536,8 @@ Worlds: containers Â· quest flags Â· doors Â· ground items Â· story prog
   <!-- WorldTraders -->
   <data name="WorldTraders_Traders" xml:space="preserve"><value>TRADERS</value></data>
   <data name="WorldTraders_TradersIntro" xml:space="preserve"><value>Everyone who barters in the Facility, from the game's own DT_NPC_Traders table plus wiki lore. A trader (and pieces of its stock) only appears once the matching world flag is set; those flags live in WorldSave_Facility.sav. Tap a card to open it in the side panel, where you can see each item with its icon, inspect what it is, and pick exactly which locked items to unlock. Trading itself is barter; no money is involved.</value></data>
+  <data name="WorldTraders_NoDataTitle" xml:space="preserve"><value>Game data not loaded</value></data>
+  <data name="WorldTraders_NoDataBody" xml:space="preserve"><value>The trader roster, and the flags that gate each trade (for example Dr. Carson's "Gears for Murkweed"), are read from your installed copy of the game, not from the save. The editor could not find your game data, so this list is empty - this is not caused by mods. Point the editor at your install in Settings &gt; Game Data ("Locate game folder"), then reopen this save. Auto-detection only finds Steam installs, so Game Pass, Epic, or moved libraries need to be set manually.</value></data>
 
   <!-- WorldVehicles -->
   <data name="WorldVehicles_Area" xml:space="preserve"><value>AREA</value></data>

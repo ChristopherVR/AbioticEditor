@@ -484,6 +484,8 @@ Welten: Behälter · Quest-Flags · Türen · Bodengegenstände · Story-Fortsch
   <!-- WorldTraders -->
   <data name="WorldTraders_Traders" xml:space="preserve"><value>HÄNDLER</value></data>
   <data name="WorldTraders_TradersIntro" xml:space="preserve"><value>Alle, die in der Facility tauschen, aus der spieleigenen Tabelle DT_NPC_Traders plus Wiki-Hintergrundwissen. Ein Händler (und Teile seines Bestands) erscheint erst, sobald das passende Welt-Flag gesetzt ist; diese Flags liegen in WorldSave_Facility.sav. Tippen Sie eine Karte an, um sie im Seitenpanel zu öffnen, wo Sie jeden Gegenstand mit seinem Symbol sehen, prüfen können, was er ist, und genau auswählen können, welche gesperrten Gegenstände freigeschaltet werden sollen. Der Handel selbst ist Tauschhandel; es ist kein Geld beteiligt.</value></data>
+  <data name="WorldTraders_NoDataTitle" xml:space="preserve"><value>Spieldaten nicht geladen</value></data>
+  <data name="WorldTraders_NoDataBody" xml:space="preserve"><value>Die Händlerliste und die Flags, die jeden Handel freischalten (zum Beispiel Dr. Carsons "Zahnräder gegen Trübkraut"), werden aus Ihrer installierten Spielkopie gelesen, nicht aus dem Spielstand. Der Editor konnte Ihre Spieldaten nicht finden, daher ist diese Liste leer - das liegt nicht an Mods. Verweisen Sie den Editor unter Einstellungen &gt; Spieldaten ("Spielordner suchen") auf Ihre Installation und öffnen Sie diesen Spielstand erneut. Die automatische Erkennung findet nur Steam-Installationen; Game Pass, Epic oder verschobene Bibliotheken müssen manuell festgelegt werden.</value></data>
 
   <!-- WorldVehicles -->
   <data name="WorldVehicles_Area" xml:space="preserve"><value>BEREICH</value></data>

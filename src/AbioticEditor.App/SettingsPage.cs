@@ -132,10 +132,7 @@ public sealed class SettingsPage : ContentPage
             new HorizontalStackLayout { Spacing = 10, Children = { resealButton } });
 
         // ----- GAME DATA -----
-        var importUsmap = new Button { Text = "IMPORT USMAP", Command = _vm.ImportMappingsCommand };
-        var gameDataCard = ModalChrome.Card("GAME DATA",
-            "Install a newer Mappings.usmap (dumped with FModel or Dumper-7) for future game versions. Takes effect after restart.",
-            new HorizontalStackLayout { Spacing = 10, Children = { importUsmap } });
+        var gameDataCard = BuildGameDataCard();
 
         // ----- PLUGINS -----
         var managePlugins = new Button { Text = "MANAGE PLUGINS" };
@@ -173,6 +170,106 @@ public sealed class SettingsPage : ContentPage
             ModalChrome.Footer(close),
             maxWidth: 620);
     }
+
+    /// <summary>
+    /// The GAME DATA card: shows whether the installed game's data loaded, lets the user point
+    /// the editor at a non-Steam / moved install (Game Pass, Epic, a library Steam can't
+    /// enumerate), revert to auto-detection, and import a newer usmap. The trader roster and
+    /// the flags gating each trade come entirely from this game data, so this card is what
+    /// unblocks an empty TRADERS tab. Picking a folder reloads game data live (the open save
+    /// must be reopened to refresh its trader/icon views).
+    /// </summary>
+    private View BuildGameDataCard()
+    {
+        var status = new Label { Style = ModalChrome.St("AfMuted"), FontSize = 11 };
+        var locateFolder = new Button { Text = "LOCATE GAME FOLDER" };
+        var autoDetect = ModalChrome.Button("USE AUTO-DETECT", primary: false);
+
+        void Refresh()
+        {
+            var custom = Services.GameDataServices.CustomInstallPath;
+            status.Text = Services.GameDataServices.IsGameDataLoaded
+                ? (custom is null
+                    ? "Game data is loaded (auto-detected Steam install)."
+                    : $"Game data is loaded from your set folder:\n{custom}")
+                : Services.GameDataServices.StatusMessage
+                    + (custom is null ? "" : $"\nSet folder: {custom}");
+            autoDetect.IsVisible = custom is not null;
+        }
+
+        Refresh();
+
+        // Reload game data in place after a folder/auto-detect change so the catalogs fill in
+        // (or empty out) without relaunching. Already-open editor views cache their catalog-
+        // derived state, so we ask the user to reopen the save to see traders/icons refresh.
+        async Task ApplyAndReloadAsync(string okTitle)
+        {
+            // Goes through the view-model so the searchable item palette is rebuilt from the new
+            // catalog too - GameDataServices.ReloadAsync alone leaves the picker on stale data.
+            await _vm.ReloadGameDataAsync();
+            Refresh();
+            await ViewUtils.AlertAsync(this, okTitle,
+                Services.GameDataServices.IsGameDataLoaded
+                    ? "Game data loaded. Reopen your save to refresh traders and item icons."
+                    : Services.GameDataServices.StatusMessage);
+        }
+
+        locateFolder.Clicked += async (_, _) =>
+        {
+            try
+            {
+                var result = await CommunityToolkit.Maui.Storage.FolderPicker.PickAsync(CancellationToken.None);
+                if (!result.IsSuccessful || result.Folder is null)
+                {
+                    return; // dismissed
+                }
+                var picked = result.Folder.Path;
+                var paks = AbioticEditor.Core.Assets.AfInstallLocator.ResolvePaksDirectory(picked);
+                if (paks is null)
+                {
+                    await ViewUtils.AlertAsync(this, "No game data there",
+                        $"Couldn't find Abiotic Factor's pak files under:\n{picked}\n\n"
+                            + "Pick the game's install folder (the one containing the AbioticFactor "
+                            + "folder), its AbioticFactor subfolder, or the Content\\Paks folder.");
+                    return;
+                }
+                Services.GameDataServices.CustomInstallPath = picked;
+                EditorLog.Info("Settings", $"Game install folder set to {picked} (paks: {paks})");
+                await ApplyAndReloadAsync("Game folder set");
+            }
+            catch (Exception ex) when (!IsPickerCancellation(ex))
+            {
+                EditorLog.Error("Settings", "Game folder pick failed", ex);
+                await ViewUtils.AlertAsync(this, "Folder picker failed", ex.Message);
+            }
+        };
+
+        autoDetect.Clicked += async (_, _) =>
+        {
+            Services.GameDataServices.CustomInstallPath = null;
+            EditorLog.Info("Settings", "Game install folder reset to auto-detect");
+            await ApplyAndReloadAsync("Auto-detect restored");
+        };
+
+        var importUsmap = new Button { Text = "IMPORT USMAP", Command = _vm.ImportMappingsCommand };
+
+        return ModalChrome.Card("GAME DATA",
+            "Traders, item icons and recipes are read from your installed copy of the game (not "
+                + "the save). Auto-detection only finds Steam installs - point the editor at a Game "
+                + "Pass / Epic / moved install here. You can also install a newer Mappings.usmap "
+                + "(dumped with FModel or Dumper-7) for future game versions.",
+            status,
+            new HorizontalStackLayout { Spacing = 10, Children = { locateFolder, autoDetect } },
+            new HorizontalStackLayout { Spacing = 10, Children = { importUsmap } });
+    }
+
+    /// <summary>
+    /// The toolkit reports a dismissed folder dialog as a failure carrying an exception;
+    /// closing the picker without choosing is a normal outcome, not an error.
+    /// </summary>
+    private static bool IsPickerCancellation(Exception ex)
+        => ex is OperationCanceledException
+            || ex.Message.Contains("cancel", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// The UPDATES card: a CHECK FOR UPDATES button that queries GitHub releases and, when a

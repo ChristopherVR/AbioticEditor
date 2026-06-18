@@ -13,19 +13,92 @@ public static class AfInstallLocator
     private const string GameFolderName = "AbioticFactor";
 
     /// <summary>
-    /// Returns the absolute path to <c>&lt;install&gt;/AbioticFactor/Content/Paks</c>,
-    /// or null if the game can't be located.
+    /// Environment variable that points at the game install (any of the shapes
+    /// <see cref="ResolvePaksDirectory"/> accepts). Lets CLI users and non-Steam installs
+    /// (Game Pass, Epic, a moved library Steam can't enumerate) override auto-detection.
+    /// </summary>
+    public const string GameDirEnvVar = "ABIOTIC_GAME_DIR";
+
+    /// <summary>
+    /// Explicit install path set by the host (the App persists this from its Settings
+    /// "Game Data" card). Wins over <see cref="GameDirEnvVar"/> and Steam auto-detection.
+    /// Accepts any shape <see cref="ResolvePaksDirectory"/> understands; an unusable value
+    /// is ignored and detection falls through rather than failing hard.
+    /// </summary>
+    public static string? OverrideInstallRoot { get; set; }
+
+    /// <summary>
+    /// Returns the absolute path to the game's <c>Content/Paks</c> directory, or null if
+    /// the game can't be located. Resolution order: the explicit
+    /// <see cref="OverrideInstallRoot"/> (in-process), then the <see cref="GameDirEnvVar"/>
+    /// environment variable, then the persisted <see cref="GamePathStore"/> choice (so a folder
+    /// picked in the app is honored by the CLI and by a freshly launched app, even though the CLI
+    /// never sets <see cref="OverrideInstallRoot"/>), then Steam auto-detection. Each configured
+    /// source is only used while it still resolves to paks, so a stale path falls through rather
+    /// than disabling detection.
     /// </summary>
     public static string? FindPaksDirectory()
     {
+        foreach (var configured in new[]
+                 {
+                     OverrideInstallRoot,
+                     Environment.GetEnvironmentVariable(GameDirEnvVar),
+                     GamePathStore.Saved,
+                 })
+        {
+            if (!string.IsNullOrWhiteSpace(configured) && ResolvePaksDirectory(configured) is { } overridden)
+            {
+                return overridden;
+            }
+        }
+
         var root = FindInstallRoot();
-        if (root is null)
+        return root is null ? null : ResolvePaksDirectory(root);
+    }
+
+    /// <summary>
+    /// Resolves a user-supplied or detected path to the game's <c>Content/Paks</c>
+    /// directory, tolerating the shapes a player is likely to pick: the install root
+    /// (contains <c>AbioticFactor/Content/Paks</c>), the inner <c>AbioticFactor</c> folder
+    /// (contains <c>Content/Paks</c>), or the <c>Paks</c> folder itself. Returns null when
+    /// none of those hold so a stray folder can't be mistaken for a valid install.
+    /// </summary>
+    public static string? ResolvePaksDirectory(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
         {
             return null;
         }
 
-        var paks = Path.Combine(root, "AbioticFactor", "Content", "Paks");
-        return Directory.Exists(paks) ? paks : null;
+        string[] structured =
+        {
+            Path.Combine(path, GameFolderName, "Content", "Paks"),
+            Path.Combine(path, "Content", "Paks"),
+        };
+        foreach (var candidate in structured)
+        {
+            if (Directory.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return LooksLikePaksDirectory(path) ? path : null;
+    }
+
+    /// <summary>True when <paramref name="dir"/> exists and holds at least one pak/utoc.</summary>
+    private static bool LooksLikePaksDirectory(string dir)
+    {
+        try
+        {
+            return Directory.Exists(dir)
+                && (Directory.EnumerateFiles(dir, "*.pak").Any()
+                    || Directory.EnumerateFiles(dir, "*.utoc").Any());
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     /// <summary>

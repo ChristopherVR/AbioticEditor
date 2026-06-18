@@ -484,6 +484,8 @@ Mundos: contenedores · indicadores de misión · puertas · objetos en el suelo
   <!-- WorldTraders -->
   <data name="WorldTraders_Traders" xml:space="preserve"><value>COMERCIANTES</value></data>
   <data name="WorldTraders_TradersIntro" xml:space="preserve"><value>Todos los que comercian en el Facility, de la propia tabla DT_NPC_Traders del juego más el lore de la wiki. Un comerciante (y partes de su inventario) solo aparece una vez que se establece el indicador de mundo correspondiente; esos indicadores viven en WorldSave_Facility.sav. Toca una tarjeta para abrirla en el panel lateral, donde puedes ver cada objeto con su icono, inspeccionar qué es y elegir exactamente qué objetos bloqueados desbloquear. El comercio en sí es trueque; no interviene dinero.</value></data>
+  <data name="WorldTraders_NoDataTitle" xml:space="preserve"><value>Datos del juego no cargados</value></data>
+  <data name="WorldTraders_NoDataBody" xml:space="preserve"><value>La lista de comerciantes, y los indicadores que desbloquean cada intercambio (por ejemplo, el "Engranajes por Murkweed" del Dr. Carson), se leen de tu copia instalada del juego, no de la partida guardada. El editor no pudo encontrar los datos del juego, por lo que esta lista está vacía - esto no lo causan los mods. Indica al editor dónde está tu instalación en Configuración &gt; Datos del juego ("Localizar carpeta del juego") y vuelve a abrir esta partida. La detección automática solo encuentra instalaciones de Steam, así que Game Pass, Epic o las bibliotecas movidas deben establecerse manualmente.</value></data>
 
   <!-- WorldVehicles -->
   <data name="WorldVehicles_Area" xml:space="preserve"><value>ÁREA</value></data>

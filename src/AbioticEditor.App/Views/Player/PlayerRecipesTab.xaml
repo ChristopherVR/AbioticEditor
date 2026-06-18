@@ -66,7 +66,10 @@
                                     SelectionMode="Single"
                                     SelectedItem="{Binding PlayerEditor.RecipeBrowser.SelectedRecipe, Mode=TwoWay}">
                         <CollectionView.EmptyView>
-                            <Label Text="{loc:Localize PlayerRecipes_NoRecipesMatch}" Style="{StaticResource AfMuted}" Padding="16" />
+                            <!-- Bound (not {loc:Localize}) so it can distinguish "no recipes match" from the
+                                 specific reason game data is missing - see MainViewModel.RecipesEmptyMessage. -->
+                            <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.RecipesEmptyMessage}"
+                                   Style="{StaticResource AfMuted}" Padding="16" LineBreakMode="WordWrap" />
                         </CollectionView.EmptyView>
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="items:RecipeRowViewModel">

@@ -378,11 +378,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
             var installed = Core.Assets.GameAssetProvider.InstallUserMappings(pick.FullPath);
             EditorLog.Info("App", $"User imported mappings: {pick.FullPath} -> {installed}");
-            StatusMessage = "New mappings installed - restart the editor to load game data with them.";
+            StatusMessage = "New mappings installed - press RELOAD GAME DATA (or restart) to load them.";
             await DialogViewModel.Current.AlertAsync(
                 "Mappings installed",
-                $"Installed to:\n{installed}\n\nThe new mappings take effect after you restart the editor. " +
-                "Delete that file to fall back to the bundled mappings.");
+                $"Installed to:\n{installed}\n\nPress RELOAD GAME DATA in Settings > Game Data to load them now, " +
+                "or restart the editor. Delete that file to fall back to the bundled mappings.");
         }
         catch (Exception ex)
         {
@@ -1919,6 +1919,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
             ItemPalette = palette;
         }
 
+        // Loading runs after the VM is constructed, so refresh the bindings that depend on the
+        // outcome (the distinguishing empty-state text on inventory / recipes / lore).
+        RaiseGameDataStatusChanged();
+
         try
         {
             var provider = GameDataServices.Provider;
@@ -1944,6 +1948,54 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             // Logo is purely cosmetic - never bring down the app over it.
         }
+    }
+
+    /// <summary>
+    /// Empty-state text for the lore / codex list: the ordinary "nothing matches your search"
+    /// when the catalogs are loaded, otherwise the specific reason game data is missing (install
+    /// not found vs Mappings.usmap missing) with the fix - so the user isn't left with a vague
+    /// "unavailable". Bound by the codex tab's empty view.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static",
+        Justification = "Bound from XAML; bindings need an instance member.")]
+    public string CodexEmptyMessage => GameDataServices.IsGameDataLoaded
+        ? LocalizationResourceManager.Instance["PlayerCodex_NothingMatches"]
+        : GameDataServices.StatusMessage;
+
+    /// <summary>Empty-state text for the recipe browser - see <see cref="CodexEmptyMessage"/>.</summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static",
+        Justification = "Bound from XAML; bindings need an instance member.")]
+    public string RecipesEmptyMessage => GameDataServices.IsGameDataLoaded
+        ? LocalizationResourceManager.Instance["PlayerRecipes_NoRecipesMatch"]
+        : GameDataServices.StatusMessage;
+
+    /// <summary>Refreshes every binding that depends on the game-data load outcome.</summary>
+    private void RaiseGameDataStatusChanged()
+    {
+        foreach (var name in new[] { nameof(CodexEmptyMessage), nameof(RecipesEmptyMessage), nameof(HasItemPalette) })
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        }
+    }
+
+    /// <summary>
+    /// Re-runs game-data loading against the current install setting (after the user points the
+    /// editor at a folder, reverts to auto-detect, or imports a usmap) so the catalogs fill in or
+    /// empty out without an app restart. Rebuilds the searchable item palette from the new
+    /// catalog - it is otherwise only built once at startup, so the item picker would stay empty
+    /// after a first successful LOCATE. The open save keeps its staged edits; reopening it is what
+    /// refreshes its catalog-derived display (item names, icons, traders), which is why the
+    /// Settings card asks the user to do so.
+    /// </summary>
+    public async Task ReloadGameDataAsync()
+    {
+        await GameDataServices.ReloadAsync();
+
+        ItemPalette = GameDataServices.Catalog is { } catalog
+            ? await Task.Run(() => new ItemPaletteViewModel(catalog))
+            : null;
+
+        RaiseGameDataStatusChanged();
     }
 
     private const string LastFolderPreferenceKey = "LastSaveFolder";

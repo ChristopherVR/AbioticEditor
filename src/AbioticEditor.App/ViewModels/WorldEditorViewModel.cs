@@ -888,6 +888,18 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
             .Select(t => new TraderCardViewModel(t, HasWorldFlag))
             .ToList();
 
+    /// <summary>True when there is at least one trader card to show.</summary>
+    public bool HasTraderCards => TraderCards.Count > 0;
+
+    /// <summary>
+    /// True when the roster is empty - which on this tab always means the game's pak data
+    /// could not be loaded (the traders, and the flags gating each trade, come entirely from
+    /// the installed game, never from the save). Drives the "game data not found" panel that
+    /// points the user at Settings &gt; Game Data. The value is fixed for the session (game
+    /// data loads once at startup), so it needs no change notification.
+    /// </summary>
+    public bool HasNoTraderData => TraderCards.Count == 0;
+
     private TraderCardViewModel? _selectedTrader;
 
     /// <summary>Tap a roster card to expand the full stock + unlock states.</summary>

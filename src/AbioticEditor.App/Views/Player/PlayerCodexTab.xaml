@@ -110,7 +110,10 @@
                                     SelectionMode="Single"
                                     SelectedItem="{Binding PlayerEditor.Codex.Selected, Mode=TwoWay}">
                         <CollectionView.EmptyView>
-                            <Label Text="{loc:Localize PlayerCodex_NothingMatches}" Style="{StaticResource AfMuted}" Padding="16" />
+                            <!-- Bound (not {loc:Localize}) so it can distinguish "nothing matches your
+                                 search" from the specific reason game data is missing - see MainViewModel.CodexEmptyMessage. -->
+                            <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.CodexEmptyMessage}"
+                                   Style="{StaticResource AfMuted}" Padding="16" LineBreakMode="WordWrap" />
                         </CollectionView.EmptyView>
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="items:CodexItemViewModel">

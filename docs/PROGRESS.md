@@ -5,6 +5,34 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-35: custom game-install folder + Traders empty-state (2026-06-19)
+- User feedback: the TRADERS tab on the metadata save "seems blank". Root cause is NOT the
+  save or mods: the trader roster AND the per-trade gating flags (e.g. Dr. Carson's
+  "Gears for Murkweed") come 100% from the installed game's paks (`DT_NPC_Traders` +
+  `DT_NPC_TraderItems`), never from the save. Auto-detection was Steam-registry-only
+  (`AfInstallLocator`), so Game Pass / Epic / moved-library / non-Steam users got an empty,
+  unexplained tab. The per-trade unlock feature itself already exists
+  (`WorldEditorViewModel.UnlockTraderFlagsAsync` writes the gating flag to
+  `WorldSave_Facility.sav`); it was just unreachable with no roster.
+- Core: `AfInstallLocator` gains `OverrideInstallRoot` (in-process), honors the
+  `ABIOTIC_GAME_DIR` env var, and a tolerant `ResolvePaksDirectory(path)` that accepts the
+  install root, the inner `AbioticFactor` folder, or the `Paks` folder itself (rejects a folder
+  with no `*.pak`/`*.utoc`). New `GamePathStore` persists the chosen folder to
+  `%LOCALAPPDATA%/AbioticEditor/gamepath.txt` so the CLI and App share one config without an env
+  var. `FindPaksDirectory` resolution order: override -> env var -> GamePathStore -> Steam; a
+  stale source falls through instead of disabling detection.
+- App: `GameDataServices` gains a `GameDataStatus` (Ready / InstallNotFound / MappingsMissing /
+  LoadFailed) + `StatusMessage`, a `ReloadAsync` (live reload of all catalogs without relaunch -
+  `LoadCore`/`ResetState`), `CustomInstallPath` (backed by `GamePathStore`) and `IsGameDataLoaded`.
+  Settings GAME DATA card rebuilt (`SettingsPage.BuildGameDataCard`): a status line, LOCATE GAME
+  FOLDER (FolderPicker -> `ResolvePaksDirectory` validate -> persist -> live `ReloadAsync` ->
+  "reopen your save"), USE AUTO-DETECT (clear + reload), plus the existing IMPORT USMAP. The
+  TRADERS tab shows a localized "Game data not loaded" panel (`WorldTraders_NoData*`, en/de/es/fr)
+  via `WorldEditorViewModel.HasTraderCards`/`HasNoTraderData` when the roster is empty.
+- Tests: `AfInstallLocatorTests` (9) cover the three accepted layouts, blank/garbage rejection,
+  and override precedence/fall-through. Core + App (net10.0-windows) build clean; NOT
+  screenshot-verified.
+
 ## Round-34: world-state feature maps moved from the Settings modal into world-editor tabs (2026-06-14)
 - The world-state maps (power sockets, resource nodes, NPC spawns, triggers, elevators, buttons,
   portals, trams, server entitlements, teleporter pads, ...) used to be editable only through the

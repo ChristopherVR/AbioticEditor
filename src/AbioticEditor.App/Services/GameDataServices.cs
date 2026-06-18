@@ -22,6 +22,60 @@ public static class GameDataServices
     public static bool IsCatalogReady => _catalog is not null;
 
     /// <summary>
+    /// The user's explicit game-install folder, or null when set to auto-detect. Backed by
+    /// <see cref="Core.Assets.GamePathStore"/> so the CLI honors the same choice. Setting it
+    /// only changes the persisted value; call <see cref="ReloadAsync"/> (the Settings &gt; Game
+    /// Data card does this) to apply it live, or it takes effect on the next launch.
+    /// </summary>
+    public static string? CustomInstallPath
+    {
+        get => Core.Assets.GamePathStore.Saved;
+        set
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                Core.Assets.GamePathStore.Clear();
+            else
+                Core.Assets.GamePathStore.Save(value);
+        }
+    }
+
+    /// <summary>
+    /// True only once the game paks mounted AND usmap mappings loaded - the state every
+    /// asset-backed catalog (traders, items, recipes, ...) needs to be non-empty. Drives
+    /// the editor's "game data not found" empty states.
+    /// </summary>
+    public static bool IsGameDataLoaded => _provider is { } p && p.HasMappings;
+
+    private static GameDataStatus _status = GameDataStatus.NotLoaded;
+
+    /// <summary>
+    /// Why game data is (or isn't) available after the last load. Lets the UI tell apart the
+    /// two distinct failures - the game install wasn't found, versus it was found but
+    /// Mappings.usmap is missing - instead of one vague "unavailable".
+    /// </summary>
+    public static GameDataStatus Status => _status;
+
+    /// <summary>
+    /// A human-readable explanation of <see cref="Status"/> that names the fix. Shown on the
+    /// empty inventory / recipe / lore surfaces and in Settings &gt; Game Data.
+    /// </summary>
+    public static string StatusMessage => _status switch
+    {
+        GameDataStatus.Ready => "Game data loaded.",
+        GameDataStatus.InstallNotFound =>
+            "Abiotic Factor's data files were not found, so the item, recipe and lore catalogs "
+            + "are empty. Open Settings > Game Data and choose LOCATE GAME FOLDER to point the "
+            + "editor at your install (this works for non-Steam copies too).",
+        GameDataStatus.MappingsMissing =>
+            "The game was found, but Mappings.usmap is missing so its data tables can't be read. "
+            + "Keep Mappings.usmap next to the editor, or import one in Settings > Game Data.",
+        GameDataStatus.LoadFailed =>
+            "Game data failed to load. Turn on diagnostic logging in Settings and check the log "
+            + "for the cause.",
+        _ => "Game data has not been loaded yet.",
+    };
+
+    /// <summary>
     /// Ordered skill definitions - from the game's DT_Skills when assets are available,
     /// otherwise the built-in fallback table. Never null/empty.
     /// </summary>
@@ -124,55 +178,7 @@ public static class GameDataServices
         try
         {
             if (_loaded) return;
-            await Task.Run(() =>
-            {
-                try
-                {
-                    _provider = GameAssetProvider.CreateForLocalInstall();
-                    if (_provider is not null && _provider.HasMappings)
-                    {
-                        _catalog = ItemCatalog.LoadFrom(_provider);
-                        _skills = SkillCatalog.LoadFrom(_provider);
-                        _recipeInfos = RecipeCatalog.LoadInfosFrom(_provider);
-                        _traitDetails = TraitCatalog.LoadDetailsFrom(_provider);
-                        _emails = Core.Codex.CodexCatalog.LoadEmails(_provider);
-                        _journals = Core.Codex.CodexCatalog.LoadJournals(_provider);
-                        _compendium = Core.Codex.CodexCatalog.LoadCompendium(_provider);
-                        _maps = MapCatalog.LoadFrom(_provider);
-                        _fish = Core.Codex.CodexCatalog.LoadFish(_provider);
-                        _npcStates = Core.WorldSaves.NpcStateCatalog.LoadFrom(_provider);
-                        _traders = Core.Codex.TraderCatalog.LoadFrom(_provider);
-                        _itemUpgrades = ItemUpgradeCatalog.LoadFrom(_provider);
-                        _backpackSlots = BackpackSpecialSlotCatalog.LoadFrom(_provider);
-                        _sectorMaps = Core.WorldSaves.SectorMapCatalog.LoadFrom(_provider);
-                        _customizationOptions = CustomizationCatalog.LoadFrom(_provider);
-
-                        // Reverse indexes for the item encyclopedia (crafted-by /
-                        // used-in / sold-by lookups).
-                        _craftedBy = _recipeInfos!
-                            .Where(r => r.CreatesItemId is not null)
-                            .ToLookup(r => r.CreatesItemId!, StringComparer.OrdinalIgnoreCase);
-                        _usedIn = _recipeInfos!
-                            .SelectMany(r => r.IngredientList.Select(i => (i.ItemId, Recipe: r)))
-                            .ToLookup(t => t.ItemId, t => t.Recipe, StringComparer.OrdinalIgnoreCase);
-                        _soldBy = _traders!
-                            .SelectMany(t => t.Sells.Select(o => (o.ItemId, Trader: t)))
-                            .ToLookup(t => t.ItemId, t => t.Trader, StringComparer.OrdinalIgnoreCase);
-                    }
-                }
-                catch
-                {
-                    // Editor must function (with reduced features) even if asset loading fails.
-                }
-
-                // Catalog loading churns through hundreds of MB of transient package
-                // data; without a nudge the gen2/LOH garbage sits in the committed
-                // heap for the whole session. One compacting collection here returns
-                // it to the OS.
-                System.Runtime.GCSettings.LargeObjectHeapCompactionMode =
-                    System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
-                GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
-            });
+            await Task.Run(LoadCore);
             _loaded = true;
         }
         finally
@@ -180,4 +186,143 @@ public static class GameDataServices
             _gate.Release();
         }
     }
+
+    /// <summary>
+    /// Re-runs game-data loading from scratch after the user changes the install folder or
+    /// imports a usmap, so the inventory / recipe / lore surfaces fill in without an app
+    /// restart. Disposes the previous provider and clears every cached catalog first, then
+    /// reloads against the now-current <see cref="CustomInstallPath"/>. Callers must refresh
+    /// any catalog-derived view state afterwards (e.g. the item palette and the open save).
+    /// </summary>
+    public static async Task ReloadAsync()
+    {
+        await _gate.WaitAsync();
+        try
+        {
+            ResetState();
+            await Task.Run(LoadCore);
+            _loaded = true;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    /// <summary>
+    /// The actual load: resolve the install (honoring <see cref="CustomInstallPath"/>), mount
+    /// the paks and, when mappings are present, populate every catalog. Records the outcome in
+    /// <see cref="Status"/>. Runs on a background thread; never throws (a failure degrades to an
+    /// empty catalog with <see cref="GameDataStatus.LoadFailed"/>).
+    /// </summary>
+    private static void LoadCore()
+    {
+        try
+        {
+            // Apply the user's explicit install folder (Settings > Game Data) before resolving,
+            // so CreateForLocalInstall's AfInstallLocator picks it up ahead of Steam detection.
+            AfInstallLocator.OverrideInstallRoot = CustomInstallPath;
+
+            _provider = GameAssetProvider.CreateForLocalInstall();
+            if (_provider is null)
+            {
+                _status = GameDataStatus.InstallNotFound;
+            }
+            else if (!_provider.HasMappings)
+            {
+                _status = GameDataStatus.MappingsMissing;
+            }
+            else
+            {
+                _catalog = ItemCatalog.LoadFrom(_provider);
+                _skills = SkillCatalog.LoadFrom(_provider);
+                _recipeInfos = RecipeCatalog.LoadInfosFrom(_provider);
+                _traitDetails = TraitCatalog.LoadDetailsFrom(_provider);
+                _emails = Core.Codex.CodexCatalog.LoadEmails(_provider);
+                _journals = Core.Codex.CodexCatalog.LoadJournals(_provider);
+                _compendium = Core.Codex.CodexCatalog.LoadCompendium(_provider);
+                _maps = MapCatalog.LoadFrom(_provider);
+                _fish = Core.Codex.CodexCatalog.LoadFish(_provider);
+                _npcStates = Core.WorldSaves.NpcStateCatalog.LoadFrom(_provider);
+                _traders = Core.Codex.TraderCatalog.LoadFrom(_provider);
+                _itemUpgrades = ItemUpgradeCatalog.LoadFrom(_provider);
+                _backpackSlots = BackpackSpecialSlotCatalog.LoadFrom(_provider);
+                _sectorMaps = Core.WorldSaves.SectorMapCatalog.LoadFrom(_provider);
+                _customizationOptions = CustomizationCatalog.LoadFrom(_provider);
+
+                // Reverse indexes for the item encyclopedia (crafted-by /
+                // used-in / sold-by lookups).
+                _craftedBy = _recipeInfos!
+                    .Where(r => r.CreatesItemId is not null)
+                    .ToLookup(r => r.CreatesItemId!, StringComparer.OrdinalIgnoreCase);
+                _usedIn = _recipeInfos!
+                    .SelectMany(r => r.IngredientList.Select(i => (i.ItemId, Recipe: r)))
+                    .ToLookup(t => t.ItemId, t => t.Recipe, StringComparer.OrdinalIgnoreCase);
+                _soldBy = _traders!
+                    .SelectMany(t => t.Sells.Select(o => (o.ItemId, Trader: t)))
+                    .ToLookup(t => t.ItemId, t => t.Trader, StringComparer.OrdinalIgnoreCase);
+
+                _status = GameDataStatus.Ready;
+            }
+        }
+        catch
+        {
+            // Editor must function (with reduced features) even if asset loading fails.
+            _status = GameDataStatus.LoadFailed;
+        }
+
+        // Catalog loading churns through hundreds of MB of transient package
+        // data; without a nudge the gen2/LOH garbage sits in the committed
+        // heap for the whole session. One compacting collection here returns
+        // it to the OS.
+        System.Runtime.GCSettings.LargeObjectHeapCompactionMode =
+            System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+        GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
+    }
+
+    /// <summary>Disposes the mounted provider and clears every cached catalog before a reload.</summary>
+    private static void ResetState()
+    {
+        _provider?.Dispose();
+        _provider = null;
+        _catalog = null;
+        _skills = null;
+        _recipeInfos = null;
+        _traitDetails = null;
+        _emails = null;
+        _journals = null;
+        _compendium = null;
+        _maps = null;
+        _fish = null;
+        _npcStates = null;
+        _traders = null;
+        _itemUpgrades = null;
+        _backpackSlots = null;
+        _sectorMaps = null;
+        _customizationOptions = null;
+        _craftedBy = null;
+        _usedIn = null;
+        _soldBy = null;
+        _loaded = false;
+        _status = GameDataStatus.NotLoaded;
+    }
+}
+
+/// <summary>The outcome of the last game-data load - see <see cref="GameDataServices.Status"/>.</summary>
+public enum GameDataStatus
+{
+    /// <summary>Loading hasn't run yet.</summary>
+    NotLoaded,
+
+    /// <summary>Paks mounted and mappings loaded; catalogs are populated.</summary>
+    Ready,
+
+    /// <summary>No Abiotic Factor install could be located (auto-detect failed and no folder set).</summary>
+    InstallNotFound,
+
+    /// <summary>The game was found, but no Mappings.usmap is available to read its data tables.</summary>
+    MappingsMissing,
+
+    /// <summary>Loading threw - the catalogs are empty; see the diagnostic log.</summary>
+    LoadFailed,
 }

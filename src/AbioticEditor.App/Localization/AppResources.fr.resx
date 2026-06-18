@@ -484,6 +484,8 @@ Mondes : conteneurs · indicateurs de quête · portes · objets au sol · progr
   <!-- WorldTraders -->
   <data name="WorldTraders_Traders" xml:space="preserve"><value>MARCHANDS</value></data>
   <data name="WorldTraders_TradersIntro" xml:space="preserve"><value>Tous ceux qui font du troc dans le Facility, depuis la table DT_NPC_Traders du jeu plus le lore du wiki. Un marchand (et des morceaux de son stock) n'apparaît qu'une fois l'indicateur de monde correspondant défini ; ces indicateurs vivent dans WorldSave_Facility.sav. Touchez une carte pour l'ouvrir dans le panneau latéral, où vous pouvez voir chaque objet avec son icône, inspecter ce que c'est, et choisir exactement quels objets verrouillés débloquer. Le commerce lui-même est du troc ; aucun argent n'est impliqué.</value></data>
+  <data name="WorldTraders_NoDataTitle" xml:space="preserve"><value>Données du jeu non chargées</value></data>
+  <data name="WorldTraders_NoDataBody" xml:space="preserve"><value>La liste des marchands, et les indicateurs qui débloquent chaque échange (par exemple le "Engrenages contre Murkweed" du Dr Carson), sont lus depuis votre copie installée du jeu, pas depuis la sauvegarde. L'éditeur n'a pas pu trouver vos données de jeu, cette liste est donc vide - ce n'est pas dû aux mods. Indiquez votre installation à l'éditeur dans Paramètres &gt; Données du jeu (« Localiser le dossier du jeu »), puis rouvrez cette sauvegarde. La détection automatique ne trouve que les installations Steam ; Game Pass, Epic ou les bibliothèques déplacées doivent être définis manuellement.</value></data>
 
   <!-- WorldVehicles -->
   <data name="WorldVehicles_Area" xml:space="preserve"><value>ZONE</value></data>
