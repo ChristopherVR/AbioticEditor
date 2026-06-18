@@ -18,7 +18,10 @@ name: Release
 #   6. `scan` uploads every published zip to VirusTotal and appends the per-file
 #      scan permalinks to the release body (needs the VT_API_KEY secret; the job
 #      is skipped, not failed, when the secret is absent).
-#   7. `nuget` packs AbioticEditor.Core + AbioticEditor.Plugins.Abstractions off
+#   7. `nexus` uploads the Windows app zip to the NexusMods page as a new version
+#      and archives the previous one (needs the NEXUSMODS_API_KEY secret and the
+#      NEXUS_APP_FILE_ID variable; the job is skipped when either is absent).
+#   8. `nuget` packs AbioticEditor.Core + AbioticEditor.Plugins.Abstractions off
 #      the new tag and pushes them to nuget.org (needs the NUGET_API_KEY secret;
 #      the push step is skipped, not failed, when the secret is absent).
 #
@@ -525,6 +528,67 @@ jobs:
           printf '\n' >> body.md
           cat vt_section.md >> body.md
           gh release edit "$TAG" --notes-file body.md
+
+  # Publish the Windows app zip to the NexusMods page (mods/244) as a new version
+  # and archive the previous one, via the official Nexus-Mods/upload-action.
+  #
+  # The action adds a new version to an EXISTING file on the mod page, keyed by its
+  # numeric file_id (there is no mod_id/game input - the file_id alone identifies
+  # the target). Supply that id as the NEXUS_APP_FILE_ID repository variable
+  # (Settings -> Secrets and variables -> Actions -> Variables) and a personal
+  # NexusMods API key as the NEXUSMODS_API_KEY secret. When either is absent the
+  # job no-ops (a warning, not a failure), so the rest of the release still ships.
+  #
+  # archive_existing_version: true moves the prior version into the file's archive
+  # when the new one lands, which is what keeps older releases around but not the
+  # primary download. Runs AFTER `publish` so a failed GitHub release stops it.
+  #
+  # NOTE: the action is in open beta; pin bumps to a newer v1.0.0-beta.* tag as
+  # they ship. Only the Windows app is uploaded - the CLI and non-Windows zips are
+  # not part of the Nexus page.
+  nexus:
+    needs: [version, publish]
+    if: needs.version.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      # Gate on both credentials being present. `if:` can read vars but not secrets,
+      # so resolve both here and surface a single step output the later steps key on.
+      - name: Check for NexusMods credentials
+        id: gate
+        env:
+          NEXUSMODS_API_KEY: ${{ secrets.NEXUSMODS_API_KEY }}
+          FILE_ID: ${{ vars.NEXUS_APP_FILE_ID }}
+        run: |
+          set -euo pipefail
+          if [ -n "${NEXUSMODS_API_KEY}" ] && [ -n "${FILE_ID}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::NEXUSMODS_API_KEY secret and/or NEXUS_APP_FILE_ID variable not set; skipping NexusMods upload."
+          fi
+
+      - name: Download Windows app artifact
+        if: steps.gate.outputs.enabled == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          # The build job uploaded this zip under the matrix artifact name.
+          name: AbioticEditor-app-win-x64
+          path: dist
+
+      - name: Upload Windows app to NexusMods
+        if: steps.gate.outputs.enabled == 'true'
+        uses: Nexus-Mods/upload-action@v1.0.0-beta.8
+        with:
+          api_key: ${{ secrets.NEXUSMODS_API_KEY }}
+          file_id: ${{ vars.NEXUS_APP_FILE_ID }}
+          filename: dist/AbioticEditor-app-win-x64-v${{ needs.version.outputs.version }}.zip
+          version: ${{ needs.version.outputs.version }}
+          display_name: AbioticEditor v${{ needs.version.outputs.version }} (Windows)
+          description: >-
+            Self-contained Windows desktop build. Full changelog and SHA-256 checksums:
+            https://github.com/${{ github.repository }}/releases/tag/${{ needs.version.outputs.tag }}
+          category: main
+          archive_existing_version: true
 
   # Pack the library packages off the new tag and push them to nuget.org.
   # AbioticEditor.Plugins.Abstractions is what plugin authors compile against;
