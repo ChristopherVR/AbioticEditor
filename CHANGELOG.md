@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here.
 
+## [1.10.0] - 2026-06-18
+
+### CI
+- Make release push rebase-safe and cancel pre-publish runs on new push- Cache NuGet packages and the MAUI workload to speed up the release pipeline
+
+### Features
+- Add JavaScriptPlugin based capability for localization- Localize the UI and let plugins contribute translations- Log previously-unlogged mutating user actions
+
+### Miscellaneous Tasks
+- Point bucket at v1.9.0 [skip ci]
+
 ## [1.9.0] - 2026-06-18
 
 ### Bug Fixes
@@ -11,7 +22,7 @@ All notable changes to this project are documented here.
 - Depend nexus on build-app-win only, not publish- Scan release zips with VirusTotal and publish to NexusMods
 
 ### Features
-- Add RELOAD-from-disk with unsaved-changes confirm
+- Show update download progress with cancel; stop auto-opening a world on startup- Make diagnostic logging opt-in, but always log critical errors- Add RELOAD-from-disk with unsaved-changes confirm
 
 ### Miscellaneous Tasks
 - Point bucket at v1.8.1 [skip ci]
