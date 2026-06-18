@@ -91,11 +91,16 @@ public sealed class ItemCatalog
         // Case-insensitive: saves carry mixed-case row names (e.g. "PersonalTeleporter"
         // in the table vs lower-cased ids in some save arrays).
         var dict = new Dictionary<string, ItemCatalogEntry>(primaryDt.RowMap.Count, StringComparer.OrdinalIgnoreCase);
+        // id -> the DataTable object ref its row lives in, so the save writers can point an added
+        // item's row handle at the table that actually holds it (see ItemTableIndex).
+        var tableRefs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var globalRef = ToTableRef(PrimaryTable);
         foreach (var kv in primaryDt.RowMap)
         {
             var id = kv.Key.Text;
             if (string.IsNullOrEmpty(id)) continue;
             dict[id] = BuildEntry(id, kv.Value);
+            tableRefs[id] = globalRef;
         }
 
         // Supplemental tables - best-effort. Any ItemTable_*.uasset in the same directory
@@ -112,12 +117,14 @@ public sealed class ItemCatalog
                 var suppPkg = provider.LoadPackageInternal(tablePath);
                 var dt = suppPkg.GetExports().OfType<UDataTable>().FirstOrDefault();
                 if (dt is null) continue;
+                var suppRef = ToTableRef(tablePath);
                 var added = 0;
                 foreach (var kv in dt.RowMap)
                 {
                     var id = kv.Key.Text;
                     if (string.IsNullOrEmpty(id) || dict.ContainsKey(id)) continue;
                     dict[id] = BuildEntry(id, kv.Value);
+                    tableRefs[id] = suppRef;
                     added++;
                 }
                 if (added > 0)
@@ -129,7 +136,23 @@ public sealed class ItemCatalog
             }
         }
 
+        ItemTableIndex.Set(tableRefs);
         return new ItemCatalog(dict);
+    }
+
+    /// <summary>
+    /// Converts a mounted package path ("AbioticFactor/Content/Blueprints/Items/ItemTable_X") to
+    /// the DataTable object reference a save's row handle stores
+    /// ("/Game/Blueprints/Items/ItemTable_X.ItemTable_X").
+    /// </summary>
+    private static string ToTableRef(string pkgPath)
+    {
+        const string contentRoot = "AbioticFactor/Content";
+        var gamePath = pkgPath.StartsWith(contentRoot, StringComparison.OrdinalIgnoreCase)
+            ? "/Game" + pkgPath[contentRoot.Length..]
+            : pkgPath;
+        var name = gamePath[(gamePath.LastIndexOf('/') + 1)..];
+        return $"{gamePath}.{name}";
     }
 
     private static ItemCatalogEntry BuildEntry(string id, FStructFallback row)

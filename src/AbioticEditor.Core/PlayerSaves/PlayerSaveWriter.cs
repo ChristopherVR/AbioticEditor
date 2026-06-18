@@ -340,18 +340,23 @@ public static class PlayerSaveWriter
             var rowHandle = slotProps.FindByPrefix("ItemDataTable_");
             if (rowHandle?.Property is StructProperty rhSp && rhSp.Value is PropertiesStruct rhPs)
             {
-                // Filling a previously-empty slot: repoint the row handle's DataTable at the table
-                // the item catalog is read from (ItemTable_Global). An empty slot defaults to
-                // ItemTable_Pickups, which does NOT contain catalog items, so the game fails to
-                // resolve the row and renders the item blank - the slot reads as occupied (hover
-                // sees RowName) but shows no icon. A slot that already held an item keeps its own
-                // table, so a plain stat edit stays byte-perfect.
-                var currentRow = rhPs.Properties.GetString("RowName");
-                var wasEmpty = string.IsNullOrEmpty(currentRow) || currentRow is "Empty" or "None";
                 SetName(rhPs.Properties, "RowName", newSlot.ItemId);
-                if (wasEmpty)
+
+                // Point the row handle at the table that actually holds this item, but ONLY when it
+                // still has the empty-slot default (ItemTable_Pickups) or nothing. An empty slot
+                // defaults to ItemTable_Pickups, which does NOT contain catalog items, so the game
+                // fails to resolve the row and renders the item blank (the slot reads as occupied -
+                // hover sees RowName - but shows no icon). A slot already pointing at a real table
+                // keeps it, so a plain stat edit stays byte-perfect; targeting the Pickups default
+                // also REPAIRS an item an earlier editor build added with that wrong table.
+                // ItemTableIndex gives the per-item table; without the catalog (CLI/tests) it falls
+                // back to ItemTable_Global, the catalog's primary table.
+                var currentTable = (rhPs.Properties.FindByPrefix("DataTable")?.Property as ObjectProperty)?.ObjectType?.ToString();
+                if (string.IsNullOrEmpty(currentTable)
+                    || currentTable.EndsWith("ItemTable_Pickups", StringComparison.OrdinalIgnoreCase))
                 {
-                    SetObjectPath(rhPs.Properties, "DataTable", ItemTableGlobalPath);
+                    SetObjectPath(rhPs.Properties, "DataTable",
+                        Items.ItemTableIndex.TableRefFor(newSlot.ItemId) ?? ItemTableGlobalPath);
                 }
             }
         }

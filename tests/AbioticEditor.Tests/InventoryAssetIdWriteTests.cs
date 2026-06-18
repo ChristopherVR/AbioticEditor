@@ -175,7 +175,12 @@ public class InventoryAssetIdWriteTests
                 foreach (var s in slots.Where(s => !s.IsEmpty))
                 {
                     var dt = RawSlotDataTable(data, prefix, s.Index);
-                    if (dt is not null && !dt.Contains("ItemTable_Global"))
+                    // A real item on a non-default table (Gear / Weapons / ...) must be preserved.
+                    // ItemTable_Pickups is the empty-slot default and is now intentionally repaired,
+                    // so it doesn't count as a "real" table to preserve.
+                    if (dt is not null
+                        && !dt.Contains("ItemTable_Global")
+                        && !dt.Contains("ItemTable_Pickups"))
                     {
                         target = (prefix, s.Index, dt);
                         break;

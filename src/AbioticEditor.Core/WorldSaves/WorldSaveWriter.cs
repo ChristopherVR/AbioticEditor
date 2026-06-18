@@ -887,15 +887,18 @@ public static class WorldSaveWriter
             var rowHandle = slotProps.FindByPrefix("ItemDataTable_");
             if (rowHandle?.Property is StructProperty rhSp && rhSp.Value is PropertiesStruct rhPs)
             {
-                // Same fix as PlayerSaveWriter.ApplySlot: a freshly filled (was-empty) slot must
-                // point its DataTable at ItemTable_Global, or the game can't resolve the item and
-                // renders it blank. An already-populated slot keeps its table (byte-perfect edit).
-                var currentRow = rhPs.Properties.GetString("RowName");
-                var wasEmpty = string.IsNullOrEmpty(currentRow) || currentRow is "Empty" or "None";
                 SetName(rhPs.Properties, "RowName", newSlot.ItemId);
-                if (wasEmpty)
+
+                // Same fix as PlayerSaveWriter.ApplySlot: point the row handle at the item's real
+                // table, but only when it still has the empty-slot default (ItemTable_Pickups) or
+                // nothing. This fills a new item and repairs one an earlier build left on the wrong
+                // table (which renders blank); a real item keeps its table (byte-perfect edit).
+                var currentTable = (rhPs.Properties.FindByPrefix("DataTable")?.Property as ObjectProperty)?.ObjectType?.ToString();
+                if (string.IsNullOrEmpty(currentTable)
+                    || currentTable.EndsWith("ItemTable_Pickups", StringComparison.OrdinalIgnoreCase))
                 {
-                    PlayerSaveWriter.SetObjectPath(rhPs.Properties, "DataTable", PlayerSaveWriter.ItemTableGlobalPath);
+                    PlayerSaveWriter.SetObjectPath(rhPs.Properties, "DataTable",
+                        Core.Items.ItemTableIndex.TableRefFor(newSlot.ItemId) ?? PlayerSaveWriter.ItemTableGlobalPath);
                 }
             }
         }
