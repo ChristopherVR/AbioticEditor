@@ -12,11 +12,11 @@ Outputs:
 """
 import re, subprocess, json, os, html, sys, glob
 
-ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], text=True).strip()
+ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], text=True, encoding='utf-8').strip()
 os.chdir(ROOT)
 
 changed = subprocess.check_output(
-    ['git', 'diff', '--name-only', 'HEAD', '--', 'src/AbioticEditor.App'], text=True).split()
+    ['git', 'diff', '--name-only', 'HEAD', '--', 'src/AbioticEditor.App'], text=True, encoding='utf-8').split()
 xaml = [f for f in changed if f.endswith('.xaml')]
 
 attr_re = re.compile(r'([\w.:]+)="([^"]*)"')
@@ -55,7 +55,7 @@ def pair_lines(minus, plus):
                     record(key, eng)
 
 for f in xaml:
-    diff = subprocess.check_output(['git', 'diff', '-U0', 'HEAD', '--', f], text=True).splitlines()
+    diff = subprocess.check_output(['git', 'diff', '-U0', 'HEAD', '--', f], text=True, encoding='utf-8').splitlines()
     minus, plus = [], []
     for line in diff:
         if line.startswith('@@'):

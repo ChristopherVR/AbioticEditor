@@ -92,9 +92,9 @@
   <data name="Empty_Load" xml:space="preserve"><value>LOAD</value></data>
   <data name="Empty_NewWorld" xml:space="preserve"><value>NEW WORLD</value></data>
   <data name="Empty_OpenFolder" xml:space="preserve"><value>OPEN FOLDER</value></data>
-  <data name="Empty_OpenYourSaveFolderInstructions" xml:space="preserve"><value>Open your save folder (usually â€¦\AppData\Local\AbioticFactor\Saved\SaveGames\&lt;steamid&gt;\Worlds\&lt;WorldName&gt;), then pick a player or world save from the sidebar.</value></data>
-  <data name="Empty_PlayersWorldsSummary" xml:space="preserve"><value>Players: stats Â· inventory Â· skills Â· traits Â· recipes Â· codex Â· achievements
-Worlds: containers Â· quest flags Â· doors Â· ground items Â· story progression</value></data>
+  <data name="Empty_OpenYourSaveFolderInstructions" xml:space="preserve"><value>Open your save folder (usually …\AppData\Local\AbioticFactor\Saved\SaveGames\&lt;steamid&gt;\Worlds\&lt;WorldName&gt;), then pick a player or world save from the sidebar.</value></data>
+  <data name="Empty_PlayersWorldsSummary" xml:space="preserve"><value>Players: stats · inventory · skills · traits · recipes · codex · achievements
+Worlds: containers · quest flags · doors · ground items · story progression</value></data>
   <data name="Empty_SaveFoldersDetectedAutomatically" xml:space="preserve"><value>Save folders detected automatically from the game client and any installed dedicated server. Pick one, or use OPEN FOLDER / drag a folder in.</value></data>
   <data name="Empty_WorldsFoundOnThisMachine" xml:space="preserve"><value>WORLDS FOUND ON THIS MACHINE</value></data>
   <data name="Empty_YouCanAlsoDropASaveFolderAnywhereOnThisWindow" xml:space="preserve"><value>You can also drop a save folder anywhere on this window.</value></data>
@@ -115,7 +115,7 @@ Worlds: containers Â· quest flags Â· doors Â· ground items Â· story prog
 
   <!-- Main -->
   <data name="Main_ParseError" xml:space="preserve"><value>PARSE ERROR</value></data>
-  <data name="Main_ParsingSaveLargeWorldSavesCanTakeAFewSeconds" xml:space="preserve"><value>PARSING SAVE: large world saves can take a few secondsâ€¦</value></data>
+  <data name="Main_ParsingSaveLargeWorldSavesCanTakeAFewSeconds" xml:space="preserve"><value>PARSING SAVE: large world saves can take a few seconds…</value></data>
   <data name="Main_Reload" xml:space="preserve"><value>RELOAD</value></data>
   <data name="Main_Revert" xml:space="preserve"><value>REVERT</value></data>
   <data name="Main_Save" xml:space="preserve"><value>SAVE</value></data>
@@ -138,7 +138,7 @@ Worlds: containers Â· quest flags Â· doors Â· ground items Â· story prog
   <data name="PlayerAchievements_SignInInAppTooltip" xml:space="preserve"><value>Opens Steam's sign-in page in a window inside the editor; the captured session is then used for the achievements check. Your password goes to Steam only.</value></data>
   <data name="PlayerAchievements_SignOut" xml:space="preserve"><value>SIGN OUT</value></data>
   <data name="PlayerAchievements_SignOutTooltip" xml:space="preserve"><value>Clears the stored Steam session cookie from memory and secure storage.</value></data>
-  <data name="PlayerAchievements_SignedIn" xml:space="preserve"><value>SIGNED IN Â·</value></data>
+  <data name="PlayerAchievements_SignedIn" xml:space="preserve"><value>SIGNED IN ·</value></data>
   <data name="PlayerAchievements_SignedInTooltip" xml:space="preserve"><value>A Steam session cookie is stored (OS-protected) - CHECK STEAM queries as that account.</value></data>
   <data name="PlayerAchievements_SteamAchievements" xml:space="preserve"><value>STEAM ACHIEVEMENTS</value></data>
   <data name="PlayerAchievements_ViewInBrowser" xml:space="preserve"><value>VIEW IN BROWSER</value></data>
@@ -163,7 +163,7 @@ Worlds: containers Â· quest flags Â· doors Â· ground items Â· story prog
   <data name="PlayerCodex_Kills" xml:space="preserve"><value>KILLS</value></data>
   <data name="PlayerCodex_MarkAllRead" xml:space="preserve"><value>MARK ALL READ</value></data>
   <data name="PlayerCodex_NothingMatches" xml:space="preserve"><value>Nothing matches (or game data is unavailable).</value></data>
-  <data name="PlayerCodex_SearchPlaceholder" xml:space="preserve"><value>Search titles, senders and full textâ€¦</value></data>
+  <data name="PlayerCodex_SearchPlaceholder" xml:space="preserve"><value>Search titles, senders and full text…</value></data>
   <data name="PlayerCodex_SelectAnEntry" xml:space="preserve"><value>Select an entry to read it.</value></data>
   <data name="PlayerCodex_ToCatchIt" xml:space="preserve"><value>TO CATCH IT</value></data>
   <data name="PlayerCodex_UnlocksTheBait" xml:space="preserve"><value>UNLOCKS THE BAIT</value></data>
@@ -228,7 +228,7 @@ Worlds: containers Â· quest flags Â· doors Â· ground items Â· story prog
   <data name="PlayerPets_Lv" xml:space="preserve"><value>LV</value></data>
   <data name="PlayerPets_Max" xml:space="preserve"><value>MAX</value></data>
   <data name="PlayerPets_Name" xml:space="preserve"><value>NAME</value></data>
-  <data name="PlayerPets_NamePlaceholder" xml:space="preserve"><value>name your petâ€¦</value></data>
+  <data name="PlayerPets_NamePlaceholder" xml:space="preserve"><value>name your pet…</value></data>
   <data name="PlayerPets_NoBedHelp" xml:space="preserve"><value>This world has no pet bed - the pet will be placed at the world origin.</value></data>
   <data name="PlayerPets_NoPets" xml:space="preserve"><value>This player is carrying no pets.</value></data>
   <data name="PlayerPets_PetBed" xml:space="preserve"><value>Pet bed</value></data>
@@ -243,7 +243,7 @@ Worlds: containers Â· quest flags Â· doors Â· ground items Â· story prog
 
   <!-- PlayerRaw -->
   <data name="PlayerRaw_ExportJsonAndOpen" xml:space="preserve"><value>EXPORT JSON + OPEN</value></data>
-  <data name="PlayerRaw_ImportJsonToSave" xml:space="preserve"><value>IMPORT JSON â†’ SAVE</value></data>
+  <data name="PlayerRaw_ImportJsonToSave" xml:space="preserve"><value>IMPORT JSON → SAVE</value></data>
   <data name="PlayerRaw_RawSaveJson" xml:space="preserve"><value>RAW SAVE JSON</value></data>
   <data name="PlayerRaw_RawSaveJsonHelp" xml:space="preserve"><value>Save JSON is far too large to edit comfortably in-app. EXPORT writes a .json file next to the save and opens it in your default editor; make your changes there, save, then IMPORT to convert it back into the .sav (a .bak backup of the save is kept).</value></data>
 
@@ -253,7 +253,7 @@ Worlds: containers Â· quest flags Â· doors Â· ground items Â· story prog
   <data name="PlayerRecipes_Ingredients" xml:space="preserve"><value>INGREDIENTS</value></data>
   <data name="PlayerRecipes_NoRecipesMatch" xml:space="preserve"><value>No recipes match (or game data is unavailable).</value></data>
   <data name="PlayerRecipes_RecipeBook" xml:space="preserve"><value>RECIPE BOOK</value></data>
-  <data name="PlayerRecipes_SearchPlaceholder" xml:space="preserve"><value>Search recipes by item name or idâ€¦</value></data>
+  <data name="PlayerRecipes_SearchPlaceholder" xml:space="preserve"><value>Search recipes by item name or id…</value></data>
   <data name="PlayerRecipes_SoldBy" xml:space="preserve"><value>SOLD BY</value></data>
   <data name="PlayerRecipes_Tags" xml:space="preserve"><value>TAGS</value></data>
   <data name="PlayerRecipes_UnlockAll" xml:space="preserve"><value>UNLOCK ALL</value></data>
@@ -261,7 +261,7 @@ Worlds: containers Â· quest flags Â· doors Â· ground items Â· story prog
   <data name="PlayerRecipes_UsedIn" xml:space="preserve"><value>USED IN</value></data>
 
   <!-- PlayerSkills -->
-  <data name="PlayerSkills_LevelRangeHint" xml:space="preserve"><value>LEVEL 0â€“20 Â· SET LEVEL SNAPS XP TO THRESHOLD</value></data>
+  <data name="PlayerSkills_LevelRangeHint" xml:space="preserve"><value>LEVEL 0–20 · SET LEVEL SNAPS XP TO THRESHOLD</value></data>
   <data name="PlayerSkills_Lv" xml:space="preserve"><value>LV</value></data>
   <data name="PlayerSkills_Max" xml:space="preserve"><value>MAX</value></data>
   <data name="PlayerSkills_MaxAll" xml:space="preserve"><value>MAX ALL</value></data>
@@ -272,11 +272,11 @@ Worlds: containers Â· quest flags Â· doors Â· ground items Â· story prog
 
   <!-- PlayerSpawn -->
   <data name="PlayerSpawn_Beds" xml:space="preserve"><value>BEDS</value></data>
-  <data name="PlayerSpawn_ChooseBedTitle" xml:space="preserve"><value>Choose a bedâ€¦</value></data>
+  <data name="PlayerSpawn_ChooseBedTitle" xml:space="preserve"><value>Choose a bed…</value></data>
   <data name="PlayerSpawn_HomeAndRespawn" xml:space="preserve"><value>HOME &amp; RESPAWN</value></data>
   <data name="PlayerSpawn_HomeBed" xml:space="preserve"><value>HOME BED:</value></data>
-  <data name="PlayerSpawn_PickRegionTitle" xml:space="preserve"><value>Pick the region (level) of the spawn pointâ€¦</value></data>
-  <data name="PlayerSpawn_PickTerminalTitle" xml:space="preserve"><value>Pick the punch-card terminal to respawn atâ€¦</value></data>
+  <data name="PlayerSpawn_PickRegionTitle" xml:space="preserve"><value>Pick the region (level) of the spawn point…</value></data>
+  <data name="PlayerSpawn_PickTerminalTitle" xml:space="preserve"><value>Pick the punch-card terminal to respawn at…</value></data>
   <data name="PlayerSpawn_Region" xml:space="preserve"><value>REGION</value></data>
   <data name="PlayerSpawn_RespawnTerminal" xml:space="preserve"><value>RESPAWN TERMINAL</value></data>
   <data name="PlayerSpawn_SetSpawnHere" xml:space="preserve"><value>SET SPAWN HERE</value></data>
@@ -326,7 +326,7 @@ Worlds: containers Â· quest flags Â· doors Â· ground items Â· story prog
   <data name="Slot_DismantlePreview" xml:space="preserve"><value>DISMANTLE PREVIEW</value></data>
   <data name="Slot_Downgrade" xml:space="preserve"><value>DOWNGRADE</value></data>
   <data name="Slot_Durability" xml:space="preserve"><value>DURABILITY</value></data>
-  <data name="Slot_EmptySlotDragAnotherSlotsContentsHereToFillOrUseRawJsonToAddANewItem" xml:space="preserve"><value>EMPTY SLOT Â· Drag another slot's contents here to fill, or use RAW JSON to add a new item.</value></data>
+  <data name="Slot_EmptySlotDragAnotherSlotsContentsHereToFillOrUseRawJsonToAddANewItem" xml:space="preserve"><value>EMPTY SLOT · Drag another slot's contents here to fill, or use RAW JSON to add a new item.</value></data>
   <data name="Slot_EnablingIsBlockedUntilPrerequisitesAreSetSinceTheGameNeverProducesOutOfOrderStoryStateStageSaveToWrite" xml:space="preserve"><value>Enabling is blocked until prerequisites are set, since the game never produces out-of-order story state. Stage + SAVE to write.</value></data>
   <data name="Slot_ExactPosition" xml:space="preserve"><value>EXACT POSITION</value></data>
   <data name="Slot_ImageAbioticfactorWikiGg" xml:space="preserve"><value>Image: abioticfactor.wiki.gg</value></data>
@@ -334,7 +334,7 @@ Worlds: containers Â· quest flags Â· doors Â· ground items Â· story prog
   <data name="Slot_ItemCatalog" xml:space="preserve"><value>ITEM CATALOG</value></data>
   <data name="Slot_ItemInfo" xml:space="preserve"><value>ITEM INFO</value></data>
   <data name="Slot_Liquid" xml:space="preserve"><value>LIQUID</value></data>
-  <data name="Slot_LiquidTypeWhatThisItemIsAllowedToHold" xml:space="preserve"><value>Liquid type (what this item is allowed to hold)â€¦</value></data>
+  <data name="Slot_LiquidTypeWhatThisItemIsAllowedToHold" xml:space="preserve"><value>Liquid type (what this item is allowed to hold)…</value></data>
   <data name="Slot_Makes" xml:space="preserve"><value>MAKES</value></data>
   <data name="Slot_MaxDurability" xml:space="preserve"><value>MAX DURABILITY</value></data>
   <data name="Slot_NoItemsMatch" xml:space="preserve"><value>No items match.</value></data>
@@ -350,7 +350,7 @@ Worlds: containers Â· quest flags Â· doors Â· ground items Â· story prog
   <data name="Slot_ReplaceThisItemWithItsCraftingRecipeIngredientsSpreadIntoEmptySlotsLikeTheGamesSalvageStation" xml:space="preserve"><value>Replace this item with its crafting-recipe ingredients (spread into empty slots), like the game's salvage station.</value></data>
   <data name="Slot_RequiredKey" xml:space="preserve"><value>REQUIRED KEY</value></data>
   <data name="Slot_ResearchedInThisWorld" xml:space="preserve"><value>RESEARCHED IN THIS WORLD</value></data>
-  <data name="Slot_SearchItemsByNameIdOrTag" xml:space="preserve"><value>Search items by name, id or tagâ€¦</value></data>
+  <data name="Slot_SearchItemsByNameIdOrTag" xml:space="preserve"><value>Search items by name, id or tag…</value></data>
   <data name="Slot_SectorCardArtTheWikiHasNoPictureOfThisDoorType" xml:space="preserve"><value>Sector card art - the wiki has no picture of this door type.</value></data>
   <data name="Slot_SetAsCurrentChapter" xml:space="preserve"><value>SET AS CURRENT CHAPTER</value></data>
   <data name="Slot_SetPrerequisites" xml:space="preserve"><value>SET PREREQUISITES</value></data>
@@ -375,7 +375,7 @@ Worlds: containers Â· quest flags Â· doors Â· ground items Â· story prog
   <data name="Slot_UsedIn" xml:space="preserve"><value>USED IN</value></data>
   <data name="Slot_Validation" xml:space="preserve"><value>VALIDATION</value></data>
   <data name="Slot_WhatTheyAcceptAsPayment" xml:space="preserve"><value>WHAT THEY ACCEPT AS PAYMENT</value></data>
-  <data name="Slot_WhatTheySellTapAnItemToInspectTickLockedItemsToUnlock" xml:space="preserve"><value>WHAT THEY SELL Â· TAP AN ITEM TO INSPECT Â· TICK LOCKED ITEMS TO UNLOCK</value></data>
+  <data name="Slot_WhatTheySellTapAnItemToInspectTickLockedItemsToUnlock" xml:space="preserve"><value>WHAT THEY SELL · TAP AN ITEM TO INSPECT · TICK LOCKED ITEMS TO UNLOCK</value></data>
   <data name="Slot_Where" xml:space="preserve"><value>WHERE</value></data>
 
   <!-- Status -->
@@ -399,7 +399,7 @@ Worlds: containers Â· quest flags Â· doors Â· ground items Â· story prog
 
   <!-- WorldContainers -->
   <data name="WorldContainers_DragHelp" xml:space="preserve"><value>Drag a slot onto a container in the list to move the item into that container's first empty slot.</value></data>
-  <data name="WorldContainers_FilterPlaceholder" xml:space="preserve"><value>Filter by class name or idâ€¦</value></data>
+  <data name="WorldContainers_FilterPlaceholder" xml:space="preserve"><value>Filter by class name or id…</value></data>
   <data name="WorldContainers_HideEmpty" xml:space="preserve"><value>HIDE EMPTY</value></data>
   <data name="WorldContainers_NoContainersMatch" xml:space="preserve"><value>No containers match filter.</value></data>
   <data name="WorldContainers_SelectAContainer" xml:space="preserve"><value>SELECT A CONTAINER</value></data>
@@ -426,7 +426,7 @@ Worlds: containers Â· quest flags Â· doors Â· ground items Â· story prog
 
   <!-- WorldDoors -->
   <data name="WorldDoors_AlreadyOpenedOneWay" xml:space="preserve"><value>ALREADY OPENED (ONE-WAY)</value></data>
-  <data name="WorldDoors_FilterPlaceholder" xml:space="preserve"><value>Filter doors by name, map, kind, lock type, or stateâ€¦</value></data>
+  <data name="WorldDoors_FilterPlaceholder" xml:space="preserve"><value>Filter doors by name, map, kind, lock type, or state…</value></data>
   <data name="WorldDoors_KeepState" xml:space="preserve"><value>KEEP STATE (no auto-reset)</value></data>
   <data name="WorldDoors_KeepStateTooltip" xml:space="preserve"><value>When on, the game keeps this door in the state you set and will not restore it to its default (usually locked) state when the area reloads. Leave off for normal doors.</value></data>
   <data name="WorldDoors_OneWayHelp" xml:space="preserve"><value>One-way doors only: marks the door as already unlocked from its locked side (opened once). Leave off for normal doors.</value></data>
@@ -439,7 +439,7 @@ Worlds: containers Â· quest flags Â· doors Â· ground items Â· story prog
   <!-- WorldDropped -->
   <data name="WorldDropped_Delete" xml:space="preserve"><value>DELETE</value></data>
   <data name="WorldDropped_DeleteAllShown" xml:space="preserve"><value>DELETE ALL SHOWN</value></data>
-  <data name="WorldDropped_FilterPlaceholder" xml:space="preserve"><value>Filter ground items by name or idâ€¦</value></data>
+  <data name="WorldDropped_FilterPlaceholder" xml:space="preserve"><value>Filter ground items by name or id…</value></data>
   <data name="WorldDropped_GroundItemsIntro" xml:space="preserve"><value>Long-lived worlds accumulate hundreds of ground items, which costs real in-game performance. Mark items for deletion here (nothing is removed until you press SAVE; a .bak backup is kept). Search to target specific litter, e.g. 'rotten'.</value></data>
   <data name="WorldDropped_ItemsOnTheGround" xml:space="preserve"><value>ITEMS ON THE GROUND</value></data>
   <data name="WorldDropped_NoGroundItems" xml:space="preserve"><value>No ground items match.</value></data>
@@ -468,9 +468,9 @@ Worlds: containers Â· quest flags Â· doors Â· ground items Â· story prog
 
   <!-- WorldFlags -->
   <data name="WorldFlags_AddFlag" xml:space="preserve"><value>ADD FLAG</value></data>
-  <data name="WorldFlags_AddFlagPlaceholder" xml:space="preserve"><value>Add new flag nameâ€¦</value></data>
+  <data name="WorldFlags_AddFlagPlaceholder" xml:space="preserve"><value>Add new flag name…</value></data>
   <data name="WorldFlags_Clear" xml:space="preserve"><value>CLEAR</value></data>
-  <data name="WorldFlags_FilterPlaceholder" xml:space="preserve"><value>Filter by area, friendly or raw nameâ€¦</value></data>
+  <data name="WorldFlags_FilterPlaceholder" xml:space="preserve"><value>Filter by area, friendly or raw name…</value></data>
   <data name="WorldFlags_FlagsIntro" xml:space="preserve"><value>These are the quest flags this world has actually reached, the one-way switches stored in THIS save. The full story state lives in WorldSave_Facility.sav; region files carry only the flags for their own area. Setting one here can skip forward (the game may pull in prerequisites that cascade to the metadata save and other worlds); clearing one rewinds that event.</value></data>
   <data name="WorldFlags_HowQuestsWork" xml:space="preserve"><value>HOW QUESTS WORK</value></data>
   <data name="WorldFlags_HowQuestsWorkBody" xml:space="preserve"><value>The world remembers events as named flags - one-way switches the game sets when something happens (a door opened, an NPC met, a sector completed). The main story is a linear chain: Office &gt; Manufacturing West &gt; Labs &gt; Security &gt; Hydroplant &gt; Reactors &gt; Residence; each chapter is triggered by one specific flag (marked STORY below, numbered in story order). TOGGLE sets or clears a flag in this save: setting a STORY flag makes the world believe that event happened (skipping forward), clearing one rewinds it - but items/doors already changed by the event stay changed. Ordinary flags only gate small things like tutorial popups and TV tips. The current chapter pointer itself lives in WorldSave_MetaData's STORY tab.</value></data>
@@ -500,7 +500,7 @@ Worlds: containers Â· quest flags Â· doors Â· ground items Â· story prog
   <data name="WorldPets_Location" xml:space="preserve"><value>LOCATION</value></data>
   <data name="WorldPets_Lv" xml:space="preserve"><value>LV</value></data>
   <data name="WorldPets_Name" xml:space="preserve"><value>NAME</value></data>
-  <data name="WorldPets_NameYourPet" xml:space="preserve"><value>name your petâ€¦</value></data>
+  <data name="WorldPets_NameYourPet" xml:space="preserve"><value>name your pet…</value></data>
   <data name="WorldPets_NoPetsInThisWorldSave" xml:space="preserve"><value>No pets in this world save.</value></data>
   <data name="WorldPets_PerLimbHealthHelp" xml:space="preserve"><value>Health is per-limb current HP. The blueprint maximum is not stored, so HEAL raises every used limb to the pet's strongest limb. A pet with all limbs at 0 is 'downed' (critically wounded).</value></data>
   <data name="WorldPets_PetListIntro" xml:space="preserve"><value>Click a pet to edit it: rename, heal / down / revive, set level (XP), or change its creature type (the game's mutation - e.g. a Pest into another Pest, Peccary, or Skink variant). Delete removes it from the world. Armor-set summons (Exor, Mystagogue) are shown but not editable. Edits stage until SAVE; every write keeps a .bak.</value></data>
@@ -515,7 +515,7 @@ Worlds: containers Â· quest flags Â· doors Â· ground items Â· story prog
 
   <!-- WorldRaw -->
   <data name="WorldRaw_ExportJsonOpen" xml:space="preserve"><value>EXPORT JSON + OPEN</value></data>
-  <data name="WorldRaw_ImportJsonSave" xml:space="preserve"><value>IMPORT JSON â†’ SAVE</value></data>
+  <data name="WorldRaw_ImportJsonSave" xml:space="preserve"><value>IMPORT JSON → SAVE</value></data>
   <data name="WorldRaw_RawJsonIntro" xml:space="preserve"><value>World saves serialize to very large JSON (the Facility save is ~100 MB), so editing that in-app is not practical. EXPORT writes a .json file next to the save and opens it in your default editor; IMPORT converts your edited file back into the .sav (a .bak backup is kept).</value></data>
   <data name="WorldRaw_RawSaveJson" xml:space="preserve"><value>RAW SAVE JSON</value></data>
 
@@ -526,7 +526,7 @@ Worlds: containers Â· quest flags Â· doors Â· ground items Â· story prog
   <data name="WorldStory_MainQuestProgression" xml:space="preserve"><value>MAIN QUEST PROGRESSION</value></data>
   <data name="WorldStory_MinutesPlayed" xml:space="preserve"><value>MINUTES PLAYED</value></data>
   <data name="WorldStory_NoRecipes" xml:space="preserve"><value>No recipes match (or game data is unavailable).</value></data>
-  <data name="WorldStory_SearchRecipes" xml:space="preserve"><value>Search recipesâ€¦</value></data>
+  <data name="WorldStory_SearchRecipes" xml:space="preserve"><value>Search recipes…</value></data>
   <data name="WorldStory_Set" xml:space="preserve"><value>SET</value></data>
   <data name="WorldStory_StorySplitIntro" xml:space="preserve"><value>How story state is split: THIS file (metadata) holds the current-chapter pointer; what a chapter shows as DONE comes from TRIGGER FLAGS stored in WorldSave_Facility.sav. Pressing SET handles both at once: it moves the pointer, adds every trigger flag up to that chapter and clears the flags past it (the Facility file is written immediately with a .bak; the pointer itself stages until SAVE).</value></data>
   <data name="WorldStory_UnlockAll" xml:space="preserve"><value>UNLOCK ALL</value></data>
@@ -536,8 +536,8 @@ Worlds: containers Â· quest flags Â· doors Â· ground items Â· story prog
   <!-- WorldTraders -->
   <data name="WorldTraders_Traders" xml:space="preserve"><value>TRADERS</value></data>
   <data name="WorldTraders_TradersIntro" xml:space="preserve"><value>Everyone who barters in the Facility, from the game's own DT_NPC_Traders table plus wiki lore. A trader (and pieces of its stock) only appears once the matching world flag is set; those flags live in WorldSave_Facility.sav. Tap a card to open it in the side panel, where you can see each item with its icon, inspect what it is, and pick exactly which locked items to unlock. Trading itself is barter; no money is involved.</value></data>
-  <data name="WorldTraders_NoDataTitle" xml:space="preserve"><value>Game data not loaded</value></data>
-  <data name="WorldTraders_NoDataBody" xml:space="preserve"><value>The trader roster, and the flags that gate each trade (for example Dr. Carson's "Gears for Murkweed"), are read from your installed copy of the game, not from the save. The editor could not find your game data, so this list is empty - this is not caused by mods. Point the editor at your install in Settings &gt; Game Data ("Locate game folder"), then reopen this save. Auto-detection only finds Steam installs, so Game Pass, Epic, or moved libraries need to be set manually.</value></data>
+  <data name="WorldTraders_SnapshotTitle" xml:space="preserve"><value>Built-in trader data</value></data>
+  <data name="WorldTraders_SnapshotBody" xml:space="preserve"><value>The game isn't loaded, so this shows the editor's built-in trader snapshot. The trades and the world flags that unlock them (for example Dr. Carson's gear) are accurate and editable here, but item names and icons need the installed game. To load it, use Settings &gt; Game Data ("Locate game folder"); auto-detection only finds Steam installs, so Game Pass, Epic, or moved libraries need to be set manually.</value></data>
 
   <!-- WorldVehicles -->
   <data name="WorldVehicles_Area" xml:space="preserve"><value>AREA</value></data>
