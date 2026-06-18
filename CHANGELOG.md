@@ -2,10 +2,18 @@
 
 All notable changes to this project are documented here.
 
+## [1.11.1] - 2026-06-18
+
+### Bug Fixes
+- Make the game-data banner action match the failure- Extend keypad upgrade chain to the Tier 6 Gatekey- Pin the Settings tab strip full-width and move diagnostics to General
+
 ## [1.11.0] - 2026-06-18
 
+### Bug Fixes
+- Repair items left on the empty-slot table, target each item's real table- Pin the header version tag to the build's release version- Repair mojibake in localized UI strings- Point an added item's row handle at ItemTable_Global so it renders
+
 ### Features
-- Translate UI to de/es/fr, add localization tests and docs
+- Fall back to built-in trader data and flag missing game data- Tabbed Settings, clearer Game Data section, drop About- Let users set the game folder when auto-detection fails- Translate UI to de/es/fr, add localization tests and docs
 
 ## [1.10.0] - 2026-06-18
 
