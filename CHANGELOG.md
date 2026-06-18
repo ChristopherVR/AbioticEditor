@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here.
 
+## [1.11.0] - 2026-06-18
+
+### Features
+- Translate UI to de/es/fr, add localization tests and docs
+
 ## [1.10.0] - 2026-06-18
 
 ### CI
