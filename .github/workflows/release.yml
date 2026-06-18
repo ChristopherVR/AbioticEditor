@@ -521,13 +521,14 @@ jobs:
           cat vt_section.md
 
           # Fetch the current body, drop any prior VirusTotal section (idempotent on
-          # republish), then append the fresh one and write it back.
-          gh release view "$TAG" --json body --jq '.body' > body.md
+          # republish), then append the fresh one and write it back. --repo is
+          # explicit because this job has no checkout for gh to infer the repo from.
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq '.body' > body.md
           awk 'BEGIN{keep=1} /^## VirusTotal scan/{keep=0} keep{print}' body.md > body.trimmed.md
           mv body.trimmed.md body.md
           printf '\n' >> body.md
           cat vt_section.md >> body.md
-          gh release edit "$TAG" --notes-file body.md
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file body.md
 
   # Publish the Windows app zip to the NexusMods page (mods/244) as a new version
   # and archive the previous one, via the official Nexus-Mods/upload-action.
