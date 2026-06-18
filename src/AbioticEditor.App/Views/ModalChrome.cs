@@ -16,9 +16,11 @@ internal static class ModalChrome
 
     /// <summary>
     /// Full modal scaffold: branded header + hazard stripe + a scrollable, centred column
-    /// of section <paramref name="cards"/>, and a sticky <paramref name="footer"/> bar.
+    /// of section <paramref name="cards"/>, and a sticky <paramref name="footer"/> bar. An
+    /// optional <paramref name="pinnedHeader"/> (e.g. a tab strip) sits between the hazard
+    /// stripe and the scroll area so it stays put while the cards scroll under it.
     /// </summary>
-    public static Grid Scaffold(string eyebrow, string title, IEnumerable<View> cards, View footer, double maxWidth = 760)
+    public static Grid Scaffold(string eyebrow, string title, IEnumerable<View> cards, View footer, double maxWidth = 760, View? pinnedHeader = null)
     {
         var column = new VerticalStackLayout
         {
@@ -34,21 +36,57 @@ internal static class ModalChrome
 
         var grid = new Grid
         {
-            RowDefinitions =
-            {
-                new RowDefinition(GridLength.Auto),
-                new RowDefinition(new GridLength(3)),
-                new RowDefinition(GridLength.Star),
-                new RowDefinition(GridLength.Auto),
-            },
             RowSpacing = 0,
             BackgroundColor = Col("AfPageBackground"),
         };
+        grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));    // header
+        grid.RowDefinitions.Add(new RowDefinition(new GridLength(3)));  // hazard stripe
         grid.Add(Header(eyebrow, title), 0, 0);
         grid.Add(new BoxView { Style = St("AfHazardStripe") }, 0, 1);
-        grid.Add(new ScrollView { Content = column }, 0, 2);
-        grid.Add(footer, 0, 3);
+
+        var row = 2;
+        if (pinnedHeader is not null)
+        {
+            grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); // pinned tab strip
+            grid.Add(CenteredBand(pinnedHeader, maxWidth), 0, row);
+            row++;
+        }
+        grid.RowDefinitions.Add(new RowDefinition(GridLength.Star));     // scrollable cards
+        grid.Add(new ScrollView { Content = column }, 0, row);
+        row++;
+        grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));     // footer
+        grid.Add(footer, 0, row);
         return grid;
+    }
+
+    /// <summary>
+    /// Wraps a pinned band (e.g. the settings tab strip) so it lines up with the centred,
+    /// max-width card column below it: same horizontal padding, capped width, page-coloured
+    /// so scrolling cards don't show through.
+    /// </summary>
+    private static View CenteredBand(View content, double maxWidth)
+    {
+        // A Center/MaximumWidthRequest container shrink-wraps to the content's own width, which
+        // collapses a short tab strip (truncating its wider labels). A 3-column grid with a fixed
+        // centre column pins the band to exactly the card width (the flanking star columns centre
+        // it), so a Fill child - the tab strip - stretches the full width with even segments.
+        content.HorizontalOptions = LayoutOptions.Fill;
+        var grid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(new GridLength(maxWidth)),
+                new ColumnDefinition(GridLength.Star),
+            },
+        };
+        grid.Add(content, 1, 0);
+        return new ContentView
+        {
+            BackgroundColor = Col("AfPageBackground"),
+            Padding = new Thickness(24, 12),
+            Content = grid,
+        };
     }
 
     private static View Header(string eyebrow, string title)
@@ -152,9 +190,12 @@ internal static class ModalChrome
 
     /// <summary>
     /// A proper segmented toggle (a bordered pill split into N tappable segments; the active
-    /// one is filled). Calls <paramref name="onChange"/> with the chosen index.
+    /// one is filled). Calls <paramref name="onChange"/> with the chosen index. By default the
+    /// pill hugs its content (left-aligned), which suits a 2-3 option toggle; pass
+    /// <paramref name="fill"/> to stretch it full-width with equal segments, which suits a
+    /// many-item tab strip.
     /// </summary>
-    public static View Segmented(IReadOnlyList<string> options, int selected, Action<int> onChange)
+    public static View Segmented(IReadOnlyList<string> options, int selected, Action<int> onChange, bool fill = false)
     {
         var grid = new Grid { ColumnSpacing = 3 };
         var segments = new List<(Border Border, Label Label)>();
@@ -178,14 +219,17 @@ internal static class ModalChrome
                 FontFamily = "OpenSansSemibold",
                 FontSize = 11,
                 CharacterSpacing = 1,
+                LineBreakMode = LineBreakMode.TailTruncation, // keep each segment on one line
                 HorizontalTextAlignment = TextAlignment.Center,
                 VerticalTextAlignment = TextAlignment.Center,
             };
+            // A full-width strip gives each segment an equal star column, so trim the per-segment
+            // padding (it would otherwise force the pill wider than the sheet with many tabs).
             var seg = new Border
             {
                 StrokeThickness = 0,
                 StrokeShape = new RoundRectangle { CornerRadius = 6 },
-                Padding = new Thickness(14, 7),
+                Padding = new Thickness(fill ? 8 : 14, 7),
                 Content = label,
             };
             var index = i;
@@ -202,7 +246,7 @@ internal static class ModalChrome
             StrokeThickness = 1,
             StrokeShape = new RoundRectangle { CornerRadius = 8 },
             Padding = 3,
-            HorizontalOptions = LayoutOptions.Start,
+            HorizontalOptions = fill ? LayoutOptions.Fill : LayoutOptions.Start,
             Content = grid,
         };
     }

@@ -160,8 +160,8 @@ public sealed class SettingsPage : ContentPage
         // ----- tabs (one tab at a time instead of one long scroll) -----
         var tabs = new (string Label, View[] Cards)[]
         {
-            ("GENERAL", new View[] { themeCard, languageCard }),
-            ("EDITOR", new View[] { diagnosticsCard, spoilerCard }),
+            ("GENERAL", new View[] { themeCard, languageCard, diagnosticsCard }),
+            ("EDITOR", new View[] { spoilerCard }),
             ("GAME DATA", new View[] { gameDataCard }),
             ("PLUGINS", new View[] { pluginsCard }),
             ("UPDATES", new View[] { updatesCard }),
@@ -178,7 +178,8 @@ public sealed class SettingsPage : ContentPage
                 tabContent.Children.Add(card);
             }
         }
-        var tabBar = ModalChrome.Segmented(tabs.Select(t => t.Label).ToList(), 0, ShowTab);
+        // Full-width strip, pinned above the scroll area so it stays visible as cards scroll.
+        var tabBar = ModalChrome.Segmented(tabs.Select(t => t.Label).ToList(), 0, ShowTab, fill: true);
         ShowTab(0);
 
         var close = ModalChrome.Button("CLOSE", primary: false);
@@ -186,9 +187,10 @@ public sealed class SettingsPage : ContentPage
 
         return ModalChrome.Scaffold(
             "EDITOR CONFIGURATION", "Settings",
-            new View[] { tabBar, tabContent },
+            new View[] { tabContent },
             ModalChrome.Footer(close),
-            maxWidth: 620);
+            maxWidth: 620,
+            pinnedHeader: tabBar);
     }
 
     /// <summary>
