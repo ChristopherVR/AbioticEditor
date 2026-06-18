@@ -61,4 +61,19 @@ public interface IPluginRegistry
     /// throw; the host logs and isolates failures.
     /// </summary>
     void AddEventHandler(string eventName, Action<PluginEvent> handler);
+
+    /// <summary>
+    /// Contributes UI translations. <paramref name="strings"/> maps resource keys (the same
+    /// keys the app's <c>AppResources.resx</c> uses, e.g. <c>Common_Save</c>) to their
+    /// translated text for <paramref name="culture"/> (a culture code such as <c>de</c> or
+    /// <c>pt-BR</c>). The host merges these into its string table, so a plugin can add a whole
+    /// new language or override individual keys; GUI text bound via the localization system
+    /// updates live. Hosts without a UI (the CLI) accept the call and ignore it.
+    /// <para>
+    /// This is the code path (a .NET or JavaScript plugin). The zero-code alternative is a
+    /// <see cref="PluginRuntimes.Localization"/> plugin that just ships resx/json files - see
+    /// <see cref="PluginManifest.Localizations"/>.
+    /// </para>
+    /// </summary>
+    void AddLocalization(string culture, IReadOnlyDictionary<string, string> strings);
 }

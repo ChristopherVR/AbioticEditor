@@ -2,6 +2,7 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.StatusBarView"
              x:DataType="vm:MainViewModel">
 
@@ -52,32 +53,32 @@
                    TextColor="{StaticResource AfTextMuted}"
                    VerticalOptions="Center"
                    Margin="0,0,4,0"
-                   ToolTipProperties.Text="Diagnostic log of save loads/writes, JSON export/import and asset mounting. Toggle in SETTINGS." />
+                   ToolTipProperties.Text="{loc:Localize Status_DiagnosticLogTooltip}" />
 
             <!-- COMPARE -->
             <Border Grid.Column="3" Style="{StaticResource AfFooterAction}"
-                    ToolTipProperties.Text="Diff two save files, or two folders of saves (world vs backup)">
+                    ToolTipProperties.Text="{loc:Localize Status_DiffTwoSaveFilesOrTwoFoldersOfSavesWorldVsBackup}">
                 <Border.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnCompareTapped" />
                 </Border.GestureRecognizers>
                 <HorizontalStackLayout Spacing="7">
                     <Label Text="&#xE915;" FontFamily="MaterialSymbols" FontSize="16"
                            TextColor="{StaticResource AfAccentOrange}" VerticalOptions="Center" />
-                    <Label Text="COMPARE" FontFamily="OpenSansSemibold" FontSize="10" CharacterSpacing="1.5"
+                    <Label Text="{loc:Localize Status_Compare}" FontFamily="OpenSansSemibold" FontSize="10" CharacterSpacing="1.5"
                            TextColor="{StaticResource AfTextPrimary}" VerticalOptions="Center" />
                 </HorizontalStackLayout>
             </Border>
 
             <!-- SETTINGS -->
             <Border Grid.Column="4" Style="{StaticResource AfFooterAction}"
-                    ToolTipProperties.Text="Theme, light/dark mode, diagnostic logging, usmap import">
+                    ToolTipProperties.Text="{loc:Localize Status_ThemeLightDarkModeDiagnosticLoggingUsmapImport}">
                 <Border.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnSettingsTapped" />
                 </Border.GestureRecognizers>
                 <HorizontalStackLayout Spacing="7">
                     <Label Text="&#xE8B8;" FontFamily="MaterialSymbols" FontSize="16"
                            TextColor="{StaticResource AfAccentOrange}" VerticalOptions="Center" />
-                    <Label Text="SETTINGS" FontFamily="OpenSansSemibold" FontSize="10" CharacterSpacing="1.5"
+                    <Label Text="{loc:Localize Status_Settings}" FontFamily="OpenSansSemibold" FontSize="10" CharacterSpacing="1.5"
                            TextColor="{StaticResource AfTextPrimary}" VerticalOptions="Center" />
                 </HorizontalStackLayout>
             </Border>

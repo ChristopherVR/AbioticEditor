@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.Player.PlayerCodexTab"
              x:Name="Root"
              x:DataType="vm:MainViewModel">
@@ -17,7 +18,7 @@
                  cyan JOURNAL title with a terminal glow, weekday strip. Themed so it
                  tracks the active palette instead of a fixed light page. -->
             <Grid BackgroundColor="{DynamicResource AfPanelElevated}" Padding="16,10" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="14">
-                <Label Grid.Column="0" Text="JOURNAL"
+                <Label Grid.Column="0" Text="{loc:Localize PlayerCodex_Journal}"
                        FontFamily="OpenSansSemibold" FontSize="22" CharacterSpacing="4"
                        TextColor="{DynamicResource AfTerminalGreen}" VerticalOptions="Center">
                     <Label.Shadow>
@@ -43,7 +44,7 @@
             <VerticalStackLayout Spacing="12" Padding="20,14">
             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="14">
                 <Label Grid.Column="0" Text="" IsVisible="False" />
-                <Button Grid.Column="2" Text="MARK ALL READ"
+                <Button Grid.Column="2" Text="{loc:Localize PlayerCodex_MarkAllRead}"
                         BackgroundColor="{StaticResource AfHazardYellow}"
                         TextColor="{StaticResource AfTextOnAccent}"
                         Command="{Binding PlayerEditor.Codex.MarkAllReadCommand}" />
@@ -74,13 +75,13 @@
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                 <Entry Grid.Column="0"
                        Text="{Binding PlayerEditor.Codex.SearchText, Mode=TwoWay}"
-                       Placeholder="Search titles, senders and full text…"
+                       Placeholder="{loc:Localize PlayerCodex_SearchPlaceholder}"
                        BackgroundColor="{StaticResource AfPanelElevated}"
                        TextColor="{StaticResource AfTextPrimary}" />
                 <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
                     <CheckBox IsChecked="{Binding PlayerEditor.Codex.UnreadOnly, Mode=TwoWay}"
                               Color="{StaticResource AfHazardYellow}" />
-                    <Label Text="UNREAD ONLY" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                    <Label Text="{loc:Localize PlayerCodex_UnreadOnly}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                 </HorizontalStackLayout>
             </Grid>
 
@@ -109,7 +110,7 @@
                                     SelectionMode="Single"
                                     SelectedItem="{Binding PlayerEditor.Codex.Selected, Mode=TwoWay}">
                         <CollectionView.EmptyView>
-                            <Label Text="Nothing matches (or game data is unavailable)." Style="{StaticResource AfMuted}" Padding="16" />
+                            <Label Text="{loc:Localize PlayerCodex_NothingMatches}" Style="{StaticResource AfMuted}" Padding="16" />
                         </CollectionView.EmptyView>
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="items:CodexItemViewModel">
@@ -145,7 +146,7 @@
                         StrokeThickness="1" StrokeShape="Rectangle"
                         Padding="18,14">
                     <Grid>
-                        <Label Text="Select an entry to read it."
+                        <Label Text="{loc:Localize PlayerCodex_SelectAnEntry}"
                                Style="{StaticResource AfMuted}"
                                IsVisible="{Binding PlayerEditor.Codex.HasSelection, Converter={StaticResource BoolNegate}}" />
                         <ScrollView IsVisible="{Binding PlayerEditor.Codex.HasSelection}">
@@ -161,7 +162,7 @@
                                 <HorizontalStackLayout Spacing="8"
                                                        IsVisible="{Binding PlayerEditor.Codex.Selected.IsWikiImageLoading, FallbackValue=False}">
                                     <ActivityIndicator IsRunning="True" WidthRequest="16" HeightRequest="16" />
-                                    <Label Text="Fetching image from the wiki..."
+                                    <Label Text="{loc:Localize PlayerCodex_FetchingImage}"
                                            Style="{StaticResource AfMuted}" FontSize="10" VerticalOptions="Center" />
                                 </HorizontalStackLayout>
                                 <VerticalStackLayout Spacing="3"
@@ -181,7 +182,7 @@
                                 <VerticalStackLayout Spacing="6"
                                                      IsVisible="{Binding PlayerEditor.Codex.Selected.ShowFishDetailDivider, FallbackValue=False}">
                                     <BoxView Style="{StaticResource AfDivider}" />
-                                    <Label Text="WHEN YOU CATCH IT" Style="{StaticResource AfFieldLabel}"
+                                    <Label Text="{loc:Localize PlayerCodex_WhenYouCatchIt}" Style="{StaticResource AfFieldLabel}"
                                            TextColor="{DynamicResource AfTerminalGreen}" />
                                     <Border BackgroundColor="{DynamicResource AfPanelBackground}"
                                             Stroke="{DynamicResource AfBorderSubtleBrush}"
@@ -201,7 +202,7 @@
                                                        IsVisible="{Binding PlayerEditor.Codex.Selected.HasFishBaitIcon, FallbackValue=False}" />
                                             </Border>
                                             <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
-                                                <Label Text="UNLOCKS THE BAIT" Style="{StaticResource AfFieldLabel}" FontSize="9" />
+                                                <Label Text="{loc:Localize PlayerCodex_UnlocksTheBait}" Style="{StaticResource AfFieldLabel}" FontSize="9" />
                                                 <Label Text="{Binding PlayerEditor.Codex.Selected.FishUnlockName}"
                                                        Style="{StaticResource AfFieldValue}" FontSize="13" LineBreakMode="WordWrap" />
                                             </VerticalStackLayout>
@@ -219,7 +220,7 @@
                                 <!-- Fish: what's needed to land it (location, story flags, time) -->
                                 <VerticalStackLayout Spacing="4"
                                                      IsVisible="{Binding PlayerEditor.Codex.Selected.HasFishCatchRequirements, FallbackValue=False}">
-                                    <Label Text="TO CATCH IT" Style="{StaticResource AfFieldLabel}"
+                                    <Label Text="{loc:Localize PlayerCodex_ToCatchIt}" Style="{StaticResource AfFieldLabel}"
                                            TextColor="{DynamicResource AfAmber}" />
                                     <VerticalStackLayout Spacing="3"
                                                          BindableLayout.ItemsSource="{Binding PlayerEditor.Codex.Selected.FishCatchLines}">
@@ -254,7 +255,7 @@
                                                        IsVisible="{Binding PlayerEditor.Codex.Selected.HasFishRequiredBaitIcon, FallbackValue=False}" />
                                             </Border>
                                             <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
-                                                <Label Text="EQUIP THIS BAIT" Style="{StaticResource AfFieldLabel}" FontSize="9" />
+                                                <Label Text="{loc:Localize PlayerCodex_EquipThisBait}" Style="{StaticResource AfFieldLabel}" FontSize="9" />
                                                 <Label Text="{Binding PlayerEditor.Codex.Selected.FishRequiredBaitName}"
                                                        Style="{StaticResource AfFieldValue}" FontSize="13" LineBreakMode="WordWrap" />
                                             </VerticalStackLayout>
@@ -268,7 +269,7 @@
                                 <!-- Kill tally editor (compendium entries with kill-requirement sections) -->
                                 <Grid ColumnDefinitions="Auto,90,*" ColumnSpacing="12"
                                       IsVisible="{Binding PlayerEditor.Codex.Selected.HasKillTracking, FallbackValue=False}">
-                                    <Label Grid.Column="0" Text="KILLS" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                    <Label Grid.Column="0" Text="{loc:Localize PlayerCodex_Kills}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                                     <Entry Grid.Column="1"
                                            Text="{Binding PlayerEditor.Codex.Selected.KillCount, Mode=TwoWay}"
                                            IsEnabled="{Binding PlayerEditor.Codex.Selected.CanEditKills}"
@@ -291,7 +292,7 @@
                     </Grid>
                 </Border>
             </controls:AdaptiveGrid>
-            <Label Text="Emails, journal, compendium and fish states are all editable (stage + SAVE). Compendium entries unlock into the matching section lists automatically."
+            <Label Text="{loc:Localize PlayerCodex_FooterHelp}"
                    Style="{StaticResource AfMuted}" FontSize="10" />
             </VerticalStackLayout>
         </VerticalStackLayout>

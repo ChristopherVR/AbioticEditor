@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:world="clr-namespace:AbioticEditor.App.Views.World"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.World.WorldEditorView"
              x:DataType="vm:MainViewModel"
              IsVisible="{Binding HasWorldEditor}">
@@ -15,7 +16,7 @@
         <VerticalStackLayout Spacing="14">
 
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                <Label Grid.Column="0" Text="WORLD SAVE" Style="{StaticResource AfH2}" VerticalOptions="Center" />
+                <Label Grid.Column="0" Text="{loc:Localize WorldEditor_WorldSave}" Style="{StaticResource AfH2}" VerticalOptions="Center" />
                 <Label Grid.Column="1"
                        Text="{Binding WorldEditor.FileName}"
                        Style="{StaticResource AfStatusText}"
@@ -25,17 +26,17 @@
             <!-- Summary chips -->
             <Grid ColumnDefinitions="*,*,*" ColumnSpacing="24">
                 <VerticalStackLayout Grid.Column="0" Spacing="2">
-                    <Label Text="CONTAINERS" Style="{StaticResource AfFieldLabel}" />
+                    <Label Text="{loc:Localize WorldEditor_Containers}" Style="{StaticResource AfFieldLabel}" />
                     <Label Text="{Binding WorldEditor.ContainerCount}"
                            Style="{StaticResource AfReadout}" FontSize="18" />
                 </VerticalStackLayout>
                 <VerticalStackLayout Grid.Column="1" Spacing="2">
-                    <Label Text="WITH CONTENTS" Style="{StaticResource AfFieldLabel}" />
+                    <Label Text="{loc:Localize WorldEditor_WithContents}" Style="{StaticResource AfFieldLabel}" />
                     <Label Text="{Binding WorldEditor.NonEmptyCount}"
                            Style="{StaticResource AfReadout}" FontSize="18" />
                 </VerticalStackLayout>
                 <VerticalStackLayout Grid.Column="2" Spacing="2">
-                    <Label Text="STATUS" Style="{StaticResource AfFieldLabel}" />
+                    <Label Text="{loc:Localize WorldEditor_Status}" Style="{StaticResource AfFieldLabel}" />
                     <Label Text="{Binding WorldEditor.SaveStatus, FallbackValue='Ready'}"
                            Style="{StaticResource AfMuted}" FontSize="13" VerticalOptions="Center" />
                 </VerticalStackLayout>
@@ -44,14 +45,14 @@
             <!-- World clock (Facility save's TimeOfDay struct) -->
             <controls:AdaptiveGrid ColumnDefinitions="Auto,90,Auto,*,Auto" ColumnSpacing="12" CompactWidth="560"
                                    IsVisible="{Binding WorldEditor.HasWorldClock, FallbackValue=False}">
-                <Label Grid.Column="0" Text="WORLD DAY" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Label Grid.Column="0" Text="{loc:Localize WorldEditor_WorldDay}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                 <Entry Grid.Column="1"
                        Text="{Binding WorldEditor.WorldDay, Mode=TwoWay}"
                        Keyboard="Numeric"
                        FontFamily="Digital7" FontSize="16"
                        TextColor="{StaticResource AfTerminalGreen}"
                        HorizontalTextAlignment="Center" VerticalOptions="Center" />
-                <Label Grid.Column="2" Text="TIME OF DAY" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Label Grid.Column="2" Text="{loc:Localize WorldEditor_TimeOfDay}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                 <Slider Grid.Column="3" Minimum="0" Maximum="86400"
                         Value="{Binding WorldEditor.WorldTimeSeconds, Mode=TwoWay}"
                         MinimumTrackColor="{StaticResource AfHazardYellow}"
@@ -65,7 +66,7 @@
             <!-- First-entered day (region saves) -->
             <Grid ColumnDefinitions="Auto,90,*" ColumnSpacing="12"
                   IsVisible="{Binding WorldEditor.HasDayDiscovered, FallbackValue=False}">
-                <Label Grid.Column="0" Text="DAY DISCOVERED" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Label Grid.Column="0" Text="{loc:Localize WorldEditor_DayDiscovered}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                 <Entry Grid.Column="1"
                        Text="{Binding WorldEditor.DayDiscovered, Mode=TwoWay}"
                        Keyboard="Numeric"
@@ -73,7 +74,7 @@
                        TextColor="{StaticResource AfTerminalGreen}"
                        HorizontalTextAlignment="Center" VerticalOptions="Center" />
                 <Label Grid.Column="2"
-                       Text="The in-game day this region was first entered (drives the day counter shown on its map pamphlet)."
+                       Text="{loc:Localize WorldEditor_DayDiscoveredHelp}"
                        Style="{StaticResource AfMuted}" FontSize="10" VerticalOptions="Center" />
             </Grid>
 

@@ -5,6 +5,7 @@
              xmlns:views="clr-namespace:AbioticEditor.App.Views"
              xmlns:player="clr-namespace:AbioticEditor.App.Views.Player"
              xmlns:world="clr-namespace:AbioticEditor.App.Views.World"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.MainPage"
              x:Name="Root"
              x:DataType="vm:MainViewModel"
@@ -45,7 +46,7 @@
                             Padding="0" Margin="0,10,0,0"
                             WidthRequest="16" HeightRequest="26"
                             VerticalOptions="Start"
-                            ToolTipProperties.Text="Show or hide the save-file list"
+                            ToolTipProperties.Text="{loc:Localize Main_ShowOrHideTheSaveFileList}"
                             Clicked="OnToggleFilePane" />
                     <Border Grid.Row="1" x:Name="FileSplitterGrip"
                             BackgroundColor="{StaticResource AfPanelElevated}">
@@ -90,18 +91,18 @@
                                                        IsVisible="{Binding PlayerEditor.IsDirty, FallbackValue=False}">
                                     <BoxView WidthRequest="8" HeightRequest="8" CornerRadius="4"
                                              BackgroundColor="{StaticResource AfHazardYellow}" VerticalOptions="Center" />
-                                    <Label Text="UNSAVED" Style="{StaticResource AfFieldLabel}"
+                                    <Label Text="{loc:Localize Main_Unsaved}" Style="{StaticResource AfFieldLabel}"
                                            TextColor="{StaticResource AfHazardYellow}" VerticalOptions="Center" />
                                 </HorizontalStackLayout>
-                                <Button Text="RELOAD"
+                                <Button Text="{loc:Localize Main_Reload}"
                                         BackgroundColor="{StaticResource AfPanelElevated}"
                                         TextColor="{StaticResource AfTextPrimary}"
                                         Command="{Binding ReloadSaveCommand}" />
-                                <Button Text="REVERT"
+                                <Button Text="{loc:Localize Main_Revert}"
                                         BackgroundColor="{StaticResource AfPanelElevated}"
                                         TextColor="{StaticResource AfTextPrimary}"
                                         Command="{Binding PlayerEditor.RevertCommand}" />
-                                <Button Text="SAVE"
+                                <Button Text="{loc:Localize Main_Save}"
                                         Command="{Binding PlayerEditor.SaveCommand}" />
                             </HorizontalStackLayout>
 
@@ -112,18 +113,18 @@
                                                        IsVisible="{Binding WorldEditor.IsDirty, FallbackValue=False}">
                                     <BoxView WidthRequest="8" HeightRequest="8" CornerRadius="4"
                                              BackgroundColor="{StaticResource AfHazardYellow}" VerticalOptions="Center" />
-                                    <Label Text="UNSAVED" Style="{StaticResource AfFieldLabel}"
+                                    <Label Text="{loc:Localize Main_Unsaved}" Style="{StaticResource AfFieldLabel}"
                                            TextColor="{StaticResource AfHazardYellow}" VerticalOptions="Center" />
                                 </HorizontalStackLayout>
-                                <Button Text="RELOAD"
+                                <Button Text="{loc:Localize Main_Reload}"
                                         BackgroundColor="{StaticResource AfPanelElevated}"
                                         TextColor="{StaticResource AfTextPrimary}"
                                         Command="{Binding ReloadSaveCommand}" />
-                                <Button Text="REVERT"
+                                <Button Text="{loc:Localize Main_Revert}"
                                         BackgroundColor="{StaticResource AfPanelElevated}"
                                         TextColor="{StaticResource AfTextPrimary}"
                                         Command="{Binding WorldEditor.RevertCommand}" />
-                                <Button Text="SAVE"
+                                <Button Text="{loc:Localize Main_Save}"
                                         Command="{Binding WorldEditor.SaveCommand}" />
                             </HorizontalStackLayout>
                         </Grid>
@@ -138,7 +139,7 @@
                                                    WidthRequest="22" HeightRequest="22"
                                                    Color="{StaticResource AfAccentOrange}"
                                                    VerticalOptions="Center" />
-                                <Label Text="PARSING SAVE: large world saves can take a few seconds…"
+                                <Label Text="{loc:Localize Main_ParsingSaveLargeWorldSavesCanTakeAFewSeconds}"
                                        Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                             </HorizontalStackLayout>
                         </Border>
@@ -151,7 +152,7 @@
                                 Padding="16,12"
                                 IsVisible="{Binding SelectedSave.LoadError, Converter={StaticResource NullToBoolConverter}}">
                             <VerticalStackLayout Spacing="4">
-                                <Label Text="PARSE ERROR"
+                                <Label Text="{loc:Localize Main_ParseError}"
                                        Style="{StaticResource AfFieldLabel}"
                                        TextColor="{StaticResource AfAlertRed}" />
                                 <Label Text="{Binding SelectedSave.LoadError}"
@@ -216,7 +217,7 @@
                             Padding="0" Margin="0,10,0,0"
                             WidthRequest="16" HeightRequest="26"
                             VerticalOptions="Start"
-                            ToolTipProperties.Text="Show or hide the slot editor &amp; item catalog"
+                            ToolTipProperties.Text="{loc:Localize Main_ShowOrHideTheSlotEditorAndItemCatalog}"
                             Clicked="OnToggleSlotPane" />
                     <Border Grid.Row="1" x:Name="SlotSplitterGrip"
                             BackgroundColor="{StaticResource AfPanelElevated}">

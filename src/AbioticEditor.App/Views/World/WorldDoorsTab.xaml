@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.World.WorldDoorsTab"
              x:DataType="vm:MainViewModel"
              IsVisible="{Binding WorldEditor.IsDoorsTab}">
@@ -25,7 +26,7 @@
                 IsVisible="{Binding WorldEditor.HasDoorsRegionCard, FallbackValue=False}">
             <Grid>
                 <Image Source="{Binding WorldEditor.DoorsRegionCardPath}" Aspect="AspectFill" Opacity="0.85" />
-                <Label Text="All doors below are in this sector; toggle their open/locked state, and positions are listed per door."
+                <Label Text="{loc:Localize WorldDoors_SectorCaption}"
                        Style="{StaticResource AfStatusText}" FontSize="10"
                        VerticalOptions="End" Margin="10,0,0,6" />
             </Grid>
@@ -33,7 +34,7 @@
 
         <!-- Door search -->
         <Entry Text="{Binding WorldEditor.DoorFilter, Mode=TwoWay}"
-               Placeholder="Filter doors by name, map, kind, lock type, or state…"
+               Placeholder="{loc:Localize WorldDoors_FilterPlaceholder}"
                BackgroundColor="{StaticResource AfPanelElevated}"
                TextColor="{StaticResource AfTextPrimary}" />
 
@@ -83,8 +84,8 @@
                                 </Border>
 
                                 <HorizontalStackLayout Grid.Row="0" Grid.Column="2" Spacing="6" VerticalOptions="Center"
-                                                       ToolTipProperties.Text="When on, the game keeps this door in the state you set and will not restore it to its default (usually locked) state when the area reloads. Leave off for normal doors.">
-                                    <Label Text="KEEP STATE (no auto-reset)" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                                       ToolTipProperties.Text="{loc:Localize WorldDoors_KeepStateTooltip}">
+                                    <Label Text="{loc:Localize WorldDoors_KeepState}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                                     <CheckBox IsChecked="{Binding NoReset, Mode=TwoWay}"
                                               Color="{StaticResource AfHazardYellow}" />
                                 </HorizontalStackLayout>
@@ -92,7 +93,7 @@
                                 <!-- Row 1: state controls -->
                                 <VerticalStackLayout Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4" Spacing="4">
                                     <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
-                                        <Label Text="STATE" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                        <Label Text="{loc:Localize WorldDoors_State}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
 
                                         <!-- Simple-door state picker (restricted to the stable states a
                                              user would intentionally set; the door's current state is added
@@ -108,28 +109,28 @@
                                         <!-- Security-door open toggle -->
                                         <HorizontalStackLayout Spacing="6" VerticalOptions="Center"
                                                                IsVisible="{Binding IsSecurity}">
-                                            <Label Text="OPEN" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                            <Label Text="{loc:Localize WorldDoors_Open}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                                             <CheckBox IsChecked="{Binding IsDoorOpen, Mode=TwoWay}"
                                                       Color="{StaticResource AfTerminalGreen}" />
                                         </HorizontalStackLayout>
                                     </HorizontalStackLayout>
 
                                     <!-- What the persisted state means in-game -->
-                                    <Label Text="Locked = stays locked until unlocked in-game; Open / Closed = mechanically open or closed. This sets the door's saved state."
+                                    <Label Text="{loc:Localize WorldDoors_SimpleStateHelp}"
                                            Style="{StaticResource AfStatusText}" FontSize="10"
                                            IsVisible="{Binding IsSimple}" />
-                                    <Label Text="Controls whether this security door is saved open or closed."
+                                    <Label Text="{loc:Localize WorldDoors_SecurityStateHelp}"
                                            Style="{StaticResource AfStatusText}" FontSize="10"
                                            IsVisible="{Binding IsSecurity}" />
 
                                     <!-- One-way doors: mark as already opened from the locked side -->
                                     <HorizontalStackLayout Spacing="6" VerticalOptions="Center"
                                                            IsVisible="{Binding IsSimple}">
-                                        <Label Text="ALREADY OPENED (ONE-WAY)" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                        <Label Text="{loc:Localize WorldDoors_AlreadyOpenedOneWay}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                                         <CheckBox IsChecked="{Binding OneWayUnlocked, Mode=TwoWay}"
                                                   Color="{StaticResource AfTerminalGreen}" />
                                     </HorizontalStackLayout>
-                                    <Label Text="One-way doors only: marks the door as already unlocked from its locked side (opened once). Leave off for normal doors."
+                                    <Label Text="{loc:Localize WorldDoors_OneWayHelp}"
                                            Style="{StaticResource AfStatusText}" FontSize="10"
                                            IsVisible="{Binding IsSimple}" />
                                 </VerticalStackLayout>

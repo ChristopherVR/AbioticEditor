@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.Player.PlayerRecipesTab"
              x:Name="Root"
              x:DataType="vm:MainViewModel">
@@ -14,10 +15,10 @@
             IsVisible="{Binding PlayerEditor.IsRecipesTab, FallbackValue=False}">
         <VerticalStackLayout Spacing="12">
             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="14">
-                <Label Grid.Column="0" Text="RECIPE BOOK" Style="{StaticResource AfH2}" VerticalOptions="Center" />
+                <Label Grid.Column="0" Text="{loc:Localize PlayerRecipes_RecipeBook}" Style="{StaticResource AfH2}" VerticalOptions="Center" />
                 <Label Grid.Column="1" Text="{Binding PlayerEditor.RecipeBrowser.CountText}"
                        Style="{StaticResource AfReadout}" VerticalOptions="Center" />
-                <Button Grid.Column="2" Text="UNLOCK ALL"
+                <Button Grid.Column="2" Text="{loc:Localize PlayerRecipes_UnlockAll}"
                         BackgroundColor="{StaticResource AfHazardYellow}"
                         TextColor="{StaticResource AfTextOnAccent}"
                         Clicked="OnUnlockAllRecipes" />
@@ -27,7 +28,7 @@
             <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="10">
                 <Entry Grid.Column="0"
                        Text="{Binding PlayerEditor.RecipeBrowser.SearchText, Mode=TwoWay}"
-                       Placeholder="Search recipes by item name or id…"
+                       Placeholder="{loc:Localize PlayerRecipes_SearchPlaceholder}"
                        BackgroundColor="{StaticResource AfPanelElevated}"
                        TextColor="{StaticResource AfTextPrimary}" />
                 <HorizontalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
@@ -65,7 +66,7 @@
                                     SelectionMode="Single"
                                     SelectedItem="{Binding PlayerEditor.RecipeBrowser.SelectedRecipe, Mode=TwoWay}">
                         <CollectionView.EmptyView>
-                            <Label Text="No recipes match (or game data is unavailable)." Style="{StaticResource AfMuted}" Padding="16" />
+                            <Label Text="{loc:Localize PlayerRecipes_NoRecipesMatch}" Style="{StaticResource AfMuted}" Padding="16" />
                         </CollectionView.EmptyView>
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="items:RecipeRowViewModel">
@@ -125,36 +126,36 @@
                                 <Label Text="{Binding PlayerEditor.RecipeBrowser.SelectedRecipe.Description}"
                                        Style="{StaticResource AfFieldValue}" FontSize="12"
                                        LineBreakMode="WordWrap" />
-                                <Label Text="INGREDIENTS" Style="{StaticResource AfFieldLabel}" />
+                                <Label Text="{loc:Localize PlayerRecipes_Ingredients}" Style="{StaticResource AfFieldLabel}" />
                                 <Label Text="{Binding PlayerEditor.RecipeBrowser.SelectedRecipe.IngredientsText}"
                                        Style="{StaticResource AfFieldValue}" FontSize="12" />
                                 <Label Text="{Binding PlayerEditor.RecipeBrowser.SelectedRecipe.OutputText}"
                                        Style="{StaticResource AfStatusText}" FontSize="11" />
-                                <Label Text="CRAFTED AT" Style="{StaticResource AfFieldLabel}" />
+                                <Label Text="{loc:Localize PlayerRecipes_CraftedAt}" Style="{StaticResource AfFieldLabel}" />
                                 <Label Text="{Binding PlayerEditor.RecipeBrowser.SelectedRecipe.BenchesText}"
                                        Style="{StaticResource AfFieldValue}" FontSize="12" />
                                 <VerticalStackLayout Spacing="4"
                                                      IsVisible="{Binding PlayerEditor.RecipeBrowser.SelectedRecipe.HasUpgradePath, FallbackValue=False}">
-                                    <Label Text="UPGRADE PATH" Style="{StaticResource AfFieldLabel}" />
+                                    <Label Text="{loc:Localize PlayerRecipes_UpgradePath}" Style="{StaticResource AfFieldLabel}" />
                                     <Label Text="{Binding PlayerEditor.RecipeBrowser.SelectedRecipe.UpgradePathText}"
                                            Style="{StaticResource AfFieldValue}" FontSize="12"
                                            TextColor="{StaticResource AfAmber}" LineBreakMode="WordWrap" />
                                 </VerticalStackLayout>
                                 <VerticalStackLayout Spacing="4"
                                                      IsVisible="{Binding PlayerEditor.RecipeBrowser.SelectedRecipe.HasUsedIn, FallbackValue=False}">
-                                    <Label Text="USED IN" Style="{StaticResource AfFieldLabel}" />
+                                    <Label Text="{loc:Localize PlayerRecipes_UsedIn}" Style="{StaticResource AfFieldLabel}" />
                                     <Label Text="{Binding PlayerEditor.RecipeBrowser.SelectedRecipe.UsedInText}"
                                            Style="{StaticResource AfFieldValue}" FontSize="12" LineBreakMode="WordWrap" />
                                 </VerticalStackLayout>
                                 <VerticalStackLayout Spacing="4"
                                                      IsVisible="{Binding PlayerEditor.RecipeBrowser.SelectedRecipe.HasSoldBy, FallbackValue=False}">
-                                    <Label Text="SOLD BY" Style="{StaticResource AfFieldLabel}" />
+                                    <Label Text="{loc:Localize PlayerRecipes_SoldBy}" Style="{StaticResource AfFieldLabel}" />
                                     <Label Text="{Binding PlayerEditor.RecipeBrowser.SelectedRecipe.SoldByText}"
                                            Style="{StaticResource AfFieldValue}" FontSize="12" LineBreakMode="WordWrap" />
                                 </VerticalStackLayout>
                                 <VerticalStackLayout Spacing="4"
                                                      IsVisible="{Binding PlayerEditor.RecipeBrowser.SelectedRecipe.HasTags, FallbackValue=False}">
-                                    <Label Text="TAGS" Style="{StaticResource AfFieldLabel}" />
+                                    <Label Text="{loc:Localize PlayerRecipes_Tags}" Style="{StaticResource AfFieldLabel}" />
                                     <Label Text="{Binding PlayerEditor.RecipeBrowser.SelectedRecipe.TagsText}"
                                            Style="{StaticResource AfStatusText}" FontSize="10" LineBreakMode="WordWrap" />
                                 </VerticalStackLayout>
@@ -163,7 +164,7 @@
                     </Grid>
                 </Border>
             </controls:AdaptiveGrid>
-            <Label Text="Click a recipe for its full wiki-style detail. Toggling a checkbox stages the change; press SAVE in the STRUCTURED tab header to write it."
+            <Label Text="{loc:Localize PlayerRecipes_FooterHelp}"
                    Style="{StaticResource AfMuted}" FontSize="10" />
         </VerticalStackLayout>
     </Border>

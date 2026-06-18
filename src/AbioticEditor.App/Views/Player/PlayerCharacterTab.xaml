@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.Player.PlayerCharacterTab"
              x:Name="Root"
              x:DataType="vm:MainViewModel"
@@ -16,24 +17,24 @@
 
                 IsVisible="{Binding PlayerEditor.IsCharacterTab, FallbackValue=False}">
             <VerticalStackLayout Spacing="12">
-                <Label Text="CHARACTER" Style="{StaticResource AfH2}" />
+                <Label Text="{loc:Localize PlayerCharacter_Character}" Style="{StaticResource AfH2}" />
                 <BoxView Style="{StaticResource AfHazardStripe}" />
 
                 <controls:AdaptiveGrid ColumnDefinitions="110,260,*" ColumnSpacing="12" CompactWidth="560">
-                    <Label Grid.Column="0" Text="BACKGROUND" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                    <Label Grid.Column="0" Text="{loc:Localize PlayerCharacter_Background}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                     <Picker Grid.Column="1"
                             ItemsSource="{Binding PlayerEditor.KnownBackgrounds}"
                             SelectedItem="{Binding PlayerEditor.SelectedBackground, Mode=TwoWay}"
                             BackgroundColor="{StaticResource AfPanelElevated}"
                             TextColor="{StaticResource AfTerminalGreen}" />
                     <Label Grid.Column="2"
-                           Text="Changing the background does not re-apply its skill bonuses or starting gear; it only changes the save's job id."
+                           Text="{loc:Localize PlayerCharacter_BackgroundHelp}"
                            Style="{StaticResource AfMuted}" FontSize="10" VerticalOptions="Center" />
                 </controls:AdaptiveGrid>
 
                 <BoxView Style="{StaticResource AfDivider}" />
 
-                <Label Text="TRAITS" Style="{StaticResource AfFieldLabel}" FontSize="12" TextColor="{StaticResource AfAmber}" CharacterSpacing="5" />
+                <Label Text="{loc:Localize PlayerCharacter_Traits}" Style="{StaticResource AfFieldLabel}" FontSize="12" TextColor="{StaticResource AfAmber}" CharacterSpacing="5" />
                 <FlexLayout Wrap="Wrap" Direction="Row"
                             BindableLayout.ItemsSource="{Binding PlayerEditor.Traits}">
                     <BindableLayout.ItemTemplate>
@@ -65,7 +66,7 @@
 
                 <!-- Trait browser: read what a trait does BEFORE adding it -->
                 <Entry Text="{Binding PlayerEditor.TraitSearchText, Mode=TwoWay}"
-                       Placeholder="Search traits to add..."
+                       Placeholder="{loc:Localize PlayerCharacter_SearchTraitsPlaceholder}"
                        BackgroundColor="{StaticResource AfPanelElevated}"
                        TextColor="{StaticResource AfTextPrimary}" />
                 <Border BackgroundColor="{StaticResource AfShellBackground}"
@@ -74,7 +75,7 @@
                         Padding="0" HeightRequest="220">
                     <CollectionView ItemsSource="{Binding PlayerEditor.VisibleTraitOptions}">
                         <CollectionView.EmptyView>
-                            <Label Text="No traits match (or all are already applied)." Style="{StaticResource AfMuted}" Padding="12" />
+                            <Label Text="{loc:Localize PlayerCharacter_NoTraitsMatch}" Style="{StaticResource AfMuted}" Padding="12" />
                         </CollectionView.EmptyView>
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="items:TraitBrowserRow">
@@ -89,7 +90,7 @@
                                            Style="{StaticResource AfMuted}" FontSize="11"
                                            LineBreakMode="WordWrap"
                                            VerticalOptions="Center" />
-                                    <Button Grid.Column="3" Text="ADD"
+                                    <Button Grid.Column="3" Text="{loc:Localize PlayerCharacter_Add}"
                                             FontSize="10" Padding="10,3"
                                             BackgroundColor="{StaticResource AfPanelElevated}"
                                             TextColor="{StaticResource AfTerminalGreen}"
@@ -111,12 +112,12 @@
             <VerticalStackLayout Spacing="12">
                 <!-- ===== Appearance (per-account ScientistCustomization save) ===== -->
                 <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
-                    <Label Grid.Column="0" Text="APPEARANCE (HEAD / HAIR / CLOTHING)" Style="{StaticResource AfFieldLabel}" FontSize="12" TextColor="{StaticResource AfAmber}" CharacterSpacing="5" VerticalOptions="Center" />
+                    <Label Grid.Column="0" Text="{loc:Localize PlayerCharacter_AppearanceHeadHairClothing}" Style="{StaticResource AfFieldLabel}" FontSize="12" TextColor="{StaticResource AfAmber}" CharacterSpacing="5" VerticalOptions="Center" />
                     <Picker Grid.Column="1" WidthRequest="90"
                             ItemsSource="{Binding PlayerEditor.Appearance.Slots}"
                             SelectedItem="{Binding PlayerEditor.Appearance.SelectedSlot, Mode=TwoWay}"
                             IsVisible="{Binding PlayerEditor.Appearance.HasMultipleSlots, FallbackValue=False}" />
-                    <Button Grid.Column="2" Text="SAVE APPEARANCE"
+                    <Button Grid.Column="2" Text="{loc:Localize PlayerCharacter_SaveAppearance}"
                             FontSize="10" Padding="10,4"
                             Command="{Binding PlayerEditor.Appearance.SaveCommand}" />
                 </Grid>

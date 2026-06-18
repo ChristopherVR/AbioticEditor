@@ -38,6 +38,8 @@ internal sealed class PluginRegistry : IPluginRegistry
 
     public List<PluginEventSubscription> EventHandlers { get; } = new();
 
+    public List<PluginLocalization> Localizations { get; } = new();
+
     public void AddSaveOperation(ISaveOperation operation)
     {
         ArgumentNullException.ThrowIfNull(operation);
@@ -110,7 +112,23 @@ internal sealed class PluginRegistry : IPluginRegistry
         ArgumentNullException.ThrowIfNull(handler);
         EventHandlers.Add(new PluginEventSubscription(eventName, handler));
     }
+
+    public void AddLocalization(string culture, IReadOnlyDictionary<string, string> strings)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(culture);
+        ArgumentNullException.ThrowIfNull(strings);
+        if (strings.Count == 0)
+        {
+            return;
+        }
+        // Copy so a plugin holding a mutable dictionary can't change the strings after the fact.
+        Localizations.Add(new PluginLocalization(
+            culture, new Dictionary<string, string>(strings, StringComparer.Ordinal)));
+    }
 }
 
 /// <summary>One event subscription: the event name and the handler to run when it fires.</summary>
 public sealed record PluginEventSubscription(string EventName, Action<PluginEvent> Handler);
+
+/// <summary>A bundle of translations a plugin contributes for one culture (key -> translated text).</summary>
+public sealed record PluginLocalization(string Culture, IReadOnlyDictionary<string, string> Strings);

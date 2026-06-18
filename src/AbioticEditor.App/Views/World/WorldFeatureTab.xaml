@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.World.WorldFeatureTab"
              x:Name="Root"
              x:DataType="vm:MainViewModel">
@@ -14,7 +15,7 @@
                            x:DataType="vm:WorldFeatureTabViewModel">
         <Label Text="{Binding Title, StringFormat='{0} IN THIS WORLD'}" Style="{StaticResource AfH2}" FontSize="18" />
         <Label Text="{Binding Description}" Style="{StaticResource AfMuted}" FontSize="11" />
-        <Label Text="Click an entry to edit its fields. Edits stage until SAVE; every write keeps a .bak."
+        <Label Text="{loc:Localize WorldFeature_EditHint}"
                Style="{StaticResource AfMuted}" FontSize="11" />
 
         <controls:AdaptiveGrid ColumnDefinitions="2*,3*" ColumnSpacing="16" HeightRequest="620"
@@ -26,7 +27,7 @@
                     StrokeThickness="1" StrokeShape="Rectangle"
                     Padding="0">
                 <Grid RowDefinitions="Auto,*">
-                    <Entry Grid.Row="0" Placeholder="Search..." Text="{Binding FilterText, Mode=TwoWay}"
+                    <Entry Grid.Row="0" Placeholder="{loc:Localize WorldFeature_Search}" Text="{Binding FilterText, Mode=TwoWay}"
                            IsVisible="{Binding ShowFilter}"
                            BackgroundColor="{StaticResource AfPanelElevated}"
                            TextColor="{StaticResource AfTextPrimary}" Margin="8,8,8,0" />
@@ -34,7 +35,7 @@
                                     SelectionMode="Single"
                                     SelectedItem="{Binding SelectedEntry, Mode=TwoWay}">
                         <CollectionView.EmptyView>
-                            <Label Text="No entries match (or this map has none in this save)." Style="{StaticResource AfMuted}" Padding="16" />
+                            <Label Text="{loc:Localize WorldFeature_NoEntries}" Style="{StaticResource AfMuted}" Padding="16" />
                         </CollectionView.EmptyView>
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="vm:WorldFeatureEntryViewModel">
@@ -49,7 +50,7 @@
                                         <Label Text="{Binding Summary}" Style="{StaticResource AfStatusText}" FontSize="10"
                                                LineBreakMode="TailTruncation" />
                                     </VerticalStackLayout>
-                                    <Label Grid.Column="1" Text="REMOVING" Style="{StaticResource AfFieldLabel}"
+                                    <Label Grid.Column="1" Text="{loc:Localize WorldFeature_Removing}" Style="{StaticResource AfFieldLabel}"
                                            FontSize="9" TextColor="{StaticResource AfAlertRed}" VerticalOptions="Center"
                                            IsVisible="{Binding IsDeleted}" />
                                 </Grid>
@@ -66,7 +67,7 @@
                     StrokeThickness="1" StrokeShape="Rectangle"
                     Padding="18,14">
                 <Grid>
-                    <Label Text="Select an entry to edit it."
+                    <Label Text="{loc:Localize WorldFeature_SelectEntry}"
                            Style="{StaticResource AfMuted}"
                            IsVisible="{Binding HasSelectedEntry, Converter={StaticResource BoolNegate}}" />
                     <ScrollView IsVisible="{Binding HasSelectedEntry}">
@@ -76,7 +77,7 @@
                             <!-- Appearance (abioticfactor.wiki.gg) - one representative image per type -->
                             <HorizontalStackLayout Spacing="8" IsVisible="{Binding IsWikiImageLoading, FallbackValue=False}">
                                 <ActivityIndicator IsRunning="True" WidthRequest="16" HeightRequest="16" />
-                                <Label Text="Fetching image from the wiki..." Style="{StaticResource AfMuted}" FontSize="10" VerticalOptions="Center" />
+                                <Label Text="{loc:Localize WorldFeature_FetchingImage}" Style="{StaticResource AfMuted}" FontSize="10" VerticalOptions="Center" />
                             </HorizontalStackLayout>
                             <VerticalStackLayout Spacing="3" IsVisible="{Binding HasWikiImage, FallbackValue=False}">
                                 <Border BackgroundColor="#000000" StrokeThickness="0" StrokeShape="RoundRectangle 4"
@@ -92,7 +93,7 @@
                             <!-- Area / world this entry lives in (hidden when it can't be inferred) -->
                             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10"
                                   IsVisible="{Binding HasArea}">
-                                <Label Grid.Column="0" Text="AREA" Style="{StaticResource AfFieldLabel}"
+                                <Label Grid.Column="0" Text="{loc:Localize WorldFeature_Area}" Style="{StaticResource AfFieldLabel}"
                                        FontSize="9" VerticalOptions="Center" />
                                 <Label Grid.Column="1" Text="{Binding Area}" Style="{StaticResource AfFieldValue}"
                                        FontSize="12" VerticalOptions="Center" LineBreakMode="TailTruncation" />
@@ -113,8 +114,8 @@
                                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                     <Label Grid.Column="0" VerticalOptions="Center" FontSize="11"
                                            TextColor="{StaticResource AfAlertRed}"
-                                           Text="Staged for removal - will be deleted on SAVE (resets this actor to its default)." />
-                                    <Button Grid.Column="1" Text="UNDO" FontSize="10" Padding="10,4"
+                                           Text="{loc:Localize WorldFeature_StagedForRemoval}" />
+                                    <Button Grid.Column="1" Text="{loc:Localize WorldFeature_Undo}" FontSize="10" Padding="10,4"
                                             BackgroundColor="{StaticResource AfPanelElevated}"
                                             TextColor="{StaticResource AfTextPrimary}"
                                             Command="{Binding RestoreCommand}" />

@@ -255,6 +255,14 @@ public sealed class PluginManager
             return;
         }
 
+        // A localization pack is pure data: no assembly/script, no Configure pass. Read its
+        // resx/json files and merge their strings, then we are done.
+        if (string.Equals(manifest.Runtime, PluginRuntimes.Localization, StringComparison.OrdinalIgnoreCase))
+        {
+            LoadLocalizationPlugin(descriptor);
+            return;
+        }
+
         try
         {
             var host = new PluginHost(manifest.Id, hostKind);
@@ -274,6 +282,12 @@ public sealed class PluginManager
             descriptor.SaveUpgraders = registry.SaveUpgraders;
             descriptor.MenuActions = registry.MenuActions;
             descriptor.EventHandlers = registry.EventHandlers;
+            // A code/JS plugin can contribute translations both at runtime (AddLocalization) and
+            // by shipping files declared in its manifest. Merge both, then publish them.
+            descriptor.Localizations = registry.Localizations
+                .Concat(LoadManifestLocalizations(descriptor))
+                .ToArray();
+            ApplyLocalizations(descriptor);
             descriptor.State = PluginLoadState.Loaded;
 
             EditorLog.Info("Plugins",
@@ -284,6 +298,61 @@ public sealed class PluginManager
             descriptor.State = PluginLoadState.Failed;
             descriptor.LoadError = ex.Message;
             EditorLog.Error("Plugins", $"Failed to load plugin '{manifest.Id}'", ex);
+        }
+    }
+
+    /// <summary>
+    /// Loads a resource-only localization pack: reads each file named in the manifest's
+    /// <c>localizations</c> map and merges its strings. No assembly or script is loaded.
+    /// </summary>
+    private static void LoadLocalizationPlugin(PluginDescriptor descriptor)
+    {
+        var manifest = descriptor.Manifest;
+        descriptor.Localizations = LoadManifestLocalizations(descriptor);
+
+        if (descriptor.Localizations.Count == 0)
+        {
+            descriptor.State = PluginLoadState.Failed;
+            descriptor.LoadError = "no usable translation files (all missing, empty, or unreadable).";
+            EditorLog.Warn("Plugins", $"{manifest.Id}: {descriptor.LoadError}");
+            return;
+        }
+
+        ApplyLocalizations(descriptor);
+        descriptor.State = PluginLoadState.Loaded;
+        EditorLog.Info("Plugins",
+            $"Loaded localization pack '{manifest.Id}' v{manifest.Version} ({descriptor.CapabilitySummary()}).");
+    }
+
+    /// <summary>Reads the manifest's <c>localizations</c> files (resx/json) from the plugin folder.</summary>
+    private static IReadOnlyList<PluginLocalization> LoadManifestLocalizations(PluginDescriptor descriptor)
+    {
+        if (descriptor.Manifest.Localizations.Count == 0)
+        {
+            return Array.Empty<PluginLocalization>();
+        }
+
+        var result = new List<PluginLocalization>();
+        foreach (var (culture, file) in descriptor.Manifest.Localizations)
+        {
+            var filePath = Path.Combine(descriptor.Folder, file);
+            var strings = LocalizationResourceLoader.Load(filePath);
+            if (strings is null || strings.Count == 0)
+            {
+                EditorLog.Warn("Plugins", $"{descriptor.Id}: no strings loaded for '{culture}' from {file}.");
+                continue;
+            }
+            result.Add(new PluginLocalization(culture, strings));
+        }
+        return result;
+    }
+
+    /// <summary>Publishes a descriptor's contributed strings into the process-wide table.</summary>
+    private static void ApplyLocalizations(PluginDescriptor descriptor)
+    {
+        foreach (var localization in descriptor.Localizations)
+        {
+            PluginLocalizations.Add(localization.Culture, localization.Strings);
         }
     }
 

@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.World.WorldTradersTab"
              x:DataType="vm:MainViewModel">
 
@@ -15,8 +16,8 @@
 
             IsVisible="{Binding WorldEditor.IsTradersTab}">
         <VerticalStackLayout Spacing="14">
-            <Label Text="TRADERS" Style="{StaticResource AfH2}" FontSize="18" />
-            <Label Text="Everyone who barters in the Facility, from the game's own DT_NPC_Traders table plus wiki lore. A trader (and pieces of its stock) only appears once the matching world flag is set; those flags live in WorldSave_Facility.sav. Tap a card to open it in the side panel, where you can see each item with its icon, inspect what it is, and pick exactly which locked items to unlock. Trading itself is barter; no money is involved."
+            <Label Text="{loc:Localize WorldTraders_Traders}" Style="{StaticResource AfH2}" FontSize="18" />
+            <Label Text="{loc:Localize WorldTraders_TradersIntro}"
                    Style="{StaticResource AfMuted}" FontSize="11" />
             <BoxView Style="{StaticResource AfDivider}" />
 

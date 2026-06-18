@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.EmptyStateView"
              x:DataType="vm:MainViewModel">
 
@@ -13,32 +14,32 @@
         <VerticalStackLayout Spacing="14" HorizontalOptions="Center">
             <Label Text="ABIOTIC FACTOR SAVE EDITOR"
                    Style="{StaticResource AfH2}" HorizontalTextAlignment="Center" />
-            <Label Text="Open your save folder (usually …\AppData\Local\AbioticFactor\Saved\SaveGames\&lt;steamid&gt;\Worlds\&lt;WorldName&gt;), then pick a player or world save from the sidebar."
+            <Label Text="{loc:Localize Empty_OpenYourSaveFolderInstructions}"
                    Style="{StaticResource AfMuted}" HorizontalTextAlignment="Center"
                    MaximumWidthRequest="560" />
-            <Label Text="Players: stats · inventory · skills · traits · recipes · codex · achievements&#10;Worlds: containers · quest flags · doors · ground items · story progression"
+            <Label Text="{loc:Localize Empty_PlayersWorldsSummary}"
                    Style="{StaticResource AfStatusText}" HorizontalTextAlignment="Center" />
             <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
-                <Button Text="OPEN FOLDER"
+                <Button Text="{loc:Localize Empty_OpenFolder}"
                         Clicked="OnOpenFolderClicked" />
-                <Button Text="NEW WORLD"
+                <Button Text="{loc:Localize Empty_NewWorld}"
                         Style="{StaticResource AfGhostButton}"
                         Clicked="OnCreateWorldClicked" />
             </HorizontalStackLayout>
-            <Label Text="You can also drop a save folder anywhere on this window."
+            <Label Text="{loc:Localize Empty_YouCanAlsoDropASaveFolderAnywhereOnThisWindow}"
                    Style="{StaticResource AfMuted}" FontSize="10" HorizontalTextAlignment="Center" />
-            <Label Text="Every write keeps a .bak backup next to the save."
+            <Label Text="{loc:Localize Empty_EveryWriteKeepsABakBackupNextToTheSave}"
                    Style="{StaticResource AfMuted}" FontSize="10" HorizontalTextAlignment="Center" />
 
             <!-- Worlds found on this machine: client saves + dedicated-server installs. -->
             <VerticalStackLayout Spacing="8" Margin="0,20,0,0"
                                  IsVisible="{Binding HasDiscoveredWorlds}">
-                <Label Text="WORLDS FOUND ON THIS MACHINE"
+                <Label Text="{loc:Localize Empty_WorldsFoundOnThisMachine}"
                        Style="{StaticResource AfFieldLabel}"
                        TextColor="{StaticResource AfAmber}"
                        CharacterSpacing="3"
                        HorizontalTextAlignment="Center" />
-                <Label Text="Save folders detected automatically from the game client and any installed dedicated server. Pick one, or use OPEN FOLDER / drag a folder in."
+                <Label Text="{loc:Localize Empty_SaveFoldersDetectedAutomatically}"
                        Style="{StaticResource AfMuted}" FontSize="10"
                        HorizontalTextAlignment="Center"
                        MaximumWidthRequest="620" />
@@ -79,7 +80,7 @@
                                            Style="{StaticResource AfMuted}" FontSize="9"
                                            LineBreakMode="MiddleTruncation" MaxLines="1" />
                                     <Button Grid.Row="0" Grid.RowSpan="3" Grid.Column="1"
-                                            Text="LOAD"
+                                            Text="{loc:Localize Empty_Load}"
                                             FontSize="11" Padding="18,8"
                                             VerticalOptions="Center"
                                             Clicked="OnDiscoveredWorldClicked" />

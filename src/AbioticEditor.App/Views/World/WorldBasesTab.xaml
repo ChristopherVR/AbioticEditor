@@ -4,14 +4,15 @@
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.World.WorldBasesTab"
              x:DataType="vm:MainViewModel">
 
     <!-- ============== TAB: Bases ============== -->
     <VerticalStackLayout Spacing="12"
                          IsVisible="{Binding WorldEditor.IsBasesTab}">
-        <Label Text="BASE MANAGER" Style="{StaticResource AfH2}" FontSize="18" />
-        <Label Text="Crafting benches anchor a base; everything deployed within ~30 m joins it. Select a base to see its composition and find it on the map (benches orange, containers green). Click one of its containers below and it opens right here over the map for editing."
+        <Label Text="{loc:Localize WorldBases_BaseManager}" Style="{StaticResource AfH2}" FontSize="18" />
+        <Label Text="{loc:Localize WorldBases_BaseManagerIntro}"
                Style="{StaticResource AfMuted}" FontSize="11" />
 
         <controls:AdaptiveGrid ColumnDefinitions="2*,3*" ColumnSpacing="16" HeightRequest="360"
@@ -57,7 +58,7 @@
                                 <Label Text="{Binding WorldEditor.SelectedBaseContainer.DisplayName}"
                                        Style="{StaticResource AfH2}" FontSize="15"
                                        LineBreakMode="TailTruncation" />
-                                <Label Text="Tap a slot to edit it in the slot editor; drag the catalog onto slots to add items."
+                                <Label Text="{loc:Localize WorldBases_SlotEditorHint}"
                                        Style="{StaticResource AfStatusText}" FontSize="9" />
                             </VerticalStackLayout>
                             <Label Grid.Column="1"
@@ -67,7 +68,7 @@
                                     FontSize="10" Padding="10,4"
                                     BackgroundColor="{StaticResource AfPanelElevated}"
                                     TextColor="{StaticResource AfTextPrimary}"
-                                    ToolTipProperties.Text="Close the container and show the base map again"
+                                    ToolTipProperties.Text="{loc:Localize WorldBases_CloseContainerTooltip}"
                                     Clicked="OnCloseBaseContainer"
                                     VerticalOptions="Center" />
                         </Grid>
@@ -142,7 +143,7 @@
                     Stroke="{StaticResource AfBorderSubtleBrush}"
                     StrokeThickness="1" StrokeShape="Rectangle" Padding="14,10">
                 <VerticalStackLayout Spacing="6">
-                    <Label Text="CRAFTING BENCHES" Style="{StaticResource AfFieldLabel}"
+                    <Label Text="{loc:Localize WorldBases_CraftingBenches}" Style="{StaticResource AfFieldLabel}"
                            TextColor="{StaticResource AfAccentOrange}" />
                     <VerticalStackLayout Spacing="4"
                                          BindableLayout.ItemsSource="{Binding WorldEditor.SelectedBase.Benches}">
@@ -155,7 +156,7 @@
                                     <Label Text="{Binding Detail}"
                                            Style="{StaticResource AfStatusText}" FontSize="9" />
                                     <!-- Installed upgrade modules (BenchUpgrade.* tags); toggle to install/remove. -->
-                                    <Label Text="UPGRADES" Style="{StaticResource AfFieldLabel}" FontSize="9"
+                                    <Label Text="{loc:Localize WorldBases_Upgrades}" Style="{StaticResource AfFieldLabel}" FontSize="9"
                                            Margin="0,3,0,0"
                                            IsVisible="{Binding SupportsUpgrades}" />
                                     <FlexLayout Wrap="Wrap" Direction="Row"
@@ -178,11 +179,11 @@
                             </DataTemplate>
                         </BindableLayout.ItemTemplate>
                     </VerticalStackLayout>
-                    <Label Text="No crafting bench in this group."
+                    <Label Text="{loc:Localize WorldBases_NoCraftingBenchInThisGroup}"
                            Style="{StaticResource AfMuted}" FontSize="10"
                            IsVisible="{Binding WorldEditor.SelectedBase.HasBenches, Converter={StaticResource BoolNegate}}" />
                     <BoxView Style="{StaticResource AfDivider}" />
-                    <Label Text="COMPOSITION" Style="{StaticResource AfFieldLabel}" />
+                    <Label Text="{loc:Localize WorldBases_Composition}" Style="{StaticResource AfFieldLabel}" />
                     <Label Text="{Binding WorldEditor.SelectedBase.Composition}"
                            Style="{StaticResource AfFieldValue}" FontSize="11" />
                 </VerticalStackLayout>
@@ -192,14 +193,14 @@
                     Stroke="{StaticResource AfBorderSubtleBrush}"
                     StrokeThickness="1" StrokeShape="Rectangle" Padding="0">
                 <VerticalStackLayout Spacing="0">
-                    <Label Text="CONTAINERS IN THIS BASE: CLICK ONE TO OPEN IT ON THE MAP"
+                    <Label Text="{loc:Localize WorldBases_ContainersInThisBaseClickToOpen}"
                            Style="{StaticResource AfFieldLabel}" Padding="14,8,14,4" />
                     <CollectionView ItemsSource="{Binding WorldEditor.SelectedBaseContainers}"
                                     SelectionMode="Single"
                                     SelectedItem="{Binding WorldEditor.SelectedBaseContainer, Mode=TwoWay}"
                                     HeightRequest="220">
                         <CollectionView.EmptyView>
-                            <Label Text="No containers with items in this base." Style="{StaticResource AfMuted}" Padding="14" />
+                            <Label Text="{loc:Localize WorldBases_NoContainersWithItemsInThisBase}" Style="{StaticResource AfMuted}" Padding="14" />
                         </CollectionView.EmptyView>
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="items:WorldContainerViewModel">

@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.Player.PlayerVitalsTab"
              x:DataType="vm:MainViewModel"
              IsVisible="{Binding PlayerEditor.IsVitalsTab, FallbackValue=False}">
@@ -15,14 +16,14 @@
                 IsVisible="{Binding PlayerEditor.IsVitalsTab, FallbackValue=False}">
             <VerticalStackLayout Spacing="14">
 
-                <Label Text="CHARACTER STATS" Style="{StaticResource AfH2}" />
+                <Label Text="{loc:Localize PlayerVitals_CharacterStats}" Style="{StaticResource AfH2}" />
 
                 <BoxView Style="{StaticResource AfDivider}" />
 
                 <!-- Stat sliders -->
                 <Grid ColumnDefinitions="110,*,70" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="14" ColumnSpacing="12">
 
-                    <Label Grid.Row="0" Grid.Column="0" Text="HUNGER"      Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                    <Label Grid.Row="0" Grid.Column="0" Text="{loc:Localize PlayerVitals_Hunger}"      Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                     <Slider Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding PlayerEditor.Hunger, Mode=TwoWay}"
                             MinimumTrackColor="{StaticResource AfAccentOrange}"
                             MaximumTrackColor="{StaticResource AfPanelElevated}"
@@ -30,7 +31,7 @@
                             VerticalOptions="Center" />
                     <Label Grid.Row="0" Grid.Column="2" Text="{Binding PlayerEditor.Hunger, StringFormat='{0:F1}'}" Style="{StaticResource AfReadout}" VerticalOptions="Center" HorizontalTextAlignment="End" />
 
-                    <Label Grid.Row="1" Grid.Column="0" Text="THIRST"      Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                    <Label Grid.Row="1" Grid.Column="0" Text="{loc:Localize PlayerVitals_Thirst}"      Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                     <Slider Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding PlayerEditor.Thirst, Mode=TwoWay}"
                             MinimumTrackColor="{StaticResource AfAccentOrange}"
                             MaximumTrackColor="{StaticResource AfPanelElevated}"
@@ -38,7 +39,7 @@
                             VerticalOptions="Center" />
                     <Label Grid.Row="1" Grid.Column="2" Text="{Binding PlayerEditor.Thirst, StringFormat='{0:F1}'}" Style="{StaticResource AfReadout}" VerticalOptions="Center" HorizontalTextAlignment="End" />
 
-                    <Label Grid.Row="2" Grid.Column="0" Text="SANITY"      Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                    <Label Grid.Row="2" Grid.Column="0" Text="{loc:Localize PlayerVitals_Sanity}"      Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                     <Slider Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding PlayerEditor.Sanity, Mode=TwoWay}"
                             MinimumTrackColor="{StaticResource AfAccentOrange}"
                             MaximumTrackColor="{StaticResource AfPanelElevated}"
@@ -46,7 +47,7 @@
                             VerticalOptions="Center" />
                     <Label Grid.Row="2" Grid.Column="2" Text="{Binding PlayerEditor.Sanity, StringFormat='{0:F1}'}" Style="{StaticResource AfReadout}" VerticalOptions="Center" HorizontalTextAlignment="End" />
 
-                    <Label Grid.Row="3" Grid.Column="0" Text="FATIGUE"     Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                    <Label Grid.Row="3" Grid.Column="0" Text="{loc:Localize PlayerVitals_Fatigue}"     Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                     <Slider Grid.Row="3" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding PlayerEditor.Fatigue, Mode=TwoWay}"
                             MinimumTrackColor="{StaticResource AfAccentOrange}"
                             MaximumTrackColor="{StaticResource AfPanelElevated}"
@@ -54,7 +55,7 @@
                             VerticalOptions="Center" />
                     <Label Grid.Row="3" Grid.Column="2" Text="{Binding PlayerEditor.Fatigue, StringFormat='{0:F1}'}" Style="{StaticResource AfReadout}" VerticalOptions="Center" HorizontalTextAlignment="End" />
 
-                    <Label Grid.Row="4" Grid.Column="0" Text="CONTINENCE"  Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                    <Label Grid.Row="4" Grid.Column="0" Text="{loc:Localize PlayerVitals_Continence}"  Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                     <Slider Grid.Row="4" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding PlayerEditor.Continence, Mode=TwoWay}"
                             MinimumTrackColor="{StaticResource AfAccentOrange}"
                             MaximumTrackColor="{StaticResource AfPanelElevated}"
@@ -67,7 +68,7 @@
                 <BoxView Style="{StaticResource AfDivider}" />
 
                 <Grid ColumnDefinitions="110,180,*" ColumnSpacing="12">
-                    <Label Grid.Column="0" Text="CURRENT MONEY" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" LineBreakMode="WordWrap" />
+                    <Label Grid.Column="0" Text="{loc:Localize PlayerVitals_CurrentMoney}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" LineBreakMode="WordWrap" />
                     <Entry Grid.Column="1"
                            Text="{Binding PlayerEditor.Money, Mode=TwoWay}"
                            Keyboard="Numeric"
@@ -91,8 +92,8 @@
             <VerticalStackLayout Spacing="12">
                 <!-- Limb health -->
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                    <Label Grid.Column="0" Text="BODY HEALTH" Style="{StaticResource AfFieldLabel}" FontSize="12" TextColor="{StaticResource AfAmber}" CharacterSpacing="5" VerticalOptions="Center" />
-                    <Button Grid.Column="1" Text="HEAL ALL"
+                    <Label Grid.Column="0" Text="{loc:Localize PlayerVitals_BodyHealth}" Style="{StaticResource AfFieldLabel}" FontSize="12" TextColor="{StaticResource AfAmber}" CharacterSpacing="5" VerticalOptions="Center" />
+                    <Button Grid.Column="1" Text="{loc:Localize PlayerVitals_HealAll}"
                             FontSize="10" Padding="10,4"
                             BackgroundColor="{StaticResource AfTerminalGreen}"
                             TextColor="{StaticResource AfTextOnAccent}"
@@ -101,7 +102,7 @@
                 <controls:AdaptiveGrid ColumnDefinitions="90,*,60,40,90,*,60" ColumnSpacing="12"
                                        RowDefinitions="Auto,Auto,Auto" RowSpacing="10" CompactWidth="640">
 
-                    <Label Grid.Row="0" Grid.Column="0" Text="HEAD" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                    <Label Grid.Row="0" Grid.Column="0" Text="{loc:Localize PlayerVitals_Head}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                     <Slider Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="100"
                             Value="{Binding PlayerEditor.Head, Mode=TwoWay}"
                             MinimumTrackColor="{StaticResource AfAlertRed}"
@@ -110,7 +111,7 @@
                     <Label Grid.Row="0" Grid.Column="2" Text="{Binding PlayerEditor.Head, StringFormat='{0:F0}'}"
                            Style="{StaticResource AfReadout}" VerticalOptions="Center" HorizontalTextAlignment="End" />
 
-                    <Label Grid.Row="0" Grid.Column="4" Text="TORSO" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                    <Label Grid.Row="0" Grid.Column="4" Text="{loc:Localize PlayerVitals_Torso}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                     <Slider Grid.Row="0" Grid.Column="5" Minimum="0" Maximum="100"
                             Value="{Binding PlayerEditor.Torso, Mode=TwoWay}"
                             MinimumTrackColor="{StaticResource AfAlertRed}"
@@ -119,7 +120,7 @@
                     <Label Grid.Row="0" Grid.Column="6" Text="{Binding PlayerEditor.Torso, StringFormat='{0:F0}'}"
                            Style="{StaticResource AfReadout}" VerticalOptions="Center" HorizontalTextAlignment="End" />
 
-                    <Label Grid.Row="1" Grid.Column="0" Text="LEFT ARM" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                    <Label Grid.Row="1" Grid.Column="0" Text="{loc:Localize PlayerVitals_LeftArm}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                     <Slider Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="100"
                             Value="{Binding PlayerEditor.LeftArm, Mode=TwoWay}"
                             MinimumTrackColor="{StaticResource AfAlertRed}"
@@ -128,7 +129,7 @@
                     <Label Grid.Row="1" Grid.Column="2" Text="{Binding PlayerEditor.LeftArm, StringFormat='{0:F0}'}"
                            Style="{StaticResource AfReadout}" VerticalOptions="Center" HorizontalTextAlignment="End" />
 
-                    <Label Grid.Row="1" Grid.Column="4" Text="RIGHT ARM" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                    <Label Grid.Row="1" Grid.Column="4" Text="{loc:Localize PlayerVitals_RightArm}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                     <Slider Grid.Row="1" Grid.Column="5" Minimum="0" Maximum="100"
                             Value="{Binding PlayerEditor.RightArm, Mode=TwoWay}"
                             MinimumTrackColor="{StaticResource AfAlertRed}"
@@ -137,7 +138,7 @@
                     <Label Grid.Row="1" Grid.Column="6" Text="{Binding PlayerEditor.RightArm, StringFormat='{0:F0}'}"
                            Style="{StaticResource AfReadout}" VerticalOptions="Center" HorizontalTextAlignment="End" />
 
-                    <Label Grid.Row="2" Grid.Column="0" Text="LEFT LEG" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                    <Label Grid.Row="2" Grid.Column="0" Text="{loc:Localize PlayerVitals_LeftLeg}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                     <Slider Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="100"
                             Value="{Binding PlayerEditor.LeftLeg, Mode=TwoWay}"
                             MinimumTrackColor="{StaticResource AfAlertRed}"
@@ -146,7 +147,7 @@
                     <Label Grid.Row="2" Grid.Column="2" Text="{Binding PlayerEditor.LeftLeg, StringFormat='{0:F0}'}"
                            Style="{StaticResource AfReadout}" VerticalOptions="Center" HorizontalTextAlignment="End" />
 
-                    <Label Grid.Row="2" Grid.Column="4" Text="RIGHT LEG" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                    <Label Grid.Row="2" Grid.Column="4" Text="{loc:Localize PlayerVitals_RightLeg}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                     <Slider Grid.Row="2" Grid.Column="5" Minimum="0" Maximum="100"
                             Value="{Binding PlayerEditor.RightLeg, Mode=TwoWay}"
                             MinimumTrackColor="{StaticResource AfAlertRed}"

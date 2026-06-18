@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.Player.PlayerSkillsTab"
              x:DataType="vm:MainViewModel">
 
@@ -13,18 +14,18 @@
             IsVisible="{Binding PlayerEditor.IsSkillsTab, FallbackValue=False}">
         <VerticalStackLayout Spacing="12">
             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
-                <Label Grid.Column="0" Text="SKILLS" Style="{StaticResource AfH2}" VerticalOptions="Center" />
+                <Label Grid.Column="0" Text="{loc:Localize PlayerSkills_Skills}" Style="{StaticResource AfH2}" VerticalOptions="Center" />
                 <Label Grid.Column="1"
-                       Text="LEVEL 0–20 · SET LEVEL SNAPS XP TO THRESHOLD"
+                       Text="{loc:Localize PlayerSkills_LevelRangeHint}"
                        Style="{StaticResource AfStatusText}" VerticalOptions="Center"
                        LineBreakMode="TailTruncation" HorizontalOptions="End" />
-                <Button Grid.Column="2" Text="MAX ALL"
+                <Button Grid.Column="2" Text="{loc:Localize PlayerSkills_MaxAll}"
                         BackgroundColor="{StaticResource AfHazardYellow}"
                         TextColor="{StaticResource AfTextOnAccent}"
                         Clicked="OnMaxAllSkills" />
             </Grid>
             <BoxView Style="{StaticResource AfHazardStripe}" />
-            <Label Text="Tap a milestone for its full detail in the slot panel. Milestone counts vary per skill, and locked perks stay sealed (hidden in-game) until you reach the level - or tap one to override clearance."
+            <Label Text="{loc:Localize PlayerSkills_MilestoneHelp}"
                    Style="{StaticResource AfMuted}" FontSize="10" LineBreakMode="WordWrap" />
 
             <!-- Skill cards in a uniform adaptive grid: the column count follows the
@@ -65,7 +66,7 @@
                                                LineBreakMode="TailTruncation" MaxLines="1"
                                                ToolTipProperties.Text="{Binding PassiveText}" />
                                     </VerticalStackLayout>
-                                    <Label Grid.Column="2" Text="LV" Style="{StaticResource AfFieldLabel}"
+                                    <Label Grid.Column="2" Text="{loc:Localize PlayerSkills_Lv}" Style="{StaticResource AfFieldLabel}"
                                            VerticalOptions="Center" />
                                     <Entry Grid.Column="3"
                                            Text="{Binding Level, Mode=TwoWay}"
@@ -74,7 +75,7 @@
                                            TextColor="{StaticResource AfTerminalGreen}"
                                            HorizontalTextAlignment="Center"
                                            VerticalOptions="Center" />
-                                    <Button Grid.Column="4" Text="MAX"
+                                    <Button Grid.Column="4" Text="{loc:Localize PlayerSkills_Max}"
                                             Style="{StaticResource AfGhostButton}"
                                             FontSize="9" Padding="8,3"
                                             Command="{Binding MaxCommand}"
@@ -91,7 +92,7 @@
                                             MinimumTrackColor="{StaticResource AfAccentOrange}"
                                             MaximumTrackColor="{StaticResource AfPanelElevated}"
                                             ThumbColor="{StaticResource AfTerminalGreen}"
-                                            ToolTipProperties.Text="Drag to set raw XP - the level re-derives from it."
+                                            ToolTipProperties.Text="{loc:Localize PlayerSkills_XpSliderTooltip}"
                                             VerticalOptions="Center" />
                                     <Label Grid.Column="1" Text="{Binding XpText}"
                                            Style="{StaticResource AfStatusText}" FontSize="10"
@@ -102,7 +103,7 @@
                                            FontFamily="Digital7" FontSize="13"
                                            TextColor="{StaticResource AfTextSecondary}"
                                            HorizontalTextAlignment="Center"
-                                           ToolTipProperties.Text="Raw XP; level re-derives from it."
+                                           ToolTipProperties.Text="{loc:Localize PlayerSkills_RawXpTooltip}"
                                            VerticalOptions="Center" />
                                 </Grid>
 

@@ -76,6 +76,18 @@ public sealed record PluginManifest
     /// Defaults to true.
     /// </summary>
     public bool Enabled { get; init; } = true;
+
+    /// <summary>
+    /// Translation files this plugin ships, mapping a culture code (e.g. <c>de</c>, <c>pt-BR</c>)
+    /// to a file in the plugin's own folder. Each file is either a flat JSON object
+    /// (<c>{ "Common_Save": "Speichern" }</c>) or a .resx string table; the host loads it and
+    /// merges the strings into its UI table. For a <see cref="PluginRuntimes.Localization"/>
+    /// plugin this is the ENTIRE plugin (no code, no <see cref="EntryAssembly"/>/<see cref="EntryScript"/>);
+    /// a code plugin may also use it, or contribute strings at runtime via
+    /// <c>IPluginRegistry.AddLocalization</c>. File names must be bare (no path separators).
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Localizations { get; init; }
+        = new Dictionary<string, string>();
 }
 
 /// <summary>Canonical values for <see cref="PluginManifest.Runtime"/>.</summary>
@@ -86,6 +98,13 @@ public static class PluginRuntimes
 
     /// <summary>A JavaScript file run on the host's bundled engine.</summary>
     public const string JavaScript = "javascript";
+
+    /// <summary>
+    /// A pure-data localization pack: no code runs at all. The host reads the resx/json files
+    /// named in <see cref="PluginManifest.Localizations"/> and merges their strings. This is the
+    /// simplest way to contribute a translation - ship a manifest and a resource file.
+    /// </summary>
+    public const string Localization = "localization";
 }
 
 /// <summary>Canonical capability tokens used in <see cref="PluginManifest.Capabilities"/>.</summary>
@@ -111,4 +130,7 @@ public static class PluginCapabilities
 
     /// <summary>Provides one or more <see cref="Saves.ISaveUpgrader"/>.</summary>
     public const string SaveUpgrader = "saveUpgrader";
+
+    /// <summary>Contributes UI translations (via the localization runtime or AddLocalization).</summary>
+    public const string Localization = "localization";
 }

@@ -3,21 +3,22 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.World.WorldRawTab"
              x:DataType="vm:MainViewModel">
 
     <!-- ============== TAB: Raw JSON (export/import) ============== -->
     <VerticalStackLayout Spacing="14"
                          IsVisible="{Binding WorldEditor.IsRawTab}">
-        <Label Text="RAW SAVE JSON" Style="{StaticResource AfH2}" FontSize="18" />
-        <Label Text="World saves serialize to very large JSON (the Facility save is ~100 MB), so editing that in-app is not practical. EXPORT writes a .json file next to the save and opens it in your default editor; IMPORT converts your edited file back into the .sav (a .bak backup is kept)."
+        <Label Text="{loc:Localize WorldRaw_RawSaveJson}" Style="{StaticResource AfH2}" FontSize="18" />
+        <Label Text="{loc:Localize WorldRaw_RawJsonIntro}"
                Style="{StaticResource AfMuted}" FontSize="12" />
         <Label Text="{Binding WorldEditor.JsonPath, StringFormat='JSON file: {0}'}"
                Style="{StaticResource AfStatusText}" />
         <HorizontalStackLayout Spacing="12">
-            <Button Text="EXPORT JSON + OPEN"
+            <Button Text="{loc:Localize WorldRaw_ExportJsonOpen}"
                     Command="{Binding WorldEditor.ExportJsonCommand}" />
-            <Button Text="IMPORT JSON → SAVE"
+            <Button Text="{loc:Localize WorldRaw_ImportJsonSave}"
                     BackgroundColor="{StaticResource AfAccentOrange}"
                     TextColor="{StaticResource AfTextOnAccent}"
                     Command="{Binding WorldEditor.ImportJsonCommand}" />

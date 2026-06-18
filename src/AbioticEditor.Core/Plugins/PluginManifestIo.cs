@@ -78,30 +78,52 @@ public static class PluginManifestIo
         }
 
         var isJavaScript = string.Equals(manifest.Runtime, PluginRuntimes.JavaScript, StringComparison.OrdinalIgnoreCase);
-        if (!isJavaScript
+        var isLocalization = string.Equals(manifest.Runtime, PluginRuntimes.Localization, StringComparison.OrdinalIgnoreCase);
+        if (!isJavaScript && !isLocalization
             && !string.Equals(manifest.Runtime, PluginRuntimes.DotNet, StringComparison.OrdinalIgnoreCase))
         {
-            return $"unknown 'runtime': '{manifest.Runtime}' (expected '{PluginRuntimes.DotNet}' or '{PluginRuntimes.JavaScript}').";
+            return $"unknown 'runtime': '{manifest.Runtime}' (expected '{PluginRuntimes.DotNet}', "
+                + $"'{PluginRuntimes.JavaScript}', or '{PluginRuntimes.Localization}').";
         }
 
-        // The entry file (assembly or script) must be a bare file name in the plugin's own
-        // folder - no path traversal - so a manifest can't point the loader at an arbitrary
-        // file elsewhere on disk.
-        var entry = isJavaScript ? manifest.EntryScript : manifest.EntryAssembly;
-        var field = isJavaScript ? "entryScript" : "entryAssembly";
-        if (string.IsNullOrWhiteSpace(entry))
+        if (isLocalization)
         {
-            return $"missing '{field}'.";
+            // A pure-data pack carries no entry file; its content is the 'localizations' map.
+            if (manifest.Localizations.Count == 0)
+            {
+                return "a 'localization' plugin must declare at least one entry in 'localizations'.";
+            }
         }
-        if (entry.Contains('/') || entry.Contains('\\') || entry.Contains(".."))
+        else
         {
-            return $"'{field}' must be a file name in the plugin folder, not a path.";
+            // The entry file (assembly or script) must be a bare file name in the plugin's own
+            // folder - no path traversal - so a manifest can't point the loader at an arbitrary
+            // file elsewhere on disk.
+            var entry = isJavaScript ? manifest.EntryScript : manifest.EntryAssembly;
+            var field = isJavaScript ? "entryScript" : "entryAssembly";
+            if (string.IsNullOrWhiteSpace(entry))
+            {
+                return $"missing '{field}'.";
+            }
+            if (entry.Contains('/') || entry.Contains('\\') || entry.Contains(".."))
+            {
+                return $"'{field}' must be a file name in the plugin folder, not a path.";
+            }
+            var expectedExt = isJavaScript ? ".js" : ".dll";
+            if (!entry.EndsWith(expectedExt, StringComparison.OrdinalIgnoreCase))
+            {
+                return $"'{field}' must be a {expectedExt} file name.";
+            }
         }
-        var expectedExt = isJavaScript ? ".js" : ".dll";
-        if (!entry.EndsWith(expectedExt, StringComparison.OrdinalIgnoreCase))
+
+        // Any declared translation file (on a localization pack or a code plugin) must be a bare
+        // .json/.resx name in the plugin folder - same no-traversal rule as the entry file.
+        var localizationsError = ValidateLocalizations(manifest);
+        if (localizationsError is not null)
         {
-            return $"'{field}' must be a {expectedExt} file name.";
+            return localizationsError;
         }
+
         if (!Version.TryParse(NormalizeVersion(manifest.Version), out _))
         {
             return $"'version' is not a valid version: '{manifest.Version}'.";
@@ -109,6 +131,33 @@ public static class PluginManifestIo
         if (!Version.TryParse(NormalizeVersion(manifest.MinHostVersion), out _))
         {
             return $"'minHostVersion' is not a valid version: '{manifest.MinHostVersion}'.";
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Validates the shape of <see cref="PluginManifest.Localizations"/>: every entry must name a
+    /// bare <c>.json</c>/<c>.resx</c> file inside the plugin folder (no path separators or
+    /// traversal). Safe on an empty map (returns null). Whether the map is REQUIRED is decided by
+    /// the runtime check in <see cref="Validate"/>.
+    /// </summary>
+    private static string? ValidateLocalizations(PluginManifest manifest)
+    {
+        foreach (var (culture, file) in manifest.Localizations)
+        {
+            if (string.IsNullOrWhiteSpace(culture))
+            {
+                return "'localizations' has an entry with an empty culture code.";
+            }
+            if (string.IsNullOrWhiteSpace(file) || file.Contains('/') || file.Contains('\\') || file.Contains(".."))
+            {
+                return $"'localizations[{culture}]' must be a file name in the plugin folder, not a path.";
+            }
+            if (!file.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
+                && !file.EndsWith(".resx", StringComparison.OrdinalIgnoreCase))
+            {
+                return $"'localizations[{culture}]' must be a .json or .resx file.";
+            }
         }
         return null;
     }

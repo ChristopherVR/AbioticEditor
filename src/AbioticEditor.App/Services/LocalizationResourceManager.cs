@@ -25,10 +25,43 @@ public sealed class LocalizationResourceManager : INotifyPropertyChanged
 
     private LocalizationResourceManager()
     {
+        // A plugin localization pack (or a code/JS plugin's AddLocalization) can land after the
+        // first strings resolve, so refresh every binding when the contributed table changes.
+        Core.Plugins.PluginLocalizations.Changed += OnPluginLocalizationsChanged;
     }
 
-    /// <summary>The localized string for <paramref name="key"/>, or the key itself if missing.</summary>
-    public string this[string key] => _resources.GetString(key, _culture) ?? key;
+    /// <summary>
+    /// The localized string for <paramref name="key"/>. Resolution order: a plugin-contributed
+    /// value for the active culture (so a pack can add a new language or override a key), then the
+    /// built-in resx (falling back to the neutral/English file), then the key itself if nothing
+    /// supplies it.
+    /// </summary>
+    public string this[string key]
+    {
+        get
+        {
+            var contributed = Core.Plugins.PluginLocalizations.Lookup(_culture.Name, key);
+            if (contributed is not null)
+            {
+                return contributed;
+            }
+            return _resources.GetString(key, _culture) ?? key;
+        }
+    }
+
+    private void OnPluginLocalizationsChanged()
+    {
+        // Binding updates must run on the UI thread; plugin loads can complete off it.
+        if (MainThread.IsMainThread)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Item[]"));
+        }
+        else
+        {
+            MainThread.BeginInvokeOnMainThread(
+                () => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Item[]")));
+        }
+    }
 
     /// <summary>The active UI culture. Setting it re-localizes the whole open UI.</summary>
     public CultureInfo CurrentCulture

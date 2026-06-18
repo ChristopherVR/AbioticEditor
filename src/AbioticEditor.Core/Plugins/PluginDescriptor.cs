@@ -59,6 +59,10 @@ public sealed class PluginDescriptor
     /// <summary>Event subscriptions the plugin registered (empty until loaded).</summary>
     public IReadOnlyList<PluginEventSubscription> EventHandlers { get; internal set; } = Array.Empty<PluginEventSubscription>();
 
+    /// <summary>Translation bundles the plugin contributed (empty until loaded). Sourced from its
+    /// manifest <c>localizations</c> files and any runtime <c>AddLocalization</c> calls.</summary>
+    public IReadOnlyList<PluginLocalization> Localizations { get; internal set; } = Array.Empty<PluginLocalization>();
+
     /// <summary>
     /// The plugin's host services, available once loaded. Hosts use it to build capability
     /// contexts (the CLI for console commands, the GUI for editor tools) and to reach the
@@ -69,7 +73,8 @@ public sealed class PluginDescriptor
     /// <summary>True if the plugin loaded and exposed at least one capability.</summary>
     public bool HasCapabilities =>
         SaveOperations.Count > 0 || ConsoleCommands.Count > 0 || EditorTools.Count > 0
-        || WebTools.Count > 0 || MenuActions.Count > 0 || EventHandlers.Count > 0 || SaveUpgraders.Count > 0;
+        || WebTools.Count > 0 || MenuActions.Count > 0 || EventHandlers.Count > 0 || SaveUpgraders.Count > 0
+        || Localizations.Count > 0;
 
     /// <summary>A short, human description of what the plugin provides, for list UIs.</summary>
     public string CapabilitySummary()
@@ -88,6 +93,11 @@ public sealed class PluginDescriptor
         if (SaveUpgraders.Count > 0) parts.Add($"{SaveUpgraders.Count} upgrader(s)");
         if (MenuActions.Count > 0) parts.Add($"{MenuActions.Count} menu action(s)");
         if (EventHandlers.Count > 0) parts.Add($"{EventHandlers.Count} event handler(s)");
+        if (Localizations.Count > 0)
+        {
+            var stringCount = Localizations.Sum(l => l.Strings.Count);
+            parts.Add($"{stringCount} string(s) in {Localizations.Count} language(s)");
+        }
         return parts.Count == 0 ? "no capabilities" : string.Join(", ", parts);
     }
 

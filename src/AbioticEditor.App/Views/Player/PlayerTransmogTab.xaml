@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.Player.PlayerTransmogTab"
              x:DataType="vm:MainViewModel">
 
@@ -12,12 +13,12 @@
 
             IsVisible="{Binding PlayerEditor.IsTransmogTab, FallbackValue=False}">
         <VerticalStackLayout Spacing="12">
-            <Label Text="ARMOR TRANSMOG" Style="{StaticResource AfH2}" />
+            <Label Text="{loc:Localize PlayerTransmog_ArmorTransmog}" Style="{StaticResource AfH2}" />
             <BoxView Style="{StaticResource AfHazardStripe}" />
             <VerticalStackLayout Spacing="8"
                                  IsVisible="{Binding PlayerEditor.HasTransmog, FallbackValue=False}">
-                <Label Text="ARMOR TRANSMOG" Style="{StaticResource AfFieldLabel}" FontSize="12" TextColor="{StaticResource AfAmber}" CharacterSpacing="5" />
-                <Label Text="Cosmetic items shown over each armor slot (the Transmogrifier's purple slots). Only the item id matters; stats stay on the real gear. Tap a slot to edit; stage + SAVE."
+                <Label Text="{loc:Localize PlayerTransmog_ArmorTransmog}" Style="{StaticResource AfFieldLabel}" FontSize="12" TextColor="{StaticResource AfAmber}" CharacterSpacing="5" />
+                <Label Text="{loc:Localize PlayerTransmog_TransmogHelp}"
                        Style="{StaticResource AfMuted}" FontSize="10" />
                 <CollectionView ItemsSource="{Binding PlayerEditor.Transmog}"
                                 SelectionMode="None" HeightRequest="104">
@@ -70,7 +71,7 @@
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                 </CollectionView>
-                <Label Text="VISIBILITY (the eye toggles; unchecked hides that armor piece's visuals entirely)"
+                <Label Text="{loc:Localize PlayerTransmog_Visibility}"
                        Style="{StaticResource AfStatusText}" FontSize="9" />
                 <FlexLayout Wrap="Wrap" Direction="Row"
                             BindableLayout.ItemsSource="{Binding PlayerEditor.VisibleTransmogToggles}">

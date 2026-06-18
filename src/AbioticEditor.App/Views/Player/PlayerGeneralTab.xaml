@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.Player.PlayerGeneralTab"
              x:DataType="vm:MainViewModel">
 
@@ -11,78 +12,78 @@
 
             IsVisible="{Binding PlayerEditor.IsGeneralTab, FallbackValue=False}">
         <VerticalStackLayout Spacing="12">
-            <Label Text="GENERAL" Style="{StaticResource AfH2}" />
+            <Label Text="{loc:Localize PlayerGeneral_General}" Style="{StaticResource AfH2}" />
             <BoxView Style="{StaticResource AfHazardStripe}" />
 
             <!-- Account: the SteamID64 lives in the file name + SaveIdentifier -->
-            <Label Text="ACCOUNT" Style="{StaticResource AfFieldLabel}" FontSize="12" TextColor="{StaticResource AfAmber}" CharacterSpacing="5" />
+            <Label Text="{loc:Localize PlayerGeneral_Account}" Style="{StaticResource AfFieldLabel}" FontSize="12" TextColor="{StaticResource AfAmber}" CharacterSpacing="5" />
             <controls:AdaptiveGrid ColumnDefinitions="Auto,240,Auto,*" ColumnSpacing="12" CompactWidth="640">
-                <Label Grid.Column="0" Text="STEAM ID 64" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Label Grid.Column="0" Text="{loc:Localize PlayerGeneral_SteamId64}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                 <Entry Grid.Column="1" x:Name="SteamIdEntry"
                        Text="{Binding PlayerEditor.SteamId64}"
                        Keyboard="Numeric"
                        FontFamily="Digital7" FontSize="16"
                        TextColor="{StaticResource AfTerminalGreen}"
                        HorizontalTextAlignment="Center" VerticalOptions="Center" />
-                <Button Grid.Column="2" Text="CHANGE STEAM ID"
+                <Button Grid.Column="2" Text="{loc:Localize PlayerGeneral_ChangeSteamId}"
                         FontSize="10" Padding="12,5"
                         BackgroundColor="{StaticResource AfHazardYellow}"
                         TextColor="{StaticResource AfTextOnAccent}"
                         Clicked="OnChangeSteamId" VerticalOptions="Center" />
                 <Label Grid.Column="3"
-                       Text="Renames the file AND rewrites the save's internal SaveIdentifier (a .bak of the original is kept). Bed claims in the world still reference the old id."
+                       Text="{loc:Localize PlayerGeneral_ChangeSteamIdHelp}"
                        Style="{StaticResource AfMuted}" FontSize="10" VerticalOptions="Center" LineBreakMode="WordWrap" />
             </controls:AdaptiveGrid>
             <BoxView Style="{StaticResource AfDivider}" />
 
-            <Label Text="BULK UNLOCKS" Style="{StaticResource AfFieldLabel}" FontSize="12" TextColor="{StaticResource AfAmber}" CharacterSpacing="5" />
+            <Label Text="{loc:Localize PlayerGeneral_BulkUnlocks}" Style="{StaticResource AfFieldLabel}" FontSize="12" TextColor="{StaticResource AfAmber}" CharacterSpacing="5" />
             <!-- Recipes -->
             <Grid ColumnDefinitions="160,*,Auto" ColumnSpacing="16">
-                <Label Grid.Column="0" Text="RECIPES" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Label Grid.Column="0" Text="{loc:Localize PlayerGeneral_Recipes}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                 <Label Grid.Column="1" Text="{Binding PlayerEditor.RecipeBrowser.CountText}"
                        Style="{StaticResource AfReadout}" VerticalOptions="Center" />
-                <Button Grid.Column="2" Text="UNLOCK ALL"
+                <Button Grid.Column="2" Text="{loc:Localize PlayerGeneral_UnlockAll}"
                         BackgroundColor="{StaticResource AfHazardYellow}"
                         TextColor="{StaticResource AfTextOnAccent}"
                         Clicked="OnUnlockAllRecipes" />
             </Grid>
-            <Label Text="Browse and toggle individual recipes in the RECIPES tab above."
+            <Label Text="{loc:Localize PlayerGeneral_RecipesHelp}"
                    Style="{StaticResource AfMuted}" FontSize="10" />
 
             <BoxView Style="{StaticResource AfDivider}" />
 
             <!-- Discovery: items seen / crafted / maps -->
             <Grid ColumnDefinitions="160,*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="10" ColumnSpacing="16">
-                <Label Grid.Row="0" Grid.Column="0" Text="ITEMS SEEN" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Label Grid.Row="0" Grid.Column="0" Text="{loc:Localize PlayerGeneral_ItemsSeen}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                 <Label Grid.Row="0" Grid.Column="1" Text="{Binding PlayerEditor.ItemsPickedUpText}"
                        Style="{StaticResource AfReadout}" VerticalOptions="Center" />
-                <Button Grid.Row="0" Grid.Column="2" Text="DISCOVER ALL"
+                <Button Grid.Row="0" Grid.Column="2" Text="{loc:Localize PlayerGeneral_DiscoverAll}"
                         FontSize="10" Padding="10,4"
                         BackgroundColor="{StaticResource AfPanelElevated}"
                         TextColor="{StaticResource AfTextPrimary}"
-                        ToolTipProperties.Text="Adds every catalog item to this player's seen-items list. Effect: no more yellow NEW badges in the inventory, and pickup-gated compendium hints treat everything as encountered. No quest or stat impact."
+                        ToolTipProperties.Text="{loc:Localize PlayerGeneral_DiscoverAllItemsTooltip}"
                         Clicked="OnDiscoverAllItems" />
 
-                <Label Grid.Row="1" Grid.Column="0" Text="ITEMS CRAFTED" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Label Grid.Row="1" Grid.Column="0" Text="{loc:Localize PlayerGeneral_ItemsCrafted}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                 <Label Grid.Row="1" Grid.Column="1" Text="{Binding PlayerEditor.CraftedItemsText}"
                        Style="{StaticResource AfReadout}" VerticalOptions="Center" />
-                <Button Grid.Row="1" Grid.Column="2" Text="DISCOVER ALL"
+                <Button Grid.Row="1" Grid.Column="2" Text="{loc:Localize PlayerGeneral_DiscoverAll}"
                         FontSize="10" Padding="10,4"
                         BackgroundColor="{StaticResource AfPanelElevated}"
                         TextColor="{StaticResource AfTextPrimary}"
                         Clicked="OnDiscoverAllCrafted" />
 
-                <Label Grid.Row="2" Grid.Column="0" Text="MAPS" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Label Grid.Row="2" Grid.Column="0" Text="{loc:Localize PlayerGeneral_Maps}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                 <Label Grid.Row="2" Grid.Column="1" Text="{Binding PlayerEditor.MapsText}"
                        Style="{StaticResource AfReadout}" VerticalOptions="Center" />
-                <Button Grid.Row="2" Grid.Column="2" Text="UNLOCK ALL"
+                <Button Grid.Row="2" Grid.Column="2" Text="{loc:Localize PlayerGeneral_UnlockAll}"
                         FontSize="10" Padding="10,4"
                         BackgroundColor="{StaticResource AfHazardYellow}"
                         TextColor="{StaticResource AfTextOnAccent}"
-                        ToolTipProperties.Text="Maps are the paper pamphlets that reveal each sector's layout in the GATEPal map screen. UNLOCK ALL grants all of them as if picked up. Purely informational - it does not open doors or advance quests."
+                        ToolTipProperties.Text="{loc:Localize PlayerGeneral_MapsTooltip}"
                         Clicked="OnUnlockAllMaps" />
             </Grid>
-            <Label Text="What these do: ITEMS SEEN suppresses NEW badges; ITEMS CRAFTED marks first-craft history (used by craft-gated hints); MAPS reveals the sector map pamphlets in the GATEPal map screen. None of them advance quests, open doors or change stats."
+            <Label Text="{loc:Localize PlayerGeneral_DiscoveryHelp}"
                    Style="{StaticResource AfMuted}" FontSize="10" />
         </VerticalStackLayout>
     </Border>

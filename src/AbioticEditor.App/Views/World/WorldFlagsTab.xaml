@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.World.WorldFlagsTab"
              x:Name="Root"
              x:DataType="vm:MainViewModel"
@@ -12,15 +13,15 @@
     <VerticalStackLayout Spacing="14">
         <!-- ============== TAB: Quest flags ============== -->
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-            <Label Grid.Column="0" Text="QUEST FLAGS" Style="{StaticResource AfH2}" FontSize="18" VerticalOptions="Center" />
+            <Label Grid.Column="0" Text="{loc:Localize WorldFlags_QuestFlags}" Style="{StaticResource AfH2}" FontSize="18" VerticalOptions="Center" />
             <VerticalStackLayout Grid.Column="1" Spacing="0" VerticalOptions="Center" HorizontalOptions="End">
-                <Label Text="IN THIS FILE" Style="{StaticResource AfFieldLabel}" HorizontalTextAlignment="End" />
+                <Label Text="{loc:Localize WorldFlags_InThisFile}" Style="{StaticResource AfFieldLabel}" HorizontalTextAlignment="End" />
                 <Label Text="{Binding WorldEditor.Flags.Count}" Style="{StaticResource AfReadout}" FontSize="18"
                        HorizontalTextAlignment="End" />
             </VerticalStackLayout>
         </Grid>
 
-        <Label Text="These are the quest flags this world has actually reached, the one-way switches stored in THIS save. The full story state lives in WorldSave_Facility.sav; region files carry only the flags for their own area. Setting one here can skip forward (the game may pull in prerequisites that cascade to the metadata save and other worlds); clearing one rewinds that event."
+        <Label Text="{loc:Localize WorldFlags_FlagsIntro}"
                Style="{StaticResource AfMuted}" FontSize="10" LineBreakMode="WordWrap" />
 
         <!-- How quests work -->
@@ -29,9 +30,9 @@
                 StrokeThickness="1" StrokeShape="Rectangle"
                 Padding="14,10">
             <VerticalStackLayout Spacing="4">
-                <Label Text="HOW QUESTS WORK" Style="{StaticResource AfFieldLabel}" TextColor="{StaticResource AfAmber}" />
+                <Label Text="{loc:Localize WorldFlags_HowQuestsWork}" Style="{StaticResource AfFieldLabel}" TextColor="{StaticResource AfAmber}" />
                 <Label Style="{StaticResource AfMuted}" FontSize="11" LineBreakMode="WordWrap"
-                       Text="The world remembers events as named flags - one-way switches the game sets when something happens (a door opened, an NPC met, a sector completed). The main story is a linear chain: Office &gt; Manufacturing West &gt; Labs &gt; Security &gt; Hydroplant &gt; Reactors &gt; Residence; each chapter is triggered by one specific flag (marked STORY below, numbered in story order). TOGGLE sets or clears a flag in this save: setting a STORY flag makes the world believe that event happened (skipping forward), clearing one rewinds it - but items/doors already changed by the event stay changed. Ordinary flags only gate small things like tutorial popups and TV tips. The current chapter pointer itself lives in WorldSave_MetaData's STORY tab." />
+                       Text="{loc:Localize WorldFlags_HowQuestsWorkBody}" />
             </VerticalStackLayout>
         </Border>
 
@@ -39,16 +40,16 @@
         <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="14">
             <Entry Grid.Column="0"
                    Text="{Binding WorldEditor.FlagFilter, Mode=TwoWay}"
-                   Placeholder="Filter by area, friendly or raw name…"
+                   Placeholder="{loc:Localize WorldFlags_FilterPlaceholder}"
                    BackgroundColor="{StaticResource AfPanelElevated}"
                    TextColor="{StaticResource AfTextPrimary}" />
             <Entry Grid.Column="1"
                    Text="{Binding WorldEditor.NewFlagText, Mode=TwoWay}"
-                   Placeholder="Add new flag name…"
+                   Placeholder="{loc:Localize WorldFlags_AddFlagPlaceholder}"
                    BackgroundColor="{StaticResource AfPanelElevated}"
                    TextColor="{StaticResource AfTextPrimary}" />
             <Button Grid.Column="2"
-                    Text="ADD FLAG"
+                    Text="{loc:Localize WorldFlags_AddFlag}"
                     Command="{Binding WorldEditor.AddFlagCommand}" />
         </Grid>
 
@@ -76,7 +77,7 @@
                     </DataTemplate>
                 </CollectionView.GroupHeaderTemplate>
                 <CollectionView.EmptyView>
-                    <Label Text="This save has no quest flags yet (or none match the filter)." Style="{StaticResource AfMuted}" Padding="16" />
+                    <Label Text="{loc:Localize WorldFlags_NoFlags}" Style="{StaticResource AfMuted}" Padding="16" />
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="items:FlagItemViewModel">
@@ -118,7 +119,7 @@
                                        LineBreakMode="WordWrap" />
                             </VerticalStackLayout>
                             <Button Grid.Column="2"
-                                    Text="CLEAR"
+                                    Text="{loc:Localize WorldFlags_Clear}"
                                     FontSize="10"
                                     Padding="10,4"
                                     IsEnabled="{Binding CanAct}"

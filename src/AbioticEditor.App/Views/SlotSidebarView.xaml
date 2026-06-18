@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.SlotSidebarView"
              x:Name="Root">
 
@@ -18,8 +19,8 @@
         <ScrollView Grid.Column="1">
             <VerticalStackLayout Spacing="14" Padding="22,20">
 
-                <Label Text="SLOT EDITOR" Style="{StaticResource AfFieldLabel}" />
-                <Label Text="Tap any inventory slot to edit it here."
+                <Label Text="{loc:Localize Slot_SlotEditor}" Style="{StaticResource AfFieldLabel}" />
+                <Label Text="{loc:Localize Slot_TapAnyInventorySlotToEditItHere}"
                        Style="{StaticResource AfMuted}" FontSize="10"
                        IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.HasActiveSlot, Converter={StaticResource BoolNegate}, FallbackValue=True}" />
 
@@ -61,27 +62,27 @@
                 <VerticalStackLayout Spacing="6"
                                      IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.HasActiveSlot, FallbackValue=False}">
                     <HorizontalStackLayout Spacing="8">
-                        <Button Text="UPGRADE"
+                        <Button Text="{loc:Localize Slot_Upgrade}"
                                 FontSize="10" Padding="10,4"
                                 BackgroundColor="{StaticResource AfTerminalGreen}"
                                 TextColor="{StaticResource AfTextOnAccent}"
-                                ToolTipProperties.Text="Swap to the upgraded item at full durability - the editor equivalent of an Upgrade Bench upgrade (DT_ItemUpgrades)."
+                                ToolTipProperties.Text="{loc:Localize Slot_SwapToTheUpgradedItemAtFullDurabilityTheEditorEquivalentOfAnUpgradeBenchUpgradeDTItemUpgrades}"
                                 IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.CanUpgrade, FallbackValue=False}"
                                 Clicked="OnUpgradeSlot" />
                         <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.UpgradeText}"
                                Style="{StaticResource AfStatusText}" FontSize="10" VerticalOptions="Center"
                                IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.CanUpgrade, FallbackValue=False}" />
-                        <Button Text="DOWNGRADE"
+                        <Button Text="{loc:Localize Slot_Downgrade}"
                                 FontSize="10" Padding="10,4"
                                 BackgroundColor="{StaticResource AfPanelElevated}"
                                 TextColor="{StaticResource AfTextPrimary}"
                                 IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.CanDowngrade, FallbackValue=False}"
                                 Clicked="OnDowngradeSlot" />
-                        <Button Text="DISMANTLE"
+                        <Button Text="{loc:Localize Slot_Dismantle}"
                                 FontSize="10" Padding="10,4"
                                 BackgroundColor="{StaticResource AfPanelElevated}"
                                 TextColor="{StaticResource AfAlertRed}"
-                                ToolTipProperties.Text="Replace this item with its crafting-recipe ingredients (spread into empty slots), like the game's salvage station."
+                                ToolTipProperties.Text="{loc:Localize Slot_ReplaceThisItemWithItsCraftingRecipeIngredientsSpreadIntoEmptySlotsLikeTheGamesSalvageStation}"
                                 IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.CanDismantle, FallbackValue=False}"
                                 Clicked="OnDismantleSlot" />
                     </HorizontalStackLayout>
@@ -97,18 +98,18 @@
                             Padding="10,8"
                             IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.HasDismantlePreview, FallbackValue=False}">
                         <VerticalStackLayout Spacing="6">
-                            <Label Text="DISMANTLE PREVIEW" Style="{StaticResource AfFieldLabel}"
+                            <Label Text="{loc:Localize Slot_DismantlePreview}" Style="{StaticResource AfFieldLabel}"
                                    TextColor="{StaticResource AfAlertRed}" />
                             <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.DismantlePreviewText}"
                                    Style="{StaticResource AfFieldValue}" FontSize="11"
                                    LineBreakMode="WordWrap" />
                             <HorizontalStackLayout Spacing="8">
-                                <Button Text="CONFIRM DISMANTLE"
+                                <Button Text="{loc:Localize Slot_ConfirmDismantle}"
                                         FontSize="10" Padding="10,4"
                                         BackgroundColor="{StaticResource AfAlertRed}"
                                         TextColor="{StaticResource AfTextOnAccent}"
                                         Clicked="OnConfirmDismantle" />
-                                <Button Text="CANCEL"
+                                <Button Text="{loc:Localize Slot_Cancel}"
                                         FontSize="10" Padding="10,4"
                                         BackgroundColor="{StaticResource AfPanelElevated}"
                                         TextColor="{StaticResource AfTextPrimary}"
@@ -125,29 +126,29 @@
                         Padding="12,10"
                         IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.IsActiveSlotTeleporter, FallbackValue=False}">
                     <VerticalStackLayout Spacing="6">
-                        <Label Text="TELEPORTER SYNC" Style="{StaticResource AfFieldLabel}"
+                        <Label Text="{loc:Localize Slot_TeleporterSync}" Style="{StaticResource AfFieldLabel}"
                                TextColor="{StaticResource AfTerminalGreen}" />
                         <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.TeleporterSyncText}"
                                Style="{StaticResource AfFieldValue}" FontSize="11" LineBreakMode="WordWrap" />
-                        <Picker Title="Choose a bench..."
+                        <Picker Title="{loc:Localize Slot_ChooseABench}"
                                 ItemsSource="{Binding Source={x:Reference Root}, Path=BindingContext.BenchOptions}"
                                 SelectedItem="{Binding Source={x:Reference Root}, Path=BindingContext.SelectedBench, Mode=TwoWay}"
                                 BackgroundColor="{StaticResource AfPanelElevated}"
                                 TextColor="{StaticResource AfTerminalGreen}"
                                 FontSize="11" />
                         <HorizontalStackLayout Spacing="8">
-                            <Button Text="SYNC"
+                            <Button Text="{loc:Localize Slot_Sync}"
                                     FontSize="10" Padding="12,4"
                                     BackgroundColor="{StaticResource AfTerminalGreen}"
                                     TextColor="{StaticResource AfTextOnAccent}"
                                     Command="{Binding Source={x:Reference Root}, Path=BindingContext.SyncTeleporterCommand}" />
-                            <Button Text="UNSYNC"
+                            <Button Text="{loc:Localize Slot_Unsync}"
                                     FontSize="10" Padding="12,4"
                                     BackgroundColor="{StaticResource AfPanelElevated}"
                                     TextColor="{StaticResource AfTextPrimary}"
                                     Command="{Binding Source={x:Reference Root}, Path=BindingContext.UnsyncTeleporterCommand}" />
                         </HorizontalStackLayout>
-                        <Label Text="The link is the bench's world GUID stored on the item - same as syncing at a bench in-game. Stage + SAVE to write."
+                        <Label Text="{loc:Localize Slot_TheLinkIsTheBenchsWorldGuidStoredOnTheItemSameAsSyncingAtABenchInGameStageSaveToWrite}"
                                Style="{StaticResource AfMuted}" FontSize="9" />
                     </VerticalStackLayout>
                 </Border>
@@ -159,7 +160,7 @@
                         Padding="12,10"
                         IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.Entry, Converter={StaticResource NullToBoolConverter}, FallbackValue=False}">
                     <VerticalStackLayout Spacing="6">
-                        <Label Text="ITEM INFO" Style="{StaticResource AfFieldLabel}" />
+                        <Label Text="{loc:Localize Slot_ItemInfo}" Style="{StaticResource AfFieldLabel}" />
                         <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.Entry.Description, FallbackValue=''}"
                                Style="{StaticResource AfFieldValue}" FontSize="12"
                                LineBreakMode="WordWrap" />
@@ -182,7 +183,7 @@
                         Padding="12,8"
                         IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.HasValidationWarning, FallbackValue=False}">
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="VALIDATION"
+                        <Label Text="{loc:Localize Slot_Validation}"
                                Style="{StaticResource AfFieldLabel}"
                                TextColor="{StaticResource AfHazardYellow}" />
                         <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.ValidationWarning, FallbackValue=''}"
@@ -196,7 +197,7 @@
                         StrokeShape="Rectangle"
                         Padding="14,12"
                         IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.IsEmpty, FallbackValue=False}">
-                    <Label Text="EMPTY SLOT · Drag another slot's contents here to fill, or use RAW JSON to add a new item."
+                    <Label Text="{loc:Localize Slot_EmptySlotDragAnotherSlotsContentsHereToFillOrUseRawJsonToAddANewItem}"
                            Style="{StaticResource AfMuted}" FontSize="11" />
                 </Border>
 
@@ -204,7 +205,7 @@
                 <VerticalStackLayout Spacing="6"
                                      IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.HasActiveSlot, FallbackValue=False}">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                        <Label Grid.Column="0" Text="COUNT" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                        <Label Grid.Column="0" Text="{loc:Localize Slot_Count}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                         <Label Grid.Column="1"
                                Text="{Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.MaxStackSize, StringFormat='max {0}'}"
                                Style="{StaticResource AfMuted}" FontSize="10"
@@ -233,7 +234,7 @@
                 <VerticalStackLayout Spacing="6"
                                      IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.ShowDurability, FallbackValue=False}">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                        <Label Grid.Column="0" Text="DURABILITY" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                        <Label Grid.Column="0" Text="{loc:Localize Slot_Durability}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                         <Label Grid.Column="1"
                                Text="{Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.DurabilityText, FallbackValue=''}"
                                Style="{StaticResource AfMuted}" FontSize="10"
@@ -257,7 +258,7 @@
                                HorizontalTextAlignment="Center" />
                     </Grid>
                     <Grid ColumnDefinitions="*,80" ColumnSpacing="10">
-                        <Label Grid.Column="0" Text="MAX DURABILITY"
+                        <Label Grid.Column="0" Text="{loc:Localize Slot_MaxDurability}"
                                Style="{StaticResource AfFieldLabel}"
                                FontSize="9"
                                VerticalOptions="Center" />
@@ -274,7 +275,7 @@
                 <!-- Ammo in magazine -->
                 <VerticalStackLayout Spacing="6"
                                      IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.HasAmmoCapacity, FallbackValue=False}">
-                    <Label Text="AMMO IN MAG" Style="{StaticResource AfFieldLabel}" />
+                    <Label Text="{loc:Localize Slot_AmmoInMag}" Style="{StaticResource AfFieldLabel}" />
                     <Grid ColumnDefinitions="*,80" ColumnSpacing="10">
                         <Slider Grid.Column="0"
                                 Minimum="0" Maximum="200"
@@ -297,14 +298,14 @@
                 <VerticalStackLayout Spacing="6"
                                      IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.HasLiquidCapacity, FallbackValue=False}">
                     <Grid ColumnDefinitions="*,Auto">
-                        <Label Grid.Column="0" Text="LIQUID" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                        <Label Grid.Column="0" Text="{loc:Localize Slot_Liquid}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                         <Label Grid.Column="1"
                                Text="{Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.LiquidCapacityText}"
                                Style="{StaticResource AfStatusText}" FontSize="10" VerticalOptions="Center" />
                     </Grid>
                     <Picker ItemsSource="{Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.LiquidOptions}"
                             SelectedItem="{Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.SelectedLiquid, Mode=TwoWay}"
-                            Title="Liquid type (what this item is allowed to hold)…" />
+                            Title="{loc:Localize Slot_LiquidTypeWhatThisItemIsAllowedToHold}" />
                     <Grid ColumnDefinitions="*,80" ColumnSpacing="10">
                         <Slider Grid.Column="0"
                                 Minimum="0"
@@ -326,7 +327,7 @@
 
                 <BoxView Style="{StaticResource AfDivider}" />
 
-                <Label Text="Tip: drag a slot onto another to swap. Drop on a container in the world editor's list to move items between containers."
+                <Label Text="{loc:Localize Slot_TipDragASlotOntoAnotherToSwapDropOnAContainerInTheWorldEditorsListToMoveItemsBetweenContainers}"
                        Style="{StaticResource AfMuted}" FontSize="10" />
 
                 <!-- ===== Quest / chapter detail (takes the sidebar while a chapter is selected) ===== -->
@@ -365,28 +366,28 @@
                                TextColor="{StaticResource AfTerminalGreen}" />
                         <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedChapter.Summary}"
                                Style="{StaticResource AfFieldValue}" FontSize="12" LineBreakMode="WordWrap" />
-                        <Label Text="TRIGGER FLAG" Style="{StaticResource AfFieldLabel}" />
+                        <Label Text="{loc:Localize Slot_TriggerFlag}" Style="{StaticResource AfFieldLabel}" />
                         <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedChapter.FlagStateText}"
                                Style="{StaticResource AfStatusText}" FontSize="10" LineBreakMode="WordWrap" />
                         <VerticalStackLayout Spacing="4"
                                              IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedChapter.HasMissingDependencies, FallbackValue=False}">
-                            <Label Text="BLOCKED BY (LINEAR DEPENDENCIES)" Style="{StaticResource AfFieldLabel}"
+                            <Label Text="{loc:Localize Slot_BlockedByLinearDependencies}" Style="{StaticResource AfFieldLabel}"
                                    TextColor="{StaticResource AfAmber}" />
                             <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedChapter.MissingDependenciesText}"
                                    Style="{StaticResource AfFieldValue}" FontSize="11"
                                    TextColor="{StaticResource AfAmber}" LineBreakMode="WordWrap" />
                         </VerticalStackLayout>
-                        <Button Text="UNLOCK STORY THROUGH HERE"
+                        <Button Text="{loc:Localize Slot_UnlockStoryThroughHere}"
                                 FontSize="10" Padding="10,5"
                                 BackgroundColor="{StaticResource AfHazardYellow}"
                                 TextColor="{StaticResource AfTextOnAccent}"
-                                ToolTipProperties.Text="Adds every chapter trigger flag from the start of the story through this chapter - the dependency-safe way to unlock it. Additive only; never removes flags."
+                                ToolTipProperties.Text="{loc:Localize Slot_AddsEveryChapterTriggerFlagFromTheStartOfTheStoryThroughThisChapterTheDependencySafeWayToUnlockItAdditiveOnlyNeverRemovesFlags}"
                                 Clicked="OnUnlockChapter" />
-                        <Button Text="SET AS CURRENT CHAPTER"
+                        <Button Text="{loc:Localize Slot_SetAsCurrentChapter}"
                                 Style="{StaticResource AfGhostButton}"
                                 FontSize="10"
                                 Command="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedChapter.SetCommand}" />
-                        <Label Text="Chapters are strictly linear: a quest can't really begin until every earlier trigger flag is set. Stage + SAVE to write."
+                        <Label Text="{loc:Localize Slot_ChaptersAreStrictlyLinearAQuestCantReallyBeginUntilEveryEarlierTriggerFlagIsSetStageSaveToWrite}"
                                Style="{StaticResource AfMuted}" FontSize="9" LineBreakMode="WordWrap" />
                     </VerticalStackLayout>
                 </Border>
@@ -438,12 +439,12 @@
                         </Grid>
 
                         <BoxView Style="{StaticResource AfDivider}" />
-                        <Label Text="PERK EFFECT" Style="{StaticResource AfFieldLabel}" />
+                        <Label Text="{loc:Localize Slot_PerkEffect}" Style="{StaticResource AfFieldLabel}" />
                         <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.PlayerEditor.SelectedMilestone.ShownEffect}"
                                Style="{StaticResource AfFieldValue}" FontSize="12" LineBreakMode="WordWrap" />
                         <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.PlayerEditor.SelectedMilestone.RequirementText}"
                                Style="{StaticResource AfMuted}" FontSize="10" LineBreakMode="WordWrap" />
-                        <Label Text="Perks are derived from the skill level - the game grants them automatically when you reach the level, so a save editor never writes them directly."
+                        <Label Text="{loc:Localize Slot_PerksAreDerivedFromTheSkillLevelTheGameGrantsThemAutomaticallyWhenYouReachTheLevelSoASaveEditorNeverWritesThemDirectly}"
                                Style="{StaticResource AfStatusText}" FontSize="9" LineBreakMode="WordWrap" />
                     </VerticalStackLayout>
                 </Border>
@@ -481,14 +482,14 @@
                                Style="{StaticResource AfStatusText}" FontSize="9"
                                TextColor="{StaticResource AfAccentOrange}" LineBreakMode="WordWrap" />
                         <BoxView Style="{StaticResource AfDivider}" />
-                        <Label Text="WHAT THEY ACCEPT AS PAYMENT" Style="{StaticResource AfFieldLabel}" />
+                        <Label Text="{loc:Localize Slot_WhatTheyAcceptAsPayment}" Style="{StaticResource AfFieldLabel}" />
                         <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedTrader.AcceptsText}"
                                Style="{StaticResource AfFieldValue}" FontSize="11" LineBreakMode="WordWrap" />
-                        <Label Text="Trading is barter; hand over the items above to buy from the stock below."
+                        <Label Text="{loc:Localize Slot_TradingIsBarterHandOverTheItemsAboveToBuyFromTheStockBelow}"
                                Style="{StaticResource AfMuted}" FontSize="8" LineBreakMode="WordWrap" />
 
                         <BoxView Style="{StaticResource AfDivider}" />
-                        <Label Text="WHAT THEY SELL · TAP AN ITEM TO INSPECT · TICK LOCKED ITEMS TO UNLOCK" Style="{StaticResource AfFieldLabel}" />
+                        <Label Text="{loc:Localize Slot_WhatTheySellTapAnItemToInspectTickLockedItemsToUnlock}" Style="{StaticResource AfFieldLabel}" />
                         <CollectionView ItemsSource="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedTrader.OfferDetails}"
                                         SelectionMode="None"
                                         HeightRequest="300">
@@ -542,13 +543,13 @@
                                     TextColor="{StaticResource AfTextOnAccent}"
                                     IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedTrader.HasSelectedStock, FallbackValue=False}"
                                     Clicked="OnUnlockSelectedStock" />
-                            <Button Grid.Column="1" Text="UNLOCK ALL"
+                            <Button Grid.Column="1" Text="{loc:Localize Slot_UnlockAll}"
                                     Style="{StaticResource AfGhostButton}"
                                     FontSize="10" Padding="12,6"
                                     IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedTrader.HasMissingFlags, FallbackValue=False}"
                                     Clicked="OnUnlockTraderFull" />
                         </Grid>
-                        <Label Text="Unlocking writes the chosen items' flags (plus any flags needed for the trader to appear at all) into WorldSave_Facility.sav (a .bak is kept)."
+                        <Label Text="{loc:Localize Slot_UnlockingWritesTheChosenItemsFlagsPlusAnyFlagsNeededForTheTraderToAppearAtAllIntoWorldSaveFacilitySavABakIsKept}"
                                Style="{StaticResource AfMuted}" FontSize="9" LineBreakMode="WordWrap" />
 
                         <!-- Selected-stock encyclopedia detail (reuses the item palette card) -->
@@ -570,12 +571,12 @@
                                 </Grid>
                                 <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedTrader.SelectedOfferItem.Entry.Description}"
                                        Style="{StaticResource AfMuted}" FontSize="10" LineBreakMode="WordWrap" />
-                                <Label Text="CRAFTED BY" Style="{StaticResource AfFieldLabel}"
+                                <Label Text="{loc:Localize Slot_CraftedBy}" Style="{StaticResource AfFieldLabel}"
                                        IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedTrader.SelectedOfferItem.HasCraftedBy, FallbackValue=False}" />
                                 <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedTrader.SelectedOfferItem.CraftedByText}"
                                        Style="{StaticResource AfFieldValue}" FontSize="10" LineBreakMode="WordWrap"
                                        IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedTrader.SelectedOfferItem.HasCraftedBy, FallbackValue=False}" />
-                                <Label Text="USED IN" Style="{StaticResource AfFieldLabel}"
+                                <Label Text="{loc:Localize Slot_UsedIn}" Style="{StaticResource AfFieldLabel}"
                                        IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedTrader.SelectedOfferItem.HasUsedIn, FallbackValue=False}" />
                                 <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedTrader.SelectedOfferItem.UsedInText}"
                                        Style="{StaticResource AfFieldValue}" FontSize="10" LineBreakMode="WordWrap"
@@ -620,7 +621,7 @@
                                 <Image Source="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedDoor.DoorImagePath}"
                                        Aspect="AspectFit" />
                             </Border>
-                            <Label Text="Image: abioticfactor.wiki.gg"
+                            <Label Text="{loc:Localize Slot_ImageAbioticfactorWikiGg}"
                                    Style="{StaticResource AfMuted}" FontSize="8" />
                         </VerticalStackLayout>
                         <VerticalStackLayout Spacing="3"
@@ -631,11 +632,11 @@
                                 <Image Source="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedDoorCardPath}"
                                        Aspect="AspectFill" />
                             </Border>
-                            <Label Text="Sector card art - the wiki has no picture of this door type."
+                            <Label Text="{loc:Localize Slot_SectorCardArtTheWikiHasNoPictureOfThisDoorType}"
                                    Style="{StaticResource AfMuted}" FontSize="8" LineBreakMode="WordWrap"
                                    IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.HasSelectedDoorCard, FallbackValue=False}" />
                         </VerticalStackLayout>
-                        <Label Text="WHERE" Style="{StaticResource AfFieldLabel}" />
+                        <Label Text="{loc:Localize Slot_Where}" Style="{StaticResource AfFieldLabel}" />
                         <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedDoorRegionText}"
                                Style="{StaticResource AfFieldValue}" FontSize="12"
                                TextColor="{StaticResource AfTerminalGreen}" />
@@ -643,12 +644,12 @@
                                Style="{StaticResource AfFieldValue}" FontSize="11" LineBreakMode="WordWrap" />
 
                         <!-- Exact world position, read live from the cooked sub-level package. -->
-                        <Label Text="EXACT POSITION"
+                        <Label Text="{loc:Localize Slot_ExactPosition}"
                                Style="{StaticResource AfFieldLabel}" Margin="0,6,0,0" />
                         <HorizontalStackLayout Spacing="8"
                                                IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.IsLocatingDoor, FallbackValue=False}">
                             <ActivityIndicator IsRunning="True" WidthRequest="14" HeightRequest="14" />
-                            <Label Text="Reading the level from the game files..."
+                            <Label Text="{loc:Localize Slot_ReadingTheLevelFromTheGameFiles}"
                                    Style="{StaticResource AfMuted}" FontSize="10" VerticalOptions="Center" />
                         </HorizontalStackLayout>
                         <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedDoorPositionText}"
@@ -663,17 +664,17 @@
                         <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.DoorMapCaption}"
                                Style="{StaticResource AfMuted}" FontSize="9" LineBreakMode="WordWrap"
                                IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.HasSelectedDoorMap, FallbackValue=False}" />
-                        <Button Text="ONLINE MAP"
+                        <Button Text="{loc:Localize Slot_OnlineMap}"
                                 Style="{StaticResource AfGhostButton}" FontSize="9" Padding="10,4"
                                 HorizontalOptions="Start"
                                 Clicked="OnDoorOnlineMapClicked"
-                                ToolTipProperties.Text="Opens a community interactive map of the facility" />
-                        <Label Text="ABOUT THIS DOOR" Style="{StaticResource AfFieldLabel}" />
+                                ToolTipProperties.Text="{loc:Localize Slot_OpensACommunityInteractiveMapOfTheFacility}" />
+                        <Label Text="{loc:Localize Slot_AboutThisDoor}" Style="{StaticResource AfFieldLabel}" />
                         <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedDoor.AboutText}"
                                Style="{StaticResource AfFieldValue}" FontSize="11" LineBreakMode="WordWrap" />
                         <VerticalStackLayout Spacing="4"
                                              IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedDoor.HasRequiredKey, FallbackValue=False}">
-                            <Label Text="REQUIRED KEY" Style="{StaticResource AfFieldLabel}" />
+                            <Label Text="{loc:Localize Slot_RequiredKey}" Style="{StaticResource AfFieldLabel}" />
                             <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedDoor.RequiredKeyName}"
                                    Style="{StaticResource AfFieldValue}" FontSize="12"
                                    TextColor="{StaticResource AfHazardYellow}" />
@@ -681,20 +682,20 @@
                                    Style="{StaticResource AfMuted}" FontSize="10" LineBreakMode="WordWrap"
                                    IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedDoor.HasRequiredKeyDescription, FallbackValue=False}" />
                         </VerticalStackLayout>
-                        <Label Text="STATE" Style="{StaticResource AfFieldLabel}" />
+                        <Label Text="{loc:Localize Slot_State}" Style="{StaticResource AfFieldLabel}" />
                         <Picker ItemsSource="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedDoor.AllStateLabels}"
                                 SelectedItem="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedDoor.FriendlyStateForPicker, Mode=TwoWay}" />
                         <Grid ColumnDefinitions="Auto,*,Auto,*" ColumnSpacing="6">
                             <CheckBox Grid.Column="0"
                                       IsChecked="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedDoor.IsDoorOpen, Mode=TwoWay, FallbackValue=False}"
                                       Color="{StaticResource AfTerminalGreen}" VerticalOptions="Center" />
-                            <Label Grid.Column="1" Text="OPEN" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                            <Label Grid.Column="1" Text="{loc:Localize Slot_Open}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                             <CheckBox Grid.Column="2"
                                       IsChecked="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedDoor.OneWayUnlocked, Mode=TwoWay, FallbackValue=False}"
                                       Color="{StaticResource AfTerminalGreen}" VerticalOptions="Center" />
-                            <Label Grid.Column="3" Text="ONE-WAY UNLOCKED" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                            <Label Grid.Column="3" Text="{loc:Localize Slot_OneWayUnlocked}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                         </Grid>
-                        <Label Text="Changes stage like everything else; press SAVE to write."
+                        <Label Text="{loc:Localize Slot_ChangesStageLikeEverythingElsePressSaveToWrite}"
                                Style="{StaticResource AfMuted}" FontSize="9" />
                     </VerticalStackLayout>
                 </Border>
@@ -728,18 +729,18 @@
                                     Clicked="OnCloseWorldRecipeDetail" />
                         </Grid>
                         <BoxView Style="{StaticResource AfDivider}" />
-                        <Label Text="MAKES" Style="{StaticResource AfFieldLabel}" />
+                        <Label Text="{loc:Localize Slot_Makes}" Style="{StaticResource AfFieldLabel}" />
                         <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedWorldRecipe.OutputText}"
                                Style="{StaticResource AfFieldValue}" FontSize="11" />
-                        <Label Text="INGREDIENTS" Style="{StaticResource AfFieldLabel}" />
+                        <Label Text="{loc:Localize Slot_Ingredients}" Style="{StaticResource AfFieldLabel}" />
                         <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedWorldRecipe.IngredientsText}"
                                Style="{StaticResource AfFieldValue}" FontSize="11" LineBreakMode="WordWrap" />
-                        <Label Text="CRAFTED AT" Style="{StaticResource AfFieldLabel}" />
+                        <Label Text="{loc:Localize Slot_CraftedAt}" Style="{StaticResource AfFieldLabel}" />
                         <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedWorldRecipe.BenchesText}"
                                Style="{StaticResource AfFieldValue}" FontSize="11" LineBreakMode="WordWrap" />
                         <VerticalStackLayout Spacing="4"
                                              IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedWorldRecipe.HasUsedIn, FallbackValue=False}">
-                            <Label Text="USED IN" Style="{StaticResource AfFieldLabel}" />
+                            <Label Text="{loc:Localize Slot_UsedIn}" Style="{StaticResource AfFieldLabel}" />
                             <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedWorldRecipe.UsedInText}"
                                    Style="{StaticResource AfFieldValue}" FontSize="10" LineBreakMode="WordWrap" />
                         </VerticalStackLayout>
@@ -747,9 +748,9 @@
                             <CheckBox Grid.Column="0"
                                       IsChecked="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedWorldRecipe.IsUnlocked, Mode=TwoWay, FallbackValue=False}"
                                       Color="{StaticResource AfTerminalGreen}" VerticalOptions="Center" />
-                            <Label Grid.Column="1" Text="RESEARCHED IN THIS WORLD" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                            <Label Grid.Column="1" Text="{loc:Localize Slot_ResearchedInThisWorld}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                         </Grid>
-                        <Label Text="Changes stage like everything else; press SAVE to write."
+                        <Label Text="{loc:Localize Slot_ChangesStageLikeEverythingElsePressSaveToWrite}"
                                Style="{StaticResource AfMuted}" FontSize="9" />
                     </VerticalStackLayout>
                 </Border>
@@ -789,26 +790,26 @@
                                FontFamily="OpenSansSemibold" FontSize="10" CharacterSpacing="1"
                                TextColor="{StaticResource AfAccentOrange}"
                                IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedFlag.IsStoryTrigger, FallbackValue=False}" />
-                        <Label Text="PREREQUISITES" Style="{StaticResource AfFieldLabel}" />
+                        <Label Text="{loc:Localize Slot_Prerequisites}" Style="{StaticResource AfFieldLabel}" />
                         <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedFlagPrereqText}"
                                Style="{StaticResource AfFieldValue}" FontSize="11" LineBreakMode="WordWrap" />
                         <HorizontalStackLayout Spacing="8">
-                            <Button Text="TOGGLE FLAG"
+                            <Button Text="{loc:Localize Slot_ToggleFlag}"
                                     FontSize="10" Padding="10,5"
                                     BackgroundColor="{StaticResource AfAccentOrange}"
                                     TextColor="{StaticResource AfTextOnAccent}"
                                     IsEnabled="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedFlagCanEnable, FallbackValue=False}"
                                     Command="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.ToggleFlagCommand}"
                                     CommandParameter="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedFlag}" />
-                            <Button Text="SET PREREQUISITES"
+                            <Button Text="{loc:Localize Slot_SetPrerequisites}"
                                     FontSize="10" Padding="10,5"
                                     BackgroundColor="{StaticResource AfHazardYellow}"
                                     TextColor="{StaticResource AfTextOnAccent}"
-                                    ToolTipProperties.Text="Additively sets every missing prerequisite flag (story-order safe), then this flag can be enabled."
+                                    ToolTipProperties.Text="{loc:Localize Slot_AdditivelySetsEveryMissingPrerequisiteFlagStoryOrderSafeThenThisFlagCanBeEnabled}"
                                     IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedFlagCanEnable, Converter={StaticResource BoolNegate}, FallbackValue=False}"
                                     Clicked="OnEnableFlagPrereqs" />
                         </HorizontalStackLayout>
-                        <Label Text="Enabling is blocked until prerequisites are set, since the game never produces out-of-order story state. Stage + SAVE to write."
+                        <Label Text="{loc:Localize Slot_EnablingIsBlockedUntilPrerequisitesAreSetSinceTheGameNeverProducesOutOfOrderStoryStateStageSaveToWrite}"
                                Style="{StaticResource AfMuted}" FontSize="9" LineBreakMode="WordWrap" />
                     </VerticalStackLayout>
                 </Border>
@@ -820,14 +821,14 @@
                 <VerticalStackLayout Spacing="10"
                                      IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ShowItemPalette, FallbackValue=False}">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                        <Label Grid.Column="0" Text="ITEM CATALOG" Style="{StaticResource AfH2}" FontSize="16" VerticalOptions="Center" />
+                        <Label Grid.Column="0" Text="{loc:Localize Slot_ItemCatalog}" Style="{StaticResource AfH2}" FontSize="16" VerticalOptions="Center" />
                         <Label Grid.Column="1"
                                Text="{Binding Source={x:Reference Root}, Path=BindingContext.ItemPalette.MatchSummary, FallbackValue=''}"
                                Style="{StaticResource AfStatusText}" VerticalOptions="Center" />
                     </Grid>
 
                     <Entry Text="{Binding Source={x:Reference Root}, Path=BindingContext.ItemPalette.SearchText, Mode=TwoWay}"
-                           Placeholder="Search items by name, id or tag…"
+                           Placeholder="{loc:Localize Slot_SearchItemsByNameIdOrTag}"
                            BackgroundColor="{StaticResource AfPanelElevated}"
                            TextColor="{StaticResource AfTextPrimary}" />
 
@@ -840,7 +841,7 @@
                                Style="{StaticResource AfFieldLabel}"
                                TextColor="{StaticResource AfHazardYellow}"
                                VerticalOptions="Center"
-                               ToolTipProperties.Text="Only items the selected equipment slot accepts are listed (same rule the game enforces). Untick to browse everything." />
+                               ToolTipProperties.Text="{loc:Localize Slot_OnlyItemsTheSelectedEquipmentSlotAcceptsAreListedSameRuleTheGameEnforcesUntickToBrowseEverything}" />
                     </HorizontalStackLayout>
 
                     <FlexLayout Wrap="Wrap" Direction="Row"
@@ -865,7 +866,7 @@
                                         controls:ResponsiveLayout.ItemWidth="110"
                                         controls:ResponsiveLayout.MaxSpan="5">
                             <CollectionView.EmptyView>
-                                <Label Text="No items match." Style="{StaticResource AfMuted}" Padding="12" />
+                                <Label Text="{loc:Localize Slot_NoItemsMatch}" Style="{StaticResource AfMuted}" Padding="12" />
                             </CollectionView.EmptyView>
                             <CollectionView.ItemsLayout>
                                 <GridItemsLayout Orientation="Vertical" Span="3"
@@ -905,7 +906,7 @@
                         </CollectionView>
                     </Border>
 
-                    <Label Text="Tap an item for its encyclopedia entry. Drag onto any slot to spawn it (full stack + durability); double-tap to give to the first empty slot."
+                    <Label Text="{loc:Localize Slot_TapAnItemForItsEncyclopediaEntryDragOntoAnySlotToSpawnItFullStackDurabilityDoubleTapToGiveToTheFirstEmptySlot}"
                            Style="{StaticResource AfMuted}" FontSize="10" />
 
                     <!-- Item encyclopedia detail -->
@@ -927,17 +928,17 @@
                             </Grid>
                             <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.ItemPalette.SelectedItem.Entry.Description}"
                                    Style="{StaticResource AfMuted}" FontSize="11" LineBreakMode="WordWrap" />
-                            <Label Text="CRAFTED BY" Style="{StaticResource AfFieldLabel}"
+                            <Label Text="{loc:Localize Slot_CraftedBy}" Style="{StaticResource AfFieldLabel}"
                                    IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ItemPalette.SelectedItem.HasCraftedBy, FallbackValue=False}" />
                             <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.ItemPalette.SelectedItem.CraftedByText}"
                                    Style="{StaticResource AfFieldValue}" FontSize="11" LineBreakMode="WordWrap"
                                    IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ItemPalette.SelectedItem.HasCraftedBy, FallbackValue=False}" />
-                            <Label Text="USED IN" Style="{StaticResource AfFieldLabel}"
+                            <Label Text="{loc:Localize Slot_UsedIn}" Style="{StaticResource AfFieldLabel}"
                                    IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ItemPalette.SelectedItem.HasUsedIn, FallbackValue=False}" />
                             <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.ItemPalette.SelectedItem.UsedInText}"
                                    Style="{StaticResource AfFieldValue}" FontSize="11" LineBreakMode="WordWrap"
                                    IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ItemPalette.SelectedItem.HasUsedIn, FallbackValue=False}" />
-                            <Label Text="SOLD BY" Style="{StaticResource AfFieldLabel}"
+                            <Label Text="{loc:Localize Slot_SoldBy}" Style="{StaticResource AfFieldLabel}"
                                    IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ItemPalette.SelectedItem.HasSoldBy, FallbackValue=False}" />
                             <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.ItemPalette.SelectedItem.SoldByText}"
                                    Style="{StaticResource AfFieldValue}" FontSize="11" LineBreakMode="WordWrap"

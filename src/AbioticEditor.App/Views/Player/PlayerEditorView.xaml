@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:player="clr-namespace:AbioticEditor.App.Views.Player"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.Player.PlayerEditorView"
              x:DataType="vm:MainViewModel"
              VerticalOptions="Fill"
@@ -18,40 +19,40 @@
         <!-- Player editor tab bar (GATEPal-style sections). A wrapping FlexLayout lays the tabs
              across multiple rows instead of overflowing one line, matching the world editor. -->
         <FlexLayout Grid.Row="0" Wrap="Wrap" Direction="Row" AlignItems="Center">
-            <Button Text="GENERAL" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
+            <Button Text="{loc:Localize PlayerEditor_General}" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
                     Command="{Binding PlayerEditor.ShowGeneralCommand}"
                     BackgroundColor="{Binding PlayerEditor.IsGeneralTab, Converter={StaticResource TabBrush}}" />
-            <Button Text="VITALS" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
+            <Button Text="{loc:Localize PlayerEditor_Vitals}" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
                     Command="{Binding PlayerEditor.ShowVitalsCommand}"
                     BackgroundColor="{Binding PlayerEditor.IsVitalsTab, Converter={StaticResource TabBrush}}" />
-            <Button Text="CHARACTER" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
+            <Button Text="{loc:Localize PlayerEditor_Character}" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
                     Command="{Binding PlayerEditor.ShowCharacterCommand}"
                     BackgroundColor="{Binding PlayerEditor.IsCharacterTab, Converter={StaticResource TabBrush}}" />
-            <Button Text="TRANSMOG" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
+            <Button Text="{loc:Localize PlayerEditor_Transmog}" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
                     Command="{Binding PlayerEditor.ShowTransmogCommand}"
                     BackgroundColor="{Binding PlayerEditor.IsTransmogTab, Converter={StaticResource TabBrush}}" />
-            <Button Text="SPAWN" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
+            <Button Text="{loc:Localize PlayerEditor_Spawn}" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
                     Command="{Binding PlayerEditor.ShowSpawnCommand}"
                     BackgroundColor="{Binding PlayerEditor.IsSpawnTab, Converter={StaticResource TabBrush}}" />
-            <Button Text="INVENTORY" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
+            <Button Text="{loc:Localize PlayerEditor_Inventory}" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
                     Command="{Binding PlayerEditor.ShowInventoryCommand}"
                     BackgroundColor="{Binding PlayerEditor.IsInventoryTab, Converter={StaticResource TabBrush}}" />
-            <Button Text="COMPANIONS" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
+            <Button Text="{loc:Localize PlayerEditor_Companions}" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
                     Command="{Binding PlayerEditor.ShowPetsCommand}"
                     BackgroundColor="{Binding PlayerEditor.IsPetsTab, Converter={StaticResource TabBrush}}" />
-            <Button Text="SKILLS" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
+            <Button Text="{loc:Localize PlayerEditor_Skills}" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
                     Command="{Binding PlayerEditor.ShowSkillsCommand}"
                     BackgroundColor="{Binding PlayerEditor.IsSkillsTab, Converter={StaticResource TabBrush}}" />
-            <Button Text="RECIPES" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
+            <Button Text="{loc:Localize PlayerEditor_Recipes}" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
                     Command="{Binding PlayerEditor.ShowRecipesCommand}"
                     BackgroundColor="{Binding PlayerEditor.IsRecipesTab, Converter={StaticResource TabBrush}}" />
-            <Button Text="GATEPAL" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
+            <Button Text="{loc:Localize PlayerEditor_Gatepal}" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
                     Command="{Binding PlayerEditor.ShowCodexCommand}"
                     BackgroundColor="{Binding PlayerEditor.IsCodexTab, Converter={StaticResource TabBrush}}" />
-            <Button Text="ACHIEVE" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
+            <Button Text="{loc:Localize PlayerEditor_Achieve}" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
                     Command="{Binding PlayerEditor.ShowAchievementsCommand}"
                     BackgroundColor="{Binding PlayerEditor.IsAchievementsTab, Converter={StaticResource TabBrush}}" />
-            <Button Text="DATA" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
+            <Button Text="{loc:Localize PlayerEditor_Data}" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
                     Command="{Binding PlayerEditor.ShowRawCommand}"
                     BackgroundColor="{Binding PlayerEditor.IsRawTab, Converter={StaticResource TabBrush}}" />
         </FlexLayout>

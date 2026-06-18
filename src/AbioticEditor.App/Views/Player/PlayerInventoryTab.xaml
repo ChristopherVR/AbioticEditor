@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.Player.PlayerInventoryTab"
              x:DataType="vm:MainViewModel">
 
@@ -15,9 +16,9 @@
 
             <!-- Header: title + occupied count + filename -->
             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="24">
-                <Label Grid.Column="0" Text="INVENTORY" Style="{StaticResource AfH2}" VerticalOptions="Center" />
+                <Label Grid.Column="0" Text="{loc:Localize PlayerInventory_Inventory}" Style="{StaticResource AfH2}" VerticalOptions="Center" />
                 <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                    <Label Text="OCCUPIED" Style="{StaticResource AfFieldLabel}" />
+                    <Label Text="{loc:Localize PlayerInventory_Occupied}" Style="{StaticResource AfFieldLabel}" />
                     <Label Style="{StaticResource AfReadout}" FontSize="16">
                         <Label.Text>
                             <MultiBinding StringFormat="{}{0} / {1}">
@@ -45,9 +46,9 @@
                         Padding="14,12">
                     <VerticalStackLayout Spacing="10">
                         <Grid ColumnDefinitions="*,Auto">
-                            <Label Grid.Column="0" Text="EQUIPMENT" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                            <Label Grid.Column="0" Text="{loc:Localize PlayerInventory_Equipment}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                             <VerticalStackLayout Grid.Column="1" Spacing="0" HorizontalOptions="End">
-                                <Label Text="WEIGHT" Style="{StaticResource AfFieldLabel}" HorizontalTextAlignment="End" />
+                                <Label Text="{loc:Localize PlayerInventory_Weight}" Style="{StaticResource AfFieldLabel}" HorizontalTextAlignment="End" />
                                 <Label Text="{Binding PlayerEditor.TotalWeight, StringFormat='{0:F1} kg'}"
                                        Style="{StaticResource AfReadout}" FontSize="20"
                                        HorizontalTextAlignment="End" />
@@ -247,23 +248,23 @@
                         </CollectionView>
                         <!-- Pocket footer like the game: money + sort + drop -->
                         <Grid ColumnDefinitions="Auto,110,*,Auto,Auto" ColumnSpacing="10">
-                            <Label Grid.Column="0" Text="MONEY" Style="{StaticResource AfFieldLabel}"
+                            <Label Grid.Column="0" Text="{loc:Localize PlayerInventory_Money}" Style="{StaticResource AfFieldLabel}"
                                    TextColor="{DynamicResource AfAmber}" VerticalOptions="Center" />
                             <Entry Grid.Column="1"
                                    Text="{Binding PlayerEditor.Money, Mode=TwoWay}" Keyboard="Numeric"
                                    FontFamily="Digital7" FontSize="16"
                                    TextColor="{StaticResource AfTerminalGreen}"
                                    HorizontalTextAlignment="Center" VerticalOptions="Center" />
-                            <Button Grid.Column="3" Text="SORT"
+                            <Button Grid.Column="3" Text="{loc:Localize PlayerInventory_Sort}"
                                     Style="{StaticResource AfGhostButton}"
-                                    ToolTipProperties.Text="Sorts the backpack: items grouped by category and name, empties last."
+                                    ToolTipProperties.Text="{loc:Localize PlayerInventory_SortTooltip}"
                                     Clicked="OnSortBackpack" />
-                            <Button Grid.Column="4" Text="DROP ITEM"
+                            <Button Grid.Column="4" Text="{loc:Localize PlayerInventory_DropItem}"
                                     BackgroundColor="{StaticResource AfAlertRed}"
                                     TextColor="{StaticResource AfTextOnAccent}"
                                     FontSize="11" Padding="14,6"
                                     IsEnabled="{Binding ActiveSlot.IsEmpty, Converter={StaticResource BoolNegate}, FallbackValue=False}"
-                                    ToolTipProperties.Text="Select an occupied slot, then DROP places that item on the world ground near you. On SAVE it is written to the world save and appears in NEARBY GROUND ITEMS (.bak kept)."
+                                    ToolTipProperties.Text="{loc:Localize PlayerInventory_DropItemTooltip}"
                                     Clicked="OnDropActiveItem" />
                         </Grid>
                     </VerticalStackLayout>
@@ -277,7 +278,7 @@
                         StrokeShape="RoundRectangle 6"
                         Padding="8,12">
                 <VerticalStackLayout Spacing="8">
-                    <Label Text="HOTBAR" Style="{StaticResource AfFieldLabel}" HorizontalTextAlignment="Center" />
+                    <Label Text="{loc:Localize PlayerInventory_Hotbar}" Style="{StaticResource AfFieldLabel}" HorizontalTextAlignment="Center" />
                     <CollectionView ItemsSource="{Binding PlayerEditor.Hotbar}"
                                     SelectionMode="None"
                                     controls:ResponsiveLayout.ItemWidth="96"
@@ -355,9 +356,9 @@
                     Padding="14,10"
                     IsVisible="{Binding HasNearbyGroundItems}">
                 <VerticalStackLayout Spacing="8">
-                    <Label Text="ON THE GROUND NEARBY" Style="{StaticResource AfFieldLabel}" FontSize="12"
+                    <Label Text="{loc:Localize PlayerInventory_OnTheGroundNearby}" Style="{StaticResource AfFieldLabel}" FontSize="12"
                            TextColor="{StaticResource AfAmber}" CharacterSpacing="5" />
-                    <Label Text="Items dropped within reach of where this player last stood. PICK UP moves one into the first empty backpack slot (staged); SAVE writes the inventory and removes it from the ground (.bak kept). DISCARD leaves it lying there."
+                    <Label Text="{loc:Localize PlayerInventory_GroundNearbyHelp}"
                            Style="{StaticResource AfMuted}" FontSize="10" LineBreakMode="WordWrap" />
                     <VerticalStackLayout Spacing="4"
                                          BindableLayout.ItemsSource="{Binding NearbyGroundItems}">
@@ -372,7 +373,7 @@
                                         <Label Text="{Binding Detail}"
                                                Style="{StaticResource AfStatusText}" FontSize="9" />
                                     </VerticalStackLayout>
-                                    <Button Grid.Column="2" Text="PICK UP"
+                                    <Button Grid.Column="2" Text="{loc:Localize PlayerInventory_PickUp}"
                                             FontSize="10" Padding="12,4"
                                             BackgroundColor="{StaticResource AfTerminalGreen}"
                                             TextColor="{StaticResource AfTextOnAccent}"

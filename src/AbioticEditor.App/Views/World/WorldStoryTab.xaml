@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.World.WorldStoryTab"
              x:DataType="vm:MainViewModel">
 
@@ -16,13 +17,13 @@
 
             IsVisible="{Binding WorldEditor.IsMetaTab}">
         <VerticalStackLayout Spacing="16">
-            <Label Text="MAIN QUEST PROGRESSION" Style="{StaticResource AfH2}" FontSize="18" />
-            <Label Text="How story state is split: THIS file (metadata) holds the current-chapter pointer; what a chapter shows as DONE comes from TRIGGER FLAGS stored in WorldSave_Facility.sav. Pressing SET handles both at once: it moves the pointer, adds every trigger flag up to that chapter and clears the flags past it (the Facility file is written immediately with a .bak; the pointer itself stages until SAVE)."
+            <Label Text="{loc:Localize WorldStory_MainQuestProgression}" Style="{StaticResource AfH2}" FontSize="18" />
+            <Label Text="{loc:Localize WorldStory_StorySplitIntro}"
                    Style="{StaticResource AfMuted}" FontSize="11" />
             <BoxView Style="{StaticResource AfDivider}" />
 
             <Grid ColumnDefinitions="180,300,*,Auto" ColumnSpacing="16">
-                <Label Grid.Column="0" Text="MINUTES PLAYED" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Label Grid.Column="0" Text="{loc:Localize WorldStory_MinutesPlayed}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                 <Entry Grid.Column="1"
                        Text="{Binding WorldEditor.MinutesPassed, Mode=TwoWay}"
                        Keyboard="Numeric"
@@ -42,7 +43,7 @@
 
             <!-- Chapter checklist -->
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                <Label Grid.Column="0" Text="CHAPTERS: SET REWINDS OR SKIPS THE STORY AND SYNCS ITS TRIGGER FLAGS" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Label Grid.Column="0" Text="{loc:Localize WorldStory_ChaptersHeader}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                 <Label Grid.Column="1"
                        Text="{Binding WorldEditor.StoryChapterIndexText}"
                        Style="{StaticResource AfReadout}" VerticalOptions="Center" />
@@ -99,12 +100,12 @@
                                         StrokeThickness="0" StrokeShape="Rectangle"
                                         Padding="8,2" VerticalOptions="Center"
                                         IsVisible="{Binding IsCurrent}">
-                                    <Label Text="CURRENT"
+                                    <Label Text="{loc:Localize WorldStory_Current}"
                                            FontFamily="OpenSansSemibold" FontSize="9"
                                            CharacterSpacing="2"
                                            TextColor="{StaticResource AfTextOnAccent}" />
                                 </Border>
-                                <Button Grid.Column="5" Text="SET"
+                                <Button Grid.Column="5" Text="{loc:Localize WorldStory_Set}"
                                         FontSize="10" Padding="10,3"
                                         BackgroundColor="{StaticResource AfPanelElevated}"
                                         TextColor="{StaticResource AfTextPrimary}"
@@ -119,20 +120,20 @@
 
             <BoxView Style="{StaticResource AfDivider}" />
 
-            <Label Text="Containment units (trapped Leyak/Krasue) and world-wide unlocks moved to the CONTAINMENT tab."
+            <Label Text="{loc:Localize WorldStory_ContainmentMoved}"
                    Style="{StaticResource AfMuted}" FontSize="10" />
 
             <Grid ColumnDefinitions="180,*,Auto,Auto" ColumnSpacing="16">
-                <Label Grid.Column="0" Text="WORLD RECIPES" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Label Grid.Column="0" Text="{loc:Localize WorldStory_WorldRecipes}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                 <Label Grid.Column="1" Text="{Binding WorldEditor.GlobalRecipeBrowser.CountText}"
                        Style="{StaticResource AfReadout}" VerticalOptions="Center" />
                 <Entry Grid.Column="2"
                        Text="{Binding WorldEditor.GlobalRecipeBrowser.SearchText, Mode=TwoWay}"
-                       Placeholder="Search recipes…"
+                       Placeholder="{loc:Localize WorldStory_SearchRecipes}"
                        WidthRequest="240"
                        BackgroundColor="{StaticResource AfPanelElevated}"
                        TextColor="{StaticResource AfTextPrimary}" />
-                <Button Grid.Column="3" Text="UNLOCK ALL"
+                <Button Grid.Column="3" Text="{loc:Localize WorldStory_UnlockAll}"
                         BackgroundColor="{StaticResource AfHazardYellow}"
                         TextColor="{StaticResource AfTextOnAccent}"
                         Command="{Binding WorldEditor.GlobalRecipeBrowser.UnlockAllCommand}" />
@@ -145,7 +146,7 @@
                                 SelectionMode="Single"
                                 SelectedItem="{Binding WorldEditor.GlobalRecipeBrowser.SelectedRecipe, Mode=TwoWay}">
                     <CollectionView.EmptyView>
-                        <Label Text="No recipes match (or game data is unavailable)." Style="{StaticResource AfMuted}" Padding="16" />
+                        <Label Text="{loc:Localize WorldStory_NoRecipes}" Style="{StaticResource AfMuted}" Padding="16" />
                     </CollectionView.EmptyView>
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="items:RecipeRowViewModel">
@@ -178,7 +179,7 @@
                     </CollectionView.ItemTemplate>
                 </CollectionView>
             </Border>
-            <Label Text="Why is this on the METADATA file? The game stores world-wide research here (GlobalRecipesUnlocked/Researched): recipes researched once at a bench become available to EVERY player in the world. Per-player recipe knowledge is separate: edit it on a player save's RECIPES tab. Unlocking here updates both the unlocked and researched lists."
+            <Label Text="{loc:Localize WorldStory_WhyMetadata}"
                    Style="{StaticResource AfMuted}" FontSize="10" />
         </VerticalStackLayout>
     </Border>

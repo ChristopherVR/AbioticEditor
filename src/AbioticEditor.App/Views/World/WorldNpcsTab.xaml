@@ -4,14 +4,15 @@
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.World.WorldNpcsTab"
              x:DataType="vm:MainViewModel">
 
     <!-- ============== TAB: NPCs & traders ============== -->
     <VerticalStackLayout Spacing="12"
                          IsVisible="{Binding WorldEditor.IsNpcsTab}">
-        <Label Text="STORY NPCS &amp; TRADERS IN THIS WORLD" Style="{StaticResource AfH2}" FontSize="18" />
-        <Label Text="Live story-NPC / trader records in this save. REVIVE brings a removed actor back; the narrative state byte controls their story stage (the game's enum has no readable names - change it only if you know the target stage). Tamed pets now have their own PETS tab."
+        <Label Text="{loc:Localize WorldNpcs_StoryNpcsAndTraders}" Style="{StaticResource AfH2}" FontSize="18" />
+        <Label Text="{loc:Localize WorldNpcs_NpcsIntro}"
                Style="{StaticResource AfMuted}" FontSize="11" />
         <Border BackgroundColor="{StaticResource AfShellBackground}"
                 Stroke="{StaticResource AfBorderSubtleBrush}"
@@ -38,16 +39,16 @@
                                     </DataTrigger>
                                 </Label.Triggers>
                             </Label>
-                            <Button Grid.Column="2" Text="REVIVE"
+                            <Button Grid.Column="2" Text="{loc:Localize WorldNpcs_Revive}"
                                     FontSize="10" Padding="10,3"
                                     BackgroundColor="{StaticResource AfTerminalGreen}"
                                     TextColor="{StaticResource AfTextOnAccent}"
-                                    ToolTipProperties.Text="Bring this NPC back (alive + default script phase). Most dead entries are story-scripted departures, so reviving may resurrect an actor the plot already moved elsewhere."
+                                    ToolTipProperties.Text="{loc:Localize WorldNpcs_ReviveTooltip}"
                                     IsVisible="{Binding CanRevive}"
                                     Clicked="OnReviveNpc"
                                     VerticalOptions="Center" />
-                            <Label Grid.Column="3" Text="SCRIPT PHASE" Style="{StaticResource AfFieldLabel}" FontSize="8"
-                                   ToolTipProperties.Text="Game-internal dialogue/script phase (0-5), not quest progress. Every living NPC sits at 3."
+                            <Label Grid.Column="3" Text="{loc:Localize WorldNpcs_ScriptPhase}" Style="{StaticResource AfFieldLabel}" FontSize="8"
+                                   ToolTipProperties.Text="{loc:Localize WorldNpcs_ScriptPhaseTooltip}"
                                    VerticalOptions="Center" />
                             <Picker Grid.Column="4"
                                     ItemsSource="{Binding StateOptions}"
@@ -60,7 +61,7 @@
             </VerticalStackLayout>
         </Border>
 
-        <Label Text="Looking for traders? They moved to the metadata save's TRADERS tab, where you can unlock their stock world-wide."
+        <Label Text="{loc:Localize WorldNpcs_TradersMoved}"
                Style="{StaticResource AfMuted}" FontSize="10" />
     </VerticalStackLayout>
 </ContentView>

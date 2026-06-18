@@ -5,6 +5,7 @@
              xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:core="clr-namespace:AbioticEditor.Core.Saves;assembly=AbioticEditor.Core"
              xmlns:views="clr-namespace:AbioticEditor.App.Views"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.FileSidebarView"
              x:Name="Root"
              x:DataType="vm:MainViewModel">
@@ -16,7 +17,7 @@
             Padding="0">
         <Grid RowDefinitions="Auto,*,Auto">
             <VerticalStackLayout Grid.Row="0" Padding="16,14,16,10" Spacing="8">
-                <Label Text="SAVE FILES"
+                <Label Text="{loc:Localize FileSidebar_SaveFiles}"
                        Style="{StaticResource AfFieldLabel}" />
 
                 <!-- Sidebar-wide search filter -->
@@ -36,7 +37,7 @@
                                x:Name="SearchEntry"
                                HandlerChanged="OnSearchEntryHandlerChanged"
                                Text="{Binding SidebarFilter, Mode=TwoWay}"
-                               Placeholder="Search saves &amp; config"
+                               Placeholder="{loc:Localize FileSidebar_SearchSavesAndConfig}"
                                TextColor="{StaticResource AfTextPrimary}"
                                PlaceholderColor="{StaticResource AfTextMuted}"
                                BackgroundColor="Transparent"
@@ -52,7 +53,7 @@
                                 TextColor="{StaticResource AfTextMuted}"
                                 Padding="0" HeightRequest="26" WidthRequest="26"
                                 CornerRadius="13"
-                                ToolTipProperties.Text="Clear filter"
+                                ToolTipProperties.Text="{loc:Localize FileSidebar_ClearFilter}"
                                 VerticalOptions="Center" />
                     </Grid>
                 </Border>
@@ -69,9 +70,9 @@
                             SelectionChangedCommand="{x:Null}">
                 <CollectionView.EmptyView>
                     <VerticalStackLayout Padding="24" Spacing="6">
-                        <Label Text="NO FOLDER LOADED"
+                        <Label Text="{loc:Localize FileSidebar_NoFolderLoaded}"
                                Style="{StaticResource AfFieldLabel}" />
-                        <Label Text="Click OPEN FOLDER to point at a Cascade save directory."
+                        <Label Text="{loc:Localize FileSidebar_ClickOpenFolderToPointAtACascadeSaveDirectory}"
                                Style="{StaticResource AfMuted}" />
                     </VerticalStackLayout>
                 </CollectionView.EmptyView>
@@ -94,7 +95,7 @@
                                     StrokeShape="RoundRectangle 13"
                                     WidthRequest="26" HeightRequest="26"
                                     Padding="0"
-                                    ToolTipProperties.Text="Add a player (new or copied from an existing one)"
+                                    ToolTipProperties.Text="{loc:Localize FileSidebar_AddAPlayerNewOrCopiedFromAnExistingOne}"
                                     VerticalOptions="Center">
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Tapped="OnAddPlayerTapped" />
@@ -153,7 +154,7 @@
                  SandboxSettings.ini, client config). -->
             <VerticalStackLayout Grid.Row="2" IsVisible="{Binding HasConfigFiles}">
                 <BoxView Style="{StaticResource AfDivider}" />
-                <Label Text="CONFIG FILES"
+                <Label Text="{loc:Localize FileSidebar_ConfigFiles}"
                        Style="{StaticResource AfFieldLabel}"
                        TextColor="{StaticResource AfAmber}"
                        CharacterSpacing="3"

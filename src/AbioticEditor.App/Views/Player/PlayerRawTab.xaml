@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.Player.PlayerRawTab"
              x:DataType="vm:MainViewModel">
 
@@ -11,15 +12,15 @@
 
             IsVisible="{Binding PlayerEditor.IsRawTab, FallbackValue=False}">
         <VerticalStackLayout Spacing="14">
-            <Label Text="RAW SAVE JSON" Style="{StaticResource AfH2}" FontSize="18" />
-            <Label Text="Save JSON is far too large to edit comfortably in-app. EXPORT writes a .json file next to the save and opens it in your default editor; make your changes there, save, then IMPORT to convert it back into the .sav (a .bak backup of the save is kept)."
+            <Label Text="{loc:Localize PlayerRaw_RawSaveJson}" Style="{StaticResource AfH2}" FontSize="18" />
+            <Label Text="{loc:Localize PlayerRaw_RawSaveJsonHelp}"
                    Style="{StaticResource AfMuted}" FontSize="12" />
             <Label Text="{Binding PlayerEditor.JsonPath, StringFormat='JSON file: {0}'}"
                    Style="{StaticResource AfStatusText}" />
             <HorizontalStackLayout Spacing="12">
-                <Button Text="EXPORT JSON + OPEN"
+                <Button Text="{loc:Localize PlayerRaw_ExportJsonAndOpen}"
                         Command="{Binding PlayerEditor.ExportJsonCommand}" />
-                <Button Text="IMPORT JSON → SAVE"
+                <Button Text="{loc:Localize PlayerRaw_ImportJsonToSave}"
                         BackgroundColor="{StaticResource AfAccentOrange}"
                         TextColor="{StaticResource AfTextOnAccent}"
                         Command="{Binding PlayerEditor.ImportJsonCommand}" />

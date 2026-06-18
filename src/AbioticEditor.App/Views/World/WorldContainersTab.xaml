@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.World.WorldContainersTab"
              x:DataType="vm:MainViewModel"
              IsVisible="{Binding WorldEditor.IsContainersTab}">
@@ -13,13 +14,13 @@
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
             <Entry Grid.Column="0"
                    Text="{Binding WorldEditor.Filter, Mode=TwoWay}"
-                   Placeholder="Filter by class name or id…"
+                   Placeholder="{loc:Localize WorldContainers_FilterPlaceholder}"
                    BackgroundColor="{StaticResource AfPanelElevated}"
                    TextColor="{StaticResource AfTextPrimary}" />
             <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">
                 <CheckBox IsChecked="{Binding WorldEditor.HideEmpty, Mode=TwoWay}"
                           Color="{StaticResource AfAccentOrange}" />
-                <Label Text="HIDE EMPTY" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Label Text="{loc:Localize WorldContainers_HideEmpty}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
             </HorizontalStackLayout>
         </Grid>
 
@@ -38,7 +39,7 @@
                                 SelectionMode="Single"
                                 SelectedItem="{Binding WorldEditor.SelectedContainer, Mode=TwoWay}">
                     <CollectionView.EmptyView>
-                        <Label Text="No containers match filter."
+                        <Label Text="{loc:Localize WorldContainers_NoContainersMatch}"
                                Style="{StaticResource AfMuted}" Padding="16" />
                     </CollectionView.EmptyView>
                     <CollectionView.ItemTemplate>
@@ -80,8 +81,8 @@
 
                     <VerticalStackLayout Grid.Row="0" Spacing="2"
                                          IsVisible="{Binding WorldEditor.HasSelectedContainer, Converter={StaticResource BoolNegate}}">
-                        <Label Text="SELECT A CONTAINER" Style="{StaticResource AfFieldLabel}" />
-                        <Label Text="Pick a container from the list to inspect or edit its slots. Tap a slot to edit it in the right panel."
+                        <Label Text="{loc:Localize WorldContainers_SelectAContainer}" Style="{StaticResource AfFieldLabel}" />
+                        <Label Text="{loc:Localize WorldContainers_SelectContainerHelp}"
                                Style="{StaticResource AfMuted}" />
                     </VerticalStackLayout>
 
@@ -167,7 +168,7 @@
             </Border>
         </controls:AdaptiveGrid>
 
-        <Label Text="Drag a slot onto a container in the list to move the item into that container's first empty slot."
+        <Label Text="{loc:Localize WorldContainers_DragHelp}"
                Style="{StaticResource AfMuted}" />
     </VerticalStackLayout>
 </ContentView>

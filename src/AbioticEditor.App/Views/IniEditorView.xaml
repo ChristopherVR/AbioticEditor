@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.IniEditorView"
              x:DataType="vm:MainViewModel">
 
@@ -38,11 +39,11 @@
                     <Label Text="{Binding IniEditor.Description}"
                            Style="{StaticResource AfMuted}" />
                 </VerticalStackLayout>
-                <Button Grid.Column="1" Text="REVERT"
+                <Button Grid.Column="1" Text="{loc:Localize Ini_Revert}"
                         Style="{StaticResource AfGhostButton}"
                         VerticalOptions="Center"
                         Clicked="OnIniRevertClicked" />
-                <Button Grid.Column="2" Text="SAVE INI"
+                <Button Grid.Column="2" Text="{loc:Localize Ini_SaveIni}"
                         FontSize="11" Padding="16,6"
                         VerticalOptions="Center"
                         IsEnabled="{Binding IniEditor.IsDirty}"
@@ -62,7 +63,7 @@
                                     <Label Grid.Column="0" Text="{Binding Header}"
                                            Style="{StaticResource AfFieldLabel}"
                                            TextColor="{StaticResource AfAmber}" />
-                                    <Button Grid.Column="1" Text="+ ADD"
+                                    <Button Grid.Column="1" Text="{loc:Localize Ini_Add}"
                                             Style="{StaticResource AfGhostButton}"
                                             FontSize="9" Padding="8,3"
                                             IsVisible="{Binding CanAddEntry}"

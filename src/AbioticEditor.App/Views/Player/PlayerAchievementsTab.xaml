@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:items="clr-namespace:AbioticEditor.App.ViewModels"
              xmlns:controls="clr-namespace:AbioticEditor.App.Controls"
+             xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
              x:Class="AbioticEditor.App.Views.Player.PlayerAchievementsTab"
              x:DataType="vm:MainViewModel">
 
@@ -13,21 +14,21 @@
             IsVisible="{Binding PlayerEditor.IsAchievementsTab, FallbackValue=False}">
         <VerticalStackLayout Spacing="12">
             <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="14">
-                <Label Grid.Column="0" Text="STEAM ACHIEVEMENTS" Style="{StaticResource AfH2}" VerticalOptions="Center" />
+                <Label Grid.Column="0" Text="{loc:Localize PlayerAchievements_SteamAchievements}" Style="{StaticResource AfH2}" VerticalOptions="Center" />
                 <Label Grid.Column="1" Text="{Binding PlayerEditor.AchievementsVm.Summary}"
                        Style="{StaticResource AfReadout}" FontSize="16" VerticalOptions="Center" />
                 <HorizontalStackLayout Grid.Column="2" Spacing="8" VerticalOptions="Center"
                                        IsVisible="{Binding PlayerEditor.AchievementsVm.IsSignedIn, FallbackValue=False}">
-                    <Label Text="SIGNED IN ·" Style="{StaticResource AfFieldLabel}"
+                    <Label Text="{loc:Localize PlayerAchievements_SignedIn}" Style="{StaticResource AfFieldLabel}"
                            TextColor="{StaticResource AfHazardYellow}" VerticalOptions="Center"
-                           ToolTipProperties.Text="A Steam session cookie is stored (OS-protected) - CHECK STEAM queries as that account." />
-                    <Button Text="SIGN OUT"
+                           ToolTipProperties.Text="{loc:Localize PlayerAchievements_SignedInTooltip}" />
+                    <Button Text="{loc:Localize PlayerAchievements_SignOut}"
                             Style="{StaticResource AfGhostButton}" FontSize="10" Padding="12,5"
-                            ToolTipProperties.Text="Clears the stored Steam session cookie from memory and secure storage."
+                            ToolTipProperties.Text="{loc:Localize PlayerAchievements_SignOutTooltip}"
                             Command="{Binding PlayerEditor.AchievementsVm.SignOutCommand}" />
                 </HorizontalStackLayout>
-                <Button Grid.Column="3" Text="CHECK STEAM"
-                        ToolTipProperties.Text="Verifies against steamcommunity.com (needs a public profile or an in-app sign-in) - adds icons, unlock dates and the authoritative unlock state. The local cache only refreshes while Steam runs."
+                <Button Grid.Column="3" Text="{loc:Localize PlayerAchievements_CheckSteam}"
+                        ToolTipProperties.Text="{loc:Localize PlayerAchievements_CheckSteamTooltip}"
                         Command="{Binding PlayerEditor.AchievementsVm.CheckSteamCommand}" />
             </Grid>
             <BoxView Style="{StaticResource AfHazardStripe}" />
@@ -44,22 +45,22 @@
                     <Label Text="⚠ THIS PROFILE NEEDS A SIGNED-IN STEAM SESSION"
                            Style="{StaticResource AfFieldLabel}"
                            TextColor="{StaticResource AfHazardYellow}" />
-                    <Label Text="The editor checks Steam anonymously, so profiles with non-public Game details come back empty. Sign in to Steam inside the app and CHECK STEAM reuses that session (works for your own account and friends). Alternatively view the page in your browser, or make Game details public so the anonymous check succeeds."
+                    <Label Text="{loc:Localize PlayerAchievements_GatedProfileHelp}"
                            Style="{StaticResource AfMuted}" FontSize="11" LineBreakMode="WordWrap" />
                     <HorizontalStackLayout Spacing="10">
-                        <Button Text="SIGN IN (IN-APP)"
+                        <Button Text="{loc:Localize PlayerAchievements_SignInInApp}"
                                 FontSize="10" Padding="12,5"
                                 BackgroundColor="{StaticResource AfHazardYellow}"
                                 TextColor="{StaticResource AfTextOnAccent}"
-                                ToolTipProperties.Text="Opens Steam's sign-in page in a window inside the editor; the captured session is then used for the achievements check. Your password goes to Steam only."
+                                ToolTipProperties.Text="{loc:Localize PlayerAchievements_SignInInAppTooltip}"
                                 Command="{Binding PlayerEditor.AchievementsVm.SignInInAppCommand}" />
-                        <Button Text="VIEW IN BROWSER"
+                        <Button Text="{loc:Localize PlayerAchievements_ViewInBrowser}"
                                 Style="{StaticResource AfGhostButton}" FontSize="10" Padding="12,5"
-                                ToolTipProperties.Text="Opens the Steam community sign-in in your browser, then redirects to this profile's Abiotic Factor achievements page."
+                                ToolTipProperties.Text="{loc:Localize PlayerAchievements_ViewInBrowserTooltip}"
                                 Command="{Binding PlayerEditor.AchievementsVm.SignInAndViewCommand}" />
-                        <Button Text="PRIVACY SETTINGS"
+                        <Button Text="{loc:Localize PlayerAchievements_PrivacySettings}"
                                 Style="{StaticResource AfGhostButton}" FontSize="10" Padding="12,5"
-                                ToolTipProperties.Text="Opens your Steam privacy settings - set 'Game details' to Public, wait a few minutes, then CHECK STEAM again."
+                                ToolTipProperties.Text="{loc:Localize PlayerAchievements_PrivacySettingsTooltip}"
                                 Command="{Binding PlayerEditor.AchievementsVm.OpenPrivacySettingsCommand}" />
                     </HorizontalStackLayout>
                 </VerticalStackLayout>
@@ -68,17 +69,17 @@
             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
                 <Entry Grid.Column="0"
                        Text="{Binding PlayerEditor.AchievementsVm.SearchText, Mode=TwoWay}"
-                       Placeholder="Search achievements..."
+                       Placeholder="{loc:Localize PlayerAchievements_SearchPlaceholder}"
                        BackgroundColor="{StaticResource AfPanelElevated}"
                        TextColor="{StaticResource AfTextPrimary}" />
                 <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
                     <CheckBox IsChecked="{Binding PlayerEditor.AchievementsVm.ShowSpoilers, Mode=TwoWay}"
                               Color="{StaticResource AfAlertRed}" />
-                    <Label Text="SHOW SPOILERS" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center"
-                           ToolTipProperties.Text="Many of the game's achievements are hidden story spoilers. This mirrors the app-wide Spoiler protection setting (checked = show everything). You can also tap any single CLASSIFIED row to reveal just that one." />
+                    <Label Text="{loc:Localize PlayerAchievements_ShowSpoilers}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center"
+                           ToolTipProperties.Text="{loc:Localize PlayerAchievements_ShowSpoilersTooltip}" />
                 </HorizontalStackLayout>
                 <Picker Grid.Column="2"
-                        Title="Compare with..."
+                        Title="{loc:Localize PlayerAchievements_CompareWith}"
                         WidthRequest="200"
                         ItemsSource="{Binding PlayerEditor.AchievementsVm.CompareCandidates}"
                         SelectedItem="{Binding PlayerEditor.AchievementsVm.SelectedCompare, Mode=TwoWay}"
@@ -93,7 +94,7 @@
                     Padding="0" HeightRequest="600">
                 <CollectionView ItemsSource="{Binding PlayerEditor.AchievementsVm.Visible}">
                     <CollectionView.EmptyView>
-                        <Label Text="No achievement data - try CHECK STEAM." Style="{StaticResource AfMuted}" Padding="16" />
+                        <Label Text="{loc:Localize PlayerAchievements_NoAchievementData}" Style="{StaticResource AfMuted}" Padding="16" />
                     </CollectionView.EmptyView>
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="items:AchievementRowViewModel">
