@@ -340,7 +340,19 @@ public static class PlayerSaveWriter
             var rowHandle = slotProps.FindByPrefix("ItemDataTable_");
             if (rowHandle?.Property is StructProperty rhSp && rhSp.Value is PropertiesStruct rhPs)
             {
+                // Filling a previously-empty slot: repoint the row handle's DataTable at the table
+                // the item catalog is read from (ItemTable_Global). An empty slot defaults to
+                // ItemTable_Pickups, which does NOT contain catalog items, so the game fails to
+                // resolve the row and renders the item blank - the slot reads as occupied (hover
+                // sees RowName) but shows no icon. A slot that already held an item keeps its own
+                // table, so a plain stat edit stays byte-perfect.
+                var currentRow = rhPs.Properties.GetString("RowName");
+                var wasEmpty = string.IsNullOrEmpty(currentRow) || currentRow is "Empty" or "None";
                 SetName(rhPs.Properties, "RowName", newSlot.ItemId);
+                if (wasEmpty)
+                {
+                    SetObjectPath(rhPs.Properties, "DataTable", ItemTableGlobalPath);
+                }
             }
         }
 
@@ -631,6 +643,23 @@ public static class PlayerSaveWriter
         {
             // StrProperty stores null differently than empty string; preserve null.
             p.Value = value is null ? null : (object)new FString(value);
+        }
+    }
+
+    /// <summary>The data table the item catalog is read from. An added item's row handle must
+    /// point here (not the empty-slot default) so the game can resolve and render it.</summary>
+    internal const string ItemTableGlobalPath = "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global";
+
+    /// <summary>
+    /// Sets a <c>DataTableRowHandle</c>'s <c>DataTable</c> object reference (an
+    /// <see cref="ObjectProperty"/> whose path lives in <c>ObjectType</c>). No-op when the
+    /// property is absent or is not an object reference.
+    /// </summary>
+    internal static void SetObjectPath(IList<FPropertyTag> tags, string prefix, string path)
+    {
+        if (tags.FindByPrefix(prefix)?.Property is ObjectProperty op)
+        {
+            op.ObjectType = new FString(path);
         }
     }
 

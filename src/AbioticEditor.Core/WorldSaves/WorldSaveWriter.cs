@@ -887,7 +887,16 @@ public static class WorldSaveWriter
             var rowHandle = slotProps.FindByPrefix("ItemDataTable_");
             if (rowHandle?.Property is StructProperty rhSp && rhSp.Value is PropertiesStruct rhPs)
             {
+                // Same fix as PlayerSaveWriter.ApplySlot: a freshly filled (was-empty) slot must
+                // point its DataTable at ItemTable_Global, or the game can't resolve the item and
+                // renders it blank. An already-populated slot keeps its table (byte-perfect edit).
+                var currentRow = rhPs.Properties.GetString("RowName");
+                var wasEmpty = string.IsNullOrEmpty(currentRow) || currentRow is "Empty" or "None";
                 SetName(rhPs.Properties, "RowName", newSlot.ItemId);
+                if (wasEmpty)
+                {
+                    PlayerSaveWriter.SetObjectPath(rhPs.Properties, "DataTable", PlayerSaveWriter.ItemTableGlobalPath);
+                }
             }
         }
 
