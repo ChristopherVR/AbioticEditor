@@ -147,6 +147,31 @@ public sealed class AbioticApi
     /// <summary><c>abiotic.on(eventName, function (event) { ... })</c>.</summary>
     public void On(string eventName, JsValue handler)
         => _registry.AddEventHandler(eventName, evt => _runtime.Invoke(handler, new JsEventView(evt)));
+
+    /// <summary>
+    /// <c>abiotic.addLocalization("de", { Common_Save: "Speichern", ... })</c> - contribute UI
+    /// translations for a culture. The object's string properties become resource key -> text
+    /// pairs; non-string values are ignored. A pure-data alternative is a "localization" runtime
+    /// plugin that ships resx/json files (no code).
+    /// </summary>
+    public void AddLocalization(string culture, JsValue strings)
+    {
+        if (string.IsNullOrWhiteSpace(culture) || strings is null || !strings.IsObject())
+        {
+            return;
+        }
+
+        var map = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var property in strings.AsObject().GetOwnProperties())
+        {
+            var value = property.Value.Value;
+            if (value is not null && value.IsString())
+            {
+                map[property.Key.ToString()] = value.AsString();
+            }
+        }
+        _registry.AddLocalization(culture, map);
+    }
 }
 
 /// <summary>

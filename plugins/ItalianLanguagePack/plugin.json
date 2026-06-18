@@ -1,0 +1,21 @@
+{
+  // A pure-data localization pack: no code, no DLL, no script. The host reads the files
+  // named below and merges their strings into the UI table. This is the simplest way to
+  // contribute a translation - ship this manifest and a resource file next to it.
+  //
+  // "runtime": "localization" tells the host there is no entry assembly/script to load.
+  // "localizations" maps a culture code to a file (a flat JSON object, or a .resx) in this
+  // folder. A culture the app does not ship (here: Italian) becomes selectable once the pack
+  // is installed; a culture it does ship can be overridden key-by-key.
+  "id": "com.example.italian-language-pack",
+  "name": "Italiano (community language pack)",
+  "version": "1.0.0",
+  "author": "AbioticEditor samples",
+  "description": "Adds an Italian (it) translation of the editor UI, as a zero-code resource pack.",
+  "runtime": "localization",
+  "minHostVersion": "1.0.0",
+  "capabilities": ["localization"],
+  "localizations": {
+    "it": "strings.it.json"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "_comment": "Italian (it) UI strings. Keys match AppResources.resx; non-string values (like this) are ignored. A real pack would translate every key, but a partial pack is fine - any key it omits falls back to the app's built-in English. JSON or .resx are both accepted.",
+
+  "Common_Save": "SALVA",
+  "Common_Revert": "RIPRISTINA",
+  "Common_Cancel": "Annulla",
+  "Common_Close": "CHIUDI",
+  "Common_Ok": "OK",
+
+  "Header_Home": "HOME",
+  "Header_Files": "FILE",
+  "Header_Tools": "STRUMENTI",
+  "Header_OpenFolder": "APRI CARTELLA",
+  "Header_ActiveSaveFolder": "CARTELLA DI SALVATAGGIO ATTIVA",
+
+  "Settings_Title": "IMPOSTAZIONI",
+  "Settings_Theme": "TEMA",
+  "Settings_Language": "LINGUA",
+  "Settings_Diagnostics": "DIAGNOSTICA",
+  "Settings_Plugins": "PLUGIN",
+  "Settings_Spoilers": "SPOILER",
+  "Settings_GameData": "DATI DI GIOCO",
+  "Settings_About": "INFORMAZIONI",
+
+  "Main_Reload": "RICARICA",
+  "Main_Revert": "RIPRISTINA",
+  "Main_Save": "SALVA",
+  "Main_Unsaved": "NON SALVATO"
+}
