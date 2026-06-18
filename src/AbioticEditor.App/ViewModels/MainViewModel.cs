@@ -29,10 +29,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public MainViewModel()
     {
         // Restore the diagnostic-logging switch before anything else runs so early
-        // operations (folder restore, asset mount) land in the log. Default ON so a log is always
-        // available for troubleshooting (one file per day, old files pruned); users can turn it off
-        // in Settings and that choice persists.
-        _diagnosticLoggingEnabled = Preferences.Default.Get(DiagnosticLoggingPreferenceKey, true);
+        // operations (folder restore, asset mount) land in the log. Default OFF (opt-in): users
+        // turn it on in Settings to capture a troubleshooting trace, and that choice persists.
+        // Critical errors are written regardless of this switch (see EditorLog.Error).
+        _diagnosticLoggingEnabled = Preferences.Default.Get(DiagnosticLoggingPreferenceKey, false);
         EditorLog.Enabled = _diagnosticLoggingEnabled;
         if (_diagnosticLoggingEnabled)
         {
@@ -309,10 +309,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    /// <summary>"Logging to &lt;path&gt;" while enabled, "Diagnostic logging off" otherwise.</summary>
+    /// <summary>"Logging to &lt;path&gt;" while enabled; off-state notes errors are still captured.</summary>
     public string LoggingStatusText => _diagnosticLoggingEnabled
         ? $"Logging to {EditorLog.CurrentLogFilePath}"
-        : "Diagnostic logging off";
+        : "Diagnostic logging off (errors still logged)";
 
     /// <summary>
     /// Opens the log folder in the OS file manager (creating it if no log was written
@@ -1944,17 +1944,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private const string LastFolderPreferenceKey = "LastSaveFolder";
 
     /// <summary>
-    /// Restores the previous session's folder on startup. Overridable for testing via
-    /// <c>ABIOTIC_EDITOR_FOLDER</c> (folder to open) and <c>ABIOTIC_EDITOR_AUTOSELECT</c>
-    /// (file-name suffix of a save to select once scanned).
+    /// Applies the testing/automation startup override: when <c>ABIOTIC_EDITOR_FOLDER</c> is
+    /// set, that folder is loaded and (optionally) a save matching <c>ABIOTIC_EDITOR_AUTOSELECT</c>
+    /// is selected. With no override this is a no-op: the app deliberately does NOT auto-open the
+    /// previous session's world. The landing page shows the worlds detected on this machine
+    /// (see <see cref="DiscoverWorldsAsync"/>) and lets the user decide what to open.
     /// </summary>
-    public async Task RestoreLastFolderAsync()
+    public async Task ApplyStartupFolderOverrideAsync()
     {
         var folder = Environment.GetEnvironmentVariable("ABIOTIC_EDITOR_FOLDER");
-        if (string.IsNullOrEmpty(folder))
-        {
-            folder = Preferences.Default.Get(LastFolderPreferenceKey, string.Empty);
-        }
         if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder)) return;
 
         await LoadFolderAsync(folder);

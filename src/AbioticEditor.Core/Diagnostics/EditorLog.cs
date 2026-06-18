@@ -5,6 +5,11 @@ namespace AbioticEditor.Core.Diagnostics;
 /// call appends a line to <c>%LOCALAPPDATA%\AbioticEditor\logs\editor-YYYYMMDD.log</c>.
 /// One file per day, at most <see cref="MaxLogFiles"/> files kept (older ones deleted).
 ///
+/// <para><see cref="Error"/> is the exception: errors are CRITICAL and always written,
+/// even when <see cref="Enabled"/> is false, so a failure is never silent just because a
+/// user left diagnostics off. <see cref="Info"/>/<see cref="Warn"/>/<see cref="UnknownData"/>
+/// stay gated behind <see cref="Enabled"/>.</para>
+///
 /// The logger must never take the app down: all of its own IO errors are swallowed.
 /// Writes are line-buffered (open/append/flush/close per line) so a crash loses at most
 /// the line being written, and the file is always readable while the app runs.
@@ -49,8 +54,10 @@ public static class EditorLog
     public static void Warn(string area, string message, Exception? ex = null)
         => Write("WARN ", area, message, ex);
 
+    /// <summary>Logs a critical failure. Always written, even when <see cref="Enabled"/>
+    /// is false - an error must never be silenced by the diagnostics toggle.</summary>
     public static void Error(string area, string message, Exception? ex = null)
-        => Write("ERROR", area, message, ex);
+        => Write("ERROR", area, message, ex, force: true);
 
     // ---------- unknown-data channel ----------
 
@@ -91,9 +98,10 @@ public static class EditorLog
         }
     }
 
-    private static void Write(string level, string area, string message, Exception? ex)
+    private static void Write(string level, string area, string message, Exception? ex, bool force = false)
     {
-        if (!Enabled) return;
+        // force bypasses the master switch for critical (error) logs only.
+        if (!Enabled && !force) return;
 
         try
         {

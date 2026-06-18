@@ -55,6 +55,29 @@ public class EditorLogTests : IDisposable
     }
 
     [Fact]
+    public void Error_IsWritten_EvenWhenDisabled()
+    {
+        // Diagnostics off (the default), yet a critical error must still land in the log.
+        Assert.False(EditorLog.Enabled);
+        EditorLog.Error("AreaC", "critical failure", new InvalidOperationException("boom"));
+
+        var path = EditorLog.CurrentLogFilePath;
+        Assert.True(File.Exists(path), "A critical error must be logged even with diagnostics off.");
+        var text = File.ReadAllText(path);
+        Assert.Contains("[ERROR] AreaC: critical failure", text);
+        Assert.Contains("boom", text);
+    }
+
+    [Fact]
+    public void InfoAndWarn_StaySilent_WhenDisabled()
+    {
+        // Only Error bypasses the master switch; Info/Warn remain opt-in.
+        EditorLog.Info("AreaA", "info");
+        EditorLog.Warn("AreaB", "warn");
+        Assert.False(Directory.Exists(_tempDir), "Info/Warn must stay gated by the diagnostics switch.");
+    }
+
+    [Fact]
     public void Retention_KeepsAtMostSevenFiles()
     {
         Directory.CreateDirectory(_tempDir);
