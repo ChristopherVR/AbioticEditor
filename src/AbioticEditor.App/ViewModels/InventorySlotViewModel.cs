@@ -234,11 +234,15 @@ public sealed class InventorySlotViewModel : INotifyPropertyChanged
         ? null
         : GameDataServices.ItemUpgrades.SourceOf(_itemId) ?? ChainSourceOf(_itemId);
 
-    // Tier-family STEMS not in DT_ItemUpgrades (the game upgrades them through bespoke
-    // gameplay, e.g. hacking higher-tier keypads). Chains are built from the live
-    // catalog - base id, then "<stem>_t2".."<stem>_t9" while the rows exist - so a game
-    // update adding keypad_hacker_t7 is picked up with no code change.
-    private static readonly string[] SpecialChainStems = { "keypad_hacker" };
+    // Tier-family chains the game upgrades through bespoke gameplay, NOT DT_ItemUpgrades (e.g.
+    // hacking higher-tier keypads). Each chain is a base stem, then "<stem>_t2".."<stem>_t9"
+    // while the rows exist, then any explicit Tail ids that break the _t<n> naming - the keypad
+    // hacker's Tier 6 is the "Gatekey" item, a separate id. Built from the live catalog, so a
+    // game update that adds keypad_hacker_t7 (or another tail) is picked up with no code change.
+    private static readonly (string Stem, string[] Tail)[] SpecialChainDefs =
+    {
+        ("keypad_hacker", new[] { "Gatekey" }),
+    };
 
     private static IReadOnlyList<string[]>? _specialChains;
 
@@ -251,7 +255,7 @@ public sealed class InventorySlotViewModel : INotifyPropertyChanged
             if (catalog is null) return Array.Empty<string[]>(); // don't cache before the catalog loads
 
             var chains = new List<string[]>();
-            foreach (var stem in SpecialChainStems)
+            foreach (var (stem, tail) in SpecialChainDefs)
             {
                 if (catalog.Find(stem) is null) continue;
                 var chain = new List<string> { stem };
@@ -260,6 +264,11 @@ public sealed class InventorySlotViewModel : INotifyPropertyChanged
                     var id = $"{stem}_t{t}";
                     if (catalog.Find(id) is null) break;
                     chain.Add(id);
+                }
+                // Explicit tail tiers that don't follow the _t<n> pattern (Gatekey = keypad Tier 6).
+                foreach (var extra in tail)
+                {
+                    if (catalog.Find(extra) is not null) chain.Add(extra);
                 }
                 if (chain.Count > 1) chains.Add(chain.ToArray());
             }
