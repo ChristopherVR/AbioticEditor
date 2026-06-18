@@ -185,6 +185,29 @@
                             </VerticalStackLayout>
                         </Border>
 
+                        <!-- Game-data banner: shown whenever the installed game couldn't be read,
+                             so the user knows item names/icons/recipes are limited and lists use
+                             built-in fallback data - never silently presented as complete. The
+                             button points the editor at a non-Steam / moved install in place. -->
+                        <Border BackgroundColor="{StaticResource AfPanelElevated}"
+                                Stroke="{StaticResource AfAccentOrangeBrush}"
+                                StrokeThickness="1" StrokeShape="Rectangle" Padding="16,10"
+                                IsVisible="{Binding GameDataMissing}">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                                <VerticalStackLayout Grid.Column="0" Spacing="3">
+                                    <Label Text="{loc:Localize GameData_BannerTitle}"
+                                           Style="{StaticResource AfFieldLabel}"
+                                           TextColor="{StaticResource AfAccentOrange}" />
+                                    <Label Text="{Binding GameDataNotice}"
+                                           Style="{StaticResource AfFieldValue}" FontSize="12"
+                                           LineBreakMode="WordWrap" />
+                                </VerticalStackLayout>
+                                <Button Grid.Column="1" VerticalOptions="Center"
+                                        Text="{loc:Localize GameData_LocateButton}"
+                                        Command="{Binding LocateGameFolderCommand}" />
+                            </Grid>
+                        </Border>
+
                     </VerticalStackLayout>
 
                     <!-- Editor region: bounded viewport. The tabbed player/world editors manage

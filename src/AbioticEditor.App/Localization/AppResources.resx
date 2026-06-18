@@ -533,6 +533,10 @@ Worlds: containers · quest flags · doors · ground items · story progression<
   <data name="WorldStory_WhyMetadata" xml:space="preserve"><value>Why is this on the METADATA file? The game stores world-wide research here (GlobalRecipesUnlocked/Researched): recipes researched once at a bench become available to EVERY player in the world. Per-player recipe knowledge is separate: edit it on a player save's RECIPES tab. Unlocking here updates both the unlocked and researched lists.</value></data>
   <data name="WorldStory_WorldRecipes" xml:space="preserve"><value>WORLD RECIPES</value></data>
 
+  <!-- GameData -->
+  <data name="GameData_BannerTitle" xml:space="preserve"><value>GAME DATA NOT DETECTED</value></data>
+  <data name="GameData_LocateButton" xml:space="preserve"><value>LOCATE GAME FOLDER</value></data>
+
   <!-- WorldTraders -->
   <data name="WorldTraders_Traders" xml:space="preserve"><value>TRADERS</value></data>
   <data name="WorldTraders_TradersIntro" xml:space="preserve"><value>Everyone who barters in the Facility, from the game's own DT_NPC_Traders table plus wiki lore. A trader (and pieces of its stock) only appears once the matching world flag is set; those flags live in WorldSave_Facility.sav. Tap a card to open it in the side panel, where you can see each item with its icon, inspect what it is, and pick exactly which locked items to unlock. Trading itself is barter; no money is involved.</value></data>

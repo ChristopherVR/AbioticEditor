@@ -151,8 +151,13 @@ public static class GameDataServices
 
     private static IReadOnlyList<Core.Codex.TraderInfo>? _traders;
 
-    /// <summary>The trader roster (DT_NPC_Traders + stock); empty without assets.</summary>
-    public static IReadOnlyList<Core.Codex.TraderInfo> Traders => _traders ?? Array.Empty<Core.Codex.TraderInfo>();
+    /// <summary>
+    /// The trader roster (DT_NPC_Traders + stock). Falls back to the built-in
+    /// <see cref="Core.Codex.TraderCatalog.Fallback"/> snapshot when the game isn't installed,
+    /// so traders and their unlock flags are always available (live data, with portraits,
+    /// supersedes it when the game is present).
+    /// </summary>
+    public static IReadOnlyList<Core.Codex.TraderInfo> Traders => _traders ?? Core.Codex.TraderCatalog.Fallback;
 
     private static ILookup<string, RecipeInfo>? _craftedBy;
     private static ILookup<string, RecipeInfo>? _usedIn;

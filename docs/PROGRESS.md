@@ -32,6 +32,27 @@ host-UI bridge + Vite sample).
 - Tests: `AfInstallLocatorTests` (9) cover the three accepted layouts, blank/garbage rejection,
   and override precedence/fall-through. Core + App (net10.0-windows) build clean; NOT
   screenshot-verified.
+- Static trader fallback (so the editor never NEEDS the game for trader info): `TraderCatalog`
+  is now `partial`; `TraderCatalogFallback.cs` ships a generated snapshot of DT_NPC_Traders +
+  DT_NPC_TraderItems (8 traders + Fili, exact ids + gating flags, no pak portraits).
+  `TraderCatalog.LoadFrom` returns `Fallback` when paks/mappings are absent or the parse fails
+  (was `Array.Empty`); `GameDataServices.Traders => _traders ?? TraderCatalog.Fallback`. The
+  TRADERS tab now always populates; the former "no data" panel became an
+  `IsTraderDataFromSnapshot` info note (`WorldTraders_Snapshot*`, en/de/es/fr) saying the trades +
+  unlock flags are accurate but item names/icons need the game. Regenerate the snapshot after a
+  game patch with `AbioticEditor.Probes TraderFallbackProbe.GenerateFallback` (writes
+  `%TEMP%/abiotic-editor-schema/TraderCatalogFallback.cs`). Tests: `TraderCatalogFallbackTests` (4).
+- Unified game-data clarity (never silently present fallback/empty data as complete): shared
+  `Services/GameDataPrompt.PickAndSaveFolderAsync` (pick -> `ResolvePaksDirectory` validate ->
+  persist) reused by the new surfaces. `MainViewModel` gains `GameDataMissing`, `GameDataNotice`
+  (= `GameDataServices.StatusMessage`) and `LocateGameFolderCommand` (pick -> `ReloadGameDataAsync`
+  -> alert); `RaiseGameDataStatusChanged` now also raises those. A global banner in `MainPage.xaml`
+  (header banner stack, orange) shows whenever `GameDataMissing` with the differentiated reason +
+  a LOCATE GAME FOLDER button (`GameData_BannerTitle`/`GameData_LocateButton`, en/de/es/fr).
+  First-run one-time prompt in `MainPage.StartupAsync.MaybePromptForGameDataAsync` (Preference
+  `gamedata_prompt_seen`, sequenced after the language chooser) offers to locate the folder. Recipe/
+  Codex empty states already surface `StatusMessage`; Settings GAME DATA card already routes through
+  `_vm.ReloadGameDataAsync` (left as-is). App builds clean; localization parity green.
 
 ## Round-34: world-state feature maps moved from the Settings modal into world-editor tabs (2026-06-14)
 - The world-state maps (power sockets, resource nodes, NPC spawns, triggers, elevators, buttons,

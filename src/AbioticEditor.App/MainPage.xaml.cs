@@ -86,10 +86,46 @@ public partial class MainPage : ContentPage
         await _vm.DiscoverWorldsAsync();
 
         // First run: no language chosen yet (the app is already showing the OS default) - let the
-        // user confirm or change it.
+        // user confirm or change it. Otherwise, if the game install wasn't found, offer to locate
+        // it once (the in-editor banner remains as the persistent fix). The two are sequenced so we
+        // never stack the language modal over the in-page game-data dialog.
         if (!Services.LocalizationService.HasChosenLanguage)
         {
             await Navigation.PushModalAsync(new LanguagePage());
+        }
+        else
+        {
+            await MaybePromptForGameDataAsync();
+        }
+    }
+
+    private const string GameDataPromptSeenKey = "gamedata_prompt_seen";
+
+    /// <summary>
+    /// One-time, non-blocking nudge when the game install wasn't detected at startup: explains
+    /// what's limited and offers to locate the folder in place. Shown at most once (a Preference
+    /// records it); the persistent in-editor banner is the standing fix after that.
+    /// </summary>
+    private async Task MaybePromptForGameDataAsync()
+    {
+        if (Services.GameDataServices.IsGameDataLoaded) return;
+        if (Preferences.Default.Get(GameDataPromptSeenKey, false)) return;
+        Preferences.Default.Set(GameDataPromptSeenKey, true);
+
+        var choice = await DialogViewModel.Current.ShowAsync(
+            "Game data not detected",
+            Services.GameDataServices.StatusMessage,
+            ("Not now", DialogTone.Neutral),
+            ("Locate game folder", DialogTone.Primary));
+        if (choice != 1) return;
+
+        if (await Services.GameDataPrompt.PickAndSaveFolderAsync())
+        {
+            await _vm.ReloadGameDataAsync();
+            await DialogViewModel.Current.AlertAsync("Game data",
+                Services.GameDataServices.IsGameDataLoaded
+                    ? "Game data loaded."
+                    : Services.GameDataServices.StatusMessage);
         }
     }
 

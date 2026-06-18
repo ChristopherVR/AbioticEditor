@@ -22,11 +22,17 @@ public sealed record TraderInfo(
 /// Loads the trader roster and their barter stock. Trading in AF is barter-only:
 /// "Sells" are the items a trader offers, "Accepts" what they take in exchange.
 /// </summary>
-public static class TraderCatalog
+public static partial class TraderCatalog
 {
+    /// <summary>
+    /// Loads the trader roster from the game's data tables, falling back to the built-in
+    /// <see cref="Fallback"/> snapshot when the game isn't installed or the tables can't be
+    /// read - so the editor always shows traders and their unlock flags. Live data supersedes
+    /// the snapshot (and adds pak-only portraits) whenever the game is available.
+    /// </summary>
     public static IReadOnlyList<TraderInfo> LoadFrom(GameAssetProvider provider)
     {
-        if (!provider.HasMappings) return Array.Empty<TraderInfo>();
+        if (!provider.HasMappings) return Fallback;
         try
         {
             var stock = LoadStock(provider);
@@ -71,11 +77,11 @@ public static class TraderCatalog
                     result.Add(new TraderInfo(id, image, flags, sells, accepts));
                 }
             }
-            return result;
+            return result.Count > 0 ? result : Fallback;
         }
         catch
         {
-            return Array.Empty<TraderInfo>();
+            return Fallback;
         }
     }
 

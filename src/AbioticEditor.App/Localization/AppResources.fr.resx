@@ -481,11 +481,15 @@ Mondes : conteneurs · indicateurs de quête · portes · objets au sol · progr
   <data name="WorldStory_WhyMetadata" xml:space="preserve"><value>Pourquoi est-ce sur le fichier MÉTADONNÉES ? Le jeu y stocke la recherche à l'échelle du monde (GlobalRecipesUnlocked/Researched) : les recettes recherchées une fois à un établi deviennent disponibles pour TOUS les joueurs du monde. La connaissance des recettes propre à chaque joueur est distincte : modifiez-la dans l'onglet RECETTES d'une sauvegarde de joueur. Débloquer ici met à jour à la fois les listes débloquées et recherchées.</value></data>
   <data name="WorldStory_WorldRecipes" xml:space="preserve"><value>RECETTES DU MONDE</value></data>
 
+  <!-- GameData -->
+  <data name="GameData_BannerTitle" xml:space="preserve"><value>DONNÉES DU JEU NON DÉTECTÉES</value></data>
+  <data name="GameData_LocateButton" xml:space="preserve"><value>LOCALISER LE DOSSIER DU JEU</value></data>
+
   <!-- WorldTraders -->
   <data name="WorldTraders_Traders" xml:space="preserve"><value>MARCHANDS</value></data>
   <data name="WorldTraders_TradersIntro" xml:space="preserve"><value>Tous ceux qui font du troc dans le Facility, depuis la table DT_NPC_Traders du jeu plus le lore du wiki. Un marchand (et des morceaux de son stock) n'apparaît qu'une fois l'indicateur de monde correspondant défini ; ces indicateurs vivent dans WorldSave_Facility.sav. Touchez une carte pour l'ouvrir dans le panneau latéral, où vous pouvez voir chaque objet avec son icône, inspecter ce que c'est, et choisir exactement quels objets verrouillés débloquer. Le commerce lui-même est du troc ; aucun argent n'est impliqué.</value></data>
-  <data name="WorldTraders_NoDataTitle" xml:space="preserve"><value>Données du jeu non chargées</value></data>
-  <data name="WorldTraders_NoDataBody" xml:space="preserve"><value>La liste des marchands, et les indicateurs qui débloquent chaque échange (par exemple le "Engrenages contre Murkweed" du Dr Carson), sont lus depuis votre copie installée du jeu, pas depuis la sauvegarde. L'éditeur n'a pas pu trouver vos données de jeu, cette liste est donc vide - ce n'est pas dû aux mods. Indiquez votre installation à l'éditeur dans Paramètres &gt; Données du jeu (« Localiser le dossier du jeu »), puis rouvrez cette sauvegarde. La détection automatique ne trouve que les installations Steam ; Game Pass, Epic ou les bibliothèques déplacées doivent être définis manuellement.</value></data>
+  <data name="WorldTraders_SnapshotTitle" xml:space="preserve"><value>Données de marchands intégrées</value></data>
+  <data name="WorldTraders_SnapshotBody" xml:space="preserve"><value>Le jeu n'est pas chargé, ceci affiche donc l'instantané de marchands intégré à l'éditeur. Les échanges et les indicateurs de monde qui les débloquent (par exemple l'équipement du Dr Carson) sont exacts et modifiables ici, mais les noms et icônes d'objets nécessitent le jeu installé. Pour le charger, utilisez Paramètres &gt; Données du jeu (« Localiser le dossier du jeu ») ; la détection automatique ne trouve que les installations Steam, donc Game Pass, Epic ou les bibliothèques déplacées doivent être définis manuellement.</value></data>
 
   <!-- WorldVehicles -->
   <data name="WorldVehicles_Area" xml:space="preserve"><value>ZONE</value></data>

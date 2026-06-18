@@ -481,11 +481,15 @@ Welten: Behälter · Quest-Flags · Türen · Bodengegenstände · Story-Fortsch
   <data name="WorldStory_WhyMetadata" xml:space="preserve"><value>Warum ist das in der METADATA-Datei? Das Spiel speichert hier die weltweite Forschung (GlobalRecipesUnlocked/Researched): Rezepte, die einmal an einer Werkbank erforscht wurden, werden für JEDEN Spieler in der Welt verfügbar. Das rezeptbezogene Wissen pro Spieler ist getrennt: Bearbeiten Sie es im RECIPES-Tab eines Spieler-Spielstands. Das Freischalten hier aktualisiert sowohl die freigeschalteten als auch die erforschten Listen.</value></data>
   <data name="WorldStory_WorldRecipes" xml:space="preserve"><value>WELT-REZEPTE</value></data>
 
+  <!-- GameData -->
+  <data name="GameData_BannerTitle" xml:space="preserve"><value>SPIELDATEN NICHT ERKANNT</value></data>
+  <data name="GameData_LocateButton" xml:space="preserve"><value>SPIELORDNER SUCHEN</value></data>
+
   <!-- WorldTraders -->
   <data name="WorldTraders_Traders" xml:space="preserve"><value>HÄNDLER</value></data>
   <data name="WorldTraders_TradersIntro" xml:space="preserve"><value>Alle, die in der Facility tauschen, aus der spieleigenen Tabelle DT_NPC_Traders plus Wiki-Hintergrundwissen. Ein Händler (und Teile seines Bestands) erscheint erst, sobald das passende Welt-Flag gesetzt ist; diese Flags liegen in WorldSave_Facility.sav. Tippen Sie eine Karte an, um sie im Seitenpanel zu öffnen, wo Sie jeden Gegenstand mit seinem Symbol sehen, prüfen können, was er ist, und genau auswählen können, welche gesperrten Gegenstände freigeschaltet werden sollen. Der Handel selbst ist Tauschhandel; es ist kein Geld beteiligt.</value></data>
-  <data name="WorldTraders_NoDataTitle" xml:space="preserve"><value>Spieldaten nicht geladen</value></data>
-  <data name="WorldTraders_NoDataBody" xml:space="preserve"><value>Die Händlerliste und die Flags, die jeden Handel freischalten (zum Beispiel Dr. Carsons "Zahnräder gegen Trübkraut"), werden aus Ihrer installierten Spielkopie gelesen, nicht aus dem Spielstand. Der Editor konnte Ihre Spieldaten nicht finden, daher ist diese Liste leer - das liegt nicht an Mods. Verweisen Sie den Editor unter Einstellungen &gt; Spieldaten ("Spielordner suchen") auf Ihre Installation und öffnen Sie diesen Spielstand erneut. Die automatische Erkennung findet nur Steam-Installationen; Game Pass, Epic oder verschobene Bibliotheken müssen manuell festgelegt werden.</value></data>
+  <data name="WorldTraders_SnapshotTitle" xml:space="preserve"><value>Integrierte Händlerdaten</value></data>
+  <data name="WorldTraders_SnapshotBody" xml:space="preserve"><value>Das Spiel ist nicht geladen, daher wird hier der integrierte Händler-Schnappschuss des Editors angezeigt. Die Handel und die Welt-Flags, die sie freischalten (zum Beispiel Dr. Carsons Ausrüstung), sind hier korrekt und bearbeitbar, aber Gegenstandsnamen und Symbole benötigen das installierte Spiel. Zum Laden verwenden Sie Einstellungen &gt; Spieldaten ("Spielordner suchen"); die automatische Erkennung findet nur Steam-Installationen, daher müssen Game Pass, Epic oder verschobene Bibliotheken manuell festgelegt werden.</value></data>
 
   <!-- WorldVehicles -->
   <data name="WorldVehicles_Area" xml:space="preserve"><value>BEREICH</value></data>

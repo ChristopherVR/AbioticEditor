@@ -1969,10 +1969,50 @@ public sealed class MainViewModel : INotifyPropertyChanged
         ? LocalizationResourceManager.Instance["PlayerRecipes_NoRecipesMatch"]
         : GameDataServices.StatusMessage;
 
+    /// <summary>
+    /// True when game data isn't loaded, so catalogs are empty or running on the built-in
+    /// fallbacks (item ids without names/icons, the trader snapshot, etc.). Drives the global
+    /// "game data not detected" banner so the editor never silently presents fallback data as if
+    /// it were complete.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static",
+        Justification = "Bound from XAML; bindings need an instance member.")]
+    public bool GameDataMissing => !GameDataServices.IsGameDataLoaded;
+
+    /// <summary>
+    /// The reason game data is unavailable and how to fix it (install not found vs Mappings.usmap
+    /// missing vs load failed), shown in the banner body. Reuses the same differentiated text as
+    /// the recipe/codex empty states.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static",
+        Justification = "Bound from XAML; bindings need an instance member.")]
+    public string GameDataNotice => GameDataServices.StatusMessage;
+
+    private System.Windows.Input.ICommand? _locateGameFolderCommand;
+
+    /// <summary>
+    /// Pick the game install folder, persist it and reload game data live - the in-place fix
+    /// offered by the banner and the first-run prompt (Settings has the same flow). No-op if the
+    /// picker is dismissed or the folder has no game data.
+    /// </summary>
+    public System.Windows.Input.ICommand LocateGameFolderCommand => _locateGameFolderCommand ??= new RelayCommand(async () =>
+    {
+        if (!await Services.GameDataPrompt.PickAndSaveFolderAsync()) return;
+        await ReloadGameDataAsync();
+        await DialogViewModel.Current.AlertAsync("Game data",
+            GameDataServices.IsGameDataLoaded
+                ? "Game data loaded. Reopen your save to refresh item names, icons and traders."
+                : GameDataServices.StatusMessage);
+    });
+
     /// <summary>Refreshes every binding that depends on the game-data load outcome.</summary>
     private void RaiseGameDataStatusChanged()
     {
-        foreach (var name in new[] { nameof(CodexEmptyMessage), nameof(RecipesEmptyMessage), nameof(HasItemPalette) })
+        foreach (var name in new[]
+                 {
+                     nameof(CodexEmptyMessage), nameof(RecipesEmptyMessage), nameof(HasItemPalette),
+                     nameof(GameDataMissing), nameof(GameDataNotice),
+                 })
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }

@@ -21,19 +21,19 @@
                    Style="{StaticResource AfMuted}" FontSize="11" />
             <BoxView Style="{StaticResource AfDivider}" />
 
-            <!-- Empty state: the roster is asset-only, so a blank list means the game's
-                 pak data could not be loaded. Explain it and point at Settings. -->
+            <!-- Snapshot note: when the game isn't installed the roster comes from the built-in
+                 snapshot. Trades + unlock flags are accurate; item names/icons need the game. -->
             <Border BackgroundColor="{StaticResource AfPanelBackground}"
                     Stroke="{StaticResource AfBorderSubtleBrush}"
                     StrokeThickness="1" StrokeShape="Rectangle"
                     Padding="16,14"
-                    IsVisible="{Binding WorldEditor.HasNoTraderData}">
+                    IsVisible="{Binding WorldEditor.IsTraderDataFromSnapshot}">
                 <VerticalStackLayout Spacing="8">
-                    <Label Text="{loc:Localize WorldTraders_NoDataTitle}"
+                    <Label Text="{loc:Localize WorldTraders_SnapshotTitle}"
                            Style="{StaticResource AfFieldLabel}"
                            TextColor="{StaticResource AfAccentOrange}"
                            CharacterSpacing="2" />
-                    <Label Text="{loc:Localize WorldTraders_NoDataBody}"
+                    <Label Text="{loc:Localize WorldTraders_SnapshotBody}"
                            Style="{StaticResource AfMuted}" FontSize="11"
                            LineBreakMode="WordWrap" />
                 </VerticalStackLayout>
