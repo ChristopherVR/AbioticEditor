@@ -2088,6 +2088,45 @@ public sealed class MainViewModel : INotifyPropertyChanged
     /// </summary>
     public Task ReloadSelectedSaveAsync() => LoadEditorForAsync(_selectedSave);
 
+    private RelayCommand? _reloadSaveCommand;
+
+    /// <summary>
+    /// Bound to the RELOAD button. Re-reads the open save from disk after a confirm
+    /// gate when the editor has unsaved edits. No-op while a load is in flight or when
+    /// no save is selected.
+    /// </summary>
+    public System.Windows.Input.ICommand ReloadSaveCommand =>
+        _reloadSaveCommand ??= new RelayCommand(async () => await ReloadSelectedSaveGuardedAsync());
+
+    /// <summary>
+    /// RELOAD entry point: discard the in-memory parse and re-read the open save from
+    /// disk. Unlike REVERT (reset staged edits back to the parsed baseline) this picks up
+    /// changes the game wrote since the file was opened. Confirms first only when the
+    /// editor is dirty, since reloading throws those staged edits away.
+    /// </summary>
+    public async Task ReloadSelectedSaveGuardedAsync()
+    {
+        if (_selectedSave is null || IsLoadingEditor) return;
+
+        var dirtyName =
+            PlayerEditor?.IsDirty == true ? Path.GetFileName(PlayerEditor.FilePath)
+            : WorldEditor?.IsDirty == true ? Path.GetFileName(WorldEditor.FilePath)
+            : null;
+
+        if (dirtyName is not null)
+        {
+            var confirmed = await DialogViewModel.Current.ConfirmAsync(
+                $"Reload {dirtyName}?",
+                "Reloading re-reads the save from disk and discards the staged edits you " +
+                "haven't written yet. This cannot be undone.",
+                "DISCARD AND RELOAD", "Cancel", DialogTone.Danger);
+            if (!confirmed) return;
+            EditorLog.Info("App", $"User discarded staged changes to reload {dirtyName} from disk.");
+        }
+
+        await ReloadSelectedSaveAsync();
+    }
+
     private async Task LoadEditorForAsync(SaveFileSummary? summary)
     {
         // Rapidly switching saves can leave an older (slower) load completing after a

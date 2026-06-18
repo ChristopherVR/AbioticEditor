@@ -93,6 +93,10 @@
                                     <Label Text="UNSAVED" Style="{StaticResource AfFieldLabel}"
                                            TextColor="{StaticResource AfHazardYellow}" VerticalOptions="Center" />
                                 </HorizontalStackLayout>
+                                <Button Text="RELOAD"
+                                        BackgroundColor="{StaticResource AfPanelElevated}"
+                                        TextColor="{StaticResource AfTextPrimary}"
+                                        Command="{Binding ReloadSaveCommand}" />
                                 <Button Text="REVERT"
                                         BackgroundColor="{StaticResource AfPanelElevated}"
                                         TextColor="{StaticResource AfTextPrimary}"
@@ -111,6 +115,10 @@
                                     <Label Text="UNSAVED" Style="{StaticResource AfFieldLabel}"
                                            TextColor="{StaticResource AfHazardYellow}" VerticalOptions="Center" />
                                 </HorizontalStackLayout>
+                                <Button Text="RELOAD"
+                                        BackgroundColor="{StaticResource AfPanelElevated}"
+                                        TextColor="{StaticResource AfTextPrimary}"
+                                        Command="{Binding ReloadSaveCommand}" />
                                 <Button Text="REVERT"
                                         BackgroundColor="{StaticResource AfPanelElevated}"
                                         TextColor="{StaticResource AfTextPrimary}"
