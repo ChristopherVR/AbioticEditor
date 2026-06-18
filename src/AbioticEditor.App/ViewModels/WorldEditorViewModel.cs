@@ -650,13 +650,17 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
 
     public ICommand DeleteVisibleDroppedCommand => _deleteVisibleDroppedCommand ??= new RelayCommand(() =>
     {
-        foreach (var d in VisibleDroppedItems.ToList()) d.IsDeleted = true;
+        var targets = VisibleDroppedItems.Where(d => !d.IsDeleted).ToList();
+        foreach (var d in targets) d.IsDeleted = true;
+        Core.Diagnostics.EditorLog.Info("Edit", $"Dropped items marked for deletion: {targets.Count} in {FileName}");
     });
     private RelayCommand? _deleteVisibleDroppedCommand;
 
     public ICommand RestoreDroppedCommand => _restoreDroppedCommand ??= new RelayCommand(() =>
     {
+        var restored = DroppedItems.Count(d => d.IsDeleted);
         foreach (var d in DroppedItems) d.IsDeleted = false;
+        Core.Diagnostics.EditorLog.Info("Edit", $"Dropped items restored: {restored} in {FileName}");
     });
     private RelayCommand? _restoreDroppedCommand;
 
@@ -859,6 +863,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         {
             return false;
         }
+        Core.Diagnostics.EditorLog.Info("World", $"Open container by id: {match.DisplayName ?? match.Id} (id {match.Id})");
         HideEmpty = false;
         Filter = id;
         SelectedContainer = match;
@@ -1032,6 +1037,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     public ICommand OpenContainerCommand => _openContainerCommand ??= new RelayCommand<WorldContainerViewModel>(c =>
     {
         if (c is null) return;
+        Core.Diagnostics.EditorLog.Info("World", $"Open container: {c.DisplayName ?? c.Id} (id {c.Id})");
         HideEmpty = false;
         SelectedContainer = c;
         ActiveTab = WorldTab.Containers;
@@ -1167,6 +1173,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         var f = _newFlagText.Trim();
         if (string.IsNullOrEmpty(f) || Flags.Contains(f, StringComparer.Ordinal)) return;
         Flags.Add(f);
+        Core.Diagnostics.EditorLog.Info("Edit", $"World flag ADDED: {f}");
         NewFlagText = string.Empty;
     }
 
@@ -1373,6 +1380,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     {
         if (await Services.SpoilerPrompt.RevealAsync("This quest flag", flag.SpoilerKey))
         {
+            Core.Diagnostics.EditorLog.Info("Reveal", $"Concealed quest flag revealed: {flag.RawName}");
             ApplyFlagFilter();
         }
     }

@@ -704,6 +704,7 @@ public sealed class CodexViewModel : INotifyPropertyChanged
 
     private void MarkAllRead()
     {
+        var before = CurrentItems.Count(i => i.IsKnown);
         _suppressNotifications = true;
         try
         {
@@ -713,6 +714,7 @@ public sealed class CodexViewModel : INotifyPropertyChanged
         {
             _suppressNotifications = false;
         }
+        Core.Diagnostics.EditorLog.Info("Edit", $"Codex mark all read ({_section}): {before} -> {CurrentItems.Count(i => i.IsKnown)}");
         OnItemToggled();
         ApplyFilter();
     }

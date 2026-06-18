@@ -40,7 +40,11 @@ public sealed class WorldVehicleViewModel : INotifyPropertyChanged
         _qx = source.QuatX; _qy = source.QuatY; _qz = source.QuatZ; _qw = source.QuatW;
 
         ResetToSpawnCommand = new RelayCommand(ResetToSpawn, () => CanResetToSpawn);
-        OpenInventoryCommand = new RelayCommand(() => _openInventory(_original.Id), () => HasInventory);
+        OpenInventoryCommand = new RelayCommand(() =>
+        {
+            Core.Diagnostics.EditorLog.Info("Vehicle", $"Open vehicle inventory: '{DisplayName}' (id {_original.Id})");
+            _openInventory(_original.Id);
+        }, () => HasInventory);
     }
 
     public string Id => _original.Id;
@@ -72,13 +76,13 @@ public sealed class WorldVehicleViewModel : INotifyPropertyChanged
     public bool Driveable
     {
         get => _driveable;
-        set { if (_driveable != value) { _driveable = value; Notify(nameof(Driveable), nameof(StateText), nameof(IsDirty)); _onChanged(); } }
+        set { if (_driveable != value) { _driveable = value; Core.Diagnostics.EditorLog.Info("Vehicle", $"Driveable: {value} ('{DisplayName}', id {Id})"); Notify(nameof(Driveable), nameof(StateText), nameof(IsDirty)); _onChanged(); } }
     }
 
     public bool Destroyed
     {
         get => _destroyed;
-        set { if (_destroyed != value) { _destroyed = value; Notify(nameof(Destroyed), nameof(StateText), nameof(IsDirty)); _onChanged(); } }
+        set { if (_destroyed != value) { _destroyed = value; Core.Diagnostics.EditorLog.Info("Vehicle", $"Destroyed: {value} ('{DisplayName}', id {Id})"); Notify(nameof(Destroyed), nameof(StateText), nameof(IsDirty)); _onChanged(); } }
     }
 
     public string StateText => _destroyed ? "WRECKED" : _driveable ? "DRIVABLE" : "LOCKED";
@@ -89,6 +93,11 @@ public sealed class WorldVehicleViewModel : INotifyPropertyChanged
 
     private void OnMoved()
     {
+        // Guarded: position entries can write back per keystroke, so only build the string when on.
+        if (Core.Diagnostics.EditorLog.Enabled)
+        {
+            Core.Diagnostics.EditorLog.Info("Vehicle", $"Position: ({_x:F0}, {_y:F0}, {_z:F0}) ('{DisplayName}', id {Id})");
+        }
         Notify(nameof(X), nameof(Y), nameof(Z), nameof(LocationText), nameof(AtSpawn), nameof(SpawnStatusText), nameof(IsDirty));
         _onChanged();
     }
@@ -187,6 +196,7 @@ public sealed class WorldVehicleViewModel : INotifyPropertyChanged
     private void ResetToSpawn()
     {
         if (_spawn is not { } s) return;
+        Core.Diagnostics.EditorLog.Info("Vehicle", $"Reset to spawn: ({s.X:F0}, {s.Y:F0}, {s.Z:F0}) ('{DisplayName}', id {Id})");
         _x = s.X; _y = s.Y; _z = s.Z;
         _qx = s.QuatX; _qy = s.QuatY; _qz = s.QuatZ; _qw = s.QuatW;
         Notify(nameof(X), nameof(Y), nameof(Z), nameof(LocationText), nameof(AtSpawn), nameof(SpawnStatusText), nameof(IsDirty));

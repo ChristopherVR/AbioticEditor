@@ -477,6 +477,7 @@ public sealed class RecipeListViewModel : INotifyPropertyChanged
 
     private void UnlockAll()
     {
+        var before = _rows.Count(r => r.IsUnlocked);
         _suppressToggleNotifications = true;
         try
         {
@@ -486,6 +487,7 @@ public sealed class RecipeListViewModel : INotifyPropertyChanged
         {
             _suppressToggleNotifications = false;
         }
+        Core.Diagnostics.EditorLog.Info("Edit", $"Recipes unlock all: {before} -> {_rows.Count(r => r.IsUnlocked)} of {_rows.Count}");
         NotifyCounts();
         _onChanged();
         ApplyFilter();

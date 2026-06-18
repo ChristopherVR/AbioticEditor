@@ -344,6 +344,7 @@ public sealed class SettingsPage : ContentPage
                 await Views.ViewUtils.AlertAsync(this, "Plugins", "Could not update the plugin manifest (read-only folder?).");
                 return;
             }
+            EditorLog.Info("Plugins", $"Plugin {(e.Value ? "enabled" : "disabled")}: {d.Manifest.Name}");
             await Views.ViewUtils.AlertAsync(this, "Plugins",
                 $"{d.Manifest.Name} {(e.Value ? "enabled" : "disabled")}. Restart to apply.");
         };

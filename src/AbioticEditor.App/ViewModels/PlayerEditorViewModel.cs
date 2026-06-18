@@ -133,12 +133,14 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
         ImportJsonCommand = new RelayCommand(async () => await ImportJsonAsync(), () => !IsSaving && JsonFileExists);
         MaxAllSkillsCommand = new RelayCommand(() =>
         {
+            Core.Diagnostics.EditorLog.Info("Edit", $"Max all skills ({Skills.Count} skill(s) -> level {SkillCatalog.MaxLevel})");
             foreach (var s in Skills) s.Level = SkillCatalog.MaxLevel;
         });
         RemoveTraitCommand = new RelayCommand<TraitItemViewModel>(RemoveTrait);
         AddTraitCommand = new RelayCommand(AddSelectedTrait, () => SelectedNewTrait is not null);
         HealAllCommand = new RelayCommand(() =>
         {
+            Core.Diagnostics.EditorLog.Info("Edit", "Heal all limbs -> 100");
             Head = Torso = LeftArm = RightArm = LeftLeg = RightLeg = 100;
         });
 
@@ -207,11 +209,20 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
 
     private void DiscoverAll(List<string> target, IReadOnlyList<string> all, string countProperty)
     {
+        var before = target.Count;
         var have = new HashSet<string>(target, StringComparer.OrdinalIgnoreCase);
         foreach (var id in all)
         {
             if (have.Add(id)) target.Add(id);
         }
+        var label = countProperty switch
+        {
+            nameof(ItemsPickedUpText) => "items discovered",
+            nameof(CraftedItemsText) => "crafted items discovered",
+            nameof(MapsText) => "maps unlocked",
+            _ => countProperty,
+        };
+        Core.Diagnostics.EditorLog.Info("Edit", $"Discover all ({label}): {before} -> {target.Count}");
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(countProperty));
         Refresh();
     }
@@ -376,6 +387,7 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
         if (_selectedNewTrait is null) return;
         if (Traits.Any(t => t.Id == _selectedNewTrait.Id)) return;
         Traits.Add(new TraitItemViewModel(_selectedNewTrait.Id));
+        Core.Diagnostics.EditorLog.Info("Edit", $"Trait ADDED: {_selectedNewTrait.Id}");
         Refresh();
     }
 
@@ -436,6 +448,7 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
     {
         if (row is null || Traits.Any(t => t.Id == row.Id)) return;
         Traits.Add(new TraitItemViewModel(row.Id));
+        Core.Diagnostics.EditorLog.Info("Edit", $"Trait ADDED: {row.Id}");
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(VisibleTraitOptions)));
         Refresh();
     });
@@ -444,7 +457,11 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
     private void RemoveTrait(TraitItemViewModel? trait)
     {
         if (trait is null) return;
-        if (Traits.Remove(trait)) Refresh();
+        if (Traits.Remove(trait))
+        {
+            Core.Diagnostics.EditorLog.Info("Edit", $"Trait REMOVED: {trait.Id}");
+            Refresh();
+        }
     }
 
     private bool AreTraitsDirty()
@@ -536,6 +553,7 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
             RawStatus = "Exporting JSON…";
             await Task.Run(() => SaveJsonBridge.ExportJsonToFile(_data.Raw, JsonPath));
             RawStatus = $"Exported {new FileInfo(JsonPath).Length / 1024.0 / 1024.0:F1} MB → {Path.GetFileName(JsonPath)}";
+            Core.Diagnostics.EditorLog.Info("Json", $"Exported player JSON: {Path.GetFileName(JsonPath)}");
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(JsonFileExists)));
             (ImportJsonCommand as RelayCommand)?.RaiseCanExecuteChanged();
 
@@ -544,6 +562,7 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
+            Core.Diagnostics.EditorLog.Error("Json", $"Export player JSON failed: {Path.GetFileName(JsonPath)}", ex);
             RawStatus = $"Export failed: {ex.Message}";
         }
         finally
@@ -560,10 +579,12 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
             IsSaving = true;
             RawStatus = "Importing JSON…";
             await Task.Run(() => SaveJsonBridge.ImportJsonFromFile(JsonPath, _path));
+            Core.Diagnostics.EditorLog.Info("Json", $"Imported player JSON into {Path.GetFileName(_path)} from {Path.GetFileName(JsonPath)}");
             RawStatus = $"Imported at {DateTime.Now:HH:mm:ss} · reload the file from the sidebar to see the changes.";
         }
         catch (Exception ex)
         {
+            Core.Diagnostics.EditorLog.Error("Json", $"Import player JSON failed: {Path.GetFileName(JsonPath)}", ex);
             RawStatus = $"Import failed (save untouched): {ex.Message}";
         }
         finally

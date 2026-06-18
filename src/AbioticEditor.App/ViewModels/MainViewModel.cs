@@ -323,6 +323,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         try
         {
+            EditorLog.Info("App", $"Open log folder: {EditorLog.LogDirectory}");
             Directory.CreateDirectory(EditorLog.LogDirectory);
 #if WINDOWS
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
@@ -880,6 +881,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
 
         pe.SetRespawnLocation(bed.X, bed.Y, bed.Z + 90);
+        EditorLog.Info("Spawn", $"Set spawn to bed: {bed.Label} ({bed.X:F0}, {bed.Y:F0}, {bed.Z:F0}) for player {playerId}");
 
         // Reassign / take the claim in the world save unless it is already ours.
         if (playerId > 0 && bed.OwnerSteamId != playerId)
@@ -903,6 +905,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
                 if (ok)
                 {
+                    EditorLog.Info("Spawn", $"Bed claim {(claimedByOther ? "reassigned" : "claimed")} for {claimName} (bed {bed.Id}) in WorldSave_Facility.sav");
                     // The cached deployables now lie about the claim; reload them.
                     _benchCache.Remove(facility);
                     await UpdateHomeBedAsync();
@@ -1690,6 +1693,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         if (_activeSlot is null || _selectedBench is null) return;
         _activeSlot.PlayerMadeString = _selectedBench.Id + ",";
+        EditorLog.Info("Teleporter", $"Teleporter synced to {_selectedBench.Label} (bench id {_selectedBench.Id})");
         UpdateTeleporterSyncText();
         StatusMessage = $"Teleporter synced to {_selectedBench.Label} - press SAVE to write it.";
     });
@@ -1699,6 +1703,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         if (_activeSlot is null) return;
         _activeSlot.PlayerMadeString = string.Empty;
+        EditorLog.Info("Teleporter", "Teleporter unsynced.");
         UpdateTeleporterSyncText();
         StatusMessage = "Teleporter unsynced.";
     });
@@ -2084,7 +2089,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
     /// any staged edits. Used after an external write (e.g. a plugin save operation) so the
     /// open editor reflects the new file contents. No-op when no save is selected.
     /// </summary>
-    public Task ReloadSelectedSaveAsync() => LoadEditorForAsync(_selectedSave);
+    public Task ReloadSelectedSaveAsync()
+    {
+        if (_selectedSave is { } s)
+        {
+            EditorLog.Info("App", $"Reloading save from disk: {Path.GetFileName(s.FullPath)}");
+        }
+        return LoadEditorForAsync(_selectedSave);
+    }
 
     private RelayCommand? _reloadSaveCommand;
 

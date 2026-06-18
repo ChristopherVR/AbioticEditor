@@ -35,7 +35,11 @@ public sealed class CarriedPetViewModel : INotifyPropertyChanged
         // Held forms only in the picker (weapon forms are a separate item the player crafts).
         VariantNames = PetItemCatalog.Items.Where(i => !i.IsWeaponForm).Select(i => i.Friendly).Distinct().ToList();
 
-        HealCommand = new RelayCommand(() => Health = _maxHealth > 0 ? _maxHealth : PetItemCatalog.DefaultMaxHealth);
+        HealCommand = new RelayCommand(() =>
+        {
+            Core.Diagnostics.EditorLog.Info("Pet", $"Carried pet healed: '{DisplayName}' ({SlotText})");
+            Health = _maxHealth > 0 ? _maxHealth : PetItemCatalog.DefaultMaxHealth;
+        });
         DeleteCommand = new RelayCommand(() => IsDeleted = !IsDeleted);
     }
 
@@ -57,7 +61,7 @@ public sealed class CarriedPetViewModel : INotifyPropertyChanged
     public string? Name
     {
         get => _name;
-        set { if (_name != value) { _name = value; Notify(nameof(Name), nameof(DisplayName), nameof(IsDirty)); _onChanged(); } }
+        set { if (_name != value) { var old = _name; _name = value; Core.Diagnostics.EditorLog.Info("Pet", $"Carried pet renamed: '{old}' -> '{value}' ({SlotText})"); Notify(nameof(Name), nameof(DisplayName), nameof(IsDirty)); _onChanged(); } }
     }
 
     public string? SelectedVariantName
@@ -68,7 +72,9 @@ public sealed class CarriedPetViewModel : INotifyPropertyChanged
             if (value is null) return;
             var row = PetItemCatalog.ItemRowFor(value);
             if (row is null || string.Equals(row, _itemRow, StringComparison.Ordinal)) return;
+            var old = Variant;
             _itemRow = row;
+            Core.Diagnostics.EditorLog.Info("Pet", $"Carried pet variant: '{old}' -> '{value}' ({SlotText})");
             Notify(nameof(SelectedVariantName), nameof(Variant), nameof(DisplayName), nameof(IsDirty));
             _onChanged();
         }
@@ -83,7 +89,7 @@ public sealed class CarriedPetViewModel : INotifyPropertyChanged
     public int Level
     {
         get => PetCatalog.LevelForXp(_xp);
-        set { var lvl = Math.Clamp(value, 0, PetCatalog.MaxLevel); if (lvl != Level) { Xp = PetCatalog.XpForLevel(lvl); Notify(nameof(Level)); } }
+        set { var lvl = Math.Clamp(value, 0, PetCatalog.MaxLevel); if (lvl != Level) { var old = Level; Core.Diagnostics.EditorLog.Info("Pet", $"Carried pet level: {old} -> {lvl} ('{DisplayName}')"); Xp = PetCatalog.XpForLevel(lvl); Notify(nameof(Level)); } }
     }
 
     public double Health

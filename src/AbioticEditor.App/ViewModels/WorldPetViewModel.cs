@@ -36,6 +36,12 @@ public sealed class PetLimbViewModel : INotifyPropertyChanged
         set
         {
             if (Math.Abs(_value - value) < 0.0001) return;
+            // Guarded: a slider can write back on every tick, so only build the diff string
+            // when diagnostics are on.
+            if (Core.Diagnostics.EditorLog.Enabled)
+            {
+                Core.Diagnostics.EditorLog.Info("Pet", $"Pet limb {Label}: {_value:F0} -> {value:F0}");
+            }
             _value = value;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Value)));
             _onChanged();
@@ -108,7 +114,11 @@ public sealed class WorldPetViewModel : INotifyPropertyChanged
         HealCommand = new RelayCommand(Heal);
         DownCommand = new RelayCommand(Down);
         ReviveCommand = new RelayCommand(Revive);
-        DeleteCommand = new RelayCommand(() => IsDeleted = !IsDeleted);
+        DeleteCommand = new RelayCommand(() =>
+        {
+            IsDeleted = !IsDeleted;
+            Core.Diagnostics.EditorLog.Info("Pet", $"World pet {(IsDeleted ? "marked for deletion" : "deletion cleared")}: '{DisplayName}' (id {Id})");
+        });
     }
 
     public string Id => _original.Id;
@@ -201,7 +211,9 @@ public sealed class WorldPetViewModel : INotifyPropertyChanged
         set
         {
             if (_name == value) return;
+            var old = _name;
             _name = value;
+            Core.Diagnostics.EditorLog.Info("Pet", $"World pet renamed: '{old}' -> '{value}' (id {Id})");
             Notify(nameof(Name), nameof(DisplayName), nameof(IsDirty));
             _onChanged();
         }
@@ -214,6 +226,7 @@ public sealed class WorldPetViewModel : INotifyPropertyChanged
         {
             if (_isDead == value) return;
             _isDead = value;
+            Core.Diagnostics.EditorLog.Info("Pet", $"World pet IsDead: {value} ('{DisplayName}', id {Id})");
             Notify(nameof(IsDead), nameof(StatusText), nameof(IsDirty));
             _onChanged();
         }
@@ -226,7 +239,9 @@ public sealed class WorldPetViewModel : INotifyPropertyChanged
         {
             var v = Math.Max(0, value);
             if (_xp == v) return;
+            var old = _xp;
             _xp = v;
+            Core.Diagnostics.EditorLog.Info("Pet", $"World pet XP: {old} -> {v} ('{DisplayName}', id {Id})");
             Notify(nameof(Xp), nameof(Level), nameof(IsDirty));
             _onChanged();
         }
@@ -240,6 +255,7 @@ public sealed class WorldPetViewModel : INotifyPropertyChanged
         {
             var lvl = Math.Clamp(value, 0, PetCatalog.MaxLevel);
             if (lvl == Level) return;
+            Core.Diagnostics.EditorLog.Info("Pet", $"World pet level: {Level} -> {lvl} ('{DisplayName}', id {Id})");
             Xp = PetCatalog.XpForLevel(lvl);
             Notify(nameof(Level));
         }
@@ -257,8 +273,10 @@ public sealed class WorldPetViewModel : INotifyPropertyChanged
             var match = VariantOptions.FirstOrDefault(v =>
                 string.Equals(v.FriendlyName, value, StringComparison.Ordinal));
             if (match is null || ReferenceEquals(match, _selectedVariant)) return;
+            var old = _selectedVariant?.FriendlyName ?? FriendlyClass;
             _selectedVariant = match;
             _npcClass = match.ClassPath;
+            Core.Diagnostics.EditorLog.Info("Pet", $"World pet variant: '{old}' -> '{match.FriendlyName}' (id {Id})");
             Notify(nameof(SelectedVariantName), nameof(DisplayName), nameof(FamilyName),
                 nameof(FriendlyClass), nameof(Avatar), nameof(IsDirty));
             ReloadImage(); // mutating the creature changes which portrait to show
@@ -347,6 +365,7 @@ public sealed class WorldPetViewModel : INotifyPropertyChanged
 
     private void Heal()
     {
+        Core.Diagnostics.EditorLog.Info("Pet", $"World pet healed: '{DisplayName}' (id {Id})");
         SetUsedLimbs(_fullLimbValue);
         IsDead = false;
         AfterStateChange();
@@ -355,6 +374,7 @@ public sealed class WorldPetViewModel : INotifyPropertyChanged
     private void Down()
     {
         // Down = alive but every used limb at 0 (the game's "critically wounded" state).
+        Core.Diagnostics.EditorLog.Info("Pet", $"World pet downed: '{DisplayName}' (id {Id})");
         SetUsedLimbs(0);
         IsDead = false;
         AfterStateChange();
@@ -364,6 +384,7 @@ public sealed class WorldPetViewModel : INotifyPropertyChanged
     {
         // Bring a dead / downed pet back as Hurt: clear the death flag and restore used limbs to a
         // fraction of full (mirrors the wiki's companion-revive behaviour; at least 1 HP each).
+        Core.Diagnostics.EditorLog.Info("Pet", $"World pet revived: '{DisplayName}' (id {Id})");
         var target = _fullLimbValue > 0 ? Math.Max(1, _fullLimbValue * 0.25) : 1;
         SetUsedLimbs(target);
         IsDead = false;

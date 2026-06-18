@@ -168,6 +168,7 @@ public sealed class BenchUpgradeEditViewModel : INotifyPropertyChanged
             }
             BenchUpgradeCatalog.SetInstalled(_props, _row, value);
             _value = value;
+            Core.Diagnostics.EditorLog.Info("Edit", $"Bench upgrade {(value ? "INSTALLED" : "REMOVED")}: {DisplayName} ({_row})");
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsInstalled)));
             _onChanged();
         }
