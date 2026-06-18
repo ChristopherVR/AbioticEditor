@@ -80,7 +80,9 @@ public partial class MainPage : ContentPage
     {
         _vm.HasStartedUp = true;
         await _vm.LoadLogoAsync();
-        await _vm.RestoreLastFolderAsync();
+        // Honour the testing/automation folder override only; otherwise the app stays on the
+        // landing page and lets the user pick from the worlds discovered below (no auto-open).
+        await _vm.ApplyStartupFolderOverrideAsync();
         await _vm.DiscoverWorldsAsync();
 
         // First run: no language chosen yet (the app is already showing the OS default) - let the

@@ -177,7 +177,9 @@ public sealed class SettingsPage : ContentPage
     /// <summary>
     /// The UPDATES card: a CHECK FOR UPDATES button that queries GitHub releases and, when a
     /// newer version is found, reveals DOWNLOAD &amp; INSTALL (which swaps the files in place
-    /// and restarts the app). Self-contained so it survives the theme-driven rebuild.
+    /// and restarts the app). While a download runs it shows a progress bar and a CANCEL
+    /// button (the download honours the cancellation token). Self-contained so it survives
+    /// the theme-driven rebuild.
     /// </summary>
     private View BuildUpdatesCard()
     {
@@ -190,9 +192,21 @@ public sealed class SettingsPage : ContentPage
 
         var checkButton = ModalChrome.Button("CHECK FOR UPDATES", primary: false);
         var installButton = ModalChrome.Button("DOWNLOAD & INSTALL", primary: true);
+        var cancelButton = ModalChrome.Button("CANCEL", primary: false);
         installButton.IsVisible = false;
+        cancelButton.IsVisible = false;
+
+        // The download fraction made visible. Hidden until a download is in flight.
+        var progressBar = new ProgressBar
+        {
+            Progress = 0,
+            ProgressColor = (Color)Application.Current!.Resources["AfAmber"],
+            IsVisible = false,
+        };
 
         Updater.UpdateCheckResult? available = null;
+        // Set for the duration of a download so CANCEL can abort it; cleared when idle.
+        CancellationTokenSource? downloadCts = null;
 
         checkButton.Clicked += async (_, _) =>
         {
@@ -229,6 +243,14 @@ public sealed class SettingsPage : ContentPage
             }
         };
 
+        cancelButton.Clicked += (_, _) =>
+        {
+            // Ask the in-flight download to stop; the install handler's catch resets the UI.
+            cancelButton.IsEnabled = false;
+            status.Text = "Cancelling download...";
+            downloadCts?.Cancel();
+        };
+
         installButton.Clicked += async (_, _) =>
         {
             if (available is null)
@@ -252,25 +274,50 @@ public sealed class SettingsPage : ContentPage
             checkButton.IsEnabled = false;
             installButton.IsEnabled = false;
             installButton.Text = "DOWNLOADING...";
+            progressBar.Progress = 0;
+            progressBar.IsVisible = true;
+            cancelButton.IsEnabled = true;
+            cancelButton.IsVisible = true;
+            using var cts = new CancellationTokenSource();
+            downloadCts = cts;
             var progress = new Progress<double>(p =>
             {
+                progressBar.Progress = p;
                 status.Text = $"Downloading... {(int)(p * 100)}%";
                 installButton.Text = $"DOWNLOADING {(int)(p * 100)}%";
             });
             try
             {
                 status.Text = "Downloading update...";
-                await Services.UpdateService.DownloadInstallAndRestartAsync(available, progress);
+                await Services.UpdateService.DownloadInstallAndRestartAsync(available, progress, cts.Token);
                 // If we get here the app is about to quit; leave a note in case it lingers.
                 status.Text = "Installing update; the app will restart...";
                 installButton.Text = "INSTALLING...";
+                cancelButton.IsVisible = false;
+            }
+            catch (OperationCanceledException)
+            {
+                status.Text = "Download cancelled.";
+                ResetInstallControls();
             }
             catch (Exception ex)
             {
                 status.Text = $"Update failed: {ex.Message}";
+                ResetInstallControls();
+            }
+            finally
+            {
+                downloadCts = null;
+            }
+
+            void ResetInstallControls()
+            {
                 installButton.Text = "DOWNLOAD & INSTALL";
                 checkButton.IsEnabled = true;
                 installButton.IsEnabled = true;
+                cancelButton.IsVisible = false;
+                cancelButton.IsEnabled = true;
+                progressBar.IsVisible = false;
             }
         };
 
@@ -281,7 +328,8 @@ public sealed class SettingsPage : ContentPage
 
         return ModalChrome.Card("UPDATES", hint,
             status,
-            new HorizontalStackLayout { Spacing = 10, Children = { checkButton, installButton } });
+            progressBar,
+            new HorizontalStackLayout { Spacing = 10, Children = { checkButton, installButton, cancelButton } });
     }
 
     /// <summary>One enable/disable row for an installed plugin (name + state, right-aligned switch).</summary>
