@@ -72,8 +72,9 @@
                            VerticalOptions="Center" />
                 </HorizontalStackLayout>
 
+                <!-- Version tag text is set in code-behind to the build's real version. -->
                 <Label x:Name="VersionLabel"
-                       Text="SAVE EDITOR · v0.5"
+                       Text="SAVE EDITOR"
                        Style="{StaticResource AfStatusText}"
                        VerticalOptions="Center" />
             </HorizontalStackLayout>
