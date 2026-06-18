@@ -157,16 +157,36 @@ public sealed class SettingsPage : ContentPage
         // ----- UPDATES -----
         var updatesCard = BuildUpdatesCard();
 
-        // ----- ABOUT -----
-        var aboutCard = ModalChrome.Card("ABOUT",
-            $"Abiotic Editor · {AppInfo.Current.VersionString} · every save write keeps a .bak next to the file.");
+        // ----- tabs (one tab at a time instead of one long scroll) -----
+        var tabs = new (string Label, View[] Cards)[]
+        {
+            ("GENERAL", new View[] { themeCard, languageCard }),
+            ("EDITOR", new View[] { diagnosticsCard, spoilerCard }),
+            ("GAME DATA", new View[] { gameDataCard }),
+            ("PLUGINS", new View[] { pluginsCard }),
+            ("UPDATES", new View[] { updatesCard }),
+        };
+
+        // Cards for the selected tab are swapped into this container; only the active tab's
+        // cards are mounted, so the sheet shows one short section instead of everything stacked.
+        var tabContent = new VerticalStackLayout { Spacing = 14 };
+        void ShowTab(int index)
+        {
+            tabContent.Children.Clear();
+            foreach (var card in tabs[index].Cards)
+            {
+                tabContent.Children.Add(card);
+            }
+        }
+        var tabBar = ModalChrome.Segmented(tabs.Select(t => t.Label).ToList(), 0, ShowTab);
+        ShowTab(0);
 
         var close = ModalChrome.Button("CLOSE", primary: false);
         close.Clicked += async (_, _) => await CloseAsync();
 
         return ModalChrome.Scaffold(
             "EDITOR CONFIGURATION", "Settings",
-            new View[] { themeCard, languageCard, diagnosticsCard, spoilerCard, gameDataCard, pluginsCard, updatesCard, aboutCard },
+            new View[] { tabBar, tabContent },
             ModalChrome.Footer(close),
             maxWidth: 620);
     }
@@ -182,18 +202,41 @@ public sealed class SettingsPage : ContentPage
     private View BuildGameDataCard()
     {
         var status = new Label { Style = ModalChrome.St("AfMuted"), FontSize = 11 };
-        var locateFolder = new Button { Text = "LOCATE GAME FOLDER" };
+        var folderValue = new Label
+        {
+            Style = ModalChrome.St("AfFieldValue"),
+            FontSize = 12,
+            LineBreakMode = LineBreakMode.MiddleTruncation,
+        };
+        var usmapValue = new Label
+        {
+            Style = ModalChrome.St("AfFieldValue"),
+            FontSize = 12,
+            LineBreakMode = LineBreakMode.MiddleTruncation,
+        };
+        var locateFolder = new Button { Text = "SET GAME FOLDER" };
         var autoDetect = ModalChrome.Button("USE AUTO-DETECT", primary: false);
 
         void Refresh()
         {
             var custom = Services.GameDataServices.CustomInstallPath;
             status.Text = Services.GameDataServices.IsGameDataLoaded
-                ? (custom is null
-                    ? "Game data is loaded (auto-detected Steam install)."
-                    : $"Game data is loaded from your set folder:\n{custom}")
-                : Services.GameDataServices.StatusMessage
-                    + (custom is null ? "" : $"\nSet folder: {custom}");
+                ? (custom is null ? "Loaded from your auto-detected game install." : "Loaded from the folder you set.")
+                : Services.GameDataServices.StatusMessage;
+
+            // The folder actually in use: the one you set, else the auto-detected install.
+            var folder = custom
+                ?? AbioticEditor.Core.Assets.AfInstallLocator.FindInstallRoot()
+                ?? AbioticEditor.Core.Assets.AfInstallLocator.FindPaksDirectory();
+            folderValue.Text = "Game folder:  " + (folder ?? "(not found - set it below)");
+
+            // The data file (.usmap) that lets the editor read the game's tables.
+            var usmap = AbioticEditor.Core.Assets.GameAssetProvider.FindConventionalMappings();
+            usmapValue.Text = "Game data (.usmap):  " + (usmap is null
+                ? "(none found - the game's tables can't be read)"
+                : System.IO.Path.GetFileName(usmap)
+                    + (usmap == AbioticEditor.Core.Assets.GameAssetProvider.UserMappingsPath ? "  [imported]" : "  [bundled]"));
+
             autoDetect.IsVisible = custom is not null;
         }
 
@@ -251,14 +294,16 @@ public sealed class SettingsPage : ContentPage
             await ApplyAndReloadAsync("Auto-detect restored");
         };
 
-        var importUsmap = new Button { Text = "IMPORT USMAP", Command = _vm.ImportMappingsCommand };
+        var importUsmap = new Button { Text = "IMPORT DATA FILE", Command = _vm.ImportMappingsCommand };
 
         return ModalChrome.Card("GAME DATA",
-            "Traders, item icons and recipes are read from your installed copy of the game (not "
-                + "the save). Auto-detection only finds Steam installs - point the editor at a Game "
-                + "Pass / Epic / moved install here. You can also install a newer Mappings.usmap "
-                + "(dumped with FModel or Dumper-7) for future game versions.",
+            "Traders, item icons and recipes come from your installed copy of the game, not from the "
+                + "save. Auto-detection finds Steam installs; for a Game Pass, Epic, or moved install, "
+                + "set your game folder here. If a game update stops the data from loading, import an "
+                + "updated data file (.usmap).",
             status,
+            folderValue,
+            usmapValue,
             new HorizontalStackLayout { Spacing = 10, Children = { locateFolder, autoDetect } },
             new HorizontalStackLayout { Spacing = 10, Children = { importUsmap } });
     }
