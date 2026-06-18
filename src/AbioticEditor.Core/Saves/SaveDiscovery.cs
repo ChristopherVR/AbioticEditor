@@ -16,7 +16,8 @@ public enum DiscoveredWorldSource
 /// <param name="FolderPath">The world folder (contains WorldSave_*.sav and PlayerData/).</param>
 /// <param name="WorldName">The world's folder name, e.g. "Cascade".</param>
 /// <param name="Source">Client saves or a dedicated-server install.</param>
-/// <param name="AccountId">The owning steamid64 folder name for client saves; null for servers.</param>
+/// <param name="AccountId">The owning account folder name for client saves (a steamid64 on
+/// Steam, an opaque platform id on Game Pass / non-Steam copies); null for servers.</param>
 public sealed record DiscoveredWorld(
     string FolderPath,
     string WorldName,
@@ -34,10 +35,14 @@ public sealed record DiscoveredWorld(
 
 /// <summary>
 /// Finds every Abiotic Factor world installed on this machine, so the editor can offer
-/// them on startup instead of making the user hunt for folders. Two layouts exist:
-/// client saves under <c>%LOCALAPPDATA%\AbioticFactor\Saved\SaveGames\&lt;steamid&gt;\Worlds\&lt;World&gt;</c>
+/// them on startup instead of making the user hunt for folders. Three layouts exist:
+/// Steam/standalone client saves under <c>%LOCALAPPDATA%\AbioticFactor\Saved\SaveGames\&lt;account&gt;\Worlds\&lt;World&gt;</c>,
+/// Microsoft Store / Game Pass client saves under the packaged-app redirect
+/// <c>%LOCALAPPDATA%\Packages\&lt;PackageFamilyName&gt;\...\AbioticFactor\Saved\SaveGames\&lt;account&gt;\Worlds</c>,
 /// and dedicated-server installs in Steam libraries, which keep their saves inside the
 /// install folder (a <c>Worlds\&lt;World&gt;</c> tree under any <c>SaveGames</c> directory).
+/// The per-account folder is treated as an opaque id, so non-Steam (non-numeric) owners
+/// list and load like any other.
 /// </summary>
 public static class SaveDiscovery
 {
@@ -49,10 +54,14 @@ public static class SaveDiscovery
     {
         var results = new List<DiscoveredWorld>();
 
-        var clientRoot = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "AbioticFactor", "Saved", "SaveGames");
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+        var clientRoot = Path.Combine(localAppData, "AbioticFactor", "Saved", "SaveGames");
         results.AddRange(DiscoverClientWorlds(clientRoot));
+
+        // Microsoft Store / Game Pass: the packaged app redirects %LOCALAPPDATA% into
+        // %LOCALAPPDATA%\Packages\<PackageFamilyName>\..., so the same client save tree lives there.
+        results.AddRange(DiscoverPackagedClientWorlds(Path.Combine(localAppData, "Packages")));
 
         foreach (var library in AfInstallLocator.FindSteamLibraryRoots())
         {
@@ -94,6 +103,88 @@ public static class SaveDiscovery
             Diagnostics.EditorLog.Warn("Discovery", $"Client world scan under {saveGamesRoot} failed: {ex.Message}");
         }
         return results;
+    }
+
+    /// <summary>
+    /// Client-style worlds for a Microsoft Store / Game Pass install, whose packaged-app storage
+    /// redirects <c>%LOCALAPPDATA%</c> into <c>%LOCALAPPDATA%\Packages\&lt;PackageFamilyName&gt;\...</c>.
+    /// The package family name isn't hard-coded (it can change across store releases), so this
+    /// probes the standard UE-on-Store redirect subpaths under every package folder and, for any
+    /// package whose name mentions Abiotic, searches a little deeper for a moved <c>SaveGames</c>
+    /// tree. Each root found is handed to <see cref="DiscoverClientWorlds"/>. Exposed for tests.
+    /// </summary>
+    public static IReadOnlyList<DiscoveredWorld> DiscoverPackagedClientWorlds(string packagesRoot)
+    {
+        var results = new List<DiscoveredWorld>();
+        foreach (var saveGamesRoot in FindPackagedSaveGamesRoots(packagesRoot))
+        {
+            results.AddRange(DiscoverClientWorlds(saveGamesRoot));
+        }
+        return results;
+    }
+
+    // The UE-on-Microsoft-Store layouts seen in the wild: the engine writes its normal
+    // AbioticFactor\Saved\SaveGames tree, but under the package's redirected local storage.
+    private static readonly string[] PackagedSaveGamesSubPaths =
+    {
+        Path.Combine("LocalCache", "Local", "AbioticFactor", "Saved", "SaveGames"),
+        Path.Combine("LocalCache", "Roaming", "AbioticFactor", "Saved", "SaveGames"),
+        Path.Combine("LocalState", "AbioticFactor", "Saved", "SaveGames"),
+        Path.Combine("AC", "AbioticFactor", "Saved", "SaveGames"),
+    };
+
+    private static IEnumerable<string> FindPackagedSaveGamesRoots(string packagesRoot)
+    {
+        if (!Directory.Exists(packagesRoot)) yield break;
+
+        IEnumerable<string> packageDirs;
+        try
+        {
+            packageDirs = Directory.EnumerateDirectories(packagesRoot);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            yield break;
+        }
+
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var package in packageDirs)
+        {
+            // Cheap, reliable: probe the known redirect subpaths.
+            foreach (var sub in PackagedSaveGamesSubPaths)
+            {
+                var candidate = Path.Combine(package, sub);
+                if (SafeDirectoryExists(candidate) && seen.Add(candidate))
+                {
+                    yield return candidate;
+                }
+            }
+
+            // Fallback for layout drift, but only inside the actual game package (a deep search of
+            // every installed package would be far too costly).
+            if (Path.GetFileName(package).Contains("Abiotic", StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (var saveGames in FindDirectoriesNamed(package, "SaveGames", maxDepth: 8))
+                {
+                    if (seen.Add(saveGames))
+                    {
+                        yield return saveGames;
+                    }
+                }
+            }
+        }
+    }
+
+    private static bool SafeDirectoryExists(string path)
+    {
+        try
+        {
+            return Directory.Exists(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
     }
 
     /// <summary>
@@ -192,6 +283,43 @@ public static class SaveDiscovery
                 {
                     yield return child;
                     continue;
+                }
+                queue.Enqueue((child, depth + 1));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Directories with the given name, breadth-first and depth-limited, not descending past a
+    /// match. Used to locate a <c>SaveGames</c> tree inside a Game Pass package whose internal
+    /// layout we don't want to hard-code.
+    /// </summary>
+    private static IEnumerable<string> FindDirectoriesNamed(string root, string targetName, int maxDepth)
+    {
+        var queue = new Queue<(string Dir, int Depth)>();
+        queue.Enqueue((root, 0));
+
+        while (queue.Count > 0)
+        {
+            var (dir, depth) = queue.Dequeue();
+            if (depth > maxDepth) continue;
+
+            IEnumerable<string> children;
+            try
+            {
+                children = Directory.EnumerateDirectories(dir);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                continue;
+            }
+
+            foreach (var child in children)
+            {
+                if (Path.GetFileName(child).Equals(targetName, StringComparison.OrdinalIgnoreCase))
+                {
+                    yield return child;
+                    continue; // a SaveGames root's children are accounts, not more SaveGames dirs
                 }
                 queue.Enqueue((child, depth + 1));
             }

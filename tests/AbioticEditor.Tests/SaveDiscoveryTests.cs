@@ -56,6 +56,65 @@ public class SaveDiscoveryTests
         Assert.Empty(SaveDiscovery.DiscoverClientWorlds(Path.Combine(Path.GetTempPath(), "no-such-dir-409")));
         Assert.Empty(SaveDiscovery.DiscoverServerWorlds(Path.Combine(Path.GetTempPath(), "no-such-dir-409")));
         Assert.Empty(SaveDiscovery.DiscoverUnderRoot(Path.Combine(Path.GetTempPath(), "no-such-dir-409"), DiscoveredWorldSource.Client));
+        Assert.Empty(SaveDiscovery.DiscoverPackagedClientWorlds(Path.Combine(Path.GetTempPath(), "no-such-dir-409")));
+    }
+
+    [Fact]
+    public void Discovers_GamePass_world_under_packaged_redirect_with_nonnumeric_account()
+    {
+        using var tmp = new TempDir();
+        // %LOCALAPPDATA%\Packages\<PFN>\LocalCache\Local\AbioticFactor\Saved\SaveGames\<account>\Worlds\<World>
+        var account = "MSFT_a1b2c3"; // non-numeric Game Pass-style owner id
+        var worldDir = Path.Combine(
+            tmp.Path, "PlayStack.AbioticFactor_1a2b3c4d5e6f", "LocalCache", "Local",
+            "AbioticFactor", "Saved", "SaveGames", account, "Worlds", "Cascade");
+        Directory.CreateDirectory(worldDir);
+        File.WriteAllText(Path.Combine(worldDir, "WorldSave_Cascade.sav"), "stub");
+
+        var worlds = SaveDiscovery.DiscoverPackagedClientWorlds(tmp.Path);
+
+        var cascade = Assert.Single(worlds, w => w.WorldName == "Cascade");
+        Assert.Equal(DiscoveredWorldSource.Client, cascade.Source);
+        Assert.Equal(account, cascade.AccountId); // opaque, non-numeric id preserved
+        Assert.True(cascade.SaveFileCount > 0);
+    }
+
+    [Fact]
+    public void Packaged_discovery_finds_moved_SaveGames_only_in_an_Abiotic_package()
+    {
+        using var tmp = new TempDir();
+        // A non-standard subpath that the known-subpath probe won't hit; only the deeper
+        // fallback (gated to Abiotic-named packages) should find it.
+        var worldDir = Path.Combine(
+            tmp.Path, "Vendor.AbioticFactor_xyz", "LocalState", "Custom", "Nested",
+            "AbioticFactor", "Saved", "SaveGames", "76561190000000001", "Worlds", "Reactor");
+        Directory.CreateDirectory(worldDir);
+        File.WriteAllText(Path.Combine(worldDir, "WorldSave_Reactor.sav"), "stub");
+
+        // An unrelated package with the same nested layout must be ignored (no deep scan there).
+        var otherWorld = Path.Combine(
+            tmp.Path, "Unrelated.OtherApp_abc", "LocalState", "Custom", "Nested",
+            "AbioticFactor", "Saved", "SaveGames", "acct", "Worlds", "Ghost");
+        Directory.CreateDirectory(otherWorld);
+        File.WriteAllText(Path.Combine(otherWorld, "WorldSave_Ghost.sav"), "stub");
+
+        var worlds = SaveDiscovery.DiscoverPackagedClientWorlds(tmp.Path);
+
+        Assert.Contains(worlds, w => w.WorldName == "Reactor");
+        Assert.DoesNotContain(worlds, w => w.WorldName == "Ghost");
+    }
+
+    private sealed class TempDir : IDisposable
+    {
+        public TempDir() => Directory.CreateDirectory(Path);
+
+        public string Path { get; } =
+            System.IO.Path.Combine(System.IO.Path.GetTempPath(), "abiotic-disco-test-" + Guid.NewGuid().ToString("N"));
+
+        public void Dispose()
+        {
+            try { Directory.Delete(Path, recursive: true); } catch (IOException) { }
+        }
     }
 
     [Fact]
