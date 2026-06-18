@@ -1988,16 +1988,28 @@ public sealed class MainViewModel : INotifyPropertyChanged
         Justification = "Bound from XAML; bindings need an instance member.")]
     public string GameDataNotice => GameDataServices.StatusMessage;
 
-    private System.Windows.Input.ICommand? _locateGameFolderCommand;
+    /// <summary>
+    /// Label for the banner's fix button, matched to <see cref="GameDataServices.Status"/>: import a
+    /// usmap when the game was found but its data file is missing (locating the folder wouldn't
+    /// help there), otherwise locate the install folder.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static",
+        Justification = "Bound from XAML; bindings need an instance member.")]
+    public string GameDataActionText => GameDataServices.Status == GameDataStatus.MappingsMissing
+        ? LocalizationResourceManager.Instance["GameData_ImportButton"]
+        : LocalizationResourceManager.Instance["GameData_LocateButton"];
+
+    private System.Windows.Input.ICommand? _fixGameDataCommand;
 
     /// <summary>
-    /// Pick the game install folder, persist it and reload game data live - the in-place fix
-    /// offered by the banner and the first-run prompt (Settings has the same flow). No-op if the
-    /// picker is dismissed or the folder has no game data.
+    /// Applies the fix that matches the current status (import a usmap, or locate the install
+    /// folder) and reloads game data live - the in-place action on the banner. Settings and the
+    /// first-run prompt run the same <see cref="Services.GameDataPrompt"/> flow. No-op if the
+    /// picker is dismissed or the choice didn't resolve.
     /// </summary>
-    public System.Windows.Input.ICommand LocateGameFolderCommand => _locateGameFolderCommand ??= new RelayCommand(async () =>
+    public System.Windows.Input.ICommand FixGameDataCommand => _fixGameDataCommand ??= new RelayCommand(async () =>
     {
-        if (!await Services.GameDataPrompt.PickAndSaveFolderAsync()) return;
+        if (!await Services.GameDataPrompt.FixAsync()) return;
         await ReloadGameDataAsync();
         await DialogViewModel.Current.AlertAsync("Game data",
             GameDataServices.IsGameDataLoaded
@@ -2011,7 +2023,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         foreach (var name in new[]
                  {
                      nameof(CodexEmptyMessage), nameof(RecipesEmptyMessage), nameof(HasItemPalette),
-                     nameof(GameDataMissing), nameof(GameDataNotice),
+                     nameof(GameDataMissing), nameof(GameDataNotice), nameof(GameDataActionText),
                  })
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

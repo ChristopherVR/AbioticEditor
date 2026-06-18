@@ -203,8 +203,8 @@
                                            LineBreakMode="WordWrap" />
                                 </VerticalStackLayout>
                                 <Button Grid.Column="1" VerticalOptions="Center"
-                                        Text="{loc:Localize GameData_LocateButton}"
-                                        Command="{Binding LocateGameFolderCommand}" />
+                                        Text="{Binding GameDataActionText}"
+                                        Command="{Binding FixGameDataCommand}" />
                             </Grid>
                         </Border>
 

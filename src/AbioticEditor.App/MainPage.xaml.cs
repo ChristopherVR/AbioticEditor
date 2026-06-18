@@ -112,14 +112,19 @@ public partial class MainPage : ContentPage
         if (Preferences.Default.Get(GameDataPromptSeenKey, false)) return;
         Preferences.Default.Set(GameDataPromptSeenKey, true);
 
+        // Action matches the failure: import a usmap when the game was found but its data file is
+        // missing, otherwise locate the install folder.
+        var actionText = Services.GameDataServices.Status == Services.GameDataStatus.MappingsMissing
+            ? "Import game data"
+            : "Locate game folder";
         var choice = await DialogViewModel.Current.ShowAsync(
             "Game data not detected",
             Services.GameDataServices.StatusMessage,
             ("Not now", DialogTone.Neutral),
-            ("Locate game folder", DialogTone.Primary));
+            (actionText, DialogTone.Primary));
         if (choice != 1) return;
 
-        if (await Services.GameDataPrompt.PickAndSaveFolderAsync())
+        if (await Services.GameDataPrompt.FixAsync())
         {
             await _vm.ReloadGameDataAsync();
             await DialogViewModel.Current.AlertAsync("Game data",

@@ -484,6 +484,7 @@ Mondes : conteneurs · indicateurs de quête · portes · objets au sol · progr
   <!-- GameData -->
   <data name="GameData_BannerTitle" xml:space="preserve"><value>DONNÉES DU JEU NON DÉTECTÉES</value></data>
   <data name="GameData_LocateButton" xml:space="preserve"><value>LOCALISER LE DOSSIER DU JEU</value></data>
+  <data name="GameData_ImportButton" xml:space="preserve"><value>IMPORTER LES DONNÉES DU JEU</value></data>
 
   <!-- WorldTraders -->
   <data name="WorldTraders_Traders" xml:space="preserve"><value>MARCHANDS</value></data>

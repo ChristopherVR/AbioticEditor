@@ -484,6 +484,7 @@ Welten: Behälter · Quest-Flags · Türen · Bodengegenstände · Story-Fortsch
   <!-- GameData -->
   <data name="GameData_BannerTitle" xml:space="preserve"><value>SPIELDATEN NICHT ERKANNT</value></data>
   <data name="GameData_LocateButton" xml:space="preserve"><value>SPIELORDNER SUCHEN</value></data>
+  <data name="GameData_ImportButton" xml:space="preserve"><value>SPIELDATEN IMPORTIEREN</value></data>
 
   <!-- WorldTraders -->
   <data name="WorldTraders_Traders" xml:space="preserve"><value>HÄNDLER</value></data>

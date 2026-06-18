@@ -484,6 +484,7 @@ Mundos: contenedores · indicadores de misión · puertas · objetos en el suelo
   <!-- GameData -->
   <data name="GameData_BannerTitle" xml:space="preserve"><value>DATOS DEL JUEGO NO DETECTADOS</value></data>
   <data name="GameData_LocateButton" xml:space="preserve"><value>LOCALIZAR CARPETA DEL JUEGO</value></data>
+  <data name="GameData_ImportButton" xml:space="preserve"><value>IMPORTAR DATOS DEL JUEGO</value></data>
 
   <!-- WorldTraders -->
   <data name="WorldTraders_Traders" xml:space="preserve"><value>COMERCIANTES</value></data>

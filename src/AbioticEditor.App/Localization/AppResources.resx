@@ -536,6 +536,7 @@ Worlds: containers · quest flags · doors · ground items · story progression<
   <!-- GameData -->
   <data name="GameData_BannerTitle" xml:space="preserve"><value>GAME DATA NOT DETECTED</value></data>
   <data name="GameData_LocateButton" xml:space="preserve"><value>LOCATE GAME FOLDER</value></data>
+  <data name="GameData_ImportButton" xml:space="preserve"><value>IMPORT GAME DATA</value></data>
 
   <!-- WorldTraders -->
   <data name="WorldTraders_Traders" xml:space="preserve"><value>TRADERS</value></data>

@@ -54,6 +54,60 @@ public static class GameDataPrompt
         return true;
     }
 
+    /// <summary>Picker filter for usmap import (see MainViewModel.ImportMappingsCommand for the rationale).</summary>
+    private static readonly FilePickerFileType UsmapFileType = new(new Dictionary<DevicePlatform, IEnumerable<string>>
+    {
+        [DevicePlatform.WinUI] = [".usmap"],
+        [DevicePlatform.Android] = ["application/octet-stream", "*/*"],
+        [DevicePlatform.iOS] = ["public.data", "public.item"],
+        [DevicePlatform.MacCatalyst] = ["usmap", "public.data"],
+    });
+
+    /// <summary>
+    /// Opens a file picker for a <c>Mappings.usmap</c> and installs it as the user override.
+    /// Returns true when one was installed (the caller should reload), false when dismissed or
+    /// the file was rejected (validation shows its own dialog).
+    /// </summary>
+    public static async Task<bool> PickAndImportUsmapAsync()
+    {
+        FileResult? pick;
+        try
+        {
+            pick = await FilePicker.Default.PickAsync(new PickOptions
+            {
+                PickerTitle = "Select a Mappings.usmap dumped from the game",
+                FileTypes = UsmapFileType,
+            });
+        }
+        catch (Exception ex) when (IsCancellation(ex))
+        {
+            return false;
+        }
+        if (pick is null) return false;
+
+        try
+        {
+            var installed = GameAssetProvider.InstallUserMappings(pick.FullPath);
+            EditorLog.Info("GameData", $"Imported mappings: {pick.FullPath} -> {installed}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            await DialogViewModel.Current.AlertAsync("Couldn't import that file", ex.Message);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// The right fix for the current <see cref="GameDataServices.Status"/>: importing a usmap when
+    /// the game was found but its data file is missing, otherwise locating the install folder.
+    /// Returns true when something changed (the caller should reload).
+    /// </summary>
+    public static Task<bool> FixAsync()
+        => GameDataServices.Status == GameDataStatus.MappingsMissing
+            ? PickAndImportUsmapAsync()
+            : PickAndSaveFolderAsync();
+
     /// <summary>
     /// The toolkit reports a dismissed folder dialog as a failure carrying an exception; closing
     /// the picker without choosing is a normal outcome, not an error.
