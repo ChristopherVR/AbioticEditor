@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here.
 
+## [1.9.0] - 2026-06-18
+
+### Bug Fixes
+- Assign and persist per-instance AssetID for added inventory items
+
+### CI
+- Depend nexus on build-app-win only, not publish- Scan release zips with VirusTotal and publish to NexusMods
+
+### Features
+- Add RELOAD-from-disk with unsaved-changes confirm
+
+### Miscellaneous Tasks
+- Point bucket at v1.8.1 [skip ci]
+
 ## [1.8.1] - 2026-06-18
 
 ### Miscellaneous Tasks
