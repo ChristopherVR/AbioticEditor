@@ -64,6 +64,18 @@ jobs:
           dotnet-version: 10.0.x
           dotnet-quality: ga
 
+      # Cache the global NuGet packages folder so restore (and, for self-contained
+      # publishes elsewhere, the large runtime packs) is not re-downloaded every run.
+      # NuGet packages are immutable per version, so this is always safe. The key hashes
+      # the project/package files; a partial-match restore-key reuses a close cache.
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props', '**/Directory.Build.props') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
       - name: Run tests
         # The suite skips fixture-backed tests gracefully when a fixture is
         # absent, so it is green on a clean CI checkout. The CUE4Parse-Natives
@@ -252,6 +264,16 @@ jobs:
           # Switch to `preview`/`rc` here if a 10.0 GA SDK is not published yet.
           dotnet-quality: ga
 
+      # Cache NuGet, including the self-contained runtime packs (tens of MB per RID)
+      # this matrix downloads. Immutable packages, so always safe to reuse.
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props', '**/Directory.Build.props') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
       - name: Publish CLI
         run: >-
           dotnet publish src/AbioticEditor.Cli
@@ -304,8 +326,40 @@ jobs:
           dotnet-version: 10.0.x
           dotnet-quality: ga
 
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props', '**/Directory.Build.props') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      # The MAUI workload install downloads/extracts the platform packs (~159s cold).
+      # Cache the SDK's workload directories keyed on the resolved SDK version, then run
+      # the install with --skip-manifest-update: on a cache hit the packs are already
+      # present so the install is a near no-op (no network), and the pinned SDK ships a
+      # manifest sufficient to install MAUI. On a miss it installs fully and seeds the
+      # cache. setup-dotnet installs the SDK to C:\Program Files\dotnet on hosted Windows
+      # runners, so the workloads land under these folders; a path miss degrades to the
+      # old full-install behavior (slower, never broken).
+      - name: Resolve .NET SDK version
+        id: sdk
+        shell: bash
+        run: echo "version=$(dotnet --version)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache MAUI workload
+        uses: actions/cache@v4
+        with:
+          path: |
+            C:\Program Files\dotnet\sdk-manifests
+            C:\Program Files\dotnet\metadata
+            C:\Program Files\dotnet\packs
+            C:\Program Files\dotnet\library-packs
+            C:\Program Files\dotnet\template-packs
+          key: maui-workload-${{ runner.os }}-${{ steps.sdk.outputs.version }}
+
       - name: Install MAUI workload (Windows)
-        run: dotnet workload install maui
+        run: dotnet workload install maui --skip-manifest-update
 
       # Self-contained single-file: one AbioticEditor.App.exe with the .NET runtime + all managed
       # deps bundled (no install, no loose DLLs), plus the Mappings.usmap data sidecar. UseMonoRuntime
@@ -656,6 +710,14 @@ jobs:
         with:
           dotnet-version: 10.0.x
           dotnet-quality: ga
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props', '**/Directory.Build.props') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
 
       - name: Pack packages
         # Version is inherited from Directory.Build.props, already bumped on the tagged
