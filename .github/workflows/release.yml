@@ -28,14 +28,30 @@ name: Release
 # Loop safety: pushes made with the default GITHUB_TOKEN do not retrigger
 # workflows. The job-level `if` guard (skip on chore(release)/[skip ci]) is
 # belt-and-suspenders.
+#
+# Concurrency model (per-JOB, not workflow-level, so a fresh push cancels only
+# the work that has NOT published anything yet):
+#   - Pre-publish jobs (test, build, build-app-win) use `cancel-in-progress: true`.
+#     A new push to main aborts these if they are still running, so an abandoned
+#     commit never burns a full ~MAUI build.
+#   - Publish-side jobs (version, publish, scan, nexus, nuget) use
+#     `cancel-in-progress: false`: once one is running it is protected from
+#     cancellation, and a newer run's matching job queues behind it. So a release
+#     that has begun tagging / creating the GitHub Release / pushing NuGet /
+#     uploading to Nexus always finishes rather than being killed half-published.
+# Each job gets its OWN group (`release-<job>`) so same-run siblings (build vs.
+# build-app-win, the parallel publish legs) are NOT serialized against each other;
+# the group only couples the same job across different runs.
+#
+# A run cancelled mid-build leaves at most an orphaned tag with no GitHub Release;
+# the `version` job's republish path (below) re-runs build+publish for it.
+#
+# NOTE: workflow-level `cancel-in-progress: true` is deliberately NOT used - it
+# would cancel the whole run including the protected publish jobs.
 
 on:
   push:
     branches: [main]
-
-concurrency:
-  group: release
-  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -46,6 +62,10 @@ jobs:
   # or release is produced.
   test:
     runs-on: ubuntu-latest
+    # Cancellable: a newer push to main aborts this pre-publish gate mid-flight.
+    concurrency:
+      group: release-test
+      cancel-in-progress: true
     # Skip on the bot's own release-bump commit (same guard as `version`).
     if: >-
       ${{ !contains(github.event.head_commit.message, 'chore(release)') &&
@@ -85,6 +105,12 @@ jobs:
   version:
     needs: test
     runs-on: ubuntu-latest
+    # Protected: this job pushes the release commit + tag. Cancelling it mid-push
+    # would risk a committed-but-untagged (or tagged-but-unbuilt) half-state, so a
+    # newer run's version job queues behind this one instead of cancelling it.
+    concurrency:
+      group: release-version
+      cancel-in-progress: false
     # Do not run on the bot's own release-bump commit.
     if: >-
       ${{ !contains(github.event.head_commit.message, 'chore(release)') &&
@@ -205,13 +231,36 @@ jobs:
           TAG: ${{ steps.compute.outputs.tag }}
         run: |
           set -euo pipefail
+          branch="${{ github.ref_name }}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add Directory.Build.props CHANGELOG.md
           git commit -m "chore(release): ${TAG} [skip ci]"
-          # Push the bump back to the branch that triggered the run (main).
-          git push origin "HEAD:${{ github.ref_name }}"
-          # Tag the release commit we just pushed.
+
+          # Push the bump back to the branch that triggered the run (main), with a
+          # rebase-retry. main can legitimately advance between this run's checkout
+          # (at the triggering SHA) and this push - e.g. an OLDER release run's
+          # protected `publish` job lands its Scoop-manifest commit while we run.
+          # A plain push would then fail non-fast-forward and kill the release; we
+          # rebase the single bump commit onto the new tip and retry instead.
+          # (Same pattern the Scoop-manifest push uses below.)
+          pushed=false
+          for attempt in 1 2 3; do
+            if git push origin "HEAD:${branch}"; then
+              pushed=true
+              break
+            fi
+            echo "Push rejected (attempt ${attempt}); rebasing on origin/${branch}."
+            git fetch origin "$branch"
+            git rebase "origin/${branch}"
+          done
+          if [ "$pushed" != true ]; then
+            echo "::error::Could not push release bump after 3 attempts."
+            exit 1
+          fi
+
+          # Tag the release commit we just pushed. After a rebase HEAD is the
+          # replayed bump commit, so tag HEAD (not $TAG-on-a-stale-SHA) and push it.
           git tag "$TAG"
           git push origin "$TAG"
 
@@ -230,6 +279,10 @@ jobs:
     needs: version
     if: needs.version.outputs.released == 'true'
     runs-on: ubuntu-latest
+    # Cancellable: nothing is published yet, so a newer push aborts these CLI builds.
+    concurrency:
+      group: release-build
+      cancel-in-progress: true
     # Every artifact zip carries the release version in its name (e.g.
     # AbioticEditor-cli-win-x64-v1.2.0.zip). Computed once here; matrix + needs are both in scope.
     env:
@@ -310,6 +363,11 @@ jobs:
     needs: version
     if: needs.version.outputs.released == 'true'
     runs-on: windows-latest
+    # Cancellable: the MAUI publish is the most expensive leg and publishes
+    # nothing, so a newer push aborts it rather than letting it run to completion.
+    concurrency:
+      group: release-build-app-win
+      cancel-in-progress: true
     env:
       ASSET_BASENAME: AbioticEditor-app-win-x64-v${{ needs.version.outputs.version }}
     steps:
@@ -396,6 +454,11 @@ jobs:
     needs: [version, build, build-app-win]
     if: needs.version.outputs.released == 'true'
     runs-on: ubuntu-latest
+    # Protected: creates the GitHub Release and pushes the Scoop bucket commit.
+    # A newer run's publish queues behind this one rather than cancelling it.
+    concurrency:
+      group: release-publish
+      cancel-in-progress: false
     steps:
       # Check out main so we can refresh and commit the Scoop bucket manifests
       # (bucket/*.json) after we know the published assets' hashes. No submodules:
@@ -506,6 +569,10 @@ jobs:
     needs: [version, publish]
     if: needs.version.outputs.released == 'true'
     runs-on: ubuntu-latest
+    # Protected: edits the already-published release body; never cancelled.
+    concurrency:
+      group: release-scan
+      cancel-in-progress: false
     steps:
       # Gate the rest of the job on the secret being present. `if:` cannot read
       # secrets directly, so surface it as a step output the later steps key on.
@@ -602,6 +669,12 @@ jobs:
     needs: [version, build-app-win]
     if: needs.version.outputs.released == 'true'
     runs-on: ubuntu-latest
+    # Protected: uploads to NexusMods and archives the prior version. Never
+    # cancelled, and a newer run's nexus queues behind so the two uploads cannot
+    # race on the archive-existing-version step.
+    concurrency:
+      group: release-nexus
+      cancel-in-progress: false
     steps:
       # Gate on both credentials being present. `if:` can read vars but not secrets,
       # so resolve both here and surface a single step output the later steps key on.
@@ -697,6 +770,11 @@ jobs:
     needs: version
     if: needs.version.outputs.released == 'true'
     runs-on: ubuntu-latest
+    # Protected: packs and pushes to nuget.org. Never cancelled; a newer run's
+    # nuget queues behind (push is --skip-duplicate, so re-runs are idempotent).
+    concurrency:
+      group: release-nuget
+      cancel-in-progress: false
     steps:
       - name: Checkout release tag
         uses: actions/checkout@v6

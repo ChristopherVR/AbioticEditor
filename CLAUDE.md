@@ -8,10 +8,12 @@ pak archives. Ships a .NET MAUI desktop app and a CLI, both thin front-ends over
 
 ## Git workflow
 
-This repo uses **trunk-based development**: commit straight to `main` and push. Do **not**
-create a feature branch unless the user explicitly asks for one. The release automation
-(`.github/workflows/release.yml`) is driven by Conventional-Commits on `main`, so commit
-messages must follow that convention.
+This repo uses **trunk-based development**: commit straight to `main`. Do **not**
+create a feature branch unless the user explicitly asks for one. **Commit freely without
+asking** once a change is complete; you do not need permission to commit. **Pushing is the
+only step that requires explicit user approval** - never `git push` unless the user asks for
+it. The release automation (`.github/workflows/release.yml`) is driven by Conventional-Commits
+on `main`, so commit messages must follow that convention.
 
 ## Build / test commands
 
