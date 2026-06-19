@@ -16,11 +16,11 @@ using AbioticEditor.Core.SaveClasses;
 namespace AbioticEditor.Tests;
 
 /// <summary>
-/// Deep dive over the client save fixture tree (<c>fixtures/ClientSaved/SaveGames</c>,
+/// Deep dive over the client save fixture tree (<c>fixtures/SteamSaves/SaveGames</c>,
 /// a copy of the game's own <c>Saved/SaveGames</c> - a NEWER game version than
-/// the checked-in <c>Cascade/</c> fixture). Goal: find what the editor's models miss or
+/// the checked-in <c>SteamSaves/Legacy/Cascade/</c> fixture). Goal: find what the editor's models miss or
 /// get wrong on current-version saves. Findings are written to
-/// <c>dotnet/docs/research-new-save-gaps.md</c>.
+/// <c>docs/research-new-save-gaps.md</c>.
 ///
 /// All tests guard on the live tree being present and skip gracefully when it is not
 /// (e.g. on CI), mirroring how <see cref="Fixtures.CascadeDir"/> is treated.
@@ -38,7 +38,7 @@ public class NewSaveDeepDiveTests
     // ---------- location of the live save tree ----------
 
     /// <summary>
-    /// <c>dotnet/tests/fixtures/ClientSaved/SaveGames</c> - a copy of the game's own
+    /// <c>tests/fixtures/SteamSaves/SaveGames</c> - a copy of the game's own
     /// Saved/SaveGames folder, located via <see cref="Fixtures.ClientSavedDir"/>.
     /// Null when absent so every test can skip gracefully.
     /// </summary>
@@ -62,7 +62,7 @@ public class NewSaveDeepDiveTests
     {
         if (NewSavesRoot is null)
         {
-            _output.WriteLine("SKIP: no ClientSaved/SaveGames fixture tree found.");
+            _output.WriteLine("SKIP: no SteamSaves/SaveGames fixture tree found.");
             return true;
         }
         return false;

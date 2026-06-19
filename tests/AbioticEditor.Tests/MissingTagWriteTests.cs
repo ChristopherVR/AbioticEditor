@@ -46,7 +46,7 @@ public class MissingTagWriteTests
     }
 
     /// <summary>
-    /// A client-tree (<c>fixtures/ClientSaved/SaveGames</c>) player save whose stats struct lacks a
+    /// A client-tree (<c>fixtures/SteamSaves/SaveGames</c>) player save whose stats struct lacks a
     /// <c>Hunger_</c> tag (a fresh character at full hunger). Null when the live tree is
     /// absent or every save carries the tag - callers skip in that case.
     /// </summary>

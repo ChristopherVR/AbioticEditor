@@ -27,7 +27,7 @@ public class SaveDiscoveryTests
     public void Discovers_server_worlds_under_arbitrary_root()
     {
         Assert.NotNull(Fixtures.ServerWorldsDir);
-        // fixtures/Server/Worlds/Cascade -> scan from fixtures/ (two levels above Worlds).
+        // fixtures/DedicatedServerSaves/Worlds/Cascade -> scan from DedicatedServerSaves/ (two levels above Worlds).
         var serverRoot = Path.GetDirectoryName(Path.GetDirectoryName(Fixtures.ServerWorldsDir!))!;
 
         var worlds = SaveDiscovery.DiscoverUnderRoot(serverRoot, DiscoveredWorldSource.DedicatedServer);

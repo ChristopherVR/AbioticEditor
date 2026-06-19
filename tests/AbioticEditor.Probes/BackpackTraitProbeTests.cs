@@ -148,7 +148,7 @@ public class BackpackTraitProbeTests
                 paths.Add(("Cascade/" + Path.GetFileName(sav), sav));
             }
 
-            // Chrissie world lives under fixtures/ClientSaved/SaveGames/<steamid>/Worlds/Chrissie.
+            // Chrissie world lives under fixtures/SteamSaves/SaveGames/<steamid>/Worlds/Chrissie.
             if (Fixtures.ClientSavedDir is { } savedGames)
             {
                 foreach (var sav in Directory.EnumerateFiles(savedGames, "Player_*.sav", SearchOption.AllDirectories))

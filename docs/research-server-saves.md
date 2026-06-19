@@ -61,7 +61,7 @@ live contain. So generation 5 is the newest snapshot here.
 
 ### Region coverage vs fixture
 
-Server-only regions (17, absent from `tests/fixtures/Cascade/`):
+Server-only regions (17, absent from `tests/fixtures/SteamSaves/Legacy/Cascade/`):
 `Facility_Botanical`, `Facility_DarkFusion`, `Facility_DF_Central`, `Facility_DF_Labs`,
 `Facility_DF_Overgrowth`, `Facility_DF_War`, `Facility_Fracture`, `Facility_Plant`,
 `Facility_Pool`, `Facility_Residence`, `V_Anteverse_C`, `V_BOTANICAL`, `V_Inq`,
@@ -183,7 +183,7 @@ same file/format exists in client worlds too.
 ## 7. Fixture recommendation
 
 **Yes - this tree is a strictly better fixture than the current
-`tests/fixtures/Cascade/`:**
+`tests/fixtures/SteamSaves/Legacy/Cascade/`:**
 
 - Same game build (engine build `-2146453646`) - swapping does not change version
   coverage, it only adds content.
@@ -196,7 +196,7 @@ same file/format exists in client worlds too.
 - Cost: live `Worlds/Cascade` is 68.1 MB vs the current fixture's 51.9 MB (backups not
   needed in a fixture; keep one small backup generation only if rotation logic ever
   gets tested). Keep `Fixtures.CascadeDir` pointing at the world folder
-  (`.../Worlds/Cascade` content moved to `tests/fixtures/Cascade`) and existing
+  (`.../Worlds/Cascade` content moved to `tests/fixtures/SteamSaves/Legacy/Cascade`) and existing
   tests keep working - file names are a superset and `WorldSave_MetaData.sav` (the
   discovery sentinel) is present. Hash-suffix-prefix matching means no reader changes.
   Tests that assert exact counts/story values against the old fixture would need

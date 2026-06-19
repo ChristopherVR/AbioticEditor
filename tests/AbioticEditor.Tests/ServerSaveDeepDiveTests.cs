@@ -17,10 +17,10 @@ namespace AbioticEditor.Tests;
 
 /// <summary>
 /// Deep dive over the DEDICATED SERVER save tree
-/// (<c>dotnet/tests/fixtures/Server</c>) - a late-game world ("Cascade")
+/// (<c>tests/fixtures/DedicatedServerSaves</c>) - a late-game world ("Cascade")
 /// covering regions the checked-in fixture never reaches (Botanical, Fracture,
 /// DarkFusion, DF_*, Labs_Adjustment, ...). Findings are written to
-/// <c>dotnet/docs/research-server-saves.md</c>.
+/// <c>docs/research-server-saves.md</c>.
 ///
 /// All tests guard on the server tree being present and skip gracefully when it is not
 /// (e.g. on CI), mirroring <see cref="NewSaveDeepDiveTests"/>.
@@ -38,8 +38,8 @@ public class ServerSaveDeepDiveTests
     // ---------- location of the server save tree ----------
 
     /// <summary>
-    /// The dedicated-server save root (<c>fixtures/Server</c>, containing <c>Worlds/</c>,
-    /// <c>Backups/</c> and <c>Admin.ini</c>): derived from
+    /// The dedicated-server save root (<c>fixtures/DedicatedServerSaves</c>, containing <c>Worlds/</c>
+    /// and <c>Admin.ini</c>): derived from
     /// <see cref="Fixtures.ServerWorldsDir"/>, which points two levels down at
     /// <c>Worlds/Cascade</c>. Null when absent so every test can skip gracefully.
     /// </summary>

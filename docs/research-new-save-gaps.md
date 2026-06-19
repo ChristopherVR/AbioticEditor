@@ -2,7 +2,7 @@
 
 Probe: `tests/AbioticEditor.Tests/NewSaveDeepDiveTests.cs` (run 2026-06-11).
 Subject: the game's own save tree at `D:\Development\uesave\Saved\SaveGames` - newer
-than the checked-in `tests/fixtures/Cascade/` fixture. All 88 non-backup `.sav` files were parsed,
+than the checked-in `tests/fixtures/SteamSaves/Legacy/Cascade/` fixture. All 88 non-backup `.sav` files were parsed,
 round-tripped, and schema-walked.
 
 ## 1. File tree

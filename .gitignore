@@ -37,5 +37,5 @@ oodle-data-shared.dll
 oo2core*.dll
 
 # Local Game Pass save dumps (personal data)
-# zips and extracted dump folders at the repo root (NOT tests/fixtures/GamePass, which is sanitized)
+# zips and extracted dump folders at the repo root (NOT tests/fixtures/GamePassSaves, which is sanitized)
 /00090000*

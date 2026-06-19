@@ -94,7 +94,7 @@ Notes for strict validation:
   chain (`DisplayName` -> `WorldBaseViewModel.Benches`/map labels) all key off
   `CustomName` correctly.
 - **Root cause of "no names in our UI": the checked-in fixture
-  (`tests/fixtures/Cascade/WorldSave_Facility.sav`) is an older snapshot of
+  (`tests/fixtures/SteamSaves/Legacy/Cascade/WorldSave_Facility.sav`) is an older snapshot of
   the same world in which the same bench GUIDs (e.g. `3CF2D146...` = "LodeStone"
   live) have an EMPTY `CustomTextDisplay_`.** The benches were named after the
   fixture snapshot was taken. If the app session showed no names, it was reading

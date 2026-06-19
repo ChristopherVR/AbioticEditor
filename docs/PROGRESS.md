@@ -39,7 +39,7 @@ host-UI bridge + Vite sample).
   Settings **CONVERT** card (Steam<->GP, optional account id, inline results); Create World writes a
   GP copy too. Player General tab shows the real owner id and locks it for non-Steam.
 - **Docs**: `docs/guide/game-pass.md` (how it works, opening, locations + auto-detect, conversion,
-  CLI, internals). **Fixtures**: sanitized real GP container at `tests/fixtures/GamePass/` (synthetic
+  CLI, internals). **Fixtures**: sanitized real GP container at `tests/fixtures/GamePassSaves/` (synthetic
   XUID/ids, no PII). Tests cover identity, codec/container/bundle round-trips, the real fixture,
   Steam<->GP conversion + re-home, and platform classification. **557 tests green**. App GUI not
   screenshot-verified; the in-game accept of a written container still needs on-console confirmation.
@@ -1136,13 +1136,17 @@ frontend can reuse them. Move data (records/strings), not behaviour - no descrip
   `.github/` rust/web workflows - all git-rm'd (uncommitted).
 - `src/AbioticEditor.App` (MAUI, net10 win), `src/AbioticEditor.Core` (net10),
   `tests/AbioticEditor.Tests`.
-- **Fixtures (all save trees now under `tests/fixtures/`)**: `Cascade/` (51 MB),
-  `ClientSaved/SaveGames/` (~390 MB, client tree, newer build), `Server/` (~389 MB,
-  dedicated server, complete story, NAMED benches). Total ~828 MB - consider Git LFS or
-  dropping `Backups/` generations before committing. `Fixtures.cs` exposes `CascadeDir`,
-  `ClientSavedDir`, `ServerWorldsDir` (walk-up + legacy fallbacks). `.gitignore` no longer
-  ignores them; leftover `Saved/` (Config/Logs/pipelinecache only) is untracked - user to
-  decide delete vs re-ignore (may contain private data).
+- **Fixtures (grouped by platform under `tests/fixtures/`, Backups removed, ~205 MB total)**:
+  - `SteamSaves/` - `Legacy/Cascade/` (the older standalone single-player world, ~51 MB, the
+    canonical `CascadeDir`), `Config/Windows/*.ini` (client config) and `SaveGames/<steamid>/Worlds/`
+    (the newer client tree + account files Admin.ini/Unlocks.sav/PlayerStatsSave.sav/etc., the
+    `ClientSavedDir`). `Config/` + `SaveGames/` mirror the game's real `Saved/` install.
+  - `GamePassSaves/<account>/` - sanitized Xbox "wgs" container (`GamePassWgsDir`).
+  - `DedicatedServerSaves/` - `Admin.ini` + `Worlds/Cascade/` (complete story, NAMED benches;
+    `ServerWorldsDir = .../Worlds/Cascade`).
+  - `Fixtures.cs` exposes `CascadeDir`, `ClientSavedDir`, `ServerWorldsDir`, `GamePassWgsDir`
+    (walk-up + pre-regroup fallbacks). `.bak` and `Backups/` are not committed (`*.bak` is in
+    `.gitignore`); discovery already excludes `Backups/` by name.
 - Submodules at repo-root `submodules/CUE4Parse` (@1125f5bc) + `submodules/UeSaveGame`.
 - usmap at `assets/Mappings.usmap` (bundled via csproj link); user override at
   `%LOCALAPPDATA%\AbioticEditor\mappings\Mappings.usmap` - installable in-app via the
