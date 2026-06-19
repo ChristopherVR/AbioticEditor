@@ -8,9 +8,17 @@ namespace AbioticEditor.Core.Assets;
 /// every file is fetched at most once per machine. Lookups for an already-cached file
 /// never touch the network.
 ///
-/// Failures (offline, 404, non-image responses) return <c>null</c> and Warn-log once per
-/// file name. Responses are validated by magic bytes (PNG/JPEG/WebP/GIF); the cached
-/// file keeps the extension matching its actual format so image controls can load it.
+/// When the live wiki can't be reached (offline, 404, non-image response) the lookup falls
+/// back to a <b>bundled</b> copy shipped next to the executable (<c>wiki\</c>, see
+/// <see cref="BundledDirectory"/>) populated for the verified <see cref="WikiImageManifest"/>
+/// set by the CLI's <c>download-wiki-images</c> command. The live wiki is always tried first
+/// (so the picture stays current as the wiki is updated); the bundle is purely the offline
+/// safety net. A fallback hit is NOT copied into the per-machine cache, so a later online
+/// lookup still re-fetches the fresh wiki image. Only when neither the wiki nor the bundle
+/// has the file does the lookup return <c>null</c> and Warn-log once per file name.
+///
+/// Responses are validated by magic bytes (PNG/JPEG/WebP/GIF); the cached file keeps the
+/// extension matching its actual format so image controls can load it.
 ///
 /// Wiki content is CC BY-NC-SA - surfaces showing these images must carry the
 /// <see cref="AttributionText"/> line.
@@ -39,6 +47,14 @@ public sealed class WikiImageCache
         return client;
     }
 
+    /// <summary>
+    /// The offline fallback bundle next to the executable (<c>wiki\</c>), shipped with the
+    /// verified <see cref="WikiImageManifest"/> images so the editor still shows them with no
+    /// network. Populated by the CLI's <c>download-wiki-images</c> command and bundled via the
+    /// App / CLI project files.
+    /// </summary>
+    public static string BundledDirectory { get; } = Path.Combine(AppContext.BaseDirectory, "wiki");
+
     /// <summary>Process-wide instance caching under <c>%LOCALAPPDATA%\AbioticEditor\wiki</c>.</summary>
     public static WikiImageCache Default { get; } = new(Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -49,6 +65,7 @@ public sealed class WikiImageCache
     private readonly Dictionary<string, Task<string?>> _inFlight = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _warned = new(StringComparer.OrdinalIgnoreCase);
     private readonly string _cacheDirectory;
+    private readonly string _bundledDirectory;
     private readonly Func<string, Task<byte[]?>> _downloader;
 
     /// <param name="cacheDirectory">Where cached images live (created on first download).</param>
@@ -57,10 +74,18 @@ public sealed class WikiImageCache
     /// <c>null</c> for a clean miss (404). May throw for transport failures. When omitted,
     /// a shared <see cref="HttpClient"/> fetches from the live wiki.
     /// </param>
-    public WikiImageCache(string cacheDirectory, Func<string, Task<byte[]?>>? downloader = null)
+    /// <param name="bundledDirectory">
+    /// Offline fallback directory consulted when the live wiki has nothing. Defaults to
+    /// <see cref="BundledDirectory"/>; overridable for tests.
+    /// </param>
+    public WikiImageCache(
+        string cacheDirectory,
+        Func<string, Task<byte[]?>>? downloader = null,
+        string? bundledDirectory = null)
     {
         _cacheDirectory = cacheDirectory;
         _downloader = downloader ?? DownloadAsync;
+        _bundledDirectory = bundledDirectory ?? BundledDirectory;
     }
 
     /// <summary>
@@ -122,6 +147,25 @@ public sealed class WikiImageCache
 
     private async Task<string?> FetchAndCacheAsync(string wikiName, string safeBase)
     {
+        var (path, failure) = await FetchLiveAsync(wikiName, safeBase).ConfigureAwait(false);
+        if (path is not null) return path;
+
+        // Live wiki unreachable or missing the file: serve the bundled offline copy if we ship
+        // one. Not cached into _cacheDirectory, so a later online lookup re-fetches the wiki.
+        var bundled = BundledFallback(safeBase);
+        if (bundled is not null) return bundled;
+
+        if (failure is not null) WarnOnce(wikiName, failure);
+        return null;
+    }
+
+    /// <summary>
+    /// Downloads, validates and caches the live wiki image. Returns the cached path on success,
+    /// or <c>(null, reason)</c> describing why the live fetch produced no usable image (the
+    /// caller decides whether to warn, after the bundled fallback is tried).
+    /// </summary>
+    private async Task<(string? Path, string? Failure)> FetchLiveAsync(string wikiName, string safeBase)
+    {
         try
         {
             byte[]? data;
@@ -131,22 +175,19 @@ public sealed class WikiImageCache
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException)
             {
-                WarnOnce(wikiName, $"download failed ({ex.GetType().Name}: {ex.Message})");
-                return null;
+                return (null, $"download failed ({ex.GetType().Name}: {ex.Message})");
             }
 
             if (data is null || data.Length == 0)
             {
-                WarnOnce(wikiName, "not found on the wiki");
-                return null;
+                return (null, "not found on the wiki");
             }
 
             var extension = ExtensionForImage(data);
             if (extension is null)
             {
                 // Typically an HTML error page served on a missing file.
-                WarnOnce(wikiName, "response is not a recognized image format");
-                return null;
+                return (null, "response is not a recognized image format");
             }
 
             var finalPath = Path.Combine(_cacheDirectory, safeBase + extension);
@@ -157,13 +198,27 @@ public sealed class WikiImageCache
             var tempPath = finalPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
             await File.WriteAllBytesAsync(tempPath, data).ConfigureAwait(false);
             File.Move(tempPath, finalPath, overwrite: true);
-            return finalPath;
+            return (finalPath, null);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            WarnOnce(wikiName, $"cache write failed ({ex.Message})");
-            return null;
+            return (null, $"cache write failed ({ex.Message})");
         }
+    }
+
+    /// <summary>
+    /// The bundled offline copy for a cache key, or <c>null</c> when none is shipped. Probed
+    /// with the same safe-name + known-extension convention the live cache writes with, so the
+    /// download command and this lookup agree on file names.
+    /// </summary>
+    private string? BundledFallback(string safeBase)
+    {
+        foreach (var ext in KnownExtensions)
+        {
+            var candidate = Path.Combine(_bundledDirectory, safeBase + ext);
+            if (File.Exists(candidate)) return candidate;
+        }
+        return null;
     }
 
     private void Deregister(string safeBase, Task<string?> task)
@@ -193,6 +248,14 @@ public sealed class WikiImageCache
         if (!response.IsSuccessStatusCode) return null;
         return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// The <c>Special:FilePath</c> download URL for a wiki file name (normalized the same way
+    /// the cache keys it). Exposed so maintainer tooling (the <c>download-wiki-images</c>
+    /// command) fetches from the exact same endpoint the cache uses.
+    /// </summary>
+    public static Uri FilePathUrlFor(string fileName)
+        => new(FilePathBase + Uri.EscapeDataString(NormalizeWikiName(fileName)));
 
     /// <summary>
     /// Strips a <c>File:</c> prefix and folds spaces to underscores - MediaWiki treats

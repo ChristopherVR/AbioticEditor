@@ -38,6 +38,7 @@ public static class CommandTree
         root.Subcommands.Add(VehicleCommands.Build(quiet));
         root.Subcommands.Add(GamePassCommands.Build(quiet));
         root.Subcommands.Add(DumpRegistryCommand.Build(quiet));
+        root.Subcommands.Add(DownloadWikiImagesCommand.Build(quiet));
         root.Subcommands.Add(VersionCommand.Build());
         root.Subcommands.Add(UpdateCommand.Build(quiet));
 

@@ -94,7 +94,8 @@ point values and descriptions), and appearance.
 ![Player character and traits tab](docs/public/screenshots/14-player-character.png)
 
 **GatePal** is your in-game journal: read or unread e-mails, notes, the creature/item
-compendium, and the fish journal with catch requirements.
+compendium, and the fish journal with catch requirements (each fish shown with a reference
+picture from the [Abiotic Factor Wiki](https://abioticfactor.wiki.gg)).
 
 ![Player journal / GatePal tab](docs/public/screenshots/15-player-gatepal.png)
 
@@ -258,6 +259,7 @@ architecture, the host API, and the security model.
 | `tests/AbioticEditor.Tests` | Assertion tests over real save fixtures. |
 | `tests/AbioticEditor.Probes` | Research probes that dump game data structures (not in the normal test run). |
 | `assets/Mappings.usmap` | Bundled type mappings for the validated game build. |
+| `assets/wiki/` | Bundled wiki reference images (the offline fallback for fish/vehicle/feature/door pictures; CC BY-NC-SA, see the folder's README). |
 | `submodules/` | Pinned source builds of UeSaveGame and CUE4Parse (see below). |
 | `docs/` | The documentation site (VitePress), save-format research notes, and the progress log. |
 
@@ -309,6 +311,19 @@ it via the status bar **IMPORT USMAP** button, or copy it to
 `%LOCALAPPDATA%\AbioticEditor\mappings\Mappings.usmap` (the user-installed file always wins).
 Without a matching usmap the editor still opens and edits saves; only asset-backed features
 degrade.
+
+### Wiki reference images (offline fallback)
+
+The fish journal, vehicles, and world-feature/door views show a reference picture from the
+[Abiotic Factor Wiki](https://abioticfactor.wiki.gg). The editor always tries the live wiki
+first (so the art stays current), and **falls back to a bundled copy in `assets/wiki/` when
+the wiki is unreachable**. Those images are CC BY-NC-SA and credited in-app as
+`Image: abioticfactor.wiki.gg`. Regenerate the bundle (and commit it) when the catalogs gain
+entries or the wiki art changes:
+
+```console
+dotnet run --project src/AbioticEditor.Cli -- download-wiki-images -o assets/wiki
+```
 
 ### Version compatibility
 

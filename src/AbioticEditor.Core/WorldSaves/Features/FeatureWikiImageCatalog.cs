@@ -39,4 +39,13 @@ public static class FeatureWikiImageCatalog
 
     /// <summary>Feature ids that have at least one candidate image (for coverage tests).</summary>
     public static IReadOnlyCollection<string> MappedFeatureIds => ByFeatureId.Keys;
+
+    /// <summary>
+    /// Every candidate wiki File name across all mapped features, de-duplicated. Used to
+    /// pre-download the offline fallback bundle.
+    /// </summary>
+    public static IReadOnlyCollection<string> AllWikiFiles =>
+        ByFeatureId.Values.SelectMany(v => v)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
 }

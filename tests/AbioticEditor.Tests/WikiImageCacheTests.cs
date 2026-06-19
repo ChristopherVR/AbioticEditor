@@ -213,6 +213,77 @@ public sealed class WikiImageCacheTests : IDisposable
         Assert.Null(await cache.GetAsync("   "));
     }
 
+    // ---------- the offline bundled fallback ----------
+
+    [Fact]
+    public async Task WikiUnavailable_ServesBundledFallback_WithoutCachingIt()
+    {
+        var bundleDir = Path.Combine(_tempDir, "bundle");
+        Directory.CreateDirectory(bundleDir);
+        // The bundle ships SafeNameFor(name) + the real extension, like the cache writes.
+        var bundled = Path.Combine(bundleDir, WikiImageCache.SafeNameFor("Itemicon_antefish.png") + ".png");
+        await File.WriteAllBytesAsync(bundled, PngBytes);
+
+        var cacheDir = Path.Combine(_tempDir, "cache");
+        var offline = new WikiImageCache(
+            cacheDir, _ => throw new HttpRequestException("no network"), bundleDir);
+
+        var path = await offline.GetAsync("Itemicon_antefish.png");
+
+        // Falls back to the bundled copy...
+        Assert.Equal(bundled, path);
+        // ...but does NOT copy it into the per-machine cache, so a later online lookup
+        // still re-fetches the (possibly updated) wiki image.
+        Assert.False(Directory.Exists(cacheDir) && Directory.EnumerateFiles(cacheDir).Any());
+    }
+
+    [Fact]
+    public async Task LiveWiki_WinsOverBundledFallback()
+    {
+        var bundleDir = Path.Combine(_tempDir, "bundle");
+        Directory.CreateDirectory(bundleDir);
+        await File.WriteAllBytesAsync(
+            Path.Combine(bundleDir, WikiImageCache.SafeNameFor("Antefish.png") + ".png"), PngBytes);
+
+        var cacheDir = Path.Combine(_tempDir, "cache");
+        var cache = new WikiImageCache(cacheDir, _ => Task.FromResult<byte[]?>(JpegBytes), bundleDir);
+
+        var path = await cache.GetAsync("Antefish.png");
+
+        // The live download wins: result lives in the cache dir, not the bundle.
+        Assert.NotNull(path);
+        Assert.StartsWith(Path.GetFullPath(cacheDir), Path.GetFullPath(path!), StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(".jpg", Path.GetExtension(path));
+    }
+
+    [Fact]
+    public async Task NoBundleAndNoWiki_ReturnsNull()
+    {
+        var cache = new WikiImageCache(
+            _tempDir,
+            _ => Task.FromResult<byte[]?>(null),
+            Path.Combine(_tempDir, "empty-bundle"));
+
+        Assert.Null(await cache.GetAsync("Missing.png"));
+    }
+
+    [Fact]
+    public void Manifest_CoversEveryCatalog_AndIsDeduped()
+    {
+        var all = WikiImageManifest.AllFiles;
+
+        // Non-empty, ordered, and free of case-insensitive duplicates.
+        Assert.NotEmpty(all);
+        Assert.Equal(
+            all.Distinct(StringComparer.OrdinalIgnoreCase).Count(),
+            all.Count);
+
+        // Every catalog's verified names are present.
+        Assert.Contains("Itemicon_antefish.png", all, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("Vehicle_-_Forklift.png", all, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("Outlet.png", all, StringComparer.OrdinalIgnoreCase);
+    }
+
     // ---------- the curated wiki-file catalogs ----------
 
     [Fact]

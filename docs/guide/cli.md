@@ -26,6 +26,22 @@ abioticeditor version                            # tool + supported save version
 Exit codes: `0` success, `1` usage or data error, `2` unexpected failure. `--json` switches
 `scan` / `info` / `flags list` to machine-readable output.
 
+## Maintainer commands
+
+These commands regenerate data that ships *with* the editor. You only need them when updating
+the bundle for a new game build or wiki change, and you commit their output to the repo.
+
+```console
+abioticeditor dump-registry -o registry.json        # dump the game's data tables (needs the game installed)
+abioticeditor download-wiki-images -o assets/wiki    # fetch the offline wiki-image fallback (needs network)
+```
+
+`download-wiki-images` downloads the verified fish / vehicle / world-feature / door reference
+pictures from [abioticfactor.wiki.gg](https://abioticfactor.wiki.gg) into a folder that the app
+and CLI bundle as the offline fallback (the live wiki is still tried first at runtime, so the
+art stays current). It throttles its requests because the wiki rate-limits rapid bursts. The
+images are CC BY-NC-SA 4.0; see `assets/wiki/README.md`.
+
 ## Plugins from the CLI
 
 ```console

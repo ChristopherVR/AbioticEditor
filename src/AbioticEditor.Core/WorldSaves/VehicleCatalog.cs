@@ -35,6 +35,15 @@ public static class VehicleCatalog
         ("ABF_Vehicle_Canoe",        "Canoe",         null,                               true),
     };
 
+    /// <summary>
+    /// The curated, verified wiki File names for vehicle appearance images (the ones known
+    /// to resolve via Special:FilePath). Used to pre-download the offline fallback bundle and
+    /// for coverage tests; the looser runtime guesses in <see cref="WikiImageCandidates"/> are
+    /// deliberately excluded.
+    /// </summary>
+    public static IReadOnlyList<string> CuratedWikiFiles =>
+        Curated.Where(c => !string.IsNullOrEmpty(c.WikiImage)).Select(c => c.WikiImage!).ToArray();
+
     /// <summary>Short class-name (without <c>_C</c>) for a full path or short string.</summary>
     public static string ShortOf(string? classOrShort)
     {

@@ -101,6 +101,16 @@ public static class FishWikiImages
     public static IReadOnlyDictionary<string, string> KnownFish => ByDisplayName;
 
     /// <summary>
+    /// Every verified wiki File name across both tables, de-duplicated (rare variants and the
+    /// row-id / display-name tables share many files). Used to pre-download the offline
+    /// fallback bundle; the speculative guesses in <see cref="CandidatesFor"/> are excluded.
+    /// </summary>
+    public static IReadOnlyCollection<string> AllWikiFiles =>
+        ByRowId.Values.Concat(ByDisplayName.Values)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+    /// <summary>
     /// Wiki image file names to try, in order, for a DT_Fish row. The row id is
     /// authoritative (it distinguishes rare variants); the display name covers rows
     /// the id table doesn't know; the trailing guesses follow the two wiki upload

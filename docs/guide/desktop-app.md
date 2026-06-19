@@ -72,7 +72,9 @@ world this account plays).
 
 The **GatePal** tab is the in-game journal device: **e-mail**, **notes**, the **compendium**,
 and the **fish** journal. Mark entries read or unread, search the full text, and (for fish)
-see the unlock and catch requirements: bait, location, time of day, and story gate.
+see the unlock and catch requirements: bait, location, time of day, and story gate. Each fish
+also shows a reference picture from the Abiotic Factor Wiki (see
+[Reference pictures from the wiki](#reference-pictures-from-the-wiki) below).
 
 ![Player journal / GatePal tab](/screenshots/15-player-gatepal.png)
 
@@ -167,6 +169,36 @@ Item, recipe, skill, flag, fish, and trait catalogs (and item icons) come from t
 game's pak archives, read through a bundled type-mappings file. **When the game isn't
 installed, these catalogs come back empty and icons are skipped**, but the editor still opens
 and edits saves.
+
+## Reference pictures from the wiki
+
+A few editor surfaces show a representative picture of the thing you're editing, pulled from
+the **[Abiotic Factor Wiki](https://abioticfactor.wiki.gg)**:
+
+- the **fish journal** (each species' icon),
+- the **vehicles** view (how each vehicle looks),
+- and the world **features** and **doors** views (teleporter pads, the tram, power sockets).
+
+<div align="center">
+
+| Antefish | Gem Crab | Gutfish Eel | Forklift | Tram | Teleporter Pad |
+|:--:|:--:|:--:|:--:|:--:|:--:|
+| ![Antefish](/wiki/Itemicon_antefish.png) | ![Gem Crab](/wiki/Item_Icon_-_Gem_Crab.png) | ![Gutfish Eel](/wiki/Itemicon_eel.png) | ![Forklift](/wiki/Vehicle_-_Forklift.png) | ![Tram](/wiki/Vehicle_-_Tram.png) | ![Teleporter Pad](/wiki/Itemicon_craftedteleporter_lodestone.png) |
+
+<sub>Images: abioticfactor.wiki.gg, licensed CC BY-NC-SA 4.0</sub>
+
+</div>
+
+The editor always tries the live wiki first, so the artwork stays current as the wiki is
+updated. **When the wiki is unreachable, it falls back to a bundled copy** shipped next to the
+editor (a `wiki\` folder), so the pictures still appear offline. If neither has an image, the
+surface simply shows no picture; nothing else is affected. Each image carries the
+`Image: abioticfactor.wiki.gg` credit (the content is CC BY-NC-SA).
+
+::: tip For maintainers
+The bundled set lives in `assets/wiki/` and is regenerated with the CLI's
+[`download-wiki-images`](/guide/cli#maintainer-commands) command. See `assets/wiki/README.md`.
+:::
 
 ## Keeping the game build in sync (usmap)
 

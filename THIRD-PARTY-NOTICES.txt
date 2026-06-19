@@ -25,6 +25,22 @@ and the remaining CUE4Parse package references) are NOT redistributed here;
 they are declared as ordinary NuGet package dependencies and are restored
 from their own publishers under their own licenses.
 
+Bundled wiki images (offline fallback)
+--------------------------------------
+The desktop app and CLI distributions bundle a small set of game images under
+"wiki/" (the editor's offline fallback for the fish / vehicle / world-feature /
+door reference pictures; see assets/wiki/). These images come from the Abiotic
+Factor Wiki and are licensed CC BY-NC-SA 4.0:
+
+  * Abiotic Factor Wiki images
+      Source: https://abioticfactor.wiki.gg
+      Licensed under Creative Commons Attribution-NonCommercial-ShareAlike 4.0
+      (CC BY-NC-SA 4.0): https://creativecommons.org/licenses/by-nc-sa/4.0/
+      Credited in-app as "Image: abioticfactor.wiki.gg".
+
+The Core NuGet package does NOT redistribute these images; only the app and CLI
+release bundles do.
+
 CUE4Parse itself incorporates or ports code from additional third-party
 projects. Its upstream NOTICE attributions are reproduced below (section
 "CUE4Parse upstream NOTICE attributions") to satisfy Apache 2.0 section 4(d).
