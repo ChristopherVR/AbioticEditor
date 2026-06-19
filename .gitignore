@@ -31,3 +31,10 @@ docs/.vitepress/cache/
 # NOTE: the checked-in test fixtures live at tests/fixtures/ and must
 # stay committable, so do not add a global *.sav or fixtures ignore here.
 *.sav.json
+
+# Oodle native lib downloaded at runtime by CUE4Parse (do not commit)
+oodle-data-shared.dll
+oo2core*.dll
+
+# Local Game Pass save dumps (personal data)
+00090000*_*.zip

@@ -1,0 +1,215 @@
+using System.Text;
+using AbioticEditor.Core.GamePass;
+using AbioticEditor.Core.PlayerSaves;
+
+namespace AbioticEditor.Tests;
+
+/// <summary>
+/// Game Pass / Xbox container support. These build a synthetic wgs + ABF_SAVE_VERSION layout from
+/// a real Steam fixture (no personal Game Pass data committed) and round-trip it. The Oodle-backed
+/// bundle tests skip gracefully when no native Oodle library is available (e.g. offline CI).
+/// </summary>
+public class GamePassTests
+{
+    private const string CharClass = GamePassMemberCodec.CharacterSaveClass;
+
+    private static byte[] FixturePlayer()
+    {
+        Assert.NotNull(Fixtures.CascadeDir);
+        var path = Path.Combine(Fixtures.CascadeDir!, "PlayerData", "Player_76561197993781479.sav");
+        Assert.True(File.Exists(path), $"missing fixture: {path}");
+        return File.ReadAllBytes(path);
+    }
+
+    [Fact]
+    public void MemberCodec_strips_and_restores_header_losslessly()
+    {
+        var save = FixturePlayer();
+
+        // A full Steam save is GVAS header + the same body a Game Pass member stores.
+        var body = GamePassMemberCodec.ToMemberBody(CharClass, save);
+        var rebuilt = GamePassMemberCodec.ToGvas(CharClass, body);
+
+        // The body splits off cleanly: reconstruct -> parse -> re-serialize -> body is unchanged.
+        var data = PlayerSaveReader.ReadFrom(UeSaveGame.SaveGame.LoadFrom(new MemoryStream(rebuilt)));
+        using var ms = new MemoryStream();
+        data.Raw.WriteTo(ms);
+        var reBody = GamePassMemberCodec.ToMemberBody(CharClass, ms.ToArray());
+        Assert.Equal(body, reBody);
+    }
+
+    [Fact]
+    public void WgsContainerStore_writes_and_reads_a_blob()
+    {
+        var dir = Directory.CreateTempSubdirectory("wgs-test");
+        try
+        {
+            BuildSyntheticWgs(dir.FullName, "ForScience-WC", new byte[] { 1, 2, 3, 4, 5 });
+            var store = WgsContainerStore.Open(dir.FullName);
+            var c = store.Find("ForScience-WC");
+            Assert.NotNull(c);
+            Assert.Equal(new byte[] { 1, 2, 3, 4, 5 }, store.ReadBlob(c!));
+
+            // Write a new, larger blob; a fresh store must read it back and bump the generation.
+            var oldNum = c!.ContainerNumber;
+            store.WriteBlob(c, new byte[] { 9, 9, 9, 9, 9, 9, 9 });
+            var reopened = WgsContainerStore.Open(dir.FullName);
+            var c2 = reopened.Find("ForScience-WC")!;
+            Assert.Equal(7, c2.BlobSize);
+            Assert.Equal(unchecked((byte)(oldNum + 1)), c2.ContainerNumber);
+            Assert.Equal(new byte[] { 9, 9, 9, 9, 9, 9, 9 }, reopened.ReadBlob(c2));
+        }
+        finally
+        {
+            dir.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void AbfBundle_round_trips_through_oodle()
+    {
+        if (!OodleCodec.IsAvailable) return; // no native Oodle here - skip
+
+        var body = GamePassMemberCodec.ToMemberBody(CharClass, FixturePlayer());
+        var bundle = TestBundle(("Profile/Worlds/W/PlayerData/Player_1", CharClass, body));
+
+        var blob = bundle.Serialize();
+        Assert.True(AbfSaveBundle.LooksLikeBundle(blob));
+        var reparsed = AbfSaveBundle.Parse(blob);
+
+        Assert.Single(reparsed.Members);
+        Assert.Equal(body, reparsed.Members[0].Body);
+        Assert.Equal(CharClass, reparsed.Members[0].SaveClass);
+    }
+
+    [Fact]
+    public void GamePassSaveSet_edits_a_packed_player_end_to_end()
+    {
+        if (!OodleCodec.IsAvailable) return;
+
+        var dir = Directory.CreateTempSubdirectory("gp-set");
+        try
+        {
+            // Pack a real player into a synthetic Game Pass world container.
+            var body = GamePassMemberCodec.ToMemberBody(CharClass, FixturePlayer());
+            var bundle = TestBundle(("Profile/Worlds/W/PlayerData/Player_2533274900397709", CharClass, body));
+            BuildSyntheticWgs(dir.FullName, "W-WC", bundle.Serialize());
+
+            var set = GamePassSaveSet.Open(dir.FullName);
+            var entry = set.Entries().Single(e => e.Kind == GamePassSaveKind.Player);
+            Assert.Equal("Player_2533274900397709.sav", entry.FileName);
+
+            // Read -> edit money via the real reader/writer -> write back.
+            var data = PlayerSaveReader.ReadFrom(UeSaveGame.SaveGame.LoadFrom(new MemoryStream(set.ReadSave(entry))));
+            PlayerSaveWriter.ApplyStats(data, data.Stats with { Money = 123456 });
+            using var ms = new MemoryStream();
+            data.Raw.WriteTo(ms);
+            set.WriteSave(entry, ms.ToArray());
+
+            // Reopen the container from disk; the edit must be there and everything else intact.
+            var reopened = GamePassSaveSet.Open(dir.FullName);
+            var entry2 = reopened.Entries().Single(e => e.Kind == GamePassSaveKind.Player);
+            var data2 = PlayerSaveReader.ReadFrom(UeSaveGame.SaveGame.LoadFrom(new MemoryStream(reopened.ReadSave(entry2))));
+            Assert.Equal(123456, data2.Stats.Money);
+            Assert.True(Directory.Exists(dir.FullName + ".bak"), "the wgs folder should be backed up on write");
+        }
+        finally
+        {
+            dir.Delete(recursive: true);
+            if (Directory.Exists(dir.FullName + ".bak")) Directory.Delete(dir.FullName + ".bak", recursive: true);
+        }
+    }
+
+    // ---- helpers: build a minimal but real wgs container folder + ABF bundle ----
+
+    private static AbfSaveBundle TestBundle(params (string Path, string Class, byte[] Body)[] members)
+    {
+        // Re-create via Parse(Serialize(...)) is circular, so build the blob by hand-serializing a
+        // bundle we construct through its own Serialize. We do that by faking a parse from a
+        // minimal hand-built blob: simplest is to use reflection-free construction via Serialize of
+        // a bundle assembled from a round-tripped empty. Instead, assemble the blob bytes directly.
+        using var ms = new MemoryStream();
+        using var w = new BinaryWriter(ms, Encoding.ASCII, leaveOpen: true);
+        WriteStr(w, "ABF_SAVE_VERSION");
+        w.Write(3);                       // version
+        w.Write(0);                       // field1
+        w.Write(16);                      // field2
+        w.Write(members.Length);
+        foreach (var m in members)
+        {
+            WriteStr(w, m.Path);
+            w.Write(m.Body.Length);
+            WriteStr(w, m.Class);
+            w.Write(0);                   // flag
+        }
+        var raw = members.SelectMany(m => m.Body).ToArray();
+        var comp = OodleCodec.Compress(raw);
+        w.Write(1);                       // method = Oodle
+        w.Write(comp.Length);
+        w.Flush();
+        ms.Write(comp, 0, comp.Length);
+        return AbfSaveBundle.Parse(ms.ToArray());
+    }
+
+    private static void WriteStr(BinaryWriter w, string s)
+    {
+        var b = Encoding.ASCII.GetBytes(s);
+        w.Write(b.Length + 1);
+        w.Write(b);
+        w.Write((byte)0);
+    }
+
+    private static void BuildSyntheticWgs(string root, string containerName, byte[] blob)
+    {
+        var folderGuid = Guid.NewGuid();
+        var folderName = folderGuid.ToString("N").ToUpperInvariant();
+        var folder = Path.Combine(root, folderName);
+        Directory.CreateDirectory(folder);
+
+        var blobGuid = Guid.NewGuid();
+        File.WriteAllBytes(Path.Combine(folder, blobGuid.ToString("N").ToUpperInvariant()), blob);
+
+        // container.1 manifest
+        using (var ms = new MemoryStream())
+        using (var w = new BinaryWriter(ms))
+        {
+            w.Write(4u); w.Write(1u);
+            var nameField = new byte[128];
+            Encoding.Unicode.GetBytes("Data").CopyTo(nameField, 0);
+            w.Write(nameField);
+            w.Write(blobGuid.ToByteArray());
+            w.Write(blobGuid.ToByteArray());
+            File.WriteAllBytes(Path.Combine(folder, "container.1"), ms.ToArray());
+        }
+
+        // containers.index
+        using (var ms = new MemoryStream())
+        using (var w = new BinaryWriter(ms, Encoding.Unicode))
+        {
+            w.Write(14u);                 // version
+            w.Write(1u);                  // container count
+            w.Write(0u);                  // reserved
+            WriteWStr(w, "Synthetic.Abiotic_Test!App");
+            w.Write(DateTime.UtcNow.ToFileTimeUtc());
+            w.Write(3u);
+            WriteWStr(w, Guid.NewGuid().ToString());
+            w.Write(new byte[8]);         // 8 reserved bytes
+            WriteWStr(w, containerName);
+            WriteWStr(w, containerName);
+            WriteWStr(w, "\"0x1\"");
+            w.Write((byte)1);             // container number -> container.1
+            w.Write(1u);                  // generation
+            w.Write(folderGuid.ToByteArray());
+            w.Write(DateTime.UtcNow.ToFileTimeUtc());
+            w.Write(0L);
+            w.Write((long)blob.Length);
+            File.WriteAllBytes(Path.Combine(root, "containers.index"), ms.ToArray());
+        }
+    }
+
+    private static void WriteWStr(BinaryWriter w, string s)
+    {
+        w.Write((uint)s.Length);
+        w.Write(Encoding.Unicode.GetBytes(s));
+    }
+}
