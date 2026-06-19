@@ -1762,6 +1762,24 @@ Pick the game's install folder (the one containing the AbioticFactor folder), it
   <data name="GameDataSettings_CardHint" xml:space="preserve">
     <value>Traders, item icons and recipes come from your installed copy of the game, not from the save. Auto-detection finds Steam installs; for a Game Pass, Epic, or moved install, set your game folder here. If a game update stops the data from loading, import an updated data file (.usmap).</value>
   </data>
+  <data name="GameDataSettings_LoadMods" xml:space="preserve">
+    <value>Load installed mods</value>
+  </data>
+  <data name="GameDataSettings_LoadModsHint" xml:space="preserve">
+    <value>Mount mods from the game's ~mods and LogicMods folders so modded items show real names, icons and stats.</value>
+  </data>
+  <data name="GameDataSettings_ModsLabel" xml:space="preserve">
+    <value>Mods:  {0}</value>
+  </data>
+  <data name="GameDataSettings_ModsNone" xml:space="preserve">
+    <value>none loaded</value>
+  </data>
+  <data name="GameDataSettings_ModsDisabledByEnv" xml:space="preserve">
+    <value>disabled by ABIOTIC_NO_MODS</value>
+  </data>
+  <data name="GameDataSettings_ModsToggledTitle" xml:space="preserve">
+    <value>Mod loading updated</value>
+  </data>
   <data name="Slot_MsgNoBoundContext" xml:space="preserve">
     <value>Slot tap: no bound context found</value>
   </data>

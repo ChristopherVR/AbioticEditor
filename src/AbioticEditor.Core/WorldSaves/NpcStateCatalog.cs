@@ -10,6 +10,9 @@ namespace AbioticEditor.Core.WorldSaves;
 /// </summary>
 public static class NpcStateCatalog
 {
+    // This vocabulary comes from a UEnum, not a DataTable, so the struct-based ModTableDiscovery
+    // does not apply. A mod that changes NPC states does so by overriding E_NarrativeNPCStates,
+    // and the mounted mod pak's enum is what loads here.
     public static IReadOnlyList<string> LoadFrom(GameAssetProvider provider)
     {
         if (!provider.HasMappings) return Array.Empty<string>();

@@ -51,70 +51,83 @@ public sealed class ItemUpgradeCatalog
 
     public bool IsUpgradable(string? itemId) => UpgradeFor(itemId) is not null;
 
+    private const string PrimaryTable = "AbioticFactor/Content/Blueprints/DataTables/DT_ItemUpgrades";
+
     public static ItemUpgradeCatalog LoadFrom(GameAssetProvider provider)
     {
         if (!provider.HasMappings) return Empty;
 
         var upgrades = new List<ItemUpgrade>();
+        string? structName = null;
         try
         {
-            var pkg = provider.LoadPackageInternal("AbioticFactor/Content/Blueprints/DataTables/DT_ItemUpgrades");
-            foreach (var dt in pkg.GetExports().OfType<UDataTable>())
-            {
-                foreach (var kv in dt.RowMap)
-                {
-                    var sourceId = kv.Key.Text;
-                    if (string.IsNullOrEmpty(sourceId)) continue;
-
-                    foreach (var p in kv.Value.Properties)
-                    {
-                        if (!p.Name.Text.StartsWith("Upgrades", StringComparison.Ordinal)) continue;
-                        foreach (var entry in StructArray(p.Tag?.GenericValue))
-                        {
-                            string? output = null;
-                            var required = new List<RecipeIngredient>();
-                            foreach (var ep in entry.Properties)
-                            {
-                                if (ep.Name.Text.StartsWith("OutputItem", StringComparison.Ordinal))
-                                {
-                                    output = RowNameOf(ep.Tag?.GenericValue);
-                                }
-                                else if (ep.Name.Text.StartsWith("RequiredItems", StringComparison.Ordinal))
-                                {
-                                    foreach (var req in StructArray(ep.Tag?.GenericValue))
-                                    {
-                                        string? itemId = null;
-                                        var n = 1;
-                                        foreach (var rp in req.Properties)
-                                        {
-                                            if (rp.Name.Text.StartsWith("Item", StringComparison.Ordinal)
-                                                && !rp.Name.Text.StartsWith("ItemCount", StringComparison.Ordinal))
-                                            {
-                                                itemId ??= RowNameOf(rp.Tag?.GenericValue);
-                                            }
-                                            else if (rp.Name.Text.StartsWith("Count", StringComparison.Ordinal))
-                                            {
-                                                n = rp.Tag?.GenericValue switch { int i => i, byte b => b, _ => 1 };
-                                            }
-                                        }
-                                        if (!string.IsNullOrEmpty(itemId)) required.Add(new RecipeIngredient(itemId!, n));
-                                    }
-                                }
-                            }
-                            if (!string.IsNullOrEmpty(output))
-                            {
-                                upgrades.Add(new ItemUpgrade(sourceId, output!, required));
-                            }
-                        }
-                    }
-                }
-            }
+            var primary = provider.TryLoadDataTable(PrimaryTable);
+            structName = primary?.RowStructName;
+            ParseRows(primary, upgrades);
         }
         catch
         {
             // Missing table -> no upgrade UI; not fatal.
         }
+
+        // Merge mod/patch upgrade tables sharing the row struct, under any content root.
+        foreach (var dt in ModTableDiscovery.LoadTablesByRowStruct(provider, structName, new[] { PrimaryTable }))
+        {
+            ParseRows(dt, upgrades);
+        }
         return new ItemUpgradeCatalog(upgrades);
+    }
+
+    private static void ParseRows(UDataTable? dt, List<ItemUpgrade> upgrades)
+    {
+        if (dt is null) return;
+        foreach (var kv in dt.RowMap)
+        {
+            var sourceId = kv.Key.Text;
+            if (string.IsNullOrEmpty(sourceId)) continue;
+
+            foreach (var p in kv.Value.Properties)
+            {
+                if (!p.Name.Text.StartsWith("Upgrades", StringComparison.Ordinal)) continue;
+                foreach (var entry in StructArray(p.Tag?.GenericValue))
+                {
+                    string? output = null;
+                    var required = new List<RecipeIngredient>();
+                    foreach (var ep in entry.Properties)
+                    {
+                        if (ep.Name.Text.StartsWith("OutputItem", StringComparison.Ordinal))
+                        {
+                            output = RowNameOf(ep.Tag?.GenericValue);
+                        }
+                        else if (ep.Name.Text.StartsWith("RequiredItems", StringComparison.Ordinal))
+                        {
+                            foreach (var req in StructArray(ep.Tag?.GenericValue))
+                            {
+                                string? itemId = null;
+                                var n = 1;
+                                foreach (var rp in req.Properties)
+                                {
+                                    if (rp.Name.Text.StartsWith("Item", StringComparison.Ordinal)
+                                        && !rp.Name.Text.StartsWith("ItemCount", StringComparison.Ordinal))
+                                    {
+                                        itemId ??= RowNameOf(rp.Tag?.GenericValue);
+                                    }
+                                    else if (rp.Name.Text.StartsWith("Count", StringComparison.Ordinal))
+                                    {
+                                        n = rp.Tag?.GenericValue switch { int i => i, byte b => b, _ => 1 };
+                                    }
+                                }
+                                if (!string.IsNullOrEmpty(itemId)) required.Add(new RecipeIngredient(itemId!, n));
+                            }
+                        }
+                    }
+                    if (!string.IsNullOrEmpty(output))
+                    {
+                        upgrades.Add(new ItemUpgrade(sourceId, output!, required));
+                    }
+                }
+            }
+        }
     }
 
     private static IEnumerable<FStructFallback> StructArray(object? value)

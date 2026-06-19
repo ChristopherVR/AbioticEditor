@@ -17,6 +17,9 @@ public sealed record SectorMapInfo(string Row, string LevelFileName, string Text
 /// </summary>
 public static class SectorMapCatalog
 {
+    private const string LevelsTable = "AbioticFactor/Content/Blueprints/DataTables/Environment/DT_Levels";
+    private const string PamphletsTable = "AbioticFactor/Content/Blueprints/DataTables/Environment/DT_MapPamphlets";
+
     /// <summary>Loads every pamphlet row that resolves to a level and a texture.</summary>
     public static IReadOnlyList<SectorMapInfo> LoadFrom(GameAssetProvider provider)
     {
@@ -25,70 +28,22 @@ public static class SectorMapCatalog
 
         try
         {
-            // DT_Levels: row name -> LevelFileName (the cooked map name doors carry).
+            // DT_Levels: row name -> LevelFileName (the cooked map name doors carry). Merge
+            // mod/patch level tables that share the row struct, under any content root.
             var levelFiles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            var levelsPkg = provider.LoadPackageInternal(
-                "AbioticFactor/Content/Blueprints/DataTables/Environment/DT_Levels");
-            foreach (var dt in levelsPkg.GetExports().OfType<UDataTable>())
+            var levelsPrimary = provider.TryLoadDataTable(LevelsTable);
+            AddLevelRows(levelsPrimary, levelFiles);
+            foreach (var dt in ModTableDiscovery.LoadTablesByRowStruct(provider, levelsPrimary?.RowStructName, new[] { LevelsTable }))
             {
-                foreach (var kv in dt.RowMap)
-                {
-                    var file = kv.Value.Properties
-                        .FirstOrDefault(p => p.Name.Text.StartsWith("LevelFileName", StringComparison.Ordinal))
-                        ?.Tag?.GenericValue?.ToString();
-                    if (!string.IsNullOrEmpty(file))
-                    {
-                        levelFiles[kv.Key.Text] = file;
-                    }
-                }
+                AddLevelRows(dt, levelFiles);
             }
 
-            var pamphletPkg = provider.LoadPackageInternal(
-                "AbioticFactor/Content/Blueprints/DataTables/Environment/DT_MapPamphlets");
-            foreach (var dt in pamphletPkg.GetExports().OfType<UDataTable>())
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var pamphletsPrimary = provider.TryLoadDataTable(PamphletsTable);
+            AddPamphletRows(pamphletsPrimary, levelFiles, result, seen);
+            foreach (var dt in ModTableDiscovery.LoadTablesByRowStruct(provider, pamphletsPrimary?.RowStructName, new[] { PamphletsTable }))
             {
-                foreach (var kv in dt.RowMap)
-                {
-                    string? texture = null;
-                    string? levelRow = null;
-                    foreach (var p in kv.Value.Properties)
-                    {
-                        if (p.Name.Text.StartsWith("MapImage", StringComparison.Ordinal))
-                        {
-                            texture = p.Tag?.GenericValue?.ToString();
-                        }
-                        else if (p.Name.Text.StartsWith("AssociatedLevel", StringComparison.Ordinal))
-                        {
-                            var v = p.Tag?.GenericValue;
-                            if (v is FScriptStruct ss) v = ss.StructType;
-                            if (v is FStructFallback handle)
-                            {
-                                levelRow = handle.Properties
-                                    .FirstOrDefault(rp => rp.Name.Text == "RowName")
-                                    ?.Tag?.GenericValue?.ToString();
-                            }
-                        }
-                    }
-
-                    if (texture is null) continue;
-
-                    // Game-data quirk: Map_Security/Map_Reactors/Map_Residence carry
-                    // stale or empty level handles (they point at Dam / None). When
-                    // the pamphlet's own row name ("Map_X") matches a DT_Levels row,
-                    // that beats a disagreeing handle.
-                    var candidate = kv.Key.Text.StartsWith("Map_", StringComparison.Ordinal)
-                        ? kv.Key.Text["Map_".Length..]
-                        : null;
-                    if (candidate is not null
-                        && levelFiles.ContainsKey(candidate)
-                        && !string.Equals(candidate, levelRow, StringComparison.OrdinalIgnoreCase))
-                    {
-                        levelRow = candidate;
-                    }
-                    if (levelRow is null || levelRow == "None") continue;
-                    if (!levelFiles.TryGetValue(levelRow, out var levelFile)) continue;
-                    result.Add(new SectorMapInfo(kv.Key.Text, levelFile, texture));
-                }
+                AddPamphletRows(dt, levelFiles, result, seen);
             }
         }
         catch (Exception ex)
@@ -96,6 +51,72 @@ public static class SectorMapCatalog
             Diagnostics.EditorLog.Warn("SectorMaps", $"Could not load sector map catalog: {ex.Message}");
         }
         return result;
+    }
+
+    private static void AddLevelRows(UDataTable? dt, Dictionary<string, string> levelFiles)
+    {
+        if (dt is null) return;
+        foreach (var kv in dt.RowMap)
+        {
+            if (levelFiles.ContainsKey(kv.Key.Text)) continue;
+            var file = kv.Value.Properties
+                .FirstOrDefault(p => p.Name.Text.StartsWith("LevelFileName", StringComparison.Ordinal))
+                ?.Tag?.GenericValue?.ToString();
+            if (!string.IsNullOrEmpty(file))
+            {
+                levelFiles[kv.Key.Text] = file;
+            }
+        }
+    }
+
+    private static void AddPamphletRows(
+        UDataTable? dt, Dictionary<string, string> levelFiles, List<SectorMapInfo> result, HashSet<string> seen)
+    {
+        if (dt is null) return;
+        foreach (var kv in dt.RowMap)
+        {
+            if (string.IsNullOrEmpty(kv.Key.Text) || !seen.Add(kv.Key.Text)) continue;
+
+            string? texture = null;
+            string? levelRow = null;
+            foreach (var p in kv.Value.Properties)
+            {
+                if (p.Name.Text.StartsWith("MapImage", StringComparison.Ordinal))
+                {
+                    texture = p.Tag?.GenericValue?.ToString();
+                }
+                else if (p.Name.Text.StartsWith("AssociatedLevel", StringComparison.Ordinal))
+                {
+                    var v = p.Tag?.GenericValue;
+                    if (v is FScriptStruct ss) v = ss.StructType;
+                    if (v is FStructFallback handle)
+                    {
+                        levelRow = handle.Properties
+                            .FirstOrDefault(rp => rp.Name.Text == "RowName")
+                            ?.Tag?.GenericValue?.ToString();
+                    }
+                }
+            }
+
+            if (texture is null) continue;
+
+            // Game-data quirk: Map_Security/Map_Reactors/Map_Residence carry
+            // stale or empty level handles (they point at Dam / None). When
+            // the pamphlet's own row name ("Map_X") matches a DT_Levels row,
+            // that beats a disagreeing handle.
+            var candidate = kv.Key.Text.StartsWith("Map_", StringComparison.Ordinal)
+                ? kv.Key.Text["Map_".Length..]
+                : null;
+            if (candidate is not null
+                && levelFiles.ContainsKey(candidate)
+                && !string.Equals(candidate, levelRow, StringComparison.OrdinalIgnoreCase))
+            {
+                levelRow = candidate;
+            }
+            if (levelRow is null || levelRow == "None") continue;
+            if (!levelFiles.TryGetValue(levelRow, out var levelFile)) continue;
+            result.Add(new SectorMapInfo(kv.Key.Text, levelFile, texture));
+        }
     }
 
     /// <summary>The sector map depicting <paramref name="levelFileName"/>, or null.</summary>

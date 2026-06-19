@@ -92,56 +92,70 @@ public static class TraitCatalog
     /// <c>CDT_AllTraits</c> table. Returns an empty dictionary when assets are
     /// unavailable - callers fall back to the static name maps above.
     /// </summary>
+    private const string PrimaryTable = "AbioticFactor/Content/Blueprints/DataTables/Traits/CDT_AllTraits";
+
     public static IReadOnlyDictionary<string, TraitDetail> LoadDetailsFrom(GameAssetProvider provider)
     {
         var result = new Dictionary<string, TraitDetail>(StringComparer.Ordinal);
         if (!provider.HasMappings) return result;
 
+        string? structName = null;
         try
         {
-            var pkg = provider.LoadPackageInternal("AbioticFactor/Content/Blueprints/DataTables/Traits/CDT_AllTraits");
-            foreach (var dt in pkg.GetExports().OfType<UDataTable>())
-            {
-                foreach (var kv in dt.RowMap)
-                {
-                    var id = kv.Key.Text;
-                    if (string.IsNullOrEmpty(id)) continue;
-
-                    string? name = null, description = null;
-                    var cost = 0;
-                    var availableOnStart = true;
-                    foreach (var p in kv.Value.Properties)
-                    {
-                        var n = p.Name.Text;
-                        if (n.StartsWith("TraitName_", StringComparison.Ordinal))
-                        {
-                            name = p.Tag?.GenericValue?.ToString();
-                        }
-                        else if (n.StartsWith("TraitDescription_", StringComparison.Ordinal))
-                        {
-                            description = p.Tag?.GenericValue?.ToString();
-                        }
-                        else if (n.StartsWith("PointCost_", StringComparison.Ordinal))
-                        {
-                            cost = p.Tag?.GenericValue switch { int i => i, byte b => b, _ => 0 };
-                        }
-                        else if (n.StartsWith("AvailableOnStart", StringComparison.Ordinal))
-                        {
-                            availableOnStart = p.Tag?.GenericValue is not bool b || b;
-                        }
-                    }
-                    // Cut traits (Dyslexia, Fumbler, ...) carry genuinely empty FText
-                    // descriptions - normalize to null so the UI can fall back.
-                    if (string.IsNullOrWhiteSpace(description)) description = null;
-                    var isBackground = Backgrounds.ContainsKey(id) || !id.StartsWith("Trait_", StringComparison.Ordinal);
-                    result[id] = new TraitDetail(id, name ?? DisplayNameFor(id), description, cost, isBackground, availableOnStart);
-                }
-            }
+            var primary = provider.TryLoadDataTable(PrimaryTable);
+            structName = primary?.RowStructName;
+            ParseRows(primary, result);
         }
         catch
         {
             // Details are optional polish.
         }
+
+        // Traits are id-keyed (not positional), so merging mod/patch trait tables that share
+        // the row struct is safe. Base rows already present win on id conflict.
+        foreach (var dt in ModTableDiscovery.LoadTablesByRowStruct(provider, structName, new[] { PrimaryTable }))
+        {
+            ParseRows(dt, result);
+        }
         return result;
+    }
+
+    private static void ParseRows(UDataTable? dt, Dictionary<string, TraitDetail> result)
+    {
+        if (dt is null) return;
+        foreach (var kv in dt.RowMap)
+        {
+            var id = kv.Key.Text;
+            if (string.IsNullOrEmpty(id) || result.ContainsKey(id)) continue;
+
+            string? name = null, description = null;
+            var cost = 0;
+            var availableOnStart = true;
+            foreach (var p in kv.Value.Properties)
+            {
+                var n = p.Name.Text;
+                if (n.StartsWith("TraitName_", StringComparison.Ordinal))
+                {
+                    name = p.Tag?.GenericValue?.ToString();
+                }
+                else if (n.StartsWith("TraitDescription_", StringComparison.Ordinal))
+                {
+                    description = p.Tag?.GenericValue?.ToString();
+                }
+                else if (n.StartsWith("PointCost_", StringComparison.Ordinal))
+                {
+                    cost = p.Tag?.GenericValue switch { int i => i, byte b => b, _ => 0 };
+                }
+                else if (n.StartsWith("AvailableOnStart", StringComparison.Ordinal))
+                {
+                    availableOnStart = p.Tag?.GenericValue is not bool b || b;
+                }
+            }
+            // Cut traits (Dyslexia, Fumbler, ...) carry genuinely empty FText
+            // descriptions - normalize to null so the UI can fall back.
+            if (string.IsNullOrWhiteSpace(description)) description = null;
+            var isBackground = Backgrounds.ContainsKey(id) || !id.StartsWith("Trait_", StringComparison.Ordinal);
+            result[id] = new TraitDetail(id, name ?? DisplayNameFor(id), description, cost, isBackground, availableOnStart);
+        }
     }
 }

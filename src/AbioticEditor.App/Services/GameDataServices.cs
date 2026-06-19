@@ -40,6 +40,27 @@ public static class GameDataServices
     }
 
     /// <summary>
+    /// Whether the editor mounts Abiotic Factor mod paks (<c>~mods</c>/<c>LogicMods</c>). Backed
+    /// by <see cref="Core.Assets.ModLoadStore"/> so the CLI honors the same choice. Setting it
+    /// only persists the flag; call <see cref="ReloadAsync"/> to apply it live. The
+    /// <c>ABIOTIC_NO_MODS</c> env var still forces this off (see <see cref="ModsDisabledByEnv"/>).
+    /// </summary>
+    public static bool ModsEnabled
+    {
+        get => Core.Assets.ModLoadStore.ModsEnabled;
+        set => Core.Assets.ModLoadStore.SetPersistedEnabled(value);
+    }
+
+    /// <summary>True when the <c>ABIOTIC_NO_MODS</c> env var force-disables mods (toggle is locked off).</summary>
+    public static bool ModsDisabledByEnv => Core.Assets.ModLoadStore.DisabledByEnv;
+
+    /// <summary>
+    /// File names of the mod paks currently mounted from the install's <c>~mods</c>/<c>LogicMods</c>
+    /// folders (empty when none are present or mods are disabled). Display-only.
+    /// </summary>
+    public static IReadOnlyList<string> LoadedMods => _provider?.LoadedMods ?? Array.Empty<string>();
+
+    /// <summary>
     /// True only once the game paks mounted AND usmap mappings loaded - the state every
     /// asset-backed catalog (traders, items, recipes, ...) needs to be non-empty. Drives
     /// the editor's "game data not found" empty states. Note this is about the <em>live</em>

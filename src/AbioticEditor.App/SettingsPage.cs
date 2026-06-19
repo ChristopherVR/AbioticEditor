@@ -223,6 +223,19 @@ public sealed class SettingsPage : ContentPage
         var locateFolder = new Button { Text = loc["GameDataSettings_SetGameFolder"] };
         var autoDetect = ModalChrome.Button(loc["GameDataSettings_UseAutoDetect"], primary: false);
 
+        var modsValue = new Label
+        {
+            Style = ModalChrome.St("AfFieldValue"),
+            FontSize = 12,
+            LineBreakMode = LineBreakMode.WordWrap,
+        };
+        var modsSwitch = new Switch
+        {
+            IsToggled = Services.GameDataServices.ModsEnabled,
+            // ABIOTIC_NO_MODS wins over the persisted flag; lock the toggle off when it's set.
+            IsEnabled = !Services.GameDataServices.ModsDisabledByEnv,
+        };
+
         void Refresh()
         {
             var custom = Services.GameDataServices.CustomInstallPath;
@@ -247,6 +260,16 @@ public sealed class SettingsPage : ContentPage
                         : loc["GameDataSettings_UsmapBundled"]));
 
             autoDetect.IsVisible = custom is not null;
+
+            // Which mod paks are currently mounted (or why none are).
+            var mods = Services.GameDataServices.LoadedMods;
+            var modsText = Services.GameDataServices.ModsDisabledByEnv
+                ? loc["GameDataSettings_ModsDisabledByEnv"]
+                : mods.Count == 0
+                    ? loc["GameDataSettings_ModsNone"]
+                    : $"{mods.Count}: {string.Join(", ", mods)}";
+            modsValue.Text = loc.Format("GameDataSettings_ModsLabel", modsText);
+            modsSwitch.IsToggled = Services.GameDataServices.ModsEnabled;
         }
 
         Refresh();
@@ -301,6 +324,14 @@ public sealed class SettingsPage : ContentPage
             await ApplyAndReloadAsync(loc["GameDataSettings_AutoDetectRestoredTitle"]);
         };
 
+        modsSwitch.Toggled += async (_, e) =>
+        {
+            if (e.Value == Services.GameDataServices.ModsEnabled) return;
+            Services.GameDataServices.ModsEnabled = e.Value;
+            EditorLog.Info("Settings", $"Mod loading {(e.Value ? "enabled" : "disabled")}");
+            await ApplyAndReloadAsync(loc["GameDataSettings_ModsToggledTitle"]);
+        };
+
         var importUsmap = new Button { Text = loc["GameDataSettings_ImportDataFile"], Command = _vm.ImportMappingsCommand };
 
         return ModalChrome.Card(loc["Settings_GameData"],
@@ -309,7 +340,10 @@ public sealed class SettingsPage : ContentPage
             folderValue,
             usmapValue,
             new HorizontalStackLayout { Spacing = 10, Children = { locateFolder, autoDetect } },
-            new HorizontalStackLayout { Spacing = 10, Children = { importUsmap } });
+            new HorizontalStackLayout { Spacing = 10, Children = { importUsmap } },
+            LabeledRow(loc["GameDataSettings_LoadMods"], modsSwitch),
+            new Label { Style = ModalChrome.St("AfMuted"), FontSize = 11, Text = loc["GameDataSettings_LoadModsHint"] },
+            modsValue);
     }
 
     /// <summary>

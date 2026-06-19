@@ -116,6 +116,14 @@ public static class SkillCatalog
     /// order and skipping rows whose display name carries the DONOTUSE marker. Returns
     /// <see cref="Fallback"/> when mappings are missing or the table can't be read.
     /// </summary>
+    /// <remarks>
+    /// Skills are positional (identity = index in the save's <c>Skills_</c> array, matching
+    /// DT_Skills row order), so this intentionally does NOT merge separately-added mod skill
+    /// tables: their position relative to the base rows is unknown and a wrong guess would
+    /// mismap every skill after it. A mod that adds skills by overriding DT_Skills itself is
+    /// supported automatically (the mounted mod pak's table wins). A save whose array is longer
+    /// than the catalog still round-trips safely via <see cref="WithUnknownPlaceholders"/>.
+    /// </remarks>
     public static IReadOnlyList<SkillDefinition> LoadFrom(GameAssetProvider provider)
     {
         if (!provider.HasMappings) return Fallback;

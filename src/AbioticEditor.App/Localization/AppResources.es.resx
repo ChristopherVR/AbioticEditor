@@ -1710,6 +1710,24 @@ Elige la carpeta de instalación del juego (la que contiene la carpeta AbioticFa
   <data name="GameDataSettings_CardHint" xml:space="preserve">
     <value>Los comerciantes, los iconos de los objetos y las recetas provienen de tu copia instalada del juego, no del guardado. La detección automática encuentra instalaciones de Steam; para una instalación de Game Pass, Epic o movida, establece aquí tu carpeta del juego. Si una actualización del juego impide cargar los datos, importa un archivo de datos actualizado (.usmap).</value>
   </data>
+  <data name="GameDataSettings_LoadMods" xml:space="preserve">
+    <value>Cargar mods instalados</value>
+  </data>
+  <data name="GameDataSettings_LoadModsHint" xml:space="preserve">
+    <value>Monta los mods de las carpetas ~mods y LogicMods del juego para que los objetos modificados muestren nombres, iconos y estadísticas.</value>
+  </data>
+  <data name="GameDataSettings_ModsLabel" xml:space="preserve">
+    <value>Mods:  {0}</value>
+  </data>
+  <data name="GameDataSettings_ModsNone" xml:space="preserve">
+    <value>ninguno cargado</value>
+  </data>
+  <data name="GameDataSettings_ModsDisabledByEnv" xml:space="preserve">
+    <value>desactivado por ABIOTIC_NO_MODS</value>
+  </data>
+  <data name="GameDataSettings_ModsToggledTitle" xml:space="preserve">
+    <value>Carga de mods actualizada</value>
+  </data>
   <data name="Slot_MsgNoBoundContext" xml:space="preserve">
     <value>Toque de ranura: no se encontró contexto vinculado</value>
   </data>

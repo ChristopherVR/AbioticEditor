@@ -5,6 +5,35 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-37: mod support (mount mod paks + struct-based table discovery) (2026-06-19)
+- **The blocker was one line:** `GameAssetProvider.CreateForPaks` mounted with
+  `SearchOption.TopDirectoryOnly`, so mod paks in `Content/Paks/~mods` and `LogicMods` never
+  mounted. Added an `includeMods` flag (threaded through `CreateForLocalInstall`): true ->
+  `AllDirectories` (mounts mods), false -> base-only. New `GameAssetProvider.LoadedMods` lists the
+  mounted mod paks (enumerated by `AfInstallLocator.FindModPaks`, "a pak in a subfolder is a mod").
+- **Auto-load with a toggle:** new `Core/Assets/ModLoadStore` (boolean marker next to `gamepath.txt`,
+  default on) + `ABIOTIC_NO_MODS=1` env override (mirrors `ABIOTIC_NO_PLUGINS`).
+  `CreateForLocalInstall(includeMods: null)` honors the store.
+- **Generic mod-table discovery:** new `Core/Assets/ModTableDiscovery.DiscoverTablesByRowStruct`
+  finds mod/patch DataTables by matching `UDataTable.RowStructName` (mods must reuse the game's row
+  struct), across ANY content root - not just `AbioticFactor/Content`. Candidate set gated by
+  datatable-name shape (`DT_`/`CDT_`/`ItemTable_`/...); index built once per provider (cached).
+- **Applied to every table-backed catalog** (Item, Recipe, Map, ItemUpgrade, Trait, Trader,
+  Codex emails/journals/compendium/fish, SectorMap): load base table by name -> discover by its row
+  struct -> merge non-conflicting rows (base wins). `SkillCatalog` deliberately NOT merged
+  (positional; mod skills come via DT_Skills override). `NpcStateCatalog` is a UEnum (override-only).
+  `PetCatalog` NPC-class root conversion fixed to preserve mod mount points (`/<Mod>/...` not `/Game`).
+- **Mod content already degraded gracefully before this** (unknown ids show the raw id, editable,
+  byte-perfect round-trip); this upgrades it to real names/icons/stats.
+- **App:** `GameDataServices.ModsEnabled`/`LoadedMods`/`ModsDisabledByEnv`; Settings > Game Data card
+  shows a "Load installed mods" toggle (locked off when env-disabled) + the mounted-mods line.
+  New `GameDataSettings_*` resx keys across en/de/es/fr.
+- **CLI:** `dump-registry` now mounts base-only (`includeMods: false`) so the bundled registry stays
+  clean; other commands honor the toggle/env var via the default.
+- Tests: new `ModSupportTests` (FindModPaks, `LooksLikeDataTable` gate, env override, base-only =
+  no mods). Full suite green (573 assertion tests).
+- Follow-ups: mod.io cache-dir mounting, per-mod enable/disable UI, `DoorClassCatalog` (curated list).
+
 ## Round-36: non-Steam identity + full Game Pass (Xbox container) support (2026-06-19)
 - **Opaque player identity** (commit 149b9cc): generalized the player id from a numeric `ulong`
   SteamID64 to an opaque string across Core/CLI/App so Game Pass / Epic / non-Steam saves are

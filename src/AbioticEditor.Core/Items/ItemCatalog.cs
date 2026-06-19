@@ -63,10 +63,11 @@ public sealed class ItemCatalog
     private const string PrimaryTable = "AbioticFactor/Content/Blueprints/Items/ItemTable_Global";
 
     /// <summary>
-    /// True when <paramref name="assetPath"/> (a mounted pak file path) is an item
-    /// DataTable we don't load by name yet - i.e. any <c>ItemTable_*.uasset</c> in the
-    /// Items directory other than <c>ItemTable_Global</c>. Used so future DLC tables that
-    /// ship alongside the main pak are picked up automatically.
+    /// True when <paramref name="assetPath"/> (a mounted pak file path) is named like a
+    /// base-game supplemental item table - any <c>ItemTable_*.uasset</c> in the Items directory
+    /// other than <c>ItemTable_Global</c>. Kept as a name-shape helper; actual discovery is now
+    /// struct-based (see <see cref="DiscoverSupplementalTables"/>), which also catches mod item
+    /// tables under their own content root.
     /// </summary>
     public static bool IsSupplementalItemTable(string assetPath)
     {
@@ -83,26 +84,15 @@ public sealed class ItemCatalog
     }
 
     /// <summary>
-    /// Scans the mounted asset list for <c>ItemTable_*.uasset</c> files other than
-    /// <c>ItemTable_Global</c> and returns their package paths (no extension). Used to
-    /// pick up DLC item tables added by future game patches without an editor update.
+    /// Finds item DataTables beyond <c>ItemTable_Global</c> by matching its row struct
+    /// (see <see cref="ModTableDiscovery"/>), returning their package paths (no extension).
+    /// This picks up both DLC tables added by future patches and mod item tables under any
+    /// content root (e.g. <c>MyMod/Content/...</c>).
     /// </summary>
     public static IReadOnlyList<string> DiscoverSupplementalTables(GameAssetProvider provider)
     {
-        var result = new List<string>();
-        try
-        {
-            foreach (var assetPath in provider.AssetPaths)
-            {
-                if (IsSupplementalItemTable(assetPath))
-                    result.Add(assetPath[..^".uasset".Length]);
-            }
-        }
-        catch (Exception ex)
-        {
-            Diagnostics.EditorLog.Warn("ItemCatalog", "Item table discovery scan failed.", ex);
-        }
-        return result;
+        var structName = provider.TryLoadDataTable(PrimaryTable)?.RowStructName;
+        return ModTableDiscovery.DiscoverTablesByRowStruct(provider, structName, new[] { PrimaryTable });
     }
 
     /// <summary>

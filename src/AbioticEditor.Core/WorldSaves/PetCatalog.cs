@@ -302,9 +302,19 @@ public static class PetCatalog
 
             // "AbioticFactor/Content/Blueprints/Characters/NPCs/NPC_Peccary_Sow.uasset"
             //   -> "/Game/Blueprints/Characters/NPCs/NPC_Peccary_Sow.NPC_Peccary_Sow_C"
+            // A mod's own content root maps to its UE mount point ("/<ModName>/..."), not /Game,
+            // so mod NPC classes resolve correctly instead of being forced under /Game.
             var pkg = key[..^".uasset".Length];
             var idx = pkg.IndexOf("/Content/", StringComparison.OrdinalIgnoreCase);
-            pkg = idx >= 0 ? "/Game" + pkg[(idx + "/Content".Length)..] : pkg;
+            if (idx >= 0)
+            {
+                var root = pkg[..idx];
+                var rootName = root[(root.LastIndexOf('/') + 1)..];
+                var mount = rootName.Equals("AbioticFactor", StringComparison.OrdinalIgnoreCase)
+                    ? "/Game"
+                    : "/" + rootName;
+                pkg = mount + pkg[(idx + "/Content".Length)..];
+            }
             yield return (name, $"{pkg}.{name}_C");
         }
     }

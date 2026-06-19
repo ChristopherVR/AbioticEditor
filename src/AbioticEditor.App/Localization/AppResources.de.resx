@@ -1710,6 +1710,24 @@ Wähle den Installationsordner des Spiels (den mit dem AbioticFactor-Ordner), se
   <data name="GameDataSettings_CardHint" xml:space="preserve">
     <value>Händler, Gegenstandssymbole und Rezepte stammen aus deiner installierten Kopie des Spiels, nicht aus dem Spielstand. Die Auto-Erkennung findet Steam-Installationen; für eine Game-Pass-, Epic- oder verschobene Installation lege hier deinen Spielordner fest. Wenn ein Spiel-Update das Laden der Daten verhindert, importiere eine aktualisierte Datendatei (.usmap).</value>
   </data>
+  <data name="GameDataSettings_LoadMods" xml:space="preserve">
+    <value>Installierte Mods laden</value>
+  </data>
+  <data name="GameDataSettings_LoadModsHint" xml:space="preserve">
+    <value>Mods aus den Ordnern ~mods und LogicMods des Spiels einbinden, damit modifizierte Gegenstände Namen, Symbole und Werte anzeigen.</value>
+  </data>
+  <data name="GameDataSettings_ModsLabel" xml:space="preserve">
+    <value>Mods:  {0}</value>
+  </data>
+  <data name="GameDataSettings_ModsNone" xml:space="preserve">
+    <value>keine geladen</value>
+  </data>
+  <data name="GameDataSettings_ModsDisabledByEnv" xml:space="preserve">
+    <value>deaktiviert durch ABIOTIC_NO_MODS</value>
+  </data>
+  <data name="GameDataSettings_ModsToggledTitle" xml:space="preserve">
+    <value>Mod-Laden aktualisiert</value>
+  </data>
   <data name="Slot_MsgNoBoundContext" xml:space="preserve">
     <value>Slot-Tippen: kein gebundener Kontext gefunden</value>
   </data>

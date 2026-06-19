@@ -10,25 +10,40 @@ namespace AbioticEditor.Core.Items;
 /// </summary>
 public static class MapCatalog
 {
+    private const string PrimaryTable = "AbioticFactor/Content/Blueprints/DataTables/Environment/DT_MapPamphlets";
+
     public static IReadOnlyList<string> LoadFrom(GameAssetProvider provider)
     {
         if (!provider.HasMappings) return Array.Empty<string>();
+
+        var result = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        string? structName = null;
         try
         {
-            var pkg = provider.LoadPackageInternal("AbioticFactor/Content/Blueprints/DataTables/Environment/DT_MapPamphlets");
-            var result = new List<string>();
-            foreach (var dt in pkg.GetExports().OfType<UDataTable>())
-            {
-                foreach (var kv in dt.RowMap)
-                {
-                    if (!string.IsNullOrEmpty(kv.Key.Text)) result.Add(kv.Key.Text);
-                }
-            }
-            return result;
+            var primary = provider.TryLoadDataTable(PrimaryTable);
+            structName = primary?.RowStructName;
+            AddRows(primary, result, seen);
         }
         catch
         {
-            return Array.Empty<string>();
+            return result;
+        }
+
+        // Merge mod/patch map tables that share the pamphlet row struct, under any content root.
+        foreach (var dt in ModTableDiscovery.LoadTablesByRowStruct(provider, structName, new[] { PrimaryTable }))
+        {
+            AddRows(dt, result, seen);
+        }
+        return result;
+    }
+
+    private static void AddRows(UDataTable? dt, List<string> result, HashSet<string> seen)
+    {
+        if (dt is null) return;
+        foreach (var kv in dt.RowMap)
+        {
+            if (!string.IsNullOrEmpty(kv.Key.Text) && seen.Add(kv.Key.Text)) result.Add(kv.Key.Text);
         }
     }
 }

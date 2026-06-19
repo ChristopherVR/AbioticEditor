@@ -86,6 +86,51 @@ public static class AfInstallLocator
         return LooksLikePaksDirectory(path) ? path : null;
     }
 
+    /// <summary>
+    /// The conventional mod-pak subfolders of a <c>Content/Paks</c> directory:
+    /// <c>~mods</c> (UE5 pak mods) and <c>LogicMods</c> (UE4SS/blueprint mods). These are
+    /// where mod managers (Vortex/Nexus) and the game place active mods.
+    /// </summary>
+    public static readonly IReadOnlyList<string> ModSubfolderNames = new[] { "~mods", "LogicMods" };
+
+    /// <summary>
+    /// Returns the mod-pak files (<c>*.pak</c>/<c>*.utoc</c>) living under the
+    /// <see cref="ModSubfolderNames"/> of <paramref name="paksDirectory"/>, recursively.
+    /// These are the paks the editor treats as mods (anything in a subfolder of Paks).
+    /// Returns an empty list when <paramref name="paksDirectory"/> is null/missing or has
+    /// no mod folders. Best-effort: an unreadable folder is skipped, never throws.
+    /// </summary>
+    public static IReadOnlyList<string> FindModPaks(string? paksDirectory)
+    {
+        if (string.IsNullOrWhiteSpace(paksDirectory) || !Directory.Exists(paksDirectory))
+        {
+            return Array.Empty<string>();
+        }
+
+        var result = new List<string>();
+        foreach (var sub in ModSubfolderNames)
+        {
+            var dir = Path.Combine(paksDirectory, sub);
+            if (!Directory.Exists(dir)) continue;
+            try
+            {
+                foreach (var file in Directory.EnumerateFiles(dir, "*.*", SearchOption.AllDirectories))
+                {
+                    if (file.EndsWith(".pak", StringComparison.OrdinalIgnoreCase)
+                        || file.EndsWith(".utoc", StringComparison.OrdinalIgnoreCase))
+                    {
+                        result.Add(file);
+                    }
+                }
+            }
+            catch
+            {
+                // Best-effort: an unreadable mod folder just contributes nothing.
+            }
+        }
+        return result;
+    }
+
     /// <summary>True when <paramref name="dir"/> exists and holds at least one pak/utoc.</summary>
     private static bool LooksLikePaksDirectory(string dir)
     {

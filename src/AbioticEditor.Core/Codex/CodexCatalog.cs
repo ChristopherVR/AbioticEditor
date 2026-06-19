@@ -95,24 +95,39 @@ public static class CodexCatalog
         GameAssetProvider provider, string path, Func<string, FStructFallback, T?> build) where T : class
     {
         if (!provider.HasMappings) return Array.Empty<T>();
+
+        var result = new List<T>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        string? structName = null;
         try
         {
-            var pkg = provider.LoadPackageInternal(path);
-            var result = new List<T>();
-            foreach (var dt in pkg.GetExports().OfType<UDataTable>())
-            {
-                foreach (var kv in dt.RowMap)
-                {
-                    var id = kv.Key.Text;
-                    if (string.IsNullOrEmpty(id)) continue;
-                    if (build(id, kv.Value) is { } entry) result.Add(entry);
-                }
-            }
-            return result;
+            var primary = provider.TryLoadDataTable(path);
+            structName = primary?.RowStructName;
+            AddRows(primary, build, result, seen);
         }
         catch
         {
-            return Array.Empty<T>();
+            return result;
+        }
+
+        // Merge mod/patch tables of the same row struct (under any content root). Codex entries
+        // are id-keyed, so first-seen (base) rows win on conflict.
+        foreach (var dt in ModTableDiscovery.LoadTablesByRowStruct(provider, structName, new[] { path }))
+        {
+            AddRows(dt, build, result, seen);
+        }
+        return result;
+    }
+
+    private static void AddRows<T>(
+        UDataTable? dt, Func<string, FStructFallback, T?> build, List<T> result, HashSet<string> seen) where T : class
+    {
+        if (dt is null) return;
+        foreach (var kv in dt.RowMap)
+        {
+            var id = kv.Key.Text;
+            if (string.IsNullOrEmpty(id) || !seen.Add(id)) continue;
+            if (build(id, kv.Value) is { } entry) result.Add(entry);
         }
     }
 

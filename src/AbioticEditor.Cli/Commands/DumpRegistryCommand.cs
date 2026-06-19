@@ -49,7 +49,9 @@ internal static class DumpRegistryCommand
             ? Path.GetFullPath(GameDataRegistry.RegistryFileName)
             : Path.GetFullPath(output);
 
-        using var provider = GameAssetProvider.CreateForLocalInstall();
+        // Base game only: the bundled registry must stay clean and reproducible, so it never
+        // picks up content from any mods installed on the maintainer's machine.
+        using var provider = GameAssetProvider.CreateForLocalInstall(includeMods: false);
         if (provider is null)
         {
             throw new CliUserErrorException(

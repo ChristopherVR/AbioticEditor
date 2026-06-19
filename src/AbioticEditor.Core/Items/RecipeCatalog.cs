@@ -54,9 +54,10 @@ public static class RecipeCatalog
 
     /// <summary>
     /// True when <paramref name="assetPath"/> (a mounted pak file path like
-    /// <c>AbioticFactor/Content/Blueprints/DataTables/DT_FooRecipes.uasset</c>) is a
-    /// recipe DataTable we don't already load by name. Future-proofing: a game patch
-    /// adding e.g. <c>DT_BakingRecipes</c> gets picked up without an editor update.
+    /// <c>AbioticFactor/Content/Blueprints/DataTables/DT_FooRecipes.uasset</c>) is named like a
+    /// base-game recipe DataTable we don't already load by name. Kept as a name-shape helper;
+    /// actual discovery is now struct-based (see <see cref="DiscoverExtraTables"/>), which also
+    /// catches mod recipe tables under their own content root.
     /// </summary>
     public static bool IsDiscoveredRecipeTable(string assetPath)
     {
@@ -79,27 +80,32 @@ public static class RecipeCatalog
     }
 
     /// <summary>
-    /// Scans the mounted asset list for <c>Blueprints/DataTables/DT_*Recipes</c> tables
-    /// that are not in the known list, returning their package paths (no extension).
-    /// With current game data this is empty - it exists so rows from tables added by
-    /// future patches still reach the recipe vocabulary.
+    /// Finds recipe DataTables beyond the three known ones by matching their row struct
+    /// (see <see cref="ModTableDiscovery"/>), returning their package paths (no extension).
+    /// This picks up both future-patch tables and mod recipe tables under any content root.
+    /// With a clean install it is typically empty.
     /// </summary>
     public static IReadOnlyList<string> DiscoverExtraTables(GameAssetProvider provider)
     {
-        var result = new List<string>();
-        try
+        var knownPaths = Tables.Select(t => t.Path).ToArray();
+
+        // The three known tables may use distinct recipe row structs (crafting vs soup vs
+        // chemistry); discover for each so a mod table matching any of them is picked up.
+        var structNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (path, _) in Tables)
         {
-            foreach (var assetPath in provider.AssetPaths)
-            {
-                if (IsDiscoveredRecipeTable(assetPath))
-                {
-                    result.Add(assetPath[..^".uasset".Length]);
-                }
-            }
+            var s = provider.TryLoadDataTable(path)?.RowStructName;
+            if (!string.IsNullOrEmpty(s)) structNames.Add(s!);
         }
-        catch (Exception ex)
+
+        var result = new List<string>();
+        var seen = new HashSet<string>(knownPaths, StringComparer.OrdinalIgnoreCase);
+        foreach (var structName in structNames)
         {
-            Diagnostics.EditorLog.Warn("RecipeCatalog", "Recipe table discovery scan failed.", ex);
+            foreach (var path in ModTableDiscovery.DiscoverTablesByRowStruct(provider, structName, knownPaths))
+            {
+                if (seen.Add(path)) result.Add(path);
+            }
         }
         return result;
     }

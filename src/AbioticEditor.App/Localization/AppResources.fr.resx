@@ -1710,6 +1710,24 @@ Choisissez le dossier d'installation du jeu (celui contenant le dossier AbioticF
   <data name="GameDataSettings_CardHint" xml:space="preserve">
     <value>Les marchands, les icônes d'objets et les recettes proviennent de votre copie installée du jeu, pas de la sauvegarde. La détection automatique trouve les installations Steam ; pour une installation Game Pass, Epic ou déplacée, définissez ici votre dossier du jeu. Si une mise à jour du jeu empêche le chargement des données, importez un fichier de données à jour (.usmap).</value>
   </data>
+  <data name="GameDataSettings_LoadMods" xml:space="preserve">
+    <value>Charger les mods installés</value>
+  </data>
+  <data name="GameDataSettings_LoadModsHint" xml:space="preserve">
+    <value>Monte les mods des dossiers ~mods et LogicMods du jeu pour que les objets moddés affichent noms, icônes et statistiques.</value>
+  </data>
+  <data name="GameDataSettings_ModsLabel" xml:space="preserve">
+    <value>Mods :  {0}</value>
+  </data>
+  <data name="GameDataSettings_ModsNone" xml:space="preserve">
+    <value>aucun chargé</value>
+  </data>
+  <data name="GameDataSettings_ModsDisabledByEnv" xml:space="preserve">
+    <value>désactivé par ABIOTIC_NO_MODS</value>
+  </data>
+  <data name="GameDataSettings_ModsToggledTitle" xml:space="preserve">
+    <value>Chargement des mods mis à jour</value>
+  </data>
   <data name="Slot_MsgNoBoundContext" xml:space="preserve">
     <value>Appui sur emplacement : aucun contexte lié trouvé</value>
   </data>

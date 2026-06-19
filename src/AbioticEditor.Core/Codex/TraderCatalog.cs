@@ -30,6 +30,9 @@ public static partial class TraderCatalog
     /// read - so the editor always shows traders and their unlock flags. Live data supersedes
     /// the snapshot (and adds pak-only portraits) whenever the game is available.
     /// </summary>
+    private const string TradersTable = "AbioticFactor/Content/Blueprints/DataTables/NarrativeNPCs/DT_NPC_Traders";
+    private const string TraderItemsTable = "AbioticFactor/Content/Blueprints/DataTables/NarrativeNPCs/DT_NPC_TraderItems";
+
     public static IReadOnlyList<TraderInfo> LoadFrom(GameAssetProvider provider)
     {
         if (!provider.HasMappings) return Fallback;
@@ -37,45 +40,16 @@ public static partial class TraderCatalog
         {
             var stock = LoadStock(provider);
 
-            var pkg = provider.LoadPackageInternal("AbioticFactor/Content/Blueprints/DataTables/NarrativeNPCs/DT_NPC_Traders");
             var result = new List<TraderInfo>();
-            foreach (var dt in pkg.GetExports().OfType<UDataTable>())
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var primary = provider.TryLoadDataTable(TradersTable);
+            var structName = primary?.RowStructName;
+            AddTraderRows(primary, stock, result, seen);
+
+            // Merge mod/patch trader tables (same row struct, any content root); base wins.
+            foreach (var dt in ModTableDiscovery.LoadTablesByRowStruct(provider, structName, new[] { TradersTable }))
             {
-                foreach (var kv in dt.RowMap)
-                {
-                    var id = kv.Key.Text;
-                    if (string.IsNullOrEmpty(id)) continue;
-
-                    string? image = null, stockRow = null;
-                    var flags = new List<string>();
-                    foreach (var p in kv.Value.Properties)
-                    {
-                        switch (p.Name.Text)
-                        {
-                            case "NPCImage":
-                                image = p.Tag?.GenericValue?.ToString();
-                                break;
-                            case "NPCTradeInventory":
-                                stockRow = RowNameOf(p.Tag?.GenericValue);
-                                break;
-                            case "RequiredWorldFlags":
-                                if (p.Tag?.GenericValue is UScriptArray arr)
-                                {
-                                    foreach (var fp in arr.Properties)
-                                    {
-                                        var f = RowNameOf(fp.GenericValue);
-                                        if (!string.IsNullOrEmpty(f) && f != "None") flags.Add(f!);
-                                    }
-                                }
-                                break;
-                        }
-                    }
-
-                    var (sells, accepts) = stockRow is not null && stock.TryGetValue(stockRow, out var s)
-                        ? s
-                        : (Array.Empty<TraderOffer>() as IReadOnlyList<TraderOffer>, Array.Empty<TraderOffer>() as IReadOnlyList<TraderOffer>);
-                    result.Add(new TraderInfo(id, image, flags, sells, accepts));
-                }
+                AddTraderRows(dt, stock, result, seen);
             }
             return result.Count > 0 ? result : Fallback;
         }
@@ -85,73 +59,131 @@ public static partial class TraderCatalog
         }
     }
 
+    private static void AddTraderRows(
+        UDataTable? dt,
+        Dictionary<string, (IReadOnlyList<TraderOffer> Sells, IReadOnlyList<TraderOffer> Accepts)> stock,
+        List<TraderInfo> result,
+        HashSet<string> seen)
+    {
+        if (dt is null) return;
+        foreach (var kv in dt.RowMap)
+        {
+            var id = kv.Key.Text;
+            if (string.IsNullOrEmpty(id) || !seen.Add(id)) continue;
+
+            string? image = null, stockRow = null;
+            var flags = new List<string>();
+            foreach (var p in kv.Value.Properties)
+            {
+                switch (p.Name.Text)
+                {
+                    case "NPCImage":
+                        image = p.Tag?.GenericValue?.ToString();
+                        break;
+                    case "NPCTradeInventory":
+                        stockRow = RowNameOf(p.Tag?.GenericValue);
+                        break;
+                    case "RequiredWorldFlags":
+                        if (p.Tag?.GenericValue is UScriptArray arr)
+                        {
+                            foreach (var fp in arr.Properties)
+                            {
+                                var f = RowNameOf(fp.GenericValue);
+                                if (!string.IsNullOrEmpty(f) && f != "None") flags.Add(f!);
+                            }
+                        }
+                        break;
+                }
+            }
+
+            var (sells, accepts) = stockRow is not null && stock.TryGetValue(stockRow, out var s)
+                ? s
+                : (Array.Empty<TraderOffer>() as IReadOnlyList<TraderOffer>, Array.Empty<TraderOffer>() as IReadOnlyList<TraderOffer>);
+            result.Add(new TraderInfo(id, image, flags, sells, accepts));
+        }
+    }
+
     private static Dictionary<string, (IReadOnlyList<TraderOffer> Sells, IReadOnlyList<TraderOffer> Accepts)>
         LoadStock(GameAssetProvider provider)
     {
         var result = new Dictionary<string, (IReadOnlyList<TraderOffer>, IReadOnlyList<TraderOffer>)>(StringComparer.OrdinalIgnoreCase);
-        var pkg = provider.LoadPackageInternal("AbioticFactor/Content/Blueprints/DataTables/NarrativeNPCs/DT_NPC_TraderItems");
-        foreach (var dt in pkg.GetExports().OfType<UDataTable>())
+        var primary = provider.TryLoadDataTable(TraderItemsTable);
+        var structName = primary?.RowStructName;
+        AddStockRows(primary, result);
+
+        // Merge mod/patch trader-stock tables (same row struct); base wins on conflict.
+        foreach (var dt in ModTableDiscovery.LoadTablesByRowStruct(provider, structName, new[] { TraderItemsTable }))
         {
-            foreach (var kv in dt.RowMap)
-            {
-                var sells = new List<TraderOffer>();
-                var accepts = new List<TraderOffer>();
-                foreach (var p in kv.Value.Properties)
-                {
-                    if (p.Name.Text.StartsWith("BuyableItems_", StringComparison.Ordinal))
-                    {
-                        // { Item_2 = { Item_5 = handle, Count_6 }, WorldFlagToMakeAvailable_9, AvailableStock_13 }
-                        foreach (var entry in StructArray(p.Tag?.GenericValue))
-                        {
-                            string? itemId = null, flag = null;
-                            var count = 1;
-                            foreach (var ep in entry.Properties)
-                            {
-                                if (ep.Name.Text.StartsWith("Item_", StringComparison.Ordinal))
-                                {
-                                    var inner = ep.Tag?.GenericValue;
-                                    if (inner is FScriptStruct iss) inner = iss.StructType;
-                                    if (inner is FStructFallback isf)
-                                    {
-                                        foreach (var ip in isf.Properties)
-                                        {
-                                            if (ip.Name.Text.StartsWith("Item_", StringComparison.Ordinal))
-                                                itemId = RowNameOf(ip.Tag?.GenericValue);
-                                            else if (ip.Name.Text.StartsWith("Count_", StringComparison.Ordinal))
-                                                count = ip.Tag?.GenericValue switch { int i => i, byte b => b, _ => 1 };
-                                        }
-                                    }
-                                }
-                                else if (ep.Name.Text.StartsWith("WorldFlagToMakeAvailable_", StringComparison.Ordinal))
-                                {
-                                    flag = RowNameOf(ep.Tag?.GenericValue);
-                                    if (flag == "None") flag = null;
-                                }
-                            }
-                            if (!string.IsNullOrEmpty(itemId)) sells.Add(new TraderOffer(itemId!, count, flag));
-                        }
-                    }
-                    else if (p.Name.Text.StartsWith("TradeableItems_", StringComparison.Ordinal))
-                    {
-                        foreach (var entry in StructArray(p.Tag?.GenericValue))
-                        {
-                            string? itemId = null;
-                            var count = 1;
-                            foreach (var ep in entry.Properties)
-                            {
-                                if (ep.Name.Text.StartsWith("Item_", StringComparison.Ordinal))
-                                    itemId = RowNameOf(ep.Tag?.GenericValue);
-                                else if (ep.Name.Text.StartsWith("Count_", StringComparison.Ordinal))
-                                    count = ep.Tag?.GenericValue switch { int i => i, byte b => b, _ => 1 };
-                            }
-                            if (!string.IsNullOrEmpty(itemId)) accepts.Add(new TraderOffer(itemId!, count, null));
-                        }
-                    }
-                }
-                result[kv.Key.Text] = (sells, accepts);
-            }
+            AddStockRows(dt, result);
         }
         return result;
+    }
+
+    private static void AddStockRows(
+        UDataTable? dt,
+        Dictionary<string, (IReadOnlyList<TraderOffer>, IReadOnlyList<TraderOffer>)> result)
+    {
+        if (dt is null) return;
+        foreach (var kv in dt.RowMap)
+        {
+            if (string.IsNullOrEmpty(kv.Key.Text) || result.ContainsKey(kv.Key.Text)) continue;
+
+            var sells = new List<TraderOffer>();
+            var accepts = new List<TraderOffer>();
+            foreach (var p in kv.Value.Properties)
+            {
+                if (p.Name.Text.StartsWith("BuyableItems_", StringComparison.Ordinal))
+                {
+                    // { Item_2 = { Item_5 = handle, Count_6 }, WorldFlagToMakeAvailable_9, AvailableStock_13 }
+                    foreach (var entry in StructArray(p.Tag?.GenericValue))
+                    {
+                        string? itemId = null, flag = null;
+                        var count = 1;
+                        foreach (var ep in entry.Properties)
+                        {
+                            if (ep.Name.Text.StartsWith("Item_", StringComparison.Ordinal))
+                            {
+                                var inner = ep.Tag?.GenericValue;
+                                if (inner is FScriptStruct iss) inner = iss.StructType;
+                                if (inner is FStructFallback isf)
+                                {
+                                    foreach (var ip in isf.Properties)
+                                    {
+                                        if (ip.Name.Text.StartsWith("Item_", StringComparison.Ordinal))
+                                            itemId = RowNameOf(ip.Tag?.GenericValue);
+                                        else if (ip.Name.Text.StartsWith("Count_", StringComparison.Ordinal))
+                                            count = ip.Tag?.GenericValue switch { int i => i, byte b => b, _ => 1 };
+                                    }
+                                }
+                            }
+                            else if (ep.Name.Text.StartsWith("WorldFlagToMakeAvailable_", StringComparison.Ordinal))
+                            {
+                                flag = RowNameOf(ep.Tag?.GenericValue);
+                                if (flag == "None") flag = null;
+                            }
+                        }
+                        if (!string.IsNullOrEmpty(itemId)) sells.Add(new TraderOffer(itemId!, count, flag));
+                    }
+                }
+                else if (p.Name.Text.StartsWith("TradeableItems_", StringComparison.Ordinal))
+                {
+                    foreach (var entry in StructArray(p.Tag?.GenericValue))
+                    {
+                        string? itemId = null;
+                        var count = 1;
+                        foreach (var ep in entry.Properties)
+                        {
+                            if (ep.Name.Text.StartsWith("Item_", StringComparison.Ordinal))
+                                itemId = RowNameOf(ep.Tag?.GenericValue);
+                            else if (ep.Name.Text.StartsWith("Count_", StringComparison.Ordinal))
+                                count = ep.Tag?.GenericValue switch { int i => i, byte b => b, _ => 1 };
+                        }
+                        if (!string.IsNullOrEmpty(itemId)) accepts.Add(new TraderOffer(itemId!, count, null));
+                    }
+                }
+            }
+            result[kv.Key.Text] = (sells, accepts);
+        }
     }
 
     private static IEnumerable<FStructFallback> StructArray(object? value)

@@ -23,16 +23,18 @@ public sealed class GameAssetProvider : IDisposable
 {
     private readonly DefaultFileProvider _provider;
     private readonly string _cacheDir;
+    private readonly IReadOnlyList<string> _loadedMods;
     // CUE4Parse package loading mutates the provider's internal package cache and is not
     // guaranteed thread-safe. Icon/texture extraction runs from many fire-and-forget tasks at
     // once, so every package-load entry point serializes through this lock.
     private readonly object _providerLoadLock = new();
     private bool _disposed;
 
-    private GameAssetProvider(DefaultFileProvider provider, string cacheDir)
+    private GameAssetProvider(DefaultFileProvider provider, string cacheDir, IReadOnlyList<string> loadedMods)
     {
         _provider = provider;
         _cacheDir = cacheDir;
+        _loadedMods = loadedMods;
     }
 
     /// <summary>The on-disk extraction cache. Defaults to <c>%LOCALAPPDATA%/AbioticEditor/assets</c>.</summary>
@@ -40,6 +42,13 @@ public sealed class GameAssetProvider : IDisposable
 
     /// <summary>Returns every mounted asset path. Use sparingly - there are ~50k.</summary>
     public IEnumerable<string> AssetPaths => _provider.Files.Keys;
+
+    /// <summary>
+    /// File names of the mod paks mounted from the game's <c>~mods</c>/<c>LogicMods</c>
+    /// subfolders (empty when none were found or mod loading was disabled). Display-only,
+    /// so the App/CLI can report what is active.
+    /// </summary>
+    public IReadOnlyList<string> LoadedMods => _loadedMods;
 
     /// <summary>
     /// True if a <c>.usmap</c> type mapping file has been registered. Required to parse
@@ -54,7 +63,13 @@ public sealed class GameAssetProvider : IDisposable
     /// the running game (e.g. via FModel or Dumper-7). Without it only raw-byte extraction
     /// (fonts, the cooked PNGs/SVGs that ship outside .uasset wrappers) is possible.
     /// </summary>
-    public static GameAssetProvider? CreateForLocalInstall(string? cacheDir = null, string? mappingsPath = null)
+    /// <param name="includeMods">
+    /// When true (default), mod paks under the install's <c>~mods</c>/<c>LogicMods</c>
+    /// subfolders are mounted too; when false only the base-game paks load. When null, the
+    /// shared <see cref="ModLoadStore.ModsEnabled"/> setting (and the <c>ABIOTIC_NO_MODS</c>
+    /// env var) decides.
+    /// </param>
+    public static GameAssetProvider? CreateForLocalInstall(string? cacheDir = null, string? mappingsPath = null, bool? includeMods = null)
     {
         var paks = AfInstallLocator.FindPaksDirectory();
         if (paks is null)
@@ -67,10 +82,11 @@ public sealed class GameAssetProvider : IDisposable
         mappingsPath ??= FindConventionalMappings();
         try
         {
-            var provider = CreateForPaks(paks, cacheDir, mappingsPath);
+            var provider = CreateForPaks(paks, cacheDir, mappingsPath, includeMods ?? ModLoadStore.ModsEnabled);
             Diagnostics.EditorLog.Info(
                 "Assets",
-                $"Mounted game paks at {paks} (mappings: {(provider.HasMappings ? mappingsPath : "none - raw extraction only")}).");
+                $"Mounted game paks at {paks} (mappings: {(provider.HasMappings ? mappingsPath : "none - raw extraction only")}; "
+                + $"mods: {(provider.LoadedMods.Count == 0 ? "none" : string.Join(", ", provider.LoadedMods))}).");
             return provider;
         }
         catch (Exception ex)
@@ -135,13 +151,26 @@ public sealed class GameAssetProvider : IDisposable
 
     /// <summary>
     /// Constructs a provider over the given <paramref name="paksDirectory"/>. Throws if mount fails.
+    /// When <paramref name="includeMods"/> is true the mod-pak subfolders (<c>~mods</c>,
+    /// <c>LogicMods</c>) are mounted as well by scanning all subdirectories; otherwise only the
+    /// base-game paks in the top of the directory load.
     /// </summary>
-    public static GameAssetProvider CreateForPaks(string paksDirectory, string? cacheDir = null, string? mappingsPath = null)
+    public static GameAssetProvider CreateForPaks(string paksDirectory, string? cacheDir = null, string? mappingsPath = null, bool includeMods = true)
     {
+        // Mod paks live in subfolders (~mods, LogicMods); scanning all directories mounts them.
+        // Note: when a mod overrides a base asset (same package path), which copy wins depends on
+        // CUE4Parse's mount order. AF/UE give ~mods higher priority; most mods only ADD content
+        // (new paths) where order is irrelevant. If precise override priority is ever needed,
+        // switch to mounting the base dir then each mod folder explicitly.
+        var searchOption = includeMods ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+        var loadedMods = includeMods
+            ? AfInstallLocator.FindModPaks(paksDirectory).Select(Path.GetFileName).Where(n => n is not null).Select(n => n!).ToList()
+            : new List<string>();
+
 #pragma warning disable CS0618 // see AssetProbeTests for context on the new ctor signature
         var provider = new DefaultFileProvider(
             paksDirectory,
-            SearchOption.TopDirectoryOnly,
+            searchOption,
             isCaseInsensitive: true,
             new VersionContainer(EGame.GAME_UE5_4));
 #pragma warning restore CS0618
@@ -176,7 +205,7 @@ public sealed class GameAssetProvider : IDisposable
             provider.MappingsContainer = new FileUsmapTypeMappingsProvider(mappingsPath);
         }
 
-        return new GameAssetProvider(provider, cache);
+        return new GameAssetProvider(provider, cache, loadedMods);
     }
 
     /// <summary>
@@ -355,6 +384,25 @@ public sealed class GameAssetProvider : IDisposable
         {
             return _provider.LoadPackage(packagePath);
         }
+    }
+
+    /// <summary>
+    /// Loads a <see cref="CUE4Parse.UE4.Assets.Exports.Engine.UDataTable"/> export from the given package path, or null if the
+    /// package isn't a data table / can't be loaded. Thread-safe (serializes through the
+    /// package-load lock). Used by <see cref="ModTableDiscovery"/> to probe candidate tables.
+    /// </summary>
+    internal CUE4Parse.UE4.Assets.Exports.Engine.UDataTable? TryLoadDataTable(string packagePath)
+    {
+        ThrowIfDisposed();
+        lock (_providerLoadLock)
+        {
+            if (!_provider.TryLoadPackage(packagePath, out var package)) return null;
+            foreach (var export in package.GetExports())
+            {
+                if (export is CUE4Parse.UE4.Assets.Exports.Engine.UDataTable dt) return dt;
+            }
+        }
+        return null;
     }
 
     /// <summary>
