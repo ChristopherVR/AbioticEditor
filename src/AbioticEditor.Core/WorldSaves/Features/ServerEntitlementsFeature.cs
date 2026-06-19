@@ -28,9 +28,9 @@ public sealed class ServerEntitlementsFeature : WorldMapFeatureBase
         ("SupportersEdition", "Supporter's Edition"),
     };
 
-    // Steam persona names (SteamID64 -> name) from the local machine, loaded once. Empty when the
+    // Steam persona names (owner id -> name) from the local machine, loaded once. Empty when the
     // accounts file isn't present (e.g. a headless dedicated server), in which case keys show bare.
-    private static IReadOnlyDictionary<ulong, string>? _personaCache;
+    private static IReadOnlyDictionary<string, string>? _personaCache;
 
     public override string Id => "server-entitlements";
 
@@ -48,7 +48,7 @@ public sealed class ServerEntitlementsFeature : WorldMapFeatureBase
     /// <summary>Show the player's Steam persona name when known, with the SteamID for reference.</summary>
     protected override string LabelFor(string key, IList<FPropertyTag> props)
     {
-        if (ulong.TryParse(key, out var id) && Persona.TryGetValue(id, out var name) && name.Length > 0)
+        if (Persona.TryGetValue(key, out var name) && name.Length > 0)
         {
             return $"{name} ({key})";
         }
@@ -160,7 +160,7 @@ public sealed class ServerEntitlementsFeature : WorldMapFeatureBase
         return list;
     }
 
-    private static IReadOnlyDictionary<ulong, string> Persona
+    private static IReadOnlyDictionary<string, string> Persona
     {
         get
         {
@@ -174,7 +174,7 @@ public sealed class ServerEntitlementsFeature : WorldMapFeatureBase
             }
             catch
             {
-                _personaCache = new Dictionary<ulong, string>();
+                _personaCache = new Dictionary<string, string>(StringComparer.Ordinal);
             }
             return _personaCache;
         }

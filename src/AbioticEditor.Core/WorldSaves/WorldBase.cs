@@ -24,7 +24,8 @@ public sealed record WorldDeployable(
     public IReadOnlyList<string> InstalledUpgrades => Upgrades ?? Array.Empty<string>();
     /// <summary>
     /// Separator the game embeds in a bed's <c>CustomTextDisplay_</c> when claiming:
-    /// <c>&lt;steamid64&gt;}|!|{&lt;playerName&gt;</c>. An unclaimed bed carries the bare
+    /// <c>&lt;ownerId&gt;}|!|{&lt;playerName&gt;</c>. The owner id is a SteamID64 on Steam and
+    /// an opaque account token on non-Steam copies. An unclaimed bed carries the bare
     /// separator (both halves empty).
     /// </summary>
     public const string ClaimSeparator = "}|!|{";
@@ -76,20 +77,27 @@ public sealed record WorldDeployable(
     /// <summary>True when <see cref="CustomName"/> carries the bed-claim separator.</summary>
     public bool HasClaimMarker => CustomName?.Contains(ClaimSeparator, StringComparison.Ordinal) == true;
 
-    /// <summary>SteamID64 of the claiming player; null when unclaimed or not a claim string.</summary>
-    public ulong? OwnerSteamId => ParseClaim(CustomName).SteamId;
+    /// <summary>Opaque owner id of the claiming player (SteamID64 on Steam, an account token
+    /// on non-Steam); null when unclaimed or not a claim string.</summary>
+    public string? OwnerId => ParseClaim(CustomName).OwnerId;
+
+    /// <summary>SteamID64 of the claiming player; null when unclaimed, not a claim string, or a
+    /// non-Steam owner. A numeric convenience over <see cref="OwnerId"/> for Steam-only paths.</summary>
+    public ulong? OwnerSteamId =>
+        PlayerSaves.PlayerIdentifier.TryParseSteamId(OwnerId, out var id) ? id : null;
 
     /// <summary>Display name of the claiming player; null when unclaimed or not a claim string.</summary>
     public string? OwnerName => ParseClaim(CustomName).Name;
 
     /// <summary>
-    /// Parses a bed-claim string of the form <c>&lt;steamid64&gt;}|!|{&lt;name&gt;</c>.
+    /// Parses a bed-claim string of the form <c>&lt;ownerId&gt;}|!|{&lt;name&gt;</c>.
     /// Returns (null, null) when <paramref name="customText"/> has no separator or the
-    /// halves are empty (unclaimed bed). Some player names in the fixture saves carry
-    /// invisible private-use-area glyphs (e.g. U+E110 wrapping the name - Steam/in-game
-    /// styling artifacts); those are stripped so the name compares and displays cleanly.
+    /// halves are empty (unclaimed bed). The owner id is opaque (not assumed numeric). Some
+    /// player names in the fixture saves carry invisible private-use-area glyphs (e.g. U+E110
+    /// wrapping the name - Steam/in-game styling artifacts); those are stripped so the name
+    /// compares and displays cleanly.
     /// </summary>
-    public static (ulong? SteamId, string? Name) ParseClaim(string? customText)
+    public static (string? OwnerId, string? Name) ParseClaim(string? customText)
     {
         if (string.IsNullOrEmpty(customText)) return (null, null);
         var idx = customText.IndexOf(ClaimSeparator, StringComparison.Ordinal);
@@ -97,8 +105,7 @@ public sealed record WorldDeployable(
 
         var idPart = customText[..idx];
         var namePart = SanitizeName(customText[(idx + ClaimSeparator.Length)..]);
-        ulong? steamId = ulong.TryParse(idPart, out var id) ? id : null;
-        return (steamId, namePart.Length > 0 ? namePart : null);
+        return (idPart.Length > 0 ? idPart : null, namePart.Length > 0 ? namePart : null);
     }
 
     private static string SanitizeName(string raw)

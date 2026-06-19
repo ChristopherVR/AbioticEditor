@@ -75,18 +75,23 @@ public static class PlayerSaveFactory
     }
 
     /// <summary>
-    /// Creates a new <c>Player_&lt;steamId&gt;.sav</c> in <paramref name="destDir"/> from
-    /// the blank-template <paramref name="templateBytes"/>, stamping the new owner's
+    /// Creates a new <c>Player_&lt;id&gt;.sav</c> in <paramref name="destDir"/> from the
+    /// blank-template <paramref name="templateBytes"/>, stamping the new owner's
     /// <c>SaveIdentifier</c>. Returns the new file's path.
     /// </summary>
-    /// <exception cref="IOException">A save for <paramref name="steamId"/> already exists.</exception>
-    public static string CreateFromTemplate(byte[] templateBytes, string destDir, ulong steamId)
+    /// <exception cref="IOException">A save for <paramref name="id"/> already exists.</exception>
+    public static string CreateFromTemplate(byte[] templateBytes, string destDir, string id)
     {
         ArgumentNullException.ThrowIfNull(templateBytes);
         using var ms = new MemoryStream(templateBytes, writable: false);
         var save = SaveGame.LoadFrom(ms);
         Diagnostics.EditorLog.Info("PlayerSave",
-            $"Creating new blank Player_{steamId}.sav from bundled template");
-        return PlayerSaveIdentity.WriteAs(save, destDir, steamId);
+            $"Creating new blank Player_{id}.sav from bundled template");
+        return PlayerSaveIdentity.WriteAs(save, destDir, id);
     }
+
+    /// <inheritdoc cref="CreateFromTemplate(byte[], string, string)"/>
+    public static string CreateFromTemplate(byte[] templateBytes, string destDir, ulong steamId)
+        => CreateFromTemplate(templateBytes, destDir,
+            steamId.ToString(System.Globalization.CultureInfo.InvariantCulture));
 }

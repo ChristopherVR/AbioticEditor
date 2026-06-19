@@ -188,14 +188,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
             {
                 var sourcePath = selectedPlayer.FullPath;
                 newPath = await Task.Run(() =>
-                    Core.PlayerSaves.PlayerSaveIdentity.CloneToNewId(sourcePath, steamId.Value));
+                    Core.PlayerSaves.PlayerSaveIdentity.CloneToNewId(sourcePath, steamId));
             }
             else
             {
                 var template = await LoadBlankPlayerTemplateAsync();
                 Directory.CreateDirectory(playerDir);
                 newPath = await Task.Run(() =>
-                    Core.PlayerSaves.PlayerSaveFactory.CreateFromTemplate(template, playerDir, steamId.Value));
+                    Core.PlayerSaves.PlayerSaveFactory.CreateFromTemplate(template, playerDir, steamId));
             }
 
             EditorLog.Info("App", $"Created player {Path.GetFileName(newPath)} ({(copySelected ? "copied" : "blank")}).");
@@ -239,17 +239,19 @@ public sealed class MainViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Prompts for a 17-digit SteamID64, re-prompting until it's valid and not already used
-    /// in <paramref name="playerDir"/>. Returns null when the user cancels.
+    /// Prompts for the new player's owner id, re-prompting until it's a valid file token and
+    /// not already used in <paramref name="playerDir"/>. On Steam this is a 17-digit SteamID64;
+    /// for Game Pass / Epic it's the account folder id. Returns null when the user cancels.
     /// </summary>
-    private static async Task<ulong?> PromptForNewSteamIdAsync(string playerDir)
+    private static async Task<string?> PromptForNewSteamIdAsync(string playerDir)
     {
         var initial = "76561198";
         while (true)
         {
             var text = await DialogViewModel.Current.PromptAsync(
-                "New player SteamID",
-                "Enter the 17-digit SteamID64 for the new player (for example 76561198000000000).",
+                "New player id",
+                "Enter the new player's owner id. Usually a 17-digit SteamID64 (for example "
+                + "76561198000000000); for Game Pass / Epic saves enter the account folder id.",
                 placeholder: "76561198000000000",
                 initialValue: initial,
                 accept: "Create",
@@ -258,19 +260,20 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
             var trimmed = text.Trim();
             initial = trimmed;
-            if (!ulong.TryParse(trimmed, out var id) || trimmed.Length != 17)
+            if (!Core.PlayerSaves.PlayerIdentifier.IsSafeFileToken(trimmed))
             {
-                await DialogViewModel.Current.AlertAsync("Invalid SteamID",
-                    "That isn't a valid 17-digit SteamID64. It should look like 76561198000000000.");
+                await DialogViewModel.Current.AlertAsync("Invalid player id",
+                    "That isn't a valid id. Use letters, digits, '-', '_' or '.' (a Steam id looks like "
+                    + "76561198000000000).");
                 continue;
             }
-            if (File.Exists(Path.Combine(playerDir, $"Player_{id}.sav")))
+            if (File.Exists(Path.Combine(playerDir, $"Player_{trimmed}.sav")))
             {
                 await DialogViewModel.Current.AlertAsync("Already exists",
-                    $"Player_{id}.sav already exists in this world. Choose a different SteamID.");
+                    $"Player_{trimmed}.sav already exists in this world. Choose a different id.");
                 continue;
             }
-            return id;
+            return trimmed;
         }
     }
 
@@ -862,15 +865,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private async Task SetSpawnToBedAsync()
     {
         if (PlayerEditor is not { } pe || _selectedBedOption is not { } bed) return;
-        var playerId = (ulong)Math.Max(0, pe.SteamId64);
+        var playerId = pe.OwnerId;
 
         // Respawning at a bed requires owning its claim; a bed claimed by someone else
         // must be reassigned - which leaves that player without a claimed bed. That is
         // exactly the kind of edit nobody should make by accident.
-        var claimedByOther = bed.OwnerSteamId is { } owner && owner != playerId;
+        var claimedByOther = bed.OwnerId is { Length: > 0 } owner && owner != playerId;
         if (claimedByOther)
         {
-            var ownerLabel = bed.OwnerName is { Length: > 0 } n ? n : bed.OwnerSteamId!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var ownerLabel = bed.OwnerName is { Length: > 0 } n ? n : bed.OwnerId!;
             var confirmed = await DialogViewModel.Current.ConfirmAsync(
                 "Bed belongs to another player",
                 $"This bed is claimed by {ownerLabel}. Setting your spawn here reassigns the claim to this " +
@@ -884,7 +887,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         EditorLog.Info("Spawn", $"Set spawn to bed: {bed.Label} ({bed.X:F0}, {bed.Y:F0}, {bed.Z:F0}) for player {playerId}");
 
         // Reassign / take the claim in the world save unless it is already ours.
-        if (playerId > 0 && bed.OwnerSteamId != playerId)
+        if (playerId.Length > 0 && bed.OwnerId != playerId)
         {
             var claimName = ResolvePlayerName(playerId);
             var worldDir = Path.GetDirectoryName(Path.GetDirectoryName(pe.FilePath));
@@ -923,12 +926,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
     }
 
     /// <summary>Display name to embed in a bed claim for this player.</summary>
-    private string ResolvePlayerName(ulong steamId)
+    private string ResolvePlayerName(string ownerId)
     {
         var fromSidebar = Saves.FirstOrDefault(s =>
-            s.PlayerName is not null && SteamPersonaIndex.SteamIdFromPlayerPath(s.FullPath) == steamId)?.PlayerName;
+            s.PlayerName is not null && SteamPersonaIndex.IdFromPlayerPath(s.FullPath) == ownerId)?.PlayerName;
         if (fromSidebar is not null) return fromSidebar;
-        return SteamPersonaIndex.LoadMachineAccounts().TryGetValue(steamId, out var persona)
+        return SteamPersonaIndex.LoadMachineAccounts().TryGetValue(ownerId, out var persona)
             ? persona
             : "Player";
     }
@@ -1056,8 +1059,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private async Task UpdateHomeBedAsync()
     {
-        var steamId = PlayerEditor?.SteamId64 ?? 0;
-        if (steamId <= 0)
+        var ownerId = PlayerEditor?.OwnerId ?? string.Empty;
+        if (ownerId.Length == 0)
         {
             HomeBedText = null;
             BedOptions.Clear();
@@ -1078,19 +1081,19 @@ public sealed class MainViewModel : INotifyPropertyChanged
         BedOptions.Clear();
         BedOption? mine = null;
         foreach (var b in deployables.Where(d => d.IsBed && !d.IsPetBed)
-                     .OrderByDescending(d => d.OwnerSteamId == (ulong)steamId))
+                     .OrderByDescending(d => d.OwnerId == ownerId))
         {
             var home = bases.FirstOrDefault(bs => bs.Deployables.Contains(b));
             var option = new BedOption(b.Id,
                 $"{b.DisplayName} - {home?.Name ?? "outside any base"} ({b.X:F0}, {b.Y:F0})",
-                b.X, b.Y, b.Z, b.OwnerSteamId, b.OwnerName);
+                b.X, b.Y, b.Z, b.OwnerId, b.OwnerName);
             BedOptions.Add(option);
-            if (b.OwnerSteamId == (ulong)steamId) mine ??= option;
+            if (b.OwnerId == ownerId) mine ??= option;
         }
         SelectedBedOption = mine ?? BedOptions.FirstOrDefault();
 
         var bed = deployables.FirstOrDefault(d =>
-            d.IsBed && d.OwnerSteamId is { } owner && owner == (ulong)steamId);
+            d.IsBed && d.OwnerId is { Length: > 0 } owner && owner == ownerId);
         if (bed is null)
         {
             HomeBedText = "No claimed bed found in this world (respawns at the fallback spawn).";
@@ -1739,7 +1742,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         try
         {
-            var names = new Dictionary<ulong, string>();
+            var names = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var (id, name) in await Task.Run(SteamPersonaIndex.LoadMachineAccounts))
             {
                 names[id] = name;
@@ -1798,7 +1801,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 // Swapping the selected row would bounce the CollectionView selection
                 // (and with it the open editor); it gets its name on the next scan.
                 if (ReferenceEquals(s, _selectedSave)) continue;
-                if (SteamPersonaIndex.SteamIdFromPlayerPath(s.FullPath) is not { } id) continue;
+                if (SteamPersonaIndex.IdFromPlayerPath(s.FullPath) is not { } id) continue;
                 if (!names.TryGetValue(id, out var name)) continue;
 
                 Saves[i] = s with
@@ -2084,16 +2087,18 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public async Task<string?> ChangePlayerSteamIdAsync(string newIdText)
     {
         if (PlayerEditor is not { } pe) return "No player save loaded.";
-        if (!ulong.TryParse(newIdText?.Trim(), out var newId) || newIdText!.Trim().Length != 17)
+        var newId = newIdText?.Trim() ?? string.Empty;
+        if (!Core.PlayerSaves.PlayerIdentifier.IsSafeFileToken(newId))
         {
-            return "Enter a valid 17-digit SteamID64 (e.g. 76561198000000000).";
+            return "Enter a valid id (a 17-digit SteamID64 like 76561198000000000, or any safe token "
+                + "for a non-Steam save).";
         }
 
         var oldPath = pe.FilePath;
         var dir = Path.GetDirectoryName(oldPath)!;
         var newPath = Path.Combine(dir, $"Player_{newId}.sav");
         if (File.Exists(newPath)) return $"Player_{newId}.sav already exists in this folder.";
-        var oldId = SteamPersonaIndex.SteamIdFromPlayerPath(oldPath);
+        var oldId = SteamPersonaIndex.IdFromPlayerPath(oldPath);
 
         try
         {
@@ -2102,23 +2107,36 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            EditorLog.Error("App", $"SteamID change failed for {oldPath}", ex);
-            return $"SteamID change failed: {ex.Message}";
+            EditorLog.Error("App", $"Player id change failed for {oldPath}", ex);
+            return $"Player id change failed: {ex.Message}";
         }
 
-        // World data references the player too: bed claims embed the SteamID. Player
+        // World data references the player too: bed claims embed the owner id. Player
         // saves live in PlayerData/ next to the world saves, so when those exist the
-        // identity change follows into them and the player keeps their beds.
+        // identity change follows into them and the player keeps their beds. A claim
+        // rewrite is only safe when the old and new ids are the same length (always true
+        // between two SteamID64s); a different-length swap is reported, not forced.
         var claims = 0;
+        var claimsNote = string.Empty;
         if (oldId is { } from)
         {
             var worldDir = Path.GetDirectoryName(dir);
             if (worldDir is not null)
             {
-                claims = await Task.Run(() => WorldSteamIdPatcher.PatchFolder(worldDir, from, newId));
-                EditorLog.Info("CrossSave",
-                    $"SteamID change {from} -> {newId}: rewrote {claims} bed claim(s) across world saves in "
-                    + $"{Path.GetFileName(worldDir)} (.bak kept per file)");
+                try
+                {
+                    claims = await Task.Run(() => WorldSteamIdPatcher.PatchFolder(worldDir, from, newId));
+                    EditorLog.Info("CrossSave",
+                        $"Player id change {from} -> {newId}: rewrote {claims} bed claim(s) across world saves in "
+                        + $"{Path.GetFileName(worldDir)} (.bak kept per file)");
+                }
+                catch (InvalidOperationException ex)
+                {
+                    claimsNote = " Bed claims were NOT migrated (the old and new ids differ in length); "
+                        + "any beds claimed by the old id stay under the old id.";
+                    EditorLog.Warn("CrossSave",
+                        $"Bed-claim migration skipped for {from} -> {newId}: {ex.Message}");
+                }
             }
         }
 
@@ -2131,7 +2149,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
         StatusMessage = claims > 0
             ? $"Player save now belongs to {newId}; {claims} bed claim(s) in the world saves were updated too (.bak kept per file)."
-            : $"Player save now belongs to {newId} (file renamed and SaveIdentifier rewritten). No bed claims by the old id were found in the world saves.";
+            : $"Player save now belongs to {newId} (file renamed and SaveIdentifier rewritten).{(claimsNote.Length > 0 ? claimsNote : " No bed claims by the old id were found in the world saves.")}";
         return null;
     }
 
@@ -2343,7 +2361,7 @@ public sealed record BenchOption(string Id, string Label)
 /// <summary>One bed in the world, offered as a spawn-point target.</summary>
 public sealed record BedOption(
     string Id, string Label, double X, double Y, double Z,
-    ulong? OwnerSteamId = null, string? OwnerName = null)
+    string? OwnerId = null, string? OwnerName = null)
 {
     public override string ToString() => Label;
 }

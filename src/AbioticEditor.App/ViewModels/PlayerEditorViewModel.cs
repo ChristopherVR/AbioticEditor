@@ -239,17 +239,18 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
     /// <summary>Achievements browser (local cache + Steam web, spoilers, compare).</summary>
     public AchievementsViewModel AchievementsVm => _achievementsVm ??= new AchievementsViewModel(SteamId64, BuildCompareCandidates());
 
-    /// <summary>SteamID64 parsed from the <c>Player_&lt;id&gt;.sav</c> file name, or 0.</summary>
-    public long SteamId64
-    {
-        get
-        {
-            var name = Path.GetFileNameWithoutExtension(_path);
-            const string prefix = "Player_";
-            return name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
-                   && long.TryParse(name[prefix.Length..], out var id) ? id : 0;
-        }
-    }
+    /// <summary>Opaque owner id from the <c>Player_&lt;id&gt;.sav</c> file name (SteamID64 on
+    /// Steam, an account token on non-Steam); empty when the name has no id.</summary>
+    public string OwnerId =>
+        Core.PlayerSaves.PlayerIdentifier.TryParseFromPlayerFileName(_path, out var id) ? id : string.Empty;
+
+    /// <summary>True when this save is owned by a Steam account; gates Steam-only features.</summary>
+    public bool IsSteamSave => Core.PlayerSaves.PlayerIdentifier.IsSteamId(OwnerId);
+
+    /// <summary>SteamID64 parsed from the <c>Player_&lt;id&gt;.sav</c> file name, or 0 for a
+    /// non-Steam save. Used by the Steam-only paths (achievements, customization defaults).</summary>
+    public long SteamId64 =>
+        Core.PlayerSaves.PlayerIdentifier.TryParseSteamId(OwnerId, out var id) ? (long)id : 0;
 
     /// <summary>Other accounts in the same PlayerData folder, for achievement comparison.</summary>
     private IReadOnlyList<AchievementsViewModel.CompareCandidate> BuildCompareCandidates()
@@ -530,7 +531,7 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
     {
         try
         {
-            return Core.Steam.SteamPersonaIndex.LoadMachineAccounts().TryGetValue((ulong)SteamId64, out var name)
+            return Core.Steam.SteamPersonaIndex.LoadMachineAccounts().TryGetValue(OwnerId, out var name)
                 ? name
                 : null;
         }

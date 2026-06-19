@@ -23,8 +23,8 @@ public sealed class CreateWorldPage : ContentPage
     private readonly string[] _steamIds = new string[4];
     private int _difficulty = 2; // Normal
 
-    // Known local Steam accounts for auto-fill hint
-    private readonly IReadOnlyDictionary<ulong, string> _machineAccounts;
+    // Known local Steam accounts (SteamID64 string -> persona) for auto-fill hint
+    private readonly IReadOnlyDictionary<string, string> _machineAccounts;
 
     // Lazily loaded templates
     private static byte[]? _metaTemplate;
@@ -149,10 +149,9 @@ public sealed class CreateWorldPage : ContentPage
                 var idx = i;
                 var entry = new Entry
                 {
-                    Placeholder = "17-digit SteamID64",
+                    Placeholder = "SteamID64 or account id",
                     Text = _steamIds[idx] ?? string.Empty,
-                    Keyboard = Keyboard.Numeric,
-                    MaxLength = 17,
+                    MaxLength = 64,
                     ClearButtonVisibility = ClearButtonVisibility.WhileEditing,
                 };
                 entry.TextChanged += (_, e) => _steamIds[idx] = e.NewTextValue?.Trim() ?? string.Empty;
@@ -166,7 +165,7 @@ public sealed class CreateWorldPage : ContentPage
                     autoBtn.Padding = new Thickness(10, 5);
                     autoBtn.Clicked += (_, _) =>
                     {
-                        _steamIds[0] = autoId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        _steamIds[0] = autoId;
                         entry.Text = _steamIds[0];
                     };
                     var row = new Grid
@@ -208,7 +207,8 @@ public sealed class CreateWorldPage : ContentPage
         }
 
         var playersCard = ModalChrome.Card("PLAYERS",
-            "Each player needs their own 17-digit SteamID64. You can add more players later via the + button in the sidebar.",
+            "Each player needs their own owner id - a 17-digit SteamID64, or the account folder id for a "
+            + "Game Pass / Epic save. You can add more players later via the + button in the sidebar.",
             bodyViews.ToArray());
 
         return BuildScaffold(
@@ -220,17 +220,18 @@ public sealed class CreateWorldPage : ContentPage
                 for (var i = 0; i < _playerCount; i++)
                 {
                     var id = _steamIds[i];
-                    if (string.IsNullOrWhiteSpace(id) || !ulong.TryParse(id, out _) || id.Length != 17)
+                    if (!Core.PlayerSaves.PlayerIdentifier.IsSafeFileToken(id))
                     {
-                        await AlertAsync("Invalid SteamID",
-                            $"Player {i + 1}: enter a valid 17-digit SteamID64 (e.g. 76561198000000000).");
+                        await AlertAsync("Invalid player id",
+                            $"Player {i + 1}: enter a valid id (a 17-digit SteamID64 like 76561198000000000, "
+                            + "or any safe token for a non-Steam save).");
                         return false;
                     }
                 }
                 var ids = Enumerable.Range(0, _playerCount).Select(i => _steamIds[i]).ToList();
                 if (ids.Distinct().Count() != ids.Count)
                 {
-                    await AlertAsync("Duplicate SteamID", "Each player must have a unique SteamID64.");
+                    await AlertAsync("Duplicate id", "Each player must have a unique owner id.");
                     return false;
                 }
                 return true;
@@ -281,7 +282,7 @@ public sealed class CreateWorldPage : ContentPage
             .Select(i =>
             {
                 var id = _steamIds[i];
-                if (ulong.TryParse(id, out var uid) && _machineAccounts.TryGetValue(uid, out var name))
+                if (_machineAccounts.TryGetValue(id, out var name))
                     return $"{name} ({id})";
                 return id;
             });
@@ -338,8 +339,8 @@ public sealed class CreateWorldPage : ContentPage
                 {
                     WorldName = _worldName,
                     ParentDirectory = _saveLocation,
-                    PlayerSteamIds = Enumerable.Range(0, _playerCount)
-                        .Select(i => ulong.Parse(_steamIds[i], System.Globalization.CultureInfo.InvariantCulture))
+                    PlayerIds = Enumerable.Range(0, _playerCount)
+                        .Select(i => _steamIds[i])
                         .ToList(),
                     GameDifficulty = _difficulty,
                 };
@@ -478,7 +479,7 @@ public sealed class CreateWorldPage : ContentPage
             var candidate = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "AbioticFactor", "Saved", "SaveGames",
-                firstId.ToString(System.Globalization.CultureInfo.InvariantCulture), "Worlds");
+                firstId, "Worlds");
             if (Directory.Exists(candidate)) return candidate;
         }
 

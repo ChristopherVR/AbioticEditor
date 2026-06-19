@@ -56,4 +56,38 @@ public class PlayerSaveIdentityTests
             Directory.Delete(tempDir, recursive: true);
         }
     }
+
+    [Fact]
+    public void ChangeSteamId_AcceptsANonSteamOwnerId()
+    {
+        Assert.NotNull(Fixtures.CascadeDir);
+        var fixture = Path.Combine(Fixtures.CascadeDir!, "PlayerData", "Player_76561197993781479.sav");
+        Assert.True(File.Exists(fixture), $"missing fixture: {fixture}");
+
+        const string newId = "msft-1A2B3C"; // a non-numeric (Game Pass-style) owner id
+        var tempDir = Path.Combine(Path.GetTempPath(), $"abf-identity-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            var sourcePath = Path.Combine(tempDir, "Player_76561197993781479.sav");
+            File.Copy(fixture, sourcePath);
+
+            var newPath = PlayerSaveIdentity.ChangeSteamId(sourcePath, newId);
+
+            // The file name and the internal SaveIdentifier both carry the opaque id, and it round-trips.
+            Assert.Equal(Path.Combine(tempDir, $"Player_{newId}.sav"), newPath);
+            Assert.True(File.Exists(newPath));
+            var reloaded = PlayerSaveReader.ReadFromFile(newPath);
+            Assert.Equal(newId, PlayerSaveIdentity.GetSaveIdentifier(reloaded.Raw));
+            Assert.NotEmpty(reloaded.Inventory.Equipment);
+
+            // An unsafe id (path separator) is rejected before any file is touched.
+            File.Copy(fixture, sourcePath);
+            Assert.Throws<ArgumentException>(() => PlayerSaveIdentity.ChangeSteamId(sourcePath, "bad/id"));
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
 }

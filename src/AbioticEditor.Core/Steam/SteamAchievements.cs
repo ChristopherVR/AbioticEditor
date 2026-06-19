@@ -1,4 +1,5 @@
 using AbioticEditor.Core.Assets;
+using AbioticEditor.Core.PlayerSaves;
 
 namespace AbioticEditor.Core.Steam;
 
@@ -31,6 +32,16 @@ public static class SteamAchievements
     /// <c>Player_&lt;steamid64&gt;.sav</c>). Returns null when Steam, the schema, or the
     /// player's stats file can't be found.
     /// </summary>
+    /// <summary>
+    /// Loads achievements for an opaque owner id. Achievements are a Steam feature, so this
+    /// returns null for any non-Steam id (Game Pass / Epic) - the single gate via
+    /// <see cref="PlayerIdentifier.IsSteamId"/>.
+    /// </summary>
+    public static IReadOnlyList<AchievementState>? LoadFor(string id)
+        => PlayerIdentifier.TryParseSteamId(id, out var steamId64)
+            ? LoadFor((long)steamId64)
+            : null;
+
     public static IReadOnlyList<AchievementState>? LoadFor(long steamId64)
     {
         var steam = AfInstallLocator.FindSteamPath();

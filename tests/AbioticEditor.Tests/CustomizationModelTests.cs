@@ -181,13 +181,21 @@ public class CustomizationModelTests
     [Fact]
     public void ParseClaim_HandlesAllForms()
     {
-        Assert.Equal(((ulong?)76561197993781479UL, (string?)"Tribbes"), WorldDeployable.ParseClaim("76561197993781479}|!|{Tribbes"));
-        Assert.Equal(((ulong?)null, (string?)null), WorldDeployable.ParseClaim("}|!|{"));
-        Assert.Equal(((ulong?)null, (string?)null), WorldDeployable.ParseClaim("My Fridge"));
-        Assert.Equal(((ulong?)null, (string?)null), WorldDeployable.ParseClaim(null));
-        Assert.Equal(((ulong?)null, (string?)null), WorldDeployable.ParseClaim(""));
-        // Name without a parseable steamid still yields the name.
-        Assert.Equal(((ulong?)null, "Bob"), WorldDeployable.ParseClaim("}|!|{Bob"));
+        Assert.Equal(((string?)"76561197993781479", (string?)"Tribbes"), WorldDeployable.ParseClaim("76561197993781479}|!|{Tribbes"));
+        Assert.Equal(((string?)null, (string?)null), WorldDeployable.ParseClaim("}|!|{"));
+        Assert.Equal(((string?)null, (string?)null), WorldDeployable.ParseClaim("My Fridge"));
+        Assert.Equal(((string?)null, (string?)null), WorldDeployable.ParseClaim(null));
+        Assert.Equal(((string?)null, (string?)null), WorldDeployable.ParseClaim(""));
+        // Name without a parseable id still yields the name.
+        Assert.Equal(((string?)null, "Bob"), WorldDeployable.ParseClaim("}|!|{Bob"));
+
+        // A non-Steam owner id is opaque: OwnerId carries it, the numeric convenience is null.
+        var nonSteam = WorldDeployable.ParseClaim("epic-9f8e}|!|{Bob");
+        Assert.Equal(("epic-9f8e", "Bob"), nonSteam);
+        var bed = new WorldDeployable("id", "Deployed_CraftedBed_C", 0, 0, 0, false, 0,
+            CustomName: "epic-9f8e}|!|{Bob");
+        Assert.Equal("epic-9f8e", bed.OwnerId);
+        Assert.Null(bed.OwnerSteamId);
     }
 
     // -------------------------------------------------- customization catalog

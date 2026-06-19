@@ -59,7 +59,7 @@ internal static class InfoCommand
         WarnIfNewer(SaveCompatibility.WarningFor(data.Raw));
 
         var steamId = PlayerSaveIdentity.GetSaveIdentifier(data.Raw)
-            ?? SteamIdFromFileName(path);
+            ?? (PlayerIdentifier.TryParseFromPlayerFileName(path, out var fileId) ? fileId : null);
         var skillsWithXp = data.Skills.Count(s => s.Xp > 0);
 
         if (json)
@@ -149,14 +149,4 @@ internal static class InfoCommand
     }
 
     private static string Fmt(int? version) => version is int v ? $"{v}" : "(unknown)";
-
-    /// <summary>Fallback identity: the <c>Player_&lt;steamid64&gt;.sav</c> file name.</summary>
-    private static string? SteamIdFromFileName(string path)
-    {
-        var stem = Path.GetFileNameWithoutExtension(path);
-        const string prefix = "Player_";
-        return stem.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) && stem.Length > prefix.Length
-            ? stem[prefix.Length..]
-            : null;
-    }
 }

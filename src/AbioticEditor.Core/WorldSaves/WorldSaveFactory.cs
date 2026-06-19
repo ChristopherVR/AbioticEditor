@@ -12,8 +12,9 @@ public sealed record CreateWorldOptions
     /// <summary>Parent directory under which <see cref="WorldName"/> will be created.</summary>
     public required string ParentDirectory { get; init; }
 
-    /// <summary>SteamID64 values for players who should have an initial blank player save.</summary>
-    public required IReadOnlyList<ulong> PlayerSteamIds { get; init; }
+    /// <summary>Owner ids (SteamID64 or non-Steam account token) for players who should have an
+    /// initial blank player save.</summary>
+    public required IReadOnlyList<string> PlayerIds { get; init; }
 
     /// <summary>
     /// Sandbox difficulty preset: 1 = Casual, 2 = Normal, 3 = Survival, 4 = Nightmare.
@@ -38,7 +39,7 @@ public static class WorldSaveFactory
     /// Creates a complete new world folder under <see cref="CreateWorldOptions.ParentDirectory"/>:
     /// <list type="bullet">
     ///   <item><c>WorldSave_MetaData.sav</c> - reset to a brand-new-game state.</item>
-    ///   <item><c>PlayerData/Player_*.sav</c> - one blank player per <see cref="CreateWorldOptions.PlayerSteamIds"/>.</item>
+    ///   <item><c>PlayerData/Player_*.sav</c> - one blank player per <see cref="CreateWorldOptions.PlayerIds"/>.</item>
     ///   <item><c>SandboxSettings.ini</c> - difficulty-tuned sandbox settings.</item>
     /// </list>
     /// Returns the absolute path of the created world directory.
@@ -67,11 +68,11 @@ public static class WorldSaveFactory
 
         WriteBlankMetadata(metadataTemplate, Path.Combine(worldDir, "WorldSave_MetaData.sav"));
 
-        if (options.PlayerSteamIds.Count > 0)
+        if (options.PlayerIds.Count > 0)
         {
             var playerDir = Path.Combine(worldDir, "PlayerData");
             Directory.CreateDirectory(playerDir);
-            foreach (var id in options.PlayerSteamIds)
+            foreach (var id in options.PlayerIds)
             {
                 PlayerSaveFactory.CreateFromTemplate(playerTemplate, playerDir, id);
                 Diagnostics.EditorLog.Info("WorldFactory", $"  + Player_{id}.sav");
@@ -81,7 +82,7 @@ public static class WorldSaveFactory
         WriteSandboxSettings(Path.Combine(worldDir, "SandboxSettings.ini"), options.GameDifficulty);
 
         Diagnostics.EditorLog.Info("WorldFactory",
-            $"World '{options.WorldName}' created ({options.PlayerSteamIds.Count} player(s), difficulty {options.GameDifficulty}).");
+            $"World '{options.WorldName}' created ({options.PlayerIds.Count} player(s), difficulty {options.GameDifficulty}).");
         return worldDir;
     }
 
