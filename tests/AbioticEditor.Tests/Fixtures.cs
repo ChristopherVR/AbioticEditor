@@ -30,6 +30,35 @@ internal static class Fixtures
     /// </summary>
     public static string? ServerWorldsDir { get; } = LocateServerWorlds();
 
+    /// <summary>
+    /// A sanitized Game Pass / Xbox "wgs" container fixture
+    /// (<c>tests/fixtures/GamePass/&lt;account&gt;/</c>, contains <c>containers.index</c>).
+    /// Null when absent so tests can skip gracefully.
+    /// </summary>
+    public static string? GamePassWgsDir { get; } = LocateGamePassWgs();
+
+    private static string? LocateGamePassWgs()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            foreach (var root in new[]
+                     {
+                         Path.Combine(dir.FullName, "tests", "fixtures", "GamePass"),
+                         Path.Combine(dir.FullName, "fixtures", "GamePass"),
+                     })
+            {
+                if (!Directory.Exists(root)) continue;
+                foreach (var account in Directory.EnumerateDirectories(root))
+                {
+                    if (File.Exists(Path.Combine(account, "containers.index"))) return account;
+                }
+            }
+            dir = dir.Parent;
+        }
+        return null;
+    }
+
     private static string? LocateCascade()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

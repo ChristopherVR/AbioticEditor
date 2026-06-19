@@ -120,6 +120,60 @@ public class GamePassTests
         }
     }
 
+    [Fact]
+    public void RealFixture_lists_reads_and_edits_a_packed_player()
+    {
+        if (Fixtures.GamePassWgsDir is null) return; // fixture absent - skip
+        if (!OodleCodec.IsAvailable) return;         // no native Oodle - skip
+
+        // Work on a throwaway copy so the committed fixture is never mutated.
+        var work = Directory.CreateTempSubdirectory("gp-fixture");
+        try
+        {
+            CopyTree(Fixtures.GamePassWgsDir!, work.FullName);
+
+            var set = GamePassSaveSet.Open(work.FullName);
+            var entries = set.Entries();
+            Assert.Contains(entries, e => e.Kind == GamePassSaveKind.Player);
+            Assert.Contains(entries, e => e.Kind == GamePassSaveKind.WorldMetadata);
+
+            var player = entries.First(e => e.Kind == GamePassSaveKind.Player);
+
+            // The real Game Pass member reconstructs into a save the editor parses.
+            var data = PlayerSaveReader.ReadFrom(UeSaveGame.SaveGame.LoadFrom(new MemoryStream(set.ReadSave(player))));
+            Assert.NotEmpty(data.Skills);
+
+            // Edit -> write back -> reopen from disk -> the edit survives the wgs/ABF/Oodle round-trip.
+            PlayerSaveWriter.ApplyStats(data, data.Stats with { Money = 314159 });
+            using var ms = new MemoryStream();
+            data.Raw.WriteTo(ms);
+            set.WriteSave(player, ms.ToArray());
+
+            var reopened = GamePassSaveSet.Open(work.FullName);
+            var p2 = reopened.Entries().First(e => e.Kind == GamePassSaveKind.Player);
+            var data2 = PlayerSaveReader.ReadFrom(UeSaveGame.SaveGame.LoadFrom(new MemoryStream(reopened.ReadSave(p2))));
+            Assert.Equal(314159, data2.Stats.Money);
+        }
+        finally
+        {
+            work.Delete(recursive: true);
+            if (Directory.Exists(work.FullName + ".bak")) Directory.Delete(work.FullName + ".bak", recursive: true);
+        }
+    }
+
+    private static void CopyTree(string source, string dest)
+    {
+        Directory.CreateDirectory(dest);
+        foreach (var dir in Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories))
+        {
+            Directory.CreateDirectory(dir.Replace(source, dest));
+        }
+        foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+        {
+            File.Copy(file, file.Replace(source, dest), overwrite: true);
+        }
+    }
+
     // ---- helpers: build a minimal but real wgs container folder + ABF bundle ----
 
     private static AbfSaveBundle TestBundle(params (string Path, string Class, byte[] Body)[] members)
