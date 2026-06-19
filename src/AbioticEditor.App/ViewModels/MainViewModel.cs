@@ -1268,10 +1268,17 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    /// <summary>Loads a folder after the leave-confirmation gate (drag-drop and discovery rows).</summary>
+    /// <summary>Loads a folder after the leave-confirmation gate (drag-drop and discovery rows).
+    /// A Game Pass / Xbox container folder (one with <c>containers.index</c>) is opened through the
+    /// extract/apply working-copy flow instead of a plain .sav scan.</summary>
     public async Task LoadFolderGuardedAsync(string folder)
     {
         if (!await ConfirmLeaveCurrentEditorAsync()) return;
+        if (Core.GamePass.GamePassSaveSet.IsGamePassFolder(folder))
+        {
+            await OpenGamePassFolderAsync(folder);
+            return;
+        }
         await LoadFolderAsync(folder);
     }
 
@@ -1295,24 +1302,51 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         if (world.IsGamePassContainer)
         {
-            await OpenGamePassWorldAsync(world);
+            if (!await ConfirmLeaveCurrentEditorAsync()) return;
+            await OpenGamePassContainerAsync(world.FolderPath, world.GamePassContainer!);
             return;
         }
         await LoadFolderGuardedAsync(world.FolderPath);
     }
 
-    private async Task OpenGamePassWorldAsync(Core.Saves.DiscoveredWorld world)
+    /// <summary>
+    /// Opens a wgs folder picked/dropped directly (no discovery row). Finds its world container(s)
+    /// and opens the first one through the working-copy flow. Assumes the leave-gate already passed.
+    /// </summary>
+    private async Task OpenGamePassFolderAsync(string wgsFolder)
     {
-        if (!await ConfirmLeaveCurrentEditorAsync()) return;
+        string? container;
+        try
+        {
+            var set = await Task.Run(() => Core.GamePass.GamePassSaveSet.Open(wgsFolder));
+            container = set.Entries().Select(e => e.ContainerName).Distinct().FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("GamePass", $"Reading Game Pass folder {wgsFolder} failed", ex);
+            await DialogViewModel.Current.AlertAsync("Couldn't read the Game Pass save", ex.Message);
+            return;
+        }
+        if (container is null)
+        {
+            await DialogViewModel.Current.AlertAsync("No worlds in this Game Pass save",
+                "That folder is an Xbox container store but holds no editable world saves.");
+            return;
+        }
+        await OpenGamePassContainerAsync(wgsFolder, container);
+    }
+
+    private async Task OpenGamePassContainerAsync(string wgsFolder, string container)
+    {
         try
         {
             var (session, dir) = await Task.Run(() =>
             {
-                var set = Core.GamePass.GamePassSaveSet.Open(world.FolderPath);
+                var set = Core.GamePass.GamePassSaveSet.Open(wgsFolder);
                 var working = Path.Combine(Path.GetTempPath(), "AbioticEditor", "GamePass",
-                    $"{world.WorldName}-{Guid.NewGuid():N}");
-                var worldName = set.ExtractWorld(world.GamePassContainer!, working);
-                return (new GamePassSession(set, world.GamePassContainer!, worldName, world.FolderPath, working), working);
+                    $"{container}-{Guid.NewGuid():N}");
+                var worldName = set.ExtractWorld(container, working);
+                return (new GamePassSession(set, container, worldName, wgsFolder, working), working);
             });
 
             await LoadFolderAsync(dir);

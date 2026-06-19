@@ -247,6 +247,26 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
     /// <summary>True when this save is owned by a Steam account; gates Steam-only features.</summary>
     public bool IsSteamSave => Core.PlayerSaves.PlayerIdentifier.IsSteamId(OwnerId);
 
+    // ----- General tab account row (Steam vs Game Pass / non-Steam) -----
+
+    /// <summary>Label for the account-id row: a SteamID64 on Steam, a generic account id otherwise.</summary>
+    public string OwnerIdLabel => IsSteamSave ? "STEAM ID 64" : "ACCOUNT ID";
+
+    /// <summary>The id shown in the account field (the real owner id, not the numeric 0 a non-Steam
+    /// save would show through <see cref="SteamId64"/>).</summary>
+    public string OwnerIdDisplay => OwnerId;
+
+    /// <summary>Account-id editing (re-homing) is only offered for Steam saves; a Game Pass / Xbox id
+    /// is locked here (re-home it via SAVE CONVERSION in Settings instead).</summary>
+    public bool CanEditOwnerId => IsSteamSave;
+
+    public bool OwnerIdLocked => !IsSteamSave;
+
+    public string OwnerIdNote => IsSteamSave
+        ? string.Empty
+        : "Game Pass / non-Steam account - this id is locked here. To change it, use SAVE CONVERSION "
+            + "in Settings (it can re-home the player while converting).";
+
     /// <summary>SteamID64 parsed from the <c>Player_&lt;id&gt;.sav</c> file name, or 0 for a
     /// non-Steam save. Used by the Steam-only paths (achievements, customization defaults).</summary>
     public long SteamId64 =>

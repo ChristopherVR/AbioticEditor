@@ -320,40 +320,83 @@ public sealed class SettingsPage : ContentPage
     /// it, and never touches the original. The content is identical either way; only the packaging
     /// differs.
     /// </summary>
-    private View BuildSaveConversionCard()
+    private static View BuildSaveConversionCard()
     {
-        var status = new Label { Style = ModalChrome.St("AfMuted"), FontSize = 11, IsVisible = false };
-        var toGamePass = new Button { Text = "STEAM  →  GAME PASS" };
-        var toSteam = ModalChrome.Button("GAME PASS  →  STEAM", primary: false);
-
-        async Task RunAsync(Func<string, string> convert, Func<string, bool> validate, string badMsg, string suffix)
+        // Optional account id: re-homes the (single) player save to this id during conversion.
+        var idEntry = new Entry
         {
+            Placeholder = "leave blank to keep existing ids",
+            ClearButtonVisibility = ClearButtonVisibility.WhileEditing,
+            Keyboard = Keyboard.Plain,
+        };
+        var idHint = new Label
+        {
+            Text = "Optional. A 17-digit SteamID64 (Steam) or account folder id (Game Pass). The player "
+                + "save is re-homed to it so the world is yours on the target platform. Single-player only.",
+            Style = ModalChrome.St("AfMuted"),
+            FontSize = 10,
+        };
+
+        var toGamePass = ModalChrome.Button("CONVERT  ·  STEAM  →  GAME PASS", primary: true);
+        var toGamePassHint = new Label
+        {
+            Text = "Pick a Steam world folder (WorldSave_*.sav + PlayerData). Writes a Game Pass copy next to it.",
+            Style = ModalChrome.St("AfMuted"), FontSize = 10,
+        };
+        var toSteam = ModalChrome.Button("CONVERT  ·  GAME PASS  →  STEAM", primary: true);
+        var toSteamHint = new Label
+        {
+            Text = "Pick a Game Pass folder (the one with containers.index). Writes a Steam world folder next to it.",
+            Style = ModalChrome.St("AfMuted"), FontSize = 10,
+        };
+
+        var result = new Label
+        {
+            IsVisible = false, FontSize = 12, LineBreakMode = LineBreakMode.WordWrap,
+            Style = ModalChrome.St("AfFieldValue"),
+        };
+        var openFolder = ModalChrome.Button("OPEN OUTPUT FOLDER", primary: false);
+        openFolder.IsVisible = false;
+        string? lastOut = null;
+        openFolder.Clicked += (_, _) => { if (lastOut is not null) TryOpenFolder(lastOut); };
+
+        async Task RunAsync(Func<string, string, string?, string> convert, Func<string, bool> validate, string badMsg, string suffix)
+        {
+            string? picked = null;
             try
             {
-                var result = await CommunityToolkit.Maui.Storage.FolderPicker.PickAsync(CancellationToken.None);
-                if (!result.IsSuccessful || result.Folder is null) return; // dismissed
-                var src = result.Folder.Path;
-                if (!validate(src))
+                var pick = await CommunityToolkit.Maui.Storage.FolderPicker.PickAsync(CancellationToken.None);
+                if (!pick.IsSuccessful || pick.Folder is null) return; // dismissed
+                picked = pick.Folder.Path;
+                openFolder.IsVisible = false;
+                result.IsVisible = true;
+                result.TextColor = ModalChrome.Col("AfTextSecondary");
+
+                if (!validate(picked))
                 {
-                    await ViewUtils.AlertAsync(this, "Not the right folder", badMsg);
+                    result.Text = badMsg;
                     return;
                 }
-                var dest = src.TrimEnd('/', '\\') + suffix;
-                status.IsVisible = true;
-                status.Text = "Converting… (the first run may download the Oodle compressor)";
+                var dest = picked.TrimEnd('/', '\\') + suffix;
+                var id = idEntry.Text?.Trim();
+                id = string.IsNullOrWhiteSpace(id) ? null : id;
+
+                result.Text = "Converting…  (the first run may download the Oodle compressor)";
                 toGamePass.IsEnabled = toSteam.IsEnabled = false;
-                var outDir = await Task.Run(() => convert(dest));
-                EditorLog.Info("Settings", $"Save converted to {outDir}");
-                status.Text = $"Done: {outDir}";
-                await ViewUtils.AlertAsync(this, "Save converted",
-                    $"Converted copy written to:\n{outDir}\n\nThe original was not changed. "
-                        + "Verify the converted save loads in-game before relying on it.");
+
+                lastOut = await Task.Run(() => convert(picked, dest, id));
+                EditorLog.Info("Settings", $"Save converted to {lastOut}");
+                result.TextColor = ModalChrome.Col("AfTerminalGreen");
+                result.Text = $"Done. Converted copy written to:\n{lastOut}\n"
+                    + "Your original was not changed. Verify it loads in-game before relying on it.";
+                openFolder.IsVisible = true;
             }
             catch (Exception ex) when (!IsPickerCancellation(ex))
             {
                 EditorLog.Error("Settings", "Save conversion failed", ex);
-                status.Text = $"Failed: {ex.Message}";
-                await ViewUtils.AlertAsync(this, "Conversion failed", ex.Message);
+                result.IsVisible = true;
+                result.TextColor = ModalChrome.Col("AfAlertRed");
+                result.Text = $"Couldn't convert: {ex.Message}";
             }
             finally
             {
@@ -362,26 +405,48 @@ public sealed class SettingsPage : ContentPage
         }
 
         toGamePass.Clicked += async (_, _) => await RunAsync(
-            dest => AbioticEditor.Core.GamePass.GamePassConverter.SteamWorldToGamePass(
-                System.IO.Path.GetFullPath(dest)[..^"-GamePass".Length], dest),
+            (src, dest, id) => AbioticEditor.Core.GamePass.GamePassConverter.SteamWorldToGamePass(src, dest, null, id),
             src => System.IO.Directory.EnumerateFiles(src, "WorldSave_*.sav").Any(),
-            "Pick a Steam world folder (it should contain WorldSave_*.sav files and a PlayerData folder).",
+            "That folder has no WorldSave_*.sav files - pick a Steam world folder.",
             "-GamePass");
 
         toSteam.Clicked += async (_, _) => await RunAsync(
-            dest => AbioticEditor.Core.GamePass.GamePassConverter.GamePassToSteamWorld(
-                System.IO.Path.GetFullPath(dest)[..^"-Steam".Length], null, dest),
+            (src, dest, id) => AbioticEditor.Core.GamePass.GamePassConverter.GamePassToSteamWorld(src, null, dest, id),
             src => AbioticEditor.Core.GamePass.GamePassSaveSet.IsGamePassFolder(src),
-            "Pick a Game Pass save folder (the one that directly contains 'containers.index').",
+            "That folder has no containers.index - pick a Game Pass save folder.",
             "-Steam");
 
+        var idLabel = new Label
+        {
+            Text = "PLAYER ACCOUNT ID",
+            Style = ModalChrome.St("AfFieldLabel"),
+        };
+
         return ModalChrome.Card("SAVE CONVERSION",
-            "Convert a world between Steam (loose .sav files) and Game Pass / Xbox (one container). "
-                + "The converted copy is written next to the folder you pick; your original is left "
-                + "untouched. Players keep their ids, so on the target platform a character may need "
-                + "re-homing to that account.",
-            status,
-            new HorizontalStackLayout { Spacing = 10, Children = { toGamePass, toSteam } });
+            "Convert a world between Steam (loose .sav files) and Game Pass / Xbox (one container). The "
+                + "save content is identical either way; only the packaging changes. The converted copy is "
+                + "written next to the folder you pick - your original is untouched.",
+            idLabel, idEntry, idHint,
+            toGamePass, toGamePassHint,
+            toSteam, toSteamHint,
+            result,
+            new HorizontalStackLayout { Spacing = 10, Children = { openFolder } });
+    }
+
+    private static void TryOpenFolder(string path)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = path,
+                UseShellExecute = true,
+            });
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("Settings", $"Could not open folder {path}: {ex.Message}");
+        }
     }
 
     /// <summary>

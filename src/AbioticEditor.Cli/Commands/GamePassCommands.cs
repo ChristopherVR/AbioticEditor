@@ -127,16 +127,18 @@ internal static class GamePassCommands
         var srcArg = new Argument<string>("steam-world") { Description = "A Steam world folder (WorldSave_*.sav + PlayerData/)." };
         var destArg = new Argument<string>("dest") { Description = "Output folder for the new Game Pass (wgs) container." };
         var worldOpt = new Option<string?>("--world") { Description = "World name to use inside the container (default: the folder name)." };
+        var idOpt = new Option<string?>("--player-id") { Description = "Re-home the single player save to this account id (default: keep existing ids)." };
         var cmd = new Command("to-gamepass", "Convert a Steam world folder into a Game Pass / Xbox container save.");
         cmd.Arguments.Add(srcArg);
         cmd.Arguments.Add(destArg);
         cmd.Options.Add(worldOpt);
+        cmd.Options.Add(idOpt);
         cmd.SetAction(pr => Cli.Run(() =>
         {
             var src = pr.GetValue(srcArg) ?? throw new CliUserErrorException("a Steam world folder is required.");
             if (!Directory.Exists(src)) throw new CliUserErrorException($"folder not found: {src}");
             var dest = pr.GetValue(destArg) ?? throw new CliUserErrorException("a destination folder is required.");
-            var outDir = GamePassConverter.SteamWorldToGamePass(src, dest, pr.GetValue(worldOpt));
+            var outDir = GamePassConverter.SteamWorldToGamePass(src, dest, pr.GetValue(worldOpt), pr.GetValue(idOpt));
             Cli.Info(pr.GetValue(quiet),
                 $"Converted Steam world -> Game Pass container at {outDir}. Copy this folder into the game's "
                 + "wgs storage (Packages\\<PFN>\\SystemAppData\\wgs) and verify it loads in-game.");
@@ -150,10 +152,12 @@ internal static class GamePassCommands
         var srcArg = new Argument<string>("wgs-folder") { Description = "A Game Pass wgs container folder." };
         var destArg = new Argument<string>("dest") { Description = "Output Steam world folder (loose .sav files)." };
         var containerOpt = new Option<string?>("--container") { Description = "Which <World>-WC container to convert (default: the first)." };
+        var idOpt = new Option<string?>("--player-id") { Description = "Re-home the single player save to this SteamID64 (default: keep existing ids)." };
         var cmd = new Command("to-steam", "Convert a Game Pass / Xbox container save into a Steam world folder.");
         cmd.Arguments.Add(srcArg);
         cmd.Arguments.Add(destArg);
         cmd.Options.Add(containerOpt);
+        cmd.Options.Add(idOpt);
         cmd.SetAction(pr => Cli.Run(() =>
         {
             var src = pr.GetValue(srcArg);
@@ -162,7 +166,7 @@ internal static class GamePassCommands
                 throw new CliUserErrorException($"not a Game Pass save folder (no containers.index): {src}");
             }
             var dest = pr.GetValue(destArg) ?? throw new CliUserErrorException("a destination folder is required.");
-            var outDir = GamePassConverter.GamePassToSteamWorld(src, pr.GetValue(containerOpt), dest);
+            var outDir = GamePassConverter.GamePassToSteamWorld(src, pr.GetValue(containerOpt), dest, pr.GetValue(idOpt));
             Cli.Info(pr.GetValue(quiet),
                 $"Converted Game Pass container -> Steam world folder at {outDir}. Place it under "
                 + "%LOCALAPPDATA%\\AbioticFactor\\Saved\\SaveGames\\<steamid>\\Worlds\\.");

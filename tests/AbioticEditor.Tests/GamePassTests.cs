@@ -216,6 +216,38 @@ public class GamePassTests
         }
     }
 
+    [Fact]
+    public void Conversion_can_rehome_the_player_to_a_new_id()
+    {
+        if (Fixtures.CascadeDir is null) return;
+        if (!OodleCodec.IsAvailable) return;
+
+        var tmp = Directory.CreateTempSubdirectory("gp-rehome");
+        try
+        {
+            var steam = Path.Combine(tmp.FullName, "W");
+            Directory.CreateDirectory(Path.Combine(steam, "PlayerData"));
+            File.Copy(Path.Combine(Fixtures.CascadeDir!, "WorldSave_MetaData.sav"),
+                Path.Combine(steam, "WorldSave_MetaData.sav"));
+            var srcPlayer = Directory.EnumerateFiles(Path.Combine(Fixtures.CascadeDir!, "PlayerData"), "Player_*.sav").First();
+            File.Copy(srcPlayer, Path.Combine(steam, "PlayerData", Path.GetFileName(srcPlayer)));
+
+            const string newId = "msft-9Z8Y7X";
+            var wgs = GamePassConverter.SteamWorldToGamePass(steam, Path.Combine(tmp.FullName, "gp"), worldName: "W", newPlayerId: newId);
+
+            var set = GamePassSaveSet.Open(wgs);
+            var player = set.Entries().Single(e => e.Kind == GamePassSaveKind.Player);
+            Assert.Equal($"Player_{newId}.sav", player.FileName);
+            // The SaveIdentifier inside the save was re-homed too.
+            Assert.Equal(newId, AbioticEditor.Core.PlayerSaves.PlayerSaveIdentity.GetSaveIdentifier(
+                UeSaveGame.SaveGame.LoadFrom(new MemoryStream(set.ReadSave(player)))));
+        }
+        finally
+        {
+            tmp.Delete(recursive: true);
+        }
+    }
+
     // ---- helpers: build a minimal but real wgs container folder + ABF bundle ----
 
     private static AbfSaveBundle TestBundle(params (string Path, string Class, byte[] Body)[] members)

@@ -15,25 +15,32 @@
             <Label Text="{loc:Localize PlayerGeneral_General}" Style="{StaticResource AfH2}" />
             <BoxView Style="{StaticResource AfHazardStripe}" />
 
-            <!-- Account: the SteamID64 lives in the file name + SaveIdentifier -->
+            <!-- Account: the owner id lives in the file name + SaveIdentifier. On Steam it is a
+                 17-digit SteamID64 and can be re-homed here; a Game Pass / Xbox account id is shown
+                 read-only (re-home it via SAVE CONVERSION in Settings). -->
             <Label Text="{loc:Localize PlayerGeneral_Account}" Style="{StaticResource AfFieldLabel}" FontSize="12" TextColor="{StaticResource AfAmber}" CharacterSpacing="5" />
             <controls:AdaptiveGrid ColumnDefinitions="Auto,240,Auto,*" ColumnSpacing="12" CompactWidth="640">
-                <Label Grid.Column="0" Text="{loc:Localize PlayerGeneral_SteamId64}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                <Label Grid.Column="0" Text="{Binding PlayerEditor.OwnerIdLabel, FallbackValue='ACCOUNT ID'}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                 <Entry Grid.Column="1" x:Name="SteamIdEntry"
-                       Text="{Binding PlayerEditor.SteamId64}"
-                       Keyboard="Numeric"
+                       Text="{Binding PlayerEditor.OwnerIdDisplay}"
+                       IsReadOnly="{Binding PlayerEditor.OwnerIdLocked}"
                        FontFamily="Digital7" FontSize="16"
                        TextColor="{StaticResource AfTerminalGreen}"
                        HorizontalTextAlignment="Center" VerticalOptions="Center" />
                 <Button Grid.Column="2" Text="{loc:Localize PlayerGeneral_ChangeSteamId}"
                         FontSize="10" Padding="12,5"
+                        IsVisible="{Binding PlayerEditor.CanEditOwnerId}"
                         BackgroundColor="{StaticResource AfHazardYellow}"
                         TextColor="{StaticResource AfTextOnAccent}"
                         Clicked="OnChangeSteamId" VerticalOptions="Center" />
                 <Label Grid.Column="3"
                        Text="{loc:Localize PlayerGeneral_ChangeSteamIdHelp}"
+                       IsVisible="{Binding PlayerEditor.CanEditOwnerId}"
                        Style="{StaticResource AfMuted}" FontSize="10" VerticalOptions="Center" LineBreakMode="WordWrap" />
             </controls:AdaptiveGrid>
+            <Label Text="{Binding PlayerEditor.OwnerIdNote}"
+                   IsVisible="{Binding PlayerEditor.OwnerIdLocked}"
+                   Style="{StaticResource AfMuted}" FontSize="10" LineBreakMode="WordWrap" />
             <BoxView Style="{StaticResource AfDivider}" />
 
             <Label Text="{loc:Localize PlayerGeneral_BulkUnlocks}" Style="{StaticResource AfFieldLabel}" FontSize="12" TextColor="{StaticResource AfAmber}" CharacterSpacing="5" />

@@ -1,4 +1,5 @@
 using UeSaveGame;
+using AbioticEditor.Core.PlayerSaves;
 using AbioticEditor.Core.SaveClasses;
 
 namespace AbioticEditor.Core.GamePass;
@@ -19,20 +20,27 @@ public static class GamePassConverter
 
     /// <summary>
     /// Packs the Steam world folder at <paramref name="steamWorldDir"/> into a new Game Pass wgs
-    /// container at <paramref name="destWgsDir"/>. Returns the wgs folder path. The player/world
-    /// saves keep their ids; on Game Pass the local Xbox account loads the world, so a player may
-    /// need re-homing to the target account id (see <see cref="PlayerSaves.PlayerSaveIdentity"/>).
+    /// container at <paramref name="destWgsDir"/>. Returns the wgs folder path.
+    /// <para>When <paramref name="newPlayerId"/> is set the (single) player save is re-homed to that
+    /// account id - the id in its file name and its <c>SaveIdentifier</c> - so it belongs to the
+    /// target account. Leave it null to keep the existing ids. Re-homing requires a single-player
+    /// world (one id can't own several characters).</para>
     /// </summary>
-    public static string SteamWorldToGamePass(string steamWorldDir, string destWgsDir, string? worldName = null)
+    public static string SteamWorldToGamePass(
+        string steamWorldDir, string destWgsDir, string? worldName = null, string? newPlayerId = null)
     {
         if (!Directory.Exists(steamWorldDir))
         {
             throw new DirectoryNotFoundException($"Steam world folder not found: {steamWorldDir}");
         }
         worldName ??= Path.GetFileName(Path.TrimEndingDirectorySeparator(Path.GetFullPath(steamWorldDir)));
+        newPlayerId = ValidateOptionalId(newPlayerId);
+
+        var saves = EnumerateWorldSaves(steamWorldDir).ToList();
+        GuardSingleRehome(newPlayerId, saves.Count(s => IsPlayerSave(s.Relative)));
 
         var members = new List<AbfMember>();
-        foreach (var file in EnumerateWorldSaves(steamWorldDir))
+        foreach (var file in saves)
         {
             var bytes = File.ReadAllBytes(file.Path);
             var saveClass = ReadSaveClass(bytes);
@@ -42,16 +50,23 @@ public static class GamePassConverter
                     $"Skipping '{Path.GetFileName(file.Path)}' (unsupported save class '{saveClass ?? "?"}').");
                 continue;
             }
-            var body = GamePassMemberCodec.ToMemberBody(saveClass, bytes);
+
             // In-bundle member paths use forward slashes, no extension, under Profile/Worlds/<World>.
             var rel = file.Relative.Replace('\\', '/');
             if (rel.EndsWith(".sav", StringComparison.OrdinalIgnoreCase)) rel = rel[..^4];
+
+            if (newPlayerId is not null && saveClass == GamePassMemberCodec.CharacterSaveClass)
+            {
+                bytes = StampOwner(bytes, newPlayerId);
+                rel = $"PlayerData/Player_{newPlayerId}";
+            }
+
             members.Add(new AbfMember
             {
                 Path = $"Profile/Worlds/{worldName}/{rel}",
                 SaveClass = saveClass,
                 Flag = 0,
-                Body = body,
+                Body = GamePassMemberCodec.ToMemberBody(saveClass, bytes),
             });
         }
 
@@ -70,18 +85,73 @@ public static class GamePassConverter
     /// <summary>
     /// Unpacks a Game Pass world container into a Steam world folder at
     /// <paramref name="destSteamDir"/> (loose <c>.sav</c> files). When <paramref name="containerName"/>
-    /// is null the single world container is used (or the only one). Returns the world folder path.
+    /// is null the only world container is used. When <paramref name="newPlayerId"/> is set the
+    /// (single) player save is re-homed to that account id so the world belongs to the target Steam
+    /// account; leave it null to keep the existing ids. Returns the world folder path.
     /// </summary>
-    public static string GamePassToSteamWorld(string wgsDir, string? containerName, string destSteamDir)
+    public static string GamePassToSteamWorld(
+        string wgsDir, string? containerName, string destSteamDir, string? newPlayerId = null)
     {
+        newPlayerId = ValidateOptionalId(newPlayerId);
         var set = GamePassSaveSet.Open(wgsDir);
         var container = containerName
             ?? set.Entries().Select(e => e.ContainerName).Distinct().FirstOrDefault()
             ?? throw new InvalidDataException($"No world containers found in '{wgsDir}'.");
         set.ExtractWorld(container, destSteamDir);
+
+        if (newPlayerId is not null)
+        {
+            var playerDir = Path.Combine(destSteamDir, "PlayerData");
+            var players = Directory.Exists(playerDir)
+                ? Directory.GetFiles(playerDir, "Player_*.sav")
+                : Array.Empty<string>();
+            GuardSingleRehome(newPlayerId, players.Length);
+            if (players.Length == 1)
+            {
+                PlayerSaveIdentity.ChangeSteamId(players[0], newPlayerId);
+                var bak = players[0] + ".bak";
+                if (File.Exists(bak)) File.Delete(bak); // the freshly-extracted original needs no backup
+            }
+        }
+
         Diagnostics.EditorLog.Info("GamePass",
             $"Converted Game Pass container '{container}' -> Steam world folder at {destSteamDir}.");
         return destSteamDir;
+    }
+
+    private static bool IsPlayerSave(string relative)
+        => Path.GetFileName(relative).StartsWith("Player_", StringComparison.OrdinalIgnoreCase);
+
+    private static string? ValidateOptionalId(string? id)
+    {
+        id = id?.Trim();
+        if (string.IsNullOrEmpty(id)) return null;
+        if (!PlayerIdentifier.IsSafeFileToken(id))
+        {
+            throw new ArgumentException(
+                $"'{id}' is not a valid account id (use letters, digits, '-', '_' or '.').", nameof(id));
+        }
+        return id;
+    }
+
+    private static void GuardSingleRehome(string? newPlayerId, int playerCount)
+    {
+        if (newPlayerId is not null && playerCount > 1)
+        {
+            throw new InvalidOperationException(
+                "Re-homing to a single account id needs a single-player world; this world has "
+                + $"{playerCount} player saves. Convert without an id to keep the existing ones.");
+        }
+    }
+
+    private static byte[] StampOwner(byte[] gvas, string newId)
+    {
+        using var inMs = new MemoryStream(gvas, writable: false);
+        var save = SaveGame.LoadFrom(inMs);
+        PlayerSaveIdentity.StampIdentifier(save, newId);
+        using var outMs = new MemoryStream();
+        save.WriteTo(outMs);
+        return outMs.ToArray();
     }
 
     private static IEnumerable<(string Path, string Relative)> EnumerateWorldSaves(string worldDir)
