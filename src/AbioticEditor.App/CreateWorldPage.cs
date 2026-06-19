@@ -347,6 +347,27 @@ public sealed class CreateWorldPage : ContentPage
 
                 var worldDir = await Task.Run(() => WorldSaveFactory.CreateWorldFolder(options, meta, player));
 
+                // Make the new world available for both platforms: also write a Game Pass (Xbox
+                // container) copy next to the Steam folder. This needs the Oodle compressor; if it
+                // isn't available (e.g. offline first run) the Steam world is still created.
+                statusLabel.Text = "World created. Writing Game Pass copy...";
+                string? gamePassDir = null;
+                try
+                {
+                    gamePassDir = await Task.Run(() =>
+                        AbioticEditor.Core.GamePass.GamePassConverter.SteamWorldToGamePass(
+                            worldDir, worldDir + "-GamePass", _worldName));
+                }
+                catch (Exception ex)
+                {
+                    Core.Diagnostics.EditorLog.Warn("CreateWorld", $"Game Pass copy skipped: {ex.Message}");
+                }
+
+                _vm.StatusMessage = gamePassDir is null
+                    ? $"Created Steam world at {worldDir}. (Game Pass copy was skipped - see the log.)"
+                    : $"Created the world for both platforms: Steam folder \"{System.IO.Path.GetFileName(worldDir)}\" "
+                        + $"and Game Pass container \"{System.IO.Path.GetFileName(gamePassDir)}\" next to it.";
+
                 statusLabel.Text = "World created. Loading...";
                 await Navigation.PopModalAsync();
                 await _vm.LoadFolderGuardedAsync(worldDir);

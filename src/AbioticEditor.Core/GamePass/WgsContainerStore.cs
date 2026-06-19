@@ -36,6 +36,10 @@ public sealed class WgsContainerStore
     private const string BlobEntryName = "Data";
     private const int BlobNameFieldBytes = 128; // fixed UTF-16 field in container.N
 
+    /// <summary>Abiotic Factor's Game Pass package family name + app id (public, identifies the title
+    /// in a containers.index). Used when creating a container from scratch.</summary>
+    public const string AbioticPackageFamilyName = "PlayStack.AbioticFactor_3wcqaesafpzfy!AppAbioticFactorShipping";
+
     private readonly string _root;
 
     // Verbatim header bytes (everything before the first entry) - preserved on rewrite.
@@ -139,6 +143,50 @@ public sealed class WgsContainerStore
         WriteIndex();
         Diagnostics.EditorLog.Info("GamePass",
             $"wgs: wrote container '{container.Name}' gen {newNumber} ({blob.Length} bytes).");
+    }
+
+    /// <summary>
+    /// Creates a brand-new single-container wgs folder at <paramref name="destFolder"/> holding one
+    /// logical container (<paramref name="containerName"/>) whose blob is <paramref name="blob"/>.
+    /// Writes <c>containers.index</c>, the GUID container folder, its <c>container.1</c> manifest and
+    /// the blob. Used to convert a Steam world into a Game Pass save.
+    /// </summary>
+    public static void WriteNewContainer(string destFolder, string containerName, byte[] blob)
+    {
+        ArgumentNullException.ThrowIfNull(blob);
+        Directory.CreateDirectory(destFolder);
+
+        var folderGuid = Guid.NewGuid();
+        var folder = Path.Combine(destFolder, folderGuid.ToString("N").ToUpperInvariant());
+        Directory.CreateDirectory(folder);
+
+        var blobGuid = Guid.NewGuid();
+        File.WriteAllBytes(Path.Combine(folder, blobGuid.ToString("N").ToUpperInvariant()), blob);
+        WriteManifest(folder, 1, blobGuid);
+
+        var now = DateTime.UtcNow.ToFileTimeUtc();
+        using var ms = new MemoryStream();
+        using var w = new BinaryWriter(ms, Encoding.Unicode, leaveOpen: true);
+        w.Write(14u);                              // version
+        w.Write(1u);                               // container count
+        w.Write(0u);                               // reserved
+        WriteWString(w, AbioticPackageFamilyName);
+        w.Write(now);                              // index FILETIME
+        w.Write(3u);                               // constant
+        WriteWString(w, Guid.NewGuid().ToString());// root GUID
+        w.Write(new byte[] { 0, 0, 0, 0x10, 0, 0, 0, 0 }); // 8 reserved bytes (as the game writes)
+        WriteWString(w, containerName);
+        WriteWString(w, containerName);
+        WriteWString(w, $"\"0x{now:X}\"");         // sync token
+        w.Write((byte)1);                          // container number -> container.1
+        w.Write(1u);                               // generation
+        w.Write(folderGuid.ToByteArray());
+        w.Write(now);                              // entry FILETIME
+        w.Write(0L);                               // reserved
+        w.Write((long)blob.Length);
+        w.Flush();
+        File.WriteAllBytes(Path.Combine(destFolder, IndexFileName), ms.ToArray());
+        Diagnostics.EditorLog.Info("GamePass", $"Created wgs container '{containerName}' at {destFolder} ({blob.Length} bytes).");
     }
 
     private static Guid ReadManifestBlobGuid(string folder, byte number)

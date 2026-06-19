@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace AbioticEditor.Core.GamePass;
 
 /// <summary>
@@ -36,21 +38,39 @@ public static class GamePassMemberCodec
     }
 
     /// <summary>
-    /// Strips the class-matched header from a full GVAS save (as produced by the editor's writer)
-    /// to recover the headerless member body the bundle stores. The header length is fixed per
-    /// class, so the data-length difference in the custom header (recomputed on write) is discarded
-    /// with the rest of the header.
+    /// Strips a full GVAS save down to the headerless member body the bundle stores. The body
+    /// begins at the "unknown byte" right after the save's custom header; that boundary is found by
+    /// locating the save class name and skipping its fixed-size custom header, so it is correct for
+    /// any save of the class (not only ones the editor just wrote with our header template).
     /// </summary>
     public static byte[] ToMemberBody(string saveClass, ReadOnlySpan<byte> gvas)
     {
-        var header = HeaderFor(saveClass)
-            ?? throw new NotSupportedException($"No GVAS header template for save class '{saveClass}'.");
-        if (gvas.Length < header.Length)
+        var (marker, customHeaderSize) = ClassMarker(saveClass)
+            ?? throw new NotSupportedException($"Unsupported save class '{saveClass}'.");
+        var markerBytes = Encoding.ASCII.GetBytes(marker);
+        var idx = gvas.IndexOf(markerBytes);
+        if (idx < 0)
         {
-            throw new InvalidDataException("Re-serialized save is shorter than the header template.");
+            throw new InvalidDataException($"Save class name '{marker.TrimEnd('\0')}' not found in the GVAS save.");
         }
-        return gvas[header.Length..].ToArray();
+        var bodyStart = idx + markerBytes.Length + customHeaderSize;
+        if (bodyStart > gvas.Length)
+        {
+            throw new InvalidDataException("GVAS save is truncated before its property body.");
+        }
+        return gvas[bodyStart..].ToArray();
     }
+
+    // The save class name (with its FString null terminator) followed by the class's custom-header
+    // size: CharacterSave = [int Version][int DataLength] = 8; World/Metadata =
+    // [FString "ABF_SAVE_VERSION"][int Version][int Id][int DataLength] = 33.
+    private static (string Marker, int CustomHeaderSize)? ClassMarker(string? saveClass) => saveClass switch
+    {
+        CharacterSaveClass => ("Abiotic_CharacterSave_C\0", 8),
+        WorldSaveClass => ("Abiotic_WorldSave_C\0", 33),
+        WorldMetadataSaveClass => ("Abiotic_WorldMetadataSave_C\0", 33),
+        _ => null,
+    };
 
     private static byte[]? HeaderFor(string? saveClass) => saveClass switch
     {

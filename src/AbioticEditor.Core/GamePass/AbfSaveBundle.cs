@@ -46,6 +46,14 @@ public sealed class AbfSaveBundle
 
     public IReadOnlyList<AbfMember> Members { get; }
 
+    /// <summary>Builds a new bundle from members (used when converting a Steam world to Game Pass).
+    /// The header fields match what the game writes for a fresh bundle.</summary>
+    public static AbfSaveBundle Create(IReadOnlyList<AbfMember> members)
+    {
+        ArgumentNullException.ThrowIfNull(members);
+        return new AbfSaveBundle(version: 3, field1: 0, field2: 16, members.ToList());
+    }
+
     /// <summary>True when the bytes start with the <c>ABF_SAVE_VERSION</c> marker.</summary>
     public static bool LooksLikeBundle(ReadOnlySpan<byte> data)
         => data.Length > 21 && ReadMarker(data) == Marker;

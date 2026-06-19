@@ -174,6 +174,48 @@ public class GamePassTests
         }
     }
 
+    [Fact]
+    public void Converts_Steam_world_to_GamePass_and_back_losslessly()
+    {
+        if (Fixtures.CascadeDir is null) return; // fixture absent - skip
+        if (!OodleCodec.IsAvailable) return;     // no native Oodle - skip
+
+        var tmp = Directory.CreateTempSubdirectory("steam-gp-convert");
+        try
+        {
+            // A minimal Steam world: the metadata + one player (copied from the Cascade fixture).
+            var steam = Path.Combine(tmp.FullName, "MyWorld");
+            Directory.CreateDirectory(Path.Combine(steam, "PlayerData"));
+            File.Copy(Path.Combine(Fixtures.CascadeDir!, "WorldSave_MetaData.sav"),
+                Path.Combine(steam, "WorldSave_MetaData.sav"));
+            var srcPlayer = Directory.EnumerateFiles(Path.Combine(Fixtures.CascadeDir!, "PlayerData"), "Player_*.sav").First();
+            var playerName = Path.GetFileName(srcPlayer);
+            File.Copy(srcPlayer, Path.Combine(steam, "PlayerData", playerName));
+
+            // Steam -> Game Pass.
+            var wgs = GamePassConverter.SteamWorldToGamePass(steam, Path.Combine(tmp.FullName, "gp"));
+            Assert.True(GamePassSaveSet.IsGamePassFolder(wgs));
+            var set = GamePassSaveSet.Open(wgs);
+            Assert.Contains(set.Entries(), e => e.FileName == playerName);
+
+            // Game Pass -> Steam, into a new folder.
+            var back = GamePassConverter.GamePassToSteamWorld(wgs, $"MyWorld-WC", Path.Combine(tmp.FullName, "back"));
+
+            // The player save survives the round-trip byte-for-byte.
+            Assert.True(File.Exists(Path.Combine(back, "PlayerData", playerName)));
+            Assert.Equal(
+                File.ReadAllBytes(Path.Combine(steam, "PlayerData", playerName)),
+                File.ReadAllBytes(Path.Combine(back, "PlayerData", playerName)));
+            Assert.Equal(
+                File.ReadAllBytes(Path.Combine(steam, "WorldSave_MetaData.sav")),
+                File.ReadAllBytes(Path.Combine(back, "WorldSave_MetaData.sav")));
+        }
+        finally
+        {
+            tmp.Delete(recursive: true);
+        }
+    }
+
     // ---- helpers: build a minimal but real wgs container folder + ABF bundle ----
 
     private static AbfSaveBundle TestBundle(params (string Path, string Class, byte[] Body)[] members)

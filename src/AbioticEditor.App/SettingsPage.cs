@@ -134,6 +134,9 @@ public sealed class SettingsPage : ContentPage
         // ----- GAME DATA -----
         var gameDataCard = BuildGameDataCard();
 
+        // ----- SAVE CONVERSION (Steam <-> Game Pass) -----
+        var conversionCard = BuildSaveConversionCard();
+
         // ----- PLUGINS -----
         var managePlugins = new Button { Text = "MANAGE PLUGINS" };
         managePlugins.Clicked += async (_, _) =>
@@ -163,6 +166,7 @@ public sealed class SettingsPage : ContentPage
             ("GENERAL", new View[] { themeCard, languageCard, diagnosticsCard }),
             ("EDITOR", new View[] { spoilerCard }),
             ("GAME DATA", new View[] { gameDataCard }),
+            ("CONVERT", new View[] { conversionCard }),
             ("PLUGINS", new View[] { pluginsCard }),
             ("UPDATES", new View[] { updatesCard }),
         };
@@ -308,6 +312,76 @@ public sealed class SettingsPage : ContentPage
             usmapValue,
             new HorizontalStackLayout { Spacing = 10, Children = { locateFolder, autoDetect } },
             new HorizontalStackLayout { Spacing = 10, Children = { importUsmap } });
+    }
+
+    /// <summary>
+    /// The SAVE CONVERSION card: convert a save between Steam (loose files) and Game Pass (Xbox
+    /// container) packaging. Each direction picks a source folder, writes the converted copy next to
+    /// it, and never touches the original. The content is identical either way; only the packaging
+    /// differs.
+    /// </summary>
+    private View BuildSaveConversionCard()
+    {
+        var status = new Label { Style = ModalChrome.St("AfMuted"), FontSize = 11, IsVisible = false };
+        var toGamePass = new Button { Text = "STEAM  →  GAME PASS" };
+        var toSteam = ModalChrome.Button("GAME PASS  →  STEAM", primary: false);
+
+        async Task RunAsync(Func<string, string> convert, Func<string, bool> validate, string badMsg, string suffix)
+        {
+            try
+            {
+                var result = await CommunityToolkit.Maui.Storage.FolderPicker.PickAsync(CancellationToken.None);
+                if (!result.IsSuccessful || result.Folder is null) return; // dismissed
+                var src = result.Folder.Path;
+                if (!validate(src))
+                {
+                    await ViewUtils.AlertAsync(this, "Not the right folder", badMsg);
+                    return;
+                }
+                var dest = src.TrimEnd('/', '\\') + suffix;
+                status.IsVisible = true;
+                status.Text = "Converting… (the first run may download the Oodle compressor)";
+                toGamePass.IsEnabled = toSteam.IsEnabled = false;
+                var outDir = await Task.Run(() => convert(dest));
+                EditorLog.Info("Settings", $"Save converted to {outDir}");
+                status.Text = $"Done: {outDir}";
+                await ViewUtils.AlertAsync(this, "Save converted",
+                    $"Converted copy written to:\n{outDir}\n\nThe original was not changed. "
+                        + "Verify the converted save loads in-game before relying on it.");
+            }
+            catch (Exception ex) when (!IsPickerCancellation(ex))
+            {
+                EditorLog.Error("Settings", "Save conversion failed", ex);
+                status.Text = $"Failed: {ex.Message}";
+                await ViewUtils.AlertAsync(this, "Conversion failed", ex.Message);
+            }
+            finally
+            {
+                toGamePass.IsEnabled = toSteam.IsEnabled = true;
+            }
+        }
+
+        toGamePass.Clicked += async (_, _) => await RunAsync(
+            dest => AbioticEditor.Core.GamePass.GamePassConverter.SteamWorldToGamePass(
+                System.IO.Path.GetFullPath(dest)[..^"-GamePass".Length], dest),
+            src => System.IO.Directory.EnumerateFiles(src, "WorldSave_*.sav").Any(),
+            "Pick a Steam world folder (it should contain WorldSave_*.sav files and a PlayerData folder).",
+            "-GamePass");
+
+        toSteam.Clicked += async (_, _) => await RunAsync(
+            dest => AbioticEditor.Core.GamePass.GamePassConverter.GamePassToSteamWorld(
+                System.IO.Path.GetFullPath(dest)[..^"-Steam".Length], null, dest),
+            src => AbioticEditor.Core.GamePass.GamePassSaveSet.IsGamePassFolder(src),
+            "Pick a Game Pass save folder (the one that directly contains 'containers.index').",
+            "-Steam");
+
+        return ModalChrome.Card("SAVE CONVERSION",
+            "Convert a world between Steam (loose .sav files) and Game Pass / Xbox (one container). "
+                + "The converted copy is written next to the folder you pick; your original is left "
+                + "untouched. Players keep their ids, so on the target platform a character may need "
+                + "re-homing to that account.",
+            status,
+            new HorizontalStackLayout { Spacing = 10, Children = { toGamePass, toSteam } });
     }
 
     /// <summary>
