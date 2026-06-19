@@ -1,38 +1,94 @@
-[center][size=6][b]Abiotic Editor[/b][/size]
-[i]A friendly save-game editor for Abiotic Factor.[/i][/center]
+[center][img]https://christophervr.github.io/AbioticEditor/logo.png[/img]
+
+[size=6][b]ABIOTIC EDITOR[/b][/size]
+[size=4][i]The friendly save editor for Abiotic Factor.[/i][/size]
+
+[b]Steam[/b] and [b]Game Pass / Microsoft Store[/b] saves - [b]single-player[/b] and [b]dedicated servers[/b] - no hex editor, no spreadsheets.[/center]
+
+[line]
 
 [size=5][b]What is this?[/b][/size]
 
 Abiotic Factor keeps your progress in save files on your PC. Abiotic Editor opens those files and shows everything inside as simple, clickable controls: sliders for your needs, a grid for your inventory, a checklist for recipes. Change what you want, press SAVE, and load the game.
 
-No hex editors. No spreadsheets. No risk to your original saves (it keeps a backup every time you save).
+It even reads the game's own data, so your real item icons, recipe names, skill perks and quest text show up right inside the editor.
 
-Think of it as a cheat menu, a save-repair kit, and a save inspector rolled into one. It is a fan-made tool and is not part of the game.
+Think of it as a [b]cheat menu[/b], a [b]save-repair kit[/b], and a [b]save inspector[/b] rolled into one. It is a fan-made tool and is not part of the game.
+
+[center][img]https://christophervr.github.io/AbioticEditor/screenshots/01-loaded.png[/img]
+[i]Point it at a save folder and everything inside is laid out as friendly controls.[/i][/center]
+
+[line]
 
 [size=5][b]What can I do with it?[/b][/size]
 
 [list]
 [*][b]Tweak a single-player run:[/b] top up your hunger, thirst, sanity and health, max out a skill, give yourself money, unlock a recipe, or hand yourself any item in the game.
-[*][b]Fix a mistake:[/b] revive an NPC you lost, refill a node you harvested, or undo a bad decision.
-[*][b]Run a server:[/b] edit any player's save, change world state, or adjust difficulty and rates in the server config files, no text editing required.
+[*][b]Fix a mistake:[/b] revive an NPC you lost, refill a node you harvested, repair a broken story state, or undo a bad decision.
+[*][b]Run a server:[/b] edit any player's save, change world state, or adjust difficulty and rates, no text editing required.
+[*][b]Make your character your own:[/b] change appearance and transmog, respawn point, traits and skills.
 [*][b]Just look around:[/b] see exactly what the game records about your run, with every value labelled in plain language.
 [/list]
 
 You can edit your vitals, inventory, skills, traits, recipes, journal, appearance, respawn point, quest progress, containers, doors, dropped items, NPCs and tamed pets, your base, and more.
 
+[center][img]https://christophervr.github.io/AbioticEditor/screenshots/11-player-inventory.png[/img]
+[i]Inventory: every slot, the real item icons, and the full item catalogue to add from.[/i]
+
+[img]https://christophervr.github.io/AbioticEditor/screenshots/12-player-skills.png[/img]
+[i]Skills: levels, XP and milestone perks for all fifteen skills.[/i]
+
+[img]https://christophervr.github.io/AbioticEditor/screenshots/13-player-recipes.png[/img]
+[i]Recipes: your whole crafting book, searchable and filterable.[/i]
+
+[img]https://christophervr.github.io/AbioticEditor/screenshots/21-world-questflags.png[/img]
+[i]Quest flags: story progress grouped by chapter, and prerequisite-safe so you can't break the story.[/i][/center]
+
+[line]
+
+[size=5][b]Works with Steam AND Game Pass[/b][/size]
+
+[list]
+[*][b]Steam:[/b] your normal save folder. The editor usually finds it on its own.
+[*][b]Game Pass / Microsoft Store:[/b] these saves are packed into Xbox "Connected Storage" containers (no loose [b].sav[/b] files). The editor reads, edits and writes them anyway. Game Pass worlds show up automatically with a [b]GAME PASS[/b] tag, so you just click and edit.
+[*][b]Dedicated servers:[/b] point it at the folder with your Worlds and edit any player or the world itself.
+[/list]
+
+[b]Bonus:[/b] it can [b]convert a world between Steam and Game Pass[/b] (losslessly, in either direction) and even re-home a character to a different account while it does. Moving your run from Game Pass to Steam, or the other way around, is a couple of clicks.
+
+[line]
+
+[size=5][b]Custom mods and your own tools (plugins)[/b][/size]
+
+Abiotic Editor reads the game's data straight from your installed copy, so it keeps working with modded game data. On top of that it has a [b]plugin system[/b]: you (or anyone) can add your own bulk edits, cheats, fixes and even whole new editor panels.
+
+[list]
+[*]Plugins can be a compiled [b].NET[/b] add-on or just a plain [b]JavaScript[/b] file - scripts need no build step at all.
+[*]Drop a plugin in, enable it, and it shows up in the app and the command-line tool.
+[*]Great for one-click "give me a full base kit", "max everything", or fix-ups when a game patch renames a field.
+[/list]
+
+Only install plugins you trust: like any add-on, they run with full access. See the documentation for how to write or install one.
+
+[line]
+
 [size=5][b]How do I use it?[/b][/size]
 
 [list=1]
-[*][b]Point it at your save folder.[/b] It usually finds your saves on its own, so most of the time you just click LOAD.
+[*][b]Point it at your save.[/b] It usually finds your saves on its own (Steam and Game Pass), so most of the time you just click LOAD.
 [*][b]Pick a save and edit it.[/b] Drag a slider, tick a recipe, drop in an item. Nothing is changed yet.
 [*][b]Press SAVE.[/b] Your changes are written, and a backup copy of the old save is kept right next to it, so you can always go back.
 [/list]
 
+[line]
+
 [size=5][b]Is it safe?[/b][/size]
 
-Your edits are only staged until you press SAVE, every save keeps a backup file, and the editor refuses to create impossible situations (for example, it offers to set a quest's requirements for you instead of letting you skip ahead into a broken story). It also writes the save in the game's exact format, so anything you do not touch is left exactly as the game wrote it.
+Your edits are only staged until you press SAVE, every save keeps a backup, and the editor refuses to create impossible situations (for example, it offers to set a quest's requirements for you instead of letting you skip ahead into a broken story). It also writes the save in the game's exact format, so anything you do not touch is left exactly as the game wrote it.
 
 That said, it is still a save editor. Please keep your own backups of any saves you really care about.
+
+[line]
 
 [size=5][b]Installing on Windows[/b][/size]
 
@@ -44,28 +100,39 @@ To get past it: right-click the downloaded zip, choose [b]Properties[/b], tick [
 
 Prefer a one-line install with no warning at all? You can install it with Scoop (a Windows package manager) instead. See the documentation link below.
 
+[line]
+
 [size=5][b]Where are my saves?[/b][/size]
 
-The editor detects your save folders automatically and lists them on the welcome screen, so you can usually just click LOAD. If you ever need the path by hand:
+The editor detects your save folders automatically and lists them on the welcome screen, so you can usually just click LOAD. If you ever need a path by hand:
 
 [list]
-[*][b]Game:[/b] %LOCALAPPDATA%\AbioticFactor\Saved\SaveGames\<your steam id>\Worlds\<world name>
+[*][b]Steam game:[/b] %LOCALAPPDATA%\AbioticFactor\Saved\SaveGames\<your steam id>\Worlds\<world name>
+[*][b]Game Pass:[/b] %LOCALAPPDATA%\Packages\<AbioticFactor package>\SystemAppData\wgs\ (the editor scans this for you - you should never need to type it)
 [*][b]Dedicated server:[/b] the folder that contains your Worlds folder.
 [/list]
+
+[line]
 
 [size=5][b]Staying up to date[/b][/size]
 
 The app can update itself: open [b]Settings[/b] then [b]Updates[/b] and it will fetch the latest version for you. You can also just download the newest file here whenever a new version drops.
 
+[line]
+
 [size=5][b]For the more technical[/b][/size]
 
-There is also a command-line version for scripting and server admins, and a plugin system if you want to add your own bulk edits or tools. Both are covered in the documentation.
+There is also a command-line version for scripting and server admins, and the plugin system above if you want to add your own bulk edits or tools. Both are covered in the documentation.
+
+[line]
 
 [size=5][b]Help and documentation[/b][/size]
 
 [list]
 [*][b]Full guide and FAQ:[/b] https://christophervr.github.io/AbioticEditor/
 [*][b]Getting started:[/b] https://christophervr.github.io/AbioticEditor/guide/getting-started
+[*][b]Game Pass saves:[/b] https://christophervr.github.io/AbioticEditor/guide/game-pass
+[*][b]Plugins / custom tools:[/b] https://christophervr.github.io/AbioticEditor/plugins
 [*][b]Source code and releases:[/b] https://github.com/ChristopherVR/AbioticEditor
 [/list]
 
