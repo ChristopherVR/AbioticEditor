@@ -63,4 +63,59 @@ public static class ModLoadStore
         Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
         File.WriteAllText(ConfigPath, enabled ? "1" : "0");
     }
+
+    // ---------- per-mod enable/disable ----------
+
+    /// <summary>
+    /// Where the set of individually-disabled mod names is persisted (one mod name per line). Sits
+    /// alongside <see cref="ConfigPath"/>. A mod is enabled unless its name appears here, so doing
+    /// nothing keeps every mod on - matching the master default.
+    /// </summary>
+    public static string DisabledModsPath { get; } = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "AbioticEditor",
+        "mods-disabled.txt");
+
+    /// <summary>The set of mod names the user has individually turned off (case-insensitive).</summary>
+    public static IReadOnlySet<string> DisabledMods
+    {
+        get
+        {
+            var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                if (File.Exists(DisabledModsPath))
+                {
+                    foreach (var line in File.ReadAllLines(DisabledModsPath))
+                    {
+                        var name = line.Trim();
+                        if (name.Length > 0) set.Add(name);
+                    }
+                }
+            }
+            catch
+            {
+                // A bad/locked file just means "nothing individually disabled".
+            }
+            return set;
+        }
+    }
+
+    /// <summary>
+    /// True when the named mod should mount. Only reflects the per-mod choice; callers still gate on
+    /// the master <see cref="ModsEnabled"/> for the effective decision.
+    /// </summary>
+    public static bool IsModEnabled(string modName) => !DisabledMods.Contains(modName);
+
+    /// <summary>Turns one mod on/off and persists the change.</summary>
+    public static void SetModEnabled(string modName, bool enabled)
+    {
+        if (string.IsNullOrWhiteSpace(modName)) return;
+        var set = new HashSet<string>(DisabledMods, StringComparer.OrdinalIgnoreCase);
+        if (enabled) set.Remove(modName);
+        else set.Add(modName);
+
+        Directory.CreateDirectory(Path.GetDirectoryName(DisabledModsPath)!);
+        File.WriteAllText(DisabledModsPath, string.Join(Environment.NewLine, set));
+    }
 }

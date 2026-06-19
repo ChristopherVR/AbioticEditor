@@ -1728,6 +1728,18 @@ Choisissez le dossier d'installation du jeu (celui contenant le dossier AbioticF
   <data name="GameDataSettings_ModsToggledTitle" xml:space="preserve">
     <value>Chargement des mods mis à jour</value>
   </data>
+  <data name="Settings_Mods" xml:space="preserve">
+    <value>Mods</value>
+  </data>
+  <data name="ModsSettings_CardHint" xml:space="preserve">
+    <value>Mods installés dans les dossiers ~mods et LogicMods du jeu. Désactivez un mod précis pour masquer son contenu dans l'éditeur, ou utilisez l'interrupteur principal pour ignorer tous les mods. Les changements rechargent les données du jeu.</value>
+  </data>
+  <data name="ModsSettings_NoneInstalled" xml:space="preserve">
+    <value>Aucun mod n'est installé dans les dossiers ~mods ou LogicMods du jeu.</value>
+  </data>
+  <data name="ModsSettings_Status" xml:space="preserve">
+    <value>{0} mod(s) chargé(s) sur {1}.</value>
+  </data>
   <data name="Slot_MsgNoBoundContext" xml:space="preserve">
     <value>Appui sur emplacement : aucun contexte lié trouvé</value>
   </data>

@@ -44,9 +44,9 @@ public sealed class GameAssetProvider : IDisposable
     public IEnumerable<string> AssetPaths => _provider.Files.Keys;
 
     /// <summary>
-    /// File names of the mod paks mounted from the game's <c>~mods</c>/<c>LogicMods</c>
-    /// subfolders (empty when none were found or mod loading was disabled). Display-only,
-    /// so the App/CLI can report what is active.
+    /// Names of the mods actually mounted from the game's <c>~mods</c>/<c>LogicMods</c> subfolders
+    /// (empty when none are present, mods are disabled, or each was individually turned off).
+    /// Display-only, so the App/CLI can report what is active.
     /// </summary>
     public IReadOnlyList<string> LoadedMods => _loadedMods;
 
@@ -151,34 +151,52 @@ public sealed class GameAssetProvider : IDisposable
 
     /// <summary>
     /// Constructs a provider over the given <paramref name="paksDirectory"/>. Throws if mount fails.
-    /// When <paramref name="includeMods"/> is true the mod-pak subfolders (<c>~mods</c>,
-    /// <c>LogicMods</c>) are mounted as well by scanning all subdirectories; otherwise only the
-    /// base-game paks in the top of the directory load.
+    /// When <paramref name="includeMods"/> is true, individually-enabled mod paks from the
+    /// <c>~mods</c>/<c>LogicMods</c> subfolders are mounted on top of the base game; otherwise only
+    /// the base-game paks load. Per-mod enablement is read from <see cref="ModLoadStore"/>.
     /// </summary>
     public static GameAssetProvider CreateForPaks(string paksDirectory, string? cacheDir = null, string? mappingsPath = null, bool includeMods = true)
     {
-        // Mod paks live in subfolders (~mods, LogicMods); scanning all directories mounts them.
-        // Note: when a mod overrides a base asset (same package path), which copy wins depends on
-        // CUE4Parse's mount order. AF/UE give ~mods higher priority; most mods only ADD content
-        // (new paths) where order is irrelevant. If precise override priority is ever needed,
-        // switch to mounting the base dir then each mod folder explicitly.
-        var searchOption = includeMods ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-        var loadedMods = includeMods
-            ? AfInstallLocator.FindModPaks(paksDirectory).Select(Path.GetFileName).Where(n => n is not null).Select(n => n!).ToList()
-            : new List<string>();
-
 #pragma warning disable CS0618 // see AssetProbeTests for context on the new ctor signature
+        // Mount only the base-game paks from the top of the directory; mod paks live in subfolders
+        // and are registered explicitly below so individual mods can be turned off.
         var provider = new DefaultFileProvider(
             paksDirectory,
-            searchOption,
+            SearchOption.TopDirectoryOnly,
             isCaseInsensitive: true,
             new VersionContainer(EGame.GAME_UE5_4));
 #pragma warning restore CS0618
 
         provider.Initialize();
 
-        // Unencrypted iostore still requires SubmitKey to trigger the mount step.
-        // FGuid.Empty matches archives that report no encryption GUID.
+        // Register each enabled mod's paks AFTER the base game so, when a mod overrides a base asset
+        // (same package path), the mod is mounted last and wins. Most mods only ADD content (new
+        // paths) where order is irrelevant. A mod whose pak fails to register is skipped, not fatal.
+        var loadedMods = new List<string>();
+        if (includeMods)
+        {
+            foreach (var mod in AfInstallLocator.FindMods(paksDirectory))
+            {
+                if (!ModLoadStore.IsModEnabled(mod.Name)) continue;
+                var any = false;
+                foreach (var file in mod.Files)
+                {
+                    try
+                    {
+                        provider.RegisterVfs(file);
+                        any = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Diagnostics.EditorLog.Warn("Assets", $"Failed to register mod pak '{file}': {ex.Message}");
+                    }
+                }
+                if (any) loadedMods.Add(mod.Name);
+            }
+        }
+
+        // Unencrypted iostore still requires SubmitKey to trigger the mount step (mounts the base
+        // paks plus every mod pak registered above). FGuid.Empty matches archives with no GUID.
         provider.SubmitKey(
             new FGuid(),
             new FAesKey("0x0000000000000000000000000000000000000000000000000000000000000000"));

@@ -131,6 +131,27 @@ public static class AfInstallLocator
         return result;
     }
 
+    /// <summary>
+    /// One installed mod: a display <see cref="Name"/> (the pak's file name without extension) and
+    /// the pak/utoc <see cref="Files"/> that make it up (an IoStore mod ships a <c>.utoc</c> next to
+    /// its <c>.pak</c>; both are registered together, the <c>.ucas</c> is opened automatically).
+    /// </summary>
+    public sealed record InstalledMod(string Name, IReadOnlyList<string> Files);
+
+    /// <summary>
+    /// Groups the mod paks under <paramref name="paksDirectory"/> (see <see cref="FindModPaks"/>)
+    /// into distinct mods, keyed by file name without extension, sorted by name. Each mod is the
+    /// unit the editor enables/disables. Empty when there are no mods.
+    /// </summary>
+    public static IReadOnlyList<InstalledMod> FindMods(string? paksDirectory)
+    {
+        return FindModPaks(paksDirectory)
+            .GroupBy(f => Path.GetFileNameWithoutExtension(f), StringComparer.OrdinalIgnoreCase)
+            .Select(g => new InstalledMod(g.Key, g.OrderBy(f => f, StringComparer.OrdinalIgnoreCase).ToList()))
+            .OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
     /// <summary>True when <paramref name="dir"/> exists and holds at least one pak/utoc.</summary>
     private static bool LooksLikePaksDirectory(string dir)
     {

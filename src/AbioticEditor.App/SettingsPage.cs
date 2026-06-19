@@ -134,6 +134,7 @@ public sealed class SettingsPage : ContentPage
 
         // ----- GAME DATA -----
         var gameDataCard = BuildGameDataCard();
+        var modsCard = BuildModsCard();
 
         // ----- SAVE CONVERSION (Steam <-> Game Pass) -----
         var conversionCard = BuildSaveConversionCard();
@@ -164,7 +165,7 @@ public sealed class SettingsPage : ContentPage
         {
             (loc["Settings_TabGeneral"], new View[] { themeCard, languageCard, diagnosticsCard }),
             (loc["Settings_TabEditor"], new View[] { spoilerCard }),
-            (loc["Settings_GameData"], new View[] { gameDataCard }),
+            (loc["Settings_GameData"], new View[] { gameDataCard, modsCard }),
             (loc["Settings_TabConvert"], new View[] { conversionCard }),
             (loc["Settings_Plugins"], new View[] { pluginsCard }),
             (loc["Settings_TabUpdates"], new View[] { updatesCard }),
@@ -223,19 +224,6 @@ public sealed class SettingsPage : ContentPage
         var locateFolder = new Button { Text = loc["GameDataSettings_SetGameFolder"] };
         var autoDetect = ModalChrome.Button(loc["GameDataSettings_UseAutoDetect"], primary: false);
 
-        var modsValue = new Label
-        {
-            Style = ModalChrome.St("AfFieldValue"),
-            FontSize = 12,
-            LineBreakMode = LineBreakMode.WordWrap,
-        };
-        var modsSwitch = new Switch
-        {
-            IsToggled = Services.GameDataServices.ModsEnabled,
-            // ABIOTIC_NO_MODS wins over the persisted flag; lock the toggle off when it's set.
-            IsEnabled = !Services.GameDataServices.ModsDisabledByEnv,
-        };
-
         void Refresh()
         {
             var custom = Services.GameDataServices.CustomInstallPath;
@@ -260,16 +248,6 @@ public sealed class SettingsPage : ContentPage
                         : loc["GameDataSettings_UsmapBundled"]));
 
             autoDetect.IsVisible = custom is not null;
-
-            // Which mod paks are currently mounted (or why none are).
-            var mods = Services.GameDataServices.LoadedMods;
-            var modsText = Services.GameDataServices.ModsDisabledByEnv
-                ? loc["GameDataSettings_ModsDisabledByEnv"]
-                : mods.Count == 0
-                    ? loc["GameDataSettings_ModsNone"]
-                    : $"{mods.Count}: {string.Join(", ", mods)}";
-            modsValue.Text = loc.Format("GameDataSettings_ModsLabel", modsText);
-            modsSwitch.IsToggled = Services.GameDataServices.ModsEnabled;
         }
 
         Refresh();
@@ -324,14 +302,6 @@ public sealed class SettingsPage : ContentPage
             await ApplyAndReloadAsync(loc["GameDataSettings_AutoDetectRestoredTitle"]);
         };
 
-        modsSwitch.Toggled += async (_, e) =>
-        {
-            if (e.Value == Services.GameDataServices.ModsEnabled) return;
-            Services.GameDataServices.ModsEnabled = e.Value;
-            EditorLog.Info("Settings", $"Mod loading {(e.Value ? "enabled" : "disabled")}");
-            await ApplyAndReloadAsync(loc["GameDataSettings_ModsToggledTitle"]);
-        };
-
         var importUsmap = new Button { Text = loc["GameDataSettings_ImportDataFile"], Command = _vm.ImportMappingsCommand };
 
         return ModalChrome.Card(loc["Settings_GameData"],
@@ -340,10 +310,89 @@ public sealed class SettingsPage : ContentPage
             folderValue,
             usmapValue,
             new HorizontalStackLayout { Spacing = 10, Children = { locateFolder, autoDetect } },
-            new HorizontalStackLayout { Spacing = 10, Children = { importUsmap } },
-            LabeledRow(loc["GameDataSettings_LoadMods"], modsSwitch),
-            new Label { Style = ModalChrome.St("AfMuted"), FontSize = 11, Text = loc["GameDataSettings_LoadModsHint"] },
-            modsValue);
+            new HorizontalStackLayout { Spacing = 10, Children = { importUsmap } });
+    }
+
+    /// <summary>
+    /// The MODS card: a master "load mods" switch plus one toggle per mod installed under the game's
+    /// <c>~mods</c>/<c>LogicMods</c> folders, so a player can hide an individual mod's content (or
+    /// all of it) in the editor. Toggling persists to <see cref="Core.Assets.ModLoadStore"/> and
+    /// reloads game data in place. The per-mod switches lock when the master is off or the
+    /// <c>ABIOTIC_NO_MODS</c> env var disables mods entirely.
+    /// </summary>
+    private View BuildModsCard()
+    {
+        var loc = Services.LocalizationResourceManager.Instance;
+
+        var masterSwitch = new Switch
+        {
+            IsToggled = Services.GameDataServices.ModsEnabled,
+            IsEnabled = !Services.GameDataServices.ModsDisabledByEnv,
+            VerticalOptions = LayoutOptions.Center,
+        };
+        var statusLine = new Label { Style = ModalChrome.St("AfMuted"), FontSize = 11 };
+        var modsList = new VerticalStackLayout { Spacing = 6 };
+
+        // Reload after any toggle so the catalogs (and the item palette) rebuild without a relaunch.
+        async Task ApplyAndReloadAsync()
+        {
+            await _vm.ReloadGameDataAsync();
+            RefreshList();
+            await ViewUtils.AlertAsync(this, loc["GameDataSettings_ModsToggledTitle"],
+                Services.GameDataServices.IsGameDataLoaded
+                    ? loc["GameDataSettings_GameDataLoadedMessage"]
+                    : Services.GameDataServices.StatusMessage);
+        }
+
+        void RefreshList()
+        {
+            var envDisabled = Services.GameDataServices.ModsDisabledByEnv;
+            var masterOn = Services.GameDataServices.ModsEnabled;
+            masterSwitch.IsToggled = masterOn;
+
+            var installed = Services.GameDataServices.InstalledMods;
+            statusLine.Text = envDisabled
+                ? loc["GameDataSettings_ModsDisabledByEnv"]
+                : installed.Count == 0
+                    ? loc["ModsSettings_NoneInstalled"]
+                    : loc.Format("ModsSettings_Status", Services.GameDataServices.LoadedMods.Count, installed.Count);
+
+            modsList.Children.Clear();
+            foreach (var mod in installed)
+            {
+                var name = mod.Name; // capture for the handler
+                var sw = new Switch
+                {
+                    IsToggled = Services.GameDataServices.IsModEnabled(name),
+                    IsEnabled = masterOn && !envDisabled,
+                    VerticalOptions = LayoutOptions.Center,
+                };
+                sw.Toggled += async (_, e) =>
+                {
+                    if (e.Value == Services.GameDataServices.IsModEnabled(name)) return;
+                    Services.GameDataServices.SetModEnabled(name, e.Value);
+                    EditorLog.Info("Settings", $"Mod '{name}' {(e.Value ? "enabled" : "disabled")}");
+                    await ApplyAndReloadAsync();
+                };
+                modsList.Children.Add(LabeledRow(name, sw));
+            }
+        }
+
+        masterSwitch.Toggled += async (_, e) =>
+        {
+            if (e.Value == Services.GameDataServices.ModsEnabled) return;
+            Services.GameDataServices.ModsEnabled = e.Value;
+            EditorLog.Info("Settings", $"Mod loading {(e.Value ? "enabled" : "disabled")}");
+            await ApplyAndReloadAsync();
+        };
+
+        RefreshList();
+
+        return ModalChrome.Card(loc["Settings_Mods"],
+            loc["ModsSettings_CardHint"],
+            LabeledRow(loc["GameDataSettings_LoadMods"], masterSwitch),
+            statusLine,
+            modsList);
     }
 
     /// <summary>

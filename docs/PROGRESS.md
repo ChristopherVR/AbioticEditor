@@ -5,6 +5,26 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-39: per-mod enable/disable UI (2026-06-19)
+- **Selective mounting instead of "all or nothing":** `GameAssetProvider.CreateForPaks` no longer
+  uses `AllDirectories`. It mounts base paks (`TopDirectoryOnly`) then explicitly
+  `RegisterVfs`-es only the ENABLED mod paks before `SubmitKey`. Mods register after the base game,
+  so an overriding mod is mounted last and wins (deterministic order, unlike the old directory scan).
+- **Mod = a grouped unit:** `AfInstallLocator.FindMods` groups the `~mods`/`LogicMods` paks by file
+  stem into `InstalledMod(Name, Files)` (an IoStore mod's `.pak`+`.utoc` become one entry; `.ucas`
+  opens automatically). `GameAssetProvider.LoadedMods` now reports mounted mod NAMES, not file names.
+- **Per-mod persistence:** `ModLoadStore` gains `DisabledMods` (a `mods-disabled.txt` set next to the
+  master flag), `IsModEnabled`, `SetModEnabled`. Effective mount = master `ModsEnabled` AND
+  `IsModEnabled(name)`. Default is enabled (absent name = on).
+- **App:** mod controls moved out of the Game Data card into a dedicated **Mods card** (Game Data
+  tab): a master "Load installed mods" switch plus one toggle per installed mod, with a
+  "{loaded} of {total}" status line. Per-mod switches lock when the master is off or `ABIOTIC_NO_MODS`
+  is set; any toggle reloads game data in place. `GameDataServices` exposes `InstalledMods`,
+  `IsModEnabled`, `SetModEnabled`. New `Settings_Mods`/`ModsSettings_*` resx keys across en/de/es/fr.
+- Tests: `ModSupportTests` adds `FindMods` grouping and a hermetic `SetModEnabled` round-trip (saves
+  and restores the real file); the `LoadedMods` live test now expects enabled mod names. Full suite
+  green (586 assertion tests).
+
 ## Round-38: fixtures regrouped by platform + minimal-region factory + warning hygiene (2026-06-19)
 - **Fixtures regrouped by platform** under `tests/fixtures/` (see the Fixtures bullet far below for
   the full layout): `SteamSaves/` (`Config/Windows` + `SaveGames/<steamid>/Worlds` mirror the real

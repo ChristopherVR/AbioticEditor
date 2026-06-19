@@ -55,10 +55,25 @@ public static class GameDataServices
     public static bool ModsDisabledByEnv => Core.Assets.ModLoadStore.DisabledByEnv;
 
     /// <summary>
-    /// File names of the mod paks currently mounted from the install's <c>~mods</c>/<c>LogicMods</c>
-    /// folders (empty when none are present or mods are disabled). Display-only.
+    /// Names of the mods currently mounted from the install's <c>~mods</c>/<c>LogicMods</c> folders
+    /// (empty when none are present, mods are off, or each was individually disabled). Display-only.
     /// </summary>
     public static IReadOnlyList<string> LoadedMods => _provider?.LoadedMods ?? Array.Empty<string>();
+
+    /// <summary>
+    /// Every mod installed under the game's <c>~mods</c>/<c>LogicMods</c> folders, whether enabled or
+    /// not - the list the Settings mod manager shows a per-mod toggle for. Read live from disk
+    /// (resolving the configured/auto-detected install), so it reflects newly added mods on reload.
+    /// </summary>
+    public static IReadOnlyList<Core.Assets.AfInstallLocator.InstalledMod> InstalledMods
+        => Core.Assets.AfInstallLocator.FindMods(Core.Assets.AfInstallLocator.FindPaksDirectory());
+
+    /// <summary>Whether the named mod is individually enabled (independent of the master switch).</summary>
+    public static bool IsModEnabled(string modName) => Core.Assets.ModLoadStore.IsModEnabled(modName);
+
+    /// <summary>Turns one mod on/off (persisted); call <see cref="ReloadAsync"/> to apply it live.</summary>
+    public static void SetModEnabled(string modName, bool enabled)
+        => Core.Assets.ModLoadStore.SetModEnabled(modName, enabled);
 
     /// <summary>
     /// True only once the game paks mounted AND usmap mappings loaded - the state every

@@ -53,6 +53,27 @@ public sealed class ModSupportTests
         Assert.Empty(AfInstallLocator.FindModPaks(Path.Combine(tmp.Path, "does-not-exist")));
     }
 
+    [Fact]
+    public void FindMods_GroupsFilesByStemIntoOneMod()
+    {
+        using var tmp = new TempDir();
+        var paks = Directory.CreateDirectory(Path.Combine(tmp.Path, "Paks")).FullName;
+        var mods = Directory.CreateDirectory(Path.Combine(paks, "~mods")).FullName;
+        // An IoStore mod ships .pak + .utoc (+ .ucas) sharing a stem -> one mod, the pak/utoc grouped.
+        File.WriteAllText(Path.Combine(mods, "CoolWeapons.pak"), "m");
+        File.WriteAllText(Path.Combine(mods, "CoolWeapons.utoc"), "m");
+        File.WriteAllText(Path.Combine(mods, "CoolWeapons.ucas"), "m"); // not a registerable entry
+        var logic = Directory.CreateDirectory(Path.Combine(paks, "LogicMods")).FullName;
+        File.WriteAllText(Path.Combine(logic, "QoLTweaks.pak"), "m");
+
+        var found = AfInstallLocator.FindMods(paks);
+
+        Assert.Equal(2, found.Count);
+        var cool = found.Single(m => m.Name == "CoolWeapons");
+        Assert.Equal(2, cool.Files.Count); // .pak + .utoc (the .ucas is opened automatically)
+        Assert.Contains(found, m => m.Name == "QoLTweaks");
+    }
+
     // ---------- ModTableDiscovery name-shape gate ----------
 
     [Theory]
@@ -88,6 +109,35 @@ public sealed class ModSupportTests
         }
     }
 
+    // ---------- ModLoadStore: per-mod enable/disable ----------
+
+    [Fact]
+    public void SetModEnabled_RoundTripsThroughDisabledSet()
+    {
+        // The store writes to a real per-user file; preserve and restore it so the test is hermetic.
+        var path = ModLoadStore.DisabledModsPath;
+        var hadFile = File.Exists(path);
+        var original = hadFile ? File.ReadAllText(path) : null;
+        try
+        {
+            var name = "UnitTestMod_" + Guid.NewGuid().ToString("N");
+            Assert.True(ModLoadStore.IsModEnabled(name)); // unknown mods default to enabled
+
+            ModLoadStore.SetModEnabled(name, false);
+            Assert.False(ModLoadStore.IsModEnabled(name));
+            Assert.Contains(name, ModLoadStore.DisabledMods);
+
+            ModLoadStore.SetModEnabled(name, true);
+            Assert.True(ModLoadStore.IsModEnabled(name));
+            Assert.DoesNotContain(name, ModLoadStore.DisabledMods);
+        }
+        finally
+        {
+            if (original is not null) File.WriteAllText(path, original);
+            else if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
     // ---------- live install: base-only mounts no mods ----------
 
     [Fact]
@@ -103,7 +153,7 @@ public sealed class ModSupportTests
     }
 
     [Fact]
-    public void DefaultProvider_LoadedModsMatchesDiskScan()
+    public void DefaultProvider_LoadedModsMatchesEnabledModsOnDisk()
     {
         using var provider = GameAssetProvider.CreateForLocalInstall(includeMods: true);
         if (provider is null)
@@ -112,10 +162,15 @@ public sealed class ModSupportTests
             return;
         }
 
+        // LoadedMods is the set of enabled mod names actually mounted.
         var paks = AfInstallLocator.FindPaksDirectory();
-        var expected = AfInstallLocator.FindModPaks(paks).Select(f => Path.GetFileName(f)!).OrderBy(n => n).ToList();
+        var expected = AfInstallLocator.FindMods(paks)
+            .Where(m => ModLoadStore.IsModEnabled(m.Name))
+            .Select(m => m.Name)
+            .OrderBy(n => n)
+            .ToList();
         var actual = provider.LoadedMods.OrderBy(n => n).ToList();
-        _output.WriteLine($"mods on disk: {string.Join(", ", expected)}");
+        _output.WriteLine($"enabled mods on disk: {string.Join(", ", expected)}");
         Assert.Equal(expected, actual);
     }
 

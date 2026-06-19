@@ -1780,6 +1780,18 @@ Pick the game's install folder (the one containing the AbioticFactor folder), it
   <data name="GameDataSettings_ModsToggledTitle" xml:space="preserve">
     <value>Mod loading updated</value>
   </data>
+  <data name="Settings_Mods" xml:space="preserve">
+    <value>Mods</value>
+  </data>
+  <data name="ModsSettings_CardHint" xml:space="preserve">
+    <value>Mods installed in the game's ~mods and LogicMods folders. Turn off an individual mod to hide its content in the editor, or use the master switch to ignore all mods. Changes reload game data.</value>
+  </data>
+  <data name="ModsSettings_NoneInstalled" xml:space="preserve">
+    <value>No mods are installed in the game's ~mods or LogicMods folders.</value>
+  </data>
+  <data name="ModsSettings_Status" xml:space="preserve">
+    <value>{0} of {1} mod(s) loaded.</value>
+  </data>
   <data name="Slot_MsgNoBoundContext" xml:space="preserve">
     <value>Slot tap: no bound context found</value>
   </data>

@@ -1728,6 +1728,18 @@ Elige la carpeta de instalación del juego (la que contiene la carpeta AbioticFa
   <data name="GameDataSettings_ModsToggledTitle" xml:space="preserve">
     <value>Carga de mods actualizada</value>
   </data>
+  <data name="Settings_Mods" xml:space="preserve">
+    <value>Mods</value>
+  </data>
+  <data name="ModsSettings_CardHint" xml:space="preserve">
+    <value>Mods instalados en las carpetas ~mods y LogicMods del juego. Desactiva un mod concreto para ocultar su contenido en el editor, o usa el interruptor principal para ignorar todos los mods. Los cambios recargan los datos del juego.</value>
+  </data>
+  <data name="ModsSettings_NoneInstalled" xml:space="preserve">
+    <value>No hay mods instalados en las carpetas ~mods o LogicMods del juego.</value>
+  </data>
+  <data name="ModsSettings_Status" xml:space="preserve">
+    <value>{0} de {1} mod(s) cargados.</value>
+  </data>
   <data name="Slot_MsgNoBoundContext" xml:space="preserve">
     <value>Toque de ranura: no se encontró contexto vinculado</value>
   </data>

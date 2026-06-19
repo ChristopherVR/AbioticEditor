@@ -1728,6 +1728,18 @@ Wähle den Installationsordner des Spiels (den mit dem AbioticFactor-Ordner), se
   <data name="GameDataSettings_ModsToggledTitle" xml:space="preserve">
     <value>Mod-Laden aktualisiert</value>
   </data>
+  <data name="Settings_Mods" xml:space="preserve">
+    <value>Mods</value>
+  </data>
+  <data name="ModsSettings_CardHint" xml:space="preserve">
+    <value>Mods in den Ordnern ~mods und LogicMods des Spiels. Schalte einen einzelnen Mod aus, um seine Inhalte im Editor auszublenden, oder ignoriere mit dem Hauptschalter alle Mods. Änderungen laden die Spieldaten neu.</value>
+  </data>
+  <data name="ModsSettings_NoneInstalled" xml:space="preserve">
+    <value>In den Ordnern ~mods oder LogicMods des Spiels sind keine Mods installiert.</value>
+  </data>
+  <data name="ModsSettings_Status" xml:space="preserve">
+    <value>{0} von {1} Mod(s) geladen.</value>
+  </data>
   <data name="Slot_MsgNoBoundContext" xml:space="preserve">
     <value>Slot-Tippen: kein gebundener Kontext gefunden</value>
   </data>
