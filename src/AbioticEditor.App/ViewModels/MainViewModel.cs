@@ -2295,7 +2295,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
                     }
                     try
                     {
-                        var line = $"[{i}] player={PlayerEditor is not null} dirty={PlayerEditor?.IsDirty} world={WorldEditor is not null} wdirty={WorldEditor?.IsDirty} :: {PlayerEditor?.DescribeDirty()}\n";
+                        var line = $"[{i}] sel={(_selectedSave is null ? "-" : Path.GetFileName(_selectedSave.FullPath))} player={PlayerEditor is not null} dirty={PlayerEditor?.IsDirty} world={WorldEditor is not null} wdirty={WorldEditor?.IsDirty} :: {PlayerEditor?.DescribeDirty()}\n";
                         File.AppendAllText(diagPath, line);
                     }
                     catch { }

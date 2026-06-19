@@ -508,4 +508,1363 @@ Mundos: contenedores · indicadores de misión · puertas · objetos en el suelo
   <data name="WorldVehicles_VehicleListIntro" xml:space="preserve"><value>Haz clic en un vehículo para editarlo: alternar si es conducible (desbloqueado) o está destrozado, moverlo, reiniciarlo a su posición de aparición original, o abrir su almacenamiento a bordo. Las ediciones se preparan hasta GUARDAR; cada escritura conserva un .bak.</value></data>
   <data name="WorldVehicles_VehiclesInThisWorld" xml:space="preserve"><value>VEHÍCULOS EN ESTE MUNDO</value></data>
   <data name="WorldVehicles_Wrecked" xml:space="preserve"><value>DESTROZADO</value></data>
+  <data name="Compare_Title" xml:space="preserve">
+    <value>Comparar</value>
+  </data>
+  <data name="Compare_ModeFileVsFile" xml:space="preserve">
+    <value>ARCHIVO vs ARCHIVO</value>
+  </data>
+  <data name="Compare_ModeFolderVsFolder" xml:space="preserve">
+    <value>CARPETA vs CARPETA</value>
+  </data>
+  <data name="Compare_BrowseButton" xml:space="preserve">
+    <value>EXAMINAR…</value>
+  </data>
+  <data name="Compare_CompareButton" xml:space="preserve">
+    <value>COMPARAR</value>
+  </data>
+  <data name="Compare_ModeCardHeader" xml:space="preserve">
+    <value>MODO</value>
+  </data>
+  <data name="Compare_ModeCardDescription" xml:space="preserve">
+    <value>Dos guardados de jugador obtienen un resumen legible en paralelo (recetas, peces, habilidades…); cualquier guardado también expone la comparación completa de propiedades. El modo carpeta compara un mundo con una de sus copias.</value>
+  </data>
+  <data name="Compare_SourcesCardHeader" xml:space="preserve">
+    <value>FUENTES</value>
+  </data>
+  <data name="Compare_SourceALabel" xml:space="preserve">
+    <value>A  ·  primero / antiguo</value>
+  </data>
+  <data name="Compare_SourceBLabel" xml:space="preserve">
+    <value>B  ·  segundo / nuevo</value>
+  </data>
+  <data name="Compare_CompareCardHeader" xml:space="preserve">
+    <value>COMPARAR</value>
+  </data>
+  <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
+    <value>DIAGNÓSTICO DE GUARDADO</value>
+  </data>
+  <data name="Compare_ScaffoldTitle" xml:space="preserve">
+    <value>Comparar guardados</value>
+  </data>
+  <data name="Compare_QuickPickerTitle" xml:space="preserve">
+    <value>Guardados cargados…</value>
+  </data>
+  <data name="Compare_NothingSelected" xml:space="preserve">
+    <value>(nada seleccionado)</value>
+  </data>
+  <data name="Compare_PickFileTitle" xml:space="preserve">
+    <value>Elige un archivo .sav</value>
+  </data>
+  <data name="Compare_PickerFailedTitle" xml:space="preserve">
+    <value>Error en el selector</value>
+  </data>
+  <data name="Compare_PickTwoTitle" xml:space="preserve">
+    <value>Elige dos elementos</value>
+  </data>
+  <data name="Compare_PickTwoMessage" xml:space="preserve">
+    <value>Elige tanto A como B antes de comparar.</value>
+  </data>
+  <data name="Compare_ComparisonFailedTitle" xml:space="preserve">
+    <value>La comparación falló</value>
+  </data>
+  <data name="Compare_SummaryIdentical" xml:space="preserve">
+    <value>✓ Los dos guardados son idénticos.</value>
+  </data>
+  <data name="Compare_SummaryNoGameplayDiff" xml:space="preserve">
+    <value>✓ Sin diferencias de juego (solo {0} de identidad/reloj/instancia/posición).</value>
+  </data>
+  <data name="Compare_SaveClassesDiffer" xml:space="preserve">
+    <value>Las clases de guardado difieren: A='{0}'  B='{1}'.</value>
+  </data>
+  <data name="Compare_SavesTooLarge" xml:space="preserve">
+    <value>Guardados demasiado grandes para aplanar por completo - algunas diferencias pueden faltar.</value>
+  </data>
+  <data name="Compare_KindSummaryHeader" xml:space="preserve">
+    <value>RESUMEN DE {0}</value>
+  </data>
+  <data name="Compare_NoMeaningfulDiff" xml:space="preserve">
+    <value>Sin diferencias significativas en las categorías rastreadas.</value>
+  </data>
+  <data name="Compare_CopyMarkdownButton" xml:space="preserve">
+    <value>COPIAR MARKDOWN</value>
+  </data>
+  <data name="Compare_CopiedTitle" xml:space="preserve">
+    <value>Copiado</value>
+  </data>
+  <data name="Compare_CopiedMessage" xml:space="preserve">
+    <value>El informe de comparación se copió al portapapeles como Markdown.</value>
+  </data>
+  <data name="Compare_ExportFailedTitle" xml:space="preserve">
+    <value>La exportación falló</value>
+  </data>
+  <data name="Compare_SaveMdButton" xml:space="preserve">
+    <value>GUARDAR .md</value>
+  </data>
+  <data name="Compare_SavedTitle" xml:space="preserve">
+    <value>Guardado</value>
+  </data>
+  <data name="Compare_SavedMessage" xml:space="preserve">
+    <value>Informe escrito en:
+{0}</value>
+  </data>
+  <data name="Compare_ExportCardHeader" xml:space="preserve">
+    <value>EXPORTAR</value>
+  </data>
+  <data name="Compare_ExportCardDescription" xml:space="preserve">
+    <value>Copia la comparación completa como informe Markdown o guárdala en un archivo .md.</value>
+  </data>
+  <data name="Compare_WhatsDifferentHeader" xml:space="preserve">
+    <value>QUÉ ES DIFERENTE</value>
+  </data>
+  <data name="Compare_WhatsDifferentDescription" xml:space="preserve">
+    <value>Un mapa rápido de las categorías que cambiaron - los detalles están abajo.</value>
+  </data>
+  <data name="Compare_ShowNoiseToggle" xml:space="preserve">
+    <value>Mostrar {0} diferencia(s) de identidad / reloj / instancia / posición</value>
+  </data>
+  <data name="Compare_HideRawDifferences" xml:space="preserve">
+    <value>OCULTAR DIFERENCIAS BRUTAS</value>
+  </data>
+  <data name="Compare_ShowRawDifferences" xml:space="preserve">
+    <value>MOSTRAR DIFERENCIAS BRUTAS</value>
+  </data>
+  <data name="Compare_RawPropertyDiffHeader" xml:space="preserve">
+    <value>DIFERENCIA DE PROPIEDADES BRUTA</value>
+  </data>
+  <data name="Compare_RawPropertyDiffDescription" xml:space="preserve">
+    <value>Cada diferencia a nivel de propiedad ({0} de juego, {1} otras). Profundiza cuando el resumen no baste.</value>
+  </data>
+  <data name="Compare_FoldersIdentical" xml:space="preserve">
+    <value>✓ Las dos carpetas son idénticas.</value>
+  </data>
+  <data name="Compare_FolderSummary" xml:space="preserve">
+    <value>{0} diferentes · {1} idénticos · {2} solo en A · {3} solo en B</value>
+  </data>
+  <data name="Compare_FolderSummaryErrors" xml:space="preserve">
+    <value> · {0} error(es)</value>
+  </data>
+  <data name="Compare_TapDifferingFile" xml:space="preserve">
+    <value>Toca un archivo diferente para ver sus diferencias de propiedades.</value>
+  </data>
+  <data name="Compare_FileDifferencesEyebrow" xml:space="preserve">
+    <value>DIFERENCIAS DE ARCHIVO</value>
+  </data>
+  <data name="CreateWorld_Title" xml:space="preserve">
+    <value>Crear mundo nuevo</value>
+  </data>
+  <data name="CreateWorld_Eyebrow" xml:space="preserve">
+    <value>MUNDO NUEVO</value>
+  </data>
+  <data name="CreateWorld_ScaffoldTitle" xml:space="preserve">
+    <value>Crear mundo</value>
+  </data>
+  <data name="CreateWorld_StepProgress" xml:space="preserve">
+    <value>PASO {0} DE {1}</value>
+  </data>
+  <data name="CreateWorld_Cancel" xml:space="preserve">
+    <value>CANCELAR</value>
+  </data>
+  <data name="CreateWorld_Back" xml:space="preserve">
+    <value>ATRÁS</value>
+  </data>
+  <data name="CreateWorld_PlatformCardTitle" xml:space="preserve">
+    <value>PLATAFORMA</value>
+  </data>
+  <data name="CreateWorld_PlatformCardDesc" xml:space="preserve">
+    <value>¿Para qué copia del juego es este mundo? También puedes añadir una copia para la otra plataforma en el último paso.</value>
+  </data>
+  <data name="CreateWorld_SegSteam" xml:space="preserve">
+    <value>STEAM</value>
+  </data>
+  <data name="CreateWorld_SegGamePass" xml:space="preserve">
+    <value>GAME PASS</value>
+  </data>
+  <data name="CreateWorld_PlatformSteamDesc" xml:space="preserve">
+    <value>Steam - una carpeta de mundo con archivos sueltos (WorldSave_*.sav + PlayerData/Player_*.sav) en el árbol SaveGames de Steam. Los jugadores pertenecen a un SteamID64 de 17 dígitos.</value>
+  </data>
+  <data name="CreateWorld_PlatformGamePassDesc" xml:space="preserve">
+    <value>Game Pass / Microsoft Store - un contenedor "wgs" de Xbox (los mismos guardados empaquetados en un paquete comprimido con Oodle). Los jugadores pertenecen a un id de cuenta de Xbox (XUID).</value>
+  </data>
+  <data name="CreateWorld_NextWorld" xml:space="preserve">
+    <value>SIGUIENTE: MUNDO</value>
+  </data>
+  <data name="CreateWorld_NextPlayers" xml:space="preserve">
+    <value>SIGUIENTE: JUGADORES</value>
+  </data>
+  <data name="CreateWorld_NextDifficulty" xml:space="preserve">
+    <value>SIGUIENTE: DIFICULTAD</value>
+  </data>
+  <data name="CreateWorld_NextReview" xml:space="preserve">
+    <value>SIGUIENTE: RESUMEN</value>
+  </data>
+  <data name="CreateWorld_WorldCardTitle" xml:space="preserve">
+    <value>CONFIGURACIÓN DEL MUNDO</value>
+  </data>
+  <data name="CreateWorld_WorldCardDesc" xml:space="preserve">
+    <value>Elige un nombre y la carpeta principal donde se creará la nueva carpeta del mundo.</value>
+  </data>
+  <data name="CreateWorld_WorldNameLabel" xml:space="preserve">
+    <value>Nombre del mundo</value>
+  </data>
+  <data name="CreateWorld_SaveLocationLabel" xml:space="preserve">
+    <value>Ubicación del guardado</value>
+  </data>
+  <data name="CreateWorld_WorldNamePlaceholder" xml:space="preserve">
+    <value>p. ej. Cascade</value>
+  </data>
+  <data name="CreateWorld_SaveFolderPlaceholder" xml:space="preserve">
+    <value>Ruta de la carpeta de guardado</value>
+  </data>
+  <data name="CreateWorld_Browse" xml:space="preserve">
+    <value>EXAMINAR</value>
+  </data>
+  <data name="CreateWorld_WorldNameRequiredTitle" xml:space="preserve">
+    <value>Nombre del mundo obligatorio</value>
+  </data>
+  <data name="CreateWorld_WorldNameRequiredMsg" xml:space="preserve">
+    <value>Introduce un nombre para la nueva carpeta del mundo.</value>
+  </data>
+  <data name="CreateWorld_LocationNotFoundTitle" xml:space="preserve">
+    <value>Ubicación no encontrada</value>
+  </data>
+  <data name="CreateWorld_LocationNotFoundMsg" xml:space="preserve">
+    <value>La carpeta de la ubicación de guardado no existe. Elige una carpeta existente.</value>
+  </data>
+  <data name="CreateWorld_AlreadyExistsTitle" xml:space="preserve">
+    <value>Ya existe</value>
+  </data>
+  <data name="CreateWorld_AlreadyExistsMsg" xml:space="preserve">
+    <value>Ya existe una carpeta no vacía llamada '{0}' en esa ubicación. Elige otro nombre u otra ubicación.</value>
+  </data>
+  <data name="CreateWorld_PlayersCardTitle" xml:space="preserve">
+    <value>JUGADORES</value>
+  </data>
+  <data name="CreateWorld_PlayersCardDesc" xml:space="preserve">
+    <value>Cada jugador necesita su propio id de propietario. Elige una cuenta conocida en este equipo o selecciona "Id personalizado..." para escribir un {0}. Puedes añadir más jugadores luego con el botón + de la barra lateral.</value>
+  </data>
+  <data name="CreateWorld_AccountWordSteam" xml:space="preserve">
+    <value>SteamID64</value>
+  </data>
+  <data name="CreateWorld_AccountWordXuid" xml:space="preserve">
+    <value>id de cuenta de Xbox (XUID)</value>
+  </data>
+  <data name="CreateWorld_NumberOfPlayers" xml:space="preserve">
+    <value>Número de jugadores</value>
+  </data>
+  <data name="CreateWorld_PlayerN" xml:space="preserve">
+    <value>Jugador {0}</value>
+  </data>
+  <data name="CreateWorld_CustomIdOption" xml:space="preserve">
+    <value>Id personalizado...</value>
+  </data>
+  <data name="CreateWorld_ChooseAccount" xml:space="preserve">
+    <value>Elegir una cuenta</value>
+  </data>
+  <data name="CreateWorld_CustomIdPlaceholderXuid" xml:space="preserve">
+    <value>id de cuenta de Xbox (XUID)</value>
+  </data>
+  <data name="CreateWorld_CustomIdPlaceholderSteam" xml:space="preserve">
+    <value>SteamID64, p. ej. 76561198000000000</value>
+  </data>
+  <data name="CreateWorld_PlayerIdNeededTitle" xml:space="preserve">
+    <value>Se necesita id de jugador</value>
+  </data>
+  <data name="CreateWorld_PlayerIdNeededMsg" xml:space="preserve">
+    <value>Jugador {0}: elige una cuenta o escribe un id personalizado antes de continuar.</value>
+  </data>
+  <data name="CreateWorld_IdNotUsableTitle" xml:space="preserve">
+    <value>Ese id no se puede usar</value>
+  </data>
+  <data name="CreateWorld_IdNotUsableMsg" xml:space="preserve">
+    <value>Jugador {0}: "{1}" no puede nombrar un archivo de guardado. Usa solo letras, dígitos, '-', '_' o '.' (un SteamID64 se parece a 76561198000000000).</value>
+  </data>
+  <data name="CreateWorld_DuplicateIdTitle" xml:space="preserve">
+    <value>Id duplicado</value>
+  </data>
+  <data name="CreateWorld_DuplicateIdMsg" xml:space="preserve">
+    <value>Cada jugador debe tener un id de propietario único.</value>
+  </data>
+  <data name="CreateWorld_DifficultyCardTitle" xml:space="preserve">
+    <value>DIFICULTAD</value>
+  </data>
+  <data name="CreateWorld_DifficultyCardDesc" xml:space="preserve">
+    <value>Establece GameDifficulty y los multiplicadores relacionados en SandboxSettings.ini. Puedes editarlos en la pestaña Config tras la creación.</value>
+  </data>
+  <data name="CreateWorld_DiffCasual" xml:space="preserve">
+    <value>RELAJADO</value>
+  </data>
+  <data name="CreateWorld_DiffNormal" xml:space="preserve">
+    <value>NORMAL</value>
+  </data>
+  <data name="CreateWorld_DiffSurvival" xml:space="preserve">
+    <value>SUPERVIVENCIA</value>
+  </data>
+  <data name="CreateWorld_DiffNightmare" xml:space="preserve">
+    <value>PESADILLA</value>
+  </data>
+  <data name="CreateWorld_DiffCasualDesc" xml:space="preserve">
+    <value>Relajado - dificultad de enemigos reducida, más XP y pilas de objetos. Perfecto para explorar.</value>
+  </data>
+  <data name="CreateWorld_DiffNormalDesc" xml:space="preserve">
+    <value>Normal - reto equilibrado, la experiencia prevista para la mayoría de los jugadores.</value>
+  </data>
+  <data name="CreateWorld_DiffSurvivalDesc" xml:space="preserve">
+    <value>Supervivencia - enemigos más fuertes, pilas de objetos naturales, mayor tasa de aparición.</value>
+  </data>
+  <data name="CreateWorld_DiffNightmareDesc" xml:space="preserve">
+    <value>Pesadilla - dificultad máxima: menos XP, gran daño enemigo, apariciones implacables.</value>
+  </data>
+  <data name="CreateWorld_ReviewCardTitle" xml:space="preserve">
+    <value>RESUMEN</value>
+  </data>
+  <data name="CreateWorld_ReviewCardDesc" xml:space="preserve">
+    <value>Comprueba los detalles a continuación y luego pulsa CREAR MUNDO.</value>
+  </data>
+  <data name="CreateWorld_ReviewPlatform" xml:space="preserve">
+    <value>Plataforma</value>
+  </data>
+  <data name="CreateWorld_ReviewWorldName" xml:space="preserve">
+    <value>Nombre del mundo</value>
+  </data>
+  <data name="CreateWorld_ReviewLocation" xml:space="preserve">
+    <value>Ubicación</value>
+  </data>
+  <data name="CreateWorld_ReviewPlayers" xml:space="preserve">
+    <value>Jugadores</value>
+  </data>
+  <data name="CreateWorld_ReviewDifficulty" xml:space="preserve">
+    <value>Dificultad</value>
+  </data>
+  <data name="CreateWorld_PlatformNameSteam" xml:space="preserve">
+    <value>Steam</value>
+  </data>
+  <data name="CreateWorld_PlatformNameGamePass" xml:space="preserve">
+    <value>Game Pass</value>
+  </data>
+  <data name="CreateWorld_DiffCasualName" xml:space="preserve">
+    <value>Relajado</value>
+  </data>
+  <data name="CreateWorld_DiffNormalName" xml:space="preserve">
+    <value>Normal</value>
+  </data>
+  <data name="CreateWorld_DiffSurvivalName" xml:space="preserve">
+    <value>Supervivencia</value>
+  </data>
+  <data name="CreateWorld_DiffNightmareName" xml:space="preserve">
+    <value>Pesadilla</value>
+  </data>
+  <data name="CreateWorld_AlsoWriteCopy" xml:space="preserve">
+    <value>Escribir también una copia de {0} al lado</value>
+  </data>
+  <data name="CreateWorld_CreateWorld" xml:space="preserve">
+    <value>CREAR MUNDO</value>
+  </data>
+  <data name="CreateWorld_StatusCreating" xml:space="preserve">
+    <value>Creando mundo...</value>
+  </data>
+  <data name="CreateWorld_StatusWritingContainer" xml:space="preserve">
+    <value>Escribiendo contenedor de Game Pass...</value>
+  </data>
+  <data name="CreateWorld_StatusLoading" xml:space="preserve">
+    <value>Mundo creado. Cargando...</value>
+  </data>
+  <data name="CreateWorld_StatusFailed" xml:space="preserve">
+    <value>Error: {0}</value>
+  </data>
+  <data name="CreateWorld_RegionNote" xml:space="preserve">
+    <value>Por ahora solo existe WorldSave_MetaData.sav - el juego escribe cada guardado de región o instalación la primera vez que cargas el mundo y visitas esa zona.</value>
+  </data>
+  <data name="CreateWorld_StatusGamePassSkipped" xml:space="preserve">
+    <value>Se omitió el empaquetado de Game Pass (consulta el registro) - se abrió la carpeta de Steam "{0}" en su lugar. {1}</value>
+  </data>
+  <data name="CreateWorld_StatusBothOpenedGamePass" xml:space="preserve">
+    <value>Se creó el mundo para ambas plataformas. Se abrió el contenedor de Game Pass. {0}</value>
+  </data>
+  <data name="CreateWorld_StatusGamePassCreated" xml:space="preserve">
+    <value>Se creó el mundo de Game Pass "{0}". {1}</value>
+  </data>
+  <data name="CreateWorld_StatusBothCreated" xml:space="preserve">
+    <value>Se creó el mundo para ambas plataformas (carpeta de Steam + contenedor de Game Pass al lado). {0}</value>
+  </data>
+  <data name="CreateWorld_StatusSteamCreated" xml:space="preserve">
+    <value>Se creó el mundo de Steam "{0}". {1}</value>
+  </data>
+  <data name="Diff_ValuesChanged" xml:space="preserve">
+    <value>{0} valor(es) cambiado(s)</value>
+  </data>
+  <data name="Diff_OnlyInAB" xml:space="preserve">
+    <value>{0} solo en A · {1} solo en B</value>
+  </data>
+  <data name="Diff_Level" xml:space="preserve">
+    <value>Nv {0}</value>
+  </data>
+  <data name="Diff_Empty" xml:space="preserve">
+    <value>(vacío)</value>
+  </data>
+  <data name="Diff_Ammo" xml:space="preserve">
+    <value>{0} munición</value>
+  </data>
+  <data name="Diff_Durability" xml:space="preserve">
+    <value>{0}% durabilidad</value>
+  </data>
+  <data name="Diff_OnlyInA" xml:space="preserve">
+    <value>SOLO EN A</value>
+  </data>
+  <data name="Diff_OnlyInB" xml:space="preserve">
+    <value>SOLO EN B</value>
+  </data>
+  <data name="Diff_None" xml:space="preserve">
+    <value>(ninguno)</value>
+  </data>
+  <data name="Diff_DoorOneWayUnlocked" xml:space="preserve">
+    <value>desbloqueada en un sentido</value>
+  </data>
+  <data name="Diff_DoorOpen" xml:space="preserve">
+    <value>abierta</value>
+  </data>
+  <data name="Diff_NpcDead" xml:space="preserve">
+    <value>muerto</value>
+  </data>
+  <data name="Diff_NpcAlive" xml:space="preserve">
+    <value>vivo</value>
+  </data>
+  <data name="Main_GroupWorldStory" xml:space="preserve">
+    <value>HISTORIA DEL MUNDO · METADATOS</value>
+  </data>
+  <data name="Main_GroupPlayers" xml:space="preserve">
+    <value>JUGADORES</value>
+  </data>
+  <data name="Main_GroupWorldRegions" xml:space="preserve">
+    <value>REGIONES DEL MUNDO</value>
+  </data>
+  <data name="Main_GroupOther" xml:space="preserve">
+    <value>OTROS / ERRORES</value>
+  </data>
+  <data name="Main_BadgeGamePass" xml:space="preserve">
+    <value>GAME PASS</value>
+  </data>
+  <data name="Main_BadgeSteam" xml:space="preserve">
+    <value>STEAM</value>
+  </data>
+  <data name="Main_BadgeUnknown" xml:space="preserve">
+    <value>DESCONOCIDO</value>
+  </data>
+  <data name="Main_ChipAdmin" xml:space="preserve">
+    <value>ADMIN</value>
+  </data>
+  <data name="Main_ChipSandbox" xml:space="preserve">
+    <value>SANDBOX</value>
+  </data>
+  <data name="Main_ChipClient" xml:space="preserve">
+    <value>CLIENTE</value>
+  </data>
+  <data name="Main_ChipIni" xml:space="preserve">
+    <value>INI</value>
+  </data>
+  <data name="Main_HintGamePass" xml:space="preserve">
+    <value>Contenedor de Game Pass / Xbox</value>
+  </data>
+  <data name="Main_HintClient" xml:space="preserve">
+    <value>Guardados del cliente del juego</value>
+  </data>
+  <data name="Main_HintServer" xml:space="preserve">
+    <value>Instalación de servidor dedicado</value>
+  </data>
+  <data name="Main_AddPlayerTitle" xml:space="preserve">
+    <value>Añadir jugador</value>
+  </data>
+  <data name="Main_AddPlayerNeedFolder" xml:space="preserve">
+    <value>Abre primero la carpeta de guardado de un mundo para que el editor sepa dónde crear el nuevo archivo de jugador.</value>
+  </data>
+  <data name="Main_AddPlayerHeader" xml:space="preserve">
+    <value>Añadir un jugador</value>
+  </data>
+  <data name="Main_AddPlayerCopyPrompt" xml:space="preserve">
+    <value>Crea un nuevo guardado de jugador en este mundo.
+
+¿Empezar de cero o copiar «{0}» (conserva su inventario, habilidades y progreso)?</value>
+  </data>
+  <data name="Main_AddPlayerBlankTip" xml:space="preserve">
+    <value>Crea un nuevo guardado de jugador en blanco en este mundo.
+
+Consejo: para copiar un jugador existente, selecciónalo primero en la lista y luego pulsa +.</value>
+  </data>
+  <data name="Main_AddPlayerBlank" xml:space="preserve">
+    <value>Crea un nuevo guardado de jugador en blanco en este mundo.</value>
+  </data>
+  <data name="Main_AddPlayerNewBlank" xml:space="preserve">
+    <value>Nuevo jugador en blanco</value>
+  </data>
+  <data name="Main_AddPlayerCopySelected" xml:space="preserve">
+    <value>Copiar seleccionado</value>
+  </data>
+  <data name="Main_AddPlayerFailedTitle" xml:space="preserve">
+    <value>No se pudo añadir el jugador</value>
+  </data>
+  <data name="Main_PlayerCopied" xml:space="preserve">
+    <value>Jugador copiado a {0}: SteamID establecido en {1}.</value>
+  </data>
+  <data name="Main_PlayerCreatedBlank" xml:space="preserve">
+    <value>Jugador en blanco {0} creado (SteamID {1}).</value>
+  </data>
+  <data name="Main_NewPlayerIdTitle" xml:space="preserve">
+    <value>Nuevo id de jugador</value>
+  </data>
+  <data name="Main_NewPlayerIdMessage" xml:space="preserve">
+    <value>Introduce el id de propietario del nuevo jugador. Normalmente un SteamID64 de 17 dígitos (por ejemplo 76561198000000000); para guardados de Game Pass / Epic introduce el id de la carpeta de cuenta.</value>
+  </data>
+  <data name="Main_CreateButton" xml:space="preserve">
+    <value>Crear</value>
+  </data>
+  <data name="Main_InvalidPlayerIdTitle" xml:space="preserve">
+    <value>Id de jugador no válido</value>
+  </data>
+  <data name="Main_InvalidPlayerIdMessage" xml:space="preserve">
+    <value>Ese no es un id válido. Usa letras, dígitos, '-', '_' o '.' (un id de Steam tiene el aspecto 76561198000000000).</value>
+  </data>
+  <data name="Main_AlreadyExistsTitle" xml:space="preserve">
+    <value>Ya existe</value>
+  </data>
+  <data name="Main_PlayerAlreadyExists" xml:space="preserve">
+    <value>Player_{0}.sav ya existe en este mundo. Elige un id diferente.</value>
+  </data>
+  <data name="Main_LoggingTo" xml:space="preserve">
+    <value>Registrando en {0}</value>
+  </data>
+  <data name="Main_LoggingOff" xml:space="preserve">
+    <value>Registro de diagnóstico desactivado (los errores se siguen registrando)</value>
+  </data>
+  <data name="Main_LogFolder" xml:space="preserve">
+    <value>Carpeta de registros: {0}</value>
+  </data>
+  <data name="Main_LogFolderOpenFailed" xml:space="preserve">
+    <value>No se pudo abrir la carpeta de registros: {0}</value>
+  </data>
+  <data name="Main_PickMappingsTitle" xml:space="preserve">
+    <value>Selecciona un Mappings.usmap extraído del juego</value>
+  </data>
+  <data name="Main_MappingsInstalledStatus" xml:space="preserve">
+    <value>Nuevos mappings instalados: pulsa RECARGAR DATOS DEL JUEGO (o reinicia) para cargarlos.</value>
+  </data>
+  <data name="Main_MappingsInstalledTitle" xml:space="preserve">
+    <value>Mappings instalados</value>
+  </data>
+  <data name="Main_MappingsInstalledMessage" xml:space="preserve">
+    <value>Instalado en:
+{0}
+
+Pulsa RECARGAR DATOS DEL JUEGO en Ajustes &gt; Datos del juego para cargarlos ahora, o reinicia el editor. Elimina ese archivo para volver a los mappings incluidos.</value>
+  </data>
+  <data name="Main_MappingsImportFailed" xml:space="preserve">
+    <value>Error al importar los mappings: {0}</value>
+  </data>
+  <data name="Main_DeviceSearching" xml:space="preserve">
+    <value>Buscando el dispositivo conectado en los guardados de región del mundo...</value>
+  </data>
+  <data name="Main_DeviceNotFound" xml:space="preserve">
+    <value>No se pudo encontrar el dispositivo conectado en ningún guardado de región aquí; puede que se haya eliminado.</value>
+  </data>
+  <data name="Main_DeviceInFile" xml:space="preserve">
+    <value> en {0}</value>
+  </data>
+  <data name="Main_DeviceNoInventory" xml:space="preserve">
+    <value>El dispositivo conectado es un {0}{1}: no tiene inventario para abrir.</value>
+  </data>
+  <data name="Main_DeviceOpened" xml:space="preserve">
+    <value>{0} abierto.</value>
+  </data>
+  <data name="Main_AnotherSave" xml:space="preserve">
+    <value>otro guardado</value>
+  </data>
+  <data name="Main_DeviceInOtherFolder" xml:space="preserve">
+    <value>El dispositivo es un {0} en {1}, que no está en la carpeta cargada.</value>
+  </data>
+  <data name="Main_DeviceSwitchedAndOpened" xml:space="preserve">
+    <value>Cambiado a {0} y {1} abierto.</value>
+  </data>
+  <data name="Main_DeviceNavFailed" xml:space="preserve">
+    <value>No se pudo navegar al dispositivo: {0}</value>
+  </data>
+  <data name="Main_UnsavedChangesTitle" xml:space="preserve">
+    <value>{0} tiene cambios sin guardar</value>
+  </data>
+  <data name="Main_UnsavedChangesMessage" xml:space="preserve">
+    <value>Tienes ediciones preparadas que aún no se han escrito en el guardado. Guárdalas, descártalas o permanece en este editor.</value>
+  </data>
+  <data name="Main_DiscardChanges" xml:space="preserve">
+    <value>Descartar cambios</value>
+  </data>
+  <data name="Main_SaveAndContinue" xml:space="preserve">
+    <value>Guardar y continuar</value>
+  </data>
+  <data name="Main_BedOtherPlayerTitle" xml:space="preserve">
+    <value>La cama pertenece a otro jugador</value>
+  </data>
+  <data name="Main_BedOtherPlayerMessage" xml:space="preserve">
+    <value>Esta cama está reclamada por {0}. Establecer aquí tu punto de aparición reasigna la reclamación a este jugador y deja a {0} SIN cama reclamada (reaparece en el punto de aparición de reserva).
+
+El guardado del mundo se reescribe de inmediato (se conserva el .bak). ¿Continuar?</value>
+  </data>
+  <data name="Main_ReassignBedButton" xml:space="preserve">
+    <value>REASIGNAR CAMA</value>
+  </data>
+  <data name="Main_BedReassigned" xml:space="preserve">
+    <value>Cama reasignada a {0} y punto de aparición movido allí (guardado del mundo reescrito, se conserva el .bak). Pulsa GUARDAR para escribir el punto de aparición del jugador.</value>
+  </data>
+  <data name="Main_BedClaimed" xml:space="preserve">
+    <value>Cama reclamada para {0} y punto de aparición movido allí (guardado del mundo reescrito, se conserva el .bak). Pulsa GUARDAR para escribir el punto de aparición del jugador.</value>
+  </data>
+  <data name="Main_BedClaimNotRewritten" xml:space="preserve">
+    <value>Punto de aparición movido, pero no se pudo reescribir la reclamación de la cama (desplegable no encontrado en el guardado de Facility).</value>
+  </data>
+  <data name="Main_SpawnMoved" xml:space="preserve">
+    <value>Punto de aparición movido a {0}: pulsa GUARDAR para escribirlo. Comprueba que el selector de nivel coincide con la región de la cama.</value>
+  </data>
+  <data name="Main_DefaultPlayerName" xml:space="preserve">
+    <value>Jugador</value>
+  </data>
+  <data name="Main_NoEmptyHotbarSlot" xml:space="preserve">
+    <value>No hay ranura libre en la barra rápida: las mascotas solo pueden ir en la barra rápida o en la ranura de Compañero.</value>
+  </data>
+  <data name="Main_NoEmptyBackpackSlot" xml:space="preserve">
+    <value>No hay ranura libre en la mochila: suelta o mueve algo primero.</value>
+  </data>
+  <data name="Main_PickupDropCancelled" xml:space="preserve">
+    <value>{0} devuelto a la ranura {1} (suelta cancelada).</value>
+  </data>
+  <data name="Main_PickupStaged" xml:space="preserve">
+    <value>{0} preparado en la ranura {1}. GUARDAR escribe el inventario y lo retira del suelo (se conserva el .bak).</value>
+  </data>
+  <data name="Main_BedLookupUnavailable" xml:space="preserve">
+    <value>No se encontró ningún guardado del mundo junto a este archivo: la búsqueda de cama no está disponible.</value>
+  </data>
+  <data name="Main_BedLabel" xml:space="preserve">
+    <value>{0} - {1} ({2}, {3})</value>
+  </data>
+  <data name="Main_OutsideAnyBase" xml:space="preserve">
+    <value>fuera de cualquier base</value>
+  </data>
+  <data name="Main_NoClaimedBed" xml:space="preserve">
+    <value>No se encontró ninguna cama reclamada en este mundo (reaparece en el punto de aparición de reserva).</value>
+  </data>
+  <data name="Main_BedClaimedBy" xml:space="preserve">
+    <value> · reclamada por {0}</value>
+  </data>
+  <data name="Main_EditingIni" xml:space="preserve">
+    <value>Editando {0}: cada guardado conserva un .bak del archivo anterior.</value>
+  </data>
+  <data name="Main_IniOpenFailed" xml:space="preserve">
+    <value>No se pudo abrir {0}: {1}</value>
+  </data>
+  <data name="Main_GpReadFailedTitle" xml:space="preserve">
+    <value>No se pudo leer el guardado de Game Pass</value>
+  </data>
+  <data name="Main_GpNoWorldsTitle" xml:space="preserve">
+    <value>No hay mundos en este guardado de Game Pass</value>
+  </data>
+  <data name="Main_GpNoWorldsMessage" xml:space="preserve">
+    <value>Esa carpeta es un almacén de contenedores de Xbox pero no contiene guardados de mundo editables.</value>
+  </data>
+  <data name="Main_GpOpened" xml:space="preserve">
+    <value>Mundo de Game Pass «{0}» abierto. GUARDAR escribe directamente de vuelta en el contenedor de Xbox (se conserva una copia).</value>
+  </data>
+  <data name="Main_GpOpenFailedTitle" xml:space="preserve">
+    <value>No se pudo abrir el guardado de Game Pass</value>
+  </data>
+  <data name="Main_GpSaved" xml:space="preserve">
+    <value>Guardado en el guardado de Game Pass de «{0}» (se conserva la copia).</value>
+  </data>
+  <data name="Main_GpWriteFailedTitle" xml:space="preserve">
+    <value>No se pudo escribir el guardado de Game Pass</value>
+  </data>
+  <data name="Main_GpWriteFailedMessage" xml:space="preserve">
+    <value>Tu edición se guardó en la copia de trabajo, pero falló al volver a empaquetarla en el contenedor de Xbox: {0}</value>
+  </data>
+  <data name="Main_SlotSelected" xml:space="preserve">
+    <value>{0} seleccionado (ranura {1})</value>
+  </data>
+  <data name="Main_SortedStacks" xml:space="preserve">
+    <value>{0} pila(s) ordenada(s): pulsa GUARDAR para escribir.</value>
+  </data>
+  <data name="Main_DropSelectFirst" xml:space="preserve">
+    <value>Selecciona primero una ranura ocupada y luego SOLTAR lo coloca en el suelo.</value>
+  </data>
+  <data name="Main_Dropping" xml:space="preserve">
+    <value>Soltando {0}…</value>
+  </data>
+  <data name="Main_Dropped" xml:space="preserve">
+    <value>{0} soltado en el suelo cerca de ti (se muestra en OBJETOS EN EL SUELO CERCANOS). GUARDAR lo escribe en {1} (se conserva el .bak); REVERTIR lo deshace.</value>
+  </data>
+  <data name="Main_DropRemovedNoTarget" xml:space="preserve">
+    <value>{0} retirado (no se pudo soltar en el mundo: esta región no tiene ningún objeto en el suelo existente del que clonar el formato). Pulsa GUARDAR para escribir.</value>
+  </data>
+  <data name="Main_DismantleNoRecipe" xml:space="preserve">
+    <value>{0} no tiene receta de fabricación: no hay nada en lo que desmantelarlo.</value>
+  </data>
+  <data name="Main_DismantleNeedsSlots" xml:space="preserve">
+    <value>Desmantelar requiere {0} ranura(s) libre(s): solo hay {1} disponible(s).</value>
+  </data>
+  <data name="Main_DismantleDestEquipment" xml:space="preserve">
+    <value>Todas las pilas van a ranuras libres de la mochila; esta ranura de equipo se vacía.</value>
+  </data>
+  <data name="Main_DismantleDestRegular" xml:space="preserve">
+    <value>La primera pila reemplaza esta ranura; el resto llena las ranuras libres del mismo inventario.</value>
+  </data>
+  <data name="Main_DismantlePreview" xml:space="preserve">
+    <value>{0} se descompone en:
+{1}
+{2}</value>
+  </data>
+  <data name="Main_Dismantled" xml:space="preserve">
+    <value>Desmantelado en {0} pila(s) de ingredientes.</value>
+  </data>
+  <data name="Main_TeleporterSynced" xml:space="preserve">
+    <value>Teletransportador sincronizado con {0}: pulsa GUARDAR para escribirlo.</value>
+  </data>
+  <data name="Main_TeleporterUnsynced" xml:space="preserve">
+    <value>Teletransportador desincronizado.</value>
+  </data>
+  <data name="Main_BenchListUnavailable" xml:space="preserve">
+    <value>No se encontró ningún guardado del mundo junto a este archivo: la lista de mesas no está disponible.</value>
+  </data>
+  <data name="Main_BenchLabel" xml:space="preserve">
+    <value>{0} - {1} ({2}, {3})</value>
+  </data>
+  <data name="Main_Unclustered" xml:space="preserve">
+    <value>sin agrupar</value>
+  </data>
+  <data name="Main_LoadingBenches" xml:space="preserve">
+    <value>Cargando mesas del mundo (analizando el guardado de Facility)…</value>
+  </data>
+  <data name="Main_NotSynced" xml:space="preserve">
+    <value>No sincronizado con ninguna mesa.</value>
+  </data>
+  <data name="Main_SyncedTo" xml:space="preserve">
+    <value>Sincronizado con: {0}</value>
+  </data>
+  <data name="Main_SyncedToOtherRegion" xml:space="preserve">
+    <value>Sincronizado con: {0} (una mesa en otro guardado de región).</value>
+  </data>
+  <data name="Main_SyncedToMissing" xml:space="preserve">
+    <value>Sincronizado con la mesa {0}… (no encontrada en los guardados cargados; puede que se haya eliminado).</value>
+  </data>
+  <data name="Main_GameDataTitle" xml:space="preserve">
+    <value>Datos del juego</value>
+  </data>
+  <data name="Main_GameDataLoaded" xml:space="preserve">
+    <value>Datos del juego cargados. Vuelve a abrir tu guardado para actualizar los nombres de objetos, los iconos y los comerciantes.</value>
+  </data>
+  <data name="Main_NoPlayerLoaded" xml:space="preserve">
+    <value>No hay ningún guardado de jugador cargado.</value>
+  </data>
+  <data name="Main_ChangeIdInvalid" xml:space="preserve">
+    <value>Introduce un id válido (un SteamID64 de 17 dígitos como 76561198000000000, o cualquier token seguro para un guardado que no sea de Steam).</value>
+  </data>
+  <data name="Main_ChangeIdFileExists" xml:space="preserve">
+    <value>Player_{0}.sav ya existe en esta carpeta.</value>
+  </data>
+  <data name="Main_ChangeIdFailed" xml:space="preserve">
+    <value>Error al cambiar el id del jugador: {0}</value>
+  </data>
+  <data name="Main_ChangeIdClaimsNotMigrated" xml:space="preserve">
+    <value> Las reclamaciones de cama NO se migraron (el id antiguo y el nuevo difieren en longitud); cualquier cama reclamada por el id antiguo permanece bajo el id antiguo.</value>
+  </data>
+  <data name="Main_ChangeIdNoClaimsFound" xml:space="preserve">
+    <value> No se encontraron reclamaciones de cama del id antiguo en los guardados del mundo.</value>
+  </data>
+  <data name="Main_ChangeIdDoneWithClaims" xml:space="preserve">
+    <value>El guardado del jugador ahora pertenece a {0}; también se actualizaron {1} reclamación(es) de cama en los guardados del mundo (.bak conservado por archivo).</value>
+  </data>
+  <data name="Main_ChangeIdDone" xml:space="preserve">
+    <value>El guardado del jugador ahora pertenece a {0} (archivo renombrado y SaveIdentifier reescrito).{1}</value>
+  </data>
+  <data name="Main_Scanning" xml:space="preserve">
+    <value>Escaneando {0}…</value>
+  </data>
+  <data name="Main_LoadedSaves" xml:space="preserve">
+    <value>{0} guardado(s) cargado(s).</value>
+  </data>
+  <data name="Main_LoadedSavesWithFailures" xml:space="preserve">
+    <value>{0} guardado(s) cargado(s); {1} no se pudieron analizar.</value>
+  </data>
+  <data name="Main_ScanFailed" xml:space="preserve">
+    <value>Error en el escaneo: {0}</value>
+  </data>
+  <data name="Main_ReloadTitle" xml:space="preserve">
+    <value>¿Recargar {0}?</value>
+  </data>
+  <data name="Main_ReloadMessage" xml:space="preserve">
+    <value>Recargar vuelve a leer el guardado desde el disco y descarta las ediciones preparadas que aún no has escrito. Esto no se puede deshacer.</value>
+  </data>
+  <data name="Main_DiscardAndReloadButton" xml:space="preserve">
+    <value>DESCARTAR Y RECARGAR</value>
+  </data>
+  <data name="Main_LoadSaveFailed" xml:space="preserve">
+    <value>No se pudo cargar el guardado: {0}</value>
+  </data>
+  <data name="Main_UnknownItem" xml:space="preserve">
+    <value>(objeto desconocido)</value>
+  </data>
+  <data name="Main_MetersAway" xml:space="preserve">
+    <value>a {0} m</value>
+  </data>
+  <data name="Main_LastPlayed" xml:space="preserve">
+    <value>Última partida {0}</value>
+  </data>
+  <data name="Main_SaveFileCount" xml:space="preserve">
+    <value>{0} archivo(s) de guardado</value>
+  </data>
+  <data name="Main_Account" xml:space="preserve">
+    <value>cuenta {0}</value>
+  </data>
+  <data name="GameDataPrompt_NoGameDataTitle" xml:space="preserve">
+    <value>No hay datos del juego</value>
+  </data>
+  <data name="GameDataPrompt_NoGameDataMessage" xml:space="preserve">
+    <value>No se encontraron los archivos pak de Abiotic Factor en:
+{0}
+
+Elige la carpeta de instalación del juego (la que contiene la carpeta AbioticFactor), su subcarpeta AbioticFactor o la carpeta Content\Paks.</value>
+  </data>
+  <data name="GameDataPrompt_PickUsmapTitle" xml:space="preserve">
+    <value>Selecciona un Mappings.usmap extraído del juego</value>
+  </data>
+  <data name="GameDataPrompt_ImportFailedTitle" xml:space="preserve">
+    <value>No se pudo importar ese archivo</value>
+  </data>
+  <data name="PlayerEditor_OwnerIdNote" xml:space="preserve">
+    <value>Cuenta de Game Pass / no Steam - este id está bloqueado aquí. Para cambiarlo, usa CONVERSIÓN DE GUARDADO en Ajustes (puede reubicar al jugador durante la conversión).</value>
+  </data>
+  <data name="PlayerEditor_CutTraitDescription" xml:space="preserve">
+    <value>(rasgo no usado/eliminado - el juego no tiene descripción ni entrada del creador para él)</value>
+  </data>
+  <data name="PlayerGeneral_ChangeSteamIdTitle" xml:space="preserve">
+    <value>¿Cambiar SteamID?</value>
+  </data>
+  <data name="PlayerGeneral_ChangeSteamIdMessage" xml:space="preserve">
+    <value>Esto renombra el archivo de guardado a Player_{0}.sav para que el juego lo cargue con esa cuenta. Se conserva una copia .bak del original.
+
+Las camas reclamadas en el lado del mundo asociadas al id antiguo también se reescriben, así el jugador conserva sus camas reclamadas (cada guardado de mundo también conserva una .bak).</value>
+  </data>
+  <data name="PlayerGeneral_ChangeSteamIdConfirm" xml:space="preserve">
+    <value>RENOMBRAR</value>
+  </data>
+  <data name="FileReveal_OpenInExplorer" xml:space="preserve">
+    <value>Abrir en el Explorador</value>
+  </data>
+  <data name="FileReveal_OpenInFinder" xml:space="preserve">
+    <value>Abrir en el Finder</value>
+  </data>
+  <data name="FileReveal_OpenFileLocation" xml:space="preserve">
+    <value>Abrir ubicación del archivo</value>
+  </data>
+  <data name="FolderPick_Failed" xml:space="preserve">
+    <value>Error en el selector de carpetas</value>
+  </data>
+  <data name="HeaderBar_VersionLabel" xml:space="preserve">
+    <value>EDITOR DE GUARDADOS · v{0}</value>
+  </data>
+  <data name="WorldNpcs_RevivedStatus" xml:space="preserve">
+    <value>{0} revivido - pulsa GUARDAR para escribir. Las salidas marcadas por la historia pueden reaparecer en el juego.</value>
+  </data>
+  <data name="WorldDropped_InspectingStatus" xml:space="preserve">
+    <value>Inspeccionando {0} soltado - edítalo en la barra lateral (preparar + GUARDAR).</value>
+  </data>
+  <data name="Plugins_Title" xml:space="preserve">
+    <value>Complementos</value>
+  </data>
+  <data name="Plugins_HeaderPlugins" xml:space="preserve">
+    <value>COMPLEMENTOS</value>
+  </data>
+  <data name="Plugins_IntroHint" xml:space="preserve">
+    <value>Los complementos amplían el editor con nuevas operaciones de guardado, comandos y paneles. Se ejecutan con plena confianza: instala solo complementos en los que confíes. Coloca las carpetas de complementos en: {0}</value>
+  </data>
+  <data name="Plugins_HeaderInstalled" xml:space="preserve">
+    <value>INSTALADOS</value>
+  </data>
+  <data name="Plugins_NoneInstalled" xml:space="preserve">
+    <value>No hay complementos instalados.</value>
+  </data>
+  <data name="Plugins_HeaderSaveOperations" xml:space="preserve">
+    <value>OPERACIONES DE GUARDADO</value>
+  </data>
+  <data name="Plugins_NoOpenSaveHint" xml:space="preserve">
+    <value>Abre un guardado para ejecutar operaciones sobre él.</value>
+  </data>
+  <data name="Plugins_OpenSaveHint" xml:space="preserve">
+    <value>Guardado abierto: {0} ({1}). Ejecutar una operación escribe el archivo de inmediato (se conserva una .bak) y recarga el editor, descartando los cambios sin guardar.</value>
+  </data>
+  <data name="Plugins_NoOperationApplies" xml:space="preserve">
+    <value>Ninguna operación instalada se aplica a este tipo de guardado.</value>
+  </data>
+  <data name="Plugins_HeaderTools" xml:space="preserve">
+    <value>HERRAMIENTAS</value>
+  </data>
+  <data name="Plugins_NoUiTools" xml:space="preserve">
+    <value>No hay herramientas de interfaz instaladas.</value>
+  </data>
+  <data name="Plugins_HeaderWebTools" xml:space="preserve">
+    <value>HERRAMIENTAS WEB</value>
+  </data>
+  <data name="Plugins_NoWebTools" xml:space="preserve">
+    <value>No hay herramientas web instaladas.</value>
+  </data>
+  <data name="Plugins_HeaderMenuActions" xml:space="preserve">
+    <value>ACCIONES DE MENÚ</value>
+  </data>
+  <data name="Plugins_NoMenuActions" xml:space="preserve">
+    <value>No hay acciones de menú instaladas.</value>
+  </data>
+  <data name="Plugins_ManifestUpdateFailed" xml:space="preserve">
+    <value>No se pudo actualizar el manifiesto del complemento (¿carpeta de solo lectura?).</value>
+  </data>
+  <data name="Plugins_EnabledToast" xml:space="preserve">
+    <value>{0} {1}. Reinicia la aplicación para aplicar los cambios.</value>
+  </data>
+  <data name="Plugins_Enabled" xml:space="preserve">
+    <value>activado</value>
+  </data>
+  <data name="Plugins_Disabled" xml:space="preserve">
+    <value>desactivado</value>
+  </data>
+  <data name="Plugins_Run" xml:space="preserve">
+    <value>EJECUTAR</value>
+  </data>
+  <data name="Plugins_Open" xml:space="preserve">
+    <value>ABRIR</value>
+  </data>
+  <data name="Plugins_RunConfirmMessage" xml:space="preserve">
+    <value>¿Ejecutar '{0}' en {1}?
+
+Esto escribe el archivo de inmediato (se conserva una .bak) y recarga el editor, descartando los cambios sin guardar.</value>
+  </data>
+  <data name="Plugins_RunConfirmButton" xml:space="preserve">
+    <value>Ejecutar</value>
+  </data>
+  <data name="Plugins_OperationFailed" xml:space="preserve">
+    <value>Error: {0}</value>
+  </data>
+  <data name="Plugins_OperationResult" xml:space="preserve">
+    <value>{0}
+
+{1}</value>
+  </data>
+  <data name="Plugins_SaveWritten" xml:space="preserve">
+    <value>Guardado escrito (.bak conservado). Recargando el editor.</value>
+  </data>
+  <data name="Plugins_NoChangeNeeded" xml:space="preserve">
+    <value>No fue necesario ningún cambio.</value>
+  </data>
+  <data name="Plugins_WebToolFailed" xml:space="preserve">
+    <value>No se pudo abrir la herramienta web: {0}</value>
+  </data>
+  <data name="Plugins_ActionFailed" xml:space="preserve">
+    <value>La acción falló: {0}</value>
+  </data>
+  <data name="Plugins_ToolViewUnsupported" xml:space="preserve">
+    <value>Esta herramienta devolvió una vista que el host no pudo mostrar.</value>
+  </data>
+  <data name="Plugins_ToolFailed" xml:space="preserve">
+    <value>No se pudo abrir la herramienta: {0}</value>
+  </data>
+  <data name="Settings_ScaffoldTitle" xml:space="preserve">
+    <value>CONFIGURACIÓN DEL EDITOR</value>
+  </data>
+  <data name="Settings_ScaffoldSubtitle" xml:space="preserve">
+    <value>Ajustes</value>
+  </data>
+  <data name="Settings_ThemeCascade" xml:space="preserve">
+    <value>AZUL INSTALACIÓN</value>
+  </data>
+  <data name="Settings_ThemeHazard" xml:space="preserve">
+    <value>NARANJA PELIGRO</value>
+  </data>
+  <data name="Settings_ThemeHint" xml:space="preserve">
+    <value>Familia de color de acento para la interfaz del editor. Se aplica de inmediato; la vista del editor se recarga.</value>
+  </data>
+  <data name="Settings_ThemeActive" xml:space="preserve">
+    <value>{0}  ✓</value>
+  </data>
+  <data name="Settings_LanguageChange" xml:space="preserve">
+    <value>CAMBIAR</value>
+  </data>
+  <data name="Settings_OpenLogFolder" xml:space="preserve">
+    <value>ABRIR CARPETA DE REGISTROS</value>
+  </data>
+  <data name="Settings_DiagnosticsHint" xml:space="preserve">
+    <value>Registra cargas/escrituras de guardados, ediciones preparadas, transferencias JSON y contenido de guardado no reconocido. Desactivado por defecto.</value>
+  </data>
+  <data name="Settings_ResealItems" xml:space="preserve">
+    <value>VOLVER A SELLAR ELEMENTOS REVELADOS</value>
+  </data>
+  <data name="Settings_NothingRevealed" xml:space="preserve">
+    <value>Aún no se ha revelado nada individualmente.</value>
+  </data>
+  <data name="Settings_ItemsRevealed" xml:space="preserve">
+    <value>{0} elemento(s) revelado(s) (autorización anulada).</value>
+  </data>
+  <data name="Settings_SpoilersHint" xml:space="preserve">
+    <value>Sella el contenido al que aún no has llegado (banderas de misiones futuras, comerciantes, recetas, logros ocultos, entradas del códice, anomalías contenidas) tras un sello de CLASIFICADO. Toca cualquier elemento sellado para anular la autorización y revelarlo; los elementos revelados permanecen visibles a partir de entonces.</value>
+  </data>
+  <data name="Settings_SpoilerProtection" xml:space="preserve">
+    <value>Protección contra spoilers</value>
+  </data>
+  <data name="Settings_ManagePlugins" xml:space="preserve">
+    <value>GESTIONAR COMPLEMENTOS</value>
+  </data>
+  <data name="Settings_PluginsHint" xml:space="preserve">
+    <value>Amplía el editor con operaciones de guardado, comandos, paneles, acciones de menú y enlaces de eventos (gestionados o JavaScript). {0} complemento(s) instalado(s). Desactiva uno para dejar de cargarlo (reinicia para aplicar). Los complementos se ejecutan con plena confianza; instala solo complementos en los que confíes.</value>
+  </data>
+  <data name="Settings_PluginManifestFailed" xml:space="preserve">
+    <value>No se pudo actualizar el manifiesto del complemento (¿carpeta de solo lectura?).</value>
+  </data>
+  <data name="Settings_PluginEnabledMessage" xml:space="preserve">
+    <value>{0} activado. Reinicia para aplicar.</value>
+  </data>
+  <data name="Settings_PluginDisabledMessage" xml:space="preserve">
+    <value>{0} desactivado. Reinicia para aplicar.</value>
+  </data>
+  <data name="Settings_PluginRowLabel" xml:space="preserve">
+    <value>{0}  ({1})</value>
+  </data>
+  <data name="Settings_TabGeneral" xml:space="preserve">
+    <value>GENERAL</value>
+  </data>
+  <data name="Settings_TabEditor" xml:space="preserve">
+    <value>EDITOR</value>
+  </data>
+  <data name="Settings_TabConvert" xml:space="preserve">
+    <value>CONVERTIR</value>
+  </data>
+  <data name="Settings_TabUpdates" xml:space="preserve">
+    <value>ACTUALIZACIONES</value>
+  </data>
+  <data name="Settings_ConvertIdPlaceholder" xml:space="preserve">
+    <value>déjalo en blanco para conservar los ids existentes</value>
+  </data>
+  <data name="Settings_ConvertIdHint" xml:space="preserve">
+    <value>Opcional. Un SteamID64 de 17 dígitos (Steam) o id de carpeta de cuenta (Game Pass). El guardado del jugador se reasigna a él para que el mundo sea tuyo en la plataforma de destino. Solo un jugador.</value>
+  </data>
+  <data name="Settings_ConvertToGamePass" xml:space="preserve">
+    <value>CONVERTIR  ·  STEAM  →  GAME PASS</value>
+  </data>
+  <data name="Settings_ConvertToGamePassHint" xml:space="preserve">
+    <value>Elige una carpeta de mundo de Steam (WorldSave_*.sav + PlayerData). Escribe una copia de Game Pass junto a ella.</value>
+  </data>
+  <data name="Settings_ConvertToSteam" xml:space="preserve">
+    <value>CONVERTIR  ·  GAME PASS  →  STEAM</value>
+  </data>
+  <data name="Settings_ConvertToSteamHint" xml:space="preserve">
+    <value>Elige una carpeta de Game Pass (la que tiene containers.index). Escribe una carpeta de mundo de Steam junto a ella.</value>
+  </data>
+  <data name="Settings_OpenOutputFolder" xml:space="preserve">
+    <value>ABRIR CARPETA DE SALIDA</value>
+  </data>
+  <data name="Settings_Converting" xml:space="preserve">
+    <value>Convirtiendo…  (la primera vez puede descargar el compresor Oodle)</value>
+  </data>
+  <data name="Settings_ConvertDone" xml:space="preserve">
+    <value>Listo. Copia convertida escrita en:
+{0}
+Tu original no se modificó. Verifica que cargue en el juego antes de confiar en ella.</value>
+  </data>
+  <data name="Settings_ConvertFailed" xml:space="preserve">
+    <value>No se pudo convertir: {0}</value>
+  </data>
+  <data name="Settings_ConvertNoWorldSave" xml:space="preserve">
+    <value>Esa carpeta no tiene archivos WorldSave_*.sav; elige una carpeta de mundo de Steam.</value>
+  </data>
+  <data name="Settings_ConvertNoContainers" xml:space="preserve">
+    <value>Esa carpeta no tiene containers.index; elige una carpeta de guardado de Game Pass.</value>
+  </data>
+  <data name="Settings_ConvertPlayerAccountId" xml:space="preserve">
+    <value>ID DE CUENTA DEL JUGADOR</value>
+  </data>
+  <data name="Settings_SaveConversion" xml:space="preserve">
+    <value>CONVERSIÓN DE GUARDADO</value>
+  </data>
+  <data name="Settings_SaveConversionHint" xml:space="preserve">
+    <value>Convierte un mundo entre Steam (archivos .sav sueltos) y Game Pass / Xbox (un contenedor). El contenido del guardado es idéntico en ambos casos; solo cambia el empaquetado. La copia convertida se escribe junto a la carpeta que elijas; tu original queda intacto.</value>
+  </data>
+  <data name="Settings_InstalledVersion" xml:space="preserve">
+    <value>Versión instalada: {0}.</value>
+  </data>
+  <data name="Settings_CheckForUpdates" xml:space="preserve">
+    <value>BUSCAR ACTUALIZACIONES</value>
+  </data>
+  <data name="Settings_DownloadInstall" xml:space="preserve">
+    <value>DESCARGAR E INSTALAR</value>
+  </data>
+  <data name="Settings_CheckingForUpdates" xml:space="preserve">
+    <value>Buscando actualizaciones en GitHub...</value>
+  </data>
+  <data name="Settings_UpdateAvailable" xml:space="preserve">
+    <value>{0} está disponible (tienes {1}).</value>
+  </data>
+  <data name="Settings_OnLatestVersion" xml:space="preserve">
+    <value>Tienes la última versión.</value>
+  </data>
+  <data name="Settings_UpdatesNotConfigured" xml:space="preserve">
+    <value>Las actualizaciones aún no están configuradas (no se ha establecido un repositorio de versiones).</value>
+  </data>
+  <data name="Settings_CheckFailed" xml:space="preserve">
+    <value>No se pudo buscar actualizaciones: {0}</value>
+  </data>
+  <data name="Settings_CancellingDownload" xml:space="preserve">
+    <value>Cancelando descarga...</value>
+  </data>
+  <data name="Settings_InstallUpdateTitle" xml:space="preserve">
+    <value>Instalar actualización</value>
+  </data>
+  <data name="Settings_InstallUpdateMessage" xml:space="preserve">
+    <value>¿Descargar e instalar {0}? La aplicación se cerrará y se volverá a abrir.</value>
+  </data>
+  <data name="Settings_InstallButton" xml:space="preserve">
+    <value>Instalar</value>
+  </data>
+  <data name="Settings_Downloading" xml:space="preserve">
+    <value>DESCARGANDO...</value>
+  </data>
+  <data name="Settings_DownloadingPercent" xml:space="preserve">
+    <value>Descargando... {0}%</value>
+  </data>
+  <data name="Settings_DownloadingButtonPercent" xml:space="preserve">
+    <value>DESCARGANDO {0}%</value>
+  </data>
+  <data name="Settings_DownloadingUpdate" xml:space="preserve">
+    <value>Descargando actualización...</value>
+  </data>
+  <data name="Settings_InstallingRestart" xml:space="preserve">
+    <value>Instalando actualización; la aplicación se reiniciará...</value>
+  </data>
+  <data name="Settings_Installing" xml:space="preserve">
+    <value>INSTALANDO...</value>
+  </data>
+  <data name="Settings_DownloadCancelled" xml:space="preserve">
+    <value>Descarga cancelada.</value>
+  </data>
+  <data name="Settings_UpdateFailed" xml:space="preserve">
+    <value>Error en la actualización: {0}</value>
+  </data>
+  <data name="Settings_UpdatesHintPlaceholder" xml:space="preserve">
+    <value>Busca una compilación más reciente en las versiones de GitHub. (Aún no hay un repositorio de versiones configurado; el desarrollador debe establecerlo antes de que esto funcione.)</value>
+  </data>
+  <data name="Settings_UpdatesHint" xml:space="preserve">
+    <value>Busca una compilación más reciente en las versiones de GitHub y la instala en su lugar. Cada guardado sigue conservando su .bak.</value>
+  </data>
+  <data name="GameDataSettings_SetGameFolder" xml:space="preserve">
+    <value>ESTABLECER CARPETA DEL JUEGO</value>
+  </data>
+  <data name="GameDataSettings_UseAutoDetect" xml:space="preserve">
+    <value>USAR DETECCIÓN AUTOMÁTICA</value>
+  </data>
+  <data name="GameDataSettings_LoadedAuto" xml:space="preserve">
+    <value>Cargado desde tu instalación del juego detectada automáticamente.</value>
+  </data>
+  <data name="GameDataSettings_LoadedCustom" xml:space="preserve">
+    <value>Cargado desde la carpeta que estableciste.</value>
+  </data>
+  <data name="GameDataSettings_GameFolderLabel" xml:space="preserve">
+    <value>Carpeta del juego:  {0}</value>
+  </data>
+  <data name="GameDataSettings_FolderNotFound" xml:space="preserve">
+    <value>(no encontrada - establécela abajo)</value>
+  </data>
+  <data name="GameDataSettings_UsmapLabel" xml:space="preserve">
+    <value>Datos del juego (.usmap):  {0}</value>
+  </data>
+  <data name="GameDataSettings_UsmapNotFound" xml:space="preserve">
+    <value>(no se encontró ninguno - no se pueden leer las tablas del juego)</value>
+  </data>
+  <data name="GameDataSettings_UsmapImported" xml:space="preserve">
+    <value>  [importado]</value>
+  </data>
+  <data name="GameDataSettings_UsmapBundled" xml:space="preserve">
+    <value>  [incluido]</value>
+  </data>
+  <data name="GameDataSettings_GameDataLoadedMessage" xml:space="preserve">
+    <value>Datos del juego cargados. Vuelve a abrir tu guardado para actualizar los comerciantes y los iconos de los objetos.</value>
+  </data>
+  <data name="GameDataSettings_NoGameDataTitle" xml:space="preserve">
+    <value>No hay datos del juego ahí</value>
+  </data>
+  <data name="GameDataSettings_NoGameDataMessage" xml:space="preserve">
+    <value>No se encontraron los archivos pak de Abiotic Factor en:
+{0}
+
+Elige la carpeta de instalación del juego (la que contiene la carpeta AbioticFactor), su subcarpeta AbioticFactor o la carpeta Content\Paks.</value>
+  </data>
+  <data name="GameDataSettings_GameFolderSetTitle" xml:space="preserve">
+    <value>Carpeta del juego establecida</value>
+  </data>
+  <data name="GameDataSettings_FolderPickerFailedTitle" xml:space="preserve">
+    <value>Error en el selector de carpetas</value>
+  </data>
+  <data name="GameDataSettings_AutoDetectRestoredTitle" xml:space="preserve">
+    <value>Detección automática restaurada</value>
+  </data>
+  <data name="GameDataSettings_ImportDataFile" xml:space="preserve">
+    <value>IMPORTAR ARCHIVO DE DATOS</value>
+  </data>
+  <data name="GameDataSettings_CardHint" xml:space="preserve">
+    <value>Los comerciantes, los iconos de los objetos y las recetas provienen de tu copia instalada del juego, no del guardado. La detección automática encuentra instalaciones de Steam; para una instalación de Game Pass, Epic o movida, establece aquí tu carpeta del juego. Si una actualización del juego impide cargar los datos, importa un archivo de datos actualizado (.usmap).</value>
+  </data>
+  <data name="Slot_MsgNoBoundContext" xml:space="preserve">
+    <value>Toque de ranura: no se encontró contexto vinculado</value>
+  </data>
+  <data name="Slot_MsgDragging" xml:space="preserve">
+    <value>Arrastrando {0} desde la ranura {1} {2}…</value>
+  </data>
+  <data name="Slot_MsgBlocked" xml:space="preserve">
+    <value>Bloqueado: {0}.</value>
+  </data>
+  <data name="Slot_MsgBlockedSwap" xml:space="preserve">
+    <value>Intercambio bloqueado: {0}.</value>
+  </data>
+  <data name="Slot_MsgGave" xml:space="preserve">
+    <value>Se dio {0} ({1}×)</value>
+  </data>
+  <data name="Slot_MsgGaveToSlot" xml:space="preserve">
+    <value>Se dio {0} ({1}×) a la ranura {2}</value>
+  </data>
+  <data name="Slot_MsgSwapped" xml:space="preserve">
+    <value>Intercambiado → {0}</value>
+  </data>
+  <data name="Slot_MsgMoved" xml:space="preserve">
+    <value>Movido {0} → {1}</value>
+  </data>
+  <data name="Slot_MsgNoEmptySlotIn" xml:space="preserve">
+    <value>{0} no tiene ninguna ranura vacía.</value>
+  </data>
+  <data name="Slot_MsgDraggingFromCatalog" xml:space="preserve">
+    <value>Arrastrando {0} desde el catálogo - suelta en cualquier ranura…</value>
+  </data>
+  <data name="Slot_MsgNoEmptyHotbar" xml:space="preserve">
+    <value>No hay ninguna ranura de barra rápida vacía - las mascotas solo caben en la barra rápida o en la ranura de Compañero.</value>
+  </data>
+  <data name="Slot_MsgNoEmptyAvailable" xml:space="preserve">
+    <value>No hay ninguna ranura vacía disponible para dar el objeto.</value>
+  </data>
+  <data name="Slot_MsgTickAtLeastOne" xml:space="preserve">
+    <value>Marca al menos un objeto bloqueado para desbloquearlo.</value>
+  </data>
+  <data name="Slot_ThisSave" xml:space="preserve">
+    <value>este guardado</value>
+  </data>
+  <data name="Slot_Unlock" xml:space="preserve">
+    <value>DESBLOQUEAR</value>
+  </data>
+  <data name="Slot_FacilityWrittenNow" xml:space="preserve">
+    <value>El guardado de la Instalación se escribe de inmediato (se conserva una copia .bak).</value>
+  </data>
+  <data name="Slot_ChangesStaged" xml:space="preserve">
+    <value>Los cambios quedan pendientes; pulsa GUARDAR para escribir.</value>
+  </data>
+  <data name="Slot_UnlockItemsTitle" xml:space="preserve">
+    <value>¿Desbloquear {0} objeto(s) de {1}?</value>
+  </data>
+  <data name="Slot_UnlockItemsBody" xml:space="preserve">
+    <value>Esto establece {0} indicador(es) de mundo en {1}:
+
+{2}
+
+Son indicadores de historia/progreso, por lo que también se desbloquea cualquier otra cosa condicionada por ellos. </value>
+  </data>
+  <data name="Slot_MsgTraderFullyUnlocked" xml:space="preserve">
+    <value>{0} ya está totalmente desbloqueado en este mundo.</value>
+  </data>
+  <data name="Slot_UnlockAllTitle" xml:space="preserve">
+    <value>¿Desbloquear todo de {0}?</value>
+  </data>
+  <data name="Slot_UnlockAllBody" xml:space="preserve">
+    <value>Esto establece {0} indicador(es) de mundo en {1}:
+
+{2}
+
+Son indicadores de historia/progreso, por lo que también se desbloquea cualquier otra cosa condicionada por ellos (misiones, puertas, apariciones). </value>
+  </data>
+  <data name="Slot_TraderStatus" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="Slot_MsgChapterAlreadySet" xml:space="preserve">
+    <value>Todos los indicadores de historia hasta "{0}" ya están establecidos.</value>
+  </data>
+  <data name="Slot_MsgChapterWroteFacility" xml:space="preserve">
+    <value>Se escribieron {0} indicador(es) de historia en WorldSave_Facility.sav (copia conservada).</value>
+  </data>
+  <data name="Slot_MsgChapterAdded" xml:space="preserve">
+    <value>Se agregaron {0} indicador(es) de historia hasta "{1}" - pulsa GUARDAR para escribir.</value>
+  </data>
+  <data name="Slot_SetPrereqsTitle" xml:space="preserve">
+    <value>¿Establecer requisitos previos?</value>
+  </data>
+  <data name="Slot_SetPrereqsBody" xml:space="preserve">
+    <value>"{0}" necesita {1} indicador(es) anterior(es):
+
+{2}
+
+Son indicadores de historia/progreso - también se desbloquea el contenido condicionado por ellos. Solo aditivo; pendiente hasta GUARDAR.</value>
+  </data>
+  <data name="Slot_SetThem" xml:space="preserve">
+    <value>ESTABLECER</value>
+  </data>
+  <data name="Slot_MsgPrereqsSet" xml:space="preserve">
+    <value>Se establecieron {0} indicador(es) de requisito previo - "{1}" ya se puede activar. Pulsa GUARDAR para escribir.</value>
+  </data>
+  <data name="Spoiler_ClassifiedTitle" xml:space="preserve">
+    <value>▓ CLASIFICADO: AUTORIZACIÓN REQUERIDA</value>
+  </data>
+  <data name="Spoiler_ClassifiedShort" xml:space="preserve">
+    <value>▓ CLASIFICADO</value>
+  </data>
+  <data name="Spoiler_Redacted" xml:space="preserve">
+    <value>[ DATOS ELIMINADOS ]</value>
+  </data>
+  <data name="Spoiler_ClassifiedHint" xml:space="preserve">
+    <value>Por encima de tu autorización actual. Toca para anular y revelar (seguirás viéndolo).</value>
+  </data>
+  <data name="Spoiler_OverrideTitle" xml:space="preserve">
+    <value>¿ANULAR AUTORIZACIÓN?</value>
+  </data>
+  <data name="Spoiler_OverrideMessage" xml:space="preserve">
+    <value>{0} está sellado por encima de tu autorización actual porque podría revelar contenido que aún no has alcanzado.
+
+¿Revelarlo de todos modos? Seguirá visible a partir de ahora.</value>
+  </data>
+  <data name="Spoiler_OverrideAccept" xml:space="preserve">
+    <value>ANULAR</value>
+  </data>
+  <data name="Spoiler_OverrideKeepSealed" xml:space="preserve">
+    <value>MANTENER SELLADO</value>
+  </data>
+  <data name="Dialog_BulkConfirmTitle" xml:space="preserve">
+    <value>¿Estás seguro?</value>
+  </data>
+  <data name="Dialog_BulkConfirmMessage" xml:space="preserve">
+    <value>Esto hará {0}.
+
+El cambio queda preparado hasta que pulses GUARDAR (REVERTIR lo deshace antes de guardar).</value>
+  </data>
+  <data name="Dialog_BulkConfirmAccept" xml:space="preserve">
+    <value>SÍ, HACERLO</value>
+  </data>
+  <data name="SteamLogin_Title" xml:space="preserve">
+    <value>Inicio de sesión de Steam</value>
+  </data>
+  <data name="SteamLogin_Header" xml:space="preserve">
+    <value>INICIO DE SESIÓN DE STEAM</value>
+  </data>
+  <data name="SteamLogin_PrivacyNote" xml:space="preserve">
+    <value>Inicia sesión en la propia página de Steam más abajo - el editor nunca ve tu contraseña, solo la cookie de sesión resultante, que permanece en este dispositivo (almacenamiento protegido por el sistema) y se borra al CERRAR SESIÓN.</value>
+  </data>
+  <data name="SteamLogin_SignInViaBrowser" xml:space="preserve">
+    <value>INICIAR SESIÓN EN EL NAVEGADOR DEL SISTEMA</value>
+  </data>
+  <data name="SteamLogin_WindowsOnlyFallback" xml:space="preserve">
+    <value>El inicio de sesión de Steam dentro de la aplicación solo está disponible en Windows por ahora. Usa tu navegador en su lugar:</value>
+  </data>
+  <data name="SteamLogin_SessionReadError" xml:space="preserve">
+    <value>No se pudo leer la sesión de inicio ({0}). Cancela y usa VER EN EL NAVEGADOR como alternativa.</value>
+  </data>
 </root>

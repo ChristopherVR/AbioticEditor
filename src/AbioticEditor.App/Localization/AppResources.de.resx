@@ -508,4 +508,1363 @@ Welten: Behälter · Quest-Flags · Türen · Bodengegenstände · Story-Fortsch
   <data name="WorldVehicles_VehicleListIntro" xml:space="preserve"><value>Klicken Sie ein Fahrzeug an, um es zu bearbeiten: umschalten, ob es fahrbar (freigeschaltet) oder ein Wrack ist, es bewegen, auf seine ursprüngliche Spawn-Position zurücksetzen oder seinen Bord-Stauraum öffnen. Änderungen werden bis zum SPEICHERN vorgemerkt; bei jedem Schreibvorgang wird eine .bak behalten.</value></data>
   <data name="WorldVehicles_VehiclesInThisWorld" xml:space="preserve"><value>FAHRZEUGE IN DIESER WELT</value></data>
   <data name="WorldVehicles_Wrecked" xml:space="preserve"><value>WRACK</value></data>
+  <data name="Compare_Title" xml:space="preserve">
+    <value>Vergleichen</value>
+  </data>
+  <data name="Compare_ModeFileVsFile" xml:space="preserve">
+    <value>DATEI vs DATEI</value>
+  </data>
+  <data name="Compare_ModeFolderVsFolder" xml:space="preserve">
+    <value>ORDNER vs ORDNER</value>
+  </data>
+  <data name="Compare_BrowseButton" xml:space="preserve">
+    <value>DURCHSUCHEN…</value>
+  </data>
+  <data name="Compare_CompareButton" xml:space="preserve">
+    <value>VERGLEICHEN</value>
+  </data>
+  <data name="Compare_ModeCardHeader" xml:space="preserve">
+    <value>MODUS</value>
+  </data>
+  <data name="Compare_ModeCardDescription" xml:space="preserve">
+    <value>Zwei Spieler-Spielstände erhalten eine lesbare Zusammenfassung nebeneinander (Rezepte, Fische, Fertigkeiten…); alle Spielstände zeigen zudem den vollständigen Eigenschaftsvergleich. Der Ordner-Modus vergleicht eine Welt mit einer ihrer Sicherungen.</value>
+  </data>
+  <data name="Compare_SourcesCardHeader" xml:space="preserve">
+    <value>QUELLEN</value>
+  </data>
+  <data name="Compare_SourceALabel" xml:space="preserve">
+    <value>A  ·  erste / alt</value>
+  </data>
+  <data name="Compare_SourceBLabel" xml:space="preserve">
+    <value>B  ·  zweite / neu</value>
+  </data>
+  <data name="Compare_CompareCardHeader" xml:space="preserve">
+    <value>VERGLEICHEN</value>
+  </data>
+  <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
+    <value>SPIELSTAND-DIAGNOSE</value>
+  </data>
+  <data name="Compare_ScaffoldTitle" xml:space="preserve">
+    <value>Spielstände vergleichen</value>
+  </data>
+  <data name="Compare_QuickPickerTitle" xml:space="preserve">
+    <value>Geladene Spielstände…</value>
+  </data>
+  <data name="Compare_NothingSelected" xml:space="preserve">
+    <value>(nichts ausgewählt)</value>
+  </data>
+  <data name="Compare_PickFileTitle" xml:space="preserve">
+    <value>Eine .sav-Datei auswählen</value>
+  </data>
+  <data name="Compare_PickerFailedTitle" xml:space="preserve">
+    <value>Auswahl fehlgeschlagen</value>
+  </data>
+  <data name="Compare_PickTwoTitle" xml:space="preserve">
+    <value>Zwei Elemente auswählen</value>
+  </data>
+  <data name="Compare_PickTwoMessage" xml:space="preserve">
+    <value>Wähle A und B aus, bevor du vergleichst.</value>
+  </data>
+  <data name="Compare_ComparisonFailedTitle" xml:space="preserve">
+    <value>Vergleich fehlgeschlagen</value>
+  </data>
+  <data name="Compare_SummaryIdentical" xml:space="preserve">
+    <value>✓ Die beiden Spielstände sind identisch.</value>
+  </data>
+  <data name="Compare_SummaryNoGameplayDiff" xml:space="preserve">
+    <value>✓ Keine Gameplay-Unterschiede (nur {0} Identität/Uhr/Instanz/Position).</value>
+  </data>
+  <data name="Compare_SaveClassesDiffer" xml:space="preserve">
+    <value>Spielstand-Klassen unterscheiden sich: A='{0}'  B='{1}'.</value>
+  </data>
+  <data name="Compare_SavesTooLarge" xml:space="preserve">
+    <value>Spielstände zu groß, um vollständig aufzulösen - einige Unterschiede fehlen möglicherweise.</value>
+  </data>
+  <data name="Compare_KindSummaryHeader" xml:space="preserve">
+    <value>{0} ZUSAMMENFASSUNG</value>
+  </data>
+  <data name="Compare_NoMeaningfulDiff" xml:space="preserve">
+    <value>Keine relevanten Unterschiede in den erfassten Kategorien.</value>
+  </data>
+  <data name="Compare_CopyMarkdownButton" xml:space="preserve">
+    <value>MARKDOWN KOPIEREN</value>
+  </data>
+  <data name="Compare_CopiedTitle" xml:space="preserve">
+    <value>Kopiert</value>
+  </data>
+  <data name="Compare_CopiedMessage" xml:space="preserve">
+    <value>Der Vergleichsbericht wurde als Markdown in die Zwischenablage kopiert.</value>
+  </data>
+  <data name="Compare_ExportFailedTitle" xml:space="preserve">
+    <value>Export fehlgeschlagen</value>
+  </data>
+  <data name="Compare_SaveMdButton" xml:space="preserve">
+    <value>.md SPEICHERN</value>
+  </data>
+  <data name="Compare_SavedTitle" xml:space="preserve">
+    <value>Gespeichert</value>
+  </data>
+  <data name="Compare_SavedMessage" xml:space="preserve">
+    <value>Bericht geschrieben nach:
+{0}</value>
+  </data>
+  <data name="Compare_ExportCardHeader" xml:space="preserve">
+    <value>EXPORT</value>
+  </data>
+  <data name="Compare_ExportCardDescription" xml:space="preserve">
+    <value>Kopiere den vollständigen Vergleich als Markdown-Bericht oder speichere ihn in eine .md-Datei.</value>
+  </data>
+  <data name="Compare_WhatsDifferentHeader" xml:space="preserve">
+    <value>WAS IST ANDERS</value>
+  </data>
+  <data name="Compare_WhatsDifferentDescription" xml:space="preserve">
+    <value>Eine schnelle Übersicht der geänderten Kategorien - Details folgen unten.</value>
+  </data>
+  <data name="Compare_ShowNoiseToggle" xml:space="preserve">
+    <value>{0} Unterschiede bei Identität / Uhr / Instanz / Position anzeigen</value>
+  </data>
+  <data name="Compare_HideRawDifferences" xml:space="preserve">
+    <value>ROHUNTERSCHIEDE AUSBLENDEN</value>
+  </data>
+  <data name="Compare_ShowRawDifferences" xml:space="preserve">
+    <value>ROHUNTERSCHIEDE ANZEIGEN</value>
+  </data>
+  <data name="Compare_RawPropertyDiffHeader" xml:space="preserve">
+    <value>ROHER EIGENSCHAFTSVERGLEICH</value>
+  </data>
+  <data name="Compare_RawPropertyDiffDescription" xml:space="preserve">
+    <value>Jeder Unterschied auf Eigenschaftsebene ({0} Gameplay, {1} sonstige). Tiefer einsteigen, wenn die Zusammenfassung nicht genügt.</value>
+  </data>
+  <data name="Compare_FoldersIdentical" xml:space="preserve">
+    <value>✓ Die beiden Ordner sind identisch.</value>
+  </data>
+  <data name="Compare_FolderSummary" xml:space="preserve">
+    <value>{0} unterschiedlich · {1} identisch · {2} nur in A · {3} nur in B</value>
+  </data>
+  <data name="Compare_FolderSummaryErrors" xml:space="preserve">
+    <value> · {0} Fehler</value>
+  </data>
+  <data name="Compare_TapDifferingFile" xml:space="preserve">
+    <value>Tippe auf eine abweichende Datei, um ihre Eigenschaftsunterschiede zu sehen.</value>
+  </data>
+  <data name="Compare_FileDifferencesEyebrow" xml:space="preserve">
+    <value>DATEIUNTERSCHIEDE</value>
+  </data>
+  <data name="CreateWorld_Title" xml:space="preserve">
+    <value>Neue Welt erstellen</value>
+  </data>
+  <data name="CreateWorld_Eyebrow" xml:space="preserve">
+    <value>NEUE WELT</value>
+  </data>
+  <data name="CreateWorld_ScaffoldTitle" xml:space="preserve">
+    <value>Welt erstellen</value>
+  </data>
+  <data name="CreateWorld_StepProgress" xml:space="preserve">
+    <value>SCHRITT {0} VON {1}</value>
+  </data>
+  <data name="CreateWorld_Cancel" xml:space="preserve">
+    <value>ABBRECHEN</value>
+  </data>
+  <data name="CreateWorld_Back" xml:space="preserve">
+    <value>ZURÜCK</value>
+  </data>
+  <data name="CreateWorld_PlatformCardTitle" xml:space="preserve">
+    <value>PLATTFORM</value>
+  </data>
+  <data name="CreateWorld_PlatformCardDesc" xml:space="preserve">
+    <value>Für welche Kopie des Spiels ist diese Welt? Im letzten Schritt kannst du auch eine Kopie für die andere Plattform hinzufügen.</value>
+  </data>
+  <data name="CreateWorld_SegSteam" xml:space="preserve">
+    <value>STEAM</value>
+  </data>
+  <data name="CreateWorld_SegGamePass" xml:space="preserve">
+    <value>GAME PASS</value>
+  </data>
+  <data name="CreateWorld_PlatformSteamDesc" xml:space="preserve">
+    <value>Steam - ein Welt-Ordner mit losen Dateien (WorldSave_*.sav + PlayerData/Player_*.sav) im Steam-SaveGames-Baum. Spieler gehören zu einer 17-stelligen SteamID64.</value>
+  </data>
+  <data name="CreateWorld_PlatformGamePassDesc" xml:space="preserve">
+    <value>Game Pass / Microsoft Store - ein Xbox-"wgs"-Container (dieselben Spielstände in einem Oodle-komprimierten Paket). Spieler gehören zu einer Xbox-Konto-ID (XUID).</value>
+  </data>
+  <data name="CreateWorld_NextWorld" xml:space="preserve">
+    <value>WEITER: WELT</value>
+  </data>
+  <data name="CreateWorld_NextPlayers" xml:space="preserve">
+    <value>WEITER: SPIELER</value>
+  </data>
+  <data name="CreateWorld_NextDifficulty" xml:space="preserve">
+    <value>WEITER: SCHWIERIGKEIT</value>
+  </data>
+  <data name="CreateWorld_NextReview" xml:space="preserve">
+    <value>WEITER: ÜBERSICHT</value>
+  </data>
+  <data name="CreateWorld_WorldCardTitle" xml:space="preserve">
+    <value>WELT-EINRICHTUNG</value>
+  </data>
+  <data name="CreateWorld_WorldCardDesc" xml:space="preserve">
+    <value>Wähle einen Namen und den übergeordneten Ordner, in dem der neue Welt-Ordner erstellt wird.</value>
+  </data>
+  <data name="CreateWorld_WorldNameLabel" xml:space="preserve">
+    <value>Weltname</value>
+  </data>
+  <data name="CreateWorld_SaveLocationLabel" xml:space="preserve">
+    <value>Speicherort</value>
+  </data>
+  <data name="CreateWorld_WorldNamePlaceholder" xml:space="preserve">
+    <value>z. B. Cascade</value>
+  </data>
+  <data name="CreateWorld_SaveFolderPlaceholder" xml:space="preserve">
+    <value>Pfad zum Speicherordner</value>
+  </data>
+  <data name="CreateWorld_Browse" xml:space="preserve">
+    <value>DURCHSUCHEN</value>
+  </data>
+  <data name="CreateWorld_WorldNameRequiredTitle" xml:space="preserve">
+    <value>Weltname erforderlich</value>
+  </data>
+  <data name="CreateWorld_WorldNameRequiredMsg" xml:space="preserve">
+    <value>Bitte gib einen Namen für den neuen Welt-Ordner ein.</value>
+  </data>
+  <data name="CreateWorld_LocationNotFoundTitle" xml:space="preserve">
+    <value>Ort nicht gefunden</value>
+  </data>
+  <data name="CreateWorld_LocationNotFoundMsg" xml:space="preserve">
+    <value>Der Speicherort-Ordner existiert nicht. Bitte wähle einen vorhandenen Ordner.</value>
+  </data>
+  <data name="CreateWorld_AlreadyExistsTitle" xml:space="preserve">
+    <value>Existiert bereits</value>
+  </data>
+  <data name="CreateWorld_AlreadyExistsMsg" xml:space="preserve">
+    <value>Am angegebenen Ort existiert bereits ein nicht-leerer Ordner namens '{0}'. Wähle einen anderen Namen oder Ort.</value>
+  </data>
+  <data name="CreateWorld_PlayersCardTitle" xml:space="preserve">
+    <value>SPIELER</value>
+  </data>
+  <data name="CreateWorld_PlayersCardDesc" xml:space="preserve">
+    <value>Jeder Spieler braucht seine eigene Besitzer-ID. Wähle ein bekanntes Konto auf diesem Rechner oder wähle "Benutzerdefinierte ID...", um eine {0} einzugeben. Weitere Spieler kannst du später über die +-Schaltfläche in der Seitenleiste hinzufügen.</value>
+  </data>
+  <data name="CreateWorld_AccountWordSteam" xml:space="preserve">
+    <value>SteamID64</value>
+  </data>
+  <data name="CreateWorld_AccountWordXuid" xml:space="preserve">
+    <value>Xbox-Konto-ID (XUID)</value>
+  </data>
+  <data name="CreateWorld_NumberOfPlayers" xml:space="preserve">
+    <value>Anzahl der Spieler</value>
+  </data>
+  <data name="CreateWorld_PlayerN" xml:space="preserve">
+    <value>Spieler {0}</value>
+  </data>
+  <data name="CreateWorld_CustomIdOption" xml:space="preserve">
+    <value>Benutzerdefinierte ID...</value>
+  </data>
+  <data name="CreateWorld_ChooseAccount" xml:space="preserve">
+    <value>Konto auswählen</value>
+  </data>
+  <data name="CreateWorld_CustomIdPlaceholderXuid" xml:space="preserve">
+    <value>Xbox-Konto-ID (XUID)</value>
+  </data>
+  <data name="CreateWorld_CustomIdPlaceholderSteam" xml:space="preserve">
+    <value>SteamID64, z. B. 76561198000000000</value>
+  </data>
+  <data name="CreateWorld_PlayerIdNeededTitle" xml:space="preserve">
+    <value>Spieler-ID erforderlich</value>
+  </data>
+  <data name="CreateWorld_PlayerIdNeededMsg" xml:space="preserve">
+    <value>Spieler {0}: Wähle ein Konto oder gib eine benutzerdefinierte ID ein, bevor du fortfährst.</value>
+  </data>
+  <data name="CreateWorld_IdNotUsableTitle" xml:space="preserve">
+    <value>Diese ID kann nicht verwendet werden</value>
+  </data>
+  <data name="CreateWorld_IdNotUsableMsg" xml:space="preserve">
+    <value>Spieler {0}: "{1}" kann keine Spielstand-Datei benennen. Verwende nur Buchstaben, Ziffern, '-', '_' oder '.' (eine SteamID64 sieht aus wie 76561198000000000).</value>
+  </data>
+  <data name="CreateWorld_DuplicateIdTitle" xml:space="preserve">
+    <value>Doppelte ID</value>
+  </data>
+  <data name="CreateWorld_DuplicateIdMsg" xml:space="preserve">
+    <value>Jeder Spieler muss eine eindeutige Besitzer-ID haben.</value>
+  </data>
+  <data name="CreateWorld_DifficultyCardTitle" xml:space="preserve">
+    <value>SCHWIERIGKEIT</value>
+  </data>
+  <data name="CreateWorld_DifficultyCardDesc" xml:space="preserve">
+    <value>Legt GameDifficulty und zugehörige Multiplikatoren in SandboxSettings.ini fest. Du kannst sie nach der Erstellung im Tab Config bearbeiten.</value>
+  </data>
+  <data name="CreateWorld_DiffCasual" xml:space="preserve">
+    <value>ENTSPANNT</value>
+  </data>
+  <data name="CreateWorld_DiffNormal" xml:space="preserve">
+    <value>NORMAL</value>
+  </data>
+  <data name="CreateWorld_DiffSurvival" xml:space="preserve">
+    <value>ÜBERLEBEN</value>
+  </data>
+  <data name="CreateWorld_DiffNightmare" xml:space="preserve">
+    <value>ALPTRAUM</value>
+  </data>
+  <data name="CreateWorld_DiffCasualDesc" xml:space="preserve">
+    <value>Entspannt - geringere Gegner-Schwierigkeit, mehr XP und größere Gegenstandsstapel. Perfekt zum Erkunden.</value>
+  </data>
+  <data name="CreateWorld_DiffNormalDesc" xml:space="preserve">
+    <value>Normal - ausgewogene Herausforderung, das vorgesehene Erlebnis für die meisten Spieler.</value>
+  </data>
+  <data name="CreateWorld_DiffSurvivalDesc" xml:space="preserve">
+    <value>Überleben - stärkere Gegner, natürliche Gegenstandsstapel, höhere Spawn-Rate.</value>
+  </data>
+  <data name="CreateWorld_DiffNightmareDesc" xml:space="preserve">
+    <value>Alptraum - maximale Schwierigkeit: weniger XP, hoher Gegnerschaden, unermüdliche Spawns.</value>
+  </data>
+  <data name="CreateWorld_ReviewCardTitle" xml:space="preserve">
+    <value>ÜBERSICHT</value>
+  </data>
+  <data name="CreateWorld_ReviewCardDesc" xml:space="preserve">
+    <value>Überprüfe die Angaben unten und drücke dann WELT ERSTELLEN.</value>
+  </data>
+  <data name="CreateWorld_ReviewPlatform" xml:space="preserve">
+    <value>Plattform</value>
+  </data>
+  <data name="CreateWorld_ReviewWorldName" xml:space="preserve">
+    <value>Weltname</value>
+  </data>
+  <data name="CreateWorld_ReviewLocation" xml:space="preserve">
+    <value>Ort</value>
+  </data>
+  <data name="CreateWorld_ReviewPlayers" xml:space="preserve">
+    <value>Spieler</value>
+  </data>
+  <data name="CreateWorld_ReviewDifficulty" xml:space="preserve">
+    <value>Schwierigkeit</value>
+  </data>
+  <data name="CreateWorld_PlatformNameSteam" xml:space="preserve">
+    <value>Steam</value>
+  </data>
+  <data name="CreateWorld_PlatformNameGamePass" xml:space="preserve">
+    <value>Game Pass</value>
+  </data>
+  <data name="CreateWorld_DiffCasualName" xml:space="preserve">
+    <value>Entspannt</value>
+  </data>
+  <data name="CreateWorld_DiffNormalName" xml:space="preserve">
+    <value>Normal</value>
+  </data>
+  <data name="CreateWorld_DiffSurvivalName" xml:space="preserve">
+    <value>Überleben</value>
+  </data>
+  <data name="CreateWorld_DiffNightmareName" xml:space="preserve">
+    <value>Alptraum</value>
+  </data>
+  <data name="CreateWorld_AlsoWriteCopy" xml:space="preserve">
+    <value>Auch eine {0}-Kopie daneben schreiben</value>
+  </data>
+  <data name="CreateWorld_CreateWorld" xml:space="preserve">
+    <value>WELT ERSTELLEN</value>
+  </data>
+  <data name="CreateWorld_StatusCreating" xml:space="preserve">
+    <value>Welt wird erstellt...</value>
+  </data>
+  <data name="CreateWorld_StatusWritingContainer" xml:space="preserve">
+    <value>Game-Pass-Container wird geschrieben...</value>
+  </data>
+  <data name="CreateWorld_StatusLoading" xml:space="preserve">
+    <value>Welt erstellt. Wird geladen...</value>
+  </data>
+  <data name="CreateWorld_StatusFailed" xml:space="preserve">
+    <value>Fehlgeschlagen: {0}</value>
+  </data>
+  <data name="CreateWorld_RegionNote" xml:space="preserve">
+    <value>Bisher existiert nur WorldSave_MetaData.sav - das Spiel schreibt jeden Regions-/Facility-Spielstand, sobald du die Welt lädst und das jeweilige Gebiet zum ersten Mal besuchst.</value>
+  </data>
+  <data name="CreateWorld_StatusGamePassSkipped" xml:space="preserve">
+    <value>Game-Pass-Verpackung wurde übersprungen (siehe Protokoll) - stattdessen wurde der Steam-Ordner "{0}" geöffnet. {1}</value>
+  </data>
+  <data name="CreateWorld_StatusBothOpenedGamePass" xml:space="preserve">
+    <value>Welt für beide Plattformen erstellt. Game-Pass-Container geöffnet. {0}</value>
+  </data>
+  <data name="CreateWorld_StatusGamePassCreated" xml:space="preserve">
+    <value>Game-Pass-Welt "{0}" erstellt. {1}</value>
+  </data>
+  <data name="CreateWorld_StatusBothCreated" xml:space="preserve">
+    <value>Welt für beide Plattformen erstellt (Steam-Ordner + Game-Pass-Container daneben). {0}</value>
+  </data>
+  <data name="CreateWorld_StatusSteamCreated" xml:space="preserve">
+    <value>Steam-Welt "{0}" erstellt. {1}</value>
+  </data>
+  <data name="Diff_ValuesChanged" xml:space="preserve">
+    <value>{0} Wert(e) geändert</value>
+  </data>
+  <data name="Diff_OnlyInAB" xml:space="preserve">
+    <value>{0} nur in A · {1} nur in B</value>
+  </data>
+  <data name="Diff_Level" xml:space="preserve">
+    <value>St. {0}</value>
+  </data>
+  <data name="Diff_Empty" xml:space="preserve">
+    <value>(leer)</value>
+  </data>
+  <data name="Diff_Ammo" xml:space="preserve">
+    <value>{0} Munition</value>
+  </data>
+  <data name="Diff_Durability" xml:space="preserve">
+    <value>{0}% Haltbarkeit</value>
+  </data>
+  <data name="Diff_OnlyInA" xml:space="preserve">
+    <value>NUR IN A</value>
+  </data>
+  <data name="Diff_OnlyInB" xml:space="preserve">
+    <value>NUR IN B</value>
+  </data>
+  <data name="Diff_None" xml:space="preserve">
+    <value>(keine)</value>
+  </data>
+  <data name="Diff_DoorOneWayUnlocked" xml:space="preserve">
+    <value>einseitig entriegelt</value>
+  </data>
+  <data name="Diff_DoorOpen" xml:space="preserve">
+    <value>offen</value>
+  </data>
+  <data name="Diff_NpcDead" xml:space="preserve">
+    <value>tot</value>
+  </data>
+  <data name="Diff_NpcAlive" xml:space="preserve">
+    <value>lebendig</value>
+  </data>
+  <data name="Main_GroupWorldStory" xml:space="preserve">
+    <value>WELTGESCHICHTE · METADATEN</value>
+  </data>
+  <data name="Main_GroupPlayers" xml:space="preserve">
+    <value>SPIELER</value>
+  </data>
+  <data name="Main_GroupWorldRegions" xml:space="preserve">
+    <value>WELTREGIONEN</value>
+  </data>
+  <data name="Main_GroupOther" xml:space="preserve">
+    <value>SONSTIGE / FEHLER</value>
+  </data>
+  <data name="Main_BadgeGamePass" xml:space="preserve">
+    <value>GAME PASS</value>
+  </data>
+  <data name="Main_BadgeSteam" xml:space="preserve">
+    <value>STEAM</value>
+  </data>
+  <data name="Main_BadgeUnknown" xml:space="preserve">
+    <value>UNBEKANNT</value>
+  </data>
+  <data name="Main_ChipAdmin" xml:space="preserve">
+    <value>ADMIN</value>
+  </data>
+  <data name="Main_ChipSandbox" xml:space="preserve">
+    <value>SANDBOX</value>
+  </data>
+  <data name="Main_ChipClient" xml:space="preserve">
+    <value>CLIENT</value>
+  </data>
+  <data name="Main_ChipIni" xml:space="preserve">
+    <value>INI</value>
+  </data>
+  <data name="Main_HintGamePass" xml:space="preserve">
+    <value>Game Pass / Xbox-Container</value>
+  </data>
+  <data name="Main_HintClient" xml:space="preserve">
+    <value>Spielstände des Spielclients</value>
+  </data>
+  <data name="Main_HintServer" xml:space="preserve">
+    <value>Installation eines dedizierten Servers</value>
+  </data>
+  <data name="Main_AddPlayerTitle" xml:space="preserve">
+    <value>Spieler hinzufügen</value>
+  </data>
+  <data name="Main_AddPlayerNeedFolder" xml:space="preserve">
+    <value>Öffne zuerst den Spielstandordner einer Welt, damit der Editor weiß, wo die neue Spielerdatei erstellt werden soll.</value>
+  </data>
+  <data name="Main_AddPlayerHeader" xml:space="preserve">
+    <value>Einen Spieler hinzufügen</value>
+  </data>
+  <data name="Main_AddPlayerCopyPrompt" xml:space="preserve">
+    <value>Erstelle einen neuen Spielstand in dieser Welt.
+
+Neu beginnen oder „{0}“ kopieren (behält Inventar, Fähigkeiten und Fortschritt)?</value>
+  </data>
+  <data name="Main_AddPlayerBlankTip" xml:space="preserve">
+    <value>Erstelle einen neuen leeren Spielstand in dieser Welt.
+
+Tipp: Um stattdessen einen vorhandenen Spieler zu kopieren, wähle ihn zuerst in der Liste aus und drücke dann +.</value>
+  </data>
+  <data name="Main_AddPlayerBlank" xml:space="preserve">
+    <value>Erstelle einen neuen leeren Spielstand in dieser Welt.</value>
+  </data>
+  <data name="Main_AddPlayerNewBlank" xml:space="preserve">
+    <value>Neuer leerer Spieler</value>
+  </data>
+  <data name="Main_AddPlayerCopySelected" xml:space="preserve">
+    <value>Auswahl kopieren</value>
+  </data>
+  <data name="Main_AddPlayerFailedTitle" xml:space="preserve">
+    <value>Spieler konnte nicht hinzugefügt werden</value>
+  </data>
+  <data name="Main_PlayerCopied" xml:space="preserve">
+    <value>Spieler nach {0} kopiert - SteamID auf {1} gesetzt.</value>
+  </data>
+  <data name="Main_PlayerCreatedBlank" xml:space="preserve">
+    <value>Leerer Spieler {0} erstellt (SteamID {1}).</value>
+  </data>
+  <data name="Main_NewPlayerIdTitle" xml:space="preserve">
+    <value>Neue Spieler-ID</value>
+  </data>
+  <data name="Main_NewPlayerIdMessage" xml:space="preserve">
+    <value>Gib die Besitzer-ID des neuen Spielers ein. Normalerweise eine 17-stellige SteamID64 (zum Beispiel 76561198000000000); für Game Pass / Epic-Spielstände gib die Konto-Ordner-ID ein.</value>
+  </data>
+  <data name="Main_CreateButton" xml:space="preserve">
+    <value>Erstellen</value>
+  </data>
+  <data name="Main_InvalidPlayerIdTitle" xml:space="preserve">
+    <value>Ungültige Spieler-ID</value>
+  </data>
+  <data name="Main_InvalidPlayerIdMessage" xml:space="preserve">
+    <value>Das ist keine gültige ID. Verwende Buchstaben, Ziffern, '-', '_' oder '.' (eine Steam-ID sieht aus wie 76561198000000000).</value>
+  </data>
+  <data name="Main_AlreadyExistsTitle" xml:space="preserve">
+    <value>Existiert bereits</value>
+  </data>
+  <data name="Main_PlayerAlreadyExists" xml:space="preserve">
+    <value>Player_{0}.sav existiert bereits in dieser Welt. Wähle eine andere ID.</value>
+  </data>
+  <data name="Main_LoggingTo" xml:space="preserve">
+    <value>Protokollierung nach {0}</value>
+  </data>
+  <data name="Main_LoggingOff" xml:space="preserve">
+    <value>Diagnoseprotokollierung aus (Fehler werden weiterhin protokolliert)</value>
+  </data>
+  <data name="Main_LogFolder" xml:space="preserve">
+    <value>Protokollordner: {0}</value>
+  </data>
+  <data name="Main_LogFolderOpenFailed" xml:space="preserve">
+    <value>Protokollordner konnte nicht geöffnet werden: {0}</value>
+  </data>
+  <data name="Main_PickMappingsTitle" xml:space="preserve">
+    <value>Wähle eine aus dem Spiel exportierte Mappings.usmap</value>
+  </data>
+  <data name="Main_MappingsInstalledStatus" xml:space="preserve">
+    <value>Neue Mappings installiert - drücke SPIELDATEN NEU LADEN (oder starte neu), um sie zu laden.</value>
+  </data>
+  <data name="Main_MappingsInstalledTitle" xml:space="preserve">
+    <value>Mappings installiert</value>
+  </data>
+  <data name="Main_MappingsInstalledMessage" xml:space="preserve">
+    <value>Installiert nach:
+{0}
+
+Drücke SPIELDATEN NEU LADEN unter Einstellungen &gt; Spieldaten, um sie jetzt zu laden, oder starte den Editor neu. Lösche diese Datei, um auf die mitgelieferten Mappings zurückzugreifen.</value>
+  </data>
+  <data name="Main_MappingsImportFailed" xml:space="preserve">
+    <value>Mappings-Import fehlgeschlagen: {0}</value>
+  </data>
+  <data name="Main_DeviceSearching" xml:space="preserve">
+    <value>Suche das angeschlossene Gerät in den Regionsspeicherständen der Welt...</value>
+  </data>
+  <data name="Main_DeviceNotFound" xml:space="preserve">
+    <value>Das angeschlossene Gerät konnte in keinem Regionsspeicherstand hier gefunden werden - es wurde möglicherweise entfernt.</value>
+  </data>
+  <data name="Main_DeviceInFile" xml:space="preserve">
+    <value> in {0}</value>
+  </data>
+  <data name="Main_DeviceNoInventory" xml:space="preserve">
+    <value>Das angeschlossene Gerät ist ein {0}{1} - es hat kein Inventar zum Öffnen.</value>
+  </data>
+  <data name="Main_DeviceOpened" xml:space="preserve">
+    <value>{0} geöffnet.</value>
+  </data>
+  <data name="Main_AnotherSave" xml:space="preserve">
+    <value>einen anderen Spielstand</value>
+  </data>
+  <data name="Main_DeviceInOtherFolder" xml:space="preserve">
+    <value>Das Gerät ist ein {0} in {1}, der nicht im geladenen Ordner enthalten ist.</value>
+  </data>
+  <data name="Main_DeviceSwitchedAndOpened" xml:space="preserve">
+    <value>Zu {0} gewechselt und {1} geöffnet.</value>
+  </data>
+  <data name="Main_DeviceNavFailed" xml:space="preserve">
+    <value>Navigation zum Gerät nicht möglich: {0}</value>
+  </data>
+  <data name="Main_UnsavedChangesTitle" xml:space="preserve">
+    <value>{0} hat nicht gespeicherte Änderungen</value>
+  </data>
+  <data name="Main_UnsavedChangesMessage" xml:space="preserve">
+    <value>Du hast vorbereitete Änderungen, die noch nicht in den Spielstand geschrieben wurden. Speichere sie, verwirf sie oder bleibe in diesem Editor.</value>
+  </data>
+  <data name="Main_DiscardChanges" xml:space="preserve">
+    <value>Änderungen verwerfen</value>
+  </data>
+  <data name="Main_SaveAndContinue" xml:space="preserve">
+    <value>Speichern und fortfahren</value>
+  </data>
+  <data name="Main_BedOtherPlayerTitle" xml:space="preserve">
+    <value>Bett gehört einem anderen Spieler</value>
+  </data>
+  <data name="Main_BedOtherPlayerMessage" xml:space="preserve">
+    <value>Dieses Bett ist von {0} beansprucht. Wenn du deinen Spawn hier setzt, wird der Anspruch diesem Spieler zugewiesen und {0} bleibt OHNE beanspruchtes Bett (Wiederbelebung am Ausweich-Spawn).
+
+Der Weltspielstand wird sofort neu geschrieben (.bak bleibt erhalten). Fortfahren?</value>
+  </data>
+  <data name="Main_ReassignBedButton" xml:space="preserve">
+    <value>BETT NEU ZUWEISEN</value>
+  </data>
+  <data name="Main_BedReassigned" xml:space="preserve">
+    <value>Bett {0} neu zugewiesen und Spawn dorthin verschoben (Weltspielstand neu geschrieben, .bak bleibt erhalten). Drücke SPEICHERN, um den Spawn-Punkt des Spielers zu schreiben.</value>
+  </data>
+  <data name="Main_BedClaimed" xml:space="preserve">
+    <value>Bett für {0} beansprucht und Spawn dorthin verschoben (Weltspielstand neu geschrieben, .bak bleibt erhalten). Drücke SPEICHERN, um den Spawn-Punkt des Spielers zu schreiben.</value>
+  </data>
+  <data name="Main_BedClaimNotRewritten" xml:space="preserve">
+    <value>Spawn verschoben, aber der Bettanspruch konnte nicht neu geschrieben werden (Aufbauobjekt im Facility-Spielstand nicht gefunden).</value>
+  </data>
+  <data name="Main_SpawnMoved" xml:space="preserve">
+    <value>Spawn nach {0} verschoben - drücke SPEICHERN, um ihn zu schreiben. Prüfe, ob die Ebenenauswahl mit der Region des Betts übereinstimmt.</value>
+  </data>
+  <data name="Main_DefaultPlayerName" xml:space="preserve">
+    <value>Spieler</value>
+  </data>
+  <data name="Main_NoEmptyHotbarSlot" xml:space="preserve">
+    <value>Kein leerer Schnellzugriffsslot - Haustiere können nur in den Schnellzugriff oder den Begleiter-Slot.</value>
+  </data>
+  <data name="Main_NoEmptyBackpackSlot" xml:space="preserve">
+    <value>Kein leerer Rucksack-Slot - lege oder verschiebe zuerst etwas.</value>
+  </data>
+  <data name="Main_PickupDropCancelled" xml:space="preserve">
+    <value>{0} in Slot {1} zurückgelegt (Ablegen abgebrochen).</value>
+  </data>
+  <data name="Main_PickupStaged" xml:space="preserve">
+    <value>{0} in Slot {1} vorbereitet. SPEICHERN schreibt das Inventar und entfernt es vom Boden (.bak bleibt erhalten).</value>
+  </data>
+  <data name="Main_BedLookupUnavailable" xml:space="preserve">
+    <value>Kein Weltspielstand neben dieser Datei gefunden - Bettsuche nicht verfügbar.</value>
+  </data>
+  <data name="Main_BedLabel" xml:space="preserve">
+    <value>{0} - {1} ({2}, {3})</value>
+  </data>
+  <data name="Main_OutsideAnyBase" xml:space="preserve">
+    <value>außerhalb jeder Basis</value>
+  </data>
+  <data name="Main_NoClaimedBed" xml:space="preserve">
+    <value>Kein beanspruchtes Bett in dieser Welt gefunden (Wiederbelebung am Ausweich-Spawn).</value>
+  </data>
+  <data name="Main_BedClaimedBy" xml:space="preserve">
+    <value> · beansprucht von {0}</value>
+  </data>
+  <data name="Main_EditingIni" xml:space="preserve">
+    <value>Bearbeite {0} - bei jedem Speichern wird ein .bak der vorherigen Datei behalten.</value>
+  </data>
+  <data name="Main_IniOpenFailed" xml:space="preserve">
+    <value>{0} konnte nicht geöffnet werden: {1}</value>
+  </data>
+  <data name="Main_GpReadFailedTitle" xml:space="preserve">
+    <value>Game Pass-Spielstand konnte nicht gelesen werden</value>
+  </data>
+  <data name="Main_GpNoWorldsTitle" xml:space="preserve">
+    <value>Keine Welten in diesem Game Pass-Spielstand</value>
+  </data>
+  <data name="Main_GpNoWorldsMessage" xml:space="preserve">
+    <value>Dieser Ordner ist ein Xbox-Containerspeicher, enthält aber keine bearbeitbaren Weltspielstände.</value>
+  </data>
+  <data name="Main_GpOpened" xml:space="preserve">
+    <value>Game Pass-Welt „{0}“ geöffnet. SPEICHERN schreibt direkt zurück in den Xbox-Container (eine Sicherung wird behalten).</value>
+  </data>
+  <data name="Main_GpOpenFailedTitle" xml:space="preserve">
+    <value>Game Pass-Spielstand konnte nicht geöffnet werden</value>
+  </data>
+  <data name="Main_GpSaved" xml:space="preserve">
+    <value>In den Game Pass-Spielstand für „{0}“ gespeichert (Sicherung behalten).</value>
+  </data>
+  <data name="Main_GpWriteFailedTitle" xml:space="preserve">
+    <value>Game Pass-Spielstand konnte nicht geschrieben werden</value>
+  </data>
+  <data name="Main_GpWriteFailedMessage" xml:space="preserve">
+    <value>Deine Änderung wurde in die Arbeitskopie gespeichert, aber das Zurückpacken in den Xbox-Container ist fehlgeschlagen: {0}</value>
+  </data>
+  <data name="Main_SlotSelected" xml:space="preserve">
+    <value>{0} ausgewählt (Slot {1})</value>
+  </data>
+  <data name="Main_SortedStacks" xml:space="preserve">
+    <value>{0} Stapel sortiert - drücke SPEICHERN, um zu schreiben.</value>
+  </data>
+  <data name="Main_DropSelectFirst" xml:space="preserve">
+    <value>Wähle zuerst einen belegten Slot, dann legt ABLEGEN ihn auf den Boden.</value>
+  </data>
+  <data name="Main_Dropping" xml:space="preserve">
+    <value>Lege {0} ab…</value>
+  </data>
+  <data name="Main_Dropped" xml:space="preserve">
+    <value>{0} auf dem Boden in deiner Nähe abgelegt (in BODENGEGENSTÄNDE IN DER NÄHE angezeigt). SPEICHERN schreibt es in {1} (.bak bleibt erhalten); ZURÜCKSETZEN macht es rückgängig.</value>
+  </data>
+  <data name="Main_DropRemovedNoTarget" xml:space="preserve">
+    <value>{0} entfernt (konnte nicht in die Welt abgelegt werden - diese Region hat keinen vorhandenen Bodengegenstand, dessen Format kopiert werden könnte). Drücke SPEICHERN, um zu schreiben.</value>
+  </data>
+  <data name="Main_DismantleNoRecipe" xml:space="preserve">
+    <value>{0} hat kein Herstellungsrezept - es kann in nichts zerlegt werden.</value>
+  </data>
+  <data name="Main_DismantleNeedsSlots" xml:space="preserve">
+    <value>Das Zerlegen benötigt {0} leere Slots - nur {1} verfügbar.</value>
+  </data>
+  <data name="Main_DismantleDestEquipment" xml:space="preserve">
+    <value>Alle Stapel gehen in leere Rucksack-Slots; dieser Ausrüstungsslot wird geleert.</value>
+  </data>
+  <data name="Main_DismantleDestRegular" xml:space="preserve">
+    <value>Der erste Stapel ersetzt diesen Slot; der Rest füllt leere Slots im selben Inventar.</value>
+  </data>
+  <data name="Main_DismantlePreview" xml:space="preserve">
+    <value>{0} wird zerlegt in:
+{1}
+{2}</value>
+  </data>
+  <data name="Main_Dismantled" xml:space="preserve">
+    <value>In {0} Zutatenstapel zerlegt.</value>
+  </data>
+  <data name="Main_TeleporterSynced" xml:space="preserve">
+    <value>Teleporter mit {0} synchronisiert - drücke SPEICHERN, um es zu schreiben.</value>
+  </data>
+  <data name="Main_TeleporterUnsynced" xml:space="preserve">
+    <value>Teleporter-Synchronisierung aufgehoben.</value>
+  </data>
+  <data name="Main_BenchListUnavailable" xml:space="preserve">
+    <value>Kein Weltspielstand neben dieser Datei gefunden - Werkbankliste nicht verfügbar.</value>
+  </data>
+  <data name="Main_BenchLabel" xml:space="preserve">
+    <value>{0} - {1} ({2}, {3})</value>
+  </data>
+  <data name="Main_Unclustered" xml:space="preserve">
+    <value>ohne Gruppierung</value>
+  </data>
+  <data name="Main_LoadingBenches" xml:space="preserve">
+    <value>Lade Weltwerkbänke (analysiere den Facility-Spielstand)…</value>
+  </data>
+  <data name="Main_NotSynced" xml:space="preserve">
+    <value>Mit keiner Werkbank synchronisiert.</value>
+  </data>
+  <data name="Main_SyncedTo" xml:space="preserve">
+    <value>Synchronisiert mit: {0}</value>
+  </data>
+  <data name="Main_SyncedToOtherRegion" xml:space="preserve">
+    <value>Synchronisiert mit: {0} (eine Werkbank in einem anderen Regionsspeicherstand).</value>
+  </data>
+  <data name="Main_SyncedToMissing" xml:space="preserve">
+    <value>Mit Werkbank {0} synchronisiert… (nicht in den geladenen Spielständen gefunden - sie wurde möglicherweise entfernt).</value>
+  </data>
+  <data name="Main_GameDataTitle" xml:space="preserve">
+    <value>Spieldaten</value>
+  </data>
+  <data name="Main_GameDataLoaded" xml:space="preserve">
+    <value>Spieldaten geladen. Öffne deinen Spielstand erneut, um Gegenstandsnamen, Symbole und Händler zu aktualisieren.</value>
+  </data>
+  <data name="Main_NoPlayerLoaded" xml:space="preserve">
+    <value>Kein Spielerspielstand geladen.</value>
+  </data>
+  <data name="Main_ChangeIdInvalid" xml:space="preserve">
+    <value>Gib eine gültige ID ein (eine 17-stellige SteamID64 wie 76561198000000000 oder ein beliebiges sicheres Token für einen Nicht-Steam-Spielstand).</value>
+  </data>
+  <data name="Main_ChangeIdFileExists" xml:space="preserve">
+    <value>Player_{0}.sav existiert bereits in diesem Ordner.</value>
+  </data>
+  <data name="Main_ChangeIdFailed" xml:space="preserve">
+    <value>Änderung der Spieler-ID fehlgeschlagen: {0}</value>
+  </data>
+  <data name="Main_ChangeIdClaimsNotMigrated" xml:space="preserve">
+    <value> Bettansprüche wurden NICHT migriert (alte und neue ID unterscheiden sich in der Länge); alle vom alten ID beanspruchten Betten bleiben unter der alten ID.</value>
+  </data>
+  <data name="Main_ChangeIdNoClaimsFound" xml:space="preserve">
+    <value> Es wurden keine Bettansprüche der alten ID in den Weltspielständen gefunden.</value>
+  </data>
+  <data name="Main_ChangeIdDoneWithClaims" xml:space="preserve">
+    <value>Spielerspielstand gehört jetzt zu {0}; {1} Bettansprüche in den Weltspielständen wurden ebenfalls aktualisiert (.bak pro Datei behalten).</value>
+  </data>
+  <data name="Main_ChangeIdDone" xml:space="preserve">
+    <value>Spielerspielstand gehört jetzt zu {0} (Datei umbenannt und SaveIdentifier neu geschrieben).{1}</value>
+  </data>
+  <data name="Main_Scanning" xml:space="preserve">
+    <value>Durchsuche {0}…</value>
+  </data>
+  <data name="Main_LoadedSaves" xml:space="preserve">
+    <value>{0} Spielstände geladen.</value>
+  </data>
+  <data name="Main_LoadedSavesWithFailures" xml:space="preserve">
+    <value>{0} Spielstände geladen; {1} konnten nicht analysiert werden.</value>
+  </data>
+  <data name="Main_ScanFailed" xml:space="preserve">
+    <value>Scan fehlgeschlagen: {0}</value>
+  </data>
+  <data name="Main_ReloadTitle" xml:space="preserve">
+    <value>{0} neu laden?</value>
+  </data>
+  <data name="Main_ReloadMessage" xml:space="preserve">
+    <value>Beim Neuladen wird der Spielstand erneut von der Festplatte gelesen und die noch nicht geschriebenen vorbereiteten Änderungen verworfen. Dies kann nicht rückgängig gemacht werden.</value>
+  </data>
+  <data name="Main_DiscardAndReloadButton" xml:space="preserve">
+    <value>VERWERFEN UND NEU LADEN</value>
+  </data>
+  <data name="Main_LoadSaveFailed" xml:space="preserve">
+    <value>Spielstand konnte nicht geladen werden: {0}</value>
+  </data>
+  <data name="Main_UnknownItem" xml:space="preserve">
+    <value>(unbekannter Gegenstand)</value>
+  </data>
+  <data name="Main_MetersAway" xml:space="preserve">
+    <value>{0} m entfernt</value>
+  </data>
+  <data name="Main_LastPlayed" xml:space="preserve">
+    <value>Zuletzt gespielt {0}</value>
+  </data>
+  <data name="Main_SaveFileCount" xml:space="preserve">
+    <value>{0} Spielstanddateien</value>
+  </data>
+  <data name="Main_Account" xml:space="preserve">
+    <value>Konto {0}</value>
+  </data>
+  <data name="GameDataPrompt_NoGameDataTitle" xml:space="preserve">
+    <value>Keine Spieldaten gefunden</value>
+  </data>
+  <data name="GameDataPrompt_NoGameDataMessage" xml:space="preserve">
+    <value>Die pak-Dateien von Abiotic Factor wurden hier nicht gefunden:
+{0}
+
+Wähle den Installationsordner des Spiels (der den AbioticFactor-Ordner enthält), dessen AbioticFactor-Unterordner oder den Ordner Content\Paks.</value>
+  </data>
+  <data name="GameDataPrompt_PickUsmapTitle" xml:space="preserve">
+    <value>Wähle eine aus dem Spiel extrahierte Mappings.usmap</value>
+  </data>
+  <data name="GameDataPrompt_ImportFailedTitle" xml:space="preserve">
+    <value>Diese Datei konnte nicht importiert werden</value>
+  </data>
+  <data name="PlayerEditor_OwnerIdNote" xml:space="preserve">
+    <value>Game Pass / Nicht-Steam-Konto - diese ID ist hier gesperrt. Um sie zu ändern, nutze SPEICHERSTAND-KONVERTIERUNG in den Einstellungen (sie kann den Spieler beim Konvertieren umziehen).</value>
+  </data>
+  <data name="PlayerEditor_CutTraitDescription" xml:space="preserve">
+    <value>(ungenutztes/entferntes Merkmal - das Spiel hat dafür keine Beschreibung oder keinen Editor-Eintrag)</value>
+  </data>
+  <data name="PlayerGeneral_ChangeSteamIdTitle" xml:space="preserve">
+    <value>SteamID ändern?</value>
+  </data>
+  <data name="PlayerGeneral_ChangeSteamIdMessage" xml:space="preserve">
+    <value>Dadurch wird die Speicherdatei in Player_{0}.sav umbenannt, damit das Spiel sie für dieses Konto lädt. Eine .bak-Kopie des Originals wird behalten.
+
+Welt-seitige Bettansprüche, die an die alte ID gebunden sind, werden ebenfalls umgeschrieben, sodass der Spieler seine beanspruchten Betten behält (jeder Welt-Spielstand behält ebenfalls eine .bak).</value>
+  </data>
+  <data name="PlayerGeneral_ChangeSteamIdConfirm" xml:space="preserve">
+    <value>UMBENENNEN</value>
+  </data>
+  <data name="FileReveal_OpenInExplorer" xml:space="preserve">
+    <value>Im Explorer öffnen</value>
+  </data>
+  <data name="FileReveal_OpenInFinder" xml:space="preserve">
+    <value>Im Finder öffnen</value>
+  </data>
+  <data name="FileReveal_OpenFileLocation" xml:space="preserve">
+    <value>Dateispeicherort öffnen</value>
+  </data>
+  <data name="FolderPick_Failed" xml:space="preserve">
+    <value>Ordnerauswahl fehlgeschlagen</value>
+  </data>
+  <data name="HeaderBar_VersionLabel" xml:space="preserve">
+    <value>SPIELSTAND-EDITOR · v{0}</value>
+  </data>
+  <data name="WorldNpcs_RevivedStatus" xml:space="preserve">
+    <value>{0} wiederbelebt - SPEICHERN drücken, um zu schreiben. Story-bedingte Abgänge können im Spiel erneut auftreten.</value>
+  </data>
+  <data name="WorldDropped_InspectingStatus" xml:space="preserve">
+    <value>Fallengelassenes {0} wird geprüft - im Seitenbereich bearbeiten (vormerken + SPEICHERN).</value>
+  </data>
+  <data name="Plugins_Title" xml:space="preserve">
+    <value>Plugins</value>
+  </data>
+  <data name="Plugins_HeaderPlugins" xml:space="preserve">
+    <value>PLUGINS</value>
+  </data>
+  <data name="Plugins_IntroHint" xml:space="preserve">
+    <value>Plugins erweitern den Editor um neue Spielstand-Operationen, Befehle und Bereiche. Sie laufen mit vollem Vertrauen - installiere nur Plugins, denen du vertraust. Lege Plugin-Ordner ab unter: {0}</value>
+  </data>
+  <data name="Plugins_HeaderInstalled" xml:space="preserve">
+    <value>INSTALLIERT</value>
+  </data>
+  <data name="Plugins_NoneInstalled" xml:space="preserve">
+    <value>Keine Plugins installiert.</value>
+  </data>
+  <data name="Plugins_HeaderSaveOperations" xml:space="preserve">
+    <value>SPIELSTAND-OPERATIONEN</value>
+  </data>
+  <data name="Plugins_NoOpenSaveHint" xml:space="preserve">
+    <value>Öffne einen Spielstand, um Operationen darauf auszuführen.</value>
+  </data>
+  <data name="Plugins_OpenSaveHint" xml:space="preserve">
+    <value>Geöffneter Spielstand: {0} ({1}). Eine Operation schreibt die Datei sofort (eine .bak bleibt erhalten) und lädt den Editor neu, wobei nicht gespeicherte Änderungen verworfen werden.</value>
+  </data>
+  <data name="Plugins_NoOperationApplies" xml:space="preserve">
+    <value>Keine installierte Operation gilt für diese Spielstandart.</value>
+  </data>
+  <data name="Plugins_HeaderTools" xml:space="preserve">
+    <value>WERKZEUGE</value>
+  </data>
+  <data name="Plugins_NoUiTools" xml:space="preserve">
+    <value>Keine UI-Werkzeuge installiert.</value>
+  </data>
+  <data name="Plugins_HeaderWebTools" xml:space="preserve">
+    <value>WEB-WERKZEUGE</value>
+  </data>
+  <data name="Plugins_NoWebTools" xml:space="preserve">
+    <value>Keine Web-Werkzeuge installiert.</value>
+  </data>
+  <data name="Plugins_HeaderMenuActions" xml:space="preserve">
+    <value>MENÜAKTIONEN</value>
+  </data>
+  <data name="Plugins_NoMenuActions" xml:space="preserve">
+    <value>Keine Menüaktionen installiert.</value>
+  </data>
+  <data name="Plugins_ManifestUpdateFailed" xml:space="preserve">
+    <value>Das Plugin-Manifest konnte nicht aktualisiert werden (schreibgeschützter Ordner?).</value>
+  </data>
+  <data name="Plugins_EnabledToast" xml:space="preserve">
+    <value>{0} {1}. Starte die App neu, um die Änderung anzuwenden.</value>
+  </data>
+  <data name="Plugins_Enabled" xml:space="preserve">
+    <value>aktiviert</value>
+  </data>
+  <data name="Plugins_Disabled" xml:space="preserve">
+    <value>deaktiviert</value>
+  </data>
+  <data name="Plugins_Run" xml:space="preserve">
+    <value>AUSFÜHREN</value>
+  </data>
+  <data name="Plugins_Open" xml:space="preserve">
+    <value>ÖFFNEN</value>
+  </data>
+  <data name="Plugins_RunConfirmMessage" xml:space="preserve">
+    <value>'{0}' auf {1} ausführen?
+
+Dies schreibt die Datei sofort (eine .bak bleibt erhalten) und lädt den Editor neu, wobei nicht gespeicherte Änderungen verworfen werden.</value>
+  </data>
+  <data name="Plugins_RunConfirmButton" xml:space="preserve">
+    <value>Ausführen</value>
+  </data>
+  <data name="Plugins_OperationFailed" xml:space="preserve">
+    <value>Fehlgeschlagen: {0}</value>
+  </data>
+  <data name="Plugins_OperationResult" xml:space="preserve">
+    <value>{0}
+
+{1}</value>
+  </data>
+  <data name="Plugins_SaveWritten" xml:space="preserve">
+    <value>Spielstand geschrieben (.bak behalten). Editor wird neu geladen.</value>
+  </data>
+  <data name="Plugins_NoChangeNeeded" xml:space="preserve">
+    <value>Keine Änderung war nötig.</value>
+  </data>
+  <data name="Plugins_WebToolFailed" xml:space="preserve">
+    <value>Das Web-Werkzeug konnte nicht geöffnet werden: {0}</value>
+  </data>
+  <data name="Plugins_ActionFailed" xml:space="preserve">
+    <value>Die Aktion ist fehlgeschlagen: {0}</value>
+  </data>
+  <data name="Plugins_ToolViewUnsupported" xml:space="preserve">
+    <value>Dieses Werkzeug hat eine Ansicht zurückgegeben, die der Host nicht anzeigen konnte.</value>
+  </data>
+  <data name="Plugins_ToolFailed" xml:space="preserve">
+    <value>Das Werkzeug konnte nicht geöffnet werden: {0}</value>
+  </data>
+  <data name="Settings_ScaffoldTitle" xml:space="preserve">
+    <value>EDITOR-KONFIGURATION</value>
+  </data>
+  <data name="Settings_ScaffoldSubtitle" xml:space="preserve">
+    <value>Einstellungen</value>
+  </data>
+  <data name="Settings_ThemeCascade" xml:space="preserve">
+    <value>ANLAGEN-BLAU</value>
+  </data>
+  <data name="Settings_ThemeHazard" xml:space="preserve">
+    <value>WARN-ORANGE</value>
+  </data>
+  <data name="Settings_ThemeHint" xml:space="preserve">
+    <value>Akzentfarbe für die Editor-Oberfläche. Wird sofort übernommen; die Editor-Ansicht wird neu geladen.</value>
+  </data>
+  <data name="Settings_ThemeActive" xml:space="preserve">
+    <value>{0}  ✓</value>
+  </data>
+  <data name="Settings_LanguageChange" xml:space="preserve">
+    <value>ÄNDERN</value>
+  </data>
+  <data name="Settings_OpenLogFolder" xml:space="preserve">
+    <value>PROTOKOLLORDNER ÖFFNEN</value>
+  </data>
+  <data name="Settings_DiagnosticsHint" xml:space="preserve">
+    <value>Protokolliert das Laden/Schreiben von Spielständen, vorgemerkte Änderungen, JSON-Übertragungen und nicht erkannte Spielstandinhalte. Standardmäßig aus.</value>
+  </data>
+  <data name="Settings_ResealItems" xml:space="preserve">
+    <value>AUFGEDECKTE ELEMENTE WIEDER VERSIEGELN</value>
+  </data>
+  <data name="Settings_NothingRevealed" xml:space="preserve">
+    <value>Es wurde noch nichts einzeln aufgedeckt.</value>
+  </data>
+  <data name="Settings_ItemsRevealed" xml:space="preserve">
+    <value>{0} Element(e) aufgedeckt (Freigabe überschrieben).</value>
+  </data>
+  <data name="Settings_SpoilersHint" xml:space="preserve">
+    <value>Versiegelt Inhalte, die du noch nicht erreicht hast (künftige Quest-Flags, Händler, Rezepte, versteckte Erfolge, Codex-Einträge, eingeschlossene Anomalien), hinter einem GEHEIM-Stempel. Tippe auf ein versiegeltes Element, um die Freigabe zu überschreiben und es aufzudecken - aufgedeckte Elemente bleiben danach sichtbar.</value>
+  </data>
+  <data name="Settings_SpoilerProtection" xml:space="preserve">
+    <value>Spoilerschutz</value>
+  </data>
+  <data name="Settings_ManagePlugins" xml:space="preserve">
+    <value>PLUGINS VERWALTEN</value>
+  </data>
+  <data name="Settings_PluginsHint" xml:space="preserve">
+    <value>Erweitere den Editor mit Spielstand-Operationen, Befehlen, Panels, Menüaktionen und Ereignis-Hooks (verwaltet oder JavaScript). {0} Plugin(s) installiert. Schalte eines aus, um das Laden zu stoppen (Neustart zum Übernehmen). Plugins laufen mit vollem Vertrauen - installiere nur Plugins, denen du vertraust.</value>
+  </data>
+  <data name="Settings_PluginManifestFailed" xml:space="preserve">
+    <value>Das Plugin-Manifest konnte nicht aktualisiert werden (schreibgeschützter Ordner?).</value>
+  </data>
+  <data name="Settings_PluginEnabledMessage" xml:space="preserve">
+    <value>{0} aktiviert. Neustart zum Übernehmen.</value>
+  </data>
+  <data name="Settings_PluginDisabledMessage" xml:space="preserve">
+    <value>{0} deaktiviert. Neustart zum Übernehmen.</value>
+  </data>
+  <data name="Settings_PluginRowLabel" xml:space="preserve">
+    <value>{0}  ({1})</value>
+  </data>
+  <data name="Settings_TabGeneral" xml:space="preserve">
+    <value>ALLGEMEIN</value>
+  </data>
+  <data name="Settings_TabEditor" xml:space="preserve">
+    <value>EDITOR</value>
+  </data>
+  <data name="Settings_TabConvert" xml:space="preserve">
+    <value>KONVERTIEREN</value>
+  </data>
+  <data name="Settings_TabUpdates" xml:space="preserve">
+    <value>UPDATES</value>
+  </data>
+  <data name="Settings_ConvertIdPlaceholder" xml:space="preserve">
+    <value>leer lassen, um vorhandene IDs zu behalten</value>
+  </data>
+  <data name="Settings_ConvertIdHint" xml:space="preserve">
+    <value>Optional. Eine 17-stellige SteamID64 (Steam) oder Konto-Ordner-ID (Game Pass). Der Spieler-Spielstand wird darauf umgezogen, damit die Welt auf der Zielplattform dir gehört. Nur Einzelspieler.</value>
+  </data>
+  <data name="Settings_ConvertToGamePass" xml:space="preserve">
+    <value>KONVERTIEREN  ·  STEAM  →  GAME PASS</value>
+  </data>
+  <data name="Settings_ConvertToGamePassHint" xml:space="preserve">
+    <value>Wähle einen Steam-Weltordner (WorldSave_*.sav + PlayerData). Schreibt eine Game-Pass-Kopie daneben.</value>
+  </data>
+  <data name="Settings_ConvertToSteam" xml:space="preserve">
+    <value>KONVERTIEREN  ·  GAME PASS  →  STEAM</value>
+  </data>
+  <data name="Settings_ConvertToSteamHint" xml:space="preserve">
+    <value>Wähle einen Game-Pass-Ordner (den mit containers.index). Schreibt einen Steam-Weltordner daneben.</value>
+  </data>
+  <data name="Settings_OpenOutputFolder" xml:space="preserve">
+    <value>AUSGABEORDNER ÖFFNEN</value>
+  </data>
+  <data name="Settings_Converting" xml:space="preserve">
+    <value>Wird konvertiert…  (beim ersten Mal wird ggf. der Oodle-Kompressor heruntergeladen)</value>
+  </data>
+  <data name="Settings_ConvertDone" xml:space="preserve">
+    <value>Fertig. Konvertierte Kopie geschrieben nach:
+{0}
+Dein Original wurde nicht verändert. Prüfe im Spiel, ob es lädt, bevor du dich darauf verlässt.</value>
+  </data>
+  <data name="Settings_ConvertFailed" xml:space="preserve">
+    <value>Konvertierung fehlgeschlagen: {0}</value>
+  </data>
+  <data name="Settings_ConvertNoWorldSave" xml:space="preserve">
+    <value>Dieser Ordner enthält keine WorldSave_*.sav-Dateien - wähle einen Steam-Weltordner.</value>
+  </data>
+  <data name="Settings_ConvertNoContainers" xml:space="preserve">
+    <value>Dieser Ordner enthält keine containers.index - wähle einen Game-Pass-Spielstandordner.</value>
+  </data>
+  <data name="Settings_ConvertPlayerAccountId" xml:space="preserve">
+    <value>SPIELERKONTO-ID</value>
+  </data>
+  <data name="Settings_SaveConversion" xml:space="preserve">
+    <value>SPIELSTAND-KONVERTIERUNG</value>
+  </data>
+  <data name="Settings_SaveConversionHint" xml:space="preserve">
+    <value>Konvertiere eine Welt zwischen Steam (lose .sav-Dateien) und Game Pass / Xbox (ein Container). Der Spielstandinhalt ist in beiden Fällen identisch; nur die Verpackung ändert sich. Die konvertierte Kopie wird neben dem gewählten Ordner geschrieben - dein Original bleibt unverändert.</value>
+  </data>
+  <data name="Settings_InstalledVersion" xml:space="preserve">
+    <value>Installierte Version: {0}.</value>
+  </data>
+  <data name="Settings_CheckForUpdates" xml:space="preserve">
+    <value>NACH UPDATES SUCHEN</value>
+  </data>
+  <data name="Settings_DownloadInstall" xml:space="preserve">
+    <value>HERUNTERLADEN &amp; INSTALLIEREN</value>
+  </data>
+  <data name="Settings_CheckingForUpdates" xml:space="preserve">
+    <value>GitHub wird auf Updates geprüft...</value>
+  </data>
+  <data name="Settings_UpdateAvailable" xml:space="preserve">
+    <value>{0} ist verfügbar (du hast {1}).</value>
+  </data>
+  <data name="Settings_OnLatestVersion" xml:space="preserve">
+    <value>Du verwendest die neueste Version.</value>
+  </data>
+  <data name="Settings_UpdatesNotConfigured" xml:space="preserve">
+    <value>Updates sind noch nicht konfiguriert (kein Release-Repository festgelegt).</value>
+  </data>
+  <data name="Settings_CheckFailed" xml:space="preserve">
+    <value>Nach Updates konnte nicht gesucht werden: {0}</value>
+  </data>
+  <data name="Settings_CancellingDownload" xml:space="preserve">
+    <value>Download wird abgebrochen...</value>
+  </data>
+  <data name="Settings_InstallUpdateTitle" xml:space="preserve">
+    <value>Update installieren</value>
+  </data>
+  <data name="Settings_InstallUpdateMessage" xml:space="preserve">
+    <value>{0} herunterladen und installieren? Die App wird geschlossen und neu geöffnet.</value>
+  </data>
+  <data name="Settings_InstallButton" xml:space="preserve">
+    <value>Installieren</value>
+  </data>
+  <data name="Settings_Downloading" xml:space="preserve">
+    <value>WIRD HERUNTERGELADEN...</value>
+  </data>
+  <data name="Settings_DownloadingPercent" xml:space="preserve">
+    <value>Wird heruntergeladen... {0}%</value>
+  </data>
+  <data name="Settings_DownloadingButtonPercent" xml:space="preserve">
+    <value>WIRD HERUNTERGELADEN {0}%</value>
+  </data>
+  <data name="Settings_DownloadingUpdate" xml:space="preserve">
+    <value>Update wird heruntergeladen...</value>
+  </data>
+  <data name="Settings_InstallingRestart" xml:space="preserve">
+    <value>Update wird installiert; die App startet neu...</value>
+  </data>
+  <data name="Settings_Installing" xml:space="preserve">
+    <value>WIRD INSTALLIERT...</value>
+  </data>
+  <data name="Settings_DownloadCancelled" xml:space="preserve">
+    <value>Download abgebrochen.</value>
+  </data>
+  <data name="Settings_UpdateFailed" xml:space="preserve">
+    <value>Update fehlgeschlagen: {0}</value>
+  </data>
+  <data name="Settings_UpdatesHintPlaceholder" xml:space="preserve">
+    <value>Prüft GitHub-Releases auf einen neueren Build. (Es ist noch kein Release-Repository konfiguriert - der Entwickler muss es einrichten, bevor dies funktioniert.)</value>
+  </data>
+  <data name="Settings_UpdatesHint" xml:space="preserve">
+    <value>Prüft GitHub-Releases auf einen neueren Build und installiert ihn an Ort und Stelle. Jeder Spielstand behält weiterhin seine .bak.</value>
+  </data>
+  <data name="GameDataSettings_SetGameFolder" xml:space="preserve">
+    <value>SPIELORDNER FESTLEGEN</value>
+  </data>
+  <data name="GameDataSettings_UseAutoDetect" xml:space="preserve">
+    <value>AUTO-ERKENNUNG VERWENDEN</value>
+  </data>
+  <data name="GameDataSettings_LoadedAuto" xml:space="preserve">
+    <value>Aus deiner automatisch erkannten Spielinstallation geladen.</value>
+  </data>
+  <data name="GameDataSettings_LoadedCustom" xml:space="preserve">
+    <value>Aus dem von dir festgelegten Ordner geladen.</value>
+  </data>
+  <data name="GameDataSettings_GameFolderLabel" xml:space="preserve">
+    <value>Spielordner:  {0}</value>
+  </data>
+  <data name="GameDataSettings_FolderNotFound" xml:space="preserve">
+    <value>(nicht gefunden - unten festlegen)</value>
+  </data>
+  <data name="GameDataSettings_UsmapLabel" xml:space="preserve">
+    <value>Spieldaten (.usmap):  {0}</value>
+  </data>
+  <data name="GameDataSettings_UsmapNotFound" xml:space="preserve">
+    <value>(keine gefunden - die Tabellen des Spiels können nicht gelesen werden)</value>
+  </data>
+  <data name="GameDataSettings_UsmapImported" xml:space="preserve">
+    <value>  [importiert]</value>
+  </data>
+  <data name="GameDataSettings_UsmapBundled" xml:space="preserve">
+    <value>  [mitgeliefert]</value>
+  </data>
+  <data name="GameDataSettings_GameDataLoadedMessage" xml:space="preserve">
+    <value>Spieldaten geladen. Öffne deinen Spielstand erneut, um Händler und Gegenstandssymbole zu aktualisieren.</value>
+  </data>
+  <data name="GameDataSettings_NoGameDataTitle" xml:space="preserve">
+    <value>Dort sind keine Spieldaten</value>
+  </data>
+  <data name="GameDataSettings_NoGameDataMessage" xml:space="preserve">
+    <value>Die Pak-Dateien von Abiotic Factor konnten hier nicht gefunden werden:
+{0}
+
+Wähle den Installationsordner des Spiels (den mit dem AbioticFactor-Ordner), seinen AbioticFactor-Unterordner oder den Ordner Content\Paks.</value>
+  </data>
+  <data name="GameDataSettings_GameFolderSetTitle" xml:space="preserve">
+    <value>Spielordner festgelegt</value>
+  </data>
+  <data name="GameDataSettings_FolderPickerFailedTitle" xml:space="preserve">
+    <value>Ordnerauswahl fehlgeschlagen</value>
+  </data>
+  <data name="GameDataSettings_AutoDetectRestoredTitle" xml:space="preserve">
+    <value>Auto-Erkennung wiederhergestellt</value>
+  </data>
+  <data name="GameDataSettings_ImportDataFile" xml:space="preserve">
+    <value>DATENDATEI IMPORTIEREN</value>
+  </data>
+  <data name="GameDataSettings_CardHint" xml:space="preserve">
+    <value>Händler, Gegenstandssymbole und Rezepte stammen aus deiner installierten Kopie des Spiels, nicht aus dem Spielstand. Die Auto-Erkennung findet Steam-Installationen; für eine Game-Pass-, Epic- oder verschobene Installation lege hier deinen Spielordner fest. Wenn ein Spiel-Update das Laden der Daten verhindert, importiere eine aktualisierte Datendatei (.usmap).</value>
+  </data>
+  <data name="Slot_MsgNoBoundContext" xml:space="preserve">
+    <value>Slot-Tippen: kein gebundener Kontext gefunden</value>
+  </data>
+  <data name="Slot_MsgDragging" xml:space="preserve">
+    <value>{0} wird aus {1}-Slot {2} gezogen…</value>
+  </data>
+  <data name="Slot_MsgBlocked" xml:space="preserve">
+    <value>Blockiert: {0}.</value>
+  </data>
+  <data name="Slot_MsgBlockedSwap" xml:space="preserve">
+    <value>Tausch blockiert: {0}.</value>
+  </data>
+  <data name="Slot_MsgGave" xml:space="preserve">
+    <value>{0} gegeben ({1}×)</value>
+  </data>
+  <data name="Slot_MsgGaveToSlot" xml:space="preserve">
+    <value>{0} ({1}×) in Slot {2} gegeben</value>
+  </data>
+  <data name="Slot_MsgSwapped" xml:space="preserve">
+    <value>Getauscht → {0}</value>
+  </data>
+  <data name="Slot_MsgMoved" xml:space="preserve">
+    <value>{0} → {1} verschoben</value>
+  </data>
+  <data name="Slot_MsgNoEmptySlotIn" xml:space="preserve">
+    <value>{0} hat keinen freien Slot.</value>
+  </data>
+  <data name="Slot_MsgDraggingFromCatalog" xml:space="preserve">
+    <value>{0} wird aus dem Katalog gezogen - auf einen beliebigen Slot ablegen…</value>
+  </data>
+  <data name="Slot_MsgNoEmptyHotbar" xml:space="preserve">
+    <value>Kein freier Hotbar-Slot - Begleiter passen nur in die Hotbar oder den Companion-Slot.</value>
+  </data>
+  <data name="Slot_MsgNoEmptyAvailable" xml:space="preserve">
+    <value>Kein freier Slot verfügbar, um den Gegenstand zu geben.</value>
+  </data>
+  <data name="Slot_MsgTickAtLeastOne" xml:space="preserve">
+    <value>Mindestens einen gesperrten Gegenstand zum Freischalten ankreuzen.</value>
+  </data>
+  <data name="Slot_ThisSave" xml:space="preserve">
+    <value>diesem Spielstand</value>
+  </data>
+  <data name="Slot_Unlock" xml:space="preserve">
+    <value>FREISCHALTEN</value>
+  </data>
+  <data name="Slot_FacilityWrittenNow" xml:space="preserve">
+    <value>Der Facility-Spielstand wird sofort geschrieben (eine .bak wird behalten).</value>
+  </data>
+  <data name="Slot_ChangesStaged" xml:space="preserve">
+    <value>Änderungen sind vorgemerkt; SPEICHERN drücken, um zu schreiben.</value>
+  </data>
+  <data name="Slot_UnlockItemsTitle" xml:space="preserve">
+    <value>{0} Gegenstand(e) von {1} freischalten?</value>
+  </data>
+  <data name="Slot_UnlockItemsBody" xml:space="preserve">
+    <value>Dadurch werden {0} Welt-Flag(s) in {1} gesetzt:
+
+{2}
+
+Dies sind Story-/Fortschritts-Flags, daher wird auch alles andere freigeschaltet, das durch sie gesperrt ist. </value>
+  </data>
+  <data name="Slot_MsgTraderFullyUnlocked" xml:space="preserve">
+    <value>{0} ist in dieser Welt bereits vollständig freigeschaltet.</value>
+  </data>
+  <data name="Slot_UnlockAllTitle" xml:space="preserve">
+    <value>Alles von {0} freischalten?</value>
+  </data>
+  <data name="Slot_UnlockAllBody" xml:space="preserve">
+    <value>Dadurch werden {0} Welt-Flag(s) in {1} gesetzt:
+
+{2}
+
+Dies sind Story-/Fortschritts-Flags, daher wird auch alles andere freigeschaltet, das durch sie gesperrt ist (Quests, Türen, Spawns). </value>
+  </data>
+  <data name="Slot_TraderStatus" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="Slot_MsgChapterAlreadySet" xml:space="preserve">
+    <value>Alle Story-Flags bis "{0}" sind bereits gesetzt.</value>
+  </data>
+  <data name="Slot_MsgChapterWroteFacility" xml:space="preserve">
+    <value>{0} Story-Flag(s) in WorldSave_Facility.sav geschrieben (Sicherung behalten).</value>
+  </data>
+  <data name="Slot_MsgChapterAdded" xml:space="preserve">
+    <value>{0} Story-Flag(s) bis "{1}" hinzugefügt - SPEICHERN drücken, um zu schreiben.</value>
+  </data>
+  <data name="Slot_SetPrereqsTitle" xml:space="preserve">
+    <value>Voraussetzungen setzen?</value>
+  </data>
+  <data name="Slot_SetPrereqsBody" xml:space="preserve">
+    <value>"{0}" benötigt {1} frühere Flag(s):
+
+{2}
+
+Dies sind Story-/Fortschritts-Flags - dadurch gesperrte Inhalte werden ebenfalls freigeschaltet. Nur additiv; vorgemerkt bis SPEICHERN.</value>
+  </data>
+  <data name="Slot_SetThem" xml:space="preserve">
+    <value>SETZEN</value>
+  </data>
+  <data name="Slot_MsgPrereqsSet" xml:space="preserve">
+    <value>{0} Voraussetzungs-Flag(s) gesetzt - "{1}" kann jetzt aktiviert werden. SPEICHERN drücken, um zu schreiben.</value>
+  </data>
+  <data name="Spoiler_ClassifiedTitle" xml:space="preserve">
+    <value>▓ GEHEIM: FREIGABE ERFORDERLICH</value>
+  </data>
+  <data name="Spoiler_ClassifiedShort" xml:space="preserve">
+    <value>▓ GEHEIM</value>
+  </data>
+  <data name="Spoiler_Redacted" xml:space="preserve">
+    <value>[ DATEN GELÖSCHT ]</value>
+  </data>
+  <data name="Spoiler_ClassifiedHint" xml:space="preserve">
+    <value>Über deiner aktuellen Freigabe. Tippe, um zu überschreiben und aufzudecken (du siehst es dann dauerhaft).</value>
+  </data>
+  <data name="Spoiler_OverrideTitle" xml:space="preserve">
+    <value>FREIGABE ÜBERSCHREIBEN?</value>
+  </data>
+  <data name="Spoiler_OverrideMessage" xml:space="preserve">
+    <value>{0} ist über deiner aktuellen Freigabe versiegelt, weil es Inhalte verraten könnte, die du noch nicht erreicht hast.
+
+Trotzdem aufdecken? Es bleibt von nun an sichtbar.</value>
+  </data>
+  <data name="Spoiler_OverrideAccept" xml:space="preserve">
+    <value>ÜBERSCHREIBEN</value>
+  </data>
+  <data name="Spoiler_OverrideKeepSealed" xml:space="preserve">
+    <value>VERSIEGELT LASSEN</value>
+  </data>
+  <data name="Dialog_BulkConfirmTitle" xml:space="preserve">
+    <value>Bist du sicher?</value>
+  </data>
+  <data name="Dialog_BulkConfirmMessage" xml:space="preserve">
+    <value>Dadurch wird {0}.
+
+Die Änderung wird vorgemerkt, bis du SPEICHERN drückst (ZURÜCKSETZEN macht sie vor dem Speichern rückgängig).</value>
+  </data>
+  <data name="Dialog_BulkConfirmAccept" xml:space="preserve">
+    <value>JA, AUSFÜHREN</value>
+  </data>
+  <data name="SteamLogin_Title" xml:space="preserve">
+    <value>Steam-Anmeldung</value>
+  </data>
+  <data name="SteamLogin_Header" xml:space="preserve">
+    <value>STEAM-ANMELDUNG</value>
+  </data>
+  <data name="SteamLogin_PrivacyNote" xml:space="preserve">
+    <value>Melde dich unten auf Steams eigener Seite an - der Editor sieht nie dein Passwort, sondern nur das entstehende Sitzungs-Cookie, das auf diesem Gerät bleibt (vom Betriebssystem geschützter Speicher) und durch ABMELDEN gelöscht wird.</value>
+  </data>
+  <data name="SteamLogin_SignInViaBrowser" xml:space="preserve">
+    <value>ÜBER SYSTEMBROWSER ANMELDEN</value>
+  </data>
+  <data name="SteamLogin_WindowsOnlyFallback" xml:space="preserve">
+    <value>Die Steam-Anmeldung in der App ist derzeit nur unter Windows verfügbar. Nutze stattdessen deinen Browser:</value>
+  </data>
+  <data name="SteamLogin_SessionReadError" xml:space="preserve">
+    <value>Sitzung der Anmeldung konnte nicht gelesen werden ({0}). Brich ab und nutze IM BROWSER ANZEIGEN als Alternative.</value>
+  </data>
 </root>
