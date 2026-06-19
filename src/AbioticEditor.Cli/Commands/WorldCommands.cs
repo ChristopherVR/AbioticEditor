@@ -21,7 +21,55 @@ internal static class WorldCommands
         cmd.Subcommands.Add(BuildList(quiet));
         cmd.Subcommands.Add(BuildShow(quiet));
         cmd.Subcommands.Add(BuildSet(quiet));
+        cmd.Subcommands.Add(BuildAddRegion(quiet));
         return cmd;
+    }
+
+    // ---------- world add-region <world-dir> <region> ----------
+
+    private static Command BuildAddRegion(Option<bool> quiet)
+    {
+        var worldArg = new Argument<string>("world-dir")
+        {
+            Description = "Path to the world folder (where the other WorldSave_*.sav live).",
+        };
+        var regionArg = new Argument<string>("region")
+        {
+            Description = "Region token, e.g. V_DistantShore or Facility_Office1 "
+                + "(a WorldSave_ prefix / .sav suffix is tolerated).",
+        };
+
+        var cmd = new Command("add-region",
+            "Craft a minimal valid WorldSave_<region>.sav for a region not visited yet, so story / "
+            + "quest-flag edits that reference it have a real world save to target.");
+        cmd.Arguments.Add(worldArg);
+        cmd.Arguments.Add(regionArg);
+        cmd.SetAction(parse => Cli.Run(() => AddRegion(
+            parse.GetValue(worldArg), parse.GetValue(regionArg), parse.GetValue(quiet))));
+        return cmd;
+    }
+
+    private static int AddRegion(string? worldDir, string? region, bool quiet)
+    {
+        if (string.IsNullOrWhiteSpace(worldDir))
+        {
+            throw new CliUserErrorException("missing world directory.");
+        }
+        if (string.IsNullOrWhiteSpace(region))
+        {
+            throw new CliUserErrorException("missing region token.");
+        }
+
+        try
+        {
+            var path = WorldSaveFactory.CreateMinimalRegion(worldDir, region);
+            Cli.Info(quiet, $"Created {Path.GetFileName(path)} in {Path.GetDirectoryName(path)}.");
+            return Cli.Ok;
+        }
+        catch (Exception ex) when (ex is IOException or ArgumentException)
+        {
+            throw new CliUserErrorException(ex.Message);
+        }
     }
 
     // ---------- world list <save> ----------

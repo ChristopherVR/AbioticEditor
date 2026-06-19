@@ -1,5 +1,8 @@
 using AbioticEditor.Core.PlayerSaves;
 using AbioticEditor.Core.SaveClasses;
+using AbioticEditor.Core.Saves;
+using UeSaveGame;
+using UeSaveGame.PropertyTypes;
 
 namespace AbioticEditor.Core.WorldSaves;
 
@@ -84,6 +87,117 @@ public static class WorldSaveFactory
         Diagnostics.EditorLog.Info("WorldFactory",
             $"World '{options.WorldName}' created ({options.PlayerIds.Count} player(s), difficulty {options.GameDifficulty}).");
         return worldDir;
+    }
+
+    /// <summary>The embedded blank-region template's manifest resource name (see the .csproj).</summary>
+    private const string BlankRegionResource = "blank-region-template.sav";
+
+    /// <summary>
+    /// Crafts a minimal, valid <c>WorldSave_&lt;region&gt;.sav</c> for a region a save has not
+    /// visited yet, so story / quest-flag edits that reference that region have a real world save
+    /// to point at. The file is a near-empty region save (the game regenerates the region's actors
+    /// on first visit); only its <c>SaveIdentifier</c> is stamped with <paramref name="region"/>.
+    /// </summary>
+    /// <param name="worldDir">The world folder to write into (where the other WorldSave_*.sav live).</param>
+    /// <param name="region">
+    /// The region token, e.g. <c>V_DistantShore</c> or <c>Facility_Office1</c>. A leading
+    /// <c>WorldSave_</c> and a trailing <c>.sav</c> are tolerated and stripped.
+    /// </param>
+    /// <param name="template">
+    /// An optional region-save template (raw <c>.sav</c> bytes). When null the embedded
+    /// blank-region template is used, so no fixture or installed game is required.
+    /// </param>
+    /// <returns>The absolute path of the created <c>WorldSave_&lt;region&gt;.sav</c>.</returns>
+    /// <exception cref="ArgumentException">When <paramref name="region"/> is empty or unsafe.</exception>
+    /// <exception cref="IOException">When the target file already exists.</exception>
+    public static string CreateMinimalRegion(string worldDir, string region, byte[]? template = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(worldDir);
+        var token = NormalizeRegionToken(region);
+
+        var destPath = Path.Combine(worldDir, $"WorldSave_{token}.sav");
+        if (File.Exists(destPath))
+        {
+            throw new IOException($"A region save already exists at {destPath}.");
+        }
+
+        var bytes = template ?? LoadBlankRegionTemplate();
+        using var ms = new MemoryStream(bytes, writable: false);
+        var data = WorldSaveReader.ReadFromStream(ms);
+
+        SetSaveIdentifier(data.Raw, token);
+
+        Directory.CreateDirectory(worldDir);
+        using var outMs = new MemoryStream();
+        data.Raw.WriteTo(outMs);
+        File.WriteAllBytes(destPath, outMs.ToArray());
+
+        Diagnostics.EditorLog.Info("WorldFactory", $"Created minimal region save WorldSave_{token}.sav at {worldDir}");
+        return destPath;
+    }
+
+    /// <summary>
+    /// Strips an optional <c>WorldSave_</c> prefix / <c>.sav</c> suffix and rejects a token that
+    /// would escape the world folder or produce an invalid file name.
+    /// </summary>
+    internal static string NormalizeRegionToken(string region)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(region);
+        var token = region.Trim();
+        if (token.EndsWith(".sav", StringComparison.OrdinalIgnoreCase))
+        {
+            token = token[..^4];
+        }
+        if (token.StartsWith("WorldSave_", StringComparison.OrdinalIgnoreCase))
+        {
+            token = token["WorldSave_".Length..];
+        }
+        token = token.Trim();
+        if (token.Length == 0)
+        {
+            throw new ArgumentException("Region token is empty after normalization.", nameof(region));
+        }
+        if (token.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0
+            || token.Contains("..", StringComparison.Ordinal))
+        {
+            throw new ArgumentException($"'{region}' is not a valid region token.", nameof(region));
+        }
+        return token;
+    }
+
+    private static byte[] LoadBlankRegionTemplate()
+    {
+        var asm = typeof(WorldSaveFactory).Assembly;
+        using var stream = asm.GetManifestResourceStream(BlankRegionResource)
+            ?? throw new InvalidOperationException(
+                $"Embedded resource '{BlankRegionResource}' is missing from {asm.GetName().Name}.");
+        using var ms = new MemoryStream();
+        stream.CopyTo(ms);
+        return ms.ToArray();
+    }
+
+    /// <summary>
+    /// Sets the top-level <c>SaveIdentifier</c> StrProperty to <paramref name="value"/>, appending
+    /// the tag if a template somehow lacks it (every real region save carries it). Mirrors
+    /// <see cref="PlayerSaves.PlayerSaveIdentity"/>'s identifier write.
+    /// </summary>
+    private static void SetSaveIdentifier(SaveGame save, string value)
+    {
+        var props = save.Properties
+            ?? throw new InvalidOperationException("The region template has no properties.");
+
+        var tag = props.FindByPrefix("SaveIdentifier");
+        if (tag?.Property is not null)
+        {
+            tag.Property.Value = new FString(value);
+            return;
+        }
+
+        var name = new FString("SaveIdentifier");
+        var type = new FPropertyTypeName(name: new FString(nameof(StrProperty)));
+        var property = FProperty.Create(name, type);
+        property.Value = new FString(value);
+        props.Add(new FPropertyTag(name, type, EPropertyTagFlags.None) { Property = property });
     }
 
     private static void WriteBlankMetadata(byte[] template, string destPath)

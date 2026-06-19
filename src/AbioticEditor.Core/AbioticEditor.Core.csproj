@@ -29,6 +29,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- A minimal, near-empty region world save (a copy of the game's smallest real region
+         save) used by WorldSaveFactory.CreateMinimalRegion to craft placeholder
+         WorldSave_<Region>.sav files for regions a save hasn't visited yet. Embedded so the
+         Core library (and the CLI/App over it) is self-contained, with no fixture dependency. -->
+    <EmbeddedResource Include="Resources\blank-region-template.sav" LogicalName="blank-region-template.sav" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Plugin SDK: published as its own package, so it flows as a normal package dependency
          (and supplies UeSaveGame, which it bundles, so Core does NOT bundle UeSaveGame again). -->
     <ProjectReference Include="..\AbioticEditor.Plugins.Abstractions\AbioticEditor.Plugins.Abstractions.csproj" />
