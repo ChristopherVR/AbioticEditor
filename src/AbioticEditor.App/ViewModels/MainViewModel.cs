@@ -65,10 +65,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
         void AddGroup(string title, Func<SaveFileSummary, bool> match, bool isPlayers = false)
         {
             var items = Saves.Where(match).Where(MatchesFilter).ToList();
-            // Once a folder is loaded the PLAYERS group always shows (even when filtered to
-            // empty, or when the world has no players yet) so its "+" stays reachable; other
-            // groups - and PLAYERS before any folder is open - collapse when nothing matches.
-            if (items.Count > 0 || (isPlayers && FolderPath is not null))
+            // The PLAYERS group stays visible (even when the world has no players yet) so its "+"
+            // is reachable - but ONLY when the loaded folder actually has saves (a real world).
+            // A folder with zero saves keeps no empty group, so the "no saves" empty view shows on
+            // its own instead of an empty group header drawing on top of it.
+            if (items.Count > 0 || (isPlayers && FolderPath is not null && Saves.Count > 0))
             {
                 SaveGroups.Add(new SaveGroup(title, items) { IsPlayers = isPlayers });
             }
@@ -1268,17 +1269,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    /// <summary>Loads a folder after the leave-confirmation gate (drag-drop and discovery rows).
-    /// A Game Pass / Xbox container folder (one with <c>containers.index</c>) is opened through the
-    /// extract/apply working-copy flow instead of a plain .sav scan.</summary>
+    /// <summary>Loads a folder after the leave-confirmation gate (drag-drop and discovery rows).</summary>
     public async Task LoadFolderGuardedAsync(string folder)
     {
         if (!await ConfirmLeaveCurrentEditorAsync()) return;
-        if (Core.GamePass.GamePassSaveSet.IsGamePassFolder(folder))
-        {
-            await OpenGamePassFolderAsync(folder);
-            return;
-        }
         await LoadFolderAsync(folder);
     }
 
@@ -2280,6 +2274,16 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public async Task LoadFolderAsync(string folder)
     {
+        // A Game Pass / Xbox container folder (one with containers.index) holds no loose .sav files;
+        // open it through the extract/apply working-copy flow instead of scanning. This is the single
+        // chokepoint every entry point (Open Folder, drag-drop, discovery, restore) funnels through.
+        // The working copy is a normal loose-file folder, so the recursive load below won't re-enter.
+        if (Core.GamePass.GamePassSaveSet.IsGamePassFolder(folder))
+        {
+            await OpenGamePassFolderAsync(folder);
+            return;
+        }
+
         // Any plain folder load leaves a Game Pass working-copy session (the GP open flow
         // re-establishes it immediately after calling this).
         if (_gamePassSession is not null)
