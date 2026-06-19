@@ -1275,6 +1275,97 @@ public sealed class MainViewModel : INotifyPropertyChanged
         await LoadFolderAsync(folder);
     }
 
+    // ---------- Game Pass (Xbox container) saves ----------
+
+    private sealed record GamePassSession(
+        Core.GamePass.GamePassSaveSet Set, string Container, string WorldName, string WgsFolder, string WorkingDir);
+
+    private GamePassSession? _gamePassSession;
+
+    /// <summary>True while a Game Pass world is open as an extracted working copy.</summary>
+    public bool IsGamePassSession => _gamePassSession is not null;
+
+    /// <summary>Banner text for the active Game Pass working copy.</summary>
+    public string GamePassNotice => _gamePassSession is { } s
+        ? $"Game Pass working copy of \"{s.WorldName}\". Edit and SAVE as usual, then APPLY TO GAME PASS to write it back into the Xbox container (a backup is kept)."
+        : string.Empty;
+
+    /// <summary>Opens a discovered world, routing Game Pass containers through the extract/apply flow.</summary>
+    public async Task OpenDiscoveredWorldAsync(Core.Saves.DiscoveredWorld world)
+    {
+        if (world.IsGamePassContainer)
+        {
+            await OpenGamePassWorldAsync(world);
+            return;
+        }
+        await LoadFolderGuardedAsync(world.FolderPath);
+    }
+
+    private async Task OpenGamePassWorldAsync(Core.Saves.DiscoveredWorld world)
+    {
+        if (!await ConfirmLeaveCurrentEditorAsync()) return;
+        try
+        {
+            var (session, dir) = await Task.Run(() =>
+            {
+                var set = Core.GamePass.GamePassSaveSet.Open(world.FolderPath);
+                var working = Path.Combine(Path.GetTempPath(), "AbioticEditor", "GamePass",
+                    $"{world.WorldName}-{Guid.NewGuid():N}");
+                var worldName = set.ExtractWorld(world.GamePassContainer!, working);
+                return (new GamePassSession(set, world.GamePassContainer!, worldName, world.FolderPath, working), working);
+            });
+
+            await LoadFolderAsync(dir);
+            _gamePassSession = session;
+            RaiseGamePassSessionChanged();
+            StatusMessage = $"Opened Game Pass world \"{session.WorldName}\" (working copy). "
+                + "Edit and SAVE, then APPLY TO GAME PASS to write it back.";
+            EditorLog.Info("GamePass", $"Opened container '{session.Container}' -> working copy {dir}");
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("GamePass", "Open Game Pass world failed", ex);
+            await DialogViewModel.Current.AlertAsync("Couldn't open the Game Pass save", ex.Message);
+        }
+    }
+
+    public System.Windows.Input.ICommand ApplyGamePassChangesCommand => _applyGamePassCommand ??=
+        new RelayCommand(async () => await ApplyGamePassChangesAsync());
+    private RelayCommand? _applyGamePassCommand;
+
+    private async Task ApplyGamePassChangesAsync()
+    {
+        if (_gamePassSession is not { } session) return;
+
+        // Persist any pending editor edit to the working copy first.
+        if (PlayerEditor?.IsDirty == true) await PlayerEditor.SaveAsync();
+        else if (WorldEditor?.IsDirty == true) await WorldEditor.SaveAsync();
+
+        try
+        {
+            var count = await Task.Run(() => session.Set.ApplyWorld(session.Container, session.WorkingDir));
+            StatusMessage = count > 0
+                ? $"Wrote {count} save(s) back into the Game Pass container (the wgs folder was backed up). "
+                + "Verify it loads in-game before relying on it."
+                : "No changes to apply.";
+            EditorLog.Info("GamePass", $"Applied {count} member(s) to container '{session.Container}'.");
+            await DialogViewModel.Current.AlertAsync("Applied to Game Pass",
+                $"{count} save(s) packed back into the Xbox container for \"{session.WorldName}\". "
+                + "A backup of the container folder was kept. Please confirm it loads in-game.");
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("GamePass", "Apply to Game Pass failed", ex);
+            await DialogViewModel.Current.AlertAsync("Couldn't apply to Game Pass", ex.Message);
+        }
+    }
+
+    private void RaiseGamePassSessionChanged()
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsGamePassSession)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(GamePassNotice)));
+    }
+
     private void DiscoverConfigFiles(string folder)
     {
         ConfigFiles.Clear();
@@ -2155,6 +2246,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public async Task LoadFolderAsync(string folder)
     {
+        // Any plain folder load leaves a Game Pass working-copy session (the GP open flow
+        // re-establishes it immediately after calling this).
+        if (_gamePassSession is not null)
+        {
+            _gamePassSession = null;
+            RaiseGamePassSessionChanged();
+        }
         FolderPath = folder;
         Preferences.Default.Set(LastFolderPreferenceKey, folder);
         EditorLog.ResetUnknownDedup();
@@ -2434,7 +2532,9 @@ public sealed record ConfigFileOption(Core.Ini.AbioticIniFile File)
 public sealed record DiscoveredWorldOption(Core.Saves.DiscoveredWorld World)
 {
     public string Name => World.WorldName;
-    public string SourceLabel => World.SourceLabel;
+
+    /// <summary>Platform tag shown on the discovery row: STEAM / GAME PASS / SERVER / UNKNOWN.</summary>
+    public string SourceLabel => World.PlatformLabel;
 
     /// <summary>"Last played 2026-06-10 · 38 saves · account 7656...".</summary>
     public string Detail
@@ -2455,9 +2555,11 @@ public sealed record DiscoveredWorldOption(Core.Saves.DiscoveredWorld World)
         }
     }
 
-    public string SourceHint => World.Source == Core.Saves.DiscoveredWorldSource.Client
-        ? "Game client saves"
-        : "Dedicated server install";
+    public string SourceHint => World.IsGamePassContainer
+        ? "Game Pass / Xbox container"
+        : World.Source == Core.Saves.DiscoveredWorldSource.Client
+            ? "Game client saves"
+            : "Dedicated server install";
 
     public string FolderPath => World.FolderPath;
 }

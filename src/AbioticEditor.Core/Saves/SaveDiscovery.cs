@@ -12,6 +12,19 @@ public enum DiscoveredWorldSource
     DedicatedServer,
 }
 
+/// <summary>Which storefront/platform a discovered world belongs to.</summary>
+public enum SavePlatform
+{
+    /// <summary>The platform could not be determined (a non-Steam, non-Game-Pass client account).</summary>
+    Unknown,
+
+    /// <summary>A Steam client save (account folder is a 17-digit SteamID64) or Steam server.</summary>
+    Steam,
+
+    /// <summary>A Game Pass / Microsoft Store save (Xbox container, or the packaged-app file redirect).</summary>
+    GamePass,
+}
+
 /// <summary>One world folder found on this machine, loadable by the editor.</summary>
 /// <param name="FolderPath">The world folder (contains WorldSave_*.sav and PlayerData/).</param>
 /// <param name="WorldName">The world's folder name, e.g. "Cascade".</param>
@@ -25,6 +38,27 @@ public sealed record DiscoveredWorld(
     string? AccountId)
 {
     public string SourceLabel => Source == DiscoveredWorldSource.Client ? "CLIENT" : "SERVER";
+
+    /// <summary>The storefront/platform this world belongs to (drives the discovery tag).</summary>
+    public SavePlatform Platform { get; init; } = SavePlatform.Unknown;
+
+    /// <summary>A short tag for the platform: STEAM / GAME PASS / SERVER / UNKNOWN.</summary>
+    public string PlatformLabel => Source == DiscoveredWorldSource.DedicatedServer
+        ? "SERVER"
+        : Platform switch
+        {
+            SavePlatform.Steam => "STEAM",
+            SavePlatform.GamePass => "GAME PASS",
+            _ => "UNKNOWN",
+        };
+
+    /// <summary>For a Game Pass container world, the <c>&lt;World&gt;-WC</c> wgs container name;
+    /// null for an ordinary loose-file world. When set, <see cref="FolderPath"/> is the wgs folder
+    /// and the world must be opened through the Game Pass extract/apply path, not a plain load.</summary>
+    public string? GamePassContainer { get; init; }
+
+    /// <summary>True when this world lives inside an Xbox container and needs the Game Pass open flow.</summary>
+    public bool IsGamePassContainer => GamePassContainer is not null;
 
     /// <summary>Number of .sav files directly in the world folder tree (cheap signal of activity).</summary>
     public int SaveFileCount { get; init; }
@@ -63,6 +97,10 @@ public static class SaveDiscovery
         // %LOCALAPPDATA%\Packages\<PackageFamilyName>\..., so the same client save tree lives there.
         results.AddRange(DiscoverPackagedClientWorlds(Path.Combine(localAppData, "Packages")));
 
+        // Game Pass / Xbox container saves (the real layout for this title): each wgs folder holds
+        // one or more "<World>-WC" containers. Reading containers.index is cheap (no decompression).
+        results.AddRange(DiscoverGamePassContainerWorlds());
+
         foreach (var library in AfInstallLocator.FindSteamLibraryRoots())
         {
             var common = Path.Combine(library, "steamapps", "common");
@@ -80,6 +118,14 @@ public static class SaveDiscovery
     /// (<c>&lt;root&gt;\&lt;steamid&gt;\Worlds\&lt;World&gt;</c>). Exposed for tests.
     /// </summary>
     public static IReadOnlyList<DiscoveredWorld> DiscoverClientWorlds(string saveGamesRoot)
+        => DiscoverClientWorlds(saveGamesRoot, platformOverride: null);
+
+    /// <summary>
+    /// As <see cref="DiscoverClientWorlds(string)"/> (the one-arg overload) but with the platform forced (used for the
+    /// Game Pass packaged redirect). When <paramref name="platformOverride"/> is null the platform
+    /// is inferred from the account folder name (a 17-digit SteamID64 is Steam, else Unknown).
+    /// </summary>
+    public static IReadOnlyList<DiscoveredWorld> DiscoverClientWorlds(string saveGamesRoot, SavePlatform? platformOverride)
     {
         var results = new List<DiscoveredWorld>();
         if (!Directory.Exists(saveGamesRoot)) return results;
@@ -92,9 +138,11 @@ public static class SaveDiscovery
                 var worlds = Path.Combine(account, "Worlds");
                 if (!Directory.Exists(worlds)) continue;
 
+                var platform = platformOverride
+                    ?? (PlayerSaves.PlayerIdentifier.IsSteamId(accountId) ? SavePlatform.Steam : SavePlatform.Unknown);
                 foreach (var world in Directory.EnumerateDirectories(worlds))
                 {
-                    AddIfWorld(results, world, DiscoveredWorldSource.Client, accountId);
+                    AddIfWorld(results, world, DiscoveredWorldSource.Client, accountId, platform);
                 }
             }
         }
@@ -111,14 +159,14 @@ public static class SaveDiscovery
     /// The package family name isn't hard-coded (it can change across store releases), so this
     /// probes the standard UE-on-Store redirect subpaths under every package folder and, for any
     /// package whose name mentions Abiotic, searches a little deeper for a moved <c>SaveGames</c>
-    /// tree. Each root found is handed to <see cref="DiscoverClientWorlds"/>. Exposed for tests.
+    /// tree. Each root found is handed to <see cref="DiscoverClientWorlds(string, SavePlatform?)"/>. Exposed for tests.
     /// </summary>
     public static IReadOnlyList<DiscoveredWorld> DiscoverPackagedClientWorlds(string packagesRoot)
     {
         var results = new List<DiscoveredWorld>();
         foreach (var saveGamesRoot in FindPackagedSaveGamesRoots(packagesRoot))
         {
-            results.AddRange(DiscoverClientWorlds(saveGamesRoot));
+            results.AddRange(DiscoverClientWorlds(saveGamesRoot, SavePlatform.GamePass));
         }
         return results;
     }
@@ -210,7 +258,7 @@ public static class SaveDiscovery
                 {
                     foreach (var world in Directory.EnumerateDirectories(worldsDir))
                     {
-                        AddIfWorld(results, world, DiscoveredWorldSource.DedicatedServer, accountId: null);
+                        AddIfWorld(results, world, DiscoveredWorldSource.DedicatedServer, accountId: null, SavePlatform.Steam);
                     }
                 }
             }
@@ -237,7 +285,7 @@ public static class SaveDiscovery
             {
                 foreach (var world in Directory.EnumerateDirectories(worldsDir))
                 {
-                    AddIfWorld(results, world, source, accountId: null);
+                    AddIfWorld(results, world, source, accountId: null, SavePlatform.Unknown);
                 }
             }
         }
@@ -326,8 +374,45 @@ public static class SaveDiscovery
         }
     }
 
+    /// <summary>
+    /// Game Pass / Xbox container worlds. Each discovered wgs folder holds one or more
+    /// <c>&lt;World&gt;-WC</c> containers; one <see cref="DiscoveredWorld"/> is produced per world,
+    /// with <see cref="DiscoveredWorld.GamePassContainer"/> set so the host opens it through the
+    /// extract/apply path. Only the container index is read here (no decompression).
+    /// </summary>
+    public static IReadOnlyList<DiscoveredWorld> DiscoverGamePassContainerWorlds()
+    {
+        var results = new List<DiscoveredWorld>();
+        foreach (var save in GamePass.GamePassDiscovery.DiscoverAll())
+        {
+            try
+            {
+                var store = GamePass.WgsContainerStore.Open(save.FolderPath);
+                foreach (var container in store.Containers)
+                {
+                    if (!container.Name.EndsWith("-WC", StringComparison.OrdinalIgnoreCase)) continue;
+                    var worldName = container.Name[..^"-WC".Length];
+                    results.Add(new DiscoveredWorld(
+                        save.FolderPath, worldName, DiscoveredWorldSource.Client, save.AccountId)
+                    {
+                        Platform = SavePlatform.GamePass,
+                        GamePassContainer = container.Name,
+                        SaveFileCount = 1,
+                        LastPlayed = save.LastModified,
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Diagnostics.EditorLog.Warn("Discovery", $"Game Pass container scan of {save.FolderPath} failed: {ex.Message}");
+            }
+        }
+        return results;
+    }
+
     private static void AddIfWorld(
-        List<DiscoveredWorld> results, string worldFolder, DiscoveredWorldSource source, string? accountId)
+        List<DiscoveredWorld> results, string worldFolder, DiscoveredWorldSource source, string? accountId,
+        SavePlatform platform)
     {
         var savCount = 0;
         var lastPlayed = DateTime.MinValue;
@@ -358,6 +443,7 @@ public static class SaveDiscovery
             source,
             accountId)
         {
+            Platform = platform,
             SaveFileCount = savCount,
             LastPlayed = lastPlayed,
         });

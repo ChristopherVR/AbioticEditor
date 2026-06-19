@@ -34,7 +34,7 @@ public partial class EmptyStateView : ContentView
         if (ViewUtils.Vm(this) is not { } vm) return;
         var option = ViewUtils.FindBoundContext<DiscoveredWorldOption>(sender);
         if (option is null) return;
-        await vm.LoadFolderGuardedAsync(option.FolderPath);
+        await vm.OpenDiscoveredWorldAsync(option.World);
     }
 
     private void OnDiscoveredWorldTapped(object? sender, TappedEventArgs e)

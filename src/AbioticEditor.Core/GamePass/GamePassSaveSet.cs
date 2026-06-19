@@ -116,15 +116,61 @@ public sealed class GamePassSaveSet
     {
         ArgumentNullException.ThrowIfNull(editedGvas);
         BackupOnce();
+        Member(entry).Body = GamePassMemberCodec.ToMemberBody(entry.SaveClass, editedGvas);
+        Repack(entry.ContainerName);
+    }
 
-        var member = Member(entry);
-        member.Body = GamePassMemberCodec.ToMemberBody(entry.SaveClass, editedGvas);
+    /// <summary>
+    /// Extracts every editable save in <paramref name="containerName"/> to <paramref name="destDir"/>
+    /// as loose <c>.sav</c> files in the normal world layout (<c>WorldSave_*.sav</c> at the top,
+    /// <c>PlayerData/Player_*.sav</c> underneath) so the standard folder editor can open them.
+    /// Returns the world name.
+    /// </summary>
+    public string ExtractWorld(string containerName, string destDir)
+    {
+        Directory.CreateDirectory(destDir);
+        string world = containerName;
+        foreach (var entry in Entries().Where(e => e.ContainerName.Equals(containerName, StringComparison.OrdinalIgnoreCase) && e.IsEditable))
+        {
+            world = entry.WorldName;
+            var path = Path.Combine(destDir, RelativePathFor(entry));
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllBytes(path, ReadSave(entry));
+        }
+        return world;
+    }
 
-        var bundle = _bundles[entry.ContainerName];
-        var blob = bundle.Serialize();
+    /// <summary>
+    /// Re-packs every edited <c>.sav</c> under <paramref name="srcDir"/> (as laid out by
+    /// <see cref="ExtractWorld"/>) back into <paramref name="containerName"/> in one pass: each
+    /// member body is refreshed from disk, the bundle is Oodle-recompressed once, and a single new
+    /// blob generation is written. Backs up the wgs folder on first write. Returns the count written.
+    /// </summary>
+    public int ApplyWorld(string containerName, string srcDir)
+    {
+        BackupOnce();
+        var changed = 0;
+        foreach (var entry in Entries().Where(e => e.ContainerName.Equals(containerName, StringComparison.OrdinalIgnoreCase) && e.IsEditable))
+        {
+            var path = Path.Combine(srcDir, RelativePathFor(entry));
+            if (!File.Exists(path)) continue;
+            Member(entry).Body = GamePassMemberCodec.ToMemberBody(entry.SaveClass, File.ReadAllBytes(path));
+            changed++;
+        }
+        if (changed > 0) Repack(containerName);
+        return changed;
+    }
 
-        var container = _store.Find(entry.ContainerName)
-            ?? throw new InvalidOperationException($"Container '{entry.ContainerName}' vanished.");
+    private static string RelativePathFor(GamePassSaveEntry entry)
+        => entry.Kind == GamePassSaveKind.Player
+            ? Path.Combine("PlayerData", entry.FileName)
+            : entry.FileName;
+
+    private void Repack(string containerName)
+    {
+        var blob = _bundles[containerName].Serialize();
+        var container = _store.Find(containerName)
+            ?? throw new InvalidOperationException($"Container '{containerName}' vanished.");
         _store.WriteBlob(container, blob);
     }
 
