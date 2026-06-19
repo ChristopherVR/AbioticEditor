@@ -26,8 +26,29 @@
     CUE4Parse ships its own Directory.Build.props — but it has no .targets, so this does.)
 
     REVISIT when advancing the CUE4Parse submodule: if upstream renames or restructures
-    "Build-Natives", this override stops matching and the native build — and the macOS
-    failure — can return.
+    "Build-Natives", this override stops matching and the native build - and the macOS
+    failure - can return.
   -->
   <Target Name="Build-Natives" />
+
+  <!--
+    Silence vendored-submodule warnings so our own build/test output stays clean and
+    actionable (CUE4Parse emits CS8602/CS0169 and pulls a NuGet-audit-flagged transitive
+    dependency, Microsoft.Bcl.Memory -> NU1903). These are upstream issues we do not own
+    and cannot fix without editing the pinned submodule sources.
+
+    Why here: Directory.Build.targets is imported at the END of every project, so these
+    properties win over the submodules' own settings, and (as noted above) this file is the
+    only build hook that reaches CUE4Parse without editing its checked-in Directory.Build.props.
+    This affects ONLY the submodules; our src/ and tests/ projects keep full warnings and
+    TreatWarningsAsErrors (set in the repo-root Directory.Build.props, which the submodules
+    are shielded from).
+  -->
+  <PropertyGroup>
+    <WarningLevel>0</WarningLevel>
+    <RunAnalyzers>false</RunAnalyzers>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CS8602;CS0169;NU1903;NU1902</NoWarn>
+    <NuGetAudit>false</NuGetAudit>
+  </PropertyGroup>
 </Project>

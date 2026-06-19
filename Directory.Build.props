@@ -22,6 +22,13 @@
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 
+    <!-- Audit only our DIRECT dependencies. The NuGet vulnerability notice for
+         Microsoft.Bcl.Memory (NU1903) comes in transitively through CUE4Parse, which we
+         cannot upgrade without advancing the pinned submodule; auditing direct deps keeps
+         the signal for packages we actually control while dropping that transitive noise
+         from our build/test output. -->
+    <NuGetAuditMode>direct</NuGetAuditMode>
+
     <!-- NuGet package metadata shared by the packable projects (Core + Plugins.Abstractions).
          Nothing here packs by default: IsPackable is off, and each package project opts in
          with <IsPackable>true</IsPackable>. These authorship/repo/license fields are harmless
