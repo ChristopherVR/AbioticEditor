@@ -16,8 +16,8 @@ public sealed class GameDataRegistryTests
     {
         SchemaVersion = GameDataRegistry.CurrentSchemaVersion,
         GameVersion = "1.0.test",
-        Items = new[]
-        {
+        Items =
+        [
             new ItemCatalogEntry(
                 Id: "scrap_metal",
                 DisplayName: "Metal Scrap",
@@ -27,7 +27,7 @@ public sealed class GameDataRegistryTests
                 MaxDurability: 100,
                 IsWeapon: false,
                 Weight: 0.2,
-                Tags: new[] { "Item.Material.Metal", "Item.Resource.Distillable" },
+                Tags: ["Item.Material.Metal", "Item.Resource.Distillable"],
                 ContainerCapacity: 0,
                 EquipSlot: 1,
                 MaxLiquid: 0,
@@ -41,12 +41,12 @@ public sealed class GameDataRegistryTests
                 MaxDurability: 0,
                 IsWeapon: false,
                 Weight: 0.5,
-                Tags: new[] { "Item.Liquid.Container" },
+                Tags: ["Item.Liquid.Container"],
                 ContainerCapacity: 0,
                 EquipSlot: 0,
                 MaxLiquid: 3,
-                AllowedLiquids: new[] { 1, 2, 8 }),
-        },
+                AllowedLiquids: [1, 2, 8]),
+        ],
         ItemTableRefs = new Dictionary<string, string>
         {
             ["scrap_metal"] = "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
@@ -73,7 +73,7 @@ public sealed class GameDataRegistryTests
             Assert.Equal("Canteen", canteen.DisplayName);
             Assert.Null(canteen.Description);
             Assert.Equal(3, canteen.MaxLiquid);
-            Assert.Equal(new[] { 1, 2, 8 }, canteen.AllowedLiquidList);
+            Assert.Equal([1, 2, 8], canteen.AllowedLiquidList);
 
             Assert.NotNull(loaded.ItemTableRefs);
             Assert.Equal(
