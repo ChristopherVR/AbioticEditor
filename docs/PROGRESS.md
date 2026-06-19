@@ -5,6 +5,45 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-36: non-Steam identity + full Game Pass (Xbox container) support (2026-06-19)
+- **Opaque player identity** (commit 149b9cc): generalized the player id from a numeric `ulong`
+  SteamID64 to an opaque string across Core/CLI/App so Game Pass / Epic / non-Steam saves are
+  first-class. New `Core/PlayerSaves/PlayerIdentifier` (`IsSteamId` = `^7656119\d{10}$`,
+  `IsSafeFileToken`, `TryParseFromPlayerFileName`, `TryParseSteamId`). `PlayerSaveIdentity`/
+  factories take `string` (ulong overloads delegate). Bed claims: `WorldDeployable.OwnerId`
+  (string) primary, `OwnerSteamId` a numeric convenience; `WorldSteamIdPatcher` exact-string match,
+  refuses different-length swaps. `SteamPersonaIndex` string-keyed + `ResolveDisplayName`;
+  `SteamAchievements.LoadFor(string)` gates on `IsSteamId`. App add-player / change-id /
+  CreateWorld accept any safe token; Achievements/customization stay Steam-only.
+- **Game Pass save format fully reverse-engineered** (see memory `gamepass-save-format.md`): GP/MS
+  Store saves are NOT loose `Player_<id>.sav` files - they are Xbox **wgs** (Connected Storage)
+  containers (`containers.index` + GUID folders + `container.N` + blob) holding an
+  **`ABF_SAVE_VERSION`** bundle (TOC + one **Oodle**-compressed stream of every world/player member;
+  members are headerless GVAS bodies). Player ids inside are 16-19 digit XUIDs. Validated on a real
+  dump: a GP→Steam→GP→Steam round-trip is byte-identical for all 69 saves.
+- **Core `GamePass/`**: `OodleCodec` (P/Invoke compress+decompress; DLL via `ABIOTIC_OODLE_DLL` /
+  game install / CUE4Parse download), `AbfSaveBundle`, `GamePassMemberCodec` + `GvasHeaderTemplates`
+  (3 class headers; `ToMemberBody` locates the body by class-name marker + custom-header size so it
+  works on any save), `WgsContainerStore` (read/rewrite index/container.N/blob, new generation;
+  `WriteNewContainer`; `PackageFamilyName`/`IsAbioticContainerFolder`), `GamePassSaveSet`
+  (open/list/read/write/`ExtractWorld`/`ApplyWorld`, folder `.bak`, zip-slip-guarded paths),
+  `GamePassConverter` (Steam<->GP lossless, optional player re-home), `GamePassDiscovery` (scans both
+  `%LOCALAPPDATA%\Packages\…\wgs` AND `<drive>:\XboxGames\GameSave\wgs`).
+- **`AfInstallLocator.FindGamePassInstallRoot`**: auto-detects a GP install at
+  `<drive>:\XboxGames\<Game>\Content`, wired into `FindInstallRoot` so game data loads for GP users.
+- **CLI** `gamepass` (`list`/`extract`/`import`/`discover`/`to-steam`/`to-gamepass` with
+  `--player-id`). **App**: discovery tags worlds STEAM/GAME PASS/SERVER/UNKNOWN and lists wgs worlds
+  (with their folder location); opening a GP folder (Open Folder/drag-drop/discovery) extracts a temp
+  working copy and the normal **SAVE** packs it straight back into the container (editors raise a
+  `Saved` event; no banner/working-copy concept exposed); sidebar shows a persistent platform badge;
+  Settings **CONVERT** card (Steam<->GP, optional account id, inline results); Create World writes a
+  GP copy too. Player General tab shows the real owner id and locks it for non-Steam.
+- **Docs**: `docs/guide/game-pass.md` (how it works, opening, locations + auto-detect, conversion,
+  CLI, internals). **Fixtures**: sanitized real GP container at `tests/fixtures/GamePass/` (synthetic
+  XUID/ids, no PII). Tests cover identity, codec/container/bundle round-trips, the real fixture,
+  Steam<->GP conversion + re-home, and platform classification. **557 tests green**. App GUI not
+  screenshot-verified; the in-game accept of a written container still needs on-console confirmation.
+
 ## Round-35: custom game-install folder + Traders empty-state (2026-06-19)
 - User feedback: the TRADERS tab on the metadata save "seems blank". Root cause is NOT the
   save or mods: the trader roster AND the per-trade gating flags (e.g. Dr. Carson's
