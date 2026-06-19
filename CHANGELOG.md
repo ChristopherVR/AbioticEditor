@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [1.14.1] - 2026-06-19
+
+### Bug Fixes
+- Resolve wgs folder from any nearby level, log discovery verdicts
+
+
 ## [1.14.0] - 2026-06-19
 
 ### Documentation
