@@ -2,6 +2,33 @@
 
 All notable changes to this project are documented here.
 
+## [1.13.0] - 2026-06-19
+
+### Build
+- Silence vendored submodule warnings (CUE4Parse/UeSaveGame)
+
+
+### Documentation
+- Give the Nexus mod page the same flair as the docs site
+
+
+### Features
+- Support Abiotic Factor mods (mount mod paks + discover mod data tables)
+- Offline fallback bundle for wiki images
+
+
+### Miscellaneous Tasks
+- Log save-switch breadcrumbs and world-editor dirty reasons
+
+
+### Refactor
+- Route remaining string.Format sites through the Format helper
+
+
+### Testing
+- Point fixture locators at the platform-grouped layout
+
+
 ## [1.12.0] - 2026-06-19
 
 ### Bug Fixes
