@@ -18,7 +18,7 @@ public static class SpoilerPrompt
 
         var ok = await ViewModels.DialogViewModel.Current.ConfirmAsync(
             LocalizationResourceManager.Instance["Spoiler_OverrideTitle"],
-            string.Format(System.Globalization.CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Spoiler_OverrideMessage"], what),
+            LocalizationResourceManager.Instance.Format("Spoiler_OverrideMessage", what),
             LocalizationResourceManager.Instance["Spoiler_OverrideAccept"],
             LocalizationResourceManager.Instance["Spoiler_OverrideKeepSealed"]);
         if (ok) SpoilerService.Reveal(key);

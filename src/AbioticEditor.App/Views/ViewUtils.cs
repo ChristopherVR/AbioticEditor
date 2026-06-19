@@ -45,7 +45,7 @@ public static class ViewUtils
     public static Task<bool> ConfirmBulkAsync(Element host, string what) =>
         ConfirmAsync(host,
             Services.LocalizationResourceManager.Instance["Dialog_BulkConfirmTitle"],
-            string.Format(System.Globalization.CultureInfo.CurrentCulture, Services.LocalizationResourceManager.Instance["Dialog_BulkConfirmMessage"], what),
+            Services.LocalizationResourceManager.Instance.Format("Dialog_BulkConfirmMessage", what),
             Services.LocalizationResourceManager.Instance["Dialog_BulkConfirmAccept"],
             Services.LocalizationResourceManager.Instance["Common_Cancel"]);
 
@@ -57,7 +57,7 @@ public static class ViewUtils
     public static Task<bool> ConfirmRevealAsync(Element host, string what) =>
         ConfirmAsync(host,
             Services.LocalizationResourceManager.Instance["Spoiler_OverrideTitle"],
-            string.Format(System.Globalization.CultureInfo.CurrentCulture, Services.LocalizationResourceManager.Instance["Spoiler_OverrideMessage"], what),
+            Services.LocalizationResourceManager.Instance.Format("Spoiler_OverrideMessage", what),
             Services.LocalizationResourceManager.Instance["Spoiler_OverrideAccept"],
             Services.LocalizationResourceManager.Instance["Spoiler_OverrideKeepSealed"]);
 
