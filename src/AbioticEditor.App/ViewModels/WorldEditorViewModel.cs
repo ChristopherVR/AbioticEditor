@@ -2305,6 +2305,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
             // them; just adopt the new clean baseline for dirty tracking.
             foreach (var t in _featureTabs) t.AcceptBaseline();
             SaveStatus = $"Saved at {DateTime.Now:HH:mm:ss}";
+            Saved?.Invoke();
         }
         catch (Exception ex)
         {
@@ -2316,6 +2317,10 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
             Refresh();
         }
     }
+
+    /// <summary>Raised after a successful save. The host uses it to pack a Game Pass working copy
+    /// back into its container.</summary>
+    public event Action? Saved;
 
     public void Revert()
     {

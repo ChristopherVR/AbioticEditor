@@ -1452,6 +1452,7 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
             Core.Diagnostics.EditorLog.Info("PlayerSave",
                 $"Saved player {SteamId64}{(persona is null ? string.Empty : $" ({persona})")} - {Path.GetFileName(_path)}");
             SaveStatus = $"Saved at {DateTime.Now:HH:mm:ss}";
+            Saved?.Invoke();
         }
         catch (Exception ex)
         {
@@ -1463,6 +1464,10 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
             Refresh();
         }
     }
+
+    /// <summary>Raised after a successful save (the .sav is on disk). The host uses it to pack a
+    /// Game Pass working copy back into its container.</summary>
+    public event Action? Saved;
 
     public void Revert()
     {

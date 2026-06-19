@@ -1276,6 +1276,36 @@ public sealed class MainViewModel : INotifyPropertyChanged
         await LoadFolderAsync(folder);
     }
 
+    /// <summary>
+    /// Opens a world that was just created by the New World wizard and selects its
+    /// <c>WorldSave_MetaData.sav</c> so the editor lands on the world's story/metadata
+    /// instead of an empty page. A Game Pass result (<paramref name="gamePass"/>) is a wgs
+    /// folder routed through the extract/apply working-copy flow; a Steam result is a loose
+    /// folder loaded directly. Runs the leave-gate first (a dirty editor may sit behind the
+    /// modal that created the world).
+    /// </summary>
+    public async Task OpenCreatedWorldAsync(string path, bool gamePass)
+    {
+        if (!await ConfirmLeaveCurrentEditorAsync()) return;
+        if (gamePass)
+        {
+            await OpenGamePassFolderAsync(path);
+        }
+        else
+        {
+            await LoadFolderAsync(path);
+        }
+
+        // Land on the metadata save (the only world save a brand-new world has).
+        var meta = Saves.FirstOrDefault(s => s.KindLabel == "META")
+            ?? Saves.FirstOrDefault(s => Path.GetFileName(s.FullPath)
+                .StartsWith("WorldSave_MetaData", StringComparison.OrdinalIgnoreCase));
+        if (meta is not null)
+        {
+            SelectedSave = meta;
+        }
+    }
+
     // ---------- Game Pass (Xbox container) saves ----------
 
     private sealed record GamePassSession(
@@ -1286,10 +1316,45 @@ public sealed class MainViewModel : INotifyPropertyChanged
     /// <summary>True while a Game Pass world is open as an extracted working copy.</summary>
     public bool IsGamePassSession => _gamePassSession is not null;
 
-    /// <summary>Banner text for the active Game Pass working copy.</summary>
-    public string GamePassNotice => _gamePassSession is { } s
-        ? $"Game Pass working copy of \"{s.WorldName}\". Edit and SAVE as usual, then APPLY TO GAME PASS to write it back into the Xbox container (a backup is kept)."
-        : string.Empty;
+    /// <summary>Platform of the currently-loaded save: STEAM / GAME PASS / UNKNOWN (empty when none
+    /// is loaded). Surfaced as a badge so the type is visible after a folder is opened, not only on
+    /// the discovery list.</summary>
+    public string CurrentSaveType
+    {
+        get
+        {
+            if (_gamePassSession is not null) return "GAME PASS";
+            if (FolderPath is null) return string.Empty;
+            if (FolderPath.Contains($"{Path.DirectorySeparatorChar}Packages{Path.DirectorySeparatorChar}",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return "GAME PASS";
+            }
+            var playerIds = Saves.Where(s => s.KindLabel == "PLAYER")
+                .Select(s => SteamPersonaIndex.IdFromPlayerPath(s.FullPath))
+                .Where(id => id is not null)
+                .ToList();
+            if (playerIds.Any(id => Core.PlayerSaves.PlayerIdentifier.IsSteamId(id))) return "STEAM";
+            if (Core.PlayerSaves.PlayerIdentifier.IsSteamId(AccountSegment(FolderPath))) return "STEAM";
+            return "UNKNOWN";
+        }
+    }
+
+    public bool HasCurrentSaveType => CurrentSaveType.Length > 0;
+
+    /// <summary>The account folder segment of a client save path (…/SaveGames/&lt;account&gt;/Worlds/…).</summary>
+    private static string? AccountSegment(string folder)
+    {
+        var parts = folder.Split('/', '\\');
+        var i = Array.FindIndex(parts, p => p.Equals("SaveGames", StringComparison.OrdinalIgnoreCase));
+        return i >= 0 && i + 1 < parts.Length ? parts[i + 1] : null;
+    }
+
+    private void RaiseCurrentSaveTypeChanged()
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CurrentSaveType)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasCurrentSaveType)));
+    }
 
     /// <summary>Opens a discovered world, routing Game Pass containers through the extract/apply flow.</summary>
     public async Task OpenDiscoveredWorldAsync(Core.Saves.DiscoveredWorld world)
@@ -1346,8 +1411,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
             await LoadFolderAsync(dir);
             _gamePassSession = session;
             RaiseGamePassSessionChanged();
-            StatusMessage = $"Opened Game Pass world \"{session.WorldName}\" (working copy). "
-                + "Edit and SAVE, then APPLY TO GAME PASS to write it back.";
+            StatusMessage = $"Opened Game Pass world \"{session.WorldName}\". "
+                + "SAVE writes straight back into the Xbox container (a backup is kept).";
             EditorLog.Info("GamePass", $"Opened container '{session.Container}' -> working copy {dir}");
         }
         catch (Exception ex)
@@ -1357,41 +1422,40 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    public System.Windows.Input.ICommand ApplyGamePassChangesCommand => _applyGamePassCommand ??=
-        new RelayCommand(async () => await ApplyGamePassChangesAsync());
-    private RelayCommand? _applyGamePassCommand;
+    /// <summary>
+    /// After any editor save, a Game Pass working copy is packed straight back into its Xbox
+    /// container - the SAVE button handles it, so there is no separate "apply" step or banner. The
+    /// editor already wrote the .sav to the working folder; this re-reads the folder and rewrites
+    /// the container blob (the wgs folder is backed up on the first write).
+    /// </summary>
+    private void OnEditorSaved()
+    {
+        if (_gamePassSession is null) return;
+        _ = RepackGamePassAsync();
+    }
 
-    private async Task ApplyGamePassChangesAsync()
+    private async Task RepackGamePassAsync()
     {
         if (_gamePassSession is not { } session) return;
-
-        // Persist any pending editor edit to the working copy first.
-        if (PlayerEditor?.IsDirty == true) await PlayerEditor.SaveAsync();
-        else if (WorldEditor?.IsDirty == true) await WorldEditor.SaveAsync();
-
         try
         {
-            var count = await Task.Run(() => session.Set.ApplyWorld(session.Container, session.WorkingDir));
-            StatusMessage = count > 0
-                ? $"Wrote {count} save(s) back into the Game Pass container (the wgs folder was backed up). "
-                + "Verify it loads in-game before relying on it."
-                : "No changes to apply.";
-            EditorLog.Info("GamePass", $"Applied {count} member(s) to container '{session.Container}'.");
-            await DialogViewModel.Current.AlertAsync("Applied to Game Pass",
-                $"{count} save(s) packed back into the Xbox container for \"{session.WorldName}\". "
-                + "A backup of the container folder was kept. Please confirm it loads in-game.");
+            await Task.Run(() => session.Set.ApplyWorld(session.Container, session.WorkingDir));
+            EditorLog.Info("GamePass", $"Saved into Game Pass container '{session.Container}'.");
+            StatusMessage = $"Saved into the Game Pass save for \"{session.WorldName}\" (backup kept).";
         }
         catch (Exception ex)
         {
-            EditorLog.Error("GamePass", "Apply to Game Pass failed", ex);
-            await DialogViewModel.Current.AlertAsync("Couldn't apply to Game Pass", ex.Message);
+            EditorLog.Error("GamePass", "Packing the save into the Game Pass container failed", ex);
+            await DialogViewModel.Current.AlertAsync("Couldn't write the Game Pass save",
+                "Your edit was saved to the working copy, but packing it back into the Xbox container "
+                + $"failed: {ex.Message}");
         }
     }
 
     private void RaiseGamePassSessionChanged()
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsGamePassSession)));
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(GamePassNotice)));
+        RaiseCurrentSaveTypeChanged();
     }
 
     private void DiscoverConfigFiles(string folder)
@@ -2316,6 +2380,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 Saves.Add(item);
             }
             RebuildSaveGroups();
+            RaiseCurrentSaveTypeChanged();
             var failures = results.Count(r => r.LoadError is not null);
             StatusMessage = failures == 0
                 ? $"Loaded {results.Count} save(s)."
@@ -2429,6 +2494,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 var data = await Task.Run(() => PlayerSaveReader.ReadFromFile(summary.FullPath));
                 if (token != _loadSequence) return;
                 PlayerEditor = new PlayerEditorViewModel(data, summary.FullPath);
+                PlayerEditor.Saved += OnEditorSaved;
             }
             else if (summary.SaveClass == WorldSaveClass || summary.SaveClass == WorldMetaSaveClass)
             {
@@ -2436,6 +2502,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 if (token != _loadSequence) return;
                 WorldEditor = new WorldEditorViewModel(
                     data, summary.FullPath, NavigateToWorldDeviceAsync, ResolveDevicesAsync);
+                WorldEditor.Saved += OnEditorSaved;
             }
 
             // Notify plugins that a save is now open (after a successful parse).

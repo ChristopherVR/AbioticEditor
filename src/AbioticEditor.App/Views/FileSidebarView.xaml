@@ -17,8 +17,27 @@
             Padding="0">
         <Grid RowDefinitions="Auto,*,Auto">
             <VerticalStackLayout Grid.Row="0" Padding="16,14,16,10" Spacing="8">
-                <Label Text="{loc:Localize FileSidebar_SaveFiles}"
-                       Style="{StaticResource AfFieldLabel}" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <Label Grid.Column="0" Text="{loc:Localize FileSidebar_SaveFiles}"
+                           Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                    <!-- Platform badge for the loaded save: STEAM / GAME PASS / UNKNOWN -->
+                    <Border Grid.Column="1"
+                            IsVisible="{Binding HasCurrentSaveType}"
+                            BackgroundColor="{StaticResource AfPanelElevated}"
+                            Stroke="{StaticResource AfAccentOrangeBrush}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 4"
+                            Padding="8,2"
+                            VerticalOptions="Center"
+                            ToolTipProperties.Text="The save format this folder uses">
+                        <Label Text="{Binding CurrentSaveType}"
+                               Style="{StaticResource AfFieldLabel}"
+                               FontSize="9"
+                               CharacterSpacing="2"
+                               TextColor="{StaticResource AfAccentOrange}"
+                               VerticalOptions="Center" />
+                    </Border>
+                </Grid>
 
                 <!-- Sidebar-wide search filter -->
                 <Border BackgroundColor="{StaticResource AfPanelElevated}"

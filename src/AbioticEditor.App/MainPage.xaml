@@ -208,28 +208,6 @@
                             </Grid>
                         </Border>
 
-                        <!-- Game Pass working-copy banner: a Game Pass/Xbox save is opened as an
-                             extracted working copy. Edits save to that copy as usual; APPLY packs
-                             them back into the Xbox container (a backup of the wgs folder is kept). -->
-                        <Border BackgroundColor="{StaticResource AfPanelElevated}"
-                                Stroke="{StaticResource AfAccentOrangeBrush}"
-                                StrokeThickness="1" StrokeShape="Rectangle" Padding="16,10"
-                                IsVisible="{Binding IsGamePassSession}">
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                                <VerticalStackLayout Grid.Column="0" Spacing="3">
-                                    <Label Text="GAME PASS SAVE"
-                                           Style="{StaticResource AfFieldLabel}"
-                                           TextColor="{StaticResource AfAccentOrange}" />
-                                    <Label Text="{Binding GamePassNotice}"
-                                           Style="{StaticResource AfFieldValue}" FontSize="12"
-                                           LineBreakMode="WordWrap" />
-                                </VerticalStackLayout>
-                                <Button Grid.Column="1" VerticalOptions="Center"
-                                        Text="APPLY TO GAME PASS"
-                                        Command="{Binding ApplyGamePassChangesCommand}" />
-                            </Grid>
-                        </Border>
-
                     </VerticalStackLayout>
 
                     <!-- Editor region: bounded viewport. The tabbed player/world editors manage
