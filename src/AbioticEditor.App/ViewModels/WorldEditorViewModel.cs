@@ -2157,6 +2157,32 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         || IsMetaDirty()
         || AreExtrasDirty();
 
+    /// <summary>
+    /// Names every dirty contributor (mirrors <see cref="IsDirty"/>), logged by the leave-gate so a
+    /// spurious "unsaved changes" prompt on a world save is traceable from the log alone - the same
+    /// diagnostic the player editor's <c>DescribeDirty</c> provides.
+    /// </summary>
+    public string DescribeDirty()
+    {
+        var parts = new List<string>();
+        var dirtySlots = AllContainers.SelectMany(c => c.Slots).Count(s => s.IsDirty);
+        if (dirtySlots > 0) parts.Add($"{dirtySlots} container slot(s)");
+        if (AreFlagsDirty()) parts.Add("flags");
+        if (AreDoorsDirty()) parts.Add("doors");
+        if (AreDroppedDirty()) parts.Add("dropped items");
+        if (AreNpcsDirty()) parts.Add("npcs");
+        if (ArePetsDirty()) parts.Add("pets");
+        if (AreVehiclesDirty()) parts.Add("vehicles");
+        if (AreFeatureMapsDirty())
+        {
+            parts.Add("feature maps: " + string.Join(", ", _featureTabs.Where(t => t.IsDirty).Select(t => t.DisplayName)));
+        }
+        if (AreBasesDirty()) parts.Add("bases");
+        if (IsMetaDirty()) parts.Add("metadata/story");
+        if (AreExtrasDirty()) parts.Add("extras");
+        return parts.Count == 0 ? "(nothing)" : string.Join("; ", parts);
+    }
+
     // Bench-upgrade edits are staged on the (lazily built) base view-models; null until the
     // BASES tab is opened, in which case nothing can be dirty yet.
     private bool AreBasesDirty() => _bases?.Any(b => b.IsDirty) ?? false;

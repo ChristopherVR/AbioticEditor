@@ -425,6 +425,17 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private async Task RequestSwitchAsync(SaveFileSummary? next)
     {
+        // Breadcrumb for the "discard prompt on every save switch" reports: records each
+        // selection request and which save is currently loaded, so the log shows the click
+        // sequence that led to a leave-gate even when nothing was deliberately edited.
+        if (EditorLog.Enabled)
+        {
+            EditorLog.Info("Switch",
+                $"Select {(next is null ? "(none)" : Path.GetFileName(next.FullPath))} "
+                + $"(loaded: {(_loadedSave is null ? "(none)" : Path.GetFileName(_loadedSave.FullPath))}, "
+                + $"gamePass: {IsGamePassSession})");
+        }
+
         _pendingSelection = next;
         if (_switchRunning)
         {
@@ -633,10 +644,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             // A phantom dialog (binding write-back posing as an edit) names its source
             // here - check the log when the gate appears without any deliberate change.
-            if (PlayerEditor?.IsDirty == true)
-            {
-                EditorLog.Info("App", $"Leave-gate for {dirtyName}: {PlayerEditor.DescribeDirty()}");
-            }
+            // Every dirty editor kind describes itself so a spurious prompt is traceable
+            // from the log alone (no repro hunt), whichever editor raised it.
+            var reason =
+                PlayerEditor?.IsDirty == true ? PlayerEditor.DescribeDirty()
+                : WorldEditor?.IsDirty == true ? WorldEditor.DescribeDirty()
+                : IniEditor?.IsDirty == true ? "ini edits"
+                : "(none)";
+            EditorLog.Info("App", $"Leave-gate for {dirtyName}: {reason}");
 
             // In-app dialog: [Cancel, Discard changes, Save and continue].
             var choice = await DialogViewModel.Current.ShowAsync(
