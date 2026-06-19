@@ -49,6 +49,16 @@ public sealed class LocalizationResourceManager : INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// The localized string for <paramref name="key"/> with <paramref name="args"/> substituted
+    /// via <c>string.Format</c> using the active culture. Use this instead of
+    /// <c>string.Format(this[key], ...)</c> so placeholders honour the chosen language and the
+    /// format call stays analysis-clean (it supplies an <see cref="IFormatProvider"/> and the
+    /// format string is resolved at runtime rather than a cached literal).
+    /// </summary>
+    public string Format(string key, params object?[] args)
+        => string.Format(_culture, this[key], args);
+
     private void OnPluginLocalizationsChanged()
     {
         // Binding updates must run on the UI thread; plugin loads can complete off it.

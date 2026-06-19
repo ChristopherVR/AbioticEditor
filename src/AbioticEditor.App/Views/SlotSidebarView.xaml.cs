@@ -60,23 +60,25 @@ public partial class SlotSidebarView : ContentView
         var flags = trader.SelectedUnlockFlags;
         if (flags.Count == 0)
         {
-            vm.StatusMessage = "Tick at least one locked item to unlock.";
+            vm.StatusMessage = Services.LocalizationResourceManager.Instance["Slot_MsgTickAtLeastOne"];
             return;
         }
 
-        var target = we.IsMetadataSave ? "WorldSave_Facility.sav" : "this save";
+        var target = we.IsMetadataSave
+            ? "WorldSave_Facility.sav"
+            : Services.LocalizationResourceManager.Instance["Slot_ThisSave"];
         var confirmed = await ViewUtils.ConfirmAsync(this,
-            $"Unlock {trader.SelectedStockFlags.Count} item(s) from {trader.Name}?",
-            $"This sets {flags.Count} world flag(s) in {target}:\n\n{string.Join("\n", flags)}\n\n" +
-            "These are story/progression flags, so anything else gated by them also unlocks. " +
+            Services.LocalizationResourceManager.Instance.Format("Slot_UnlockItemsTitle", trader.SelectedStockFlags.Count, trader.Name),
+            Services.LocalizationResourceManager.Instance.Format("Slot_UnlockItemsBody", flags.Count, target, string.Join("\n", flags)) +
             (we.IsMetadataSave
-                ? "The Facility save is written immediately (a .bak is kept)."
-                : "Changes are staged; press SAVE to write."),
-            "UNLOCK", "Cancel");
+                ? Services.LocalizationResourceManager.Instance["Slot_FacilityWrittenNow"]
+                : Services.LocalizationResourceManager.Instance["Slot_ChangesStaged"]),
+            Services.LocalizationResourceManager.Instance["Slot_Unlock"],
+            Services.LocalizationResourceManager.Instance["Common_Cancel"]);
         if (!confirmed) return;
 
         var (_, message) = await we.UnlockTraderFlagsAsync(trader, flags);
-        vm.StatusMessage = $"{trader.Name}: {message}";
+        vm.StatusMessage = Services.LocalizationResourceManager.Instance.Format("Slot_TraderStatus", trader.Name, message);
     }
 
     private async void OnUnlockTraderFull(object? sender, EventArgs e)
@@ -86,24 +88,25 @@ public partial class SlotSidebarView : ContentView
         var missing = trader.MissingFlags;
         if (missing.Count == 0)
         {
-            vm.StatusMessage = $"{trader.Name} is already fully unlocked in this world.";
+            vm.StatusMessage = Services.LocalizationResourceManager.Instance.Format("Slot_MsgTraderFullyUnlocked", trader.Name);
             return;
         }
 
-        var target = we.IsMetadataSave ? "WorldSave_Facility.sav" : "this save";
+        var target = we.IsMetadataSave
+            ? "WorldSave_Facility.sav"
+            : Services.LocalizationResourceManager.Instance["Slot_ThisSave"];
         var confirmed = await ViewUtils.ConfirmAsync(this,
-            $"Unlock all of {trader.Name}?",
-            $"This sets {missing.Count} world flag(s) in {target}:\n\n{string.Join("\n", missing)}\n\n" +
-            "These are story/progression flags, so anything else gated by them (quests, doors, spawns) " +
-            "also unlocks. " +
+            Services.LocalizationResourceManager.Instance.Format("Slot_UnlockAllTitle", trader.Name),
+            Services.LocalizationResourceManager.Instance.Format("Slot_UnlockAllBody", missing.Count, target, string.Join("\n", missing)) +
             (we.IsMetadataSave
-                ? "The Facility save is written immediately (a .bak is kept)."
-                : "Changes are staged; press SAVE to write."),
-            "UNLOCK", "Cancel");
+                ? Services.LocalizationResourceManager.Instance["Slot_FacilityWrittenNow"]
+                : Services.LocalizationResourceManager.Instance["Slot_ChangesStaged"]),
+            Services.LocalizationResourceManager.Instance["Slot_Unlock"],
+            Services.LocalizationResourceManager.Instance["Common_Cancel"]);
         if (!confirmed) return;
 
         var (_, message) = await we.UnlockTraderAsync(trader);
-        vm.StatusMessage = $"{trader.Name}: {message}";
+        vm.StatusMessage = Services.LocalizationResourceManager.Instance.Format("Slot_TraderStatus", trader.Name, message);
     }
 
     private void OnCloseChapterDetail(object? sender, EventArgs e)
@@ -116,10 +119,10 @@ public partial class SlotSidebarView : ContentView
         if (ViewUtils.Vm(this) is not { WorldEditor: { } we } vm || we.SelectedChapter is not { } chapter) return;
         var added = we.UnlockChaptersThrough(chapter);
         vm.StatusMessage = added == 0
-            ? $"All story flags through \"{chapter.Title}\" are already set."
+            ? Services.LocalizationResourceManager.Instance.Format("Slot_MsgChapterAlreadySet", chapter.Title)
             : we.IsMetadataSave
-                ? $"Wrote {added} story flag(s) to WorldSave_Facility.sav (backup kept)."
-                : $"Added {added} story flag(s) through \"{chapter.Title}\" - press SAVE to write.";
+                ? Services.LocalizationResourceManager.Instance.Format("Slot_MsgChapterWroteFacility", added)
+                : Services.LocalizationResourceManager.Instance.Format("Slot_MsgChapterAdded", added, chapter.Title);
     }
 
     private void OnCloseDoorDetail(object? sender, EventArgs e)
@@ -147,14 +150,14 @@ public partial class SlotSidebarView : ContentView
         if (missing.Count == 0) return;
 
         var confirmed = await ViewUtils.ConfirmAsync(this,
-            "Set prerequisites?",
-            $"\"{flag.FriendlyName}\" needs {missing.Count} earlier flag(s):\n\n{string.Join("\n", missing)}\n\n" +
-            "These are story/progression flags - content gated by them also unlocks. Additive only; staged until SAVE.",
-            "SET THEM", "Cancel");
+            Services.LocalizationResourceManager.Instance["Slot_SetPrereqsTitle"],
+            Services.LocalizationResourceManager.Instance.Format("Slot_SetPrereqsBody", flag.FriendlyName, missing.Count, string.Join("\n", missing)),
+            Services.LocalizationResourceManager.Instance["Slot_SetThem"],
+            Services.LocalizationResourceManager.Instance["Common_Cancel"]);
         if (!confirmed) return;
 
         var added = we.EnablePrerequisitesForSelectedFlag();
-        vm.StatusMessage = $"Set {added} prerequisite flag(s) - \"{flag.FriendlyName}\" can now be enabled. Press SAVE to write.";
+        vm.StatusMessage = Services.LocalizationResourceManager.Instance.Format("Slot_MsgPrereqsSet", added, flag.FriendlyName);
     }
 
     // ---------- item palette ----------

@@ -16,7 +16,7 @@ public static class SlotInteractions
         var slot = ViewUtils.FindBoundContext<InventorySlotViewModel>(sender);
         if (slot is null)
         {
-            vm.StatusMessage = "Slot tap: no bound context found";
+            vm.StatusMessage = Services.LocalizationResourceManager.Instance["Slot_MsgNoBoundContext"];
             return;
         }
         vm.SelectSlot(slot);
@@ -33,7 +33,7 @@ public static class SlotInteractions
 
         e.Data.Properties["src"] = src;
         e.Data.Text = src.DisplayName;
-        vm.StatusMessage = $"Dragging {src.DisplayName} from {src.Kind} slot {src.Index}…";
+        vm.StatusMessage = Services.LocalizationResourceManager.Instance.Format("Slot_MsgDragging", src.DisplayName, src.Kind, src.Index);
     }
 
     public static void SlotDrop(MainViewModel? vm, object? sender, DropEventArgs e)
@@ -50,13 +50,13 @@ public static class SlotInteractions
             // role mismatch, and pets dropped into the backpack (hotbar / Companion only).
             if (InventorySlotViewModel.ValidateForSlot(target.Kind, target.Role, palette.Entry) is { } problem)
             {
-                vm.StatusMessage = $"Blocked: {problem}.";
+                vm.StatusMessage = Services.LocalizationResourceManager.Instance.Format("Slot_MsgBlocked", problem);
                 e.Handled = true;
                 return;
             }
             SlotSwap.FillFromCatalog(target, palette.Entry);
             vm.SelectSlot(target);
-            vm.StatusMessage = $"Gave {palette.DisplayName} ({target.Count}×)";
+            vm.StatusMessage = Services.LocalizationResourceManager.Instance.Format("Slot_MsgGave", palette.DisplayName, target.Count);
             e.Handled = true;
             return;
         }
@@ -68,20 +68,20 @@ public static class SlotInteractions
         // the displaced item must fit the source slot (role fit + hotbar-only pets).
         if (InventorySlotViewModel.ValidateForSlot(target.Kind, target.Role, src.Entry) is { } targetProblem)
         {
-            vm.StatusMessage = $"Blocked: {targetProblem}.";
+            vm.StatusMessage = Services.LocalizationResourceManager.Instance.Format("Slot_MsgBlocked", targetProblem);
             e.Handled = true;
             return;
         }
         if (!target.IsEmpty && InventorySlotViewModel.ValidateForSlot(src.Kind, src.Role, target.Entry) is { } srcProblem)
         {
-            vm.StatusMessage = $"Blocked swap: {srcProblem}.";
+            vm.StatusMessage = Services.LocalizationResourceManager.Instance.Format("Slot_MsgBlockedSwap", srcProblem);
             e.Handled = true;
             return;
         }
 
         SlotSwap.Swap(src, target);
         vm.SelectSlot(target);
-        vm.StatusMessage = $"Swapped → {target.DisplayName}";
+        vm.StatusMessage = Services.LocalizationResourceManager.Instance.Format("Slot_MsgSwapped", target.DisplayName);
         e.Handled = true;
     }
 
@@ -100,13 +100,13 @@ public static class SlotInteractions
 
         if (SlotSwap.MoveToFirstEmpty(src, targetContainer.Slots))
         {
-            vm.StatusMessage = $"Moved {src.DisplayName} → {targetContainer.DisplayName}";
+            vm.StatusMessage = Services.LocalizationResourceManager.Instance.Format("Slot_MsgMoved", src.DisplayName, targetContainer.DisplayName);
             editor.SelectedContainer = targetContainer;
             e.Handled = true;
         }
         else
         {
-            vm.StatusMessage = $"{targetContainer.DisplayName} has no empty slot.";
+            vm.StatusMessage = Services.LocalizationResourceManager.Instance.Format("Slot_MsgNoEmptySlotIn", targetContainer.DisplayName);
         }
     }
 
@@ -121,7 +121,7 @@ public static class SlotInteractions
 
         e.Data.Properties["paletteItem"] = item;
         e.Data.Text = item.DisplayName;
-        vm.StatusMessage = $"Dragging {item.DisplayName} from catalog - drop on any slot…";
+        vm.StatusMessage = Services.LocalizationResourceManager.Instance.Format("Slot_MsgDraggingFromCatalog", item.DisplayName);
     }
 
     public static void PaletteItemSelected(MainViewModel? vm, object? sender)
@@ -165,20 +165,20 @@ public static class SlotInteractions
         if (target is null)
         {
             vm.StatusMessage = hotbarOnly
-                ? "No empty hotbar slot - pets can only go in the hotbar or Companion slot."
-                : "No empty slot available to give the item to.";
+                ? Services.LocalizationResourceManager.Instance["Slot_MsgNoEmptyHotbar"]
+                : Services.LocalizationResourceManager.Instance["Slot_MsgNoEmptyAvailable"];
             return;
         }
 
         // Honor the same placement rules as drag-drop (e.g. a pet onto a selected backpack slot).
         if (InventorySlotViewModel.ValidateForSlot(target.Kind, target.Role, item.Entry) is { } problem)
         {
-            vm.StatusMessage = $"Blocked: {problem}.";
+            vm.StatusMessage = Services.LocalizationResourceManager.Instance.Format("Slot_MsgBlocked", problem);
             return;
         }
 
         SlotSwap.FillFromCatalog(target, item.Entry);
         vm.SelectSlot(target);
-        vm.StatusMessage = $"Gave {item.DisplayName} ({target.Count}×) to slot {target.Index}";
+        vm.StatusMessage = Services.LocalizationResourceManager.Instance.Format("Slot_MsgGaveToSlot", item.DisplayName, target.Count, target.Index);
     }
 }

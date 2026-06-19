@@ -12,11 +12,11 @@ public static partial class FileRevealer
     /// <summary>OS-appropriate menu label, evaluated once at XAML load via <c>x:Static</c>.</summary>
     public static string RevealLabel =>
 #if WINDOWS
-        "Open in Explorer";
+        Services.LocalizationResourceManager.Instance["FileReveal_OpenInExplorer"];
 #elif MACCATALYST
-        "Open in Finder";
+        Services.LocalizationResourceManager.Instance["FileReveal_OpenInFinder"];
 #else
-        "Open File Location";
+        Services.LocalizationResourceManager.Instance["FileReveal_OpenFileLocation"];
 #endif
 
     /// <summary>

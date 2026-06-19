@@ -292,6 +292,15 @@ public static class GamePassDiscovery
         return results;
     }
 
+    /// <summary>
+    /// The Game Pass container-store roots (the <c>wgs</c> folders) present on this machine, in
+    /// scan order. Useful as a default parent when creating a new Game Pass world so it lands in
+    /// the platform's own save area instead of the Steam tree. Empty when no Game Pass install is
+    /// found; never throws.
+    /// </summary>
+    public static IReadOnlyList<string> ContainerStoreRoots()
+        => WgsRoots().Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
     /// <summary>The wgs roots to scan for account folders, across both PC layouts and all drives.</summary>
     private static IEnumerable<string> WgsRoots()
     {

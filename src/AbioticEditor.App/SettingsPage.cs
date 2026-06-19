@@ -27,7 +27,7 @@ public sealed class SettingsPage : ContentPage
     {
         _vm = vm;
         _rebuildHost = rebuildHost;
-        Title = "Settings";
+        Title = Services.LocalizationResourceManager.Instance["Settings_ScaffoldSubtitle"];
         BackgroundColor = (Color)Application.Current!.Resources["AfPageBackground"];
         Content = BuildContent();
         Appearing += OnAppearing;
@@ -60,20 +60,21 @@ public sealed class SettingsPage : ContentPage
 
     private View BuildContent()
     {
+        var loc = Services.LocalizationResourceManager.Instance;
+
         // ----- THEME -----
-        var cascadeButton = ThemeButton("FACILITY BLUE", ThemeAccent.Cascade);
-        var hazardButton = ThemeButton("HAZARD ORANGE", ThemeAccent.Hazard);
+        var cascadeButton = ThemeButton(loc["Settings_ThemeCascade"], ThemeAccent.Cascade);
+        var hazardButton = ThemeButton(loc["Settings_ThemeHazard"], ThemeAccent.Hazard);
 
         var modeSwitch = new Switch { IsToggled = ThemeService.IsLight };
         modeSwitch.Toggled += (_, e) => ApplyTheme(ThemeService.Accent, e.Value);
 
-        var themeCard = ModalChrome.Card("THEME",
-            "Accent family for the editor chrome. Applies immediately; the editor view reloads.",
+        var themeCard = ModalChrome.Card(loc["Settings_Theme"],
+            loc["Settings_ThemeHint"],
             new HorizontalStackLayout { Spacing = 10, Children = { cascadeButton, hazardButton } },
-            LabeledRow("Light mode", modeSwitch));
+            LabeledRow(loc["Settings_LightMode"], modeSwitch));
 
         // ----- LANGUAGE -----
-        var loc = Services.LocalizationResourceManager.Instance;
         // Current language is read-only; a separate CHANGE button opens the chooser. OnAppearing
         // re-reads CurrentCode when the chooser pops, so this label stays in sync.
         _languageValueLabel = new Label
@@ -82,7 +83,7 @@ public sealed class SettingsPage : ContentPage
             Style = ModalChrome.St("AfFieldValue"),
             VerticalOptions = LayoutOptions.Center,
         };
-        var changeLanguageButton = ModalChrome.Button("CHANGE", primary: false);
+        var changeLanguageButton = ModalChrome.Button(loc["Settings_LanguageChange"], primary: false);
         changeLanguageButton.Clicked += async (_, _) => await Navigation.PushModalAsync(new LanguagePage());
         var languageRow = new Grid
         {
@@ -100,21 +101,21 @@ public sealed class SettingsPage : ContentPage
         // ----- DIAGNOSTICS -----
         var logSwitch = new Switch { IsToggled = _vm.DiagnosticLoggingEnabled };
         logSwitch.Toggled += (_, e) => _vm.DiagnosticLoggingEnabled = e.Value;
-        var openLogs = new Button { Text = "OPEN LOG FOLDER", Command = _vm.OpenLogFolderCommand };
+        var openLogs = new Button { Text = loc["Settings_OpenLogFolder"], Command = _vm.OpenLogFolderCommand };
 
-        var diagnosticsCard = ModalChrome.Card("DIAGNOSTICS",
-            "Logs save loads/writes, staged edits, JSON transfers and unrecognized save content. Off by default.",
-            LabeledRow("Diagnostic logging", logSwitch),
+        var diagnosticsCard = ModalChrome.Card(loc["Settings_Diagnostics"],
+            loc["Settings_DiagnosticsHint"],
+            LabeledRow(loc["Settings_DiagnosticLogging"], logSwitch),
             new HorizontalStackLayout { Spacing = 10, Children = { openLogs } });
 
         // ----- SPOILERS -----
         var spoilerSwitch = new Switch { IsToggled = SpoilerService.Enabled };
-        var resealButton = ModalChrome.Button("RE-SEAL REVEALED ITEMS", primary: false);
+        var resealButton = ModalChrome.Button(loc["Settings_ResealItems"], primary: false);
         var revealedHint = new Label { Style = ModalChrome.St("AfMuted"), FontSize = 11 };
         void RefreshReveals()
             => revealedHint.Text = SpoilerService.RevealedCount == 0
-                ? "Nothing has been individually revealed yet."
-                : $"{SpoilerService.RevealedCount} item(s) revealed (clearance overridden).";
+                ? loc["Settings_NothingRevealed"]
+                : loc.Format("Settings_ItemsRevealed", SpoilerService.RevealedCount);
         RefreshReveals();
         spoilerSwitch.Toggled += (_, e) =>
         {
@@ -125,9 +126,9 @@ public sealed class SettingsPage : ContentPage
         };
         resealButton.Clicked += (_, _) => { SpoilerService.ResetReveals(); RefreshReveals(); _spoilerChanged = true; };
 
-        var spoilerCard = ModalChrome.Card("SPOILERS",
-            "Seals content you haven't reached yet (future quest flags, traders, recipes, hidden achievements, codex entries, contained anomalies) behind a CLASSIFIED stamp. Tap any sealed item to override clearance and reveal it - revealed items stay visible from then on.",
-            LabeledRow("Spoiler protection", spoilerSwitch),
+        var spoilerCard = ModalChrome.Card(loc["Settings_Spoilers"],
+            loc["Settings_SpoilersHint"],
+            LabeledRow(loc["Settings_SpoilerProtection"], spoilerSwitch),
             revealedHint,
             new HorizontalStackLayout { Spacing = 10, Children = { resealButton } });
 
@@ -138,7 +139,7 @@ public sealed class SettingsPage : ContentPage
         var conversionCard = BuildSaveConversionCard();
 
         // ----- PLUGINS -----
-        var managePlugins = new Button { Text = "MANAGE PLUGINS" };
+        var managePlugins = new Button { Text = loc["Settings_ManagePlugins"] };
         managePlugins.Clicked += async (_, _) =>
             await Navigation.PushModalAsync(new PluginsPage(_vm, _rebuildHost));
         var pluginDescriptors = Services.PluginService.Descriptors;
@@ -150,10 +151,8 @@ public sealed class SettingsPage : ContentPage
             pluginToggles.Children.Add(PluginRow(d));
         }
 
-        var pluginsCard = ModalChrome.Card("PLUGINS",
-            $"Extend the editor with save operations, commands, panels, menu actions, and event "
-                + $"hooks (managed or JavaScript). {pluginCount} plugin(s) installed. Toggle one off to stop "
-                + "loading it (restart to apply). Plugins run with full trust - only install plugins you trust.",
+        var pluginsCard = ModalChrome.Card(loc["Settings_Plugins"],
+            loc.Format("Settings_PluginsHint", pluginCount),
             pluginToggles,
             new HorizontalStackLayout { Spacing = 10, Children = { managePlugins } });
 
@@ -163,12 +162,12 @@ public sealed class SettingsPage : ContentPage
         // ----- tabs (one tab at a time instead of one long scroll) -----
         var tabs = new (string Label, View[] Cards)[]
         {
-            ("GENERAL", new View[] { themeCard, languageCard, diagnosticsCard }),
-            ("EDITOR", new View[] { spoilerCard }),
-            ("GAME DATA", new View[] { gameDataCard }),
-            ("CONVERT", new View[] { conversionCard }),
-            ("PLUGINS", new View[] { pluginsCard }),
-            ("UPDATES", new View[] { updatesCard }),
+            (loc["Settings_TabGeneral"], new View[] { themeCard, languageCard, diagnosticsCard }),
+            (loc["Settings_TabEditor"], new View[] { spoilerCard }),
+            (loc["Settings_GameData"], new View[] { gameDataCard }),
+            (loc["Settings_TabConvert"], new View[] { conversionCard }),
+            (loc["Settings_Plugins"], new View[] { pluginsCard }),
+            (loc["Settings_TabUpdates"], new View[] { updatesCard }),
         };
 
         // Cards for the selected tab are swapped into this container; only the active tab's
@@ -186,11 +185,11 @@ public sealed class SettingsPage : ContentPage
         var tabBar = ModalChrome.Segmented(tabs.Select(t => t.Label).ToList(), 0, ShowTab, fill: true);
         ShowTab(0);
 
-        var close = ModalChrome.Button("CLOSE", primary: false);
+        var close = ModalChrome.Button(loc["Common_Close"], primary: false);
         close.Clicked += async (_, _) => await CloseAsync();
 
         return ModalChrome.Scaffold(
-            "EDITOR CONFIGURATION", "Settings",
+            loc["Settings_ScaffoldTitle"], loc["Settings_ScaffoldSubtitle"],
             new View[] { tabContent },
             ModalChrome.Footer(close),
             maxWidth: 620,
@@ -207,6 +206,7 @@ public sealed class SettingsPage : ContentPage
     /// </summary>
     private View BuildGameDataCard()
     {
+        var loc = Services.LocalizationResourceManager.Instance;
         var status = new Label { Style = ModalChrome.St("AfMuted"), FontSize = 11 };
         var folderValue = new Label
         {
@@ -220,28 +220,31 @@ public sealed class SettingsPage : ContentPage
             FontSize = 12,
             LineBreakMode = LineBreakMode.MiddleTruncation,
         };
-        var locateFolder = new Button { Text = "SET GAME FOLDER" };
-        var autoDetect = ModalChrome.Button("USE AUTO-DETECT", primary: false);
+        var locateFolder = new Button { Text = loc["GameDataSettings_SetGameFolder"] };
+        var autoDetect = ModalChrome.Button(loc["GameDataSettings_UseAutoDetect"], primary: false);
 
         void Refresh()
         {
             var custom = Services.GameDataServices.CustomInstallPath;
             status.Text = Services.GameDataServices.IsGameDataLoaded
-                ? (custom is null ? "Loaded from your auto-detected game install." : "Loaded from the folder you set.")
+                ? (custom is null ? loc["GameDataSettings_LoadedAuto"] : loc["GameDataSettings_LoadedCustom"])
                 : Services.GameDataServices.StatusMessage;
 
             // The folder actually in use: the one you set, else the auto-detected install.
             var folder = custom
                 ?? AbioticEditor.Core.Assets.AfInstallLocator.FindInstallRoot()
                 ?? AbioticEditor.Core.Assets.AfInstallLocator.FindPaksDirectory();
-            folderValue.Text = "Game folder:  " + (folder ?? "(not found - set it below)");
+            folderValue.Text = loc.Format("GameDataSettings_GameFolderLabel",
+                folder ?? loc["GameDataSettings_FolderNotFound"]);
 
             // The data file (.usmap) that lets the editor read the game's tables.
             var usmap = AbioticEditor.Core.Assets.GameAssetProvider.FindConventionalMappings();
-            usmapValue.Text = "Game data (.usmap):  " + (usmap is null
-                ? "(none found - the game's tables can't be read)"
+            usmapValue.Text = loc.Format("GameDataSettings_UsmapLabel", usmap is null
+                ? loc["GameDataSettings_UsmapNotFound"]
                 : System.IO.Path.GetFileName(usmap)
-                    + (usmap == AbioticEditor.Core.Assets.GameAssetProvider.UserMappingsPath ? "  [imported]" : "  [bundled]"));
+                    + (usmap == AbioticEditor.Core.Assets.GameAssetProvider.UserMappingsPath
+                        ? loc["GameDataSettings_UsmapImported"]
+                        : loc["GameDataSettings_UsmapBundled"]));
 
             autoDetect.IsVisible = custom is not null;
         }
@@ -259,7 +262,7 @@ public sealed class SettingsPage : ContentPage
             Refresh();
             await ViewUtils.AlertAsync(this, okTitle,
                 Services.GameDataServices.IsGameDataLoaded
-                    ? "Game data loaded. Reopen your save to refresh traders and item icons."
+                    ? loc["GameDataSettings_GameDataLoadedMessage"]
                     : Services.GameDataServices.StatusMessage);
         }
 
@@ -276,20 +279,18 @@ public sealed class SettingsPage : ContentPage
                 var paks = AbioticEditor.Core.Assets.AfInstallLocator.ResolvePaksDirectory(picked);
                 if (paks is null)
                 {
-                    await ViewUtils.AlertAsync(this, "No game data there",
-                        $"Couldn't find Abiotic Factor's pak files under:\n{picked}\n\n"
-                            + "Pick the game's install folder (the one containing the AbioticFactor "
-                            + "folder), its AbioticFactor subfolder, or the Content\\Paks folder.");
+                    await ViewUtils.AlertAsync(this, loc["GameDataSettings_NoGameDataTitle"],
+                        loc.Format("GameDataSettings_NoGameDataMessage", picked));
                     return;
                 }
                 Services.GameDataServices.CustomInstallPath = picked;
                 EditorLog.Info("Settings", $"Game install folder set to {picked} (paks: {paks})");
-                await ApplyAndReloadAsync("Game folder set");
+                await ApplyAndReloadAsync(loc["GameDataSettings_GameFolderSetTitle"]);
             }
             catch (Exception ex) when (!IsPickerCancellation(ex))
             {
                 EditorLog.Error("Settings", "Game folder pick failed", ex);
-                await ViewUtils.AlertAsync(this, "Folder picker failed", ex.Message);
+                await ViewUtils.AlertAsync(this, loc["GameDataSettings_FolderPickerFailedTitle"], ex.Message);
             }
         };
 
@@ -297,16 +298,13 @@ public sealed class SettingsPage : ContentPage
         {
             Services.GameDataServices.CustomInstallPath = null;
             EditorLog.Info("Settings", "Game install folder reset to auto-detect");
-            await ApplyAndReloadAsync("Auto-detect restored");
+            await ApplyAndReloadAsync(loc["GameDataSettings_AutoDetectRestoredTitle"]);
         };
 
-        var importUsmap = new Button { Text = "IMPORT DATA FILE", Command = _vm.ImportMappingsCommand };
+        var importUsmap = new Button { Text = loc["GameDataSettings_ImportDataFile"], Command = _vm.ImportMappingsCommand };
 
-        return ModalChrome.Card("GAME DATA",
-            "Traders, item icons and recipes come from your installed copy of the game, not from the "
-                + "save. Auto-detection finds Steam installs; for a Game Pass, Epic, or moved install, "
-                + "set your game folder here. If a game update stops the data from loading, import an "
-                + "updated data file (.usmap).",
+        return ModalChrome.Card(loc["Settings_GameData"],
+            loc["GameDataSettings_CardHint"],
             status,
             folderValue,
             usmapValue,
@@ -322,31 +320,31 @@ public sealed class SettingsPage : ContentPage
     /// </summary>
     private static View BuildSaveConversionCard()
     {
+        var loc = Services.LocalizationResourceManager.Instance;
         // Optional account id: re-homes the (single) player save to this id during conversion.
         var idEntry = new Entry
         {
-            Placeholder = "leave blank to keep existing ids",
+            Placeholder = loc["Settings_ConvertIdPlaceholder"],
             ClearButtonVisibility = ClearButtonVisibility.WhileEditing,
             Keyboard = Keyboard.Plain,
         };
         var idHint = new Label
         {
-            Text = "Optional. A 17-digit SteamID64 (Steam) or account folder id (Game Pass). The player "
-                + "save is re-homed to it so the world is yours on the target platform. Single-player only.",
+            Text = loc["Settings_ConvertIdHint"],
             Style = ModalChrome.St("AfMuted"),
             FontSize = 10,
         };
 
-        var toGamePass = ModalChrome.Button("CONVERT  ·  STEAM  →  GAME PASS", primary: true);
+        var toGamePass = ModalChrome.Button(loc["Settings_ConvertToGamePass"], primary: true);
         var toGamePassHint = new Label
         {
-            Text = "Pick a Steam world folder (WorldSave_*.sav + PlayerData). Writes a Game Pass copy next to it.",
+            Text = loc["Settings_ConvertToGamePassHint"],
             Style = ModalChrome.St("AfMuted"), FontSize = 10,
         };
-        var toSteam = ModalChrome.Button("CONVERT  ·  GAME PASS  →  STEAM", primary: true);
+        var toSteam = ModalChrome.Button(loc["Settings_ConvertToSteam"], primary: true);
         var toSteamHint = new Label
         {
-            Text = "Pick a Game Pass folder (the one with containers.index). Writes a Steam world folder next to it.",
+            Text = loc["Settings_ConvertToSteamHint"],
             Style = ModalChrome.St("AfMuted"), FontSize = 10,
         };
 
@@ -355,7 +353,7 @@ public sealed class SettingsPage : ContentPage
             IsVisible = false, FontSize = 12, LineBreakMode = LineBreakMode.WordWrap,
             Style = ModalChrome.St("AfFieldValue"),
         };
-        var openFolder = ModalChrome.Button("OPEN OUTPUT FOLDER", primary: false);
+        var openFolder = ModalChrome.Button(loc["Settings_OpenOutputFolder"], primary: false);
         openFolder.IsVisible = false;
         string? lastOut = null;
         openFolder.Clicked += (_, _) => { if (lastOut is not null) TryOpenFolder(lastOut); };
@@ -381,14 +379,13 @@ public sealed class SettingsPage : ContentPage
                 var id = idEntry.Text?.Trim();
                 id = string.IsNullOrWhiteSpace(id) ? null : id;
 
-                result.Text = "Converting…  (the first run may download the Oodle compressor)";
+                result.Text = loc["Settings_Converting"];
                 toGamePass.IsEnabled = toSteam.IsEnabled = false;
 
                 lastOut = await Task.Run(() => convert(picked, dest, id));
                 EditorLog.Info("Settings", $"Save converted to {lastOut}");
                 result.TextColor = ModalChrome.Col("AfTerminalGreen");
-                result.Text = $"Done. Converted copy written to:\n{lastOut}\n"
-                    + "Your original was not changed. Verify it loads in-game before relying on it.";
+                result.Text = loc.Format("Settings_ConvertDone", lastOut);
                 openFolder.IsVisible = true;
             }
             catch (Exception ex) when (!IsPickerCancellation(ex))
@@ -396,7 +393,7 @@ public sealed class SettingsPage : ContentPage
                 EditorLog.Error("Settings", "Save conversion failed", ex);
                 result.IsVisible = true;
                 result.TextColor = ModalChrome.Col("AfAlertRed");
-                result.Text = $"Couldn't convert: {ex.Message}";
+                result.Text = loc.Format("Settings_ConvertFailed", ex.Message);
             }
             finally
             {
@@ -407,25 +404,23 @@ public sealed class SettingsPage : ContentPage
         toGamePass.Clicked += async (_, _) => await RunAsync(
             (src, dest, id) => AbioticEditor.Core.GamePass.GamePassConverter.SteamWorldToGamePass(src, dest, null, id),
             src => System.IO.Directory.EnumerateFiles(src, "WorldSave_*.sav").Any(),
-            "That folder has no WorldSave_*.sav files - pick a Steam world folder.",
+            loc["Settings_ConvertNoWorldSave"],
             "-GamePass");
 
         toSteam.Clicked += async (_, _) => await RunAsync(
             (src, dest, id) => AbioticEditor.Core.GamePass.GamePassConverter.GamePassToSteamWorld(src, null, dest, id),
             src => AbioticEditor.Core.GamePass.GamePassSaveSet.IsGamePassFolder(src),
-            "That folder has no containers.index - pick a Game Pass save folder.",
+            loc["Settings_ConvertNoContainers"],
             "-Steam");
 
         var idLabel = new Label
         {
-            Text = "PLAYER ACCOUNT ID",
+            Text = loc["Settings_ConvertPlayerAccountId"],
             Style = ModalChrome.St("AfFieldLabel"),
         };
 
-        return ModalChrome.Card("SAVE CONVERSION",
-            "Convert a world between Steam (loose .sav files) and Game Pass / Xbox (one container). The "
-                + "save content is identical either way; only the packaging changes. The converted copy is "
-                + "written next to the folder you pick - your original is untouched.",
+        return ModalChrome.Card(loc["Settings_SaveConversion"],
+            loc["Settings_SaveConversionHint"],
             idLabel, idEntry, idHint,
             toGamePass, toGamePassHint,
             toSteam, toSteamHint,
@@ -466,16 +461,17 @@ public sealed class SettingsPage : ContentPage
     /// </summary>
     private View BuildUpdatesCard()
     {
+        var loc = Services.LocalizationResourceManager.Instance;
         var status = new Label
         {
             Style = ModalChrome.St("AfMuted"),
             FontSize = 11,
-            Text = $"Installed version: {Services.UpdateService.CurrentVersion}.",
+            Text = loc.Format("Settings_InstalledVersion", Services.UpdateService.CurrentVersion),
         };
 
-        var checkButton = ModalChrome.Button("CHECK FOR UPDATES", primary: false);
-        var installButton = ModalChrome.Button("DOWNLOAD & INSTALL", primary: true);
-        var cancelButton = ModalChrome.Button("CANCEL", primary: false);
+        var checkButton = ModalChrome.Button(loc["Settings_CheckForUpdates"], primary: false);
+        var installButton = ModalChrome.Button(loc["Settings_DownloadInstall"], primary: true);
+        var cancelButton = ModalChrome.Button(loc["Common_Cancel"], primary: false);
         installButton.IsVisible = false;
         cancelButton.IsVisible = false;
 
@@ -495,30 +491,30 @@ public sealed class SettingsPage : ContentPage
         {
             installButton.IsVisible = false;
             checkButton.IsEnabled = false;
-            status.Text = "Checking GitHub for updates...";
+            status.Text = loc["Settings_CheckingForUpdates"];
             try
             {
                 var result = await Services.UpdateService.CheckAsync();
                 if (result.UpdateAvailable)
                 {
                     available = result;
-                    status.Text = $"{result.LatestVersion} is available "
-                        + $"(you have {result.CurrentVersion}).";
+                    status.Text = loc.Format("Settings_UpdateAvailable",
+                        result.LatestVersion, result.CurrentVersion);
                     installButton.IsVisible = true;
                 }
                 else
                 {
                     available = null;
-                    status.Text = result.Message ?? "You are on the latest version.";
+                    status.Text = result.Message ?? loc["Settings_OnLatestVersion"];
                 }
             }
             catch (Updater.UpdaterConfigurationException)
             {
-                status.Text = "Updates are not configured yet (no release repository set).";
+                status.Text = loc["Settings_UpdatesNotConfigured"];
             }
             catch (Exception ex)
             {
-                status.Text = $"Could not check for updates: {ex.Message}";
+                status.Text = loc.Format("Settings_CheckFailed", ex.Message);
             }
             finally
             {
@@ -530,7 +526,7 @@ public sealed class SettingsPage : ContentPage
         {
             // Ask the in-flight download to stop; the install handler's catch resets the UI.
             cancelButton.IsEnabled = false;
-            status.Text = "Cancelling download...";
+            status.Text = loc["Settings_CancellingDownload"];
             downloadCts?.Cancel();
         };
 
@@ -545,10 +541,10 @@ public sealed class SettingsPage : ContentPage
             // the main page tree and appears invisible behind a modal, so ViewUtils.ConfirmAsync
             // must not be used here.
             var ok = await DisplayAlertAsync(
-                "Install update",
-                $"Download and install {available.LatestVersion}? The app will close and reopen.",
-                "Install",
-                "Cancel");
+                loc["Settings_InstallUpdateTitle"],
+                loc.Format("Settings_InstallUpdateMessage", available.LatestVersion),
+                loc["Settings_InstallButton"],
+                loc["Common_Cancel"]);
             if (!ok)
             {
                 return;
@@ -556,7 +552,7 @@ public sealed class SettingsPage : ContentPage
 
             checkButton.IsEnabled = false;
             installButton.IsEnabled = false;
-            installButton.Text = "DOWNLOADING...";
+            installButton.Text = loc["Settings_Downloading"];
             progressBar.Progress = 0;
             progressBar.IsVisible = true;
             cancelButton.IsEnabled = true;
@@ -566,26 +562,26 @@ public sealed class SettingsPage : ContentPage
             var progress = new Progress<double>(p =>
             {
                 progressBar.Progress = p;
-                status.Text = $"Downloading... {(int)(p * 100)}%";
-                installButton.Text = $"DOWNLOADING {(int)(p * 100)}%";
+                status.Text = loc.Format("Settings_DownloadingPercent", (int)(p * 100));
+                installButton.Text = loc.Format("Settings_DownloadingButtonPercent", (int)(p * 100));
             });
             try
             {
-                status.Text = "Downloading update...";
+                status.Text = loc["Settings_DownloadingUpdate"];
                 await Services.UpdateService.DownloadInstallAndRestartAsync(available, progress, cts.Token);
                 // If we get here the app is about to quit; leave a note in case it lingers.
-                status.Text = "Installing update; the app will restart...";
-                installButton.Text = "INSTALLING...";
+                status.Text = loc["Settings_InstallingRestart"];
+                installButton.Text = loc["Settings_Installing"];
                 cancelButton.IsVisible = false;
             }
             catch (OperationCanceledException)
             {
-                status.Text = "Download cancelled.";
+                status.Text = loc["Settings_DownloadCancelled"];
                 ResetInstallControls();
             }
             catch (Exception ex)
             {
-                status.Text = $"Update failed: {ex.Message}";
+                status.Text = loc.Format("Settings_UpdateFailed", ex.Message);
                 ResetInstallControls();
             }
             finally
@@ -595,7 +591,7 @@ public sealed class SettingsPage : ContentPage
 
             void ResetInstallControls()
             {
-                installButton.Text = "DOWNLOAD & INSTALL";
+                installButton.Text = loc["Settings_DownloadInstall"];
                 checkButton.IsEnabled = true;
                 installButton.IsEnabled = true;
                 cancelButton.IsVisible = false;
@@ -605,11 +601,10 @@ public sealed class SettingsPage : ContentPage
         };
 
         var hint = Services.UpdateService.IsPlaceholder
-            ? "Checks GitHub releases for a newer build. (No release repository is configured yet - "
-                + "the developer must set it before this works.)"
-            : "Checks GitHub releases for a newer build and installs it in place. Every save still keeps its .bak.";
+            ? loc["Settings_UpdatesHintPlaceholder"]
+            : loc["Settings_UpdatesHint"];
 
-        return ModalChrome.Card("UPDATES", hint,
+        return ModalChrome.Card(loc["Settings_TabUpdates"], hint,
             status,
             progressBar,
             new HorizontalStackLayout { Spacing = 10, Children = { checkButton, installButton, cancelButton } });
@@ -618,18 +613,21 @@ public sealed class SettingsPage : ContentPage
     /// <summary>One enable/disable row for an installed plugin (name + state, right-aligned switch).</summary>
     private View PluginRow(Core.Plugins.PluginDescriptor d)
     {
+        var loc = Services.LocalizationResourceManager.Instance;
         var sw = new Switch { IsToggled = d.Manifest.Enabled, VerticalOptions = LayoutOptions.Center };
         sw.Toggled += async (_, e) =>
         {
             if (!d.SetEnabled(e.Value))
             {
                 sw.IsToggled = d.Manifest.Enabled;
-                await Views.ViewUtils.AlertAsync(this, "Plugins", "Could not update the plugin manifest (read-only folder?).");
+                await Views.ViewUtils.AlertAsync(this, loc["Settings_Plugins"], loc["Settings_PluginManifestFailed"]);
                 return;
             }
             EditorLog.Info("Plugins", $"Plugin {(e.Value ? "enabled" : "disabled")}: {d.Manifest.Name}");
-            await Views.ViewUtils.AlertAsync(this, "Plugins",
-                $"{d.Manifest.Name} {(e.Value ? "enabled" : "disabled")}. Restart to apply.");
+            await Views.ViewUtils.AlertAsync(this, loc["Settings_Plugins"],
+                string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                    e.Value ? loc["Settings_PluginEnabledMessage"] : loc["Settings_PluginDisabledMessage"],
+                    d.Manifest.Name));
         };
 
         var grid = new Grid
@@ -638,7 +636,7 @@ public sealed class SettingsPage : ContentPage
         };
         grid.Add(new Label
         {
-            Text = $"{d.Manifest.Name}  ({d.State})",
+            Text = loc.Format("Settings_PluginRowLabel", d.Manifest.Name, d.State),
             Style = ModalChrome.St("AfFieldValue"),
             FontSize = 12,
             VerticalOptions = LayoutOptions.Center,
@@ -651,7 +649,9 @@ public sealed class SettingsPage : ContentPage
     {
         var active = ThemeService.Accent == accent;
         // Active = primary fill, inactive = ghost outline (reads as a segmented control).
-        var button = ModalChrome.Button(active ? $"{text}  ✓" : text, primary: active);
+        var button = ModalChrome.Button(
+            active ? Services.LocalizationResourceManager.Instance.Format("Settings_ThemeActive", text) : text,
+            primary: active);
         button.Clicked += (_, _) => ApplyTheme(accent, ThemeService.IsLight);
         return button;
     }

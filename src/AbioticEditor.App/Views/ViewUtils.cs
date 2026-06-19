@@ -43,9 +43,11 @@ public static class ViewUtils
 
     /// <summary>Standard wording for staged bulk edits (easy to fat-finger, hard to undo).</summary>
     public static Task<bool> ConfirmBulkAsync(Element host, string what) =>
-        ConfirmAsync(host, "Are you sure?",
-            $"This will {what}.\n\nThe change stages until you press SAVE (REVERT undoes it before saving).",
-            "YES, DO IT", "Cancel");
+        ConfirmAsync(host,
+            Services.LocalizationResourceManager.Instance["Dialog_BulkConfirmTitle"],
+            string.Format(System.Globalization.CultureInfo.CurrentCulture, Services.LocalizationResourceManager.Instance["Dialog_BulkConfirmMessage"], what),
+            Services.LocalizationResourceManager.Instance["Dialog_BulkConfirmAccept"],
+            Services.LocalizationResourceManager.Instance["Common_Cancel"]);
 
     /// <summary>
     /// Clearance-override prompt for a single classified (spoiler) item. <paramref name="what"/>
@@ -53,10 +55,11 @@ public static class ViewUtils
     /// record". Confirming reveals it permanently for this install.
     /// </summary>
     public static Task<bool> ConfirmRevealAsync(Element host, string what) =>
-        ConfirmAsync(host, "OVERRIDE CLEARANCE?",
-            $"{what} is sealed above your current clearance because it may spoil content you "
-            + "haven't reached yet.\n\nReveal it anyway? It will stay visible from now on.",
-            "OVERRIDE", "KEEP SEALED");
+        ConfirmAsync(host,
+            Services.LocalizationResourceManager.Instance["Spoiler_OverrideTitle"],
+            string.Format(System.Globalization.CultureInfo.CurrentCulture, Services.LocalizationResourceManager.Instance["Spoiler_OverrideMessage"], what),
+            Services.LocalizationResourceManager.Instance["Spoiler_OverrideAccept"],
+            Services.LocalizationResourceManager.Instance["Spoiler_OverrideKeepSealed"]);
 
     /// <summary>Informational alert shown as the in-app dialog (host kept for call-site compat).</summary>
     public static Task AlertAsync(Element host, string title, string message)

@@ -21,7 +21,7 @@ public sealed class PluginsPage : ContentPage
     {
         _vm = vm;
         _rebuildHost = rebuildHost;
-        Title = "Plugins";
+        Title = LocalizationResourceManager.Instance["Plugins_Title"];
         BackgroundColor = (Color)Application.Current!.Resources["AfPageBackground"];
         Content = BuildContent();
     }
@@ -50,19 +50,17 @@ public sealed class PluginsPage : ContentPage
             MaximumWidthRequest = 620,
             Children =
             {
-                new Label { Text = "PLUGINS", FontFamily = "OpenSansSemibold", FontSize = 20, CharacterSpacing = 2 },
-                Hint("Plugins extend the editor with new save operations, commands, and panels. "
-                    + "They run with full trust - only install plugins you trust. Drop plugin folders "
-                    + $"under: {PluginPaths.UserPluginsDirectory}"),
+                new Label { Text = LocalizationResourceManager.Instance["Plugins_HeaderPlugins"], FontFamily = "OpenSansSemibold", FontSize = 20, CharacterSpacing = 2 },
+                Hint(LocalizationResourceManager.Instance.Format("Plugins_IntroHint", PluginPaths.UserPluginsDirectory)),
             },
         };
 
         // ---- Installed plugins ----
-        root.Children.Add(Header("INSTALLED"));
+        root.Children.Add(Header(LocalizationResourceManager.Instance["Plugins_HeaderInstalled"]));
         var descriptors = PluginService.Descriptors;
         if (descriptors.Count == 0)
         {
-            root.Children.Add(Hint("No plugins installed."));
+            root.Children.Add(Hint(LocalizationResourceManager.Instance["Plugins_NoneInstalled"]));
         }
         else
         {
@@ -73,11 +71,11 @@ public sealed class PluginsPage : ContentPage
         }
 
         // ---- Save operations for the open save ----
-        root.Children.Add(Header("SAVE OPERATIONS"));
+        root.Children.Add(Header(LocalizationResourceManager.Instance["Plugins_HeaderSaveOperations"]));
         var openPath = _vm.SelectedSave?.FullPath;
         if (openPath is null)
         {
-            root.Children.Add(Hint("Open a save to run save operations against it."));
+            root.Children.Add(Hint(LocalizationResourceManager.Instance["Plugins_NoOpenSaveHint"]));
         }
         else
         {
@@ -85,12 +83,10 @@ public sealed class PluginsPage : ContentPage
             var applicable = PluginService.SaveOperations
                 .Where(c => SaveKindDetector.Matches(c.Value.AppliesTo, openKind))
                 .ToList();
-            root.Children.Add(Hint($"Open save: {Path.GetFileName(openPath)} ({openKind}). "
-                + "Running an operation writes the file immediately (a .bak is kept) and reloads the editor, "
-                + "discarding any unsaved edits."));
+            root.Children.Add(Hint(LocalizationResourceManager.Instance.Format("Plugins_OpenSaveHint", Path.GetFileName(openPath), openKind)));
             if (applicable.Count == 0)
             {
-                root.Children.Add(Hint("No installed operation applies to this save kind."));
+                root.Children.Add(Hint(LocalizationResourceManager.Instance["Plugins_NoOperationApplies"]));
             }
             else
             {
@@ -102,11 +98,11 @@ public sealed class PluginsPage : ContentPage
         }
 
         // ---- UI tools ----
-        root.Children.Add(Header("TOOLS"));
+        root.Children.Add(Header(LocalizationResourceManager.Instance["Plugins_HeaderTools"]));
         var tools = PluginService.EditorTools;
         if (tools.Count == 0)
         {
-            root.Children.Add(Hint("No UI tools installed."));
+            root.Children.Add(Hint(LocalizationResourceManager.Instance["Plugins_NoUiTools"]));
         }
         else
         {
@@ -117,11 +113,11 @@ public sealed class PluginsPage : ContentPage
         }
 
         // ---- Web (HTML/React) tools ----
-        root.Children.Add(Header("WEB TOOLS"));
+        root.Children.Add(Header(LocalizationResourceManager.Instance["Plugins_HeaderWebTools"]));
         var webTools = PluginService.WebTools;
         if (webTools.Count == 0)
         {
-            root.Children.Add(Hint("No web tools installed."));
+            root.Children.Add(Hint(LocalizationResourceManager.Instance["Plugins_NoWebTools"]));
         }
         else
         {
@@ -132,11 +128,11 @@ public sealed class PluginsPage : ContentPage
         }
 
         // ---- Menu actions ----
-        root.Children.Add(Header("MENU ACTIONS"));
+        root.Children.Add(Header(LocalizationResourceManager.Instance["Plugins_HeaderMenuActions"]));
         var actions = PluginService.MenuActions;
         if (actions.Count == 0)
         {
-            root.Children.Add(Hint("No menu actions installed."));
+            root.Children.Add(Hint(LocalizationResourceManager.Instance["Plugins_NoMenuActions"]));
         }
         else
         {
@@ -146,7 +142,7 @@ public sealed class PluginsPage : ContentPage
             }
         }
 
-        var close = new Button { Text = "CLOSE" };
+        var close = new Button { Text = LocalizationResourceManager.Instance["Common_Close"] };
         close.Clicked += async (_, _) => await Navigation.PopModalAsync();
         root.Children.Add(new BoxView { HeightRequest = 8, Color = Colors.Transparent });
         root.Children.Add(close);
@@ -173,12 +169,19 @@ public sealed class PluginsPage : ContentPage
         {
             if (!d.SetEnabled(e.Value))
             {
-                await DisplayAlertAsync("Plugins", "Could not update the plugin manifest (read-only folder?).", "OK");
+                await DisplayAlertAsync(
+                    LocalizationResourceManager.Instance["Plugins_Title"],
+                    LocalizationResourceManager.Instance["Plugins_ManifestUpdateFailed"],
+                    LocalizationResourceManager.Instance["Common_Ok"]);
                 enableSwitch.IsToggled = d.Manifest.Enabled;
                 return;
             }
-            await DisplayAlertAsync("Plugins",
-                $"{d.Manifest.Name} {(e.Value ? "enabled" : "disabled")}. Restart the app to apply.", "OK");
+            await DisplayAlertAsync(
+                LocalizationResourceManager.Instance["Plugins_Title"],
+                LocalizationResourceManager.Instance.Format("Plugins_EnabledToast",
+                    d.Manifest.Name,
+                    LocalizationResourceManager.Instance[e.Value ? "Plugins_Enabled" : "Plugins_Disabled"]),
+                LocalizationResourceManager.Instance["Common_Ok"]);
         };
         titleRow.Add(enableSwitch, 1, 0);
         stack.Children.Add(titleRow);
@@ -227,7 +230,7 @@ public sealed class PluginsPage : ContentPage
             stack.Children.Add(row);
         }
 
-        var run = new Button { Text = "RUN" };
+        var run = new Button { Text = LocalizationResourceManager.Instance["Plugins_Run"] };
         run.Clicked += async (_, _) => await RunOperationAsync(capability, savePath, entries, run);
         stack.Children.Add(run);
 
@@ -243,9 +246,11 @@ public sealed class PluginsPage : ContentPage
         var op = capability.Value;
         var confirm = await DisplayAlertAsync(
             op.DisplayName,
-            $"Run '{op.DisplayName}' on {Path.GetFileName(savePath)}?\n\n"
-            + "This writes the file immediately (a .bak is kept) and reloads the editor, discarding unsaved edits.",
-            "Run", "Cancel");
+            LocalizationResourceManager.Instance.Format("Plugins_RunConfirmMessage",
+                op.DisplayName,
+                Path.GetFileName(savePath)),
+            LocalizationResourceManager.Instance["Plugins_RunConfirmButton"],
+            LocalizationResourceManager.Instance["Common_Cancel"]);
         if (!confirm)
         {
             return;
@@ -258,13 +263,19 @@ public sealed class PluginsPage : ContentPage
             var outcome = await PluginService.RunOperationAsync(capability, savePath, parameters, dryRun: false);
             if (!outcome.Result.Success)
             {
-                await DisplayAlertAsync(op.DisplayName, $"Failed: {outcome.Result.Message}", "OK");
+                await DisplayAlertAsync(
+                    op.DisplayName,
+                    LocalizationResourceManager.Instance.Format("Plugins_OperationFailed", outcome.Result.Message),
+                    LocalizationResourceManager.Instance["Common_Ok"]);
                 return;
             }
 
-            await DisplayAlertAsync(op.DisplayName,
-                $"{outcome.Result.Message}\n\n{(outcome.Wrote ? "Save written (.bak kept). Reloading editor." : "No change was needed.")}",
-                "OK");
+            await DisplayAlertAsync(
+                op.DisplayName,
+                LocalizationResourceManager.Instance.Format("Plugins_OperationResult",
+                    outcome.Result.Message,
+                    LocalizationResourceManager.Instance[outcome.Wrote ? "Plugins_SaveWritten" : "Plugins_NoChangeNeeded"]),
+                LocalizationResourceManager.Instance["Common_Ok"]);
 
             if (outcome.Wrote)
             {
@@ -293,7 +304,7 @@ public sealed class PluginsPage : ContentPage
             VerticalOptions = LayoutOptions.Center,
         }, 0, 0);
 
-        var open = new Button { Text = "OPEN" };
+        var open = new Button { Text = LocalizationResourceManager.Instance["Plugins_Open"] };
         open.Clicked += async (_, _) => await OpenToolAsync(capability);
         row.Add(open, 1, 0);
         return row;
@@ -310,7 +321,7 @@ public sealed class PluginsPage : ContentPage
         var glyph = string.IsNullOrEmpty(tool.Glyph) ? string.Empty : $"{tool.Glyph}  ";
         row.Add(new Label { Text = $"{glyph}{tool.Title}", VerticalOptions = LayoutOptions.Center }, 0, 0);
 
-        var open = new Button { Text = "OPEN" };
+        var open = new Button { Text = LocalizationResourceManager.Instance["Plugins_Open"] };
         open.Clicked += async (_, _) => await OpenWebToolAsync(capability);
         row.Add(open, 1, 0);
         return row;
@@ -326,7 +337,10 @@ public sealed class PluginsPage : ContentPage
         catch (Exception ex)
         {
             capability.Plugin.Host?.Log.Error("web tool failed to open", ex);
-            await DisplayAlertAsync(capability.Value.Title, $"The web tool failed to open: {ex.Message}", "OK");
+            await DisplayAlertAsync(
+                capability.Value.Title,
+                LocalizationResourceManager.Instance.Format("Plugins_WebToolFailed", ex.Message),
+                LocalizationResourceManager.Instance["Common_Ok"]);
         }
     }
 
@@ -342,7 +356,7 @@ public sealed class PluginsPage : ContentPage
         var label = action.Group is { Length: > 0 } g ? $"{glyph}{g} · {action.Title}" : $"{glyph}{action.Title}";
         row.Add(new Label { Text = label, VerticalOptions = LayoutOptions.Center }, 0, 0);
 
-        var run = new Button { Text = "RUN" };
+        var run = new Button { Text = LocalizationResourceManager.Instance["Plugins_Run"] };
         run.Clicked += async (_, _) => await RunMenuActionAsync(capability);
         row.Add(run, 1, 0);
         return row;
@@ -361,7 +375,10 @@ public sealed class PluginsPage : ContentPage
         catch (Exception ex)
         {
             capability.Plugin.Host?.Log.Error("menu action failed", ex);
-            await DisplayAlertAsync(capability.Value.Title, $"The action failed: {ex.Message}", "OK");
+            await DisplayAlertAsync(
+                capability.Value.Title,
+                LocalizationResourceManager.Instance.Format("Plugins_ActionFailed", ex.Message),
+                LocalizationResourceManager.Instance["Common_Ok"]);
         }
     }
 
@@ -373,8 +390,10 @@ public sealed class PluginsPage : ContentPage
             var view = capability.Value.CreateView(context);
             if (view is not View mauiView)
             {
-                await DisplayAlertAsync(capability.Value.Title,
-                    "This tool returned a view the host could not display.", "OK");
+                await DisplayAlertAsync(
+                    capability.Value.Title,
+                    LocalizationResourceManager.Instance["Plugins_ToolViewUnsupported"],
+                    LocalizationResourceManager.Instance["Common_Ok"]);
                 return;
             }
 
@@ -383,7 +402,10 @@ public sealed class PluginsPage : ContentPage
         catch (Exception ex)
         {
             capability.Plugin.Host?.Log.Error("editor tool failed to open", ex);
-            await DisplayAlertAsync(capability.Value.Title, $"The tool failed to open: {ex.Message}", "OK");
+            await DisplayAlertAsync(
+                capability.Value.Title,
+                LocalizationResourceManager.Instance.Format("Plugins_ToolFailed", ex.Message),
+                LocalizationResourceManager.Instance["Common_Ok"]);
         }
     }
 }
@@ -401,7 +423,7 @@ internal sealed class PluginToolHostPage : ModalCleanupPage
         _toolView = toolView;
         _context = context as IDisposable;
 
-        var close = new Button { Text = "CLOSE", Margin = new Thickness(12) };
+        var close = new Button { Text = LocalizationResourceManager.Instance["Common_Close"], Margin = new Thickness(12) };
         close.Clicked += async (_, _) => await Navigation.PopModalAsync();
 
         Content = new Grid

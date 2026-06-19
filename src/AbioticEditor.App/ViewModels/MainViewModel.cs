@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using AbioticEditor.App.Services;
 using AbioticEditor.Core.Assets;
@@ -75,10 +76,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
             }
         }
 
-        AddGroup("WORLD STORY · METADATA", s => s.KindLabel == "META");
-        AddGroup("PLAYERS", s => s.KindLabel == "PLAYER", isPlayers: true);
-        AddGroup("WORLD REGIONS", s => s.KindLabel == "WORLD");
-        AddGroup("OTHER / ERRORS", s => s.KindLabel is not ("META" or "PLAYER" or "WORLD"));
+        AddGroup(LocalizationResourceManager.Instance["Main_GroupWorldStory"], s => s.KindLabel == "META");
+        AddGroup(LocalizationResourceManager.Instance["Main_GroupPlayers"], s => s.KindLabel == "PLAYER", isPlayers: true);
+        AddGroup(LocalizationResourceManager.Instance["Main_GroupWorldRegions"], s => s.KindLabel == "WORLD");
+        AddGroup(LocalizationResourceManager.Instance["Main_GroupOther"], s => s.KindLabel is not ("META" or "PLAYER" or "WORLD"));
     }
 
     private string _sidebarFilter = string.Empty;
@@ -145,8 +146,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         var playerDir = ResolvePlayerDataDir();
         if (playerDir is null)
         {
-            await DialogViewModel.Current.AlertAsync("Add player",
-                "Open a world's save folder first so the editor knows where to create the new player file.");
+            await DialogViewModel.Current.AlertAsync(
+                LocalizationResourceManager.Instance["Main_AddPlayerTitle"],
+                LocalizationResourceManager.Instance["Main_AddPlayerNeedFolder"]);
             return;
         }
 
@@ -158,23 +160,21 @@ public sealed class MainViewModel : INotifyPropertyChanged
         if (selectedPlayer is not null)
         {
             choice = await DialogViewModel.Current.ShowAsync(
-                "Add a player",
-                $"Build a new player save in this world.\n\nStart fresh, or copy “{selectedPlayer.DisplayName}” " +
-                "(keeps their inventory, skills and progress)?",
-                ("Cancel", DialogTone.Neutral),
-                ("New blank player", DialogTone.Primary),
-                ("Copy selected", DialogTone.Primary));
+                LocalizationResourceManager.Instance["Main_AddPlayerHeader"],
+                string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_AddPlayerCopyPrompt"], selectedPlayer.DisplayName),
+                (LocalizationResourceManager.Instance["Common_Cancel"], DialogTone.Neutral),
+                (LocalizationResourceManager.Instance["Main_AddPlayerNewBlank"], DialogTone.Primary),
+                (LocalizationResourceManager.Instance["Main_AddPlayerCopySelected"], DialogTone.Primary));
         }
         else
         {
             choice = await DialogViewModel.Current.ShowAsync(
-                "Add a player",
+                LocalizationResourceManager.Instance["Main_AddPlayerHeader"],
                 anyPlayers
-                    ? "Build a new blank player save in this world.\n\nTip: to copy an existing player instead, " +
-                      "select them in the list first, then press +."
-                    : "Build a new blank player save in this world.",
-                ("Cancel", DialogTone.Neutral),
-                ("New blank player", DialogTone.Primary));
+                    ? LocalizationResourceManager.Instance["Main_AddPlayerBlankTip"]
+                    : LocalizationResourceManager.Instance["Main_AddPlayerBlank"],
+                (LocalizationResourceManager.Instance["Common_Cancel"], DialogTone.Neutral),
+                (LocalizationResourceManager.Instance["Main_AddPlayerNewBlank"], DialogTone.Primary));
         }
         if (choice <= 0) return; // Cancel (0) or scrim-dismissed (-1).
         var copySelected = choice == 2;
@@ -208,13 +208,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
                     string.Equals(s.FullPath, newPath, StringComparison.OrdinalIgnoreCase));
             }
             StatusMessage = copySelected
-                ? $"Copied player to {Path.GetFileName(newPath)} - set their SteamID to {steamId}."
-                : $"Created blank player {Path.GetFileName(newPath)} (SteamID {steamId}).";
+                ? string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_PlayerCopied"], Path.GetFileName(newPath), steamId)
+                : string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_PlayerCreatedBlank"], Path.GetFileName(newPath), steamId);
         }
         catch (Exception ex)
         {
             EditorLog.Error("App", "Add player failed", ex);
-            await DialogViewModel.Current.AlertAsync("Couldn't add the player", ex.Message);
+            await DialogViewModel.Current.AlertAsync(
+                LocalizationResourceManager.Instance["Main_AddPlayerFailedTitle"], ex.Message);
         }
     }
 
@@ -250,28 +251,28 @@ public sealed class MainViewModel : INotifyPropertyChanged
         while (true)
         {
             var text = await DialogViewModel.Current.PromptAsync(
-                "New player id",
-                "Enter the new player's owner id. Usually a 17-digit SteamID64 (for example "
-                + "76561198000000000); for Game Pass / Epic saves enter the account folder id.",
+                LocalizationResourceManager.Instance["Main_NewPlayerIdTitle"],
+                LocalizationResourceManager.Instance["Main_NewPlayerIdMessage"],
                 placeholder: "76561198000000000",
                 initialValue: initial,
-                accept: "Create",
-                cancel: "Cancel");
+                accept: LocalizationResourceManager.Instance["Main_CreateButton"],
+                cancel: LocalizationResourceManager.Instance["Common_Cancel"]);
             if (text is null) return null;
 
             var trimmed = text.Trim();
             initial = trimmed;
             if (!Core.PlayerSaves.PlayerIdentifier.IsSafeFileToken(trimmed))
             {
-                await DialogViewModel.Current.AlertAsync("Invalid player id",
-                    "That isn't a valid id. Use letters, digits, '-', '_' or '.' (a Steam id looks like "
-                    + "76561198000000000).");
+                await DialogViewModel.Current.AlertAsync(
+                    LocalizationResourceManager.Instance["Main_InvalidPlayerIdTitle"],
+                    LocalizationResourceManager.Instance["Main_InvalidPlayerIdMessage"]);
                 continue;
             }
             if (File.Exists(Path.Combine(playerDir, $"Player_{trimmed}.sav")))
             {
-                await DialogViewModel.Current.AlertAsync("Already exists",
-                    $"Player_{trimmed}.sav already exists in this world. Choose a different id.");
+                await DialogViewModel.Current.AlertAsync(
+                    LocalizationResourceManager.Instance["Main_AlreadyExistsTitle"],
+                    string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_PlayerAlreadyExists"], trimmed));
                 continue;
             }
             return trimmed;
@@ -315,8 +316,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     /// <summary>"Logging to &lt;path&gt;" while enabled; off-state notes errors are still captured.</summary>
     public string LoggingStatusText => _diagnosticLoggingEnabled
-        ? $"Logging to {EditorLog.CurrentLogFilePath}"
-        : "Diagnostic logging off (errors still logged)";
+        ? string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_LoggingTo"], EditorLog.CurrentLogFilePath)
+        : LocalizationResourceManager.Instance["Main_LoggingOff"];
 
     /// <summary>
     /// Opens the log folder in the OS file manager (creating it if no log was written
@@ -339,12 +340,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
 #elif MACCATALYST
             System.Diagnostics.Process.Start("/usr/bin/open", $"\"{EditorLog.LogDirectory}\"");
 #else
-            StatusMessage = $"Log folder: {EditorLog.LogDirectory}";
+            StatusMessage = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_LogFolder"], EditorLog.LogDirectory);
 #endif
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Could not open the log folder: {ex.Message}";
+            StatusMessage = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_LogFolderOpenFailed"], ex.Message);
         }
     });
 
@@ -375,23 +376,22 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             var pick = await FilePicker.Default.PickAsync(new PickOptions
             {
-                PickerTitle = "Select a Mappings.usmap dumped from the game",
+                PickerTitle = LocalizationResourceManager.Instance["Main_PickMappingsTitle"],
                 FileTypes = UsmapFileType,
             });
             if (pick is null) return; // user cancelled
 
             var installed = Core.Assets.GameAssetProvider.InstallUserMappings(pick.FullPath);
             EditorLog.Info("App", $"User imported mappings: {pick.FullPath} -> {installed}");
-            StatusMessage = "New mappings installed - press RELOAD GAME DATA (or restart) to load them.";
+            StatusMessage = LocalizationResourceManager.Instance["Main_MappingsInstalledStatus"];
             await DialogViewModel.Current.AlertAsync(
-                "Mappings installed",
-                $"Installed to:\n{installed}\n\nPress RELOAD GAME DATA in Settings > Game Data to load them now, " +
-                "or restart the editor. Delete that file to fall back to the bundled mappings.");
+                LocalizationResourceManager.Instance["Main_MappingsInstalledTitle"],
+                string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_MappingsInstalledMessage"], installed));
         }
         catch (Exception ex)
         {
             EditorLog.Error("App", "Usmap import failed", ex);
-            StatusMessage = $"Mappings import failed: {ex.Message}";
+            StatusMessage = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_MappingsImportFailed"], ex.Message);
         }
     });
 
@@ -482,18 +482,20 @@ public sealed class MainViewModel : INotifyPropertyChanged
         if (string.IsNullOrWhiteSpace(deviceId)) return;
         try
         {
-            StatusMessage = "Searching the world's region saves for the plugged-in device...";
+            StatusMessage = LocalizationResourceManager.Instance["Main_DeviceSearching"];
             var index = await EnsureDeviceFolderIndexAsync();
             if (index is null || !index.TryGetValue(deviceId, out var info))
             {
-                StatusMessage =
-                    "Could not find the plugged-in device in any region save here - it may have been removed.";
+                StatusMessage = LocalizationResourceManager.Instance["Main_DeviceNotFound"];
                 return;
             }
             if (!info.IsContainer)
             {
-                var where = info.SourceFile is { } nf ? $" in {Path.GetFileName(nf)}" : string.Empty;
-                StatusMessage = $"The plugged-in device is a {info.FriendlyName}{where} - it has no inventory to open.";
+                var where = info.SourceFile is { } nf
+                    ? string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_DeviceInFile"], Path.GetFileName(nf))
+                    : string.Empty;
+                StatusMessage = string.Format(
+                    CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_DeviceNoInventory"], info.FriendlyName, where);
                 return;
             }
 
@@ -502,7 +504,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 && string.Equals(here.FilePath, f, StringComparison.OrdinalIgnoreCase))
             {
                 here.OpenContainerById(deviceId);
-                StatusMessage = $"Opened {info.FriendlyName}.";
+                StatusMessage = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_DeviceOpened"], info.FriendlyName);
                 return;
             }
 
@@ -511,8 +513,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 : null;
             if (target is null)
             {
-                var fileName = info.SourceFile is { } sf ? Path.GetFileName(sf) : "another save";
-                StatusMessage = $"The device is a {info.FriendlyName} in {fileName}, which isn't in the loaded folder.";
+                var fileName = info.SourceFile is { } sf
+                    ? Path.GetFileName(sf)
+                    : LocalizationResourceManager.Instance["Main_AnotherSave"];
+                StatusMessage = string.Format(
+                    CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_DeviceInOtherFolder"], info.FriendlyName, fileName);
                 return;
             }
 
@@ -523,12 +528,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
             if (ReferenceEquals(_loadedSave, target) && WorldEditor is { } we && we.OpenContainerById(deviceId))
             {
-                StatusMessage = $"Switched to {Path.GetFileName(target.FullPath)} and opened {info.FriendlyName}.";
+                StatusMessage = string.Format(
+                    CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_DeviceSwitchedAndOpened"],
+                    Path.GetFileName(target.FullPath), info.FriendlyName);
             }
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Could not navigate to the device: {ex.Message}";
+            StatusMessage = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_DeviceNavFailed"], ex.Message);
         }
     }
 
@@ -637,12 +644,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
             // In-app dialog: [Cancel, Discard changes, Save and continue].
             var choice = await DialogViewModel.Current.ShowAsync(
-                $"{dirtyName} has unsaved changes",
-                "You have staged edits that haven't been written to the save yet. " +
-                "Save them, discard them, or stay on this editor.",
-                ("Cancel", DialogTone.Neutral),
-                ("Discard changes", DialogTone.Danger),
-                ("Save and continue", DialogTone.Primary));
+                string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_UnsavedChangesTitle"], dirtyName),
+                LocalizationResourceManager.Instance["Main_UnsavedChangesMessage"],
+                (LocalizationResourceManager.Instance["Common_Cancel"], DialogTone.Neutral),
+                (LocalizationResourceManager.Instance["Main_DiscardChanges"], DialogTone.Danger),
+                (LocalizationResourceManager.Instance["Main_SaveAndContinue"], DialogTone.Primary));
 
             switch (choice)
             {
@@ -876,11 +882,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             var ownerLabel = bed.OwnerName is { Length: > 0 } n ? n : bed.OwnerId!;
             var confirmed = await DialogViewModel.Current.ConfirmAsync(
-                "Bed belongs to another player",
-                $"This bed is claimed by {ownerLabel}. Setting your spawn here reassigns the claim to this " +
-                $"player and leaves {ownerLabel} with NO claimed bed (they respawn at the fallback spawn).\n\n" +
-                "The world save is rewritten immediately (.bak kept). Continue?",
-                "REASSIGN BED", "Cancel", DialogTone.Danger);
+                LocalizationResourceManager.Instance["Main_BedOtherPlayerTitle"],
+                string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_BedOtherPlayerMessage"], ownerLabel),
+                LocalizationResourceManager.Instance["Main_ReassignBedButton"],
+                LocalizationResourceManager.Instance["Common_Cancel"], DialogTone.Danger);
             if (!confirmed) return;
         }
 
@@ -914,16 +919,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
                     _benchCache.Remove(facility);
                     await UpdateHomeBedAsync();
                     StatusMessage = claimedByOther
-                        ? $"Bed reassigned to {claimName} and spawn moved there (world save rewritten, .bak kept). Press SAVE to write the player's spawn point."
-                        : $"Bed claimed for {claimName} and spawn moved there (world save rewritten, .bak kept). Press SAVE to write the player's spawn point.";
+                        ? string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_BedReassigned"], claimName)
+                        : string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_BedClaimed"], claimName);
                     return;
                 }
-                StatusMessage = "Spawn moved, but the bed claim could not be rewritten (deployable not found in the Facility save).";
+                StatusMessage = LocalizationResourceManager.Instance["Main_BedClaimNotRewritten"];
                 return;
             }
         }
-        StatusMessage = $"Spawn moved to {bed.Label} - press SAVE to write it. " +
-            "Check the level picker matches the bed's region.";
+        StatusMessage = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_SpawnMoved"], bed.Label);
     }
 
     /// <summary>Display name to embed in a bed claim for this player.</summary>
@@ -934,7 +938,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         if (fromSidebar is not null) return fromSidebar;
         return SteamPersonaIndex.LoadMachineAccounts().TryGetValue(ownerId, out var persona)
             ? persona
-            : "Player";
+            : LocalizationResourceManager.Instance["Main_DefaultPlayerName"];
     }
 
     // ---------- ground items near the player (INVENTORY tab pick-up) ----------
@@ -1023,8 +1027,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         if (target is null)
         {
             StatusMessage = hotbarOnly
-                ? "No empty hotbar slot - pets can only go in the hotbar or Companion slot."
-                : "No empty backpack slot - drop or move something first.";
+                ? LocalizationResourceManager.Instance["Main_NoEmptyHotbarSlot"]
+                : LocalizationResourceManager.Instance["Main_NoEmptyBackpackSlot"];
             return;
         }
 
@@ -1046,7 +1050,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
             if (index >= 0) pe.PendingGroundDrops.RemoveAt(index);
             NearbyGroundItems.Remove(option);
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasNearbyGroundItems)));
-            StatusMessage = $"{option.DisplayName} returned to slot {target.Index + 1} (drop cancelled).";
+            StatusMessage = string.Format(
+                CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_PickupDropCancelled"], option.DisplayName, target.Index + 1);
             return;
         }
 
@@ -1054,8 +1059,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         NearbyGroundItems.Remove(option);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasNearbyGroundItems)));
         EditorLog.Info("Pickup", $"Staged pick-up of {s.ItemId} ({option.Item.Id}) into slot {target.Index}.");
-        StatusMessage = $"{option.DisplayName} staged into slot {target.Index + 1}. " +
-            "SAVE writes the inventory and removes it from the ground (.bak kept).";
+        StatusMessage = string.Format(
+            CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_PickupStaged"], option.DisplayName, target.Index + 1);
     }
 
     private async Task UpdateHomeBedAsync()
@@ -1071,7 +1076,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         var deployables = await LoadWorldDeployablesAsync();
         if (deployables is null)
         {
-            HomeBedText = "No world save found next to this file - bed lookup unavailable.";
+            HomeBedText = LocalizationResourceManager.Instance["Main_BedLookupUnavailable"];
             return;
         }
 
@@ -1086,7 +1091,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             var home = bases.FirstOrDefault(bs => bs.Deployables.Contains(b));
             var option = new BedOption(b.Id,
-                $"{b.DisplayName} - {home?.Name ?? "outside any base"} ({b.X:F0}, {b.Y:F0})",
+                string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_BedLabel"],
+                    b.DisplayName, home?.Name ?? LocalizationResourceManager.Instance["Main_OutsideAnyBase"],
+                    b.X.ToString("F0", CultureInfo.CurrentCulture), b.Y.ToString("F0", CultureInfo.CurrentCulture)),
                 b.X, b.Y, b.Z, b.OwnerId, b.OwnerName);
             BedOptions.Add(option);
             if (b.OwnerId == ownerId) mine ??= option;
@@ -1097,13 +1104,17 @@ public sealed class MainViewModel : INotifyPropertyChanged
             d.IsBed && d.OwnerId is { Length: > 0 } owner && owner == ownerId);
         if (bed is null)
         {
-            HomeBedText = "No claimed bed found in this world (respawns at the fallback spawn).";
+            HomeBedText = LocalizationResourceManager.Instance["Main_NoClaimedBed"];
             return;
         }
 
         var bedBase = bases.FirstOrDefault(b => b.Deployables.Contains(bed));
-        HomeBedText = $"{bed.FriendlyClass} - {bedBase?.Name ?? "outside any base"} ({bed.X:F0}, {bed.Y:F0})"
-            + (bed.OwnerName is { } n ? $" · claimed by {n}" : string.Empty);
+        HomeBedText = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_BedLabel"],
+                bed.FriendlyClass, bedBase?.Name ?? LocalizationResourceManager.Instance["Main_OutsideAnyBase"],
+                bed.X.ToString("F0", CultureInfo.CurrentCulture), bed.Y.ToString("F0", CultureInfo.CurrentCulture))
+            + (bed.OwnerName is { } n
+                ? string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_BedClaimedBy"], n)
+                : string.Empty);
     }
 
     public WorldEditorViewModel? WorldEditor
@@ -1218,7 +1229,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             {
                 IniEditor = new IniEditorViewModel(next.File.FullPath, next.File.Kind);
                 EditorLog.Info("Ini", $"Opened {next.Name} ({next.File.FullPath}); {IniEditor.Sections.Count} section(s).");
-                StatusMessage = $"Editing {next.Name} - every save keeps a .bak of the previous file.";
+                StatusMessage = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_EditingIni"], next.Name);
                 break;
             }
             catch (InvalidOperationException ex) when (attempt == 0 && ex.Message.Contains("PlatformView"))
@@ -1230,7 +1241,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             catch (Exception ex)
             {
                 EditorLog.Error("Ini", $"Opening {next.File.FullPath} failed", ex);
-                StatusMessage = $"Could not open {next.Name}: {ex.Message}";
+                StatusMessage = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_IniOpenFailed"], next.Name, ex.Message);
                 break;
             }
         }
@@ -1323,20 +1334,20 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         get
         {
-            if (_gamePassSession is not null) return "GAME PASS";
+            if (_gamePassSession is not null) return LocalizationResourceManager.Instance["Main_BadgeGamePass"];
             if (FolderPath is null) return string.Empty;
             if (FolderPath.Contains($"{Path.DirectorySeparatorChar}Packages{Path.DirectorySeparatorChar}",
                     StringComparison.OrdinalIgnoreCase))
             {
-                return "GAME PASS";
+                return LocalizationResourceManager.Instance["Main_BadgeGamePass"];
             }
             var playerIds = Saves.Where(s => s.KindLabel == "PLAYER")
                 .Select(s => SteamPersonaIndex.IdFromPlayerPath(s.FullPath))
                 .Where(id => id is not null)
                 .ToList();
-            if (playerIds.Any(id => Core.PlayerSaves.PlayerIdentifier.IsSteamId(id))) return "STEAM";
-            if (Core.PlayerSaves.PlayerIdentifier.IsSteamId(AccountSegment(FolderPath))) return "STEAM";
-            return "UNKNOWN";
+            if (playerIds.Any(id => Core.PlayerSaves.PlayerIdentifier.IsSteamId(id))) return LocalizationResourceManager.Instance["Main_BadgeSteam"];
+            if (Core.PlayerSaves.PlayerIdentifier.IsSteamId(AccountSegment(FolderPath))) return LocalizationResourceManager.Instance["Main_BadgeSteam"];
+            return LocalizationResourceManager.Instance["Main_BadgeUnknown"];
         }
     }
 
@@ -1383,13 +1394,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
         catch (Exception ex)
         {
             EditorLog.Error("GamePass", $"Reading Game Pass folder {wgsFolder} failed", ex);
-            await DialogViewModel.Current.AlertAsync("Couldn't read the Game Pass save", ex.Message);
+            await DialogViewModel.Current.AlertAsync(
+                LocalizationResourceManager.Instance["Main_GpReadFailedTitle"], ex.Message);
             return;
         }
         if (container is null)
         {
-            await DialogViewModel.Current.AlertAsync("No worlds in this Game Pass save",
-                "That folder is an Xbox container store but holds no editable world saves.");
+            await DialogViewModel.Current.AlertAsync(
+                LocalizationResourceManager.Instance["Main_GpNoWorldsTitle"],
+                LocalizationResourceManager.Instance["Main_GpNoWorldsMessage"]);
             return;
         }
         await OpenGamePassContainerAsync(wgsFolder, container);
@@ -1411,14 +1424,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
             await LoadFolderAsync(dir);
             _gamePassSession = session;
             RaiseGamePassSessionChanged();
-            StatusMessage = $"Opened Game Pass world \"{session.WorldName}\". "
-                + "SAVE writes straight back into the Xbox container (a backup is kept).";
+            StatusMessage = string.Format(
+                CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_GpOpened"], session.WorldName);
             EditorLog.Info("GamePass", $"Opened container '{session.Container}' -> working copy {dir}");
         }
         catch (Exception ex)
         {
             EditorLog.Error("GamePass", "Open Game Pass world failed", ex);
-            await DialogViewModel.Current.AlertAsync("Couldn't open the Game Pass save", ex.Message);
+            await DialogViewModel.Current.AlertAsync(
+                LocalizationResourceManager.Instance["Main_GpOpenFailedTitle"], ex.Message);
         }
     }
 
@@ -1441,14 +1455,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             await Task.Run(() => session.Set.ApplyWorld(session.Container, session.WorkingDir));
             EditorLog.Info("GamePass", $"Saved into Game Pass container '{session.Container}'.");
-            StatusMessage = $"Saved into the Game Pass save for \"{session.WorldName}\" (backup kept).";
+            StatusMessage = string.Format(
+                CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_GpSaved"], session.WorldName);
         }
         catch (Exception ex)
         {
             EditorLog.Error("GamePass", "Packing the save into the Game Pass container failed", ex);
-            await DialogViewModel.Current.AlertAsync("Couldn't write the Game Pass save",
-                "Your edit was saved to the working copy, but packing it back into the Xbox container "
-                + $"failed: {ex.Message}");
+            await DialogViewModel.Current.AlertAsync(
+                LocalizationResourceManager.Instance["Main_GpWriteFailedTitle"],
+                string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_GpWriteFailedMessage"], ex.Message));
         }
     }
 
@@ -1604,7 +1619,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             editor.SelectedSlot = slot;
         }
-        StatusMessage = $"Selected {slot.DisplayName} (slot {slot.Index})";
+        StatusMessage = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_SlotSelected"], slot.DisplayName, slot.Index);
     }
 
     /// <summary>Sorts the backpack: occupied slots first, grouped by category then name.</summary>
@@ -1643,7 +1658,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 SlotSwap.ClearToEmpty(slot);
             }
         }
-        StatusMessage = $"Sorted {items.Count} stack(s) - press SAVE to write.";
+        StatusMessage = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_SortedStacks"], items.Count);
     }
 
     /// <summary>
@@ -1659,7 +1674,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         var slot = ActiveSlot;
         if (slot is null || slot.IsEmpty)
         {
-            StatusMessage = "Select an occupied slot first, then DROP places it on the ground.";
+            StatusMessage = LocalizationResourceManager.Instance["Main_DropSelectFirst"];
             return;
         }
         if (PlayerEditor is not { } pe)
@@ -1678,7 +1693,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         string? targetFile = null;
         if (worldDir is not null && !(px == 0 && py == 0 && pz == 0))
         {
-            StatusMessage = $"Dropping {name}…";
+            StatusMessage = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_Dropping"], name);
             var candidates = new List<string>();
             if (pe.RespawnLevelFileName is { } level)
             {
@@ -1725,13 +1740,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
             NearbyGroundItems.Insert(0, new GroundItemOption(targetFile, stagedItem, 0) { IsStaged = true });
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasNearbyGroundItems)));
 
-            StatusMessage = $"Dropped {name} on the ground near you (shown in NEARBY GROUND ITEMS). "
-                + $"SAVE writes it into {Path.GetFileName(targetFile)} (.bak kept); REVERT undoes it.";
+            StatusMessage = string.Format(
+                CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_Dropped"], name, Path.GetFileName(targetFile));
         }
         else
         {
-            StatusMessage = $"Removed {name} (couldn't drop it into the world - this region has no "
-                + "existing ground item to clone the format from). Press SAVE to write.";
+            StatusMessage = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_DropRemovedNoTarget"], name);
         }
     }
 
@@ -1748,7 +1762,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         var recipe = GameDataServices.RecipesCrafting(slot.ItemId).FirstOrDefault();
         if (recipe is null || recipe.IngredientList.Count == 0)
         {
-            StatusMessage = $"{slot.DisplayName} has no crafting recipe - nothing to dismantle it into.";
+            StatusMessage = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_DismantleNoRecipe"], slot.DisplayName);
             return;
         }
 
@@ -1758,7 +1772,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         var needed = recipe.IngredientList.Count - (slotReusable ? 1 : 0);
         if (empties.Count < needed)
         {
-            StatusMessage = $"Dismantling needs {needed} empty slot(s) - only {empties.Count} available.";
+            StatusMessage = string.Format(
+                CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_DismantleNeedsSlots"], needed, empties.Count);
             return;
         }
 
@@ -1766,9 +1781,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
         var yield = string.Join("\n", recipe.IngredientList.Select(i =>
             $"  {i.Count}× {catalog?.Find(i.ItemId)?.DisplayName ?? i.ItemId}"));
         var destination = slot.HasRole
-            ? "All stacks go to empty backpack slots; this equipment slot is emptied."
-            : "The first stack replaces this slot; the rest fill empty slots in the same inventory.";
-        DismantlePreviewText = $"{slot.DisplayName} breaks down into:\n{yield}\n{destination}";
+            ? LocalizationResourceManager.Instance["Main_DismantleDestEquipment"]
+            : LocalizationResourceManager.Instance["Main_DismantleDestRegular"];
+        DismantlePreviewText = string.Format(
+            CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_DismantlePreview"], slot.DisplayName, yield, destination);
     }
 
     public void CancelDismantle() => DismantlePreviewText = null;
@@ -1796,7 +1812,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         var needed = recipe.IngredientList.Count - (slotReusable ? 1 : 0);
         if (empties.Count < needed)
         {
-            StatusMessage = $"Dismantling needs {needed} empty slot(s) - only {empties.Count} available.";
+            StatusMessage = string.Format(
+                CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_DismantleNeedsSlots"], needed, empties.Count);
             return;
         }
 
@@ -1823,7 +1840,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             SlotSwap.ClearToEmpty(slot);
         }
-        StatusMessage = $"Dismantled into {recipe.IngredientList.Count} ingredient stack(s).";
+        StatusMessage = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_Dismantled"], recipe.IngredientList.Count);
     }
 
     /// <summary>The inventory list the slot belongs to (for dismantle distribution).</summary>
@@ -1881,7 +1898,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _activeSlot.PlayerMadeString = _selectedBench.Id + ",";
         EditorLog.Info("Teleporter", $"Teleporter synced to {_selectedBench.Label} (bench id {_selectedBench.Id})");
         UpdateTeleporterSyncText();
-        StatusMessage = $"Teleporter synced to {_selectedBench.Label} - press SAVE to write it.";
+        StatusMessage = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_TeleporterSynced"], _selectedBench.Label);
     });
     private RelayCommand? _syncTeleporterCommand;
 
@@ -1891,7 +1908,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _activeSlot.PlayerMadeString = string.Empty;
         EditorLog.Info("Teleporter", "Teleporter unsynced.");
         UpdateTeleporterSyncText();
-        StatusMessage = "Teleporter unsynced.";
+        StatusMessage = LocalizationResourceManager.Instance["Main_TeleporterUnsynced"];
     });
     private RelayCommand? _unsyncTeleporterCommand;
 
@@ -1901,7 +1918,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         BenchOptions.Clear();
         if (deployables is null)
         {
-            TeleporterSyncText = "No world save found next to this file - bench list unavailable.";
+            TeleporterSyncText = LocalizationResourceManager.Instance["Main_BenchListUnavailable"];
             return;
         }
 
@@ -1910,7 +1927,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         foreach (var bench in deployables.Where(d => d.IsCraftingBench))
         {
             var home = bases.FirstOrDefault(b => b.Deployables.Contains(bench));
-            var label = $"{bench.DisplayName} - {home?.Name ?? "unclustered"} ({bench.X:F0}, {bench.Y:F0})";
+            var label = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_BenchLabel"],
+                bench.DisplayName, home?.Name ?? LocalizationResourceManager.Instance["Main_Unclustered"],
+                bench.X.ToString("F0", CultureInfo.CurrentCulture), bench.Y.ToString("F0", CultureInfo.CurrentCulture));
             BenchOptions.Add(new BenchOption(bench.Id, label));
         }
         UpdateTeleporterSyncText();
@@ -2027,7 +2046,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             return cached;
         }
 
-        TeleporterSyncText = "Loading world benches (parsing the Facility save)…";
+        TeleporterSyncText = LocalizationResourceManager.Instance["Main_LoadingBenches"];
         var result = await Task.Run(() =>
         {
             try
@@ -2067,7 +2086,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         var raw = _activeSlot?.PlayerMadeString;
         if (string.IsNullOrWhiteSpace(raw) || raw.Trim(',', ' ').Length == 0)
         {
-            TeleporterSyncText = "Not synced to any bench.";
+            TeleporterSyncText = LocalizationResourceManager.Instance["Main_NotSynced"];
             return;
         }
         var comma = raw.IndexOf(',');
@@ -2077,16 +2096,16 @@ public sealed class MainViewModel : INotifyPropertyChanged
         var match = BenchOptions.FirstOrDefault(b => string.Equals(b.Id, guid, StringComparison.OrdinalIgnoreCase));
         if (match is not null)
         {
-            TeleporterSyncText = $"Synced to: {match.Label}";
+            TeleporterSyncText = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_SyncedTo"], match.Label);
         }
         else if (embeddedName.Length > 0)
         {
-            TeleporterSyncText = $"Synced to: {embeddedName} (a bench in another region save).";
+            TeleporterSyncText = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_SyncedToOtherRegion"], embeddedName);
         }
         else
         {
             var shortId = guid.Length > 8 ? guid[..8] : guid;
-            TeleporterSyncText = $"Synced to bench {shortId}… (not found in the loaded saves - it may have been removed).";
+            TeleporterSyncText = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_SyncedToMissing"], shortId);
         }
     }
 
@@ -2197,9 +2216,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         if (!await Services.GameDataPrompt.FixAsync()) return;
         await ReloadGameDataAsync();
-        await DialogViewModel.Current.AlertAsync("Game data",
+        await DialogViewModel.Current.AlertAsync(
+            LocalizationResourceManager.Instance["Main_GameDataTitle"],
             GameDataServices.IsGameDataLoaded
-                ? "Game data loaded. Reopen your save to refresh item names, icons and traders."
+                ? LocalizationResourceManager.Instance["Main_GameDataLoaded"]
                 : GameDataServices.StatusMessage);
     });
 
@@ -2262,14 +2282,20 @@ public sealed class MainViewModel : INotifyPropertyChanged
         // TEMP DIAGNOSTIC (remove): after the auto-selected editor settles, dump dirty state.
         if (Environment.GetEnvironmentVariable("ABIOTIC_DIAG_DIRTY") is { Length: > 0 } diagPath)
         {
+            Core.Diagnostics.EditorLog.Enabled = true;
+            var openSpawn = Environment.GetEnvironmentVariable("ABIOTIC_DIAG_OPENSPAWN") is { Length: > 0 };
             _ = Task.Run(async () =>
             {
-                for (var i = 0; i < 12; i++)
+                for (var i = 0; i < 80; i++)
                 {
                     await Task.Delay(500);
+                    if (openSpawn && i == 6)
+                    {
+                        MainThread.BeginInvokeOnMainThread(() => PlayerEditor?.ShowSpawnCommand.Execute(null));
+                    }
                     try
                     {
-                        var line = $"[{i}] player={PlayerEditor is not null} dirty={PlayerEditor?.IsDirty} :: {PlayerEditor?.DescribeDirty()}\n";
+                        var line = $"[{i}] player={PlayerEditor is not null} dirty={PlayerEditor?.IsDirty} world={WorldEditor is not null} wdirty={WorldEditor?.IsDirty} :: {PlayerEditor?.DescribeDirty()}\n";
                         File.AppendAllText(diagPath, line);
                     }
                     catch { }
@@ -2287,18 +2313,18 @@ public sealed class MainViewModel : INotifyPropertyChanged
     /// </summary>
     public async Task<string?> ChangePlayerSteamIdAsync(string newIdText)
     {
-        if (PlayerEditor is not { } pe) return "No player save loaded.";
+        if (PlayerEditor is not { } pe) return LocalizationResourceManager.Instance["Main_NoPlayerLoaded"];
         var newId = newIdText?.Trim() ?? string.Empty;
         if (!Core.PlayerSaves.PlayerIdentifier.IsSafeFileToken(newId))
         {
-            return "Enter a valid id (a 17-digit SteamID64 like 76561198000000000, or any safe token "
-                + "for a non-Steam save).";
+            return LocalizationResourceManager.Instance["Main_ChangeIdInvalid"];
         }
 
         var oldPath = pe.FilePath;
         var dir = Path.GetDirectoryName(oldPath)!;
         var newPath = Path.Combine(dir, $"Player_{newId}.sav");
-        if (File.Exists(newPath)) return $"Player_{newId}.sav already exists in this folder.";
+        if (File.Exists(newPath))
+            return string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_ChangeIdFileExists"], newId);
         var oldId = SteamPersonaIndex.IdFromPlayerPath(oldPath);
 
         try
@@ -2309,7 +2335,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         catch (Exception ex)
         {
             EditorLog.Error("App", $"Player id change failed for {oldPath}", ex);
-            return $"Player id change failed: {ex.Message}";
+            return string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_ChangeIdFailed"], ex.Message);
         }
 
         // World data references the player too: bed claims embed the owner id. Player
@@ -2333,8 +2359,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 }
                 catch (InvalidOperationException ex)
                 {
-                    claimsNote = " Bed claims were NOT migrated (the old and new ids differ in length); "
-                        + "any beds claimed by the old id stay under the old id.";
+                    claimsNote = LocalizationResourceManager.Instance["Main_ChangeIdClaimsNotMigrated"];
                     EditorLog.Warn("CrossSave",
                         $"Bed-claim migration skipped for {from} -> {newId}: {ex.Message}");
                 }
@@ -2349,8 +2374,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 s.FullPath.EndsWith($"Player_{newId}.sav", StringComparison.OrdinalIgnoreCase));
         }
         StatusMessage = claims > 0
-            ? $"Player save now belongs to {newId}; {claims} bed claim(s) in the world saves were updated too (.bak kept per file)."
-            : $"Player save now belongs to {newId} (file renamed and SaveIdentifier rewritten).{(claimsNote.Length > 0 ? claimsNote : " No bed claims by the old id were found in the world saves.")}";
+            ? string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_ChangeIdDoneWithClaims"], newId, claims)
+            : string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_ChangeIdDone"], newId,
+                claimsNote.Length > 0 ? claimsNote : LocalizationResourceManager.Instance["Main_ChangeIdNoClaimsFound"]);
         return null;
     }
 
@@ -2388,7 +2414,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         Saves.Clear();
         SelectedSave = null;
         IsScanning = true;
-        StatusMessage = $"Scanning {folder}…";
+        StatusMessage = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_Scanning"], folder);
 
         try
         {
@@ -2401,13 +2427,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
             RaiseCurrentSaveTypeChanged();
             var failures = results.Count(r => r.LoadError is not null);
             StatusMessage = failures == 0
-                ? $"Loaded {results.Count} save(s)."
-                : $"Loaded {results.Count} save(s); {failures} failed to parse.";
+                ? string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_LoadedSaves"], results.Count)
+                : string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_LoadedSavesWithFailures"], results.Count, failures);
             _ = EnrichPlayerNamesAsync(folder);
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Scan failed: {ex.Message}";
+            StatusMessage = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_ScanFailed"], ex.Message);
         }
         finally
         {
@@ -2467,10 +2493,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
         if (dirtyName is not null)
         {
             var confirmed = await DialogViewModel.Current.ConfirmAsync(
-                $"Reload {dirtyName}?",
-                "Reloading re-reads the save from disk and discards the staged edits you " +
-                "haven't written yet. This cannot be undone.",
-                "DISCARD AND RELOAD", "Cancel", DialogTone.Danger);
+                string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_ReloadTitle"], dirtyName),
+                LocalizationResourceManager.Instance["Main_ReloadMessage"],
+                LocalizationResourceManager.Instance["Main_DiscardAndReloadButton"],
+                LocalizationResourceManager.Instance["Common_Cancel"], DialogTone.Danger);
             if (!confirmed) return;
             EditorLog.Info("App", $"User discarded staged changes to reload {dirtyName} from disk.");
         }
@@ -2539,7 +2565,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             if (token == _loadSequence)
             {
-                StatusMessage = $"Could not load save: {ex.Message}";
+                StatusMessage = string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_LoadSaveFailed"], ex.Message);
             }
         }
         finally
@@ -2600,14 +2626,17 @@ public sealed record GroundItemOption(string WorldFile, Core.WorldSaves.WorldDro
 
     public string DisplayName =>
         Services.GameDataServices.Catalog?.Find(Item.Slot.ItemId)?.DisplayName
-        ?? Item.Slot.ItemId ?? "(unknown item)";
+        ?? Item.Slot.ItemId ?? LocalizationResourceManager.Instance["Main_UnknownItem"];
 
     /// <summary>"3.4 m away · ×2 · WorldSave_Facility".</summary>
     public string Detail
     {
         get
         {
-            var parts = new List<string>(3) { $"{Distance / 100:0.0} m away" };
+            var parts = new List<string>(3)
+            {
+                string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_MetersAway"], (Distance / 100).ToString("0.0", CultureInfo.CurrentCulture)),
+            };
             if (Item.Slot.Count > 1) parts.Add($"×{Item.Slot.Count}");
             parts.Add(Path.GetFileNameWithoutExtension(WorldFile));
             return string.Join("  ·  ", parts);
@@ -2644,10 +2673,10 @@ public sealed record ConfigFileOption(Core.Ini.AbioticIniFile File)
 
     public string KindChip => File.Kind switch
     {
-        Core.Ini.AbioticIniKind.ServerAdmin => "ADMIN",
-        Core.Ini.AbioticIniKind.SandboxSettings => "SANDBOX",
-        Core.Ini.AbioticIniKind.ClientConfig => "CLIENT",
-        _ => "INI",
+        Core.Ini.AbioticIniKind.ServerAdmin => LocalizationResourceManager.Instance["Main_ChipAdmin"],
+        Core.Ini.AbioticIniKind.SandboxSettings => LocalizationResourceManager.Instance["Main_ChipSandbox"],
+        Core.Ini.AbioticIniKind.ClientConfig => LocalizationResourceManager.Instance["Main_ChipClient"],
+        _ => LocalizationResourceManager.Instance["Main_ChipIni"],
     };
 }
 
@@ -2667,12 +2696,13 @@ public sealed record DiscoveredWorldOption(Core.Saves.DiscoveredWorld World)
             var parts = new List<string>(3);
             if (World.LastPlayed > DateTime.MinValue)
             {
-                parts.Add($"Last played {World.LastPlayed:yyyy-MM-dd HH:mm}");
+                parts.Add(string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_LastPlayed"],
+                    World.LastPlayed.ToString("yyyy-MM-dd HH:mm", CultureInfo.CurrentCulture)));
             }
-            parts.Add($"{World.SaveFileCount} save file(s)");
+            parts.Add(string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_SaveFileCount"], World.SaveFileCount));
             if (World.AccountId is { } account)
             {
-                parts.Add($"account {account}");
+                parts.Add(string.Format(CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Main_Account"], account));
             }
             // For a Game Pass container the folder isn't obvious (a GUID path under XboxGames or
             // Packages), so show where it lives.
@@ -2685,10 +2715,10 @@ public sealed record DiscoveredWorldOption(Core.Saves.DiscoveredWorld World)
     }
 
     public string SourceHint => World.IsGamePassContainer
-        ? "Game Pass / Xbox container"
+        ? LocalizationResourceManager.Instance["Main_HintGamePass"]
         : World.Source == Core.Saves.DiscoveredWorldSource.Client
-            ? "Game client saves"
-            : "Dedicated server install";
+            ? LocalizationResourceManager.Instance["Main_HintClient"]
+            : LocalizationResourceManager.Instance["Main_HintServer"];
 
     public string FolderPath => World.FolderPath;
 }

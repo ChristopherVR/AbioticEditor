@@ -42,10 +42,9 @@ public static class GameDataPrompt
         var paks = AfInstallLocator.ResolvePaksDirectory(picked);
         if (paks is null)
         {
-            await DialogViewModel.Current.AlertAsync("No game data there",
-                $"Couldn't find Abiotic Factor's pak files under:\n{picked}\n\n"
-                    + "Pick the game's install folder (the one containing the AbioticFactor folder), "
-                    + "its AbioticFactor subfolder, or the Content\\Paks folder.");
+            await DialogViewModel.Current.AlertAsync(
+                LocalizationResourceManager.Instance["GameDataPrompt_NoGameDataTitle"],
+                LocalizationResourceManager.Instance.Format("GameDataPrompt_NoGameDataMessage", picked));
             return false;
         }
 
@@ -75,7 +74,7 @@ public static class GameDataPrompt
         {
             pick = await FilePicker.Default.PickAsync(new PickOptions
             {
-                PickerTitle = "Select a Mappings.usmap dumped from the game",
+                PickerTitle = LocalizationResourceManager.Instance["GameDataPrompt_PickUsmapTitle"],
                 FileTypes = UsmapFileType,
             });
         }
@@ -93,7 +92,8 @@ public static class GameDataPrompt
         }
         catch (Exception ex)
         {
-            await DialogViewModel.Current.AlertAsync("Couldn't import that file", ex.Message);
+            await DialogViewModel.Current.AlertAsync(
+                LocalizationResourceManager.Instance["GameDataPrompt_ImportFailedTitle"], ex.Message);
             return false;
         }
     }

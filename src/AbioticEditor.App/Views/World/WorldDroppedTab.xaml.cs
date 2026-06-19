@@ -23,6 +23,6 @@ public partial class WorldDroppedTab : ContentView
         dropped.Slot.EnsureIcon();
         vm.ActiveSlot = dropped.Slot;
         vm.ShowItemEncyclopedia(dropped.Slot.ItemId);
-        vm.StatusMessage = $"Inspecting dropped {dropped.DisplayName} - edit it in the sidebar (stage + SAVE).";
+        vm.StatusMessage = Services.LocalizationResourceManager.Instance.Format("WorldDropped_InspectingStatus", dropped.DisplayName);
     }
 }

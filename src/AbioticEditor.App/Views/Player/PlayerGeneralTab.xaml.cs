@@ -14,11 +14,10 @@ public partial class PlayerGeneralTab : ContentView
         var newId = SteamIdEntry.Text?.Trim() ?? string.Empty;
 
         var confirmed = await ViewUtils.ConfirmAsync(this,
-            "Change SteamID?",
-            $"This renames the save file to Player_{newId}.sav so the game loads it for that account. " +
-            "A .bak copy of the original is kept.\n\nWorld-side bed claims keyed by the old id are rewritten too, " +
-            "so the player keeps their claimed beds (each world save also keeps a .bak).",
-            "RENAME", "Cancel");
+            Services.LocalizationResourceManager.Instance["PlayerGeneral_ChangeSteamIdTitle"],
+            Services.LocalizationResourceManager.Instance.Format("PlayerGeneral_ChangeSteamIdMessage", newId),
+            Services.LocalizationResourceManager.Instance["PlayerGeneral_ChangeSteamIdConfirm"],
+            Services.LocalizationResourceManager.Instance["Common_Cancel"]);
         if (!confirmed) return;
 
         var error = await vm.ChangePlayerSteamIdAsync(newId);

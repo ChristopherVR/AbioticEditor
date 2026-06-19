@@ -17,12 +17,12 @@ public static class FolderPicking
             }
             else if (result.Exception is { } ex && !IsCancellation(ex))
             {
-                await ViewUtils.AlertAsync(host, "Folder picker failed", ex.Message);
+                await ViewUtils.AlertAsync(host, Services.LocalizationResourceManager.Instance["FolderPick_Failed"], ex.Message);
             }
         }
         catch (Exception ex) when (!IsCancellation(ex))
         {
-            await ViewUtils.AlertAsync(host, "Folder picker failed", ex.Message);
+            await ViewUtils.AlertAsync(host, Services.LocalizationResourceManager.Instance["FolderPick_Failed"], ex.Message);
         }
     }
 

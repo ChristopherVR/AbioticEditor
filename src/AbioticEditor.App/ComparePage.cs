@@ -33,7 +33,7 @@ public sealed class ComparePage : ContentPage
     public ComparePage(MainViewModel vm)
     {
         _vm = vm;
-        Title = "Compare";
+        Title = Services.LocalizationResourceManager.Instance["Compare_Title"];
         BackgroundColor = Res("AfPageBackground");
 
         // Default the first slot to whatever the editor currently has open / loaded.
@@ -51,23 +51,27 @@ public sealed class ComparePage : ContentPage
         var muted = Res("AfTextSecondary");
 
         var modeToggle = ModalChrome.Segmented(
-            new[] { "FILE vs FILE", "FOLDER vs FOLDER" },
+            new[]
+            {
+                Services.LocalizationResourceManager.Instance["Compare_ModeFileVsFile"],
+                Services.LocalizationResourceManager.Instance["Compare_ModeFolderVsFolder"],
+            },
             selected: _mode == CompareMode.Files ? 0 : 1,
             onChange: i => SetMode(i == 0 ? CompareMode.Files : CompareMode.Folders));
 
         _slotALabel = new Label { TextColor = muted, FontSize = 12, LineBreakMode = LineBreakMode.MiddleTruncation };
         _slotBLabel = new Label { TextColor = muted, FontSize = 12, LineBreakMode = LineBreakMode.MiddleTruncation };
 
-        var browseA = ModalChrome.Button("BROWSE…", primary: false);
+        var browseA = ModalChrome.Button(Services.LocalizationResourceManager.Instance["Compare_BrowseButton"], primary: false);
         browseA.Clicked += async (_, _) => await PickAsync(isA: true);
-        var browseB = ModalChrome.Button("BROWSE…", primary: false);
+        var browseB = ModalChrome.Button(Services.LocalizationResourceManager.Instance["Compare_BrowseButton"], primary: false);
         browseB.Clicked += async (_, _) => await PickAsync(isA: false);
 
         // Quick-pick from the saves already loaded in the editor (file mode only).
         var quickA = BuildQuickPicker(isA: true);
         var quickB = BuildQuickPicker(isA: false);
 
-        _compareButton = new Button { Text = "COMPARE" };
+        _compareButton = new Button { Text = Services.LocalizationResourceManager.Instance["Compare_CompareButton"] };
         _compareButton.Clicked += async (_, _) => await RunCompareAsync();
 
         _busy = new ActivityIndicator { IsRunning = false, IsVisible = false, Color = accent, HeightRequest = 22, VerticalOptions = LayoutOptions.Center };
@@ -77,28 +81,29 @@ public sealed class ComparePage : ContentPage
         // the scaffold body directly so each result is its own facility card.
         _resultsHost = new VerticalStackLayout { Spacing = 14 };
 
-        var modeCard = ModalChrome.Card("MODE",
-            "Two player saves get a readable, side-by-side summary (recipes, fish, skills…); any saves also expose the full raw property diff. Folder mode diffs a world against one of its backups.",
+        var modeCard = ModalChrome.Card(Services.LocalizationResourceManager.Instance["Compare_ModeCardHeader"],
+            Services.LocalizationResourceManager.Instance["Compare_ModeCardDescription"],
             modeToggle);
 
-        var sourcesCard = ModalChrome.Card("SOURCES", null,
-            ModalChrome.SubLabel("A  ·  first / old"),
+        var sourcesCard = ModalChrome.Card(Services.LocalizationResourceManager.Instance["Compare_SourcesCardHeader"], null,
+            ModalChrome.SubLabel(Services.LocalizationResourceManager.Instance["Compare_SourceALabel"]),
             new HorizontalStackLayout { Spacing = 10, Children = { quickA, browseA } },
             _slotALabel,
             new BoxView { HeightRequest = 6, Color = Colors.Transparent },
-            ModalChrome.SubLabel("B  ·  second / new"),
+            ModalChrome.SubLabel(Services.LocalizationResourceManager.Instance["Compare_SourceBLabel"]),
             new HorizontalStackLayout { Spacing = 10, Children = { quickB, browseB } },
             _slotBLabel);
 
-        var runCard = ModalChrome.Card("COMPARE", null,
+        var runCard = ModalChrome.Card(Services.LocalizationResourceManager.Instance["Compare_CompareCardHeader"], null,
             new HorizontalStackLayout { Spacing = 12, Children = { _compareButton, _busy } },
             _summaryLabel);
 
-        var close = ModalChrome.Button("CLOSE", primary: false);
+        var close = ModalChrome.Button(Services.LocalizationResourceManager.Instance["Common_Close"], primary: false);
         close.Clicked += async (_, _) => await Navigation.PopModalAsync();
 
         return ModalChrome.Scaffold(
-            "SAVE DIAGNOSTICS", "Compare Saves",
+            Services.LocalizationResourceManager.Instance["Compare_ScaffoldEyebrow"],
+            Services.LocalizationResourceManager.Instance["Compare_ScaffoldTitle"],
             new View[] { modeCard, sourcesCard, runCard, _resultsHost },
             ModalChrome.Footer(close),
             maxWidth: 980);
@@ -109,7 +114,7 @@ public sealed class ComparePage : ContentPage
     {
         var picker = new Picker
         {
-            Title = "Loaded saves…",
+            Title = Services.LocalizationResourceManager.Instance["Compare_QuickPickerTitle"],
             FontSize = 11,
             WidthRequest = 320,
             IsVisible = _mode == CompareMode.Files,
@@ -141,8 +146,8 @@ public sealed class ComparePage : ContentPage
 
     private void RefreshSlotLabels()
     {
-        _slotALabel.Text = _pathA is null ? "(nothing selected)" : _pathA;
-        _slotBLabel.Text = _pathB is null ? "(nothing selected)" : _pathB;
+        _slotALabel.Text = _pathA is null ? Services.LocalizationResourceManager.Instance["Compare_NothingSelected"] : _pathA;
+        _slotBLabel.Text = _pathB is null ? Services.LocalizationResourceManager.Instance["Compare_NothingSelected"] : _pathB;
     }
 
     private async Task PickAsync(bool isA)
@@ -163,7 +168,7 @@ public sealed class ComparePage : ContentPage
                     { DevicePlatform.WinUI, new[] { ".sav" } },
                     { DevicePlatform.MacCatalyst, new[] { "sav", "public.data" } },
                 });
-                var result = await FilePicker.PickAsync(new PickOptions { PickerTitle = "Pick a .sav file", FileTypes = savType });
+                var result = await FilePicker.PickAsync(new PickOptions { PickerTitle = Services.LocalizationResourceManager.Instance["Compare_PickFileTitle"], FileTypes = savType });
                 if (result is null) return;
                 picked = result.FullPath;
             }
@@ -173,7 +178,7 @@ public sealed class ComparePage : ContentPage
         }
         catch (Exception ex) when (!IsCancellation(ex))
         {
-            await ViewUtils.AlertAsync(this, "Picker failed", ex.Message);
+            await ViewUtils.AlertAsync(this, Services.LocalizationResourceManager.Instance["Compare_PickerFailedTitle"], ex.Message);
         }
     }
 
@@ -184,7 +189,7 @@ public sealed class ComparePage : ContentPage
     {
         if (string.IsNullOrEmpty(_pathA) || string.IsNullOrEmpty(_pathB))
         {
-            await ViewUtils.AlertAsync(this, "Pick two items", "Choose both A and B before comparing.");
+            await ViewUtils.AlertAsync(this, Services.LocalizationResourceManager.Instance["Compare_PickTwoTitle"], Services.LocalizationResourceManager.Instance["Compare_PickTwoMessage"]);
             return;
         }
 
@@ -210,7 +215,7 @@ public sealed class ComparePage : ContentPage
         }
         catch (Exception ex)
         {
-            await ViewUtils.AlertAsync(this, "Comparison failed", ex.Message);
+            await ViewUtils.AlertAsync(this, Services.LocalizationResourceManager.Instance["Compare_ComparisonFailedTitle"], ex.Message);
         }
         finally
         {
@@ -294,18 +299,18 @@ public sealed class ComparePage : ContentPage
             ? Res("AfTerminalGreen")
             : Res("AfTextPrimary");
         _summaryLabel.Text = diff.AreIdentical
-            ? "✓ The two saves are identical."
+            ? Services.LocalizationResourceManager.Instance["Compare_SummaryIdentical"]
             : diff.AreMeaningfullyIdentical
-                ? $"✓ No gameplay differences ({diff.NoiseCount} identity/clock/instance/position only)."
+                ? Services.LocalizationResourceManager.Instance.Format("Compare_SummaryNoGameplayDiff", diff.NoiseCount)
                 : $"{diff.MeaningfulSummary}.";
 
         if (diff.LeftSaveClass != diff.RightSaveClass)
         {
-            _resultsHost.Children.Add(Warn($"Save classes differ: A='{diff.LeftSaveClass}'  B='{diff.RightSaveClass}'."));
+            _resultsHost.Children.Add(Warn(Services.LocalizationResourceManager.Instance.Format("Compare_SaveClassesDiffer", diff.LeftSaveClass, diff.RightSaveClass)));
         }
         if (diff.Truncated)
         {
-            _resultsHost.Children.Add(Warn("Saves too large to flatten completely - some differences may be missing."));
+            _resultsHost.Children.Add(Warn(Services.LocalizationResourceManager.Instance["Compare_SavesTooLarge"]));
         }
 
         // Domain-aware, summary-first view when both saves are the same supported kind; the
@@ -314,8 +319,8 @@ public sealed class ComparePage : ContentPage
         {
             if (sem.Sections.Count == 0)
             {
-                _resultsHost.Children.Add(ModalChrome.Card($"{sem.Kind} SUMMARY",
-                    "No meaningful differences in the tracked categories."));
+                _resultsHost.Children.Add(ModalChrome.Card(Services.LocalizationResourceManager.Instance.Format("Compare_KindSummaryHeader", sem.Kind),
+                    Services.LocalizationResourceManager.Instance["Compare_NoMeaningfulDiff"]));
             }
             else
             {
@@ -374,21 +379,21 @@ public sealed class ComparePage : ContentPage
     /// </summary>
     private View BuildExportCard(Func<string> build, string suggestedFileName)
     {
-        var copy = ModalChrome.Button("COPY MARKDOWN", primary: false);
+        var copy = ModalChrome.Button(Services.LocalizationResourceManager.Instance["Compare_CopyMarkdownButton"], primary: false);
         copy.Clicked += async (_, _) =>
         {
             try
             {
                 await Clipboard.SetTextAsync(build());
-                await ViewUtils.AlertAsync(this, "Copied", "The comparison report was copied to the clipboard as Markdown.");
+                await ViewUtils.AlertAsync(this, Services.LocalizationResourceManager.Instance["Compare_CopiedTitle"], Services.LocalizationResourceManager.Instance["Compare_CopiedMessage"]);
             }
             catch (Exception ex)
             {
-                await ViewUtils.AlertAsync(this, "Export failed", ex.Message);
+                await ViewUtils.AlertAsync(this, Services.LocalizationResourceManager.Instance["Compare_ExportFailedTitle"], ex.Message);
             }
         };
 
-        var save = ModalChrome.Button("SAVE .md", primary: false);
+        var save = ModalChrome.Button(Services.LocalizationResourceManager.Instance["Compare_SaveMdButton"], primary: false);
         save.Clicked += async (_, _) =>
         {
             try
@@ -398,17 +403,17 @@ public sealed class ComparePage : ContentPage
                 var result = await FileSaver.SaveAsync(suggestedFileName, stream, CancellationToken.None);
                 if (result.IsSuccessful)
                 {
-                    await ViewUtils.AlertAsync(this, "Saved", $"Report written to:\n{result.FilePath}");
+                    await ViewUtils.AlertAsync(this, Services.LocalizationResourceManager.Instance["Compare_SavedTitle"], Services.LocalizationResourceManager.Instance.Format("Compare_SavedMessage", result.FilePath));
                 }
             }
             catch (Exception ex) when (!IsCancellation(ex))
             {
-                await ViewUtils.AlertAsync(this, "Export failed", ex.Message);
+                await ViewUtils.AlertAsync(this, Services.LocalizationResourceManager.Instance["Compare_ExportFailedTitle"], ex.Message);
             }
         };
 
-        return ModalChrome.Card("EXPORT",
-            "Copy the full comparison as a Markdown report, or save it to a .md file.",
+        return ModalChrome.Card(Services.LocalizationResourceManager.Instance["Compare_ExportCardHeader"],
+            Services.LocalizationResourceManager.Instance["Compare_ExportCardDescription"],
             new HorizontalStackLayout { Spacing = 12, Children = { copy, save } });
     }
 
@@ -425,7 +430,7 @@ public sealed class ComparePage : ContentPage
                 FontSize = 12,
             });
         }
-        return ModalChrome.Card("WHAT'S DIFFERENT", "A quick map of the categories that changed - details follow below.", rows.ToArray());
+        return ModalChrome.Card(Services.LocalizationResourceManager.Instance["Compare_WhatsDifferentHeader"], Services.LocalizationResourceManager.Instance["Compare_WhatsDifferentDescription"], rows.ToArray());
     }
 
     /// <summary>The raw property diff, collapsed by default behind a toggle, with a noise switch.</summary>
@@ -447,7 +452,7 @@ public sealed class ComparePage : ContentPage
                     noiseSwitch,
                     new Label
                     {
-                        Text = $"Show {diff.NoiseCount} identity / clock / instance / position difference(s)",
+                        Text = Services.LocalizationResourceManager.Instance.Format("Compare_ShowNoiseToggle", diff.NoiseCount),
                         FontSize = 11,
                         TextColor = Res("AfTextSecondary"),
                         VerticalOptions = LayoutOptions.Center,
@@ -458,16 +463,16 @@ public sealed class ComparePage : ContentPage
         Rebuild(false);
         content.Children.Add(listHost);
 
-        var toggle = ModalChrome.Button(startExpanded ? "HIDE RAW DIFFERENCES" : "SHOW RAW DIFFERENCES", primary: false);
+        var toggle = ModalChrome.Button(startExpanded ? Services.LocalizationResourceManager.Instance["Compare_HideRawDifferences"] : Services.LocalizationResourceManager.Instance["Compare_ShowRawDifferences"], primary: false);
         toggle.HorizontalOptions = LayoutOptions.Start;
         toggle.Clicked += (_, _) =>
         {
             content.IsVisible = !content.IsVisible;
-            toggle.Text = content.IsVisible ? "HIDE RAW DIFFERENCES" : "SHOW RAW DIFFERENCES";
+            toggle.Text = content.IsVisible ? Services.LocalizationResourceManager.Instance["Compare_HideRawDifferences"] : Services.LocalizationResourceManager.Instance["Compare_ShowRawDifferences"];
         };
 
-        return ModalChrome.Card("RAW PROPERTY DIFF",
-            $"Every property-level difference ({diff.MeaningfulCount} gameplay, {diff.NoiseCount} other). Deep-dive when the summary isn't enough.",
+        return ModalChrome.Card(Services.LocalizationResourceManager.Instance["Compare_RawPropertyDiffHeader"],
+            Services.LocalizationResourceManager.Instance.Format("Compare_RawPropertyDiffDescription", diff.MeaningfulCount, diff.NoiseCount),
             toggle, content);
     }
 
@@ -476,10 +481,9 @@ public sealed class ComparePage : ContentPage
         _summaryLabel.IsVisible = true;
         _summaryLabel.TextColor = folderDiff.AreIdentical ? Res("AfTerminalGreen") : Res("AfTextPrimary");
         _summaryLabel.Text = folderDiff.AreIdentical
-            ? "✓ The two folders are identical."
-            : $"{folderDiff.DifferingCount} differing · {folderDiff.IdenticalCount} identical · "
-              + $"{folderDiff.OnlyLeftCount} only in A · {folderDiff.OnlyRightCount} only in B"
-              + (folderDiff.ErrorCount > 0 ? $" · {folderDiff.ErrorCount} error(s)" : string.Empty);
+            ? Services.LocalizationResourceManager.Instance["Compare_FoldersIdentical"]
+            : Services.LocalizationResourceManager.Instance.Format("Compare_FolderSummary", folderDiff.DifferingCount, folderDiff.IdenticalCount, folderDiff.OnlyLeftCount, folderDiff.OnlyRightCount)
+              + (folderDiff.ErrorCount > 0 ? Services.LocalizationResourceManager.Instance.Format("Compare_FolderSummaryErrors", folderDiff.ErrorCount) : string.Empty);
 
         var rows = new ObservableCollection<FolderRow>(folderDiff.Files.Select(f => new FolderRow(f)));
         var list = new CollectionView
@@ -516,7 +520,7 @@ public sealed class ComparePage : ContentPage
 
         _resultsHost.Children.Add(new Label
         {
-            Text = "Tap a differing file to see its property differences.",
+            Text = Services.LocalizationResourceManager.Instance["Compare_TapDifferingFile"],
             FontSize = 11,
             TextColor = Res("AfTextSecondary"),
             Margin = new Thickness(0, 6, 0, 0),
@@ -628,7 +632,7 @@ internal sealed class DiffDetailPage : ContentPage
         Title = title;
         BackgroundColor = (Color)Application.Current!.Resources["AfPageBackground"];
 
-        var close = ModalChrome.Button("CLOSE", primary: false);
+        var close = ModalChrome.Button(Services.LocalizationResourceManager.Instance["Common_Close"], primary: false);
         close.Clicked += async (_, _) => await Navigation.PopModalAsync();
 
         var card = ModalChrome.Card(title.ToUpperInvariant(),
@@ -636,7 +640,7 @@ internal sealed class DiffDetailPage : ContentPage
             ComparePage.BuildDiffList(diff));
 
         Content = ModalChrome.Scaffold(
-            "FILE DIFFERENCES", title,
+            Services.LocalizationResourceManager.Instance["Compare_FileDifferencesEyebrow"], title,
             new View[] { card },
             ModalChrome.Footer(close),
             maxWidth: 980);

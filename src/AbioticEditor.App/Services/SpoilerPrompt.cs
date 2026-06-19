@@ -17,10 +17,10 @@ public static class SpoilerPrompt
         if (SpoilerService.IsRevealed(key)) return true;
 
         var ok = await ViewModels.DialogViewModel.Current.ConfirmAsync(
-            "OVERRIDE CLEARANCE?",
-            $"{what} is sealed above your current clearance because it may spoil content you "
-            + "haven't reached yet.\n\nReveal it anyway? It will stay visible from now on.",
-            "OVERRIDE", "KEEP SEALED");
+            LocalizationResourceManager.Instance["Spoiler_OverrideTitle"],
+            string.Format(System.Globalization.CultureInfo.CurrentCulture, LocalizationResourceManager.Instance["Spoiler_OverrideMessage"], what),
+            LocalizationResourceManager.Instance["Spoiler_OverrideAccept"],
+            LocalizationResourceManager.Instance["Spoiler_OverrideKeepSealed"]);
         if (ok) SpoilerService.Reveal(key);
         return ok;
     }

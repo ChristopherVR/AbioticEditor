@@ -264,8 +264,7 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
 
     public string OwnerIdNote => IsSteamSave
         ? string.Empty
-        : "Game Pass / non-Steam account - this id is locked here. To change it, use SAVE CONVERSION "
-            + "in Settings (it can re-home the player while converting).";
+        : LocalizationResourceManager.Instance["PlayerEditor_OwnerIdNote"];
 
     /// <summary>SteamID64 parsed from the <c>Player_&lt;id&gt;.sav</c> file name, or 0 for a
     /// non-Steam save. Used by the Steam-only paths (achievements, customization defaults).</summary>
@@ -457,7 +456,7 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
                 // by the in-game creator - label them instead of showing a blank.
                 var description = d?.Description
                     ?? (d is { AvailableOnStart: false }
-                        ? "(unused/cut trait - the game has no description or creator entry for it)"
+                        ? LocalizationResourceManager.Instance["PlayerEditor_CutTraitDescription"]
                         : null);
                 return new TraitBrowserRow(id, d?.DisplayName ?? TraitCatalog.DisplayNameFor(id), description, d?.PointCost ?? 0);
             })

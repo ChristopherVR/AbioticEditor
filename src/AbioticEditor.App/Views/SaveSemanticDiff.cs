@@ -26,8 +26,8 @@ internal sealed class SemanticSection
     public bool HasContent => Scalars.Count > 0 || OnlyA.Count > 0 || OnlyB.Count > 0;
 
     public string Summary => Scalars.Count > 0 && OnlyA.Count == 0 && OnlyB.Count == 0
-        ? $"{Scalars.Count} value(s) changed"
-        : $"{OnlyA.Count} only in A · {OnlyB.Count} only in B";
+        ? LocalizationResourceManager.Instance.Format("Diff_ValuesChanged", Scalars.Count)
+        : LocalizationResourceManager.Instance.Format("Diff_OnlyInAB", OnlyA.Count, OnlyB.Count);
 }
 
 /// <summary>
@@ -87,7 +87,9 @@ internal static class PlayerSemanticDiff
             if (la != lb)
             {
                 var name = skillNames.TryGetValue(i, out var n) ? n : $"Skill {i + 1}";
-                progression.Scalars.Add(new SemanticScalar(name, $"Lv {la}", $"Lv {lb}"));
+                progression.Scalars.Add(new SemanticScalar(name,
+                    LocalizationResourceManager.Instance.Format("Diff_Level", la),
+                    LocalizationResourceManager.Instance.Format("Diff_Level", lb)));
             }
         }
         AddIf(sections, progression);
@@ -160,15 +162,15 @@ internal static class PlayerSemanticDiff
     /// <summary>A one-line, human-readable description of an inventory slot's contents.</summary>
     private static string SlotText(InventoryItemSlot? slot, Func<string, SemanticItem> byItem)
     {
-        if (slot is null || slot.IsEmpty) return "(empty)";
+        if (slot is null || slot.IsEmpty) return LocalizationResourceManager.Instance["Diff_Empty"];
 
         var name = byItem(slot.ItemId!).DisplayName;
         var details = new List<string>();
         if (slot.Count > 1) details.Add($"x{slot.Count}");
-        if (slot.AmmoInMagazine > 0) details.Add($"{slot.AmmoInMagazine} ammo");
+        if (slot.AmmoInMagazine > 0) details.Add(LocalizationResourceManager.Instance.Format("Diff_Ammo", slot.AmmoInMagazine));
         if (slot.MaxDurability > 0)
         {
-            details.Add($"{Math.Round(slot.DurabilityPercent * 100)}% durability");
+            details.Add(LocalizationResourceManager.Instance.Format("Diff_Durability", Math.Round(slot.DurabilityPercent * 100)));
         }
         if (slot.LiquidLevel > 0 && !string.IsNullOrEmpty(slot.LiquidType))
         {
@@ -223,11 +225,11 @@ internal static class PlayerSemanticDiff
 
         if (section.OnlyA.Count > 0)
         {
-            body.Add(ChipGroup("ONLY IN A", section.OnlyA, Col("AfAlertRed")));
+            body.Add(ChipGroup(LocalizationResourceManager.Instance["Diff_OnlyInA"], section.OnlyA, Col("AfAlertRed")));
         }
         if (section.OnlyB.Count > 0)
         {
-            body.Add(ChipGroup("ONLY IN B", section.OnlyB, Col("AfTerminalGreen")));
+            body.Add(ChipGroup(LocalizationResourceManager.Instance["Diff_OnlyInB"], section.OnlyB, Col("AfTerminalGreen")));
         }
 
         return ModalChrome.Card(section.Title.ToUpperInvariant(), null, body.ToArray());
@@ -412,19 +414,19 @@ internal static class WorldSemanticDiff
     }
 
     private static string ChapterName(string? row)
-        => row is null ? "(none)" : StoryProgressionCatalog.Find(row)?.Title ?? row;
+        => row is null ? LocalizationResourceManager.Instance["Diff_None"] : StoryProgressionCatalog.Find(row)?.Title ?? row;
 
     private static string DoorState(WorldDoor d)
     {
         var parts = new List<string>();
         if (!string.IsNullOrEmpty(d.DoorState)) parts.Add(d.DoorState!);
-        if (d.OneWayUnlocked == true) parts.Add("one-way unlocked");
-        if (d.IsDoorOpen == true) parts.Add("open");
+        if (d.OneWayUnlocked == true) parts.Add(LocalizationResourceManager.Instance["Diff_DoorOneWayUnlocked"]);
+        if (d.IsDoorOpen == true) parts.Add(LocalizationResourceManager.Instance["Diff_DoorOpen"]);
         return parts.Count > 0 ? string.Join(", ", parts) : "-";
     }
 
     private static string NpcState(WorldNpc n)
-        => n.IsDead ? "dead" : string.IsNullOrEmpty(n.State) ? "alive" : n.State!;
+        => n.IsDead ? LocalizationResourceManager.Instance["Diff_NpcDead"] : string.IsNullOrEmpty(n.State) ? LocalizationResourceManager.Instance["Diff_NpcAlive"] : n.State!;
 
     private static string Short(string id)
     {

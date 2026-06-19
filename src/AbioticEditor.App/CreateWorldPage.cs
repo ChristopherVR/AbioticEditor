@@ -40,10 +40,12 @@ public sealed class CreateWorldPage : ContentPage
     private static byte[]? _metaTemplate;
     private static byte[]? _playerTemplate;
 
+    private static string L(string key) => Services.LocalizationResourceManager.Instance[key];
+
     public CreateWorldPage(MainViewModel vm)
     {
         _vm = vm;
-        Title = "Create New World";
+        Title = L("CreateWorld_Title");
         BackgroundColor = (Color)Application.Current!.Resources["AfPageBackground"];
         _machineAccounts = SteamPersonaIndex.LoadMachineAccounts();
 
@@ -72,10 +74,8 @@ public sealed class CreateWorldPage : ContentPage
     {
         var descriptions = new[]
         {
-            "Steam - a loose-file world folder (WorldSave_*.sav + PlayerData/Player_*.sav) under the "
-                + "Steam SaveGames tree. Players are owned by a 17-digit SteamID64.",
-            "Game Pass / Microsoft Store - an Xbox \"wgs\" container (the same saves packed into one "
-                + "Oodle-compressed bundle). Players are owned by an Xbox account id (XUID).",
+            L("CreateWorld_PlatformSteamDesc"),
+            L("CreateWorld_PlatformGamePassDesc"),
         };
 
         var descLabel = new Label
@@ -86,7 +86,7 @@ public sealed class CreateWorldPage : ContentPage
         };
 
         var segmented = ModalChrome.Segmented(
-            new[] { "STEAM", "GAME PASS" }, (int)_platform,
+            new[] { L("CreateWorld_SegSteam"), L("CreateWorld_SegGamePass") }, (int)_platform,
             idx =>
             {
                 var next = (SavePlatform)idx;
@@ -100,9 +100,8 @@ public sealed class CreateWorldPage : ContentPage
                 _saveLocation = DefaultSaveLocation();
             });
 
-        var card = ModalChrome.Card("PLATFORM",
-            "Which copy of the game is this world for? You can also add a copy for the other platform "
-            + "on the final step.",
+        var card = ModalChrome.Card(L("CreateWorld_PlatformCardTitle"),
+            L("CreateWorld_PlatformCardDesc"),
             segmented,
             descLabel);
 
@@ -110,14 +109,14 @@ public sealed class CreateWorldPage : ContentPage
             step: 1,
             cards: new View[] { card },
             back: null,
-            next: MakeNextBtn("NEXT: WORLD", () => Task.FromResult(true)));
+            next: MakeNextBtn(L("CreateWorld_NextWorld"), () => Task.FromResult(true)));
     }
 
     private View BuildStepWorld()
     {
         var nameEntry = new Entry
         {
-            Placeholder = "e.g. Cascade",
+            Placeholder = L("CreateWorld_WorldNamePlaceholder"),
             Text = _worldName,
             MaxLength = 64,
             ClearButtonVisibility = ClearButtonVisibility.WhileEditing,
@@ -126,13 +125,13 @@ public sealed class CreateWorldPage : ContentPage
 
         var locationEntry = new Entry
         {
-            Placeholder = "Save folder path",
+            Placeholder = L("CreateWorld_SaveFolderPlaceholder"),
             Text = _saveLocation,
             ClearButtonVisibility = ClearButtonVisibility.WhileEditing,
         };
         locationEntry.TextChanged += (_, e) => _saveLocation = e.NewTextValue?.Trim() ?? string.Empty;
 
-        var browseBtn = ModalChrome.Button("BROWSE", primary: false);
+        var browseBtn = ModalChrome.Button(L("CreateWorld_Browse"), primary: false);
         browseBtn.Clicked += async (_, _) =>
         {
             try
@@ -159,34 +158,33 @@ public sealed class CreateWorldPage : ContentPage
         locationRow.Add(locationEntry, 0, 0);
         locationRow.Add(browseBtn, 1, 0);
 
-        var worldCard = ModalChrome.Card("WORLD SETUP",
-            "Choose a name and the parent folder where the new world folder will be created.",
-            LabelRow("World name", nameEntry),
-            LabelRow("Save location", locationRow));
+        var worldCard = ModalChrome.Card(L("CreateWorld_WorldCardTitle"),
+            L("CreateWorld_WorldCardDesc"),
+            LabelRow(L("CreateWorld_WorldNameLabel"), nameEntry),
+            LabelRow(L("CreateWorld_SaveLocationLabel"), locationRow));
 
         return BuildScaffold(
             step: 2,
             cards: new View[] { worldCard },
             back: MakeBackBtn(() => { _step = 0; Rebuild(); }),
-            next: MakeNextBtn("NEXT: PLAYERS", async () =>
+            next: MakeNextBtn(L("CreateWorld_NextPlayers"), async () =>
             {
                 if (string.IsNullOrWhiteSpace(_worldName))
                 {
-                    await AlertAsync("World name required", "Please enter a name for the new world folder.");
+                    await AlertAsync(L("CreateWorld_WorldNameRequiredTitle"), L("CreateWorld_WorldNameRequiredMsg"));
                     return false;
                 }
                 if (string.IsNullOrWhiteSpace(_saveLocation) || !Directory.Exists(_saveLocation))
                 {
-                    await AlertAsync("Location not found",
-                        "The save location folder does not exist. Please choose an existing folder.");
+                    await AlertAsync(L("CreateWorld_LocationNotFoundTitle"),
+                        L("CreateWorld_LocationNotFoundMsg"));
                     return false;
                 }
                 var target = Path.Combine(_saveLocation, _worldName);
                 if (Directory.Exists(target) && Directory.EnumerateFileSystemEntries(target).Any())
                 {
-                    await AlertAsync("Already exists",
-                        $"A non-empty folder named '{_worldName}' already exists at that location. " +
-                        "Choose a different name or location.");
+                    await AlertAsync(L("CreateWorld_AlreadyExistsTitle"),
+                        Services.LocalizationResourceManager.Instance.Format("CreateWorld_AlreadyExistsMsg", _worldName));
                     return false;
                 }
                 return true;
@@ -213,40 +211,39 @@ public sealed class CreateWorldPage : ContentPage
 
         RebuildPlayerFields();
 
-        var accountWord = _platform == SavePlatform.GamePass ? "Xbox account id (XUID)" : "SteamID64";
-        var playersCard = ModalChrome.Card("PLAYERS",
-            $"Each player needs their own owner id. Pick a known account on this machine, or choose "
-            + $"\"Custom id...\" to type a {accountWord} in. You can add more players later via the + "
-            + "button in the sidebar.",
-            new View[] { LabelRow("Number of players", countSegment), playerFieldsStack });
+        var accountWord = _platform == SavePlatform.GamePass
+            ? L("CreateWorld_AccountWordXuid")
+            : L("CreateWorld_AccountWordSteam");
+        var playersCard = ModalChrome.Card(L("CreateWorld_PlayersCardTitle"),
+            Services.LocalizationResourceManager.Instance.Format("CreateWorld_PlayersCardDesc", accountWord),
+            new View[] { LabelRow(L("CreateWorld_NumberOfPlayers"), countSegment), playerFieldsStack });
 
         return BuildScaffold(
             step: 3,
             cards: new View[] { playersCard },
             back: MakeBackBtn(() => { _step = 1; Rebuild(); }),
-            next: MakeNextBtn("NEXT: DIFFICULTY", async () =>
+            next: MakeNextBtn(L("CreateWorld_NextDifficulty"), async () =>
             {
                 for (var i = 0; i < _playerCount; i++)
                 {
                     var id = _steamIds[i];
                     if (string.IsNullOrWhiteSpace(id))
                     {
-                        await AlertAsync("Player id needed",
-                            $"Player {i + 1}: pick an account or type a custom id before continuing.");
+                        await AlertAsync(L("CreateWorld_PlayerIdNeededTitle"),
+                            Services.LocalizationResourceManager.Instance.Format("CreateWorld_PlayerIdNeededMsg", i + 1));
                         return false;
                     }
                     if (!Core.PlayerSaves.PlayerIdentifier.IsSafeFileToken(id))
                     {
-                        await AlertAsync("That id can't be used",
-                            $"Player {i + 1}: \"{id}\" can't name a save file. Use letters, digits, "
-                            + "'-', '_' or '.' only (a SteamID64 looks like 76561198000000000).");
+                        await AlertAsync(L("CreateWorld_IdNotUsableTitle"),
+                            Services.LocalizationResourceManager.Instance.Format("CreateWorld_IdNotUsableMsg", i + 1, id));
                         return false;
                     }
                 }
                 var ids = Enumerable.Range(0, _playerCount).Select(i => _steamIds[i]).ToList();
                 if (ids.Distinct().Count() != ids.Count)
                 {
-                    await AlertAsync("Duplicate id", "Each player must have a unique owner id.");
+                    await AlertAsync(L("CreateWorld_DuplicateIdTitle"), L("CreateWorld_DuplicateIdMsg"));
                     return false;
                 }
                 return true;
@@ -261,21 +258,21 @@ public sealed class CreateWorldPage : ContentPage
     /// </summary>
     private View BuildPlayerRow(int idx)
     {
-        const string customOption = "Custom id...";
+        string customOption = L("CreateWorld_CustomIdOption");
         var current = _steamIds[idx] ?? string.Empty;
 
         var pickerItems = _accountOptions.Select(o => o.Label).Append(customOption).ToList();
         var picker = new Picker
         {
-            Title = "Choose an account",
+            Title = L("CreateWorld_ChooseAccount"),
             ItemsSource = pickerItems,
         };
 
         var customEntry = new Entry
         {
             Placeholder = _platform == SavePlatform.GamePass
-                ? "Xbox account id (XUID)"
-                : "SteamID64, e.g. 76561198000000000",
+                ? L("CreateWorld_CustomIdPlaceholderXuid")
+                : L("CreateWorld_CustomIdPlaceholderSteam"),
             Text = current,
             MaxLength = 64,
             ClearButtonVisibility = ClearButtonVisibility.WhileEditing,
@@ -311,17 +308,17 @@ public sealed class CreateWorldPage : ContentPage
         picker.SelectedIndex = matchIndex >= 0 ? matchIndex : _accountOptions.Count;
 
         var stack = new VerticalStackLayout { Spacing = 8, Children = { picker, customEntry } };
-        return LabelRow($"Player {idx + 1}", stack);
+        return LabelRow(Services.LocalizationResourceManager.Instance.Format("CreateWorld_PlayerN", idx + 1), stack);
     }
 
     private View BuildStepDifficulty()
     {
         var difficultyDescriptions = new[]
         {
-            "Casual - reduced enemy difficulty, boosted XP and item stacks. Perfect for exploring.",
-            "Normal - balanced challenge, the intended experience for most players.",
-            "Survival - harder enemies, natural item stacks, higher spawn rate.",
-            "Nightmare - maximum difficulty: reduced XP, heavy enemy damage, relentless spawns.",
+            L("CreateWorld_DiffCasualDesc"),
+            L("CreateWorld_DiffNormalDesc"),
+            L("CreateWorld_DiffSurvivalDesc"),
+            L("CreateWorld_DiffNightmareDesc"),
         };
 
         var descLabel = new Label
@@ -332,7 +329,13 @@ public sealed class CreateWorldPage : ContentPage
         };
 
         var segmented = ModalChrome.Segmented(
-            new[] { "CASUAL", "NORMAL", "SURVIVAL", "NIGHTMARE" },
+            new[]
+            {
+                L("CreateWorld_DiffCasual"),
+                L("CreateWorld_DiffNormal"),
+                L("CreateWorld_DiffSurvival"),
+                L("CreateWorld_DiffNightmare"),
+            },
             _difficulty - 1,
             idx =>
             {
@@ -340,8 +343,8 @@ public sealed class CreateWorldPage : ContentPage
                 descLabel.Text = difficultyDescriptions[idx];
             });
 
-        var diffCard = ModalChrome.Card("DIFFICULTY",
-            "Sets the GameDifficulty and related multipliers in SandboxSettings.ini. You can edit them in the Config tab after creation.",
+        var diffCard = ModalChrome.Card(L("CreateWorld_DifficultyCardTitle"),
+            L("CreateWorld_DifficultyCardDesc"),
             segmented,
             descLabel);
 
@@ -349,7 +352,7 @@ public sealed class CreateWorldPage : ContentPage
             step: 4,
             cards: new View[] { diffCard },
             back: MakeBackBtn(() => { _step = 2; Rebuild(); }),
-            next: MakeNextBtn("NEXT: REVIEW", () => Task.FromResult(true)));
+            next: MakeNextBtn(L("CreateWorld_NextReview"), () => Task.FromResult(true)));
     }
 
     private View BuildStepReview()
@@ -365,15 +368,15 @@ public sealed class CreateWorldPage : ContentPage
 
         var difficultyName = _difficulty switch
         {
-            1 => "Casual",
-            3 => "Survival",
-            4 => "Nightmare",
-            _ => "Normal",
+            1 => L("CreateWorld_DiffCasualName"),
+            3 => L("CreateWorld_DiffSurvivalName"),
+            4 => L("CreateWorld_DiffNightmareName"),
+            _ => L("CreateWorld_DiffNormalName"),
         };
 
         var worldPath = Path.Combine(_saveLocation, _worldName);
-        var primaryPlatform = _platform == SavePlatform.GamePass ? "Game Pass" : "Steam";
-        var otherPlatform = _platform == SavePlatform.GamePass ? "Steam" : "Game Pass";
+        var primaryPlatform = _platform == SavePlatform.GamePass ? L("CreateWorld_PlatformNameGamePass") : L("CreateWorld_PlatformNameSteam");
+        var otherPlatform = _platform == SavePlatform.GamePass ? L("CreateWorld_PlatformNameSteam") : L("CreateWorld_PlatformNameGamePass");
 
         var rows = new VerticalStackLayout { Spacing = 8 };
         void AddRow(string label, string value)
@@ -394,11 +397,11 @@ public sealed class CreateWorldPage : ContentPage
             rows.Children.Add(grid);
         }
 
-        AddRow("Platform", primaryPlatform);
-        AddRow("World name", _worldName);
-        AddRow("Location", worldPath);
-        AddRow("Players", string.Join("\n", playerIds));
-        AddRow("Difficulty", difficultyName);
+        AddRow(L("CreateWorld_ReviewPlatform"), primaryPlatform);
+        AddRow(L("CreateWorld_ReviewWorldName"), _worldName);
+        AddRow(L("CreateWorld_ReviewLocation"), worldPath);
+        AddRow(L("CreateWorld_ReviewPlayers"), string.Join("\n", playerIds));
+        AddRow(L("CreateWorld_ReviewDifficulty"), difficultyName);
 
         // Optional: also write the other platform's copy next to the primary one.
         var otherSwitch = new Switch { IsToggled = _alsoOtherPlatform };
@@ -414,19 +417,19 @@ public sealed class CreateWorldPage : ContentPage
         };
         otherRow.Add(new Label
         {
-            Text = $"Also write a {otherPlatform} copy next to it",
+            Text = Services.LocalizationResourceManager.Instance.Format("CreateWorld_AlsoWriteCopy", otherPlatform),
             Style = ModalChrome.St("AfFieldValue"),
             VerticalOptions = LayoutOptions.Center,
         }, 0, 0);
         otherRow.Add(otherSwitch, 1, 0);
 
         var statusLabel = new Label { IsVisible = false, Style = ModalChrome.St("AfMuted"), FontSize = 11 };
-        var createBtn = ModalChrome.Button("CREATE WORLD", primary: true);
+        var createBtn = ModalChrome.Button(L("CreateWorld_CreateWorld"), primary: true);
 
         createBtn.Clicked += async (_, _) => await CreateAsync(createBtn, statusLabel);
 
-        var reviewCard = ModalChrome.Card("REVIEW",
-            "Check the details below, then press CREATE WORLD.",
+        var reviewCard = ModalChrome.Card(L("CreateWorld_ReviewCardTitle"),
+            L("CreateWorld_ReviewCardDesc"),
             rows,
             otherRow,
             statusLabel);
@@ -445,7 +448,7 @@ public sealed class CreateWorldPage : ContentPage
     {
         createBtn.IsEnabled = false;
         statusLabel.IsVisible = true;
-        statusLabel.Text = "Creating world...";
+        statusLabel.Text = L("CreateWorld_StatusCreating");
 
         try
         {
@@ -473,7 +476,7 @@ public sealed class CreateWorldPage : ContentPage
             string? wgsDir = null;
             if (wantGamePass)
             {
-                statusLabel.Text = "Writing Game Pass container...";
+                statusLabel.Text = L("CreateWorld_StatusWritingContainer");
                 try
                 {
                     wgsDir = await Task.Run(() =>
@@ -496,29 +499,27 @@ public sealed class CreateWorldPage : ContentPage
             // WorldSave_MetaData.sav; the game writes each region/facility save on first visit.
             var openGamePass = primaryIsGamePass && wgsDir is not null;
             var openPath = openGamePass ? wgsDir! : worldDir;
-            var regionNote = "Only WorldSave_MetaData.sav exists yet - the game writes each "
-                + "region/facility save the first time you load the world and visit that area.";
+            var regionNote = L("CreateWorld_RegionNote");
 
             string status;
             if (primaryIsGamePass && wgsDir is null)
             {
-                status = $"Game Pass packing was skipped (see the log) - opened the Steam folder "
-                    + $"\"{Path.GetFileName(worldDir)}\" instead. {regionNote}";
+                status = Services.LocalizationResourceManager.Instance.Format("CreateWorld_StatusGamePassSkipped", Path.GetFileName(worldDir), regionNote);
             }
             else if (openGamePass)
             {
                 status = keepSteamFolder
-                    ? $"Created the world for both platforms. Opened the Game Pass container. {regionNote}"
-                    : $"Created the Game Pass world \"{_worldName}\". {regionNote}";
+                    ? Services.LocalizationResourceManager.Instance.Format("CreateWorld_StatusBothOpenedGamePass", regionNote)
+                    : Services.LocalizationResourceManager.Instance.Format("CreateWorld_StatusGamePassCreated", _worldName, regionNote);
             }
             else
             {
                 status = wgsDir is not null
-                    ? $"Created the world for both platforms (Steam folder + Game Pass container next to it). {regionNote}"
-                    : $"Created the Steam world \"{_worldName}\". {regionNote}";
+                    ? Services.LocalizationResourceManager.Instance.Format("CreateWorld_StatusBothCreated", regionNote)
+                    : Services.LocalizationResourceManager.Instance.Format("CreateWorld_StatusSteamCreated", _worldName, regionNote);
             }
 
-            statusLabel.Text = "World created. Loading...";
+            statusLabel.Text = L("CreateWorld_StatusLoading");
             await Navigation.PopModalAsync();
             await _vm.OpenCreatedWorldAsync(openPath, gamePass: openGamePass);
             _vm.StatusMessage = status;
@@ -526,7 +527,7 @@ public sealed class CreateWorldPage : ContentPage
         catch (Exception ex)
         {
             Core.Diagnostics.EditorLog.Error("CreateWorld", "World creation failed", ex);
-            statusLabel.Text = $"Failed: {ex.Message}";
+            statusLabel.Text = Services.LocalizationResourceManager.Instance.Format("CreateWorld_StatusFailed", ex.Message);
             createBtn.IsEnabled = true;
         }
     }
@@ -537,14 +538,14 @@ public sealed class CreateWorldPage : ContentPage
     {
         var progressLabel = new Label
         {
-            Text = $"STEP {step} OF {StepCount}",
+            Text = Services.LocalizationResourceManager.Instance.Format("CreateWorld_StepProgress", step, StepCount),
             Style = ModalChrome.St("AfFieldLabel"),
             TextColor = ModalChrome.Col("AfTextSecondary"),
             CharacterSpacing = 2,
             VerticalOptions = LayoutOptions.Center,
         };
 
-        var cancel = ModalChrome.Button("CANCEL", primary: false);
+        var cancel = ModalChrome.Button(L("CreateWorld_Cancel"), primary: false);
         cancel.Clicked += async (_, _) => await Navigation.PopModalAsync();
 
         var footerItems = new List<View> { progressLabel, cancel };
@@ -559,12 +560,12 @@ public sealed class CreateWorldPage : ContentPage
         }
         var footer = new Border { Style = ModalChrome.St("AfChrome"), Padding = new Thickness(20, 12), Content = footerRow };
 
-        return ModalChrome.Scaffold("NEW WORLD", "Create World", cards, footer, maxWidth: 580);
+        return ModalChrome.Scaffold(L("CreateWorld_Eyebrow"), L("CreateWorld_ScaffoldTitle"), cards, footer, maxWidth: 580);
     }
 
     private static Button MakeBackBtn(Action action)
     {
-        var btn = ModalChrome.Button("BACK", primary: false);
+        var btn = ModalChrome.Button(L("CreateWorld_Back"), primary: false);
         btn.Clicked += (_, _) => action();
         return btn;
     }
@@ -581,8 +582,10 @@ public sealed class CreateWorldPage : ContentPage
         return btn;
     }
 
+    // The in-app DialogHostView overlay lives on MainPage, behind this modal, so its alerts
+    // would render hidden underneath. Use the page's native alert, which draws on top of the modal.
     private Task AlertAsync(string title, string message)
-        => ViewUtils.AlertAsync(this, title, message);
+        => DisplayAlertAsync(title, message, "OK");
 
     // ---------- account options ----------
 
@@ -648,7 +651,23 @@ public sealed class CreateWorldPage : ContentPage
 
     // ---------- default save location ----------
 
+    /// <summary>
+    /// The default parent folder for the new world, per platform: the Game Pass container-store
+    /// area for a Game Pass world, or the Steam SaveGames tree for a Steam world. The two
+    /// platforms keep their saves in different places, so the default follows the chosen one.
+    /// </summary>
     private string DefaultSaveLocation()
+        => _platform == SavePlatform.GamePass ? DefaultGamePassLocation() : DefaultSteamLocation();
+
+    private static string DefaultGamePassLocation()
+    {
+        // Prefer this machine's Game Pass container-store (wgs) area so the new world lands in the
+        // platform's own save location; fall back to Documents when no Game Pass install is found.
+        var root = GamePassDiscovery.ContainerStoreRoots().FirstOrDefault(Directory.Exists);
+        return root ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+    }
+
+    private string DefaultSteamLocation()
     {
         // Try the first known Steam account's worlds directory.
         if (_machineAccounts.Count > 0)

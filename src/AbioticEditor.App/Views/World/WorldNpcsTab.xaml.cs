@@ -17,7 +17,7 @@ public partial class WorldNpcsTab : ContentView
         npc?.Revive();
         if (npc is not null)
         {
-            vm.StatusMessage = $"{npc.ActorName} revived - press SAVE to write. Story-scripted departures may reappear in-game.";
+            vm.StatusMessage = Services.LocalizationResourceManager.Instance.Format("WorldNpcs_RevivedStatus", npc.ActorName);
         }
     }
 }

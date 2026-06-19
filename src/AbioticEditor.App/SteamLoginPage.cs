@@ -33,14 +33,14 @@ public sealed class SteamLoginPage : ContentPage
 
     public SteamLoginPage()
     {
-        Title = "Steam sign-in";
+        Title = Services.LocalizationResourceManager.Instance["SteamLogin_Title"];
         BackgroundColor = (Color)Application.Current!.Resources["AfPageBackground"];
         var accent = (Color)Application.Current.Resources["AfAccentOrange"];
         var muted = (Color)Application.Current.Resources["AfTextSecondary"];
 
         _status = new Label { FontSize = 11, TextColor = muted, LineBreakMode = LineBreakMode.WordWrap };
 
-        var cancel = new Button { Text = "CANCEL", HorizontalOptions = LayoutOptions.End };
+        var cancel = new Button { Text = Services.LocalizationResourceManager.Instance["Common_Cancel"], HorizontalOptions = LayoutOptions.End };
         cancel.Clicked += async (_, _) => await FinishAsync(null);
 
         var grid = new Grid
@@ -58,7 +58,7 @@ public sealed class SteamLoginPage : ContentPage
         };
         grid.Add(new Label
         {
-            Text = "STEAM SIGN-IN",
+            Text = Services.LocalizationResourceManager.Instance["SteamLogin_Header"],
             FontFamily = "OpenSansSemibold",
             FontSize = 14,
             CharacterSpacing = 3,
@@ -66,9 +66,7 @@ public sealed class SteamLoginPage : ContentPage
         }, 0, 0);
         grid.Add(new Label
         {
-            Text = "Sign in on Steam's own page below - the editor never sees your password, "
-                 + "only the resulting session cookie, which stays on this device "
-                 + "(OS-protected storage) and is cleared by SIGN OUT.",
+            Text = Services.LocalizationResourceManager.Instance["SteamLogin_PrivacyNote"],
             FontSize = 11,
             TextColor = muted,
             LineBreakMode = LineBreakMode.WordWrap,
@@ -92,7 +90,7 @@ public sealed class SteamLoginPage : ContentPage
     private static View BuildLoginArea()
     {
         // In-app capture needs the WebView2 cookie API, which only exists on Windows.
-        var open = new Button { Text = "SIGN IN VIA SYSTEM BROWSER", HorizontalOptions = LayoutOptions.Center };
+        var open = new Button { Text = Services.LocalizationResourceManager.Instance["SteamLogin_SignInViaBrowser"], HorizontalOptions = LayoutOptions.Center };
         open.Clicked += async (_, _) => await Launcher.Default.OpenAsync(LoginUrl);
         return new VerticalStackLayout
         {
@@ -102,7 +100,7 @@ public sealed class SteamLoginPage : ContentPage
             {
                 new Label
                 {
-                    Text = "In-app Steam sign-in is currently Windows-only. Use your browser instead:",
+                    Text = Services.LocalizationResourceManager.Instance["SteamLogin_WindowsOnlyFallback"],
                     FontSize = 12,
                     HorizontalTextAlignment = TextAlignment.Center,
                     LineBreakMode = LineBreakMode.WordWrap,
@@ -153,8 +151,7 @@ public sealed class SteamLoginPage : ContentPage
         catch (Exception ex)
         {
             // E.g. the WebView2 runtime is missing or the cookie API is unavailable.
-            _status.Text = $"Could not read the sign-in session ({ex.Message}). "
-                         + "Cancel and use VIEW IN BROWSER as a fallback.";
+            _status.Text = Services.LocalizationResourceManager.Instance.Format("SteamLogin_SessionReadError", ex.Message);
         }
     }
 #endif
