@@ -14,17 +14,50 @@ namespace AbioticEditor.Core.Items;
 public sealed class ItemCatalog
 {
     private readonly IReadOnlyDictionary<string, ItemCatalogEntry> _byId;
+    private readonly IReadOnlyDictionary<string, string> _tableRefs;
 
-    private ItemCatalog(IReadOnlyDictionary<string, ItemCatalogEntry> byId)
+    private ItemCatalog(
+        IReadOnlyDictionary<string, ItemCatalogEntry> byId,
+        IReadOnlyDictionary<string, string> tableRefs)
     {
         _byId = byId;
+        _tableRefs = tableRefs;
     }
 
     public int Count => _byId.Count;
     public IEnumerable<ItemCatalogEntry> Entries => _byId.Values;
 
+    /// <summary>
+    /// Item id -> the DataTable object reference its row lives in (see <see cref="ItemTableIndex"/>).
+    /// Captured so the catalog can be serialized into the bundled registry and the writers still
+    /// resolve the right table when the game isn't installed.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> TableRefs => _tableRefs;
+
     public ItemCatalogEntry? Find(string? itemId)
         => itemId is not null && _byId.TryGetValue(itemId, out var entry) ? entry : null;
+
+    /// <summary>
+    /// Rebuilds the catalog from a previously-dumped registry (no game install needed) and
+    /// repopulates <see cref="ItemTableIndex"/> so the save writers resolve row tables exactly
+    /// as they would against a live install. Used by the offline/bundled-registry load path.
+    /// </summary>
+    public static ItemCatalog FromRegistry(
+        IReadOnlyList<ItemCatalogEntry> entries,
+        IReadOnlyDictionary<string, string> tableRefs)
+    {
+        var dict = new Dictionary<string, ItemCatalogEntry>(entries.Count, StringComparer.OrdinalIgnoreCase);
+        foreach (var e in entries)
+        {
+            if (!string.IsNullOrEmpty(e.Id)) dict[e.Id] = e;
+        }
+
+        var refs = new Dictionary<string, string>(tableRefs.Count, StringComparer.OrdinalIgnoreCase);
+        foreach (var kv in tableRefs) refs[kv.Key] = kv.Value;
+
+        ItemTableIndex.Set(refs);
+        return new ItemCatalog(dict, refs);
+    }
 
     private const string ItemsDir = "AbioticFactor/Content/Blueprints/Items/";
     private const string PrimaryTable = "AbioticFactor/Content/Blueprints/Items/ItemTable_Global";
@@ -137,7 +170,7 @@ public sealed class ItemCatalog
         }
 
         ItemTableIndex.Set(tableRefs);
-        return new ItemCatalog(dict);
+        return new ItemCatalog(dict, tableRefs);
     }
 
     /// <summary>

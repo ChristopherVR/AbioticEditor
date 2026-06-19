@@ -97,6 +97,17 @@
 		      CopyToOutputDirectory="PreserveNewest"
 		      CopyToPublishDirectory="PreserveNewest"
 		      ExcludeFromSingleFile="true" />
+
+		<!-- Bundled game-data registry: a dump of the game's data tables (see the CLI's
+		     dump-registry command) so catalogs work with no game installed. Copied into a
+		     registry\ subfolder next to the exe; a user-supplied %LOCALAPPDATA%\AbioticEditor\
+		     registry\registry.json takes precedence (see GameDataRegistry.LoadBundled). The
+		     glob matches nothing until the file is generated, so the build never fails on its
+		     absence. ExcludeFromSingleFile keeps it a swappable sidecar like the usmap. -->
+		<None Include="..\..\assets\registry\*.json" Link="registry\%(Filename)%(Extension)"
+		      CopyToOutputDirectory="PreserveNewest"
+		      CopyToPublishDirectory="PreserveNewest"
+		      ExcludeFromSingleFile="true" />
 	</ItemGroup>
 
 	<ItemGroup>

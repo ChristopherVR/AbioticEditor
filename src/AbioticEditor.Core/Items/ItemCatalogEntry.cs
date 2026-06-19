@@ -25,6 +25,7 @@ public sealed record ItemCatalogEntry(
     IReadOnlyList<int>? AllowedLiquids = null)
 {
     /// <summary>Liquid types this container accepts (E_LiquidType enumerator numbers).</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
     public IReadOnlyList<int> AllowedLiquidList => AllowedLiquids ?? Array.Empty<int>();
 
     /// <summary>

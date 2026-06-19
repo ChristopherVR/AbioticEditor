@@ -42,9 +42,20 @@ public static class GameDataServices
     /// <summary>
     /// True only once the game paks mounted AND usmap mappings loaded - the state every
     /// asset-backed catalog (traders, items, recipes, ...) needs to be non-empty. Drives
-    /// the editor's "game data not found" empty states.
+    /// the editor's "game data not found" empty states. Note this is about the <em>live</em>
+    /// install: it stays false when catalogs are served from the bundled registry (which has
+    /// data but no icons) - see <see cref="IsUsingBundledRegistry"/>.
     /// </summary>
     public static bool IsGameDataLoaded => _provider is { } p && p.HasMappings;
+
+    private static bool _usingRegistry;
+
+    /// <summary>
+    /// True when the game isn't usable live (not installed, or no mappings) but catalogs were
+    /// populated from the bundled <see cref="Core.Assets.GameDataRegistry"/> instead. Item names
+    /// and stats are available offline; icons are not (they still need the live install).
+    /// </summary>
+    public static bool IsUsingBundledRegistry => _usingRegistry;
 
     private static GameDataStatus _status = GameDataStatus.NotLoaded;
 
@@ -63,11 +74,18 @@ public static class GameDataServices
     {
         GameDataStatus.Ready => "Game data loaded.",
         GameDataStatus.InstallNotFound =>
-            "Abiotic Factor's data files were not found, so the item, recipe and lore catalogs "
-            + "are empty. Open Settings > Game Data and choose LOCATE GAME FOLDER to point the "
+            (_usingRegistry
+                ? "Abiotic Factor's data files weren't found, so the editor is using its bundled data "
+                  + "(item names and stats work, but icons need the game). "
+                : "Abiotic Factor's data files were not found, so the item, recipe and lore catalogs "
+                  + "are empty. ")
+            + "Open Settings > Game Data and choose LOCATE GAME FOLDER to point the "
             + "editor at your install (this works for non-Steam copies too).",
         GameDataStatus.MappingsMissing =>
-            "The game was found, but Mappings.usmap is missing so its data tables can't be read. "
+            (_usingRegistry
+                ? "The game was found but Mappings.usmap is missing, so the editor is using its bundled "
+                  + "data (item names and stats work, but icons need the game). "
+                : "The game was found, but Mappings.usmap is missing so its data tables can't be read. ")
             + "Keep Mappings.usmap next to the editor, or import one in Settings > Game Data.",
         GameDataStatus.LoadFailed =>
             "Game data failed to load. Turn on diagnostic logging in Settings and check the log "
@@ -232,10 +250,12 @@ public static class GameDataServices
             if (_provider is null)
             {
                 _status = GameDataStatus.InstallNotFound;
+                TryLoadRegistryFallback();
             }
             else if (!_provider.HasMappings)
             {
                 _status = GameDataStatus.MappingsMissing;
+                TryLoadRegistryFallback();
             }
             else
             {
@@ -285,6 +305,25 @@ public static class GameDataServices
         GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
     }
 
+    /// <summary>
+    /// Populates the catalogs the bundled <see cref="Core.Assets.GameDataRegistry"/> can provide
+    /// when the live install is unavailable (no game, or no mappings). Best-effort: a missing or
+    /// unreadable registry leaves the catalogs empty, exactly as before. Only the data tables come
+    /// from here - icons still need the live install, so <see cref="IsGameDataLoaded"/> stays false.
+    /// As more catalogs are added to the registry, populate them here too.
+    /// </summary>
+    private static void TryLoadRegistryFallback()
+    {
+        var registry = Core.Assets.GameDataRegistry.LoadBundled();
+        if (registry is null) return;
+
+        if (registry.Items is { Count: > 0 } items)
+        {
+            _catalog = ItemCatalog.FromRegistry(items, registry.ItemTableRefs ?? new Dictionary<string, string>());
+            _usingRegistry = true;
+        }
+    }
+
     /// <summary>Disposes the mounted provider and clears every cached catalog before a reload.</summary>
     private static void ResetState()
     {
@@ -308,6 +347,7 @@ public static class GameDataServices
         _craftedBy = null;
         _usedIn = null;
         _soldBy = null;
+        _usingRegistry = false;
         _loaded = false;
         _status = GameDataStatus.NotLoaded;
     }
