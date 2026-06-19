@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here.
 
+## [1.14.0] - 2026-06-19
+
+### Documentation
+- Record the UserEntitlements coverage gap and round-38 progress
+
+
+### Features
+- Per-mod enable/disable in Settings
+- Craft minimal region saves for unvisited regions
+
+
 ## [1.13.0] - 2026-06-19
 
 ### Build
