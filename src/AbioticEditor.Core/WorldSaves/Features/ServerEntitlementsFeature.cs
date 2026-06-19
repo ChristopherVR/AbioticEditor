@@ -15,6 +15,13 @@ namespace AbioticEditor.Core.WorldSaves.Features;
 /// as its own on/off toggle so the player can see all available grants at a glance; any entitlement
 /// already present that this build doesn't recognise is shown as an extra toggle too, so nothing is
 /// hidden or lost. The SteamID key is resolved to the player's Steam persona name where known.</para>
+///
+/// <para>The <see cref="Known"/> list (EarlyAccess, SupportersEdition) covers every ownership
+/// entitlement seen across the test fixtures; new ones still surface and round-trip via the dynamic
+/// "extra toggle" path above, so the editor never silently drops one. NOTE: the metadata save also
+/// carries a sibling map, <c>UserEntitlements</c>, keyed the same way but holding the player's
+/// recipe entitlements (hundreds of <c>recipe_*</c> tokens). That map is NOT yet surfaced by any
+/// feature - see docs/PROGRESS.md ("UserEntitlements") for the open follow-up.</para>
 /// </summary>
 public sealed class ServerEntitlementsFeature : WorldMapFeatureBase
 {

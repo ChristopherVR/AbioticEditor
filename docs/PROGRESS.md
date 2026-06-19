@@ -5,6 +5,30 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-38: fixtures regrouped by platform + minimal-region factory + warning hygiene (2026-06-19)
+- **Fixtures regrouped by platform** under `tests/fixtures/` (see the Fixtures bullet far below for
+  the full layout): `SteamSaves/` (`Config/Windows` + `SaveGames/<steamid>/Worlds` mirror the real
+  `Saved/` install; `Legacy/Cascade` is the older standalone world = `CascadeDir`), `GamePassSaves/`,
+  `DedicatedServerSaves/`. **Backups dropped entirely** (~847 MB -> ~205 MB); discovery already skips
+  `Backups/` by name, so no test relies on them. `Fixtures.cs` locators rewritten (with pre-regroup
+  fallbacks); stale path comments across tests/docs updated. Full suite green (573).
+- **`WorldSaveFactory.CreateMinimalRegion(worldDir, region)`**: crafts a minimal valid
+  `WorldSave_<region>.sav` for a region a save hasn't visited yet, so story / quest-flag edits that
+  reference it have a real world save to target. Templated from an **embedded** near-empty region
+  save (`Core/Resources/blank-region-template.sav`, a copy of the game's smallest region save), with
+  `SaveIdentifier` stamped to the region; no fixture/installed game needed. Refuses overwrite,
+  normalizes/validates the region token. CLI: `world add-region <world-dir> <region>`. Tests:
+  `WorldSaveFactoryTests` (round-trips through the reader, normalization, overwrite/unsafe-token).
+- **Entitlements review**: `ServerEntitlements` (EarlyAccess, SupportersEdition) is complete vs the
+  fixtures and already round-trips unknowns dynamically. **Follow-up - `UserEntitlements`**: the
+  metadata save carries a sibling map keyed by SteamID64 holding the player's recipe entitlements
+  (hundreds of `recipe_*` tokens); it is NOT surfaced by any feature yet. A `UserEntitlementsFeature`
+  (or generalizing `ServerEntitlementsFeature` over both maps) would close the gap - design how it
+  relates to existing `GlobalRecipes` / player recipe-unlock editing before building.
+- **Build hygiene**: silenced vendored-submodule warnings (CUE4Parse `CS8602/CS0169`, transitive
+  `NU1903` from Microsoft.Bcl.Memory) via `submodules/Directory.Build.targets` + `NuGetAuditMode=direct`
+  at the repo root, so `dotnet test` output is clean. Our `src/`/`tests/` keep full warnings + WoE.
+
 ## Round-37: mod support (mount mod paks + struct-based table discovery) (2026-06-19)
 - **The blocker was one line:** `GameAssetProvider.CreateForPaks` mounted with
   `SearchOption.TopDirectoryOnly`, so mod paks in `Content/Paks/~mods` and `LogicMods` never
