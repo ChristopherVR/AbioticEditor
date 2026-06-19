@@ -103,9 +103,12 @@ public static class AfInstallLocator
 
     /// <summary>
     /// Returns the absolute path to the AF install root (the directory containing
-    /// <c>AbioticFactor/</c> and <c>Engine/</c>), or null if not found.
+    /// <c>AbioticFactor/</c> and <c>Engine/</c>), or null if not found. Tries Steam first, then a
+    /// Game Pass / Microsoft Store install.
     /// </summary>
-    public static string? FindInstallRoot()
+    public static string? FindInstallRoot() => FindSteamInstallRoot() ?? FindGamePassInstallRoot();
+
+    private static string? FindSteamInstallRoot()
     {
         var steam = FindSteamInstallPath();
         if (steam is null)
@@ -122,6 +125,77 @@ public static class AfInstallLocator
             }
         }
         return null;
+    }
+
+    /// <summary>
+    /// Auto-detects a Game Pass / Microsoft Store install of Abiotic Factor. The Xbox app installs
+    /// PC games to <c>&lt;drive&gt;:\XboxGames\&lt;Game Name&gt;\Content\</c> (on any fixed drive the
+    /// user chose), where Content is the game's package root holding the UE
+    /// <c>AbioticFactor/Content/Paks</c> tree. Returns the root <see cref="ResolvePaksDirectory"/>
+    /// can resolve, or null. (The <c>C:\Program Files\WindowsApps</c> copy is ACL-locked and not
+    /// readable without elevation, so it is not used.)
+    /// </summary>
+    public static string? FindGamePassInstallRoot()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return null;
+        }
+
+        foreach (var drive in SafeFixedDrives())
+        {
+            var xboxGames = Path.Combine(drive, "XboxGames");
+            foreach (var game in SafeDirectories(xboxGames))
+            {
+                if (!Path.GetFileName(game).Contains("Abiotic", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+                foreach (var root in new[] { Path.Combine(game, "Content"), game })
+                {
+                    if (ResolvePaksDirectory(root) is not null)
+                    {
+                        return root;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static IEnumerable<string> SafeFixedDrives()
+    {
+        DriveInfo[] drives;
+        try
+        {
+            drives = DriveInfo.GetDrives();
+        }
+        catch
+        {
+            yield break;
+        }
+        foreach (var d in drives)
+        {
+            string? root = null;
+            try
+            {
+                if (d.DriveType == DriveType.Fixed && d.IsReady) root = d.RootDirectory.FullName;
+            }
+            catch { /* ignore unreadable drive */ }
+            if (root is not null) yield return root;
+        }
+    }
+
+    private static IEnumerable<string> SafeDirectories(string path)
+    {
+        try
+        {
+            return Directory.Exists(path) ? Directory.EnumerateDirectories(path) : Array.Empty<string>();
+        }
+        catch
+        {
+            return Array.Empty<string>();
+        }
     }
 
     /// <summary>The Steam client install directory, or null when Steam isn't installed.</summary>

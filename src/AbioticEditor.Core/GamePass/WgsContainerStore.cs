@@ -48,6 +48,24 @@ public sealed class WgsContainerStore
 
     public IReadOnlyList<WgsContainer> Containers { get; private set; } = Array.Empty<WgsContainer>();
 
+    /// <summary>The package family name recorded in the index (identifies the owning title).</summary>
+    public string PackageFamilyName { get; private set; } = string.Empty;
+
+    /// <summary>True when <paramref name="folder"/> is a wgs container store for Abiotic Factor
+    /// (the index names the Abiotic package). Cheap: reads only the index, no decompression.</summary>
+    public static bool IsAbioticContainerFolder(string folder)
+    {
+        if (!IsContainerFolder(folder)) return false;
+        try
+        {
+            return Open(folder).PackageFamilyName.Contains("Abiotic", StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private WgsContainerStore(string root) => _root = root;
 
     /// <summary>True when <paramref name="folder"/> directly contains a <c>containers.index</c>.</summary>
@@ -70,7 +88,7 @@ public sealed class WgsContainerStore
         _version = ReadU32(d, ref pos);
         var count = ReadU32(d, ref pos);
         _ = ReadU32(d, ref pos);            // reserved (0)
-        ReadWString(d, ref pos);            // package family name
+        PackageFamilyName = ReadWString(d, ref pos);
         pos += 8;                           // index FILETIME
         ReadU32(d, ref pos);                // constant (3)
         ReadWString(d, ref pos);            // root GUID string

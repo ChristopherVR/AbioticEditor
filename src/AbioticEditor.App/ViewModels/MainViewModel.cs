@@ -2258,6 +2258,24 @@ public sealed class MainViewModel : INotifyPropertyChanged
             SelectedSave = Saves.FirstOrDefault(s =>
                 s.FullPath.EndsWith(autoSelect, StringComparison.OrdinalIgnoreCase));
         }
+
+        // TEMP DIAGNOSTIC (remove): after the auto-selected editor settles, dump dirty state.
+        if (Environment.GetEnvironmentVariable("ABIOTIC_DIAG_DIRTY") is { Length: > 0 } diagPath)
+        {
+            _ = Task.Run(async () =>
+            {
+                for (var i = 0; i < 12; i++)
+                {
+                    await Task.Delay(500);
+                    try
+                    {
+                        var line = $"[{i}] player={PlayerEditor is not null} dirty={PlayerEditor?.IsDirty} :: {PlayerEditor?.DescribeDirty()}\n";
+                        File.AppendAllText(diagPath, line);
+                    }
+                    catch { }
+                }
+            });
+        }
     }
 
     /// <summary>
@@ -2655,6 +2673,12 @@ public sealed record DiscoveredWorldOption(Core.Saves.DiscoveredWorld World)
             if (World.AccountId is { } account)
             {
                 parts.Add($"account {account}");
+            }
+            // For a Game Pass container the folder isn't obvious (a GUID path under XboxGames or
+            // Packages), so show where it lives.
+            if (World.IsGamePassContainer)
+            {
+                parts.Add(World.FolderPath);
             }
             return string.Join("  ·  ", parts);
         }

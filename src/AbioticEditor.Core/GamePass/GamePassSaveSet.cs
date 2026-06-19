@@ -257,38 +257,30 @@ public sealed record DiscoveredGamePassSave(string FolderPath, string AccountId)
 }
 
 /// <summary>
-/// Finds Abiotic Factor's Game Pass / Microsoft Store saves: the packaged app stores them under
-/// <c>%LOCALAPPDATA%\Packages\&lt;PackageFamilyName&gt;\SystemAppData\wgs\&lt;XUID&gt;_&lt;...&gt;\</c>.
-/// The publisher-hash suffix of the package name varies, so any package whose name mentions Abiotic
-/// is searched. Never throws; inaccessible paths are skipped.
+/// Finds Abiotic Factor's Game Pass / Microsoft Store saves in the two places the Xbox "wgs"
+/// (Connected Storage) layout uses on PC:
+/// <list type="bullet">
+///   <item>the packaged-app redirect
+///     <c>%LOCALAPPDATA%\Packages\&lt;PackageFamilyName&gt;\SystemAppData\wgs\&lt;XUID&gt;_&lt;...&gt;\</c>
+///     (any package whose name mentions Abiotic, since the publisher hash varies), and</item>
+///   <item>the per-drive game-save store <c>&lt;drive&gt;:\XboxGames\GameSave\wgs\&lt;XUID&gt;_&lt;...&gt;\</c>
+///     which is shared across titles, so each container is checked for the Abiotic package name.</item>
+/// </list>
+/// Never throws; inaccessible paths are skipped.
 /// </summary>
 public static class GamePassDiscovery
 {
     public static IReadOnlyList<DiscoveredGamePassSave> DiscoverAll()
     {
         var results = new List<DiscoveredGamePassSave>();
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var packages = Path.Combine(localAppData, "Packages");
-        if (!Directory.Exists(packages)) return results;
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        IEnumerable<string> abioticPackages;
-        try
+        foreach (var wgs in WgsRoots())
         {
-            abioticPackages = Directory.EnumerateDirectories(packages)
-                .Where(p => Path.GetFileName(p).Contains("Abiotic", StringComparison.OrdinalIgnoreCase));
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            return results;
-        }
-
-        foreach (var package in abioticPackages)
-        {
-            var wgs = Path.Combine(package, "SystemAppData", "wgs");
-            if (!SafeExists(wgs)) continue;
             foreach (var accountDir in SafeDirs(wgs))
             {
-                if (!WgsContainerStore.IsContainerFolder(accountDir)) continue;
+                if (!seen.Add(Path.GetFullPath(accountDir))) continue;
+                if (!WgsContainerStore.IsAbioticContainerFolder(accountDir)) continue;
                 results.Add(new DiscoveredGamePassSave(
                     Path.GetFullPath(accountDir),
                     ParseAccountId(Path.GetFileName(accountDir)))
@@ -298,6 +290,41 @@ public static class GamePassDiscovery
             }
         }
         return results;
+    }
+
+    /// <summary>The wgs roots to scan for account folders, across both PC layouts and all drives.</summary>
+    private static IEnumerable<string> WgsRoots()
+    {
+        // 1. The packaged-app redirect under %LOCALAPPDATA%\Packages\<Abiotic package>\SystemAppData\wgs.
+        var packages = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Packages");
+        foreach (var package in SafeDirs(packages))
+        {
+            if (!Path.GetFileName(package).Contains("Abiotic", StringComparison.OrdinalIgnoreCase)) continue;
+            var wgs = Path.Combine(package, "SystemAppData", "wgs");
+            if (SafeExists(wgs)) yield return wgs;
+        }
+
+        // 2. The per-drive Xbox game-save store (shared across titles; filtered per container later).
+        foreach (var drive in FixedDriveRoots())
+        {
+            var wgs = Path.Combine(drive, "XboxGames", "GameSave", "wgs");
+            if (SafeExists(wgs)) yield return wgs;
+        }
+    }
+
+    private static IEnumerable<string> FixedDriveRoots()
+    {
+        DriveInfo[] drives;
+        try { drives = DriveInfo.GetDrives(); }
+        catch { yield break; }
+        foreach (var d in drives)
+        {
+            string? root = null;
+            try { if (d.DriveType == DriveType.Fixed && d.IsReady) root = d.RootDirectory.FullName; }
+            catch { /* skip */ }
+            if (root is not null) yield return root;
+        }
     }
 
     // wgs account folders are named "<XUID>_<TitleScid>"; the XUID is the part before the underscore.

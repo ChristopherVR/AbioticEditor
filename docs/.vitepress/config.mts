@@ -63,6 +63,7 @@ export default defineConfig({
           { text: 'Getting started', link: '/guide/getting-started' },
           { text: 'Desktop app', link: '/guide/desktop-app' },
           { text: 'Command-line tool', link: '/guide/cli' },
+          { text: 'Game Pass saves', link: '/guide/game-pass' },
         ],
       },
       {
