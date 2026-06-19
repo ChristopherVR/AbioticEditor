@@ -133,7 +133,7 @@ public sealed class GamePassSaveSet
         foreach (var entry in Entries().Where(e => e.ContainerName.Equals(containerName, StringComparison.OrdinalIgnoreCase) && e.IsEditable))
         {
             world = entry.WorldName;
-            var path = Path.Combine(destDir, RelativePathFor(entry));
+            var path = ResolveMemberPath(entry, destDir);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.WriteAllBytes(path, ReadSave(entry));
         }
@@ -152,7 +152,7 @@ public sealed class GamePassSaveSet
         var changed = 0;
         foreach (var entry in Entries().Where(e => e.ContainerName.Equals(containerName, StringComparison.OrdinalIgnoreCase) && e.IsEditable))
         {
-            var path = Path.Combine(srcDir, RelativePathFor(entry));
+            var path = ResolveMemberPath(entry, srcDir);
             if (!File.Exists(path)) continue;
             Member(entry).Body = GamePassMemberCodec.ToMemberBody(entry.SaveClass, File.ReadAllBytes(path));
             changed++;
@@ -161,10 +161,26 @@ public sealed class GamePassSaveSet
         return changed;
     }
 
-    private static string RelativePathFor(GamePassSaveEntry entry)
-        => entry.Kind == GamePassSaveKind.Player
+    /// <summary>
+    /// Builds the working-copy path for a member and validates it stays inside
+    /// <paramref name="baseDir"/>. The member's name comes from a bundle TOC path inside a save the
+    /// user opened, so it is untrusted; this guards against a crafted container writing outside the
+    /// working folder (zip-slip), on top of the leaf-only <see cref="GamePassSaveEntry.FileName"/>.
+    /// </summary>
+    private static string ResolveMemberPath(GamePassSaveEntry entry, string baseDir)
+    {
+        var relative = entry.Kind == GamePassSaveKind.Player
             ? Path.Combine("PlayerData", entry.FileName)
             : entry.FileName;
+        var root = Path.GetFullPath(baseDir);
+        var full = Path.GetFullPath(Path.Combine(root, relative));
+        if (!full.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"Game Pass member '{entry.FileName}' resolves outside the working directory - extraction aborted.");
+        }
+        return full;
+    }
 
     private void Repack(string containerName)
     {
