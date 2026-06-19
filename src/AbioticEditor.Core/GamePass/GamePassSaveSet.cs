@@ -275,20 +275,43 @@ public static class GamePassDiscovery
         var results = new List<DiscoveredGamePassSave>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var wgs in WgsRoots())
+        var roots = WgsRoots().ToList();
+        Diagnostics.EditorLog.Info("GamePass",
+            roots.Count == 0
+                ? "Discovery: no wgs container-store roots found on this machine."
+                : $"Discovery: scanning {roots.Count} wgs root(s): {string.Join(", ", roots)}");
+
+        foreach (var wgs in roots)
         {
             foreach (var accountDir in SafeDirs(wgs))
             {
                 if (!seen.Add(Path.GetFullPath(accountDir))) continue;
-                if (!WgsContainerStore.IsAbioticContainerFolder(accountDir)) continue;
+
+                // Log a verdict for every candidate so a remote dump shows exactly why a
+                // Game Pass save was or wasn't picked up (the checks below are otherwise silent).
+                var name = Path.GetFileName(accountDir);
+                if (!WgsContainerStore.IsContainerFolder(accountDir))
+                {
+                    Diagnostics.EditorLog.Info("GamePass",
+                        $"Discovery: '{name}' has no containers.index - skipped (not a container folder).");
+                    continue;
+                }
+                if (!WgsContainerStore.IsAbioticContainerFolder(accountDir))
+                {
+                    Diagnostics.EditorLog.Info("GamePass",
+                        $"Discovery: '{name}' has containers.index but is not an Abiotic Factor store - skipped.");
+                    continue;
+                }
+                Diagnostics.EditorLog.Info("GamePass", $"Discovery: accepted Abiotic wgs folder '{name}'.");
                 results.Add(new DiscoveredGamePassSave(
                     Path.GetFullPath(accountDir),
-                    ParseAccountId(Path.GetFileName(accountDir)))
+                    ParseAccountId(name))
                 {
                     LastModified = LastWrite(accountDir),
                 });
             }
         }
+        Diagnostics.EditorLog.Info("GamePass", $"Discovery: {results.Count} Abiotic wgs folder(s) found.");
         return results;
     }
 

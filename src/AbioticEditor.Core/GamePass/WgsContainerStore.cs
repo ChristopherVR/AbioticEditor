@@ -72,6 +72,41 @@ public sealed class WgsContainerStore
     public static bool IsContainerFolder(string folder)
         => File.Exists(Path.Combine(folder, IndexFileName));
 
+    /// <summary>
+    /// Maps a folder the user picked to the actual wgs container folder (the one holding
+    /// <c>containers.index</c>), tolerating the levels a Game Pass save tree invites a mis-click on:
+    /// the container folder itself, its <c>wgs</c> / account parent (the picked folder has a child
+    /// that is a container folder), or a GUID blob sub-folder (the picked folder's parent is the
+    /// container folder). Returns null when nothing nearby is a container folder. Best-effort: an
+    /// unreadable folder yields null rather than throwing.
+    /// </summary>
+    public static string? ResolveContainerFolder(string folder)
+    {
+        if (string.IsNullOrWhiteSpace(folder)) return null;
+        try
+        {
+            if (IsContainerFolder(folder)) return folder;
+
+            // Picked one level up (e.g. the "wgs" folder): a child is the account/container folder.
+            if (Directory.Exists(folder))
+            {
+                foreach (var child in Directory.EnumerateDirectories(folder))
+                {
+                    if (IsContainerFolder(child)) return child;
+                }
+            }
+
+            // Picked a GUID blob sub-folder: its parent is the container folder.
+            var parent = Directory.GetParent(folder)?.FullName;
+            if (parent is not null && IsContainerFolder(parent)) return parent;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Unreadable folder: treat as "not a container folder".
+        }
+        return null;
+    }
+
     public static WgsContainerStore Open(string folder)
     {
         var store = new WgsContainerStore(folder);

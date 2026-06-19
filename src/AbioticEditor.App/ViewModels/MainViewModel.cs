@@ -37,11 +37,19 @@ public sealed class MainViewModel : INotifyPropertyChanged
         EditorLog.Enabled = _diagnosticLoggingEnabled;
         if (_diagnosticLoggingEnabled)
         {
-            EditorLog.Info("App", $"Editor started. Log: {EditorLog.CurrentLogFilePath}");
+            EditorLog.Info("App", $"Editor started (v{SafeAppVersion()}). Log: {EditorLog.CurrentLogFilePath}");
         }
 
         // Progress-gate messages (blocked unlocks) land on the status line.
         Services.ProgressContext.Notify = msg => MainThread.BeginInvokeOnMainThread(() => StatusMessage = msg);
+    }
+
+    /// <summary>The MAUI display version, or "unknown" if it can't be read (keeps the
+    /// startup log line, which records the build for remote troubleshooting, from throwing).</summary>
+    private static string SafeAppVersion()
+    {
+        try { return AppInfo.Current.VersionString; }
+        catch { return "unknown"; }
     }
 
     /// <summary>
@@ -2386,9 +2394,16 @@ public sealed class MainViewModel : INotifyPropertyChanged
         // open it through the extract/apply working-copy flow instead of scanning. This is the single
         // chokepoint every entry point (Open Folder, drag-drop, discovery, restore) funnels through.
         // The working copy is a normal loose-file folder, so the recursive load below won't re-enter.
-        if (Core.GamePass.GamePassSaveSet.IsGamePassFolder(folder))
+        // Resolve a nearby container folder too: a Game Pass save tree makes it easy to pick the
+        // "wgs" parent or a GUID blob sub-folder, and a plain scan of either finds zero .sav files.
+        var container = Core.GamePass.WgsContainerStore.ResolveContainerFolder(folder);
+        if (container is not null)
         {
-            await OpenGamePassFolderAsync(folder);
+            if (!string.Equals(container, folder, StringComparison.OrdinalIgnoreCase))
+            {
+                EditorLog.Info("GamePass", $"Picked '{folder}' resolves to container folder '{container}'.");
+            }
+            await OpenGamePassFolderAsync(container);
             return;
         }
 

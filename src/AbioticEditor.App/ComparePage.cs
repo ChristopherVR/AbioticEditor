@@ -19,7 +19,10 @@ public sealed class ComparePage : ContentPage
     private enum CompareMode { Files, Folders }
 
     private readonly MainViewModel _vm;
-    private CompareMode _mode = CompareMode.Files;
+    // Default to folder-vs-folder: an Abiotic "save" is a folder (a world, a backup, or a wgs
+    // container), so picking a folder matches how the rest of the editor opens saves. File-vs-file
+    // is still available via the toggle for diffing two individual .sav files.
+    private CompareMode _mode = CompareMode.Folders;
     private string? _pathA;
     private string? _pathB;
 
@@ -36,8 +39,11 @@ public sealed class ComparePage : ContentPage
         Title = Services.LocalizationResourceManager.Instance["Compare_Title"];
         BackgroundColor = Res("AfPageBackground");
 
-        // Default the first slot to whatever the editor currently has open / loaded.
-        _pathA = _vm.SelectedSave?.FullPath ?? _vm.Saves.FirstOrDefault()?.FullPath;
+        // Default the first slot to whatever the editor currently has open / loaded: the open
+        // folder in folder mode, the selected save in file mode.
+        _pathA = _mode == CompareMode.Folders
+            ? _vm.FolderPath
+            : _vm.SelectedSave?.FullPath ?? _vm.Saves.FirstOrDefault()?.FullPath;
 
         Content = BuildContent();
         RefreshSlotLabels();

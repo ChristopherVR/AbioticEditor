@@ -66,6 +66,37 @@ public class GamePassTests
     }
 
     [Fact]
+    public void ResolveContainerFolder_finds_the_index_from_any_nearby_level()
+    {
+        var parent = Directory.CreateTempSubdirectory("wgs-resolve");
+        try
+        {
+            // The container folder (holds containers.index) sits one level under the picked parent,
+            // mirroring a real "<...>\wgs\<account>" tree where <account> holds the index.
+            var account = Path.Combine(parent.FullName, "00090000_ABCDEF");
+            Directory.CreateDirectory(account);
+            BuildSyntheticWgs(account, "W-WC", new byte[] { 1, 2, 3 });
+            var blobSubfolder = Directory.EnumerateDirectories(account)
+                .First(d => WgsContainerStore.IsContainerFolder(d) == false);
+
+            // Picked the container folder itself.
+            Assert.Equal(account, WgsContainerStore.ResolveContainerFolder(account));
+            // Picked the parent ("wgs"): a child is the container folder.
+            Assert.Equal(account, WgsContainerStore.ResolveContainerFolder(parent.FullName));
+            // Picked a GUID blob sub-folder: its parent is the container folder.
+            Assert.Equal(account, WgsContainerStore.ResolveContainerFolder(blobSubfolder));
+            // An unrelated folder resolves to nothing.
+            var unrelated = Path.Combine(parent.FullName, "nope");
+            Directory.CreateDirectory(unrelated);
+            Assert.Null(WgsContainerStore.ResolveContainerFolder(unrelated));
+        }
+        finally
+        {
+            parent.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
     public void AbfBundle_round_trips_through_oodle()
     {
         if (!OodleCodec.IsAvailable) return; // no native Oodle here - skip
