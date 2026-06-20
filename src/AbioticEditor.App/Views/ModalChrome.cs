@@ -73,7 +73,9 @@ internal static class ModalChrome
             Spacing = 14,
             Padding = new Thickness(24, 22, 24, 28),
             MaximumWidthRequest = contentMaxWidth,
-            HorizontalOptions = LayoutOptions.Start,
+            // Centred in the area to the right of the rail, so the cards aren't stranded
+            // against the sidebar with a wide empty gap on the right.
+            HorizontalOptions = LayoutOptions.Center,
             Children = { body },
         };
 

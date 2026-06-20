@@ -140,22 +140,9 @@ public sealed class SettingsPage : ContentPage
         var conversionCard = BuildSaveConversionCard();
 
         // ----- PLUGINS -----
-        var managePlugins = new Button { Text = loc["Settings_ManagePlugins"] };
-        managePlugins.Clicked += async (_, _) =>
-            await Navigation.PushModalAsync(new PluginsPage(_vm, _rebuildHost));
-        var pluginDescriptors = Services.PluginService.Descriptors;
-        var pluginCount = pluginDescriptors.Count;
-
-        var pluginToggles = new VerticalStackLayout { Spacing = 6 };
-        foreach (var d in pluginDescriptors)
-        {
-            pluginToggles.Children.Add(PluginRow(d));
-        }
-
-        var pluginsCard = ModalChrome.Card(loc["Settings_Plugins"],
-            loc.Format("Settings_PluginsHint", pluginCount),
-            pluginToggles,
-            new HorizontalStackLayout { Spacing = 10, Children = { managePlugins } });
+        // The full plugin management UI (installed list + toggles, save operations, tools)
+        // is rendered inline in this tab via the shared panel - no separate modal.
+        var pluginCards = new PluginsPanel(this, _vm).BuildCards().ToArray();
 
         // ----- UPDATES -----
         var updatesCard = BuildUpdatesCard();
@@ -167,7 +154,7 @@ public sealed class SettingsPage : ContentPage
             (loc["Settings_TabEditor"], new View[] { spoilerCard }),
             (loc["Settings_GameData"], new View[] { gameDataCard, modsCard }),
             (loc["Settings_TabConvert"], new View[] { conversionCard }),
-            (loc["Settings_Plugins"], new View[] { pluginsCard }),
+            (loc["Settings_Plugins"], pluginCards),
             (loc["Settings_TabUpdates"], new View[] { updatesCard }),
         };
 
@@ -691,41 +678,6 @@ public sealed class SettingsPage : ContentPage
             status,
             progressBar,
             new HorizontalStackLayout { Spacing = 10, Children = { checkButton, installButton, cancelButton } });
-    }
-
-    /// <summary>One enable/disable row for an installed plugin (name + state, right-aligned switch).</summary>
-    private View PluginRow(Core.Plugins.PluginDescriptor d)
-    {
-        var loc = Services.LocalizationResourceManager.Instance;
-        var sw = new Switch { IsToggled = d.Manifest.Enabled, VerticalOptions = LayoutOptions.Center };
-        sw.Toggled += async (_, e) =>
-        {
-            if (!d.SetEnabled(e.Value))
-            {
-                sw.IsToggled = d.Manifest.Enabled;
-                await this.AlertAsync(loc["Settings_Plugins"], loc["Settings_PluginManifestFailed"]);
-                return;
-            }
-            EditorLog.Info("Plugins", $"Plugin {(e.Value ? "enabled" : "disabled")}: {d.Manifest.Name}");
-            await this.AlertAsync(loc["Settings_Plugins"],
-                string.Format(System.Globalization.CultureInfo.CurrentCulture,
-                    e.Value ? loc["Settings_PluginEnabledMessage"] : loc["Settings_PluginDisabledMessage"],
-                    d.Manifest.Name));
-        };
-
-        var grid = new Grid
-        {
-            ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) },
-        };
-        grid.Add(new Label
-        {
-            Text = loc.Format("Settings_PluginRowLabel", d.Manifest.Name, d.State),
-            Style = ModalChrome.St("AfFieldValue"),
-            FontSize = 12,
-            VerticalOptions = LayoutOptions.Center,
-        }, 0, 0);
-        grid.Add(sw, 1, 0);
-        return grid;
     }
 
     private Button ThemeButton(string text, ThemeAccent accent)
