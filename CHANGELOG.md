@@ -2,10 +2,21 @@
 
 All notable changes to this project are documented here.
 
+## [1.14.5] - 2026-06-20
+
+### Miscellaneous Tasks
+- Point bucket at v1.14.4 [skip ci]
+
+
 ## [1.14.4] - 2026-06-20
 
 ### Bug Fixes
+- Refresh world discovery after creating a new world
 - Stop CLI build matrix legs from cancelling each other
+
+
+### Features
+- Vertical settings tabs, compare rework, modal dialog fixes
 
 
 ## [1.14.3] - 2026-06-20
