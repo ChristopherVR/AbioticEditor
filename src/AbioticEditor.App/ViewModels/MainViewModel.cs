@@ -1308,7 +1308,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
     /// instead of an empty page. A Game Pass result (<paramref name="gamePass"/>) is a wgs
     /// folder routed through the extract/apply working-copy flow; a Steam result is a loose
     /// folder loaded directly. Runs the leave-gate first (a dirty editor may sit behind the
-    /// modal that created the world).
+    /// modal that created the world). Refreshes the machine-wide discovery list last so the
+    /// new world shows under "save folders detected" when the user later returns home (the
+    /// list is otherwise only rebuilt at startup and on GoHome).
     /// </summary>
     public async Task OpenCreatedWorldAsync(string path, bool gamePass)
     {
@@ -1330,6 +1332,17 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             SelectedSave = meta;
         }
+        else
+        {
+            EditorLog.Warn("CreateWorld",
+                $"Created world opened but no metadata save was found under '{path}' "
+                + $"({Saves.Count} save(s) scanned); landed on the empty page.");
+        }
+
+        // Auto-detect the new world so the home page's discovery list is current even if the
+        // user navigates back (the create wizard doesn't go through GoHome, which is the only
+        // other place this is refreshed). Fire-and-forget: the editor is already open.
+        _ = DiscoverWorldsAsync();
     }
 
     // ---------- Game Pass (Xbox container) saves ----------
