@@ -16,7 +16,15 @@
     <!-- This is the surface third parties compile against; keep it pinned + discoverable. -->
     <AssemblyName>AbioticEditor.Plugins.Abstractions</AssemblyName>
     <RootNamespace>AbioticEditor.Plugins</RootNamespace>
-    <!-- Version comes from Directory.Build.props (<Version>, bumped by the release workflow). -->
+
+    <!-- Package version. Normally the shared product <Version> (Directory.Build.props, bumped by
+         the release workflow). The release's NuGet step overrides AbstractionsPackageVersion when
+         packing AbioticEditor.Core so Core's dependency on this SDK points at the LAST PUBLISHED
+         SDK version rather than the new product version. That lets an UNCHANGED SDK be skipped (not
+         republished) while Core still resolves a real, published dependency. Unset on a normal
+         build, so it just equals <Version> and nothing changes for the App/CLI/dev. -->
+    <AbstractionsPackageVersion Condition="'$(AbstractionsPackageVersion)' == ''">$(Version)</AbstractionsPackageVersion>
+    <Version>$(AbstractionsPackageVersion)</Version>
 
     <!-- NuGet package (published to nuget.org by .github/workflows/release.yml). -->
     <IsPackable>true</IsPackable>

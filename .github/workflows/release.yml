@@ -23,7 +23,10 @@ name: Release
 #      NEXUS_APP_FILE_ID variable; the job is skipped when either is absent).
 #   8. `nuget` packs AbioticEditor.Core + AbioticEditor.Plugins.Abstractions off
 #      the new tag and pushes them to nuget.org (needs the NUGET_API_KEY secret;
-#      the push step is skipped, not failed, when the secret is absent).
+#      the push step is skipped, not failed, when the secret is absent). Each library
+#      is only (re)packed when its sources changed since the last release (the version
+#      job's `detect` step), so an App/CLI-only release does not bump them; the job is
+#      skipped outright when neither changed.
 #
 # Loop safety: pushes made with the default GITHUB_TOKEN do not retrigger
 # workflows. The job-level `if` guard (skip on chore(release)/[skip ci]) is
@@ -123,6 +126,14 @@ jobs:
       # (an orphaned tag from a prior failed build/publish). The bump/commit/tag
       # steps are skipped in that case - only build+publish re-run.
       republish: ${{ steps.compute.outputs.republish }}
+      # Per-package NuGet decisions (see the `detect` step). "true"/"false" for a NEW
+      # release; EMPTY on a republish (detect is skipped), which the nuget job reads as
+      # "publish both". abstractions_dep_version is the SDK version Core's package should
+      # depend on (the new version when the SDK is republished, else the latest already on
+      # nuget.org so an unchanged SDK can be skipped while Core still resolves).
+      nuget_core: ${{ steps.detect.outputs.nuget_core }}
+      nuget_abstractions: ${{ steps.detect.outputs.nuget_abstractions }}
+      abstractions_dep_version: ${{ steps.detect.outputs.abstractions_dep_version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -188,6 +199,72 @@ jobs:
           echo "republish=false" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          # The previous release tag (empty on the very first release). The detect step
+          # below diffs prev_tag..HEAD to decide which library packages actually changed.
+          echo "prev_tag=$latest_tag" >> "$GITHUB_OUTPUT"
+
+      # Decide which library packages actually changed since the previous release, so the
+      # nuget job can skip republishing an unchanged package at a new version number. Runs
+      # BEFORE the version bump, so HEAD is still the triggering commit and the diff is
+      # exactly the commits being released (the about-to-be-made props bump is not in range,
+      # so Directory.Build.props does not falsely flag every release).
+      - name: Detect changed packages
+        id: detect
+        if: steps.compute.outputs.released == 'true' && steps.compute.outputs.republish != 'true'
+        env:
+          PREV_TAG: ${{ steps.compute.outputs.prev_tag }}
+          NEW_VER: ${{ steps.compute.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          # Default (first release, no prior tag): publish everything.
+          abs=true
+          core=true
+
+          if [ -n "$PREV_TAG" ]; then
+            files="$(git diff --name-only "${PREV_TAG}..HEAD")"
+            echo "Changed files since ${PREV_TAG}:"
+            echo "$files"
+
+            abs=false
+            core=false
+
+            # The SDK package (AbioticEditor.Plugins.Abstractions) bundles UeSaveGame and
+            # packs the shared README/notices; its metadata lives in Directory.Build.props.
+            # The submodule patterns use (/|$) so a bare gitlink pointer bump (shown by
+            # git diff as "submodules/UeSaveGame", no trailing slash) is caught too.
+            abs_paths='^(src/AbioticEditor\.Plugins\.Abstractions/|submodules/UeSaveGame(/|$)|README\.md|THIRD-PARTY-NOTICES\.txt|Directory\.Build\.props)'
+            if echo "$files" | grep -Eq "$abs_paths"; then abs=true; fi
+
+            # The Core package bundles UeSaveGame.Json + CUE4Parse, re-declares their NuGet
+            # deps from Directory.Packages.props, and compiles against the SDK (so any SDK
+            # change implies a Core rebuild too).
+            core_paths='^(src/AbioticEditor\.Core/|src/AbioticEditor\.Plugins\.Abstractions/|submodules/UeSaveGame(/|$)|submodules/CUE4Parse(/|$)|Directory\.Packages\.props|README\.md|THIRD-PARTY-NOTICES\.txt|Directory\.Build\.props)'
+            if echo "$files" | grep -Eq "$core_paths"; then core=true; fi
+            if [ "$abs" = "true" ]; then core=true; fi
+          fi
+
+          # The SDK version Core's package must depend on: the new version when the SDK is
+          # (re)published this release, otherwise the version already live on nuget.org (so an
+          # unchanged SDK is NOT republished yet Core still resolves a real dependency).
+          dep="$NEW_VER"
+          if [ "$abs" != "true" ]; then
+            latest_pub="$(curl -sS --max-time 20 \
+              'https://api.nuget.org/v3-flatcontainer/abioticeditor.plugins.abstractions/index.json' 2>/dev/null \
+              | grep -oE '"[0-9]+\.[0-9]+\.[0-9]+[^"]*"' | tr -d '"' | tail -n1 || true)"
+            if [ -n "$latest_pub" ]; then
+              dep="$latest_pub"
+            elif [ -n "${PREV_TAG#v}" ]; then
+              dep="${PREV_TAG#v}"
+            fi
+          fi
+
+          echo "Decision: nuget_abstractions=$abs nuget_core=$core abstractions_dep_version=$dep"
+          {
+            echo "nuget_abstractions=$abs"
+            echo "nuget_core=$core"
+            echo "abstractions_dep_version=$dep"
+          } >> "$GITHUB_OUTPUT"
 
       # The bump / changelog / commit / tag steps only apply to a NEW version. A
       # republish reuses the existing tag and its already-committed props bump.
@@ -766,9 +843,19 @@ jobs:
   # AbioticEditor.Core is the full engine. Both bundle their Apache-2.0 submodule
   # DLLs (UeSaveGame / CUE4Parse) since those are not on NuGet; see the csproj
   # _BundleSubmoduleAssemblies targets and THIRD-PARTY-NOTICES.txt.
+  #
+  # A package is only (re)packed when its sources actually changed since the last
+  # release (the version job's `detect` step), so an App/CLI-only release no longer
+  # bumps both libraries to a new version with byte-identical content. The whole job is
+  # skipped when neither library changed; the SDK is never published without Core, but
+  # Core can publish alone (depending on the SDK version already live on nuget.org).
   nuget:
     needs: version
-    if: needs.version.outputs.released == 'true'
+    # Run when a library changed, OR on a republish (both flags empty -> "!= 'false'" is
+    # true). Skipped entirely when both are exactly 'false' (an App/CLI/docs-only release).
+    if: >-
+      needs.version.outputs.released == 'true' &&
+      (needs.version.outputs.nuget_core != 'false' || needs.version.outputs.nuget_abstractions != 'false')
     runs-on: ubuntu-latest
     # Protected: packs and pushes to nuget.org. Never cancelled; a newer run's
     # nuget queues behind (push is --skip-duplicate, so re-runs are idempotent).
@@ -799,16 +886,42 @@ jobs:
 
       - name: Pack packages
         # Version is inherited from Directory.Build.props, already bumped on the tagged
-        # commit. ContinuousIntegrationBuild=true makes the build deterministic.
+        # commit. ContinuousIntegrationBuild=true makes the build deterministic. Each package
+        # is packed only when it changed this release (empty flags -> republish -> pack both).
+        env:
+          PACK_CORE: ${{ needs.version.outputs.nuget_core }}
+          PACK_ABS: ${{ needs.version.outputs.nuget_abstractions }}
+          DEP_VER: ${{ needs.version.outputs.abstractions_dep_version }}
         run: |
           set -euo pipefail
+          mkdir -p nupkgs
+
+          # Empty (republish) -> publish both; empty dep -> the tag's own version.
+          [ -z "$PACK_ABS" ] && PACK_ABS=true
+          [ -z "$PACK_CORE" ] && PACK_CORE=true
+          [ -z "$DEP_VER" ] && DEP_VER="${{ needs.version.outputs.version }}"
+
           # PackSubmodules=true bundles the Apache-2.0 submodule DLLs into the packages and
           # suppresses their (non-NuGet) ProjectReference dependencies. It is ONLY set here,
           # so normal app/CLI/test builds keep their transitive access to those assemblies.
-          dotnet pack src/AbioticEditor.Plugins.Abstractions -c Release \
-            -p:ContinuousIntegrationBuild=true -p:PackSubmodules=true -o nupkgs
-          dotnet pack src/AbioticEditor.Core -c Release \
-            -p:ContinuousIntegrationBuild=true -p:PackSubmodules=true -o nupkgs
+          if [ "$PACK_ABS" = "true" ]; then
+            dotnet pack src/AbioticEditor.Plugins.Abstractions -c Release \
+              -p:ContinuousIntegrationBuild=true -p:PackSubmodules=true -o nupkgs
+          else
+            echo "Plugins.Abstractions unchanged since the last release - skipping pack."
+          fi
+
+          if [ "$PACK_CORE" = "true" ]; then
+            # AbstractionsPackageVersion pins Core's dependency on the SDK: the new version
+            # when the SDK is republished alongside, else the version already on nuget.org so
+            # Core resolves against a real package even though the SDK itself is skipped.
+            dotnet pack src/AbioticEditor.Core -c Release \
+              -p:ContinuousIntegrationBuild=true -p:PackSubmodules=true \
+              -p:AbstractionsPackageVersion="$DEP_VER" -o nupkgs
+          else
+            echo "Core unchanged since the last release - skipping pack."
+          fi
+
           ls -l nupkgs
 
       - name: Upload packages as build artifacts
