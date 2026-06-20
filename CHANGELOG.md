@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [1.14.4] - 2026-06-20
+
+### Bug Fixes
+- Stop CLI build matrix legs from cancelling each other
+
+
 ## [1.14.3] - 2026-06-20
 
 ### CI
