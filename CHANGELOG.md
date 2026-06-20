@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [1.14.2] - 2026-06-20
+
+### CI
+- Only publish a NuGet package when its sources changed
+
+
 ## [1.14.1] - 2026-06-19
 
 ### Bug Fixes
