@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [1.14.3] - 2026-06-20
+
+### CI
+- Add manual force-release trigger (workflow_dispatch)
+
+
 ## [1.14.2] - 2026-06-20
 
 ### CI
