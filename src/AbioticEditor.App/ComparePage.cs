@@ -68,15 +68,6 @@ public sealed class ComparePage : ContentPage
         _slotALabel = new Label { TextColor = muted, FontSize = 12, LineBreakMode = LineBreakMode.MiddleTruncation };
         _slotBLabel = new Label { TextColor = muted, FontSize = 12, LineBreakMode = LineBreakMode.MiddleTruncation };
 
-        var browseA = ModalChrome.Button(Services.LocalizationResourceManager.Instance["Compare_BrowseButton"], primary: false);
-        browseA.Clicked += async (_, _) => await PickAsync(isA: true);
-        var browseB = ModalChrome.Button(Services.LocalizationResourceManager.Instance["Compare_BrowseButton"], primary: false);
-        browseB.Clicked += async (_, _) => await PickAsync(isA: false);
-
-        // Quick-pick from the saves already loaded in the editor (file mode only).
-        var quickA = BuildQuickPicker(isA: true);
-        var quickB = BuildQuickPicker(isA: false);
-
         _compareButton = new Button { Text = Services.LocalizationResourceManager.Instance["Compare_CompareButton"] };
         _compareButton.Clicked += async (_, _) => await RunCompareAsync();
 
@@ -91,14 +82,22 @@ public sealed class ComparePage : ContentPage
             Services.LocalizationResourceManager.Instance["Compare_ModeCardDescription"],
             modeToggle);
 
+        // A and B sit side by side: a "compare" reads naturally left-to-right, and the
+        // two columns fill the sheet width instead of stacking in a thin strip.
+        var sourcesGrid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Star),
+            },
+            ColumnSpacing = 18,
+        };
+        sourcesGrid.Add(BuildSourceColumn(isA: true), 0, 0);
+        sourcesGrid.Add(BuildSourceColumn(isA: false), 1, 0);
+
         var sourcesCard = ModalChrome.Card(Services.LocalizationResourceManager.Instance["Compare_SourcesCardHeader"], null,
-            ModalChrome.SubLabel(Services.LocalizationResourceManager.Instance["Compare_SourceALabel"]),
-            new HorizontalStackLayout { Spacing = 10, Children = { quickA, browseA } },
-            _slotALabel,
-            new BoxView { HeightRequest = 6, Color = Colors.Transparent },
-            ModalChrome.SubLabel(Services.LocalizationResourceManager.Instance["Compare_SourceBLabel"]),
-            new HorizontalStackLayout { Spacing = 10, Children = { quickB, browseB } },
-            _slotBLabel);
+            sourcesGrid);
 
         var runCard = ModalChrome.Card(Services.LocalizationResourceManager.Instance["Compare_CompareCardHeader"], null,
             new HorizontalStackLayout { Spacing = 12, Children = { _compareButton, _busy } },
@@ -115,28 +114,56 @@ public sealed class ComparePage : ContentPage
             maxWidth: 980);
     }
 
-    /// <summary>A picker of the editor's currently loaded saves, for quick file selection.</summary>
-    private Picker BuildQuickPicker(bool isA)
+    /// <summary>
+    /// One source column (A or B): an eyebrow label, an optional quick-pick of the editor's
+    /// loaded saves (file mode only), a BROWSE button, and the selected-path label. The two
+    /// columns sit side by side so the sheet reads as a left/right comparison.
+    /// </summary>
+    private View BuildSourceColumn(bool isA)
     {
-        var picker = new Picker
+        var loc = Services.LocalizationResourceManager.Instance;
+
+        var browse = ModalChrome.Button(loc["Compare_BrowseButton"], primary: false);
+        browse.HorizontalOptions = LayoutOptions.Fill;
+        browse.Clicked += async (_, _) => await PickAsync(isA);
+
+        var slotLabel = isA ? _slotALabel : _slotBLabel;
+
+        var column = new VerticalStackLayout
         {
-            Title = Services.LocalizationResourceManager.Instance["Compare_QuickPickerTitle"],
-            FontSize = 11,
-            WidthRequest = 320,
-            IsVisible = _mode == CompareMode.Files,
+            Spacing = 8,
+            Children =
+            {
+                ModalChrome.SubLabel(loc[isA ? "Compare_SourceALabel" : "Compare_SourceBLabel"]),
+            },
         };
-        foreach (var s in _vm.Saves)
+
+        // Quick-pick from the saves already loaded in the editor (file mode only).
+        if (_mode == CompareMode.Files)
         {
-            picker.Items.Add(s.DisplayName);
+            var picker = new Picker
+            {
+                Title = loc["Compare_QuickPickerTitle"],
+                FontSize = 11,
+                HorizontalOptions = LayoutOptions.Fill,
+            };
+            foreach (var s in _vm.Saves)
+            {
+                picker.Items.Add(s.DisplayName);
+            }
+            picker.SelectedIndexChanged += (_, _) =>
+            {
+                if (picker.SelectedIndex < 0 || picker.SelectedIndex >= _vm.Saves.Count) return;
+                var path = _vm.Saves[picker.SelectedIndex].FullPath;
+                if (isA) _pathA = path; else _pathB = path;
+                RefreshSlotLabels();
+            };
+            column.Children.Add(picker);
         }
-        picker.SelectedIndexChanged += (_, _) =>
-        {
-            if (picker.SelectedIndex < 0 || picker.SelectedIndex >= _vm.Saves.Count) return;
-            var path = _vm.Saves[picker.SelectedIndex].FullPath;
-            if (isA) _pathA = path; else _pathB = path;
-            RefreshSlotLabels();
-        };
-        return picker;
+
+        column.Children.Add(browse);
+        column.Children.Add(slotLabel);
+        return column;
     }
 
     private void SetMode(CompareMode mode)
@@ -184,7 +211,7 @@ public sealed class ComparePage : ContentPage
         }
         catch (Exception ex) when (!IsCancellation(ex))
         {
-            await ViewUtils.AlertAsync(this, Services.LocalizationResourceManager.Instance["Compare_PickerFailedTitle"], ex.Message);
+            await this.AlertAsync(Services.LocalizationResourceManager.Instance["Compare_PickerFailedTitle"], ex.Message);
         }
     }
 
@@ -195,7 +222,7 @@ public sealed class ComparePage : ContentPage
     {
         if (string.IsNullOrEmpty(_pathA) || string.IsNullOrEmpty(_pathB))
         {
-            await ViewUtils.AlertAsync(this, Services.LocalizationResourceManager.Instance["Compare_PickTwoTitle"], Services.LocalizationResourceManager.Instance["Compare_PickTwoMessage"]);
+            await this.AlertAsync(Services.LocalizationResourceManager.Instance["Compare_PickTwoTitle"], Services.LocalizationResourceManager.Instance["Compare_PickTwoMessage"]);
             return;
         }
 
@@ -221,7 +248,7 @@ public sealed class ComparePage : ContentPage
         }
         catch (Exception ex)
         {
-            await ViewUtils.AlertAsync(this, Services.LocalizationResourceManager.Instance["Compare_ComparisonFailedTitle"], ex.Message);
+            await this.AlertAsync(Services.LocalizationResourceManager.Instance["Compare_ComparisonFailedTitle"], ex.Message);
         }
         finally
         {
@@ -391,11 +418,11 @@ public sealed class ComparePage : ContentPage
             try
             {
                 await Clipboard.SetTextAsync(build());
-                await ViewUtils.AlertAsync(this, Services.LocalizationResourceManager.Instance["Compare_CopiedTitle"], Services.LocalizationResourceManager.Instance["Compare_CopiedMessage"]);
+                await this.AlertAsync(Services.LocalizationResourceManager.Instance["Compare_CopiedTitle"], Services.LocalizationResourceManager.Instance["Compare_CopiedMessage"]);
             }
             catch (Exception ex)
             {
-                await ViewUtils.AlertAsync(this, Services.LocalizationResourceManager.Instance["Compare_ExportFailedTitle"], ex.Message);
+                await this.AlertAsync(Services.LocalizationResourceManager.Instance["Compare_ExportFailedTitle"], ex.Message);
             }
         };
 
@@ -409,12 +436,12 @@ public sealed class ComparePage : ContentPage
                 var result = await FileSaver.SaveAsync(suggestedFileName, stream, CancellationToken.None);
                 if (result.IsSuccessful)
                 {
-                    await ViewUtils.AlertAsync(this, Services.LocalizationResourceManager.Instance["Compare_SavedTitle"], Services.LocalizationResourceManager.Instance.Format("Compare_SavedMessage", result.FilePath));
+                    await this.AlertAsync(Services.LocalizationResourceManager.Instance["Compare_SavedTitle"], Services.LocalizationResourceManager.Instance.Format("Compare_SavedMessage", result.FilePath));
                 }
             }
             catch (Exception ex) when (!IsCancellation(ex))
             {
-                await ViewUtils.AlertAsync(this, Services.LocalizationResourceManager.Instance["Compare_ExportFailedTitle"], ex.Message);
+                await this.AlertAsync(Services.LocalizationResourceManager.Instance["Compare_ExportFailedTitle"], ex.Message);
             }
         };
 

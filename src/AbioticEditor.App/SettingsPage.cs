@@ -182,19 +182,19 @@ public sealed class SettingsPage : ContentPage
                 tabContent.Children.Add(card);
             }
         }
-        // Full-width strip, pinned above the scroll area so it stays visible as cards scroll.
-        var tabBar = ModalChrome.Segmented(tabs.Select(t => t.Label).ToList(), 0, ShowTab, fill: true);
+        // Vertical rail down the left edge so the sections read as tabs (not a cramped strip).
+        var tabRail = ModalChrome.VerticalTabRail(tabs.Select(t => t.Label).ToList(), 0, ShowTab);
         ShowTab(0);
 
         var close = ModalChrome.Button(loc["Common_Close"], primary: false);
         close.Clicked += async (_, _) => await CloseAsync();
 
-        return ModalChrome.Scaffold(
+        return ModalChrome.ScaffoldWithSidebar(
             loc["Settings_ScaffoldTitle"], loc["Settings_ScaffoldSubtitle"],
-            new View[] { tabContent },
+            tabRail,
+            tabContent,
             ModalChrome.Footer(close),
-            maxWidth: 620,
-            pinnedHeader: tabBar);
+            contentMaxWidth: 640);
     }
 
     /// <summary>
@@ -261,7 +261,7 @@ public sealed class SettingsPage : ContentPage
             // catalog too - GameDataServices.ReloadAsync alone leaves the picker on stale data.
             await _vm.ReloadGameDataAsync();
             Refresh();
-            await ViewUtils.AlertAsync(this, okTitle,
+            await this.AlertAsync(okTitle,
                 Services.GameDataServices.IsGameDataLoaded
                     ? loc["GameDataSettings_GameDataLoadedMessage"]
                     : Services.GameDataServices.StatusMessage);
@@ -280,7 +280,7 @@ public sealed class SettingsPage : ContentPage
                 var paks = AbioticEditor.Core.Assets.AfInstallLocator.ResolvePaksDirectory(picked);
                 if (paks is null)
                 {
-                    await ViewUtils.AlertAsync(this, loc["GameDataSettings_NoGameDataTitle"],
+                    await this.AlertAsync(loc["GameDataSettings_NoGameDataTitle"],
                         loc.Format("GameDataSettings_NoGameDataMessage", picked));
                     return;
                 }
@@ -291,7 +291,7 @@ public sealed class SettingsPage : ContentPage
             catch (Exception ex) when (!IsPickerCancellation(ex))
             {
                 EditorLog.Error("Settings", "Game folder pick failed", ex);
-                await ViewUtils.AlertAsync(this, loc["GameDataSettings_FolderPickerFailedTitle"], ex.Message);
+                await this.AlertAsync(loc["GameDataSettings_FolderPickerFailedTitle"], ex.Message);
             }
         };
 
@@ -338,7 +338,7 @@ public sealed class SettingsPage : ContentPage
         {
             await _vm.ReloadGameDataAsync();
             RefreshList();
-            await ViewUtils.AlertAsync(this, loc["GameDataSettings_ModsToggledTitle"],
+            await this.AlertAsync(loc["GameDataSettings_ModsToggledTitle"],
                 Services.GameDataServices.IsGameDataLoaded
                     ? loc["GameDataSettings_GameDataLoadedMessage"]
                     : Services.GameDataServices.StatusMessage);
@@ -703,11 +703,11 @@ public sealed class SettingsPage : ContentPage
             if (!d.SetEnabled(e.Value))
             {
                 sw.IsToggled = d.Manifest.Enabled;
-                await Views.ViewUtils.AlertAsync(this, loc["Settings_Plugins"], loc["Settings_PluginManifestFailed"]);
+                await this.AlertAsync(loc["Settings_Plugins"], loc["Settings_PluginManifestFailed"]);
                 return;
             }
             EditorLog.Info("Plugins", $"Plugin {(e.Value ? "enabled" : "disabled")}: {d.Manifest.Name}");
-            await Views.ViewUtils.AlertAsync(this, loc["Settings_Plugins"],
+            await this.AlertAsync(loc["Settings_Plugins"],
                 string.Format(System.Globalization.CultureInfo.CurrentCulture,
                     e.Value ? loc["Settings_PluginEnabledMessage"] : loc["Settings_PluginDisabledMessage"],
                     d.Manifest.Name));

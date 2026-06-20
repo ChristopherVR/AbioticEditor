@@ -60,6 +60,102 @@ internal static class ModalChrome
     }
 
     /// <summary>
+    /// Scaffold variant with a vertical tab rail down the left edge instead of a pinned strip
+    /// across the top: branded header + hazard stripe span the full width, then a two-column
+    /// body (the <paramref name="sidebar"/> rail beside the scrollable <paramref name="body"/>),
+    /// then the sticky <paramref name="footer"/>. Used by the settings sheet so its many sections
+    /// read as left-hand tabs rather than a cramped horizontal strip.
+    /// </summary>
+    public static Grid ScaffoldWithSidebar(string eyebrow, string title, View sidebar, View body, View footer, double contentMaxWidth = 640)
+    {
+        var column = new VerticalStackLayout
+        {
+            Spacing = 14,
+            Padding = new Thickness(24, 22, 24, 28),
+            MaximumWidthRequest = contentMaxWidth,
+            HorizontalOptions = LayoutOptions.Start,
+            Children = { body },
+        };
+
+        var middle = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Auto), // tab rail
+                new ColumnDefinition(GridLength.Star), // scrollable cards
+            },
+        };
+        middle.Add(new Border
+        {
+            BackgroundColor = Col("AfPanelElevated"),
+            Stroke = new SolidColorBrush(Col("AfDivider")),
+            StrokeThickness = 0,
+            Padding = new Thickness(12, 18),
+            Content = sidebar,
+        }, 0, 0);
+        middle.Add(new ScrollView { Content = column }, 1, 0);
+
+        var grid = new Grid { RowSpacing = 0, BackgroundColor = Col("AfPageBackground") };
+        grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));   // header
+        grid.RowDefinitions.Add(new RowDefinition(new GridLength(3))); // hazard stripe
+        grid.RowDefinitions.Add(new RowDefinition(GridLength.Star));   // sidebar + cards
+        grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));   // footer
+        grid.Add(Header(eyebrow, title), 0, 0);
+        grid.Add(new BoxView { Style = St("AfHazardStripe") }, 0, 1);
+        grid.Add(middle, 0, 2);
+        grid.Add(footer, 0, 3);
+        return grid;
+    }
+
+    /// <summary>
+    /// A vertical tab rail: one stacked, full-width item per option. The active item is filled
+    /// with the accent; tapping one restyles the rail and calls <paramref name="onChange"/> with
+    /// its index. Suits a sheet with several sections (settings) read as left-hand tabs.
+    /// </summary>
+    public static View VerticalTabRail(IReadOnlyList<string> options, int selected, Action<int> onChange, double width = 184)
+    {
+        var stack = new VerticalStackLayout { Spacing = 4, WidthRequest = width };
+        var items = new List<(Border Border, Label Label)>();
+
+        void Restyle(int active)
+        {
+            for (var i = 0; i < items.Count; i++)
+            {
+                var on = i == active;
+                items[i].Border.BackgroundColor = on ? Col("AfAccentOrange") : Colors.Transparent;
+                items[i].Label.TextColor = on ? Col("AfTextOnAccent") : Col("AfTextSecondary");
+            }
+        }
+
+        for (var i = 0; i < options.Count; i++)
+        {
+            var label = new Label
+            {
+                Text = options[i],
+                FontFamily = "OpenSansSemibold",
+                FontSize = 12,
+                CharacterSpacing = 1,
+                LineBreakMode = LineBreakMode.TailTruncation,
+                VerticalTextAlignment = TextAlignment.Center,
+            };
+            var item = new Border
+            {
+                StrokeThickness = 0,
+                StrokeShape = new RoundRectangle { CornerRadius = 6 },
+                Padding = new Thickness(14, 10),
+                Content = label,
+            };
+            var index = i;
+            item.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => { Restyle(index); onChange(index); }) });
+            items.Add((item, label));
+            stack.Children.Add(item);
+        }
+
+        Restyle(selected);
+        return stack;
+    }
+
+    /// <summary>
     /// Wraps a pinned band (e.g. the settings tab strip) so it lines up with the centred,
     /// max-width card column below it: same horizontal padding, capped width, page-coloured
     /// so scrolling cards don't show through.
@@ -212,14 +308,18 @@ internal static class ModalChrome
 
         for (var i = 0; i < options.Count; i++)
         {
-            grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+            // Fill: equal star columns so the strip spans the sheet (a many-tab bar). Otherwise
+            // Auto columns so each segment sizes to its own label - star columns under a
+            // shrink-to-content (Start-aligned) pill collapse and truncate the text.
+            grid.ColumnDefinitions.Add(new ColumnDefinition(fill ? GridLength.Star : GridLength.Auto));
             var label = new Label
             {
                 Text = options[i],
                 FontFamily = "OpenSansSemibold",
                 FontSize = 11,
                 CharacterSpacing = 1,
-                LineBreakMode = LineBreakMode.TailTruncation, // keep each segment on one line
+                // Full-width segments can run out of room (truncate); content-sized ones never do.
+                LineBreakMode = fill ? LineBreakMode.TailTruncation : LineBreakMode.NoWrap,
                 HorizontalTextAlignment = TextAlignment.Center,
                 VerticalTextAlignment = TextAlignment.Center,
             };
