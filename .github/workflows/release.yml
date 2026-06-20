@@ -395,8 +395,12 @@ jobs:
     if: needs.version.outputs.released == 'true'
     runs-on: ubuntu-latest
     # Cancellable: nothing is published yet, so a newer push aborts these CLI builds.
+    # The group MUST include the matrix RID: all four legs are the same job ("build"),
+    # so a constant group would make the legs cancel EACH OTHER within one run (only the
+    # last-started survives), leaving `publish` - which needs every leg - skipped. Scoping
+    # per RID means a leg only cancels the same-RID leg of an older run, as intended.
     concurrency:
-      group: release-build
+      group: release-build-${{ matrix.rid }}
       cancel-in-progress: true
     # Every artifact zip carries the release version in its name (e.g.
     # AbioticEditor-cli-win-x64-v1.2.0.zip). Computed once here; matrix + needs are both in scope.
