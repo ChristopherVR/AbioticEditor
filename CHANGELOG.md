@@ -2,7 +2,21 @@
 
 All notable changes to this project are documented here.
 
+## [1.15.0] - 2026-06-20
+
+### Features
+- Settings polish - inline compare tab, plugin clarity, language fix
+
+
+### Miscellaneous Tasks
+- Point bucket at v1.14.5 [skip ci]
+
+
 ## [1.14.5] - 2026-06-20
+
+### Features
+- Inline plugins into settings tab, centre tab content
+
 
 ### Miscellaneous Tasks
 - Point bucket at v1.14.4 [skip ci]
