@@ -49,22 +49,28 @@ internal sealed class PluginsPanel
                 installedBody.Add(BuildPluginRow(d, muted));
             }
         }
+        // A quick way to reach the drop folder (where plugin folders go).
+        var openFolder = ModalChrome.Button(L["Plugins_OpenFolderButton"], primary: false);
+        openFolder.HorizontalOptions = LayoutOptions.Start;
+        openFolder.Clicked += (_, _) => TryOpenFolder(PluginPaths.UserPluginsDirectory);
+        installedBody.Add(openFolder);
         cards.Add(ModalChrome.Card(L["Plugins_HeaderInstalled"],
             L.Format("Plugins_IntroHint", PluginPaths.UserPluginsDirectory),
             installedBody.ToArray()));
 
         // ---- Save operations for the open save ----
+        // The card hint always explains what save operations are; the open-save status is a
+        // separate muted line so it's clear which save (if any) operations would run against.
         var opsBody = new List<View>();
         var openPath = _vm.SelectedSave?.FullPath;
-        string? opsHint;
         if (openPath is null)
         {
-            opsHint = L["Plugins_NoOpenSaveHint"];
+            opsBody.Add(Hint(L["Plugins_NoOpenSaveHint"], muted));
         }
         else
         {
             var openKind = SaveKindDetector.Detect(openPath);
-            opsHint = L.Format("Plugins_OpenSaveHint", Path.GetFileName(openPath), openKind);
+            opsBody.Add(Hint(L.Format("Plugins_OpenSaveHint", Path.GetFileName(openPath), openKind), muted));
             var applicable = PluginService.SaveOperations
                 .Where(c => SaveKindDetector.Matches(c.Value.AppliesTo, openKind))
                 .ToList();
@@ -80,25 +86,25 @@ internal sealed class PluginsPanel
                 }
             }
         }
-        cards.Add(ModalChrome.Card(L["Plugins_HeaderSaveOperations"], opsHint, opsBody.ToArray()));
+        cards.Add(ModalChrome.Card(L["Plugins_HeaderSaveOperations"], L["Plugins_SaveOperationsDesc"], opsBody.ToArray()));
 
         // ---- UI tools ----
-        cards.Add(SectionCard(L["Plugins_HeaderTools"], PluginService.EditorTools,
+        cards.Add(SectionCard(L["Plugins_HeaderTools"], L["Plugins_ToolsDesc"], PluginService.EditorTools,
             L["Plugins_NoUiTools"], BuildToolRow, muted));
 
         // ---- Web (HTML/React) tools ----
-        cards.Add(SectionCard(L["Plugins_HeaderWebTools"], PluginService.WebTools,
+        cards.Add(SectionCard(L["Plugins_HeaderWebTools"], L["Plugins_WebToolsDesc"], PluginService.WebTools,
             L["Plugins_NoWebTools"], BuildWebToolRow, muted));
 
         // ---- Menu actions ----
-        cards.Add(SectionCard(L["Plugins_HeaderMenuActions"], PluginService.MenuActions,
+        cards.Add(SectionCard(L["Plugins_HeaderMenuActions"], L["Plugins_MenuActionsDesc"], PluginService.MenuActions,
             L["Plugins_NoMenuActions"], BuildMenuActionRow, muted));
 
         return cards;
     }
 
-    private static View SectionCard<T>(string header, IReadOnlyList<T> items, string emptyHint,
-        Func<T, View> buildRow, Color muted)
+    private static View SectionCard<T>(string header, string description, IReadOnlyList<T> items,
+        string emptyHint, Func<T, View> buildRow, Color muted)
     {
         var body = new List<View>();
         if (items.Count == 0)
@@ -112,7 +118,24 @@ internal sealed class PluginsPanel
                 body.Add(buildRow(item));
             }
         }
-        return ModalChrome.Card(header, null, body.ToArray());
+        return ModalChrome.Card(header, description, body.ToArray());
+    }
+
+    private static void TryOpenFolder(string path)
+    {
+        try
+        {
+            System.IO.Directory.CreateDirectory(path); // the drop folder may not exist yet
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = path,
+                UseShellExecute = true,
+            });
+        }
+        catch (Exception ex)
+        {
+            Core.Diagnostics.EditorLog.Warn("Plugins", $"Could not open plugins folder {path}: {ex.Message}");
+        }
     }
 
     private static Label Hint(string text, Color muted)

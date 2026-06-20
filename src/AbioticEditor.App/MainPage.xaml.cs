@@ -30,7 +30,6 @@ public partial class MainPage : ContentPage
             DrawerScrim,
             FileToggleButton, SlotToggleButton);
         StatusBar.SettingsRequested += OnOpenSettingsRequested;
-        StatusBar.CompareRequested += OnCompareRequested;
 
         FolderDropHandler.Attach(this, _vm);
         BuildPluginMenu();
@@ -91,7 +90,7 @@ public partial class MainPage : ContentPage
         // never stack the language modal over the in-page game-data dialog.
         if (!Services.LocalizationService.HasChosenLanguage)
         {
-            await Navigation.PushModalAsync(new LanguagePage());
+            await Navigation.PushModalAsync(new LanguagePage(rebuildRootOnDone: true));
         }
         else
         {
@@ -172,11 +171,6 @@ public partial class MainPage : ContentPage
         await Navigation.PushModalAsync(new SettingsPage(_vm, RebuildForThemeAsync));
     }
 
-    private async void OnCompareRequested(object? sender, EventArgs e)
-    {
-        await Navigation.PushModalAsync(new ComparePage(_vm));
-    }
-
     /// <summary>
     /// The shared styles re-color live (DynamicResource), but inline StaticResource
     /// references and converter output only re-resolve on a fresh page tree. The new
@@ -185,10 +179,7 @@ public partial class MainPage : ContentPage
     /// </summary>
     private Task RebuildForThemeAsync()
     {
-        if (Application.Current?.Windows is { Count: > 0 } windows)
-        {
-            windows[0].Page = new AppShell();
-        }
+        App.RebuildRootPage();
         return Task.CompletedTask;
     }
 }

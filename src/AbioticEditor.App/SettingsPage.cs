@@ -16,6 +16,7 @@ public sealed class SettingsPage : ContentPage
     private readonly Func<Task> _rebuildHost;
     private bool _themeChanged;
     private bool _spoilerChanged;
+    private bool _languageChanged;
 
     // The language code recorded when we last (re)built the sheet. LanguagePage applies the
     // change live and has no callback, so we compare against this on Appearing (fires when the
@@ -45,6 +46,8 @@ public sealed class SettingsPage : ContentPage
         {
             EditorLog.Info("Settings", $"Language changed from {_languageCode} to {current}");
             _languageCode = current;
+            // Re-localize the whole UI when this sheet closes (live bindings don't refresh).
+            _languageChanged = true;
         }
         if (_languageValueLabel is not null)
         {
@@ -147,15 +150,21 @@ public sealed class SettingsPage : ContentPage
         // ----- UPDATES -----
         var updatesCard = BuildUpdatesCard();
 
+        // ----- COMPARE -----
+        // The save-comparison tool, rendered inline as a settings tab (it used to be a footer
+        // button that opened a separate modal).
+        var compareCards = new ComparePanel(this, _vm).BuildCards();
+
         // ----- tabs (one tab at a time instead of one long scroll) -----
+        // Updates fold into General (it's a short card); Compare is its own tab.
         var tabs = new (string Label, View[] Cards)[]
         {
-            (loc["Settings_TabGeneral"], new View[] { themeCard, languageCard, diagnosticsCard }),
+            (loc["Settings_TabGeneral"], new View[] { themeCard, languageCard, diagnosticsCard, updatesCard }),
             (loc["Settings_TabEditor"], new View[] { spoilerCard }),
             (loc["Settings_GameData"], new View[] { gameDataCard, modsCard }),
             (loc["Settings_TabConvert"], new View[] { conversionCard }),
             (loc["Settings_Plugins"], pluginCards),
-            (loc["Settings_TabUpdates"], new View[] { updatesCard }),
+            (loc["Compare_TabLabel"], compareCards),
         };
 
         // Cards for the selected tab are swapped into this container; only the active tab's
@@ -201,12 +210,14 @@ public sealed class SettingsPage : ContentPage
             Style = ModalChrome.St("AfFieldValue"),
             FontSize = 12,
             LineBreakMode = LineBreakMode.MiddleTruncation,
+            VerticalOptions = LayoutOptions.Center,
         };
         var usmapValue = new Label
         {
             Style = ModalChrome.St("AfFieldValue"),
             FontSize = 12,
             LineBreakMode = LineBreakMode.MiddleTruncation,
+            VerticalOptions = LayoutOptions.Center,
         };
         var locateFolder = new Button { Text = loc["GameDataSettings_SetGameFolder"] };
         var autoDetect = ModalChrome.Button(loc["GameDataSettings_UseAutoDetect"], primary: false);
@@ -291,13 +302,30 @@ public sealed class SettingsPage : ContentPage
 
         var importUsmap = new Button { Text = loc["GameDataSettings_ImportDataFile"], Command = _vm.ImportMappingsCommand };
 
+        // Each action sits beside the line it acts on: the folder buttons next to the game-folder
+        // path, the usmap import next to the data-file line.
+        var folderRow = new Grid
+        {
+            ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) },
+            ColumnSpacing = 10,
+        };
+        folderRow.Add(folderValue, 0, 0);
+        folderRow.Add(locateFolder, 1, 0);
+        folderRow.Add(autoDetect, 2, 0);
+
+        var usmapRow = new Grid
+        {
+            ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) },
+            ColumnSpacing = 10,
+        };
+        usmapRow.Add(usmapValue, 0, 0);
+        usmapRow.Add(importUsmap, 1, 0);
+
         return ModalChrome.Card(loc["Settings_GameData"],
             loc["GameDataSettings_CardHint"],
             status,
-            folderValue,
-            usmapValue,
-            new HorizontalStackLayout { Spacing = 10, Children = { locateFolder, autoDetect } },
-            new HorizontalStackLayout { Spacing = 10, Children = { importUsmap } });
+            folderRow,
+            usmapRow);
     }
 
     /// <summary>
@@ -321,14 +349,13 @@ public sealed class SettingsPage : ContentPage
         var modsList = new VerticalStackLayout { Spacing = 6 };
 
         // Reload after any toggle so the catalogs (and the item palette) rebuild without a relaunch.
+        // No popup: the reload can take a moment, so a modal that lands seconds later feels
+        // disconnected from the toggle. The status line below refreshes in place instead.
         async Task ApplyAndReloadAsync()
         {
+            statusLine.Text = loc["GameDataSettings_ReloadingGameData"];
             await _vm.ReloadGameDataAsync();
             RefreshList();
-            await this.AlertAsync(loc["GameDataSettings_ModsToggledTitle"],
-                Services.GameDataServices.IsGameDataLoaded
-                    ? loc["GameDataSettings_GameDataLoadedMessage"]
-                    : Services.GameDataServices.StatusMessage);
         }
 
         void RefreshList()
@@ -734,8 +761,9 @@ public sealed class SettingsPage : ContentPage
     private async Task CloseAsync()
     {
         await Navigation.PopModalAsync();
-        // Rebuild the editor host so every open surface re-evaluates concealment / palette.
-        if (_themeChanged || _spoilerChanged)
+        // Rebuild the editor host so every open surface re-evaluates concealment / palette, and
+        // re-localizes (the {loc:Localize} bindings only pick up a new culture on a fresh tree).
+        if (_themeChanged || _spoilerChanged || _languageChanged)
         {
             await _rebuildHost();
         }

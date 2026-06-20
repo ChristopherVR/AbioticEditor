@@ -33,7 +33,7 @@
 
     <!-- ===== Status bar ===== -->
     <Border Style="{StaticResource AfChrome}" Padding="16,8">
-        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto" ColumnSpacing="12">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="12">
             <!-- live status -->
             <BoxView Grid.Column="0"
                      WidthRequest="8" HeightRequest="8"
@@ -55,22 +55,8 @@
                    Margin="0,0,4,0"
                    ToolTipProperties.Text="{loc:Localize Status_DiagnosticLogTooltip}" />
 
-            <!-- COMPARE -->
-            <Border Grid.Column="3" Style="{StaticResource AfFooterAction}"
-                    ToolTipProperties.Text="{loc:Localize Status_DiffTwoSaveFilesOrTwoFoldersOfSavesWorldVsBackup}">
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer Tapped="OnCompareTapped" />
-                </Border.GestureRecognizers>
-                <HorizontalStackLayout Spacing="7">
-                    <Label Text="&#xE915;" FontFamily="MaterialSymbols" FontSize="16"
-                           TextColor="{StaticResource AfAccentOrange}" VerticalOptions="Center" />
-                    <Label Text="{loc:Localize Status_Compare}" FontFamily="OpenSansSemibold" FontSize="10" CharacterSpacing="1.5"
-                           TextColor="{StaticResource AfTextPrimary}" VerticalOptions="Center" />
-                </HorizontalStackLayout>
-            </Border>
-
             <!-- SETTINGS -->
-            <Border Grid.Column="4" Style="{StaticResource AfFooterAction}"
+            <Border Grid.Column="3" Style="{StaticResource AfFooterAction}"
                     ToolTipProperties.Text="{loc:Localize Status_ThemeLightDarkModeDiagnosticLoggingUsmapImport}">
                 <Border.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnSettingsTapped" />
@@ -83,7 +69,7 @@
                 </HorizontalStackLayout>
             </Border>
 
-            <Label Grid.Column="5"
+            <Label Grid.Column="4"
                    Text="UESAVEGAME · MAUI"
                    Style="{StaticResource AfStatusText}" FontSize="10"
                    TextColor="{StaticResource AfTextMuted}"

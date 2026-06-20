@@ -27,6 +27,13 @@
   <data name="Common_Cancel" xml:space="preserve"><value>Annuler</value></data>
   <data name="Common_Close" xml:space="preserve"><value>FERMER</value></data>
   <data name="Common_Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="Compare_TabLabel" xml:space="preserve"><value>COMPARER</value></data>
+  <data name="GameDataSettings_ReloadingGameData" xml:space="preserve"><value>Rechargement des données du jeu...</value></data>
+  <data name="Plugins_OpenFolderButton" xml:space="preserve"><value>OUVRIR LE DOSSIER DES PLUGINS</value></data>
+  <data name="Plugins_SaveOperationsDesc" xml:space="preserve"><value>Modifications groupées qu'un plugin peut exécuter sur la sauvegarde ouverte. L'éditeur en fait d'abord une copie de sauvegarde.</value></data>
+  <data name="Plugins_ToolsDesc" xml:space="preserve"><value>Panneaux d'éditeur personnalisés ajoutés par un plugin, ouverts dans leur propre fenêtre.</value></data>
+  <data name="Plugins_WebToolsDesc" xml:space="preserve"><value>Outils HTML/JavaScript fournis par un plugin, affichés dans un navigateur intégré.</value></data>
+  <data name="Plugins_MenuActionsDesc" xml:space="preserve"><value>Commandes en un clic qu'un plugin ajoute au menu Plugins de l'éditeur.</value></data>
 
   <data name="Header_Home" xml:space="preserve"><value>ACCUEIL</value></data>
   <data name="Header_Files" xml:space="preserve"><value>FICHIERS</value></data>

@@ -11,8 +11,19 @@ public sealed class LanguagePage : ContentPage
 {
     private string _selected;
 
-    public LanguagePage()
+    // The language code on entry: lets us tell whether the user actually changed it, so we only
+    // pay for a full root rebuild (to re-localize the live UI) when something really changed.
+    private readonly string _initialCode;
+
+    // First-run path: this page is the top modal over the main page, so on continue it must
+    // rebuild the root tree itself to re-localize. When opened from Settings this is false -
+    // SettingsPage owns the rebuild on close (it must not be torn down while still open).
+    private readonly bool _rebuildRootOnDone;
+
+    public LanguagePage(bool rebuildRootOnDone = false)
     {
+        _rebuildRootOnDone = rebuildRootOnDone;
+        _initialCode = LocalizationService.CurrentCode;
         _selected = LocalizationService.HasChosenLanguage
             ? LocalizationService.CurrentCode
             : LocalizationService.OsDefaultCode;
@@ -82,6 +93,13 @@ public sealed class LanguagePage : ContentPage
             if (Navigation.ModalStack.Count > 0)
             {
                 await Navigation.PopModalAsync();
+            }
+            // The {loc:Localize} bindings don't refresh live on a change of culture, so rebuild
+            // the page tree to re-localize everything - but only when we own the rebuild and the
+            // language actually changed (from Settings, SettingsPage rebuilds on close instead).
+            if (_rebuildRootOnDone && _selected != _initialCode)
+            {
+                App.RebuildRootPage();
             }
         };
         stack.Children.Add(continueButton);

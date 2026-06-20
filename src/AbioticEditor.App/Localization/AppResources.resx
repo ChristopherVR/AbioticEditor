@@ -79,6 +79,13 @@
   <data name="Common_Cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="Common_Close" xml:space="preserve"><value>CLOSE</value></data>
   <data name="Common_Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="Compare_TabLabel" xml:space="preserve"><value>COMPARE</value></data>
+  <data name="GameDataSettings_ReloadingGameData" xml:space="preserve"><value>Reloading game data...</value></data>
+  <data name="Plugins_OpenFolderButton" xml:space="preserve"><value>OPEN PLUGINS FOLDER</value></data>
+  <data name="Plugins_SaveOperationsDesc" xml:space="preserve"><value>Bulk edits a plugin can run over the open save. The editor backs up the file first.</value></data>
+  <data name="Plugins_ToolsDesc" xml:space="preserve"><value>Custom editor panels a plugin adds, each opened in its own window.</value></data>
+  <data name="Plugins_WebToolsDesc" xml:space="preserve"><value>HTML / JavaScript tools a plugin provides, shown in an embedded browser.</value></data>
+  <data name="Plugins_MenuActionsDesc" xml:space="preserve"><value>One-click commands a plugin adds to the editor's Plugins menu.</value></data>
 
   <data name="Header_Home" xml:space="preserve"><value>HOME</value></data>
   <data name="Header_Files" xml:space="preserve"><value>FILES</value></data>

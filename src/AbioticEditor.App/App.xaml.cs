@@ -40,6 +40,21 @@ public partial class App : Application
 		Services.PluginService.Initialize();
 	}
 
+	/// <summary>
+	/// Replaces the window's root page with a fresh <see cref="AppShell"/> on the shared
+	/// view-model. Used to re-resolve inline StaticResource colours after a theme switch and to
+	/// re-localize the whole UI after a language change (the <c>{loc:Localize}</c> bindings only
+	/// pick up the new culture on a fresh page tree). The shared view-model is reused, so the open
+	/// folder, save and staged edits survive the swap.
+	/// </summary>
+	public static void RebuildRootPage()
+	{
+		if (Current?.Windows is { Count: > 0 } windows)
+		{
+			windows[0].Page = new AppShell();
+		}
+	}
+
 	private static void WriteCrashLog(Exception? ex, string source)
 	{
 		try
