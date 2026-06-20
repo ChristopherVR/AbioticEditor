@@ -55,6 +55,15 @@ name: Release
 on:
   push:
     branches: [main]
+  # Manual trigger to force a release on demand (e.g. to re-run build -> app ->
+  # publish -> NexusMods when no new commit bumps the version). With force_release
+  # left on, the version job cuts a fresh patch release off the latest tag.
+  workflow_dispatch:
+    inputs:
+      force_release:
+        description: "Force a release even with no releasable commits (patch bump of the latest tag)."
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -69,10 +78,12 @@ jobs:
     concurrency:
       group: release-test
       cancel-in-progress: true
-    # Skip on the bot's own release-bump commit (same guard as `version`).
+    # Skip on the bot's own release-bump commit (same guard as `version`). A manual
+    # workflow_dispatch always runs (it has no head_commit to inspect).
     if: >-
-      ${{ !contains(github.event.head_commit.message, 'chore(release)') &&
-          !contains(github.event.head_commit.message, '[skip ci]') }}
+      ${{ github.event_name == 'workflow_dispatch' ||
+          (!contains(github.event.head_commit.message, 'chore(release)') &&
+           !contains(github.event.head_commit.message, '[skip ci]')) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -114,10 +125,12 @@ jobs:
     concurrency:
       group: release-version
       cancel-in-progress: false
-    # Do not run on the bot's own release-bump commit.
+    # Do not run on the bot's own release-bump commit. A manual workflow_dispatch
+    # always runs (it has no head_commit to inspect).
     if: >-
-      ${{ !contains(github.event.head_commit.message, 'chore(release)') &&
-          !contains(github.event.head_commit.message, '[skip ci]') }}
+      ${{ github.event_name == 'workflow_dispatch' ||
+          (!contains(github.event.head_commit.message, 'chore(release)') &&
+           !contains(github.event.head_commit.message, '[skip ci]')) }}
     outputs:
       version: ${{ steps.compute.outputs.version }}
       tag: ${{ steps.compute.outputs.tag }}
@@ -152,6 +165,8 @@ jobs:
         id: compute
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Empty on a push; "true"/"false" on a manual workflow_dispatch.
+          FORCE_RELEASE: ${{ github.event.inputs.force_release }}
         run: |
           set -euo pipefail
 
@@ -169,6 +184,29 @@ jobs:
           version="${bumped#v}"
 
           if [ "$bumped" = "$latest_tag" ]; then
+            # Manual force (workflow_dispatch with force_release=true): cut a brand-new
+            # patch release even though no commit bumps the version, to re-run the full
+            # pipeline (build -> app -> publish -> NexusMods). Falls through to the normal
+            # bump/commit/tag steps via released=true.
+            if [ "${FORCE_RELEASE:-false}" = "true" ]; then
+              if [ -n "$latest_tag" ]; then
+                ver="${latest_tag#v}"
+                MA="${ver%%.*}"; rest="${ver#*.}"; MI="${rest%%.*}"
+                PA="${rest#*.}"; PA="${PA%%[!0-9]*}"
+                forced="v${MA}.${MI}.$((PA + 1))"
+              else
+                forced="v1.0.0"
+              fi
+              echo "force_release=true and nothing to bump; forcing new release ${forced}."
+              {
+                echo "released=true"
+                echo "republish=false"
+                echo "version=${forced#v}"
+                echo "tag=${forced}"
+                echo "prev_tag=${latest_tag}"
+              } >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
             # Nothing new to bump. But a tag can exist without ever having published
             # a GitHub Release (a prior build/publish failed after the tag was pushed).
             # Such an orphaned tag would otherwise never ship, so re-run build+publish
