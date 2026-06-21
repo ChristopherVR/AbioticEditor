@@ -148,7 +148,9 @@ public sealed class SettingsPage : ContentPage
         var pluginCards = new PluginsPanel(this, _vm).BuildCards().ToArray();
 
         // ----- UPDATES -----
+#if !NEXUSMODS
         var updatesCard = BuildUpdatesCard();
+#endif
 
         // ----- COMPARE -----
         // The save-comparison tool, rendered inline as a settings tab (it used to be a footer
@@ -159,7 +161,15 @@ public sealed class SettingsPage : ContentPage
         // Updates fold into General (it's a short card); Compare is its own tab.
         var tabs = new (string Label, View[] Cards)[]
         {
-            (loc["Settings_TabGeneral"], new View[] { themeCard, languageCard, diagnosticsCard, updatesCard }),
+            (loc["Settings_TabGeneral"], new View[]
+            {
+                themeCard,
+                languageCard,
+                diagnosticsCard,
+#if !NEXUSMODS
+                updatesCard,
+#endif
+            }),
             (loc["Settings_TabEditor"], new View[] { spoilerCard }),
             (loc["Settings_GameData"], new View[] { gameDataCard, modsCard }),
             (loc["Settings_TabConvert"], new View[] { conversionCard }),
@@ -549,6 +559,7 @@ public sealed class SettingsPage : ContentPage
         => ex is OperationCanceledException
             || ex.Message.Contains("cancel", StringComparison.OrdinalIgnoreCase);
 
+#if !NEXUSMODS
     /// <summary>
     /// The UPDATES card: a CHECK FOR UPDATES button that queries GitHub releases and, when a
     /// newer version is found, reveals DOWNLOAD &amp; INSTALL (which swaps the files in place
@@ -706,6 +717,7 @@ public sealed class SettingsPage : ContentPage
             progressBar,
             new HorizontalStackLayout { Spacing = 10, Children = { checkButton, installButton, cancelButton } });
     }
+#endif
 
     private Button ThemeButton(string text, ThemeAccent accent)
     {

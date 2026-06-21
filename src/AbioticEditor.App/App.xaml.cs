@@ -20,9 +20,11 @@ public partial class App : Application
 		TaskScheduler.UnobservedTaskException += (_, e) =>
 			WriteCrashLog(e.Exception, "UnobservedTask");
 
+#if !NEXUSMODS
 		// Finish any update file-swaps deferred from a previous install and sweep leftover
 		// backups before anything else touches the install folder. Silent when idle.
 		Services.UpdateService.RunStartupCleanup();
+#endif
 
 		InitializeComponent();
 		// Resource dictionaries exist now; swap in the persisted palette before any

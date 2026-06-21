@@ -1,3 +1,4 @@
+#if !NEXUSMODS
 using System.Reflection;
 using AbioticEditor.Core.Diagnostics;
 using AbioticEditor.Updater;
@@ -78,3 +79,4 @@ public static class UpdateService
         }).ConfigureAwait(false);
     }
 }
+#endif

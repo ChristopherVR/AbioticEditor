@@ -12,10 +12,12 @@ public partial class HeaderBarView : ContentView
         InitializeComponent();
 
         // Pin the header version tag to the build's real version (Directory.Build.props <Version>
-        // -> ApplicationDisplayVersion, which the release workflow rewrites per release), instead
-        // of a hardcoded literal that drifts. UpdateService.CurrentVersion is the same value the
-        // Settings "About" line and the updater use.
+        // -> ApplicationDisplayVersion, which the release workflow rewrites per release).
+#if !NEXUSMODS
         VersionLabel.Text = Services.LocalizationResourceManager.Instance.Format("HeaderBar_VersionLabel", Services.UpdateService.CurrentVersion);
+#else
+        VersionLabel.Text = Services.LocalizationResourceManager.Instance.Format("HeaderBar_VersionLabel", AppInfo.Current.VersionString);
+#endif
     }
 
     /// <summary>Drops the breadcrumb + version tag when horizontal space is scarce.</summary>

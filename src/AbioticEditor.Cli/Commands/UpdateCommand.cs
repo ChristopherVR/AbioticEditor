@@ -1,3 +1,4 @@
+#if !NEXUSMODS
 using System.CommandLine;
 using AbioticEditor.Updater;
 
@@ -221,3 +222,4 @@ internal static class UpdateCommand
         }
     }
 }
+#endif

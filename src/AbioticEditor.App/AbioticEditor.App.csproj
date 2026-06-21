@@ -130,7 +130,16 @@
 	<ItemGroup>
 		<ProjectReference Include="..\AbioticEditor.Core\AbioticEditor.Core.csproj" />
 		<ProjectReference Include="..\AbioticEditor.Plugins.Abstractions\AbioticEditor.Plugins.Abstractions.csproj" />
-		<ProjectReference Include="..\AbioticEditor.Updater\AbioticEditor.Updater.csproj" />
+		<!-- Updater is excluded from the Nexus Mods distribution: that channel has its own
+		     update management and Nexus guidelines discourage bundled auto-updaters. -->
+		<ProjectReference Include="..\AbioticEditor.Updater\AbioticEditor.Updater.csproj"
+		                  Condition="'$(NexusMods)' != 'true'" />
 	</ItemGroup>
+
+	<!-- When building for Nexus Mods (-p:NexusMods=true) the updater assembly is excluded
+	     and all #if !NEXUSMODS blocks in source compile away cleanly. -->
+	<PropertyGroup Condition="'$(NexusMods)' == 'true'">
+		<DefineConstants>$(DefineConstants);NEXUSMODS</DefineConstants>
+	</PropertyGroup>
 
 </Project>

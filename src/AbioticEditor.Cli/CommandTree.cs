@@ -40,7 +40,9 @@ public static class CommandTree
         root.Subcommands.Add(DumpRegistryCommand.Build(quiet));
         root.Subcommands.Add(DownloadWikiImagesCommand.Build(quiet));
         root.Subcommands.Add(VersionCommand.Build());
+#if !NEXUSMODS
         root.Subcommands.Add(UpdateCommand.Build(quiet));
+#endif
 
         // Built-in plugin management ('plugins list/info/run') plus any verbs plugins add.
         root.Subcommands.Add(PluginsCommands.Build(quiet));

@@ -569,6 +569,37 @@ jobs:
           path: ${{ env.ASSET_BASENAME }}.zip
           if-no-files-found: error
 
+      # Nexus Mods build: same publish but with -p:NexusMods=true so the self-updater
+      # is compiled out entirely (no assembly reference, no UI card, no startup cleanup).
+      # Nexus has its own file-versioning / update management and their guidelines
+      # discourage bundled auto-updaters, so this variant ships without one.
+      - name: Publish App (Windows, Nexus Mods build)
+        run: >-
+          dotnet publish src/AbioticEditor.App
+          -f net10.0-windows10.0.19041.0
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:WindowsPackageType=None
+          -p:UseMonoRuntime=false
+          -p:PublishSingleFile=true
+          -p:EnableCompressionInSingleFile=true
+          -p:DebugType=embedded
+          -p:ApplicationVersion=${{ github.run_number }}
+          -p:NexusMods=true
+          -o out-nexus
+
+      - name: Zip App (Windows, Nexus Mods build)
+        shell: pwsh
+        run: Compress-Archive -Path out-nexus/* -DestinationPath "$env:ASSET_BASENAME-nexus.zip"
+
+      - name: Upload artifact (Nexus Mods build)
+        uses: actions/upload-artifact@v7
+        with:
+          name: AbioticEditor-app-win-x64-nexus
+          path: ${{ env.ASSET_BASENAME }}-nexus.zip
+          if-no-files-found: error
+
   publish:
     needs: [version, build, build-app-win]
     if: needs.version.outputs.released == 'true'
@@ -811,12 +842,13 @@ jobs:
             echo "::warning::NEXUSMODS_API_KEY secret and/or NEXUS_APP_FILE_ID variable not set; skipping NexusMods upload."
           fi
 
-      - name: Download Windows app artifact
+      - name: Download Windows app artifact (Nexus Mods build)
         if: steps.gate.outputs.enabled == 'true'
         uses: actions/download-artifact@v8
         with:
-          # The build job uploaded this zip under the matrix artifact name.
-          name: AbioticEditor-app-win-x64
+          # The build-app-win job uploads this as a separate artifact built with
+          # -p:NexusMods=true so the self-updater is stripped from the Nexus distribution.
+          name: AbioticEditor-app-win-x64-nexus
           path: dist
 
       # The `version` job already generated this version's changelog with git-cliff
@@ -873,7 +905,7 @@ jobs:
         with:
           api_key: ${{ secrets.NEXUSMODS_API_KEY }}
           file_id: ${{ vars.NEXUS_APP_FILE_ID }}
-          filename: dist/AbioticEditor-app-win-x64-v${{ needs.version.outputs.version }}.zip
+          filename: dist/AbioticEditor-app-win-x64-v${{ needs.version.outputs.version }}-nexus.zip
           version: ${{ needs.version.outputs.version }}
           display_name: AbioticEditor v${{ needs.version.outputs.version }} (Windows)
           description: ${{ steps.changelog.outputs.body }}

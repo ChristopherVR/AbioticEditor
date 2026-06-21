@@ -16,8 +16,15 @@
   <ItemGroup>
     <ProjectReference Include="..\AbioticEditor.Core\AbioticEditor.Core.csproj" />
     <ProjectReference Include="..\AbioticEditor.Plugins.Abstractions\AbioticEditor.Plugins.Abstractions.csproj" />
-    <ProjectReference Include="..\AbioticEditor.Updater\AbioticEditor.Updater.csproj" />
+    <!-- Updater excluded from the Nexus Mods build (see App csproj for rationale). -->
+    <ProjectReference Include="..\AbioticEditor.Updater\AbioticEditor.Updater.csproj"
+                      Condition="'$(NexusMods)' != 'true'" />
   </ItemGroup>
+
+  <!-- Nexus Mods build: strip updater by defining NEXUSMODS (-p:NexusMods=true). -->
+  <PropertyGroup Condition="'$(NexusMods)' == 'true'">
+    <DefineConstants>$(DefineConstants);NEXUSMODS</DefineConstants>
+  </PropertyGroup>
 
   <ItemGroup>
     <!-- Bundled usmap fallback, same convention as the app: a user-supplied

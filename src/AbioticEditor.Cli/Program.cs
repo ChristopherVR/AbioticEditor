@@ -8,9 +8,11 @@ public static class Program
 {
     public static async Task<int> Main(string[] args)
     {
+#if !NEXUSMODS
         // Finish any update file-swaps deferred from a previous `update install` and sweep
         // its leftover backups before doing anything else. Silent when there's nothing to do.
         Updater.UpdateCleanup.Run();
+#endif
         return await CommandTree.Build().Parse(args).InvokeAsync().ConfigureAwait(false);
     }
 }
