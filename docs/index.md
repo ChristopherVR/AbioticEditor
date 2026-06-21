@@ -56,3 +56,6 @@ There's a full walkthrough with screenshots of every screen in the
 **[Desktop app guide](/guide/desktop-app)**.
 
 Not sure where to begin? Head to **[Getting started](/guide/getting-started)**.
+
+Building a plugin, translating the UI, or curious how the saves work? That's the
+**[technical reference](/reference/save-format)**.
