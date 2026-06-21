@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here.
 
+## [1.16.0] - 2026-06-21
+
+### Bug Fixes
+- Correct Game Pass session UX (folder display, reveal, reload, save indicator)
+
+
+### Features
+- Platform badge colors + game-data loading indicator
+
+
+### Miscellaneous Tasks
+- Point bucket at v1.15.0 [skip ci]
+
+
 ## [1.15.0] - 2026-06-20
 
 ### Features
