@@ -15,6 +15,21 @@ only step that requires explicit user approval** - never `git push` unless the u
 it. The release automation (`.github/workflows/release.yml`) is driven by Conventional-Commits
 on `main`, so commit messages must follow that convention.
 
+### Commit message tone
+
+The changelog published to Nexus Mods is generated directly from commit messages, so the
+audience is **players, not developers**. Write every commit message body as if explaining the
+change to a friend who plays Abiotic Factor but has no programming background:
+
+- Describe **what changed for the player** ("traders you haven't met yet are now hidden by
+  default"), not the internal mechanics ("add SpoilerGateFlag to TraderLore.Entry").
+- Avoid jargon: no class names, method names, file paths, or compiler terms in the body.
+  The Conventional-Commits **type prefix** (`fix:`, `feat:`, `docs:`, etc.) is still
+  required for the automation, but keep the subject line plain too.
+- If you must mention something technical (a flag name, a file format), put it in a
+  parenthetical so the plain sentence reads fine without it.
+- Short, friendly sentences. One idea per sentence. No bullet walls.
+
 ## Build / test commands
 
 Requires the **.NET 10 SDK**. Clone with `--recursive` (or `git submodule update --init`); the
