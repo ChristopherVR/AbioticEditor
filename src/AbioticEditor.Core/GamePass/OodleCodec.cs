@@ -24,16 +24,33 @@ public static class OodleCodec
     // OodleLZ_CompressionLevel_Normal. Any valid level produces a stream the game can decode.
     private const int CompressionLevelNormal = 4;
 
-    // The game's GDK save reader decompresses in 512 KB quanta. Each independently-compressed
-    // chunk must not exceed this size as raw output, otherwise the game's first OodleLZ_Decompress
-    // call requests 524288 bytes of output but our single stream header encodes a larger raw
-    // length, which Oodle rejects with "LZ corruption : OodleLZ_Decompress failed".
-    private const int QuantumSize = 512 * 1024;
-
     private static readonly object Gate = new();
     private static bool _resolved;
     private static OodleLZ_DecompressDelegate? _decompress;
     private static OodleLZ_CompressDelegate? _compress;
+    private static OodleLZ_CompressOptions_GetDefaultDelegate? _compressOptionsGetDefault;
+
+    // OodleLZ_CompressOptions struct (oo2core_9 layout, 48 bytes).
+    // seekChunkLen=0 disables seek-chunk splitting so the entire payload is one quantum;
+    // that matches how the game writes the bundle and how OodleLZ_Decompress reads it
+    // (one call, rawLen = total uncompressed size).
+    [StructLayout(LayoutKind.Sequential, Size = 48)]
+    private struct OodleLZ_CompressOptions
+    {
+        public int Verbosity;
+        public int MinMatchLen;
+        public int SeekChunkReset;
+        public int SeekChunkLen;      // 0 = no seek chunks = single quantum
+        public int Profile;
+        public int DictionarySize;
+        public int SpaceSpeedTradeoffBytes;
+        public int Reserved1;
+        public int SendQuantumCRCs;
+        public int MaxLocalDictionarySize;
+        public int MakeLongRangeMatcher;
+        public int LookAheadSize;
+        // 4 bytes of implicit padding to reach Size=48
+    }
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate long OodleLZ_DecompressDelegate(
@@ -46,6 +63,10 @@ public static class OodleCodec
     private delegate long OodleLZ_CompressDelegate(
         int compressor, nint rawBuf, long rawLen, nint compBuf, int level,
         nint options, nint dictionaryBase, nint lrm, nint scratchMem, long scratchSize);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate void OodleLZ_CompressOptions_GetDefaultDelegate(
+        int compressor, int level, nint outOptions);
 
     /// <summary>True once a native Oodle library has been located and bound.</summary>
     public static bool IsAvailable
@@ -87,44 +108,59 @@ public static class OodleCodec
     }
 
     /// <summary>
-    /// Compresses <paramref name="raw"/> with Kraken in <see cref="QuantumSize"/> chunks so the
-    /// compressed output matches the game's chunked decompression: each independent chunk decodes
-    /// to at most 512 KB, matching the quantum size the GDK save reader passes to
-    /// <c>OodleLZ_Decompress</c>. The chunks are concatenated; <see cref="Decompress"/> handles
-    /// them correctly since <c>OodleLZ_Decompress</c> processes multiple chunks when given the
-    /// full buffer and the total uncompressed length.
+    /// Compresses <paramref name="raw"/> with Kraken as a SINGLE Oodle quantum (seekChunkLen=0).
+    /// The game's GDK save reader calls <c>OodleLZ_Decompress(blob, blobSize, out, totalRawSize)</c>
+    /// in one shot; that expects the compressed data to be one self-contained stream whose
+    /// embedded rawLen equals the total. Using the default seek chunk length (512 KB) splits any
+    /// payload larger than 512 KB into multiple independent streams; <c>OodleLZ_Decompress</c>
+    /// only decodes the first and returns its size (524288), causing a mismatch error against the
+    /// expected totalRawSize. Setting seekChunkLen=0 forces the whole payload into one quantum.
     /// </summary>
     public static byte[] Compress(ReadOnlySpan<byte> raw)
     {
         EnsureLoaded();
-        using var result = new MemoryStream();
-        var offset = 0;
-        while (offset < raw.Length)
+        var input = raw.ToArray();
+        // Worst-case Oodle output: rawLen + 274 bytes per 256 KB block + small fixed header.
+        var cap = input.Length + 274 * ((input.Length + 0x3FFFF) / 0x40000) + 64;
+        var comp = new byte[cap];
+        long produced;
+        unsafe
         {
-            var chunkLen = Math.Min(QuantumSize, raw.Length - offset);
-            var chunk = raw.Slice(offset, chunkLen).ToArray();
-            // Worst-case Oodle output is rawLen + 274 bytes per 256 KB block plus a small header.
-            var cap = chunkLen + 274 * ((chunkLen + 0x3FFFF) / 0x40000) + 64;
-            var comp = new byte[cap];
-            long produced;
-            unsafe
+            // Build options with seekChunkLen=0 (no seek chunks = one quantum for the whole
+            // payload). If GetDefault is available it fills in the remaining fields; we then
+            // force seekChunkLen back to 0 since the game writes its own bundles that way.
+            var opts = new OodleLZ_CompressOptions
             {
-                fixed (byte* ip = chunk)
-                fixed (byte* op = comp)
-                {
-                    produced = _compress!(
-                        CompressorKraken, (nint)ip, chunkLen, (nint)op, CompressionLevelNormal,
-                        0, 0, 0, 0, 0);
-                }
-            }
-            if (produced <= 0)
+                Verbosity = 0,
+                MinMatchLen = 0,
+                SeekChunkReset = 0,
+                SeekChunkLen = 0,           // 0 = no seek-chunk splitting = single quantum
+                Profile = 0,
+                DictionarySize = -1,        // Oodle default: auto
+                SpaceSpeedTradeoffBytes = 256,
+                Reserved1 = 0,
+                SendQuantumCRCs = 0,
+                MaxLocalDictionarySize = 0,
+                MakeLongRangeMatcher = 1,
+                LookAheadSize = 0,
+            };
+            if (_compressOptionsGetDefault != null)
             {
-                throw new InvalidDataException($"Oodle compression failed on chunk at offset {offset} (returned {produced}).");
+                // opts is a stack local - take address directly, no fixed needed.
+                _compressOptionsGetDefault(CompressorKraken, CompressionLevelNormal, (nint)(&opts));
+                opts.SeekChunkLen = 0;      // override after GetDefault
             }
-            result.Write(comp, 0, (int)produced);
-            offset += chunkLen;
+            fixed (byte* ip = input)
+            fixed (byte* op = comp)
+            {
+                produced = _compress!(
+                    CompressorKraken, (nint)ip, input.Length, (nint)op, CompressionLevelNormal,
+                    (nint)(&opts), 0, 0, 0, 0);
+            }
         }
-        return result.ToArray();
+        if (produced <= 0)
+            throw new InvalidDataException($"Oodle compression failed (returned {produced}).");
+        return comp[..(int)produced];
     }
 
     private static void EnsureLoaded()
@@ -161,6 +197,15 @@ public static class OodleCodec
 
             _decompress = Marshal.GetDelegateForFunctionPointer<OodleLZ_DecompressDelegate>(decPtr);
             _compress = Marshal.GetDelegateForFunctionPointer<OodleLZ_CompressDelegate>(compPtr);
+
+            // Optional - available in oo2core_9; used to fill in safe defaults before we
+            // override seekChunkLen. Missing export is not fatal; we hard-code the same values.
+            if (NativeLibrary.TryGetExport(handle, "OodleLZ_CompressOptions_GetDefault", out var getDefaultPtr))
+            {
+                _compressOptionsGetDefault =
+                    Marshal.GetDelegateForFunctionPointer<OodleLZ_CompressOptions_GetDefaultDelegate>(getDefaultPtr);
+            }
+
             _resolved = true;
             Diagnostics.EditorLog.Info("GamePass", $"Oodle bound from {dll}");
         }
