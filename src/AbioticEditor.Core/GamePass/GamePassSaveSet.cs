@@ -137,6 +137,14 @@ public sealed class GamePassSaveSet
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.WriteAllBytes(path, ReadSave(entry));
         }
+        // Nothing was extracted for this container. Call LoadBundle directly so the real cause
+        // (missing blob, bad Oodle stream, etc.) propagates to the caller instead of silently
+        // producing an empty folder that shows as a blank sidebar.
+        if (string.Equals(world, containerName, StringComparison.OrdinalIgnoreCase))
+        {
+            LoadBundle(containerName); // rethrows the bundle-load error if one occurred
+            throw new InvalidOperationException($"Container '{containerName}' has no editable saves.");
+        }
         return world;
     }
 

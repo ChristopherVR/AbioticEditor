@@ -168,6 +168,11 @@ public sealed class WgsContainerStore
         var folder = Path.Combine(_root, container.FolderName);
         var blobGuid = ReadManifestBlobGuid(folder, container.ContainerNumber);
         var blobPath = Path.Combine(folder, blobGuid.ToString("N").ToUpperInvariant());
+        if (!File.Exists(blobPath))
+            throw new InvalidDataException(
+                $"Save data blob for '{container.Name}' is missing (expected {blobGuid:N}). " +
+                "Xbox cloud sync may not have finished downloading this save - " +
+                "close the game completely, wait for sync to complete, and try again.");
         return File.ReadAllBytes(blobPath);
     }
 
