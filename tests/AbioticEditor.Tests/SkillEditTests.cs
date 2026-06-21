@@ -1,4 +1,5 @@
 using System.IO;
+using AbioticEditor.Core.Assets;
 using AbioticEditor.Core.PlayerSaves;
 using Xunit.Abstractions;
 
@@ -59,6 +60,47 @@ public class SkillEditTests
     }
 
     [Fact]
+    public void Fallback_FollowsInGamePanelOrder()
+    {
+        // The positional Skills_ array is serialized in the in-game panel order
+        // (Fitness, Combat, Survival) - NOT DT_Skills row order. Strength is the second
+        // entry (Fitness) and Accuracy sits in the Combat group; a regression that reverts
+        // to DT_Skills order would swap them and mislabel every save.
+        Assert.Equal(SkillCatalog.CanonicalOrder, SkillCatalog.Fallback.Select(d => d.Id).ToList());
+        Assert.Equal("Sprinting", SkillCatalog.Fallback[0].Id);
+        Assert.Equal("Strength", SkillCatalog.Fallback[1].Id);
+        Assert.Equal("Accuracy", SkillCatalog.Fallback[6].Id);
+        Assert.Equal("Fishing", SkillCatalog.Fallback[14].Id);
+
+        for (var i = 0; i < SkillCatalog.Fallback.Count; i++)
+        {
+            Assert.Equal(i, SkillCatalog.Fallback[i].SaveIndex);
+        }
+    }
+
+    [Fact]
+    public void LoadFrom_PlacesGameSkillsInCanonicalOrder()
+    {
+        using var provider = GameAssetProvider.CreateForLocalInstall();
+        if (provider is null || !provider.HasMappings) { _output.WriteLine("No install/mappings."); return; }
+
+        var defs = SkillCatalog.LoadFrom(provider);
+
+        // The live DT_Skills load must be re-sequenced into the in-game panel order, not left
+        // in DT_Skills row order. The first 15 entries must match the canonical order exactly.
+        var ids = defs.Select(d => d.Id).Take(SkillCatalog.CanonicalOrder.Count).ToList();
+        Assert.Equal(SkillCatalog.CanonicalOrder, ids);
+
+        // Game-derived display names still come through (localization / mod support).
+        Assert.Equal("Strength", defs[1].DisplayName);
+        Assert.Equal("Accuracy", defs[6].DisplayName);
+        for (var i = 0; i < defs.Count; i++)
+        {
+            Assert.Equal(i, defs[i].SaveIndex);
+        }
+    }
+
+    [Fact]
     public void LevelMath_RoundTripsThresholds()
     {
         Assert.Equal(0, SkillCatalog.LevelForXp(0));
@@ -81,7 +123,7 @@ public class SkillEditTests
 
         var data = PlayerSaveReader.ReadFromFile(path!);
 
-        // Drop Reloading (index 2) to level 5 and bump its multiplier.
+        // Drop the skill at index 2 to level 5 and bump its multiplier.
         var updated = data.Skills
             .Select(s => s.Index == 2 ? s with { Xp = SkillCatalog.XpForLevel(5), XpMultiplier = 1.5f } : s)
             .ToList();

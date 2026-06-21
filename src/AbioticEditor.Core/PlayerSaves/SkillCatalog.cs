@@ -24,13 +24,36 @@ public sealed record SkillDefinition(
 /// Player saves store skills positionally: the <c>Skills_</c> array in
 /// <c>CharacterSaveData</c> carries one <c>Abiotic_CharacterSkill_Struct</c> per skill,
 /// and every entry's <c>SkillName</c> field is the compiler default
-/// (<c>skill_sprinting</c>) - identity comes from array order alone. The order matches
-/// <c>DT_Skills</c> row order with the two <c>DONOTUSE</c> rows (Engineering, Resilience)
-/// removed; verified against a finished end-game save where every maxed skill sits just
-/// above the level-20 XP threshold.
+/// (<c>skill_sprinting</c>) - identity comes from array order alone.
+///
+/// The array is serialized in the game's on-screen skill order (the Fitness / Combat /
+/// Survival grouping of the in-game skills panel), NOT <c>DT_Skills</c> row order. The two
+/// orders differ: <c>DT_Skills</c> lists Accuracy second and Strength near the end, but the
+/// game writes Strength second (Fitness) and Accuracy in the Combat group, so a catalog keyed
+/// to <c>DT_Skills</c> mislabels every skill that moves between the two orders. The earlier
+/// "verified against an end-game save" check could not catch this: in a fully maxed save every
+/// position reads ~91,655 XP, so any ordering looks correct. The canonical order below is the
+/// in-game panel order (see <see cref="CanonicalOrder"/>); identity is the array index.
+/// Source: abioticfactor.wiki.gg/wiki/Skills.
 /// </summary>
 public static class SkillCatalog
 {
+    /// <summary>
+    /// The in-game skill-panel order (Fitness, then Combat, then Survival) by <c>DT_Skills</c>
+    /// row name. This is the order the game serializes the positional <c>Skills_</c> array, so it
+    /// is the single source of truth for index -> skill identity, used by both
+    /// <see cref="Fallback"/> and <see cref="LoadFrom"/>.
+    /// </summary>
+    public static readonly IReadOnlyList<string> CanonicalOrder = new[]
+    {
+        // Fitness
+        "Sprinting", "Strength", "Throwing", "Sneaking",
+        // Combat
+        "BluntMelee", "SharpMelee", "Accuracy", "Reloading", "Fortitude",
+        // Survival
+        "Crafting", "Construction", "FirstAid", "Cooking", "Agriculture", "Fishing",
+    };
+
     /// <summary>
     /// Cumulative XP required to reach each level. Index 0 = level 1 (200 XP) ... index 19
     /// = level 20 (91,655 XP). Source: abioticfactor.wiki.gg/wiki/Skills (v1.0), confirmed
@@ -68,21 +91,24 @@ public static class SkillCatalog
     /// </summary>
     public static IReadOnlyList<SkillDefinition> Fallback { get; } = new[]
     {
+        // Fitness
         new SkillDefinition(0,  "Sprinting",    "Sprinting",    null, "/Game/Textures/GUI/SkillIcons/skillicon_sprinting.skillicon_sprinting"),
-        new SkillDefinition(1,  "Accuracy",     "Accuracy",     null, "/Game/Textures/GUI/SkillIcons/skillicon_accuracy.skillicon_accuracy"),
-        new SkillDefinition(2,  "Reloading",    "Reloading",    null, "/Game/Textures/GUI/SkillIcons/skillicon_reloading.skillicon_reloading"),
+        new SkillDefinition(1,  "Strength",     "Strength",     null, "/Game/Textures/GUI/SkillIcons/skillicon_strength.skillicon_strength"),
+        new SkillDefinition(2,  "Throwing",     "Throwing",     null, "/Game/Textures/GUI/SkillIcons/skillicon_throwing.skillicon_throwing"),
         new SkillDefinition(3,  "Sneaking",     "Sneaking",     null, "/Game/Textures/GUI/SkillIcons/skillicon_sneaking.skillicon_sneaking"),
-        new SkillDefinition(4,  "SharpMelee",   "Sharp Melee",  null, "/Game/Textures/GUI/SkillIcons/skillicon_melee_sharp.skillicon_melee_sharp"),
-        new SkillDefinition(5,  "BluntMelee",   "Blunt Melee",  null, "/Game/Textures/GUI/SkillIcons/skillicon_melee_blunt.skillicon_melee_blunt"),
-        new SkillDefinition(6,  "Fishing",      "Fishing",      null, "/Game/Textures/GUI/Icons/icon_fishing.icon_fishing"),
-        new SkillDefinition(7,  "Crafting",     "Crafting",     null, "/Game/Textures/GUI/SkillIcons/skillicon_crafting.skillicon_crafting"),
-        new SkillDefinition(8,  "Construction", "Construction", null, "/Game/Textures/GUI/SkillIcons/skillicon_construction.skillicon_construction"),
-        new SkillDefinition(9,  "FirstAid",     "First Aid",    null, "/Game/Textures/GUI/SkillIcons/skillicon_firstaid.skillicon_firstaid"),
-        new SkillDefinition(10, "Agriculture",  "Agriculture",  null, "/Game/Textures/GUI/SkillIcons/skillicon_agriculture.skillicon_agriculture"),
-        new SkillDefinition(11, "Cooking",      "Cooking",      null, "/Game/Textures/GUI/SkillIcons/skillicon_cooking.skillicon_cooking"),
-        new SkillDefinition(12, "Fortitude",    "Fortitude",    null, "/Game/Textures/GUI/SkillIcons/skillicon_fortitude.skillicon_fortitude"),
-        new SkillDefinition(13, "Strength",     "Strength",     null, "/Game/Textures/GUI/SkillIcons/skillicon_strength.skillicon_strength"),
-        new SkillDefinition(14, "Throwing",     "Throwing",     null, "/Game/Textures/GUI/SkillIcons/skillicon_throwing.skillicon_throwing"),
+        // Combat
+        new SkillDefinition(4,  "BluntMelee",   "Blunt Melee",  null, "/Game/Textures/GUI/SkillIcons/skillicon_melee_blunt.skillicon_melee_blunt"),
+        new SkillDefinition(5,  "SharpMelee",   "Sharp Melee",  null, "/Game/Textures/GUI/SkillIcons/skillicon_melee_sharp.skillicon_melee_sharp"),
+        new SkillDefinition(6,  "Accuracy",     "Accuracy",     null, "/Game/Textures/GUI/SkillIcons/skillicon_accuracy.skillicon_accuracy"),
+        new SkillDefinition(7,  "Reloading",    "Reloading",    null, "/Game/Textures/GUI/SkillIcons/skillicon_reloading.skillicon_reloading"),
+        new SkillDefinition(8,  "Fortitude",    "Fortitude",    null, "/Game/Textures/GUI/SkillIcons/skillicon_fortitude.skillicon_fortitude"),
+        // Survival
+        new SkillDefinition(9,  "Crafting",     "Crafting",     null, "/Game/Textures/GUI/SkillIcons/skillicon_crafting.skillicon_crafting"),
+        new SkillDefinition(10, "Construction", "Construction", null, "/Game/Textures/GUI/SkillIcons/skillicon_construction.skillicon_construction"),
+        new SkillDefinition(11, "FirstAid",     "First Aid",    null, "/Game/Textures/GUI/SkillIcons/skillicon_firstaid.skillicon_firstaid"),
+        new SkillDefinition(12, "Cooking",      "Cooking",      null, "/Game/Textures/GUI/SkillIcons/skillicon_cooking.skillicon_cooking"),
+        new SkillDefinition(13, "Agriculture",  "Agriculture",  null, "/Game/Textures/GUI/SkillIcons/skillicon_agriculture.skillicon_agriculture"),
+        new SkillDefinition(14, "Fishing",      "Fishing",      null, "/Game/Textures/GUI/Icons/icon_fishing.icon_fishing"),
     };
 
     /// <summary>
@@ -112,17 +138,19 @@ public static class SkillCatalog
     }
 
     /// <summary>
-    /// Loads skill definitions from the game's <c>DT_Skills</c> DataTable, preserving row
-    /// order and skipping rows whose display name carries the DONOTUSE marker. Returns
-    /// <see cref="Fallback"/> when mappings are missing or the table can't be read.
+    /// Loads skill display metadata (name, description, icon) from the game's <c>DT_Skills</c>
+    /// DataTable and arranges it in the save's positional order (<see cref="CanonicalOrder"/>,
+    /// the in-game panel order), skipping rows whose display name carries the DONOTUSE marker.
+    /// Returns <see cref="Fallback"/> when mappings are missing or the table can't be read.
     /// </summary>
     /// <remarks>
-    /// Skills are positional (identity = index in the save's <c>Skills_</c> array, matching
-    /// DT_Skills row order), so this intentionally does NOT merge separately-added mod skill
-    /// tables: their position relative to the base rows is unknown and a wrong guess would
-    /// mismap every skill after it. A mod that adds skills by overriding DT_Skills itself is
-    /// supported automatically (the mounted mod pak's table wins). A save whose array is longer
-    /// than the catalog still round-trips safely via <see cref="WithUnknownPlaceholders"/>.
+    /// Skills are positional (identity = index in the save's <c>Skills_</c> array). That order is
+    /// the in-game panel order, which is NOT the same as <c>DT_Skills</c> row order, so the table
+    /// is used only for per-skill text/icons and is re-sequenced into <see cref="CanonicalOrder"/>.
+    /// Rows the canonical order doesn't name (a mod or a newer game version that added a skill)
+    /// are appended after the known ones in DT_Skills row order - a best-effort guess, since their
+    /// true save position is unknown. A save whose array is longer than the catalog still
+    /// round-trips safely via <see cref="WithUnknownPlaceholders"/>.
     /// </remarks>
     public static IReadOnlyList<SkillDefinition> LoadFrom(GameAssetProvider provider)
     {
@@ -134,7 +162,9 @@ public static class SkillCatalog
             var dt = pkg.GetExports().OfType<UDataTable>().FirstOrDefault();
             if (dt is null) return Fallback;
 
-            var result = new List<SkillDefinition>(dt.RowMap.Count);
+            // Gather the usable rows, preserving DT_Skills row order for any leftovers.
+            var rows = new List<(string Id, string Display, string? Description, string? Icon)>(dt.RowMap.Count);
+            var byId = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             foreach (var kv in dt.RowMap)
             {
                 string? display = null, description = null, icon = null;
@@ -151,7 +181,27 @@ public static class SkillCatalog
                 {
                     continue;
                 }
-                result.Add(new SkillDefinition(result.Count, kv.Key.Text, display, description, icon));
+                byId[kv.Key.Text] = rows.Count;
+                rows.Add((kv.Key.Text, display, description, icon));
+            }
+            if (rows.Count == 0) return Fallback;
+
+            // Emit in canonical (in-game panel) order, then append any rows the canonical list
+            // doesn't name (mod / newer-version skills) in their DT_Skills row order.
+            var result = new List<SkillDefinition>(rows.Count);
+            var used = new bool[rows.Count];
+            foreach (var id in CanonicalOrder)
+            {
+                if (!byId.TryGetValue(id, out var idx)) continue;
+                var r = rows[idx];
+                used[idx] = true;
+                result.Add(new SkillDefinition(result.Count, r.Id, r.Display, r.Description, r.Icon));
+            }
+            for (var i = 0; i < rows.Count; i++)
+            {
+                if (used[i]) continue;
+                var r = rows[i];
+                result.Add(new SkillDefinition(result.Count, r.Id, r.Display, r.Description, r.Icon));
             }
             return result.Count > 0 ? result : Fallback;
         }

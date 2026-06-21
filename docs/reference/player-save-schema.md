@@ -58,15 +58,21 @@ in the per-account `ScientistCustomization_<slot>.sav` (see `CustomizationSaveFi
 
 Every `Skills_` entry carries `SkillName`/`SkillTooltip` TextProperties - but they are
 **inert blueprint defaults** (`skill_sprinting` on every entry, verified in the raw
-binary). Identity is the array index. The order matches `DT_Skills`
-(`AbioticFactor/Content/Blueprints/DataTables/Customization/DT_Skills`) row order with
-the two `DONOTUSE` rows (Engineering, Resilience) skipped:
+binary). Identity is the array index. The order is the **in-game skill-panel order**
+(Fitness, then Combat, then Survival), NOT `DT_Skills`
+(`AbioticFactor/Content/Blueprints/DataTables/Customization/DT_Skills`) row order:
 
 ```
-0 Sprinting   1 Accuracy   2 Reloading   3 Sneaking    4 SharpMelee
-5 BluntMelee  6 Fishing    7 Crafting    8 Construction 9 FirstAid
-10 Agriculture 11 Cooking  12 Fortitude  13 Strength   14 Throwing
+0 Sprinting   1 Strength    2 Throwing    3 Sneaking     (Fitness)
+4 BluntMelee  5 SharpMelee  6 Accuracy    7 Reloading    8 Fortitude   (Combat)
+9 Crafting    10 Construction 11 FirstAid  12 Cooking    13 Agriculture 14 Fishing (Survival)
 ```
+
+The two orders differ: `DT_Skills` lists Accuracy second and Strength near the end, so a
+catalog keyed to row order swaps Strength and Accuracy (and shuffles the melee/survival
+skills). The mismatch was hidden for a long time because the only check was a fully maxed
+end-game save, where every position reads ~91,655 XP and any ordering looks right. Source
+for the panel order: abioticfactor.wiki.gg/wiki/Skills.
 
 Editable per entry: `CurrentSkillXP_` (float, cumulative) and
 `CurrentXPMultiplier_` (float, job/trait XP bonus).
