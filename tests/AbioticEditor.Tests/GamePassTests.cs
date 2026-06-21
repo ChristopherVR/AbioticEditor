@@ -114,42 +114,51 @@ public class GamePassTests
     }
 
     /// <summary>
-    /// Validates that OodleCodec.Compress produces a single-quantum stream for data larger than
-    /// 512 KB. The default Oodle seekChunkLen (512 KB) would split > 512 KB inputs into multiple
-    /// independent streams; OodleLZ_Decompress then only decodes the first quantum and returns
-    /// 524288 instead of the full length, causing "OodleLZ_Decompress failed (524288 != N)".
-    /// This test reproduces the exact failure the game reports.
+    /// The game passes Field1 from the bundle header verbatim to OodleLZ_Decompress as rawLen;
+    /// Field1 must equal the actual total decompressed size after member edits. This test verifies
+    /// that Serialize() writes Field1 = sum(member.Body.Length) even when a member grows.
     /// </summary>
     [Fact]
-    public void OodleCompress_large_payload_roundtrips_as_single_quantum()
+    public void AbfBundle_serialize_updates_field1_to_match_total_body_size()
     {
         if (!OodleCodec.IsAvailable) return;
 
-        // Use the same size as the real failing case (sum of world member bodies = 660738).
-        const int Size = 660738;
+        var smallBody = new byte[] { 1, 2, 3, 4 };
+        var bundle = TestBundle(("Profile/Worlds/W/PlayerData/Player_1", CharClass, smallBody));
+
+        // Grow the member body to simulate an edit that increases the save size.
+        var largerBody = new byte[660738];
+        new Random(42).NextBytes(largerBody);
+        bundle.Members[0].Body = largerBody;
+
+        var blob = bundle.Serialize();
+        var reparsed = AbfSaveBundle.Parse(blob);
+
+        // Field1 in the serialized blob must equal the new total, not the old one.
+        Assert.Equal((uint)largerBody.Length, reparsed.Field1);
+        Assert.Equal(largerBody, reparsed.Members[0].Body);
+    }
+
+    [Fact]
+    public void OodleCompress_roundtrips_large_payload()
+    {
+        if (!OodleCodec.IsAvailable) return;
+
+        const int Size = 660738; // same size as the real-world failure case
         var original = new byte[Size];
         for (var i = 0; i < Size; i++) original[i] = (byte)(i * 7 % 251);
 
         var compressed = OodleCodec.Compress(original);
-
-        // OodleCodec.Decompress must reconstruct the full Size bytes in one call - exactly
-        // what the game's GDK reader does: OodleLZ_Decompress(blob, compSize, buf, totalSize).
-        // If the compressed output has multiple quanta, Decompress would return only 524288
-        // bytes (the first quantum) and throw "produced 524288 bytes, expected 660738".
         var decompressed = OodleCodec.Decompress(compressed, Size);
         Assert.Equal(Size, decompressed.Length);
         Assert.Equal(original, decompressed);
     }
 
-    /// <summary>
-    /// Same single-quantum contract for data exactly at the 512 KB boundary and just above it,
-    /// since 512 KB (524288 bytes) is the default Oodle seek chunk limit that triggers splitting.
-    /// </summary>
     [Theory]
-    [InlineData(524287)] // just below 512 KB - always one quantum with default seek chunk
-    [InlineData(524288)] // exactly 512 KB - boundary case
-    [InlineData(524289)] // just above 512 KB - triggers splitting with default, not with our fix
-    [InlineData(700000)] // well above 512 KB
+    [InlineData(524287)]
+    [InlineData(524288)]
+    [InlineData(524289)]
+    [InlineData(700000)]
     public void OodleCompress_roundtrips_sizes_around_512KB_boundary(int size)
     {
         if (!OodleCodec.IsAvailable) return;

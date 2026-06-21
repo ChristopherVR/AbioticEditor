@@ -145,7 +145,9 @@ public sealed class AbfSaveBundle
         using var w = new BinaryWriter(ms, Encoding.ASCII, leaveOpen: true);
         WriteUnrealString(w, Marker);
         w.Write(Version);
-        w.Write(Field1);
+        // Field1 is the total uncompressed size; the game passes it verbatim to OodleLZ_Decompress
+        // as rawLen. It must equal totalBody after edits change member sizes.
+        w.Write((uint)totalBody);
         w.Write(Field2);
         w.Write(Members.Count);
         foreach (var m in Members)
