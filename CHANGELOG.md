@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [1.16.1] - 2026-06-21
+
+### Build
+- Bump the actions-all group with 3 updates
+
+
+### Miscellaneous Tasks
+- Point bucket at v1.16.0 [skip ci]
+
+
 ## [1.16.0] - 2026-06-21
 
 ### Bug Fixes
