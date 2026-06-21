@@ -11,6 +11,7 @@ namespace AbioticEditor.App.ViewModels;
 public sealed class TraderCardViewModel : INotifyPropertyChanged
 {
     private readonly TraderInfo _info;
+    private readonly TraderLore.Entry? _lore;
     private readonly Func<string, bool> _worldHasFlag;
     private string? _portraitPath;
     private bool _portraitRequested;
@@ -19,11 +20,11 @@ public sealed class TraderCardViewModel : INotifyPropertyChanged
     {
         _info = info;
         _worldHasFlag = worldHasFlag;
-        var lore = TraderLore.ById.TryGetValue(info.Id, out var e) ? e : null;
-        Name = lore?.Name ?? info.Id;
-        Where = lore?.Where ?? string.Empty;
-        Blurb = lore?.Blurb ?? string.Empty;
-        Unlock = lore?.Unlock ?? string.Empty;
+        _lore = TraderLore.ById.TryGetValue(info.Id, out var e) ? e : null;
+        Name = _lore?.Name ?? info.Id;
+        Where = _lore?.Where ?? string.Empty;
+        Blurb = _lore?.Blurb ?? string.Empty;
+        Unlock = _lore?.Unlock ?? string.Empty;
     }
 
     /// <summary>How/when this trader actually becomes a trader (curated; see TraderLore).</summary>
@@ -35,6 +36,16 @@ public sealed class TraderCardViewModel : INotifyPropertyChanged
 
     /// <summary>Is this trader available in THIS world (its gating flags are set)?</summary>
     public bool IsAvailableHere => _info.RequiredFlags.Count == 0 || _info.RequiredFlags.All(_worldHasFlag);
+
+    /// <summary>
+    /// True when the curated spoiler-gate flag is either absent (not needed) or already
+    /// set in this world. Traders whose <c>DT_NPC_Traders</c> row carries no
+    /// <c>RequiredWorldFlags</c> but who are NOT truly available from the start (Jimmy -
+    /// post-game; Blacksmith - F.O.R.G.E.) carry a <see cref="TraderLore.Entry.SpoilerGateFlag"/>
+    /// that mirrors the in-world event that reveals them.
+    /// </summary>
+    private bool IsSpoilerGateSatisfied
+        => _lore?.SpoilerGateFlag is null || _worldHasFlag(_lore.SpoilerGateFlag);
 
     public string AvailabilityText
     {
@@ -178,8 +189,14 @@ public sealed class TraderCardViewModel : INotifyPropertyChanged
     /// <summary>Per-item reveal key.</summary>
     public string SpoilerKey => SpoilerService.Key(SpoilerService.Trader, _info.Id);
 
-    /// <summary>A trader not yet available in this world is content the player hasn't reached.</summary>
-    public bool IsConcealed => SpoilerService.ShouldConceal(SpoilerKey, !IsAvailableHere);
+    /// <summary>
+    /// A trader the player hasn't reached yet is future content. Checks both the game-data
+    /// flag gates (<see cref="IsAvailableHere"/>) and the curated spoiler gate
+    /// (<see cref="IsSpoilerGateSatisfied"/>) because some traders carry no
+    /// <c>RequiredWorldFlags</c> in <c>DT_NPC_Traders</c> even though the game only reveals
+    /// them at a specific story milestone.
+    /// </summary>
+    public bool IsConcealed => SpoilerService.ShouldConceal(SpoilerKey, !IsAvailableHere || !IsSpoilerGateSatisfied);
 
     public string ShownName => SpoilerService.Mask(Name, IsConcealed, "▓ CLASSIFIED TRADER");
     public string ShownWhere => SpoilerService.Mask(Where, IsConcealed, string.Empty);

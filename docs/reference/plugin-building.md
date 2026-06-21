@@ -2,7 +2,7 @@
 
 This page collects the practical mechanics: how to build a plugin, where to put it, and how to
 confirm the host loaded it. For writing the code, see the [Authoring guide](./plugin-authoring.md);
-for the design, see [Plugin system](./plugins.md).
+for the design, see [Plugin system](./plugin-system.md).
 
 ## Where plugins live
 

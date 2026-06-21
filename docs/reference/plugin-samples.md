@@ -5,7 +5,7 @@ Each is small, self-contained, and demonstrates one slice of the system. Each al
 `README.md` in its folder with build and run details.
 
 Use them as starting points: copy the one closest to what you want, change the id and the logic, and
-rebuild. For the design behind these, see [Plugin system](./plugins.md); for a step-by-step
+rebuild. For the design behind these, see [Plugin system](./plugin-system.md); for a step-by-step
 walkthrough, see the [Authoring guide](./plugin-authoring.md).
 
 ## At a glance

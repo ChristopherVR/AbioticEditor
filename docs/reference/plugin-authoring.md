@@ -2,7 +2,7 @@
 
 A plugin is a normal .NET class library that references **`AbioticEditor.Plugins.Abstractions`**
 (the SDK) and ships as a `.dll` next to a `plugin.json`. This guide builds each of the three
-capability kinds. For the design and the *why*, see [`plugins.md`](plugins.md).
+capability kinds. For the design and the *why*, see [Plugin system](plugin-system.md).
 
 ## 1. The smallest plugin
 
@@ -27,7 +27,7 @@ The host scans your entry assembly for the **single** public, parameterless type
 
 Reference the SDK (and Core/MAUI if you use them) to **compile**, but don't **ship** them:
 the host provides them at runtime and unifies the types (see
-[isolation](plugins.md#isolation--the-shared-assembly-rule)). Output stays just your DLL +
+[isolation](plugin-system.md#isolation--the-shared-assembly-rule)). Output stays just your DLL +
 `plugin.json`.
 
 ```xml
@@ -252,7 +252,7 @@ public void Configure(IPluginRegistry registry, IPluginHost host)
 }
 ```
 
-Handlers run when the host raises that event (see the table in [`plugins.md`](plugins.md#event-handler-events)
+Handlers run when the host raises that event (see the table in [Plugin system](plugin-system.md#event-handler-events)
 for the names and payloads). Keep them quick and non-throwing: the host logs and isolates
 failures, but a slow handler stalls the action that fired it.
 

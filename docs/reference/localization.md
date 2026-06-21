@@ -124,7 +124,7 @@ abiotic.addLocalization("it", {
 });
 ```
 
-JavaScript plugins need no build step. See [the authoring guide](/plugin-authoring) for the rest
+JavaScript plugins need no build step. See [the authoring guide](/reference/plugin-authoring) for the rest
 of the `abiotic` API.
 
 ## Precedence and culture matching

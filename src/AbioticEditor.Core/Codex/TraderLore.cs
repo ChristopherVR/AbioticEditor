@@ -17,7 +17,15 @@ public static class TraderLore
     /// by finishing the story), so the editor cannot infer this from flags - it is curated here
     /// so the UI never wrongly claims a trader is "available from the start".
     /// </param>
-    public sealed record Entry(string Name, string Where, string Blurb, string Unlock);
+    /// <param name="SpoilerGateFlag">
+    /// When set, the spoiler system treats this trader as future content unless the world
+    /// has this flag. Required for traders whose <c>DT_NPC_Traders</c> row carries no
+    /// <c>RequiredWorldFlags</c> even though they are NOT available from the start (the
+    /// game gates them via NPC encounter events or story completion instead of a save flag,
+    /// so <see cref="TraderInfo.RequiredFlags"/> is empty and the normal availability
+    /// check would always pass).
+    /// </param>
+    public sealed record Entry(string Name, string Where, string Blurb, string Unlock, string? SpoilerGateFlag = null);
 
     public static readonly IReadOnlyDictionary<string, Entry> ById = new Dictionary<string, Entry>(StringComparer.OrdinalIgnoreCase)
     {
@@ -32,7 +40,8 @@ public static class TraderLore
         ["Blacksmith"] = new("The Blacksmith",
             "Manufacturing West - never leaves the F.O.R.G.E.",
             "Mysterious fabrication expert hired by Dr. Frake; always in a fire-proximity suit. Unlimited material trading.",
-            "Available once you reach the F.O.R.G.E. in Manufacturing West."),
+            "Available once you reach the F.O.R.G.E. in Manufacturing West.",
+            SpoilerGateFlag: "MF_MetBlacksmith"),
         ["Marion"] = new("Marion",
             "Flathill (Rewind Rentals); later travels near Cacophonous Crates",
             "One of the last denizens of Flathill - an Acolyte who worships the Composers. Trades dampeners, hoses, porcelain keys and an antique shotgun.",
@@ -44,7 +53,8 @@ public static class TraderLore
         ["Jimmy"] = new("Jimmy Sanders",
             "First met in the Botanical Garden / Botanical Wing",
             "Young New Zealander who took a Taco Mine job in 1992 without asking questions. Trades tacos and fast-food cosmetics.",
-            "You first meet him in the Botanical Garden, but he only becomes a trader AFTER you beat the game - then he opens the Taco Mine. NOT available from the start."),
+            "You first meet him in the Botanical Garden, but he only becomes a trader AFTER you beat the game - then he opens the Taco Mine. NOT available from the start.",
+            SpoilerGateFlag: "EndBossDefeated"),
         ["Thule"] = new("Dr. Ulrich Thule",
             "Office cafeteria / Labs atrium / Residence E-Suites",
             "Theoretical physicist, coffee aficionado, committed cynic. Trades a mug of coffee for rare materials.",

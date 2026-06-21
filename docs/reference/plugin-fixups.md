@@ -2,13 +2,13 @@
 
 The plugin system exists so the editor can keep reading, writing, and **repairing** saves as
 Abiotic Factor changes - without shipping a new build of the app. A "fix-up" is just an
-[`ISaveOperation`](../src/AbioticEditor.Plugins.Abstractions/Saves/ISaveOperation.cs) that
+[`ISaveOperation`](../../src/AbioticEditor.Plugins.Abstractions/Saves/ISaveOperation.cs) that
 repairs something: a value a patch corrupted, a flag the game dropped, content the editor's
 own UI does not model yet, or a save a newer game version wrote.
 
 This page is a recipe collection. For the full SDK reference see
-[`plugin-authoring.md`](plugin-authoring.md); for the architecture see
-[`plugins.md`](plugins.md).
+[Authoring guide](plugin-authoring.md); for the architecture see
+[Plugin system](plugin-system.md).
 
 ## The shape of a fix-up
 
@@ -30,7 +30,7 @@ time). Report `NoChange` when there is nothing to do so the host skips the write
 ## Recipe 1 - repair a corrupted/zeroed value (typed writer)
 
 Game delta-serialization omits default-valued tags, so a need the game never wrote reads back
-as `0`. The [`RepairNeeds`](../plugins/RepairNeeds) sample tops every survival need back to
+as `0`. The [`RepairNeeds`](../../plugins/RepairNeeds) sample tops every survival need back to
 full using the typed player reader/writer:
 
 ```csharp
@@ -59,7 +59,7 @@ writer's edits land in the file. Prefer this whenever Core already models the da
 
 When you need to touch something Core has no vocabulary for - a brand-new quest flag, a value
 a future patch introduced - edit the property tree directly. The
-[`GrantFlag`](../plugins/GrantFlag) sample adds an entry to a world save's `WorldFlags` array:
+[`GrantFlag`](../../plugins/GrantFlag) sample adds an entry to a world save's `WorldFlags` array:
 
 ```csharp
 public SaveKind AppliesTo => SaveKind.World;
@@ -119,10 +119,10 @@ public Task<SaveUpgradeResult> UpgradeAsync(ISaveUpgradeContext ctx, Cancellatio
 ```
 
 Register it with `registry.AddSaveUpgrader(...)`. The host drives this through
-[`SaveUpgradeService.LoadAsync`](../src/AbioticEditor.Core/Plugins/SaveUpgradeService.cs),
+[`SaveUpgradeService.LoadAsync`](../../src/AbioticEditor.Core/Plugins/SaveUpgradeService.cs),
 which falls back to the upgraders only when the normal parse fails (and rethrows the real load
-error when none can help). See the [`VersionShim`](../plugins/VersionShim) sample and
-[`SaveUpgradeServiceTests`](../tests/AbioticEditor.Tests/SaveUpgradeServiceTests.cs) for the
+error when none can help). See the [`VersionShim`](../../plugins/VersionShim) sample and
+[`SaveUpgradeServiceTests`](../../tests/AbioticEditor.Tests/SaveUpgradeServiceTests.cs) for the
 full round trip. A real game-format change would do a deeper transform than the version-field
 rewrite shown here, but the contract is the same.
 
