@@ -26,6 +26,16 @@
                         Style="{StaticResource AfGhostButton}"
                         Clicked="OnCreateWorldClicked" />
             </HorizontalStackLayout>
+            <!-- Shown on first launch while the game installation is being located -->
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="10"
+                                   IsVisible="{Binding IsLoadingGameData}">
+                <ActivityIndicator IsRunning="{Binding IsLoadingGameData}"
+                                   WidthRequest="16" HeightRequest="16"
+                                   Color="{StaticResource AfAccentOrange}"
+                                   VerticalOptions="Center" />
+                <Label Text="{loc:Localize Empty_LocatingGameFiles}"
+                       Style="{StaticResource AfMuted}" FontSize="11" VerticalOptions="Center" />
+            </HorizontalStackLayout>
             <Label Text="{loc:Localize Empty_YouCanAlsoDropASaveFolderAnywhereOnThisWindow}"
                    Style="{StaticResource AfMuted}" FontSize="10" HorizontalTextAlignment="Center" />
             <Label Text="{loc:Localize Empty_EveryWriteKeepsABakBackupNextToTheSave}"
@@ -62,7 +72,7 @@
                                                FontFamily="OpenSansSemibold" FontSize="16"
                                                TextColor="{StaticResource AfTextPrimary}"
                                                VerticalOptions="Center" />
-                                        <Border BackgroundColor="{StaticResource AfAmber}"
+                                        <Border BackgroundColor="{Binding SourceBadgeColor}"
                                                 StrokeThickness="0" StrokeShape="Rectangle"
                                                 Padding="6,2" VerticalOptions="Center"
                                                 ToolTipProperties.Text="{Binding SourceHint}">

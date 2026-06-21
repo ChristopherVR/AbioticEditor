@@ -8,6 +8,7 @@ using AbioticEditor.Core.Diagnostics;
 using AbioticEditor.Core.PlayerSaves;
 using AbioticEditor.Core.Saves;
 using AbioticEditor.Core.WorldSaves;
+using Microsoft.Maui.Graphics;
 
 using AbioticEditor.Core.Steam;
 
@@ -1381,6 +1382,20 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public bool HasCurrentSaveType => CurrentSaveType.Length > 0;
 
+    /// <summary>Fill color for the platform badge: Xbox green for Game Pass, Steam blue for Steam, orange otherwise.</summary>
+    public Color CurrentSaveTypeBadgeColor
+    {
+        get
+        {
+            var type = CurrentSaveType;
+            if (type == LocalizationResourceManager.Instance["Main_BadgeGamePass"])
+                return Color.FromArgb("#107C10");
+            if (type == LocalizationResourceManager.Instance["Main_BadgeSteam"])
+                return Color.FromArgb("#4c9be8");
+            return Color.FromArgb("#E37A22");
+        }
+    }
+
     /// <summary>The account folder segment of a client save path (…/SaveGames/&lt;account&gt;/Worlds/…).</summary>
     private static string? AccountSegment(string folder)
     {
@@ -1393,6 +1408,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CurrentSaveType)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasCurrentSaveType)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CurrentSaveTypeBadgeColor)));
     }
 
     /// <summary>Opens a discovered world, routing Game Pass containers through the extract/apply flow.</summary>
@@ -2136,7 +2152,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
     /// </summary>
     public async Task LoadLogoAsync()
     {
-        await GameDataServices.EnsureLoadedAsync();
+        IsLoadingGameData = true;
+        try
+        {
+            await GameDataServices.EnsureLoadedAsync();
+        }
+        finally
+        {
+            IsLoadingGameData = false;
+        }
 
         if (GameDataServices.Catalog is { } catalog && _itemPalette is null)
         {
@@ -2471,12 +2495,20 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private int _loadSequence;
     private bool _isLoadingEditor;
+    private bool _isLoadingGameData;
 
     /// <summary>True while a selected save is being parsed (the Facility save takes seconds).</summary>
     public bool IsLoadingEditor
     {
         get => _isLoadingEditor;
         private set => Set(ref _isLoadingEditor, value);
+    }
+
+    /// <summary>True while the game installation is being located at startup (locating/mounting paks takes a few seconds).</summary>
+    public bool IsLoadingGameData
+    {
+        get => _isLoadingGameData;
+        private set => Set(ref _isLoadingGameData, value);
     }
 
     /// <summary>
@@ -2715,6 +2747,14 @@ public sealed record DiscoveredWorldOption(Core.Saves.DiscoveredWorld World)
 
     /// <summary>Platform tag shown on the discovery row: STEAM / GAME PASS / SERVER / UNKNOWN.</summary>
     public string SourceLabel => World.PlatformLabel;
+
+    /// <summary>Fill color for the platform badge: Xbox green for Game Pass, Steam blue for Steam, amber otherwise.</summary>
+    public Color SourceBadgeColor => World.Platform switch
+    {
+        Core.Saves.SavePlatform.GamePass => Color.FromArgb("#107C10"),
+        Core.Saves.SavePlatform.Steam => Color.FromArgb("#4c9be8"),
+        _ => Color.FromArgb("#E37A22"),
+    };
 
     /// <summary>"Last played 2026-06-10 · 38 saves · account 7656...".</summary>
     public string Detail

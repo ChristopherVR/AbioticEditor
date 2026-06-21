@@ -44,6 +44,7 @@
 
   <!-- Empty -->
   <data name="Empty_EveryWriteKeepsABakBackupNextToTheSave" xml:space="preserve"><value>Bei jedem Schreibvorgang wird eine .bak-Sicherung neben dem Spielstand abgelegt.</value></data>
+  <data name="Empty_LocatingGameFiles" xml:space="preserve"><value>Spieldateien werden gesucht...</value></data>
   <data name="Empty_Load" xml:space="preserve"><value>LADEN</value></data>
   <data name="Empty_NewWorld" xml:space="preserve"><value>NEUE WELT</value></data>
   <data name="Empty_OpenFolder" xml:space="preserve"><value>ORDNER ÖFFNEN</value></data>

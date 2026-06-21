@@ -44,6 +44,7 @@
 
   <!-- Empty -->
   <data name="Empty_EveryWriteKeepsABakBackupNextToTheSave" xml:space="preserve"><value>Cada escritura conserva una copia de seguridad .bak junto al guardado.</value></data>
+  <data name="Empty_LocatingGameFiles" xml:space="preserve"><value>Buscando archivos del juego...</value></data>
   <data name="Empty_Load" xml:space="preserve"><value>CARGAR</value></data>
   <data name="Empty_NewWorld" xml:space="preserve"><value>NUEVO MUNDO</value></data>
   <data name="Empty_OpenFolder" xml:space="preserve"><value>ABRIR CARPETA</value></data>

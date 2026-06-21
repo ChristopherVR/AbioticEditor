@@ -96,6 +96,7 @@
 
   <!-- Empty -->
   <data name="Empty_EveryWriteKeepsABakBackupNextToTheSave" xml:space="preserve"><value>Every write keeps a .bak backup next to the save.</value></data>
+  <data name="Empty_LocatingGameFiles" xml:space="preserve"><value>Locating game files...</value></data>
   <data name="Empty_Load" xml:space="preserve"><value>LOAD</value></data>
   <data name="Empty_NewWorld" xml:space="preserve"><value>NEW WORLD</value></data>
   <data name="Empty_OpenFolder" xml:space="preserve"><value>OPEN FOLDER</value></data>

@@ -23,9 +23,8 @@
                     <!-- Platform badge for the loaded save: STEAM / GAME PASS / UNKNOWN -->
                     <Border Grid.Column="1"
                             IsVisible="{Binding HasCurrentSaveType}"
-                            BackgroundColor="{StaticResource AfPanelElevated}"
-                            Stroke="{StaticResource AfAccentOrangeBrush}"
-                            StrokeThickness="1"
+                            BackgroundColor="{Binding CurrentSaveTypeBadgeColor}"
+                            StrokeThickness="0"
                             StrokeShape="RoundRectangle 4"
                             Padding="8,2"
                             VerticalOptions="Center"
@@ -34,7 +33,7 @@
                                Style="{StaticResource AfFieldLabel}"
                                FontSize="9"
                                CharacterSpacing="2"
-                               TextColor="{StaticResource AfAccentOrange}"
+                               TextColor="White"
                                VerticalOptions="Center" />
                     </Border>
                 </Grid>
