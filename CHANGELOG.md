@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented here.
 
+## [1.17.0] - 2026-06-21
+
+### Bug Fixes
+- Write correct Field1 (TotalRaw) in bundle serialization
+- Force single-quantum Oodle compression for Game Pass bundles
+- Compress bundle payload as single Oodle quantum
+- Compress in 512 KB quanta to match the game's chunked Oodle reader
+- Also skip timestamped .bak-<stamp> backup folders in discovery
+
+
+### Features
+- Added assets
+
+
+### Miscellaneous Tasks
+- Point bucket at v1.16.1 [skip ci]
+
+
 ## [1.16.1] - 2026-06-21
 
 ### Build
@@ -15,10 +33,13 @@ All notable changes to this project are documented here.
 ## [1.16.0] - 2026-06-21
 
 ### Bug Fixes
+- Bak-folder discovery, temp cleanup, home page OPEN button + remove, generation increment
+- Surface bundle-load errors instead of showing empty sidebar
 - Correct Game Pass session UX (folder display, reveal, reload, save indicator)
 
 
 ### Features
+- Strip auto-updater from Nexus Mods distribution build
 - Platform badge colors + game-data loading indicator
 
 
