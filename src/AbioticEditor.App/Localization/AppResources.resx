@@ -97,7 +97,10 @@
   <!-- Empty -->
   <data name="Empty_EveryWriteKeepsABakBackupNextToTheSave" xml:space="preserve"><value>Every write keeps a .bak backup next to the save.</value></data>
   <data name="Empty_LocatingGameFiles" xml:space="preserve"><value>Locating game files...</value></data>
-  <data name="Empty_Load" xml:space="preserve"><value>LOAD</value></data>
+  <data name="Empty_Open" xml:space="preserve"><value>OPEN</value></data>
+  <data name="Empty_Remove" xml:space="preserve"><value>REMOVE</value></data>
+  <data name="Empty_RemoveConfirmTitle" xml:space="preserve"><value>Remove world?</value></data>
+  <data name="Empty_RemoveConfirmMessage" xml:space="preserve"><value>Hide "{0}" from the quick-load list? The save files are not deleted.</value></data>
   <data name="Empty_NewWorld" xml:space="preserve"><value>NEW WORLD</value></data>
   <data name="Empty_OpenFolder" xml:space="preserve"><value>OPEN FOLDER</value></data>
   <data name="Empty_OpenYourSaveFolderInstructions" xml:space="preserve"><value>Open your save folder (usually …\AppData\Local\AbioticFactor\Saved\SaveGames\&lt;steamid&gt;\Worlds\&lt;WorldName&gt;), then pick a player or world save from the sidebar.</value></data>

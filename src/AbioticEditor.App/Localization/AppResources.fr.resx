@@ -45,7 +45,10 @@
   <!-- Empty -->
   <data name="Empty_EveryWriteKeepsABakBackupNextToTheSave" xml:space="preserve"><value>Chaque écriture conserve une sauvegarde .bak à côté du fichier de sauvegarde.</value></data>
   <data name="Empty_LocatingGameFiles" xml:space="preserve"><value>Localisation des fichiers du jeu...</value></data>
-  <data name="Empty_Load" xml:space="preserve"><value>CHARGER</value></data>
+  <data name="Empty_Open" xml:space="preserve"><value>OUVRIR</value></data>
+  <data name="Empty_Remove" xml:space="preserve"><value>SUPPRIMER</value></data>
+  <data name="Empty_RemoveConfirmTitle" xml:space="preserve"><value>Supprimer le monde ?</value></data>
+  <data name="Empty_RemoveConfirmMessage" xml:space="preserve"><value>Masquer « {0} » de la liste de chargement rapide ? Les fichiers de sauvegarde ne sont pas supprimés.</value></data>
   <data name="Empty_NewWorld" xml:space="preserve"><value>NOUVEAU MONDE</value></data>
   <data name="Empty_OpenFolder" xml:space="preserve"><value>OUVRIR UN DOSSIER</value></data>
   <data name="Empty_OpenYourSaveFolderInstructions" xml:space="preserve"><value>Ouvrez votre dossier de sauvegarde (généralement …\AppData\Local\AbioticFactor\Saved\SaveGames\&lt;steamid&gt;\Worlds\&lt;WorldName&gt;), puis choisissez une sauvegarde de joueur ou de monde dans la barre latérale.</value></data>

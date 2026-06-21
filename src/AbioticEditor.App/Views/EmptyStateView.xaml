@@ -62,6 +62,12 @@
                                     Stroke="{StaticResource AfBorderSubtleBrush}"
                                     StrokeThickness="1" StrokeShape="Rectangle"
                                     Padding="14,10">
+                                <FlyoutBase.ContextFlyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem Text="{loc:Localize Empty_Remove}"
+                                                        Clicked="OnRemoveDiscoveredWorldClicked" />
+                                    </MenuFlyout>
+                                </FlyoutBase.ContextFlyout>
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Tapped="OnDiscoveredWorldTapped" />
                                 </Border.GestureRecognizers>
@@ -90,7 +96,7 @@
                                            Style="{StaticResource AfMuted}" FontSize="9"
                                            LineBreakMode="MiddleTruncation" MaxLines="1" />
                                     <Button Grid.Row="0" Grid.RowSpan="3" Grid.Column="1"
-                                            Text="{loc:Localize Empty_Load}"
+                                            Text="{loc:Localize Empty_Open}"
                                             FontSize="11" Padding="18,8"
                                             VerticalOptions="Center"
                                             Clicked="OnDiscoveredWorldClicked" />

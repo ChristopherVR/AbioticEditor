@@ -194,6 +194,7 @@ public sealed class WgsContainerStore
         WriteManifest(folder, newNumber, newBlobGuid);
 
         container.ContainerNumber = newNumber;
+        container.Generation = unchecked(container.Generation + 1);
         container.BlobSize = blob.Length;
         container.FileTime = DateTime.UtcNow.ToFileTimeUtc();
         container.SyncId = $"\"0x{DateTime.UtcNow.ToFileTimeUtc():X}\"";

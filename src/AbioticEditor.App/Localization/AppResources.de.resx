@@ -45,7 +45,10 @@
   <!-- Empty -->
   <data name="Empty_EveryWriteKeepsABakBackupNextToTheSave" xml:space="preserve"><value>Bei jedem Schreibvorgang wird eine .bak-Sicherung neben dem Spielstand abgelegt.</value></data>
   <data name="Empty_LocatingGameFiles" xml:space="preserve"><value>Spieldateien werden gesucht...</value></data>
-  <data name="Empty_Load" xml:space="preserve"><value>LADEN</value></data>
+  <data name="Empty_Open" xml:space="preserve"><value>ÖFFNEN</value></data>
+  <data name="Empty_Remove" xml:space="preserve"><value>ENTFERNEN</value></data>
+  <data name="Empty_RemoveConfirmTitle" xml:space="preserve"><value>Welt entfernen?</value></data>
+  <data name="Empty_RemoveConfirmMessage" xml:space="preserve"><value>"{0}" aus der Schnell-Ladeliste ausblenden? Die Spielstanddateien werden nicht gelöscht.</value></data>
   <data name="Empty_NewWorld" xml:space="preserve"><value>NEUE WELT</value></data>
   <data name="Empty_OpenFolder" xml:space="preserve"><value>ORDNER ÖFFNEN</value></data>
   <data name="Empty_OpenYourSaveFolderInstructions" xml:space="preserve"><value>Öffnen Sie Ihren Speicherordner (normalerweise …\AppData\Local\AbioticFactor\Saved\SaveGames\&lt;steamid&gt;\Worlds\&lt;WorldName&gt;) und wählen Sie dann in der Seitenleiste einen Spieler- oder Welt-Spielstand aus.</value></data>

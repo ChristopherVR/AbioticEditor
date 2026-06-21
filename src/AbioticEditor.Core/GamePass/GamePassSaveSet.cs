@@ -298,6 +298,12 @@ public static class GamePassDiscovery
                 // Log a verdict for every candidate so a remote dump shows exactly why a
                 // Game Pass save was or wasn't picked up (the checks below are otherwise silent).
                 var name = Path.GetFileName(accountDir);
+                if (name.EndsWith(".bak", StringComparison.OrdinalIgnoreCase))
+                {
+                    Diagnostics.EditorLog.Info("GamePass",
+                        $"Discovery: '{name}' is a backup folder - skipped.");
+                    continue;
+                }
                 if (!WgsContainerStore.IsContainerFolder(accountDir))
                 {
                     Diagnostics.EditorLog.Info("GamePass",

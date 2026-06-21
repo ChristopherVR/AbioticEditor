@@ -79,6 +79,7 @@ public partial class MainPage : ContentPage
     {
         _vm.HasStartedUp = true;
         await _vm.LoadLogoAsync();
+        MainViewModel.CleanupGamePassTempDirs();
         // Honour the testing/automation folder override only; otherwise the app stays on the
         // landing page and lets the user pick from the worlds discovered below (no auto-open).
         await _vm.ApplyStartupFolderOverrideAsync();

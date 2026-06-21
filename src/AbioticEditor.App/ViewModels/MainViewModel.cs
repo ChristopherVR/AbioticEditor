@@ -1280,6 +1280,38 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public bool HasDiscoveredWorlds => DiscoveredWorlds.Count > 0;
 
+    private const string HiddenWorldsPreferenceKey = "HiddenDiscoveredWorlds";
+
+    private static HashSet<string> LoadHiddenWorlds()
+    {
+        var raw = Preferences.Default.Get(HiddenWorldsPreferenceKey, string.Empty);
+        if (string.IsNullOrEmpty(raw)) return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            var paths = System.Text.Json.JsonSerializer.Deserialize<string[]>(raw);
+            return new HashSet<string>(paths ?? [], StringComparer.OrdinalIgnoreCase);
+        }
+        catch { return new HashSet<string>(StringComparer.OrdinalIgnoreCase); }
+    }
+
+    private static void SaveHiddenWorlds(IEnumerable<string> paths)
+    {
+        Preferences.Default.Set(HiddenWorldsPreferenceKey,
+            System.Text.Json.JsonSerializer.Serialize(paths.ToArray()));
+    }
+
+    /// <summary>
+    /// Hides a discovered world from the quick-load list (persisted across restarts).
+    /// </summary>
+    public void HideDiscoveredWorld(DiscoveredWorldOption option)
+    {
+        var hidden = LoadHiddenWorlds();
+        hidden.Add(option.FolderPath);
+        SaveHiddenWorlds(hidden);
+        DiscoveredWorlds.Remove(option);
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasDiscoveredWorlds)));
+    }
+
     /// <summary>
     /// Scans the machine off-thread and fills <see cref="DiscoveredWorlds"/>. Safe to
     /// call repeatedly; the list is rebuilt each time.
@@ -1288,11 +1320,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         try
         {
+            var hidden = LoadHiddenWorlds();
             var found = await Task.Run(SaveDiscovery.DiscoverAll);
             DiscoveredWorlds.Clear();
             foreach (var world in found)
             {
-                DiscoveredWorlds.Add(new DiscoveredWorldOption(world));
+                if (!hidden.Contains(world.FolderPath))
+                    DiscoveredWorlds.Add(new DiscoveredWorldOption(world));
             }
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasDiscoveredWorlds)));
             if (found.Count > 0)
@@ -1466,6 +1500,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         try
         {
+            var oldSession = _gamePassSession;
             var (session, dir) = await Task.Run(() =>
             {
                 var set = Core.GamePass.GamePassSaveSet.Open(wgsFolder);
@@ -1475,6 +1510,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 return (new GamePassSession(set, container, worldName, wgsFolder, working), working);
             });
 
+            DeleteGamePassTempDir(oldSession?.WorkingDir);
             await LoadFolderAsync(dir);
             _gamePassSession = session;
             RaiseGamePassSessionChanged();
@@ -1486,6 +1522,31 @@ public sealed class MainViewModel : INotifyPropertyChanged
             EditorLog.Error("GamePass", "Open Game Pass world failed", ex);
             await DialogViewModel.Current.AlertAsync(
                 LocalizationResourceManager.Instance["Main_GpOpenFailedTitle"], ex.Message);
+        }
+    }
+
+    private static void DeleteGamePassTempDir(string? dir)
+    {
+        if (string.IsNullOrEmpty(dir)) return;
+        try
+        {
+            if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Best-effort; leave it for the next startup sweep.
+        }
+    }
+
+    /// <summary>Removes all leftover Game Pass working-copy folders from prior sessions.</summary>
+    public static void CleanupGamePassTempDirs()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "AbioticEditor", "GamePass");
+        if (!Directory.Exists(root)) return;
+        foreach (var dir in Directory.EnumerateDirectories(root))
+        {
+            try { Directory.Delete(dir, recursive: true); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
         }
     }
 
@@ -2468,6 +2529,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         // re-establishes it immediately after calling this).
         if (_gamePassSession is not null)
         {
+            DeleteGamePassTempDir(_gamePassSession.WorkingDir);
             _gamePassSession = null;
             RaiseGamePassSessionChanged();
         }
