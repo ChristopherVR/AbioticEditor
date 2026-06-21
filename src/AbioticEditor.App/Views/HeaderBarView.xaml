@@ -84,7 +84,7 @@
                                  Grid.Column="1" Spacing="2" VerticalOptions="Center">
                 <Label Text="{loc:Localize Header_ActiveSaveFolder}"
                        Style="{StaticResource AfFieldLabel}" />
-                <Label Text="{Binding FolderPath, FallbackValue='None selected'}"
+                <Label Text="{Binding DisplayFolderPath, FallbackValue='None selected'}"
                        Style="{StaticResource AfReadout}"
                        LineBreakMode="MiddleTruncation" />
             </VerticalStackLayout>

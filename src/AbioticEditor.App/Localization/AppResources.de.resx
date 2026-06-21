@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -991,7 +991,7 @@ Welten: Behälter · Quest-Flags · Türen · Bodengegenstände · Story-Fortsch
   <data name="Main_AddPlayerCopyPrompt" xml:space="preserve">
     <value>Erstelle einen neuen Spielstand in dieser Welt.
 
-Neu beginnen oder „{0}“ kopieren (behält Inventar, Fähigkeiten und Fortschritt)?</value>
+Neu beginnen oder „{0}" kopieren (behält Inventar, Fähigkeiten und Fortschritt)?</value>
   </data>
   <data name="Main_AddPlayerBlankTip" xml:space="preserve">
     <value>Erstelle einen neuen leeren Spielstand in dieser Welt.
@@ -1175,13 +1175,16 @@ Der Weltspielstand wird sofort neu geschrieben (.bak bleibt erhalten). Fortfahre
     <value>Dieser Ordner ist ein Xbox-Containerspeicher, enthält aber keine bearbeitbaren Weltspielstände.</value>
   </data>
   <data name="Main_GpOpened" xml:space="preserve">
-    <value>Game Pass-Welt „{0}“ geöffnet. SPEICHERN schreibt direkt zurück in den Xbox-Container (eine Sicherung wird behalten).</value>
+    <value>Game Pass-Welt „{0}" geöffnet. SPEICHERN schreibt direkt zurück in den Xbox-Container (eine Sicherung wird behalten).</value>
   </data>
   <data name="Main_GpOpenFailedTitle" xml:space="preserve">
     <value>Game Pass-Spielstand konnte nicht geöffnet werden</value>
   </data>
+  <data name="Main_GpPacking" xml:space="preserve">
+    <value>Game-Pass-Spielstand fuer &quot;{0}&quot; wird in den Xbox-Container gepackt...</value>
+  </data>
   <data name="Main_GpSaved" xml:space="preserve">
-    <value>In den Game Pass-Spielstand für „{0}“ gespeichert (Sicherung behalten).</value>
+    <value>In den Game Pass-Spielstand für „{0}" gespeichert (Sicherung behalten).</value>
   </data>
   <data name="Main_GpWriteFailedTitle" xml:space="preserve">
     <value>Game Pass-Spielstand konnte nicht geschrieben werden</value>

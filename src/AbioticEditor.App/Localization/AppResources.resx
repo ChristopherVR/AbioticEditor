@@ -1232,6 +1232,9 @@ The world save is rewritten immediately (.bak kept). Continue?</value>
   <data name="Main_GpOpenFailedTitle" xml:space="preserve">
     <value>Couldn't open the Game Pass save</value>
   </data>
+  <data name="Main_GpPacking" xml:space="preserve">
+    <value>Packing Game Pass save for "{0}" into the Xbox container...</value>
+  </data>
   <data name="Main_GpSaved" xml:space="preserve">
     <value>Saved into the Game Pass save for "{0}" (backup kept).</value>
   </data>

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -1179,6 +1179,9 @@ El guardado del mundo se reescribe de inmediato (se conserva el .bak). ¿Continu
   </data>
   <data name="Main_GpOpenFailedTitle" xml:space="preserve">
     <value>No se pudo abrir el guardado de Game Pass</value>
+  </data>
+  <data name="Main_GpPacking" xml:space="preserve">
+    <value>Empaquetando el guardado de Game Pass de «{0}» en el contenedor Xbox...</value>
   </data>
   <data name="Main_GpSaved" xml:space="preserve">
     <value>Guardado en el guardado de Game Pass de «{0}» (se conserva la copia).</value>

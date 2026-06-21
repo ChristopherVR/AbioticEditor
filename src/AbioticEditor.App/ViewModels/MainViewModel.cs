@@ -407,8 +407,18 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public string? FolderPath
     {
         get => _folderPath;
-        private set => Set(ref _folderPath, value);
+        private set
+        {
+            if (Set(ref _folderPath, value))
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayFolderPath)));
+        }
     }
+
+    /// <summary>
+    /// The folder path shown in the header breadcrumb and used for "Open in Explorer". For
+    /// Game Pass sessions this is the wgs container folder - not the invisible temp working copy.
+    /// </summary>
+    public string? DisplayFolderPath => _gamePassSession?.WgsFolder ?? FolderPath;
 
     // Save switching: load IMMEDIATELY when idle (a single deliberate click feels instant), but
     // serialize + coalesce while a load is running. Clicking fast through the list updates the
@@ -1496,6 +1506,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         if (_gamePassSession is not { } session) return;
         try
         {
+            StatusMessage = LocalizationResourceManager.Instance.Format("Main_GpPacking", session.WorldName);
             await Task.Run(() => session.Set.ApplyWorld(session.Container, session.WorkingDir));
             EditorLog.Info("GamePass", $"Saved into Game Pass container '{session.Container}'.");
             StatusMessage = LocalizationResourceManager.Instance.Format("Main_GpSaved", session.WorldName);
@@ -1512,8 +1523,17 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private void RaiseGamePassSessionChanged()
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsGamePassSession)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayFolderPath)));
         RaiseCurrentSaveTypeChanged();
     }
+
+    /// <summary>
+    /// Returns the path that "Open in Explorer" should reveal for a save entry. For Game Pass
+    /// sessions the temp working-copy path is invisible to the user, so we reveal the wgs
+    /// container folder instead.
+    /// </summary>
+    public string GetRevealPath(SaveFileSummary save) =>
+        _gamePassSession is { } session ? session.WgsFolder : save.FullPath;
 
     private void DiscoverConfigFiles(string folder)
     {
@@ -2516,13 +2536,37 @@ public sealed class MainViewModel : INotifyPropertyChanged
     /// any staged edits. Used after an external write (e.g. a plugin save operation) so the
     /// open editor reflects the new file contents. No-op when no save is selected.
     /// </summary>
-    public Task ReloadSelectedSaveAsync()
+    public async Task ReloadSelectedSaveAsync()
     {
-        if (_selectedSave is { } s)
+        if (_gamePassSession is { } session)
+        {
+            // Re-open the wgs container from disk to pick up any cloud-synced changes the game
+            // may have written, then re-extract to the temp working copy so the editor re-reads
+            // fresh bytes (not whatever was already in the temp folder).
+            EditorLog.Info("App", $"Reloading Game Pass container '{session.Container}' from disk.");
+            try
+            {
+                var freshSet = await Task.Run(() =>
+                {
+                    var set = Core.GamePass.GamePassSaveSet.Open(session.WgsFolder);
+                    set.ExtractWorld(session.Container, session.WorkingDir);
+                    return set;
+                });
+                _gamePassSession = session with { Set = freshSet };
+            }
+            catch (Exception ex)
+            {
+                EditorLog.Error("GamePass", "Failed to re-extract Game Pass container for reload", ex);
+                await DialogViewModel.Current.AlertAsync(
+                    LocalizationResourceManager.Instance["Main_GpOpenFailedTitle"], ex.Message);
+                return;
+            }
+        }
+        else if (_selectedSave is { } s)
         {
             EditorLog.Info("App", $"Reloading save from disk: {Path.GetFileName(s.FullPath)}");
         }
-        return LoadEditorForAsync(_selectedSave);
+        await LoadEditorForAsync(_selectedSave);
     }
 
     private RelayCommand? _reloadSaveCommand;

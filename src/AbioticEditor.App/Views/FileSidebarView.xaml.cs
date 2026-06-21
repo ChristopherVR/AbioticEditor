@@ -18,9 +18,12 @@ public partial class FileSidebarView : ContentView
     /// </summary>
     private void OnRevealFileClicked(object? sender, EventArgs e)
     {
+        var vm = BindingContext as MainViewModel;
         var path = (sender as MenuFlyoutItem)?.BindingContext switch
         {
-            SaveFileSummary save => save.FullPath,
+            // For Game Pass sessions the save lives in a temp working copy invisible to the user;
+            // reveal the wgs container folder instead so Explorer opens somewhere meaningful.
+            SaveFileSummary save => vm?.GetRevealPath(save) ?? save.FullPath,
             ConfigFileOption config => config.File.FullPath,
             _ => null,
         };
