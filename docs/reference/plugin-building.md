@@ -44,7 +44,7 @@ dotnet build plugins/MaxSkills -c Release
 
 The output you ship is just **your DLL plus `plugin.json`**. The SDK, Core, and MAUI are referenced
 to compile but not copied, because the host provides them at runtime and unifies the types (the
-[shared-assembly rule](./plugins.md#isolation--the-shared-assembly-rule)). In the project file:
+[shared-assembly rule](./plugin-system.md#isolation--the-shared-assembly-rule)). In the project file:
 
 ```xml
 <ProjectReference Include="...\AbioticEditor.Plugins.Abstractions.csproj"

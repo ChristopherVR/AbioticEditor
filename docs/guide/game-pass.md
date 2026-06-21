@@ -109,18 +109,9 @@ abioticeditor gamepass to-gamepass <steam-world> <dest> [--player-id <id>]
 `gamepass discover` prints each detected save's account id and folder, so it doubles as "where are
 my Game Pass saves".
 
-## How it works internally (for the curious)
+## How the format works
 
-Four nested layers, from outside in:
-
-1. **wgs container** - `containers.index` maps logical container names to GUID folders; each folder
-   has a `container.N` manifest pointing at a GUID blob file.
-2. **`ABF_SAVE_VERSION` bundle** - the world blob is a small archive: a table of contents (member
-   path + save class + size) followed by one **Oodle-compressed** stream of every member.
-3. **Headerless members** - each packed save is the GVAS *property body* only; the save class lives
-   in the table of contents. The editor splices a class-matched header back on to read it, and
-   strips it again on write.
-4. **GVAS** - the same save data the Steam version stores.
-
-Oodle (de)compression uses the same library the editor already uses for the game's pak files; it is
-downloaded on demand if it isn't already present.
+You don't need any of this to edit a Game Pass save - the editor handles the packaging for you.
+If you're curious how the wgs container, the `ABF_SAVE_VERSION` bundle, the headerless members, and
+the Oodle compression fit together, that's documented under
+**[Game Pass format](/reference/game-pass-format)** in the technical reference.

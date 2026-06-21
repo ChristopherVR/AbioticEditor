@@ -12,13 +12,13 @@ export default defineConfig({
   cleanUrls: true,
   lastUpdated: true,
 
-  // These research notes and the internal session log live in docs/ for the
-  // repo, but are not navigation-worthy pages. The session log in particular is
-  // huge and internal; keep it out of the published site entirely.
-  srcExclude: ['PROGRESS.md', '**/README.md'],
+  // PROGRESS.md is the internal session log (large, not user-facing).
+  // The research notes under reference/research/ are developer research dumps,
+  // not documentation intended for end users.
+  srcExclude: ['PROGRESS.md', '**/README.md', 'reference/research/**'],
 
-  // The imported research notes cross-link each other and the repo with paths
-  // VitePress can't always resolve at build time; don't fail the deploy over them.
+  // Reference docs cross-link each other with relative paths; don't fail the
+  // deploy if a link target ends up excluded or relocated.
   ignoreDeadLinks: true,
 
   // These docs were authored for GitHub's renderer, where literal angle brackets
@@ -47,9 +47,9 @@ export default defineConfig({
 
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
-      { text: 'Plugins', link: '/plugins' },
-      { text: 'Localization', link: '/localization' },
-      { text: 'Save format', link: '/player-save-schema' },
+      { text: 'Plugins', link: '/reference/plugin-system' },
+      { text: 'Localization', link: '/reference/localization' },
+      { text: 'Save format', link: '/reference/player-save-schema' },
       {
         text: 'Download',
         link: 'https://github.com/ChristopherVR/AbioticEditor/releases/latest',
@@ -64,46 +64,39 @@ export default defineConfig({
           { text: 'Desktop app', link: '/guide/desktop-app' },
           { text: 'Command-line tool', link: '/guide/cli' },
           { text: 'Game Pass saves', link: '/guide/game-pass' },
+          { text: 'Keeping game data current', link: '/guide/game-data' },
+          { text: 'Plugins & language packs', link: '/guide/plugins' },
         ],
       },
       {
         text: 'Plugins',
         items: [
-          { text: 'Plugin system', link: '/plugins' },
-          { text: 'Authoring guide', link: '/plugin-authoring' },
-          { text: 'Building & installing', link: '/plugin-building' },
-          { text: 'Sample catalog', link: '/plugin-samples' },
-          { text: 'Plugin fix-ups', link: '/plugin-fixups' },
+          { text: 'Plugin system', link: '/reference/plugin-system' },
+          { text: 'Authoring guide', link: '/reference/plugin-authoring' },
+          { text: 'Building & installing', link: '/reference/plugin-building' },
+          { text: 'Sample catalog', link: '/reference/plugin-samples' },
+          { text: 'Plugin fix-ups', link: '/reference/plugin-fixups' },
         ],
       },
       {
         text: 'Localization',
         items: [
-          { text: 'Translating the editor', link: '/localization' },
+          { text: 'Translating the editor', link: '/reference/localization' },
         ],
       },
       {
         text: 'Save format',
         items: [
-          { text: 'Player save schema', link: '/player-save-schema' },
-          { text: 'World save schema', link: '/world-save-schema' },
+          { text: 'Player save schema', link: '/reference/player-save-schema' },
+          { text: 'World save schema', link: '/reference/world-save-schema' },
         ],
       },
       {
-        text: 'Research notes',
+        text: 'Technical reference',
         collapsed: true,
         items: [
-          { text: 'Backpack & traits', link: '/research-backpack-traits' },
-          { text: 'Customization', link: '/research-customization' },
-          { text: 'GatePal & quests', link: '/research-gatepal-quests' },
-          { text: 'Narrative NPCs', link: '/research-narrative-npcs' },
-          { text: 'New-save gaps', link: '/research-new-save-gaps' },
-          { text: 'Performance review', link: '/research-perf-review' },
-          { text: 'Respawn terminals', link: '/research-respawn-terminals' },
-          { text: 'Server saves', link: '/research-server-saves' },
-          { text: 'Slot types', link: '/research-slot-types' },
-          { text: 'Transmog & appearance', link: '/research-transmog-appearance' },
-          { text: 'Wiki round 10', link: '/research-wiki-round10' },
+          { text: 'Game Pass format', link: '/reference/game-pass-format' },
+          { text: 'Maintainer commands', link: '/reference/maintainer-commands' },
         ],
       },
     ],

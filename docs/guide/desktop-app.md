@@ -196,19 +196,16 @@ surface simply shows no picture; nothing else is affected. Each image carries th
 `Image: abioticfactor.wiki.gg` credit (the content is CC BY-NC-SA).
 
 ::: tip For maintainers
-The bundled set lives in `assets/wiki/` and is regenerated with the CLI's
-[`download-wiki-images`](/guide/cli#maintainer-commands) command. See `assets/wiki/README.md`.
+Regenerating the bundled image set is a maintainer task documented under
+[Maintainer commands](/reference/maintainer-commands#download-wiki-images).
 :::
 
 ## Keeping the game build in sync (usmap)
 
-Reading the game's data tables needs a `Mappings.usmap` matching the installed game build.
-A validated one is bundled; when the game updates, dump a fresh usmap (with
-[Dumper-7](https://github.com/Encryqed/Dumper-7) or [FModel](https://fmodel.app/)) and
-install it via **Settings ▸ Import usmap**, or copy it to
-`%LOCALAPPDATA%\AbioticEditor\mappings\Mappings.usmap`. The user-installed file always wins
-over the bundled one. Without a matching usmap the editor still opens and edits saves; only
-asset-backed features degrade.
+Reading the game's data tables needs a `Mappings.usmap` that matches the installed game build. A
+validated one is bundled, so this usually just works. When a game update makes the catalogs look
+stale, you can import a fresh usmap from **Settings ▸ Import usmap**. The full procedure (where the
+file lives, how to dump a new one) is in [Keeping game data current](/guide/game-data).
 
 ## Updates
 
