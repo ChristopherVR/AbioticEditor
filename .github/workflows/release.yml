@@ -86,7 +86,7 @@ jobs:
            !contains(github.event.head_commit.message, '[skip ci]')) }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # The tests build Core, which depends on the submodules
           # (UeSaveGame + CUE4Parse). Without them the build fails.
@@ -103,7 +103,7 @@ jobs:
       # NuGet packages are immutable per version, so this is always safe. The key hashes
       # the project/package files; a partial-match restore-key reuses a close cache.
       - name: Cache NuGet packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props', '**/Directory.Build.props') }}
@@ -149,7 +149,7 @@ jobs:
       abstractions_dep_version: ${{ steps.detect.outputs.abstractions_dep_version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # Full history + tags are required for git-cliff to compute the bump.
           # No submodules needed: this job does not compile any .NET project.
@@ -421,7 +421,7 @@ jobs:
             rid: osx-arm64
     steps:
       - name: Checkout release tag
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.version.outputs.tag }}
           # .NET builds REQUIRE the submodules (Core -> UeSaveGame + CUE4Parse).
@@ -439,7 +439,7 @@ jobs:
       # Cache NuGet, including the self-contained runtime packs (tens of MB per RID)
       # this matrix downloads. Immutable packages, so always safe to reuse.
       - name: Cache NuGet packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props', '**/Directory.Build.props') }}
@@ -491,7 +491,7 @@ jobs:
       ASSET_BASENAME: AbioticEditor-app-win-x64-v${{ needs.version.outputs.version }}
     steps:
       - name: Checkout release tag
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.version.outputs.tag }}
           # .NET builds REQUIRE the submodules (Core -> UeSaveGame + CUE4Parse).
@@ -504,7 +504,7 @@ jobs:
           dotnet-quality: ga
 
       - name: Cache NuGet packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props', '**/Directory.Build.props') }}
@@ -525,7 +525,7 @@ jobs:
         run: echo "version=$(dotnet --version)" >> "$GITHUB_OUTPUT"
 
       - name: Cache MAUI workload
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             C:\Program Files\dotnet\sdk-manifests
@@ -614,7 +614,7 @@ jobs:
       # (bucket/*.json) after we know the published assets' hashes. No submodules:
       # this job does not compile anything.
       - name: Checkout main
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: main
 
@@ -754,7 +754,7 @@ jobs:
       - name: Scan zips with VirusTotal
         id: vt
         if: steps.gate.outputs.enabled == 'true'
-        uses: crazy-max/ghaction-virustotal@v4
+        uses: crazy-max/ghaction-virustotal@v5
         with:
           vt_api_key: ${{ secrets.VT_API_KEY }}
           files: |
@@ -938,7 +938,7 @@ jobs:
       cancel-in-progress: false
     steps:
       - name: Checkout release tag
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.version.outputs.tag }}
           # Packing Core/Abstractions compiles them, which requires the submodules.
@@ -951,7 +951,7 @@ jobs:
           dotnet-quality: ga
 
       - name: Cache NuGet packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props', '**/Directory.Build.props') }}
