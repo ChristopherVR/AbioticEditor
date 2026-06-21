@@ -113,6 +113,57 @@ public class GamePassTests
         Assert.Equal(CharClass, reparsed.Members[0].SaveClass);
     }
 
+    /// <summary>
+    /// Validates that OodleCodec.Compress produces a single-quantum stream for data larger than
+    /// 512 KB. The default Oodle seekChunkLen (512 KB) would split > 512 KB inputs into multiple
+    /// independent streams; OodleLZ_Decompress then only decodes the first quantum and returns
+    /// 524288 instead of the full length, causing "OodleLZ_Decompress failed (524288 != N)".
+    /// This test reproduces the exact failure the game reports.
+    /// </summary>
+    [Fact]
+    public void OodleCompress_large_payload_roundtrips_as_single_quantum()
+    {
+        if (!OodleCodec.IsAvailable) return;
+
+        // Use the same size as the real failing case (sum of world member bodies = 660738).
+        const int Size = 660738;
+        var original = new byte[Size];
+        for (var i = 0; i < Size; i++) original[i] = (byte)(i * 7 % 251);
+
+        var compressed = OodleCodec.Compress(original);
+
+        // OodleCodec.Decompress must reconstruct the full Size bytes in one call - exactly
+        // what the game's GDK reader does: OodleLZ_Decompress(blob, compSize, buf, totalSize).
+        // If the compressed output has multiple quanta, Decompress would return only 524288
+        // bytes (the first quantum) and throw "produced 524288 bytes, expected 660738".
+        var decompressed = OodleCodec.Decompress(compressed, Size);
+        Assert.Equal(Size, decompressed.Length);
+        Assert.Equal(original, decompressed);
+    }
+
+    /// <summary>
+    /// Same single-quantum contract for data exactly at the 512 KB boundary and just above it,
+    /// since 512 KB (524288 bytes) is the default Oodle seek chunk limit that triggers splitting.
+    /// </summary>
+    [Theory]
+    [InlineData(524287)] // just below 512 KB - always one quantum with default seek chunk
+    [InlineData(524288)] // exactly 512 KB - boundary case
+    [InlineData(524289)] // just above 512 KB - triggers splitting with default, not with our fix
+    [InlineData(700000)] // well above 512 KB
+    public void OodleCompress_roundtrips_sizes_around_512KB_boundary(int size)
+    {
+        if (!OodleCodec.IsAvailable) return;
+
+        var original = new byte[size];
+        for (var i = 0; i < size; i++) original[i] = (byte)(i * 13 % 251);
+
+        var compressed = OodleCodec.Compress(original);
+        var decompressed = OodleCodec.Decompress(compressed, size);
+
+        Assert.Equal(size, decompressed.Length);
+        Assert.Equal(original, decompressed);
+    }
+
     [Fact]
     public void GamePassSaveSet_edits_a_packed_player_end_to_end()
     {

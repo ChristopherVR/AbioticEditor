@@ -108,13 +108,13 @@ public static class OodleCodec
     }
 
     /// <summary>
-    /// Compresses <paramref name="raw"/> with Kraken as a SINGLE Oodle quantum (seekChunkLen=0).
+    /// Compresses <paramref name="raw"/> with Kraken as a SINGLE Oodle quantum.
     /// The game's GDK save reader calls <c>OodleLZ_Decompress(blob, blobSize, out, totalRawSize)</c>
-    /// in one shot; that expects the compressed data to be one self-contained stream whose
-    /// embedded rawLen equals the total. Using the default seek chunk length (512 KB) splits any
-    /// payload larger than 512 KB into multiple independent streams; <c>OodleLZ_Decompress</c>
-    /// only decodes the first and returns its size (524288), causing a mismatch error against the
-    /// expected totalRawSize. Setting seekChunkLen=0 forces the whole payload into one quantum.
+    /// in one shot expecting a single self-contained stream. The Oodle default seekChunkLen (0 =
+    /// 512 KB) splits payloads larger than 512 KB into multiple independent streams;
+    /// <c>OodleLZ_Decompress</c> then only decodes the first stream and returns its size (524288),
+    /// causing "OodleLZ_Decompress failed (524288 != N)". Setting seekChunkLen to a value larger
+    /// than the input forces the whole payload into one quantum, matching the game's own output.
     /// </summary>
     public static byte[] Compress(ReadOnlySpan<byte> raw)
     {
@@ -126,17 +126,23 @@ public static class OodleCodec
         long produced;
         unsafe
         {
-            // Build options with seekChunkLen=0 (no seek chunks = one quantum for the whole
-            // payload). If GetDefault is available it fills in the remaining fields; we then
-            // force seekChunkLen back to 0 since the game writes its own bundles that way.
+            // seekChunkLen must be >= rawLen so the entire payload is one quantum.
+            // Round up to the nearest OODLELZ_BLOCK_LEN (256 KB) multiple. Use 1 GB as a
+            // floor so any realistic save file always produces a single quantum.
+            // seekChunkLen=0 means "use the default (512 KB)" which splits > 512 KB inputs.
+            const int BlockLen = 262144; // OODLELZ_BLOCK_LEN
+            var singleQuantumLen = Math.Max(
+                0x40000000, // 1 GB: no realistic save exceeds this
+                ((input.Length + BlockLen - 1) / BlockLen) * BlockLen);
+
             var opts = new OodleLZ_CompressOptions
             {
                 Verbosity = 0,
                 MinMatchLen = 0,
                 SeekChunkReset = 0,
-                SeekChunkLen = 0,           // 0 = no seek-chunk splitting = single quantum
+                SeekChunkLen = singleQuantumLen,
                 Profile = 0,
-                DictionarySize = -1,        // Oodle default: auto
+                DictionarySize = -1,
                 SpaceSpeedTradeoffBytes = 256,
                 Reserved1 = 0,
                 SendQuantumCRCs = 0,
@@ -148,7 +154,7 @@ public static class OodleCodec
             {
                 // opts is a stack local - take address directly, no fixed needed.
                 _compressOptionsGetDefault(CompressorKraken, CompressionLevelNormal, (nint)(&opts));
-                opts.SeekChunkLen = 0;      // override after GetDefault
+                opts.SeekChunkLen = singleQuantumLen; // restore: GetDefault resets to 512 KB
             }
             fixed (byte* ip = input)
             fixed (byte* op = comp)
