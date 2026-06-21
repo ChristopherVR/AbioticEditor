@@ -2,14 +2,35 @@
 
 All notable changes to this project are documented here.
 
+## [1.17.1] - 2026-06-21
+
+### Bug Fixes
+- Add SpoilerGateFlag to all traders whose existence is story-gated
+
+
+### Documentation
+- Write commit messages for Nexus Mods players, not developers
+- Split Pages into two first-class tracks (Guide vs Reference)
+
+
+### Miscellaneous Tasks
+- Point bucket at v1.17.0 [skip ci]
+
+
 ## [1.17.0] - 2026-06-21
 
 ### Bug Fixes
+- Conceal Jimmy and Blacksmith until their story gate flag is set
+- Conceal Jimmy and Blacksmith until their story gate flag is set
 - Write correct Field1 (TotalRaw) in bundle serialization
 - Force single-quantum Oodle compression for Game Pass bundles
 - Compress bundle payload as single Oodle quantum
 - Compress in 512 KB quanta to match the game's chunked Oodle reader
 - Also skip timestamped .bak-<stamp> backup folders in discovery
+
+
+### Documentation
+- Restructure Pages - exclude research notes, add new guide pages
 
 
 ### Features
