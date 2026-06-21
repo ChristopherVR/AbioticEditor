@@ -24,6 +24,12 @@ public static class OodleCodec
     // OodleLZ_CompressionLevel_Normal. Any valid level produces a stream the game can decode.
     private const int CompressionLevelNormal = 4;
 
+    // The game's GDK save reader decompresses in 512 KB quanta. Each independently-compressed
+    // chunk must not exceed this size as raw output, otherwise the game's first OodleLZ_Decompress
+    // call requests 524288 bytes of output but our single stream header encodes a larger raw
+    // length, which Oodle rejects with "LZ corruption : OodleLZ_Decompress failed".
+    private const int QuantumSize = 512 * 1024;
+
     private static readonly object Gate = new();
     private static bool _resolved;
     private static OodleLZ_DecompressDelegate? _decompress;
@@ -80,30 +86,45 @@ public static class OodleCodec
         return raw;
     }
 
-    /// <summary>Compresses <paramref name="raw"/> with Kraken; returns the compressed bytes.</summary>
+    /// <summary>
+    /// Compresses <paramref name="raw"/> with Kraken in <see cref="QuantumSize"/> chunks so the
+    /// compressed output matches the game's chunked decompression: each independent chunk decodes
+    /// to at most 512 KB, matching the quantum size the GDK save reader passes to
+    /// <c>OodleLZ_Decompress</c>. The chunks are concatenated; <see cref="Decompress"/> handles
+    /// them correctly since <c>OodleLZ_Decompress</c> processes multiple chunks when given the
+    /// full buffer and the total uncompressed length.
+    /// </summary>
     public static byte[] Compress(ReadOnlySpan<byte> raw)
     {
         EnsureLoaded();
-        var input = raw.ToArray();
-        // Worst-case Oodle output is rawLen + 274 bytes per 256 KB block plus a small header.
-        var cap = input.Length + 274 * ((input.Length + 0x3FFFF) / 0x40000) + 64;
-        var comp = new byte[cap];
-        long produced;
-        unsafe
+        using var result = new MemoryStream();
+        var offset = 0;
+        while (offset < raw.Length)
         {
-            fixed (byte* ip = input)
-            fixed (byte* op = comp)
+            var chunkLen = Math.Min(QuantumSize, raw.Length - offset);
+            var chunk = raw.Slice(offset, chunkLen).ToArray();
+            // Worst-case Oodle output is rawLen + 274 bytes per 256 KB block plus a small header.
+            var cap = chunkLen + 274 * ((chunkLen + 0x3FFFF) / 0x40000) + 64;
+            var comp = new byte[cap];
+            long produced;
+            unsafe
             {
-                produced = _compress!(
-                    CompressorKraken, (nint)ip, input.Length, (nint)op, CompressionLevelNormal,
-                    0, 0, 0, 0, 0);
+                fixed (byte* ip = chunk)
+                fixed (byte* op = comp)
+                {
+                    produced = _compress!(
+                        CompressorKraken, (nint)ip, chunkLen, (nint)op, CompressionLevelNormal,
+                        0, 0, 0, 0, 0);
+                }
             }
+            if (produced <= 0)
+            {
+                throw new InvalidDataException($"Oodle compression failed on chunk at offset {offset} (returned {produced}).");
+            }
+            result.Write(comp, 0, (int)produced);
+            offset += chunkLen;
         }
-        if (produced <= 0)
-        {
-            throw new InvalidDataException($"Oodle compression failed (returned {produced}).");
-        }
-        return comp[..(int)produced];
+        return result.ToArray();
     }
 
     private static void EnsureLoaded()
