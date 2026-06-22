@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here.
 
+## [1.17.2] - 2026-06-22
+
+### Bug Fixes
+- Show each skill's real level instead of a mislabeled one
+
+
+### Miscellaneous Tasks
+- Point bucket at v1.17.1 [skip ci]
+
+
+### Testing
+- Update placeholder-padding test for the corrected skill order
+
+
 ## [1.17.1] - 2026-06-21
 
 ### Bug Fixes
