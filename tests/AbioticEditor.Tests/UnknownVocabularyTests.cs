@@ -36,9 +36,9 @@ public class UnknownVocabularyTests
         var defs = SkillCatalog.WithUnknownPlaceholders(SkillCatalog.Fallback, 17);
 
         Assert.Equal(17, defs.Count);
-        // Known skills are untouched.
+        // Known skills are untouched (in-game panel order: Fishing is last).
         Assert.Equal("Sprinting", defs[0].Id);
-        Assert.Equal("Throwing", defs[14].Id);
+        Assert.Equal("Fishing", defs[14].Id);
         // Extras are labeled placeholders at their save positions.
         Assert.Equal(15, defs[15].SaveIndex);
         Assert.Equal("Unknown skill #15", defs[15].DisplayName);
