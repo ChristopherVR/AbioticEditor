@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using AbioticEditor.App.Services;
+using AbioticEditor.Core.GamePass;
 using AbioticEditor.Core.PlayerSaves;
 
 namespace AbioticEditor.App.ViewModels;
@@ -128,20 +129,24 @@ public sealed class CustomizationFieldViewModel : INotifyPropertyChanged
 }
 
 /// <summary>
-/// Editor over the per-account <c>ScientistCustomization_&lt;slot&gt;.sav</c> (head, hair,
-/// clothing, colors). This file lives outside the world folder and saves independently
-/// of the player save.
+/// Editor over the per-account appearance save: either a <c>ScientistCustomization_&lt;slot&gt;.sav</c>
+/// on Steam, or a <c>ProfileScientistCustomization_&lt;slot&gt;</c> wgs container on Game Pass.
 /// </summary>
 public sealed class CustomizationViewModel : INotifyPropertyChanged
 {
     private readonly ulong _steamId;
+    private readonly GamePassSaveSet? _gamePassSet;
+    private byte[]? _gpBlob; // current slot bytes for GP re-serialization
     private CustomizationSaveFile? _file;
     private string _status = string.Empty;
 
-    public CustomizationViewModel(long steamId64)
+    public CustomizationViewModel(long steamId64, GamePassSaveSet? gamePassSet = null)
     {
         _steamId = steamId64 > 0 ? (ulong)steamId64 : 0;
-        Slots = _steamId > 0 ? CustomizationSaveFile.SlotsFor(_steamId) : Array.Empty<int>();
+        _gamePassSet = gamePassSet;
+        Slots = gamePassSet is not null
+            ? gamePassSet.CustomizationSlots()
+            : _steamId > 0 ? CustomizationSaveFile.SlotsFor(_steamId) : Array.Empty<int>();
         SaveCommand = new RelayCommand(Save, () => _file is not null && Fields.Any(f => f.IsDirty));
         _selectedSlot = Slots.Count > 0 ? Slots[0] : 0;
         LoadSlot(_selectedSlot);
@@ -156,24 +161,28 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
     public string FileName => _file is not null ? Path.GetFileName(_file.FilePath) : string.Empty;
 
     /// <summary>
-    /// Caption shown when the appearance file IS available: explains what is being edited
+    /// Caption shown when the appearance save IS available: explains what is being edited
     /// and where it lives.
     /// </summary>
     public string AvailableCaption => _file is null
         ? string.Empty
-        : $"Appearance is stored in {Path.GetFileName(_file.FilePath)}, a per-character file the game writes under your Steam account. "
-          + "Editing here changes that file directly and keeps a .bak backup. It applies to every world this account plays.";
+        : _gamePassSet is not null
+            ? $"Appearance is stored in a Game Pass profile container (slot {_selectedSlot}). "
+              + "Editing here writes it back into your Xbox save folder and keeps a backup. It applies to every world this account plays."
+            : $"Appearance is stored in {Path.GetFileName(_file.FilePath)}, a per-character file the game writes under your Steam account. "
+              + "Editing here changes that file directly and keeps a .bak backup. It applies to every world this account plays.";
 
     /// <summary>
-    /// Friendly explanation shown when the appearance file is NOT available: why it is missing
-    /// and what the user can do about it.
+    /// Friendly explanation shown when the appearance save is NOT available.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static",
-        Justification = "Bound from XAML; bindings need an instance member.")]
     public string UnavailableExplanation =>
-        "Appearance editing is unavailable because no ScientistCustomization save was found for this Steam account on this machine. "
-        + "This file is not shipped with the game or the editor: the game writes it the first time you customize your character in-game, "
-        + "and it is per Steam account and per machine. To enable editing, launch Abiotic Factor, customize your character once, then reopen the editor.";
+        _gamePassSet is not null
+            ? "Appearance editing is unavailable because no ScientistCustomization save was found in your Game Pass save data. "
+              + "The game writes this data the first time you customize your character in-game. "
+              + "To enable editing, launch Abiotic Factor, customize your character once, then reopen the editor."
+            : "Appearance editing is unavailable because no ScientistCustomization save was found for this Steam account on this machine. "
+              + "This file is not shipped with the game or the editor: the game writes it the first time you customize your character in-game, "
+              + "and it is per Steam account and per machine. To enable editing, launch Abiotic Factor, customize your character once, then reopen the editor.";
 
     /// <summary>Voice isn't stored anywhere - it follows the chosen head's gender.</summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static",
@@ -214,16 +223,33 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
     {
         Fields.Clear();
         _file = null;
-        if (_steamId == 0 || slot <= 0)
+        _gpBlob = null;
+
+        if ((_steamId == 0 && _gamePassSet is null) || slot <= 0)
         {
-            Status = "No ScientistCustomization save found for this Steam account on this machine.";
+            Status = "No ScientistCustomization save found on this machine.";
             Notify();
             return;
         }
 
         try
         {
-            _file = CustomizationSaveFile.LoadFor(_steamId, slot);
+            if (_gamePassSet is not null)
+            {
+                var blob = _gamePassSet.ReadProfileCustomization(slot);
+                if (blob is null)
+                {
+                    Status = "No ScientistCustomization save found in your Game Pass save data.";
+                    Notify();
+                    return;
+                }
+                _gpBlob = blob;
+                _file = CustomizationSaveFile.LoadFromBytes(blob);
+            }
+            else
+            {
+                _file = CustomizationSaveFile.LoadFor(_steamId, slot);
+            }
         }
         catch (Exception ex)
         {
@@ -234,7 +260,7 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
 
         if (_file is null)
         {
-            Status = "No ScientistCustomization save found for this Steam account on this machine.";
+            Status = "No ScientistCustomization save found on this machine.";
             Notify();
             return;
         }
@@ -243,7 +269,9 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
         {
             Fields.Add(new CustomizationFieldViewModel(f, OnFieldChanged));
         }
-        Status = $"Editing {Path.GetFileName(_file.FilePath)} - applies to every world this account plays.";
+        Status = _gamePassSet is not null
+            ? $"Editing Game Pass appearance (slot {slot}) - applies to every world this account plays."
+            : $"Editing {Path.GetFileName(_file.FilePath)} - applies to every world this account plays.";
         Notify();
     }
 
@@ -258,7 +286,15 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
         try
         {
             var values = Fields.ToDictionary(f => f.Field.PropertyName, f => f.CurrentRowName);
-            _file.Save(values);
+            if (_gamePassSet is not null && _gpBlob is not null)
+            {
+                var updated = CustomizationSaveFile.ApplyChanges(_gpBlob, values);
+                _gamePassSet.WriteProfileCustomization(_selectedSlot, updated);
+            }
+            else
+            {
+                _file.Save(values);
+            }
             Status = $"Appearance saved at {DateTime.Now:HH:mm:ss} (.bak created). Restart the game to see it.";
             // Reload so baselines reset and IsDirty clears.
             LoadSlot(_selectedSlot);

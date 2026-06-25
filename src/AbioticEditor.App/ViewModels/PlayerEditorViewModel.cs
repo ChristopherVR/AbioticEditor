@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using AbioticEditor.App.Services;
 using AbioticEditor.Core;
+using AbioticEditor.Core.GamePass;
 using AbioticEditor.Core.Items;
 using AbioticEditor.Core.PlayerSaves;
 
@@ -847,9 +848,17 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
     // ---------- appearance (per-account ScientistCustomization save) ----------
 
     private CustomizationViewModel? _appearance;
+    private GamePassSaveSet? _gamePassSet;
+
+    /// <summary>
+    /// Provides the Game Pass save set so appearance editing can read/write the
+    /// <c>ProfileScientistCustomization_&lt;n&gt;</c> wgs container. Must be called before
+    /// the APPEARANCE tab is first opened (while <see cref="Appearance"/> is still null).
+    /// </summary>
+    public void SetGamePassContext(GamePassSaveSet set) => _gamePassSet = set;
 
     /// <summary>Head/hair/clothing editor over the per-account customization save.</summary>
-    public CustomizationViewModel Appearance => _appearance ??= new CustomizationViewModel(SteamId64);
+    public CustomizationViewModel Appearance => _appearance ??= new CustomizationViewModel(SteamId64, _gamePassSet);
 
     // Named accessors so the XAML can position equipment slots paper-doll style.
     // Indexes were verified against this account's player save dump - they may need

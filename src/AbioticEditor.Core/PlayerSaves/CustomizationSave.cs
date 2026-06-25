@@ -59,6 +59,42 @@ public sealed class CustomizationSaveFile
         Fields = fields;
     }
 
+    /// <summary>
+    /// Parses a customization save from raw GVAS bytes - used for Game Pass profile blobs
+    /// (<c>ProfileScientistCustomization_&lt;n&gt;</c>), which are uncompressed GVAS and do
+    /// not live at a file path. <see cref="FilePath"/> is empty; use
+    /// <see cref="ApplyChanges"/> to re-serialize back to bytes for writing.
+    /// </summary>
+    public static CustomizationSaveFile LoadFromBytes(byte[] data)
+    {
+        AbioticSaveClasses.EnsureLoaded();
+        using var ms = new MemoryStream(data);
+        var save = SaveGame.LoadFrom(ms);
+        return new CustomizationSaveFile(string.Empty, ParseFields(save));
+    }
+
+    /// <summary>
+    /// Applies <paramref name="newValues"/> to <paramref name="originalBytes"/> (a raw
+    /// customization GVAS blob) and returns the updated bytes. Used by the Game Pass save
+    /// path where the result is written back into the wgs container store.
+    /// </summary>
+    public static byte[] ApplyChanges(byte[] originalBytes, IReadOnlyDictionary<string, string> newValues)
+    {
+        AbioticSaveClasses.EnsureLoaded();
+        SaveGame save;
+        using (var ms = new MemoryStream(originalBytes))
+            save = SaveGame.LoadFrom(ms);
+        foreach (var (propertyName, value) in newValues)
+        {
+            var tag = FindByName(save.Properties, propertyName);
+            if (tag?.Property is null || string.IsNullOrEmpty(value)) continue;
+            tag.Property.Value = new FString(value);
+        }
+        using var outMs = new MemoryStream();
+        save.WriteTo(outMs);
+        return outMs.ToArray();
+    }
+
     /// <summary>Absolute path of the loaded <c>ScientistCustomization_*.sav</c>.</summary>
     public string FilePath { get; }
 
@@ -108,7 +144,11 @@ public sealed class CustomizationSaveFile
         AbioticSaveClasses.EnsureLoaded();
         using var fs = File.OpenRead(path);
         var save = SaveGame.LoadFrom(fs);
+        return new CustomizationSaveFile(path, ParseFields(save));
+    }
 
+    private static List<CustomizationField> ParseFields(SaveGame save)
+    {
         var fields = new List<CustomizationField>(KnownFields.Count);
         foreach (var (propertyName, label, tableName) in KnownFields)
         {
@@ -118,7 +158,7 @@ public sealed class CustomizationSaveFile
                 // Preserve the actual on-disk casing so Save() round-trips exactly.
                 tag.Name.Value, label, tableName, tag.Property.Value.ToString() ?? string.Empty));
         }
-        return new CustomizationSaveFile(path, fields);
+        return fields;
     }
 
     /// <summary>

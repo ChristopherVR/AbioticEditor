@@ -1513,6 +1513,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             DeleteGamePassTempDir(oldSession?.WorkingDir);
             await LoadFolderAsync(dir);
             _gamePassSession = session;
+            PlayerEditor?.SetGamePassContext(session.Set);
             RaiseGamePassSessionChanged();
             StatusMessage = LocalizationResourceManager.Instance.Format("Main_GpOpened", session.WorldName);
             EditorLog.Info("GamePass", $"Opened container '{session.Container}' -> working copy {dir}");
