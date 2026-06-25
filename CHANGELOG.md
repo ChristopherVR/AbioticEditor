@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [1.17.3] - 2026-06-25
+
+### Bug Fixes
+- Let Game Pass players edit their character's look
+
+
+### Miscellaneous Tasks
+- Point bucket at v1.17.2 [skip ci]
+
+
 ## [1.17.2] - 2026-06-22
 
 ### Bug Fixes
