@@ -95,6 +95,8 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
             if (_suppressFlagListRefresh) return;
             ApplyFlagFilter();
             Refresh();
+            // A single flag toggle can meet (or un-meet) a trader's unlock/spoiler gate.
+            RefreshTraderCards();
         };
         // Build both the flat list AND the story-ordered groups (the groups are what
         // the UI binds - constructing only the flat list would leave the tab empty).
@@ -252,10 +254,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
                     _flagItemCache = null;
                     ApplyFlagFilter();
                     // Trader availability on the metadata save reads these same flags.
-                    if (_traderCards is not null)
-                    {
-                        foreach (var t in _traderCards) t.RefreshAvailability();
-                    }
+                    RefreshTraderCards();
                 });
             }
             catch
@@ -888,6 +887,19 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
             .Select(t => new TraderCardViewModel(t, HasWorldFlag))
             .ToList();
 
+    /// <summary>
+    /// Re-evaluates every trader's availability/concealment against the CURRENT flag set. Trader
+    /// gating reads live flags through <see cref="HasWorldFlag"/>, so any flag change (a single
+    /// edit, a batch, or the facility flags arriving) must call this or a trader that the player
+    /// has now "met" keeps showing its stale classified/locked status. No-op until the cards are
+    /// built (lazy), so callers never force the roster into existence.
+    /// </summary>
+    private void RefreshTraderCards()
+    {
+        if (_traderCards is null) return;
+        foreach (var t in _traderCards) t.RefreshAvailability();
+    }
+
     /// <summary>True when there is at least one trader card to show (always true: a built-in
     /// snapshot backs the roster when the game isn't installed).</summary>
     public bool HasTraderCards => TraderCards.Count > 0;
@@ -1215,6 +1227,8 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         }
         ApplyFlagFilter();
         Refresh();
+        // A batch of flag edits (e.g. "set all prerequisites") can change which traders are met.
+        RefreshTraderCards();
         if (_storyTimeline is not null)
         {
             foreach (var s in _storyTimeline) s.NotifyChanged();
