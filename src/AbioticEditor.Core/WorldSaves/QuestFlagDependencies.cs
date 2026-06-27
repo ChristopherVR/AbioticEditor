@@ -20,11 +20,25 @@ public static class QuestFlagDependencies
     public static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> Direct =
         new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase)
         {
-            // Office sector. Cafeteria: you let Dr. Jager in and repair the door; you cannot complete
-            // ("Unlocked") a quest you never started.
+            // --- Office sector ---
+            // Cafeteria: you let Dr. Jager in and repair the door; you cannot complete ("Unlocked")
+            // a quest you never started.
             ["Office_CafeteriaUnlocked"] = new[] { "Office_CafeteriaQuestStarted" },
             // The blast-door forklift only opens once the forklift and its power cells are found.
             ["Office_ForkliftDoorOpened"] = new[] { "Office_ForkliftFound", "Office_PowerCellFound" },
+            // The Silo 3 portal can only open after Silo 3 itself is opened.
+            ["Office_Silo3PortalOpened"] = new[] { "Office_Silo3Opened" },
+
+            // --- Manufacturing ---
+            // "All three electron pumps repaired" (the chapter milestone) requires each pump.
+            ["MF_PumpsFixed"] = new[] { "MF_RedPumpFixed", "MF_TealPumpFixed", "MF_YellowPumpFixed" },
+            // A second meeting with the Blacksmith presupposes the first.
+            ["MF_MetBlacksmith2"] = new[] { "MF_MetBlacksmith" },
+
+            // --- Cascade Labs ---
+            // Anteverse B: open the portal -> fix it -> complete it, in that order.
+            ["LABS_AnteverseBFixed"] = new[] { "LABS_OpenAnteversePortal" },
+            ["LABS_CompletedAnteverseB"] = new[] { "LABS_AnteverseBFixed" },
         };
 
     /// <summary>The physical world-state a completed quest step leaves behind, for tools that apply

@@ -94,6 +94,17 @@ public class StoryProgressionTests
         var fork = FlagGate.PrerequisitesFor("Office_ForkliftDoorOpened");
         Assert.Contains("Office_ForkliftFound", fork);
         Assert.Contains("Office_PowerCellFound", fork);
+
+        // Transitive: completing Anteverse B requires it fixed, which requires its portal opened.
+        var anteverse = FlagGate.PrerequisitesFor("LABS_CompletedAnteverseB");
+        Assert.Contains("LABS_AnteverseBFixed", anteverse);
+        Assert.Contains("LABS_OpenAnteversePortal", anteverse);
+
+        // The pumps-fixed milestone requires each of the three pumps.
+        var pumps = FlagGate.PrerequisitesFor("MF_PumpsFixed");
+        Assert.Contains("MF_RedPumpFixed", pumps);
+        Assert.Contains("MF_TealPumpFixed", pumps);
+        Assert.Contains("MF_YellowPumpFixed", pumps);
     }
 
     [Fact]
