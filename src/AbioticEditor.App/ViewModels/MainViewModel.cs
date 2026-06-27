@@ -1397,6 +1397,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private GamePassSession? _gamePassSession;
 
+    // Shown once per app run: Xbox cloud sync can overwrite edits unless the player relaunches
+    // the game offline first. Reminding on every open would nag; once a launch is the right cadence.
+    private bool _gamePassCloudSyncWarned;
+
     /// <summary>True while a Game Pass world is open as an extracted working copy.</summary>
     public bool IsGamePassSession => _gamePassSession is not null;
 
@@ -1496,8 +1500,27 @@ public sealed class MainViewModel : INotifyPropertyChanged
         await OpenGamePassContainerAsync(wgsFolder, container);
     }
 
+    /// <summary>
+    /// Once per app run, warns the player that Xbox cloud sync can overwrite edits made here and
+    /// explains the safe workflow (close the game, relaunch it once offline so the edited save
+    /// becomes the newest copy before it syncs). Returns false if the player chooses to cancel.
+    /// </summary>
+    private async Task<bool> WarnGamePassCloudSyncAsync()
+    {
+        if (_gamePassCloudSyncWarned) return true;
+        var loc = LocalizationResourceManager.Instance;
+        var proceed = await DialogViewModel.Current.ConfirmAsync(
+            loc["Main_GpCloudSyncWarningTitle"],
+            loc["Main_GpCloudSyncWarningMessage"],
+            accept: loc["Main_GpCloudSyncWarningContinue"],
+            cancel: loc["Common_Cancel"]);
+        if (proceed) _gamePassCloudSyncWarned = true;
+        return proceed;
+    }
+
     private async Task OpenGamePassContainerAsync(string wgsFolder, string container)
     {
+        if (!await WarnGamePassCloudSyncAsync()) return;
         try
         {
             var oldSession = _gamePassSession;

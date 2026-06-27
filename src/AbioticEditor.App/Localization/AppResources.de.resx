@@ -1183,6 +1183,15 @@ Der Weltspielstand wird sofort neu geschrieben (.bak bleibt erhalten). Fortfahre
   <data name="Main_GpOpenFailedTitle" xml:space="preserve">
     <value>Game Pass-Spielstand konnte nicht geöffnet werden</value>
   </data>
+  <data name="Main_GpCloudSyncWarningTitle" xml:space="preserve">
+    <value>Bevor du diesen Game Pass-Spielstand bearbeitest</value>
+  </data>
+  <data name="Main_GpCloudSyncWarningMessage" xml:space="preserve">
+    <value>Die Xbox-Cloud-Synchronisierung kann deine Änderungen unbemerkt durch eine ältere Kopie aus der Cloud ersetzen. Damit deine Änderungen erhalten bleiben: Schließe Abiotic Factor zuerst vollständig, nimm dann hier deine Änderungen vor und speichere. Starte das Spiel danach einmal ohne Internetverbindung (offline), damit Xbox deinen bearbeiteten Spielstand als neuesten behält, bevor synchronisiert wird. Lässt du das aus, kann die Cloud deine Arbeit rückgängig machen.</value>
+  </data>
+  <data name="Main_GpCloudSyncWarningContinue" xml:space="preserve">
+    <value>Verstanden, öffnen</value>
+  </data>
   <data name="Main_GpPacking" xml:space="preserve">
     <value>Game-Pass-Spielstand fuer &quot;{0}&quot; wird in den Xbox-Container gepackt...</value>
   </data>

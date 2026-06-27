@@ -1183,6 +1183,15 @@ El guardado del mundo se reescribe de inmediato (se conserva el .bak). ¿Continu
   <data name="Main_GpOpenFailedTitle" xml:space="preserve">
     <value>No se pudo abrir el guardado de Game Pass</value>
   </data>
+  <data name="Main_GpCloudSyncWarningTitle" xml:space="preserve">
+    <value>Antes de editar este guardado de Game Pass</value>
+  </data>
+  <data name="Main_GpCloudSyncWarningMessage" xml:space="preserve">
+    <value>La sincronización en la nube de Xbox puede sustituir tus cambios sin avisar por una copia más antigua de la nube. Para que tus cambios se mantengan: cierra Abiotic Factor por completo primero, luego haz tus ediciones aquí y guarda. Después, abre el juego una vez sin conexión a internet (sin conexión) para que Xbox conserve tu guardado editado como el más reciente antes de sincronizar. Si te lo saltas, la nube puede deshacer tu trabajo.</value>
+  </data>
+  <data name="Main_GpCloudSyncWarningContinue" xml:space="preserve">
+    <value>Entendido, abrir</value>
+  </data>
   <data name="Main_GpPacking" xml:space="preserve">
     <value>Empaquetando el guardado de Game Pass de «{0}» en el contenedor Xbox...</value>
   </data>

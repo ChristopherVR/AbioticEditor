@@ -1235,6 +1235,15 @@ The world save is rewritten immediately (.bak kept). Continue?</value>
   <data name="Main_GpOpenFailedTitle" xml:space="preserve">
     <value>Couldn't open the Game Pass save</value>
   </data>
+  <data name="Main_GpCloudSyncWarningTitle" xml:space="preserve">
+    <value>Before you edit this Game Pass save</value>
+  </data>
+  <data name="Main_GpCloudSyncWarningMessage" xml:space="preserve">
+    <value>Xbox cloud sync can quietly replace your edits with an older copy from the cloud. To make your changes stick: fully close Abiotic Factor first, then make your edits here and save. After that, launch the game once with the internet disconnected (offline) so Xbox keeps your edited save as the newest one before it syncs. Skip this and the cloud may undo your work.</value>
+  </data>
+  <data name="Main_GpCloudSyncWarningContinue" xml:space="preserve">
+    <value>I understand, open it</value>
+  </data>
   <data name="Main_GpPacking" xml:space="preserve">
     <value>Packing Game Pass save for "{0}" into the Xbox container...</value>
   </data>

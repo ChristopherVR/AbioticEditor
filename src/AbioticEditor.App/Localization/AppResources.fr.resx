@@ -1183,6 +1183,15 @@ La sauvegarde du monde est réécrite immédiatement (.bak conservé). Continuer
   <data name="Main_GpOpenFailedTitle" xml:space="preserve">
     <value>Impossible d'ouvrir la sauvegarde Game Pass</value>
   </data>
+  <data name="Main_GpCloudSyncWarningTitle" xml:space="preserve">
+    <value>Avant de modifier cette sauvegarde Game Pass</value>
+  </data>
+  <data name="Main_GpCloudSyncWarningMessage" xml:space="preserve">
+    <value>La synchronisation cloud Xbox peut remplacer vos modifications sans prévenir par une copie plus ancienne venant du cloud. Pour que vos modifications soient conservées : fermez d'abord complètement Abiotic Factor, puis faites vos modifications ici et enregistrez. Ensuite, lancez le jeu une fois sans connexion internet (hors ligne) pour que Xbox garde votre sauvegarde modifiée comme la plus récente avant la synchronisation. Si vous sautez cette étape, le cloud risque d'annuler votre travail.</value>
+  </data>
+  <data name="Main_GpCloudSyncWarningContinue" xml:space="preserve">
+    <value>J'ai compris, ouvrir</value>
+  </data>
   <data name="Main_GpPacking" xml:space="preserve">
     <value>Conditionnement de la sauvegarde Game Pass de « {0} » dans le conteneur Xbox...</value>
   </data>
