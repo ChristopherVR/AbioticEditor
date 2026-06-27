@@ -760,12 +760,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
     /// <summary>
     /// The item catalog only shows where dragging items somewhere makes sense: the
     /// player INVENTORY and VITALS tabs (transmog slots live on VITALS) and the world
-    /// CONTAINERS/DROPPED tabs.
+    /// CONTAINERS/DROPPED/BASES tabs (a base's containers take items the same way).
     /// </summary>
     public bool ShowItemPalette => HasItemPalette && (
         (PlayerEditor?.IsInventoryTab ?? false)
         || (PlayerEditor?.IsTransmogTab ?? false)
-        || (WorldEditor is { } we && (we.IsContainersTab || we.IsDroppedTab))
+        || (WorldEditor is { } we && (we.IsContainersTab || we.IsDroppedTab || we.IsBasesTab))
         // On the GATEPal/codex tab the palette only surfaces once an item (e.g. a fish's
         // bait) has been opened into it, so the sidebar shows that item's encyclopedia.
         || ((PlayerEditor?.IsCodexTab ?? false) && _itemPalette?.SelectedItem is not null));
