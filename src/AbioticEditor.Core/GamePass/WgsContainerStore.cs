@@ -426,6 +426,18 @@ public sealed class WgsContainerStore
 
     private void WriteIndex()
     {
+        // Refresh the two header fields the game itself rewrites on every save, so the index reads as
+        // a legitimately newer version to Xbox cloud sync instead of an unchanged one it can discard.
+        // (1) the container count, recomputed from the live list, and (2) the index-level FILETIME.
+        // The FILETIME sits right after the version (4), count (4), reserved (4) and the length-
+        // prefixed package-family-name string (4 + len*2).
+        BitConverter.GetBytes((uint)Containers.Count).CopyTo(_header, 4);
+        var fileTimeOffset = 16 + PackageFamilyName.Length * 2;
+        if (fileTimeOffset + 8 <= _header.Length)
+        {
+            BitConverter.GetBytes(DateTime.UtcNow.ToFileTimeUtc()).CopyTo(_header, fileTimeOffset);
+        }
+
         using var ms = new MemoryStream();
         ms.Write(_header, 0, _header.Length);
         using var w = new BinaryWriter(ms, Encoding.Unicode, leaveOpen: true);
