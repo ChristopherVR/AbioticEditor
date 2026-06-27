@@ -1534,8 +1534,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
             });
 
             DeleteGamePassTempDir(oldSession?.WorkingDir);
-            await LoadFolderAsync(dir);
+            // Set the session BEFORE loading the folder: if loading auto-opens a player save, its
+            // PlayerEditor reads _gamePassSession to wire up the appearance context (see LoadSaveAsync).
             _gamePassSession = session;
+            await LoadFolderAsync(dir);
             PlayerEditor?.SetGamePassContext(session.Set);
             RaiseGamePassSessionChanged();
             StatusMessage = LocalizationResourceManager.Instance.Format("Main_GpOpened", session.WorldName);
@@ -2728,6 +2730,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 var data = await Task.Run(() => PlayerSaveReader.ReadFromFile(summary.FullPath));
                 if (token != _loadSequence) return;
                 PlayerEditor = new PlayerEditorViewModel(data, summary.FullPath);
+                // In a Game Pass session a fresh PlayerEditor is built each time the player is
+                // selected, so the appearance/customization context (which lives in the wgs
+                // ProfileScientistCustomization containers, not in this player file) must be
+                // re-applied here - otherwise the APPEARANCE tab finds no Steam file and reports
+                // "no appearance detected".
+                if (_gamePassSession is { } gpSession)
+                {
+                    PlayerEditor.SetGamePassContext(gpSession.Set);
+                }
                 PlayerEditor.Saved += OnEditorSaved;
             }
             else if (summary.SaveClass == WorldSaveClass || summary.SaveClass == WorldMetaSaveClass)
