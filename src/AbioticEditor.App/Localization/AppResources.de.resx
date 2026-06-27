@@ -1194,10 +1194,19 @@ Der Weltspielstand wird sofort neu geschrieben (.bak bleibt erhalten). Fortfahre
     <value>Verstanden, öffnen</value>
   </data>
   <data name="Main_GpMidSyncTitle" xml:space="preserve">
-    <value>Dieser Spielstand wurde noch nicht fertig synchronisiert</value>
+    <value>Dieser Spielstand muss kurz repariert werden</value>
   </data>
   <data name="Main_GpMidSyncMessage" xml:space="preserve">
-    <value>Ein Teil dieses Game Pass-Spielstands fehlte auf der Festplatte und musste wiederhergestellt werden - das bedeutet, dass die Xbox-Cloud-Synchronisierung dafür noch nicht abgeschlossen ist. Sie können sich gefahrlos umsehen, aber wenn Sie jetzt SPEICHERN, verwirft Xbox Ihre Änderungen möglicherweise später (es kann sogar die ganze Welt verlieren). So bearbeiten Sie sicher: Schließen Sie Abiotic Factor und die Xbox-App vollständig, warten Sie, bis die Synchronisierung abgeschlossen ist (oder trennen Sie die Internetverbindung), und öffnen Sie diesen Spielstand erneut. Vor jedem Schreibvorgang wird eine Sicherung des gesamten Spielstandordners erstellt.</value>
+    <value>Dieser Game Pass-Spielstand verweist auf eine Datendatei, die nicht auf der Festplatte liegt (ein Überbleibsel einer unterbrochenen Xbox-Synchronisierung) - der Editor hat sie aus der tatsächlich vorhandenen Datei gelesen, aber dieser fehlerhafte Verweis ist der Grund für die wiederholte Warnung. Der Editor kann das jetzt reparieren, indem er den Verweis korrigiert, wodurch der Spielstand wieder konsistent wird und diese Meldung verschwindet. Das ist sicher und ändert Ihre Spielstanddaten nicht, sollte aber bei geschlossenem Abiotic Factor und geschlossener Xbox-App erfolgen. Zuvor wird eine Sicherung des gesamten Spielstandordners erstellt.</value>
+  </data>
+  <data name="Main_GpMidSyncRepair" xml:space="preserve">
+    <value>Jetzt reparieren</value>
+  </data>
+  <data name="Main_GpMidSyncSkip" xml:space="preserve">
+    <value>Einfach öffnen</value>
+  </data>
+  <data name="Main_GpMidSyncRepaired" xml:space="preserve">
+    <value>{0} Container repariert - dieser Spielstand ist wieder konsistent und warnt beim nächsten Mal nicht mehr.</value>
   </data>
   <data name="Main_GpPacking" xml:space="preserve">
     <value>Game-Pass-Spielstand fuer &quot;{0}&quot; wird in den Xbox-Container gepackt...</value>

@@ -18,8 +18,33 @@ internal static class GamePassCommands
         cmd.Subcommands.Add(BuildExtract(quiet));
         cmd.Subcommands.Add(BuildImport(quiet));
         cmd.Subcommands.Add(BuildDiscover(quiet));
+        cmd.Subcommands.Add(BuildRepair(quiet));
         cmd.Subcommands.Add(BuildToGamePass(quiet));
         cmd.Subcommands.Add(BuildToSteam(quiet));
+        return cmd;
+    }
+
+    private static Command BuildRepair(Option<bool> quiet)
+    {
+        var folderArg = new Argument<string>("wgs-folder") { Description = "Path to the wgs container folder." };
+        var cmd = new Command("repair",
+            "Fix a save whose container points at a data blob missing from disk (an interrupted Xbox "
+            + "sync leftover): re-point each manifest at the blob that is actually there. Close the "
+            + "game and the Xbox app first.");
+        cmd.Arguments.Add(folderArg);
+        cmd.SetAction(pr => Cli.Run(() =>
+        {
+            var set = OpenSet(pr.GetValue(folderArg));
+            var repaired = set.RepairMidSync();
+            if (repaired.Count == 0)
+            {
+                Console.WriteLine("Nothing to repair - every container already points at a blob on disk.");
+                return Cli.Ok;
+            }
+            Console.WriteLine($"Repaired {repaired.Count} container(s): {string.Join(", ", repaired)}");
+            Console.WriteLine("A backup of the whole save folder was made first (.bak next to it).");
+            return Cli.Ok;
+        }));
         return cmd;
     }
 

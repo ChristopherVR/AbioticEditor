@@ -1246,10 +1246,19 @@ The world save is rewritten immediately (.bak kept). Continue?</value>
     <value>I understand, open it</value>
   </data>
   <data name="Main_GpMidSyncTitle" xml:space="preserve">
-    <value>This save hasn't finished syncing</value>
+    <value>This save needs a quick repair</value>
   </data>
   <data name="Main_GpMidSyncMessage" xml:space="preserve">
-    <value>Part of this Game Pass save was missing on disk and had to be recovered, which means Xbox cloud sync hasn't finished for it. You can look around safely, but if you SAVE now, Xbox may later throw your changes away (it can even drop the whole world). To edit safely: close Abiotic Factor and the Xbox app completely, wait for syncing to finish (or disconnect from the internet), then reopen this save. A backup of the whole save folder is made before any write.</value>
+    <value>This Game Pass save points at a data file that isn't on disk (a leftover from an interrupted Xbox sync) - the editor read it from the real file that is there, but the broken pointer is why this keeps warning. The editor can repair it now by fixing the pointer, which makes the save consistent again and stops this message. This is safe and doesn't change your save data, but do it with Abiotic Factor and the Xbox app closed. A backup of the whole save folder is made first.</value>
+  </data>
+  <data name="Main_GpMidSyncRepair" xml:space="preserve">
+    <value>Repair now</value>
+  </data>
+  <data name="Main_GpMidSyncSkip" xml:space="preserve">
+    <value>Just open it</value>
+  </data>
+  <data name="Main_GpMidSyncRepaired" xml:space="preserve">
+    <value>Repaired {0} container(s) - this save is consistent again and won't warn next time.</value>
   </data>
   <data name="Main_GpPacking" xml:space="preserve">
     <value>Packing Game Pass save for "{0}" into the Xbox container...</value>

@@ -242,6 +242,56 @@ public sealed class WgsContainerStore
     }
 
     /// <summary>
+    /// Permanently fixes every container that was read through the missing-blob fallback: its
+    /// <c>container.N</c> manifest is rewritten to point at the blob actually present on disk, and the
+    /// index entry's size is corrected to match. This turns a save that is permanently inconsistent
+    /// (the manifest names a blob that never existed locally - a leftover from an interrupted Xbox
+    /// sync that will never download) into a self-consistent one, so reopening no longer needs the
+    /// fallback and the "mid-sync" warning stops. It only repairs the pointer, never the save data.
+    /// Returns the container names repaired. Call with the game and Xbox app closed.
+    /// </summary>
+    public IReadOnlyList<string> RepairRecoveredManifests()
+    {
+        var repaired = new List<string>();
+        var indexNeedsRewrite = false;
+
+        // Scan every container, not just the ones already read this session - the whole point is to
+        // leave the folder fully consistent so Xbox has nothing left to reconcile away.
+        foreach (var container in Containers)
+        {
+            var folder = Path.Combine(_root, container.FolderName);
+            Guid expected;
+            try { expected = ReadManifestBlobGuid(folder, container.ContainerNumber); }
+            catch { continue; }
+
+            // Already consistent - the manifest points at a blob that is on disk.
+            if (File.Exists(Path.Combine(folder, expected.ToString("N").ToUpperInvariant())))
+            {
+                _recoveredContainers.Remove(container.Name);
+                continue;
+            }
+
+            var fallback = FindFallbackBlob(folder, expected, container.BlobSize);
+            if (fallback is null) continue;
+            var fallbackName = Path.GetFileName(fallback);
+            if (!Guid.TryParseExact(fallbackName, "N", out var fallbackGuid)) continue;
+
+            WriteManifest(folder, container.ContainerNumber, fallbackGuid);
+            // Keep the index entry's recorded size in step with the blob we just pointed at.
+            var actualSize = new FileInfo(fallback).Length;
+            if (container.BlobSize != actualSize) { container.BlobSize = actualSize; indexNeedsRewrite = true; }
+
+            repaired.Add(container.Name);
+            _recoveredContainers.Remove(container.Name);
+            Diagnostics.EditorLog.Info("GamePass",
+                $"Repaired container '{container.Name}': container.{container.ContainerNumber} now points at on-disk blob '{fallbackName}'.");
+        }
+
+        if (indexNeedsRewrite) WriteIndex();
+        return repaired;
+    }
+
+    /// <summary>
     /// Looks for a GUID-named blob file in <paramref name="folder"/> that could serve as a
     /// fallback when the manifest-referenced blob is absent. Returns the path to use, or null.
     /// Only returns a result when there is no ambiguity: exactly one candidate exists, or exactly

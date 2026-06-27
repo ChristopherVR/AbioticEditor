@@ -1546,16 +1546,33 @@ public sealed class MainViewModel : INotifyPropertyChanged
             StatusMessage = LocalizationResourceManager.Instance.Format("Main_GpOpened", session.WorldName);
             EditorLog.Info("GamePass", $"Opened container '{session.Container}' -> working copy {dir}");
 
-            // If any container had to be recovered from a fallback blob, the save is mid-Xbox-sync.
-            // Reading is fine, but saving now is what lets Xbox later discard the edited containers
-            // (it has dropped whole worlds this way), so warn loudly before the user edits anything.
+            // If any container had to be recovered from a fallback blob, the save has a leftover
+            // inconsistency from an interrupted Xbox sync: its manifest points at a blob that is not
+            // on disk. Offer to repair it (re-point the manifest at the blob that IS there) so the
+            // save is consistent and reopening it no longer trips this warning. Repairing writes to
+            // the wgs folder, so it should be done with the game and Xbox app closed.
             if (session.Set.IsMidSync)
             {
                 var loc = LocalizationResourceManager.Instance;
                 EditorLog.Warn("GamePass",
                     $"Opened '{session.Container}' but it is mid-sync (recovered: {string.Join(", ", session.Set.RecoveredContainers)}).");
-                await DialogViewModel.Current.AlertAsync(
-                    loc["Main_GpMidSyncTitle"], loc["Main_GpMidSyncMessage"]);
+                var repair = await DialogViewModel.Current.ConfirmAsync(
+                    loc["Main_GpMidSyncTitle"], loc["Main_GpMidSyncMessage"],
+                    accept: loc["Main_GpMidSyncRepair"], cancel: loc["Main_GpMidSyncSkip"]);
+                if (repair)
+                {
+                    try
+                    {
+                        var fixedNames = await Task.Run(() => session.Set.RepairMidSync());
+                        EditorLog.Info("GamePass", $"Repaired mid-sync containers: {string.Join(", ", fixedNames)}.");
+                        StatusMessage = loc.Format("Main_GpMidSyncRepaired", fixedNames.Count);
+                    }
+                    catch (Exception ex)
+                    {
+                        EditorLog.Error("GamePass", "Mid-sync repair failed", ex);
+                        await DialogViewModel.Current.AlertAsync(loc["Main_GpMidSyncTitle"], ex.Message);
+                    }
+                }
             }
         }
         catch (Exception ex)

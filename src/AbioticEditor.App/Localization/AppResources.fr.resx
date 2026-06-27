@@ -1194,10 +1194,19 @@ La sauvegarde du monde est réécrite immédiatement (.bak conservé). Continuer
     <value>J'ai compris, ouvrir</value>
   </data>
   <data name="Main_GpMidSyncTitle" xml:space="preserve">
-    <value>Cette sauvegarde n'a pas fini de se synchroniser</value>
+    <value>Cette sauvegarde a besoin d'une petite réparation</value>
   </data>
   <data name="Main_GpMidSyncMessage" xml:space="preserve">
-    <value>Une partie de cette sauvegarde Game Pass manquait sur le disque et a dû être récupérée, ce qui signifie que la synchronisation cloud Xbox n'est pas terminée pour cette sauvegarde. Vous pouvez regarder sans risque, mais si vous ENREGISTREZ maintenant, Xbox risque de supprimer vos modifications plus tard (il peut même perdre tout le monde). Pour modifier en toute sécurité : fermez complètement Abiotic Factor et l'application Xbox, attendez la fin de la synchronisation (ou déconnectez-vous d'internet), puis rouvrez cette sauvegarde. Une sauvegarde de tout le dossier est effectuée avant chaque écriture.</value>
+    <value>Cette sauvegarde Game Pass pointe vers un fichier de données absent du disque (un reste d'une synchronisation Xbox interrompue) - l'éditeur l'a lu depuis le vrai fichier présent, mais ce pointeur cassé est la raison de cet avertissement répété. L'éditeur peut le réparer maintenant en corrigeant le pointeur, ce qui rend la sauvegarde de nouveau cohérente et fait disparaître ce message. C'est sans danger et ne modifie pas vos données de sauvegarde, mais faites-le avec Abiotic Factor et l'application Xbox fermés. Une sauvegarde de tout le dossier est effectuée au préalable.</value>
+  </data>
+  <data name="Main_GpMidSyncRepair" xml:space="preserve">
+    <value>Réparer maintenant</value>
+  </data>
+  <data name="Main_GpMidSyncSkip" xml:space="preserve">
+    <value>Ouvrir simplement</value>
+  </data>
+  <data name="Main_GpMidSyncRepaired" xml:space="preserve">
+    <value>{0} conteneur(s) réparé(s) - cette sauvegarde est de nouveau cohérente et n'avertira plus la prochaine fois.</value>
   </data>
   <data name="Main_GpPacking" xml:space="preserve">
     <value>Conditionnement de la sauvegarde Game Pass de « {0} » dans le conteneur Xbox...</value>

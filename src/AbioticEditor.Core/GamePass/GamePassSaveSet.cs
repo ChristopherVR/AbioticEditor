@@ -70,6 +70,18 @@ public sealed class GamePassSaveSet
     /// <summary>The logical containers that had to be recovered from a fallback blob (empty when none).</summary>
     public IReadOnlyList<string> RecoveredContainers => _store.RecoveredContainers;
 
+    /// <summary>
+    /// Permanently repairs the mid-sync inconsistency (see <see cref="IsMidSync"/>) by pointing each
+    /// recovered container's manifest at the blob that exists on disk. Backs up the whole wgs folder
+    /// once first. After this, <see cref="IsMidSync"/> is false and the save reopens cleanly. Returns
+    /// the container names repaired. Intended to be run with the game and Xbox app closed.
+    /// </summary>
+    public IReadOnlyList<string> RepairMidSync()
+    {
+        BackupOnce();
+        return _store.RepairRecoveredManifests();
+    }
+
     public static GamePassSaveSet Open(string folder)
     {
         var store = WgsContainerStore.Open(folder);
