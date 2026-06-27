@@ -1534,10 +1534,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
             });
 
             DeleteGamePassTempDir(oldSession?.WorkingDir);
-            // Set the session BEFORE loading the folder: if loading auto-opens a player save, its
-            // PlayerEditor reads _gamePassSession to wire up the appearance context (see LoadSaveAsync).
-            _gamePassSession = session;
+            // LoadFolderAsync clears any existing Game Pass session AND deletes its working dir, so
+            // the session must be (re-)established AFTER it, not before - setting it first would make
+            // LoadFolderAsync delete the working copy we just extracted. Loading a folder does not
+            // auto-open a player save (the sidebar waits for a click), and by the time the user picks
+            // a character the session is set, so LoadSaveAsync still wires up the appearance context.
             await LoadFolderAsync(dir);
+            _gamePassSession = session;
             PlayerEditor?.SetGamePassContext(session.Set);
             RaiseGamePassSessionChanged();
             StatusMessage = LocalizationResourceManager.Instance.Format("Main_GpOpened", session.WorldName);
