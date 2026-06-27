@@ -19,8 +19,73 @@ internal static class GamePassCommands
         cmd.Subcommands.Add(BuildImport(quiet));
         cmd.Subcommands.Add(BuildDiscover(quiet));
         cmd.Subcommands.Add(BuildRepair(quiet));
+        cmd.Subcommands.Add(BuildSnapshot(quiet));
+        cmd.Subcommands.Add(BuildCompare(quiet));
         cmd.Subcommands.Add(BuildToGamePass(quiet));
         cmd.Subcommands.Add(BuildToSteam(quiet));
+        return cmd;
+    }
+
+    private static readonly System.Text.Json.JsonSerializerOptions SnapshotJsonOptions = new() { WriteIndented = true };
+
+    // The real, end-to-end Game Pass cloud-sync test: snapshot the wgs folder, let the actual game /
+    // Xbox app run a sync cycle, then compare. The Connected Storage sync can't be invoked from
+    // outside the title (it needs the title's SCID + a signed-in Xbox Live account), so observing the
+    // before/after of a real sync is the only way to prove an edit survived rather than was reverted.
+    private static Command BuildSnapshot(Option<bool> quiet)
+    {
+        var folderArg = new Argument<string>("wgs-folder") { Description = "Path to the wgs container folder." };
+        var outArg = new Argument<string>("out") { Description = "Snapshot file to write (JSON)." };
+        var cmd = new Command("snapshot",
+            "Fingerprint a Game Pass save folder (per-container generation + blob hash + index timestamp) "
+            + "so a later 'gamepass compare' can tell whether a real Xbox sync kept or reverted your edits.");
+        cmd.Arguments.Add(folderArg);
+        cmd.Arguments.Add(outArg);
+        cmd.SetAction(pr => Cli.Run(() =>
+        {
+            var folder = pr.GetValue(folderArg)!;
+            if (!GamePassSaveSet.IsGamePassFolder(folder))
+            {
+                throw new CliUserErrorException($"not a Game Pass save folder (no containers.index): {folder}");
+            }
+            var snap = WgsSnapshot.Capture(folder);
+            var json = System.Text.Json.JsonSerializer.Serialize(snap, SnapshotJsonOptions);
+            File.WriteAllText(pr.GetValue(outArg)!, json);
+            Console.WriteLine($"Snapshotted {snap.Containers.Count} container(s) -> {pr.GetValue(outArg)}");
+            Console.WriteLine("Now run your sync cycle (edit, or let the game/Xbox sync), then 'gamepass compare'.");
+            return Cli.Ok;
+        }));
+        return cmd;
+    }
+
+    private static Command BuildCompare(Option<bool> quiet)
+    {
+        var folderArg = new Argument<string>("wgs-folder") { Description = "Path to the wgs container folder." };
+        var snapArg = new Argument<string>("snapshot") { Description = "A snapshot file from 'gamepass snapshot'." };
+        var cmd = new Command("compare",
+            "Compare a Game Pass save folder against an earlier snapshot and report which containers a "
+            + "real Xbox sync dropped, rolled back, or changed - the actual proof of whether edits survive.");
+        cmd.Arguments.Add(folderArg);
+        cmd.Arguments.Add(snapArg);
+        cmd.SetAction(pr => Cli.Run(() =>
+        {
+            var folder = pr.GetValue(folderArg)!;
+            if (!GamePassSaveSet.IsGamePassFolder(folder))
+            {
+                throw new CliUserErrorException($"not a Game Pass save folder (no containers.index): {folder}");
+            }
+            var before = System.Text.Json.JsonSerializer.Deserialize<WgsSnapshot>(File.ReadAllText(pr.GetValue(snapArg)!))
+                ?? throw new CliUserErrorException("could not read the snapshot file.");
+            var after = WgsSnapshot.Capture(folder);
+            var diff = WgsSnapshot.Compare(before, after);
+            if (diff.Count == 0)
+            {
+                Console.WriteLine("No changes - the folder is byte-for-byte the same as the snapshot.");
+                return Cli.Ok;
+            }
+            foreach (var line in diff) Console.WriteLine(line);
+            return Cli.Ok;
+        }));
         return cmd;
     }
 

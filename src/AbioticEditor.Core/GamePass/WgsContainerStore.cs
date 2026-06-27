@@ -65,6 +65,11 @@ public sealed class WgsContainerStore
     /// <summary>The package family name recorded in the index (identifies the owning title).</summary>
     public string PackageFamilyName { get; private set; } = string.Empty;
 
+    /// <summary>The index-level FILETIME recorded in the header - the "last modified" recency token Xbox
+    /// cloud sync compares to decide which copy (local vs cloud) is newer. The game advances it on every
+    /// save; so does this editor (see <see cref="WriteIndex"/>).</summary>
+    public long IndexFileTime { get; private set; }
+
     /// <summary>True when <paramref name="folder"/> is a wgs container store for Abiotic Factor
     /// (the index names the Abiotic package). Cheap: reads only the index, no decompression.</summary>
     public static bool IsAbioticContainerFolder(string folder)
@@ -138,7 +143,7 @@ public sealed class WgsContainerStore
         var count = ReadU32(d, ref pos);
         _ = ReadU32(d, ref pos);            // reserved (0)
         PackageFamilyName = ReadWString(d, ref pos);
-        pos += 8;                           // index FILETIME
+        IndexFileTime = ReadI64(d, ref pos); // index-level FILETIME (the recency token sync compares)
         ReadU32(d, ref pos);                // constant (3)
         ReadWString(d, ref pos);            // root GUID string
         pos += 8;                           // 8 reserved bytes

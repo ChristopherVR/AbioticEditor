@@ -91,6 +91,51 @@ public class GamePassSyncFidelityTests
     }
 
     [Fact]
+    public void Snapshot_compare_detects_an_edit_as_a_content_change()
+    {
+        var dir = Directory.CreateTempSubdirectory("gp-snap");
+        try
+        {
+            WgsContainerStore.WriteNewContainer(dir.FullName, "W-WC", new byte[] { 1, 2, 3 });
+            var before = WgsSnapshot.Capture(dir.FullName);
+
+            var store = WgsContainerStore.Open(dir.FullName);
+            store.WriteBlob(store.Find("W-WC")!, new byte[] { 7, 7, 7, 7 });
+            var after = WgsSnapshot.Capture(dir.FullName);
+
+            var diff = WgsSnapshot.Compare(before, after);
+            Assert.Contains(diff, l => l.StartsWith("CHANGED", System.StringComparison.Ordinal) && l.Contains("W-WC"));
+            Assert.Contains(diff, l => l.Contains("index timestamp advanced"));
+        }
+        finally
+        {
+            dir.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Snapshot_compare_flags_a_dropped_and_a_rolled_back_container()
+    {
+        // The two outcomes a real Xbox sync inflicts on edits: dropping a container from the index,
+        // and rolling one back to an older generation. Compare must call both out by name.
+        var before = new WgsSnapshot(100, new[]
+        {
+            new WgsContainerState("World-WC", 5, 5, 100, "AAAA", null),
+            new WgsContainerState("Settings", 3, 2, 50, "BBBB", null),
+        });
+        var after = new WgsSnapshot(90, new[]
+        {
+            // World-WC is gone; Settings reverted from gen 2 to gen 1.
+            new WgsContainerState("Settings", 2, 1, 50, "CCCC", null),
+        });
+
+        var diff = WgsSnapshot.Compare(before, after);
+        Assert.Contains(diff, l => l.StartsWith("DROPPED", System.StringComparison.Ordinal) && l.Contains("World-WC"));
+        Assert.Contains(diff, l => l.StartsWith("ROLLED BACK", System.StringComparison.Ordinal) && l.Contains("Settings"));
+        Assert.Contains(diff, l => l.Contains("WENT BACKWARDS"));
+    }
+
+    [Fact]
     public void Successive_edits_keep_advancing_the_timestamp_even_back_to_back()
     {
         var dir = Directory.CreateTempSubdirectory("gp-sync3");
