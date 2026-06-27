@@ -52,6 +52,7 @@
                                    VerticalOptions="Center" />
                             <Picker Grid.Column="4"
                                     ItemsSource="{Binding StateOptions}"
+                                    ItemDisplayBinding="{Binding ., Converter={StaticResource EnumStateLabel}}"
                                     SelectedItem="{Binding State, Mode=TwoWay}"
                                     FontSize="11"
                                     VerticalOptions="Center" />

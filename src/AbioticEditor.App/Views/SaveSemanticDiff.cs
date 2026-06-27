@@ -419,7 +419,8 @@ internal static class WorldSemanticDiff
     private static string DoorState(WorldDoor d)
     {
         var parts = new List<string>();
-        if (!string.IsNullOrEmpty(d.DoorState)) parts.Add(d.DoorState!);
+        // Show the friendly "Closed / Open / Locked" label, never the raw E_DoorStates::NewEnumeratorN.
+        if (!string.IsNullOrEmpty(d.DoorState)) parts.Add(DoorStateNames.Friendly(d.DoorState));
         if (d.OneWayUnlocked == true) parts.Add(LocalizationResourceManager.Instance["Diff_DoorOneWayUnlocked"]);
         if (d.IsDoorOpen == true) parts.Add(LocalizationResourceManager.Instance["Diff_DoorOpen"]);
         return parts.Count > 0 ? string.Join(", ", parts) : "-";

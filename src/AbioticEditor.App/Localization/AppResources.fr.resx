@@ -1188,7 +1188,15 @@ La sauvegarde du monde est réécrite immédiatement (.bak conservé). Continuer
     <value>Avant de modifier cette sauvegarde Game Pass</value>
   </data>
   <data name="Main_GpCloudSyncWarningMessage" xml:space="preserve">
-    <value>La synchronisation cloud Xbox peut remplacer vos modifications sans prévenir par une copie plus ancienne venant du cloud. Pour que vos modifications soient conservées : fermez d'abord complètement Abiotic Factor, puis faites vos modifications ici et enregistrez. Ensuite, lancez le jeu une fois sans connexion internet (hors ligne) pour que Xbox garde votre sauvegarde modifiée comme la plus récente avant la synchronisation. Si vous sautez cette étape, le cloud risque d'annuler votre travail.</value>
+    <value>IMPORTANT - à lire avant de modifier une sauvegarde Game Pass. La synchronisation cloud Xbox considère la copie du cloud comme prioritaire et peut donc supprimer vos modifications sans prévenir. La SEULE façon fiable de conserver vos modifications est de tenir le cloud à l'écart jusqu'à ce que votre édition soit terminée :
+
+1. Fermez complètement Abiotic Factor ET l'application Xbox (vérifiez la zone de notification).
+2. Déconnectez-vous d'internet (Wi-Fi coupé / mode avion) - c'est l'étape essentielle.
+3. Faites vos modifications ici dans l'éditeur et ENREGISTREZ.
+4. TOUJOURS hors ligne, lancez le jeu une fois, chargez la sauvegarde, enregistrez en jeu puis quittez. Ainsi le jeu lui-même adopte votre modification comme la copie la plus récente.
+5. Reconnectez-vous à internet seulement maintenant. Si on vous le demande, choisissez Conserver en local / Envoyer vers le cloud.
+
+Si vous enregistrez en ligne, ou si vous choisissez « télécharger depuis le cloud » à l'invite, la copie du cloud l'emporte et votre modification est perdue. Une sauvegarde de tout le dossier est effectuée avant chaque écriture.</value>
   </data>
   <data name="Main_GpCloudSyncWarningContinue" xml:space="preserve">
     <value>J'ai compris, ouvrir</value>

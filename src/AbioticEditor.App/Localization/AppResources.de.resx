@@ -1188,7 +1188,15 @@ Der Weltspielstand wird sofort neu geschrieben (.bak bleibt erhalten). Fortfahre
     <value>Bevor du diesen Game Pass-Spielstand bearbeitest</value>
   </data>
   <data name="Main_GpCloudSyncWarningMessage" xml:space="preserve">
-    <value>Die Xbox-Cloud-Synchronisierung kann deine Änderungen unbemerkt durch eine ältere Kopie aus der Cloud ersetzen. Damit deine Änderungen erhalten bleiben: Schließe Abiotic Factor zuerst vollständig, nimm dann hier deine Änderungen vor und speichere. Starte das Spiel danach einmal ohne Internetverbindung (offline), damit Xbox deinen bearbeiteten Spielstand als neuesten behält, bevor synchronisiert wird. Lässt du das aus, kann die Cloud deine Arbeit rückgängig machen.</value>
+    <value>WICHTIG - lies das, bevor du einen Game Pass-Spielstand bearbeitest. Die Xbox-Cloud-Synchronisierung behandelt die Cloud-Kopie als maßgeblich und kann deine Änderungen unbemerkt verwerfen. Der EINZIGE zuverlässige Weg, damit Änderungen erhalten bleiben, ist die Cloud außen vor zu lassen, bis deine Bearbeitung fertig ist:
+
+1. Schließe Abiotic Factor UND die Xbox-App vollständig (prüfe die Taskleiste).
+2. Trenne die Internetverbindung (WLAN aus / Flugmodus) - das ist der entscheidende Schritt.
+3. Nimm hier im Editor deine Änderungen vor und SPEICHERE.
+4. Starte das Spiel - WEITERHIN offline - einmal, lade den Spielstand, speichere im Spiel und beende es. So übernimmt das Spiel selbst deine Änderung als neueste Kopie.
+5. Stelle erst jetzt die Internetverbindung wieder her. Wähle bei Nachfrage "Lokal behalten / In die Cloud hochladen".
+
+Wenn du online speicherst oder bei der Abfrage "aus der Cloud herunterladen" wählst, gewinnt die Cloud-Kopie und deine Änderung ist weg. Vor jedem Schreibvorgang wird eine Sicherung des gesamten Spielstandordners erstellt.</value>
   </data>
   <data name="Main_GpCloudSyncWarningContinue" xml:space="preserve">
     <value>Verstanden, öffnen</value>

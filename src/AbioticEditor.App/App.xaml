@@ -17,6 +17,7 @@
             <conv:WarningBorderBrushConverter x:Key="WarningBorderBrush" />
             <conv:TabBrushConverter x:Key="TabBrush" />
             <conv:UnlockedLabelConverter x:Key="UnlockedLabel" />
+            <conv:EnumStateLabelConverter x:Key="EnumStateLabel" />
 
             <!-- Reusable equipment slot template used by the paper-doll grid -->
             <ControlTemplate x:Key="EquipmentSlotTemplate">
