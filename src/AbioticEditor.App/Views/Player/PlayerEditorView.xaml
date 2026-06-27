@@ -50,6 +50,7 @@
                     Command="{Binding PlayerEditor.ShowCodexCommand}"
                     BackgroundColor="{Binding PlayerEditor.IsCodexTab, Converter={StaticResource TabBrush}}" />
             <Button Text="{loc:Localize PlayerEditor_Achieve}" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"
+                    IsVisible="{Binding PlayerEditor.ShowAchievementsTab}"
                     Command="{Binding PlayerEditor.ShowAchievementsCommand}"
                     BackgroundColor="{Binding PlayerEditor.IsAchievementsTab, Converter={StaticResource TabBrush}}" />
             <Button Text="{loc:Localize PlayerEditor_Data}" Style="{StaticResource AfTabButton}" Margin="0,0,4,4"

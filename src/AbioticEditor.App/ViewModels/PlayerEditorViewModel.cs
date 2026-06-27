@@ -527,6 +527,11 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
     public bool IsAchievementsTab => _activeTab == PlayerTab.Achievements;
     public bool IsRawTab => _activeTab == PlayerTab.Raw;
 
+    /// <summary>Whether to offer the Achievements tab. It is a Steam-only feature (it reads Steam's
+    /// local cache and queries the Steam Web API by SteamID64), so it is hidden for Game Pass / Xbox
+    /// saves whose owner id is an XUID, not a SteamID64, and there is nothing for it to show.</summary>
+    public bool ShowAchievementsTab => IsSteamSave;
+
     public string? RawStatus { get => _rawStatus; private set => Set(ref _rawStatus, value); }
 
     public ICommand ShowGeneralCommand { get; private set; } = null!;
