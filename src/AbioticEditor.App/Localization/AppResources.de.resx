@@ -375,7 +375,7 @@ Welten: Behälter · Quest-Flags · Türen · Bodengegenstände · Story-Fortsch
   <data name="WorldContainment_FindAll" xml:space="preserve"><value>ALLE FINDEN</value></data>
   <data name="WorldContainment_ItemsSeen" xml:space="preserve"><value>GESEHENE GEGENSTÄNDE</value></data>
   <data name="WorldContainment_JournalPages" xml:space="preserve"><value>TAGEBUCHSEITEN</value></data>
-  <data name="WorldContainment_NothingContained" xml:space="preserve"><value>Im Moment ist in dieser Welt nichts eingesperrt. Bauen Sie eine Eindämmungseinheit und fangen Sie ein Wesen (Leyak, Krasue) im Spiel; der Eintrag erscheint hier.</value></data>
+  <data name="WorldContainment_NothingContained" xml:space="preserve"><value>Im Moment ist in dieser Welt nichts eingesperrt. Bauen Sie eine Eindämmungseinheit und fangen Sie ein Wesen im Spiel; der Eintrag erscheint hier.</value></data>
   <data name="WorldContainment_ReadAll" xml:space="preserve"><value>ALLE LESEN</value></data>
   <data name="WorldContainment_Release" xml:space="preserve"><value>FREILASSEN</value></data>
   <data name="WorldContainment_ReleaseTooltip" xml:space="preserve"><value>Entfernt die Eindämmungsverknüpfung dieses Wesens (es entkommt). Vorgemerkt bis zum SPEICHERN; ZURÜCKSETZEN stellt sie wieder her.</value></data>

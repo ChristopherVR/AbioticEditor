@@ -375,7 +375,7 @@ Mondes : conteneurs · indicateurs de quête · portes · objets au sol · progr
   <data name="WorldContainment_FindAll" xml:space="preserve"><value>TOUT TROUVER</value></data>
   <data name="WorldContainment_ItemsSeen" xml:space="preserve"><value>OBJETS VUS</value></data>
   <data name="WorldContainment_JournalPages" xml:space="preserve"><value>PAGES DE JOURNAL</value></data>
-  <data name="WorldContainment_NothingContained" xml:space="preserve"><value>Rien n'est confiné dans ce monde pour l'instant. Construisez une unité de confinement et piégez une créature (Leyak, Krasue) en jeu ; l'entrée apparaîtra ici.</value></data>
+  <data name="WorldContainment_NothingContained" xml:space="preserve"><value>Rien n'est confiné dans ce monde pour l'instant. Construisez une unité de confinement et piégez une créature en jeu ; l'entrée apparaîtra ici.</value></data>
   <data name="WorldContainment_ReadAll" xml:space="preserve"><value>TOUT LIRE</value></data>
   <data name="WorldContainment_Release" xml:space="preserve"><value>RELÂCHER</value></data>
   <data name="WorldContainment_ReleaseTooltip" xml:space="preserve"><value>Supprime le lien de confinement de cette créature (elle s'échappe). Préparé jusqu'à ENREGISTRER ; ANNULER le restaure.</value></data>

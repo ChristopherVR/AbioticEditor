@@ -88,7 +88,7 @@
                                     <VerticalStackLayout Grid.Column="1" Spacing="6">
                                         <Grid ColumnDefinitions="*,Auto">
                                             <Label Grid.Column="0"
-                                                   Text="{Binding DisplayName}"
+                                                   Text="{Binding ShownDisplayName}"
                                                    Style="{StaticResource AfH2}" FontSize="16" VerticalOptions="Center" />
                                             <Button Grid.Column="1" Text="✕"
                                                     FontSize="11" Padding="8,2" VerticalOptions="Start"
@@ -96,7 +96,7 @@
                                                     TextColor="{StaticResource AfTextPrimary}"
                                                     Clicked="OnCloseContainmentDetail" />
                                         </Grid>
-                                        <Label Text="{Binding Lore}"
+                                        <Label Text="{Binding ShownLore}"
                                                Style="{StaticResource AfFieldValue}" FontSize="12" LineBreakMode="WordWrap" />
                                         <Label Text="{loc:Localize WorldContainment_ContainedIn}" Style="{StaticResource AfFieldLabel}" />
                                         <!-- Place name in a legible body font; only the numeric coordinates

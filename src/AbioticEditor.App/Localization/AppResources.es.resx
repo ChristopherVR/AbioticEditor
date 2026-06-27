@@ -375,7 +375,7 @@ Mundos: contenedores · indicadores de misión · puertas · objetos en el suelo
   <data name="WorldContainment_FindAll" xml:space="preserve"><value>ENCONTRAR TODO</value></data>
   <data name="WorldContainment_ItemsSeen" xml:space="preserve"><value>OBJETOS VISTOS</value></data>
   <data name="WorldContainment_JournalPages" xml:space="preserve"><value>PÁGINAS DE DIARIO</value></data>
-  <data name="WorldContainment_NothingContained" xml:space="preserve"><value>Ahora mismo no hay nada contenido en este mundo. Construye una unidad de contención y atrapa una criatura (Leyak, Krasue) en el juego; la entrada aparecerá aquí.</value></data>
+  <data name="WorldContainment_NothingContained" xml:space="preserve"><value>Ahora mismo no hay nada contenido en este mundo. Construye una unidad de contención y atrapa una criatura en el juego; la entrada aparecerá aquí.</value></data>
   <data name="WorldContainment_ReadAll" xml:space="preserve"><value>LEER TODO</value></data>
   <data name="WorldContainment_Release" xml:space="preserve"><value>LIBERAR</value></data>
   <data name="WorldContainment_ReleaseTooltip" xml:space="preserve"><value>Elimina el vínculo de contención de esta criatura (escapa). Preparado hasta GUARDAR; REVERTIR lo restaura.</value></data>

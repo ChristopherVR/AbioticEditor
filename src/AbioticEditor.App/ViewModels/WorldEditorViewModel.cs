@@ -2469,6 +2469,19 @@ public sealed class LeyakContainmentViewModel : INotifyPropertyChanged
     /// <summary>Short flavour blurb shown in the detail card.</summary>
     public string Lore => ContainmentCreatureCatalog.Lore(Creature);
 
+    /// <summary>The Anteverse creatures whose names are themselves a spoiler. Blacked out in the
+    /// detail card until the entry is revealed, so a player who hasn't met them in the story doesn't
+    /// learn the names by browsing. Krasue's blurb also mentions Leyak, so both are always masked.</summary>
+    private static readonly string[] SpoilerCreatureNames = { "Leyak", "Krasue", "Krassue" };
+
+    /// <summary>Detail-card title with the creature name blacked out while the entry is sealed.</summary>
+    public string ShownDisplayName =>
+        Services.SpoilerService.RedactKeywords(DisplayName, IsConcealed, SpoilerCreatureNames);
+
+    /// <summary>Detail-card blurb with the creature names blacked out while the entry is sealed.</summary>
+    public string ShownLore =>
+        Services.SpoilerService.RedactKeywords(Lore, IsConcealed, SpoilerCreatureNames);
+
     // ---------- spoiler concealment ----------
 
     /// <summary>Per-item reveal key.</summary>
@@ -2497,6 +2510,8 @@ public sealed class LeyakContainmentViewModel : INotifyPropertyChanged
         {
             Notify(nameof(IsConcealed));
             Notify(nameof(ShownName));
+            Notify(nameof(ShownDisplayName));
+            Notify(nameof(ShownLore));
             Notify(nameof(ShownTapHint));
         }
     }

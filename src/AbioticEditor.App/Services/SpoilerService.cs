@@ -115,6 +115,28 @@ public static class SpoilerService
     public static string Mask(string original, bool concealed, string? placeholder = null)
         => concealed ? (placeholder ?? Redacted) : original;
 
+    /// <summary>
+    /// Blacks out specific spoiler <paramref name="keywords"/> wherever they appear inside
+    /// <paramref name="text"/> (case-insensitive), leaving the rest of the sentence readable, e.g.
+    /// "A frost variant of the Leyak" -> "A frost variant of the ████". Returns the text unchanged
+    /// when not concealed. Each keyword is replaced by a run of full blocks the same length, so the
+    /// shape of the redaction matches a real classified document.
+    /// </summary>
+    public static string RedactKeywords(string text, bool concealed, params string[] keywords)
+    {
+        if (!concealed || string.IsNullOrEmpty(text) || keywords is null) return text;
+        foreach (var keyword in keywords)
+        {
+            if (string.IsNullOrEmpty(keyword)) continue;
+            text = System.Text.RegularExpressions.Regex.Replace(
+                text,
+                System.Text.RegularExpressions.Regex.Escape(keyword),
+                new string('█', keyword.Length),
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        }
+        return text;
+    }
+
     private static void Persist()
         => Preferences.Default.Set(RevealedKey, string.Join('\n', _revealed));
 }

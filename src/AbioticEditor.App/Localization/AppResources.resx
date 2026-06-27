@@ -427,7 +427,7 @@ Worlds: containers · quest flags · doors · ground items · story progression<
   <data name="WorldContainment_FindAll" xml:space="preserve"><value>FIND ALL</value></data>
   <data name="WorldContainment_ItemsSeen" xml:space="preserve"><value>ITEMS SEEN</value></data>
   <data name="WorldContainment_JournalPages" xml:space="preserve"><value>JOURNAL PAGES</value></data>
-  <data name="WorldContainment_NothingContained" xml:space="preserve"><value>Nothing is contained in this world right now. Build a containment unit and trap a creature (Leyak, Krasue) in-game; the entry appears here.</value></data>
+  <data name="WorldContainment_NothingContained" xml:space="preserve"><value>Nothing is contained in this world right now. Build a containment unit and trap a creature in-game; the entry appears here.</value></data>
   <data name="WorldContainment_ReadAll" xml:space="preserve"><value>READ ALL</value></data>
   <data name="WorldContainment_Release" xml:space="preserve"><value>RELEASE</value></data>
   <data name="WorldContainment_ReleaseTooltip" xml:space="preserve"><value>Removes this creature's containment link (it escapes). Staged until SAVE; REVERT restores it.</value></data>
