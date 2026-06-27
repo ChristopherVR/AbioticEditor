@@ -168,12 +168,62 @@ public sealed class WgsContainerStore
         var folder = Path.Combine(_root, container.FolderName);
         var blobGuid = ReadManifestBlobGuid(folder, container.ContainerNumber);
         var blobPath = Path.Combine(folder, blobGuid.ToString("N").ToUpperInvariant());
-        if (!File.Exists(blobPath))
-            throw new InvalidDataException(
-                $"Save data blob for '{container.Name}' is missing (expected {blobGuid:N}). " +
-                "Xbox cloud sync may not have finished downloading this save - " +
-                "close the game completely, wait for sync to complete, and try again.");
-        return File.ReadAllBytes(blobPath);
+        if (File.Exists(blobPath))
+            return File.ReadAllBytes(blobPath);
+
+        // The expected blob is missing - this happens when Xbox Connected Storage updated the
+        // container manifest (or synced one from the cloud) but the corresponding blob file was
+        // never written or was renamed. Look for the only other GUID-named blob in the folder;
+        // if exactly one exists and its size matches the index record, use it with a warning.
+        var fallback = FindFallbackBlob(folder, blobGuid, container.BlobSize);
+        if (fallback is not null)
+        {
+            Diagnostics.EditorLog.Warn("GamePass",
+                $"Save blob '{blobGuid:N}' for '{container.Name}' not found on disk - " +
+                $"using existing blob '{Path.GetFileName(fallback)}' as a fallback. " +
+                "This can happen after an interrupted Xbox sync. The save was read successfully.");
+            return File.ReadAllBytes(fallback);
+        }
+
+        throw new InvalidDataException(
+            $"Save data blob for '{container.Name}' is missing (expected {blobGuid:N}). " +
+            "Xbox cloud sync may not have finished downloading this save - " +
+            "close the game completely, wait for sync to complete, and try again.");
+    }
+
+    /// <summary>
+    /// Looks for a GUID-named blob file in <paramref name="folder"/> that could serve as a
+    /// fallback when the manifest-referenced blob is absent. Returns the path to use, or null.
+    /// Only returns a result when there is no ambiguity: exactly one candidate exists, or exactly
+    /// one candidate matches the expected size.
+    /// </summary>
+    private static string? FindFallbackBlob(string folder, Guid expectedGuid, long expectedSize)
+    {
+        var expected = expectedGuid.ToString("N").ToUpperInvariant();
+        var all = new List<string>();
+        var sizeMatch = new List<string>();
+        foreach (var file in Directory.EnumerateFiles(folder))
+        {
+            var name = Path.GetFileName(file);
+            if (name.StartsWith("container.", StringComparison.OrdinalIgnoreCase)) continue;
+            if (string.Equals(name, expected, StringComparison.OrdinalIgnoreCase)) continue;
+            // Only treat 32-hex-char names as blob files (GUID "N" format).
+            if (name.Length != 32 || !IsHex(name)) continue;
+            all.Add(file);
+            if (expectedSize > 0 && new FileInfo(file).Length == expectedSize)
+                sizeMatch.Add(file);
+        }
+        if (sizeMatch.Count == 1) return sizeMatch[0];
+        if (all.Count == 1) return all[0];
+        return null;
+    }
+
+    private static bool IsHex(string s)
+    {
+        foreach (var c in s)
+            if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')))
+                return false;
+        return true;
     }
 
     /// <summary>
