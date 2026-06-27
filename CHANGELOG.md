@@ -2,10 +2,37 @@
 
 All notable changes to this project are documented here.
 
+## [1.18.0] - 2026-06-27
+
+### Bug Fixes
+- Warn before editing a save that hasn't finished syncing
+- Say when Xbox sync has dropped a world from the index
+- Stop Warren reading "classified" once you're past him
+- Stop Game Pass worlds opening empty
+- Show the item list when editing a base's containers
+- Update trader status the moment you change a story flag
+- Show your character's looks on Game Pass saves
+- Hide the Achievements tab on Game Pass saves
+
+
+### Features
+- Send a container item straight to a player
+- Keep contained creature names hidden until you reveal them
+
+
+### Miscellaneous Tasks
+- Point bucket at v1.17.3 [skip ci]
+
+
 ## [1.17.3] - 2026-06-25
 
 ### Bug Fixes
+- Recover gracefully when a save blob is missing from disk
 - Let Game Pass players edit their character's look
+
+
+### Features
+- Warn about Xbox cloud sync before editing a save
 
 
 ### Miscellaneous Tasks
