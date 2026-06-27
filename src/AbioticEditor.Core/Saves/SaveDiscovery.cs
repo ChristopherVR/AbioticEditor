@@ -388,10 +388,12 @@ public static class SaveDiscovery
             try
             {
                 var store = GamePass.WgsContainerStore.Open(save.FolderPath);
+                var worldsHere = 0;
                 foreach (var container in store.Containers)
                 {
                     if (!container.Name.EndsWith("-WC", StringComparison.OrdinalIgnoreCase)) continue;
                     var worldName = container.Name[..^"-WC".Length];
+                    worldsHere++;
                     results.Add(new DiscoveredWorld(
                         save.FolderPath, worldName, DiscoveredWorldSource.Client, save.AccountId)
                     {
@@ -400,6 +402,22 @@ public static class SaveDiscovery
                         SaveFileCount = 1,
                         LastPlayed = save.LastModified,
                     });
+                }
+
+                // An Abiotic wgs folder with no world (-WC) container in its index is almost always
+                // Xbox cloud sync having dropped the world entry (the world's GUID sub-folder and its
+                // blobs usually still sit on disk). Say so loudly with a pointer to the backups the
+                // editor keeps, so this reads as "the platform reconciled your save away" rather than
+                // a silent "no Game Pass save found".
+                if (worldsHere == 0)
+                {
+                    var rescuable = GamePass.WgsContainerStore.HasOrphanedWorldFolders(save.FolderPath);
+                    Diagnostics.EditorLog.Warn("Discovery",
+                        $"Game Pass folder '{save.FolderPath}' lists {store.Containers.Count} container(s) but no world (-WC) entry"
+                        + " - Xbox cloud sync has likely dropped the world from containers.index."
+                        + (rescuable
+                            ? " World data still exists on disk; restore it from one of the editor's '.bak' folders next to it."
+                            : string.Empty));
                 }
             }
             catch (Exception ex)

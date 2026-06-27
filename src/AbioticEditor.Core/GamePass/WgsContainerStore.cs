@@ -162,6 +162,39 @@ public sealed class WgsContainerStore
     public WgsContainer? Find(string name)
         => Containers.FirstOrDefault(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>
+    /// True when <paramref name="folder"/> holds GUID container sub-folders (each with a
+    /// <c>container.N</c> manifest) that the current <c>containers.index</c> no longer references -
+    /// the fingerprint of a container Xbox cloud sync dropped from the index while leaving its data
+    /// on disk. Used to tell the user a "missing" Game Pass world is actually recoverable. Best
+    /// effort: an unreadable folder returns false rather than throwing.
+    /// </summary>
+    public static bool HasOrphanedWorldFolders(string folder)
+    {
+        try
+        {
+            if (!IsContainerFolder(folder)) return false;
+            var store = Open(folder);
+            var referenced = new HashSet<string>(
+                store.Containers.Select(c => c.FolderName), StringComparer.OrdinalIgnoreCase);
+
+            foreach (var sub in Directory.EnumerateDirectories(folder))
+            {
+                var name = Path.GetFileName(sub);
+                // GUID "N" sub-folders are 32 hex chars; skip anything else (and referenced ones).
+                if (name.Length != 32 || !IsHex(name)) continue;
+                if (referenced.Contains(name)) continue;
+                // An orphan that still carries a container.N manifest is real, recoverable save data.
+                if (Directory.EnumerateFiles(sub, "container.*").Any()) return true;
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Treat an unreadable tree as "nothing recoverable detected".
+        }
+        return false;
+    }
+
     /// <summary>Reads the blob bytes for a logical container (via its <c>container.N</c> manifest).</summary>
     public byte[] ReadBlob(WgsContainer container)
     {
