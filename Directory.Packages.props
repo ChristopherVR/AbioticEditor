@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <!-- App (MAUI) -->
-    <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.71" />
+    <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.80" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="10.0.9" />
     <PackageVersion Include="CommunityToolkit.Maui" Version="14.2.0" />
 
@@ -27,7 +27,7 @@
     <!-- JavaScript plugin runtime. Jint is a pure-managed ES interpreter (no native deps),
          so it works across every MAUI target (android/ios/maccatalyst/windows) and the CLI
          alike, unlike V8-based engines that ship platform-specific natives. -->
-    <PackageVersion Include="Jint" Version="4.10.0" />
+    <PackageVersion Include="Jint" Version="4.10.1" />
 
     <!-- Transitive override (NOT a CUE4Parse mirror — Dependabot SHOULD keep this current):
          CUE4Parse references Microsoft.Bcl.Memory 9.0.0, which has a known vulnerability
@@ -39,7 +39,7 @@
 
     <!-- Tests -->
     <PackageVersion Include="coverlet.collector" Version="10.0.1" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.6.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
   </ItemGroup>
