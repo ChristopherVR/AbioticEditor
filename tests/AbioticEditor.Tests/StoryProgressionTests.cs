@@ -54,4 +54,47 @@ public class StoryProgressionTests
         Assert.Equal("EndGame", reloaded.StoryProgressionRow);
         Assert.Equal(123, reloaded.MinutesPassed);
     }
+
+    // ---------- progress-implies-earlier-milestones (trader gating) ----------
+
+    [Fact]
+    public void ChapterIndexForFlag_MapsTriggerFlags_AndRejectsNonTriggers()
+    {
+        Assert.Equal(0, StoryProgressionCatalog.ChapterIndexForFlag("Office_NewGameStarted"));
+        Assert.True(StoryProgressionCatalog.ChapterIndexForFlag("EndBossDefeated") > 0);
+        // Office_TalkedToWarren is a real flag but not a chapter trigger, so it has no chapter index.
+        Assert.Equal(-1, StoryProgressionCatalog.ChapterIndexForFlag("Office_TalkedToWarren"));
+        Assert.Equal(-1, StoryProgressionCatalog.ChapterIndexForFlag("NotAFlagAtAll"));
+    }
+
+    [Fact]
+    public void FurthestReachedIndex_TakesTheHighestSetTrigger_AndIsNegativeWhenEmpty()
+    {
+        var flags = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Office_NewGameStarted", "Office_ThirdFloorReached", "Office_Silo3Opened",
+        };
+        var furthest = StoryProgressionCatalog.FurthestReachedIndex(flags.Contains);
+
+        // Office_Silo3Opened triggers the Flathill chapter - further than the Office start.
+        Assert.True(furthest >= StoryProgressionCatalog.IndexOf("Flathill"));
+        Assert.True(furthest > StoryProgressionCatalog.IndexOf("Office"));
+        Assert.Equal(-1, StoryProgressionCatalog.FurthestReachedIndex(_ => false));
+    }
+
+    [Fact]
+    public void WarrenScenario_StoryProgressSatisfiesAnEarlyGate_WithoutTheExactFlag()
+    {
+        // Reproduces the user's Game Pass save: well past Warren (third floor, silo) but the specific
+        // "talked to Warren" flag never persisted. Warren's gate is the Office chapter trigger, so a
+        // world this far in should clear his gate even though only later milestones are set.
+        var flags = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Office_NewGameStarted", "Office_ThirdFloorReached", "Office_Silo3Opened",
+            "Office_CafeteriaQuestStarted",
+        };
+        var gateChapter = StoryProgressionCatalog.ChapterIndexForFlag("Office_NewGameStarted");
+        Assert.True(gateChapter >= 0);
+        Assert.True(StoryProgressionCatalog.FurthestReachedIndex(flags.Contains) >= gateChapter);
+    }
 }

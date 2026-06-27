@@ -80,6 +80,28 @@ public static class StoryProgressionCatalog
     public static int IndexOf(string? row)
         => row is not null && RowIndex.TryGetValue(row, out var i) ? i : -1;
 
+    /// <summary>
+    /// The index of the furthest chapter the world has reached, judged by which chapter trigger
+    /// flags are set. Because the chapters are strictly linear, the highest-indexed trigger that is
+    /// set wins. Returns -1 when no chapter trigger is set. <paramref name="hasFlag"/> is the world's
+    /// own flag test. Use this to tell "the player is past chapter X" even when an intermediate
+    /// milestone flag was never persisted - a later trigger implies the earlier ones.
+    /// </summary>
+    public static int FurthestReachedIndex(Func<string, bool> hasFlag)
+    {
+        ArgumentNullException.ThrowIfNull(hasFlag);
+        for (var i = Chapters.Count - 1; i >= 0; i--)
+        {
+            if (Chapters[i].TriggerFlag is { } trigger && hasFlag(trigger)) return i;
+        }
+        return -1;
+    }
+
+    /// <summary>The index of the chapter whose trigger flag is <paramref name="flag"/>, or -1 when
+    /// the flag is not a chapter trigger.</summary>
+    public static int ChapterIndexForFlag(string flag)
+        => ChapterForFlag(flag) is { } c ? IndexOf(c.Row) : -1;
+
     public static StoryChapter? Find(string? row)
     {
         var i = IndexOf(row);

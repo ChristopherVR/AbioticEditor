@@ -38,14 +38,30 @@ public sealed class TraderCardViewModel : INotifyPropertyChanged
     public bool IsAvailableHere => _info.RequiredFlags.Count == 0 || _info.RequiredFlags.All(_worldHasFlag);
 
     /// <summary>
-    /// True when the curated spoiler-gate flag is either absent (not needed) or already
-    /// set in this world. Traders whose <c>DT_NPC_Traders</c> row carries no
-    /// <c>RequiredWorldFlags</c> but who are NOT truly available from the start (Jimmy -
-    /// post-game; Blacksmith - F.O.R.G.E.) carry a <see cref="TraderLore.Entry.SpoilerGateFlag"/>
-    /// that mirrors the in-world event that reveals them.
+    /// True when the curated spoiler-gate flag is either absent (not needed), already set in this
+    /// world, or implied by story progress. Traders whose <c>DT_NPC_Traders</c> row carries no
+    /// <c>RequiredWorldFlags</c> but who are NOT truly available from the start (Jimmy - post-game;
+    /// Blacksmith - F.O.R.G.E.) carry a <see cref="TraderLore.Entry.SpoilerGateFlag"/> that mirrors
+    /// the in-world event that reveals them.
+    ///
+    /// <para>The exact gate flag can be missing on a save that has clearly progressed well past it -
+    /// the game doesn't persist every milestone to the world-flags array. So when the gate flag is a
+    /// story-chapter trigger, the gate is also satisfied once the world has reached that chapter or a
+    /// later one (a later chapter's trigger implies all the earlier ones, the story being linear).
+    /// That stops e.g. Warren - the very first trader - reading CLASSIFIED on a deep save just because
+    /// his specific "met" flag never got written.</para>
     /// </summary>
     private bool IsSpoilerGateSatisfied
-        => _lore?.SpoilerGateFlag is null || _worldHasFlag(_lore.SpoilerGateFlag);
+    {
+        get
+        {
+            if (_lore?.SpoilerGateFlag is not { } gate) return true;
+            if (_worldHasFlag(gate)) return true;
+            var gateChapter = Core.WorldSaves.StoryProgressionCatalog.ChapterIndexForFlag(gate);
+            return gateChapter >= 0
+                && Core.WorldSaves.StoryProgressionCatalog.FurthestReachedIndex(_worldHasFlag) >= gateChapter;
+        }
+    }
 
     public string AvailabilityText
     {

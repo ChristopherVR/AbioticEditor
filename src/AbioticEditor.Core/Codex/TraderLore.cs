@@ -33,7 +33,13 @@ public static class TraderLore
             "Office Sector plaza - security kiosk (stationary)",
             "Sydney-sider turned subterranean security specialist. Sells security keys, seeds, alloys and repair kits; stock grows with story progress.",
             "The first trader you meet - opens shop early in the Office Sector. Stock expands as the story advances.",
-            SpoilerGateFlag: "Office_TalkedToWarren"),
+            // Gate on "the game has started", not "talked to Warren": Office_TalkedToWarren is an
+            // unreliable marker - real saves well past Warren (third floor reached, silo opened) can
+            // lack it entirely, which left him stamped CLASSIFIED forever. Warren is the very first
+            // trader, met the moment you wake up in the Office, so any started game has reached him;
+            // Office_NewGameStarted is always present once a world exists, and a brand-new empty
+            // world (no flags at all) still hides him.
+            SpoilerGateFlag: "Office_NewGameStarted"),
         ["Grayson"] = new("Grayson Isling",
             "Met at the Manufacturing West door; later travels near Repair & Salvage stations",
             "Wounded GATE materials engineer. After you patch him up he sells ammo, hard hats, high-vis vests and repair kits.",
