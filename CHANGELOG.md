@@ -2,6 +2,30 @@
 
 All notable changes to this project are documented here.
 
+## [1.19.0] - 2026-06-27
+
+### Bug Fixes
+- Show friendly state labels and a clearer Game Pass save warning
+- Stamp the save index like the game does so edits sync
+- Mark added items as discovered so the game recognises them
+
+
+### Features
+- Full wiki-verified quest dependency tree for the main story
+- Extend the quest dependency tree across Office, Manufacturing and Labs
+- Follow per-quest dependencies so steps aren't left half-done
+- Snapshot/compare tool to prove whether a real sync kept edits
+- Repair a save stuck pointing at a missing data file
+
+
+### Miscellaneous Tasks
+- Point bucket at v1.18.0 [skip ci]
+
+
+### Testing
+- Cover the sync-recency behaviour and make edits strictly newer
+
+
 ## [1.18.0] - 2026-06-27
 
 ### Bug Fixes
