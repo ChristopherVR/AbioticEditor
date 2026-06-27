@@ -108,6 +108,35 @@ public class StoryProgressionTests
     }
 
     [Fact]
+    public void PrerequisitesFor_FollowsDeepChains_AcrossManufacturingAndLabs()
+    {
+        // Manufacturing NPC chain: meeting the soldier presupposes meeting Varsha.
+        Assert.Contains("MF_MetVarsha", FlagGate.PrerequisitesFor("MF_MetSoldier"));
+
+        // Labs spine: opening the vacuum (exit) door pulls in the whole Anteverse/turret chain.
+        var vacuum = FlagGate.PrerequisitesFor("LABS_OpenVacuumDoor");
+        Assert.Contains("LABS_CompletedAnteverseB", vacuum);
+        Assert.Contains("LABS_AnteverseBFixed", vacuum);
+        Assert.Contains("LABS_OpenAnteversePortal", vacuum);
+        Assert.Contains("LABS_TurretsDeactivated", vacuum);
+
+        // Office: the forklift door transitively needs the Silo 3 portal (where the power cell is found).
+        Assert.Contains("Office_Silo3PortalOpened", FlagGate.PrerequisitesFor("Office_ForkliftDoorOpened"));
+    }
+
+    [Fact]
+    public void PrerequisitesFor_HasNoSelfCycles_AcrossEveryCuratedFlag()
+    {
+        // The transitive expansion mixes chapter rules with the curated dependency graph; guard that
+        // no flag ever ends up listing itself (a cycle would also be a sign of a bad edge).
+        foreach (var flag in QuestFlagDependencies.Direct.Keys)
+        {
+            var prereqs = FlagGate.PrerequisitesFor(flag);
+            Assert.DoesNotContain(flag, prereqs);
+        }
+    }
+
+    [Fact]
     public void QuestDependencies_RecordTheCafeteriaConsequence_JagerDiesAndDoorOpens()
     {
         Assert.True(QuestFlagDependencies.Consequences.TryGetValue("Office_CafeteriaUnlocked", out var c));

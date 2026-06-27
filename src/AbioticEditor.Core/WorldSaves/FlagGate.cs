@@ -89,14 +89,19 @@ public static class FlagGate
 
     // Walks QuestFlagDependencies transitively, appending each unseen prerequisite.
     private static void AddGranularPrerequisites(string flag, List<string> result, HashSet<string> seen)
+        => AddGranularPrerequisites(flag, result, seen, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+
+    private static void AddGranularPrerequisites(
+        string flag, List<string> result, HashSet<string> seen, HashSet<string> expanded)
     {
+        // Expand each flag's granular dependencies at most once (cycle and diamond-graph guard).
+        if (!expanded.Add(flag)) return;
         foreach (var dep in QuestFlagDependencies.DirectPrerequisites(flag))
         {
-            if (seen.Add(dep))
-            {
-                result.Add(dep);
-                AddGranularPrerequisites(dep, result, seen);
-            }
+            if (seen.Add(dep)) result.Add(dep);
+            // Recurse even when the dep was already seen (e.g. a chapter rule added it first) - its
+            // own granular children still need expanding, or a step "under" a trigger gets skipped.
+            AddGranularPrerequisites(dep, result, seen, expanded);
         }
     }
 
