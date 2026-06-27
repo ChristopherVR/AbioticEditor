@@ -1245,6 +1245,12 @@ The world save is rewritten immediately (.bak kept). Continue?</value>
   <data name="Main_GpCloudSyncWarningContinue" xml:space="preserve">
     <value>I understand, open it</value>
   </data>
+  <data name="Main_GpMidSyncTitle" xml:space="preserve">
+    <value>This save hasn't finished syncing</value>
+  </data>
+  <data name="Main_GpMidSyncMessage" xml:space="preserve">
+    <value>Part of this Game Pass save was missing on disk and had to be recovered, which means Xbox cloud sync hasn't finished for it. You can look around safely, but if you SAVE now, Xbox may later throw your changes away (it can even drop the whole world). To edit safely: close Abiotic Factor and the Xbox app completely, wait for syncing to finish (or disconnect from the internet), then reopen this save. A backup of the whole save folder is made before any write.</value>
+  </data>
   <data name="Main_GpPacking" xml:space="preserve">
     <value>Packing Game Pass save for "{0}" into the Xbox container...</value>
   </data>

@@ -48,6 +48,20 @@ public sealed class WgsContainerStore
 
     public IReadOnlyList<WgsContainer> Containers { get; private set; } = Array.Empty<WgsContainer>();
 
+    private readonly List<string> _recoveredContainers = new();
+
+    /// <summary>
+    /// Logical containers whose manifest pointed at a blob that was missing from disk, so a sibling
+    /// blob had to be used instead (see <see cref="ReadBlob"/>). A non-empty list is a reliable sign
+    /// the save is mid-Xbox-sync: the index and the on-disk blobs disagree because cloud sync has not
+    /// finished. Writing into a store in this state is what lets Xbox later discard the edited
+    /// containers, so the host should warn before allowing edits.
+    /// </summary>
+    public IReadOnlyList<string> RecoveredContainers => _recoveredContainers;
+
+    /// <summary>True when any container was read through the missing-blob fallback (save is mid-sync).</summary>
+    public bool NeededBlobFallback => _recoveredContainers.Count > 0;
+
     /// <summary>The package family name recorded in the index (identifies the owning title).</summary>
     public string PackageFamilyName { get; private set; } = string.Empty;
 
@@ -211,10 +225,13 @@ public sealed class WgsContainerStore
         var fallback = FindFallbackBlob(folder, blobGuid, container.BlobSize);
         if (fallback is not null)
         {
+            if (!_recoveredContainers.Contains(container.Name, StringComparer.OrdinalIgnoreCase))
+                _recoveredContainers.Add(container.Name);
             Diagnostics.EditorLog.Warn("GamePass",
                 $"Save blob '{blobGuid:N}' for '{container.Name}' not found on disk - " +
                 $"using existing blob '{Path.GetFileName(fallback)}' as a fallback. " +
-                "This can happen after an interrupted Xbox sync. The save was read successfully.");
+                "This means Xbox cloud sync has not finished for this save; reading works but writing " +
+                "now risks Xbox discarding the change. The save was read successfully.");
             return File.ReadAllBytes(fallback);
         }
 

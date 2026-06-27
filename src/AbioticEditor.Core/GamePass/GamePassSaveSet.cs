@@ -59,6 +59,17 @@ public sealed class GamePassSaveSet
     /// <summary>True when <paramref name="folder"/> is a wgs container folder.</summary>
     public static bool IsGamePassFolder(string folder) => WgsContainerStore.IsContainerFolder(folder);
 
+    /// <summary>
+    /// True when opening/reading this save had to recover a container from a sibling blob because the
+    /// one its manifest referenced was missing - a reliable sign Xbox cloud sync has not finished. In
+    /// this state the save reads fine but writing risks Xbox discarding the edit, so the host should
+    /// warn (or block writes) until sync settles. See <see cref="WgsContainerStore.NeededBlobFallback"/>.
+    /// </summary>
+    public bool IsMidSync => _store.NeededBlobFallback;
+
+    /// <summary>The logical containers that had to be recovered from a fallback blob (empty when none).</summary>
+    public IReadOnlyList<string> RecoveredContainers => _store.RecoveredContainers;
+
     public static GamePassSaveSet Open(string folder)
     {
         var store = WgsContainerStore.Open(folder);

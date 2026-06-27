@@ -1193,6 +1193,12 @@ El guardado del mundo se reescribe de inmediato (se conserva el .bak). ¿Continu
   <data name="Main_GpCloudSyncWarningContinue" xml:space="preserve">
     <value>Entendido, abrir</value>
   </data>
+  <data name="Main_GpMidSyncTitle" xml:space="preserve">
+    <value>Este guardado no ha terminado de sincronizarse</value>
+  </data>
+  <data name="Main_GpMidSyncMessage" xml:space="preserve">
+    <value>Parte de este guardado de Game Pass faltaba en el disco y hubo que recuperarla, lo que significa que la sincronización en la nube de Xbox no ha terminado para este guardado. Puedes mirar sin problemas, pero si GUARDAS ahora, Xbox podría descartar tus cambios más tarde (incluso puede perder el mundo entero). Para editar de forma segura: cierra Abiotic Factor y la aplicación de Xbox por completo, espera a que termine la sincronización (o desconéctate de internet) y vuelve a abrir este guardado. Se hace una copia de seguridad de toda la carpeta del guardado antes de cualquier escritura.</value>
+  </data>
   <data name="Main_GpPacking" xml:space="preserve">
     <value>Empaquetando el guardado de Game Pass de «{0}» en el contenedor Xbox...</value>
   </data>

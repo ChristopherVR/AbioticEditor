@@ -1193,6 +1193,12 @@ Der Weltspielstand wird sofort neu geschrieben (.bak bleibt erhalten). Fortfahre
   <data name="Main_GpCloudSyncWarningContinue" xml:space="preserve">
     <value>Verstanden, öffnen</value>
   </data>
+  <data name="Main_GpMidSyncTitle" xml:space="preserve">
+    <value>Dieser Spielstand wurde noch nicht fertig synchronisiert</value>
+  </data>
+  <data name="Main_GpMidSyncMessage" xml:space="preserve">
+    <value>Ein Teil dieses Game Pass-Spielstands fehlte auf der Festplatte und musste wiederhergestellt werden - das bedeutet, dass die Xbox-Cloud-Synchronisierung dafür noch nicht abgeschlossen ist. Sie können sich gefahrlos umsehen, aber wenn Sie jetzt SPEICHERN, verwirft Xbox Ihre Änderungen möglicherweise später (es kann sogar die ganze Welt verlieren). So bearbeiten Sie sicher: Schließen Sie Abiotic Factor und die Xbox-App vollständig, warten Sie, bis die Synchronisierung abgeschlossen ist (oder trennen Sie die Internetverbindung), und öffnen Sie diesen Spielstand erneut. Vor jedem Schreibvorgang wird eine Sicherung des gesamten Spielstandordners erstellt.</value>
+  </data>
   <data name="Main_GpPacking" xml:space="preserve">
     <value>Game-Pass-Spielstand fuer &quot;{0}&quot; wird in den Xbox-Container gepackt...</value>
   </data>

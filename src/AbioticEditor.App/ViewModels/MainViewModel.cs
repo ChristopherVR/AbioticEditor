@@ -1545,6 +1545,18 @@ public sealed class MainViewModel : INotifyPropertyChanged
             RaiseGamePassSessionChanged();
             StatusMessage = LocalizationResourceManager.Instance.Format("Main_GpOpened", session.WorldName);
             EditorLog.Info("GamePass", $"Opened container '{session.Container}' -> working copy {dir}");
+
+            // If any container had to be recovered from a fallback blob, the save is mid-Xbox-sync.
+            // Reading is fine, but saving now is what lets Xbox later discard the edited containers
+            // (it has dropped whole worlds this way), so warn loudly before the user edits anything.
+            if (session.Set.IsMidSync)
+            {
+                var loc = LocalizationResourceManager.Instance;
+                EditorLog.Warn("GamePass",
+                    $"Opened '{session.Container}' but it is mid-sync (recovered: {string.Join(", ", session.Set.RecoveredContainers)}).");
+                await DialogViewModel.Current.AlertAsync(
+                    loc["Main_GpMidSyncTitle"], loc["Main_GpMidSyncMessage"]);
+            }
         }
         catch (Exception ex)
         {

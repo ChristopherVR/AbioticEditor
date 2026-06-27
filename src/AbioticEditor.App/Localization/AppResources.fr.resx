@@ -1193,6 +1193,12 @@ La sauvegarde du monde est réécrite immédiatement (.bak conservé). Continuer
   <data name="Main_GpCloudSyncWarningContinue" xml:space="preserve">
     <value>J'ai compris, ouvrir</value>
   </data>
+  <data name="Main_GpMidSyncTitle" xml:space="preserve">
+    <value>Cette sauvegarde n'a pas fini de se synchroniser</value>
+  </data>
+  <data name="Main_GpMidSyncMessage" xml:space="preserve">
+    <value>Une partie de cette sauvegarde Game Pass manquait sur le disque et a dû être récupérée, ce qui signifie que la synchronisation cloud Xbox n'est pas terminée pour cette sauvegarde. Vous pouvez regarder sans risque, mais si vous ENREGISTREZ maintenant, Xbox risque de supprimer vos modifications plus tard (il peut même perdre tout le monde). Pour modifier en toute sécurité : fermez complètement Abiotic Factor et l'application Xbox, attendez la fin de la synchronisation (ou déconnectez-vous d'internet), puis rouvrez cette sauvegarde. Une sauvegarde de tout le dossier est effectuée avant chaque écriture.</value>
+  </data>
   <data name="Main_GpPacking" xml:space="preserve">
     <value>Conditionnement de la sauvegarde Game Pass de « {0} » dans le conteneur Xbox...</value>
   </data>
