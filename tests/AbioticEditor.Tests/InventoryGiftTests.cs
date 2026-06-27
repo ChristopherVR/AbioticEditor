@@ -50,6 +50,10 @@ public class InventoryGiftTests
             var landed = reloaded.Inventory.Main.FirstOrDefault(s => s.ItemId == "glowshard" && s.AssetId == assetId);
             Assert.NotNull(landed);
             Assert.Equal(3, landed!.Count);
+
+            // The gifted item must also be marked discovered, or the game shows it as an unknown
+            // "???" the player never picked up.
+            Assert.Contains("glowshard", reloaded.ItemsPickedUp);
         }
         finally
         {

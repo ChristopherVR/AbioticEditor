@@ -28,18 +28,31 @@ public static class InventoryGift
         if (TryPlace(inv.Main, item, out var newMain, out var mainIndex))
         {
             PlayerSaveWriter.ApplyInventory(player, inv with { Main = newMain });
+            MarkDiscovered(player, item.ItemId);
             return new(true, string.Empty, $"backpack slot {mainIndex}");
         }
 
         if (TryPlace(inv.Hotbar, item, out var newHotbar, out var hotbarIndex))
         {
             PlayerSaveWriter.ApplyInventory(player, inv with { Hotbar = newHotbar });
+            MarkDiscovered(player, item.ItemId);
             return new(true, string.Empty, $"hotbar slot {hotbarIndex}");
         }
 
         return new(false,
             "That player's backpack and hotbar are both full. Free a slot in the player save and try again.",
             string.Empty);
+    }
+
+    // Marks the gifted item as "seen" in the player's ItemsPickedUp_ list (no-op if already there or
+    // the id is empty). Receiving an item the player has never seen would otherwise leave it as an
+    // undiscovered "???" in their field guide.
+    private static void MarkDiscovered(PlayerSaveData player, string? itemId)
+    {
+        if (string.IsNullOrEmpty(itemId) || itemId is "None" or "Empty") return;
+        if (player.ItemsPickedUp.Contains(itemId, StringComparer.OrdinalIgnoreCase)) return;
+        var updated = player.ItemsPickedUp.Append(itemId).ToList();
+        PlayerSaveWriter.ApplyItemsPickedUp(player, updated);
     }
 
     // Copies item into the first empty slot of the list (preserving that slot's positional Index and

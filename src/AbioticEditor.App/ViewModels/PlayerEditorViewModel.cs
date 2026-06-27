@@ -233,6 +233,26 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
         || _craftedItems.Count != _craftedItemsBaseline
         || _mapsUnlocked.Count != _mapsBaseline;
 
+    /// <summary>
+    /// Adds every item currently held (across the equipment, hotbar and main inventory) to
+    /// <paramref name="pickedUp"/>, skipping empties and ids the game wouldn't index. Holding an item
+    /// implies the player has seen it, so this keeps the "items seen" field honest when items are
+    /// added through the editor - the game otherwise shows an added item as undiscovered.
+    /// </summary>
+    private static void MarkHeldItemsDiscovered(
+        List<string> pickedUp, params IReadOnlyList<Core.PlayerSaves.InventoryItemSlot>[] inventories)
+    {
+        var have = new HashSet<string>(pickedUp, StringComparer.OrdinalIgnoreCase);
+        foreach (var inv in inventories)
+        {
+            foreach (var slot in inv)
+            {
+                if (slot.IsEmpty || slot.ItemId is not { } id) continue;
+                if (have.Add(id)) pickedUp.Add(id);
+            }
+        }
+    }
+
     // ---------- Steam achievements ----------
 
     private AchievementsViewModel? _achievementsVm;
@@ -1381,6 +1401,12 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
             var updatedPickedUp = _itemsPickedUp.ToList();
             var updatedCrafted = _craftedItems.ToList();
             var updatedMaps = _mapsUnlocked.ToList();
+
+            // An item the player is holding must have been seen, so mark every item now in the
+            // inventory/hotbar/equipment as discovered. This is what makes a freshly added item
+            // (dragged in from the palette, or sent from a container) show up as discovered in-game
+            // instead of as an unknown "???" the field guide never registered.
+            MarkHeldItemsDiscovered(updatedPickedUp, equip, hotbar, main);
             var updatedTransmog = Transmog.Select(s => s.ToCurrentSlot()).ToList();
             var updatedTransmogVisibility = TransmogToggles.Select(t => t.IsVisible).ToList();
             // Carried-pet edits/deletions are applied AFTER ApplyInventory so the pet-specific
