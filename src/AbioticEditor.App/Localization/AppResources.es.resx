@@ -358,6 +358,7 @@ Mundos: contenedores · indicadores de misión · puertas · objetos en el suelo
 
   <!-- WorldContainers -->
   <data name="WorldContainers_DragHelp" xml:space="preserve"><value>Arrastra una ranura sobre un contenedor de la lista para mover el objeto a la primera ranura vacía de ese contenedor.</value></data>
+  <data name="WorldContainers_SendHelp" xml:space="preserve"><value>Haz clic derecho en un objeto para enviarlo a un guardado de jugador junto a este mundo (irá a la primera ranura libre de la mochila, o a la barra rápida). Guarda o revierte primero otros cambios del mundo.</value></data>
   <data name="WorldContainers_FilterPlaceholder" xml:space="preserve"><value>Filtrar por nombre de clase o id…</value></data>
   <data name="WorldContainers_HideEmpty" xml:space="preserve"><value>OCULTAR VACÍOS</value></data>
   <data name="WorldContainers_NoContainersMatch" xml:space="preserve"><value>Ningún contenedor coincide con el filtro.</value></data>

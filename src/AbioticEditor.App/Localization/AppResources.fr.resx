@@ -358,6 +358,7 @@ Mondes : conteneurs · indicateurs de quête · portes · objets au sol · progr
 
   <!-- WorldContainers -->
   <data name="WorldContainers_DragHelp" xml:space="preserve"><value>Glissez un emplacement sur un conteneur dans la liste pour déplacer l'objet vers le premier emplacement vide de ce conteneur.</value></data>
+  <data name="WorldContainers_SendHelp" xml:space="preserve"><value>Faites un clic droit sur un objet pour l'envoyer vers une sauvegarde de joueur située à côté de ce monde (il ira dans le premier emplacement libre du sac à dos, sinon la barre rapide). Enregistrez ou annulez d'abord les autres modifications du monde.</value></data>
   <data name="WorldContainers_FilterPlaceholder" xml:space="preserve"><value>Filtrer par nom de classe ou id…</value></data>
   <data name="WorldContainers_HideEmpty" xml:space="preserve"><value>MASQUER LES VIDES</value></data>
   <data name="WorldContainers_NoContainersMatch" xml:space="preserve"><value>Aucun conteneur ne correspond au filtre.</value></data>

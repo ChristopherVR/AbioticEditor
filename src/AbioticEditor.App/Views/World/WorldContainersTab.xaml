@@ -129,6 +129,12 @@
                                         <DragGestureRecognizer CanDrag="True" DragStarting="OnSlotDragStarting" />
                                         <DropGestureRecognizer AllowDrop="True" Drop="OnSlotDrop" />
                                     </Border.GestureRecognizers>
+                                    <FlyoutBase.ContextFlyout>
+                                        <MenuFlyout>
+                                            <MenuFlyoutItem Text="Send to player"
+                                                            Clicked="OnSendSlotToPlayer" />
+                                        </MenuFlyout>
+                                    </FlyoutBase.ContextFlyout>
                                     <Grid RowDefinitions="*,Auto" Padding="3">
                                         <Image Grid.Row="0" Source="{Binding IconPath}" Aspect="AspectFit"
                                                IsVisible="{Binding HasIcon}" />
@@ -170,5 +176,10 @@
 
         <Label Text="{loc:Localize WorldContainers_DragHelp}"
                Style="{StaticResource AfMuted}" />
+        <Label Text="{loc:Localize WorldContainers_SendHelp}"
+               Style="{StaticResource AfMuted}" />
+        <Label Text="{Binding WorldEditor.ContainerItemMoveStatus}"
+               Style="{StaticResource AfStatusText}" FontSize="11" LineBreakMode="WordWrap"
+               IsVisible="{Binding WorldEditor.HasContainerItemMoveStatus}" />
     </VerticalStackLayout>
 </ContentView>

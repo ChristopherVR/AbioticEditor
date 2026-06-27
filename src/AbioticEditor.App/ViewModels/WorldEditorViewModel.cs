@@ -788,6 +788,132 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         }
     }
 
+    // ---------- Send a container item to a player (cross-save) ----------
+
+    private string? _containerItemMoveStatus;
+
+    /// <summary>Result of the last "send item to a player" action, shown under the container grid.</summary>
+    public string? ContainerItemMoveStatus
+    {
+        get => _containerItemMoveStatus;
+        private set => Set(ref _containerItemMoveStatus, value);
+    }
+
+    public bool HasContainerItemMoveStatus => !string.IsNullOrEmpty(_containerItemMoveStatus);
+
+    /// <summary>
+    /// Moves the item in <paramref name="slot"/> (a world container slot) into a sibling player save's
+    /// inventory: it lands in the player's first free backpack slot, else the hotbar. The move is
+    /// atomic and immediate, mirroring the pet transfer: it refuses while other world edits are
+    /// pending (so the only change is this move), writes the gaining player save first and the world
+    /// second (each keeps a <c>.bak</c>), then clears the source slot. When several player saves sit
+    /// next to the world the user is asked which one.
+    /// </summary>
+    public async Task SendContainerItemToPlayerAsync(InventorySlotViewModel? slot)
+    {
+        if (slot is null || slot.IsEmpty)
+        {
+            ContainerItemMoveStatus = "Select a slot that has an item in it first.";
+            NotifyContainerMoveStatus();
+            return;
+        }
+        if (!HasSiblingPlayers)
+        {
+            ContainerItemMoveStatus = "No player save was found next to this world.";
+            NotifyContainerMoveStatus();
+            return;
+        }
+        if (IsDirty)
+        {
+            ContainerItemMoveStatus = "Save or revert your other world changes first, then send the item.";
+            NotifyContainerMoveStatus();
+            return;
+        }
+
+        var target = await ResolveTargetPlayerAsync();
+        if (target is null) return; // user cancelled the picker
+
+        var itemLabel = string.IsNullOrWhiteSpace(slot.DisplayName) ? (slot.ItemId ?? "item") : slot.DisplayName;
+        var item = slot.ToCurrentSlot();
+        ContainerItemMoveStatus = $"Sending {itemLabel} to {target.Name}...";
+        NotifyContainerMoveStatus();
+        try
+        {
+            var player = await Task.Run(() => Core.PlayerSaves.PlayerSaveReader.ReadFromFile(target.Path));
+            var result = Core.PlayerSaves.InventoryGift.GiveToPlayer(player, item);
+            if (!result.Ok)
+            {
+                ContainerItemMoveStatus = result.Message;
+                NotifyContainerMoveStatus();
+                return;
+            }
+
+            // The add succeeded on the player model; now make the move real. Clear the source slot,
+            // then write the player (gaining) first and the world (losing) second.
+            SlotSwap.ClearToEmpty(slot);
+            var snapshot = AllContainers.Select(c => c.ToCurrentContainer()).ToList();
+            await Task.Run(() =>
+            {
+                Core.PlayerSaves.PlayerSaveWriter.WriteToFile(player, target.Path);
+                WorldSaveWriter.ApplyContainers(_data, snapshot);
+                WorldSaveWriter.WriteToFile(_data, _path);
+            });
+
+            // The cleared slot is now the on-disk state, so re-baseline it (no lingering "dirty").
+            slot.AcceptCurrentAsBaseline();
+            RefreshContainerCounts();
+            // Repack the Game Pass container if this is a Game Pass working copy (no-op otherwise).
+            Saved?.Invoke();
+
+            Core.Diagnostics.EditorLog.Info("CrossSave",
+                $"Item '{itemLabel}' moved from {System.IO.Path.GetFileName(_path)} to player {target.Name} "
+                + $"({System.IO.Path.GetFileName(target.Path)}) -> {result.Where}");
+            ContainerItemMoveStatus = $"Sent {itemLabel} to {target.Name}'s {result.Where}.";
+            NotifyContainerMoveStatus();
+            Refresh();
+        }
+        catch (Exception ex)
+        {
+            Core.Diagnostics.EditorLog.Error("CrossSave", $"Item move failed for '{itemLabel}'", ex);
+            ContainerItemMoveStatus = $"Move failed: {ex.Message}";
+            NotifyContainerMoveStatus();
+        }
+    }
+
+    /// <summary>Picks the destination player: the only sibling, or one the user chooses from a prompt.</summary>
+    private async Task<SaveTarget?> ResolveTargetPlayerAsync()
+    {
+        var players = SiblingPlayers;
+        if (players.Count == 1) return players[0];
+
+        // Offer up to four player saves as buttons (plus Cancel); beyond that fall back to the
+        // first, which the picker would make unwieldy anyway.
+        if (players.Count > 4) return SelectedSiblingPlayer ?? players[0];
+
+        var actions = players
+            .Select(p => (p.Name, DialogTone.Primary))
+            .Append(("Cancel", DialogTone.Neutral))
+            .ToArray();
+        var choice = await DialogViewModel.Current.ShowAsync(
+            "Send item to which player?",
+            "Choose the player save that should receive this item.",
+            actions);
+        return choice >= 0 && choice < players.Count ? players[choice] : null;
+    }
+
+    /// <summary>Re-reads occupied counts for every container after a slot changed under our feet.</summary>
+    private void RefreshContainerCounts()
+    {
+        // Rebuild the visible list so the count text and any "hide empty" filtering reflect the move.
+        ApplyFilter();
+    }
+
+    private void NotifyContainerMoveStatus()
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ContainerItemMoveStatus)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasContainerItemMoveStatus)));
+    }
+
     // ---------- Vehicles (VehicleMap) ----------
 
     private readonly List<WorldVehicleViewModel> _vehicles;

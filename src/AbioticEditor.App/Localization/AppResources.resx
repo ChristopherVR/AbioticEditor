@@ -410,6 +410,7 @@ Worlds: containers · quest flags · doors · ground items · story progression<
 
   <!-- WorldContainers -->
   <data name="WorldContainers_DragHelp" xml:space="preserve"><value>Drag a slot onto a container in the list to move the item into that container's first empty slot.</value></data>
+  <data name="WorldContainers_SendHelp" xml:space="preserve"><value>Right-click an item to send it to a player save next to this world (it lands in their first free backpack slot, else the hotbar). Save or revert other world changes first.</value></data>
   <data name="WorldContainers_FilterPlaceholder" xml:space="preserve"><value>Filter by class name or id…</value></data>
   <data name="WorldContainers_HideEmpty" xml:space="preserve"><value>HIDE EMPTY</value></data>
   <data name="WorldContainers_NoContainersMatch" xml:space="preserve"><value>No containers match filter.</value></data>

@@ -19,4 +19,7 @@ public partial class WorldContainersTab : ContentView
 
     private void OnContainerDrop(object? sender, DropEventArgs e)
         => SlotInteractions.ContainerDrop(ViewUtils.Vm(this), sender, e);
+
+    private async void OnSendSlotToPlayer(object? sender, EventArgs e)
+        => await SlotInteractions.SendSlotToPlayerAsync(ViewUtils.Vm(this), sender);
 }

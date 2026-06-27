@@ -27,4 +27,7 @@ public partial class WorldBasesTab : ContentView
 
     private void OnSlotDrop(object? sender, DropEventArgs e)
         => SlotInteractions.SlotDrop(ViewUtils.Vm(this), sender, e);
+
+    private async void OnSendSlotToPlayer(object? sender, EventArgs e)
+        => await SlotInteractions.SendSlotToPlayerAsync(ViewUtils.Vm(this), sender);
 }

@@ -358,6 +358,7 @@ Welten: Behälter · Quest-Flags · Türen · Bodengegenstände · Story-Fortsch
 
   <!-- WorldContainers -->
   <data name="WorldContainers_DragHelp" xml:space="preserve"><value>Ziehen Sie einen Slot auf einen Behälter in der Liste, um den Gegenstand in den ersten leeren Slot dieses Behälters zu verschieben.</value></data>
+  <data name="WorldContainers_SendHelp" xml:space="preserve"><value>Klicken Sie mit der rechten Maustaste auf einen Gegenstand, um ihn an einen Spielstand neben dieser Welt zu senden (er landet im ersten freien Rucksack-Slot, sonst in der Schnellleiste). Speichern oder verwerfen Sie zuerst andere Weltänderungen.</value></data>
   <data name="WorldContainers_FilterPlaceholder" xml:space="preserve"><value>Nach Klassenname oder ID filtern…</value></data>
   <data name="WorldContainers_HideEmpty" xml:space="preserve"><value>LEERE AUSBLENDEN</value></data>
   <data name="WorldContainers_NoContainersMatch" xml:space="preserve"><value>Keine Behälter passen zum Filter.</value></data>

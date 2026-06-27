@@ -10,6 +10,19 @@ namespace AbioticEditor.App.Views;
 /// </summary>
 public static class SlotInteractions
 {
+    /// <summary>
+    /// Right-click "Send to player" on a world container slot: hands the bound slot to the world
+    /// editor's cross-save transfer. The bound context comes off the menu item first (a context
+    /// flyout inherits its element's BindingContext), with a parent-walk fallback.
+    /// </summary>
+    public static async Task SendSlotToPlayerAsync(MainViewModel? vm, object? sender)
+    {
+        if (vm?.WorldEditor is not { } world) return;
+        var slot = (sender as BindableObject)?.BindingContext as InventorySlotViewModel
+                   ?? ViewUtils.FindBoundContext<InventorySlotViewModel>(sender);
+        await world.SendContainerItemToPlayerAsync(slot);
+    }
+
     public static void SlotTapped(MainViewModel? vm, object? sender)
     {
         if (vm is null) return;
