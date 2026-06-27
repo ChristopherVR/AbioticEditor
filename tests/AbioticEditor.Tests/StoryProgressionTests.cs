@@ -83,6 +83,28 @@ public class StoryProgressionTests
     }
 
     [Fact]
+    public void PrerequisitesFor_IncludesGranularQuestDependencies_Transitively()
+    {
+        // CafeteriaUnlocked depends on CafeteriaQuestStarted (you can't finish a quest you never
+        // started). The prereq list must surface that granular step, not just chapter triggers.
+        var prereqs = FlagGate.PrerequisitesFor("Office_CafeteriaUnlocked");
+        Assert.Contains("Office_CafeteriaQuestStarted", prereqs);
+
+        // The forklift door needs both the forklift and the power cells found.
+        var fork = FlagGate.PrerequisitesFor("Office_ForkliftDoorOpened");
+        Assert.Contains("Office_ForkliftFound", fork);
+        Assert.Contains("Office_PowerCellFound", fork);
+    }
+
+    [Fact]
+    public void QuestDependencies_RecordTheCafeteriaConsequence_JagerDiesAndDoorOpens()
+    {
+        Assert.True(QuestFlagDependencies.Consequences.TryGetValue("Office_CafeteriaUnlocked", out var c));
+        Assert.Contains("Jager", c!.NpcDeaths);
+        Assert.Contains("Cafeteria", c.DoorsOpened);
+    }
+
+    [Fact]
     public void WarrenScenario_StoryProgressSatisfiesAnEarlyGate_WithoutTheExactFlag()
     {
         // Reproduces the user's Game Pass save: well past Warren (third floor, silo) but the specific

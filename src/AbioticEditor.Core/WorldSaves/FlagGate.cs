@@ -52,28 +52,53 @@ public static class FlagGate
     public static IReadOnlyList<string> PrerequisitesFor(string flag)
         => PrereqCache.GetOrAdd(flag, static f =>
         {
+            var result = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             // Rule 1: chapter triggers require every earlier trigger.
             if (StoryProgressionCatalog.ChapterForFlag(f) is { } chapter)
             {
                 var index = StoryProgressionCatalog.IndexOf(chapter.Row);
-                return StoryProgressionCatalog.Chapters
-                    .Take(Math.Max(0, index))
-                    .Where(c => c.TriggerFlag is not null)
-                    .Select(c => c.TriggerFlag!)
-                    .ToList();
+                foreach (var t in StoryProgressionCatalog.Chapters
+                             .Take(Math.Max(0, index))
+                             .Where(c => c.TriggerFlag is not null)
+                             .Select(c => c.TriggerFlag!))
+                {
+                    if (seen.Add(t)) result.Add(t);
+                }
             }
-
-            // Rule 2: region flags require the chapter where their region opens.
-            var area = QuestFlagCatalog.Lookup(f).Area;
-            if (AreaToChapterRow.TryGetValue(area, out var row)
-                && StoryProgressionCatalog.Find(row)?.TriggerFlag is { } trigger
-                && !trigger.Equals(f, StringComparison.OrdinalIgnoreCase))
+            else
             {
-                return new[] { trigger };
+                // Rule 2: region flags require the chapter where their region opens.
+                var area = QuestFlagCatalog.Lookup(f).Area;
+                if (AreaToChapterRow.TryGetValue(area, out var row)
+                    && StoryProgressionCatalog.Find(row)?.TriggerFlag is { } trigger
+                    && !trigger.Equals(f, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (seen.Add(trigger)) result.Add(trigger);
+                }
             }
 
-            return Array.Empty<string>();
+            // Rule 3: curated granular per-quest dependencies (transitive), so completing a quest
+            // step also offers to set the steps it depends on (e.g. CafeteriaUnlocked -> the quest
+            // must have been started). Keeps the editor from writing a half-finished quest.
+            AddGranularPrerequisites(f, result, seen);
+
+            return result;
         });
+
+    // Walks QuestFlagDependencies transitively, appending each unseen prerequisite.
+    private static void AddGranularPrerequisites(string flag, List<string> result, HashSet<string> seen)
+    {
+        foreach (var dep in QuestFlagDependencies.DirectPrerequisites(flag))
+        {
+            if (seen.Add(dep))
+            {
+                result.Add(dep);
+                AddGranularPrerequisites(dep, result, seen);
+            }
+        }
+    }
 
     /// <summary>The chapter whose region this flag belongs to (for card art / context), if mapped.</summary>
     public static StoryChapter? RegionChapterFor(string flag)
