@@ -435,7 +435,14 @@ public sealed class WgsContainerStore
         var fileTimeOffset = 16 + PackageFamilyName.Length * 2;
         if (fileTimeOffset + 8 <= _header.Length)
         {
-            BitConverter.GetBytes(DateTime.UtcNow.ToFileTimeUtc()).CopyTo(_header, fileTimeOffset);
+            // Strictly advance the index timestamp. Cloud sync compares this value to decide which
+            // copy is newer, so it must never read as same-or-older than the version already on disk;
+            // clock resolution or skew could otherwise leave it equal (or behind) and lose the
+            // conflict, which is what let edits get rolled back to the cloud copy.
+            var previous = BitConverter.ToInt64(_header, fileTimeOffset);
+            var now = DateTime.UtcNow.ToFileTimeUtc();
+            var stamp = now > previous ? now : previous + 1;
+            BitConverter.GetBytes(stamp).CopyTo(_header, fileTimeOffset);
         }
 
         using var ms = new MemoryStream();
