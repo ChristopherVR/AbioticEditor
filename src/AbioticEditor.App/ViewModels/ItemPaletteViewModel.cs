@@ -150,13 +150,15 @@ public sealed record PaletteCategory(string Label, string? TagPrefix);
 /// </summary>
 public sealed class ItemPaletteViewModel : INotifyPropertyChanged
 {
-    /// <summary>Cap on rendered results - keeps the CollectionView + icon extraction snappy.</summary>
-    private const int MaxVisible = 72;
+    /// <summary>Page size for rendered results - keeps each CollectionView refresh + icon extraction snappy.</summary>
+    private const int PageSize = 72;
 
     private readonly List<PaletteItemViewModel> _all;
     private string _searchText = string.Empty;
     private PaletteCategory _selectedCategory;
     private IReadOnlyList<PaletteItemViewModel> _visibleItems = Array.Empty<PaletteItemViewModel>();
+    private List<PaletteItemViewModel> _currentMatches = new();
+    private int _visibleCount;
     private int _totalMatches;
 
     public ItemPaletteViewModel(ItemCatalog catalog)
@@ -174,6 +176,7 @@ public sealed class ItemPaletteViewModel : INotifyPropertyChanged
             .ToList();
         _selectedCategory = Categories[0];
         SelectCategoryCommand = new RelayCommand<PaletteCategory>(c => SelectedCategory = c ?? Categories[0]);
+        LoadMoreCommand = new RelayCommand(LoadMore);
         ApplyFilter();
     }
 
@@ -219,6 +222,9 @@ public sealed class ItemPaletteViewModel : INotifyPropertyChanged
     }
 
     public System.Windows.Input.ICommand SelectCategoryCommand { get; }
+
+    /// <summary>Reveals the next page of matches without re-running the search/category filter.</summary>
+    public System.Windows.Input.ICommand LoadMoreCommand { get; }
 
     public string SearchText
     {
@@ -315,9 +321,12 @@ public sealed class ItemPaletteViewModel : INotifyPropertyChanged
         }
     }
 
-    public string MatchSummary => _totalMatches <= MaxVisible
+    /// <summary>Whether more matches exist beyond the currently rendered page.</summary>
+    public bool HasMore => _visibleCount < _totalMatches;
+
+    public string MatchSummary => _totalMatches <= _visibleCount
         ? $"{_totalMatches} item(s)"
-        : $"showing {MaxVisible} of {_totalMatches} - refine search";
+        : $"showing {_visibleCount} of {_totalMatches}";
 
     private void ApplyFilter()
     {
@@ -346,10 +355,26 @@ public sealed class ItemPaletteViewModel : INotifyPropertyChanged
                 i.Entry.Tags.Any(t => t.Contains(f, StringComparison.OrdinalIgnoreCase)));
         }
 
-        var matches = q.ToList();
-        TotalMatches = matches.Count;
-        var visible = matches.Take(MaxVisible).ToList();
+        _currentMatches = q.ToList();
+        _visibleCount = Math.Min(PageSize, _currentMatches.Count);
+        TotalMatches = _currentMatches.Count;
+        ShowPage();
+    }
+
+    /// <summary>Reveals the next page of the already-computed match list.</summary>
+    private void LoadMore()
+    {
+        if (!HasMore) return;
+        _visibleCount = Math.Min(_visibleCount + PageSize, _currentMatches.Count);
+        ShowPage();
+    }
+
+    private void ShowPage()
+    {
+        var visible = _currentMatches.Take(_visibleCount).ToList();
         VisibleItems = visible;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasMore)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(MatchSummary)));
 
         foreach (var item in visible)
         {

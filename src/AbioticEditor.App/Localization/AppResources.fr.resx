@@ -294,6 +294,7 @@ Mondes : conteneurs · indicateurs de quête · portes · objets au sol · progr
   <data name="Slot_ItemInfo" xml:space="preserve"><value>INFOS OBJET</value></data>
   <data name="Slot_Liquid" xml:space="preserve"><value>LIQUIDE</value></data>
   <data name="Slot_LiquidTypeWhatThisItemIsAllowedToHold" xml:space="preserve"><value>Type de liquide (ce que cet objet est autorisé à contenir)…</value></data>
+  <data name="Slot_LoadMore" xml:space="preserve"><value>CHARGER PLUS</value></data>
   <data name="Slot_Makes" xml:space="preserve"><value>PRODUIT</value></data>
   <data name="Slot_MaxDurability" xml:space="preserve"><value>DURABILITÉ MAX</value></data>
   <data name="Slot_NoItemsMatch" xml:space="preserve"><value>Aucun objet ne correspond.</value></data>

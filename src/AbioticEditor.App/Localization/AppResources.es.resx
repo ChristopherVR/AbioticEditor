@@ -294,6 +294,7 @@ Mundos: contenedores · indicadores de misión · puertas · objetos en el suelo
   <data name="Slot_ItemInfo" xml:space="preserve"><value>INFO DEL OBJETO</value></data>
   <data name="Slot_Liquid" xml:space="preserve"><value>LÍQUIDO</value></data>
   <data name="Slot_LiquidTypeWhatThisItemIsAllowedToHold" xml:space="preserve"><value>Tipo de líquido (lo que este objeto puede contener)…</value></data>
+  <data name="Slot_LoadMore" xml:space="preserve"><value>CARGAR MÁS</value></data>
   <data name="Slot_Makes" xml:space="preserve"><value>PRODUCE</value></data>
   <data name="Slot_MaxDurability" xml:space="preserve"><value>DURABILIDAD MÁX</value></data>
   <data name="Slot_NoItemsMatch" xml:space="preserve"><value>Ningún objeto coincide.</value></data>

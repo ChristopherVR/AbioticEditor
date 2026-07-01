@@ -294,6 +294,7 @@ Welten: Behälter · Quest-Flags · Türen · Bodengegenstände · Story-Fortsch
   <data name="Slot_ItemInfo" xml:space="preserve"><value>GEGENSTANDSINFO</value></data>
   <data name="Slot_Liquid" xml:space="preserve"><value>FLÜSSIGKEIT</value></data>
   <data name="Slot_LiquidTypeWhatThisItemIsAllowedToHold" xml:space="preserve"><value>Flüssigkeitstyp (was dieser Gegenstand enthalten darf)…</value></data>
+  <data name="Slot_LoadMore" xml:space="preserve"><value>MEHR LADEN</value></data>
   <data name="Slot_Makes" xml:space="preserve"><value>ERGIBT</value></data>
   <data name="Slot_MaxDurability" xml:space="preserve"><value>MAX. HALTBARKEIT</value></data>
   <data name="Slot_NoItemsMatch" xml:space="preserve"><value>Keine Gegenstände passen.</value></data>

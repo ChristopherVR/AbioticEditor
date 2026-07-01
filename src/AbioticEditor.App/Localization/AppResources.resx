@@ -346,6 +346,7 @@ Worlds: containers · quest flags · doors · ground items · story progression<
   <data name="Slot_ItemInfo" xml:space="preserve"><value>ITEM INFO</value></data>
   <data name="Slot_Liquid" xml:space="preserve"><value>LIQUID</value></data>
   <data name="Slot_LiquidTypeWhatThisItemIsAllowedToHold" xml:space="preserve"><value>Liquid type (what this item is allowed to hold)…</value></data>
+  <data name="Slot_LoadMore" xml:space="preserve"><value>LOAD MORE</value></data>
   <data name="Slot_Makes" xml:space="preserve"><value>MAKES</value></data>
   <data name="Slot_MaxDurability" xml:space="preserve"><value>MAX DURABILITY</value></data>
   <data name="Slot_NoItemsMatch" xml:space="preserve"><value>No items match.</value></data>

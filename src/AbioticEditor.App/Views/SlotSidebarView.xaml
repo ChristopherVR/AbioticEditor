@@ -906,6 +906,12 @@
                         </CollectionView>
                     </Border>
 
+                    <Button Text="{loc:Localize Slot_LoadMore}"
+                            Style="{StaticResource AfChipButton}"
+                            HorizontalOptions="Center"
+                            Command="{Binding Source={x:Reference Root}, Path=BindingContext.ItemPalette.LoadMoreCommand}"
+                            IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ItemPalette.HasMore, FallbackValue=False}" />
+
                     <Label Text="{loc:Localize Slot_TapAnItemForItsEncyclopediaEntryDragOntoAnySlotToSpawnItFullStackDurabilityDoubleTapToGiveToTheFirstEmptySlot}"
                            Style="{StaticResource AfMuted}" FontSize="10" />
 
