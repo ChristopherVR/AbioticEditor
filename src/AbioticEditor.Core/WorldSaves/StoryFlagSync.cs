@@ -97,10 +97,12 @@ public static class StoryFlagSync
     }
 
     /// <summary>
-    /// The revert counterpart of <see cref="SyncFacilityFlags"/>: removes the trigger
-    /// flags of every chapter AFTER <paramref name="chapterRow"/> from the sibling
-    /// Facility save, so a story rollback stops showing later chapters as done.
-    /// Only the catalog's chapter trigger flags are touched.
+    /// The revert counterpart of <see cref="SyncFacilityFlags"/>: removes the trigger flags of
+    /// every chapter AFTER <paramref name="chapterRow"/> from the sibling Facility save, plus every
+    /// granular flag <see cref="FlagGate.DependentsOf"/> finds built on top of them (per
+    /// <see cref="QuestFlagDependencies"/>), so a story rollback stops showing later chapters -
+    /// down to individual quest steps - as done. Flags with no curated dependency chain (side
+    /// content, ambient/discovery flags) are left untouched, same as before.
     /// </summary>
     public static (int Removed, string Message) ClearForwardFlags(string metadataSavePath, string chapterRow)
     {
@@ -132,7 +134,8 @@ public static class StoryFlagSync
         }
 
         var data = WorldSaveReader.ReadFromFile(facilityPath);
-        var flags = data.Flags.Where(f => !forwardTriggers.Contains(f)).ToList();
+        var toRemove = FlagGate.DependentsOf(forwardTriggers, data.Flags);
+        var flags = data.Flags.Where(f => !toRemove.Contains(f)).ToList();
         var removed = data.Flags.Count - flags.Count;
         if (removed == 0)
         {
@@ -141,6 +144,6 @@ public static class StoryFlagSync
 
         WorldSaveWriter.ApplyFlags(data, flags);
         WorldSaveWriter.WriteToFile(data, facilityPath);
-        return (removed, $"Cleared {removed} forward chapter flag(s) from WorldSave_Facility.sav (backup kept).");
+        return (removed, $"Cleared {removed} forward chapter/quest flag(s) from WorldSave_Facility.sav (backup kept).");
     }
 }

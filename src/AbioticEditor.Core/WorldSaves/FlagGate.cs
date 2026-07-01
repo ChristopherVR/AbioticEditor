@@ -32,6 +32,10 @@ public static class FlagGate
         ["Residence"] = "Residence",
         ["Fracture"] = "Fracture",
         ["Botanical"] = "Botanical",
+        ["V"] = "InqEnd",       // V_INQ_* = the Praetorium
+        ["Res"] = "Residence2", // Res_Objective1_* = the storm suppressor
+        ["Wall"] = "DarkLens",
+        ["End"] = "EndGame",
         // Office/Tram are reachable from the start; portal anomalies (NightRealm,
         // MirrorWorld, Snowglobe, Salem, Rise) have no fixed story gate.
     };
@@ -103,6 +107,57 @@ public static class FlagGate
             // own granular children still need expanding, or a step "under" a trigger gets skipped.
             AddGranularPrerequisites(dep, result, seen, expanded);
         }
+    }
+
+    // Reverse of QuestFlagDependencies.Direct (prereq -> the flags that need it), built once. Powers
+    // DependentsOf: the same curated graph PrerequisitesFor walks forward, walked backward.
+    private static readonly Lazy<Dictionary<string, List<string>>> ReverseDependencies = new(() =>
+    {
+        var reverse = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (flag, prereqs) in QuestFlagDependencies.Direct)
+        {
+            foreach (var prereq in prereqs)
+            {
+                if (!reverse.TryGetValue(prereq, out var dependents))
+                {
+                    reverse[prereq] = dependents = new List<string>();
+                }
+                dependents.Add(flag);
+            }
+        }
+        return reverse;
+    });
+
+    /// <summary>
+    /// Every currently-set flag that (directly or transitively, per <see cref="QuestFlagDependencies"/>)
+    /// required one of <paramref name="roots"/> - the granular counterpart of clearing a chapter
+    /// trigger. A story rewind that only removes the 37 curated trigger flags leaves every quest step
+    /// built on top of them still set, so the game keeps reading the world as further along than the
+    /// rewound chapter; this closes that gap by pulling in the whole dependent chain.
+    /// </summary>
+    public static IReadOnlySet<string> DependentsOf(IEnumerable<string> roots, IEnumerable<string> currentlySet)
+    {
+        var setFlags = new HashSet<string>(currentlySet, StringComparer.OrdinalIgnoreCase);
+        var toRemove = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var queue = new Queue<string>();
+        foreach (var root in roots)
+        {
+            if (toRemove.Add(root)) queue.Enqueue(root);
+        }
+
+        var reverse = ReverseDependencies.Value;
+        while (queue.Count > 0)
+        {
+            var flag = queue.Dequeue();
+            if (!reverse.TryGetValue(flag, out var dependents)) continue;
+            foreach (var dependent in dependents)
+            {
+                if (!setFlags.Contains(dependent)) continue; // not set, nothing to remove
+                if (toRemove.Add(dependent)) queue.Enqueue(dependent);
+            }
+        }
+
+        return toRemove;
     }
 
     /// <summary>The chapter whose region this flag belongs to (for card art / context), if mapped.</summary>

@@ -1469,8 +1469,16 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         if (item is null) return;
         if (item.IsActive)
         {
-            Flags.Remove(item.RawName);
-            Core.Diagnostics.EditorLog.Info("Edit", $"World flag REMOVED: {item.RawName}");
+            // Cascade: anything the curated dependency graph says required this flag can no longer
+            // legitimately be set either (e.g. clearing a chapter trigger without also clearing its
+            // granular quest steps left the game still reading that content as done).
+            var toRemove = FlagGate.DependentsOf(new[] { item.RawName }, Flags);
+            foreach (var flag in toRemove)
+            {
+                Flags.Remove(flag);
+            }
+            Core.Diagnostics.EditorLog.Info("Edit", $"World flag REMOVED: {item.RawName}"
+                + (toRemove.Count > 1 ? $" (+{toRemove.Count - 1} dependent flag(s))" : string.Empty));
         }
         else if (!Flags.Contains(item.RawName, StringComparer.Ordinal))
         {

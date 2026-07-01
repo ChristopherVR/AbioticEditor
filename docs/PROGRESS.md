@@ -1307,6 +1307,40 @@ Liquids: enum + LiquidData findings live in `tests/LiquidDoorProbeTests.cs` outp
   Audited-clean: editor subscriptions, texture disk cache, `SeenUnknown` reset,
   virtualization (big lists all CollectionView).
 
+## 2026-07-02: story revert left the endgame region "stuck finished"
+
+Investigated a report that reverting story flags to an earlier chapter (e.g. back to the
+start of the Reactor Sector) still left the game reading the save as finished. Root cause,
+confirmed against a real completed-game save (`tests/fixtures/DedicatedServerSaves/Worlds/Cascade`,
+`StoryProgressionRow == EndGame`, 214 flags): `StoryFlagSync.ClearForwardFlags` (the revert half of
+the STORY tab's SET action) only ever removed the 37 curated `DT_StoryProgression` trigger flags.
+Everything past Dams (Reactors/Praetorium/Residence/Fracture/finale) has dozens of granular
+non-trigger flags - including `End_MainStoryComplete` itself, which isn't a chapter trigger at all -
+that nothing ever cleared.
+
+Fix: extended `QuestFlagDependencies.Direct` with the full main-story granular chain from Power
+Services through the finale (sourced from the real completed save's flag set, cross-checked against
+`StoryProgressionCatalog`'s chapter summaries), then added `FlagGate.DependentsOf` - the same curated
+graph walked in reverse - so `ClearForwardFlags` now clears every granular flag built on top of a
+forward trigger, not just the trigger itself. Also wired into `WorldEditorViewModel.ToggleFlag` so
+manually clearing one flag in the Flags tab cascades to its dependents too. Tests:
+`StoryProgressionTests` (`DependentsOf_*`, `ClearForwardFlags_OnARealCompletedSave_*` - the latter
+copies the real completed fixture to a temp dir and asserts the whole finale chain and granular
+Reactor/Residence/Fracture flags disappear on a rewind to `ReactorsEntry`, while Office through Dams
+survive). 613/613 tests green.
+
+**Deliberately out of scope** (side content, not main-story completion signals): the portal-world
+vignettes (V_Signal, VWinter, Salem, NightRealm, MirrorWorld, H_Japan, Snowglobe, Rise), ambient
+MapReveal/Tram/Weather flags, and NPC "met" metas outside the main spine.
+
+**Still not reverted by anything** (raised by the user, not yet built):
+- Player transform/location - reverting flags never moves the player back to an earlier area.
+- Journal/Codex/email unlocks (`GlobalJournalEntries_`, `GlobalEmailsRead_`,
+  `GlobalCompendium*_` in `WorldEditorViewModel.cs`) - additive-only helpers exist, no clear/revert.
+- `QuestFlagDependencies.Consequences` (doors opened, NPCs killed) is seeded with one example
+  (Office cafeteria/Jager) and is not applied automatically anywhere; a real revert tool would need
+  to walk the forward-cleared flag set and undo consequences too.
+
 ## Known open items / verify-next
 0. NEW (2026-06-12 late): story-timeline checklist REMOVED from region flags tab
    (redundant with grouped list; checklist remains on metadata STORY tab). Door rows

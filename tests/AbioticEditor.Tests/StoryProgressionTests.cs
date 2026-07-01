@@ -144,6 +144,93 @@ public class StoryProgressionTests
         Assert.Contains("Cafeteria", c.DoorsOpened);
     }
 
+    // ---------- reverting a chapter should clear granular quest steps too, not just triggers ----------
+
+    [Fact]
+    public void DependentsOf_FindsTheWholeFinaleChain_BuiltOnTopOfAChapterTrigger()
+    {
+        // A real completed save has End_MainStoryComplete set alongside the whole boss/epilogue
+        // chain. None of that is a DT_StoryProgression trigger, so before this graph existed nothing
+        // ever cleared it on a story rewind - the game kept reading the save as finished. Rooted at
+        // Residence_Fracture_Complete (the SouthIsland trigger the whole finale sits on top of) plus
+        // EndBossDefeated (the EndGame trigger itself) - exactly what ClearForwardFlags seeds with
+        // when rewinding to any chapter before SouthIsland.
+        var completed = new[]
+        {
+            "Residence_Fracture_Complete", "EndBossDefeated", "EndBossPhase1Complete", "EndBossPhase2Complete",
+            "End_Boss_FightStartedOnce", "End_Contact", "End_PostBoss_MetWitch_Island", "End_PostBoss_MetCahn_Island",
+            "End_PostBoss_MetRiggs_Island", "End_PostBoss_MetJanet_Island", "End_MainStoryComplete",
+            "Office_NewGameStarted", // an earlier, unrelated flag that must survive
+        };
+
+        var roots = new[] { "Residence_Fracture_Complete", "EndBossDefeated" };
+        var dependents = FlagGate.DependentsOf(roots, completed);
+
+        Assert.Contains("End_MainStoryComplete", dependents);
+        Assert.Contains("End_PostBoss_MetJanet_Island", dependents);
+        Assert.Contains("EndBossPhase1Complete", dependents);
+        Assert.DoesNotContain("Office_NewGameStarted", dependents);
+    }
+
+    [Fact]
+    public void DependentsOf_OnlyReturnsFlagsThatAreActuallySet()
+    {
+        // Reactors_SG_CableBreak2 depends on Reactors_SG_Interior, but it was never set in this
+        // world - the cascade must not invent it just because the dependency graph mentions it.
+        var partial = new[] { "Reactors_SG_Opened", "Reactors_SG_Entered", "Reactors_SG_Interior" };
+        var roots = new[] { "Reactors_SG_Opened" };
+        var dependents = FlagGate.DependentsOf(roots, partial);
+
+        Assert.Contains("Reactors_SG_Interior", dependents);
+        Assert.DoesNotContain("Reactors_SG_CableBreak2", dependents);
+        Assert.DoesNotContain("Reactors_SG_ExitOpened", dependents);
+    }
+
+    [Fact]
+    public void ClearForwardFlags_OnARealCompletedSave_ClearsTheFinaleAndReactorChain()
+    {
+        // tests/fixtures/DedicatedServerSaves/Worlds/Cascade is a real, fully completed game
+        // (StoryProgressionRow == EndGame, End_MainStoryComplete set). Rewinding it to the chapter
+        // where the Reactor Sector opens must clear not just the trigger flags of every later
+        // chapter, but the granular steps built on top of them - otherwise the game still reads the
+        // reverted save as finished.
+        if (Fixtures.ServerWorldsDir is null) return;
+        var metaSrc = Path.Combine(Fixtures.ServerWorldsDir, "WorldSave_MetaData.sav");
+        var facilitySrc = Path.Combine(Fixtures.ServerWorldsDir, "WorldSave_Facility.sav");
+        if (!File.Exists(metaSrc) || !File.Exists(facilitySrc)) return;
+
+        var dir = Directory.CreateTempSubdirectory("story-revert");
+        try
+        {
+            var metaCopy = Path.Combine(dir.FullName, "WorldSave_MetaData.sav");
+            var facilityCopy = Path.Combine(dir.FullName, "WorldSave_Facility.sav");
+            File.Copy(metaSrc, metaCopy);
+            File.Copy(facilitySrc, facilityCopy);
+
+            var before = WorldSaveReader.ReadFromFile(facilityCopy);
+            Assert.Contains("End_MainStoryComplete", before.Flags);
+            Assert.Contains("Reactors_SG_CableBreak1", before.Flags);
+
+            var (removed, _) = StoryFlagSync.ClearForwardFlags(metaCopy, "ReactorsEntry");
+            Assert.True(removed > 0);
+
+            var after = WorldSaveReader.ReadFromFile(facilityCopy);
+            // The finale chain, several steps removed from any single chapter trigger.
+            Assert.DoesNotContain("End_MainStoryComplete", after.Flags);
+            Assert.DoesNotContain("EndBossDefeated", after.Flags);
+            Assert.DoesNotContain("End_PostBoss_MetJanet_Island", after.Flags);
+            // Granular Reactor/Residence/Fracture steps, not just the chapter triggers.
+            Assert.DoesNotContain("Reactors_SG_CableBreak1", after.Flags);
+            Assert.DoesNotContain("Reactors_S2War_Complete", after.Flags);
+            Assert.DoesNotContain("Res_Objective1_A", after.Flags);
+            Assert.DoesNotContain("Fracture_DL_AllEyes_Destroyed", after.Flags);
+            // Everything up to and including Office/Manufacturing/Labs/Security/Dams survives.
+            Assert.Contains("Office_NewGameStarted", after.Flags);
+            Assert.Contains("Dams_DarkWaterDrained", after.Flags);
+        }
+        finally { dir.Delete(recursive: true); }
+    }
+
     [Fact]
     public void WarrenScenario_StoryProgressSatisfiesAnEarlyGate_WithoutTheExactFlag()
     {
