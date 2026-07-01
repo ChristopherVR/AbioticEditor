@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here.
 
+## [1.20.0] - 2026-07-01
+
+### Bug Fixes
+- Rewinding the story past the Reactors now actually rewinds it
+
+
+### Features
+- Add a Load More button to the item catalog
+
+
+### Miscellaneous Tasks
+- Point bucket at v1.19.0 [skip ci]
+
+
 ## [1.19.0] - 2026-06-27
 
 ### Bug Fixes
