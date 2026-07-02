@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [1.20.3] - 2026-07-02
+
+### Bug Fixes
+- Fix a save-corrupting bug in the offline Oodle library caching
+
+
+### Miscellaneous Tasks
+- Point bucket at v1.20.2 [skip ci]
+
+
 ## [1.20.2] - 2026-07-02
 
 ### Build
@@ -13,6 +23,11 @@ All notable changes to this project are documented here.
 
 
 ## [1.20.1] - 2026-07-02
+
+### Bug Fixes
+- Warn more clearly before repairing a save that hasn't finished syncing
+- Stop needing internet every time you open a Game Pass save
+
 
 ### Miscellaneous Tasks
 - Point bucket at v1.20.0 [skip ci]
