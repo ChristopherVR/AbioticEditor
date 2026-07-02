@@ -179,15 +179,19 @@ public static class OodleCodec
             if (File.Exists(cached)) return cached;
         }
 
-        // 4. CUE4Parse downloads oodle-data-shared.dll on demand; persist it into our own cache
-        // dir (step 3) so this is the last time this machine needs internet for it.
+        // 4. CUE4Parse downloads oodle-data-shared.dll on demand. Load the file it just wrote,
+        // not a copy: on Linux the download sets the executable bit on that exact file, and a
+        // plain File.Copy of a native library is not guaranteed to preserve everything the loader
+        // needs. A best-effort copy into our cache dir (step 3) is still made for next time, but
+        // it never changes what gets loaded this run.
         try
         {
             string? path = null;
             if (CUE4Parse.Compression.OodleHelper.DownloadOodleDll(ref path)
                 && !string.IsNullOrWhiteSpace(path) && File.Exists(path))
             {
-                return PersistDownload(path);
+                TryCacheForNextRun(path);
+                return path;
             }
         }
         catch (Exception ex)
@@ -197,25 +201,33 @@ public static class OodleCodec
         return null;
     }
 
-    /// <summary>Copies a freshly downloaded DLL into <see cref="CacheDir"/> so later runs find it
-    /// via step 3 without needing internet again. Falls back to the original path if copying fails
-    /// (e.g. read-only cache dir) - the download still works this run either way.</summary>
-    private static string PersistDownload(string downloadedPath)
+    /// <summary>Best-effort copies a freshly downloaded library into <see cref="CacheDir"/> so a
+    /// later run finds it via step 3 without needing internet again. Never affects this run:
+    /// failures (read-only cache dir, etc.) are swallowed since the download already succeeded.</summary>
+    private static void TryCacheForNextRun(string downloadedPath)
     {
         try
         {
             Directory.CreateDirectory(CacheDir);
             var dest = Path.Combine(CacheDir, Path.GetFileName(downloadedPath));
-            if (!string.Equals(Path.GetFullPath(downloadedPath), Path.GetFullPath(dest), StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(Path.GetFullPath(downloadedPath), Path.GetFullPath(dest), StringComparison.OrdinalIgnoreCase))
             {
-                File.Copy(downloadedPath, dest, overwrite: true);
+                return;
             }
-            return dest;
+            File.Copy(downloadedPath, dest, overwrite: true);
+            if (OperatingSystem.IsLinux())
+            {
+                // File.Copy does not carry over the executable bit DownloadOodleDllFromOodleUEAsync
+                // set on the original; without it a future run's cache hit could fail to load.
+                File.SetUnixFileMode(dest,
+                    UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                    UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
+                    UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
+            }
         }
         catch (Exception ex)
         {
             Diagnostics.EditorLog.Warn("GamePass", $"Could not cache the downloaded Oodle library for reuse: {ex.Message}");
-            return downloadedPath;
         }
     }
 
