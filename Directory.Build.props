@@ -15,7 +15,7 @@
          version and the MAUI App's ApplicationDisplayVersion inherit it. The
          submodules are shielded from this file by submodules/Directory.Build.props,
          so CUE4Parse/UeSaveGame keep their own versions. -->
-    <Version>1.20.0</Version>
+    <Version>1.20.1</Version>
 
     <!-- Code analysis: .NET analyzers at the recommended level for our own projects
          (submodules are shielded by submodules/Directory.Build.props). -->
