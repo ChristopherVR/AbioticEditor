@@ -170,12 +170,19 @@ public static class FlagGate
         });
 
     /// <summary>
-    /// The chapter gating an arbitrary row id (email/journal ids share the flags' area
-    /// prefixes, e.g. <c>Labs_*</c>). Null = no fixed story gate known.
+    /// The chapter gating an arbitrary row id. Journal ids share the flags' area-prefix
+    /// convention directly (e.g. <c>Labs_AbeandJanet</c>). Email ids instead lead with an
+    /// <c>Email_</c>/<c>email_</c> marker before the region (e.g. <c>Email_Labs_Kizz</c>,
+    /// <c>email_labs_creepingcrystal</c>) - verified against real save data, not the reverse
+    /// order the name might suggest. Null = no fixed story gate known (side content, or a
+    /// row whose name doesn't embed a recognised area).
     /// </summary>
     public static StoryChapter? RegionChapterForRowId(string rowId)
     {
-        var area = QuestFlagCatalog.Lookup(rowId).Area;
+        var withoutEmailMarker = rowId.StartsWith("Email_", StringComparison.OrdinalIgnoreCase)
+            ? rowId[6..]
+            : rowId;
+        var area = QuestFlagCatalog.Lookup(withoutEmailMarker).Area;
         return AreaToChapterRow.TryGetValue(area, out var row) ? StoryProgressionCatalog.Find(row) : null;
     }
 }

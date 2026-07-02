@@ -58,4 +58,81 @@ public class RespawnEditTests
             File.Delete(temp);
         }
     }
+
+    // ---------- chapter -> terminal resolution ----------
+
+    [Fact]
+    public void ForChapter_ReturnsTheSectorsOwnTerminal_WhenOneExists()
+    {
+        Assert.Equal("The Office Sector", RespawnTerminalCatalog.ForChapter("Office")?.LocationName);
+        Assert.Equal("Manufacturing West", RespawnTerminalCatalog.ForChapter("MF")?.LocationName);
+        Assert.Equal("Cascade Laboratories", RespawnTerminalCatalog.ForChapter("Labs")?.LocationName);
+        Assert.Equal("The Reactors", RespawnTerminalCatalog.ForChapter("ReactorsEntry")?.LocationName);
+        Assert.Equal("Residence Sector", RespawnTerminalCatalog.ForChapter("Residence")?.LocationName);
+    }
+
+    [Fact]
+    public void ForChapter_FallsBackToTheNearestEarlierSector_ForPortalWorldChapters()
+    {
+        // Flathill is a portal world reached from the Office - no terminal of its own.
+        Assert.Equal("The Office Sector", RespawnTerminalCatalog.ForChapter("Flathill")?.LocationName);
+        // Voussoir is reached from the Hydroplant.
+        Assert.Equal("Hydroplant", RespawnTerminalCatalog.ForChapter("Voussoir")?.LocationName);
+        // EndGame (the finale) falls all the way back to Residence Sector, the last real terminal.
+        Assert.Equal("Residence Sector", RespawnTerminalCatalog.ForChapter("EndGame")?.LocationName);
+    }
+
+    [Fact]
+    public void ForChapter_ReturnsNull_ForAnUnknownRow()
+    {
+        Assert.Null(RespawnTerminalCatalog.ForChapter("NotAChapter"));
+    }
+
+    // ---------- moving players back on a story revert ----------
+
+    [Fact]
+    public void MoveToChapterTerminal_OnARealSave_MovesEveryPlayer_WithoutTouchingLevelGuid()
+    {
+        if (Fixtures.ServerWorldsDir is null) return;
+        var metaSrc = Path.Combine(Fixtures.ServerWorldsDir, "WorldSave_MetaData.sav");
+        var playerDataSrc = Path.Combine(Fixtures.ServerWorldsDir, "PlayerData");
+        if (!File.Exists(metaSrc) || !Directory.Exists(playerDataSrc)) return;
+        var playerFiles = Directory.GetFiles(playerDataSrc, "Player_*.sav");
+        if (playerFiles.Length == 0) return;
+
+        var dir = Directory.CreateTempSubdirectory("respawn-revert");
+        try
+        {
+            File.Copy(metaSrc, Path.Combine(dir.FullName, "WorldSave_MetaData.sav"));
+            var playerDataDir = Directory.CreateDirectory(Path.Combine(dir.FullName, "PlayerData"));
+            foreach (var f in playerFiles)
+            {
+                File.Copy(f, Path.Combine(playerDataDir.FullName, Path.GetFileName(f)));
+            }
+            var metaCopy = Path.Combine(dir.FullName, "WorldSave_MetaData.sav");
+
+            var before = Directory.GetFiles(playerDataDir.FullName, "Player_*.sav")
+                .ToDictionary(f => Path.GetFileName(f)!, f => PlayerSaveReader.ReadFromFile(f).RespawnLevelGuid);
+
+            var (moved, message) = PlayerRespawnRevert.MoveToChapterTerminal(metaCopy, "Office");
+            Assert.Equal(playerFiles.Length, moved);
+            Assert.Contains("The Office Sector", message);
+
+            var terminal = RespawnTerminalCatalog.ForChapter("Office")!;
+            foreach (var f in Directory.GetFiles(playerDataDir.FullName, "Player_*.sav"))
+            {
+                var after = PlayerSaveReader.ReadFromFile(f);
+                Assert.Equal(terminal.X, after.RespawnX, 1);
+                Assert.Equal(terminal.Y, after.RespawnY, 1);
+                Assert.Equal(terminal.Z, after.RespawnZ, 1);
+                Assert.Equal(terminal.TerminalGuid, after.TerminalRespawnId, ignoreCase: true);
+                // LastSafeWorldGUID_ is deliberately left untouched.
+                Assert.Equal(before[Path.GetFileName(f)], after.RespawnLevelGuid, ignoreCase: true);
+            }
+        }
+        finally
+        {
+            dir.Delete(recursive: true);
+        }
+    }
 }

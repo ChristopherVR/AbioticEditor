@@ -31,10 +31,31 @@ public class FlagGateTests
     }
 
     [Fact]
-    public void RegionChapterForRowId_MapsEmailIdsByAreaPrefix()
+    public void RegionChapterForRowId_MapsJournalIdsByAreaPrefix()
     {
-        var chapter = FlagGate.RegionChapterForRowId("Labs_Email_SomeLoreDump");
+        // Journal ids lead with the region directly (verified: "Labs_AbeandJanet" is a real
+        // JournalEntries_ row from a completed-game fixture).
+        var chapter = FlagGate.RegionChapterForRowId("Labs_AbeandJanet");
         Assert.NotNull(chapter);
         Assert.Equal("Labs", chapter!.Row);
+    }
+
+    [Fact]
+    public void RegionChapterForRowId_MapsEmailIdsPastTheEmailMarker()
+    {
+        // Email ids lead with "Email_"/"email_" BEFORE the region, not after (verified: real
+        // save fixtures use "Email_Labs_Kizz" / "email_labs_creepingcrystal", never the reverse
+        // "Labs_Email_..." order the row-id doc previously assumed).
+        var upper = FlagGate.RegionChapterForRowId("Email_Labs_Kizz");
+        Assert.NotNull(upper);
+        Assert.Equal("Labs", upper!.Row);
+
+        var lower = FlagGate.RegionChapterForRowId("email_labs_creepingcrystal");
+        Assert.NotNull(lower);
+        Assert.Equal("Labs", lower!.Row);
+
+        // Emails with no embedded region (the majority) stay ungated rather than mismatching.
+        Assert.Null(FlagGate.RegionChapterForRowId("Email_Random_IsWrestlingReal"));
+        Assert.Null(FlagGate.RegionChapterForRowId("email_vacuum"));
     }
 }

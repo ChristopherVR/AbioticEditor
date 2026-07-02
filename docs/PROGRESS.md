@@ -1334,12 +1334,54 @@ vignettes (V_Signal, VWinter, Salem, NightRealm, MirrorWorld, H_Japan, Snowglobe
 MapReveal/Tram/Weather flags, and NPC "met" metas outside the main spine.
 
 **Still not reverted by anything** (raised by the user, not yet built):
-- Player transform/location - reverting flags never moves the player back to an earlier area.
-- Journal/Codex/email unlocks (`GlobalJournalEntries_`, `GlobalEmailsRead_`,
-  `GlobalCompendium*_` in `WorldEditorViewModel.cs`) - additive-only helpers exist, no clear/revert.
+- ~~Player transform/location~~ and ~~journal/codex/email unlocks~~ - built same day, see below.
 - `QuestFlagDependencies.Consequences` (doors opened, NPCs killed) is seeded with one example
   (Office cafeteria/Jager) and is not applied automatically anywhere; a real revert tool would need
-  to walk the forward-cleared flag set and undo consequences too.
+  to walk the forward-cleared flag set and undo consequences too. Still open.
+
+## 2026-07-02 (same day, follow-up): codex/email/journal revert + move-players-on-revert
+
+Picked up the two items left open above.
+
+**Codex/email/journal revert** (`CodexRevert.cs`, new): filters `GlobalEmailsRead_`/
+`GlobalJournalEntries_`/`GlobalCompendium{Email,Narrative,Exploration}_` (metadata save) and the
+per-player `EmailsRead_`/`JournalEntries_`/`Compendium_*Sections_` arrays down to what the
+post-revert flag set actually allows, using the same `FlagGate.RegionChapterForRowId` gate the
+forward-unlock path (`ProgressContext.CanUnlockRow`) already used. Wired into
+`WorldEditorViewModel.SetChapterAsync`: metadata arrays stage into the existing
+`_stagedWorldUnlocks` dictionary (commit on SAVE, like every other world-wide unlock edit); player
+files are patched immediately with the standard `.bak`, same cross-file pattern as
+`StoryFlagSync`.
+
+**Found and fixed a real, pre-existing bug while building this**: `FlagGate.RegionChapterForRowId`
+assumed email ids were ordered `Region_Email_Name` (that's what its old doc comment and
+`FlagGateTests` claimed). Real save data (all 4 fixture players, 160 confirmed instances) shows
+the actual order is `Email_Region_Name` (`Email_Labs_Kizz`, `email_labs_creepingcrystal`) - the
+reverse. Under the old code this meant the area extracted was always `"Email"`, which never
+matches anything in `AreaToChapterRow`, so email rows were silently never gated - not just by my
+new revert, but by the already-shipped forward gate (`ProgressContext.CanUnlockRow`) too. Fixed by
+stripping a leading `Email_`/`email_` marker before area extraction; `FlagGateTests` rewritten to
+assert the verified real convention instead of the fabricated one.
+
+**Player location revert** (`RespawnTerminalCatalog.ForChapter`, `PlayerRespawnRevert.cs`, new):
+reuses the existing 10-terminal `RespawnTerminalCatalog` (already backing the PLAYER > SPAWN tab)
+plus a small chapter-row -> sector-terminal table, falling back to the nearest earlier chapter's
+terminal for portal-world/vignette chapters that have none of their own (Flathill, Voussoir,
+Anteverse C, Fracture, Botanical, DarkLens, SouthIsland, EndGame). Deliberately **opt-in**, not
+automatic: relocating a player is more consequential than clearing flags, so it's gated behind a
+new `MovePlayersOnChapterSet` checkbox on the STORY tab (off by default). Only X/Y/Z and
+`TerminalRespawnID_` are written - `LastSafeWorldGUID_` is left untouched, matching what the
+existing SPAWN tab already does when you pick a terminal without also picking a different
+streamed sub-level (verified: that tab's `SelectedTerminal` setter never touches the level GUID
+either).
+
+Tests: `CodexRevertTests` (unit + a real-completed-save integration test copying the fixture to a
+temp dir and confirming Reactors/Residence email+journal rows disappear on a rewind to `MF`),
+`RespawnEditTests` (`ForChapter_*`, `MoveToChapterTerminal_OnARealSave_*`), `FlagGateTests`
+(rewritten email-id tests). 621/621 tests green.
+
+**Still not built**: `QuestFlagDependencies.Consequences` (door/NPC-death undo) - the last item
+from the original ask.
 
 ## Known open items / verify-next
 0. NEW (2026-06-12 late): story-timeline checklist REMOVED from region flags tab

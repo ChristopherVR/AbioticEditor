@@ -1,3 +1,5 @@
+using AbioticEditor.Core.WorldSaves;
+
 namespace AbioticEditor.Core.PlayerSaves;
 
 /// <summary>
@@ -65,5 +67,43 @@ public static class RespawnTerminalCatalog
         return All.FirstOrDefault(t =>
             t.LocationName.Contains(regionLabel, StringComparison.OrdinalIgnoreCase)
             || regionLabel.Contains(t.LocationName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>The story chapter row where each terminal's sector opens (mirrors
+    /// <see cref="FlagGate"/>'s area-to-chapter table, restricted to sectors that actually
+    /// have a punch-card terminal).</summary>
+    private static readonly Dictionary<string, string> ChapterTerminalRegion = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Office"] = "The Office Sector",
+        ["MF"] = "Manufacturing West",
+        ["MFMines"] = "The Mines",
+        ["Labs"] = "Cascade Laboratories",
+        ["PostLabs"] = "Security Sector",
+        ["EndSecurity"] = "Hydroplant",
+        ["PowerServices"] = "Power Services",
+        ["ReactorsEntry"] = "The Reactors",
+        ["Residence"] = "Residence Sector",
+    };
+
+    /// <summary>
+    /// The best respawn terminal for a story chapter row: its own sector's terminal if the
+    /// chapter opens one, else the nearest EARLIER chapter's. Portal-world/vignette chapters
+    /// (Flathill, Voussoir, Anteverse C, Fracture, Botanical, DarkLens, SouthIsland, EndGame)
+    /// have no dedicated terminal of their own, since punch-card terminals only exist in the
+    /// Facility proper - they fall back to whichever sector leads into them. Null only when
+    /// the row is unknown to <see cref="StoryProgressionCatalog"/>.
+    /// </summary>
+    public static RespawnTerminal? ForChapter(string chapterRow)
+    {
+        var index = StoryProgressionCatalog.IndexOf(chapterRow);
+        if (index < 0) return null;
+        for (var i = index; i >= 0; i--)
+        {
+            if (ChapterTerminalRegion.TryGetValue(StoryProgressionCatalog.Chapters[i].Row, out var region))
+            {
+                return All.FirstOrDefault(t => string.Equals(t.LocationName, region, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+        return null;
     }
 }

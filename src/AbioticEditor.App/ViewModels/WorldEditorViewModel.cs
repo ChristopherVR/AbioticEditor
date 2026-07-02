@@ -5,6 +5,7 @@ using System.Windows.Input;
 using AbioticEditor.App.Services;
 using AbioticEditor.Core;
 using AbioticEditor.Core.Codex;
+using AbioticEditor.Core.PlayerSaves;
 using AbioticEditor.Core.WorldSaves;
 using AbioticEditor.Core.WorldSaves.Features;
 
@@ -1199,11 +1200,20 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     // ---------- Cross-file story-flag sync (metadata saves) ----------
 
     /// <summary>
-    /// The single SET action: moves the chapter pointer AND brings
-    /// <c>WorldSave_Facility.sav</c>'s trigger flags in line both directions -
-    /// every flag up to the chapter is added, every flag past it is removed
-    /// (backups kept). Chapter DONE states come from those flags, so skipping or
-    /// rewinding without the sync would leave the checklist lying.
+    /// When true, <see cref="SetChapterAsync"/> also moves every player's respawn/load-in
+    /// point to the target chapter's punch-card terminal (<see cref="PlayerRespawnRevert"/>).
+    /// Off by default - relocating a player is more consequential than clearing flags/codex
+    /// entries, so it stays opt-in.
+    /// </summary>
+    public bool MovePlayersOnChapterSet { get; set; }
+
+    /// <summary>
+    /// The single SET action: moves the chapter pointer, brings <c>WorldSave_Facility.sav</c>'s
+    /// trigger AND granular quest flags in line both directions (<see cref="StoryFlagSync"/>),
+    /// and clears codex/email/journal rows the story no longer claims to have reached, both
+    /// world-wide and per player (<see cref="CodexRevert"/>) - otherwise skipping or rewinding
+    /// leaves the checklist, and the codex, lying. Optionally also relocates every player's
+    /// respawn point (<see cref="MovePlayersOnChapterSet"/>).
     /// </summary>
     public async Task SetChapterAsync(string row)
     {
@@ -1215,8 +1225,44 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
             SaveStatus = "Setting chapter + syncing Facility trigger flags…";
             var (added, _) = await Task.Run(() => StoryFlagSync.SyncFacilityFlags(_path, row));
             var (cleared, _) = await Task.Run(() => StoryFlagSync.ClearForwardFlags(_path, row));
-            SaveStatus = $"Chapter set · {added} trigger flag(s) added, {cleared} cleared in WorldSave_Facility.sav (backups kept). Press SAVE to write the pointer.";
             RefreshFacilityFlagState();
+
+            var statusExtra = string.Empty;
+            var facilityPath = StoryFlagSync.SiblingFacilityPath(_path);
+            if (facilityPath is not null)
+            {
+                var reachedFlags = await Task.Run(() => new HashSet<string>(
+                    WorldSaveReader.ReadFromFile(facilityPath).Flags, StringComparer.OrdinalIgnoreCase));
+
+                var globalCleared = 0;
+                foreach (var (prefix, kept) in CodexRevert.ClearForwardGlobalUnlocks(_data, reachedFlags))
+                {
+                    var before = _stagedWorldUnlocks.TryGetValue(prefix, out var staged)
+                        ? staged.Count
+                        : WorldSaveReader.ReadGlobalUnlockArray(_data.Raw, prefix).Count;
+                    _stagedWorldUnlocks[prefix] = kept;
+                    globalCleared += before - kept.Count;
+                }
+                if (globalCleared > 0)
+                {
+                    NotifyWorldUnlockTexts();
+                    statusExtra += $", {globalCleared} world codex unlock(s) cleared";
+                }
+
+                var (playersChanged, rowsRemoved, _) = await Task.Run(() => CodexRevert.ClearForwardPlayerUnlocks(_path, reachedFlags));
+                if (rowsRemoved > 0)
+                {
+                    statusExtra += $", {rowsRemoved} player codex row(s) cleared ({playersChanged} save(s))";
+                }
+
+                if (MovePlayersOnChapterSet)
+                {
+                    var (moved, moveMessage) = await Task.Run(() => PlayerRespawnRevert.MoveToChapterTerminal(_path, row));
+                    statusExtra += moved > 0 ? $", {moveMessage}" : $" ({moveMessage})";
+                }
+            }
+
+            SaveStatus = $"Chapter set · {added} trigger flag(s) added, {cleared} cleared in WorldSave_Facility.sav{statusExtra} (backups kept). Press SAVE to write the pointer.";
         }
         catch (Exception ex)
         {

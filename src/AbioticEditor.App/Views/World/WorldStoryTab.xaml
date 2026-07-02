@@ -48,6 +48,16 @@
                        Text="{Binding WorldEditor.StoryChapterIndexText}"
                        Style="{StaticResource AfReadout}" VerticalOptions="Center" />
             </Grid>
+
+            <HorizontalStackLayout Spacing="8"
+                                   ToolTipProperties.Text="{loc:Localize WorldStory_MovePlayersCaption}">
+                <CheckBox IsChecked="{Binding WorldEditor.MovePlayersOnChapterSet, Mode=TwoWay}"
+                          Color="{StaticResource AfTerminalGreen}"
+                          VerticalOptions="Center" />
+                <Label Text="{loc:Localize WorldStory_MovePlayersLabel}"
+                       Style="{StaticResource AfMuted}" FontSize="10"
+                       VerticalOptions="Center" />
+            </HorizontalStackLayout>
             <Border BackgroundColor="{StaticResource AfPanelBackground}"
                     Stroke="{StaticResource AfBorderSubtleBrush}"
                     StrokeThickness="1" StrokeShape="Rectangle"
