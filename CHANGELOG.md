@@ -2,9 +2,26 @@
 
 All notable changes to this project are documented here.
 
+## [1.20.2] - 2026-07-02
+
+### Build
+- Bump actions/cache from 5 to 6 in the actions-all group
+
+
+### Miscellaneous Tasks
+- Point bucket at v1.20.1 [skip ci]
+
+
+## [1.20.1] - 2026-07-02
+
+### Miscellaneous Tasks
+- Point bucket at v1.20.0 [skip ci]
+
+
 ## [1.20.0] - 2026-07-01
 
 ### Bug Fixes
+- Clear old codex spoilers and offer to move players back on a story rewind
 - Rewinding the story past the Reactors now actually rewinds it
 
 

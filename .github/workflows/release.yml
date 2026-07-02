@@ -103,7 +103,7 @@ jobs:
       # NuGet packages are immutable per version, so this is always safe. The key hashes
       # the project/package files; a partial-match restore-key reuses a close cache.
       - name: Cache NuGet packages
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props', '**/Directory.Build.props') }}
@@ -439,7 +439,7 @@ jobs:
       # Cache NuGet, including the self-contained runtime packs (tens of MB per RID)
       # this matrix downloads. Immutable packages, so always safe to reuse.
       - name: Cache NuGet packages
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props', '**/Directory.Build.props') }}
@@ -504,7 +504,7 @@ jobs:
           dotnet-quality: ga
 
       - name: Cache NuGet packages
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props', '**/Directory.Build.props') }}
@@ -525,7 +525,7 @@ jobs:
         run: echo "version=$(dotnet --version)" >> "$GITHUB_OUTPUT"
 
       - name: Cache MAUI workload
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             C:\Program Files\dotnet\sdk-manifests
@@ -951,7 +951,7 @@ jobs:
           dotnet-quality: ga
 
       - name: Cache NuGet packages
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props', '**/Directory.Build.props') }}
