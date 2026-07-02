@@ -1,12 +1,12 @@
 {
-  "version": "1.20.1",
+  "version": "1.20.2",
   "description": "A save-game editor for Abiotic Factor (desktop app).",
   "homepage": "https://github.com/ChristopherVR/AbioticEditor",
   "license": "Apache-2.0",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/ChristopherVR/AbioticEditor/releases/download/v1.20.1/AbioticEditor-app-win-x64-v1.20.1.zip",
-      "hash": "7046caae4851e0c50ae15af164a446f16a8a9cb5d8e5d4e720e4dbc03906971c"
+      "url": "https://github.com/ChristopherVR/AbioticEditor/releases/download/v1.20.2/AbioticEditor-app-win-x64-v1.20.2.zip",
+      "hash": "4eb28f0342d9218f77d2e8b94d84b2beaa22cc30fa57ecc74d86e569fdc60b0f"
     }
   },
   "shortcuts": [
