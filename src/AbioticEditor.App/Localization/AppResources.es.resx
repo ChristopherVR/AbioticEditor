@@ -1208,7 +1208,9 @@ Si guardas con conexión, o eliges "descargar de la nube" en el aviso, la copia 
     <value>Este guardado necesita una reparación rápida</value>
   </data>
   <data name="Main_GpMidSyncMessage" xml:space="preserve">
-    <value>Este guardado de Game Pass apunta a un archivo de datos que no está en el disco (un resto de una sincronización de Xbox interrumpida); el editor lo leyó del archivo real que sí está, pero ese puntero roto es la razón de este aviso repetido. El editor puede repararlo ahora corrigiendo el puntero, lo que deja el guardado coherente de nuevo y detiene este mensaje. Es seguro y no cambia los datos de tu guardado, pero hazlo con Abiotic Factor y la aplicación de Xbox cerrados. Antes se hace una copia de seguridad de toda la carpeta del guardado.</value>
+    <value>Este guardado de Game Pass apunta a un archivo de datos que no está en el disco (un resto de una sincronización de Xbox interrumpida); el editor lo leyó del archivo real que sí está, pero ese puntero roto es la razón de este aviso repetido. El editor puede repararlo ahora corrigiendo el puntero, lo que deja el guardado coherente de nuevo y detiene este mensaje.
+
+IMPORTANTE: esto significa que la sincronización en la nube de Xbox no había terminado para este guardado. Reparar (y cualquier edición que hagas después) escribe directamente en la carpeta de sincronización de Xbox mientras aún está en este estado inconcluso, que es justo lo que puede hacer que el selector de guardados de Xbox lo elimine o descarte más adelante. Antes de reparar: cierra por completo Abiotic Factor Y la aplicación de Xbox, luego desconéctate de internet (Wi-Fi apagado / modo avión) y permanece sin conexión mientras editas y guardas. Vuelve a conectarte solo después de haber iniciado el juego una vez sin conexión, cargado el guardado y guardado dentro del juego: así Xbox adopta tu edición como la copia más reciente. De cualquier forma, primero se hace una copia de seguridad de toda la carpeta del guardado.</value>
   </data>
   <data name="Main_GpMidSyncRepair" xml:space="preserve">
     <value>Reparar ahora</value>
@@ -1217,7 +1219,7 @@ Si guardas con conexión, o eliges "descargar de la nube" en el aviso, la copia 
     <value>Solo abrir</value>
   </data>
   <data name="Main_GpMidSyncRepaired" xml:space="preserve">
-    <value>Se repararon {0} contenedor(es): este guardado vuelve a ser coherente y no avisará la próxima vez.</value>
+    <value>Se repararon {0} contenedor(es): este guardado vuelve a ser coherente. Permanece sin conexión hasta haber iniciado el juego una vez y guardado, o Xbox podría descartar la edición de todos modos.</value>
   </data>
   <data name="Main_GpPacking" xml:space="preserve">
     <value>Empaquetando el guardado de Game Pass de «{0}» en el contenedor Xbox...</value>

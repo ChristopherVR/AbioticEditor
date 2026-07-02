@@ -1260,7 +1260,9 @@ If you save while online, or pick "download from cloud" at the prompt, the cloud
     <value>This save needs a quick repair</value>
   </data>
   <data name="Main_GpMidSyncMessage" xml:space="preserve">
-    <value>This Game Pass save points at a data file that isn't on disk (a leftover from an interrupted Xbox sync) - the editor read it from the real file that is there, but the broken pointer is why this keeps warning. The editor can repair it now by fixing the pointer, which makes the save consistent again and stops this message. This is safe and doesn't change your save data, but do it with Abiotic Factor and the Xbox app closed. A backup of the whole save folder is made first.</value>
+    <value>This Game Pass save points at a data file that isn't on disk (a leftover from an interrupted Xbox sync) - the editor read it from the real file that is there, but the broken pointer is why this keeps warning. The editor can repair it now by fixing the pointer, which makes the save consistent again and stops this message.
+
+IMPORTANT: this means Xbox cloud sync had not finished for this save. Repairing (and any edit you make afterward) writes straight into the Xbox sync folder while it's already in this unfinished state, which is exactly what can make Xbox's own save picker delete or discard the save later. Before repairing: fully close Abiotic Factor AND the Xbox app, then disconnect from the internet (Wi-Fi off / airplane mode) and stay offline through your edits and Save. Only reconnect after you've launched the game once offline, loaded the save, and saved in-game - that makes your edit the copy Xbox adopts as newest. A backup of the whole save folder is made first either way.</value>
   </data>
   <data name="Main_GpMidSyncRepair" xml:space="preserve">
     <value>Repair now</value>
@@ -1269,7 +1271,7 @@ If you save while online, or pick "download from cloud" at the prompt, the cloud
     <value>Just open it</value>
   </data>
   <data name="Main_GpMidSyncRepaired" xml:space="preserve">
-    <value>Repaired {0} container(s) - this save is consistent again and won't warn next time.</value>
+    <value>Repaired {0} container(s) - this save is consistent again. Stay offline until you've launched the game once and saved, or Xbox may still discard the edit.</value>
   </data>
   <data name="Main_GpPacking" xml:space="preserve">
     <value>Packing Game Pass save for "{0}" into the Xbox container...</value>

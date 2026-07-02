@@ -1208,7 +1208,9 @@ Si vous enregistrez en ligne, ou si vous choisissez « télécharger depuis le c
     <value>Cette sauvegarde a besoin d'une petite réparation</value>
   </data>
   <data name="Main_GpMidSyncMessage" xml:space="preserve">
-    <value>Cette sauvegarde Game Pass pointe vers un fichier de données absent du disque (un reste d'une synchronisation Xbox interrompue) - l'éditeur l'a lu depuis le vrai fichier présent, mais ce pointeur cassé est la raison de cet avertissement répété. L'éditeur peut le réparer maintenant en corrigeant le pointeur, ce qui rend la sauvegarde de nouveau cohérente et fait disparaître ce message. C'est sans danger et ne modifie pas vos données de sauvegarde, mais faites-le avec Abiotic Factor et l'application Xbox fermés. Une sauvegarde de tout le dossier est effectuée au préalable.</value>
+    <value>Cette sauvegarde Game Pass pointe vers un fichier de données absent du disque (un reste d'une synchronisation Xbox interrompue) - l'éditeur l'a lu depuis le vrai fichier présent, mais ce pointeur cassé est la raison de cet avertissement répété. L'éditeur peut le réparer maintenant en corrigeant le pointeur, ce qui rend la sauvegarde de nouveau cohérente et fait disparaître ce message.
+
+IMPORTANT : cela signifie que la synchronisation cloud Xbox n'était pas terminée pour cette sauvegarde. Réparer (et toute modification effectuée ensuite) écrit directement dans le dossier de synchronisation Xbox alors qu'il est encore dans cet état inachevé - c'est exactement ce qui peut amener le sélecteur de sauvegardes Xbox à la supprimer ou l'écraser plus tard. Avant de réparer : fermez complètement Abiotic Factor ET l'application Xbox, puis déconnectez-vous d'internet (Wi-Fi éteint / mode avion) et restez hors ligne pendant vos modifications et l'enregistrement. Ne vous reconnectez qu'après avoir lancé le jeu une fois hors ligne, chargé la sauvegarde et sauvegardé dans le jeu - Xbox adoptera alors votre modification comme copie la plus récente. Une sauvegarde de tout le dossier est de toute façon effectuée en premier.</value>
   </data>
   <data name="Main_GpMidSyncRepair" xml:space="preserve">
     <value>Réparer maintenant</value>
@@ -1217,7 +1219,7 @@ Si vous enregistrez en ligne, ou si vous choisissez « télécharger depuis le c
     <value>Ouvrir simplement</value>
   </data>
   <data name="Main_GpMidSyncRepaired" xml:space="preserve">
-    <value>{0} conteneur(s) réparé(s) - cette sauvegarde est de nouveau cohérente et n'avertira plus la prochaine fois.</value>
+    <value>{0} conteneur(s) réparé(s) - cette sauvegarde est de nouveau cohérente. Restez hors ligne jusqu'à avoir lancé le jeu une fois et sauvegardé, sinon Xbox pourrait quand même écarter la modification.</value>
   </data>
   <data name="Main_GpPacking" xml:space="preserve">
     <value>Conditionnement de la sauvegarde Game Pass de « {0} » dans le conteneur Xbox...</value>
