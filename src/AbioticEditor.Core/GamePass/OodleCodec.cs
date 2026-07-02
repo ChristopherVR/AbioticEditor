@@ -10,13 +10,22 @@ namespace AbioticEditor.Core.GamePass;
 /// <c>OodleLZ_Decompress</c> / <c>OodleLZ_Compress</c> directly on the native library.
 ///
 /// <para>The DLL is resolved lazily from, in order: the <c>ABIOTIC_OODLE_DLL</c> env var, the
-/// installed game's copy (next to its executable), then CUE4Parse's downloader (the same
-/// mechanism the editor already uses for pak decompression). When none can be obtained the
-/// codec throws <see cref="OodleUnavailableException"/> so callers can degrade with a clear
-/// message rather than a crash.</para>
+/// installed game's copy (next to its executable), a copy this codec previously downloaded and
+/// cached under <c>%LOCALAPPDATA%/AbioticEditor/oodle</c>, then CUE4Parse's downloader (the same
+/// mechanism the editor already uses for pak decompression) - that last step needs an internet
+/// connection but only ever runs once, since a successful download is cached for next time. When
+/// none can be obtained the codec throws <see cref="OodleUnavailableException"/> so callers can
+/// degrade with a clear message rather than a crash.</para>
 /// </summary>
 public static class OodleCodec
 {
+    private static readonly string[] DllNames = { "oo2core_9_win64.dll", "oodle-data-shared.dll" };
+
+    /// <summary>Where a downloaded Oodle library is cached so later runs don't need internet again.</summary>
+    private static readonly string CacheDir = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "AbioticEditor", "oodle");
+
     // OodleLZ_Compressor: Kraken is a good general default; the decompressor auto-detects the
     // codec from the stream, so the editor need not match the game's exact compressor.
     private const int CompressorKraken = 8;
@@ -120,8 +129,10 @@ public static class OodleCodec
             if (dll is null)
             {
                 throw new OodleUnavailableException(
-                    "Could not locate or download the Oodle library (oo2core / oodle-data-shared.dll). "
-                    + "Set ABIOTIC_OODLE_DLL to its path, or install Abiotic Factor.");
+                    "Could not locate the Oodle library (oo2core / oodle-data-shared.dll) near the installed "
+                    + "game, and downloading it failed. The download needs an internet connection the first "
+                    + "time it runs (it's cached afterwards, so you won't need to be online again). Connect "
+                    + "to the internet and try again, or set ABIOTIC_OODLE_DLL to a copy's path.");
             }
 
             nint handle;
@@ -160,14 +171,23 @@ public static class OodleCodec
             if (File.Exists(candidate)) return candidate;
         }
 
-        // 3. CUE4Parse downloads oodle-data-shared.dll on demand (cached in the working dir).
+        // 3. A copy this codec already downloaded on a previous run, so a machine that has been
+        // online once doesn't need internet again just to open a Game Pass save offline later.
+        foreach (var name in DllNames)
+        {
+            var cached = Path.Combine(CacheDir, name);
+            if (File.Exists(cached)) return cached;
+        }
+
+        // 4. CUE4Parse downloads oodle-data-shared.dll on demand; persist it into our own cache
+        // dir (step 3) so this is the last time this machine needs internet for it.
         try
         {
             string? path = null;
             if (CUE4Parse.Compression.OodleHelper.DownloadOodleDll(ref path)
                 && !string.IsNullOrWhiteSpace(path) && File.Exists(path))
             {
-                return path;
+                return PersistDownload(path);
             }
         }
         catch (Exception ex)
@@ -177,10 +197,31 @@ public static class OodleCodec
         return null;
     }
 
+    /// <summary>Copies a freshly downloaded DLL into <see cref="CacheDir"/> so later runs find it
+    /// via step 3 without needing internet again. Falls back to the original path if copying fails
+    /// (e.g. read-only cache dir) - the download still works this run either way.</summary>
+    private static string PersistDownload(string downloadedPath)
+    {
+        try
+        {
+            Directory.CreateDirectory(CacheDir);
+            var dest = Path.Combine(CacheDir, Path.GetFileName(downloadedPath));
+            if (!string.Equals(Path.GetFullPath(downloadedPath), Path.GetFullPath(dest), StringComparison.OrdinalIgnoreCase))
+            {
+                File.Copy(downloadedPath, dest, overwrite: true);
+            }
+            return dest;
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.EditorLog.Warn("GamePass", $"Could not cache the downloaded Oodle library for reuse: {ex.Message}");
+            return downloadedPath;
+        }
+    }
+
     private static IEnumerable<string> GameInstallOodleCandidates()
     {
         string?[] roots = { AfInstallLocator.FindPaksDirectory(), AfInstallLocator.FindInstallRoot() };
-        var names = new[] { "oo2core_9_win64.dll", "oodle-data-shared.dll" };
         foreach (var root in roots)
         {
             if (string.IsNullOrEmpty(root)) continue;
@@ -195,11 +236,11 @@ public static class OodleCodec
             }
             foreach (var dir in dirs)
             {
-                foreach (var name in names)
+                foreach (var name in DllNames)
                 {
                     yield return Path.Combine(dir, name);
+                    yield return Path.Combine(dir, "Binaries", "Win64", name);
                 }
-                yield return Path.Combine(dir, "Binaries", "Win64", names[0]);
             }
         }
     }
