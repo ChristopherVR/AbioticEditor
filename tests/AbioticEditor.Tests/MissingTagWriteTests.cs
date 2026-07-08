@@ -225,6 +225,77 @@ public class MissingTagWriteTests
     }
 
     // =====================================================================
+    // Writer: Traits_ - a character created with zero traits has no Traits_ tag at
+    // all (bug report: adding a trait then saving/reloading showed no traits).
+    // =====================================================================
+
+    [Fact]
+    public void Writer_MissingTraitsTag_CreatesTagAndPersists()
+    {
+        Assert.NotNull(Fixtures.CascadeDir);
+        Assert.True(File.Exists(CascadePlayerSavePath));
+
+        var save = PlayerSaveReader.ReadFromFile(CascadePlayerSavePath);
+
+        // Simulate a character that started with no traits: physically remove the tag.
+        var root = GetCharacterSaveData(save.Raw);
+        var existing = FindByPrefix(root, "Traits_");
+        Assert.NotNull(existing);
+        root.Remove(existing!);
+        Assert.Null(FindByPrefix(root, "Traits_"));
+
+        IReadOnlyList<string> newTraits = new[] { "Trait_LeadBelly" };
+        PlayerSaveWriter.ApplyTraits(save, newTraits);
+
+        var tmp = Path.Combine(Path.GetTempPath(), $"abiotic-missingtraits-{Guid.NewGuid():N}.sav");
+        try
+        {
+            PlayerSaveWriter.WriteToFile(save, tmp);
+
+            var reread = PlayerSaveReader.ReadFromFile(tmp);
+            Assert.Equal(newTraits, reread.Traits);
+
+            // The created tag carries the exact blueprint name the game looks up.
+            var traitsTag = FindByPrefix(GetCharacterSaveData(reread.Raw), "Traits_");
+            Assert.NotNull(traitsTag);
+            Assert.Equal("Traits_15_0039F2B34D2A43327122E9960B328E55", traitsTag!.Name.Value);
+            Assert.Equal("ArrayProperty", traitsTag.Type.Name.Value);
+
+            using var ms = new MemoryStream();
+            reread.Raw.WriteTo(ms);
+            Assert.True(ms.ToArray().AsSpan().SequenceEqual(File.ReadAllBytes(tmp)), "rewritten save no longer round-trips");
+        }
+        finally
+        {
+            File.Delete(tmp);
+            File.Delete(tmp + ".bak");
+        }
+    }
+
+    [Fact]
+    public void Writer_ExistingTraitsTag_StillRoundTripsEdit()
+    {
+        Assert.NotNull(Fixtures.CascadeDir);
+        Assert.True(File.Exists(CascadePlayerSavePath));
+
+        var originalLength = new FileInfo(CascadePlayerSavePath).Length;
+        var save = PlayerSaveReader.ReadFromFile(CascadePlayerSavePath);
+        var originalTraits = save.Traits;
+        Assert.NotEmpty(originalTraits);
+
+        // No net change in count/content => no tag was added, size is unchanged.
+        PlayerSaveWriter.ApplyTraits(save, originalTraits);
+
+        using var ms = new MemoryStream();
+        save.Raw.WriteTo(ms);
+        Assert.Equal(originalLength, ms.Length);
+
+        ms.Position = 0;
+        var reread = PlayerSaveReader.ReadFromStream(ms);
+        Assert.Equal(originalTraits, reread.Traits);
+    }
+
+    // =====================================================================
     // Probe (documentation): exact tag metadata the writer's FullNames came from
     // =====================================================================
 

@@ -47,6 +47,10 @@ public static class PlayerSaveWriter
         public const string DynamicState = "DynamicState_39_7597AC6549E292B931C61BB13C9E42EB";
         public const string PlayerMadeString = "PlayerMadeString_42_CC0B72B24DBEAB2CC04454AAFFD4BBE9";
         public const string AssetId = "AssetID_25_06DB7A12469849D19D5FC3BA6BEDEEAB";
+
+        // A character created without any traits never gets a Traits_ tag at all (an
+        // empty array is the blueprint default), so ApplyTraits needs create-on-miss too.
+        public const string Traits = "Traits_15_0039F2B34D2A43327122E9960B328E55";
     }
 
     private static string ArrayPrefixFor(PetSlotKind kind) => kind switch
@@ -409,14 +413,17 @@ public static class PlayerSaveWriter
 
     /// <summary>
     /// Replaces the <c>Traits_</c> name array with <paramref name="traits"/> (internal
-    /// row names like <c>Trait_LeadBelly</c>). Mirrors the WorldFlags writer: the existing
-    /// ArrayProperty instance is kept, only its element buffer is swapped.
+    /// row names like <c>Trait_LeadBelly</c>). Mirrors the WorldFlags writer: an existing
+    /// ArrayProperty instance is kept, only its element buffer is swapped. Unlike WorldFlags,
+    /// a missing tag is created (see <see cref="FullNames.Traits"/>): a character that
+    /// started with no traits never gets a <c>Traits_</c> tag at all, so a plain prefix
+    /// lookup would silently no-op on every trait added to such a character.
     /// </summary>
     public static void ApplyTraits(PlayerSaveData data, IReadOnlyList<string> traits)
     {
         var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
-        var tag = root.FindByPrefix("Traits_");
-        if (tag?.Property is not ArrayProperty array) return;
+        var array = FindOrCreateNameArray(root, "Traits_", FullNames.Traits);
+        if (array is null) return;
 
         var items = new FString[traits.Count];
         for (var i = 0; i < traits.Count; i++)
@@ -601,6 +608,27 @@ public static class PlayerSaveWriter
         var name = new FString(createFullName);
         var type = new FPropertyTypeName(name: new FString(typeName));
         var property = FProperty.Create(name, type);
+        tags.Add(new FPropertyTag(name, type, EPropertyTagFlags.None) { Property = property });
+        return property;
+    }
+
+    /// <summary>
+    /// Finds a Name-typed <see cref="ArrayProperty"/> matching <paramref name="prefix"/>.
+    /// When absent and <paramref name="createFullName"/> is given, a new empty array is
+    /// created and appended (element type <c>NameProperty</c>, matching how the game
+    /// serializes <see cref="FullNames.Traits"/>-style row-name arrays). Same rationale as
+    /// <see cref="FindOrCreate"/>, but arrays need both an item type on the property and a
+    /// matching type parameter on the owning tag, so they can't share that helper.
+    /// </summary>
+    private static ArrayProperty? FindOrCreateNameArray(IList<FPropertyTag> tags, string prefix, string? createFullName)
+    {
+        if (tags.FindByPrefix(prefix)?.Property is ArrayProperty existing) return existing;
+        if (createFullName is null) return null;
+
+        var name = new FString(createFullName);
+        var itemType = new FPropertyTypeName(new FString(nameof(NameProperty)));
+        var type = new FPropertyTypeName(new FString(nameof(ArrayProperty)), new[] { itemType });
+        var property = new ArrayProperty(name, itemType) { Value = Array.Empty<FString>() };
         tags.Add(new FPropertyTag(name, type, EPropertyTagFlags.None) { Property = property });
         return property;
     }
