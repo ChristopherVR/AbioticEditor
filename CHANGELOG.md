@@ -2,9 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [1.20.4] - 2026-07-08
+
+### Miscellaneous Tasks
+- Point bucket at v1.20.3 [skip ci]
+
+
 ## [1.20.3] - 2026-07-02
 
 ### Bug Fixes
+- Fix new traits not saving for characters who started with none
 - Fix a save-corrupting bug in the offline Oodle library caching
 
 
