@@ -296,6 +296,74 @@ public class MissingTagWriteTests
     }
 
     // =====================================================================
+    // Writer: Skills_ - CurrentSkillXP_ / CurrentXPMultiplier_ (per-skill XP rate). An
+    // untouched skill sits at its blueprint default (0 XP, 1.0 multiplier) and can carry
+    // neither tag, so editing either needs the same create-on-miss treatment.
+    // =====================================================================
+
+    private static IList<FPropertyTag>? GetSkillStruct(SaveGame save, int index)
+    {
+        var tag = FindByPrefix(GetCharacterSaveData(save), "Skills_");
+        if (tag?.Property is not ArrayProperty array || array.Value is null) return null;
+        return array.Value.GetValue(index) is StructProperty sp && sp.Value is PropertiesStruct ps
+            ? ps.Properties
+            : null;
+    }
+
+    [Fact]
+    public void Writer_MissingSkillXpAndMultiplierTags_CreatesTagsAndPersists()
+    {
+        Assert.NotNull(Fixtures.CascadeDir);
+        Assert.True(File.Exists(CascadePlayerSavePath));
+
+        var save = PlayerSaveReader.ReadFromFile(CascadePlayerSavePath);
+
+        // Simulate an untouched skill: physically remove both tags from index 2.
+        var skillStruct = GetSkillStruct(save.Raw, 2)!;
+        skillStruct.Remove(FindByPrefix(skillStruct, "CurrentSkillXP_")!);
+        skillStruct.Remove(FindByPrefix(skillStruct, "CurrentXPMultiplier_")!);
+        Assert.Null(FindByPrefix(skillStruct, "CurrentSkillXP_"));
+        Assert.Null(FindByPrefix(skillStruct, "CurrentXPMultiplier_"));
+
+        var updated = save.Skills
+            .Select(s => s.Index == 2 ? s with { Xp = SkillCatalog.XpForLevel(5), XpMultiplier = 3f } : s)
+            .ToList();
+        PlayerSaveWriter.ApplySkills(save, updated);
+
+        var tmp = Path.Combine(Path.GetTempPath(), $"abiotic-missingskilltag-{Guid.NewGuid():N}.sav");
+        try
+        {
+            PlayerSaveWriter.WriteToFile(save, tmp);
+
+            var reread = PlayerSaveReader.ReadFromFile(tmp);
+            Assert.Equal(SkillCatalog.XpForLevel(5), reread.Skills[2].Xp);
+            Assert.Equal(3f, reread.Skills[2].XpMultiplier);
+
+            // Untouched neighbours keep their values.
+            Assert.Equal(save.Skills[0].Xp, reread.Skills[0].Xp);
+            Assert.Equal(save.Skills[0].XpMultiplier, reread.Skills[0].XpMultiplier);
+
+            // The created tags carry the exact blueprint names the game looks up.
+            var rereadSkillStruct = GetSkillStruct(reread.Raw, 2)!;
+            var xpTag = FindByPrefix(rereadSkillStruct, "CurrentSkillXP_");
+            var multTag = FindByPrefix(rereadSkillStruct, "CurrentXPMultiplier_");
+            Assert.NotNull(xpTag);
+            Assert.NotNull(multTag);
+            Assert.Equal("CurrentSkillXP_20_8F7934CD4A4542F036AE5C9649362556", xpTag!.Name.Value);
+            Assert.Equal("CurrentXPMultiplier_15_9DA8B8A24B4F5B134743CDBE828520F0", multTag!.Name.Value);
+
+            using var ms = new MemoryStream();
+            reread.Raw.WriteTo(ms);
+            Assert.True(ms.ToArray().AsSpan().SequenceEqual(File.ReadAllBytes(tmp)), "rewritten save no longer round-trips");
+        }
+        finally
+        {
+            File.Delete(tmp);
+            File.Delete(tmp + ".bak");
+        }
+    }
+
+    // =====================================================================
     // Probe (documentation): exact tag metadata the writer's FullNames came from
     // =====================================================================
 

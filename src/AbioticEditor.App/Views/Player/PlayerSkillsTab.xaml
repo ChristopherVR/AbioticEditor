@@ -46,7 +46,7 @@
                                 StrokeThickness="1" StrokeShape="RoundRectangle 6"
                                 Padding="14,12"
                                 ToolTipProperties.Text="{Binding Description}">
-                            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
 
                                 <!-- Header: icon · name+passive · LV entry · MAX -->
                                 <Grid Grid.Row="0" ColumnDefinitions="40,*,Auto,64,Auto" ColumnSpacing="10">
@@ -107,9 +107,26 @@
                                            VerticalOptions="Center" />
                                 </Grid>
 
+                                <!-- Per-skill XP gain rate: 100% is normal, higher/lower re-balances
+                                     how fast this specific skill levels relative to the rest. -->
+                                <Grid Grid.Row="2" ColumnDefinitions="Auto,70,Auto,*" ColumnSpacing="8">
+                                    <Label Grid.Column="0" Text="{loc:Localize PlayerSkills_XpRate}"
+                                           Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
+                                    <Entry Grid.Column="1"
+                                           Text="{Binding MultiplierPercent, Mode=TwoWay}"
+                                           Keyboard="Numeric"
+                                           FontFamily="Digital7" FontSize="13"
+                                           TextColor="{StaticResource AfTerminalGreen}"
+                                           HorizontalTextAlignment="Center"
+                                           ToolTipProperties.Text="{loc:Localize PlayerSkills_XpRateTooltip}"
+                                           VerticalOptions="Center" />
+                                    <Label Grid.Column="2" Text="%" Style="{StaticResource AfStatusText}"
+                                           VerticalOptions="Center" />
+                                </Grid>
+
                                 <!-- Milestone track: each perk with its effect spelled out.
                                      Filled = unlocked at the current level. -->
-                                <FlexLayout Grid.Row="2" Wrap="Wrap" Direction="Row"
+                                <FlexLayout Grid.Row="3" Wrap="Wrap" Direction="Row"
                                             BindableLayout.ItemsSource="{Binding Milestones}"
                                             IsVisible="{Binding HasMilestones}">
                                     <BindableLayout.ItemTemplate>

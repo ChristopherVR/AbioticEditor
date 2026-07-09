@@ -103,6 +103,17 @@ public sealed class SkillViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// XP gain rate as a player-facing percentage (100 = normal, matching
+    /// <see cref="Multiplier"/> == 1.0). Lets a save be tuned per skill, e.g. dialing
+    /// Sprinting down and Throwing up instead of the game's single global XP-rate slider.
+    /// </summary>
+    public float MultiplierPercent
+    {
+        get => _multiplier * 100f;
+        set => Multiplier = Math.Max(0, value) / 100f;
+    }
+
     /// <summary>0..1 progress toward the next level (1.0 at max level).</summary>
     public double LevelProgress
     {
@@ -170,8 +181,8 @@ public sealed class SkillViewModel : INotifyPropertyChanged
     {
         foreach (var p in new[]
         {
-            nameof(Xp), nameof(XpSliderValue), nameof(Level), nameof(Multiplier), nameof(LevelProgress),
-            nameof(XpText), nameof(IsMaxed), nameof(IsDirty),
+            nameof(Xp), nameof(XpSliderValue), nameof(Level), nameof(Multiplier), nameof(MultiplierPercent),
+            nameof(LevelProgress), nameof(XpText), nameof(IsMaxed), nameof(IsDirty),
         })
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(p));

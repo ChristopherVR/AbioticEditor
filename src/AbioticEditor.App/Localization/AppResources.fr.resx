@@ -227,6 +227,8 @@ Mondes : conteneurs · indicateurs de quête · portes · objets au sol · progr
   <data name="PlayerSkills_MilestoneHelp" xml:space="preserve"><value>Touchez un palier pour son détail complet dans le panneau d'emplacement. Le nombre de paliers varie selon la compétence, et les aptitudes verrouillées restent scellées (cachées en jeu) jusqu'à ce que vous atteigniez le niveau - ou touchez-en une pour outrepasser l'autorisation.</value></data>
   <data name="PlayerSkills_RawXpTooltip" xml:space="preserve"><value>XP brut ; le niveau s'en redéduit.</value></data>
   <data name="PlayerSkills_Skills" xml:space="preserve"><value>COMPÉTENCES</value></data>
+  <data name="PlayerSkills_XpRate" xml:space="preserve"><value>TAUX D'XP</value></data>
+  <data name="PlayerSkills_XpRateTooltip" xml:space="preserve"><value>Vitesse à laquelle cette compétence gagne de l'XP. 100 % est normal ; augmentez pour progresser plus vite, baissez pour ralentir.</value></data>
   <data name="PlayerSkills_XpSliderTooltip" xml:space="preserve"><value>Glissez pour définir l'XP brut - le niveau s'en redéduit.</value></data>
 
   <!-- PlayerSpawn -->

@@ -227,6 +227,8 @@ Mundos: contenedores · indicadores de misión · puertas · objetos en el suelo
   <data name="PlayerSkills_MilestoneHelp" xml:space="preserve"><value>Toca un hito para ver su detalle completo en el panel de ranura. El número de hitos varía por habilidad, y las ventajas bloqueadas permanecen selladas (ocultas en el juego) hasta que alcanzas el nivel - o toca una para anular el desbloqueo.</value></data>
   <data name="PlayerSkills_RawXpTooltip" xml:space="preserve"><value>XP cruda; el nivel se vuelve a derivar de ella.</value></data>
   <data name="PlayerSkills_Skills" xml:space="preserve"><value>HABILIDADES</value></data>
+  <data name="PlayerSkills_XpRate" xml:space="preserve"><value>RITMO DE XP</value></data>
+  <data name="PlayerSkills_XpRateTooltip" xml:space="preserve"><value>Qué tan rápido gana XP esta habilidad. 100% es lo normal; súbelo para subir de nivel más rápido, bájalo para ir más despacio.</value></data>
   <data name="PlayerSkills_XpSliderTooltip" xml:space="preserve"><value>Arrastra para fijar la XP cruda - el nivel se vuelve a derivar de ella.</value></data>
 
   <!-- PlayerSpawn -->

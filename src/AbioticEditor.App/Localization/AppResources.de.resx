@@ -227,6 +227,8 @@ Welten: Behälter · Quest-Flags · Türen · Bodengegenstände · Story-Fortsch
   <data name="PlayerSkills_MilestoneHelp" xml:space="preserve"><value>Tippen Sie einen Meilenstein an, um seine vollständigen Details im Slot-Panel zu sehen. Die Anzahl der Meilensteine variiert je Fähigkeit, und gesperrte Vorteile bleiben versiegelt (im Spiel verborgen), bis Sie die Stufe erreichen - oder tippen Sie einen an, um die Freigabe zu überschreiben.</value></data>
   <data name="PlayerSkills_RawXpTooltip" xml:space="preserve"><value>Roh-XP; die Stufe wird daraus neu abgeleitet.</value></data>
   <data name="PlayerSkills_Skills" xml:space="preserve"><value>FÄHIGKEITEN</value></data>
+  <data name="PlayerSkills_XpRate" xml:space="preserve"><value>XP-RATE</value></data>
+  <data name="PlayerSkills_XpRateTooltip" xml:space="preserve"><value>Wie schnell diese Fähigkeit XP verdient. 100 % ist normal; erhöhen Sie den Wert, damit die Fähigkeit schneller aufsteigt, oder senken Sie ihn, um sie zu verlangsamen.</value></data>
   <data name="PlayerSkills_XpSliderTooltip" xml:space="preserve"><value>Ziehen, um Roh-XP festzulegen - die Stufe wird daraus neu abgeleitet.</value></data>
 
   <!-- PlayerSpawn -->

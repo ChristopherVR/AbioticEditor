@@ -51,6 +51,11 @@ public static class PlayerSaveWriter
         // A character created without any traits never gets a Traits_ tag at all (an
         // empty array is the blueprint default), so ApplyTraits needs create-on-miss too.
         public const string Traits = "Traits_15_0039F2B34D2A43327122E9960B328E55";
+
+        // Abiotic_CharacterSkill_Struct members (inside the Skills_ array). Verified
+        // identical across all fixture player saves.
+        public const string CurrentSkillXp = "CurrentSkillXP_20_8F7934CD4A4542F036AE5C9649362556";
+        public const string CurrentXPMultiplier = "CurrentXPMultiplier_15_9DA8B8A24B4F5B134743CDBE828520F0";
     }
 
     private static string ArrayPrefixFor(PetSlotKind kind) => kind switch
@@ -392,7 +397,10 @@ public static class PlayerSaveWriter
     /// Patches the positional <c>Skills_</c> array from <paramref name="updated"/>.
     /// Skills are matched by array index; only <c>CurrentSkillXP_</c> and
     /// <c>CurrentXPMultiplier_</c> are written (the SkillName text fields are inert
-    /// blueprint defaults the game ignores). Out-of-range entries are skipped.
+    /// blueprint defaults the game ignores). Both fields sit at their blueprint default
+    /// (0 XP, 1.0 multiplier) on an untouched skill and can be omitted from the save, so
+    /// both use create-on-miss (see <see cref="FullNames"/>). Out-of-range entries are
+    /// skipped.
     /// </summary>
     public static void ApplySkills(PlayerSaveData data, IReadOnlyList<PlayerSkill> updated)
     {
@@ -406,8 +414,8 @@ public static class PlayerSaveWriter
             if (array.Value.GetValue(skill.Index) is not StructProperty sp || sp.Value is not PropertiesStruct ps)
                 continue;
 
-            SetFloat(ps.Properties, "CurrentSkillXP_", skill.Xp);
-            SetFloat(ps.Properties, "CurrentXPMultiplier_", skill.XpMultiplier);
+            SetFloat(ps.Properties, "CurrentSkillXP_", skill.Xp, FullNames.CurrentSkillXp);
+            SetFloat(ps.Properties, "CurrentXPMultiplier_", skill.XpMultiplier, FullNames.CurrentXPMultiplier);
         }
     }
 

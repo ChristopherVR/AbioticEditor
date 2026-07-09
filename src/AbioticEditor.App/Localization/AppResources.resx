@@ -279,6 +279,8 @@ Worlds: containers · quest flags · doors · ground items · story progression<
   <data name="PlayerSkills_MilestoneHelp" xml:space="preserve"><value>Tap a milestone for its full detail in the slot panel. Milestone counts vary per skill, and locked perks stay sealed (hidden in-game) until you reach the level - or tap one to override clearance.</value></data>
   <data name="PlayerSkills_RawXpTooltip" xml:space="preserve"><value>Raw XP; level re-derives from it.</value></data>
   <data name="PlayerSkills_Skills" xml:space="preserve"><value>SKILLS</value></data>
+  <data name="PlayerSkills_XpRate" xml:space="preserve"><value>XP RATE</value></data>
+  <data name="PlayerSkills_XpRateTooltip" xml:space="preserve"><value>How fast this skill earns XP. 100% is normal; raise it to level this skill faster, lower it to slow it down.</value></data>
   <data name="PlayerSkills_XpSliderTooltip" xml:space="preserve"><value>Drag to set raw XP - the level re-derives from it.</value></data>
 
   <!-- PlayerSpawn -->
