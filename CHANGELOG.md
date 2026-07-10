@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here.
 
+## [1.22.0] - 2026-07-10
+
+### Bug Fixes
+- Big Hive Larva's unlock condition now actually triggers, trader list scrolls properly
+
+
+### Features
+- Add Russian, fix several language bugs, and translate trader/story text that always stayed in English
+
+
+### Miscellaneous Tasks
+- Point bucket at v1.21.2 [skip ci]
+
+
 ## [1.21.2] - 2026-07-10
 
 ### Bug Fixes
