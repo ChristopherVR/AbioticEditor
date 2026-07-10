@@ -133,9 +133,25 @@ There is also a command-line version for scripting and server admins, and the pl
 [*][b]Getting started:[/b] https://christophervr.github.io/AbioticEditor/guide/getting-started
 [*][b]Game Pass saves:[/b] https://christophervr.github.io/AbioticEditor/guide/game-pass
 [*][b]Plugins / custom tools:[/b] https://christophervr.github.io/AbioticEditor/plugins
+[*][b]Reporting a bug:[/b] https://christophervr.github.io/AbioticEditor/guide/desktop-app#reporting-a-bug
 [*][b]Source code and releases:[/b] https://github.com/ChristopherVR/AbioticEditor
 [/list]
 
-If something looks wrong or you have a question, please post in the POSTS tab or open an issue on GitHub. Bug reports and ideas are very welcome.
+[line]
+
+[size=5][b]Something not working?[/b][/size]
+
+The fastest way to get a bug fixed is to include the editor's log file:
+
+[list=1]
+[*]Open [b]Settings[/b] then [b]Diagnostics[/b] and turn on [b]Diagnostic logging[/b] (it's off by default).
+[*]Reproduce the problem: reload the save, make the edit, whatever triggered it.
+[*]Back in [b]Settings ▸ Diagnostics[/b], click [b]OPEN LOG FOLDER[/b]. This opens [b]%LOCALAPPDATA%\AbioticEditor\logs[/b] in your file manager; the newest [b]editor-YYYYMMDD.log[/b] is today's.
+[*]Attach that file to your report, along with the editor version, whether your save is Steam or Game Pass, and what you were doing when it happened.
+[/list]
+
+Crashes and save-write failures are logged even with diagnostics off, so the log folder is worth checking either way.
+
+Please report it in the POSTS tab here, or open an issue on GitHub (there's a bug report template that walks through the steps above). Bug reports and ideas are very welcome.
 
 [center][i]A fan-made tool. Not affiliated with or endorsed by the developers of Abiotic Factor.[/i][/center]

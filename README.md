@@ -201,6 +201,23 @@ shows "Windows protected your PC", click **More info ▸ Run anyway**.
 The editor also detects client and server save folders on your machine automatically and
 lists them on the welcome screen, so you can usually just click **LOAD** instead of browsing.
 
+### Getting help / reporting a bug
+
+If something looks wrong, the fastest way to get it fixed is to include the editor's log file:
+
+1. **Settings ▸ Diagnostics** and turn on **Diagnostic logging** (it's off by default).
+2. Reproduce the problem.
+3. Back in **Settings ▸ Diagnostics**, click **OPEN LOG FOLDER**. This opens
+   `%LOCALAPPDATA%\AbioticEditor\logs`; the newest `editor-YYYYMMDD.log` is today's.
+4. Attach that file to your report, along with the editor version, whether your save is Steam
+   or Game Pass, and what you were doing when it happened.
+
+Crashes and write failures are logged even with diagnostics off, so it's worth checking the
+folder either way. Report it on **[GitHub Issues](https://github.com/ChristopherVR/AbioticEditor/issues/new/choose)**
+(there's a bug report template that walks through all of this), or on the
+**[Nexus Mods page](https://www.nexusmods.com/abioticfactor/mods/244?tab=posts)** if you'd
+rather not use GitHub. Full walkthrough: **[Reporting a bug](https://christophervr.github.io/AbioticEditor/guide/desktop-app#reporting-a-bug)**.
+
 ## The command-line tool
 
 Everything the app does to a save, it does through a shared engine, and that same engine

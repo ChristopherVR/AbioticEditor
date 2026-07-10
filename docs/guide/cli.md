@@ -45,6 +45,14 @@ abioticeditor <plugin-command> ...               # plugin console commands are t
 See **[Plugins & language packs](/guide/plugins)** for installing and running plugins, or the
 **[plugin development](/reference/plugin-system)** reference for authoring your own.
 
+## Reporting a bug
+
+The CLI shares the app's log folder, `%LOCALAPPDATA%\AbioticEditor\logs`: errors are always
+written there, even from the CLI, since there's no Settings toggle to switch on. If a command
+fails unexpectedly, check the newest `editor-YYYYMMDD.log` there and attach it to your report.
+See [Reporting a bug](/guide/desktop-app#reporting-a-bug) for the full checklist (editor
+version, platform, save source) and where to send it.
+
 ## Updating
 
 ```console

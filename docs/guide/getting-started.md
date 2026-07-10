@@ -95,3 +95,4 @@ Save kinds you'll see: `Player_<steamid64>.sav`, `WorldSave_<Region>.sav`, and
 - **[Desktop app](/guide/desktop-app)**: the point-and-click editor.
 - **[Command-line tool](/guide/cli)**: scripting and server admin.
 - **[Plugins & language packs](/guide/plugins)**: install community tools and translations.
+- **Something not working?** See [Reporting a bug](/guide/desktop-app#reporting-a-bug).

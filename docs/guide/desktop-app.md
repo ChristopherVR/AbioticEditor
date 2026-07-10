@@ -144,7 +144,9 @@ The **Settings** sheet (bottom-right) covers:
 - **Theme**: Facility Blue or Hazard Orange, plus a light-mode toggle. Switching rebuilds the
   UI live without losing your loaded save or staged edits.
 - **Diagnostics**: opt-in logging that traces every staged change and records any save
-  content this build doesn't recognise.
+  content this build doesn't recognise. Off by default. Turn it on, reproduce the problem,
+  then click **OPEN LOG FOLDER** to jump straight to the log file if you need to send it in
+  a bug report (see [Reporting a bug](#reporting-a-bug) below).
 - **Spoiler protection**: seals content you haven't reached yet (future quest flags, traders,
   recipes, hidden achievements, codex entries) behind a `CLASSIFIED` stamp. Tap a sealed item
   to reveal it; revealed items stay visible. Re-seal them all at any time.
@@ -212,3 +214,27 @@ file lives, how to dump a new one) is in [Keeping game data current](/guide/game
 The app checks GitHub Releases from its **Settings ▸ Updates** card. When a newer build is
 available it downloads the matching asset and replaces the running install in place, with no
 installer and no admin prompt.
+
+## Reporting a bug
+
+If something looks wrong, the fastest way to get it fixed is to include the editor's log file.
+
+1. **Settings ▸ Diagnostics** and turn on **Diagnostic logging** (it's off by default, so
+   nothing is recorded until you flip this on).
+2. Reproduce the problem: reload the save, make the edit, whatever triggered it.
+3. Back in **Settings ▸ Diagnostics**, click **OPEN LOG FOLDER**. This opens
+   `%LOCALAPPDATA%\AbioticEditor\logs` in your file manager; the newest `editor-YYYYMMDD.log`
+   is today's.
+4. Attach that file to your report, along with what you were doing when it happened, whether
+   your save is Steam or Game Pass, and the editor version (app title bar, or Settings ▸
+   Updates).
+
+::: tip Crashes and write failures are always logged
+Errors are logged even with diagnostic logging switched off, so the log folder is worth
+checking even if you forgot to turn diagnostics on beforehand.
+:::
+
+Report it on **[GitHub Issues](https://github.com/ChristopherVR/AbioticEditor/issues/new/choose)**
+(there's a bug report template that walks through all of this), or in the **POSTS** tab on the
+[Nexus Mods page](https://www.nexusmods.com/abioticfactor/mods/244?tab=posts) if you'd rather
+not use GitHub. Bug reports and ideas are welcome either way.
