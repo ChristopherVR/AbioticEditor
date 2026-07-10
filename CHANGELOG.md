@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [1.21.0] - 2026-07-10
+
+### Features
+- Let you set a per-skill XP rate
+
+
+### Miscellaneous Tasks
+- Point bucket at v1.20.4 [skip ci]
+
+
 ## [1.20.4] - 2026-07-08
 
 ### Miscellaneous Tasks
