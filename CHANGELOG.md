@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [1.21.1] - 2026-07-10
+
+### Documentation
+- Explain how to grab the diagnostic log when reporting a bug
+
+
 ## [1.21.0] - 2026-07-10
 
 ### Features
