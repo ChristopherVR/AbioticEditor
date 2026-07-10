@@ -37,22 +37,110 @@ public sealed class SettingsPage : ContentPage
     /// <summary>
     /// Re-reads the current language when this sheet reappears (e.g. after the LanguagePage
     /// chooser pops). LanguagePage applies the language live with no callback, so this is where
-    /// we notice the change, log it, and refresh the read-only language label.
+    /// we notice the change, log it, and offer to sync the game-data language. Afterwards the
+    /// whole sheet is rebuilt in place (like <see cref="ApplyTheme"/> does for a theme change) -
+    /// this is code-built UI with plain <c>Text = loc[...]</c> assignments, not live
+    /// <c>{loc:Localize}</c> bindings, so nothing here re-localizes on its own; without the
+    /// rebuild every card/button/tab label on this sheet stayed in the old language until the
+    /// user closed and reopened Settings.
     /// </summary>
-    private void OnAppearing(object? sender, EventArgs e)
+    private async void OnAppearing(object? sender, EventArgs e)
     {
         var current = Services.LocalizationService.CurrentCode;
         if (current != _languageCode)
         {
-            EditorLog.Info("Settings", $"Language changed from {_languageCode} to {current}");
+            var previous = _languageCode;
+            EditorLog.Info("Settings", $"Language changed from {previous} to {current}");
             _languageCode = current;
-            // Re-localize the whole UI when this sheet closes (live bindings don't refresh).
+            // Re-localize the whole UI when this sheet closes too (other open pages need the
+            // host rebuild; this sheet re-localizes itself below).
             _languageChanged = true;
+
+            var pinned = Services.GameDataServices.GameDataLanguage;
+            if (pinned is null)
+            {
+                await OfferGameDataLanguageSyncAsync(previous, current);
+            }
+            else
+            {
+                await OfferPinnedGameDataLanguageUpdateAsync(pinned, current);
+            }
+
+            BackgroundColor = (Color)Application.Current!.Resources["AfPageBackground"];
+            Content = BuildContent();
+            return;
         }
         if (_languageValueLabel is not null)
         {
             _languageValueLabel.Text = CurrentLanguageName();
         }
+    }
+
+    /// <summary>
+    /// Asks whether to also switch item/trait/skill names to the just-picked UI language (only
+    /// reachable while <see cref="Services.GameDataServices.GameDataLanguage"/> is "auto" - an
+    /// explicit override is left alone). Yes reloads game data now (auto already targets the new
+    /// language, it just needs remounting); No pins the game-data language to whatever it was
+    /// using before, so it stops silently following future UI language changes.
+    /// </summary>
+    private async Task OfferGameDataLanguageSyncAsync(string previousUiCode, string newUiCode)
+    {
+        var loc = Services.LocalizationResourceManager.Instance;
+        var newGameCulture = Services.GameDataServices.MapUiLanguageToGameCulture(newUiCode);
+        var displayName = GameDataLanguageDisplayName(newGameCulture);
+
+        var sync = await this.ConfirmAsync(
+            loc["GameDataSettings_SyncLanguageTitle"],
+            loc.Format("GameDataSettings_SyncLanguageMessage", displayName),
+            loc["GameDataSettings_SyncLanguageAccept"],
+            loc["Common_Cancel"]);
+
+        if (!sync)
+        {
+            // Stop auto-following: pin to the culture it was already effectively using.
+            Services.GameDataServices.GameDataLanguage = Services.GameDataServices.MapUiLanguageToGameCulture(previousUiCode);
+            return;
+        }
+
+        await BlockingBusyPage.RunAsync(this, loc["GameDataSettings_ReloadingGameData"], _vm.ReloadGameDataAsync);
+    }
+
+    /// <summary>
+    /// Asks whether to also move an already-pinned game-data language to match the just-picked
+    /// UI language (only reached when <see cref="Services.GameDataServices.GameDataLanguage"/>
+    /// is an explicit override, not "auto" - see <see cref="OfferGameDataLanguageSyncAsync"/> for
+    /// that path). No-op when the pin already matches (or the game's culture list isn't known
+    /// yet - nothing to offer). Declining leaves the pin exactly as it was.
+    /// </summary>
+    private async Task OfferPinnedGameDataLanguageUpdateAsync(string pinnedCulture, string newUiCode)
+    {
+        var loc = Services.LocalizationResourceManager.Instance;
+        var mapped = Services.GameDataServices.MapUiLanguageToGameCulture(newUiCode);
+        if (string.Equals(mapped, pinnedCulture, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+        // Nothing to switch to if the game's own culture list isn't known (no game data loaded
+        // yet) or doesn't include the mapped culture at all.
+        if (!Services.GameDataServices.AvailableGameDataLanguages.Contains(mapped, StringComparer.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var displayName = GameDataLanguageDisplayName(mapped);
+        var sync = await this.ConfirmAsync(
+            loc["GameDataSettings_SyncLanguageTitle"],
+            loc.Format("GameDataSettings_SyncLanguageMessage", displayName),
+            loc["GameDataSettings_SyncLanguageAccept"],
+            loc["Common_Cancel"]);
+
+        if (!sync)
+        {
+            return;
+        }
+
+        Services.GameDataServices.GameDataLanguage = mapped;
+        await BlockingBusyPage.RunAsync(this, loc["GameDataSettings_ReloadingGameData"], _vm.ReloadGameDataAsync);
     }
 
     /// <summary>Native display name for the current language (falls back to the raw code).</summary>
@@ -98,6 +186,7 @@ public sealed class SettingsPage : ContentPage
         };
         languageRow.Add(_languageValueLabel, 0, 0);
         languageRow.Add(changeLanguageButton, 1, 0);
+
         var languageCard = ModalChrome.Card(loc["Settings_Language"], loc["Settings_Language_Hint"],
             languageRow);
 
@@ -231,6 +320,10 @@ public sealed class SettingsPage : ContentPage
         };
         var locateFolder = new Button { Text = loc["GameDataSettings_SetGameFolder"] };
         var autoDetect = ModalChrome.Button(loc["GameDataSettings_UseAutoDetect"], primary: false);
+        // Item/trait/skill/recipe names read from the game's own data - separate from the
+        // editor's own UI language, since the game ships a different culture set (es-419, ja,
+        // pt-BR, zh-Hans/Hant, ...) than the editor's UI translations do.
+        var languagePicker = new Picker { Title = loc["GameDataSettings_LanguageTitle"] };
 
         void Refresh()
         {
@@ -260,14 +353,16 @@ public sealed class SettingsPage : ContentPage
 
         Refresh();
 
-        // Reload game data in place after a folder/auto-detect change so the catalogs fill in
-        // (or empty out) without relaunching. Already-open editor views cache their catalog-
-        // derived state, so we ask the user to reopen the save to see traders/icons refresh.
+        // Reload game data in place after a folder/auto-detect/language change so the catalogs
+        // fill in (or empty out) without relaunching. Remounting the paks and re-parsing every
+        // data table takes a few seconds; a blocking overlay covers the whole sheet meanwhile so
+        // the user can't dodge around it (switch tabs, hit CLOSE, back out) and land the picker
+        // or reload state in an inconsistent spot. Already-open editor views cache their
+        // catalog-derived state, so we ask the user to reopen the save to see traders/icons
+        // refresh.
         async Task ApplyAndReloadAsync(string okTitle)
         {
-            // Goes through the view-model so the searchable item palette is rebuilt from the new
-            // catalog too - GameDataServices.ReloadAsync alone leaves the picker on stale data.
-            await _vm.ReloadGameDataAsync();
+            await BlockingBusyPage.RunAsync(this, loc["GameDataSettings_ReloadingGameData"], _vm.ReloadGameDataAsync);
             Refresh();
             await this.AlertAsync(okTitle,
                 Services.GameDataServices.IsGameDataLoaded
@@ -312,6 +407,37 @@ public sealed class SettingsPage : ContentPage
 
         var importUsmap = new Button { Text = loc["GameDataSettings_ImportDataFile"], Command = _vm.ImportMappingsCommand };
 
+        void RefreshLanguagePicker()
+        {
+            var available = Services.GameDataServices.AvailableGameDataLanguages;
+            var options = new List<string> { loc["GameDataSettings_LanguageAuto"] };
+            options.AddRange(available.Select(GameDataLanguageDisplayName));
+            languagePicker.ItemsSource = options;
+
+            var saved = Services.GameDataServices.GameDataLanguage;
+            var savedIndex = saved is null
+                ? -1
+                : available.ToList().FindIndex(c => string.Equals(c, saved, StringComparison.OrdinalIgnoreCase));
+            languagePicker.SelectedIndex = savedIndex < 0 ? 0 : savedIndex + 1;
+        }
+        RefreshLanguagePicker();
+
+        languagePicker.SelectedIndexChanged += async (_, _) =>
+        {
+            var available = Services.GameDataServices.AvailableGameDataLanguages;
+            var idx = languagePicker.SelectedIndex;
+            var newCulture = idx <= 0 || idx - 1 >= available.Count ? null : available[idx - 1];
+            if (string.Equals(newCulture, Services.GameDataServices.GameDataLanguage, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+            Services.GameDataServices.GameDataLanguage = newCulture;
+            await ApplyAndReloadAsync(loc["GameDataSettings_LanguageSetTitle"]);
+            RefreshLanguagePicker();
+        };
+
+        var languageRow = LabeledRow(loc["GameDataSettings_LanguageTitle"], languagePicker);
+
         // Each action sits beside the line it acts on: the folder buttons next to the game-folder
         // path, the usmap import next to the data-file line.
         var folderRow = new Grid
@@ -335,8 +461,26 @@ public sealed class SettingsPage : ContentPage
             loc["GameDataSettings_CardHint"],
             status,
             folderRow,
-            usmapRow);
+            usmapRow,
+            languageRow);
     }
+
+    /// <summary>Native display name for a game-data culture code; falls back to the code itself.</summary>
+    private static readonly Dictionary<string, string> GameDataLanguageNativeNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["en"] = "English",
+        ["de"] = "Deutsch",
+        ["es-419"] = "Español (Latinoamérica)",
+        ["fr"] = "Français",
+        ["ja"] = "日本語",
+        ["pt-BR"] = "Português (Brasil)",
+        ["ru"] = "Русский",
+        ["zh-Hans"] = "简体中文",
+        ["zh-Hant"] = "繁體中文",
+    };
+
+    private static string GameDataLanguageDisplayName(string culture)
+        => GameDataLanguageNativeNames.TryGetValue(culture, out var name) ? name : culture;
 
     /// <summary>
     /// The MODS card: a master "load mods" switch plus one toggle per mod installed under the game's
@@ -358,13 +502,13 @@ public sealed class SettingsPage : ContentPage
         var statusLine = new Label { Style = ModalChrome.St("AfMuted"), FontSize = 11 };
         var modsList = new VerticalStackLayout { Spacing = 6 };
 
-        // Reload after any toggle so the catalogs (and the item palette) rebuild without a relaunch.
-        // No popup: the reload can take a moment, so a modal that lands seconds later feels
-        // disconnected from the toggle. The status line below refreshes in place instead.
+        // Reload after any toggle so the catalogs (and the item palette) rebuild without a
+        // relaunch. No completion alert (unlike the Game Data card's folder/language changes):
+        // the status line below refreshes in place instead. The blocking overlay still covers
+        // the reload itself so a toggle mid-reload can't be interrupted by closing the sheet.
         async Task ApplyAndReloadAsync()
         {
-            statusLine.Text = loc["GameDataSettings_ReloadingGameData"];
-            await _vm.ReloadGameDataAsync();
+            await BlockingBusyPage.RunAsync(this, loc["GameDataSettings_ReloadingGameData"], _vm.ReloadGameDataAsync);
             RefreshList();
         }
 
@@ -730,7 +874,9 @@ public sealed class SettingsPage : ContentPage
         return button;
     }
 
-    private static Grid LabeledRow(string label, Switch control)
+    private static Grid LabeledRow(string label, Switch control) => LabeledRow(label, (View)control);
+
+    private static Grid LabeledRow(string label, View control)
     {
         var grid = new Grid
         {

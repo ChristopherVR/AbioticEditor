@@ -90,7 +90,7 @@ public sealed class PaletteItemViewModel : INotifyPropertyChanged
 
     /// <summary>"SOLD BY" - traders that offer this item (barter).</summary>
     public string SoldByText
-        => string.Join(", ", GameDataServices.TradersSelling(Id).Select(t => TraderLore.NameFor(t.Id)).Distinct());
+        => string.Join(", ", GameDataServices.TradersSelling(Id).Select(t => TraderCardViewModel.LocalizedName(t.Id)).Distinct());
 
     public bool HasSoldBy => GameDataServices.TradersSelling(Id).Any();
 

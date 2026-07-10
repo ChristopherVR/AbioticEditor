@@ -127,8 +127,9 @@ public sealed class ItemCatalog
         }
 
         // Supplemental tables - best-effort. Any ItemTable_*.uasset in the same directory
-        // that isn't ItemTable_Global is merged in; rows already in Global are skipped so
-        // Global always wins on conflict.
+        // that isn't ItemTable_Global is merged in for rows Global doesn't have; rows already
+        // in Global keep Global's row data, but their display name/description are relinked
+        // to the supplemental copy (see RelinkLocalizedText below).
         var supplemental = DiscoverSupplementalTables(provider);
         Diagnostics.EditorLog.Info(
             "ItemCatalog",
@@ -145,7 +146,14 @@ public sealed class ItemCatalog
                 foreach (var kv in dt.RowMap)
                 {
                     var id = kv.Key.Text;
-                    if (string.IsNullOrEmpty(id) || dict.ContainsKey(id)) continue;
+                    if (string.IsNullOrEmpty(id)) continue;
+
+                    if (dict.TryGetValue(id, out var existing))
+                    {
+                        dict[id] = RelinkLocalizedText(existing, kv.Value);
+                        continue;
+                    }
+
                     dict[id] = BuildEntry(id, kv.Value);
                     tableRefs[id] = suppRef;
                     added++;
@@ -176,6 +184,33 @@ public sealed class ItemCatalog
             : pkgPath;
         var name = gamePath[(gamePath.LastIndexOf('/') + 1)..];
         return $"{gamePath}.{name}";
+    }
+
+    /// <summary>
+    /// Rewrites <paramref name="original"/>'s display name/description from the given
+    /// supplemental-table row, leaving every other field untouched.
+    /// </summary>
+    /// <remarks>
+    /// <c>ItemTable_Global</c>'s row FText gets re-baked at cook time under a fresh
+    /// namespace/key that Abiotic Factor's shipped locres files never cover - confirmed by a
+    /// live probe against the installed game: with a non-English culture loaded, 0 of 1545
+    /// <c>ItemTable_Global</c> item names differed from their English source string. The
+    /// per-category supplemental table this same row was originally authored in (e.g.
+    /// <c>ItemTable_Gear</c>, <c>ItemTable_Weapons</c>) keeps the row's real namespace/key, which
+    /// the locres does cover. The two copies' <c>ItemName_</c>/<c>ItemDescription_</c> source text
+    /// is byte-identical in English, so preferring the supplemental copy is a no-op under English
+    /// and a real translation under any other loaded culture.
+    /// </remarks>
+    private static ItemCatalogEntry RelinkLocalizedText(ItemCatalogEntry original, FStructFallback row)
+    {
+        var name = ReadText(row, "ItemName_");
+        var description = ReadText(row, "ItemDescription_");
+        if (name is null && description is null) return original;
+        return original with
+        {
+            DisplayName = name ?? original.DisplayName,
+            Description = description ?? original.Description,
+        };
     }
 
     private static ItemCatalogEntry BuildEntry(string id, FStructFallback row)

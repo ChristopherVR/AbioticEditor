@@ -153,7 +153,7 @@ public sealed class RecipeRowViewModel : INotifyPropertyChanged
     public string SoldByText => Info.CreatesItemId is null
         ? string.Empty
         : string.Join(", ", GameDataServices.TradersSelling(Info.CreatesItemId)
-            .Select(t => TraderLore.NameFor(t.Id)).Distinct());
+            .Select(t => TraderCardViewModel.LocalizedName(t.Id)).Distinct());
 
     public bool HasSoldBy => SoldByText.Length > 0;
 

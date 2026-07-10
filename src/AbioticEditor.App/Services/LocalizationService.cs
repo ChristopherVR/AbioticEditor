@@ -22,6 +22,7 @@ public static class LocalizationService
         new LanguageOption("es", "Español"),
         new LanguageOption("fr", "Français"),
         new LanguageOption("de", "Deutsch"),
+        new LanguageOption("ru", "Русский"),
     };
 
     /// <summary>True once the user has explicitly chosen a language (drives the first-run prompt).</summary>

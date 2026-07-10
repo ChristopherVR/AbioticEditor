@@ -23,9 +23,9 @@ public sealed class StoryFlagItemViewModel : INotifyPropertyChanged
     public int Number { get; }
 
     public string NumberText => $"{Number:D2}";
-    public string Title => Chapter.Title;
+    public string Title => Services.LocalizationResourceManager.Instance[$"WorldStory_ChapterTitle_{Chapter.Row}"];
     public string FlagName => Chapter.TriggerFlag ?? string.Empty;
-    public string? Summary => Chapter.Summary;
+    public string? Summary => HasSummary ? Services.LocalizationResourceManager.Instance[$"WorldStory_ChapterSummary_{Chapter.Row}"] : null;
     public bool HasSummary => !string.IsNullOrEmpty(Chapter.Summary);
 
     public bool IsSet

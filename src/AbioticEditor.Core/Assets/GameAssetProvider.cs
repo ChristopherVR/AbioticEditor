@@ -43,6 +43,34 @@ public sealed class GameAssetProvider : IDisposable
     /// <summary>Returns every mounted asset path. Use sparingly - there are ~50k.</summary>
     public IEnumerable<string> AssetPaths => _provider.Files.Keys;
 
+    private static readonly System.Text.RegularExpressions.Regex GameLocresCulturePattern = new(
+        @"^AbioticFactor/Content/Localization/Game/([^/]+)/[^/]+\.locres$",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    /// <summary>
+    /// The culture codes the game itself ships translated text for (read live from the mounted
+    /// paks' <c>Content/Localization/Game/&lt;culture&gt;/Game.locres</c> files), e.g.
+    /// <c>de, en, es-419, fr, ja, pt-BR, ru, zh-Hans, zh-Hant</c>. Independent of which culture
+    /// (if any) was requested via <c>CreateFor*(culture:)</c> - the locres files are mounted
+    /// regardless of which one got loaded into <see cref="GameLocalizationLoader"/>. Used to
+    /// populate a "game data language" picker without hardcoding a list that could go stale on a
+    /// future game patch.
+    /// </summary>
+    public IReadOnlyList<string> DiscoverAvailableCultures()
+    {
+        ThrowIfDisposed();
+        var set = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var path in _provider.Files.Keys)
+        {
+            var match = GameLocresCulturePattern.Match(path);
+            if (match.Success)
+            {
+                set.Add(match.Groups[1].Value);
+            }
+        }
+        return set.ToList();
+    }
+
     /// <summary>
     /// Names of the mods actually mounted from the game's <c>~mods</c>/<c>LogicMods</c> subfolders
     /// (empty when none are present, mods are disabled, or each was individually turned off).
@@ -69,7 +97,13 @@ public sealed class GameAssetProvider : IDisposable
     /// shared <see cref="ModLoadStore.ModsEnabled"/> setting (and the <c>ABIOTIC_NO_MODS</c>
     /// env var) decides.
     /// </param>
-    public static GameAssetProvider? CreateForLocalInstall(string? cacheDir = null, string? mappingsPath = null, bool? includeMods = null)
+    /// <param name="culture">
+    /// A game-shipped culture code (e.g. <c>"ru"</c>) to load item/trait/skill/recipe display
+    /// text in, or null/<c>"en"</c> to leave the baked-in English text as-is. See
+    /// <see cref="GameLocalizationLoader"/> for how this differs from CUE4Parse's own
+    /// (non-working, for this game) <c>ChangeCulture</c>.
+    /// </param>
+    public static GameAssetProvider? CreateForLocalInstall(string? cacheDir = null, string? mappingsPath = null, bool? includeMods = null, string? culture = null)
     {
         var paks = AfInstallLocator.FindPaksDirectory();
         if (paks is null)
@@ -82,7 +116,7 @@ public sealed class GameAssetProvider : IDisposable
         mappingsPath ??= FindConventionalMappings();
         try
         {
-            var provider = CreateForPaks(paks, cacheDir, mappingsPath, includeMods ?? ModLoadStore.ModsEnabled);
+            var provider = CreateForPaks(paks, cacheDir, mappingsPath, includeMods ?? ModLoadStore.ModsEnabled, culture);
             Diagnostics.EditorLog.Info(
                 "Assets",
                 $"Mounted game paks at {paks} (mappings: {(provider.HasMappings ? mappingsPath : "none - raw extraction only")}; "
@@ -155,7 +189,10 @@ public sealed class GameAssetProvider : IDisposable
     /// <c>~mods</c>/<c>LogicMods</c> subfolders are mounted on top of the base game; otherwise only
     /// the base-game paks load. Per-mod enablement is read from <see cref="ModLoadStore"/>.
     /// </summary>
-    public static GameAssetProvider CreateForPaks(string paksDirectory, string? cacheDir = null, string? mappingsPath = null, bool includeMods = true)
+    /// <param name="culture">See <see cref="CreateForLocalInstall"/>. Applied right after mount,
+    /// before any caller can load a DataTable package - required, since <c>FText</c> resolves its
+    /// localized string once, at deserialize time.</param>
+    public static GameAssetProvider CreateForPaks(string paksDirectory, string? cacheDir = null, string? mappingsPath = null, bool includeMods = true, string? culture = null)
     {
 #pragma warning disable CS0618 // see AssetProbeTests for context on the new ctor signature
         // Mount only the base-game paks from the top of the directory; mod paks live in subfolders
@@ -222,6 +259,10 @@ public sealed class GameAssetProvider : IDisposable
         {
             provider.MappingsContainer = new FileUsmapTypeMappingsProvider(mappingsPath);
         }
+
+        // Must happen before any caller loads a DataTable package - FText resolves its
+        // LocalizedString once, at deserialize time, not on later lookup.
+        GameLocalizationLoader.Apply(provider, culture);
 
         return new GameAssetProvider(provider, cache, loadedMods);
     }

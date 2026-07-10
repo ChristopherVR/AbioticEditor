@@ -272,6 +272,7 @@ public sealed class LocalizationTests
     [InlineData("de")]
     [InlineData("es")]
     [InlineData("fr")]
+    [InlineData("ru")]
     public void ShippedLocale_IsWellFormed_CoversNeutralKeys_AndHasNoOrphans(string culture)
     {
         var app = AppDir();

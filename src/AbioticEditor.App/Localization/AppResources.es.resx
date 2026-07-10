@@ -497,6 +497,29 @@ Mundos: contenedores · indicadores de misión · puertas · objetos en el suelo
   <data name="WorldStory_UnlockAll" xml:space="preserve"><value>DESBLOQUEAR TODO</value></data>
   <data name="WorldStory_WhyMetadata" xml:space="preserve"><value>¿Por qué está esto en el archivo de METADATOS? El juego almacena aquí la investigación a nivel mundial (GlobalRecipesUnlocked/Researched): las recetas investigadas una vez en una mesa quedan disponibles para CADA jugador del mundo. El conocimiento de recetas por jugador es independiente: edítalo en la pestaña RECETAS de un guardado de jugador. Desbloquear aquí actualiza tanto la lista de desbloqueadas como la de investigadas.</value></data>
   <data name="WorldStory_WorldRecipes" xml:space="preserve"><value>RECETAS DEL MUNDO</value></data>
+  <data name="WorldStory_StatusDone" xml:space="preserve"><value>HECHO</value></data>
+  <data name="WorldStory_StatusReady" xml:space="preserve"><value>LISTO</value></data>
+  <data name="WorldStory_StatusLocked" xml:space="preserve"><value>BLOQUEADO</value></data>
+  <data name="WorldStory_NeedsFirst" xml:space="preserve"><value>Primero necesita: {0}</value></data>
+  <data name="WorldStory_TriggerFlagLabel" xml:space="preserve"><value>bandera: {0}</value></data>
+  <data name="WorldStory_NoTriggerFlag" xml:space="preserve"><value>Sin bandera de activación (capítulo de estado).</value></data>
+  <data name="WorldStory_FlagSetInSave" xml:space="preserve"><value>{0} - ESTABLECIDA en esta partida</value></data>
+  <data name="WorldStory_FlagNotSet" xml:space="preserve"><value>{0} - no establecida</value></data>
+  <data name="WorldStory_RegionOfficeSector" xml:space="preserve"><value>Sector de Oficinas</value></data>
+  <data name="WorldStory_RegionPortalFlathill" xml:space="preserve"><value>Mundo portal: Flathill</value></data>
+  <data name="WorldStory_RegionManufacturingMines" xml:space="preserve"><value>Manufactura Oeste / Minas</value></data>
+  <data name="WorldStory_RegionThePens" xml:space="preserve"><value>Los Corrales</value></data>
+  <data name="WorldStory_RegionCascadeLabs" xml:space="preserve"><value>Laboratorios Cascade</value></data>
+  <data name="WorldStory_RegionPortalMycofields" xml:space="preserve"><value>Mundo portal: Mycofields</value></data>
+  <data name="WorldStory_RegionSecuritySector" xml:space="preserve"><value>Sector de Seguridad</value></data>
+  <data name="WorldStory_RegionHydroplantDam" xml:space="preserve"><value>Hidroeléctrica / Presa</value></data>
+  <data name="WorldStory_RegionPortalVoussoir" xml:space="preserve"><value>Mundo portal: Voussoir</value></data>
+  <data name="WorldStory_RegionPowerServices" xml:space="preserve"><value>Servicios Eléctricos</value></data>
+  <data name="WorldStory_RegionTheReactors" xml:space="preserve"><value>Los Reactores</value></data>
+  <data name="WorldStory_RegionPortalShadowgate" xml:space="preserve"><value>Mundo portal: Shadowgate</value></data>
+  <data name="WorldStory_RegionResidenceSector" xml:space="preserve"><value>Sector Residencial</value></data>
+  <data name="WorldStory_RegionFinale" xml:space="preserve"><value>Final</value></data>
+  <data name="WorldStory_RegionGateCascadeFacility" xml:space="preserve"><value>Instalación GATE Cascade</value></data>
 
   <!-- GameData -->
   <data name="GameData_BannerTitle" xml:space="preserve"><value>DATOS DEL JUEGO NO DETECTADOS</value></data>
@@ -1764,6 +1787,24 @@ Elige la carpeta de instalación del juego (la que contiene la carpeta AbioticFa
   <data name="GameDataSettings_CardHint" xml:space="preserve">
     <value>Los comerciantes, los iconos de los objetos y las recetas provienen de tu copia instalada del juego, no del guardado. La detección automática encuentra instalaciones de Steam; para una instalación de Game Pass, Epic o movida, establece aquí tu carpeta del juego. Si una actualización del juego impide cargar los datos, importa un archivo de datos actualizado (.usmap).</value>
   </data>
+  <data name="GameDataSettings_LanguageTitle" xml:space="preserve">
+    <value>Idioma de los datos del juego</value>
+  </data>
+  <data name="GameDataSettings_LanguageAuto" xml:space="preserve">
+    <value>Igual que el idioma del editor</value>
+  </data>
+  <data name="GameDataSettings_LanguageSetTitle" xml:space="preserve">
+    <value>Idioma de los datos del juego actualizado</value>
+  </data>
+  <data name="GameDataSettings_SyncLanguageTitle" xml:space="preserve">
+    <value>¿Actualizar el idioma de los datos del juego?</value>
+  </data>
+  <data name="GameDataSettings_SyncLanguageMessage" xml:space="preserve">
+    <value>¿Cambiar también los nombres de objetos, rasgos y habilidades a {0}? Puedes cambiar esto por separado más tarde en Configuración &gt; Datos del juego.</value>
+  </data>
+  <data name="GameDataSettings_SyncLanguageAccept" xml:space="preserve">
+    <value>CAMBIAR</value>
+  </data>
   <data name="GameDataSettings_LoadMods" xml:space="preserve">
     <value>Cargar mods instalados</value>
   </data>
@@ -1951,4 +1992,120 @@ El cambio queda preparado hasta que pulses GUARDAR (REVERTIR lo deshace antes de
   <data name="SteamLogin_SessionReadError" xml:space="preserve">
     <value>No se pudo leer la sesión de inicio ({0}). Cancela y usa VER EN EL NAVEGADOR como alternativa.</value>
   </data>
+  <data name="WorldStory_ChapterTitle_Office" xml:space="preserve"><value>Sector de Oficinas - Llegada</value></data>
+  <data name="WorldStory_ChapterSummary_Office" xml:space="preserve"><value>Día de la brecha de contención. Despiertas en el Sector de Oficinas, recoges tus primeras herramientas, dejas entrar a la Dra. Jager a la cafetería y te presentas ante el oficial de seguridad del sector, Warren.</value></data>
+  <data name="WorldStory_ChapterTitle_Office2" xml:space="preserve"><value>Sector de Oficinas - Silo 3</value></data>
+  <data name="WorldStory_ChapterSummary_Office2" xml:space="preserve"><value>La única salida es a través de Fabricación, pero una carretilla elevadora que sostiene la puerta blindada necesita Celdas de Energía. Grayson te dirige al equipo de investigación energética.</value></data>
+  <data name="WorldStory_ChapterTitle_Office3" xml:space="preserve"><value>Sector de Oficinas - Tranvía restaurado</value></data>
+  <data name="WorldStory_ChapterSummary_Office3" xml:space="preserve"><value>Llegas al tercer piso del Sector de Oficinas y convences a Archie Roberts (o Regal) de abrir el Silo 3, adonde se llevaron las Celdas de Energía.</value></data>
+  <data name="WorldStory_ChapterTitle_Flathill" xml:space="preserve"><value>Mundo Portal: Flathill</value></data>
+  <data name="WorldStory_ChapterSummary_Flathill" xml:space="preserve"><value>El Silo 3 está abierto. Todo apunta al portal que hay dentro: entra en Flathill, una anomalía suburbana ahogada en niebla, para recuperar Celdas de Energía.</value></data>
+  <data name="WorldStory_ChapterTitle_PostFlathill" xml:space="preserve"><value>De vuelta de Flathill</value></data>
+  <data name="WorldStory_ChapterSummary_PostFlathill" xml:space="preserve"><value>Sobreviviste a Flathill y ahora puedes conseguir Celdas de Energía allí. Alimenta la carretilla elevadora y levanta la puerta blindada hacia Fabricación.</value></data>
+  <data name="WorldStory_ChapterTitle_MF" xml:space="preserve"><value>Fabricación Oeste</value></data>
+  <data name="WorldStory_ChapterSummary_MF" xml:space="preserve"><value>Fabricación Oeste está abierta. En algún lugar de este sector hay un túnel hacia la superficie: explora y encuentra tu salida.</value></data>
+  <data name="WorldStory_ChapterTitle_MFBlacksmith" xml:space="preserve"><value>Fabricación - El Herrero</value></data>
+  <data name="WorldStory_ChapterSummary_MFBlacksmith" xml:space="preserve"><value>Conoces al Herrero (Varsha), que conoce el sector: el Túnel de Superficie es la ruta principal de alto tráfico hacia el exterior.</value></data>
+  <data name="WorldStory_ChapterTitle_MFMines" xml:space="preserve"><value>Fabricación - Las Minas</value></data>
+  <data name="WorldStory_ChapterSummary_MFMines" xml:space="preserve"><value>El Túnel de Superficie está bloqueado. Desciendes a las minas bajo Fabricación para encontrar a Frake, que quizá conozca otro camino.</value></data>
+  <data name="WorldStory_ChapterTitle_MFFrake" xml:space="preserve"><value>Fabricación - Frake</value></data>
+  <data name="WorldStory_ChapterSummary_MFFrake" xml:space="preserve"><value>Encontraste a Frake. El plan: conseguir la ayuda del Herrero para forjar piezas y reparar las tres bombas de electrones del sector.</value></data>
+  <data name="WorldStory_ChapterTitle_MFTrain" xml:space="preserve"><value>Fabricación - Estación de Tren</value></data>
+  <data name="WorldStory_ChapterSummary_MFTrain" xml:space="preserve"><value>La estación de tren está abierta, conectando los rincones más lejanos de Fabricación mientras reúnes materiales para las bombas.</value></data>
+  <data name="WorldStory_ChapterTitle_MFPumpsFixed" xml:space="preserve"><value>Fabricación - Bombas de electrones reparadas</value></data>
+  <data name="WorldStory_ChapterSummary_MFPumpsFixed" xml:space="preserve"><value>Las tres bombas de electrones (amarilla, verde, roja) están reparadas. Es hora de activar el Sincrotrón y sobrecargarlo para volar una salida.</value></data>
+  <data name="WorldStory_ChapterTitle_Pens" xml:space="preserve"><value>Los Corrales</value></data>
+  <data name="WorldStory_ChapterSummary_Pens" xml:space="preserve"><value>La sobrecarga del sincrotrón abrió el camino fuera de Fabricación. Emerges en los Laboratorios Cascade a través de los corrales de contención.</value></data>
+  <data name="WorldStory_ChapterTitle_Labs" xml:space="preserve"><value>Laboratorios Cascade</value></data>
+  <data name="WorldStory_ChapterSummary_Labs" xml:space="preserve"><value>Explora el Sector de Laboratorios en busca de una salida; los supervivientes sugieren que los bloques de contención del Ala Interior tienen lo que necesitas.</value></data>
+  <data name="WorldStory_ChapterTitle_Containment" xml:space="preserve"><value>Laboratorios - Contención</value></data>
+  <data name="WorldStory_ChapterSummary_Containment" xml:space="preserve"><value>Estás dentro de los bloques de contención del Ala Interior: experimentos letales, torretas y la ruta hacia el Centro de Control.</value></data>
+  <data name="WorldStory_ChapterTitle_Helmholtz" xml:space="preserve"><value>Laboratorios - Helmholtz</value></data>
+  <data name="WorldStory_ChapterSummary_Helmholtz" xml:space="preserve"><value>El Ala Helmholtz está abierta, el camino hacia el Centro de Control donde se puede reiniciar el sistema de seguridad (y sus torretas).</value></data>
+  <data name="WorldStory_ChapterTitle_Tarasque" xml:space="preserve"><value>Laboratorios - Centro de Control</value></data>
+  <data name="WorldStory_ChapterSummary_Tarasque" xml:space="preserve"><value>A través de la anomalía de la Tienda de Muebles llegas al Centro de Control y reinicias la seguridad: las torretas están apagadas (y has conocido al Tarasque).</value></data>
+  <data name="WorldStory_ChapterTitle_Mycofields" xml:space="preserve"><value>Mundo Portal: Los Micocampos</value></data>
+  <data name="WorldStory_ChapterSummary_Mycofields" xml:space="preserve"><value>El portal a Anteverso 2 está reparado: reúne químicos en la zona de Hongos de los Micocampos para fabricar Antetermita para la puerta de la Cámara de Vacío.</value></data>
+  <data name="WorldStory_ChapterTitle_PostLabs" xml:space="preserve"><value>Hacia el Sector de Seguridad</value></data>
+  <data name="WorldStory_ChapterSummary_PostLabs" xml:space="preserve"><value>La puerta de vacío ha sido forzada: te infiltras en el Sector de Seguridad, con rumbo al Gran Ascensor de Superficie, una de las salidas más seguras de las instalaciones.</value></data>
+  <data name="WorldStory_ChapterTitle_SecSurfaceElevator" xml:space="preserve"><value>Seguridad - Ascensor de Superficie</value></data>
+  <data name="WorldStory_ChapterSummary_SecSurfaceElevator" xml:space="preserve"><value>El ascensor de superficie sufre un accidente catastrófico. Varado, exploras Canaan en busca de ingredientes y abres las puertas restantes para escapar del sector.</value></data>
+  <data name="WorldStory_ChapterTitle_EndSecurity" xml:space="preserve"><value>Descenso a la Hidroeléctrica</value></data>
+  <data name="WorldStory_ChapterSummary_EndSecurity" xml:space="preserve"><value>La salida del Sector de Seguridad está abierta; solo hay un camino a seguir: hacia abajo, a la Hidroeléctrica.</value></data>
+  <data name="WorldStory_ChapterTitle_ElectricalStation" xml:space="preserve"><value>Hidroeléctrica - Estación Eléctrica</value></data>
+  <data name="WorldStory_ChapterSummary_ElectricalStation" xml:space="preserve"><value>Llegas a la presa central. Los supervivientes de la Estación Eléctrica (Jonas) pueden ayudar: reactiva la estación, reinicia el ordenador del aliviadero y abre los controles de flujo.</value></data>
+  <data name="WorldStory_ChapterTitle_Voussoir" xml:space="preserve"><value>Mundo Portal: Voussoir</value></data>
+  <data name="WorldStory_ChapterSummary_Voussoir" xml:space="preserve"><value>Cruzas hacia Voussoir, el anteverso de la catedral inundada al que se puede acceder desde la Hidroeléctrica.</value></data>
+  <data name="WorldStory_ChapterTitle_EndDam" xml:space="preserve"><value>Hidroeléctrica - Aliviadero abierto</value></data>
+  <data name="WorldStory_ChapterSummary_EndDam" xml:space="preserve"><value>El aliviadero está abierto. La única salida de la Hidroeléctrica es mojada: deja que el agua te arrastre hacia los Reactores.</value></data>
+  <data name="WorldStory_ChapterTitle_PowerServices" xml:space="preserve"><value>Servicios Energéticos</value></data>
+  <data name="WorldStory_ChapterSummary_PowerServices" xml:space="preserve"><value>Entras en Servicios Energéticos. Una enorme floración fúngica bloquea el camino a los Reactores: necesitas algo para eliminarla.</value></data>
+  <data name="WorldStory_ChapterTitle_AnteverseC" xml:space="preserve"><value>Anteverso C - El Jardín Lejano</value></data>
+  <data name="WorldStory_ChapterSummary_AnteverseC" xml:space="preserve"><value>Entras en el Anteverso C (el Jardín Lejano) para reunir lo necesario para la Gelatina Antifúngica.</value></data>
+  <data name="WorldStory_ChapterTitle_ReactorsEntry" xml:space="preserve"><value>Reactores - Entrada</value></data>
+  <data name="WorldStory_ChapterSummary_ReactorsEntry" xml:space="preserve"><value>La floración está destruida y el camino hacia el Sector de Reactores está abierto; esperas haber hecho lo correcto.</value></data>
+  <data name="WorldStory_ChapterTitle_Reactors1Labs" xml:space="preserve"><value>Reactores - Laboratorios Deep Field</value></data>
+  <data name="WorldStory_ChapterSummary_Reactors1Labs" xml:space="preserve"><value>Primer contacto en los laboratorios Deep Field: la Dra. Cahn explica que la puerta de salida del Gatekeeper necesita cuatro reactores en línea. Activa el Reactor Dusk e informa.</value></data>
+  <data name="WorldStory_ChapterTitle_ReactorsAll" xml:space="preserve"><value>Reactores - Los cuatro en línea</value></data>
+  <data name="WorldStory_ChapterSummary_ReactorsAll" xml:space="preserve"><value>Los laboratorios S1 han sido registrados (Reactor Cloud explorado). Ahora pon en línea los Reactores Gale, Mist y Cloud para unirse a Dusk.</value></data>
+  <data name="WorldStory_ChapterTitle_Shadowgate" xml:space="preserve"><value>El Shadowgate</value></data>
+  <data name="WorldStory_ChapterSummary_Shadowgate" xml:space="preserve"><value>Los cuatro reactores alimentan la puerta central del Generador de Fusión: el Shadowgate. Dentro de las instalaciones espejo de Intrados, destruye los cinco dispositivos de contención y expulsa a la entidad.</value></data>
+  <data name="WorldStory_ChapterTitle_InqEnd" xml:space="preserve"><value>El Pretorio</value></data>
+  <data name="WorldStory_ChapterSummary_InqEnd" xml:space="preserve"><value>La criatura huyó a través de una grieta masiva. Más allá se extiende algo inmenso y antiguo: con la guía de Hasta, entra en el Pretorio (IS-0101) y localiza el Disco Solar.</value></data>
+  <data name="WorldStory_ChapterTitle_Residence" xml:space="preserve"><value>Sector Residencial</value></data>
+  <data name="WorldStory_ChapterSummary_Residence" xml:space="preserve"><value>El don del Disco Solar por fin te permite soportar el frío: entra en el helado Sector Residencial.</value></data>
+  <data name="WorldStory_ChapterTitle_Residence2" xml:space="preserve"><value>Sector Residencial - Supresor de Tormentas</value></data>
+  <data name="WorldStory_ChapterSummary_Residence2" xml:space="preserve"><value>Con la ayuda de Abe y Janet, el supresor de tormentas está reparado; se puede registrar el piso superior, pero un muro de hielo congelado bloquea el camino.</value></data>
+  <data name="WorldStory_ChapterTitle_Fracture" xml:space="preserve"><value>La Fractura</value></data>
+  <data name="WorldStory_ChapterSummary_Fracture" xml:space="preserve"><value>Una intensa fuente de calor derritió el muro de hielo: te adentras en la Fractura, buscando la Lente Oscura que puede sacar a todos de allí.</value></data>
+  <data name="WorldStory_ChapterTitle_Botanical" xml:space="preserve"><value>Jardines Botánicos</value></data>
+  <data name="WorldStory_ChapterSummary_Botanical" xml:space="preserve"><value>Entras en los Jardines Botánicos, el corazón cubierto de vegetación de las zonas altas del Sector Residencial.</value></data>
+  <data name="WorldStory_ChapterTitle_DarkLens" xml:space="preserve"><value>La Lente Oscura</value></data>
+  <data name="WorldStory_ChapterSummary_DarkLens" xml:space="preserve"><value>Más allá del muro se encuentra la Lente Oscura. Recoge sus fragmentos, enfréntate a The Fallow y abre por fin el camino fuera de las instalaciones.</value></data>
+  <data name="WorldStory_ChapterTitle_SouthIsland" xml:space="preserve"><value>Isla Sur</value></data>
+  <data name="WorldStory_ChapterSummary_SouthIsland" xml:space="preserve"><value>La Fractura queda atrás: llegas a la Isla Sur, cuyo altar supuestamente puede llevarte a cualquier parte; la Dra. Cahn y Thule tienen sus propias ideas al respecto.</value></data>
+  <data name="WorldStory_ChapterTitle_EndGame" xml:space="preserve"><value>Final - Escape de las instalaciones</value></data>
+  <data name="WorldStory_ChapterSummary_EndGame" xml:space="preserve"><value>El Wayseeker ha sido derrotado. ¿El final? Habla con la Dra. Cahn, Janet y la Sister of the Unlost. Historia principal completada.</value></data>
+  <data name="WorldTraders_Lore_Warren_Name" xml:space="preserve"><value>Warren Bunning</value></data>
+  <data name="WorldTraders_Lore_Warren_Where" xml:space="preserve"><value>Plaza del Sector de Oficinas - quiosco de seguridad (fijo)</value></data>
+  <data name="WorldTraders_Lore_Warren_Blurb" xml:space="preserve"><value>Un habitante de Sídney convertido en especialista en seguridad subterránea. Vende llaves de seguridad, semillas, aleaciones y kits de reparación; su inventario crece con el progreso de la historia.</value></data>
+  <data name="WorldTraders_Lore_Warren_Unlock" xml:space="preserve"><value>El primer comerciante que conoces: abre tienda al principio en el Sector de Oficinas. Su inventario se amplía a medida que avanza la historia.</value></data>
+  <data name="WorldTraders_Lore_Grayson_Name" xml:space="preserve"><value>Grayson Isling</value></data>
+  <data name="WorldTraders_Lore_Grayson_Where" xml:space="preserve"><value>Se le encuentra en la puerta de Fabricación Oeste; luego viaja cerca de las estaciones de Reparación y Rescate</value></data>
+  <data name="WorldTraders_Lore_Grayson_Blurb" xml:space="preserve"><value>Ingeniero de materiales de GATE, herido. Después de curarlo, vende munición, cascos, chalecos de alta visibilidad y kits de reparación.</value></data>
+  <data name="WorldTraders_Lore_Grayson_Unlock" xml:space="preserve"><value>Solo se convierte en comerciante después de encontrarlo y curarlo en la puerta de Fabricación Oeste.</value></data>
+  <data name="WorldTraders_Lore_Blacksmith_Name" xml:space="preserve"><value>El Herrero</value></data>
+  <data name="WorldTraders_Lore_Blacksmith_Where" xml:space="preserve"><value>Fabricación Oeste - nunca abandona la F.O.R.G.E.</value></data>
+  <data name="WorldTraders_Lore_Blacksmith_Blurb" xml:space="preserve"><value>Misterioso experto en fabricación contratado por el Dr. Frake; siempre con un traje de proximidad al fuego. Comercio ilimitado de materiales.</value></data>
+  <data name="WorldTraders_Lore_Blacksmith_Unlock" xml:space="preserve"><value>Disponible en cuanto llegas a la F.O.R.G.E. en Fabricación Oeste.</value></data>
+  <data name="WorldTraders_Lore_Marion_Name" xml:space="preserve"><value>Marion</value></data>
+  <data name="WorldTraders_Lore_Marion_Where" xml:space="preserve"><value>Flathill (Rewind Rentals); luego viaja cerca de las Cajas Cacofónicas</value></data>
+  <data name="WorldTraders_Lore_Marion_Blurb" xml:space="preserve"><value>Una de las últimas habitantes de Flathill: una Acólita que venera a los Compositores. Comercia con amortiguadores, mangueras, llaves de porcelana y una escopeta antigua.</value></data>
+  <data name="WorldTraders_Lore_Marion_Unlock" xml:space="preserve"><value>Abre su tienda después de que llegues a Flathill y la conozcas en Rewind Rentals.</value></data>
+  <data name="WorldTraders_Lore_Chef_Name" xml:space="preserve"><value>Dr. Carson</value></data>
+  <data name="WorldTraders_Lore_Chef_Where" xml:space="preserve"><value>Garaje del Sector de Seguridad; luego viaja a zonas de cocina</value></data>
+  <data name="WorldTraders_Lore_Chef_Blurb" xml:space="preserve"><value>Autoproclamado culinario de la División de Contención. Comercia con utensilios de cocina, semillas, ingredientes y bebidas.</value></data>
+  <data name="WorldTraders_Lore_Chef_Unlock" xml:space="preserve"><value>Se convierte en comerciante después de conocerlo en el garaje del Sector de Seguridad.</value></data>
+  <data name="WorldTraders_Lore_Jimmy_Name" xml:space="preserve"><value>Jimmy Sanders</value></data>
+  <data name="WorldTraders_Lore_Jimmy_Where" xml:space="preserve"><value>Se le conoce por primera vez en el Jardín Botánico / Ala Botánica</value></data>
+  <data name="WorldTraders_Lore_Jimmy_Blurb" xml:space="preserve"><value>Joven neozelandés que aceptó un trabajo en Taco Mine en 1992 sin hacer preguntas. Comercia con tacos y cosméticos de comida rápida.</value></data>
+  <data name="WorldTraders_Lore_Jimmy_Unlock" xml:space="preserve"><value>Lo conoces primero en el Jardín Botánico, pero solo se convierte en comerciante DESPUÉS de terminar el juego; entonces abre Taco Mine. NO disponible desde el principio.</value></data>
+  <data name="WorldTraders_Lore_Thule_Name" xml:space="preserve"><value>Dr. Ulrich Thule</value></data>
+  <data name="WorldTraders_Lore_Thule_Where" xml:space="preserve"><value>Cafetería de Oficinas / Atrio de Laboratorios / Suites E de Residencial</value></data>
+  <data name="WorldTraders_Lore_Thule_Blurb" xml:space="preserve"><value>Físico teórico, aficionado al café, cínico convencido. Cambia una taza de café por materiales raros.</value></data>
+  <data name="WorldTraders_Lore_Thule_Unlock" xml:space="preserve"><value>Un comerciante de posjuego: solo abre tienda después de completar la historia.</value></data>
+  <data name="WorldTraders_Lore_Larva_Name" xml:space="preserve"><value>Larva de la Gran Colmena</value></data>
+  <data name="WorldTraders_Lore_Larva_Where" xml:space="preserve"><value>La Colmena, en The Encroachment (el subnivel Maggot Pit bajo las Minas Viejas de Fabricación Oeste)</value></data>
+  <data name="WorldTraders_Lore_Larva_Blurb" xml:space="preserve"><value>Organismo larval del Anteverso 299. Acepta cangrejos gema y cebo a cambio de figurillas y cristal en polvo.</value></data>
+  <data name="WorldTraders_Lore_Larva_Unlock" xml:space="preserve"><value>Disponible en cuanto desciendes a las Minas Viejas bajo Fabricación Oeste y llegas a la Colmena en The Encroachment.</value></data>
+  <data name="WorldTraders_Card_UnlockedByMeeting" xml:space="preserve"><value>Se desbloquea al conocerlo en el mundo (ningún indicador del guardado rastrea a este comerciante).</value></data>
+  <data name="WorldTraders_Card_AvailableHere" xml:space="preserve"><value>DISPONIBLE en este mundo - las bandera(s) de desbloqueo están activadas.</value></data>
+  <data name="WorldTraders_Card_NotYetHere" xml:space="preserve"><value>AÚN NO disponible en este mundo - necesita: {0}</value></data>
+  <data name="WorldTraders_Card_AcceptsVaries" xml:space="preserve"><value>(las condiciones de trueque varían)</value></data>
+  <data name="WorldTraders_Card_AppearsAfter" xml:space="preserve"><value>aparece después de: {0}</value></data>
+  <data name="WorldTraders_Card_NoStockTable" xml:space="preserve"><value>(sin tabla de inventario)</value></data>
+  <data name="WorldTraders_Card_MoreItems" xml:space="preserve"><value>+{0} más</value></data>
+  <data name="WorldTraders_Card_TapToReveal" xml:space="preserve"><value>Por encima de tu autorización - toca para revelar</value></data>
+  <data name="WorldTraders_Card_TapToOpen" xml:space="preserve"><value>Toca para abrir en el panel lateral →</value></data>
+  <data name="WorldTraders_Card_UnlockSelected" xml:space="preserve"><value>DESBLOQUEAR {0} SELECCIONADOS</value></data>
 </root>

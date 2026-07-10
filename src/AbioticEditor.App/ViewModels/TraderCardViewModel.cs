@@ -16,15 +16,24 @@ public sealed class TraderCardViewModel : INotifyPropertyChanged
     private string? _portraitPath;
     private bool _portraitRequested;
 
+    private static LocalizationResourceManager Loc => LocalizationResourceManager.Instance;
+
+    /// <summary>Localized trader display name for a bare id (e.g. an item's "sold by" list),
+    /// without needing a full card. Falls back to the raw id for a trader with no lore entry.</summary>
+    public static string LocalizedName(string id)
+        => TraderLore.ById.ContainsKey(id) ? Loc[$"WorldTraders_Lore_{id}_Name"] : id;
+
     public TraderCardViewModel(TraderInfo info, Func<string, bool> worldHasFlag)
     {
         _info = info;
         _worldHasFlag = worldHasFlag;
         _lore = TraderLore.ById.TryGetValue(info.Id, out var e) ? e : null;
-        Name = _lore?.Name ?? info.Id;
-        Where = _lore?.Where ?? string.Empty;
-        Blurb = _lore?.Blurb ?? string.Empty;
-        Unlock = _lore?.Unlock ?? string.Empty;
+        // TraderLore's own fields are the English source of truth (also read by the CLI); the
+        // App-only resx keys below carry the translations, keyed by the same trader id.
+        Name = _lore is null ? info.Id : Loc[$"WorldTraders_Lore_{info.Id}_Name"];
+        Where = _lore is null ? string.Empty : Loc[$"WorldTraders_Lore_{info.Id}_Where"];
+        Blurb = _lore is null ? string.Empty : Loc[$"WorldTraders_Lore_{info.Id}_Blurb"];
+        Unlock = _lore is null ? string.Empty : Loc[$"WorldTraders_Lore_{info.Id}_Unlock"];
     }
 
     /// <summary>How/when this trader actually becomes a trader (curated; see TraderLore).</summary>
@@ -74,11 +83,11 @@ public sealed class TraderCardViewModel : INotifyPropertyChanged
             {
                 return HasUnlock
                     ? Unlock
-                    : "Unlocked by meeting them in the world (no save flag tracks this trader).";
+                    : Loc["WorldTraders_Card_UnlockedByMeeting"];
             }
             return IsAvailableHere
-                ? "AVAILABLE in this world - gating flag(s) are set."
-                : $"NOT YET in this world - needs: {string.Join(", ", _info.RequiredFlags.Where(f => !_worldHasFlag(f)))}";
+                ? Loc["WorldTraders_Card_AvailableHere"]
+                : Loc.Format("WorldTraders_Card_NotYetHere", string.Join(", ", _info.RequiredFlags.Where(f => !_worldHasFlag(f))));
         }
     }
 
@@ -146,7 +155,7 @@ public sealed class TraderCardViewModel : INotifyPropertyChanged
 
     public bool HasSelectedStock => SelectedStockFlags.Count > 0;
 
-    public string UnlockSelectedText => $"UNLOCK {SelectedStockFlags.Count} SELECTED";
+    public string UnlockSelectedText => Loc.Format("WorldTraders_Card_UnlockSelected", SelectedStockFlags.Count);
 
     // ---------- per-offer item inspection ----------
 
@@ -191,7 +200,7 @@ public sealed class TraderCardViewModel : INotifyPropertyChanged
                     : catalog?.Find(o.ItemId)?.DisplayName ?? o.ItemId)
                 .Distinct()
                 .ToList();
-            return names.Count == 0 ? "(barter terms vary)" : string.Join(", ", names);
+            return names.Count == 0 ? Loc["WorldTraders_Card_AcceptsVaries"] : string.Join(", ", names);
         }
     }
 
@@ -219,7 +228,7 @@ public sealed class TraderCardViewModel : INotifyPropertyChanged
     public string ShownBlurb => SpoilerService.Mask(Blurb, IsConcealed, string.Empty);
     public string ShownSellsText => IsConcealed ? string.Empty : SellsText;
     public string ShownAvailabilityText => IsConcealed ? SpoilerService.ClassifiedTitle : AvailabilityText;
-    public string ShownTapHint => IsConcealed ? "Above clearance - tap to reveal" : "Tap to open in the side panel →";
+    public string ShownTapHint => IsConcealed ? Loc["WorldTraders_Card_TapToReveal"] : Loc["WorldTraders_Card_TapToOpen"];
 
     /// <summary>Portrait stays hidden while sealed (the face spoils the trader).</summary>
     public bool ShowPortrait => HasPortrait && !IsConcealed;
@@ -276,7 +285,7 @@ public sealed class TraderCardViewModel : INotifyPropertyChanged
     }
 
     public string RequiredFlagsText => _info.RequiredFlags.Count > 0
-        ? $"appears after: {string.Join(", ", _info.RequiredFlags)}"
+        ? Loc.Format("WorldTraders_Card_AppearsAfter", string.Join(", ", _info.RequiredFlags))
         : string.Empty;
 
     public bool HasRequiredFlags => _info.RequiredFlags.Count > 0;
@@ -291,9 +300,9 @@ public sealed class TraderCardViewModel : INotifyPropertyChanged
                 .Distinct()
                 .Take(10)
                 .ToList();
-            if (names.Count == 0) return "(no stock table)";
+            if (names.Count == 0) return Loc["WorldTraders_Card_NoStockTable"];
             var more = _info.Sells.Select(o => o.ItemId).Distinct().Count() - names.Count;
-            return string.Join(", ", names) + (more > 0 ? $" +{more} more" : "");
+            return string.Join(", ", names) + (more > 0 ? " " + Loc.Format("WorldTraders_Card_MoreItems", more) : "");
         }
     }
 

@@ -25,13 +25,19 @@ public sealed class StoryChapterItemViewModel : INotifyPropertyChanged
     public int Index { get; }
 
     public string NumberText => $"{Index + 1:D2}";
-    public string Title => Chapter.Title;
+
+    /// <summary>Localized chapter title (resx key keyed by <see cref="Chapter"/>'s row id); the
+    /// English text in <see cref="StoryChapter.Title"/> stays the source of truth for the CLI and
+    /// other non-MAUI consumers.</summary>
+    public string Title => Loc[$"WorldStory_ChapterTitle_{Chapter.Row}"];
     public string Row => Chapter.Row;
-    public string? Summary => Chapter.Summary;
+    public string? Summary => HasSummary ? Loc[$"WorldStory_ChapterSummary_{Chapter.Row}"] : null;
     public bool HasSummary => !string.IsNullOrEmpty(Chapter.Summary);
 
     /// <summary>The world flag that triggers this chapter (DT_StoryProgression.WorldFlag).</summary>
-    public string TriggerFlagText => Chapter.TriggerFlag is null ? string.Empty : $"flag: {Chapter.TriggerFlag}";
+    public string TriggerFlagText => Chapter.TriggerFlag is null
+        ? string.Empty
+        : Services.LocalizationResourceManager.Instance.Format("WorldStory_TriggerFlagLabel", Chapter.TriggerFlag);
 
     public ICommand SetCommand { get; }
 
@@ -61,19 +67,28 @@ public sealed class StoryChapterItemViewModel : INotifyPropertyChanged
             .Where(c => c.TriggerFlag is not null && !_owner.HasWorldFlag(c.TriggerFlag!))
             .ToList();
 
-    public string StatusText => IsCompleted ? "DONE" : DependenciesMet ? "READY" : "LOCKED";
+    private static Services.LocalizationResourceManager Loc => Services.LocalizationResourceManager.Instance;
+
+    /// <summary>Non-localized discriminator for the XAML status-color <c>DataTrigger</c>s - the
+    /// localized <see cref="StatusText"/> can't be matched against a fixed string once translated.</summary>
+    public ChapterStatusKind StatusKind => IsCompleted ? ChapterStatusKind.Done : DependenciesMet ? ChapterStatusKind.Ready : ChapterStatusKind.Locked;
+
+    public string StatusText => StatusKind switch
+    {
+        ChapterStatusKind.Done => Loc["WorldStory_StatusDone"],
+        ChapterStatusKind.Ready => Loc["WorldStory_StatusReady"],
+        _ => Loc["WorldStory_StatusLocked"],
+    };
 
     public string MissingDependenciesText => MissingDependencies.Count == 0
         ? string.Empty
-        : "Needs first: " + string.Join(" → ", MissingDependencies.Select(c => c.Title));
+        : Loc.Format("WorldStory_NeedsFirst", string.Join(" → ", MissingDependencies.Select(c => Loc[$"WorldStory_ChapterTitle_{c.Row}"])));
 
     public bool HasMissingDependencies => MissingDependencies.Count > 0;
 
     public string FlagStateText => Chapter.TriggerFlag is null
-        ? "No trigger flag (state chapter)."
-        : IsCompleted
-            ? $"{Chapter.TriggerFlag} - SET in this save"
-            : $"{Chapter.TriggerFlag} - not set";
+        ? Loc["WorldStory_NoTriggerFlag"]
+        : Loc.Format(IsCompleted ? "WorldStory_FlagSetInSave" : "WorldStory_FlagNotSet", Chapter.TriggerFlag);
 
     /// <summary>Coarse region derived from the chapter row prefix.</summary>
     public string RegionText
@@ -81,22 +96,22 @@ public sealed class StoryChapterItemViewModel : INotifyPropertyChanged
         get
         {
             var r = Chapter.Row;
-            if (r.StartsWith("Office", StringComparison.OrdinalIgnoreCase)) return "Office Sector";
-            if (r is "Flathill" or "PostFlathill") return "Portal World: Flathill";
-            if (r.StartsWith("MF", StringComparison.OrdinalIgnoreCase)) return "Manufacturing West / Mines";
-            if (r == "Pens") return "The Pens";
-            if (r is "Labs" or "Containment" or "Helmholtz" or "Tarasque" or "PostLabs") return "Cascade Laboratories";
-            if (r == "Mycofields") return "Portal World: Mycofields";
-            if (r.StartsWith("Sec", StringComparison.OrdinalIgnoreCase) || r == "EndSecurity") return "Security Sector";
-            if (r is "ElectricalStation" or "EndDam") return "Hydroplant / Dam";
-            if (r == "Voussoir") return "Portal World: Voussoir";
-            if (r is "PowerServices" or "AnteverseC") return "Power Services";
-            if (r.StartsWith("Reactors", StringComparison.OrdinalIgnoreCase) || r == "InqEnd") return "The Reactors";
-            if (r == "Shadowgate") return "Portal World: Shadowgate";
+            if (r.StartsWith("Office", StringComparison.OrdinalIgnoreCase)) return Loc["WorldStory_RegionOfficeSector"];
+            if (r is "Flathill" or "PostFlathill") return Loc["WorldStory_RegionPortalFlathill"];
+            if (r.StartsWith("MF", StringComparison.OrdinalIgnoreCase)) return Loc["WorldStory_RegionManufacturingMines"];
+            if (r == "Pens") return Loc["WorldStory_RegionThePens"];
+            if (r is "Labs" or "Containment" or "Helmholtz" or "Tarasque" or "PostLabs") return Loc["WorldStory_RegionCascadeLabs"];
+            if (r == "Mycofields") return Loc["WorldStory_RegionPortalMycofields"];
+            if (r.StartsWith("Sec", StringComparison.OrdinalIgnoreCase) || r == "EndSecurity") return Loc["WorldStory_RegionSecuritySector"];
+            if (r is "ElectricalStation" or "EndDam") return Loc["WorldStory_RegionHydroplantDam"];
+            if (r == "Voussoir") return Loc["WorldStory_RegionPortalVoussoir"];
+            if (r is "PowerServices" or "AnteverseC") return Loc["WorldStory_RegionPowerServices"];
+            if (r.StartsWith("Reactors", StringComparison.OrdinalIgnoreCase) || r == "InqEnd") return Loc["WorldStory_RegionTheReactors"];
+            if (r == "Shadowgate") return Loc["WorldStory_RegionPortalShadowgate"];
             if (r.StartsWith("Residence", StringComparison.OrdinalIgnoreCase)
-                || r is "Fracture" or "Botanical" or "DarkLens" or "SouthIsland") return "Residence Sector";
-            if (r == "EndGame") return "Finale";
-            return "GATE Cascade Facility";
+                || r is "Fracture" or "Botanical" or "DarkLens" or "SouthIsland") return Loc["WorldStory_RegionResidenceSector"];
+            if (r == "EndGame") return Loc["WorldStory_RegionFinale"];
+            return Loc["WorldStory_RegionGateCascadeFacility"];
         }
     }
 
@@ -148,7 +163,7 @@ public sealed class StoryChapterItemViewModel : INotifyPropertyChanged
         foreach (var p in new[]
         {
             nameof(IsCurrent), nameof(IsReached), nameof(IsCompleted), nameof(DependenciesMet),
-            nameof(StatusText), nameof(MissingDependenciesText), nameof(HasMissingDependencies),
+            nameof(StatusKind), nameof(StatusText), nameof(MissingDependenciesText), nameof(HasMissingDependencies),
             nameof(FlagStateText),
         })
         {
@@ -157,4 +172,12 @@ public sealed class StoryChapterItemViewModel : INotifyPropertyChanged
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+}
+
+/// <summary>Non-localized status discriminator for <see cref="StoryChapterItemViewModel.StatusKind"/>.</summary>
+public enum ChapterStatusKind
+{
+    Locked,
+    Ready,
+    Done,
 }

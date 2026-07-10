@@ -414,7 +414,11 @@ internal static class WorldSemanticDiff
     }
 
     private static string ChapterName(string? row)
-        => row is null ? LocalizationResourceManager.Instance["Diff_None"] : StoryProgressionCatalog.Find(row)?.Title ?? row;
+        => row is null
+            ? LocalizationResourceManager.Instance["Diff_None"]
+            : StoryProgressionCatalog.Find(row) is { } chapter
+                ? LocalizationResourceManager.Instance[$"WorldStory_ChapterTitle_{chapter.Row}"]
+                : row;
 
     private static string DoorState(WorldDoor d)
     {

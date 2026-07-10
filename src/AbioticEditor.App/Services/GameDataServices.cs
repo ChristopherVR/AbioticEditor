@@ -55,6 +55,63 @@ public static class GameDataServices
     public static bool ModsDisabledByEnv => Core.Assets.ModLoadStore.DisabledByEnv;
 
     /// <summary>
+    /// Maps an editor UI language code to the game's own culture code where they diverge (the
+    /// game ships <c>es-419</c>, not <c>es</c>); codes not listed here pass through unchanged.
+    /// </summary>
+    private static readonly Dictionary<string, string> UiToGameCultureMap = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["es"] = "es-419",
+    };
+
+    /// <summary>
+    /// The explicit game-data-language override the user picked in Settings, or null to follow
+    /// the editor's own UI language (see <see cref="EffectiveGameDataCulture"/>). Backed by
+    /// <see cref="Core.Assets.GameDataLanguageStore"/> so the CLI honors the same choice. Setting
+    /// it only persists the value; call <see cref="ReloadAsync"/> to apply it live.
+    /// </summary>
+    public static string? GameDataLanguage
+    {
+        get => Core.Assets.GameDataLanguageStore.Saved;
+        set
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                Core.Assets.GameDataLanguageStore.Clear();
+            else
+                Core.Assets.GameDataLanguageStore.Save(value);
+        }
+    }
+
+    /// <summary>Maps an editor UI language code to the game's own culture code (see <see cref="UiToGameCultureMap"/>).</summary>
+    public static string MapUiLanguageToGameCulture(string uiCode)
+        => UiToGameCultureMap.TryGetValue(uiCode, out var mapped) ? mapped : uiCode;
+
+    /// <summary>
+    /// The culture actually requested from <see cref="GameAssetProvider"/>: the explicit
+    /// <see cref="GameDataLanguage"/> override when set, otherwise the editor's current UI
+    /// language mapped through <see cref="MapUiLanguageToGameCulture"/>. Unsupported codes are
+    /// not an error - <c>GameLocalizationLoader</c> degrades gracefully to English text when the
+    /// game has no matching <c>.locres</c>.
+    /// </summary>
+    public static string EffectiveGameDataCulture
+    {
+        get
+        {
+            var explicitCulture = GameDataLanguage;
+            return !string.IsNullOrEmpty(explicitCulture)
+                ? explicitCulture
+                : MapUiLanguageToGameCulture(LocalizationService.CurrentCode);
+        }
+    }
+
+    /// <summary>
+    /// Culture codes the installed game actually ships translated text for (live-scanned from
+    /// the mounted paks; see <see cref="GameAssetProvider.DiscoverAvailableCultures"/>). Empty
+    /// until game data has loaded at least once.
+    /// </summary>
+    public static IReadOnlyList<string> AvailableGameDataLanguages
+        => _provider?.DiscoverAvailableCultures() ?? Array.Empty<string>();
+
+    /// <summary>
     /// Names of the mods currently mounted from the install's <c>~mods</c>/<c>LogicMods</c> folders
     /// (empty when none are present, mods are off, or each was individually disabled). Display-only.
     /// </summary>
@@ -282,7 +339,7 @@ public static class GameDataServices
             // so CreateForLocalInstall's AfInstallLocator picks it up ahead of Steam detection.
             AfInstallLocator.OverrideInstallRoot = CustomInstallPath;
 
-            _provider = GameAssetProvider.CreateForLocalInstall();
+            _provider = GameAssetProvider.CreateForLocalInstall(culture: EffectiveGameDataCulture);
             if (_provider is null)
             {
                 _status = GameDataStatus.InstallNotFound;

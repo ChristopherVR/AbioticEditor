@@ -94,13 +94,13 @@
                                 <Label Grid.Column="3" Text="{Binding StatusText}"
                                        Style="{StaticResource AfFieldLabel}" VerticalOptions="Center">
                                     <Label.Triggers>
-                                        <DataTrigger TargetType="Label" Binding="{Binding StatusText}" Value="DONE">
+                                        <DataTrigger TargetType="Label" Binding="{Binding StatusKind}" Value="Done">
                                             <Setter Property="TextColor" Value="{StaticResource AfTerminalGreen}" />
                                         </DataTrigger>
-                                        <DataTrigger TargetType="Label" Binding="{Binding StatusText}" Value="READY">
+                                        <DataTrigger TargetType="Label" Binding="{Binding StatusKind}" Value="Ready">
                                             <Setter Property="TextColor" Value="{StaticResource AfHazardYellow}" />
                                         </DataTrigger>
-                                        <DataTrigger TargetType="Label" Binding="{Binding StatusText}" Value="LOCKED">
+                                        <DataTrigger TargetType="Label" Binding="{Binding StatusKind}" Value="Locked">
                                             <Setter Property="TextColor" Value="{StaticResource AfTextMuted}" />
                                         </DataTrigger>
                                     </Label.Triggers>
