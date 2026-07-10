@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [1.21.2] - 2026-07-10
+
+### Bug Fixes
+- Rewinding past a region now clears its flags even if you reached it early
+
+
+### Miscellaneous Tasks
+- Point bucket at v1.21.1 [skip ci]
+
+
 ## [1.21.1] - 2026-07-10
 
 ### Documentation
