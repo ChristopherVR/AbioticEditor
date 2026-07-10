@@ -232,6 +232,62 @@ public class StoryProgressionTests
     }
 
     [Fact]
+    public void ClearForwardFlags_ClearsOutOfSequenceRegionFlags_NotJustDependencyGraphMembers()
+    {
+        // GitHub issue #12: a sequence break (tram-network shortcut) let the player reach the
+        // Hydroplant and talk to its survivors while still in Cascade Labs, well before the story
+        // otherwise gates that region. Dams_MetElwyn/MetIsaiah/MetSwimInstructor ("find the other
+        // survivors") and the pump/drain flags are deliberately left out of QuestFlagDependencies
+        // (their order is unverified - see the comment on QuestFlagDependencies.Direct), so
+        // FlagGate.DependentsOf alone never catches them. Rewinding to Mycofields (well before the
+        // Hydroplant opens) must still clear them via the region-chapter gate, or the game keeps
+        // reading the world as having reached the Hydroplant.
+        if (Fixtures.ServerWorldsDir is null) return;
+        var metaSrc = Path.Combine(Fixtures.ServerWorldsDir, "WorldSave_MetaData.sav");
+        var facilitySrc = Path.Combine(Fixtures.ServerWorldsDir, "WorldSave_Facility.sav");
+        if (!File.Exists(metaSrc) || !File.Exists(facilitySrc)) return;
+
+        var dir = Directory.CreateTempSubdirectory("story-revert-hydroplant");
+        try
+        {
+            var metaCopy = Path.Combine(dir.FullName, "WorldSave_MetaData.sav");
+            var facilityCopy = Path.Combine(dir.FullName, "WorldSave_Facility.sav");
+            File.Copy(metaSrc, metaCopy);
+            File.Copy(facilitySrc, facilityCopy);
+
+            // Simulate the sequence break: stamp in Hydroplant survivor/pump flags on a save that
+            // is otherwise only as far as Mycofields.
+            var before = WorldSaveReader.ReadFromFile(facilityCopy);
+            var seeded = before.Flags.ToList();
+            seeded.Add("Dams_MetElwyn");
+            seeded.Add("Dams_MetIsaiah");
+            seeded.Add("Dams_MetSwimInstructor");
+            seeded.Add("Dams_ActivatedPump1");
+            seeded.Add("Dams_ActivatedPump2");
+            seeded.Add("Dams_ActivatedPump3");
+            seeded.Add("Dams_ReachedCentral");
+            WorldSaveWriter.ApplyFlags(before, seeded);
+            WorldSaveWriter.WriteToFile(before, facilityCopy);
+
+            var (removed, _) = StoryFlagSync.ClearForwardFlags(metaCopy, "Mycofields");
+            Assert.True(removed > 0);
+
+            var after = WorldSaveReader.ReadFromFile(facilityCopy);
+            Assert.DoesNotContain("Dams_ReachedCentral", after.Flags);
+            Assert.DoesNotContain("Dams_MetElwyn", after.Flags);
+            Assert.DoesNotContain("Dams_MetIsaiah", after.Flags);
+            Assert.DoesNotContain("Dams_MetSwimInstructor", after.Flags);
+            Assert.DoesNotContain("Dams_ActivatedPump1", after.Flags);
+            Assert.DoesNotContain("Dams_ActivatedPump2", after.Flags);
+            Assert.DoesNotContain("Dams_ActivatedPump3", after.Flags);
+            // Earlier progress (Labs/Mycofields itself) must survive.
+            Assert.Contains("LABS_AnteverseBFixed", after.Flags);
+            Assert.Contains("Office_NewGameStarted", after.Flags);
+        }
+        finally { dir.Delete(recursive: true); }
+    }
+
+    [Fact]
     public void WarrenScenario_StoryProgressSatisfiesAnEarlyGate_WithoutTheExactFlag()
     {
         // Reproduces the user's Game Pass save: well past Warren (third floor, silo) but the specific

@@ -100,9 +100,12 @@ public static class StoryFlagSync
     /// The revert counterpart of <see cref="SyncFacilityFlags"/>: removes the trigger flags of
     /// every chapter AFTER <paramref name="chapterRow"/> from the sibling Facility save, plus every
     /// granular flag <see cref="FlagGate.DependentsOf"/> finds built on top of them (per
-    /// <see cref="QuestFlagDependencies"/>), so a story rollback stops showing later chapters -
-    /// down to individual quest steps - as done. Flags with no curated dependency chain (side
-    /// content, ambient/discovery flags) are left untouched, same as before.
+    /// <see cref="QuestFlagDependencies"/>) AND every flag <see cref="FlagGate.FlagsPastChapter"/>
+    /// finds whose region simply opens later (any-order steps within a region, e.g. the Dams pumps
+    /// or Hydroplant survivors, that the curated graph deliberately doesn't order) - covering the
+    /// case where a region was reached out of sequence (a tram/teleporter shortcut) rather than
+    /// through the normal chapter progression. Flags with no story gate at all (side content,
+    /// ambient/discovery flags) are left untouched, same as before.
     /// </summary>
     public static (int Removed, string Message) ClearForwardFlags(string metadataSavePath, string chapterRow)
     {
@@ -134,7 +137,9 @@ public static class StoryFlagSync
         }
 
         var data = WorldSaveReader.ReadFromFile(facilityPath);
-        var toRemove = FlagGate.DependentsOf(forwardTriggers, data.Flags);
+        var toRemove = new HashSet<string>(
+            FlagGate.DependentsOf(forwardTriggers, data.Flags), StringComparer.OrdinalIgnoreCase);
+        toRemove.UnionWith(FlagGate.FlagsPastChapter(targetIndex, data.Flags));
         var flags = data.Flags.Where(f => !toRemove.Contains(f)).ToList();
         var removed = data.Flags.Count - flags.Count;
         if (removed == 0)

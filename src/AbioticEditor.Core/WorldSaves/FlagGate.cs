@@ -160,6 +160,28 @@ public static class FlagGate
         return toRemove;
     }
 
+    /// <summary>
+    /// Every currently-set flag whose region opens strictly after <paramref name="chapterIndex"/>
+    /// (per <see cref="RegionChapterFor"/>'s area-to-chapter gate), regardless of whether it is
+    /// wired into the curated <see cref="QuestFlagDependencies"/> graph. That graph deliberately
+    /// omits any-order steps within a region (the Dams pumps, the three Hydroplant survivors, the
+    /// Security gates - see the comment on <see cref="QuestFlagDependencies.Direct"/>), so
+    /// <see cref="DependentsOf"/> alone never clears them: rewinding past a region that was
+    /// reached out of sequence (e.g. via a tram/teleporter shortcut) would otherwise leave those
+    /// flags set and the game would keep reading the world as having reached it.
+    /// </summary>
+    public static IReadOnlySet<string> FlagsPastChapter(int chapterIndex, IEnumerable<string> currentlySet)
+    {
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var flag in currentlySet)
+        {
+            var chapter = RegionChapterFor(flag);
+            if (chapter is null) continue;
+            if (StoryProgressionCatalog.IndexOf(chapter.Row) > chapterIndex) result.Add(flag);
+        }
+        return result;
+    }
+
     /// <summary>The chapter whose region this flag belongs to (for card art / context), if mapped.</summary>
     public static StoryChapter? RegionChapterFor(string flag)
         => RegionChapterCache.GetOrAdd(flag, static f =>

@@ -5,6 +5,28 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-40: story rewind now clears out-of-sequence region flags too (GitHub issue #12) (2026-07-10)
+- **Bug**: a player reached the Hydroplant (via a tram-network sequence break) while still in
+  Cascade Labs and talked to an NPC there, which set the region's flags directly. Rewinding the
+  metadata save's chapter back to Mycofields cleared the Hydroplant chapter *triggers*
+  (`Dams_ReachedCentral`, `Dams_SpillwayOpen`, ...) but left the granular flags set
+  (`Dams_MetElwyn`/`MetIsaiah`/`MetSwimInstructor` - the three Hydroplant survivors, exactly
+  matching the "find the other survivors" objective the reporter still saw; also the pump flags),
+  so the game kept reading the world as having reached the Hydroplant.
+- **Root cause**: `StoryFlagSync.ClearForwardFlags` only cleared flags reachable through
+  `FlagGate.DependentsOf` (the curated `QuestFlagDependencies` graph). That graph *deliberately*
+  leaves any-order region steps unwired (Dams pumps, Hydroplant survivors, Security gates - see
+  the comment on `QuestFlagDependencies.Direct`), since their order isn't verified against the
+  wiki. That same omission meant a rewind never found them either.
+  - **Fix**: new `FlagGate.FlagsPastChapter(chapterIndex, currentlySet)` clears any currently-set
+  flag whose region opens strictly after the target chapter (via the existing
+  `RegionChapterFor`/`AreaToChapterRow` area gate), independent of the curated graph.
+  `ClearForwardFlags` now unions this with `DependentsOf`'s result. Covers any region reached out
+  of sequence, not just Hydroplant.
+- Test: `ClearForwardFlags_ClearsOutOfSequenceRegionFlags_NotJustDependencyGraphMembers` seeds
+  Hydroplant survivor/pump flags onto an otherwise-early save and asserts a rewind to Mycofields
+  clears them while earlier progress (Office/Labs) survives.
+
 ## Round-39: per-mod enable/disable UI (2026-06-19)
 - **Selective mounting instead of "all or nothing":** `GameAssetProvider.CreateForPaks` no longer
   uses `AllDirectories`. It mounts base paks (`TopDirectoryOnly`) then explicitly
