@@ -70,10 +70,15 @@ public static class TraderLore
             "A post-game trader: only opens shop after you complete the story.",
             SpoilerGateFlag: "EndBossDefeated"),
         ["Larva"] = new("Big Hive Larva",
-            "The Hive, in The Encroachment",
+            "The Hive, in The Encroachment (the Maggot Pit sublevel beneath Manufacturing West's Old Mines)",
             "Larval organism from Anteverse 299. Accepts gem crabs and bait in exchange for figurines and powdered crystal.",
-            "Available once you reach The Hive in The Encroachment.",
-            SpoilerGateFlag: "Encroachment_Entered"),
+            "Available once you descend into the Old Mines beneath Manufacturing West and reach The Hive in The Encroachment.",
+            // "The Encroachment" is a wiki-only area label with no matching save flag, so
+            // "Encroachment_Entered" never existed in real save data and this gate could never
+            // open. MFMines_Entered is the real DT_StoryProgression trigger for descending into
+            // the Old Mines (the only way down to the Maggot Pit / Encroachment sublevel where
+            // Larva lives), and it also gets the chapter-fallback in IsSpoilerGateSatisfied.
+            SpoilerGateFlag: "MFMines_Entered"),
     };
 
     /// <summary>

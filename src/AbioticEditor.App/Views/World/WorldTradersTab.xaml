@@ -39,18 +39,20 @@
                 </VerticalStackLayout>
             </Border>
 
-            <CollectionView ItemsSource="{Binding WorldEditor.TraderCards}" SelectionMode="None"
-                            IsVisible="{Binding WorldEditor.HasTraderCards}">
-                <CollectionView.ItemsLayout>
-                    <GridItemsLayout Orientation="Vertical" Span="2"
-                                     HorizontalItemSpacing="10" VerticalItemSpacing="10" />
-                </CollectionView.ItemsLayout>
-                <CollectionView.ItemTemplate>
+            <!-- FlexLayout + BindableLayout (not CollectionView): a CollectionView nested in this
+                 page's outer ScrollView clips item content to a stale measured height when the
+                 window is shortened, instead of letting the page scroll grow. Every other inline
+                 card/list in the world tabs uses BindableLayout for the same reason. -->
+            <FlexLayout Wrap="Wrap" Direction="Row"
+                        IsVisible="{Binding WorldEditor.HasTraderCards}"
+                        BindableLayout.ItemsSource="{Binding WorldEditor.TraderCards}">
+                <BindableLayout.ItemTemplate>
                     <DataTemplate x:DataType="items:TraderCardViewModel">
                         <Border BackgroundColor="{StaticResource AfPanelBackground}"
                                 Stroke="{StaticResource AfBorderSubtleBrush}"
                                 StrokeThickness="1" StrokeShape="Rectangle"
-                                Padding="12,10">
+                                Padding="12,10" Margin="0,0,10,10"
+                                FlexLayout.Basis="440" FlexLayout.Grow="1">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnTraderCardTapped" />
                             </Border.GestureRecognizers>
@@ -80,8 +82,8 @@
                             </Grid>
                         </Border>
                     </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
+                </BindableLayout.ItemTemplate>
+            </FlexLayout>
         </VerticalStackLayout>
     </Border>
 </ContentView>
