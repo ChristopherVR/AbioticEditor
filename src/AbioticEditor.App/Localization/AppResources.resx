@@ -94,6 +94,12 @@
   <data name="Header_ActiveSaveFolder" xml:space="preserve"><value>ACTIVE SAVE FOLDER</value></data>
   <data name="Header_HomeTooltip" xml:space="preserve"><value>Home: start page with all detected worlds</value></data>
 
+  <!-- Discovery -->
+  <data name="Discovery_Platform_GamePass" xml:space="preserve"><value>GAME PASS</value></data>
+  <data name="Discovery_Platform_Server" xml:space="preserve"><value>SERVER</value></data>
+  <data name="Discovery_Platform_Steam" xml:space="preserve"><value>STEAM</value></data>
+  <data name="Discovery_Platform_Unknown" xml:space="preserve"><value>UNKNOWN</value></data>
+
   <!-- Empty -->
   <data name="Empty_EveryWriteKeepsABakBackupNextToTheSave" xml:space="preserve"><value>Every write keeps a .bak backup next to the save.</value></data>
   <data name="Empty_LocatingGameFiles" xml:space="preserve"><value>Locating game files...</value></data>
@@ -441,15 +447,60 @@ Worlds: containers · quest flags · doors · ground items · story progression<
 
   <!-- WorldDoors -->
   <data name="WorldDoors_AlreadyOpenedOneWay" xml:space="preserve"><value>ALREADY OPENED (ONE-WAY)</value></data>
+  <data name="WorldDoors_Class_BlastDoor_C_DisplayName" xml:space="preserve"><value>Blast Door</value></data>
+  <data name="WorldDoors_Class_BlastDoor_DarkwaterCave_C_DisplayName" xml:space="preserve"><value>Darkwater Cave Blast Door</value></data>
+  <data name="WorldDoors_Class_BlastDoor_OfferingBox_C_DisplayName" xml:space="preserve"><value>Offering Box</value></data>
+  <data name="WorldDoors_Class_BlastDoor_ORD_Large_C_DisplayName" xml:space="preserve"><value>Ordnance Blast Door (Large)</value></data>
+  <data name="WorldDoors_Class_BlastDoor_ORD_Small_C_DisplayName" xml:space="preserve"><value>Ordnance Blast Door (Small)</value></data>
+  <data name="WorldDoors_Class_CinematicSecurityDoor_C_DisplayName" xml:space="preserve"><value>Cinematic Security Door</value></data>
+  <data name="WorldDoors_Class_Hatch_PickupTailgate_BP_C_DisplayName" xml:space="preserve"><value>Pickup Tailgate</value></data>
+  <data name="WorldDoors_Class_SecurityDoor_Animated_C_DisplayName" xml:space="preserve"><value>Animated Security Door</value></data>
+  <data name="WorldDoors_Class_SecurityDoor_C_DisplayName" xml:space="preserve"><value>Security Door</value></data>
+  <data name="WorldDoors_Class_SecurityDoor_Shutters_C_DisplayName" xml:space="preserve"><value>Security Shutters</value></data>
+  <data name="WorldDoors_Class_SecurityDoor_Small_C_DisplayName" xml:space="preserve"><value>Small Security Door</value></data>
+  <data name="WorldDoors_Class_SimpleDoor_Bathroom_C_DisplayName" xml:space="preserve"><value>Bathroom Door</value></data>
+  <data name="WorldDoors_Class_SimpleDoor_CinematicControlled_C_DisplayName" xml:space="preserve"><value>Cinematic Door</value></data>
+  <data name="WorldDoors_Class_SimpleDoor_ParentBP_C_DisplayName" xml:space="preserve"><value>Hinged Door</value></data>
+  <data name="WorldDoors_Class_SimpleHatch_BP_C_DisplayName" xml:space="preserve"><value>Hatch</value></data>
+  <data name="WorldDoors_Class_SlidingCellDoor_BP_C_DisplayName" xml:space="preserve"><value>Cell Door</value></data>
+  <data name="WorldDoors_Class_SlidingDoor_BP_C_DisplayName" xml:space="preserve"><value>Sliding Door</value></data>
+  <data name="WorldDoors_Class_SlidingDoor_VOTV_ASO_C_DisplayName" xml:space="preserve"><value>VOTV Sliding Door</value></data>
+  <data name="WorldDoors_Class_SlidingStorageDoor_BP_C_DisplayName" xml:space="preserve"><value>Storage Door</value></data>
+  <data name="WorldDoors_Class_SlidingWindow_Vertical_BP_C_DisplayName" xml:space="preserve"><value>Vertical Sliding Window</value></data>
+  <data name="WorldDoors_Class_StaticMeshActor_DisplayName" xml:space="preserve"><value>Security Door (Static)</value></data>
+  <data name="WorldDoors_Class_TramRailDoor_C_DisplayName" xml:space="preserve"><value>Tram Rail Door</value></data>
+  <data name="WorldDoors_Class_VacDoor_BP_C_DisplayName" xml:space="preserve"><value>Vacuum Door</value></data>
   <data name="WorldDoors_FilterPlaceholder" xml:space="preserve"><value>Filter doors by name, map, kind, lock type, or state…</value></data>
   <data name="WorldDoors_KeepState" xml:space="preserve"><value>KEEP STATE (no auto-reset)</value></data>
   <data name="WorldDoors_KeepStateTooltip" xml:space="preserve"><value>When on, the game keeps this door in the state you set and will not restore it to its default (usually locked) state when the area reloads. Leave off for normal doors.</value></data>
+  <data name="WorldDoors_Kind_Security" xml:space="preserve"><value>SECURITY</value></data>
+  <data name="WorldDoors_Kind_Simple" xml:space="preserve"><value>SIMPLE</value></data>
+  <data name="WorldDoors_Kind_Unknown" xml:space="preserve"><value>?</value></data>
+  <data name="WorldDoors_LockChip_Flag" xml:space="preserve"><value>STORY FLAG</value></data>
+  <data name="WorldDoors_LockChip_Key" xml:space="preserve"><value>KEY</value></data>
+  <data name="WorldDoors_LockChip_Keycard" xml:space="preserve"><value>KEYCARD</value></data>
+  <data name="WorldDoors_LockChip_None" xml:space="preserve"><value>FREE</value></data>
+  <data name="WorldDoors_LockChip_Part" xml:space="preserve"><value>PART</value></data>
+  <data name="WorldDoors_LockChip_Unknown" xml:space="preserve"><value>UNKNOWN</value></data>
+  <data name="WorldDoors_LockExplanation_Flag" xml:space="preserve"><value>Story-controlled: the game opens this door itself when the matching world flag is set (see the QUEST FLAGS tab). Editing the door state directly can desync it from the story until the next trigger.</value></data>
+  <data name="WorldDoors_LockExplanation_Key" xml:space="preserve"><value>Keyed lock: opens with one specific physical key found in the world (see REQUIRED KEY below for its in-game item and description).</value></data>
+  <data name="WorldDoors_LockExplanation_Keycard" xml:space="preserve"><value>Keycard door: GATE security doors scan a keycard of sufficient clearance. In-game these open with a keycard found placed in the world or, far more commonly, by hacking the keypad with a Hacking Device of matching tier. Forcing it here is the editor equivalent of a successful hack.</value></data>
+  <data name="WorldDoors_LockExplanation_None" xml:space="preserve"><value>Free door: no lock - its saved state only records whether someone left it open, closed, or barricaded.</value></data>
+  <data name="WorldDoors_LockExplanation_Part" xml:space="preserve"><value>Disabled mechanism: this door is missing a machine part (fuse, valve, crank…) that must be installed in-game before it operates. Setting it open here skips the part hunt.</value></data>
+  <data name="WorldDoors_LockExplanation_Unknown" xml:space="preserve"><value>Unrecognized lock type - the saved state can still be edited safely.</value></data>
   <data name="WorldDoors_OneWayHelp" xml:space="preserve"><value>One-way doors only: marks the door as already unlocked from its locked side (opened once). Leave off for normal doors.</value></data>
   <data name="WorldDoors_Open" xml:space="preserve"><value>OPEN</value></data>
   <data name="WorldDoors_SectorCaption" xml:space="preserve"><value>All doors below are in this sector; toggle their open/locked state, and positions are listed per door.</value></data>
   <data name="WorldDoors_SecurityStateHelp" xml:space="preserve"><value>Controls whether this security door is saved open or closed.</value></data>
   <data name="WorldDoors_SimpleStateHelp" xml:space="preserve"><value>Locked = stays locked until unlocked in-game; Open / Closed = mechanically open or closed. This sets the door's saved state.</value></data>
   <data name="WorldDoors_State" xml:space="preserve"><value>STATE</value></data>
+  <data name="WorldDoors_State_Broken" xml:space="preserve"><value>Broken</value></data>
+  <data name="WorldDoors_State_Closed" xml:space="preserve"><value>Closed</value></data>
+  <data name="WorldDoors_State_Closing" xml:space="preserve"><value>Closing</value></data>
+  <data name="WorldDoors_State_Jammed" xml:space="preserve"><value>Jammed</value></data>
+  <data name="WorldDoors_State_Locked" xml:space="preserve"><value>Locked</value></data>
+  <data name="WorldDoors_State_Open" xml:space="preserve"><value>Open</value></data>
+  <data name="WorldDoors_State_Opening" xml:space="preserve"><value>Opening</value></data>
 
   <!-- WorldDropped -->
   <data name="WorldDropped_Delete" xml:space="preserve"><value>DELETE</value></data>

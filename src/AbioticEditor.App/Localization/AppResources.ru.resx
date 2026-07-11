@@ -42,6 +42,11 @@
   <data name="Header_ActiveSaveFolder" xml:space="preserve"><value>АКТИВНАЯ ПАПКА СОХРАНЕНИЯ</value></data>
   <data name="Header_HomeTooltip" xml:space="preserve"><value>Главная: стартовая страница со всеми найденными мирами</value></data>
 
+  <data name="Discovery_Platform_GamePass" xml:space="preserve"><value>GAME PASS</value></data>
+  <data name="Discovery_Platform_Server" xml:space="preserve"><value>СЕРВЕР</value></data>
+  <data name="Discovery_Platform_Steam" xml:space="preserve"><value>STEAM</value></data>
+  <data name="Discovery_Platform_Unknown" xml:space="preserve"><value>НЕИЗВЕСТНО</value></data>
+
   <!-- Empty -->
   <data name="Empty_EveryWriteKeepsABakBackupNextToTheSave" xml:space="preserve"><value>Каждая запись сохраняет резервную копию .bak рядом с сохранением.</value></data>
   <data name="Empty_LocatingGameFiles" xml:space="preserve"><value>Поиск файлов игры...</value></data>
@@ -389,6 +394,51 @@
 
   <!-- WorldDoors -->
   <data name="WorldDoors_AlreadyOpenedOneWay" xml:space="preserve"><value>УЖЕ ОТКРЫТА (В ОДНУ СТОРОНУ)</value></data>
+  <data name="WorldDoors_Class_BlastDoor_C_DisplayName" xml:space="preserve"><value>Бронедверь</value></data>
+  <data name="WorldDoors_Class_BlastDoor_DarkwaterCave_C_DisplayName" xml:space="preserve"><value>Бронедверь пещеры Дарквотер</value></data>
+  <data name="WorldDoors_Class_BlastDoor_OfferingBox_C_DisplayName" xml:space="preserve"><value>Ящик подношений</value></data>
+  <data name="WorldDoors_Class_BlastDoor_ORD_Large_C_DisplayName" xml:space="preserve"><value>Бронедверь арсенала (большая)</value></data>
+  <data name="WorldDoors_Class_BlastDoor_ORD_Small_C_DisplayName" xml:space="preserve"><value>Бронедверь арсенала (малая)</value></data>
+  <data name="WorldDoors_Class_CinematicSecurityDoor_C_DisplayName" xml:space="preserve"><value>Сценарная дверь безопасности</value></data>
+  <data name="WorldDoors_Class_Hatch_PickupTailgate_BP_C_DisplayName" xml:space="preserve"><value>Задний борт пикапа</value></data>
+  <data name="WorldDoors_Class_SecurityDoor_Animated_C_DisplayName" xml:space="preserve"><value>Анимированная дверь безопасности</value></data>
+  <data name="WorldDoors_Class_SecurityDoor_C_DisplayName" xml:space="preserve"><value>Дверь безопасности</value></data>
+  <data name="WorldDoors_Class_SecurityDoor_Shutters_C_DisplayName" xml:space="preserve"><value>Защитные ставни</value></data>
+  <data name="WorldDoors_Class_SecurityDoor_Small_C_DisplayName" xml:space="preserve"><value>Малая дверь безопасности</value></data>
+  <data name="WorldDoors_Class_SimpleDoor_Bathroom_C_DisplayName" xml:space="preserve"><value>Дверь ванной</value></data>
+  <data name="WorldDoors_Class_SimpleDoor_CinematicControlled_C_DisplayName" xml:space="preserve"><value>Сценарная дверь</value></data>
+  <data name="WorldDoors_Class_SimpleDoor_ParentBP_C_DisplayName" xml:space="preserve"><value>Дверь на петлях</value></data>
+  <data name="WorldDoors_Class_SimpleHatch_BP_C_DisplayName" xml:space="preserve"><value>Люк</value></data>
+  <data name="WorldDoors_Class_SlidingCellDoor_BP_C_DisplayName" xml:space="preserve"><value>Дверь камеры</value></data>
+  <data name="WorldDoors_Class_SlidingDoor_BP_C_DisplayName" xml:space="preserve"><value>Раздвижная дверь</value></data>
+  <data name="WorldDoors_Class_SlidingDoor_VOTV_ASO_C_DisplayName" xml:space="preserve"><value>Раздвижная дверь VOTV</value></data>
+  <data name="WorldDoors_Class_SlidingStorageDoor_BP_C_DisplayName" xml:space="preserve"><value>Дверь склада</value></data>
+  <data name="WorldDoors_Class_SlidingWindow_Vertical_BP_C_DisplayName" xml:space="preserve"><value>Вертикальное раздвижное окно</value></data>
+  <data name="WorldDoors_Class_StaticMeshActor_DisplayName" xml:space="preserve"><value>Дверь безопасности (статичная)</value></data>
+  <data name="WorldDoors_Class_TramRailDoor_C_DisplayName" xml:space="preserve"><value>Трамвайная дверь</value></data>
+  <data name="WorldDoors_Class_VacDoor_BP_C_DisplayName" xml:space="preserve"><value>Вакуумная дверь</value></data>
+  <data name="WorldDoors_Kind_Security" xml:space="preserve"><value>БЕЗОПАСНОСТЬ</value></data>
+  <data name="WorldDoors_Kind_Simple" xml:space="preserve"><value>ПРОСТАЯ</value></data>
+  <data name="WorldDoors_Kind_Unknown" xml:space="preserve"><value>?</value></data>
+  <data name="WorldDoors_LockChip_Flag" xml:space="preserve"><value>ФЛАГ СЮЖЕТА</value></data>
+  <data name="WorldDoors_LockChip_Key" xml:space="preserve"><value>КЛЮЧ</value></data>
+  <data name="WorldDoors_LockChip_Keycard" xml:space="preserve"><value>КАРТА-КЛЮЧ</value></data>
+  <data name="WorldDoors_LockChip_None" xml:space="preserve"><value>СВОБОДНО</value></data>
+  <data name="WorldDoors_LockChip_Part" xml:space="preserve"><value>ДЕТАЛЬ</value></data>
+  <data name="WorldDoors_LockChip_Unknown" xml:space="preserve"><value>НЕИЗВЕСТНО</value></data>
+  <data name="WorldDoors_LockExplanation_Flag" xml:space="preserve"><value>Управляется сюжетом: игра сама открывает эту дверь, когда установлен соответствующий флаг мира (см. вкладку ФЛАГИ ЗАДАНИЙ). Прямое изменение состояния двери может рассинхронизировать её с сюжетом до следующего триггера.</value></data>
+  <data name="WorldDoors_LockExplanation_Key" xml:space="preserve"><value>Замок под ключ: открывается одним конкретным физическим ключом, который можно найти в мире (см. НУЖНЫЙ КЛЮЧ ниже - там указаны его игровой предмет и описание).</value></data>
+  <data name="WorldDoors_LockExplanation_Keycard" xml:space="preserve"><value>Дверь с картой-ключом: двери безопасности GATE сканируют карту-ключ достаточного уровня допуска. В игре они открываются найденной в мире картой-ключом либо, что случается гораздо чаще, взломом клавиатуры устройством для взлома соответствующего уровня. Принудительное открытие здесь равносильно успешному взлому.</value></data>
+  <data name="WorldDoors_LockExplanation_None" xml:space="preserve"><value>Свободная дверь: замка нет - её сохранённое состояние лишь фиксирует, оставил ли кто-то её открытой, закрытой или забаррикадированной.</value></data>
+  <data name="WorldDoors_LockExplanation_Part" xml:space="preserve"><value>Неисправный механизм: этой двери не хватает детали (предохранителя, клапана, рукоятки…), которую нужно установить в игре, прежде чем дверь заработает. Установка состояния «открыто» здесь пропускает поиск детали.</value></data>
+  <data name="WorldDoors_LockExplanation_Unknown" xml:space="preserve"><value>Нераспознанный тип замка - сохранённое состояние всё равно можно безопасно редактировать.</value></data>
+  <data name="WorldDoors_State_Broken" xml:space="preserve"><value>Сломана</value></data>
+  <data name="WorldDoors_State_Closed" xml:space="preserve"><value>Закрыта</value></data>
+  <data name="WorldDoors_State_Closing" xml:space="preserve"><value>Закрывается</value></data>
+  <data name="WorldDoors_State_Jammed" xml:space="preserve"><value>Заклинена</value></data>
+  <data name="WorldDoors_State_Locked" xml:space="preserve"><value>Заперта</value></data>
+  <data name="WorldDoors_State_Open" xml:space="preserve"><value>Открыта</value></data>
+  <data name="WorldDoors_State_Opening" xml:space="preserve"><value>Открывается</value></data>
   <data name="WorldDoors_FilterPlaceholder" xml:space="preserve"><value>Фильтр дверей по имени, карте, типу, типу замка или состоянию…</value></data>
   <data name="WorldDoors_KeepState" xml:space="preserve"><value>СОХРАНЯТЬ СОСТОЯНИЕ (без авто-сброса)</value></data>
   <data name="WorldDoors_KeepStateTooltip" xml:space="preserve"><value>Если включено, игра сохраняет эту дверь в заданном вами состоянии и не восстанавливает её состояние по умолчанию (обычно заперто) при перезагрузке зоны. Оставьте выключенным для обычных дверей.</value></data>

@@ -2919,7 +2919,14 @@ public sealed record DiscoveredWorldOption(Core.Saves.DiscoveredWorld World)
     public string Name => World.WorldName;
 
     /// <summary>Platform tag shown on the discovery row: STEAM / GAME PASS / SERVER / UNKNOWN.</summary>
-    public string SourceLabel => World.PlatformLabel;
+    public string SourceLabel => World.Source == Core.Saves.DiscoveredWorldSource.DedicatedServer
+        ? LocalizationResourceManager.Instance["Discovery_Platform_Server"]
+        : World.Platform switch
+        {
+            Core.Saves.SavePlatform.Steam => LocalizationResourceManager.Instance["Discovery_Platform_Steam"],
+            Core.Saves.SavePlatform.GamePass => LocalizationResourceManager.Instance["Discovery_Platform_GamePass"],
+            _ => LocalizationResourceManager.Instance["Discovery_Platform_Unknown"],
+        };
 
     /// <summary>Fill color for the platform badge: Xbox green for Game Pass, Steam blue for Steam, amber otherwise.</summary>
     public Color SourceBadgeColor => World.Platform switch

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using AbioticEditor.App.Services;
 using AbioticEditor.Core.WorldSaves;
 
 namespace AbioticEditor.App.ViewModels;
@@ -44,18 +45,18 @@ public sealed class WorldDoorViewModel : INotifyPropertyChanged
     public string ActorName { get; }
     public string ClassName { get; }
     public DoorClassInfo ClassInfo { get; }
-    public string FriendlyClass => ClassInfo.DisplayName;
+    public string FriendlyClass => DoorLocalization.ClassDisplayName(ClassInfo);
     public string LockKind => ClassInfo.LockKind;
     public string? RequiredKey => ClassInfo.RequiredKeyId;
     public bool HasRequiredKey => !string.IsNullOrEmpty(RequiredKey);
     public string LockChip => LockKind switch
     {
-        "Keycard" => "KEYCARD",
-        "Key"     => "KEY",
-        "Part"    => "PART",
-        "Flag"    => "STORY FLAG",
-        "None"    => "FREE",
-        _         => "UNKNOWN",
+        "Keycard" => LocalizationResourceManager.Instance["WorldDoors_LockChip_Keycard"],
+        "Key"     => LocalizationResourceManager.Instance["WorldDoors_LockChip_Key"],
+        "Part"    => LocalizationResourceManager.Instance["WorldDoors_LockChip_Part"],
+        "Flag"    => LocalizationResourceManager.Instance["WorldDoors_LockChip_Flag"],
+        "None"    => LocalizationResourceManager.Instance["WorldDoors_LockChip_None"],
+        _         => LocalizationResourceManager.Instance["WorldDoors_LockChip_Unknown"],
     };
 
     private string? _doorState;
@@ -86,7 +87,7 @@ public sealed class WorldDoorViewModel : INotifyPropertyChanged
     public bool? NoReset { get => _noReset; set => Set(ref _noReset, value); }
 
     /// <summary>Friendly state label like "Closed", "Open", "Locked".</summary>
-    public string FriendlyState => DoorStateNames.Friendly(_doorState);
+    public string FriendlyState => DoorLocalization.FriendlyState(_doorState);
 
     /// <summary>
     /// Friendly labels for the door-state Picker. When the save carries a state this
@@ -105,7 +106,7 @@ public sealed class WorldDoorViewModel : INotifyPropertyChanged
             // feedback loop on the UI thread.
             if (_stateLabelsCache is not null) return _stateLabelsCache;
 
-            var known = DoorStateNames.AllFriendlyNames;
+            var known = DoorLocalization.AllFriendlyStateNames;
             var currentIdx = DoorStateNames.TryParseIndex(_doorState);
             var currentIsKnown = _doorState is null
                 || (currentIdx is { } i && i >= 0 && i < DoorStateNames.KnownStateCount);
@@ -121,13 +122,16 @@ public sealed class WorldDoorViewModel : INotifyPropertyChanged
     // The stable states a user would intentionally set from the editor. The
     // transient animation states (Opening, Closing) and damage states (Jammed,
     // Broken) are deliberately left out of the normal choices: they map to
-    // E_DoorStates::NewEnumerator0..2.
-    private static readonly IReadOnlyList<string> _settableFriendlyNames = new[]
+    // E_DoorStates::NewEnumerator0..2. Recomputed (not cached statically) so it
+    // reflects the current UI language rather than freezing at first access.
+    private static IReadOnlyList<string> SettableFriendlyNames
     {
-        DoorStateNames.AllFriendlyNames[0], // Closed
-        DoorStateNames.AllFriendlyNames[1], // Open
-        DoorStateNames.AllFriendlyNames[2], // Locked
-    };
+        get
+        {
+            var known = DoorLocalization.AllFriendlyStateNames;
+            return new[] { known[0], known[1], known[2] }; // Closed, Open, Locked
+        }
+    }
 
     private IReadOnlyList<string>? _settableStateLabelsCache;
 
@@ -146,15 +150,16 @@ public sealed class WorldDoorViewModel : INotifyPropertyChanged
             // Cached for the same WinUI Picker re-seed reason as AllStateLabels.
             if (_settableStateLabelsCache is not null) return _settableStateLabelsCache;
 
+            var settable = SettableFriendlyNames;
             var current = FriendlyState;
             if (_doorState is null ||
-                _settableFriendlyNames.Contains(current, StringComparer.OrdinalIgnoreCase))
+                settable.Contains(current, StringComparer.OrdinalIgnoreCase))
             {
-                return _settableStateLabelsCache = _settableFriendlyNames;
+                return _settableStateLabelsCache = settable;
             }
 
-            var withCurrent = new List<string>(_settableFriendlyNames.Count + 1);
-            withCurrent.AddRange(_settableFriendlyNames);
+            var withCurrent = new List<string>(settable.Count + 1);
+            withCurrent.AddRange(settable);
             withCurrent.Add(current); // excluded stable state or unknown/future value - keep it selectable
             return _settableStateLabelsCache = withCurrent;
         }
@@ -172,7 +177,7 @@ public sealed class WorldDoorViewModel : INotifyPropertyChanged
         set
         {
             if (value is null) return;
-            var knownIdx = DoorStateNames.AllFriendlyNames
+            var knownIdx = DoorLocalization.AllFriendlyStateNames
                 .Select((s, i) => (s, i))
                 .FirstOrDefault(t => string.Equals(t.s, value, StringComparison.OrdinalIgnoreCase));
             if (knownIdx.s is not null)
@@ -192,9 +197,9 @@ public sealed class WorldDoorViewModel : INotifyPropertyChanged
 
     public string KindLabel => Kind switch
     {
-        WorldDoorKind.Simple => "SIMPLE",
-        WorldDoorKind.Security => "SECURITY",
-        _ => "?",
+        WorldDoorKind.Simple => LocalizationResourceManager.Instance["WorldDoors_Kind_Simple"],
+        WorldDoorKind.Security => LocalizationResourceManager.Instance["WorldDoors_Kind_Security"],
+        _ => LocalizationResourceManager.Instance["WorldDoors_Kind_Unknown"],
     };
 
     /// <summary>The required key/keycard's catalog display name, when the lock has one.</summary>
@@ -217,7 +222,7 @@ public sealed class WorldDoorViewModel : INotifyPropertyChanged
     }
 
     /// <summary>How this door type works in-game (reference prose from <see cref="DoorClassCatalog"/>).</summary>
-    public string AboutText => DoorClassCatalog.LockExplanation(LockKind);
+    public string AboutText => DoorLocalization.LockExplanation(LockKind);
 
     // ---------- wiki door image ----------
 

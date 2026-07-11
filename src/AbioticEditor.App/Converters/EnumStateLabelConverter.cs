@@ -1,4 +1,5 @@
 using System.Globalization;
+using AbioticEditor.App.Services;
 using AbioticEditor.Core.WorldSaves;
 
 namespace AbioticEditor.App.Converters;
@@ -19,7 +20,7 @@ public sealed class EnumStateLabelConverter : IValueConverter
         // Door states have curated names (Closed/Open/Locked/...).
         if (raw.Contains("DoorState", StringComparison.OrdinalIgnoreCase))
         {
-            return DoorStateNames.Friendly(raw);
+            return DoorLocalization.FriendlyState(raw);
         }
 
         // Any other "E_Something::NewEnumeratorN" -> "State N"; otherwise echo it unchanged.

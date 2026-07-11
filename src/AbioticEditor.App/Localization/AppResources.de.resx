@@ -42,6 +42,11 @@
   <data name="Header_ActiveSaveFolder" xml:space="preserve"><value>AKTIVER SPEICHERORDNER</value></data>
   <data name="Header_HomeTooltip" xml:space="preserve"><value>Start: Startseite mit allen erkannten Welten</value></data>
 
+  <data name="Discovery_Platform_GamePass" xml:space="preserve"><value>GAME PASS</value></data>
+  <data name="Discovery_Platform_Server" xml:space="preserve"><value>SERVER</value></data>
+  <data name="Discovery_Platform_Steam" xml:space="preserve"><value>STEAM</value></data>
+  <data name="Discovery_Platform_Unknown" xml:space="preserve"><value>UNBEKANNT</value></data>
+
   <!-- Empty -->
   <data name="Empty_EveryWriteKeepsABakBackupNextToTheSave" xml:space="preserve"><value>Bei jedem Schreibvorgang wird eine .bak-Sicherung neben dem Spielstand abgelegt.</value></data>
   <data name="Empty_LocatingGameFiles" xml:space="preserve"><value>Spieldateien werden gesucht...</value></data>
@@ -389,6 +394,51 @@ Welten: Behälter · Quest-Flags · Türen · Bodengegenstände · Story-Fortsch
 
   <!-- WorldDoors -->
   <data name="WorldDoors_AlreadyOpenedOneWay" xml:space="preserve"><value>BEREITS GEÖFFNET (EINWEG)</value></data>
+  <data name="WorldDoors_Class_BlastDoor_C_DisplayName" xml:space="preserve"><value>Panzertür</value></data>
+  <data name="WorldDoors_Class_BlastDoor_DarkwaterCave_C_DisplayName" xml:space="preserve"><value>Darkwater-Höhlen-Panzertür</value></data>
+  <data name="WorldDoors_Class_BlastDoor_OfferingBox_C_DisplayName" xml:space="preserve"><value>Opferkiste</value></data>
+  <data name="WorldDoors_Class_BlastDoor_ORD_Large_C_DisplayName" xml:space="preserve"><value>Munitions-Panzertür (Groß)</value></data>
+  <data name="WorldDoors_Class_BlastDoor_ORD_Small_C_DisplayName" xml:space="preserve"><value>Munitions-Panzertür (Klein)</value></data>
+  <data name="WorldDoors_Class_CinematicSecurityDoor_C_DisplayName" xml:space="preserve"><value>Skriptgesteuerte Sicherheitstür</value></data>
+  <data name="WorldDoors_Class_Hatch_PickupTailgate_BP_C_DisplayName" xml:space="preserve"><value>Pickup-Ladeklappe</value></data>
+  <data name="WorldDoors_Class_SecurityDoor_Animated_C_DisplayName" xml:space="preserve"><value>Animierte Sicherheitstür</value></data>
+  <data name="WorldDoors_Class_SecurityDoor_C_DisplayName" xml:space="preserve"><value>Sicherheitstür</value></data>
+  <data name="WorldDoors_Class_SecurityDoor_Shutters_C_DisplayName" xml:space="preserve"><value>Sicherheitsrollladen</value></data>
+  <data name="WorldDoors_Class_SecurityDoor_Small_C_DisplayName" xml:space="preserve"><value>Kleine Sicherheitstür</value></data>
+  <data name="WorldDoors_Class_SimpleDoor_Bathroom_C_DisplayName" xml:space="preserve"><value>Badezimmertür</value></data>
+  <data name="WorldDoors_Class_SimpleDoor_CinematicControlled_C_DisplayName" xml:space="preserve"><value>Skriptgesteuerte Tür</value></data>
+  <data name="WorldDoors_Class_SimpleDoor_ParentBP_C_DisplayName" xml:space="preserve"><value>Flügeltür</value></data>
+  <data name="WorldDoors_Class_SimpleHatch_BP_C_DisplayName" xml:space="preserve"><value>Luke</value></data>
+  <data name="WorldDoors_Class_SlidingCellDoor_BP_C_DisplayName" xml:space="preserve"><value>Zellentür</value></data>
+  <data name="WorldDoors_Class_SlidingDoor_BP_C_DisplayName" xml:space="preserve"><value>Schiebetür</value></data>
+  <data name="WorldDoors_Class_SlidingDoor_VOTV_ASO_C_DisplayName" xml:space="preserve"><value>VOTV-Schiebetür</value></data>
+  <data name="WorldDoors_Class_SlidingStorageDoor_BP_C_DisplayName" xml:space="preserve"><value>Lagertür</value></data>
+  <data name="WorldDoors_Class_SlidingWindow_Vertical_BP_C_DisplayName" xml:space="preserve"><value>Vertikales Schiebefenster</value></data>
+  <data name="WorldDoors_Class_StaticMeshActor_DisplayName" xml:space="preserve"><value>Sicherheitstür (Statisch)</value></data>
+  <data name="WorldDoors_Class_TramRailDoor_C_DisplayName" xml:space="preserve"><value>Tram-Schienentür</value></data>
+  <data name="WorldDoors_Class_VacDoor_BP_C_DisplayName" xml:space="preserve"><value>Vakuumtür</value></data>
+  <data name="WorldDoors_Kind_Security" xml:space="preserve"><value>SICHERHEIT</value></data>
+  <data name="WorldDoors_Kind_Simple" xml:space="preserve"><value>EINFACH</value></data>
+  <data name="WorldDoors_Kind_Unknown" xml:space="preserve"><value>?</value></data>
+  <data name="WorldDoors_LockChip_Flag" xml:space="preserve"><value>STORY-FLAGGE</value></data>
+  <data name="WorldDoors_LockChip_Key" xml:space="preserve"><value>SCHLÜSSEL</value></data>
+  <data name="WorldDoors_LockChip_Keycard" xml:space="preserve"><value>SCHLÜSSELKARTE</value></data>
+  <data name="WorldDoors_LockChip_None" xml:space="preserve"><value>FREI</value></data>
+  <data name="WorldDoors_LockChip_Part" xml:space="preserve"><value>TEIL</value></data>
+  <data name="WorldDoors_LockChip_Unknown" xml:space="preserve"><value>UNBEKANNT</value></data>
+  <data name="WorldDoors_LockExplanation_Flag" xml:space="preserve"><value>Story-gesteuert: Das Spiel öffnet diese Tür selbst, sobald die passende Welt-Flagge gesetzt wird (siehe Reiter QUEST-FLAGS). Wird der Türzustand direkt bearbeitet, kann er bis zum nächsten Auslöser von der Story abweichen.</value></data>
+  <data name="WorldDoors_LockExplanation_Key" xml:space="preserve"><value>Schlüsselschloss: öffnet sich mit einem bestimmten physischen Schlüssel, der in der Welt zu finden ist (siehe ERFORDERLICHER SCHLÜSSEL unten für das zugehörige Spielobjekt und seine Beschreibung).</value></data>
+  <data name="WorldDoors_LockExplanation_Keycard" xml:space="preserve"><value>Schlüsselkartentür: GATE-Sicherheitstüren scannen eine Schlüsselkarte mit ausreichender Freigabestufe. Im Spiel öffnen sie sich mit einer in der Welt platzierten Schlüsselkarte oder, weitaus häufiger, indem das Tastenfeld mit einem passenden Hacking-Gerät gehackt wird. Das Erzwingen hier entspricht im Editor einem erfolgreichen Hack.</value></data>
+  <data name="WorldDoors_LockExplanation_None" xml:space="preserve"><value>Freie Tür: kein Schloss - ihr gespeicherter Zustand hält nur fest, ob jemand sie offen, geschlossen oder verbarrikadiert zurückgelassen hat.</value></data>
+  <data name="WorldDoors_LockExplanation_Part" xml:space="preserve"><value>Deaktivierter Mechanismus: dieser Tür fehlt ein Maschinenteil (Sicherung, Ventil, Kurbel …), das im Spiel eingebaut werden muss, bevor sie funktioniert. Wird sie hier auf offen gesetzt, entfällt die Teilesuche.</value></data>
+  <data name="WorldDoors_LockExplanation_Unknown" xml:space="preserve"><value>Nicht erkannter Schlosstyp - der gespeicherte Zustand kann trotzdem sicher bearbeitet werden.</value></data>
+  <data name="WorldDoors_State_Broken" xml:space="preserve"><value>Defekt</value></data>
+  <data name="WorldDoors_State_Closed" xml:space="preserve"><value>Geschlossen</value></data>
+  <data name="WorldDoors_State_Closing" xml:space="preserve"><value>Wird geschlossen</value></data>
+  <data name="WorldDoors_State_Jammed" xml:space="preserve"><value>Verklemmt</value></data>
+  <data name="WorldDoors_State_Locked" xml:space="preserve"><value>Gesperrt</value></data>
+  <data name="WorldDoors_State_Open" xml:space="preserve"><value>Offen</value></data>
+  <data name="WorldDoors_State_Opening" xml:space="preserve"><value>Wird geöffnet</value></data>
   <data name="WorldDoors_FilterPlaceholder" xml:space="preserve"><value>Türen nach Name, Karte, Art, Schlosstyp oder Zustand filtern…</value></data>
   <data name="WorldDoors_KeepState" xml:space="preserve"><value>ZUSTAND BEIBEHALTEN (kein automatisches Zurücksetzen)</value></data>
   <data name="WorldDoors_KeepStateTooltip" xml:space="preserve"><value>Wenn aktiviert, behält das Spiel diese Tür in dem von Ihnen festgelegten Zustand und setzt sie beim Neuladen des Bereichs nicht auf ihren Standardzustand (meist gesperrt) zurück. Bei normalen Türen deaktiviert lassen.</value></data>

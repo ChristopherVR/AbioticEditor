@@ -42,6 +42,12 @@
   <data name="Header_ActiveSaveFolder" xml:space="preserve"><value>CARPETA DE GUARDADO ACTIVA</value></data>
   <data name="Header_HomeTooltip" xml:space="preserve"><value>Inicio: página de inicio con todos los mundos detectados</value></data>
 
+  <!-- Discovery -->
+  <data name="Discovery_Platform_GamePass" xml:space="preserve"><value>GAME PASS</value></data>
+  <data name="Discovery_Platform_Server" xml:space="preserve"><value>SERVIDOR</value></data>
+  <data name="Discovery_Platform_Steam" xml:space="preserve"><value>STEAM</value></data>
+  <data name="Discovery_Platform_Unknown" xml:space="preserve"><value>DESCONOCIDO</value></data>
+
   <!-- Empty -->
   <data name="Empty_EveryWriteKeepsABakBackupNextToTheSave" xml:space="preserve"><value>Cada escritura conserva una copia de seguridad .bak junto al guardado.</value></data>
   <data name="Empty_LocatingGameFiles" xml:space="preserve"><value>Buscando archivos del juego...</value></data>
@@ -389,15 +395,60 @@ Mundos: contenedores · indicadores de misión · puertas · objetos en el suelo
 
   <!-- WorldDoors -->
   <data name="WorldDoors_AlreadyOpenedOneWay" xml:space="preserve"><value>YA ABIERTA (UN SENTIDO)</value></data>
+  <data name="WorldDoors_Class_BlastDoor_C_DisplayName" xml:space="preserve"><value>Puerta Blindada</value></data>
+  <data name="WorldDoors_Class_BlastDoor_DarkwaterCave_C_DisplayName" xml:space="preserve"><value>Puerta Blindada de la Cueva Darkwater</value></data>
+  <data name="WorldDoors_Class_BlastDoor_OfferingBox_C_DisplayName" xml:space="preserve"><value>Caja de Ofrendas</value></data>
+  <data name="WorldDoors_Class_BlastDoor_ORD_Large_C_DisplayName" xml:space="preserve"><value>Puerta Blindada de Munición (Grande)</value></data>
+  <data name="WorldDoors_Class_BlastDoor_ORD_Small_C_DisplayName" xml:space="preserve"><value>Puerta Blindada de Munición (Pequeña)</value></data>
+  <data name="WorldDoors_Class_CinematicSecurityDoor_C_DisplayName" xml:space="preserve"><value>Puerta de Seguridad Cinemática</value></data>
+  <data name="WorldDoors_Class_Hatch_PickupTailgate_BP_C_DisplayName" xml:space="preserve"><value>Portón Trasero de Pickup</value></data>
+  <data name="WorldDoors_Class_SecurityDoor_Animated_C_DisplayName" xml:space="preserve"><value>Puerta de Seguridad Animada</value></data>
+  <data name="WorldDoors_Class_SecurityDoor_C_DisplayName" xml:space="preserve"><value>Puerta de Seguridad</value></data>
+  <data name="WorldDoors_Class_SecurityDoor_Shutters_C_DisplayName" xml:space="preserve"><value>Persiana de Seguridad</value></data>
+  <data name="WorldDoors_Class_SecurityDoor_Small_C_DisplayName" xml:space="preserve"><value>Puerta de Seguridad Pequeña</value></data>
+  <data name="WorldDoors_Class_SimpleDoor_Bathroom_C_DisplayName" xml:space="preserve"><value>Puerta de Baño</value></data>
+  <data name="WorldDoors_Class_SimpleDoor_CinematicControlled_C_DisplayName" xml:space="preserve"><value>Puerta Cinemática</value></data>
+  <data name="WorldDoors_Class_SimpleDoor_ParentBP_C_DisplayName" xml:space="preserve"><value>Puerta con Bisagras</value></data>
+  <data name="WorldDoors_Class_SimpleHatch_BP_C_DisplayName" xml:space="preserve"><value>Escotilla</value></data>
+  <data name="WorldDoors_Class_SlidingCellDoor_BP_C_DisplayName" xml:space="preserve"><value>Puerta de Celda</value></data>
+  <data name="WorldDoors_Class_SlidingDoor_BP_C_DisplayName" xml:space="preserve"><value>Puerta Corrediza</value></data>
+  <data name="WorldDoors_Class_SlidingDoor_VOTV_ASO_C_DisplayName" xml:space="preserve"><value>Puerta Corrediza VOTV</value></data>
+  <data name="WorldDoors_Class_SlidingStorageDoor_BP_C_DisplayName" xml:space="preserve"><value>Puerta de Almacenamiento</value></data>
+  <data name="WorldDoors_Class_SlidingWindow_Vertical_BP_C_DisplayName" xml:space="preserve"><value>Ventana Corrediza Vertical</value></data>
+  <data name="WorldDoors_Class_StaticMeshActor_DisplayName" xml:space="preserve"><value>Puerta de Seguridad (Estática)</value></data>
+  <data name="WorldDoors_Class_TramRailDoor_C_DisplayName" xml:space="preserve"><value>Puerta del Tranvía</value></data>
+  <data name="WorldDoors_Class_VacDoor_BP_C_DisplayName" xml:space="preserve"><value>Puerta de Vacío</value></data>
   <data name="WorldDoors_FilterPlaceholder" xml:space="preserve"><value>Filtrar puertas por nombre, mapa, tipo, tipo de cerradura o estado…</value></data>
   <data name="WorldDoors_KeepState" xml:space="preserve"><value>MANTENER ESTADO (sin reinicio automático)</value></data>
   <data name="WorldDoors_KeepStateTooltip" xml:space="preserve"><value>Cuando está activado, el juego mantiene esta puerta en el estado que fijaste y no la restaurará a su estado predeterminado (normalmente bloqueada) cuando la zona se recargue. Déjalo desactivado para puertas normales.</value></data>
+  <data name="WorldDoors_Kind_Security" xml:space="preserve"><value>SEGURIDAD</value></data>
+  <data name="WorldDoors_Kind_Simple" xml:space="preserve"><value>SIMPLE</value></data>
+  <data name="WorldDoors_Kind_Unknown" xml:space="preserve"><value>?</value></data>
+  <data name="WorldDoors_LockChip_Flag" xml:space="preserve"><value>INDICADOR DE HISTORIA</value></data>
+  <data name="WorldDoors_LockChip_Key" xml:space="preserve"><value>LLAVE</value></data>
+  <data name="WorldDoors_LockChip_Keycard" xml:space="preserve"><value>TARJETA</value></data>
+  <data name="WorldDoors_LockChip_None" xml:space="preserve"><value>LIBRE</value></data>
+  <data name="WorldDoors_LockChip_Part" xml:space="preserve"><value>PIEZA</value></data>
+  <data name="WorldDoors_LockChip_Unknown" xml:space="preserve"><value>DESCONOCIDO</value></data>
+  <data name="WorldDoors_LockExplanation_Flag" xml:space="preserve"><value>Controlada por la historia: el juego abre esta puerta por sí solo cuando se activa el indicador de mundo correspondiente (consulta la pestaña INDICADORES DE MISIÓN). Editar el estado de la puerta directamente puede desincronizarla de la historia hasta el próximo desencadenante.</value></data>
+  <data name="WorldDoors_LockExplanation_Key" xml:space="preserve"><value>Cerradura con llave: se abre con una llave física específica que se encuentra en el mundo (consulta LLAVE REQUERIDA más abajo para ver su objeto y descripción en el juego).</value></data>
+  <data name="WorldDoors_LockExplanation_Keycard" xml:space="preserve"><value>Puerta con tarjeta: las puertas de seguridad GATE escanean una tarjeta con el nivel de acceso suficiente. En el juego se abren con una tarjeta encontrada en el mundo o, mucho más habitual, hackeando el teclado con un Dispositivo de Hackeo del nivel correspondiente. Forzarla aquí equivale a un hackeo exitoso en el editor.</value></data>
+  <data name="WorldDoors_LockExplanation_None" xml:space="preserve"><value>Puerta libre: sin cerradura; su estado guardado solo registra si alguien la dejó abierta, cerrada o barricada.</value></data>
+  <data name="WorldDoors_LockExplanation_Part" xml:space="preserve"><value>Mecanismo deshabilitado: a esta puerta le falta una pieza mecánica (fusible, válvula, manivela…) que debe instalarse en el juego antes de que funcione. Fijarla como abierta aquí te ahorra la búsqueda de la pieza.</value></data>
+  <data name="WorldDoors_LockExplanation_Unknown" xml:space="preserve"><value>Tipo de cerradura no reconocido: el estado guardado igual se puede editar con seguridad.</value></data>
   <data name="WorldDoors_OneWayHelp" xml:space="preserve"><value>Solo puertas de un sentido: marca la puerta como ya desbloqueada desde su lado bloqueado (abierta una vez). Déjalo desactivado para puertas normales.</value></data>
   <data name="WorldDoors_Open" xml:space="preserve"><value>ABRIR</value></data>
   <data name="WorldDoors_SectorCaption" xml:space="preserve"><value>Todas las puertas de abajo están en este sector; alterna su estado abierto/bloqueado, y las posiciones se listan por puerta.</value></data>
   <data name="WorldDoors_SecurityStateHelp" xml:space="preserve"><value>Controla si esta puerta de seguridad se guarda abierta o cerrada.</value></data>
   <data name="WorldDoors_SimpleStateHelp" xml:space="preserve"><value>Bloqueada = permanece bloqueada hasta que se desbloquee en el juego; Abierta / Cerrada = mecánicamente abierta o cerrada. Esto fija el estado guardado de la puerta.</value></data>
   <data name="WorldDoors_State" xml:space="preserve"><value>ESTADO</value></data>
+  <data name="WorldDoors_State_Broken" xml:space="preserve"><value>Rota</value></data>
+  <data name="WorldDoors_State_Closed" xml:space="preserve"><value>Cerrada</value></data>
+  <data name="WorldDoors_State_Closing" xml:space="preserve"><value>Cerrando</value></data>
+  <data name="WorldDoors_State_Jammed" xml:space="preserve"><value>Atascada</value></data>
+  <data name="WorldDoors_State_Locked" xml:space="preserve"><value>Bloqueada</value></data>
+  <data name="WorldDoors_State_Open" xml:space="preserve"><value>Abierta</value></data>
+  <data name="WorldDoors_State_Opening" xml:space="preserve"><value>Abriendo</value></data>
 
   <!-- WorldDropped -->
   <data name="WorldDropped_Delete" xml:space="preserve"><value>ELIMINAR</value></data>
