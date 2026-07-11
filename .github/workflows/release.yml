@@ -13,16 +13,18 @@ name: Release
 #      truth, since the App inherits ApplicationDisplayVersion=$(Version)),
 #      regenerates CHANGELOG.md, commits "chore(release): vX.Y.Z [skip ci]",
 #      and pushes a vX.Y.Z tag on that commit.
-#   4. `build` publishes the release artifacts (7 zips) off the new tag.
+#   4. `build` publishes the release artifacts (6 zips) off the new tag.
 #   5. `publish` attaches them to a GitHub Release.
 #   6. `scan` uploads every published zip to VirusTotal and appends the per-file
 #      scan permalinks to the release body (needs the VT_API_KEY secret; the job
 #      is skipped, not failed, when the secret is absent).
 #   7. `nexus` uploads the Windows app zip to the NexusMods page as a new version
 #      and archives the previous one (needs the NEXUSMODS_API_KEY secret and the
-#      NEXUS_APP_FILE_ID variable; the job is skipped when either is absent).
-#      `nexus-proton` does the same for the Linux CLI zip, the download for
-#      Steam Deck / Proton players (gated on NEXUS_PROTON_FILE_ID).
+#      NEXUS_APP_FILE_ID variable; the job is skipped when either is absent). Only
+#      the Windows app ships to Nexus: there is no Linux GUI (MAUI has no Linux
+#      target), so a CLI-only "Proton" download would misleadingly imply UI parity.
+#      The Linux CLI is still built and attached to the GitHub Release, just not
+#      pushed to the Nexus mod page.
 #   8. `nuget` packs AbioticEditor.Core + AbioticEditor.Plugins.Abstractions off
 #      the new tag and pushes them to nuget.org (needs the NUGET_API_KEY secret;
 #      the push step is skipped, not failed, when the secret is absent). Each library
@@ -39,7 +41,7 @@ name: Release
 #   - Pre-publish jobs (test, build, build-app-win) use `cancel-in-progress: true`.
 #     A new push to main aborts these if they are still running, so an abandoned
 #     commit never burns a full ~MAUI build.
-#   - Publish-side jobs (version, publish, scan, nexus, nexus-proton, nuget) use
+#   - Publish-side jobs (version, publish, scan, nexus, nuget) use
 #     `cancel-in-progress: false`: once one is running it is protected from
 #     cancellation, and a newer run's matching job queues behind it. So a release
 #     that has begun tagging / creating the GitHub Release / pushing NuGet /
@@ -469,35 +471,6 @@ jobs:
           path: ${{ env.ASSET_BASENAME }}.zip
           if-no-files-found: error
 
-      # Nexus Mods build of the Linux CLI (the "Proton / Steam Deck" download on the mod
-      # page): same publish but with -p:NexusMods=true so the self-updater is compiled out,
-      # mirroring the Windows app's Nexus variant - Nexus manages updates itself and its
-      # guidelines discourage bundled auto-updaters. Only the linux-x64 leg produces it.
-      - name: Publish CLI (Nexus Mods build)
-        if: matrix.rid == 'linux-x64'
-        run: >-
-          dotnet publish src/AbioticEditor.Cli
-          -c Release
-          -r ${{ matrix.rid }}
-          --self-contained true
-          -p:PublishSingleFile=false
-          -p:NexusMods=true
-          -o out-nexus
-
-      - name: Zip CLI (Nexus Mods build)
-        if: matrix.rid == 'linux-x64'
-        run: |
-          cd out-nexus
-          zip -r "../${ASSET_BASENAME}-nexus.zip" .
-
-      - name: Upload artifact (Nexus Mods build)
-        if: matrix.rid == 'linux-x64'
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ matrix.artifact }}-nexus
-          path: ${{ env.ASSET_BASENAME }}-nexus.zip
-          if-no-files-found: error
-
   # Windows desktop app, built on its own (not in the CLI matrix above) so the
   # Windows-only `nexus` upload depends on just this job and never waits for the CLI
   # legs or the GitHub Release.
@@ -652,7 +625,7 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v8
         with:
-          # Flatten every artifact (the 7 zips + the release notes) into ./dist.
+          # Flatten every artifact (the 6 zips + the release notes) into ./dist.
           path: dist
           merge-multiple: true
 
@@ -774,7 +747,7 @@ jobs:
         if: steps.gate.outputs.enabled == 'true'
         uses: actions/download-artifact@v8
         with:
-          # Flatten every artifact (the 7 zips + the release notes) into ./dist;
+          # Flatten every artifact (the 6 zips + the release notes) into ./dist;
           # only the zips are scanned below.
           path: dist
           merge-multiple: true
@@ -844,8 +817,9 @@ jobs:
   # GitHub Release; it downloads the app artifact directly rather than off the release.
   #
   # NOTE: the action is in open beta; pin bumps to a newer v1.0.0-beta.* tag as
-  # they ship. This job uploads only the Windows app; the Linux CLI ships to the
-  # page as a second file via `nexus-proton` below.
+  # they ship. This job uploads only the Windows app: there is no Linux GUI (MAUI
+  # has no Linux target), so the Linux CLI does not ship to Nexus, only to the
+  # GitHub Release (see the `build` job's linux-x64 leg).
   nexus:
     needs: [version, build-app-win]
     if: needs.version.outputs.released == 'true'
@@ -939,104 +913,6 @@ jobs:
           filename: dist/AbioticEditor-app-win-x64-v${{ needs.version.outputs.version }}-nexus.zip
           version: ${{ needs.version.outputs.version }}
           display_name: AbioticEditor v${{ needs.version.outputs.version }} (Windows)
-          description: ${{ steps.changelog.outputs.body }}
-          category: main
-          archive_existing_version: true
-
-  # Publish the Linux CLI (the build for Proton / Steam Deck players, whose game runs
-  # under Steam Play and keeps its saves inside the compatdata Wine prefix) to the
-  # NexusMods page as a SECOND file, alongside the Windows app.
-  #
-  # Same mechanics as `nexus` above: the upload-action adds a new version to an existing
-  # file identified by its numeric file_id. Create the file once by hand on the mod page
-  # (upload any Linux CLI zip), then store its id in the NEXUS_PROTON_FILE_ID repository
-  # variable. The job no-ops with a warning while the variable or the NEXUSMODS_API_KEY
-  # secret is absent, so the rest of the release still ships.
-  #
-  # Depends on `build` (the CLI matrix) rather than `build-app-win`, and runs in its own
-  # job so the Windows upload never waits for the CLI legs and vice versa.
-  nexus-proton:
-    needs: [version, build]
-    if: needs.version.outputs.released == 'true'
-    runs-on: ubuntu-latest
-    # Protected: uploads to NexusMods and archives the prior version, same as `nexus`.
-    concurrency:
-      group: release-nexus-proton
-      cancel-in-progress: false
-    steps:
-      - name: Check for NexusMods credentials
-        id: gate
-        env:
-          NEXUSMODS_API_KEY: ${{ secrets.NEXUSMODS_API_KEY }}
-          FILE_ID: ${{ vars.NEXUS_PROTON_FILE_ID }}
-        run: |
-          set -euo pipefail
-          if [ -n "${NEXUSMODS_API_KEY}" ] && [ -n "${FILE_ID}" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::NEXUSMODS_API_KEY secret and/or NEXUS_PROTON_FILE_ID variable not set; skipping NexusMods Proton/Linux upload."
-          fi
-
-      - name: Download Linux CLI artifact (Nexus Mods build)
-        if: steps.gate.outputs.enabled == 'true'
-        uses: actions/download-artifact@v8
-        with:
-          # Built by the linux-x64 leg of `build` with -p:NexusMods=true (updater stripped).
-          name: AbioticEditor-cli-linux-x64-nexus
-          path: dist
-
-      - name: Download release notes
-        if: steps.gate.outputs.enabled == 'true'
-        uses: actions/download-artifact@v8
-        with:
-          name: release-notes
-          path: dist-notes
-
-      # Same plain-text changelog as the Windows upload, with a short usage note on top so
-      # Steam Deck / Linux players know what this file is and how it finds their saves.
-      - name: Build NexusMods changelog
-        id: changelog
-        if: steps.gate.outputs.enabled == 'true'
-        env:
-          VERSION: ${{ needs.version.outputs.version }}
-          TAG: ${{ needs.version.outputs.tag }}
-          REPO: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          notes="dist-notes/RELEASE_NOTES.md"
-          {
-            printf 'Abiotic Editor CLI v%s for Linux / Steam Deck (Proton)\n\n' "$VERSION"
-            printf 'Command-line save editor. Automatically finds saves the game keeps inside the Steam Play (Proton) prefix, on the internal drive and on SD-card libraries.\n\n'
-            printf 'What changed in this version:\n\n'
-            if [ -s "$notes" ]; then
-              sed -E \
-                -e '/^##[[:space:]]*\[/d' \
-                -e 's/^###[[:space:]]+(.*)$/\1:/' \
-                "$notes"
-            else
-              printf -- '- See the GitHub release for the full changelog.\n'
-            fi
-            printf '\nFull changelog and SHA-256 checksums:\n'
-            printf 'https://github.com/%s/releases/tag/%s\n' "$REPO" "$TAG"
-          } > nexus_description.txt
-          echo "----- nexus_description.txt -----"
-          cat nexus_description.txt
-          {
-            echo "body<<__NEXUS_EOF__"
-            cat nexus_description.txt
-            echo "__NEXUS_EOF__"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Upload Linux CLI to NexusMods
-        if: steps.gate.outputs.enabled == 'true'
-        uses: Nexus-Mods/upload-action@v1.0.0-beta.8
-        with:
-          api_key: ${{ secrets.NEXUSMODS_API_KEY }}
-          file_id: ${{ vars.NEXUS_PROTON_FILE_ID }}
-          filename: dist/AbioticEditor-cli-linux-x64-v${{ needs.version.outputs.version }}-nexus.zip
-          version: ${{ needs.version.outputs.version }}
-          display_name: AbioticEditor CLI v${{ needs.version.outputs.version }} (Linux / Steam Deck, Proton saves)
           description: ${{ steps.changelog.outputs.body }}
           category: main
           archive_existing_version: true
