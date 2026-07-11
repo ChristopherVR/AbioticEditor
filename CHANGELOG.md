@@ -2,6 +2,30 @@
 
 All notable changes to this project are documented here.
 
+## [1.23.0] - 2026-07-11
+
+### CI
+- Stop publishing the Linux CLI to Nexus Mods
+- Ship a Linux / Steam Deck build to Nexus Mods
+
+
+### Features
+- Translate skills, traits, equipment slots, and world NPC labels
+- The editor now works on Linux and Steam Deck
+- Translate door names, lock explanations, and save-discovery badges
+
+
+### Miscellaneous Tasks
+- Point bucket at v1.22.0 [skip ci]
+
+
+### Refactor
+- Share the tag-editing helpers between the player and world save writers
+- Break the three biggest save read/write files into focused parts
+- Give every data model, catalog, and helper its own file
+- Organize the engine into clear layers
+
+
 ## [1.22.0] - 2026-07-10
 
 ### Bug Fixes
