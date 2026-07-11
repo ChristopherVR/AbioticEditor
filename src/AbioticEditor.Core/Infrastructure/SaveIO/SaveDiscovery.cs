@@ -69,10 +69,12 @@ public sealed record DiscoveredWorld(
 
 /// <summary>
 /// Finds every Abiotic Factor world installed on this machine, so the editor can offer
-/// them on startup instead of making the user hunt for folders. Three layouts exist:
+/// them on startup instead of making the user hunt for folders. Four layouts exist:
 /// Steam/standalone client saves under <c>%LOCALAPPDATA%\AbioticFactor\Saved\SaveGames\&lt;account&gt;\Worlds\&lt;World&gt;</c>,
 /// Microsoft Store / Game Pass client saves under the packaged-app redirect
 /// <c>%LOCALAPPDATA%\Packages\&lt;PackageFamilyName&gt;\...\AbioticFactor\Saved\SaveGames\&lt;account&gt;\Worlds</c>,
+/// Steam Play / Proton client saves (Linux, Steam Deck) inside a library's
+/// <c>steamapps/compatdata/&lt;appid&gt;/pfx</c> Wine prefix,
 /// and dedicated-server installs in Steam libraries, which keep their saves inside the
 /// install folder (a <c>Worlds\&lt;World&gt;</c> tree under any <c>SaveGames</c> directory).
 /// The per-account folder is treated as an opaque id, so non-Steam (non-numeric) owners
@@ -105,6 +107,11 @@ public static class SaveDiscovery
         {
             var common = Path.Combine(library, "steamapps", "common");
             results.AddRange(DiscoverServerWorlds(common));
+
+            // Steam Play / Proton (Linux, Steam Deck): the Windows game runs inside a Wine
+            // prefix per library, so its save tree lives under compatdata, not a real
+            // %LOCALAPPDATA%. Cheap no-op on Windows (no compatdata folder exists).
+            results.AddRange(DiscoverProtonClientWorlds(library));
         }
 
         return results
@@ -221,6 +228,45 @@ public static class SaveDiscovery
                 }
             }
         }
+    }
+
+    // Where the game's normal Windows save tree lands inside a Proton (Wine) prefix,
+    // relative to a steamapps/compatdata/<appid> folder.
+    private static readonly string ProtonSaveGamesSubPath = Path.Combine(
+        "pfx", "drive_c", "users", "steamuser", "AppData", "Local",
+        "AbioticFactor", "Saved", "SaveGames");
+
+    /// <summary>
+    /// Client worlds written by the Windows game running under Steam Play / Proton (Linux and
+    /// Steam Deck). Each Proton game gets a Wine prefix at
+    /// <c>&lt;library&gt;/steamapps/compatdata/&lt;appid&gt;</c>, and the game writes its usual
+    /// <c>AbioticFactor\Saved\SaveGames</c> tree inside it. Every prefix is probed with the fixed
+    /// sub-path (one cheap existence check each) instead of hard-coding the appid, so a beta or
+    /// demo with its own appid is found too. Exposed for tests with an arbitrary library root.
+    /// </summary>
+    public static IReadOnlyList<DiscoveredWorld> DiscoverProtonClientWorlds(string steamLibraryRoot)
+    {
+        var results = new List<DiscoveredWorld>();
+        var compatData = Path.Combine(steamLibraryRoot, "steamapps", "compatdata");
+        if (!SafeDirectoryExists(compatData)) return results;
+
+        try
+        {
+            foreach (var prefix in Directory.EnumerateDirectories(compatData))
+            {
+                var saveGamesRoot = Path.Combine(prefix, ProtonSaveGamesSubPath);
+                if (!SafeDirectoryExists(saveGamesRoot)) continue;
+
+                // A Proton prefix is by definition a Steam install; the account folder is the
+                // owner's steamid64, same as a native Windows client save.
+                results.AddRange(DiscoverClientWorlds(saveGamesRoot, SavePlatform.Steam));
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Diagnostics.EditorLog.Warn("Discovery", $"Proton prefix scan under {compatData} failed: {ex.Message}");
+        }
+        return results;
     }
 
     private static bool SafeDirectoryExists(string path)

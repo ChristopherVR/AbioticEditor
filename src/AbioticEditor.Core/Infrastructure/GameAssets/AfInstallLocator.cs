@@ -4,9 +4,10 @@ using Microsoft.Win32;
 namespace AbioticEditor.Core.Assets;
 
 /// <summary>
-/// Locates an Abiotic Factor installation on the local machine. Currently looks up
-/// the Steam install via the registry and walks libraryfolders.vdf to find
-/// <c>AbioticFactor</c> under each configured library.
+/// Locates an Abiotic Factor installation on the local machine. Looks up the Steam install
+/// (registry on Windows; the conventional client paths on Linux and macOS, including Steam Deck,
+/// Flatpak, and Snap layouts) and walks libraryfolders.vdf to find <c>AbioticFactor</c> under
+/// each configured library.
 /// </summary>
 public static class AfInstallLocator
 {
@@ -280,14 +281,55 @@ public static class AfInstallLocator
 
     private static string? FindSteamInstallPath()
     {
-        if (!OperatingSystem.IsWindows())
+        if (OperatingSystem.IsWindows())
+        {
+            return ReadRegistry(RegistryHive.LocalMachine, RegistryView.Registry32, @"SOFTWARE\Valve\Steam", "InstallPath")
+                ?? ReadRegistry(RegistryHive.LocalMachine, RegistryView.Default, @"SOFTWARE\Valve\Steam", "InstallPath")
+                ?? ReadRegistry(RegistryHive.CurrentUser, RegistryView.Default, @"SOFTWARE\Valve\Steam", "SteamPath");
+        }
+
+        return FindUnixSteamInstallPath();
+    }
+
+    /// <summary>
+    /// Steam client locations on Linux (including Steam Deck, Flatpak, and Snap) and macOS.
+    /// A candidate only counts when its <c>steamapps</c> folder exists, so a stale symlink or
+    /// leftover directory can't be mistaken for an install. <c>~/.steam/steam</c> and
+    /// <c>~/.steam/root</c> are symlinks the client maintains to the real install.
+    /// </summary>
+    private static string? FindUnixSteamInstallPath()
+    {
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (string.IsNullOrEmpty(home))
         {
             return null;
         }
 
-        return ReadRegistry(RegistryHive.LocalMachine, RegistryView.Registry32, @"SOFTWARE\Valve\Steam", "InstallPath")
-            ?? ReadRegistry(RegistryHive.LocalMachine, RegistryView.Default, @"SOFTWARE\Valve\Steam", "InstallPath")
-            ?? ReadRegistry(RegistryHive.CurrentUser, RegistryView.Default, @"SOFTWARE\Valve\Steam", "SteamPath");
+        string[] candidates =
+        {
+            Path.Combine(home, ".local", "share", "Steam"),
+            Path.Combine(home, ".steam", "steam"),
+            Path.Combine(home, ".steam", "root"),
+            Path.Combine(home, ".var", "app", "com.valvesoftware.Steam", ".local", "share", "Steam"),
+            Path.Combine(home, "snap", "steam", "common", ".local", "share", "Steam"),
+            Path.Combine(home, "Library", "Application Support", "Steam"),
+        };
+
+        foreach (var candidate in candidates)
+        {
+            try
+            {
+                if (Directory.Exists(Path.Combine(candidate, "steamapps")))
+                {
+                    return candidate;
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Probe the next candidate.
+            }
+        }
+        return null;
     }
 
     private static string? ReadRegistry(RegistryHive hive, RegistryView view, string subKey, string valueName)

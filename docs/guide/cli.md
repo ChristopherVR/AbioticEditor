@@ -7,6 +7,7 @@ Core library as the desktop app, so it writes the same output the app would. Run
 ## Common commands
 
 ```console
+abioticeditor discover                           # find every world on this machine (all platforms)
 abioticeditor scan <folder>                      # list saves with kind and version
 abioticeditor info <save.sav>                    # key facts about one save
 abioticeditor export-json <save.sav> -o out.json # lossless JSON dump
@@ -24,7 +25,13 @@ abioticeditor version                            # tool + supported save version
 ```
 
 Exit codes: `0` success, `1` usage or data error, `2` unexpected failure. `--json` switches
-`scan` / `info` / `flags list` to machine-readable output.
+`discover` / `scan` / `info` / `flags list` to machine-readable output.
+
+::: tip Linux / Steam Deck (Proton)
+`discover` also finds saves the game keeps inside a Steam Play (Proton) prefix
+(`steamapps/compatdata/.../pfx`), across every Steam library including SD cards and
+Flatpak/Snap installs of Steam. Run it first and copy the printed path into the other commands.
+:::
 
 ::: tip Maintainer-only commands
 A few verbs (`dump-registry`, `download-wiki-images`) regenerate data that ships *with* the editor.

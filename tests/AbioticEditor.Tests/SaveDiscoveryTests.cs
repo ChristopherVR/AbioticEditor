@@ -57,6 +57,34 @@ public class SaveDiscoveryTests
         Assert.Empty(SaveDiscovery.DiscoverServerWorlds(Path.Combine(Path.GetTempPath(), "no-such-dir-409")));
         Assert.Empty(SaveDiscovery.DiscoverUnderRoot(Path.Combine(Path.GetTempPath(), "no-such-dir-409"), DiscoveredWorldSource.Client));
         Assert.Empty(SaveDiscovery.DiscoverPackagedClientWorlds(Path.Combine(Path.GetTempPath(), "no-such-dir-409")));
+        Assert.Empty(SaveDiscovery.DiscoverProtonClientWorlds(Path.Combine(Path.GetTempPath(), "no-such-dir-409")));
+    }
+
+    [Fact]
+    public void Discovers_Proton_worlds_inside_a_compatdata_prefix()
+    {
+        using var tmp = new TempDir();
+        // <library>/steamapps/compatdata/<appid>/pfx/drive_c/users/steamuser/AppData/Local/AbioticFactor/...
+        var worldDir = Path.Combine(
+            tmp.Path, "steamapps", "compatdata", "427410", "pfx", "drive_c", "users", "steamuser",
+            "AppData", "Local", "AbioticFactor", "Saved", "SaveGames",
+            "76561190000000001", "Worlds", "Cascade");
+        Directory.CreateDirectory(worldDir);
+        File.WriteAllText(Path.Combine(worldDir, "WorldSave_Cascade.sav"), "stub");
+
+        // Another game's prefix without an Abiotic save tree must contribute nothing.
+        Directory.CreateDirectory(Path.Combine(
+            tmp.Path, "steamapps", "compatdata", "12345", "pfx", "drive_c", "users", "steamuser",
+            "AppData", "Local", "OtherGame", "Saved"));
+
+        var worlds = SaveDiscovery.DiscoverProtonClientWorlds(tmp.Path);
+
+        var cascade = Assert.Single(worlds);
+        Assert.Equal("Cascade", cascade.WorldName);
+        Assert.Equal(DiscoveredWorldSource.Client, cascade.Source);
+        Assert.Equal(SavePlatform.Steam, cascade.Platform);
+        Assert.Equal("76561190000000001", cascade.AccountId);
+        Assert.True(cascade.SaveFileCount > 0);
     }
 
     [Fact]

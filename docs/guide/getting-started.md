@@ -24,7 +24,7 @@ Each zip's name carries the release version (e.g. `AbioticEditor-app-win-x64-v1.
 | `AbioticEditor-app-win-x64-v<version>.zip` | Desktop app (Windows) - a single self-contained `.exe` (no .NET install needed) plus a `Mappings.usmap` data file |
 | `AbioticEditor-app-osx-x64-v<version>.zip` / `-osx-arm64-…` | Desktop app (macOS, unsigned) |
 | `AbioticEditor-cli-win-x64-v<version>.zip` | Command-line tool (Windows) |
-| `AbioticEditor-cli-linux-x64-v<version>.zip` | Command-line tool (Linux) |
+| `AbioticEditor-cli-linux-x64-v<version>.zip` | Command-line tool (Linux, including Steam Deck - finds saves inside the Proton prefix automatically) |
 | `AbioticEditor-cli-osx-x64-v<version>.zip` / `-osx-arm64-…` | Command-line tool (macOS) |
 
 Unzip and run. The app and CLI both self-update from GitHub Releases: the app from its
@@ -83,9 +83,19 @@ centrally in `Directory.Packages.props`.
 
 ## Where saves live
 
-- **Client saves:** `%LOCALAPPDATA%\AbioticFactor\Saved\SaveGames\<steamid>\Worlds\<WorldName>`
+- **Client saves (Windows):** `%LOCALAPPDATA%\AbioticFactor\Saved\SaveGames\<steamid>\Worlds\<WorldName>`
+- **Client saves (Linux / Steam Deck, Proton):**
+  `<Steam library>/steamapps/compatdata/427410/pfx/drive_c/users/steamuser/AppData/Local/AbioticFactor/Saved/SaveGames/<steamid>/Worlds/<WorldName>`
 - **Dedicated server:** the folder containing `Worlds\<WorldName>` (the editor also finds
   `Admin.ini` and each world's `SandboxSettings.ini`).
+
+::: tip Linux / Steam Deck (Proton)
+There is no Linux desktop app, but the **Linux CLI** does everything the app does at the
+command line. It scans every Steam library (internal drive, SD card, Flatpak and Snap installs
+of Steam) and finds the saves the game keeps inside its Proton prefix on its own - no need to
+dig out the `compatdata` path by hand. On a Steam Deck, run it from Desktop Mode's terminal
+(Konsole): unzip, then `./abioticeditor discover`.
+:::
 
 Save kinds you'll see: `Player_<steamid64>.sav`, `WorldSave_<Region>.sav`, and
 `WorldSave_MetaData.sav` (story/metadata).

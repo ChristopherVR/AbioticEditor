@@ -25,6 +25,7 @@ public static class CommandTree
             + "files and the ini files next to them. Every write keeps a .bak of the previous file.");
         root.Options.Add(quiet);
 
+        root.Subcommands.Add(DiscoverCommand.Build(quiet));
         root.Subcommands.Add(ScanCommand.Build(quiet));
         root.Subcommands.Add(InfoCommand.Build(quiet));
         root.Subcommands.Add(CompareCommand.Build(quiet));

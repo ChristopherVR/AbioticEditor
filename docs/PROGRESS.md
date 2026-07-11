@@ -5,6 +5,26 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-41: Linux / Steam Deck (Proton) support + Nexus upload for it (2026-07-11)
+- **Core**: `AfInstallLocator.FindSteamInstallPath` now resolves Steam on Linux/macOS
+  (`~/.local/share/Steam`, `~/.steam/steam|root`, Flatpak, Snap, macOS app support; validated by
+  a `steamapps` child). `SaveDiscovery.DiscoverProtonClientWorlds(libraryRoot)` probes every
+  `steamapps/compatdata/<appid>/pfx/drive_c/users/steamuser/AppData/Local/AbioticFactor/Saved/SaveGames`
+  (fixed sub-path per prefix, appid not hard-coded) and is wired into `DiscoverAll()` per library
+  (harmless no-op on Windows). Proton worlds surface as platform STEAM with the steamid64 account.
+- **CLI**: new top-level `discover` command (table + `--json`) listing `SaveDiscovery.DiscoverAll()`
+  - the missing "where are my saves" entry point; paths feed the other commands. Registered first
+  in `CommandTree`.
+- **Pipeline** (`release.yml`): the linux-x64 `build` leg also publishes a `-p:NexusMods=true`
+  variant (updater stripped, like the Windows Nexus app) zipped as `...-nexus.zip`; new
+  `nexus-proton` job uploads it to the mod page as a second file, gated on `NEXUSMODS_API_KEY`
+  + new `NEXUS_PROTON_FILE_ID` repo variable (create the file once by hand on Nexus, then set the
+  variable). GitHub release now ships 7 zips.
+- Tests: `Discovers_Proton_worlds_inside_a_compatdata_prefix` + missing-root case (627 green).
+  Docs: getting-started (Proton save path + Deck tip), cli.md (`discover`).
+- NOTE: verified in an isolated `git archive` copy because a concurrent session was mid-refactor
+  in the shared working tree (files moved to Catalogs/Domain/Services/Infrastructure layers).
+
 ## Round-40: story rewind now clears out-of-sequence region flags too (GitHub issue #12) (2026-07-10)
 - **Bug**: a player reached the Hydroplant (via a tram-network sequence break) while still in
   Cascade Labs and talked to an NPC there, which set the region's flags directly. Rewinding the
