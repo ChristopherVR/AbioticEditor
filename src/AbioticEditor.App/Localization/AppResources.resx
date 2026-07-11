@@ -2211,4 +2211,283 @@ The change stages until you press SAVE (REVERT undoes it before saving).</value>
   <data name="WorldTraders_Card_TapToReveal" xml:space="preserve"><value>Above clearance - tap to reveal</value></data>
   <data name="WorldTraders_Card_TapToOpen" xml:space="preserve"><value>Tap to open in the side panel →</value></data>
   <data name="WorldTraders_Card_UnlockSelected" xml:space="preserve"><value>UNLOCK {0} SELECTED</value></data>
+  <data name="Skill_Passive_Sprinting" xml:space="preserve"><value>Per level: +2 max stamina, +1% sprint speed, +2% stamina regeneration</value></data>
+  <data name="Skill_Passive_Strength" xml:space="preserve"><value>Per level: +2 carrying capacity</value></data>
+  <data name="Skill_Passive_Throwing" xml:space="preserve"><value>Per level: +10 projectile velocity, +2 damage</value></data>
+  <data name="Skill_Passive_Sneaking" xml:space="preserve"><value>Per level: -5% enemy detection speed (caps at 95%)</value></data>
+  <data name="Skill_Passive_BluntMelee" xml:space="preserve"><value>Per level: +1 blunt damage</value></data>
+  <data name="Skill_Passive_SharpMelee" xml:space="preserve"><value>Per level: +1 sharp damage</value></data>
+  <data name="Skill_Passive_Accuracy" xml:space="preserve"><value>Per level: -0.075 aim sway, -0.05 bullet spread</value></data>
+  <data name="Skill_Passive_Reloading" xml:space="preserve"><value>Per level: faster reload speed</value></data>
+  <data name="Skill_Passive_Fortitude" xml:space="preserve"><value>Per level: +2 max health</value></data>
+  <data name="Skill_Passive_Crafting" xml:space="preserve"><value>Per level: faster crafting, -2% crafted-item durability loss chance</value></data>
+  <data name="Skill_Passive_Construction" xml:space="preserve"><value>Per level: faster building and deconstructing</value></data>
+  <data name="Skill_Passive_FirstAid" xml:space="preserve"><value>Per level: medical items heal more</value></data>
+  <data name="Skill_Passive_Cooking" xml:space="preserve"><value>Every 5 levels: fried and baked food quality upgrades</value></data>
+  <data name="Skill_Passive_Agriculture" xml:space="preserve"><value>Per level: harvested plants regrow faster</value></data>
+  <data name="Skill_Passive_Fishing" xml:space="preserve"><value>Per level: stronger line (resists breaking during catches)</value></data>
+  <data name="Skill_Milestone_Sprinting_5_Perk" xml:space="preserve"><value>Athletic</value></data>
+  <data name="Skill_Milestone_Sprinting_5_Effect" xml:space="preserve"><value>Chance to not lose stamina for any action</value></data>
+  <data name="Skill_Milestone_Sprinting_10_Perk" xml:space="preserve"><value>Lightspeed</value></data>
+  <data name="Skill_Milestone_Sprinting_10_Effect" xml:space="preserve"><value>Sprint 5% faster overall (on top of passive gains)</value></data>
+  <data name="Skill_Milestone_Sprinting_15_Perk" xml:space="preserve"><value>Red Shift</value></data>
+  <data name="Skill_Milestone_Sprinting_15_Effect" xml:space="preserve"><value>While sprinting, enemies are more likely to miss when targeting you</value></data>
+  <data name="Skill_Milestone_Sprinting_20_Perk" xml:space="preserve"><value>Out Of My Way!</value></data>
+  <data name="Skill_Milestone_Sprinting_20_Effect" xml:space="preserve"><value>Sprinting speed increases over several seconds</value></data>
+  <data name="Skill_Milestone_Strength_5_Perk" xml:space="preserve"><value>Step Aside</value></data>
+  <data name="Skill_Milestone_Strength_5_Effect" xml:space="preserve"><value>Shake Vending Machines &amp; stomp Carbuncles in 1 hit</value></data>
+  <data name="Skill_Milestone_Strength_8_Perk" xml:space="preserve"><value>Heavy Weapons</value></data>
+  <data name="Skill_Milestone_Strength_8_Effect" xml:space="preserve"><value>Strong enough to properly wield heavy melee weapons</value></data>
+  <data name="Skill_Milestone_Strength_12_Perk" xml:space="preserve"><value>Nerd Rage</value></data>
+  <data name="Skill_Milestone_Strength_12_Effect" xml:space="preserve"><value>When bleeding near a hostile enemy, melee damage and speed are enhanced</value></data>
+  <data name="Skill_Milestone_Strength_15_Perk" xml:space="preserve"><value>Heavy Armor Specialization</value></data>
+  <data name="Skill_Milestone_Strength_15_Effect" xml:space="preserve"><value>Can wear any weight of armor</value></data>
+  <data name="Skill_Milestone_Strength_20_Perk" xml:space="preserve"><value>Superior Gains</value></data>
+  <data name="Skill_Milestone_Strength_20_Effect" xml:space="preserve"><value>All items weigh 25% less</value></data>
+  <data name="Skill_Milestone_Throwing_2_Perk" xml:space="preserve"><value>Underhand Toss</value></data>
+  <data name="Skill_Milestone_Throwing_2_Effect" xml:space="preserve"><value>Gentle underhand toss with all throwable items</value></data>
+  <data name="Skill_Milestone_Throwing_5_Perk" xml:space="preserve"><value>Projectile Pickup</value></data>
+  <data name="Skill_Milestone_Throwing_5_Effect" xml:space="preserve"><value>Automatically pick up projectiles you've thrown</value></data>
+  <data name="Skill_Milestone_Throwing_8_Perk" xml:space="preserve"><value>Hazy Recollection</value></data>
+  <data name="Skill_Milestone_Throwing_8_Effect" xml:space="preserve"><value>Weapons thrown by you are highlighted for 30 seconds</value></data>
+  <data name="Skill_Milestone_Throwing_10_Perk" xml:space="preserve"><value>Projectile Predictor</value></data>
+  <data name="Skill_Milestone_Throwing_10_Effect" xml:space="preserve"><value>See the predicted path of your throwables</value></data>
+  <data name="Skill_Milestone_Throwing_12_Perk" xml:space="preserve"><value>Tinkerer</value></data>
+  <data name="Skill_Milestone_Throwing_12_Effect" xml:space="preserve"><value>Crafting throwables yields 1 additional item</value></data>
+  <data name="Skill_Milestone_Throwing_15_Perk" xml:space="preserve"><value>Terminal Velocity</value></data>
+  <data name="Skill_Milestone_Throwing_15_Effect" xml:space="preserve"><value>Hitting enemies with a thrown weapon staggers them</value></data>
+  <data name="Skill_Milestone_Throwing_20_Perk" xml:space="preserve"><value>Quantum Displacement</value></data>
+  <data name="Skill_Milestone_Throwing_20_Effect" xml:space="preserve"><value>Thrown items sometimes split into 2 additional projectiles</value></data>
+  <data name="Skill_Milestone_Sneaking_2_Perk" xml:space="preserve"><value>Sneak Attack</value></data>
+  <data name="Skill_Milestone_Sneaking_2_Effect" xml:space="preserve"><value>First attack on an idle enemy has 25% chance to deal double damage</value></data>
+  <data name="Skill_Milestone_Sneaking_5_Perk" xml:space="preserve"><value>Biotic Shadow</value></data>
+  <data name="Skill_Milestone_Sneaking_5_Effect" xml:space="preserve"><value>Move 15% faster while crouched; can perform a roll</value></data>
+  <data name="Skill_Milestone_Sneaking_8_Perk" xml:space="preserve"><value>Nimble</value></data>
+  <data name="Skill_Milestone_Sneaking_8_Effect" xml:space="preserve"><value>Don't trigger Tripwires, Tripwire Lasers, or Carbuncles</value></data>
+  <data name="Skill_Milestone_Sneaking_10_Perk" xml:space="preserve"><value>Night Worker</value></data>
+  <data name="Skill_Milestone_Sneaking_10_Effect" xml:space="preserve"><value>Much quieter footsteps; increased Sneak Attack chance at night</value></data>
+  <data name="Skill_Milestone_Sneaking_15_Perk" xml:space="preserve"><value>Office Assassin</value></data>
+  <data name="Skill_Milestone_Sneaking_15_Effect" xml:space="preserve"><value>Attacks on unaware enemies always deal double damage</value></data>
+  <data name="Skill_Milestone_Sneaking_20_Perk" xml:space="preserve"><value>Interdimensional</value></data>
+  <data name="Skill_Milestone_Sneaking_20_Effect" xml:space="preserve"><value>Enemy attacks just sometimes... miss?</value></data>
+  <data name="Skill_Milestone_BluntMelee_3_Perk" xml:space="preserve"><value>Power Attack</value></data>
+  <data name="Skill_Milestone_BluntMelee_3_Effect" xml:space="preserve"><value>Heavy windup attacks with blunt melee weapons</value></data>
+  <data name="Skill_Milestone_BluntMelee_7_Perk" xml:space="preserve"><value>Battle Charge</value></data>
+  <data name="Skill_Milestone_BluntMelee_7_Effect" xml:space="preserve"><value>Attacking during a sprint becomes a driving power attack</value></data>
+  <data name="Skill_Milestone_BluntMelee_10_Perk" xml:space="preserve"><value>Stunning Slam</value></data>
+  <data name="Skill_Milestone_BluntMelee_10_Effect" xml:space="preserve"><value>Stagger enemies more easily with blunt melee</value></data>
+  <data name="Skill_Milestone_BluntMelee_12_Perk" xml:space="preserve"><value>Power Hungry</value></data>
+  <data name="Skill_Milestone_BluntMelee_12_Effect" xml:space="preserve"><value>Power Attacks use 50% less stamina per swing</value></data>
+  <data name="Skill_Milestone_BluntMelee_15_Perk" xml:space="preserve"><value>Crusher</value></data>
+  <data name="Skill_Milestone_BluntMelee_15_Effect" xml:space="preserve"><value>Enemies resistant to Blunt... aren't</value></data>
+  <data name="Skill_Milestone_BluntMelee_20_Perk" xml:space="preserve"><value>Smash</value></data>
+  <data name="Skill_Milestone_BluntMelee_20_Effect" xml:space="preserve"><value>Chance to instantly explode human-sized or smaller enemies</value></data>
+  <data name="Skill_Milestone_SharpMelee_3_Perk" xml:space="preserve"><value>Sharp Throwing</value></data>
+  <data name="Skill_Milestone_SharpMelee_3_Effect" xml:space="preserve"><value>Can throw sharp melee weapons</value></data>
+  <data name="Skill_Milestone_SharpMelee_5_Perk" xml:space="preserve"><value>Clean Cutter</value></data>
+  <data name="Skill_Milestone_SharpMelee_5_Effect" xml:space="preserve"><value>25% higher chance to not end up with Bio Scrap when butchering</value></data>
+  <data name="Skill_Milestone_SharpMelee_9_Perk" xml:space="preserve"><value>No Survivors</value></data>
+  <data name="Skill_Milestone_SharpMelee_9_Effect" xml:space="preserve"><value>Enemies killed by sharp melee attacks outright die (no second forms)</value></data>
+  <data name="Skill_Milestone_SharpMelee_12_Perk" xml:space="preserve"><value>Slice n' Dice</value></data>
+  <data name="Skill_Milestone_SharpMelee_12_Effect" xml:space="preserve"><value>Higher chance to cause Severe Bleeding</value></data>
+  <data name="Skill_Milestone_SharpMelee_15_Perk" xml:space="preserve"><value>Eviscerator</value></data>
+  <data name="Skill_Milestone_SharpMelee_15_Effect" xml:space="preserve"><value>Cut through Sharp-resistant enemies as if not resistant</value></data>
+  <data name="Skill_Milestone_SharpMelee_20_Perk" xml:space="preserve"><value>Heartseeker</value></data>
+  <data name="Skill_Milestone_SharpMelee_20_Effect" xml:space="preserve"><value>Very small chance to instantly kill small/medium enemies</value></data>
+  <data name="Skill_Milestone_Accuracy_5_Perk" xml:space="preserve"><value>Squint</value></data>
+  <data name="Skill_Milestone_Accuracy_5_Effect" xml:space="preserve"><value>Alt-fire while aiming a ranged weapon zooms vision</value></data>
+  <data name="Skill_Milestone_Accuracy_7_Perk" xml:space="preserve"><value>Mil-Spec</value></data>
+  <data name="Skill_Milestone_Accuracy_7_Effect" xml:space="preserve"><value>Confidence to handle advanced firearms (Bio-Metric Armwraps recipe)</value></data>
+  <data name="Skill_Milestone_Accuracy_10_Perk" xml:space="preserve"><value>Straight as an Arrow</value></data>
+  <data name="Skill_Milestone_Accuracy_10_Effect" xml:space="preserve"><value>Projectiles less likely to break on impact</value></data>
+  <data name="Skill_Milestone_Accuracy_13_Perk" xml:space="preserve"><value>Boomstick</value></data>
+  <data name="Skill_Milestone_Accuracy_13_Effect" xml:space="preserve"><value>Smaller creatures may flee when you fire</value></data>
+  <data name="Skill_Milestone_Accuracy_15_Perk" xml:space="preserve"><value>Bio-Mimic Armwraps</value></data>
+  <data name="Skill_Milestone_Accuracy_15_Effect" xml:space="preserve"><value>Advanced Bio-Mimic Armwraps recipe</value></data>
+  <data name="Skill_Milestone_Accuracy_18_Perk" xml:space="preserve"><value>Bio-Fusion Imitator</value></data>
+  <data name="Skill_Milestone_Accuracy_18_Effect" xml:space="preserve"><value>Advanced Bio-Fusion Imitator trinket recipe</value></data>
+  <data name="Skill_Milestone_Accuracy_20_Perk" xml:space="preserve"><value>Stopping Power</value></data>
+  <data name="Skill_Milestone_Accuracy_20_Effect" xml:space="preserve"><value>Projectiles/bullets have a small chance to stun the target</value></data>
+  <data name="Skill_Milestone_Reloading_3_Perk" xml:space="preserve"><value>Ammo Crafter</value></data>
+  <data name="Skill_Milestone_Reloading_3_Effect" xml:space="preserve"><value>Craft ammo twice as fast</value></data>
+  <data name="Skill_Milestone_Reloading_5_Perk" xml:space="preserve"><value>Just In Case</value></data>
+  <data name="Skill_Milestone_Reloading_5_Effect" xml:space="preserve"><value>Reload weapons you aren't otherwise qualified to use</value></data>
+  <data name="Skill_Milestone_Reloading_10_Perk" xml:space="preserve"><value>Basic Geometry</value></data>
+  <data name="Skill_Milestone_Reloading_10_Effect" xml:space="preserve"><value>Less clumsy at reloading all weaponry</value></data>
+  <data name="Skill_Milestone_Reloading_15_Perk" xml:space="preserve"><value>Speedloader</value></data>
+  <data name="Skill_Milestone_Reloading_15_Effect" xml:space="preserve"><value>Sprint and reload at the same time</value></data>
+  <data name="Skill_Milestone_Reloading_20_Perk" xml:space="preserve"><value>Loose Rounds</value></data>
+  <data name="Skill_Milestone_Reloading_20_Effect" xml:space="preserve"><value>Sometimes find spare rounds when reloading</value></data>
+  <data name="Skill_Milestone_Fortitude_5_Perk" xml:space="preserve"><value>Habituation</value></data>
+  <data name="Skill_Milestone_Fortitude_5_Effect" xml:space="preserve"><value>Regenerate health a bit more frequently</value></data>
+  <data name="Skill_Milestone_Fortitude_8_Perk" xml:space="preserve"><value>Group Effort</value></data>
+  <data name="Skill_Milestone_Fortitude_8_Effect" xml:space="preserve"><value>Resting within 8 m of other resting scientists doubles rest rate</value></data>
+  <data name="Skill_Milestone_Fortitude_10_Perk" xml:space="preserve"><value>Spongy Tissue</value></data>
+  <data name="Skill_Milestone_Fortitude_10_Effect" xml:space="preserve"><value>Slightly reduced fall damage and vehicle impact damage</value></data>
+  <data name="Skill_Milestone_Fortitude_15_Perk" xml:space="preserve"><value>Reflective Mantle</value></data>
+  <data name="Skill_Milestone_Fortitude_15_Effect" xml:space="preserve"><value>Melee contact may reflect damage back to the enemy</value></data>
+  <data name="Skill_Milestone_Fortitude_20_Perk" xml:space="preserve"><value>Strong Ecosystem</value></data>
+  <data name="Skill_Milestone_Fortitude_20_Effect" xml:space="preserve"><value>Regenerate 1 health every second</value></data>
+  <data name="Skill_Milestone_Crafting_2_Perk" xml:space="preserve"><value>More Bench</value></data>
+  <data name="Skill_Milestone_Crafting_2_Effect" xml:space="preserve"><value>First set of Crafting Bench upgrades</value></data>
+  <data name="Skill_Milestone_Crafting_5_Perk" xml:space="preserve"><value>Mega Bench</value></data>
+  <data name="Skill_Milestone_Crafting_5_Effect" xml:space="preserve"><value>Second tier of Crafting Bench upgrades</value></data>
+  <data name="Skill_Milestone_Crafting_8_Perk" xml:space="preserve"><value>Beautiful Blueprints</value></data>
+  <data name="Skill_Milestone_Crafting_8_Effect" xml:space="preserve"><value>Recipes shared with you skip the research phase</value></data>
+  <data name="Skill_Milestone_Crafting_10_Perk" xml:space="preserve"><value>Eye For Detail</value></data>
+  <data name="Skill_Milestone_Crafting_10_Effect" xml:space="preserve"><value>Crafted items gain temporary bonus durability</value></data>
+  <data name="Skill_Milestone_Crafting_15_Perk" xml:space="preserve"><value>Super Bench</value></data>
+  <data name="Skill_Milestone_Crafting_15_Effect" xml:space="preserve"><value>Final tier of Crafting Bench upgrades</value></data>
+  <data name="Skill_Milestone_Crafting_20_Perk" xml:space="preserve"><value>Precision Engineering</value></data>
+  <data name="Skill_Milestone_Crafting_20_Effect" xml:space="preserve"><value>Small chance to consume 1 less item in multi-item recipes</value></data>
+  <data name="Skill_Milestone_Construction_5_Perk" xml:space="preserve"><value>Pack Your Desk</value></data>
+  <data name="Skill_Milestone_Construction_5_Effect" xml:space="preserve"><value>Package small deployables twice as fast</value></data>
+  <data name="Skill_Milestone_Construction_10_Perk" xml:space="preserve"><value>Razed With Care</value></data>
+  <data name="Skill_Milestone_Construction_10_Effect" xml:space="preserve"><value>50% chance of double resources when dismantling</value></data>
+  <data name="Skill_Milestone_Construction_15_Perk" xml:space="preserve"><value>Castle Doctrine</value></data>
+  <data name="Skill_Milestone_Construction_15_Effect" xml:space="preserve"><value>Fortification build costs reduced by half</value></data>
+  <data name="Skill_Milestone_Construction_20_Perk" xml:space="preserve"><value>Spontaneous Furniture Event</value></data>
+  <data name="Skill_Milestone_Construction_20_Effect" xml:space="preserve"><value>Chance of double furniture when packaging non-player-built items</value></data>
+  <data name="Skill_Milestone_FirstAid_3_Perk" xml:space="preserve"><value>Refreshing Touch</value></data>
+  <data name="Skill_Milestone_FirstAid_3_Effect" xml:space="preserve"><value>Healing teammates also grants them +5 hydration</value></data>
+  <data name="Skill_Milestone_FirstAid_4_Perk" xml:space="preserve"><value>Rad Remover</value></data>
+  <data name="Skill_Milestone_FirstAid_4_Effect" xml:space="preserve"><value>Recipe: Pentetic Acid Syringe (radiation removal)</value></data>
+  <data name="Skill_Milestone_FirstAid_5_Perk" xml:space="preserve"><value>Bedside Manner</value></data>
+  <data name="Skill_Milestone_FirstAid_5_Effect" xml:space="preserve"><value>See others' medical debuffs when close</value></data>
+  <data name="Skill_Milestone_FirstAid_8_Perk" xml:space="preserve"><value>Bonesetter</value></data>
+  <data name="Skill_Milestone_FirstAid_8_Effect" xml:space="preserve"><value>Applied splints heal bones faster</value></data>
+  <data name="Skill_Milestone_FirstAid_11_Perk" xml:space="preserve"><value>Aftercare</value></data>
+  <data name="Skill_Milestone_FirstAid_11_Effect" xml:space="preserve"><value>Revived teammates get a healing buff; +20% boost when using a medical item</value></data>
+  <data name="Skill_Milestone_FirstAid_15_Perk" xml:space="preserve"><value>Combat Doctor</value></data>
+  <data name="Skill_Milestone_FirstAid_15_Effect" xml:space="preserve"><value>Apply medical items to self and others twice as fast</value></data>
+  <data name="Skill_Milestone_FirstAid_20_Perk" xml:space="preserve"><value>Brink of Death</value></data>
+  <data name="Skill_Milestone_FirstAid_20_Effect" xml:space="preserve"><value>Your revives grant an Extra Down instead of outright death</value></data>
+  <data name="Skill_Milestone_Cooking_3_Perk" xml:space="preserve"><value>Soupsmith</value></data>
+  <data name="Skill_Milestone_Cooking_3_Effect" xml:space="preserve"><value>Cook soups in a pot with water and ingredients</value></data>
+  <data name="Skill_Milestone_Cooking_5_Perk" xml:space="preserve"><value>Mother Knows Best</value></data>
+  <data name="Skill_Milestone_Cooking_5_Effect" xml:space="preserve"><value>See nearby players' hunger and thirst</value></data>
+  <data name="Skill_Milestone_Cooking_8_Perk" xml:space="preserve"><value>Prep Chef</value></data>
+  <data name="Skill_Milestone_Cooking_8_Effect" xml:space="preserve"><value>All cooking recipes craft in half the time</value></data>
+  <data name="Skill_Milestone_Cooking_10_Perk" xml:space="preserve"><value>Hearty &amp; Oven Recipes</value></data>
+  <data name="Skill_Milestone_Cooking_10_Effect" xml:space="preserve"><value>Extra health during food regen; Convection Oven + Raw Dough recipes</value></data>
+  <data name="Skill_Milestone_Cooking_12_Perk" xml:space="preserve"><value>Expert Gibbing</value></data>
+  <data name="Skill_Milestone_Cooking_12_Effect" xml:space="preserve"><value>Advanced knife recipe; corpse cutting without useless scrap</value></data>
+  <data name="Skill_Milestone_Cooking_15_Perk" xml:space="preserve"><value>Chef Sense</value></data>
+  <data name="Skill_Milestone_Cooking_15_Effect" xml:space="preserve"><value>Notified when food finishes cooking, even remotely</value></data>
+  <data name="Skill_Milestone_Cooking_17_Perk" xml:space="preserve"><value>Serving Seconds</value></data>
+  <data name="Skill_Milestone_Cooking_17_Effect" xml:space="preserve"><value>Soups, pies, etc. contain 2 extra portions</value></data>
+  <data name="Skill_Milestone_Cooking_20_Perk" xml:space="preserve"><value>Fast Food</value></data>
+  <data name="Skill_Milestone_Cooking_20_Effect" xml:space="preserve"><value>All food cooks 25% faster on cooktops/ovens</value></data>
+  <data name="Skill_Milestone_Agriculture_4_Perk" xml:space="preserve"><value>Fertilizer Tier 1</value></data>
+  <data name="Skill_Milestone_Agriculture_4_Effect" xml:space="preserve"><value>Recipe: Anomalous Compost (T1)</value></data>
+  <data name="Skill_Milestone_Agriculture_8_Perk" xml:space="preserve"><value>Fertilizer Tier 2</value></data>
+  <data name="Skill_Milestone_Agriculture_8_Effect" xml:space="preserve"><value>Recipe: Anomalous Fertilizer (T2)</value></data>
+  <data name="Skill_Milestone_Agriculture_10_Perk" xml:space="preserve"><value>Photosynthetic Synergy</value></data>
+  <data name="Skill_Milestone_Agriculture_10_Effect" xml:space="preserve"><value>Garden plants within 15 m grow 10% faster</value></data>
+  <data name="Skill_Milestone_Agriculture_13_Perk" xml:space="preserve"><value>Entangled Ecosystem</value></data>
+  <data name="Skill_Milestone_Agriculture_13_Effect" xml:space="preserve"><value>Nearby plants collectively consume less water</value></data>
+  <data name="Skill_Milestone_Agriculture_15_Perk" xml:space="preserve"><value>Fertilizer Tier 3</value></data>
+  <data name="Skill_Milestone_Agriculture_15_Effect" xml:space="preserve"><value>Recipe: Anomalous Plant Food (T3)</value></data>
+  <data name="Skill_Milestone_Agriculture_20_Perk" xml:space="preserve"><value>Prudent Plucking</value></data>
+  <data name="Skill_Milestone_Agriculture_20_Effect" xml:space="preserve"><value>+1 extra harvest when gathering wild plants</value></data>
+  <data name="Skill_Milestone_Fishing_3_Perk" xml:space="preserve"><value>Fish Sense</value></data>
+  <data name="Skill_Milestone_Fishing_3_Effect" xml:space="preserve"><value>Detect fishing hotspots; craft Fish Trap</value></data>
+  <data name="Skill_Milestone_Fishing_5_Perk" xml:space="preserve"><value>Tacklebox</value></data>
+  <data name="Skill_Milestone_Fishing_5_Effect" xml:space="preserve"><value>Recipe: Tacklebox</value></data>
+  <data name="Skill_Milestone_Fishing_10_Perk" xml:space="preserve"><value>Lucky Fishing Hat</value></data>
+  <data name="Skill_Milestone_Fishing_10_Effect" xml:space="preserve"><value>Recipes: Lucky Fishing Hat and Mud Waders</value></data>
+  <data name="Skill_Milestone_Fishing_12_Perk" xml:space="preserve"><value>Bait and Switch</value></data>
+  <data name="Skill_Milestone_Fishing_12_Effect" xml:space="preserve"><value>33% chance to keep bait when fishing up junk</value></data>
+  <data name="Skill_Milestone_Fishing_15_Perk" xml:space="preserve"><value>Freshwater Friends</value></data>
+  <data name="Skill_Milestone_Fishing_15_Effect" xml:space="preserve"><value>Certain underwater creatures no longer feel threatened</value></data>
+  <data name="Trait_NoPhD_DisplayName" xml:space="preserve"><value>Lab Assistant</value></data>
+  <data name="Trait_PhD_Medicine_DisplayName" xml:space="preserve"><value>Epimedical Bionomicist</value></data>
+  <data name="Trait_PhD_HumanBio_DisplayName" xml:space="preserve"><value>Trans-Kinematic Researcher</value></data>
+  <data name="Trait_PhD_MechEng_DisplayName" xml:space="preserve"><value>Archotechnic Consultant</value></data>
+  <data name="Trait_PhD_Agriculture_DisplayName" xml:space="preserve"><value>Phytogenetic Botanist</value></data>
+  <data name="Trait_PhD_NutritonalSci_DisplayName" xml:space="preserve"><value>Somatic Gastrologist</value></data>
+  <data name="Trait_PhD_TheoreticalPhys_DisplayName" xml:space="preserve"><value>Paratheoretical Physicist</value></data>
+  <data name="Trait_PhD_DefenseSecurity_DisplayName" xml:space="preserve"><value>Defense Analyst</value></data>
+  <data name="Trait_PhD_Intern_DisplayName" xml:space="preserve"><value>Summer Intern</value></data>
+  <data name="Trait_PhD_Iron_DisplayName" xml:space="preserve"><value>Iron Mode</value></data>
+  <data name="Trait_Trait_Decathlon_DisplayName" xml:space="preserve"><value>Decathlon Competitor</value></data>
+  <data name="Trait_Trait_FormerGuard_DisplayName" xml:space="preserve"><value>Tough as Nails</value></data>
+  <data name="Trait_Trait_WrinklyBrainmeat_DisplayName" xml:space="preserve"><value>Wrinkly Brainmeat</value></data>
+  <data name="Trait_Trait_NightOwl_DisplayName" xml:space="preserve"><value>Night Owl</value></data>
+  <data name="Trait_Trait_Chef_DisplayName" xml:space="preserve"><value>Hobbyist Chef</value></data>
+  <data name="Trait_Trait_Inconspicuous_DisplayName" xml:space="preserve"><value>Inconspicuous</value></data>
+  <data name="Trait_Trait_Outdoorsman_DisplayName" xml:space="preserve"><value>Weathered</value></data>
+  <data name="Trait_Trait_FannyPack_DisplayName" xml:space="preserve"><value>Fanny Pack</value></data>
+  <data name="Trait_Trait_ThickSkinned_DisplayName" xml:space="preserve"><value>Thick Skinned</value></data>
+  <data name="Trait_Trait_FirstAidCert_DisplayName" xml:space="preserve"><value>First Aid Certification</value></data>
+  <data name="Trait_Trait_Gardener_DisplayName" xml:space="preserve"><value>Gardener</value></data>
+  <data name="Trait_Trait_LightEater_DisplayName" xml:space="preserve"><value>Light Eater</value></data>
+  <data name="Trait_Trait_Moist_DisplayName" xml:space="preserve"><value>Naturally Moist</value></data>
+  <data name="Trait_Trait_SelfDefense_DisplayName" xml:space="preserve"><value>Self Defense</value></data>
+  <data name="Trait_Trait_SteelBladder_DisplayName" xml:space="preserve"><value>Bladder of Steel</value></data>
+  <data name="Trait_Trait_Strong_DisplayName" xml:space="preserve"><value>Buff Brainiac</value></data>
+  <data name="Trait_Trait_LeadBelly_DisplayName" xml:space="preserve"><value>Lead Belly</value></data>
+  <data name="Trait_Trait_FearOfViolence_DisplayName" xml:space="preserve"><value>Fear of Violence</value></data>
+  <data name="Trait_Trait_EasilyStartled_DisplayName" xml:space="preserve"><value>Easily Startled</value></data>
+  <data name="Trait_Trait_Feeble_DisplayName" xml:space="preserve"><value>Feeble</value></data>
+  <data name="Trait_Trait_Narcoleptic_DisplayName" xml:space="preserve"><value>Narcoleptic</value></data>
+  <data name="Trait_Trait_Agoraphobic_DisplayName" xml:space="preserve"><value>Agoraphobic</value></data>
+  <data name="Trait_Trait_Fumbler_DisplayName" xml:space="preserve"><value>Fumbler</value></data>
+  <data name="Trait_Trait_Asthmatic_DisplayName" xml:space="preserve"><value>Asthmatic</value></data>
+  <data name="Trait_Trait_Claustrophobic_DisplayName" xml:space="preserve"><value>Claustrophobic</value></data>
+  <data name="Trait_Trait_Clumsy_DisplayName" xml:space="preserve"><value>Clumsy</value></data>
+  <data name="Trait_Trait_Conspicuous_DisplayName" xml:space="preserve"><value>Painfully Obvious</value></data>
+  <data name="Trait_Trait_HeartyAppetite_DisplayName" xml:space="preserve"><value>Hearty Appetite</value></data>
+  <data name="Trait_Trait_Dry_DisplayName" xml:space="preserve"><value>Dry Skin</value></data>
+  <data name="Trait_Trait_Hemophobic_DisplayName" xml:space="preserve"><value>Hemophobic</value></data>
+  <data name="Trait_Trait_Dyslexia_DisplayName" xml:space="preserve"><value>Dyslexia</value></data>
+  <data name="Trait_Trait_RestlessSleeper_DisplayName" xml:space="preserve"><value>Restless Sleeper</value></data>
+  <data name="Trait_Trait_Smoker_DisplayName" xml:space="preserve"><value>Smoker</value></data>
+  <data name="Trait_Trait_SlowHealer_DisplayName" xml:space="preserve"><value>Slow Healer</value></data>
+  <data name="Trait_Trait_SlowLearner_DisplayName" xml:space="preserve"><value>Slow Learner</value></data>
+  <data name="Trait_Trait_Hemophilia_DisplayName" xml:space="preserve"><value>Hemophilia</value></data>
+  <data name="Trait_Trait_Unlucky_DisplayName" xml:space="preserve"><value>Unlucky</value></data>
+  <data name="Trait_Trait_WeakBladder_DisplayName" xml:space="preserve"><value>Weak Bladder</value></data>
+  <data name="Trait_Trait_Cannibal_DisplayName" xml:space="preserve"><value>Forbidden Diet</value></data>
+  <data name="Trait_Trait_SunDisk_DisplayName" xml:space="preserve"><value>Sun-Touched</value></data>
+  <data name="EquipSlot_Role_HEAD" xml:space="preserve"><value>Head</value></data>
+  <data name="EquipSlot_Role_LEGS" xml:space="preserve"><value>Legs</value></data>
+  <data name="EquipSlot_Role_BACK" xml:space="preserve"><value>Back</value></data>
+  <data name="EquipSlot_Role_ARMS" xml:space="preserve"><value>Arms</value></data>
+  <data name="EquipSlot_Role_SUIT" xml:space="preserve"><value>Suit</value></data>
+  <data name="EquipSlot_Role_CHEST" xml:space="preserve"><value>Chest</value></data>
+  <data name="EquipSlot_Role_HEADLAMP" xml:space="preserve"><value>Headlamp</value></data>
+  <data name="EquipSlot_Role_TRINKET" xml:space="preserve"><value>Trinket</value></data>
+  <data name="EquipSlot_Role_WATCH" xml:space="preserve"><value>Watch</value></data>
+  <data name="EquipSlot_Role_HACKER" xml:space="preserve"><value>Hacker</value></data>
+  <data name="EquipSlot_Role_SHIELD" xml:space="preserve"><value>Shield</value></data>
+  <data name="EquipSlot_Role_PET" xml:space="preserve"><value>Companion (Pet)</value></data>
+  <data name="EquipSlot_Name_Hotbar" xml:space="preserve"><value>Hotbar</value></data>
+  <data name="EquipSlot_Name_Backpack" xml:space="preserve"><value>Backpack</value></data>
+  <data name="EquipSlot_Name_Any" xml:space="preserve"><value>Any Slot</value></data>
+  <data name="EquipSlot_Name_Head" xml:space="preserve"><value>Head</value></data>
+  <data name="EquipSlot_Name_Legs" xml:space="preserve"><value>Legs</value></data>
+  <data name="EquipSlot_Name_Back" xml:space="preserve"><value>Back</value></data>
+  <data name="EquipSlot_Name_Arms" xml:space="preserve"><value>Arms</value></data>
+  <data name="EquipSlot_Name_Suit" xml:space="preserve"><value>Suit</value></data>
+  <data name="EquipSlot_Name_Chest" xml:space="preserve"><value>Chest</value></data>
+  <data name="EquipSlot_Name_Headlamp" xml:space="preserve"><value>Headlamp</value></data>
+  <data name="EquipSlot_Name_Trinket" xml:space="preserve"><value>Trinket</value></data>
+  <data name="EquipSlot_Name_Watch" xml:space="preserve"><value>Watch</value></data>
+  <data name="EquipSlot_Name_Hacker" xml:space="preserve"><value>Hacker</value></data>
+  <data name="EquipSlot_Name_Shield" xml:space="preserve"><value>Shield</value></data>
+  <data name="EquipSlot_Name_Companion" xml:space="preserve"><value>Companion</value></data>
+  <data name="EquipSlot_NotEquippable" xml:space="preserve"><value>Not equippable ({0} slot)</value></data>
+  <data name="EquipSlot_WrongSlot" xml:space="preserve"><value>{0} item, not for {1} slot</value></data>
+  <data name="Slot_PetsHotbarOnly" xml:space="preserve"><value>Pets only go in the hotbar - not allowed in the backpack</value></data>
+  <data name="WorldNpc_Identity_Human_Hologram" xml:space="preserve"><value>Story hologram (scripted scene, cannot die)</value></data>
+  <data name="WorldNpc_Identity_Human_TRADER" xml:space="preserve"><value>Static trader stand</value></data>
+  <data name="WorldNpc_Identity_Human_Killable" xml:space="preserve"><value>Killable story NPC</value></data>
+  <data name="WorldNpc_Identity_Human_ParentBP" xml:space="preserve"><value>Story NPC / trader host</value></data>
+  <data name="WorldNpc_Identity_Ela" xml:space="preserve"><value>Ela - Abe's pet Electro-Pest (Wildlife Pens)</value></data>
+  <data name="WorldNpc_Identity_HastaTria" xml:space="preserve"><value>Hasta Tria - Order soldier (The Mines)</value></data>
+  <data name="WorldNpc_Identity_Larva" xml:space="preserve"><value>Big Hive Larva - trader</value></data>
+  <data name="WorldNpc_Identity_MGT_CKCore" xml:space="preserve"><value>The Core - Core Keeper crossover</value></data>
+  <data name="WorldNpc_Identity_Default" xml:space="preserve"><value>Story NPC</value></data>
+  <data name="WorldNpc_TamedPetCompanion" xml:space="preserve"><value>Tamed pet companion</value></data>
 </root>

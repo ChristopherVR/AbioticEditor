@@ -75,7 +75,7 @@ Per-level passive: +10 projectile velocity, +2 damage.
 | 20 | Quantum Displacement | Thrown items sometimes split into 2 additional projectiles |
 
 #### Sneaking (Fitness)
-Per-level passive: −5% enemy detection speed (caps at 95%).
+Per-level passive: -5% enemy detection speed (caps at 95%).
 
 | Level | Perk | Effect |
 |---|---|---|
@@ -111,7 +111,7 @@ Per-level passive: +1 sharp damage.
 | 20 | Heartseeker | Very small chance to instantly kill small/medium enemies |
 
 #### Accuracy (Combat)
-Per-level passive: −0.075 aim sway, −0.05 bullet spread.
+Per-level passive: -0.075 aim sway, -0.05 bullet spread.
 
 | Level | Perk | Effect |
 |---|---|---|
@@ -146,7 +146,7 @@ Per-level passive: +2 max health per level (wiki phrases this around limb/head h
 | 20 | Strong Ecosystem | Regenerate 1 health every second |
 
 #### Crafting (Survival)
-Per-level passive: crafting time reduced; −2% chance of crafted-item durability loss per level.
+Per-level passive: crafting time reduced; -2% chance of crafted-item durability loss per level.
 
 | Level | Perk | Effect |
 |---|---|---|

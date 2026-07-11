@@ -25,18 +25,33 @@ public static class NpcIdentityCatalog
     public const string DefaultLabel = "Story NPC";
 
     /// <summary>
+    /// Scans the actor id / name for a known class hint and returns that hint (the stable id
+    /// a caller can key a localized label off), or null when none match. See
+    /// <see cref="LabelFor"/> for the plain-English label.
+    /// </summary>
+    public static string? MatchedHint(string id, string actorName)
+    {
+        foreach (var (hint, _) in _hints)
+        {
+            if (id.Contains(hint, StringComparison.OrdinalIgnoreCase)
+                || actorName.Contains(hint, StringComparison.OrdinalIgnoreCase))
+            {
+                return hint;
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
     /// Matches a label by scanning the actor id / name for a known class hint, or returns
     /// <see cref="DefaultLabel"/> when none match.
     /// </summary>
     public static string LabelFor(string id, string actorName)
     {
-        foreach (var (hint, label) in _hints)
+        if (MatchedHint(id, actorName) is not { } hint) return DefaultLabel;
+        foreach (var (h, label) in _hints)
         {
-            if (id.Contains(hint, StringComparison.OrdinalIgnoreCase)
-                || actorName.Contains(hint, StringComparison.OrdinalIgnoreCase))
-            {
-                return label;
-            }
+            if (h == hint) return label;
         }
         return DefaultLabel;
     }

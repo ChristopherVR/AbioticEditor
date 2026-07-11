@@ -808,7 +808,7 @@ host-UI bridge + Vite sample).
   event -> MainPage pushes `ComparePage` (code-built modal, mirrors SettingsPage). Page has a
   FILE-vs-FILE / FOLDER-vs-FOLDER mode switch, quick-picker of currently-loaded saves + BROWSE
   (FilePicker/FolderPicker), runs the compare off the UI thread w/ busy indicator, and renders
-  a virtualized diff list (+ green / − red / ~ yellow). Folder mode lists per-file status; tap a
+  a virtualized diff list (+ green / - red / ~ yellow). Folder mode lists per-file status; tap a
   differing file -> `DiffDetailPage` with that file's diffs.
 - **Tests**: `SaveComparerTests` (6, green) over Server/Backups/Cascade/1..5 + PlayerData:
   hash-strip, same-file identical, backup snapshots differ (with side-population invariants),

@@ -2158,4 +2158,291 @@
   <data name="WorldTraders_Card_TapToReveal" xml:space="preserve"><value>Выше вашего уровня допуска - нажмите, чтобы раскрыть</value></data>
   <data name="WorldTraders_Card_TapToOpen" xml:space="preserve"><value>Нажмите, чтобы открыть в боковой панели →</value></data>
   <data name="WorldTraders_Card_UnlockSelected" xml:space="preserve"><value>РАЗБЛОКИРОВАТЬ ВЫБРАННОЕ ({0})</value></data>
+
+  <!-- Skill (passives + milestones) -->
+  <data name="Skill_Passive_Sprinting" xml:space="preserve"><value>За уровень: +2 к максимальной выносливости, +1% к скорости спринта, +2% к восстановлению выносливости</value></data>
+  <data name="Skill_Passive_Strength" xml:space="preserve"><value>За уровень: +2 к переносимому весу</value></data>
+  <data name="Skill_Passive_Throwing" xml:space="preserve"><value>За уровень: +10 к скорости снаряда, +2 к урону</value></data>
+  <data name="Skill_Passive_Sneaking" xml:space="preserve"><value>За уровень: -5% к скорости обнаружения врагами (максимум 95%)</value></data>
+  <data name="Skill_Passive_BluntMelee" xml:space="preserve"><value>За уровень: +1 к урону тупым оружием</value></data>
+  <data name="Skill_Passive_SharpMelee" xml:space="preserve"><value>За уровень: +1 к урону острым оружием</value></data>
+  <data name="Skill_Passive_Accuracy" xml:space="preserve"><value>За уровень: -0.075 к раскачиванию прицела, -0.05 к разбросу пуль</value></data>
+  <data name="Skill_Passive_Reloading" xml:space="preserve"><value>За уровень: быстрее перезарядка</value></data>
+  <data name="Skill_Passive_Fortitude" xml:space="preserve"><value>За уровень: +2 к максимальному здоровью</value></data>
+  <data name="Skill_Passive_Crafting" xml:space="preserve"><value>За уровень: быстрее крафт, -2% к шансу потери прочности созданного предмета</value></data>
+  <data name="Skill_Passive_Construction" xml:space="preserve"><value>За уровень: быстрее строительство и разборка</value></data>
+  <data name="Skill_Passive_FirstAid" xml:space="preserve"><value>За уровень: медицинские предметы лечат сильнее</value></data>
+  <data name="Skill_Passive_Cooking" xml:space="preserve"><value>Каждые 5 уровней: повышается качество жареной и запечённой еды</value></data>
+  <data name="Skill_Passive_Agriculture" xml:space="preserve"><value>За уровень: собранные растения отрастают быстрее</value></data>
+  <data name="Skill_Passive_Fishing" xml:space="preserve"><value>За уровень: прочнее леска (реже рвётся во время поклёвки)</value></data>
+  <data name="Skill_Milestone_Sprinting_5_Perk" xml:space="preserve"><value>Атлетичность</value></data>
+  <data name="Skill_Milestone_Sprinting_5_Effect" xml:space="preserve"><value>Шанс не потратить выносливость на любое действие</value></data>
+  <data name="Skill_Milestone_Sprinting_10_Perk" xml:space="preserve"><value>Скорость света</value></data>
+  <data name="Skill_Milestone_Sprinting_10_Effect" xml:space="preserve"><value>Спринт на 5% быстрее в целом (сверх пассивных бонусов)</value></data>
+  <data name="Skill_Milestone_Sprinting_15_Perk" xml:space="preserve"><value>Красное смещение</value></data>
+  <data name="Skill_Milestone_Sprinting_15_Effect" xml:space="preserve"><value>Во время спринта враги чаще промахиваются, целясь в вас</value></data>
+  <data name="Skill_Milestone_Sprinting_20_Perk" xml:space="preserve"><value>С дороги!</value></data>
+  <data name="Skill_Milestone_Sprinting_20_Effect" xml:space="preserve"><value>Скорость спринта нарастает в течение нескольких секунд</value></data>
+  <data name="Skill_Milestone_Strength_5_Perk" xml:space="preserve"><value>Посторонись</value></data>
+  <data name="Skill_Milestone_Strength_5_Effect" xml:space="preserve"><value>Трясите торговые автоматы и убивайте карбункулов с одного удара</value></data>
+  <data name="Skill_Milestone_Strength_8_Perk" xml:space="preserve"><value>Тяжёлое оружие</value></data>
+  <data name="Skill_Milestone_Strength_8_Effect" xml:space="preserve"><value>Достаточно сил, чтобы полноценно владеть тяжёлым холодным оружием</value></data>
+  <data name="Skill_Milestone_Strength_12_Perk" xml:space="preserve"><value>Ярость ботана</value></data>
+  <data name="Skill_Milestone_Strength_12_Effect" xml:space="preserve"><value>При кровотечении рядом с враждебным противником усиливаются урон и скорость ближнего боя</value></data>
+  <data name="Skill_Milestone_Strength_15_Perk" xml:space="preserve"><value>Специализация на тяжёлой броне</value></data>
+  <data name="Skill_Milestone_Strength_15_Effect" xml:space="preserve"><value>Можно носить броню любого веса</value></data>
+  <data name="Skill_Milestone_Strength_20_Perk" xml:space="preserve"><value>Превосходный прогресс</value></data>
+  <data name="Skill_Milestone_Strength_20_Effect" xml:space="preserve"><value>Все предметы весят на 25% меньше</value></data>
+  <data name="Skill_Milestone_Throwing_2_Perk" xml:space="preserve"><value>Бросок снизу</value></data>
+  <data name="Skill_Milestone_Throwing_2_Effect" xml:space="preserve"><value>Мягкий бросок снизу для всех метательных предметов</value></data>
+  <data name="Skill_Milestone_Throwing_5_Perk" xml:space="preserve"><value>Подбор снарядов</value></data>
+  <data name="Skill_Milestone_Throwing_5_Effect" xml:space="preserve"><value>Автоматически подбирает брошенные вами снаряды</value></data>
+  <data name="Skill_Milestone_Throwing_8_Perk" xml:space="preserve"><value>Смутное воспоминание</value></data>
+  <data name="Skill_Milestone_Throwing_8_Effect" xml:space="preserve"><value>Брошенное вами оружие подсвечивается на 30 секунд</value></data>
+  <data name="Skill_Milestone_Throwing_10_Perk" xml:space="preserve"><value>Предсказатель траектории</value></data>
+  <data name="Skill_Milestone_Throwing_10_Effect" xml:space="preserve"><value>Видна предполагаемая траектория ваших метательных предметов</value></data>
+  <data name="Skill_Milestone_Throwing_12_Perk" xml:space="preserve"><value>Мастер на все руки</value></data>
+  <data name="Skill_Milestone_Throwing_12_Effect" xml:space="preserve"><value>Крафт метательных предметов даёт на 1 предмет больше</value></data>
+  <data name="Skill_Milestone_Throwing_15_Perk" xml:space="preserve"><value>Предельная скорость</value></data>
+  <data name="Skill_Milestone_Throwing_15_Effect" xml:space="preserve"><value>Попадание брошенным оружием оглушает врагов</value></data>
+  <data name="Skill_Milestone_Throwing_20_Perk" xml:space="preserve"><value>Квантовое смещение</value></data>
+  <data name="Skill_Milestone_Throwing_20_Effect" xml:space="preserve"><value>Брошенные предметы иногда разделяются на 2 дополнительных снаряда</value></data>
+  <data name="Skill_Milestone_Sneaking_2_Perk" xml:space="preserve"><value>Скрытая атака</value></data>
+  <data name="Skill_Milestone_Sneaking_2_Effect" xml:space="preserve"><value>Первая атака по бездействующему врагу с 25% шансом наносит двойной урон</value></data>
+  <data name="Skill_Milestone_Sneaking_5_Perk" xml:space="preserve"><value>Биотическая тень</value></data>
+  <data name="Skill_Milestone_Sneaking_5_Effect" xml:space="preserve"><value>Передвижение на 15% быстрее в приседе; доступен перекат</value></data>
+  <data name="Skill_Milestone_Sneaking_8_Perk" xml:space="preserve"><value>Ловкость</value></data>
+  <data name="Skill_Milestone_Sneaking_8_Effect" xml:space="preserve"><value>Не срабатывают растяжки, лазерные растяжки и карбункулы</value></data>
+  <data name="Skill_Milestone_Sneaking_10_Perk" xml:space="preserve"><value>Ночной работник</value></data>
+  <data name="Skill_Milestone_Sneaking_10_Effect" xml:space="preserve"><value>Гораздо тише шаги; повышенный шанс скрытой атаки ночью</value></data>
+  <data name="Skill_Milestone_Sneaking_15_Perk" xml:space="preserve"><value>Офисный убийца</value></data>
+  <data name="Skill_Milestone_Sneaking_15_Effect" xml:space="preserve"><value>Атаки по не замечающим вас врагам всегда наносят двойной урон</value></data>
+  <data name="Skill_Milestone_Sneaking_20_Perk" xml:space="preserve"><value>Межпространственность</value></data>
+  <data name="Skill_Milestone_Sneaking_20_Effect" xml:space="preserve"><value>Атаки врагов иногда... просто промахиваются?</value></data>
+  <data name="Skill_Milestone_BluntMelee_3_Perk" xml:space="preserve"><value>Силовая атака</value></data>
+  <data name="Skill_Milestone_BluntMelee_3_Effect" xml:space="preserve"><value>Мощные атаки с замахом тупым оружием ближнего боя</value></data>
+  <data name="Skill_Milestone_BluntMelee_7_Perk" xml:space="preserve"><value>Боевой рывок</value></data>
+  <data name="Skill_Milestone_BluntMelee_7_Effect" xml:space="preserve"><value>Атака во время спринта превращается в таранную силовую атаку</value></data>
+  <data name="Skill_Milestone_BluntMelee_10_Perk" xml:space="preserve"><value>Оглушающий удар</value></data>
+  <data name="Skill_Milestone_BluntMelee_10_Effect" xml:space="preserve"><value>Легче оглушать врагов тупым оружием</value></data>
+  <data name="Skill_Milestone_BluntMelee_12_Perk" xml:space="preserve"><value>Жажда мощи</value></data>
+  <data name="Skill_Milestone_BluntMelee_12_Effect" xml:space="preserve"><value>Силовые атаки тратят на 50% меньше выносливости за замах</value></data>
+  <data name="Skill_Milestone_BluntMelee_15_Perk" xml:space="preserve"><value>Крушитель</value></data>
+  <data name="Skill_Milestone_BluntMelee_15_Effect" xml:space="preserve"><value>Враги, устойчивые к тупому урону... на самом деле нет</value></data>
+  <data name="Skill_Milestone_BluntMelee_20_Perk" xml:space="preserve"><value>Сокрушение</value></data>
+  <data name="Skill_Milestone_BluntMelee_20_Effect" xml:space="preserve"><value>Шанс мгновенно разорвать врагов размером с человека или меньше</value></data>
+  <data name="Skill_Milestone_SharpMelee_3_Perk" xml:space="preserve"><value>Метание клинков</value></data>
+  <data name="Skill_Milestone_SharpMelee_3_Effect" xml:space="preserve"><value>Можно метать острое оружие ближнего боя</value></data>
+  <data name="Skill_Milestone_SharpMelee_5_Perk" xml:space="preserve"><value>Чистый рез</value></data>
+  <data name="Skill_Milestone_SharpMelee_5_Effect" xml:space="preserve"><value>На 25% выше шанс не получить биомусор при разделке</value></data>
+  <data name="Skill_Milestone_SharpMelee_9_Perk" xml:space="preserve"><value>Без выживших</value></data>
+  <data name="Skill_Milestone_SharpMelee_9_Effect" xml:space="preserve"><value>Враги, убитые острым оружием ближнего боя, умирают окончательно (без вторых форм)</value></data>
+  <data name="Skill_Milestone_SharpMelee_12_Perk" xml:space="preserve"><value>Кромсай и режь</value></data>
+  <data name="Skill_Milestone_SharpMelee_12_Effect" xml:space="preserve"><value>Повышенный шанс вызвать сильное кровотечение</value></data>
+  <data name="Skill_Milestone_SharpMelee_15_Perk" xml:space="preserve"><value>Потрошитель</value></data>
+  <data name="Skill_Milestone_SharpMelee_15_Effect" xml:space="preserve"><value>Прорезает врагов, устойчивых к острому урону, как будто устойчивости нет</value></data>
+  <data name="Skill_Milestone_SharpMelee_20_Perk" xml:space="preserve"><value>Искатель сердца</value></data>
+  <data name="Skill_Milestone_SharpMelee_20_Effect" xml:space="preserve"><value>Очень малый шанс мгновенно убить мелких/средних врагов</value></data>
+  <data name="Skill_Milestone_Accuracy_5_Perk" xml:space="preserve"><value>Прищур</value></data>
+  <data name="Skill_Milestone_Accuracy_5_Effect" xml:space="preserve"><value>Альтернативный огонь при прицеливании из дальнобойного оружия приближает обзор</value></data>
+  <data name="Skill_Milestone_Accuracy_7_Perk" xml:space="preserve"><value>Военный стандарт</value></data>
+  <data name="Skill_Milestone_Accuracy_7_Effect" xml:space="preserve"><value>Уверенное обращение с продвинутым огнестрельным оружием (рецепт биометрических нарукавников)</value></data>
+  <data name="Skill_Milestone_Accuracy_10_Perk" xml:space="preserve"><value>Прямо как стрела</value></data>
+  <data name="Skill_Milestone_Accuracy_10_Effect" xml:space="preserve"><value>Снаряды реже ломаются при попадании</value></data>
+  <data name="Skill_Milestone_Accuracy_13_Perk" xml:space="preserve"><value>Громобой</value></data>
+  <data name="Skill_Milestone_Accuracy_13_Effect" xml:space="preserve"><value>Мелкие существа могут разбегаться при вашем выстреле</value></data>
+  <data name="Skill_Milestone_Accuracy_15_Perk" xml:space="preserve"><value>Био-мимик нарукавники</value></data>
+  <data name="Skill_Milestone_Accuracy_15_Effect" xml:space="preserve"><value>Продвинутый рецепт био-мимик нарукавников</value></data>
+  <data name="Skill_Milestone_Accuracy_18_Perk" xml:space="preserve"><value>Био-фьюжн имитатор</value></data>
+  <data name="Skill_Milestone_Accuracy_18_Effect" xml:space="preserve"><value>Продвинутый рецепт аксессуара «Био-фьюжн имитатор»</value></data>
+  <data name="Skill_Milestone_Accuracy_20_Perk" xml:space="preserve"><value>Останавливающая сила</value></data>
+  <data name="Skill_Milestone_Accuracy_20_Effect" xml:space="preserve"><value>Снаряды/пули с небольшим шансом оглушают цель</value></data>
+  <data name="Skill_Milestone_Reloading_3_Perk" xml:space="preserve"><value>Мастер боеприпасов</value></data>
+  <data name="Skill_Milestone_Reloading_3_Effect" xml:space="preserve"><value>Крафт боеприпасов в два раза быстрее</value></data>
+  <data name="Skill_Milestone_Reloading_5_Perk" xml:space="preserve"><value>На всякий случай</value></data>
+  <data name="Skill_Milestone_Reloading_5_Effect" xml:space="preserve"><value>Позволяет перезаряжать оружие, которым вы иначе не умеете пользоваться</value></data>
+  <data name="Skill_Milestone_Reloading_10_Perk" xml:space="preserve"><value>Базовая геометрия</value></data>
+  <data name="Skill_Milestone_Reloading_10_Effect" xml:space="preserve"><value>Меньше неуклюжести при перезарядке любого оружия</value></data>
+  <data name="Skill_Milestone_Reloading_15_Perk" xml:space="preserve"><value>Скорозарядка</value></data>
+  <data name="Skill_Milestone_Reloading_15_Effect" xml:space="preserve"><value>Можно спринтовать и перезаряжаться одновременно</value></data>
+  <data name="Skill_Milestone_Reloading_20_Perk" xml:space="preserve"><value>Рассыпанные патроны</value></data>
+  <data name="Skill_Milestone_Reloading_20_Effect" xml:space="preserve"><value>Иногда находите запасные патроны при перезарядке</value></data>
+  <data name="Skill_Milestone_Fortitude_5_Perk" xml:space="preserve"><value>Привыкание</value></data>
+  <data name="Skill_Milestone_Fortitude_5_Effect" xml:space="preserve"><value>Здоровье восстанавливается немного чаще</value></data>
+  <data name="Skill_Milestone_Fortitude_8_Perk" xml:space="preserve"><value>Общие усилия</value></data>
+  <data name="Skill_Milestone_Fortitude_8_Effect" xml:space="preserve"><value>Отдых в пределах 8 м от других отдыхающих учёных удваивает скорость отдыха</value></data>
+  <data name="Skill_Milestone_Fortitude_10_Perk" xml:space="preserve"><value>Губчатая ткань</value></data>
+  <data name="Skill_Milestone_Fortitude_10_Effect" xml:space="preserve"><value>Немного снижен урон от падения и столкновений с транспортом</value></data>
+  <data name="Skill_Milestone_Fortitude_15_Perk" xml:space="preserve"><value>Отражающая мантия</value></data>
+  <data name="Skill_Milestone_Fortitude_15_Effect" xml:space="preserve"><value>Контакт в ближнем бою может отразить урон обратно врагу</value></data>
+  <data name="Skill_Milestone_Fortitude_20_Perk" xml:space="preserve"><value>Крепкая экосистема</value></data>
+  <data name="Skill_Milestone_Fortitude_20_Effect" xml:space="preserve"><value>Восстановление 1 ед. здоровья каждую секунду</value></data>
+  <data name="Skill_Milestone_Crafting_2_Perk" xml:space="preserve"><value>Больше верстака</value></data>
+  <data name="Skill_Milestone_Crafting_2_Effect" xml:space="preserve"><value>Первый набор улучшений верстака крафта</value></data>
+  <data name="Skill_Milestone_Crafting_5_Perk" xml:space="preserve"><value>Мега-верстак</value></data>
+  <data name="Skill_Milestone_Crafting_5_Effect" xml:space="preserve"><value>Второй уровень улучшений верстака крафта</value></data>
+  <data name="Skill_Milestone_Crafting_8_Perk" xml:space="preserve"><value>Прекрасные чертежи</value></data>
+  <data name="Skill_Milestone_Crafting_8_Effect" xml:space="preserve"><value>Переданные вам рецепты пропускают этап исследования</value></data>
+  <data name="Skill_Milestone_Crafting_10_Perk" xml:space="preserve"><value>Внимание к деталям</value></data>
+  <data name="Skill_Milestone_Crafting_10_Effect" xml:space="preserve"><value>Созданные предметы получают временный бонус к прочности</value></data>
+  <data name="Skill_Milestone_Crafting_15_Perk" xml:space="preserve"><value>Супер-верстак</value></data>
+  <data name="Skill_Milestone_Crafting_15_Effect" xml:space="preserve"><value>Финальный уровень улучшений верстака крафта</value></data>
+  <data name="Skill_Milestone_Crafting_20_Perk" xml:space="preserve"><value>Точная инженерия</value></data>
+  <data name="Skill_Milestone_Crafting_20_Effect" xml:space="preserve"><value>Небольшой шанс потратить на 1 предмет меньше в многокомпонентных рецептах</value></data>
+  <data name="Skill_Milestone_Construction_5_Perk" xml:space="preserve"><value>Соберите стол</value></data>
+  <data name="Skill_Milestone_Construction_5_Effect" xml:space="preserve"><value>Упаковка малых устанавливаемых объектов в два раза быстрее</value></data>
+  <data name="Skill_Milestone_Construction_10_Perk" xml:space="preserve"><value>Снесено с заботой</value></data>
+  <data name="Skill_Milestone_Construction_10_Effect" xml:space="preserve"><value>50% шанс получить вдвое больше ресурсов при разборке</value></data>
+  <data name="Skill_Milestone_Construction_15_Perk" xml:space="preserve"><value>Доктрина крепости</value></data>
+  <data name="Skill_Milestone_Construction_15_Effect" xml:space="preserve"><value>Стоимость постройки укреплений снижена вдвое</value></data>
+  <data name="Skill_Milestone_Construction_20_Perk" xml:space="preserve"><value>Внезапное явление мебели</value></data>
+  <data name="Skill_Milestone_Construction_20_Effect" xml:space="preserve"><value>Шанс получить вдвое больше мебели при упаковке предметов, построенных не игроком</value></data>
+  <data name="Skill_Milestone_FirstAid_3_Perk" xml:space="preserve"><value>Освежающее прикосновение</value></data>
+  <data name="Skill_Milestone_FirstAid_3_Effect" xml:space="preserve"><value>Лечение союзников также даёт им +5 к гидратации</value></data>
+  <data name="Skill_Milestone_FirstAid_4_Perk" xml:space="preserve"><value>Уничтожитель радиации</value></data>
+  <data name="Skill_Milestone_FirstAid_4_Effect" xml:space="preserve"><value>Рецепт: шприц с пентетовой кислотой (удаление радиации)</value></data>
+  <data name="Skill_Milestone_FirstAid_5_Perk" xml:space="preserve"><value>Забота у постели</value></data>
+  <data name="Skill_Milestone_FirstAid_5_Effect" xml:space="preserve"><value>Видны медицинские дебаффы других игроков поблизости</value></data>
+  <data name="Skill_Milestone_FirstAid_8_Perk" xml:space="preserve"><value>Костоправ</value></data>
+  <data name="Skill_Milestone_FirstAid_8_Effect" xml:space="preserve"><value>Наложенные шины ускоряют срастание костей</value></data>
+  <data name="Skill_Milestone_FirstAid_11_Perk" xml:space="preserve"><value>Реабилитация</value></data>
+  <data name="Skill_Milestone_FirstAid_11_Effect" xml:space="preserve"><value>Воскрешённые союзники получают бафф лечения; +20% при использовании медицинского предмета</value></data>
+  <data name="Skill_Milestone_FirstAid_15_Perk" xml:space="preserve"><value>Боевой врач</value></data>
+  <data name="Skill_Milestone_FirstAid_15_Effect" xml:space="preserve"><value>Применение медицинских предметов на себя и других в два раза быстрее</value></data>
+  <data name="Skill_Milestone_FirstAid_20_Perk" xml:space="preserve"><value>На грани смерти</value></data>
+  <data name="Skill_Milestone_FirstAid_20_Effect" xml:space="preserve"><value>Ваши воскрешения дают союзнику дополнительное состояние «сбит» вместо окончательной смерти</value></data>
+  <data name="Skill_Milestone_Cooking_3_Perk" xml:space="preserve"><value>Суповар</value></data>
+  <data name="Skill_Milestone_Cooking_3_Effect" xml:space="preserve"><value>Варите супы в кастрюле с водой и ингредиентами</value></data>
+  <data name="Skill_Milestone_Cooking_5_Perk" xml:space="preserve"><value>Мама знает лучше</value></data>
+  <data name="Skill_Milestone_Cooking_5_Effect" xml:space="preserve"><value>Видны голод и жажда ближайших игроков</value></data>
+  <data name="Skill_Milestone_Cooking_8_Perk" xml:space="preserve"><value>Су-шеф</value></data>
+  <data name="Skill_Milestone_Cooking_8_Effect" xml:space="preserve"><value>Все кулинарные рецепты готовятся в два раза быстрее</value></data>
+  <data name="Skill_Milestone_Cooking_10_Perk" xml:space="preserve"><value>Сытные рецепты и рецепты для печи</value></data>
+  <data name="Skill_Milestone_Cooking_10_Effect" xml:space="preserve"><value>Дополнительное здоровье при восстановлении от еды; рецепты конвекционной печи и сырого теста</value></data>
+  <data name="Skill_Milestone_Cooking_12_Perk" xml:space="preserve"><value>Мастер разделки</value></data>
+  <data name="Skill_Milestone_Cooking_12_Effect" xml:space="preserve"><value>Продвинутый рецепт ножа; разделка туш без бесполезного мусора</value></data>
+  <data name="Skill_Milestone_Cooking_15_Perk" xml:space="preserve"><value>Кулинарное чутьё</value></data>
+  <data name="Skill_Milestone_Cooking_15_Effect" xml:space="preserve"><value>Уведомление о готовности еды, даже на расстоянии</value></data>
+  <data name="Skill_Milestone_Cooking_17_Perk" xml:space="preserve"><value>Добавка</value></data>
+  <data name="Skill_Milestone_Cooking_17_Effect" xml:space="preserve"><value>Супы, пироги и т.д. содержат на 2 порции больше</value></data>
+  <data name="Skill_Milestone_Cooking_20_Perk" xml:space="preserve"><value>Фастфуд</value></data>
+  <data name="Skill_Milestone_Cooking_20_Effect" xml:space="preserve"><value>Вся еда готовится на 25% быстрее на плитах и в печах</value></data>
+  <data name="Skill_Milestone_Agriculture_4_Perk" xml:space="preserve"><value>Удобрение уровня 1</value></data>
+  <data name="Skill_Milestone_Agriculture_4_Effect" xml:space="preserve"><value>Рецепт: аномальный компост (T1)</value></data>
+  <data name="Skill_Milestone_Agriculture_8_Perk" xml:space="preserve"><value>Удобрение уровня 2</value></data>
+  <data name="Skill_Milestone_Agriculture_8_Effect" xml:space="preserve"><value>Рецепт: аномальное удобрение (T2)</value></data>
+  <data name="Skill_Milestone_Agriculture_10_Perk" xml:space="preserve"><value>Фотосинтетический синергизм</value></data>
+  <data name="Skill_Milestone_Agriculture_10_Effect" xml:space="preserve"><value>Садовые растения в пределах 15 м растут на 10% быстрее</value></data>
+  <data name="Skill_Milestone_Agriculture_13_Perk" xml:space="preserve"><value>Переплетённая экосистема</value></data>
+  <data name="Skill_Milestone_Agriculture_13_Effect" xml:space="preserve"><value>Ближайшие растения вместе потребляют меньше воды</value></data>
+  <data name="Skill_Milestone_Agriculture_15_Perk" xml:space="preserve"><value>Удобрение уровня 3</value></data>
+  <data name="Skill_Milestone_Agriculture_15_Effect" xml:space="preserve"><value>Рецепт: аномальная подкормка (T3)</value></data>
+  <data name="Skill_Milestone_Agriculture_20_Perk" xml:space="preserve"><value>Бережный сбор</value></data>
+  <data name="Skill_Milestone_Agriculture_20_Effect" xml:space="preserve"><value>+1 к урожаю при сборе диких растений</value></data>
+  <data name="Skill_Milestone_Fishing_3_Perk" xml:space="preserve"><value>Рыбье чутьё</value></data>
+  <data name="Skill_Milestone_Fishing_3_Effect" xml:space="preserve"><value>Обнаружение рыбных мест; крафт рыболовной ловушки</value></data>
+  <data name="Skill_Milestone_Fishing_5_Perk" xml:space="preserve"><value>Ящик для снастей</value></data>
+  <data name="Skill_Milestone_Fishing_5_Effect" xml:space="preserve"><value>Рецепт: ящик для снастей</value></data>
+  <data name="Skill_Milestone_Fishing_10_Perk" xml:space="preserve"><value>Счастливая рыбацкая шляпа</value></data>
+  <data name="Skill_Milestone_Fishing_10_Effect" xml:space="preserve"><value>Рецепты: счастливая рыбацкая шляпа и грязевые вейдерсы</value></data>
+  <data name="Skill_Milestone_Fishing_12_Perk" xml:space="preserve"><value>Ловкая подмена</value></data>
+  <data name="Skill_Milestone_Fishing_12_Effect" xml:space="preserve"><value>33% шанс сохранить наживку при вылове мусора</value></data>
+  <data name="Skill_Milestone_Fishing_15_Perk" xml:space="preserve"><value>Пресноводные друзья</value></data>
+  <data name="Skill_Milestone_Fishing_15_Effect" xml:space="preserve"><value>Некоторые подводные существа больше не чувствуют угрозы</value></data>
+
+  <!-- WorldNpc identity -->
+  <data name="WorldNpc_Identity_Human_Hologram" xml:space="preserve"><value>Сюжетная голограмма (сценарная сцена, не может умереть)</value></data>
+  <data name="WorldNpc_Identity_Human_TRADER" xml:space="preserve"><value>Статичный торговый прилавок</value></data>
+  <data name="WorldNpc_Identity_Human_Killable" xml:space="preserve"><value>Сюжетный NPC, которого можно убить</value></data>
+  <data name="WorldNpc_Identity_Human_ParentBP" xml:space="preserve"><value>Сюжетный NPC / хост торговца</value></data>
+  <data name="WorldNpc_Identity_Ela" xml:space="preserve"><value>Эла - питомец Эйба, Электро-вредитель (Загоны)</value></data>
+  <data name="WorldNpc_Identity_HastaTria" xml:space="preserve"><value>Хаста Триа - солдат Ордена (Шахты)</value></data>
+  <data name="WorldNpc_Identity_Larva" xml:space="preserve"><value>Личинка Большого улья - торговец</value></data>
+  <data name="WorldNpc_Identity_MGT_CKCore" xml:space="preserve"><value>Ядро - кроссовер с Core Keeper</value></data>
+  <data name="WorldNpc_Identity_Default" xml:space="preserve"><value>Сюжетный NPC</value></data>
+  <data name="WorldNpc_TamedPetCompanion" xml:space="preserve"><value>Прирученный питомец-спутник</value></data>
+
+  <!-- Trait / background display names -->
+  <data name="Trait_NoPhD_DisplayName" xml:space="preserve"><value>Лаборант</value></data>
+  <data name="Trait_PhD_Medicine_DisplayName" xml:space="preserve"><value>Эпимедицинский биономист</value></data>
+  <data name="Trait_PhD_HumanBio_DisplayName" xml:space="preserve"><value>Транскинематический исследователь</value></data>
+  <data name="Trait_PhD_MechEng_DisplayName" xml:space="preserve"><value>Архотехнический консультант</value></data>
+  <data name="Trait_PhD_Agriculture_DisplayName" xml:space="preserve"><value>Фитогенетический ботаник</value></data>
+  <data name="Trait_PhD_NutritonalSci_DisplayName" xml:space="preserve"><value>Соматический гастролог</value></data>
+  <data name="Trait_PhD_TheoreticalPhys_DisplayName" xml:space="preserve"><value>Паратеоретический физик</value></data>
+  <data name="Trait_PhD_DefenseSecurity_DisplayName" xml:space="preserve"><value>Аналитик обороны</value></data>
+  <data name="Trait_PhD_Intern_DisplayName" xml:space="preserve"><value>Летний стажёр</value></data>
+  <data name="Trait_PhD_Iron_DisplayName" xml:space="preserve"><value>Железный режим</value></data>
+  <data name="Trait_Trait_Decathlon_DisplayName" xml:space="preserve"><value>Десятиборец</value></data>
+  <data name="Trait_Trait_FormerGuard_DisplayName" xml:space="preserve"><value>Крепкий орешек</value></data>
+  <data name="Trait_Trait_WrinklyBrainmeat_DisplayName" xml:space="preserve"><value>Морщинистый мозг</value></data>
+  <data name="Trait_Trait_NightOwl_DisplayName" xml:space="preserve"><value>Ночная сова</value></data>
+  <data name="Trait_Trait_Chef_DisplayName" xml:space="preserve"><value>Шеф-любитель</value></data>
+  <data name="Trait_Trait_Inconspicuous_DisplayName" xml:space="preserve"><value>Незаметный</value></data>
+  <data name="Trait_Trait_Outdoorsman_DisplayName" xml:space="preserve"><value>Бывалый</value></data>
+  <data name="Trait_Trait_FannyPack_DisplayName" xml:space="preserve"><value>Поясная сумка</value></data>
+  <data name="Trait_Trait_ThickSkinned_DisplayName" xml:space="preserve"><value>Толстокожий</value></data>
+  <data name="Trait_Trait_FirstAidCert_DisplayName" xml:space="preserve"><value>Сертификат первой помощи</value></data>
+  <data name="Trait_Trait_Gardener_DisplayName" xml:space="preserve"><value>Садовник</value></data>
+  <data name="Trait_Trait_LightEater_DisplayName" xml:space="preserve"><value>Малоежка</value></data>
+  <data name="Trait_Trait_Moist_DisplayName" xml:space="preserve"><value>Естественная влажность</value></data>
+  <data name="Trait_Trait_SelfDefense_DisplayName" xml:space="preserve"><value>Самооборона</value></data>
+  <data name="Trait_Trait_SteelBladder_DisplayName" xml:space="preserve"><value>Стальной мочевой пузырь</value></data>
+  <data name="Trait_Trait_Strong_DisplayName" xml:space="preserve"><value>Качок-ботаник</value></data>
+  <data name="Trait_Trait_LeadBelly_DisplayName" xml:space="preserve"><value>Луженый желудок</value></data>
+  <data name="Trait_Trait_FearOfViolence_DisplayName" xml:space="preserve"><value>Страх насилия</value></data>
+  <data name="Trait_Trait_EasilyStartled_DisplayName" xml:space="preserve"><value>Пугливый</value></data>
+  <data name="Trait_Trait_Feeble_DisplayName" xml:space="preserve"><value>Хилый</value></data>
+  <data name="Trait_Trait_Narcoleptic_DisplayName" xml:space="preserve"><value>Нарколептик</value></data>
+  <data name="Trait_Trait_Agoraphobic_DisplayName" xml:space="preserve"><value>Агорафоб</value></data>
+  <data name="Trait_Trait_Fumbler_DisplayName" xml:space="preserve"><value>Растяпа</value></data>
+  <data name="Trait_Trait_Asthmatic_DisplayName" xml:space="preserve"><value>Астматик</value></data>
+  <data name="Trait_Trait_Claustrophobic_DisplayName" xml:space="preserve"><value>Клаустрофоб</value></data>
+  <data name="Trait_Trait_Clumsy_DisplayName" xml:space="preserve"><value>Неуклюжий</value></data>
+  <data name="Trait_Trait_Conspicuous_DisplayName" xml:space="preserve"><value>Бросается в глаза</value></data>
+  <data name="Trait_Trait_HeartyAppetite_DisplayName" xml:space="preserve"><value>Отменный аппетит</value></data>
+  <data name="Trait_Trait_Dry_DisplayName" xml:space="preserve"><value>Сухая кожа</value></data>
+  <data name="Trait_Trait_Hemophobic_DisplayName" xml:space="preserve"><value>Гемофоб</value></data>
+  <data name="Trait_Trait_Dyslexia_DisplayName" xml:space="preserve"><value>Дислексия</value></data>
+  <data name="Trait_Trait_RestlessSleeper_DisplayName" xml:space="preserve"><value>Беспокойный сон</value></data>
+  <data name="Trait_Trait_Smoker_DisplayName" xml:space="preserve"><value>Курильщик</value></data>
+  <data name="Trait_Trait_SlowHealer_DisplayName" xml:space="preserve"><value>Медленное заживление</value></data>
+  <data name="Trait_Trait_SlowLearner_DisplayName" xml:space="preserve"><value>Тугодум</value></data>
+  <data name="Trait_Trait_Hemophilia_DisplayName" xml:space="preserve"><value>Гемофилия</value></data>
+  <data name="Trait_Trait_Unlucky_DisplayName" xml:space="preserve"><value>Невезучий</value></data>
+  <data name="Trait_Trait_WeakBladder_DisplayName" xml:space="preserve"><value>Слабый мочевой пузырь</value></data>
+  <data name="Trait_Trait_Cannibal_DisplayName" xml:space="preserve"><value>Запретная диета</value></data>
+  <data name="Trait_Trait_SunDisk_DisplayName" xml:space="preserve"><value>Отмеченный солнцем</value></data>
+
+  <!-- EquipSlot validation -->
+  <data name="EquipSlot_Role_HEAD" xml:space="preserve"><value>Голова</value></data>
+  <data name="EquipSlot_Role_LEGS" xml:space="preserve"><value>Ноги</value></data>
+  <data name="EquipSlot_Role_BACK" xml:space="preserve"><value>Спина</value></data>
+  <data name="EquipSlot_Role_ARMS" xml:space="preserve"><value>Руки</value></data>
+  <data name="EquipSlot_Role_SUIT" xml:space="preserve"><value>Костюм</value></data>
+  <data name="EquipSlot_Role_CHEST" xml:space="preserve"><value>Грудь</value></data>
+  <data name="EquipSlot_Role_HEADLAMP" xml:space="preserve"><value>Налобный фонарь</value></data>
+  <data name="EquipSlot_Role_TRINKET" xml:space="preserve"><value>Аксессуар</value></data>
+  <data name="EquipSlot_Role_WATCH" xml:space="preserve"><value>Часы</value></data>
+  <data name="EquipSlot_Role_HACKER" xml:space="preserve"><value>Хакер</value></data>
+  <data name="EquipSlot_Role_SHIELD" xml:space="preserve"><value>Щит</value></data>
+  <data name="EquipSlot_Role_PET" xml:space="preserve"><value>Спутник (питомец)</value></data>
+  <data name="EquipSlot_Name_Hotbar" xml:space="preserve"><value>Быстрая панель</value></data>
+  <data name="EquipSlot_Name_Backpack" xml:space="preserve"><value>Рюкзак</value></data>
+  <data name="EquipSlot_Name_Any" xml:space="preserve"><value>Любая ячейка</value></data>
+  <data name="EquipSlot_Name_Head" xml:space="preserve"><value>Голова</value></data>
+  <data name="EquipSlot_Name_Legs" xml:space="preserve"><value>Ноги</value></data>
+  <data name="EquipSlot_Name_Back" xml:space="preserve"><value>Спина</value></data>
+  <data name="EquipSlot_Name_Arms" xml:space="preserve"><value>Руки</value></data>
+  <data name="EquipSlot_Name_Suit" xml:space="preserve"><value>Костюм</value></data>
+  <data name="EquipSlot_Name_Chest" xml:space="preserve"><value>Грудь</value></data>
+  <data name="EquipSlot_Name_Headlamp" xml:space="preserve"><value>Налобный фонарь</value></data>
+  <data name="EquipSlot_Name_Trinket" xml:space="preserve"><value>Аксессуар</value></data>
+  <data name="EquipSlot_Name_Watch" xml:space="preserve"><value>Часы</value></data>
+  <data name="EquipSlot_Name_Hacker" xml:space="preserve"><value>Хакер</value></data>
+  <data name="EquipSlot_Name_Shield" xml:space="preserve"><value>Щит</value></data>
+  <data name="EquipSlot_Name_Companion" xml:space="preserve"><value>Спутник</value></data>
+  <data name="EquipSlot_NotEquippable" xml:space="preserve"><value>Нельзя экипировать (ячейка {0})</value></data>
+  <data name="EquipSlot_WrongSlot" xml:space="preserve"><value>Предмет {0}, не подходит для ячейки {1}</value></data>
+  <data name="Slot_PetsHotbarOnly" xml:space="preserve"><value>Питомцы разрешены только на быстрой панели - в рюкзаке их размещать нельзя</value></data>
 </root>

@@ -44,26 +44,26 @@ public static class SkillCatalog
     /// is the single source of truth for index -> skill identity, used by both
     /// <see cref="Fallback"/> and <see cref="LoadFrom"/>.
     /// </summary>
-    public static readonly IReadOnlyList<string> CanonicalOrder = new[]
-    {
+    public static readonly IReadOnlyList<string> CanonicalOrder =
+    [
         // Fitness
         "Sprinting", "Strength", "Throwing", "Sneaking",
         // Combat
         "BluntMelee", "SharpMelee", "Accuracy", "Reloading", "Fortitude",
         // Survival
         "Crafting", "Construction", "FirstAid", "Cooking", "Agriculture", "Fishing",
-    };
+    ];
 
     /// <summary>
     /// Cumulative XP required to reach each level. Index 0 = level 1 (200 XP) ... index 19
     /// = level 20 (91,655 XP). Source: abioticfactor.wiki.gg/wiki/Skills (v1.0), confirmed
     /// against capped end-game save values.
     /// </summary>
-    public static readonly IReadOnlyList<float> XpThresholds = new float[]
-    {
+    public static readonly IReadOnlyList<float> XpThresholds =
+    [
         200, 500, 940, 1_572, 2_464, 3_699, 5_379, 7_587, 10_417, 13_950,
         18_242, 23_307, 29_101, 35_776, 43_310, 51_631, 60_608, 70_354, 80_755, 91_655,
-    };
+    ];
 
     public const int MaxLevel = 20;
 
@@ -89,8 +89,8 @@ public static class SkillCatalog
     /// Built-in skill table (DT_Skills order, DONOTUSE rows removed). Used when the game
     /// assets aren't available; <see cref="LoadFrom"/> supersedes it when they are.
     /// </summary>
-    public static IReadOnlyList<SkillDefinition> Fallback { get; } = new[]
-    {
+    public static IReadOnlyList<SkillDefinition> Fallback { get; } =
+    [
         // Fitness
         new SkillDefinition(0,  "Sprinting",    "Sprinting",    null, "/Game/Textures/GUI/SkillIcons/skillicon_sprinting.skillicon_sprinting"),
         new SkillDefinition(1,  "Strength",     "Strength",     null, "/Game/Textures/GUI/SkillIcons/skillicon_strength.skillicon_strength"),
@@ -109,7 +109,7 @@ public static class SkillCatalog
         new SkillDefinition(12, "Cooking",      "Cooking",      null, "/Game/Textures/GUI/SkillIcons/skillicon_cooking.skillicon_cooking"),
         new SkillDefinition(13, "Agriculture",  "Agriculture",  null, "/Game/Textures/GUI/SkillIcons/skillicon_agriculture.skillicon_agriculture"),
         new SkillDefinition(14, "Fishing",      "Fishing",      null, "/Game/Textures/GUI/Icons/icon_fishing.icon_fishing"),
-    };
+    ];
 
     /// <summary>
     /// Pads <paramref name="definitions"/> with "Unknown skill #N" placeholders so a

@@ -584,7 +584,7 @@ internal sealed class ComparePanel
             (Glyph, Color, Detail) = d.Kind switch
             {
                 SaveDiffKind.Added => ("+", Res("AfTerminalGreen"), (d.Right ?? string.Empty) + suffix),
-                SaveDiffKind.Removed => ("−", Res("AfAlertRed"), (d.Left ?? string.Empty) + suffix),
+                SaveDiffKind.Removed => ("-", Res("AfAlertRed"), (d.Left ?? string.Empty) + suffix),
                 _ => ("~", Res("AfHazardYellow"), $"{d.Left}  →  {d.Right}{suffix}"),
             };
         }
