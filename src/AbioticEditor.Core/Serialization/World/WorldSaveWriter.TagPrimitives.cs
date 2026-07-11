@@ -12,17 +12,7 @@ namespace AbioticEditor.Core.WorldSaves;
 public static partial class WorldSaveWriter
 {
     private static void ReplaceNameArray(IList<FPropertyTag> tags, string prefix, IReadOnlyList<string> values)
-    {
-        var tag = tags.FindByPrefix(prefix);
-        if (tag?.Property is not ArrayProperty array) return;
-
-        var items = new FString[values.Count];
-        for (var i = 0; i < values.Count; i++)
-        {
-            items[i] = new FString(values[i]);
-        }
-        array.Value = items;
-    }
+        => GvasTags.ReplaceNameArray(tags, prefix, values);
 
     /// <summary>
     /// Sets a <see cref="SoftObjectProperty"/> value from a full
@@ -70,53 +60,26 @@ public static partial class WorldSaveWriter
     /// <summary>
     /// Finds the property matching <paramref name="prefix"/>; when absent and
     /// <paramref name="createFullName"/> is given, creates and appends a fresh tag of
-    /// <paramref name="typeName"/> (mirror of <c>PlayerSaveWriter.FindOrCreate</c>;
-    /// AF delta-serializes, so default-valued members are missing from healthy saves).
+    /// <paramref name="typeName"/> (AF delta-serializes, so default-valued members are
+    /// missing from healthy saves). Shared with <c>PlayerSaveWriter</c> via <see cref="GvasTags"/>.
     /// </summary>
     private static FProperty? FindOrCreate(IList<FPropertyTag> tags, string prefix, string? createFullName, string typeName)
-    {
-        var existing = tags.FindByPrefix(prefix)?.Property;
-        if (existing is not null || createFullName is null)
-        {
-            return existing;
-        }
-
-        var name = new FString(createFullName);
-        var type = new FPropertyTypeName(name: new FString(typeName));
-        var property = FProperty.Create(name, type);
-        tags.Add(new FPropertyTag(name, type, EPropertyTagFlags.None) { Property = property });
-        return property;
-    }
+        => GvasTags.FindOrCreate(tags, prefix, createFullName, typeName);
 
     private static void SetDouble(IList<FPropertyTag> tags, string prefix, double value, string? createFullName = null)
-    {
-        var p = FindOrCreate(tags, prefix, createFullName, nameof(DoubleProperty));
-        if (p is not null) p.Value = value;
-    }
+        => GvasTags.SetDouble(tags, prefix, value, createFullName);
 
     private static void SetInt(IList<FPropertyTag> tags, string prefix, int value, string? createFullName = null)
-    {
-        var p = FindOrCreate(tags, prefix, createFullName, nameof(IntProperty));
-        if (p is not null) p.Value = value;
-    }
+        => GvasTags.SetInt(tags, prefix, value, createFullName);
 
     private static void SetBool(IList<FPropertyTag> tags, string prefix, bool value, string? createFullName = null)
-    {
-        var p = FindOrCreate(tags, prefix, createFullName, nameof(BoolProperty));
-        if (p is not null) p.Value = value;
-    }
+        => GvasTags.SetBool(tags, prefix, value, createFullName);
 
     private static void SetString(IList<FPropertyTag> tags, string prefix, string? value, string? createFullName = null)
-    {
-        var p = FindOrCreate(tags, prefix, createFullName, nameof(StrProperty));
-        if (p is not null) p.Value = value is null ? null : (object)new FString(value);
-    }
+        => GvasTags.SetString(tags, prefix, value, createFullName);
 
     private static void SetName(IList<FPropertyTag> tags, string prefix, string value)
-    {
-        var p = tags.FindByPrefix(prefix)?.Property;
-        if (p is not null) p.Value = new FString(value);
-    }
+        => GvasTags.SetName(tags, prefix, value);
 
     /// <summary>
     /// Setter for an enum <see cref="ByteProperty"/>. ByteProperty serializes as

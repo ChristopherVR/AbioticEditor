@@ -11,7 +11,7 @@ namespace AbioticEditor.Tests;
 /// from the installed game as the C# source for <see cref="TraderCatalog.Fallback"/>, so the
 /// editor can show traders and their per-trade unlock flags WITHOUT the game installed. Writes to
 /// <c>%TEMP%/abiotic-editor-schema/TraderCatalogFallback.cs</c>; paste the result into
-/// <c>src/AbioticEditor.Core/Codex/TraderCatalogFallback.cs</c> after a game patch.
+/// <c>src/AbioticEditor.Core/Catalogs/Codex/TraderCatalogFallback.cs</c> after a game patch.
 /// Mirrors <see cref="AbioticEditor.Tests.AllFlagsProbe"/>'s dump-then-paste workflow.
 /// </summary>
 public class TraderFallbackProbe

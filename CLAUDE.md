@@ -62,12 +62,34 @@ dotnet test  tests/AbioticEditor.Tests -f net10.0 --filter "FullyQualifiedName~P
 `src/AbioticEditor.Core` holds all parsing/editing. `App` (MAUI) and `Cli` are front-ends over it,
 so the CLI writes byte-identical output to the app. New tooling should live in Core and be reused.
 
+Core is organized into layers, each split further into `Player`/`World`/etc. subfolders that
+mirror each other:
+- **`Domain/`** - plain data models (records) with no I/O: `WorldContainer`, `PlayerInventory`, etc.
+- **`Catalogs/`** - curated, mostly-static game-knowledge lookup tables (door classes, quest flags,
+  item/recipe/skill catalogs, codex/trader data).
+- **`Serialization/`** - byte-exact GVAS read/write: the `*SaveReader`/`*SaveWriter` pairs and the
+  `SaveClasses` GVAS class registrations. The three largest writer/reader classes are split into
+  `ClassName.Concern.cs` partial-class files by editing area (e.g.
+  `WorldSaveWriter.Containers.cs`, `WorldSaveWriter.NpcsAndPets.cs`) purely for navigability; they
+  are still one class.
+- **`Services/`** - higher-level editing operations built on the models (compare/diff, compatibility
+  checks, story-flag sync, world-map features).
+- **`Infrastructure/`** - the outside world: game install detection, Steam, Game Pass/wgs, `.ini`
+  files, save discovery/backup, logging.
+- **`Plugins/`** stays its own top-level folder (the plugin hosting layer is a distinct subsystem,
+  not part of the layered engine above).
+
+**Namespaces were deliberately left unchanged by this layering** (`AbioticEditor.Core.PlayerSaves`,
+`.WorldSaves`, `.Items`, etc., regardless of which folder a type now lives in) because they are
+part of the published `AbioticEditor.Core` NuGet package's public API and are what the test suite's
+`using` directives target - moving files must never be a breaking change for either.
+
 ### Read → mutate-in-place → re-serialize (the central save contract)
 
 For each save kind a **reader** parses the raw GVAS tree into a typed model whose `.Raw` property
 **is** the same `SaveGame` instance; a **writer** mutates that raw tree in place and re-serializes
-it byte-perfect for everything it didn't touch. Key files: `PlayerSaves/PlayerSaveReader` +
-`PlayerSaveWriter`, `WorldSaves/WorldSaveReader` + `WorldSaveWriter`.
+it byte-perfect for everything it didn't touch. Key files: `Serialization/Player/PlayerSaveReader`
++ `PlayerSaveWriter`, `Serialization/World/WorldSaveReader` + `WorldSaveWriter`.
 
 Two non-obvious rules govern every edit (the game **delta-serializes**: any property still at its
 blueprint default is omitted from the file):
@@ -80,12 +102,13 @@ blueprint default is omitted from the file):
 Save kinds: `Player_<steamid64>.sav` (player), `WorldSave_<Region>.sav` (region), and
 `WorldSave_MetaData.sav` (story/metadata); the Facility region save is the large one (~16 MB). A
 player's SteamID lives in **both** the filename and the top-level `SaveIdentifier` property; keep
-them in sync (`PlayerSaves/PlayerSaveIdentity`).
+them in sync (`Services/Player/PlayerSaveIdentity`).
 
 ### Game data comes from the installed game's paks
 
 Item/recipe/skill/flag/fish/trait catalogs are read from the game's pak archives via **CUE4Parse**
-+ the bundled `assets/Mappings.usmap`. Core's `Assets/GameAssetProvider` mounts them; the App
++ the bundled `assets/Mappings.usmap`. Core's `Infrastructure/GameAssets/GameAssetProvider` mounts
+them; the App
 wraps this in the process-wide singleton `Services/GameDataServices` (call `EnsureLoadedAsync()`
 before reading `Catalog`, `AllFish`, `AllRecipeInfos`, etc.). **Everything degrades gracefully when
 assets are absent**: catalogs return empty and icon resolution no-ops, so the editor still runs.
