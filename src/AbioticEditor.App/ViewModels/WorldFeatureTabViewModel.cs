@@ -158,13 +158,17 @@ public sealed class WorldFeatureTabViewModel : INotifyPropertyChanged
     public string Id => _feature.Id;
 
     /// <summary>Human title shown in the detail header, e.g. <c>Power Sockets</c>.</summary>
-    public string DisplayName => _feature.DisplayName;
+    public string DisplayName => Id == "resource-nodes"
+        ? Services.LocalizationResourceManager.Instance["WorldResourceNodes_Title"]
+        : _feature.DisplayName;
 
     /// <summary>Upper-cased title for the tab button, matching the other world tabs.</summary>
-    public string Title => _feature.DisplayName.ToUpperInvariant();
+    public string Title => DisplayName.ToUpperInvariant();
 
     /// <summary>One-line explanation shown above the master-detail panes.</summary>
-    public string Description => _feature.Description;
+    public string Description => Id == "resource-nodes"
+        ? Services.LocalizationResourceManager.Instance["WorldResourceNodes_Description"]
+        : _feature.Description;
 
     public ObservableCollection<WorldFeatureEntryViewModel> Entries { get; }
 
@@ -356,6 +360,11 @@ public sealed class WorldFeatureEntryViewModel : INotifyPropertyChanged
 
     public string Label { get; }
 
+    internal bool IsResourceNode => string.Equals(_tab.Id, "resource-nodes", StringComparison.OrdinalIgnoreCase);
+
+    internal bool IsGlassPane => IsResourceNode
+        && string.Equals(ResourceNodeNaming.TypeToken(Key), "GlassPane", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Id of a linked entity this entry can jump to (e.g. the container a socket powers), or null.</summary>
     public string? LinkTargetId { get; }
 
@@ -456,8 +465,21 @@ public sealed class WorldFeatureEntryViewModel : INotifyPropertyChanged
     public ICommand RestoreCommand { get; }
 
     /// <summary>Compact editable-field summary shown under the entry name in the list.</summary>
-    public string Summary => string.Join("   ",
-        Fields.Where(f => f.Editable).Select(f => $"{f.Id}={f.Value}"));
+    public string Summary
+    {
+        get
+        {
+            if (IsResourceNode)
+            {
+                var state = Fields.FirstOrDefault(f => f.Id == "harvested");
+                if (state?.StateText is { } text)
+                {
+                    return $"{state.Label}: {text}";
+                }
+            }
+            return string.Join("   ", Fields.Where(f => f.Editable).Select(f => $"{f.Id}={f.Value}"));
+        }
+    }
 
     public bool IsDirty => Fields.Any(f => f.IsDirty);
 
@@ -516,9 +538,14 @@ public sealed class WorldFeatureFieldViewModel : INotifyPropertyChanged
 
     public string Id => _field.Id;
 
-    public string Label => _field.Label;
+    public string Label => ResourceNodeText("Label") ?? _field.Label;
 
-    public string? Hint => _field.Hint;
+    public string? Hint => ResourceNodeText("Hint") ?? _field.Hint;
+
+    /// <summary>Friendly state shown beside resource-node toggles (e.g. Intact / Broken).</summary>
+    public string? StateText => ResourceNodeText("State");
+
+    public bool HasStateText => StateText is not null;
 
     public bool Editable => _field.Editable;
 
@@ -588,6 +615,31 @@ public sealed class WorldFeatureFieldViewModel : INotifyPropertyChanged
     /// <summary>Applies the pending <see cref="Draft"/> (called on entry unfocus/completed).</summary>
     public void Commit() => Apply(_draft);
 
+    private string? ResourceNodeText(string part)
+    {
+        if (!_entry.IsResourceNode)
+        {
+            return null;
+        }
+
+        var strings = Services.LocalizationResourceManager.Instance;
+        return _field.Id switch
+        {
+            "position" when part == "Label" => strings["WorldResourceNodes_Position"],
+            "position" when part == "Hint" => strings["WorldResourceNodes_PositionHint"],
+            "harvested" when part == "Label" => strings[_entry.IsGlassPane
+                ? "WorldResourceNodes_WindowState" : "WorldResourceNodes_State"],
+            "harvested" when part == "Hint" => strings[_entry.IsGlassPane
+                ? "WorldResourceNodes_WindowStateHint" : "WorldResourceNodes_StateHint"],
+            "harvested" when part == "State" => strings[_entry.IsGlassPane
+                ? (BoolValue ? "WorldResourceNodes_Broken" : "WorldResourceNodes_Intact")
+                : (BoolValue ? "WorldResourceNodes_Depleted" : "WorldResourceNodes_Available")],
+            "dayPickedUp" when part == "Label" => strings["WorldResourceNodes_RespawnTiming"],
+            "dayPickedUp" when part == "Hint" => strings["WorldResourceNodes_RespawnTimingHint"],
+            _ => null,
+        };
+    }
+
     private void Apply(string? candidate)
     {
         if (string.Equals(candidate, _value, StringComparison.Ordinal))
@@ -640,6 +692,8 @@ public sealed class WorldFeatureFieldViewModel : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Draft)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(BoolValue)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedOption)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StateText)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasStateText)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasError)));
     }
 

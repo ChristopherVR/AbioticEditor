@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -479,6 +479,22 @@ Mondes : conteneurs · indicateurs de quête · portes · objets au sol · progr
   <data name="WorldFeature_StagedForRemoval" xml:space="preserve"><value>Préparé pour le retrait - sera supprimé à l'ENREGISTREMENT (réinitialise cet acteur à sa valeur par défaut).</value></data>
   <data name="WorldFeature_Undo" xml:space="preserve"><value>ANNULER</value></data>
 
+
+  <!-- WorldResourceNodes -->
+  <data name="WorldResourceNodes_Available" xml:space="preserve"><value>Disponible</value></data>
+  <data name="WorldResourceNodes_Broken" xml:space="preserve"><value>Cassé</value></data>
+  <data name="WorldResourceNodes_Depleted" xml:space="preserve"><value>Épuisé</value></data>
+  <data name="WorldResourceNodes_Description" xml:space="preserve"><value>Le butin réutilisable et les objets destructibles utilisent cette même carte de sauvegarde. Réglez un nœud sur disponible pour le restaurer.</value></data>
+  <data name="WorldResourceNodes_Intact" xml:space="preserve"><value>Intact</value></data>
+  <data name="WorldResourceNodes_Position" xml:space="preserve"><value>Position</value></data>
+  <data name="WorldResourceNodes_PositionHint" xml:space="preserve"><value>Emplacement de ce nœud dans le monde. Utilisez-le pour distinguer des entrées identiques.</value></data>
+  <data name="WorldResourceNodes_RespawnTiming" xml:space="preserve"><value>Délai de réapparition (avancé)</value></data>
+  <data name="WorldResourceNodes_RespawnTimingHint" xml:space="preserve"><value>Le jour du jeu où ce nœud a été épuisé. Laissez cette valeur intacte sauf si vous devez ajuster son délai de réapparition normal.</value></data>
+  <data name="WorldResourceNodes_State" xml:space="preserve"><value>État</value></data>
+  <data name="WorldResourceNodes_StateHint" xml:space="preserve"><value>Disponible signifie que ce nœud peut être récolté ou détruit maintenant. Épuisé signifie qu&apos;il attend que le jeu le fasse réapparaître.</value></data>
+  <data name="WorldResourceNodes_Title" xml:space="preserve"><value>Nœuds de ressources</value></data>
+  <data name="WorldResourceNodes_WindowState" xml:space="preserve"><value>État de la fenêtre</value></data>
+  <data name="WorldResourceNodes_WindowStateHint" xml:space="preserve"><value>Intact restaure cette vitre. Cassé la laisse épuisée jusqu&apos;à sa réapparition par le jeu.</value></data>
   <!-- WorldFlags -->
   <data name="WorldFlags_AddFlag" xml:space="preserve"><value>AJOUTER UN INDICATEUR</value></data>
   <data name="WorldFlags_AddFlagPlaceholder" xml:space="preserve"><value>Ajouter un nom de nouvel indicateur…</value></data>

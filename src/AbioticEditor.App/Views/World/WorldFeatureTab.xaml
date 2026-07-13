@@ -128,7 +128,7 @@
                                 <BindableLayout.ItemTemplate>
                                     <DataTemplate x:DataType="vm:WorldFeatureFieldViewModel">
                                         <VerticalStackLayout Spacing="3">
-                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
                                                 <Label Grid.Column="0" Text="{Binding Label}"
                                                        Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
 
@@ -138,8 +138,12 @@
                                                        VerticalOptions="Center"
                                                        IsVisible="{Binding IsReadOnly}" />
 
-                                                <!-- boolean -->
-                                                <Switch Grid.Column="1"
+                                                <!-- boolean: resource nodes also show a plain-language state -->
+                                                <Label Grid.Column="1" Text="{Binding StateText}"
+                                                       Style="{StaticResource AfFieldValue}" FontSize="12"
+                                                       VerticalOptions="Center"
+                                                       IsVisible="{Binding HasStateText}" />
+                                                <Switch Grid.Column="2"
                                                         IsToggled="{Binding BoolValue, Mode=TwoWay}"
                                                         OnColor="{StaticResource AfTerminalGreen}"
                                                         VerticalOptions="Center"

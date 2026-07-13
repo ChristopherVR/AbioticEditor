@@ -479,6 +479,22 @@
   <data name="WorldFeature_StagedForRemoval" xml:space="preserve"><value>Подготовлено к удалению - будет удалено при СОХРАНЕНИИ (сбрасывает этого актора к значению по умолчанию).</value></data>
   <data name="WorldFeature_Undo" xml:space="preserve"><value>ОТМЕНИТЬ</value></data>
 
+
+  <!-- WorldResourceNodes -->
+  <data name="WorldResourceNodes_Available" xml:space="preserve"><value>Доступен</value></data>
+  <data name="WorldResourceNodes_Broken" xml:space="preserve"><value>Разбито</value></data>
+  <data name="WorldResourceNodes_Depleted" xml:space="preserve"><value>Истощён</value></data>
+  <data name="WorldResourceNodes_Description" xml:space="preserve"><value>Повторно доступная добыча и разрушаемые объекты используют одну карту сохранения. Установите для узла состояние «Доступен», чтобы восстановить его.</value></data>
+  <data name="WorldResourceNodes_Intact" xml:space="preserve"><value>Целое</value></data>
+  <data name="WorldResourceNodes_Position" xml:space="preserve"><value>Позиция</value></data>
+  <data name="WorldResourceNodes_PositionHint" xml:space="preserve"><value>Расположение этого узла в мире. Используйте его, чтобы различать одинаковые записи.</value></data>
+  <data name="WorldResourceNodes_RespawnTiming" xml:space="preserve"><value>Время восстановления (дополнительно)</value></data>
+  <data name="WorldResourceNodes_RespawnTimingHint" xml:space="preserve"><value>Игровой день, в который этот узел был истощён. Не меняйте его, если не нужно настраивать обычный таймер восстановления.</value></data>
+  <data name="WorldResourceNodes_State" xml:space="preserve"><value>Состояние</value></data>
+  <data name="WorldResourceNodes_StateHint" xml:space="preserve"><value>«Доступен» означает, что узел можно собрать или разбить сейчас. «Истощён» означает, что игра ожидает его восстановления.</value></data>
+  <data name="WorldResourceNodes_Title" xml:space="preserve"><value>Узлы ресурсов</value></data>
+  <data name="WorldResourceNodes_WindowState" xml:space="preserve"><value>Состояние окна</value></data>
+  <data name="WorldResourceNodes_WindowStateHint" xml:space="preserve"><value>«Целое» восстанавливает эту стеклянную панель. «Разбито» оставляет её истощённой до восстановления игрой.</value></data>
   <!-- WorldFlags -->
   <data name="WorldFlags_AddFlag" xml:space="preserve"><value>ДОБАВИТЬ ФЛАГ</value></data>
   <data name="WorldFlags_AddFlagPlaceholder" xml:space="preserve"><value>Добавить имя нового флага…</value></data>

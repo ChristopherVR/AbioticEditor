@@ -128,6 +128,26 @@ resource nodes, power sockets, teleporter pads, vehicles, and more. These are ed
 node to refill it, re-tag a teleporter pad, and so on.
 :::
 
+### Resource nodes: refill harvestables and repair broken glass
+
+The **Resource Nodes** tab is for per-actor harvestable state. Search by the friendly node
+type, select an entry, then edit its fields:
+
+- **Harvested** — `true` means the node is depleted; set it to `false` to make it available
+  immediately.
+- **Day Picked Up** — the in-game day on which it was harvested. The game uses this for its
+  normal respawn timing; `0` means it has not been picked up.
+- **Position** — read-only coordinates that help identify one node among several with the
+  same name.
+
+This is also the way to repair the breakable office windows. The game stores these panes as
+`ResourceNode_GlassPane_C` nodes, not as normal doors or entries in the generic
+destructible-state map. Open the region containing the windows (for example,
+`WorldSave_Facility_Office2.sav` or `WorldSave_Facility_Office3.sav`), choose **Resource
+Nodes**, search for **Glass Pane**, and turn **Harvested** off for each pane you want restored.
+Save with the game or dedicated server stopped, then load the region again. Leave **Day Picked
+Up** unchanged unless you specifically want to adjust the respawn timer.
+
 ## 4. Server config files
 
 If you opened a dedicated-server folder, the sidebar's **Config Files** group lists `Admin.ini`

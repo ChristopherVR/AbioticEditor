@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -480,6 +480,22 @@ Mundos: contenedores · indicadores de misión · puertas · objetos en el suelo
   <data name="WorldFeature_StagedForRemoval" xml:space="preserve"><value>Preparado para eliminación - se borrará al GUARDAR (restablece este actor a su valor predeterminado).</value></data>
   <data name="WorldFeature_Undo" xml:space="preserve"><value>DESHACER</value></data>
 
+
+  <!-- WorldResourceNodes -->
+  <data name="WorldResourceNodes_Available" xml:space="preserve"><value>Disponible</value></data>
+  <data name="WorldResourceNodes_Broken" xml:space="preserve"><value>Roto</value></data>
+  <data name="WorldResourceNodes_Depleted" xml:space="preserve"><value>Agotado</value></data>
+  <data name="WorldResourceNodes_Description" xml:space="preserve"><value>El botín reutilizable y los objetos rompibles comparten este mapa de guardado. Pon un nodo en disponible para restaurarlo.</value></data>
+  <data name="WorldResourceNodes_Intact" xml:space="preserve"><value>Intacto</value></data>
+  <data name="WorldResourceNodes_Position" xml:space="preserve"><value>Posición</value></data>
+  <data name="WorldResourceNodes_PositionHint" xml:space="preserve"><value>Dónde está este nodo en el mundo. Úsala para distinguir entradas iguales.</value></data>
+  <data name="WorldResourceNodes_RespawnTiming" xml:space="preserve"><value>Tiempo de regeneración (avanzado)</value></data>
+  <data name="WorldResourceNodes_RespawnTimingHint" xml:space="preserve"><value>El día del juego en que este nodo se agotó. Déjalo sin cambios salvo que necesites ajustar su temporizador normal de regeneración.</value></data>
+  <data name="WorldResourceNodes_State" xml:space="preserve"><value>Estado</value></data>
+  <data name="WorldResourceNodes_StateHint" xml:space="preserve"><value>Disponible significa que este nodo se puede recoger o romper ahora. Agotado significa que está esperando a que el juego lo regenere.</value></data>
+  <data name="WorldResourceNodes_Title" xml:space="preserve"><value>Nodos de recursos</value></data>
+  <data name="WorldResourceNodes_WindowState" xml:space="preserve"><value>Estado de ventana</value></data>
+  <data name="WorldResourceNodes_WindowStateHint" xml:space="preserve"><value>Intacto restaura este panel de cristal. Roto lo deja agotado hasta que el juego lo regenere.</value></data>
   <!-- WorldFlags -->
   <data name="WorldFlags_AddFlag" xml:space="preserve"><value>AÑADIR INDICADOR</value></data>
   <data name="WorldFlags_AddFlagPlaceholder" xml:space="preserve"><value>Añadir nombre de nuevo indicador…</value></data>

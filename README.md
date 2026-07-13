@@ -124,6 +124,24 @@ character's state.
 You can also edit **doors** (locked/open state), **dropped items** on the ground, and
 **bases**, and there's always a raw JSON view for anything the UI doesn't cover.
 
+### Repair broken office windows
+
+Many breakable windows are saved as **resource nodes**, rather than as doors or generic
+destructible objects. In the Office sectors, for example, the game records each pane as a
+`ResourceNode_GlassPane_C` entry. Breaking the glass marks that node as harvested; it does
+not delete the window from the save.
+
+To restore a broken pane, open the matching `WorldSave_Facility_Office*.sav` region, select
+the **Resource Nodes** tab, search for **Glass Pane**, and set **Harvested** to off (`false`).
+Save the region while the game or server is stopped, then reload it. The pane is reset to its
+available state and can be gathered/broken again in-game. Use the node's displayed position
+to distinguish otherwise identically named panes.
+
+This feature also works for ordinary harvestables such as plants, ore, crates, and other
+resource nodes: **Harvested** on means depleted; off means available now. **Day Picked Up**
+controls the saved in-game day used by the normal respawn timer. It is usually safest to
+leave that value alone when repairing glass.
+
 ### Server config
 
 If you point the editor at a dedicated-server folder, it also finds `Admin.ini` and each
