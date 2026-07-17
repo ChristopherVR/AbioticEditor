@@ -65,7 +65,9 @@ public sealed class IniSectionViewModel : INotifyPropertyChanged
     }
 
     public string Name { get; }
-    public string Header => Name.Length == 0 ? "(no section)" : $"[{Name}]";
+    public string Header => Name.Length == 0
+        ? LocalizationResourceManager.Instance["IniEditor_NoSectionHeader"]
+        : $"[{Name}]";
     public ObservableCollection<IniEntryViewModel> Entries { get; } = new();
     public ObservableCollection<IniEntryViewModel> Removed { get; } = new();
 

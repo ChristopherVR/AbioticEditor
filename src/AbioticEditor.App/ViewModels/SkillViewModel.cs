@@ -237,12 +237,16 @@ public sealed class SkillMilestoneViewModel : INotifyPropertyChanged
 
     public string Tooltip => IsConcealed
         ? LocalizationResourceManager.Instance.Format("Skill_TooltipHidden", Milestone.Level)
-        : $"Level {Milestone.Level} - {Milestone.Perk}: {Milestone.Effect}";
+        : LocalizationResourceManager.Instance.Format("Skill_TooltipFormat", Milestone.Level, Milestone.Perk, Milestone.Effect);
 
     // ---------- detail-card text ----------
 
-    public string LevelText => $"LEVEL {Milestone.Level}";
-    public string StatusText => IsUnlocked ? "UNLOCKED" : IsConcealed ? "SEALED" : "LOCKED";
+    public string LevelText => LocalizationResourceManager.Instance.Format("Skill_LevelFormat", Milestone.Level);
+    public string StatusText => IsUnlocked
+        ? LocalizationResourceManager.Instance["Skill_StatusUnlocked"]
+        : IsConcealed
+            ? LocalizationResourceManager.Instance["Skill_StatusSealed"]
+            : LocalizationResourceManager.Instance["WorldStory_StatusLocked"];
 
     /// <summary>How far this skill is from the milestone (or confirmation it's unlocked).</summary>
     public string RequirementText

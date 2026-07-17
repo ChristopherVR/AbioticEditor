@@ -199,11 +199,11 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
     public ICommand DiscoverAllCraftedCommand { get; }
     public ICommand UnlockAllMapsCommand { get; }
 
-    public string ItemsPickedUpText => $"{_itemsPickedUp.Count} item(s) seen";
-    public string CraftedItemsText => $"{_craftedItems.Count} item(s) crafted";
+    public string ItemsPickedUpText => LocalizationResourceManager.Instance.Format("PlayerEditor_ItemsSeenCount", _itemsPickedUp.Count);
+    public string CraftedItemsText => LocalizationResourceManager.Instance.Format("PlayerEditor_ItemsCraftedCount", _craftedItems.Count);
     public string MapsText => GameDataServices.AllMaps.Count > 0
-        ? $"{_mapsUnlocked.Count} of {GameDataServices.AllMaps.Count} maps"
-        : $"{_mapsUnlocked.Count} maps";
+        ? LocalizationResourceManager.Instance.Format("PlayerEditor_MapsOfTotal", _mapsUnlocked.Count, GameDataServices.AllMaps.Count)
+        : LocalizationResourceManager.Instance.Format("PlayerEditor_MapsCount", _mapsUnlocked.Count);
 
     private static IReadOnlyList<string> AllItemIds()
         => GameDataServices.Catalog?.Entries.Select(e => e.Id).ToList() ?? (IReadOnlyList<string>)Array.Empty<string>();
@@ -920,11 +920,11 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
         get
         {
             var entry = GameDataServices.Catalog?.Find(Backpack?.ItemId);
-            if (entry is null || entry.ContainerCapacity <= 0) return "POCKETS";
+            if (entry is null || entry.ContainerCapacity <= 0) return LocalizationResourceManager.Instance["PlayerEditor_Pockets"];
             var name = entry.DisplayName.ToUpperInvariant();
             return entry.ContainerCapacity == Main.Count
-                ? $"{name} - {entry.ContainerCapacity} SLOTS"
-                : $"{name} - capacity {entry.ContainerCapacity}, save has {Main.Count} (game resizes on equip)";
+                ? LocalizationResourceManager.Instance.Format("PlayerEditor_BackpackTitleSlots", name, entry.ContainerCapacity)
+                : LocalizationResourceManager.Instance.Format("PlayerEditor_BackpackTitleMismatch", name, entry.ContainerCapacity, Main.Count);
         }
     }
 

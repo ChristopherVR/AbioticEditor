@@ -50,6 +50,17 @@ host-UI bridge + Vite sample).
 - Known limitation (pre-existing pattern): code-built text assigned once at construction
   (e.g. picker option lists) refreshes on reload, not live on language switch - same as the
   earlier rounds' code-behind text.
+- **Leftover pass (same day):** the stragglers flagged by the sweep were localized too
+  (+86 keys, resx now 1808/locale): status badges (UNLOCKED/LOCKED, READ/UNREAD, ACTIVE/
+  MISSING, WRECKED/DRIVABLE), shared category chips (`Palette_Category*`, reused across
+  palette/recipes/codex), codex email/journal render labels (FROM:, SOURCE:, unlock lines),
+  recipe/palette stat fragments, flag category labels (switch over `FlagCategory`, no more
+  enum `ToString()`), compare-view remaining section labels + folder-row details,
+  skills LEVEL/status text, backpack titles, world-base summary, feature-device sentences
+  restructured into whole-sentence keys, `UnlockedLabelConverter`, the recipes filter
+  RadioButtons, and the Plugins menu item. Remaining known-unlocalized (deliberate):
+  `WorldBaseViewModel.BaseMapDrawable` canvas legend labels, ComparePanel's exported
+  Markdown report text.
 
 ## Round-42: anniversary-update (v1.4.0) sync - data-driven companions + skill perks (2026-07-17)
 - **Reported bug (Nexus): Speedogi / Sir Ogi / Verdant Skink not detected in COMPANIONS.**

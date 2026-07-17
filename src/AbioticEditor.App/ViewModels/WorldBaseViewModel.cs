@@ -38,9 +38,9 @@ public sealed class WorldBaseViewModel
         foreach (var b in Benches) b.AcceptBaseline();
     }
 
-    public string Summary =>
-        $"{Source.BenchCount} bench(es) · {Source.Deployables.Count} deployables · "
-        + $"{Source.ContainerCount} container(s) holding {Source.StoredItemCount} item(s)";
+    public string Summary => Services.LocalizationResourceManager.Instance.Format(
+        "WorldBases_SummaryFormat",
+        Source.BenchCount, Source.Deployables.Count, Source.ContainerCount, Source.StoredItemCount);
 
     /// <summary>The crafting bench(es) anchoring this base, named explicitly.</summary>
     public string AnchorText
@@ -74,7 +74,8 @@ public sealed class WorldBaseViewModel
         .OrderByDescending(g => g.Any(d => d.IsCraftingBench))
         .ThenByDescending(g => g.Count())
         .Take(14)
-        .Select(g => $"{g.Count()}× {g.Key}" + (g.Any(d => d.IsCraftingBench) ? "  [BENCH]" : "")));
+        .Select(g => $"{g.Count()}× {g.Key}"
+            + (g.Any(d => d.IsCraftingBench) ? "  " + Services.LocalizationResourceManager.Instance["WorldBases_BenchTag"] : "")));
 
     /// <summary>Container ids in this base (used to jump into the containers tab).</summary>
     public IReadOnlyList<string> ContainerIds => Source.Deployables

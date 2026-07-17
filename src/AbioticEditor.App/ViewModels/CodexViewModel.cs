@@ -97,7 +97,8 @@ public sealed class CodexItemViewModel : INotifyPropertyChanged
         }
     }
 
-    public string StatusLabel => _isKnown ? "READ" : "UNREAD";
+    public string StatusLabel => LocalizationResourceManager.Instance[
+        _isKnown ? "PlayerCodex_BadgeRead" : "PlayerCodex_BadgeUnread"];
 
     // ---------- spoiler concealment ----------
 
@@ -224,7 +225,7 @@ public sealed class CodexItemViewModel : INotifyPropertyChanged
     public bool HasFishCatchRequirements => (FishCatchLines.Count > 0 || HasFishRequiredBait) && !IsConcealed;
     public bool HasFishXp => FishXpGain > 0 && !IsConcealed;
     public bool ShowFishDetailDivider => HasFishUnlock || HasFishCatchRequirements || HasFishXp;
-    public string FishXpText => $"+{FishXpGain} XP on first catch";
+    public string FishXpText => LocalizationResourceManager.Instance.Format("PlayerCodex_FishXpFirstCatch", FishXpGain);
 
     private string? _unlockBaitIconPath;
     private bool _unlockBaitIconRequested;
@@ -430,9 +431,12 @@ public sealed class CodexViewModel : INotifyPropertyChanged
                 var body = j.Note;
                 var sources = journalSources[j.Id].ToList();
                 body += sources.Count > 0
-                    ? "\n\nSOURCE: unlocked by reading the email " +
-                      string.Join(" or ", sources.Select(e => $"\"{e.Subject}\" ({e.FirstSender})"))
-                    : "\n\nSOURCE: granted directly by story events / area triggers (not email-gated).";
+                    ? "\n\n" + LocalizationResourceManager.Instance.Format(
+                        "PlayerCodex_JournalSourceEmail",
+                        string.Join(
+                            $" {LocalizationResourceManager.Instance["PlayerCodex_JournalSourceOr"]} ",
+                            sources.Select(e => $"\"{e.Subject}\" ({e.FirstSender})")))
+                    : "\n\n" + LocalizationResourceManager.Instance["PlayerCodex_JournalSourceDirect"];
                 body += $"\n[id: {j.Id}]";
                 return new CodexItemViewModel(
                     this, j.Id, j.Title, j.Id, body, foundSet.Contains(j.Id), editable: true);
@@ -466,7 +470,7 @@ public sealed class CodexViewModel : INotifyPropertyChanged
             {
                 var entry = f.ItemId is null ? null : itemCatalog?.Find(f.ItemId);
                 var title = entry?.DisplayName ?? f.Id;
-                if (f.IsRare) title += " (rare)";
+                if (f.IsRare) title = LocalizationResourceManager.Instance.Format("PlayerCodex_RareTitleSuffix", title);
                 var detail = fishBaits.Detail(f);
                 return new CodexItemViewModel(
                     this, f.Id, title, f.Id, entry?.Description ?? string.Empty,
@@ -520,19 +524,20 @@ public sealed class CodexViewModel : INotifyPropertyChanged
 
     private static string RenderEmail(EmailEntry e)
     {
+        var loc = LocalizationResourceManager.Instance;
         var parts = e.Sections.Select(s => string.IsNullOrEmpty(s.Sender)
             ? s.Text
-            : $"FROM: {s.Sender}\n\n{s.Text}");
+            : $"{loc.Format("PlayerCodex_EmailFrom", s.Sender)}\n\n{s.Text}");
         var body = string.Join("\n\n- - -\n\n", parts);
         if (e.AttachmentRecipes.Count > 0)
         {
-            body += $"\n\nATTACHMENT UNLOCKS RECIPE: {string.Join(", ", e.AttachmentRecipes)}";
+            body += "\n\n" + loc.Format("PlayerCodex_EmailAttachmentUnlocksRecipe", string.Join(", ", e.AttachmentRecipes));
         }
         if (e.UnlocksJournals.Count > 0)
         {
-            body += $"\n\nREADING THIS UNLOCKS JOURNAL: {string.Join(", ", e.UnlocksJournals)}";
+            body += "\n\n" + loc.Format("PlayerCodex_EmailUnlocksJournal", string.Join(", ", e.UnlocksJournals));
         }
-        body += "\n\nFound at e-mail terminals scattered through the facility (the game does not record which terminal carries which message)."
+        body += "\n\n" + loc["PlayerCodex_EmailFoundAtTerminals"]
               + $"\n[id: {e.Id}]";
         return body;
     }
@@ -589,12 +594,12 @@ public sealed class CodexViewModel : INotifyPropertyChanged
     /// <summary>The in-game GATEPal compendium apps, mapped to DT_Compendium tags.</summary>
     public IReadOnlyList<CompendiumCategory> CompendiumCategories { get; } = new[]
     {
-        new CompendiumCategory("ALL", null),
-        new CompendiumCategory("ENTITIES", "Entity"),
-        new CompendiumCategory("LOCATIONS", "Location"),
-        new CompendiumCategory("REGISTRY", "IS"),
-        new CompendiumCategory("PEOPLE", "People"),
-        new CompendiumCategory("THEORIES", "Theories"),
+        new CompendiumCategory(LocalizationResourceManager.Instance["Palette_CategoryAll"], null),
+        new CompendiumCategory(LocalizationResourceManager.Instance["PlayerCodex_CategoryEntities"], "Entity"),
+        new CompendiumCategory(LocalizationResourceManager.Instance["PlayerCodex_CategoryLocations"], "Location"),
+        new CompendiumCategory(LocalizationResourceManager.Instance["PlayerCodex_CategoryRegistry"], "IS"),
+        new CompendiumCategory(LocalizationResourceManager.Instance["PlayerCodex_CategoryPeople"], "People"),
+        new CompendiumCategory(LocalizationResourceManager.Instance["PlayerCodex_CategoryTheories"], "Theories"),
     };
 
     private CompendiumCategory? _compendiumCategory;
@@ -661,14 +666,14 @@ public sealed class CodexViewModel : INotifyPropertyChanged
         {
             var items = CurrentItems;
             var known = items.Count(i => i.IsKnown);
-            var noun = _section switch
+            var key = _section switch
             {
-                Section.Journal => "found",
-                Section.Compendium => "unlocked",
-                Section.Fish => "caught",
-                _ => "read",
+                Section.Journal => "PlayerCodex_CountFound",
+                Section.Compendium => "PlayerRecipes_CountUnlocked",
+                Section.Fish => "PlayerCodex_CountCaught",
+                _ => "PlayerCodex_CountRead",
             };
-            return $"{known} of {items.Count} {noun}";
+            return LocalizationResourceManager.Instance.Format(key, known, items.Count);
         }
     }
 

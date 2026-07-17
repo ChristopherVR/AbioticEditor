@@ -606,13 +606,13 @@ internal sealed class ComparePanel
                 FolderEntryStatus.Differs => ("~~", Res("AfHazardYellow")),
                 FolderEntryStatus.OnlyLeft => (L["Compare_AOnly"], Res("AfAlertRed")),
                 FolderEntryStatus.OnlyRight => (L["Compare_BOnly"], Res("AfTerminalGreen")),
-                _ => ("error", Res("AfAlertRed")),
+                _ => (L["Compare_ErrorTag"], Res("AfAlertRed")),
             };
             Text = entry.Status switch
             {
                 FolderEntryStatus.Differs when entry.Diff is not null =>
-                    $"{entry.RelativePath}  ({entry.Diff.MeaningfulCount} gameplay, {entry.DifferenceCount} total)",
-                FolderEntryStatus.Differs => $"{entry.RelativePath}  ({entry.DifferenceCount} difference(s))",
+                    $"{entry.RelativePath}  {L.Format("Compare_FolderRowGameplayTotal", entry.Diff.MeaningfulCount, entry.DifferenceCount)}",
+                FolderEntryStatus.Differs => $"{entry.RelativePath}  {L.Format("Compare_FolderRowDifferences", entry.DifferenceCount)}",
                 FolderEntryStatus.Error => $"{entry.RelativePath}  ({entry.Error})",
                 _ => entry.RelativePath,
             };

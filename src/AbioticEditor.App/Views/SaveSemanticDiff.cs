@@ -71,10 +71,10 @@ internal static class PlayerSemanticDiff
         SemanticItem Plain(string id) => new(id, Pretty(id), null);
 
         // ----- PROGRESSION: money + per-skill level -----
-        var progression = new SemanticSection { Title = "Progression" };
+        var progression = new SemanticSection { Title = LocalizationResourceManager.Instance["Compare_Progression"] };
         if (a.Stats.Money != b.Stats.Money)
         {
-            progression.Scalars.Add(new SemanticScalar("Money",
+            progression.Scalars.Add(new SemanticScalar(LocalizationResourceManager.Instance["Compare_Money"],
                 a.Stats.Money.ToString("N0", System.Globalization.CultureInfo.CurrentCulture),
                 b.Stats.Money.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)));
         }
@@ -86,7 +86,9 @@ internal static class PlayerSemanticDiff
             var lb = b.Skills[i].Level;
             if (la != lb)
             {
-                var name = skillNames.TryGetValue(i, out var n) ? n : $"Skill {i + 1}";
+                var name = skillNames.TryGetValue(i, out var n)
+                    ? n
+                    : LocalizationResourceManager.Instance.Format("Compare_SkillNumber", i + 1);
                 progression.Scalars.Add(new SemanticScalar(name,
                     LocalizationResourceManager.Instance.Format("Diff_Level", la),
                     LocalizationResourceManager.Instance.Format("Diff_Level", lb)));
@@ -95,16 +97,16 @@ internal static class PlayerSemanticDiff
         AddIf(sections, progression);
 
         // ----- INVENTORY: slot-by-slot (Equipment / Hotbar / Main), matched by index -----
-        var inventory = new SemanticSection { Title = "Inventory" };
-        AddInventoryDiff(inventory, "Equipment", a.Inventory.Equipment, b.Inventory.Equipment, ByItem);
-        AddInventoryDiff(inventory, "Hotbar", a.Inventory.Hotbar, b.Inventory.Hotbar, ByItem);
-        AddInventoryDiff(inventory, "Backpack", a.Inventory.Main, b.Inventory.Main, ByItem);
+        var inventory = new SemanticSection { Title = LocalizationResourceManager.Instance["Compare_Inventory"] };
+        AddInventoryDiff(inventory, LocalizationResourceManager.Instance["PlayerPets_SlotKind_Equipment"], a.Inventory.Equipment, b.Inventory.Equipment, ByItem);
+        AddInventoryDiff(inventory, LocalizationResourceManager.Instance["PlayerPets_SlotKind_Hotbar"], a.Inventory.Hotbar, b.Inventory.Hotbar, ByItem);
+        AddInventoryDiff(inventory, LocalizationResourceManager.Instance["PlayerPets_SlotKind_Main"], a.Inventory.Main, b.Inventory.Main, ByItem);
         AddIf(sections, inventory);
 
         // ----- set-difference categories -----
         sections.Add(SetSection(LocalizationResourceManager.Instance["Compare_RecipesUnlocked"], a.Recipes, b.Recipes, ByRecipe));
         sections.Add(SetSection(LocalizationResourceManager.Instance["Compare_FishCaught"], a.FishCaught, b.FishCaught, ByFish));
-        sections.Add(SetSection("Traits", a.Traits, b.Traits, ByTrait));
+        sections.Add(SetSection(LocalizationResourceManager.Instance["Compare_Traits"], a.Traits, b.Traits, ByTrait));
         sections.Add(SetSection(LocalizationResourceManager.Instance["Compare_ItemsDiscovered"], a.ItemsPickedUp, b.ItemsPickedUp, ByItem));
         sections.Add(SetSection(LocalizationResourceManager.Instance["Compare_ItemsCrafted"], a.CraftedItems, b.CraftedItems, ByItem));
         sections.Add(SetSection(LocalizationResourceManager.Instance["Compare_MapsUnlocked"], a.MapsUnlocked, b.MapsUnlocked, Plain));
@@ -155,7 +157,8 @@ internal static class PlayerSemanticDiff
             var tb = SlotText(sb, byItem);
             if (string.Equals(ta, tb, StringComparison.Ordinal)) continue;
 
-            section.Scalars.Add(new SemanticScalar($"{area} slot {i + 1}", ta, tb));
+            section.Scalars.Add(new SemanticScalar(
+                LocalizationResourceManager.Instance.Format("Compare_SlotNumber", area, i + 1), ta, tb));
         }
     }
 
@@ -341,7 +344,7 @@ internal static class WorldSemanticDiff
         }
 
         // ----- PROGRESSION (metadata saves carry these) -----
-        var progression = new SemanticSection { Title = "Progression" };
+        var progression = new SemanticSection { Title = LocalizationResourceManager.Instance["Compare_Progression"] };
         if (!string.Equals(a.StoryProgressionRow, b.StoryProgressionRow, StringComparison.OrdinalIgnoreCase)
             && (a.StoryProgressionRow is not null || b.StoryProgressionRow is not null))
         {
@@ -362,7 +365,7 @@ internal static class WorldSemanticDiff
         sections.Add(SetSection(LocalizationResourceManager.Instance["Compare_QuestFlags"], a.Flags, b.Flags, ByFlag));
 
         // ----- doors that changed lock/open state (matched by id) -----
-        var doors = new SemanticSection { Title = "Doors" };
+        var doors = new SemanticSection { Title = LocalizationResourceManager.Instance["Compare_Doors"] };
         var doorsB = b.Doors.ToDictionary(d => d.Id, d => d, StringComparer.OrdinalIgnoreCase);
         foreach (var da in a.Doors)
         {
@@ -383,7 +386,7 @@ internal static class WorldSemanticDiff
             ByItem));
 
         // ----- NPCs whose state changed (matched by id) -----
-        var npcs = new SemanticSection { Title = "NPCs" };
+        var npcs = new SemanticSection { Title = LocalizationResourceManager.Instance["Compare_Npcs"] };
         var npcsB = b.Npcs.ToDictionary(n => n.Id, n => n, StringComparer.OrdinalIgnoreCase);
         foreach (var na in a.Npcs)
         {
@@ -399,7 +402,7 @@ internal static class WorldSemanticDiff
 
         // ----- world-object counts -----
         var contents = new SemanticSection { Title = LocalizationResourceManager.Instance["Compare_WorldContents"] };
-        AddCountScalar(contents, "Containers", a.Containers.Count, b.Containers.Count);
+        AddCountScalar(contents, LocalizationResourceManager.Instance["Compare_Containers"], a.Containers.Count, b.Containers.Count);
         AddCountScalar(contents, LocalizationResourceManager.Instance["Compare_PlacedObjects"], a.Deployables.Count, b.Deployables.Count);
         AddCountScalar(contents, LocalizationResourceManager.Instance["Compare_GroundItems"], a.DroppedItems.Count, b.DroppedItems.Count);
         AddCountScalar(contents, LocalizationResourceManager.Instance["Compare_TrackedNpcs"], a.Npcs.Count, b.Npcs.Count);

@@ -29,7 +29,9 @@ public sealed class RecipeRowViewModel : INotifyPropertyChanged
     {
         get
         {
-            var makes = Info.Count > 1 ? $"makes {Info.Count}× · " : string.Empty;
+            var makes = Info.Count > 1
+                ? LocalizationResourceManager.Instance.Format("PlayerRecipes_SubTextMakes", Info.Count) + " · "
+                : string.Empty;
             return $"{Info.Id} · {makes}{Info.Source}";
         }
     }
@@ -103,7 +105,7 @@ public sealed class RecipeRowViewModel : INotifyPropertyChanged
 
     /// <summary>Ingredient lines, e.g. "2× Scrap Metal".</summary>
     public string IngredientsText => Info.IngredientList.Count == 0
-        ? "(no ingredients recorded)"
+        ? LocalizationResourceManager.Instance["PlayerRecipes_NoIngredientsRecorded"]
         : string.Join("\n", Info.IngredientList.Select(i =>
             $"{i.Count}× {GameDataServices.Catalog?.Find(i.ItemId)?.DisplayName ?? i.ItemId}"));
 
@@ -111,7 +113,8 @@ public sealed class RecipeRowViewModel : INotifyPropertyChanged
         ? LocalizationResourceManager.Instance["PlayerRecipes_HandsNoBench"]
         : string.Join(", ", Info.BenchList.Select(b => GameDataServices.Catalog?.Find(b)?.DisplayName ?? b));
 
-    public string OutputText => Info.Count > 1 ? $"Makes {Info.Count}×" : "Makes 1×";
+    public string OutputText
+        => LocalizationResourceManager.Instance.Format("PlayerRecipes_MakesCount", Info.Count > 1 ? Info.Count : 1);
 
     /// <summary>Item stat dump for the detail panel (stack/durability/weight/tags).</summary>
     public string StatsText
@@ -119,11 +122,12 @@ public sealed class RecipeRowViewModel : INotifyPropertyChanged
         get
         {
             if (CreatedItem is not { } e) return string.Empty;
+            var loc = LocalizationResourceManager.Instance;
             var parts = new List<string>();
-            if (e.StackSize > 1) parts.Add($"Stack {e.StackSize}");
-            if (e.MaxDurability > 0) parts.Add($"Durability {e.MaxDurability:F0}");
-            if (e.Weight > 0) parts.Add($"Weight {e.Weight:F1}");
-            if (e.IsWeapon) parts.Add("Weapon");
+            if (e.StackSize > 1) parts.Add(loc.Format("PlayerRecipes_StatStack", e.StackSize));
+            if (e.MaxDurability > 0) parts.Add(loc.Format("PlayerRecipes_StatDurability", e.MaxDurability));
+            if (e.Weight > 0) parts.Add(loc.Format("PlayerRecipes_StatWeight", e.Weight));
+            if (e.IsWeapon) parts.Add(loc["PlayerRecipes_StatWeapon"]);
             return string.Join(" · ", parts);
         }
     }
@@ -205,7 +209,8 @@ public sealed class RecipeRowViewModel : INotifyPropertyChanged
         }
     }
 
-    public string StatusLabel => _isUnlocked ? "UNLOCKED" : "LOCKED";
+    public string StatusLabel => LocalizationResourceManager.Instance[
+        _isUnlocked ? "PlayerRecipes_BadgeUnlocked" : "PlayerRecipes_BadgeLocked"];
 
     // ---------- spoiler concealment ----------
 
@@ -304,19 +309,19 @@ public sealed class RecipeListViewModel : INotifyPropertyChanged
     /// </summary>
     public IReadOnlyList<RecipeCategory> Categories { get; } = new[]
     {
-        new RecipeCategory("ALL", null),
-        new RecipeCategory("WEAPONS", "@weapons"),
-        new RecipeCategory("ARMOR", "@armor"),
-        new RecipeCategory("TOOLS", "@tools"),
-        new RecipeCategory("POWER", "@power"),
-        new RecipeCategory("DEFENSE", "@defense"),
-        new RecipeCategory("FURNITURE", "@furniture"),
-        new RecipeCategory("MEDICAL", "@medical"),
-        new RecipeCategory("FOOD", "@food"),
-        new RecipeCategory("FARMING", "@farming"),
-        new RecipeCategory("RESOURCES", "@resources"),
-        new RecipeCategory("SOUPS", "#Soup"),
-        new RecipeCategory("CHEMISTRY", "#Chemistry"),
+        new RecipeCategory(LocalizationResourceManager.Instance["Palette_CategoryAll"], null),
+        new RecipeCategory(LocalizationResourceManager.Instance["Palette_CategoryWeapons"], "@weapons"),
+        new RecipeCategory(LocalizationResourceManager.Instance["Palette_CategoryArmor"], "@armor"),
+        new RecipeCategory(LocalizationResourceManager.Instance["Palette_CategoryTools"], "@tools"),
+        new RecipeCategory(LocalizationResourceManager.Instance["Palette_CategoryPower"], "@power"),
+        new RecipeCategory(LocalizationResourceManager.Instance["Palette_CategoryDefense"], "@defense"),
+        new RecipeCategory(LocalizationResourceManager.Instance["Palette_CategoryFurniture"], "@furniture"),
+        new RecipeCategory(LocalizationResourceManager.Instance["Palette_CategoryMedical"], "@medical"),
+        new RecipeCategory(LocalizationResourceManager.Instance["Palette_CategoryFood"], "@food"),
+        new RecipeCategory(LocalizationResourceManager.Instance["Palette_CategoryFarming"], "@farming"),
+        new RecipeCategory(LocalizationResourceManager.Instance["Palette_CategoryResources"], "@resources"),
+        new RecipeCategory(LocalizationResourceManager.Instance["PlayerRecipes_CategorySoups"], "#Soup"),
+        new RecipeCategory(LocalizationResourceManager.Instance["PlayerRecipes_CategoryChemistry"], "#Chemistry"),
     };
 
     private RecipeCategory? _selectedCategory;

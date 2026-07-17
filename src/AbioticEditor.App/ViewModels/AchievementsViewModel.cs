@@ -63,7 +63,8 @@ public sealed class AchievementRowViewModel : INotifyPropertyChanged
     });
     private RelayCommand? _reveal;
 
-    public string StatusLabel => Unlocked ? "UNLOCKED" : "LOCKED";
+    public string StatusLabel => LocalizationResourceManager.Instance[
+        Unlocked ? "PlayerAchievements_BadgeUnlocked" : "PlayerAchievements_BadgeLocked"];
     public string UnlockedAtText => UnlockedAt is { } t
         ? t.LocalDateTime.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture)
         : string.Empty;
@@ -176,7 +177,7 @@ public sealed class AchievementsViewModel : INotifyPropertyChanged
         {
             if (_rows.Count == 0) return string.Empty;
             var unlocked = _rows.Values.Count(r => r.Unlocked);
-            return $"{unlocked} of {_rows.Count} unlocked";
+            return LocalizationResourceManager.Instance.Format("PlayerRecipes_CountUnlocked", unlocked, _rows.Count);
         }
     }
 

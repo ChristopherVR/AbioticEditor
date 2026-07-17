@@ -2827,4 +2827,116 @@
   <data name="WorldVehicles_SpawnUnavailable" xml:space="preserve"><value>Точка появления недоступна (нужны установка игры / mappings).</value></data>
   <data name="WorldVehicles_UnknownWorld" xml:space="preserve"><value>Неизвестный мир</value></data>
   <data name="WorldVehicles_WorldFormat" xml:space="preserve"><value>Мир: {0}</value></data>
+
+  <!-- Compare -->
+  <data name="Compare_Containers" xml:space="preserve"><value>Контейнеры</value></data>
+  <data name="Compare_Doors" xml:space="preserve"><value>Двери</value></data>
+  <data name="Compare_ErrorTag" xml:space="preserve"><value>ошибка</value></data>
+  <data name="Compare_FolderRowDifferences" xml:space="preserve"><value>(различий: {0})</value></data>
+  <data name="Compare_FolderRowGameplayTotal" xml:space="preserve"><value>(игровых: {0}, всего: {1})</value></data>
+  <data name="Compare_Inventory" xml:space="preserve"><value>Инвентарь</value></data>
+  <data name="Compare_Money" xml:space="preserve"><value>Деньги</value></data>
+  <data name="Compare_Npcs" xml:space="preserve"><value>NPC</value></data>
+  <data name="Compare_Progression" xml:space="preserve"><value>Прогресс</value></data>
+  <data name="Compare_SkillNumber" xml:space="preserve"><value>Навык {0}</value></data>
+  <data name="Compare_SlotNumber" xml:space="preserve"><value>{0} - ячейка {1}</value></data>
+  <data name="Compare_Traits" xml:space="preserve"><value>Черты</value></data>
+
+  <!-- IniEditor -->
+  <data name="IniEditor_NoSectionHeader" xml:space="preserve"><value>(без секции)</value></data>
+
+  <!-- Main -->
+  <data name="Main_MenuPlugins" xml:space="preserve"><value>Плагины</value></data>
+
+  <!-- Palette -->
+  <data name="Palette_CategoryAll" xml:space="preserve"><value>ВСЕ</value></data>
+  <data name="Palette_CategoryArmor" xml:space="preserve"><value>БРОНЯ</value></data>
+  <data name="Palette_CategoryDefense" xml:space="preserve"><value>ЗАЩИТА</value></data>
+  <data name="Palette_CategoryFarming" xml:space="preserve"><value>ФЕРМЕРСТВО</value></data>
+  <data name="Palette_CategoryFood" xml:space="preserve"><value>ЕДА</value></data>
+  <data name="Palette_CategoryFurniture" xml:space="preserve"><value>МЕБЕЛЬ</value></data>
+  <data name="Palette_CategoryMedical" xml:space="preserve"><value>МЕДИЦИНА</value></data>
+  <data name="Palette_CategoryOther" xml:space="preserve"><value>ПРОЧЕЕ</value></data>
+  <data name="Palette_CategoryPower" xml:space="preserve"><value>ЭНЕРГИЯ</value></data>
+  <data name="Palette_CategoryResources" xml:space="preserve"><value>РЕСУРСЫ</value></data>
+  <data name="Palette_CategoryTools" xml:space="preserve"><value>ИНСТРУМЕНТЫ</value></data>
+  <data name="Palette_CategoryWeapons" xml:space="preserve"><value>ОРУЖИЕ</value></data>
+
+  <!-- PlayerAchievements -->
+  <data name="PlayerAchievements_BadgeLocked" xml:space="preserve"><value>ЗАБЛОКИРОВАНО</value></data>
+  <data name="PlayerAchievements_BadgeUnlocked" xml:space="preserve"><value>РАЗБЛОКИРОВАНО</value></data>
+
+  <!-- PlayerCodex -->
+  <data name="PlayerCodex_BadgeRead" xml:space="preserve"><value>ПРОЧИТАНО</value></data>
+  <data name="PlayerCodex_BadgeUnread" xml:space="preserve"><value>НЕ ПРОЧИТАНО</value></data>
+  <data name="PlayerCodex_CategoryEntities" xml:space="preserve"><value>СУЩНОСТИ</value></data>
+  <data name="PlayerCodex_CategoryLocations" xml:space="preserve"><value>ЛОКАЦИИ</value></data>
+  <data name="PlayerCodex_CategoryPeople" xml:space="preserve"><value>ЛЮДИ</value></data>
+  <data name="PlayerCodex_CategoryRegistry" xml:space="preserve"><value>РЕЕСТР</value></data>
+  <data name="PlayerCodex_CategoryTheories" xml:space="preserve"><value>ТЕОРИИ</value></data>
+  <data name="PlayerCodex_CountCaught" xml:space="preserve"><value>поймано {0} из {1}</value></data>
+  <data name="PlayerCodex_CountFound" xml:space="preserve"><value>найдено {0} из {1}</value></data>
+  <data name="PlayerCodex_CountRead" xml:space="preserve"><value>прочитано {0} из {1}</value></data>
+  <data name="PlayerCodex_EmailAttachmentUnlocksRecipe" xml:space="preserve"><value>ВЛОЖЕНИЕ РАЗБЛОКИРУЕТ РЕЦЕПТ: {0}</value></data>
+  <data name="PlayerCodex_EmailFoundAtTerminals" xml:space="preserve"><value>Находится на почтовых терминалах, разбросанных по комплексу (игра не записывает, на каком терминале какое письмо).</value></data>
+  <data name="PlayerCodex_EmailFrom" xml:space="preserve"><value>ОТ: {0}</value></data>
+  <data name="PlayerCodex_EmailUnlocksJournal" xml:space="preserve"><value>ПРОЧТЕНИЕ РАЗБЛОКИРУЕТ ЗАПИСЬ ДНЕВНИКА: {0}</value></data>
+  <data name="PlayerCodex_FishXpFirstCatch" xml:space="preserve"><value>+{0} опыта за первую поимку</value></data>
+  <data name="PlayerCodex_JournalSourceDirect" xml:space="preserve"><value>ИСТОЧНИК: выдаётся напрямую сюжетными событиями / триггерами зон (не через письма).</value></data>
+  <data name="PlayerCodex_JournalSourceEmail" xml:space="preserve"><value>ИСТОЧНИК: разблокируется прочтением письма {0}</value></data>
+  <data name="PlayerCodex_JournalSourceOr" xml:space="preserve"><value>или</value></data>
+  <data name="PlayerCodex_RareTitleSuffix" xml:space="preserve"><value>{0} (редкая)</value></data>
+
+  <!-- PlayerEditor -->
+  <data name="PlayerEditor_BackpackTitleMismatch" xml:space="preserve"><value>{0} - вместимость {1}, в сохранении {2} (игра меняет размер при экипировке)</value></data>
+  <data name="PlayerEditor_BackpackTitleSlots" xml:space="preserve"><value>{0} - ЯЧЕЕК: {1}</value></data>
+  <data name="PlayerEditor_ItemsCraftedCount" xml:space="preserve"><value>создано предметов: {0}</value></data>
+  <data name="PlayerEditor_ItemsSeenCount" xml:space="preserve"><value>виденных предметов: {0}</value></data>
+  <data name="PlayerEditor_MapsCount" xml:space="preserve"><value>карт: {0}</value></data>
+  <data name="PlayerEditor_MapsOfTotal" xml:space="preserve"><value>карт: {0} из {1}</value></data>
+  <data name="PlayerEditor_Pockets" xml:space="preserve"><value>КАРМАНЫ</value></data>
+
+  <!-- PlayerRecipes -->
+  <data name="PlayerRecipes_BadgeLocked" xml:space="preserve"><value>ЗАБЛОКИРОВАНО</value></data>
+  <data name="PlayerRecipes_BadgeUnlocked" xml:space="preserve"><value>РАЗБЛОКИРОВАНО</value></data>
+  <data name="PlayerRecipes_CategoryChemistry" xml:space="preserve"><value>ХИМИЯ</value></data>
+  <data name="PlayerRecipes_CategorySoups" xml:space="preserve"><value>СУПЫ</value></data>
+  <data name="PlayerRecipes_MakesCount" xml:space="preserve"><value>Создаёт {0}×</value></data>
+  <data name="PlayerRecipes_NoIngredientsRecorded" xml:space="preserve"><value>(ингредиенты не записаны)</value></data>
+  <data name="PlayerRecipes_StatDurability" xml:space="preserve"><value>Прочность {0:F0}</value></data>
+  <data name="PlayerRecipes_StatStack" xml:space="preserve"><value>Стак {0}</value></data>
+  <data name="PlayerRecipes_StatWeapon" xml:space="preserve"><value>Оружие</value></data>
+  <data name="PlayerRecipes_StatWeight" xml:space="preserve"><value>Вес {0:F1}</value></data>
+  <data name="PlayerRecipes_SubTextMakes" xml:space="preserve"><value>создаёт {0}×</value></data>
+
+  <!-- Skill -->
+  <data name="Skill_LevelFormat" xml:space="preserve"><value>УРОВЕНЬ {0}</value></data>
+  <data name="Skill_StatusSealed" xml:space="preserve"><value>ЗАСЕКРЕЧЕНО</value></data>
+  <data name="Skill_StatusUnlocked" xml:space="preserve"><value>РАЗБЛОКИРОВАНО</value></data>
+  <data name="Skill_TooltipFormat" xml:space="preserve"><value>Уровень {0} - {1}: {2}</value></data>
+
+  <!-- WorldBases -->
+  <data name="WorldBases_BenchTag" xml:space="preserve"><value>[ВЕРСТАК]</value></data>
+  <data name="WorldBases_SummaryFormat" xml:space="preserve"><value>верстаков: {0} · развёрнутых объектов: {1} · контейнеров: {2} (предметов: {3})</value></data>
+
+  <!-- WorldFeature -->
+  <data name="WorldFeature_Container" xml:space="preserve"><value>{0} (контейнер)</value></data>
+  <data name="WorldFeature_ContainerInFile" xml:space="preserve"><value>{0} (контейнер в {1})</value></data>
+  <data name="WorldFeature_DeviceInFile" xml:space="preserve"><value>{0} в {1}</value></data>
+  <data name="WorldFeature_Open" xml:space="preserve"><value>Открыть {0}</value></data>
+  <data name="WorldFeature_OpenInFile" xml:space="preserve"><value>Открыть {0} в {1}</value></data>
+
+  <!-- WorldFlags -->
+  <data name="WorldFlags_CategoryDiscovery" xml:space="preserve"><value>ОТКРЫТИЕ</value></data>
+  <data name="WorldFlags_CategoryMeta" xml:space="preserve"><value>МЕТА</value></data>
+  <data name="WorldFlags_CategoryOther" xml:space="preserve"><value>ПРОЧЕЕ</value></data>
+  <data name="WorldFlags_CategoryQuest" xml:space="preserve"><value>ЗАДАНИЕ</value></data>
+  <data name="WorldFlags_CategoryTutorial" xml:space="preserve"><value>ОБУЧЕНИЕ</value></data>
+  <data name="WorldFlags_PrereqLock" xml:space="preserve"><value>🔒 ПРЕДПОСЫЛОК: {0}</value></data>
+  <data name="WorldFlags_StatusActive" xml:space="preserve"><value>АКТИВЕН</value></data>
+  <data name="WorldFlags_StatusMissing" xml:space="preserve"><value>ОТСУТСТВУЕТ</value></data>
+  <data name="WorldFlags_StoryChapterFormat" xml:space="preserve"><value>STORY: {0}</value></data>
+
+  <!-- WorldVehicles -->
+  <data name="WorldVehicles_StateDrivable" xml:space="preserve"><value>НА ХОДУ</value></data>
 </root>

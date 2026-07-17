@@ -87,7 +87,9 @@ public sealed class WorldVehicleViewModel : INotifyPropertyChanged
         set { if (_destroyed != value) { _destroyed = value; Core.Diagnostics.EditorLog.Info("Vehicle", $"Destroyed: {value} ('{DisplayName}', id {Id})"); Notify(nameof(Destroyed), nameof(StateText), nameof(IsDirty)); _onChanged(); } }
     }
 
-    public string StateText => _destroyed ? "WRECKED" : _driveable ? "DRIVABLE" : "LOCKED";
+    public string StateText => _destroyed
+        ? Loc["WorldVehicles_Wrecked"]
+        : _driveable ? Loc["WorldVehicles_StateDrivable"] : Loc["WorldStory_StatusLocked"];
 
     public double X { get => _x; set { if (Math.Abs(_x - value) > 1e-6) { _x = value; OnMoved(); } } }
     public double Y { get => _y; set { if (Math.Abs(_y - value) > 1e-6) { _y = value; OnMoved(); } } }

@@ -2856,4 +2856,117 @@ La modification est mise en attente jusqu'à ce que vous appuyiez sur ENREGISTRE
   <data name="WorldVehicles_SpawnUnavailable" xml:space="preserve"><value>Position d'apparition indisponible (installation du jeu / mappings nécessaires).</value></data>
   <data name="WorldVehicles_UnknownWorld" xml:space="preserve"><value>Monde inconnu</value></data>
   <data name="WorldVehicles_WorldFormat" xml:space="preserve"><value>Monde : {0}</value></data>
+
+
+  <!-- Compare -->
+  <data name="Compare_Containers" xml:space="preserve"><value>Conteneurs</value></data>
+  <data name="Compare_Doors" xml:space="preserve"><value>Portes</value></data>
+  <data name="Compare_ErrorTag" xml:space="preserve"><value>erreur</value></data>
+  <data name="Compare_FolderRowDifferences" xml:space="preserve"><value>({0} différence(s))</value></data>
+  <data name="Compare_FolderRowGameplayTotal" xml:space="preserve"><value>({0} gameplay, {1} au total)</value></data>
+  <data name="Compare_Inventory" xml:space="preserve"><value>Inventaire</value></data>
+  <data name="Compare_Money" xml:space="preserve"><value>Argent</value></data>
+  <data name="Compare_Npcs" xml:space="preserve"><value>PNJ</value></data>
+  <data name="Compare_Progression" xml:space="preserve"><value>Progression</value></data>
+  <data name="Compare_SkillNumber" xml:space="preserve"><value>Compétence {0}</value></data>
+  <data name="Compare_SlotNumber" xml:space="preserve"><value>{0} emplacement {1}</value></data>
+  <data name="Compare_Traits" xml:space="preserve"><value>Traits</value></data>
+
+  <!-- IniEditor -->
+  <data name="IniEditor_NoSectionHeader" xml:space="preserve"><value>(aucune section)</value></data>
+
+  <!-- Main -->
+  <data name="Main_MenuPlugins" xml:space="preserve"><value>Plugins</value></data>
+
+  <!-- Palette -->
+  <data name="Palette_CategoryAll" xml:space="preserve"><value>TOUS</value></data>
+  <data name="Palette_CategoryArmor" xml:space="preserve"><value>ARMURES</value></data>
+  <data name="Palette_CategoryDefense" xml:space="preserve"><value>DÉFENSE</value></data>
+  <data name="Palette_CategoryFarming" xml:space="preserve"><value>AGRICULTURE</value></data>
+  <data name="Palette_CategoryFood" xml:space="preserve"><value>NOURRITURE</value></data>
+  <data name="Palette_CategoryFurniture" xml:space="preserve"><value>MOBILIER</value></data>
+  <data name="Palette_CategoryMedical" xml:space="preserve"><value>MÉDICAL</value></data>
+  <data name="Palette_CategoryOther" xml:space="preserve"><value>AUTRE</value></data>
+  <data name="Palette_CategoryPower" xml:space="preserve"><value>ÉNERGIE</value></data>
+  <data name="Palette_CategoryResources" xml:space="preserve"><value>RESSOURCES</value></data>
+  <data name="Palette_CategoryTools" xml:space="preserve"><value>OUTILS</value></data>
+  <data name="Palette_CategoryWeapons" xml:space="preserve"><value>ARMES</value></data>
+
+  <!-- PlayerAchievements -->
+  <data name="PlayerAchievements_BadgeLocked" xml:space="preserve"><value>VERROUILLÉ</value></data>
+  <data name="PlayerAchievements_BadgeUnlocked" xml:space="preserve"><value>DÉBLOQUÉ</value></data>
+
+  <!-- PlayerCodex -->
+  <data name="PlayerCodex_BadgeRead" xml:space="preserve"><value>LU</value></data>
+  <data name="PlayerCodex_BadgeUnread" xml:space="preserve"><value>NON LU</value></data>
+  <data name="PlayerCodex_CategoryEntities" xml:space="preserve"><value>ENTITÉS</value></data>
+  <data name="PlayerCodex_CategoryLocations" xml:space="preserve"><value>LIEUX</value></data>
+  <data name="PlayerCodex_CategoryPeople" xml:space="preserve"><value>PERSONNES</value></data>
+  <data name="PlayerCodex_CategoryRegistry" xml:space="preserve"><value>REGISTRE</value></data>
+  <data name="PlayerCodex_CategoryTheories" xml:space="preserve"><value>THÉORIES</value></data>
+  <data name="PlayerCodex_CountCaught" xml:space="preserve"><value>{0} sur {1} attrapés</value></data>
+  <data name="PlayerCodex_CountFound" xml:space="preserve"><value>{0} sur {1} trouvées</value></data>
+  <data name="PlayerCodex_CountRead" xml:space="preserve"><value>{0} sur {1} lus</value></data>
+  <data name="PlayerCodex_EmailAttachmentUnlocksRecipe" xml:space="preserve"><value>LA PIÈCE JOINTE DÉBLOQUE LA RECETTE : {0}</value></data>
+  <data name="PlayerCodex_EmailFoundAtTerminals" xml:space="preserve"><value>Trouvé aux terminaux d'e-mail disséminés dans le Facility (le jeu n'enregistre pas quel terminal porte quel message).</value></data>
+  <data name="PlayerCodex_EmailFrom" xml:space="preserve"><value>DE : {0}</value></data>
+  <data name="PlayerCodex_EmailUnlocksJournal" xml:space="preserve"><value>LIRE CECI DÉBLOQUE LE JOURNAL : {0}</value></data>
+  <data name="PlayerCodex_FishXpFirstCatch" xml:space="preserve"><value>+{0} XP à la première capture</value></data>
+  <data name="PlayerCodex_JournalSourceDirect" xml:space="preserve"><value>SOURCE : accordé directement par des événements d'histoire / déclencheurs de zone (non conditionné à un e-mail).</value></data>
+  <data name="PlayerCodex_JournalSourceEmail" xml:space="preserve"><value>SOURCE : débloqué en lisant l'e-mail {0}</value></data>
+  <data name="PlayerCodex_JournalSourceOr" xml:space="preserve"><value>ou</value></data>
+  <data name="PlayerCodex_RareTitleSuffix" xml:space="preserve"><value>{0} (rare)</value></data>
+
+  <!-- PlayerEditor -->
+  <data name="PlayerEditor_BackpackTitleMismatch" xml:space="preserve"><value>{0} - capacité {1}, la sauvegarde en a {2} (le jeu redimensionne à l'équipement)</value></data>
+  <data name="PlayerEditor_BackpackTitleSlots" xml:space="preserve"><value>{0} - {1} EMPLACEMENTS</value></data>
+  <data name="PlayerEditor_ItemsCraftedCount" xml:space="preserve"><value>{0} objet(s) fabriqué(s)</value></data>
+  <data name="PlayerEditor_ItemsSeenCount" xml:space="preserve"><value>{0} objet(s) vu(s)</value></data>
+  <data name="PlayerEditor_MapsCount" xml:space="preserve"><value>{0} cartes</value></data>
+  <data name="PlayerEditor_MapsOfTotal" xml:space="preserve"><value>{0} sur {1} cartes</value></data>
+  <data name="PlayerEditor_Pockets" xml:space="preserve"><value>POCHES</value></data>
+
+  <!-- PlayerRecipes -->
+  <data name="PlayerRecipes_BadgeLocked" xml:space="preserve"><value>VERROUILLÉE</value></data>
+  <data name="PlayerRecipes_BadgeUnlocked" xml:space="preserve"><value>DÉBLOQUÉE</value></data>
+  <data name="PlayerRecipes_CategoryChemistry" xml:space="preserve"><value>CHIMIE</value></data>
+  <data name="PlayerRecipes_CategorySoups" xml:space="preserve"><value>SOUPES</value></data>
+  <data name="PlayerRecipes_MakesCount" xml:space="preserve"><value>Produit {0}×</value></data>
+  <data name="PlayerRecipes_NoIngredientsRecorded" xml:space="preserve"><value>(aucun ingrédient enregistré)</value></data>
+  <data name="PlayerRecipes_StatDurability" xml:space="preserve"><value>Durabilité {0:F0}</value></data>
+  <data name="PlayerRecipes_StatStack" xml:space="preserve"><value>Pile {0}</value></data>
+  <data name="PlayerRecipes_StatWeapon" xml:space="preserve"><value>Arme</value></data>
+  <data name="PlayerRecipes_StatWeight" xml:space="preserve"><value>Poids {0:F1}</value></data>
+  <data name="PlayerRecipes_SubTextMakes" xml:space="preserve"><value>produit {0}×</value></data>
+
+  <!-- Skill -->
+  <data name="Skill_LevelFormat" xml:space="preserve"><value>NIVEAU {0}</value></data>
+  <data name="Skill_StatusSealed" xml:space="preserve"><value>SCELLÉ</value></data>
+  <data name="Skill_StatusUnlocked" xml:space="preserve"><value>DÉBLOQUÉ</value></data>
+  <data name="Skill_TooltipFormat" xml:space="preserve"><value>Niveau {0} - {1} : {2}</value></data>
+
+  <!-- WorldBases -->
+  <data name="WorldBases_BenchTag" xml:space="preserve"><value>[ÉTABLI]</value></data>
+  <data name="WorldBases_SummaryFormat" xml:space="preserve"><value>{0} établi(s) · {1} déployables · {2} conteneur(s) contenant {3} objet(s)</value></data>
+
+  <!-- WorldFeature -->
+  <data name="WorldFeature_Container" xml:space="preserve"><value>{0} (conteneur)</value></data>
+  <data name="WorldFeature_ContainerInFile" xml:space="preserve"><value>{0} (conteneur dans {1})</value></data>
+  <data name="WorldFeature_DeviceInFile" xml:space="preserve"><value>{0} dans {1}</value></data>
+  <data name="WorldFeature_Open" xml:space="preserve"><value>Ouvrir {0}</value></data>
+  <data name="WorldFeature_OpenInFile" xml:space="preserve"><value>Ouvrir {0} dans {1}</value></data>
+
+  <!-- WorldFlags -->
+  <data name="WorldFlags_CategoryDiscovery" xml:space="preserve"><value>DÉCOUVERTE</value></data>
+  <data name="WorldFlags_CategoryMeta" xml:space="preserve"><value>MÉTA</value></data>
+  <data name="WorldFlags_CategoryOther" xml:space="preserve"><value>AUTRE</value></data>
+  <data name="WorldFlags_CategoryQuest" xml:space="preserve"><value>QUÊTE</value></data>
+  <data name="WorldFlags_CategoryTutorial" xml:space="preserve"><value>TUTORIEL</value></data>
+  <data name="WorldFlags_PrereqLock" xml:space="preserve"><value>🔒 {0} PRÉREQUIS</value></data>
+  <data name="WorldFlags_StatusActive" xml:space="preserve"><value>ACTIF</value></data>
+  <data name="WorldFlags_StatusMissing" xml:space="preserve"><value>MANQUANT</value></data>
+  <data name="WorldFlags_StoryChapterFormat" xml:space="preserve"><value>HISTOIRE : {0}</value></data>
+
+  <!-- WorldVehicles -->
+  <data name="WorldVehicles_StateDrivable" xml:space="preserve"><value>CONDUISIBLE</value></data>
 </root>

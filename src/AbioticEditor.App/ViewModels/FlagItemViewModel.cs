@@ -29,7 +29,7 @@ public sealed class FlagItemViewModel
     /// <summary>Inactive AND gated - show the lock chip.</summary>
     public bool IsLocked => !IsActive && MissingPrereqCount > 0;
 
-    public string LockText => $"🔒 {MissingPrereqCount} PREREQ";
+    public string LockText => Services.LocalizationResourceManager.Instance.Format("WorldFlags_PrereqLock", MissingPrereqCount);
 
     // ---------- spoiler concealment ----------
 
@@ -59,11 +59,21 @@ public sealed class FlagItemViewModel
     public bool IsStoryTrigger => StoryChapter is not null;
     public string StoryChapterText => StoryChapter is null
         ? string.Empty
-        : $"STORY: {StoryChapter.Title}";
+        : Services.LocalizationResourceManager.Instance.Format("WorldFlags_StoryChapterFormat", StoryChapter.Title);
     public string Area => Info.Area;
     public FlagCategory Category => Info.Category;
-    public string CategoryLabel => Category.ToString().ToUpperInvariant();
-    public string StatusLabel => IsActive ? "ACTIVE" : "MISSING";
+    public string CategoryLabel => Category switch
+    {
+        FlagCategory.Tutorial  => Services.LocalizationResourceManager.Instance["WorldFlags_CategoryTutorial"],
+        FlagCategory.Quest     => Services.LocalizationResourceManager.Instance["WorldFlags_CategoryQuest"],
+        FlagCategory.Discovery => Services.LocalizationResourceManager.Instance["WorldFlags_CategoryDiscovery"],
+        FlagCategory.Unlock    => Services.LocalizationResourceManager.Instance["Slot_Unlock"],
+        FlagCategory.Meta      => Services.LocalizationResourceManager.Instance["WorldFlags_CategoryMeta"],
+        _                      => Services.LocalizationResourceManager.Instance["WorldFlags_CategoryOther"],
+    };
+    public string StatusLabel => IsActive
+        ? Services.LocalizationResourceManager.Instance["WorldFlags_StatusActive"]
+        : Services.LocalizationResourceManager.Instance["WorldFlags_StatusMissing"];
     public string StatusColor => IsActive ? "#7BB351" /* green */ : "#6E6655" /* muted */;
 
     /// <summary>

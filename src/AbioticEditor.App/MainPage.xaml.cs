@@ -50,7 +50,7 @@ public partial class MainPage : ContentPage
             return;
         }
 
-        var menu = new MenuBarItem { Text = "Plugins" };
+        var menu = new MenuBarItem { Text = Services.LocalizationResourceManager.Instance["Main_MenuPlugins"] };
         foreach (var capability in actions)
         {
             var item = new MenuFlyoutItem { Text = capability.Value.Title };

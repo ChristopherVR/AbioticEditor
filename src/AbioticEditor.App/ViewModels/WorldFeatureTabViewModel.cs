@@ -406,17 +406,23 @@ public sealed class WorldFeatureEntryViewModel : INotifyPropertyChanged
             return;
         }
 
+        var loc = Services.LocalizationResourceManager.Instance;
         var file = resolved.SourceFile is { } sf ? System.IO.Path.GetFileName(sf) : null;
-        var where = file is not null ? $" in {file}" : string.Empty;
         if (resolved.IsContainer)
         {
-            field?.OverrideDisplay($"{resolved.FriendlyName} (container{where})");
+            field?.OverrideDisplay(file is not null
+                ? loc.Format("WorldFeature_ContainerInFile", resolved.FriendlyName, file)
+                : loc.Format("WorldFeature_Container", resolved.FriendlyName));
             _canOpen = true;
-            LinkLabel = $"Open {resolved.FriendlyName}{where}";
+            LinkLabel = file is not null
+                ? loc.Format("WorldFeature_OpenInFile", resolved.FriendlyName, file)
+                : loc.Format("WorldFeature_Open", resolved.FriendlyName);
         }
         else
         {
-            field?.OverrideDisplay($"{resolved.FriendlyName}{where}");
+            field?.OverrideDisplay(file is not null
+                ? loc.Format("WorldFeature_DeviceInFile", resolved.FriendlyName, file)
+                : resolved.FriendlyName);
             _canOpen = false;
             LinkLabel = null;
         }

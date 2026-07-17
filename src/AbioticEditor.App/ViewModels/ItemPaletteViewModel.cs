@@ -189,18 +189,18 @@ public sealed class ItemPaletteViewModel : INotifyPropertyChanged
     /// </summary>
     public IReadOnlyList<PaletteCategory> Categories { get; } = new[]
     {
-        new PaletteCategory("ALL", null),
-        new PaletteCategory("RESOURCES", "@resources"),
-        new PaletteCategory("FURNITURE", "@furniture"),
-        new PaletteCategory("TOOLS", "@tools"),
-        new PaletteCategory("POWER", "@power"),
-        new PaletteCategory("DEFENSE", "@defense"),
-        new PaletteCategory("WEAPONS", "@weapons"),
-        new PaletteCategory("ARMOR", "@armor"),
-        new PaletteCategory("MEDICAL", "@medical"),
-        new PaletteCategory("FOOD", "@food"),
-        new PaletteCategory("FARMING", "@farming"),
-        new PaletteCategory("OTHER", "@other"),
+        new PaletteCategory(LocalizationResourceManager.Instance["Palette_CategoryAll"], null),
+        new PaletteCategory(LocalizationResourceManager.Instance["Palette_CategoryResources"], "@resources"),
+        new PaletteCategory(LocalizationResourceManager.Instance["Palette_CategoryFurniture"], "@furniture"),
+        new PaletteCategory(LocalizationResourceManager.Instance["Palette_CategoryTools"], "@tools"),
+        new PaletteCategory(LocalizationResourceManager.Instance["Palette_CategoryPower"], "@power"),
+        new PaletteCategory(LocalizationResourceManager.Instance["Palette_CategoryDefense"], "@defense"),
+        new PaletteCategory(LocalizationResourceManager.Instance["Palette_CategoryWeapons"], "@weapons"),
+        new PaletteCategory(LocalizationResourceManager.Instance["Palette_CategoryArmor"], "@armor"),
+        new PaletteCategory(LocalizationResourceManager.Instance["Palette_CategoryMedical"], "@medical"),
+        new PaletteCategory(LocalizationResourceManager.Instance["Palette_CategoryFood"], "@food"),
+        new PaletteCategory(LocalizationResourceManager.Instance["Palette_CategoryFarming"], "@farming"),
+        new PaletteCategory(LocalizationResourceManager.Instance["Palette_CategoryOther"], "@other"),
     };
 
     /// <summary>

@@ -32,13 +32,13 @@
                        BackgroundColor="{StaticResource AfPanelElevated}"
                        TextColor="{StaticResource AfTextPrimary}" />
                 <HorizontalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
-                    <RadioButton Content="ALL" GroupName="recipeFilter" FontSize="11"
+                    <RadioButton Content="{loc:Localize Palette_CategoryAll}" GroupName="recipeFilter" FontSize="11"
                                  TextColor="{StaticResource AfTextPrimary}"
                                  IsChecked="{Binding PlayerEditor.RecipeBrowser.ShowAll, Mode=TwoWay}" />
-                    <RadioButton Content="LOCKED" GroupName="recipeFilter" FontSize="11"
+                    <RadioButton Content="{loc:Localize PlayerRecipes_BadgeLocked}" GroupName="recipeFilter" FontSize="11"
                                  TextColor="{StaticResource AfTextPrimary}"
                                  IsChecked="{Binding PlayerEditor.RecipeBrowser.ShowLocked, Mode=TwoWay}" />
-                    <RadioButton Content="UNLOCKED" GroupName="recipeFilter" FontSize="11"
+                    <RadioButton Content="{loc:Localize PlayerRecipes_BadgeUnlocked}" GroupName="recipeFilter" FontSize="11"
                                  TextColor="{StaticResource AfTextPrimary}"
                                  IsChecked="{Binding PlayerEditor.RecipeBrowser.ShowUnlocked, Mode=TwoWay}" />
                 </HorizontalStackLayout>
