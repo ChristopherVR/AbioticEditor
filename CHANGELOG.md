@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [1.23.3] - 2026-07-17
+
+### Bug Fixes
+- Detect the anniversary update companions (Speedogi, Sir Ogi, Verdant Skink)
+
+
+### Miscellaneous Tasks
+- Point bucket at v1.23.2 [skip ci]
+
+
 ## [1.23.2] - 2026-07-15
 
 ### Miscellaneous Tasks
