@@ -12,10 +12,10 @@ public class PetCatalogPortraitTests
     [Theory]
     [InlineData("NPC_Monster_Pest", "T_Compendium_Pest")]
     [InlineData("NPC_Monster_Pest_Electro", "T_Compendium_ElectroPest")]
-    [InlineData("NPC_Monster_Pest_Rattus", "T_Compendium_RattusPestis")]
-    [InlineData("NPC_Peccary", "T_Compendium_Peccary")]
+    [InlineData("NPC_Monster_Pest_Rat", "T_Compendium_RattusPestis")]
+    [InlineData("NPC_Monster_Peccary", "T_Compendium_Peccary")]
     [InlineData("NPC_Peccary_Sow", "T_Compendium_PeccarySow")]
-    [InlineData("NPC_Peccary_Electro", "T_Compendium_ElectroPeccary")]
+    [InlineData("NPC_Monster_Peccary_Electro", "T_Compendium_ElectroPeccary")]
     [InlineData("NPC_Skink_Magma", "T_Compendium_MagmaSkink")]
     public void FirstCandidate_ResolvesToRealPortrait(string shortClass, string expectedTextureName)
     {

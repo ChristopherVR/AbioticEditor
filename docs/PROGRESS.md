@@ -5,6 +5,55 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-42: anniversary-update (v1.4.0) sync - data-driven companions + skill perks (2026-07-17)
+- **Reported bug (Nexus): Speedogi / Sir Ogi / Verdant Skink not detected in COMPANIONS.**
+  Root causes: carried-pet reading hard-filtered on `PetItemCatalog`'s 22 curated rows, and
+  the new Lamogi family matched no `PetCatalog` token. Several curated class paths were also
+  stale vs the real game (`NPC_Monster_Pest_Rattus` -> `NPC_Monster_Pest_Rat`, `NPC_Skink` ->
+  `NPC_Skink_Basic`, five Peccary classes actually live under `NPC_Monster_Peccary*`).
+- **The game ships its own pet tables - the editor now reads them.** New
+  `Core/Catalogs/World/PetGameData.cs`: joins `DT_Pets` (27 rows, struct `Pet_Struct`:
+  `DefaultParent` inheritance chain = family, `PettingCompendiumUnlock` = portrait row,
+  `Mutations` = real mutation graph, per-limb `HealthBase`/`HealthBonusPerLevel`) with
+  `DT_NPCList` (DisplayName + `NPCSpawnClass`) and the `Item.Pet`-tagged rows of
+  `ItemTable_Global` (carried forms; row names match the pet rows except the legacy
+  `pet_skink`/`biocannon` pair, bridged by display name). Mod tables merge via
+  `ModTableDiscovery`. **Future pets appear with no code change.**
+- **Overlay pattern:** `PetCatalog.ApplyGameData(PetGameData?)` is a process-wide snapshot
+  consulted first by every static lookup (`Categorize`/`IsPetClass`/`IsSummon`/`FriendlyName`/
+  `CompendiumTextureRefs`/`BuildVariants`) and by `PetItemCatalog` (item list, item<->class
+  bridge). Applied in App `GameDataServices.LoadCore` (reset to null on reload) and CLI
+  `PetCommands.TryCreateProvider`. Offline fallback = curated seed, now pak-verified and
+  extended (Lamogi family = tamed WinterSprite + LamogiPlated/LamogiSpeedy; Verdant Skink;
+  crafted skink weapon forms; summons corrected to `NPC_Exor_Ally`/`NPC_MageEye_Ally`).
+  New `PetCategory.Lamogi` appended after `Other` (binary compat); UI/family ordering via
+  `PetCatalog.DisplayOrder`. IMPORTANT: no `WinterSprite` token - hostile Bombogi/Bigogi
+  share the class stem and are NOT pets (guarded by test).
+- **Reader gate loosened:** anything in the Companion equipment slot (index 12) is read as a
+  carried pet even when its row is unknown to every catalog ("Empty" excluded) - a future
+  pet is shown instead of silently dropped (`PlayerSaveReader.ReadCarriedPetsFrom`).
+- **Skill milestones now table-driven too:** `SkillMilestoneCatalog.LoadFrom(provider)` reads
+  `DT_Skills.Perks[] -> DT_SkillPerks` (DisplayName/DisplayDescription/RequiredLevel) with the
+  same ApplyGameData overlay; static fallback synced to v1.4.0 (added Anaerobic Recovery 8,
+  Centrifugal Force 15 = `skillperk_kendotraining`, Ammo Scavenger 8, Riposte 3, Enduring
+  Stamina 13, That'll Buff Right Out 13, Experimental Fortification 12, Lift With Your Legs 10,
+  Kitchen Technician 13; moved Nerd Rage 12->10, Heavy Armor Spec 15->13, Razed With Care
+  10->8).
+- **Rest of the v1.4.0 audit** (research + code audit agents): items/recipes/deployables
+  (Digital Garden Plot, Advanced Oven 2-slot, cartridges, watches) are table-driven and flow
+  through automatically; sandbox INI settings are generic key/value (2 new options appear);
+  customization tables unchanged (16 `DT_Customization_*` - new IDs/hairs/clothes are rows in
+  existing tables; Labcoats/FannyPacks/Makeup still have no save property); buffs not modeled
+  (no schema impact). No new regions/fish. Pet leveling curve unchanged (4/750 anchors).
+- Probes: `tests/AbioticEditor.Probes/CompanionUpdateProbe.cs` (pak survey, DT_Pets/DT_NPCList/
+  ItemTable pet rows, DT_Skills/DT_SkillPerks dumps). Tests: `PetGameDataTests` (curated
+  fallback for new pets, item<->class bridging, live-table load incl. mutation graph +
+  compendium rows, unknown-row-in-companion-slot round-trip; live tests skip without install),
+  `PetCatalogTests` extended (Lamogi family, hostile WinterSprite variants excluded, class-path
+  spot checks), `PetCatalogPortraitTests` synced to real class names.
+- Note: tests never call `ApplyGameData` (process-wide overlay would race parallel test
+  classes); live behavior asserted via pure `PetGameData` results + `BuildVariants(provider)`.
+
 ## Round-41: Linux / Steam Deck (Proton) support + Nexus upload for it (2026-07-11)
 - **Core**: `AfInstallLocator.FindSteamInstallPath` now resolves Steam on Linux/macOS
   (`~/.local/share/Steam`, `~/.steam/steam|root`, Flatpak, Snap, macOS app support; validated by

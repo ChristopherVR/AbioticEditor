@@ -483,7 +483,11 @@ internal static class PetCommands
     {
         try
         {
-            return GameAssetProvider.CreateForLocalInstall();
+            var provider = GameAssetProvider.CreateForLocalInstall();
+            // Let the static pet catalogs see the game's own pet tables (new companions
+            // added by game updates appear without an editor change).
+            PetCatalog.ApplyGameData(PetGameData.TryLoadFrom(provider));
+            return provider;
         }
         catch
         {

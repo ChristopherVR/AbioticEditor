@@ -15,8 +15,8 @@ public class PetCatalogTests
         Assert.Equal(curated.Count, curated.Select(v => v.ShortClass).Distinct(StringComparer.OrdinalIgnoreCase).Count());
         Assert.All(curated, v => Assert.EndsWith($"{v.ShortClass}_C", v.ClassPath, StringComparison.Ordinal));
 
-        // All four families present; summons are flagged non-editable.
-        foreach (var cat in new[] { PetCategory.Pest, PetCategory.Peccary, PetCategory.Skink, PetCategory.Other })
+        // All five families present; summons are flagged non-editable.
+        foreach (var cat in new[] { PetCategory.Pest, PetCategory.Peccary, PetCategory.Skink, PetCategory.Lamogi, PetCategory.Other })
         {
             Assert.Contains(curated, v => v.Category == cat);
         }
@@ -80,8 +80,52 @@ public class PetCatalogTests
     {
         var variants = PetCatalog.BuildVariants(null);
         Assert.Equal(PetCatalog.Curated.Count, variants.Count);
-        // Ordered by family then name.
-        Assert.Equal(variants.OrderBy(v => v.Category).ThenBy(v => v.FriendlyName, StringComparer.OrdinalIgnoreCase),
+        // Ordered by family (explicit display order - Lamogi before Other) then name.
+        Assert.Equal(variants
+                .OrderBy(v => PetCatalog.DisplayOrder(v.Category))
+                .ThenBy(v => v.FriendlyName, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(v => v.ShortClass, StringComparer.OrdinalIgnoreCase),
             variants);
+    }
+
+    // ---------- anniversary-update companions (v1.4.0) ----------
+
+    [Theory]
+    [InlineData("NPC_Monster_WinterSprite", "Lamogi")]
+    [InlineData("NPC_Monster_LamogiPlated", "Sir Ogi")]
+    [InlineData("/Game/Blueprints/Characters/NPCs/NPC_Monster_LamogiSpeedy.NPC_Monster_LamogiSpeedy_C", "Speedogi")]
+    [InlineData("NPC_Skink_Mushroom", "Verdant Skink")]
+    public void New_companions_are_detected_and_named(string cls, string friendly)
+    {
+        Assert.True(PetCatalog.IsPetClass(cls));
+        Assert.Equal(friendly, PetCatalog.FriendlyName(cls));
+        Assert.False(PetCatalog.IsSummon(cls));
+    }
+
+    [Theory]
+    [InlineData("NPC_Monster_WinterSprite")]
+    [InlineData("NPC_Monster_LamogiPlated")]
+    [InlineData("NPC_Monster_LamogiSpeedy")]
+    public void Ogi_family_buckets_into_lamogi(string cls)
+        => Assert.Equal(PetCategory.Lamogi, PetCatalog.Categorize(cls));
+
+    [Fact]
+    public void Hostile_winter_sprite_variants_are_not_pets()
+    {
+        // Bombogi / Bigogi share the WinterSprite class stem but only the base creature
+        // is tameable - the family must not leak to them via a name token.
+        Assert.False(PetCatalog.IsPetClass("NPC_Monster_WinterSprite_Bomb"));
+        Assert.False(PetCatalog.IsPetClass("NPC_Monster_WinterSprite_BOSS"));
+    }
+
+    [Fact]
+    public void Curated_class_paths_match_the_games_npc_list()
+    {
+        // Spot-check rows that were wrong before the v1.4.0 sync (pak-verified names).
+        Assert.Contains(PetCatalog.Curated, v => v.ShortClass == "NPC_Monster_Pest_Rat");
+        Assert.DoesNotContain(PetCatalog.Curated, v => v.ShortClass == "NPC_Monster_Pest_Rattus");
+        Assert.Contains(PetCatalog.Curated, v => v.ShortClass == "NPC_Skink_Basic");
+        Assert.DoesNotContain(PetCatalog.Curated, v => v.ShortClass == "NPC_Skink");
+        Assert.Contains(PetCatalog.Curated, v => v.ShortClass == "NPC_Monster_Peccary");
     }
 }

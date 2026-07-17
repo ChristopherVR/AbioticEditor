@@ -339,6 +339,11 @@ public static class GameDataServices
             // so CreateForLocalInstall's AfInstallLocator picks it up ahead of Steam detection.
             AfInstallLocator.OverrideInstallRoot = CustomInstallPath;
 
+            // Reset the game-table overlays so a reload without game data (install moved,
+            // mods toggled off, ...) falls back to the curated catalogs instead of stale data.
+            Core.WorldSaves.PetCatalog.ApplyGameData(null);
+            SkillMilestoneCatalog.ApplyGameData(null);
+
             _provider = GameAssetProvider.CreateForLocalInstall(culture: EffectiveGameDataCulture);
             if (_provider is null)
             {
@@ -367,6 +372,15 @@ public static class GameDataServices
                 _backpackSlots = BackpackSpecialSlotCatalog.LoadFrom(_provider);
                 _sectorMaps = Core.WorldSaves.SectorMapCatalog.LoadFrom(_provider);
                 _customizationOptions = CustomizationCatalog.LoadFrom(_provider);
+
+                // Pet tables (DT_Pets / DT_NPCList / Item.Pet rows): applied process-wide so
+                // the static PetCatalog / PetItemCatalog lookups - including the carried-pet
+                // reader - see the game's real companion list.
+                Core.WorldSaves.PetCatalog.ApplyGameData(Core.WorldSaves.PetGameData.TryLoadFrom(_provider));
+
+                // Skill milestone perks (DT_Skills.Perks -> DT_SkillPerks): same pattern, so
+                // new or rebalanced perks show without a catalog update.
+                SkillMilestoneCatalog.ApplyGameData(SkillMilestoneCatalog.LoadFrom(_provider));
 
                 // Reverse indexes for the item encyclopedia (crafted-by /
                 // used-in / sold-by lookups).

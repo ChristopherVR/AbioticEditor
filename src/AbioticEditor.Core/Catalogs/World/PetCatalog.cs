@@ -2,13 +2,16 @@ using AbioticEditor.Core.Assets;
 
 namespace AbioticEditor.Core.WorldSaves;
 
-/// <summary>The four pet families the editor groups creatures into.</summary>
+/// <summary>The pet families the editor groups creatures into.</summary>
 public enum PetCategory
 {
     Pest,
     Peccary,
     Skink,
     Other,
+    // Appended after Other so existing serialized/compiled values keep their meaning;
+    // display ordering is handled explicitly (see PetCatalog.DisplayOrder).
+    Lamogi,
 }
 
 /// <summary>
@@ -34,11 +37,14 @@ public sealed record PetVariant(
 /// <summary>
 /// Reference data for the pet system: the family/variant catalog and the XP->level curve.
 ///
-/// "Do both" sourcing (see plan): a curated table (below) provides friendly names,
-/// categories, and a working offline fallback; <see cref="BuildVariants"/> merges in the
-/// real classes enumerated from the mounted game paks so new variants the game adds appear
-/// automatically. New variants of a known family are picked up with no code change; a
-/// genuinely new family needs one line added to <see cref="CategoryTokens"/>.
+/// Three sources layer together, most authoritative first:
+/// 1. <see cref="ApplyGameData"/> - the game's own <c>DT_Pets</c>/<c>DT_NPCList</c> tables
+///    (see <see cref="PetGameData"/>), applied process-wide once paks are mounted. New
+///    companions the game adds appear with no editor change at all.
+/// 2. Pak class enumeration in <see cref="BuildVariants"/> - catches modded NPC classes
+///    that merely look like a known family.
+/// 3. The curated table below - friendly names, categories, and a working offline
+///    fallback when no game install is available.
 ///
 /// Pets are level 0-20; level is derived from a cumulative-XP curve fit to the two values
 /// the wiki publishes (level 1 = 4 XP, level 20 = 750 XP). The stored <c>XP</c> integer is
@@ -48,6 +54,19 @@ public static class PetCatalog
 {
     /// <summary>Highest pet level.</summary>
     public const int MaxLevel = 20;
+
+    private static volatile PetGameData? _gameData;
+
+    /// <summary>
+    /// Applies (or clears, with null) the live pet tables read from the game paks. All the
+    /// static lookups below consult this snapshot first and fall back to the curated data,
+    /// so front-ends call this once after mounting game data and every consumer - including
+    /// <see cref="PetItemCatalog"/> and the save readers - sees the game's real pet list.
+    /// </summary>
+    public static void ApplyGameData(PetGameData? data) => _gameData = data;
+
+    /// <summary>The applied live pet data, if any.</summary>
+    public static PetGameData? AppliedGameData => _gameData;
 
     private const string NpcFolder = "/Game/Blueprints/Characters/NPCs/";
 
@@ -64,15 +83,44 @@ public static class PetCatalog
         ("Peccary", PetCategory.Peccary, false),
         ("ccary", PetCategory.Peccary, false),
         ("Pest", PetCategory.Pest, false),
+        // The Ogi family: the base pet is the tamed Winter Sprite (class NPC_Monster_WinterSprite,
+        // matched via the curated row - no "WinterSprite" token here, because the hostile
+        // Bombogi / Bigogi variants share that class stem and are NOT pets).
+        ("Lamogi", PetCategory.Lamogi, false),
         ("Exor", PetCategory.Other, true),
         ("Mystagogue", PetCategory.Other, true),
+        ("MageEye_Ally", PetCategory.Other, true),
     };
 
     /// <summary>
-    /// Curated variants seeded from the wiki. Blueprint short-names follow the confirmed
-    /// convention (<c>NPC_Monster_Pest_Electro</c>, <c>NPC_Peccary_Sow</c> verified against
-    /// real saves); the rest are best-effort and get overwritten by the real class path
-    /// when the paks are available (matched by short-name in <see cref="BuildVariants"/>).
+    /// The family bucket a token matches, or null when no token matches. Exposed for
+    /// <see cref="PetGameData"/> so live table rows and curated rows classify identically.
+    /// </summary>
+    internal static PetCategory? CategorizeToken(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return null;
+        foreach (var (token, cat, _) in CategoryTokens)
+        {
+            if (value.Contains(token, StringComparison.OrdinalIgnoreCase)) return cat;
+        }
+        return null;
+    }
+
+    /// <summary>Explicit family display order (the enum appends new families at the end).</summary>
+    public static int DisplayOrder(PetCategory category) => category switch
+    {
+        PetCategory.Pest => 0,
+        PetCategory.Peccary => 1,
+        PetCategory.Skink => 2,
+        PetCategory.Lamogi => 3,
+        _ => 4,
+    };
+
+    /// <summary>
+    /// Curated variants, class paths verified against the game's own <c>DT_Pets</c> /
+    /// <c>DT_NPCList</c> tables (anniversary update, v1.4.0). This is the offline fallback;
+    /// with a game install mounted the same data is read live (<see cref="PetGameData"/>)
+    /// so future additions need no seed change.
     /// </summary>
     private static readonly (string Short, string Friendly, PetCategory Cat, bool Summon)[] CuratedSeed =
     {
@@ -83,24 +131,32 @@ public static class PetCatalog
         ("NPC_Monster_Pest_Enlightened", "Enlightened Pest",PetCategory.Pest, false),
         ("NPC_Monster_Pest_Leyak",       "Leyak Pest",      PetCategory.Pest, false),
         ("NPC_Monster_Pest_Magma",       "Magma Pest",      PetCategory.Pest, false),
-        ("NPC_Monster_Pest_Rattus",      "Rattus Pestis",   PetCategory.Pest, false),
+        ("NPC_Monster_Pest_Rat",         "Rattus Pestis",   PetCategory.Pest, false),
         ("NPC_Monster_Pest_Snow",        "Snow Pest",       PetCategory.Pest, false),
         ("NPC_Monster_Pest_Volatile",    "Volatile Pest",   PetCategory.Pest, false),
         // Peccaries
-        ("NPC_Peccary",                  "Peccary",         PetCategory.Peccary, false),
-        ("NPC_Peccary_Electro",          "Electro Peccary", PetCategory.Peccary, false),
+        ("NPC_Monster_Peccary",          "Peccary",         PetCategory.Peccary, false),
+        ("NPC_Monster_Peccary_Electro",  "Electro Peccary", PetCategory.Peccary, false),
         ("NPC_Peccary_Mushroom",         "Mushroom Peccary",PetCategory.Peccary, false),
         ("NPC_Peccary_Alpha",            "Peccary Alpha",   PetCategory.Peccary, false),
         ("NPC_Peccary_Sow",              "Peccary Sow",     PetCategory.Peccary, false),
-        ("NPC_Peccary_Snow",            "Snow Peccary",     PetCategory.Peccary, false),
-        ("NPC_Peccary_Tareccary",        "Tareccary",       PetCategory.Peccary, false),
-        ("NPC_Peccary_Volatile",         "Volatile Peccary",PetCategory.Peccary, false),
+        ("NPC_Monster_Peccary_Snow",     "Snow Peccary",    PetCategory.Peccary, false),
+        ("NPC_Monster_Peccary_Armored",  "Tareccary",       PetCategory.Peccary, false),
+        ("NPC_Monster_Peccary_Volatile", "Volatile Peccary",PetCategory.Peccary, false),
         // Skinks
-        ("NPC_Skink",                    "Skink",           PetCategory.Skink, false),
-        ("NPC_Skink_Magma",              "Magma Skink",     PetCategory.Skink, false),
+        ("NPC_Skink_Basic",              "Skink",                   PetCategory.Skink, false),
+        ("NPC_Skink_Crafted",            "Skink (Weapon)",          PetCategory.Skink, false),
+        ("NPC_Skink_Magma",              "Magma Skink",             PetCategory.Skink, false),
+        ("NPC_Skink_Magma_Crafted",      "Magma Skink (Weapon)",    PetCategory.Skink, false),
+        ("NPC_Skink_Mushroom",           "Verdant Skink",           PetCategory.Skink, false),
+        ("NPC_Skink_Mushroom_Crafted",   "Verdant Skink (Weapon)",  PetCategory.Skink, false),
+        // The Ogi family (anniversary update): base pet = tamed Winter Sprite.
+        ("NPC_Monster_WinterSprite",     "Lamogi",          PetCategory.Lamogi, false),
+        ("NPC_Monster_LamogiPlated",     "Sir Ogi",         PetCategory.Lamogi, false),
+        ("NPC_Monster_LamogiSpeedy",     "Speedogi",        PetCategory.Lamogi, false),
         // Other / summons (shown, not editable)
-        ("NPC_Exor",                     "Exor Spirit",     PetCategory.Other, true),
-        ("NPC_Mystagogue",               "Mystagogue Drone",PetCategory.Other, true),
+        ("NPC_Exor_Ally",                "Exor Spirit",     PetCategory.Other, true),
+        ("NPC_MageEye_Ally",             "Mystagogue Drone",PetCategory.Other, true),
     };
 
     private static readonly IReadOnlyList<PetVariant> _curated = BuildCurated();
@@ -124,7 +180,7 @@ public static class PetCatalog
     private static readonly Dictionary<string, string> CompendiumOverrides =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            ["NPC_Monster_Pest_Rattus"] = "RattusPestis", // not "RattusPest"/"PestRattus"
+            ["NPC_Monster_Pest_Rat"] = "RattusPestis", // not "RattusPest"/"PestRat"
         };
 
     /// <summary>
@@ -142,6 +198,9 @@ public static class PetCatalog
         if (shortClass.Length == 0) return Array.Empty<string>();
 
         var names = new List<string>();
+        // The game's own table names the bestiary entry exactly - try it first.
+        var compendiumRow = _gameData?.ByClass(shortClass)?.CompendiumRow;
+        if (!string.IsNullOrEmpty(compendiumRow)) names.Add(compendiumRow!);
         if (CompendiumOverrides.TryGetValue(shortClass, out var ov)) names.Add(ov);
 
         var s = shortClass;
@@ -175,19 +234,16 @@ public static class PetCatalog
         return tail.EndsWith("_C", StringComparison.Ordinal) ? tail[..^2] : tail;
     }
 
-    /// <summary>The family a class belongs to (by curated entry, else token heuristic).</summary>
+    /// <summary>The family a class belongs to (live table, else curated entry, else token heuristic).</summary>
     public static PetCategory Categorize(string? classOrShort)
     {
         var shortClass = ShortOf(classOrShort);
+        if (_gameData?.ByClass(shortClass) is { } live) return live.Category;
         foreach (var v in _curated)
         {
             if (string.Equals(v.ShortClass, shortClass, StringComparison.OrdinalIgnoreCase)) return v.Category;
         }
-        foreach (var (token, cat, _) in CategoryTokens)
-        {
-            if (shortClass.Contains(token, StringComparison.OrdinalIgnoreCase)) return cat;
-        }
-        return PetCategory.Other;
+        return CategorizeToken(shortClass) ?? PetCategory.Other;
     }
 
     /// <summary>True when a class short-name looks like a pet/creature we should list.</summary>
@@ -195,6 +251,7 @@ public static class PetCatalog
     {
         var shortClass = ShortOf(classOrShort);
         if (shortClass.Length == 0) return false;
+        if (_gameData?.ByClass(shortClass) is not null) return true;
         foreach (var v in _curated)
         {
             if (string.Equals(v.ShortClass, shortClass, StringComparison.OrdinalIgnoreCase)) return true;
@@ -210,6 +267,8 @@ public static class PetCatalog
     public static bool IsSummon(string? classOrShort)
     {
         var shortClass = ShortOf(classOrShort);
+        // A class in the live pet table is a real tameable pet, never a summon.
+        if (_gameData?.ByClass(shortClass) is not null) return false;
         foreach (var v in _curated)
         {
             if (string.Equals(v.ShortClass, shortClass, StringComparison.OrdinalIgnoreCase)) return v.IsSummon;
@@ -222,13 +281,20 @@ public static class PetCatalog
     }
 
     /// <summary>
-    /// Friendly name for a class: the curated label when known, otherwise a prettified
-    /// short-name. Null only for an empty input.
+    /// Friendly name for a class: the game's own display name when the live tables are
+    /// loaded, else the curated label, otherwise a prettified short-name. Null only for an
+    /// empty input.
     /// </summary>
     public static string? FriendlyName(string? classOrShort)
     {
         var shortClass = ShortOf(classOrShort);
         if (shortClass.Length == 0) return null;
+        if (_gameData?.ByClass(shortClass) is { } live)
+        {
+            return live.IsWeaponForm && !live.DisplayName.Contains("(Weapon)", StringComparison.OrdinalIgnoreCase)
+                ? live.DisplayName + " (Weapon)"
+                : live.DisplayName;
+        }
         foreach (var v in _curated)
         {
             if (string.Equals(v.ShortClass, shortClass, StringComparison.OrdinalIgnoreCase)) return v.FriendlyName;
@@ -247,29 +313,54 @@ public static class PetCatalog
     }
 
     /// <summary>
-    /// The merged variant list: curated entries (with real class paths substituted when the
-    /// paks have them) plus any pet-looking NPC classes the paks expose that aren't curated.
-    /// Falls back to <see cref="Curated"/> when <paramref name="provider"/> is null or
-    /// enumeration fails (graceful-degradation rule). Ordered by family then name.
+    /// The merged variant list, most authoritative source first: the game's own pet tables
+    /// (<see cref="PetGameData"/> - applied snapshot, else loaded from
+    /// <paramref name="provider"/>), then curated entries not covered by them (summons,
+    /// offline fallback), then any pet-looking NPC classes the paks expose that aren't
+    /// listed (modded creatures). Falls back to <see cref="Curated"/> when
+    /// <paramref name="provider"/> is null or enumeration fails (graceful-degradation
+    /// rule). Ordered by family then name.
     /// </summary>
     public static IReadOnlyList<PetVariant> BuildVariants(GameAssetProvider? provider)
     {
         var byShort = new Dictionary<string, PetVariant>(StringComparer.OrdinalIgnoreCase);
-        foreach (var v in _curated) byShort[v.ShortClass] = v;
 
+        // 1. The game's own pet list - every DT_Pets row with a resolvable class.
+        var gameData = _gameData ?? PetGameData.TryLoadFrom(provider);
+        if (gameData is not null)
+        {
+            foreach (var d in gameData.Definitions)
+            {
+                var shortClass = ShortOf(d.ClassPath);
+                if (shortClass.Length == 0) continue;
+                var friendly = d.IsWeaponForm && !d.DisplayName.Contains("(Weapon)", StringComparison.OrdinalIgnoreCase)
+                    ? d.DisplayName + " (Weapon)"
+                    : d.DisplayName;
+                byShort[shortClass] = new PetVariant(
+                    d.ClassPath!, shortClass, friendly, d.Category,
+                    IsSummon: false, IsEditable: true);
+            }
+        }
+
+        // 2. Curated fill-in: summons (never in DT_Pets) and the offline fallback.
+        foreach (var v in _curated)
+        {
+            if (!byShort.ContainsKey(v.ShortClass)) byShort[v.ShortClass] = v;
+        }
+
+        // 3. Pak enumeration: modded NPC classes that look like a known family.
         if (provider is not null)
         {
             try
             {
                 foreach (var (shortClass, classPath) in EnumerateNpcClasses(provider))
                 {
-                    if (!IsPetClass(shortClass)) continue;
-                    if (byShort.TryGetValue(shortClass, out var curated))
+                    if (byShort.TryGetValue(shortClass, out var known))
                     {
-                        // Keep curated metadata, adopt the real (verified) class path.
-                        byShort[shortClass] = curated with { ClassPath = classPath };
+                        // Keep known metadata, adopt the real (verified) class path.
+                        byShort[shortClass] = known with { ClassPath = classPath };
                     }
-                    else
+                    else if (IsPetClass(shortClass))
                     {
                         var summon = IsSummon(shortClass);
                         byShort[shortClass] = new PetVariant(
@@ -285,8 +376,9 @@ public static class PetCatalog
         }
 
         return byShort.Values
-            .OrderBy(v => v.Category)
+            .OrderBy(v => DisplayOrder(v.Category))
             .ThenBy(v => v.FriendlyName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(v => v.ShortClass, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
 

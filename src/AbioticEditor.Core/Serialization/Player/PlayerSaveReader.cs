@@ -392,7 +392,15 @@ public static class PlayerSaveReader
             {
                 row = rhp.Properties.GetString("RowName");
             }
-            if (!PetItemCatalog.IsPetItem(row)) continue;
+            // Anything in the Companion equipment slot (index 12) IS the active pet, even
+            // when the row is unknown to the catalog (a pet from a newer game update, read
+            // without game data) - never silently drop it.
+            var isCompanionSlot = kind == PetSlotKind.Equipment && i == 12;
+            if (!PetItemCatalog.IsPetItem(row)
+                && !(isCompanionSlot && !string.IsNullOrEmpty(row) && row != "Empty"))
+            {
+                continue;
+            }
 
             double health = 0, maxHealth = 0;
             if (sps.Properties.FindByPrefix("ChangeableData_")?.Property is StructProperty cd && cd.Value is PropertiesStruct cdps)

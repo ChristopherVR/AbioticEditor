@@ -1,20 +1,123 @@
+using AbioticEditor.Core.Assets;
+using CUE4Parse.UE4.Assets.Exports.Engine;
+using CUE4Parse.UE4.Assets.Objects;
+
 namespace AbioticEditor.Core.PlayerSaves;
 
 /// <summary>One skill milestone: reaching <see cref="Level"/> grants <see cref="Perk"/>.</summary>
 public sealed record SkillMilestone(int Level, string Perk, string Effect);
 
 /// <summary>
-/// Per-skill milestone perks and per-level passives, transcribed from
-/// abioticfactor.wiki.gg/wiki/Skills (see docs/research-wiki-round10.md). Milestone
-/// levels are irregular per skill (Fishing tops out at 15; Cooking has 8 milestones).
-/// Display-only: the game re-derives perks from the skill level, so a save editor never
-/// writes them.
+/// Per-skill milestone perks and per-level passives. When the game paks are mounted,
+/// milestones come straight from the game's own <c>DT_Skills.Perks</c> ->
+/// <c>DT_SkillPerks</c> tables (<see cref="LoadFrom"/> + <see cref="ApplyGameData"/>), so
+/// perks added or rebalanced by game updates appear with no editor change. The static
+/// table below (transcribed from abioticfactor.wiki.gg/wiki/Skills, synced to v1.4.0) is
+/// the offline fallback. Display-only either way: the game re-derives perks from the skill
+/// level, so a save editor never writes them.
 /// </summary>
 public static class SkillMilestoneCatalog
 {
+    private static volatile IReadOnlyDictionary<string, IReadOnlyList<SkillMilestone>>? _live;
+
+    /// <summary>
+    /// Applies (or clears, with null) milestone data loaded from the game tables;
+    /// <see cref="For"/> consults it before the static fallback.
+    /// </summary>
+    public static void ApplyGameData(IReadOnlyDictionary<string, IReadOnlyList<SkillMilestone>>? live)
+        => _live = live;
+
     /// <summary>Milestones for a skill, keyed by its DT_Skills display name. Empty if unknown.</summary>
     public static IReadOnlyList<SkillMilestone> For(string displayName)
-        => Milestones.TryGetValue(Normalize(displayName), out var list) ? list : [];
+    {
+        var key = Normalize(displayName);
+        if (_live is { } live && live.TryGetValue(key, out var fromGame)) return fromGame;
+        return Milestones.TryGetValue(key, out var list) ? list : [];
+    }
+
+    private const string SkillsTable = "AbioticFactor/Content/Blueprints/DataTables/Customization/DT_Skills";
+    private const string PerksTable = "AbioticFactor/Content/Blueprints/DataTables/Customization/DT_SkillPerks";
+
+    /// <summary>
+    /// Loads the skill -> milestone map from the game's own tables (keyed by the skill's
+    /// normalized display name, milestones sorted by level). Null when assets are
+    /// unavailable or either table fails to read - callers keep the static fallback.
+    /// </summary>
+    public static IReadOnlyDictionary<string, IReadOnlyList<SkillMilestone>>? LoadFrom(GameAssetProvider? provider)
+    {
+        if (provider is null || !provider.HasMappings) return null;
+        try
+        {
+            var perks = new Dictionary<string, SkillMilestone>(StringComparer.OrdinalIgnoreCase);
+            var perkTable = provider.TryLoadDataTable(PerksTable);
+            if (perkTable is null) return null;
+            foreach (var kv in perkTable.RowMap)
+            {
+                string? name = null, description = null;
+                var level = 0;
+                foreach (var p in kv.Value.Properties)
+                {
+                    switch (p.Name.Text)
+                    {
+                        case "DisplayName": name = p.Tag?.GenericValue?.ToString(); break;
+                        case "DisplayDescription": description = p.Tag?.GenericValue?.ToString(); break;
+                        case "RequiredLevel": level = p.Tag?.GenericValue switch { int i => i, byte b => b, _ => 0 }; break;
+                    }
+                }
+                if (!string.IsNullOrWhiteSpace(name) && level > 0)
+                {
+                    perks[kv.Key.Text] = new SkillMilestone(level, name!, description ?? string.Empty);
+                }
+            }
+
+            var result = new Dictionary<string, IReadOnlyList<SkillMilestone>>(StringComparer.Ordinal);
+            var skillTable = provider.TryLoadDataTable(SkillsTable);
+            if (skillTable is null) return null;
+            foreach (var kv in skillTable.RowMap)
+            {
+                string? display = null;
+                var rows = new List<string>();
+                foreach (var p in kv.Value.Properties)
+                {
+                    if (p.Name.Text == "DisplayName")
+                    {
+                        display = p.Tag?.GenericValue?.ToString();
+                    }
+                    else if (p.Name.Text == "Perks" && p.Tag?.GenericValue is UScriptArray arr)
+                    {
+                        foreach (var el in arr.Properties)
+                        {
+                            var v = el.GenericValue;
+                            if (v is FScriptStruct ss) v = ss.StructType;
+                            if (v is not FStructFallback sf) continue;
+                            foreach (var f in sf.Properties)
+                            {
+                                if (!f.Name.Text.StartsWith("RowName", StringComparison.Ordinal)) continue;
+                                var row = f.Tag?.GenericValue?.ToString();
+                                if (!string.IsNullOrEmpty(row) && row != "None") rows.Add(row!);
+                            }
+                        }
+                    }
+                }
+                if (string.IsNullOrWhiteSpace(display) || rows.Count == 0) continue;
+                var milestones = rows
+                    .Select(r => perks.TryGetValue(r, out var m) ? m
+                        // A perk row the table doesn't define (typo'd handle, mod row) still
+                        // shows up, prettified, rather than vanishing.
+                        : new SkillMilestone(0, r.Replace("skillperk_", string.Empty), string.Empty))
+                    .OrderBy(m => m.Level)
+                    .ThenBy(m => m.Perk, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                result[Normalize(display!)] = milestones;
+            }
+            return result.Count > 0 ? result : null;
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.EditorLog.Warn("SkillMilestones", $"Skill-perk table load failed; using static list. {ex.Message}");
+            return null;
+        }
+    }
 
     /// <summary>The skill's per-level passive bonus text, or null if unknown.</summary>
     public static string? PassiveFor(string displayName)
@@ -46,6 +149,7 @@ public static class SkillMilestoneCatalog
         ["sprinting"] =
         [
             new(5, "Athletic", "Chance to not lose stamina for any action"),
+            new(8, "Anaerobic Recovery", "Stamina regen kicks in much more quickly after sprinting"),
             new(10, "Lightspeed", "Sprint 5% faster overall (on top of passive gains)"),
             new(15, "Red Shift", "While sprinting, enemies are more likely to miss when targeting you"),
             new(20, "Out Of My Way!", "Sprinting speed increases over several seconds"),
@@ -54,8 +158,9 @@ public static class SkillMilestoneCatalog
         [
             new(5, "Step Aside", "Shake Vending Machines & stomp Carbuncles in 1 hit"),
             new(8, "Heavy Weapons", "Strong enough to properly wield heavy melee weapons"),
-            new(12, "Nerd Rage", "When bleeding near a hostile enemy, melee damage and speed are enhanced"),
-            new(15, "Heavy Armor Specialization", "Can wear any weight of armor"),
+            new(10, "Nerd Rage", "When bleeding near a hostile enemy, melee damage and speed are enhanced"),
+            new(13, "Heavy Armor Specialization", "Can wear any weight of armor"),
+            new(15, "Centrifugal Force", "Heavy melee weapon swings are noticeably faster"),
             new(20, "Superior Gains", "All items weigh 25% less"),
         ],
         ["throwing"] =
@@ -109,15 +214,18 @@ public static class SkillMilestoneCatalog
         [
             new(3, "Ammo Crafter", "Craft ammo twice as fast"),
             new(5, "Just In Case", "Reload weapons you aren't otherwise qualified to use"),
+            new(8, "Ammo Scavenger", "Sometimes find more ammo when searching soldiers"),
             new(10, "Basic Geometry", "Less clumsy at reloading all weaponry"),
             new(15, "Speedloader", "Sprint and reload at the same time"),
             new(20, "Loose Rounds", "Sometimes find spare rounds when reloading"),
         ],
         ["fortitude"] =
         [
+            new(3, "Riposte", "After a successful block, the next melee attack within 2 seconds does extra damage"),
             new(5, "Habituation", "Regenerate health a bit more frequently"),
             new(8, "Group Effort", "Resting within 8 m of other resting scientists doubles rest rate"),
             new(10, "Spongy Tissue", "Slightly reduced fall damage and vehicle impact damage"),
+            new(13, "Enduring Stamina", "Stamina still regenerates while blocking"),
             new(15, "Reflective Mantle", "Melee contact may reflect damage back to the enemy"),
             new(20, "Strong Ecosystem", "Regenerate 1 health every second"),
         ],
@@ -127,13 +235,16 @@ public static class SkillMilestoneCatalog
             new(5, "Mega Bench", "Second tier of Crafting Bench upgrades"),
             new(8, "Beautiful Blueprints", "Recipes shared with you skip the research phase"),
             new(10, "Eye For Detail", "Crafted items gain temporary bonus durability"),
+            new(13, "That'll Buff Right Out", "50% chance to repair an item for free"),
             new(15, "Super Bench", "Final tier of Crafting Bench upgrades"),
             new(20, "Precision Engineering", "Small chance to consume 1 less item in multi-item recipes"),
         ],
         ["construction"] =
         [
             new(5, "Pack Your Desk", "Package small deployables twice as fast"),
-            new(10, "Razed With Care", "50% chance of double resources when dismantling"),
+            new(8, "Razed With Care", "50% chance of double resources when dismantling"),
+            new(10, "Lift With Your Legs", "Deployable furniture weighs 40% less in your inventory"),
+            new(12, "Experimental Fortification", "Over-repair turrets, traps and furniture to 115% durability"),
             new(15, "Castle Doctrine", "Fortification build costs reduced by half"),
             new(20, "Spontaneous Furniture Event", "Chance of double furniture when packaging non-player-built items"),
         ],
@@ -154,6 +265,7 @@ public static class SkillMilestoneCatalog
             new(8, "Prep Chef", "All cooking recipes craft in half the time"),
             new(10, "Hearty & Oven Recipes", "Extra health during food regen; Convection Oven + Raw Dough recipes"),
             new(12, "Expert Gibbing", "Advanced knife recipe; corpse cutting without useless scrap"),
+            new(13, "Kitchen Technician", "Recipe: Advanced Oven"),
             new(15, "Chef Sense", "Notified when food finishes cooking, even remotely"),
             new(17, "Serving Seconds", "Soups, pies, etc. contain 2 extra portions"),
             new(20, "Fast Food", "All food cooks 25% faster on cooktops/ovens"),
