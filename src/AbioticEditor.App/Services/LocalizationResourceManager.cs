@@ -50,6 +50,15 @@ public sealed class LocalizationResourceManager : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// The localized string for <paramref name="key"/>, or null when neither a plugin nor the
+    /// resx supplies it. Use where a missing key should fall back to caller-provided text
+    /// (e.g. Core's English source-of-truth) instead of showing the raw key.
+    /// </summary>
+    public string? GetOrNull(string key)
+        => Core.Plugins.PluginLocalizations.Lookup(_culture.Name, key)
+           ?? _resources.GetString(key, _culture);
+
+    /// <summary>
     /// The localized string for <paramref name="key"/> with <paramref name="args"/> substituted
     /// via <c>string.Format</c> using the active culture. Use this instead of
     /// <c>string.Format(this[key], ...)</c> so placeholders honour the chosen language and the

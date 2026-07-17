@@ -46,7 +46,7 @@ public static partial class FolderDropHandler
             }
             catch (Exception ex)
             {
-                vm.StatusMessage = $"Could not load the dropped folder: {ex.Message}";
+                vm.StatusMessage = Services.LocalizationResourceManager.Instance.Format("Main_DroppedFolderLoadFailedFormat", ex.Message);
             }
         };
         if (page.Content is Layout root)

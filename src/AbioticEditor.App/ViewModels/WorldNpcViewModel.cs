@@ -41,22 +41,26 @@ public sealed class WorldNpcViewModel : INotifyPropertyChanged
 
     public IReadOnlyList<string> StateOptions { get; }
 
-    public string Identity => IsPet
-        ? "Tamed pet companion"
-        : NpcIdentityCatalog.LabelFor(Id, ActorName);
+    private static LocalizationResourceManager Loc => LocalizationResourceManager.Instance;
 
-    public bool IsHologram => Identity.StartsWith("Story hologram", StringComparison.Ordinal);
+    public string Identity => IsPet
+        ? Loc["WorldNpc_TamedPetCompanion"]
+        : NpcLocalization.LabelFor(Id, ActorName);
+
+    // Keyed on the catalog's stable hint id, not the (localized) Identity text.
+    public bool IsHologram => !IsPet
+        && NpcIdentityCatalog.MatchedHint(Id, ActorName) == "Human_Hologram";
 
     public string ContextText
     {
         get
         {
             var location = _original.X == 0 && _original.Y == 0 && _original.Z == 0
-                ? "no recorded position (despawned / waiting to spawn)"
-                : $"last at X {_original.X:F0}, Y {_original.Y:F0}, Z {_original.Z:F0}";
+                ? Loc["WorldNpc_NoRecordedPosition"]
+                : Loc.Format("WorldNpc_LastAtCoords", $"{_original.X:F0}", $"{_original.Y:F0}", $"{_original.Z:F0}");
             return IsPet
                 ? $"{Identity} · {location}."
-                : $"{Identity} · {location}. Which wandering trader occupies a host slot is not stored in the save - see the roster below.";
+                : Loc.Format("WorldNpc_ContextWithRosterHint", Identity, location);
         }
     }
 
@@ -73,7 +77,7 @@ public sealed class WorldNpcViewModel : INotifyPropertyChanged
         }
     }
 
-    public string StatusText => _isDead ? "REMOVED / DEAD" : "ALIVE";
+    public string StatusText => _isDead ? Loc["WorldNpc_StatusRemovedDead"] : Loc["WorldNpc_StatusAlive"];
 
     /// <summary>Only dead entries offer an action - marking living story NPCs dead just deletes content.</summary>
     public bool CanRevive => _isDead;

@@ -251,6 +251,13 @@ Worlds: containers · quest flags · doors · ground items · story progression<
   <data name="PlayerPets_PetBed" xml:space="preserve"><value>Pet bed</value></data>
   <data name="PlayerPets_RemoveFromInventory" xml:space="preserve"><value>REMOVE FROM INVENTORY</value></data>
   <data name="PlayerPets_SelectAPet" xml:space="preserve"><value>Select a pet to edit it.</value></data>
+  <data name="PlayerPets_CompanionSlot" xml:space="preserve"><value>Companion slot</value></data>
+  <data name="PlayerPets_SlotFormat" xml:space="preserve"><value>{0} slot {1}</value></data>
+  <data name="PlayerPets_SlotKind_Equipment" xml:space="preserve"><value>Equipment</value></data>
+  <data name="PlayerPets_SlotKind_Hotbar" xml:space="preserve"><value>Hotbar</value></data>
+  <data name="PlayerPets_SlotKind_Main" xml:space="preserve"><value>Backpack</value></data>
+  <data name="PlayerPets_StatusWillBeRemoved" xml:space="preserve"><value>WILL BE REMOVED</value></data>
+  <data name="PlayerPets_StatusLvHpFormat" xml:space="preserve"><value>Lv {0}  hp {1}/{2}</value></data>
   <data name="PlayerPets_SendToAPetBed" xml:space="preserve"><value>SEND TO A PET BED</value></data>
   <data name="PlayerPets_SendToBed" xml:space="preserve"><value>SEND TO BED</value></data>
   <data name="PlayerPets_UndoRemove" xml:space="preserve"><value>UNDO REMOVE</value></data>
@@ -438,6 +445,12 @@ Worlds: containers · quest flags · doors · ground items · story progression<
   <data name="WorldContainment_ItemsSeen" xml:space="preserve"><value>ITEMS SEEN</value></data>
   <data name="WorldContainment_JournalPages" xml:space="preserve"><value>JOURNAL PAGES</value></data>
   <data name="WorldContainment_NothingContained" xml:space="preserve"><value>Nothing is contained in this world right now. Build a containment unit and trap a creature in-game; the entry appears here.</value></data>
+  <data name="WorldContainment_Creature_Leyak_DisplayName" xml:space="preserve"><value>Leyak</value></data>
+  <data name="WorldContainment_Creature_LeyakB_DisplayName" xml:space="preserve"><value>Leyak (Alpha)</value></data>
+  <data name="WorldContainment_Creature_Krasue_DisplayName" xml:space="preserve"><value>Krasue</value></data>
+  <data name="WorldContainment_Creature_Lore_Leyak" xml:space="preserve"><value>A floating, disembodied head from the Anteverse that stalks players in the dark. A Leyak Containment Unit traps it; releasing it sends it roaming the facility again.</value></data>
+  <data name="WorldContainment_Creature_Lore_Krasue" xml:space="preserve"><value>A frost variant of the Leyak: a severed-head entity that only manifests when its target is freezing, then locks them in place. Captured in a containment unit; releasing it frees it back into the world.</value></data>
+  <data name="WorldContainment_Creature_Lore_Default" xml:space="preserve"><value>A contained entity. Releasing it removes the containment link so it roams free on next load.</value></data>
   <data name="WorldContainment_ReadAll" xml:space="preserve"><value>READ ALL</value></data>
   <data name="WorldContainment_Release" xml:space="preserve"><value>RELEASE</value></data>
   <data name="WorldContainment_ReleaseTooltip" xml:space="preserve"><value>Removes this creature's containment link (it escapes). Staged until SAVE; REVERT restores it.</value></data>
@@ -594,6 +607,19 @@ Worlds: containers · quest flags · doors · ground items · story progression<
   <data name="WorldPets_TamedPetsInThisWorld" xml:space="preserve"><value>TAMED PETS IN THIS WORLD</value></data>
   <data name="WorldPets_UndoDelete" xml:space="preserve"><value>UNDO DELETE</value></data>
   <data name="WorldPets_Xp" xml:space="preserve"><value>XP</value></data>
+  <data name="WorldPets_FamilyFormat" xml:space="preserve"><value>Family: {0}</value></data>
+  <data name="WorldPets_LevelDescriptionFormat" xml:space="preserve"><value>Level {0} of 20 (each level raises health, damage and size).</value></data>
+  <data name="WorldPets_TotalHealthFormat" xml:space="preserve"><value>Total {0:0}</value></data>
+  <data name="WorldPets_Family_Pest" xml:space="preserve"><value>Pest</value></data>
+  <data name="WorldPets_Family_Peccary" xml:space="preserve"><value>Peccary</value></data>
+  <data name="WorldPets_Family_Skink" xml:space="preserve"><value>Skink</value></data>
+  <data name="WorldPets_Family_Lamogi" xml:space="preserve"><value>Lamogi</value></data>
+  <data name="WorldPets_Family_Other" xml:space="preserve"><value>Other</value></data>
+  <data name="WorldPets_StatusWillBeDeleted" xml:space="preserve"><value>WILL BE DELETED</value></data>
+  <data name="WorldPets_StatusDead" xml:space="preserve"><value>DEAD</value></data>
+  <data name="WorldPets_StatusDowned" xml:space="preserve"><value>DOWNED</value></data>
+  <data name="WorldPets_StatusHurt" xml:space="preserve"><value>HURT</value></data>
+  <data name="WorldPets_StatusHealthy" xml:space="preserve"><value>HEALTHY</value></data>
 
   <!-- WorldRaw -->
   <data name="WorldRaw_ExportJsonOpen" xml:space="preserve"><value>EXPORT JSON + OPEN</value></data>
@@ -2244,6 +2270,8 @@ The change stages until you press SAVE (REVERT undoes it before saving).</value>
   <data name="Skill_Passive_Fishing" xml:space="preserve"><value>Per level: stronger line (resists breaking during catches)</value></data>
   <data name="Skill_Milestone_Sprinting_5_Perk" xml:space="preserve"><value>Athletic</value></data>
   <data name="Skill_Milestone_Sprinting_5_Effect" xml:space="preserve"><value>Chance to not lose stamina for any action</value></data>
+  <data name="Skill_Milestone_Sprinting_8_Perk" xml:space="preserve"><value>Anaerobic Recovery</value></data>
+  <data name="Skill_Milestone_Sprinting_8_Effect" xml:space="preserve"><value>Stamina regen kicks in much more quickly after sprinting</value></data>
   <data name="Skill_Milestone_Sprinting_10_Perk" xml:space="preserve"><value>Lightspeed</value></data>
   <data name="Skill_Milestone_Sprinting_10_Effect" xml:space="preserve"><value>Sprint 5% faster overall (on top of passive gains)</value></data>
   <data name="Skill_Milestone_Sprinting_15_Perk" xml:space="preserve"><value>Red Shift</value></data>
@@ -2254,10 +2282,12 @@ The change stages until you press SAVE (REVERT undoes it before saving).</value>
   <data name="Skill_Milestone_Strength_5_Effect" xml:space="preserve"><value>Shake Vending Machines &amp; stomp Carbuncles in 1 hit</value></data>
   <data name="Skill_Milestone_Strength_8_Perk" xml:space="preserve"><value>Heavy Weapons</value></data>
   <data name="Skill_Milestone_Strength_8_Effect" xml:space="preserve"><value>Strong enough to properly wield heavy melee weapons</value></data>
-  <data name="Skill_Milestone_Strength_12_Perk" xml:space="preserve"><value>Nerd Rage</value></data>
-  <data name="Skill_Milestone_Strength_12_Effect" xml:space="preserve"><value>When bleeding near a hostile enemy, melee damage and speed are enhanced</value></data>
-  <data name="Skill_Milestone_Strength_15_Perk" xml:space="preserve"><value>Heavy Armor Specialization</value></data>
-  <data name="Skill_Milestone_Strength_15_Effect" xml:space="preserve"><value>Can wear any weight of armor</value></data>
+  <data name="Skill_Milestone_Strength_10_Perk" xml:space="preserve"><value>Nerd Rage</value></data>
+  <data name="Skill_Milestone_Strength_10_Effect" xml:space="preserve"><value>When bleeding near a hostile enemy, melee damage and speed are enhanced</value></data>
+  <data name="Skill_Milestone_Strength_13_Perk" xml:space="preserve"><value>Heavy Armor Specialization</value></data>
+  <data name="Skill_Milestone_Strength_13_Effect" xml:space="preserve"><value>Can wear any weight of armor</value></data>
+  <data name="Skill_Milestone_Strength_15_Perk" xml:space="preserve"><value>Centrifugal Force</value></data>
+  <data name="Skill_Milestone_Strength_15_Effect" xml:space="preserve"><value>Heavy melee weapon swings are noticeably faster</value></data>
   <data name="Skill_Milestone_Strength_20_Perk" xml:space="preserve"><value>Superior Gains</value></data>
   <data name="Skill_Milestone_Strength_20_Effect" xml:space="preserve"><value>All items weigh 25% less</value></data>
   <data name="Skill_Milestone_Throwing_2_Perk" xml:space="preserve"><value>Underhand Toss</value></data>
@@ -2328,18 +2358,24 @@ The change stages until you press SAVE (REVERT undoes it before saving).</value>
   <data name="Skill_Milestone_Reloading_3_Effect" xml:space="preserve"><value>Craft ammo twice as fast</value></data>
   <data name="Skill_Milestone_Reloading_5_Perk" xml:space="preserve"><value>Just In Case</value></data>
   <data name="Skill_Milestone_Reloading_5_Effect" xml:space="preserve"><value>Reload weapons you aren't otherwise qualified to use</value></data>
+  <data name="Skill_Milestone_Reloading_8_Perk" xml:space="preserve"><value>Ammo Scavenger</value></data>
+  <data name="Skill_Milestone_Reloading_8_Effect" xml:space="preserve"><value>Sometimes find more ammo when searching soldiers</value></data>
   <data name="Skill_Milestone_Reloading_10_Perk" xml:space="preserve"><value>Basic Geometry</value></data>
   <data name="Skill_Milestone_Reloading_10_Effect" xml:space="preserve"><value>Less clumsy at reloading all weaponry</value></data>
   <data name="Skill_Milestone_Reloading_15_Perk" xml:space="preserve"><value>Speedloader</value></data>
   <data name="Skill_Milestone_Reloading_15_Effect" xml:space="preserve"><value>Sprint and reload at the same time</value></data>
   <data name="Skill_Milestone_Reloading_20_Perk" xml:space="preserve"><value>Loose Rounds</value></data>
   <data name="Skill_Milestone_Reloading_20_Effect" xml:space="preserve"><value>Sometimes find spare rounds when reloading</value></data>
+  <data name="Skill_Milestone_Fortitude_3_Perk" xml:space="preserve"><value>Riposte</value></data>
+  <data name="Skill_Milestone_Fortitude_3_Effect" xml:space="preserve"><value>After a successful block, the next melee attack within 2 seconds does extra damage</value></data>
   <data name="Skill_Milestone_Fortitude_5_Perk" xml:space="preserve"><value>Habituation</value></data>
   <data name="Skill_Milestone_Fortitude_5_Effect" xml:space="preserve"><value>Regenerate health a bit more frequently</value></data>
   <data name="Skill_Milestone_Fortitude_8_Perk" xml:space="preserve"><value>Group Effort</value></data>
   <data name="Skill_Milestone_Fortitude_8_Effect" xml:space="preserve"><value>Resting within 8 m of other resting scientists doubles rest rate</value></data>
   <data name="Skill_Milestone_Fortitude_10_Perk" xml:space="preserve"><value>Spongy Tissue</value></data>
   <data name="Skill_Milestone_Fortitude_10_Effect" xml:space="preserve"><value>Slightly reduced fall damage and vehicle impact damage</value></data>
+  <data name="Skill_Milestone_Fortitude_13_Perk" xml:space="preserve"><value>Enduring Stamina</value></data>
+  <data name="Skill_Milestone_Fortitude_13_Effect" xml:space="preserve"><value>Stamina still regenerates while blocking</value></data>
   <data name="Skill_Milestone_Fortitude_15_Perk" xml:space="preserve"><value>Reflective Mantle</value></data>
   <data name="Skill_Milestone_Fortitude_15_Effect" xml:space="preserve"><value>Melee contact may reflect damage back to the enemy</value></data>
   <data name="Skill_Milestone_Fortitude_20_Perk" xml:space="preserve"><value>Strong Ecosystem</value></data>
@@ -2352,14 +2388,20 @@ The change stages until you press SAVE (REVERT undoes it before saving).</value>
   <data name="Skill_Milestone_Crafting_8_Effect" xml:space="preserve"><value>Recipes shared with you skip the research phase</value></data>
   <data name="Skill_Milestone_Crafting_10_Perk" xml:space="preserve"><value>Eye For Detail</value></data>
   <data name="Skill_Milestone_Crafting_10_Effect" xml:space="preserve"><value>Crafted items gain temporary bonus durability</value></data>
+  <data name="Skill_Milestone_Crafting_13_Perk" xml:space="preserve"><value>That'll Buff Right Out</value></data>
+  <data name="Skill_Milestone_Crafting_13_Effect" xml:space="preserve"><value>50% chance to repair an item for free</value></data>
   <data name="Skill_Milestone_Crafting_15_Perk" xml:space="preserve"><value>Super Bench</value></data>
   <data name="Skill_Milestone_Crafting_15_Effect" xml:space="preserve"><value>Final tier of Crafting Bench upgrades</value></data>
   <data name="Skill_Milestone_Crafting_20_Perk" xml:space="preserve"><value>Precision Engineering</value></data>
   <data name="Skill_Milestone_Crafting_20_Effect" xml:space="preserve"><value>Small chance to consume 1 less item in multi-item recipes</value></data>
   <data name="Skill_Milestone_Construction_5_Perk" xml:space="preserve"><value>Pack Your Desk</value></data>
   <data name="Skill_Milestone_Construction_5_Effect" xml:space="preserve"><value>Package small deployables twice as fast</value></data>
-  <data name="Skill_Milestone_Construction_10_Perk" xml:space="preserve"><value>Razed With Care</value></data>
-  <data name="Skill_Milestone_Construction_10_Effect" xml:space="preserve"><value>50% chance of double resources when dismantling</value></data>
+  <data name="Skill_Milestone_Construction_8_Perk" xml:space="preserve"><value>Razed With Care</value></data>
+  <data name="Skill_Milestone_Construction_8_Effect" xml:space="preserve"><value>50% chance of double resources when dismantling</value></data>
+  <data name="Skill_Milestone_Construction_10_Perk" xml:space="preserve"><value>Lift With Your Legs</value></data>
+  <data name="Skill_Milestone_Construction_10_Effect" xml:space="preserve"><value>Deployable furniture weighs 40% less in your inventory</value></data>
+  <data name="Skill_Milestone_Construction_12_Perk" xml:space="preserve"><value>Experimental Fortification</value></data>
+  <data name="Skill_Milestone_Construction_12_Effect" xml:space="preserve"><value>Over-repair turrets, traps and furniture to 115% durability</value></data>
   <data name="Skill_Milestone_Construction_15_Perk" xml:space="preserve"><value>Castle Doctrine</value></data>
   <data name="Skill_Milestone_Construction_15_Effect" xml:space="preserve"><value>Fortification build costs reduced by half</value></data>
   <data name="Skill_Milestone_Construction_20_Perk" xml:space="preserve"><value>Spontaneous Furniture Event</value></data>
@@ -2388,6 +2430,8 @@ The change stages until you press SAVE (REVERT undoes it before saving).</value>
   <data name="Skill_Milestone_Cooking_10_Effect" xml:space="preserve"><value>Extra health during food regen; Convection Oven + Raw Dough recipes</value></data>
   <data name="Skill_Milestone_Cooking_12_Perk" xml:space="preserve"><value>Expert Gibbing</value></data>
   <data name="Skill_Milestone_Cooking_12_Effect" xml:space="preserve"><value>Advanced knife recipe; corpse cutting without useless scrap</value></data>
+  <data name="Skill_Milestone_Cooking_13_Perk" xml:space="preserve"><value>Kitchen Technician</value></data>
+  <data name="Skill_Milestone_Cooking_13_Effect" xml:space="preserve"><value>Recipe: Advanced Oven</value></data>
   <data name="Skill_Milestone_Cooking_15_Perk" xml:space="preserve"><value>Chef Sense</value></data>
   <data name="Skill_Milestone_Cooking_15_Effect" xml:space="preserve"><value>Notified when food finishes cooking, even remotely</value></data>
   <data name="Skill_Milestone_Cooking_17_Perk" xml:space="preserve"><value>Serving Seconds</value></data>
@@ -2495,6 +2539,7 @@ The change stages until you press SAVE (REVERT undoes it before saving).</value>
   <data name="EquipSlot_Name_Companion" xml:space="preserve"><value>Companion</value></data>
   <data name="EquipSlot_NotEquippable" xml:space="preserve"><value>Not equippable ({0} slot)</value></data>
   <data name="EquipSlot_WrongSlot" xml:space="preserve"><value>{0} item, not for {1} slot</value></data>
+  <data name="EquipSlot_PetsHotbarOnly" xml:space="preserve"><value>Pets are hotbar-only - not allowed in the backpack</value></data>
   <data name="Slot_PetsHotbarOnly" xml:space="preserve"><value>Pets only go in the hotbar - not allowed in the backpack</value></data>
   <data name="WorldNpc_Identity_Human_Hologram" xml:space="preserve"><value>Story hologram (scripted scene, cannot die)</value></data>
   <data name="WorldNpc_Identity_Human_TRADER" xml:space="preserve"><value>Static trader stand</value></data>
@@ -2506,4 +2551,353 @@ The change stages until you press SAVE (REVERT undoes it before saving).</value>
   <data name="WorldNpc_Identity_MGT_CKCore" xml:space="preserve"><value>The Core - Core Keeper crossover</value></data>
   <data name="WorldNpc_Identity_Default" xml:space="preserve"><value>Story NPC</value></data>
   <data name="WorldNpc_TamedPetCompanion" xml:space="preserve"><value>Tamed pet companion</value></data>
+  <data name="WorldNpc_NoRecordedPosition" xml:space="preserve"><value>no recorded position (despawned / waiting to spawn)</value></data>
+  <data name="WorldNpc_LastAtCoords" xml:space="preserve"><value>last at X {0}, Y {1}, Z {2}</value></data>
+  <data name="WorldNpc_ContextWithRosterHint" xml:space="preserve"><value>{0} · {1}. Which wandering trader occupies a host slot is not stored in the save - see the roster below.</value></data>
+  <data name="WorldNpc_StatusRemovedDead" xml:space="preserve"><value>REMOVED / DEAD</value></data>
+  <data name="WorldNpc_StatusAlive" xml:space="preserve"><value>ALIVE</value></data>
+  <data name="Compat_UnknownClassWarning" xml:space="preserve"><value>This save's class '{0}' is not one this editor recognizes. Its custom header could not be interpreted; editing it is not recommended - a .bak backup is always kept.</value></data>
+  <data name="Compat_NoClass" xml:space="preserve"><value>(none)</value></data>
+  <data name="Compat_NewerVersionWarning" xml:space="preserve"><value>This save is version {0}; this editor was built against version {1} (game build {2}). Newer fields may be invisible and could be lost on edit - a .bak backup is always kept.</value></data>
+
+  <!-- Common -->
+  <data name="Common_JsonFileFormat" xml:space="preserve"><value>JSON file: {0}</value></data>
+  <data name="Common_No" xml:space="preserve"><value>No</value></data>
+  <data name="Common_Yes" xml:space="preserve"><value>Yes</value></data>
+
+  <!-- Compare -->
+  <data name="Compare_AOnly" xml:space="preserve"><value>A only</value></data>
+  <data name="Compare_BOnly" xml:space="preserve"><value>B only</value></data>
+  <data name="Compare_EmailsRead" xml:space="preserve"><value>Emails read</value></data>
+  <data name="Compare_FishCaught" xml:space="preserve"><value>Fish caught</value></data>
+  <data name="Compare_GlobalRecipes" xml:space="preserve"><value>Global recipes</value></data>
+  <data name="Compare_GroundItems" xml:space="preserve"><value>Ground items</value></data>
+  <data name="Compare_ItemsCrafted" xml:space="preserve"><value>Items crafted</value></data>
+  <data name="Compare_ItemsDiscovered" xml:space="preserve"><value>Items discovered</value></data>
+  <data name="Compare_JournalEntries" xml:space="preserve"><value>Journal entries</value></data>
+  <data name="Compare_MapsUnlocked" xml:space="preserve"><value>Maps unlocked</value></data>
+  <data name="Compare_PlacedObjects" xml:space="preserve"><value>Placed objects</value></data>
+  <data name="Compare_QuestFlags" xml:space="preserve"><value>Quest flags</value></data>
+  <data name="Compare_RecipesUnlocked" xml:space="preserve"><value>Recipes unlocked</value></data>
+  <data name="Compare_StoryChapter" xml:space="preserve"><value>Story chapter</value></data>
+  <data name="Compare_TimePlayed" xml:space="preserve"><value>Time played</value></data>
+  <data name="Compare_TimePlayedFormat" xml:space="preserve"><value>{0}h {1}m</value></data>
+  <data name="Compare_TrackedNpcs" xml:space="preserve"><value>Tracked NPCs</value></data>
+  <data name="Compare_WorldContents" xml:space="preserve"><value>World contents</value></data>
+
+  <!-- Customization -->
+  <data name="Customization_AvailableCaptionGamePass" xml:space="preserve"><value>Appearance is stored in a Game Pass profile container (slot {0}). Editing here writes it back into your Xbox save folder and keeps a backup. It applies to every world this account plays.</value></data>
+  <data name="Customization_AvailableCaptionSteam" xml:space="preserve"><value>Appearance is stored in {0}, a per-character file the game writes under your Steam account. Editing here changes that file directly and keeps a .bak backup. It applies to every world this account plays.</value></data>
+  <data name="Customization_StatusEditingFile" xml:space="preserve"><value>Editing {0} - applies to every world this account plays.</value></data>
+  <data name="Customization_StatusEditingGamePass" xml:space="preserve"><value>Editing Game Pass appearance (slot {0}) - applies to every world this account plays.</value></data>
+  <data name="Customization_StatusNotFound" xml:space="preserve"><value>No ScientistCustomization save found on this machine.</value></data>
+  <data name="Customization_StatusNotFoundGamePass" xml:space="preserve"><value>No ScientistCustomization save found in your Game Pass save data.</value></data>
+  <data name="Customization_StatusReadFailed" xml:space="preserve"><value>Failed to read customization save: {0}</value></data>
+  <data name="Customization_StatusSaveFailed" xml:space="preserve"><value>Save failed: {0}</value></data>
+  <data name="Customization_StatusSaved" xml:space="preserve"><value>Appearance saved at {0} (.bak created). Restart the game to see it.</value></data>
+  <data name="Customization_UnavailableGamePass" xml:space="preserve"><value>Appearance editing is unavailable because no ScientistCustomization save was found in your Game Pass save data. The game writes this data the first time you customize your character in-game. To enable editing, launch Abiotic Factor, customize your character once, then reopen the editor.</value></data>
+  <data name="Customization_UnavailableSteam" xml:space="preserve"><value>Appearance editing is unavailable because no ScientistCustomization save was found for this Steam account on this machine. This file is not shipped with the game or the editor: the game writes it the first time you customize your character in-game, and it is per Steam account and per machine. To enable editing, launch Abiotic Factor, customize your character once, then reopen the editor.</value></data>
+  <data name="Customization_VoiceNote" xml:space="preserve"><value>VOICE is not stored in any save - the game derives it from the head's gender (Dr. H / Dr. R).</value></data>
+
+  <!-- Empty -->
+  <data name="Empty_Title" xml:space="preserve"><value>ABIOTIC FACTOR SAVE EDITOR</value></data>
+
+  <!-- FileSidebar -->
+  <data name="FileSidebar_ItemCountFormat" xml:space="preserve"><value>{0} item(s)</value></data>
+  <data name="FileSidebar_SaveFormatTooltip" xml:space="preserve"><value>The save format this folder uses</value></data>
+
+  <!-- GameData -->
+  <data name="GameData_ImportAction" xml:space="preserve"><value>Import game data</value></data>
+  <data name="GameData_Loaded" xml:space="preserve"><value>Game data loaded.</value></data>
+  <data name="GameData_LocateAction" xml:space="preserve"><value>Locate game folder</value></data>
+  <data name="GameData_NotDetectedTitle" xml:space="preserve"><value>Game data not detected</value></data>
+  <data name="GameData_NotNow" xml:space="preserve"><value>Not now</value></data>
+  <data name="GameData_StatusInstallNotFound" xml:space="preserve"><value>Abiotic Factor's data files were not found, so the item, recipe and lore catalogs are empty.</value></data>
+  <data name="GameData_StatusInstallNotFoundBundled" xml:space="preserve"><value>Abiotic Factor's data files weren't found, so the editor is using its bundled data (item names and stats work, but icons need the game).</value></data>
+  <data name="GameData_StatusLoadFailed" xml:space="preserve"><value>Game data failed to load. Turn on diagnostic logging in Settings and check the log for the cause.</value></data>
+  <data name="GameData_StatusLocateHint" xml:space="preserve"><value>Open Settings &gt; Game Data and choose LOCATE GAME FOLDER to point the editor at your install (this works for non-Steam copies too).</value></data>
+  <data name="GameData_StatusMappingsHint" xml:space="preserve"><value>Keep Mappings.usmap next to the editor, or import one in Settings &gt; Game Data.</value></data>
+  <data name="GameData_StatusMappingsMissing" xml:space="preserve"><value>The game was found, but Mappings.usmap is missing so its data tables can't be read.</value></data>
+  <data name="GameData_StatusMappingsMissingBundled" xml:space="preserve"><value>The game was found but Mappings.usmap is missing, so the editor is using its bundled data (item names and stats work, but icons need the game).</value></data>
+  <data name="GameData_StatusNotLoaded" xml:space="preserve"><value>Game data has not been loaded yet.</value></data>
+  <data name="GameData_StatusReady" xml:space="preserve"><value>Game data loaded.</value></data>
+  <data name="GameData_Title" xml:space="preserve"><value>Game data</value></data>
+
+  <!-- IniEditor -->
+  <data name="IniEditor_StatusReloaded" xml:space="preserve"><value>Reloaded {0} from disk.</value></data>
+  <data name="IniEditor_StatusSaveFailed" xml:space="preserve"><value>Save failed: {0}</value></data>
+  <data name="IniEditor_StatusSaved" xml:space="preserve"><value>Saved {0} (previous version kept as {1}.bak).</value></data>
+
+  <!-- Main -->
+  <data name="Main_ActionFailedFormat" xml:space="preserve"><value>The action failed: {0}</value></data>
+  <data name="Main_DroppedFolderLoadFailedFormat" xml:space="preserve"><value>Could not load the dropped folder: {0}</value></data>
+  <data name="Main_PageTitle" xml:space="preserve"><value>Abiotic Factor: Save Editor</value></data>
+
+  <!-- Palette -->
+  <data name="Palette_FitsSlot" xml:space="preserve"><value>FITS {0} SLOT</value></data>
+  <data name="Palette_ItemCount" xml:space="preserve"><value>{0} item(s)</value></data>
+  <data name="Palette_ShowingOf" xml:space="preserve"><value>showing {0} of {1}</value></data>
+  <data name="Palette_TooltipDurability" xml:space="preserve"><value> · durability {0}</value></data>
+  <data name="Palette_TooltipStats" xml:space="preserve"><value>stack {0} · {1} kg</value></data>
+
+  <!-- PlayerAchievements -->
+  <data name="PlayerAchievements_HiddenAchievementFallback" xml:space="preserve"><value>(hidden achievement)</value></data>
+  <data name="PlayerAchievements_HiddenAchievementHint" xml:space="preserve"><value>Hidden achievement. {0}</value></data>
+  <data name="PlayerAchievements_StatusCheckFailed" xml:space="preserve"><value>Steam check failed: {0} - local cache data is still shown.</value></data>
+  <data name="PlayerAchievements_StatusCompared" xml:space="preserve"><value>Compared with {0}: you have {1} they don't; they have {2} you don't.</value></data>
+  <data name="PlayerAchievements_StatusComparisonFailed" xml:space="preserve"><value>Comparison failed: {0}</value></data>
+  <data name="PlayerAchievements_StatusGatedAnonymous" xml:space="preserve"><value>Steam blocked the anonymous stats query for this account. Either sign in below (a logged-in session can view its own and friends' achievements), or make the profile's 'Game details' dropdown Public (Steam → Profile → Edit Profile → Privacy Settings → Game details; changes can take a few minutes to apply). Local cache data is still shown.</value></data>
+  <data name="PlayerAchievements_StatusGatedSignedIn" xml:space="preserve"><value>Steam still blocked the stats query despite the signed-in session - the session may have expired (SIGN OUT, then sign in again), or this profile isn't visible to that account. Local cache data is still shown.</value></data>
+  <data name="PlayerAchievements_StatusLoadingComparison" xml:space="preserve"><value>Loading comparison for {0}…</value></data>
+  <data name="PlayerAchievements_StatusLocalCacheLoaded" xml:space="preserve"><value>Local Steam cache (icons via Steam CDN) · the cache only updates while Steam runs - CHECK STEAM verifies the live state online.</value></data>
+  <data name="PlayerAchievements_StatusNoLocalCache" xml:space="preserve"><value>No local Steam cache for this account on this machine - use CHECK STEAM to query the web (public profiles only).</value></data>
+  <data name="PlayerAchievements_StatusNoSignInWindow" xml:space="preserve"><value>Could not open the sign-in window.</value></data>
+  <data name="PlayerAchievements_StatusNoSteamId" xml:space="preserve"><value>Could not determine the SteamID from the file name.</value></data>
+  <data name="PlayerAchievements_StatusQuerying" xml:space="preserve"><value>Querying steamcommunity.com…</value></data>
+  <data name="PlayerAchievements_StatusQueryingSignedIn" xml:space="preserve"><value>Querying steamcommunity.com (signed in)…</value></data>
+  <data name="PlayerAchievements_StatusReadingLocalCache" xml:space="preserve"><value>Reading Steam's local achievement cache…</value></data>
+  <data name="PlayerAchievements_StatusSignInCancelled" xml:space="preserve"><value>Steam sign-in was cancelled.</value></data>
+  <data name="PlayerAchievements_StatusSignedIn" xml:space="preserve"><value>Signed in to Steam - re-checking achievements with the session…</value></data>
+  <data name="PlayerAchievements_StatusSignedOut" xml:space="preserve"><value>Signed out - the Steam session cookie was cleared. CHECK STEAM now queries anonymously again.</value></data>
+  <data name="PlayerAchievements_StatusWebLoaded" xml:space="preserve"><value>Steam web data loaded ({0} unlocked on Steam) · icons from steamcommunity.com.</value></data>
+  <data name="PlayerAchievements_ThisHiddenAchievement" xml:space="preserve"><value>This hidden achievement</value></data>
+
+  <!-- PlayerCodex -->
+  <data name="PlayerCodex_FishBaitUp" xml:space="preserve"><value>Bait up with {0} (shown below) before casting.</value></data>
+  <data name="PlayerCodex_FishBitesBest" xml:space="preserve"><value>Bites best at {0}.</value></data>
+  <data name="PlayerCodex_FishCastWhere" xml:space="preserve"><value>Cast where there's {0}.</value></data>
+  <data name="PlayerCodex_FishNeedsSpecificBait" xml:space="preserve"><value>Needs a specific bait equipped to bite.</value></data>
+  <data name="PlayerCodex_FishNeverBites" xml:space="preserve"><value>(never bites; check the wiki)</value></data>
+  <data name="PlayerCodex_FishOnlyBites" xml:space="preserve"><value>Only bites at {0}.</value></data>
+  <data name="PlayerCodex_FishOnlyBitesBest" xml:space="preserve"><value>Only bites at {0} (best at {1}).</value></data>
+  <data name="PlayerCodex_FishRequiresDlc" xml:space="preserve"><value>Requires DLC: {0}.</value></data>
+  <data name="PlayerCodex_FishStoryProgress" xml:space="preserve"><value>Story progress: needs "{0}" reached first.</value></data>
+  <data name="PlayerCodex_FishTimeDawn" xml:space="preserve"><value>dawn</value></data>
+  <data name="PlayerCodex_FishTimeDusk" xml:space="preserve"><value>dusk</value></data>
+  <data name="PlayerCodex_FishTimeJoinAnd" xml:space="preserve"><value>{0} and {1}</value></data>
+  <data name="PlayerCodex_FishTimeMidday" xml:space="preserve"><value>midday</value></data>
+  <data name="PlayerCodex_FishTimeNight" xml:space="preserve"><value>night</value></data>
+  <data name="PlayerCodex_KillsNotTracked" xml:space="preserve"><value>kills: not tracked yet · {0} required for the bonus section</value></data>
+  <data name="PlayerCodex_KillsProgress" xml:space="preserve"><value>{0} of {1} kills for the bonus section</value></data>
+  <data name="PlayerCodex_Open" xml:space="preserve"><value>OPEN ›</value></data>
+  <data name="PlayerCodex_ThisCodexEntry" xml:space="preserve"><value>This codex entry</value></data>
+  <data name="PlayerCodex_UnknownFishBody" xml:space="preserve"><value>This fish id is not in the game's DT_Fish table the editor loaded (newer game version, or game data unavailable). It is preserved in the save unless unticked.</value></data>
+  <data name="PlayerCodex_UnknownFishSubtitle" xml:space="preserve"><value>unknown fish id</value></data>
+
+  <!-- PlayerEditor -->
+  <data name="PlayerEditor_AccountIdLabel" xml:space="preserve"><value>ACCOUNT ID</value></data>
+  <data name="PlayerEditor_CraftedItemsDiscovered" xml:space="preserve"><value>crafted items discovered</value></data>
+  <data name="PlayerEditor_ExportFailed" xml:space="preserve"><value>Export failed: {0}</value></data>
+  <data name="PlayerEditor_ExportedJson" xml:space="preserve"><value>Exported {0} MB → {1}</value></data>
+  <data name="PlayerEditor_ExportedJsonTitle" xml:space="preserve"><value>Exported save JSON</value></data>
+  <data name="PlayerEditor_ExportingJson" xml:space="preserve"><value>Exporting JSON…</value></data>
+  <data name="PlayerEditor_ImportFailed" xml:space="preserve"><value>Import failed (save untouched): {0}</value></data>
+  <data name="PlayerEditor_ImportedJson" xml:space="preserve"><value>Imported at {0} · reload the file from the sidebar to see the changes.</value></data>
+  <data name="PlayerEditor_ImportingJson" xml:space="preserve"><value>Importing JSON…</value></data>
+  <data name="PlayerEditor_ItemsDiscovered" xml:space="preserve"><value>items discovered</value></data>
+  <data name="PlayerEditor_MapsUnlocked" xml:space="preserve"><value>maps unlocked</value></data>
+  <data name="PlayerEditor_NoRespawnLevel" xml:space="preserve"><value>No respawn level recorded.</value></data>
+  <data name="PlayerEditor_NoSiblingWorld" xml:space="preserve"><value>No world save was found next to this player.</value></data>
+  <data name="PlayerEditor_PetBedFallback" xml:space="preserve"><value>a pet bed</value></data>
+  <data name="PlayerEditor_PetBedOption" xml:space="preserve"><value>Bed {0}: {1}</value></data>
+  <data name="PlayerEditor_PetBedsReadFailed" xml:space="preserve"><value>Could not read pet beds in {0}: {1}</value></data>
+  <data name="PlayerEditor_PetMoveFailed" xml:space="preserve"><value>Move failed: {0}</value></data>
+  <data name="PlayerEditor_PetPlacedAt" xml:space="preserve"><value>{0} (placed at {1} in {2})</value></data>
+  <data name="PlayerEditor_RespawnLevel" xml:space="preserve"><value>Level: {0}</value></data>
+  <data name="PlayerEditor_RespawnLevelGuid" xml:space="preserve"><value>Level GUID: {0}</value></data>
+  <data name="PlayerEditor_SaveFailed" xml:space="preserve"><value>Save failed: {0}</value></data>
+  <data name="PlayerEditor_SaveOrRevertFirst" xml:space="preserve"><value>Save or revert your other player changes first.</value></data>
+  <data name="PlayerEditor_SavedAt" xml:space="preserve"><value>Saved at {0}</value></data>
+  <data name="PlayerEditor_Saving" xml:space="preserve"><value>Saving…</value></data>
+  <data name="PlayerEditor_SteamId64Label" xml:space="preserve"><value>STEAM ID 64</value></data>
+  <data name="PlayerEditor_UnknownSkill" xml:space="preserve"><value>Unknown skill #{0}</value></data>
+  <data name="PlayerEditor_UnknownTerminal" xml:space="preserve"><value>Unknown terminal ({0}…)</value></data>
+  <data name="PlayerEditor_WorldOriginFallback" xml:space="preserve"><value>the world origin</value></data>
+
+  <!-- PlayerGeneral -->
+  <data name="PlayerGeneral_BulkDiscoverCraftedWhat" xml:space="preserve"><value>mark every item as crafted at least once</value></data>
+  <data name="PlayerGeneral_BulkDiscoverItemsWhat" xml:space="preserve"><value>mark every item as seen (suppresses all NEW badges)</value></data>
+  <data name="PlayerGeneral_BulkUnlockMapsWhat" xml:space="preserve"><value>reveal every sector map pamphlet</value></data>
+  <data name="PlayerGeneral_SteamIdChangeFailedTitle" xml:space="preserve"><value>SteamID change failed</value></data>
+
+  <!-- PlayerInventory -->
+  <data name="PlayerInventory_SlotsFormat" xml:space="preserve"><value>{0} SLOTS</value></data>
+  <data name="PlayerInventory_WeightKgFormat" xml:space="preserve"><value>{0:F1} kg</value></data>
+
+  <!-- PlayerRecipes -->
+  <data name="PlayerRecipes_BulkUnlockConfirmWhat" xml:space="preserve"><value>unlock every recipe for this player</value></data>
+  <data name="PlayerRecipes_CountUnlocked" xml:space="preserve"><value>{0} of {1} unlocked</value></data>
+  <data name="PlayerRecipes_GameDataUnavailable" xml:space="preserve"><value>game data unavailable - recipe browser disabled</value></data>
+  <data name="PlayerRecipes_HandsNoBench" xml:space="preserve"><value>Hands (no bench required)</value></data>
+  <data name="PlayerRecipes_ThisRecipe" xml:space="preserve"><value>This recipe</value></data>
+  <data name="PlayerRecipes_UpgradesTo" xml:space="preserve"><value>Upgrades to {0}</value></data>
+
+  <!-- PlayerSkills -->
+  <data name="PlayerSkills_BulkMaxAllWhat" xml:space="preserve"><value>set all 15 skills to level 20</value></data>
+
+  <!-- Progress -->
+  <data name="Progress_RecipeGated" xml:space="preserve"><value>Recipe "{0}" is granted by email "{1}" in {2}, which this world hasn't reached (missing {3}).</value></data>
+  <data name="Progress_RowGated" xml:space="preserve"><value>"{0}" belongs to {1}, which this world hasn't reached yet (missing {2}). Advance the story on the QUEST FLAGS tab first.</value></data>
+
+  <!-- Shell -->
+  <data name="Shell_SavesTitle" xml:space="preserve"><value>Saves</value></data>
+  <data name="Shell_WindowTitle" xml:space="preserve"><value>Abiotic Factor Save Editor</value></data>
+
+  <!-- Skill -->
+  <data name="Skill_HiddenUntilUnlocked" xml:space="preserve"><value>Hidden until unlocked - reach this level (or tap to override clearance) to see the perk.</value></data>
+  <data name="Skill_LevelCount" xml:space="preserve"><value>{0} levels</value></data>
+  <data name="Skill_Locked" xml:space="preserve"><value>Locked - reach level {0} ({1} / {2} XP to go).</value></data>
+  <data name="Skill_OneLevel" xml:space="preserve"><value>1 level</value></data>
+  <data name="Skill_ThisPerk" xml:space="preserve"><value>This {0} perk</value></data>
+  <data name="Skill_TooltipHidden" xml:space="preserve"><value>Level {0} - hidden perk (tap to reveal)</value></data>
+  <data name="Skill_Unlocked" xml:space="preserve"><value>Unlocked - this skill is level {0} (needs {1}).</value></data>
+
+  <!-- Slot -->
+  <data name="Slot_MaxStackFormat" xml:space="preserve"><value>max {0}</value></data>
+  <data name="Slot_SkillFormat" xml:space="preserve"><value>{0} skill</value></data>
+  <data name="Slot_StatusFormat" xml:space="preserve"><value>STATUS: {0}</value></data>
+  <data name="Slot_WeightStackFormat" xml:space="preserve"><value>weight {0:0.##} kg · stack {1}</value></data>
+
+  <!-- WorldBases -->
+  <data name="WorldBases_AnchoredBy" xml:space="preserve"><value>Anchored by: {0}</value></data>
+  <data name="WorldBases_NoCraftingBenchAnchor" xml:space="preserve"><value>No crafting bench - leftover deployables outside any base.</value></data>
+
+  <!-- WorldContainers -->
+  <data name="WorldContainers_ItemFallback" xml:space="preserve"><value>item</value></data>
+  <data name="WorldContainers_MoveFailedFormat" xml:space="preserve"><value>Move failed: {0}</value></data>
+  <data name="WorldContainers_NoPlayerSaveFound" xml:space="preserve"><value>No player save was found next to this world.</value></data>
+  <data name="WorldContainers_SaveOrRevertFirst" xml:space="preserve"><value>Save or revert your other world changes first, then send the item.</value></data>
+  <data name="WorldContainers_SelectSlotWithItemFirst" xml:space="preserve"><value>Select a slot that has an item in it first.</value></data>
+  <data name="WorldContainers_SendItemDialogMessage" xml:space="preserve"><value>Choose the player save that should receive this item.</value></data>
+  <data name="WorldContainers_SendItemDialogTitle" xml:space="preserve"><value>Send item to which player?</value></data>
+  <data name="WorldContainers_SendToPlayerMenu" xml:space="preserve"><value>Send to player</value></data>
+  <data name="WorldContainers_SendingItemFormat" xml:space="preserve"><value>Sending {0} to {1}...</value></data>
+  <data name="WorldContainers_SentItemFormat" xml:space="preserve"><value>Sent {0} to {1}'s {2}.</value></data>
+
+  <!-- WorldContainment -->
+  <data name="WorldContainment_BulkCompendiumWhat" xml:space="preserve"><value>unlock every compendium section world-wide</value></data>
+  <data name="WorldContainment_BulkEmailsWhat" xml:space="preserve"><value>mark every email as read world-wide</value></data>
+  <data name="WorldContainment_BulkItemsWhat" xml:space="preserve"><value>mark every catalog item as seen world-wide</value></data>
+  <data name="WorldContainment_BulkJournalsWhat" xml:space="preserve"><value>mark every journal page as found world-wide</value></data>
+  <data name="WorldContainment_ClassifiedAnomaly" xml:space="preserve"><value>▓ CLASSIFIED ANOMALY</value></data>
+  <data name="WorldContainment_DiscoveredCountFormat" xml:space="preserve"><value>{0} discovered</value></data>
+  <data name="WorldContainment_FoundCountFormat" xml:space="preserve"><value>{0} found</value></data>
+  <data name="WorldContainment_HeldInFacilitySave" xml:space="preserve"><value>Held in the Facility region save (WorldSave_Facility.sav).</value></data>
+  <data name="WorldContainment_HeldInNotOpenFormat" xml:space="preserve"><value>Held in {0} (not currently open in the sidebar).</value></data>
+  <data name="WorldContainment_HeldInOpenFormat" xml:space="preserve"><value>Held in {0}, which is open in the sidebar.</value></data>
+  <data name="WorldContainment_LocatingUnit" xml:space="preserve"><value>Locating the containment unit…</value></data>
+  <data name="WorldContainment_LocationUnresolved" xml:space="preserve"><value>Could not resolve the containment unit's location.</value></data>
+  <data name="WorldContainment_ReadCountFormat" xml:space="preserve"><value>{0} read</value></data>
+  <data name="WorldContainment_SectionUnlocksCountFormat" xml:space="preserve"><value>{0} section unlocks</value></data>
+  <data name="WorldContainment_SpoilerSubjectRecord" xml:space="preserve"><value>This containment record</value></data>
+  <data name="WorldContainment_TapHintRevealed" xml:space="preserve"><value>Tap for appearance + location</value></data>
+  <data name="WorldContainment_TapHintSealed" xml:space="preserve"><value>Above clearance - tap to reveal</value></data>
+  <data name="WorldContainment_UnitGuidFormat" xml:space="preserve"><value>Containment unit GUID: {0}</value></data>
+  <data name="WorldContainment_UnitNotFound" xml:space="preserve"><value>Containment unit not found in WorldSave_Facility.sav (it may have been picked up).</value></data>
+
+  <!-- WorldDoors -->
+  <data name="WorldDoors_ActorNotFound" xml:space="preserve"><value>This door's actor was not found in the cooked level (renamed by a game update?).</value></data>
+  <data name="WorldDoors_CountFormat" xml:space="preserve"><value>{0} DOORS</value></data>
+  <data name="WorldDoors_GameInstallNotFound" xml:space="preserve"><value>Game install not found - exact positions unavailable.</value></data>
+  <data name="WorldDoors_MapCaptionScatter" xml:space="preserve"><value>Crosshair = this door; dots = the other doors of the same sub-level (top-down, positions from the game's own level files).</value></data>
+  <data name="WorldDoors_MapCaptionSectorPin" xml:space="preserve"><value>Crosshair = this door on the in-game sector map (position from the game's level files; map fit is approximate). Dots = the level's other doors.</value></data>
+  <data name="WorldDoors_RegionFormat" xml:space="preserve"><value>Region: {0}</value></data>
+  <data name="WorldDoors_SubLevelNotReadable" xml:space="preserve"><value>This sub-level could not be read from the game files.</value></data>
+  <data name="WorldDoors_Title" xml:space="preserve"><value>DOORS</value></data>
+  <data name="WorldDoors_TitleWithRegionFormat" xml:space="preserve"><value>DOORS - {0}</value></data>
+
+  <!-- WorldEditor -->
+  <data name="WorldEditor_DroppedSummaryFormat" xml:space="preserve"><value>{0} item(s) on the ground</value></data>
+  <data name="WorldEditor_DroppedSummaryWithDeletionsFormat" xml:space="preserve"><value>{0} item(s) · {1} marked for deletion</value></data>
+  <data name="WorldEditor_ExportFailedFormat" xml:space="preserve"><value>Export failed: {0}</value></data>
+  <data name="WorldEditor_ExportedJsonFileTitle" xml:space="preserve"><value>Exported save JSON</value></data>
+  <data name="WorldEditor_ExportedJsonFormat" xml:space="preserve"><value>Exported {0:F1} MB → {1}</value></data>
+  <data name="WorldEditor_ExportingJson" xml:space="preserve"><value>Exporting JSON… (the Facility save produces ~100 MB, this can take a moment)</value></data>
+  <data name="WorldEditor_ImportFailedFormat" xml:space="preserve"><value>Import failed (save untouched): {0}</value></data>
+  <data name="WorldEditor_ImportedJsonFormat" xml:space="preserve"><value>Imported at {0:HH:mm:ss} · reload the file from the sidebar to see the changes.</value></data>
+  <data name="WorldEditor_ImportingJson" xml:space="preserve"><value>Importing JSON…</value></data>
+  <data name="WorldEditor_SaveFailedFormat" xml:space="preserve"><value>Save failed: {0}</value></data>
+  <data name="WorldEditor_SavedAtFormat" xml:space="preserve"><value>Saved at {0:HH:mm:ss}</value></data>
+  <data name="WorldEditor_Saving" xml:space="preserve"><value>Saving…</value></data>
+  <data name="WorldEditor_TabBases" xml:space="preserve"><value>BASES</value></data>
+  <data name="WorldEditor_TabContainers" xml:space="preserve"><value>CONTAINERS</value></data>
+  <data name="WorldEditor_TabContainment" xml:space="preserve"><value>CONTAINMENT</value></data>
+  <data name="WorldEditor_TabDoors" xml:space="preserve"><value>DOORS</value></data>
+  <data name="WorldEditor_TabDropped" xml:space="preserve"><value>DROPPED</value></data>
+  <data name="WorldEditor_TabPets" xml:space="preserve"><value>PETS</value></data>
+  <data name="WorldEditor_TabQuestFlags" xml:space="preserve"><value>QUEST FLAGS</value></data>
+  <data name="WorldEditor_TabRawJson" xml:space="preserve"><value>RAW JSON</value></data>
+  <data name="WorldEditor_TabStory" xml:space="preserve"><value>STORY</value></data>
+  <data name="WorldEditor_TabTraders" xml:space="preserve"><value>TRADERS</value></data>
+  <data name="WorldEditor_TabVehicles" xml:space="preserve"><value>VEHICLES</value></data>
+
+  <!-- WorldFeature -->
+  <data name="WorldFeature_DeviceNotFound" xml:space="preserve"><value>Device not found in any region save (it may have been removed)</value></data>
+  <data name="WorldFeature_TitleFormat" xml:space="preserve"><value>{0} IN THIS WORLD</value></data>
+
+  <!-- WorldFlags -->
+  <data name="WorldFlags_DescCompleted" xml:space="preserve"><value>Records that this objective/event was completed</value></data>
+  <data name="WorldFlags_DescDefeated" xml:space="preserve"><value>Records that this enemy was defeated</value></data>
+  <data name="WorldFlags_DescEntered" xml:space="preserve"><value>Records that the players entered this place for the first time</value></data>
+  <data name="WorldFlags_DescFound" xml:space="preserve"><value>Records that this thing was found</value></data>
+  <data name="WorldFlags_DescGeneric" xml:space="preserve"><value>One-way world event marker the game checks to gate content</value></data>
+  <data name="WorldFlags_DescMet" xml:space="preserve"><value>Records a first meeting with this character</value></data>
+  <data name="WorldFlags_DescOpened" xml:space="preserve"><value>Records that a door, gate or route here was opened</value></data>
+  <data name="WorldFlags_DescReached" xml:space="preserve"><value>Records that this point was reached</value></data>
+  <data name="WorldFlags_DescRepaired" xml:space="preserve"><value>Records that this machine/system was repaired</value></data>
+  <data name="WorldFlags_DescUnlock" xml:space="preserve"><value>Unlocks content (recipes, stock or access) tied to it</value></data>
+  <data name="WorldFlags_DescriptionFormat" xml:space="preserve"><value>{0} - {1} region. Setting it can skip the event; removing it can replay it (where the game re-checks).</value></data>
+  <data name="WorldFlags_StoryTriggerForChapter" xml:space="preserve"><value>Story trigger for chapter "{0}".</value></data>
+
+  <!-- WorldNpc -->
+  <data name="WorldNpc_Identity_TamedPet" xml:space="preserve"><value>Tamed pet companion</value></data>
+
+  <!-- WorldPets -->
+  <data name="WorldPets_MoveFailedFormat" xml:space="preserve"><value>Move failed: {0}</value></data>
+  <data name="WorldPets_NoPlayerSaveFound" xml:space="preserve"><value>No player save was found next to this world.</value></data>
+  <data name="WorldPets_SaveOrRevertFirst" xml:space="preserve"><value>Save or revert your other world changes first.</value></data>
+  <data name="WorldPets_SendingFormat" xml:space="preserve"><value>Sending {0} to {1}...</value></data>
+  <data name="WorldPets_SentFormat" xml:space="preserve"><value>Sent {0} to {1}. It now lives in that player's save.</value></data>
+
+  <!-- WorldStory -->
+  <data name="WorldStory_ChapterIndexFormat" xml:space="preserve"><value>chapter {0} of {1}</value></data>
+  <data name="WorldStory_ChapterSetStatusFormat" xml:space="preserve"><value>Chapter set · {0} trigger flag(s) added, {1} cleared in WorldSave_Facility.sav{2} (backups kept). Press SAVE to write the pointer.</value></data>
+  <data name="WorldStory_ChapterSyncFailedFormat" xml:space="preserve"><value>Chapter flag sync failed: {0}</value></data>
+  <data name="WorldStory_FlagBlockedFormat" xml:space="preserve"><value>Blocked: "{0}" needs {1} earlier flag(s) first ({2}). Select the flag for details, or use UNLOCK STORY THROUGH HERE on its chapter.</value></data>
+  <data name="WorldStory_LastPlayedFormat" xml:space="preserve"><value>LAST PLAYED {0}</value></data>
+  <data name="WorldStory_NoFixedStoryGateFormat" xml:space="preserve"><value>{0} (no fixed story gate - portal anomaly or meta flag)</value></data>
+  <data name="WorldStory_NoPrerequisites" xml:space="preserve"><value>No prerequisites - can be enabled at any time.</value></data>
+  <data name="WorldStory_PlayerCodexClearedFormat" xml:space="preserve"><value>, {0} player codex row(s) cleared ({1} save(s))</value></data>
+  <data name="WorldStory_PlaytimeFormat" xml:space="preserve"><value>{0}h {1:D2}m played</value></data>
+  <data name="WorldStory_PrereqChapterLabelFormat" xml:space="preserve"><value>{0} ({1})</value></data>
+  <data name="WorldStory_PrereqLineFormat" xml:space="preserve"><value>{0} {1}</value></data>
+  <data name="WorldStory_RegionOtherAnomaliesMeta" xml:space="preserve"><value>OTHER · ANOMALIES &amp; META</value></data>
+  <data name="WorldStory_SettingChapterStatus" xml:space="preserve"><value>Setting chapter + syncing Facility trigger flags…</value></data>
+  <data name="WorldStory_SpoilerSubjectQuestFlag" xml:space="preserve"><value>This quest flag</value></data>
+  <data name="WorldStory_TakesPlaceAroundFormat" xml:space="preserve"><value>Takes place around: {0}</value></data>
+  <data name="WorldStory_UnknownChapter" xml:space="preserve"><value>(unknown chapter)</value></data>
+  <data name="WorldStory_WorldCodexClearedFormat" xml:space="preserve"><value>, {0} world codex unlock(s) cleared</value></data>
+
+  <!-- WorldTraders -->
+  <data name="WorldTraders_Card_AlwaysStocked" xml:space="preserve"><value>always stocked</value></data>
+  <data name="WorldTraders_Card_LockedNeedsFlag" xml:space="preserve"><value>locked - needs {0}</value></data>
+  <data name="WorldTraders_Card_ThisTrader" xml:space="preserve"><value>This trader</value></data>
+  <data name="WorldTraders_Card_UnlockedFlagSet" xml:space="preserve"><value>unlocked ({0} is set)</value></data>
+  <data name="WorldTraders_FlagsAlreadySet" xml:space="preserve"><value>All of those flags are already set in this save.</value></data>
+  <data name="WorldTraders_NothingToUnlockFormat" xml:space="preserve"><value>{0}: nothing to unlock.</value></data>
+  <data name="WorldTraders_SellsFormat" xml:space="preserve"><value>Sells: {0}</value></data>
+  <data name="WorldTraders_StagedFlagsFormat" xml:space="preserve"><value>Staged {0} world flag(s) - press SAVE to write.</value></data>
+
+  <!-- WorldVehicles -->
+  <data name="WorldVehicles_AtSpawn" xml:space="preserve"><value>At spawn position.</value></data>
+  <data name="WorldVehicles_CountFormat" xml:space="preserve"><value>{0} vehicles</value></data>
+  <data name="WorldVehicles_CountSingular" xml:space="preserve"><value>1 vehicle</value></data>
+  <data name="WorldVehicles_ItemsOnBoard" xml:space="preserve"><value>{0} item(s) on board</value></data>
+  <data name="WorldVehicles_MovedFromSpawn" xml:space="preserve"><value>Moved from spawn ({0}).</value></data>
+  <data name="WorldVehicles_NoOnBoardStorage" xml:space="preserve"><value>no on-board storage</value></data>
+  <data name="WorldVehicles_ResolvingSpawn" xml:space="preserve"><value>Resolving spawn position…</value></data>
+  <data name="WorldVehicles_SpawnUnavailable" xml:space="preserve"><value>Spawn position unavailable (game install / mappings needed).</value></data>
+  <data name="WorldVehicles_UnknownWorld" xml:space="preserve"><value>Unknown world</value></data>
+  <data name="WorldVehicles_WorldFormat" xml:space="preserve"><value>World: {0}</value></data>
+
 </root>

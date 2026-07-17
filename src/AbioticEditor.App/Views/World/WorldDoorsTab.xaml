@@ -14,7 +14,7 @@
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
             <Label Grid.Column="0" Text="{Binding WorldEditor.DoorsRegionTitle}" Style="{StaticResource AfH2}" FontSize="18" VerticalOptions="Center" />
             <Label Grid.Column="1"
-                   Text="{Binding WorldEditor.Doors.Count, StringFormat='{0} DOORS'}"
+                   Text="{loc:LocalizeFormat WorldDoors_CountFormat, Arg0={Binding WorldEditor.Doors.Count}}"
                    Style="{StaticResource AfReadout}" FontSize="14"
                    VerticalOptions="Center" />
         </Grid>

@@ -335,7 +335,7 @@ internal sealed class PluginsPanel
             var context = PluginService.CreateMenuActionContext(
                 capability,
                 _vm.SelectedSave?.FullPath,
-                message => _owner.DisplayAlertAsync(capability.Value.Title, message, "OK"));
+                message => _owner.DisplayAlertAsync(capability.Value.Title, message, L["Common_Ok"]));
             await capability.Value.InvokeAsync(context);
         }
         catch (Exception ex)

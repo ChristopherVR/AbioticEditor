@@ -49,10 +49,10 @@ public sealed class WorldBaseViewModel
         {
             var benches = Source.Deployables.Where(d => d.IsCraftingBench).ToList();
             return benches.Count == 0
-                ? "No crafting bench - leftover deployables outside any base."
-                : "Anchored by: " + string.Join(", ", benches
+                ? Services.LocalizationResourceManager.Instance["WorldBases_NoCraftingBenchAnchor"]
+                : Services.LocalizationResourceManager.Instance.Format("WorldBases_AnchoredBy", string.Join(", ", benches
                     .GroupBy(b => b.DisplayName)
-                    .Select(g => g.Count() > 1 ? $"{g.Count()}× {g.Key}" : g.Key));
+                    .Select(g => g.Count() > 1 ? $"{g.Count()}× {g.Key}" : g.Key)));
         }
     }
 

@@ -164,14 +164,8 @@
                         <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.Entry.Description, FallbackValue=''}"
                                Style="{StaticResource AfFieldValue}" FontSize="12"
                                LineBreakMode="WordWrap" />
-                        <Label Style="{StaticResource AfStatusText}" FontSize="10">
-                            <Label.Text>
-                                <MultiBinding StringFormat="{}weight {0:0.##} kg · stack {1}">
-                                    <Binding Source="{x:Reference Root}" Path="BindingContext.ActiveSlot.Entry.Weight" />
-                                    <Binding Source="{x:Reference Root}" Path="BindingContext.ActiveSlot.Entry.StackSize" />
-                                </MultiBinding>
-                            </Label.Text>
-                        </Label>
+                        <Label Style="{StaticResource AfStatusText}" FontSize="10"
+                               Text="{loc:LocalizeFormat Slot_WeightStackFormat, Arg0={Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.Entry.Weight}, Arg1={Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.Entry.StackSize}}" />
                     </VerticalStackLayout>
                 </Border>
 
@@ -207,7 +201,7 @@
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                         <Label Grid.Column="0" Text="{loc:Localize Slot_Count}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                         <Label Grid.Column="1"
-                               Text="{Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.MaxStackSize, StringFormat='max {0}'}"
+                               Text="{loc:LocalizeFormat Slot_MaxStackFormat, Arg0={Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.MaxStackSize}}"
                                Style="{StaticResource AfMuted}" FontSize="10"
                                VerticalOptions="Center" />
                     </Grid>
@@ -361,7 +355,7 @@
                             <Image Source="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedChapter.CardImagePath}"
                                    Aspect="AspectFill" />
                         </Border>
-                        <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedChapter.StatusText, StringFormat='STATUS: {0}'}"
+                        <Label Text="{loc:LocalizeFormat Slot_StatusFormat, Arg0={Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedChapter.StatusText}}"
                                Style="{StaticResource AfFieldLabel}"
                                TextColor="{StaticResource AfTerminalGreen}" />
                         <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.WorldEditor.SelectedChapter.Summary}"
@@ -411,7 +405,7 @@
                             <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
                                 <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.PlayerEditor.SelectedMilestone.ShownPerk}"
                                        Style="{StaticResource AfH2}" FontSize="15" LineBreakMode="WordWrap" />
-                                <Label Text="{Binding Source={x:Reference Root}, Path=BindingContext.PlayerEditor.SelectedMilestone.SkillName, StringFormat='{0} skill'}"
+                                <Label Text="{loc:LocalizeFormat Slot_SkillFormat, Arg0={Binding Source={x:Reference Root}, Path=BindingContext.PlayerEditor.SelectedMilestone.SkillName}}"
                                        Style="{StaticResource AfStatusText}" FontSize="9" />
                             </VerticalStackLayout>
                             <Button Grid.Column="2" Text="✕"

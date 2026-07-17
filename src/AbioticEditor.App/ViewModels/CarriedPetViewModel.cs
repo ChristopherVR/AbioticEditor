@@ -46,7 +46,12 @@ public sealed class CarriedPetViewModel : INotifyPropertyChanged
     public PetSlotKind Slot => _original.Slot;
     public int Index => _original.Index;
     public bool IsCompanionSlot => _original.IsCompanionSlot;
-    public string SlotText => IsCompanionSlot ? "Companion slot" : $"{Slot} slot {Index}";
+    public string SlotText => IsCompanionSlot
+        ? Services.LocalizationResourceManager.Instance["PlayerPets_CompanionSlot"]
+        : Services.LocalizationResourceManager.Instance.Format("PlayerPets_SlotFormat", SlotKindLabel, Index);
+
+    private string SlotKindLabel
+        => Services.LocalizationResourceManager.Instance.GetOrNull($"PlayerPets_SlotKind_{Slot}") ?? Slot.ToString();
 
     public IReadOnlyList<string> VariantNames { get; }
     public ICommand HealCommand { get; }
@@ -110,7 +115,10 @@ public sealed class CarriedPetViewModel : INotifyPropertyChanged
         set { if (_isDeleted != value) { _isDeleted = value; Notify(nameof(IsDeleted), nameof(StatusText), nameof(IsDirty)); _onChanged(); } }
     }
 
-    public string StatusText => _isDeleted ? "WILL BE REMOVED" : $"Lv {Level}  hp {_health:0}/{_maxHealth:0}";
+    public string StatusText => _isDeleted
+        ? Services.LocalizationResourceManager.Instance["PlayerPets_StatusWillBeRemoved"]
+        : Services.LocalizationResourceManager.Instance.Format(
+            "PlayerPets_StatusLvHpFormat", Level, $"{_health:0}", $"{_maxHealth:0}");
 
     public bool IsDirty =>
         _isDeleted

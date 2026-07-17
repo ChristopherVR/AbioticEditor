@@ -11,7 +11,9 @@ public sealed class TraitItemViewModel
         Id = id;
         GameDataServices.TraitDetails.TryGetValue(id, out var detail);
         Detail = detail;
-        DisplayName = detail?.DisplayName ?? TraitCatalog.DisplayNameFor(id);
+        // Game-data name first (already in the game-data language), then the resx-translated
+        // fallback for the curated catalog (TraitLocalization keeps unknown ids as-is).
+        DisplayName = detail?.DisplayName ?? TraitLocalization.DisplayNameFor(id);
     }
 
     public string Id { get; }

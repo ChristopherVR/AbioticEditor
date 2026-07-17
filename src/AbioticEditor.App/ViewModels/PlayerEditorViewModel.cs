@@ -38,7 +38,7 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
 
         // Version sanity: warn when the save is newer than this editor knows, or its
         // save class wasn't recognized at all.
-        CompatibilityWarning = Core.Compatibility.SaveCompatibility.WarningFor(data.Raw);
+        CompatibilityWarning = CompatibilityLocalization.WarningFor(data.Raw);
         if (CompatibilityWarning is not null)
         {
             Core.Diagnostics.EditorLog.Warn(
@@ -218,9 +218,9 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
         }
         var label = countProperty switch
         {
-            nameof(ItemsPickedUpText) => "items discovered",
-            nameof(CraftedItemsText) => "crafted items discovered",
-            nameof(MapsText) => "maps unlocked",
+            nameof(ItemsPickedUpText) => LocalizationResourceManager.Instance["PlayerEditor_ItemsDiscovered"],
+            nameof(CraftedItemsText) => LocalizationResourceManager.Instance["PlayerEditor_CraftedItemsDiscovered"],
+            nameof(MapsText) => LocalizationResourceManager.Instance["PlayerEditor_MapsUnlocked"],
             _ => countProperty,
         };
         Core.Diagnostics.EditorLog.Info("Edit", $"Discover all ({label}): {before} -> {target.Count}");
@@ -271,7 +271,9 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
     // ----- General tab account row (Steam vs Game Pass / non-Steam) -----
 
     /// <summary>Label for the account-id row: a SteamID64 on Steam, a generic account id otherwise.</summary>
-    public string OwnerIdLabel => IsSteamSave ? "STEAM ID 64" : "ACCOUNT ID";
+    public string OwnerIdLabel => IsSteamSave
+        ? LocalizationResourceManager.Instance["PlayerEditor_SteamId64Label"]
+        : LocalizationResourceManager.Instance["PlayerEditor_AccountIdLabel"];
 
     /// <summary>The id shown in the account field (the real owner id, not the numeric 0 a non-Steam
     /// save would show through <see cref="SteamId64"/>).</summary>
@@ -327,7 +329,8 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
         {
             var def = skill.Index < defs.Count
                 ? defs[skill.Index]
-                : new SkillDefinition(skill.Index, $"UnknownSkill{skill.Index}", $"Unknown skill #{skill.Index}", null, null);
+                : new SkillDefinition(skill.Index, $"UnknownSkill{skill.Index}",
+                    LocalizationResourceManager.Instance.Format("PlayerEditor_UnknownSkill", skill.Index), null, null);
 
             result.Add(new SkillViewModel(skill, def, iconPath: null));
         }
@@ -385,13 +388,13 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
     }
 
     /// <summary>All known trait ids, for the add-trait picker.</summary>
-    public IReadOnlyList<TraitOption> KnownTraits { get; } = TraitCatalog.Traits
-        .Select(kv => new TraitOption(kv.Key, kv.Value))
+    public IReadOnlyList<TraitOption> KnownTraits { get; } = TraitCatalog.Traits.Keys
+        .Select(id => new TraitOption(id, TraitLocalization.DisplayNameFor(id)))
         .OrderBy(t => t.DisplayName, StringComparer.OrdinalIgnoreCase)
         .ToList();
 
-    public IReadOnlyList<TraitOption> KnownBackgrounds { get; } = TraitCatalog.Backgrounds
-        .Select(kv => new TraitOption(kv.Key, kv.Value))
+    public IReadOnlyList<TraitOption> KnownBackgrounds { get; } = TraitCatalog.Backgrounds.Keys
+        .Select(id => new TraitOption(id, TraitLocalization.DisplayNameFor(id)))
         .ToList();
 
     public TraitOption? SelectedNewTrait
@@ -479,7 +482,7 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
                     ?? (d is { AvailableOnStart: false }
                         ? LocalizationResourceManager.Instance["PlayerEditor_CutTraitDescription"]
                         : null);
-                return new TraitBrowserRow(id, d?.DisplayName ?? TraitCatalog.DisplayNameFor(id), description, d?.PointCost ?? 0);
+                return new TraitBrowserRow(id, d?.DisplayName ?? TraitLocalization.DisplayNameFor(id), description, d?.PointCost ?? 0);
             })
             .OrderBy(t => t.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -596,20 +599,22 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
         try
         {
             IsSaving = true;
-            RawStatus = "Exporting JSON…";
+            RawStatus = LocalizationResourceManager.Instance["PlayerEditor_ExportingJson"];
             await Task.Run(() => SaveJsonBridge.ExportJsonToFile(_data.Raw, JsonPath));
-            RawStatus = $"Exported {new FileInfo(JsonPath).Length / 1024.0 / 1024.0:F1} MB → {Path.GetFileName(JsonPath)}";
+            RawStatus = LocalizationResourceManager.Instance.Format("PlayerEditor_ExportedJson",
+                $"{new FileInfo(JsonPath).Length / 1024.0 / 1024.0:F1}", Path.GetFileName(JsonPath));
             Core.Diagnostics.EditorLog.Info("Json", $"Exported player JSON: {Path.GetFileName(JsonPath)}");
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(JsonFileExists)));
             (ImportJsonCommand as RelayCommand)?.RaiseCanExecuteChanged();
 
             // Hand off to the user's default .json editor / share sheet.
-            await Launcher.Default.OpenAsync(new OpenFileRequest("Exported save JSON", new ReadOnlyFile(JsonPath)));
+            await Launcher.Default.OpenAsync(new OpenFileRequest(
+                LocalizationResourceManager.Instance["PlayerEditor_ExportedJsonTitle"], new ReadOnlyFile(JsonPath)));
         }
         catch (Exception ex)
         {
             Core.Diagnostics.EditorLog.Error("Json", $"Export player JSON failed: {Path.GetFileName(JsonPath)}", ex);
-            RawStatus = $"Export failed: {ex.Message}";
+            RawStatus = LocalizationResourceManager.Instance.Format("PlayerEditor_ExportFailed", ex.Message);
         }
         finally
         {
@@ -623,15 +628,15 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
         try
         {
             IsSaving = true;
-            RawStatus = "Importing JSON…";
+            RawStatus = LocalizationResourceManager.Instance["PlayerEditor_ImportingJson"];
             await Task.Run(() => SaveJsonBridge.ImportJsonFromFile(JsonPath, _path));
             Core.Diagnostics.EditorLog.Info("Json", $"Imported player JSON into {Path.GetFileName(_path)} from {Path.GetFileName(JsonPath)}");
-            RawStatus = $"Imported at {DateTime.Now:HH:mm:ss} · reload the file from the sidebar to see the changes.";
+            RawStatus = LocalizationResourceManager.Instance.Format("PlayerEditor_ImportedJson", $"{DateTime.Now:HH:mm:ss}");
         }
         catch (Exception ex)
         {
             Core.Diagnostics.EditorLog.Error("Json", $"Import player JSON failed: {Path.GetFileName(JsonPath)}", ex);
-            RawStatus = $"Import failed (save untouched): {ex.Message}";
+            RawStatus = LocalizationResourceManager.Instance.Format("PlayerEditor_ImportFailed", ex.Message);
         }
         finally
         {
@@ -776,7 +781,8 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
         if (_data.TerminalRespawnId is { } current
             && RespawnTerminalCatalog.NameFor(current) is null)
         {
-            options.Insert(0, new RespawnTerminalOption(current, $"Unknown terminal ({current[..Math.Min(8, current.Length)]}…)"));
+            options.Insert(0, new RespawnTerminalOption(current,
+                LocalizationResourceManager.Instance.Format("PlayerEditor_UnknownTerminal", current[..Math.Min(8, current.Length)])));
         }
         TerminalOptions = options;
         _selectedTerminal = options.FirstOrDefault(o =>
@@ -864,9 +870,11 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
         get
         {
             var guid = _data.RespawnLevelGuid;
-            if (guid is null) return "No respawn level recorded.";
+            if (guid is null) return LocalizationResourceManager.Instance["PlayerEditor_NoRespawnLevel"];
             var match = _levelOptions.FirstOrDefault(l => string.Equals(l.OptionGuid, guid, StringComparison.OrdinalIgnoreCase));
-            return match is not null ? $"Level: {match.Label}" : $"Level GUID: {guid}";
+            return match is not null
+                ? LocalizationResourceManager.Instance.Format("PlayerEditor_RespawnLevel", match.Label)
+                : LocalizationResourceManager.Instance.Format("PlayerEditor_RespawnLevelGuid", guid);
         }
     }
 
@@ -1103,7 +1111,7 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
                 return data.Deployables.Where(d => d.IsPetBed)
                     .Select((d, i) => new PetBedOption(
                         d.X, d.Y, d.Z,
-                        $"Bed {i + 1}: {d.DisplayName}"
+                        LocalizationResourceManager.Instance.Format("PlayerEditor_PetBedOption", i + 1, d.DisplayName)
                             + (area is { Length: > 0 } ? $" - {area}" : string.Empty)))
                     .ToList();
             });
@@ -1116,7 +1124,7 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            PetMoveStatus = $"Could not read pet beds in {world.Name}: {ex.Message}";
+            PetMoveStatus = LocalizationResourceManager.Instance.Format("PlayerEditor_PetBedsReadFailed", world.Name, ex.Message);
         }
     }
 
@@ -1134,12 +1142,12 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
         if (pet is null) return;
         if (SelectedSiblingWorld is not { } target)
         {
-            PetMoveStatus = "No world save was found next to this player.";
+            PetMoveStatus = LocalizationResourceManager.Instance["PlayerEditor_NoSiblingWorld"];
             return;
         }
         if (IsDirty)
         {
-            PetMoveStatus = "Save or revert your other player changes first.";
+            PetMoveStatus = LocalizationResourceManager.Instance["PlayerEditor_SaveOrRevertFirst"];
             return;
         }
         try
@@ -1168,14 +1176,16 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
             if (ReferenceEquals(_selectedCarriedPet, pet)) SelectedCarriedPet = null;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CarriedPets)));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasCarriedPets)));
-            var where = chosen?.Label ?? (fallbackBed is not null ? "a pet bed" : "the world origin");
-            PetMoveStatus = $"{result.Message} (placed at {where} in {target.Name})";
+            var where = chosen?.Label ?? (fallbackBed is not null
+                ? LocalizationResourceManager.Instance["PlayerEditor_PetBedFallback"]
+                : LocalizationResourceManager.Instance["PlayerEditor_WorldOriginFallback"]);
+            PetMoveStatus = LocalizationResourceManager.Instance.Format("PlayerEditor_PetPlacedAt", result.Message, where, target.Name);
             // The world now has one more pet; refresh the bed list's source world parse is unneeded.
             Refresh();
         }
         catch (Exception ex)
         {
-            PetMoveStatus = $"Move failed: {ex.Message}";
+            PetMoveStatus = LocalizationResourceManager.Instance.Format("PlayerEditor_PetMoveFailed", ex.Message);
         }
     }
 
@@ -1380,7 +1390,7 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
         if (!IsDirty || IsSaving) return;
 
         IsSaving = true;
-        SaveStatus = "Saving…";
+        SaveStatus = LocalizationResourceManager.Instance["PlayerEditor_Saving"];
         try
         {
             var updatedStats = new CharacterStats(_hunger, _thirst, _sanity, _fatigue, _continence, _money);
@@ -1490,12 +1500,12 @@ public sealed class PlayerEditorViewModel : INotifyPropertyChanged
             var persona = ResolvePersonaName();
             Core.Diagnostics.EditorLog.Info("PlayerSave",
                 $"Saved player {SteamId64}{(persona is null ? string.Empty : $" ({persona})")} - {Path.GetFileName(_path)}");
-            SaveStatus = $"Saved at {DateTime.Now:HH:mm:ss}";
+            SaveStatus = LocalizationResourceManager.Instance.Format("PlayerEditor_SavedAt", $"{DateTime.Now:HH:mm:ss}");
             Saved?.Invoke();
         }
         catch (Exception ex)
         {
-            SaveStatus = $"Save failed: {ex.Message}";
+            SaveStatus = LocalizationResourceManager.Instance.Format("PlayerEditor_SaveFailed", ex.Message);
         }
         finally
         {

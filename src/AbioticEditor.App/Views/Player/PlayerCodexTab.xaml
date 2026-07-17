@@ -176,7 +176,7 @@
                                         <Image Source="{Binding PlayerEditor.Codex.Selected.WikiImagePath}"
                                                Aspect="AspectFit" />
                                     </Border>
-                                    <Label Text="Image: abioticfactor.wiki.gg"
+                                    <Label Text="{loc:Localize Slot_ImageAbioticfactorWikiGg}"
                                            Style="{StaticResource AfMuted}" FontSize="8" />
                                 </VerticalStackLayout>
 
@@ -209,7 +209,7 @@
                                                 <Label Text="{Binding PlayerEditor.Codex.Selected.FishUnlockName}"
                                                        Style="{StaticResource AfFieldValue}" FontSize="13" LineBreakMode="WordWrap" />
                                             </VerticalStackLayout>
-                                            <Label Grid.Column="2" Text="OPEN ›"
+                                            <Label Grid.Column="2" Text="{loc:Localize PlayerCodex_Open}"
                                                    Style="{StaticResource AfFieldLabel}" FontSize="9"
                                                    TextColor="{DynamicResource AfTerminalGreen}" VerticalOptions="Center" />
                                         </Grid>
@@ -262,7 +262,7 @@
                                                 <Label Text="{Binding PlayerEditor.Codex.Selected.FishRequiredBaitName}"
                                                        Style="{StaticResource AfFieldValue}" FontSize="13" LineBreakMode="WordWrap" />
                                             </VerticalStackLayout>
-                                            <Label Grid.Column="2" Text="OPEN ›"
+                                            <Label Grid.Column="2" Text="{loc:Localize PlayerCodex_Open}"
                                                    Style="{StaticResource AfFieldLabel}" FontSize="9"
                                                    TextColor="{DynamicResource AfAmber}" VerticalOptions="Center" />
                                         </Grid>

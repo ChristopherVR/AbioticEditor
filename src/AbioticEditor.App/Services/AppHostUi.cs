@@ -31,12 +31,15 @@ internal sealed class AppHostUi : IHostUi
         {
             if (CurrentPage is { } page)
             {
-                await page.DisplayAlertAsync(title, message, "OK");
+                await page.DisplayAlertAsync(title, message, LocalizationResourceManager.Instance["Common_Ok"]);
             }
         });
 
     public Task<bool> ConfirmAsync(string title, string message)
-        => OnUiAsync(async () => CurrentPage is { } page && await page.DisplayAlertAsync(title, message, "Yes", "No"));
+        => OnUiAsync(async () => CurrentPage is { } page && await page.DisplayAlertAsync(
+            title, message,
+            LocalizationResourceManager.Instance["Common_Yes"],
+            LocalizationResourceManager.Instance["Common_No"]));
 
     public Task ToastAsync(string message)
         => OnUiAsync(async () => await Toast.Make(message).Show());

@@ -27,8 +27,11 @@ public sealed class PaletteItemViewModel : INotifyPropertyChanged
     {
         get
         {
-            var stats = $"stack {Entry.StackSize} · {Entry.Weight:0.##} kg"
-                + (Entry.MaxDurability > 0 ? $" · durability {Entry.MaxDurability:F0}" : "");
+            var stats = LocalizationResourceManager.Instance.Format(
+                    "Palette_TooltipStats", Entry.StackSize, $"{Entry.Weight:0.##}")
+                + (Entry.MaxDurability > 0
+                    ? LocalizationResourceManager.Instance.Format("Palette_TooltipDurability", $"{Entry.MaxDurability:F0}")
+                    : "");
             return string.IsNullOrWhiteSpace(Entry.Description)
                 ? $"{DisplayName}\n{stats}"
                 : $"{DisplayName}\n{stats}\n\n{Entry.Description}";
@@ -260,7 +263,9 @@ public sealed class ItemPaletteViewModel : INotifyPropertyChanged
 
     public bool HasRoleFilter => _roleFilter is not null;
 
-    public string RoleFilterText => _roleFilter is null ? string.Empty : $"FITS {_roleFilter} SLOT";
+    public string RoleFilterText => _roleFilter is null
+        ? string.Empty
+        : LocalizationResourceManager.Instance.Format("Palette_FitsSlot", _roleFilter);
 
     /// <summary>When on (default), the palette hides items the selected equipment slot rejects.</summary>
     public bool FilterToRole
@@ -325,8 +330,8 @@ public sealed class ItemPaletteViewModel : INotifyPropertyChanged
     public bool HasMore => _visibleCount < _totalMatches;
 
     public string MatchSummary => _totalMatches <= _visibleCount
-        ? $"{_totalMatches} item(s)"
-        : $"showing {_visibleCount} of {_totalMatches}";
+        ? LocalizationResourceManager.Instance.Format("Palette_ItemCount", _totalMatches)
+        : LocalizationResourceManager.Instance.Format("Palette_ShowingOf", _visibleCount, _totalMatches);
 
     private void ApplyFilter()
     {

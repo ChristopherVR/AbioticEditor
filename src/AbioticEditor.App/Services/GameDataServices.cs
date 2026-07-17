@@ -165,25 +165,19 @@ public static class GameDataServices
     /// </summary>
     public static string StatusMessage => _status switch
     {
-        GameDataStatus.Ready => "Game data loaded.",
+        GameDataStatus.Ready => LocalizationResourceManager.Instance["GameData_StatusReady"],
         GameDataStatus.InstallNotFound =>
             (_usingRegistry
-                ? "Abiotic Factor's data files weren't found, so the editor is using its bundled data "
-                  + "(item names and stats work, but icons need the game). "
-                : "Abiotic Factor's data files were not found, so the item, recipe and lore catalogs "
-                  + "are empty. ")
-            + "Open Settings > Game Data and choose LOCATE GAME FOLDER to point the "
-            + "editor at your install (this works for non-Steam copies too).",
+                ? LocalizationResourceManager.Instance["GameData_StatusInstallNotFoundBundled"]
+                : LocalizationResourceManager.Instance["GameData_StatusInstallNotFound"])
+            + " " + LocalizationResourceManager.Instance["GameData_StatusLocateHint"],
         GameDataStatus.MappingsMissing =>
             (_usingRegistry
-                ? "The game was found but Mappings.usmap is missing, so the editor is using its bundled "
-                  + "data (item names and stats work, but icons need the game). "
-                : "The game was found, but Mappings.usmap is missing so its data tables can't be read. ")
-            + "Keep Mappings.usmap next to the editor, or import one in Settings > Game Data.",
-        GameDataStatus.LoadFailed =>
-            "Game data failed to load. Turn on diagnostic logging in Settings and check the log "
-            + "for the cause.",
-        _ => "Game data has not been loaded yet.",
+                ? LocalizationResourceManager.Instance["GameData_StatusMappingsMissingBundled"]
+                : LocalizationResourceManager.Instance["GameData_StatusMappingsMissing"])
+            + " " + LocalizationResourceManager.Instance["GameData_StatusMappingsHint"],
+        GameDataStatus.LoadFailed => LocalizationResourceManager.Instance["GameData_StatusLoadFailed"],
+        _ => LocalizationResourceManager.Instance["GameData_StatusNotLoaded"],
     };
 
     /// <summary>

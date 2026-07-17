@@ -143,7 +143,16 @@ public sealed class WorldPetViewModel : INotifyPropertyChanged
         ? _name
         : PetCatalog.FriendlyName(_npcClass) ?? _original.ShortClass;
 
-    public string FamilyName => PetCatalog.Categorize(_npcClass).ToString();
+    /// <summary>Localized family label ("Pest", "Lamogi", ...); resx-keyed on the stable enum name.</summary>
+    public string FamilyName
+    {
+        get
+        {
+            var category = PetCatalog.Categorize(_npcClass);
+            return Services.LocalizationResourceManager.Instance.GetOrNull($"WorldPets_Family_{category}")
+                ?? category.ToString();
+        }
+    }
 
     public string FriendlyClass => PetCatalog.FriendlyName(_npcClass) ?? _original.ShortClass;
 
@@ -300,13 +309,14 @@ public sealed class WorldPetViewModel : INotifyPropertyChanged
     {
         get
         {
-            if (_isDeleted) return "WILL BE DELETED";
+            var loc = Services.LocalizationResourceManager.Instance;
+            if (_isDeleted) return loc["WorldPets_StatusWillBeDeleted"];
             return PetHealth.Status(ToCurrent()) switch
             {
-                PetStatus.Dead => "DEAD",
-                PetStatus.Downed => "DOWNED",
-                PetStatus.Hurt => "HURT",
-                _ => "HEALTHY",
+                PetStatus.Dead => loc["WorldPets_StatusDead"],
+                PetStatus.Downed => loc["WorldPets_StatusDowned"],
+                PetStatus.Hurt => loc["WorldPets_StatusHurt"],
+                _ => loc["WorldPets_StatusHealthy"],
             };
         }
     }

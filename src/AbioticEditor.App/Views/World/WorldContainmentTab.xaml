@@ -81,7 +81,7 @@
                                                    Aspect="AspectFit"
                                                    IsVisible="{Binding HasImage}" />
                                         </Border>
-                                        <Label Text="Image: abioticfactor.wiki.gg"
+                                        <Label Text="{loc:Localize Slot_ImageAbioticfactorWikiGg}"
                                                Style="{StaticResource AfMuted}" FontSize="8"
                                                IsVisible="{Binding ImageIsWiki}" />
                                     </VerticalStackLayout>
@@ -110,7 +110,7 @@
                                                Style="{StaticResource AfStatusText}" FontSize="10"
                                                IsVisible="{Binding HasContainingSave}"
                                                LineBreakMode="WordWrap" />
-                                        <Label Text="{Binding ContainmentId, StringFormat='Containment unit GUID: {0}'}"
+                                        <Label Text="{loc:LocalizeFormat WorldContainment_UnitGuidFormat, Arg0={Binding ContainmentId}}"
                                                Style="{StaticResource AfStatusText}" FontSize="9"
                                                LineBreakMode="MiddleTruncation" />
                                     </VerticalStackLayout>

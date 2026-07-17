@@ -108,7 +108,7 @@ public sealed class RecipeRowViewModel : INotifyPropertyChanged
             $"{i.Count}× {GameDataServices.Catalog?.Find(i.ItemId)?.DisplayName ?? i.ItemId}"));
 
     public string BenchesText => Info.BenchList.Count == 0
-        ? "Hands (no bench required)"
+        ? LocalizationResourceManager.Instance["PlayerRecipes_HandsNoBench"]
         : string.Join(", ", Info.BenchList.Select(b => GameDataServices.Catalog?.Find(b)?.DisplayName ?? b));
 
     public string OutputText => Info.Count > 1 ? $"Makes {Info.Count}×" : "Makes 1×";
@@ -168,7 +168,8 @@ public sealed class RecipeRowViewModel : INotifyPropertyChanged
             var catalog = GameDataServices.Catalog;
             var cost = string.Join(", ", up.Required.Select(r =>
                 $"{r.Count}× {catalog?.Find(r.ItemId)?.DisplayName ?? r.ItemId}"));
-            return $"Upgrades to {catalog?.Find(up.OutputId)?.DisplayName ?? up.OutputId}"
+            return LocalizationResourceManager.Instance.Format(
+                    "PlayerRecipes_UpgradesTo", catalog?.Find(up.OutputId)?.DisplayName ?? up.OutputId)
                 + (cost.Length > 0 ? $" ({cost})" : string.Empty);
         }
     }
@@ -237,7 +238,7 @@ public sealed class RecipeRowViewModel : INotifyPropertyChanged
     public async Task RevealAsync()
     {
         if (!IsConcealed) return;
-        if (await SpoilerPrompt.RevealAsync("This recipe", SpoilerKey))
+        if (await SpoilerPrompt.RevealAsync(LocalizationResourceManager.Instance["PlayerRecipes_ThisRecipe"], SpoilerKey))
         {
             NotifyConcealment();
             _owner.OnRevealed();
@@ -421,8 +422,8 @@ public sealed class RecipeListViewModel : INotifyPropertyChanged
     public int UnlockedCount => _rows.Count(r => r.IsUnlocked) + _unknownUnlocked.Count;
     public int TotalCount => _rows.Count + _unknownUnlocked.Count;
     public string CountText => IsAvailable
-        ? $"{UnlockedCount} of {TotalCount} unlocked"
-        : "game data unavailable - recipe browser disabled";
+        ? LocalizationResourceManager.Instance.Format("PlayerRecipes_CountUnlocked", UnlockedCount, TotalCount)
+        : LocalizationResourceManager.Instance["PlayerRecipes_GameDataUnavailable"];
 
     public bool IsDirty
     {

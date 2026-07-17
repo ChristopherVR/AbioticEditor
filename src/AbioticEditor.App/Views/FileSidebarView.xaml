@@ -28,7 +28,7 @@
                             StrokeShape="RoundRectangle 4"
                             Padding="8,2"
                             VerticalOptions="Center"
-                            ToolTipProperties.Text="The save format this folder uses">
+                            ToolTipProperties.Text="{loc:Localize FileSidebar_SaveFormatTooltip}">
                         <Label Text="{Binding CurrentSaveType}"
                                Style="{StaticResource AfFieldLabel}"
                                FontSize="9"
@@ -76,7 +76,7 @@
                     </Grid>
                 </Border>
 
-                <Label Text="{Binding Saves.Count, StringFormat='{0} item(s)'}"
+                <Label Text="{loc:LocalizeFormat FileSidebar_ItemCountFormat, Arg0={Binding Saves.Count}}"
                        Style="{StaticResource AfMuted}" />
             </VerticalStackLayout>
 

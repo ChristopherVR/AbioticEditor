@@ -203,7 +203,7 @@ public sealed class InventorySlotViewModel : INotifyPropertyChanged
     /// Returns a human-readable problem or null when the item fits.
     /// </summary>
     public static string? ValidateForRole(string? Role, ItemCatalogEntry? Entry)
-        => EquipSlotTypes.ValidateForRole(Role, Entry);
+        => EquipSlotLocalization.ValidateForRole(Role, Entry);
 
     /// <summary>
     /// Prospective placement check for a target slot, usable BEFORE assigning an item.
@@ -214,9 +214,9 @@ public sealed class InventorySlotViewModel : INotifyPropertyChanged
     /// </summary>
     public static string? ValidateForSlot(InventoryKind kind, string? role, ItemCatalogEntry? entry)
     {
-        if (EquipSlotTypes.ValidateForRole(role, entry) is { } roleProblem) return roleProblem;
+        if (EquipSlotLocalization.ValidateForRole(role, entry) is { } roleProblem) return roleProblem;
         if (kind == InventoryKind.Main && EquipSlotTypes.IsHotbarOnly(entry))
-            return "Pets are hotbar-only - not allowed in the backpack";
+            return LocalizationResourceManager.Instance["EquipSlot_PetsHotbarOnly"];
         return null;
     }
 

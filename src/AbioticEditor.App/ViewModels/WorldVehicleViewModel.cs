@@ -29,6 +29,8 @@ public sealed class WorldVehicleViewModel : INotifyPropertyChanged
     private bool _spawnRequested;
     private bool _spawnResolved;
 
+    private static Services.LocalizationResourceManager Loc => Services.LocalizationResourceManager.Instance;
+
     public WorldVehicleViewModel(WorldVehicle source, Action onChanged, Action<string> openInventory)
     {
         _original = source;
@@ -106,8 +108,8 @@ public sealed class WorldVehicleViewModel : INotifyPropertyChanged
 
     public bool HasInventory => _original.HasInventory;
     public string InventoryText => _original.HasInventory
-        ? $"{_original.InventoryItemCount} item(s) on board"
-        : "no on-board storage";
+        ? Loc.Format("WorldVehicles_ItemsOnBoard", _original.InventoryItemCount)
+        : Loc["WorldVehicles_NoOnBoardStorage"];
 
     // ----- appearance (abioticfactor.wiki.gg, same mechanism as the fish codex) -----
 
@@ -123,9 +125,11 @@ public sealed class WorldVehicleViewModel : INotifyPropertyChanged
     {
         get
         {
-            if (!_spawnResolved) return "Resolving spawn position…";
-            if (_spawn is not { } s) return "Spawn position unavailable (game install / mappings needed).";
-            return AtSpawn ? "At spawn position." : $"Moved from spawn ({s.X:F0}, {s.Y:F0}, {s.Z:F0}).";
+            if (!_spawnResolved) return Loc["WorldVehicles_ResolvingSpawn"];
+            if (_spawn is not { } s) return Loc["WorldVehicles_SpawnUnavailable"];
+            return AtSpawn
+                ? Loc["WorldVehicles_AtSpawn"]
+                : Loc.Format("WorldVehicles_MovedFromSpawn", $"{s.X:F0}, {s.Y:F0}, {s.Z:F0}");
         }
     }
 

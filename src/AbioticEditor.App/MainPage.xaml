@@ -9,7 +9,7 @@
              x:Class="AbioticEditor.App.MainPage"
              x:Name="Root"
              x:DataType="vm:MainViewModel"
-             Title="Abiotic Factor: Save Editor"
+             Title="{loc:Localize Main_PageTitle}"
              BackgroundColor="{StaticResource AfPageBackground}"
              Shell.NavBarIsVisible="False">
 

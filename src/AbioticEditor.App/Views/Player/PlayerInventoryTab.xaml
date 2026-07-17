@@ -49,7 +49,7 @@
                             <Label Grid.Column="0" Text="{loc:Localize PlayerInventory_Equipment}" Style="{StaticResource AfFieldLabel}" VerticalOptions="Center" />
                             <VerticalStackLayout Grid.Column="1" Spacing="0" HorizontalOptions="End">
                                 <Label Text="{loc:Localize PlayerInventory_Weight}" Style="{StaticResource AfFieldLabel}" HorizontalTextAlignment="End" />
-                                <Label Text="{Binding PlayerEditor.TotalWeight, StringFormat='{0:F1} kg'}"
+                                <Label Text="{loc:LocalizeFormat PlayerInventory_WeightKgFormat, Arg0={Binding PlayerEditor.TotalWeight}}"
                                        Style="{StaticResource AfReadout}" FontSize="20"
                                        HorizontalTextAlignment="End" />
                             </VerticalStackLayout>
@@ -179,7 +179,7 @@
                                    Style="{StaticResource AfFieldLabel}"
                                    TextColor="{DynamicResource AfAmber}" FontSize="12" CharacterSpacing="5" />
                             <Label Grid.Column="1"
-                                   Text="{Binding PlayerEditor.Main.Count, StringFormat='{0} SLOTS'}"
+                                   Text="{loc:LocalizeFormat PlayerInventory_SlotsFormat, Arg0={Binding PlayerEditor.Main.Count}}"
                                    Style="{StaticResource AfStatusText}" />
                         </Grid>
                         <CollectionView ItemsSource="{Binding PlayerEditor.Main}"

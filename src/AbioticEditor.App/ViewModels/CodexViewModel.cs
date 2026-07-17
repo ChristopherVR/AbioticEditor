@@ -61,8 +61,8 @@ public sealed class CodexItemViewModel : INotifyPropertyChanged
 
     public bool HasKillTracking => KillRequired is not null;
     public string KillText => KillRequired is null ? string.Empty
-        : _killCount is null ? $"kills: not tracked yet · {KillRequired} required for the bonus section"
-        : $"{_killCount} of {KillRequired} kills for the bonus section";
+        : _killCount is null ? LocalizationResourceManager.Instance.Format("PlayerCodex_KillsNotTracked", KillRequired)
+        : LocalizationResourceManager.Instance.Format("PlayerCodex_KillsProgress", _killCount, KillRequired);
     public bool CanEditKills => _killCount is not null;
 
     public string Id { get; }
@@ -139,7 +139,7 @@ public sealed class CodexItemViewModel : INotifyPropertyChanged
     public async Task RevealAsync()
     {
         if (!IsConcealed) return;
-        if (await SpoilerPrompt.RevealAsync("This codex entry", SpoilerKey))
+        if (await SpoilerPrompt.RevealAsync(LocalizationResourceManager.Instance["PlayerCodex_ThisCodexEntry"], SpoilerKey))
         {
             NotifyConcealment();
             _owner.OnRevealed();
@@ -496,9 +496,8 @@ public sealed class CodexViewModel : INotifyPropertyChanged
         foreach (var id in fishCaught.Where(f => !knownFish.Contains(f) && knownFish.Add(f)))
         {
             _fish.Add(new CodexItemViewModel(
-                this, id, id, "unknown fish id",
-                "This fish id is not in the game's DT_Fish table the editor loaded " +
-                "(newer game version, or game data unavailable). It is preserved in the save unless unticked.",
+                this, id, id, LocalizationResourceManager.Instance["PlayerCodex_UnknownFishSubtitle"],
+                LocalizationResourceManager.Instance["PlayerCodex_UnknownFishBody"],
                 known: true, editable: true));
         }
         _fish.Sort((a, b) => StringComparer.OrdinalIgnoreCase.Compare(a.Title, b.Title));

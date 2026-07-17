@@ -198,6 +198,13 @@ Mondes : conteneurs · indicateurs de quête · portes · objets au sol · progr
   <data name="PlayerPets_PetBed" xml:space="preserve"><value>Lit pour familier</value></data>
   <data name="PlayerPets_RemoveFromInventory" xml:space="preserve"><value>RETIRER DE L'INVENTAIRE</value></data>
   <data name="PlayerPets_SelectAPet" xml:space="preserve"><value>Sélectionnez un familier pour le modifier.</value></data>
+  <data name="PlayerPets_CompanionSlot" xml:space="preserve"><value>Emplacement compagnon</value></data>
+  <data name="PlayerPets_SlotFormat" xml:space="preserve"><value>{0} - emplacement {1}</value></data>
+  <data name="PlayerPets_SlotKind_Equipment" xml:space="preserve"><value>Équipement</value></data>
+  <data name="PlayerPets_SlotKind_Hotbar" xml:space="preserve"><value>Barre d'action</value></data>
+  <data name="PlayerPets_SlotKind_Main" xml:space="preserve"><value>Sac à dos</value></data>
+  <data name="PlayerPets_StatusWillBeRemoved" xml:space="preserve"><value>SERA RETIRÉ</value></data>
+  <data name="PlayerPets_StatusLvHpFormat" xml:space="preserve"><value>Lv {0}  hp {1}/{2}</value></data>
   <data name="PlayerPets_SendToAPetBed" xml:space="preserve"><value>ENVOYER VERS UN LIT POUR FAMILIER</value></data>
   <data name="PlayerPets_SendToBed" xml:space="preserve"><value>ENVOYER AU LIT</value></data>
   <data name="PlayerPets_UndoRemove" xml:space="preserve"><value>ANNULER LE RETRAIT</value></data>
@@ -385,6 +392,12 @@ Mondes : conteneurs · indicateurs de quête · portes · objets au sol · progr
   <data name="WorldContainment_ItemsSeen" xml:space="preserve"><value>OBJETS VUS</value></data>
   <data name="WorldContainment_JournalPages" xml:space="preserve"><value>PAGES DE JOURNAL</value></data>
   <data name="WorldContainment_NothingContained" xml:space="preserve"><value>Rien n'est confiné dans ce monde pour l'instant. Construisez une unité de confinement et piégez une créature en jeu ; l'entrée apparaîtra ici.</value></data>
+  <data name="WorldContainment_Creature_Leyak_DisplayName" xml:space="preserve"><value>Leyak</value></data>
+  <data name="WorldContainment_Creature_LeyakB_DisplayName" xml:space="preserve"><value>Leyak (Alpha)</value></data>
+  <data name="WorldContainment_Creature_Krasue_DisplayName" xml:space="preserve"><value>Krasue</value></data>
+  <data name="WorldContainment_Creature_Lore_Leyak" xml:space="preserve"><value>Une tête flottante et désincarnée venue de l'Anteverse qui traque les joueurs dans le noir. Une unité de confinement de Leyak la piège ; la relâcher la renvoie errer dans le Facility.</value></data>
+  <data name="WorldContainment_Creature_Lore_Krasue" xml:space="preserve"><value>Une variante glaciale du Leyak : une entité à tête coupée qui ne se manifeste que lorsque sa cible gèle, puis la bloque sur place. Capturée dans une unité de confinement ; la relâcher la libère de nouveau dans le monde.</value></data>
+  <data name="WorldContainment_Creature_Lore_Default" xml:space="preserve"><value>Une entité confinée. La relâcher supprime le lien de confinement, donc elle erre librement au prochain chargement.</value></data>
   <data name="WorldContainment_ReadAll" xml:space="preserve"><value>TOUT LIRE</value></data>
   <data name="WorldContainment_Release" xml:space="preserve"><value>RELÂCHER</value></data>
   <data name="WorldContainment_ReleaseTooltip" xml:space="preserve"><value>Supprime le lien de confinement de cette créature (elle s'échappe). Préparé jusqu'à ENREGISTRER ; ANNULER le restaure.</value></data>
@@ -541,6 +554,19 @@ Mondes : conteneurs · indicateurs de quête · portes · objets au sol · progr
   <data name="WorldPets_TamedPetsInThisWorld" xml:space="preserve"><value>FAMILIERS APPRIVOISÉS DANS CE MONDE</value></data>
   <data name="WorldPets_UndoDelete" xml:space="preserve"><value>ANNULER LA SUPPRESSION</value></data>
   <data name="WorldPets_Xp" xml:space="preserve"><value>XP</value></data>
+  <data name="WorldPets_FamilyFormat" xml:space="preserve"><value>Famille : {0}</value></data>
+  <data name="WorldPets_LevelDescriptionFormat" xml:space="preserve"><value>Niveau {0} sur 20 (chaque niveau augmente la santé, les dégâts et la taille).</value></data>
+  <data name="WorldPets_TotalHealthFormat" xml:space="preserve"><value>Total {0:0}</value></data>
+  <data name="WorldPets_Family_Pest" xml:space="preserve"><value>Pest</value></data>
+  <data name="WorldPets_Family_Peccary" xml:space="preserve"><value>Peccary</value></data>
+  <data name="WorldPets_Family_Skink" xml:space="preserve"><value>Skink</value></data>
+  <data name="WorldPets_Family_Lamogi" xml:space="preserve"><value>Lamogi</value></data>
+  <data name="WorldPets_Family_Other" xml:space="preserve"><value>Autre</value></data>
+  <data name="WorldPets_StatusWillBeDeleted" xml:space="preserve"><value>SERA SUPPRIMÉ</value></data>
+  <data name="WorldPets_StatusDead" xml:space="preserve"><value>MORT</value></data>
+  <data name="WorldPets_StatusDowned" xml:space="preserve"><value>À TERRE</value></data>
+  <data name="WorldPets_StatusHurt" xml:space="preserve"><value>BLESSÉ</value></data>
+  <data name="WorldPets_StatusHealthy" xml:space="preserve"><value>EN BONNE SANTÉ</value></data>
 
   <!-- WorldRaw -->
   <data name="WorldRaw_ExportJsonOpen" xml:space="preserve"><value>EXPORTER JSON + OUVRIR</value></data>
@@ -2193,6 +2219,8 @@ La modification est mise en attente jusqu'à ce que vous appuyiez sur ENREGISTRE
   <data name="Skill_Passive_Fishing" xml:space="preserve"><value>Par niveau : ligne plus résistante (casse moins facilement lors des prises)</value></data>
   <data name="Skill_Milestone_Sprinting_5_Perk" xml:space="preserve"><value>Athlétique</value></data>
   <data name="Skill_Milestone_Sprinting_5_Effect" xml:space="preserve"><value>Chance de ne pas perdre d'endurance, quelle que soit l'action</value></data>
+  <data name="Skill_Milestone_Sprinting_8_Perk" xml:space="preserve"><value>Récupération Anaérobie</value></data>
+  <data name="Skill_Milestone_Sprinting_8_Effect" xml:space="preserve"><value>La régénération d'endurance se déclenche bien plus vite après un sprint</value></data>
   <data name="Skill_Milestone_Sprinting_10_Perk" xml:space="preserve"><value>Vitesse Lumière</value></data>
   <data name="Skill_Milestone_Sprinting_10_Effect" xml:space="preserve"><value>Sprinte 5% plus vite au total (en plus des gains passifs)</value></data>
   <data name="Skill_Milestone_Sprinting_15_Perk" xml:space="preserve"><value>Décalage Rouge</value></data>
@@ -2203,10 +2231,12 @@ La modification est mise en attente jusqu'à ce que vous appuyiez sur ENREGISTRE
   <data name="Skill_Milestone_Strength_5_Effect" xml:space="preserve"><value>Secouez les Vending Machines et écrasez les Carbuncles en 1 coup</value></data>
   <data name="Skill_Milestone_Strength_8_Perk" xml:space="preserve"><value>Armes Lourdes</value></data>
   <data name="Skill_Milestone_Strength_8_Effect" xml:space="preserve"><value>Assez fort pour manier correctement les armes de mêlée lourdes</value></data>
-  <data name="Skill_Milestone_Strength_12_Perk" xml:space="preserve"><value>Rage de Geek</value></data>
-  <data name="Skill_Milestone_Strength_12_Effect" xml:space="preserve"><value>En saignant près d'un ennemi hostile, les dégâts et la vitesse de mêlée sont augmentés</value></data>
-  <data name="Skill_Milestone_Strength_15_Perk" xml:space="preserve"><value>Spécialisation Armure Lourde</value></data>
-  <data name="Skill_Milestone_Strength_15_Effect" xml:space="preserve"><value>Peut porter n'importe quel poids d'armure</value></data>
+  <data name="Skill_Milestone_Strength_10_Perk" xml:space="preserve"><value>Rage de Geek</value></data>
+  <data name="Skill_Milestone_Strength_10_Effect" xml:space="preserve"><value>En saignant près d'un ennemi hostile, les dégâts et la vitesse de mêlée sont augmentés</value></data>
+  <data name="Skill_Milestone_Strength_13_Perk" xml:space="preserve"><value>Spécialisation Armure Lourde</value></data>
+  <data name="Skill_Milestone_Strength_13_Effect" xml:space="preserve"><value>Peut porter n'importe quel poids d'armure</value></data>
+  <data name="Skill_Milestone_Strength_15_Perk" xml:space="preserve"><value>Force Centrifuge</value></data>
+  <data name="Skill_Milestone_Strength_15_Effect" xml:space="preserve"><value>Les coups d'armes de mêlée lourdes sont nettement plus rapides</value></data>
   <data name="Skill_Milestone_Strength_20_Perk" xml:space="preserve"><value>Gains Supérieurs</value></data>
   <data name="Skill_Milestone_Strength_20_Effect" xml:space="preserve"><value>Tous les objets pèsent 25% de moins</value></data>
   <data name="Skill_Milestone_Throwing_2_Perk" xml:space="preserve"><value>Lancer Souple</value></data>
@@ -2277,18 +2307,24 @@ La modification est mise en attente jusqu'à ce que vous appuyiez sur ENREGISTRE
   <data name="Skill_Milestone_Reloading_3_Effect" xml:space="preserve"><value>Fabrique les munitions deux fois plus vite</value></data>
   <data name="Skill_Milestone_Reloading_5_Perk" xml:space="preserve"><value>Au Cas Où</value></data>
   <data name="Skill_Milestone_Reloading_5_Effect" xml:space="preserve"><value>Recharge des armes que vous n'êtes normalement pas qualifié pour utiliser</value></data>
+  <data name="Skill_Milestone_Reloading_8_Perk" xml:space="preserve"><value>Récupérateur de Munitions</value></data>
+  <data name="Skill_Milestone_Reloading_8_Effect" xml:space="preserve"><value>Trouve parfois plus de munitions en fouillant les soldats</value></data>
   <data name="Skill_Milestone_Reloading_10_Perk" xml:space="preserve"><value>Géométrie de Base</value></data>
   <data name="Skill_Milestone_Reloading_10_Effect" xml:space="preserve"><value>Moins maladroit pour recharger toutes les armes</value></data>
   <data name="Skill_Milestone_Reloading_15_Perk" xml:space="preserve"><value>Chargeur Rapide</value></data>
   <data name="Skill_Milestone_Reloading_15_Effect" xml:space="preserve"><value>Sprinte et recharge en même temps</value></data>
   <data name="Skill_Milestone_Reloading_20_Perk" xml:space="preserve"><value>Munitions Éparses</value></data>
   <data name="Skill_Milestone_Reloading_20_Effect" xml:space="preserve"><value>Trouve parfois des munitions supplémentaires en rechargeant</value></data>
+  <data name="Skill_Milestone_Fortitude_3_Perk" xml:space="preserve"><value>Riposte</value></data>
+  <data name="Skill_Milestone_Fortitude_3_Effect" xml:space="preserve"><value>Après un blocage réussi, la prochaine attaque de mêlée dans les 2 secondes inflige des dégâts supplémentaires</value></data>
   <data name="Skill_Milestone_Fortitude_5_Perk" xml:space="preserve"><value>Accoutumance</value></data>
   <data name="Skill_Milestone_Fortitude_5_Effect" xml:space="preserve"><value>Régénère la santé un peu plus fréquemment</value></data>
   <data name="Skill_Milestone_Fortitude_8_Perk" xml:space="preserve"><value>Effort Collectif</value></data>
   <data name="Skill_Milestone_Fortitude_8_Effect" xml:space="preserve"><value>Se reposer à moins de 8 m d'autres scientifiques au repos double le taux de repos</value></data>
   <data name="Skill_Milestone_Fortitude_10_Perk" xml:space="preserve"><value>Tissu Spongieux</value></data>
   <data name="Skill_Milestone_Fortitude_10_Effect" xml:space="preserve"><value>Légère réduction des dégâts de chute et des dégâts d'impact de véhicule</value></data>
+  <data name="Skill_Milestone_Fortitude_13_Perk" xml:space="preserve"><value>Endurance Tenace</value></data>
+  <data name="Skill_Milestone_Fortitude_13_Effect" xml:space="preserve"><value>L'endurance se régénère toujours pendant le blocage</value></data>
   <data name="Skill_Milestone_Fortitude_15_Perk" xml:space="preserve"><value>Manteau Réfléchissant</value></data>
   <data name="Skill_Milestone_Fortitude_15_Effect" xml:space="preserve"><value>Le contact en mêlée peut renvoyer les dégâts à l'ennemi</value></data>
   <data name="Skill_Milestone_Fortitude_20_Perk" xml:space="preserve"><value>Écosystème Robuste</value></data>
@@ -2301,14 +2337,20 @@ La modification est mise en attente jusqu'à ce que vous appuyiez sur ENREGISTRE
   <data name="Skill_Milestone_Crafting_8_Effect" xml:space="preserve"><value>Les recettes partagées avec vous sautent la phase de recherche</value></data>
   <data name="Skill_Milestone_Crafting_10_Perk" xml:space="preserve"><value>Œil du Détail</value></data>
   <data name="Skill_Milestone_Crafting_10_Effect" xml:space="preserve"><value>Les objets fabriqués gagnent une durabilité bonus temporaire</value></data>
+  <data name="Skill_Milestone_Crafting_13_Perk" xml:space="preserve"><value>Ça Partira en Frottant</value></data>
+  <data name="Skill_Milestone_Crafting_13_Effect" xml:space="preserve"><value>50% de chances de réparer un objet gratuitement</value></data>
   <data name="Skill_Milestone_Crafting_15_Perk" xml:space="preserve"><value>Super Établi</value></data>
   <data name="Skill_Milestone_Crafting_15_Effect" xml:space="preserve"><value>Palier final des améliorations de l'Établi de Fabrication</value></data>
   <data name="Skill_Milestone_Crafting_20_Perk" xml:space="preserve"><value>Ingénierie de Précision</value></data>
   <data name="Skill_Milestone_Crafting_20_Effect" xml:space="preserve"><value>Petite chance de consommer 1 objet de moins dans les recettes à objets multiples</value></data>
   <data name="Skill_Milestone_Construction_5_Perk" xml:space="preserve"><value>Fais Tes Cartons</value></data>
   <data name="Skill_Milestone_Construction_5_Effect" xml:space="preserve"><value>Emballe les petits objets déployables deux fois plus vite</value></data>
-  <data name="Skill_Milestone_Construction_10_Perk" xml:space="preserve"><value>Rasé avec Soin</value></data>
-  <data name="Skill_Milestone_Construction_10_Effect" xml:space="preserve"><value>50% de chances d'obtenir le double de ressources en démontant</value></data>
+  <data name="Skill_Milestone_Construction_8_Perk" xml:space="preserve"><value>Rasé avec Soin</value></data>
+  <data name="Skill_Milestone_Construction_8_Effect" xml:space="preserve"><value>50% de chances d'obtenir le double de ressources en démontant</value></data>
+  <data name="Skill_Milestone_Construction_10_Perk" xml:space="preserve"><value>Soulevez avec les Jambes</value></data>
+  <data name="Skill_Milestone_Construction_10_Effect" xml:space="preserve"><value>Le mobilier déployable pèse 40% de moins dans votre inventaire</value></data>
+  <data name="Skill_Milestone_Construction_12_Perk" xml:space="preserve"><value>Fortification Expérimentale</value></data>
+  <data name="Skill_Milestone_Construction_12_Effect" xml:space="preserve"><value>Sur-répare les tourelles, pièges et meubles jusqu'à 115% de durabilité</value></data>
   <data name="Skill_Milestone_Construction_15_Perk" xml:space="preserve"><value>Doctrine du Château</value></data>
   <data name="Skill_Milestone_Construction_15_Effect" xml:space="preserve"><value>Coût de construction des fortifications réduit de moitié</value></data>
   <data name="Skill_Milestone_Construction_20_Perk" xml:space="preserve"><value>Événement Mobilier Spontané</value></data>
@@ -2337,6 +2379,8 @@ La modification est mise en attente jusqu'à ce que vous appuyiez sur ENREGISTRE
   <data name="Skill_Milestone_Cooking_10_Effect" xml:space="preserve"><value>Santé supplémentaire pendant la régénération par la nourriture ; recettes du Convection Oven + Raw Dough</value></data>
   <data name="Skill_Milestone_Cooking_12_Perk" xml:space="preserve"><value>Dépeçage Expert</value></data>
   <data name="Skill_Milestone_Cooking_12_Effect" xml:space="preserve"><value>Recette de couteau avancée ; découpe de cadavres sans déchets inutiles</value></data>
+  <data name="Skill_Milestone_Cooking_13_Perk" xml:space="preserve"><value>Technicien de Cuisine</value></data>
+  <data name="Skill_Milestone_Cooking_13_Effect" xml:space="preserve"><value>Recette : Advanced Oven</value></data>
   <data name="Skill_Milestone_Cooking_15_Perk" xml:space="preserve"><value>Sens du Chef</value></data>
   <data name="Skill_Milestone_Cooking_15_Effect" xml:space="preserve"><value>Notifié quand un plat termine de cuire, même à distance</value></data>
   <data name="Skill_Milestone_Cooking_17_Perk" xml:space="preserve"><value>Rab de Portions</value></data>
@@ -2377,6 +2421,11 @@ La modification est mise en attente jusqu'à ce que vous appuyiez sur ENREGISTRE
   <data name="WorldNpc_Identity_MGT_CKCore" xml:space="preserve"><value>The Core - crossover Core Keeper</value></data>
   <data name="WorldNpc_Identity_Default" xml:space="preserve"><value>PNJ d'histoire</value></data>
   <data name="WorldNpc_TamedPetCompanion" xml:space="preserve"><value>Familier apprivoisé</value></data>
+  <data name="WorldNpc_NoRecordedPosition" xml:space="preserve"><value>aucune position enregistrée (disparu / en attente d'apparition)</value></data>
+  <data name="WorldNpc_LastAtCoords" xml:space="preserve"><value>dernière position X {0}, Y {1}, Z {2}</value></data>
+  <data name="WorldNpc_ContextWithRosterHint" xml:space="preserve"><value>{0} · {1}. Le marchand ambulant qui occupe un emplacement d'hôte n'est pas stocké dans la sauvegarde - voir la liste ci-dessous.</value></data>
+  <data name="WorldNpc_StatusRemovedDead" xml:space="preserve"><value>RETIRÉ / MORT</value></data>
+  <data name="WorldNpc_StatusAlive" xml:space="preserve"><value>VIVANT</value></data>
 
   <!-- Trait / background display names -->
   <data name="Trait_NoPhD_DisplayName" xml:space="preserve"><value>Assistant de Laboratoire</value></data>
@@ -2460,5 +2509,351 @@ La modification est mise en attente jusqu'à ce que vous appuyiez sur ENREGISTRE
   <data name="EquipSlot_Name_Companion" xml:space="preserve"><value>Compagnon</value></data>
   <data name="EquipSlot_NotEquippable" xml:space="preserve"><value>Non équipable (emplacement {0})</value></data>
   <data name="EquipSlot_WrongSlot" xml:space="preserve"><value>Objet {0}, pas pour l'emplacement {1}</value></data>
+  <data name="EquipSlot_PetsHotbarOnly" xml:space="preserve"><value>Les familiers sont réservés à la barre d'action - interdits dans le sac à dos</value></data>
   <data name="Slot_PetsHotbarOnly" xml:space="preserve"><value>Les familiers vont uniquement dans la barre d'action - interdits dans le sac à dos</value></data>
+
+  <!-- Compat -->
+  <data name="Compat_UnknownClassWarning" xml:space="preserve"><value>La classe « {0} » de cette sauvegarde n'est pas reconnue par cet éditeur. Son en-tête personnalisé n'a pas pu être interprété ; la modifier n'est pas recommandé - une sauvegarde .bak est toujours conservée.</value></data>
+  <data name="Compat_NoClass" xml:space="preserve"><value>(aucune)</value></data>
+  <data name="Compat_NewerVersionWarning" xml:space="preserve"><value>Cette sauvegarde est en version {0} ; cet éditeur a été conçu pour la version {1} (build du jeu {2}). Les champs plus récents peuvent être invisibles et pourraient être perdus lors d'une modification - une sauvegarde .bak est toujours conservée.</value></data>
+
+  <!-- Common -->
+  <data name="Common_JsonFileFormat" xml:space="preserve"><value>Fichier JSON : {0}</value></data>
+  <data name="Common_No" xml:space="preserve"><value>Non</value></data>
+  <data name="Common_Yes" xml:space="preserve"><value>Oui</value></data>
+
+  <!-- Compare -->
+  <data name="Compare_AOnly" xml:space="preserve"><value>A uniquement</value></data>
+  <data name="Compare_BOnly" xml:space="preserve"><value>B uniquement</value></data>
+  <data name="Compare_EmailsRead" xml:space="preserve"><value>E-mails lus</value></data>
+  <data name="Compare_FishCaught" xml:space="preserve"><value>Poissons attrapés</value></data>
+  <data name="Compare_GlobalRecipes" xml:space="preserve"><value>Recettes globales</value></data>
+  <data name="Compare_GroundItems" xml:space="preserve"><value>Objets au sol</value></data>
+  <data name="Compare_ItemsCrafted" xml:space="preserve"><value>Objets fabriqués</value></data>
+  <data name="Compare_ItemsDiscovered" xml:space="preserve"><value>Objets découverts</value></data>
+  <data name="Compare_JournalEntries" xml:space="preserve"><value>Entrées de journal</value></data>
+  <data name="Compare_MapsUnlocked" xml:space="preserve"><value>Cartes débloquées</value></data>
+  <data name="Compare_PlacedObjects" xml:space="preserve"><value>Objets placés</value></data>
+  <data name="Compare_QuestFlags" xml:space="preserve"><value>Indicateurs de quête</value></data>
+  <data name="Compare_RecipesUnlocked" xml:space="preserve"><value>Recettes débloquées</value></data>
+  <data name="Compare_StoryChapter" xml:space="preserve"><value>Chapitre de l'histoire</value></data>
+  <data name="Compare_TimePlayed" xml:space="preserve"><value>Temps de jeu</value></data>
+  <data name="Compare_TimePlayedFormat" xml:space="preserve"><value>{0}h {1}m</value></data>
+  <data name="Compare_TrackedNpcs" xml:space="preserve"><value>PNJ suivis</value></data>
+  <data name="Compare_WorldContents" xml:space="preserve"><value>Contenu du monde</value></data>
+
+  <!-- Customization -->
+  <data name="Customization_AvailableCaptionGamePass" xml:space="preserve"><value>L'apparence est stockée dans un conteneur de profil Game Pass (emplacement {0}). Modifier ici la réécrit dans votre dossier de sauvegarde Xbox et conserve une copie de sauvegarde. Elle s'applique à tous les mondes joués par ce compte.</value></data>
+  <data name="Customization_AvailableCaptionSteam" xml:space="preserve"><value>L'apparence est stockée dans {0}, un fichier par personnage que le jeu écrit sous votre compte Steam. Modifier ici change ce fichier directement et conserve une sauvegarde .bak. Elle s'applique à tous les mondes joués par ce compte.</value></data>
+  <data name="Customization_StatusEditingFile" xml:space="preserve"><value>Modification de {0} - s'applique à tous les mondes joués par ce compte.</value></data>
+  <data name="Customization_StatusEditingGamePass" xml:space="preserve"><value>Modification de l'apparence Game Pass (emplacement {0}) - s'applique à tous les mondes joués par ce compte.</value></data>
+  <data name="Customization_StatusNotFound" xml:space="preserve"><value>Aucune sauvegarde ScientistCustomization trouvée sur cette machine.</value></data>
+  <data name="Customization_StatusNotFoundGamePass" xml:space="preserve"><value>Aucune sauvegarde ScientistCustomization trouvée dans vos données de sauvegarde Game Pass.</value></data>
+  <data name="Customization_StatusReadFailed" xml:space="preserve"><value>Échec de la lecture de la sauvegarde de personnalisation : {0}</value></data>
+  <data name="Customization_StatusSaveFailed" xml:space="preserve"><value>Échec de l'enregistrement : {0}</value></data>
+  <data name="Customization_StatusSaved" xml:space="preserve"><value>Apparence enregistrée à {0} (.bak créé). Redémarrez le jeu pour la voir.</value></data>
+  <data name="Customization_UnavailableGamePass" xml:space="preserve"><value>La modification de l'apparence est indisponible car aucune sauvegarde ScientistCustomization n'a été trouvée dans vos données de sauvegarde Game Pass. Le jeu écrit ces données la première fois que vous personnalisez votre personnage en jeu. Pour activer la modification, lancez Abiotic Factor, personnalisez votre personnage une fois, puis rouvrez l'éditeur.</value></data>
+  <data name="Customization_UnavailableSteam" xml:space="preserve"><value>La modification de l'apparence est indisponible car aucune sauvegarde ScientistCustomization n'a été trouvée pour ce compte Steam sur cette machine. Ce fichier n'est pas livré avec le jeu ni l'éditeur : le jeu l'écrit la première fois que vous personnalisez votre personnage en jeu, et il est propre à chaque compte Steam et à chaque machine. Pour activer la modification, lancez Abiotic Factor, personnalisez votre personnage une fois, puis rouvrez l'éditeur.</value></data>
+  <data name="Customization_VoiceNote" xml:space="preserve"><value>La VOIX n'est stockée dans aucune sauvegarde - le jeu la déduit du genre de la tête (Dr. H / Dr. R).</value></data>
+
+  <!-- Empty -->
+  <data name="Empty_Title" xml:space="preserve"><value>ÉDITEUR DE SAUVEGARDE ABIOTIC FACTOR</value></data>
+
+  <!-- FileSidebar -->
+  <data name="FileSidebar_ItemCountFormat" xml:space="preserve"><value>{0} objet(s)</value></data>
+  <data name="FileSidebar_SaveFormatTooltip" xml:space="preserve"><value>Le format de sauvegarde utilisé par ce dossier</value></data>
+
+  <!-- GameData -->
+  <data name="GameData_ImportAction" xml:space="preserve"><value>Importer les données du jeu</value></data>
+  <data name="GameData_Loaded" xml:space="preserve"><value>Données du jeu chargées.</value></data>
+  <data name="GameData_LocateAction" xml:space="preserve"><value>Localiser le dossier du jeu</value></data>
+  <data name="GameData_NotDetectedTitle" xml:space="preserve"><value>Données du jeu non détectées</value></data>
+  <data name="GameData_NotNow" xml:space="preserve"><value>Pas maintenant</value></data>
+  <data name="GameData_StatusInstallNotFound" xml:space="preserve"><value>Les fichiers de données d'Abiotic Factor n'ont pas été trouvés, donc les catalogues d'objets, de recettes et de lore sont vides.</value></data>
+  <data name="GameData_StatusInstallNotFoundBundled" xml:space="preserve"><value>Les fichiers de données d'Abiotic Factor n'ont pas été trouvés, donc l'éditeur utilise ses données intégrées (les noms et stats d'objets fonctionnent, mais les icônes nécessitent le jeu).</value></data>
+  <data name="GameData_StatusLoadFailed" xml:space="preserve"><value>Le chargement des données du jeu a échoué. Activez la journalisation de diagnostic dans les Paramètres et consultez le journal pour en trouver la cause.</value></data>
+  <data name="GameData_StatusLocateHint" xml:space="preserve"><value>Ouvrez Paramètres &gt; Données du jeu et choisissez LOCALISER LE DOSSIER DU JEU pour pointer l'éditeur vers votre installation (cela fonctionne aussi pour les copies non Steam).</value></data>
+  <data name="GameData_StatusMappingsHint" xml:space="preserve"><value>Gardez Mappings.usmap à côté de l'éditeur, ou importez-en un dans Paramètres &gt; Données du jeu.</value></data>
+  <data name="GameData_StatusMappingsMissing" xml:space="preserve"><value>Le jeu a été trouvé, mais Mappings.usmap est manquant, donc ses tables de données ne peuvent pas être lues.</value></data>
+  <data name="GameData_StatusMappingsMissingBundled" xml:space="preserve"><value>Le jeu a été trouvé mais Mappings.usmap est manquant, donc l'éditeur utilise ses données intégrées (les noms et stats d'objets fonctionnent, mais les icônes nécessitent le jeu).</value></data>
+  <data name="GameData_StatusNotLoaded" xml:space="preserve"><value>Les données du jeu n'ont pas encore été chargées.</value></data>
+  <data name="GameData_StatusReady" xml:space="preserve"><value>Données du jeu chargées.</value></data>
+  <data name="GameData_Title" xml:space="preserve"><value>Données du jeu</value></data>
+
+  <!-- IniEditor -->
+  <data name="IniEditor_StatusReloaded" xml:space="preserve"><value>{0} rechargé depuis le disque.</value></data>
+  <data name="IniEditor_StatusSaveFailed" xml:space="preserve"><value>Échec de l'enregistrement : {0}</value></data>
+  <data name="IniEditor_StatusSaved" xml:space="preserve"><value>{0} enregistré (version précédente conservée sous {1}.bak).</value></data>
+
+  <!-- Main -->
+  <data name="Main_ActionFailedFormat" xml:space="preserve"><value>L'action a échoué : {0}</value></data>
+  <data name="Main_DroppedFolderLoadFailedFormat" xml:space="preserve"><value>Impossible de charger le dossier déposé : {0}</value></data>
+  <data name="Main_PageTitle" xml:space="preserve"><value>Abiotic Factor : Éditeur de sauvegarde</value></data>
+
+  <!-- Palette -->
+  <data name="Palette_FitsSlot" xml:space="preserve"><value>CONVIENT À L'EMPLACEMENT {0}</value></data>
+  <data name="Palette_ItemCount" xml:space="preserve"><value>{0} objet(s)</value></data>
+  <data name="Palette_ShowingOf" xml:space="preserve"><value>affichage de {0} sur {1}</value></data>
+  <data name="Palette_TooltipDurability" xml:space="preserve"><value> · durabilité {0}</value></data>
+  <data name="Palette_TooltipStats" xml:space="preserve"><value>pile {0} · {1} kg</value></data>
+
+  <!-- PlayerAchievements -->
+  <data name="PlayerAchievements_HiddenAchievementFallback" xml:space="preserve"><value>(succès caché)</value></data>
+  <data name="PlayerAchievements_HiddenAchievementHint" xml:space="preserve"><value>Succès caché. {0}</value></data>
+  <data name="PlayerAchievements_StatusCheckFailed" xml:space="preserve"><value>Échec de la vérification Steam : {0} - les données du cache local restent affichées.</value></data>
+  <data name="PlayerAchievements_StatusCompared" xml:space="preserve"><value>Comparaison avec {0} : vous avez {1} succès qu'il n'a pas ; il en a {2} que vous n'avez pas.</value></data>
+  <data name="PlayerAchievements_StatusComparisonFailed" xml:space="preserve"><value>Échec de la comparaison : {0}</value></data>
+  <data name="PlayerAchievements_StatusGatedAnonymous" xml:space="preserve"><value>Steam a bloqué la requête de stats anonyme pour ce compte. Soit connectez-vous ci-dessous (une session connectée peut voir ses propres succès et ceux de ses amis), soit rendez Public le menu 'Détails du jeu' du profil (Steam → Profil → Modifier le profil → Paramètres de confidentialité → Détails du jeu ; les changements peuvent prendre quelques minutes pour s'appliquer). Les données du cache local restent affichées.</value></data>
+  <data name="PlayerAchievements_StatusGatedSignedIn" xml:space="preserve"><value>Steam a tout de même bloqué la requête de stats malgré la session connectée - la session a peut-être expiré (SE DÉCONNECTER, puis reconnectez-vous), ou ce profil n'est pas visible pour ce compte. Les données du cache local restent affichées.</value></data>
+  <data name="PlayerAchievements_StatusLoadingComparison" xml:space="preserve"><value>Chargement de la comparaison pour {0}…</value></data>
+  <data name="PlayerAchievements_StatusLocalCacheLoaded" xml:space="preserve"><value>Cache local Steam (icônes via le CDN Steam) · le cache ne se met à jour que pendant que Steam tourne - VÉRIFIER STEAM vérifie l'état réel en ligne.</value></data>
+  <data name="PlayerAchievements_StatusNoLocalCache" xml:space="preserve"><value>Aucun cache local Steam pour ce compte sur cette machine - utilisez VÉRIFIER STEAM pour interroger le web (profils publics uniquement).</value></data>
+  <data name="PlayerAchievements_StatusNoSignInWindow" xml:space="preserve"><value>Impossible d'ouvrir la fenêtre de connexion.</value></data>
+  <data name="PlayerAchievements_StatusNoSteamId" xml:space="preserve"><value>Impossible de déterminer le SteamID à partir du nom du fichier.</value></data>
+  <data name="PlayerAchievements_StatusQuerying" xml:space="preserve"><value>Interrogation de steamcommunity.com…</value></data>
+  <data name="PlayerAchievements_StatusQueryingSignedIn" xml:space="preserve"><value>Interrogation de steamcommunity.com (connecté)…</value></data>
+  <data name="PlayerAchievements_StatusReadingLocalCache" xml:space="preserve"><value>Lecture du cache local de succès de Steam…</value></data>
+  <data name="PlayerAchievements_StatusSignInCancelled" xml:space="preserve"><value>La connexion à Steam a été annulée.</value></data>
+  <data name="PlayerAchievements_StatusSignedIn" xml:space="preserve"><value>Connecté à Steam - nouvelle vérification des succès avec la session…</value></data>
+  <data name="PlayerAchievements_StatusSignedOut" xml:space="preserve"><value>Déconnecté - le cookie de session Steam a été effacé. VÉRIFIER STEAM interroge de nouveau de façon anonyme.</value></data>
+  <data name="PlayerAchievements_StatusWebLoaded" xml:space="preserve"><value>Données web Steam chargées ({0} débloqués sur Steam) · icônes depuis steamcommunity.com.</value></data>
+  <data name="PlayerAchievements_ThisHiddenAchievement" xml:space="preserve"><value>Ce succès caché</value></data>
+
+  <!-- PlayerCodex -->
+  <data name="PlayerCodex_FishBaitUp" xml:space="preserve"><value>Appâtez avec {0} (affiché ci-dessous) avant de lancer.</value></data>
+  <data name="PlayerCodex_FishBitesBest" xml:space="preserve"><value>Mord le mieux pendant {0}.</value></data>
+  <data name="PlayerCodex_FishCastWhere" xml:space="preserve"><value>Lancez là où il y a {0}.</value></data>
+  <data name="PlayerCodex_FishNeedsSpecificBait" xml:space="preserve"><value>Nécessite un appât spécifique équipé pour mordre.</value></data>
+  <data name="PlayerCodex_FishNeverBites" xml:space="preserve"><value>(ne mord jamais ; consultez le wiki)</value></data>
+  <data name="PlayerCodex_FishOnlyBites" xml:space="preserve"><value>Ne mord que pendant {0}.</value></data>
+  <data name="PlayerCodex_FishOnlyBitesBest" xml:space="preserve"><value>Ne mord que pendant {0} (le mieux pendant {1}).</value></data>
+  <data name="PlayerCodex_FishRequiresDlc" xml:space="preserve"><value>Nécessite le DLC : {0}.</value></data>
+  <data name="PlayerCodex_FishStoryProgress" xml:space="preserve"><value>Progression de l'histoire : nécessite d'avoir d'abord atteint « {0} ».</value></data>
+  <data name="PlayerCodex_FishTimeDawn" xml:space="preserve"><value>l'aube</value></data>
+  <data name="PlayerCodex_FishTimeDusk" xml:space="preserve"><value>le crépuscule</value></data>
+  <data name="PlayerCodex_FishTimeJoinAnd" xml:space="preserve"><value>{0} et {1}</value></data>
+  <data name="PlayerCodex_FishTimeMidday" xml:space="preserve"><value>la mi-journée</value></data>
+  <data name="PlayerCodex_FishTimeNight" xml:space="preserve"><value>la nuit</value></data>
+  <data name="PlayerCodex_KillsNotTracked" xml:space="preserve"><value>éliminations : pas encore suivies · {0} requises pour la section bonus</value></data>
+  <data name="PlayerCodex_KillsProgress" xml:space="preserve"><value>{0} éliminations sur {1} pour la section bonus</value></data>
+  <data name="PlayerCodex_Open" xml:space="preserve"><value>OUVRIR ›</value></data>
+  <data name="PlayerCodex_ThisCodexEntry" xml:space="preserve"><value>Cette entrée de codex</value></data>
+  <data name="PlayerCodex_UnknownFishBody" xml:space="preserve"><value>Cet id de poisson n'est pas dans la table DT_Fish du jeu chargée par l'éditeur (version du jeu plus récente, ou données du jeu indisponibles). Il est préservé dans la sauvegarde sauf si décoché.</value></data>
+  <data name="PlayerCodex_UnknownFishSubtitle" xml:space="preserve"><value>id de poisson inconnu</value></data>
+
+  <!-- PlayerEditor -->
+  <data name="PlayerEditor_AccountIdLabel" xml:space="preserve"><value>ID DE COMPTE</value></data>
+  <data name="PlayerEditor_CraftedItemsDiscovered" xml:space="preserve"><value>objets fabriqués découverts</value></data>
+  <data name="PlayerEditor_ExportFailed" xml:space="preserve"><value>Échec de l'export : {0}</value></data>
+  <data name="PlayerEditor_ExportedJson" xml:space="preserve"><value>Exporté {0} Mo → {1}</value></data>
+  <data name="PlayerEditor_ExportedJsonTitle" xml:space="preserve"><value>JSON de sauvegarde exporté</value></data>
+  <data name="PlayerEditor_ExportingJson" xml:space="preserve"><value>Export JSON en cours…</value></data>
+  <data name="PlayerEditor_ImportFailed" xml:space="preserve"><value>Échec de l'import (sauvegarde intacte) : {0}</value></data>
+  <data name="PlayerEditor_ImportedJson" xml:space="preserve"><value>Importé à {0} · rechargez le fichier depuis la barre latérale pour voir les modifications.</value></data>
+  <data name="PlayerEditor_ImportingJson" xml:space="preserve"><value>Import JSON en cours…</value></data>
+  <data name="PlayerEditor_ItemsDiscovered" xml:space="preserve"><value>objets découverts</value></data>
+  <data name="PlayerEditor_MapsUnlocked" xml:space="preserve"><value>cartes débloquées</value></data>
+  <data name="PlayerEditor_NoRespawnLevel" xml:space="preserve"><value>Aucun niveau de réapparition enregistré.</value></data>
+  <data name="PlayerEditor_NoSiblingWorld" xml:space="preserve"><value>Aucune sauvegarde de monde n'a été trouvée à côté de ce joueur.</value></data>
+  <data name="PlayerEditor_PetBedFallback" xml:space="preserve"><value>un lit pour familier</value></data>
+  <data name="PlayerEditor_PetBedOption" xml:space="preserve"><value>Lit {0} : {1}</value></data>
+  <data name="PlayerEditor_PetBedsReadFailed" xml:space="preserve"><value>Impossible de lire les lits pour familier dans {0} : {1}</value></data>
+  <data name="PlayerEditor_PetMoveFailed" xml:space="preserve"><value>Échec du déplacement : {0}</value></data>
+  <data name="PlayerEditor_PetPlacedAt" xml:space="preserve"><value>{0} (placé à {1} dans {2})</value></data>
+  <data name="PlayerEditor_RespawnLevel" xml:space="preserve"><value>Niveau : {0}</value></data>
+  <data name="PlayerEditor_RespawnLevelGuid" xml:space="preserve"><value>GUID du niveau : {0}</value></data>
+  <data name="PlayerEditor_SaveFailed" xml:space="preserve"><value>Échec de l'enregistrement : {0}</value></data>
+  <data name="PlayerEditor_SaveOrRevertFirst" xml:space="preserve"><value>Enregistrez ou annulez d'abord vos autres modifications du joueur.</value></data>
+  <data name="PlayerEditor_SavedAt" xml:space="preserve"><value>Enregistré à {0}</value></data>
+  <data name="PlayerEditor_Saving" xml:space="preserve"><value>Enregistrement…</value></data>
+  <data name="PlayerEditor_SteamId64Label" xml:space="preserve"><value>STEAM ID 64</value></data>
+  <data name="PlayerEditor_UnknownSkill" xml:space="preserve"><value>Compétence inconnue n°{0}</value></data>
+  <data name="PlayerEditor_UnknownTerminal" xml:space="preserve"><value>Terminal inconnu ({0}…)</value></data>
+  <data name="PlayerEditor_WorldOriginFallback" xml:space="preserve"><value>l'origine du monde</value></data>
+
+  <!-- PlayerGeneral -->
+  <data name="PlayerGeneral_BulkDiscoverCraftedWhat" xml:space="preserve"><value>marquer chaque objet comme fabriqué au moins une fois</value></data>
+  <data name="PlayerGeneral_BulkDiscoverItemsWhat" xml:space="preserve"><value>marquer chaque objet comme vu (supprime tous les badges NOUVEAU)</value></data>
+  <data name="PlayerGeneral_BulkUnlockMapsWhat" xml:space="preserve"><value>révéler chaque dépliant de carte de secteur</value></data>
+  <data name="PlayerGeneral_SteamIdChangeFailedTitle" xml:space="preserve"><value>Échec du changement de SteamID</value></data>
+
+  <!-- PlayerInventory -->
+  <data name="PlayerInventory_SlotsFormat" xml:space="preserve"><value>{0} EMPLACEMENTS</value></data>
+  <data name="PlayerInventory_WeightKgFormat" xml:space="preserve"><value>{0:F1} kg</value></data>
+
+  <!-- PlayerRecipes -->
+  <data name="PlayerRecipes_BulkUnlockConfirmWhat" xml:space="preserve"><value>débloquer chaque recette pour ce joueur</value></data>
+  <data name="PlayerRecipes_CountUnlocked" xml:space="preserve"><value>{0} sur {1} débloquées</value></data>
+  <data name="PlayerRecipes_GameDataUnavailable" xml:space="preserve"><value>données du jeu indisponibles - navigateur de recettes désactivé</value></data>
+  <data name="PlayerRecipes_HandsNoBench" xml:space="preserve"><value>Mains (aucun établi requis)</value></data>
+  <data name="PlayerRecipes_ThisRecipe" xml:space="preserve"><value>Cette recette</value></data>
+  <data name="PlayerRecipes_UpgradesTo" xml:space="preserve"><value>S'améliore en {0}</value></data>
+
+  <!-- PlayerSkills -->
+  <data name="PlayerSkills_BulkMaxAllWhat" xml:space="preserve"><value>mettre les 15 compétences au niveau 20</value></data>
+
+  <!-- Progress -->
+  <data name="Progress_RecipeGated" xml:space="preserve"><value>La recette « {0} » est accordée par l'e-mail « {1} » dans {2}, que ce monde n'a pas atteint (il manque {3}).</value></data>
+  <data name="Progress_RowGated" xml:space="preserve"><value>« {0} » appartient à {1}, que ce monde n'a pas encore atteint (il manque {2}). Faites d'abord avancer l'histoire dans l'onglet INDICATEURS DE QUÊTE.</value></data>
+
+  <!-- Shell -->
+  <data name="Shell_SavesTitle" xml:space="preserve"><value>Sauvegardes</value></data>
+  <data name="Shell_WindowTitle" xml:space="preserve"><value>Éditeur de sauvegarde Abiotic Factor</value></data>
+
+  <!-- Skill -->
+  <data name="Skill_HiddenUntilUnlocked" xml:space="preserve"><value>Caché jusqu'au déblocage - atteignez ce niveau (ou touchez pour outrepasser l'autorisation) pour voir l'aptitude.</value></data>
+  <data name="Skill_LevelCount" xml:space="preserve"><value>{0} niveaux</value></data>
+  <data name="Skill_Locked" xml:space="preserve"><value>Verrouillé - atteignez le niveau {0} (encore {1} / {2} XP).</value></data>
+  <data name="Skill_OneLevel" xml:space="preserve"><value>1 niveau</value></data>
+  <data name="Skill_ThisPerk" xml:space="preserve"><value>Cette aptitude de {0}</value></data>
+  <data name="Skill_TooltipHidden" xml:space="preserve"><value>Niveau {0} - aptitude cachée (touchez pour révéler)</value></data>
+  <data name="Skill_Unlocked" xml:space="preserve"><value>Débloqué - cette compétence est au niveau {0} (nécessite {1}).</value></data>
+
+  <!-- Slot -->
+  <data name="Slot_MaxStackFormat" xml:space="preserve"><value>max {0}</value></data>
+  <data name="Slot_SkillFormat" xml:space="preserve"><value>compétence {0}</value></data>
+  <data name="Slot_StatusFormat" xml:space="preserve"><value>STATUT : {0}</value></data>
+  <data name="Slot_WeightStackFormat" xml:space="preserve"><value>poids {0:0.##} kg · pile {1}</value></data>
+
+  <!-- WorldBases -->
+  <data name="WorldBases_AnchoredBy" xml:space="preserve"><value>Ancrée par : {0}</value></data>
+  <data name="WorldBases_NoCraftingBenchAnchor" xml:space="preserve"><value>Aucun établi de fabrication - objets déployés restants hors de toute base.</value></data>
+
+  <!-- WorldContainers -->
+  <data name="WorldContainers_ItemFallback" xml:space="preserve"><value>objet</value></data>
+  <data name="WorldContainers_MoveFailedFormat" xml:space="preserve"><value>Échec du déplacement : {0}</value></data>
+  <data name="WorldContainers_NoPlayerSaveFound" xml:space="preserve"><value>Aucune sauvegarde de joueur n'a été trouvée à côté de ce monde.</value></data>
+  <data name="WorldContainers_SaveOrRevertFirst" xml:space="preserve"><value>Enregistrez ou annulez d'abord vos autres modifications du monde, puis envoyez l'objet.</value></data>
+  <data name="WorldContainers_SelectSlotWithItemFirst" xml:space="preserve"><value>Sélectionnez d'abord un emplacement contenant un objet.</value></data>
+  <data name="WorldContainers_SendItemDialogMessage" xml:space="preserve"><value>Choisissez la sauvegarde de joueur qui doit recevoir cet objet.</value></data>
+  <data name="WorldContainers_SendItemDialogTitle" xml:space="preserve"><value>Envoyer l'objet à quel joueur ?</value></data>
+  <data name="WorldContainers_SendToPlayerMenu" xml:space="preserve"><value>Envoyer au joueur</value></data>
+  <data name="WorldContainers_SendingItemFormat" xml:space="preserve"><value>Envoi de {0} à {1}...</value></data>
+  <data name="WorldContainers_SentItemFormat" xml:space="preserve"><value>{0} envoyé dans {2} de {1}.</value></data>
+
+  <!-- WorldContainment -->
+  <data name="WorldContainment_BulkCompendiumWhat" xml:space="preserve"><value>débloquer chaque section du compendium à l'échelle du monde</value></data>
+  <data name="WorldContainment_BulkEmailsWhat" xml:space="preserve"><value>marquer chaque e-mail comme lu à l'échelle du monde</value></data>
+  <data name="WorldContainment_BulkItemsWhat" xml:space="preserve"><value>marquer chaque objet du catalogue comme vu à l'échelle du monde</value></data>
+  <data name="WorldContainment_BulkJournalsWhat" xml:space="preserve"><value>marquer chaque page de journal comme trouvée à l'échelle du monde</value></data>
+  <data name="WorldContainment_ClassifiedAnomaly" xml:space="preserve"><value>▓ ANOMALIE CLASSIFIÉE</value></data>
+  <data name="WorldContainment_DiscoveredCountFormat" xml:space="preserve"><value>{0} découverts</value></data>
+  <data name="WorldContainment_FoundCountFormat" xml:space="preserve"><value>{0} trouvées</value></data>
+  <data name="WorldContainment_HeldInFacilitySave" xml:space="preserve"><value>Détenu dans la sauvegarde de région du Facility (WorldSave_Facility.sav).</value></data>
+  <data name="WorldContainment_HeldInNotOpenFormat" xml:space="preserve"><value>Détenu dans {0} (pas actuellement ouvert dans la barre latérale).</value></data>
+  <data name="WorldContainment_HeldInOpenFormat" xml:space="preserve"><value>Détenu dans {0}, qui est ouvert dans la barre latérale.</value></data>
+  <data name="WorldContainment_LocatingUnit" xml:space="preserve"><value>Localisation de l'unité de confinement…</value></data>
+  <data name="WorldContainment_LocationUnresolved" xml:space="preserve"><value>Impossible de déterminer l'emplacement de l'unité de confinement.</value></data>
+  <data name="WorldContainment_ReadCountFormat" xml:space="preserve"><value>{0} lus</value></data>
+  <data name="WorldContainment_SectionUnlocksCountFormat" xml:space="preserve"><value>{0} déblocages de section</value></data>
+  <data name="WorldContainment_SpoilerSubjectRecord" xml:space="preserve"><value>Cette fiche de confinement</value></data>
+  <data name="WorldContainment_TapHintRevealed" xml:space="preserve"><value>Touchez pour l'apparence + l'emplacement</value></data>
+  <data name="WorldContainment_TapHintSealed" xml:space="preserve"><value>Au-dessus de votre habilitation - touchez pour révéler</value></data>
+  <data name="WorldContainment_UnitGuidFormat" xml:space="preserve"><value>GUID de l'unité de confinement : {0}</value></data>
+  <data name="WorldContainment_UnitNotFound" xml:space="preserve"><value>Unité de confinement introuvable dans WorldSave_Facility.sav (elle a peut-être été ramassée).</value></data>
+
+  <!-- WorldDoors -->
+  <data name="WorldDoors_ActorNotFound" xml:space="preserve"><value>L'acteur de cette porte n'a pas été trouvé dans le niveau compilé (renommé par une mise à jour du jeu ?).</value></data>
+  <data name="WorldDoors_CountFormat" xml:space="preserve"><value>{0} PORTES</value></data>
+  <data name="WorldDoors_GameInstallNotFound" xml:space="preserve"><value>Installation du jeu introuvable - positions exactes indisponibles.</value></data>
+  <data name="WorldDoors_MapCaptionScatter" xml:space="preserve"><value>Réticule = cette porte ; points = les autres portes du même sous-niveau (vue de dessus, positions issues des fichiers de niveau du jeu).</value></data>
+  <data name="WorldDoors_MapCaptionSectorPin" xml:space="preserve"><value>Réticule = cette porte sur la carte de secteur du jeu (position issue des fichiers de niveau du jeu ; le calage de la carte est approximatif). Points = les autres portes du niveau.</value></data>
+  <data name="WorldDoors_RegionFormat" xml:space="preserve"><value>Région : {0}</value></data>
+  <data name="WorldDoors_SubLevelNotReadable" xml:space="preserve"><value>Ce sous-niveau n'a pas pu être lu depuis les fichiers du jeu.</value></data>
+  <data name="WorldDoors_Title" xml:space="preserve"><value>PORTES</value></data>
+  <data name="WorldDoors_TitleWithRegionFormat" xml:space="preserve"><value>PORTES - {0}</value></data>
+
+  <!-- WorldEditor -->
+  <data name="WorldEditor_DroppedSummaryFormat" xml:space="preserve"><value>{0} objet(s) au sol</value></data>
+  <data name="WorldEditor_DroppedSummaryWithDeletionsFormat" xml:space="preserve"><value>{0} objet(s) · {1} marqués pour suppression</value></data>
+  <data name="WorldEditor_ExportFailedFormat" xml:space="preserve"><value>Échec de l'export : {0}</value></data>
+  <data name="WorldEditor_ExportedJsonFileTitle" xml:space="preserve"><value>JSON de sauvegarde exporté</value></data>
+  <data name="WorldEditor_ExportedJsonFormat" xml:space="preserve"><value>Exporté {0:F1} Mo → {1}</value></data>
+  <data name="WorldEditor_ExportingJson" xml:space="preserve"><value>Export JSON en cours… (la sauvegarde du Facility produit environ 100 Mo, cela peut prendre un moment)</value></data>
+  <data name="WorldEditor_ImportFailedFormat" xml:space="preserve"><value>Échec de l'import (sauvegarde intacte) : {0}</value></data>
+  <data name="WorldEditor_ImportedJsonFormat" xml:space="preserve"><value>Importé à {0:HH:mm:ss} · rechargez le fichier depuis la barre latérale pour voir les modifications.</value></data>
+  <data name="WorldEditor_ImportingJson" xml:space="preserve"><value>Import JSON en cours…</value></data>
+  <data name="WorldEditor_SaveFailedFormat" xml:space="preserve"><value>Échec de l'enregistrement : {0}</value></data>
+  <data name="WorldEditor_SavedAtFormat" xml:space="preserve"><value>Enregistré à {0:HH:mm:ss}</value></data>
+  <data name="WorldEditor_Saving" xml:space="preserve"><value>Enregistrement…</value></data>
+  <data name="WorldEditor_TabBases" xml:space="preserve"><value>BASES</value></data>
+  <data name="WorldEditor_TabContainers" xml:space="preserve"><value>CONTENEURS</value></data>
+  <data name="WorldEditor_TabContainment" xml:space="preserve"><value>CONFINEMENT</value></data>
+  <data name="WorldEditor_TabDoors" xml:space="preserve"><value>PORTES</value></data>
+  <data name="WorldEditor_TabDropped" xml:space="preserve"><value>AU SOL</value></data>
+  <data name="WorldEditor_TabPets" xml:space="preserve"><value>FAMILIERS</value></data>
+  <data name="WorldEditor_TabQuestFlags" xml:space="preserve"><value>INDICATEURS DE QUÊTE</value></data>
+  <data name="WorldEditor_TabRawJson" xml:space="preserve"><value>JSON BRUT</value></data>
+  <data name="WorldEditor_TabStory" xml:space="preserve"><value>HISTOIRE</value></data>
+  <data name="WorldEditor_TabTraders" xml:space="preserve"><value>MARCHANDS</value></data>
+  <data name="WorldEditor_TabVehicles" xml:space="preserve"><value>VÉHICULES</value></data>
+
+  <!-- WorldFeature -->
+  <data name="WorldFeature_DeviceNotFound" xml:space="preserve"><value>Appareil introuvable dans les sauvegardes de région (il a peut-être été retiré)</value></data>
+  <data name="WorldFeature_TitleFormat" xml:space="preserve"><value>{0} DANS CE MONDE</value></data>
+
+  <!-- WorldFlags -->
+  <data name="WorldFlags_DescCompleted" xml:space="preserve"><value>Enregistre que cet objectif/événement a été accompli</value></data>
+  <data name="WorldFlags_DescDefeated" xml:space="preserve"><value>Enregistre que cet ennemi a été vaincu</value></data>
+  <data name="WorldFlags_DescEntered" xml:space="preserve"><value>Enregistre que les joueurs sont entrés dans ce lieu pour la première fois</value></data>
+  <data name="WorldFlags_DescFound" xml:space="preserve"><value>Enregistre que cette chose a été trouvée</value></data>
+  <data name="WorldFlags_DescGeneric" xml:space="preserve"><value>Marqueur d'événement de monde à sens unique que le jeu vérifie pour conditionner du contenu</value></data>
+  <data name="WorldFlags_DescMet" xml:space="preserve"><value>Enregistre une première rencontre avec ce personnage</value></data>
+  <data name="WorldFlags_DescOpened" xml:space="preserve"><value>Enregistre qu'une porte, une grille ou un passage ici a été ouvert</value></data>
+  <data name="WorldFlags_DescReached" xml:space="preserve"><value>Enregistre que ce point a été atteint</value></data>
+  <data name="WorldFlags_DescRepaired" xml:space="preserve"><value>Enregistre que cette machine/ce système a été réparé</value></data>
+  <data name="WorldFlags_DescUnlock" xml:space="preserve"><value>Débloque le contenu (recettes, stock ou accès) qui y est lié</value></data>
+  <data name="WorldFlags_DescriptionFormat" xml:space="preserve"><value>{0} - région {1}. Le définir peut sauter l'événement ; le retirer peut le rejouer (là où le jeu revérifie).</value></data>
+  <data name="WorldFlags_StoryTriggerForChapter" xml:space="preserve"><value>Déclencheur d'histoire pour le chapitre « {0} ».</value></data>
+
+  <!-- WorldNpc -->
+  <data name="WorldNpc_Identity_TamedPet" xml:space="preserve"><value>Familier apprivoisé</value></data>
+
+  <!-- WorldPets -->
+  <data name="WorldPets_MoveFailedFormat" xml:space="preserve"><value>Échec du déplacement : {0}</value></data>
+  <data name="WorldPets_NoPlayerSaveFound" xml:space="preserve"><value>Aucune sauvegarde de joueur n'a été trouvée à côté de ce monde.</value></data>
+  <data name="WorldPets_SaveOrRevertFirst" xml:space="preserve"><value>Enregistrez ou annulez d'abord vos autres modifications du monde.</value></data>
+  <data name="WorldPets_SendingFormat" xml:space="preserve"><value>Envoi de {0} à {1}...</value></data>
+  <data name="WorldPets_SentFormat" xml:space="preserve"><value>{0} envoyé à {1}. Il vit maintenant dans la sauvegarde de ce joueur.</value></data>
+
+  <!-- WorldStory -->
+  <data name="WorldStory_ChapterIndexFormat" xml:space="preserve"><value>chapitre {0} sur {1}</value></data>
+  <data name="WorldStory_ChapterSetStatusFormat" xml:space="preserve"><value>Chapitre défini · {0} indicateur(s) déclencheur(s) ajouté(s), {1} effacé(s) dans WorldSave_Facility.sav{2} (sauvegardes conservées). Appuyez sur ENREGISTRER pour écrire le pointeur.</value></data>
+  <data name="WorldStory_ChapterSyncFailedFormat" xml:space="preserve"><value>Échec de la synchronisation des indicateurs de chapitre : {0}</value></data>
+  <data name="WorldStory_FlagBlockedFormat" xml:space="preserve"><value>Bloqué : « {0} » nécessite d'abord {1} indicateur(s) antérieur(s) ({2}). Sélectionnez l'indicateur pour les détails, ou utilisez DÉBLOQUER L'HISTOIRE JUSQU'ICI sur son chapitre.</value></data>
+  <data name="WorldStory_LastPlayedFormat" xml:space="preserve"><value>DERNIÈRE PARTIE {0}</value></data>
+  <data name="WorldStory_NoFixedStoryGateFormat" xml:space="preserve"><value>{0} (pas de verrou d'histoire fixe - anomalie de portail ou indicateur méta)</value></data>
+  <data name="WorldStory_NoPrerequisites" xml:space="preserve"><value>Aucun prérequis - peut être activé à tout moment.</value></data>
+  <data name="WorldStory_PlayerCodexClearedFormat" xml:space="preserve"><value>, {0} ligne(s) de codex joueur effacée(s) ({1} sauvegarde(s))</value></data>
+  <data name="WorldStory_PlaytimeFormat" xml:space="preserve"><value>{0}h {1:D2}m jouées</value></data>
+  <data name="WorldStory_PrereqChapterLabelFormat" xml:space="preserve"><value>{0} ({1})</value></data>
+  <data name="WorldStory_PrereqLineFormat" xml:space="preserve"><value>{0} {1}</value></data>
+  <data name="WorldStory_RegionOtherAnomaliesMeta" xml:space="preserve"><value>AUTRE · ANOMALIES &amp; MÉTA</value></data>
+  <data name="WorldStory_SettingChapterStatus" xml:space="preserve"><value>Définition du chapitre + synchronisation des indicateurs déclencheurs du Facility…</value></data>
+  <data name="WorldStory_SpoilerSubjectQuestFlag" xml:space="preserve"><value>Cet indicateur de quête</value></data>
+  <data name="WorldStory_TakesPlaceAroundFormat" xml:space="preserve"><value>Se déroule autour de : {0}</value></data>
+  <data name="WorldStory_UnknownChapter" xml:space="preserve"><value>(chapitre inconnu)</value></data>
+  <data name="WorldStory_WorldCodexClearedFormat" xml:space="preserve"><value>, {0} déblocage(s) de codex du monde effacé(s)</value></data>
+
+  <!-- WorldTraders -->
+  <data name="WorldTraders_Card_AlwaysStocked" xml:space="preserve"><value>toujours en stock</value></data>
+  <data name="WorldTraders_Card_LockedNeedsFlag" xml:space="preserve"><value>verrouillé - nécessite {0}</value></data>
+  <data name="WorldTraders_Card_ThisTrader" xml:space="preserve"><value>Ce marchand</value></data>
+  <data name="WorldTraders_Card_UnlockedFlagSet" xml:space="preserve"><value>débloqué ({0} est défini)</value></data>
+  <data name="WorldTraders_FlagsAlreadySet" xml:space="preserve"><value>Tous ces indicateurs sont déjà définis dans cette sauvegarde.</value></data>
+  <data name="WorldTraders_NothingToUnlockFormat" xml:space="preserve"><value>{0} : rien à débloquer.</value></data>
+  <data name="WorldTraders_SellsFormat" xml:space="preserve"><value>Vend : {0}</value></data>
+  <data name="WorldTraders_StagedFlagsFormat" xml:space="preserve"><value>{0} indicateur(s) de monde préparé(s) - appuyez sur ENREGISTRER pour écrire.</value></data>
+
+  <!-- WorldVehicles -->
+  <data name="WorldVehicles_AtSpawn" xml:space="preserve"><value>À la position d'apparition.</value></data>
+  <data name="WorldVehicles_CountFormat" xml:space="preserve"><value>{0} véhicules</value></data>
+  <data name="WorldVehicles_CountSingular" xml:space="preserve"><value>1 véhicule</value></data>
+  <data name="WorldVehicles_ItemsOnBoard" xml:space="preserve"><value>{0} objet(s) à bord</value></data>
+  <data name="WorldVehicles_MovedFromSpawn" xml:space="preserve"><value>Déplacé de l'apparition ({0}).</value></data>
+  <data name="WorldVehicles_NoOnBoardStorage" xml:space="preserve"><value>pas de rangement embarqué</value></data>
+  <data name="WorldVehicles_ResolvingSpawn" xml:space="preserve"><value>Détermination de la position d'apparition…</value></data>
+  <data name="WorldVehicles_SpawnUnavailable" xml:space="preserve"><value>Position d'apparition indisponible (installation du jeu / mappings nécessaires).</value></data>
+  <data name="WorldVehicles_UnknownWorld" xml:space="preserve"><value>Monde inconnu</value></data>
+  <data name="WorldVehicles_WorldFormat" xml:space="preserve"><value>Monde : {0}</value></data>
 </root>

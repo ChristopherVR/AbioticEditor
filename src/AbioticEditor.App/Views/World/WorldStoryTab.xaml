@@ -34,7 +34,7 @@
                        Text="{Binding WorldEditor.PlaytimeText}"
                        Style="{StaticResource AfReadout}" VerticalOptions="Center" />
                 <Label Grid.Column="3"
-                       Text="{Binding WorldEditor.LastPlayedText, StringFormat='LAST PLAYED {0}'}"
+                       Text="{loc:LocalizeFormat WorldStory_LastPlayedFormat, Arg0={Binding WorldEditor.LastPlayedText}}"
                        Style="{StaticResource AfStatusText}" VerticalOptions="Center"
                        IsVisible="{Binding WorldEditor.HasLastPlayed, FallbackValue=False}" />
             </Grid>

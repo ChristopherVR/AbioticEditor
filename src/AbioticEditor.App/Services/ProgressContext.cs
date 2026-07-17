@@ -31,8 +31,8 @@ public static class ProgressContext
         var chapter = FlagGate.RegionChapterForRowId(rowId);
         if (chapter?.TriggerFlag is null || HasFlag(chapter.TriggerFlag)) return true;
 
-        reason = $"\"{rowId}\" belongs to {chapter.Title}, which this world hasn't reached yet " +
-                 $"(missing {chapter.TriggerFlag}). Advance the story on the QUEST FLAGS tab first.";
+        reason = LocalizationResourceManager.Instance.Format(
+            "Progress_RowGated", rowId, chapter.Title, chapter.TriggerFlag);
         return false;
     }
 
@@ -53,8 +53,8 @@ public static class ProgressContext
         var chapter = FlagGate.RegionChapterForRowId(email.Id);
         if (chapter?.TriggerFlag is null || HasFlag(chapter.TriggerFlag)) return true;
 
-        reason = $"Recipe \"{recipeId}\" is granted by email \"{email.Subject}\" in {chapter.Title}, " +
-                 $"which this world hasn't reached (missing {chapter.TriggerFlag}).";
+        reason = LocalizationResourceManager.Instance.Format(
+            "Progress_RecipeGated", recipeId, email.Subject, chapter.Title, chapter.TriggerFlag);
         return false;
     }
 }

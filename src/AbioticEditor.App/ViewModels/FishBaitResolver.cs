@@ -57,19 +57,19 @@ public sealed partial class FishBaitResolver
         var lines = new List<string>();
         if (!string.IsNullOrWhiteSpace(f.Location))
         {
-            lines.Add($"Cast where there's {f.Location.ToLowerInvariant()}.");
+            lines.Add(LocalizationResourceManager.Instance.Format("PlayerCodex_FishCastWhere", f.Location.ToLowerInvariant()));
         }
         if (f.RequiredWorldFlag is { } flag)
         {
-            lines.Add($"Story progress: needs \"{Humanize(flag)}\" reached first.");
+            lines.Add(LocalizationResourceManager.Instance.Format("PlayerCodex_FishStoryProgress", Humanize(flag)));
         }
         if (required is not null)
         {
-            lines.Add($"Bait up with {required.DisplayName} (shown below) before casting.");
+            lines.Add(LocalizationResourceManager.Instance.Format("PlayerCodex_FishBaitUp", required.DisplayName));
         }
         else if (f.RequiresSpecialCatch)
         {
-            lines.Add("Needs a specific bait equipped to bite.");
+            lines.Add(LocalizationResourceManager.Instance["PlayerCodex_FishNeedsSpecificBait"]);
         }
         if (TimeOfDayText(f) is { } tod)
         {
@@ -77,7 +77,7 @@ public sealed partial class FishBaitResolver
         }
         if (f.RequiredDlcId is { } dlc)
         {
-            lines.Add($"Requires DLC: {Humanize(dlc)}.");
+            lines.Add(LocalizationResourceManager.Instance.Format("PlayerCodex_FishRequiresDlc", Humanize(dlc)));
         }
         return new FishDetail(unlock, required, lines);
     }
@@ -102,7 +102,10 @@ public sealed partial class FishBaitResolver
         if (!f.HasTimePreference) return null;
         var periods = new (string Name, double Mult)[]
         {
-            ("dawn", f.DawnMult), ("midday", f.NoonMult), ("dusk", f.DuskMult), ("night", f.MidnightMult),
+            (LocalizationResourceManager.Instance["PlayerCodex_FishTimeDawn"], f.DawnMult),
+            (LocalizationResourceManager.Instance["PlayerCodex_FishTimeMidday"], f.NoonMult),
+            (LocalizationResourceManager.Instance["PlayerCodex_FishTimeDusk"], f.DuskMult),
+            (LocalizationResourceManager.Instance["PlayerCodex_FishTimeNight"], f.MidnightMult),
         };
         var open = periods.Where(p => p.Mult > 0).Select(p => p.Name).ToList();
         var best = periods.Where(p => p.Mult > 1).Select(p => p.Name).ToList();
@@ -110,21 +113,26 @@ public sealed partial class FishBaitResolver
         // Some periods are impossible (multiplier 0): say exactly when it CAN be caught.
         if (open.Count < periods.Length)
         {
-            var when = open.Count == 0 ? "(never bites; check the wiki)" : Join(open);
+            var when = open.Count == 0
+                ? LocalizationResourceManager.Instance["PlayerCodex_FishNeverBites"]
+                : Join(open);
             return best.Count > 0 && best.Count < open.Count
-                ? $"Only bites at {when} (best at {Join(best)})."
-                : $"Only bites at {when}.";
+                ? LocalizationResourceManager.Instance.Format("PlayerCodex_FishOnlyBitesBest", when, Join(best))
+                : LocalizationResourceManager.Instance.Format("PlayerCodex_FishOnlyBites", when);
         }
         // Otherwise it's catchable any time but favours certain periods.
-        return best.Count > 0 ? $"Bites best at {Join(best)}." : null;
+        return best.Count > 0
+            ? LocalizationResourceManager.Instance.Format("PlayerCodex_FishBitesBest", Join(best))
+            : null;
     }
 
     private static string Join(IReadOnlyList<string> parts) => parts.Count switch
     {
         0 => string.Empty,
         1 => parts[0],
-        2 => $"{parts[0]} and {parts[1]}",
-        _ => string.Join(", ", parts.Take(parts.Count - 1)) + $" and {parts[^1]}",
+        2 => LocalizationResourceManager.Instance.Format("PlayerCodex_FishTimeJoinAnd", parts[0], parts[1]),
+        _ => LocalizationResourceManager.Instance.Format(
+            "PlayerCodex_FishTimeJoinAnd", string.Join(", ", parts.Take(parts.Count - 1)), parts[^1]),
     };
 
     /// <summary>Strips variant suffixes (<c>_rare1</c>, <c>_AllDay</c>, <c>_torii</c>) to the family base name.</summary>

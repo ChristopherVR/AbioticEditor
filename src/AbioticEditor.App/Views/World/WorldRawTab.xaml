@@ -13,7 +13,7 @@
         <Label Text="{loc:Localize WorldRaw_RawSaveJson}" Style="{StaticResource AfH2}" FontSize="18" />
         <Label Text="{loc:Localize WorldRaw_RawJsonIntro}"
                Style="{StaticResource AfMuted}" FontSize="12" />
-        <Label Text="{Binding WorldEditor.JsonPath, StringFormat='JSON file: {0}'}"
+        <Label Text="{loc:LocalizeFormat Common_JsonFileFormat, Arg0={Binding WorldEditor.JsonPath}}"
                Style="{StaticResource AfStatusText}" />
         <HorizontalStackLayout Spacing="12">
             <Button Text="{loc:Localize WorldRaw_ExportJsonOpen}"

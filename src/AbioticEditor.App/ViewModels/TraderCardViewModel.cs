@@ -110,9 +110,9 @@ public sealed class TraderCardViewModel : INotifyPropertyChanged
                 var name = entry?.DisplayName ?? o.ItemId;
                 var text = o.Count > 1 ? $"{o.Count}× {name}" : name;
                 var unlocked = o.RequiredFlag is null || _worldHasFlag(o.RequiredFlag);
-                var status = o.RequiredFlag is null ? "always stocked"
-                    : unlocked ? $"unlocked ({o.RequiredFlag} is set)"
-                    : $"locked - needs {o.RequiredFlag}";
+                var status = o.RequiredFlag is null ? Loc["WorldTraders_Card_AlwaysStocked"]
+                    : unlocked ? Loc.Format("WorldTraders_Card_UnlockedFlagSet", o.RequiredFlag)
+                    : Loc.Format("WorldTraders_Card_LockedNeedsFlag", o.RequiredFlag);
                 // Reuse the palette item-VM so the offer row gets the real icon and the
                 // same encyclopedia detail (stats, description, crafted-by, sold-by).
                 var item = entry is null ? null : new PaletteItemViewModel(entry);
@@ -249,7 +249,7 @@ public sealed class TraderCardViewModel : INotifyPropertyChanged
     public async Task RevealAsync()
     {
         if (!IsConcealed) return;
-        if (await SpoilerPrompt.RevealAsync("This trader", SpoilerKey)) NotifyConcealment();
+        if (await SpoilerPrompt.RevealAsync(Loc["WorldTraders_Card_ThisTrader"], SpoilerKey)) NotifyConcealment();
     }
 
     /// <summary>Every flag gating this trader or any of its offers.</summary>

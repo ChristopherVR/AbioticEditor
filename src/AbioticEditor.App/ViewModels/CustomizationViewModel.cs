@@ -167,28 +167,21 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
     public string AvailableCaption => _file is null
         ? string.Empty
         : _gamePassSet is not null
-            ? $"Appearance is stored in a Game Pass profile container (slot {_selectedSlot}). "
-              + "Editing here writes it back into your Xbox save folder and keeps a backup. It applies to every world this account plays."
-            : $"Appearance is stored in {Path.GetFileName(_file.FilePath)}, a per-character file the game writes under your Steam account. "
-              + "Editing here changes that file directly and keeps a .bak backup. It applies to every world this account plays.";
+            ? LocalizationResourceManager.Instance.Format("Customization_AvailableCaptionGamePass", _selectedSlot)
+            : LocalizationResourceManager.Instance.Format("Customization_AvailableCaptionSteam", Path.GetFileName(_file.FilePath));
 
     /// <summary>
     /// Friendly explanation shown when the appearance save is NOT available.
     /// </summary>
     public string UnavailableExplanation =>
         _gamePassSet is not null
-            ? "Appearance editing is unavailable because no ScientistCustomization save was found in your Game Pass save data. "
-              + "The game writes this data the first time you customize your character in-game. "
-              + "To enable editing, launch Abiotic Factor, customize your character once, then reopen the editor."
-            : "Appearance editing is unavailable because no ScientistCustomization save was found for this Steam account on this machine. "
-              + "This file is not shipped with the game or the editor: the game writes it the first time you customize your character in-game, "
-              + "and it is per Steam account and per machine. To enable editing, launch Abiotic Factor, customize your character once, then reopen the editor.";
+            ? LocalizationResourceManager.Instance["Customization_UnavailableGamePass"]
+            : LocalizationResourceManager.Instance["Customization_UnavailableSteam"];
 
     /// <summary>Voice isn't stored anywhere - it follows the chosen head's gender.</summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static",
         Justification = "Bound from XAML; bindings need an instance member.")]
-    public string VoiceNote =>
-        "VOICE is not stored in any save - the game derives it from the head's gender (Dr. H / Dr. R).";
+    public string VoiceNote => LocalizationResourceManager.Instance["Customization_VoiceNote"];
 
     public ObservableCollection<CustomizationFieldViewModel> Fields { get; } = new();
 
@@ -227,7 +220,7 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
 
         if ((_steamId == 0 && _gamePassSet is null) || slot <= 0)
         {
-            Status = "No ScientistCustomization save found on this machine.";
+            Status = LocalizationResourceManager.Instance["Customization_StatusNotFound"];
             Notify();
             return;
         }
@@ -239,7 +232,7 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
                 var blob = _gamePassSet.ReadProfileCustomization(slot);
                 if (blob is null)
                 {
-                    Status = "No ScientistCustomization save found in your Game Pass save data.";
+                    Status = LocalizationResourceManager.Instance["Customization_StatusNotFoundGamePass"];
                     Notify();
                     return;
                 }
@@ -253,14 +246,14 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            Status = $"Failed to read customization save: {ex.Message}";
+            Status = LocalizationResourceManager.Instance.Format("Customization_StatusReadFailed", ex.Message);
             Notify();
             return;
         }
 
         if (_file is null)
         {
-            Status = "No ScientistCustomization save found on this machine.";
+            Status = LocalizationResourceManager.Instance["Customization_StatusNotFound"];
             Notify();
             return;
         }
@@ -270,8 +263,8 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
             Fields.Add(new CustomizationFieldViewModel(f, OnFieldChanged));
         }
         Status = _gamePassSet is not null
-            ? $"Editing Game Pass appearance (slot {slot}) - applies to every world this account plays."
-            : $"Editing {Path.GetFileName(_file.FilePath)} - applies to every world this account plays.";
+            ? LocalizationResourceManager.Instance.Format("Customization_StatusEditingGamePass", slot)
+            : LocalizationResourceManager.Instance.Format("Customization_StatusEditingFile", Path.GetFileName(_file.FilePath));
         Notify();
     }
 
@@ -295,13 +288,13 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
             {
                 _file.Save(values);
             }
-            Status = $"Appearance saved at {DateTime.Now:HH:mm:ss} (.bak created). Restart the game to see it.";
+            Status = LocalizationResourceManager.Instance.Format("Customization_StatusSaved", $"{DateTime.Now:HH:mm:ss}");
             // Reload so baselines reset and IsDirty clears.
             LoadSlot(_selectedSlot);
         }
         catch (Exception ex)
         {
-            Status = $"Save failed: {ex.Message}";
+            Status = LocalizationResourceManager.Instance.Format("Customization_StatusSaveFailed", ex.Message);
         }
     }
 

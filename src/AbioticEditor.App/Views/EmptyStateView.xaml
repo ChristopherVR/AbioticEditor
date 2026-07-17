@@ -12,7 +12,7 @@
             controls:Fx.Reveal="True"
             IsVisible="{Binding HasNoEditor}">
         <VerticalStackLayout Spacing="14" HorizontalOptions="Center">
-            <Label Text="ABIOTIC FACTOR SAVE EDITOR"
+            <Label Text="{loc:Localize Empty_Title}"
                    Style="{StaticResource AfH2}" HorizontalTextAlignment="Center" />
             <Label Text="{loc:Localize Empty_OpenYourSaveFolderInstructions}"
                    Style="{StaticResource AfMuted}" HorizontalTextAlignment="Center"

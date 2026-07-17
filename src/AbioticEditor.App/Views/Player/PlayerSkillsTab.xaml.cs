@@ -11,7 +11,7 @@ public partial class PlayerSkillsTab : ContentView
     private async void OnMaxAllSkills(object? sender, EventArgs e)
     {
         if (ViewUtils.Vm(this) is { PlayerEditor: { } pe }
-            && await ViewUtils.ConfirmBulkAsync(this, "set all 15 skills to level 20"))
+            && await ViewUtils.ConfirmBulkAsync(this, Services.LocalizationResourceManager.Instance["PlayerSkills_BulkMaxAllWhat"]))
         {
             pe.MaxAllSkillsCommand.Execute(null);
         }

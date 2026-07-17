@@ -11,7 +11,7 @@ public partial class PlayerRecipesTab : ContentView
     private async void OnUnlockAllRecipes(object? sender, EventArgs e)
     {
         if (ViewUtils.Vm(this) is { PlayerEditor: { } pe }
-            && await ViewUtils.ConfirmBulkAsync(this, "unlock every recipe for this player"))
+            && await ViewUtils.ConfirmBulkAsync(this, Services.LocalizationResourceManager.Instance["PlayerRecipes_BulkUnlockConfirmWhat"]))
         {
             pe.RecipeBrowser.UnlockAllCommand.Execute(null);
         }

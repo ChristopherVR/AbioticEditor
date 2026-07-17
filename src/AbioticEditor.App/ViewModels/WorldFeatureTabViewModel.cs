@@ -400,7 +400,7 @@ public sealed class WorldFeatureEntryViewModel : INotifyPropertyChanged
         var field = Fields.FirstOrDefault(f => f.Id == fieldId);
         if (resolved is null)
         {
-            field?.OverrideDisplay("Device not found in any region save (it may have been removed)");
+            field?.OverrideDisplay(Services.LocalizationResourceManager.Instance["WorldFeature_DeviceNotFound"]);
             _canOpen = false;
             LinkLabel = null;
             return;

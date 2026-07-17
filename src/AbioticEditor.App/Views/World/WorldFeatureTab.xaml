@@ -13,7 +13,7 @@
       <VerticalStackLayout Spacing="12"
                            BindingContext="{Binding WorldEditor.SelectedFeatureTab}"
                            x:DataType="vm:WorldFeatureTabViewModel">
-        <Label Text="{Binding Title, StringFormat='{0} IN THIS WORLD'}" Style="{StaticResource AfH2}" FontSize="18" />
+        <Label Text="{loc:LocalizeFormat WorldFeature_TitleFormat, Arg0={Binding Title}}" Style="{StaticResource AfH2}" FontSize="18" />
         <Label Text="{Binding Description}" Style="{StaticResource AfMuted}" FontSize="11" />
         <Label Text="{loc:Localize WorldFeature_EditHint}"
                Style="{StaticResource AfMuted}" FontSize="11" />

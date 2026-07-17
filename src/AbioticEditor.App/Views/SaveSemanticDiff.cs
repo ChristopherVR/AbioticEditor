@@ -102,14 +102,14 @@ internal static class PlayerSemanticDiff
         AddIf(sections, inventory);
 
         // ----- set-difference categories -----
-        sections.Add(SetSection("Recipes unlocked", a.Recipes, b.Recipes, ByRecipe));
-        sections.Add(SetSection("Fish caught", a.FishCaught, b.FishCaught, ByFish));
+        sections.Add(SetSection(LocalizationResourceManager.Instance["Compare_RecipesUnlocked"], a.Recipes, b.Recipes, ByRecipe));
+        sections.Add(SetSection(LocalizationResourceManager.Instance["Compare_FishCaught"], a.FishCaught, b.FishCaught, ByFish));
         sections.Add(SetSection("Traits", a.Traits, b.Traits, ByTrait));
-        sections.Add(SetSection("Items discovered", a.ItemsPickedUp, b.ItemsPickedUp, ByItem));
-        sections.Add(SetSection("Items crafted", a.CraftedItems, b.CraftedItems, ByItem));
-        sections.Add(SetSection("Maps unlocked", a.MapsUnlocked, b.MapsUnlocked, Plain));
-        sections.Add(SetSection("Journal entries", a.Journals, b.Journals, Plain));
-        sections.Add(SetSection("Emails read", a.EmailsRead, b.EmailsRead, Plain));
+        sections.Add(SetSection(LocalizationResourceManager.Instance["Compare_ItemsDiscovered"], a.ItemsPickedUp, b.ItemsPickedUp, ByItem));
+        sections.Add(SetSection(LocalizationResourceManager.Instance["Compare_ItemsCrafted"], a.CraftedItems, b.CraftedItems, ByItem));
+        sections.Add(SetSection(LocalizationResourceManager.Instance["Compare_MapsUnlocked"], a.MapsUnlocked, b.MapsUnlocked, Plain));
+        sections.Add(SetSection(LocalizationResourceManager.Instance["Compare_JournalEntries"], a.Journals, b.Journals, Plain));
+        sections.Add(SetSection(LocalizationResourceManager.Instance["Compare_EmailsRead"], a.EmailsRead, b.EmailsRead, Plain));
 
         return sections.Where(s => s.HasContent).ToList();
     }
@@ -345,19 +345,21 @@ internal static class WorldSemanticDiff
         if (!string.Equals(a.StoryProgressionRow, b.StoryProgressionRow, StringComparison.OrdinalIgnoreCase)
             && (a.StoryProgressionRow is not null || b.StoryProgressionRow is not null))
         {
-            progression.Scalars.Add(new SemanticScalar("Story chapter",
+            progression.Scalars.Add(new SemanticScalar(LocalizationResourceManager.Instance["Compare_StoryChapter"],
                 ChapterName(a.StoryProgressionRow), ChapterName(b.StoryProgressionRow)));
         }
         if (a.MinutesPassed is { } ma && b.MinutesPassed is { } mb && ma != mb)
         {
-            progression.Scalars.Add(new SemanticScalar("Time played", $"{ma / 60}h {ma % 60}m", $"{mb / 60}h {mb % 60}m"));
+            progression.Scalars.Add(new SemanticScalar(LocalizationResourceManager.Instance["Compare_TimePlayed"],
+                LocalizationResourceManager.Instance.Format("Compare_TimePlayedFormat", ma / 60, ma % 60),
+                LocalizationResourceManager.Instance.Format("Compare_TimePlayedFormat", mb / 60, mb % 60)));
         }
         if (progression.HasContent) sections.Add(progression);
 
-        sections.Add(SetSection("Global recipes", a.GlobalRecipes, b.GlobalRecipes, ByRecipe));
+        sections.Add(SetSection(LocalizationResourceManager.Instance["Compare_GlobalRecipes"], a.GlobalRecipes, b.GlobalRecipes, ByRecipe));
 
         // ----- quest flags -----
-        sections.Add(SetSection("Quest flags", a.Flags, b.Flags, ByFlag));
+        sections.Add(SetSection(LocalizationResourceManager.Instance["Compare_QuestFlags"], a.Flags, b.Flags, ByFlag));
 
         // ----- doors that changed lock/open state (matched by id) -----
         var doors = new SemanticSection { Title = "Doors" };
@@ -375,7 +377,7 @@ internal static class WorldSemanticDiff
         if (doors.HasContent) sections.Add(doors);
 
         // ----- ground items present in one save but not the other (aggregated by item) -----
-        sections.Add(SetSection("Ground items",
+        sections.Add(SetSection(LocalizationResourceManager.Instance["Compare_GroundItems"],
             a.DroppedItems.Select(d => d.Slot.ItemId).Where(NotEmpty).ToList()!,
             b.DroppedItems.Select(d => d.Slot.ItemId).Where(NotEmpty).ToList()!,
             ByItem));
@@ -396,11 +398,11 @@ internal static class WorldSemanticDiff
         if (npcs.HasContent) sections.Add(npcs);
 
         // ----- world-object counts -----
-        var contents = new SemanticSection { Title = "World contents" };
+        var contents = new SemanticSection { Title = LocalizationResourceManager.Instance["Compare_WorldContents"] };
         AddCountScalar(contents, "Containers", a.Containers.Count, b.Containers.Count);
-        AddCountScalar(contents, "Placed objects", a.Deployables.Count, b.Deployables.Count);
-        AddCountScalar(contents, "Ground items", a.DroppedItems.Count, b.DroppedItems.Count);
-        AddCountScalar(contents, "Tracked NPCs", a.Npcs.Count, b.Npcs.Count);
+        AddCountScalar(contents, LocalizationResourceManager.Instance["Compare_PlacedObjects"], a.Deployables.Count, b.Deployables.Count);
+        AddCountScalar(contents, LocalizationResourceManager.Instance["Compare_GroundItems"], a.DroppedItems.Count, b.DroppedItems.Count);
+        AddCountScalar(contents, LocalizationResourceManager.Instance["Compare_TrackedNpcs"], a.Npcs.Count, b.Npcs.Count);
         if (contents.HasContent) sections.Add(contents);
 
         return sections.Where(s => s.HasContent).ToList();

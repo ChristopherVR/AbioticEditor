@@ -66,7 +66,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
 
         // Version sanity: warn when the save is newer than this editor knows, or its
         // save class wasn't recognized at all.
-        CompatibilityWarning = Core.Compatibility.SaveCompatibility.WarningFor(data.Raw);
+        CompatibilityWarning = Services.CompatibilityLocalization.WarningFor(data.Raw);
         if (CompatibilityWarning is not null)
         {
             Core.Diagnostics.EditorLog.Warn(
@@ -164,7 +164,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         // (vehicle inventories load as Vehicle-source containers); OpenVehicleInventory jumps there.
         _vehicles = data.Vehicles.Select(v => new WorldVehicleViewModel(v, Refresh, OpenVehicleInventory)).ToList();
         VehicleGroups = _vehicles
-            .GroupBy(v => string.IsNullOrEmpty(v.Region) ? "Unknown world" : v.Region)
+            .GroupBy(v => string.IsNullOrEmpty(v.Region) ? Loc["WorldVehicles_UnknownWorld"] : v.Region)
             .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
             .Select(g => new VehicleWorldGroup(g.Key, g))
             .ToList();
@@ -192,6 +192,12 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         InitTabCommands();
         BuildTabs();
     }
+
+    private static LocalizationResourceManager Loc => LocalizationResourceManager.Instance;
+
+    /// <summary>Localized chapter title (resx key by row id), falling back to the catalog's English title.</summary>
+    private static string LocalizedChapterTitle(StoryChapter chapter)
+        => Loc.GetOrNull($"WorldStory_ChapterTitle_{chapter.Row}") ?? chapter.Title;
 
     // ---------- Metadata save: story progression + playtime ----------
 
@@ -348,7 +354,9 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         get
         {
             var i = StoryProgressionCatalog.IndexOf(_storyRow);
-            return i < 0 ? "(unknown chapter)" : $"chapter {i + 1} of {StoryProgressionCatalog.Rows.Count}";
+            return i < 0
+                ? Loc["WorldStory_UnknownChapter"]
+                : Loc.Format("WorldStory_ChapterIndexFormat", i + 1, StoryProgressionCatalog.Rows.Count);
         }
     }
 
@@ -365,7 +373,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         }
     }
 
-    public string PlaytimeText => $"{_minutes / 60}h {_minutes % 60:D2}m played";
+    public string PlaytimeText => Loc.Format("WorldStory_PlaytimeFormat", _minutes / 60, _minutes % 60);
 
     private bool IsMetaDirty()
         => IsMetadataSave
@@ -533,14 +541,15 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
             ? staged.Count
             : _worldUnlockCounts.GetValueOrDefault(prefix);
 
-    public string WorldItemsSeenText => $"{WorldUnlockCount(WuItems)} discovered";
+    public string WorldItemsSeenText => Loc.Format("WorldContainment_DiscoveredCountFormat", WorldUnlockCount(WuItems));
 
-    public string WorldEmailsText => $"{WorldUnlockCount(WuEmails)} read";
+    public string WorldEmailsText => Loc.Format("WorldContainment_ReadCountFormat", WorldUnlockCount(WuEmails));
 
-    public string WorldJournalsText => $"{WorldUnlockCount(WuJournals)} found";
+    public string WorldJournalsText => Loc.Format("WorldContainment_FoundCountFormat", WorldUnlockCount(WuJournals));
 
-    public string WorldCompendiumText =>
-        $"{WorldUnlockCount(WuCompEmail) + WorldUnlockCount(WuCompNarrative) + WorldUnlockCount(WuCompExploration)} section unlocks";
+    public string WorldCompendiumText => Loc.Format(
+        "WorldContainment_SectionUnlocksCountFormat",
+        WorldUnlockCount(WuCompEmail) + WorldUnlockCount(WuCompNarrative) + WorldUnlockCount(WuCompExploration));
 
     /// <summary>Adds every catalog item to the world-wide picked-up list (staged).</summary>
     public void UnlockAllWorldItems()
@@ -645,8 +654,8 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     public int DroppedCount => DroppedItems.Count(d => !d.IsDeleted);
     public int DroppedDeletedCount => DroppedItems.Count(d => d.IsDeleted);
     public string DroppedSummary => DroppedDeletedCount == 0
-        ? $"{DroppedCount} item(s) on the ground"
-        : $"{DroppedCount} item(s) · {DroppedDeletedCount} marked for deletion";
+        ? Loc.Format("WorldEditor_DroppedSummaryFormat", DroppedCount)
+        : Loc.Format("WorldEditor_DroppedSummaryWithDeletionsFormat", DroppedCount, DroppedDeletedCount);
 
     public ICommand DeleteVisibleDroppedCommand => _deleteVisibleDroppedCommand ??= new RelayCommand(() =>
     {
@@ -743,16 +752,16 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         if (pet is null) return;
         if (SelectedSiblingPlayer is not { } target)
         {
-            PetMoveStatus = "No player save was found next to this world.";
+            PetMoveStatus = Loc["WorldPets_NoPlayerSaveFound"];
             return;
         }
         if (IsDirty)
         {
-            PetMoveStatus = "Save or revert your other world changes first.";
+            PetMoveStatus = Loc["WorldPets_SaveOrRevertFirst"];
             return;
         }
         var petLabel = string.IsNullOrWhiteSpace(pet.DisplayName) ? pet.Id : pet.DisplayName;
-        PetMoveStatus = $"Sending {petLabel} to {target.Name}...";
+        PetMoveStatus = Loc.Format("WorldPets_SendingFormat", petLabel, target.Name);
         try
         {
             var player = Core.PlayerSaves.PlayerSaveReader.ReadFromFile(target.Path);
@@ -779,13 +788,13 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
             _pets.Remove(pet);
             if (ReferenceEquals(_selectedPet, pet)) SelectedPet = null;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasPets)));
-            PetMoveStatus = $"Sent {petLabel} to {target.Name}. It now lives in that player's save.";
+            PetMoveStatus = Loc.Format("WorldPets_SentFormat", petLabel, target.Name);
             Refresh();
         }
         catch (Exception ex)
         {
             Core.Diagnostics.EditorLog.Error("CrossSave", $"Pet move failed for '{petLabel}'", ex);
-            PetMoveStatus = $"Move failed: {ex.Message}";
+            PetMoveStatus = Loc.Format("WorldPets_MoveFailedFormat", ex.Message);
         }
     }
 
@@ -814,19 +823,19 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     {
         if (slot is null || slot.IsEmpty)
         {
-            ContainerItemMoveStatus = "Select a slot that has an item in it first.";
+            ContainerItemMoveStatus = Loc["WorldContainers_SelectSlotWithItemFirst"];
             NotifyContainerMoveStatus();
             return;
         }
         if (!HasSiblingPlayers)
         {
-            ContainerItemMoveStatus = "No player save was found next to this world.";
+            ContainerItemMoveStatus = Loc["WorldContainers_NoPlayerSaveFound"];
             NotifyContainerMoveStatus();
             return;
         }
         if (IsDirty)
         {
-            ContainerItemMoveStatus = "Save or revert your other world changes first, then send the item.";
+            ContainerItemMoveStatus = Loc["WorldContainers_SaveOrRevertFirst"];
             NotifyContainerMoveStatus();
             return;
         }
@@ -834,9 +843,11 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         var target = await ResolveTargetPlayerAsync();
         if (target is null) return; // user cancelled the picker
 
-        var itemLabel = string.IsNullOrWhiteSpace(slot.DisplayName) ? (slot.ItemId ?? "item") : slot.DisplayName;
+        var itemLabel = string.IsNullOrWhiteSpace(slot.DisplayName)
+            ? (slot.ItemId ?? Loc["WorldContainers_ItemFallback"])
+            : slot.DisplayName;
         var item = slot.ToCurrentSlot();
-        ContainerItemMoveStatus = $"Sending {itemLabel} to {target.Name}...";
+        ContainerItemMoveStatus = Loc.Format("WorldContainers_SendingItemFormat", itemLabel, target.Name);
         NotifyContainerMoveStatus();
         try
         {
@@ -869,14 +880,14 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
             Core.Diagnostics.EditorLog.Info("CrossSave",
                 $"Item '{itemLabel}' moved from {System.IO.Path.GetFileName(_path)} to player {target.Name} "
                 + $"({System.IO.Path.GetFileName(target.Path)}) -> {result.Where}");
-            ContainerItemMoveStatus = $"Sent {itemLabel} to {target.Name}'s {result.Where}.";
+            ContainerItemMoveStatus = Loc.Format("WorldContainers_SentItemFormat", itemLabel, target.Name, result.Where);
             NotifyContainerMoveStatus();
             Refresh();
         }
         catch (Exception ex)
         {
             Core.Diagnostics.EditorLog.Error("CrossSave", $"Item move failed for '{itemLabel}'", ex);
-            ContainerItemMoveStatus = $"Move failed: {ex.Message}";
+            ContainerItemMoveStatus = Loc.Format("WorldContainers_MoveFailedFormat", ex.Message);
             NotifyContainerMoveStatus();
         }
     }
@@ -893,11 +904,11 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
 
         var actions = players
             .Select(p => (p.Name, DialogTone.Primary))
-            .Append(("Cancel", DialogTone.Neutral))
+            .Append((Loc["Common_Cancel"], DialogTone.Neutral))
             .ToArray();
         var choice = await DialogViewModel.Current.ShowAsync(
-            "Send item to which player?",
-            "Choose the player save that should receive this item.",
+            Loc["WorldContainers_SendItemDialogTitle"],
+            Loc["WorldContainers_SendItemDialogMessage"],
             actions);
         return choice >= 0 && choice < players.Count ? players[choice] : null;
     }
@@ -1069,7 +1080,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     public async Task<(int Added, string Message)> UnlockTraderFlagsAsync(
         TraderCardViewModel trader, IReadOnlyCollection<string> flags)
     {
-        if (flags.Count == 0) return (0, $"{trader.Name}: nothing to unlock.");
+        if (flags.Count == 0) return (0, Loc.Format("WorldTraders_NothingToUnlockFormat", trader.Name));
 
         int added;
         string message;
@@ -1102,8 +1113,8 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
                 foreach (var t in TraderCards) t.RefreshAvailability();
             }
             message = added == 0
-                ? "All of those flags are already set in this save."
-                : $"Staged {added} world flag(s) - press SAVE to write.";
+                ? Loc["WorldTraders_FlagsAlreadySet"]
+                : Loc.Format("WorldTraders_StagedFlagsFormat", added);
         }
         Core.Diagnostics.EditorLog.Info("Edit",
             $"Trader unlock: {trader.Name} - {added} flag(s) [{string.Join(", ", flags)}]");
@@ -1222,7 +1233,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         try
         {
             IsSaving = true;
-            SaveStatus = "Setting chapter + syncing Facility trigger flags…";
+            SaveStatus = Loc["WorldStory_SettingChapterStatus"];
             var (added, _) = await Task.Run(() => StoryFlagSync.SyncFacilityFlags(_path, row));
             var (cleared, _) = await Task.Run(() => StoryFlagSync.ClearForwardFlags(_path, row));
             RefreshFacilityFlagState();
@@ -1246,13 +1257,13 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
                 if (globalCleared > 0)
                 {
                     NotifyWorldUnlockTexts();
-                    statusExtra += $", {globalCleared} world codex unlock(s) cleared";
+                    statusExtra += Loc.Format("WorldStory_WorldCodexClearedFormat", globalCleared);
                 }
 
                 var (playersChanged, rowsRemoved, _) = await Task.Run(() => CodexRevert.ClearForwardPlayerUnlocks(_path, reachedFlags));
                 if (rowsRemoved > 0)
                 {
-                    statusExtra += $", {rowsRemoved} player codex row(s) cleared ({playersChanged} save(s))";
+                    statusExtra += Loc.Format("WorldStory_PlayerCodexClearedFormat", rowsRemoved, playersChanged);
                 }
 
                 if (MovePlayersOnChapterSet)
@@ -1262,11 +1273,11 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
                 }
             }
 
-            SaveStatus = $"Chapter set · {added} trigger flag(s) added, {cleared} cleared in WorldSave_Facility.sav{statusExtra} (backups kept). Press SAVE to write the pointer.";
+            SaveStatus = Loc.Format("WorldStory_ChapterSetStatusFormat", added, cleared, statusExtra);
         }
         catch (Exception ex)
         {
-            SaveStatus = $"Chapter flag sync failed: {ex.Message}";
+            SaveStatus = Loc.Format("WorldStory_ChapterSyncFailedFormat", ex.Message);
         }
         finally
         {
@@ -1443,7 +1454,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
             {
                 var chapter = FlagGate.RegionChapterFor(f.RawName);
                 var index = chapter is null ? int.MaxValue : StoryProgressionCatalog.IndexOf(chapter.Row);
-                return (Index: index, Title: chapter is null ? "OTHER · ANOMALIES & META" : RegionTitleFor(chapter));
+                return (Index: index, Title: chapter is null ? Loc["WorldStory_RegionOtherAnomaliesMeta"] : RegionTitleFor(chapter));
             })
             .OrderBy(g => g.Key.Index)
             .Select(g => new FlagGroup(
@@ -1464,19 +1475,19 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     private static string RegionTitleFor(StoryChapter chapter)
     {
         var r = chapter.Row;
-        if (r.StartsWith("Office", StringComparison.OrdinalIgnoreCase)) return "01 · OFFICE SECTOR";
-        if (r is "Flathill" or "PostFlathill") return "02 · FLATHILL (PORTAL WORLD)";
-        if (r.StartsWith("MF", StringComparison.OrdinalIgnoreCase)) return "03 · MANUFACTURING WEST & MINES";
-        if (r == "Pens") return "04 · THE PENS";
-        if (r is "Labs" or "Containment" or "Helmholtz" or "Tarasque" or "Mycofields" or "PostLabs") return "05 · CASCADE LABORATORIES";
-        if (r.StartsWith("Sec", StringComparison.OrdinalIgnoreCase) || r == "EndSecurity") return "06 · SECURITY SECTOR";
-        if (r is "ElectricalStation" or "Voussoir" or "EndDam") return "07 · HYDROPLANT & VOUSSOIR";
-        if (r is "PowerServices" or "AnteverseC") return "08 · POWER SERVICES";
-        if (r.StartsWith("Reactors", StringComparison.OrdinalIgnoreCase) || r is "Shadowgate" or "InqEnd") return "09 · THE REACTORS";
+        if (r.StartsWith("Office", StringComparison.OrdinalIgnoreCase)) return "01 · " + Loc["WorldStory_RegionOfficeSector"].ToUpperInvariant();
+        if (r is "Flathill" or "PostFlathill") return "02 · " + Loc["WorldStory_RegionPortalFlathill"].ToUpperInvariant();
+        if (r.StartsWith("MF", StringComparison.OrdinalIgnoreCase)) return "03 · " + Loc["WorldStory_RegionManufacturingMines"].ToUpperInvariant();
+        if (r == "Pens") return "04 · " + Loc["WorldStory_RegionThePens"].ToUpperInvariant();
+        if (r is "Labs" or "Containment" or "Helmholtz" or "Tarasque" or "Mycofields" or "PostLabs") return "05 · " + Loc["WorldStory_RegionCascadeLabs"].ToUpperInvariant();
+        if (r.StartsWith("Sec", StringComparison.OrdinalIgnoreCase) || r == "EndSecurity") return "06 · " + Loc["WorldStory_RegionSecuritySector"].ToUpperInvariant();
+        if (r is "ElectricalStation" or "Voussoir" or "EndDam") return "07 · " + Loc["WorldStory_RegionHydroplantDam"].ToUpperInvariant();
+        if (r is "PowerServices" or "AnteverseC") return "08 · " + Loc["WorldStory_RegionPowerServices"].ToUpperInvariant();
+        if (r.StartsWith("Reactors", StringComparison.OrdinalIgnoreCase) || r is "Shadowgate" or "InqEnd") return "09 · " + Loc["WorldStory_RegionTheReactors"].ToUpperInvariant();
         if (r.StartsWith("Residence", StringComparison.OrdinalIgnoreCase)
-            || r is "Fracture" or "Botanical" or "DarkLens" or "SouthIsland") return "10 · RESIDENCE SECTOR";
-        if (r == "EndGame") return "11 · FINALE";
-        return chapter.Title.ToUpperInvariant();
+            || r is "Fracture" or "Botanical" or "DarkLens" or "SouthIsland") return "10 · " + Loc["WorldStory_RegionResidenceSector"].ToUpperInvariant();
+        if (r == "EndGame") return "11 · " + Loc["WorldStory_RegionFinale"].ToUpperInvariant();
+        return LocalizedChapterTitle(chapter).ToUpperInvariant();
     }
 
     /// <summary>
@@ -1533,9 +1544,8 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
             var missing = MissingPrerequisitesFor(item.RawName);
             if (missing.Count > 0)
             {
-                var message = $"Blocked: \"{item.FriendlyName}\" needs {missing.Count} earlier flag(s) first " +
-                    $"({string.Join(", ", missing.Take(3))}{(missing.Count > 3 ? ", …" : "")}). " +
-                    "Select the flag for details, or use UNLOCK STORY THROUGH HERE on its chapter.";
+                var preview = string.Join(", ", missing.Take(3)) + (missing.Count > 3 ? ", …" : string.Empty);
+                var message = Loc.Format("WorldStory_FlagBlockedFormat", item.FriendlyName, missing.Count, preview);
                 SaveStatus = message;
                 // The flags tab doesn't show SaveStatus - surface on the main status bar
                 // too, otherwise the blocked toggle looks like a dead button.
@@ -1586,7 +1596,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     /// <summary>Prompts to reveal a sealed flag; on confirm rebuilds the list so it un-masks.</summary>
     private async Task RevealFlagAsync(FlagItemViewModel flag)
     {
-        if (await Services.SpoilerPrompt.RevealAsync("This quest flag", flag.SpoilerKey))
+        if (await Services.SpoilerPrompt.RevealAsync(Loc["WorldStory_SpoilerSubjectQuestFlag"], flag.SpoilerKey))
         {
             Core.Diagnostics.EditorLog.Info("Reveal", $"Concealed quest flag revealed: {flag.RawName}");
             ApplyFlagFilter();
@@ -1602,12 +1612,12 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         {
             if (_selectedFlag is null) return string.Empty;
             var prereqs = FlagGate.PrerequisitesFor(_selectedFlag.RawName);
-            if (prereqs.Count == 0) return "No prerequisites - can be enabled at any time.";
+            if (prereqs.Count == 0) return Loc["WorldStory_NoPrerequisites"];
             return string.Join("\n", prereqs.Select(p =>
             {
                 var chapter = StoryProgressionCatalog.ChapterForFlag(p);
-                var label = chapter is null ? p : $"{chapter.Title} ({p})";
-                return $"{(HasWorldFlag(p) ? "✓" : "✗")} {label}";
+                var label = chapter is null ? p : Loc.Format("WorldStory_PrereqChapterLabelFormat", LocalizedChapterTitle(chapter), p);
+                return Loc.Format("WorldStory_PrereqLineFormat", HasWorldFlag(p) ? "✓" : "✗", label);
             }));
         }
     }
@@ -1623,8 +1633,8 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
             if (_selectedFlag is null) return string.Empty;
             var chapter = FlagGate.RegionChapterFor(_selectedFlag.RawName);
             return chapter is null
-                ? $"{_selectedFlag.Area} (no fixed story gate - portal anomaly or meta flag)"
-                : $"Takes place around: {chapter.Title}";
+                ? Loc.Format("WorldStory_NoFixedStoryGateFormat", _selectedFlag.Area)
+                : Loc.Format("WorldStory_TakesPlaceAroundFormat", LocalizedChapterTitle(chapter));
         }
     }
 
@@ -1754,8 +1764,8 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
     }
 
     public string DoorsRegionTitle => RegionChapterForFile() is { } ch
-        ? $"DOORS - {ch.Title}"
-        : "DOORS";
+        ? Loc.Format("WorldDoors_TitleWithRegionFormat", LocalizedChapterTitle(ch))
+        : Loc["WorldDoors_Title"];
 
     // ---------- door detail (click a door -> sidebar card) ----------
 
@@ -1806,7 +1816,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         get
         {
             var chapter = RegionChapterForToken(_selectedDoor?.MapName) ?? RegionChapterForFile();
-            return chapter is null ? string.Empty : $"Region: {chapter.Title}";
+            return chapter is null ? string.Empty : Loc.Format("WorldDoors_RegionFormat", LocalizedChapterTitle(chapter));
         }
     }
 
@@ -1897,8 +1907,8 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
 
     /// <summary>Explains what the map view shows (sector map pin vs door scatter).</summary>
     public string DoorMapCaption => _doorMap is SectorMapPinDrawable
-        ? "Crosshair = this door on the in-game sector map (position from the game's level files; map fit is approximate). Dots = the level's other doors."
-        : "Crosshair = this door; dots = the other doors of the same sub-level (top-down, positions from the game's own level files).";
+        ? Loc["WorldDoors_MapCaptionSectorPin"]
+        : Loc["WorldDoors_MapCaptionScatter"];
 
     public bool HasSelectedDoorMap => _doorMap is not null;
 
@@ -1924,7 +1934,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
 
         if (Services.GameDataServices.Provider is not { } provider)
         {
-            SelectedDoorPositionText = "Game install not found - exact positions unavailable.";
+            SelectedDoorPositionText = Loc["WorldDoors_GameInstallNotFound"];
             return;
         }
 
@@ -1989,8 +1999,8 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
                 if (mine is null)
                 {
                     SelectedDoorPositionText = all.Count == 0
-                        ? "This sub-level could not be read from the game files."
-                        : "This door's actor was not found in the cooked level (renamed by a game update?).";
+                        ? Loc["WorldDoors_SubLevelNotReadable"]
+                        : Loc["WorldDoors_ActorNotFound"];
                     return;
                 }
                 SelectedDoorPositionText = $"X {mine.X:N0}   ·   Y {mine.Y:N0}   ·   Z {mine.Z:N0}";
@@ -2101,31 +2111,31 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
 
         if (!IsMetadataSave)
         {
-            Add("CONTAINERS", ShowContainersCommand, () => IsContainersTab);
+            Add(Loc["WorldEditor_TabContainers"], ShowContainersCommand, () => IsContainersTab);
             // Quest flags live only in the main Facility save; every other region save carries
             // none, so the tab is auto-hidden when this save has no flags rather than showing an
             // empty editor. (Story-NPC revival etc. is handled through quest flags here.)
-            if (HasQuestFlags) Add("QUEST FLAGS", ShowFlagsCommand, () => IsFlagsTab);
-            Add("DOORS", ShowDoorsCommand, () => IsDoorsTab);
+            if (HasQuestFlags) Add(Loc["WorldEditor_TabQuestFlags"], ShowFlagsCommand, () => IsFlagsTab);
+            Add(Loc["WorldEditor_TabDoors"], ShowDoorsCommand, () => IsDoorsTab);
         }
-        if (HasDroppedItems) Add("DROPPED", ShowDroppedCommand, () => IsDroppedTab);
+        if (HasDroppedItems) Add(Loc["WorldEditor_TabDropped"], ShowDroppedCommand, () => IsDroppedTab);
         // The NPCS tab was removed: it was an unclear, primitive list. Tamed-pet edits live in the
         // PETS tab, and story-NPC state is driven by quest flags.
-        if (HasPets) Add("PETS", ShowPetsCommand, () => IsPetsTab);
-        if (HasVehicles) Add("VEHICLES", ShowVehiclesCommand, () => IsVehiclesTab);
-        if (HasBases) Add("BASES", ShowBasesCommand, () => IsBasesTab);
+        if (HasPets) Add(Loc["WorldEditor_TabPets"], ShowPetsCommand, () => IsPetsTab);
+        if (HasVehicles) Add(Loc["WorldEditor_TabVehicles"], ShowVehiclesCommand, () => IsVehiclesTab);
+        if (HasBases) Add(Loc["WorldEditor_TabBases"], ShowBasesCommand, () => IsBasesTab);
         if (IsMetadataSave)
         {
-            Add("STORY", ShowMetaCommand, () => IsMetaTab);
-            Add("TRADERS", ShowTradersCommand, () => IsTradersTab);
-            Add("CONTAINMENT", ShowContainmentCommand, () => IsContainmentTab);
+            Add(Loc["WorldEditor_TabStory"], ShowMetaCommand, () => IsMetaTab);
+            Add(Loc["WorldEditor_TabTraders"], ShowTradersCommand, () => IsTradersTab);
+            Add(Loc["WorldEditor_TabContainment"], ShowContainmentCommand, () => IsContainmentTab);
         }
         foreach (var f in _featureTabs)
         {
             var feature = f; // capture
             Add(feature.Title, feature.SelectCommand, () => IsFeatureTab && feature.IsActive);
         }
-        Add("RAW JSON", ShowRawCommand, () => IsRawTab);
+        Add(Loc["WorldEditor_TabRawJson"], ShowRawCommand, () => IsRawTab);
     }
 
     private void RefreshTabs()
@@ -2239,17 +2249,20 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         try
         {
             IsSaving = true;
-            RawStatus = "Exporting JSON… (the Facility save produces ~100 MB, this can take a moment)";
+            RawStatus = Loc["WorldEditor_ExportingJson"];
             await Task.Run(() => SaveJsonBridge.ExportJsonToFile(_data.Raw, JsonPath));
-            RawStatus = $"Exported {new FileInfo(JsonPath).Length / 1024.0 / 1024.0:F1} MB → {Path.GetFileName(JsonPath)}";
+            RawStatus = Loc.Format(
+                "WorldEditor_ExportedJsonFormat",
+                new FileInfo(JsonPath).Length / 1024.0 / 1024.0,
+                Path.GetFileName(JsonPath));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(JsonFileExists)));
             (ImportJsonCommand as RelayCommand)?.RaiseCanExecuteChanged();
 
-            await Launcher.Default.OpenAsync(new OpenFileRequest("Exported save JSON", new ReadOnlyFile(JsonPath)));
+            await Launcher.Default.OpenAsync(new OpenFileRequest(Loc["WorldEditor_ExportedJsonFileTitle"], new ReadOnlyFile(JsonPath)));
         }
         catch (Exception ex)
         {
-            RawStatus = $"Export failed: {ex.Message}";
+            RawStatus = Loc.Format("WorldEditor_ExportFailedFormat", ex.Message);
         }
         finally
         {
@@ -2263,13 +2276,13 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         try
         {
             IsSaving = true;
-            RawStatus = "Importing JSON…";
+            RawStatus = Loc["WorldEditor_ImportingJson"];
             await Task.Run(() => SaveJsonBridge.ImportJsonFromFile(JsonPath, _path));
-            RawStatus = $"Imported at {DateTime.Now:HH:mm:ss} · reload the file from the sidebar to see the changes.";
+            RawStatus = Loc.Format("WorldEditor_ImportedJsonFormat", DateTime.Now);
         }
         catch (Exception ex)
         {
-            RawStatus = $"Import failed (save untouched): {ex.Message}";
+            RawStatus = Loc.Format("WorldEditor_ImportFailedFormat", ex.Message);
         }
         finally
         {
@@ -2403,7 +2416,7 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
         if (!IsDirty || IsSaving) return;
 
         IsSaving = true;
-        SaveStatus = "Saving…";
+        SaveStatus = Loc["WorldEditor_Saving"];
         try
         {
             var snapshot = AllContainers.Select(c => c.ToCurrentContainer()).ToList();
@@ -2524,12 +2537,12 @@ public sealed class WorldEditorViewModel : INotifyPropertyChanged
             // Feature-map edits patch the raw tree directly, so WriteToFile already persisted
             // them; just adopt the new clean baseline for dirty tracking.
             foreach (var t in _featureTabs) t.AcceptBaseline();
-            SaveStatus = $"Saved at {DateTime.Now:HH:mm:ss}";
+            SaveStatus = Loc.Format("WorldEditor_SavedAtFormat", DateTime.Now);
             Saved?.Invoke();
         }
         catch (Exception ex)
         {
-            SaveStatus = $"Save failed: {ex.Message}";
+            SaveStatus = Loc.Format("WorldEditor_SaveFailedFormat", ex.Message);
         }
         finally
         {
@@ -2622,10 +2635,12 @@ public enum WorldTab { Containers, Flags, Doors, Dropped, Npcs, Pets, Vehicles, 
 /// </summary>
 public sealed class LeyakContainmentViewModel : INotifyPropertyChanged
 {
+    private static LocalizationResourceManager Loc => LocalizationResourceManager.Instance;
+
     private readonly WorldEditorViewModel _owner;
     private bool _detailRequested;
     private string? _imagePath;
-    private string _regionText = "Locating the containment unit…";
+    private string _regionText = Loc["WorldContainment_LocatingUnit"];
 
     public LeyakContainmentViewModel(string creature, string containmentId, WorldEditorViewModel owner)
     {
@@ -2644,10 +2659,10 @@ public sealed class LeyakContainmentViewModel : INotifyPropertyChanged
     public System.Windows.Input.ICommand ReleaseCommand { get; }
 
     /// <summary>A friendlier label for known creatures, falling back to the raw row.</summary>
-    public string DisplayName => ContainmentCreatureCatalog.DisplayName(Creature);
+    public string DisplayName => Services.ContainmentLocalization.DisplayName(Creature);
 
     /// <summary>Short flavour blurb shown in the detail card.</summary>
-    public string Lore => ContainmentCreatureCatalog.Lore(Creature);
+    public string Lore => Services.ContainmentLocalization.Lore(Creature);
 
     /// <summary>The Anteverse creatures whose names are themselves a spoiler. Blacked out in the
     /// detail card until the entry is revealed, so a player who hasn't met them in the story doesn't
@@ -2675,18 +2690,18 @@ public sealed class LeyakContainmentViewModel : INotifyPropertyChanged
     public bool IsConcealed => Services.SpoilerService.ShouldConceal(SpoilerKey, true);
 
     /// <summary>Masked creature name for the row while sealed.</summary>
-    public string ShownName => Services.SpoilerService.Mask(DisplayName, IsConcealed, "▓ CLASSIFIED ANOMALY");
+    public string ShownName => Services.SpoilerService.Mask(DisplayName, IsConcealed, Loc["WorldContainment_ClassifiedAnomaly"]);
 
     /// <summary>Row sub-line: the tap hint flips to a clearance prompt while sealed.</summary>
     public string ShownTapHint => IsConcealed
-        ? "Above clearance - tap to reveal"
-        : "Tap for appearance + location";
+        ? Loc["WorldContainment_TapHintSealed"]
+        : Loc["WorldContainment_TapHintRevealed"];
 
     /// <summary>Prompts to override clearance; on confirm reveals this entry permanently.</summary>
     public async Task RevealAsync()
     {
         if (!IsConcealed) return;
-        if (await Services.SpoilerPrompt.RevealAsync("This containment record", SpoilerKey))
+        if (await Services.SpoilerPrompt.RevealAsync(Loc["WorldContainment_SpoilerSubjectRecord"], SpoilerKey))
         {
             Notify(nameof(IsConcealed));
             Notify(nameof(ShownName));
@@ -2826,7 +2841,7 @@ public sealed class LeyakContainmentViewModel : INotifyPropertyChanged
                 string.Equals(d.Id, ContainmentId, StringComparison.OrdinalIgnoreCase));
             if (unit is null)
             {
-                RegionText = "Containment unit not found in WorldSave_Facility.sav (it may have been picked up).";
+                RegionText = Loc["WorldContainment_UnitNotFound"];
                 return;
             }
             var terminal = Core.PlayerSaves.RespawnTerminalCatalog.NearestTo(unit.X, unit.Y, unit.Z);
@@ -2836,7 +2851,7 @@ public sealed class LeyakContainmentViewModel : INotifyPropertyChanged
         }
         catch
         {
-            RegionText = "Could not resolve the containment unit's location.";
+            RegionText = Loc["WorldContainment_LocationUnresolved"];
         }
     }
 
@@ -2847,14 +2862,14 @@ public sealed class LeyakContainmentViewModel : INotifyPropertyChanged
     private string BuildContainingSaveText()
     {
         var path = _owner.ContainmentHostPath;
-        if (path is null) return "Held in the Facility region save (WorldSave_Facility.sav).";
+        if (path is null) return Loc["WorldContainment_HeldInFacilitySave"];
 
         var file = System.IO.Path.GetFileName(path);
         var loaded = AbioticEditor.App.App.SharedViewModel.Saves
             .Any(s => string.Equals(s.FullPath, path, StringComparison.OrdinalIgnoreCase));
         return loaded
-            ? $"Held in {file}, which is open in the sidebar."
-            : $"Held in {file} (not currently open in the sidebar).";
+            ? Loc.Format("WorldContainment_HeldInOpenFormat", file)
+            : Loc.Format("WorldContainment_HeldInNotOpenFormat", file);
     }
 
     private void Notify(string name)
@@ -2910,5 +2925,7 @@ public sealed class VehicleWorldGroup : List<WorldVehicleViewModel>
     public string World { get; }
 
     /// <summary>Header count suffix, e.g. "3 vehicles".</summary>
-    public string CountText => Count == 1 ? "1 vehicle" : $"{Count} vehicles";
+    public string CountText => Count == 1
+        ? LocalizationResourceManager.Instance["WorldVehicles_CountSingular"]
+        : LocalizationResourceManager.Instance.Format("WorldVehicles_CountFormat", Count);
 }

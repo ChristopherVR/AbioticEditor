@@ -104,7 +104,7 @@
                                         </Border.GestureRecognizers>
                                         <FlyoutBase.ContextFlyout>
                                             <MenuFlyout>
-                                                <MenuFlyoutItem Text="Send to player"
+                                                <MenuFlyoutItem Text="{loc:Localize WorldContainers_SendToPlayerMenu}"
                                                                 Clicked="OnSendSlotToPlayer" />
                                             </MenuFlyout>
                                         </FlyoutBase.ContextFlyout>

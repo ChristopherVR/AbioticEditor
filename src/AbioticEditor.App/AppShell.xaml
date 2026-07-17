@@ -4,11 +4,12 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:AbioticEditor.App"
-    Title="Abiotic Factor Save Editor"
+    xmlns:loc="clr-namespace:AbioticEditor.App.Controls"
+    Title="{loc:Localize Shell_WindowTitle}"
     FlyoutBehavior="Disabled">
 
     <ShellContent
-        Title="Saves"
+        Title="{loc:Localize Shell_SavesTitle}"
         ContentTemplate="{DataTemplate local:MainPage}"
         Route="MainPage" />
 

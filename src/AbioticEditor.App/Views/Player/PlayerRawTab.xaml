@@ -15,7 +15,7 @@
             <Label Text="{loc:Localize PlayerRaw_RawSaveJson}" Style="{StaticResource AfH2}" FontSize="18" />
             <Label Text="{loc:Localize PlayerRaw_RawSaveJsonHelp}"
                    Style="{StaticResource AfMuted}" FontSize="12" />
-            <Label Text="{Binding PlayerEditor.JsonPath, StringFormat='JSON file: {0}'}"
+            <Label Text="{loc:LocalizeFormat Common_JsonFileFormat, Arg0={Binding PlayerEditor.JsonPath}}"
                    Style="{StaticResource AfStatusText}" />
             <HorizontalStackLayout Spacing="12">
                 <Button Text="{loc:Localize PlayerRaw_ExportJsonAndOpen}"

@@ -74,24 +74,25 @@ public sealed class FlagItemViewModel
     {
         get
         {
+            var loc = Services.LocalizationResourceManager.Instance;
             if (StoryChapter is { } ch)
             {
-                return ch.Summary ?? $"Story trigger for chapter \"{ch.Title}\".";
+                return ch.Summary ?? loc.Format("WorldFlags_StoryTriggerForChapter", ch.Title);
             }
 
             var n = RawName;
             string what =
-                n.Contains("Completed", StringComparison.OrdinalIgnoreCase) ? "Records that this objective/event was completed" :
-                n.Contains("Opened", StringComparison.OrdinalIgnoreCase) ? "Records that a door, gate or route here was opened" :
-                n.Contains("Entered", StringComparison.OrdinalIgnoreCase) ? "Records that the players entered this place for the first time" :
-                n.Contains("Met", StringComparison.OrdinalIgnoreCase) ? "Records a first meeting with this character" :
-                n.Contains("Reached", StringComparison.OrdinalIgnoreCase) ? "Records that this point was reached" :
-                n.Contains("Found", StringComparison.OrdinalIgnoreCase) ? "Records that this thing was found" :
-                n.Contains("Unlock", StringComparison.OrdinalIgnoreCase) ? "Unlocks content (recipes, stock or access) tied to it" :
-                n.Contains("Fixed", StringComparison.OrdinalIgnoreCase) || n.Contains("Repaired", StringComparison.OrdinalIgnoreCase) ? "Records that this machine/system was repaired" :
-                n.Contains("Defeated", StringComparison.OrdinalIgnoreCase) || n.Contains("Killed", StringComparison.OrdinalIgnoreCase) ? "Records that this enemy was defeated" :
-                "One-way world event marker the game checks to gate content";
-            return $"{what} - {Area} region. Setting it can skip the event; removing it can replay it (where the game re-checks).";
+                n.Contains("Completed", StringComparison.OrdinalIgnoreCase) ? loc["WorldFlags_DescCompleted"] :
+                n.Contains("Opened", StringComparison.OrdinalIgnoreCase) ? loc["WorldFlags_DescOpened"] :
+                n.Contains("Entered", StringComparison.OrdinalIgnoreCase) ? loc["WorldFlags_DescEntered"] :
+                n.Contains("Met", StringComparison.OrdinalIgnoreCase) ? loc["WorldFlags_DescMet"] :
+                n.Contains("Reached", StringComparison.OrdinalIgnoreCase) ? loc["WorldFlags_DescReached"] :
+                n.Contains("Found", StringComparison.OrdinalIgnoreCase) ? loc["WorldFlags_DescFound"] :
+                n.Contains("Unlock", StringComparison.OrdinalIgnoreCase) ? loc["WorldFlags_DescUnlock"] :
+                n.Contains("Fixed", StringComparison.OrdinalIgnoreCase) || n.Contains("Repaired", StringComparison.OrdinalIgnoreCase) ? loc["WorldFlags_DescRepaired"] :
+                n.Contains("Defeated", StringComparison.OrdinalIgnoreCase) || n.Contains("Killed", StringComparison.OrdinalIgnoreCase) ? loc["WorldFlags_DescDefeated"] :
+                loc["WorldFlags_DescGeneric"];
+            return loc.Format("WorldFlags_DescriptionFormat", what, Area);
         }
     }
 

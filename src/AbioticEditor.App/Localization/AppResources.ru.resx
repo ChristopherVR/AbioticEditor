@@ -2193,6 +2193,8 @@
   <data name="Skill_Passive_Fishing" xml:space="preserve"><value>За уровень: прочнее леска (реже рвётся во время поклёвки)</value></data>
   <data name="Skill_Milestone_Sprinting_5_Perk" xml:space="preserve"><value>Атлетичность</value></data>
   <data name="Skill_Milestone_Sprinting_5_Effect" xml:space="preserve"><value>Шанс не потратить выносливость на любое действие</value></data>
+  <data name="Skill_Milestone_Sprinting_8_Perk" xml:space="preserve"><value>Анаэробное восстановление</value></data>
+  <data name="Skill_Milestone_Sprinting_8_Effect" xml:space="preserve"><value>Восстановление выносливости после спринта начинается гораздо быстрее</value></data>
   <data name="Skill_Milestone_Sprinting_10_Perk" xml:space="preserve"><value>Скорость света</value></data>
   <data name="Skill_Milestone_Sprinting_10_Effect" xml:space="preserve"><value>Спринт на 5% быстрее в целом (сверх пассивных бонусов)</value></data>
   <data name="Skill_Milestone_Sprinting_15_Perk" xml:space="preserve"><value>Красное смещение</value></data>
@@ -2203,10 +2205,12 @@
   <data name="Skill_Milestone_Strength_5_Effect" xml:space="preserve"><value>Трясите торговые автоматы и убивайте карбункулов с одного удара</value></data>
   <data name="Skill_Milestone_Strength_8_Perk" xml:space="preserve"><value>Тяжёлое оружие</value></data>
   <data name="Skill_Milestone_Strength_8_Effect" xml:space="preserve"><value>Достаточно сил, чтобы полноценно владеть тяжёлым холодным оружием</value></data>
-  <data name="Skill_Milestone_Strength_12_Perk" xml:space="preserve"><value>Ярость ботана</value></data>
-  <data name="Skill_Milestone_Strength_12_Effect" xml:space="preserve"><value>При кровотечении рядом с враждебным противником усиливаются урон и скорость ближнего боя</value></data>
-  <data name="Skill_Milestone_Strength_15_Perk" xml:space="preserve"><value>Специализация на тяжёлой броне</value></data>
-  <data name="Skill_Milestone_Strength_15_Effect" xml:space="preserve"><value>Можно носить броню любого веса</value></data>
+  <data name="Skill_Milestone_Strength_10_Perk" xml:space="preserve"><value>Ярость ботана</value></data>
+  <data name="Skill_Milestone_Strength_10_Effect" xml:space="preserve"><value>При кровотечении рядом с враждебным противником усиливаются урон и скорость ближнего боя</value></data>
+  <data name="Skill_Milestone_Strength_13_Perk" xml:space="preserve"><value>Специализация на тяжёлой броне</value></data>
+  <data name="Skill_Milestone_Strength_13_Effect" xml:space="preserve"><value>Можно носить броню любого веса</value></data>
+  <data name="Skill_Milestone_Strength_15_Perk" xml:space="preserve"><value>Центробежная сила</value></data>
+  <data name="Skill_Milestone_Strength_15_Effect" xml:space="preserve"><value>Замахи тяжёлым оружием ближнего боя заметно быстрее</value></data>
   <data name="Skill_Milestone_Strength_20_Perk" xml:space="preserve"><value>Превосходный прогресс</value></data>
   <data name="Skill_Milestone_Strength_20_Effect" xml:space="preserve"><value>Все предметы весят на 25% меньше</value></data>
   <data name="Skill_Milestone_Throwing_2_Perk" xml:space="preserve"><value>Бросок снизу</value></data>
@@ -2277,18 +2281,24 @@
   <data name="Skill_Milestone_Reloading_3_Effect" xml:space="preserve"><value>Крафт боеприпасов в два раза быстрее</value></data>
   <data name="Skill_Milestone_Reloading_5_Perk" xml:space="preserve"><value>На всякий случай</value></data>
   <data name="Skill_Milestone_Reloading_5_Effect" xml:space="preserve"><value>Позволяет перезаряжать оружие, которым вы иначе не умеете пользоваться</value></data>
+  <data name="Skill_Milestone_Reloading_8_Perk" xml:space="preserve"><value>Собиратель патронов</value></data>
+  <data name="Skill_Milestone_Reloading_8_Effect" xml:space="preserve"><value>Иногда находите больше патронов при обыске солдат</value></data>
   <data name="Skill_Milestone_Reloading_10_Perk" xml:space="preserve"><value>Базовая геометрия</value></data>
   <data name="Skill_Milestone_Reloading_10_Effect" xml:space="preserve"><value>Меньше неуклюжести при перезарядке любого оружия</value></data>
   <data name="Skill_Milestone_Reloading_15_Perk" xml:space="preserve"><value>Скорозарядка</value></data>
   <data name="Skill_Milestone_Reloading_15_Effect" xml:space="preserve"><value>Можно спринтовать и перезаряжаться одновременно</value></data>
   <data name="Skill_Milestone_Reloading_20_Perk" xml:space="preserve"><value>Рассыпанные патроны</value></data>
   <data name="Skill_Milestone_Reloading_20_Effect" xml:space="preserve"><value>Иногда находите запасные патроны при перезарядке</value></data>
+  <data name="Skill_Milestone_Fortitude_3_Perk" xml:space="preserve"><value>Рипост</value></data>
+  <data name="Skill_Milestone_Fortitude_3_Effect" xml:space="preserve"><value>После успешного блока следующая атака ближнего боя в течение 2 секунд наносит дополнительный урон</value></data>
   <data name="Skill_Milestone_Fortitude_5_Perk" xml:space="preserve"><value>Привыкание</value></data>
   <data name="Skill_Milestone_Fortitude_5_Effect" xml:space="preserve"><value>Здоровье восстанавливается немного чаще</value></data>
   <data name="Skill_Milestone_Fortitude_8_Perk" xml:space="preserve"><value>Общие усилия</value></data>
   <data name="Skill_Milestone_Fortitude_8_Effect" xml:space="preserve"><value>Отдых в пределах 8 м от других отдыхающих учёных удваивает скорость отдыха</value></data>
   <data name="Skill_Milestone_Fortitude_10_Perk" xml:space="preserve"><value>Губчатая ткань</value></data>
   <data name="Skill_Milestone_Fortitude_10_Effect" xml:space="preserve"><value>Немного снижен урон от падения и столкновений с транспортом</value></data>
+  <data name="Skill_Milestone_Fortitude_13_Perk" xml:space="preserve"><value>Неиссякаемая выносливость</value></data>
+  <data name="Skill_Milestone_Fortitude_13_Effect" xml:space="preserve"><value>Выносливость продолжает восстанавливаться во время блока</value></data>
   <data name="Skill_Milestone_Fortitude_15_Perk" xml:space="preserve"><value>Отражающая мантия</value></data>
   <data name="Skill_Milestone_Fortitude_15_Effect" xml:space="preserve"><value>Контакт в ближнем бою может отразить урон обратно врагу</value></data>
   <data name="Skill_Milestone_Fortitude_20_Perk" xml:space="preserve"><value>Крепкая экосистема</value></data>
@@ -2301,14 +2311,20 @@
   <data name="Skill_Milestone_Crafting_8_Effect" xml:space="preserve"><value>Переданные вам рецепты пропускают этап исследования</value></data>
   <data name="Skill_Milestone_Crafting_10_Perk" xml:space="preserve"><value>Внимание к деталям</value></data>
   <data name="Skill_Milestone_Crafting_10_Effect" xml:space="preserve"><value>Созданные предметы получают временный бонус к прочности</value></data>
+  <data name="Skill_Milestone_Crafting_13_Perk" xml:space="preserve"><value>Само отполируется</value></data>
+  <data name="Skill_Milestone_Crafting_13_Effect" xml:space="preserve"><value>50% шанс починить предмет бесплатно</value></data>
   <data name="Skill_Milestone_Crafting_15_Perk" xml:space="preserve"><value>Супер-верстак</value></data>
   <data name="Skill_Milestone_Crafting_15_Effect" xml:space="preserve"><value>Финальный уровень улучшений верстака крафта</value></data>
   <data name="Skill_Milestone_Crafting_20_Perk" xml:space="preserve"><value>Точная инженерия</value></data>
   <data name="Skill_Milestone_Crafting_20_Effect" xml:space="preserve"><value>Небольшой шанс потратить на 1 предмет меньше в многокомпонентных рецептах</value></data>
   <data name="Skill_Milestone_Construction_5_Perk" xml:space="preserve"><value>Соберите стол</value></data>
   <data name="Skill_Milestone_Construction_5_Effect" xml:space="preserve"><value>Упаковка малых устанавливаемых объектов в два раза быстрее</value></data>
-  <data name="Skill_Milestone_Construction_10_Perk" xml:space="preserve"><value>Снесено с заботой</value></data>
-  <data name="Skill_Milestone_Construction_10_Effect" xml:space="preserve"><value>50% шанс получить вдвое больше ресурсов при разборке</value></data>
+  <data name="Skill_Milestone_Construction_8_Perk" xml:space="preserve"><value>Снесено с заботой</value></data>
+  <data name="Skill_Milestone_Construction_8_Effect" xml:space="preserve"><value>50% шанс получить вдвое больше ресурсов при разборке</value></data>
+  <data name="Skill_Milestone_Construction_10_Perk" xml:space="preserve"><value>Поднимай ногами</value></data>
+  <data name="Skill_Milestone_Construction_10_Effect" xml:space="preserve"><value>Устанавливаемая мебель весит в инвентаре на 40% меньше</value></data>
+  <data name="Skill_Milestone_Construction_12_Perk" xml:space="preserve"><value>Экспериментальная фортификация</value></data>
+  <data name="Skill_Milestone_Construction_12_Effect" xml:space="preserve"><value>Турели, ловушки и мебель можно чинить сверх нормы - до 115% прочности</value></data>
   <data name="Skill_Milestone_Construction_15_Perk" xml:space="preserve"><value>Доктрина крепости</value></data>
   <data name="Skill_Milestone_Construction_15_Effect" xml:space="preserve"><value>Стоимость постройки укреплений снижена вдвое</value></data>
   <data name="Skill_Milestone_Construction_20_Perk" xml:space="preserve"><value>Внезапное явление мебели</value></data>
@@ -2337,6 +2353,8 @@
   <data name="Skill_Milestone_Cooking_10_Effect" xml:space="preserve"><value>Дополнительное здоровье при восстановлении от еды; рецепты конвекционной печи и сырого теста</value></data>
   <data name="Skill_Milestone_Cooking_12_Perk" xml:space="preserve"><value>Мастер разделки</value></data>
   <data name="Skill_Milestone_Cooking_12_Effect" xml:space="preserve"><value>Продвинутый рецепт ножа; разделка туш без бесполезного мусора</value></data>
+  <data name="Skill_Milestone_Cooking_13_Perk" xml:space="preserve"><value>Кухонный техник</value></data>
+  <data name="Skill_Milestone_Cooking_13_Effect" xml:space="preserve"><value>Рецепт: продвинутая печь</value></data>
   <data name="Skill_Milestone_Cooking_15_Perk" xml:space="preserve"><value>Кулинарное чутьё</value></data>
   <data name="Skill_Milestone_Cooking_15_Effect" xml:space="preserve"><value>Уведомление о готовности еды, даже на расстоянии</value></data>
   <data name="Skill_Milestone_Cooking_17_Perk" xml:space="preserve"><value>Добавка</value></data>
@@ -2460,5 +2478,353 @@
   <data name="EquipSlot_Name_Companion" xml:space="preserve"><value>Спутник</value></data>
   <data name="EquipSlot_NotEquippable" xml:space="preserve"><value>Нельзя экипировать (ячейка {0})</value></data>
   <data name="EquipSlot_WrongSlot" xml:space="preserve"><value>Предмет {0}, не подходит для ячейки {1}</value></data>
+  <data name="EquipSlot_PetsHotbarOnly" xml:space="preserve"><value>Питомцы разрешены только на быстрой панели - в рюкзаке их размещать нельзя</value></data>
   <data name="Slot_PetsHotbarOnly" xml:space="preserve"><value>Питомцы разрешены только на быстрой панели - в рюкзаке их размещать нельзя</value></data>
+
+  <data name="PlayerPets_CompanionSlot" xml:space="preserve"><value>Ячейка спутника</value></data>
+  <data name="PlayerPets_SlotFormat" xml:space="preserve"><value>{0}, ячейка {1}</value></data>
+  <data name="PlayerPets_SlotKind_Equipment" xml:space="preserve"><value>Экипировка</value></data>
+  <data name="PlayerPets_SlotKind_Hotbar" xml:space="preserve"><value>Быстрая панель</value></data>
+  <data name="PlayerPets_SlotKind_Main" xml:space="preserve"><value>Рюкзак</value></data>
+  <data name="PlayerPets_StatusWillBeRemoved" xml:space="preserve"><value>БУДЕТ УДАЛЁН</value></data>
+  <data name="PlayerPets_StatusLvHpFormat" xml:space="preserve"><value>Ур {0}  HP {1}/{2}</value></data>
+
+  <data name="WorldContainment_Creature_Leyak_DisplayName" xml:space="preserve"><value>Leyak</value></data>
+  <data name="WorldContainment_Creature_LeyakB_DisplayName" xml:space="preserve"><value>Leyak (Альфа)</value></data>
+  <data name="WorldContainment_Creature_Krasue_DisplayName" xml:space="preserve"><value>Krasue</value></data>
+  <data name="WorldContainment_Creature_Lore_Leyak" xml:space="preserve"><value>Парящая бестелесная голова из Антиверса, преследующая игроков в темноте. Установка сдерживания Leyak удерживает её; освобождение снова отправляет её бродить по комплексу.</value></data>
+  <data name="WorldContainment_Creature_Lore_Krasue" xml:space="preserve"><value>Морозный вариант Leyak: сущность в виде отрубленной головы, которая проявляется, только когда её цель замерзает, и сковывает её на месте. Поймана в установку сдерживания; освобождение возвращает её в мир.</value></data>
+  <data name="WorldContainment_Creature_Lore_Default" xml:space="preserve"><value>Сдерживаемая сущность. Освобождение убирает связь сдерживания, и при следующей загрузке она снова бродит на свободе.</value></data>
+
+  <data name="WorldPets_FamilyFormat" xml:space="preserve"><value>Семейство: {0}</value></data>
+  <data name="WorldPets_LevelDescriptionFormat" xml:space="preserve"><value>Уровень {0} из 20 (каждый уровень повышает здоровье, урон и размер).</value></data>
+  <data name="WorldPets_TotalHealthFormat" xml:space="preserve"><value>Всего {0:0}</value></data>
+  <data name="WorldPets_Family_Pest" xml:space="preserve"><value>Pest</value></data>
+  <data name="WorldPets_Family_Peccary" xml:space="preserve"><value>Peccary</value></data>
+  <data name="WorldPets_Family_Skink" xml:space="preserve"><value>Skink</value></data>
+  <data name="WorldPets_Family_Lamogi" xml:space="preserve"><value>Lamogi</value></data>
+  <data name="WorldPets_Family_Other" xml:space="preserve"><value>Прочие</value></data>
+  <data name="WorldPets_StatusWillBeDeleted" xml:space="preserve"><value>БУДЕТ УДАЛЁН</value></data>
+  <data name="WorldPets_StatusDead" xml:space="preserve"><value>МЁРТВ</value></data>
+  <data name="WorldPets_StatusDowned" xml:space="preserve"><value>ПОВЕРЖЕН</value></data>
+  <data name="WorldPets_StatusHurt" xml:space="preserve"><value>РАНЕН</value></data>
+  <data name="WorldPets_StatusHealthy" xml:space="preserve"><value>ЗДОРОВ</value></data>
+
+  <data name="WorldNpc_NoRecordedPosition" xml:space="preserve"><value>позиция не записана (исчез / ожидает появления)</value></data>
+  <data name="WorldNpc_LastAtCoords" xml:space="preserve"><value>последняя позиция: X {0}, Y {1}, Z {2}</value></data>
+  <data name="WorldNpc_ContextWithRosterHint" xml:space="preserve"><value>{0} · {1}. Какой странствующий торговец занимает слот хоста, в сохранении не хранится - см. список ниже.</value></data>
+  <data name="WorldNpc_StatusRemovedDead" xml:space="preserve"><value>УДАЛЁН / МЁРТВ</value></data>
+  <data name="WorldNpc_StatusAlive" xml:space="preserve"><value>ЖИВ</value></data>
+
+  <data name="Compat_UnknownClassWarning" xml:space="preserve"><value>Класс этого сохранения «{0}» не знаком редактору. Его пользовательский заголовок не удалось интерпретировать; редактировать его не рекомендуется - резервная копия .bak сохраняется всегда.</value></data>
+  <data name="Compat_NoClass" xml:space="preserve"><value>(нет)</value></data>
+  <data name="Compat_NewerVersionWarning" xml:space="preserve"><value>Это сохранение версии {0}; редактор был собран для версии {1} (сборка игры {2}). Более новые поля могут быть не видны и потеряться при редактировании - резервная копия .bak сохраняется всегда.</value></data>
+
+  <data name="Common_JsonFileFormat" xml:space="preserve"><value>Файл JSON: {0}</value></data>
+  <data name="Common_No" xml:space="preserve"><value>Нет</value></data>
+  <data name="Common_Yes" xml:space="preserve"><value>Да</value></data>
+
+  <data name="Compare_AOnly" xml:space="preserve"><value>Только в A</value></data>
+  <data name="Compare_BOnly" xml:space="preserve"><value>Только в B</value></data>
+  <data name="Compare_EmailsRead" xml:space="preserve"><value>Прочитанные письма</value></data>
+  <data name="Compare_FishCaught" xml:space="preserve"><value>Пойманная рыба</value></data>
+  <data name="Compare_GlobalRecipes" xml:space="preserve"><value>Глобальные рецепты</value></data>
+  <data name="Compare_GroundItems" xml:space="preserve"><value>Предметы на земле</value></data>
+  <data name="Compare_ItemsCrafted" xml:space="preserve"><value>Созданные предметы</value></data>
+  <data name="Compare_ItemsDiscovered" xml:space="preserve"><value>Открытые предметы</value></data>
+  <data name="Compare_JournalEntries" xml:space="preserve"><value>Записи дневника</value></data>
+  <data name="Compare_MapsUnlocked" xml:space="preserve"><value>Открытые карты</value></data>
+  <data name="Compare_PlacedObjects" xml:space="preserve"><value>Размещённые объекты</value></data>
+  <data name="Compare_QuestFlags" xml:space="preserve"><value>Флаги заданий</value></data>
+  <data name="Compare_RecipesUnlocked" xml:space="preserve"><value>Разблокированные рецепты</value></data>
+  <data name="Compare_StoryChapter" xml:space="preserve"><value>Глава сюжета</value></data>
+  <data name="Compare_TimePlayed" xml:space="preserve"><value>Время игры</value></data>
+  <data name="Compare_TimePlayedFormat" xml:space="preserve"><value>{0}ч {1}м</value></data>
+  <data name="Compare_TrackedNpcs" xml:space="preserve"><value>Отслеживаемые NPC</value></data>
+  <data name="Compare_WorldContents" xml:space="preserve"><value>Содержимое мира</value></data>
+
+  <data name="Customization_AvailableCaptionGamePass" xml:space="preserve"><value>Внешность хранится в контейнере профиля Game Pass (слот {0}). Редактирование здесь записывает её обратно в папку сохранений Xbox и сохраняет резервную копию. Она применяется к каждому миру, в который играет этот аккаунт.</value></data>
+  <data name="Customization_AvailableCaptionSteam" xml:space="preserve"><value>Внешность хранится в {0} - файле персонажа, который игра записывает для вашего аккаунта Steam. Редактирование здесь меняет этот файл напрямую и сохраняет резервную копию .bak. Она применяется к каждому миру, в который играет этот аккаунт.</value></data>
+  <data name="Customization_StatusEditingFile" xml:space="preserve"><value>Редактирование {0} - применяется к каждому миру, в который играет этот аккаунт.</value></data>
+  <data name="Customization_StatusEditingGamePass" xml:space="preserve"><value>Редактирование внешности Game Pass (слот {0}) - применяется к каждому миру, в который играет этот аккаунт.</value></data>
+  <data name="Customization_StatusNotFound" xml:space="preserve"><value>Сохранение ScientistCustomization не найдено на этом компьютере.</value></data>
+  <data name="Customization_StatusNotFoundGamePass" xml:space="preserve"><value>Сохранение ScientistCustomization не найдено в ваших данных сохранений Game Pass.</value></data>
+  <data name="Customization_StatusReadFailed" xml:space="preserve"><value>Не удалось прочитать сохранение внешности: {0}</value></data>
+  <data name="Customization_StatusSaveFailed" xml:space="preserve"><value>Сбой сохранения: {0}</value></data>
+  <data name="Customization_StatusSaved" xml:space="preserve"><value>Внешность сохранена в {0} (создан .bak). Перезапустите игру, чтобы увидеть её.</value></data>
+  <data name="Customization_UnavailableGamePass" xml:space="preserve"><value>Редактирование внешности недоступно, потому что в ваших данных сохранений Game Pass не найдено сохранение ScientistCustomization. Игра записывает эти данные при первой настройке персонажа в игре. Чтобы включить редактирование, запустите Abiotic Factor, один раз настройте персонажа, затем снова откройте редактор.</value></data>
+  <data name="Customization_UnavailableSteam" xml:space="preserve"><value>Редактирование внешности недоступно, потому что для этого аккаунта Steam на этом компьютере не найдено сохранение ScientistCustomization. Этот файл не поставляется ни с игрой, ни с редактором: игра записывает его при первой настройке персонажа в игре, и он свой для каждого аккаунта Steam и каждого компьютера. Чтобы включить редактирование, запустите Abiotic Factor, один раз настройте персонажа, затем снова откройте редактор.</value></data>
+  <data name="Customization_VoiceNote" xml:space="preserve"><value>ГОЛОС не хранится ни в одном сохранении - игра выводит его из пола головы (Dr. H / Dr. R).</value></data>
+
+  <data name="Empty_Title" xml:space="preserve"><value>РЕДАКТОР СОХРАНЕНИЙ ABIOTIC FACTOR</value></data>
+
+  <data name="FileSidebar_ItemCountFormat" xml:space="preserve"><value>{0} элемент(ов)</value></data>
+  <data name="FileSidebar_SaveFormatTooltip" xml:space="preserve"><value>Формат сохранений, используемый этой папкой</value></data>
+
+  <data name="GameData_ImportAction" xml:space="preserve"><value>Импортировать данные игры</value></data>
+  <data name="GameData_Loaded" xml:space="preserve"><value>Данные игры загружены.</value></data>
+  <data name="GameData_LocateAction" xml:space="preserve"><value>Найти папку игры</value></data>
+  <data name="GameData_NotDetectedTitle" xml:space="preserve"><value>Данные игры не обнаружены</value></data>
+  <data name="GameData_NotNow" xml:space="preserve"><value>Не сейчас</value></data>
+  <data name="GameData_StatusInstallNotFound" xml:space="preserve"><value>Файлы данных Abiotic Factor не найдены, поэтому каталоги предметов, рецептов и лора пусты.</value></data>
+  <data name="GameData_StatusInstallNotFoundBundled" xml:space="preserve"><value>Файлы данных Abiotic Factor не найдены, поэтому редактор использует встроенные данные (названия и характеристики предметов работают, но для иконок нужна игра).</value></data>
+  <data name="GameData_StatusLoadFailed" xml:space="preserve"><value>Не удалось загрузить данные игры. Включите диагностическое логирование в Настройках и проверьте журнал, чтобы найти причину.</value></data>
+  <data name="GameData_StatusLocateHint" xml:space="preserve"><value>Откройте Настройки &gt; Данные игры и выберите НАЙТИ ПАПКУ ИГРЫ, чтобы указать редактору на вашу установку (работает и для копий не из Steam).</value></data>
+  <data name="GameData_StatusMappingsHint" xml:space="preserve"><value>Держите Mappings.usmap рядом с редактором или импортируйте его в Настройки &gt; Данные игры.</value></data>
+  <data name="GameData_StatusMappingsMissing" xml:space="preserve"><value>Игра найдена, но Mappings.usmap отсутствует, поэтому её таблицы данных не могут быть прочитаны.</value></data>
+  <data name="GameData_StatusMappingsMissingBundled" xml:space="preserve"><value>Игра найдена, но Mappings.usmap отсутствует, поэтому редактор использует встроенные данные (названия и характеристики предметов работают, но для иконок нужна игра).</value></data>
+  <data name="GameData_StatusNotLoaded" xml:space="preserve"><value>Данные игры ещё не загружены.</value></data>
+  <data name="GameData_StatusReady" xml:space="preserve"><value>Данные игры загружены.</value></data>
+  <data name="GameData_Title" xml:space="preserve"><value>Данные игры</value></data>
+
+  <data name="IniEditor_StatusReloaded" xml:space="preserve"><value>{0} перезагружен с диска.</value></data>
+  <data name="IniEditor_StatusSaveFailed" xml:space="preserve"><value>Сбой сохранения: {0}</value></data>
+  <data name="IniEditor_StatusSaved" xml:space="preserve"><value>Сохранено: {0} (предыдущая версия сохранена как {1}.bak).</value></data>
+
+  <data name="Main_ActionFailedFormat" xml:space="preserve"><value>Действие не удалось: {0}</value></data>
+  <data name="Main_DroppedFolderLoadFailedFormat" xml:space="preserve"><value>Не удалось загрузить перетащенную папку: {0}</value></data>
+  <data name="Main_PageTitle" xml:space="preserve"><value>Abiotic Factor: редактор сохранений</value></data>
+
+  <data name="Palette_FitsSlot" xml:space="preserve"><value>ПОДХОДИТ ДЛЯ ЯЧЕЙКИ {0}</value></data>
+  <data name="Palette_ItemCount" xml:space="preserve"><value>{0} предмет(ов)</value></data>
+  <data name="Palette_ShowingOf" xml:space="preserve"><value>показано {0} из {1}</value></data>
+  <data name="Palette_TooltipDurability" xml:space="preserve"><value> · прочность {0}</value></data>
+  <data name="Palette_TooltipStats" xml:space="preserve"><value>стак {0} · {1} кг</value></data>
+
+  <data name="PlayerAchievements_HiddenAchievementFallback" xml:space="preserve"><value>(скрытое достижение)</value></data>
+  <data name="PlayerAchievements_HiddenAchievementHint" xml:space="preserve"><value>Скрытое достижение. {0}</value></data>
+  <data name="PlayerAchievements_StatusCheckFailed" xml:space="preserve"><value>Сбой проверки Steam: {0} - данные локального кэша по-прежнему показаны.</value></data>
+  <data name="PlayerAchievements_StatusCompared" xml:space="preserve"><value>Сравнено с {0}: у вас есть {1}, которых нет у него; у него есть {2}, которых нет у вас.</value></data>
+  <data name="PlayerAchievements_StatusComparisonFailed" xml:space="preserve"><value>Сбой сравнения: {0}</value></data>
+  <data name="PlayerAchievements_StatusGatedAnonymous" xml:space="preserve"><value>Steam заблокировал анонимный запрос статистики для этого аккаунта. Либо войдите ниже (сессия со входом может видеть достижения свои и друзей), либо сделайте пункт «Игровые сведения» профиля публичным (Steam → Профиль → Редактировать профиль → Настройки приватности → Игровые сведения; изменения могут применяться несколько минут). Данные локального кэша по-прежнему показаны.</value></data>
+  <data name="PlayerAchievements_StatusGatedSignedIn" xml:space="preserve"><value>Steam всё равно заблокировал запрос статистики несмотря на сессию со входом - сессия могла истечь (нажмите ВЫЙТИ, затем войдите снова), или этот профиль не виден тому аккаунту. Данные локального кэша по-прежнему показаны.</value></data>
+  <data name="PlayerAchievements_StatusLoadingComparison" xml:space="preserve"><value>Загрузка сравнения для {0}…</value></data>
+  <data name="PlayerAchievements_StatusLocalCacheLoaded" xml:space="preserve"><value>Локальный кэш Steam (иконки через CDN Steam) · кэш обновляется только пока запущен Steam - ПРОВЕРИТЬ STEAM проверяет актуальное состояние онлайн.</value></data>
+  <data name="PlayerAchievements_StatusNoLocalCache" xml:space="preserve"><value>Для этого аккаунта на этом компьютере нет локального кэша Steam - используйте ПРОВЕРИТЬ STEAM для запроса через веб (только публичные профили).</value></data>
+  <data name="PlayerAchievements_StatusNoSignInWindow" xml:space="preserve"><value>Не удалось открыть окно входа.</value></data>
+  <data name="PlayerAchievements_StatusNoSteamId" xml:space="preserve"><value>Не удалось определить SteamID из имени файла.</value></data>
+  <data name="PlayerAchievements_StatusQuerying" xml:space="preserve"><value>Запрос к steamcommunity.com…</value></data>
+  <data name="PlayerAchievements_StatusQueryingSignedIn" xml:space="preserve"><value>Запрос к steamcommunity.com (выполнен вход)…</value></data>
+  <data name="PlayerAchievements_StatusReadingLocalCache" xml:space="preserve"><value>Чтение локального кэша достижений Steam…</value></data>
+  <data name="PlayerAchievements_StatusSignInCancelled" xml:space="preserve"><value>Вход в Steam отменён.</value></data>
+  <data name="PlayerAchievements_StatusSignedIn" xml:space="preserve"><value>Выполнен вход в Steam - повторная проверка достижений с этой сессией…</value></data>
+  <data name="PlayerAchievements_StatusSignedOut" xml:space="preserve"><value>Выполнен выход - файл cookie сессии Steam удалён. ПРОВЕРИТЬ STEAM теперь снова выполняет запрос анонимно.</value></data>
+  <data name="PlayerAchievements_StatusWebLoaded" xml:space="preserve"><value>Веб-данные Steam загружены (разблокировано в Steam: {0}) · иконки с steamcommunity.com.</value></data>
+  <data name="PlayerAchievements_ThisHiddenAchievement" xml:space="preserve"><value>Это скрытое достижение</value></data>
+
+  <data name="PlayerCodex_FishBaitUp" xml:space="preserve"><value>Перед забросом экипируйте приманку {0} (показана ниже).</value></data>
+  <data name="PlayerCodex_FishBitesBest" xml:space="preserve"><value>Лучше всего клюёт {0}.</value></data>
+  <data name="PlayerCodex_FishCastWhere" xml:space="preserve"><value>Забрасывайте там, где есть {0}.</value></data>
+  <data name="PlayerCodex_FishNeedsSpecificBait" xml:space="preserve"><value>Клюёт только с определённой экипированной приманкой.</value></data>
+  <data name="PlayerCodex_FishNeverBites" xml:space="preserve"><value>(никогда не клюёт; смотрите вики)</value></data>
+  <data name="PlayerCodex_FishOnlyBites" xml:space="preserve"><value>Клюёт только {0}.</value></data>
+  <data name="PlayerCodex_FishOnlyBitesBest" xml:space="preserve"><value>Клюёт только {0} (лучше всего {1}).</value></data>
+  <data name="PlayerCodex_FishRequiresDlc" xml:space="preserve"><value>Требуется DLC: {0}.</value></data>
+  <data name="PlayerCodex_FishStoryProgress" xml:space="preserve"><value>Прогресс сюжета: сначала нужно достичь «{0}».</value></data>
+  <data name="PlayerCodex_FishTimeDawn" xml:space="preserve"><value>на рассвете</value></data>
+  <data name="PlayerCodex_FishTimeDusk" xml:space="preserve"><value>в сумерках</value></data>
+  <data name="PlayerCodex_FishTimeJoinAnd" xml:space="preserve"><value>{0} и {1}</value></data>
+  <data name="PlayerCodex_FishTimeMidday" xml:space="preserve"><value>в полдень</value></data>
+  <data name="PlayerCodex_FishTimeNight" xml:space="preserve"><value>ночью</value></data>
+  <data name="PlayerCodex_KillsNotTracked" xml:space="preserve"><value>убийства: пока не отслеживаются · для бонусного раздела нужно {0}</value></data>
+  <data name="PlayerCodex_KillsProgress" xml:space="preserve"><value>{0} из {1} убийств для бонусного раздела</value></data>
+  <data name="PlayerCodex_Open" xml:space="preserve"><value>ОТКРЫТЬ ›</value></data>
+  <data name="PlayerCodex_ThisCodexEntry" xml:space="preserve"><value>Эта запись кодекса</value></data>
+  <data name="PlayerCodex_UnknownFishBody" xml:space="preserve"><value>Этого id рыбы нет в загруженной редактором таблице DT_Fish игры (более новая версия игры или данные игры недоступны). Он сохраняется в сохранении, пока вы не снимете галочку.</value></data>
+  <data name="PlayerCodex_UnknownFishSubtitle" xml:space="preserve"><value>неизвестный id рыбы</value></data>
+
+  <data name="PlayerEditor_AccountIdLabel" xml:space="preserve"><value>ID АККАУНТА</value></data>
+  <data name="PlayerEditor_CraftedItemsDiscovered" xml:space="preserve"><value>созданных предметов открыто</value></data>
+  <data name="PlayerEditor_ExportFailed" xml:space="preserve"><value>Сбой экспорта: {0}</value></data>
+  <data name="PlayerEditor_ExportedJson" xml:space="preserve"><value>Экспортировано {0} МБ → {1}</value></data>
+  <data name="PlayerEditor_ExportedJsonTitle" xml:space="preserve"><value>Экспортирован JSON сохранения</value></data>
+  <data name="PlayerEditor_ExportingJson" xml:space="preserve"><value>Экспорт JSON…</value></data>
+  <data name="PlayerEditor_ImportFailed" xml:space="preserve"><value>Сбой импорта (сохранение не тронуто): {0}</value></data>
+  <data name="PlayerEditor_ImportedJson" xml:space="preserve"><value>Импортировано в {0} · перезагрузите файл из боковой панели, чтобы увидеть изменения.</value></data>
+  <data name="PlayerEditor_ImportingJson" xml:space="preserve"><value>Импорт JSON…</value></data>
+  <data name="PlayerEditor_ItemsDiscovered" xml:space="preserve"><value>предметов открыто</value></data>
+  <data name="PlayerEditor_MapsUnlocked" xml:space="preserve"><value>карт открыто</value></data>
+  <data name="PlayerEditor_NoRespawnLevel" xml:space="preserve"><value>Уровень возрождения не записан.</value></data>
+  <data name="PlayerEditor_NoSiblingWorld" xml:space="preserve"><value>Рядом с этим игроком не найдено сохранение мира.</value></data>
+  <data name="PlayerEditor_PetBedFallback" xml:space="preserve"><value>кровать для питомца</value></data>
+  <data name="PlayerEditor_PetBedOption" xml:space="preserve"><value>Кровать {0}: {1}</value></data>
+  <data name="PlayerEditor_PetBedsReadFailed" xml:space="preserve"><value>Не удалось прочитать кровати для питомцев в {0}: {1}</value></data>
+  <data name="PlayerEditor_PetMoveFailed" xml:space="preserve"><value>Сбой перемещения: {0}</value></data>
+  <data name="PlayerEditor_PetPlacedAt" xml:space="preserve"><value>{0} (размещён: {1}, {2})</value></data>
+  <data name="PlayerEditor_RespawnLevel" xml:space="preserve"><value>Уровень: {0}</value></data>
+  <data name="PlayerEditor_RespawnLevelGuid" xml:space="preserve"><value>GUID уровня: {0}</value></data>
+  <data name="PlayerEditor_SaveFailed" xml:space="preserve"><value>Сбой сохранения: {0}</value></data>
+  <data name="PlayerEditor_SaveOrRevertFirst" xml:space="preserve"><value>Сначала сохраните или отмените другие изменения игрока.</value></data>
+  <data name="PlayerEditor_SavedAt" xml:space="preserve"><value>Сохранено в {0}</value></data>
+  <data name="PlayerEditor_Saving" xml:space="preserve"><value>Сохранение…</value></data>
+  <data name="PlayerEditor_SteamId64Label" xml:space="preserve"><value>STEAM ID 64</value></data>
+  <data name="PlayerEditor_UnknownSkill" xml:space="preserve"><value>Неизвестный навык #{0}</value></data>
+  <data name="PlayerEditor_UnknownTerminal" xml:space="preserve"><value>Неизвестный терминал ({0}…)</value></data>
+  <data name="PlayerEditor_WorldOriginFallback" xml:space="preserve"><value>точка начала координат мира</value></data>
+
+  <data name="PlayerGeneral_BulkDiscoverCraftedWhat" xml:space="preserve"><value>отметить каждый предмет как созданный хотя бы один раз</value></data>
+  <data name="PlayerGeneral_BulkDiscoverItemsWhat" xml:space="preserve"><value>отметить каждый предмет как увиденный (убирает все значки НОВОЕ)</value></data>
+  <data name="PlayerGeneral_BulkUnlockMapsWhat" xml:space="preserve"><value>открыть каждый буклет карты сектора</value></data>
+  <data name="PlayerGeneral_SteamIdChangeFailedTitle" xml:space="preserve"><value>Сбой смены SteamID</value></data>
+
+  <data name="PlayerInventory_SlotsFormat" xml:space="preserve"><value>ЯЧЕЕК: {0}</value></data>
+  <data name="PlayerInventory_WeightKgFormat" xml:space="preserve"><value>{0:F1} кг</value></data>
+
+  <data name="PlayerRecipes_BulkUnlockConfirmWhat" xml:space="preserve"><value>разблокировать каждый рецепт для этого игрока</value></data>
+  <data name="PlayerRecipes_CountUnlocked" xml:space="preserve"><value>разблокировано {0} из {1}</value></data>
+  <data name="PlayerRecipes_GameDataUnavailable" xml:space="preserve"><value>данные игры недоступны - браузер рецептов отключён</value></data>
+  <data name="PlayerRecipes_HandsNoBench" xml:space="preserve"><value>Руки (верстак не нужен)</value></data>
+  <data name="PlayerRecipes_ThisRecipe" xml:space="preserve"><value>Этот рецепт</value></data>
+  <data name="PlayerRecipes_UpgradesTo" xml:space="preserve"><value>Улучшается до {0}</value></data>
+
+  <data name="PlayerSkills_BulkMaxAllWhat" xml:space="preserve"><value>установить все 15 навыков на уровень 20</value></data>
+
+  <data name="Progress_RecipeGated" xml:space="preserve"><value>Рецепт «{0}» выдаётся письмом «{1}» в {2}, куда этот мир ещё не добрался (отсутствует {3}).</value></data>
+  <data name="Progress_RowGated" xml:space="preserve"><value>«{0}» относится к {1}, куда этот мир ещё не добрался (отсутствует {2}). Сначала продвиньте сюжет во вкладке ФЛАГИ ЗАДАНИЙ.</value></data>
+
+  <data name="Shell_SavesTitle" xml:space="preserve"><value>Сохранения</value></data>
+  <data name="Shell_WindowTitle" xml:space="preserve"><value>Редактор сохранений Abiotic Factor</value></data>
+
+  <data name="Skill_HiddenUntilUnlocked" xml:space="preserve"><value>Скрыто до разблокировки - достигните этого уровня (или нажмите, чтобы обойти допуск) и увидите перк.</value></data>
+  <data name="Skill_LevelCount" xml:space="preserve"><value>уровней: {0}</value></data>
+  <data name="Skill_Locked" xml:space="preserve"><value>Заблокировано - достигните уровня {0} (осталось {1} / {2} опыта).</value></data>
+  <data name="Skill_OneLevel" xml:space="preserve"><value>1 уровень</value></data>
+  <data name="Skill_ThisPerk" xml:space="preserve"><value>Этот перк навыка «{0}»</value></data>
+  <data name="Skill_TooltipHidden" xml:space="preserve"><value>Уровень {0} - скрытый перк (нажмите, чтобы раскрыть)</value></data>
+  <data name="Skill_Unlocked" xml:space="preserve"><value>Разблокировано - у этого навыка уровень {0} (нужен {1}).</value></data>
+
+  <data name="Slot_MaxStackFormat" xml:space="preserve"><value>макс {0}</value></data>
+  <data name="Slot_SkillFormat" xml:space="preserve"><value>навык {0}</value></data>
+  <data name="Slot_StatusFormat" xml:space="preserve"><value>СТАТУС: {0}</value></data>
+  <data name="Slot_WeightStackFormat" xml:space="preserve"><value>вес {0:0.##} кг · стак {1}</value></data>
+
+  <data name="WorldBases_AnchoredBy" xml:space="preserve"><value>Якорь: {0}</value></data>
+  <data name="WorldBases_NoCraftingBenchAnchor" xml:space="preserve"><value>Нет верстака крафта - оставшиеся развёрнутые объекты вне какой-либо базы.</value></data>
+
+  <data name="WorldContainers_ItemFallback" xml:space="preserve"><value>предмет</value></data>
+  <data name="WorldContainers_MoveFailedFormat" xml:space="preserve"><value>Сбой перемещения: {0}</value></data>
+  <data name="WorldContainers_NoPlayerSaveFound" xml:space="preserve"><value>Рядом с этим миром не найдено сохранение игрока.</value></data>
+  <data name="WorldContainers_SaveOrRevertFirst" xml:space="preserve"><value>Сначала сохраните или отмените другие изменения мира, затем отправьте предмет.</value></data>
+  <data name="WorldContainers_SelectSlotWithItemFirst" xml:space="preserve"><value>Сначала выберите ячейку, в которой есть предмет.</value></data>
+  <data name="WorldContainers_SendItemDialogMessage" xml:space="preserve"><value>Выберите сохранение игрока, которое должно получить этот предмет.</value></data>
+  <data name="WorldContainers_SendItemDialogTitle" xml:space="preserve"><value>Какому игроку отправить предмет?</value></data>
+  <data name="WorldContainers_SendToPlayerMenu" xml:space="preserve"><value>Отправить игроку</value></data>
+  <data name="WorldContainers_SendingItemFormat" xml:space="preserve"><value>Отправка {0} игроку {1}...</value></data>
+  <data name="WorldContainers_SentItemFormat" xml:space="preserve"><value>{0} отправлен в {2} игрока {1}.</value></data>
+
+  <data name="WorldContainment_BulkCompendiumWhat" xml:space="preserve"><value>разблокировать каждый раздел компендиума на весь мир</value></data>
+  <data name="WorldContainment_BulkEmailsWhat" xml:space="preserve"><value>отметить каждое письмо как прочитанное на весь мир</value></data>
+  <data name="WorldContainment_BulkItemsWhat" xml:space="preserve"><value>отметить каждый предмет каталога как увиденный на весь мир</value></data>
+  <data name="WorldContainment_BulkJournalsWhat" xml:space="preserve"><value>отметить каждую страницу дневника как найденную на весь мир</value></data>
+  <data name="WorldContainment_ClassifiedAnomaly" xml:space="preserve"><value>▓ ЗАСЕКРЕЧЕННАЯ АНОМАЛИЯ</value></data>
+  <data name="WorldContainment_DiscoveredCountFormat" xml:space="preserve"><value>открыто: {0}</value></data>
+  <data name="WorldContainment_FoundCountFormat" xml:space="preserve"><value>найдено: {0}</value></data>
+  <data name="WorldContainment_HeldInFacilitySave" xml:space="preserve"><value>Содержится в сохранении региона Facility (WorldSave_Facility.sav).</value></data>
+  <data name="WorldContainment_HeldInNotOpenFormat" xml:space="preserve"><value>Содержится в {0} (сейчас не открыт в боковой панели).</value></data>
+  <data name="WorldContainment_HeldInOpenFormat" xml:space="preserve"><value>Содержится в {0}, который открыт в боковой панели.</value></data>
+  <data name="WorldContainment_LocatingUnit" xml:space="preserve"><value>Поиск установки сдерживания…</value></data>
+  <data name="WorldContainment_LocationUnresolved" xml:space="preserve"><value>Не удалось определить местоположение установки сдерживания.</value></data>
+  <data name="WorldContainment_ReadCountFormat" xml:space="preserve"><value>прочитано: {0}</value></data>
+  <data name="WorldContainment_SectionUnlocksCountFormat" xml:space="preserve"><value>разблокировано разделов: {0}</value></data>
+  <data name="WorldContainment_SpoilerSubjectRecord" xml:space="preserve"><value>Эта запись сдерживания</value></data>
+  <data name="WorldContainment_TapHintRevealed" xml:space="preserve"><value>Нажмите: внешний вид + местоположение</value></data>
+  <data name="WorldContainment_TapHintSealed" xml:space="preserve"><value>Выше допуска - нажмите, чтобы раскрыть</value></data>
+  <data name="WorldContainment_UnitGuidFormat" xml:space="preserve"><value>GUID установки сдерживания: {0}</value></data>
+  <data name="WorldContainment_UnitNotFound" xml:space="preserve"><value>Установка сдерживания не найдена в WorldSave_Facility.sav (возможно, её подобрали).</value></data>
+
+  <data name="WorldDoors_ActorNotFound" xml:space="preserve"><value>Актор этой двери не найден в собранном уровне (переименован обновлением игры?).</value></data>
+  <data name="WorldDoors_CountFormat" xml:space="preserve"><value>ДВЕРЕЙ: {0}</value></data>
+  <data name="WorldDoors_GameInstallNotFound" xml:space="preserve"><value>Установка игры не найдена - точные позиции недоступны.</value></data>
+  <data name="WorldDoors_MapCaptionScatter" xml:space="preserve"><value>Перекрестие = эта дверь; точки = остальные двери того же подуровня (вид сверху, позиции из собственных файлов уровней игры).</value></data>
+  <data name="WorldDoors_MapCaptionSectorPin" xml:space="preserve"><value>Перекрестие = эта дверь на внутриигровой карте сектора (позиция из файлов уровней игры; подгонка карты приблизительна). Точки = остальные двери уровня.</value></data>
+  <data name="WorldDoors_RegionFormat" xml:space="preserve"><value>Регион: {0}</value></data>
+  <data name="WorldDoors_SubLevelNotReadable" xml:space="preserve"><value>Этот подуровень не удалось прочитать из файлов игры.</value></data>
+  <data name="WorldDoors_Title" xml:space="preserve"><value>ДВЕРИ</value></data>
+  <data name="WorldDoors_TitleWithRegionFormat" xml:space="preserve"><value>ДВЕРИ - {0}</value></data>
+
+  <data name="WorldEditor_DroppedSummaryFormat" xml:space="preserve"><value>{0} предмет(ов) на земле</value></data>
+  <data name="WorldEditor_DroppedSummaryWithDeletionsFormat" xml:space="preserve"><value>{0} предмет(ов) · {1} отмечено к удалению</value></data>
+  <data name="WorldEditor_ExportFailedFormat" xml:space="preserve"><value>Сбой экспорта: {0}</value></data>
+  <data name="WorldEditor_ExportedJsonFileTitle" xml:space="preserve"><value>Экспортирован JSON сохранения</value></data>
+  <data name="WorldEditor_ExportedJsonFormat" xml:space="preserve"><value>Экспортировано {0:F1} МБ → {1}</value></data>
+  <data name="WorldEditor_ExportingJson" xml:space="preserve"><value>Экспорт JSON… (сохранение Facility даёт около 100 МБ, это может занять время)</value></data>
+  <data name="WorldEditor_ImportFailedFormat" xml:space="preserve"><value>Сбой импорта (сохранение не тронуто): {0}</value></data>
+  <data name="WorldEditor_ImportedJsonFormat" xml:space="preserve"><value>Импортировано в {0:HH:mm:ss} · перезагрузите файл из боковой панели, чтобы увидеть изменения.</value></data>
+  <data name="WorldEditor_ImportingJson" xml:space="preserve"><value>Импорт JSON…</value></data>
+  <data name="WorldEditor_SaveFailedFormat" xml:space="preserve"><value>Сбой сохранения: {0}</value></data>
+  <data name="WorldEditor_SavedAtFormat" xml:space="preserve"><value>Сохранено в {0:HH:mm:ss}</value></data>
+  <data name="WorldEditor_Saving" xml:space="preserve"><value>Сохранение…</value></data>
+  <data name="WorldEditor_TabBases" xml:space="preserve"><value>БАЗЫ</value></data>
+  <data name="WorldEditor_TabContainers" xml:space="preserve"><value>КОНТЕЙНЕРЫ</value></data>
+  <data name="WorldEditor_TabContainment" xml:space="preserve"><value>СДЕРЖИВАНИЕ</value></data>
+  <data name="WorldEditor_TabDoors" xml:space="preserve"><value>ДВЕРИ</value></data>
+  <data name="WorldEditor_TabDropped" xml:space="preserve"><value>НА ЗЕМЛЕ</value></data>
+  <data name="WorldEditor_TabPets" xml:space="preserve"><value>ПИТОМЦЫ</value></data>
+  <data name="WorldEditor_TabQuestFlags" xml:space="preserve"><value>ФЛАГИ ЗАДАНИЙ</value></data>
+  <data name="WorldEditor_TabRawJson" xml:space="preserve"><value>СЫРОЙ JSON</value></data>
+  <data name="WorldEditor_TabStory" xml:space="preserve"><value>СЮЖЕТ</value></data>
+  <data name="WorldEditor_TabTraders" xml:space="preserve"><value>ТОРГОВЦЫ</value></data>
+  <data name="WorldEditor_TabVehicles" xml:space="preserve"><value>ТРАНСПОРТ</value></data>
+
+  <data name="WorldFeature_DeviceNotFound" xml:space="preserve"><value>Устройство не найдено ни в одном сохранении региона (возможно, оно было удалено)</value></data>
+  <data name="WorldFeature_TitleFormat" xml:space="preserve"><value>{0} В ЭТОМ МИРЕ</value></data>
+
+  <data name="WorldFlags_DescCompleted" xml:space="preserve"><value>Фиксирует, что эта цель/событие завершены</value></data>
+  <data name="WorldFlags_DescDefeated" xml:space="preserve"><value>Фиксирует, что этот враг был побеждён</value></data>
+  <data name="WorldFlags_DescEntered" xml:space="preserve"><value>Фиксирует, что игроки впервые вошли в это место</value></data>
+  <data name="WorldFlags_DescFound" xml:space="preserve"><value>Фиксирует, что этот объект был найден</value></data>
+  <data name="WorldFlags_DescGeneric" xml:space="preserve"><value>Односторонний маркер события мира, по которому игра решает, открывать ли связанное содержимое</value></data>
+  <data name="WorldFlags_DescMet" xml:space="preserve"><value>Фиксирует первую встречу с этим персонажем</value></data>
+  <data name="WorldFlags_DescOpened" xml:space="preserve"><value>Фиксирует, что дверь, врата или проход здесь были открыты</value></data>
+  <data name="WorldFlags_DescReached" xml:space="preserve"><value>Фиксирует, что эта точка была достигнута</value></data>
+  <data name="WorldFlags_DescRepaired" xml:space="preserve"><value>Фиксирует, что эта машина/система была отремонтирована</value></data>
+  <data name="WorldFlags_DescUnlock" xml:space="preserve"><value>Разблокирует связанное содержимое (рецепты, ассортимент или доступ)</value></data>
+  <data name="WorldFlags_DescriptionFormat" xml:space="preserve"><value>{0} - регион {1}. Установка флага может пропустить событие; удаление может проиграть его заново (там, где игра проверяет повторно).</value></data>
+  <data name="WorldFlags_StoryTriggerForChapter" xml:space="preserve"><value>Сюжетный триггер главы «{0}».</value></data>
+
+  <data name="WorldNpc_Identity_TamedPet" xml:space="preserve"><value>Прирученный питомец-спутник</value></data>
+
+  <data name="WorldPets_MoveFailedFormat" xml:space="preserve"><value>Сбой перемещения: {0}</value></data>
+  <data name="WorldPets_NoPlayerSaveFound" xml:space="preserve"><value>Рядом с этим миром не найдено сохранение игрока.</value></data>
+  <data name="WorldPets_SaveOrRevertFirst" xml:space="preserve"><value>Сначала сохраните или отмените другие изменения мира.</value></data>
+  <data name="WorldPets_SendingFormat" xml:space="preserve"><value>Отправка {0} игроку {1}...</value></data>
+  <data name="WorldPets_SentFormat" xml:space="preserve"><value>{0} отправлен игроку {1}. Теперь он живёт в сохранении этого игрока.</value></data>
+
+  <data name="WorldStory_ChapterIndexFormat" xml:space="preserve"><value>глава {0} из {1}</value></data>
+  <data name="WorldStory_ChapterSetStatusFormat" xml:space="preserve"><value>Глава установлена · флагов-триггеров добавлено: {0}, очищено: {1} в WorldSave_Facility.sav{2} (резервные копии сохранены). Нажмите СОХРАНИТЬ, чтобы записать указатель.</value></data>
+  <data name="WorldStory_ChapterSyncFailedFormat" xml:space="preserve"><value>Сбой синхронизации флагов главы: {0}</value></data>
+  <data name="WorldStory_FlagBlockedFormat" xml:space="preserve"><value>Заблокировано: «{0}» сначала требует более ранних флагов: {1} ({2}). Выберите флаг для подробностей или используйте РАЗБЛОКИРОВАТЬ СЮЖЕТ ДО ЭТОГО МОМЕНТА на его главе.</value></data>
+  <data name="WorldStory_LastPlayedFormat" xml:space="preserve"><value>ПОСЛЕДНЯЯ ИГРА {0}</value></data>
+  <data name="WorldStory_NoFixedStoryGateFormat" xml:space="preserve"><value>{0} (нет фиксированной сюжетной привязки - портальная аномалия или мета-флаг)</value></data>
+  <data name="WorldStory_NoPrerequisites" xml:space="preserve"><value>Нет предпосылок - можно включить в любой момент.</value></data>
+  <data name="WorldStory_PlayerCodexClearedFormat" xml:space="preserve"><value>, очищено строк кодекса игроков: {0} (сохранений: {1})</value></data>
+  <data name="WorldStory_PlaytimeFormat" xml:space="preserve"><value>сыграно {0}ч {1:D2}м</value></data>
+  <data name="WorldStory_PrereqChapterLabelFormat" xml:space="preserve"><value>{0} ({1})</value></data>
+  <data name="WorldStory_PrereqLineFormat" xml:space="preserve"><value>{0} {1}</value></data>
+  <data name="WorldStory_RegionOtherAnomaliesMeta" xml:space="preserve"><value>ПРОЧЕЕ · АНОМАЛИИ &amp; МЕТА</value></data>
+  <data name="WorldStory_SettingChapterStatus" xml:space="preserve"><value>Установка главы + синхронизация флагов-триггеров Facility…</value></data>
+  <data name="WorldStory_SpoilerSubjectQuestFlag" xml:space="preserve"><value>Этот флаг задания</value></data>
+  <data name="WorldStory_TakesPlaceAroundFormat" xml:space="preserve"><value>Происходит в районе: {0}</value></data>
+  <data name="WorldStory_UnknownChapter" xml:space="preserve"><value>(неизвестная глава)</value></data>
+  <data name="WorldStory_WorldCodexClearedFormat" xml:space="preserve"><value>, очищено разблокировок кодекса мира: {0}</value></data>
+
+  <data name="WorldTraders_Card_AlwaysStocked" xml:space="preserve"><value>всегда в наличии</value></data>
+  <data name="WorldTraders_Card_LockedNeedsFlag" xml:space="preserve"><value>заблокировано - нужен {0}</value></data>
+  <data name="WorldTraders_Card_ThisTrader" xml:space="preserve"><value>Этот торговец</value></data>
+  <data name="WorldTraders_Card_UnlockedFlagSet" xml:space="preserve"><value>разблокировано ({0} установлен)</value></data>
+  <data name="WorldTraders_FlagsAlreadySet" xml:space="preserve"><value>Все эти флаги уже установлены в этом сохранении.</value></data>
+  <data name="WorldTraders_NothingToUnlockFormat" xml:space="preserve"><value>{0}: нечего разблокировать.</value></data>
+  <data name="WorldTraders_SellsFormat" xml:space="preserve"><value>Продаёт: {0}</value></data>
+  <data name="WorldTraders_StagedFlagsFormat" xml:space="preserve"><value>Подготовлено флагов мира: {0} - нажмите СОХРАНИТЬ, чтобы записать.</value></data>
+
+  <data name="WorldVehicles_AtSpawn" xml:space="preserve"><value>В точке появления.</value></data>
+  <data name="WorldVehicles_CountFormat" xml:space="preserve"><value>транспорта: {0}</value></data>
+  <data name="WorldVehicles_CountSingular" xml:space="preserve"><value>1 транспорт</value></data>
+  <data name="WorldVehicles_ItemsOnBoard" xml:space="preserve"><value>{0} предмет(ов) на борту</value></data>
+  <data name="WorldVehicles_MovedFromSpawn" xml:space="preserve"><value>Перемещён из точки появления ({0}).</value></data>
+  <data name="WorldVehicles_NoOnBoardStorage" xml:space="preserve"><value>нет бортового хранилища</value></data>
+  <data name="WorldVehicles_ResolvingSpawn" xml:space="preserve"><value>Определение точки появления…</value></data>
+  <data name="WorldVehicles_SpawnUnavailable" xml:space="preserve"><value>Точка появления недоступна (нужны установка игры / mappings).</value></data>
+  <data name="WorldVehicles_UnknownWorld" xml:space="preserve"><value>Неизвестный мир</value></data>
+  <data name="WorldVehicles_WorldFormat" xml:space="preserve"><value>Мир: {0}</value></data>
 </root>

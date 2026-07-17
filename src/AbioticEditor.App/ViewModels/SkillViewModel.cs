@@ -25,7 +25,7 @@ public sealed class SkillViewModel : INotifyPropertyChanged
         _multiplier = skill.XpMultiplier;
 
         MaxCommand = new RelayCommand(() => Level = SkillCatalog.MaxLevel);
-        Milestones = SkillMilestoneCatalog.For(definition.DisplayName)
+        Milestones = SkillLocalization.MilestonesFor(definition.DisplayName)
             .Select(m => new SkillMilestoneViewModel(this, m))
             .ToList();
     }
@@ -36,7 +36,7 @@ public sealed class SkillViewModel : INotifyPropertyChanged
     public bool HasMilestones => Milestones.Count > 0;
 
     /// <summary>Per-level passive bonus, e.g. "+2 carrying capacity".</summary>
-    public string? PassiveText => SkillMilestoneCatalog.PassiveFor(Definition.DisplayName);
+    public string? PassiveText => SkillLocalization.PassiveFor(Definition.DisplayName);
 
     public PlayerSkill OriginalSkill { get; private set; }
     public SkillDefinition Definition { get; }
@@ -229,14 +229,14 @@ public sealed class SkillMilestoneViewModel : INotifyPropertyChanged
 
     public string ShownPerk => SpoilerService.Mask(Milestone.Perk, IsConcealed, SpoilerService.ClassifiedShort);
     public string ShownEffect => IsConcealed
-        ? "Hidden until unlocked - reach this level (or tap to override clearance) to see the perk."
+        ? LocalizationResourceManager.Instance["Skill_HiddenUntilUnlocked"]
         : Milestone.Effect;
 
     /// <summary>Chip label: the level requirement always shows; the perk masks while sealed.</summary>
     public string ChipText => $"{Milestone.Level} · {ShownPerk}";
 
     public string Tooltip => IsConcealed
-        ? $"Level {Milestone.Level} - hidden perk (tap to reveal)"
+        ? LocalizationResourceManager.Instance.Format("Skill_TooltipHidden", Milestone.Level)
         : $"Level {Milestone.Level} - {Milestone.Perk}: {Milestone.Effect}";
 
     // ---------- detail-card text ----------
@@ -249,11 +249,17 @@ public sealed class SkillMilestoneViewModel : INotifyPropertyChanged
     {
         get
         {
-            if (IsUnlocked) return $"Unlocked - this skill is level {_owner.Level} (needs {Milestone.Level}).";
+            if (IsUnlocked)
+            {
+                return LocalizationResourceManager.Instance.Format("Skill_Unlocked", _owner.Level, Milestone.Level);
+            }
             var levelsToGo = Milestone.Level - _owner.Level;
             var xpToGo = SkillCatalog.XpForLevel(Milestone.Level) - _owner.Xp;
-            var levels = levelsToGo == 1 ? "1 level" : $"{levelsToGo} levels";
-            return $"Locked - reach level {Milestone.Level} ({levels} / {Math.Max(0, xpToGo):F0} XP to go).";
+            var levels = levelsToGo == 1
+                ? LocalizationResourceManager.Instance["Skill_OneLevel"]
+                : LocalizationResourceManager.Instance.Format("Skill_LevelCount", levelsToGo);
+            return LocalizationResourceManager.Instance.Format(
+                "Skill_Locked", Milestone.Level, levels, $"{Math.Max(0, xpToGo):F0}");
         }
     }
 
@@ -277,7 +283,8 @@ public sealed class SkillMilestoneViewModel : INotifyPropertyChanged
     public async Task<bool> RevealAsync()
     {
         if (!IsConcealed) return true;
-        if (await SpoilerPrompt.RevealAsync($"This {_owner.DisplayName} perk", SpoilerKey))
+        if (await SpoilerPrompt.RevealAsync(
+                LocalizationResourceManager.Instance.Format("Skill_ThisPerk", _owner.DisplayName), SpoilerKey))
         {
             NotifyAll();
             return true;

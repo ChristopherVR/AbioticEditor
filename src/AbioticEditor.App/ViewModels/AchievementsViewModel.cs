@@ -43,8 +43,10 @@ public sealed class AchievementRowViewModel : INotifyPropertyChanged
 
     public string ShownTitle => IsConcealed ? SpoilerService.ClassifiedTitle : DisplayName;
     public string? ShownDescription => IsConcealed
-        ? $"Hidden achievement. {SpoilerService.ClassifiedHint}"
-        : string.IsNullOrEmpty(Description) && Hidden ? "(hidden achievement)" : Description;
+        ? LocalizationResourceManager.Instance.Format("PlayerAchievements_HiddenAchievementHint", SpoilerService.ClassifiedHint)
+        : string.IsNullOrEmpty(Description) && Hidden
+            ? LocalizationResourceManager.Instance["PlayerAchievements_HiddenAchievementFallback"]
+            : Description;
 
     public string? ShownIcon => IsConcealed ? null : (Unlocked ? IconUrl : IconGrayUrl ?? IconUrl);
     public bool HasIcon => ShownIcon is not null;
@@ -53,7 +55,11 @@ public sealed class AchievementRowViewModel : INotifyPropertyChanged
     public ICommand RevealCommand => _reveal ??= new RelayCommand(async () =>
     {
         if (!IsConcealed) return;
-        if (await SpoilerPrompt.RevealAsync("This hidden achievement", SpoilerKey)) NotifyAll();
+        if (await SpoilerPrompt.RevealAsync(
+            LocalizationResourceManager.Instance["PlayerAchievements_ThisHiddenAchievement"], SpoilerKey))
+        {
+            NotifyAll();
+        }
     });
     private RelayCommand? _reveal;
 
@@ -124,7 +130,7 @@ public sealed class AchievementsViewModel : INotifyPropertyChanged
         {
             SteamSession.SignOut();
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSignedIn)));
-            Status = "Signed out - the Steam session cookie was cleared. CHECK STEAM now queries anonymously again.";
+            Status = LocalizationResourceManager.Instance["PlayerAchievements_StatusSignedOut"];
         });
     }
 
@@ -229,11 +235,11 @@ public sealed class AchievementsViewModel : INotifyPropertyChanged
 
         if (_steamId == 0)
         {
-            Status = "Could not determine the SteamID from the file name.";
+            Status = LocalizationResourceManager.Instance["PlayerAchievements_StatusNoSteamId"];
             return;
         }
 
-        Status = "Reading Steam's local achievement cache…";
+        Status = LocalizationResourceManager.Instance["PlayerAchievements_StatusReadingLocalCache"];
         _ = Task.Run(() =>
         {
             var local = SteamAchievements.LoadFor(_steamId);
@@ -241,12 +247,12 @@ public sealed class AchievementsViewModel : INotifyPropertyChanged
             {
                 if (local is null)
                 {
-                    Status = "No local Steam cache for this account on this machine - use CHECK STEAM to query the web (public profiles only).";
+                    Status = LocalizationResourceManager.Instance["PlayerAchievements_StatusNoLocalCache"];
                 }
                 else
                 {
                     MergeLocal(local);
-                    Status = "Local Steam cache (icons via Steam CDN) · the cache only updates while Steam runs - CHECK STEAM verifies the live state online.";
+                    Status = LocalizationResourceManager.Instance["PlayerAchievements_StatusLocalCacheLoaded"];
                 }
                 NotifyCollection();
             });
@@ -259,12 +265,13 @@ public sealed class AchievementsViewModel : INotifyPropertyChanged
         try
         {
             Status = cookie is null
-                ? "Querying steamcommunity.com…"
-                : "Querying steamcommunity.com (signed in)…";
+                ? LocalizationResourceManager.Instance["PlayerAchievements_StatusQuerying"]
+                : LocalizationResourceManager.Instance["PlayerAchievements_StatusQueryingSignedIn"];
             var web = await SteamWebAchievements.FetchAsync(_steamId, cookieHeader: cookie);
             MergeWeb(web);
             ProfileGated = false;
-            Status = $"Steam web data loaded ({web.Count(a => a.Unlocked)} unlocked on Steam) · icons from steamcommunity.com.";
+            Status = LocalizationResourceManager.Instance.Format(
+                "PlayerAchievements_StatusWebLoaded", web.Count(a => a.Unlocked));
             NotifyCollection();
         }
         catch (SteamGameDetailsPrivateException)
@@ -273,18 +280,12 @@ public sealed class AchievementsViewModel : INotifyPropertyChanged
             // when the user could see them while signed in - offer that path too.
             ProfileGated = true;
             Status = cookie is null
-                ? "Steam blocked the anonymous stats query for this account. Either sign in below "
-                  + "(a logged-in session can view its own and friends' achievements), or make the "
-                  + "profile's 'Game details' dropdown Public "
-                  + "(Steam → Profile → Edit Profile → Privacy Settings → Game details; "
-                  + "changes can take a few minutes to apply). Local cache data is still shown."
-                : "Steam still blocked the stats query despite the signed-in session - the session may "
-                  + "have expired (SIGN OUT, then sign in again), or this profile isn't visible to that "
-                  + "account. Local cache data is still shown.";
+                ? LocalizationResourceManager.Instance["PlayerAchievements_StatusGatedAnonymous"]
+                : LocalizationResourceManager.Instance["PlayerAchievements_StatusGatedSignedIn"];
         }
         catch (Exception ex)
         {
-            Status = $"Steam check failed: {ex.Message} - local cache data is still shown.";
+            Status = LocalizationResourceManager.Instance.Format("PlayerAchievements_StatusCheckFailed", ex.Message);
         }
     }
 
@@ -298,7 +299,7 @@ public sealed class AchievementsViewModel : INotifyPropertyChanged
         var page = windows is { Count: > 0 } ? windows[0].Page : null;
         if (page is null)
         {
-            Status = "Could not open the sign-in window.";
+            Status = LocalizationResourceManager.Instance["PlayerAchievements_StatusNoSignInWindow"];
             return;
         }
 
@@ -307,13 +308,13 @@ public sealed class AchievementsViewModel : INotifyPropertyChanged
         var cookie = await login.Result;
         if (cookie is null)
         {
-            Status = "Steam sign-in was cancelled.";
+            Status = LocalizationResourceManager.Instance["PlayerAchievements_StatusSignInCancelled"];
             return;
         }
 
         SteamSession.SignIn(cookie);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSignedIn)));
-        Status = "Signed in to Steam - re-checking achievements with the session…";
+        Status = LocalizationResourceManager.Instance["PlayerAchievements_StatusSignedIn"];
         await CheckSteamAsync();
     }
 
@@ -322,7 +323,7 @@ public sealed class AchievementsViewModel : INotifyPropertyChanged
         _compareName = candidate.Label.ToUpperInvariant();
         try
         {
-            Status = $"Loading comparison for {candidate.Label}…";
+            Status = LocalizationResourceManager.Instance.Format("PlayerAchievements_StatusLoadingComparison", candidate.Label);
             // Local cache first; fall back to the web for accounts never used here.
             var local = SteamAchievements.LoadFor(candidate.SteamId64);
             HashSet<string> otherUnlocked;
@@ -344,11 +345,12 @@ public sealed class AchievementsViewModel : INotifyPropertyChanged
             }
             var ahead = _rows.Values.Count(r => r.Unlocked && r.CompareUnlocked == false);
             var behind = _rows.Values.Count(r => !r.Unlocked && r.CompareUnlocked == true);
-            Status = $"Compared with {candidate.Label}: you have {ahead} they don't; they have {behind} you don't.";
+            Status = LocalizationResourceManager.Instance.Format(
+                "PlayerAchievements_StatusCompared", candidate.Label, ahead, behind);
         }
         catch (Exception ex)
         {
-            Status = $"Comparison failed: {ex.Message}";
+            Status = LocalizationResourceManager.Instance.Format("PlayerAchievements_StatusComparisonFailed", ex.Message);
             foreach (var r in _rows.Values)
             {
                 r.CompareUnlocked = null;

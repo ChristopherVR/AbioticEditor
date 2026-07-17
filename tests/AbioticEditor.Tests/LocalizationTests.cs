@@ -238,7 +238,17 @@ public sealed class LocalizationTests
 
         foreach (var xaml in EnumerateXaml(app))
         {
-            foreach (Match m in Regex.Matches(File.ReadAllText(xaml), @"\{loc:Localize (\w+)\}"))
+            var text = File.ReadAllText(xaml);
+            foreach (Match m in Regex.Matches(text, @"\{loc:Localize (\w+)\}"))
+            {
+                var key = m.Groups[1].Value;
+                if (!neutral.ContainsKey(key))
+                {
+                    missing.Add(key);
+                }
+            }
+            // LocalizeFormat's first token is the format-pattern key ({loc:LocalizeFormat Key, Arg0=...}).
+            foreach (Match m in Regex.Matches(text, @"\{loc:LocalizeFormat (\w+)[,\}]"))
             {
                 var key = m.Groups[1].Value;
                 if (!neutral.ContainsKey(key))

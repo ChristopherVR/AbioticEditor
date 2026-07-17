@@ -14,22 +14,28 @@ public static class SkillLocalization
 
     /// <summary>Localized per-level passive bonus text, or null when the skill isn't in the catalog.</summary>
     public static string? PassiveFor(string skillDisplayName)
-        => SkillMilestoneCatalog.PassiveFor(skillDisplayName) is null
-            ? null
-            : Loc[$"Skill_Passive_{SkillKey(skillDisplayName)}"];
+        => SkillMilestoneCatalog.PassiveFor(skillDisplayName) is { } native
+            ? Loc.GetOrNull($"Skill_Passive_{SkillKey(skillDisplayName)}") ?? native
+            : null;
 
-    /// <summary>Localized milestone perk track for a skill, in level order.</summary>
+    /// <summary>
+    /// Localized milestone perk track for a skill, in level order. When the milestones came
+    /// from the game's own tables (<see cref="SkillMilestoneCatalog.HasLiveDataFor"/>) the
+    /// game text is kept as-is - it already follows the game-data language - and the resx
+    /// override only applies to the static English fallback. A missing key (a perk newer
+    /// than the translations) falls back to the native text rather than showing a raw key.
+    /// </summary>
     public static IReadOnlyList<SkillMilestone> MilestonesFor(string skillDisplayName)
     {
         var native = SkillMilestoneCatalog.For(skillDisplayName);
-        if (native.Count == 0) return native;
+        if (native.Count == 0 || SkillMilestoneCatalog.HasLiveDataFor(skillDisplayName)) return native;
 
         var key = SkillKey(skillDisplayName);
         return [.. native
             .Select(m => m with
             {
-                Perk = Loc[$"Skill_Milestone_{key}_{m.Level}_Perk"],
-                Effect = Loc[$"Skill_Milestone_{key}_{m.Level}_Effect"],
+                Perk = Loc.GetOrNull($"Skill_Milestone_{key}_{m.Level}_Perk") ?? m.Perk,
+                Effect = Loc.GetOrNull($"Skill_Milestone_{key}_{m.Level}_Effect") ?? m.Effect,
             })];
     }
 

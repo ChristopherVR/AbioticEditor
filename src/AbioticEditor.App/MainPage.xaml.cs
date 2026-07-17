@@ -61,13 +61,15 @@ public partial class MainPage : ContentPage
                 {
                     var context = Services.PluginService.CreateMenuActionContext(
                         cap, _vm.SelectedSave?.FullPath,
-                        message => DisplayAlertAsync(cap.Value.Title, message, "OK"));
+                        message => DisplayAlertAsync(cap.Value.Title, message, Services.LocalizationResourceManager.Instance["Common_Ok"]));
                     await cap.Value.InvokeAsync(context);
                 }
                 catch (Exception ex)
                 {
                     cap.Plugin.Host?.Log.Error("menu action failed", ex);
-                    await DisplayAlertAsync(cap.Value.Title, $"The action failed: {ex.Message}", "OK");
+                    await DisplayAlertAsync(cap.Value.Title,
+                        Services.LocalizationResourceManager.Instance.Format("Main_ActionFailedFormat", ex.Message),
+                        Services.LocalizationResourceManager.Instance["Common_Ok"]);
                 }
             };
             menu.Add(item);
@@ -114,22 +116,23 @@ public partial class MainPage : ContentPage
 
         // Action matches the failure: import a usmap when the game was found but its data file is
         // missing, otherwise locate the install folder.
+        var loc = Services.LocalizationResourceManager.Instance;
         var actionText = Services.GameDataServices.Status == Services.GameDataStatus.MappingsMissing
-            ? "Import game data"
-            : "Locate game folder";
+            ? loc["GameData_ImportAction"]
+            : loc["GameData_LocateAction"];
         var choice = await DialogViewModel.Current.ShowAsync(
-            "Game data not detected",
+            loc["GameData_NotDetectedTitle"],
             Services.GameDataServices.StatusMessage,
-            ("Not now", DialogTone.Neutral),
+            (loc["GameData_NotNow"], DialogTone.Neutral),
             (actionText, DialogTone.Primary));
         if (choice != 1) return;
 
         if (await Services.GameDataPrompt.FixAsync())
         {
             await _vm.ReloadGameDataAsync();
-            await DialogViewModel.Current.AlertAsync("Game data",
+            await DialogViewModel.Current.AlertAsync(loc["GameData_Title"],
                 Services.GameDataServices.IsGameDataLoaded
-                    ? "Game data loaded."
+                    ? loc["GameData_Loaded"]
                     : Services.GameDataServices.StatusMessage);
         }
     }

@@ -5,6 +5,52 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-43: localization sweep - remaining hardcoded UI strings + Core-override wiring (2026-07-18)
+- **Milestone: no user-facing English left hardcoded in App .cs/.xaml** (~310 new resx keys;
+  neutral resx now ~1720 keys/locale across en/de/es/fr/ru).
+- **Discovery: four override services existed but were never wired.** `SkillLocalization`,
+  `TraitLocalization`, `NpcLocalization`, `EquipSlotLocalization` (plus their translated resx
+  keys) were authored in an earlier round but the ViewModels still bound Core's English.
+  Wired now: `SkillViewModel` -> `SkillLocalization` (with a guard: milestones served live
+  from the game's DT_SkillPerks keep the game text, which already follows the game-data
+  language), `TraitItemViewModel`/`PlayerEditorViewModel` -> `TraitLocalization`,
+  `WorldNpcViewModel` -> `NpcLocalization` (and `IsHologram` now keys on
+  `NpcIdentityCatalog.MatchedHint`, not the localized label text),
+  `InventorySlotViewModel` -> `EquipSlotLocalization`.
+- **New plumbing:** `LocalizationResourceManager.GetOrNull(key)` (missing key -> null instead
+  of the raw key, for Core-English fallbacks); `Controls/LocalizeFormatExtension`
+  (`{loc:LocalizeFormat Key, Arg0={Binding ...}}`, up to Arg0..Arg2) replaces hardcoded
+  English inside XAML binding `StringFormat`s and stays live on language switch (MultiBinding
+  of the loc indexer + args; proven under the source-gen XAML compiler);
+  `LocalizationTests.EveryLocalizeKeyInXaml...` now also scans LocalizeFormat keys.
+- **New override services** (Core stays English SoT): `ContainmentLocalization`
+  (`WorldContainment_Creature_*` names + lore) and `CompatibilityLocalization` (the
+  load-time warning bar; reproduces `SaveCompatibility.WarningFor`'s two-branch check from
+  the public registry inputs).
+- **Sweep coverage** (fanned out over 4 file-batch agents, keys merged via
+  `tools/loc_extract`-style ledgers + `tools/loc_merge_resx.py`): WorldEditorViewModel
+  (~95 sites: tab titles, all statuses/dialogs, story/door/containment/vehicle text; region
+  titles now route through the existing `WorldStory_Region*` keys), Achievements/
+  Customization/Codex/RecipeList/FishBaitResolver/IniEditor/ItemPalette VMs,
+  PlayerEditor stragglers + SkillViewModel lock texts + TraderCard stock status +
+  FlagItemViewModel purpose ladder + WorldVehicle/WorldBase/WorldFeature +
+  `GameDataServices.StatusMessage` + ProgressContext gates, SaveSemanticDiff labels,
+  ComparePanel A/B chips, AppShell/MainPage titles, sidebar tooltips/formats, pet
+  family/status labels (`WorldPets_Family_*` incl. Lamogi), carried-pet slot/status.
+  Deliberately NOT localized: brand marks (ABIOTIC FACTOR wordmark, UESAVEGAME · MAUI),
+  decorative PDA date + weekday strip, coordinate axis labels (X/Y/Z), wiki-URL fragments,
+  EditorLog diagnostics, file names inside messages.
+- **Skill_Milestone resx keys synced to v1.4.0**: `Strength_12_*` removed (Nerd Rage ->
+  `_10_`), Heavy Armor -> `_13_`, `Strength_15_*` re-valued to Centrifugal Force,
+  Construction re-leveled (`_8_` Razed / `_10_` re-valued to Lift With Your Legs / `_12_`
+  Experimental Fortification), + new Sprinting_8 / Reloading_8 / Fortitude_3+13 /
+  Crafting_13 / Cooking_13 keys.
+- Translations for all new/changed keys done by 4 parallel per-locale agents (de/es/fr/ru),
+  parity-verified by `LocalizationTests`.
+- Known limitation (pre-existing pattern): code-built text assigned once at construction
+  (e.g. picker option lists) refreshes on reload, not live on language switch - same as the
+  earlier rounds' code-behind text.
+
 ## Round-42: anniversary-update (v1.4.0) sync - data-driven companions + skill perks (2026-07-17)
 - **Reported bug (Nexus): Speedogi / Sir Ogi / Verdant Skink not detected in COMPANIONS.**
   Root causes: carried-pet reading hard-filtered on `PetItemCatalog`'s 22 curated rows, and

@@ -36,7 +36,7 @@ public partial class WorldContainmentTab : ContentView
     private async void OnUnlockAllWorldItems(object? sender, EventArgs e)
     {
         if (ViewUtils.Vm(this) is { WorldEditor: { } we }
-            && await ViewUtils.ConfirmBulkAsync(this, "mark every catalog item as seen world-wide"))
+            && await ViewUtils.ConfirmBulkAsync(this, Services.LocalizationResourceManager.Instance["WorldContainment_BulkItemsWhat"]))
         {
             we.UnlockAllWorldItems();
         }
@@ -45,7 +45,7 @@ public partial class WorldContainmentTab : ContentView
     private async void OnUnlockAllWorldEmails(object? sender, EventArgs e)
     {
         if (ViewUtils.Vm(this) is { WorldEditor: { } we }
-            && await ViewUtils.ConfirmBulkAsync(this, "mark every email as read world-wide"))
+            && await ViewUtils.ConfirmBulkAsync(this, Services.LocalizationResourceManager.Instance["WorldContainment_BulkEmailsWhat"]))
         {
             we.UnlockAllWorldEmails();
         }
@@ -54,7 +54,7 @@ public partial class WorldContainmentTab : ContentView
     private async void OnUnlockAllWorldJournals(object? sender, EventArgs e)
     {
         if (ViewUtils.Vm(this) is { WorldEditor: { } we }
-            && await ViewUtils.ConfirmBulkAsync(this, "mark every journal page as found world-wide"))
+            && await ViewUtils.ConfirmBulkAsync(this, Services.LocalizationResourceManager.Instance["WorldContainment_BulkJournalsWhat"]))
         {
             we.UnlockAllWorldJournals();
         }
@@ -63,7 +63,7 @@ public partial class WorldContainmentTab : ContentView
     private async void OnUnlockAllWorldCompendium(object? sender, EventArgs e)
     {
         if (ViewUtils.Vm(this) is { WorldEditor: { } we }
-            && await ViewUtils.ConfirmBulkAsync(this, "unlock every compendium section world-wide"))
+            && await ViewUtils.ConfirmBulkAsync(this, Services.LocalizationResourceManager.Instance["WorldContainment_BulkCompendiumWhat"]))
         {
             we.UnlockAllWorldCompendium();
         }

@@ -23,14 +23,14 @@ public partial class PlayerGeneralTab : ContentView
         var error = await vm.ChangePlayerSteamIdAsync(newId);
         if (error is not null)
         {
-            await ViewUtils.AlertAsync(this, "SteamID change failed", error);
+            await ViewUtils.AlertAsync(this, Services.LocalizationResourceManager.Instance["PlayerGeneral_SteamIdChangeFailedTitle"], error);
         }
     }
 
     private async void OnUnlockAllRecipes(object? sender, EventArgs e)
     {
         if (ViewUtils.Vm(this) is { PlayerEditor: { } pe }
-            && await ViewUtils.ConfirmBulkAsync(this, "unlock every recipe for this player"))
+            && await ViewUtils.ConfirmBulkAsync(this, Services.LocalizationResourceManager.Instance["PlayerRecipes_BulkUnlockConfirmWhat"]))
         {
             pe.RecipeBrowser.UnlockAllCommand.Execute(null);
         }
@@ -39,7 +39,7 @@ public partial class PlayerGeneralTab : ContentView
     private async void OnDiscoverAllItems(object? sender, EventArgs e)
     {
         if (ViewUtils.Vm(this) is { PlayerEditor: { } pe }
-            && await ViewUtils.ConfirmBulkAsync(this, "mark every item as seen (suppresses all NEW badges)"))
+            && await ViewUtils.ConfirmBulkAsync(this, Services.LocalizationResourceManager.Instance["PlayerGeneral_BulkDiscoverItemsWhat"]))
         {
             pe.DiscoverAllItemsCommand.Execute(null);
         }
@@ -48,7 +48,7 @@ public partial class PlayerGeneralTab : ContentView
     private async void OnDiscoverAllCrafted(object? sender, EventArgs e)
     {
         if (ViewUtils.Vm(this) is { PlayerEditor: { } pe }
-            && await ViewUtils.ConfirmBulkAsync(this, "mark every item as crafted at least once"))
+            && await ViewUtils.ConfirmBulkAsync(this, Services.LocalizationResourceManager.Instance["PlayerGeneral_BulkDiscoverCraftedWhat"]))
         {
             pe.DiscoverAllCraftedCommand.Execute(null);
         }
@@ -57,7 +57,7 @@ public partial class PlayerGeneralTab : ContentView
     private async void OnUnlockAllMaps(object? sender, EventArgs e)
     {
         if (ViewUtils.Vm(this) is { PlayerEditor: { } pe }
-            && await ViewUtils.ConfirmBulkAsync(this, "reveal every sector map pamphlet"))
+            && await ViewUtils.ConfirmBulkAsync(this, Services.LocalizationResourceManager.Instance["PlayerGeneral_BulkUnlockMapsWhat"]))
         {
             pe.UnlockAllMapsCommand.Execute(null);
         }

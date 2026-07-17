@@ -119,7 +119,7 @@
                                         SelectedItem="{Binding WorldEditor.SelectedPet.SelectedVariantName, Mode=TwoWay}"
                                         BackgroundColor="{StaticResource AfPanelElevated}"
                                         TextColor="{StaticResource AfTextPrimary}" />
-                                <Label Text="{Binding WorldEditor.SelectedPet.FamilyName, StringFormat='Family: {0}'}"
+                                <Label Text="{loc:LocalizeFormat WorldPets_FamilyFormat, Arg0={Binding WorldEditor.SelectedPet.FamilyName}}"
                                        Style="{StaticResource AfMuted}" FontSize="10" />
                             </VerticalStackLayout>
 
@@ -145,7 +145,7 @@
                                            BackgroundColor="{StaticResource AfPanelElevated}"
                                            HorizontalTextAlignment="Center" />
                                 </Grid>
-                                <Label Text="{Binding WorldEditor.SelectedPet.Level, StringFormat='Level {0} of 20 (each level raises health, damage and size).'}"
+                                <Label Text="{loc:LocalizeFormat WorldPets_LevelDescriptionFormat, Arg0={Binding WorldEditor.SelectedPet.Level}}"
                                        Style="{StaticResource AfMuted}" FontSize="10" />
                             </VerticalStackLayout>
 
@@ -166,7 +166,7 @@
                                            Style="{StaticResource AfFieldValue}" FontSize="12" VerticalOptions="Center"
                                            HorizontalOptions="Start" />
                                     <Label Grid.Column="3"
-                                           Text="{Binding WorldEditor.SelectedPet.TotalHealth, StringFormat='Total {0:0}'}"
+                                           Text="{loc:LocalizeFormat WorldPets_TotalHealthFormat, Arg0={Binding WorldEditor.SelectedPet.TotalHealth}}"
                                            Style="{StaticResource AfMuted}" FontSize="11" VerticalOptions="Center" />
                                 </Grid>
                                 <HorizontalStackLayout Spacing="8">

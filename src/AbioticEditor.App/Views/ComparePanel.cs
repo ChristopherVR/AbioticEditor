@@ -604,8 +604,8 @@ internal sealed class ComparePanel
             {
                 FolderEntryStatus.Identical => ("==", Res("AfTextMuted")),
                 FolderEntryStatus.Differs => ("~~", Res("AfHazardYellow")),
-                FolderEntryStatus.OnlyLeft => ("A only", Res("AfAlertRed")),
-                FolderEntryStatus.OnlyRight => ("B only", Res("AfTerminalGreen")),
+                FolderEntryStatus.OnlyLeft => (L["Compare_AOnly"], Res("AfAlertRed")),
+                FolderEntryStatus.OnlyRight => (L["Compare_BOnly"], Res("AfTerminalGreen")),
                 _ => ("error", Res("AfAlertRed")),
             };
             Text = entry.Status switch

@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using AbioticEditor.App.Services;
 using AbioticEditor.Core.Diagnostics;
 using AbioticEditor.Core.Ini;
 
@@ -188,13 +189,13 @@ public sealed class IniEditorViewModel : INotifyPropertyChanged
             File.Copy(FilePath, FilePath + ".bak", overwrite: true);
             _file.Save(FilePath);
             EditorLog.Info("Ini", $"Saved {FileName} (backup kept as {FileName}.bak).");
-            StatusMessage = $"Saved {FileName} (previous version kept as {FileName}.bak).";
+            StatusMessage = LocalizationResourceManager.Instance.Format("IniEditor_StatusSaved", FileName, FileName);
             NotifyDirtyChanged();
         }
         catch (Exception ex)
         {
             EditorLog.Error("Ini", $"Saving {FilePath} failed", ex);
-            StatusMessage = $"Save failed: {ex.Message}";
+            StatusMessage = LocalizationResourceManager.Instance.Format("IniEditor_StatusSaveFailed", ex.Message);
         }
     }
 
@@ -203,7 +204,7 @@ public sealed class IniEditorViewModel : INotifyPropertyChanged
         _file = IniFile.Load(FilePath);
         Sections = BuildSections();
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Sections)));
-        StatusMessage = $"Reloaded {FileName} from disk.";
+        StatusMessage = LocalizationResourceManager.Instance.Format("IniEditor_StatusReloaded", FileName);
         NotifyDirtyChanged();
     }
 

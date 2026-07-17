@@ -35,6 +35,14 @@ public static class SkillMilestoneCatalog
         return Milestones.TryGetValue(key, out var list) ? list : [];
     }
 
+    /// <summary>
+    /// True when <see cref="For"/> serves this skill from the game's own tables. Such text
+    /// already follows the game-data language, so UI translation overlays should leave it
+    /// alone (they key on the static English track's levels).
+    /// </summary>
+    public static bool HasLiveDataFor(string displayName)
+        => _live is { } live && live.ContainsKey(Normalize(displayName));
+
     private const string SkillsTable = "AbioticFactor/Content/Blueprints/DataTables/Customization/DT_Skills";
     private const string PerksTable = "AbioticFactor/Content/Blueprints/DataTables/Customization/DT_SkillPerks";
 

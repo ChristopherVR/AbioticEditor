@@ -73,7 +73,7 @@
                         <VerticalStackLayout Spacing="12">
                             <Label Text="{Binding WorldEditor.SelectedVehicle.DisplayName}"
                                    Style="{StaticResource AfH2}" FontSize="18" />
-                            <Label Text="{Binding WorldEditor.SelectedVehicle.Region, StringFormat='World: {0}'}"
+                            <Label Text="{loc:LocalizeFormat WorldVehicles_WorldFormat, Arg0={Binding WorldEditor.SelectedVehicle.Region}}"
                                    Style="{StaticResource AfStatusText}" />
                             <Label Text="{loc:Localize WorldVehicles_DisplayOnlyNoEditableState}"
                                    Style="{StaticResource AfMuted}" FontSize="10" LineBreakMode="WordWrap"
@@ -91,7 +91,7 @@
                                         HeightRequest="150" Padding="10">
                                     <Image Source="{Binding WorldEditor.SelectedVehicle.WikiImagePath}" Aspect="AspectFit" />
                                 </Border>
-                                <Label Text="Image: abioticfactor.wiki.gg" Style="{StaticResource AfMuted}" FontSize="8" />
+                                <Label Text="{loc:Localize Slot_ImageAbioticfactorWikiGg}" Style="{StaticResource AfMuted}" FontSize="8" />
                             </VerticalStackLayout>
 
                             <!-- Editable controls: hidden for display-only vehicles (Sleigh, Tram, Minecart) -->
