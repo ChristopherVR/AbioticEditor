@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [1.23.4] - 2026-07-17
+
+### Bug Fixes
+- Translate the rest of the editor into German, Spanish, French and Russian
+
+
+### Miscellaneous Tasks
+- Point bucket at v1.23.3 [skip ci]
+
+
 ## [1.23.3] - 2026-07-17
 
 ### Bug Fixes
