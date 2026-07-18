@@ -97,7 +97,7 @@ jobs:
           submodules: recursive
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
           dotnet-quality: ga
@@ -432,7 +432,7 @@ jobs:
           submodules: recursive
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
           # If the .NET 10 SDK is not yet available as GA on the hosted runners,
@@ -502,7 +502,7 @@ jobs:
           submodules: recursive
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
           dotnet-quality: ga
@@ -906,7 +906,7 @@ jobs:
 
       - name: Upload Windows app to NexusMods
         if: steps.gate.outputs.enabled == 'true'
-        uses: Nexus-Mods/upload-action@v1.0.0-beta.8
+        uses: Nexus-Mods/upload-action@v1.0.0-beta.9
         with:
           api_key: ${{ secrets.NEXUSMODS_API_KEY }}
           file_id: ${{ vars.NEXUS_APP_FILE_ID }}
@@ -950,7 +950,7 @@ jobs:
           submodules: recursive
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
           dotnet-quality: ga
