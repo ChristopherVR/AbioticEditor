@@ -2,9 +2,20 @@
 
 All notable changes to this project are documented here.
 
+## [1.23.5] - 2026-07-19
+
+### Build
+- Bump the actions-all group with 3 updates
+
+
+### Miscellaneous Tasks
+- Point bucket at v1.23.4 [skip ci]
+
+
 ## [1.23.4] - 2026-07-17
 
 ### Bug Fixes
+- Translate the last remaining interface labels
 - Translate the rest of the editor into German, Spanish, French and Russian
 
 
