@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using AbioticEditor.App.ViewModels;
 
 namespace AbioticEditor.App.Views;
@@ -15,6 +16,32 @@ public partial class SlotSidebarView : ContentView
     }
 
     // ---------- slot editor ----------
+
+    private MainViewModel? _observedVm;
+
+    protected override void OnBindingContextChanged()
+    {
+        base.OnBindingContextChanged();
+
+        if (_observedVm is not null) _observedVm.PropertyChanged -= OnVmPropertyChanged;
+        _observedVm = ViewUtils.Vm(this);
+        if (_observedVm is not null) _observedVm.PropertyChanged += OnVmPropertyChanged;
+    }
+
+    /// <summary>
+    /// On Windows, a MAUI Entry bound TwoWay stops accepting further ViewModel-driven Text
+    /// pushes once it has held keyboard focus. Slot tiles aren't focusable, so reselecting a
+    /// slot never steals that focus back and MaxDurabilityEntry can keep showing a stale
+    /// number (e.g. missing an Eye for Detail durability bonus) until something else forces
+    /// a blur. Unfocusing it whenever the active slot changes releases that stuck state.
+    /// </summary>
+    private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainViewModel.ActiveSlot))
+        {
+            MaxDurabilityEntry.Unfocus();
+        }
+    }
 
     private void OnCloseSlotEditor(object? sender, EventArgs e)
     {

@@ -256,7 +256,7 @@
                                Style="{StaticResource AfFieldLabel}"
                                FontSize="9"
                                VerticalOptions="Center" />
-                        <Entry Grid.Column="1"
+                        <Entry x:Name="MaxDurabilityEntry" Grid.Column="1"
                                Text="{Binding Source={x:Reference Root}, Path=BindingContext.ActiveSlot.MaxDurability, Mode=TwoWay, FallbackValue=0}"
                                Keyboard="Numeric"
                                FontFamily="Digital7" FontSize="16"
