@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [1.23.6] - 2026-07-22
+
+### Bug Fixes
+- Keep the boosted max durability showing when you reselect an item
+
+
+### Miscellaneous Tasks
+- Point bucket at v1.23.5 [skip ci]
+
+
 ## [1.23.5] - 2026-07-19
 
 ### Build
