@@ -43,7 +43,19 @@
   <ItemGroup>
     <ProjectReference Include="..\AbioticEditor.Core\AbioticEditor.Core.csproj" />
     <ProjectReference Include="..\AbioticEditor.Ui.Abstractions\AbioticEditor.Ui.Abstractions.csproj" />
-    <ProjectReference Include="..\AbioticEditor.Updater\AbioticEditor.Updater.csproj" />
+    <!-- Nexus Mods does its own file versioning and their guidelines discourage bundled
+         auto-updaters, so the build published there must not contain one at all. Building with
+         -p:NexusMods=true drops the updater assembly entirely rather than merely hiding it. -->
+    <ProjectReference Include="..\AbioticEditor.Updater\AbioticEditor.Updater.csproj"
+                      Condition="'$(NexusMods)' != 'true'" />
+  </ItemGroup>
+  <!-- Nexus Mods build: define NEXUSMODS so every `#if !NEXUSMODS` block compiles away, and
+       drop the update page so nothing can reach the removed service. -->
+  <PropertyGroup Condition="'$(NexusMods)' == 'true'">
+    <DefineConstants>$(DefineConstants);NEXUSMODS</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(NexusMods)' == 'true'">
+    <Content Remove="Components\Pages\Updates.razor" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Photino.NET" />

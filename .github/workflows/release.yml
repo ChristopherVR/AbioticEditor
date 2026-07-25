@@ -531,6 +531,41 @@ jobs:
           path: ${{ env.ASSET_BASENAME }}.zip
           if-no-files-found: error
 
+      # The Nexus Mods copy, built without the updater (see the Windows job for why).
+      - name: Publish desktop app (Linux, Nexus Mods build)
+        run: >-
+          dotnet publish src/AbioticEditor.Web
+          -f net10.0
+          -c Release
+          -r linux-x64
+          --self-contained true
+          -p:NexusMods=true
+          -o out-nexus
+
+      - name: Verify Nexus build carries no updater
+        run: |
+          bash tools/verify-web-host-linux.sh out-nexus
+          for marker in AbioticEditor.Updater UpdateInstaller CheckForUpdate; do
+            if grep -qa "$marker" out-nexus/AbioticEditor.Web; then
+              echo "Nexus build still contains update code ('$marker')." >&2
+              exit 1
+            fi
+          done
+          echo 'Nexus build verified free of update logic.'
+
+      - name: Zip local Razor host (Nexus Mods build)
+        run: |
+          chmod +x out-nexus/launch-linux.sh
+          cd out-nexus
+          zip -r "../${ASSET_BASENAME}-nexus.zip" .
+
+      - name: Upload artifact (Nexus Mods build)
+        uses: actions/upload-artifact@v7
+        with:
+          name: AbioticEditor-desktop-linux-x64-nexus
+          path: ${{ env.ASSET_BASENAME }}-nexus.zip
+          if-no-files-found: error
+
   # Windows local Razor host, built separately so the Nexus upload can start as soon
   # as the player-facing Windows package is ready.
   build-web-win:
@@ -587,6 +622,43 @@ jobs:
         with:
           name: AbioticEditor-desktop-win-x64
           path: ${{ env.ASSET_BASENAME }}.zip
+          if-no-files-found: error
+
+      # Nexus Mods manages its own file versions and its guidelines discourage bundled
+      # auto-updaters, so that channel gets a separate build with -p:NexusMods=true: the
+      # updater assembly is not referenced at all and the update page is not compiled in.
+      # This must stay a distinct artifact - never upload the GitHub build to Nexus.
+      - name: Publish desktop app (Windows, Nexus Mods build)
+        run: >-
+          dotnet publish src/AbioticEditor.Web
+          -f net10.0-windows10.0.19041.0
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:NexusMods=true
+          -o out-nexus
+
+      - name: Verify Nexus build carries no updater
+        shell: pwsh
+        run: |
+          ./tools/verify-web-host.ps1 -PublishDir out-nexus -SkipSmoke
+          $exe = 'out-nexus/AbioticEditor.Web.exe'
+          $bytes = [IO.File]::ReadAllBytes($exe)
+          $text = [Text.Encoding]::ASCII.GetString($bytes)
+          foreach ($marker in 'AbioticEditor.Updater', 'UpdateInstaller', 'CheckForUpdate') {
+            if ($text.Contains($marker)) { throw "Nexus build still contains update code ('$marker')." }
+          }
+          Write-Host 'Nexus build verified free of update logic.'
+
+      - name: Zip local Razor host (Windows, Nexus Mods build)
+        shell: pwsh
+        run: Compress-Archive -Path out-nexus/* -DestinationPath "$env:ASSET_BASENAME-nexus.zip"
+
+      - name: Upload artifact (Nexus Mods build)
+        uses: actions/upload-artifact@v7
+        with:
+          name: AbioticEditor-desktop-win-x64-nexus
+          path: ${{ env.ASSET_BASENAME }}-nexus.zip
           if-no-files-found: error
 
   # macOS local Razor host. The native window is WKWebView via Photino, so no extra
@@ -902,11 +974,13 @@ jobs:
             echo "::warning::NEXUSMODS_API_KEY secret and/or NEXUS_APP_FILE_ID variable not set; skipping NexusMods upload."
           fi
 
-      - name: Download Windows host artifact
+      # The updater-free variant, never the GitHub one: Nexus Mods discourages bundled
+      # auto-updaters and manages file versions itself.
+      - name: Download Windows host artifact (Nexus Mods build)
         if: steps.gate.outputs.enabled == 'true'
         uses: actions/download-artifact@v8
         with:
-          name: AbioticEditor-desktop-win-x64
+          name: AbioticEditor-desktop-win-x64-nexus
           path: dist
 
       # The `version` job already generated this version's changelog with git-cliff
@@ -963,7 +1037,7 @@ jobs:
         with:
           api_key: ${{ secrets.NEXUSMODS_API_KEY }}
           file_id: ${{ vars.NEXUS_APP_FILE_ID }}
-          filename: dist/AbioticEditor-desktop-win-x64-v${{ needs.version.outputs.version }}.zip
+          filename: dist/AbioticEditor-desktop-win-x64-v${{ needs.version.outputs.version }}-nexus.zip
           version: ${{ needs.version.outputs.version }}
           display_name: AbioticEditor v${{ needs.version.outputs.version }} (Windows)
           description: ${{ steps.changelog.outputs.body }}
@@ -1004,7 +1078,8 @@ jobs:
         if: steps.gate.outputs.enabled == 'true'
         uses: actions/download-artifact@v8
         with:
-          name: AbioticEditor-desktop-linux-x64
+          # The updater-free variant, never the GitHub one.
+          name: AbioticEditor-desktop-linux-x64-nexus
           path: dist
 
       - name: Download release notes
@@ -1054,7 +1129,7 @@ jobs:
         with:
           api_key: ${{ secrets.NEXUSMODS_API_KEY }}
           file_id: ${{ vars.NEXUS_PROTON_FILE_ID }}
-          filename: dist/AbioticEditor-desktop-linux-x64-v${{ needs.version.outputs.version }}.zip
+          filename: dist/AbioticEditor-desktop-linux-x64-v${{ needs.version.outputs.version }}-nexus.zip
           version: ${{ needs.version.outputs.version }}
           display_name: AbioticEditor v${{ needs.version.outputs.version }} (Linux / Steam Deck (Proton saves))
           description: ${{ steps.changelog.outputs.body }}

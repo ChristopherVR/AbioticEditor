@@ -76,7 +76,7 @@
     private const string LogoPrimaryRef = "AbioticFactor/Content/Textures/GUI/Inventory/T_ABF_Logo_1024";
     private const string LogoFallbackRef = "AbioticFactor/Content/Textures/GUI/Logos/ABF-Full-Color-1024w";
 
-    private static readonly string AppVersion = AbioticEditor.Updater.AppVersionInfo.For(typeof(HostLanguageService).Assembly);
+    private static readonly string AppVersion = HostVersion.Current;
 
     protected override void OnInitialized()
     {

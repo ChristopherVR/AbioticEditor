@@ -1,3 +1,4 @@
+#if !NEXUSMODS
 using AbioticEditor.Updater;
 
 namespace AbioticEditor.Web.Services;
@@ -42,3 +43,4 @@ public sealed class HostUpdateService(ILogger<HostUpdateService> logger)
 }
 
 public sealed record HostUpdateStatus(string StateResourceKey, string CurrentVersion, string? LatestVersion, string MessageResourceKey, bool UpdateAvailable);
+#endif
