@@ -3,8 +3,16 @@
     <!-- Windows gets its own native file/folder pickers (System.Windows.Forms) instead of
          shelling out to a PowerShell subprocess; Linux/macOS keep using the plain TFM and
          the existing zenity/kdialog/osascript subprocess pickers, since there is no
-         equivalent native .NET dialog API on those platforms. -->
-    <TargetFrameworks>net10.0-windows10.0.19041.0;net10.0</TargetFrameworks>
+         equivalent native .NET dialog API on those platforms.
+
+         The Windows TFM is only offered ON Windows. A Linux or macOS SDK cannot restore a
+         Windows-targeted project at all without EnableWindowsTargeting, and restore covers
+         every TFM a project declares - so simply listing it broke `dotnet test -f net10.0`
+         and the Linux/macOS publish jobs, which all run on those platforms, with
+         NETSDK1100. Nothing needs the Windows TFM off Windows: the Windows host is
+         published by a windows-latest job. -->
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">net10.0-windows10.0.19041.0;net10.0</TargetFrameworks>
     <UseWindowsForms Condition="'$(TargetFramework)' == 'net10.0-windows10.0.19041.0'">true</UseWindowsForms>
     <RootNamespace>AbioticEditor.Web</RootNamespace>
     <Nullable>enable</Nullable>
