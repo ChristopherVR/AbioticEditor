@@ -1,0 +1,551 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Core.Assets
+@using AbioticEditor.Core.WorldSaves
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Services
+@implements IDisposable
+@inject GameArtService Art
+@inject ItemCatalogService Items
+@inject SaveWorkspaceSessionService Workspace
+@inject InventorySelectionService Selection
+
+@* Faithful port of the native WorldDoorsTab.xaml: "DOORS - <region>" heading with the
+   Digital7 door-count readout, the sector card art strip, one filter box, then per-door
+   rows (kind chip, localized class name, lock chip, KEEP STATE, state picker/OPEN toggle,
+   one-way switch, help lines, map/actor subtitle). Selecting a row opens the door detail
+   (the native SlotSidebarView door panel, mini-map and position included) in the
+   right-hand pane via ShowDetail. *@
+<section class="world-editor wd-tab" aria-label="@L.Resource("WorldDoors_Title")">
+    @if (!Session.CanEditDoors)
+    {
+        <p class="empty">@L.Resource("WorldContainers_NoContainersMatch")</p>
+    }
+    else
+    {
+        <div class="wd-head">
+            <h2 class="wd-title">@DoorsRegionTitle</h2>
+            <span class="wd-count">@L.Resource("WorldDoors_CountFormat", Session.Doors.Count)</span>
+        </div>
+        @if (RegionChapterForFile()?.CardArt is { } sectorArt)
+        {
+            <div class="wd-sector-card">
+                <GameArtImage GameRef="@sectorArt" Alt="@DoorsRegionTitle" Class="wd-sector-art"><span class="material-symbol" aria-hidden="true">map</span></GameArtImage>
+                <span class="wd-sector-caption">@L.Resource("WorldDoors_SectorCaption")</span>
+            </div>
+        }
+        <input class="wd-filter" aria-label="@L.Resource("WorldDoors_FilterPlaceholder")" @bind="_filter" @bind:event="oninput" placeholder="@L.Resource("WorldDoors_FilterPlaceholder")" />
+        <div class="wd-list" role="list" aria-label="@L.Resource("WorldDoors_Title")">
+            @foreach (var door in VisibleDoors)
+            {
+                var className = ClassName(door);
+                var info = DoorClassCatalog.Lookup(className);
+                var friendlyClass = FriendlyClass(className, info);
+                var (map, actor) = DoorIdParser.Parse(door.Id);
+                var lockKind = LockKindFor(map, actor, info);
+                var isSelected = _selectedDoorId == door.Id;
+                <article class="wd-row @(isSelected ? "selected" : null)" role="listitem" @key="door.Id"
+                         @onclick="() => ToggleSelectAsync(door, map, actor)">
+                    <div class="wd-row-top">
+                        <span class="wd-kind-chip">@KindLabel(door)</span>
+                        <strong class="wd-class">@friendlyClass</strong>
+                        <span class="wd-lock-chip">@L.Resource("WorldDoors_LockChip_" + lockKind)</span>
+                        <label class="wd-keep" title="@L.Resource("WorldDoors_KeepStateTooltip")" @onclick:stopPropagation>
+                            <span>@L.Resource("WorldDoors_KeepState")</span>
+                            <input type="checkbox" checked="@(door.NoReset == true)" @onchange="e => Stage(() => Session.SetDoorNoReset(door.Id, e.Value is bool value && value))" />
+                        </label>
+                    </div>
+                    @* stopPropagation sits on the individual controls, not this whole block:
+                       with it on the container, most of the card's surface silently ate the
+                       click and only the title strip would select the door. *@
+                    <div class="wd-state">
+                        @if (door.Kind == WorldDoorKind.Simple)
+                        {
+                            <div class="wd-state-row">
+                                <span class="wd-field-label">@L.Resource("WorldDoors_State")</span>
+                                <select class="wd-state-picker" value="@SimpleState(door)" @onclick:stopPropagation @onchange="e => SetSimpleState(door.Id, e.Value?.ToString())">
+                                    <option value="E_DoorStates::NewEnumerator0">@L.Resource("WorldDoors_State_Closed")</option>
+                                    <option value="E_DoorStates::NewEnumerator1">@L.Resource("WorldDoors_State_Open")</option>
+                                    <option value="E_DoorStates::NewEnumerator2">@L.Resource("WorldDoors_State_Locked")</option>
+                                    @if (!IsStableState(door.DoorState)) { <option value="@door.DoorState">@StateLabel(door.DoorState)</option> }
+                                </select>
+                            </div>
+                            <span class="wd-help">@L.Resource("WorldDoors_SimpleStateHelp")</span>
+                            <label class="wd-check-row" @onclick:stopPropagation>
+                                <span class="wd-field-label">@L.Resource("WorldDoors_AlreadyOpenedOneWay")</span>
+                                <input type="checkbox" checked="@(door.OneWayUnlocked == true)" @onchange="e => Stage(() => Session.SetOneWayUnlocked(door.Id, e.Value is bool value && value))" />
+                            </label>
+                            <span class="wd-help">@L.Resource("WorldDoors_OneWayHelp")</span>
+                        }
+                        else
+                        {
+                            <label class="wd-check-row" @onclick:stopPropagation>
+                                <span class="wd-field-label">@L.Resource("WorldDoors_State")</span>
+                                <span class="wd-field-label">@L.Resource("WorldDoors_Open")</span>
+                                <input type="checkbox" checked="@(door.IsDoorOpen == true)" @onchange="e => Stage(() => Session.SetSecurityDoorOpen(door.Id, e.Value is bool value && value))" />
+                            </label>
+                            <span class="wd-help">@L.Resource("WorldDoors_SecurityStateHelp")</span>
+                        }
+                    </div>
+                    <small class="wd-subtitle">@DoorSubtitle(map, actor)</small>
+                </article>
+            }
+            @if (VisibleDoors.Count == 0) { <p class="empty">@L.Resource("WorldContainers_NoContainersMatch")</p> }
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter] public string Title { get; set; } = "World editor";
+    [Parameter] public EventCallback<string?> OnError { get; set; }
+    private const string DetailKeyPrefix = "world-door:";
+    private string _filter = string.Empty;
+    private string? _selectedDoorId;
+    private (double X, double Y, double Z)? _selectedDoorPosition;
+    private bool _isLocatingPosition;
+    private SectorMap? _selectedSectorMap;
+    private List<SectorPin>? _selectedSectorPins;
+    private DoorStoryGate? _selectedDoorGate;
+    /// <summary>True while the area map is open full screen.</summary>
+    private bool _mapEnlarged;
+    private readonly Dictionary<string, IReadOnlyDictionary<string, DoorStoryGate>> _gatesByMap = new(StringComparer.OrdinalIgnoreCase);
+    private List<WorldDoor> VisibleDoors => Session.Doors.Where(MatchesFilter).ToList();
+
+    /// <summary>One door's spot on a drawn sector map, as fractions of the image.</summary>
+    private readonly record struct SectorPin(double X, double Y, bool IsSelected);
+
+    protected override void OnInitialized()
+    {
+        Selection.Changed += OnSelectionChanged;
+        _ = LoadStoryGatesAsync();
+    }
+
+    /// <summary>
+    /// Pre-loads the per-door story gates for every sub-level in this save so the row chips can
+    /// tell a genuinely story-controlled door from an ordinary one. Only a handful of doors in
+    /// the whole game have a gate, and the class-level guess used to call hundreds of plain
+    /// doors "STORY", so this is what makes the chip honest. A region save spans a couple of
+    /// sub-levels and each is cached process-wide after the first read.
+    /// </summary>
+    private async Task LoadStoryGatesAsync()
+    {
+        var maps = Session.Doors
+            .Select(d => DoorIdParser.Parse(d.Id).Map)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        foreach (var map in maps)
+        {
+            var gates = await Art.GetDoorGatesForMapAsync(map);
+            _gatesByMap[map ?? string.Empty] = gates;
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// The lock kind to show for one door. The catalog only knows a default per blueprint
+    /// class; the level files know whether THIS door is story gated, so they win once read.
+    /// Before they are read (or with no game install) the class default stands.
+    /// </summary>
+    private string LockKindFor(string map, string actor, DoorClassInfo info)
+    {
+        if (!_gatesByMap.TryGetValue(map ?? string.Empty, out var gates)) return info.LockKind;
+        return gates.TryGetValue(actor, out var gate) && gate.IsStoryGated ? "Flag" : info.LockKind;
+    }
+
+    /// <summary>Drops the stale row highlight when the pane closes or another tab takes it.</summary>
+    private void OnSelectionChanged()
+    {
+        if (_selectedDoorId is { } id && Selection.DetailKey != DetailKeyPrefix + id)
+        {
+            _selectedDoorId = null;
+        }
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Selection.Changed -= OnSelectionChanged;
+        // Leaving the tab retires this tab's own detail card (never someone else's).
+        if (Selection.DetailKey?.StartsWith(DetailKeyPrefix, StringComparison.Ordinal) == true)
+        {
+            Selection.CloseDetail();
+        }
+    }
+
+    /// <summary>Native door filter: class, map, actor, lock kind, or friendly state.</summary>
+    private bool MatchesFilter(WorldDoor door)
+    {
+        if (string.IsNullOrWhiteSpace(_filter)) return true;
+        var (map, actor) = DoorIdParser.Parse(door.Id);
+        var className = ClassName(door);
+        var info = DoorClassCatalog.Lookup(className);
+        return new[] { map, actor, FriendlyClass(className, info), LockKindFor(map, actor, info), StateLabel(door.DoorState), KindLabel(door) }
+            .Any(value => value.Contains(_filter, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string ClassName(WorldDoor door) => DoorIdParser.ClassNameFromActor(DoorIdParser.Parse(door.Id).Actor);
+
+    /// <summary>
+    /// The row subtitle a player reads. The parsed "actor" is a blueprint instance name like
+    /// "BlastDoor_C_2" - useless on its own, but its trailing number is the one thing that tells
+    /// two otherwise identical doors in the same area apart, so we keep that as "#2" and drop the
+    /// rest. Shows the area on its own when there is no number, and nothing when there is no area.
+    /// </summary>
+    private static string DoorSubtitle(string map, string actor)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(actor ?? string.Empty, @"(\d+)\s*$");
+        var number = match.Success ? "#" + match.Groups[1].Value : null;
+        if (string.IsNullOrEmpty(map)) return number ?? string.Empty;
+        return number is null ? map : $"{map} · {number}";
+    }
+
+    /// <summary>Localized class display name (native DoorLocalization.ClassDisplayName).</summary>
+    private string FriendlyClass(string className, DoorClassInfo info)
+        => L.ResourceOrNull($"WorldDoors_Class_{className}_DisplayName") ?? info.DisplayName;
+
+    private string KindLabel(WorldDoor door) => door.Kind switch
+    {
+        WorldDoorKind.Simple => L.Resource("WorldDoors_Kind_Simple"),
+        WorldDoorKind.Security => L.Resource("WorldDoors_Kind_Security"),
+        _ => L.Resource("WorldDoors_Kind_Unknown"),
+    };
+
+    /// <summary>Localized friendly state label (native DoorLocalization.FriendlyState).</summary>
+    private string StateLabel(string? rawState)
+    {
+        var friendly = DoorStateNames.Friendly(rawState);
+        return friendly is "Closed" or "Open" or "Locked" or "Opening" or "Closing" or "Jammed" or "Broken"
+            ? L.Resource("WorldDoors_State_" + friendly)
+            : friendly;
+    }
+
+    private static bool IsStableState(string? value) => value is null or "E_DoorStates::NewEnumerator0" or "E_DoorStates::NewEnumerator1" or "E_DoorStates::NewEnumerator2";
+    private static string SimpleState(WorldDoor door) => door.DoorState ?? "E_DoorStates::NewEnumerator0";
+    private void SetSimpleState(string id, string? value) { if (!string.IsNullOrEmpty(value)) Stage(() => Session.SetSimpleDoorState(id, value)); }
+
+    /// <summary>Stages a door edit and pokes the shell so REVERT/SAVE light up immediately.
+    /// An open detail card re-publishes so its state controls track the row's.</summary>
+    private void Stage(Action edit)
+    {
+        edit();
+        Workspace.NotifyEdited();
+        if (_selectedDoorId is not null) ShowDoorDetail();
+    }
+
+    /// <summary>"DOORS - Office Sector - Arrival" heading (native DoorsRegionTitle).</summary>
+    private string DoorsRegionTitle => RegionChapterForFile() is { } chapter
+        ? L.Resource("WorldDoors_TitleWithRegionFormat", chapter.Title)
+        : L.Resource("WorldDoors_Title");
+
+    /// <summary>Toggles the clicked door's detail card in the right-hand pane and, when opening
+    /// it, kicks off the (potentially slow, first-time-per-level) live position lookup from the
+    /// game files; the pane refreshes again once the position and mini-map arrive.</summary>
+    private async Task ToggleSelectAsync(WorldDoor door, string map, string actor)
+    {
+        if (_selectedDoorId == door.Id)
+        {
+            CloseOwnDetail();
+            return;
+        }
+        _selectedDoorId = door.Id;
+        _selectedDoorPosition = null;
+        _selectedSectorMap = null;
+        _selectedSectorPins = null;
+        _selectedDoorGate = null;
+        _mapEnlarged = false;
+        _isLocatingPosition = true;
+        ShowDoorDetail();
+        var requestId = door.Id;
+        try
+        {
+            var position = await Art.TryGetDoorPositionAsync(map, actor);
+            if (_selectedDoorId != requestId) return;
+            _selectedDoorPosition = position;
+            _selectedDoorGate = await Art.TryGetDoorGateAsync(map, actor);
+            if (_selectedDoorId != requestId) return;
+
+            // The save lists every door of this sub-level; their cooked positions become the
+            // context dots around the selected one (mirrors the retired native app's
+            // WorldEditorViewModel.EnsureSelectedDoorLocation).
+            var siblingActors = Session.Doors
+                .Where(d => string.Equals(DoorIdParser.Parse(d.Id).Map, map, StringComparison.OrdinalIgnoreCase))
+                .Select(d => DoorIdParser.Parse(d.Id).Actor)
+                .ToList();
+            var positions = await Art.GetDoorPositionsForMapAsync(map);
+            if (_selectedDoorId != requestId) return;
+            var located = siblingActors.Where(positions.ContainsKey).ToList();
+
+            _selectedSectorMap = await Art.GetSectorMapAsync(map);
+            if (_selectedDoorId != requestId) return;
+            if (_selectedSectorMap is { } sectorMap)
+            {
+                // Doors whose calibrated spot falls off the drawing are dropped rather than
+                // clamped to an edge, which would invent a location the player would trust.
+                _selectedSectorPins = located
+                    .Select(a =>
+                    {
+                        var (x, y) = SectorMapCalibration.Project(sectorMap.Fit, positions[a]);
+                        return new SectorPin(x, y, string.Equals(a, actor, StringComparison.OrdinalIgnoreCase));
+                    })
+                    .Where(p => p.X is >= 0 and <= 1 && p.Y is >= 0 and <= 1)
+                    .ToList();
+                // No point showing the drawing if the door we came to look at is not on it.
+                if (!_selectedSectorPins.Any(p => p.IsSelected))
+                {
+                    _selectedSectorMap = null;
+                    _selectedSectorPins = null;
+                }
+            }
+
+        }
+        finally
+        {
+            if (_selectedDoorId == requestId)
+            {
+                _isLocatingPosition = false;
+                ShowDoorDetail();
+            }
+        }
+    }
+
+    /// <summary>(Re-)publishes the selected door's card to the right-hand pane.</summary>
+    private void ShowDoorDetail()
+    {
+        if (_selectedDoorId is { } id) Selection.ShowDetail(DetailKeyPrefix + id, DoorDetailContent);
+    }
+
+    private void CloseOwnDetail()
+    {
+        _selectedDoorId = null;
+        if (Selection.DetailKey?.StartsWith(DetailKeyPrefix, StringComparison.Ordinal) == true)
+        {
+            Selection.CloseDetail();
+        }
+    }
+
+    /// <summary>The right-hand pane's door card: wiki/sector image, WHERE, live EXACT POSITION,
+    /// the area map (the game's own drawn sector map with this door pinned on it, where one
+    /// exists), the story flag that opens it, ABOUT, required key, and the same state editors
+    /// the row repeats.</summary>
+    private RenderFragment DoorDetailContent => __builder =>
+    {
+        @if (_selectedDoorId is { } selectedId && Session.Doors.FirstOrDefault(d => d.Id == selectedId) is { } door)
+        {
+            var className = ClassName(door);
+            var info = DoorClassCatalog.Lookup(className);
+            var friendlyClass = FriendlyClass(className, info);
+            var (map, actor) = DoorIdParser.Parse(door.Id);
+            var lockKind = LockKindFor(map, actor, info);
+            var chapter = RegionChapterFor(map);
+            <div class="detail-card detail-card--terminal wd-detail">
+                <div class="detail-head">
+                    <span class="detail-title"><strong>@friendlyClass</strong><small>@KindLabel(door) · @L.Resource("WorldDoors_LockChip_" + lockKind)</small></span>
+                    <button class="detail-close" type="button" @onclick="CloseOwnDetail">✕</button>
+                </div>
+                @{ var wikiFile = DoorWikiImageCatalog.WikiFileFor(className); }
+                @if (wikiFile is not null)
+                {
+                    <div class="detail-card-art">
+                        <WikiImage FileName="@wikiFile" Alt="@friendlyClass">
+                            <span class="material-symbol" aria-hidden="true">meeting_room</span>
+                        </WikiImage>
+                    </div>
+                    <p class="detail-status">@WikiImageCache.AttributionText</p>
+                }
+                else if (chapter?.CardArt is { } cardArt)
+                {
+                    <div class="detail-card-art">
+                        <GameArtImage GameRef="@cardArt" Alt="@friendlyClass">
+                            <span class="material-symbol" aria-hidden="true">meeting_room</span>
+                        </GameArtImage>
+                    </div>
+                }
+                <span class="detail-label">@L.Resource("Slot_Where")</span>
+                <p class="detail-value">
+                    @if (chapter is not null) { <text>@L.Resource("WorldDoors_RegionFormat", chapter.Title)<br /></text> }
+                    @L.Resource("WorldDoors_SubLevelFormat", string.IsNullOrEmpty(map) ? L.Resource("WorldDoors_PersistentLevel") : map.Replace('_', ' '))<br />
+                    @L.Resource("WorldDoors_ActorFormat", actor)
+                </p>
+                <span class="detail-label">@L.Resource("Slot_ExactPosition")</span>
+                @if (_isLocatingPosition)
+                {
+                    <p class="detail-status">@L.Resource("Slot_ReadingTheLevelFromTheGameFiles")</p>
+                }
+                else if (_selectedDoorPosition is { } position)
+                {
+                    <p class="detail-value">X @position.X.ToString("N0")&nbsp;&nbsp;·&nbsp;&nbsp;Y @position.Y.ToString("N0")&nbsp;&nbsp;·&nbsp;&nbsp;Z @position.Z.ToString("N0")</p>
+                }
+                else
+                {
+                    <p class="detail-status">@L.Resource("WorldDoors_GameInstallNotFound")</p>
+                }
+                @* The area map. When the game ships a sector map drawing for this sub-level we
+                   pin the door on the very picture the player has seen in-game, which is the
+                   whole point; otherwise fall back to the relative scatter, which at least
+                   shows how this door sits among its neighbours. *@
+                @if (_selectedSectorMap is { } sectorMap && _selectedSectorPins is { Count: > 0 } pins)
+                {
+                    <span class="detail-label">@L.Resource("WorldDoors_SubLevelMap")</span>
+                    @* Pins are positioned elements rather than SVG shapes: the drawings are not
+                       square, so a stretched SVG viewBox would squash every dot into an oval. *@
+                    @* The pane is narrow, so the map is also a button: it opens the same drawing
+                       full screen, where the pins are far enough apart to tell apart. *@
+                    <button type="button" class="wd-sector-map" title="@L.Resource("WorldDoors_MapEnlarge")"
+                            aria-label="@L.Resource("WorldDoors_MapEnlarge")" @onclick="() => _mapEnlarged = true">
+                        <GameArtImage GameRef="@sectorMap.TextureRef" Alt="" Class="wd-sector-map-art">
+                            <span class="material-symbol" aria-hidden="true">map</span>
+                        </GameArtImage>
+                        @foreach (var pin in pins.Where(p => !p.IsSelected))
+                        {
+                            <span class="sector-pin" style="@PinStyle(pin)"></span>
+                        }
+                        @foreach (var pin in pins.Where(p => p.IsSelected))
+                        {
+                            <span class="sector-pin sector-pin--selected" style="@PinStyle(pin)"></span>
+                        }
+                    </button>
+                    <p class="detail-status">@L.Resource("WorldDoors_MapCaptionSectorPin")</p>
+                    @if (_mapEnlarged)
+                    {
+                        <div class="wd-map-overlay" role="dialog" aria-modal="true" aria-label="@L.Resource("WorldDoors_SubLevelMap")"
+                             @onclick="() => _mapEnlarged = false">
+                            <div class="wd-map-overlay-inner" @onclick:stopPropagation>
+                                <button type="button" class="wd-map-close" aria-label="@L.Resource("Common_Cancel")"
+                                        @onclick="() => _mapEnlarged = false">✕</button>
+                                <div class="wd-sector-map wd-sector-map--large">
+                                    <GameArtImage GameRef="@sectorMap.TextureRef" Alt="" Class="wd-sector-map-art">
+                                        <span class="material-symbol" aria-hidden="true">map</span>
+                                    </GameArtImage>
+                                    @foreach (var pin in pins.Where(p => !p.IsSelected))
+                                    {
+                                        <span class="sector-pin" style="@PinStyle(pin)"></span>
+                                    }
+                                    @foreach (var pin in pins.Where(p => p.IsSelected))
+                                    {
+                                        <span class="sector-pin sector-pin--selected" style="@PinStyle(pin)"></span>
+                                    }
+                                </div>
+                                <p class="detail-status">@L.Resource("WorldDoors_MapCaptionSectorPin")</p>
+                            </div>
+                        </div>
+                    }
+                }
+                @* Areas the game prints no map of get no AREA MAP section at all. There used to be
+                   a dot scatter here, but with no floor plan behind it it was circles on black:
+                   it told you nothing about where the door is, and looked broken. The EXACT
+                   POSITION above is the honest answer for those areas. *@
+                @if (_selectedDoorGate is { IsStoryGated: true } gate)
+                {
+                    var flag = gate.PrimaryFlag!;
+                    <span class="detail-label">@L.Resource("WorldDoors_OpensWith")</span>
+                    <p class="detail-value">@QuestFlagCatalog.Lookup(flag).FriendlyName</p>
+                    <p class="detail-status">
+                        @(gate.UnlockFlag is not null
+                            ? L.Resource("WorldDoors_OpensWithUnlockHelp")
+                            : L.Resource("WorldDoors_OpensWithRemainOpenHelp"))
+                    </p>
+                    <p class="detail-status">@L.Resource("WorldDoors_FlagNameFormat", flag)</p>
+                    @if (Session.CanEditFlags)
+                    {
+                        <p class="detail-status">
+                            @(Session.Flags.Contains(flag)
+                                ? L.Resource("WorldDoors_FlagAlreadySet")
+                                : L.Resource("WorldDoors_FlagNotSetYet"))
+                        </p>
+                    }
+                }
+                <span class="detail-label">@L.Resource("Slot_AboutThisDoor")</span>
+                <p class="detail-value">@L.Resource($"WorldDoors_LockExplanation_{lockKind}")</p>
+                @if (!string.IsNullOrEmpty(info.RequiredKeyId))
+                {
+                    var keyEntry = Items.Find(info.RequiredKeyId);
+                    <span class="detail-label">@L.Resource("Slot_RequiredKey")</span>
+                    <p class="detail-value">@(keyEntry?.DisplayName ?? info.RequiredKeyId)</p>
+                    @if (!string.IsNullOrWhiteSpace(keyEntry?.Description))
+                    {
+                        <p class="detail-status">@keyEntry.Description</p>
+                    }
+                }
+                <span class="detail-label">@L.Resource("Slot_State")</span>
+                @if (door.Kind == WorldDoorKind.Simple)
+                {
+                    <div class="wd-state-row">
+                        <select class="wd-state-picker" value="@SimpleState(door)" @onchange="e => StageDetailState(door.Id, e.Value?.ToString())">
+                            <option value="E_DoorStates::NewEnumerator0">@L.Resource("WorldDoors_State_Closed")</option>
+                            <option value="E_DoorStates::NewEnumerator1">@L.Resource("WorldDoors_State_Open")</option>
+                            <option value="E_DoorStates::NewEnumerator2">@L.Resource("WorldDoors_State_Locked")</option>
+                            @if (!IsStableState(door.DoorState)) { <option value="@door.DoorState">@StateLabel(door.DoorState)</option> }
+                        </select>
+                    </div>
+                    <label class="wd-check-row">
+                        <span class="wd-field-label">@L.Resource("Slot_OneWayUnlocked")</span>
+                        <input type="checkbox" checked="@(door.OneWayUnlocked == true)" @onchange="e => Stage(() => Session.SetOneWayUnlocked(door.Id, e.Value is bool value && value))" />
+                    </label>
+                }
+                else
+                {
+                    <label class="wd-check-row">
+                        <span class="wd-field-label">@L.Resource("Slot_Open")</span>
+                        <input type="checkbox" checked="@(door.IsDoorOpen == true)" @onchange="e => Stage(() => Session.SetSecurityDoorOpen(door.Id, e.Value is bool value && value))" />
+                    </label>
+                }
+            </div>
+        }
+    };
+
+    private void StageDetailState(string id, string? value)
+    {
+        if (!string.IsNullOrEmpty(value)) Stage(() => Session.SetSimpleDoorState(id, value));
+    }
+
+    private static string F(double value) => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+    private static string PinStyle(SectorPin pin) => $"left:{F(pin.X * 100)}%;top:{F(pin.Y * 100)}%";
+
+    // Ported verbatim from the retired native app's WorldEditorViewModel.FileRegionMap: maps a
+    // sub-level/save-file name token to the story chapter whose card art represents that
+    // sector. Ordered most-specific-first; the first matching token wins. Kept private to this
+    // tab since it is presentation lookup data, not save-editing logic that belongs in Core.
+    private static readonly (string Token, string Row)[] FileRegionMap =
+    {
+        ("office1", "Office"), ("office2", "Office2"), ("office3", "Office3"), ("office4", "Office3"),
+        ("labs_adjustment", "Labs"), ("labs_control", "Tarasque"), ("containment", "Containment"),
+        ("helmholtz", "Helmholtz"), ("labs", "Labs"),
+        ("security", "PostLabs"), ("canaan", "SecSurfaceElevator"),
+        ("dam_hydroplant", "ElectricalStation"), ("hydroplant", "ElectricalStation"),
+        ("dam_central", "ElectricalStation"), ("dam_lower", "EndDam"), ("dam_waterfall", "EndDam"),
+        ("dam", "ElectricalStation"), ("reservoir", "ElectricalStation"), ("voussoir", "Voussoir"),
+        ("mfmines", "MFMines"), ("mfmaggot", "MFMines"), ("mines", "MFMines"),
+        ("mfwest", "MF"), ("mfhq", "MF"), ("foundry", "MF"), ("manufacturing", "MF"), ("mf", "MF"),
+        ("pens", "Pens"), ("parking", "Office"), ("tram", "Office3"),
+        ("df_labs", "Reactors1Labs"), ("dflabs", "Reactors1Labs"),
+        ("radwaste", "ReactorsAll"), ("df_war", "ReactorsAll"), ("df_overgrowth", "ReactorsAll"),
+        ("df_central", "ReactorsAll"), ("darkfusion", "ReactorsEntry"), ("df", "ReactorsEntry"),
+        ("reactor", "ReactorsEntry"), ("shadowgate", "Shadowgate"),
+        ("botanical", "Botanical"), ("fracture", "Fracture"), ("southisland", "SouthIsland"),
+        ("residence", "Residence"),
+        ("powerservices", "PowerServices"), ("plant", "PowerServices"),
+        ("flathill", "Flathill"), ("fog", "Flathill"),
+        ("facility", "Office"),
+    };
+
+    private static StoryChapter? RegionChapterForToken(string? token)
+    {
+        if (string.IsNullOrEmpty(token)) return null;
+        var lower = token.ToLowerInvariant();
+        foreach (var (t, row) in FileRegionMap)
+        {
+            if (lower.Contains(t, StringComparison.Ordinal)) return StoryProgressionCatalog.Find(row);
+        }
+        return null;
+    }
+
+    private StoryChapter? RegionChapterForFile()
+    {
+        var name = System.IO.Path.GetFileNameWithoutExtension(Session.Path).ToLowerInvariant();
+        return RegionChapterForToken(name);
+    }
+
+    /// <summary>The door's own sub-level maps to a chapter first; otherwise fall back to
+    /// whichever chapter the loaded save file itself represents.</summary>
+    private StoryChapter? RegionChapterFor(string? doorMapName) => RegionChapterForToken(doorMapName) ?? RegionChapterForFile();
+}

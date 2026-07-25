@@ -1,0 +1,105 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Services
+@using AbioticEditor.Core.WorldSaves
+@inject ItemCatalogService Items
+@inject InventorySelectionService Selection
+@inject SaveWorkspaceSessionService Workspace
+
+@* Faithful port of the native WorldDroppedTab.xaml: "ITEMS ON THE GROUND" heading with the
+   Digital7 summary readout, RESTORE and DELETE ALL SHOWN, the intro line, one filter box,
+   and simple name/subtext rows with a per-row DELETE. Tapping a row opens the item's
+   encyclopedia card in the right-hand sidebar, exactly like the native tap handler. *@
+<section class="world-editor wg-tab" aria-label="@L.Resource("WorldDropped_ItemsOnTheGround")">
+    @if (!Session.CanEditDroppedItems)
+    {
+        <p class="empty">@L.Resource("WorldDropped_NoGroundItems")</p>
+    }
+    else
+    {
+        <div class="wg-head">
+            <h2 class="wg-title">@L.Resource("WorldDropped_ItemsOnTheGround")</h2>
+            <span class="wg-summary">@Summary</span>
+            <button class="wg-restore" type="button" @onclick="RestoreAll">@L.Resource("WorldDropped_Restore")</button>
+            <button class="wg-delete-all" type="button" @onclick="DeleteShown">@L.Resource("WorldDropped_DeleteAllShown")</button>
+        </div>
+        <p class="wg-intro">@L.Resource("WorldDropped_GroundItemsIntro")</p>
+        <input class="wg-filter" aria-label="@L.Resource("WorldDropped_FilterPlaceholder")" @bind="_filter" @bind:event="oninput" placeholder="@L.Resource("WorldDropped_FilterPlaceholder")" />
+        <div class="wg-list" role="list" aria-label="@L.Resource("WorldDropped_ItemsOnTheGround")">
+            @foreach (var item in Visible)
+            {
+                <div class="wg-row" role="listitem" @key="item.Id" @onclick="() => Inspect(item)">
+                    <span class="wg-texts">
+                        <strong>@DisplayName(item)</strong>
+                        <small>@SubText(item)</small>
+                    </span>
+                    <button class="wg-delete" type="button" @onclick="() => Delete(item)" @onclick:stopPropagation>@L.Resource("WorldDropped_Delete")</button>
+                </div>
+            }
+            @if (Visible.Count == 0) { <p class="wg-empty">@L.Resource("WorldDropped_NoGroundItems")</p> }
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter] public string Title { get; set; } = "World editor";
+    [Parameter] public EventCallback<string?> OnError { get; set; }
+    private string _filter = string.Empty;
+    // Ground items whose staged removal this tab can undo (native RESTORE). Pruned each
+    // render so a session Revert (which restores everything itself) resets the counter.
+    private readonly List<WorldDroppedItem> _removed = [];
+
+    /// <summary>Capped at 200 rows like native - long-lived worlds accumulate 1000+ ground items.</summary>
+    private List<WorldDroppedItem> Visible => Session.DroppedItems
+        .Where(item => string.IsNullOrWhiteSpace(_filter)
+            || DisplayName(item).Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase)
+            || (item.Slot.ItemId?.Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase) ?? false))
+        .Take(200)
+        .ToList();
+
+    private string Summary
+    {
+        get
+        {
+            PruneRestored();
+            var count = Session.DroppedItems.Count;
+            return _removed.Count == 0
+                ? L.Resource("WorldEditor_DroppedSummaryFormat", count)
+                : L.Resource("WorldEditor_DroppedSummaryWithDeletionsFormat", count, _removed.Count);
+        }
+    }
+
+    private string DisplayName(WorldDroppedItem item)
+        => Items.Find(item.Slot.ItemId)?.DisplayName ?? item.Slot.ItemId ?? L.Editor("workspace.unknown");
+
+    /// <summary>"Deployable_Chair_Office_01 · ×1 · no despawn" - the native SubText verbatim.</summary>
+    private static string SubText(WorldDroppedItem item)
+        => $"{item.Slot.ItemId} · ×{item.Slot.Count}" + (item.NoDespawn ? " · no despawn" : "");
+
+    private void Delete(WorldDroppedItem item)
+    {
+        Session.RemoveDroppedItem(item.Id);
+        if (!item.Id.StartsWith("pending-", StringComparison.Ordinal)) _removed.Add(item);
+        Workspace.NotifyEdited();
+    }
+
+    private void DeleteShown() { foreach (var item in Visible) Delete(item); }
+
+    private void RestoreAll()
+    {
+        foreach (var item in _removed.ToArray())
+        {
+            if (Session.RestoreDroppedItem(item)) _removed.Remove(item);
+        }
+        _removed.Clear();
+        Workspace.NotifyEdited();
+    }
+
+    /// <summary>A session Revert already restored everything; drop stale local markers.</summary>
+    private void PruneRestored()
+        => _removed.RemoveAll(removed => Session.DroppedItems.Any(item => string.Equals(item.Id, removed.Id, StringComparison.Ordinal)));
+
+    /// <summary>Native tap: the item's encyclopedia card opens in the right-hand sidebar.</summary>
+    private void Inspect(WorldDroppedItem item) => Selection.ShowEncyclopedia(item.Slot.ItemId);
+}

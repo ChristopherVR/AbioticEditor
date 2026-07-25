@@ -1,0 +1,368 @@
+@namespace AbioticEditor.Web.Components.Player
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Services
+@using AbioticEditor.Core.Items
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject ItemCatalogService Catalog
+@inject InventorySelectionService Selection
+@inject SlotDragDropService Dnd
+@inject IJSRuntime Js
+
+@* Faithful port of the native PlayerTransmogTab.xaml: a 6-across grid of 96px cosmetic
+   slots (icon fills the tile, role tag when occupied, role placeholder when empty,
+   hazard ring on the selected slot) and the armor visibility toggles. Items arrive by
+   dragging them from the sidebar ITEM CATALOG onto a slot (or double-click quick-give
+   there); drops are validated with the game's own EquipSlot rule, and the drag payload
+   rides the shared SlotDragDropService so slots can also swap with the inventory
+   surfaces. The catalog itself lives in the right-hand pane, exactly like the native
+   SlotSidebarView. *@
+
+<section class="editor-card transmog-tab" aria-label="@L.Resource("PlayerTransmog_ArmorTransmog")">
+    <h3>@L.Resource("PlayerTransmog_ArmorTransmog")</h3>
+    <div class="hazard-divider" aria-hidden="true"></div>
+
+    @if (Session.Transmog.Count == 0)
+    {
+        <p>@L.Editor("transmog.none")</p>
+    }
+    else
+    {
+        <p class="tab-section-label">@L.Resource("PlayerTransmog_ArmorTransmog")</p>
+        <p class="transmog-help">@L.Resource("PlayerTransmog_TransmogHelp")</p>
+
+        <div class="transmog-grid" role="list" aria-label="@L.Resource("PlayerTransmog_ArmorTransmog")">
+            @foreach (var slot in Session.Transmog)
+            {
+                var role = RoleLabel(slot.Index);
+                var name = DisplayNameOf(slot);
+                var dropState = DropStateFor(slot);
+                <button type="button" role="listitem"
+                        class="transmog-slot @(ReferenceEquals(_selected, slot) ? "selected" : null) @(slot.IsDirty ? "dirty" : null) @DropClassFor(slot, dropState)"
+                        aria-pressed="@ReferenceEquals(_selected, slot)"
+                        aria-label="@L.Resource("PlayerUi_InventorySlotAria", RoleName(slot.Index), slot.Index, name)"
+                        draggable="@(slot.IsEmpty ? "false" : "true")"
+                        data-drag="@(slot.IsEmpty ? null : SlotDropRules.SlotPayload(PlayerInventoryArea.Transmog, slot))"
+                        data-slot-drop
+                        data-dropzone="@dropState"
+                        @onclick="() => Tap(slot)"
+                        @ondragstart="() => BeginSlotDrag(slot)"
+                        @ondragend="EndDrag"
+                        @ondragenter="() => DragEnter(slot)"
+                        @ondragleave="() => DragLeave(slot)"
+                        @ondrop="() => DropOn(slot)">
+                    @if (slot.IsEmpty || slot.ItemId is not { } itemId)
+                    {
+                        <span class="transmog-role-placeholder">@role</span>
+                    }
+                    else
+                    {
+                        <span class="transmog-role-tag" aria-hidden="true">@role</span>
+                        <span class="transmog-slot-icon"><ItemIcon ItemId="@itemId" Alt="@name" /></span>
+                        <span class="transmog-slot-name">@name</span>
+                    }
+                </button>
+            }
+        </div>
+
+        @* Pick-then-place: the alternative to dragging one tile onto another, which a touch
+           screen cannot do. Same move, same rules, two taps instead of a drag. With a mouse
+           the bar renders nothing, so dragging and the layout around it are unchanged. *@
+        <SlotMoveBar Touch="@_touch" Holding="@Dnd.IsDragging" CanStart="@(_selected is { IsEmpty: false })"
+                     Message="@HoldingMessage" OnStart="StartMove" OnCancel="CancelMove" />
+
+        @if (_status is not null) { <p class="transmog-status" role="status">@_status</p> }
+
+        @if (Session.TransmogVisibility.Count > 0)
+        {
+            <p class="transmog-visibility-label">@L.Resource("PlayerTransmog_Visibility")</p>
+            <div class="transmog-visibility">
+                @* Only the six visual gear slots render on the character (native shows the
+                   same subset); the remaining stored flags round-trip untouched. *@
+                @foreach (var toggle in Session.TransmogVisibility.Take(6))
+                {
+                    <label><input type="checkbox" checked="@toggle.IsVisible" @onchange="e => SetVisibility(toggle, e.Value)" /><span>@RoleLabel(toggle.Index)</span></label>
+                }
+            </div>
+        }
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private PlayerInventorySlotEdit? _selected;
+    private PlayerInventorySlotEdit? _dragOverSlot;
+    private string? _status;
+    private IJSObjectReference? _dnd;
+    /// <summary>True on a device whose pointer cannot hover (a phone or tablet). Dragging a
+    /// tile is not possible there, so those devices get the two-tap bar instead.</summary>
+    private bool _touch;
+
+    protected override void OnInitialized()
+    {
+        // Re-render when a drag begins on another surface (the sidebar palette or the
+        // inventory tab) so the per-slot dropzone verdicts appear, and track the shared
+        // selection so the highlight follows the slot editor like the native ActiveSlot.
+        Dnd.Changed += Refresh;
+        Selection.Changed += OnSelectionChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        // Small helper for what the C# drag events cannot reach: priming dataTransfer in
+        // dragstart (Firefox refuses to start the drag otherwise) and setting dropEffect so
+        // ineligible slots show the not-allowed cursor and refuse the drop.
+        _dnd = await Js.InvokeAsync<IJSObjectReference>("import", "./transmog-dnd.js");
+        await _dnd.InvokeVoidAsync("init");
+        // Ask the browser what the device can do. A screen you can only tap cannot drag a
+        // tile across the grid, so it is offered the two-tap move instead.
+        var touch = await _dnd.InvokeAsync<bool>("isTouch");
+        if (touch == _touch) return;
+        _touch = touch;
+        StateHasChanged();
+    }
+
+    // The gear position of a slot, shared with the other slot screens via SlotDropRules.
+    // This is the identity the game's own placement rules are written against, so it is
+    // always the same fixed value and never anything that changes with the chosen language.
+    // A slot with no gear position has none, and the rules treat it as unrestricted.
+    private static string? RoleOf(int index) => SlotDropRules.RoleFor(PlayerInventoryArea.Transmog, index);
+
+    /// <summary>What this slot is called on screen: the piece of gear it dresses. A slot with
+    /// no gear position is numbered instead, so no two of them read the same.</summary>
+    private string RoleName(int index)
+        => RoleOf(index) is { } role
+            ? L.Resource($"EquipSlot_Role_{role}")
+            : L.Resource("PlayerTransmog_ExtraSlotFormat", index + 1);
+
+    /// <summary>The same wording as <see cref="RoleName"/>, in the small capitals the slot
+    /// tiles and the visibility list are drawn in.</summary>
+    private string RoleLabel(int index) => RoleName(index).ToUpperInvariant();
+
+    private string DisplayNameOf(PlayerInventorySlotEdit slot)
+        => slot.IsEmpty || slot.ItemId is not { } itemId
+            ? RoleName(slot.Index)
+            : Catalog.Find(itemId)?.DisplayName ?? PlainNames.Words(itemId);
+
+    // ---------- eligibility (the game's own rule, shared via SlotDropRules) ----------
+
+    // Enum-first slot-fit check (Core EquipSlotTypes.ValidateForRole with the native app's
+    // localized message): the item row's EquipSlot (E_InventorySlotType) must be the role's
+    // expected enumerator or the EquipmentSlots_All wildcard. Never id-prefix heuristics:
+    // suit_hazmat_casual is a LEGS item despite its name.
+    private string? ValidateForRole(string? role, ItemCatalogEntry? entry)
+        => SlotDropRules.ValidateForSlot(L, PlayerInventoryArea.Transmog, role, entry);
+
+    // Swap validation both ways, like the native drop handler: the dragged item must fit the
+    // target slot and the displaced item must fit the source slot.
+    private string? SwapProblem(SlotDragSource source, PlayerInventorySlotEdit target)
+        => SlotDropRules.SwapProblem(L, Catalog,
+            source.Area, source.Role, source.Slot,
+            PlayerInventoryArea.Transmog, RoleOf(target.Index), target);
+
+    // ---------- slot interactions ----------
+
+    private void SelectSlot(PlayerInventorySlotEdit slot)
+    {
+        _selected = slot;
+        _status = L.Resource("Main_SlotSelected", DisplayNameOf(slot), slot.Index);
+        // Publish to the shared slot editor, so the sidebar edits this slot and its palette
+        // quick-give targets it - the native ActiveSlot contract.
+        Selection.Select(new(
+            L.Resource("PlayerEditor_Transmog"), slot, Session.Transmog, Session.ItemVocabulary, [],
+            Session.Transmog, false,
+            Changed,
+            pair => { Session.TrySwapInventorySlots(PlayerInventoryArea.Transmog, pair.First, pair.Second); return OnChanged.InvokeAsync(); },
+            _ => Task.CompletedTask, null, null)
+        {
+            PlayerArea = PlayerInventoryArea.Transmog,
+            Role = RoleOf(slot.Index),
+            QuickGiveFallback = QuickGiveFallback,
+            SelectSlot = SelectFilled,
+        });
+    }
+
+    private void OnSelectionChanged()
+    {
+        // Keep the local highlight in sync with the shared selection (a slot picked on
+        // another surface clears the transmog highlight, like the native single ActiveSlot).
+        var current = Selection.Current?.Slot;
+        _selected = current is not null && Session.Transmog.Contains(current) ? current : null;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void Refresh() => _ = InvokeAsync(StateHasChanged);
+
+    // ---------- pick-then-place (the touch path) ----------
+
+    /// <summary>
+    /// A tap on a cosmetic slot. With nothing being carried it opens the slot for editing, as
+    /// before; while an item is being carried the tap places it here instead, running exactly
+    /// the checks a drag would. A mouse drag never reaches this, so dragging is unchanged.
+    /// </summary>
+    private async Task Tap(PlayerInventorySlotEdit slot)
+    {
+        if (!Dnd.IsDragging) { SelectSlot(slot); return; }
+
+        // A mis-tap on a slot that cannot take the item should say why and keep hold of it.
+        if (Dnd.PaletteItem is { } palette && ValidateForRole(RoleOf(slot.Index), palette) is { } problem)
+        {
+            _status = L.Resource("Slot_MsgBlocked", problem);
+            return;
+        }
+        if (Dnd.Source is { } source && !ReferenceEquals(source.Slot, slot) && SwapProblem(source, slot) is { } swapProblem)
+        {
+            _status = swapProblem;
+            return;
+        }
+        await DropOn(slot);
+    }
+
+    private string? HoldingMessage => Dnd.PaletteItem is { } palette
+        ? palette.DisplayName
+        : Dnd.Source is { } source ? DisplayNameOf(source.Slot) : null;
+
+    private void StartMove()
+    {
+        if (_selected is { IsEmpty: false } slot)
+        {
+            Dnd.BeginSlotDrag(new SlotDragSource(Session, PlayerInventoryArea.Transmog, slot,
+                RoleOf(slot.Index)));
+            _status = null;
+        }
+    }
+
+    private void CancelMove()
+    {
+        EndDrag();
+        _status = null;
+    }
+
+    private void BeginSlotDrag(PlayerInventorySlotEdit slot)
+    {
+        if (slot.IsEmpty) return;
+        Dnd.BeginSlotDrag(new SlotDragSource(Session, PlayerInventoryArea.Transmog, slot,
+            RoleOf(slot.Index)));
+        _status = L.Resource("Slot_MsgDragging", DisplayNameOf(slot), L.Resource("PlayerEditor_Transmog"), slot.Index);
+    }
+
+    private void EndDrag()
+    {
+        Dnd.End();
+        _dragOverSlot = null;
+    }
+
+    private void DragEnter(PlayerInventorySlotEdit slot)
+    {
+        _dragOverSlot = slot;
+        // Surface the native "Blocked: ..." message live while hovering an ineligible slot.
+        if (Dnd.PaletteItem is { } palette && ValidateForRole(RoleOf(slot.Index), palette) is { } problem)
+            _status = L.Resource("Slot_MsgBlocked", problem);
+        else if (Dnd.Source is { } source && !ReferenceEquals(source.Slot, slot) && SwapProblem(source, slot) is { } swapProblem)
+            _status = swapProblem;
+    }
+
+    private void DragLeave(PlayerInventorySlotEdit slot)
+    {
+        if (ReferenceEquals(_dragOverSlot, slot)) _dragOverSlot = null;
+    }
+
+    /// <summary>"allowed"/"blocked" while a drag is in progress, null otherwise. Rendered as
+    /// the data-dropzone attribute the JS dragover handler reads for the drop cursor.</summary>
+    private string? DropStateFor(PlayerInventorySlotEdit slot)
+    {
+        if (Dnd.PaletteItem is { } palette)
+            return ValidateForRole(RoleOf(slot.Index), palette) is null ? "allowed" : "blocked";
+        if (Dnd.Source is { } source)
+        {
+            if (ReferenceEquals(source.Slot, slot)) return "blocked";
+            return SwapProblem(source, slot) is null ? "allowed" : "blocked";
+        }
+        return null;
+    }
+
+    private string? DropClassFor(PlayerInventorySlotEdit slot, string? dropState) => dropState switch
+    {
+        "blocked" => "drop-blocked",
+        "allowed" => ReferenceEquals(_dragOverSlot, slot) ? "drop-hover" : "drop-allowed",
+        _ => null,
+    };
+
+    private async Task DropOn(PlayerInventorySlotEdit target)
+    {
+        var palette = Dnd.PaletteItem;
+        var source = Dnd.Source;
+        EndDrag();
+
+        // Palette drops spawn a fresh copy of the catalog item into the slot.
+        if (palette is not null)
+        {
+            if (ValidateForRole(RoleOf(target.Index), palette) is { } problem)
+            {
+                _status = L.Resource("Slot_MsgBlocked", problem);
+                return;
+            }
+            SlotDropRules.FillFromCatalog(target, palette);
+            SelectSlot(target);
+            _status = L.Resource("Slot_MsgGave", palette.DisplayName, target.Count);
+            Selection.NotifyItemCommitted();
+            await Changed();
+            return;
+        }
+
+        if (source is null || !ReferenceEquals(source.Session, Session) || ReferenceEquals(source.Slot, target)) return;
+        if (SwapProblem(source, target) is { } swapProblem)
+        {
+            _status = swapProblem;
+            return;
+        }
+        // Cross-surface swap: the source may live in another inventory area (equipment,
+        // hotbar, backpack) - the native drop handler moves between them the same way.
+        Session.TrySwapInventorySlots(source.Area, source.Slot.Index, PlayerInventoryArea.Transmog, target.Index);
+        SelectSlot(target);
+        _status = L.Resource("Slot_MsgSwapped", DisplayNameOf(target));
+        Selection.NotifyItemCommitted();
+        await OnChanged.InvokeAsync();
+    }
+
+    /// <summary>Pets are hotbar-only, so their auto-picked destination is always a hotbar
+    /// slot; everything else prefers the backpack and falls back to the hotbar (native).</summary>
+    private QuickGiveTarget? QuickGiveFallback(bool hotbarOnly)
+    {
+        var hotbar = Session.Hotbar.FirstOrDefault(slot => slot.IsEmpty);
+        if (hotbarOnly) return hotbar is null ? null : new(hotbar, PlayerInventoryArea.Hotbar, null);
+        if (Session.Backpack.FirstOrDefault(slot => slot.IsEmpty) is { } backpack)
+            return new(backpack, PlayerInventoryArea.Backpack, null);
+        return hotbar is null ? null : new(hotbar, PlayerInventoryArea.Hotbar, null);
+    }
+
+    /// <summary>Focus the slot a give/drop just filled when it is one of ours (a fallback
+    /// give into the backpack keeps the current selection).</summary>
+    private void SelectFilled(PlayerInventorySlotEdit slot)
+    {
+        if (Session.Transmog.Contains(slot)) SelectSlot(slot);
+    }
+
+    private async Task SetVisibility(TransmogVisibilityEdit toggle, object? value)
+    {
+        toggle.IsVisible = value is bool visible && visible;
+        await Changed();
+    }
+
+    private Task Changed()
+    {
+        Session.MarkChanged();
+        return OnChanged.InvokeAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Dnd.Changed -= Refresh;
+        Selection.Changed -= OnSelectionChanged;
+        try { if (_dnd is not null) await _dnd.DisposeAsync(); }
+        catch (JSDisconnectedException) { }
+    }
+}

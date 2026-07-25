@@ -25,6 +25,17 @@ and the remaining CUE4Parse package references) are NOT redistributed here;
 they are declared as ordinary NuGet package dependencies and are restored
 from their own publishers under their own licenses.
 
+Desktop application window
+--------------------------
+The Windows and Linux desktop distributions include Photino.NET and its native
+window library. Photino uses the operating system web view to display the Razor UI.
+
+  * Photino.NET and Photino.Native
+      Copyright (c) the TryPhotino contributors
+      https://github.com/tryphotino/photino.NET
+      https://github.com/tryphotino/photino.Native
+      Licensed under the Apache License, Version 2.0.
+
 Bundled wiki images (offline fallback)
 --------------------------------------
 The desktop app and CLI distributions bundle a small set of game images under

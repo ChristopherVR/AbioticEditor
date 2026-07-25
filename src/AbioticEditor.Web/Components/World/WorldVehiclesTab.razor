@@ -1,0 +1,225 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Services
+@using AbioticEditor.Core.Assets
+@using AbioticEditor.Core.WorldSaves
+@inject GameArtService Art
+@inject SaveWorkspaceSessionService Workspace
+@implements IDisposable
+
+@* Faithful port of the native WorldVehiclesTab.xaml: a region-grouped master list plus a
+   detail editor with wiki image, drivable/wrecked state, move + reset-to-spawn, and a jump
+   to the vehicle's on-board storage in the containers tab. *@
+<section class="world-editor world-native-tab" aria-label="@L.Resource("WorldVehicles_VehiclesInThisWorld")">
+    <h2 class="wt-h2">@L.Resource("WorldVehicles_VehiclesInThisWorld")</h2>
+    <p class="wt-intro">@L.Resource("WorldVehicles_VehicleListIntro")</p>
+
+    <div class="wt-md">
+        <div class="wt-list" role="listbox" aria-label="@L.Resource("WorldVehicles_VehiclesInThisWorld")">
+            @if (Session.Vehicles.Count == 0)
+            {
+                <p class="wt-empty">@L.Resource("WorldVehicles_NoVehiclesInThisSave")</p>
+            }
+            else
+            {
+                @foreach (var group in VehicleGroups)
+                {
+                    <div class="wt-group-header" @key="@("group-" + group.Key)">
+                        <span class="wt-group-title">@group.Key</span>
+                        <span class="wt-group-count">@(group.Count() == 1 ? L.Resource("WorldVehicles_CountSingular") : L.Resource("WorldVehicles_CountFormat", group.Count()))</span>
+                    </div>
+                    @foreach (var row in group)
+                    {
+                        <button type="button" role="option" aria-selected="@(_selectedId == row.Id)"
+                                class="wt-row @(_selectedId == row.Id ? "selected" : null)" @key="row.Id"
+                                @onclick="() => Select(row)">
+                            <span class="wt-row-text">
+                                <strong>@row.DisplayName</strong>
+                                @if (!IsEditable(row)) { <small>@L.Resource("WorldVehicles_DisplayOnly")</small> }
+                            </span>
+                            @if (IsEditable(row)) { <span class="wt-row-status">@StateText(row)</span> }
+                        </button>
+                    }
+                }
+            }
+        </div>
+
+        <div class="wt-detail">
+            @if (Selected is not { } vehicle)
+            {
+                <p class="wt-select-hint">@L.Resource("WorldVehicles_SelectAVehicleToEditIt")</p>
+            }
+            else
+            {
+                <h3 class="wt-h3">@vehicle.DisplayName</h3>
+                <p class="wt-status-text">@L.Resource("WorldVehicles_WorldFormat", PlainNames.Area(vehicle.Region))</p>
+                @if (!IsEditable(vehicle))
+                {
+                    <p class="wt-muted">@L.Resource("WorldVehicles_DisplayOnlyNoEditableState")</p>
+                }
+
+                @if (_wikiImageFile is { } wikiFile)
+                {
+                    <div class="wt-portrait-box">
+                        <img src="@Art.WikiImageUrl(wikiFile)" alt="@vehicle.DisplayName" />
+                    </div>
+                    <small class="wt-attribution">@L.Resource("Slot_ImageAbioticfactorWikiGg")</small>
+                }
+
+                @if (IsEditable(vehicle))
+                {
+                    <hr class="wt-divider" />
+                    <span class="wt-label accent-terminal-text">@L.Resource("WorldVehicles_State")</span>
+                    <div class="wt-button-row vehicle-state-row">
+                        <label class="wt-check">
+                            <input type="checkbox" checked="@vehicle.Driveable" @onchange="e => Update(vehicle, driveable: e.Value is bool value && value)" />
+                            @L.Resource("WorldVehicles_DrivableUnlocked")
+                        </label>
+                        <label class="wt-check">
+                            <input type="checkbox" checked="@vehicle.Destroyed" @onchange="e => Update(vehicle, destroyed: e.Value is bool value && value)" />
+                            @L.Resource("WorldVehicles_Wrecked")
+                        </label>
+                    </div>
+
+                    <hr class="wt-divider" />
+                    <span class="wt-label accent-hazard-text">@L.Resource("WorldVehicles_Location")</span>
+                    @if (AreaName(vehicle) is { Length: > 0 } area)
+                    {
+                        <div class="wt-field-inline">
+                            <span class="wt-label">@L.Resource("WorldVehicles_Area")</span>
+                            <span class="wt-readout">@area</span>
+                        </div>
+                    }
+                    <div class="vehicle-coords">
+                        <span class="wt-label">X</span>
+                        <input type="number" step="any" value="@vehicle.X" class="wt-input" aria-label="X" @onchange="e => UpdateCoordinate(vehicle, 0, e.Value?.ToString())" />
+                        <span class="wt-label">Y</span>
+                        <input type="number" step="any" value="@vehicle.Y" class="wt-input" aria-label="Y" @onchange="e => UpdateCoordinate(vehicle, 1, e.Value?.ToString())" />
+                        <span class="wt-label">Z</span>
+                        <input type="number" step="any" value="@vehicle.Z" class="wt-input" aria-label="Z" @onchange="e => UpdateCoordinate(vehicle, 2, e.Value?.ToString())" />
+                    </div>
+                    <small class="wt-muted">@SpawnStatusText(vehicle)</small>
+                    <div class="wt-button-row">
+                        <button type="button" class="wt-btn wt-yellow" disabled="@(!CanResetToSpawn(vehicle))" @onclick="() => ResetToSpawn(vehicle)">@L.Resource("WorldVehicles_ResetToSpawn")</button>
+                    </div>
+                }
+                else
+                {
+                    <hr class="wt-divider" />
+                    <span class="wt-label accent-hazard-text">@L.Resource("WorldVehicles_Location")</span>
+                    @if (AreaName(vehicle) is { Length: > 0 } area)
+                    {
+                        <div class="wt-field-inline">
+                            <span class="wt-label">@L.Resource("WorldVehicles_Area")</span>
+                            <span class="wt-readout">@area</span>
+                        </div>
+                    }
+                    <span class="wt-readout">X @vehicle.X.ToString("F0")   Y @vehicle.Y.ToString("F0")   Z @vehicle.Z.ToString("F0")</span>
+                }
+
+                <hr class="wt-divider" />
+                <span class="wt-label">@L.Resource("WorldVehicles_OnBoardStorage")</span>
+                <p class="wt-value">@(vehicle.HasInventory ? L.Resource("WorldVehicles_ItemsOnBoard", vehicle.InventoryItemCount) : L.Resource("WorldVehicles_NoOnBoardStorage"))</p>
+                @if (vehicle.HasInventory)
+                {
+                    <div class="wt-button-row">
+                        <button type="button" class="wt-btn wt-green" @onclick="() => OpenContainer(vehicle)">@L.Resource("WorldVehicles_OpenInventoryContainersTab")</button>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter] public string Title { get; set; } = "World editor";
+    [Parameter] public EventCallback<string?> OnError { get; set; }
+    /// <summary>Raised with a vehicle's on-board container id when the user wants to edit its
+    /// storage; the host switches to the Containers tab and can pre-filter to this id.</summary>
+    [Parameter] public EventCallback<string> OnOpenContainer { get; set; }
+
+    private string? _selectedId;
+    private ActorTransform? _spawn;
+    private bool _spawnResolved;
+    private string? _wikiImageFile;
+    private CancellationTokenSource? _selectionLoad;
+
+    private IEnumerable<IGrouping<string, WorldVehicle>> VehicleGroups => Session.Vehicles
+        .GroupBy(vehicle => string.IsNullOrEmpty(vehicle.Region) ? L.Resource("WorldVehicles_UnknownWorld") : PlainNames.Area(vehicle.Region))
+        .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase);
+
+    private WorldVehicle? Selected => _selectedId is null ? null : Session.Vehicles.FirstOrDefault(vehicle => vehicle.Id == _selectedId);
+
+    private static bool IsEditable(WorldVehicle vehicle) => VehicleCatalog.IsEditable(vehicle.VehicleClass);
+    private static string? AreaName(WorldVehicle vehicle) => WorldAreaCatalog.FriendlyName(vehicle.Region);
+
+    private string StateText(WorldVehicle vehicle) => vehicle.Destroyed
+        ? L.Resource("WorldVehicles_Wrecked")
+        : vehicle.Driveable ? L.Resource("WorldVehicles_StateDrivable") : L.Resource("WorldStory_StatusLocked");
+
+    private void Select(WorldVehicle vehicle)
+    {
+        if (_selectedId == vehicle.Id) return;
+        _selectedId = vehicle.Id;
+        _spawn = null;
+        _spawnResolved = false;
+        _wikiImageFile = null;
+        _selectionLoad?.Cancel(); _selectionLoad?.Dispose(); _selectionLoad = new();
+        _ = LoadSelectionAsync(vehicle, _selectionLoad);
+    }
+
+    private async Task LoadSelectionAsync(WorldVehicle vehicle, CancellationTokenSource load)
+    {
+        var transform = await Art.TryGetActorTransformAsync(vehicle.VehicleId ?? vehicle.Id);
+        if (!load.IsCancellationRequested && _selectedId == vehicle.Id)
+        {
+            _spawn = transform;
+            _spawnResolved = true;
+            StateHasChanged();
+        }
+        foreach (var candidate in VehicleCatalog.WikiImageCandidates(vehicle.VehicleClass))
+        {
+            var path = await Art.GetWikiImagePathAsync(candidate);
+            if (load.IsCancellationRequested || _selectedId != vehicle.Id) return;
+            if (path is not null) { _wikiImageFile = candidate; StateHasChanged(); return; }
+        }
+    }
+
+    private bool CanResetToSpawn(WorldVehicle vehicle) => _selectedId == vehicle.Id && _spawnResolved && _spawn is not null;
+
+    private string SpawnStatusText(WorldVehicle vehicle)
+    {
+        if (_selectedId != vehicle.Id || !_spawnResolved) return L.Resource("WorldVehicles_ResolvingSpawn");
+        if (_spawn is not { } s) return L.Resource("WorldVehicles_SpawnUnavailable");
+        var dx = vehicle.X - s.X; var dy = vehicle.Y - s.Y; var dz = vehicle.Z - s.Z;
+        return (dx * dx) + (dy * dy) + (dz * dz) < 100.0 * 100.0
+            ? L.Resource("WorldVehicles_AtSpawn")
+            : L.Resource("WorldVehicles_MovedFromSpawn", $"{s.X:F0}, {s.Y:F0}, {s.Z:F0}");
+    }
+
+    private void ResetToSpawn(WorldVehicle vehicle)
+    {
+        if (_spawn is not { } s) return;
+        Session.SetVehicle(vehicle.Id, vehicle.Driveable, vehicle.Destroyed, s.X, s.Y, s.Z);
+        Workspace.NotifyEdited();
+    }
+
+    private void Update(WorldVehicle vehicle, bool? driveable = null, bool? destroyed = null)
+    {
+        Session.SetVehicle(vehicle.Id, driveable ?? vehicle.Driveable, destroyed ?? vehicle.Destroyed, vehicle.X, vehicle.Y, vehicle.Z);
+        Workspace.NotifyEdited();
+    }
+
+    private void UpdateCoordinate(WorldVehicle vehicle, int coordinate, string? raw)
+    {
+        if (!double.TryParse(raw, out var value)) return;
+        Session.SetVehicle(vehicle.Id, vehicle.Driveable, vehicle.Destroyed,
+            coordinate == 0 ? value : vehicle.X, coordinate == 1 ? value : vehicle.Y, coordinate == 2 ? value : vehicle.Z);
+        Workspace.NotifyEdited();
+    }
+
+    private Task OpenContainer(WorldVehicle vehicle) => OnOpenContainer.InvokeAsync(vehicle.Id);
+
+    public void Dispose() { _selectionLoad?.Cancel(); _selectionLoad?.Dispose(); }
+}

@@ -28,8 +28,6 @@ internal sealed class PluginRegistry : IPluginRegistry
 
     public List<IConsoleCommand> ConsoleCommands { get; } = new();
 
-    public List<IEditorTool> EditorTools { get; } = new();
-
     public List<IWebTool> WebTools { get; } = new();
 
     public List<ISaveUpgrader> SaveUpgraders { get; } = new();
@@ -60,17 +58,6 @@ internal sealed class PluginRegistry : IPluginRegistry
             return;
         }
         ConsoleCommands.Add(command);
-    }
-
-    public void AddEditorTool(IEditorTool tool)
-    {
-        ArgumentNullException.ThrowIfNull(tool);
-        if (EditorTools.Any(t => string.Equals(t.Id, tool.Id, StringComparison.OrdinalIgnoreCase)))
-        {
-            Host.Log.Warn($"duplicate editor tool id '{tool.Id}' ignored.");
-            return;
-        }
-        EditorTools.Add(tool);
     }
 
     public void AddWebTool(IWebTool tool)

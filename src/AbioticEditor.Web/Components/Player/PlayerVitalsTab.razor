@@ -1,0 +1,26 @@
+@namespace AbioticEditor.Web.Components.Player
+
+@* Faithful port of the native PlayerVitalsTab: a CHARACTER STATS panel (five survival
+   sliders, then the money row) and a BODY HEALTH panel whose HEAL ALL applies
+   immediately, exactly like the native button. *@
+<div class="vitals-tab">
+    <section class="editor-card">
+        <h3>@L.Resource("PlayerVitals_CharacterStats")</h3>
+        <hr class="af-divider" />
+        <div class="vital-list">
+            <VitalSlider Label="@L.Resource("PlayerVitals_Hunger")" @bind-Value="Vitals.Hunger" OnChanged="Changed" /><VitalSlider Label="@L.Resource("PlayerVitals_Thirst")" @bind-Value="Vitals.Thirst" OnChanged="Changed" /><VitalSlider Label="@L.Resource("PlayerVitals_Sanity")" @bind-Value="Vitals.Sanity" OnChanged="Changed" /><VitalSlider Label="@L.Resource("PlayerVitals_Fatigue")" @bind-Value="Vitals.Fatigue" OnChanged="Changed" /><VitalSlider Label="@L.Resource("PlayerVitals_Continence")" @bind-Value="Vitals.Continence" OnChanged="Changed" />
+        </div>
+        <hr class="af-divider" />
+        @* No saved/unsaved wording next to the amount: the shell header already says whether
+           there are unsaved changes, and having it sit against this one field read as if it
+           described the money rather than the whole save. *@
+        <div class="money-field"><label for="player-money">@L.Resource("PlayerVitals_CurrentMoney")</label><input id="player-money" type="number" step="1" @bind="Vitals.Money" @bind:after="Changed" /></div>
+    </section>
+    <section class="editor-card">
+        <div class="card-title-row body-health-head"><span class="amber-field-label">@L.Resource("PlayerVitals_BodyHealth")</span><button class="heal-all-button" type="button" @onclick="HealAll">@L.Resource("PlayerVitals_HealAll")</button></div>
+        <div class="limb-grid">
+            <VitalSlider Label="@L.Resource("PlayerVitals_Head")" @bind-Value="Vitals.Head" OnChanged="Changed" WholeNumbers="true" /><VitalSlider Label="@L.Resource("PlayerVitals_Torso")" @bind-Value="Vitals.Torso" OnChanged="Changed" WholeNumbers="true" /><VitalSlider Label="@L.Resource("PlayerVitals_LeftArm")" @bind-Value="Vitals.LeftArm" OnChanged="Changed" WholeNumbers="true" /><VitalSlider Label="@L.Resource("PlayerVitals_RightArm")" @bind-Value="Vitals.RightArm" OnChanged="Changed" WholeNumbers="true" /><VitalSlider Label="@L.Resource("PlayerVitals_LeftLeg")" @bind-Value="Vitals.LeftLeg" OnChanged="Changed" WholeNumbers="true" /><VitalSlider Label="@L.Resource("PlayerVitals_RightLeg")" @bind-Value="Vitals.RightLeg" OnChanged="Changed" WholeNumbers="true" />
+        </div>
+    </section>
+</div>
+@code { [Parameter, EditorRequired] public PlayerVitals Vitals { get; set; } = new(); [Parameter] public EventCallback<PlayerVitals> OnChanged { get; set; } private Task Changed() => OnChanged.InvokeAsync(Vitals); private async Task HealAll() { Vitals.HealAll(); await Changed(); } }

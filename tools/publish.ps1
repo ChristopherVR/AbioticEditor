@@ -1,45 +1,63 @@
-# Builds a distributable (unpackaged) Release build of the Abiotic Factor save editor
-# and zips it. Output: dotnet/publish/AbioticEditor/ + dotnet/publish/AbioticEditor-vX.zip
-#
-# Usage:  pwsh tools/publish.ps1 [-Version 0.3.0]
+# Builds and verifies a distributable self-contained Razor host.
+# Output: publish/AbioticEditor-desktop-<rid>/ and its versioned zip.
+[CmdletBinding()]
 param(
-    [string]$Version = "0.5.0"
+    [string]$Version = "0.5.0",
+    [ValidateSet('win-x64', 'linux-x64')]
+    [string]$RuntimeIdentifier = 'win-x64',
+    [switch]$SkipSmoke
 )
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
-$project = Join-Path $root 'src/AbioticEditor.App/AbioticEditor.App.csproj'
-$outDir = Join-Path $root 'publish/AbioticEditor'
-$zip = Join-Path $root "publish/AbioticEditor-v$Version-win-x64.zip"
+$project = Join-Path $root 'src/AbioticEditor.Web/AbioticEditor.Web.csproj'
+$publishRoot = Join-Path $root 'publish'
+$outDir = Join-Path $publishRoot "AbioticEditor-desktop-$RuntimeIdentifier"
+$zip = Join-Path $publishRoot "AbioticEditor-desktop-$RuntimeIdentifier-v$Version.zip"
 
-Write-Host "Publishing $project → $outDir"
-if (Test-Path $outDir) { Remove-Item $outDir -Recurse -Force }
+$resolvedPublishRoot = [IO.Path]::GetFullPath($publishRoot)
+$resolvedOutDir = [IO.Path]::GetFullPath($outDir)
+if (-not $resolvedOutDir.StartsWith($resolvedPublishRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+    throw "Refusing to publish outside $resolvedPublishRoot"
+}
+
+Write-Host "Publishing $project to $outDir"
+if (Test-Path -LiteralPath $outDir) { Remove-Item -LiteralPath $outDir -Recurse -Force }
+New-Item -ItemType Directory -Path $publishRoot -Force | Out-Null
 
 dotnet publish $project `
-    -f net10.0-windows10.0.19041.0 `
     -c Release `
-    -p:WindowsPackageType=None `
-    -p:RuntimeIdentifierOverride=win-x64 `
-    -p:WindowsAppSDKSelfContained=true `
-    -p:SelfContained=true `
+    -r $RuntimeIdentifier `
+    --self-contained true `
+    -p:PublishSingleFile=false `
     -o $outDir
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
 
-# Ship a README next to the exe.
-@"
-Abiotic Factor Save Editor v$Version
-====================================
+if ($RuntimeIdentifier -eq 'win-x64') {
+    & (Join-Path $PSScriptRoot 'verify-web-host.ps1') -PublishDir $outDir -SkipSmoke:$SkipSmoke
+    if (-not $?) { throw "Windows host verification failed" }
+} else {
+    if (-not (Get-Command bash -ErrorAction SilentlyContinue)) {
+        throw "bash is required to verify the Linux desktop package"
+    }
+    bash (Join-Path $PSScriptRoot 'verify-web-host-linux.sh') $outDir
+    if ($LASTEXITCODE -ne 0) { throw "Linux host verification failed" }
+}
 
-Run AbioticEditor.App.exe and open your save folder, e.g.
-  %LOCALAPPDATA%\AbioticFactor\Saved\SaveGames\<steamid>\Worlds\<WorldName>
-
-Item/skill/recipe names, icons and lore are read from your local Abiotic
-Factor install (Steam). For full data, place a .usmap mappings file at:
-  %LOCALAPPDATA%\AbioticEditor\mappings\Mappings.usmap
-
-Every save write keeps a .bak backup next to the file.
-"@ | Set-Content (Join-Path $outDir 'README.txt')
-
-if (Test-Path $zip) { Remove-Item $zip -Force }
-Compress-Archive -Path "$outDir/*" -DestinationPath $zip
-Write-Host "Created $zip ($([Math]::Round((Get-Item $zip).Length / 1MB, 1)) MB)"
+if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
+if ($RuntimeIdentifier -eq 'win-x64') {
+    Compress-Archive -Path (Join-Path $outDir '*') -DestinationPath $zip
+} else {
+    if (-not (Get-Command zip -ErrorAction SilentlyContinue)) {
+        throw "zip is required to preserve Linux launcher permissions"
+    }
+    Push-Location $outDir
+    try {
+        zip -r $zip .
+        if ($LASTEXITCODE -ne 0) { throw "zip failed" }
+    }
+    finally {
+        Pop-Location
+    }
+}
+Write-Host "Created $zip ($([Math]::Round((Get-Item -LiteralPath $zip).Length / 1MB, 1)) MB)"

@@ -22,7 +22,6 @@ Jint engine, no build step). Either kind can contribute any mix of:
 |---|---|---|
 | **Save operation** | a scripted read/modify pass over a save | CLI `plugins run`, GUI Plugins panel |
 | **Console command** | a whole new CLI verb | CLI (`abioticeditor <verb>`) |
-| **Editor tool** | a native MAUI UI panel | GUI Plugins panel |
 | **Web tool** | an HTML/React UI in a web view, with a JS-to-host bridge | GUI Plugins panel |
 | **Menu action** | a click-to-run menu item | GUI Plugins menu + panel |
 | **Event handler** | code that runs on a host event (save opened/written, app start) | everywhere |
@@ -39,8 +38,6 @@ Every plugin is a **subfolder** containing a `plugin.json` manifest next to its 
 | [`GrantFlag`](GrantFlag/) | .NET | save operation | a forward-compatible fix-up: add a raw world flag |
 | [`SaveStats`](SaveStats/) | .NET | console command | a new CLI verb that behaves like a built-in |
 | [`VersionShim`](VersionShim/) | .NET | save upgrader | recovering a save with an unsupported version |
-| [`PlaytimeDashboard`](PlaytimeDashboard/) | .NET / MAUI | editor tool | a UI panel whose view is built in C# |
-| [`SaveInspector`](SaveInspector/) | .NET / MAUI | editor tool | full MVVM: compiled XAML plus a view-model |
 | [`HelloScript`](HelloScript/) | JavaScript | save op + command + menu action + event handler | one script, four capabilities, no build |
 | [`WebStats`](WebStats/) | JavaScript | web tool | an offline HTML UI served from a bundled folder |
 | [`ReactDashboard`](ReactDashboard/) | JavaScript | web tool | a React UI (React from a CDN), no build step |
@@ -48,12 +45,10 @@ Every plugin is a **subfolder** containing a `plugin.json` manifest next to its 
 
 ## Building the samples
 
-**.NET samples** build with `dotnet build`. The two MAUI ones (`PlaytimeDashboard`,
-`SaveInspector`) need the MAUI workload and a target framework moniker:
+**.NET samples** build with `dotnet build`:
 
 ```console
 dotnet build plugins/MaxSkills -c Release
-dotnet build plugins/SaveInspector -c Release -f net10.0-windows10.0.19041.0
 ```
 
 The output of a .NET sample is just **its own DLL plus `plugin.json`**: the samples reference the

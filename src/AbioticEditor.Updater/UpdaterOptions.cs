@@ -5,7 +5,7 @@ namespace AbioticEditor.Updater;
 /// <summary>
 /// Everything the updater needs to find, pick, and apply a release. Construct one per host
 /// (the CLI and the app each build their own with the right <see cref="AssetKeywords"/>),
-/// or start from <see cref="ForCli"/> / <see cref="ForApp"/> and tweak.
+/// or start from <see cref="ForCli"/> / <see cref="ForWeb"/> / <see cref="ForApp"/> and tweak.
 /// </summary>
 public sealed class UpdaterOptions
 {
@@ -84,7 +84,14 @@ public sealed class UpdaterOptions
         AssetKeywords = new[] { "cli", DefaultPlatformKeyword },
     };
 
-    /// <summary>Options pre-set for the desktop app package (asset must match "app" + this OS/arch).</summary>
+    /// <summary>Options pre-set for the local Razor desktop package (asset must match "web" + this OS/arch).</summary>
+    public static UpdaterOptions ForWeb() => new()
+    {
+        ProductName = "AbioticEditor",
+        AssetKeywords = new[] { "web", DefaultPlatformKeyword },
+    };
+
+    /// <summary>Options pre-set for the legacy native desktop package.</summary>
     public static UpdaterOptions ForApp() => new()
     {
         ProductName = "AbioticEditor",

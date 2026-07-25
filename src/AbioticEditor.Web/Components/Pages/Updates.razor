@@ -1,0 +1,12 @@
+@page "/updates"
+@inject HostUpdateService UpdateService
+@inject AbioticEditor.Ui.IExternalNavigationService ExternalNavigation
+@inject HostLanguageService Languages
+
+<PageTitle>@Languages.Resource("Updates_Title") · @Languages.Resource("App_Title")</PageTitle>
+<section class="hero compact-hero"><p class="eyebrow">@Languages.Resource("Updates_Eyebrow")</p><h1>@Languages.Resource("Updates_Heading")</h1><p class="lede">@Languages.Resource("Updates_Description")</p></section>
+<section class="settings-card"><h2>@Languages.Resource("Updates_CurrentVersion")</h2><dl class="status-list"><dt>@Languages.Resource("Updates_Installed")</dt><dd>@(_status?.CurrentVersion ?? Languages.Resource("Updates_NotChecked"))</dd><dt>@Languages.Resource("Updates_Status")</dt><dd>@(_status is null ? Languages.Resource("Updates_NotChecked") : Languages.Resource(_status.StateResourceKey))</dd><dt>@Languages.Resource("Updates_Latest")</dt><dd>@(_status?.LatestVersion ?? Languages.Resource("Updates_NotChecked"))</dd></dl>@if (_status is not null) { <p class="muted">@Languages.Resource(_status.MessageResourceKey)</p> }<button class="primary" @onclick="Check" disabled="@_checking">@Languages.Resource(_checking ? "Updates_Checking" : "Updates_Check")</button> <button class="secondary" @onclick="OpenReleasesAsync">@Languages.Resource("Updates_ViewDownloads")</button>
+    @if (_status?.UpdateAvailable == true) { <p class="success">@Languages.Resource("Updates_Available")</p> }
+    @if (_error is not null) { <p class="error" role="alert">@_error</p> }
+</section>
+@code { private HostUpdateStatus? _status; private bool _checking; private string? _error; private async Task Check() { _checking = true; _error = null; try { _status = await UpdateService.CheckAsync(); } finally { _checking = false; } } private async Task OpenReleasesAsync() { _error = null; try { await ExternalNavigation.OpenUrlAsync(new Uri(HostUpdateService.ReleasesUrl)); } catch (Exception ex) { _error = Errors.Present(ex, Languages.Resource("Updates_OpenFailed"), Languages.Resource("Updates_OpenFailedHelp")); } } }

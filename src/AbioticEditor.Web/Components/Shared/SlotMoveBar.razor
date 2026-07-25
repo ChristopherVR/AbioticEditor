@@ -1,0 +1,53 @@
+@namespace AbioticEditor.Web.Components.Shared
+
+@* The pick-then-place control the slot screens share.
+
+   Dragging one tile onto another only works with a mouse: on a phone the browser scrolls the
+   page instead of picking the tile up. So every screen that supports dragging also offers
+   this two-step alternative - press MOVE / SWAP with a slot selected, then tap the slot to
+   move it to. It is the same underlying move, so the game's own slot rules still apply.
+
+   It is shown only where it earns its space. A device with a mouse already has dragging and
+   keeps the layout it always had, so the bar renders nothing at all there. On a touch screen
+   it appears once there is something to carry or something already being carried. *@
+@if (Touch)
+{
+    if (Holding)
+    {
+        <div class="slot-move-bar holding" role="status">
+            <span class="slot-move-text">
+                @if (!string.IsNullOrEmpty(Message)) { <strong>@Message</strong> }
+                <span>@L.Resource("PlayerUi_MoveBetweenAreasHelp")</span>
+            </span>
+            <button type="button" class="slot-move-cancel" @onclick="OnCancel">@L.Resource("Slot_Cancel")</button>
+        </div>
+    }
+    else if (CanStart)
+    {
+        <div class="slot-move-bar">
+            <button type="button" class="slot-move-start" @onclick="OnStart">@L.Resource("PlayerUi_MoveSwap")</button>
+            <span class="slot-move-text">@L.Resource("PlayerUi_MoveBetweenAreasHelp")</span>
+        </div>
+    }
+}
+
+@code {
+    /// <summary>
+    /// True on a device whose pointer cannot hover (a phone or tablet), where dragging a tile
+    /// is not possible. The bar is for those devices only: with a mouse it renders nothing, so
+    /// the desktop layout is exactly as it was.
+    /// </summary>
+    [Parameter] public bool Touch { get; set; }
+
+    /// <summary>True while an item is being carried and is waiting for a destination tap.</summary>
+    [Parameter] public bool Holding { get; set; }
+
+    /// <summary>True when the selected slot holds something that could be moved.</summary>
+    [Parameter] public bool CanStart { get; set; }
+
+    /// <summary>What is being carried, shown while <see cref="Holding"/>.</summary>
+    [Parameter] public string? Message { get; set; }
+
+    [Parameter] public EventCallback OnStart { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+}

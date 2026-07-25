@@ -1,0 +1,41 @@
+@namespace AbioticEditor.Web.Components.Shared
+@implements IDisposable
+@inject GameArtService Art
+
+@if (_resolved is not null)
+{
+    <img class="@Class" src="@Art.ArtUrl(_resolved)" alt="@Alt" />
+}
+else if (ChildContent is not null)
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter] public string? GameRef { get; set; }
+    /// <summary>Optional ordered fallback candidates, tried in order when set (e.g. a mutated
+    /// creature's own portrait first, then its base species). <see cref="GameRef"/> is used
+    /// when this is null or empty.</summary>
+    [Parameter] public IReadOnlyList<string>? GameRefs { get; set; }
+    [Parameter] public string Alt { get; set; } = string.Empty;
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    private string? _resolved;
+    private CancellationTokenSource? _load;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _load?.Cancel(); _load?.Dispose(); _load = new();
+        var load = _load;
+        _resolved = null;
+        var candidates = GameRefs is { Count: > 0 } refs ? refs : GameRef is null ? Array.Empty<string>() : [GameRef];
+        foreach (var candidate in candidates)
+        {
+            var path = await Art.GetTexturePathAsync(candidate);
+            if (load.IsCancellationRequested) return;
+            if (path is not null) { _resolved = candidate; return; }
+        }
+    }
+
+    public void Dispose() { _load?.Cancel(); _load?.Dispose(); }
+}

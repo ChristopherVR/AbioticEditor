@@ -1,0 +1,32 @@
+@namespace AbioticEditor.Web.Components.Shared
+@implements IDisposable
+@inject GameArtService Art
+
+@if (_available)
+{
+    <img class="@Class" src="@Art.WikiImageUrl(FileName!)" alt="@Alt" />
+}
+else if (ChildContent is not null)
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter] public string? FileName { get; set; }
+    [Parameter] public string Alt { get; set; } = string.Empty;
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    private bool _available;
+    private CancellationTokenSource? _load;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _load?.Cancel(); _load?.Dispose(); _load = new();
+        var load = _load;
+        _available = false;
+        var path = await Art.GetWikiImagePathAsync(FileName);
+        if (!load.IsCancellationRequested) _available = path is not null;
+    }
+
+    public void Dispose() { _load?.Cancel(); _load?.Dispose(); }
+}

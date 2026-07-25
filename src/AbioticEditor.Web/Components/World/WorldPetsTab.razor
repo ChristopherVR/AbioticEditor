@@ -1,0 +1,320 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Components.Shared
+@using AbioticEditor.Core.WorldSaves
+@using AbioticEditor.Core.PlayerSaves
+@inject SaveWorkspaceSessionService Workspace
+
+@* Faithful port of the native WorldPetsTab.xaml: master list (avatar, name, class, status)
+   plus a Fish-style detail editor (name, creature type, level/XP, health, delete, send). *@
+<section class="world-editor world-native-tab" aria-label="@L.Resource("WorldPets_TamedPetsInThisWorld")">
+    <h2 class="wt-h2">@L.Resource("WorldPets_TamedPetsInThisWorld")</h2>
+    <p class="wt-intro">@L.Resource("WorldPets_PetListIntro")</p>
+
+    <div class="wt-md">
+        <div class="wt-list" role="listbox" aria-label="@L.Resource("WorldPets_TamedPetsInThisWorld")">
+            @if (AllPets.Count == 0)
+            {
+                <p class="wt-empty">@L.Resource("WorldPets_NoPetsInThisWorldSave")</p>
+            }
+            else
+            {
+                @foreach (var row in AllPets)
+                {
+                    <button type="button" role="option" aria-selected="@(_selectedId == row.Id)"
+                            class="wt-row pet-row-item @(_selectedId == row.Id ? "selected" : null)" @key="row.Id"
+                            @onclick="() => _selectedId = row.Id">
+                        <span class="pet-avatar" aria-hidden="true">
+                            <span class="pet-avatar-letter">@Avatar(row)</span>
+                            <GameArtImage GameRefs="@PetCatalog.CompendiumTextureRefs(row.NpcClass)" Alt="" Class="pet-avatar-img" />
+                        </span>
+                        <span class="wt-row-text">
+                            <strong>@PetName(row)</strong>
+                            <small>@FriendlyClass(row)</small>
+                        </span>
+                        <span class="wt-row-status">@StatusText(row)</span>
+                    </button>
+                }
+            }
+        </div>
+
+        <div class="wt-detail">
+            @if (Selected is not { } pet)
+            {
+                <p class="wt-select-hint">@L.Resource("WorldPets_SelectAPetToEditIt")</p>
+            }
+            else
+            {
+                var editable = !PetCatalog.IsSummon(pet.NpcClass);
+                <h3 class="wt-h3">@PetName(pet)</h3>
+                <p class="wt-status-text">@FriendlyClass(pet)</p>
+
+                <div class="wt-field">
+                    <span class="wt-label">@L.Resource("WorldPets_Location")</span>
+                    <span class="wt-muted">@LocationText(pet)</span>
+                </div>
+
+                <GameArtImage GameRefs="@PetCatalog.CompendiumTextureRefs(pet.NpcClass)" Alt="@PetName(pet)" Class="pet-portrait" />
+
+                @if (!editable)
+                {
+                    <p class="wt-notice">@L.Resource("WorldPets_ArmorSetSummonNotice")</p>
+                }
+
+                @if (editable)
+                {
+                    <label class="wt-field">
+                        <span class="wt-label">@L.Resource("WorldPets_Name")</span>
+                        <input class="wt-input" value="@pet.CustomName" placeholder="@L.Resource("WorldPets_NameYourPet")"
+                               @onchange="e => SetName(pet, e.Value?.ToString())" />
+                    </label>
+
+                    <div class="wt-field">
+                        <span class="wt-label">@L.Resource("WorldPets_CreatureTypeUpgradeDowngrade")</span>
+                        <select class="wt-input" value="@pet.NpcClass" @onchange="e => SetClass(pet, e.Value?.ToString())">
+                            @foreach (var variant in VariantOptions(pet))
+                            {
+                                <option value="@variant.ClassPath">@variant.FriendlyName</option>
+                            }
+                        </select>
+                        <small class="wt-muted">@L.Resource("WorldPets_FamilyFormat", FamilyName(pet))</small>
+                    </div>
+
+                    <hr class="wt-divider" />
+
+                    <div class="wt-field">
+                        <span class="wt-label accent-hazard-text">@L.Resource("WorldPets_LevelAndXp")</span>
+                        <div class="pet-level-row">
+                            <span class="wt-label">@L.Resource("WorldPets_Lv")</span>
+                            <input type="number" min="0" max="@PetCatalog.MaxLevel" value="@pet.Level" class="wt-input pet-level-input"
+                                   aria-label="@L.Resource("WorldPets_Lv")"
+                                   @onchange="e => SetLevel(pet, e.Value?.ToString())" />
+                            <span class="wt-label">@L.Resource("WorldPets_Xp")</span>
+                            <input type="number" min="0" value="@pet.Xp" class="wt-readout-input"
+                                   aria-label="@L.Resource("WorldPets_Xp")"
+                                   @onchange="e => SetXp(pet, e.Value?.ToString())" />
+                        </div>
+                        <small class="wt-muted">@L.Resource("WorldPets_LevelDescriptionFormat", pet.Level)</small>
+                    </div>
+
+                    <hr class="wt-divider" />
+
+                    <div class="wt-field">
+                        <span class="wt-label accent-terminal-text">@L.Resource("WorldPets_Health")</span>
+                        <div class="pet-health-row">
+                            <label class="wt-check">
+                                <input type="checkbox" checked="@pet.IsDead" @onchange="e => SetDead(pet, e.Value is bool value && value)" />
+                                @L.Resource("WorldPets_Dead")
+                            </label>
+                            <span class="pet-health-status">@StatusText(pet)</span>
+                            <span class="wt-muted">@L.Resource("WorldPets_TotalHealthFormat", pet.TotalHealth)</span>
+                        </div>
+                        <div class="wt-button-row">
+                            <button type="button" class="wt-btn wt-green" @onclick="() => Heal(pet)">@L.Resource("WorldPets_HealToFull")</button>
+                            <button type="button" class="wt-btn wt-yellow" @onclick="() => Down(pet)">@L.Resource("WorldPets_Down")</button>
+                            <button type="button" class="wt-btn wt-green" @onclick="() => Revive(pet)">@L.Resource("WorldPets_Revive")</button>
+                        </div>
+                        <div class="pet-limbs">
+                            @foreach (var limb in pet.LimbHealth.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+                            {
+                                <label class="pet-limb-row" @key="limb.Key">
+                                    <span class="wt-label">@LimbName(limb.Key)</span>
+                                    @* One decimal at most: the stored floats carry accumulated
+                                       game arithmetic like 87.4999999. *@
+                                    <input type="number" min="0" step="any" value="@FormatHealth(limb.Value)" class="wt-input"
+                                           @onchange="e => SetLimb(pet, limb.Key, e.Value?.ToString())" />
+                                </label>
+                            }
+                        </div>
+                        <small class="wt-muted">@L.Resource("WorldPets_PerLimbHealthHelp")</small>
+                    </div>
+
+                    <hr class="wt-divider" />
+                }
+
+                @if (!IsDeleted(pet))
+                {
+                    <button type="button" class="wt-btn wt-red wide" @onclick="() => Delete(pet)">@L.Resource("WorldPets_DeletePetFromWorld")</button>
+                }
+                else
+                {
+                    <button type="button" class="wt-btn wt-yellow wide" @onclick="() => UndoDelete(pet)">@L.Resource("WorldPets_UndoDelete")</button>
+                }
+
+                @if (PlayerSession is not null && !pet.Id.StartsWith("pending-", StringComparison.Ordinal))
+                {
+                    <hr class="wt-divider" />
+                    <div class="wt-field">
+                        <span class="wt-label accent-terminal-text">@L.Resource("WorldPets_SendToAPlayer")</span>
+                        <select class="wt-input" aria-label="@L.Resource("WorldPets_SendToAPlayer")">
+                            <option>@PlainNames.Player(L, PlayerSession.SteamIdentifier)</option>
+                        </select>
+                        <label class="wt-check">
+                            <input type="checkbox" checked="@_sendToCompanion" @onchange="e => _sendToCompanion = e.Value is bool value && value" />
+                            @L.Resource("WorldPets_CompanionSlotHint")
+                        </label>
+                        <button type="button" class="wt-btn wt-green" @onclick="() => SendToPlayer(pet)">@L.Resource("WorldPets_SendToPlayer")</button>
+                        @if (_petMoveStatus is not null) { <small class="wt-muted" role="status">@_petMoveStatus</small> }
+                        <small class="wt-muted">@L.Resource("WorldPets_SendToPlayerHelp")</small>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter] public PlayerSaveSession? PlayerSession { get; set; }
+    [Parameter] public string Title { get; set; } = "World editor";
+    [Parameter] public EventCallback<string?> OnError { get; set; }
+
+    private string? _selectedId;
+    private bool _sendToCompanion;
+    private string? _petMoveStatus;
+    // Deleted pets stay listed (native parity: "WILL BE DELETED" + UNDO) until SAVE.
+    private readonly Dictionary<string, WorldPet> _deleted = new(StringComparer.Ordinal);
+    // The used-limb set and "full" value are captured from the loaded state so DOWN -> HEAL
+    // stays reversible even after every limb reads 0 (mirrors the native editor).
+    private readonly Dictionary<string, (IReadOnlyList<string> Used, double Full)> _healBaselines = new(StringComparer.Ordinal);
+
+    private List<WorldPet> AllPets => Session.Pets
+        .Concat(_deleted.Values.Where(pet => !Session.Pets.Any(live => live.Id == pet.Id)))
+        .OrderBy(pet => pet.DisplayName, StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    private WorldPet? Selected => _selectedId is null ? null : AllPets.FirstOrDefault(pet => pet.Id == _selectedId);
+
+    private bool IsDeleted(WorldPet pet) => _deleted.ContainsKey(pet.Id) && !Session.Pets.Any(live => live.Id == pet.Id);
+
+    /// <summary>What kind of creature this is, in words. Unknown (for example modded)
+    /// creatures at least read as spaced-out words rather than a run-together class name.</summary>
+    private string FriendlyClass(WorldPet pet)
+        => PetCatalog.FriendlyName(pet.NpcClass) ?? PlainNames.Words(pet.ShortClass);
+
+    /// <summary>The pet's name: what the player called it, otherwise what it is.</summary>
+    private string PetName(WorldPet pet)
+        => string.IsNullOrWhiteSpace(pet.CustomName) ? FriendlyClass(pet) : pet.CustomName!;
+
+    private string FamilyName(WorldPet pet)
+    {
+        var category = PetCatalog.Categorize(pet.NpcClass);
+        return L.ResourceOrNull($"WorldPets_Family_{category}") ?? PlainNames.Words(category.ToString());
+    }
+
+    private string Avatar(WorldPet pet) { var family = FamilyName(pet); return family.Length > 0 ? family[..1] : "?"; }
+
+    private string StatusText(WorldPet pet)
+    {
+        if (IsDeleted(pet)) return L.Resource("WorldPets_StatusWillBeDeleted");
+        return PetHealth.Status(pet) switch
+        {
+            PetStatus.Dead => L.Resource("WorldPets_StatusDead"),
+            PetStatus.Downed => L.Resource("WorldPets_StatusDowned"),
+            PetStatus.Hurt => L.Resource("WorldPets_StatusHurt"),
+            _ => L.Resource("WorldPets_StatusHealthy"),
+        };
+    }
+
+    private string LocationText(WorldPet pet)
+    {
+        var coords = $"X {pet.X:0}, Y {pet.Y:0}, Z {pet.Z:0}";
+        var area = WorldAreaCatalog.FriendlyNameFromSaveFile(Session.Path);
+        return string.IsNullOrEmpty(area) ? coords : $"{area}  ({coords})";
+    }
+
+    /// <summary>Body-part labels as ordinary words ("Left Arm"), not the run-together names
+    /// the save stores them under.</summary>
+    private static string LimbName(string value) => PlainNames.Words(value);
+
+    private static string FormatHealth(double value)
+        => Math.Round(value, 1).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+
+    private List<PetVariant> VariantOptions(WorldPet pet)
+    {
+        var options = PetCatalog.Curated.Where(variant => variant.IsEditable).ToList();
+        var currentShort = PetCatalog.ShortOf(pet.NpcClass);
+        if (!options.Any(variant => string.Equals(variant.ShortClass, currentShort, StringComparison.OrdinalIgnoreCase))
+            && !string.IsNullOrEmpty(pet.NpcClass))
+        {
+            options.Insert(0, new PetVariant(pet.NpcClass!, currentShort,
+                PetCatalog.FriendlyName(pet.NpcClass) ?? currentShort, PetCatalog.Categorize(pet.NpcClass)));
+        }
+        return options;
+    }
+
+    private (IReadOnlyList<string> Used, double Full) HealBaseline(WorldPet pet)
+    {
+        if (_healBaselines.TryGetValue(pet.Id, out var baseline)) return baseline;
+        var used = PetHealth.TrackedLimbs(pet);
+        if (used.Count == 0) used = pet.LimbHealth.Keys.ToList();
+        var max = PetHealth.MaxLimb(pet);
+        baseline = (used, max > 0 ? max : 100.0);
+        _healBaselines[pet.Id] = baseline;
+        return baseline;
+    }
+
+    private void Apply(WorldPet pet, bool? dead = null, string? npcClass = null, string? name = null, int? xp = null, IReadOnlyDictionary<string, double>? limbs = null)
+    {
+        Session.SetPet(pet.Id, dead ?? pet.IsDead, npcClass ?? pet.NpcClass, name ?? pet.CustomName, xp ?? pet.Xp, limbs ?? pet.LimbHealth);
+        Workspace.NotifyEdited();
+    }
+
+    private void SetName(WorldPet pet, string? value) { Session.SetPet(pet.Id, pet.IsDead, pet.NpcClass, value, pet.Xp, pet.LimbHealth); Workspace.NotifyEdited(); }
+    private void SetClass(WorldPet pet, string? value) { Session.SetPet(pet.Id, pet.IsDead, value, pet.CustomName, pet.Xp, pet.LimbHealth); Workspace.NotifyEdited(); }
+    private void SetDead(WorldPet pet, bool value) => Apply(pet, dead: value);
+    private void SetXp(WorldPet pet, string? value) { if (int.TryParse(value, out var xp)) Apply(pet, xp: xp); }
+    private void SetLevel(WorldPet pet, string? value)
+    {
+        if (int.TryParse(value, out var level))
+            Apply(pet, xp: PetCatalog.XpForLevel(Math.Clamp(level, 0, PetCatalog.MaxLevel)));
+    }
+
+    private void SetLimb(WorldPet pet, string key, string? value)
+    {
+        if (!double.TryParse(value, out var health)) return;
+        HealBaseline(pet);
+        var limbs = pet.LimbHealth.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        limbs[key] = health;
+        Apply(pet, limbs: limbs);
+    }
+
+    private void SetUsedLimbs(WorldPet pet, double target, out Dictionary<string, double> limbs)
+    {
+        var (used, _) = HealBaseline(pet);
+        limbs = pet.LimbHealth.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        foreach (var key in used) limbs[key] = target;
+    }
+
+    private void Heal(WorldPet pet) { SetUsedLimbs(pet, HealBaseline(pet).Full, out var limbs); Apply(pet, dead: false, limbs: limbs); }
+    private void Down(WorldPet pet) { SetUsedLimbs(pet, 0, out var limbs); Apply(pet, dead: false, limbs: limbs); }
+    private void Revive(WorldPet pet)
+    {
+        var full = HealBaseline(pet).Full;
+        SetUsedLimbs(pet, full > 0 ? Math.Max(1, full * 0.25) : 1, out var limbs);
+        Apply(pet, dead: false, limbs: limbs);
+    }
+
+    private void Delete(WorldPet pet) { _deleted[pet.Id] = pet; Session.RemovePet(pet.Id); Workspace.NotifyEdited(); }
+    private void UndoDelete(WorldPet pet) { if (Session.RestorePet(pet)) { _deleted.Remove(pet.Id); Workspace.NotifyEdited(); } }
+
+    private async Task SendToPlayer(WorldPet pet)
+    {
+        if (PlayerSession is null) return;
+        var target = PlainNames.Player(L, PlayerSession.SteamIdentifier);
+        _petMoveStatus = L.Resource("WorldPets_SendingFormat", PetName(pet), target);
+        var kind = _sendToCompanion ? PetSlotKind.Equipment : PetSlotKind.Hotbar;
+        if (PlayerSession.TryAddWorldPet(pet, kind, out var message))
+        {
+            Session.RemovePet(pet.Id);
+            if (_selectedId == pet.Id) _selectedId = null;
+            _petMoveStatus = L.Resource("WorldPets_SentFormat", PetName(pet), target);
+            Workspace.NotifyEdited();
+        }
+        else
+        {
+            _petMoveStatus = L.Resource("WorldPets_MoveFailedFormat", message);
+            await OnError.InvokeAsync(message);
+        }
+    }
+}

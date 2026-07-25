@@ -1,0 +1,487 @@
+@namespace AbioticEditor.Web.Components.Player
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Core.Codex
+@using AbioticEditor.Core.Items
+@inject RecipeVocabularyService RecipeVocabulary
+@inject ItemCatalogService Items
+@inject HostSpoilerPreferences Spoilers
+@inject RecipeProgressGateService Gate
+@inject TraderVocabularyService TraderVocabulary
+@inject ToastService Toasts
+@inject ModalService Modals
+@inject InventorySelectionService Selection
+@implements IDisposable
+
+@* Faithful port of the retired native RECIPES tab: the RECIPE BOOK panel with search,
+   ALL/LOCKED/UNLOCKED radios, wiki category chips, the checkbox recipe list and the
+   wiki-style detail pane for the selected recipe. *@
+<section class="editor-card rb-panel" aria-label="@L.Resource("PlayerRecipes_RecipeBook")">
+    <div class="rb-header">
+        <h3>@L.Resource("PlayerRecipes_RecipeBook")</h3>
+        <span class="rb-count">@CountText</span>
+        <button type="button" class="rb-unlock-all" disabled="@(_rows is null || _rows.All(row => row.Edit.IsUnlocked))" @onclick="RequestUnlockAll">@L.Resource("PlayerRecipes_UnlockAll")</button>
+    </div>
+    <div class="hazard" role="presentation"></div>
+
+    <div class="rb-toolbar">
+        <input type="search" placeholder="@L.Resource("PlayerRecipes_SearchPlaceholder")" aria-label="@L.Resource("PlayerRecipes_SearchPlaceholder")"
+               @bind="Search" @bind:event="oninput" />
+        <div class="rb-filter" role="radiogroup" aria-label="@L.Resource("PlayerRecipes_RecipeBook")">
+            <label><input type="radio" name="recipeFilter" checked="@(_filter == Show.All)" @onchange="() => SetFilter(Show.All)" /> @L.Resource("Palette_CategoryAll")</label>
+            <label><input type="radio" name="recipeFilter" checked="@(_filter == Show.Locked)" @onchange="() => SetFilter(Show.Locked)" /> @L.Resource("PlayerRecipes_BadgeLocked")</label>
+            <label><input type="radio" name="recipeFilter" checked="@(_filter == Show.Unlocked)" @onchange="() => SetFilter(Show.Unlocked)" /> @L.Resource("PlayerRecipes_BadgeUnlocked")</label>
+        </div>
+    </div>
+
+    <div class="rb-chips">
+        @foreach (var category in Categories)
+        {
+            <button type="button" class="rb-chip @(Equals(_selectedCategoryKey, category.Key) ? "selected" : null)"
+                    aria-pressed="@Equals(_selectedCategoryKey, category.Key)"
+                    @onclick="() => _selectedCategoryKey = category.Key">@category.Label</button>
+        }
+    </div>
+
+    <div class="rb-split no-detail">
+        <div class="rb-list" role="listbox" aria-label="@L.Resource("PlayerRecipes_RecipeBook")">
+            @if (_rows is null)
+            {
+                <div class="editor-loading"><span class="editor-loading-spinner" role="presentation"></span></div>
+            }
+            else if (!VisibleRows.Any())
+            {
+                <p class="rb-empty">@L.Resource("PlayerRecipes_NoRecipesMatch")</p>
+            }
+            else
+            {
+                @foreach (var row in VisibleRows)
+                {
+                    var concealed = Concealed(row);
+                    @* The hover text is just the item's own description, when it has one. *@
+                    <div class="rb-row @(ReferenceEquals(row, SelectedRow) ? "selected" : null)" @key="row.Info.Id"
+                         role="option" aria-selected="@ReferenceEquals(row, SelectedRow)" tabindex="0"
+                         title="@(concealed ? L.Resource("Spoiler_ClassifiedHint") : RowTooltip(row))"
+                         @onclick="() => SelectRow(row)" @onkeydown="e => RowKeyDown(e, row)">
+                        @* The @key includes a nonce so a progress-gated (refused) unlock recreates the
+                           checkbox and it visibly snaps back to unchecked, like the native toggle. *@
+                        <input class="rb-checkbox" type="checkbox" checked="@row.Edit.IsUnlocked" disabled="@concealed"
+                               aria-label="@ShownName(row)" @key="@($"{row.Info.Id}:{_gateNonce}")"
+                               @onclick:stopPropagation @onchange="e => SetUnlocked(row, e.Value is bool value && value)" />
+                        <span class="rb-row-icon">
+                            @if (!concealed && row.Info.CreatesItemId is { } rowItemId)
+                            {
+                                <ItemIcon ItemId="@rowItemId" Alt="" />
+                            }
+                        </span>
+                        <span class="rb-row-text">
+                            <strong>@ShownName(row)</strong>
+                            @if (!concealed)
+                            {
+                                <small>@SubText(row.Info)</small>
+                            }
+                        </span>
+                        <span class="rb-row-status">@(concealed ? L.Resource("Spoiler_ClassifiedShort") : L.Resource(row.Edit.IsUnlocked ? "PlayerRecipes_BadgeUnlocked" : "PlayerRecipes_BadgeLocked"))</span>
+                    </div>
+                }
+            }
+        </div>
+
+    </div>
+
+    <p class="rb-help">@L.Resource("PlayerRecipes_FooterHelp")</p>
+</section>
+
+@code {
+    /// <summary>
+    /// The open recipe, rendered into the editor's right-hand pane instead of a column beside
+    /// the list. The list gets the whole tab, and a recipe reads in the same place as a door,
+    /// a container slot or a journal entry.
+    /// </summary>
+    private RenderFragment DetailContent => __builder =>
+    {
+        @if (SelectedRow is { } selected)
+        {
+            <div class="detail-card detail-card--terminal rb-detail-card" aria-label="@DisplayName(selected)">
+                <div class="detail-head">
+                    <span class="detail-title"><strong>@DisplayName(selected)</strong><small>@SubText(selected.Info)</small></span>
+                    <button class="detail-close" type="button" @onclick="CloseOwnDetail">✕</button>
+                </div>
+                @if (selected.Info.CreatesItemId is { } selectedItemId)
+                {
+                    <span class="rb-detail-icon"><ItemIcon ItemId="@selectedItemId" Alt="@DisplayName(selected)" /></span>
+                }
+                @if (StatsText(selected) is { Length: > 0 } stats)
+                {
+                    <p class="rb-detail-stats">@stats</p>
+                }
+                <div class="rb-detail-divider" role="presentation"></div>
+                @if (selected.CreatedItem?.Description is { Length: > 0 } description)
+                {
+                    <p class="rb-detail-desc">@description</p>
+                }
+                <span class="sp-label">@L.Resource("PlayerRecipes_Ingredients")</span>
+                <p class="rb-detail-value">@IngredientsText(selected.Info)</p>
+                <p class="rb-detail-output">@L.Resource("PlayerRecipes_MakesCount", selected.Info.Count > 1 ? selected.Info.Count : 1)</p>
+                <span class="sp-label">@L.Resource("PlayerRecipes_CraftedAt")</span>
+                <p class="rb-detail-value">@BenchesText(selected.Info)</p>
+                @if (UpgradePathText(selected) is { Length: > 0 } upgradePath)
+                {
+                    <span class="sp-label">@L.Resource("PlayerRecipes_UpgradePath")</span>
+                    <p class="rb-detail-upgrade">@upgradePath</p>
+                }
+                @if (UsedInText(selected) is { Length: > 0 } usedIn)
+                {
+                    <span class="sp-label">@L.Resource("PlayerRecipes_UsedIn")</span>
+                    <p class="rb-detail-value">@usedIn</p>
+                }
+                @if (SoldByText(selected) is { Length: > 0 } soldBy)
+                {
+                    <span class="sp-label">@L.Resource("PlayerRecipes_SoldBy")</span>
+                    <p class="rb-detail-value">@soldBy</p>
+                }
+                @if (selected.CreatedItem is { Tags.Count: > 0 } tagged)
+                {
+                    <span class="sp-label">@L.Resource("PlayerRecipes_Tags")</span>
+                    @* Tags arrive as engine ids like "Item.Throwable"; show the readable last
+                       word ("Throwable") rather than the dotted path a player cannot use. *@
+                    <p class="rb-detail-tags">@string.Join("  ", tagged.Tags.Select(PlainNames.Words))</p>
+                }
+            </div>
+        }
+    };
+
+    private const string DetailKeyPrefix = "player-recipe:";
+
+    /// <summary>(Re-)publishes the open recipe to the right-hand pane.</summary>
+    private void ShowOwnDetail()
+    {
+        if (SelectedRow is { } row) Selection.ShowDetail(DetailKeyPrefix + row.Info.Id, DetailContent);
+    }
+
+    private void CloseOwnDetail()
+    {
+        _selected = null;
+        if (Selection.DetailKey?.StartsWith(DetailKeyPrefix, StringComparison.Ordinal) == true)
+        {
+            Selection.CloseDetail();
+        }
+    }
+
+    /// <summary>Drops the stale row highlight when the pane closes or another tab takes it.</summary>
+    private void OnSelectionChanged()
+    {
+        if (SelectedRow is { } row && Selection.DetailKey != DetailKeyPrefix + row.Info.Id)
+        {
+            _selected = null;
+        }
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Selection.Changed -= OnSelectionChanged;
+        // Leaving the tab retires this tab's own card, never someone else's.
+        if (Selection.DetailKey?.StartsWith(DetailKeyPrefix, StringComparison.Ordinal) == true)
+        {
+            Selection.CloseDetail();
+        }
+    }
+
+    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private enum Show { All, Locked, Unlocked }
+
+    /// <summary>One recipe row: the game-data definition, its crafted item and the staged unlock flag.</summary>
+    private sealed record RecipeRow(RecipeInfo Info, ItemCatalogEntry? CreatedItem, PlayerRecipeEdit Edit);
+
+    private PlayerSaveSession? _boundSession;
+    private IReadOnlyList<RecipeRow>? _rows;
+    private ILookup<string, RecipeInfo>? _usedIn;
+    // World story progress for the unlock gate (null = unknown, nothing gated) and the
+    // trader roster (live pak stock preferred, built-in snapshot otherwise).
+    private IReadOnlySet<string>? _worldFlags;
+    private IReadOnlyList<TraderInfo>? _traders;
+    private int _gateNonce;
+    private Show _filter = Show.All;
+    private string Search { get; set; } = string.Empty;
+    private string? _selectedCategoryKey;
+    private RecipeRow? _selected;
+
+    /// <summary>Wiki-ordered buckets keyed by the crafted item's category, plus the game's two
+    /// dedicated recipe tables (soups, chemistry) - the native chip row.</summary>
+    private IReadOnlyList<(string Label, string? Key)> Categories =>
+    [
+        (L.Resource("Palette_CategoryAll"), null),
+        (L.Resource("Palette_CategoryWeapons"), "@weapons"),
+        (L.Resource("Palette_CategoryArmor"), "@armor"),
+        (L.Resource("Palette_CategoryTools"), "@tools"),
+        (L.Resource("Palette_CategoryPower"), "@power"),
+        (L.Resource("Palette_CategoryDefense"), "@defense"),
+        (L.Resource("Palette_CategoryFurniture"), "@furniture"),
+        (L.Resource("Palette_CategoryMedical"), "@medical"),
+        (L.Resource("Palette_CategoryFood"), "@food"),
+        (L.Resource("Palette_CategoryFarming"), "@farming"),
+        (L.Resource("Palette_CategoryResources"), "@resources"),
+        (L.Resource("PlayerRecipes_CategorySoups"), "#Soup"),
+        (L.Resource("PlayerRecipes_CategoryChemistry"), "#Chemistry"),
+    ];
+
+    protected override void OnInitialized() => Selection.Changed += OnSelectionChanged;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ReferenceEquals(_boundSession, Session)) return;
+        _boundSession = Session;
+        _rows = null;
+        CloseOwnDetail();
+        // Mounting the game paks is expensive; keep it off the render path (native rule).
+        // The same background hop resolves the sibling world's story flags for the unlock
+        // gate, warms the email vocabulary the gate consults, and loads the trader roster
+        // (live pak stock when the game is installed, the built-in snapshot otherwise).
+        var session = Session;
+        var (infos, worldFlags, traders) = await Task.Run(() =>
+        {
+            var recipeInfos = RecipeVocabulary.GetRecipeInfos();
+            var flags = Gate.ResolveWorldFlags(session.Path);
+            if (flags is not null) Gate.Warm();
+            return (recipeInfos, flags, TraderVocabulary.GetTraders());
+        });
+        if (!ReferenceEquals(_boundSession, Session)) return;
+        _worldFlags = worldFlags;
+        _traders = traders;
+        Session.EnsureRecipeRows(infos.Select(info => info.Id));
+        var editsById = Session.Recipes.ToDictionary(edit => edit.Id, StringComparer.Ordinal);
+        _rows = infos
+            .Select(info => new RecipeRow(info,
+                info.CreatesItemId is { } created ? Items.Find(created) : null,
+                editsById[info.Id]))
+            .OrderBy(row => DisplayName(row), StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        _usedIn = infos
+            .SelectMany(info => info.IngredientList.Select(ingredient => (ingredient.ItemId, info)))
+            .ToLookup(pair => pair.ItemId, pair => pair.info, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private RecipeRow? SelectedRow => _selected;
+
+    // Null rows mean the pak read is still running - that is "loading", not "unavailable".
+    // Only an empty result after the load (no game install found) earns the unavailable text.
+    private string CountText => _rows is null
+        ? L.Resource("PlayerRecipes_CountLoading")
+        : _rows.Count > 0
+            ? L.Resource("PlayerRecipes_CountUnlocked", Session.UnlockedRecipeCount, Session.RecipeCount)
+            : L.Resource("PlayerRecipes_GameDataUnavailable");
+
+    private IEnumerable<RecipeRow> VisibleRows
+    {
+        get
+        {
+            IEnumerable<RecipeRow> query = (_rows ?? []).Where(MatchesCategory);
+            if (_filter == Show.Locked) query = query.Where(row => !row.Edit.IsUnlocked);
+            else if (_filter == Show.Unlocked) query = query.Where(row => row.Edit.IsUnlocked);
+            if (!string.IsNullOrWhiteSpace(Search))
+            {
+                var term = Search.Trim();
+                query = query.Where(row =>
+                    DisplayName(row).Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                    row.Info.Id.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                    (row.Info.CreatesItemId?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false));
+            }
+            return query;
+        }
+    }
+
+    private bool MatchesCategory(RecipeRow row)
+    {
+        var key = _selectedCategoryKey;
+        if (key is null) return true;
+        if (key.StartsWith('#')) return string.Equals(row.Info.Source, key[1..], StringComparison.OrdinalIgnoreCase);
+        if (row.Info.Source != "Crafting") return false;
+        return row.CreatedItem is not null && ItemCatalogService.CategoryOf(row.CreatedItem) == key[1..];
+    }
+
+    private static string DisplayName(RecipeRow row)
+        => row.CreatedItem?.DisplayName ?? PlainNames.Words(row.Info.CreatesItemId ?? row.Info.Id);
+
+    /// <summary>
+    /// The line under a recipe's name. It used to lead with the recipe's internal name, which
+    /// meant nothing to anybody reading it; what actually tells two same-named recipes apart
+    /// is how many one craft yields and which bench it is made at, so that is what shows now.
+    /// The internal name stays in the row's hover text for troubleshooting.
+    /// </summary>
+    private string SubText(RecipeInfo info)
+    {
+        var makes = info.Count > 1 ? L.Resource("PlayerRecipes_SubTextMakes", info.Count) + " · " : string.Empty;
+        return makes + BenchesText(info);
+    }
+
+    /// <summary>A locked recipe is content the player hasn't unlocked yet (a craftable spoiler).</summary>
+    private bool Concealed(RecipeRow row)
+        => Spoilers.Enabled && !row.Edit.IsUnlocked && !Spoilers.IsRevealed(SpoilerKey(row));
+
+    private static string SpoilerKey(RecipeRow row) => $"recipe:{row.Info.Id}";
+
+    private string ShownName(RecipeRow row) => Concealed(row) ? L.Resource("Spoiler_Redacted") : DisplayName(row);
+
+    /// <summary>The hover text is the item's own in-game description, or nothing at all when it
+    /// has none. The recipe's stored name never appears: it means nothing to a player.</summary>
+    private static string RowTooltip(RecipeRow row)
+        => row.CreatedItem?.Description ?? string.Empty;
+
+    private void SelectRow(RecipeRow row)
+    {
+        // A sealed recipe can't open its detail card; tapping it prompts the clearance
+        // override in the shared modal dialog instead (native spoiler flow).
+        if (Concealed(row)) { RequestReveal(row); return; }
+        // Tapping the open row again closes the card, matching every other list in the editor.
+        if (ReferenceEquals(_selected, row) && Selection.DetailKey == DetailKeyPrefix + row.Info.Id)
+        {
+            CloseOwnDetail();
+            return;
+        }
+        _selected = row;
+        ShowOwnDetail();
+    }
+
+    private void RowKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs args, RecipeRow row)
+    {
+        if (args.Key is "Enter" or " ") SelectRow(row);
+    }
+
+    private void RequestReveal(RecipeRow row) => Modals.Show(new ModalRequest(
+        L.Resource("Spoiler_OverrideTitle"),
+        Paragraph(L.Resource("Spoiler_OverrideMessage", L.Resource("PlayerRecipes_ThisRecipe"))),
+        ConfirmText: L.Resource("Spoiler_OverrideAccept"),
+        OnConfirm: async () => { Reveal(row); await InvokeAsync(StateHasChanged); },
+        CancelText: L.Resource("Spoiler_OverrideKeepSealed")));
+
+    private void Reveal(RecipeRow row)
+    {
+        Spoilers.Reveal(SpoilerKey(row));
+        _selected = row;
+    }
+
+    // UNLOCK ALL confirms through the shared modal, mirroring the native ConfirmBulkAsync dialog.
+    private void RequestUnlockAll() => Modals.Show(new ModalRequest(
+        L.Resource("Dialog_BulkConfirmTitle"),
+        Paragraph(L.Resource("Dialog_BulkConfirmMessage", L.Resource("PlayerRecipes_BulkUnlockConfirmWhat"))),
+        ConfirmText: L.Resource("Dialog_BulkConfirmAccept"),
+        OnConfirm: UnlockAll,
+        CancelText: L.Resource("Common_Cancel")));
+
+    private static RenderFragment Paragraph(string text) => builder =>
+    {
+        builder.OpenElement(0, "p");
+        builder.AddAttribute(1, "style", "white-space:pre-line;margin:0");
+        builder.AddContent(2, text);
+        builder.CloseElement();
+    };
+
+    private void SetFilter(Show filter) => _filter = filter;
+
+    private async Task SetUnlocked(RecipeRow row, bool unlocked)
+    {
+        // Progress gate (native rule): recipes granted by an email in an unreached region
+        // stay locked; the refusal reason lands on the status toast and the box snaps back.
+        if (unlocked && Gate.CheckUnlock(row.Info.Id, _worldFlags) is { } block)
+        {
+            Toasts.Show(GateMessage(block), ToastKind.Warning);
+            _gateNonce++;
+            return;
+        }
+        row.Edit.IsUnlocked = unlocked;
+        await Changed();
+    }
+
+    private async Task UnlockAll()
+    {
+        // Native UNLOCK ALL runs each row through the same progress gate, so gated
+        // recipes stay locked and the last refusal reason is the one left showing.
+        RecipeGateBlock? lastBlock = null;
+        foreach (var row in _rows ?? [])
+        {
+            if (row.Edit.IsUnlocked) continue;
+            if (Gate.CheckUnlock(row.Info.Id, _worldFlags) is { } block) { lastBlock = block; continue; }
+            row.Edit.IsUnlocked = true;
+        }
+        if (lastBlock is not null) Toasts.Show(GateMessage(lastBlock), ToastKind.Warning);
+        await Changed();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string GateMessage(RecipeGateBlock block)
+        => L.Resource("Progress_RecipeGated",
+            RecipeName(block.RecipeId), block.EmailSubject, block.ChapterTitle,
+            PlainNames.Flag(L, block.TriggerFlag));
+
+    /// <summary>The crafted item's name for a recipe, so refusals name something recognisable
+    /// rather than the recipe's internal name.</summary>
+    private string RecipeName(string recipeId)
+        => _rows?.FirstOrDefault(row => string.Equals(row.Info.Id, recipeId, StringComparison.OrdinalIgnoreCase)) is { } row
+            ? DisplayName(row)
+            : PlainNames.Words(recipeId);
+
+    /// <summary>Item stat dump for the detail panel (stack/durability/weight/weapon).</summary>
+    private string StatsText(RecipeRow row)
+    {
+        if (row.CreatedItem is not { } entry) return string.Empty;
+        var parts = new List<string>();
+        if (entry.StackSize > 1) parts.Add(L.Resource("PlayerRecipes_StatStack", entry.StackSize));
+        if (entry.MaxDurability > 0) parts.Add(L.Resource("PlayerRecipes_StatDurability", entry.MaxDurability));
+        // Weight always carries its unit, so it reads as a weight next to "Stack 5" and
+        // "Durability 100" instead of looking like one more count.
+        if (entry.Weight > 0) parts.Add(L.Resource("PlayerRecipes_StatWeightKg", entry.Weight));
+        if (entry.IsWeapon) parts.Add(L.Resource("PlayerRecipes_StatWeapon"));
+        return string.Join(" · ", parts);
+    }
+
+    /// <summary>Ingredient lines, e.g. "2× Scrap Metal".</summary>
+    private string IngredientsText(RecipeInfo info) => info.IngredientList.Count == 0
+        ? L.Resource("PlayerRecipes_NoIngredientsRecorded")
+        : string.Join("\n", info.IngredientList.Select(ingredient =>
+            $"{ingredient.Count}× {Items.Find(ingredient.ItemId)?.DisplayName ?? PlainNames.Words(ingredient.ItemId)}"));
+
+    private string BenchesText(RecipeInfo info) => info.BenchList.Count == 0
+        ? L.Resource("PlayerRecipes_HandsNoBench")
+        : string.Join(", ", info.BenchList.Select(bench => Items.Find(bench)?.DisplayName ?? PlainNames.Words(bench)));
+
+    /// <summary>Upgrade path of the crafted item (DT_ItemUpgrades), if any.</summary>
+    private string UpgradePathText(RecipeRow row)
+    {
+        if (row.Info.CreatesItemId is not { } itemId) return string.Empty;
+        var upgrade = Session.ItemUpgrades.UpgradeFor(itemId);
+        if (upgrade is null) return string.Empty;
+        var cost = string.Join(", ", upgrade.Required.Select(required =>
+            $"{required.Count}× {Items.Find(required.ItemId)?.DisplayName ?? PlainNames.Words(required.ItemId)}"));
+        return L.Resource("PlayerRecipes_UpgradesTo", Items.Find(upgrade.OutputId)?.DisplayName ?? PlainNames.Words(upgrade.OutputId))
+            + (cost.Length > 0 ? $" ({cost})" : string.Empty);
+    }
+
+    /// <summary>What the crafted item is itself an ingredient of.</summary>
+    private string UsedInText(RecipeRow row)
+    {
+        if (row.Info.CreatesItemId is not { } itemId || _usedIn is null) return string.Empty;
+        return string.Join(", ", _usedIn[itemId]
+            .Select(recipe => recipe.CreatesItemId is { } created ? (Items.Find(created)?.DisplayName ?? PlainNames.Words(created)) : PlainNames.Words(recipe.Id))
+            .Distinct()
+            .Take(14));
+    }
+
+    private string SoldByText(RecipeRow row) => row.Info.CreatesItemId is not { } itemId
+        ? string.Empty
+        : string.Join(", ", (_traders ?? TraderCatalog.Fallback)
+            .Where(trader => trader.Sells.Any(offer => string.Equals(offer.ItemId, itemId, StringComparison.OrdinalIgnoreCase)))
+            .Select(trader => TraderDisplayName(trader.Id))
+            .Distinct());
+
+    /// <summary>Native rule: localized lore name for known traders, raw id for unknown (e.g. modded) ones.</summary>
+    private string TraderDisplayName(string id)
+        => TraderLore.ById.ContainsKey(id) ? L.Resource($"WorldTraders_Lore_{id}_Name") : PlainNames.Words(id);
+
+    private async Task Changed()
+    {
+        Session.MarkChanged();
+        await OnChanged.InvokeAsync();
+    }
+}

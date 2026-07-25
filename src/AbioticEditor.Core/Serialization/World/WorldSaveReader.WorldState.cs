@@ -66,6 +66,75 @@ public static partial class WorldSaveReader
     }
 
     /// <summary>
+    /// Every deployed Leyak Containment Unit in one region save, read from
+    /// <c>DeployedObjectMap</c>. Occupied and empty units both come back - occupancy is not
+    /// stored on the unit, it is the metadata save's <c>LeyakContainmentIDs</c> map that links
+    /// a creature to a unit GUID, so <see cref="WorldContainmentUnit.Creature"/> is left null
+    /// here and filled in by <see cref="ContainmentSurvey"/>.
+    /// </summary>
+    public static IReadOnlyList<WorldContainmentUnit> ReadContainmentUnits(SaveGame save, string? regionSaveFileName = null)
+    {
+        var pairs = GetMapPairs(save.Properties, "DeployedObjectMap");
+        if (pairs is null) return Array.Empty<WorldContainmentUnit>();
+
+        var result = new List<WorldContainmentUnit>();
+        foreach (var kvp in pairs)
+        {
+            var id = ExtractMapKeyString(kvp.Key);
+            if (id is null) continue;
+            if (kvp.Value is not StructProperty sp || sp.Value is not PropertiesStruct ps) continue;
+            if (!ContainmentCreatureCatalog.IsUnitClass(ExtractClassName(ps.Properties))) continue;
+
+            double x = 0, y = 0, z = 0;
+            if (ps.Properties.FindByPrefix("Transform_")?.Property is StructProperty tsp
+                && tsp.Value is PropertiesStruct tps
+                && tps.Properties.FindByPrefix("Translation")?.Property is StructProperty trsp
+                && trsp.Value is VectorStruct vec)
+            {
+                x = vec.Value.X;
+                y = vec.Value.Y;
+                z = vec.Value.Z;
+            }
+
+            int? stability = null, creatureIndex = null;
+            if (ps.Properties.FindByPrefix("ChangableData_")?.Property is StructProperty cd
+                && cd.Value is PropertiesStruct cdps)
+            {
+                stability = ReadOptionalDynamicInt(cdps.Properties, ContainmentDynamicSlots.Stability);
+                creatureIndex = ReadOptionalDynamicInt(cdps.Properties, ContainmentDynamicSlots.CreatureIndex);
+            }
+
+            result.Add(new WorldContainmentUnit(id, regionSaveFileName ?? string.Empty, x, y, z, stability, creatureIndex));
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Reads one <c>DynamicProperties_</c> int by <c>EDynamicProperty::*</c> tail, returning null
+    /// (rather than 0) when the slot is absent - the containment reads need to tell "stability 0"
+    /// apart from "this unit never wrote a stability slot".
+    /// </summary>
+    internal static int? ReadOptionalDynamicInt(IList<FPropertyTag> props, string keySuffix)
+    {
+        if (props.FindByPrefix("DynamicProperties_")?.Property is not ArrayProperty ap || ap.Value is null)
+            return null;
+
+        for (var i = 0; i < ap.Value.Length; i++)
+        {
+            if (ap.Value.GetValue(i) is not StructProperty esp || esp.Value is not PropertiesStruct eps) continue;
+            var key = eps.Properties.FindByPrefix("Key")?.Property?.Value?.ToString();
+            if (key is null || !key.EndsWith("::" + keySuffix, StringComparison.Ordinal)) continue;
+            return eps.Properties.FindByPrefix("Value")?.Property?.Value switch
+            {
+                int ii => ii,
+                long ll => (int)ll,
+                _ => null,
+            };
+        }
+        return null;
+    }
+
+    /// <summary>
     /// One world-wide unlock array from the metadata save's <c>GlobalUnlocks</c> struct
     /// (e.g. <c>GlobalItemsPickedUp_</c>, <c>GlobalEmailsRead_</c>). Empty elsewhere.
     /// </summary>

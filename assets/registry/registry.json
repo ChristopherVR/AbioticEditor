@@ -3132,7 +3132,9 @@
       "Tags": [
         "Item.Material.Anomalous",
         "Item.Resource.WishingShelf",
-        "Item.Resource.Distillable"
+        "Item.Resource.Distillable",
+        "Item.Fertilizer.Digital",
+        "Item.Fertilizer.Tier2"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -3524,7 +3526,9 @@
         "Item.Food",
         "Item.Material.Anomalous",
         "Item.Resource.WishingShelf",
-        "Item.Resource.Distillable"
+        "Item.Resource.Distillable",
+        "Item.Fertilizer.Digital",
+        "Item.Fertilizer.Tier1"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -4159,7 +4163,8 @@
       "IsWeapon": false,
       "Weight": 5,
       "Tags": [
-        "Item.Material.Tech"
+        "Item.Material.Tech",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -4176,7 +4181,8 @@
       "IsWeapon": false,
       "Weight": 7,
       "Tags": [
-        "Item.Material.Tech"
+        "Item.Material.Tech",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -4193,7 +4199,7 @@
       "IsWeapon": false,
       "Weight": 3,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -4225,7 +4231,8 @@
       "IsWeapon": false,
       "Weight": 0.2,
       "Tags": [
-        "Item.Material.Metal"
+        "Item.Material.Metal",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -4243,7 +4250,8 @@
       "Weight": 3,
       "Tags": [
         "Item.Material.Tech",
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -4261,7 +4269,8 @@
       "Weight": 20,
       "Tags": [
         "Item.NoDespawn",
-        "Item.Material.Wood"
+        "Item.Material.Wood",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -4331,7 +4340,8 @@
       "IsWeapon": false,
       "Weight": 14,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -4349,7 +4359,8 @@
       "Weight": 0.3,
       "Tags": [
         "Item.Flashlight",
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -4368,7 +4379,8 @@
       "IsWeapon": false,
       "Weight": 1,
       "Tags": [
-        "Item.Material.Tech"
+        "Item.Material.Tech",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -4385,7 +4397,8 @@
       "IsWeapon": false,
       "Weight": 1,
       "Tags": [
-        "Item.Material.Tech"
+        "Item.Material.Tech",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -4402,7 +4415,8 @@
       "IsWeapon": false,
       "Weight": 8,
       "Tags": [
-        "Item.Material.Tech"
+        "Item.Material.Tech",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -4442,7 +4456,8 @@
       "Tags": [
         "Item.Flashlight",
         "Item.NoDespawn",
-        "Item.Material.Tech"
+        "Item.Material.Tech",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -4607,7 +4622,8 @@
       "IsWeapon": false,
       "Weight": 5,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable.Container"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -4624,7 +4640,8 @@
       "IsWeapon": false,
       "Weight": 7,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable.Container"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -4641,7 +4658,8 @@
       "IsWeapon": false,
       "Weight": 9,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable.Container"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -4745,7 +4763,8 @@
       "IsWeapon": false,
       "Weight": 20,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -4762,7 +4781,8 @@
       "IsWeapon": false,
       "Weight": 15,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -4779,7 +4799,8 @@
       "IsWeapon": false,
       "Weight": 15,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -4833,7 +4854,8 @@
       "IsWeapon": false,
       "Weight": 25,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -4850,7 +4872,8 @@
       "IsWeapon": false,
       "Weight": 5,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -4867,7 +4890,8 @@
       "IsWeapon": false,
       "Weight": 5,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -4979,7 +5003,8 @@
       "IsWeapon": false,
       "Weight": 7,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -5055,7 +5080,8 @@
       "IsWeapon": false,
       "Weight": 5,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -5072,7 +5098,7 @@
       "IsWeapon": false,
       "Weight": 1,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -5246,7 +5272,8 @@
       "Weight": 1,
       "Tags": [
         "Item.NoDespawn",
-        "Item.Material.Tech"
+        "Item.Material.Tech",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -5264,7 +5291,8 @@
       "Weight": 1,
       "Tags": [
         "Item.NoDespawn",
-        "Item.Material.Tech"
+        "Item.Material.Tech",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -5282,7 +5310,8 @@
       "Weight": 3,
       "Tags": [
         "Item.NoDespawn",
-        "Item.Material.Tech"
+        "Item.Material.Tech",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -5300,7 +5329,8 @@
       "Weight": 2.25,
       "Tags": [
         "Item.NoDespawn",
-        "Item.Material.Tech"
+        "Item.Material.Tech",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -5318,7 +5348,8 @@
       "Weight": 15,
       "Tags": [
         "Item.NoDespawn",
-        "Item.Material.Tech"
+        "Item.Material.Tech",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -5469,7 +5500,8 @@
       "Weight": 15,
       "Tags": [
         "Item.Material.Tech",
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -5487,7 +5519,8 @@
       "Weight": 15,
       "Tags": [
         "Item.Material.Tech",
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -5505,7 +5538,8 @@
       "Weight": 15,
       "Tags": [
         "Item.Material.Tech",
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -5540,7 +5574,8 @@
       "IsWeapon": false,
       "Weight": 4,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -5611,7 +5646,8 @@
       "IsWeapon": false,
       "Weight": 9,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -5645,7 +5681,8 @@
       "IsWeapon": false,
       "Weight": 10,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -5662,7 +5699,8 @@
       "IsWeapon": false,
       "Weight": 10,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -5766,7 +5804,8 @@
       "IsWeapon": false,
       "Weight": 3,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -6050,7 +6089,8 @@
       "IsWeapon": false,
       "Weight": 1,
       "Tags": [
-        "Item.Material.Tech"
+        "Item.Material.Tech",
+        "Item.WalkieTalkie"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -6085,7 +6125,8 @@
       "IsWeapon": false,
       "Weight": 0.1,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -6184,7 +6225,7 @@
       "IsWeapon": false,
       "Weight": 10,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -6327,7 +6368,7 @@
       "IsWeapon": false,
       "Weight": 2,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -6362,7 +6403,8 @@
       "IsWeapon": false,
       "Weight": 10,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -6379,7 +6421,8 @@
       "IsWeapon": false,
       "Weight": 10,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -6396,7 +6439,8 @@
       "IsWeapon": false,
       "Weight": 30,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable.Container"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -6641,7 +6685,8 @@
       "IsWeapon": false,
       "Weight": 20,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -6998,7 +7043,8 @@
       "Tags": [
         "Item.Flashlight",
         "Item.NoDespawn",
-        "Item.Material.Tech"
+        "Item.Material.Tech",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -7016,7 +7062,8 @@
       "Weight": 3,
       "Tags": [
         "Item.Material.Tech",
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -7035,7 +7082,8 @@
       "Tags": [
         "Item.Material.Tech",
         "Item.NoDespawn",
-        "Item.NoHandFill"
+        "Item.NoHandFill",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -7072,7 +7120,8 @@
       "IsWeapon": false,
       "Weight": 15,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable.Container"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -7089,7 +7138,7 @@
       "IsWeapon": false,
       "Weight": 2,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -7106,7 +7155,7 @@
       "IsWeapon": false,
       "Weight": 18,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -7192,7 +7241,7 @@
       "IsWeapon": false,
       "Weight": 40,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -7209,7 +7258,41 @@
       "IsWeapon": false,
       "Weight": 10,
       "Tags": [
-        "Item"
+        "Item.Deployable"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "gardenplot_digital",
+      "DisplayName": "Digital Garden Plot",
+      "Description": "A powered console for gradually printing objects from specialized cartridge templates.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_farmplot_digital.itemicon_farmplot_digital",
+      "StackSize": 1,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 5,
+      "Tags": [
+        "Item.Deployable"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "gardencartridge_pepper",
+      "DisplayName": "Royal Pepper Cartridge",
+      "Description": "Contains the printing template for one hot, red, spicy royal pepper.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_FarmPlotCartridge_Pepper.itemicon_FarmPlotCartridge_Pepper",
+      "StackSize": 8,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 0.2,
+      "Tags": [
+        "Item.Cartridge"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -8133,6 +8216,24 @@
       "AllowedLiquids": []
     },
     {
+      "Id": "oven_t2",
+      "DisplayName": "Advanced Oven",
+      "Description": "Features two separate slots for baking two dishes at once, and a handy digital timer.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_oven_tier2_02.itemicon_oven_tier2_02",
+      "StackSize": 1,
+      "MaxDurability": 5000,
+      "IsWeapon": false,
+      "Weight": 20,
+      "Tags": [
+        "Item.NoDespawn",
+        "Item.Deployable"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
       "Id": "cloakscrambler",
       "DisplayName": "Cloak Scrambler",
       "Description": "Projects a combination of phased UV light and radio frequencies for scrambling a range of optical camoflauge systems.",
@@ -8152,6 +8253,176 @@
       "AllowedLiquids": [
         8
       ]
+    },
+    {
+      "Id": "testdummy",
+      "DisplayName": "Test Dummy",
+      "Description": "An agreeable test subject that will report how much damage your weapons do.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_testdummy.itemicon_testdummy",
+      "StackSize": 1,
+      "MaxDurability": 500,
+      "IsWeapon": false,
+      "Weight": 20,
+      "Tags": [
+        "Item.Deployable"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "testtarget",
+      "DisplayName": "Test Target",
+      "Description": "A simple and effective target for testing weapon accuracy and damage.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_testtarget.itemicon_testtarget",
+      "StackSize": 1,
+      "MaxDurability": 500,
+      "IsWeapon": false,
+      "Weight": 8,
+      "Tags": [
+        "Item.Deployable"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "gardencartridge_blank",
+      "DisplayName": "Blank Printing Cartridge",
+      "Description": "A cartridge for the digital garden plot with no data written to it yet.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_FarmPlotCartridge_Blank.itemicon_FarmPlotCartridge_Blank",
+      "StackSize": 8,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 0.2,
+      "Tags": [
+        "Item.Cartridge"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "petpointer",
+      "DisplayName": "Pet Pointer",
+      "Description": "A device allowing a scientist to issue commands to tamed pets. ",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_petpointer.itemicon_petpointer",
+      "StackSize": 1,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 1,
+      "Tags": [
+        "Item"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "gardencartridge_lamogi",
+      "DisplayName": "Lamogi Cartridge",
+      "Description": "Contains the printing template for IS-0307-B.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_FarmPlotCartridge_Lamogi.itemicon_FarmPlotCartridge_Lamogi",
+      "StackSize": 8,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 0.2,
+      "Tags": [
+        "Item.Cartridge"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "gardencartridge_9mm",
+      "DisplayName": "9mm Ammo Cartridge",
+      "Description": "Contains a printing template for 9mm ammunition.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_FarmPlotCartridge_9mm.itemicon_FarmPlotCartridge_9mm",
+      "StackSize": 8,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 0.2,
+      "Tags": [
+        "Item.Cartridge"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "gardencartridge_magnum",
+      "DisplayName": ".357 Ammo Cartridge",
+      "Description": "Contains a printing template for .357 ammunition.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_FarmPlotCartridge_357.itemicon_FarmPlotCartridge_357",
+      "StackSize": 8,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 0.2,
+      "Tags": [
+        "Item.Cartridge"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "gardencartridge_556",
+      "DisplayName": "5.56 Ammo Cartridge",
+      "Description": "Contains a printing template for 5.56 ammunition.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_FarmPlotCartridge_556.itemicon_FarmPlotCartridge_556",
+      "StackSize": 8,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 0.2,
+      "Tags": [
+        "Item.Cartridge"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "gardencartridge_308",
+      "DisplayName": ".308 Ammo Cartridge",
+      "Description": "Contains a printing template for .308 ammunition.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_FarmPlotCartridge_308.itemicon_FarmPlotCartridge_308",
+      "StackSize": 8,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 0.2,
+      "Tags": [
+        "Item.Cartridge"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "gardencartridge_12g",
+      "DisplayName": "12g Buckshot Cartridge",
+      "Description": "Contains a printing template for 12g buckshot.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_FarmPlotCartridge_12G.itemicon_FarmPlotCartridge_12G",
+      "StackSize": 8,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 0.2,
+      "Tags": [
+        "Item.Cartridge"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
     },
     {
       "Id": "pistol_security",
@@ -9170,6 +9441,23 @@
       "Tags": [
         "Item.Weapon",
         "Item.Material.Tech"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "trowel",
+      "DisplayName": "Garden Trowel",
+      "Description": "A small garden trowel. Can be used to retrieve plants after Farming.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_Trowel.itemicon_Trowel",
+      "StackSize": 1,
+      "MaxDurability": 30,
+      "IsWeapon": false,
+      "Weight": 1,
+      "Tags": [
+        "Item.Material.Metal"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -10664,7 +10952,8 @@
       "IsWeapon": false,
       "Weight": 15,
       "Tags": [
-        "Item.Material.Wood"
+        "Item.Material.Wood",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -10681,7 +10970,8 @@
       "IsWeapon": false,
       "Weight": 18,
       "Tags": [
-        "Item.Material.Wood"
+        "Item.Material.Wood",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -10698,7 +10988,8 @@
       "IsWeapon": false,
       "Weight": 25,
       "Tags": [
-        "Item.Material.Wood"
+        "Item.Material.Wood",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -10715,7 +11006,7 @@
       "IsWeapon": false,
       "Weight": 25,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -10732,7 +11023,7 @@
       "IsWeapon": false,
       "Weight": 20,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -10749,7 +11040,7 @@
       "IsWeapon": false,
       "Weight": 27,
       "Tags": [
-        "Item"
+        "Item.Deployable.Container"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -10766,7 +11057,7 @@
       "IsWeapon": false,
       "Weight": 32,
       "Tags": [
-        "Item"
+        "Item.Deployable.Container"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -10783,7 +11074,7 @@
       "IsWeapon": false,
       "Weight": 40,
       "Tags": [
-        "Item"
+        "Item.Deployable.Container"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -10800,7 +11091,7 @@
       "IsWeapon": false,
       "Weight": 10,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -10817,7 +11108,7 @@
       "IsWeapon": false,
       "Weight": 15,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -10834,7 +11125,7 @@
       "IsWeapon": false,
       "Weight": 30,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -10851,7 +11142,7 @@
       "IsWeapon": false,
       "Weight": 16,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -10920,7 +11211,7 @@
       "IsWeapon": false,
       "Weight": 26,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -10971,7 +11262,8 @@
       "IsWeapon": false,
       "Weight": 4,
       "Tags": [
-        "Item.NoHandFill"
+        "Item.NoHandFill",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -10990,7 +11282,8 @@
       "IsWeapon": false,
       "Weight": 9,
       "Tags": [
-        "Item.NoHandFill"
+        "Item.NoHandFill",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11038,7 +11331,7 @@
       "IsWeapon": false,
       "Weight": 37,
       "Tags": [
-        "Item"
+        "Item.Deployable.Container"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11055,7 +11348,7 @@
       "IsWeapon": false,
       "Weight": 12,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11072,7 +11365,7 @@
       "IsWeapon": false,
       "Weight": 17,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11299,6 +11592,7 @@
       "IsWeapon": false,
       "Weight": 20,
       "Tags": [
+        "Item.Deployable",
         "Item.NoDespawn"
       ],
       "ContainerCapacity": 0,
@@ -11344,7 +11638,7 @@
       "IsWeapon": false,
       "Weight": 9,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11361,7 +11655,7 @@
       "IsWeapon": false,
       "Weight": 11,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11378,7 +11672,7 @@
       "IsWeapon": false,
       "Weight": 15,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11395,7 +11689,7 @@
       "IsWeapon": false,
       "Weight": 999,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11439,7 +11733,8 @@
       "IsWeapon": false,
       "Weight": 100,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable.Container"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11456,7 +11751,7 @@
       "IsWeapon": false,
       "Weight": 15,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11473,7 +11768,7 @@
       "IsWeapon": false,
       "Weight": 15,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11490,7 +11785,7 @@
       "IsWeapon": false,
       "Weight": 25,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11507,7 +11802,7 @@
       "IsWeapon": false,
       "Weight": 18,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11524,7 +11819,7 @@
       "IsWeapon": false,
       "Weight": 18,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11541,7 +11836,7 @@
       "IsWeapon": false,
       "Weight": 18,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11558,7 +11853,8 @@
       "IsWeapon": false,
       "Weight": 60,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11665,7 +11961,7 @@
       "IsWeapon": false,
       "Weight": 15,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11682,7 +11978,8 @@
       "IsWeapon": false,
       "Weight": 20,
       "Tags": [
-        "Item.NoHandFill"
+        "Item.NoHandFill",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11702,7 +11999,7 @@
       "IsWeapon": false,
       "Weight": 18,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11719,7 +12016,7 @@
       "IsWeapon": false,
       "Weight": 18,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11736,7 +12033,7 @@
       "IsWeapon": false,
       "Weight": 20,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11770,7 +12067,7 @@
       "IsWeapon": false,
       "Weight": 20,
       "Tags": [
-        "Item"
+        "Item.Deployable.Container"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11787,7 +12084,7 @@
       "IsWeapon": false,
       "Weight": 15,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11821,7 +12118,8 @@
       "IsWeapon": false,
       "Weight": 4,
       "Tags": [
-        "Item.NoHandFill"
+        "Item.NoHandFill",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11840,7 +12138,8 @@
       "IsWeapon": false,
       "Weight": 4,
       "Tags": [
-        "Item.NoHandFill"
+        "Item.NoHandFill",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11859,7 +12158,7 @@
       "IsWeapon": false,
       "Weight": 18,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -11964,7 +12263,7 @@
       "IsWeapon": false,
       "Weight": 15,
       "Tags": [
-        "Item"
+        "Item.Deployable.Container"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -12085,7 +12384,7 @@
       "IsWeapon": false,
       "Weight": 15,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -12102,7 +12401,7 @@
       "IsWeapon": false,
       "Weight": 15,
       "Tags": [
-        "Item.Deployable"
+        "Item.Deployable.Container"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -12119,7 +12418,7 @@
       "IsWeapon": false,
       "Weight": 10,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -12260,7 +12559,7 @@
       "IsWeapon": false,
       "Weight": 15,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -12277,7 +12576,7 @@
       "IsWeapon": false,
       "Weight": 30,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -12294,7 +12593,7 @@
       "IsWeapon": false,
       "Weight": 15,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -12311,7 +12610,7 @@
       "IsWeapon": false,
       "Weight": 15,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -12328,7 +12627,7 @@
       "IsWeapon": false,
       "Weight": 15,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -12345,7 +12644,7 @@
       "IsWeapon": false,
       "Weight": 15,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -12362,7 +12661,7 @@
       "IsWeapon": false,
       "Weight": 15,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -12379,7 +12678,7 @@
       "IsWeapon": false,
       "Weight": 25,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -12447,7 +12746,7 @@
       "IsWeapon": false,
       "Weight": 15,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -12652,7 +12951,8 @@
       "Weight": 100,
       "Tags": [
         "Item.NoDespawn",
-        "Item.Deployable.Building"
+        "Item.Deployable.Building",
+        "Item.Deployable.Container"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -12670,7 +12970,8 @@
       "Weight": 120,
       "Tags": [
         "Item.NoDespawn",
-        "Item.Deployable.Building"
+        "Item.Deployable.Building",
+        "Item.Deployable.Container"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -12741,7 +13042,8 @@
       "IsWeapon": false,
       "Weight": 25,
       "Tags": [
-        "Item.Material.Wood"
+        "Item.Material.Wood",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -12794,7 +13096,7 @@
       "IsWeapon": false,
       "Weight": 35,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -12972,7 +13274,7 @@
       "IsWeapon": false,
       "Weight": 30,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -13006,7 +13308,7 @@
       "IsWeapon": false,
       "Weight": 3,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -13023,7 +13325,7 @@
       "IsWeapon": false,
       "Weight": 15,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -13040,7 +13342,7 @@
       "IsWeapon": false,
       "Weight": 10,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -13057,7 +13359,7 @@
       "IsWeapon": false,
       "Weight": 18,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -13074,7 +13376,7 @@
       "IsWeapon": false,
       "Weight": 22,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -13106,7 +13408,8 @@
       "IsWeapon": false,
       "Weight": 35,
       "Tags": [
-        "Item.Material.Wood"
+        "Item.Material.Wood",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -13123,7 +13426,8 @@
       "IsWeapon": false,
       "Weight": 18,
       "Tags": [
-        "Item.Material.Wood"
+        "Item.Material.Wood",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -13159,7 +13463,7 @@
       "IsWeapon": false,
       "Weight": 13,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -13176,7 +13480,7 @@
       "IsWeapon": false,
       "Weight": 14,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -13193,7 +13497,7 @@
       "IsWeapon": false,
       "Weight": 22,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -13228,7 +13532,7 @@
       "IsWeapon": false,
       "Weight": 0.5,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -13315,7 +13619,7 @@
       "IsWeapon": false,
       "Weight": 18,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -13323,6 +13627,42 @@
       "AllowedLiquids": [
         8
       ]
+    },
+    {
+      "Id": "scarecrow_farming",
+      "DisplayName": "Assistant Botanist",
+      "Description": "A jaunty scarecrow that aids agricultural understanding of those nearby.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_scarecrow_farming.itemicon_scarecrow_farming",
+      "StackSize": 1,
+      "MaxDurability": 300,
+      "IsWeapon": false,
+      "Weight": 12,
+      "Tags": [
+        "Item.NoDespawn",
+        "Item.Deployable"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "constructionsign",
+      "DisplayName": "Construction Sign",
+      "Description": "A well-worn safety sign that increases construction understanding of those in its vicinity.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_constructionsign_01.itemicon_constructionsign_01",
+      "StackSize": 1,
+      "MaxDurability": 200,
+      "IsWeapon": false,
+      "Weight": 5,
+      "Tags": [
+        "Item.NoDespawn",
+        "Item.Deployable"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
     },
     {
       "Id": "votv_table_coffee",
@@ -13640,7 +13980,7 @@
       "IsWeapon": false,
       "Weight": 8,
       "Tags": [
-        "Item"
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -13743,7 +14083,8 @@
       "Weight": 15,
       "Tags": [
         "Item.NoDespawn",
-        "Item.CriticalNoDelete"
+        "Item.CriticalNoDelete",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -13811,7 +14152,8 @@
       "IsWeapon": false,
       "Weight": 25,
       "Tags": [
-        "Item.Material.Wood"
+        "Item.Material.Wood",
+        "Item.Deployable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -14722,7 +15064,8 @@
       "Weight": 8,
       "Tags": [
         "Item.NoDespawn",
-        "Item.Material.Cloth"
+        "Item.Material.Cloth",
+        "Item.Deployable.Small"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -15003,7 +15346,7 @@
       "IsWeapon": false,
       "Weight": 3,
       "Tags": [
-        "Item"
+        "Item.Deployable.Small"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -15092,7 +15435,8 @@
       "IsWeapon": false,
       "Weight": 2,
       "Tags": [
-        "Item.NoDespawn"
+        "Item.NoDespawn",
+        "Item.Deployable.Small"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -15181,7 +15525,8 @@
       "Weight": 8,
       "Tags": [
         "Item.NoDespawn",
-        "Item.Material.Cloth"
+        "Item.Material.Cloth",
+        "Item.Deployable.Small"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -15279,6 +15624,27 @@
       "AllowedLiquids": []
     },
     {
+      "Id": "fig_pestplush",
+      "DisplayName": "Pest Plushie",
+      "Description": "A stuffed imitation of IS-0173-A, hailing from origins unknown.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_PestPlush.itemicon_PestPlush",
+      "StackSize": 1,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 1,
+      "Tags": [
+        "Item.Deployable.Small",
+        "Item.NoDespawn",
+        "Item.Deployable.NoSecondaryPlace",
+        "Item.Deployable.NoDefaultAnims",
+        "Item.Deployable.NoClipboard"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
       "Id": "Deployable_Bench_Crafting",
       "DisplayName": "Crafting Bench",
       "Description": "Primary crafting apparatus. Allows crafting of more advanced recipes and creates a safer home space.",
@@ -15288,7 +15654,6 @@
       "IsWeapon": false,
       "Weight": 30,
       "Tags": [
-        "Item.Deployable.Building",
         "Item.NoDespawn",
         "Item.Deployable.Bench"
       ],
@@ -15307,7 +15672,6 @@
       "IsWeapon": false,
       "Weight": 40,
       "Tags": [
-        "Item.Deployable.Building",
         "Item.NoDespawn",
         "Item.Deployable.Bench.Cooking"
       ],
@@ -15326,7 +15690,6 @@
       "IsWeapon": false,
       "Weight": 30,
       "Tags": [
-        "Item.Deployable.Building",
         "Item.NoDespawn",
         "Item.Deployable.Bench"
       ],
@@ -15345,7 +15708,6 @@
       "IsWeapon": false,
       "Weight": 25,
       "Tags": [
-        "Item.Deployable.Building",
         "Item.NoDespawn",
         "Item.Deployable.Bench"
       ],
@@ -15364,7 +15726,6 @@
       "IsWeapon": false,
       "Weight": 30,
       "Tags": [
-        "Item.Deployable.Building",
         "Item.NoDespawn",
         "Item.Deployable.Bench"
       ],
@@ -15383,7 +15744,6 @@
       "IsWeapon": false,
       "Weight": 35,
       "Tags": [
-        "Item.Deployable.Building",
         "Item.NoDespawn",
         "Item.Deployable.Bench"
       ],
@@ -15402,7 +15762,6 @@
       "IsWeapon": false,
       "Weight": 12,
       "Tags": [
-        "Item.Deployable.Building",
         "Item.NoDespawn",
         "Item.Deployable.Bench"
       ],
@@ -23042,6 +23401,25 @@
       "AllowedLiquids": []
     },
     {
+      "Id": "food_pepper",
+      "DisplayName": "Royal Pepper",
+      "Description": "A hologram instantiated in the form of an edible spicy pepper.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_royalpepper.itemicon_royalpepper",
+      "StackSize": 4,
+      "MaxDurability": 60,
+      "IsWeapon": false,
+      "Weight": 0.5,
+      "Tags": [
+        "Item.Material.Biological",
+        "Item.Food",
+        "Item.Resource.Distillable"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
       "Id": "food_milk",
       "DisplayName": "Vial of Milk",
       "Description": "A milky substance inside a vial. Potentially useable in cooking.",
@@ -23381,6 +23759,350 @@
         "Item.NoDespawn",
         "Item.Food",
         "Item.Material.Biological"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "food_pepper_corrupted",
+      "DisplayName": "Corrupted Pepper",
+      "Description": "A mass of damaged digital matter in the pattern of a royal pepper.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_royalpepper_corrupted.itemicon_royalpepper_corrupted",
+      "StackSize": 4,
+      "MaxDurability": 40,
+      "IsWeapon": false,
+      "Weight": 0.5,
+      "Tags": [
+        "Item.Material.Biological",
+        "Item.Food",
+        "Item.Resource.Distillable"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "food_pepper_cooked",
+      "DisplayName": "{CookedState} Royal Pepper",
+      "Description": "A morsel of cooked digital matter in pepper form.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_pepper_cooked.itemicon_pepper_cooked",
+      "StackSize": 4,
+      "MaxDurability": 75,
+      "IsWeapon": false,
+      "Weight": 0.5,
+      "Tags": [
+        "Item.Material.Biological",
+        "Item.Food",
+        "Item.Resource.Distillable"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "food_pepper_burnt",
+      "DisplayName": "Burned Royal Pepper",
+      "Description": "Charred digital matter.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_pepper_burnt.itemicon_pepper_burnt",
+      "StackSize": 4,
+      "MaxDurability": 60,
+      "IsWeapon": false,
+      "Weight": 0.5,
+      "Tags": [
+        "Item.Material.Biological",
+        "Item.Food",
+        "Item.Resource.Distillable"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "food_pepper_stuffed_raw",
+      "DisplayName": "Raw Stuffed Peppers Tray",
+      "Description": "A hearty stuffed ersatz-pepper ready for the oven.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_pepper_stuffed_raw.itemicon_pepper_stuffed_raw",
+      "StackSize": 1,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 1.5,
+      "Tags": [
+        "Item.NoDespawn",
+        "Item.Food",
+        "Item.Material.Biological"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "food_pepper_stuffed",
+      "DisplayName": "Roasted Stuffed Peppers Tray",
+      "Description": "A perfectly cooked and potentially mouthwatering mixture in a spicy digital wrapper.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_pepper_stuffed_cooked.itemicon_pepper_stuffed_cooked",
+      "StackSize": 1,
+      "MaxDurability": 300,
+      "IsWeapon": false,
+      "Weight": 1.5,
+      "Tags": [
+        "Item.NoDespawn",
+        "Item.Food",
+        "Item.Material.Biological"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "food_pepper_stuffed_burnt",
+      "DisplayName": "Burned Stuffed Peppers Tray",
+      "Description": "Overcooked digital matter stuffed with a melange of protein-adjacent material.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_pepper_stuffed_burnt.itemicon_pepper_stuffed_burnt",
+      "StackSize": 4,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 1.5,
+      "Tags": [
+        "Item.NoDespawn",
+        "Item.Food",
+        "Item.Material.Biological"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "food_pepper_stuffed_slice",
+      "DisplayName": "Roasted Stuffed Pepper",
+      "Description": "A beautifully baked example of a bizarre bit of food.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_pepper_stuffed_slice.itemicon_pepper_stuffed_slice",
+      "StackSize": 6,
+      "MaxDurability": 300,
+      "IsWeapon": false,
+      "Weight": 0.25,
+      "Tags": [
+        "Item.NoDespawn",
+        "Item.Food",
+        "Item.Material.Biological"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "food_mushroom_stuffed_raw",
+      "DisplayName": "Raw Stuffed Mushroom Tray",
+      "Description": "A tray of uncooked mushrooms filled with tidbits.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_mushroom_stuffed_raw.itemicon_mushroom_stuffed_raw",
+      "StackSize": 1,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 1.5,
+      "Tags": [
+        "Item.NoDespawn",
+        "Item.Food",
+        "Item.Material.Biological"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "food_mushroom_stuffed",
+      "DisplayName": "Roasted Stuffed Mushroom Tray",
+      "Description": "A tray of roasted mushrooms stuffed with sustenance.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_mushroom_stuffed01.itemicon_mushroom_stuffed01",
+      "StackSize": 1,
+      "MaxDurability": 300,
+      "IsWeapon": false,
+      "Weight": 1.5,
+      "Tags": [
+        "Item.NoDespawn",
+        "Item.Food",
+        "Item.Material.Biological"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "food_mushroom_stuffed_burnt",
+      "DisplayName": "Burned Stuffed Mushroom Tray",
+      "Description": "A tray of badly overcooked mushrooms and mush.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_mushroom_stuffed_burnt.itemicon_mushroom_stuffed_burnt",
+      "StackSize": 4,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 1.5,
+      "Tags": [
+        "Item.NoDespawn",
+        "Item.Food",
+        "Item.Material.Biological"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "food_mushroom_stuffed_slice",
+      "DisplayName": "Roasted Stuffed Mushroom",
+      "Description": "A well-cooked mushroom crammed with cosmic cuisine.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_mushroom_stuffed_slice.itemicon_mushroom_stuffed_slice",
+      "StackSize": 6,
+      "MaxDurability": 300,
+      "IsWeapon": false,
+      "Weight": 0.25,
+      "Tags": [
+        "Item.NoDespawn",
+        "Item.Food",
+        "Item.Material.Biological"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "food_cake_anniversary_raw",
+      "DisplayName": "Raw Anniversary Cake",
+      "Description": "A cosmic first birthday confection ready for the oven.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_cake_anniversary_01_raw.itemicon_cake_anniversary_01_raw",
+      "StackSize": 1,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 3,
+      "Tags": [
+        "Item.NoDespawn",
+        "Item.Food",
+        "Item.Material.Biological"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "food_cake_anniversary",
+      "DisplayName": "Anniversary Cake",
+      "Description": "A cosmic first birthday confection created with great love and care.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_cake_anniversary_01.itemicon_cake_anniversary_01",
+      "StackSize": 1,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 3,
+      "Tags": [
+        "Item.NoDespawn",
+        "Item.Food",
+        "Item.Material.Biological"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "food_cake_anniversary_slice",
+      "DisplayName": "Slice of Anniversary Cake",
+      "Description": "A cosmic slice of first birthday confection created with great love and care.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_cake_anniversary_01_slice1.itemicon_cake_anniversary_01_slice1",
+      "StackSize": 6,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 0.5,
+      "Tags": [
+        "Item.NoDespawn",
+        "Item.Food",
+        "Item.Material.Biological"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "food_cake_anniversary_burnt",
+      "DisplayName": "Burned Anniversary Cake",
+      "Description": "A cosmic first birthday confection tragically overcooked.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_cake_anniversary_01_burnt.itemicon_cake_anniversary_01_burnt",
+      "StackSize": 4,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 3,
+      "Tags": [
+        "Item.NoDespawn",
+        "Item.Food",
+        "Item.Material.Biological"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "soup_pepper_raw",
+      "DisplayName": "Uncooked Spicy Royal Bisque",
+      "Description": "A thick and zesty vegetable soup ready for cooking.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_cookingpot_goulash.itemicon_cookingpot_goulash",
+      "StackSize": 1,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 1,
+      "Tags": [
+        "Item.Food",
+        "Item.Material.Biological",
+        "Item.NoDespawn",
+        "Item.Pot"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "soup_pepper",
+      "DisplayName": "Spicy Royal Bisque",
+      "Description": "A rich vegetable soup with an intriguing blend of heat, creaminess, and something ... indefinable. ",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_cookingpot_goulash.itemicon_cookingpot_goulash",
+      "StackSize": 1,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 1,
+      "Tags": [
+        "Item.Food",
+        "Item.Material.Biological",
+        "Item.NoDespawn",
+        "Item.Pot"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "food_lamogi_corrupted",
+      "DisplayName": "Corrupted Lamogi Data",
+      "Description": "The broken remnants of a particularly pushy antagonist.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_lamogi_corrupted.itemicon_lamogi_corrupted",
+      "StackSize": 4,
+      "MaxDurability": 40,
+      "IsWeapon": false,
+      "Weight": 0.5,
+      "Tags": [
+        "Item.Material.Biological",
+        "Item.Food",
+        "Item.Resource.Distillable"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 1,
@@ -27831,6 +28553,57 @@
       "AllowedLiquids": []
     },
     {
+      "Id": "watch_geiger",
+      "DisplayName": "Geiger Watch",
+      "Description": "A timepiece with an inbuilt radiation register, triggered when consulted.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_wristwatch_geiger.itemicon_wristwatch_geiger",
+      "StackSize": 1,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 0.4,
+      "Tags": [
+        "Item"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 17,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "watch_employeelocator",
+      "DisplayName": "Employee Locator Watch",
+      "Description": "A timepiece that detects the pagers of nearby GATE personnel when consulted.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_wristwatch_employeelocator.itemicon_wristwatch_employeelocator",
+      "StackSize": 1,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 0.4,
+      "Tags": [
+        "Item"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 17,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "watch_communicator",
+      "DisplayName": "Communicator Watch",
+      "Description": "A nifty wristwatch with walkie-talkie functionality included.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_wristwatch_communicator.itemicon_wristwatch_communicator",
+      "StackSize": 1,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 0.4,
+      "Tags": [
+        "Item.WalkieTalkie"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 17,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
       "Id": "Plant_Corn",
       "DisplayName": "",
       "Description": "",
@@ -28298,6 +29071,131 @@
       "AllowedLiquids": []
     },
     {
+      "Id": "Plant_Blank",
+      "DisplayName": "",
+      "Description": "",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/icon_missingitem.icon_missingitem",
+      "StackSize": 1,
+      "MaxDurability": 350,
+      "IsWeapon": false,
+      "Weight": 0.1,
+      "Tags": [
+        "Item.Plant"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "Plant_Lamogi",
+      "DisplayName": "",
+      "Description": "",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/icon_missingitem.icon_missingitem",
+      "StackSize": 1,
+      "MaxDurability": 350,
+      "IsWeapon": false,
+      "Weight": 0.1,
+      "Tags": [
+        "Item.Material.Biological",
+        "Item.Plant"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "Plant_9mm",
+      "DisplayName": "",
+      "Description": "",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/icon_missingitem.icon_missingitem",
+      "StackSize": 1,
+      "MaxDurability": 350,
+      "IsWeapon": false,
+      "Weight": 0.1,
+      "Tags": [
+        "Item.Material.Biological",
+        "Item.Plant"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "Plant_Magnum",
+      "DisplayName": "",
+      "Description": "",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/icon_missingitem.icon_missingitem",
+      "StackSize": 1,
+      "MaxDurability": 350,
+      "IsWeapon": false,
+      "Weight": 0.1,
+      "Tags": [
+        "Item.Material.Biological",
+        "Item.Plant"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "Plant_556",
+      "DisplayName": "",
+      "Description": "",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/icon_missingitem.icon_missingitem",
+      "StackSize": 1,
+      "MaxDurability": 350,
+      "IsWeapon": false,
+      "Weight": 0.1,
+      "Tags": [
+        "Item.Material.Biological",
+        "Item.Plant"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "Plant_308",
+      "DisplayName": "",
+      "Description": "",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/icon_missingitem.icon_missingitem",
+      "StackSize": 1,
+      "MaxDurability": 350,
+      "IsWeapon": false,
+      "Weight": 0.1,
+      "Tags": [
+        "Item.Material.Biological",
+        "Item.Plant"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "Plant_12g",
+      "DisplayName": "",
+      "Description": "",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/icon_missingitem.icon_missingitem",
+      "StackSize": 1,
+      "MaxDurability": 350,
+      "IsWeapon": false,
+      "Weight": 0.1,
+      "Tags": [
+        "Item.Material.Biological",
+        "Item.Plant"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 1,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
       "Id": "pet_skink",
       "DisplayName": "Skink",
       "Description": "A charming, albeit elongated friend. Perhaps they could be useful, with the right motivational attachments.",
@@ -28332,7 +29230,8 @@
         "Item.Weapon.NoLaserDot",
         "Item.Pet",
         "Item.NoDuctTapeRepair",
-        "Item.RepairsSelf"
+        "Item.RepairsSelf",
+        "Item.Weapon.NoCoatings"
       ],
       "ContainerCapacity": 0,
       "EquipSlot": 21,
@@ -28745,6 +29644,27 @@
         "Item.Weapon.NoLaserDot",
         "Item.Pet",
         "Item.NoDuctTapeRepair",
+        "Item.RepairsSelf",
+        "Item.Weapon.NoCoatings"
+      ],
+      "ContainerCapacity": 0,
+      "EquipSlot": 21,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
+    },
+    {
+      "Id": "Skink_Mushroom",
+      "DisplayName": "Verdant Skink",
+      "Description": "A skink colonized by A2 mushrooms, which impart potent healing properties to its normally-acidic mucus.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_skink_mushroom.itemicon_skink_mushroom",
+      "StackSize": 1,
+      "MaxDurability": 100,
+      "IsWeapon": false,
+      "Weight": 10,
+      "Tags": [
+        "Item.CustomDrop",
+        "Item.Pet",
+        "Item.NoDuctTapeRepair",
         "Item.RepairsSelf"
       ],
       "ContainerCapacity": 0,
@@ -28753,184 +29673,93 @@
       "AllowedLiquids": []
     },
     {
-      "Id": "AnyDesk",
-      "DisplayName": "AnyDesk",
+      "Id": "Skink_Mushroom_Crafted",
+      "DisplayName": "Verdant Skink (Weapon)",
+      "Description": "Flings skink mucus to apply medical aid to allies from afar. Charged shots create larger healing clouds.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_skink_mushroom_weapon.itemicon_skink_mushroom_weapon",
       "StackSize": 1,
-      "MaxDurability": 0,
-      "IsWeapon": false,
-      "Weight": 0,
-      "Tags": [],
+      "MaxDurability": 60,
+      "IsWeapon": true,
+      "Weight": 10,
+      "Tags": [
+        "Item.Material.Tech",
+        "Item.CustomDrop",
+        "Item.Weapon.NoLaserDot",
+        "Item.Pet",
+        "Item.NoDuctTapeRepair",
+        "Item.RepairsSelf",
+        "Item.Weapon.NoCoatings"
+      ],
       "ContainerCapacity": 0,
-      "EquipSlot": 0,
-      "MaxLiquid": 0
+      "EquipSlot": 21,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
     },
     {
-      "Id": "AnyFilingCabinet",
-      "DisplayName": "AnyFilingCabinet",
+      "Id": "WinterSprite",
+      "DisplayName": "Lamogi",
+      "Description": "A small but exceptionally sturdy creature from a virtual realm.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_lamogi.itemicon_lamogi",
       "StackSize": 1,
-      "MaxDurability": 0,
+      "MaxDurability": 100,
       "IsWeapon": false,
-      "Weight": 0,
-      "Tags": [],
+      "Weight": 15,
+      "Tags": [
+        "Item.CustomDrop",
+        "Item.Pet",
+        "Item.NoDuctTapeRepair",
+        "Item.RepairsSelf",
+        "Item.NoDespawn",
+        "Item.CriticalNoDelete"
+      ],
       "ContainerCapacity": 0,
-      "EquipSlot": 0,
-      "MaxLiquid": 0
+      "EquipSlot": 21,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
     },
     {
-      "Id": "BigOfficeCouches",
-      "DisplayName": "BigOfficeCouches",
+      "Id": "Lamogi_Plated",
+      "DisplayName": "Sir Ogi",
+      "Description": "A stalwart protector. Made sturdier and slower by a handcrafted set of digital armor.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_lamogi_plated.itemicon_lamogi_plated",
       "StackSize": 1,
-      "MaxDurability": 0,
+      "MaxDurability": 100,
       "IsWeapon": false,
-      "Weight": 0,
-      "Tags": [],
+      "Weight": 30,
+      "Tags": [
+        "Item.CustomDrop",
+        "Item.Pet",
+        "Item.NoDuctTapeRepair",
+        "Item.RepairsSelf",
+        "Item.NoDespawn",
+        "Item.CriticalNoDelete"
+      ],
       "ContainerCapacity": 0,
-      "EquipSlot": 0,
-      "MaxLiquid": 0
+      "EquipSlot": 21,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
     },
     {
-      "Id": "AnyOfficeCouch",
-      "DisplayName": "AnyOfficeCouch",
+      "Id": "Lamogi_Speedy",
+      "DisplayName": "Speedogi",
+      "Description": "A diet of caffeine and similar stimulants has made this specimen faster and more aggressive.",
+      "IconAssetPath": "/Game/Textures/GUI/ItemIcons/itemicon_lamogi_speedy.itemicon_lamogi_speedy",
       "StackSize": 1,
-      "MaxDurability": 0,
+      "MaxDurability": 100,
       "IsWeapon": false,
-      "Weight": 0,
-      "Tags": [],
+      "Weight": 15,
+      "Tags": [
+        "Item.CustomDrop",
+        "Item.Pet",
+        "Item.NoDuctTapeRepair",
+        "Item.RepairsSelf",
+        "Item.NoDespawn",
+        "Item.CriticalNoDelete"
+      ],
       "ContainerCapacity": 0,
-      "EquipSlot": 0,
-      "MaxLiquid": 0
-    },
-    {
-      "Id": "AnyBasicScrewdriver",
-      "DisplayName": "AnyBasicScrewdriver",
-      "StackSize": 1,
-      "MaxDurability": 0,
-      "IsWeapon": false,
-      "Weight": 0,
-      "Tags": [],
-      "ContainerCapacity": 0,
-      "EquipSlot": 0,
-      "MaxLiquid": 0
-    },
-    {
-      "Id": "AnyTomato",
-      "DisplayName": "AnyTomato",
-      "StackSize": 1,
-      "MaxDurability": 0,
-      "IsWeapon": false,
-      "Weight": 0,
-      "Tags": [],
-      "ContainerCapacity": 0,
-      "EquipSlot": 0,
-      "MaxLiquid": 0
-    },
-    {
-      "Id": "AnyCookedPest",
-      "DisplayName": "AnyCookedPest",
-      "StackSize": 1,
-      "MaxDurability": 0,
-      "IsWeapon": false,
-      "Weight": 0,
-      "Tags": [],
-      "ContainerCapacity": 0,
-      "EquipSlot": 0,
-      "MaxLiquid": 0
-    },
-    {
-      "Id": "AnyBarrel",
-      "DisplayName": "AnyBarrel",
-      "StackSize": 1,
-      "MaxDurability": 0,
-      "IsWeapon": false,
-      "Weight": 0,
-      "Tags": [],
-      "ContainerCapacity": 0,
-      "EquipSlot": 0,
-      "MaxLiquid": 0
-    },
-    {
-      "Id": "AnyGlue",
-      "DisplayName": "AnyGlue",
-      "StackSize": 1,
-      "MaxDurability": 0,
-      "IsWeapon": false,
-      "Weight": 0,
-      "Tags": [],
-      "ContainerCapacity": 0,
-      "EquipSlot": 0,
-      "MaxLiquid": 0
-    },
-    {
-      "Id": "AnyOil",
-      "DisplayName": "AnyOil",
-      "StackSize": 1,
-      "MaxDurability": 0,
-      "IsWeapon": false,
-      "Weight": 0,
-      "Tags": [],
-      "ContainerCapacity": 0,
-      "EquipSlot": 0,
-      "MaxLiquid": 0
-    },
-    {
-      "Id": "AnyStandardRawFilet",
-      "DisplayName": "AnyStandardRawFilet",
-      "StackSize": 1,
-      "MaxDurability": 0,
-      "IsWeapon": false,
-      "Weight": 0,
-      "Tags": [],
-      "ContainerCapacity": 0,
-      "EquipSlot": 0,
-      "MaxLiquid": 0
-    },
-    {
-      "Id": "AnyPipe",
-      "DisplayName": "AnyPipe",
-      "StackSize": 1,
-      "MaxDurability": 0,
-      "IsWeapon": false,
-      "Weight": 0,
-      "Tags": [],
-      "ContainerCapacity": 0,
-      "EquipSlot": 0,
-      "MaxLiquid": 0
-    },
-    {
-      "Id": "AnyBucket",
-      "DisplayName": "AnyBucket",
-      "StackSize": 1,
-      "MaxDurability": 0,
-      "IsWeapon": false,
-      "Weight": 0,
-      "Tags": [],
-      "ContainerCapacity": 0,
-      "EquipSlot": 0,
-      "MaxLiquid": 0
-    },
-    {
-      "Id": "AnyPoop",
-      "DisplayName": "AnyPoop",
-      "StackSize": 1,
-      "MaxDurability": 0,
-      "IsWeapon": false,
-      "Weight": 0,
-      "Tags": [],
-      "ContainerCapacity": 0,
-      "EquipSlot": 0,
-      "MaxLiquid": 0
-    },
-    {
-      "Id": "AnyBiocleanser",
-      "DisplayName": "AnyBiocleanser",
-      "StackSize": 1,
-      "MaxDurability": 0,
-      "IsWeapon": false,
-      "Weight": 0,
-      "Tags": [],
-      "ContainerCapacity": 0,
-      "EquipSlot": 0,
-      "MaxLiquid": 0
+      "EquipSlot": 21,
+      "MaxLiquid": 0,
+      "AllowedLiquids": []
     }
   ],
   "ItemTableRefs": {
@@ -29331,6 +30160,8 @@
     "mushroomfarm": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "crate_charging": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "snowman_crafted": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "gardenplot_digital": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "gardencartridge_pepper": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "petbed": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "distillation_wildcard": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "distillation_noxious": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
@@ -29384,7 +30215,18 @@
     "coating_disruptor": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "coating_foggy": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "coating_quantum": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "oven_t2": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "cloakscrambler": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "testdummy": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "testtarget": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "gardencartridge_blank": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "petpointer": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "gardencartridge_lamogi": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "gardencartridge_9mm": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "gardencartridge_magnum": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "gardencartridge_556": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "gardencartridge_308": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "gardencartridge_12g": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "pistol_security": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "pistol_security_flashlight": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "rifle_assault": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
@@ -29439,6 +30281,7 @@
     "spear_fire": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "electrothrower": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "net_launcher": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "trowel": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "rifle_sniper": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "pistol_energy": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "nullgrenade": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
@@ -29667,6 +30510,8 @@
     "cubicle_gate": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "cubicle_gate_half": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "Chair_Power": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "scarecrow_farming": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "constructionsign": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "votv_table_coffee": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "votv_Chair_Lounge": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "votv_AshTray": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
@@ -29779,6 +30624,7 @@
     "fig_votv_grayalien": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "fig_votv_owl": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "fig_yskeplush": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "fig_pestplush": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "Deployable_Bench_Crafting": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "Deployable_Bench_Cooking": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "Deployable_Bench_Repair": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
@@ -30186,6 +31032,7 @@
     "food_fries_carrot_raw": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "food_fries_carrot": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "food_fries_carrot_burnt": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "food_pepper": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "food_milk": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "gib_peccary_skull_volatile": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "food_votv_chinesefood": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
@@ -30204,6 +31051,24 @@
     "food_votv_shrimpspack": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "food_votv_shrimpspack_burnt": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "food_votv_shrimp": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "food_pepper_corrupted": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "food_pepper_cooked": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "food_pepper_burnt": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "food_pepper_stuffed_raw": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "food_pepper_stuffed": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "food_pepper_stuffed_burnt": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "food_pepper_stuffed_slice": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "food_mushroom_stuffed_raw": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "food_mushroom_stuffed": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "food_mushroom_stuffed_burnt": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "food_mushroom_stuffed_slice": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "food_cake_anniversary_raw": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "food_cake_anniversary": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "food_cake_anniversary_slice": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "food_cake_anniversary_burnt": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "soup_pepper_raw": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "soup_pepper": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "food_lamogi_corrupted": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "backpack_makeshift": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "backpack_small": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "backpack_medium": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
@@ -30457,6 +31322,9 @@
     "watch_hauling": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "watch_decoy": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "backpack_votv_small": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "watch_geiger": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "watch_employeelocator": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "watch_communicator": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "Plant_Corn": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "Plant_Tomato": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "Plant_Dead": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
@@ -30483,6 +31351,13 @@
     "Plant_Shadowberry": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "Plant_Carrot": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "Plant_Pepper": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "Plant_Blank": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "Plant_Lamogi": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "Plant_9mm": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "Plant_Magnum": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "Plant_556": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "Plant_308": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "Plant_12g": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "pet_skink": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "biocannon": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "pest": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
@@ -30505,20 +31380,10 @@
     "Peccary_Alpha": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "Skink_Magma": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
     "Skink_Magma_Crafted": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
-    "AnyDesk": "/Game/Blueprints/Items/ItemTable_RecipeSubstitutes.ItemTable_RecipeSubstitutes",
-    "AnyFilingCabinet": "/Game/Blueprints/Items/ItemTable_RecipeSubstitutes.ItemTable_RecipeSubstitutes",
-    "BigOfficeCouches": "/Game/Blueprints/Items/ItemTable_RecipeSubstitutes.ItemTable_RecipeSubstitutes",
-    "AnyOfficeCouch": "/Game/Blueprints/Items/ItemTable_RecipeSubstitutes.ItemTable_RecipeSubstitutes",
-    "AnyBasicScrewdriver": "/Game/Blueprints/Items/ItemTable_RecipeSubstitutes.ItemTable_RecipeSubstitutes",
-    "AnyTomato": "/Game/Blueprints/Items/ItemTable_RecipeSubstitutes.ItemTable_RecipeSubstitutes",
-    "AnyCookedPest": "/Game/Blueprints/Items/ItemTable_RecipeSubstitutes.ItemTable_RecipeSubstitutes",
-    "AnyBarrel": "/Game/Blueprints/Items/ItemTable_RecipeSubstitutes.ItemTable_RecipeSubstitutes",
-    "AnyGlue": "/Game/Blueprints/Items/ItemTable_RecipeSubstitutes.ItemTable_RecipeSubstitutes",
-    "AnyOil": "/Game/Blueprints/Items/ItemTable_RecipeSubstitutes.ItemTable_RecipeSubstitutes",
-    "AnyStandardRawFilet": "/Game/Blueprints/Items/ItemTable_RecipeSubstitutes.ItemTable_RecipeSubstitutes",
-    "AnyPipe": "/Game/Blueprints/Items/ItemTable_RecipeSubstitutes.ItemTable_RecipeSubstitutes",
-    "AnyBucket": "/Game/Blueprints/Items/ItemTable_RecipeSubstitutes.ItemTable_RecipeSubstitutes",
-    "AnyPoop": "/Game/Blueprints/Items/ItemTable_RecipeSubstitutes.ItemTable_RecipeSubstitutes",
-    "AnyBiocleanser": "/Game/Blueprints/Items/ItemTable_RecipeSubstitutes.ItemTable_RecipeSubstitutes"
+    "Skink_Mushroom": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "Skink_Mushroom_Crafted": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "WinterSprite": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "Lamogi_Plated": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+    "Lamogi_Speedy": "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global"
   }
 }

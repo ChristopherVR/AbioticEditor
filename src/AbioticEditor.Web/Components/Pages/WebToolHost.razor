@@ -1,0 +1,43 @@
+@page "/plugins/tools/{PluginId}/{ToolId}"
+@using AbioticEditor.Core.Plugins
+@using AbioticEditor.Plugins.Ui
+@inject HostSettingsService HostSettings
+@inject WebToolHostService WebTools
+@inject NavigationManager Navigation
+@inject HostLanguageService Languages
+@implements IDisposable
+
+<PageTitle>@(_session?.Capability.Value.Title ?? Languages.Resource("Plugins_ToolTitle")) · @Languages.Resource("App_Title")</PageTitle>
+
+@if (_error is not null)
+{
+    <section class="empty-state"><p class="eyebrow">@Languages.Resource("Plugins_ToolEyebrow")</p><h1>@Languages.Resource("Plugins_ToolUnavailable")</h1><p class="error">@_error</p><button class="secondary" type="button" @onclick="Close">@Languages.Resource("Common_Close")</button></section>
+}
+else if (_session is not null)
+{
+    <section class="tool-host">
+        <header><div><p class="eyebrow">@_session.Capability.Plugin.Manifest.Name</p><h1>@_session.Capability.Value.Title</h1></div><button class="secondary" type="button" @onclick="Close">@Languages.Resource("Common_Close")</button></header>
+        <iframe class="tool-frame" title="@_session.Capability.Value.Title" src="@($"/plugin-tools/{_session.Key}/content")"></iframe>
+    </section>
+}
+
+@code {
+    [Parameter] public string PluginId { get; set; } = string.Empty;
+    [Parameter] public string ToolId { get; set; } = string.Empty;
+    private WebToolSession? _session;
+    private string? _error;
+
+    protected override void OnParametersSet()
+    {
+        if (_session is not null) return;
+        var capability = HostSettings.WebTools.FirstOrDefault(tool =>
+            string.Equals(tool.Plugin.Id, PluginId, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(tool.Value.Id, ToolId, StringComparison.OrdinalIgnoreCase));
+        if (capability is null) { _error = Languages.Resource("Plugins_ToolUnavailableDescription"); return; }
+        try { _session = WebTools.Open(capability); }
+        catch (Exception ex) { _error = Errors.Present(ex, Languages.Resource("Plugins_ToolOpenFailed"), Languages.Resource("Plugins_ToolOpenFailedHelp")); }
+    }
+
+    public void Dispose() { if (_session is not null) WebTools.Close(_session.Key); }
+    private void Close() => Navigation.NavigateTo("/");
+}

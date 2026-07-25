@@ -1,0 +1,460 @@
+@page "/compare"
+@using AbioticEditor.Core.Compare
+@using AbioticEditor.Web.Components.Player
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject SaveComparisonService ComparisonService
+@inject SaveWorkspaceSessionService Workspace
+@inject AbioticEditor.Ui.IFilePicker FilePicker
+@inject AbioticEditor.Ui.IFolderPicker FolderPicker
+@inject HostLanguageService Languages
+@inject IJSRuntime Js
+
+<PageTitle>@Languages.Resource("Compare_Title") · @Languages.Resource("App_Title")</PageTitle>
+
+<section class="tool-scaffold compare-scaffold">
+    <header class="tool-scaffold-heading"><p class="eyebrow">@Languages.Resource("Compare_ScaffoldEyebrow")</p><h1>@Languages.Resource("Compare_ScaffoldTitle")</h1></header>
+
+    <section class="compare-card">
+        <h2>@Languages.Resource("Compare_ModeCardHeader")</h2>
+        <p class="muted">@Languages.Resource("Compare_ModeCardDescription")</p>
+        <div class="segmented-control" role="group" aria-label="@Languages.Resource("Compare_ModeCardHeader")">
+            <button type="button" class="@(!_folderMode ? "selected" : null)" @onclick="() => SetMode(false)">@Languages.Resource("Compare_ModeFileVsFile")</button>
+            <button type="button" class="@(_folderMode ? "selected" : null)" @onclick="() => SetMode(true)">@Languages.Resource("Compare_ModeFolderVsFolder")</button>
+        </div>
+    </section>
+
+    <section class="compare-card">
+        <h2>@Languages.Resource("Compare_SourcesCardHeader")</h2>
+        <div class="compare-sources">
+            @SourcePicker(true, Languages.Resource("Compare_SourceALabel"), _left)
+            @SourcePicker(false, Languages.Resource("Compare_SourceBLabel"), _right)
+        </div>
+    </section>
+
+    <section class="compare-card compare-run-card">
+        <h2>@Languages.Resource("Compare_CompareCardHeader")</h2>
+        <div class="editor-actions">
+            <button class="primary" @onclick="RunComparison" disabled="@(_working || string.IsNullOrWhiteSpace(_left) || string.IsNullOrWhiteSpace(_right))">@(_working ? Languages.Resource("Common_Working") : Languages.Resource("Compare_CompareButton"))</button>
+            @* Reading two full saves takes a moment, so say so rather than looking frozen. *@
+            @if (_working) { <span class="header-busy-spinner" role="status" aria-label="@Languages.Resource("Common_Working")"></span> }
+        </div>
+        @if (_working) { <p class="muted" role="status">@Languages.Resource("Compare_WorkingHint")</p> }
+        @if (_error is not null) { <p class="error" role="alert">@_error</p> }
+    </section>
+
+    @if (_result?.Save is { } save)
+    {
+        <section class="compare-results">
+            @* Which two saves these results belong to, stated once and plainly, so the columns
+               below never have to be guessed at. *@
+            <div class="cmp-banner">
+                <p class="eyebrow">@save.MeaningfulSummary.ToUpperInvariant()</p>
+                <div class="cmp-banner-sides">
+                    <div class="cmp-banner-side"><span class="cmp-tag cmp-tag-a">@Languages.Resource("Compare_SourceALabel")</span><strong title="@_left">@save.LeftLabel</strong></div>
+                    <span class="cmp-banner-arrow" aria-hidden="true">↔</span>
+                    <div class="cmp-banner-side"><span class="cmp-tag cmp-tag-b">@Languages.Resource("Compare_SourceBLabel")</span><strong title="@_right">@save.RightLabel</strong></div>
+                </div>
+            </div>
+            @if (!string.Equals(save.LeftSaveClass, save.RightSaveClass, StringComparison.Ordinal)) { <p class="error">@Languages.Resource("Compare_SaveClassesDiffer", save.LeftSaveClass ?? "?", save.RightSaveClass ?? "?")</p> }
+            @if (save.Truncated) { <p class="error">@Languages.Resource("Compare_SavesTooLarge")</p> }
+            @if (save.AreIdentical)
+            {
+                <p class="success">@Languages.Resource("Compare_SummaryIdentical")</p>
+            }
+            else
+            {
+                @if (_result.Semantic is { Sections.Count: > 0 } semantic)
+                {
+                    <section class="compare-card">
+                        <h2>@Languages.Resource("Compare_WhatsDifferentHeader")</h2>
+                        <p class="muted">@Languages.Resource("Compare_WhatsDifferentDescription")</p>
+                        <ul class="semantic-overview">@foreach (var entry in semantic.Sections) { <li>@entry.Title: @entry.Summary(Languages)</li> }</ul>
+                    </section>
+                    @foreach (var entry in semantic.Sections) { @RenderSemanticSection(entry) }
+                }
+                else if (_result.Semantic is { Sections.Count: 0 } emptySemantic)
+                {
+                    <section class="compare-card"><h2>@Languages.Resource("Compare_KindSummaryHeader", emptySemantic.Kind)</h2><p class="muted">@Languages.Resource("Compare_NoMeaningfulDiff")</p></section>
+                }
+
+                <section class="compare-card">
+                    <button class="secondary" type="button" @onclick="() => _showRawDiff = !_showRawDiff">@(_showRawDiff ? Languages.Resource("Compare_HideRawDifferences") : Languages.Resource("Compare_ShowRawDifferences"))</button>
+                    @if (_showRawDiff)
+                    {
+                        <h2>@Languages.Resource("Compare_RawPropertyDiffHeader")</h2>
+                        <p class="muted">@Languages.Resource("Compare_RawPropertyDiffDescription", save.MeaningfulCount, save.NoiseCount)</p>
+                        @if (save.NoiseCount > 0) { <label class="toggle-row"><input type="checkbox" @bind="_showNoise" /><span>@Languages.Resource("Compare_ShowNoiseToggle", save.NoiseCount)</span></label> }
+                        <div class="cmp-grid" role="table">
+                            @AbHeader(LeftLabel, RightLabel)
+                            @foreach (var difference in VisibleDifferences(save).Take(2000)) { @RenderDiffRow(difference) }
+                        </div>
+                    }
+                </section>
+
+                <section class="compare-card">
+                    <h2>@Languages.Resource("Compare_ExportCardHeader")</h2>
+                    <p class="muted">@Languages.Resource("Compare_ExportCardDescription")</p>
+                    <div class="editor-actions">
+                        <button class="secondary" type="button" @onclick="CopyFileReportAsync">@Languages.Resource("Compare_CopyMarkdownButton")</button>
+                        <button class="secondary" type="button" @onclick="SaveFileReportAsync">@Languages.Resource("Compare_SaveMdButton")</button>
+                    </div>
+                    @if (_exportMessage is not null) { <p class="muted">@_exportMessage</p> }
+                </section>
+            }
+        </section>
+    }
+    @if (_result?.Folder is { } folder)
+    {
+        <section class="compare-results">
+            <p class="eyebrow">@Languages.Resource("Compare_ModeFolderVsFolder")</p>
+            <h2>@Languages.Resource("Compare_FolderSummary", folder.DifferingCount, folder.IdenticalCount, folder.OnlyLeftCount, folder.OnlyRightCount)</h2>
+            <p class="path">@folder.LeftFolder ↔ @folder.RightFolder</p>
+            @if (folder.AreIdentical)
+            {
+                <p class="success">@Languages.Resource("Compare_FoldersIdentical")</p>
+            }
+            else
+            {
+                <p class="muted">@Languages.Resource("Compare_TapDifferingFile")</p>
+                <div class="compare-list">
+                    @foreach (var file in folder.Files)
+                    {
+                        var canExpand = file.Status == FolderEntryStatus.Differs && file.Diff is not null;
+                        <article class="compare-row folder-row @(canExpand ? "clickable" : null)" @onclick="() => ToggleFolderRow(file)">
+                            <span class="diff-kind @file.Status.ToString().ToLowerInvariant()">@FolderTag(file.Status)</span>
+                            <div><code>@file.RelativePath</code><small>@(file.Error ?? FolderRowSummary(file))</small></div>
+                            <div><span>@Languages.Resource("Compare_DifferencesLabel")</span><code>@(file.Diff is { } d ? Languages.Resource("Compare_FolderRowGameplayTotal", d.MeaningfulCount, file.DifferenceCount) : Languages.Resource("Compare_FolderRowDifferences", file.DifferenceCount))</code></div>
+                        </article>
+                        @if (canExpand && _expandedFolderRow == file.RelativePath)
+                        {
+                            <div class="compare-row-detail">
+                                @if (_result.FolderSemantics is not null && _result.FolderSemantics.TryGetValue(file.RelativePath, out var fileSemantic) && fileSemantic.Sections.Count > 0)
+                                {
+                                    @foreach (var entry in fileSemantic.Sections) { @RenderSemanticSection(entry) }
+                                }
+                                <div class="cmp-grid" role="table">
+                                    @AbHeader(FolderName(folder.LeftFolder), FolderName(folder.RightFolder))
+                                    @foreach (var difference in file.Diff!.Differences.Where(diff => !diff.IsNoise).Take(2000)) { @RenderDiffRow(difference) }
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+                <section class="compare-card">
+                    <h2>@Languages.Resource("Compare_ExportCardHeader")</h2>
+                    <p class="muted">@Languages.Resource("Compare_ExportCardDescription")</p>
+                    <div class="editor-actions"><button class="secondary" type="button" @onclick="SaveFolderReportAsync">@Languages.Resource("Compare_SaveMdButton")</button></div>
+                    @if (_exportMessage is not null) { <p class="muted">@_exportMessage</p> }
+                </section>
+            }
+        </section>
+    }
+</section>
+
+@code {
+    private string _left = string.Empty;
+    private string _right = string.Empty;
+    private bool _folderMode = true;
+    private bool _working;
+    private string? _error;
+    private string? _exportMessage;
+    private ComparisonResult? _result;
+    private bool _showRawDiff;
+    private bool _showNoise;
+    private string? _expandedFolderRow;
+    private IJSObjectReference? _module;
+
+    protected override void OnInitialized() => _left = Workspace.Current?.WorldFolder ?? string.Empty;
+
+    private RenderFragment SourcePicker(bool left, string label, string path) => @<div class="compare-source">
+        <label>@label</label>
+        @if (!_folderMode && Workspace.Current?.Saves.Count > 0)
+        {
+            <select @onchange="args => PickFromWorkspace(left, args.Value?.ToString())">
+                <option value="">@Languages.Resource("Compare_QuickPickerTitle")</option>
+                @foreach (var save in Workspace.Current!.Saves) { <option value="@save.Path" selected="@(save.Path == path)">@save.Name</option> }
+            </select>
+        }
+        <div class="compare-source-path" title="@path">@(string.IsNullOrWhiteSpace(path) ? Languages.Resource("Compare_NothingSelected") : path)</div>
+        <button class="secondary" type="button" @onclick="() => PickAsync(left)">@Languages.Resource("Compare_BrowseButton")</button>
+    </div>;
+
+    @* ---------- side-by-side A | B rendering ----------
+       Every result, whether it came from the readable summary or the raw property list, is one
+       row shaped the same way: what changed, its value in A, its value in B, and which way it
+       went. Keeping one shape means the eye learns the layout once and the two saves stay in
+       line down the whole page. *@
+
+    /// <summary>Column headings naming which save is on which side; repeated per block so the
+    /// sides stay identifiable after scrolling past the top of the page.</summary>
+    private RenderFragment AbHeader(string leftLabel, string rightLabel) => @<div class="cmp-row cmp-head" role="row">
+        <span class="cmp-what" role="columnheader">@Languages.Resource("Compare_ChangeColumn")</span>
+        <span class="cmp-side cmp-a" role="columnheader" title="@leftLabel"><b>@Languages.Resource("Compare_SourceALabel")</b> @leftLabel</span>
+        <span class="cmp-side cmp-b" role="columnheader" title="@rightLabel"><b>@Languages.Resource("Compare_SourceBLabel")</b> @rightLabel</span>
+        <span class="cmp-delta" role="columnheader"><span class="visually-hidden">@Languages.Resource("Compare_DirectionColumn")</span></span>
+    </div>;
+
+    /// <summary>One raw property difference as an A | B row.</summary>
+    private RenderFragment RenderDiffRow(SaveLeafDiff difference) => @<div class="cmp-row" role="row">
+        <span class="cmp-what" title="@RowTrail(difference.Path, int.MaxValue)">
+            <code>@RowTrail(difference.Path, 2)</code><small>@PlainNames.Words(difference.Category.ToString())</small>
+        </span>
+        <span class="cmp-side cmp-a"><code>@(difference.Left ?? Languages.Inventory("empty"))</code></span>
+        <span class="cmp-side cmp-b"><code>@(difference.Right ?? Languages.Inventory("empty"))</code></span>
+        @DeltaCell(difference.Left, difference.Right)
+    </div>;
+
+    private RenderFragment RenderSemanticSection(SemanticSection entry) => @<section class="compare-card cmp-section">
+        <header class="cmp-section-head"><h2>@entry.Title.ToUpperInvariant()</h2><p class="muted">@entry.Summary(Languages)</p></header>
+        <div class="cmp-grid" role="table">
+            @AbHeader(LeftLabel, RightLabel)
+            @* Values that exist on both sides and moved. *@
+            @foreach (var scalar in entry.Scalars)
+            {
+                <div class="cmp-row" role="row">
+                    <span class="cmp-what">@scalar.Label</span>
+                    <span class="cmp-side cmp-a"><code>@scalar.A</code></span>
+                    <span class="cmp-side cmp-b"><code>@scalar.B</code></span>
+                    @DeltaCell(scalar.A, scalar.B)
+                </div>
+            }
+            @* Things present on one side only. The name stays in the first column so the row
+               reads the same as a changed value, and the side that has it is the one with a
+               tick rather than a dash. *@
+            @foreach (var item in entry.OnlyA) { @RenderPresenceRow(item, inA: true) }
+            @foreach (var item in entry.OnlyB) { @RenderPresenceRow(item, inA: false) }
+        </div>
+    </section>;
+
+    private RenderFragment RenderPresenceRow(SemanticItem item, bool inA) => @<div class="cmp-row" role="row">
+        <span class="cmp-what cmp-named">
+            @if (item.ItemId is not null) { <span class="cmp-icon"><ItemIcon ItemId="@item.ItemId" Alt="@item.DisplayName" /></span> }
+            <span class="cmp-name">@item.DisplayName</span>
+        </span>
+        <span class="cmp-side cmp-a">@(inA ? PresentCell() : AbsentCell())</span>
+        <span class="cmp-side cmp-b">@(inA ? AbsentCell() : PresentCell())</span>
+        <span class="cmp-delta @(inA ? "removed" : "added")" title="@Languages.Resource(inA ? "Diff_OnlyInA" : "Diff_OnlyInB")">@(inA ? "−" : "+")</span>
+    </div>;
+
+    private RenderFragment PresentCell() => @<span class="cmp-present" title="@Languages.Resource("Compare_Present")">✓<span class="visually-hidden">@Languages.Resource("Compare_Present")</span></span>;
+
+    private RenderFragment AbsentCell() => @<span class="cmp-absent" title="@Languages.Resource("Compare_NotPresent")">—<span class="visually-hidden">@Languages.Resource("Compare_NotPresent")</span></span>;
+
+    /// <summary>
+    /// The direction marker at the end of a row. Numbers say which way they moved, which is the
+    /// thing most worth knowing at a glance for money, levels and counts; anything else just
+    /// says it changed.
+    /// </summary>
+    private RenderFragment DeltaCell(string? a, string? b)
+    {
+        if (TryNumber(a, out var na) && TryNumber(b, out var nb) && na != nb)
+        {
+            var up = nb > na;
+            var diff = Math.Abs(nb - na);
+            var text = FormattableString.Invariant($"{(up ? "+" : "-")}{diff:0.###}");
+            return @<span class="cmp-delta @(up ? "up" : "down")" title="@text">@(up ? "▲" : "▼")<small>@text</small></span>;
+        }
+        return @<span class="cmp-delta changed" title="@Languages.Resource("Compare_ValueChanged")">±</span>;
+    }
+
+    private static bool TryNumber(string? text, out double value)
+        => double.TryParse((text ?? string.Empty).Replace(",", string.Empty, StringComparison.Ordinal).Trim(),
+            System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out value);
+
+    /// <summary>The last segment of a folder path, for use as a column heading.</summary>
+    private string FolderName(string? path) => string.IsNullOrWhiteSpace(path)
+        ? Languages.Resource("Compare_NothingSelected")
+        : Path.GetFileName(path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)) is { Length: > 0 } name
+            ? name
+            : path;
+
+    /// <summary>Short name for the A side, used as the left column heading.</summary>
+    private string LeftLabel => _result?.Save?.LeftLabel
+        ?? (string.IsNullOrWhiteSpace(_left) ? Languages.Resource("Compare_NothingSelected") : Path.GetFileName(_left.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)));
+
+    /// <summary>Short name for the B side, used as the right column heading.</summary>
+    private string RightLabel => _result?.Save?.RightLabel
+        ?? (string.IsNullOrWhiteSpace(_right) ? Languages.Resource("Compare_NothingSelected") : Path.GetFileName(_right.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)));
+
+    /// <summary>
+    /// Names one changed piece of a save in plain words. The last part of a stored path is
+    /// often something as generic as "Count" or "Name", so the name also carries the thing it
+    /// belongs to ("Backpack Slot 3 › Count"). Pass a small number of parts for the row itself
+    /// and a large one for the hover text, which spells the whole chain out.
+    /// </summary>
+    private static string RowTrail(string? path, int maxParts)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return string.Empty;
+        var parts = path.Split('.', StringSplitOptions.RemoveEmptyEntries)
+            .Select(PlainNames.Property)
+            .Where(part => part.Length > 0)
+            .ToList();
+        if (parts.Count == 0) return PlainNames.Property(path);
+        if (parts.Count > maxParts) parts = parts.Skip(parts.Count - maxParts).ToList();
+        return string.Join(" › ", parts);
+    }
+
+    /// <summary>
+    /// The folder row's one-line hint: the readable semantic summary ("Money, 2 skills changed")
+    /// when this pair has one, falling back to the raw property summary otherwise.
+    /// </summary>
+    private string FolderRowSummary(FolderFileComparison file)
+    {
+        if (_result?.FolderSemantics is not null
+            && _result.FolderSemantics.TryGetValue(file.RelativePath, out var semantic)
+            && semantic.Sections.Count > 0)
+        {
+            return string.Join(", ", semantic.Sections.Select(section => $"{section.Title}: {section.Summary(Languages)}"));
+        }
+        return file.Diff?.MeaningfulSummary ?? Languages.Resource("Compare_NoMeaningfulDiff");
+    }
+
+    private static string FolderTag(FolderEntryStatus status) => status switch
+    {
+        FolderEntryStatus.Identical => "==",
+        FolderEntryStatus.Differs => "~~",
+        FolderEntryStatus.OnlyLeft => "A",
+        FolderEntryStatus.OnlyRight => "B",
+        _ => "!",
+    };
+
+    private IEnumerable<SaveLeafDiff> VisibleDifferences(SaveDiff diff) => _showNoise ? diff.Differences : diff.Differences.Where(d => !d.IsNoise);
+
+    private void ToggleFolderRow(FolderFileComparison file)
+    {
+        if (file.Status != FolderEntryStatus.Differs || file.Diff is null) return;
+        _expandedFolderRow = _expandedFolderRow == file.RelativePath ? null : file.RelativePath;
+    }
+
+    private void SetMode(bool folders)
+    {
+        if (_folderMode == folders) return;
+        _folderMode = folders;
+        _left = folders ? Workspace.Current?.WorldFolder ?? string.Empty : Workspace.Current?.SelectedSave?.Path ?? string.Empty;
+        _right = string.Empty;
+        _result = null;
+        _error = null;
+        _exportMessage = null;
+    }
+
+    private void PickFromWorkspace(bool left, string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return;
+        if (left) _left = path; else _right = path;
+    }
+
+    /// <summary>
+    /// Runs the comparison off the UI thread. It used to run inline, which meant the screen
+    /// never got a chance to redraw between the busy flag going up and coming down again: on a
+    /// large world the whole window simply sat there, with the button still reading COMPARE, and
+    /// nothing to say it had started. Reading two full saves takes a moment, so the wait is now
+    /// visible and the rest of the page stays responsive while it happens.
+    /// </summary>
+    private async Task RunComparison()
+    {
+        _working = true; _error = null; _result = null; _exportMessage = null; _expandedFolderRow = null;
+        StateHasChanged();
+        try
+        {
+            var left = _left;
+            var right = _right;
+            _result = await Task.Run(() => ComparisonService.Compare(left, right));
+            // Collapse the raw property diff behind the readable summary when one is available;
+            // saves that aren't a matched player/world pair still need it expanded by default.
+            _showRawDiff = _result.Semantic is null;
+            _showNoise = false;
+        }
+        catch (Exception exception) when (exception is ArgumentException or IOException or UnauthorizedAccessException) { _error = Errors.Present(exception, Languages.Resource("Compare_ComparisonFailedTitle"), Languages.Resource("Compare_PickTwoMessage")); }
+        finally { _working = false; }
+    }
+
+    private async Task PickAsync(bool left)
+    {
+        _error = null;
+        try
+        {
+            var path = _folderMode
+                ? (await FolderPicker.PickFolderAsync(new() { Title = Languages.Resource("Compare_QuickPickerTitle") }))?.Path
+                : (await FilePicker.PickFileAsync(new() { Title = Languages.Resource("Compare_PickFileTitle"), FileTypes = [new(Languages.Resource("Compare_SaveFileType"), [".sav"])] }))?.Path;
+            if (string.IsNullOrWhiteSpace(path)) return;
+            if (left) _left = path; else _right = path;
+        }
+        catch (Exception exception) { _error = Errors.Present(exception, Languages.Resource("Compare_PickerFailedTitle"), Languages.Resource("Compare_PickTwoMessage")); }
+    }
+
+    // ---------- export ----------
+
+    private async Task<IJSObjectReference> ModuleAsync() => _module ??= await Js.InvokeAsync<IJSObjectReference>("import", "./compare.js");
+
+    private async Task CopyFileReportAsync()
+    {
+        if (_result?.Save is not { } save) return;
+        _exportMessage = null;
+        try
+        {
+            var report = SaveDiffReport.ForFile(save, BuildSemanticMarkdown(_result.Semantic), _showNoise);
+            var module = await ModuleAsync();
+            await module.InvokeVoidAsync("copyText", report);
+            _exportMessage = Languages.Resource("Compare_CopiedMessage");
+        }
+        catch (Exception exception) { _error = Errors.Present(exception, Languages.Resource("Compare_ExportFailedTitle"), string.Empty); }
+    }
+
+    private async Task SaveFileReportAsync()
+    {
+        if (_result?.Save is not { } save) return;
+        _exportMessage = null;
+        try
+        {
+            var report = SaveDiffReport.ForFile(save, BuildSemanticMarkdown(_result.Semantic), _showNoise);
+            var fileName = $"compare_{Path.GetFileNameWithoutExtension(save.LeftLabel)}_vs_{Path.GetFileNameWithoutExtension(save.RightLabel)}.md";
+            var module = await ModuleAsync();
+            await module.InvokeVoidAsync("downloadText", fileName, report);
+        }
+        catch (Exception exception) { _error = Errors.Present(exception, Languages.Resource("Compare_ExportFailedTitle"), string.Empty); }
+    }
+
+    private async Task SaveFolderReportAsync()
+    {
+        if (_result?.Folder is not { } folder) return;
+        _exportMessage = null;
+        try
+        {
+            var report = SaveDiffReport.ForFolder(folder);
+            var module = await ModuleAsync();
+            await module.InvokeVoidAsync("downloadText", "folder_compare.md", report);
+        }
+        catch (Exception exception) { _error = Errors.Present(exception, Languages.Resource("Compare_ExportFailedTitle"), string.Empty); }
+    }
+
+    /// <summary>Renders the semantic sections as a Markdown block for the export report.</summary>
+    private string? BuildSemanticMarkdown((string Kind, List<SemanticSection> Sections)? semantic)
+    {
+        if (semantic is not { } sem || sem.Sections.Count == 0) return null;
+
+        var sb = new System.Text.StringBuilder();
+        sb.Append("## ").Append(CapitalizeWord(sem.Kind)).Append(" summary\n\n");
+        foreach (var section in sem.Sections)
+        {
+            sb.Append("### ").Append(section.Title).Append("\n\n");
+            sb.Append('_').Append(section.Summary(Languages)).Append("_\n\n");
+            foreach (var s in section.Scalars) { sb.Append("- ").Append(s.Label).Append(": ").Append(s.A).Append(" -> ").Append(s.B).Append('\n'); }
+            foreach (var item in section.OnlyA) { sb.Append("- only in A: ").Append(item.DisplayName).Append('\n'); }
+            foreach (var item in section.OnlyB) { sb.Append("- only in B: ").Append(item.DisplayName).Append('\n'); }
+            sb.Append('\n');
+        }
+        return sb.ToString();
+    }
+
+    private static string CapitalizeWord(string s) => string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s[1..].ToLowerInvariant();
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is not null)
+        {
+            try { await _module.DisposeAsync(); }
+            catch (JSDisconnectedException) { }
+        }
+    }
+}

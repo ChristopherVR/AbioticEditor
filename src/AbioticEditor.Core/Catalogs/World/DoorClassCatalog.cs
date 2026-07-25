@@ -36,19 +36,26 @@ public sealed record DoorClassInfo(
 /// Lock kinds are best-effort labels derived from the blueprint family - full
 /// blueprint K2Node inspection would be needed to resolve specific keycards or
 /// part requirements per instance.
+///
+/// No class is labelled <c>Flag</c>: whether a door is story-controlled is set per placed
+/// instance, never by the class, and a survey of all 77 cooked sub-levels found only 11 doors
+/// in the whole game that carry one. Labelling a class "story controlled" therefore mislabelled
+/// hundreds of ordinary doors. <see cref="DoorGateResolver"/> reads the real per-door gate from
+/// the level files and names the flag; UIs should let that override the class default.
 /// </summary>
 public static class DoorClassCatalog
 {
     private static readonly Dictionary<string, DoorClassInfo> _classes =
         new(StringComparer.Ordinal)
         {
-            // SimpleDoor family - the standard hinged door used everywhere. The
-            // ParentBP exposes WorldFlagToUnlock, so it can be gated by either a
-            // flag or a key check depending on the specific placed instance.
-            ["SimpleDoor_ParentBP_C"]            = new("SimpleDoor_ParentBP_C",            "Hinged Door",                 null, "Flag"),
+            // SimpleDoor family - the standard hinged door used everywhere. The ParentBP
+            // exposes WorldFlagToUnlock, but the level designer sets it per placed door and
+            // hardly ever does, so the class itself says nothing: only
+            // DoorGateResolver can tell you whether a particular door is story gated.
+            ["SimpleDoor_ParentBP_C"]            = new("SimpleDoor_ParentBP_C",            "Hinged Door",                 null, "None"),
             ["SimpleDoor_Bathroom_C"]            = new("SimpleDoor_Bathroom_C",            "Bathroom Door",               null, "None"),
             ["SimpleDoor_CinematicControlled_C"] = new("SimpleDoor_CinematicControlled_C", "Cinematic Door",              null, "None"),
-            ["SimpleHatch_BP_C"]                 = new("SimpleHatch_BP_C",                 "Hatch",                       null, "Flag"),
+            ["SimpleHatch_BP_C"]                 = new("SimpleHatch_BP_C",                 "Hatch",                       null, "None"),
 
             // SecurityDoor family - the big sliding security gates.
             ["SecurityDoor_C"]            = new("SecurityDoor_C",            "Security Door",              null, "Keycard"),
@@ -60,17 +67,17 @@ public static class DoorClassCatalog
             // BlastDoor family - heavy doors typically operated by a switch or
             // installable part, not an inventory key.
             ["BlastDoor_C"]               = new("BlastDoor_C",               "Blast Door",                 null, "Part"),
-            ["BlastDoor_DarkwaterCave_C"] = new("BlastDoor_DarkwaterCave_C", "Darkwater Cave Blast Door",  null, "Flag"),
+            ["BlastDoor_DarkwaterCave_C"] = new("BlastDoor_DarkwaterCave_C", "Darkwater Cave Blast Door",  null, "Part"),
             ["BlastDoor_OfferingBox_C"]   = new("BlastDoor_OfferingBox_C",   "Offering Box",               null, "Part"),
-            ["BlastDoor_ORD_Large_C"]     = new("BlastDoor_ORD_Large_C",     "Ordnance Blast Door (Large)",null, "Flag"),
-            ["BlastDoor_ORD_Small_C"]     = new("BlastDoor_ORD_Small_C",     "Ordnance Blast Door (Small)",null, "Flag"),
+            ["BlastDoor_ORD_Large_C"]     = new("BlastDoor_ORD_Large_C",     "Ordnance Blast Door (Large)",null, "Part"),
+            ["BlastDoor_ORD_Small_C"]     = new("BlastDoor_ORD_Small_C",     "Ordnance Blast Door (Small)",null, "Part"),
 
             // Sliding doors and windows.
-            ["SlidingDoor_BP_C"]            = new("SlidingDoor_BP_C",            "Sliding Door",          null, "Flag"),
-            ["SlidingCellDoor_BP_C"]        = new("SlidingCellDoor_BP_C",        "Cell Door",             null, "Flag"),
-            ["SlidingStorageDoor_BP_C"]     = new("SlidingStorageDoor_BP_C",     "Storage Door",          null, "Flag"),
+            ["SlidingDoor_BP_C"]            = new("SlidingDoor_BP_C",            "Sliding Door",          null, "None"),
+            ["SlidingCellDoor_BP_C"]        = new("SlidingCellDoor_BP_C",        "Cell Door",             null, "None"),
+            ["SlidingStorageDoor_BP_C"]     = new("SlidingStorageDoor_BP_C",     "Storage Door",          null, "None"),
             ["SlidingWindow_Vertical_BP_C"] = new("SlidingWindow_Vertical_BP_C", "Vertical Sliding Window", null, "None"),
-            ["SlidingDoor_VOTV_ASO_C"]      = new("SlidingDoor_VOTV_ASO_C",      "VOTV Sliding Door",     null, "Flag"),
+            ["SlidingDoor_VOTV_ASO_C"]      = new("SlidingDoor_VOTV_ASO_C",      "VOTV Sliding Door",     null, "None"),
 
             // Specialty.
             ["VacDoor_BP_C"]              = new("VacDoor_BP_C",              "Vacuum Door",                null, "Keycard"),
@@ -115,9 +122,9 @@ public static class DoorClassCatalog
         "Part" => "Disabled mechanism: this door is missing a machine part (fuse, valve, " +
             "crank…) that must be installed in-game before it operates. Setting it open " +
             "here skips the part hunt.",
-        "Flag" => "Story-controlled: the game opens this door itself when the matching " +
-            "world flag is set (see the QUEST FLAGS tab). Editing the door state directly " +
-            "can desync it from the story until the next trigger.",
+        "Flag" => "Story-controlled: the game opens this door itself when its world flag is " +
+            "set (see the QUEST FLAGS tab). Editing the door state directly can desync it " +
+            "from the story until the next trigger.",
         "None" => "Free door: no lock - its saved state only records whether someone left " +
             "it open, closed, or barricaded.",
         _ => "Unrecognized lock type - the saved state can still be edited safely.",

@@ -1,0 +1,14 @@
+@page "/steam"
+@inject SteamStatusService SteamService
+@inject AbioticEditor.Ui.IExternalNavigationService ExternalNavigation
+@inject HostLanguageService Languages
+
+<PageTitle>@Languages.Resource("Steam_Title") · @Languages.Resource("App_Title")</PageTitle>
+<section class="hero compact-hero"><p class="eyebrow">@Languages.Resource("Steam_Eyebrow")</p><h1>@Languages.Resource("Steam_Heading")</h1><p class="lede">@Languages.Resource("Steam_Description")</p></section>
+<section class="settings-card"><h2>@Languages.Resource("Steam_Status")</h2><dl class="status-list"><dt>@Languages.Resource("Steam_App")</dt><dd>@Languages.Resource(_status.SteamInstalled ? "Steam_Found" : "Steam_NotFound")</dd><dt>@Languages.Resource("Steam_Folder")</dt><dd>@(_status.SteamPath ?? Languages.Editor("workspace.unknown"))</dd><dt>@Languages.Resource("Steam_SignedInAccounts")</dt><dd>@(_status.LocalAccountCacheAvailable ? _status.Accounts.Count : 0)</dd></dl>
+    @if (_status.Accounts.Count > 0) { <div class="plugin-list">@foreach (var account in _status.Accounts) { <article class="plugin-row"><div><strong>@account.Value</strong><small>@account.Key</small></div>@if (SteamCommunityLinks.TryCreateProfile(account.Key, out var profile)) { <button class="secondary" @onclick="() => OpenAsync(profile!)">@Languages.Resource("Steam_OpenProfile")</button> }</article> }</div> }
+    else { <p class="muted">@Languages.Resource("Steam_NoAccounts")</p> }
+    <div class="editor-actions"><button class="primary" @onclick="OpenSignInAsync">@Languages.Resource("Steam_OpenSignIn")</button><button class="secondary" @onclick="Refresh">@Languages.Resource("Steam_Refresh")</button></div>
+    @if (_messageKey is not null) { <p class="muted" role="status">@Languages.Resource(_messageKey)</p> }
+</section>
+@code { private SteamStatus _status = new(null, null, []); private string? _messageKey; protected override void OnInitialized() => Refresh(); private void Refresh() { _status = SteamService.GetStatus(); _messageKey = _status.LocalAccountCacheAvailable ? "Steam_Refreshed" : "Steam_NoneFound"; } private Task OpenSignInAsync() => OpenAsync(SteamCommunityLinks.SignIn); private async Task OpenAsync(Uri uri) { try { await ExternalNavigation.OpenUrlAsync(uri); _messageKey = "Steam_CommunityOpened"; } catch (Exception exception) { Errors.Record(exception, "Open Steam Community"); _messageKey = "Steam_CommunityOpenFailed"; } } }

@@ -149,9 +149,20 @@ public sealed class UpdaterTests
         // Defaults now point at the published repo, so the updater is configured.
         Assert.False(new UpdaterOptions().IsPlaceholderRepository);
         Assert.False(UpdaterOptions.ForCli().IsPlaceholderRepository);
+        Assert.False(UpdaterOptions.ForWeb().IsPlaceholderRepository);
         Assert.Equal(
             "https://api.github.com/repos/ChristopherVR/AbioticEditor",
             new UpdaterOptions().ApiBaseUrl);
+    }
+
+    [Fact]
+    public void Web_options_select_only_the_platform_web_host()
+    {
+        var options = UpdaterOptions.ForWeb();
+
+        Assert.Contains("web", options.AssetKeywords);
+        Assert.Contains(UpdaterOptions.DefaultPlatformKeyword, options.AssetKeywords);
+        Assert.DoesNotContain("cli", options.AssetKeywords);
     }
 
     [Fact]

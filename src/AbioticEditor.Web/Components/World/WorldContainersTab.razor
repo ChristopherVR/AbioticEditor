@@ -1,0 +1,635 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Services
+@using AbioticEditor.Web.Components.Player
+@using AbioticEditor.Core.Items
+@using AbioticEditor.Core.PlayerSaves
+@using AbioticEditor.Core.WorldSaves
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject IJSRuntime Js
+@inject InventorySelectionService Selection
+@inject SlotDragDropService Dnd
+@inject ItemCatalogService Items
+@inject ItemUpgradeVocabularyService Upgrades
+@inject SaveWorkspaceSessionService Workspace
+
+@* Faithful port of the native WorldContainersTab.xaml: filter + HIDE EMPTY row, then the
+   two-column master/detail body (container list on the left, the selected container's
+   6-across slot grid on the right), then the drag and right-click-send help lines.
+   Tapping a slot opens it in the right-hand sidebar slot editor, exactly like native. *@
+<section class="world-editor wc-tab" aria-label="@L.Resource("WorldContainers_SelectAContainer")">
+    @if (!Session.CanEditContainers)
+    {
+        <p class="empty">@L.Resource("WorldContainers_NoContainersMatch")</p>
+    }
+    else
+    {
+        <div class="wc-filter-row">
+            <input aria-label="@L.Resource("WorldContainers_FilterPlaceholder")" @bind="_filter" @bind:event="oninput" placeholder="@L.Resource("WorldContainers_FilterPlaceholder")" />
+            <label class="wc-hide-empty"><input type="checkbox" @bind="_hideEmpty" /> <span>@L.Resource("WorldContainers_HideEmpty")</span></label>
+        </div>
+        <div class="wc-split">
+            <div class="wc-master" role="list" aria-label="@L.Resource("WorldContainers_SelectAContainer")">
+                @{ var visible = VisibleContainers; }
+                @if (visible.Count == 0) { <p class="wc-empty">@L.Resource("WorldContainers_NoContainersMatch")</p> }
+                @foreach (var container in visible)
+                {
+                    var key = (container.Source, container.Id);
+                    @* A crate is named for what it is and what is in it. The long reference
+                       the game files it under is not shown anywhere: it is not something a
+                       player can act on. *@
+                    <div class="wc-row @(_selectedKey == key ? "selected" : null)" role="listitem" @key="ContainerKey(container)"
+                         @onclick="() => TapContainer(container)"
+                         @ondragover:preventDefault
+                         @ondrop="() => DropOnContainer(container)">
+                        <strong>@DisplayName(container)</strong>
+                        <span class="wc-count">@CountText(container)</span>
+                        <small>@WhereText(container)</small>
+                    </div>
+                }
+            </div>
+            <div class="wc-detail">
+                @if (SelectedContainer is not { } selected || _slotEdits is null)
+                {
+                    <p class="wc-select-label">@L.Resource("WorldContainers_SelectAContainer")</p>
+                    <p class="wc-select-help">@L.Resource("WorldContainers_SelectContainerHelp")</p>
+                }
+                else
+                {
+                    <h3 class="wc-title">@DisplayName(selected)</h3>
+                    <p class="wc-id">@WhereText(selected)</p>
+                    <div class="wc-divider"></div>
+                    <div class="wc-slot-grid">
+                        @foreach (var edit in _slotEdits)
+                        {
+                            var isActive = Selection.Current?.Slot == edit;
+                            <button type="button"
+                                    class="wc-slot @(isActive ? "selected" : null)"
+                                    aria-pressed="@isActive"
+                                    aria-label="@($"[{edit.Index:D2}] {SlotName(edit)}")"
+                                    title="@L.Resource("WorldContainers_SendHelp")"
+                                    draggable="@(!edit.IsEmpty ? "true" : "false")"
+                                    @ondragstart="() => _dragEdit = edit"
+                                    @ondragend="() => _dragEdit = null"
+                                    @ondragover:preventDefault
+                                    @ondrop="() => DropOnSlot(edit)"
+                                    @onclick="() => TapSlot(edit)"
+                                    @oncontextmenu="() => SendToPlayerAsync(edit)"
+                                    @oncontextmenu:preventDefault>
+                                @if (!edit.IsEmpty && edit.ItemId is { } itemId)
+                                {
+                                    <span class="wc-slot-icon"><ItemIcon ItemId="@itemId" Alt="@SlotName(edit)" /></span>
+                                    @if (edit.Count > 1) { <span class="wc-slot-count">@edit.Count</span> }
+                                    @if (UpgradeCatalog.UpgradeFor(itemId) is not null) { <span class="wc-slot-upg">▲</span> }
+                                    <span class="wc-slot-name">@SlotName(edit)</span>
+                                }
+                                else
+                                {
+                                    <span class="wc-slot-index">[@edit.Index.ToString("D2")]</span>
+                                }
+                            </button>
+                        }
+                    </div>
+
+                    @* Pick-then-place, plus a button for handing an item to a player. Both
+                       exist because dragging and right-clicking need a mouse, so both are
+                       offered only where there is no mouse; nothing about the desktop
+                       layout changes. *@
+                    <SlotMoveBar Touch="@_touch" Holding="@IsHolding" CanStart="@CanStartMove"
+                                 Message="@HoldingMessage" OnStart="StartMove" OnCancel="CancelMove" />
+                    @if (_touch && PlayerSession is not null && Selection.Current?.Slot is { IsEmpty: false } sendable && _slotEdits?.Contains(sendable) == true)
+                    {
+                        <div class="editor-actions">
+                            <button type="button" class="secondary" @onclick="() => SendToPlayerAsync(sendable)">@L.Resource("WorldPets_SendToPlayer")</button>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+        @* The instructions have to match what the device can do: dragging a slot and
+           right-clicking are mouse-only, so a touch screen is told about the buttons instead. *@
+        <p class="wc-help">@L.Resource(_touch ? "PlayerUi_MoveBetweenAreasHelp" : "WorldContainers_DragHelp")</p>
+        @if (!_touch) { <p class="wc-help">@L.Resource("WorldContainers_SendHelp")</p> }
+        @if (_moveStatus is { } status) { <p class="wc-status">@status</p> }
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter] public PlayerSaveSession? PlayerSession { get; set; }
+    [Parameter] public string Title { get; set; } = "World editor";
+    [Parameter] public EventCallback<string?> OnError { get; set; }
+    /// <summary>Set by the host (e.g. a "view on-board storage" jump from the Vehicles tab) to
+    /// pre-fill the filter box once when this tab is shown; the user's own typing after that
+    /// is never overwritten.</summary>
+    [Parameter] public string? InitialFilter { get; set; }
+    private string? _appliedInitialFilter;
+    private string _filter = string.Empty;
+    // Native default: empty containers are hidden until the user unticks HIDE EMPTY.
+    private bool _hideEmpty = true;
+    private (WorldContainerSource Source, string Id)? _selectedKey;
+    private List<PlayerInventorySlotEdit>? _slotEdits;
+    private PlayerInventorySlotEdit? _dragEdit;
+    private string? _moveStatus;
+
+    protected override void OnInitialized()
+    {
+        Selection.Changed += Refresh;
+        Dnd.Changed += Refresh;
+        // Warm the upgrade catalog off-thread so the ▲ badges appear without blocking the UI.
+        _ = Task.Run(() => Upgrades.Get()).ContinueWith(_ => InvokeAsync(StateHasChanged));
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(InitialFilter) && !string.Equals(InitialFilter, _appliedInitialFilter, StringComparison.Ordinal))
+        {
+            _appliedInitialFilter = InitialFilter;
+            _filter = InitialFilter;
+            // Native OpenVehicleInventory: the jump target is usually empty, so HIDE EMPTY
+            // would drop it before the keyword filter even runs.
+            _hideEmpty = false;
+        }
+        // A redraw driven from outside this tab means the world moved on (a save, an undo, an
+        // edit made elsewhere), so the kept crate summaries are read again.
+        InvalidateSummaries();
+        SyncEditsFromSession();
+    }
+
+    private ItemUpgradeCatalog UpgradeCatalog => Upgrades.TryGet(out var catalog) ? catalog : ItemUpgradeCatalog.Empty;
+
+    private WorldContainer? SelectedContainer => _selectedKey is { } key
+        ? Session.Containers.FirstOrDefault(container => container.Source == key.Source && string.Equals(container.Id, key.Id, StringComparison.Ordinal))
+        : null;
+
+    /// <summary>Native filter: the container itself OR any item stored inside it, so "find
+    /// which crate holds my keypad hacker" is a one-box search. HIDE EMPTY runs first.</summary>
+    private List<WorldContainer> VisibleContainers
+    {
+        get
+        {
+            IEnumerable<WorldContainer> q = Session.Containers;
+            if (_hideEmpty) q = q.Where(container => OccupiedCount(container) > 0);
+            if (!string.IsNullOrWhiteSpace(_filter))
+            {
+                var f = _filter.Trim();
+                q = q.Where(container => SearchText(container).Contains(f, StringComparison.OrdinalIgnoreCase));
+            }
+            return q.ToList();
+        }
+    }
+
+    private static IReadOnlyList<InventoryItemSlot> FirstInventorySlots(WorldContainer container)
+        => container.Inventories.Count > 0 ? container.Inventories[0].Slots : Array.Empty<InventoryItemSlot>();
+
+    private static int OccupiedCount(WorldContainer container) => FirstInventorySlots(container).Count(slot => !slot.IsEmpty);
+    private static string CountText(WorldContainer container) => $"{OccupiedCount(container)}/{FirstInventorySlots(container).Count}";
+
+    /// <summary>What this crate is, in words. Deployed containers are named after the thing
+    /// the player built; the named storage the game keeps separately already has a name.
+    /// A crate never changes what it is, so each name is worked out once and kept: the list
+    /// redraws on every keystroke in the search box and there can be hundreds of crates.</summary>
+    private string DisplayName(WorldContainer container)
+    {
+        var cacheKey = ContainerKey(container);
+        if (_names.TryGetValue(cacheKey, out var cached)) return cached;
+        var name = container.ClassName is { Length: > 0 } className
+            ? PlainNames.Thing(className)
+            : PlainNames.Words(container.Id);
+        _names[cacheKey] = name;
+        return name;
+    }
+
+    private readonly Dictionary<string, string> _names = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// A glance at what is inside, which is how a player actually recognises one crate from
+    /// another. The stored reference used to sit here instead, which told nobody anything.
+    ///
+    /// <para>Working this out means reading every slot of the crate and looking each item up
+    /// by name. A big world has hundreds of crates and the list redraws on every keystroke in
+    /// the search box, so each crate's summary is worked out once and kept until its contents
+    /// change (or the editor is switched to another language).</para>
+    /// </summary>
+    private string WhereText(WorldContainer container)
+    {
+        DropSummariesIfLanguageChanged();
+        var cacheKey = ContainerKey(container);
+        if (_summaries.TryGetValue(cacheKey, out var cached)) return cached;
+        var summary = BuildWhereText(container);
+        _summaries[cacheKey] = summary;
+        return summary;
+    }
+
+    private readonly Dictionary<string, string> _summaries = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _searchTexts = new(StringComparer.Ordinal);
+    private string? _summaryLanguage;
+
+    private void DropSummariesIfLanguageChanged()
+    {
+        if (string.Equals(_summaryLanguage, L.CurrentCode, StringComparison.Ordinal)) return;
+        InvalidateSummaries();
+        _summaryLanguage = L.CurrentCode;
+    }
+
+    /// <summary>Forgets the kept summaries, so the next redraw reads the crates again. Called
+    /// whenever an edit lands, since that is the only thing that changes what is inside.</summary>
+    private void InvalidateSummaries()
+    {
+        _summaries.Clear();
+        _searchTexts.Clear();
+    }
+
+    /// <summary>
+    /// Everything about one crate the search box can match on: its name, the reference the
+    /// game files it under, and the name of every item inside it. Searching still finds "the
+    /// crate with my keypad hacker in it".
+    ///
+    /// <para>This is worked out once per crate and kept, because the list redraws on every
+    /// keystroke and a big world holds hundreds of crates with dozens of slots each. It is
+    /// forgotten again whenever an edit lands or the editor changes language, exactly like
+    /// the summary line beneath each row.</para>
+    /// </summary>
+    private string SearchText(WorldContainer container)
+    {
+        DropSummariesIfLanguageChanged();
+        var cacheKey = ContainerKey(container);
+        if (_searchTexts.TryGetValue(cacheKey, out var cached)) return cached;
+        var builder = new System.Text.StringBuilder()
+            .Append(DisplayName(container)).Append('\n')
+            .Append(container.Id);
+        foreach (var slot in FirstInventorySlots(container))
+        {
+            if (slot.IsEmpty) continue;
+            builder.Append('\n').Append(slot.ItemId);
+            if (Items.Find(slot.ItemId)?.DisplayName is { Length: > 0 } itemName)
+                builder.Append('\n').Append(itemName);
+        }
+        var text = builder.ToString();
+        _searchTexts[cacheKey] = text;
+        return text;
+    }
+
+    private string BuildWhereText(WorldContainer container)
+    {
+        var names = FirstInventorySlots(container)
+            .Where(slot => !slot.IsEmpty)
+            .Select(slot => Items.Find(slot.ItemId)?.DisplayName ?? PlainNames.Words(slot.ItemId))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (names.Count == 0) return L.Inventory("empty");
+        var shown = names.Take(3).ToList();
+        return string.Join(", ", shown)
+            + (names.Count > shown.Count ? " " + L.Resource("WorldTraders_Card_MoreItems", names.Count - shown.Count) : string.Empty);
+    }
+
+    private static string ContainerKey(WorldContainer container) => $"{container.Source}:{container.Id}";
+
+    private string SlotName(PlayerInventorySlotEdit edit)
+        => edit.IsEmpty ? string.Empty : Items.Find(edit.ItemId)?.DisplayName ?? PlainNames.Words(edit.ItemId);
+
+    // ---------- pick-then-place (the touch path) ----------
+
+    /// <summary>The slot waiting for a destination tap, if any.</summary>
+    private PlayerInventorySlotEdit? _holding;
+    private bool _touch;
+    private IJSObjectReference? _dnd;
+
+    private bool CanStartMove
+        => Selection.Current?.Slot is { IsEmpty: false } slot && _slotEdits?.Contains(slot) == true;
+
+    /// <summary>
+    /// True while anything is being carried, wherever it was picked up: a slot from this
+    /// crate, an item taken from the item catalog, or a slot picked up on the character's own
+    /// screens. Every slot screen reads the same carried item, so the bar (and the way out of
+    /// it) says the same thing everywhere.
+    /// </summary>
+    private bool IsHolding => _holding is not null || Dnd.IsDragging;
+
+    private string? HoldingMessage => Dnd.PaletteItem is { } palette
+        ? palette.DisplayName
+        : Dnd.Source is { } carried ? SlotName(carried.Slot)
+        : _holding is { } held ? SlotName(held) : null;
+
+    private void StartMove()
+    {
+        // Only one thing is ever carried, so picking this slot up puts down whatever was
+        // being carried from somewhere else.
+        Dnd.End();
+        if (Selection.Current?.Slot is { IsEmpty: false } slot && _slotEdits?.Contains(slot) == true) _holding = slot;
+    }
+
+    private void CancelMove() { _holding = null; Dnd.End(); _moveStatus = null; }
+
+    /// <summary>
+    /// A tap on a slot. Normally it opens the slot for editing. While something is being
+    /// carried - a slot picked up here, an item taken from the catalog, or a slot picked up
+    /// on the character's own screens - the tap puts it down here instead. Mouse dragging is
+    /// untouched: a drag never raises a tap.
+    /// </summary>
+    private async Task TapSlot(PlayerInventorySlotEdit edit)
+    {
+        if (Dnd.PaletteItem is not null) { _holding = null; await DropOnSlot(edit); return; }
+        if (Dnd.Source is { } carried) { _holding = null; await TakeFromCharacterAsync(carried, edit); return; }
+        if (_holding is { } held)
+        {
+            _holding = null;
+            if (ReferenceEquals(held, edit)) return;
+            await SwapAsync((held.Index, edit.Index));
+            SelectSlot(edit);
+            return;
+        }
+        SelectSlot(edit);
+    }
+
+    /// <summary>A tap on a crate in the list. While an item is being carried it moves in
+    /// there, which is what dropping a slot onto the row does with a mouse.</summary>
+    private async Task TapContainer(WorldContainer container)
+    {
+        if (Dnd.PaletteItem is { } palette) { _holding = null; await GiveToContainerAsync(container, palette); return; }
+        if (Dnd.Source is { } carried) { _holding = null; await TakeFromCharacterAsync(carried, container); return; }
+        if (_holding is { } held && !held.IsEmpty)
+        {
+            _holding = null;
+            await MoveToContainerAsync(container, held);
+            return;
+        }
+        SelectContainer(container);
+    }
+
+    /// <summary>
+    /// Puts an item carried over from the character's inventory into one slot of the crate
+    /// being viewed. Whatever was in that slot goes back to the character, which is the same
+    /// straight trade the SEND TO PLAYER button makes in the other direction. Both saves stay
+    /// staged until each is saved.
+    /// </summary>
+    private async Task TakeFromCharacterAsync(SlotDragSource carried, PlayerInventorySlotEdit target)
+    {
+        Dnd.End();
+        if (_slotEdits is null || _selectedKey is not { } key) return;
+        var position = _slotEdits.IndexOf(target);
+        if (position < 0) return;
+        await TransferFromCharacterAsync(carried, key.Source, key.Id, position);
+    }
+
+    /// <summary>The same move onto a whole crate: the item lands in its first free space.</summary>
+    private async Task TakeFromCharacterAsync(SlotDragSource carried, WorldContainer container)
+    {
+        Dnd.End();
+        if (FirstEmptySlot(container) is not { } position)
+        {
+            _moveStatus = L.Resource("WorldContainers_ContainerFullFormat", DisplayName(container));
+            return;
+        }
+        await TransferFromCharacterAsync(carried, container.Source, container.Id, position);
+    }
+
+    private async Task TransferFromCharacterAsync(SlotDragSource carried, WorldContainerSource source, string containerId, int position)
+    {
+        var moved = SlotName(carried.Slot);
+        // Any typing still sitting in the slot editor is written into the world first, so the
+        // trade below starts from what is actually on screen.
+        await ApplyEditsAsync();
+        if (!InventoryTransferService.TrySwapPlayerAndContainer(
+                carried.Session, carried.Area, carried.Slot.Index, Session, source, containerId, 0, position))
+        {
+            _moveStatus = L.Resource("WorldContainers_MoveNotPossible");
+            return;
+        }
+        Workspace.NotifyEdited();
+        InvalidateSummaries();
+        SyncEditsFromSession();
+        _moveStatus = L.Resource("WorldContainers_MovedIntoFormat", moved, ContainerNameFor(source, containerId));
+        StateHasChanged();
+    }
+
+    /// <summary>Drops a fresh copy of an item carried out of the item catalog into a crate's
+    /// first free space, the same as letting go of it over the crate with a mouse.</summary>
+    private async Task GiveToContainerAsync(WorldContainer container, ItemCatalogEntry palette)
+    {
+        Dnd.End();
+        if (SlotDropRules.ValidateForSlot(L, null, null, palette) is { } problem)
+        {
+            _moveStatus = L.Resource("Slot_MsgBlocked", problem);
+            return;
+        }
+        if (FirstEmptySlot(container) is not { } position)
+        {
+            _moveStatus = L.Resource("WorldContainers_ContainerFullFormat", DisplayName(container));
+            return;
+        }
+        await ApplyEditsAsync();
+        var fresh = new PlayerInventorySlotEdit(FirstInventorySlots(container)[position]);
+        SlotDropRules.FillFromCatalog(fresh, palette);
+        if (!Session.TrySetContainerSlot(container.Source, container.Id, 0, position, fresh.ToInventorySlot()))
+        {
+            _moveStatus = L.Resource("WorldContainers_MoveNotPossible");
+            return;
+        }
+        Workspace.NotifyEdited();
+        InvalidateSummaries();
+        SyncEditsFromSession();
+        _moveStatus = L.Resource("WorldContainers_MovedIntoFormat", palette.DisplayName, DisplayName(container));
+        StateHasChanged();
+    }
+
+    private static int? FirstEmptySlot(WorldContainer container)
+    {
+        var slots = FirstInventorySlots(container);
+        for (var i = 0; i < slots.Count; i++) { if (slots[i].IsEmpty) return i; }
+        return null;
+    }
+
+    private string ContainerNameFor(WorldContainerSource source, string containerId)
+        => Session.Containers.FirstOrDefault(container => container.Source == source
+            && string.Equals(container.Id, containerId, StringComparison.Ordinal)) is { } match
+            ? DisplayName(match)
+            : PlainNames.Words(containerId);
+
+    private void SelectContainer(WorldContainer container)
+    {
+        _selectedKey = (container.Source, container.Id);
+        _slotEdits = FirstInventorySlots(container).Select(slot => new PlayerInventorySlotEdit(slot)).ToList();
+    }
+
+    /// <summary>Reloads any slot whose session record changed underneath us (revert, save,
+    /// cross-container move). Edits are applied and re-baselined immediately on every
+    /// change, so a difference here always means the session moved on, not a pending edit.</summary>
+    private void SyncEditsFromSession()
+    {
+        if (_slotEdits is null) return;
+        if (SelectedContainer is not { } container) { _selectedKey = null; _slotEdits = null; return; }
+        var slots = FirstInventorySlots(container);
+        if (slots.Count != _slotEdits.Count) { SelectContainer(container); return; }
+        for (var i = 0; i < slots.Count; i++)
+        {
+            var edit = _slotEdits[i];
+            if (!Equals(edit.ToInventorySlot(), slots[i]))
+            {
+                edit.LoadFrom(slots[i]);
+                edit.AcceptCurrentAsBaseline();
+            }
+        }
+    }
+
+    /// <summary>Stages every slot edit into the world session (the single save/revert path).</summary>
+    private Task ApplyEditsAsync()
+    {
+        if (_slotEdits is null || _selectedKey is not { } key) return Task.CompletedTask;
+        for (var i = 0; i < _slotEdits.Count; i++)
+        {
+            var edit = _slotEdits[i];
+            Session.TrySetContainerSlot(key.Source, key.Id, 0, i, edit.ToInventorySlot());
+            edit.AcceptCurrentAsBaseline();
+        }
+        InvalidateSummaries();
+        Workspace.NotifyEdited();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Opens the slot in the right-hand sidebar editor (native slot-tap semantics).</summary>
+    private void SelectSlot(PlayerInventorySlotEdit edit)
+    {
+        if (_slotEdits is null || SelectedContainer is not { } container) return;
+        Selection.Select(new InventorySelection(
+            DisplayName(container), edit, _slotEdits,
+            Items.Entries.Select(entry => entry.Id).ToArray(),
+            Session.Deployables.Where(deployable => deployable.IsCraftingBench).ToArray(),
+            _slotEdits, true,
+            ApplyEditsAsync, SwapAsync, UpgradeAsync,
+            slotEdit => UpgradeCatalog.UpgradeFor(slotEdit.ItemId) is not null,
+            slotEdit => UpgradeCatalog.SourceOf(slotEdit.ItemId) is not null)
+        {
+            QuickGiveFallback = _ => _slotEdits.FirstOrDefault(candidate => candidate.IsEmpty) is { } empty ? new(empty, null, null) : null,
+            SelectSlot = SelectSibling,
+        });
+    }
+
+    private void SelectSibling(PlayerInventorySlotEdit edit) { if (_slotEdits?.Contains(edit) == true) SelectSlot(edit); }
+
+    private async Task SwapAsync((int First, int Second) pair)
+    {
+        if (_slotEdits is null || _selectedKey is not { } key) return;
+        var first = _slotEdits.FindIndex(edit => edit.Index == pair.First);
+        var second = _slotEdits.FindIndex(edit => edit.Index == pair.Second);
+        if (first < 0 || second < 0 || first == second) return;
+        await ApplyEditsAsync();
+        Session.TrySwapContainerSlots(key.Source, key.Id, 0, first, second);
+        SyncEditsFromSession();
+    }
+
+    private async Task UpgradeAsync((int Index, bool Downgrade) action)
+    {
+        var edit = _slotEdits?.FirstOrDefault(candidate => candidate.Index == action.Index);
+        if (edit is null || edit.IsEmpty) return;
+        var edge = action.Downgrade ? UpgradeCatalog.SourceOf(edit.ItemId) : UpgradeCatalog.UpgradeFor(edit.ItemId);
+        if (edge is null) return;
+        edit.ItemId = action.Downgrade ? edge.SourceId : edge.OutputId;
+        edit.AssetId = null;
+        await ApplyEditsAsync();
+    }
+
+    /// <summary>Slot-on-slot drop: swap within this container; a sidebar palette drag
+    /// spawns a fresh copy of the catalog item here (native container drop rules).</summary>
+    private async Task DropOnSlot(PlayerInventorySlotEdit target)
+    {
+        if (Dnd.PaletteItem is { } palette)
+        {
+            Dnd.End();
+            if (SlotDropRules.ValidateForSlot(L, null, null, palette) is not null) return;
+            SlotDropRules.FillFromCatalog(target, palette);
+            await ApplyEditsAsync();
+            SelectSlot(target);
+            return;
+        }
+        // A slot dragged over from the character's own screens trades places with this one.
+        if (Dnd.Source is { } carried) { await TakeFromCharacterAsync(carried, target); return; }
+        if (_dragEdit is not { } source || ReferenceEquals(source, target) || _slotEdits is null) return;
+        _dragEdit = null;
+        await SwapAsync((source.Index, target.Index));
+        SelectSlot(target);
+    }
+
+    /// <summary>Native container-row drop: the dragged item moves into the target
+    /// container's first empty slot; the source slot is cleared.</summary>
+    private async Task DropOnContainer(WorldContainer target)
+    {
+        if (Dnd.PaletteItem is { } palette) { await GiveToContainerAsync(target, palette); return; }
+        if (Dnd.Source is { } carried) { await TakeFromCharacterAsync(carried, target); return; }
+        if (_dragEdit is not { } source || source.IsEmpty) return;
+        _dragEdit = null;
+        await MoveToContainerAsync(target, source);
+    }
+
+    /// <summary>Moves one item into the first free space of another crate. Shared by the
+    /// mouse drop and the tap-a-crate step of the pick-then-place flow.</summary>
+    private async Task MoveToContainerAsync(WorldContainer target, PlayerInventorySlotEdit source)
+    {
+        if (_selectedKey is not { } key) return;
+        if (target.Source == key.Source && string.Equals(target.Id, key.Id, StringComparison.Ordinal)) return;
+        if (FirstEmptySlot(target) is not { } emptyIndex)
+        {
+            _moveStatus = L.Resource("WorldContainers_ContainerFullFormat", DisplayName(target));
+            return;
+        }
+        var moved = SlotName(source);
+        await ApplyEditsAsync();
+        if (!Session.TrySetContainerSlot(target.Source, target.Id, 0, emptyIndex, source.ToInventorySlot()))
+        {
+            _moveStatus = L.Resource("WorldContainers_MoveNotPossible");
+            return;
+        }
+        source.Clear();
+        await ApplyEditsAsync();
+        _moveStatus = L.Resource("WorldContainers_MovedIntoFormat", moved, DisplayName(target));
+    }
+
+    /// <summary>Native right-click send: the item lands in the loaded sibling player's first
+    /// free backpack slot, else the hotbar, and the container slot is cleared. Both sides
+    /// stay staged until their sessions are saved.</summary>
+    private async Task SendToPlayerAsync(PlayerInventorySlotEdit edit)
+    {
+        if (edit.IsEmpty) return;
+        if (PlayerSession is not { } player) { _moveStatus = L.Resource("WorldContainers_NoPlayerSaveFound"); return; }
+        var (destination, whereKey) = player.Backpack.FirstOrDefault(slot => slot.IsEmpty) is { } backpack
+            ? (backpack, "PlayerInventory_Backpack")
+            : (player.Hotbar.FirstOrDefault(slot => slot.IsEmpty), "PlayerInventory_Hotbar");
+        if (destination is null) return;
+        var area = whereKey == "PlayerInventory_Backpack" ? PlayerInventoryArea.Backpack : PlayerInventoryArea.Hotbar;
+        var itemLabel = SlotName(edit);
+        if (!player.TrySetInventorySlot(area, destination.Index, edit.ToInventorySlot())) return;
+        player.MarkChanged();
+        edit.Clear();
+        await ApplyEditsAsync();
+        // The character is named, not numbered: the account number the save is filed under is
+        // not something a player recognises.
+        _moveStatus = L.Resource("WorldContainers_SentItemFormat", itemLabel, PlainNames.Player(L, player.SteamIdentifier), L.Resource(whereKey));
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        // Ask the browser whether this is a device that can hover a pointer. Phones cannot,
+        // so the wording switches from "drag" to the two-tap flow.
+        _dnd = await Js.InvokeAsync<IJSObjectReference>("import", "./transmog-dnd.js");
+        await _dnd.InvokeVoidAsync("init");
+        var touch = await _dnd.InvokeAsync<bool>("isTouch");
+        if (touch == _touch) return;
+        _touch = touch;
+        StateHasChanged();
+    }
+
+    private void Refresh() => _ = InvokeAsync(StateHasChanged);
+
+    public async ValueTask DisposeAsync()
+    {
+        Selection.Changed -= Refresh;
+        Dnd.Changed -= Refresh;
+        // Leaving the tab retires the sidebar editor for these slots.
+        if (_slotEdits is not null && Selection.Current is { } current && ReferenceEquals(current.Slots, _slotEdits)) Selection.Clear();
+        try { if (_dnd is not null) await _dnd.DisposeAsync(); }
+        catch (JSDisconnectedException) { }
+    }
+}

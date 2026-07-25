@@ -42,7 +42,7 @@ A managed plugin is a normal .NET class library. Build it in Release:
 dotnet build plugins/MaxSkills -c Release
 ```
 
-The output you ship is just **your DLL plus `plugin.json`**. The SDK, Core, and MAUI are referenced
+The output you ship is just **your DLL plus `plugin.json`**. The SDK and Core are referenced
 to compile but not copied, because the host provides them at runtime and unifies the types (the
 [shared-assembly rule](./plugin-system.md#isolation--the-shared-assembly-rule)). In the project file:
 
@@ -53,20 +53,6 @@ to compile but not copied, because the host provides them at runtime and unifies
 
 If you ship your own copy of a shared assembly, casts across the host boundary fail with a confusing
 `InvalidCastException`, so the rule is not optional.
-
-### MAUI (UI) plugins
-
-An editor tool takes a MAUI dependency (the SDK does not). These projects multi-target the app's
-heads, so you must pass a target framework moniker for the head you run on, and you need the MAUI
-workload:
-
-```console
-dotnet workload install maui
-dotnet build plugins/SaveInspector -c Release -f net10.0-windows10.0.19041.0
-```
-
-Reference `Microsoft.Maui.Controls` with `ExcludeAssets="runtime"` as well. XAML is compiled at
-build time, so binding and handler errors surface as build errors.
 
 ## Building a JavaScript plugin
 
@@ -158,4 +144,3 @@ also appear in the top-level **Plugins** menu.
 - [ ] `plugin.json` has a unique `id` and the correct `entryAssembly` or `entryScript`.
 - [ ] Save operations mutate in place and call `MarkChanged()`; they never write files themselves.
 - [ ] Console command names do not collide with built-ins (a collision is skipped with a warning).
-- [ ] UI tools return a `Microsoft.Maui.Controls.View`; heavy reads are lazy and subscribers are disposed.

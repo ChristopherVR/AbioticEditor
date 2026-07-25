@@ -1,0 +1,358 @@
+@namespace AbioticEditor.Web.Components.Player
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Services
+@using AbioticEditor.Core.Codex
+@inject ItemCatalogService Catalog
+@inject CodexVocabularyService CodexData
+@inject RecipeVocabularyService Recipes
+@inject GameArtService Art
+@inject InventorySelectionService Selection
+@implements IDisposable
+
+@* Faithful port of the native PlayerCodexTab: the GATEPal PDA chrome (glowing JOURNAL
+   title, weekday strip, per-section counter), the four app tiles, search + UNREAD ONLY,
+   compendium category chips, and the master list. What you pick opens in the editor's
+   right-hand pane, not in a reading column of its own. *@
+<section class="editor-card gatepal-card" aria-label="GATEPal">
+    <header class="gatepal-chrome">
+        <span class="journal-title">@L.Resource("PlayerCodex_Journal")</span>
+        <span class="weekday-strip" aria-hidden="true"><span>S</span><span>M</span><span class="today">T</span><span>W</span><span>T</span><span>F</span><span>S</span></span>
+        <span class="journal-date">Mar 7, 93</span>
+        <span class="journal-count">@CountText</span>
+    </header>
+    <div class="journal-rule" aria-hidden="true"></div>
+    <div class="gatepal-body">
+        <div class="gatepal-markall"><button class="accent-hazard" type="button" @onclick="MarkAll">@L.Resource("PlayerCodex_MarkAllRead")</button></div>
+        <div class="gatepal-apps" role="tablist">
+            <button type="button" role="tab" class="gatepal-app @(Active == "emails" ? "active" : null)" aria-selected="@(Active == "emails")" @onclick='() => SelectSection("emails")'>✉ E-MAIL</button>
+            <button type="button" role="tab" class="gatepal-app @(Active == "journals" ? "active" : null)" aria-selected="@(Active == "journals")" @onclick='() => SelectSection("journals")'>✎ NOTES</button>
+            <button type="button" role="tab" class="gatepal-app @(Active == "compendium" ? "active" : null)" aria-selected="@(Active == "compendium")" @onclick='() => SelectSection("compendium")'>◈ COMPENDIUM</button>
+            <button type="button" role="tab" class="gatepal-app @(Active == "fish" ? "active" : null)" aria-selected="@(Active == "fish")" @onclick='() => SelectSection("fish")'>🐟 FISH</button>
+        </div>
+        <div class="gatepal-search">
+            <input type="search" @bind="Filter" @bind:event="oninput" placeholder="@L.Resource("PlayerCodex_SearchPlaceholder")" aria-label="@L.Resource("PlayerCodex_SearchPlaceholder")" />
+            <label class="unread-only"><input type="checkbox" @bind="UnreadOnly" /> @L.Resource("PlayerCodex_UnreadOnly")</label>
+        </div>
+        @if (Active == "compendium")
+        {
+            <div class="gatepal-categories">
+                @foreach (var category in Categories) { <button type="button" class="chip-button @(_categoryTag == category.TagPart ? "active" : null)" @onclick="() => _categoryTag = category.TagPart">@category.Label</button> }
+            </div>
+        }
+        <div class="codex-single">
+            <div class="codex-list" role="listbox" aria-label="@CountText">
+                @if (!Visible.Any()) { <p class="muted codex-empty">@L.Resource("PlayerCodex_NothingMatches")</p> }
+                @foreach (var row in Visible)
+                {
+                    <div class="codex-row @(_selected == row ? "selected" : null)" role="option" aria-selected="@(_selected == row)" @key="row.Id" @onclick="() => Select(row)">
+                        <input type="checkbox" checked="@row.IsKnown" disabled="@(!row.Editable)" @onclick:stopPropagation @onchange="e => SetKnown(row, e.Value is bool value && value)" />
+                        @if (row.ItemId is { } rowItemId) { <span class="codex-icon"><ItemIcon ItemId="@rowItemId" Alt="@RowTitle(row)" /></span> }
+                        <span class="codex-titles"><strong>@RowTitle(row)</strong>@if (RowSubtitle(row) is { Length: > 0 } subtitle) { <small>@subtitle</small> }</span>
+                    </div>
+                }
+            </div>
+        </div>
+        <p class="muted gatepal-footer">@L.Resource("PlayerCodex_FooterHelp")</p>
+    </div>
+</section>
+
+@code {
+    /// <summary>
+    /// The selected entry, rendered into the right-hand pane rather than a column of its own.
+    /// The list now gets the full width of the tab, and reading an e-mail, a note, a
+    /// compendium page or a fish lands in the same place as every other detail in the editor.
+    /// </summary>
+    private RenderFragment DetailContent => __builder =>
+    {
+        @if (_selected is { } detail)
+        {
+            <div class="detail-card detail-card--terminal codex-detail-card">
+                <div class="detail-head">
+                    <span class="detail-title">
+                        <strong>@RowTitle(detail)</strong>
+                        @if (RowSubtitle(detail) is { Length: > 0 } detailSubtitle) { <small>@detailSubtitle</small> }
+                    </span>
+                    <button class="detail-close" type="button" @onclick="CloseOwnDetail">✕</button>
+                </div>
+
+                    @* The image area keeps a fixed-size frame while the wiki art downloads, so
+                       the bait chips and catch notes below never jump when it arrives. *@
+                    @if (_wikiLoading || _wikiFile is not null)
+                    {
+                        <figure class="codex-wiki">
+                            @if (_wikiFile is { } wikiFile) { <img src="@Art.WikiImageUrl(wikiFile)" alt="@RowTitle(detail)" /> }
+                            else { <span class="codex-wiki-frame" role="status" aria-label="@L.Resource("PlayerCodex_FetchingImage")"><span class="header-busy-spinner"></span></span> }
+                            <figcaption class="muted">@(_wikiFile is null ? L.Resource("PlayerCodex_FetchingImage") : L.Resource("Slot_ImageAbioticfactorWikiGg"))</figcaption>
+                        </figure>
+                    }
+
+                    @if (FishFor(detail) is { } fish)
+                    {
+                        var catchDetail = CatchDetailFor(fish);
+                        @if (catchDetail.UnlockBait is not null || catchDetail.CatchLines.Count > 0 || catchDetail.RequiredBait is not null || fish.XpGain > 0)
+                        {
+                            <hr class="af-divider" />
+                            <p class="terminal-field-label">@L.Resource("PlayerCodex_WhenYouCatchIt")</p>
+                            @if (catchDetail.UnlockBait is { } unlockBait)
+                            {
+                                <button type="button" class="bait-chip" @onclick="() => OpenBait(unlockBait.Id)">
+                                    <span class="bait-icon"><ItemIcon ItemId="@unlockBait.Id" Alt="@unlockBait.DisplayName" /></span>
+                                    <span class="bait-text"><small>@L.Resource("PlayerCodex_UnlocksTheBait")</small><strong>@unlockBait.DisplayName</strong></span>
+                                    <span class="bait-open">@L.Resource("PlayerCodex_Open")</span>
+                                </button>
+                            }
+                            @if (fish.XpGain > 0) { <p class="codex-fish-xp">@L.Resource("PlayerCodex_FishXpFirstCatch", fish.XpGain)</p> }
+                            @if (catchDetail.CatchLines.Count > 0 || catchDetail.RequiredBait is not null)
+                            {
+                                <p class="amber-field-label">@L.Resource("PlayerCodex_ToCatchIt")</p>
+                                <ul class="codex-catch-lines">
+                                    @foreach (var line in catchDetail.CatchLines) { <li>@line</li> }
+                                </ul>
+                                @if (catchDetail.RequiredBait is { } requiredBait)
+                                {
+                                    <button type="button" class="bait-chip bait-chip--amber" @onclick="() => OpenBait(requiredBait.Id)">
+                                        <span class="bait-icon"><ItemIcon ItemId="@requiredBait.Id" Alt="@requiredBait.DisplayName" /></span>
+                                        <span class="bait-text"><small>@L.Resource("PlayerCodex_EquipThisBait")</small><strong>@requiredBait.DisplayName</strong></span>
+                                        <span class="bait-open">@L.Resource("PlayerCodex_Open")</span>
+                                    </button>
+                                }
+                            }
+                        }
+                    }
+
+                    @if (detail.KillRequired is not null)
+                    {
+                        <div class="codex-kills">
+                            <label>@L.Resource("PlayerCodex_Kills")
+                                <input type="number" min="0" disabled="@(detail.KillCount is null)" @bind="detail.KillCount" @bind:after="Changed" />
+                            </label>
+                            <span class="muted">@KillText(detail)</span>
+                        </div>
+                    }
+
+            @* Fish have no body of their own (their facts are laid out above), so the
+               rule and empty paragraph are skipped rather than left dangling. *@
+            @if (!string.IsNullOrWhiteSpace(detail.Body))
+            {
+                <hr class="af-divider" />
+                <p class="codex-body">@detail.Body</p>
+            }
+            </div>
+        }
+    };
+
+    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    [Parameter] public EventCallback OnChanged { get; set; }
+    private string Active { get; set; } = "emails";
+    private string Filter { get; set; } = string.Empty;
+    private bool UnreadOnly { get; set; }
+    private string? _categoryTag;
+    private CodexRowEdit? _selected;
+    private string? _wikiFile;
+    private bool _wikiLoading;
+    private Dictionary<string, FishDefinition>? _fishById;
+    private FishCatchDetails? _catchDetails;
+    private readonly Dictionary<string, FishCatchDetail> _catchDetailCache = new(StringComparer.Ordinal);
+
+    protected override async Task OnInitializedAsync()
+    {
+        Selection.Changed += OnSelectionChanged;
+        // Save selection deliberately never scans game paks (see SaveSelectionSchedulingTests),
+        // so the whole GATEPal tab loads the codex vocabulary on demand when it opens - the
+        // same off-thread pattern the general tab uses - and then re-renders any rows the
+        // session built from raw save ids with their real subjects, titles and fish names.
+        if (!CodexData.TryGet(out var vocabulary))
+        {
+            vocabulary = await Task.Run(CodexData.Get);
+        }
+        if (Session.ApplyCodexVocabulary(vocabulary, L.Resource))
+        {
+            // The session rebuilt its rows: drop every cache keyed on the old instances.
+            _selected = null;
+            _fishById = null;
+            _catchDetails = null;
+            _catchDetailCache.Clear();
+        }
+    }
+
+    /// <summary>The GATEPal compendium apps, mapped to DT_Compendium tag fragments (native list).</summary>
+    private (string Label, string? TagPart)[] Categories =>
+    [
+        (L.Resource("Palette_CategoryAll"), null),
+        (L.Resource("PlayerCodex_CategoryEntities"), "Entity"),
+        (L.Resource("PlayerCodex_CategoryLocations"), "Location"),
+        (L.Resource("PlayerCodex_CategoryRegistry"), "IS"),
+        (L.Resource("PlayerCodex_CategoryPeople"), "People"),
+        (L.Resource("PlayerCodex_CategoryTheories"), "Theories"),
+    ];
+
+    // Rows for ids the game's current data no longer defines stay in the model (so saving
+    // never drops them) but are hidden like native, which lists game-data entries only.
+    private IEnumerable<CodexRowEdit> Current => (Active switch
+    {
+        "journals" => Session.Codex.Journals,
+        "compendium" => Session.Codex.Compendium,
+        "fish" => Session.Codex.Fish,
+        _ => Session.Codex.Emails,
+    }).Where(row => !row.SaveOnly);
+
+    private IEnumerable<CodexRowEdit> Visible
+    {
+        get
+        {
+            IEnumerable<CodexRowEdit> rows = Current;
+            if (Active == "compendium" && _categoryTag is { } tagPart)
+                rows = rows.Where(row => row.Tag?.Contains(tagPart, StringComparison.OrdinalIgnoreCase) == true);
+            if (UnreadOnly) rows = rows.Where(row => !row.IsKnown);
+            if (!string.IsNullOrWhiteSpace(Filter))
+            {
+                var filter = Filter.Trim();
+                rows = rows.Where(row => RowTitle(row).Contains(filter, StringComparison.OrdinalIgnoreCase)
+                    || row.Id.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                    || (row.Subtitle?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false)
+                    || row.Body.Contains(filter, StringComparison.OrdinalIgnoreCase));
+            }
+            return rows;
+        }
+    }
+
+    /// <summary>Per-section read/found/unlocked/caught counter shown in the PDA header.</summary>
+    private string CountText
+    {
+        get
+        {
+            var rows = Current.ToList();
+            var key = Active switch
+            {
+                "journals" => "PlayerCodex_CountFound",
+                "compendium" => "PlayerRecipes_CountUnlocked",
+                "fish" => "PlayerCodex_CountCaught",
+                _ => "PlayerCodex_CountRead",
+            };
+            return L.Resource(key, rows.Count(row => row.IsKnown), rows.Count);
+        }
+    }
+
+    // Fish rows carry a catalog item id (the caught fish IS that item); the native fish
+    // journal shows the catalog display name plus the rare-variant suffix.
+    private string RowTitle(CodexRowEdit row)
+    {
+        if (FishFor(row) is { } fish)
+        {
+            var name = (row.ItemId is { } id ? Catalog.Find(id)?.DisplayName : null) ?? row.Id;
+            return fish.IsRare ? L.Resource("PlayerCodex_RareTitleSuffix", name) : name;
+        }
+        return row.ItemId is { } itemId ? Catalog.Find(itemId)?.DisplayName ?? row.Title : row.Title;
+    }
+
+    private string? RowSubtitle(CodexRowEdit row) => FishFor(row) is not null ? row.Id : row.Subtitle;
+
+    private string KillText(CodexRowEdit row) => row.KillRequired is not { } required ? string.Empty
+        : row.KillCount is not { } count
+            ? L.Resource("PlayerCodex_KillsNotTracked", required)
+            : L.Resource("PlayerCodex_KillsProgress", count, required);
+
+    private FishDefinition? FishFor(CodexRowEdit row)
+    {
+        if (Active != "fish") return null;
+        _fishById ??= CodexData.Get().Fish
+            .GroupBy(fish => fish.Id, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+        return _fishById.TryGetValue(row.Id, out var definition) ? definition : null;
+    }
+
+    private FishCatchDetail CatchDetailFor(FishDefinition fish)
+    {
+        if (_catchDetailCache.TryGetValue(fish.Id, out var cached)) return cached;
+        _catchDetails ??= new FishCatchDetails(L, Catalog, CodexData.Get().Fish, Recipes.GetRecipeInfos());
+        return _catchDetailCache[fish.Id] = _catchDetails.Detail(fish);
+    }
+
+    private void SelectSection(string id)
+    {
+        Active = id;
+        CloseOwnDetail();
+        _categoryTag = null;
+    }
+
+    private async Task Select(CodexRowEdit row)
+    {
+        // Tapping the open row again closes the card, matching every other list in the editor.
+        if (ReferenceEquals(_selected, row) && Selection.DetailKey == DetailKeyPrefix + row.Id)
+        {
+            CloseOwnDetail();
+            return;
+        }
+        _selected = row;
+        _wikiFile = null;
+        _wikiLoading = false;
+        ShowOwnDetail();
+        if (FishFor(row) is null) return;
+
+        // Resolve the entry's wiki art (download-once, then cached) like the native pane.
+        var candidates = FishWikiImages.CandidatesFor(row.Id, row.ItemId is { } id ? Catalog.Find(id)?.DisplayName : null);
+        if (candidates.Count == 0) return;
+        _wikiLoading = true;
+        ShowOwnDetail();
+        var selected = row;
+        foreach (var candidate in candidates)
+        {
+            var path = await Art.GetWikiImagePathAsync(candidate);
+            if (_selected != selected) return;
+            if (path is not null) { _wikiFile = candidate; break; }
+        }
+        _wikiLoading = false;
+        ShowOwnDetail();
+    }
+
+    private const string DetailKeyPrefix = "player-codex:";
+
+    /// <summary>(Re-)publishes the open entry to the right-hand pane.</summary>
+    private void ShowOwnDetail()
+    {
+        if (_selected is { } row) Selection.ShowDetail(DetailKeyPrefix + row.Id, DetailContent);
+    }
+
+    private void CloseOwnDetail()
+    {
+        _selected = null;
+        _wikiFile = null;
+        _wikiLoading = false;
+        if (Selection.DetailKey?.StartsWith(DetailKeyPrefix, StringComparison.Ordinal) == true)
+        {
+            Selection.CloseDetail();
+        }
+    }
+
+    /// <summary>Drops the stale row highlight when the pane closes or another tab takes it.</summary>
+    private void OnSelectionChanged()
+    {
+        if (_selected is { } row && Selection.DetailKey != DetailKeyPrefix + row.Id)
+        {
+            _selected = null;
+        }
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>Surfaces the bait's encyclopedia card in the right-hand pane, like the native tap.</summary>
+    private void OpenBait(string itemId)
+    {
+        // The bait card takes the pane over, so this tab's own card is no longer the one shown.
+        _selected = null;
+        Selection.ShowEncyclopedia(itemId);
+    }
+
+    public void Dispose()
+    {
+        Selection.Changed -= OnSelectionChanged;
+        // Leaving the tab retires this tab's own card, never someone else's.
+        if (Selection.DetailKey?.StartsWith(DetailKeyPrefix, StringComparison.Ordinal) == true)
+        {
+            Selection.CloseDetail();
+        }
+    }
+
+    private async Task Changed() { Session.MarkChanged(); await OnChanged.InvokeAsync(); }
+    private async Task SetKnown(CodexRowEdit row, bool known) { row.IsKnown = known; await Changed(); }
+    private async Task MarkAll() { foreach (var row in Current) row.IsKnown = true; await Changed(); }
+}

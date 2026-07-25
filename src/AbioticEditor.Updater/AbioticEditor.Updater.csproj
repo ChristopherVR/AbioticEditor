@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Self-update engine shared by the CLI and the MAUI app. Deliberately tiny and
-       dependency-free (no MAUI, no Core, no CUE4Parse) so it can be referenced from any
+  <!-- Update engine shared by the CLI and Razor host. Deliberately tiny and
+       dependency-free (no UI framework, no Core, no CUE4Parse) so it can be referenced from any
        host and bundled into both shipped packages. Talks to the GitHub Releases API,
        downloads the matching asset, and replaces the running install in place. -->
   <PropertyGroup>

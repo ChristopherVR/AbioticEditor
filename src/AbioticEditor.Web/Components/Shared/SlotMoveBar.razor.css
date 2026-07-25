@@ -1,0 +1,9 @@
+/* The pick-then-place bar. Deliberately roomy: it is the touch path, so the buttons keep a
+   comfortable finger target and the row wraps instead of pushing itself off a narrow screen. */
+.slot-move-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px;padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--shell)}
+.slot-move-bar.holding{border-color:var(--hazard);background:var(--hover)}
+.slot-move-text{display:grid;flex:1 1 12rem;gap:2px;min-width:0;color:var(--ink);font:12px var(--font-ui);line-height:1.45}
+.slot-move-bar.holding .slot-move-text strong{color:var(--hazard)}
+.slot-move-start,.slot-move-cancel{min-height:40px;padding:0 16px;border:1px solid var(--line);border-radius:3px;background:var(--panel);color:var(--ink);font:600 11px var(--font-ui);letter-spacing:.1em;cursor:pointer}
+.slot-move-start:hover,.slot-move-cancel:hover{background:var(--hover)}
+.slot-move-cancel{border-color:var(--hazard)}

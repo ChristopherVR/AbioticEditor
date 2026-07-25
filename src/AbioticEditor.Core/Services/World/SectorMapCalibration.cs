@@ -1,31 +1,64 @@
-using SkiaSharp;
-
 namespace AbioticEditor.Core.WorldSaves;
 
 /// <summary>
-/// Projects world coordinates onto the game's drawn sector map textures. The game
-/// stores no world-bounds for its maps, so the transform is fitted: the sub-level's
-/// full actor cloud (percentile-trimmed against outliers) is mapped onto the map
-/// drawing's content rectangle (the largest connected non-background region of the
-/// texture - which skips title text and legend). Orientation differs per drawing and
-/// is baked in <see cref="VariantFor"/> from visual calibration composites.
+/// How one cooked sub-level lines up with the in-game sector map that depicts it: an affine
+/// from world units to fractions of the map texture (0,0 = top-left, 1,1 = bottom-right).
+/// </summary>
+/// <param name="PamphletRow">DT_MapPamphlets row holding the drawing, e.g. "Map_Office1".</param>
+/// <param name="Variant">
+/// Orientation applied before scaling: bits 0-1 rotate the world (X,Y) by 0/90/180/270
+/// degrees, bit 2 flips X first.
+/// </param>
+/// <param name="ScaleX">Texture widths per oriented world unit.</param>
+/// <param name="ScaleY">Texture heights per oriented world unit.</param>
+/// <param name="OffsetX">Texture fraction the oriented world origin lands on, horizontally.</param>
+/// <param name="OffsetY">Texture fraction the oriented world origin lands on, vertically.</param>
+public sealed record SectorMapFit(
+    string PamphletRow, int Variant, double ScaleX, double ScaleY, double OffsetX, double OffsetY);
+
+/// <summary>
+/// Projects world coordinates onto the game's drawn sector maps, so a door can be pinned on
+/// the map a player recognises from the pamphlet they picked up in-game.
+///
+/// The game stores NO world bounds for these drawings - DT_MapPamphlets holds only a sector,
+/// a level handle, an image and a strip flag - and the game never draws a "you are here"
+/// marker on them, so there is nothing to read. Each fit below was solved offline by
+/// <c>SectorMapCalibrationProbe.Solve_Fits</c>, which rasterises the drawn floor plan and
+/// searches orientation, scale and offset for the placement that lands the most of the
+/// level's actor cloud on the plan, then checked by eye against labelled landmarks
+/// (restrooms, lifts, vending machines) on the drawing.
+///
+/// A level absent from <see cref="Fits"/> has no usable sector map and callers must fall back
+/// to a plain relative plot. That covers most of the game, for three separate reasons:
+/// <list type="bullet">
+/// <item>Only 11 pamphlets exist for 77 cooked sub-levels.</item>
+/// <item>Three of those drawings are useless - Secure Area reads "SITE MAP UNAVAILABLE FOR
+/// SECURITY PURPOSES" and has no floor plan at all, Residence is a washed-out blank (the
+/// game's own asset is even named "Map_ResidenceTerribleMap"), and the game ships
+/// Map_Containment pointing at the Office Level 1 artwork.</item>
+/// <item>Office Level 2 and the Dam refused to settle: every orientation scored within a few
+/// percent of every other, and none put those levels' restrooms and lifts where the drawing
+/// labels them. A pin that is confidently wrong is worse than no pin, so they are left out.</item>
+/// </list>
 /// </summary>
 public static class SectorMapCalibration
 {
-    /// <summary>
-    /// Orientation variant per cooked level name: bits 0-1 rotate (X,Y) by 0/90/180/270
-    /// degrees, bit 2 flips X first. Values picked by eye from the calibration
-    /// composites (tools/shots/calib); unlisted levels use the Office1 default.
-    /// </summary>
-    private static readonly Dictionary<string, int> Variants = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, SectorMapFit> Fits = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["Facility_Office1"] = 4,
+        ["Facility_Office1"] = new("Map_Office1", 1, 0.000035901, 0.000071801, 0.534224014, 0.66161589),
+        ["Facility_Office3"] = new("Map_Office3", 1, 0.000030253, 0.000060506, 0.798243347, 0.980778989),
+        ["Facility_Labs"] = new("Map_Lab", 1, 0.000028641, 0.000057281, 0.413090643, 0.873053716),
+        ["Facility_MFWest"] = new("Map_MF", 3, 0.000028463, 0.000056927, 0.310796819, 1.037518411),
+        ["Facility_Pens"] = new("Map_Pens", 6, 0.000038357, 0.000076713, 0.445498103, 0.831665721),
+        ["Facility_DarkFusion"] = new("Map_Reactors", 2, 0.000016275, 0.000032549, 0.466219017, 0.032963468),
     };
 
-    private const int DefaultVariant = 4;
+    /// <summary>The calibrated fit for a cooked level, or null when it has no usable map.</summary>
+    public static SectorMapFit? FitFor(string? levelFileName)
+        => levelFileName is not null && Fits.TryGetValue(levelFileName, out var fit) ? fit : null;
 
-    public static int VariantFor(string? levelFileName)
-        => levelFileName is not null && Variants.TryGetValue(levelFileName, out var v) ? v : DefaultVariant;
+    /// <summary>Every level the editor can pin on a drawn sector map.</summary>
+    public static IReadOnlyDictionary<string, SectorMapFit> CalibratedLevels => Fits;
 
     /// <summary>Applies an orientation variant to a world position (top-down X/Y).</summary>
     public static (double X, double Y) ApplyVariant(double x, double y, int variant)
@@ -41,119 +74,22 @@ public static class SectorMapCalibration
     }
 
     /// <summary>
-    /// The map drawing's content rectangle: bounding box of the largest connected
-    /// region of non-background pixels. Background = the color of the texture's
-    /// corners; title text and small legend marks form separate smaller components
-    /// and are ignored.
+    /// Where a world position lands on the drawing, as fractions of the texture. Values
+    /// outside 0..1 mean the spot sits off the edge of what the pamphlet draws.
     /// </summary>
-    public static SKRectI DetectContentRect(SKBitmap bitmap)
+    public static (double X, double Y) Project(SectorMapFit fit, double worldX, double worldY)
     {
-        var w = bitmap.Width;
-        var h = bitmap.Height;
-        var background = DominantColor(bitmap);
-
-        bool IsContent(int x, int y)
-        {
-            var c = bitmap.GetPixel(x, y);
-            return Math.Abs(c.Red - background.Red)
-                 + Math.Abs(c.Green - background.Green)
-                 + Math.Abs(c.Blue - background.Blue) > 70;
-        }
-
-        // Flood fill over a coarse grid (every pixel is overkill for bbox purposes).
-        const int step = 2;
-        var cols = (w + step - 1) / step;
-        var rows = (h + step - 1) / step;
-        var visited = new bool[cols * rows];
-        var components = new List<(SKRectI Box, int Count)>();
-        var stack = new Stack<(int Cx, int Cy)>();
-
-        for (var cy = 0; cy < rows; cy++)
-        {
-            for (var cx = 0; cx < cols; cx++)
-            {
-                if (visited[cy * cols + cx]) continue;
-                visited[cy * cols + cx] = true;
-                if (!IsContent(Math.Min(cx * step, w - 1), Math.Min(cy * step, h - 1))) continue;
-
-                var minX = cx; var maxX = cx; var minY = cy; var maxY = cy;
-                var count = 0;
-                stack.Push((cx, cy));
-                while (stack.Count > 0)
-                {
-                    var (px, py) = stack.Pop();
-                    count++;
-                    if (px < minX) minX = px;
-                    if (px > maxX) maxX = px;
-                    if (py < minY) minY = py;
-                    if (py > maxY) maxY = py;
-
-                    foreach (var (nx, ny) in new[] { (px - 1, py), (px + 1, py), (px, py - 1), (px, py + 1) })
-                    {
-                        if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
-                        if (visited[ny * cols + nx]) continue;
-                        visited[ny * cols + nx] = true;
-                        if (IsContent(Math.Min(nx * step, w - 1), Math.Min(ny * step, h - 1)))
-                        {
-                            stack.Push((nx, ny));
-                        }
-                    }
-                }
-
-                components.Add((new SKRectI(minX * step, minY * step,
-                    Math.Min(maxX * step + step, w), Math.Min(maxY * step + step, h)), count));
-            }
-        }
-
-        // Drop ring-like components (the decorative frame): a bbox spanning nearly the
-        // whole image with almost no interior fill. Then take the union of every major
-        // component (>= 25% of the biggest) - floor plans are often drawn in pieces.
-        var imageArea = (double)w * h;
-        var candidates = components.Where(c =>
-        {
-            var boxArea = (double)c.Box.Width * c.Box.Height;
-            var fill = c.Count * (double)(step * step) / Math.Max(1, boxArea);
-            var ringLike = boxArea > imageArea * 0.8 && fill < 0.15;
-            return !ringLike;
-        }).ToList();
-        if (candidates.Count == 0) return new SKRectI(0, 0, w, h);
-
-        var biggest = candidates.Max(c => c.Count);
-        var union = SKRectI.Empty;
-        foreach (var c in candidates.Where(c => c.Count >= biggest * 0.25))
-        {
-            union = union.IsEmpty ? c.Box : SKRectI.Union(union, c.Box);
-        }
-        return union.IsEmpty ? new SKRectI(0, 0, w, h) : union;
+        var (x, y) = ApplyVariant(worldX, worldY, fit.Variant);
+        return (x * fit.ScaleX + fit.OffsetX, y * fit.ScaleY + fit.OffsetY);
     }
 
-    /// <summary>
-    /// The texture's dominant color over a coarse grid: the page background. Sampling a
-    /// corner is wrong for these maps - the decorative frame covers the corners.
-    /// </summary>
-    private static SKColor DominantColor(SKBitmap bitmap)
-    {
-        var counts = new Dictionary<int, int>();
-        for (var y = 0; y < bitmap.Height; y += 8)
-        {
-            for (var x = 0; x < bitmap.Width; x += 8)
-            {
-                var c = bitmap.GetPixel(x, y);
-                // Quantize to 16-step buckets so anti-aliased shades pool together.
-                var key = (c.Red >> 4 << 8) | (c.Green >> 4 << 4) | (c.Blue >> 4);
-                counts[key] = counts.GetValueOrDefault(key) + 1;
-            }
-        }
-        var top = counts.MaxBy(kv => kv.Value).Key;
-        return new SKColor(
-            (byte)(((top >> 8) & 0xF) << 4 | 0x8),
-            (byte)(((top >> 4) & 0xF) << 4 | 0x8),
-            (byte)((top & 0xF) << 4 | 0x8));
-    }
+    /// <summary>Convenience overload for a resolved actor position.</summary>
+    public static (double X, double Y) Project(SectorMapFit fit, DoorWorldLocation location)
+        => Project(fit, location.X, location.Y);
 
     /// <summary>
-    /// Percentile-trimmed bounds of an oriented point cloud (5th-95th), so a handful
-    /// of far-away actors (skybox, parked props) can't stretch the fit.
+    /// Percentile-trimmed bounds of an oriented point cloud (5th-95th), so a handful of
+    /// far-away actors (skybox, parked props) can't stretch a fit being solved.
     /// </summary>
     public static (double MinX, double MaxX, double MinY, double MaxY) CloudBounds(
         IReadOnlyList<(double X, double Y)> points)
@@ -163,27 +99,5 @@ public static class SectorMapCalibration
         double Pct(double[] sorted, double pct)
             => sorted[Math.Clamp((int)(pct * (sorted.Length - 1)), 0, sorted.Length - 1)];
         return (Pct(xs, 0.05), Pct(xs, 0.95), Pct(ys, 0.05), Pct(ys, 0.95));
-    }
-
-    /// <summary>
-    /// Builds the world-to-pixel projector for one map: orient the cloud, fit its
-    /// trimmed bounds into the content rect (uniform scale, centered).
-    /// </summary>
-    public static Func<DoorWorldLocation, (float X, float Y)> BuildProjector(
-        IReadOnlyList<DoorWorldLocation> cloud, SKRectI content, int variant)
-    {
-        var oriented = cloud.Select(p => ApplyVariant(p.X, p.Y, variant)).ToList();
-        var (minX, maxX, minY, maxY) = CloudBounds(oriented);
-        var spanX = Math.Max(1, maxX - minX);
-        var spanY = Math.Max(1, maxY - minY);
-        var scale = Math.Min(content.Width / spanX, content.Height / spanY);
-        var offsetX = content.Left + (content.Width - spanX * scale) / 2.0;
-        var offsetY = content.Top + (content.Height - spanY * scale) / 2.0;
-
-        return loc =>
-        {
-            var (x, y) = ApplyVariant(loc.X, loc.Y, variant);
-            return ((float)(offsetX + (x - minX) * scale), (float)(offsetY + (y - minY) * scale));
-        };
     }
 }

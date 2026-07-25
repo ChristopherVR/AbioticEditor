@@ -173,14 +173,17 @@ Grab the latest build for your platform from the
 and run. Both the app and the CLI self-update from there (the app from **Settings ▸ Updates**,
 the CLI via `abioticeditor update`).
 
-Each zip's name carries the release version (e.g. `AbioticEditor-app-win-x64-v1.2.0.zip`).
+The Windows and Linux / Steam Deck (Proton saves) editor packages are also published as separate
+downloads on the [Nexus Mods page](https://www.nexusmods.com/abioticfactor/mods/244?tab=files).
+
+Each zip's name carries the release version (e.g. `AbioticEditor-desktop-win-x64-v1.2.0.zip`).
 
 | Download | What it is |
 |---|---|
-| `AbioticEditor-app-win-x64-v<version>.zip` | Desktop app (Windows) - a single self-contained `.exe` (no .NET install needed) plus a `Mappings.usmap` data file |
-| `AbioticEditor-app-osx-x64-v<version>.zip` / `-osx-arm64-…` | Desktop app (macOS, unsigned) |
+| `AbioticEditor-desktop-win-x64-v<version>.zip` | Desktop editor (Windows). Extract and run `AbioticEditor.Web.exe`; no .NET install is needed. |
 | `AbioticEditor-cli-win-x64-v<version>.zip` | Command-line tool (Windows) |
 | `AbioticEditor-cli-linux-x64-v<version>.zip` | Command-line tool (Linux) |
+| `AbioticEditor-desktop-linux-x64-v<version>.zip` | Desktop editor (Linux, Steam Deck, and Proton saves). Extract and run `launch-linux.sh`; no .NET install is needed. |
 | `AbioticEditor-cli-osx-x64-v<version>.zip` / `-osx-arm64-…` | Command-line tool (macOS) |
 
 Each release also ships a `SHA256SUMS.txt` so you can verify a download.
@@ -205,7 +208,8 @@ scoop update  abiotic-editor          # later, to upgrade
 Scoop verifies each download against the SHA-256 pinned in the manifest before extracting it.
 
 **Or run the zip download directly.** Right-click the downloaded `.zip` ▸ **Properties** ▸
-tick **Unblock** ▸ **OK**, then unzip and run `AbioticEditor.App.exe`. If SmartScreen still
+tick **Unblock** ▸ **OK**, then unzip and run `AbioticEditor.Web.exe`. It opens the editor
+in its own desktop window and keeps all files on your machine. If SmartScreen still
 shows "Windows protected your PC", click **More info ▸ Run anyway**.
 
 > macOS builds are unsigned too, so Gatekeeper warns on first launch; right-click the app and
@@ -285,8 +289,8 @@ architecture, the host API, and the security model.
 
 | Path | Contents |
 |---|---|
-| `src/AbioticEditor.Core` | All parsing and editing logic. The app and CLI are thin front-ends over this. |
-| `src/AbioticEditor.App` | .NET MAUI desktop editor. |
+| `src/AbioticEditor.Core` | All parsing and editing logic. The desktop app and CLI are thin front-ends over this. |
+| `src/AbioticEditor.Web` | Cross-platform Razor editor hosted only on the local machine. |
 | `src/AbioticEditor.Cli` | Headless CLI (`abioticeditor`). |
 | `src/AbioticEditor.Plugins.Abstractions` | The public plugin SDK (host-agnostic contracts). |
 | `src/AbioticEditor.Updater` | Self-updater (talks to GitHub Releases; in-place replace). |
@@ -307,14 +311,13 @@ Requires the **.NET 10 SDK**. Clone with submodules; the build depends on the pi
 git clone --recursive https://github.com/ChristopherVR/AbioticEditor.git
 cd AbioticEditor
 
-dotnet build src/AbioticEditor.App -f net10.0-windows10.0.19041.0   # desktop editor (Windows)
+dotnet build src/AbioticEditor.Web                                  # local desktop editor host
 dotnet build src/AbioticEditor.Cli                                   # CLI
 dotnet test  tests/AbioticEditor.Tests                               # tests
 ```
 
-The app project also targets Android, iOS, and Mac Catalyst; building those needs the matching
-MAUI workloads (`dotnet workload install maui`). Package versions are managed centrally in
-`Directory.Packages.props`.
+The Razor desktop app runs on Windows and Linux with the standard .NET SDK. Package versions are
+managed centrally in `Directory.Packages.props`.
 
 > The `CUE4Parse-Natives … 'cmake' is not recognized` line during a build is **benign**: the
 > native texture decoder is optional and managed parsing still works.

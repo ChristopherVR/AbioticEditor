@@ -86,7 +86,6 @@ internal static class PluginsCommands
                 error = d.LoadError,
                 saveOperations = d.SaveOperations.Select(o => o.Id),
                 consoleCommands = d.ConsoleCommands.Select(c => c.Name),
-                editorTools = d.EditorTools.Select(t => t.Id),
             }));
             return Cli.Ok;
         }
@@ -146,14 +145,6 @@ internal static class PluginsCommands
             foreach (var c in d.ConsoleCommands)
             {
                 Console.WriteLine($"    {c.Name,-24} {c.Description}");
-            }
-        }
-        if (d.EditorTools.Count > 0)
-        {
-            Console.WriteLine("  editor tools (GUI only):");
-            foreach (var t in d.EditorTools)
-            {
-                Console.WriteLine($"    {t.Id,-24} {t.Title}");
             }
         }
         return Cli.Ok;

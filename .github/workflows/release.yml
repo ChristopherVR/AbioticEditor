@@ -10,26 +10,24 @@ name: Release
 #      commit history. If nothing releasable changed, it sets released=false
 #      and the rest of the pipeline is skipped.
 #   3. It rewrites <Version> in Directory.Build.props (the single source of
-#      truth, since the App inherits ApplicationDisplayVersion=$(Version)),
+#      truth for every published host),
 #      regenerates CHANGELOG.md, commits "chore(release): vX.Y.Z [skip ci]",
 #      and pushes a vX.Y.Z tag on that commit.
-#   4. `build` publishes the release artifacts (6 zips) off the new tag.
+#   4. build jobs publish the release artifacts off the new tag.
 #   5. `publish` attaches them to a GitHub Release.
 #   6. `scan` uploads every published zip to VirusTotal and appends the per-file
 #      scan permalinks to the release body (needs the VT_API_KEY secret; the job
 #      is skipped, not failed, when the secret is absent).
-#   7. `nexus` uploads the Windows app zip to the NexusMods page as a new version
-#      and archives the previous one (needs the NEXUSMODS_API_KEY secret and the
-#      NEXUS_APP_FILE_ID variable; the job is skipped when either is absent). Only
-#      the Windows app ships to Nexus: there is no Linux GUI (MAUI has no Linux
-#      target), so a CLI-only "Proton" download would misleadingly imply UI parity.
-#      The Linux CLI is still built and attached to the GitHub Release, just not
-#      pushed to the Nexus mod page.
+#   7. `nexus` and `nexus-proton` upload the Windows and Linux/Steam Deck Razor hosts
+#      to the NexusMods page as separate player-facing files and archive their previous
+#      versions. Both need the NEXUSMODS_API_KEY secret; the Windows file uses the
+#      NEXUS_APP_FILE_ID variable and Linux/Proton uses NEXUS_PROTON_FILE_ID. Each upload
+#      is skipped independently when its file id or the shared secret is absent.
 #   8. `nuget` packs AbioticEditor.Core + AbioticEditor.Plugins.Abstractions off
 #      the new tag and pushes them to nuget.org (needs the NUGET_API_KEY secret;
 #      the push step is skipped, not failed, when the secret is absent). Each library
 #      is only (re)packed when its sources changed since the last release (the version
-#      job's `detect` step), so an App/CLI-only release does not bump them; the job is
+#      job's `detect` step), so a host/CLI-only release does not bump them; the job is
 #      skipped outright when neither changed.
 #
 # Loop safety: pushes made with the default GITHUB_TOKEN do not retrigger
@@ -38,16 +36,16 @@ name: Release
 #
 # Concurrency model (per-JOB, not workflow-level, so a fresh push cancels only
 # the work that has NOT published anything yet):
-#   - Pre-publish jobs (test, build, build-app-win) use `cancel-in-progress: true`.
+#   - Pre-publish jobs (test, build, build-web-linux, build-web-win, build-web-mac) use `cancel-in-progress: true`.
 #     A new push to main aborts these if they are still running, so an abandoned
-#     commit never burns a full ~MAUI build.
-#   - Publish-side jobs (version, publish, scan, nexus, nuget) use
+#     commit never burns a full self-contained publish.
+#   - Publish-side jobs (version, publish, scan, nexus, nexus-proton, nuget) use
 #     `cancel-in-progress: false`: once one is running it is protected from
 #     cancellation, and a newer run's matching job queues behind it. So a release
 #     that has begun tagging / creating the GitHub Release / pushing NuGet /
 #     uploading to Nexus always finishes rather than being killed half-published.
 # Each job gets its OWN group (`release-<job>`) so same-run siblings (build vs.
-# build-app-win, the parallel publish legs) are NOT serialized against each other;
+# build-web-linux, build-web-win, build-web-mac, the parallel publish legs) are NOT serialized against each other;
 # the group only couples the same job across different runs.
 #
 # A run cancelled mid-build leaves at most an orphaned tag with no GitHub Release;
@@ -390,7 +388,7 @@ jobs:
           name: release-notes
           path: RELEASE_NOTES.md
 
-  # CLI artifacts only. The Windows desktop app builds in its own `build-app-win` job
+  # CLI artifacts only. The Windows Razor host builds in its own `build-web-win` job
   # (below) so the Windows-only `nexus` upload can depend on just that job instead of
   # waiting for these CLI legs. All four CLI RIDs are self-contained and publishable
   # from Linux, so this matrix is ubuntu-only.
@@ -471,28 +469,82 @@ jobs:
           path: ${{ env.ASSET_BASENAME }}.zip
           if-no-files-found: error
 
-  # Windows desktop app, built on its own (not in the CLI matrix above) so the
-  # Windows-only `nexus` upload depends on just this job and never waits for the CLI
-  # legs or the GitHub Release.
-  #
-  # The macOS (Mac Catalyst) app legs are DISABLED: the .NET 10 MacCatalyst SDK needs
-  # Xcode 26.5+ which hosted runners don't reliably ship, so they never produced an
-  # artifact. The steps are preserved in git history; to re-enable, add a sibling
-  # `build-app-mac` job (runs-on macos-latest) that selects the newest Xcode, installs
-  # the MAUI workload, runs `dotnet build -f net10.0-maccatalyst -c Release
-  # -p:RuntimeIdentifier=maccatalyst-<arch>`, then zips the produced .app with ditto.
-  # NOTE: those bundles were UNSIGNED/un-notarized (Gatekeeper warns; right-click > Open).
-  build-app-win:
+  # Self-contained Razor desktop app. It ships as a directory because its native
+  # WebKitGTK window library, static assets, and templates remain beside the executable.
+  build-web-linux:
+    needs: version
+    if: needs.version.outputs.released == 'true'
+    # Photino.Native 4.0.22 targets WebKitGTK 4.1 and glibc 2.38 or newer.
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: release-build-web-linux
+      cancel-in-progress: true
+    env:
+      ASSET_BASENAME: AbioticEditor-desktop-linux-x64-v${{ needs.version.outputs.version }}
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+          dotnet-quality: ga
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props', '**/Directory.Build.props') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Install native window dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libgtk-3-0t64 libwebkit2gtk-4.1-0 libnotify4 zenity xvfb xdotool
+
+      - name: Publish desktop app (Linux, self-contained)
+        run: >-
+          dotnet publish src/AbioticEditor.Web
+          -f net10.0
+          -c Release
+          -r linux-x64
+          --self-contained true
+          -p:PublishSingleFile=false
+          -o out
+
+      - name: Verify local-only publish contract
+        run: bash tools/verify-web-host-linux.sh out
+
+      - name: Zip local Razor host
+        run: |
+          chmod +x out/launch-linux.sh
+          cd out
+          zip -r "../${ASSET_BASENAME}.zip" .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: AbioticEditor-desktop-linux-x64
+          path: ${{ env.ASSET_BASENAME }}.zip
+          if-no-files-found: error
+
+  # Windows local Razor host, built separately so the Nexus upload can start as soon
+  # as the player-facing Windows package is ready.
+  build-web-win:
     needs: version
     if: needs.version.outputs.released == 'true'
     runs-on: windows-latest
-    # Cancellable: the MAUI publish is the most expensive leg and publishes
-    # nothing, so a newer push aborts it rather than letting it run to completion.
+    # Cancellable: this job publishes nothing externally, so a newer push may abort it.
     concurrency:
-      group: release-build-app-win
+      group: release-build-web-win
       cancel-in-progress: true
     env:
-      ASSET_BASENAME: AbioticEditor-app-win-x64-v${{ needs.version.outputs.version }}
+      ASSET_BASENAME: AbioticEditor-desktop-win-x64-v${{ needs.version.outputs.version }}
     steps:
       - name: Checkout release tag
         uses: actions/checkout@v7
@@ -515,97 +567,114 @@ jobs:
           restore-keys: |
             nuget-${{ runner.os }}-
 
-      # The MAUI workload install downloads/extracts the platform packs (~159s cold).
-      # Cache the SDK's workload directories keyed on the resolved SDK version, then run
-      # the install with --skip-manifest-update: on a cache hit the packs are already
-      # present so the install is a near no-op (no network), and the pinned SDK ships a
-      # manifest sufficient to install MAUI. On a miss it installs fully and seeds the
-      # cache. setup-dotnet installs the SDK to C:\Program Files\dotnet on hosted Windows
-      # runners, so the workloads land under these folders; a path miss degrades to the
-      # old full-install behavior (slower, never broken).
-      - name: Resolve .NET SDK version
-        id: sdk
-        shell: bash
-        run: echo "version=$(dotnet --version)" >> "$GITHUB_OUTPUT"
-
-      - name: Cache MAUI workload
-        uses: actions/cache@v6
-        with:
-          path: |
-            C:\Program Files\dotnet\sdk-manifests
-            C:\Program Files\dotnet\metadata
-            C:\Program Files\dotnet\packs
-            C:\Program Files\dotnet\library-packs
-            C:\Program Files\dotnet\template-packs
-          key: maui-workload-${{ runner.os }}-${{ steps.sdk.outputs.version }}
-
-      - name: Install MAUI workload (Windows)
-        run: dotnet workload install maui --skip-manifest-update
-
-      # Self-contained single-file: one AbioticEditor.App.exe with the .NET runtime + all managed
-      # deps bundled (no install, no loose DLLs), plus the Mappings.usmap data sidecar. UseMonoRuntime
-      # =false selects CoreCLR (MAUI otherwise pulls a Mono runtime pack that isn't published for this
-      # SDK band); EnableCompressionInSingleFile shrinks the exe (~419 MB -> ~166 MB); DebugType
-      # =embedded keeps symbols inside the exe instead of a sidecar .pdb.
-      - name: Publish App (Windows, self-contained single file)
+      - name: Publish desktop app (Windows, self-contained)
         run: >-
-          dotnet publish src/AbioticEditor.App
+          dotnet publish src/AbioticEditor.Web
           -f net10.0-windows10.0.19041.0
           -c Release
           -r win-x64
           --self-contained true
-          -p:WindowsPackageType=None
-          -p:UseMonoRuntime=false
-          -p:PublishSingleFile=true
-          -p:EnableCompressionInSingleFile=true
-          -p:DebugType=embedded
-          -p:ApplicationVersion=${{ github.run_number }}
+          -p:PublishSingleFile=false
           -o out
 
-      - name: Zip App (Windows)
+      - name: Verify local-only publish contract
+        shell: pwsh
+        run: ./tools/verify-web-host.ps1 -PublishDir out
+
+      - name: Zip local Razor host (Windows)
         shell: pwsh
         run: Compress-Archive -Path out/* -DestinationPath "$env:ASSET_BASENAME.zip"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: AbioticEditor-app-win-x64
+          name: AbioticEditor-desktop-win-x64
           path: ${{ env.ASSET_BASENAME }}.zip
           if-no-files-found: error
 
-      # Nexus Mods build: same publish but with -p:NexusMods=true so the self-updater
-      # is compiled out entirely (no assembly reference, no UI card, no startup cleanup).
-      # Nexus has its own file-versioning / update management and their guidelines
-      # discourage bundled auto-updaters, so this variant ships without one.
-      - name: Publish App (Windows, Nexus Mods build)
+  # macOS local Razor host. The native window is WKWebView via Photino, so no extra
+  # dependencies ship; the launcher clears the quarantine flag the unsigned zip gets.
+  # One Apple Silicon runner publishes both architectures: the arm64 build is verified
+  # end to end, the cross-published Intel build gets its layout checked.
+  build-web-mac:
+    needs: version
+    if: needs.version.outputs.released == 'true'
+    runs-on: macos-latest
+    concurrency:
+      group: release-build-web-mac
+      cancel-in-progress: true
+    env:
+      ARM_BASENAME: AbioticEditor-desktop-osx-arm64-v${{ needs.version.outputs.version }}
+      X64_BASENAME: AbioticEditor-desktop-osx-x64-v${{ needs.version.outputs.version }}
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+          dotnet-quality: ga
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props', '**/Directory.Build.props') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Publish desktop app (macOS arm64, self-contained)
         run: >-
-          dotnet publish src/AbioticEditor.App
-          -f net10.0-windows10.0.19041.0
+          dotnet publish src/AbioticEditor.Web
+          -f net10.0
           -c Release
-          -r win-x64
+          -r osx-arm64
           --self-contained true
-          -p:WindowsPackageType=None
-          -p:UseMonoRuntime=false
-          -p:PublishSingleFile=true
-          -p:EnableCompressionInSingleFile=true
-          -p:DebugType=embedded
-          -p:ApplicationVersion=${{ github.run_number }}
-          -p:NexusMods=true
-          -o out-nexus
+          -p:PublishSingleFile=false
+          -o out-arm64
 
-      - name: Zip App (Windows, Nexus Mods build)
-        shell: pwsh
-        run: Compress-Archive -Path out-nexus/* -DestinationPath "$env:ASSET_BASENAME-nexus.zip"
+      - name: Publish desktop app (macOS x64, self-contained)
+        run: >-
+          dotnet publish src/AbioticEditor.Web
+          -f net10.0
+          -c Release
+          -r osx-x64
+          --self-contained true
+          -p:PublishSingleFile=false
+          -o out-x64
 
-      - name: Upload artifact (Nexus Mods build)
+      - name: Verify local-only publish contract (arm64, full)
+        run: bash tools/verify-web-host-mac.sh out-arm64
+
+      - name: Verify publish layout (x64, cross-published)
+        run: bash tools/verify-web-host-mac.sh out-x64 --layout-only
+
+      - name: Zip local Razor hosts
+        run: |
+          chmod +x out-arm64/launch-mac.sh out-x64/launch-mac.sh
+          (cd out-arm64 && zip -r "../${ARM_BASENAME}.zip" .)
+          (cd out-x64 && zip -r "../${X64_BASENAME}.zip" .)
+
+      - name: Upload arm64 artifact
         uses: actions/upload-artifact@v7
         with:
-          name: AbioticEditor-app-win-x64-nexus
-          path: ${{ env.ASSET_BASENAME }}-nexus.zip
+          name: AbioticEditor-desktop-osx-arm64
+          path: ${{ env.ARM_BASENAME }}.zip
+          if-no-files-found: error
+
+      - name: Upload x64 artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: AbioticEditor-desktop-osx-x64
+          path: ${{ env.X64_BASENAME }}.zip
           if-no-files-found: error
 
   publish:
-    needs: [version, build, build-app-win]
+    needs: [version, build, build-web-linux, build-web-win, build-web-mac]
     if: needs.version.outputs.released == 'true'
     runs-on: ubuntu-latest
     # Protected: creates the GitHub Release and pushes the Scoop bucket commit.
@@ -625,7 +694,7 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v8
         with:
-          # Flatten every artifact (the 6 zips + the release notes) into ./dist.
+          # Flatten every artifact (the 9 zips + the release notes) into ./dist.
           path: dist
           merge-multiple: true
 
@@ -647,14 +716,8 @@ jobs:
           tag_name: ${{ needs.version.outputs.tag }}
           name: ${{ needs.version.outputs.tag }}
           body_path: dist/RELEASE_NOTES.md
-          # The macOS app zips can be absent when the Mac Catalyst legs fail on a
-          # runner without Xcode 26.5+ (those legs are continue-on-error). Don't fail
-          # the release over them - attach whatever built (Windows, Linux, CLI, and
-          # the macOS apps when they do build).
           fail_on_unmatched_files: false
-          # Zip names now carry the version (AbioticEditor-<kind>-<rid>-v<version>.zip); attach
-          # whatever built via a glob. The macOS app zips can be absent when the Mac Catalyst legs
-          # fail on a runner without Xcode 26.5+ (those legs are continue-on-error).
+          # Zip names carry the version (AbioticEditor-<kind>-<rid>-v<version>.zip).
           files: |
             dist/*.zip
             dist/SHA256SUMS.txt
@@ -672,14 +735,14 @@ jobs:
           VERSION: ${{ needs.version.outputs.version }}
         run: |
           set -euo pipefail
-          app_zip="AbioticEditor-app-win-x64-v${VERSION}.zip"
+          app_zip="AbioticEditor-desktop-win-x64-v${VERSION}.zip"
           cli_zip="AbioticEditor-cli-win-x64-v${VERSION}.zip"
           app_hash="$(sha256sum "dist/${app_zip}" | cut -d' ' -f1)"
           cli_hash="$(sha256sum "dist/${cli_zip}" | cut -d' ' -f1)"
           base="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${VERSION}"
 
           jq --arg v "$VERSION" --arg h "$app_hash" --arg u "${base}/${app_zip}" \
-             '.version=$v | .architecture["64bit"].url=$u | .architecture["64bit"].hash=$h' \
+             '.version=$v | .architecture["64bit"].url=$u | .architecture["64bit"].hash=$h | .shortcuts=[["AbioticEditor.Web.exe", "Abiotic Editor"]]' \
              bucket/abiotic-editor.json > bucket/abiotic-editor.json.tmp
           mv bucket/abiotic-editor.json.tmp bucket/abiotic-editor.json
 
@@ -747,14 +810,14 @@ jobs:
         if: steps.gate.outputs.enabled == 'true'
         uses: actions/download-artifact@v8
         with:
-          # Flatten every artifact (the 6 zips + the release notes) into ./dist;
+          # Flatten every artifact (the 7 zips + the release notes) into ./dist;
           # only the zips are scanned below.
           path: dist
           merge-multiple: true
 
       # Uploads each file and waits for the analysis id. `analysis` is emitted as a
-      # comma-separated "path=url" list. Large files (the ~166 MB app zip) use VT's
-      # big-file upload endpoint, which the action selects automatically.
+      # comma-separated "path=url" list. Large files use VT's big-file upload endpoint,
+      # which the action selects automatically.
       - name: Scan zips with VirusTotal
         id: vt
         if: steps.gate.outputs.enabled == 'true'
@@ -800,7 +863,7 @@ jobs:
           cat vt_section.md >> body.md
           gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file body.md
 
-  # Publish the Windows app zip to the NexusMods page (mods/244) as a new version
+  # Publish the Windows Razor host zip to the NexusMods page (mods/244) as a new version
   # and archive the previous one, via the official Nexus-Mods/upload-action.
   #
   # The action adds a new version to an EXISTING file on the mod page, keyed by its
@@ -812,16 +875,13 @@ jobs:
   #
   # archive_existing_version: true moves the prior version into the file's archive
   # when the new one lands, which is what keeps older releases around but not the
-  # primary download. Depends only on `build-app-win` (not `publish`), so the Windows
-  # upload runs as soon as the app zip is ready and never waits for the CLI legs or the
+  # primary download. Depends only on `build-web-win` (not `publish`), so the Windows
+  # upload runs as soon as the host zip is ready and never waits for the CLI legs or the
   # GitHub Release; it downloads the app artifact directly rather than off the release.
   #
-  # NOTE: the action is in open beta; pin bumps to a newer v1.0.0-beta.* tag as
-  # they ship. This job uploads only the Windows app: there is no Linux GUI (MAUI
-  # has no Linux target), so the Linux CLI does not ship to Nexus, only to the
-  # GitHub Release (see the `build` job's linux-x64 leg).
+  # NOTE: the action is in open beta; pin bumps to a newer v1.0.0-beta.* tag as they ship.
   nexus:
-    needs: [version, build-app-win]
+    needs: [version, build-web-win]
     if: needs.version.outputs.released == 'true'
     runs-on: ubuntu-latest
     # Protected: uploads to NexusMods and archives the prior version. Never
@@ -847,13 +907,11 @@ jobs:
             echo "::warning::NEXUSMODS_API_KEY secret and/or NEXUS_APP_FILE_ID variable not set; skipping NexusMods upload."
           fi
 
-      - name: Download Windows app artifact (Nexus Mods build)
+      - name: Download Windows host artifact
         if: steps.gate.outputs.enabled == 'true'
         uses: actions/download-artifact@v8
         with:
-          # The build-app-win job uploads this as a separate artifact built with
-          # -p:NexusMods=true so the self-updater is stripped from the Nexus distribution.
-          name: AbioticEditor-app-win-x64-nexus
+          name: AbioticEditor-desktop-win-x64
           path: dist
 
       # The `version` job already generated this version's changelog with git-cliff
@@ -904,15 +962,106 @@ jobs:
             echo "__NEXUS_EOF__"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Upload Windows app to NexusMods
+      - name: Upload Windows host to NexusMods
         if: steps.gate.outputs.enabled == 'true'
         uses: Nexus-Mods/upload-action@v1.0.0-beta.9
         with:
           api_key: ${{ secrets.NEXUSMODS_API_KEY }}
           file_id: ${{ vars.NEXUS_APP_FILE_ID }}
-          filename: dist/AbioticEditor-app-win-x64-v${{ needs.version.outputs.version }}-nexus.zip
+          filename: dist/AbioticEditor-desktop-win-x64-v${{ needs.version.outputs.version }}.zip
           version: ${{ needs.version.outputs.version }}
           display_name: AbioticEditor v${{ needs.version.outputs.version }} (Windows)
+          description: ${{ steps.changelog.outputs.body }}
+          category: main
+          archive_existing_version: true
+
+  # Publish the self-contained Linux Razor host to the NexusMods page as its own
+  # Linux / Steam Deck (Proton saves) file. This is the same smoke-tested archive attached
+  # to the GitHub Release, including launch-linux.sh and install-linux-desktop.sh.
+  #
+  # Create the Linux / Steam Deck file once on NexusMods, then put its numeric file id in
+  # the NEXUS_PROTON_FILE_ID repository variable. The shared NEXUSMODS_API_KEY secret
+  # is used for both platform uploads. Missing configuration skips only this job's
+  # upload, so Windows and GitHub publication remain independent.
+  nexus-proton:
+    needs: [version, build-web-linux]
+    if: needs.version.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release-nexus-proton
+      cancel-in-progress: false
+    steps:
+      - name: Check for NexusMods Linux / Steam Deck credentials
+        id: gate
+        env:
+          NEXUSMODS_API_KEY: ${{ secrets.NEXUSMODS_API_KEY }}
+          FILE_ID: ${{ vars.NEXUS_PROTON_FILE_ID }}
+        run: |
+          set -euo pipefail
+          if [ -n "${NEXUSMODS_API_KEY}" ] && [ -n "${FILE_ID}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::NEXUSMODS_API_KEY secret and/or NEXUS_PROTON_FILE_ID variable not set; skipping the Linux / Steam Deck NexusMods upload."
+          fi
+
+      - name: Download Linux / Steam Deck host artifact
+        if: steps.gate.outputs.enabled == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: AbioticEditor-desktop-linux-x64
+          path: dist
+
+      - name: Download release notes
+        if: steps.gate.outputs.enabled == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: release-notes
+          path: dist-notes
+
+      - name: Build NexusMods Linux / Steam Deck changelog
+        id: changelog
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          TAG: ${{ needs.version.outputs.tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          notes="dist-notes/RELEASE_NOTES.md"
+          {
+            printf 'Abiotic Editor v%s - Linux / Steam Deck (Proton saves)\n\n' "$VERSION"
+            printf 'Self-contained desktop editor. No .NET installation is required.\n'
+            printf 'Extract the archive and run launch-linux.sh to open the app window.\n\n'
+            printf 'What changed in this version:\n\n'
+            if [ -s "$notes" ]; then
+              sed -E \
+                -e '/^##[[:space:]]*\[/d' \
+                -e 's/^###[[:space:]]+(.*)$/\1:/' \
+                "$notes"
+            else
+              printf -- '- See the GitHub release for the full changelog.\n'
+            fi
+            printf '\nFull changelog and SHA-256 checksums:\n'
+            printf 'https://github.com/%s/releases/tag/%s\n' "$REPO" "$TAG"
+          } > nexus_description.txt
+          echo "----- nexus_description.txt -----"
+          cat nexus_description.txt
+          {
+            echo "body<<__NEXUS_EOF__"
+            cat nexus_description.txt
+            echo "__NEXUS_EOF__"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload Linux / Steam Deck host to NexusMods
+        if: steps.gate.outputs.enabled == 'true'
+        uses: Nexus-Mods/upload-action@v1.0.0-beta.8
+        with:
+          api_key: ${{ secrets.NEXUSMODS_API_KEY }}
+          file_id: ${{ vars.NEXUS_PROTON_FILE_ID }}
+          filename: dist/AbioticEditor-desktop-linux-x64-v${{ needs.version.outputs.version }}.zip
+          version: ${{ needs.version.outputs.version }}
+          display_name: AbioticEditor v${{ needs.version.outputs.version }} (Linux / Steam Deck (Proton saves))
           description: ${{ steps.changelog.outputs.body }}
           category: main
           archive_existing_version: true
@@ -924,14 +1073,14 @@ jobs:
   # _BundleSubmoduleAssemblies targets and THIRD-PARTY-NOTICES.txt.
   #
   # A package is only (re)packed when its sources actually changed since the last
-  # release (the version job's `detect` step), so an App/CLI-only release no longer
+  # release (the version job's `detect` step), so a host/CLI-only release no longer
   # bumps both libraries to a new version with byte-identical content. The whole job is
   # skipped when neither library changed; the SDK is never published without Core, but
   # Core can publish alone (depending on the SDK version already live on nuget.org).
   nuget:
     needs: version
     # Run when a library changed, OR on a republish (both flags empty -> "!= 'false'" is
-    # true). Skipped entirely when both are exactly 'false' (an App/CLI/docs-only release).
+    # true). Skipped entirely when both are exactly 'false' (a host/CLI/docs-only release).
     if: >-
       needs.version.outputs.released == 'true' &&
       (needs.version.outputs.nuget_core != 'false' || needs.version.outputs.nuget_abstractions != 'false')

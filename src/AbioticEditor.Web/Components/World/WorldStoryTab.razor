@@ -1,0 +1,691 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Core.WorldSaves
+@using AbioticEditor.Core.PlayerSaves
+@using AbioticEditor.Core.Items
+@using AbioticEditor.Core.Codex
+@using AbioticEditor.Web.Components.Player
+@inject RecipeVocabularyService RecipeVocabulary
+@inject ItemCatalogService Items
+@inject RecipeProgressGateService Gate
+@inject ToastService Toasts
+@inject ModalService Modals
+@inject TraderVocabularyService TraderVocabulary
+@inject SaveWorkspaceSessionService Workspace
+@inject InventorySelectionService Selection
+@implements IDisposable
+
+@* Native WorldStoryTab.xaml: the MAIN QUEST PROGRESSION panel with the minutes-played LCD row,
+   the 37-chapter checklist (reached dot, DONE/READY/LOCKED, CURRENT badge, SET) and the
+   world-recipes browser with the progress gate. Tapping a chapter opens the native
+   SlotSidebarView chapter detail panel (card art, status, trigger flag, unlock-through /
+   set-current actions) in the right-hand pane via the shared detail host. *@
+<section class="world-editor world-meta-panel" aria-label="@L.Resource("WorldStory_MainQuestProgression")">
+    <h3 class="wm-h2">@L.Resource("WorldStory_MainQuestProgression")</h3>
+    <p class="wm-intro">@L.Resource("WorldStory_StorySplitIntro")</p>
+    @if (!Session.IsMetadataSave)
+    {
+        <p class="empty">@L.Resource("WorldStory_WhyMetadata")</p>
+    }
+    else
+    {
+        <div class="wm-divider" role="presentation"></div>
+
+        <div class="ws-minutes-row">
+            <span class="wm-label">@L.Resource("WorldStory_MinutesPlayed")</span>
+            <input type="number" min="0" value="@Session.MinutesPassed" aria-label="@L.Resource("WorldStory_MinutesPlayed")" @onchange="SetMinutes" />
+            <span class="wm-readout">@L.Resource("WorldStory_PlaytimeFormat", (Session.MinutesPassed ?? 0) / 60, (Session.MinutesPassed ?? 0) % 60)</span>
+            @if (Session.LastPlayedText is { } lastPlayed)
+            {
+                <span class="wm-status ws-last-played">@L.Resource("WorldStory_LastPlayedFormat", lastPlayed)</span>
+            }
+        </div>
+
+        <div class="wm-divider" role="presentation"></div>
+
+        <div class="ws-chapters-head">
+            <span class="wm-label">@L.Resource("WorldStory_ChaptersHeader")</span>
+            <span class="wm-readout">@ChapterIndexText</span>
+        </div>
+
+        <label class="ws-move-players" title="@L.Resource("WorldStory_MovePlayersCaption")">
+            <input type="checkbox" @bind="_movePlayers" /> @L.Resource("WorldStory_MovePlayersLabel")
+        </label>
+
+        <div class="ws-chapter-list" role="listbox" aria-label="@L.Resource("WorldStory_ChaptersHeader")">
+            @foreach (var (chapter, index) in StoryProgressionCatalog.Chapters.Select((chapter, index) => (chapter, index)))
+            {
+                var current = IsCurrent(chapter);
+                var missing = MissingDependencies(index);
+                var status = StatusOf(chapter, missing);
+                <div class="ws-chapter-row @(ReferenceEquals(chapter, _selectedChapter) ? "selected" : null)" @key="chapter.Row"
+                     role="option" aria-selected="@ReferenceEquals(chapter, _selectedChapter)" tabindex="0"
+                     title="@ChapterSummary(chapter)"
+                     @onclick="() => SelectChapter(chapter)" @onkeydown="e => ChapterKeyDown(e, chapter)">
+                    <span class="ws-chapter-num">@((index + 1).ToString("D2"))</span>
+                    <span class="ws-chapter-dot @(IsReached(index) ? "reached" : null)" role="presentation"></span>
+                    <span class="ws-chapter-text">
+                        <strong>@ChapterTitle(chapter)</strong>
+                        @if (ChapterSummary(chapter) is { Length: > 0 } summary)
+                        {
+                            <small>@summary</small>
+                        }
+                        @if (missing.Count > 0)
+                        {
+                            <small class="ws-chapter-missing">@MissingDependenciesText(missing)</small>
+                        }
+                    </span>
+                    <span class="ws-chapter-status ws-status-@status.ToLowerInvariant()">@L.Resource($"WorldStory_Status{status}")</span>
+                    @if (current)
+                    {
+                        <span class="ws-chapter-current">@L.Resource("WorldStory_Current")</span>
+                    }
+                    else
+                    {
+                        <span role="presentation"></span>
+                    }
+                    <button type="button" class="ws-chapter-set" disabled="@(current || _settingChapter)"
+                            @onclick:stopPropagation="true" @onclick="() => SetChapterAsync(chapter.Row)">@L.Resource("WorldStory_Set")</button>
+                </div>
+            }
+        </div>
+
+        <div class="wm-divider" role="presentation"></div>
+
+        <p class="wm-note">@L.Resource("WorldStory_ContainmentMoved")</p>
+
+        <div class="ws-recipes-head">
+            <span class="wm-label">@L.Resource("WorldStory_WorldRecipes")</span>
+            <span class="wm-readout">@RecipesCountText</span>
+            <input type="search" placeholder="@L.Resource("WorldStory_SearchRecipes")" aria-label="@L.Resource("WorldStory_SearchRecipes")"
+                   @bind="_recipeSearch" @bind:event="oninput" />
+            <button type="button" class="wm-hazard-btn"
+                    disabled="@(!CanEditRecipes || !AllWorldRecipeRows.Any(row => !Session.GlobalRecipes.Contains(row.Id)))"
+                    @onclick="UnlockAllRecipes">@L.Resource("WorldStory_UnlockAll")</button>
+        </div>
+
+        <div class="ws-recipe-list" role="listbox" aria-label="@L.Resource("WorldStory_WorldRecipes")">
+            @if (!CanEditRecipes || !VisibleWorldRecipeRows.Any())
+            {
+                <p class="ws-recipes-empty">@L.Resource("WorldStory_NoRecipes")</p>
+            }
+            @if (CanEditRecipes)
+            {
+                @foreach (var row in VisibleWorldRecipeRows)
+                {
+                    var unlocked = Session.GlobalRecipes.Contains(row.Id);
+                    <div class="ws-recipe-row @(row.Id == _selectedWorldRecipeId ? "selected" : null)" @key="row.Id"
+                         role="option" aria-selected="@(row.Id == _selectedWorldRecipeId)" tabindex="0"
+                         @onclick="() => ToggleRecipeDetail(row.Id)" @onkeydown="e => RecipeKeyDown(e, row.Id)">
+                        <input type="checkbox" checked="@unlocked" aria-label="@row.DisplayName" @key="@($"{row.Id}:{_gateNonce}")"
+                               @onclick:stopPropagation="true" @onchange="e => SetRecipe(row.Id, e.Value is bool value && value)" />
+                        <span class="ws-recipe-icon">
+                            @if (row.Info?.CreatesItemId is { } createdId)
+                            {
+                                <ItemIcon ItemId="@createdId" Alt="" />
+                            }
+                        </span>
+                        <span class="ws-recipe-text">
+                            <strong>@row.DisplayName</strong>
+                            <small>@SubText(row)</small>
+                        </span>
+                        <span class="ws-recipe-status">@L.Resource(unlocked ? "PlayerRecipes_BadgeUnlocked" : "PlayerRecipes_BadgeLocked")</span>
+                    </div>
+                }
+            }
+        </div>
+
+        @if (SelectedWorldRecipeRow is { } selected)
+        {
+            var unlocked = Session.GlobalRecipes.Contains(selected.Id);
+            <div class="detail-card detail-card--orange">
+                <div class="detail-head">
+                    <span class="offer-icon">
+                        @if (selected.Info?.CreatesItemId is { } createdItemId)
+                        {
+                            <ItemIcon ItemId="@createdItemId" Alt="@selected.DisplayName" />
+                        }
+                        else
+                        {
+                            <span class="material-symbol" aria-hidden="true">auto_fix_high</span>
+                        }
+                    </span>
+                    @* What one craft yields and where it is made. The stored recipe name is not
+                       shown anywhere, not even on hover: it means nothing to a player. *@
+                    <span class="detail-title"><strong>@selected.DisplayName</strong><small>@SubText(selected)</small></span>
+                </div>
+                <p class="detail-value">@L.Resource("PlayerRecipes_MakesCount", selected.Info is { Count: > 1 } info ? info.Count : 1)</p>
+
+                <span class="detail-label">@L.Resource("PlayerRecipes_Ingredients")</span>
+                <p class="detail-value">@IngredientsText(selected.Info)</p>
+
+                <span class="detail-label">@L.Resource("PlayerRecipes_CraftedAt")</span>
+                <p class="detail-value">@BenchesText(selected.Info)</p>
+
+                @if (UsedInText(selected.Info) is { Length: > 0 } usedIn)
+                {
+                    <span class="detail-label">@L.Resource("PlayerRecipes_UsedIn")</span>
+                    <p class="detail-value">@usedIn</p>
+                }
+
+                <label class="door-toggle"><input type="checkbox" checked="@unlocked" @onchange="e => SetRecipe(selected.Id, e.Value is bool value && value)" /> @L.Resource("PlayerRecipes_BadgeUnlocked")</label>
+            </div>
+        }
+
+        <p class="wm-note">@L.Resource("WorldStory_WhyMetadata")</p>
+    }
+    <div class="editor-actions"><button class="primary" disabled="@(!Session.IsDirty)" @onclick="SaveAsync">@L.Text("save").ToUpperInvariant() @L.Text("world").ToUpperInvariant()</button><button class="secondary" disabled="@(!Session.IsDirty)" @onclick="Revert">@L.Text("revert").ToUpperInvariant()</button></div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter] public string Title { get; set; } = "World editor";
+    [Parameter] public EventCallback<string?> OnError { get; set; }
+    private bool _movePlayers;
+    private bool _settingChapter;
+    private StoryChapter? _selectedChapter;
+    private string _recipeSearch = string.Empty;
+    private string? _selectedWorldRecipeId;
+    private int _gateNonce;
+    private IReadOnlySet<string>? _worldFlags;
+    /// <summary>The trader roster, used to preview who a story jump would bring out.</summary>
+    private IReadOnlyList<TraderInfo> _traders = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        Selection.Changed += SelectionChanged;
+        // Native gates world recipe unlocks (and chapter DONE/READY/LOCKED state) through the
+        // sibling Facility save's flags. Resolving them reads a large file, so it happens off
+        // the render path.
+        var path = Session.Path;
+        _worldFlags = await Task.Run(() => { Gate.Warm(); return Gate.ResolveWorldFlags(path); });
+        _traders = await Task.Run(TraderVocabulary.GetTraders);
+    }
+
+    /// <summary>Another surface took over the right-hand pane: drop the row highlight.</summary>
+    private void SelectionChanged()
+    {
+        if (_selectedChapter is { } chapter && Selection.DetailKey != ChapterKey(chapter))
+        {
+            _selectedChapter = null;
+            _ = InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public void Dispose()
+    {
+        Selection.Changed -= SelectionChanged;
+        if (Selection.DetailKey?.StartsWith("story-chapter:", StringComparison.Ordinal) == true) Selection.CloseDetail();
+    }
+
+    // ---------- chapter checklist state (native StoryChapterItemViewModel) ----------
+
+    /// <summary>Case-insensitive world-flag lookup; metadata saves read the sibling Facility flags.</summary>
+    private bool HasWorldFlag(string flag)
+        => Session.Flags.Contains(flag) || _worldFlags?.Contains(flag) == true;
+
+    private bool IsCurrent(StoryChapter chapter)
+        => string.Equals(Session.StoryProgressionRow, chapter.Row, StringComparison.OrdinalIgnoreCase);
+
+    private bool IsReached(int index)
+    {
+        var current = StoryProgressionCatalog.IndexOf(Session.StoryProgressionRow);
+        return current >= 0 && index <= current;
+    }
+
+    private bool IsCompleted(StoryChapter chapter)
+        => chapter.TriggerFlag is not null && HasWorldFlag(chapter.TriggerFlag);
+
+    private IReadOnlyList<StoryChapter> MissingDependencies(int index) => StoryProgressionCatalog.Chapters
+        .Take(Math.Max(0, index))
+        .Where(chapter => chapter.TriggerFlag is not null && !HasWorldFlag(chapter.TriggerFlag!))
+        .ToList();
+
+    private string StatusOf(StoryChapter chapter, IReadOnlyList<StoryChapter> missing)
+        => IsCompleted(chapter) ? "Done" : missing.Count == 0 ? "Ready" : "Locked";
+
+    private string ChapterTitle(StoryChapter chapter) => L.Resource($"WorldStory_ChapterTitle_{chapter.Row}");
+
+    private string? ChapterSummary(StoryChapter chapter)
+        => string.IsNullOrEmpty(chapter.Summary) ? null : L.Resource($"WorldStory_ChapterSummary_{chapter.Row}");
+
+    private string MissingDependenciesText(IReadOnlyList<StoryChapter> missing)
+        => L.Resource("WorldStory_NeedsFirst", string.Join(" → ", missing.Select(ChapterTitle)));
+
+    /// <summary>Whether this chapter has happened in this world yet, named after the chapter
+    /// itself rather than the marker the save happens to store it under.</summary>
+    private string FlagStateText(StoryChapter chapter) => chapter.TriggerFlag is null
+        ? L.Resource("WorldStory_NoTriggerFlag")
+        : L.Resource(IsCompleted(chapter) ? "WorldStory_FlagSetInSave" : "WorldStory_FlagNotSet",
+            PlainNames.Flag(L, chapter.TriggerFlag));
+
+    /// <summary>Coarse region derived from the chapter row prefix (native rule).</summary>
+    private string RegionText(StoryChapter chapter)
+    {
+        var r = chapter.Row;
+        if (r.StartsWith("Office", StringComparison.OrdinalIgnoreCase)) return L.Resource("WorldStory_RegionOfficeSector");
+        if (r is "Flathill" or "PostFlathill") return L.Resource("WorldStory_RegionPortalFlathill");
+        if (r.StartsWith("MF", StringComparison.OrdinalIgnoreCase)) return L.Resource("WorldStory_RegionManufacturingMines");
+        if (r == "Pens") return L.Resource("WorldStory_RegionThePens");
+        if (r is "Labs" or "Containment" or "Helmholtz" or "Tarasque" or "PostLabs") return L.Resource("WorldStory_RegionCascadeLabs");
+        if (r == "Mycofields") return L.Resource("WorldStory_RegionPortalMycofields");
+        if (r.StartsWith("Sec", StringComparison.OrdinalIgnoreCase) || r == "EndSecurity") return L.Resource("WorldStory_RegionSecuritySector");
+        if (r is "ElectricalStation" or "EndDam") return L.Resource("WorldStory_RegionHydroplantDam");
+        if (r == "Voussoir") return L.Resource("WorldStory_RegionPortalVoussoir");
+        if (r is "PowerServices" or "AnteverseC") return L.Resource("WorldStory_RegionPowerServices");
+        if (r.StartsWith("Reactors", StringComparison.OrdinalIgnoreCase) || r == "InqEnd") return L.Resource("WorldStory_RegionTheReactors");
+        if (r == "Shadowgate") return L.Resource("WorldStory_RegionPortalShadowgate");
+        if (r.StartsWith("Residence", StringComparison.OrdinalIgnoreCase)
+            || r is "Fracture" or "Botanical" or "DarkLens" or "SouthIsland") return L.Resource("WorldStory_RegionResidenceSector");
+        if (r == "EndGame") return L.Resource("WorldStory_RegionFinale");
+        return L.Resource("WorldStory_RegionGateCascadeFacility");
+    }
+
+    private string ChapterIndexText
+    {
+        get
+        {
+            var index = StoryProgressionCatalog.IndexOf(Session.StoryProgressionRow);
+            return index < 0
+                ? L.Resource("WorldStory_UnknownChapter")
+                : L.Resource("WorldStory_ChapterIndexFormat", index + 1, StoryProgressionCatalog.Rows.Count);
+        }
+    }
+
+    // ---------- chapter detail in the right-hand pane (native SlotSidebarView panel) ----------
+
+    private static string ChapterKey(StoryChapter chapter) => $"story-chapter:{chapter.Row}";
+
+    /// <summary>Tap-to-toggle: a second tap on the open chapter closes the pane.</summary>
+    private void SelectChapter(StoryChapter chapter)
+    {
+        if (ReferenceEquals(_selectedChapter, chapter) && Selection.DetailKey == ChapterKey(chapter))
+        {
+            CloseChapterDetail();
+            return;
+        }
+        _selectedChapter = chapter;
+        Selection.ShowDetail(ChapterKey(chapter), ChapterDetail(chapter));
+    }
+
+    private void CloseChapterDetail()
+    {
+        _selectedChapter = null;
+        Selection.CloseDetail();
+    }
+
+    /// <summary>Re-publishes the open chapter detail so the pane re-renders fresh state
+    /// (status, flag text, busy buttons) after an edit made from either side.</summary>
+    private void RefreshChapterDetail()
+    {
+        if (_selectedChapter is { } chapter && Selection.DetailKey == ChapterKey(chapter))
+            Selection.ShowDetail(ChapterKey(chapter), ChapterDetail(chapter));
+    }
+
+    /// <summary>The native SlotSidebarView chapter detail panel: LCD number + title/region,
+    /// the game's card art, status, summary, trigger flag, blocked-by list and the
+    /// unlock-through / set-current actions.</summary>
+    private RenderFragment ChapterDetail(StoryChapter chapter) =>
+        @<aside class="ws-chapter-detail" aria-label="@ChapterTitle(chapter)">
+            @{
+                var chapterIndex = StoryProgressionCatalog.IndexOf(chapter.Row);
+                var chapterMissing = MissingDependencies(chapterIndex);
+            }
+            <header class="ws-detail-head">
+                <span class="ws-detail-num">@((chapterIndex + 1).ToString("D2"))</span>
+                <span class="ws-detail-title"><strong>@ChapterTitle(chapter)</strong><small>@RegionText(chapter)</small></span>
+                <button type="button" class="wm-close" aria-label="@L.Resource("Common_Cancel")" @onclick="CloseChapterDetail">✕</button>
+            </header>
+            @if (chapter.CardArt is { } cardArt)
+            {
+                <span class="ws-chapter-art"><GameArtImage GameRef="@cardArt" Alt="@ChapterTitle(chapter)" /></span>
+            }
+            <span class="wm-label ws-detail-status">@L.Resource("Slot_StatusFormat", L.Resource($"WorldStory_Status{StatusOf(chapter, chapterMissing)}"))</span>
+            @if (ChapterSummary(chapter) is { Length: > 0 } chapterSummary)
+            {
+                <p class="ws-detail-summary">@chapterSummary</p>
+            }
+            <span class="wm-label">@L.Resource("Slot_TriggerFlag")</span>
+            <p class="wm-status">@FlagStateText(chapter)</p>
+            @if (chapterMissing.Count > 0)
+            {
+                <span class="wm-label ws-detail-blocked">@L.Resource("Slot_BlockedByLinearDependencies")</span>
+                <p class="ws-detail-missing">@MissingDependenciesText(chapterMissing)</p>
+            }
+            <div class="ws-detail-actions">
+                <button type="button" class="wm-hazard-btn" disabled="@_settingChapter"
+                        title="@L.Resource("Slot_AddsEveryChapterTriggerFlagFromTheStartOfTheStoryThroughThisChapterTheDependencySafeWayToUnlockItAdditiveOnlyNeverRemovesFlags")"
+                        @onclick="() => RequestUnlockThrough(chapter)">@L.Resource("Slot_UnlockStoryThroughHere")</button>
+                <button type="button" class="secondary" disabled="@(_settingChapter || IsCurrent(chapter))"
+                        @onclick="() => SetChapterAsync(chapter.Row)">@L.Resource("Slot_SetAsCurrentChapter")</button>
+            </div>
+            <p class="wm-note">@L.Resource("Slot_ChaptersAreStrictlyLinearAQuestCantReallyBeginUntilEveryEarlierTriggerFlagIsSetStageSaveToWrite")</p>
+        </aside>;
+
+    private void ChapterKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs args, StoryChapter chapter)
+    {
+        if (args.Key is "Enter" or " ") SelectChapter(chapter);
+    }
+
+    /// <summary>
+    /// The single SET action (native rule): moves the chapter pointer and brings the sibling
+    /// WorldSave_Facility.sav's trigger flags in line both directions (written immediately with
+    /// a .bak). Optionally also relocates every player's respawn point.
+    /// </summary>
+    private async Task SetChapterAsync(string row)
+    {
+        Session.SetStoryProgression(row);
+        Workspace.NotifyEdited();
+        if (!Session.IsMetadataSave) { RefreshChapterDetail(); return; }
+        _settingChapter = true;
+        RefreshChapterDetail();
+        try
+        {
+            var path = Session.Path;
+            var (added, _) = await Task.Run(() => StoryFlagSync.SyncFacilityFlags(path, row));
+            var (cleared, _) = await Task.Run(() => StoryFlagSync.ClearForwardFlags(path, row));
+            var statusExtra = string.Empty;
+            if (_movePlayers)
+            {
+                var (moved, moveMessage) = await Task.Run(() => PlayerRespawnRevert.MoveToChapterTerminal(path, row));
+                statusExtra = moved > 0 ? $", {moveMessage}" : $" ({moveMessage})";
+            }
+            await RefreshWorldFlagsAsync();
+            await OnError.InvokeAsync(L.Resource("WorldStory_ChapterSetStatusFormat", added, cleared, statusExtra));
+        }
+        catch (Exception ex)
+        {
+            await OnError.InvokeAsync(Errors.Present(ex, "The story chapter flags could not be synchronized.", "No changes were saved; review the selected story state and try again."));
+        }
+        finally { _settingChapter = false; RefreshChapterDetail(); }
+    }
+
+    /// <summary>
+    /// Asks before jumping the story forward. The knock-on effects are invisible from the
+    /// button - traders turn up, gated recipes are released, prerequisite flags come along -
+    /// so they are listed first, the way unlocking a trader lists what it will do.
+    /// </summary>
+    private void RequestUnlockThrough(StoryChapter chapter)
+    {
+        var flags = FlagsThrough(chapter);
+        if (flags.Length == 0) return;
+
+        var newFlags = flags.Where(flag => !HasWorldFlag(flag)).ToArray();
+        // On a staged (non-metadata) save EnableFlagWithPrerequisites drags these in too, so
+        // they belong in the list rather than arriving as a surprise.
+        var prerequisites = newFlags
+            .SelectMany(FlagGate.PrerequisitesFor)
+            .Where(flag => !HasWorldFlag(flag) && !newFlags.Contains(flag, StringComparer.Ordinal))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        var resulting = new HashSet<string>(_worldFlags ?? (IReadOnlySet<string>)new HashSet<string>(StringComparer.Ordinal), StringComparer.Ordinal);
+        foreach (var flag in newFlags.Concat(prerequisites)) resulting.Add(flag);
+
+        Modals.Show(new ModalRequest(
+            L.Resource("WorldStory_UnlockThroughConfirmTitle", chapter.Title),
+            UnlockThroughPreview(chapter, newFlags, prerequisites, TradersUnlockedBy(resulting), RecipesUngatedBy(resulting)),
+            ConfirmText: L.Resource("WorldStory_UnlockThroughConfirmAccept"),
+            OnConfirm: async () => { await UnlockThroughAsync(chapter); await InvokeAsync(StateHasChanged); },
+            CancelText: L.Resource("Common_Cancel")));
+    }
+
+    private static string[] FlagsThrough(StoryChapter chapter)
+    {
+        var index = StoryProgressionCatalog.IndexOf(chapter.Row);
+        return StoryProgressionCatalog.Chapters
+            .Take(index + 1)
+            .Where(c => c.TriggerFlag is not null)
+            .Select(c => c.TriggerFlag!)
+            .ToArray();
+    }
+
+    /// <summary>Traders gated today who would be standing there afterwards.</summary>
+    private IReadOnlyList<string> TradersUnlockedBy(IReadOnlySet<string> resulting) => _traders
+        .Where(trader => trader.RequiredFlags.Count > 0
+            && !trader.RequiredFlags.All(HasWorldFlag)
+            && trader.RequiredFlags.All(resulting.Contains))
+        .Select(trader => PlainNames.Words(trader.Id))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    /// <summary>
+    /// Recipes the story holds back today that this jump would release: the crafts you would
+    /// have earned on the way to that point.
+    /// </summary>
+    private IReadOnlyList<string> RecipesUngatedBy(IReadOnlySet<string> resulting)
+    {
+        var names = new List<string>();
+        foreach (var recipe in RecipeVocabulary.GetRecipeInfos())
+        {
+            if (Gate.CheckUnlock(recipe.Id, _worldFlags) is null) continue;
+            if (Gate.CheckUnlock(recipe.Id, resulting) is not null) continue;
+            names.Add(recipe.CreatesItemId is { } itemId
+                ? Items.Find(itemId)?.DisplayName ?? PlainNames.Words(itemId)
+                : PlainNames.Words(recipe.Id));
+        }
+        return names.Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    /// <summary>Long lists get a tail count rather than running the dialog off the screen.</summary>
+    private const int PreviewListLimit = 12;
+
+    private RenderFragment UnlockThroughPreview(
+        StoryChapter chapter,
+        IReadOnlyList<string> newFlags,
+        IReadOnlyList<string> prerequisites,
+        IReadOnlyList<string> traders,
+        IReadOnlyList<string> recipes) =>
+        @<div class="wt-unlock-preview">
+            <p>@L.Resource("WorldStory_UnlockThroughIntro", chapter.Title)</p>
+
+            <p>@L.Resource("WorldStory_UnlockThroughFlags", newFlags.Count)</p>
+            @if (newFlags.Count == 0)
+            {
+                <p class="wt-unlock-noothers">@L.Resource("WorldStory_UnlockThroughNothingNew")</p>
+            }
+            else
+            {
+                <ul>
+                    @foreach (var flag in newFlags.Take(PreviewListLimit))
+                    {
+                        <li><b>@PlainNames.Flag(L, flag)</b><small>@flag</small></li>
+                    }
+                </ul>
+                @if (newFlags.Count > PreviewListLimit) { <p class="wt-unlock-noothers">@L.Resource("WorldStory_UnlockThroughAndMore", newFlags.Count - PreviewListLimit)</p> }
+            }
+
+            @if (prerequisites.Count > 0)
+            {
+                <p>@L.Resource("WorldStory_UnlockThroughPrerequisites")</p>
+                <ul>
+                    @foreach (var flag in prerequisites.Take(PreviewListLimit))
+                    {
+                        <li><b>@PlainNames.Flag(L, flag)</b><small>@flag</small></li>
+                    }
+                </ul>
+                @if (prerequisites.Count > PreviewListLimit) { <p class="wt-unlock-noothers">@L.Resource("WorldStory_UnlockThroughAndMore", prerequisites.Count - PreviewListLimit)</p> }
+            }
+
+            <p>@L.Resource("WorldStory_UnlockThroughTraders")</p>
+            @if (traders.Count == 0)
+            {
+                <p class="wt-unlock-noothers">@L.Resource("WorldStory_UnlockThroughNoTraders")</p>
+            }
+            else
+            {
+                <ul>@foreach (var trader in traders) { <li><b>@trader</b></li> }</ul>
+            }
+
+            <p>@L.Resource("WorldStory_UnlockThroughCrafts")</p>
+            @if (recipes.Count == 0)
+            {
+                <p class="wt-unlock-noothers">@L.Resource("WorldStory_UnlockThroughNoCrafts")</p>
+            }
+            else
+            {
+                <ul>@foreach (var recipe in recipes.Take(PreviewListLimit)) { <li><b>@recipe</b></li> }</ul>
+                @if (recipes.Count > PreviewListLimit) { <p class="wt-unlock-noothers">@L.Resource("WorldStory_UnlockThroughAndMore", recipes.Count - PreviewListLimit)</p> }
+            }
+        </div>;
+
+    /// <summary>Adds every chapter trigger flag from the start of the story through this
+    /// chapter (additive only, never removes flags) - the native side-panel action.</summary>
+    private async Task UnlockThroughAsync(StoryChapter chapter)
+    {
+        var flags = FlagsThrough(chapter);
+        if (flags.Length == 0) return;
+        _settingChapter = true;
+        RefreshChapterDetail();
+        try
+        {
+            if (Session.IsMetadataSave)
+            {
+                var path = Session.Path;
+                var (_, message) = await Task.Run(() => StoryFlagSync.AddFacilityFlags(path, flags));
+                await RefreshWorldFlagsAsync();
+                await OnError.InvokeAsync(message);
+            }
+            else
+            {
+                Session.EnableFlags(flags);
+                Workspace.NotifyEdited();
+            }
+        }
+        catch (Exception ex)
+        {
+            await OnError.InvokeAsync(Errors.Present(ex, "The story flags could not be written.", "No changes were saved; check folder permissions and try again."));
+        }
+        finally { _settingChapter = false; RefreshChapterDetail(); }
+    }
+
+    private async Task RefreshWorldFlagsAsync()
+    {
+        var path = Session.Path;
+        _worldFlags = await Task.Run(() => Gate.ResolveWorldFlags(path));
+    }
+
+    private void SetMinutes(ChangeEventArgs args) { if (int.TryParse(args.Value?.ToString(), out var minutes)) { Session.SetMinutesPassed(minutes); Workspace.NotifyEdited(); } }
+
+    // ---------- world recipes browser (native GlobalRecipeBrowser) ----------
+
+    private bool CanEditRecipes => Session.CanEditGlobalRecipes;
+
+    /// <summary>Every known recipe row (from the installed game's vocabulary) plus any recipe
+    /// id already unlocked in this save that the vocabulary doesn't know about (e.g. game data
+    /// unavailable, or a renamed/legacy row).</summary>
+    private IEnumerable<WorldRecipeRow> AllWorldRecipeRows
+    {
+        get
+        {
+            var infosById = RecipeVocabulary.GetRecipeInfos().ToDictionary(recipe => recipe.Id, StringComparer.Ordinal);
+            var ids = infosById.Keys.Concat(Session.GlobalRecipes).Distinct(StringComparer.Ordinal);
+            return ids.Select(id =>
+            {
+                infosById.TryGetValue(id, out var info);
+                var name = info?.CreatesItemId is { } itemId ? (Items.Find(itemId)?.DisplayName ?? PlainNames.Words(itemId)) : PlainNames.Words(id);
+                return new WorldRecipeRow(id, info, name);
+            });
+        }
+    }
+
+    private IEnumerable<WorldRecipeRow> VisibleWorldRecipeRows
+    {
+        get
+        {
+            var term = _recipeSearch.Trim();
+            var rows = AllWorldRecipeRows;
+            if (!string.IsNullOrWhiteSpace(term))
+                rows = rows.Where(row => row.Id.Contains(term, StringComparison.OrdinalIgnoreCase) || row.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase));
+            return rows.OrderBy(row => row.DisplayName, StringComparer.OrdinalIgnoreCase).ThenBy(row => row.Id, StringComparer.Ordinal);
+        }
+    }
+
+    private string RecipesCountText
+    {
+        get
+        {
+            var rows = AllWorldRecipeRows.ToList();
+            return rows.Count > 0
+                ? L.Resource("PlayerRecipes_CountUnlocked", rows.Count(row => Session.GlobalRecipes.Contains(row.Id)), rows.Count)
+                : L.Resource("PlayerRecipes_GameDataUnavailable");
+        }
+    }
+
+    private WorldRecipeRow? SelectedWorldRecipeRow => _selectedWorldRecipeId is { } id
+        ? AllWorldRecipeRows.FirstOrDefault(row => row.Id == id)
+        : null;
+
+    /// <summary>
+    /// The line under a recipe's name. It used to lead with the recipe's internal name, which
+    /// meant nothing to anybody reading it; how many one craft yields and which bench makes it
+    /// is what actually tells two same-named recipes apart.
+    /// </summary>
+    private string SubText(WorldRecipeRow row)
+    {
+        if (row.Info is not { } info) return PlainNames.Words(row.Id);
+        var makes = info.Count > 1 ? L.Resource("PlayerRecipes_SubTextMakes", info.Count) + " · " : string.Empty;
+        return makes + BenchesText(info);
+    }
+
+    private void ToggleRecipeDetail(string id)
+        => _selectedWorldRecipeId = _selectedWorldRecipeId == id ? null : id;
+
+    private void RecipeKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs args, string id)
+    {
+        if (args.Key is "Enter" or " ") ToggleRecipeDetail(id);
+    }
+
+    private void SetRecipe(string id, bool unlocked)
+    {
+        // Progress gate (native rule): recipes granted by an email in an unreached region stay
+        // locked; the refusal reason lands on a toast and the checkbox snaps back.
+        if (unlocked && Gate.CheckUnlock(id, _worldFlags) is { } block)
+        {
+            Toasts.Show(L.Resource("Progress_RecipeGated", block.RecipeId, block.EmailSubject, block.ChapterTitle, block.TriggerFlag), ToastKind.Warning);
+            _gateNonce++;
+            return;
+        }
+        Session.SetGlobalRecipe(id, unlocked);
+        Workspace.NotifyEdited();
+    }
+
+    private void UnlockAllRecipes()
+    {
+        RecipeGateBlock? lastBlock = null;
+        var allowed = new List<string>();
+        foreach (var id in RecipeVocabulary.GetRecipeInfos().Select(recipe => recipe.Id))
+        {
+            if (Gate.CheckUnlock(id, _worldFlags) is { } block) { lastBlock = block; continue; }
+            allowed.Add(id);
+        }
+        Session.EnableGlobalRecipes(allowed);
+        Workspace.NotifyEdited();
+        if (lastBlock is not null)
+            Toasts.Show(L.Resource("Progress_RecipeGated", PlainNames.Words(lastBlock.RecipeId), lastBlock.EmailSubject, lastBlock.ChapterTitle, PlainNames.Flag(L, lastBlock.TriggerFlag)), ToastKind.Warning);
+    }
+
+    private string IngredientsText(RecipeInfo? info) => info is null || info.IngredientList.Count == 0
+        ? L.Resource("PlayerRecipes_NoIngredientsRecorded")
+        : string.Join(", ", info.IngredientList.Select(ingredient => $"{ingredient.Count}× {Items.Find(ingredient.ItemId)?.DisplayName ?? PlainNames.Words(ingredient.ItemId)}"));
+    private string BenchesText(RecipeInfo? info) => info is null || info.BenchList.Count == 0
+        ? L.Resource("PlayerRecipes_HandsNoBench")
+        : string.Join(", ", info.BenchList.Select(bench => Items.Find(bench)?.DisplayName ?? PlainNames.Words(bench)));
+    private string UsedInText(RecipeInfo? info)
+    {
+        if (info?.CreatesItemId is not { } itemId) return string.Empty;
+        var usedBy = RecipeVocabulary.GetRecipeInfos()
+            .Where(recipe => recipe.IngredientList.Any(ingredient => string.Equals(ingredient.ItemId, itemId, StringComparison.OrdinalIgnoreCase)))
+            .Select(recipe => recipe.CreatesItemId is { } created ? (Items.Find(created)?.DisplayName ?? PlainNames.Words(created)) : PlainNames.Words(recipe.Id))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(14);
+        return string.Join(", ", usedBy);
+    }
+
+    private void Revert() { Session.Revert(); Workspace.NotifyEdited(); }
+    private async Task SaveAsync() { try { await Session.SaveAsync(); Workspace.NotifyEdited(); } catch (Exception ex) { await OnError.InvokeAsync(Errors.Present(ex, "The world save could not be written.", "Your changes remain open; check folder permissions and try again.")); } }
+
+    private sealed record WorldRecipeRow(string Id, RecipeInfo? Info, string DisplayName);
+}

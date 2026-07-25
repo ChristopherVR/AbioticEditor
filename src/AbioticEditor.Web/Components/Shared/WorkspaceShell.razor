@@ -1,0 +1,450 @@
+@using AbioticEditor.Web.Components.Player
+@using AbioticEditor.Web.Components.Pages
+@using AbioticEditor.Core.Steam
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject SaveWorkspaceSessionService Workspace
+@inject SiblingWorldBedService Beds
+@inject ShellPreferencesService Preferences
+@inject InventorySelectionService InventorySelection
+@inject CreateWorldService WorldCreator
+@inject IniEditorSessionService IniSessions
+@inject ToastService Toasts
+@inject NavigationManager Navigation
+@inject IJSRuntime Js
+
+<div class="workspace-shell shell-with-splitters @(DrawerMode ? "drawer-mode" : null) @FileClass @DetailsClass" style="@ShellStyle">
+    <aside class="shell-pane file-pane" aria-label="@L.Text("save.workspace")">
+        <header class="file-sidebar-header">
+            <div class="file-pane-heading">
+                <strong>@L.Resource("FileSidebar_SaveFiles")</strong>
+                @if (Workspace.Current is not null) { <span class="platform-badge @PlatformBadgeClass">@PlatformLabel</span> }
+            </div>
+            <label class="sidebar-search">
+                <span class="material-symbol" aria-hidden="true">search</span>
+                <input @bind="_filter" @bind:event="oninput" placeholder="@L.Resource("FileSidebar_SearchSavesAndConfig")" aria-label="@L.Resource("FileSidebar_SearchSavesAndConfig")" />
+                @if (!string.IsNullOrWhiteSpace(_filter)) { <button class="material-symbol" type="button" @onclick="ClearFilter" aria-label="@L.Resource("FileSidebar_ClearFilter")">close</button> }
+            </label>
+            @if (Workspace.Current is { } loadedWorkspace) { <span class="sidebar-count">@L.Text("items.count", loadedWorkspace.Saves.Count)</span> }
+        </header>
+
+        @if (Workspace.Current is not { } workspace)
+        {
+            <div class="shell-empty"><strong>@L.Resource("FileSidebar_NoFolderLoaded")</strong><p>@L.Editor("workspace.openHint")</p></div>
+        }
+        else
+        {
+            <div class="shell-save-list save-groups-scroll">
+                @foreach (var group in SaveGroups)
+                {
+                    <section class="save-group" aria-labelledby="save-group-@group.Key">
+                        <header class="save-group-heading" id="save-group-@group.Key">
+                            <strong>@group.Label</strong><span>@group.Saves.Count</span>
+                            @if (group.Key == "players" && CanAddPlayer)
+                            {
+                                <button type="button" class="add-player-button material-symbol" @onclick="ToggleAddPlayer" aria-expanded="@_showAddPlayer" aria-label="@L.Resource("FileSidebar_AddAPlayerNewOrCopiedFromAnExistingOne")">add</button>
+                            }
+                        </header>
+                        @foreach (var save in group.Saves)
+                        {
+                            <button type="button" class="save-file-row kind-@KindClass(save.Kind) @(workspace.SelectedSave == save ? "selected" : null)" aria-current="@(workspace.SelectedSave == save ? "true" : null)" title="@save.Path" @onclick="() => SelectAsync(save)">
+                                <span class="save-kind-marker" aria-hidden="true"></span>
+                                <strong class="save-file-name">@MiddleTruncation.Truncate(SaveDisplayName(save), SaveNameBudget)</strong>
+                                <span class="save-file-meta"><b>@KindLabel(save.Kind)</b><small>@save.Size</small></span>
+                            </button>
+                        }
+                    </section>
+                }
+                @if (FilteredSaveCount == 0) { <p class="shell-no-results">@L.Text("saves.no.matches", _filter)</p> }
+            </div>
+
+            @if (_showAddPlayer && CanAddPlayer)
+            {
+                <div class="sidebar-dialog-backdrop" role="presentation">
+                <form class="add-player-panel" role="dialog" aria-modal="true" aria-labelledby="add-player-title" @onsubmit="AddPlayerAsync" @onsubmit:preventDefault>
+                    <h2 id="add-player-title">@L.Resource("Main_AddPlayerHeader")</h2>
+                    <label>@L.Text("player.new.steamid")<input @bind="_newPlayerId" inputmode="numeric" autocomplete="off" /></label>
+                    <label class="checkbox-field"><input type="checkbox" @bind="_copySelectedPlayer" disabled="@(workspace.PlayerSession is null)" /> @L.Text("player.copy.selected")</label>
+                    <div><button class="primary" type="submit" disabled="@string.IsNullOrWhiteSpace(_newPlayerId)">@L.Text("player.add")</button><button class="secondary" type="button" @onclick="ToggleAddPlayer">@L.Text("cancel")</button></div>
+                    @if (_addPlayerStatus is not null) { <p role="status">@_addPlayerStatus</p> }
+                </form>
+                </div>
+            }
+
+            @if (VisibleConfigFiles.Count > 0)
+            {
+                <section class="config-group" aria-labelledby="config-files-title">
+                    <header class="config-group-heading" id="config-files-title"><strong>@L.Resource("FileSidebar_ConfigFiles")</strong></header>
+                    <div class="config-file-list">
+                    @foreach (var config in VisibleConfigFiles)
+                    {
+                        <button type="button" class="config-file-row" title="@config.FullPath" @onclick="() => OpenConfig(config)"><b>@L.Resource(ConfigChipResourceKey(config.Kind))</b><span>@Path.GetFileName(config.FullPath)</span><small>@ConfigDetail(config)</small></button>
+                    }
+                    </div>
+                </section>
+            }
+        }
+    </aside>
+
+    <div class="shell-splitter file-splitter" @ref="_fileSplitter" role="separator" tabindex="0" @onkeydown="ResizeFileWithKeyboard" aria-orientation="vertical" aria-label="@L.Text("resize.saves")" aria-valuemin="220" aria-valuemax="600" aria-valuenow="@Preferences.State.FilePaneWidth">
+        <button type="button" @onclick="ToggleFilePane" title="@L.Resource("Main_ShowOrHideTheSaveFileList")" aria-label="@L.Editor("workspace.collapseSaves")">@(FileShown ? "‹" : "›")</button><span aria-hidden="true"></span>
+    </div>
+
+    <section class="shell-center">
+        <section class="shell-status" aria-live="polite">
+            @if (Workspace.BusyOperation is { } busy) { <span class="shell-busy">@busy</span> }
+            else if (Workspace.Current?.SelectedSave is { } save)
+            {
+                <div class="selected-save-title"><strong>@SaveDisplayName(save)</strong><span><b>@KindLabel(save.Kind)</b> @save.Size</span></div>
+                @* Native header: a hazard dot + UNSAVED only while changes are staged; nothing when clean. *@
+                @if (IsDirty) { <span class="dirty unsaved-chip"><i aria-hidden="true"></i>@L.Resource("Main_Unsaved")</span> }
+                <div class="editor-actions"><button class="secondary" type="button" @onclick="ReloadAsync">@L.Editor("workspace.reload").ToUpperInvariant()</button><button class="secondary" type="button" disabled="@(!IsDirty)" @onclick="Revert">@L.Text("revert").ToUpperInvariant()</button><button class="primary" type="button" disabled="@(!IsDirty)" @onclick="SaveAsync">@L.Text("save").ToUpperInvariant()</button></div>
+            }
+            else { <span>@L.Editor("workspace.selectHint")</span> }
+        </section>
+        <div class="shell-body">
+            @if (_activeIniFileName is { } iniFileName)
+            {
+                <IniEditor RequestedFileName="@iniFileName" />
+            }
+            else
+            {
+                @ChildContent
+            }
+        </div>
+    </section>
+
+    <div class="shell-splitter details-splitter" @ref="_detailsSplitter" role="separator" tabindex="0" @onkeydown="ResizeDetailsWithKeyboard" aria-orientation="vertical" aria-label="@L.Text("resize.slot.editor")" aria-valuemin="260" aria-valuemax="680" aria-valuenow="@Preferences.State.DetailsPaneWidth">
+        <button type="button" @onclick="ToggleDetailsPane" title="@L.Resource("Main_ShowOrHideTheSlotEditorAndItemCatalog")" aria-label="@L.Editor("workspace.collapseDetails")">@(DetailsShown ? "›" : "‹")</button><span aria-hidden="true"></span>
+    </div>
+
+    <aside class="shell-pane details-pane" aria-label="@L.Text("inventory.slot.editor")">
+        <InventorySlotEditor />
+    </aside>
+
+    @if (DrawerMode)
+    {
+        <div class="drawer-scrim @(_fileDrawer || _detailsDrawer ? "open" : null)" @onclick="CloseDrawers" aria-hidden="true"></div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public RenderFragment ChildContent { get; set; } = null!;
+    // Responsive state machine, mirroring the native ResponsivePaneController:
+    // below 800 the panes are slide-in overlay drawers; below 1150 the inline panes
+    // auto-collapse (and restore on widen) while a user toggle is remembered separately.
+    private string _viewport = "wide";
+    private bool _fileAutoCollapsed;
+    private bool _detailsAutoCollapsed;
+    private bool _fileDrawer;
+    private bool _detailsDrawer;
+    private bool _hadSlotSelection;
+    private string _filter = string.Empty;
+    private bool _showAddPlayer;
+    private string _newPlayerId = string.Empty;
+    private bool _copySelectedPlayer;
+    private string? _addPlayerStatus;
+    private string? _activeIniFileName;
+    private string? _selectedSavePath;
+    private string? _workspaceFolder;
+    private PlayerSaveSession? _playerSession;
+    private WorldSaveSession? _worldSession;
+    private ElementReference _fileSplitter;
+    private ElementReference _detailsSplitter;
+    private IJSObjectReference? _splitterModule;
+    private DotNetObjectReference<WorkspaceShell>? _self;
+    private static readonly Lazy<IReadOnlyDictionary<string, string>> MachinePersonas = new(SteamPersonaIndex.LoadMachineAccounts);
+
+    private bool IsDirty => Workspace.Current?.PlayerSession?.IsDirty == true || Workspace.Current?.WorldSession?.IsDirty == true;
+    private bool DrawerMode => _viewport == "drawer";
+    private bool FileVisible => !Preferences.State.FilePaneCollapsed && !_fileAutoCollapsed;
+    private bool DetailsVisible => !Preferences.State.DetailsPaneCollapsed && !_detailsAutoCollapsed;
+    // Rail chevrons point toward the pane when it is shown (a collapse hint) and toward
+    // the screen edge when hidden, exactly like the native rails.
+    private bool FileShown => DrawerMode ? _fileDrawer : FileVisible;
+    private bool DetailsShown => DrawerMode ? _detailsDrawer : DetailsVisible;
+    // The slot editor only means something once a save is open; before that (the Home
+    // hero, a fresh workspace) the whole right pane and its rail stay out of the layout.
+    private bool DetailsAvailable => Workspace.Current?.SelectedSave is not null;
+    private string FileClass => DrawerMode ? (_fileDrawer ? "file-drawer-open" : string.Empty) : (FileVisible ? string.Empty : "file-collapsed");
+    private string DetailsClass => !DetailsAvailable
+        ? "details-unavailable"
+        : DrawerMode ? (_detailsDrawer ? "details-drawer-open" : string.Empty) : (DetailsVisible ? string.Empty : "details-collapsed");
+    private string ShellStyle => $"--file-pane-width:{Preferences.State.FilePaneWidth}px;--details-pane-width:{Preferences.State.DetailsPaneWidth}px";
+    private bool IsGamePass => Workspace.Current?.Platform == SavePlatform.GamePass;
+    private string PlatformLabel => Workspace.Current is { } current
+        ? L.PlatformLabel(current.Platform, current.Source)
+        : string.Empty;
+    private string PlatformBadgeClass => Workspace.Current switch
+    {
+        { Platform: SavePlatform.Steam } => "platform-steam",
+        { Platform: SavePlatform.GamePass } => "platform-gamepass",
+        _ => "platform-unknown",
+    };
+    private bool CanAddPlayer => Workspace.Current is not null && !IsGamePass;
+    private IReadOnlyList<AbioticIniFile> ConfigFiles => Workspace.Current is { } workspace ? AbioticIniCatalog.Discover(workspace.WorldFolder) : [];
+    private IReadOnlyList<AbioticIniFile> VisibleConfigFiles => ConfigFiles.Where(config => Matches(Path.GetFileName(config.FullPath)) || Matches(AbioticIniCatalog.LabelFor(config.Kind))).ToArray();
+    private int FilteredSaveCount => SaveGroups.Sum(group => group.Saves.Count);
+    private IReadOnlyList<SidebarSaveGroup> SaveGroups
+    {
+        get
+        {
+            var saves = Workspace.Current?.Saves.Where(save => Matches(save.Name) || Matches(save.RelativePath) || Matches(save.Kind.ToString())).ToArray() ?? [];
+            return new[]
+            {
+                new SidebarSaveGroup("metadata", L.Resource("Main_GroupWorldStory"), saves.Where(save => save.Kind == SaveDocumentKind.WorldMetadata).ToArray()),
+                new SidebarSaveGroup("players", L.Resource("Main_GroupPlayers"), saves.Where(save => save.Kind == SaveDocumentKind.Player).ToArray()),
+                new SidebarSaveGroup("world", L.Resource("Main_GroupWorldRegions"), saves.Where(save => save.Kind == SaveDocumentKind.World).ToArray()),
+                new SidebarSaveGroup("other", L.Resource("Main_GroupOther"), saves.Where(save => save.Kind == SaveDocumentKind.Unknown).ToArray()),
+            }.Where(group => group.Saves.Count > 0 || (group.Key == "players" && CanAddPlayer && string.IsNullOrWhiteSpace(_filter))).ToArray();
+        }
+    }
+
+    protected override void OnInitialized() { Workspace.Changed += WorkspaceChanged; Preferences.Changed += Refresh; InventorySelection.Changed += SelectionChanged; InventorySelection.ItemCommitted += ItemCommitted; Navigation.LocationChanged += NavigationChanged; _selectedSavePath = Workspace.Current?.SelectedSave?.Path; _workspaceFolder = Workspace.Current?.WorldFolder; _playerSession = Workspace.Current?.PlayerSession; _worldSession = Workspace.Current?.WorldSession; _hadSlotSelection = InventorySelection.HasAnySelection; if (Workspace.Current is { } open) _ = LoadClaimPersonasAsync(open.WorldFolder); }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _self = DotNetObjectReference.Create(this);
+        _splitterModule = await Js.InvokeAsync<IJSObjectReference>("import", "./workspace-shell.js");
+        await _splitterModule.InvokeVoidAsync("attach", _fileSplitter, _self, "file");
+        await _splitterModule.InvokeVoidAsync("attach", _detailsSplitter, _self, "details");
+        await _splitterModule.InvokeVoidAsync("watch", _self);
+    }
+    [JSInvokable] public void ResizePane(string pane, int width) { if (pane == "file") Preferences.SetFilePaneWidth(width); else Preferences.SetDetailsPaneWidth(width); }
+    [JSInvokable]
+    public void ViewportChanged(string mode)
+    {
+        var wasDrawer = DrawerMode;
+        var wasCompact = _viewport != "wide";
+        _viewport = mode;
+        if (DrawerMode != wasDrawer) { _fileDrawer = false; _detailsDrawer = false; }
+        var compact = _viewport != "wide";
+        if (compact != wasCompact) { _fileAutoCollapsed = compact; _detailsAutoCollapsed = compact; }
+        Refresh();
+    }
+    private void ResizeFileWithKeyboard(KeyboardEventArgs args) => ResizeWithKeyboard(args, "file");
+    private void ResizeDetailsWithKeyboard(KeyboardEventArgs args) => ResizeWithKeyboard(args, "details");
+    private void ResizeWithKeyboard(KeyboardEventArgs args, string pane)
+    {
+        var direction = args.Key switch { "ArrowLeft" => -1, "ArrowRight" => 1, _ => 0 };
+        if (direction == 0) return;
+        if (pane == "file") Preferences.SetFilePaneWidth(Preferences.State.FilePaneWidth + direction * 10);
+        else Preferences.SetDetailsPaneWidth(Preferences.State.DetailsPaneWidth - direction * 10);
+    }
+    private void WorkspaceChanged()
+    {
+        var selectedPath = Workspace.Current?.SelectedSave?.Path;
+        var player = Workspace.Current?.PlayerSession;
+        var world = Workspace.Current?.WorldSession;
+        if (!string.Equals(selectedPath, _selectedSavePath, StringComparison.OrdinalIgnoreCase) || !ReferenceEquals(player, _playerSession) || !ReferenceEquals(world, _worldSession))
+        {
+            _selectedSavePath = selectedPath; _playerSession = player; _worldSession = world; InventorySelection.Clear();
+        }
+        // Opening a world with the file pane collapsed (a remembered toggle from a prior
+        // session) would land the player on an empty center with no visible save list, so
+        // a freshly opened folder always reveals the sidebar. Drawer mode keeps its own
+        // tap-to-open flow.
+        var folder = Workspace.Current?.WorldFolder;
+        if (!string.Equals(folder, _workspaceFolder, StringComparison.OrdinalIgnoreCase))
+        {
+            _workspaceFolder = folder;
+            if (folder is not null && !DrawerMode)
+            {
+                _fileAutoCollapsed = false;
+                if (Preferences.State.FilePaneCollapsed) Preferences.ToggleFilePane();
+            }
+        }
+        if (Workspace.Current is { } open) _ = LoadClaimPersonasAsync(open.WorldFolder);
+        Refresh();
+    }
+    private void Refresh() => _ = InvokeAsync(StateHasChanged);
+    private void NavigationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        if (!Navigation.ToBaseRelativePath(args.Location).StartsWith("ini/", StringComparison.OrdinalIgnoreCase))
+            _activeIniFileName = null;
+        Refresh();
+    }
+    private bool Matches(string? value) => string.IsNullOrWhiteSpace(_filter) || value?.Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase) == true;
+    private void ClearFilter() => _filter = string.Empty;
+    private async Task SelectAsync(WorkspaceSave save)
+    {
+        try
+        {
+            CloseDrawers();
+            _activeIniFileName = null;
+            if (!string.IsNullOrEmpty(Navigation.ToBaseRelativePath(Navigation.Uri)))
+            {
+                // Save rows are global navigation in the native workbench. Return to the
+                // editor surface immediately so its loading state and eventual session are
+                // visible even when the user selected the save from INI or another tool.
+                Navigation.NavigateTo("/");
+            }
+            await Workspace.SelectAsync(save.Path);
+        }
+        catch (Exception exception)
+        {
+            Errors.Record(exception, "Open save from sidebar");
+            Toasts.Show(L.Resource("Main_LoadSaveFailed", save.Name), ToastKind.Error, TimeSpan.FromSeconds(8));
+        }
+    }
+    private Task ReloadAsync() => Workspace.ReloadSelectedAsync();
+    private async Task SaveAsync()
+    {
+        try { await Workspace.SaveSelectedAsync(); }
+        catch (Exception exception)
+        {
+            // SaveSelectedAsync can throw (a locked file, a save missing an expected
+            // struct, etc.); an uncaught exception here would otherwise take down the
+            // whole editor session instead of just failing this one write.
+            Errors.Record(exception, "Save selected file");
+            Toasts.Show(Errors.Present(exception, L.Editor("workspace.saveFailed"), L.Resource("PlayerUi_ChangesRemainOpen")), ToastKind.Error, TimeSpan.FromSeconds(8));
+        }
+    }
+    private void Revert() { InventorySelection.Clear(); Workspace.RevertSelected(); }
+    private void ToggleFilePane()
+    {
+        // Native rails: one drawer at a time on phones; on desktops a manual toggle also
+        // records the user's choice so threshold crossings don't override it.
+        if (DrawerMode) { _fileDrawer = !_fileDrawer; if (_fileDrawer) _detailsDrawer = false; return; }
+        var show = !FileVisible;
+        _fileAutoCollapsed = false;
+        if (Preferences.State.FilePaneCollapsed == show) Preferences.ToggleFilePane();
+    }
+    private void ToggleDetailsPane()
+    {
+        if (!DetailsAvailable) return;
+        if (DrawerMode) { _detailsDrawer = !_detailsDrawer; if (_detailsDrawer) _fileDrawer = false; return; }
+        var show = !DetailsVisible;
+        _detailsAutoCollapsed = false;
+        if (Preferences.State.DetailsPaneCollapsed == show) Preferences.ToggleDetailsPane();
+    }
+    private void CloseDrawers() { _fileDrawer = false; _detailsDrawer = false; }
+    private void ItemCommitted()
+    {
+        // On a phone the slot editor lives in a full-screen sheet over the list. Once the item
+        // itself has changed there is nothing left to do in the sheet, and leaving it up just
+        // hides the result, so close it and let the change show on the list underneath. On a
+        // desktop the editor sits beside the list, so there is nothing to close.
+        if (DrawerMode && _detailsDrawer) { _detailsDrawer = false; Refresh(); }
+    }
+    private void SelectionChanged()
+    {
+        // Selecting a slot surfaces the slot editor wherever it currently lives: as a
+        // drawer on phones, or by un-collapsing the auto-collapsed inline pane on
+        // desktops (never overriding an explicit user hide). Mirrors the native
+        // ActiveSlot handling.
+        var hasSelection = InventorySelection.HasAnySelection;
+        if (hasSelection && !_hadSlotSelection)
+        {
+            if (DrawerMode) { if (!_detailsDrawer) { _detailsDrawer = true; _fileDrawer = false; } }
+            else if (_detailsAutoCollapsed && !Preferences.State.DetailsPaneCollapsed) { _detailsAutoCollapsed = false; }
+        }
+        _hadSlotSelection = hasSelection;
+        Refresh();
+    }
+    private void ToggleAddPlayer() { _showAddPlayer = !_showAddPlayer; _addPlayerStatus = null; }
+    private async Task AddPlayerAsync()
+    {
+        if (Workspace.Current is not { } workspace || !CanAddPlayer) return;
+        try
+        {
+            var copy = _copySelectedPlayer ? workspace.PlayerSession?.Path : null;
+            var path = await WorldCreator.AddPlayerAsync(new(workspace.WorldFolder, _newPlayerId, copy));
+            await Workspace.OpenAsync(workspace.WorldFolder); await Workspace.SelectAsync(path);
+            _newPlayerId = string.Empty; _copySelectedPlayer = false; _showAddPlayer = false;
+        }
+        catch (Exception ex) { _addPlayerStatus = Errors.Present(ex, L.Resource("Main_AddPlayerFailedTitle"), L.Resource("Main_NewPlayerIdMessage")); }
+    }
+    private void OpenConfig(AbioticIniFile config)
+    {
+        try
+        {
+            var worldFolder = Workspace.Current!.WorldFolder;
+            // Populate the shared session before navigating so the first render already has
+            // the requested document. The query parameters below remain the durable fallback
+            // when the page or host session is recreated.
+            IniSessions.OpenDiscovered(worldFolder, config.FullPath);
+            _activeIniFileName = Path.GetFileName(config.FullPath);
+            CloseDrawers();
+            Navigation.NavigateTo($"/ini/{Uri.EscapeDataString(Path.GetFileName(config.FullPath))}");
+        }
+        catch (Exception exception)
+        {
+            Errors.Record(exception, "Open configuration file from sidebar");
+            Toasts.Show(
+                L.Resource("Main_IniOpenFailed", Path.GetFileName(config.FullPath), L.Resource("Main_ParseError")),
+                ToastKind.Error,
+                TimeSpan.FromSeconds(8));
+        }
+    }
+    // Character budget approximating the native sidebar's pixel-fitted MiddleTruncation at
+    // the default file-pane width; the row tooltip keeps the full path.
+    private const int SaveNameBudget = 36;
+
+    /// <summary>
+    /// Native sidebar labeling rule: a player row whose persona resolves shows
+    /// "persona · filename"; everything else shows the folder-relative path. Personas
+    /// come from the machine's Steam accounts plus the world's bed claims (claim names
+    /// win - they are what teammates see), and are sanitized so Steam's control/private
+    /// -use glyphs never render as tofu boxes.
+    /// </summary>
+    private string SaveDisplayName(WorkspaceSave save)
+    {
+        if (save.Kind == SaveDocumentKind.Player
+            && SteamPersonaIndex.IdFromPlayerPath(save.Path) is { } id
+            && ResolvePersona(id) is { Length: > 0 } persona)
+        {
+            return $"{persona} · {save.Name}";
+        }
+        return save.RelativePath;
+    }
+
+    private string? ResolvePersona(string id)
+    {
+        if (_claimPersonas is { } claims && claims.TryGetValue(id, out var claimName))
+        {
+            var sanitizedClaim = PersonaNames.Sanitize(claimName);
+            if (sanitizedClaim.Length > 0) return sanitizedClaim;
+        }
+        return MachinePersonas.Value.TryGetValue(id, out var persona) ? NullIfEmpty(PersonaNames.Sanitize(persona)) : null;
+    }
+
+    private static string? NullIfEmpty(string value) => value.Length == 0 ? null : value;
+
+    private IReadOnlyDictionary<string, string>? _claimPersonas;
+    private string? _claimPersonaFolder;
+
+    /// <summary>
+    /// Mirrors the native EnrichPlayerNamesAsync: bed claims in the workspace folder's
+    /// WorldSave_Facility.sav carry the in-game names of every claiming co-op player.
+    /// Read off-thread and cached by the bed service; rows re-render when names arrive.
+    /// </summary>
+    private async Task LoadClaimPersonasAsync(string worldFolder)
+    {
+        if (string.Equals(_claimPersonaFolder, worldFolder, StringComparison.OrdinalIgnoreCase)) return;
+        _claimPersonaFolder = worldFolder;
+        _claimPersonas = null;
+        var facility = Path.Combine(worldFolder, "WorldSave_Facility.sav");
+        if (!File.Exists(facility)) return;
+        try
+        {
+            var deployables = await Beds.GetDeployablesAsync(facility, Workspace.Current?.WorldSession);
+            _claimPersonas = SteamPersonaIndex.FromDeployables(deployables);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception exception)
+        {
+            Errors.Record(exception, "Read bed-claim player names from the world save");
+        }
+    }
+    private string KindLabel(SaveDocumentKind kind) => L.Resource(kind switch { SaveDocumentKind.Player => "Main_ChipPlayer", SaveDocumentKind.WorldMetadata => "Main_ChipMeta", SaveDocumentKind.World => "Main_ChipWorld", _ => "Main_ChipSave" });
+    private static string KindClass(SaveDocumentKind kind) => kind.ToString().ToLowerInvariant();
+    public async ValueTask DisposeAsync()
+    {
+        Workspace.Changed -= WorkspaceChanged; Preferences.Changed -= Refresh; InventorySelection.Changed -= SelectionChanged; InventorySelection.ItemCommitted -= ItemCommitted; Navigation.LocationChanged -= NavigationChanged;
+        if (_splitterModule is not null) { try { await _splitterModule.InvokeVoidAsync("unwatch"); await _splitterModule.DisposeAsync(); } catch (JSDisconnectedException) { } }
+        _self?.Dispose();
+    }
+
+    private sealed record SidebarSaveGroup(string Key, string Label, IReadOnlyList<WorkspaceSave> Saves);
+}

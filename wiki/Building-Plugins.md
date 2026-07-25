@@ -26,7 +26,7 @@ public sealed class HelloPlugin : IAbioticPlugin
     {
         host.Log.Info("hello from a plugin");
         registry.AddSaveOperation(new MaxSkillsOperation());
-        // registry also has: AddConsoleCommand, AddEditorTool, AddWebTool,
+        // registry also has: AddConsoleCommand, AddWebTool,
         //                     AddMenuAction, AddSaveUpgrader, AddEventHandler
     }
 }
@@ -36,7 +36,7 @@ Keep `Configure` cheap: no heavy work and no UI. One plugin may register any mix
 
 ## The project file: the shared-assembly rule
 
-Reference the SDK (and Core/MAUI if you use them) to **compile**, but do **not** ship them. The host
+Reference the SDK (and Core if you use it) to **compile**, but do **not** ship them. The host
 provides them at runtime and unifies the types. If you ship your own copy of a shared assembly,
 casts across the host boundary fail with a confusing `InvalidCastException`.
 
@@ -139,10 +139,6 @@ Rules of the road:
 - **Console command** (`IConsoleCommand`): a CLI verb. Declare `Name`, framework-neutral
   `Arguments`/`Options`, and `InvokeAsync` returning an exit code (0/1/2). Write to `ctx.Out`. A name
   that collides with a built-in is skipped with a warning.
-- **Editor tool** (`IEditorTool`): a native MAUI panel. `CreateView(ctx)` returns a
-  `Microsoft.Maui.Controls.View` as `object`. Read `ctx.ActiveSave` (loaded lazily) and subscribe to
-  `ctx.ActiveSaveChanged`. A subscribing view-model should implement `IDisposable` so it does not
-  outlive its panel.
 - **Web tool** (`IWebTool`): an HTML/React UI in a web view. Return `WebToolContent.FromHtml(...)` or
   `WebToolContent.FromDirectory(...)`. The page calls `abiotic.request(obj)` (a Promise) and your
   `HandleMessageAsync` answers.
@@ -195,9 +191,6 @@ natural camelCase works. JavaScript plugins can also drive the app through `abio
 # headless .NET plugin
 dotnet build plugins/MaxSkills -c Release
 
-# MAUI (UI) plugin: needs the MAUI workload and a target framework moniker
-dotnet workload install maui
-dotnet build plugins/SaveInspector -c Release -f net10.0-windows10.0.19041.0
 ```
 
 JavaScript plugins need no build. A plugin that bundles a built web UI (like `ReactAppDashboard`)
@@ -237,4 +230,3 @@ Reachable from `Configure` and every capability context (`host` / `ctx.Host`):
 - [ ] `plugin.json` has a unique `id` and the correct `entryAssembly` or `entryScript`.
 - [ ] Save operations mutate in place and call `MarkChanged()`; they never write files.
 - [ ] Console command names do not collide with built-ins.
-- [ ] UI tools return a `Microsoft.Maui.Controls.View`; heavy reads are lazy and subscribers are disposed.

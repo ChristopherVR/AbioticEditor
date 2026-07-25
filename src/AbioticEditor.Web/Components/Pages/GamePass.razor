@@ -1,0 +1,97 @@
+@using AbioticEditor.Core.GamePass
+@inject HostLanguageService Languages
+@inject AbioticEditor.Ui.IFolderPicker FolderPicker
+@inject AbioticEditor.Ui.IExternalNavigationService ExternalNavigation
+
+<article class="settings-card gamepass-card">
+    <h2>@R("Settings_SaveConversion")</h2>
+    <p class="muted">@R("Settings_SaveConversionHint")</p>
+
+    <label for="conversion-account-id">@R("Settings_ConvertPlayerAccountId")</label>
+    <input id="conversion-account-id" @bind="_playerAccountId" placeholder="@R("Settings_ConvertIdPlaceholder")" disabled="@_busy" />
+    <p class="muted conversion-hint">@R("Settings_ConvertIdHint")</p>
+
+    <button class="primary conversion-action" type="button" @onclick="() => ConvertAsync(SaveConversionDirection.ToGamePass)" disabled="@_busy">
+        @R("Settings_ConvertToGamePass")
+    </button>
+    <p class="muted conversion-hint">@R("Settings_ConvertToGamePassHint")</p>
+
+    <button class="primary conversion-action" type="button" @onclick="() => ConvertAsync(SaveConversionDirection.ToSteam)" disabled="@_busy">
+        @R("Settings_ConvertToSteam")
+    </button>
+    <p class="muted conversion-hint">@R("Settings_ConvertToSteamHint")</p>
+
+    @if (_status is not null)
+    {
+        <p class="@(_failed ? "error" : "success")" role="@(_failed ? "alert" : "status")">@_status</p>
+    }
+    @if (_outputFolder is not null)
+    {
+        <button class="secondary" type="button" @onclick="OpenOutputFolderAsync">@R("Settings_OpenOutputFolder")</button>
+    }
+</article>
+
+@code {
+    private string _playerAccountId = string.Empty;
+    private string? _outputFolder;
+    private string? _status;
+    private bool _busy;
+    private bool _failed;
+
+    private string R(string key, params object?[] args) => Languages.Resource(key, args);
+
+    private async Task ConvertAsync(SaveConversionDirection direction)
+    {
+        var picked = await FolderPicker.PickFolderAsync(new()
+        {
+            Title = R(direction == SaveConversionDirection.ToGamePass
+                ? "Settings_ConvertToGamePass"
+                : "Settings_ConvertToSteam"),
+        });
+        if (picked is null || string.IsNullOrWhiteSpace(picked.Path)) return;
+        var sourceFolder = picked.Path;
+
+        _busy = true;
+        _failed = false;
+        _outputFolder = null;
+        _status = R("Settings_Converting");
+        try
+        {
+            var validation = SaveConversionService.ValidateSource(direction, sourceFolder);
+            if (validation != SaveConversionSourceValidation.Valid)
+            {
+                _failed = true;
+                _status = R(validation == SaveConversionSourceValidation.MissingSteamWorldSave
+                    ? "Settings_ConvertNoWorldSave"
+                    : "Settings_ConvertNoContainers");
+                return;
+            }
+
+            var id = string.IsNullOrWhiteSpace(_playerAccountId) ? null : _playerAccountId.Trim();
+            _outputFolder = await Task.Run(() => SaveConversionService.Convert(direction, sourceFolder, id));
+            _status = R("Settings_ConvertDone", _outputFolder);
+        }
+        catch (Exception exception)
+        {
+            _failed = true;
+            Errors.Record(exception, "Convert save");
+            _status = R("Settings_ConvertFailed");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task OpenOutputFolderAsync()
+    {
+        if (_outputFolder is null) return;
+        try { await ExternalNavigation.RevealPathAsync(_outputFolder); }
+        catch (Exception exception)
+        {
+            _failed = true;
+            Errors.Record(exception, "Open converted save folder");
+            _status = R("Settings_ConvertFailed");
+        }
+    }
+}

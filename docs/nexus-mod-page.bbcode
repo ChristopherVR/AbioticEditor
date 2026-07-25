@@ -92,13 +92,25 @@ That said, it is still a save editor. Please keep your own backups of any saves 
 
 [size=5][b]Installing on Windows[/b][/size]
 
-Download the latest file from the FILES tab, unzip it anywhere, and run [b]AbioticEditor.App.exe[/b]. No installer and no .NET download needed; everything is bundled.
+Download the latest Windows file from the FILES tab, unzip it anywhere, and run [b]AbioticEditor.Web.exe[/b]. Abiotic Editor opens in its own desktop window and needs no separate .NET download.
 
 [b]About the "unknown publisher" warning:[/b] this is a free, fan-made tool, so the download is not signed with a paid certificate. Windows SmartScreen (and sometimes antivirus) may warn you the first time you run it. The download is safe; the warning is just the absence of a paid signature.
 
 To get past it: right-click the downloaded zip, choose [b]Properties[/b], tick [b]Unblock[/b], click [b]OK[/b], then unzip and run. If SmartScreen still shows "Windows protected your PC", click [b]More info[/b] then [b]Run anyway[/b].
 
 Prefer a one-line install with no warning at all? You can install it with Scoop (a Windows package manager) instead. See the documentation link below.
+
+[line]
+
+[size=5][b]Installing on Linux / Steam Deck[/b][/size]
+
+Download the Linux / Steam Deck file from the FILES tab, unzip it, and run [b]launch-linux.sh[/b] from Desktop Mode. The editor opens in its own desktop window and finds saves inside Steam Play / Proton folders automatically. Proton is not required to run the editor itself.
+
+The archive includes the .NET runtime. Your desktop must provide GTK 3, WebKitGTK 4.1, and libnotify. On Ubuntu 24.04, install any missing libraries with:
+
+[code]sudo apt-get install libgtk-3-0t64 libwebkit2gtk-4.1-0 libnotify4[/code]
+
+Package names vary on SteamOS and other distributions; install their WebKitGTK 4.1 equivalent.
 
 [line]
 
@@ -116,7 +128,7 @@ The editor detects your save folders automatically and lists them on the welcome
 
 [size=5][b]Staying up to date[/b][/size]
 
-The app can update itself: open [b]Settings[/b] then [b]Updates[/b] and it will fetch the latest version for you. You can also just download the newest file here whenever a new version drops.
+Open [b]Updates[/b] in the app to check whether a new version is available. Choose [b]View downloads[/b], then download the newest file for your computer.
 
 [line]
 

@@ -79,6 +79,87 @@ in the Facility save have a non-empty inventory.
 |     4 | `Deployed_StorageCrate_Makeshift_C` |
 |     4 | `Deployed_Freezer_C` |
 
+## Leyak containment
+
+Containment is stored across **two files**, which is why the editor has to read and write both.
+
+### The link: `LeyakContainmentIDs` (metadata save only)
+
+`WorldSave_MetaData.sav` carries a top-level `LeyakContainmentIDs` of type
+`Map<NameProperty, StrProperty>`:
+
+```
+key   (Name)  creature row name in DT_NPCList - only "Leyak" or "Krasue" are possible
+value (Str)   the containment unit's DeployedObjectMap GUID, e.g. F57999CA4F2992036D2AE693DDC396C4
+```
+
+Two consequences fall straight out of the shape:
+
+- **A creature can be in at most one unit** (it is the map key), so moving a creature into a unit
+  automatically takes it out of the one it was in. Swapping two creatures is a value swap.
+- **A world where nothing was ever caught omits the property entirely** (delta-serialization);
+  the fixture world `SteamSaves/SaveGames/.../Worlds/Chrissie` has no such tag. Creating the map
+  from scratch is therefore part of the write path. Unlike a blueprint variable this property
+  carries **no hash suffix** - it is a native property on the save-game class.
+
+### The unit: `Deployed_LeyakContainment_C` (region saves)
+
+A containment unit is an ordinary player-placed deployable in a **region** save's
+`DeployedObjectMap` (in every fixture world, `WorldSave_Facility.sav`), keyed by the same GUID the
+map above points at:
+
+```
+Class_77_*  =  /Game/Blueprints/DeployedObjects/Furniture/Deployed_LeyakContainment.Deployed_LeyakContainment_C
+```
+
+Units are **player-crafted only** (item row `Leyak_Containment`). A sweep of every cooked `.umap`
+found `LeyakSafetyZone_C`, `BP_ContainmentCell_Dropoff_C` and `NPCSpawn_ContainmentBot_C` but **no**
+level-placed `Deployed_LeyakContainment_C` anywhere, so the saves are the complete list of units in
+a world; there is nothing to enumerate from the paks.
+
+Nothing on the unit itself says whether it is occupied - an empty unit is simply one whose GUID no
+`LeyakContainmentIDs` value points at.
+
+### The unit's own state: `EDynamicProperty` slots
+
+The unit stores its state in the generic slots of its item data
+(`ChangableData_.DynamicProperties_`):
+
+| Slot       | Meaning |
+|------------|---------|
+| `Generic1` | Containment stability, 0..100. |
+| `Generic2` | Unknown; 0 on every unit observed. |
+| `Generic3` | Index into the blueprint's `LeyakContainmentData` array: **0 = Leyak, 1 = Krasue**. |
+| `Portions` | 1 on every unit observed (and on most other deployables too). |
+
+How those were pinned down: the blueprint reaches the slots through generic
+`GetDynamicProperty`/`SetDynamicProperty` calls, so the slot names are not recoverable from the
+cooked asset. Instead, across every fixture world `Generic2` and `Generic3` are used by **no other
+deployable class at all**; `Generic1` only ever holds values in 0..100, matching the blueprint's
+`MaxStability = 100` and its `StabilityDecreasePerNight = -14`; and `Generic3` matches the creature
+the metadata save assigns to that exact unit in all five units observed.
+
+The blueprint's class defaults also give the containable set directly - `LeyakContainmentData` has
+exactly two entries:
+
+| Index | `LeyakNpcRow` | `RequiredStabilityItem` | Bar colour | Output node |
+|------:|---------------|-------------------------|-----------|-------------|
+| 0 | `Leyak` | `food_greyeb` | `FF003A` | `Resource_Micronode_LeyakEssence_C` |
+| 1 | `Krasue` | `food_milk` | `00FFFF` | `Resource_Micronode_KrasueEssence_C` |
+
+### What we model
+
+- `ContainmentCreatureCatalog` - the containable rows, their indices, feed items and the unit class.
+- `WorldContainmentUnit` - one deployed unit (id, region save, position, stability, stored index,
+  and the creature the metadata save assigns it).
+- `WorldSaveReader.ReadContainmentUnits` / `WorldSaveWriter.SetLeyakContainment` /
+  `WorldSaveWriter.SetContainmentUnitCreatureIndex`.
+- `ContainmentDirectory.Survey` joins the two files; `ContainmentDirectory.SyncUnitRecords` writes
+  the region saves back after the map changes.
+
+Research probes: `tests/AbioticEditor.Probes/ContainmentUnitProbe.cs` (save side) and
+`ContainmentBlueprintProbe.cs` (pak side).
+
 ## `SaveData_Inventories_Struct`
 
 Each entry of `ContainerInventories_` (and of `CustomInventoryMap`) is a struct

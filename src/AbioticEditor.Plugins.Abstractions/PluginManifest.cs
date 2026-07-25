@@ -116,9 +116,6 @@ public static class PluginCapabilities
     /// <summary>Provides one or more <see cref="Cli.IConsoleCommand"/>.</summary>
     public const string ConsoleCommand = "consoleCommand";
 
-    /// <summary>Provides one or more <see cref="Ui.IEditorTool"/>.</summary>
-    public const string EditorTool = "editorTool";
-
     /// <summary>Provides one or more <see cref="Ui.IWebTool"/> (HTML/React UI).</summary>
     public const string WebTool = "webTool";
 

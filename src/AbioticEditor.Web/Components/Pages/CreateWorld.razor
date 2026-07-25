@@ -1,0 +1,263 @@
+@page "/create-world"
+@using AbioticEditor.Core.PlayerSaves
+@using AbioticEditor.Core.Steam
+@using AbioticEditor.Core.GamePass
+@inject CreateWorldService WorldCreator
+@inject SaveWorkspaceSessionService Workspace
+@inject NavigationManager Navigation
+@inject AbioticEditor.Ui.IFolderPicker FolderPicker
+@inject HostLanguageService Languages
+
+<PageTitle>@R("CreateWorld_Title") · @R("App_Title")</PageTitle>
+
+<section class="tool-scaffold create-world-wizard">
+    <header class="tool-scaffold-heading"><p class="eyebrow">@R("CreateWorld_Eyebrow")</p><h1>@R("CreateWorld_ScaffoldTitle")</h1></header>
+
+    @if (_step == 0)
+    {
+        <section class="create-world-card"><h2>@R("CreateWorld_PlatformCardTitle")</h2><p class="muted">@R("CreateWorld_PlatformCardDesc")</p>
+            <div class="segmented-control"><button class="@(!_gamePass ? "selected" : null)" @onclick="() => SetPlatform(false)">@R("CreateWorld_SegSteam")</button><button class="@(_gamePass ? "selected" : null)" @onclick="() => SetPlatform(true)">@R("CreateWorld_SegGamePass")</button></div>
+            <p class="muted">@R(_gamePass ? "CreateWorld_PlatformGamePassDesc" : "CreateWorld_PlatformSteamDesc")</p>
+        </section>
+    }
+    else if (_step == 1)
+    {
+        <section class="create-world-card"><h2>@R("CreateWorld_WorldCardTitle")</h2><p class="muted">@R("CreateWorld_WorldCardDesc")</p>
+            <label for="world-name">@R("CreateWorld_WorldNameLabel")</label><input id="world-name" maxlength="64" @bind="_worldName" placeholder="@R("CreateWorld_WorldNamePlaceholder")" />
+            <label for="save-location">@R("CreateWorld_SaveLocationLabel")</label><div class="settings-input"><input id="save-location" @bind="_parentDirectory" placeholder="@R("CreateWorld_SaveFolderPlaceholder")" /><button class="secondary" @onclick="PickDestinationAsync">@R("CreateWorld_Browse")</button></div>
+        </section>
+    }
+    else if (_step == 2)
+    {
+        <section class="create-world-card"><h2>@R("CreateWorld_PlayersCardTitle")</h2><p class="muted">@R("CreateWorld_PlayersCardDesc", R(_gamePass ? "CreateWorld_AccountWordXuid" : "CreateWorld_AccountWordSteam"))</p>
+            <label>@R("CreateWorld_NumberOfPlayers")</label><div class="segmented-control player-count">@for (var count = 1; count <= 4; count++) { var selected = count; <button class="@(_playerCount == selected ? "selected" : null)" @onclick="() => SetPlayerCount(selected)">@selected</button> }</div>
+            @for (var index = 0; index < _playerCount; index++)
+            {
+                var playerIndex = index;
+                <label>@R("CreateWorld_PlayerN", index + 1)</label>
+                <select value="@AccountChoice(playerIndex)" @onchange="args => SetAccountChoice(playerIndex, args.Value?.ToString())">
+                    @foreach (var option in _accountOptions) { <option value="@option.Id">@option.Label</option> }
+                    <option value="@CustomAccountOption">@R("CreateWorld_CustomIdOption")</option>
+                </select>
+                @if (AccountChoice(playerIndex) == CustomAccountOption)
+                {
+                    <input value="@_playerIds[playerIndex]" @oninput="args => SetPlayerId(playerIndex, args.Value?.ToString())" placeholder="@R(_gamePass ? "CreateWorld_CustomIdPlaceholderXuid" : "CreateWorld_CustomIdPlaceholderSteam")" />
+                }
+            }
+        </section>
+    }
+    else if (_step == 3)
+    {
+        <section class="create-world-card"><h2>@R("CreateWorld_DifficultyCardTitle")</h2><p class="muted">@R("CreateWorld_DifficultyCardDesc")</p>
+            <div class="segmented-control difficulty-options">@for (var difficulty = 1; difficulty <= 4; difficulty++) { var selected = difficulty; <button class="@(_difficulty == selected ? "selected" : null)" @onclick="() => _difficulty = selected">@DifficultyLabel(selected)</button> }</div>
+            <p class="muted">@DifficultyDescription(_difficulty)</p>
+        </section>
+    }
+    else
+    {
+        <section class="create-world-card"><h2>@R("CreateWorld_ReviewCardTitle")</h2><p class="muted">@R("CreateWorld_ReviewCardDesc")</p>
+            <dl class="create-review"><dt>@R("CreateWorld_ReviewPlatform")</dt><dd>@R(_gamePass ? "CreateWorld_PlatformNameGamePass" : "CreateWorld_PlatformNameSteam")</dd><dt>@R("CreateWorld_ReviewWorldName")</dt><dd>@_worldName</dd><dt>@R("CreateWorld_ReviewLocation")</dt><dd>@Path.Combine(_parentDirectory, _worldName)</dd><dt>@R("CreateWorld_ReviewPlayers")</dt><dd>@string.Join(", ", Enumerable.Range(0, _playerCount).Select(ReviewPlayerLabel))</dd><dt>@R("CreateWorld_ReviewDifficulty")</dt><dd>@DifficultyLabel(_difficulty)</dd></dl>
+            <label class="toggle-row"><span>@R("CreateWorld_AlsoWriteCopy", R(_gamePass ? "CreateWorld_PlatformNameSteam" : "CreateWorld_PlatformNameGamePass"))</span><input type="checkbox" @bind="_alsoOtherPlatform" /></label>
+            @if (_status is not null) { <p class="@(_failed ? "error" : "muted")" role="@(_failed ? "alert" : "status")">@_status</p> }
+        </section>
+    }
+
+    <footer class="wizard-footer"><span>@R("CreateWorld_StepProgress", _step + 1, 5)</span><button class="secondary" @onclick="Cancel">@R("CreateWorld_Cancel")</button>@if (_step > 0) { <button class="secondary" @onclick="Back" disabled="@_isCreating">@R("CreateWorld_Back")</button> }@if (_step < 4) { <button class="primary" @onclick="NextAsync">@NextLabel</button> } else { <button class="primary" @onclick="CreateAsync" disabled="@_isCreating">@R("CreateWorld_CreateWorld")</button> }</footer>
+</section>
+
+@code {
+    private const string CustomAccountOption = "__custom__";
+
+    private int _step;
+    private bool _gamePass;
+    private bool _alsoOtherPlatform;
+    private string _worldName = string.Empty;
+    private string _parentDirectory = string.Empty;
+    private readonly string[] _playerIds = new string[4];
+    private int _playerCount = 1;
+    private int _difficulty = 2;
+    private bool _isCreating;
+    private bool _failed;
+    private string? _status;
+
+    // Known local accounts for the current platform (Steam personas from loginusers.vdf, or
+    // Game Pass account ids discovered from existing wgs containers on this machine), offered
+    // as a dropdown per player row so most players never have to type a raw id by hand.
+    private IReadOnlyDictionary<string, string> _machineAccounts = new Dictionary<string, string>();
+    private List<(string Label, string Id)> _accountOptions = new();
+
+    private string R(string key, params object?[] args) => Languages.Resource(key, args);
+    private string NextLabel => R(_step switch { 0 => "CreateWorld_NextWorld", 1 => "CreateWorld_NextPlayers", 2 => "CreateWorld_NextDifficulty", _ => "CreateWorld_NextReview" });
+    private string DifficultyLabel(int value) => R(value switch { 1 => "CreateWorld_DiffCasual", 3 => "CreateWorld_DiffSurvival", 4 => "CreateWorld_DiffNightmare", _ => "CreateWorld_DiffNormal" });
+    private string DifficultyDescription(int value) => R(value switch { 1 => "CreateWorld_DiffCasualDesc", 3 => "CreateWorld_DiffSurvivalDesc", 4 => "CreateWorld_DiffNightmareDesc", _ => "CreateWorld_DiffNormalDesc" });
+    private void Back() { _status = null; _step--; }
+    private void Cancel() => Navigation.NavigateTo("/");
+
+    protected override void OnInitialized()
+    {
+        _machineAccounts = SteamPersonaIndex.LoadMachineAccounts();
+        RefreshAccountOptions();
+        SeedDefaultPlayerIds();
+        _parentDirectory = DefaultSaveLocation();
+    }
+
+    private void SetPlatform(bool gamePass)
+    {
+        if (_gamePass == gamePass) return;
+        _gamePass = gamePass;
+        RefreshAccountOptions();
+        Array.Clear(_playerIds);
+        SeedDefaultPlayerIds();
+        _parentDirectory = DefaultSaveLocation();
+    }
+
+    private void SetPlayerCount(int count)
+    {
+        _playerCount = count;
+        SeedDefaultPlayerIds();
+    }
+
+    private void SetPlayerId(int index, string? value) => _playerIds[index] = value?.Trim() ?? string.Empty;
+
+    /// <summary>The dropdown value for a player row: the matching account id, or the
+    /// "Custom id..." sentinel when the current id isn't one of the known accounts.</summary>
+    private string AccountChoice(int index) =>
+        _accountOptions.Any(o => string.Equals(o.Id, _playerIds[index], StringComparison.Ordinal))
+            ? _playerIds[index]
+            : CustomAccountOption;
+
+    private void SetAccountChoice(int index, string? value)
+    {
+        if (string.IsNullOrEmpty(value) || value == CustomAccountOption)
+        {
+            // Switching to "Custom id...": clear only when the field held a known account id,
+            // so the free-text field starts blank rather than confusingly pre-filled.
+            if (_accountOptions.Any(o => string.Equals(o.Id, _playerIds[index], StringComparison.Ordinal)))
+                _playerIds[index] = string.Empty;
+            return;
+        }
+        _playerIds[index] = value;
+    }
+
+    /// <summary>
+    /// What an account is called in the picker and in the review list: the player's own name
+    /// leads, because nobody recognises themselves by seventeen digits, with the last few digits
+    /// of the account number trailing it so two people sharing a name are still tellable apart.
+    /// An account with no name to show falls back to that short tail on its own.
+    /// </summary>
+    private string AccountLabel(string? id)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return PlainNames.Player(Languages, id);
+        return _machineAccounts.TryGetValue(id, out var name) && !string.IsNullOrWhiteSpace(name)
+            ? R("CreateWorld_AccountWithTail", name, IdTail(id))
+            : PlainNames.Player(Languages, id);
+    }
+
+    /// <summary>The last few digits of an account number: enough to tell two accounts apart
+    /// without printing the whole thing.</summary>
+    private static string IdTail(string id) => id.Length > 4 ? id[^4..] : id;
+
+    private string ReviewPlayerLabel(int index) => AccountLabel(_playerIds[index]);
+
+    private void RefreshAccountOptions()
+    {
+        _accountOptions = _gamePass
+            ? GamePassDiscovery.DiscoverAll()
+                .Select(s => (Label: $"{AccountLabel(s.AccountId)} ({Languages.Resource("Main_BadgeGamePass")})", Id: s.AccountId))
+                .DistinctBy(o => o.Id)
+                .ToList()
+            : _machineAccounts
+                .Select(kv => (Label: AccountLabel(kv.Key), Id: kv.Key))
+                .ToList();
+    }
+
+    /// <summary>Prefills empty player slots from the known-account list, one account per slot
+    /// (player 1 -> first account, player 2 -> second, ...), matching the native wizard.</summary>
+    private void SeedDefaultPlayerIds()
+    {
+        for (var i = 0; i < _playerIds.Length && i < _accountOptions.Count; i++)
+        {
+            if (string.IsNullOrEmpty(_playerIds[i])) _playerIds[i] = _accountOptions[i].Id;
+        }
+    }
+
+    /// <summary>Default parent folder for the new world: this machine's Game Pass container
+    /// store for a Game Pass world, or the first known Steam account's Worlds folder for a
+    /// Steam world (falling back to the platform's base SaveGames/Documents folder).</summary>
+    private string DefaultSaveLocation() => _gamePass ? DefaultGamePassLocation() : DefaultSteamLocation();
+
+    private static string DefaultGamePassLocation()
+    {
+        var root = GamePassDiscovery.ContainerStoreRoots().FirstOrDefault(Directory.Exists);
+        return root ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+    }
+
+    private string DefaultSteamLocation()
+    {
+        if (_machineAccounts.Count > 0)
+        {
+            var firstId = _machineAccounts.Keys.First();
+            var candidate = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "AbioticFactor", "Saved", "SaveGames", firstId, "Worlds");
+            if (Directory.Exists(candidate)) return candidate;
+        }
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "AbioticFactor", "Saved", "SaveGames");
+    }
+
+    private Task NextAsync()
+    {
+        _failed = false; _status = null;
+        if (_step == 1)
+        {
+            if (string.IsNullOrWhiteSpace(_worldName)) return Fail("CreateWorld_WorldNameRequiredMsg");
+            if (string.IsNullOrWhiteSpace(_parentDirectory) || !Directory.Exists(_parentDirectory)) return Fail("CreateWorld_LocationNotFoundMsg");
+            var target = Path.Combine(_parentDirectory, _worldName);
+            if (Directory.Exists(target) && Directory.EnumerateFileSystemEntries(target).Any()) return Fail("CreateWorld_AlreadyExistsMsg", _worldName);
+        }
+        if (_step == 2)
+        {
+            var ids = _playerIds.Take(_playerCount).ToArray();
+            if (ids.Any(string.IsNullOrWhiteSpace)) return Fail("CreateWorld_PlayerIdNeededMsg", Array.FindIndex(ids, string.IsNullOrWhiteSpace) + 1);
+            var badIndex = Array.FindIndex(ids, id => !PlayerIdentifier.IsSafeFileToken(id));
+            if (badIndex >= 0) return Fail("CreateWorld_IdNotUsableMsg", badIndex + 1, ids[badIndex]);
+            if (ids.Distinct(StringComparer.Ordinal).Count() != ids.Length) return Fail("CreateWorld_DuplicateIdMsg");
+        }
+        _step++;
+        return Task.CompletedTask;
+    }
+
+    private Task Fail(string key, params object?[] args) { _failed = true; _status = R(key, args); return Task.CompletedTask; }
+
+    private async Task CreateAsync()
+    {
+        if (_isCreating) return;
+        _isCreating = true; _failed = false; _status = R("CreateWorld_StatusCreating");
+        try
+        {
+            var ids = _playerIds.Take(_playerCount).ToArray();
+            var steamPath = await WorldCreator.CreateWorldAsync(new(_worldName, _parentDirectory, ids, _difficulty));
+            string? gamePassPath = null;
+            if (_gamePass || _alsoOtherPlatform)
+            {
+                _status = R("CreateWorld_StatusWritingContainer");
+                gamePassPath = await Task.Run(() => SaveConversionService.Convert(SaveConversionDirection.ToGamePass, steamPath, ids[0]));
+            }
+            var openPath = _gamePass && gamePassPath is not null ? gamePassPath : steamPath;
+            if (_gamePass && !_alsoOtherPlatform && gamePassPath is not null) Directory.Delete(steamPath, recursive: true);
+            _status = R("CreateWorld_StatusLoading");
+            await Workspace.OpenAsync(openPath);
+            Navigation.NavigateTo("/");
+        }
+        catch (Exception ex) { Errors.Record(ex, "Create world"); _failed = true; _status = R("CreateWorld_StatusFailed", R("CreateWorld_StatusFailedHelp")); }
+        finally { _isCreating = false; }
+    }
+
+    private async Task PickDestinationAsync()
+    {
+        try { var folder = await FolderPicker.PickFolderAsync(new() { Title = R("CreateWorld_Browse") }); if (folder?.Path is not null) _parentDirectory = folder.Path; }
+        catch (Exception ex) { Errors.Record(ex, "Choose new world folder"); await Fail("CreateWorld_LocationNotFoundMsg"); }
+    }
+}

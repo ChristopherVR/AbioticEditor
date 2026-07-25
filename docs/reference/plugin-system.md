@@ -10,7 +10,6 @@ Either kind can add:
   GUI (the Plugins panel).
 - **Console commands:** whole new CLI verbs (`abioticeditor <your-command>`), indistinguishable
   from built-ins.
-- **Editor tools:** UI panels (dynamic MAUI component loading) hosted inside the GUI.
 - **Web tools:** UI panels rendered as **HTML in a web view**, so a plugin can ship a
   **React** (or any web) front-end with a JavaScript-to-host bridge.
 - **Menu actions:** click-to-run menu items in the GUI (a top-level **Plugins** menu and the
@@ -29,12 +28,12 @@ One plugin may provide any mix of these.
 
 ## Why this shape
 
-The editor is three deliverables over one core (`AbioticEditor.Core`): a MAUI app, a CLI,
+The editor is two deliverables over one core (`AbioticEditor.Core`): a Razor desktop host and a CLI,
 and the library itself. Three forces shaped the design:
 
 1. **One contract, every host.** A plugin author should write a save operation *once* and
    have it work in the GUI and the CLI. That means the capability contracts cannot depend on
-   MAUI or on `System.CommandLine`. They live in a tiny, host-agnostic SDK assembly
+   Razor or on `System.CommandLine`. They live in a tiny, host-agnostic SDK assembly
    (`AbioticEditor.Plugins.Abstractions`) that the app, the CLI, and plugins all reference.
 
 2. **The dangerous part stays in the host.** Writing save bytes, keeping `.bak` backups, and
@@ -54,7 +53,7 @@ and the library itself. Three forces shaped the design:
 AbioticEditor.Plugins.Abstractions   (net10.0, no MAUI / no System.CommandLine)
     │   The SDK. Plugin authors reference this (+ UeSaveGame for raw save access).
     │   IAbioticPlugin, IPluginHost/Log/Registry, PluginManifest,
-    │   ISaveOperation, IConsoleCommand, IEditorTool + their contexts.
+    │   ISaveOperation, IConsoleCommand, IWebTool + their contexts.
     ▼
 AbioticEditor.Core/Plugins/          (the host: discovery + loading + execution)
     PluginManager      two-phase discover → load, aggregates capabilities
@@ -65,10 +64,10 @@ AbioticEditor.Core/Plugins/          (the host: discovery + loading + execution)
     SaveKindDetector   header-only save classification
     ▲                    ▲
     │                    │
-AbioticEditor.Cli        AbioticEditor.App
+AbioticEditor.Cli        AbioticEditor.Web
   plugins list/info/run    PluginService (startup load)
   PluginCliBridge          PluginsPage (manage, run ops, open tools)
-  (adapts IConsoleCommand    EditorToolContext (active-save window for tools)
+  (adapts IConsoleCommand    Web-tool bridge (active-save window for tools)
    to System.CommandLine)
 ```
 
@@ -106,7 +105,7 @@ Loading is **two-phase**:
    `Configure(registry, host)`, and record the capabilities it registers. A plugin that
    throws here is marked **Failed** with its error; it never takes the host down.
 
-The CLI additionally **skips loading** plugins whose manifest declares *only* an editor tool
+The CLI additionally **skips loading** plugins whose manifest declares *only* a web tool
 (it can't host UI), and disables the whole step under `ABIOTIC_NO_PLUGINS=1`.
 
 ## Isolation & the shared-assembly rule
@@ -122,12 +121,12 @@ default load context) for:
 
 - the editor contracts (`AbioticEditor.Plugins.Abstractions`, `AbioticEditor.Core`,
   `UeSaveGame`), and
-- **anything the host already has loaded** (CUE4Parse, MAUI, the BCL, …).
+- **anything the host already has loaded** (CUE4Parse, the BCL, …).
 
 Only genuinely plugin-private libraries load from the plugin's own folder. The practical
 consequence for authors is the **shared-assembly rule**:
 
-> Reference the SDK / Core / MAUI to compile, but do not ship them. Use
+> Reference the SDK / Core to compile, but do not ship them. Use
 > `Private="false" ExcludeAssets="runtime"` on those references so your output is just *your*
 > DLL + `plugin.json`. The host provides the shared assemblies at runtime and unifies the
 > types.
@@ -173,19 +172,8 @@ real `System.CommandLine` subcommand (with help and the standard 0/1/2 exit code
 that collides with a built-in (or another plugin) is **skipped with a warning**, so a plugin
 can never shadow a shipped command.
 
-### Editor tool (`IEditorTool`)
-A UI panel for the GUI. `CreateView(context)` returns a `Microsoft.Maui.Controls.View` typed
-as `object`. **That single seam is why the SDK has no MAUI dependency**: the plugin (not the
-SDK) takes the MAUI reference, and the GUI casts the result back. The context gives a
-read-only window onto the open save (`ActiveSave`, lazily loaded) and an `ActiveSaveChanged`
-event so a tool refreshes when the user switches files. When the panel closes the host
-disposes the context (severing `ActiveSaveChanged` subscribers) and the view/its
-`BindingContext` if `IDisposable`, so a subscribed view-model can't outlive its panel; a
-view-model that subscribes should implement `IDisposable` and unsubscribe. The CLI ignores
-editor tools.
-
 ### Web tool (`IWebTool`): HTML/React UIs
-A UI whose front-end is **HTML** rendered in a MAUI `WebView`, rather than native controls. This
+A UI whose front-end is **HTML** rendered by the shared Razor host, rather than native controls. This
 is how a plugin ships a **React** (or Vue/Svelte/plain-HTML) interface, and it pairs especially
 well with JavaScript plugins. `CreateContent(ctx)` returns either inline HTML
 (`WebToolContent.FromHtml`, e.g. a page that pulls React from a CDN) or a directory of static
@@ -193,7 +181,7 @@ assets (`WebToolContent.FromDirectory`, e.g. a production SPA build; a relative 
 against the plugin's own folder). The SDK never references a web-view type; content moves out as
 HTML and messages move across the bridge as strings, so the contract stays host-agnostic.
 
-**The bridge.** The host (`WebToolHostPage`) injects a small script giving the page
+**The bridge.** The host injects a small script giving the page
 `abiotic.request(obj)` (returns a Promise), `abiotic.log(msg)`, and `abiotic.onEvent(fn)`. It uses
 custom-scheme navigation, which needs no platform-specific message channel: page JS sets
 `location.href` to an `abiotic://request?...` URL; the host intercepts it in the web view's
@@ -224,7 +212,7 @@ synchronous. A web tool's React UI can therefore trigger real editor actions by 
 ### Menu action (`IMenuAction`)
 A single click-to-run command surfaced in the GUI as a menu item (a top-level **Plugins** menu
 built in `MainPage`) and as a button in the Plugins panel. `InvokeAsync(context)` gets the open
-save's path/kind and a `NotifyAsync` to show the user a message. No MAUI dependency, so managed
+save's path/kind and a `NotifyAsync` to show the user a message. No UI-framework dependency, so managed
 and JavaScript plugins register them the same way. The CLI ignores menu actions.
 
 ### Event handler (events)
@@ -298,8 +286,6 @@ worked samples under `plugins/`:
 |--------|---------|-----------|-------|
 | `MaxSkills` | .NET | save operation | headless; player saves; `--param level` |
 | `SaveStats` | .NET | console command | headless; adds `save-stats <save> [--json]` |
-| `PlaytimeDashboard` | .NET / MAUI | editor tool | MAUI view built in C# |
-| `SaveInspector` | .NET / MAUI | editor tool | full MVVM: compiled **XAML** + view-model |
 | `HelloScript` | **JavaScript** | save op + command + menu action + event handler | no build step |
 | `ReactDashboard` | **JavaScript** | web tool | **React** UI (CDN) over the host bridge |
 | `ReactAppDashboard` | **JavaScript** | web tool + save op | **full Vite + React app** that drives the app via `abiotic.ui` |

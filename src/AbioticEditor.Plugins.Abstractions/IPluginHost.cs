@@ -21,8 +21,7 @@ public interface IPluginHost
 
     /// <summary>
     /// Identifies which surface loaded the plugin (<c>"gui"</c>, <c>"cli"</c>, or a test
-    /// harness name). Lets a plugin tailor behaviour - e.g. an editor tool no-ops its
-    /// CreateView path under the CLI - without taking a framework dependency.
+    /// harness name). Lets a plugin tailor behaviour without taking a framework dependency.
     /// </summary>
     string HostKind { get; }
 

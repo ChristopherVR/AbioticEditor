@@ -24,8 +24,8 @@ features:
     details: Reads and writes the game's GVAS saves. Anything the editor doesn't touch is left as-is, and every save keeps a .bak.
   - title: Knows the game's data
     details: Mounts the installed game's pak archives to resolve items, recipes, skills, quest flags, fish, and traits. Still works when the game isn't installed.
-  - title: App and CLI, one engine
-    details: The MAUI desktop editor and the headless CLI are both thin shells over a shared Core, so the CLI writes the same output as the app.
+  - title: Desktop app and CLI, one engine
+    details: The desktop editor and command-line tools share the same save engine, so they produce the same reliable output.
   - title: Extensible with plugins
     details: Add save operations, CLI verbs, and UI panels as .NET assemblies or plain JavaScript. Scripts need no build step.
 ---

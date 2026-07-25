@@ -1,0 +1,177 @@
+@using AbioticEditor.Web.Components.Player
+@using AbioticEditor.Web.Components.World
+@implements IDisposable
+@inject SaveWorkspaceSessionService Workspace
+
+<section class="workspace single-workspace" aria-label="@Languages.Text("save.workspace")">
+    <section class="save-list">
+        @if (Workspace.Current is not { } workspace)
+        {
+            <p class="empty">@Languages.Editor("workspace.surfaceHint")</p>
+        }
+        else
+        {
+            @if (workspace.SelectedSave is not null && workspace.PlayerSession is null && workspace.WorldSession is null && Workspace.BusyOperation is not null)
+            {
+                <section class="editor-loading" role="status" aria-live="polite">
+                    <span class="editor-loading-spinner" aria-hidden="true"></span>
+                    <strong>@Workspace.BusyOperation</strong>
+                </section>
+            }
+            @if (workspace.PlayerSession is { } player)
+            {
+                <PlayerEditor Title="@workspace.SelectedSave!.Name" Session="@player" TransferWorldSession="@Workspace.TransferWorldSession" OnChanged="PlayerChanged" />
+            }
+            @if (workspace.WorldSession is { } world)
+            {
+                <section class="world-editor-summary editor-card">
+                    <header class="world-summary-heading">
+                        <h2>@Languages.Resource("WorldEditor_WorldSave")</h2>
+                        <span>@Path.GetFileName(world.Path)</span>
+                    </header>
+                    <div class="world-summary-readouts">
+                        <div><small>@Languages.Resource("WorldEditor_Containers")</small><strong>@world.ContainerCount</strong></div>
+                        <div><small>@Languages.Resource("WorldEditor_WithContents")</small><strong>@world.NonEmptyContainerCount</strong></div>
+                        @* An open world with nothing staged is "Saved state", NOT the shell's
+                           empty-state line, which tells the player to go and pick a folder. *@
+                        <div><small>@Languages.Resource("WorldEditor_Status")</small><span>@(world.Status ?? Languages.Editor("workspace.saved"))</span></div>
+                    </div>
+                    @if (world.WorldTimeSeconds is { } seconds && world.WorldDay is { } day)
+                    {
+                        <div class="world-clock-editor">
+                            <label>@Languages.Resource("WorldEditor_WorldDay")<input type="number" min="0" value="@day" @onchange="SetWorldDay" /></label>
+                            <label class="world-time-slider">@Languages.Resource("WorldEditor_TimeOfDay")<input type="range" min="0" max="86400" step="60" value="@seconds" @oninput="SetWorldTime" /></label>
+                            <output>@TimeSpan.FromSeconds(seconds).ToString(@"hh\:mm")</output>
+                        </div>
+                    }
+                    @if (world.DayDiscovered is { } discovered)
+                    {
+                        <div class="world-day-discovered">
+                            <label>@Languages.Resource("WorldEditor_DayDiscovered")<input type="number" min="0" value="@discovered" @onchange="SetDayDiscovered" /></label>
+                            <small>@Languages.Resource("WorldEditor_DayDiscoveredHelp")</small>
+                        </div>
+                    }
+                </section>
+                <nav class="world-tabs" role="tablist" aria-label="@Languages.Resource("WorldEditor_SectionsAria")">
+                    @foreach (var tab in WorldTabsFor(world))
+                    {
+                        <button role="tab" aria-selected="@(_worldTab == tab.Id)" class="@(_worldTab == tab.Id ? "selected" : null)" @onclick="() => SelectWorldTab(tab.Id)">@tab.Label</button>
+                    }
+                </nav>
+                @if (_worldTab == "containers") { <WorldContainersTab Title="@workspace.SelectedSave!.Name" Session="@world" PlayerSession="@Workspace.TransferPlayerSession" InitialFilter="@_containersInitialFilter" OnError="WorldError" /> }
+                else if (_worldTab == "flags") { <WorldFlagsTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
+                else if (_worldTab == "doors") { <WorldDoorsTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
+                else if (_worldTab == "dropped") { <WorldDroppedItemsTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
+                else if (_worldTab == "pets") { <WorldPetsTab Title="@workspace.SelectedSave!.Name" Session="@world" PlayerSession="@Workspace.TransferPlayerSession" OnError="WorldError" /> }
+                else if (_worldTab == "vehicles") { <WorldVehiclesTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" OnOpenContainer="OpenVehicleContainer" /> }
+                else if (_worldTab == "bases") { <WorldBasesTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
+                else if (_worldTab == "story") { <WorldStoryTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
+                else if (_worldTab == "traders") { <WorldTradersTab Title="@workspace.SelectedSave!.Name" Session="@world" /> }
+                else if (_worldTab == "containment") { <WorldContainmentTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
+                else if (_worldTab == FeatureTabPrefix + WorldEntitlementsTab.EntitlementsFeatureId) { <WorldEntitlementsTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
+                else if (_worldTab.StartsWith(FeatureTabPrefix, StringComparison.Ordinal)) { <WorldFeaturesTab Title="@workspace.SelectedSave!.Name" Session="@world" FeatureId="@_worldTab[FeatureTabPrefix.Length..]" OnError="WorldError" OnOpenLink="OpenVehicleContainer" /> }
+                else { <WorldRawTab Title="@workspace.SelectedSave!.Name" Session="@world" /> }
+            }
+        }
+    </section>
+</section>
+
+@code {
+    [Inject] private HostLanguageService Languages { get; set; } = null!;
+    [Inject] private InventorySelectionService Selection { get; set; } = null!;
+
+    // ---- World tab strip (ported from the native WorldEditorViewModel.BuildTabs) ----
+    // The strip is one flat, ordered list built per loaded save: fixed tabs filtered by save
+    // kind and content, then one tab per applicable world-map feature (except "vehicles",
+    // which has its own dedicated full-featured tab), then RAW JSON. Region saves therefore
+    // never show the metadata-only tabs (story, traders, containment, entitlements) and the
+    // metadata save never shows region tabs. Feature tabs only appear when that feature's
+    // map is actually present in this save, so smaller regions show fewer tabs.
+    private const string FeatureTabPrefix = "feature:";
+    private WorldSaveSession? _tabSession;
+    private IReadOnlyList<WorldTabItem> _worldTabItems = [];
+    private string _worldTab = "containers";
+
+    private sealed record WorldTabItem(string Id, string Label);
+
+    /// <summary>
+    /// Switching world tabs retires whatever the right-hand pane was showing for the
+    /// previous tab (a container slot, an item card, a detail panel), like the native
+    /// EnsureSingleSidebarContext(None) on a WorldEditor ActiveTab change.
+    /// </summary>
+    private void SelectWorldTab(string id)
+    {
+        if (_worldTab == id) return;
+        _worldTab = id;
+        Selection.Clear();
+    }
+
+    private IReadOnlyList<WorldTabItem> WorldTabsFor(WorldSaveSession world)
+    {
+        if (!ReferenceEquals(_tabSession, world))
+        {
+            _tabSession = world;
+            _worldTabItems = BuildWorldTabs(world);
+        }
+        if (_worldTabItems.Count > 0 && !_worldTabItems.Any(tab => string.Equals(tab.Id, _worldTab, StringComparison.Ordinal)))
+            _worldTab = _worldTabItems[0].Id;
+        return _worldTabItems;
+    }
+
+    private IReadOnlyList<WorldTabItem> BuildWorldTabs(WorldSaveSession world)
+    {
+        var tabs = new List<WorldTabItem>();
+        void Add(string id, string resourceKey) => tabs.Add(new WorldTabItem(id, Languages.Resource(resourceKey).ToUpperInvariant()));
+        if (!world.IsMetadataSave)
+        {
+            Add("containers", "WorldEditor_TabContainers");
+            // Quest flags live only in the main Facility save; other regions carry none, so
+            // the tab is hidden there rather than showing an empty editor (native rule).
+            if (world.Flags.Count > 0) Add("flags", "WorldEditor_TabQuestFlags");
+            Add("doors", "WorldEditor_TabDoors");
+        }
+        if (world.DroppedItems.Count > 0) Add("dropped", "WorldEditor_TabDropped");
+        if (world.Pets.Count > 0) Add("pets", "WorldEditor_TabPets");
+        if (world.Vehicles.Count > 0) Add("vehicles", "WorldEditor_TabVehicles");
+        if (world.Deployables.Count > 0) Add("bases", "WorldEditor_TabBases");
+        if (world.IsMetadataSave)
+        {
+            Add("story", "WorldEditor_TabStory");
+            Add("traders", "WorldEditor_TabTraders");
+            Add("containment", "WorldEditor_TabContainment");
+        }
+        foreach (var feature in world.MapFeatureTabs
+            .Where(feature => !string.Equals(feature.Id, "vehicles", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(feature => feature.DisplayName, StringComparer.Ordinal))
+        {
+            // Feature titles come from Core's registry like native; only resource nodes carry
+            // a localized title (mirrors WorldFeatureTabViewModel.DisplayName).
+            var label = string.Equals(feature.Id, "resource-nodes", StringComparison.OrdinalIgnoreCase)
+                ? Languages.Resource("WorldResourceNodes_Title")
+                : feature.DisplayName;
+            tabs.Add(new WorldTabItem(FeatureTabPrefix + feature.Id, label.ToUpperInvariant()));
+        }
+        Add("raw", "WorldEditor_TabRawJson");
+        return tabs;
+    }
+    private string? _containersInitialFilter;
+    private string? _error;
+    private void OpenVehicleContainer(string containerId) { _containersInitialFilter = containerId; _worldTab = "containers"; }
+    private void SetWorldDay(ChangeEventArgs args)
+    {
+        if (Workspace.Current?.WorldSession is { WorldTimeSeconds: { } seconds } world && int.TryParse(args.Value?.ToString(), out var day)) world.SetWorldClock(seconds, day);
+    }
+    private void SetWorldTime(ChangeEventArgs args)
+    {
+        if (Workspace.Current?.WorldSession is { WorldDay: { } day } world && double.TryParse(args.Value?.ToString(), out var seconds)) world.SetWorldClock(seconds, day);
+    }
+    private void SetDayDiscovered(ChangeEventArgs args)
+    {
+        if (Workspace.Current?.WorldSession is { } world && int.TryParse(args.Value?.ToString(), out var day)) world.SetDayDiscovered(day);
+    }
+    protected override void OnInitialized() => Workspace.Changed += WorkspaceChanged;
+    private void WorkspaceChanged() => _ = InvokeAsync(StateHasChanged);
+    private Task PlayerChanged() { Workspace.Current?.PlayerSession?.MarkChanged(); Workspace.NotifyEdited(); return InvokeAsync(StateHasChanged); }
+    private Task WorldError(string? error) { _error = error; return Task.CompletedTask; }
+    public void Dispose() => Workspace.Changed -= WorkspaceChanged;
+}

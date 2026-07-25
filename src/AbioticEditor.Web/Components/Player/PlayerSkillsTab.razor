@@ -1,0 +1,107 @@
+@namespace AbioticEditor.Web.Components.Player
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Core.PlayerSaves
+@implements IDisposable
+@inject HostSpoilerPreferences Spoilers
+@inject ProgressionVocabularyService Progression
+@inject InventorySelectionService Selection
+
+@* Faithful port of the native PlayerSkillsTab: SKILLS header with the level-range hint
+   and an immediate MAX ALL, a hazard stripe, milestone help, then uniform skill cards
+   with icon, passive text, LV entry + per-skill MAX, an XP slider + raw XP entry, the
+   per-skill XP RATE percentage, and the milestone perk track. *@
+<section class="editor-card skills-card" aria-label="@L.Resource("PlayerSkills_Skills")">
+    <div class="card-title-row skills-head">
+        <h3>@L.Resource("PlayerSkills_Skills")</h3>
+        <span class="skills-hint">@L.Resource("PlayerSkills_LevelRangeHint")</span>
+        <button class="accent-hazard" type="button" @onclick="MaxAll">@L.Resource("PlayerSkills_MaxAll")</button>
+    </div>
+    <div class="hazard-stripe" aria-hidden="true"></div>
+    <p class="muted skills-milestone-help">@L.Resource("PlayerSkills_MilestoneHelp")</p>
+
+    <div class="skill-grid">
+        @foreach (var skill in Session.Skills)
+        {
+            var milestones = SkillLocalization.MilestonesFor(L, skill.Definition.DisplayName);
+            var passive = SkillLocalization.PassiveFor(L, skill.Definition.DisplayName);
+            <article class="skill-card @(skill.IsDirty ? "dirty" : null)" @key="skill.Definition.SaveIndex" title="@skill.Description">
+                <div class="skill-head">
+                    <span class="skill-icon"><GameArtImage GameRef="@skill.Definition.IconAssetPath" Alt="@skill.Name"><span class="material-symbol" aria-hidden="true">workspace_premium</span></GameArtImage></span>
+                    <span class="skill-name"><strong>@skill.Name</strong>@if (passive is not null) { <small class="skill-passive" title="@passive">@passive</small> }</span>
+                    <label class="skill-lv-label" for="skill-lv-@skill.Definition.SaveIndex">@L.Resource("PlayerSkills_Lv")</label>
+                    <input id="skill-lv-@skill.Definition.SaveIndex" class="skill-lv" type="number" min="0" max="@SkillCatalog.MaxLevel" value="@skill.Level" @onchange="e => SetLevel(skill, e)" />
+                    <button class="secondary skill-max" type="button" disabled="@skill.IsMaxed" @onclick="() => Max(skill)">@L.Resource("PlayerSkills_Max")</button>
+                </div>
+                <div class="skill-xp-row">
+                    <input type="range" min="0" max="@skill.MaxXp" step="1" value="@skill.Xp" title="@L.Resource("PlayerSkills_XpSliderTooltip")" @oninput="e => SetXp(skill, e)" />
+                    <span class="skill-xp-text">@($"{skill.Xp:F0} XP")</span>
+                    <input class="skill-xp-raw" type="number" min="0" value="@skill.Xp.ToString("F0", System.Globalization.CultureInfo.InvariantCulture)" title="@L.Resource("PlayerSkills_RawXpTooltip")" @onchange="e => SetXp(skill, e)" />
+                </div>
+                <div class="skill-rate-row">
+                    <label>@L.Resource("PlayerSkills_XpRate")</label>
+                    <input type="number" min="0" value="@skill.MultiplierPercent.ToString("F0", System.Globalization.CultureInfo.InvariantCulture)" title="@L.Resource("PlayerSkills_XpRateTooltip")" @onchange="e => SetRate(skill, e)" />
+                    <span>%</span>
+                </div>
+                @if (milestones.Count > 0)
+                {
+                    <div class="milestone-track">
+                        @foreach (var milestone in milestones)
+                        {
+                            var unlocked = skill.IsUnlocked(milestone);
+                            var concealed = IsConcealed(skill, milestone);
+                            @* Keyed by level AND perk: the game's own tables can grant two
+                               perks at the same level (Strength 5), and duplicate keys
+                               corrupt the renderer's diff. *@
+                            <button type="button" class="milestone-chip @(unlocked ? "unlocked" : null)" @key="@($"{milestone.Level}:{milestone.Perk}")"
+                                    title="@(concealed ? L.Resource("Skill_TooltipHidden", milestone.Level) : L.Resource("Skill_TooltipFormat", milestone.Level, milestone.Perk, milestone.Effect))"
+                                    @onclick="() => Selection.ShowMilestone(new(skill, milestone))">
+                                <strong>@milestone.Level &middot; @(concealed ? "???" : milestone.Perk)</strong>
+                                <small>@(concealed ? L.Resource("Skill_HiddenUntilUnlocked") : milestone.Effect)</small>
+                            </button>
+                        }
+                    </div>
+                }
+            </article>
+        }
+    </div>
+
+    @* The tapped milestone's full detail renders in the right-hand slot panel (native
+       SlotSidebarView's skill-milestone detail), not inline at the bottom of this tab. *@
+</section>
+@code {
+    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Force the game-data vocabulary load (off-thread, cached) so the milestone track
+        // comes from the game's own DT_Skills/DT_SkillPerks tables like the native app;
+        // the static wiki fallback renders until (or unless) the tables arrive.
+        await Task.Run(Progression.GetMaps);
+    }
+
+    private Task Changed() { Session.MarkChanged(); return OnChanged.InvokeAsync(); }
+    private async Task MaxAll() { Session.MaxAllSkills(); await OnChanged.InvokeAsync(); }
+    private async Task Max(PlayerSkillEdit skill) { skill.Level = SkillCatalog.MaxLevel; await Changed(); }
+    private async Task SetLevel(PlayerSkillEdit skill, ChangeEventArgs e) { if (int.TryParse(e.Value?.ToString(), out var level)) { skill.Level = level; await Changed(); } }
+    private async Task SetXp(PlayerSkillEdit skill, ChangeEventArgs e) { if (float.TryParse(e.Value?.ToString(), System.Globalization.CultureInfo.InvariantCulture, out var xp)) { skill.Xp = xp; await Changed(); } }
+    private async Task SetRate(PlayerSkillEdit skill, ChangeEventArgs e) { if (float.TryParse(e.Value?.ToString(), System.Globalization.CultureInfo.InvariantCulture, out var percent)) { skill.MultiplierPercent = percent; await Changed(); } }
+
+    // In-game a milestone perk stays hidden until the player reaches its level; the chips and
+    // the sidebar detail share one seal via SkillLocalization (so a reveal applies to both).
+    private bool IsConcealed(PlayerSkillEdit skill, SkillMilestone milestone)
+        => SkillLocalization.IsMilestoneConcealed(Spoilers, skill, milestone);
+
+    protected override void OnInitialized() => Selection.Changed += Refresh;
+
+    // A reveal or close from the sidebar panel re-renders the chips here too.
+    private void Refresh() => _ = InvokeAsync(StateHasChanged);
+
+    // Leaving the SKILLS tab dismisses the sidebar's milestone card (the native panel
+    // is likewise only shown while a milestone from the visible tab is selected).
+    public void Dispose()
+    {
+        Selection.Changed -= Refresh;
+        Selection.CloseMilestone();
+    }
+}

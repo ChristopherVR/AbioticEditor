@@ -1,0 +1,242 @@
+@namespace AbioticEditor.Web.Components.Player
+@using AbioticEditor.Core.PlayerSaves
+@using AbioticEditor.Web.Models
+@inject AbioticEditor.Web.Services.SaveWorkspaceSessionService Workspace
+@inject AbioticEditor.Web.Services.ProgressionVocabularyService Progression
+@inject AbioticEditor.Web.Services.RecipeVocabularyService RecipeVocabulary
+@inject AbioticEditor.Web.Services.RecipeProgressGateService Gate
+@inject AbioticEditor.Web.Services.ToastService Toasts
+@inject AbioticEditor.Web.Services.ModalService Modals
+
+@* Faithful port of the native PlayerGeneralTab.xaml: one AfPanel with an ACCOUNT
+   section (owner id surgery) and a BULK UNLOCKS section (recipes + discovery lists). *@
+<section class="editor-card general-tab" aria-label="@L.Resource("PlayerGeneral_General")">
+    <h3>@L.Resource("PlayerGeneral_General")</h3>
+    <div class="tab-hazard-stripe" aria-hidden="true"></div>
+
+    <p class="tab-section-label">@L.Resource("PlayerGeneral_Account")</p>
+    <div class="general-account-row">
+        <span class="general-field-label">@OwnerIdLabel</span>
+        <input class="general-id-input" @bind="_ownerIdInput" readonly="@(!CanEditOwnerId)" aria-label="@OwnerIdLabel" autocomplete="off" spellcheck="false" />
+        @if (CanEditOwnerId)
+        {
+            <button class="general-hazard-button" type="button" @onclick="RequestIdentity">@L.Resource("PlayerGeneral_ChangeSteamId")</button>
+            <small class="general-help">@L.Resource("PlayerGeneral_ChangeSteamIdHelp")</small>
+        }
+    </div>
+    @if (!CanEditOwnerId) { <small class="general-help">@L.Resource("PlayerEditor_OwnerIdNote")</small> }
+    @if (_identityError is not null) { <p class="error" role="alert"><strong>@L.Resource("PlayerGeneral_SteamIdChangeFailedTitle"):</strong> @_identityError</p> }
+    <div class="tab-divider" aria-hidden="true"></div>
+
+    <p class="tab-section-label">@L.Resource("PlayerGeneral_BulkUnlocks")</p>
+    @* Reading the installed game takes a moment on first use, and every readout in this
+       section depends on it. Saying so out loud beats four rows that each look broken. *@
+    @if (_loading)
+    {
+        <p class="general-loading" role="status">
+            <span class="header-busy-spinner" aria-hidden="true"></span>
+            @L.Resource("PlayerGeneral_ReadingGameFiles")
+        </p>
+    }
+    <div class="general-unlock-grid">
+        <span class="general-field-label">@L.Resource("PlayerGeneral_Recipes")</span>
+        <span class="general-readout">@RecipeCountText</span>
+        <button class="general-hazard-button" type="button" disabled="@(_loading || _catalog is not { Recipes.Count: > 0 })" @onclick="RequestRecipes">@L.Resource("PlayerGeneral_UnlockAll")</button>
+    </div>
+    <small class="general-help">@L.Resource("PlayerGeneral_RecipesHelp")</small>
+    <div class="tab-divider" aria-hidden="true"></div>
+
+    @* Each of these three says what it does directly underneath itself, the same way the
+       recipes row above does. They used to share one long run-on sentence at the foot of the
+       section, which meant reading all three explanations to find the one you wanted. *@
+    <div class="general-unlock-grid">
+        <span class="general-field-label">@L.Resource("PlayerGeneral_ItemsSeen")</span>
+        <span class="general-readout">@L.Resource("PlayerEditor_ItemsSeenCount", Session.ItemsPickedUp.Count)</span>
+        <button class="general-elevated-button" type="button" title="@L.Resource("PlayerGeneral_DiscoverAllItemsTooltip")" disabled="@(_catalog is not { Items.Count: > 0 })" @onclick="RequestItems">@L.Resource("PlayerGeneral_DiscoverAll")</button>
+    </div>
+    <small class="general-help">@L.Resource("PlayerGeneral_ItemsSeenHelp")</small>
+
+    <div class="general-unlock-grid">
+        <span class="general-field-label">@L.Resource("PlayerGeneral_ItemsCrafted")</span>
+        <span class="general-readout">@L.Resource("PlayerEditor_ItemsCraftedCount", Session.CraftedItems.Count)</span>
+        <button class="general-elevated-button" type="button" disabled="@(_catalog is not { Items.Count: > 0 })" @onclick="RequestCrafted">@L.Resource("PlayerGeneral_DiscoverAll")</button>
+    </div>
+    <small class="general-help">@L.Resource("PlayerGeneral_ItemsCraftedHelp")</small>
+
+    <div class="general-unlock-grid">
+        <span class="general-field-label">@L.Resource("PlayerGeneral_Maps")</span>
+        <span class="general-readout">@MapsText</span>
+        <button class="general-hazard-button" type="button" title="@L.Resource("PlayerGeneral_MapsTooltip")" disabled="@(_catalog is not { Maps.Count: > 0 })" @onclick="RequestMaps">@L.Resource("PlayerGeneral_UnlockAll")</button>
+    </div>
+    <small class="general-help">@L.Resource("PlayerGeneral_MapsHelp")</small>
+
+    @* One closing reassurance for all three rather than repeating it under each. *@
+    <small class="general-help">@L.Resource("PlayerGeneral_DiscoveryHelp")</small>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    [Parameter] public EventCallback OnChanged { get; set; }
+    private string? _sessionPath;
+    private string _ownerIdInput = string.Empty;
+    private string? _identityError;
+    private GameCatalog? _catalog;
+    private bool _loading = true;
+    // World story progress for the recipe unlock gate (null = unknown, nothing gated).
+    private IReadOnlySet<string>? _worldFlags;
+
+    private sealed record GameCatalog(IReadOnlyList<string> Recipes, IReadOnlyList<string> Items, IReadOnlyList<string> Maps);
+
+    protected override void OnParametersSet()
+    {
+        if (string.Equals(_sessionPath, Session.Path, StringComparison.OrdinalIgnoreCase)) return;
+        _sessionPath = Session.Path;
+        _ownerIdInput = Session.SteamIdentifier ?? string.Empty;
+        _identityError = null;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Save selection deliberately never scans game paks (see SaveSelectionSchedulingTests),
+        // so this tab loads the recipe/item/map vocabularies on demand - the same on-demand
+        // pattern the world story tab uses - mirroring the native app, which had game data
+        // loaded before its General tab was reachable.
+        var sessionPath = Session.Path;
+        _loading = true;
+        try
+        {
+            _catalog = await Task.Run(() =>
+            {
+                // The sibling world's story flags feed the recipe unlock gate (native rule);
+                // the gate's email vocabulary is warmed here so the bulk action never stalls.
+                _worldFlags = Gate.ResolveWorldFlags(sessionPath);
+                if (_worldFlags is not null) Gate.Warm();
+
+                var recipes = RecipeVocabulary.GetRecipes();
+                // One retry: a mount that loses a race comes back empty rather than throwing,
+                // and this tab is usually the first thing opened, so it used to be the one
+                // place that reported "unavailable" on a machine with the game installed. The
+                // vocabulary caches nothing on failure, so asking again is all it takes.
+                if (recipes.Count == 0) recipes = RecipeVocabulary.GetRecipes();
+
+                return new GameCatalog(recipes, Progression.GetItems(), Progression.GetMaps());
+            });
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private bool IsSteamSave => PlayerIdentifier.IsSteamId(Session.SteamIdentifier ?? string.Empty);
+    private bool CanEditOwnerId => IsSteamSave;
+    private string OwnerIdLabel => L.Resource(IsSteamSave ? "PlayerEditor_SteamId64Label" : "PlayerEditor_AccountIdLabel");
+
+    private string RecipeCountText
+    {
+        get
+        {
+            if (_loading) return L.Resource("PlayerGeneral_ReadingGameFilesShort");
+            if (_catalog is not { } catalog || catalog.Recipes.Count == 0) return L.Resource("PlayerRecipes_GameDataUnavailable");
+            var total = catalog.Recipes
+                .Concat(Session.Recipes.Select(recipe => recipe.Id))
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct(StringComparer.Ordinal)
+                .Count();
+            return L.Resource("PlayerRecipes_CountUnlocked", Session.UnlockedRecipeCount, total);
+        }
+    }
+
+    /// <summary>
+    /// The maps readout. The total counts the maps this save already has alongside the ones the
+    /// game data knows about, the same way the recipe count above does. A save can legitimately
+    /// carry a map the installed game no longer lists (an older world, a renamed sector), and
+    /// counting only the game's list made the readout claim things like "12 of 11 maps".
+    /// </summary>
+    private string MapsText
+    {
+        get
+        {
+            if (_loading) return L.Resource("PlayerGeneral_ReadingGameFilesShort");
+            if (_catalog is not { Maps.Count: > 0 } catalog)
+                return L.Resource("PlayerEditor_MapsCount", Session.MapsUnlocked.Count);
+            var total = catalog.Maps
+                .Concat(Session.MapsUnlocked)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct(StringComparer.Ordinal)
+                .Count();
+            return L.Resource("PlayerEditor_MapsOfTotal", Session.MapsUnlocked.Count, total);
+        }
+    }
+
+    // Bulk actions confirm through the shared modal, mirroring the native ConfirmBulkAsync dialog.
+    private void RequestRecipes() { if (_catalog is { } c) ConfirmBulk(L.Resource("PlayerRecipes_BulkUnlockConfirmWhat"), () => UnlockAllRecipesGated(c.Recipes)); }
+
+    /// <summary>
+    /// Native routes this button through the recipe browser's gated unlock-all, so recipes
+    /// granted by an email in an unreached region stay locked here too; the last refusal
+    /// reason is the one left showing (native status-line behavior).
+    /// </summary>
+    private void UnlockAllRecipesGated(IReadOnlyList<string> vocabulary)
+    {
+        Session.EnsureRecipeRows(vocabulary);
+        RecipeGateBlock? lastBlock = null;
+        foreach (var edit in Session.Recipes)
+        {
+            if (edit.IsUnlocked) continue;
+            if (Gate.CheckUnlock(edit.Id, _worldFlags) is { } block) { lastBlock = block; continue; }
+            edit.IsUnlocked = true;
+        }
+        if (lastBlock is not null)
+        {
+            Toasts.Show(
+                L.Resource("Progress_RecipeGated", lastBlock.RecipeId, lastBlock.EmailSubject, lastBlock.ChapterTitle, lastBlock.TriggerFlag),
+                ToastKind.Warning);
+        }
+        Session.MarkChanged();
+    }
+    private void RequestItems() { if (_catalog is { } c) ConfirmBulk(L.Resource("PlayerGeneral_BulkDiscoverItemsWhat"), () => Session.DiscoverAllItems(c.Items)); }
+    private void RequestCrafted() { if (_catalog is { } c) ConfirmBulk(L.Resource("PlayerGeneral_BulkDiscoverCraftedWhat"), () => Session.DiscoverAllCraftedItems(c.Items)); }
+    private void RequestMaps() { if (_catalog is { } c) ConfirmBulk(L.Resource("PlayerGeneral_BulkUnlockMapsWhat"), () => Session.UnlockAllMaps(c.Maps)); }
+
+    private void ConfirmBulk(string what, Action apply) => Modals.Show(new ModalRequest(
+        L.Resource("Dialog_BulkConfirmTitle"),
+        Paragraph(L.Resource("Dialog_BulkConfirmMessage", what)),
+        ConfirmText: L.Resource("Dialog_BulkConfirmAccept"),
+        OnConfirm: async () => { apply(); await OnChanged.InvokeAsync(); },
+        CancelText: L.Resource("Common_Cancel")));
+
+    private void RequestIdentity()
+    {
+        _identityError = null;
+        var newId = _ownerIdInput.Trim();
+        Modals.Show(new ModalRequest(
+            L.Resource("PlayerGeneral_ChangeSteamIdTitle"),
+            Paragraph(L.Resource("PlayerGeneral_ChangeSteamIdMessage", newId)),
+            ConfirmText: L.Resource("PlayerGeneral_ChangeSteamIdConfirm"),
+            OnConfirm: () => ChangeIdentityAsync(newId),
+            CancelText: L.Resource("Common_Cancel")));
+    }
+
+    private async Task ChangeIdentityAsync(string newId)
+    {
+        try
+        {
+            await Workspace.ChangeSelectedPlayerIdentifierAsync(newId);
+            _identityError = null;
+        }
+        catch (Exception exception)
+        {
+            _identityError = Errors.Present(exception, L.Resource("PlayerUi_IdChangeFailed"), L.Resource("PlayerUi_OriginalPlayerIntact"));
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private static RenderFragment Paragraph(string text) => builder =>
+    {
+        builder.OpenElement(0, "p");
+        builder.AddAttribute(1, "style", "white-space:pre-line;margin:0");
+        builder.AddContent(2, text);
+        builder.CloseElement();
+    };
+}

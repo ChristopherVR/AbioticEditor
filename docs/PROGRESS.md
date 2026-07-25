@@ -5,6 +5,77 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-44: doors - real sector-map pins, real story flags, ONLINE MAP removed (2026-07-25)
+
+**Area map.** The door detail card's "Area map" was an abstract 200x120 SVG scatter of dots on
+a decorative grid - no geometry, so it never answered "where is this door". It now draws the
+game's own sector-map pamphlet with the door pinned on it, falling back to the old scatter
+where no usable drawing exists (plus a line saying so).
+
+- **The ONLINE MAP link is gone** (`https://gamemappers.com/abiotic-factor-map/`). Reviewed it
+  in the browser: it is a community marker map built on these same pamphlet drawings, and the
+  editor passed it no parameters at all - the identical static link rendered for every door, so
+  it could never point at *your* door. Resx keys `Slot_OnlineMap` /
+  `Slot_OpensACommunityInteractiveMapOfTheFacility` deleted from all five locales.
+- **There is no calibration data in the game.** `DT_MapPamphlets` has exactly four columns
+  (sector, DT_Levels handle, image, StrippedFromBuild) - no bounds, no origin, no scale - and
+  the game never draws a "you are here" marker on a pamphlet. Every fit therefore had to be
+  solved and then verified by eye.
+- `SectorMapCalibration` rewritten: `SectorMapFit(PamphletRow, Variant, ScaleX, ScaleY,
+  OffsetX, OffsetY)` is a plain affine from world units to texture fractions, so the runtime
+  needs only the one door's position (the old `BuildProjector` needed the whole actor cloud
+  loaded to derive bounds). `Project` is the only entry point callers need.
+- `SectorMapCalibrationProbe` rewritten into the tool that produced those numbers:
+  `Solve_Fits` rasterises the drawn plan into a mask and searches orientation x scale x offset
+  for best IoU (dilating the point cloud first - a bare footprint is holes, and IoU then
+  rewards stretching the level over the whole page); `Composite_Fits` overlays door pins plus
+  **named landmark actors** (toilets/sinks -> the drawing's restroom icon, elevators -> its
+  lifts) which is what actually settles a fit, since rotations 180 degrees apart score within
+  a percent of each other; `Dump_RawTexturesWithGrid` for measuring the drawing area by eye.
+  Output -> `tools/shots/calib/` (gitignored).
+- **6 of 77 sub-levels ship a usable, verified fit**: Office1 (v1), Office3 (v1), Labs (v1),
+  MFWest (v3), Pens (v6), DarkFusion (v2, which is what `Map_Reactors` actually depicts).
+  Deliberately excluded: only 11 pamphlets exist at all; Secure Area's drawing literally reads
+  "SITE MAP UNAVAILABLE FOR SECURITY PURPOSES"; Residence's is a washed-out blank (the game's
+  asset is named `Map_ResidenceTerribleMap`); the game itself ships `Map_Containment` pointing
+  at the Office Level 1 artwork; and Office2 + Dam never settled (all eight orientations within
+  a few percent, none putting their lifts where the drawing labels them).
+- Game-data quirks confirmed from the dump: `Map_Security` and `Map_Reactors` both claim level
+  "Dam", `Map_Residence` claims "None". `SectorMapCatalog.ForRow` added so calibration pairs
+  levels with rows itself instead of trusting those handles.
+- Pins are positioned `<span>`s, not SVG circles: the drawings are 2:1, so a stretched viewBox
+  would squash every dot into an oval. Doors projecting off the drawing are dropped rather than
+  clamped, and if the *selected* door falls off, the card drops to the scatter instead.
+
+**Story flags.** "STORY" was a per-*blueprint-class* guess in `DoorClassCatalog`, so it
+labelled hundreds of ordinary hinged doors story-controlled.
+
+- New `DoorGateResolver` reads `WorldFlagToUnlock` / `WorldFlagToRemainOpen` off the placed
+  actor in the cooked `.umap` (same mechanism as door positions; cached per map).
+- A sweep of all 77 sub-levels (`DoorWorldFlagProbe`) found **11 gated doors in the whole
+  game**: Containment `SlidingCellDoor_BP_C_1`/`StaticMeshActor_2102`/`_3613` +
+  Labs `SlidingCellDoor_BP_C_13`/`_19` -> `LABS_TurretsDeactivated`; Containment
+  `SlidingCellDoor_BP_C_4` -> `LABS_ReachedCommandCenter`; Residence
+  `SimpleDoor_ParentBP_C_45` -> `Res_Objective1_Complete`; Residence
+  `SimpleDoor_ParentBP_C_3`/`_53` -> `Res_HastaTria_EndCutscene` (stay-open, the only two);
+  V_Signal `SimpleHatch_BP_C_2` + `SlidingDoor_VOTV_ASO_C_14` -> `V_Signal_Complete`.
+- **No door class carries `LockKind == "Flag"` any more** (asserted by test). SimpleDoor /
+  SimpleHatch / Sliding* dropped to `None`, the BlastDoor variants to `Part`. The per-instance
+  gate *upgrades* a door to Flag at render time; with no game install the class default stands.
+- Detail card gained an OPENS WITH block: friendly flag name, whether it unlocks or props the
+  door open, the raw flag name for cross-referencing STORY EVENTS, and - when the save has an
+  editable WorldFlags array - whether you have reached that point yet.
+- Orphan resx keys `WorldDoors_MapCaptionSectorPin` / `WorldDoors_ActorNotFound` /
+  `WorldDoors_SubLevelNotReadable` (authored in the localization round, referenced by nothing)
+  are now wired; 7 new keys added and translated across de/es/fr/ru.
+- Tests: `DoorStoryGateAndSectorMapTests` (19) - flag names per door, no-Flag-class invariant,
+  which levels are and are not calibrated, pamphlet rows resolve, and >60% of each calibrated
+  level's actors land on its drawing.
+- Verified in the running app against `WorldSave_Facility_Labs.sav`: the two cell doors show
+  STORY + "Labs: Turrets Deactivated", the map draws the Cascade Laboratories pamphlet with the
+  crosshair on the containment blocks; `Facility_Labs_Control` (no pamphlet) shows FREE doors
+  and the scatter fallback.
+
 ## Round-43: localization sweep - remaining hardcoded UI strings + Core-override wiring (2026-07-18)
 - **Milestone: no user-facing English left hardcoded in App .cs/.xaml** (~310 new resx keys;
   neutral resx now ~1720 keys/locale across en/de/es/fr/ru).
@@ -833,13 +904,13 @@ host-UI bridge + Vite sample).
   against: `IAbioticPlugin` (single entry, `Configure(registry, host)`), `IPluginHost`/
   `IPluginLog`/`IPluginRegistry`, `PluginManifest` (+`PluginCapabilities` tokens), and three
   capability interfaces: `ISaveOperation` (+context/result/params, `SaveKind`), `IConsoleCommand`
-  (+neutral arg/option/context), `IEditorTool` (UI view returned as `object` so the SDK stays
-  MAUI-free). CA1716 on `Error` suppressed (GlobalSuppressions, justified).
+  (+neutral arg/option/context), and `IWebTool` (HTML/React UI). CA1716 on `Error` suppressed
+  (GlobalSuppressions, justified).
 - **Hosting in `Core/Plugins/`**: `PluginPaths` (user `%LOCALAPPDATA%\AbioticEditor\plugins`
   + bundled `<exe>\plugins`; `ABIOTIC_PLUGINS_DIR` override; per-plugin data dir),
   `PluginManifestIo` (parse/validate/persist plugin.json; never loads code; strict on id +
   bare-filename entryAssembly), `PluginLoadContext` (collectible ALC; unifies the editor
-  contracts AND anything already loaded in Default → no duplicate CUE4Parse/MAUI identities),
+  contracts AND anything already loaded in Default),
   `PluginManager` (two-phase discover→load, `Shared` singleton, aggregates capabilities,
   `EnsureLoaded(hostKind, shouldLoad?)`), `PluginDescriptor`/`PluginLoadState`,
   `SaveKindDetector` (header-only class→`SaveKind`), `SaveOperationRunner` (load→kind-check→
@@ -850,14 +921,12 @@ host-UI bridge + Vite sample).
   `IConsoleCommand`→System.CommandLine; `CommandTree.RegisterPluginCommands` grafts plugin
   verbs at root (collision-guarded, `ABIOTIC_NO_PLUGINS=1` to skip; CLI skips UI-only plugins).
 - **App**: `Services/PluginService` (static, loads on startup in App ctor; runs ops via
-  runner; builds `EditorToolContext` with lazy ActiveSave from SelectedSave path),
+  runner; builds web-tool contexts from the selected save path),
   `PluginsPage` (modal: installed list w/ enable toggle, SAVE OPERATIONS run against the open
-  save then `MainViewModel.ReloadSelectedSaveAsync()`, TOOLS open `IEditorTool.CreateView` in a
-  host page), entry from SettingsPage "MANAGE PLUGINS".
+  save then `MainViewModel.ReloadSelectedSaveAsync()`), entry from SettingsPage "MANAGE PLUGINS".
 - **4 samples in `plugins/`** (shared-assembly rule: `Private=false ExcludeAssets=runtime`, so
   output = own DLL + plugin.json): `MaxSkills` (ISaveOperation, player, `--param level`),
-  `SaveStats` (IConsoleCommand `save-stats <save> [--json]`), `PlaytimeDashboard` (IEditorTool,
-  C#-built view), `SaveInspector` (IEditorTool, **full MVVM: compiled XAML + ViewModel**).
+  `SaveStats` (IConsoleCommand `save-stats <save> [--json]`) and web-tool samples.
 - **Docs**: `docs/plugins.md` (architecture + justification + security/trust),
   `docs/plugin-authoring.md` (how-to + checklist); README + slnx updated.
 - **Verified**: Core/CLI/Abstractions/samples build clean (0 new warnings); App builds clean

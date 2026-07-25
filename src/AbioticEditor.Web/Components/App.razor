@@ -1,0 +1,22 @@
+@inject AbioticEditor.Web.Services.HostLanguageService Languages
+<!DOCTYPE html>
+<html lang="@Languages.CurrentCode">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    @* Content-stamped addresses from the build manifest. The per-screen stylesheet bundle is
+       regenerated in place by every build, and asking for it by plain name meant a window open
+       during a build lost every one of those styles until it was reloaded by hand. *@
+    <link rel="stylesheet" href="@Assets["AbioticEditor.Web.styles.css"]" />
+    <link rel="stylesheet" href="@Assets["parity.css"]" />
+    <link rel="icon" type="image/png" href="@Assets["images/abiotic-factor.png"]" />
+    <title>Abiotic Editor</title>
+    <HeadOutlet />
+</head>
+<body>
+    <Routes />
+    <script src="@Assets["modal.js"]"></script>
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+</body>
+</html>

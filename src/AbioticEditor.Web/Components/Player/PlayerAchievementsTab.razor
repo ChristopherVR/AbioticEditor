@@ -1,0 +1,387 @@
+@namespace AbioticEditor.Web.Components.Player
+@using System.Globalization
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Services
+@using AbioticEditor.Core.Steam
+@inject AbioticEditor.Ui.IExternalNavigationService ExternalNavigation
+@inject HostSpoilerPreferences Spoilers
+@inject InventorySelectionService Selection
+@implements IDisposable
+
+@* Faithful port of the native PlayerAchievementsTab: STEAM ACHIEVEMENTS header with the
+   unlocked-count readout and CHECK STEAM, a hazard stripe and status line, the gated-profile
+   panel shown when Steam refuses the anonymous stats query, search plus SHOW SPOILERS and the
+   compare-with-another-account picker, then the badge-chip achievement list (tap a sealed row
+   to reveal it). Local Steam cache loads first; CHECK STEAM merges the authoritative community
+   web data (icons, unlock dates). Unlike native there is no in-app Steam sign-in: this host
+   cannot capture a browser session, so the gated panel offers the sign-in-in-your-own-browser
+   and privacy-settings paths instead and queries always run anonymously. *@
+<section class="editor-card achievements-card" aria-label="@L.Resource("PlayerAchievements_SteamAchievements")">
+    <div class="card-title-row achievements-head">
+        <h3>@L.Resource("PlayerAchievements_SteamAchievements")</h3>
+        <span class="achievements-summary">@Summary</span>
+        <span class="achievements-actions">
+            <button type="button" class="accent-orange" title="@L.Resource("PlayerAchievements_CheckSteamTooltip")" disabled="@(_checking || _steamId64 == 0)" @onclick="CheckSteamAsync">@L.Resource("PlayerAchievements_CheckSteam")</button>
+        </span>
+    </div>
+    <div class="hazard-stripe" aria-hidden="true"></div>
+    @if (Status is not null) { <p class="muted achievements-status" role="status">@Status</p> }
+    @if (_profileGated)
+    {
+        @* Native gated-profile panel, reduced to a plain sign-in prompt. Native's first button
+           is SIGN IN (IN-APP), which captures the Steam session inside the app's own window;
+           that is not possible in this host, so the primary action opens Steam's own sign-in
+           page in the user's browser (then redirects to this profile's achievements). No
+           credentials ever pass through the editor. PRIVACY SETTINGS stays as the secondary
+           make-Game-details-public path. *@
+        <div class="achievements-gated" role="alert">
+            <p class="achievements-gated-title">⚠ @L.Resource("PlayerAchievements_GatedTitle")</p>
+            <p class="muted achievements-gated-help">@L.Resource("PlayerAchievements_GatedProfileHelpWeb")</p>
+            <div class="achievements-gated-actions">
+                @if (SteamCommunityLinks.TryCreateSignInAndViewAchievements(Session.SteamIdentifier, out var signInAndView))
+                {
+                    <button class="primary" type="button" title="@L.Resource("PlayerAchievements_ViewInBrowserTooltip")" @onclick="() => OpenCommunityAsync(signInAndView!)">@L.Resource("PlayerAchievements_SignInWithSteam")</button>
+                }
+                <button class="secondary" type="button" title="@L.Resource("PlayerAchievements_PrivacySettingsTooltip")" @onclick="() => OpenCommunityAsync(SteamCommunityLinks.PrivacySettings)">@L.Resource("PlayerAchievements_PrivacySettings")</button>
+            </div>
+        </div>
+    }
+    <div class="achievements-toolbar">
+        <input type="search" aria-label="@L.Resource("PlayerAchievements_SearchPlaceholder")" placeholder="@L.Resource("PlayerAchievements_SearchPlaceholder")" @bind="Filter" @bind:event="oninput" />
+        <label class="show-spoilers" title="@L.Resource("PlayerAchievements_ShowSpoilersTooltip")"><input type="checkbox" @bind="_showSpoilers" /> @L.Resource("PlayerAchievements_ShowSpoilers")</label>
+        @if (CompareCandidates.Count > 0)
+        {
+            <select class="compare-picker" aria-label="@L.Resource("PlayerAchievements_CompareWith")" value="@_selectedCompare" @onchange="OnCompareSelectedAsync">
+                <option value="">@L.Resource("PlayerAchievements_CompareWith")</option>
+                @foreach (var candidate in CompareCandidates) { <option value="@candidate">@candidate</option> }
+            </select>
+        }
+    </div>
+    <div class="achievement-list">
+        @if (!Visible.Any()) { <p class="muted achievements-empty">@L.Resource("PlayerAchievements_NoAchievementData")</p> }
+        @foreach (var achievement in Visible)
+        {
+            var concealed = IsConcealed(achievement);
+            @* A sealed row reveals itself when tapped (native gesture); a revealed one opens its
+               card in the editor's right-hand pane, like every other list in the app. *@
+            <div class="achievement-row @(concealed ? "concealed" : null) @(_selected == achievement.ApiName ? "selected" : null)" @key="achievement.ApiName"
+                 role="button" tabindex="0"
+                 title="@(concealed ? L.Resource("PlayerAchievements_TapToRevealTooltip") : L.Resource("PlayerAchievements_TapToOpenTooltip"))"
+                 @onclick="() => RowTapped(achievement)"
+                 @onkeydown="@(args => { if (args.Key is "Enter" or " ") RowTapped(achievement); })">
+                <span class="achievement-icon">@if (!concealed && (achievement.Unlocked ? achievement.IconUrl : achievement.IconGrayUrl ?? achievement.IconUrl) is { Length: > 0 } icon) { <img src="@icon" alt="" /> }</span>
+                <span class="achievement-badge @(achievement.Unlocked ? "unlocked" : null)">@L.Resource(achievement.Unlocked ? "PlayerAchievements_BadgeUnlocked" : "PlayerAchievements_BadgeLocked")</span>
+                <span class="achievement-text">
+                    <strong>@(concealed ? L.Resource("PlayerUi_HiddenAchievement") : achievement.DisplayName)</strong>
+                    <small>@(concealed ? L.Resource("PlayerAchievements_HiddenAchievementFallback") : achievement.Description)</small>
+                    @if (achievement.UnlockedAt is { } unlockedAt) { <span class="achievement-when">@unlockedAt.LocalDateTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)</span> }
+                </span>
+                @if (achievement.CompareUnlocked is { } compareUnlocked) { <span class="achievement-compare">@($"{_compareName}: {(compareUnlocked ? "✓" : "✗")}")</span> }
+            </div>
+        }
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+
+    private const string DetailKeyPrefix = "player-achievement:";
+    private string? _selected;
+
+    /// <summary>
+    /// The open achievement, rendered into the editor's right-hand pane. The rows are a
+    /// compact list, so the full name, description, unlock time and comparison live here
+    /// rather than being squeezed into the row.
+    /// </summary>
+    private RenderFragment DetailContent => __builder =>
+    {
+        @if (_selected is { } apiName && _rows.TryGetValue(apiName, out var achievement))
+        {
+            var icon = achievement.Unlocked ? achievement.IconUrl : achievement.IconGrayUrl ?? achievement.IconUrl;
+            <div class="detail-card detail-card--terminal achievement-detail-card">
+                <div class="detail-head">
+                    <span class="detail-title">
+                        <strong>@achievement.DisplayName</strong>
+                        <small>@L.Resource(achievement.Unlocked ? "PlayerAchievements_BadgeUnlocked" : "PlayerAchievements_BadgeLocked")</small>
+                    </span>
+                    <button class="detail-close" type="button" @onclick="CloseOwnDetail">✕</button>
+                </div>
+                @if (icon is { Length: > 0 })
+                {
+                    <div class="detail-card-art achievement-detail-art"><img src="@icon" alt="@achievement.DisplayName" /></div>
+                }
+                @if (!string.IsNullOrWhiteSpace(achievement.Description))
+                {
+                    <span class="detail-label">@L.Resource("PlayerAchievements_WhatItIsFor")</span>
+                    <p class="detail-value">@achievement.Description</p>
+                }
+                @if (achievement.UnlockedAt is { } unlockedAt)
+                {
+                    <span class="detail-label">@L.Resource("PlayerAchievements_EarnedOn")</span>
+                    <p class="detail-value">@unlockedAt.LocalDateTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)</p>
+                }
+                @if (achievement.CompareUnlocked is { } compareUnlocked)
+                {
+                    <span class="detail-label">@_compareName</span>
+                    <p class="detail-value">@L.Resource(compareUnlocked ? "PlayerAchievements_BadgeUnlocked" : "PlayerAchievements_BadgeLocked")</p>
+                }
+                @if (achievement.Hidden)
+                {
+                    <p class="detail-status">@L.Resource("PlayerAchievements_HiddenAchievementFallback")</p>
+                }
+            </div>
+        }
+    };
+
+    /// <summary>A tap reveals a sealed row, or opens (and re-taps closed) a revealed one.</summary>
+    private void RowTapped(AchievementRow achievement)
+    {
+        if (IsConcealed(achievement)) { Reveal(achievement); return; }
+        if (_selected == achievement.ApiName && Selection.DetailKey == DetailKeyPrefix + achievement.ApiName)
+        {
+            CloseOwnDetail();
+            return;
+        }
+        _selected = achievement.ApiName;
+        Selection.ShowDetail(DetailKeyPrefix + achievement.ApiName, DetailContent);
+    }
+
+    private void CloseOwnDetail()
+    {
+        _selected = null;
+        if (Selection.DetailKey?.StartsWith(DetailKeyPrefix, StringComparison.Ordinal) == true)
+        {
+            Selection.CloseDetail();
+        }
+    }
+
+    /// <summary>Drops the stale row highlight when the pane closes or another tab takes it.</summary>
+    private void OnSelectionChanged()
+    {
+        if (_selected is { } apiName && Selection.DetailKey != DetailKeyPrefix + apiName) _selected = null;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Selection.Changed -= OnSelectionChanged;
+        // Leaving the tab retires this tab's own card, never someone else's.
+        if (Selection.DetailKey?.StartsWith(DetailKeyPrefix, StringComparison.Ordinal) == true)
+        {
+            Selection.CloseDetail();
+        }
+    }
+
+    /// <summary>Merged local-cache + community-web state for one achievement (native row model).</summary>
+    private sealed class AchievementRow
+    {
+        public AchievementRow(string apiName) => ApiName = apiName;
+        public string ApiName { get; }
+        public string DisplayName { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public bool Hidden { get; set; }
+        public bool Unlocked { get; set; }
+        public string? IconUrl { get; set; }
+        public string? IconGrayUrl { get; set; }
+        public DateTimeOffset? UnlockedAt { get; set; }
+        /// <summary>Other player's unlock state (null = no comparison loaded).</summary>
+        public bool? CompareUnlocked { get; set; }
+    }
+
+    private readonly Dictionary<string, AchievementRow> _rows = new(StringComparer.OrdinalIgnoreCase);
+    private string? _loadedPath;
+    private long _steamId64;
+    private bool _profileGated;
+    private bool _checking;
+    private string _selectedCompare = string.Empty;
+    private string _compareName = "OTHER";
+    private string? Status { get; set; }
+    private string Filter { get; set; } = string.Empty;
+    private bool _showSpoilers;
+
+    /// <summary>Other accounts in the same PlayerData folder, for achievement comparison (native).</summary>
+    private IReadOnlyList<long> CompareCandidates { get; set; } = [];
+
+    private string Summary => _rows.Count == 0
+        ? string.Empty
+        : L.Resource("PlayerRecipes_CountUnlocked", _rows.Values.Count(row => row.Unlocked), _rows.Count);
+
+    // Native ordering: unlocked first, then by name. Concealed rows only match the search by
+    // their internal id, never by the hidden title or description.
+    private IEnumerable<AchievementRow> Visible => _rows.Values
+        .Where(row => string.IsNullOrWhiteSpace(Filter)
+            || row.ApiName.Contains(Filter, StringComparison.OrdinalIgnoreCase)
+            || (!IsConcealed(row) && (row.DisplayName.Contains(Filter, StringComparison.OrdinalIgnoreCase)
+                || (row.Description?.Contains(Filter, StringComparison.OrdinalIgnoreCase) ?? false))))
+        .OrderByDescending(row => row.Unlocked).ThenBy(row => row.DisplayName, StringComparer.OrdinalIgnoreCase);
+
+    protected override void OnInitialized() => Selection.Changed += OnSelectionChanged;
+
+    protected override void OnParametersSet()
+    {
+        if (string.Equals(_loadedPath, Session.Path, StringComparison.OrdinalIgnoreCase)) return;
+        _loadedPath = Session.Path;
+        _rows.Clear();
+        _profileGated = false;
+        _selectedCompare = string.Empty;
+        _compareName = "OTHER";
+        _steamId64 = AbioticEditor.Core.PlayerSaves.PlayerIdentifier.TryParseSteamId(Session.SteamIdentifier, out var id) ? (long)id : 0;
+        CompareCandidates = BuildCompareCandidates();
+        Load();
+    }
+
+    /// <summary>Local cache first (instant when present); CHECK STEAM merges the web state.</summary>
+    private void Load()
+    {
+        if (_steamId64 == 0)
+        {
+            Status = L.Resource("PlayerAchievements_StatusNoSteamId");
+            return;
+        }
+        Status = L.Resource("PlayerAchievements_StatusReadingLocalCache");
+        var local = SteamAchievements.LoadFor(_steamId64);
+        if (local is null)
+        {
+            Status = L.Resource("PlayerAchievements_StatusNoLocalCache");
+            return;
+        }
+        MergeLocal(local);
+        Status = L.Resource("PlayerAchievements_StatusLocalCacheLoaded");
+    }
+
+    /// <summary>
+    /// Queries the public community endpoint (always anonymously in this host - no Steam
+    /// session is ever captured here) and merges the authoritative unlock state.
+    /// </summary>
+    private async Task CheckSteamAsync()
+    {
+        if (_steamId64 == 0 || _checking) return;
+        _checking = true;
+        Status = L.Resource("PlayerAchievements_StatusQuerying");
+        try
+        {
+            var web = await SteamWebAchievements.FetchAsync(_steamId64);
+            MergeWeb(web);
+            _profileGated = false;
+            Status = L.Resource("PlayerAchievements_StatusWebLoaded", web.Count(achievement => achievement.Unlocked));
+        }
+        catch (SteamGameDetailsPrivateException)
+        {
+            // Steam withheld the stats from the anonymous query - show the gated panel.
+            _profileGated = true;
+            Status = L.Resource("PlayerAchievements_StatusGatedWeb");
+        }
+        catch (Exception exception)
+        {
+            Status = Errors.Present(exception,
+                L.Resource("PlayerAchievements_StatusCheckFailedWeb"),
+                L.Resource("PlayerAchievements_StatusCheckFailedWebHelp"));
+        }
+        finally { _checking = false; }
+    }
+
+    private Task OnCompareSelectedAsync(ChangeEventArgs args)
+    {
+        _selectedCompare = args.Value?.ToString() ?? string.Empty;
+        return long.TryParse(_selectedCompare, NumberStyles.None, CultureInfo.InvariantCulture, out var other)
+            ? LoadCompareAsync(other)
+            : Task.CompletedTask;
+    }
+
+    /// <summary>Marks every row with the other account's unlock state (native comparison).</summary>
+    private async Task LoadCompareAsync(long other)
+    {
+        var label = other.ToString(CultureInfo.InvariantCulture);
+        _compareName = label;
+        try
+        {
+            Status = L.Resource("PlayerAchievements_StatusLoadingComparison", label);
+            StateHasChanged();
+            // Local cache first; fall back to the web for accounts never used on this machine.
+            var local = SteamAchievements.LoadFor(other);
+            var otherUnlocked = local is not null
+                ? local.Where(achievement => achievement.Unlocked).Select(achievement => achievement.ApiName).ToHashSet(StringComparer.OrdinalIgnoreCase)
+                : (await SteamWebAchievements.FetchAsync(other)).Where(achievement => achievement.Unlocked).Select(achievement => achievement.ApiName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var row in _rows.Values) row.CompareUnlocked = otherUnlocked.Contains(row.ApiName);
+            var ahead = _rows.Values.Count(row => row.Unlocked && row.CompareUnlocked == false);
+            var behind = _rows.Values.Count(row => !row.Unlocked && row.CompareUnlocked == true);
+            Status = L.Resource("PlayerAchievements_StatusCompared", label, ahead, behind);
+        }
+        catch (Exception exception)
+        {
+            Status = Errors.Present(exception,
+                L.Resource("PlayerAchievements_StatusComparisonFailedWeb"),
+                L.Resource("PlayerAchievements_StatusComparisonFailedWebHelp"));
+            foreach (var row in _rows.Values) row.CompareUnlocked = null;
+        }
+    }
+
+    private IReadOnlyList<long> BuildCompareCandidates()
+    {
+        try
+        {
+            var directory = System.IO.Path.GetDirectoryName(Session.Path);
+            if (directory is null || !Directory.Exists(directory)) return [];
+            var candidates = new List<long>();
+            foreach (var file in Directory.EnumerateFiles(directory, "Player_*.sav"))
+            {
+                if (string.Equals(file, Session.Path, StringComparison.OrdinalIgnoreCase)) continue;
+                var name = System.IO.Path.GetFileNameWithoutExtension(file);
+                if (long.TryParse(name["Player_".Length..], NumberStyles.None, CultureInfo.InvariantCulture, out var id)) candidates.Add(id);
+            }
+            return candidates;
+        }
+        catch (Exception exception)
+        {
+            Errors.Record(exception, "Enumerate achievement comparison candidates");
+            return [];
+        }
+    }
+
+    private void MergeLocal(IReadOnlyList<AchievementState> local)
+    {
+        foreach (var achievement in local)
+        {
+            var row = GetRow(achievement.ApiName);
+            row.DisplayName = achievement.DisplayName;
+            row.Description ??= achievement.Description;
+            row.Hidden = achievement.Hidden;
+            row.Unlocked |= achievement.Unlocked;
+            // The local schema carries the same CDN icon hashes Steam uses.
+            row.IconUrl ??= achievement.IconUrl;
+            row.IconGrayUrl ??= achievement.IconGrayUrl;
+        }
+    }
+
+    private void MergeWeb(IReadOnlyList<WebAchievement> web)
+    {
+        foreach (var achievement in web)
+        {
+            var row = GetRow(achievement.ApiName);
+            if (!string.IsNullOrEmpty(achievement.DisplayName)) row.DisplayName = achievement.DisplayName;
+            if (!string.IsNullOrEmpty(achievement.Description)) row.Description = achievement.Description;
+            row.Unlocked = achievement.Unlocked; // web is authoritative
+            row.IconUrl = achievement.IconUrl;
+            row.IconGrayUrl = achievement.IconGrayUrl;
+            row.UnlockedAt = achievement.UnlockedAt;
+        }
+    }
+
+    private AchievementRow GetRow(string apiName)
+    {
+        if (!_rows.TryGetValue(apiName, out var row)) _rows[apiName] = row = new AchievementRow(apiName);
+        return row;
+    }
+
+    // A hidden, still-locked achievement stays sealed until revealed (native spoiler seal).
+    private bool IsConcealed(AchievementRow achievement)
+        => achievement.Hidden && !achievement.Unlocked && !_showSpoilers && Spoilers.Enabled && !Spoilers.IsRevealed(achievement.ApiName);
+
+    private void Reveal(AchievementRow achievement) { if (IsConcealed(achievement)) Spoilers.Reveal(achievement.ApiName); }
+
+    private async Task OpenCommunityAsync(Uri page)
+    {
+        try { await ExternalNavigation.OpenUrlAsync(page); Status = L.Resource("PlayerUi_SteamCommunityOpened"); }
+        catch (Exception exception) { Status = Errors.Present(exception, L.Resource("PlayerUi_SteamCommunityFailed"), L.Resource("PlayerUi_OpenSteamManually")); }
+    }
+}

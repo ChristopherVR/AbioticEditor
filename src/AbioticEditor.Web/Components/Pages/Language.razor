@@ -1,0 +1,14 @@
+@page "/language"
+@inject HostLanguageService Languages
+@inject NavigationManager Navigation
+
+<PageTitle>@Languages.Resource("Language_Title") · @Languages.Resource("App_Title")</PageTitle>
+<section class="hero compact-hero"><p class="eyebrow">@Languages.Resource("Language_Eyebrow")</p><h1>@Languages.Resource("Language_Heading")</h1><p class="lede">@Languages.Resource("Language_Description")</p></section>
+<section class="settings-card language-card"><h2>@Languages.Resource("Language_EditorLanguage")</h2><p class="muted">@Languages.Resource("Language_OsDefault", Languages.OsDefaultCode)</p>
+    <div class="language-options">@foreach (var language in Languages.Available) { <label class="language-option"><input type="radio" name="ui-language" checked="@(Languages.CurrentCode == language.Code)" @onchange="() => SetLanguage(language.Code)" /><span>@language.NativeName</span><code>@language.Code</code></label> }</div>
+    <p class="success">@(_statusKey is null ? null : Languages.Resource(_statusKey))</p>
+    <h2>@Languages.Resource("Language_GameDataLanguage")</h2><p class="muted">@Languages.Resource("Language_GameDataDescription")</p>
+    <div class="settings-input"><input @bind="_gameDataLanguage" placeholder="@Languages.Resource("Language_AutomaticPlaceholder")" /><button class="secondary" @onclick="SaveGameDataLanguage">@Languages.Resource("Common_Save")</button><button class="secondary" @onclick="ClearGameDataLanguage">@Languages.Resource("Language_Automatic")</button></div>
+</section>
+
+@code { private string _gameDataLanguage = string.Empty; private string? _statusKey; protected override void OnInitialized() => _gameDataLanguage = Languages.GameDataLanguage ?? string.Empty; private void SetLanguage(string code) { Languages.SetLanguage(code); Navigation.NavigateTo(Navigation.Uri, forceLoad: true); } private void SaveGameDataLanguage() { Languages.SetGameDataLanguage(_gameDataLanguage); _statusKey = "Language_GameDataSaved"; } private void ClearGameDataLanguage() { Languages.SetGameDataLanguage(null); _gameDataLanguage = string.Empty; _statusKey = "Language_GameDataAutomatic"; } }

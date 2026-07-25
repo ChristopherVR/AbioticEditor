@@ -1,0 +1,522 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Components.Player
+@using AbioticEditor.Core.WorldSaves
+@using AbioticEditor.Core.Items
+@using AbioticEditor.Core.PlayerSaves
+@inject ItemCatalogService Catalog
+@inject ItemUpgradeVocabularyService Upgrades
+@inject InventorySelectionService Selection
+@inject SlotDragDropService Dnd
+@inject SaveWorkspaceSessionService Workspace
+@implements IDisposable
+
+@* Faithful port of the native WorldBasesTab.xaml: base list + top-down deployable map
+   (benches orange, containers green), bench upgrades, composition, and the base's
+   containers which open as a slot grid over the map. *@
+<section class="world-editor world-native-tab" aria-label="@L.Resource("WorldBases_BaseManager")">
+    <h2 class="wt-h2">@L.Resource("WorldBases_BaseManager")</h2>
+    <p class="wt-intro">@L.Resource("WorldBases_BaseManagerIntro")</p>
+    @* The tab's how-to, worded so it reads the same with a mouse or by touch. *@
+    <p class="wt-intro">@L.Resource("WorldBases_HowToHint")</p>
+
+    <div class="wt-md bases-top">
+        <div class="wt-list" role="listbox" aria-label="@L.Resource("WorldBases_BaseManager")">
+            @foreach (var worldBase in Bases)
+            {
+                <button type="button" role="option" aria-selected="@(_selectedBaseName == worldBase.Name)"
+                        class="wt-row base-row @(_selectedBaseName == worldBase.Name ? "selected" : null)" @key="worldBase.Name"
+                        @onclick="() => SelectBase(worldBase)">
+                    <span class="wt-row-text">
+                        <strong class="base-name">@worldBase.Name</strong>
+                        <small class="base-anchor">@AnchorText(worldBase)</small>
+                        <small>@L.Resource("WorldBases_SummaryFormat", worldBase.BenchCount, worldBase.Deployables.Count, worldBase.ContainerCount, worldBase.StoredItemCount)</small>
+                    </span>
+                </button>
+            }
+        </div>
+
+        <div class="base-map-cell">
+            @if (OpenContainer is not { } open)
+            {
+                <div class="base-map-frame">
+                    <svg class="base-map" viewBox="0 0 @((int)MapW) @((int)MapH)" role="img" aria-label="@L.Resource("WorldBases_BaseManager")">
+                        <rect x="0" y="0" width="@((int)MapW)" height="@((int)MapH)" fill="#101810" />
+                        @for (var gx = 0; gx < (int)MapW; gx += 48) { <line x1="@gx" y1="0" x2="@gx" y2="@((int)MapH)" stroke="#1C271C" stroke-width="1" /> }
+                        @for (var gy = 0; gy < (int)MapH; gy += 48) { <line x1="0" y1="@gy" x2="@((int)MapW)" y2="@gy" stroke="#1C271C" stroke-width="1" /> }
+                        @if (MapLayout() is { } map)
+                        {
+                            @if (SelectedBase is { } selected && selected.Deployables.Count > 0)
+                            {
+                                var r = Math.Max(14f, (float)(BaseDetector.ClusterRadius * map.Scale));
+                                @((MarkupString)FormattableString.Invariant($"<circle cx=\"{map.Px(selected.CenterX):0.#}\" cy=\"{map.Py(selected.CenterY):0.#}\" r=\"{r:0.#}\" fill=\"#F5C518\" fill-opacity=\"0.133\" stroke=\"#F5C518\" stroke-width=\"1.5\" />"))
+                            }
+                            @foreach (var marker in MapMarkers(map))
+                            {
+                                @((MarkupString)marker)
+                            }
+                        }
+                        @{ var lx = 10f; var ly = (int)MapH - 16f; }
+                        @foreach (var (color, text) in Legend)
+                        {
+                            @((MarkupString)FormattableString.Invariant($"<rect x=\"{lx:0.#}\" y=\"{ly:0.#}\" width=\"7\" height=\"7\" fill=\"{color}\" /><text x=\"{lx + 10:0.#}\" y=\"{ly + 7:0.#}\" font-size=\"9\" fill=\"#A89B7F\">{System.Net.WebUtility.HtmlEncode(text)}</text>"))
+                            lx += 14 + (text.Length * 5.4f);
+                        }
+                    </svg>
+                </div>
+            }
+            else
+            {
+                <div class="base-container-panel">
+                    <div class="base-container-header">
+                        <span class="wt-row-text">
+                            <strong class="wt-h3">@ContainerDisplayName(open)</strong>
+                            <small>@L.Resource("WorldBases_ContainerEditHint")</small>
+                        </span>
+                        <span class="wt-readout">@ContainerCountText(open)</span>
+                        <button type="button" class="wt-btn wt-plain" title="@L.Resource("WorldBases_CloseContainerTooltip")"
+                                @onclick="CloseContainer">✕  MAP</button>
+                    </div>
+                    @* Tapping a slot opens it in the right-hand slot editor, exactly as it does
+                       on the CONTAINERS tab, so an item can be changed, counted, swapped or
+                       picked out of the catalog without leaving the base view. These used to be
+                       plain boxes with only a number field, so there was no way to put anything
+                       into a crate from here. *@
+                    <div class="base-slot-grid">
+                        @foreach (var edit in _slotEdits)
+                        {
+                            var isActive = ReferenceEquals(Selection.Current?.Slot, edit);
+                            @* data-slot-drop is what the shared drag script keys off to permit a
+                               drop at all. Without it these slots looked like the ones on the
+                               CONTAINERS tab but silently swallowed everything dragged onto
+                               them, so items could only be typed in, never dragged. *@
+                            <button type="button" class="base-slot @(isActive ? "selected" : null)" @key="edit.Index"
+                                    aria-pressed="@isActive" aria-label="@($"[{edit.Index:D2}] {SlotName(edit)}")"
+                                    title="@L.Resource("WorldBases_SlotEditHint")"
+                                    data-slot-drop
+                                    draggable="@((!edit.IsEmpty).ToString().ToLowerInvariant())"
+                                    @ondragstart="() => _dragEdit = edit"
+                                    @ondragend="() => _dragEdit = null"
+                                    @ondragover:preventDefault
+                                    @ondrop="() => DropOnSlot(edit)"
+                                    @onclick="() => SelectSlot(edit)">
+                                @if (!edit.IsEmpty && edit.ItemId is { } itemId)
+                                {
+                                    <ItemIcon ItemId="@itemId" Alt="@SlotName(edit)" Class="base-slot-icon" />
+                                    @if (edit.Count > 1) { <span class="base-slot-count-badge">@edit.Count</span> }
+                                    <span class="base-slot-name">@SlotName(edit)</span>
+                                }
+                                else
+                                {
+                                    <span class="base-slot-index">[@edit.Index.ToString("D2")]</span>
+                                }
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (SelectedBase is { } worldBaseDetail)
+    {
+        <div class="wt-md bases-detail">
+            <div class="wt-card">
+                <span class="wt-label accent-orange-text">@L.Resource("WorldBases_CraftingBenches")</span>
+                @* A bench row opens in the side panel like everything else in the editor, where it
+                   can be renamed and its contents opened. Benches are listed apart from the crates
+                   below because they are what marks a spot as a base at all; a bench that also
+                   holds items appears in both lists, which is why one can look like the other. *@
+                @foreach (var bench in worldBaseDetail.Deployables.Where(deployable => deployable.IsCraftingBench))
+                {
+                    <div class="bench-row" @key="bench.Id">
+                        <button type="button" class="bench-open" aria-pressed="@(Selection.DetailKey == BenchKey(bench))"
+                                title="@L.Resource("WorldBases_BenchEditHint")" @onclick="() => ShowBench(bench)">
+                            <span class="bench-name">@bench.DisplayName</span>
+                            <small>(@bench.X.ToString("F0"), @bench.Y.ToString("F0"), @bench.Z.ToString("F0")) · id @(bench.Id[..Math.Min(8, bench.Id.Length)])…</small>
+                        </button>
+                        @if (Session.BenchSupportsUpgrades(bench.Id))
+                        {
+                            <span class="wt-label bench-upgrades-label">@L.Resource("WorldBases_Upgrades")</span>
+                            <div class="bench-upgrades">
+                                @foreach (var upgrade in BenchUpgradeCatalog.All)
+                                {
+                                    <label class="wt-check orange" @key="upgrade.Row">
+                                        <input type="checkbox" checked="@IsUpgradeInstalled(bench.Id, upgrade.Row)"
+                                               @onchange="e => SetUpgrade(bench.Id, upgrade.Row, e.Value is bool value && value)" />
+                                        @upgrade.DisplayName
+                                    </label>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                @if (!worldBaseDetail.Deployables.Any(deployable => deployable.IsCraftingBench))
+                {
+                    <p class="wt-muted">@L.Resource("WorldBases_NoCraftingBenchInThisGroup")</p>
+                }
+                <hr class="wt-divider" />
+                <span class="wt-label">@L.Resource("WorldBases_Composition")</span>
+                <p class="base-composition">@Composition(worldBaseDetail)</p>
+            </div>
+            <div class="wt-card no-pad">
+                <span class="wt-label base-containers-label">@L.Resource("WorldBases_ContainersInThisBaseClickToOpen")</span>
+                <div class="base-container-list">
+                    @{ var baseContainers = BaseContainers(worldBaseDetail); }
+                    @if (baseContainers.Count == 0)
+                    {
+                        <p class="wt-empty">@L.Resource("WorldBases_NoContainersWithItemsInThisBase")</p>
+                    }
+                    else
+                    {
+                        @foreach (var container in baseContainers)
+                        {
+                            <button type="button" class="wt-row container-jump-row @(_openContainerId == container.Id ? "selected" : null)" @key="container.Id"
+                                    @onclick="() => OpenContainerFor(container.Id)">
+                                <span class="wt-row-text"><strong>@ContainerDisplayName(container)</strong></span>
+                                <span class="wt-readout">@ContainerCountText(container)</span>
+                            </button>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter] public string Title { get; set; } = "World editor";
+    [Parameter] public EventCallback<string?> OnError { get; set; }
+
+    private const float MapW = 640f;
+    private const float MapH = 356f;
+    private string? _selectedBaseName;
+    private string? _openContainerId;
+    private List<PlayerInventorySlotEdit> _slotEdits = [];
+    /// <summary>The slot currently being dragged within this crate (null when dragging from the catalog).</summary>
+    private PlayerInventorySlotEdit? _dragEdit;
+
+    protected override void OnInitialized()
+    {
+        Selection.Changed += Refresh;
+        _ = Task.Run(() => Upgrades.Get()).ContinueWith(_ => InvokeAsync(StateHasChanged));
+    }
+
+    // A redraw driven from outside this tab means the world moved on, so re-read the open crate.
+    protected override void OnParametersSet() => SyncSlotsFromSession();
+
+    private void Refresh() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Selection.Changed -= Refresh;
+        // Leaving this tab must not leave the sidebar pointing at slots it can no longer apply.
+        if (Selection.Current is { } current && ReferenceEquals(current.Slots, _slotEdits)) Selection.Clear();
+    }
+
+    // Native palette (BaseMapDrawable) - deliberately fixed, not theme-derived.
+    private static readonly (string Color, string Text)[] Legend =
+    [
+        ("#F08418", "bench"), ("#8CCB58", "container"), ("#B07CE8", "bed"),
+        ("#D14A30", "defense"), ("#56C4E8", "power/tele"), ("#4FA84F", "farm"), ("#5E5440", "other"),
+    ];
+
+    private IReadOnlyList<WorldBase> Bases => BaseDetector.Detect(Session.Deployables);
+    private WorldBase? SelectedBase => _selectedBaseName is null ? null : Bases.FirstOrDefault(worldBase => worldBase.Name == _selectedBaseName);
+    private WorldContainer? OpenContainer => _openContainerId is null
+        ? null
+        : Session.Containers.FirstOrDefault(container => container.Source == WorldContainerSource.Deployed && container.Id == _openContainerId);
+
+    private void SelectBase(WorldBase worldBase)
+    {
+        _selectedBaseName = worldBase.Name;
+        // Switching bases also leaves any container that was open in the map area (native parity).
+        _openContainerId = null;
+        _slotEdits = [];
+    }
+
+    private string AnchorText(WorldBase worldBase)
+    {
+        var benches = worldBase.Deployables.Where(deployable => deployable.IsCraftingBench).ToList();
+        return benches.Count == 0
+            ? L.Resource("WorldBases_NoCraftingBenchAnchor")
+            : L.Resource("WorldBases_AnchoredBy", string.Join(", ", benches
+                .GroupBy(bench => bench.DisplayName)
+                .Select(group => group.Count() > 1 ? $"{group.Count()}× {group.Key}" : group.Key)));
+    }
+
+    private string Composition(WorldBase worldBase) => string.Join("\n", worldBase.Deployables
+        .GroupBy(deployable => deployable.DisplayName)
+        .OrderByDescending(group => group.Any(deployable => deployable.IsCraftingBench))
+        .ThenByDescending(group => group.Count())
+        .Take(14)
+        .Select(group => $"{group.Count()}× {group.Key}"
+            + (group.Any(deployable => deployable.IsCraftingBench) ? "  " + L.Resource("WorldBases_BenchTag") : string.Empty)));
+
+    private List<WorldContainer> BaseContainers(WorldBase worldBase)
+    {
+        var ids = new HashSet<string>(worldBase.Deployables.Where(deployable => deployable.HasInventory).Select(deployable => deployable.Id), StringComparer.Ordinal);
+        return Session.Containers.Where(container => container.Source == WorldContainerSource.Deployed && ids.Contains(container.Id)).ToList();
+    }
+
+    private static string ContainerDisplayName(WorldContainer container)
+        => container.ClassName is { Length: > 0 } className ? PlainNames.Thing(className) : PlainNames.Words(container.Id);
+
+    private static string ContainerCountText(WorldContainer container)
+    {
+        var slots = container.Inventories.SelectMany(inventory => inventory.Slots).ToList();
+        return $"{slots.Count(slot => !slot.IsEmpty)}/{slots.Count}";
+    }
+
+    private string SlotName(AbioticEditor.Core.PlayerSaves.InventoryItemSlot slot)
+        => Catalog.Find(slot.ItemId)?.DisplayName ?? PlainNames.Words(slot.ItemId);
+
+    private string SlotName(PlayerInventorySlotEdit edit)
+        => edit.IsEmpty ? L.Inventory("empty") : Catalog.Find(edit.ItemId)?.DisplayName ?? PlainNames.Words(edit.ItemId);
+
+    // ---------- container slots (same staged-edit path as the CONTAINERS tab) ----------
+
+    private ItemUpgradeCatalog UpgradeCatalog => Upgrades.TryGet(out var catalog) ? catalog : ItemUpgradeCatalog.Empty;
+
+    /// <summary>Loads the open container's first inventory as staged slot edits.</summary>
+    private void LoadOpenContainerSlots()
+    {
+        _slotEdits = OpenContainer is { } container
+            ? container.Inventories.FirstOrDefault()?.Slots.Select(slot => new PlayerInventorySlotEdit(slot)).ToList() ?? []
+            : [];
+    }
+
+    /// <summary>Re-reads the staged slots when the session moved on underneath us (a save, a
+    /// revert, or an edit made from another tab).</summary>
+    private void SyncSlotsFromSession()
+    {
+        if (OpenContainer is not { } container) { _slotEdits = []; return; }
+        var slots = container.Inventories.FirstOrDefault()?.Slots ?? [];
+        if (slots.Count != _slotEdits.Count) { LoadOpenContainerSlots(); return; }
+        for (var i = 0; i < slots.Count; i++)
+        {
+            if (!Equals(_slotEdits[i].ToInventorySlot(), slots[i]))
+            {
+                _slotEdits[i].LoadFrom(slots[i]);
+                _slotEdits[i].AcceptCurrentAsBaseline();
+            }
+        }
+    }
+
+    /// <summary>Opens a slot in the shared right-hand editor, with the item catalog to pick from.</summary>
+    /// <summary>
+    /// A drop onto one of this crate's slots. Mirrors the CONTAINERS tab: an item dragged out
+    /// of the catalog fills the slot, and one slot dragged onto another trades places.
+    /// </summary>
+    private async Task DropOnSlot(PlayerInventorySlotEdit target)
+    {
+        if (Dnd.PaletteItem is { } palette)
+        {
+            Dnd.End();
+            if (SlotDropRules.ValidateForSlot(L, null, null, palette) is not null) return;
+            SlotDropRules.FillFromCatalog(target, palette);
+            await ApplySlotEditsAsync();
+            SelectSlot(target);
+            return;
+        }
+        if (_dragEdit is not { } source || ReferenceEquals(source, target)) return;
+        _dragEdit = null;
+        await SwapSlotsAsync((source.Index, target.Index));
+        SelectSlot(target);
+    }
+
+    private void SelectSlot(PlayerInventorySlotEdit edit)
+    {
+        if (OpenContainer is not { } container) return;
+        Selection.Select(new InventorySelection(
+            ContainerDisplayName(container), edit, _slotEdits,
+            Catalog.Entries.Select(entry => entry.Id).ToArray(),
+            Session.Deployables.Where(deployable => deployable.IsCraftingBench).ToArray(),
+            _slotEdits, true,
+            ApplySlotEditsAsync, SwapSlotsAsync, UpgradeSlotAsync,
+            slotEdit => UpgradeCatalog.UpgradeFor(slotEdit.ItemId) is not null,
+            slotEdit => UpgradeCatalog.SourceOf(slotEdit.ItemId) is not null)
+        {
+            QuickGiveFallback = _ => _slotEdits.FirstOrDefault(candidate => candidate.IsEmpty) is { } empty ? new(empty, null, null) : null,
+            SelectSlot = sibling => { if (_slotEdits.Contains(sibling)) SelectSlot(sibling); },
+        });
+    }
+
+    /// <summary>Stages every slot edit into the world session (the single save/revert path).</summary>
+    private Task ApplySlotEditsAsync()
+    {
+        if (OpenContainer is not { } container) return Task.CompletedTask;
+        for (var i = 0; i < _slotEdits.Count; i++)
+        {
+            Session.TrySetContainerSlot(container.Source, container.Id, 0, i, _slotEdits[i].ToInventorySlot());
+            _slotEdits[i].AcceptCurrentAsBaseline();
+        }
+        Workspace.NotifyEdited();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task SwapSlotsAsync((int First, int Second) pair)
+    {
+        if (OpenContainer is not { } container) return;
+        var first = _slotEdits.FindIndex(edit => edit.Index == pair.First);
+        var second = _slotEdits.FindIndex(edit => edit.Index == pair.Second);
+        if (first < 0 || second < 0 || first == second) return;
+        await ApplySlotEditsAsync();
+        Session.TrySwapContainerSlots(container.Source, container.Id, 0, first, second);
+        SyncSlotsFromSession();
+    }
+
+    private async Task UpgradeSlotAsync((int Index, bool Downgrade) action)
+    {
+        var edit = _slotEdits.FirstOrDefault(candidate => candidate.Index == action.Index);
+        if (edit is null || edit.IsEmpty) return;
+        var edge = action.Downgrade ? UpgradeCatalog.SourceOf(edit.ItemId) : UpgradeCatalog.UpgradeFor(edit.ItemId);
+        if (edge is null) return;
+        edit.ItemId = action.Downgrade ? edge.SourceId : edge.OutputId;
+        edit.AssetId = null;
+        await ApplySlotEditsAsync();
+    }
+
+    // ---------- bench detail card ----------
+
+    private static string BenchKey(WorldDeployable bench) => "bench:" + bench.Id;
+
+    /// <summary>
+    /// Surfaces a bench in the right-hand panel: what it is, where it stands, the name the
+    /// player gave it (editable), and a way into its contents when it holds any. Tapping the
+    /// same bench again closes the card.
+    /// </summary>
+    private void ShowBench(WorldDeployable bench)
+    {
+        var key = BenchKey(bench);
+        if (Selection.DetailKey == key) { Selection.CloseDetail(); return; }
+        Selection.ShowDetail(key, BenchCard(bench));
+    }
+
+    private RenderFragment BenchCard(WorldDeployable bench) => @<div class="detail-card">
+        <h3>@bench.DisplayName</h3>
+        <p class="detail-sub">@PlainNames.Thing(bench.ClassName ?? string.Empty)</p>
+        <dl class="detail-list">
+            <dt>@L.Resource("WorldBases_DetailPosition")</dt>
+            <dd>@bench.X.ToString("F0"), @bench.Y.ToString("F0"), @bench.Z.ToString("F0")</dd>
+            <dt>@L.Resource("WorldBases_DetailId")</dt>
+            <dd><code>@bench.Id</code></dd>
+        </dl>
+        <label class="detail-field">
+            <span>@L.Resource("WorldBases_DetailCustomName")</span>
+            <input value="@bench.CustomName" placeholder="@bench.FriendlyClass"
+                   @onchange="e => RenameBench(bench.Id, e.Value?.ToString())" />
+        </label>
+        <small class="wt-muted">@L.Resource("WorldBases_DetailCustomNameHint")</small>
+        @if (Session.Containers.FirstOrDefault(c => c.Source == WorldContainerSource.Deployed && c.Id == bench.Id) is { } stored)
+        {
+            <hr class="wt-divider" />
+            <button type="button" class="wt-btn" @onclick="() => OpenContainerFor(bench.Id)">
+                @L.Resource("WorldBases_DetailOpenContents", ContainerCountText(stored))
+            </button>
+        }
+    </div>;
+
+    private void RenameBench(string benchId, string? name)
+    {
+        Session.SetDeployableCustomName(benchId, name);
+        Workspace.NotifyEdited();
+    }
+
+    private void OpenContainerFor(string deployableId)
+    {
+        _openContainerId = deployableId;
+        LoadOpenContainerSlots();
+    }
+
+    private void CloseContainer()
+    {
+        _openContainerId = null;
+        if (Selection.Current is { } current && ReferenceEquals(current.Slots, _slotEdits)) Selection.Clear();
+        _slotEdits = [];
+    }
+
+    private bool IsUpgradeInstalled(string benchId, string row)
+        => Session.BenchInstalledUpgrades(benchId).Contains(row, StringComparer.OrdinalIgnoreCase);
+
+    private void SetUpgrade(string benchId, string row, bool installed)
+    {
+        if (Session.SetBenchUpgrade(benchId, row, installed)) Workspace.NotifyEdited();
+    }
+
+    // ---------- top-down map (port of the native BaseMapDrawable) ----------
+
+    private sealed record MapProjection(double MinX, double MinY, double Scale)
+    {
+        public float Px(double x) => (float)(18 + ((x - MinX) * Scale));
+        public float Py(double y) => (float)(18 + ((y - MinY) * Scale));
+    }
+
+    private MapProjection? MapLayout()
+    {
+        var deployables = Session.Deployables;
+        if (deployables.Count == 0) return null;
+        var minX = deployables.Min(d => d.X);
+        var maxX = deployables.Max(d => d.X);
+        var minY = deployables.Min(d => d.Y);
+        var maxY = deployables.Max(d => d.Y);
+        var spanX = Math.Max(1, maxX - minX);
+        var spanY = Math.Max(1, maxY - minY);
+        return new MapProjection(minX, minY, Math.Min((MapW - 36) / spanX, (MapH - 36) / spanY));
+    }
+
+    private static (string Color, char Shape) Classify(WorldDeployable deployable)
+    {
+        var className = deployable.ClassName ?? string.Empty;
+        bool Has(params string[] hints) => hints.Any(hint => className.Contains(hint, StringComparison.OrdinalIgnoreCase));
+        if (deployable.IsCraftingBench) return ("#F08418", 'S');
+        if (deployable.IsBed) return ("#B07CE8", 'D');
+        if (Has("Turret", "Trap", "Barricade", "Tripwire", "Spikes", "Fence")) return ("#D14A30", 'T');
+        if (Has("Light", "Lamp", "Generator", "Power", "Charging", "Battery", "Solar", "Teleporter")) return ("#56C4E8", 'T');
+        if (Has("GardenPlot", "Plant", "Sprinkler", "Compost")) return ("#4FA84F", 'C');
+        if (deployable.HasInventory) return ("#8CCB58", 'S');
+        return ("#5E5440", 'C');
+    }
+
+    private IEnumerable<string> MapMarkers(MapProjection map)
+    {
+        var selected = SelectedBase;
+        var selectedIds = selected is null ? null : new HashSet<string>(selected.Deployables.Select(d => d.Id), StringComparer.Ordinal);
+        var invariant = System.Globalization.CultureInfo.InvariantCulture;
+        // Dimmed non-members first, selected base members on top at full strength (native draw order).
+        foreach (var pass in new[] { false, true })
+        {
+            foreach (var deployable in Session.Deployables)
+            {
+                var inSelected = selectedIds is null || selectedIds.Contains(deployable.Id);
+                if (selectedIds is not null && inSelected != pass) continue;
+                if (selectedIds is null && pass) continue;
+
+                var (color, shape) = Classify(deployable);
+                var alpha = selectedIds is null || inSelected ? 1f : 0.28f;
+                var x = map.Px(deployable.X);
+                var y = map.Py(deployable.Y);
+                var opacity = alpha.ToString("0.##", invariant);
+                yield return shape switch
+                {
+                    'S' => FormattableString.Invariant($"<rect x=\"{x - Half(deployable):0.#}\" y=\"{y - Half(deployable):0.#}\" width=\"{Half(deployable) * 2:0.#}\" height=\"{Half(deployable) * 2:0.#}\" fill=\"{color}\" fill-opacity=\"{opacity}\" />"),
+                    'D' => FormattableString.Invariant($"<path d=\"M {x:0.#} {y - 5:0.#} L {x + 5:0.#} {y:0.#} L {x:0.#} {y + 5:0.#} L {x - 5:0.#} {y:0.#} Z\" fill=\"{color}\" fill-opacity=\"{opacity}\" />"),
+                    'T' => FormattableString.Invariant($"<path d=\"M {x:0.#} {y - 4.5:0.#} L {x + 4:0.#} {y + 3.5:0.#} L {x - 4:0.#} {y + 3.5:0.#} Z\" fill=\"{color}\" fill-opacity=\"{opacity}\" />"),
+                    _ => FormattableString.Invariant($"<circle cx=\"{x:0.#}\" cy=\"{y:0.#}\" r=\"2\" fill=\"{color}\" fill-opacity=\"{opacity}\" />"),
+                };
+
+                // Benches get their name so the map reads like a base plan.
+                if (deployable.IsCraftingBench && (inSelected || selectedIds is null))
+                {
+                    var label = deployable.CustomName is { Length: > 0 } custom ? custom : deployable.FriendlyClass.Replace("CraftingBench ", "");
+                    yield return FormattableString.Invariant($"<text x=\"{x + 7:0.#}\" y=\"{y - 1:0.#}\" font-size=\"9\" fill=\"#F0B068\" fill-opacity=\"{opacity}\">{System.Net.WebUtility.HtmlEncode(label)}</text>");
+                }
+            }
+        }
+
+        static float Half(WorldDeployable deployable)
+            => deployable.IsCraftingBench ? 5f : 3.5f + Math.Min(2.5f, deployable.StoredItemCount / 12f);
+    }
+}

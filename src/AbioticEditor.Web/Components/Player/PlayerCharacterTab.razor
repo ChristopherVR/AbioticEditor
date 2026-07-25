@@ -1,0 +1,151 @@
+@namespace AbioticEditor.Web.Components.Player
+@using AbioticEditor.Core.PlayerSaves
+@using AbioticEditor.Web.Models
+@inject AbioticEditor.Web.Services.ProgressionVocabularyService Progression
+
+@* Faithful port of the native PlayerCharacterTab.xaml: a CHARACTER panel (background picker,
+   trait chips, add-trait browser) followed by the per-account appearance panel. *@
+<div class="character-tab">
+    <section class="editor-card" aria-label="@L.Resource("PlayerCharacter_Character")">
+        <h3>@L.Resource("PlayerCharacter_Character")</h3>
+        <div class="tab-hazard-stripe" aria-hidden="true"></div>
+
+        <div class="character-background-row">
+            <span class="general-field-label">@L.Resource("PlayerCharacter_Background")</span>
+            <select class="character-background-select" @bind="Session.Background" @bind:after="Changed" aria-label="@L.Resource("PlayerCharacter_Background")">
+                @if (string.IsNullOrEmpty(Session.Background)) { <option value="" disabled hidden></option> }
+                else if (!TraitCatalog.Backgrounds.ContainsKey(Session.Background)) { <option value="@Session.Background">@Session.Background</option> }
+                @foreach (var background in TraitCatalog.Backgrounds) { <option value="@background.Key">@background.Value</option> }
+            </select>
+            <small class="general-help">@L.Resource("PlayerCharacter_BackgroundHelp")</small>
+        </div>
+        <div class="tab-divider" aria-hidden="true"></div>
+
+        <p class="tab-section-label">@L.Resource("PlayerCharacter_Traits")</p>
+        <div class="trait-chips">
+            @foreach (var id in Session.Traits.ToArray())
+            {
+                <span class="trait-chip" title="@ChipTooltip(id)">
+                    <span class="trait-chip-name">@DisplayNameFor(id)</span>
+                    <small class="trait-chip-id">@id</small>
+                    <button class="trait-chip-remove" type="button" aria-label="@($"{L.Detail("remove")} {DisplayNameFor(id)}")" @onclick="() => RemoveTrait(id)">&#x2715;</button>
+                </span>
+            }
+        </div>
+
+        @* Trait browser: read what a trait does BEFORE adding it. *@
+        <input type="search" class="trait-search" placeholder="@L.Resource("PlayerCharacter_SearchTraitsPlaceholder")" aria-label="@L.Resource("PlayerUi_FilterTraits")" @bind="Search" @bind:event="oninput" />
+        @* Descriptions and costs come out of the game files and take a moment on first use.
+           Until they land the rows carry names only, which reads as though the traits have
+           nothing to say for themselves. *@
+        @if (_detailsLoading)
+        {
+            <p class="general-loading" role="status">
+                <span class="header-busy-spinner" aria-hidden="true"></span>
+                @L.Resource("PlayerCharacter_LoadingTraitDetails")
+            </p>
+        }
+        <div class="trait-browser" role="list" aria-label="@L.Resource("PlayerUi_TraitDetails")">
+            @if (!VisibleTraitOptions.Any())
+            {
+                <p class="trait-browser-empty">@L.Resource("PlayerCharacter_NoTraitsMatch")</p>
+            }
+            @foreach (var row in VisibleTraitOptions)
+            {
+                <div class="trait-browser-row" role="listitem">
+                    <span class="trait-browser-name">@row.DisplayName</span>
+                    <span class="trait-browser-cost">@CostText(row)</span>
+                    <span class="trait-browser-description">@row.Description</span>
+                    <button class="trait-browser-add" type="button" @onclick="() => AddTrait(row.Id)">@L.Resource("PlayerCharacter_Add")</button>
+                </div>
+            }
+        </div>
+    </section>
+
+    <PlayerAppearanceEditor Player="Session" />
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    [Parameter] public EventCallback OnChanged { get; set; }
+    private string Search { get; set; } = string.Empty;
+    private IReadOnlyList<TraitBrowserRow>? _allRows;
+    private IReadOnlyDictionary<string, TraitDetail> Details { get; set; } =
+        new Dictionary<string, TraitDetail>(StringComparer.Ordinal);
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Trait descriptions/costs come from the game paks; load them off-thread on demand
+        // (save selection deliberately never scans paks). Until they arrive the curated
+        // name catalog renders, then the rows refresh with full detail.
+        try
+        {
+            Details = await Task.Run(Progression.GetTraitDetails);
+            _allRows = null;
+        }
+        finally
+        {
+            _detailsLoading = false;
+        }
+    }
+
+    /// <summary>True while the trait descriptions and costs are still being read from the game.</summary>
+    private bool _detailsLoading = true;
+
+    private string DisplayNameFor(string id)
+        => Details.TryGetValue(id, out var detail) ? detail.DisplayName : TraitCatalog.DisplayNameFor(id);
+
+    /// <summary>Hover text for a trait chip: what the trait does in game, plus its cost in
+    /// trait points when that is known. With the game not installed there is nothing to say,
+    /// so it says exactly that rather than falling back to the stored name.</summary>
+    private string ChipTooltip(string id)
+    {
+        if (!Details.TryGetValue(id, out var detail) || detail.Description is not { Length: > 0 } description)
+            return L.Resource("PlayerUi_TraitDescriptionUnavailable");
+        return detail.PointCost != 0 ? $"{description}  [{PointsText(detail.PointCost)}]" : description;
+    }
+
+    /// <summary>"+2 pts" / "-1 pts": the wording and the sign both come from the catalogue.</summary>
+    private string PointsText(int points) => L.Resource("PlayerCharacter_TraitPointsFormat", points);
+
+    private IEnumerable<TraitBrowserRow> VisibleTraitOptions
+    {
+        get
+        {
+            _allRows ??= BuildRows();
+            IEnumerable<TraitBrowserRow> rows = _allRows;
+            if (!string.IsNullOrWhiteSpace(Search))
+            {
+                var filter = Search.Trim();
+                rows = rows.Where(row => row.DisplayName.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                                      || (row.Description?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false));
+            }
+            var have = new HashSet<string>(Session.Traits, StringComparer.Ordinal);
+            return rows.Where(row => !have.Contains(row.Id)).ToList();
+        }
+    }
+
+    private List<TraitBrowserRow> BuildRows() => TraitCatalog.Traits.Keys
+        .Select(id =>
+        {
+            Details.TryGetValue(id, out var detail);
+            // Cut traits ship without any description text and are never offered by the
+            // in-game creator - label them instead of showing a blank.
+            var description = detail?.Description
+                ?? (detail is { AvailableOnStart: false } ? L.Resource("PlayerEditor_CutTraitDescription") : null);
+            return new TraitBrowserRow(id, detail?.DisplayName ?? TraitCatalog.DisplayNameFor(id), description, detail?.PointCost ?? 0);
+        })
+        .OrderBy(row => row.DisplayName, StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    private async Task Changed() { Session.MarkChanged(); await OnChanged.InvokeAsync(); }
+    private async Task AddTrait(string id) { if (!Session.Traits.Contains(id, StringComparer.Ordinal)) { Session.Traits.Add(id); await Changed(); } }
+    private async Task RemoveTrait(string id) { if (Session.Traits.Remove(id)) await Changed(); }
+
+    /// <summary>The cost badge on an add-trait row. 0 is real data (traits picked up in the
+    /// world, like Forbidden Diet), so it is shown rather than hidden.</summary>
+    private string CostText(TraitBrowserRow row) => PointsText(row.PointCost).ToUpperInvariant();
+
+    /// <summary>One row of the add-trait browser: full description + point cost up front.</summary>
+    private sealed record TraitBrowserRow(string Id, string DisplayName, string? Description, int PointCost);
+}

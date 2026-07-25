@@ -29,13 +29,6 @@ public interface IPluginRegistry
     void AddConsoleCommand(IConsoleCommand command);
 
     /// <summary>
-    /// Registers a UI tool (a view the GUI hosts in its Plugins panel). Hosts without a UI
-    /// (the CLI) ignore it. The view object is created lazily and only by GUI hosts, so the
-    /// MAUI dependency stays entirely inside the plugin and never reaches this SDK.
-    /// </summary>
-    void AddEditorTool(IEditorTool tool);
-
-    /// <summary>
     /// Registers an HTML/web UI tool rendered in a web view (supports React and other web
     /// front-ends). GUI-only; the CLI ignores it.
     /// </summary>

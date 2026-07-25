@@ -1,0 +1,77 @@
+name: Web Host Acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'src/AbioticEditor.Web/**'
+      - 'src/AbioticEditor.Core/**'
+      - 'src/AbioticEditor.Ui.Abstractions/**'
+      - 'src/AbioticEditor.Updater/**'
+      - 'assets/Mappings.usmap'
+      - 'assets/registry/**'
+      - 'assets/wiki/**'
+      - 'tools/verify-web-host*'
+      - '.github/workflows/web-host.yml'
+      - 'Directory.*.props'
+  push:
+    branches: [main]
+    paths:
+      - 'src/AbioticEditor.Web/**'
+      - 'src/AbioticEditor.Core/**'
+      - 'src/AbioticEditor.Ui.Abstractions/**'
+      - 'src/AbioticEditor.Updater/**'
+      - 'assets/Mappings.usmap'
+      - 'assets/registry/**'
+      - 'assets/wiki/**'
+      - 'tools/verify-web-host*'
+      - '.github/workflows/web-host.yml'
+      - 'Directory.*.props'
+
+jobs:
+  packaged-host:
+    name: ${{ matrix.name }} packaged host
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x64
+            os: ubuntu-latest
+            rid: linux-x64
+            tfm: net10.0
+          - name: Windows x64
+            os: windows-latest
+            rid: win-x64
+            tfm: net10.0-windows10.0.19041.0
+          - name: macOS arm64
+            os: macos-latest
+            rid: osx-arm64
+            tfm: net10.0
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+          dotnet-quality: ga
+      - name: Publish self-contained host
+        run: >-
+          dotnet publish src/AbioticEditor.Web -f ${{ matrix.tfm }} -c Release -r ${{ matrix.rid }}
+          --self-contained true -p:PublishSingleFile=false -o out
+      - name: Install Linux native-window test dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libgtk-3-0t64 libwebkit2gtk-4.1-0 libnotify4 zenity xvfb xdotool
+      - name: Verify Linux layout and health endpoint
+        if: runner.os == 'Linux'
+        run: bash tools/verify-web-host-linux.sh out
+      - name: Verify Windows layout and health endpoint
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./tools/verify-web-host.ps1 -PublishDir out
+
+      - name: Verify macOS layout and health endpoint
+        if: runner.os == 'macOS'
+        run: bash tools/verify-web-host-mac.sh out

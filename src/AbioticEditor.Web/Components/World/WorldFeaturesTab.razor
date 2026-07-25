@@ -1,0 +1,486 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Core.WorldSaves.Features
+@using AbioticEditor.Web.Models
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+@inject AbioticEditor.Web.Services.SaveWorkspaceSessionService Workspace
+@implements IDisposable
+
+@* Faithful port of the native WorldFeatureTab: ONE world-map feature (buttons, elevators,
+   NPC spawns, power sockets, resource nodes, teleporter pads, trams, triggers, server
+   entitlements, ...) rendered as a Fish-style master-detail editor. The entry list sits on
+   the left (label, area, editable-field summary); the selected entry's typed fields edit on
+   the right. Each applicable feature gets its own top-level tab, exactly like native. *@
+@if (Feature is not { } feature)
+{
+    <p class="empty">@L.Resource("WorldFeature_NoEntries")</p>
+}
+else
+{
+    <section class="world-editor world-feature" aria-label="@Heading(feature)">
+        <header class="editor-heading">
+            <div><p class="eyebrow">@Title</p><h2>@Heading(feature)</h2></div>
+            <p class="editor-status">@L.Editor("common.shown", _visibleRows.Count)</p>
+        </header>
+        @* One intro line only: the feature's own description when it has one, otherwise the
+           generic "tap an entry to change it" hint. Showing both stacked the same reassurance
+           twice on tabs like the teleporters. *@
+        <p class="world-flags-intro">@(string.IsNullOrWhiteSpace(Description(feature)) ? L.Resource("WorldFeature_EditHint") : Description(feature))</p>
+        @* No per-tab SAVE/REVERT: the shell owns the save/revert pair, exactly like native. *@
+        <div class="world-feature-panes">
+            <div class="world-feature-list">
+                @if (feature.Entries.Count > 8)
+                {
+                    @* Typing filters after a short pause. A region save holds hundreds of nodes
+                       and sockets, and re-filtering the whole list on every single keystroke made
+                       the box feel like it was fighting back. *@
+                    <input type="search" value="@_filter" @oninput="FilterInput" placeholder="@L.Resource("WorldFeature_Search")" aria-label="@L.Resource("WorldFeature_Search")" />
+                }
+                <div class="world-feature-entries" role="listbox" aria-label="@Heading(feature)">
+                    @if (_visibleRows.Count == 0)
+                    {
+                        <p class="empty">@L.Resource("WorldFeature_NoEntries")</p>
+                    }
+                    @* Only the rows on screen are built. Drawing all four hundred resource nodes
+                       at once is what made this tab take seconds to appear. *@
+                    <Virtualize Items="_visibleRows" Context="row" ItemSize="58" OverscanCount="6">
+                        <button type="button" role="option" aria-selected="@(_selectedKey == row.Key)"
+                                class="world-feature-row @(_selectedKey == row.Key ? "selected" : null)" @key="row.Key"
+                                @onclick="() => Select(row.Key)">
+                            <strong>@row.Label</strong>
+                            @if (row.Area is { Length: > 0 }) { <span class="feature-area">@row.Area</span> }
+                            <span class="feature-summary-row">
+                                <span class="feature-summary">@row.Summary</span>
+                                @if (row.PluggedIn) { <span class="feature-plugged-chip">@L.Resource("WorldFeature_PluggedIn")</span> }
+                            </span>
+                        </button>
+                    </Virtualize>
+                </div>
+            </div>
+            <div class="world-feature-detail">
+                @if (SelectedEntry(feature) is not { } selected)
+                {
+                    <p class="empty">@L.Resource("WorldFeature_SelectEntry")</p>
+                }
+                else
+                {
+                    <h3>@selected.Label</h3>
+                    @if (AreaFor(selected) is { Length: > 0 } area)
+                    {
+                        <p class="world-feature-arearow"><span class="eyebrow">@L.Resource("WorldFeature_Area")</span> @area</p>
+                    }
+                    @* The link opens the device this entry points at. A device in a sibling region
+                       only becomes openable once the folder-wide lookup has found it and confirmed
+                       it is a container, which is why it can appear a moment after the entry does. *@
+                    @if (selected.LinkTargetId is { } linkTarget && OnOpenLink.HasDelegate && LinkLabelFor(selected) is { } linkLabel)
+                    {
+                        <div class="editor-actions"><button class="secondary" type="button" @onclick="() => OnOpenLink.InvokeAsync(linkTarget)">@linkLabel</button></div>
+                    }
+                    @* The panel opens straight into the settings: the "nothing is written until
+                       you press SAVE" reminder is already at the top of this tab. *@
+                    <hr class="world-feature-divider" />
+                    <div class="world-feature-fields">
+                        @foreach (var field in selected.Fields)
+                        {
+                            <div class="world-feature-field" @key="field.Id">
+                                <div class="world-feature-field-row">
+                                    <span class="world-feature-field-label">@FieldLabel(selected, field)</span>
+                                    @if (!field.Editable)
+                                    {
+                                        var shownValue = DisplayFieldValue(selected, field);
+                                        <span class="world-feature-field-value">@(string.IsNullOrEmpty(shownValue) ? L.Inventory("empty") : shownValue)</span>
+                                    }
+                                    else if (field.Kind == WorldFieldKind.Bool)
+                                    {
+                                        @if (StateText(selected, field) is { } state) { <span class="world-feature-field-value">@state</span> }
+                                        <input type="checkbox" checked="@IsTrue(field.Value)" @onchange="e => SetBooleanFieldAsync(feature.Id, selected.Key, field.Id, e.Value is bool value && value)" aria-label="@FieldLabel(selected, field)" />
+                                    }
+                                    else if (field.Kind == WorldFieldKind.Enum && field.Options is not null)
+                                    {
+                                        <select value="@field.Value" @onchange="e => SetFieldAsync(feature.Id, selected.Key, field.Id, e.Value?.ToString())" aria-label="@FieldLabel(selected, field)">
+                                            @* The stored choices are run-together names; spell them out. *@
+                                            @foreach (var option in field.Options) { <option value="@option">@PlainNames.Words(option)</option> }
+                                        </select>
+                                    }
+                                    else
+                                    {
+                                        <input type="@InputType(field)" value="@field.Value" step="@StepFor(field)" @onchange="e => SetFieldAsync(feature.Id, selected.Key, field.Id, e.Value?.ToString())" aria-label="@FieldLabel(selected, field)" />
+                                    }
+                                </div>
+                                @if (FieldHint(selected, field) is { Length: > 0 } hint) { <small class="world-feature-hint">@hint</small> }
+                                @if (_fieldErrors.TryGetValue(field.Id, out var fieldError)) { <small class="world-feature-error">@fieldError</small> }
+                            </div>
+                        }
+                    </div>
+                    @if (feature.SupportsRemoval)
+                    {
+                        <hr class="world-feature-divider" />
+                        <div class="editor-actions"><button class="danger" type="button" @onclick="() => RemoveEntryAsync(feature.Id, selected.Key)">@feature.RemoveActionLabel.ToUpperInvariant()</button></div>
+                    }
+                }
+            </div>
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter, EditorRequired] public string FeatureId { get; set; } = string.Empty;
+    [Parameter] public string Title { get; set; } = "World editor";
+    [Parameter] public EventCallback<string?> OnError { get; set; }
+    /// <summary>Opens the container an entry links to (e.g. the device a power socket powers).</summary>
+    [Parameter] public EventCallback<string> OnOpenLink { get; set; }
+
+    private string _renderedFeatureId = string.Empty;
+    private string _filter = string.Empty;
+    private string? _selectedKey;
+    private readonly Dictionary<string, string> _fieldErrors = new(StringComparer.Ordinal);
+    private WorldMapFeatureSnapshot? _snapshot;
+    private CancellationTokenSource? _filterDebounce;
+    // Everything a row shows is worked out once, when the list is read, instead of again on
+    // every redraw: the area name, the settings summary, and the plugged-in check all come
+    // straight from the entry and cannot change while it sits in the list.
+    private List<FeatureRow> _allRows = [];
+    private List<FeatureRow> _visibleRows = [];
+    // The socket panel shows the player-given name of the device a socket feeds. Finding it
+    // used to re-sort every deployable in the region each time the panel was drawn.
+    private Dictionary<string, WorldDeployable>? _deployablesById;
+
+    private sealed record FeatureRow(WorldMapEntry Entry, string Label, string Area, string Summary, bool PluggedIn)
+    {
+        public string Key => Entry.Key;
+    }
+
+    protected override void OnParametersSet()
+    {
+        // Feature tab -> feature tab reuses this component instance with a new FeatureId, so
+        // the selection, filter, and errors must reset with it.
+        if (!string.Equals(_renderedFeatureId, FeatureId, StringComparison.Ordinal))
+        {
+            _renderedFeatureId = FeatureId;
+            _filter = string.Empty;
+            _selectedKey = null;
+            _fieldErrors.Clear();
+            _deployablesById = null;
+            _crossRegionDevices.Clear();
+            _crossRegionStarted = false;
+        }
+        RefreshSnapshot();
+    }
+
+    // Cross-region plugged-in devices, resolved once per tab visit. A null value means the id was
+    // searched for folder-wide and genuinely is not there any more.
+    private readonly Dictionary<string, Core.WorldSaves.PowerSocketDeviceResolver.DeviceInfo?> _crossRegionDevices
+        = new(StringComparer.OrdinalIgnoreCase);
+    private bool _crossRegionStarted;
+
+    /// <summary>
+    /// Finds the names of devices this region's sockets power but that live in a sibling region's
+    /// save. Core can only see the save in front of it, so it leaves a placeholder and expects the
+    /// host to look folder-wide, which this screen never used to do: that is why a socket wired to
+    /// a device elsewhere showed no name and promised a link that never appeared. Runs off the UI
+    /// thread and reads one sibling at a time so the big hub save is not held alongside every other.
+    /// </summary>
+    private void StartCrossRegionResolve()
+    {
+        if (_crossRegionStarted || !IsPowerSockets || _snapshot is null) return;
+        var pending = _snapshot.Entries
+            .Where(entry => entry.LinkNeedsHostResolution && entry.LinkTargetId is { Length: > 0 })
+            .Select(entry => entry.LinkTargetId!)
+            .Where(id => !DeployablesById.ContainsKey(id))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (pending.Count == 0) return;
+        _crossRegionStarted = true;
+
+        var siblings = (Workspace.Current?.Saves ?? [])
+            .Where(save => save.Kind is SaveDocumentKind.World or SaveDocumentKind.WorldMetadata)
+            .Select(save => save.Path)
+            .Where(path => !string.Equals(path, Session.Path, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        _ = Task.Run(() =>
+        {
+            var index = new Dictionary<string, Core.WorldSaves.PowerSocketDeviceResolver.DeviceInfo>(StringComparer.OrdinalIgnoreCase);
+            foreach (var path in siblings)
+            {
+                try
+                {
+                    var data = Core.WorldSaves.WorldSaveReader.ReadFromFile(path);
+                    Core.WorldSaves.PowerSocketDeviceResolver.MergeSave(index, System.IO.Path.GetFileName(path), data.Raw);
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
+                {
+                    // A sibling that cannot be read simply contributes no names.
+                    Core.Diagnostics.EditorLog.Warn("PowerSockets", $"Could not scan '{path}' for plugged-in devices.", exception);
+                }
+            }
+            return index;
+        }).ContinueWith(task =>
+        {
+            if (task.IsFaulted) return;
+            foreach (var id in pending)
+            {
+                _crossRegionDevices[id] = task.Result.TryGetValue(id, out var info) ? info : null;
+            }
+            _ = InvokeAsync(StateHasChanged);
+        }, TaskScheduler.Default);
+    }
+
+    private void RefreshSnapshot()
+    {
+        _snapshot = Session.MapFeature(FeatureId);
+        _allRows = _snapshot is null
+            ? []
+            : _snapshot.Entries.Select(entry => new FeatureRow(
+                entry, entry.Label, AreaFor(entry) ?? string.Empty, Summary(entry), IsPluggedInSocket(entry))).ToList();
+        RebuildVisibleRows();
+        StartCrossRegionResolve();
+    }
+
+    private void RebuildVisibleRows()
+    {
+        IEnumerable<FeatureRow> rows = _allRows;
+        if (!string.IsNullOrWhiteSpace(_filter))
+        {
+            var filter = _filter.Trim();
+            rows = rows.Where(row =>
+                row.Label.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                || row.Area.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                || row.Summary.Contains(filter, StringComparison.OrdinalIgnoreCase));
+        }
+        // Resource nodes are numerous and span sectors, so cluster them by area then label;
+        // other features keep their natural order (native rule).
+        if (IsResourceNodes)
+            rows = rows.OrderBy(row => row.Area, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(row => row.Label, StringComparer.OrdinalIgnoreCase);
+        _visibleRows = rows.ToList();
+    }
+
+    private void Select(string key) => _selectedKey = key;
+
+    // Filtering waits for a short pause in typing. Re-filtering hundreds of entries on every
+    // keystroke made the search box feel like it was lagging a word behind.
+    private async Task FilterInput(ChangeEventArgs args)
+    {
+        _filter = args.Value?.ToString() ?? string.Empty;
+        _filterDebounce?.Cancel();
+        _filterDebounce?.Dispose();
+        var debounce = _filterDebounce = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(200, debounce.Token);
+            RebuildVisibleRows();
+            StateHasChanged();
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer keystroke arrived: that one does the filtering instead.
+        }
+    }
+
+    public void Dispose()
+    {
+        _filterDebounce?.Cancel();
+        _filterDebounce?.Dispose();
+    }
+
+    private WorldMapFeatureSnapshot? Feature => _snapshot;
+
+    private bool IsResourceNodes => string.Equals(FeatureId, "resource-nodes", StringComparison.OrdinalIgnoreCase);
+
+    private bool IsPowerSockets => string.Equals(FeatureId, "power-sockets", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>True when a power socket has a device drawing from it. Core describes a free
+    /// socket's pluggedInDevice field as "Nothing plugged in", so anything else means in use.</summary>
+    private bool IsPluggedInSocket(WorldMapEntry entry)
+        => IsPowerSockets
+        && entry.Fields.FirstOrDefault(field => string.Equals(field.Id, "pluggedInDevice", StringComparison.OrdinalIgnoreCase)) is { Value.Length: > 0 } device
+        && !device.Value!.StartsWith("Nothing", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Read-only field text for the detail pane. For a power socket's plugged-in device the
+    /// world session's own deployables know the player-given name (a crafting bench renamed
+    /// "Hot Stuff" shows that name, like the door/vehicle tabs), so the class-derived
+    /// description from Core is upgraded to the session's display name when it resolves.
+    /// </summary>
+    private string? DisplayFieldValue(WorldMapEntry entry, WorldMapField field)
+    {
+        if (IsPowerSockets
+            && string.Equals(field.Id, "pluggedInDevice", StringComparison.OrdinalIgnoreCase)
+            && entry.LinkTargetId is { Length: > 0 } deviceId)
+        {
+            if (DeployablesById.TryGetValue(deviceId, out var device))
+            {
+                return device.DisplayName;
+            }
+            // A socket in one region can power a device that lives in another region's save, so
+            // the name has to be looked up across the whole world folder. Until that finishes
+            // (or if the device really is gone) Core's own placeholder stands.
+            if (_crossRegionDevices.TryGetValue(deviceId, out var resolved))
+            {
+                return resolved is null
+                    ? L.Resource("WorldFeature_DeviceNotFound")
+                    : resolved.SourceFile is { Length: > 0 } file
+                        ? L.Resource("WorldFeature_DeviceInFile", resolved.FriendlyName, file)
+                        : resolved.FriendlyName;
+            }
+        }
+        // Raw enum storage ("E_PowerTimerModes::NewEnumerator0") reads as internals; spell it
+        // out the same way the editable enum dropdowns already do.
+        if (field.Value is { } value && value.Contains("::", StringComparison.Ordinal))
+        {
+            return PlainNames.Words(value);
+        }
+        return field.Value;
+    }
+
+    /// <summary>
+    /// The label for an entry's open-this-device button, or null when there is nothing to open.
+    /// A same-save target uses Core's own label. A cross-region target only becomes openable once
+    /// the folder-wide lookup has found it and it turns out to hold an inventory.
+    /// </summary>
+    private string? LinkLabelFor(WorldMapEntry entry)
+    {
+        if (!entry.LinkNeedsHostResolution) return entry.LinkLabel;
+        if (entry.LinkTargetId is not { Length: > 0 } id) return null;
+        if (!_crossRegionDevices.TryGetValue(id, out var resolved) || resolved is null || !resolved.IsContainer) return null;
+        return resolved.SourceFile is { Length: > 0 } file
+            ? L.Resource("WorldFeature_OpenInFile", resolved.FriendlyName, file)
+            : L.Resource("WorldFeature_Open", resolved.FriendlyName);
+    }
+
+    /// <summary>Deployables keyed by id, built once per tab so the socket panel can name a device
+    /// without walking and re-sorting the whole region's deployable list on every redraw.</summary>
+    private Dictionary<string, WorldDeployable> DeployablesById => _deployablesById ??= Session.Deployables
+        .GroupBy(deployable => deployable.Id, StringComparer.OrdinalIgnoreCase)
+        .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+
+    private string Heading(WorldMapFeatureSnapshot feature) => L.Resource("WorldFeature_TitleFormat", DisplayLabel(feature).ToUpperInvariant());
+
+    private string DisplayLabel(WorldMapFeatureSnapshot feature)
+        => IsResourceNodes ? L.Resource("WorldResourceNodes_Title") : feature.DisplayName;
+
+    private string Description(WorldMapFeatureSnapshot feature)
+        => IsResourceNodes ? L.Resource("WorldResourceNodes_Description") : feature.Description;
+
+    private WorldMapEntry? SelectedEntry(WorldMapFeatureSnapshot feature)
+        => _selectedKey is null ? null : feature.Entries.FirstOrDefault(entry => string.Equals(entry.Key, _selectedKey, StringComparison.Ordinal));
+
+    private string? AreaFor(WorldMapEntry entry) => WorldAreaCatalog.FriendlyNameFor(entry.Key, Session.Path);
+
+    /// <summary>
+    /// The line under an entry's name. It used to be a run of internal settings written as
+    /// name=value, which read like a debug dump; now each setting is spelled out with its
+    /// proper label and yes/no answers instead of true/false.
+    /// </summary>
+    private string Summary(WorldMapEntry entry)
+    {
+        if (IsResourceNodes && entry.Fields.FirstOrDefault(field => field.Id == "harvested") is { } state)
+            return $"{FieldLabel(entry, state)}: {StateText(entry, state)}";
+        return string.Join(" · ", entry.Fields
+            .Where(field => field.Editable)
+            .Select(field => FieldSummary(entry, field)));
+    }
+
+    /// <summary>One setting written out: its label, then its value in words. A setting that is
+    /// simply on or off answers yes or no, which reads correctly whatever the setting is called
+    /// ("Powered: Yes"), and a setting with nothing stored says so plainly.</summary>
+    private string FieldSummary(WorldMapEntry entry, WorldMapField field)
+    {
+        var label = FieldLabel(entry, field);
+        if (field.Kind == WorldFieldKind.Bool)
+            return $"{label}: {L.Resource(IsTrue(field.Value) ? "Common_Yes" : "Common_No")}";
+        return string.IsNullOrWhiteSpace(field.Value)
+            ? L.Resource("WorldFeature_FieldNotSet", label)
+            : $"{label}: {PlainNames.Words(field.Value)}";
+    }
+
+    private bool IsGlassPane(WorldMapEntry entry)
+        => IsResourceNodes && string.Equals(ResourceNodeNaming.TypeToken(entry.Key), "GlassPane", StringComparison.OrdinalIgnoreCase);
+
+    private string FieldLabel(WorldMapEntry entry, WorldMapField field) => IsResourceNodes
+        ? field.Id switch
+        {
+            "position" => L.Resource("WorldResourceNodes_Position"),
+            "harvested" => L.Resource(IsGlassPane(entry) ? "WorldResourceNodes_WindowState" : "WorldResourceNodes_State"),
+            "dayPickedUp" => L.Resource("WorldResourceNodes_RespawnTiming"),
+            _ => field.Label,
+        }
+        : field.Label;
+
+    private string? FieldHint(WorldMapEntry entry, WorldMapField field) => IsResourceNodes
+        ? field.Id switch
+        {
+            "position" => L.Resource("WorldResourceNodes_PositionHint"),
+            "harvested" => L.Resource(IsGlassPane(entry) ? "WorldResourceNodes_WindowStateHint" : "WorldResourceNodes_StateHint"),
+            "dayPickedUp" => L.Resource("WorldResourceNodes_RespawnTimingHint"),
+            _ => field.Hint,
+        }
+        : field.Hint;
+
+    /// <summary>Plain-language state beside resource-node toggles (Available/Depleted, Intact/Broken).</summary>
+    private string? StateText(WorldMapEntry entry, WorldMapField field)
+    {
+        if (!IsResourceNodes || field.Id != "harvested") return null;
+        return L.Resource(IsGlassPane(entry)
+            ? (IsTrue(field.Value) ? "WorldResourceNodes_Broken" : "WorldResourceNodes_Intact")
+            : (IsTrue(field.Value) ? "WorldResourceNodes_Depleted" : "WorldResourceNodes_Available"));
+    }
+
+    private static bool IsTrue(string? value) => bool.TryParse(value, out var result) && result;
+
+    private static string InputType(WorldMapField field) => field.Kind switch
+    {
+        WorldFieldKind.Integer => "number",
+        WorldFieldKind.Number => "number",
+        _ => "text",
+    };
+
+    private static string? StepFor(WorldMapField field) => field.Kind == WorldFieldKind.Number ? "any" : null;
+
+    private Task SetBooleanFieldAsync(string featureId, string entryKey, string fieldId, bool value)
+        => SetFieldAsync(featureId, entryKey, fieldId, value ? "true" : "false");
+
+    // A refused edit always says so. When the refusal came with its own explanation that is what
+    // the player sees; when it came back with nothing, a plain "that change was not accepted"
+    // still appears, so a rejected edit is never silently swallowed.
+    private async Task SetFieldAsync(string featureId, string entryKey, string fieldId, string? value)
+    {
+        var result = Session.SetMapFeatureField(featureId, entryKey, fieldId, value);
+        if (result.IsError)
+        {
+            var reason = result.Error is { Length: > 0 } explanation
+                ? explanation
+                : L.Resource("WorldFeature_ChangeRefused");
+            _fieldErrors[fieldId] = reason;
+            await OnError.InvokeAsync(reason);
+        }
+        else
+        {
+            _fieldErrors.Remove(fieldId);
+            // Tell the shell an edit happened, the same way every other world tab does. Without
+            // this, changing a resource node (or any other feature entry) staged the edit but
+            // left SAVE hidden, so the change looked like it had not registered at all.
+            Workspace.NotifyEdited();
+        }
+        RefreshSnapshot();
+    }
+
+    private async Task RemoveEntryAsync(string featureId, string entryKey)
+    {
+        var result = Session.RemoveMapFeatureEntry(featureId, entryKey);
+        if (result.IsError)
+        {
+            await OnError.InvokeAsync(result.Error is { Length: > 0 } explanation
+                ? explanation
+                : L.Resource("WorldFeature_RemoveRefused"));
+        }
+        else
+        {
+            if (string.Equals(_selectedKey, entryKey, StringComparison.Ordinal)) _selectedKey = null;
+            Workspace.NotifyEdited();
+        }
+        RefreshSnapshot();
+    }
+
+}

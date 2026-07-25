@@ -1,0 +1,18 @@
+@implements IDisposable
+@inject ToastService Toasts
+
+<section class="toast-stack" aria-live="polite" aria-label="@L.Resource("Common_Notifications")">
+    @foreach (var toast in Toasts.Messages)
+    {
+        @* Hovering a toast pauses its auto-dismiss countdown so it can be read. *@
+        <article class="toast toast-@toast.Kind.ToString().ToLowerInvariant()" role="status"
+                 @onmouseover="() => Toasts.Pause(toast.Id)"
+                 @onmouseout="() => Toasts.Resume(toast.Id)"><span>@toast.Text</span><button type="button" class="icon-button" aria-label="@L.Editor("notification.dismiss")" @onclick="() => Toasts.Dismiss(toast.Id)">×</button></article>
+    }
+</section>
+
+@code {
+    protected override void OnInitialized() => Toasts.Changed += HandleChanged;
+    private void HandleChanged() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => Toasts.Changed -= HandleChanged;
+}

@@ -1,0 +1,117 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject HostLanguageService Languages
+@inject HostThemeService Theme
+@inject HostSettingsService HostSettings
+@inject SaveWorkspaceSessionService Workspace
+@inject AbioticEditor.Ui.IFolderPicker FolderPicker
+@inject ToastService Toasts
+@inject NavigationManager Navigation
+
+<div class="app-frame @Theme.CssClass">
+    @if (!RendererInfo.IsInteractive)
+    {
+        @* The prerendered page looks ready long before the circuit is: clicks during that
+           gap silently vanish, which reads as "the editor ignored me". Cover the page
+           until interactive rendering takes over (this branch disappears on the first
+           interactive render). The gate fades in after a short delay so a fast start
+           never flashes it. *@
+        <div class="boot-gate" role="status">
+            <span class="blocking-busy-spinner" aria-hidden="true"></span>
+            <strong>@Languages.Resource("Main_StartingUp")</strong>
+        </div>
+    }
+    <a class="skip-link" href="#main-content">@Languages.Text("skip")</a>
+    <header class="masthead">
+        <a class="brand-lockup" href="/browse" aria-label="@Languages.Text("brand.home")">
+            <GameArtImage GameRef="@LogoPrimaryRef" Alt="">
+                <ChildContent>
+                    <GameArtImage GameRef="@LogoFallbackRef" Alt="">
+                        <ChildContent>
+                            <span class="brand-logo-tile" aria-hidden="true">AF</span>
+                        </ChildContent>
+                    </GameArtImage>
+                </ChildContent>
+            </GameArtImage>
+            <span>@Languages.Resource("HeaderBar_VersionLabel", AppVersion)</span>
+        </a>
+        <div class="active-folder">
+            <span>@Languages.Text("active.save.folder")</span>
+            @* Game Pass workspaces read from a temp extraction the player never made; show
+               the real Xbox save folder instead, exactly like the native app's header. *@
+            <strong>@(Workspace.Current?.DisplayFolder ?? Languages.Text("none.selected"))</strong>
+        </div>
+        <nav class="header-actions" aria-label="@Languages.Text("application.actions")">
+            @if (Workspace.BusyOperation is { } busy)
+            {
+                <span class="header-busy" role="status" aria-live="polite" title="@busy"><span class="header-busy-spinner" aria-hidden="true"></span></span>
+            }
+            @* /browse always lands on the home page (world list), even while a save is
+               open - a plain "/" would just re-render the open editor surface. *@
+            <NavLink class="round-action material-symbol" href="/browse" Match="NavLinkMatch.All" title="@Languages.Text("home")" aria-label="@Languages.Text("home")">home</NavLink>
+            <button class="open-folder-action" type="button" @onclick="PickFolderAsync" disabled="@_openingFolder"><span class="material-symbol" aria-hidden="true">folder_open</span>@(_openingFolder ? Languages.Text("opening") : Languages.Text("open").ToUpperInvariant())</button>
+        </nav>
+    </header>
+    <div class="hazard" aria-hidden="true"></div>
+    <main id="main-content" tabindex="-1"><WorkspaceShell>@Body</WorkspaceShell></main>
+    <footer class="status-footer">
+        <div class="live-status"><span aria-hidden="true"></span>@(Workspace.Current is null ? Languages.Text("status.ready") : Languages.Text("status.loaded", Workspace.Current.Saves.Count))</div>
+        <span class="logging-path" title="@HostSettings.CurrentLogPath">@Languages.Resource("Main_LoggingTo", HostSettings.CurrentLogPath)</span>
+        <nav class="host-nav" aria-label="@Languages.Text("utilities")"><button type="button" class="settings-action" @onclick="OpenSettings"><span class="material-symbol" aria-hidden="true">settings</span>@Languages.Resource("Status_Settings")</button></nav>
+        <span class="footer-product">@Languages.Resource("Common_AppName")</span>
+    </footer>
+    <ModalHost />
+    <ToastHost />
+    @if (_settingsOpen)
+    {
+        <Settings OnClose="CloseSettings" />
+    }
+</div>
+
+@code {
+    // Same two candidates the native header tries, in order: the square app-icon-style
+    // logo first, then the wide full-color wordmark. Neither is guaranteed to exist (no
+    // local game install / mappings), so GameArtImage's ChildContent nests down to the
+    // "AF" tile fallback.
+    private const string LogoPrimaryRef = "AbioticFactor/Content/Textures/GUI/Inventory/T_ABF_Logo_1024";
+    private const string LogoFallbackRef = "AbioticFactor/Content/Textures/GUI/Logos/ABF-Full-Color-1024w";
+
+    private static readonly string AppVersion = AbioticEditor.Updater.AppVersionInfo.For(typeof(HostLanguageService).Assembly);
+
+    protected override void OnInitialized()
+    {
+        Languages.Changed += Refresh;
+        Theme.Changed += Refresh;
+        Workspace.Changed += RefreshWorkspace;
+    }
+
+    private bool _openingFolder;
+    private bool _settingsOpen;
+    private void OpenSettings() => _settingsOpen = true;
+    private void CloseSettings() => _settingsOpen = false;
+    private void Refresh(object? sender, EventArgs args) => _ = InvokeAsync(StateHasChanged);
+    private void RefreshWorkspace() => _ = InvokeAsync(StateHasChanged);
+    private async Task PickFolderAsync()
+    {
+        if (_openingFolder) return;
+        _openingFolder = true;
+        try
+        {
+            var picked = await FolderPicker.PickFolderAsync(new() { Title = Languages.Text("folder.choose.title") });
+            if (picked?.Path is null) return;
+            await Workspace.OpenAsync(picked.Path);
+            Toasts.Show(Languages.Text("folder.opened", Path.GetFileName(picked.Path)), ToastKind.Success);
+            Navigation.NavigateTo("/");
+        }
+        catch (Exception exception)
+        {
+            Errors.Record(exception, "Open save folder");
+            Toasts.Show(Languages.Text("folder.open.error", "Check that the folder still exists and that you can read it."), ToastKind.Error, TimeSpan.FromSeconds(8));
+        }
+        finally
+        {
+            _openingFolder = false;
+        }
+    }
+    public void Dispose() { Languages.Changed -= Refresh; Theme.Changed -= Refresh; Workspace.Changed -= RefreshWorkspace; }
+}

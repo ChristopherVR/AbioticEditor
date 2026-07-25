@@ -3,7 +3,7 @@
   <!--
     The public plugin SDK. Plugin authors reference ONLY this assembly (plus, if they
     manipulate save bytes directly, UeSaveGame which it forwards). It is deliberately:
-      * host-agnostic   - no MAUI, no System.CommandLine, no CUE4Parse. A plugin compiled
+      * host-agnostic   - no UI framework, no System.CommandLine, no CUE4Parse. A plugin compiled
                           against it runs identically inside the GUI, the CLI, or a test.
       * tiny + stable   - contracts only, so its version is the host-compatibility contract
                           (see PluginManifest.MinHostVersion / IPluginHost.SdkVersion).

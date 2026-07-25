@@ -21,9 +21,21 @@ public static class PluginPaths
     /// <c>%LOCALAPPDATA%\AbioticEditor</c> - the app's per-user root, shared with logs and
     /// the usmap override. Created on demand by callers that write into it.
     /// </summary>
-    public static string AppDataRoot { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "AbioticEditor");
+    /// <remarks>
+    /// Redirectable with <c>ABIOTIC_APPDATA_DIR</c> so a test run (or a portable install)
+    /// keeps its plugin data out of the real per-user folder. Without it the test suite wrote
+    /// its throwaway plugin ids into the installed app's own data folder, where they looked
+    /// like real installed plugins misbehaving.
+    /// </remarks>
+    public static string AppDataRoot { get; } = ResolveAppDataRoot();
+
+    private static string ResolveAppDataRoot()
+    {
+        var overridden = Environment.GetEnvironmentVariable("ABIOTIC_APPDATA_DIR");
+        return string.IsNullOrWhiteSpace(overridden)
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AbioticEditor")
+            : overridden.Trim();
+    }
 
     /// <summary>User plugins root (<c>%LOCALAPPDATA%\AbioticEditor\plugins</c>).</summary>
     public static string UserPluginsDirectory { get; } = Path.Combine(AppDataRoot, FolderName);

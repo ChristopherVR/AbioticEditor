@@ -44,9 +44,6 @@ public sealed class PluginDescriptor
     /// <summary>Console commands the plugin registered (empty until loaded).</summary>
     public IReadOnlyList<IConsoleCommand> ConsoleCommands { get; internal set; } = Array.Empty<IConsoleCommand>();
 
-    /// <summary>Editor (UI) tools the plugin registered (empty until loaded).</summary>
-    public IReadOnlyList<IEditorTool> EditorTools { get; internal set; } = Array.Empty<IEditorTool>();
-
     /// <summary>Web (HTML/React) tools the plugin registered (empty until loaded).</summary>
     public IReadOnlyList<IWebTool> WebTools { get; internal set; } = Array.Empty<IWebTool>();
 
@@ -65,14 +62,14 @@ public sealed class PluginDescriptor
 
     /// <summary>
     /// The plugin's host services, available once loaded. Hosts use it to build capability
-    /// contexts (the CLI for console commands, the GUI for editor tools) and to reach the
+    /// contexts (the CLI for console commands, the Razor host for web tools) and to reach the
     /// plugin's logger and data directory.
     /// </summary>
     public IPluginHost? Host { get; internal set; }
 
     /// <summary>True if the plugin loaded and exposed at least one capability.</summary>
     public bool HasCapabilities =>
-        SaveOperations.Count > 0 || ConsoleCommands.Count > 0 || EditorTools.Count > 0
+        SaveOperations.Count > 0 || ConsoleCommands.Count > 0
         || WebTools.Count > 0 || MenuActions.Count > 0 || EventHandlers.Count > 0 || SaveUpgraders.Count > 0
         || Localizations.Count > 0;
 
@@ -88,7 +85,6 @@ public sealed class PluginDescriptor
         var parts = new List<string>();
         if (SaveOperations.Count > 0) parts.Add($"{SaveOperations.Count} operation(s)");
         if (ConsoleCommands.Count > 0) parts.Add($"{ConsoleCommands.Count} command(s)");
-        if (EditorTools.Count > 0) parts.Add($"{EditorTools.Count} tool(s)");
         if (WebTools.Count > 0) parts.Add($"{WebTools.Count} web tool(s)");
         if (SaveUpgraders.Count > 0) parts.Add($"{SaveUpgraders.Count} upgrader(s)");
         if (MenuActions.Count > 0) parts.Add($"{MenuActions.Count} menu action(s)");

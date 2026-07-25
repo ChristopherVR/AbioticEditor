@@ -4,7 +4,7 @@ namespace AbioticEditor.Plugins;
 /// The single entry point a plugin assembly exposes. The host scans a plugin's entry
 /// assembly for exactly one public, parameterless-constructible type implementing this
 /// interface, creates it, and calls <see cref="Configure"/> once to let the plugin
-/// register its capabilities (save operations, console commands, editor tools).
+/// register its capabilities (save operations, console commands, web tools).
 ///
 /// <para>
 /// Why one explicit entry point rather than scanning for every capability type: it keeps

@@ -1,0 +1,44 @@
+@implements IDisposable
+@using Microsoft.JSInterop
+@inject ModalService Modals
+@inject IJSRuntime Js
+
+@if (Modals.Current is { } modal)
+{
+    <div class="modal-backdrop" role="presentation" @onclick="() => BackdropClicked(modal)">
+        <section @ref="_dialog" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1" @onclick:stopPropagation="true" @onkeydown="HandleKeyDown">
+            <div class="modal-accent" aria-hidden="true"></div>
+            <header class="modal-header"><h2 id="modal-title">@modal.Title</h2></header>
+            <div class="modal-body">@modal.Body</div>
+            <footer class="modal-actions"><button @ref="_initialButton" class="secondary" @onclick="CancelAsync">@modal.CancelText</button>
+                @if (modal.OnConfirm is not null) { <button class="@(modal.IsDestructive ? "danger" : "primary")" disabled="@_confirming" @onclick="ConfirmAsync">@(_confirming ? L.Resource("Common_Working") : modal.ConfirmText ?? L.Resource("Common_Confirm"))</button> }
+            </footer>
+        </section>
+    </div>
+}
+
+@code {
+    private bool _confirming;
+    private ElementReference _dialog;
+    private ElementReference _initialButton;
+    private bool _focusPending;
+    protected override void OnInitialized() => Modals.Changed += HandleChanged;
+    private void HandleChanged() { _focusPending = Modals.Current is not null; _ = InvokeAsync(StateHasChanged); }
+    private Task BackdropClicked(ModalRequest modal) => modal.CloseOnBackdrop ? CancelAsync() : Task.CompletedTask;
+    private Task HandleKeyDown(KeyboardEventArgs args) => args.Key == "Escape" ? CancelAsync() : Task.CompletedTask;
+    private async Task CancelAsync() { var modal = Modals.Current; Modals.Close(); if (modal?.OnCancel is { } declined) await declined(); }
+    private async Task ConfirmAsync() { var action = Modals.Current?.OnConfirm; if (action is null) return; _confirming = true; try { await action(); Modals.Close(); } finally { _confirming = false; } }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusPending && Modals.Current is not null)
+        {
+            _focusPending = false;
+            await Js.InvokeVoidAsync("abiotic.modal.activate", _dialog, _initialButton);
+        }
+    }
+    public void Dispose()
+    {
+        Modals.Changed -= HandleChanged;
+        _ = Js.InvokeVoidAsync("abiotic.modal.deactivate");
+    }
+}

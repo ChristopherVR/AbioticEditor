@@ -1,0 +1,499 @@
+@namespace AbioticEditor.Web.Components.Player
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Services
+@using AbioticEditor.Core.Items
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject ItemCatalogService Catalog
+@inject InventorySelectionService Selection
+@inject SlotDragDropService Dnd
+@inject IJSRuntime Js
+
+@* Faithful port of the native PlayerInventoryTab: the AF-style paper-doll layout.
+   Equipment paper-doll on the left, the vertical numbered hotbar beside the character,
+   the pockets grid with the money / sort / drop footer, and the on-the-ground-nearby
+   pickup panel. Slots open the slot editor on click and swap via drag-and-drop with the
+   same role-fit rules the native app enforces; the drag payload rides the shared
+   SlotDragDropService, so catalog items dragged from the sidebar palette (or the
+   transmog tab's palette) drop onto any slot here too. *@
+<section class="editor-card inventory-card" aria-label="@L.Resource("PlayerInventory_Inventory")">
+    <div class="inventory-header">
+        <h3>@L.Resource("PlayerInventory_Inventory")</h3>
+        <span class="inventory-occupied"><small>@L.Resource("PlayerInventory_Occupied")</small><strong>@OccupiedCount / @TotalCount</strong></span>
+        @* Whose inventory this is, by name. The long account number the save is filed under
+           means nothing to a player, so it is not shown here at all. *@
+        <span class="inventory-file">@PlainNames.Player(L, Session.SteamIdentifier)</span>
+    </div>
+    <div class="hazard-stripe" aria-hidden="true"></div>
+
+    <div class="inventory-columns">
+        <!-- Equipment paper-doll: character-pane glow like the game -->
+        <div class="equipment-pane">
+            <div class="equipment-head">
+                <span class="pane-label">@L.Resource("PlayerInventory_Equipment")</span>
+                <span class="weight-readout"><small>@L.Resource("PlayerInventory_Weight")</small><strong>@L.Resource("PlayerInventory_WeightKgFormat", TotalWeight)</strong></span>
+            </div>
+            <div class="paper-doll">
+                @foreach (var cell in PaperDoll)
+                {
+                    @SlotTile(PlayerInventoryArea.Equipment, Session.Equipment.FirstOrDefault(s => s.Index == cell.Index), cell.Row, cell.Column)
+                }
+            </div>
+        </div>
+
+        <!-- Hotbar: vertical numbered column beside the character, like the game -->
+        <div class="hotbar-pane">
+            <span class="pane-label hotbar-label">@L.Resource("PlayerInventory_Hotbar")</span>
+            <div class="hotbar-column">
+                @foreach (var slot in Session.Hotbar) { @SlotTile(PlayerInventoryArea.Hotbar, slot, null, null) }
+            </div>
+        </div>
+
+        <!-- Main backpack grid: in-game POCKETS pane -->
+        <div class="pockets-pane">
+            <div class="pockets-head">
+                <span class="pane-label amber-field-label">@BackpackTitle</span>
+                <span class="pockets-count">@L.Resource("PlayerInventory_SlotsFormat", Session.Backpack.Count)</span>
+            </div>
+            <div class="pockets-grid">
+                @foreach (var slot in Session.Backpack) { @SlotTile(PlayerInventoryArea.Backpack, slot, null, null) }
+            </div>
+            <div class="pockets-footer">
+                <label class="amber-field-label" for="inventory-money">@L.Resource("PlayerInventory_Money")</label>
+                <input id="inventory-money" class="money-entry" type="number" step="1" @bind="Session.Vitals.Money" @bind:after="Changed" />
+                <span class="pockets-footer-spacer"></span>
+                <button class="secondary" type="button" title="@L.Resource("PlayerInventory_SortTooltip")" @onclick="SortBackpack">@L.Resource("PlayerInventory_Sort")</button>
+                <button class="accent-alert" type="button" disabled="@(!CanDropActive)" title="@L.Resource("PlayerInventory_DropItemTooltip")" @onclick="DropActive">@L.Resource("PlayerInventory_DropItem")</button>
+            </div>
+        </div>
+    </div>
+
+    @* Pick-then-place: the alternative to dragging one tile onto another, which a touch
+       screen cannot do. Same move, same rules, two taps instead of a drag. With a mouse the
+       bar renders nothing, so dragging and the layout around it are unchanged. *@
+    <SlotMoveBar Touch="@_touch" Holding="@Dnd.IsDragging" CanStart="@CanStartMove"
+                 Message="@HoldingMessage" OnStart="StartMove" OnCancel="CancelMove" />
+
+    @if (_status is not null) { <p class="muted inventory-status" role="status">@_status</p> }
+
+    @if (NearbyGroundItems.Count > 0)
+    {
+        <!-- Dropped items lying within reach of the player's saved position -->
+        <div class="ground-panel">
+            <span class="amber-field-label">@L.Resource("PlayerInventory_OnTheGroundNearby")</span>
+            <p class="muted ground-help">@L.Resource("PlayerInventory_GroundNearbyHelp")</p>
+            <div class="ground-list">
+                @foreach (var item in NearbyGroundItems)
+                {
+                    <div class="ground-row" @key="item.Id">
+                        <span class="ground-text"><strong>@GroundName(item)</strong><small>@L.Resource("PlayerUi_GroundItemDistance", item.Slot.Count, item.DistanceTo(Session.Respawn.X, Session.Respawn.Y, Session.Respawn.Z))</small></span>
+                        <button class="heal-all-button" type="button" @onclick="() => PickUp(item)">@L.Resource("PlayerInventory_PickUp")</button>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    [Parameter] public WorldSaveSession? WorldSession { get; set; }
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private string? _status;
+    private PlayerInventorySlotEdit? _dragOverSlot;
+    private IJSObjectReference? _dnd;
+    /// <summary>True on a device whose pointer cannot hover (a phone or tablet). Dragging a
+    /// tile is not possible there, so those devices get the two-tap bar instead.</summary>
+    private bool _touch;
+
+    // Equipment slot semantics, mirroring the native paper-doll placement; the role map
+    // itself is shared with every other slot surface via SlotDropRules (verified against
+    // the game's own W_Inventory_EquipSlots widget).
+    private static readonly (int Index, int Row, int Column)[] PaperDoll =
+    [
+        (1, 1, 2),               // head
+        (6, 2, 1), (0, 2, 2), (7, 2, 3),   // headlamp / chest / trinket
+        (4, 3, 1), (3, 3, 2), (10, 3, 3),  // arms / backpack / shield
+        (8, 4, 1), (2, 4, 2), (9, 4, 3),   // watch / legs / hacker
+        (11, 5, 2),              // trinket B
+        (5, 6, 1), (12, 6, 3),   // suit / companion
+    ];
+
+    private int OccupiedCount => Session.Equipment.Concat(Session.Hotbar).Concat(Session.Backpack).Count(slot => !slot.IsEmpty);
+    private int TotalCount => Session.Equipment.Count + Session.Hotbar.Count + Session.Backpack.Count;
+
+    /// <summary>Sum of count x catalog weight across every inventory, like the native readout.</summary>
+    private double TotalWeight => Session.Equipment.Concat(Session.Hotbar).Concat(Session.Backpack)
+        .Sum(slot => slot.IsEmpty ? 0 : slot.Count * (Catalog.Find(slot.ItemId)?.Weight ?? 0));
+
+    /// <summary>Backpack-grid title like the game's: the equipped pack's name + capacity.</summary>
+    private string BackpackTitle
+    {
+        get
+        {
+            var entry = Catalog.Find(Session.Equipment.FirstOrDefault(slot => slot.Index == 3)?.ItemId);
+            if (entry is null || entry.ContainerCapacity <= 0) return L.Resource("PlayerEditor_Pockets");
+            var name = entry.DisplayName.ToUpperInvariant();
+            return entry.ContainerCapacity == Session.Backpack.Count
+                ? L.Resource("PlayerEditor_BackpackTitleSlots", name, entry.ContainerCapacity)
+                : L.Resource("PlayerEditor_BackpackTitleMismatch", name, entry.ContainerCapacity, Session.Backpack.Count);
+        }
+    }
+
+    /// <summary>Special backpack slot badges (cold / freezer / shielded / warm) for the equipped pack.</summary>
+    private IReadOnlyDictionary<int, string> BackpackRoles
+        => BackpackSpecialSlotCatalog.Fallback.For(Session.Equipment.FirstOrDefault(slot => slot.Index == 3)?.ItemId);
+
+    private List<AbioticEditor.Core.WorldSaves.WorldDroppedItem> NearbyGroundItems => WorldSession?.DroppedItems
+        .Where(item => !item.Slot.IsEmpty && item.DistanceTo(Session.Respawn.X, Session.Respawn.Y, Session.Respawn.Z) <= 1500)
+        .ToList() ?? [];
+
+    private RenderFragment SlotTile(PlayerInventoryArea area, PlayerInventorySlotEdit? slot, int? row, int? column) => __builder =>
+    {
+        if (slot is null) return;
+        var role = area == PlayerInventoryArea.Equipment
+            ? RoleFor(area, slot.Index)
+            : area == PlayerInventoryArea.Backpack && BackpackRoles.TryGetValue(slot.Index, out var packRole) ? packRole : null;
+        var name = DisplayName(slot);
+        var selected = Selection.Current?.Slot == slot;
+        var style = row is { } r && column is { } c ? $"grid-row:{r};grid-column:{c}" : null;
+        var dropState = DropStateFor(area, slot);
+        <button type="button" style="@style"
+                class="inv-slot inv-slot-@AreaName(area) @(selected ? "selected" : null) @DropClassFor(slot, dropState)"
+                aria-label="@L.Resource("PlayerUi_InventorySlotAria", AreaLabel(area), slot.Index, name)"
+                draggable="@(!slot.IsEmpty ? "true" : "false")"
+                data-drag="@(slot.IsEmpty ? null : SlotDropRules.SlotPayload(area, slot))"
+                data-slot-drop
+                data-dropzone="@dropState"
+                @ondragstart="() => DragStart(area, slot)"
+                @ondragend="EndDrag"
+                @ondragenter="() => DragEnter(area, slot)"
+                @ondragleave="() => DragLeave(slot)"
+                @ondragover:preventDefault
+                @ondrop="() => Drop(area, slot)"
+                @onclick="() => Tap(area, slot)">
+            @if (!slot.IsEmpty && slot.ItemId is { } itemId) { <span class="inv-slot-icon"><ItemIcon ItemId="@itemId" Alt="@name" /></span> }
+            @if (area == PlayerInventoryArea.Hotbar) { <span class="inv-slot-hotkey">@slot.Index</span> }
+            else if (area == PlayerInventoryArea.Equipment) { @if (slot.IsEmpty && role is not null) { <span class="inv-slot-role">@role</span> } }
+            else
+            {
+                @if (slot.IsEmpty) { <span class="inv-slot-index">[@slot.Index.ToString("D2")]</span> }
+                @if (role is not null) { <span class="inv-slot-special">@role</span> }
+            }
+            @if (slot.Count > 1) { <span class="inv-slot-count">@slot.Count</span> }
+            @if (IsUpgradable(slot)) { <span class="inv-slot-upg">▲</span> }
+            <span class="inv-slot-name">@name</span>
+        </button>
+    };
+
+    private static string AreaName(PlayerInventoryArea area) => area switch
+    {
+        PlayerInventoryArea.Equipment => "equipment",
+        PlayerInventoryArea.Hotbar => "hotbar",
+        _ => "pockets",
+    };
+
+    private string AreaLabel(PlayerInventoryArea area) => L.Resource(area switch
+    {
+        PlayerInventoryArea.Equipment => "PlayerInventory_Equipment",
+        PlayerInventoryArea.Hotbar => "PlayerInventory_Hotbar",
+        _ => "PlayerInventory_Backpack",
+    });
+
+    /// <summary>The item's real name. When the game files are not available the stored name is
+    /// at least spaced out into words rather than shown as a raw run-together id.</summary>
+    private string DisplayName(PlayerInventorySlotEdit slot)
+        => slot.IsEmpty ? string.Empty : Catalog.Find(slot.ItemId)?.DisplayName ?? PlainNames.Words(slot.ItemId);
+
+    private bool IsUpgradable(PlayerInventorySlotEdit slot)
+        => !slot.IsEmpty && Session.ItemUpgrades.UpgradeFor(slot.ItemId) is not null;
+
+    private IReadOnlyList<PlayerInventorySlotEdit> SlotsFor(PlayerInventoryArea area) => area switch
+    {
+        PlayerInventoryArea.Equipment => Session.Equipment,
+        PlayerInventoryArea.Hotbar => Session.Hotbar,
+        _ => Session.Backpack,
+    };
+
+    private static string? RoleFor(PlayerInventoryArea area, int index) => SlotDropRules.RoleFor(area, index);
+
+    // ---------- slot editor selection (the same contract every slot surface uses) ----------
+
+    private void Select(PlayerInventoryArea area, PlayerInventorySlotEdit slot)
+    {
+        var slots = SlotsFor(area);
+        Selection.Select(new(
+            AreaLabel(area), slot, slots, Session.ItemVocabulary, Benches,
+            area == PlayerInventoryArea.Equipment ? Session.Backpack : slots,
+            area != PlayerInventoryArea.Equipment,
+            Changed,
+            pair => SwapWithin(area, pair),
+            action => Upgrade(area, action),
+            s => Session.ItemUpgrades.UpgradeFor(s.ItemId) is not null,
+            s => Session.ItemUpgrades.SourceOf(s.ItemId) is not null)
+        {
+            PlayerArea = area,
+            Role = RoleFor(area, slot.Index),
+            QuickGiveFallback = QuickGiveFallback,
+            SelectSlot = SelectAnywhere,
+        });
+    }
+
+    /// <summary>Native quick-give auto-pick: first empty backpack slot, then hotbar; a pet
+    /// (hotbar-only) always goes to the hotbar so it never lands where the game rejects it.</summary>
+    private QuickGiveTarget? QuickGiveFallback(bool hotbarOnly)
+    {
+        var hotbar = Session.Hotbar.FirstOrDefault(slot => slot.IsEmpty);
+        if (hotbarOnly) return hotbar is null ? null : new(hotbar, PlayerInventoryArea.Hotbar, null);
+        if (Session.Backpack.FirstOrDefault(slot => slot.IsEmpty) is { } backpack)
+            return new(backpack, PlayerInventoryArea.Backpack, null);
+        return hotbar is null ? null : new(hotbar, PlayerInventoryArea.Hotbar, null);
+    }
+
+    /// <summary>Select a slot in whichever of this player's areas contains it.</summary>
+    private void SelectAnywhere(PlayerInventorySlotEdit slot)
+    {
+        if (Session.Equipment.Contains(slot)) Select(PlayerInventoryArea.Equipment, slot);
+        else if (Session.Hotbar.Contains(slot)) Select(PlayerInventoryArea.Hotbar, slot);
+        else if (Session.Backpack.Contains(slot)) Select(PlayerInventoryArea.Backpack, slot);
+    }
+
+    private IReadOnlyList<AbioticEditor.Core.WorldSaves.WorldDeployable> Benches
+        => WorldSession?.Deployables.Where(deployable => deployable.IsCraftingBench).ToArray() ?? [];
+
+    private Task Changed() { Session.MarkChanged(); return OnChanged.InvokeAsync(); }
+    private Task SwapWithin(PlayerInventoryArea area, (int First, int Second) pair) { Session.TrySwapInventorySlots(area, pair.First, pair.Second); return OnChanged.InvokeAsync(); }
+    private Task Upgrade(PlayerInventoryArea area, (int Index, bool Downgrade) action) { Session.TryApplyItemUpgrade(area, action.Index, action.Downgrade); return OnChanged.InvokeAsync(); }
+    private async Task SortBackpack() { Session.SortInventorySlots(PlayerInventoryArea.Backpack); await OnChanged.InvokeAsync(); }
+
+    // ---------- pick-then-place (the touch path) ----------
+
+    /// <summary>
+    /// A tap on a slot. With nothing being carried it opens the slot for editing, exactly as
+    /// before. While an item is being carried - either picked up with MOVE / SWAP or taken
+    /// from the item catalog - the tap drops it here instead, running the same checks a drag
+    /// would. A mouse drag never reaches this: the browser does not raise a click on the tile
+    /// a drag ends over, so dragging keeps behaving exactly as it always did.
+    /// </summary>
+    private async Task Tap(PlayerInventoryArea area, PlayerInventorySlotEdit slot)
+    {
+        if (!Dnd.IsDragging) { Select(area, slot); return; }
+
+        // A mis-tap on a slot that cannot take the item should say why and keep hold of it,
+        // rather than quietly putting it down again.
+        if (Dnd.PaletteItem is { } palette
+            && SlotDropRules.ValidateForSlot(L, area, RoleFor(area, slot.Index), palette) is { } problem)
+        {
+            _status = L.Resource("Slot_MsgBlocked", problem);
+            return;
+        }
+        if (Dnd.Source is { } source && !ReferenceEquals(source.Slot, slot)
+            && SwapProblem(source, area, slot) is { } swapProblem)
+        {
+            _status = swapProblem;
+            return;
+        }
+        await Drop(area, slot);
+    }
+
+    /// <summary>The selected slot can start a move when it actually holds something.</summary>
+    private bool CanStartMove => ActiveSlot is { Slot.IsEmpty: false };
+
+    private string? HoldingMessage => Dnd.PaletteItem is { } palette
+        ? palette.DisplayName
+        : Dnd.Source is { } source ? DisplayName(source.Slot) : null;
+
+    private void StartMove()
+    {
+        if (ActiveSlot is { Slot.IsEmpty: false } active)
+        {
+            Dnd.BeginSlotDrag(new SlotDragSource(Session, active.Area, active.Slot, RoleFor(active.Area, active.Slot.Index)));
+            _status = null;
+        }
+    }
+
+    private void CancelMove()
+    {
+        Dnd.End();
+        _dragOverSlot = null;
+        _status = null;
+    }
+
+    // ---------- drag-and-drop with the native role-fit rules (shared SlotDropRules) ----------
+
+    private void DragStart(PlayerInventoryArea area, PlayerInventorySlotEdit slot)
+    {
+        if (slot.IsEmpty) return;
+        Dnd.BeginSlotDrag(new SlotDragSource(Session, area, slot, RoleFor(area, slot.Index)));
+        _status = L.Resource("Slot_MsgDragging", DisplayName(slot), AreaLabel(area), slot.Index);
+    }
+
+    private void EndDrag()
+    {
+        Dnd.End();
+        _dragOverSlot = null;
+    }
+
+    private void DragEnter(PlayerInventoryArea area, PlayerInventorySlotEdit slot)
+    {
+        _dragOverSlot = slot;
+        // Surface the native "Blocked: ..." message live while hovering an ineligible slot.
+        if (Dnd.PaletteItem is { } palette && SlotDropRules.ValidateForSlot(L, area, RoleFor(area, slot.Index), palette) is { } problem)
+            _status = L.Resource("Slot_MsgBlocked", problem);
+        else if (Dnd.Source is { } source && !ReferenceEquals(source.Slot, slot) && SwapProblem(source, area, slot) is { } swapProblem)
+            _status = swapProblem;
+    }
+
+    private void DragLeave(PlayerInventorySlotEdit slot)
+    {
+        if (ReferenceEquals(_dragOverSlot, slot)) _dragOverSlot = null;
+    }
+
+    private string? SwapProblem(SlotDragSource source, PlayerInventoryArea targetArea, PlayerInventorySlotEdit target)
+        => SlotDropRules.SwapProblem(L, Catalog,
+            source.Area, source.Role, source.Slot,
+            targetArea, RoleFor(targetArea, target.Index), target);
+
+    /// <summary>"allowed"/"blocked" while a drag is in progress, null otherwise. Rendered as
+    /// the data-dropzone attribute the JS dragover handler reads for the drop cursor.</summary>
+    private string? DropStateFor(PlayerInventoryArea area, PlayerInventorySlotEdit slot)
+    {
+        if (Dnd.PaletteItem is { } palette)
+            return SlotDropRules.ValidateForSlot(L, area, RoleFor(area, slot.Index), palette) is null ? "allowed" : "blocked";
+        if (Dnd.Source is { } source)
+        {
+            if (ReferenceEquals(source.Slot, slot)) return "blocked";
+            return SwapProblem(source, area, slot) is null ? "allowed" : "blocked";
+        }
+        return null;
+    }
+
+    private string? DropClassFor(PlayerInventorySlotEdit slot, string? dropState) => dropState switch
+    {
+        "blocked" => "drop-blocked",
+        "allowed" => ReferenceEquals(_dragOverSlot, slot) ? "drop-hover" : "drop-allowed",
+        _ => null,
+    };
+
+    private async Task Drop(PlayerInventoryArea targetArea, PlayerInventorySlotEdit target)
+    {
+        var palette = Dnd.PaletteItem;
+        var source = Dnd.Source;
+        EndDrag();
+
+        // Palette drops (sidebar or transmog palette) spawn a fresh copy of the item.
+        if (palette is not null)
+        {
+            if (SlotDropRules.ValidateForSlot(L, targetArea, RoleFor(targetArea, target.Index), palette) is { } problem)
+            {
+                _status = L.Resource("Slot_MsgBlocked", problem);
+                return;
+            }
+            SlotDropRules.FillFromCatalog(target, palette);
+            Select(targetArea, target);
+            _status = L.Resource("Slot_MsgGave", palette.DisplayName, target.Count);
+            Selection.NotifyItemCommitted();
+            await Changed();
+            return;
+        }
+
+        if (source is null || !ReferenceEquals(source.Session, Session) || ReferenceEquals(source.Slot, target)) return;
+
+        // Swap validation both ways: the dragged item must fit the target slot and the
+        // displaced item must fit the source slot (role fit + hotbar-only pets).
+        if (SwapProblem(source, targetArea, target) is { } swapProblem)
+        {
+            _status = swapProblem;
+            return;
+        }
+
+        // Cross-surface swap: the source may be a transmog slot - the native drop handler
+        // moves between the transmog grid and the inventory the same way.
+        if (!Session.TrySwapInventorySlots(source.Area, source.Slot.Index, targetArea, target.Index)) return;
+        Select(targetArea, target);
+        _status = L.Resource("Slot_MsgSwapped", DisplayName(target));
+        Selection.NotifyItemCommitted();
+        await OnChanged.InvokeAsync();
+    }
+
+    // ---------- footer drop + ground pickups ----------
+
+    private (PlayerInventoryArea Area, PlayerInventorySlotEdit Slot)? ActiveSlot
+    {
+        get
+        {
+            if (Selection.Current?.Slot is not { } slot) return null;
+            if (Session.Equipment.Contains(slot)) return (PlayerInventoryArea.Equipment, slot);
+            if (Session.Hotbar.Contains(slot)) return (PlayerInventoryArea.Hotbar, slot);
+            if (Session.Backpack.Contains(slot)) return (PlayerInventoryArea.Backpack, slot);
+            return null;
+        }
+    }
+
+    private bool CanDropActive => WorldSession is not null && ActiveSlot is { Slot.IsEmpty: false };
+
+    private async Task DropActive()
+    {
+        if (WorldSession is null || ActiveSlot is not { } active) return;
+        if (!InventoryTransferService.TryDropPlayerSlot(Session, active.Area, active.Slot.Index,
+                WorldSession, Session.Respawn.X, Session.Respawn.Y, Session.Respawn.Z, out _))
+        {
+            _status = L.Resource("PlayerUi_DropStageFailed");
+            return;
+        }
+        _status = L.Resource("PlayerUi_DropStaged");
+        await OnChanged.InvokeAsync();
+    }
+
+    private string GroundName(AbioticEditor.Core.WorldSaves.WorldDroppedItem item)
+        => Catalog.Find(item.Slot.ItemId)?.DisplayName
+           ?? (PlainNames.Words(item.Slot.ItemId) is { Length: > 0 } spaced ? spaced : L.Resource("PlayerUi_UnknownItem"));
+
+    /// <summary>PICK UP stages the item into the first empty backpack slot, like the native button.</summary>
+    private async Task PickUp(AbioticEditor.Core.WorldSaves.WorldDroppedItem item)
+    {
+        if (WorldSession is null) return;
+        var target = Session.Backpack.FirstOrDefault(slot => slot.IsEmpty);
+        if (target is null || !InventoryTransferService.TryPickUpDroppedItem(Session, PlayerInventoryArea.Backpack, target.Index, WorldSession, item.Id))
+        {
+            _status = L.Resource("PlayerUi_NoEmptySlot", AreaLabel(PlayerInventoryArea.Backpack).ToLowerInvariant());
+            return;
+        }
+        _status = L.Resource("PlayerUi_PickupStaged", AreaLabel(PlayerInventoryArea.Backpack), target.Index);
+        await OnChanged.InvokeAsync();
+    }
+
+    protected override void OnInitialized()
+    {
+        Selection.Changed += Refresh;
+        // Drags can begin on other surfaces (sidebar palette, transmog tab); re-render so
+        // the per-slot dropzone verdicts appear the moment a shared drag starts.
+        Dnd.Changed += Refresh;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        // Shared DnD plumbing: primes dataTransfer on dragstart (Firefox) and sets
+        // dropEffect so ineligible slots show the not-allowed cursor (see transmog-dnd.js).
+        _dnd = await Js.InvokeAsync<IJSObjectReference>("import", "./transmog-dnd.js");
+        await _dnd.InvokeVoidAsync("init");
+        // Ask the browser what the device can do. A screen you can only tap cannot drag a
+        // tile from one place to another, so it is offered the two-tap move instead.
+        var touch = await _dnd.InvokeAsync<bool>("isTouch");
+        if (touch == _touch) return;
+        _touch = touch;
+        StateHasChanged();
+    }
+
+    private void Refresh() => _ = InvokeAsync(StateHasChanged);
+
+    public async ValueTask DisposeAsync()
+    {
+        Selection.Changed -= Refresh;
+        Dnd.Changed -= Refresh;
+        try { if (_dnd is not null) await _dnd.DisposeAsync(); }
+        catch (JSDisconnectedException) { }
+    }
+}

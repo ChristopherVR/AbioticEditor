@@ -1,0 +1,328 @@
+.workspace-shell.shell-with-splitters {
+    grid-template-columns: var(--file-pane-width) 16px minmax(0, 1fr) 16px var(--details-pane-width) !important;
+}
+
+.workspace-shell.shell-with-splitters.file-collapsed {
+    grid-template-columns: 0 16px minmax(0, 1fr) 16px var(--details-pane-width) !important;
+}
+
+.workspace-shell.shell-with-splitters.details-collapsed {
+    grid-template-columns: var(--file-pane-width) 16px minmax(0, 1fr) 16px 0 !important;
+}
+
+.workspace-shell.shell-with-splitters.file-collapsed.details-collapsed {
+    grid-template-columns: 0 16px minmax(0, 1fr) 16px 0 !important;
+}
+
+/* No save selected yet (the Home hero): the slot editor has nothing to show, so the
+   whole right pane disappears - rail, chevron, and drag grip included. */
+.workspace-shell.shell-with-splitters.details-unavailable {
+    grid-template-columns: var(--file-pane-width) 16px minmax(0, 1fr) 0 0 !important;
+}
+
+.workspace-shell.shell-with-splitters.details-unavailable.file-collapsed {
+    grid-template-columns: 0 16px minmax(0, 1fr) 0 0 !important;
+}
+
+.workspace-shell.shell-with-splitters.drawer-mode.details-unavailable {
+    grid-template-columns: 16px minmax(0, 1fr) 0 !important;
+}
+
+.details-unavailable .details-splitter,
+.details-unavailable .details-pane {
+    display: none;
+}
+
+/* Drawer mode (native: window width < 800): the editor keeps the full width between
+   two 16px rails; the panes re-home into slide-in overlays managed below. */
+.workspace-shell.shell-with-splitters.drawer-mode {
+    grid-template-columns: 16px minmax(0, 1fr) 16px !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.workspace-shell.shell-with-splitters:not(.drawer-mode) {
+    position: relative;
+}
+
+.file-pane,
+.details-pane {
+    min-height: 0;
+    overflow: auto;
+}
+
+.file-pane-heading {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    position: static !important;
+    padding: 16px 16px 10px !important;
+}
+
+.platform-badge {
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--orange);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .16em;
+}
+
+.platform-badge.platform-steam { background: #4c9be8; }
+.platform-badge.platform-gamepass { background: #107c10; }
+
+.sidebar-search {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    height: 38px;
+    margin: 0 16px 6px;
+    padding: 0 10px;
+    border: 1px solid var(--divider, #343b34);
+    border-radius: 8px;
+    background: var(--elevated, #20251f);
+    color: var(--muted);
+}
+
+.sidebar-search input {
+    min-width: 0;
+    height: 34px;
+    padding: 0 !important;
+    border: 0 !important;
+    outline: 0;
+    background: transparent !important;
+    color: var(--ink);
+    font-size: 13px;
+}
+
+.sidebar-search:focus-within {
+    border-color: var(--terminal);
+    background: var(--hover, #363026);
+}
+
+.sidebar-search input:focus,
+.sidebar-search input:focus-visible {
+    border: 0 !important;
+    outline: 0 !important;
+    background: transparent !important;
+}
+
+.sidebar-search button {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+}
+
+.sidebar-count {
+    margin: 0;
+    padding: 0 16px 10px;
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: .1em;
+}
+
+.shell-empty {
+    padding: 24px 16px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.shell-empty strong { color: var(--ink); font-size: 11px; letter-spacing: .12em; }
+
+.shell-save-list { display: block !important; }
+
+.save-group > header,
+.config-group > header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 8px 14px 4px;
+    color: var(--section);
+    font-size: 10px;
+    letter-spacing: .18em;
+}
+
+.save-group > header span,
+.config-group > header span { color: var(--muted); letter-spacing: 0; }
+
+.add-player-button {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--orange);
+    color: #10130f;
+    font-size: 19px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.save-file-row {
+    position: relative;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 5px !important;
+    width: 100%;
+    min-height: 56px;
+    padding: 9px 14px 9px 25px !important;
+    border: 0 !important;
+    border-left: 3px solid var(--kind-color, var(--acid)) !important;
+    background: transparent !important;
+    color: var(--ink);
+    text-align: left;
+    cursor: pointer;
+}
+
+.save-file-row.kind-player { --kind-color: var(--terminal); }
+.save-file-row.kind-world { --kind-color: var(--orange); }
+.save-file-row.kind-worldmetadata { --kind-color: var(--section); }
+.save-file-row:hover { background: color-mix(in srgb, var(--elevated, #20251f) 82%, transparent) !important; }
+.save-file-row.selected { background: var(--elevated, #20251f) !important; box-shadow: inset 3px 0 var(--kind-color); }
+.save-file-row > strong { overflow: hidden; color: var(--ink); font-size: 13px !important; font-weight: 500 !important; text-overflow: ellipsis; white-space: nowrap; }
+.save-file-row > span { display: flex; align-items: center; gap: 8px; }
+.save-file-row b,
+.config-file-row b { padding: 2px 5px; background: var(--kind-color, var(--orange)); color: #10130f; font-size: 8px; letter-spacing: .16em; }
+.save-file-row small { color: var(--muted); font-size: 10px; }
+
+.add-player-panel {
+    display: grid;
+    gap: 8px;
+    margin: 8px 12px 14px;
+    padding: 12px;
+    border: 1px solid var(--divider, #343b34);
+    background: var(--elevated, #20251f);
+}
+
+.add-player-panel label { display: grid; gap: 5px; color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .12em; }
+.add-player-panel label.checkbox-field { display: flex; }
+.add-player-panel input:not([type="checkbox"]) { min-width: 0; }
+.add-player-panel > div { display: flex; gap: 6px; }
+.add-player-panel button { padding: 7px 9px; font-size: 9px; }
+.add-player-panel p { margin: 0; color: var(--hazard); font-size: 10px; }
+
+.config-group { margin-top: 10px; border-top: 1px solid var(--divider, #343b34); }
+.config-group > header { grid-template-columns: minmax(0, 1fr) auto; padding-top: 10px; }
+.config-file-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 42px;
+    padding: 7px 14px;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    text-align: left;
+    cursor: pointer;
+}
+.config-file-row:hover { background: var(--elevated, #20251f); }
+.config-file-row b { --kind-color: var(--section); }
+.config-file-row span { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.config-file-row small { color: var(--muted); font-size: 9px; }
+.shell-no-results { padding: 16px; color: var(--muted); font-size: 11px; }
+
+/* Rail layout: the chevron sits in a fixed-height top row (like the native rails);
+   the drag grip is drawn centered in the remaining track by the span's pseudo-element. */
+.shell-splitter {
+    position: relative;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    justify-items: center;
+    min-height: 0;
+    background: var(--elevated, #20251f);
+    touch-action: none;
+    cursor: col-resize;
+    user-select: none;
+}
+
+.shell-splitter button {
+    width: 16px;
+    min-height: 0;
+    height: 28px;
+    margin-top: 8px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font-size: 17px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.shell-splitter button:hover { color: var(--ink); }
+
+.shell-splitter > span { position: relative; width: 100%; }
+.shell-splitter > span::after { content: ""; position: absolute; top: 50%; left: 50%; width: 2px; height: 40px; border-radius: 2px; background: var(--muted); opacity: .55; transform: translate(-50%, -50%); }
+.shell-splitter:hover > span::after,
+.shell-splitter:focus-within > span::after { background: var(--orange); opacity: 1; }
+
+.selected-save-title { display: grid; min-width: 0; gap: 3px; }
+.selected-save-title strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.selected-save-title > span { color: var(--muted); font-size: 10px; letter-spacing: .08em; }
+.selected-save-title b { margin-right: 10px; color: var(--orange); }
+
+.details-pane { border-left: 0 !important; }
+
+/* ---- overlay drawers (native ResponsivePaneController parity) ----
+   File drawer: min(360px, 88% width); slot drawer: min(420px, 88% width).
+   Slide in 220ms ease-out over a scrim that fades to 45% black in 160ms;
+   slide out 180ms ease-in. One drawer at a time. */
+.drawer-mode .file-pane,
+.drawer-mode .details-pane {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 70;
+    visibility: hidden;
+    box-shadow: 0 0 34px #000c;
+    transition: transform 180ms cubic-bezier(.55, .055, .675, .19), visibility 0s 180ms;
+}
+
+.drawer-mode .file-pane { left: 0; width: min(360px, 88vw); transform: translateX(-102%); }
+.drawer-mode .details-pane { right: 0; width: min(420px, 88vw); transform: translateX(102%); }
+
+.drawer-mode.file-drawer-open .file-pane,
+.drawer-mode.details-drawer-open .details-pane {
+    visibility: visible;
+    transform: translateX(0);
+    transition: transform 220ms cubic-bezier(.215, .61, .355, 1), visibility 0s;
+}
+
+.drawer-scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 65;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease;
+}
+
+.drawer-scrim.open { opacity: .45; pointer-events: auto; }
+
+/* In drawer mode the rails only host the show/hide chevrons: no drag grip. */
+.drawer-mode .shell-splitter { cursor: default; }
+.drawer-mode .shell-splitter > span { display: none; }
+
+/* CSS-only guard for the moment between a resize below the drawer threshold and the
+   server applying .drawer-mode: fold the inline panes away immediately so the center
+   editor never gets crushed between two still-open panes at phone widths. */
+@media (max-width: 799.98px) {
+    .workspace-shell.shell-with-splitters:not(.drawer-mode) {
+        grid-template-columns: 0 16px minmax(0, 1fr) 16px 0 !important;
+    }
+
+    .workspace-shell.shell-with-splitters:not(.drawer-mode) .shell-splitter > span { display: none; }
+}

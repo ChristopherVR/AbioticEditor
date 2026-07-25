@@ -69,9 +69,9 @@ public static class CommandTree
         try
         {
             // The CLI can use save operations, console commands, and event handlers, but not
-            // UI surfaces (editor tools / menu actions). Skip loading the code of plugins that
+            // UI surfaces (web tools / menu actions). Skip loading the code of plugins that
             // declare ONLY UI capabilities; load the rest (and any that declare none).
-            var uiOnly = new[] { PluginCapabilities.EditorTool, PluginCapabilities.WebTool, PluginCapabilities.MenuAction };
+            var uiOnly = new[] { PluginCapabilities.WebTool, PluginCapabilities.MenuAction };
             PluginManager.Shared.EnsureLoaded("cli", manifest =>
                 manifest.Capabilities.Count == 0
                 || manifest.Capabilities.Any(c =>

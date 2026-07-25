@@ -1,0 +1,426 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Services
+@using AbioticEditor.Web.Components.Shared
+@using AbioticEditor.Core.WorldSaves
+@using AbioticEditor.Core.PlayerSaves
+@inject ItemCatalogService ItemCatalog
+@inject CodexVocabularyService Codex
+@inject HostSpoilerPreferences Spoilers
+@inject SaveWorkspaceSessionService Workspace
+@inject ModalService Modals
+
+@* Every containment unit built anywhere in the world, occupied or not, with the creature each
+   one holds editable in place. The units live in the region saves and the creature -> unit
+   links live here in the metadata save, so the list is surveyed off-thread on first view. *@
+<section class="world-editor world-meta-panel" aria-label="@L.Resource("WorldContainment_ContainmentUnits")">
+    <h3 class="wm-h2">@L.Resource("WorldContainment_ContainmentUnits")</h3>
+    <p class="wm-intro">@L.Resource("WorldContainment_ContainmentUnitsIntro")</p>
+
+    @if (!Session.ContainmentUnitsLoaded)
+    {
+        <p class="wm-status">@L.Resource("WorldContainment_ScanningUnits")</p>
+    }
+    else
+    {
+        var units = Session.ContainmentUnits;
+
+        @if (Session.ContainmentScanFailures.Count > 0)
+        {
+            <p class="wm-status">@L.Resource("WorldContainment_ScanIncompleteFormat", string.Join(", ", Session.ContainmentScanFailures))</p>
+        }
+
+        @if (units.Count == 0)
+        {
+            <p class="wm-status">@L.Resource("WorldContainment_NoUnitsBuilt")</p>
+        }
+        else
+        {
+            @if (SwapPair() is { } pair)
+            {
+                <div class="wc-swap-row">
+                    <button type="button" class="wc-unlock-btn" @onclick="() => Swap(pair.Item1, pair.Item2)">@L.Resource("WorldContainment_SwapOccupants")</button>
+                    <small class="wm-status">@L.Resource("WorldContainment_SwapHint")</small>
+                </div>
+            }
+
+            <div class="wc-list">
+                @foreach (var unit in units)
+                {
+                    var creature = Session.CreatureInUnit(unit.Id);
+                    var occupied = creature is not null;
+                    var concealed = occupied && IsConcealed(creature!);
+                    <div class="wc-entry" @key="unit.Id">
+                        <div class="wc-row" role="button" tabindex="0" aria-label="@UnitAria(unit, creature, concealed)"
+                             @onclick="() => EntryTapped(unit)" @onkeydown="e => EntryKeyDown(e, unit)">
+                            <span class="wc-badge @(occupied ? "" : "wc-badge-empty")">
+                                @L.Resource(occupied ? "WorldContainment_Contained" : "WorldContainment_Empty")
+                            </span>
+                            <span class="wc-text">
+                                <strong>@OccupantLabel(creature, concealed)</strong>
+                                <small>@UnitWhere(unit)</small>
+                            </span>
+                            <span class="wc-assign" @onclick:stopPropagation="true">
+                                <label class="wm-label" for="@("wc-sel-" + unit.Id)">@L.Resource("WorldContainment_HoldsLabel")</label>
+                                @* Options carry their own selected flag rather than the select
+                                   carrying a value: the list re-renders whenever a creature moves
+                                   between units, and per-option state survives that reliably. *@
+                                <select id="@("wc-sel-" + unit.Id)" class="wc-select"
+                                        @onchange="e => Assign(unit.Id, e.Value?.ToString())">
+                                    <option value="" selected="@(creature is null)">@L.Resource("WorldContainment_OptionEmpty")</option>
+                                    @foreach (var option in ContainmentCreatureCatalog.Containable)
+                                    {
+                                        <option value="@option.Row" selected="@string.Equals(option.Row, creature, StringComparison.OrdinalIgnoreCase)">@DisplayName(option.Row)</option>
+                                    }
+                                </select>
+                            </span>
+                            @if (occupied)
+                            {
+                                <button type="button" class="wc-release" title="@L.Resource("WorldContainment_ReleaseTooltip")"
+                                        @onclick:stopPropagation="true" @onclick="() => Release(creature!)">@L.Resource("WorldContainment_Release")</button>
+                            }
+                        </div>
+
+                        @if (occupied && !concealed && _expanded == unit.Id)
+                        {
+                            <aside class="wc-detail" aria-label="@DisplayName(creature!)">
+                                <div class="wc-detail-media">
+                                    <span class="wc-detail-img">
+                                        @if (BundledImage(creature!) is { } bundled)
+                                        {
+                                            <img src="/images/@bundled" alt="@DisplayName(creature!)" />
+                                        }
+                                        else
+                                        {
+                                            <GameArtImage GameRefs="@ContainmentCreatureCatalog.TextureRefs(creature!)" Alt="@DisplayName(creature!)">
+                                                <span class="material-symbol" aria-hidden="true">skull</span>
+                                            </GameArtImage>
+                                        }
+                                    </span>
+                                    @if (BundledImage(creature!) is not null)
+                                    {
+                                        <small class="wc-wiki-caption">@L.Resource("Slot_ImageAbioticfactorWikiGg")</small>
+                                    }
+                                </div>
+                                <div class="wc-detail-body">
+                                    <header class="wc-detail-title">
+                                        <strong>@DisplayName(creature!)</strong>
+                                        <button type="button" class="wm-close" aria-label="@L.Resource("Common_Cancel")" @onclick="() => _expanded = null">✕</button>
+                                    </header>
+                                    <p class="wc-lore">@Lore(creature!)</p>
+                                    <span class="wm-label">@L.Resource("WorldContainment_ContainedIn")</span>
+                                    <p class="wc-region">@Region(unit)</p>
+                                    <p class="wc-coords">@Coords(unit)</p>
+                                    @if (unit.Stability is { } stability)
+                                    {
+                                        <small class="wm-status">@L.Resource("WorldContainment_StabilityFormat", stability, ContainmentCreatureCatalog.MaxStability)</small>
+                                    }
+                                    @if (ContainmentCreatureCatalog.StabilityItem(creature) is { } feed)
+                                    {
+                                        <small class="wm-status">@L.Resource("WorldContainment_FeedFormat", ItemName(feed))</small>
+                                    }
+                                    <small class="wm-status">@L.Resource("WorldContainment_HeldInSaveFormat", unit.RegionSaveFileName)</small>
+                                </div>
+                            </aside>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        @if (Session.OrphanedContainments.Count > 0)
+        {
+            <p class="wm-status">@L.Resource("WorldContainment_OrphanedFormat",
+                string.Join(", ", Session.OrphanedContainments.Select(pair => DisplayName(pair.Key))))</p>
+            <div class="wc-list">
+                @foreach (var orphan in Session.OrphanedContainments)
+                {
+                    <div class="wc-row" @key="orphan.Key">
+                        <span class="wc-badge">@L.Resource("WorldContainment_Contained")</span>
+                        <span class="wc-text">
+                            <strong>@OccupantLabel(orphan.Key, IsConcealed(orphan.Key))</strong>
+                            <small>@L.Resource("WorldContainment_UnitNotFound")</small>
+                        </span>
+                        <button type="button" class="wc-release" title="@L.Resource("WorldContainment_ReleaseTooltip")"
+                                @onclick="() => Release(orphan.Key)">@L.Resource("WorldContainment_Release")</button>
+                    </div>
+                }
+            </div>
+        }
+
+        @if (FreeCreatures().Count > 0 && units.Count > 0)
+        {
+            <p class="wm-status">@L.Resource("WorldContainment_FreeCreaturesFormat",
+                string.Join(", ", FreeCreatures().Select(DisplayName)))</p>
+        }
+    }
+
+    <div class="wm-divider" role="presentation"></div>
+
+    @if (Session.HasWorldUnlocks)
+    {
+        <h3 class="wm-h2">@L.Resource("WorldContainment_WorldUnlocks")</h3>
+        <p class="wm-intro">@L.Resource("WorldContainment_WorldUnlocksIntro")</p>
+
+        <div class="wc-unlock-grid">
+            <span class="wm-label">@L.Resource("WorldContainment_ItemsSeen")</span>
+            <span class="wm-readout">@L.Resource("WorldContainment_DiscoveredCountFormat", Session.WorldItemsSeenCount)</span>
+            @* Each of these sweeps the whole world at once, so it asks first, and seals itself
+               off once there is nothing left for it to do. *@
+            <button type="button" class="wc-unlock-btn" disabled="@(_worldUnlockBusy || _allItemsSeen)"
+                    @onclick="@(() => ConfirmWorldUnlock("WorldContainment_DiscoverAll", "WorldContainment_ConfirmDiscoverAll", UnlockAllItemsAsync))">@L.Resource("WorldContainment_DiscoverAll")</button>
+
+            <span class="wm-label">@L.Resource("WorldContainment_EmailsRead")</span>
+            <span class="wm-readout">@L.Resource("WorldContainment_ReadCountFormat", Session.WorldEmailsReadCount)</span>
+            <button type="button" class="wc-unlock-btn" disabled="@(_worldUnlockBusy || _allEmailsRead)"
+                    @onclick="@(() => ConfirmWorldUnlock("WorldContainment_ReadAll", "WorldContainment_ConfirmReadAll", UnlockAllEmails))">@L.Resource("WorldContainment_ReadAll")</button>
+
+            <span class="wm-label">@L.Resource("WorldContainment_JournalPages")</span>
+            <span class="wm-readout">@L.Resource("WorldContainment_FoundCountFormat", Session.WorldJournalsFoundCount)</span>
+            <button type="button" class="wc-unlock-btn" disabled="@(_worldUnlockBusy || _allJournalsFound)"
+                    @onclick="@(() => ConfirmWorldUnlock("WorldContainment_FindAll", "WorldContainment_ConfirmFindAll", UnlockAllJournals))">@L.Resource("WorldContainment_FindAll")</button>
+
+            <span class="wm-label">@L.Resource("WorldContainment_Compendium")</span>
+            <span class="wm-readout">@L.Resource("WorldContainment_SectionUnlocksCountFormat", Session.WorldCompendiumUnlockedCount)</span>
+            <button type="button" class="wc-unlock-btn wm-hazard-btn" disabled="@(_worldUnlockBusy || _allCompendiumUnlocked)"
+                    @onclick="@(() => ConfirmWorldUnlock("WorldContainment_UnlockAll", "WorldContainment_ConfirmUnlockAll", UnlockAllCompendium))">@L.Resource("WorldContainment_UnlockAll")</button>
+        </div>
+        @if (_allItemsSeen && _allEmailsRead && _allJournalsFound && _allCompendiumUnlocked)
+        {
+            <p class="wm-status">@L.Resource("WorldContainment_EverythingAlreadyUnlocked")</p>
+        }
+    }
+    @* No save bar here on purpose: SAVE and REVERT live in the editor header and cover every
+       tab. A second pair at the foot of one tab only raised the question of which was real. *@
+</section>
+
+@code {
+    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter] public string Title { get; set; } = "World editor";
+    [Parameter] public EventCallback<string?> OnError { get; set; }
+    private string? _expanded;
+    private bool _worldUnlockBusy;
+
+    /// <summary>The unit survey reads every sibling region save, so it runs off the render thread.</summary>
+    protected override async Task OnInitializedAsync()
+    {
+        RefreshCompletionFlags(null);
+        await Session.LoadContainmentUnitsAsync();
+        StateHasChanged();
+        // The codex vocabulary can need the paks mounted, so the three codex-backed buttons
+        // only learn whether they still have work to do once that has been read.
+        if (Session.HasWorldUnlocks)
+        {
+            var codex = await Task.Run(Codex.Get);
+            RefreshCompletionFlags(codex);
+            StateHasChanged();
+        }
+    }
+
+    // ---------- spoiler concealment (native rule: any contained anomaly is a candidate) ----------
+
+    private bool IsConcealed(string creature)
+        => Spoilers.Enabled && !Spoilers.IsRevealed(SpoilerKey(creature));
+
+    private static string SpoilerKey(string creature) => $"containment:{creature}";
+
+    private string OccupantLabel(string? creature, bool concealed)
+        => creature is null
+            ? L.Resource("WorldContainment_EmptyUnit")
+            : concealed ? L.Resource("WorldContainment_ClassifiedAnomaly") : DisplayName(creature);
+
+    private string UnitAria(WorldContainmentUnit unit, string? creature, bool concealed)
+        => $"{OccupantLabel(creature, concealed)} - {UnitWhere(unit)}";
+
+    /// <summary>Where a unit stands: nearest known landmark plus its coordinates.</summary>
+    private string UnitWhere(WorldContainmentUnit unit) => $"{Region(unit)} - {Coords(unit)}";
+
+    private static string Region(WorldContainmentUnit unit)
+        => RespawnTerminalCatalog.NearestTo(unit.X, unit.Y, unit.Z).LocationName;
+
+    private static string Coords(WorldContainmentUnit unit) => $"X {unit.X:0}   Y {unit.Y:0}   Z {unit.Z:0}";
+
+    private string ItemName(string itemRow)
+        => ItemCatalog.Entries.FirstOrDefault(entry => string.Equals(entry.Id, itemRow, StringComparison.OrdinalIgnoreCase))?.DisplayName
+           ?? itemRow;
+
+    /// <summary>Localized creature display name (resx override of the Core catalog).</summary>
+    private string DisplayName(string creature)
+    {
+        var keyId = creature switch
+        {
+            "Leyak" => "Leyak",
+            "LeyakB" or "Leyak_B" => "LeyakB",
+            "Krasue" => "Krasue",
+            _ => null,
+        };
+        return keyId is null
+            ? ContainmentCreatureCatalog.DisplayName(creature)
+            : L.ResourceOrNull($"WorldContainment_Creature_{keyId}_DisplayName") ?? ContainmentCreatureCatalog.DisplayName(creature);
+    }
+
+    /// <summary>Localized lore blurb, keyed on the same StartsWith buckets as Core.</summary>
+    private string Lore(string creature)
+    {
+        var bucket = creature.StartsWith("Krasue", StringComparison.OrdinalIgnoreCase) ? "Krasue"
+            : creature.StartsWith("Leyak", StringComparison.OrdinalIgnoreCase) ? "Leyak"
+            : "Default";
+        return L.ResourceOrNull($"WorldContainment_Creature_Lore_{bucket}") ?? ContainmentCreatureCatalog.Lore(creature);
+    }
+
+    /// <summary>Bundled fan-wiki portrait for a known creature; the Krasue has no in-pak
+    /// compendium art at all, and the Leyak uses its wiki render too so the two read
+    /// consistently (native rule). Wiki source: abioticfactor.wiki.gg.</summary>
+    private static string? BundledImage(string creature)
+    {
+        if (creature.StartsWith("Krasue", StringComparison.OrdinalIgnoreCase)) return "krasue.png";
+        if (creature.StartsWith("Leyak", StringComparison.OrdinalIgnoreCase)) return "leyak.png";
+        return null;
+    }
+
+    /// <summary>Containable creatures currently sitting in no unit at all.</summary>
+    private IReadOnlyList<string> FreeCreatures()
+        => ContainmentCreatureCatalog.Containable
+            .Select(entry => entry.Row)
+            .Where(row => Session.Containments.All(pair => !string.Equals(pair.Key, row, StringComparison.OrdinalIgnoreCase)))
+            .ToArray();
+
+    /// <summary>
+    /// The two units to offer a one-click swap between: exactly two occupied units holding
+    /// different creatures. With more than two the per-unit picker is the honest control.
+    /// </summary>
+    private (string, string)? SwapPair()
+    {
+        var occupied = Session.ContainmentUnits
+            .Select(unit => (unit.Id, Creature: Session.CreatureInUnit(unit.Id)))
+            .Where(entry => entry.Creature is not null)
+            .ToList();
+        if (occupied.Count != 2) return null;
+        if (string.Equals(occupied[0].Creature, occupied[1].Creature, StringComparison.OrdinalIgnoreCase)) return null;
+        return (occupied[0].Id, occupied[1].Id);
+    }
+
+    private void EntryTapped(WorldContainmentUnit unit)
+    {
+        var creature = Session.CreatureInUnit(unit.Id);
+        if (creature is null) return; // an empty unit has nothing to reveal
+        // A sealed entry prompts a clearance override instead of opening its detail
+        // (which would expose the creature's appearance and location) - native rule.
+        if (IsConcealed(creature)) { RequestReveal(creature, unit.Id); return; }
+        _expanded = _expanded == unit.Id ? null : unit.Id;
+    }
+
+    private void EntryKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs args, WorldContainmentUnit unit)
+    {
+        if (args.Key is "Enter" or " ") EntryTapped(unit);
+    }
+
+    /// <summary>The clearance override prompt, in the shared modal dialog (native spoiler flow).</summary>
+    private void RequestReveal(string creature, string unitId) => Modals.Show(new ModalRequest(
+        L.Resource("Spoiler_OverrideTitle"),
+        Paragraph(L.Resource("Spoiler_OverrideMessage", L.Resource("WorldContainment_SpoilerSubjectRecord"))),
+        ConfirmText: L.Resource("Spoiler_OverrideAccept"),
+        OnConfirm: async () =>
+        {
+            Spoilers.Reveal(SpoilerKey(creature));
+            _expanded = unitId;
+            await InvokeAsync(StateHasChanged);
+        },
+        CancelText: L.Resource("Spoiler_OverrideKeepSealed")));
+
+    private static RenderFragment Paragraph(string text) => builder =>
+    {
+        builder.OpenElement(0, "p");
+        builder.AddContent(1, text);
+        builder.CloseElement();
+    };
+
+    // ---------- staging edits ----------
+
+    private void Assign(string unitId, string? creature)
+    {
+        Session.SetContainmentUnitOccupant(unitId, string.IsNullOrWhiteSpace(creature) ? null : creature);
+        if (Session.CreatureInUnit(unitId) is null) _expanded = null;
+        Workspace.NotifyEdited();
+    }
+
+    private void Swap(string unitA, string unitB)
+    {
+        Session.SwapContainmentUnits(unitA, unitB);
+        Workspace.NotifyEdited();
+    }
+
+    private void Release(string creature)
+    {
+        Session.ReleaseContainment(creature);
+        _expanded = null;
+        Workspace.NotifyEdited();
+    }
+
+    // ---------- world-wide discovery (GlobalUnlocks bulk actions) ----------
+
+    /// <summary>
+    /// Whether each sweep still has anything to do. These are cheap set comparisons against
+    /// what the world already records, so a button that would change nothing is sealed off
+    /// rather than left inviting a pointless (and undoable-only-by-revert) write. The codex
+    /// counts are only known once its vocabulary has been read, so those stay live until then.
+    /// </summary>
+    private bool _allItemsSeen;
+    private bool _allEmailsRead;
+    private bool _allJournalsFound;
+    private bool _allCompendiumUnlocked;
+
+    private void RefreshCompletionFlags(CodexVocabulary? codex)
+    {
+        _allItemsSeen = ItemCatalog.Entries.Count > 0
+            && Session.WorldItemsSeenCount >= ItemCatalog.Entries.Count;
+        if (codex is null) return;
+        _allEmailsRead = codex.Emails.Count > 0 && Session.WorldEmailsReadCount >= codex.Emails.Count;
+        _allJournalsFound = codex.Journals.Count > 0 && Session.WorldJournalsFoundCount >= codex.Journals.Count;
+        _allCompendiumUnlocked = codex.Compendium.Count > 0
+            && Session.WorldCompendiumUnlockedCount >= codex.Compendium.Count;
+    }
+
+    /// <summary>
+    /// Asks before a sweep runs. Each of these touches the whole world in one go and the only
+    /// way back is REVERT, so the dialog says plainly what it is about to do.
+    /// </summary>
+    private void ConfirmWorldUnlock(string titleKey, string messageKey, Func<Task> apply) => Modals.Show(new ModalRequest(
+        L.Resource(titleKey),
+        Paragraph(L.Resource(messageKey)),
+        ConfirmText: L.Resource(titleKey),
+        OnConfirm: async () => { await apply(); await InvokeAsync(StateHasChanged); },
+        CancelText: L.Resource("Common_Cancel")));
+
+    private Task UnlockAllItemsAsync()
+    {
+        Session.EnableWorldItemsSeen(ItemCatalog.Entries.Select(entry => entry.Id));
+        Workspace.NotifyEdited();
+        RefreshCompletionFlags(null);
+        return Task.CompletedTask;
+    }
+
+    private Task UnlockAllEmails() => RunWorldUnlockAsync(codex => Session.EnableWorldEmailsRead(codex.Emails.Select(email => email.Id)));
+    private Task UnlockAllJournals() => RunWorldUnlockAsync(codex => Session.EnableWorldJournalsFound(codex.Journals.Select(journal => journal.Id)));
+    private Task UnlockAllCompendium() => RunWorldUnlockAsync(codex => Session.EnableWorldCompendium(
+        codex.Compendium.Where(c => c.SectionTypes.Any(t => t.Contains("Email", StringComparison.OrdinalIgnoreCase))).Select(c => c.Id),
+        codex.Compendium.Where(c => c.SectionTypes.Any(t => t.Contains("Narrative", StringComparison.OrdinalIgnoreCase))).Select(c => c.Id),
+        codex.Compendium.Where(c => c.SectionTypes.Any(t => t.Contains("Exploration", StringComparison.OrdinalIgnoreCase))).Select(c => c.Id)));
+
+    /// <summary>Emails/journals/compendium can require mounting the game's paks on first use
+    /// (<see cref="CodexVocabularyService.Get"/>), so that lookup runs off the render thread.</summary>
+    private async Task RunWorldUnlockAsync(Action<CodexVocabulary> apply)
+    {
+        _worldUnlockBusy = true;
+        try
+        {
+            var codex = await Task.Run(Codex.Get);
+            apply(codex);
+            Workspace.NotifyEdited();
+            RefreshCompletionFlags(codex);
+        }
+        finally { _worldUnlockBusy = false; }
+    }
+    private void Revert() { Session.Revert(); Workspace.NotifyEdited(); }
+    private async Task SaveAsync() { try { await Session.SaveAsync(); Workspace.NotifyEdited(); } catch (Exception ex) { await OnError.InvokeAsync(Errors.Present(ex, "The world save could not be written.", "Your changes remain open; check folder permissions and try again.")); } }
+}

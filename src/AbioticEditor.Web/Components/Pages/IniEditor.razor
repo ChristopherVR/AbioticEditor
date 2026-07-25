@@ -1,0 +1,96 @@
+@page "/ini"
+@page "/ini/{RequestedFileName}"
+@implements IDisposable
+@inject IniEditorSessionService IniSessions
+@inject SaveWorkspaceSessionService Workspace
+@inject HostLanguageService Languages
+
+<PageTitle>@Languages.Resource("Ini_EditorTitle") · @Languages.Resource("App_Title")</PageTitle>
+
+@if (IniSessions.Current is { } document)
+{
+    <section class="ini-editor-panel">
+        <header class="ini-editor-heading"><div><div class="ini-title-row"><h2>@document.FileName</h2><span class="ini-kind-badge">@document.KindLabel</span></div><p class="path">@document.File.FullPath</p><p class="muted">@document.Description</p></div>
+                <div class="editor-actions"><button class="secondary" @onclick="Revert">@Languages.Resource("Ini_Revert")</button><button class="primary" disabled="@(!document.IsDirty)" @onclick="Save">@Languages.Resource("Ini_SaveIni")</button></div></header>
+            @if (_error is not null) { <p class="error" role="alert">@_error</p> }
+            @if (document.StatusResourceKey is not null) { <p class="editor-status">@Languages.Resource(document.StatusResourceKey, document.FileName)</p> }
+            @foreach (var draft in document.Sections) {
+                <section class="ini-section"><header><h3>@draft.Header</h3>
+                    @if (draft.SuggestedNewKey is not null) { <button class="secondary" @onclick="() => Add(draft)">@Languages.Resource("Ini_Add")</button> }
+                    </header>
+                    @foreach (var entry in draft.Entries) { <div class="ini-entry"><code title="@entry.Key">@entry.Key</code><input @bind="entry.Value" @bind:event="oninput" aria-label="@Languages.Resource("Ini_ValueAria", entry.Key)" /><button class="secondary" aria-label="@Languages.Resource("Ini_RemoveAria", entry.Key)" @onclick="() => Remove(draft, entry)">×</button></div> }
+                </section>
+            }
+    </section>
+}
+else
+{
+    <section class="hero compact-hero">
+        <p class="eyebrow">@Languages.Resource("Ini_WorkbenchEyebrow")</p>
+        <h1>@Languages.Resource("Ini_EditorTitle")</h1>
+        <p class="lede">@Languages.Resource("Ini_EditorDescription")</p>
+        <div class="folder-open">
+            <label for="ini-root">@Languages.Resource("Ini_FolderLabel")</label>
+            <input id="ini-root" @bind="_path" @bind:event="oninput" placeholder="@Languages.Resource("Ini_FolderPlaceholder")" />
+            <button class="primary" @onclick="Discover">@Languages.Resource("Ini_FindFiles")</button>
+            @if (Workspace.Current is not null) { <button class="secondary" @onclick="UseOpenWorld">@Languages.Resource("Ini_UseOpenWorld")</button> }
+        </div>
+        @if (_error is not null) { <p class="error" role="alert">@_error</p> }
+    </section>
+    @if (_searched) { <section class="empty-state"><p class="eyebrow">@Languages.Resource("Ini_NoneEyebrow")</p><h2>@Languages.Resource("Ini_NoneTitle")</h2><p>@Languages.Resource("Ini_NoneDescription")</p></section> }
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "root")]
+    public string? RequestedRoot { get; set; }
+
+    [SupplyParameterFromQuery(Name = "file")]
+    public string? RequestedFile { get; set; }
+
+    [Parameter]
+    public string? RequestedFileName { get; set; }
+
+    private string _path = string.Empty;
+    private bool _searched;
+    private string? _error;
+
+    protected override void OnInitialized() => IniSessions.Changed += SessionChanged;
+
+    protected override void OnParametersSet()
+    {
+        var requestedRoot = RequestedRoot ?? Workspace.Current?.WorldFolder;
+        if (string.IsNullOrWhiteSpace(requestedRoot)
+            || (string.IsNullOrWhiteSpace(RequestedFile) && string.IsNullOrWhiteSpace(RequestedFileName)))
+        {
+            return;
+        }
+
+        _path = requestedRoot;
+        _searched = true;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(RequestedFile))
+            {
+                if (!string.Equals(IniSessions.Current?.File.FullPath, Path.GetFullPath(RequestedFile), StringComparison.OrdinalIgnoreCase))
+                    IniSessions.OpenDiscovered(requestedRoot, RequestedFile);
+            }
+            else if (!string.Equals(IniSessions.Current?.FileName, RequestedFileName, StringComparison.OrdinalIgnoreCase))
+                IniSessions.OpenNamedDiscovered(requestedRoot, RequestedFileName!);
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            _error = Errors.Present(ex, Languages.Resource("Ini_OpenFailed"), Languages.Resource("Ini_OpenFailedHelp"));
+        }
+    }
+
+    private void UseOpenWorld() { if (Workspace.Current is { } world) { _path = world.WorldFolder; Discover(); } }
+    private void Discover() { try { IniSessions.Discover(_path); _searched = true; _error = null; } catch (Exception ex) { _error = Errors.Present(ex, Languages.Resource("Ini_DiscoverFailed"), Languages.Resource("Ini_DiscoverFailedHelp")); } }
+    private void Open(string path) { try { IniSessions.Open(path); _error = null; } catch (Exception ex) { _error = Errors.Present(ex, Languages.Resource("Ini_OpenFailed"), Languages.Resource("Ini_OpenFailedHelp")); } }
+    private void Add(IniSectionDraft section) { section.Add(); StateHasChanged(); }
+    private void Remove(IniSectionDraft section, IniEntryDraft entry) { section.Remove(entry); StateHasChanged(); }
+    private void Save() { try { IniSessions.Current?.Save(); } catch (Exception ex) { _error = Errors.Present(ex, Languages.Resource("Ini_SaveFailed"), Languages.Resource("Ini_SaveFailedHelp")); } }
+    private void Revert() { try { IniSessions.Current?.Revert(); } catch (Exception ex) { _error = Errors.Present(ex, Languages.Resource("Ini_ReloadFailed"), Languages.Resource("Ini_OpenFailedHelp")); } }
+    private void SessionChanged() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => IniSessions.Changed -= SessionChanged;
+}

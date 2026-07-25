@@ -1,0 +1,210 @@
+@namespace AbioticEditor.Web.Components.Player
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Services
+@using AbioticEditor.Core.GamePass
+@using AbioticEditor.Core.PlayerSaves
+@inject CustomizationCatalogService Catalog
+@inject SaveWorkspaceSessionService Workspace
+
+@* Faithful port of the native appearance panel (PlayerCharacterTab.xaml, second AfPanel):
+   header row with slot picker + SAVE APPEARANCE, explanatory captions, then the wrapped
+   field pickers with live icon/swatch previews. The save is discovered next to the loaded
+   player save (never read from this machine's own game folder). Game Pass worlds keep
+   appearance in account-level ProfileScientistCustomization wgs containers instead, so
+   when no loose file exists the editor looks for the workspace's wgs folder and edits the
+   container directly, exactly like the native editor. *@
+<section class="editor-card appearance-panel" aria-label="@L.Resource("PlayerCharacter_AppearanceHeadHairClothing")">
+    <div class="appearance-header">
+        <p class="tab-section-label">@L.Resource("PlayerCharacter_AppearanceHeadHairClothing")</p>
+        @if (_slots.Count > 1)
+        {
+            <select class="appearance-slot-select" aria-label="@L.Resource("PlayerUi_ChooseCharacterSlot")" @bind="SelectedSlot">
+                @foreach (var slot in _slots.Keys) { <option value="@slot">@slot</option> }
+            </select>
+        }
+        <button class="primary appearance-save" type="button" disabled="@(_session is null || !_session.IsDirty)" @onclick="Save">@L.Resource("PlayerCharacter_SaveAppearance")</button>
+    </div>
+
+    @if (_session is not null)
+    {
+        @* When the save exists: explain what is being edited and where it lives. *@
+        <small class="general-help">
+            @(_gamePassSet is not null
+                ? L.Resource("Customization_AvailableCaptionGamePass", _selectedSlot)
+                : L.Resource("Customization_AvailableCaptionSteam", System.IO.Path.GetFileName(_session.Path)))
+        </small>
+    }
+    else
+    {
+        @* When the save is missing: explain WHY it is missing and WHAT to do. *@
+        <small class="general-help">@L.Resource(IsGamePassOrigin ? "Customization_UnavailableGamePass" : "Customization_UnavailableSteam")</small>
+    }
+    @if (_status is not null) { <small class="appearance-status" role="status">@_status</small> }
+    @if (_session is not null)
+    {
+        <small class="appearance-status">@L.Resource("Customization_VoiceNote")</small>
+        @* The option tables mount the game paks on first use, which takes a moment. Say so:
+           until they arrive every picker below is empty and looks broken. *@
+        @if (!_catalogReady)
+        {
+            <p class="general-loading" role="status">
+                <span class="header-busy-spinner" aria-hidden="true"></span>
+                @L.Resource("Customization_LoadingOptions")
+            </p>
+        }
+        <div class="appearance-fields">
+            @foreach (var appearanceField in _session.Fields)
+            {
+                var options = _catalogReady ? Catalog.OptionsFor(appearanceField.TableName) : Array.Empty<CustomizationOption>();
+                var selected = options.FirstOrDefault(option => string.Equals(option.RowName, appearanceField.Value, StringComparison.OrdinalIgnoreCase));
+                var swatch = SwatchHex(selected);
+                <div class="appearance-field">
+                    <span class="appearance-field-label">@appearanceField.Label</span>
+                    <div class="appearance-field-body">
+                        @* Live preview: the option's own icon render, or a color swatch. *@
+                        @if (selected?.IconAssetPath is { } icon)
+                        {
+                            <span class="appearance-preview"><GameArtImage GameRef="@icon" Alt="@selected.DisplayName" /></span>
+                        }
+                        else if (swatch is not null)
+                        {
+                            <span class="appearance-swatch" style="background:#@swatch" aria-hidden="true"></span>
+                        }
+                        <select @bind="appearanceField.Value" aria-label="@appearanceField.Label">
+                            @if (options.Count == 0 || selected is null) { <option value="@appearanceField.Value">@appearanceField.Value</option> }
+                            @foreach (var option in options) { <option value="@option.RowName">@option.DisplayName</option> }
+                        </select>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public PlayerSaveSession Player { get; set; } = null!;
+    private bool _catalogReady;
+    private string? _playerPath;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // The DT_Customization_* option tables mount the game paks lazily; warm them
+        // off-thread so the first render never blocks the circuit (any OptionsFor call
+        // forces the one-time load regardless of the table name asked for).
+        await Task.Run(() => Catalog.OptionsFor(string.Empty));
+        _catalogReady = true;
+    }
+    private string? _status;
+    private CustomizationSaveSession? _session;
+    private readonly SortedDictionary<int, string?> _slots = new();
+    private GamePassSaveSet? _gamePassSet;
+    private int _selectedSlot;
+
+    /// <summary>True when this workspace's appearance lives in Game Pass save data.</summary>
+    private bool IsGamePassOrigin => _gamePassSet is not null
+        || Workspace.Current?.Platform == AbioticEditor.Core.Saves.SavePlatform.GamePass;
+
+    private int SelectedSlot
+    {
+        get => _selectedSlot;
+        set { if (_selectedSlot == value) return; _selectedSlot = value; LoadSlot(value); }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (string.Equals(_playerPath, Player.Path, StringComparison.OrdinalIgnoreCase)) return;
+        _playerPath = Player.Path;
+        _session = null;
+        _status = null;
+        _slots.Clear();
+        _gamePassSet = null;
+        foreach (var path in CustomizationSaveSession.DiscoverNearPlayer(Player.Path, Player.SteamIdentifier))
+        {
+            var name = System.IO.Path.GetFileNameWithoutExtension(path);
+            var separator = name.LastIndexOf('_');
+            if (separator >= 0 && int.TryParse(name[(separator + 1)..], out var slot)) _slots[slot] = path;
+        }
+        if (_slots.Count == 0) DiscoverGamePassSlots();
+        _selectedSlot = _slots.Count > 0 ? _slots.Keys.First() : 0;
+        LoadSlot(_selectedSlot);
+    }
+
+    /// <summary>
+    /// Game Pass fallback: no loose ScientistCustomization file exists next to a wgs
+    /// extraction, so look for the workspace's container folder and list its
+    /// ProfileScientistCustomization slots (existing Core container IO, read-only here).
+    /// </summary>
+    private void DiscoverGamePassSlots()
+    {
+        try
+        {
+            // A container workspace already has its wgs set open - reuse it, because the
+            // temp extraction folder has no wgs siblings for the locator walk to find.
+            var set = Workspace.Current?.GamePass?.Set;
+            if (set is null)
+            {
+                var store = CustomizationSaveSession.TryLocateGamePassStore(Workspace.Current?.WorldFolder);
+                if (store is null) return;
+                set = GamePassSaveSet.Open(store);
+            }
+            var slots = set.CustomizationSlots();
+            if (slots.Count == 0) return;
+            _gamePassSet = set;
+            foreach (var slot in slots) _slots[slot] = null;
+        }
+        catch (Exception exception)
+        {
+            Errors.Record(exception, "Read Game Pass appearance containers");
+        }
+    }
+
+    private void LoadSlot(int slot)
+    {
+        _session = null;
+        if (!_slots.TryGetValue(slot, out var path))
+        {
+            _status = L.Resource(IsGamePassOrigin ? "Customization_StatusNotFoundGamePass" : "Customization_StatusNotFound");
+            return;
+        }
+        try
+        {
+            if (_gamePassSet is not null)
+            {
+                _session = CustomizationSaveSession.LoadGamePass(_gamePassSet, slot);
+                _status = _session is null
+                    ? L.Resource("Customization_StatusNotFoundGamePass")
+                    : L.Resource("Customization_StatusEditingGamePass", slot);
+                return;
+            }
+            _session = CustomizationSaveSession.Load(path!);
+            _status = L.Resource("Customization_StatusEditingFile", System.IO.Path.GetFileName(_session.Path));
+        }
+        catch (Exception exception)
+        {
+            _session = null;
+            _status = Errors.Present(exception, L.Resource("PlayerUi_AppearanceOpenFailed"), L.Resource("PlayerUi_CheckFileReadable"));
+        }
+    }
+
+    private void Save()
+    {
+        if (_session is null) return;
+        try
+        {
+            _session.Save();
+            _status = L.Resource("Customization_StatusSaved", $"{DateTime.Now:HH:mm:ss}");
+        }
+        catch (Exception exception)
+        {
+            _status = Errors.Present(exception, L.Resource("PlayerUi_AppearanceSaveFailed"), L.Resource("PlayerUi_ChangesRemainOpen"));
+        }
+    }
+
+    /// <summary>FLinearColor.Hex may carry an alpha tail - keep just RRGGBB (native SwatchColor).</summary>
+    private static string? SwatchHex(CustomizationOption? option)
+    {
+        var hex = option?.ColorHex?.TrimStart('#');
+        if (string.IsNullOrEmpty(hex)) return null;
+        return hex.Length > 6 ? hex[..6] : hex;
+    }
+}

@@ -1,0 +1,80 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <!-- Windows gets its own native file/folder pickers (System.Windows.Forms) instead of
+         shelling out to a PowerShell subprocess; Linux/macOS keep using the plain TFM and
+         the existing zenity/kdialog/osascript subprocess pickers, since there is no
+         equivalent native .NET dialog API on those platforms. -->
+    <TargetFrameworks>net10.0-windows10.0.19041.0;net10.0</TargetFrameworks>
+    <UseWindowsForms Condition="'$(TargetFramework)' == 'net10.0-windows10.0.19041.0'">true</UseWindowsForms>
+    <RootNamespace>AbioticEditor.Web</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- The same Abiotic Factor artwork the native app shipped: embedded in the exe for the
+         taskbar/Explorer, and copied beside it (below) for the Photino window icon. -->
+    <ApplicationIcon>appicon.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AbioticEditor.Core\AbioticEditor.Core.csproj" />
+    <ProjectReference Include="..\AbioticEditor.Ui.Abstractions\AbioticEditor.Ui.Abstractions.csproj" />
+    <ProjectReference Include="..\AbioticEditor.Updater\AbioticEditor.Updater.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Photino.NET" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="appicon.ico"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="appicon.png"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\assets\Mappings.usmap"
+             Link="Mappings.usmap"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\assets\registry\*.json"
+             Link="registry\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\assets\wiki\*"
+             Exclude="..\..\assets\wiki\README.md"
+             Link="wiki\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\LICENSE"
+             Link="LICENSE"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\NOTICE"
+             Link="NOTICE"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\THIRD-PARTY-NOTICES.txt"
+             Link="THIRD-PARTY-NOTICES.txt"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\AbioticEditor.Core\Resources\blank-world-template.sav"
+             Link="Templates\blank-world-template.sav"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\AbioticEditor.Core\Resources\blank-player-template.sav"
+             Link="Templates\blank-player-template.sav"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="launch-linux.sh"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="install-linux-desktop.sh"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="launch-mac.sh"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

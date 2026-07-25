@@ -1,0 +1,617 @@
+@namespace AbioticEditor.Web.Components.Player
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Services
+@using AbioticEditor.Core.Items
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject InventorySelectionService Selection
+@inject InventoryDismantleService Dismantling
+@inject ItemCatalogService Catalog
+@inject SlotDragDropService Dnd
+@inject HostSpoilerPreferences Spoilers
+@inject ModalService Modals
+@inject IJSRuntime Js
+
+<section class="slot-editor" aria-label="@L.Inventory("slotEditorAria")">
+    <header class="slot-editor-title">
+        <strong>@L.Resource("Slot_SlotEditor").ToUpperInvariant()</strong>
+        @if (Selection.HasAnySelection)
+        {
+            <button class="icon-button" type="button" @onclick="Close" aria-label="@L.Inventory("closeSlotEditor")">×</button>
+        }
+    </header>
+
+    @* Tab-supplied detail card (the web host for the native SlotSidebarView's typed detail
+       panels: quest flag, door, trader, story chapter, ...). The owning tab renders the
+       content; this pane only hosts and closes it. *@
+    @if (Selection.DetailContent is { } detailContent)
+    {
+        <section class="sidebar-detail-host">@detailContent</section>
+    }
+
+    @* Read-only encyclopedia card, the web port of the native palette's item detail that
+       MainViewModel.ShowItemEncyclopedia surfaces (GATEPal bait chips open it here). *@
+    @if (Selection.EncyclopediaItemId is { } encyclopediaId && Catalog.Find(encyclopediaId) is { } encyclopediaEntry)
+    {
+        <section class="item-encyclopedia" aria-label="@encyclopediaEntry.DisplayName">
+            <header class="slot-item-heading">
+                <div class="slot-item-icon"><ItemIcon ItemId="@encyclopediaEntry.Id" Alt="@encyclopediaEntry.DisplayName" /></div>
+                <div><h3>@encyclopediaEntry.DisplayName</h3><p>@EncyclopediaStats(encyclopediaEntry)</p></div>
+            </header>
+            @if (!string.IsNullOrWhiteSpace(encyclopediaEntry.Description)) { <p class="encyclopedia-description">@encyclopediaEntry.Description</p> }
+        </section>
+    }
+
+    @* The tapped skill milestone's detail panel, the web port of the native SlotSidebarView
+       skill-milestone card (perk + level/status chips + effect + unlock requirement). *@
+    @if (Selection.Milestone is { } milestoneSelection)
+    {
+        var mSkill = milestoneSelection.Skill;
+        var milestone = milestoneSelection.Milestone;
+        var milestoneUnlocked = mSkill.IsUnlocked(milestone);
+        var milestoneConcealed = SkillLocalization.IsMilestoneConcealed(Spoilers, mSkill, milestone);
+        <div class="slot-editor-content slot-milestone-content">
+        <div class="detail-card detail-card--terminal" aria-label="@L.Resource("Slot_SkillFormat", mSkill.Name)">
+            <div class="detail-head">
+                <span class="detail-portrait"><GameArtImage GameRef="@mSkill.Definition.IconAssetPath" Alt="@mSkill.Name"><span class="material-symbol" aria-hidden="true">workspace_premium</span></GameArtImage></span>
+                <span class="detail-title"><strong>@(milestoneConcealed ? "???" : milestone.Perk)</strong><small>@L.Resource("Slot_SkillFormat", mSkill.Name)</small></span>
+                <button class="detail-close" type="button" @onclick="Selection.CloseMilestone" aria-label="@L.Detail("cancel")">&#10005;</button>
+            </div>
+            <div class="milestone-chips">
+                <span class="chip chip--terminal">@L.Resource("Skill_LevelFormat", milestone.Level)</span>
+                <span class="chip chip--orange">@((milestoneUnlocked ? L.Editor("common.unlocked") : L.Editor("common.locked")).ToUpperInvariant())</span>
+            </div>
+            <div class="rb-detail-divider" role="presentation"></div>
+            @if (milestoneConcealed)
+            {
+                <p class="detail-value">@L.Resource("Skill_HiddenUntilUnlocked")</p>
+                <button class="secondary" type="button" @onclick="() => RevealMilestone(mSkill, milestone)">@L.Resource("PlayerUi_RevealDetails")</button>
+            }
+            else
+            {
+                <span class="detail-label">@L.Resource("Slot_PerkEffect")</span>
+                <p class="detail-value">@milestone.Effect</p>
+            }
+            <p class="detail-status">@SkillLocalization.MilestoneRequirementText(L, mSkill, milestone)</p>
+            <p class="detail-status">@L.Resource("Slot_PerksAreDerivedFromTheSkillLevelTheGameGrantsThemAutomaticallyWhenYouReachTheLevelSoASaveEditorNeverWritesThemDirectly")</p>
+        </div>
+        </div>
+    }
+
+    @if (Selection.Current is not { } selection)
+    {
+        @if (Selection.EncyclopediaItemId is null && Selection.Milestone is null && Selection.DetailContent is null)
+        {
+            <p class="slot-editor-hint">@L.Inventory("editHint")</p>
+            @* On a phone there is no dragging, so the tip has to describe the two-tap flow
+               that actually works there. *@
+            <p class="slot-editor-hint slot-editor-tip">@L.Resource(_touch ? "PlayerUi_MoveBetweenAreasHelp" : "Slot_TipDragASlotOntoAnotherToSwapDropOnAContainerInTheWorldEditorsListToMoveItemsBetweenContainers")</p>
+        }
+        @* Native SlotSidebarView: the item catalog shows on the inventory/transmog tabs
+           whenever a player save is open - no slot selection required. *@
+        @if (Selection.Palette is not null)
+        {
+            <div class="slot-editor-content">
+                <div class="hazard-divider" aria-hidden="true"></div>
+                @ItemCatalogSection()
+            </div>
+        }
+    }
+    else
+    {
+        var selected = selection.Slot;
+        var selectedEntry = Catalog.Find(selected.ItemId);
+        <div class="slot-editor-content">
+            <header class="slot-item-heading">
+                <div class="slot-item-icon">@if (!selected.IsEmpty && selected.ItemId is { } selectedId) { <ItemIcon ItemId="@selectedId" Alt="@SlotName(selected)" /> } else { <span aria-hidden="true">?</span> }</div>
+                <div><h3>@SlotName(selected)</h3><p>@L.Inventory("selectedArea", selection.Area, selected.Index)</p></div>
+            </header>
+
+            @* Field visibility mirrors the native InventorySlotViewModel: AMMO only for
+               magazine-using firearms (or when ammo is already loaded), DURABILITY only
+               when the item has one, LIQUID only for liquid-holding items. Native hides
+               the sections outright rather than disabling them, so we do too. *@
+            <div class="slot-field-stack">
+                <label>@L.Inventory("itemRow")
+                    <input list="shell-item-palette" @bind="selected.ItemId" @bind:after="ItemRowChanged" placeholder="@L.Inventory("empty")" autocomplete="off" />
+                </label>
+                <datalist id="shell-item-palette">@foreach (var item in Catalog.Entries) { <option value="@item.Id">@item.DisplayName</option> }</datalist>
+                <div class="slot-field-pair">
+                    <label>@L.Inventory("count")<input type="number" min="0" @bind="selected.Count" @bind:after="Changed" /></label>
+                    @if (HasAmmoCapacity(selected)) { <label>@L.Inventory("ammo")<input type="number" min="0" @bind="selected.AmmoInMagazine" @bind:after="Changed" /></label> }
+                </div>
+                @if (ShowDurability(selected))
+                {
+                    <div class="slot-field-pair">
+                        <label>@L.Inventory("durability")<input type="number" min="0" step="any" @bind="selected.Durability" @bind:after="Changed" /></label>
+                        <label>@L.Inventory("maxDurability")<input type="number" min="0" step="any" @bind="selected.MaxDurability" @bind:after="Changed" /></label>
+                    </div>
+                }
+                @if ((selectedEntry?.MaxLiquid ?? 0) > 0)
+                {
+                    <label>@L.Inventory("liquid")<input type="number" min="0" max="@selectedEntry!.MaxLiquid" @bind="selected.LiquidLevel" @bind:after="Changed" /></label>
+                }
+                @* CUSTOM NAME is not offered on everything, because the game does not use this
+                   field as a name on everything. A personal teleporter keeps its linked bench
+                   there, and a soup bowl keeps what soup is in it; typing a name into either
+                   would quietly break the item. Those cases are read-only and say what they
+                   actually hold. *@
+                @switch (PlayerMadeStringRole(selected))
+                {
+                    case NameFieldRole.TeleporterTarget:
+                        <label>@L.Resource("Slot_LinkedBench")<input value="@TeleporterTargetText(selected)" readonly /></label>
+                        <small class="slot-editor-hint">@L.Resource("Slot_LinkedBenchHint")</small>
+                        break;
+                    case NameFieldRole.Contents:
+                        <label>@L.Resource("Slot_HoldsContents")<input value="@(selected.PlayerMadeString ?? string.Empty)" readonly /></label>
+                        <small class="slot-editor-hint">@L.Resource("Slot_HoldsContentsHint")</small>
+                        break;
+                    default:
+                        <label>@L.Inventory("customName")<input @bind="selected.PlayerMadeString" @bind:after="Changed" /></label>
+                        break;
+                }
+            </div>
+
+            @* The COUNT box above is the only stack-size control. There were -1 / +1 / HALVE /
+               DOUBLE buttons here, which did nothing you cannot do by typing the number. *@
+            @if (IsTeleporter(selected))
+            {
+                <section class="slot-tool-card" aria-label="@L.Inventory("teleporterAria")">
+                    <h4>@L.Inventory("teleporterSync")</h4>
+                    <label>@L.Inventory("craftingBench")<select @bind="_benchId"><option value="">@L.Inventory("chooseBench")</option>@foreach (var bench in selection.Benches) { <option value="@bench.Id">@bench.DisplayName · @bench.X.ToString("0"), @bench.Y.ToString("0")</option> }</select></label>
+                    <div class="slot-quick-actions"><button class="secondary" type="button" @onclick="SyncTeleporter" disabled="@string.IsNullOrWhiteSpace(_benchId)">@L.Inventory("sync")</button><button class="secondary" type="button" @onclick="UnsyncTeleporter">@L.Inventory("unsync")</button></div>
+                </section>
+            }
+
+            <div class="slot-action-stack">
+                @if (SupportsUpgrade(false)) { <button class="secondary" type="button" @onclick="() => RequestUpgrade(false)">@L.Inventory("upgrade").ToUpperInvariant()</button> }
+                @if (SupportsUpgrade(true)) { <button class="secondary" type="button" @onclick="() => RequestUpgrade(true)">@L.Inventory("downgrade").ToUpperInvariant()</button> }
+                <button class="secondary danger" type="button" @onclick="RequestDismantle">@L.Inventory("dismantle")</button>
+                <button class="secondary" type="button" @onclick="Clear">@L.Inventory("clear").ToUpperInvariant()</button>
+            </div>
+
+            <label class="slot-swap">@L.Inventory("swapWith")
+                <select @bind="_swapIndex">@foreach (var slot in selection.Slots) { if (slot.Index != selected.Index) { <option value="@slot.Index">@L.Inventory("slotOption", slot.Index, SlotName(slot))</option> } }</select>
+                <button class="secondary" type="button" @onclick="Swap">@L.Inventory("swap").ToUpperInvariant()</button>
+            </label>
+            @if (_swapStatus is not null)
+            {
+                <p class="swap-status @(_swapBlocked ? "blocked" : null)" role="status">@_swapStatus</p>
+            }
+
+            @* Dismantle keeps the native two-step INLINE preview card (native shows the
+               exact yield in the sidebar, then asks for confirmation) - it is not a modal. *@
+            @if (_dismantleMessage is not null)
+            {
+                <section class="slot-tool-card danger" aria-live="polite"><p>@_dismantleMessage</p>@if (_dismantlePlan is not null) { <div class="slot-quick-actions"><button class="primary" type="button" @onclick="ConfirmDismantle">@L.Inventory("confirmDismantle")</button><button class="secondary" type="button" @onclick="CancelDismantle">@L.Inventory("cancel")</button></div> } else { <button class="secondary" type="button" @onclick="CancelDismantle">@L.Inventory("close")</button> }</section>
+            }
+
+            @* The item catalog only accompanies a selected slot on surfaces where the
+               native app shows it: the player inventory/transmog tabs (the ambient
+               palette context) and the world container editors (PlayerArea is null). *@
+            @if (Selection.Palette is not null || selection.PlayerArea is null)
+            {
+                <div class="hazard-divider" aria-hidden="true"></div>
+                @ItemCatalogSection()
+            }
+        </div>
+    }
+</section>
+
+@code {
+    /// <summary>
+    /// Native SlotSidebarView palette semantics: items are DRAG SOURCES (drop on any slot in
+    /// the current tab), double-click quick-gives, and a single click only selects the item
+    /// for its detail card - it never assigns. Shown with a slot selected AND tab-wide via
+    /// <see cref="InventorySelectionService.Palette"/> (native ShowItemPalette).
+    /// </summary>
+    private RenderFragment ItemCatalogSection() => __builder =>
+    {
+        <section class="item-catalog" aria-label="@L.Inventory("itemCatalogAria")">
+            <header><h4>@L.Inventory("itemCatalog")</h4><span>@L.Resource("Palette_ShowingOf", PaletteItems.Count, PaletteMatchCount)</span></header>
+            @if (Selection.Current?.Role is { } paletteRole)
+            {
+                <label class="catalog-fits-filter" title="@L.Resource("Slot_OnlyItemsTheSelectedEquipmentSlotAcceptsAreListedSameRuleTheGameEnforcesUntickToBrowseEverything")">
+                    <input type="checkbox" @bind="_paletteFitsRole" /> @L.Resource("Palette_FitsSlot", paletteRole)
+                </label>
+            }
+            <label class="catalog-search"><span aria-hidden="true">⌕</span><input @bind="_paletteFilter" @bind:event="oninput" @bind:after="ResetPaletteWindow" placeholder="@L.Resource("Slot_SearchItemsByNameIdOrTag")" /></label>
+            <div class="catalog-categories" role="group" aria-label="@L.Resource("Slot_ItemCategories")">
+                @foreach (var category in Categories)
+                {
+                    <button type="button" class="@(_paletteCategory == category.Key ? "selected" : null)" aria-pressed="@(_paletteCategory == category.Key)" @onclick="() => SelectCategory(category.Key)">@L.Resource(category.ResourceKey)</button>
+                }
+            </div>
+            <div class="catalog-grid">
+                @foreach (var item in PaletteItems)
+                {
+                    <button type="button" title="@Tooltip(item)"
+                            class="@(ReferenceEquals(_paletteSelection, item) ? "selected" : null)"
+                            draggable="true"
+                            data-drag="@SlotDropRules.PalettePayload(item)"
+                            @ondragstart="() => BeginPaletteDrag(item)"
+                            @ondragend="EndPaletteDrag"
+                            @onclick="() => SelectPaletteItem(item)"
+                            @ondblclick="() => QuickGive(item)">
+                        <ItemIcon ItemId="@item.Id" Alt="@item.DisplayName" />
+                        <small>@item.DisplayName</small>
+                    </button>
+                }
+            </div>
+            @if (PaletteItems.Count == 0) { <p class="empty">@L.Inventory("noMatches")</p> }
+            @if (PaletteMatchCount > PaletteItems.Count)
+            {
+                <button type="button" class="catalog-load-more" @onclick="LoadMore">@L.Resource("Slot_LoadMore")</button>
+            }
+            @if (_paletteSelection is { } detail)
+            {
+                <div class="catalog-detail">
+                    <strong>@detail.DisplayName</strong>
+                    <small>@DetailStats(detail)</small>
+                    @if (!string.IsNullOrWhiteSpace(detail.Description)) { <p>@detail.Description</p> }
+                    @* PICK UP is the no-dragging way to spawn an item: take it here, then tap
+                       the slot it should go in. It is only offered on a screen that cannot
+                       drag; with a mouse the card keeps the size and shape it always had. *@
+                    @if (_touch)
+                    {
+                        <div class="catalog-detail-actions">
+                            @if (Dnd.PaletteItem is not null)
+                            {
+                                <button type="button" class="secondary" @onclick="EndPaletteDrag">@L.Resource("Slot_Cancel")</button>
+                            }
+                            else
+                            {
+                                <button type="button" class="secondary" @onclick="() => PickUpPaletteItem(detail)">@L.Resource("PlayerInventory_PickUp")</button>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            @if (_paletteStatus is not null) { <p class="catalog-status" role="status">@_paletteStatus</p> }
+            <p class="catalog-attribution">@L.Resource("Slot_GameArtworkAttribution")</p>
+        </section>
+    };
+
+    private string _paletteFilter = string.Empty;
+    private string _paletteCategory = "all";
+    private bool _paletteFitsRole = true;
+    private int _paletteWindow = PaletteWindowStep;
+    private const int PaletteWindowStep = 72;
+    private ItemCatalogEntry? _paletteSelection;
+    private string? _paletteStatus;
+    private IJSObjectReference? _dnd;
+    /// <summary>True on a device that cannot hover a pointer, so the on-screen tips describe
+    /// tapping rather than dragging.</summary>
+    private bool _touch;
+    private int _swapIndex;
+    private string? _swapStatus;
+    private bool _swapBlocked;
+    private string? _benchId;
+    private InventoryDismantlePlan? _dismantlePlan;
+    private string? _dismantleMessage;
+
+    private static readonly PaletteCategory[] Categories =
+    [
+        new("all", "Slot_Category_All"), new("resources", "Slot_Category_Resources"),
+        new("furniture", "Slot_Category_Furniture"), new("tools", "Slot_Category_Tools"),
+        new("power", "Slot_Category_Power"), new("defense", "Slot_Category_Defense"),
+        new("weapons", "Slot_Category_Weapons"), new("armor", "Slot_Category_Armor"),
+        new("medical", "Slot_Category_Medical"), new("food", "Slot_Category_Food"),
+        new("farming", "Slot_Category_Farming"), new("other", "Slot_Category_Other"),
+    ];
+    private IEnumerable<ItemCatalogEntry> PaletteMatches => Catalog.Entries.Where(item =>
+        // FITS SLOT filter (native ItemPaletteViewModel.RoleFilter): when the selected
+        // slot has an equipment/transmog role, only offer items that slot accepts.
+        (!_paletteFitsRole || Selection.Current?.Role is not { } role || SlotDropRules.ValidateForRole(L, role, item) is null)
+        && (_paletteCategory == "all" || ItemCatalogService.CategoryOf(item) == _paletteCategory)
+        && (string.IsNullOrWhiteSpace(_paletteFilter)
+            || item.DisplayName.Contains(_paletteFilter.Trim(), StringComparison.OrdinalIgnoreCase)
+            || item.Id.Contains(_paletteFilter.Trim(), StringComparison.OrdinalIgnoreCase)
+            || item.Tags.Any(tag => tag.Contains(_paletteFilter.Trim(), StringComparison.OrdinalIgnoreCase))));
+    private List<ItemCatalogEntry> PaletteItems => PaletteMatches.Take(_paletteWindow).ToList();
+    private int PaletteMatchCount => PaletteMatches.Count();
+    private void LoadMore() => _paletteWindow += PaletteWindowStep;
+    private void ResetPaletteWindow() => _paletteWindow = PaletteWindowStep;
+
+    protected override void OnInitialized()
+    {
+        Selection.Changed += SelectionChanged;
+        // A carried catalog item can be put down on another surface, which retires the hold;
+        // re-render so PICK UP comes back in place of CANCEL.
+        Dnd.Changed += Refresh;
+    }
+
+    private void Refresh() => _ = InvokeAsync(StateHasChanged);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        // Shared DnD plumbing: primes dataTransfer on dragstart (Firefox) and sets the
+        // dropEffect cursor over eligible/ineligible slots (see transmog-dnd.js). Loading
+        // it here keeps palette drags working before any tab installs it.
+        _dnd = await Js.InvokeAsync<IJSObjectReference>("import", "./transmog-dnd.js");
+        await _dnd.InvokeVoidAsync("init");
+        // Devices whose pointer cannot hover (phones, tablets) are told about the two-tap
+        // flow instead of dragging, because dragging simply does not work there.
+        var touch = await _dnd.InvokeAsync<bool>("isTouch");
+        if (touch == _touch) return;
+        _touch = touch;
+        StateHasChanged();
+    }
+
+    protected override void OnParametersSet() => ResetSelectionControls();
+    private void SelectionChanged() { ResetSelectionControls(); _paletteStatus = null; _ = InvokeAsync(StateHasChanged); }
+    private void ResetSelectionControls() { _swapStatus = null; _swapBlocked = false; if (Selection.Current is { } current) { _swapIndex = current.Slots.FirstOrDefault(slot => slot.Index != current.Slot.Index)?.Index ?? current.Slot.Index; _benchId = CurrentBenchId(current.Slot); } }
+    /// <summary>
+    /// The pane's own close button dismisses the topmost thing, not the whole pane. A tab-supplied
+    /// detail card (a bench, a door, a recipe) sits on top of whatever slot was already being
+    /// edited, so closing the card has to leave that slot - and its item catalog - exactly where
+    /// it was. Clearing everything meant opening a bench from a base and closing it again threw
+    /// away the crate you had open underneath.
+    /// </summary>
+    private void Close()
+    {
+        if (Selection.DetailContent is not null) { Selection.CloseDetail(); return; }
+        if (Selection.EncyclopediaItemId is not null) { Selection.CloseEncyclopedia(); return; }
+        Selection.Clear();
+    }
+
+    /// <summary>Override clearance for a sealed milestone; the chips on the SKILLS tab share
+    /// the same key, so they un-conceal with the panel (Selection.Changed re-renders them).</summary>
+    private void RevealMilestone(AbioticEditor.Web.Models.PlayerSkillEdit skill, AbioticEditor.Core.PlayerSaves.SkillMilestone milestone)
+    {
+        Spoilers.Reveal(SkillLocalization.MilestoneSpoilerKey(skill, milestone));
+        if (Selection.Milestone is { } current) Selection.ShowMilestone(current);
+    }
+    private void SelectCategory(string category) { _paletteCategory = category; ResetPaletteWindow(); }
+    private async Task Changed() { if (Selection.Current is { } current) await current.NotifyChanged(); }
+
+    /// <summary>
+    /// Typing a new item row also primes durability from the catalog (like the native
+    /// SwapTo does), so the durability fields of a durable item are not left hidden
+    /// behind a stale MaxItemDurability of 0.
+    /// </summary>
+    private async Task ItemRowChanged()
+    {
+        if (Selection.Current is { } current
+            && Catalog.Find(current.Slot.ItemId) is { MaxDurability: > 0 } entry
+            && current.Slot.MaxDurability <= 0)
+        {
+            current.Slot.MaxDurability = entry.MaxDurability;
+            current.Slot.Durability = entry.MaxDurability;
+        }
+        await Changed();
+    }
+
+    // ---------- native field-visibility rules (InventorySlotViewModel) ----------
+
+    /// <summary>Durability shows only when the item actually has one (native ShowDurability).</summary>
+    private static bool ShowDurability(PlayerInventorySlotEdit slot) => slot.MaxDurability > 0 && !slot.IsEmpty;
+
+    /// <summary>
+    /// True only for magazine-using firearms - not melee weapons or tools (native
+    /// HasAmmoCapacity). The game tags every weapon Item.Weapon, so like the native
+    /// editor we match firearm id patterns, or trust ammo already present in the save.
+    /// </summary>
+    private static bool HasAmmoCapacity(PlayerInventorySlotEdit slot)
+    {
+        if (slot.AmmoInMagazine > 0) return true;
+        if (string.IsNullOrEmpty(slot.ItemId)) return false;
+        var lower = slot.ItemId.ToLowerInvariant();
+        foreach (var hint in FirearmIdHints) { if (lower.Contains(hint, StringComparison.Ordinal)) return true; }
+        return false;
+    }
+
+    // Same id hints as the native InventorySlotViewModel.FirearmIdHints.
+    private static readonly string[] FirearmIdHints =
+    [
+        "magnum", "shotgun", "rifle", "pistol", "crossbow", "nailgun",
+        "netlauncher", "sniper", "carbine", "smg", "lmg",
+        "_gun", "gun_", "heavy_laser", "disc_launcher", "flintlock",
+        "machine", "minigun", "blunderbuss",
+    ];
+    private async Task Clear() { if (Selection.Current is { } current) { current.Slot.Clear(); Selection.NotifyItemCommitted(); await current.NotifyChanged(); } }
+    // ---------- palette interactions (native SlotSidebarView semantics) ----------
+
+    /// <summary>Single click only opens the item's detail card - assignment is drag or
+    /// double-click, exactly like the native palette.</summary>
+    private void SelectPaletteItem(ItemCatalogEntry item) => _paletteSelection = item;
+
+    private void BeginPaletteDrag(ItemCatalogEntry item)
+    {
+        Dnd.BeginPaletteDrag(item);
+        _paletteStatus = L.Resource("Slot_MsgDraggingFromCatalog", item.DisplayName);
+    }
+
+    /// <summary>
+    /// Takes a catalog item without dragging it: the next slot tapped anywhere in the editor
+    /// receives a fresh copy, with the same checks a drag would run. This is the touch path
+    /// for the palette; the mouse drag is untouched.
+    /// </summary>
+    private void PickUpPaletteItem(ItemCatalogEntry item)
+    {
+        _paletteSelection = item;
+        Dnd.BeginPaletteDrag(item);
+        _paletteStatus = L.Resource("PlayerUi_MoveBetweenAreasHelp");
+    }
+
+    private void EndPaletteDrag()
+    {
+        Dnd.End();
+        _paletteStatus = null;
+    }
+
+    /// <summary>
+    /// Native double-tap quick-give: fills the active slot when it is empty, otherwise the
+    /// owning surface's fallback (first empty backpack slot, then hotbar; hotbar only for
+    /// pets; first empty container slot for storage groups). Placement honors the same
+    /// rules as drag-and-drop.
+    /// </summary>
+    private async Task QuickGive(ItemCatalogEntry item)
+    {
+        _paletteSelection = item;
+        var current = Selection.Current;
+        var palette = Selection.Palette;
+        if (current is null && palette is null) return;
+
+        var hotbarOnly = EquipSlotTypes.IsHotbarOnly(item);
+        // With no selection the ambient tab context supplies the fallback (native gives to
+        // the first empty backpack slot, hotbar for pets, without any selection).
+        var target = current is not null
+            ? current.Slot.IsEmpty
+                ? new QuickGiveTarget(current.Slot, current.PlayerArea, current.Role)
+                : current.QuickGiveFallback?.Invoke(hotbarOnly)
+            : palette!.QuickGiveFallback(hotbarOnly);
+        if (target is null)
+        {
+            _paletteStatus = L.Resource(hotbarOnly ? "Slot_MsgNoEmptyHotbar" : "Slot_MsgNoEmptyAvailable");
+            return;
+        }
+        if (SlotDropRules.ValidateForSlot(L, target.Area, target.Role, item) is { } problem)
+        {
+            _paletteStatus = L.Resource("Slot_MsgBlocked", problem);
+            return;
+        }
+        SlotDropRules.FillFromCatalog(target.Slot, item);
+        current?.SelectSlot?.Invoke(target.Slot);
+        _paletteStatus = L.Resource("Slot_MsgGaveToSlot", item.DisplayName, target.Slot.Count, target.Slot.Index);
+        Selection.NotifyItemCommitted();
+        if (current is not null) await current.NotifyChanged();
+        else { palette!.Session.MarkChanged(); await palette.NotifyChanged(); }
+    }
+
+    /// <summary>The item's real name; only spaced-out stored text when the game files are not
+    /// available, never a run-together internal name.</summary>
+    private string SlotName(PlayerInventorySlotEdit slot)
+        => slot.IsEmpty
+            ? L.Inventory("empty")
+            : Catalog.Find(slot.ItemId)?.DisplayName ?? PlainNames.Words(slot.ItemId);
+
+    private string DetailStats(ItemCatalogEntry item) => StatsLine(item, includeWeapon: false);
+
+    // Mirrors the native encyclopedia card's stats line (ItemPaletteViewModel.StatsText).
+    private string EncyclopediaStats(ItemCatalogEntry entry) => StatsLine(entry, includeWeapon: true);
+
+    private string StatsLine(ItemCatalogEntry entry, bool includeWeapon)
+    {
+        var parts = new List<string>
+        {
+            L.Resource("PlayerRecipes_StatStack", entry.StackSize),
+            // Weight is only meaningful with its unit: a bare "1.5" next to a stack size
+            // reads like another count.
+            L.Resource("PlayerRecipes_StatWeightKg", entry.Weight),
+        };
+        if (entry.MaxDurability > 0) parts.Add(L.Resource("PlayerRecipes_StatDurability", entry.MaxDurability));
+        if (includeWeapon && entry.IsWeapon) parts.Add(L.Resource("PlayerRecipes_StatWeapon"));
+        return string.Join(" · ", parts);
+    }
+
+    /// <summary>Hover text for a catalog tile: the item's name, what it does and the numbers
+    /// that matter. The long reference the game files it under used to sit on the second line;
+    /// it is not something a player can act on, so it is no longer shown.</summary>
+    private string Tooltip(ItemCatalogEntry item)
+    {
+        var stats = L.Inventory("itemTooltip", item.DisplayName, item.StackSize, item.Weight)
+            + (item.MaxDurability > 0 ? L.Inventory("itemDurability", item.MaxDurability) : string.Empty);
+        return string.IsNullOrWhiteSpace(item.Description) ? stats : stats + "\n\n" + item.Description;
+    }
+    /// <summary>
+    /// SWAP applies the same two-way validation as drag-and-drop (native SlotInteractions
+    /// drop handler): the moved item must fit the destination slot AND the displaced item
+    /// must fit the source slot; a refusal shows the native "Blocked ..." message.
+    /// </summary>
+    private async Task Swap()
+    {
+        if (Selection.Current is not { } current || _swapIndex == current.Slot.Index) return;
+        if (current.Slots.FirstOrDefault(slot => slot.Index == _swapIndex) is not { } target) return;
+        if (SwapProblem(current, current.Slot, target) is { } problem)
+        {
+            _swapStatus = problem;
+            _swapBlocked = true;
+            return;
+        }
+        await current.Swap((current.Slot.Index, _swapIndex));
+        _swapStatus = L.Resource("Slot_MsgSwapped", SlotName(target));
+        _swapBlocked = false;
+    }
+
+    private string? SwapProblem(InventorySelection current, PlayerInventorySlotEdit source, PlayerInventorySlotEdit target)
+    {
+        var area = current.PlayerArea;
+        var sourceRole = area is { } sourceArea ? SlotDropRules.RoleFor(sourceArea, source.Index) : null;
+        var targetRole = area is { } targetArea ? SlotDropRules.RoleFor(targetArea, target.Index) : null;
+        if (SlotDropRules.ValidateForSlot(L, area, targetRole, Catalog.Find(source.ItemId)) is { } problem)
+            return L.Resource("Slot_MsgBlocked", problem);
+        if (!target.IsEmpty && SlotDropRules.ValidateForSlot(L, area, sourceRole, Catalog.Find(target.ItemId)) is { } displaced)
+            return L.Resource("Slot_MsgBlockedSwap", displaced);
+        return null;
+    }
+
+    private bool SupportsUpgrade(bool downgrade) => Selection.Current is { } current && (downgrade ? current.CanDowngrade?.Invoke(current.Slot) : current.CanUpgrade?.Invoke(current.Slot)) == true;
+
+    /// <summary>Upgrade/downgrade confirmation goes through the shared application dialog.</summary>
+    private void RequestUpgrade(bool downgrade)
+    {
+        if (Selection.Current is not { } current) return;
+        var message = L.Inventory("upgradeConfirm", L.Inventory(downgrade ? "downgrading" : "upgrading"), current.Slot.DisplayName);
+        Modals.Show(new ModalRequest(
+            L.Inventory(downgrade ? "downgrade" : "upgrade").ToUpperInvariant(),
+            @<p>@message</p>,
+            ConfirmText: L.Detail("confirm").ToUpperInvariant(),
+            OnConfirm: () => ApplyUpgradeAsync(downgrade),
+            CancelText: L.Detail("cancel").ToUpperInvariant()));
+    }
+
+    private async Task ApplyUpgradeAsync(bool downgrade)
+    {
+        if (Selection.Current is { } current) await current.Upgrade((current.Slot.Index, downgrade));
+    }
+    /// <summary>What an item's PlayerMadeString actually holds.</summary>
+    private enum NameFieldRole { Name, TeleporterTarget, Contents }
+
+    /// <summary>
+    /// The game reuses one string field for several unrelated jobs. On a teleporter it is the
+    /// linked bench ("GUID,Bench Name"), on a bowl or pot it is what is in it (a recipe id), and
+    /// only elsewhere is it a name the player typed. Offering an editable CUSTOM NAME box for
+    /// all three meant renaming a teleporter silently unlinked it and renaming a soup emptied it.
+    /// </summary>
+    private static NameFieldRole PlayerMadeStringRole(PlayerInventorySlotEdit slot)
+    {
+        if (IsTeleporter(slot)) return NameFieldRole.TeleporterTarget;
+        var id = slot.ItemId ?? string.Empty;
+        return id.Contains("bowl", StringComparison.OrdinalIgnoreCase)
+            || id.Contains("soup", StringComparison.OrdinalIgnoreCase)
+            || id.Contains("cookpot", StringComparison.OrdinalIgnoreCase)
+            || id.Contains("canteen", StringComparison.OrdinalIgnoreCase)
+                ? NameFieldRole.Contents
+                : NameFieldRole.Name;
+    }
+
+    /// <summary>The teleporter's linked bench, shown as its name when the save carries one.</summary>
+    private static string TeleporterTargetText(PlayerInventorySlotEdit slot)
+    {
+        var raw = slot.PlayerMadeString;
+        if (string.IsNullOrWhiteSpace(raw)) return string.Empty;
+        var comma = raw.IndexOf(',');
+        if (comma < 0) return raw;
+        var name = raw[(comma + 1)..].Trim();
+        return name.Length > 0 ? name : raw[..comma];
+    }
+
+    private static bool IsTeleporter(PlayerInventorySlotEdit slot) => slot.ItemId?.Contains("personalteleporter", StringComparison.OrdinalIgnoreCase) == true || slot.ItemId?.Contains("moisture_teleporter", StringComparison.OrdinalIgnoreCase) == true;
+    private static string? CurrentBenchId(PlayerInventorySlotEdit slot) => string.IsNullOrWhiteSpace(slot.PlayerMadeString) ? null : slot.PlayerMadeString.TrimEnd(',');
+    private async Task SyncTeleporter() { if (Selection.Current is not { } current || string.IsNullOrWhiteSpace(_benchId)) return; current.Slot.PlayerMadeString = _benchId + ","; await current.NotifyChanged(); }
+    private async Task UnsyncTeleporter() { if (Selection.Current is not { } current) return; current.Slot.PlayerMadeString = string.Empty; _benchId = null; await current.NotifyChanged(); }
+    private void RequestDismantle() { if (Selection.Current is not { } current) return; Dismantling.TryPlan(current.Slot, current.DismantleDestinations, current.ReuseSourceForDismantle, out _dismantlePlan, out var message); _dismantleMessage = message; }
+    private async Task ConfirmDismantle() { if (_dismantlePlan is null || Selection.Current is not { } current) return; InventoryDismantleService.Apply(_dismantlePlan); CancelDismantle(); await current.NotifyChanged(); }
+    private void CancelDismantle() { _dismantlePlan = null; _dismantleMessage = null; }
+    public async ValueTask DisposeAsync()
+    {
+        Selection.Changed -= SelectionChanged;
+        Dnd.Changed -= Refresh;
+        try { if (_dnd is not null) await _dnd.DisposeAsync(); }
+        catch (JSDisconnectedException) { }
+    }
+
+    private sealed record PaletteCategory(string Key, string ResourceKey);
+}

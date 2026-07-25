@@ -1,0 +1,69 @@
+@namespace AbioticEditor.Web.Components.Player
+@inject AbioticEditor.Ui.IExternalNavigationService ExternalNavigation
+@inject AbioticEditor.Ui.IFilePicker FilePicker
+
+@* Faithful port of the native PlayerRawTab: one panel with the RAW SAVE JSON
+   export -> edit externally -> import workflow and a status readout. The native tab
+   has no in-app property editor, so this tab does not either. *@
+<section class="editor-card raw-json-card" aria-label="@L.Resource("PlayerRaw_RawSaveJson")">
+    <h3>@L.Resource("PlayerRaw_RawSaveJson")</h3>
+    <p class="muted">@L.Resource("PlayerRaw_RawSaveJsonHelp")</p>
+    <p class="raw-json-path">@L.Resource("Common_JsonFileFormat", Session.JsonPath)</p>
+    <div class="editor-actions">
+        <button type="button" class="accent-orange" disabled="@_jsonBusy" @onclick="ExportJsonAsync">@L.Resource("PlayerRaw_ExportJsonAndOpen")</button>
+        @* Import asks which file to use, so it stays available even when nothing was exported
+           beside this save yet. *@
+        <button class="accent-orange" type="button" disabled="@_jsonBusy" @onclick="ImportJsonAsync">@L.Resource("PlayerRaw_ImportJsonToSave")</button>
+        @if (_jsonBusy) { <span class="header-busy-spinner" role="status" aria-label="@L.Resource("PlayerUi_Working")"></span> }
+    </div>
+    @if (!string.IsNullOrWhiteSpace(_jsonStatus)) { <p class="raw-json-status" role="status">@_jsonStatus</p> }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    private string? _jsonStatus;
+    private bool _jsonBusy;
+
+    private async Task ExportJsonAsync()
+    {
+        _jsonBusy = true; _jsonStatus = L.Resource("PlayerUi_ExportingJson");
+        try
+        {
+            await Session.ExportJsonToFileAsync();
+            _jsonStatus = L.Resource("PlayerUi_JsonExported", new FileInfo(Session.JsonPath).Length / 1024d / 1024d, Session.JsonPath);
+        }
+        catch (Exception ex) { _jsonStatus = Errors.Present(ex, L.Resource("PlayerUi_ExportFailed"), L.Resource("PlayerUi_SaveUnchanged")); return; }
+        finally { _jsonBusy = false; }
+        // Showing the finished file in the file manager is a courtesy: if it fails, the export
+        // still succeeded, so never let it replace the success message with an export error.
+        try { await ExternalNavigation.RevealPathAsync(Session.JsonPath); }
+        catch (Exception ex) { Errors.Record(ex, "Reveal the exported player JSON file"); }
+    }
+
+    // Import asks which JSON to put back rather than only accepting the file sitting beside the
+    // save, so an edited copy kept anywhere (or one from another machine) can override this save.
+    private async Task ImportJsonAsync()
+    {
+        string chosen;
+        bool temporary;
+        try
+        {
+            if (await RawJsonImport.ChooseAsync(FilePicker, L.Resource("Common_ChooseJsonFile")) is not { } picked)
+            {
+                _jsonStatus = L.Resource("Common_ImportJsonCancelled");
+                return;
+            }
+            (chosen, temporary) = picked;
+        }
+        catch (Exception ex)
+        {
+            _jsonStatus = Errors.Present(ex, L.Resource("PlayerUi_ImportFailed"), L.Resource("PlayerUi_SaveNotReplaced"));
+            return;
+        }
+
+        _jsonBusy = true; _jsonStatus = L.Resource("PlayerUi_ImportingJson");
+        try { await Session.ImportJsonFromFileAsync(chosen); _jsonStatus = L.Resource("PlayerUi_JsonImported"); }
+        catch (Exception ex) { _jsonStatus = Errors.Present(ex, L.Resource("PlayerUi_ImportFailed"), L.Resource("PlayerUi_SaveNotReplaced")); }
+        finally { _jsonBusy = false; RawJsonImport.CleanUp(chosen, temporary); }
+    }
+}

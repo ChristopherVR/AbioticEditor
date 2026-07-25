@@ -17,12 +17,15 @@ until you press **SAVE**, and every write keeps a `.bak` backup.
 Grab the latest build for your platform from the
 [**Releases page**](https://github.com/ChristopherVR/AbioticEditor/releases/latest):
 
-Each zip's name carries the release version (e.g. `AbioticEditor-app-win-x64-v1.2.0.zip`).
+The Windows and Linux / Steam Deck (Proton saves) editor packages are also available as separate
+files on the [Nexus Mods downloads page](https://www.nexusmods.com/abioticfactor/mods/244?tab=files).
+
+Each zip's name carries the release version (e.g. `AbioticEditor-desktop-win-x64-v1.2.0.zip`).
 
 | Download | What it is |
 |---|---|
-| `AbioticEditor-app-win-x64-v<version>.zip` | Desktop app (Windows) - a single self-contained `.exe` (no .NET install needed) plus a `Mappings.usmap` data file |
-| `AbioticEditor-app-osx-x64-v<version>.zip` / `-osx-arm64-…` | Desktop app (macOS, unsigned) |
+| `AbioticEditor-desktop-win-x64-v<version>.zip` | Desktop editor (Windows). Extract and run `AbioticEditor.Web.exe`; no .NET install is needed. |
+| `AbioticEditor-desktop-linux-x64-v<version>.zip` | Desktop editor (Linux, Steam Deck, and Proton saves). Extract and run `launch-linux.sh`. |
 | `AbioticEditor-cli-win-x64-v<version>.zip` | Command-line tool (Windows) |
 | `AbioticEditor-cli-linux-x64-v<version>.zip` | Command-line tool (Linux, including Steam Deck - finds saves inside the Proton prefix automatically) |
 | `AbioticEditor-cli-osx-x64-v<version>.zip` / `-osx-arm64-…` | Command-line tool (macOS) |
@@ -52,7 +55,7 @@ scoop update  abiotic-editor          # later, to upgrade
 :::
 
 If you'd rather run the zip download directly: right-click the downloaded `.zip` ▸
-**Properties** ▸ tick **Unblock** ▸ **OK**, then unzip and run `AbioticEditor.App.exe`. If
+**Properties** ▸ tick **Unblock** ▸ **OK**, then unzip and run `AbioticEditor.Web.exe`. If
 SmartScreen still shows "Windows protected your PC", click **More info ▸ Run anyway**.
 
 ::: tip macOS is unsigned
@@ -69,14 +72,13 @@ Requires the **.NET 10 SDK**. Clone with submodules, since the build depends on 
 git clone --recursive https://github.com/ChristopherVR/AbioticEditor.git
 cd AbioticEditor
 
-dotnet build src/AbioticEditor.App -f net10.0-windows10.0.19041.0   # desktop editor (Windows)
+dotnet build src/AbioticEditor.Web                                  # local desktop editor host
 dotnet build src/AbioticEditor.Cli                                   # CLI
 dotnet test  tests/AbioticEditor.Tests                               # tests
 ```
 
-The app project also targets Android, iOS, and Mac Catalyst; building those needs the
-matching MAUI workloads (`dotnet workload install maui`). Package versions are managed
-centrally in `Directory.Packages.props`.
+The Razor desktop app runs on Windows and Linux with the standard .NET SDK. Package versions are
+managed centrally in `Directory.Packages.props`.
 
 > The `CUE4Parse-Natives … 'cmake' is not recognized` line during a build is **benign**.
 > The native texture decoder is optional and managed parsing still works.
@@ -90,11 +92,10 @@ centrally in `Directory.Packages.props`.
   `Admin.ini` and each world's `SandboxSettings.ini`).
 
 ::: tip Linux / Steam Deck (Proton)
-There is no Linux desktop app, but the **Linux CLI** does everything the app does at the
-command line. It scans every Steam library (internal drive, SD card, Flatpak and Snap installs
-of Steam) and finds the saves the game keeps inside its Proton prefix on its own - no need to
-dig out the `compatdata` path by hand. On a Steam Deck, run it from Desktop Mode's terminal
-(Konsole): unzip, then `./abioticeditor discover`.
+The self-contained Linux editor provides the full point-and-click UI in its own desktop window.
+Extract `AbioticEditor-desktop-linux-x64-v<version>.zip` and run `launch-linux.sh` from Desktop Mode.
+The editor and CLI scan every Steam library, including internal storage, SD cards, Flatpak, and
+Snap installs, and find saves inside Proton prefixes without requiring a manual `compatdata` path.
 :::
 
 Save kinds you'll see: `Player_<steamid64>.sav`, `WorldSave_<Region>.sav`, and

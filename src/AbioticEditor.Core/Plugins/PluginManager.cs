@@ -31,7 +31,6 @@ public sealed class PluginManager
     // GUI hot paths (e.g. abiotic.ui.runSaveOperation, menu builds).
     private PluginCapability<ISaveOperation>[] _saveOperations = Array.Empty<PluginCapability<ISaveOperation>>();
     private PluginCapability<IConsoleCommand>[] _consoleCommands = Array.Empty<PluginCapability<IConsoleCommand>>();
-    private PluginCapability<IEditorTool>[] _editorTools = Array.Empty<PluginCapability<IEditorTool>>();
     private PluginCapability<IWebTool>[] _webTools = Array.Empty<PluginCapability<IWebTool>>();
     private PluginCapability<ISaveUpgrader>[] _saveUpgraders = Array.Empty<PluginCapability<ISaveUpgrader>>();
     private PluginCapability<IMenuAction>[] _menuActions = Array.Empty<PluginCapability<IMenuAction>>();
@@ -55,12 +54,6 @@ public sealed class PluginManager
     public IReadOnlyList<PluginCapability<IConsoleCommand>> ConsoleCommands
     {
         get { lock (_sync) { return _consoleCommands; } }
-    }
-
-    /// <summary>All editor (UI) tools from successfully-loaded plugins.</summary>
-    public IReadOnlyList<PluginCapability<IEditorTool>> EditorTools
-    {
-        get { lock (_sync) { return _editorTools; } }
     }
 
     /// <summary>All web (HTML/React) tools from successfully-loaded plugins.</summary>
@@ -118,7 +111,6 @@ public sealed class PluginManager
         var loaded = _descriptors.Where(d => d.State == PluginLoadState.Loaded).ToArray();
         _saveOperations = Flatten(loaded, d => d.SaveOperations);
         _consoleCommands = Flatten(loaded, d => d.ConsoleCommands);
-        _editorTools = Flatten(loaded, d => d.EditorTools);
         _webTools = Flatten(loaded, d => d.WebTools);
         _saveUpgraders = Flatten(loaded, d => d.SaveUpgraders);
         _menuActions = Flatten(loaded, d => d.MenuActions);
@@ -277,7 +269,6 @@ public sealed class PluginManager
             descriptor.Host = host;
             descriptor.SaveOperations = registry.SaveOperations;
             descriptor.ConsoleCommands = registry.ConsoleCommands;
-            descriptor.EditorTools = registry.EditorTools;
             descriptor.WebTools = registry.WebTools;
             descriptor.SaveUpgraders = registry.SaveUpgraders;
             descriptor.MenuActions = registry.MenuActions;

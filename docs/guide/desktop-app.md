@@ -1,8 +1,9 @@
 # Desktop app
 
-The desktop editor is a .NET MAUI app that runs unpackaged on Windows (and on macOS via
-Mac Catalyst). It's a thin front-end over the shared Core engine, so it writes the same
-output as the CLI. This page is a visual tour of everything it can do.
+The desktop editor is a local Razor application for Windows and Linux. It opens in its own
+native window and binds only to the loopback interface, so saves never leave the machine.
+It is a thin front-end over the shared Core engine and writes the same output as the CLI.
+This page is a visual tour of everything it can do.
 
 ## 1. Open a save folder
 

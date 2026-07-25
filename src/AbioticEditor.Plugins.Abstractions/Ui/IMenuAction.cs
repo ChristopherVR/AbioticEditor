@@ -2,12 +2,12 @@ namespace AbioticEditor.Plugins.Ui;
 
 /// <summary>
 /// A command surfaced as a menu item / action button in the GUI. Unlike an
-/// <see cref="IEditorTool"/> (which hosts a whole view), a menu action is a single
+/// <see cref="IWebTool"/> (which hosts a complete web interface), a menu action is a single
 /// click-to-run entry - the lightweight way for a plugin to add a verb to the UI. Hosts
 /// without menus (the CLI) ignore these.
 ///
 /// <para>
-/// A menu action takes no MAUI dependency, so it lives in the host-agnostic SDK and can be
+/// A menu action takes no UI-framework dependency, so it lives in the host-agnostic SDK and can be
 /// registered by managed and JavaScript plugins alike.
 /// </para>
 /// </summary>

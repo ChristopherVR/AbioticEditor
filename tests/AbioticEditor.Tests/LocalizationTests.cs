@@ -1,6 +1,4 @@
 using System.IO;
-using System.Text.RegularExpressions;
-using System.Xml.Linq;
 using AbioticEditor.Core.Plugins;
 using AbioticEditor.Plugins;
 
@@ -8,9 +6,7 @@ namespace AbioticEditor.Tests;
 
 /// <summary>
 /// Localization coverage: the plugin contribution layer (resx/json packs, AddLocalization, the
-/// JavaScript bridge) plus "renders as expected" guards over the resources themselves - every
-/// {loc:Localize Key} the XAML references resolves to a real string, and the shipped locales
-/// cover the full key set, so the UI never shows a raw key or an unexpected gap.
+/// JavaScript bridge) and host-neutral plugin localization behavior.
 ///
 /// PluginLocalizations is process-global, so each test Clears it first to isolate.
 /// </summary>
@@ -225,128 +221,7 @@ public sealed class LocalizationTests
         Assert.Contains(expectedFragment, error);
     }
 
-    // ---------- "renders as expected" guards over the shipped resources ----------
-
-    [Fact]
-    public void EveryLocalizeKeyInXaml_HasANeutralResourceEntry()
-    {
-        var app = AppDir();
-        Assert.NotNull(app);
-
-        var neutral = ReadResx(Path.Combine(app!, "Localization", "AppResources.resx"));
-        var missing = new SortedSet<string>(StringComparer.Ordinal);
-
-        foreach (var xaml in EnumerateXaml(app))
-        {
-            var text = File.ReadAllText(xaml);
-            foreach (Match m in Regex.Matches(text, @"\{loc:Localize (\w+)\}"))
-            {
-                var key = m.Groups[1].Value;
-                if (!neutral.ContainsKey(key))
-                {
-                    missing.Add(key);
-                }
-            }
-            // LocalizeFormat's first token is the format-pattern key ({loc:LocalizeFormat Key, Arg0=...}).
-            foreach (Match m in Regex.Matches(text, @"\{loc:LocalizeFormat (\w+)[,\}]"))
-            {
-                var key = m.Groups[1].Value;
-                if (!neutral.ContainsKey(key))
-                {
-                    missing.Add(key);
-                }
-            }
-        }
-
-        // A missing key makes the UI render the raw key text (e.g. "PlayerGeneral_General"),
-        // so this must stay empty.
-        Assert.True(missing.Count == 0, $"{missing.Count} {{loc:Localize}} key(s) absent from AppResources.resx: {string.Join(", ", missing)}");
-    }
-
-    [Fact]
-    public void NeutralResx_HasNoDuplicateKeys()
-    {
-        var app = AppDir();
-        Assert.NotNull(app);
-        var path = Path.Combine(app!, "Localization", "AppResources.resx");
-
-        var names = XDocument.Load(path).Root!.Elements("data")
-            .Select(d => d.Attribute("name")?.Value)
-            .Where(n => n is not null)
-            .ToList();
-        var dupes = names.GroupBy(n => n).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
-        Assert.True(dupes.Count == 0, $"duplicate resx keys: {string.Join(", ", dupes)}");
-    }
-
-    [Theory]
-    [InlineData("de")]
-    [InlineData("es")]
-    [InlineData("fr")]
-    [InlineData("ru")]
-    public void ShippedLocale_IsWellFormed_CoversNeutralKeys_AndHasNoOrphans(string culture)
-    {
-        var app = AppDir();
-        Assert.NotNull(app);
-
-        var neutral = ReadResx(Path.Combine(app!, "Localization", "AppResources.resx"));
-        var localePath = Path.Combine(app!, "Localization", $"AppResources.{culture}.resx");
-        Assert.True(File.Exists(localePath), $"missing locale file: {localePath}");
-
-        var locale = ReadResx(localePath); // throws if malformed XML
-
-        // No orphan keys (a locale key that no longer exists in the neutral file).
-        var orphans = locale.Keys.Where(k => !neutral.ContainsKey(k)).OrderBy(k => k).ToList();
-        Assert.True(orphans.Count == 0, $"{culture}: orphan keys not in neutral: {string.Join(", ", orphans)}");
-
-        // Full coverage: every neutral key is translated (present), so the UI never falls back
-        // to English for a shipped language.
-        var untranslated = neutral.Keys.Where(k => !locale.ContainsKey(k)).OrderBy(k => k).ToList();
-        Assert.True(untranslated.Count == 0,
-            $"{culture}: {untranslated.Count} neutral key(s) missing a translation: {string.Join(", ", untranslated.Take(20))}");
-    }
-
     // ---------- helpers ----------
-
-    private static string? AppDir()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            var candidate = Path.Combine(dir.FullName, "src", "AbioticEditor.App");
-            if (File.Exists(Path.Combine(candidate, "Localization", "AppResources.resx")))
-            {
-                return candidate;
-            }
-            dir = dir.Parent;
-        }
-        return null;
-    }
-
-    private static IEnumerable<string> EnumerateXaml(string appDir)
-    {
-        foreach (var f in Directory.EnumerateFiles(appDir, "*.xaml", SearchOption.AllDirectories))
-        {
-            var norm = f.Replace('\\', '/');
-            if (!norm.Contains("/bin/") && !norm.Contains("/obj/"))
-            {
-                yield return f;
-            }
-        }
-    }
-
-    private static Dictionary<string, string> ReadResx(string path)
-    {
-        var dict = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var data in XDocument.Load(path).Root!.Elements("data"))
-        {
-            var name = data.Attribute("name")?.Value;
-            if (name is not null)
-            {
-                dict[name] = data.Element("value")?.Value ?? string.Empty;
-            }
-        }
-        return dict;
-    }
 
     private sealed class TempDir : IDisposable
     {

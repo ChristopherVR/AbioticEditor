@@ -3,7 +3,7 @@ using UeSaveGame;
 namespace AbioticEditor.Plugins.Ui;
 
 /// <summary>
-/// A UI tool whose interface is <b>HTML</b> rendered in a web view, rather than native MAUI
+/// A UI tool whose interface is <b>HTML</b> rendered by the Razor host
 /// controls. This is how a plugin ships a rich web UI - including a <b>React</b> (or Vue,
 /// Svelte, plain HTML/CSS) front-end - and is especially powerful for JavaScript plugins,
 /// which can supply both the page and the logic behind it.

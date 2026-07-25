@@ -1,0 +1,363 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Services
+@using AbioticEditor.Core.WorldSaves
+@implements IDisposable
+@inject SaveWorkspaceSessionService Workspace
+@inject InventorySelectionService Selection
+@inject ModalService Modals
+
+@* Faithful port of the native WorldFlagsTab.xaml: heading + IN THIS FILE count, intro,
+   HOW QUESTS WORK card, filter/add row, then the story-ordered grouped flag list with
+   category chips and per-row CLEAR. Tapping a row opens the flag's detail card in the
+   right-hand pane (the native SlotSidebarView quest-flag panel) via ShowDetail. *@
+<section class="world-editor wf-tab" aria-label="@L.Resource("WorldFlags_QuestFlags")">
+    @if (!Session.CanEditFlags)
+    {
+        <p class="error" role="alert">@L.Resource("WorldFlags_NoFlags")</p>
+    }
+    else
+    {
+        <div class="wf-head">
+            <h2 class="wf-title">@L.Resource("WorldFlags_QuestFlags")</h2>
+            <div class="wf-count"><span class="wf-count-label">@L.Resource("WorldFlags_InThisFile")</span><span class="wf-count-value">@Session.Flags.Count</span></div>
+        </div>
+        <p class="wf-intro">@L.Resource("WorldFlags_FlagsIntro")</p>
+        <div class="wf-howto">
+            <span class="wf-howto-title">@L.Resource("WorldFlags_HowQuestsWork")</span>
+            <p>@L.Resource("WorldFlags_HowQuestsWorkBody")</p>
+        </div>
+        <div class="wf-toolbar">
+            <input aria-label="@L.Resource("WorldFlags_FilterPlaceholder")" @bind="_filter" @bind:event="oninput" placeholder="@L.Resource("WorldFlags_FilterPlaceholder")" />
+            <input aria-label="@L.Resource("WorldFlags_AddFlagPlaceholder")" @bind="_newFlag" @bind:event="oninput" placeholder="@L.Resource("WorldFlags_AddFlagPlaceholder")" />
+            <button class="secondary" disabled="@string.IsNullOrWhiteSpace(_newFlag)" @onclick="AddFlag">@L.Resource("WorldFlags_AddFlag")</button>
+        </div>
+        <div class="wf-list" role="list" aria-label="@L.Resource("WorldFlags_QuestFlags")">
+            @{ var groups = VisibleFlagGroups; var groupIndex = 0; }
+            @if (groups.Count == 0) { <p class="wf-empty">@L.Resource("WorldFlags_NoFlags")</p> }
+            @foreach (var group in groups)
+            {
+                @* Several story chapters share one region title (e.g. Office/Office2/Office3 all
+                   render "01 - OFFICE SECTOR"), so the title alone is not a unique key. *@
+                var groupKey = $"group-{groupIndex++}:{group.Title}";
+                <div class="wf-group-head" @key="groupKey"><span>@group.Title</span><small>@group.Items.Count</small></div>
+                @foreach (var flag in group.Items)
+                {
+                    <div class="wf-row @(_selected == flag.RawName ? "selected" : null)" role="listitem" @key="flag.RawName"
+                         @onclick="() => SelectFlag(flag.RawName)">
+                        <span class="wf-chip" style="background:@flag.CategoryColor">@flag.CategoryLabel</span>
+                        <span class="wf-texts">
+                            <strong>@flag.FriendlyName</strong>
+                            <small>@flag.RawName</small>
+                            @if (flag.IsStoryTrigger) { <em class="wf-story">@flag.StoryChapterText</em> }
+                            <span class="wf-desc">@flag.Description</span>
+                        </span>
+                        <button class="wf-clear" type="button" @onclick="() => ClearFlag(flag.RawName)" @onclick:stopPropagation>@L.Resource("WorldFlags_Clear")</button>
+                    </div>
+                }
+            }
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter] public string Title { get; set; } = "World editor";
+    [Parameter] public EventCallback<string?> OnError { get; set; }
+    private const string DetailKeyPrefix = "world-flag:";
+    private string _filter = string.Empty;
+    private string _newFlag = string.Empty;
+    private string? _selected;
+
+    protected override void OnInitialized() => Selection.Changed += OnSelectionChanged;
+
+    /// <summary>Drops the stale row highlight when the pane closes or another tab takes it.</summary>
+    private void OnSelectionChanged()
+    {
+        if (_selected is not null && Selection.DetailKey != DetailKeyPrefix + _selected)
+        {
+            _selected = null;
+        }
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Selection.Changed -= OnSelectionChanged;
+        // Leaving the tab retires this tab's own detail card (never someone else's).
+        if (Selection.DetailKey?.StartsWith(DetailKeyPrefix, StringComparison.Ordinal) == true)
+        {
+            Selection.CloseDetail();
+        }
+    }
+
+    /// <summary>A flag row enriched exactly like the native FlagItemViewModel (catalog
+    /// friendly name, area, category chip, story-trigger chip, plain-language description).</summary>
+    private sealed record FlagRowModel(string RawName, FlagInfo Info, StoryChapter? Chapter)
+    {
+        public string FriendlyName => Info.FriendlyName;
+        public string Area => Info.Area;
+        public FlagCategory Category => Info.Category;
+        public bool IsStoryTrigger => Chapter is not null;
+    }
+
+    private sealed record FlagGroupModel(string Title, IReadOnlyList<FlagRow> Items);
+    private sealed record FlagRow(FlagRowModel Model, string CategoryLabel, string CategoryColor, string Description, string StoryChapterText)
+    {
+        public string RawName => Model.RawName;
+        public string FriendlyName => Model.FriendlyName;
+        public bool IsStoryTrigger => Model.IsStoryTrigger;
+    }
+
+    private IReadOnlyList<FlagGroupModel> VisibleFlagGroups
+    {
+        get
+        {
+            IEnumerable<FlagRowModel> items = Session.Flags
+                .Select(flag => new FlagRowModel(flag, QuestFlagCatalog.Lookup(flag), StoryProgressionCatalog.ChapterForFlag(flag)));
+            if (!string.IsNullOrWhiteSpace(_filter))
+            {
+                var f = _filter.Trim();
+                items = items.Where(x => x.RawName.Contains(f, StringComparison.OrdinalIgnoreCase)
+                    || x.FriendlyName.Contains(f, StringComparison.OrdinalIgnoreCase)
+                    || x.Area.Contains(f, StringComparison.OrdinalIgnoreCase));
+            }
+
+            // Story-ordered grouping, ported from the native ApplyFlagFilter: flags read like
+            // the story timeline - Office first, Finale last, anomaly/meta flags at the end.
+            return items
+                .GroupBy(x =>
+                {
+                    var chapter = FlagGate.RegionChapterFor(x.RawName);
+                    var index = chapter is null ? int.MaxValue : StoryProgressionCatalog.IndexOf(chapter.Row);
+                    return (Index: index, Title: chapter is null ? L.Resource("WorldStory_RegionOtherAnomaliesMeta") : RegionTitleFor(chapter));
+                })
+                .OrderBy(g => g.Key.Index)
+                .Select(g => new FlagGroupModel(
+                    g.Key.Title,
+                    g.OrderByDescending(x => x.IsStoryTrigger)
+                     .ThenBy(x => x.FriendlyName, StringComparer.Ordinal)
+                     .Select(ToRow)
+                     .ToList()))
+                .ToList();
+        }
+    }
+
+    private FlagRow ToRow(FlagRowModel model) => new(model, CategoryLabel(model.Category), CategoryColor(model.Category), DescriptionFor(model), StoryChapterTextFor(model));
+
+    private FlagRow? FindFlagRow(string rawName)
+        => Session.Flags.Contains(rawName)
+            ? ToRow(new FlagRowModel(rawName, QuestFlagCatalog.Lookup(rawName), StoryProgressionCatalog.ChapterForFlag(rawName)))
+            : null;
+
+    /// <summary>"01 · OFFICE SECTOR" group titles, ported from the native RegionTitleFor.</summary>
+    private string RegionTitleFor(StoryChapter chapter)
+    {
+        var r = chapter.Row;
+        if (r.StartsWith("Office", StringComparison.OrdinalIgnoreCase)) return "01 · " + L.Resource("WorldStory_RegionOfficeSector").ToUpperInvariant();
+        if (r is "Flathill" or "PostFlathill") return "02 · " + L.Resource("WorldStory_RegionPortalFlathill").ToUpperInvariant();
+        if (r.StartsWith("MF", StringComparison.OrdinalIgnoreCase)) return "03 · " + L.Resource("WorldStory_RegionManufacturingMines").ToUpperInvariant();
+        if (r == "Pens") return "04 · " + L.Resource("WorldStory_RegionThePens").ToUpperInvariant();
+        if (r is "Labs" or "Containment" or "Helmholtz" or "Tarasque" or "Mycofields" or "PostLabs") return "05 · " + L.Resource("WorldStory_RegionCascadeLabs").ToUpperInvariant();
+        if (r.StartsWith("Sec", StringComparison.OrdinalIgnoreCase) || r == "EndSecurity") return "06 · " + L.Resource("WorldStory_RegionSecuritySector").ToUpperInvariant();
+        if (r is "ElectricalStation" or "Voussoir" or "EndDam") return "07 · " + L.Resource("WorldStory_RegionHydroplantDam").ToUpperInvariant();
+        if (r is "PowerServices" or "AnteverseC") return "08 · " + L.Resource("WorldStory_RegionPowerServices").ToUpperInvariant();
+        if (r.StartsWith("Reactors", StringComparison.OrdinalIgnoreCase) || r is "Shadowgate" or "InqEnd") return "09 · " + L.Resource("WorldStory_RegionTheReactors").ToUpperInvariant();
+        if (r.StartsWith("Residence", StringComparison.OrdinalIgnoreCase)
+            || r is "Fracture" or "Botanical" or "DarkLens" or "SouthIsland") return "10 · " + L.Resource("WorldStory_RegionResidenceSector").ToUpperInvariant();
+        if (r == "EndGame") return "11 · " + L.Resource("WorldStory_RegionFinale").ToUpperInvariant();
+        return chapter.Title.ToUpperInvariant();
+    }
+
+    private string CategoryLabel(FlagCategory category) => category switch
+    {
+        FlagCategory.Tutorial => L.Resource("WorldFlags_CategoryTutorial"),
+        FlagCategory.Quest => L.Resource("WorldFlags_CategoryQuest"),
+        FlagCategory.Discovery => L.Resource("WorldFlags_CategoryDiscovery"),
+        FlagCategory.Unlock => L.Resource("Slot_Unlock"),
+        FlagCategory.Meta => L.Resource("WorldFlags_CategoryMeta"),
+        _ => L.Resource("WorldFlags_CategoryOther"),
+    };
+
+    /// <summary>Per-category chip color, identical hex values to the native FlagItemViewModel.</summary>
+    private static string CategoryColor(FlagCategory category) => category switch
+    {
+        FlagCategory.Tutorial => "#7BB351",
+        FlagCategory.Quest => "#E37A22",
+        FlagCategory.Discovery => "#56A8C4",
+        FlagCategory.Unlock => "#F2C82E",
+        FlagCategory.Meta => "#9F9582",
+        _ => "#6E6655",
+    };
+
+    private string StoryChapterTextFor(FlagRowModel model)
+        => model.Chapter is null ? string.Empty : L.Resource("WorldFlags_StoryChapterFormat", model.Chapter.Title);
+
+    /// <summary>Plain-language explanation, ported from the native DescriptionText.</summary>
+    private string DescriptionFor(FlagRowModel model)
+    {
+        if (model.Chapter is { } chapter)
+        {
+            return chapter.Summary ?? L.Resource("WorldFlags_StoryTriggerForChapter", chapter.Title);
+        }
+
+        var n = model.RawName;
+        var what =
+            n.Contains("Completed", StringComparison.OrdinalIgnoreCase) ? L.Resource("WorldFlags_DescCompleted") :
+            n.Contains("Opened", StringComparison.OrdinalIgnoreCase) ? L.Resource("WorldFlags_DescOpened") :
+            n.Contains("Entered", StringComparison.OrdinalIgnoreCase) ? L.Resource("WorldFlags_DescEntered") :
+            n.Contains("Met", StringComparison.OrdinalIgnoreCase) ? L.Resource("WorldFlags_DescMet") :
+            n.Contains("Reached", StringComparison.OrdinalIgnoreCase) ? L.Resource("WorldFlags_DescReached") :
+            n.Contains("Found", StringComparison.OrdinalIgnoreCase) ? L.Resource("WorldFlags_DescFound") :
+            n.Contains("Unlock", StringComparison.OrdinalIgnoreCase) ? L.Resource("WorldFlags_DescUnlock") :
+            n.Contains("Fixed", StringComparison.OrdinalIgnoreCase) || n.Contains("Repaired", StringComparison.OrdinalIgnoreCase) ? L.Resource("WorldFlags_DescRepaired") :
+            n.Contains("Defeated", StringComparison.OrdinalIgnoreCase) || n.Contains("Killed", StringComparison.OrdinalIgnoreCase) ? L.Resource("WorldFlags_DescDefeated") :
+            L.Resource("WorldFlags_DescGeneric");
+        return L.Resource("WorldFlags_DescriptionFormat", what, model.Info.Area);
+    }
+
+    private string RegionTextFor(string rawName)
+    {
+        var chapter = FlagGate.RegionChapterFor(rawName);
+        return chapter is null
+            ? L.Resource("WorldStory_NoFixedStoryGateFormat", QuestFlagCatalog.Lookup(rawName).Area)
+            : L.Resource("WorldStory_TakesPlaceAroundFormat", chapter.Title);
+    }
+
+    /// <summary>Prerequisites of the selected flag with their current ✓/✗ state, like native.</summary>
+    private string PrereqTextFor(string rawName)
+    {
+        var prereqs = FlagGate.PrerequisitesFor(rawName);
+        if (prereqs.Count == 0) return L.Resource("WorldStory_NoPrerequisites");
+        return string.Join("\n", prereqs.Select(p =>
+        {
+            var chapter = StoryProgressionCatalog.ChapterForFlag(p);
+            var label = chapter is null ? p : L.Resource("WorldStory_PrereqChapterLabelFormat", chapter.Title, p);
+            return L.Resource("WorldStory_PrereqLineFormat", Session.Flags.Contains(p) ? "✓" : "✗", label);
+        }));
+    }
+
+    private IReadOnlyList<string> MissingPrerequisitesFor(string flag)
+        => FlagGate.PrerequisitesFor(flag).Where(p => !Session.Flags.Contains(p)).ToList();
+
+    /// <summary>Tap-to-toggle: opens the flag's detail card in the right-hand pane; a second
+    /// tap on the same row closes it (native SelectedFlag semantics).</summary>
+    private void SelectFlag(string flag)
+    {
+        if (Selection.DetailKey == DetailKeyPrefix + flag)
+        {
+            _selected = null;
+            Selection.CloseDetail();
+            return;
+        }
+        _selected = flag;
+        ShowFlagDetail();
+    }
+
+    /// <summary>(Re-)publishes the selected flag's card to the right-hand pane. Re-showing the
+    /// same key also refreshes the pane after an edit changes the prerequisite states.</summary>
+    private void ShowFlagDetail()
+    {
+        if (_selected is { } flag) Selection.ShowDetail(DetailKeyPrefix + flag, FlagDetailContent);
+    }
+
+    private void CloseOwnDetail()
+    {
+        _selected = null;
+        if (Selection.DetailKey?.StartsWith(DetailKeyPrefix, StringComparison.Ordinal) == true)
+        {
+            Selection.CloseDetail();
+        }
+    }
+
+    /// <summary>Native CLEAR semantics: removing a flag also removes everything the curated
+    /// dependency graph says required it, so the save never carries out-of-order story state.</summary>
+    private void ClearFlag(string flag)
+    {
+        foreach (var dependent in FlagGate.DependentsOf(new[] { flag }, Session.Flags))
+        {
+            Session.SetFlag(dependent, false);
+        }
+        Workspace.NotifyEdited();
+        // The cleared flag (or a cascaded dependent) may be the one shown in the pane; a
+        // flag that left the file has no row anymore, so its card closes with it.
+        if (_selected is { } selected && !Session.Flags.Contains(selected)) CloseOwnDetail();
+    }
+
+    private void ToggleFlag(string flag)
+    {
+        if (Session.Flags.Contains(flag)) { ClearFlag(flag); return; }
+        if (MissingPrerequisitesFor(flag).Count > 0) return;
+        Session.SetFlag(flag, true);
+        Workspace.NotifyEdited();
+        ShowFlagDetail();
+    }
+
+    private void AddFlag() { if (Session.AddFlag(_newFlag)) { _newFlag = string.Empty; Workspace.NotifyEdited(); } }
+
+    /// <summary>Native OnEnableFlagPrereqs: a confirm dialog listing the missing flags, then
+    /// the additive story-order-safe set (shared ModalService, like the player tabs).</summary>
+    private void RequestEnableWithPrerequisites(string flag)
+    {
+        var missing = MissingPrerequisitesFor(flag);
+        if (missing.Count == 0) return;
+        var friendly = QuestFlagCatalog.Lookup(flag).FriendlyName;
+        var body = L.Resource("Slot_SetPrereqsBody", friendly, missing.Count, string.Join("\n", missing));
+        Modals.Show(new ModalRequest(
+            L.Resource("Slot_SetPrereqsTitle"),
+            ParagraphLines(body),
+            ConfirmText: L.Resource("Slot_SetThem"),
+            OnConfirm: () =>
+            {
+                Session.EnableFlagWithPrerequisites(flag);
+                Workspace.NotifyEdited();
+                ShowFlagDetail();
+                return Task.CompletedTask;
+            },
+            CancelText: L.Resource("Common_Cancel")));
+    }
+
+    private static RenderFragment ParagraphLines(string text) => builder =>
+    {
+        builder.OpenElement(0, "p");
+        builder.AddAttribute(1, "class", "wf-modal-lines");
+        builder.AddContent(2, text);
+        builder.CloseElement();
+    };
+
+    /// <summary>The right-hand pane's quest-flag card, ported from the native SlotSidebarView
+    /// flag detail panel (title/raw name, region card art, description, prerequisites with
+    /// their ✓/✗ states, TOGGLE FLAG and SET PREREQUISITES, staging footnote).</summary>
+    private RenderFragment FlagDetailContent => __builder =>
+    {
+        @if (_selected is { } selected && FindFlagRow(selected) is { } row)
+        {
+            var chapter = FlagGate.RegionChapterFor(selected);
+            var missing = MissingPrerequisitesFor(selected);
+            var canEnable = Session.Flags.Contains(selected) || missing.Count == 0;
+            <div class="detail-card detail-card--orange wf-detail">
+                <div class="detail-head">
+                    <span class="detail-title"><strong>@row.FriendlyName</strong><small>@row.RawName</small></span>
+                    <button class="detail-close" type="button" @onclick="CloseOwnDetail">✕</button>
+                </div>
+                @if (chapter?.CardArt is not null)
+                {
+                    <GameArtImage GameRef="@chapter.CardArt" Alt="@row.FriendlyName" Class="detail-card-art"><span class="material-symbol" aria-hidden="true">flag</span></GameArtImage>
+                }
+                <p class="detail-status">@RegionTextFor(selected)</p>
+                <p class="detail-value">@row.Description</p>
+                @if (row.IsStoryTrigger) { <em class="wf-story">@row.StoryChapterText</em> }
+                <span class="detail-label">@L.Resource("Slot_Prerequisites")</span>
+                <p class="detail-value wf-prereqs">@PrereqTextFor(selected)</p>
+                <div class="wf-detail-actions">
+                    <button class="wf-clear" type="button" disabled="@(!canEnable)" @onclick="() => ToggleFlag(selected)">@L.Resource("Slot_ToggleFlag")</button>
+                    @if (!canEnable)
+                    {
+                        <button class="wf-set-prereqs" type="button" @onclick="() => RequestEnableWithPrerequisites(selected)">@L.Resource("Slot_SetPrerequisites")</button>
+                    }
+                </div>
+                <p class="detail-status">@L.Resource("Slot_EnablingIsBlockedUntilPrerequisitesAreSetSinceTheGameNeverProducesOutOfOrderStoryStateStageSaveToWrite")</p>
+            </div>
+        }
+    };
+}

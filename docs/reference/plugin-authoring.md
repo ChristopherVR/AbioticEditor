@@ -25,7 +25,7 @@ The host scans your entry assembly for the **single** public, parameterless type
 
 ## 2. The project file: the shared-assembly rule
 
-Reference the SDK (and Core/MAUI if you use them) to **compile**, but don't **ship** them:
+Reference the SDK (and Core if you use it) to **compile**, but don't **ship** them:
 the host provides them at runtime and unifies the types (see
 [isolation](plugin-system.md#isolation--the-shared-assembly-rule)). Output stays just your DLL +
 `plugin.json`.
@@ -163,64 +163,7 @@ Register it with `registry.AddConsoleCommand(new SaveStatsCommand())`. It then a
 `abioticeditor --help` and runs as `abioticeditor save-stats <save> [--json]`. Write to
 `ctx.Out`/`ctx.Error` (abstract writers, so the command is unit-testable with a `StringWriter`).
 
-## 6. An editor tool (UI panel)
-
-A UI plugin takes a MAUI dependency (the SDK does not). Multi-target the MAUI heads the app
-targets and reference `Microsoft.Maui.Controls` with `ExcludeAssets="runtime"`.
-
-```csharp
-using AbioticEditor.Plugins;
-using AbioticEditor.Plugins.Ui;
-using Microsoft.Maui.Controls;
-
-public sealed class DashboardTool : IEditorTool
-{
-    public string Id => "dashboard";
-    public string Title => "Dashboard";
-    public string Glyph => "📊";
-
-    public object CreateView(IEditorToolContext ctx)   // returns a MAUI View as object
-    {
-        var label = new Label();
-        void Refresh() => label.Text = ctx.ActiveSave is null
-            ? "No save open."
-            : $"{ctx.ActiveSaveKind}: {ctx.ActiveSave.Properties?.Count} properties";
-        ctx.ActiveSaveChanged += (_, _) => Refresh();
-        Refresh();
-        return new ScrollView { Content = label };
-    }
-}
-```
-
-Register with `registry.AddEditorTool(new DashboardTool())`. The GUI lists it under **Manage
-Plugins → TOOLS** and hosts the view you return. `ctx.ActiveSave` is loaded lazily (no parse
-cost until you read it) and `ActiveSaveChanged` fires when the user switches files.
-
-**Lifetime / cleanup.** When the tool panel closes the host disposes the context (which
-severs every `ActiveSaveChanged` subscription) and disposes the view and its `BindingContext`
-if they implement `IDisposable`. So if your view-model subscribes to `ActiveSaveChanged`,
-implement `IDisposable` and unsubscribe in `Dispose()`. This keeps the view-model (and any
-save it parsed) from outliving its panel:
-
-```csharp
-public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
-{
-    private readonly IEditorToolContext _ctx;
-    public DashboardViewModel(IEditorToolContext ctx) { _ctx = ctx; _ctx.ActiveSaveChanged += OnChanged; }
-    private void OnChanged(object? s, EventArgs e) => Refresh();
-    public void Dispose() => _ctx.ActiveSaveChanged -= OnChanged;
-}
-```
-
-**Full MVVM with XAML** is supported; see the `SaveInspector` sample: a compiled
-`ContentView` (`InspectorView.xaml`, `x:DataType` for compiled bindings) bound to an
-`InspectorViewModel` (`INotifyPropertyChanged`, `IDisposable`, a `Command`, an
-`ObservableCollection`). The tool just returns `new InspectorView(new InspectorViewModel(ctx))`.
-
-> A UI tool is read-only by contract. To *edit* from a panel, register an `ISaveOperation`
-> and run it through the host's backup/write path rather than mutating `ActiveSave` directly.
-
-## 7. A menu action (click-to-run menu item)
+## 6. A menu action (click-to-run menu item)
 
 ```csharp
 using AbioticEditor.Plugins;
@@ -397,8 +340,6 @@ backed-up edit. See `ReactAppDashboard`.
 # headless plugin
 dotnet build plugins/MaxSkills -c Release
 
-# UI plugin (needs the MAUI workload; build the head you run on)
-dotnet build plugins/SaveInspector -c Release -f net10.0-windows10.0.19041.0
 ```
 
 Install by copying the build output's **DLL + plugin.json** into a folder under
@@ -433,4 +374,3 @@ Reachable from `Configure` and every capability context:
 - [ ] `plugin.json` has a unique `id` and the correct `entryAssembly` file name.
 - [ ] Save operations mutate in place and call `MarkChanged()`; they never write files.
 - [ ] Console command names don't collide with built-ins (they'd be skipped).
-- [ ] UI tools return a `Microsoft.Maui.Controls.View`; heavy reads are lazy.

@@ -12,7 +12,6 @@ assembly** (`.dll`) or a **JavaScript file** (`.js`, no build step), and either 
 
 - **save operations** (scripted edits over a save),
 - **console commands** (new CLI verbs),
-- **editor tools** (native UI panels),
 - **web tools** (HTML/React UIs in a web view),
 - **menu actions** (click-to-run items),
 - **event handlers** (run when a save opens or is written),

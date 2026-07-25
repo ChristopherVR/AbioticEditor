@@ -1,7 +1,7 @@
 namespace AbioticEditor.Cli;
 
 /// <summary>
-/// Headless companion to the MAUI editor. All save parsing/editing logic lives in
+/// Headless companion to the Razor editor. All save parsing/editing logic lives in
 /// AbioticEditor.Core; this binary only wires commands to it.
 /// </summary>
 public static class Program

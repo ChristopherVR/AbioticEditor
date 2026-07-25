@@ -1,0 +1,68 @@
+/* Faithful port of the native PlayerInventoryTab paper-doll layout. */
+/* The tab lives in a resizable centre pane, so responsive behavior keys off the
+   panel's own width (like the native AdaptiveGrid), not the window width. */
+.inventory-card{container-type:inline-size}
+.inventory-header{display:flex;align-items:center;gap:24px}
+.inventory-header h3{flex:1;margin:0!important}
+.inventory-occupied{display:grid;justify-items:end;gap:2px}
+.inventory-occupied small{color:var(--muted);font:600 9px var(--font-ui);letter-spacing:.15em;text-transform:uppercase}
+.inventory-occupied strong{color:var(--terminal);font:16px var(--font-lcd)}
+.inventory-file{color:var(--faint);font:10px var(--font-ui);letter-spacing:.06em}
+.inventory-card>.hazard-stripe{margin:12px 0 16px}
+
+/* Three-column body like the game: character/equipment - hotbar - pockets. */
+.inventory-columns{display:grid;grid-template-columns:minmax(240px,2fr) 126px minmax(360px,3fr);gap:14px;align-items:start}
+.equipment-pane,.pockets-pane,.hotbar-pane{box-sizing:border-box;border:1px solid var(--line);border-radius:6px;background:var(--shell);padding:14px 12px}
+.hotbar-pane{padding:12px 8px}
+.pane-label{color:var(--muted);font:600 10px var(--font-ui);letter-spacing:.12em;text-transform:uppercase}
+.hotbar-label{display:block;margin-bottom:8px;text-align:center}
+.equipment-head{display:flex;justify-content:space-between;align-items:start;margin-bottom:10px}
+.weight-readout{display:grid;justify-items:end}
+.weight-readout small{color:var(--muted);font:600 9px var(--font-ui);letter-spacing:.15em;text-transform:uppercase}
+.weight-readout strong{color:var(--terminal);font:20px var(--font-lcd)}
+.pockets-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.pockets-count{color:var(--faint);font:10px var(--font-ui);letter-spacing:.06em}
+
+/* Slot grids: fixed 3-column paper-doll, 1-wide hotbar, 6-wide pockets. */
+.paper-doll{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(6,minmax(0,1fr));gap:6px}
+.hotbar-column{display:grid;grid-template-columns:1fr;gap:6px}
+.pockets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px}
+
+/* One inventory slot tile (native EquipmentSlotTemplate / pocket item template). */
+.inv-slot{position:relative;display:block;box-sizing:border-box;min-height:98px;padding:3px;overflow:hidden;border:1px solid var(--line);border-radius:0;background:var(--panel);cursor:pointer;text-transform:none}
+.inv-slot-equipment{min-height:92px}
+.inv-slot:hover{transform:none;opacity:1;background:var(--hover)}
+.inv-slot.selected{outline:2px solid var(--hazard);outline-offset:-2px;background:var(--hover)}
+.inv-slot-icon{position:absolute;inset:6px 6px 16px}
+.inv-slot-icon ::deep img{width:100%;height:100%;object-fit:contain}
+.inv-slot-icon ::deep .item-artwork{display:block;width:100%;height:100%}
+.inv-slot-icon ::deep .item-artwork-fallback{display:none}
+.inv-slot-role{position:absolute;inset:0 0 14px;display:grid;place-items:center;color:var(--muted);font:600 10px var(--font-ui);letter-spacing:3px}
+/* The tile number, the hotbar key on the same tile and the stack size are the same numbers
+   you see on the world container and base container screens, so they wear the same face. */
+.inv-slot-index{position:absolute;top:2px;left:4px;color:var(--muted);font:14px var(--font-num)}
+.inv-slot-special{position:absolute;top:2px;left:0;right:0;text-align:center;color:var(--section);font:7px var(--font-ui);letter-spacing:1px}
+.inv-slot-hotkey{position:absolute;top:0;left:0;display:grid;place-items:center;width:18px;height:18px;background:var(--orange);color:var(--on-accent);font:14px var(--font-num)}
+.inv-slot-count{position:absolute;right:4px;bottom:14px;color:var(--terminal);font:16px var(--font-num)}
+.inv-slot-upg{position:absolute;top:-1px;right:2px;color:var(--hazard);font-weight:700;font-size:12px}
+.inv-slot-name{position:absolute;right:2px;bottom:1px;left:2px;overflow:hidden;color:var(--muted);font:9px var(--font-ui);text-align:center;text-overflow:ellipsis;white-space:nowrap}
+
+/* Pocket footer like the game: money + sort + drop. */
+.pockets-footer{display:flex;align-items:center;gap:10px;margin-top:10px}
+/* You type into this, and it holds the same money as the box on the vitals screen, so it
+   uses that screen's face rather than the segment look. */
+.money-entry{width:110px;color:var(--terminal)!important;font:16px var(--font-num)!important;font-variant-numeric:tabular-nums!important;text-align:center}
+.pockets-footer-spacer{flex:1}
+.inventory-status{margin:10px 0 0}
+
+/* Dropped items lying within reach of the player's saved position. */
+.ground-panel{margin-top:16px;padding:14px 10px 10px;border:1px solid var(--line);background:var(--shell)}
+.ground-help{margin:6px 0 8px;font-size:10px}
+.ground-list{display:grid;gap:4px}
+.ground-row{display:flex;align-items:center;gap:12px;padding:6px 10px;background:var(--panel)}
+.ground-text{display:grid;flex:1;gap:1px}
+.ground-text strong{font-size:12px}
+.ground-text small{color:var(--faint);font-size:9px}
+
+@container(max-width:760px){.inventory-columns{grid-template-columns:minmax(0,1fr) 126px}.pockets-pane{grid-column:1/-1}.pockets-grid{grid-template-columns:repeat(auto-fill,minmax(88px,1fr))}}
+@container(max-width:520px){.inventory-columns{grid-template-columns:1fr}.pockets-pane{grid-column:auto}}

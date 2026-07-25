@@ -1,0 +1,1620 @@
+/*
+ * Razor implementation of the retired MAUI visual contract.
+ * Source of truth: AbioticStyles.xaml, ThemeService.cs, MainPage.xaml and the
+ * repository's documented native-interface reference screenshots.
+ */
+/* The bundled faces are subsets. Declaring exactly which characters each one really
+   contains lets the browser reach past them to a system font for anything else (an
+   accent, Cyrillic, an emoji in a player name) instead of drawing an empty box. */
+@font-face{font-family:OpenSans;src:url("fonts/OpenSans-Regular.ttf") format("truetype");font-weight:400;font-style:normal;font-display:swap;unicode-range:U+0020-007E,U+00A0-017F,U+0192,U+01A0-01B0,U+01F0-01FF,U+0218-021B,U+0237,U+02BC-02DD,U+0300-0323,U+0384-03CE,U+0400-0513,U+1E00-1EF9,U+2000-2044,U+2070-207F,U+20A3-20AC,U+2105-212E,U+215B-215E,U+2202-2265,U+25CA,U+FB00-FB04}
+@font-face{font-family:OpenSans;src:url("fonts/OpenSans-Semibold.ttf") format("truetype");font-weight:600 800;font-style:normal;font-display:swap;unicode-range:U+0020-007E,U+00A0-017F,U+0192,U+01A0-01B0,U+01F0-01FF,U+0218-021B,U+0237,U+02BC-02DD,U+0300-0323,U+0384-03CE,U+0400-0513,U+1E00-1EF9,U+2000-2044,U+2070-207F,U+20A3-20AC,U+2105-212E,U+215B-215E,U+2202-2265,U+25CA,U+FB00-FB04}
+/* The old seven-segment "LCD" face (Digital7) was retired: it made a level of 20 or a clock of
+   18:11 hard to read, drew nothing but bare ASCII (so translated readouts changed face part way
+   through a word), and showed a plain zero as an empty box on some phones. Every readout that
+   used to wear it now uses the normal number face. The --font-lcd token is kept so the many
+   selectors that reference it do not all have to change, but it now points at that same face. */
+@font-face{font-family:MaterialSymbols;src:url("fonts/MaterialSymbolsOutlined.ttf") format("truetype");font-weight:100 700;font-style:normal;font-display:block}
+
+/* Three shared type stacks. Every stack ends in real system families (including the
+   symbol and emoji ones) so a character the bundled faces do not carry still has
+   somewhere to come from. --font-lcd is the decorative segment look. It goes on the big
+   display-only readouts (a panel total, the clock, the value beside a slider). It stays
+   off anything you type into, off map coordinates, and off long lines of prose, where the
+   segments stop being readable.
+
+   One value, one face. If the same number can appear on two screens it has to look the
+   same on both, so pick the face the strictest of those screens allows:
+   - Slot tile numbers - the [03] on a tile, the hotbar key on the same tile, and the
+     stack size - always use --font-num, on every container screen. On one of those
+     screens the stack size is a box you type in, where the segment look is banned, so
+     --font-num is the only face all of them can share.
+   - Money uses --font-num everywhere, because both places it appears are typed into.
+   - A label-and-value list uses --font-ui, because those values are mostly words.
+
+   Digits only. The segment face carries plain ASCII and nothing else, so a readout that
+   mixes a number with a translated word ("{0} DOORS", "{0} discovered") changes face
+   part way through the line in German, Spanish, French and Russian: the accented and
+   Cyrillic letters drop to the fallback while the rest stays in segments. English never
+   shows it, which is what makes it easy to miss. So a readout keeps the segment look only
+   when it is numbers and separators; the moment a translatable word shares the line it
+   moves to --font-num. */
+:root{
+  color-scheme:dark;background:#081119;
+  --font-ui:OpenSans,"Segoe UI",Roboto,system-ui,-apple-system,"Helvetica Neue",Arial,"Noto Sans","Segoe UI Symbol","Noto Sans Symbols 2","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
+  --font-num:ui-monospace,"SF Mono","Segoe UI Mono","Roboto Mono",Menlo,Consolas,"Noto Sans Mono","Segoe UI Symbol",monospace;
+  --font-lcd:var(--font-num)
+}
+html,body{height:100%;overflow:hidden}
+body{margin:0;background:#0c1a24;color:#dceff9;font-family:var(--font-ui);font-size:13px;line-height:1.42}
+button,input,select,textarea{font:inherit}
+/* Digits keep the same width so stacked numbers line up in a column, whichever face they use.
+   These two have to be forced: nearly every rule below sets the whole font in one go, and
+   that shorthand quietly puts the digit width back to normal wherever it lands later. */
+.money-field input,.spawn-coord-grid input,.general-id-input,.skill-lv,.skill-xp-raw,.skill-rate-row input,
+.pet-xp,.codex-kills input,.ws-minutes-row input[type=number],.wt-readout-input,.base-slot-count,
+.base-slot-index,.wc-slot-index,.wc-tab .wc-row .wc-count,.wc-coords,.trait-browser-cost,.vital-slider output,
+.money-entry,.inv-slot-index,.inv-slot-hotkey,.inv-slot-count,
+.world-summary-readouts strong,.world-clock-editor output,.pet-level-readout,.wc-slot-count,.wf-count-value,
+.ws-chapter-num,.ws-detail-num{font-variant-numeric:tabular-nums!important;font-feature-settings:"tnum" 1!important}
+.material-symbol{font-family:MaterialSymbols;font-weight:400;font-style:normal;font-size:20px;line-height:1;letter-spacing:normal;text-transform:none;white-space:nowrap;word-wrap:normal;direction:ltr;font-feature-settings:"liga"}
+
+.app-frame{
+  --shell:#081119;--page:#0c1a24;--panel:#132736;--elevated:#1b3648;--hover:#26475d;
+  --divider:#2e5471;--line:#224158;--ink:#dceff9;--muted:#a9cbe0;--faint:#93b3c8;--alert-text:#ff8f80;
+  --orange:#f89a4f;--orange-dim:#b86f33;--hazard:#ffe563;--terminal:#7fe9e2;
+  --terminal-dim:#3f837e;--alert:#e25b4b;--section:#71c5f6;--on-accent:#07121a;--acid:#7fe9e2;
+  display:grid;grid-template-rows:78px 3px minmax(0,1fr) 49px;height:100vh;min-height:580px;
+  background:var(--page);color:var(--ink);color-scheme:dark
+}
+.app-frame.theme-light{
+  --shell:#dce6ee;--page:#e9f1f7;--panel:#f4f9fd;--elevated:#e7eff6;--hover:#d9e6f0;
+  --divider:#b5c9d8;--line:#c8d8e4;--ink:#16242f;--muted:#3e586c;--faint:#47637a;--alert-text:#a52f18;
+  --orange:#1273b8;--orange-dim:#0e5a90;--hazard:#0e80b8;--terminal:#1b8c94;
+  --terminal-dim:#57a6ac;--alert:#c03a22;--section:#0f86c4;--on-accent:#f4faff;--acid:#1b8c94;
+  color-scheme:light
+}
+@media(prefers-color-scheme:light){.app-frame.theme-system{
+  --shell:#dce6ee;--page:#e9f1f7;--panel:#f4f9fd;--elevated:#e7eff6;--hover:#d9e6f0;
+  --divider:#b5c9d8;--line:#c8d8e4;--ink:#16242f;--muted:#3e586c;--faint:#47637a;--alert-text:#a52f18;
+  --orange:#1273b8;--orange-dim:#0e5a90;--hazard:#0e80b8;--terminal:#1b8c94;
+  --terminal-dim:#57a6ac;--alert:#c03a22;--section:#0f86c4;--on-accent:#f4faff;--acid:#1b8c94;
+  color-scheme:light
+}}
+.app-frame.accent-hazard{
+  --shell:#0c0b07;--page:#16140e;--panel:#201d15;--elevated:#2a261c;--hover:#363026;
+  --divider:#403724;--line:#2e2a1f;--ink:#efe4c5;--muted:#c8bb9c;--faint:#a3977a;--alert-text:#ff9a80;
+  --orange:#f08418;--orange-dim:#b05f12;--hazard:#f5c518;--terminal:#8ccb58;
+  --terminal-dim:#557f37;--alert:#d14a30;--section:#ffb347;--on-accent:#0c0b07;--acid:#8ccb58
+}
+.app-frame.theme-light.accent-hazard{
+  --shell:#e8e2d2;--page:#f2eddd;--panel:#fbf6e6;--elevated:#efe7d2;--hover:#e5dcc4;
+  --divider:#c9bc9c;--line:#d8cdaf;--ink:#2a2417;--muted:#5d5440;--faint:#665b41;--alert-text:#9c2d18;
+  --orange:#c76408;--orange-dim:#9c4f07;--hazard:#a87f04;--terminal:#4e8b25;
+  --terminal-dim:#6fa94f;--alert:#b5371f;--section:#a86e06;--on-accent:#fff6e2;--acid:#4e8b25
+}
+@media(prefers-color-scheme:light){.app-frame.theme-system.accent-hazard{
+  --shell:#e8e2d2;--page:#f2eddd;--panel:#fbf6e6;--elevated:#efe7d2;--hover:#e5dcc4;
+  --divider:#c9bc9c;--line:#d8cdaf;--ink:#2a2417;--muted:#5d5440;--faint:#665b41;--alert-text:#9c2d18;
+  --orange:#c76408;--orange-dim:#9c4f07;--hazard:#a87f04;--terminal:#4e8b25;
+  --terminal-dim:#6fa94f;--alert:#b5371f;--section:#a86e06;--on-accent:#fff6e2;--acid:#4e8b25
+}}
+
+/* Native top chrome */
+.masthead{display:grid;grid-template-columns:auto minmax(180px,1fr) auto;align-items:center;gap:24px;padding:12px 20px;background:var(--shell);border:1px solid var(--line);border-bottom:0;min-width:0}
+.brand-lockup{display:flex;align-items:center;gap:15px;height:48px;overflow:hidden;color:var(--ink);text-decoration:none;min-width:0}
+/* The bundled source tile is square, while the native header showed its wide centre
+   wordmark. Scale the tile and crop its unused top/bottom area inside the 48px chrome. */
+.brand-lockup img{display:block;flex:0 0 106px;width:106px;height:106px;object-fit:contain}
+/* Fallback tile shown when neither game-asset logo texture can be extracted (no local
+   install / mappings), mirroring the native header's orange "AF" placeholder square. */
+.brand-logo-tile{display:flex;flex:0 0 34px;width:34px;height:34px;align-items:center;justify-content:center;background:var(--orange);color:var(--on-accent);font:700 13px var(--font-ui);letter-spacing:.12em}
+.brand-lockup>span{color:var(--faint);font-size:10px;letter-spacing:.12em;white-space:nowrap}
+.active-folder{display:grid;gap:2px;min-width:0}
+.active-folder>span,.eyebrow,.section-label{color:var(--muted);font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase}
+.active-folder>strong{overflow:hidden;color:var(--terminal);font:18px/1 var(--font-ui);letter-spacing:.08em;text-overflow:ellipsis;white-space:nowrap}
+.header-actions{display:flex;align-items:center;gap:8px}
+.round-action,.open-folder-action{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;text-decoration:none}
+.round-action{width:44px;height:44px;border:1px solid var(--muted);border-radius:50%;color:var(--ink);background:transparent}
+.round-action:hover{background:var(--elevated);border-color:var(--ink)}
+.open-folder-action{gap:8px;min-height:42px;padding:0 16px;border-radius:8px;background:var(--orange);color:var(--on-accent);font-size:12px;font-weight:600;letter-spacing:.08em}
+.open-folder-action:hover{filter:brightness(1.06)}
+/* Busy indicator shown in the header while the workspace is scanning a folder or
+   loading a save (Workspace.BusyOperation), mirroring the native header's ActivityIndicator. */
+.header-busy{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px}
+.header-busy-spinner{width:18px;height:18px;border:2px solid var(--section);border-top-color:var(--orange);border-radius:50%;animation:editor-spin .8s linear infinite}
+/* "Reading your installed game" line above the BULK UNLOCKS rows: the readouts under it are
+   blank until the paks are mounted, so the wait needs to be visible rather than looking broken. */
+.general-loading{display:flex;align-items:center;gap:8px;margin:0 0 8px;color:var(--muted);font-size:10px}
+.general-loading .header-busy-spinner{flex:0 0 auto;width:12px;height:12px;border-width:2px}
+.hazard{height:3px;background:var(--hazard)}
+
+/* The application is a desktop workbench, not a centered web page. */
+.app-frame>main{max-width:none;margin:0;padding:0;min-width:0;min-height:0;overflow:hidden}
+.workspace-shell{display:grid;height:100%;min-height:0!important;grid-template-columns:var(--file-pane-width) 16px minmax(0,1fr) 16px var(--details-pane-width)!important;border:0!important;background:var(--page)!important}
+.workspace-shell.file-collapsed{grid-template-columns:0 16px minmax(0,1fr) 16px var(--details-pane-width)!important}
+.workspace-shell.details-collapsed{grid-template-columns:var(--file-pane-width) 16px minmax(0,1fr) 16px 0!important}
+.workspace-shell.file-collapsed.details-collapsed{grid-template-columns:0 16px minmax(0,1fr) 16px 0!important}
+.shell-pane{box-sizing:border-box;padding:0!important;background:var(--panel)!important;color:var(--ink);overflow:hidden auto;scrollbar-color:var(--faint) var(--panel)}
+.file-pane{display:grid;grid-template-rows:auto minmax(0,1fr) auto;border-right:1px solid var(--divider)!important;overflow:hidden}
+.details-pane{border-left:1px solid var(--divider)!important}
+.shell-pane>header{position:sticky;top:0;z-index:1;padding:16px 16px 10px;background:var(--panel);color:var(--muted)!important;font:600 10px var(--font-ui)!important;letter-spacing:.14em!important}
+.shell-pane>header .icon-button{display:none}
+.file-pane>.muted,.details-pane>.muted,.shell-path,.shell-save-list,.details-pane dl,.pane-size{margin-left:16px;margin-right:16px}
+.shell-path{color:var(--faint)!important;font:10px var(--font-ui)!important;line-height:1.4;max-height:2.8em;overflow:hidden!important}
+.pane-size{display:grid;gap:6px;padding:12px 0 16px;color:var(--faint)!important;font:9px var(--font-ui)!important;letter-spacing:.08em;text-transform:uppercase}
+.pane-size input{width:100%;accent-color:var(--terminal)}
+
+/* Loaded-world file sidebar. This mirrors the retired 340px MAUI FileSidebarView. */
+.file-pane>.file-sidebar-header{position:relative;display:grid;gap:8px;padding:14px 16px 10px;background:var(--panel)}
+.file-pane-heading{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;color:var(--muted);font:600 10px var(--font-ui);letter-spacing:.15em;text-transform:uppercase}
+.platform-badge{display:inline-flex;align-items:center;min-height:18px;padding:2px 8px;border-radius:4px;color:#fff;font:600 9px var(--font-ui);letter-spacing:.2em;white-space:nowrap}
+.platform-steam{background:#4c9be8}.platform-gamepass{background:#107c10}.platform-unknown{background:#e37a22}
+.sidebar-search{box-sizing:border-box;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;height:38px;padding:0 10px;border:1px solid var(--divider);border-radius:8px;background:var(--elevated);color:var(--muted)}
+.sidebar-search:focus-within{border-color:var(--terminal)}
+.sidebar-search>.material-symbol{font-size:17px;color:var(--muted)}
+.sidebar-search input{min-height:36px!important;padding:0!important;border:0!important;background:transparent!important;font:400 13px var(--font-ui)}
+.sidebar-search input:focus{border:0!important;background:transparent!important}
+/* The icon+input search composites must read as ONE box. The global input rule above
+   (line ~168) carries three :not() attribute selectors, so its specificity beats the
+   plain ".x input" overrides; these repeat the chain so the inner chrome really dies.
+   Covers the saves sidebar search and the slot-editor catalog search. */
+.sidebar-search input:not([type=checkbox]):not([type=radio]):not([type=range]),
+.catalog-search input:not([type=checkbox]):not([type=radio]):not([type=range]){min-height:34px;padding:0!important;border:0!important;border-radius:0;background:transparent!important}
+.sidebar-search input:not([type=checkbox]):not([type=radio]):not([type=range]):focus,
+.catalog-search input:not([type=checkbox]):not([type=radio]):not([type=range]):focus{border:0!important;background:transparent!important}
+.catalog-search:focus-within{border-color:var(--terminal)}
+.sidebar-search button{display:grid;place-items:center;width:26px;min-width:26px;min-height:26px;padding:0;border:0;border-radius:13px;background:transparent;color:var(--muted);font-size:15px;letter-spacing:0;text-transform:none}
+.sidebar-search button:hover{background:var(--hover);color:var(--ink)}
+.sidebar-count{color:var(--muted);font:400 11px var(--font-ui);letter-spacing:.04em}
+.save-groups-scroll{min-height:0;margin:0!important;padding-bottom:8px;overflow:hidden auto;scrollbar-color:var(--faint) var(--panel)}
+.save-group{margin:0;padding:0}
+.save-group-heading{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:8px;padding:14px 14px 4px;color:var(--hazard);font:600 10px var(--font-ui);letter-spacing:.25em;text-transform:uppercase}
+.save-group-heading>span{color:var(--muted);font:400 10px var(--font-ui);letter-spacing:.06em}
+.add-player-button{display:grid;place-items:center;width:26px;min-width:26px;min-height:26px;padding:0;border:0;border-radius:13px;background:var(--orange);color:var(--on-accent);font-size:17px;letter-spacing:0;text-transform:none}
+.shell-save-list .save-file-row{position:relative;display:grid!important;grid-template-columns:3px minmax(0,1fr)!important;grid-template-rows:auto auto;gap:3px 10px!important;width:100%;min-height:52px;padding:10px 14px!important;border:0!important;border-radius:0;background:transparent!important;color:var(--ink)!important;text-align:left;text-transform:none}
+.shell-save-list .save-file-row:hover{background:var(--hover)!important}
+.shell-save-list .save-file-row.selected{background:var(--elevated)!important;outline:1px solid var(--section);outline-offset:-1px}
+.save-kind-marker{grid-row:1/3;width:3px;height:100%;background:var(--orange)}
+.kind-worldmetadata .save-kind-marker{background:var(--hazard)}.kind-player .save-kind-marker{background:var(--orange)}.kind-world .save-kind-marker{background:#78b94d}
+.shell-save-list .save-file-name{grid-column:2;min-width:0;overflow:hidden;color:var(--ink);font:400 13px var(--font-ui)!important;text-overflow:ellipsis;white-space:nowrap}
+.shell-save-list .save-file-meta{grid-column:2;display:flex;align-items:center;gap:8px!important;justify-self:start;padding:0!important;background:transparent!important;color:var(--muted)!important;font:400 10px var(--font-ui)!important;letter-spacing:0;text-transform:none}
+.save-file-meta b{padding:2px 5px;background:var(--orange);color:var(--on-accent);font:600 8px var(--font-ui);letter-spacing:.13em}.kind-worldmetadata .save-file-meta b{background:var(--hazard)}.kind-world .save-file-meta b{background:#78b94d}
+.shell-save-list .save-file-meta small{color:var(--muted)!important;font:400 10px var(--font-ui)!important}
+.shell-no-results,.shell-empty{padding:24px;color:var(--muted);font:400 11px var(--font-ui)}.shell-empty strong{display:block;margin-bottom:6px;color:var(--ink);font-size:10px;letter-spacing:.15em}.shell-empty p{margin:0}
+.sidebar-dialog-backdrop{position:fixed;inset:0;z-index:75;display:grid;place-items:center;padding:24px;background:#02070db8}
+.add-player-panel{box-sizing:border-box;width:min(460px,100%);margin:0;padding:20px;border:1px solid var(--divider);border-radius:8px;background:var(--panel);box-shadow:0 24px 70px #000b}
+.add-player-panel h2{margin:0 0 16px;color:var(--section);font-size:17px;letter-spacing:.1em}.add-player-panel>label{display:grid;gap:7px;margin-top:12px;color:var(--muted);font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}.add-player-panel>.checkbox-field{display:flex;align-items:center}.add-player-panel>div{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--divider)}
+.config-group{max-height:200px;border-top:1px solid var(--divider);background:var(--panel);overflow:hidden}
+.config-group-heading{padding:10px 16px 4px;color:var(--hazard);font:600 10px var(--font-ui);letter-spacing:.25em;text-transform:uppercase}
+.config-file-list{max-height:160px;overflow:hidden auto;scrollbar-color:var(--faint) var(--panel)}
+.config-file-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;width:100%;min-height:40px;padding:8px 14px;border:0;border-radius:0;background:transparent;color:var(--ink);text-align:left;text-transform:none}
+.config-file-row:hover{background:var(--hover)}.config-file-row b{padding:2px 5px;background:var(--hazard);color:var(--on-accent);font:600 8px var(--font-ui);letter-spacing:.12em}.config-file-row span{overflow:hidden;font:400 12px var(--font-ui);text-overflow:ellipsis;white-space:nowrap}.config-file-row small{color:var(--muted);font:400 9px var(--font-ui);letter-spacing:.08em}
+/* Pane rails: a 16px strip with the collapse chevron at the top and a centered drag
+   grip. Layout (rows, grip pseudo-element) lives in WorkspaceShell.razor.css; only the
+   shared colors and reset live here so the two sheets never fight over placement. */
+.shell-splitter{position:relative;min-width:16px;border:0;border-left:1px solid var(--divider);border-right:1px solid var(--divider);background:var(--elevated);cursor:col-resize}
+.shell-splitter>button{width:16px;min-width:16px;padding:0;border:0;border-radius:0;background:transparent;color:var(--muted);letter-spacing:0}
+.shell-splitter:hover,.shell-splitter:focus-within{background:var(--hover)}
+
+.shell-center{display:flex;flex-direction:column;min-height:0;background:var(--page)}
+.shell-status{display:flex!important;align-items:center;gap:13px;box-sizing:border-box;min-height:75px!important;padding:16px 28px!important;border-bottom:1px solid var(--divider)!important;background:var(--page)!important;color:var(--muted)!important;font:10px var(--font-ui)!important;letter-spacing:.08em}
+.shell-status strong{font:600 22px var(--font-ui)!important;letter-spacing:.08em;color:var(--ink)!important}
+.shell-status .dirty{color:var(--hazard)!important}
+/* Native header dirty chip: an 8px hazard dot + UNSAVED, only while changes are staged. */
+.shell-status .unsaved-chip{display:inline-flex;align-items:center;gap:8px;font:600 10px var(--font-ui);letter-spacing:.12em;text-transform:uppercase}
+.shell-status .unsaved-chip i{width:8px;height:8px;border-radius:4px;background:var(--hazard)}
+.shell-status .editor-actions{margin-left:auto!important}
+.shell-body{min-height:0;overflow:auto;scrollbar-color:var(--faint) var(--page)}
+.shell-body>section,.shell-body>.hero{max-width:none!important}
+.details-pane dl{grid-template-columns:68px minmax(0,1fr)!important;padding-top:8px;color:var(--ink);font:11px var(--font-ui)!important}
+.details-pane dt{color:var(--muted)!important;font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+.details-pane dd{font-family:var(--font-ui);color:var(--terminal)}
+
+/* Native buttons, fields and focus behavior */
+button,.primary,.secondary,.button-link{box-sizing:border-box;min-height:36px;border-radius:6px;cursor:pointer;font:600 11px var(--font-ui);letter-spacing:.06em;text-transform:uppercase;transition:background-color 90ms ease,border-color 90ms ease,opacity 90ms ease,transform 90ms ease}
+button:hover,.primary:hover,.button-link:hover{transform:scale(1.02);opacity:.92}
+button:active,.primary:active,.button-link:active{transform:scale(.97);background-color:var(--orange-dim)}
+.secondary:hover,.icon-button:hover,.round-action:hover,.open-folder-action:hover,.shell-splitter button:hover,.settings-tab-rail button:hover,.theme-segments button:hover{transform:none;opacity:1}
+/* Full-width list rows must not zoom on hover: inside an overflow:auto list the scaled
+   row overflows sideways and flashes a horizontal scrollbar. Rows highlight instead. */
+.save-file-row:hover,.config-file-row:hover,button.world-feature-row:hover,.wt-row:hover,.wt-offer-row:hover,.inventory-slot-select:hover,.rb-list button:hover,.trait-browser button:hover,.pet-master button:hover,.codex-list button:hover,.achievement-list button:hover,.offer-list button:hover,.catalog-grid button:hover{transform:none;opacity:1}
+.secondary:active,.icon-button:active,.round-action:active,.open-folder-action:active,.shell-splitter button:active,.theme-segments button:active{transform:none;opacity:1}
+button:disabled{cursor:not-allowed;opacity:.72;transform:none}
+.primary{padding:8px 16px;border:1px solid transparent;background:var(--orange);color:var(--on-accent)}
+.primary:hover{filter:brightness(1.06)}
+.secondary{padding:7px 14px!important;border:1px solid var(--divider)!important;background:transparent!important;color:var(--ink)!important}
+.secondary:hover{border-color:var(--orange)!important;background:var(--hover)!important}
+.icon-button{min-width:32px;padding:4px 8px;border:0;background:transparent;color:var(--muted)}
+input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea{box-sizing:border-box;min-height:36px;border:1px solid var(--divider)!important;border-radius:4px;background:var(--elevated)!important;color:var(--ink)!important;padding:8px 10px!important;outline:0}
+input::placeholder,textarea::placeholder{color:var(--faint)}
+input:focus,select:focus,textarea:focus{border-color:var(--terminal)!important;background:var(--hover)!important}
+input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--terminal)}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--hazard)!important;outline-offset:2px!important}
+/* FocusOnNavigate targets the route heading for assistive technology. It is not
+   interactive, so do not let the embedded browser draw a web-page focus box. */
+h1[tabindex="-1"]:focus{outline:none}
+
+/* Center content and editor hierarchy */
+.hero{box-sizing:border-box;margin:28px 32px!important;padding:32px!important;border:1px solid var(--line);border-radius:8px;background:var(--panel);text-align:center}
+.hero.workspace-open{display:none}
+.hero h1,.empty-state h2{margin:6px 0 12px;color:var(--section);font-size:18px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.hero .lede{max-width:620px;margin:0 auto 20px;color:var(--muted);font-size:12px}
+.native-empty-state{max-width:1068px;margin:76px auto!important;padding:42px 32px!important}
+.empty-capabilities{max-width:620px;margin:0 auto;color:var(--faint);font-size:11px;white-space:pre-line}
+.empty-actions{display:flex;justify-content:center;gap:10px;margin:14px 0}
+.button-link{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.empty-note{margin:7px 0;color:var(--muted);font-size:10px}
+.discovered-worlds{max-width:620px;margin:34px auto 0;text-align:left}
+.discovered-worlds>h2{margin:0 0 6px;color:var(--section);font-size:10px;letter-spacing:.3em;text-align:center}
+.discovered-worlds>p{margin:0 0 10px;color:var(--muted);font-size:10px;text-align:center}
+.discovered-world-list{display:grid;gap:8px}
+.discovered-world-card{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;padding:10px 14px;border:1px solid var(--line);background:var(--elevated);text-align:left}
+.discovered-world-card h3{margin:0;color:var(--ink);font-size:16px}
+/* The platform chip reuses the shared .platform-badge palette (Game Pass green, Steam
+   blue, orange otherwise - the native badge colors), sized down for the card title. */
+.discovered-world-card h3 .platform-badge{margin-left:7px;min-height:0;padding:2px 6px;border-radius:0;font-size:8px;letter-spacing:.15em;vertical-align:middle}
+.discovered-world-card p{margin:2px 0;color:var(--muted);font-size:10px}.discovered-world-card small{display:block;overflow:hidden;color:var(--faint);font-size:9px;text-overflow:ellipsis;white-space:nowrap}
+.folder-open{display:grid;grid-template-columns:minmax(220px,1fr) auto auto auto;gap:8px;align-items:end;max-width:760px;margin:20px auto 0;text-align:left}
+.folder-open label{grid-column:1/-1;color:var(--muted);font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+.folder-open input{grid-column:1}
+.browser-import{max-width:738px;margin:12px auto 0!important;border:1px dashed var(--divider)!important;background:color-mix(in srgb,var(--terminal) 5%,transparent)!important;text-align:left}
+.browser-import label{color:var(--terminal)!important}
+.import-saves{max-width:760px;margin:12px auto 0;text-align:left}.import-saves>summary{display:inline-flex;align-items:center;list-style:none}.import-saves>summary::-webkit-details-marker{display:none}.import-saves[open]>summary{border-color:var(--orange)!important}
+.workspace,.single-workspace{display:block!important;margin:0!important;padding:20px 28px 32px!important}
+.world-list{display:none}
+.save-list{min-width:0}
+.editor-loading{min-height:45vh;display:grid;place-content:center;justify-items:center;gap:14px;color:var(--muted);font:13px var(--font-ui);letter-spacing:.04em}
+.editor-loading-spinner{width:28px;height:28px;border:3px solid var(--section);border-top-color:var(--orange);border-radius:50%;animation:editor-spin .8s linear infinite}
+@keyframes editor-spin{to{transform:rotate(360deg)}}
+.save-picker{display:none}
+.path-actions{display:flex;align-items:center;gap:12px;padding-bottom:10px;border-bottom:1px solid var(--divider)}
+.path{color:var(--faint)!important;font:10px var(--font-ui)!important}
+.save-summary{margin:0 0 18px;padding:14px 16px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.save-summary dl{display:grid;grid-template-columns:repeat(4,minmax(80px,auto) minmax(80px,1fr));gap:6px 10px;margin:8px 0 0;font-size:10px}
+/* Same label-and-value readout as the one in the side pane, so it wears the same face.
+   These values are mostly words (a region, a date), which the segment look mangles. */
+.save-summary dt{color:var(--muted);font-weight:600;text-transform:uppercase}.save-summary dd{margin:0;color:var(--terminal);font-family:var(--font-ui);font-size:13px}
+.empty-state{box-sizing:border-box;max-width:900px;margin:90px auto;padding:42px 32px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--muted);text-align:center}
+.error{padding:10px 14px;border:1px solid var(--alert);background:color-mix(in srgb,var(--alert) 8%,var(--elevated));color:var(--ink)}
+.success{color:var(--terminal)!important}.muted,.empty{color:var(--muted)!important}.eyebrow{margin:0 0 5px;color:var(--muted)!important}
+
+.player-editor,.world-editor{margin-top:0!important}
+/* The title and its buttons drop onto separate lines when the panel is too narrow for both.
+   Without wrapping they were forced to share one line however little room there was: the
+   buttons ended up in a tall stack that the centred alignment pushed up out of the top of the
+   panel, so RELOAD was sliced in half and SAVE floated away from the title it belonged to.
+   A panel can be narrow while the window is wide (the slot editor takes its space from the
+   side), so this cannot be left to a window-width rule. */
+.editor-heading{display:flex!important;flex-wrap:wrap;align-items:center!important;justify-content:space-between;gap:16px;padding:0 4px 10px;border-bottom:1px solid var(--divider)}
+.editor-heading h2{margin:0!important;color:var(--ink);font-size:22px!important;font-weight:600;letter-spacing:.08em}
+.editor-status{color:var(--muted)!important;font:11px var(--font-ui)!important}
+.editor-tabs,.world-tabs{display:flex!important;flex-wrap:nowrap!important;gap:4px!important;margin:10px 0 18px!important;padding-bottom:2px;border:0!important;overflow-x:auto;scrollbar-width:thin}
+.editor-tab,.world-tabs button{flex:0 0 auto;min-height:38px!important;padding:8px 16px!important;border:0!important;border-radius:6px!important;background:var(--elevated)!important;color:var(--ink)!important;font:600 11px var(--font-ui)!important;letter-spacing:.12em!important}
+.editor-tab:hover,.world-tabs button:hover{color:var(--section)!important;background:var(--hover)!important}
+.editor-tab.active,.world-tabs button.selected{background:var(--orange)!important;color:var(--on-accent)!important}
+.editor-card,.editor-placeholder,.skills-heading,.recipes-heading,.inventory-heading,.inventory-group,.skill-card,.pet-card,.settings-card,.create-world-card,.compare-card,.compare-results,.ini-section,.world-flags-intro{border:1px solid var(--line)!important;border-radius:8px!important;background:var(--panel)!important;color:var(--ink);padding:18px 20px!important}
+.editor-card h3,.editor-placeholder h3,.skills-heading h3,.recipes-heading h3,.inventory-heading h3,.settings-card h2,.settings-card h3,.create-world-card h2{margin:0 0 12px!important;color:var(--section)!important;font-size:17px!important;font-weight:600!important;letter-spacing:.09em!important;text-transform:uppercase}
+.editor-card-list,.vitals-tab,.skills-tab,.recipes-tab,.inventory-tab,.companions-tab,.general-tab,.character-tab{display:grid;gap:18px}
+.card-title-row{align-items:center!important}
+.card-title-row h3,.card-title-row h4{margin:0!important}
+.editor-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0}
+
+/* Native PlayerVitalsTab grid: 110px label column, stretching slider, 70px right-aligned
+   LCD-style readout. Declared here (not only in the scoped razor.css) so the layout holds
+   for the nested VitalSlider component markup too. */
+.vital-slider{display:grid;grid-template-columns:110px minmax(120px,1fr) 70px!important;align-items:center;gap:12px!important}
+.vital-slider input[type=range]{width:100%;min-width:0}
+.vital-slider label,.money-field label,.inventory-fields label,.pet-fields label,.field-row label{color:var(--muted)!important;font:600 10px var(--font-ui)!important;letter-spacing:.12em;text-transform:uppercase}
+.vital-slider output{color:var(--terminal)!important;font:18px var(--font-lcd)!important;letter-spacing:.08em;text-align:right}
+.limb-grid .vital-slider{grid-template-columns:90px minmax(80px,1fr) 60px!important}
+.money-field{display:grid;align-items:center;gap:12px;grid-template-columns:110px 180px 1fr!important;padding-top:14px;border-top:1px solid var(--divider)}.money-field input{color:var(--terminal)!important;font:20px var(--font-num)!important}
+.body-health-head .amber-field-label{font-size:12px;letter-spacing:5px}
+/* Native skill cards: uniform ~430px cards, at most 3 across (ResponsiveLayout ItemWidth
+   430 / MaxSpan 3), so the default desktop pane shows two columns like the native shot. */
+.skill-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr))!important;gap:12px!important}.skill-card.dirty,.inventory-slot.dirty{border-color:var(--hazard)!important}.skill-title span{color:var(--terminal)!important}
+.skill-title.card-title-row{display:flex!important;gap:10px;margin-top:8px}.skill-title .offer-icon{flex:0 0 auto}
+.skill-fields input,.inventory-fields input,.pet-fields input{color:var(--terminal)!important;font-family:var(--font-num)!important}
+.recipe-toolbar input,.recipe-toolbar select{color:var(--terminal)!important;font-family:var(--font-ui)!important}
+.skill-passive{display:block;max-width:100%;overflow:hidden;color:var(--muted)!important;font:400 9px var(--font-ui)!important;text-overflow:ellipsis;white-space:nowrap}
+.milestone-track{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.milestone-chip{flex:1 1 180px;min-width:150px;padding:4px 8px;border:1px solid var(--line);border-radius:5px;background:var(--elevated);color:var(--muted);text-align:left;cursor:pointer;text-transform:none}
+.milestone-chip:hover{background:var(--hover)}
+.milestone-chip strong{display:block;overflow:hidden;color:var(--muted);font:600 10px var(--font-ui);letter-spacing:0;text-overflow:ellipsis;white-space:nowrap}
+/* Native chips stay compact: one truncated effect line; the full text lives in the
+   sidebar's milestone detail panel (and the chip tooltip). */
+.milestone-chip small{display:block;overflow:hidden;color:var(--faint);font-size:8.5px;text-overflow:ellipsis;white-space:nowrap}
+.milestone-chip.unlocked{background:var(--terminal-dim);border-color:var(--terminal)}
+.milestone-chip.unlocked strong,.milestone-chip.unlocked small{color:var(--ink)}
+.milestone-chips{display:flex;gap:8px}
+.chip{display:inline-flex;align-items:center;padding:3px 8px;border-radius:4px;background:var(--elevated);font:600 10px var(--font-ui);letter-spacing:.1em}
+.chip--terminal{color:var(--terminal)}
+.chip--orange{color:var(--orange)}
+.recipe-list,.door-list,.container-list,.npc-list,.flag-list{border:1px solid var(--line)!important;background:var(--shell)!important}
+.recipe-row,.door-row,.container-row,.npc-row,.flag-row,.slot-row{border-bottom-color:var(--line)!important;background:transparent;color:var(--ink)}
+.recipe-row:hover,.door-row:hover,.container-row:hover,.npc-row:hover,.flag-row:hover,.slot-row:hover{background:var(--hover)!important}
+.recipe-row.unlocked span,.recipe-row small,.inventory-slot summary strong,.inventory-slot summary small{color:var(--terminal)!important}
+.inventory-group h4{color:var(--section);letter-spacing:.12em}.inventory-grid{gap:8px!important}.inventory-slot{border-color:var(--line)!important;background:var(--shell)!important}.inventory-slot-select.selected{outline-color:var(--terminal)!important;background:var(--hover)!important}
+.inventory-fields,.pet-fields,.slot-grid{border-color:var(--line)!important;background:var(--shell)!important}.item-palette{border-color:var(--divider)!important;background:var(--panel)!important}
+.door-toolbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:24px 0;color:var(--muted)!important;font-family:var(--font-ui)!important}.door-identity small,.npc-identity small,.slot-row small,.container-row small{color:var(--faint)!important;font-family:var(--font-ui)!important}.door-lock{color:var(--orange)!important}.door-row select,.world-pet-list select{background:var(--elevated)!important;color:var(--terminal)!important}
+
+/* Secondary pages retain the same native panel system. */
+.compact-hero{margin-bottom:18px!important;padding:20px 24px!important;text-align:left}.compact-hero .lede{margin:0;color:var(--muted)}
+.settings-grid{gap:18px!important}.settings-card,.create-world-card,.compare-card,.compare-results{box-sizing:border-box}.settings-card label:not(.toggle-row),.create-world-card label,.compare-card label{color:var(--muted)!important;font:600 10px var(--font-ui)!important;letter-spacing:.12em!important}.status-list{font:11px var(--font-ui)!important}.status-list dt{color:var(--muted)!important}.plugin-list,.plugin-row,.language-options,.language-option,.compare-list,.compare-row{border-color:var(--line)!important}.plugin-row small,.plugin-row p,.tool-list span{color:var(--muted)!important;font-family:var(--font-ui)!important}.appearance-card select{background:var(--elevated)!important;color:var(--ink)!important}.ini-entry{border-color:var(--line)!important}.ini-section h3{color:var(--section)!important}.compare-row small,.compare-row>div>span{color:var(--muted)!important}
+
+/* Native footer chrome */
+.status-footer{position:relative;z-index:10;display:grid;grid-template-columns:minmax(180px,1fr) minmax(220px,auto) auto auto;align-items:center;gap:12px;padding:7px 16px;border:1px solid var(--line);background:var(--shell);color:var(--faint);font-size:10px;letter-spacing:.05em}
+.live-status{display:flex;align-items:center;gap:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.live-status>span{width:8px;height:8px;border-radius:50%;background:var(--terminal)}
+.logging-path{overflow:hidden;color:var(--faint);text-align:right;text-overflow:ellipsis;white-space:nowrap}
+.footer-product{color:var(--faint);font:600 9px var(--font-ui);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+.host-nav{display:flex!important;align-items:center;gap:8px!important;margin:0!important}.host-nav>button{display:flex;align-items:center;gap:6px;min-height:30px;padding:0 12px;border:1px solid var(--divider);border-radius:16px;background:transparent;color:var(--ink)!important;font:600 10px var(--font-ui)!important;letter-spacing:.1em!important;text-decoration:none!important;text-transform:uppercase;cursor:pointer}.host-nav>button:hover{border-color:var(--orange);background:var(--elevated);color:var(--ink)!important}.host-nav .material-symbol{color:var(--orange);font-size:16px}
+
+/* Settings is the full-window modal sheet from the retired desktop app. */
+.settings-sheet{position:fixed;inset:0;z-index:80;display:grid;grid-template-rows:auto 3px minmax(0,1fr) auto;background:var(--page);color:var(--ink);outline:0}
+.settings-sheet-header{display:flex;align-items:center;gap:14px;padding:15px 24px;border-bottom:1px solid var(--line);background:var(--shell)}
+.settings-sheet-header p{margin:0;color:var(--orange);font:600 10px var(--font-ui);letter-spacing:.3em;text-transform:uppercase}
+.settings-sheet-header h1{margin:2px 0 0;color:var(--ink);font:600 22px var(--font-ui);letter-spacing:.04em}
+.settings-badge{display:grid;place-items:center;width:36px;height:36px;border-radius:6px;background:var(--orange);color:var(--on-accent);font:600 14px var(--font-ui);letter-spacing:.14em}
+.settings-sheet-hazard{background:var(--hazard)}
+.settings-sheet-main{display:grid;grid-template-columns:208px minmax(0,1fr);min-height:0}
+.settings-tab-rail{display:flex;flex-direction:column;gap:4px;padding:18px 12px;border-right:1px solid var(--divider);background:var(--elevated)}
+.settings-tab-rail button{width:100%;min-height:40px;padding:9px 14px;border:0;border-radius:6px;background:transparent;color:var(--muted);text-align:left;font-size:12px;letter-spacing:.08em}
+.settings-tab-rail button:hover{background:var(--hover);color:var(--ink)}
+.settings-tab-rail button.selected{background:var(--orange);color:var(--on-accent)}
+.settings-sheet-scroll{min-width:0;overflow:auto;scrollbar-color:var(--faint) var(--page);outline:0}
+.settings-sheet-content{box-sizing:border-box;width:min(100%,688px);min-height:100%;margin:0 auto;padding:22px 24px 28px}
+.settings-sheet-content>.settings-card+.settings-card{margin-top:14px}
+.settings-sheet .settings-card{padding:16px 20px!important}
+.settings-sheet .settings-card h2{color:var(--hazard)!important;font-size:12px!important;letter-spacing:.24em!important}
+.settings-sheet .settings-card>.muted{margin:0 0 12px;font-size:11px}
+.settings-sheet-footer{display:flex;justify-content:flex-end;padding:11px 20px;border-top:1px solid var(--line);background:var(--shell)}
+.settings-sheet-footer button{min-width:92px}
+.theme-segments{display:inline-flex;gap:3px;padding:3px;border:1px solid var(--divider);border-radius:8px;background:var(--elevated)}
+.theme-segments button{min-height:32px;padding:6px 14px;border:0;border-radius:5px;background:transparent;color:var(--muted);font-size:10px}
+.theme-segments button.selected{background:var(--orange);color:var(--on-accent)}
+.toggle-row{display:flex!important;gap:10px;align-items:center}
+.settings-switch-row,.settings-value-row{display:flex!important;align-items:center;justify-content:space-between;gap:24px;margin:12px 0 0;color:var(--ink)!important;font:400 13px var(--font-ui)!important;letter-spacing:0!important}
+.settings-switch-row input[role=switch]{appearance:none;position:relative;width:42px;height:22px;margin:0;border:1px solid var(--muted);border-radius:12px;background:var(--shell);cursor:pointer}
+.settings-switch-row input[role=switch]::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--muted);transition:left 100ms ease,background 100ms ease}
+.settings-switch-row input[role=switch]:checked{border-color:var(--orange);background:color-mix(in srgb,var(--orange) 25%,var(--shell))}
+.settings-switch-row input[role=switch]:checked::after{left:23px;background:var(--orange)}
+.settings-value-row strong{color:var(--terminal);font-weight:400}
+.game-data-path-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;margin-top:12px}.game-data-path-row>span{min-width:0;overflow:hidden;color:var(--ink);font:400 12px var(--font-ui);text-overflow:ellipsis;white-space:nowrap}
+.settings-select{box-sizing:border-box;width:100%;min-height:38px;padding:8px 10px;border:1px solid var(--divider);border-radius:4px;background:var(--elevated);color:var(--ink);font:400 12px var(--font-ui)}
+.mod-switch-row{padding-top:10px;border-top:1px solid var(--divider)}
+.settings-tab-embedded>.hero{display:none}
+.settings-tab-embedded>.settings-card,.settings-tab-embedded>.compare-card,.settings-tab-embedded>.compare-results{margin:0 0 14px!important}
+.gamepass-card input{box-sizing:border-box;width:100%}.gamepass-card .conversion-action{display:block;margin-top:14px}.gamepass-card .conversion-hint{margin:5px 0 0!important}
+.settings-subdialog-backdrop{position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:24px;background:#02070db8}
+.settings-subdialog{box-sizing:border-box;width:min(520px,100%);max-height:min(680px,90vh);overflow:auto;padding:20px;border:1px solid var(--divider);border-radius:8px;background:var(--panel);box-shadow:0 24px 70px #000b}
+.settings-subdialog h2{margin:0;color:var(--section);font-size:17px;letter-spacing:.1em}
+.settings-subdialog footer{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid var(--divider)}
+.blocking-busy-overlay{position:fixed;inset:0;z-index:120;display:grid;place-content:center;justify-items:center;gap:16px;padding:32px;background:color-mix(in srgb,var(--page) 97%,transparent);color:var(--ink);text-align:center}
+/* Startup gate over the prerendered page: swallows clicks that would otherwise be lost
+   before the circuit connects, and only becomes visible if the wait is actually long. */
+.boot-gate{position:fixed;inset:0;z-index:200;display:grid;place-content:center;justify-items:center;gap:14px;background:color-mix(in srgb,var(--page) 92%,transparent);color:var(--ink);font:600 12px var(--font-ui);letter-spacing:.12em;text-transform:uppercase;opacity:0;animation:boot-gate-in 200ms ease-out 400ms forwards}
+@keyframes boot-gate-in{to{opacity:1}}.blocking-busy-spinner{width:40px;height:40px;border:4px solid var(--divider);border-top-color:var(--orange);border-radius:50%;animation:editor-spin .8s linear infinite}.blocking-busy-overlay strong{font:400 15px var(--font-ui);letter-spacing:.04em}
+
+/* Dialogs and transient feedback */
+.modal-backdrop{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px;background:#0009;animation:modal-scrim-in 120ms ease-out}
+.modal{box-sizing:border-box;width:min(520px,100%);max-height:min(720px,calc(100vh - 48px));overflow:auto;border:1px solid var(--orange);border-radius:0;background:var(--shell);color:var(--ink);box-shadow:0 24px 70px #000b;animation:modal-card-in 140ms ease-out;outline:0}
+.modal-accent{height:3px;background:var(--orange)}
+.modal-header{padding:20px 24px 0}.modal-header h2{margin:0;color:var(--section);font:600 16px var(--font-ui);letter-spacing:.09em;overflow-wrap:anywhere}
+.modal-body{padding:12px 24px 0;color:var(--ink);font:400 13px var(--font-ui);line-height:1.5;overflow-wrap:anywhere}.modal-body>p:first-child{margin-top:0}.modal-body>p:last-child{margin-bottom:0}
+.modal-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:8px;padding:20px 24px 18px}.modal-actions button{min-width:96px;padding:9px 18px}.danger{border:1px solid var(--alert);background:var(--alert);color:#fff}
+.toast-stack{position:fixed;top:94px;right:18px;z-index:110;display:grid;gap:8px;width:min(380px,calc(100vw - 36px));pointer-events:none}
+.toast{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:44px;padding:10px 12px;border:1px solid var(--divider);border-left-width:3px;background:var(--elevated);color:var(--ink);box-shadow:0 10px 28px #0008;font:400 12px var(--font-ui);pointer-events:auto;animation:toast-in 140ms ease-out}.toast .icon-button{flex:0 0 auto;min-width:26px;min-height:26px;padding:0}.toast-success{border-left-color:var(--terminal)}.toast-warning{border-left-color:var(--hazard)}.toast-error{border-left-color:var(--alert)}.toast-information{border-left-color:var(--section)}
+@keyframes modal-scrim-in{from{opacity:0}to{opacity:1}}@keyframes modal-card-in{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}@keyframes toast-in{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
+.visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+
+/* Native world and tool surfaces. */
+.world-editor-summary{display:grid;gap:14px;margin-bottom:10px}.world-summary-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.world-summary-heading h2{margin:0;color:var(--section);font-size:17px;letter-spacing:.09em}.world-summary-heading>span,.world-summary-readouts span{color:var(--muted);font-size:11px}.world-summary-readouts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}.world-summary-readouts>div{display:grid;gap:3px}.world-summary-readouts small,.world-clock-editor label,.world-day-discovered label{color:var(--muted);font-size:10px;font-weight:600;letter-spacing:.12em}.world-summary-readouts strong{color:var(--terminal);font-family:var(--font-lcd);font-size:22px}.world-clock-editor{display:grid;grid-template-columns:auto minmax(220px,1fr) auto;align-items:end;gap:12px;padding-top:12px;border-top:6px solid var(--hazard)}.world-clock-editor label{display:grid;gap:5px}.world-clock-editor input[type=number],.world-day-discovered input{width:90px}.world-clock-editor output{color:var(--terminal);font-family:var(--font-lcd);font-size:20px}.world-time-slider input{accent-color:var(--hazard)}.world-day-discovered{display:flex;align-items:end;gap:12px}.world-day-discovered label{display:grid;gap:5px}.world-day-discovered small{color:var(--muted);padding-bottom:8px}
+.ini-editor-panel{box-sizing:border-box;padding:20px 24px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}.ini-editor-heading{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center}.ini-title-row{display:flex;align-items:center;gap:10px}.ini-title-row h2{margin:0;color:var(--ink);font-size:21px}.ini-kind-badge{padding:3px 7px;background:var(--orange);color:var(--on-accent);font-size:9px;font-weight:700;letter-spacing:.16em}.ini-editor-heading .path{margin:4px 0;font-size:10px}.ini-editor-heading .muted{margin:0}.ini-section{padding:12px 16px!important}.ini-entry{display:grid;grid-template-columns:320px minmax(160px,1fr) auto;gap:12px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}.ini-entry code{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ini-entry .secondary{padding:5px 9px!important}
+.tool-scaffold{box-sizing:border-box;width:min(100%,980px);margin:0 auto;display:grid;gap:14px}.tool-scaffold-heading{padding:4px 2px 8px}.tool-scaffold-heading h1{margin:3px 0 0;font-size:25px}.segmented-control{display:flex;flex-wrap:wrap;gap:4px}.segmented-control button{min-height:36px;padding:8px 18px;border:1px solid var(--line);border-radius:5px;background:var(--elevated);color:var(--ink);font:600 11px var(--font-ui);letter-spacing:.08em}.segmented-control button.selected{border-color:var(--orange);background:var(--orange);color:var(--on-accent)}.compare-card{max-width:none!important;margin:0!important}.compare-card h2{margin:0 0 8px;color:var(--section);font-size:16px;letter-spacing:.08em}.compare-sources{display:grid;grid-template-columns:1fr 1fr;gap:18px}.compare-source{display:grid;gap:7px}.compare-source-path{min-height:38px;box-sizing:border-box;padding:10px;border:1px solid var(--line);border-radius:4px;background:var(--elevated);color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.compare-source .secondary{justify-self:start}.compare-run-card{display:grid;grid-template-columns:1fr auto;align-items:center}.compare-run-card h2{margin:0}.compare-run-card .error{grid-column:1/-1}.create-world-wizard{width:min(100%,580px)}.create-world-wizard .create-world-card{width:100%;max-width:none;margin:0}.create-world-wizard .segmented-control button{flex:1}.create-review{display:grid;grid-template-columns:minmax(110px,1fr) 2fr;gap:8px 12px}.create-review dt{color:var(--muted);font-size:10px;font-weight:600;letter-spacing:.1em}.create-review dd{margin:0;overflow-wrap:anywhere}.wizard-footer{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:12px 20px;border:1px solid var(--line);border-radius:8px;background:var(--elevated)}.wizard-footer>span{margin-right:auto;color:var(--muted);font-size:10px;font-weight:600;letter-spacing:.14em}
+
+@media(max-width:1100px){.save-summary dl{grid-template-columns:auto 1fr auto 1fr}.logging-path{display:none}.status-footer{grid-template-columns:1fr auto auto}}
+@media(max-width:900px){
+  /* On a narrow screen the workbench stops being a side-by-side desk. The saves list and
+     the slot editor stack above and below the editor instead of squeezing it, and on the
+     smallest screens they slide up as full-screen sheets you close with the round button
+     in the matching bottom corner. The page is allowed to scroll here too, so a short or
+     landscape phone can never leave part of the editor cut off. */
+  html,body{height:auto;min-height:100%;overflow:visible}
+  .app-frame{height:auto;min-height:100dvh;grid-template-rows:auto 3px 1fr auto}
+  .app-frame>main{overflow:visible}
+  .active-folder{display:none}.brand-lockup>span{display:none}.masthead{grid-template-columns:1fr auto}
+  .toast-stack{top:12px}
+  .modal{max-height:calc(100dvh - 24px)}
+
+  /* One column. The classes are repeated on purpose: the pinned five-column rules are all
+     marked important and one of them names four classes, so this has to outweigh it. */
+  .app-frame main .workspace-shell.workspace-shell.shell-with-splitters.shell-with-splitters{
+    grid-template-columns:minmax(0,1fr)!important;height:auto;min-height:0!important;overflow:visible
+  }
+  .app-frame .workspace-shell .shell-pane{max-height:min(62dvh,520px);overflow:auto;overscroll-behavior:contain}
+  .app-frame .workspace-shell .file-pane{border-right:0!important;border-bottom:1px solid var(--divider)!important}
+  .app-frame .workspace-shell .details-pane{border-left:0!important;border-top:1px solid var(--divider)!important}
+  .app-frame .workspace-shell.file-collapsed .file-pane{display:none}
+  .app-frame .workspace-shell.details-collapsed .details-pane{display:none}
+  .shell-body{overflow:visible}
+
+  /* The editor body is a grid whose single column sizes itself to its widest child, and the
+     tab strip is that child. On a desktop there is room, so nobody notices. On a phone the
+     column resolved to about 1100px inside a 365px pane, which pushed the whole page sideways
+     and cut the right-hand edge off every screen behind it - the tab strip was the reason the
+     rest of the reflow still looked broken. Pin the column to the space available and let the
+     strip wrap inside it. min-width has to go with it: a grid item defaults to min-width:auto,
+     which refuses to shrink below the content, so the column alone is not enough. */
+  .player-editor,.world-editor{grid-template-columns:minmax(0,1fr)!important}
+  .player-editor>.editor-tabs,.world-editor>.world-tabs{min-width:0!important}
+
+  /* The hairline edge rails become round 52px buttons in the bottom corners, so showing
+     or hiding a pane is something you can actually hit with a thumb. */
+  .app-frame main .workspace-shell .shell-splitter{
+    position:fixed;z-index:1200;display:block;width:auto;min-width:0;height:auto;
+    border:0;background:transparent;cursor:pointer;touch-action:auto
+  }
+  .app-frame main .workspace-shell .file-splitter{left:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+  .app-frame main .workspace-shell .details-splitter{right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+  .app-frame main .workspace-shell .shell-splitter>span{display:none}
+  .app-frame main .workspace-shell .shell-splitter>button{
+    width:52px;min-width:52px;height:52px;min-height:52px;margin:0;padding:0;
+    border:1px solid var(--divider);border-radius:26px;background:var(--elevated);
+    color:var(--ink);font-size:24px;line-height:1;box-shadow:0 6px 18px #0009
+  }
+  /* While a sheet is open that same corner button is its close control, so it turns
+     into a plain cross rather than the arrow it uses to pull the panel open. */
+  .app-frame main .workspace-shell.file-drawer-open .file-splitter>button,
+  .app-frame main .workspace-shell.details-drawer-open .details-splitter>button{
+    border-color:var(--orange);background:var(--orange);color:var(--on-accent);font-size:0
+  }
+  .app-frame main .workspace-shell.file-drawer-open .file-splitter>button::before,
+  .app-frame main .workspace-shell.details-drawer-open .details-splitter>button::before{
+    content:"close";font-family:MaterialSymbols;font-size:26px;line-height:1;font-feature-settings:"liga"
+  }
+
+  /* Full-screen sheets. The dimming layer behind the old side drawers is dropped: it used
+     to wash out an expanded card that was still showing in the editor underneath. */
+  .app-frame .workspace-shell.drawer-mode .shell-pane{
+    position:fixed;inset:0;z-index:1000;width:100%;max-width:none;max-height:none;
+    border:0!important;box-shadow:none;overflow:auto;overscroll-behavior:contain;
+    transform:translateY(102%)
+  }
+  .app-frame .workspace-shell.drawer-mode.file-drawer-open .file-pane,
+  .app-frame .workspace-shell.drawer-mode.details-drawer-open .details-pane{
+    visibility:visible;transform:translateY(0)
+  }
+  .app-frame .workspace-shell.drawer-mode .drawer-scrim{display:none}
+  html:has(.workspace-shell.file-drawer-open),html:has(.workspace-shell.details-drawer-open),
+  body:has(.workspace-shell.file-drawer-open),body:has(.workspace-shell.details-drawer-open){overflow:hidden}
+
+  /* The save bar now keeps its own height, so when RELOAD / REVERT / SAVE wrap onto a
+     second line they get their own row instead of painting over the editor below. */
+  .shell-status{position:sticky;top:0;z-index:20;flex:0 0 auto;flex-wrap:wrap;min-height:0!important;padding:10px 14px!important}
+  .shell-status strong{font-size:16px!important}
+  .shell-status .selected-save-title{flex:1 1 160px;min-width:0}
+  .shell-status .editor-actions{width:100%;margin:8px 0 0!important}
+  .shell-status .editor-actions button{flex:1 1 auto;min-width:104px}
+
+  .workspace,.single-workspace{padding:16px!important}.hero{margin:16px!important}.editor-heading{align-items:flex-start!important}
+  .settings-sheet{position:fixed;display:grid;height:100dvh}.settings-sheet-main{grid-template-columns:150px minmax(0,1fr)}.settings-sheet-content{padding:16px}.settings-tab-rail{padding:12px 8px}.settings-tab-rail button{padding:8px;font-size:10px}
+}
+@media(max-width:640px){
+  .brand-lockup img{width:78px}.brand-lockup>span{display:none}.header-actions .round-action{display:none}.open-folder-action{padding:0 12px;font-size:10px}.masthead{padding:8px 12px}
+  .status-footer{grid-template-columns:1fr auto;padding:6px 10px}.footer-product{display:none}.host-nav>a{padding:0 9px}.host-nav>a span+*{display:none}.live-status{font-size:8px}
+  .folder-open{grid-template-columns:1fr}.folder-open label,.folder-open input{grid-column:1}.hero{padding:22px 16px!important}.save-summary dl{grid-template-columns:auto 1fr}.vital-slider{grid-template-columns:82px minmax(80px,1fr) 46px!important}.money-field{grid-template-columns:1fr!important}
+  .settings-sheet-header{padding:10px 12px}.settings-sheet-header h1{font-size:16px}.settings-sheet-main{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}.settings-tab-rail{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--divider)}.settings-tab-rail button{flex:0 0 auto;width:auto;white-space:nowrap}.settings-sheet-content{padding:12px}.settings-sheet-footer{padding:8px 12px}.game-data-path-row{grid-template-columns:1fr}.game-data-path-row>span{white-space:normal}
+  .world-summary-readouts,.compare-sources{grid-template-columns:1fr}.world-clock-editor{grid-template-columns:1fr}.world-day-discovered{align-items:stretch;flex-direction:column}.ini-editor-heading{grid-template-columns:1fr}.ini-entry{grid-template-columns:1fr auto}.compare-run-card{grid-template-columns:1fr}.wizard-footer{flex-wrap:wrap}.wizard-footer>span{width:100%}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}}
+
+/* Classes that only existed in the retired app.css scaffold, ported onto the shared design
+   tokens above so the app.css file (a stale earlier palette) could be deleted outright. */
+.skip-link{position:absolute;left:16px;top:-64px;z-index:200;padding:10px 16px;border-radius:4px;background:var(--orange);color:var(--on-accent);text-decoration:none;font:600 11px var(--font-ui);letter-spacing:.06em;text-transform:uppercase}.skip-link:focus{top:16px}
+.door-toggle{display:flex!important;align-items:center;gap:8px}.door-toggle input{width:16px;height:16px}
+.plugins-card{margin-bottom:20px}.plugins-card>header{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.plugin-state{text-align:right;color:var(--terminal);font:600 10px var(--font-ui);letter-spacing:.06em}.plugin-state .toggle-row{justify-content:flex-end;margin-top:8px}
+.settings-input{display:flex;gap:8px}.settings-input input{min-width:0;flex:1}
+.diff-kind{color:var(--orange);font:600 10px var(--font-ui);letter-spacing:.08em;text-transform:uppercase}.diff-kind.added{color:var(--terminal)}.diff-kind.removed,.diff-kind.error{color:var(--alert)}
+.folder-row{grid-template-columns:104px 1fr auto}
+.language-card{max-width:736px;margin:0 auto 32px}
+.browser-import-input{position:absolute;width:.1px;height:.1px;opacity:0}
+.ini-workspace{margin-top:16px}
+.shell-busy{color:var(--terminal);font-weight:700}
+@media(max-width:700px){.plugin-state{text-align:left}.plugin-state .toggle-row{justify-content:flex-start}.folder-row{grid-template-columns:1fr}.folder-row>div:first-of-type{grid-column:1/-1}}
+
+/* Detail cards: faithful ports of the retired native slot sidebar's chapter/skill/trader/
+   door/recipe/flag "detail" panels, now inline within each editor tab instead of a shared
+   sidebar (matching how this host already structures its World/Player tabs). */
+.detail-card{border:1px solid var(--line)!important;border-radius:8px!important;background:var(--shell)!important;color:var(--ink);padding:12px 14px!important;display:grid;gap:8px}
+.detail-card--hazard{border-color:var(--hazard)!important}.detail-card--terminal{border-color:var(--terminal)!important}.detail-card--section{border-color:var(--section)!important}.detail-card--orange{border-color:var(--orange)!important}
+.detail-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}
+.detail-portrait{box-sizing:border-box;width:52px;height:52px;border:0;border-radius:4px;background:var(--elevated);padding:2px;display:grid;place-items:center;overflow:hidden}
+.detail-portrait img{width:100%;height:100%;object-fit:contain}
+.detail-portrait--round{border-radius:50%}
+.detail-title{display:grid;gap:1px;min-width:0}
+.detail-title strong{color:var(--ink);font-size:14px;font-weight:600;overflow-wrap:anywhere}
+.detail-title small{color:var(--muted);font-size:9px;letter-spacing:.04em;overflow-wrap:anywhere}
+.detail-close{min-height:0!important;padding:2px 8px!important;border:0!important;border-radius:4px!important;background:var(--elevated)!important;color:var(--ink)!important;align-self:start;font-size:11px!important}
+.detail-card-art{background:#000;border-radius:4px;overflow:hidden;height:120px}
+.detail-card-art img{width:100%;height:100%;object-fit:cover}
+.detail-minimap{display:grid;place-items:center}
+.detail-minimap svg{width:100%;height:100%;display:block}
+.minimap-grid{stroke:var(--line);stroke-width:1;opacity:.4}
+.minimap-dot{fill:var(--section)}
+.minimap-dot--selected{fill:var(--hazard)}
+.minimap-ring{fill:none;stroke:var(--hazard);stroke-width:1.5}
+.detail-label{color:var(--muted);font:600 10px var(--font-ui);letter-spacing:.12em;text-transform:uppercase}
+.detail-value{color:var(--ink);font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.detail-status{color:var(--muted);font-size:10px}
+.offer-list{display:grid;gap:2px;max-height:300px;overflow:auto;scrollbar-color:var(--faint) var(--shell)}
+.offer-row{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:8px;align-items:center;padding:4px 2px;border:0;background:transparent;color:var(--ink);text-align:left;cursor:pointer;border-radius:4px}
+.offer-row:hover{background:var(--hover)}
+.offer-icon{box-sizing:border-box;width:40px;height:40px;border:1px solid var(--line);border-radius:4px;background:var(--elevated);display:grid;place-items:center;overflow:hidden}
+.offer-icon img{width:100%;height:100%;object-fit:contain}
+.offer-text{display:grid;gap:0;min-width:0}
+.offer-text strong{color:var(--ink);font-size:12px;font-weight:400;overflow-wrap:anywhere}
+.offer-text small{color:var(--muted);font-size:8px}
+.offer-detail{margin-top:4px}
+
+/* Structural (grid/flex) layout for the row-list and card classes above, that the retired
+   app.css scaffold defined separately from the shared color rules already ported. Deleting
+   app.css without this addendum silently dropped column alignment on doors/NPCs/plugins/
+   compare rows, leaving their children to stack in default block flow. */
+.door-row,.npc-row{display:grid;grid-template-columns:minmax(240px,1fr) auto auto auto;gap:16px;align-items:center;padding:16px}
+.door-row:last-child,.npc-row:last-child,.container-row:last-child{border-bottom:0}
+.door-identity strong,.door-identity small,.npc-identity strong,.npc-identity small{display:block}
+.door-row label,.npc-row label{font:400 11px var(--font-ui);color:var(--muted);display:grid;gap:4px}
+.door-row select,.npc-row input,.slot-row input{width:128px}
+@media(max-width:700px){.door-row,.npc-row{grid-template-columns:1fr 1fr}.door-identity,.npc-identity{grid-column:1/-1}}
+.container-row summary{cursor:pointer;padding:16px}
+.container-row summary strong,.container-row summary small{display:block}
+.slot-grid{padding:8px 16px 16px}.slot-grid>p{color:var(--muted);font-size:12px}
+.slot-row{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:8px}
+.slot-row strong,.slot-row small{display:block}
+.slot-icon{box-sizing:border-box;flex:0 0 auto;width:32px;height:32px;border:1px solid var(--line);border-radius:4px;background:var(--elevated);display:grid;place-items:center;overflow:hidden}
+.slot-icon img{width:100%;height:100%;object-fit:contain}
+.settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.status-list{display:grid;grid-template-columns:128px 1fr;gap:8px}
+.plugin-row{display:flex;justify-content:space-between;gap:16px;padding:16px 0}
+.plugin-row strong,.plugin-row small{display:block}.plugin-row p{margin:8px 0 0}
+.compare-row{display:grid;grid-template-columns:104px minmax(240px,1.5fr) minmax(160px,1fr) minmax(160px,1fr);gap:16px;padding:11px;align-items:start}
+.compare-row code,.compare-row small,.compare-row span{display:block;overflow-wrap:anywhere}
+.language-option{display:grid!important;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px}
+.compare-list,.language-options{border:1px solid var(--line)}.plugin-list{border-top:1px solid var(--line)}
+.compare-row:last-child,.language-option:last-child{border-bottom:0}
+.compare-row.clickable{cursor:pointer}
+.compare-row.clickable:hover{background:var(--hover)}
+.compare-row-detail{padding:0 11px 11px 11px}
+/* Domain-aware "what changed" cards rendered from a semantic (player/world) diff: one row per
+   scalar that changed (label / old / arrow / new), plus chip groups for set differences
+   (recipes unlocked, fish caught, ...). Icons reuse the .offer-icon sizing pattern. */
+.semantic-overview{margin:0;padding-left:18px}
+.semantic-overview li{margin:2px 0}
+.semantic-scalar-row{display:grid;grid-template-columns:minmax(120px,1.4fr) 1fr auto 1fr;gap:10px;align-items:center;padding:4px 0;font-size:12px}
+.semantic-scalar-row code{overflow-wrap:anywhere}
+.semantic-scalar-row code.old{color:var(--alert-text);text-align:right}
+.semantic-scalar-row code.new{color:var(--terminal)}
+.semantic-chip-group{margin-top:10px}
+.semantic-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.semantic-chip{display:inline-flex;align-items:center;gap:7px;padding:5px 9px;border:1px solid var(--line);border-radius:6px;background:var(--elevated);font-size:12px}
+.semantic-chip-icon{box-sizing:border-box;flex:0 0 auto;width:20px;height:20px;border-radius:4px;background:var(--panel);display:grid;place-items:center;overflow:hidden}
+.semantic-chip-icon img{width:100%;height:100%;object-fit:contain}
+@media(max-width:700px){.settings-grid{grid-template-columns:1fr}.plugin-row{flex-direction:column}.compare-row{grid-template-columns:1fr 1fr}.compare-row>div:first-of-type{grid-column:1/-1}.semantic-scalar-row{grid-template-columns:1fr}}
+
+/* ---- side-by-side comparison rows ----
+   Every result reads as one row: what changed, its value in A, its value in B, and which way it
+   went. One shape for the readable summary and the raw property list alike, so the two saves
+   stay in a straight line down the page and the eye only has to learn the layout once. */
+.cmp-banner{display:grid;gap:8px;padding:14px 16px;border:1px solid var(--line);border-radius:8px;background:var(--elevated);container-type:inline-size}
+.cmp-banner .eyebrow{margin:0}
+.cmp-banner-sides{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:12px;align-items:center}
+.cmp-banner-side{display:flex;align-items:center;gap:8px;min-width:0}
+.cmp-banner-side strong{overflow:hidden;font-size:14px;text-overflow:ellipsis;white-space:nowrap}
+.cmp-banner-arrow{color:var(--muted);font-size:16px}
+.cmp-tag{flex:none;padding:2px 7px;border-radius:4px;font:700 9px var(--font-ui);letter-spacing:.14em;text-transform:uppercase}
+.cmp-tag-a{background:var(--alert);color:var(--on-accent)}
+.cmp-tag-b{background:var(--terminal-dim);color:var(--terminal)}
+
+.cmp-section{container-type:inline-size}
+.cmp-section-head{margin-bottom:10px}
+.cmp-section-head h2{margin:0}
+.cmp-section-head .muted{margin:2px 0 0}
+.cmp-grid{display:grid;gap:0;container-type:inline-size}
+.cmp-row{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr) 64px;gap:12px;align-items:center;padding:7px 8px;border-top:1px solid var(--divider)}
+.cmp-row:first-child{border-top:0}
+.cmp-row:nth-child(even of :not(.cmp-head)){background:color-mix(in srgb,var(--elevated) 45%,transparent)}
+.cmp-head{position:sticky;top:0;z-index:1;background:var(--panel);border-top:0;border-bottom:1px solid var(--line);color:var(--muted);font:700 9px var(--font-ui);letter-spacing:.14em;text-transform:uppercase}
+.cmp-head .cmp-side{display:flex;align-items:center;gap:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmp-head .cmp-side b{flex:none;padding:1px 5px;border-radius:3px;font-size:8px}
+.cmp-head .cmp-a b{background:var(--alert);color:var(--on-accent)}
+.cmp-head .cmp-b b{background:var(--terminal-dim);color:var(--terminal)}
+.cmp-what{min-width:0;display:grid;gap:1px;font-size:12px}
+.cmp-what code{overflow:hidden;font-size:11px;text-overflow:ellipsis;white-space:nowrap}
+.cmp-what small{color:var(--muted);font-size:9px;letter-spacing:.06em}
+.cmp-named{display:flex;align-items:center;gap:8px}
+.cmp-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmp-icon{box-sizing:border-box;flex:0 0 auto;display:grid;width:22px;height:22px;place-items:center;overflow:hidden;border-radius:4px;background:var(--panel)}
+.cmp-icon img{width:100%;height:100%;object-fit:contain}
+/* A on the left reads as the "from" side and B as the "to" side, so they are tinted the same
+   way the old/new labels used to be, and stay legible when read as bare values. */
+.cmp-side{min-width:0;font-size:12px}
+.cmp-side code{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmp-a code{color:var(--alert-text)}
+.cmp-b code{color:var(--terminal)}
+.cmp-present{color:var(--terminal);font-weight:700}
+.cmp-absent{color:var(--faint)}
+.cmp-delta{display:flex;align-items:center;justify-content:flex-end;gap:4px;font-size:12px;text-align:right}
+.cmp-delta small{font-size:9px}
+.cmp-delta.up,.cmp-delta.added{color:var(--terminal)}
+.cmp-delta.down,.cmp-delta.removed{color:var(--alert-text)}
+.cmp-delta.changed{color:var(--muted)}
+/* Narrow panels stack each row: the label on its own line, then the two sides side by side so
+   the comparison itself never collapses into a single column. */
+@container(max-width:560px){
+  .cmp-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 40px;row-gap:2px}
+  .cmp-what{grid-column:1/-1}
+  .cmp-head .cmp-what{display:none}
+  .cmp-banner-sides{grid-template-columns:minmax(0,1fr);justify-items:start}
+  .cmp-banner-arrow{display:none}
+}
+.inventory-slot-select{display:grid;grid-template-columns:auto minmax(0,1fr) auto;width:100%;text-align:left;cursor:pointer}
+.inventory-fields,.pet-fields{margin-top:16px;padding:16px}
+.item-palette{margin-top:16px;padding:16px}
+.item-palette label{display:grid;gap:6px}
+.item-palette .editor-actions{max-height:208px;overflow:auto;margin-bottom:0}
+.appearance-card{margin-bottom:16px}
+
+/* ---- transmog tab (faithful port) ---- */
+/* Native PlayerTransmogTab.xaml: 6-across grid of 96px cosmetic slots filling the panel
+   width (the item art fills the tile, small blue role tag when occupied, role placeholder
+   when empty, hazard ring on the selected slot) and the armor visibility toggles aligned
+   under the tile columns. The item catalog lives in the right-hand sidebar (native
+   SlotSidebarView), not in this tab. drop-allowed/drop-hover/drop-blocked mark
+   eligibility while a drag is in progress; the not-allowed cursor itself comes from
+   transmog-dnd.js via dropEffect. */
+.transmog-tab .hazard-divider{height:3px;margin:0 0 12px;background:var(--hazard)}
+.transmog-help{margin:0 0 10px;color:var(--muted);font-size:11px}
+.transmog-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.transmog-slot{position:relative;display:grid;grid-template-rows:minmax(0,1fr) auto;align-items:center;justify-items:center;min-width:0;height:96px;padding:3px;border:1px solid var(--line);border-radius:0;background:var(--shell);color:var(--muted);cursor:pointer;text-transform:none;letter-spacing:normal}
+.transmog-slot>*{pointer-events:none}
+.transmog-slot:hover{border-color:var(--section);background:var(--hover)}
+.transmog-slot.selected{border:2px solid var(--hazard);background:var(--hover);padding:2px}
+.transmog-slot.dirty::before{content:"▲";position:absolute;top:2px;right:4px;color:var(--hazard);font-size:10px}
+.transmog-role-placeholder{grid-row:1/-1;color:var(--muted);font:600 10px var(--font-ui);letter-spacing:3px}
+.transmog-role-tag{position:absolute;top:3px;left:4px;color:var(--section);font:600 7px var(--font-ui);letter-spacing:1px}
+.transmog-slot-icon{position:relative;width:100%;height:100%;min-height:0;overflow:hidden}
+/* The tile is wide but short, so the art is pinned to the tile box and letterboxed with
+   object-fit (native AspectFit): absolute positioning gives the img a definite box to
+   resolve its 100% height against, which a plain auto-sized grid row cannot. */
+.transmog-slot .transmog-slot-icon img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.transmog-slot-name{max-width:100%;overflow:hidden;color:var(--ink);font-size:9px;text-overflow:ellipsis;white-space:nowrap}
+.transmog-slot.drop-allowed{border-color:var(--terminal)}
+.transmog-slot.drop-hover{border:2px solid var(--terminal);background:var(--hover);padding:2px}
+.transmog-slot.drop-blocked{opacity:.6;cursor:not-allowed}
+.transmog-status{margin:8px 0 0;color:var(--terminal);font-size:11px}
+.transmog-visibility-label{margin:12px 0 4px;color:var(--muted);font-size:9px;letter-spacing:.08em}
+.transmog-visibility{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.transmog-visibility label{display:flex;align-items:center;justify-content:space-between;gap:6px;padding-right:14px;color:var(--muted);font:600 9px var(--font-ui);letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+.transmog-visibility input{accent-color:var(--terminal)}
+
+/* ---- spawn + recipes tabs (faithful port) ---- */
+/* SPAWN & HOME panel (native PlayerSpawnTab.xaml: AfPanel, AfH2, hazard stripe, amber
+   HOME & RESPAWN sub-label, plain-text coordinate entries, region/terminal/bed pickers). */
+.spawn-panel{display:grid;gap:12px;align-content:start;container-type:inline-size}
+.spawn-panel>h3{margin:0!important}
+.spawn-sublabel{margin:0;color:var(--section);font:600 12px var(--font-ui);letter-spacing:5px;text-transform:uppercase}
+.sp-label{color:var(--muted);font:600 10px var(--font-ui);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+/* The native Picker's Title renders as a muted helper caption ABOVE the box; rows bottom-
+   align so the coordinate entries stay level with the picker itself, captions floating. */
+.spawn-picker-stack{display:grid;gap:4px;min-width:0}
+.spawn-picker-caption{color:var(--muted);font-size:11px;letter-spacing:.02em}
+.spawn-coord-grid{display:grid;grid-template-columns:auto 110px auto 110px auto 110px auto minmax(120px,1fr);gap:8px;align-items:end}
+.spawn-coord-grid .sp-label{align-self:end;padding-bottom:12px}
+.spawn-coord-grid input{width:110px;font-family:var(--font-num)!important;font-size:15px!important;color:var(--terminal)!important;text-align:center}
+.spawn-region-label{margin-left:10px}
+.spawn-row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:end}
+.spawn-bed-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:end}
+.spawn-row .sp-label,.spawn-bed-row .sp-label{align-self:end;padding-bottom:12px}
+.spawn-beds-loading{margin:0;font-size:10px}
+.spawn-world-note{margin:0;font-size:10px}
+.spawn-save-world{justify-self:start}
+.spawn-set-btn{background:var(--terminal)!important;color:var(--on-accent)!important;border:0!important;font-size:10px!important;padding:4px 10px!important;min-height:28px!important;white-space:nowrap;align-self:end;margin-bottom:5px}
+.spawn-homebed{display:flex;gap:6px;align-items:center;min-width:0}
+.spawn-homebed-value{color:var(--terminal);font-size:12px;overflow-wrap:anywhere}
+.spawn-status{margin:0;color:var(--terminal);font-size:11px}
+.spawn-help{margin:0;color:var(--muted);font-size:10px}
+.spawn-coord-grid select,.spawn-row select,.spawn-bed-row select{min-width:0;width:100%}
+/* The native AdaptiveGrid stacks its columns when the tab is narrow; the pane width (not
+   the viewport) is what matters here, so these are container queries on the panel. */
+@container(max-width:720px){.spawn-coord-grid{grid-template-columns:auto minmax(0,1fr)}.spawn-coord-grid input{width:100%}.spawn-region-label{margin-left:0}.spawn-bed-row{grid-template-columns:auto minmax(0,1fr)}.spawn-bed-row .spawn-set-btn{grid-column:2;justify-self:start}}
+
+/* RECIPE BOOK panel (native PlayerRecipesTab.xaml: header row with the count readout
+   and hazard-yellow UNLOCK ALL, search + ALL/LOCKED/UNLOCKED radios, category chips,
+   600px checkbox list and the 320px terminal-bordered wiki detail pane). */
+.rb-panel{display:grid;gap:12px;align-content:start;container-type:inline-size}
+.rb-panel>h3{margin:0!important}
+.rb-header{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center}
+.rb-count{color:var(--terminal);font:18px var(--font-num);letter-spacing:.06em;white-space:nowrap}
+.rb-unlock-all{background:var(--hazard)!important;color:var(--on-accent)!important;border:0!important;padding:8px 16px!important}
+.rb-confirm-body{white-space:pre-line}
+.rb-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.rb-filter{display:flex;gap:10px;align-items:center;color:var(--ink);font-size:11px}
+.rb-filter label{display:inline-flex;gap:4px;align-items:center;white-space:nowrap}
+.rb-chips{display:flex;flex-wrap:wrap;gap:4px}
+.rb-chip{min-height:24px!important;padding:3px 10px!important;border:1px solid var(--line)!important;border-radius:10px!important;background:var(--elevated)!important;color:var(--ink)!important;font:600 9px var(--font-ui)!important;letter-spacing:.1em!important;text-transform:uppercase}
+.rb-chip:hover{background:var(--hover)!important;border-color:var(--hazard)!important}
+.rb-chip.selected{border-color:var(--hazard)!important;background:var(--hover)!important}
+.rb-split{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:12px;align-items:start}
+.rb-split.no-detail{grid-template-columns:minmax(0,1fr)}
+.rb-list{box-sizing:border-box;height:600px;overflow:auto;border:1px solid var(--line);background:var(--shell);scrollbar-color:var(--faint) var(--shell)}
+.rb-empty{padding:16px;margin:0;color:var(--muted);font-size:11px}
+.rb-row{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:6px 14px;cursor:pointer;color:var(--ink)}
+.rb-row:hover{background:var(--hover)}
+.rb-row.selected{background:var(--elevated);outline:1px solid var(--section);outline-offset:-1px}
+.rb-row:focus-visible{outline:2px solid var(--hazard);outline-offset:-2px}
+.rb-checkbox{width:16px;height:16px;margin:0;accent-color:var(--terminal)}
+.rb-row-icon{box-sizing:border-box;width:38px;height:38px;border:1px solid var(--line);background:var(--panel);padding:2px;display:grid;place-items:center;overflow:hidden}
+.rb-row-icon .item-artwork,.rb-row-icon img{width:100%;height:100%;object-fit:contain}
+.rb-row-icon .item-artwork-fallback{display:none}
+.rb-row-text{display:grid;gap:1px;min-width:0}
+.rb-row-text strong{color:var(--ink);font-size:13px;font-weight:400;overflow-wrap:anywhere}
+.rb-row-text small{color:var(--muted);font-size:10px;letter-spacing:.04em;overflow-wrap:anywhere}
+.rb-row-status{color:var(--terminal);font:600 10px var(--font-ui);letter-spacing:.12em;white-space:nowrap}
+.rb-detail{box-sizing:border-box;height:600px;overflow:auto;border:1px solid var(--terminal);background:var(--shell);padding:12px 14px;display:grid;gap:8px;align-content:start;scrollbar-color:var(--faint) var(--shell)}
+.rb-detail-icon{height:96px;display:grid;place-items:center}
+.rb-detail-icon .item-artwork,.rb-detail-icon img{max-height:96px;max-width:100%;object-fit:contain}
+.rb-detail h4{margin:0;color:var(--section);font-size:17px;font-weight:600;letter-spacing:.06em;overflow-wrap:anywhere}
+.rb-detail-sub{margin:0;color:var(--muted);font-size:10px;letter-spacing:.04em;overflow-wrap:anywhere}
+.rb-detail-stats{margin:0;color:var(--terminal);font:12px var(--font-ui)}
+.rb-detail-divider{height:1px;background:var(--divider)}
+.rb-detail-desc,.rb-detail-value{margin:0;color:var(--ink);font-size:12px;white-space:pre-line;overflow-wrap:anywhere}
+.rb-detail-output{margin:0;color:var(--muted);font-size:11px}
+.rb-detail-upgrade{margin:0;color:var(--section);font-size:12px;overflow-wrap:anywhere}
+.rb-detail-tags{margin:0;color:var(--muted);font-size:10px;letter-spacing:.04em;overflow-wrap:anywhere}
+.rb-help{margin:0;color:var(--muted);font-size:10px}
+.rb-list .editor-loading{min-height:200px}
+@container(max-width:860px){.rb-split{grid-template-columns:minmax(0,1fr)}.rb-detail{height:auto;max-height:420px}}
+@container(max-width:640px){.rb-header{grid-template-columns:minmax(0,1fr) auto}.rb-count{grid-column:1/-1}.rb-toolbar{grid-template-columns:minmax(0,1fr)}}
+
+/* ---- general/character tabs (faithful port of PlayerGeneralTab.xaml / PlayerCharacterTab.xaml) ----
+   Native mapping: AfPanel -> .editor-card, AfH2/AfAmber -> h3/var(--section), AfHazardStripe ->
+   .tab-hazard-stripe, AfDivider -> .tab-divider, AfFieldLabel -> .general-field-label, AfReadout ->
+   .general-readout (terminal), AfMuted(10px) -> .general-help, hazard-yellow buttons ->
+   .general-hazard-button, elevated buttons -> .general-elevated-button. */
+.general-tab{gap:12px;container-type:inline-size}
+.general-tab>h3,.character-tab>.editor-card>h3{margin:0!important}
+.character-tab{gap:22px}
+.character-tab>.editor-card,.appearance-panel{display:grid;gap:12px}
+.tab-hazard-stripe{height:3px;background:var(--hazard)}
+.tab-divider{height:1px;background:var(--divider)}
+.tab-section-label{margin:0;color:var(--section);font:600 12px var(--font-ui);letter-spacing:.4em;text-transform:uppercase}
+.general-field-label{color:var(--muted);font:600 10px var(--font-ui);letter-spacing:.15em;text-transform:uppercase}
+.general-readout{color:var(--terminal);font:18px var(--font-num);letter-spacing:.06em}
+.general-help{color:var(--muted);font-size:10px;line-height:1.5}
+.general-hazard-button{min-height:0;padding:5px 12px;border:1px solid transparent;border-radius:6px;background:var(--hazard);color:var(--on-accent);font-size:10px}
+.general-elevated-button{min-height:0;padding:5px 10px;border:1px solid transparent;border-radius:6px;background:var(--elevated);color:var(--ink);font-size:10px}
+.general-account-row{display:grid;grid-template-columns:auto 240px auto minmax(0,1fr);gap:12px;align-items:center}
+.general-id-input{color:var(--terminal)!important;font:16px var(--font-num)!important;text-align:center}
+.general-unlock-grid{display:grid;grid-template-columns:160px minmax(0,1fr) auto;gap:10px 16px;align-items:center}
+.general-unlock-grid button{justify-self:end}
+.character-background-row{display:grid;grid-template-columns:110px 260px minmax(0,1fr);gap:12px;align-items:center}
+.character-background-select{color:var(--terminal)!important}
+.trait-chips{display:flex;flex-wrap:wrap;gap:8px}
+.trait-chip{display:inline-flex;align-items:center;gap:8px;padding:4px 10px;border:1px solid var(--line);background:var(--elevated)}
+.trait-chip-name{color:var(--ink);font-size:12px}
+.trait-chip-id{color:var(--faint);font-size:9px;letter-spacing:.08em}
+.trait-chip-remove{min-height:22px;height:22px;padding:0 6px;border:0;border-radius:4px;background:var(--panel);color:var(--alert-text);font-size:10px;line-height:1}
+.trait-browser{height:220px;overflow:auto;border:1px solid var(--line);background:var(--shell);scrollbar-color:var(--faint) var(--shell)}
+.trait-browser-empty{margin:0;padding:12px;color:var(--muted)}
+.trait-browser-row{display:grid;grid-template-columns:170px auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:6px 12px}
+.trait-browser-name{color:var(--ink);font-size:12px}
+.trait-browser-cost{color:var(--terminal);font:13px var(--font-num);letter-spacing:.06em}
+.trait-browser-description{color:var(--muted);font-size:11px;line-height:1.45}
+.trait-browser-add{min-height:0;padding:3px 10px;border:1px solid transparent;border-radius:6px;background:var(--elevated);color:var(--terminal);font-size:10px}
+.appearance-header{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center}
+.appearance-slot-select{width:90px}
+.appearance-save{min-height:0;padding:5px 10px;font-size:10px}
+.appearance-status{color:var(--faint);font-size:9px;letter-spacing:.08em;line-height:1.5}
+.appearance-fields{display:flex;flex-wrap:wrap;gap:10px 14px}
+.appearance-field{flex:1 1 230px;display:grid;gap:2px;align-content:start}
+.appearance-field-label{color:var(--muted);font:600 9px var(--font-ui);letter-spacing:.14em;text-transform:uppercase}
+.appearance-field-body{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px;align-items:center}
+.appearance-field-body>select:only-child{grid-column:1/-1}
+.appearance-preview{box-sizing:border-box;width:72px;height:72px;border:1px solid var(--line);border-radius:4px;background:#000;overflow:hidden;display:grid;place-items:center}
+.appearance-preview img{width:100%;height:100%;object-fit:cover}
+.appearance-swatch{width:56px;height:36px}
+@media(max-width:640px){
+  .general-account-row,.general-unlock-grid,.character-background-row{grid-template-columns:1fr}
+  .general-unlock-grid button,.general-account-row input{justify-self:start}
+  .trait-browser-row{grid-template-columns:minmax(0,1fr) auto;row-gap:4px}
+  .trait-browser-description{grid-column:1/-1}
+}
+/* The GENERAL panel stacks on its own width, not the viewport's: with the side panes
+   open the pane is far narrower than the window (native AdaptiveGrid behavior). */
+@container(max-width:640px){
+  .general-account-row,.general-unlock-grid{grid-template-columns:1fr;gap:8px}
+  .general-unlock-grid button,.general-account-row input,.general-account-row button{justify-self:start}
+  .general-account-row input{width:min(100%,260px)}
+  .general-unlock-grid button{margin-bottom:6px}
+}
+/* ---- player tabs audit (faithful port) ---- */
+/* Tab bar wraps across rows like the native FlexLayout instead of scrolling one line. */
+.player-editor>.editor-tabs{flex-wrap:wrap!important;overflow-x:visible;margin-bottom:14px!important}
+
+/* Native chrome primitives shared by the audited player tabs. */
+.af-divider{height:1px;margin:0;border:0;background:var(--divider)}
+.hazard-stripe{height:3px;background:var(--hazard)}
+.amber-field-label,.terminal-field-label,.hazard-field-label{display:block;font:600 10px var(--font-ui);letter-spacing:.12em;text-transform:uppercase}
+.amber-field-label{color:var(--section)}
+.terminal-field-label{color:var(--terminal)}
+.hazard-field-label{color:var(--hazard)}
+.heal-all-button{padding:4px 10px;border:0;background:var(--terminal);color:var(--on-accent);font-size:10px}
+/* Button-only accents. Scoped to button because the theme service also puts an
+   "accent-hazard" class on the whole .app-frame to pick the warm palette - an unscoped
+   rule painted the entire frame with the button colors and turned every text element
+   that relies on inherited ink (story chapter titles, recipe names) near-black. */
+button.accent-alert{border:0;background:var(--alert)!important;color:var(--on-accent)!important}
+button.accent-hazard{border:0;background:var(--hazard)!important;color:var(--on-accent)!important}
+.accent-orange{border:0;background:var(--orange)!important;color:var(--on-accent)!important}
+
+/* VITALS: stat sliders run orange, limb sliders run alert-red like the native tracks. */
+.vitals-tab .vital-list{display:grid;gap:14px;margin:14px 0}
+.vitals-tab .vital-slider input{accent-color:var(--orange)}
+.vitals-tab .limb-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 40px;margin-top:12px}
+.vitals-tab .limb-grid .vital-slider input{accent-color:var(--alert)}
+.vitals-tab .money-field{margin-top:14px}
+.body-health-head{display:flex;justify-content:space-between;align-items:center;gap:14px}
+@media(max-width:640px){.vitals-tab .limb-grid{grid-template-columns:1fr}}
+
+/* DATA: the raw-JSON workflow panel. The .json path has no spaces, so it must be
+   allowed to break anywhere or it forces the whole page wide on narrow screens. */
+.raw-json-path{color:var(--faint);font:11px var(--font-ui);letter-spacing:.05em;overflow-wrap:anywhere}
+.raw-json-status{color:var(--terminal);font:13px var(--font-ui);letter-spacing:.05em;overflow-wrap:anywhere}
+.raw-json-card .editor-actions button{max-width:100%}
+
+/* SKILLS: header hint + card internals (icon - name/passive - LV - MAX, XP slider, XP RATE). */
+.skills-head{display:flex;gap:14px}
+.skills-head h3{margin:0!important}
+.skills-hint{flex:1;overflow:hidden;align-self:center;color:var(--faint);font:10px var(--font-ui);letter-spacing:.06em;text-align:right;text-overflow:ellipsis;white-space:nowrap}
+.skills-card>.hazard-stripe{margin:12px 0}
+.skills-milestone-help{margin:0 0 12px;font-size:10px}
+.skill-head{display:flex;align-items:center;gap:10px}
+.skill-icon{display:grid;flex:0 0 38px;place-items:center;box-sizing:border-box;width:38px;height:38px;padding:4px;border-radius:4px;background:var(--elevated)}
+.skill-icon img{max-width:100%;max-height:100%;object-fit:contain}
+.skill-name{display:grid;flex:1;gap:1px;min-width:0}
+.skill-name strong{font:600 15px var(--font-ui)}
+.skill-passive{overflow:hidden;color:var(--faint);font-size:9px;text-overflow:ellipsis;white-space:nowrap}
+.skill-lv-label{color:var(--muted);font:600 10px var(--font-ui);letter-spacing:.12em}
+.skill-lv{width:64px;color:var(--terminal)!important;font:20px var(--font-num)!important;text-align:center}
+.skill-max{min-height:28px;padding:3px 8px;font-size:9px}
+.skill-xp-row{display:flex;align-items:center;gap:10px;margin-top:8px}
+.skill-xp-row input[type=range]{flex:1;accent-color:var(--orange)}
+.skill-xp-text{color:var(--faint);font-size:10px;white-space:nowrap}
+.skill-xp-raw{width:104px;padding:8px 4px!important;color:var(--ink)!important;font:13px var(--font-num)!important;text-align:center}
+.skill-rate-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.skill-rate-row label{color:var(--muted);font:600 10px var(--font-ui);letter-spacing:.12em;text-transform:uppercase}
+.skill-rate-row input{width:70px;color:var(--terminal)!important;font:13px var(--font-num)!important;text-align:center}
+.skill-rate-row span{color:var(--faint);font-size:11px}
+
+/* COMPANIONS: master list beside the detail editor, like the native AdaptiveGrid.
+   The split keys off the tab's own width, mirroring native adaptive stacking. */
+.companions-tab{container-type:inline-size}
+.companions-title{margin:0;color:var(--section);font-size:18px;font-weight:600;letter-spacing:.09em;text-transform:uppercase}
+.companions-help{margin:4px 0 12px;font-size:11px}
+.pets-split{display:grid;grid-template-columns:2fr 3fr;gap:16px;align-items:stretch;min-height:420px}
+.pet-master{overflow:auto;max-height:560px;border:1px solid var(--line);background:var(--shell)}
+.pet-empty{padding:16px}
+.pet-row{display:flex;align-items:center;gap:12px;padding:8px 12px;cursor:pointer}
+.pet-row:hover{background:var(--hover)}
+.pet-row.selected{background:var(--hover);box-shadow:inset 3px 0 0 var(--orange)}
+.pet-row-text{display:grid;flex:1;gap:1px;min-width:0}
+.pet-row-text strong{overflow:hidden;color:var(--ink);font-size:13px;text-overflow:ellipsis;white-space:nowrap}
+.pet-row-text small{color:var(--faint);font-size:10px}
+.pet-row-status{color:var(--muted);font:600 9px var(--font-ui);letter-spacing:.1em;text-transform:uppercase}
+.pet-detail{display:grid;overflow:auto;gap:12px;align-content:start;max-height:560px;padding:14px 18px;border:1px solid var(--line);background:var(--shell)}
+/* Portrait + name header of the selected pet: the same bestiary art tile the world
+   PETS tab uses, beside the name and slot lines. */
+.pet-detail-head{display:flex;align-items:center;gap:12px;min-width:0}
+.pet-portrait{box-sizing:border-box;display:grid;flex:none;place-items:center;width:64px;height:64px;overflow:hidden;padding:3px;border:1px solid var(--line);border-radius:4px;background:var(--elevated)}
+.pet-portrait img{width:100%;height:100%;object-fit:contain}
+.pet-portrait .material-symbol{color:var(--muted);font-size:30px}
+.pet-detail-titles{display:grid;gap:2px;min-width:0}
+.pet-detail-title{margin:0;color:var(--ink);font-size:18px}
+.pet-detail-slot{margin:0;color:var(--faint);font-size:10px;letter-spacing:.06em}
+.pet-field{display:grid;gap:3px;color:var(--muted);font:600 10px var(--font-ui);letter-spacing:.12em;text-transform:uppercase}
+.pet-level-row,.pet-health-row{display:flex;align-items:center;gap:10px}
+.pet-level-row label,.pet-health-row label{color:var(--muted);font:600 10px var(--font-ui);letter-spacing:.12em;text-transform:uppercase}
+.pet-stepper{display:inline-flex;align-items:center;gap:6px}
+.pet-stepper button{min-height:28px;padding:2px 10px}
+/* Level sits between the minus and plus buttons and right beside the XP box you type in,
+   so it uses the same plain digits as that box rather than the segment face. */
+.pet-level-readout{min-width:32px;color:var(--terminal);font:16px var(--font-num);text-align:center}
+.pet-xp{width:110px;color:var(--terminal)!important;font:15px var(--font-num)!important;text-align:center}
+.pet-health-row input{width:120px}
+.pet-bed-help{margin:0;font-size:9px}
+.pet-world-name{margin:0;font-size:12px}
+.pet-send{justify-self:start}
+.pet-move-status{margin:0;font-size:10px}
+@container(max-width:760px){.pets-split{grid-template-columns:1fr}.pet-master{max-height:300px}}
+
+/* GATEPal: the PDA journal chrome, app tiles, and master list + reading pane. */
+.gatepal-card{container-type:inline-size}
+.gatepal-card{overflow:hidden;padding:0!important}
+.gatepal-chrome{display:flex;align-items:center;gap:14px;padding:10px 16px;background:var(--elevated)}
+.journal-title{color:var(--terminal);font:600 22px var(--font-ui);letter-spacing:4px;text-shadow:0 0 8px var(--terminal)}
+.weekday-strip{display:flex;flex:1;gap:10px;margin-left:10px;color:var(--muted);font-size:11px}
+.weekday-strip .today{color:var(--ink);font-weight:700}
+.journal-date{color:var(--ink);font-size:12px;font-weight:700}
+.journal-count{color:var(--terminal);font-size:12px;font-weight:700}
+.journal-rule{height:2px;background:var(--terminal-dim)}
+.gatepal-body{display:grid;gap:12px;padding:14px 20px}
+.gatepal-markall{display:flex;justify-content:flex-end}
+.gatepal-apps{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
+.gatepal-app{flex:0 0 auto;padding:8px 14px;border:0;border-radius:6px;background:var(--elevated);color:var(--ink);font-size:11px;text-transform:none}
+.gatepal-app:hover{background:var(--hover)}
+.gatepal-app.active{background:var(--orange);color:var(--on-accent)}
+.gatepal-search{display:flex;align-items:center;gap:8px}
+.gatepal-search input[type=search]{flex:1}
+.unread-only{display:inline-flex;gap:6px;align-items:center;color:var(--muted);font:600 10px var(--font-ui);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+.unread-only input{accent-color:var(--hazard)}
+.gatepal-categories{display:flex;flex-wrap:wrap;gap:4px}
+.chip-button{min-height:28px;padding:4px 10px;border:1px solid var(--line);border-radius:5px;background:var(--elevated);color:var(--ink);font-size:10px}
+.chip-button.active{border-color:var(--orange);background:var(--orange);color:var(--on-accent)}
+.codex-single{display:grid;height:600px}
+.codex-split{display:grid;grid-template-columns:2fr 3fr;gap:16px;height:600px}
+.codex-list{overflow:auto;border:1px solid var(--line);background:var(--shell)}
+.codex-empty{padding:16px}
+.codex-row{display:flex;align-items:center;gap:10px;padding:6px 12px;cursor:pointer}
+.codex-row:hover{background:var(--hover)}
+.codex-row.selected{background:var(--hover);box-shadow:inset 3px 0 0 var(--orange)}
+.codex-row input[type=checkbox]{accent-color:var(--terminal)}
+.codex-icon{display:grid;flex:0 0 30px;place-items:center;width:30px;height:30px}
+.codex-icon img{max-width:100%;max-height:100%;object-fit:contain}
+.codex-titles{display:grid;flex:1;gap:1px;min-width:0}
+.codex-titles strong{overflow:hidden;font-size:12px;text-overflow:ellipsis;white-space:nowrap}
+.codex-titles small{overflow:hidden;color:var(--faint);font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+.codex-reading{display:grid;overflow:auto;gap:10px;align-content:start;padding:14px 18px;border:1px solid var(--line);background:var(--shell)}
+.codex-detail-title{margin:0;font-size:18px}
+.codex-detail-subtitle{margin:0;color:var(--faint);font-size:10px;letter-spacing:.06em}
+.codex-wiki{display:grid;gap:3px;margin:0}
+.codex-wiki img{box-sizing:border-box;height:150px;padding:10px;border-radius:4px;background:#000;object-fit:contain}
+/* Placeholder frame with the same box as the finished image, so the bait chips and
+   catch notes below never jump while the wiki art downloads. */
+.codex-wiki-frame{box-sizing:border-box;display:grid;place-items:center;height:150px;padding:10px;border-radius:4px;background:#000}
+.codex-wiki figcaption{font-size:8px}
+.codex-wiki-loading{display:flex;gap:8px;align-items:center;font-size:10px}
+.bait-chip{display:flex;align-items:center;gap:12px;padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--panel)}
+.bait-chip--amber{border-color:var(--section)}
+.bait-icon{display:grid;flex:0 0 48px;place-items:center;box-sizing:border-box;width:48px;height:48px;padding:3px;border-radius:4px;background:var(--elevated)}
+.bait-icon img{max-width:100%;max-height:100%;object-fit:contain}
+.bait-text{display:grid;gap:1px}
+.bait-text small{color:var(--muted);font:600 9px var(--font-ui);letter-spacing:.12em;text-transform:uppercase}
+.bait-text strong{font-size:13px}
+.codex-fish-xp{margin:0;color:var(--hazard);font-size:11px}
+.codex-catch-lines{margin:0;padding-left:18px;font-size:12px}
+.codex-catch-lines li{margin:2px 0}
+.codex-catch-lines li::marker{color:var(--section)}
+.codex-kills{display:flex;align-items:center;gap:12px}
+.codex-kills label{display:inline-flex;gap:8px;align-items:center;color:var(--muted);font:600 10px var(--font-ui);letter-spacing:.12em;text-transform:uppercase}
+.codex-kills input{width:90px;color:var(--terminal)!important;font:16px var(--font-num)!important;text-align:center}
+.codex-body{margin:0;font-size:13px;white-space:pre-wrap}
+.gatepal-footer{margin:0;font-size:10px}
+@container(max-width:760px){.codex-split{grid-template-columns:1fr;height:auto}.codex-single{height:auto}.codex-list{max-height:300px}.codex-reading{max-height:420px}}
+
+/* ACHIEVE: badge-chip achievement list. */
+.achievements-head{display:flex;gap:14px}
+.achievements-head h3{flex:1;margin:0!important}
+.achievements-summary{align-self:center;color:var(--terminal);font:16px var(--font-num)}
+.achievements-actions{display:flex;gap:8px}
+.achievements-card>.hazard-stripe{margin:12px 0}
+.achievements-status{margin:0;font-size:11px}
+.achievements-toolbar{display:flex;align-items:center;gap:12px;margin:12px 0}
+.achievements-toolbar input[type=search]{flex:1}
+.show-spoilers{display:inline-flex;gap:6px;align-items:center;color:var(--muted);font:600 10px var(--font-ui);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+.show-spoilers input{accent-color:var(--alert)}
+.achievement-list{overflow:auto;max-height:600px;border:1px solid var(--line);background:var(--shell)}
+.achievements-empty{padding:16px}
+/* Only sealed (still-hidden) rows are tap targets; revealed rows must not advertise a
+   pointer cursor for clicks that would do nothing. */
+.achievement-row{display:flex;align-items:center;gap:14px;padding:8px 14px}
+.achievement-row.concealed{cursor:pointer}
+.achievement-row.concealed:hover{background:var(--hover)}
+.achievement-row.concealed:focus-visible{outline:2px solid var(--hazard);outline-offset:-2px}
+.achievement-icon{display:grid;flex:0 0 40px;place-items:center;width:40px;height:40px;background:var(--elevated)}
+.achievement-icon img{width:100%;height:100%;object-fit:contain}
+.achievement-badge{flex:0 0 auto;box-sizing:border-box;min-width:92px;padding:3px 8px;background:var(--elevated);color:var(--ink);font:600 9px var(--font-ui);letter-spacing:2px;text-align:center}
+.achievement-badge.unlocked{background:var(--orange);color:var(--on-accent)}
+.achievement-text{display:grid;flex:1;gap:1px;min-width:0}
+.achievement-text strong{font-size:13px}
+.achievement-text small{color:var(--muted);font-size:11px}
+
+/* ---- achievements steam panel ---- */
+.achievements-gated{display:grid;gap:8px;margin:0 0 12px;padding:10px 14px;border:1px solid var(--hazard);background:var(--elevated)}
+.achievements-gated-title{margin:0;color:var(--hazard);font:600 10px var(--font-ui);letter-spacing:.12em}
+.achievements-gated-help{margin:0;font-size:11px}
+.achievements-gated-actions{display:flex;flex-wrap:wrap;gap:10px}
+.compare-picker{width:200px;background:var(--elevated);color:var(--ink)}
+.achievement-when{color:var(--muted);font-size:9px}
+.achievement-compare{flex:0 0 auto;align-self:center;color:var(--hazard);font:600 10px var(--font-ui);letter-spacing:.12em;white-space:nowrap}
+/* ---- companions cross-save beds ---- */
+.pet-world-select{max-width:340px}
+.pet-save-world{justify-self:start}
+
+/* ---- unified drag and drop ---- */
+/* The inventory paper-doll / hotbar / pockets tiles and the shared slot grids show the
+   same eligibility feedback the transmog grid pioneered: drop-allowed/drop-hover mark
+   slots the dragged item fits, drop-blocked dims ineligible slots (the not-allowed
+   cursor itself comes from transmog-dnd.js via dropEffect). Children ignore pointer
+   events so dragenter/dragleave land on the tile, not its icon/label spans. */
+.inv-slot>*{pointer-events:none}
+.inv-slot.drop-allowed{border-color:var(--terminal)}
+.inv-slot.drop-hover{border:2px solid var(--terminal);background:var(--hover)}
+.inv-slot.drop-blocked{opacity:.6;cursor:not-allowed}
+.inventory-slot>*{pointer-events:none}
+.inventory-slot.drop-allowed{border-color:var(--terminal)}
+.inventory-slot.drop-blocked{opacity:.6;cursor:not-allowed}
+/* Sidebar item palette: drag sources with a selection ring, the FITS SLOT filter and the
+   wiki-style detail card (native SlotSidebarView). Item names keep their natural case. */
+.item-catalog .catalog-grid button{cursor:grab;text-transform:none;letter-spacing:normal}
+.slot-editor-tip{padding-top:0}
+.item-catalog .catalog-grid button>*{pointer-events:none}
+.item-catalog .catalog-grid button.selected{border-color:var(--hazard)}
+.item-catalog .catalog-fits-filter{display:inline-flex;align-items:center;gap:6px;color:var(--hazard);font:600 10px var(--font-ui);letter-spacing:.12em;cursor:pointer}
+.item-catalog .catalog-fits-filter input{accent-color:var(--hazard)}
+.item-catalog .catalog-detail{display:grid;gap:4px;padding:10px;border:1px solid var(--line);background:var(--elevated)}
+.item-catalog .catalog-detail strong{color:var(--ink);font-size:12px}
+.item-catalog .catalog-detail small{color:var(--muted);font-size:10px}
+.item-catalog .catalog-detail p{margin:0;color:var(--muted);font-size:10px;line-height:1.4}
+.item-catalog .catalog-status{margin:0;color:var(--terminal);font-size:10px}
+/* Native ITEM CATALOG header: AfH2 16px section-blue title with the "showing X of Y"
+   readout beside it, and the centered LOAD MORE chip under the grid. */
+.item-catalog>header{align-items:center}
+.item-catalog>header h4{color:var(--section)!important;font:600 16px var(--font-ui)!important;letter-spacing:.09em}
+.item-catalog>header span{color:var(--muted);font:600 10px var(--font-ui);letter-spacing:.08em}
+.catalog-load-more{justify-self:center;min-height:28px;padding:4px 16px;border:1px solid var(--line);border-radius:5px;background:var(--elevated);color:var(--ink);font:600 10px var(--font-ui);letter-spacing:.1em}
+.catalog-load-more:hover{border-color:var(--orange)}
+
+/* ---- codex polish ---- */
+/* GATEPal bait chips are buttons: tapping opens the bait's encyclopedia card in the
+   right-hand pane (native slot-editor behavior), with the native OPEN affordance. */
+/* The chip is a <button>, so undo every global button trait that native chips do not have:
+   uppercase + letter-spaced text, the hover zoom and the orange active flash. The item name
+   must render in its natural case; only the small field label stays uppercase. */
+button.bait-chip{width:100%;cursor:pointer;text-align:left;font:inherit;color:inherit;letter-spacing:normal;text-transform:none}
+button.bait-chip:hover,button.bait-chip:active{transform:none;opacity:1;background-color:var(--panel)}
+button.bait-chip:hover{border-color:var(--terminal)}
+button.bait-chip--amber:hover{border-color:var(--section)}
+.bait-open{margin-left:auto;color:var(--terminal);font:600 9px var(--font-ui);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+.bait-chip--amber .bait-open{color:var(--section)}
+
+/* ---- world tab structure ---- */
+/* The native world tab strip wraps onto multiple rows so every tab stays visible. */
+.world-tabs{flex-wrap:wrap!important;overflow-x:visible;row-gap:4px}
+/* Single-feature master-detail (WorldFeaturesTab), mirroring the native WorldFeatureTab. */
+/* Both columns need min-width:0. A grid track sized in fr still refuses to shrink below its
+   content's minimum width, and some features (NPC spawns especially) put a long run of settings
+   on one line in every row. Without this the list demanded that full width, the two columns
+   together outgrew the panel, and the whole world editor scrolled sideways: the tab strip lost
+   its first tab off the left edge and the detail column sat outside the visible area. */
+.world-feature-panes{display:grid;grid-template-columns:2fr 3fr;gap:16px;align-items:stretch;margin-top:12px}
+.world-feature-panes>*{min-width:0}
+.world-feature-list{display:flex;flex-direction:column;min-width:0;background:var(--shell);border:1px solid var(--line);min-height:220px;max-height:620px}
+.world-feature-list input[type=search]{margin:8px 8px 0;padding:6px 8px;background:var(--elevated);border:1px solid var(--line);color:var(--ink)}
+/* The entry list is the scrolling area, bounded by the frame around it. min-height:0 is what
+   lets a flex child actually scroll instead of growing past its parent, and the list that draws
+   only the rows on screen measures this box to decide what to draw, so it has to be the scroller. */
+.world-feature-entries{display:flex;flex-direction:column;flex:1 1 auto;min-width:0;min-height:0;overflow:hidden auto;scrollbar-width:thin}
+/* The two spacers standing in for the off-screen rows above and below must keep their height
+   for the same reason the rows themselves must (see the flex:0 0 auto note further down). */
+.world-feature-entries>div{flex:0 0 auto}
+button.world-feature-row{display:flex;flex-direction:column;align-items:stretch;gap:1px;min-width:0;max-width:100%;padding:8px 12px;border:0;background:transparent;color:var(--ink);cursor:pointer;text-align:left;font:inherit}
+button.world-feature-row:hover{background:var(--hover)}
+button.world-feature-row.selected{background:var(--elevated);box-shadow:inset 2px 0 0 var(--orange)}
+.world-feature-row strong{min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.world-feature-row .feature-area{min-width:0;color:var(--hazard);font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.world-feature-row .feature-summary{min-width:0;color:var(--muted);font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.feature-summary-row{display:flex;align-items:center;gap:8px;min-width:0}
+.feature-summary-row .feature-summary{flex:0 1 auto;min-width:0}
+/* "Plugged in" hint on a power socket whose outlet is occupied (terminal green = powered). */
+.feature-plugged-chip{flex:none;padding:1px 6px;background:var(--terminal-dim);color:var(--terminal);font:600 8px var(--font-ui);letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
+.world-feature-detail{min-width:0;background:var(--shell);border:1px solid var(--line);padding:18px 14px;max-height:620px;overflow:hidden auto;scrollbar-width:thin}
+.world-feature-detail h3{margin:0 0 10px;font-size:16px}
+.world-feature-arearow{display:flex;align-items:center;gap:10px;margin:0 0 8px}
+.world-feature-key{color:var(--faint);font-size:9px;word-break:break-all;margin:0 0 8px}
+.world-feature-divider{border:0;border-top:1px solid var(--divider);margin:10px 0}
+.world-feature-fields{display:flex;flex-direction:column;gap:14px}
+.world-feature-field{display:flex;flex-direction:column;gap:3px}
+.world-feature-field-row{display:flex;align-items:center;gap:12px}
+.world-feature-field-label{flex:1;color:var(--muted);font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+.world-feature-field-value{color:var(--ink);font-size:12px}
+.world-feature-field-row select,.world-feature-field-row input[type=text],.world-feature-field-row input[type=number]{max-width:240px;background:var(--elevated);border:1px solid var(--line);color:var(--ink);padding:5px 8px}
+.world-feature-hint{color:var(--muted);font-size:10px}
+.world-feature-error{color:#ff6b6b;font-size:10px}
+@media (max-width:960px){.world-feature-panes{grid-template-columns:1fr}.world-feature-list{max-height:440px}}
+/* Entry rows are data (labels, areas, field summaries), not chrome: undo the global
+   uppercase button styling so they read like the native list. */
+button.world-feature-row{text-transform:none;letter-spacing:normal;min-height:0;border-radius:0}
+button.world-feature-row .feature-area{letter-spacing:.04em}
+/* Rows are scroll content, not flexible tracks: without this, hundreds of entries
+   shrink to zero height inside the flex-column list. */
+button.world-feature-row{flex:0 0 auto}
+/* ---- world containers/flags/doors/dropped ---- */
+/* Faithful ports of WorldContainersTab.xaml, WorldFlagsTab.xaml, WorldDoorsTab.xaml and
+   WorldDroppedTab.xaml. Native mapping: AfH2 -> var(--section), AfAmber -> var(--section),
+   AfReadout (Digital7) -> var(--terminal), AfFieldLabel -> muted 10px caps, AfStatusText ->
+   var(--faint) 10px, AfShellBackground list frames -> var(--shell) with a --line border. */
+.wc-tab,.wf-tab,.wd-tab{display:grid;gap:14px;align-content:start}
+.wg-tab{display:grid;gap:12px;align-content:start}
+.wc-tab .empty,.wg-tab .empty{color:var(--muted)}
+
+/* CONTAINERS: filter + HIDE EMPTY row, then the 2fr:3fr master/detail split (560px tall) */
+.wc-filter-row{display:flex;align-items:center;gap:14px}
+.wc-filter-row input:not([type=checkbox]){flex:1;min-width:0}
+.wc-hide-empty{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font:600 10px var(--font-ui);letter-spacing:.16em;text-transform:uppercase;white-space:nowrap;cursor:pointer}
+.wc-hide-empty input[type=checkbox]{accent-color:var(--orange)}
+.wc-split{display:grid;grid-template-columns:2fr 3fr;gap:20px;height:560px;min-height:0}
+@media(max-width:900px){.wc-split{grid-template-columns:1fr;height:auto}.wc-master,.wc-tab .wc-detail{height:400px}}
+.wc-master{border:1px solid var(--line);background:var(--shell);overflow-y:auto;scrollbar-width:thin}
+/* Scoped under .wc-tab: the metadata CONTAINMENT tab later in this file also defines
+   .wc-row/.wc-detail, and its 3-column grid was overriding this master list's 2-column
+   layout (long class names then overlapped the count instead of truncating). */
+.wc-tab .wc-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:0 10px;padding:8px 12px;border:0;background:transparent;cursor:pointer}
+.wc-tab .wc-row:hover{background:var(--hover);border:0}
+.wc-tab .wc-row.selected{background:var(--elevated);box-shadow:inset 3px 0 0 var(--orange)}
+.wc-tab .wc-row strong{overflow:hidden;color:var(--ink);font-size:13px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
+.wc-tab .wc-row .wc-count{color:var(--terminal);font:13px var(--font-lcd);letter-spacing:.06em}
+.wc-tab .wc-row small{grid-column:1/-1;overflow:hidden;color:var(--faint);font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+.wc-empty,.wf-empty,.wg-empty{margin:0;padding:16px;color:var(--muted)}
+.wc-tab .wc-detail{display:flex;flex-direction:column;grid-template-columns:none;gap:8px;box-sizing:border-box;margin:0;padding:12px 14px;border:1px solid var(--line);background:var(--shell);min-height:0}
+.wc-select-label{margin:0;color:var(--muted);font:600 10px var(--font-ui);letter-spacing:.16em;text-transform:uppercase}
+.wc-select-help{margin:0;color:var(--muted);font-size:11px}
+.wc-title{margin:0;color:var(--section);font-size:18px;font-weight:600;letter-spacing:.04em}
+.wc-id{margin:0;overflow:hidden;color:var(--faint);font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+.wc-divider{flex:0 0 1px;background:var(--divider)}
+.wc-slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;align-content:start;overflow-y:auto;scrollbar-width:thin;min-height:0}
+.wc-slot{position:relative;box-sizing:border-box;height:98px;min-height:0;padding:3px;border:1px solid var(--line);border-radius:0;background:var(--panel);cursor:pointer;text-align:center;font:400 9px var(--font-ui);letter-spacing:normal;text-transform:none}
+.wc-slot:hover{background:var(--hover)}
+.wc-slot.selected{border:2px solid var(--hazard);background:var(--hover)}
+.wc-slot-icon{position:absolute;inset:6px 6px 18px;display:flex;align-items:center;justify-content:center}
+.wc-slot-icon img{max-width:100%;max-height:100%;object-fit:contain}
+/* Slot number and stack size sit on the same tile, so they share the one face - and it is
+   the same face those two numbers wear on every other container screen. */
+.wc-slot-index{position:absolute;top:3px;left:5px;color:var(--muted);font:14px var(--font-num)}
+.wc-slot-count{position:absolute;right:5px;bottom:16px;color:var(--terminal);font:16px var(--font-num)}
+.wc-slot-upg{position:absolute;top:0;right:3px;color:var(--hazard);font-size:12px;font-weight:700;line-height:1.2}
+.wc-slot-name{position:absolute;right:2px;bottom:2px;left:2px;overflow:hidden;color:var(--muted);font-size:9px;text-overflow:ellipsis;white-space:nowrap}
+.wc-help{margin:0;color:var(--muted);font-size:11px}
+.wc-status{margin:0;color:var(--faint);font-size:11px;overflow-wrap:anywhere}
+
+/* QUEST FLAGS: heading + Digital7 count, intro, HOW QUESTS WORK card, filter/add, grouped list */
+.wf-head{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.wf-title,.wd-title,.wg-title{margin:0;color:var(--section);font-size:18px;font-weight:600;letter-spacing:.05em;text-transform:uppercase}
+.wf-count{display:grid;justify-items:end;gap:0}
+.wf-count-label{color:var(--muted);font:600 10px var(--font-ui);letter-spacing:.16em;text-transform:uppercase}
+.wf-count-value{color:var(--terminal);font:18px var(--font-lcd);letter-spacing:.06em}
+.wf-intro{margin:0;color:var(--muted);font-size:10px}
+.wf-howto{display:grid;gap:4px;padding:10px 14px;border:1px solid var(--line);background:var(--shell)}
+.wf-howto-title{color:var(--section);font:600 10px var(--font-ui);letter-spacing:.16em;text-transform:uppercase}
+.wf-howto p{margin:0;color:var(--muted);font-size:11px;line-height:1.5}
+.wf-toolbar{display:grid;grid-template-columns:1fr 1fr auto;gap:14px}
+@media(max-width:760px){.wf-toolbar{grid-template-columns:1fr}}
+.wf-list{height:500px;border:1px solid var(--line);background:var(--shell);overflow-y:auto;scrollbar-width:thin}
+.wf-group-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:14px 12px 4px}
+.wf-group-head span{color:var(--section);font:600 11px var(--font-ui);letter-spacing:.35em;text-transform:uppercase}
+.wf-group-head small{color:var(--faint);font-size:10px}
+.wf-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 12px;background:var(--panel);cursor:pointer}
+.wf-row:hover{background:var(--hover)}
+.wf-row.selected{box-shadow:inset 3px 0 0 var(--orange)}
+.wf-chip{align-self:center;padding:2px 6px;color:var(--on-accent);font:600 9px var(--font-ui);letter-spacing:.2em;text-transform:uppercase;white-space:nowrap}
+.wf-texts{display:grid;gap:1px;min-width:0}
+.wf-texts strong{overflow:hidden;color:var(--ink);font-size:13px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
+.wf-texts small{overflow:hidden;color:var(--faint);font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+.wf-story{overflow:hidden;color:var(--orange);font:600 9px var(--font-ui);font-style:normal;letter-spacing:.1em;text-overflow:ellipsis;white-space:nowrap}
+.wf-desc{color:var(--muted);font-size:9.5px;line-height:1.4}
+.wf-clear{min-height:0;padding:4px 10px;border:0;background:var(--orange);color:var(--on-accent);font:600 10px var(--font-ui);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+.wf-clear:hover{filter:brightness(1.08)}
+.wf-clear:disabled{opacity:.72;cursor:default}
+.wf-detail .wf-prereqs{white-space:pre-line}
+.wf-detail-actions{display:flex;gap:8px;flex-wrap:wrap}
+/* Missing-prerequisite list inside the SET PREREQUISITES confirm dialog. */
+.wf-modal-lines{white-space:pre-line;margin:0}
+.wf-set-prereqs{min-height:0;padding:4px 10px;border:1px solid var(--divider);background:transparent;color:var(--ink);font:600 10px var(--font-ui);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+.wf-set-prereqs:hover{background:var(--elevated)}
+
+/* DOORS: "DOORS - region" heading + count readout, sector card art, filter, per-door rows */
+.wd-head{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.wd-title{text-transform:none}
+.wd-count,.wg-summary{color:var(--terminal);font:14px var(--font-num);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.wd-sector-card{position:relative;height:110px;border-radius:4px;background:#000;overflow:hidden}
+img.wd-sector-art{display:block;width:100%;height:100%;object-fit:cover;opacity:.85}
+.wd-sector-card .material-symbol{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--faint)}
+.wd-sector-caption{position:absolute;bottom:6px;left:10px;color:var(--muted);font-size:10px;text-shadow:0 1px 2px #000}
+.wd-list{height:540px;border:1px solid var(--line);background:var(--shell);overflow-y:auto;scrollbar-width:thin}
+.wd-row{display:grid;gap:6px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--panel);cursor:pointer}
+.wd-row:hover{background:var(--hover)}
+.wd-row.selected{box-shadow:inset 3px 0 0 var(--terminal)}
+.wd-row-top{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.wd-kind-chip{padding:2px 6px;background:var(--elevated);color:var(--orange);font:600 9px var(--font-ui);letter-spacing:.2em;text-transform:uppercase;white-space:nowrap}
+.wd-class{color:var(--section);font-size:14px;font-weight:600}
+.wd-lock-chip{margin-left:auto;padding:2px 8px;border:1px solid var(--hazard);background:var(--elevated);color:var(--hazard);font:600 9px var(--font-ui);letter-spacing:.2em;text-transform:uppercase;white-space:nowrap}
+.wd-keep{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font:600 10px var(--font-ui);letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;cursor:pointer}
+.wd-keep input[type=checkbox]{accent-color:var(--hazard)}
+.wd-state{display:grid;justify-items:start;gap:4px}
+.wd-state-row,.wd-check-row{display:flex;align-items:center;gap:10px}
+.wd-check-row{cursor:pointer}
+.wd-check-row input[type=checkbox]{accent-color:var(--terminal)}
+.wd-field-label{color:var(--muted);font:600 10px var(--font-ui);letter-spacing:.14em;text-transform:uppercase}
+select.wd-state-picker{width:180px;color:var(--terminal)!important;font:16px var(--font-ui)!important;letter-spacing:.06em;text-transform:uppercase}
+.wd-help{color:var(--faint);font-size:10px}
+.wd-subtitle{overflow:hidden;color:var(--faint);font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+
+/* DROPPED: heading row with the summary readout + RESTORE + DELETE ALL SHOWN, intro, filter, rows */
+.wg-head{display:flex;align-items:center;gap:12px}
+.wg-title{flex:1;text-transform:uppercase}
+.wg-restore{min-height:0;padding:6px 12px;border:0;background:var(--elevated);color:var(--ink);font:600 10px var(--font-ui);letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+.wg-restore:hover{background:var(--hover)}
+.wg-delete-all{min-height:0;padding:8px 14px;border:0;background:var(--alert);color:var(--on-accent);font:600 11px var(--font-ui);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+.wg-delete-all:hover{filter:brightness(1.08)}
+.wg-intro{margin:0;color:var(--muted);font-size:11px}
+.wg-list{height:520px;border:1px solid var(--line);background:var(--shell);overflow-y:auto;scrollbar-width:thin}
+.wg-row{display:flex;align-items:center;gap:12px;padding:6px 14px;background:var(--panel);cursor:pointer}
+.wg-row:hover{background:var(--hover)}
+.wg-texts{display:grid;flex:1;gap:1px;min-width:0}
+.wg-texts strong{overflow:hidden;color:var(--ink);font-size:13px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
+.wg-texts small{overflow:hidden;color:var(--faint);font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+.wg-delete{min-height:0;padding:3px 10px;border:0;background:var(--elevated);color:var(--alert-text);font:600 10px var(--font-ui);letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+.wg-delete:hover{background:var(--hover)}
+/* Flag/door detail cards have no leading icon cell, so collapse the head to title+close.
+   (These cards now render in the right-hand pane via ShowDetail, so they are matched by
+   their own card classes, not by the tab that supplied them.) */
+.wf-detail .detail-head,.wd-tab .detail-head,.wd-detail .detail-head{grid-template-columns:minmax(0,1fr) auto}
+/* Sidebar-hosted door card: state editors, matching the native sidebar door panel. */
+.wd-detail .wd-state-row,.wd-detail .wd-check-row{display:flex;align-items:center;gap:10px}
+/* The picture that follows the pointer while dragging an item (built in transmog-dnd.js).
+   Parked off-canvas: it only has to exist and be laid out long enough to be snapshotted. */
+.drag-ghost{position:fixed;top:-1000px;left:-1000px;display:grid;place-items:center;box-sizing:border-box;width:56px;height:56px;padding:4px;border:1px solid var(--orange);border-radius:4px;background:var(--elevated);pointer-events:none}
+.drag-ghost img{display:block;width:100%;height:100%;object-fit:contain}
+/* Area map: the game's own drawn sector map with the door pinned on it. The image sets the
+   box height so the pins, positioned in percentages, land where the drawing actually is - a
+   fixed-height box would letterbox or crop the art and drag every pin off the plan. */
+.wd-sector-map{position:relative;background:#000;border-radius:4px;overflow:hidden;line-height:0}
+.wd-sector-map .wd-sector-map-art{width:100%;height:auto;display:block}
+.wd-sector-map .sector-pin{position:absolute;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;border-radius:50%;background:var(--section);box-shadow:0 0 0 1px rgba(0,0,0,.65)}
+.wd-sector-map .sector-pin--selected{width:9px;height:9px;margin:-4.5px 0 0 -4.5px;background:var(--hazard);box-shadow:0 0 0 2px rgba(0,0,0,.7),0 0 0 5px color-mix(in srgb,var(--hazard) 55%,transparent)}
+/* ---- world pets/vehicles/bases/npcs ---- */
+/* Native master-detail chrome shared by the PETS / VEHICLES / BASES / NPC SPAWNS tabs
+   (WorldPetsTab.xaml, WorldVehiclesTab.xaml, WorldBasesTab.xaml, WorldFeatureTab.xaml). */
+.world-native-tab{display:flex;flex-direction:column;gap:12px;container-type:inline-size}
+.world-native-tab .wt-h2{margin:0;font-size:18px;font-weight:700;letter-spacing:.05em;color:var(--section);text-transform:uppercase}
+.world-native-tab .wt-intro{margin:0;font-size:11px;color:var(--muted)}
+.wt-md{display:grid;grid-template-columns:2fr 3fr;gap:16px;height:620px;min-height:0}
+.wt-md.bases-top{height:360px}
+.wt-md.bases-detail{height:auto}
+.wt-list{background:var(--shell);border:1px solid var(--line);overflow-y:auto;display:flex;flex-direction:column;min-height:0}
+.wt-list-filter{margin:8px 8px 0}
+/* Scoped under .world-native-tab: the metadata TRADERS tab later in this file also defines
+   .wt-detail/.wt-card, and its grid layouts were clobbering the pets/vehicles/bases panes. */
+.world-native-tab .wt-detail{background:var(--shell);border:1px solid var(--line);margin:0;padding:14px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;min-height:0}
+.wt-empty,.wt-select-hint{color:var(--muted);padding:16px;font-size:12px;margin:0}
+.wt-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:8px 12px;background:transparent;border:0;border-left:3px solid transparent;color:var(--ink);cursor:pointer;font:inherit}
+.wt-row:hover{background:var(--hover)}
+.wt-row.selected{background:var(--elevated);border-left-color:var(--orange)}
+.wt-row-text{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.wt-row-text strong{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wt-row-text small{font-size:10px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wt-row-text small.accent-hazard-text{color:var(--hazard)}
+.wt-row-status{margin-left:auto;flex:none;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.wt-group-header{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--elevated);padding:6px 12px}
+.wt-group-title{font-size:11px;font-weight:600;color:var(--terminal)}
+.wt-group-count{font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em}
+.wt-h3{margin:0;font-size:18px;font-weight:700;color:var(--ink)}
+.wt-status-text{margin:0;font-size:10px;color:var(--faint);letter-spacing:.06em}
+.wt-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.accent-hazard-text{color:var(--hazard)}
+.accent-terminal-text{color:var(--terminal)}
+.accent-orange-text{color:var(--orange)}
+.wt-field{display:flex;flex-direction:column;gap:3px}
+.wt-field-inline{display:flex;align-items:center;gap:10px}
+.wt-input{background:var(--elevated);color:var(--ink);border:1px solid var(--line);padding:6px 8px;font-size:12px;font:inherit;min-width:0}
+/* Shared world-tool readout. It also carries place names and the raw X/Y/Z position of a
+   vehicle, so it stays on the plain face; the two container tallies below opt back into the
+   segment look, matching the same tally in the CONTAINERS tab. */
+.wt-readout{font-family:var(--font-ui);font-size:13px;color:var(--terminal)}
+.wt-readout-input{font-family:var(--font-num);font-size:15px;color:var(--terminal);background:var(--elevated);border:1px solid var(--line);text-align:center;width:110px;padding:5px 8px}
+.wt-muted{color:var(--muted);font-size:10px}
+.wt-value{font-size:12px;color:var(--ink);margin:0}
+.wt-key{color:var(--faint);font-size:9px;overflow-wrap:anywhere;margin:0}
+.wt-divider{border:0;border-top:1px solid var(--divider);margin:2px 0;width:100%}
+.wt-notice{background:var(--elevated);border-radius:4px;padding:6px 10px;color:var(--muted);font-size:10px;margin:0}
+.wt-button-row{display:flex;gap:8px;flex-wrap:wrap}
+.wt-btn{font-size:10px;font-weight:700;letter-spacing:.05em;padding:5px 12px;border:0;cursor:pointer;text-transform:uppercase;font-family:inherit}
+.wt-btn.wt-green{background:var(--terminal);color:var(--on-accent)}
+.wt-btn.wt-yellow{background:var(--hazard);color:var(--on-accent)}
+.wt-btn.wt-red{background:var(--alert);color:#fff}
+.wt-btn.wt-plain{background:var(--elevated);color:var(--ink)}
+.wt-btn.wide{align-self:flex-start}
+.wt-btn:disabled{opacity:.72;cursor:default}
+.wt-check{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;cursor:pointer}
+.wt-check input{accent-color:var(--terminal);margin:0}
+.wt-check.orange input{accent-color:var(--orange)}
+/* pets */
+.pet-row-item .pet-avatar{position:relative;width:34px;height:34px;flex:none;border-radius:6px;background:var(--terminal-dim);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.pet-avatar-letter{font-size:15px;font-weight:600;color:var(--ink)}
+img.pet-avatar-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+img.pet-portrait{display:block;width:100%;height:170px;object-fit:contain;background:#000;border-radius:4px;padding:10px;box-sizing:border-box}
+.pet-level-row{display:flex;align-items:center;gap:10px}
+.pet-level-input{width:70px}
+.pet-health-row{display:flex;align-items:center;gap:14px}
+.pet-health-status{flex:1;font-size:12px;font-weight:600;color:var(--ink)}
+.pet-limbs{display:flex;flex-direction:column;gap:4px}
+.pet-limb-row{display:grid;grid-template-columns:120px 140px;gap:10px;align-items:center}
+/* vehicles */
+.vehicle-state-row{gap:28px}
+.vehicle-coords{display:grid;grid-template-columns:auto 1fr auto 1fr auto 1fr;gap:8px;align-items:center}
+.wt-portrait-box{background:#000;border-radius:4px;height:150px;padding:10px;display:flex;align-items:center;justify-content:center}
+.wt-portrait-box img{max-width:100%;max-height:100%;object-fit:contain}
+.wt-attribution{color:var(--muted);font-size:8px}
+/* bases */
+.base-row .base-name{font-size:14px}
+.wt-row-text small.base-anchor{color:var(--orange)}
+.base-map-cell{min-width:0;min-height:0;display:flex}
+/* The frame shares the map's own background so the letterbox bands around the fixed
+   640x356 drawing (preserveAspectRatio) blend in instead of reading as dead panels. */
+.base-map-frame{flex:1;border:1px solid var(--line);background:#101810;padding:2px;min-height:0;min-width:0}
+svg.base-map{width:100%;height:100%;display:block}
+.base-container-panel{flex:1;border:1px solid var(--terminal);background:var(--shell);padding:10px 12px;display:flex;flex-direction:column;gap:8px;min-height:0}
+.base-container-header{display:flex;align-items:center;gap:10px}
+.base-container-header .wt-h3{font-size:15px}
+.base-container-header .wt-readout{font-family:var(--font-lcd);font-size:14px;flex:none}
+.base-slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;overflow-y:auto;flex:1;align-content:start;min-height:0}
+/* A slot is a button now: tapping it opens that slot in the side editor, the same as on the
+   CONTAINERS tab. The global button styling is undone so it still reads as a slot tile. */
+.base-slot{position:relative;height:98px;background:var(--panel);border:1px solid var(--line);padding:3px;display:flex;flex-direction:column;box-sizing:border-box;min-width:0;min-height:0;color:var(--ink);cursor:pointer;font:inherit;letter-spacing:normal;text-transform:none;border-radius:0}
+button.base-slot:hover{border-color:var(--orange);transform:none;opacity:1}
+button.base-slot.selected{border-color:var(--orange);box-shadow:inset 0 0 0 1px var(--orange)}
+.base-slot-count-badge{position:absolute;right:4px;top:3px;padding:0 4px;border-radius:3px;background:var(--panel);color:var(--terminal);font-family:var(--font-num);font-size:13px}
+.base-slot .item-artwork.base-slot-icon{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+.base-slot .item-artwork.base-slot-icon img{max-width:100%;max-height:100%;object-fit:contain}
+.base-slot-count{position:absolute;right:2px;bottom:16px;width:46px;font-family:var(--font-num);font-size:15px;color:var(--terminal);background:transparent;border:0;text-align:right;padding:0}
+.base-slot-count:focus{background:var(--elevated);outline:1px solid var(--hazard)}
+/* The stack size here is a box you type in, so it cannot wear the segment look - which is
+   why the tile numbers on every container screen settled on this face. */
+.base-slot-index{font-family:var(--font-num);font-size:14px;color:var(--muted)}
+.base-slot-name{font-size:9px;color:var(--muted);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none}
+.bench-row{display:flex;flex-direction:column;gap:1px;margin-bottom:6px;min-width:0}
+/* The bench's name and position are the tap target that opens it in the side panel; the
+   upgrade tickboxes below stay separate so ticking one never opens the panel. */
+.bench-open{display:flex;flex-direction:column;gap:1px;width:100%;min-width:0;padding:2px 0;border:0;border-radius:0;background:none;color:inherit;font:inherit;letter-spacing:normal;text-transform:none;text-align:left;cursor:pointer;min-height:0}
+.bench-open:hover{transform:none;opacity:1}
+.bench-open:hover .bench-name{text-decoration:underline}
+.bench-name{color:var(--orange);font-size:12px;font-weight:600;overflow-wrap:anywhere}
+.bench-row small{color:var(--faint);font-size:9px;overflow-wrap:anywhere}
+.bench-upgrades-label{margin-top:3px}
+.bench-upgrades{display:flex;flex-wrap:wrap;gap:2px 12px}
+.base-composition{white-space:pre-line;font-size:11px;color:var(--ink);margin:0}
+.world-native-tab .wt-card{background:var(--shell);border:1px solid var(--line);padding:10px 14px;display:flex;flex-direction:column;grid-template-columns:none;gap:6px;min-width:0;cursor:auto}
+.world-native-tab .wt-card:hover{border-color:var(--line)}
+.world-native-tab .wt-card.no-pad{padding:0;gap:0}
+.base-containers-label{padding:8px 14px 4px}
+.base-container-list{max-height:220px;overflow-y:auto;display:flex;flex-direction:column}
+.container-jump-row .wt-readout{font-family:var(--font-lcd);flex:none}
+/* npc spawns (generic feature detail) */
+.feature-fields{display:flex;flex-direction:column;gap:14px}
+.feature-field{display:flex;flex-direction:column;gap:3px}
+.feature-field-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+.feature-field-input{width:220px}
+.feature-field-row select.wt-input{width:240px}
+.feature-field-row input[type=checkbox]{accent-color:var(--terminal);width:16px;height:16px;margin:0}
+@media (max-width:960px){.wt-md{grid-template-columns:1fr;height:auto}.wt-md.bases-top{height:auto}.wt-list{max-height:440px}.world-native-tab .wt-detail{min-height:280px}.base-map-cell{height:300px}}
+/* The world editor pane can be far narrower than the viewport (sidebars take the rest),
+   so the BASES master/detail grids also stack on the pane's own width. */
+@container(max-width:820px){
+  .wt-md.bases-top{grid-template-columns:1fr;height:auto}
+  .wt-md.bases-top .wt-list{max-height:300px}
+  .wt-md.bases-top .base-map-cell{height:300px}
+  .wt-md.bases-detail{grid-template-columns:1fr}
+}
+/* Neutralize the global button chrome (radius/min-height/uppercase) inside the native lists. */
+.wt-row,button.wt-row{border-radius:0;min-height:0;text-transform:none;letter-spacing:normal;transition:background-color 90ms ease}
+.wt-btn,button.wt-btn{min-height:0;border-radius:2px}
+/* Fixed-height flex columns must scroll, never crush their children. */
+.wt-detail>*,.wt-list>*,.base-container-panel>.base-container-header,.wt-card>*{flex-shrink:0}
+.bench-upgrades .wt-check{text-transform:none;letter-spacing:normal;font-weight:400;color:var(--muted)}
+/* ---- world story/traders/containment ---- */
+/* Shared chrome for the three metadata-save tabs (native WorldStoryTab/WorldTradersTab/
+   WorldContainmentTab.xaml): the AfShellBackground panel, AfH2 section titles, AfFieldLabel
+   caps labels, Digital7 LCD readouts and the hairline dividers. */
+/* inline-size container so the @container rules below actually fire: the metadata tabs
+   sit in the center pane, which can be far narrower than the viewport when both side
+   panes are open - a media query never sees that and the fixed columns pushed the pane
+   into a horizontal scrollbar. */
+.world-meta-panel{display:grid;gap:14px;box-sizing:border-box;padding:16px 20px;border:1px solid var(--line);background:var(--shell);container-type:inline-size}
+.wm-h2{margin:0;color:var(--section);font:600 18px var(--font-ui);letter-spacing:.09em}
+.wm-intro{margin:0;color:var(--muted);font-size:11px}
+.wm-note{margin:0;color:var(--muted);font-size:10px}
+.wm-divider{height:1px;background:var(--divider)}
+.wm-label{color:var(--muted);font:600 10px var(--font-ui);letter-spacing:.12em}
+.wm-readout{color:var(--terminal);font:18px var(--font-num);letter-spacing:.05em;white-space:nowrap}
+.wm-status{color:var(--faint);font-size:11px;letter-spacing:.06em}
+.wm-close{min-height:0;padding:2px 8px;border:0;background:var(--elevated);color:var(--ink);font-size:11px;cursor:pointer}
+.wm-hazard-btn{min-height:0;padding:7px 14px;border:0;background:var(--hazard);color:var(--on-accent);font:600 11px var(--font-ui);letter-spacing:.08em;cursor:pointer}
+.wm-hazard-btn:disabled{opacity:.72;cursor:default}
+/* STORY: minutes-played LCD row, chapter checklist, world recipes; the chapter
+   detail (.ws-chapter-detail) renders in the right-hand pane via the shared detail host. */
+.ws-minutes-row{display:grid;grid-template-columns:180px 300px max-content minmax(0,1fr);gap:16px;align-items:center}
+.ws-minutes-row input[type=number]{box-sizing:border-box;width:100%;padding:7px 10px;border:1px solid var(--line);background:var(--elevated);color:var(--terminal);font:18px var(--font-num)}
+.ws-last-played{justify-self:end;overflow:hidden;max-width:100%;text-overflow:ellipsis;white-space:nowrap}
+.ws-chapters-head{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.ws-move-players{display:inline-flex;gap:8px;align-items:center;color:var(--muted);font-size:10px;cursor:pointer}
+.ws-move-players input{accent-color:var(--terminal)}
+.ws-chapter-list{overflow:auto;max-height:420px;border:1px solid var(--line);background:var(--panel)}
+.ws-chapter-row{display:grid;grid-template-columns:34px 16px minmax(0,1fr) auto auto auto;gap:12px;align-items:center;padding:7px 14px;cursor:pointer}
+.ws-chapter-row:hover{background:var(--hover)}
+.ws-chapter-row.selected{background:var(--hover);box-shadow:inset 3px 0 0 var(--orange)}
+.ws-chapter-num{color:var(--muted);font:16px var(--font-lcd)}
+.ws-chapter-dot{width:8px;height:8px;border-radius:4px}
+.ws-chapter-dot.reached{background:var(--terminal)}
+.ws-chapter-text{display:grid;gap:1px;min-width:0}
+/* Native chapter titles are AfFieldValue (OpenSans Regular 13), not bold. */
+.ws-chapter-text strong{font-size:13px;font-weight:400}
+.ws-chapter-text small{overflow:hidden;color:var(--muted);font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+.ws-chapter-text .ws-chapter-missing{color:var(--section);font-size:9px;letter-spacing:.06em}
+.ws-chapter-status{font:600 10px var(--font-ui);letter-spacing:.12em}
+.ws-status-done{color:var(--terminal)}
+.ws-status-ready{color:var(--hazard)}
+.ws-status-locked{color:var(--faint)}
+.ws-chapter-current{padding:2px 8px;background:var(--orange);color:var(--on-accent);font:600 9px var(--font-ui);letter-spacing:2px}
+.ws-chapter-set{min-height:0;padding:3px 10px;border:0;background:var(--elevated);color:var(--ink);font-size:10px;cursor:pointer}
+.ws-chapter-set:disabled{opacity:.72;cursor:default}
+.ws-chapter-detail{display:grid;gap:8px;box-sizing:border-box;padding:10px 12px;border:1px solid var(--hazard);background:var(--shell)}
+.ws-detail-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}
+.ws-detail-num{color:var(--hazard);font:26px var(--font-lcd)}
+.ws-detail-title{display:grid;gap:1px}
+.ws-detail-title strong{color:var(--section);font:600 14px var(--font-ui);letter-spacing:.08em}
+.ws-detail-title small{color:var(--faint);font-size:9px;letter-spacing:.06em}
+.ws-chapter-art{display:block;overflow:hidden;height:120px;border-radius:4px;background:#000}
+.ws-chapter-art img{width:100%;height:100%;object-fit:cover}
+.ws-detail-status{color:var(--terminal)}
+.ws-detail-summary{margin:0;font-size:12px}
+.ws-detail-blocked{color:var(--section)}
+.ws-detail-missing{margin:0;color:var(--section);font-size:11px}
+.ws-detail-actions{display:flex;flex-wrap:wrap;gap:8px}
+.ws-recipes-head{display:grid;grid-template-columns:180px minmax(0,1fr) auto auto;gap:16px;align-items:center}
+.ws-recipes-head input[type=search]{box-sizing:border-box;width:240px;background:var(--elevated);color:var(--ink)}
+.ws-recipe-list{overflow:auto;max-height:320px;border:1px solid var(--line);background:var(--panel)}
+.ws-recipes-empty{margin:0;padding:16px;color:var(--muted)}
+.ws-recipe-row{display:grid;grid-template-columns:auto 32px minmax(0,1fr) auto;gap:12px;align-items:center;padding:4px 14px;cursor:pointer}
+.ws-recipe-row:hover{background:var(--hover)}
+.ws-recipe-row.selected{background:var(--hover);box-shadow:inset 3px 0 0 var(--orange)}
+.ws-recipe-row input[type=checkbox]{accent-color:var(--terminal)}
+.ws-recipe-icon{display:grid;place-items:center;box-sizing:border-box;width:32px;height:32px;padding:2px;border:1px solid var(--line);background:var(--shell)}
+.ws-recipe-icon img{max-width:100%;max-height:100%;object-fit:contain}
+.ws-recipe-text{display:grid;gap:1px;min-width:0}
+/* Native recipe names are AfFieldValue (OpenSans Regular 13), not bold. */
+.ws-recipe-text strong{font-size:13px;font-weight:400}
+.ws-recipe-text small{overflow:hidden;color:var(--faint);font-size:10px;letter-spacing:.04em;text-overflow:ellipsis;white-space:nowrap}
+.ws-recipe-status{color:var(--terminal);font:600 10px var(--font-ui);letter-spacing:.12em}
+/* TRADERS: snapshot note, wrapping reference cards; the stock detail (.wt-detail)
+   renders in the right-hand pane via the shared detail host. */
+.wt-unlock-preview{display:grid;gap:8px}
+.wt-unlock-preview p{margin:0;color:var(--muted);font-size:11px}
+.wt-unlock-preview ul{display:grid;gap:4px;margin:0;padding-left:18px}
+.wt-unlock-preview li{color:var(--ink);font-size:12px}
+.wt-unlock-preview li b{font-weight:600}
+.wt-unlock-preview li small{display:block;color:var(--faint);font-size:9px;letter-spacing:.04em}
+.wt-unlock-preview .wt-unlock-noothers{color:var(--faint)}
+.wt-snapshot-note{display:grid;gap:8px;box-sizing:border-box;padding:14px 16px;border:1px solid var(--line);background:var(--panel)}
+.wt-snapshot-title{color:var(--orange);font:600 10px var(--font-ui);letter-spacing:.16em}
+.wt-snapshot-note p{margin:0;color:var(--muted);font-size:11px}
+.wt-cards{display:flex;flex-wrap:wrap;gap:10px}
+.wt-card{display:grid;grid-template-columns:86px minmax(0,1fr);flex:1 1 400px;gap:12px;box-sizing:border-box;min-width:0;padding:10px 12px;border:1px solid var(--line);background:var(--panel);cursor:pointer}
+.wt-card:hover{border-color:var(--orange)}
+.wt-card.selected{border-color:var(--orange);box-shadow:inset 3px 0 0 var(--orange)}
+.wt-portrait{display:grid;place-items:center;box-sizing:border-box;width:82px;height:82px;padding:2px;background:var(--elevated)}
+.wt-portrait img{max-width:100%;max-height:100%;object-fit:contain}
+.wt-card-text{display:grid;gap:3px;align-content:start;min-width:0}
+.wt-name{color:var(--section);font:600 14px var(--font-ui);letter-spacing:.08em}
+.wt-where{color:var(--faint);font-size:10px;letter-spacing:.05em}
+.wt-blurb{color:var(--muted);font-size:10px}
+.wt-sells{color:var(--ink);font-size:10px}
+.wt-availability{color:var(--orange);font-size:9px;letter-spacing:.05em}
+.wt-hint{color:var(--section);font-size:8px;letter-spacing:.05em}
+.wt-trader-detail{display:grid;gap:8px;box-sizing:border-box;padding:10px 12px;border:1px solid var(--section);background:var(--shell)}
+.wt-detail-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:start}
+.wt-detail-portrait{display:grid;place-items:center;box-sizing:border-box;width:52px;height:52px;padding:2px;background:var(--elevated)}
+.wt-detail-portrait img{max-width:100%;max-height:100%;object-fit:contain}
+.wt-detail-title{display:grid;gap:1px;align-self:center}
+.wt-detail-title strong{color:var(--section);font:600 14px var(--font-ui);letter-spacing:.08em}
+.wt-detail-title small{color:var(--faint);font-size:9px}
+.wt-detail-blurb{margin:0;color:var(--muted);font-size:10px}
+.wt-accepts{margin:0;font-size:11px}
+.wt-offer-list{display:grid;gap:4px;overflow:hidden auto;max-height:300px}
+.wt-offer-row{display:grid;grid-template-columns:28px 44px minmax(0,1fr);gap:12px;align-items:center;padding:6px 4px;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.wt-offer-row:hover{background:var(--hover)}
+.wt-offer-row input[type=checkbox]{accent-color:var(--hazard)}
+.wt-offer-icon{display:grid;place-items:center;box-sizing:border-box;width:40px;height:40px;padding:2px;border:1px solid var(--line);background:var(--elevated)}
+.wt-offer-icon img{max-width:100%;max-height:100%;object-fit:contain}
+.wt-offer-text{display:grid;gap:2px;min-width:0}
+.wt-offer-text strong{font-size:12px;font-weight:400}
+.wt-offer-text small{color:var(--faint);font-size:8px;letter-spacing:.04em}
+.wt-detail-actions{display:flex;flex-wrap:wrap;gap:8px}
+.wt-offer-detail{display:grid;gap:6px;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--line);background:var(--panel)}
+/* CONTAINMENT: one row per deployed unit (CONTAINED / EMPTY badge, the HOLDS picker and,
+   when occupied, RELEASE), the inline creature detail, and the WORLD UNLOCKS grid. */
+.wc-list{display:grid;gap:8px}
+.wc-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:14px;align-items:center;box-sizing:border-box;padding:8px 12px;border:1px solid var(--line);background:var(--panel);cursor:pointer}
+.wc-row:hover{border-color:var(--terminal)}
+.wc-badge{padding:3px 8px;background:var(--terminal-dim);color:var(--ink);font:600 9px var(--font-ui);letter-spacing:2px}
+.wc-badge-empty{background:var(--elevated);color:var(--muted)}
+.wc-swap-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px}
+.wc-assign{display:grid;gap:2px;justify-items:start;cursor:default}
+.wc-select{min-height:0;padding:3px 6px;border:1px solid var(--line);background:var(--shell);color:var(--ink);font:400 12px var(--font-ui)}
+.wc-text{display:grid;gap:1px;min-width:0}
+.wc-text strong{font-size:13px}
+.wc-text small{color:var(--faint);font-size:8px;letter-spacing:.06em}
+.wc-release{min-height:0;padding:4px 12px;border:0;background:var(--alert);color:var(--on-accent);font:600 10px var(--font-ui);letter-spacing:.06em;cursor:pointer}
+.wc-detail{display:grid;grid-template-columns:140px minmax(0,1fr);gap:16px;box-sizing:border-box;margin-top:6px;padding:12px 16px;border:1px solid var(--section);background:var(--panel)}
+.wc-detail-media{display:grid;gap:3px;align-content:start}
+.wc-detail-img{display:grid;place-items:center;box-sizing:border-box;width:136px;height:136px;padding:2px;background:#000}
+.wc-detail-img img{max-width:100%;max-height:100%;object-fit:contain}
+.wc-wiki-caption{color:var(--muted);font-size:8px}
+.wc-detail-body{display:grid;gap:6px;align-content:start;min-width:0}
+.wc-detail-title{display:flex;align-items:start;justify-content:space-between;gap:10px}
+.wc-detail-title strong{color:var(--section);font:600 16px var(--font-ui);letter-spacing:.08em}
+.wc-lore{margin:0;font-size:12px}
+.wc-region{margin:0;font-size:14px}
+.wc-coords{margin:0;color:var(--terminal);font:13px var(--font-num)}
+.wc-guid{color:var(--faint);font-size:9px;overflow-wrap:anywhere}
+.wc-unlock-grid{display:grid;grid-template-columns:160px minmax(0,1fr) auto;gap:10px 16px;align-items:center}
+.wc-unlock-grid .wc-unlock-btn{justify-self:stretch}
+.wc-unlock-btn{min-height:0;padding:4px 10px;border:0;background:var(--elevated);color:var(--ink);font:600 10px var(--font-ui);letter-spacing:.06em;cursor:pointer}
+.wc-unlock-btn:disabled{opacity:.72;cursor:default}
+.wc-unlock-btn.wm-hazard-btn{padding:4px 10px;background:var(--hazard);color:var(--on-accent)}
+@container(max-width:760px){
+  .ws-minutes-row,.ws-recipes-head{grid-template-columns:1fr}
+  .ws-recipes-head input[type=search]{width:100%}
+  .wc-detail{grid-template-columns:1fr}
+  /* A containment row carries four things (badge, name+place, HOLDS picker, RELEASE); in a
+     narrow editor pane they stack instead of squeezing into each other. */
+  .wc-list .wc-row{grid-template-columns:auto minmax(0,1fr);row-gap:8px}
+  .wc-list .wc-assign,.wc-list .wc-release{grid-column:2}
+  .wc-list .wc-release{justify-self:start}
+}
+
+/* Rows that were built as fixed side-by-side columns stack on a phone instead of pushing
+   the page sideways. Everything here is behind a narrow-width test, so a desktop window
+   keeps the wide layout exactly as it was. */
+@media(max-width:760px){
+  .skill-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr))!important}
+  .wc-detail,.wc-unlock-grid,.ws-minutes-row,.ws-recipes-head{grid-template-columns:minmax(0,1fr)}
+  .wc-list .wc-row{grid-template-columns:auto minmax(0,1fr);row-gap:8px}
+  .wc-list .wc-assign,.wc-list .wc-release{grid-column:2}
+  .wc-list .wc-release{justify-self:start}
+  .ws-recipes-head input[type=search]{width:100%}
+  .wc-detail-img{width:100%;max-width:180px;height:auto;aspect-ratio:1/1}
+  .ws-chapter-row{grid-template-columns:auto auto minmax(0,1fr);row-gap:4px}
+  .transmog-grid,.transmog-visibility{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .world-clock-editor{grid-template-columns:minmax(0,1fr)}
+  .ini-entry,.compare-row{grid-template-columns:minmax(0,1fr)}
+  .wt-cards .wt-card{flex:1 1 100%}
+}
+
+/* Detail cards that tabs publish into the right-hand pane (recipe book, GATEPal entry,
+   achievement). They are read, not edited, so they get comfortable line length and their
+   artwork is contained rather than cropped. */
+.rb-detail-card,.codex-detail-card,.achievement-detail-card{gap:8px}
+.rb-detail-card .rb-detail-icon,.achievement-detail-art{display:grid;place-items:center;height:96px;background:#000;border-radius:4px;overflow:hidden}
+.rb-detail-card .rb-detail-icon img,.achievement-detail-art img{max-width:100%;max-height:96px;object-fit:contain}
+.codex-detail-card .codex-wiki{margin:0}
+.codex-detail-card .codex-wiki img{max-width:100%;height:auto;object-fit:contain}
+.codex-detail-card .codex-body{white-space:pre-wrap}
+.achievement-row.selected{border-color:var(--orange)}
+
+/* The area map doubles as a button that opens the same drawing full screen, because the
+   right-hand pane is too narrow to tell neighbouring pins apart. */
+button.wd-sector-map{display:block;width:100%;padding:0;border:0;cursor:zoom-in;text-align:left}
+button.wd-sector-map:hover{opacity:1;transform:none}
+.wd-map-overlay{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:24px;background:rgba(0,0,0,.82)}
+.wd-map-overlay-inner{position:relative;display:grid;gap:8px;max-width:min(1400px,95vw)}
+.wd-sector-map--large{width:min(1400px,92vw)}
+.wd-map-close{position:absolute;top:-14px;right:-14px;z-index:1;width:32px;height:32px;padding:0;border:1px solid var(--divider);border-radius:50%;background:var(--elevated);color:var(--ink);cursor:pointer}

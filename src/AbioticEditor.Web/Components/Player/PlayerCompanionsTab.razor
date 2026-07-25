@@ -1,0 +1,277 @@
+@namespace AbioticEditor.Web.Components.Player
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Components.Shared
+@using AbioticEditor.Core.WorldSaves
+
+@* Faithful port of the native PlayerPetsTab: a master list of carried pets beside a
+   detail editor (name, variant, level + XP, health + heal, staged remove/undo, and the
+   send-to-a-pet-bed hand-off into a world save). *@
+<section class="companions-tab" aria-label="@L.Resource("PlayerEditor_Companions")">
+    <h3 class="companions-title">@L.Resource("PlayerPets_CarriedPetsCompanions")</h3>
+    <p class="muted companions-help">@L.Resource("PlayerPets_IntroHelp")</p>
+
+    <div class="pets-split">
+        <div class="pet-master" role="listbox" aria-label="@L.Resource("PlayerPets_CarriedPetsCompanions")">
+            @if (Session.CarriedPets.Count == 0) { <p class="muted pet-empty">@L.Resource("PlayerPets_NoPets")</p> }
+            @foreach (var row in Session.CarriedPets)
+            {
+                <div class="pet-row @(_selected == row ? "selected" : null)" role="option" aria-selected="@(_selected == row)" @onclick="() => _selected = row">
+                    <span class="pet-row-text"><strong>@row.DisplayName</strong><small>@SlotText(row)</small></span>
+                    <span class="pet-row-status">@StatusText(row)</span>
+                </div>
+            }
+        </div>
+
+        <div class="pet-detail">
+            @if (_selected is not { } pet)
+            {
+                <p class="muted">@L.Resource("PlayerPets_SelectAPet")</p>
+            }
+            else
+            {
+                @* Portrait of the carried pet's current variant: the same in-pak bestiary art
+                   the world PETS tab shows, resolved through the variant's creature class and
+                   falling back to a paw glyph when no art is available. *@
+                <div class="pet-detail-head">
+                    <span class="pet-portrait">
+                        <GameArtImage GameRefs="@PortraitRefs(pet)" Alt="@pet.DisplayName">
+                            <span class="material-symbol" aria-hidden="true">pets</span>
+                        </GameArtImage>
+                    </span>
+                    <span class="pet-detail-titles">
+                        <h4 class="pet-detail-title">@pet.DisplayName</h4>
+                        <p class="pet-detail-slot">@SlotText(pet)</p>
+                    </span>
+                </div>
+
+                <label class="pet-field">@L.Resource("PlayerPets_Name")
+                    <input @bind="pet.Name" @bind:after="Changed" placeholder="@L.Resource("PlayerPets_NamePlaceholder")" />
+                </label>
+
+                <label class="pet-field">@L.Resource("PlayerPets_Variant")
+                    <select @bind="pet.ItemRow" @bind:after="Changed">
+                        @if (PetItemCatalog.ForRow(pet.ItemRow) is null) { <option value="@pet.ItemRow">@pet.ItemRow</option> }
+                        @foreach (var variant in HeldVariants) { <option value="@variant.ItemRow">@variant.Friendly</option> }
+                    </select>
+                </label>
+
+                <hr class="af-divider" />
+                <p class="hazard-field-label">@L.Resource("PlayerPets_LevelAndXp")</p>
+                <div class="pet-level-row">
+                    <label>@L.Resource("PlayerPets_Lv")</label>
+                    <span class="pet-stepper"><button class="secondary" type="button" @onclick="() => StepLevel(pet, -1)">-</button><span class="pet-level-readout">@pet.Level</span><button class="secondary" type="button" @onclick="() => StepLevel(pet, 1)">+</button></span>
+                    <label>@L.Resource("PlayerPets_Xp")</label>
+                    <input class="pet-xp" type="number" min="0" @bind="pet.Xp" @bind:after="Changed" />
+                </div>
+
+                <hr class="af-divider" />
+                <p class="terminal-field-label">@L.Resource("PlayerPets_Health")</p>
+                @* The stored floats carry accumulated game arithmetic (87.4999999…); show one
+                   decimal at most and keep the save value exactly what the player types. *@
+                <div class="pet-health-row">
+                    <label>@L.Resource("PlayerPets_Hp")</label><input type="number" min="0" step="any" @bind:get="Math.Round(pet.Health, 1)" @bind:set="value => SetHealth(pet, value)" />
+                    <label>@L.Resource("PlayerPets_Max")</label><input type="number" min="0" step="any" @bind:get="Math.Round(pet.MaxHealth, 1)" @bind:set="value => SetMaxHealth(pet, value)" />
+                    <button class="heal-all-button" type="button" @onclick="() => Heal(pet)">@L.Resource("PlayerPets_Heal")</button>
+                </div>
+
+                <hr class="af-divider" />
+                @if (!pet.IsDeleted) { <button class="accent-alert" type="button" @onclick="() => ToggleDeleted(pet)">@L.Resource("PlayerPets_RemoveFromInventory")</button> }
+                else { <button class="accent-hazard" type="button" @onclick="() => ToggleDeleted(pet)">@L.Resource("PlayerPets_UndoRemove")</button> }
+
+                @if (SiblingWorldOptions.Count > 0)
+                {
+                    <hr class="af-divider" />
+                    <p class="terminal-field-label">@L.Resource("PlayerPets_SendToAPetBed")</p>
+                    <p class="muted pet-bed-help">@L.Resource("PlayerPets_World")</p>
+                    <select class="pet-world-select" value="@_selectedWorldPath" @onchange="WorldSelected">
+                        @foreach (var world in SiblingWorldOptions) { <option value="@world.Path">@world.Name</option> }
+                    </select>
+                    @if (_bedsLoading) { <p class="muted pet-bed-help">@L.Resource("PlayerPets_BedsLoading")</p> }
+                    else if (_bedError is not null) { <p class="muted pet-bed-help">@_bedError</p> }
+                    else if (_beds.Count > 0)
+                    {
+                        <p class="muted pet-bed-help">@L.Resource("PlayerPets_PetBed")</p>
+                        <select @bind="_selectedBedIndex">
+                            @for (var index = 0; index < _beds.Count; index++) { var bedIndex = index; <option value="@bedIndex">@BedLabel(bedIndex)</option> }
+                        </select>
+                    }
+                    else { <p class="muted pet-bed-help">@L.Resource("PlayerPets_NoBedHelp")</p> }
+                    <button class="heal-all-button pet-send" type="button" disabled="@_bedsLoading" @onclick="() => SendToBed(pet)">@L.Resource("PlayerPets_SendToBed")</button>
+                    @if (_transferStatus is not null) { <p class="muted pet-move-status" role="status">@_transferStatus</p> }
+                    @if (_targetSession is { IsDirty: true } dirtyWorld)
+                    {
+                        <p class="muted pet-bed-help">@L.Resource("PlayerPets_WorldSaveNeeded", System.IO.Path.GetFileName(dirtyWorld.Path))</p>
+                        <button class="heal-all-button pet-save-world" type="button" @onclick="SaveTargetWorld">@L.Resource("PlayerPets_SaveWorld")</button>
+                    }
+                    <p class="muted pet-bed-help">@L.Resource("PlayerPets_CarryOverHelp")</p>
+                }
+            }
+        </div>
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    [Parameter] public WorldSaveSession? WorldSession { get; set; }
+    [Parameter] public EventCallback OnChanged { get; set; }
+    [Inject] private SiblingWorldBedService Beds { get; set; } = null!;
+    [Inject] private SaveWorkspaceSessionService Workspace { get; set; } = null!;
+    private CarriedPetEdit? _selected;
+    private int _selectedBedIndex;
+    private string? _transferStatus;
+    private string? _scannedPlayerPath;
+    private string? _selectedWorldPath;
+    private bool _bedsLoading;
+    private string? _bedError;
+    private IReadOnlyList<SiblingPetBed> _beds = [];
+    private IReadOnlyList<SiblingWorldOption> _siblingWorlds = [];
+    private WorldSaveSession? _targetSession;
+
+    /// <summary>Held pet forms only, like the native variant picker (weapon forms are separate items).</summary>
+    private static IReadOnlyList<PetItem> HeldVariants { get; } = PetItemCatalog.Items
+        .Where(item => !item.IsWeaponForm)
+        .GroupBy(item => item.Friendly, StringComparer.OrdinalIgnoreCase)
+        .Select(group => group.First())
+        .ToList();
+
+    /// <summary>
+    /// Send targets: every sibling region save of this player (native behavior), plus the
+    /// loaded world session's file when it lives outside that list.
+    /// </summary>
+    private IReadOnlyList<SiblingWorldOption> SiblingWorldOptions => _siblingWorlds;
+
+    protected override void OnParametersSet()
+    {
+        if (string.Equals(_scannedPlayerPath, Session.Path, StringComparison.OrdinalIgnoreCase)) return;
+        _scannedPlayerPath = Session.Path;
+        var options = Beds.SiblingWorlds(Session.Path, Workspace.Current).ToList();
+        if (WorldSession is { } loaded
+            && !options.Any(option => string.Equals(System.IO.Path.GetFullPath(option.Path), System.IO.Path.GetFullPath(loaded.Path), StringComparison.OrdinalIgnoreCase)))
+        {
+            options.Insert(0, new SiblingWorldOption(loaded.Path, System.IO.Path.GetFileName(loaded.Path)));
+        }
+        _siblingWorlds = options;
+        _transferStatus = null;
+        _targetSession = null;
+        // Default to the loaded world (so staged claims show), else the first sibling - native
+        // defaults to the first world save it finds next to the player.
+        _selectedWorldPath = WorldSession is { } world
+            && options.Any(option => string.Equals(System.IO.Path.GetFullPath(option.Path), System.IO.Path.GetFullPath(world.Path), StringComparison.OrdinalIgnoreCase))
+            ? world.Path
+            : options.FirstOrDefault()?.Path;
+        _ = LoadBedsAsync(_selectedWorldPath);
+    }
+
+    private Task WorldSelected(ChangeEventArgs args)
+    {
+        var path = args.Value?.ToString();
+        if (string.IsNullOrEmpty(path) || string.Equals(path, _selectedWorldPath, StringComparison.OrdinalIgnoreCase)) return Task.CompletedTask;
+        _selectedWorldPath = path;
+        return LoadBedsAsync(path);
+    }
+
+    /// <summary>Reads the selected world's pet beds off-thread; the ~16 MB Facility save is cached per timestamp.</summary>
+    private async Task LoadBedsAsync(string? worldPath)
+    {
+        _beds = [];
+        _selectedBedIndex = 0;
+        _bedError = null;
+        if (worldPath is null) return;
+        _bedsLoading = true;
+        try
+        {
+            _beds = await Beds.GetBedsAsync(worldPath, WorldSession);
+        }
+        catch (Exception ex)
+        {
+            Errors.Record(ex, $"Read pet beds from {worldPath}");
+            _bedError = L.Resource("PlayerEditor_PetBedsReadFailed",
+                System.IO.Path.GetFileName(worldPath), L.Resource("PlayerPets_CheckLogHelp"));
+        }
+        finally
+        {
+            _bedsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>Ordered bestiary portrait candidates for the pet's current variant (the same
+    /// compendium art the world PETS tab uses), via the carried item row's creature class.</summary>
+    private static IReadOnlyList<string> PortraitRefs(CarriedPetEdit pet)
+        => PetCatalog.CompendiumTextureRefs(PetItemCatalog.NpcClassFor(pet.ItemRow));
+
+    private string SlotText(CarriedPetEdit pet) => pet.IsCompanionSlot
+        ? L.Resource("PlayerPets_CompanionSlot")
+        : L.Resource("PlayerPets_SlotFormat", L.Resource($"PlayerPets_SlotKind_{pet.Slot}"), pet.Index);
+
+    private string StatusText(CarriedPetEdit pet) => pet.IsDeleted
+        ? L.Resource("PlayerPets_StatusWillBeRemoved")
+        : L.Resource("PlayerPets_StatusLvHpFormat", pet.Level, $"{pet.Health:0}", $"{pet.MaxHealth:0}");
+
+    private string BedLabel(int index)
+    {
+        var bed = _beds[index];
+        var label = L.Resource("PlayerEditor_PetBedOption", index + 1, bed.DisplayName);
+        // Native appends the friendly area name resolved from the save file name.
+        var area = WorldAreaCatalog.FriendlyNameFromSaveFile(_selectedWorldPath);
+        return area is { Length: > 0 } ? $"{label} - {area}" : label;
+    }
+
+    private Task Changed() { Session.MarkChanged(); return OnChanged.InvokeAsync(); }
+    private Task SetHealth(CarriedPetEdit pet, double value) { pet.Health = value; return Changed(); }
+    private Task SetMaxHealth(CarriedPetEdit pet, double value) { pet.MaxHealth = value; return Changed(); }
+    private async Task Heal(CarriedPetEdit pet) { pet.Heal(); await Changed(); }
+    private async Task ToggleDeleted(CarriedPetEdit pet) { pet.IsDeleted = !pet.IsDeleted; await Changed(); }
+    private async Task StepLevel(CarriedPetEdit pet, int delta) { pet.Level = pet.Level + delta; await Changed(); }
+
+    private async Task SendToBed(CarriedPetEdit pet)
+    {
+        if (_selectedWorldPath is not { } worldPath) return;
+        try
+        {
+            // Route the write through a staged session: the loaded world session when it is
+            // this file, otherwise a session loaded (and kept) for the chosen sibling save.
+            // Native writes both files immediately; the web editor deliberately stages
+            // instead and the user finishes with SAVE WORLD + SAVE.
+            var session = await Beds.GetOrLoadSessionAsync(worldPath, WorldSession);
+            var bedIndex = _beds.Count > 0 ? Math.Clamp(_selectedBedIndex, 0, _beds.Count - 1) : -1;
+            var bed = bedIndex >= 0 ? _beds[bedIndex] : null;
+            double x = bed?.X ?? 0, y = bed?.Y ?? 0, z = bed?.Z ?? 0;
+            if (session.TryPlaceCarriedPet(pet.ToCarriedPet(), x, y, z, out var message))
+            {
+                pet.IsDeleted = true;
+                _targetSession = session;
+                var where = bed is not null ? BedLabel(bedIndex) : L.Resource("PlayerEditor_WorldOriginFallback");
+                _transferStatus = L.Resource("PlayerEditor_PetPlacedAt", pet.DisplayName, where, System.IO.Path.GetFileName(worldPath));
+                await Changed();
+            }
+            else
+            {
+                _transferStatus = L.Resource("PlayerEditor_PetMoveFailed", message);
+            }
+        }
+        catch (Exception ex)
+        {
+            Errors.Record(ex, "Send a carried pet to a world save");
+            _transferStatus = L.Resource("PlayerEditor_PetMoveFailed", L.Resource("PlayerPets_CheckLogHelp"));
+        }
+    }
+
+    /// <summary>Writes the staged world session (with its .bak) so the sent pet lands on disk.</summary>
+    private async Task SaveTargetWorld()
+    {
+        if (_targetSession is not { } session) return;
+        try
+        {
+            await session.SaveAsync();
+            _transferStatus = L.Resource("PlayerPets_WorldSaved", System.IO.Path.GetFileName(session.Path));
+            Workspace.NotifyEdited();
+            await LoadBedsAsync(_selectedWorldPath);
+        }
+        catch (Exception ex)
+        {
+            Errors.Record(ex, "Save the world file that received a pet");
+            _transferStatus = L.Resource("PlayerEditor_PetMoveFailed", L.Resource("PlayerPets_CheckLogHelp"));
+        }
+    }
+}

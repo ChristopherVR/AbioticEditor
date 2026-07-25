@@ -5,6 +5,7 @@ using UeSaveGame.PropertyTypes;
 using UeSaveGame.StructData;
 
 using AbioticEditor.Core.Saves;
+using AbioticEditor.Core.WorldSaves.Features;
 
 namespace AbioticEditor.Core.WorldSaves;
 
@@ -232,5 +233,100 @@ public static partial class WorldSaveWriter
             }
         }
         return false;
+    }
+
+    /// <summary>
+    /// The exact top-level name of the containment map. Unlike a blueprint variable this one
+    /// carries no compiler hash suffix (it is a native property on the save-game class), so the
+    /// create-when-missing name is simply the property name. A world where nothing was ever
+    /// contained omits the map entirely, which is why creating it has to be possible.
+    /// </summary>
+    private const string LeyakContainmentIDsName = "LeyakContainmentIDs";
+
+    /// <summary>
+    /// Points <paramref name="creature"/> at containment unit <paramref name="unitId"/> in the
+    /// metadata save's <c>LeyakContainmentIDs</c> map, replacing any unit it was in before.
+    /// Because the map is keyed by creature, a creature can only ever be in one unit - which is
+    /// also why swapping two creatures is just swapping the two values.
+    ///
+    /// Creates the entry (and, on a world that never contained anything, the whole map) when
+    /// absent. Returns false only when the save is not a metadata save shape at all.
+    /// </summary>
+    public static bool SetLeyakContainment(WorldSaveData data, string creature, string unitId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(creature);
+        ArgumentException.ThrowIfNullOrWhiteSpace(unitId);
+
+        if (data.Raw.Properties is not { } tags) return false;
+        var mp = FindOrCreateContainmentMap(tags);
+        if (mp?.Value is null) return false;
+
+        foreach (var pair in mp.Value)
+        {
+            if (!string.Equals(WorldSaveReader.ExtractMapKeyString(pair.Key), creature, StringComparison.OrdinalIgnoreCase)) continue;
+            pair.Value.Value = new FString(unitId);
+            return true;
+        }
+
+        // A fresh pair rather than a clone of an existing one: map elements carry no per-entry
+        // type data (the key/value types live on the map tag itself), and the two element types
+        // here are the simplest there are.
+        var key = new NameProperty(new FString($"{LeyakContainmentIDsName}_Key")) { Value = new FString(creature) };
+        var value = new StrProperty(new FString(LeyakContainmentIDsName)) { Value = new FString(unitId) };
+        mp.Value.Add(new KeyValuePair<FProperty, FProperty>(key, value));
+        return true;
+    }
+
+    private static MapProperty? FindOrCreateContainmentMap(IList<FPropertyTag> tags)
+    {
+        if (tags.FindByPrefix(LeyakContainmentIDsName)?.Property is MapProperty existing)
+        {
+            existing.Value ??= new List<KeyValuePair<FProperty, FProperty>>();
+            return existing;
+        }
+        if (tags.FindByPrefix(LeyakContainmentIDsName) is not null) return null; // present but not a map
+
+        var name = new FString(LeyakContainmentIDsName);
+        var keyType = new FPropertyTypeName(new FString(nameof(NameProperty)));
+        var valueType = new FPropertyTypeName(new FString(nameof(StrProperty)));
+        var type = new FPropertyTypeName(new FString(nameof(MapProperty)), new[] { keyType, valueType });
+        var map = new MapProperty(name)
+        {
+            KeyType = keyType,
+            ValueType = valueType,
+            Value = new List<KeyValuePair<FProperty, FProperty>>(),
+        };
+        tags.Add(new FPropertyTag(name, type, EPropertyTagFlags.None) { Property = map });
+        return map;
+    }
+
+    /// <summary>
+    /// Writes a containment unit's own record of what it holds: the
+    /// <c>LeyakContainmentData</c> index in its <c>Generic3</c> slot, and optionally its
+    /// stability in <c>Generic1</c>. <paramref name="data"/> is the <em>region</em> save the
+    /// unit stands in, not the metadata save.
+    ///
+    /// Returns false when the unit is not in this save, or when it carries no
+    /// <c>DynamicProperties_</c> array to patch (nothing to clone an element prototype from -
+    /// see <see cref="PetDynamicProperties"/>), so a caller can report the edit rather than
+    /// silently lose it.
+    /// </summary>
+    public static bool SetContainmentUnitCreatureIndex(WorldSaveData data, string unitId, int creatureIndex, int? stability = null)
+    {
+        if (WorldMapAccessor.FindEntry(data.Raw, "DeployedObjectMap", unitId) is not { } props) return false;
+        if (!ContainmentCreatureCatalog.IsUnitClass(WorldSaveReader.ExtractClassName(props))) return false;
+        if (props.FindByPrefix("ChangableData_")?.Property is not StructProperty cd
+            || cd.Value is not PropertiesStruct cdps)
+        {
+            return false;
+        }
+
+        var ok = PetDynamicProperties.SetOrAdd(cdps.Properties, ContainmentDynamicSlots.CreatureIndex, creatureIndex);
+        if (ok && stability is { } level)
+        {
+            PetDynamicProperties.SetOrAdd(cdps.Properties, ContainmentDynamicSlots.Stability,
+                Math.Clamp(level, 0, ContainmentCreatureCatalog.MaxStability));
+        }
+        return ok;
     }
 }

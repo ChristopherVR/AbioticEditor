@@ -141,10 +141,10 @@ public sealed class PowerSocketMapFeature : WorldMapFeatureBase
             WorldMapField.Bool("hasTimer", "Timer armed", hasTimer,
                 hint: "Whether this socket's power timer is armed. Set to true to arm the timer, "
                     + "false to disarm it (no timer active)."),
-            WorldMapField.ReadOnly("timerMode", "Timer mode", timerMode,
-                hint: "E_PowerTimerModes enumerator value. Read-only: only NewEnumerator0 has ever "
-                    + "been observed, so the full set of valid modes is unknown - changing it "
-                    + "blindly could corrupt the socket's behaviour."),
+            WorldMapField.ReadOnly("timerMode", "Timer mode", DescribeTimerMode(timerMode),
+                hint: "The game only has one setting for how a socket's timer runs, so there is "
+                    + "nothing to pick between here. Whether the timer is switched on at all is "
+                    + "the setting above."),
             WorldMapField.ReadOnly("extraDevices", "Extra powered devices",
                 extraDeviceCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 hint: "Number of additional device asset IDs in the ExtraPoweredDeviceAssetIDs array."),
@@ -185,6 +185,29 @@ public sealed class PowerSocketMapFeature : WorldMapFeatureBase
     /// a friendly device name when the id resolves in this save, or the short id when it does not
     /// (a device in another region save, or a stale reference).
     /// </summary>
+    /// <summary>
+    /// Turns the stored timer-mode enumerator into something readable. The game stores this as a
+    /// blueprint enumerator that was never given a name, so it comes out of the save as the
+    /// literal <c>E_PowerTimerModes::NewEnumerator0</c>, which reached the screen as the nonsense
+    /// "New Enumerator 0". There is only ever one value, so it is named plainly and anything
+    /// unexpected falls back to whatever was stored.
+    /// </summary>
+    private static string DescribeTimerMode(string? stored)
+    {
+        if (string.IsNullOrWhiteSpace(stored))
+        {
+            return "Standard";
+        }
+        // Compare on the enumerator alone: the stored form may or may not carry the enum prefix.
+        var name = stored;
+        var separator = name.LastIndexOf("::", StringComparison.Ordinal);
+        if (separator >= 0 && separator < name.Length - 2)
+        {
+            name = name[(separator + 2)..];
+        }
+        return name.Equals("NewEnumerator0", StringComparison.OrdinalIgnoreCase) ? "Standard" : stored;
+    }
+
     private string DescribeDevice(string? assetId)
     {
         if (PowerSocketDeviceResolver.IsNothingPlugged(assetId))

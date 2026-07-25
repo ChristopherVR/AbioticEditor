@@ -1,0 +1,4 @@
+.tool-host { display:grid; gap:1rem; min-height:calc(100vh - 10rem); }
+.tool-host header { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+.tool-host h1 { margin:0; }
+.tool-frame { width:100%; min-height:70vh; border:1px solid var(--line, #3d454a); background:#fff; }

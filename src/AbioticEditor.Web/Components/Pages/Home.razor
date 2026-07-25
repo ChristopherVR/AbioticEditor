@@ -1,0 +1,123 @@
+@page "/"
+@page "/browse"
+@using AbioticEditor.Web.Components.Player
+@using AbioticEditor.Web.Components.World
+@implements IDisposable
+@inject SaveLibraryService Library
+@inject SaveWorkspaceSessionService Workspace
+@inject AbioticEditor.Ui.IFolderPicker FolderPicker
+@inject HostLanguageService Languages
+@inject NavigationManager Navigation
+
+<PageTitle>@Languages.Resource("Common_AppName")</PageTitle>
+
+@if (Workspace.Current?.SelectedSave is null || IsBrowsing)
+{
+    <section class="hero native-empty-state">
+        <h1>@Languages.Resource("Empty_EditorTitle")</h1>
+        <p class="lede">@Languages.Resource("Empty_OpenYourSaveFolderInstructions")</p>
+        <p class="empty-capabilities">@Languages.Resource("Empty_PlayersWorldsSummary")</p>
+        <div class="empty-actions">
+            <button class="primary" type="button" @onclick="PickFolderAsync" disabled="@_isLoading">@Languages.Resource("Empty_OpenFolder")</button>
+            <a class="secondary button-link" href="/create-world">@Languages.Resource("Empty_NewWorld")</a>
+        </div>
+        <p class="empty-note">@Languages.Resource("Empty_YouCanAlsoDropASaveFolderAnywhereOnThisWindow")</p>
+        <p class="empty-note">@Languages.Resource("Empty_EveryWriteKeepsABakBackupNextToTheSave")</p>
+
+        @if (_worlds.Count > 0)
+        {
+            <section class="discovered-worlds" aria-labelledby="discovered-worlds-title">
+                <h2 id="discovered-worlds-title">@Languages.Resource("Empty_WorldsFoundOnThisMachine")</h2>
+                <p>@Languages.Resource("Empty_SaveFoldersDetectedAutomatically")</p>
+                <div class="discovered-world-list">
+                    @foreach (var world in _worlds)
+                    {
+                        <article class="discovered-world-card">
+                            <div><h3>@world.WorldName <span class="platform-badge @PlatformClass(world)">@PlatformLabel(world)</span></h3><p>@world.LastPlayed.ToString("g") · @Languages.Resource("Main_SaveFileCount", world.SaveFileCount)</p><small title="@world.FolderPath">@world.FolderPath</small></div>
+                            <button class="primary" type="button" @onclick="() => SelectWorldAsync(world)" disabled="@_isLoading">@Languages.Resource("Empty_Open")</button>
+                        </article>
+                    }
+                </div>
+            </section>
+        }
+        @if (_error is not null) { <p class="error" role="alert">@_error</p> }
+    </section>
+}
+else
+{
+    <SaveEditorSurface />
+}
+
+@code {
+    private IReadOnlyList<DiscoveredWorld> _worlds = Array.Empty<DiscoveredWorld>();
+    private bool _isLoading;
+    private string? _error;
+
+    /// <summary>
+    /// The header's home button lands on /browse so the world list shows even while a
+    /// save is open; the open session and its staged edits stay untouched, and picking
+    /// a save from the sidebar returns to the editor.
+    /// </summary>
+    private bool IsBrowsing => Navigation.ToBaseRelativePath(Navigation.Uri).TrimEnd('/')
+        .Equals("browse", StringComparison.OrdinalIgnoreCase);
+    protected override async Task OnInitializedAsync()
+    {
+        Workspace.Changed += WorkspaceChanged;
+        // "/" and /browse both land on this component, so the router reuses the same
+        // instance and (with no route parameters to change) may skip re-rendering it.
+        // IsBrowsing lives on the URL alone; re-render on every navigation so the home
+        // button flips the view reliably.
+        Navigation.LocationChanged += LocationChanged;
+        _isLoading = true;
+        try
+        {
+            // Test hook mirroring the native app's ABIOTIC_EDITOR_FOLDER: auto-open a save
+            // folder from the environment so automated verification never has to drive the
+            // OS folder picker. No effect when the variable is unset.
+            var autoFolder = Environment.GetEnvironmentVariable("ABIOTIC_EDITOR_FOLDER");
+            if (Workspace.Current is null && !string.IsNullOrWhiteSpace(autoFolder) && Directory.Exists(autoFolder))
+                await Workspace.OpenAsync(autoFolder);
+            _worlds = await Library.DiscoverAsync();
+        }
+        catch (Exception ex) { Errors.Record(ex, "Discover save folders"); }
+        finally { _isLoading = false; }
+    }
+
+    private async Task SelectWorldAsync(DiscoveredWorld world)
+    {
+        _isLoading = true; _error = null;
+        try { await Workspace.OpenAsync(world); }
+        catch (Exception ex) { _error = Errors.Present(ex, Languages.Resource("Home_SaveFolderOpenFailed"), Languages.Resource("Home_SaveFolderOpenGuidance")); }
+        finally { _isLoading = false; }
+    }
+
+    private async Task PickFolderAsync()
+    {
+        _error = null;
+        try
+        {
+            var picked = await FolderPicker.PickFolderAsync(new() { Title = Languages.Text("folder.choose.title") });
+            if (picked?.Path is null) return;
+            await SelectWorldAsync(new(picked.Path, Path.GetFileName(picked.Path), DiscoveredWorldSource.Client, null));
+        }
+        catch (Exception ex) { _error = Errors.Present(ex, Languages.Resource("Home_FolderPickerFailed"), Languages.Resource("Home_FolderPickerGuidance")); }
+    }
+
+    private string PlatformLabel(DiscoveredWorld world) => Languages.PlatformLabel(world.Platform, world.Source);
+
+    // Native badge fill (MainViewModel.CurrentSaveTypeBadgeColor): Xbox green for Game
+    // Pass, Steam blue for Steam, orange otherwise - shared with the sidebar badge.
+    private static string PlatformClass(DiscoveredWorld world) => world.Platform switch
+    {
+        SavePlatform.GamePass => "platform-gamepass",
+        SavePlatform.Steam => "platform-steam",
+        _ => "platform-unknown",
+    };
+    private void WorkspaceChanged() => _ = InvokeAsync(StateHasChanged);
+    private void LocationChanged(object? sender, LocationChangedEventArgs args) => _ = InvokeAsync(StateHasChanged);
+    public void Dispose()
+    {
+        Workspace.Changed -= WorkspaceChanged;
+        Navigation.LocationChanged -= LocationChanged;
+    }
+}

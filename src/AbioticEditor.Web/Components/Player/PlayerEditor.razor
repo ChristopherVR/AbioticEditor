@@ -1,0 +1,96 @@
+@namespace AbioticEditor.Web.Components.Player
+@implements IDisposable
+@inject HostLanguageService Languages
+@inject InventorySelectionService Selection
+
+<section class="player-editor" aria-label="@Languages.Resource("PlayerUi_PlayerEditor")">
+    <nav class="editor-tabs" role="tablist" aria-label="@Languages.Resource("PlayerUi_PlayerEditorSections")">
+        @foreach (var tab in Tabs) { <button type="button" role="tab" class="editor-tab @(ActiveTab == tab.Id ? "active" : null)" aria-selected="@(ActiveTab == tab.Id)" @onclick="() => ActiveTab = tab.Id">@Languages.Resource(tab.LabelKey)</button> }
+    </nav>
+    <div class="player-tab-viewport">
+    @if (ActiveTab == "general") { <PlayerGeneralTab Session="Session" OnChanged="NotifyChanged" /> }
+    else if (ActiveTab == "vitals") { <PlayerVitalsTab Vitals="Session.Vitals" OnChanged="NotifyChanged" /> }
+    else if (ActiveTab == "character") { <PlayerCharacterTab Session="Session" OnChanged="NotifyChanged" /> }
+    else if (ActiveTab == "transmog") { <PlayerTransmogTab Session="Session" OnChanged="NotifyChanged" /> }
+    else if (ActiveTab == "spawn") { <PlayerSpawnTab Session="Session" WorldSession="TransferWorldSession" OnChanged="NotifyChanged" /> }
+    else if (ActiveTab == "inventory") { <PlayerInventoryTab Session="Session" WorldSession="TransferWorldSession" OnChanged="NotifyChanged" /> }
+    else if (ActiveTab == "companions") { <PlayerCompanionsTab Session="Session" WorldSession="TransferWorldSession" OnChanged="NotifyChanged" /> }
+    else if (ActiveTab == "skills") { <PlayerSkillsTab Session="Session" OnChanged="NotifyChanged" /> }
+    else if (ActiveTab == "recipes") { <PlayerRecipesTab Session="Session" OnChanged="NotifyChanged" /> }
+    else if (ActiveTab == "gatepal") { <PlayerCodexTab Session="Session" OnChanged="NotifyChanged" /> }
+    else if (ActiveTab == "achievements") { <PlayerAchievementsTab Session="Session" /> }
+    else if (ActiveTab == "data") { <PlayerRawDataTab Session="Session" /> }
+    </div>
+</section>
+
+@code {
+    // The native app calls this single surface GATEPal. Its email, notes, compendium
+    // and fish data are the typed PlayerCodexEdit state and save through PlayerSaveWriter.
+    private IReadOnlyList<PlayerEditorTab> Tabs => AllTabs.Where(tab => tab.Id != "achievements" || AbioticEditor.Core.PlayerSaves.PlayerIdentifier.IsSteamId(Session.SteamIdentifier)).ToArray();
+    // Same order and labels as the native PlayerEditorView tab bar.
+    private static readonly PlayerEditorTab[] AllTabs =
+    [
+        new("general", "PlayerEditor_General"), new("vitals", "PlayerEditor_Vitals"),
+        new("character", "PlayerEditor_Character"), new("transmog", "PlayerEditor_Transmog"),
+        new("spawn", "PlayerEditor_Spawn"), new("inventory", "PlayerEditor_Inventory"),
+        new("companions", "PlayerEditor_Companions"), new("skills", "PlayerEditor_Skills"),
+        new("recipes", "PlayerEditor_Recipes"), new("gatepal", "PlayerEditor_Gatepal"),
+        new("achievements", "PlayerEditor_Achieve"), new("data", "PlayerEditor_Data"),
+    ];
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    [Parameter] public WorldSaveSession? TransferWorldSession { get; set; }
+    [Parameter] public EventCallback OnChanged { get; set; }
+    private string _activeTab = "vitals";
+    private string ActiveTab
+    {
+        get => _activeTab;
+        set
+        {
+            if (_activeTab == value) return;
+            _activeTab = value;
+            // The encyclopedia card belongs to the tab that opened it (GATEPal bait chips,
+            // the palette-bearing inventory surfaces); leaving those tabs closes it, the
+            // same way the native card disappears with the item palette.
+            if (value is not ("inventory" or "transmog" or "gatepal")) Selection.CloseEncyclopedia();
+        }
+    }
+
+    // Published after render (never inside the parameter/render phase): the context change
+    // raises Selection.Changed, and firing that mid-render corrupts the renderer's diff.
+    protected override void OnAfterRender(bool firstRender) => PublishPaletteContext();
+
+    /// <summary>
+    /// The sidebar ITEM CATALOG shows whenever the INVENTORY or TRANSMOG tab is open for a
+    /// player save - no slot selection required - mirroring the native ShowItemPalette rule.
+    /// Any other tab clears the context AND any lingering player-slot selection, so the
+    /// catalog (and the stale slot editor) never follow the user to GENERAL/SKILLS/GATEPal.
+    /// </summary>
+    private void PublishPaletteContext()
+    {
+        var showPalette = _activeTab is "inventory" or "transmog";
+        if (!showPalette && Selection.Current?.PlayerArea is not null) Selection.Clear();
+        Selection.SetPaletteContext(showPalette
+            ? new PaletteContext(
+                Session,
+                _activeTab == "transmog" ? PlayerInventoryArea.Transmog : PlayerInventoryArea.Backpack,
+                QuickGiveFallback,
+                NotifyChanged)
+            : null);
+    }
+
+    /// <summary>Native quick-give auto-pick when no slot is selected: first empty backpack
+    /// slot, then hotbar; pets (hotbar-only) always go to the hotbar.</summary>
+    private QuickGiveTarget? QuickGiveFallback(bool hotbarOnly)
+    {
+        var hotbar = Session.Hotbar.FirstOrDefault(slot => slot.IsEmpty);
+        if (hotbarOnly) return hotbar is null ? null : new(hotbar, PlayerInventoryArea.Hotbar, null);
+        if (Session.Backpack.FirstOrDefault(slot => slot.IsEmpty) is { } backpack)
+            return new(backpack, PlayerInventoryArea.Backpack, null);
+        return hotbar is null ? null : new(hotbar, PlayerInventoryArea.Hotbar, null);
+    }
+
+    public void Dispose() => Selection.SetPaletteContext(null);
+    private Task NotifyChanged() => OnChanged.InvokeAsync();
+    private sealed record PlayerEditorTab(string Id, string LabelKey);
+}

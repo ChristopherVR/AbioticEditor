@@ -1,0 +1,20 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Web.Models
+
+@* Entitlements tab (metadata saves only): per-player ownership grants
+   (Early Access, Supporter's Edition), keyed by SteamID64. The native app drives Core's
+   entitlements feature through the same generic feature view as every other world map
+   (WorldFeatureTab + WorldFeatureTabViewModel); this tab does exactly the same through the
+   shared single-feature editor. Persona-name labels and the free-text "add entitlement"
+   field come from the Core feature itself. *@
+
+@code {
+    // The Core feature id this tab drives (the entitlements feature's registry id).
+    public const string EntitlementsFeatureId = "server-entitlements";
+
+    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter] public string Title { get; set; } = "World editor";
+    [Parameter] public EventCallback<string?> OnError { get; set; }
+}
+
+<WorldFeaturesTab Session="@Session" FeatureId="@EntitlementsFeatureId" Title="@Title" OnError="@OnError" />

@@ -58,7 +58,7 @@ Open **Settings**, then **Manage Plugins**. There you can:
 - see every installed plugin with its **load state** and where it came from;
 - **enable or disable** each plugin (the choice is saved to its `plugin.json`; restart to apply);
 - **run save operations** against the open save (the editor keeps a `.bak` and reloads afterward);
-- open **editor tools** and **web tools** (UI panels);
+- open **web tools** (UI panels);
 - run **menu actions** (these also appear in the top-level **Plugins** menu).
 
 A plugin that failed to load is listed with its error, and the editor's built-in features keep

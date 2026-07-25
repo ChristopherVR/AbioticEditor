@@ -1,0 +1,39 @@
+@namespace AbioticEditor.Web.Components.Player
+@inject ItemCatalogService Catalog
+
+@* The picture is rendered straight away and the browser decides when to fetch it, rather than
+   the component first asking the server whether an icon exists. That question was answered by
+   actually extracting the icon, so a catalog category of 72 tiles used to decode 72 textures
+   before it could draw anything, and on the first run of an install that is where the editor
+   appeared to hang. Now the grid paints immediately, only the tiles on screen are fetched
+   (loading="lazy"), and an item with no artwork falls back to the "?" mark when its request
+   404s. *@
+<span class="item-artwork @Class">
+    @if (!_missing && !string.IsNullOrWhiteSpace(ItemId))
+    {
+        <img src="@Catalog.IconUrl(ItemId)" alt="@Alt" loading="lazy" decoding="async" @onerror="MarkMissing" />
+    }
+    else
+    {
+        <span class="item-artwork-fallback" aria-hidden="true">?</span>
+        @if (!string.IsNullOrWhiteSpace(Alt)) { <span class="visually-hidden">@Alt</span> }
+    }
+</span>
+
+@code {
+    [Parameter, EditorRequired] public string ItemId { get; set; } = string.Empty;
+    [Parameter] public string Alt { get; set; } = string.Empty;
+    [Parameter] public string? Class { get; set; }
+    private bool _missing;
+    private string? _shownId;
+
+    protected override void OnParametersSet()
+    {
+        // A recycled tile pointing at a different item deserves a fresh attempt.
+        if (string.Equals(_shownId, ItemId, StringComparison.Ordinal)) return;
+        _shownId = ItemId;
+        _missing = false;
+    }
+
+    private void MarkMissing() => _missing = true;
+}

@@ -16,7 +16,6 @@ public interface IPluginRegistry
     IPluginHost Host { get; }
     void AddSaveOperation(ISaveOperation operation);
     void AddConsoleCommand(IConsoleCommand command);
-    void AddEditorTool(IEditorTool tool);
     void AddWebTool(IWebTool tool);
     void AddSaveUpgrader(ISaveUpgrader upgrader);
     void AddMenuAction(IMenuAction action);
@@ -113,33 +112,6 @@ public interface IConsoleCommandContext
 ```
 
 Return `0` success, `1` user error, `2` unexpected failure. CLI only; GUI hosts ignore commands.
-
-## Editor tools (MAUI UI)
-
-```csharp
-public interface IEditorTool
-{
-    string Id { get; }
-    string Title { get; }
-    string? Glyph { get; }                                    // default: null
-    EditorToolPlacement Placement { get; }                    // default: Panel
-    object CreateView(IEditorToolContext context);            // returns a Microsoft.Maui.Controls.View
-}
-
-public enum EditorToolPlacement { Panel, Tab, Sidebar }
-
-public interface IEditorToolContext
-{
-    IPluginHost Host { get; }
-    SaveGame? ActiveSave { get; }                             // lazily loaded
-    SaveKind? ActiveSaveKind { get; }
-    string?   ActiveSavePath { get; }
-    event EventHandler? ActiveSaveChanged;                    // fires on file switch
-}
-```
-
-When the panel closes the host disposes the context (severing `ActiveSaveChanged` subscribers) and
-the view/`BindingContext` if `IDisposable`. A subscribing view-model should implement `IDisposable`.
 
 ## Web tools (HTML/React)
 
@@ -265,7 +237,7 @@ public static class PluginRuntimes { public const string DotNet = "dotnet", Java
 public static class PluginCapabilities
 {
     public const string SaveOperation = "saveOperation", ConsoleCommand = "consoleCommand",
-        EditorTool = "editorTool", WebTool = "webTool", MenuAction = "menuAction",
+        WebTool = "webTool", MenuAction = "menuAction",
         EventHandler = "eventHandler", SaveUpgrader = "saveUpgrader";
 }
 ```

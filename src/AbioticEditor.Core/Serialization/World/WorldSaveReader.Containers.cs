@@ -238,7 +238,7 @@ public static partial class WorldSaveReader
     private static InventoryItemSlot EmptySlot(int index)
         => new(index, null, 0, 0, 0, 0, 0, null, false, null, null);
 
-    private static string? ExtractClassName(IList<FPropertyTag> deployableProps)
+    internal static string? ExtractClassName(IList<FPropertyTag> deployableProps)
     {
         var classTag = deployableProps.FindByPrefix("Class_");
         if (classTag?.Property?.Value is SoftObjectPath softPath)

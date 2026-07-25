@@ -1,0 +1,497 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Core.Codex
+@using AbioticEditor.Core.WorldSaves
+@using AbioticEditor.Web.Components.Player
+@inject ItemCatalogService Items
+@inject TraderVocabularyService Traders
+@inject RecipeProgressGateService Gate
+@inject HostSpoilerPreferences Spoilers
+@inject SaveWorkspaceSessionService Workspace
+@inject ModalService Modals
+@inject InventorySelectionService Selection
+@implements IDisposable
+
+@* Native WorldTradersTab.xaml: the barter roster as wrapping reference cards (portrait +
+   lore + stock summary + availability). Tapping an available card opens the full stock
+   detail (the native SlotSidebarView trader detail panel) in the right-hand pane, with
+   per-item unlock checkboxes; a sealed trader prompts a clearance override dialog instead. *@
+<section class="world-editor world-meta-panel" aria-label="@L.Resource("WorldTraders_Traders")">
+    <h3 class="wm-h2">@L.Resource("WorldTraders_Traders")</h3>
+    <p class="wm-intro">@L.Resource("WorldTraders_TradersIntro")</p>
+    <div class="wm-divider" role="presentation"></div>
+
+    @if (IsSnapshotRoster)
+    {
+        <div class="wt-snapshot-note">
+            <span class="wt-snapshot-title">@L.Resource("WorldTraders_SnapshotTitle")</span>
+            <p>@L.Resource("WorldTraders_SnapshotBody")</p>
+        </div>
+    }
+
+    <div class="wt-cards">
+        @foreach (var trader in Roster)
+        {
+            var lore = TraderLore.ById.GetValueOrDefault(trader.Id);
+            var concealed = IsConcealed(trader, lore);
+            <article class="wt-card @(IsSelected(trader) ? "selected" : null)" @key="trader.Id" tabindex="0" role="button"
+                     aria-label="@ShownName(trader, lore, concealed)"
+                     @onclick="() => CardTapped(trader, lore)" @onkeydown="e => CardKeyDown(e, trader, lore)">
+                <span class="wt-portrait">
+                    @if (!concealed)
+                    {
+                        <GameArtImage GameRef="@trader.ImageAssetPath" Alt="@ShownName(trader, lore, concealed)">
+                            <span class="material-symbol" aria-hidden="true">person</span>
+                        </GameArtImage>
+                    }
+                </span>
+                <span class="wt-card-text">
+                    <strong class="wt-name">@ShownName(trader, lore, concealed)</strong>
+                    @if (!concealed && LoreText(lore, trader.Id, "Where") is { Length: > 0 } where)
+                    {
+                        <small class="wt-where">@where</small>
+                    }
+                    @if (!concealed && LoreText(lore, trader.Id, "Blurb") is { Length: > 0 } blurb)
+                    {
+                        <small class="wt-blurb">@blurb</small>
+                    }
+                    @if (!concealed)
+                    {
+                        <small class="wt-sells">@L.Resource("WorldTraders_SellsFormat", SellsText(trader))</small>
+                    }
+                    <small class="wt-availability">@(concealed ? L.Resource("Spoiler_ClassifiedTitle") : AvailabilityText(trader, lore))</small>
+                    <small class="wt-hint">@L.Resource(concealed ? "WorldTraders_Card_TapToReveal" : "WorldTraders_Card_TapToOpen")</small>
+                </span>
+            </article>
+        }
+    </div>
+
+</section>
+
+@code {
+    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter] public string Title { get; set; } = "World editor";
+    private readonly Dictionary<string, string> _inspecting = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, HashSet<string>> _selectedOfferFlags = new(StringComparer.Ordinal);
+    private TraderInfo? _selected;
+    private bool _unlocking;
+    // Native prefers the live trader roster from the installed game's paks; the built-in
+    // snapshot remains the fallback. Loading mounts paks, so it happens off the render path.
+    private IReadOnlyList<TraderInfo> _roster = TraderCatalog.Fallback;
+    // Trader gating reads the world's quest flags; on the metadata save those live in the
+    // sibling WorldSave_Facility.sav (native HasWorldFlag rule).
+    private IReadOnlySet<string>? _worldFlags;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Selection.Changed += SelectionChanged;
+        var path = Session.Path;
+        var (roster, worldFlags) = await Task.Run(() => (Traders.GetTraders(), Gate.ResolveWorldFlags(path)));
+        _roster = roster;
+        _worldFlags = worldFlags;
+        RefreshTraderDetail();
+    }
+
+    /// <summary>Another surface took over the right-hand pane: drop the card highlight.</summary>
+    private void SelectionChanged()
+    {
+        if (_selected is { } trader && Selection.DetailKey != TraderKey(trader))
+        {
+            _selected = null;
+            _ = InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public void Dispose()
+    {
+        Selection.Changed -= SelectionChanged;
+        if (Selection.DetailKey?.StartsWith("trader-detail:", StringComparison.Ordinal) == true) Selection.CloseDetail();
+    }
+
+    private IReadOnlyList<TraderInfo> Roster => _roster
+        .Where(trader => !TraderLore.NonTraders.Contains(trader.Id))
+        .OrderBy(trader => TraderLore.ById.ContainsKey(trader.Id) ? 0 : 1)
+        .ThenBy(trader => trader.Id, StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    /// <summary>True when the roster is the built-in snapshot (game data unavailable):
+    /// trades and unlock flags stay accurate, item names/icons need the game.</summary>
+    private bool IsSnapshotRoster => ReferenceEquals(_roster, TraderCatalog.Fallback);
+
+    /// <summary>Case-insensitive world-flag lookup; metadata saves read the sibling Facility flags.</summary>
+    private bool HasWorldFlag(string flag)
+        => Session.Flags.Contains(flag) || _worldFlags?.Contains(flag) == true;
+
+    private bool IsAvailableHere(TraderInfo trader)
+        => trader.RequiredFlags.Count == 0 || trader.RequiredFlags.All(HasWorldFlag);
+
+    /// <summary>Native rule: a curated spoiler-gate flag also counts as satisfied once the
+    /// story has reached (or passed) the chapter that flag triggers.</summary>
+    private bool IsSpoilerGateSatisfied(TraderLore.Entry? lore)
+    {
+        if (lore?.SpoilerGateFlag is not { } gate) return true;
+        if (HasWorldFlag(gate)) return true;
+        var gateChapter = StoryProgressionCatalog.ChapterIndexForFlag(gate);
+        return gateChapter >= 0 && StoryProgressionCatalog.FurthestReachedIndex(HasWorldFlag) >= gateChapter;
+    }
+
+    /// <summary>A trader the player hasn't reached yet is future content (native concealment).</summary>
+    private bool IsConcealed(TraderInfo trader, TraderLore.Entry? lore)
+        => Spoilers.Enabled
+           && (!IsAvailableHere(trader) || !IsSpoilerGateSatisfied(lore))
+           && !Spoilers.IsRevealed(SpoilerKey(trader));
+
+    private static string SpoilerKey(TraderInfo trader) => $"trader:{trader.Id}";
+
+    private string ShownName(TraderInfo trader, TraderLore.Entry? lore, bool concealed)
+        => concealed
+            ? L.Resource("Spoiler_ClassifiedShort")
+            : lore is null ? PlainNames.Words(trader.Id) : L.Resource($"WorldTraders_Lore_{trader.Id}_Name");
+
+    /// <summary>Localized lore field (resx keyed by trader id); empty for unknown traders.</summary>
+    private string LoreText(TraderLore.Entry? lore, string id, string field)
+        => lore is null ? string.Empty : L.Resource($"WorldTraders_Lore_{id}_{field}");
+
+    private string AvailabilityText(TraderInfo trader, TraderLore.Entry? lore)
+    {
+        // Most traders carry no world-flag gate in the game data - show the curated unlock
+        // condition instead of wrongly claiming "available from the start" (native rule).
+        if (trader.RequiredFlags.Count == 0)
+        {
+            var unlock = LoreText(lore, trader.Id, "Unlock");
+            return unlock.Length > 0 ? unlock : L.Resource("WorldTraders_Card_UnlockedByMeeting");
+        }
+        return IsAvailableHere(trader)
+            ? L.Resource("WorldTraders_Card_AvailableHere")
+            : L.Resource("WorldTraders_Card_NotYetHere", PlainNames.Flags(L, trader.RequiredFlags.Where(flag => !HasWorldFlag(flag))));
+    }
+
+    private string SellsText(TraderInfo trader)
+    {
+        var names = trader.Sells
+            .Select(offer => Items.Find(offer.ItemId)?.DisplayName ?? PlainNames.Words(offer.ItemId))
+            .Distinct()
+            .Take(10)
+            .ToList();
+        if (names.Count == 0) return L.Resource("WorldTraders_Card_NoStockTable");
+        var more = trader.Sells.Select(offer => offer.ItemId).Distinct().Count() - names.Count;
+        return string.Join(", ", names) + (more > 0 ? " " + L.Resource("WorldTraders_Card_MoreItems", more) : string.Empty);
+    }
+
+    private string AcceptsText(TraderInfo trader)
+    {
+        var names = trader.Accepts
+            .Select(offer => offer.Count > 1
+                ? $"{offer.Count}× {Items.Find(offer.ItemId)?.DisplayName ?? PlainNames.Words(offer.ItemId)}"
+                : Items.Find(offer.ItemId)?.DisplayName ?? PlainNames.Words(offer.ItemId))
+            .Distinct()
+            .ToList();
+        return names.Count == 0 ? L.Resource("WorldTraders_Card_AcceptsVaries") : string.Join(", ", names);
+    }
+
+    private bool IsSelected(TraderInfo trader) => _selected?.Id == trader.Id;
+
+    private void CardTapped(TraderInfo trader, TraderLore.Entry? lore)
+    {
+        // A sealed (not-yet-available) trader prompts a clearance override instead of
+        // opening its detail, which would expose stock and unlock flags (native rule).
+        if (IsConcealed(trader, lore)) { RequestReveal(trader); return; }
+        if (IsSelected(trader) && Selection.DetailKey == TraderKey(trader)) { CloseTraderDetail(); return; }
+        OpenTraderDetail(trader);
+    }
+
+    private void CardKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs args, TraderInfo trader, TraderLore.Entry? lore)
+    {
+        if (args.Key is "Enter" or " ") CardTapped(trader, lore);
+    }
+
+    /// <summary>The clearance override prompt, in the shared modal dialog (native spoiler flow).</summary>
+    private void RequestReveal(TraderInfo trader) => Modals.Show(new ModalRequest(
+        L.Resource("Spoiler_OverrideTitle"),
+        Paragraph(L.Resource("Spoiler_OverrideMessage", L.Resource("WorldTraders_Card_ThisTrader"))),
+        ConfirmText: L.Resource("Spoiler_OverrideAccept"),
+        OnConfirm: async () => { Reveal(trader); await InvokeAsync(StateHasChanged); },
+        CancelText: L.Resource("Spoiler_OverrideKeepSealed")));
+
+    private static RenderFragment Paragraph(string text) => builder =>
+    {
+        builder.OpenElement(0, "p");
+        builder.AddContent(1, text);
+        builder.CloseElement();
+    };
+
+    private void Reveal(TraderInfo trader)
+    {
+        Spoilers.Reveal(SpoilerKey(trader));
+        OpenTraderDetail(trader);
+    }
+
+    // ---------- trader detail in the right-hand pane (native SlotSidebarView panel) ----------
+
+    private static string TraderKey(TraderInfo trader) => $"trader-detail:{trader.Id}";
+
+    private void OpenTraderDetail(TraderInfo trader)
+    {
+        _selected = trader;
+        Selection.ShowDetail(TraderKey(trader), TraderDetail(trader));
+    }
+
+    private void CloseTraderDetail()
+    {
+        _selected = null;
+        Selection.CloseDetail();
+    }
+
+    /// <summary>Re-publishes the open trader detail so the pane re-renders fresh state
+    /// (tick counts, unlock progress, inspected item) after an interaction.</summary>
+    private void RefreshTraderDetail()
+    {
+        if (_selected is { } trader && Selection.DetailKey == TraderKey(trader))
+            Selection.ShowDetail(TraderKey(trader), TraderDetail(trader));
+    }
+
+    /// <summary>The native SlotSidebarView trader detail panel: portrait + lore header,
+    /// barter terms, the stock list with per-item unlock checkboxes, the unlock actions
+    /// and the tapped item's encyclopedia card.</summary>
+    private RenderFragment TraderDetail(TraderInfo trader) =>
+        @<aside class="wt-trader-detail" aria-label="@ShownName(trader, TraderLore.ById.GetValueOrDefault(trader.Id), false)">
+            @{
+                var detailLore = TraderLore.ById.GetValueOrDefault(trader.Id);
+                var tickedFlags = SelectedFlagsFor(trader);
+            }
+            <header class="wt-detail-head">
+                <span class="wt-detail-portrait">
+                    <GameArtImage GameRef="@trader.ImageAssetPath" Alt="@ShownName(trader, detailLore, false)">
+                        <span class="material-symbol" aria-hidden="true">person</span>
+                    </GameArtImage>
+                </span>
+                <span class="wt-detail-title">
+                    <strong>@ShownName(trader, detailLore, false)</strong>
+                    <small>@LoreText(detailLore, trader.Id, "Where")</small>
+                </span>
+                <button type="button" class="wm-close" aria-label="@L.Resource("Common_Cancel")" @onclick="CloseTraderDetail">✕</button>
+            </header>
+            @if (LoreText(detailLore, trader.Id, "Blurb") is { Length: > 0 } detailBlurb)
+            {
+                <p class="wt-detail-blurb">@detailBlurb</p>
+            }
+            <small class="wt-availability">@AvailabilityText(trader, detailLore)</small>
+            <div class="wm-divider" role="presentation"></div>
+
+            <span class="wm-label">@L.Resource("Slot_WhatTheyAcceptAsPayment")</span>
+            <p class="wt-accepts">@AcceptsText(trader)</p>
+            <p class="wm-note">@L.Resource("Slot_TradingIsBarterHandOverTheItemsAboveToBuyFromTheStockBelow")</p>
+
+            <div class="wm-divider" role="presentation"></div>
+            <span class="wm-label">@L.Resource("Slot_WhatTheySellTapAnItemToInspectTickLockedItemsToUnlock")</span>
+            <div class="wt-offer-list">
+                @foreach (var offer in trader.Sells)
+                {
+                    var entry = Items.Find(offer.ItemId);
+                    var name = entry?.DisplayName ?? PlainNames.Words(offer.ItemId);
+                    var text = offer.Count > 1 ? $"{offer.Count}× {name}" : name;
+                    var unlocked = offer.RequiredFlag is null || HasWorldFlag(offer.RequiredFlag);
+                    var canSelect = !unlocked && offer.RequiredFlag is not null;
+                    // Name the moment in the story that unlocks the item, not the marker the
+                    // save happens to store it under.
+                    var status = offer.RequiredFlag is null ? L.Resource("WorldTraders_Card_AlwaysStocked")
+                        : unlocked ? L.Resource("WorldTraders_Card_UnlockedFlagSet", PlainNames.Flag(L, offer.RequiredFlag))
+                        : L.Resource("WorldTraders_Card_LockedNeedsFlag", PlainNames.Flag(L, offer.RequiredFlag));
+                    <button type="button" class="wt-offer-row" @key="offer.ItemId" @onclick="() => Inspect(trader.Id, offer.ItemId)">
+                        @if (canSelect)
+                        {
+                            <input type="checkbox" checked="@tickedFlags.Contains(offer.RequiredFlag!)" aria-label="@text"
+                                   @onclick:stopPropagation="true" @onchange="e => ToggleOffer(trader.Id, offer.RequiredFlag!, e.Value is bool value && value)" />
+                        }
+                        else
+                        {
+                            <span role="presentation"></span>
+                        }
+                        <span class="wt-offer-icon"><ItemIcon ItemId="@offer.ItemId" Alt="@text" /></span>
+                        <span class="wt-offer-text"><strong>@text</strong><small>@status</small></span>
+                    </button>
+                }
+            </div>
+
+            <div class="wt-detail-actions">
+                @if (tickedFlags.Count > 0)
+                {
+                    <button type="button" class="wm-hazard-btn" disabled="@_unlocking"
+                            @onclick="() => RequestUnlockSelected(trader)">@L.Resource("WorldTraders_Card_UnlockSelected", tickedFlags.Count)</button>
+                }
+                @if (MissingGatingFlags(trader).Count > 0)
+                {
+                    <button type="button" class="secondary" disabled="@_unlocking"
+                            @onclick="() => RequestUnlockAll(trader)">@L.Resource("Slot_UnlockAll")</button>
+                }
+            </div>
+            <p class="wm-note">@L.Resource("Slot_UnlockingWritesTheChosenItemsFlagsPlusAnyFlagsNeededForTheTraderToAppearAtAllIntoWorldSaveFacilitySavABakIsKept")</p>
+
+            @if (_inspecting.TryGetValue(trader.Id, out var inspectedId) && Items.Find(inspectedId) is { } inspected)
+            {
+                <div class="wt-offer-detail">
+                    <div class="wt-detail-head">
+                        <span class="wt-offer-icon"><ItemIcon ItemId="@inspected.Id" Alt="@inspected.DisplayName" /></span>
+                        <span class="wt-detail-title"><strong>@inspected.DisplayName</strong></span>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(inspected.Description))
+                    {
+                        <p class="wt-detail-blurb">@inspected.Description</p>
+                    }
+                </div>
+            }
+        </aside>;
+
+    private HashSet<string> SelectedFlagsFor(TraderInfo trader) => _selectedOfferFlags.TryGetValue(trader.Id, out var set) ? set : [];
+
+    private void Inspect(string traderId, string itemId)
+    {
+        if (_inspecting.TryGetValue(traderId, out var current) && current == itemId) _inspecting.Remove(traderId);
+        else _inspecting[traderId] = itemId;
+        RefreshTraderDetail();
+    }
+
+    private void ToggleOffer(string traderId, string flag, bool selected)
+    {
+        var set = _selectedOfferFlags.TryGetValue(traderId, out var existing) ? existing : _selectedOfferFlags[traderId] = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (selected) set.Add(flag); else set.Remove(flag);
+        RefreshTraderDetail();
+    }
+
+    /// <summary>Every flag gating this trader or any of its offers that is not yet set.</summary>
+    private IReadOnlyList<string> MissingGatingFlags(TraderInfo trader) => trader.RequiredFlags
+        .Concat(trader.Sells.Where(offer => offer.RequiredFlag is not null).Select(offer => offer.RequiredFlag!))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .Where(flag => !HasWorldFlag(flag))
+        .ToList();
+
+    /// <summary>The ticked stock flags PLUS any missing trader-gating flags (without those,
+    /// the trader never appears and the unlocked stock would be unreachable).</summary>
+    private void RequestUnlockSelected(TraderInfo trader)
+    {
+        var flags = trader.RequiredFlags
+            .Where(flag => !HasWorldFlag(flag))
+            .Concat(SelectedFlagsFor(trader))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        RequestUnlock(trader, flags, clearSelection: true);
+    }
+
+    private void RequestUnlockAll(TraderInfo trader)
+        => RequestUnlock(trader, MissingGatingFlags(trader), clearSelection: false);
+
+    /// <summary>
+    /// The exact flags the write path will produce, so the preview never under-reports:
+    /// a directly-loaded world save expands story prerequisites the way
+    /// <see cref="WorldSaveSession.EnableFlagWithPrerequisites"/> will, while the metadata
+    /// path writes the flags verbatim (matching <see cref="UnlockFlagsAsync"/>).
+    /// </summary>
+    private IReadOnlyList<string> FlagsThatWillBeWritten(IReadOnlyCollection<string> flags)
+    {
+        var expanded = Session.IsMetadataSave
+            ? flags
+            : flags.SelectMany(flag => FlagGate.PrerequisitesFor(flag).Append(flag));
+        return expanded
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(flag => !HasWorldFlag(flag))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Traders that are locked today but whose gating flags are all satisfied once
+    /// <paramref name="flagsToWrite"/> land - the shared-flag cascade the confirm dialog
+    /// spells out (e.g. a flag that gates one trader also opens another's stock table).
+    /// </summary>
+    private IReadOnlyList<TraderInfo> TradersAlsoUnlockedBy(TraderInfo unlocking, IReadOnlyCollection<string> flagsToWrite)
+    {
+        var incoming = new HashSet<string>(flagsToWrite, StringComparer.OrdinalIgnoreCase);
+        return Roster
+            .Where(trader => !string.Equals(trader.Id, unlocking.Id, StringComparison.OrdinalIgnoreCase)
+                && trader.RequiredFlags.Count > 0
+                && !IsAvailableHere(trader)
+                && trader.RequiredFlags.All(flag => HasWorldFlag(flag) || incoming.Contains(flag)))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Confirm-first unlock (native rule: these are story flags and can advance other
+    /// content tied to them). The dialog lists every flag about to be written and every
+    /// other trader those flags happen to unlock; nothing is written until CONFIRM.
+    /// </summary>
+    private void RequestUnlock(TraderInfo trader, IReadOnlyCollection<string> requested, bool clearSelection)
+    {
+        var flags = FlagsThatWillBeWritten(requested);
+        if (flags.Count == 0) return;
+        var alsoUnlocked = TradersAlsoUnlockedBy(trader, flags);
+        var lore = TraderLore.ById.GetValueOrDefault(trader.Id);
+        Modals.Show(new ModalRequest(
+            L.Resource("WorldTraders_UnlockConfirmTitle", ShownName(trader, lore, concealed: false)),
+            UnlockPreviewBody(flags, alsoUnlocked),
+            ConfirmText: L.Resource("WorldTraders_UnlockConfirmAccept"),
+            OnConfirm: async () =>
+            {
+                if (clearSelection) SelectedFlagsFor(trader).Clear();
+                await UnlockFlagsAsync(flags);
+                // The confirm runs from the modal host, not from one of this tab's own
+                // handlers, so the roster cards would keep their stale NOT YET text
+                // until the next unrelated interaction without an explicit re-render.
+                await InvokeAsync(StateHasChanged);
+            },
+            CancelText: L.Resource("Common_Cancel")));
+    }
+
+    /// <summary>Preview list for the unlock confirm: flags first, cascade traders second.
+    /// A cascade trader the spoiler guard still conceals shows as classified, not by name.</summary>
+    private RenderFragment UnlockPreviewBody(IReadOnlyList<string> flags, IReadOnlyList<TraderInfo> alsoUnlocked) =>
+        @<div class="wt-unlock-preview">
+            <p>@L.Resource("WorldTraders_UnlockFlagsIntro")</p>
+            <ul>
+                @foreach (var flag in flags)
+                {
+                    <li><b>@PlainNames.Flag(L, flag)</b><small>@flag</small></li>
+                }
+            </ul>
+            @if (alsoUnlocked.Count > 0)
+            {
+                <p>@L.Resource("WorldTraders_UnlockAlsoTraders")</p>
+                <ul>
+                    @foreach (var other in alsoUnlocked)
+                    {
+                        var otherLore = TraderLore.ById.GetValueOrDefault(other.Id);
+                        <li><b>@ShownName(other, otherLore, IsConcealed(other, otherLore))</b></li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <p class="wt-unlock-noothers">@L.Resource("WorldTraders_UnlockNoOtherTraders")</p>
+            }
+        </div>;
+
+    /// <summary>
+    /// Writes trader-gating/stock flags. On the metadata save (where this tab lives) they
+    /// belong to the sibling WorldSave_Facility.sav - written immediately with a .bak, like
+    /// the native app. On a directly-loaded world save they stage until SAVE.
+    /// </summary>
+    private async Task UnlockFlagsAsync(IReadOnlyCollection<string> flags)
+    {
+        if (flags.Count == 0) return;
+        _unlocking = true;
+        RefreshTraderDetail();
+        try
+        {
+            if (Session.IsMetadataSave)
+            {
+                var path = Session.Path;
+                await Task.Run(() => StoryFlagSync.AddFacilityFlags(path, flags));
+                _worldFlags = await Task.Run(() => Gate.ResolveWorldFlags(path));
+            }
+            else
+            {
+                foreach (var flag in flags) Session.EnableFlagWithPrerequisites(flag);
+                Workspace.NotifyEdited();
+            }
+        }
+        finally { _unlocking = false; RefreshTraderDetail(); }
+    }
+}

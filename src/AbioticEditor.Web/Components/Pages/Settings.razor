@@ -1,0 +1,285 @@
+@using AbioticEditor.Core.Plugins
+@implements IDisposable
+@inject HostSettingsService HostSettings
+@inject HostThemeService Theme
+@inject HostLanguageService Languages
+@inject HostSpoilerPreferences Spoilers
+@inject AbioticEditor.Ui.IExternalNavigationService ExternalNavigation
+@inject AbioticEditor.Ui.IFilePicker FilePicker
+@inject AbioticEditor.Ui.IFolderPicker FolderPicker
+@inject ModalService Modals
+
+<section class="settings-sheet" role="dialog" aria-modal="true" aria-labelledby="settings-sheet-title" tabindex="-1" @onkeydown="HandleKeyDown">
+    <header class="settings-sheet-header">
+        <span class="settings-badge" aria-hidden="true">AF</span>
+        <div>
+            <p>@R("Settings_ScaffoldTitle")</p>
+            <h1 id="settings-sheet-title">@R("Settings_ScaffoldSubtitle")</h1>
+        </div>
+    </header>
+    <div class="settings-sheet-hazard" aria-hidden="true"></div>
+    <div class="settings-sheet-main">
+        <nav class="settings-tab-rail" aria-label="@R("Settings_Title")" role="tablist" aria-orientation="vertical">
+            @foreach (var tab in Tabs)
+            {
+                <button type="button" role="tab" aria-selected="@(_selectedTab == tab.Id)" class="@(_selectedTab == tab.Id ? "selected" : null)" @onclick="() => SelectTab(tab.Id)">@R(tab.ResourceKey)</button>
+            }
+        </nav>
+        <div class="settings-sheet-scroll" role="tabpanel" tabindex="0">
+            <div class="settings-sheet-content">
+                @if (_error is not null) { <p class="error" role="alert">@_error</p> }
+                @switch (_selectedTab)
+                {
+                    case SettingsTab.General:
+                        <article class="settings-card">
+                            <h2>@R("Settings_Theme")</h2>
+                            <p class="muted">@R("Settings_ThemeHint")</p>
+                            <div class="theme-segments" role="group" aria-label="@R("Settings_Theme")">
+                                <button type="button" class="@(Theme.Accent == HostThemeAccent.Cascade ? "selected" : null)" @onclick="() => SetAccent(HostThemeAccent.Cascade)">@ThemeLabel("Settings_ThemeCascade", HostThemeAccent.Cascade)</button>
+                                <button type="button" class="@(Theme.Accent == HostThemeAccent.Hazard ? "selected" : null)" @onclick="() => SetAccent(HostThemeAccent.Hazard)">@ThemeLabel("Settings_ThemeHazard", HostThemeAccent.Hazard)</button>
+                            </div>
+                            <label class="settings-switch-row">
+                                <span>@R("Settings_LightMode")</span>
+                                <input type="checkbox" role="switch" checked="@(Theme.Current == HostTheme.Light)" @onchange="SetLightMode" />
+                            </label>
+                        </article>
+                        <article class="settings-card">
+                            <h2>@R("Settings_Language")</h2>
+                            <p class="muted">@R("Settings_Language_Hint")</p>
+                            <div class="settings-value-row"><strong>@CurrentLanguageName()</strong><button class="secondary" type="button" @onclick="() => _languageChooserOpen = true">@R("Settings_LanguageChange")</button></div>
+                        </article>
+                        <article class="settings-card">
+                            <h2>@R("Settings_Diagnostics")</h2>
+                            <p class="muted">@R("Settings_DiagnosticsHint")</p>
+                            <label class="settings-switch-row"><span>@R("Settings_DiagnosticLogging")</span><input type="checkbox" role="switch" checked="@HostSettings.DiagnosticLoggingEnabled" @onchange="SetDiagnostics" /></label>
+                            <button class="secondary" type="button" @onclick="RevealLogsAsync">@R("Settings_OpenLogFolder")</button>
+                            @if (_logFolderStatus is not null) { <p class="muted" role="status">@_logFolderStatus</p> }
+                        </article>
+                        break;
+                    case SettingsTab.Editor:
+                        <article class="settings-card">
+                            <h2>@R("Settings_Spoilers")</h2>
+                            <p class="muted">@R("Settings_SpoilersHint")</p>
+                            <label class="settings-switch-row"><span>@R("Settings_SpoilerProtection")</span><input type="checkbox" role="switch" checked="@Spoilers.Enabled" @onchange="SetSpoilerProtection" /></label>
+                            <p class="muted">@(Spoilers.RevealedCount == 0 ? R("Settings_NothingRevealed") : R("Settings_ItemsRevealed", Spoilers.RevealedCount))</p>
+                            <button class="secondary" type="button" @onclick="ResealSpoilers" disabled="@(Spoilers.RevealedCount == 0)">@R("Settings_ResealItems")</button>
+                        </article>
+                        break;
+                    case SettingsTab.GameData:
+                        <article class="settings-card">
+                            <h2>@R("Settings_GameData")</h2>
+                            <p class="muted">@R("GameDataSettings_CardHint")</p>
+                            <div class="game-data-path-row"><span>@R("GameDataSettings_GameFolderLabel", HostSettings.SavedGamePath ?? HostSettings.PaksPath ?? R("GameDataSettings_FolderNotFound"))</span><button class="primary" type="button" @onclick="PickGameFolderAsync">@R("GameDataSettings_SetGameFolder")</button>@if (HostSettings.SavedGamePath is not null) { <button class="secondary" type="button" @onclick="ClearGamePathAsync">@R("GameDataSettings_UseAutoDetect")</button> }</div>
+                            <div class="game-data-path-row"><span>@R("GameDataSettings_UsmapLabel", HostSettings.MappingsPath is null ? R("GameDataSettings_UsmapNotFound") : Path.GetFileName(HostSettings.MappingsPath))</span><button class="secondary" type="button" @onclick="ImportMappingsAsync">@R("GameDataSettings_ImportDataFile")</button></div>
+                            <label for="game-data-language">@R("GameDataSettings_LanguageTitle")</label>
+                            <select id="game-data-language" class="settings-select" value="@(Languages.GameDataLanguage ?? string.Empty)" @onchange="SetGameDataLanguageAsync">
+                                <option value="">@R("GameDataSettings_LanguageAuto")</option>
+                                @foreach (var language in Languages.AvailableGameData)
+                                {
+                                    <option value="@language.Code">@language.NativeName</option>
+                                }
+                            </select>
+                            @if (_gameDataStatus is not null) { <p class="muted" role="status">@_gameDataStatus</p> }
+                        </article>
+                        <article class="settings-card">
+                            <h2>@R("Settings_Mods")</h2>
+                            <p class="muted">@R("GameDataSettings_LoadModsHint")</p>
+                            <label class="settings-switch-row"><span>@R("GameDataSettings_LoadMods")</span><input type="checkbox" role="switch" checked="@HostSettings.ModsEnabled" disabled="@HostSettings.ModsLockedOff" @onchange="SetModsEnabled" /></label>
+                            <p class="muted">@ModsStatus()</p>
+                            @foreach (var mod in HostSettings.InstalledMods)
+                            {
+                                <label class="settings-switch-row mod-switch-row"><span>@mod.Name</span><input type="checkbox" role="switch" checked="@HostSettings.IsModEnabled(mod.Name)" disabled="@(!HostSettings.ModsEnabled || HostSettings.ModsLockedOff)" @onchange="e => SetModEnabled(mod.Name, e)" /></label>
+                            }
+                        </article>
+                        break;
+                    case SettingsTab.Convert:
+                        <div class="settings-tab-embedded"><GamePass /></div>
+                        break;
+                    case SettingsTab.Plugins:
+                        <article class="settings-card plugins-card">
+                            <header><div><h2>@R("Settings_Plugins")</h2><p class="muted">@R("Settings_PluginsHint", HostSettings.Plugins.Count)</p></div></header>
+                            @if (HostSettings.Plugins.Count == 0) { <p class="empty">@R("Plugins_NoneInstalled")</p> }
+                            else
+                            {
+                                <div class="plugin-list">@foreach (var plugin in HostSettings.Plugins)
+                                    {
+                                        <article class="plugin-row"><div><strong>@plugin.Manifest.Name</strong><small>v@plugin.Manifest.Version</small><p>@(string.IsNullOrWhiteSpace(plugin.Manifest.Description) ? plugin.CapabilitySummary() : plugin.Manifest.Description)</p></div><div class="plugin-state"><span>@PluginStateLabel(plugin.State)</span><label class="toggle-row"><input type="checkbox" checked="@plugin.Manifest.Enabled" @onchange="e => TogglePlugin(plugin, e)" />@R("Plugins_Enabled")</label></div></article>
+                                    }</div>
+                            }
+                        </article>
+                        break;
+                    case SettingsTab.Compare:
+                        <div class="settings-tab-embedded"><Compare /></div>
+                        break;
+                }
+            </div>
+        </div>
+    </div>
+    <footer class="settings-sheet-footer"><button class="secondary" type="button" @onclick="CloseAsync">@R("Common_Close")</button></footer>
+</section>
+
+@if (_busyMessage is not null)
+{
+    <div class="blocking-busy-overlay" role="status" aria-live="assertive" aria-busy="true">
+        <span class="blocking-busy-spinner" aria-hidden="true"></span>
+        <strong>@_busyMessage</strong>
+    </div>
+}
+
+@if (_languageChooserOpen)
+{
+    <div class="settings-subdialog-backdrop" role="presentation">
+        <section class="settings-subdialog" role="dialog" aria-modal="true" aria-labelledby="language-title">
+            <h2 id="language-title">@R("Settings_Language")</h2>
+            <p class="muted">@R("Settings_Language_Hint")</p>
+            <div class="language-options">@foreach (var language in Languages.Available)
+                {
+                    <label class="language-option"><input type="radio" name="settings-language" checked="@(Languages.CurrentCode == language.Code)" @onchange="() => SetLanguage(language.Code)" /><span>@language.NativeName</span></label>
+                }</div>
+            <footer><button class="secondary" type="button" @onclick="() => _languageChooserOpen = false">@R("Common_Close")</button></footer>
+        </section>
+    </div>
+}
+
+@code {
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private readonly record struct TabChoice(SettingsTab Id, string ResourceKey);
+    private static readonly TabChoice[] Tabs =
+    [
+        new(SettingsTab.General, "Settings_TabGeneral"), new(SettingsTab.Editor, "Settings_TabEditor"),
+        new(SettingsTab.GameData, "Settings_GameData"), new(SettingsTab.Convert, "Settings_TabConvert"),
+        new(SettingsTab.Plugins, "Settings_Plugins"), new(SettingsTab.Compare, "Compare_TabLabel"),
+    ];
+    private SettingsTab _selectedTab;
+    private string? _error;
+    private string? _gameDataStatus;
+    private string? _logFolderStatus;
+    private bool _languageChooserOpen;
+    private string? _pendingGameLanguage;
+    private string? _previousGameLanguage;
+    private bool _gameLanguageWasAutomatic;
+    private string? _busyMessage;
+
+    protected override void OnInitialized()
+    {
+        Languages.Changed += Refresh;
+        Theme.Changed += Refresh;
+    }
+
+    private string R(string key, params object?[] args) => Languages.Resource(key, args);
+    private string CurrentLanguageName() => Languages.Available.FirstOrDefault(language => language.Code == Languages.CurrentCode)?.NativeName ?? Languages.CurrentCode;
+    private string GameDataLanguageName(string? code) => Languages.AvailableGameData.FirstOrDefault(language => string.Equals(language.Code, code, StringComparison.OrdinalIgnoreCase))?.NativeName ?? code ?? R("GameDataSettings_LanguageAuto");
+    private string PluginStateLabel(PluginLoadState state) => R("Plugins_State" + state);
+    private string ThemeLabel(string key, HostThemeAccent accent) => Theme.Accent == accent ? R("Settings_ThemeActive", R(key)) : R(key);
+    private void SelectTab(SettingsTab tab) { _selectedTab = tab; _error = null; }
+    private void SetAccent(HostThemeAccent accent) => Theme.SetAccent(accent.ToString());
+    private void SetLightMode(ChangeEventArgs e) => Theme.SetTheme((e.Value as bool? ?? false) ? "Light" : "Dark");
+    private void SetLanguage(string code)
+    {
+        var previousEditorLanguage = Languages.CurrentCode;
+        if (string.Equals(previousEditorLanguage, code, StringComparison.OrdinalIgnoreCase)) { _languageChooserOpen = false; return; }
+        _gameLanguageWasAutomatic = Languages.GameDataLanguage is null;
+        _previousGameLanguage = Languages.GameDataLanguage ?? HostLanguageService.MapEditorToGameData(previousEditorLanguage);
+        _pendingGameLanguage = HostLanguageService.MapEditorToGameData(code);
+        Languages.SetLanguage(code);
+        _languageChooserOpen = false;
+        if (!string.Equals(_previousGameLanguage, _pendingGameLanguage, StringComparison.OrdinalIgnoreCase)) RequestGameLanguageSync();
+    }
+
+    // The follow-up "also switch the game-data language?" question is a confirmation
+    // prompt, so it goes through the shared modal dialog. Declining (cancel, backdrop or
+    // Escape) restores the previous game-data language, exactly like the old dialog.
+    private void RequestGameLanguageSync() => Modals.Show(new ModalRequest(
+        R("GameDataSettings_SyncLanguageTitle"),
+        SyncBody(R("GameDataSettings_SyncLanguageMessage", GameDataLanguageName(_pendingGameLanguage))),
+        ConfirmText: R("GameDataSettings_SyncLanguageAccept"),
+        OnConfirm: AcceptGameLanguageSyncAsync,
+        CancelText: R("Common_Cancel"),
+        OnCancel: () => { DeclineGameLanguageSync(); return Task.CompletedTask; }));
+
+    private static RenderFragment SyncBody(string text) => builder =>
+    {
+        builder.OpenElement(0, "p");
+        builder.AddContent(1, text);
+        builder.CloseElement();
+    };
+    private async Task PickGameFolderAsync()
+    {
+        var picked = await FolderPicker.PickFolderAsync(new() { Title = R("GameDataSettings_SetGameFolder") });
+        if (picked is null || string.IsNullOrWhiteSpace(picked.Path)) return;
+        if (!HostSettings.SaveGamePath(picked.Path)) { _error = R("GameDataSettings_NoGameDataMessage", picked.Path); return; }
+        _error = null;
+        await ReloadGameDataBusyAsync();
+    }
+    private async Task ClearGamePathAsync() { HostSettings.ClearGamePath(); _error = null; await ReloadGameDataBusyAsync(); }
+    private async Task ImportMappingsAsync()
+    {
+        var picked = await FilePicker.PickFileAsync(new() { Title = R("GameDataSettings_ImportDataFile"), FileTypes = [new(R("GameDataSettings_ImportDataFile"), [".usmap"])] });
+        if (picked is null || string.IsNullOrWhiteSpace(picked.Path)) return;
+        await RunGameDataWorkAsync(() => HostSettings.InstallMappings(picked.Path));
+    }
+    private Task ReloadGameDataBusyAsync() => RunGameDataWorkAsync(HostSettings.ReloadGameData);
+    private async Task RunGameDataWorkAsync(Func<GameDataReloadStatus> work)
+    {
+        _busyMessage = R("GameDataSettings_ReloadingGameData");
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
+        try { ApplyGameDataStatus(await Task.Run(work)); }
+        finally { _busyMessage = null; await InvokeAsync(StateHasChanged); }
+    }
+    private async Task SetGameDataLanguageAsync(ChangeEventArgs args)
+    {
+        var culture = args.Value?.ToString();
+        Languages.SetGameDataLanguage(string.IsNullOrWhiteSpace(culture) ? null : culture);
+        await ReloadGameDataBusyAsync();
+    }
+    private async Task AcceptGameLanguageSyncAsync()
+    {
+        Languages.SetGameDataLanguage(_gameLanguageWasAutomatic ? null : _pendingGameLanguage);
+        await ReloadGameDataBusyAsync();
+    }
+    private void DeclineGameLanguageSync()
+    {
+        if (_gameLanguageWasAutomatic) Languages.SetGameDataLanguage(_previousGameLanguage);
+    }
+    private void ApplyGameDataStatus(GameDataReloadStatus status)
+    {
+        var message = status.Outcome switch
+        {
+            GameDataReloadOutcome.Reloaded or GameDataReloadOutcome.MappingsInstalled => R("GameDataSettings_GameDataLoadedMessage"),
+            GameDataReloadOutcome.MissingMappings => R("GameDataSettings_UsmapNotFound"),
+            GameDataReloadOutcome.NoInstall => R("GameDataSettings_FolderNotFound"),
+            GameDataReloadOutcome.ImportFailed => R("GameDataSettings_FolderPickerFailedTitle"),
+            _ => R("GameDataSettings_NoGameDataTitle"),
+        };
+        _gameDataStatus = status.CatalogsAvailable ? message : null;
+        _error = status.CatalogsAvailable ? null : message;
+    }
+    private void SetDiagnostics(ChangeEventArgs e) => HostSettings.DiagnosticLoggingEnabled = e.Value as bool? ?? false;
+    private async Task SetModsEnabled(ChangeEventArgs e) { HostSettings.SetModsEnabled(e.Value as bool? ?? false); await ReloadGameDataBusyAsync(); }
+    private async Task SetModEnabled(string modName, ChangeEventArgs e) { HostSettings.SetModEnabled(modName, e.Value as bool? ?? false); await ReloadGameDataBusyAsync(); }
+    private string ModsStatus()
+    {
+        if (HostSettings.ModsLockedOff) return R("GameDataSettings_ModsDisabledByEnv");
+        var installed = HostSettings.InstalledMods;
+        if (installed.Count == 0) return R("ModsSettings_NoneInstalled");
+        var loaded = HostSettings.ModsEnabled ? installed.Count(mod => HostSettings.IsModEnabled(mod.Name)) : 0;
+        return R("ModsSettings_Status", loaded, installed.Count);
+    }
+    private void SetSpoilerProtection(ChangeEventArgs e) => Spoilers.Enabled = e.Value as bool? ?? false;
+    private void ResealSpoilers() => Spoilers.Reseal();
+    private async Task RevealLogsAsync()
+    {
+        _logFolderStatus = null;
+        try { await LogFolderOpener.OpenAsync(ExternalNavigation, HostSettings.LogDirectory); }
+        catch (Exception ex) { Errors.Record(ex, "Open log folder"); _logFolderStatus = R("Main_LogFolderOpenFailed"); }
+    }
+    private void TogglePlugin(PluginDescriptor plugin, ChangeEventArgs e) { if (!HostSettings.SetPluginEnabled(plugin, e.Value as bool? ?? false)) _error = R("Settings_PluginManifestFailed", plugin.Manifest.Name); }
+    private async Task CloseAsync() => await OnClose.InvokeAsync();
+    private async Task HandleKeyDown(KeyboardEventArgs args) { if (args.Key == "Escape") { if (Modals.Current is not null) return; if (_languageChooserOpen) _languageChooserOpen = false; else await CloseAsync(); } }
+    private void Refresh(object? sender, EventArgs args) => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() { Languages.Changed -= Refresh; Theme.Changed -= Refresh; }
+
+    private enum SettingsTab { General, Editor, GameData, Convert, Plugins, Compare }
+}

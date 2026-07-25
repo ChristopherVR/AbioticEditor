@@ -124,4 +124,15 @@ public static class SectorMapCatalog
         => string.IsNullOrEmpty(levelFileName)
             ? null
             : maps.FirstOrDefault(m => m.LevelFileName.Equals(levelFileName, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// The pamphlet with this row name, or null. Preferred over <see cref="ForLevel"/> for
+    /// anything that pins positions: the game's own level handles are unreliable (Map_Security
+    /// and Map_Reactors both claim the Dam, Map_Residence claims nothing), so
+    /// <see cref="SectorMapCalibration"/> pairs levels with rows itself and looks the row up here.
+    /// </summary>
+    public static SectorMapInfo? ForRow(IReadOnlyList<SectorMapInfo> maps, string? row)
+        => string.IsNullOrEmpty(row)
+            ? null
+            : maps.FirstOrDefault(m => m.Row.Equals(row, StringComparison.OrdinalIgnoreCase));
 }

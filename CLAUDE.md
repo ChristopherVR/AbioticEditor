@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A save-game editor for **Abiotic Factor** (a Unreal Engine GVAS game). It reads/writes save
 files byte-for-byte and understands the game's own data tables by mounting the installed game's
-pak archives. Ships a .NET MAUI desktop app and a CLI, both thin front-ends over a shared Core.
+pak archives. Ships a local Razor desktop host and a CLI, both thin front-ends over a shared Core.
 
 ## Git workflow
 
@@ -38,28 +38,35 @@ build depends on the `submodules/` source projects.
 ```console
 dotnet build src/AbioticEditor.Core                                       # core library
 dotnet build src/AbioticEditor.Cli                                        # CLI (abioticeditor)
-dotnet build src/AbioticEditor.App -f net10.0-windows10.0.19041.0         # desktop app (Windows)
+dotnet build src/AbioticEditor.Web                                       # local editor host
 dotnet test  tests/AbioticEditor.Tests -f net10.0                         # all tests
 dotnet test  tests/AbioticEditor.Tests -f net10.0 --filter "FullyQualifiedName~PlayerSaveFactoryTests"  # one class/test
 ```
 
-- The **App is multi-targeted** (`net10.0-android;net10.0-ios;net10.0-maccatalyst`, plus
-  `net10.0-windows10.0.19041.0` on Windows). Always pass `-f <tfm>` when building it; non-Windows
-  targets need the MAUI workload (`dotnet workload install maui`).
-- **A running app instance locks its `bin` DLLs.** To verify an App change compiles while the app
-  is open, build to a throwaway output dir: `dotnet build src/AbioticEditor.App -f net10.0-windows10.0.19041.0 -o "$env:TEMP\verify"`.
+- The local Razor host targets `net10.0` and builds with the standard SDK on Windows and Linux.
+- **A running host instance can lock its `bin` DLLs.** To verify a change while it is open, build
+  to a throwaway output dir: `dotnet build src/AbioticEditor.Web -o "$env:TEMP\verify"`.
+- **Any build rewrites the scoped-CSS bundle the running host serves**, including a `-o` build to a
+  throwaway dir: the per-component `*.razor.css` styles are bundled into a single generated
+  `AbioticEditor.Web.styles.css` that lives under `obj/<config>/<tfm>/scopedcss/bundle/` and is
+  regenerated in place. `Program.cs` serves it via `MapStaticAssets()` and `App.razor` references it
+  through `@Assets[...]`, so the URL carries a content stamp and a rebuild no longer leaves an open
+  window unable to fetch it. **Do not** revert either to `UseStaticFiles()` / a plain
+  `href="AbioticEditor.Web.styles.css"`: that combination returned a 404 during the rebuild window
+  and left the app rendering with `parity.css` alone, which looks like a catastrophic UI regression
+  (collapsed grids, unsized item icons, overlapping labels) with no source change behind it. If a
+  screen ever does look like that, check that URL before suspecting recent commits, and reload the
+  window.
 - The `CUE4Parse-Natives build failed … 'cmake' is not recognized` line during builds is **benign**:
   the native texture decoder is optional; managed parsing/extraction still works.
 - Packages are centrally managed (`Directory.Packages.props`); analyzers run at
   `latest-recommended` with `EnforceCodeStyleInBuild` (warnings are *not* errors).
-- App XAML uses **source-generated XAML compilation** (`<MauiXamlInflator>SourceGen</…>`), so XAML
-  binding/handler errors surface at build time.
 
 ## Architecture
 
-### Core is the engine; App and CLI are thin shells
+### Core is the engine; the Razor host and CLI are thin shells
 
-`src/AbioticEditor.Core` holds all parsing/editing. `App` (MAUI) and `Cli` are front-ends over it,
+`src/AbioticEditor.Core` holds all parsing/editing. `Web` (Razor) and `Cli` are front-ends over it,
 so the CLI writes byte-identical output to the app. New tooling should live in Core and be reused.
 
 Core is organized into layers, each split further into `Player`/`World`/etc. subfolders that
@@ -108,29 +115,18 @@ them in sync (`Services/Player/PlayerSaveIdentity`).
 
 Item/recipe/skill/flag/fish/trait catalogs are read from the game's pak archives via **CUE4Parse**
 + the bundled `assets/Mappings.usmap`. Core's `Infrastructure/GameAssets/GameAssetProvider` mounts
-them; the App
-wraps this in the process-wide singleton `Services/GameDataServices` (call `EnsureLoadedAsync()`
-before reading `Catalog`, `AllFish`, `AllRecipeInfos`, etc.). **Everything degrades gracefully when
+them, and the host exposes the resulting catalogs through singleton services. **Everything degrades gracefully when
 assets are absent**: catalogs return empty and icon resolution no-ops, so the editor still runs.
 Item icons are extracted lazily off-thread (`provider.ExtractTextureByGameRef` → `IconColorizer`).
 
-### App: MVVM with a shared, theme-survivable view-model
+### Razor host: staged sessions and local-only desktop delivery
 
-- `App.SharedViewModel` (a single `MainViewModel`) is the hub. A **theme switch rebuilds the whole
-  page tree on the same shared VM**, so loaded saves and staged edits survive the swap (inline
-  `StaticResource`/converter output only re-resolves on a fresh tree; styles recolor live via
-  `DynamicResource`).
-- The former giant `MainPage` is split into `Views/*` ContentViews + editor sub-VMs
-  (`PlayerEditorViewModel`, `WorldEditorViewModel`). `ResponsivePaneController` owns all
-  responsive/drawer/splitter behavior so the page stays declarative.
-- **MAUI binding gotchas in this codebase:** `SlotSidebarView` uses explicit
-  `Source={x:Reference Root}` on every binding because plain `BindingContext` propagation proved
-  unreliable here. Controls inside a `DataTemplate` (e.g. a CollectionView group-header button)
-  can't reach an outer element via `x:Reference` across the template namescope, so wire those through
-  a code-behind `Clicked`/`Tapped` handler that reads `BindingContext`.
-- **Modal sheets are built in code, not XAML** (`SettingsPage`, `ComparePage`, plugin pages) so
-  they pick up the live palette each time they open. They share `Views/ModalChrome` for the
-  "facility" look (branded header + hazard stripe + `Card`s + footer + `Segmented` toggle).
+- `src/AbioticEditor.Web` is an interactive Razor server restricted to an HTTP loopback endpoint.
+  Do not loosen `LocalHostEndpoint`: the host can read and write user-selected files.
+- `PlayerSaveSession` and `WorldSaveSession` keep loaded Core models and staged editor state alive
+  across component renders. Razor components call the same Core writers used by the CLI.
+- The self-contained executable opens a Photino native window on Windows and Linux. Linux uses
+  `launch-linux.sh` and an optional per-user desktop entry. CI uses headless mode for `/healthz`.
 - Edits stage until **SAVE**; every write keeps a `.bak`. Quest-flag edits are gated by story
   prerequisites (the editor offers to set missing prereqs rather than create inconsistent state).
 
