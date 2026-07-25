@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented here.
 
+## [2.0.0] - 2026-07-25
+
+### Bug Fixes
+- Say why Game Pass saves cannot be converted on Linux or macOS
+
+
+### Build
+- Only offer the Windows build on Windows
+- Bump postcss from 8.5.15 to 8.5.23 in /docs
+- Bump postcss
+
+
+### Features
+- Version 2, with Linux and macOS support
+
+
+### Miscellaneous Tasks
+- Point bucket at v1.23.6 [skip ci]
+
+
 ## [1.23.6] - 2026-07-22
 
 ### Bug Fixes
