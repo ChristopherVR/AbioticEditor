@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.1.3] - 2026-07-25
+
+### Bug Fixes
+- The Linux release build no longer trips over its own health check
+
+
 ## [2.1.2] - 2026-07-25
 
 ### Bug Fixes
