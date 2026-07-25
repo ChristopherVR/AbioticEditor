@@ -147,6 +147,7 @@ public static class Program
         var desktopWindow = app.Services.GetRequiredService<DesktopWindowHost>();
         if (desktopWindow.IsEnabled())
         {
+            DesktopConsole.HideOwnConsoleWindow();
             try
             {
                 desktopWindow.Run(localUrl);

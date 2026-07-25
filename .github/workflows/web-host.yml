@@ -58,7 +58,7 @@ jobs:
       - name: Publish self-contained host
         run: >-
           dotnet publish src/AbioticEditor.Web -f ${{ matrix.tfm }} -c Release -r ${{ matrix.rid }}
-          --self-contained true -p:PublishSingleFile=false -o out
+          --self-contained true -o out
       - name: Install Linux native-window test dependencies
         if: runner.os == 'Linux'
         run: |

@@ -6,7 +6,9 @@ set -euo pipefail
 publish_dir="${1:?Usage: verify-web-host-mac.sh <publish-dir> [--layout-only]}"
 layout_only="${2:-}"
 publish_dir="$(cd -- "$publish_dir" && pwd)"
-for required in AbioticEditor.Web AbioticEditor.Web.dll Photino.Native.dylib Mappings.usmap THIRD-PARTY-NOTICES.txt launch-mac.sh wwwroot Templates/blank-world-template.sav Templates/blank-player-template.sav; do
+# Single-file publish: the managed assemblies and Photino native library live inside the
+# executable, so only run-time data is expected beside it.
+for required in AbioticEditor.Web Mappings.usmap registry wiki THIRD-PARTY-NOTICES.txt launch-mac.sh wwwroot Templates/blank-world-template.sav Templates/blank-player-template.sav; do
   test -e "$publish_dir/$required" || { echo "Published macOS host is missing '$required'." >&2; exit 1; }
 done
 

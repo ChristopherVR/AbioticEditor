@@ -4,7 +4,9 @@ set -euo pipefail
 
 publish_dir="${1:?Usage: verify-web-host-linux.sh <publish-dir>}"
 publish_dir="$(cd -- "$publish_dir" && pwd)"
-for required in AbioticEditor.Web AbioticEditor.Web.dll Photino.Native.so Mappings.usmap THIRD-PARTY-NOTICES.txt launch-linux.sh install-linux-desktop.sh wwwroot Templates/blank-world-template.sav Templates/blank-player-template.sav; do
+# Single-file publish: the managed assemblies and Photino native library live inside the
+# executable, so only run-time data is expected beside it.
+for required in AbioticEditor.Web Mappings.usmap registry wiki THIRD-PARTY-NOTICES.txt launch-linux.sh install-linux-desktop.sh wwwroot Templates/blank-world-template.sav Templates/blank-player-template.sav; do
   test -e "$publish_dir/$required" || { echo "Published Linux host is missing '$required'." >&2; exit 1; }
 done
 

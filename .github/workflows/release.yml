@@ -454,7 +454,6 @@ jobs:
           -c Release
           -r ${{ matrix.rid }}
           --self-contained true
-          -p:PublishSingleFile=false
           -o out
 
       - name: Zip CLI
@@ -514,7 +513,6 @@ jobs:
           -c Release
           -r linux-x64
           --self-contained true
-          -p:PublishSingleFile=false
           -o out
 
       - name: Verify local-only publish contract
@@ -574,7 +572,6 @@ jobs:
           -c Release
           -r win-x64
           --self-contained true
-          -p:PublishSingleFile=false
           -o out
 
       - name: Verify local-only publish contract
@@ -634,7 +631,6 @@ jobs:
           -c Release
           -r osx-arm64
           --self-contained true
-          -p:PublishSingleFile=false
           -o out-arm64
 
       - name: Publish desktop app (macOS x64, self-contained)
@@ -644,7 +640,6 @@ jobs:
           -c Release
           -r osx-x64
           --self-contained true
-          -p:PublishSingleFile=false
           -o out-x64
 
       - name: Verify local-only publish contract (arm64, full)

@@ -9,17 +9,22 @@ $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath($PublishDir)
 if (-not (Test-Path -LiteralPath $root -PathType Container)) { throw "Publish directory does not exist: $root" }
 
+# The host ships as a single executable: every managed assembly and the native
+# Photino/WebView2 libraries live inside it. Only the data the editor reads at run time is
+# expected beside it, so this list deliberately no longer names any DLL.
 $required = @(
     'AbioticEditor.Web.exe',
-    'AbioticEditor.Web.dll',
-    'Photino.Native.dll',
-    'WebView2Loader.dll',
     'THIRD-PARTY-NOTICES.txt',
     'Mappings.usmap',
+    'registry',
+    'wiki',
     'wwwroot',
     'Templates\blank-world-template.sav',
     'Templates\blank-player-template.sav'
 )
+# Loose assemblies beside the exe mean single-file publishing silently regressed.
+$strayDlls = Get-ChildItem -LiteralPath $root -Filter *.dll -File -ErrorAction SilentlyContinue
+if ($strayDlls) { throw "Expected a single-file publish, found $($strayDlls.Count) loose DLL(s), e.g. $($strayDlls[0].Name)." }
 foreach ($relative in $required) {
     if (-not (Test-Path -LiteralPath (Join-Path $root $relative))) { throw "Published Windows host is missing '$relative'." }
 }

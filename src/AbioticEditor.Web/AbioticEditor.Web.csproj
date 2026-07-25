@@ -14,9 +14,28 @@
     <TargetFrameworks>net10.0</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">net10.0-windows10.0.19041.0;net10.0</TargetFrameworks>
     <UseWindowsForms Condition="'$(TargetFramework)' == 'net10.0-windows10.0.19041.0'">true</UseWindowsForms>
+    <!-- OutputType stays the Web SDK default (Exe). Setting WinExe to stop Windows handing the
+         app a console ALSO stops the SDK emitting wwwroot/_framework, so blazor.web.js never
+         ships and the editor opens to a blank window. The console is hidden at startup instead
+         (see DesktopConsole in Program.cs). -->
     <RootNamespace>AbioticEditor.Web</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Ship as one executable with the runtime and every dependency inside it, including the
+         native Photino/WebView2 libraries. What stays beside it is only what the editor reads
+         as data at run time: Mappings.usmap, the registry and wiki folders, the save Templates,
+         wwwroot (the served static assets) and the licence files. Publishing 560 loose files
+         made the download look like an SDK drop rather than an app. -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <DebugType>none</DebugType>
+    <!-- web.config only matters when hosting under IIS, which this never is. -->
+    <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>
+    <!-- Do NOT set AllowedReferenceRelatedFileExtensions=none to drop the referenced projects'
+         .pdb/.xml files: it also strips wwwroot/_framework, so blazor.web.js never ships and
+         the editor opens to a blank window. These two are the safe way to leave them out. -->
+    <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
+    <DebugSymbols>false</DebugSymbols>
     <!-- The same Abiotic Factor artwork the native app shipped: embedded in the exe for the
          taskbar/Explorer, and copied beside it (below) for the Photino window icon. -->
     <ApplicationIcon>appicon.ico</ApplicationIcon>
@@ -74,6 +93,16 @@
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+  <!-- Referenced projects emit their own .pdb regardless of this project's settings, and the
+       blanket switch that would drop them (AllowedReferenceRelatedFileExtensions) also strips
+       wwwroot/_framework. Dropping them from the publish list directly keeps the shipped folder
+       to the executable plus the data it reads. -->
+  <Target Name="DropSymbolsFromPublish" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+                             Condition="'%(ResolvedFileToPublish.Extension)' == '.pdb'" />
+    </ItemGroup>
+  </Target>
   <ItemGroup>
     <Content Include="launch-linux.sh"
              CopyToOutputDirectory="PreserveNewest"
