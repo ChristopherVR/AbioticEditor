@@ -544,7 +544,7 @@ jobs:
 
       - name: Verify Nexus build carries no updater
         run: |
-          bash tools/verify-web-host-linux.sh out-nexus
+          bash tools/verify-web-host-linux.sh out-nexus --layout-only
           for marker in AbioticEditor.Updater UpdateInstaller CheckForUpdate; do
             if grep -qa "$marker" out-nexus/AbioticEditor.Web; then
               echo "Nexus build still contains update code ('$marker')." >&2

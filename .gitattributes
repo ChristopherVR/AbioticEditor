@@ -1,0 +1,10 @@
+# Shell scripts must reach Linux and macOS with LF endings. They are checked out on those
+# runners and executed directly, and bash fails with a confusing "syntax error near
+# unexpected token `$'do\r'`" if a CRLF copy ever lands there. Windows contributors have
+# core.autocrlf on, so without this the ending depends on whose machine last touched them.
+*.sh text eol=lf
+
+# The Game Pass fixtures are binary containers; never let end-of-line conversion near them.
+*.sav binary
+*.usmap binary
+containers.index binary

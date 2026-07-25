@@ -2,7 +2,12 @@
 # Verify the self-contained Linux publish layout and the running local-only health endpoint.
 set -euo pipefail
 
-publish_dir="${1:?Usage: verify-web-host-linux.sh <publish-dir>}"
+publish_dir="${1:?Usage: verify-web-host-linux.sh <publish-dir> [--layout-only]}"
+# --layout-only checks the layout without launching the host. Used for the second (Nexus Mods)
+# publish in the same job: the smoke test binds a fixed port, so running it twice in one job
+# collides with the still-shutting-down first instance. The two builds differ only by the
+# updater strip, so the full run against the standard build already covers the behaviour.
+layout_only="${2:-}"
 publish_dir="$(cd -- "$publish_dir" && pwd)"
 # Single-file publish: the managed assemblies and Photino native library live inside the
 # executable, so only run-time data is expected beside it.
@@ -16,6 +21,11 @@ bash -n "$publish_dir/install-linux-desktop.sh"
 grep -q 'ABIOTIC_EDITOR_URL="\$url"' "$publish_dir/launch-linux.sh"
 grep -q 'ABIOTIC_EDITOR_NO_DESKTOP=1' "$publish_dir/launch-linux.sh"
 grep -q 'libwebkit2gtk-4.1-0' "$publish_dir/launch-linux.sh"
+
+if [[ "$layout_only" == "--layout-only" ]]; then
+  echo "Linux publish layout checks passed (layout only): $publish_dir"
+  exit 0
+fi
 grep -q 'webkit2gtk-4.1 gtk3 libnotify kdialog' "$publish_dir/launch-linux.sh"
 
 # Reject any endpoint that could expose selected local save paths to the network.
