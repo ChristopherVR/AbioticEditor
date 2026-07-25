@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [2.1.2] - 2026-07-25
+
+### Bug Fixes
+- The Nexus Mods download no longer contains any update checking
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.1.1 [skip ci]
+
+
 ## [2.1.1] - 2026-07-25
 
 ### Build
