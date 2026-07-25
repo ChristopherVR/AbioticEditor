@@ -1,3 +1,4 @@
+using AbioticEditor.Core.GamePass;
 using AbioticEditor.Web.Services;
 using AbioticEditor.Ui;
 
@@ -35,6 +36,9 @@ public sealed class SaveConversionServiceTests
     public void Converts_the_GamePass_fixture_through_the_settings_service()
     {
         if (Fixtures.GamePassWgsDir is not { } fixture) return;
+        // Game Pass bundles are Oodle-compressed and the only Oodle build the editor can bind
+        // to is the game's Windows DLL, so this cannot run on Linux or macOS CI.
+        if (!OodleCodec.IsAvailable) return;
         var root = Path.Combine(Path.GetTempPath(), "AbioticEditorTests", Guid.NewGuid().ToString("N"));
         var source = Path.Combine(root, "Fixture");
         try

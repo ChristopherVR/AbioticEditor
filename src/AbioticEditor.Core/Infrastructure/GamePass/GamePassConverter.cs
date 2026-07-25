@@ -83,6 +83,21 @@ public static class GamePassConverter
     }
 
     /// <summary>
+    /// The "nothing readable in this folder" error. A Game Pass world bundle is Oodle
+    /// compressed, and the only Oodle build the editor can bind to is the game's own Windows
+    /// library, so on Linux and macOS every container fails to unpack and the folder looks
+    /// empty. Saying "no world containers found" there sends people hunting for a problem with
+    /// their save folder that does not exist, so the reason is named instead.
+    /// </summary>
+    private static InvalidDataException NoContainers(string wgsDir)
+        => OodleCodec.IsAvailable
+            ? new InvalidDataException($"No world containers found in '{wgsDir}'.")
+            : new InvalidDataException(
+                $"Game Pass saves in '{wgsDir}' cannot be read on this system. They are packed "
+                + "with Oodle, and the editor can only borrow that from an installed Windows copy "
+                + "of the game. Convert the save on a Windows machine and copy the result over.");
+
+    /// <summary>
     /// Unpacks a Game Pass world container into a Steam world folder at
     /// <paramref name="destSteamDir"/> (loose <c>.sav</c> files). When <paramref name="containerName"/>
     /// is null the only world container is used. When <paramref name="newPlayerId"/> is set the
@@ -96,7 +111,7 @@ public static class GamePassConverter
         var set = GamePassSaveSet.Open(wgsDir);
         var container = containerName
             ?? set.Entries().Select(e => e.ContainerName).Distinct().FirstOrDefault()
-            ?? throw new InvalidDataException($"No world containers found in '{wgsDir}'.");
+            ?? throw NoContainers(wgsDir);
         set.ExtractWorld(container, destSteamDir);
 
         if (newPlayerId is not null)
