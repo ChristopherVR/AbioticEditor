@@ -488,7 +488,7 @@ jobs:
           submodules: recursive
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
           dotnet-quality: ga
@@ -611,7 +611,7 @@ jobs:
           submodules: recursive
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
           dotnet-quality: ga
@@ -1050,7 +1050,7 @@ jobs:
 
       - name: Upload Linux / Steam Deck host to NexusMods
         if: steps.gate.outputs.enabled == 'true'
-        uses: Nexus-Mods/upload-action@v1.0.0-beta.8
+        uses: Nexus-Mods/upload-action@v1.0.0-beta.9
         with:
           api_key: ${{ secrets.NEXUSMODS_API_KEY }}
           file_id: ${{ vars.NEXUS_PROTON_FILE_ID }}
