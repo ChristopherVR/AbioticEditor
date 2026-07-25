@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here.
 
+## [2.1.0] - 2026-07-25
+
+### Bug Fixes
+- Saving no longer fails on a world that has never unlocked anything
+
+
+### Features
+- Ship the editor as one executable, with no server console
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.0.0 [skip ci]
+
+
 ## [2.0.0] - 2026-07-25
 
 ### Bug Fixes
