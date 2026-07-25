@@ -174,12 +174,56 @@ public static partial class WorldSaveWriter
     /// Replaces one of the metadata save's <c>GlobalUnlocks</c> name arrays (e.g.
     /// <c>GlobalItemsPickedUp_</c>). Returns false when the struct is absent.
     /// </summary>
+    /// <summary>
+    /// Exact, hash-suffixed names of the arrays inside <c>SaveData_GlobalUnlocks_Struct</c>.
+    /// A world that has never unlocked anything omits the whole struct, and one that has
+    /// unlocked only some kinds omits the rest of the arrays, so a prefix lookup legitimately
+    /// finds nothing on a perfectly healthy save. Creating the tag needs its full name.
+    /// </summary>
+    private static readonly Dictionary<string, string> GlobalUnlockFullNames = new(StringComparer.Ordinal)
+    {
+        ["GlobalItemsPickedUp_"] = "GlobalItemsPickedUp_32_0D99146044C3330A30A4C4AB8980DAF4",
+        ["GlobalEmailsRead_"] = "GlobalEmailsRead_34_0A562D184DBED267F898E6A3128557B4",
+        ["GlobalJournalEntries_"] = "GlobalJournalEntries_36_0AB6A0E444B128E28D0741917389C897",
+        ["GlobalCompendiumEmail_"] = "GlobalCompendiumEmail_38_181999554462F3D8CD3BC7AEF1037A2D",
+        ["GlobalCompendiumNarrative_"] = "GlobalCompendiumNarrative_40_EEBC4619442FF6008D8282A684063892",
+        ["GlobalCompendiumExploration_"] = "GlobalCompendiumExploration_42_D35947E2407A37D800A2538AB82EDEA5",
+    };
+
+    /// <summary>
+    /// Writes one of the world-wide discovery lists (items seen, e-mails read, journal pages
+    /// found, compendium sections), creating the <c>GlobalUnlocks</c> struct and the array
+    /// itself when the world has never recorded that kind of unlock. Returns false only when
+    /// the prefix is not one this writer knows how to create.
+    /// </summary>
     public static bool ApplyGlobalUnlockArray(WorldSaveData data, string prefix, IReadOnlyList<string> values)
     {
-        var props = WorldSaveReader.GetGlobalUnlocksProps(data.Raw);
+        if (!GlobalUnlockFullNames.TryGetValue(prefix, out var fullName)) return false;
+
+        var props = WorldSaveReader.GetGlobalUnlocksProps(data.Raw) ?? CreateGlobalUnlocksStruct(data.Raw);
         if (props is null) return false;
-        ReplaceNameArray(props, prefix, values);
+        ReplaceNameArray(props, prefix, values, fullName);
         return true;
+    }
+
+    /// <summary>
+    /// Adds an empty <c>GlobalUnlocks</c> struct to a save that has none. The property is a
+    /// plain top-level name (no blueprint hash suffix) whose struct type the game records as
+    /// <c>SaveData_GlobalUnlocks_Struct</c>.
+    /// </summary>
+    private static IList<FPropertyTag>? CreateGlobalUnlocksStruct(SaveGame save)
+    {
+        var name = new FString("GlobalUnlocks");
+        var type = new FPropertyTypeName(
+            new FString("StructProperty"),
+            [new FPropertyTypeName(new FString("SaveData_GlobalUnlocks_Struct"))]);
+        if (save.Properties is not { } saveProperties) return null;
+        if (FProperty.Create(name, type) is not StructProperty property) return null;
+
+        var body = new PropertiesStruct { Properties = new List<FPropertyTag>() };
+        property.Value = body;
+        saveProperties.Add(new FPropertyTag(name, type, EPropertyTagFlags.None) { Property = property });
+        return body.Properties;
     }
 
     /// <summary>

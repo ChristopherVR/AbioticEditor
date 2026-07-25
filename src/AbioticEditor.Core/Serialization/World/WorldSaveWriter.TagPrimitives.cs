@@ -11,8 +11,9 @@ namespace AbioticEditor.Core.WorldSaves;
 // WorldSaveWriter - low-level GVAS tag helpers (find-or-create by prefix, typed setters).
 public static partial class WorldSaveWriter
 {
-    private static void ReplaceNameArray(IList<FPropertyTag> tags, string prefix, IReadOnlyList<string> values)
-        => GvasTags.ReplaceNameArray(tags, prefix, values);
+    private static void ReplaceNameArray(
+        IList<FPropertyTag> tags, string prefix, IReadOnlyList<string> values, string? createFullName = null)
+        => GvasTags.ReplaceNameArray(tags, prefix, values, createFullName);
 
     /// <summary>
     /// Sets a <see cref="SoftObjectProperty"/> value from a full

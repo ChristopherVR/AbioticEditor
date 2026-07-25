@@ -17,10 +17,20 @@ namespace AbioticEditor.Core.Saves;
 internal static class GvasTags
 {
     /// <summary>Replaces the contents of an existing Name/Str array property; no-op when absent.</summary>
-    public static void ReplaceNameArray(IList<FPropertyTag> tags, string prefix, IReadOnlyList<string> values)
+    /// <summary>
+    /// Replaces a string array's contents. When the array is absent and
+    /// <paramref name="createFullName"/> is given it is created first, because the game
+    /// delta-serializes an empty array away entirely: a world that has never unlocked
+    /// anything simply has no such tag, and silently doing nothing there loses the edit.
+    /// </summary>
+    public static void ReplaceNameArray(
+        IList<FPropertyTag> tags, string prefix, IReadOnlyList<string> values, string? createFullName = null)
     {
-        var tag = tags.FindByPrefix(prefix);
-        if (tag?.Property is not ArrayProperty array) return;
+        if (tags.FindByPrefix(prefix)?.Property is not ArrayProperty array)
+        {
+            if (createFullName is null) return;
+            array = CreateNameArray(tags, createFullName);
+        }
 
         var items = new FString[values.Count];
         for (var i = 0; i < values.Count; i++)
@@ -28,6 +38,23 @@ internal static class GvasTags
             items[i] = new FString(values[i]);
         }
         array.Value = items;
+    }
+
+    /// <summary>
+    /// Appends an empty <c>ArrayProperty</c> of <c>NameProperty</c>. The element type has to
+    /// live in the tag's type PARAMETERS, not just on the property: that is where the reader
+    /// takes it from, so an array created without it writes a file that cannot be read back
+    /// ("Failed to read item type for ArrayProperty").
+    /// </summary>
+    private static ArrayProperty CreateNameArray(IList<FPropertyTag> tags, string fullName)
+    {
+        var name = new FString(fullName);
+        var itemType = new FPropertyTypeName(new FString("NameProperty"));
+        var type = new FPropertyTypeName(new FString("ArrayProperty"), [itemType]);
+        var array = (ArrayProperty)FProperty.Create(name, type);
+        array.ItemType = itemType;
+        tags.Add(new FPropertyTag(name, type, EPropertyTagFlags.None) { Property = array });
+        return array;
     }
 
     /// <summary>
