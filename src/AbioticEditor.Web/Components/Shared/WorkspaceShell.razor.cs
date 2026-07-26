@@ -1,7 +1,9 @@
 using AbioticEditor.Core.Diagnostics;
 using AbioticEditor.Core.Ini;
 using AbioticEditor.Web.Services;
-using Microsoft.AspNetCore.Components.Web;
+// Aliased rather than imported: the Windows build turns on Windows Forms, whose global usings
+// bring in a MouseEventArgs of its own, and an unqualified name is then ambiguous.
+using MouseEventArgs = Microsoft.AspNetCore.Components.Web.MouseEventArgs;
 
 #pragma warning disable CA1716 // Namespace matches the existing Razor component folder.
 namespace AbioticEditor.Web.Components.Shared;
