@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here.
 
+## [2.1.5] - 2026-07-26
+
+### Bug Fixes
+- The Linux download can now reach Nexus Mods
+- The recipe book no longer names traders you have not met
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.1.4 [skip ci]
+
+
 ## [2.1.4] - 2026-07-26
 
 ### Bug Fixes
