@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here.
 
+## [2.2.0] - 2026-07-26
+
+### Bug Fixes
+- The editor now keeps a record when something goes wrong
+
+
+### Features
+- Change a player's account id from any save, and see pets before you save
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.1.6 [skip ci]
+
+
 ## [2.1.6] - 2026-07-26
 
 ### Bug Fixes
