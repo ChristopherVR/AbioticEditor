@@ -1131,9 +1131,12 @@ jobs:
           file_id: ${{ vars.NEXUS_PROTON_FILE_ID }}
           filename: dist/AbioticEditor-desktop-linux-x64-v${{ needs.version.outputs.version }}-nexus.zip
           version: ${{ needs.version.outputs.version }}
-          # Nexus validates this against ^[a-zA-Z0-9 _'().-]+$ - no slashes. A "/" here fails
-          # the upload with a 422 AFTER the file has already been transferred.
-          display_name: AbioticEditor v${{ needs.version.outputs.version }} (Linux and Steam Deck - Proton saves)
+          # Nexus validates this name twice over, and either failure comes back as a 422 AFTER
+          # the whole file has been transferred: it must match ^[a-zA-Z0-9 _'().-]+$ (so no "/"
+          # and no ",") and it has a short maximum length ("... (Linux and Steam Deck - Proton
+          # saves)" was rejected as too long). Keep it in the same terse shape as the Windows
+          # one; the Nexus file entry itself already says it is the Proton/Steam Deck download.
+          display_name: AbioticEditor v${{ needs.version.outputs.version }} (Linux)
           description: ${{ steps.changelog.outputs.body }}
           category: main
           archive_existing_version: true
