@@ -16,13 +16,14 @@ public sealed class HostSettingsService
     private readonly RecipeVocabularyService _recipes;
     private readonly ProgressionVocabularyService _progression;
     private readonly CodexVocabularyService _codex;
+    private readonly InventoryDismantleService _dismantle;
     private readonly HostLanguageService _languages;
     private readonly ILogger<HostSettingsService> _logger;
     private bool _pluginsLoaded;
 
     public HostSettingsService(RecipeVocabularyService recipes, ProgressionVocabularyService progression, CodexVocabularyService codex,
-        HostLanguageService languages, ILogger<HostSettingsService> logger)
-        => (_recipes, _progression, _codex, _languages, _logger) = (recipes, progression, codex, languages, logger);
+        InventoryDismantleService dismantle, HostLanguageService languages, ILogger<HostSettingsService> logger)
+        => (_recipes, _progression, _codex, _dismantle, _languages, _logger) = (recipes, progression, codex, dismantle, languages, logger);
 
     public void EnsurePluginsLoaded()
     {
@@ -43,7 +44,15 @@ public sealed class HostSettingsService
     public IReadOnlyList<AfInstallLocator.InstalledMod> InstalledMods => AfInstallLocator.FindMods(PaksPath);
     public bool ModsEnabled => ModLoadStore.ModsEnabled;
     public bool ModsLockedOff => ModLoadStore.DisabledByEnv;
-    public bool DiagnosticLoggingEnabled { get => EditorLog.Enabled; set => EditorLog.Enabled = value; }
+    public bool DiagnosticLoggingEnabled
+    {
+        get => EditorLog.Enabled;
+        set
+        {
+            EditorLog.Enabled = value;
+            HostDiagnosticsStore.Save(value);
+        }
+    }
     public string LogDirectory => EditorLog.LogDirectory;
     public string CurrentLogPath => EditorLog.CurrentLogFilePath;
     public bool SaveGamePath(string? path)
@@ -76,7 +85,7 @@ public sealed class HostSettingsService
         try
         {
             using var provider = GameDataGate.CreateProvider(_languages.EffectiveGameDataLanguage);
-            _recipes.Reload(); _progression.Reload(); _codex.Reload();
+            _recipes.Reload(); _progression.Reload(); _codex.Reload(); _dismantle.Reload();
             return provider is null
                 ? new(false, GameDataReloadOutcome.NoInstall)
                 : new(provider.HasMappings, provider.HasMappings

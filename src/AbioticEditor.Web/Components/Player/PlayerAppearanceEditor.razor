@@ -34,11 +34,6 @@
                 : L.Resource("Customization_AvailableCaptionSteam", System.IO.Path.GetFileName(_session.Path)))
         </small>
     }
-    else
-    {
-        @* When the save is missing: explain WHY it is missing and WHAT to do. *@
-        <small class="general-help">@L.Resource(IsGamePassOrigin ? "Customization_UnavailableGamePass" : "Customization_UnavailableSteam")</small>
-    }
     @if (_status is not null) { <small class="appearance-status" role="status">@_status</small> }
     @if (_session is not null)
     {

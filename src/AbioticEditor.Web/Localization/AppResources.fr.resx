@@ -189,6 +189,7 @@ Mondes : conteneurs · indicateurs de quête · portes · objets au sol · progr
   <!-- PlayerInventory -->
   <data name="PlayerInventory_DropItem" xml:space="preserve"><value>JETER L'OBJET</value></data>
   <data name="PlayerInventory_DropItemTooltip" xml:space="preserve"><value>Sélectionnez un emplacement occupé, puis JETER L'OBJET pose cet objet au sol près de vous. Appuyez sur ENREGISTRER et il apparaît sous AU SOL À PROXIMITÉ.</value></data>
+  <data name="PlayerInventory_DropItemNeedsWorld" xml:space="preserve"><value>Un objet lâché atterrit dans le monde, il faut donc aussi qu'une sauvegarde de monde soit ouverte. Choisissez-en une sous RÉGIONS DU MONDE, puis revenez.</value></data>
   <data name="PlayerInventory_Equipment" xml:space="preserve"><value>ÉQUIPEMENT</value></data>
   <data name="PlayerInventory_GroundNearbyHelp" xml:space="preserve"><value>Objets posés à portée du dernier endroit où ce personnage s'est tenu. RAMASSER en place un dans le premier emplacement libre du sac à dos, et ENREGISTRER l'écrit et le retire du sol. ABANDONNER le laisse où il est.</value></data>
   <data name="PlayerInventory_Hotbar" xml:space="preserve"><value>BARRE D'ACTION</value></data>
@@ -1978,12 +1979,6 @@ Choisissez le dossier d'installation du jeu, ou le dossier AbioticFactor qu'il c
   <data name="Slot_MsgBlockedSwap" xml:space="preserve">
     <value>Échange bloqué : {0}.</value>
   </data>
-  <data name="Slot_MsgGave" xml:space="preserve">
-    <value>{0} donné ({1}×)</value>
-  </data>
-  <data name="Slot_MsgGaveToSlot" xml:space="preserve">
-    <value>{0} ({1}×) donné à l'emplacement {2}</value>
-  </data>
   <data name="Slot_MsgSwapped" xml:space="preserve">
     <value>Échangé → {0}</value>
   </data>
@@ -2725,7 +2720,7 @@ Rien n'est écrit tant que vous n'appuyez pas sur ENREGISTRER, et ANNULER le dé
   <data name="Inventory.swap" xml:space="preserve"><value>Échanger</value></data>
   <data name="Inventory.upgrade" xml:space="preserve"><value>Améliorer</value></data>
   <data name="Inventory.downgrade" xml:space="preserve"><value>Rétrograder</value></data>
-  <data name="Inventory.upgradeConfirm" xml:space="preserve"><value>Confirmez {0} {1}. L'objet suit le parcours d'amélioration du jeu; rien n'est écrit avant ENREGISTRER.</value></data>
+  <data name="Inventory.upgradeConfirm" xml:space="preserve"><value>Confirmez {0} {1}. L'objet suit le parcours d'amélioration du jeu.</value></data>
   <data name="Inventory.upgrading" xml:space="preserve"><value>l&apos;amélioration de</value></data>
   <data name="Inventory.downgrading" xml:space="preserve"><value>la rétrogradation de</value></data>
   <data name="Inventory.palette" xml:space="preserve"><value>Palette d&apos;objets</value></data>
@@ -2803,8 +2798,6 @@ Rien n'est écrit tant que vous n'appuyez pas sur ENREGISTRER, et ANNULER le dé
   <data name="PlayerGeneral_SteamIdChangeFailedTitle" xml:space="preserve"><value>Échec du changement de SteamID</value></data>
   <data name="Customization_AvailableCaptionGamePass" xml:space="preserve"><value>L'apparence de votre personnage est enregistrée avec votre profil Game Pass (emplacement {0}). La modifier ici s'applique à tous les mondes joués avec ce compte.</value></data>
   <data name="Customization_AvailableCaptionSteam" xml:space="preserve"><value>L'apparence de votre personnage est enregistrée une fois par personnage sous votre compte Steam. La modifier ici s'applique à tous les mondes joués avec ce compte.</value></data>
-  <data name="Customization_UnavailableGamePass" xml:space="preserve"><value>La modification de l'apparence n'est pas disponible car vos sauvegardes Game Pass ne contiennent encore aucune apparence de personnage. Le jeu ne la crée que la première fois que vous personnalisez votre personnage. Lancez Abiotic Factor, personnalisez votre personnage une fois, puis revenez ici.</value></data>
-  <data name="Customization_UnavailableSteam" xml:space="preserve"><value>La modification de l'apparence n'est pas disponible car ce compte Steam n'a aucune apparence de personnage enregistrée sur cet ordinateur. Le jeu ne la crée que la première fois que vous personnalisez votre personnage, et elle reste sur cet ordinateur. Lancez Abiotic Factor, personnalisez votre personnage une fois, puis revenez ici.</value></data>
   <data name="Customization_VoiceNote" xml:space="preserve"><value>La VOIX n'est pas enregistrée dans une sauvegarde. Le jeu la choisit selon la tête que vous prenez (Dr. H ou Dr. R).</value></data>
   <data name="Customization_StatusSaved" xml:space="preserve"><value>Apparence enregistrée. Redémarrez le jeu pour la voir.</value></data>
   <data name="Customization_StatusSaveFailed" xml:space="preserve"><value>Échec de l'enregistrement : {0}</value></data>
@@ -3335,4 +3328,8 @@ Rien n'est écrit tant que vous n'appuyez pas sur ENREGISTRER, et ANNULER le dé
   <data name="WorldFlags_PrereqLock" xml:space="preserve"><value>🔒 {0} PRÉREQUIS</value></data>
   <data name="WorldFlags_StatusActive" xml:space="preserve"><value>ACTIF</value></data>
   <data name="WorldFlags_StatusMissing" xml:space="preserve"><value>MANQUANT</value></data>
+  <data name="FileSidebar_ShowInExplorer" xml:space="preserve"><value>Afficher dans l'Explorateur de fichiers</value></data>
+  <data name="FileSidebar_RevealInFinder" xml:space="preserve"><value>Afficher dans le Finder</value></data>
+  <data name="FileSidebar_ShowInFileManager" xml:space="preserve"><value>Afficher dans le gestionnaire de fichiers</value></data>
+  <data name="FileSidebar_RevealFailed" xml:space="preserve"><value>L'éditeur n'a pas pu ouvrir ce dossier.</value></data>
 </root>

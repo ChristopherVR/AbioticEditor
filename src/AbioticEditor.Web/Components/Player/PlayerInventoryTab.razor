@@ -63,8 +63,17 @@
                 <input id="inventory-money" class="money-entry" type="number" step="1" @bind="Session.Vitals.Money" @bind:after="Changed" />
                 <span class="pockets-footer-spacer"></span>
                 <button class="secondary" type="button" title="@L.Resource("PlayerInventory_SortTooltip")" @onclick="SortBackpack">@L.Resource("PlayerInventory_Sort")</button>
-                <button class="accent-alert" type="button" disabled="@(!CanDropActive)" title="@L.Resource("PlayerInventory_DropItemTooltip")" @onclick="DropActive">@L.Resource("PlayerInventory_DropItem")</button>
+                @* The tooltip has to name the reason the button is off. It used to always say
+                   "select a slot with something in it", which reads as broken to anyone who has
+                   done exactly that and is only missing an open world save. *@
+                <button class="accent-alert" type="button" disabled="@(!CanDropActive)" title="@DropTooltip" @onclick="DropActive">@L.Resource("PlayerInventory_DropItem")</button>
             </div>
+            @* Browsers do not show a tooltip for a disabled button, so the reason has to be on
+               the page or it may as well not exist. *@
+            @if (WorldSession is null)
+            {
+                <p class="muted drop-needs-world">@L.Resource("PlayerInventory_DropItemNeedsWorld")</p>
+            }
         </div>
     </div>
 
@@ -392,7 +401,9 @@
             }
             SlotDropRules.FillFromCatalog(target, palette);
             Select(targetArea, target);
-            _status = L.Resource("Slot_MsgGave", palette.DisplayName, target.Count);
+            // No "Gave X (32x)" line: the item is now sitting in the slot you dropped it on and
+            // selected in the editor beside it, so announcing it is just noise under the grid.
+            // Failures below still speak up, because those are not visible on their own.
             Selection.NotifyItemCommitted();
             await Changed();
             return;
@@ -432,6 +443,15 @@
     }
 
     private bool CanDropActive => WorldSession is not null && ActiveSlot is { Slot.IsEmpty: false };
+
+    /// <summary>
+    /// A dropped item is stored in the world, not on the player, so this needs a world save open
+    /// as well as a chosen slot. Say which of the two is missing rather than always naming the
+    /// slot.
+    /// </summary>
+    private string DropTooltip => WorldSession is null
+        ? L.Resource("PlayerInventory_DropItemNeedsWorld")
+        : L.Resource("PlayerInventory_DropItemTooltip");
 
     private async Task DropActive()
     {

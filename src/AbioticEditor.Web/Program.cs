@@ -1,4 +1,6 @@
+using AbioticEditor.Core.Diagnostics;
 using AbioticEditor.Web.Components;
+using AbioticEditor.Web.Diagnostics;
 using AbioticEditor.Web.Services;
 using System.Text;
 
@@ -9,6 +11,11 @@ public static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        // Before anything else: a failure during startup is the one a player can least report,
+        // because there is no window yet to show it in.
+        CrashLog.Install();
+        HostDiagnosticsStore.Restore();
+
         var localHostListening = LoggerMessage.Define<string>(
             LogLevel.Information,
             new EventId(1, "LocalHostListening"),
@@ -31,6 +38,15 @@ public static class Program
         // The static-web-assets manifest in the build output maps requests back to the source
         // wwwroot; loading it is a no-op on published layouts, where the manifest is absent.
         builder.WebHost.UseStaticWebAssets();
+        // The default Console and Debug providers write nowhere in the shipped app (it has no
+        // console by design), so without this the whole logging pipeline is a black hole -
+        // including every error the editor deliberately reports.
+        builder.Logging.AddProvider(new EditorLogLoggerProvider());
+        // ASP.NET narrates six lines per request at Information, which with diagnostics on
+        // buries the editor's own entries in routing chatter and grows the file for no gain.
+        // Its warnings and errors still matter, so only the running commentary is dropped.
+        builder.Logging.AddFilter<EditorLogLoggerProvider>("Microsoft", LogLevel.Warning);
+        builder.Logging.AddFilter<EditorLogLoggerProvider>("System", LogLevel.Warning);
         builder.Services.AddRazorComponents().AddInteractiveServerComponents();
         builder.Services.AddSingleton<SaveLibraryService>();
         builder.Services.AddSingleton<RecipeVocabularyService>();
@@ -147,24 +163,37 @@ public static class Program
         // Keep the native window on this entry thread. On Windows, Photino/WebView2
         // requires the STA apartment established by Main's attribute; awaiting startup
         // here could resume on a thread-pool MTA thread.
-        app.StartAsync().GetAwaiter().GetResult();
-        var desktopWindow = app.Services.GetRequiredService<DesktopWindowHost>();
-        if (desktopWindow.IsEnabled())
+        //
+        // Anything thrown out here - a port that will not bind, a WebView2 runtime that is not
+        // installed - used to end the process with nothing on screen and nothing on disk, since
+        // this is a windowed app with no console to print to. Record it, then let it go: the
+        // exit code still has to reflect the failure.
+        try
         {
-            DesktopConsole.HideOwnConsoleWindow();
-            try
+            app.StartAsync().GetAwaiter().GetResult();
+            var desktopWindow = app.Services.GetRequiredService<DesktopWindowHost>();
+            if (desktopWindow.IsEnabled())
             {
-                desktopWindow.Run(localUrl);
+                DesktopConsole.HideOwnConsoleWindow();
+                try
+                {
+                    desktopWindow.Run(localUrl);
+                }
+                finally
+                {
+                    app.StopAsync().GetAwaiter().GetResult();
+                }
             }
-            finally
+            else
             {
-                app.StopAsync().GetAwaiter().GetResult();
+                app.WaitForShutdownAsync().GetAwaiter().GetResult();
             }
+            app.DisposeAsync().AsTask().GetAwaiter().GetResult();
         }
-        else
+        catch (Exception exception)
         {
-            app.WaitForShutdownAsync().GetAwaiter().GetResult();
+            EditorLog.Error("Startup", "The editor could not start", exception);
+            throw;
         }
-        app.DisposeAsync().AsTask().GetAwaiter().GetResult();
     }
 }

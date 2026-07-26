@@ -474,7 +474,9 @@
         }
         SlotDropRules.FillFromCatalog(target.Slot, item);
         current?.SelectSlot?.Invoke(target.Slot);
-        _paletteStatus = L.Resource("Slot_MsgGaveToSlot", item.DisplayName, target.Slot.Count, target.Slot.Index);
+        // Same as the inventory grid: the editor is already showing the item that just landed,
+        // so a line repeating it back adds nothing. Blocked drops above still report why.
+        _paletteStatus = null;
         Selection.NotifyItemCommitted();
         if (current is not null) await current.NotifyChanged();
         else { palette!.Session.MarkChanged(); await palette.NotifyChanged(); }

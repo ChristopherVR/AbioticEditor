@@ -307,7 +307,7 @@
             }
             SlotDropRules.FillFromCatalog(target, palette);
             SelectSlot(target);
-            _status = L.Resource("Slot_MsgGave", palette.DisplayName, target.Count);
+            // Matches the inventory grid: the slot itself shows the result, so no line for it.
             Selection.NotifyItemCommitted();
             await Changed();
             return;

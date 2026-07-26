@@ -21,7 +21,9 @@ public sealed class PlayerUiParityContractTests
         // Native edits Game Pass appearance through the account's ProfileScientistCustomization
         // wgs container (CustomizationViewModel + GamePassSaveSet); the web reaches the same
         // container from a Game-Pass-origin workspace instead of silently showing nothing.
-        { "PlayerAppearanceEditor.razor", ["Customization_AvailableCaptionGamePass", "Customization_UnavailableGamePass", "Customization_StatusEditingGamePass", "Customization_StatusNotFoundGamePass", "TryLocateGamePassStore", "LoadGamePass"] },
+        // The "no saved look yet, go and customise your character" paragraph is deliberately
+        // not part of this contract any more - it was dropped as too wordy for what it said.
+        { "PlayerAppearanceEditor.razor", ["Customization_AvailableCaptionGamePass", "Customization_StatusEditingGamePass", "Customization_StatusNotFoundGamePass", "TryLocateGamePassStore", "LoadGamePass"] },
         // Transmog is a bespoke faithful port of its own: a role-mapped slot grid
         // with drag-and-drop and the game's EquipSlot eligibility rule, visibility toggles.
         // The item palette itself lives in the sidebar slot editor (native SlotSidebarView).

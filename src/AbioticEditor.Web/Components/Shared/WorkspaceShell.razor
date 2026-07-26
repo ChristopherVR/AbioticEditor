@@ -11,6 +11,7 @@
 @inject IniEditorSessionService IniSessions
 @inject ToastService Toasts
 @inject NavigationManager Navigation
+@inject AbioticEditor.Ui.IExternalNavigationService External
 @inject IJSRuntime Js
 
 <div class="workspace-shell shell-with-splitters @(DrawerMode ? "drawer-mode" : null) @FileClass @DetailsClass" style="@ShellStyle">
@@ -47,7 +48,8 @@
                         </header>
                         @foreach (var save in group.Saves)
                         {
-                            <button type="button" class="save-file-row kind-@KindClass(save.Kind) @(workspace.SelectedSave == save ? "selected" : null)" aria-current="@(workspace.SelectedSave == save ? "true" : null)" title="@save.Path" @onclick="() => SelectAsync(save)">
+                            <button type="button" class="save-file-row kind-@KindClass(save.Kind) @(workspace.SelectedSave == save ? "selected" : null)" aria-current="@(workspace.SelectedSave == save ? "true" : null)" title="@save.Path" @onclick="() => SelectAsync(save)"
+                                    @oncontextmenu="@(args => OpenSaveMenu(save, args))" @oncontextmenu:preventDefault>
                                 <span class="save-kind-marker" aria-hidden="true"></span>
                                 <strong class="save-file-name">@MiddleTruncation.Truncate(SaveDisplayName(save), SaveNameBudget)</strong>
                                 <span class="save-file-meta"><b>@KindLabel(save.Kind)</b><small>@save.Size</small></span>
@@ -57,6 +59,16 @@
                 }
                 @if (FilteredSaveCount == 0) { <p class="shell-no-results">@L.Text("saves.no.matches", _filter)</p> }
             </div>
+
+            @* Right-click menu for a save row. The backdrop closes it on any outside click,
+               which is simpler and more reliable than tracking focus loss on the menu itself. *@
+            @if (_saveMenuFor is not null)
+            {
+                <div class="save-menu-backdrop" role="presentation" @onclick="CloseSaveMenu" @oncontextmenu="CloseSaveMenu" @oncontextmenu:preventDefault></div>
+                <div class="save-context-menu" role="menu" style="@_saveMenuStyle">
+                    <button type="button" role="menuitem" @onclick="RevealSelectedSaveAsync">@RevealLabel</button>
+                </div>
+            }
 
             @if (_showAddPlayer && CanAddPlayer)
             {

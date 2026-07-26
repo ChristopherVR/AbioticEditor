@@ -189,6 +189,7 @@ Welten: Behälter · Quest-Flags · Türen · Bodengegenstände · Story-Fortsch
   <!-- PlayerInventory -->
   <data name="PlayerInventory_DropItem" xml:space="preserve"><value>GEGENSTAND ABLEGEN</value></data>
   <data name="PlayerInventory_DropItemTooltip" xml:space="preserve"><value>Wählen Sie einen belegten Slot; GEGENSTAND ABLEGEN legt diesen Gegenstand dann in Ihrer Nähe auf den Boden. Drücken Sie SPEICHERN, und er erscheint unter IN DER NÄHE AM BODEN.</value></data>
+  <data name="PlayerInventory_DropItemNeedsWorld" xml:space="preserve"><value>Ein fallen gelassener Gegenstand landet in der Welt, daher muss auch ein Weltspielstand offen sein. Wähle links unter WELTREGIONEN einen aus und komm zurück.</value></data>
   <data name="PlayerInventory_Equipment" xml:space="preserve"><value>AUSRÜSTUNG</value></data>
   <data name="PlayerInventory_GroundNearbyHelp" xml:space="preserve"><value>Gegenstände, die in Reichweite des letzten Standorts dieser Figur liegen. AUFHEBEN legt einen in den ersten freien Rucksack-Slot; SPEICHERN schreibt ihn und räumt ihn vom Boden. VERWERFEN lässt ihn liegen.</value></data>
   <data name="PlayerInventory_Hotbar" xml:space="preserve"><value>SCHNELLLEISTE</value></data>
@@ -1978,12 +1979,6 @@ Wählen Sie den Ordner, in dem das Spiel installiert ist, oder den darin enthalt
   <data name="Slot_MsgBlockedSwap" xml:space="preserve">
     <value>Tausch blockiert: {0}.</value>
   </data>
-  <data name="Slot_MsgGave" xml:space="preserve">
-    <value>{0} gegeben ({1}×)</value>
-  </data>
-  <data name="Slot_MsgGaveToSlot" xml:space="preserve">
-    <value>{0} ({1}×) in Slot {2} gegeben</value>
-  </data>
   <data name="Slot_MsgSwapped" xml:space="preserve">
     <value>Getauscht → {0}</value>
   </data>
@@ -2725,7 +2720,7 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   <data name="Inventory.swap" xml:space="preserve"><value>Tauschen</value></data>
   <data name="Inventory.upgrade" xml:space="preserve"><value>Verbessern</value></data>
   <data name="Inventory.downgrade" xml:space="preserve"><value>Zurückstufen</value></data>
-  <data name="Inventory.upgradeConfirm" xml:space="preserve"><value>Bestätige {0} {1}. Der Gegenstand folgt dem Verbesserungspfad des Spiels; geschrieben wird erst mit SPEICHERN.</value></data>
+  <data name="Inventory.upgradeConfirm" xml:space="preserve"><value>Bestätige {0} {1}. Der Gegenstand folgt dem Verbesserungspfad des Spiels.</value></data>
   <data name="Inventory.upgrading" xml:space="preserve"><value>Verbesserung von</value></data>
   <data name="Inventory.downgrading" xml:space="preserve"><value>Zurückstufung von</value></data>
   <data name="Inventory.palette" xml:space="preserve"><value>Gegenstandspalette</value></data>
@@ -2803,8 +2798,6 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   <data name="PlayerGeneral_SteamIdChangeFailedTitle" xml:space="preserve"><value>SteamID-Änderung fehlgeschlagen</value></data>
   <data name="Customization_AvailableCaptionGamePass" xml:space="preserve"><value>Das Aussehen Ihrer Figur wird bei Ihrem Game-Pass-Profil gespeichert (Slot {0}). Änderungen hier gelten für jede Welt, die dieses Konto spielt.</value></data>
   <data name="Customization_AvailableCaptionSteam" xml:space="preserve"><value>Das Aussehen Ihrer Figur wird einmal pro Figur unter Ihrem Steam-Konto gespeichert. Änderungen hier gelten für jede Welt, die dieses Konto spielt.</value></data>
-  <data name="Customization_UnavailableGamePass" xml:space="preserve"><value>Das Bearbeiten des Aussehens ist nicht möglich, weil Ihre Game-Pass-Spielstände noch kein gespeichertes Figuren-Aussehen enthalten. Das Spiel legt es erst an, wenn Sie Ihre Figur zum ersten Mal anpassen. Starten Sie Abiotic Factor, passen Sie Ihre Figur einmal an und kommen Sie dann hierher zurück.</value></data>
-  <data name="Customization_UnavailableSteam" xml:space="preserve"><value>Das Bearbeiten des Aussehens ist nicht möglich, weil dieses Steam-Konto auf diesem Computer kein gespeichertes Figuren-Aussehen hat. Das Spiel legt es erst an, wenn Sie Ihre Figur zum ersten Mal anpassen, und es bleibt auf diesem Computer. Starten Sie Abiotic Factor, passen Sie Ihre Figur einmal an und kommen Sie dann hierher zurück.</value></data>
   <data name="Customization_VoiceNote" xml:space="preserve"><value>STIMME wird in keinem Spielstand gespeichert. Das Spiel wählt sie anhand des Kopfes, den Sie nehmen (Dr. H oder Dr. R).</value></data>
   <data name="Customization_StatusSaved" xml:space="preserve"><value>Aussehen gespeichert. Starten Sie das Spiel neu, um es zu sehen.</value></data>
   <data name="Customization_StatusSaveFailed" xml:space="preserve"><value>Speichern fehlgeschlagen: {0}</value></data>
@@ -3335,4 +3328,8 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   <data name="WorldFlags_PrereqLock" xml:space="preserve"><value>🔒 {0} VORAUSSETZUNG(EN)</value></data>
   <data name="WorldFlags_StatusActive" xml:space="preserve"><value>AKTIV</value></data>
   <data name="WorldFlags_StatusMissing" xml:space="preserve"><value>FEHLT</value></data>
+  <data name="FileSidebar_ShowInExplorer" xml:space="preserve"><value>Im Explorer anzeigen</value></data>
+  <data name="FileSidebar_RevealInFinder" xml:space="preserve"><value>Im Finder anzeigen</value></data>
+  <data name="FileSidebar_ShowInFileManager" xml:space="preserve"><value>Im Dateimanager anzeigen</value></data>
+  <data name="FileSidebar_RevealFailed" xml:space="preserve"><value>Der Ordner konnte nicht geöffnet werden.</value></data>
 </root>

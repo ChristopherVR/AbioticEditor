@@ -1,3 +1,4 @@
+using AbioticEditor.Core.Diagnostics;
 using System.Text.Json;
 
 namespace AbioticEditor.Cli;
@@ -56,6 +57,9 @@ internal static class Cli
         }
         catch (Exception ex)
         {
+            // Also to the log file: stderr is gone the moment the terminal closes, and this is
+            // the failure someone will need to report.
+            EditorLog.Error("Cli", "Unexpected command failure", ex);
             Console.Error.WriteLine($"unexpected error: {ex}");
             return UnexpectedError;
         }

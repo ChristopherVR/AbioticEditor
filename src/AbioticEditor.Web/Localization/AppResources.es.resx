@@ -190,6 +190,7 @@ Mundos: contenedores · indicadores de misión · puertas · objetos en el suelo
   <!-- PlayerInventory -->
   <data name="PlayerInventory_DropItem" xml:space="preserve"><value>SOLTAR OBJETO</value></data>
   <data name="PlayerInventory_DropItemTooltip" xml:space="preserve"><value>Selecciona una ranura con algo dentro y SOLTAR OBJETO deja ese objeto en el suelo cerca de ti. Pulsa GUARDAR y aparecerá en EN EL SUELO CERCA.</value></data>
+  <data name="PlayerInventory_DropItemNeedsWorld" xml:space="preserve"><value>Soltar un objeto lo deja en el suelo del mundo, así que también debe haber una partida de mundo abierta. Elige una en REGIONES DEL MUNDO y vuelve aquí.</value></data>
   <data name="PlayerInventory_Equipment" xml:space="preserve"><value>EQUIPO</value></data>
   <data name="PlayerInventory_GroundNearbyHelp" xml:space="preserve"><value>Objetos que hay al alcance del último sitio donde estuvo este personaje. RECOGER pone uno en la primera ranura libre de la mochila, y GUARDAR lo escribe y lo quita del suelo. DESCARTAR lo deja donde está.</value></data>
   <data name="PlayerInventory_Hotbar" xml:space="preserve"><value>BARRA RÁPIDA</value></data>
@@ -1979,12 +1980,6 @@ Elige la carpeta donde está instalado el juego, o la carpeta AbioticFactor que 
   <data name="Slot_MsgBlockedSwap" xml:space="preserve">
     <value>Intercambio bloqueado: {0}.</value>
   </data>
-  <data name="Slot_MsgGave" xml:space="preserve">
-    <value>Se dio {0} ({1}×)</value>
-  </data>
-  <data name="Slot_MsgGaveToSlot" xml:space="preserve">
-    <value>Se dio {0} ({1}×) a la ranura {2}</value>
-  </data>
   <data name="Slot_MsgSwapped" xml:space="preserve">
     <value>Intercambiado → {0}</value>
   </data>
@@ -2726,7 +2721,7 @@ No se escribe nada hasta que pulses GUARDAR, y REVERTIR lo deshace antes de eso.
   <data name="Inventory.swap" xml:space="preserve"><value>Intercambiar</value></data>
   <data name="Inventory.upgrade" xml:space="preserve"><value>Mejorar</value></data>
   <data name="Inventory.downgrade" xml:space="preserve"><value>Degradar</value></data>
-  <data name="Inventory.upgradeConfirm" xml:space="preserve"><value>Confirma {0} {1}. El objeto sigue la ruta de mejora del propio juego; no se escribe nada hasta pulsar GUARDAR.</value></data>
+  <data name="Inventory.upgradeConfirm" xml:space="preserve"><value>Confirma {0} {1}. El objeto sigue la ruta de mejora del propio juego.</value></data>
   <data name="Inventory.upgrading" xml:space="preserve"><value>la mejora de</value></data>
   <data name="Inventory.downgrading" xml:space="preserve"><value>la degradación de</value></data>
   <data name="Inventory.palette" xml:space="preserve"><value>Paleta de objetos</value></data>
@@ -2804,8 +2799,6 @@ No se escribe nada hasta que pulses GUARDAR, y REVERTIR lo deshace antes de eso.
   <data name="PlayerGeneral_SteamIdChangeFailedTitle" xml:space="preserve"><value>Error al cambiar el SteamID</value></data>
   <data name="Customization_AvailableCaptionGamePass" xml:space="preserve"><value>El aspecto de tu personaje se guarda con tu perfil de Game Pass (ranura {0}). Editarlo aquí afecta a todos los mundos que juegue esta cuenta.</value></data>
   <data name="Customization_AvailableCaptionSteam" xml:space="preserve"><value>El aspecto de tu personaje se guarda una vez por personaje en tu cuenta de Steam. Editarlo aquí afecta a todos los mundos que juegue esta cuenta.</value></data>
-  <data name="Customization_UnavailableGamePass" xml:space="preserve"><value>No se puede editar la apariencia porque tus guardados de Game Pass aún no tienen ningún aspecto de personaje guardado. El juego solo lo crea la primera vez que personalizas tu personaje. Abre Abiotic Factor, personaliza tu personaje una vez y vuelve aquí.</value></data>
-  <data name="Customization_UnavailableSteam" xml:space="preserve"><value>No se puede editar la apariencia porque esta cuenta de Steam no tiene ningún aspecto de personaje guardado en este ordenador. El juego solo lo crea la primera vez que personalizas tu personaje, y se queda en ese ordenador. Abre Abiotic Factor, personaliza tu personaje una vez y vuelve aquí.</value></data>
   <data name="Customization_VoiceNote" xml:space="preserve"><value>La VOZ no es algo que guarde una partida. El juego la elige según la cabeza que escojas (Dr. H o Dr. R).</value></data>
   <data name="Customization_StatusSaved" xml:space="preserve"><value>Apariencia guardada. Reinicia el juego para verla.</value></data>
   <data name="Customization_StatusSaveFailed" xml:space="preserve"><value>Error al guardar: {0}</value></data>
@@ -3336,4 +3329,8 @@ No se escribe nada hasta que pulses GUARDAR, y REVERTIR lo deshace antes de eso.
   <data name="WorldFlags_PrereqLock" xml:space="preserve"><value>🔒 {0} REQUISITOS</value></data>
   <data name="WorldFlags_StatusActive" xml:space="preserve"><value>ACTIVO</value></data>
   <data name="WorldFlags_StatusMissing" xml:space="preserve"><value>AUSENTE</value></data>
+  <data name="FileSidebar_ShowInExplorer" xml:space="preserve"><value>Mostrar en el Explorador de archivos</value></data>
+  <data name="FileSidebar_RevealInFinder" xml:space="preserve"><value>Mostrar en el Finder</value></data>
+  <data name="FileSidebar_ShowInFileManager" xml:space="preserve"><value>Mostrar en el gestor de archivos</value></data>
+  <data name="FileSidebar_RevealFailed" xml:space="preserve"><value>El editor no pudo abrir esa carpeta.</value></data>
 </root>

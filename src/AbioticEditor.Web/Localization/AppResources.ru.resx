@@ -189,6 +189,7 @@
   <!-- PlayerInventory -->
   <data name="PlayerInventory_DropItem" xml:space="preserve"><value>БРОСИТЬ ПРЕДМЕТ</value></data>
   <data name="PlayerInventory_DropItemTooltip" xml:space="preserve"><value>Выберите занятую ячейку, и БРОСИТЬ положит этот предмет на землю рядом с вами. Нажмите СОХРАНИТЬ, и он появится в разделе НА ЗЕМЛЕ ПОБЛИЗОСТИ.</value></data>
+  <data name="PlayerInventory_DropItemNeedsWorld" xml:space="preserve"><value>Выброшенный предмет попадает в мир, поэтому нужен ещё и открытый файл мира. Выберите его в разделе РЕГИОНЫ МИРА и вернитесь сюда.</value></data>
   <data name="PlayerInventory_Equipment" xml:space="preserve"><value>ЭКИПИРОВКА</value></data>
   <data name="PlayerInventory_GroundNearbyHelp" xml:space="preserve"><value>Предметы, лежащие рядом с тем местом, где этот персонаж стоял в последний раз. ПОДОБРАТЬ кладёт предмет в первую свободную ячейку рюкзака, а СОХРАНИТЬ записывает это и убирает предмет с земли. ОСТАВИТЬ не трогает его.</value></data>
   <data name="PlayerInventory_Hotbar" xml:space="preserve"><value>БЫСТРАЯ ПАНЕЛЬ</value></data>
@@ -1978,12 +1979,6 @@
   <data name="Slot_MsgBlockedSwap" xml:space="preserve">
     <value>Обмен заблокирован: {0}.</value>
   </data>
-  <data name="Slot_MsgGave" xml:space="preserve">
-    <value>Отдано {0} ({1}×)</value>
-  </data>
-  <data name="Slot_MsgGaveToSlot" xml:space="preserve">
-    <value>Отдано {0} ({1}×) в ячейку {2}</value>
-  </data>
   <data name="Slot_MsgSwapped" xml:space="preserve">
     <value>Обменяно → {0}</value>
   </data>
@@ -2725,7 +2720,7 @@
   <data name="Inventory.swap" xml:space="preserve"><value>Обменять</value></data>
   <data name="Inventory.upgrade" xml:space="preserve"><value>Улучшить</value></data>
   <data name="Inventory.downgrade" xml:space="preserve"><value>Понизить</value></data>
-  <data name="Inventory.upgradeConfirm" xml:space="preserve"><value>Подтвердите {0} {1}. Предмет улучшается так же, как в самой игре; запись произойдёт только после нажатия СОХРАНИТЬ.</value></data>
+  <data name="Inventory.upgradeConfirm" xml:space="preserve"><value>Подтвердите {0} {1}. Предмет улучшается так же, как в самой игре.</value></data>
   <data name="Inventory.upgrading" xml:space="preserve"><value>улучшение</value></data>
   <data name="Inventory.downgrading" xml:space="preserve"><value>понижение</value></data>
   <data name="Inventory.palette" xml:space="preserve"><value>Палитра предметов</value></data>
@@ -2803,8 +2798,6 @@
   <data name="PlayerGeneral_SteamIdChangeFailedTitle" xml:space="preserve"><value>Сбой смены SteamID</value></data>
   <data name="Customization_AvailableCaptionGamePass" xml:space="preserve"><value>Внешность вашего персонажа хранится вместе с профилем Game Pass (слот {0}). Изменения здесь действуют во всех мирах, где играет этот аккаунт.</value></data>
   <data name="Customization_AvailableCaptionSteam" xml:space="preserve"><value>Внешность вашего персонажа хранится один раз на персонажа в вашем аккаунте Steam. Изменения здесь действуют во всех мирах, где играет этот аккаунт.</value></data>
-  <data name="Customization_UnavailableGamePass" xml:space="preserve"><value>Внешность нельзя изменить, потому что в ваших сохранениях Game Pass ещё нет сохранённой внешности персонажа. Игра создаёт её только тогда, когда вы впервые настраиваете персонажа. Запустите Abiotic Factor, один раз настройте персонажа и вернитесь сюда.</value></data>
-  <data name="Customization_UnavailableSteam" xml:space="preserve"><value>Внешность нельзя изменить, потому что у этого аккаунта Steam на этом компьютере нет сохранённой внешности персонажа. Игра создаёт её только тогда, когда вы впервые настраиваете персонажа, и она остаётся на том компьютере. Запустите Abiotic Factor, один раз настройте персонажа и вернитесь сюда.</value></data>
   <data name="Customization_VoiceNote" xml:space="preserve"><value>ГОЛОС не хранится в сохранении. Игра выбирает его по голове, которую вы взяли (Dr. H или Dr. R).</value></data>
   <data name="Customization_StatusSaved" xml:space="preserve"><value>Внешность сохранена. Перезапустите игру, чтобы увидеть её.</value></data>
   <data name="Customization_StatusSaveFailed" xml:space="preserve"><value>Сбой сохранения: {0}</value></data>
@@ -3335,4 +3328,8 @@
   <data name="WorldFlags_PrereqLock" xml:space="preserve"><value>🔒 ПРЕДПОСЫЛОК: {0}</value></data>
   <data name="WorldFlags_StatusActive" xml:space="preserve"><value>АКТИВЕН</value></data>
   <data name="WorldFlags_StatusMissing" xml:space="preserve"><value>ОТСУТСТВУЕТ</value></data>
+  <data name="FileSidebar_ShowInExplorer" xml:space="preserve"><value>Показать в проводнике</value></data>
+  <data name="FileSidebar_RevealInFinder" xml:space="preserve"><value>Показать в Finder</value></data>
+  <data name="FileSidebar_ShowInFileManager" xml:space="preserve"><value>Показать в файловом менеджере</value></data>
+  <data name="FileSidebar_RevealFailed" xml:space="preserve"><value>Не удалось открыть эту папку.</value></data>
 </root>

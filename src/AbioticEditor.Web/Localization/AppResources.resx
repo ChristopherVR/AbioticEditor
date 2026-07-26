@@ -369,6 +369,7 @@ Worlds: containers · quest flags · doors · ground items · story progression<
   <data name="PlayerUi_CompanionLevel" xml:space="preserve"><value>{0} · level {1}</value></data>
   <data name="PlayerInventory_DropItem" xml:space="preserve"><value>DROP ITEM</value></data>
   <data name="PlayerInventory_DropItemTooltip" xml:space="preserve"><value>Select a slot with something in it, then DROP puts that item on the ground near you. Press SAVE and it shows up under ON THE GROUND NEARBY.</value></data>
+  <data name="PlayerInventory_DropItemNeedsWorld" xml:space="preserve"><value>Dropping an item puts it on the ground in the world, so a world save has to be open too. Pick one under WORLD REGIONS in the sidebar, then come back.</value></data>
   <data name="PlayerInventory_Equipment" xml:space="preserve"><value>EQUIPMENT</value></data>
   <data name="PlayerInventory_GroundNearbyHelp" xml:space="preserve"><value>Items lying within reach of where this character last stood. PICK UP puts one in the first empty backpack slot, and SAVE writes it and clears it off the ground. DISCARD leaves it where it is.</value></data>
   <data name="PlayerInventory_Hotbar" xml:space="preserve"><value>HOTBAR</value></data>
@@ -2269,12 +2270,6 @@ Pick the folder the game is installed in, or the AbioticFactor folder inside it.
   <data name="Slot_MsgBlockedSwap" xml:space="preserve">
     <value>Blocked swap: {0}.</value>
   </data>
-  <data name="Slot_MsgGave" xml:space="preserve">
-    <value>Gave {0} ({1}×)</value>
-  </data>
-  <data name="Slot_MsgGaveToSlot" xml:space="preserve">
-    <value>Gave {0} ({1}×) to slot {2}</value>
-  </data>
   <data name="Slot_MsgSwapped" xml:space="preserve">
     <value>Swapped → {0}</value>
   </data>
@@ -3013,7 +3008,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Inventory.swap" xml:space="preserve"><value>Swap</value></data>
   <data name="Inventory.upgrade" xml:space="preserve"><value>Upgrade</value></data>
   <data name="Inventory.downgrade" xml:space="preserve"><value>Downgrade</value></data>
-  <data name="Inventory.upgradeConfirm" xml:space="preserve"><value>Confirm {0} {1}. The item follows the game's own upgrade path; nothing is written until you press SAVE.</value></data>
+  <data name="Inventory.upgradeConfirm" xml:space="preserve"><value>Confirm {0} {1}. The item follows the game's own upgrade path.</value></data>
   <data name="Inventory.upgrading" xml:space="preserve"><value>applying an upgrade to</value></data>
   <data name="Inventory.downgrading" xml:space="preserve"><value>applying a downgrade to</value></data>
   <data name="Inventory.palette" xml:space="preserve"><value>Item palette</value></data>
@@ -3138,8 +3133,6 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="PlayerGeneral_SteamIdChangeFailedTitle" xml:space="preserve"><value>SteamID change failed</value></data>
   <data name="Customization_AvailableCaptionGamePass" xml:space="preserve"><value>Your character's look is stored with your Game Pass profile (slot {0}). Editing it here applies to every world this account plays.</value></data>
   <data name="Customization_AvailableCaptionSteam" xml:space="preserve"><value>Your character's look is stored once per character under your Steam account. Editing it here applies to every world this account plays.</value></data>
-  <data name="Customization_UnavailableGamePass" xml:space="preserve"><value>Appearance editing is unavailable because your Game Pass saves have no saved character look yet. The game only creates one the first time you customise your character. Launch Abiotic Factor, customise your character once, then come back here.</value></data>
-  <data name="Customization_UnavailableSteam" xml:space="preserve"><value>Appearance editing is unavailable because this Steam account has no saved character look on this computer. The game only creates one the first time you customise your character, and it stays on that computer. Launch Abiotic Factor, customise your character once, then come back here.</value></data>
   <data name="Customization_VoiceNote" xml:space="preserve"><value>VOICE is not something a save holds. The game picks it from the head you choose (Dr. H or Dr. R).</value></data>
   <data name="Customization_LoadingOptions" xml:space="preserve"><value>Reading the appearance options out of your installed game. This takes a moment the first time.</value></data>
   <data name="PlayerCharacter_LoadingTraitDetails" xml:space="preserve"><value>Reading what each trait does out of your installed game. This takes a moment the first time.</value></data>
@@ -3637,4 +3630,8 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldFlags_PrereqLock" xml:space="preserve"><value>🔒 {0} PREREQ</value></data>
   <data name="WorldFlags_StatusActive" xml:space="preserve"><value>ACTIVE</value></data>
   <data name="WorldFlags_StatusMissing" xml:space="preserve"><value>MISSING</value></data>
+  <data name="FileSidebar_ShowInExplorer" xml:space="preserve"><value>Show in File Explorer</value></data>
+  <data name="FileSidebar_RevealInFinder" xml:space="preserve"><value>Reveal in Finder</value></data>
+  <data name="FileSidebar_ShowInFileManager" xml:space="preserve"><value>Show in file manager</value></data>
+  <data name="FileSidebar_RevealFailed" xml:space="preserve"><value>The editor could not open that folder.</value></data>
 </root>
