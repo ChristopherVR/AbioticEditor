@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [2.1.6] - 2026-07-26
+
+### Bug Fixes
+- No console flash, a proper window icon, and a tidier download
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.1.5 [skip ci]
+
+
 ## [2.1.5] - 2026-07-26
 
 ### Bug Fixes
