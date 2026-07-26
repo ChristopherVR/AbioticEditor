@@ -1530,7 +1530,7 @@ Wählen Sie den Ordner, in dem das Spiel installiert ist, oder den darin enthalt
     <value>Diese Datei konnte nicht importiert werden</value>
   </data>
   <data name="PlayerEditor_OwnerIdNote" xml:space="preserve">
-    <value>Game Pass / Nicht-Steam-Konto - diese ID ist hier gesperrt. Um sie zu ändern, nutze SPEICHERSTAND-KONVERTIERUNG in den Einstellungen (sie kann den Spieler beim Konvertieren umziehen).</value>
+    <value>Dies ist keine Steam-ID, daher bleiben die Steam-Extras (Anzeigename, Erfolge) aus. Die ID lässt sich hier trotzdem ändern.</value>
   </data>
   <data name="PlayerEditor_CutTraitDescription" xml:space="preserve">
     <value>(ungenutztes/entferntes Merkmal - das Spiel hat dafür keine Beschreibung oder keinen Editor-Eintrag)</value>
@@ -3332,4 +3332,7 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   <data name="FileSidebar_RevealInFinder" xml:space="preserve"><value>Im Finder anzeigen</value></data>
   <data name="FileSidebar_ShowInFileManager" xml:space="preserve"><value>Im Dateimanager anzeigen</value></data>
   <data name="FileSidebar_RevealFailed" xml:space="preserve"><value>Der Ordner konnte nicht geöffnet werden.</value></data>
+  <data name="PlayerPets_StatusAddedPending" xml:space="preserve"><value>Hinzugefügt - zum Erwecken speichern</value></data>
+  <data name="PlayerPets_StatusTakenOutPending" xml:space="preserve"><value>Aus diesem Platz genommen</value></data>
+  <data name="PlayerPets_PendingHelp" xml:space="preserve"><value>Gerade ein- oder ausgeräumte Begleiter werden angezeigt, sind aber noch nicht bearbeitbar. Speichere und öffne den Spielstand erneut, damit sie Stufe, Leben und Namen bekommen.</value></data>
 </root>

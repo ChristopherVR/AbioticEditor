@@ -340,7 +340,47 @@
     }
 
     protected override void OnParametersSet() => ResetSelectionControls();
-    private void SelectionChanged() { ResetSelectionControls(); _paletteStatus = null; _ = InvokeAsync(StateHasChanged); }
+    private void SelectionChanged() { ResetSelectionControls(); PinPaletteToSelection(); _paletteStatus = null; _ = InvokeAsync(StateHasChanged); }
+
+    /// <summary>
+    /// Points the item catalog at the group the chosen slot belongs to, so clicking a helmet
+    /// opens the catalog already showing armour instead of every item in the game. The item in
+    /// the slot is the best answer when there is one; an empty equipment slot falls back to what
+    /// its role can hold.
+    ///
+    /// <para>Only ever moves off "all", and never fights a category the player picked by hand
+    /// while looking at the same slot - retargeting the catalog under someone mid-browse would
+    /// be worse than not helping at all.</para>
+    /// </summary>
+    private void PinPaletteToSelection()
+    {
+        if (Selection.Current is not { } current) return;
+        // A new slot is a new context; the same slot is the player still working where they were.
+        if (ReferenceEquals(current.Slot, _pinnedForSlot)) return;
+        _pinnedForSlot = current.Slot;
+
+        var category = !current.Slot.IsEmpty && Catalog.Find(current.Slot.ItemId) is { } entry
+            ? ItemCatalogService.CategoryOf(entry)
+            : CategoryForRole(current.Role);
+        if (category is null || category == _paletteCategory) return;
+        _paletteCategory = category;
+        ResetPaletteWindow();
+    }
+
+    private object? _pinnedForSlot;
+
+    /// <summary>
+    /// The catalog group an empty equipment slot should open on. Wearables all live under
+    /// armour; the two odd ones out get their own homes, and anything unrecognised is left
+    /// alone rather than guessed at.
+    /// </summary>
+    private static string? CategoryForRole(string? role) => role switch
+    {
+        "CHEST" or "HEAD" or "LEGS" or "BACK" or "ARMS" or "SUIT" or "TRINKET" or "WATCH"
+            or "SHIELD" or "HEADLAMP" => "armor",
+        "HACKER" => "tools",
+        _ => null,
+    };
     private void ResetSelectionControls() { _swapStatus = null; _swapBlocked = false; if (Selection.Current is { } current) { _swapIndex = current.Slots.FirstOrDefault(slot => slot.Index != current.Slot.Index)?.Index ?? current.Slot.Index; _benchId = CurrentBenchId(current.Slot); } }
     /// <summary>
     /// The pane's own close button dismisses the topmost thing, not the whole pane. A tab-supplied
@@ -363,7 +403,9 @@
         Spoilers.Reveal(SkillLocalization.MilestoneSpoilerKey(skill, milestone));
         if (Selection.Milestone is { } current) Selection.ShowMilestone(current);
     }
-    private void SelectCategory(string category) { _paletteCategory = category; ResetPaletteWindow(); }
+    // Choosing a category by hand pins it to the chosen slot, so the automatic pinning above
+    // leaves it alone until the selection actually moves somewhere else.
+    private void SelectCategory(string category) { _paletteCategory = category; _pinnedForSlot = Selection.Current?.Slot; ResetPaletteWindow(); }
     private async Task Changed() { if (Selection.Current is { } current) await current.NotifyChanged(); }
 
     /// <summary>

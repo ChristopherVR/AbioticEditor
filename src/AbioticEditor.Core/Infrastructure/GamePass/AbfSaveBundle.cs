@@ -9,7 +9,12 @@ namespace AbioticEditor.Core.GamePass;
 /// </summary>
 public sealed class AbfMember
 {
-    public required string Path { get; init; }
+    /// <summary>
+    /// The save's path inside the bundle. Settable because a player save can be re-homed to a
+    /// different account id, which renames the file - and the bundle's own table of contents is
+    /// what the game reads, so it has to be renamed in step or the old name survives the repack.
+    /// </summary>
+    public required string Path { get; set; }
     public required string SaveClass { get; init; }
     public int Flag { get; init; }
     public required byte[] Body { get; set; }

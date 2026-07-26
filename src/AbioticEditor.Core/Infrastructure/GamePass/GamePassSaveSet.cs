@@ -193,6 +193,48 @@ public sealed class GamePassSaveSet
     }
 
     /// <summary>
+    /// Renames a player save inside <paramref name="containerName"/>'s bundle, so re-homing a
+    /// player to another account id survives the repack.
+    ///
+    /// <para>Without this the rename is silently lost: <see cref="ApplyWorld"/> walks the
+    /// bundle's own table of contents and looks on disk for each member's recorded name, so a
+    /// file renamed in the working copy simply stops being found and the container keeps the old
+    /// player under the old id.</para>
+    /// </summary>
+    /// <returns>True when a member was renamed.</returns>
+    /// <exception cref="InvalidOperationException">The new name is already taken in this bundle.</exception>
+    public bool RenamePlayerSave(string containerName, string oldFileName, string newFileName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(containerName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(oldFileName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(newFileName);
+        // Callers name saves the way the rest of the editor does, with the extension. Paths
+        // inside the bundle leave it off, so both sides are compared without it.
+        var oldMemberName = WithoutSavExtension(oldFileName);
+        var newMemberName = WithoutSavExtension(newFileName);
+        if (string.Equals(oldMemberName, newMemberName, StringComparison.OrdinalIgnoreCase)) return false;
+
+        var bundle = LoadBundle(containerName);
+        var member = bundle.Members.FirstOrDefault(m => WithoutSavExtension(m.Name).Equals(oldMemberName, StringComparison.OrdinalIgnoreCase));
+        if (member is null) return false;
+        if (bundle.Members.Any(m => WithoutSavExtension(m.Name).Equals(newMemberName, StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException($"'{newFileName}' already exists in this Game Pass world.");
+
+        BackupOnce();
+        // Keep the member's own folder; only the file name at the end of it changes.
+        var separator = member.Path.Contains('\\', StringComparison.Ordinal) ? '\\' : '/';
+        var lastSeparator = member.Path.LastIndexOfAny(['\\', '/']);
+        member.Path = lastSeparator < 0
+            ? newMemberName
+            : string.Concat(member.Path.AsSpan(0, lastSeparator), separator.ToString(), newMemberName);
+        Repack(containerName);
+        return true;
+    }
+
+    private static string WithoutSavExtension(string name)
+        => name.EndsWith(".sav", StringComparison.OrdinalIgnoreCase) ? name[..^4] : name;
+
+    /// <summary>
     /// Builds the working-copy path for a member and validates it stays inside
     /// <paramref name="baseDir"/>. The member's name comes from a bundle TOC path inside a save the
     /// user opened, so it is untrusted; this guards against a crafted container writing outside the

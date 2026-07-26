@@ -1,6 +1,7 @@
 @namespace AbioticEditor.Web.Components.Player
 @using AbioticEditor.Web.Models
 @using AbioticEditor.Web.Components.Shared
+@using AbioticEditor.Core.PlayerSaves
 @using AbioticEditor.Core.WorldSaves
 
 @* Faithful port of the native PlayerPetsTab: a master list of carried pets beside a
@@ -12,13 +13,28 @@
 
     <div class="pets-split">
         <div class="pet-master" role="listbox" aria-label="@L.Resource("PlayerPets_CarriedPetsCompanions")">
-            @if (Session.CarriedPets.Count == 0) { <p class="muted pet-empty">@L.Resource("PlayerPets_NoPets")</p> }
+            @if (Session.CarriedPets.Count == 0 && PendingPets.Count == 0) { <p class="muted pet-empty">@L.Resource("PlayerPets_NoPets")</p> }
             @foreach (var row in Session.CarriedPets)
             {
-                <div class="pet-row @(_selected == row ? "selected" : null)" role="option" aria-selected="@(_selected == row)" @onclick="() => _selected = row">
+                <div class="pet-row @(_selected == row ? "selected" : null) @(StillInInventory(row) ? null : "pet-row-pending")" role="option" aria-selected="@(_selected == row)" @onclick="() => _selected = row">
                     <span class="pet-row-text"><strong>@row.DisplayName</strong><small>@SlotText(row)</small></span>
-                    <span class="pet-row-status">@StatusText(row)</span>
+                    <span class="pet-row-status">@(StillInInventory(row) ? StatusText(row) : L.Resource("PlayerPets_StatusTakenOutPending"))</span>
                 </div>
+            }
+            @* Pets dropped into the inventory during this session. The save still knows nothing
+               about them - their level, health and mutation only come into being when it is
+               written - so they are listed but not editable, rather than left out entirely and
+               looking like the drop had not worked. *@
+            @foreach (var pending in PendingPets)
+            {
+                <div class="pet-row pet-row-pending" role="option" aria-selected="false">
+                    <span class="pet-row-text"><strong>@pending.Name</strong><small>@pending.SlotText</small></span>
+                    <span class="pet-row-status">@L.Resource("PlayerPets_StatusAddedPending")</span>
+                </div>
+            }
+            @if (PendingPets.Count > 0 || Session.CarriedPets.Any(pet => !StillInInventory(pet)))
+            {
+                <p class="muted pet-pending-help">@L.Resource("PlayerPets_PendingHelp")</p>
             }
         </div>
 
@@ -207,6 +223,48 @@
     private string StatusText(CarriedPetEdit pet) => pet.IsDeleted
         ? L.Resource("PlayerPets_StatusWillBeRemoved")
         : L.Resource("PlayerPets_StatusLvHpFormat", pet.Level, $"{pet.Health:0}", $"{pet.MaxHealth:0}");
+
+    // ---------- pets added or taken out since the save was opened ----------
+
+    /// <summary>
+    /// A pet the player has just put into a slot. Nothing but its name and where it sits is
+    /// known: everything else on a pet (level, health, mutation) is written by the save, so
+    /// until that happens there is nothing to edit.
+    /// </summary>
+    private sealed record PendingPet(string Name, string SlotText);
+
+    private static readonly (PlayerInventoryArea Area, PetSlotKind Kind)[] PetBearingAreas =
+    [
+        (PlayerInventoryArea.Equipment, PetSlotKind.Equipment),
+        (PlayerInventoryArea.Hotbar, PetSlotKind.Hotbar),
+        (PlayerInventoryArea.Backpack, PetSlotKind.Main),
+    ];
+
+    private IEnumerable<(PetSlotKind Kind, int Index, string ItemId)> PetItemsInInventory()
+    {
+        foreach (var (area, kind) in PetBearingAreas)
+            foreach (var slot in SlotsFor(area))
+                if (!slot.IsEmpty && slot.ItemId is { } itemId && PetItemCatalog.IsPetItem(itemId))
+                    yield return (kind, slot.Index, itemId);
+    }
+
+    private IReadOnlyList<PlayerInventorySlotEdit> SlotsFor(PlayerInventoryArea area) => area switch
+    {
+        PlayerInventoryArea.Equipment => Session.Equipment,
+        PlayerInventoryArea.Hotbar => Session.Hotbar,
+        _ => Session.Backpack,
+    };
+
+    /// <summary>True while the slot this pet was read from still holds it.</summary>
+    private bool StillInInventory(CarriedPetEdit pet)
+        => PetItemsInInventory().Any(found => found.Kind == pet.Slot && found.Index == pet.Index);
+
+    private List<PendingPet> PendingPets => PetItemsInInventory()
+        .Where(found => !Session.CarriedPets.Any(pet => pet.Slot == found.Kind && pet.Index == found.Index))
+        .Select(found => new PendingPet(
+            PetItemCatalog.FriendlyName(found.ItemId) ?? found.ItemId,
+            L.Resource("PlayerPets_SlotFormat", L.Resource($"PlayerPets_SlotKind_{found.Kind}"), found.Index)))
+        .ToList();
 
     private string BedLabel(int index)
     {

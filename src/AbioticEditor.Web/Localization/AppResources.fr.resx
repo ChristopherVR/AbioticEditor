@@ -1530,7 +1530,7 @@ Choisissez le dossier d'installation du jeu, ou le dossier AbioticFactor qu'il c
     <value>Impossible d'importer ce fichier</value>
   </data>
   <data name="PlayerEditor_OwnerIdNote" xml:space="preserve">
-    <value>Compte Game Pass / non-Steam - cet identifiant est verrouillé ici. Pour le modifier, utilisez CONVERSION DE SAUVEGARDE dans les Paramètres (elle peut transférer le joueur lors de la conversion).</value>
+    <value>Ce n'est pas un identifiant Steam, donc les extras Steam (nom affiché, succès) restent désactivés. Vous pouvez tout de même le changer ici.</value>
   </data>
   <data name="PlayerEditor_CutTraitDescription" xml:space="preserve">
     <value>(trait inutilisé/supprimé - le jeu n'a ni description ni entrée de créateur pour lui)</value>
@@ -3332,4 +3332,7 @@ Rien n'est écrit tant que vous n'appuyez pas sur ENREGISTRER, et ANNULER le dé
   <data name="FileSidebar_RevealInFinder" xml:space="preserve"><value>Afficher dans le Finder</value></data>
   <data name="FileSidebar_ShowInFileManager" xml:space="preserve"><value>Afficher dans le gestionnaire de fichiers</value></data>
   <data name="FileSidebar_RevealFailed" xml:space="preserve"><value>L'éditeur n'a pas pu ouvrir ce dossier.</value></data>
+  <data name="PlayerPets_StatusAddedPending" xml:space="preserve"><value>Ajouté - enregistrez pour lui donner vie</value></data>
+  <data name="PlayerPets_StatusTakenOutPending" xml:space="preserve"><value>Retiré de cet emplacement</value></data>
+  <data name="PlayerPets_PendingHelp" xml:space="preserve"><value>Les compagnons que vous venez d'ajouter ou de retirer sont listés mais pas encore modifiables. Enregistrez puis rouvrez la sauvegarde pour leur donner un niveau, des points de vie et un nom.</value></data>
 </root>

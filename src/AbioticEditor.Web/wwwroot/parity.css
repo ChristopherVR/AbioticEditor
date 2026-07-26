@@ -907,6 +907,10 @@ button.accent-hazard{border:0;background:var(--hazard)!important;color:var(--on-
 .pet-row{display:flex;align-items:center;gap:12px;padding:8px 12px;cursor:pointer}
 .pet-row:hover{background:var(--hover)}
 .pet-row.selected{background:var(--hover);box-shadow:inset 3px 0 0 var(--orange)}
+/* A pet moved in or out of a slot this session: real in the editor, not yet in the save. */
+.pet-row-pending{opacity:.65;cursor:default}
+.pet-row-pending .pet-row-status{font-style:italic}
+.pet-pending-help{padding:8px 12px;font-size:.85em}
 .pet-row-text{display:grid;flex:1;gap:1px;min-width:0}
 .pet-row-text strong{overflow:hidden;color:var(--ink);font-size:13px;text-overflow:ellipsis;white-space:nowrap}
 .pet-row-text small{color:var(--faint);font-size:10px}

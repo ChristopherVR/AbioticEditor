@@ -24,7 +24,7 @@
             <small class="general-help">@L.Resource("PlayerGeneral_ChangeSteamIdHelp")</small>
         }
     </div>
-    @if (!CanEditOwnerId) { <small class="general-help">@L.Resource("PlayerEditor_OwnerIdNote")</small> }
+    @if (!IsSteamSave) { <small class="general-help">@L.Resource("PlayerEditor_OwnerIdNote")</small> }
     @if (_identityError is not null) { <p class="error" role="alert"><strong>@L.Resource("PlayerGeneral_SteamIdChangeFailedTitle"):</strong> @_identityError</p> }
     <div class="tab-divider" aria-hidden="true"></div>
 
@@ -129,7 +129,11 @@
     }
 
     private bool IsSteamSave => PlayerIdentifier.IsSteamId(Session.SteamIdentifier ?? string.Empty);
-    private bool CanEditOwnerId => IsSteamSave;
+    // Any player save can be re-homed, not just ones whose id happens to look like a SteamID64.
+    // Gating on the id's shape locked ordinary saves with short or hand-made ids out of the one
+    // screen that exists to change them. Game Pass worlds are included too: the container's own
+    // copy of the name is renamed alongside the file.
+    private bool CanEditOwnerId => true;
     private string OwnerIdLabel => L.Resource(IsSteamSave ? "PlayerEditor_SteamId64Label" : "PlayerEditor_AccountIdLabel");
 
     private string RecipeCountText

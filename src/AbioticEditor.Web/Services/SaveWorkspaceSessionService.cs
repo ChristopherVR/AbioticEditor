@@ -262,7 +262,17 @@ public sealed class SaveWorkspaceSessionService : IDisposable
             if (player.IsDirty) throw new InvalidOperationException("Save or revert staged player changes before changing the player ID.");
 
             BusyOperation = "Changing player ID..."; Changed?.Invoke();
+            var oldFileName = Path.GetFileName(player.Path);
             var newPath = await Task.Run(() => PlayerSaveIdentity.ChangeSteamId(player.Path, newIdentifier), cancellationToken).ConfigureAwait(false);
+            // A Game Pass world is edited through an unpacked copy, and the repack walks the
+            // container's own list of names. Rename it there too or the new id never reaches the
+            // container and the old player quietly comes back.
+            if (workspace.GamePass is { } gamePassRename)
+            {
+                var newFileName = Path.GetFileName(newPath);
+                await Task.Run(() => gamePassRename.Set.RenamePlayerSave(gamePassRename.Container, oldFileName, newFileName), cancellationToken)
+                    .ConfigureAwait(false);
+            }
             var saves = await Task.Run(() => DiscoverSaves(workspace.WorldFolder), cancellationToken).ConfigureAwait(false);
             var renamed = saves.FirstOrDefault(save => string.Equals(save.Path, newPath, StringComparison.OrdinalIgnoreCase))
                 ?? throw new InvalidOperationException("The renamed player save was not rediscovered in this workspace.");

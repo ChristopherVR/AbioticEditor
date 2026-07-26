@@ -1530,7 +1530,7 @@
     <value>Не удалось импортировать этот файл</value>
   </data>
   <data name="PlayerEditor_OwnerIdNote" xml:space="preserve">
-    <value>Аккаунт Game Pass / не Steam - этот id здесь заблокирован. Чтобы изменить его, используйте КОНВЕРТАЦИЮ СОХРАНЕНИЯ в Настройках (она может перепривязать игрока во время конвертации).</value>
+    <value>Это не Steam ID, поэтому возможности Steam (имя профиля, достижения) остаются отключёнными. Изменить идентификатор здесь всё равно можно.</value>
   </data>
   <data name="PlayerEditor_CutTraitDescription" xml:space="preserve">
     <value>(неиспользуемая/вырезанная черта - у игры нет для неё описания или записи создателя)</value>
@@ -3332,4 +3332,7 @@
   <data name="FileSidebar_RevealInFinder" xml:space="preserve"><value>Показать в Finder</value></data>
   <data name="FileSidebar_ShowInFileManager" xml:space="preserve"><value>Показать в файловом менеджере</value></data>
   <data name="FileSidebar_RevealFailed" xml:space="preserve"><value>Не удалось открыть эту папку.</value></data>
+  <data name="PlayerPets_StatusAddedPending" xml:space="preserve"><value>Добавлен - сохраните, чтобы оживить</value></data>
+  <data name="PlayerPets_StatusTakenOutPending" xml:space="preserve"><value>Убран из этой ячейки</value></data>
+  <data name="PlayerPets_PendingHelp" xml:space="preserve"><value>Питомцы, которых вы только что добавили или убрали, показаны, но пока недоступны для правки. Нажмите СОХРАНИТЬ и откройте файл заново, чтобы у них появились уровень, здоровье и имя.</value></data>
 </root>

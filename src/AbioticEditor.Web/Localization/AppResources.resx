@@ -1821,7 +1821,7 @@ Pick the folder the game is installed in, or the AbioticFactor folder inside it.
     <value>Couldn't import that file</value>
   </data>
   <data name="PlayerEditor_OwnerIdNote" xml:space="preserve">
-    <value>Game Pass / non-Steam account - this id is locked here. To change it, use SAVE CONVERSION in Settings (it can re-home the player while converting).</value>
+    <value>This is not a Steam ID, so the Steam-only extras (persona name, achievements) stay switched off. You can still change the id here.</value>
   </data>
   <data name="PlayerEditor_CutTraitDescription" xml:space="preserve">
     <value>(unused/cut trait - the game has no description or creator entry for it)</value>
@@ -3634,4 +3634,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="FileSidebar_RevealInFinder" xml:space="preserve"><value>Reveal in Finder</value></data>
   <data name="FileSidebar_ShowInFileManager" xml:space="preserve"><value>Show in file manager</value></data>
   <data name="FileSidebar_RevealFailed" xml:space="preserve"><value>The editor could not open that folder.</value></data>
+  <data name="PlayerPets_StatusAddedPending" xml:space="preserve"><value>Added - save to bring it to life</value></data>
+  <data name="PlayerPets_StatusTakenOutPending" xml:space="preserve"><value>Taken out of that slot</value></data>
+  <data name="PlayerPets_PendingHelp" xml:space="preserve"><value>Pets you have just moved in or out are listed but cannot be edited yet. Press SAVE and reopen the save to give them a level, health and a name.</value></data>
 </root>
