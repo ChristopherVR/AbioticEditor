@@ -896,9 +896,11 @@ jobs:
         uses: crazy-max/ghaction-virustotal@v5
         with:
           vt_api_key: ${{ secrets.VT_API_KEY }}
-          # Ten archives of 50-95 MB each, back to back, is what tripped the 409. The free
-          # tier allows four requests a minute; pace to it rather than racing.
-          request_rate: 4
+          # Ten archives of 50-95 MB each is what trips the 409, always on the sixth upload -
+          # at four a minute as well as unthrottled. Anything this size needs two calls (ask
+          # for an upload slot, then use it), so four files a minute is eight calls against a
+          # four-a-minute allowance. Two files a minute matches it.
+          request_rate: 2
           files: |
             dist/*.zip
 
