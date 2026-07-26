@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [2.1.4] - 2026-07-26
+
+### Bug Fixes
+- The Linux download can now be published to Nexus Mods
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.1.3 [skip ci]
+
+
 ## [2.1.3] - 2026-07-25
 
 ### Bug Fixes
