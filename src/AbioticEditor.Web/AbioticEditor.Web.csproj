@@ -16,8 +16,8 @@
     <UseWindowsForms Condition="'$(TargetFramework)' == 'net10.0-windows10.0.19041.0'">true</UseWindowsForms>
     <!-- OutputType stays the Web SDK default (Exe). Setting WinExe to stop Windows handing the
          app a console ALSO stops the SDK emitting wwwroot/_framework, so blazor.web.js never
-         ships and the editor opens to a blank window. The console is hidden at startup instead
-         (see DesktopConsole in Program.cs). -->
+         ships and the editor opens to a blank window. The published executable is marked
+         graphical afterwards instead (see SuppressPublishedConsoleWindow below). -->
     <RootNamespace>AbioticEditor.Web</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -61,7 +61,13 @@
     <PackageReference Include="Photino.NET" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Only Windows loads the .ico; Linux and macOS use the .png, so shipping both there is
+         dead weight. ExcludeFromSingleFile because the single-file bundler otherwise swallows
+         the icon into the executable, leaving nothing on disk for the window to load - the app
+         then opened with the blank default icon. The .png is untouched by the bundler. -->
     <Content Include="appicon.ico"
+             Condition="'$(RuntimeIdentifier)' == '' or $(RuntimeIdentifier.StartsWith('win'))"
+             ExcludeFromSingleFile="true"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />
     <Content Include="appicon.png"
@@ -109,6 +115,57 @@
        blanket switch that would drop them (AllowedReferenceRelatedFileExtensions) also strips
        wwwroot/_framework. Dropping them from the publish list directly keeps the shipped folder
        to the executable plus the data it reads. -->
+  <!-- The static-assets manifest cannot be embedded in the executable: the SDK only produces the
+       publish copy after the files are staged, which is long after the assembly is compiled, so
+       embedding it would need a second compile pass over the first pass's output. It also cannot
+       simply be dropped - the app refuses to start without it. Moving it in beside the assets it
+       describes keeps it out of the download's top level, which is the whole point, and costs
+       nothing: StaticAssetManifest looks there. Keep this in step with that lookup. -->
+  <Target Name="TuckAwayStaticAssetManifest" AfterTargets="CopyStaticWebAssetsEndpointsManifest">
+    <Move SourceFiles="$(PublishDir)$(TargetName).staticwebassets.endpoints.json"
+          DestinationFiles="$(PublishDir)wwwroot/$(TargetName).staticwebassets.endpoints.json"
+          Condition="Exists('$(PublishDir)$(TargetName).staticwebassets.endpoints.json')" />
+  </Target>
+  <!-- Windows decides whether to hand a process a console from one field in its executable
+       header, before any of our code runs. Hiding the window at startup (DesktopConsole) is
+       therefore always a frame or two late: a black console flashes up and vanishes. Setting
+       OutputType=WinExe is the supported way to set that field, but it also stops the SDK
+       emitting wwwroot/_framework, so blazor.web.js never ships and the editor opens blank.
+       Writing the same value into the published executable afterwards gets the behaviour without
+       the side effect. The field is a fixed offset from the PE header and the write is in place,
+       so the single-file bundle appended after it is untouched. -->
+  <UsingTask TaskName="MarkExecutableAsGuiSubsystem" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <ExecutablePath ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        if (!System.IO.File.Exists(ExecutablePath)) return true;
+        using var file = new System.IO.FileStream(ExecutablePath, System.IO.FileMode.Open, System.IO.FileAccess.ReadWrite);
+        using var reader = new System.IO.BinaryReader(file, System.Text.Encoding.ASCII, true);
+        file.Position = 0x3C;
+        var peHeader = reader.ReadInt32();
+        file.Position = peHeader;
+        if (reader.ReadUInt32() != 0x00004550) { Log.LogError("Not a PE image: " + ExecutablePath); return false; }
+        // PE signature (4) + COFF header (20) puts the optional header here; its Subsystem field
+        // sits 68 bytes in, at the same place for both the 32- and 64-bit header layouts.
+        var subsystem = peHeader + 4 + 20 + 68;
+        file.Position = subsystem;
+        var current = reader.ReadUInt16();
+        const ushort Console = 3, WindowsGui = 2;
+        if (current == WindowsGui) return true;
+        if (current != Console) { Log.LogError("Unexpected subsystem " + current + " in " + ExecutablePath); return false; }
+        file.Position = subsystem;
+        using var writer = new System.IO.BinaryWriter(file, System.Text.Encoding.ASCII, true);
+        writer.Write(WindowsGui);
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="SuppressPublishedConsoleWindow" AfterTargets="Publish"
+          Condition="$(RuntimeIdentifier.StartsWith('win'))">
+    <MarkExecutableAsGuiSubsystem ExecutablePath="$(PublishDir)$(AssemblyName).exe" />
+  </Target>
   <Target Name="DropSymbolsFromPublish" AfterTargets="ComputeResolvedFilesToPublishList">
     <ItemGroup>
       <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"

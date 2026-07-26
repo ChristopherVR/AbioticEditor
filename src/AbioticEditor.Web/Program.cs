@@ -86,7 +86,7 @@ public static class Program
         // for a file that briefly did not exist, got nothing, and stayed completely unstyled
         // until it was reloaded by hand. Manifest URLs carry a content stamp, so a rebuild
         // produces a new address instead of breaking the old one.
-        app.MapStaticAssets();
+        app.MapStaticAssets(StaticAssetManifest.ResolvePath());
         app.UseAntiforgery();
         app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }));
         app.MapGet("/item-icons/{itemId}", async (string itemId, ItemCatalogService catalog, HttpResponse response) =>

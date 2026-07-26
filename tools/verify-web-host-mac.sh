@@ -8,7 +8,7 @@ layout_only="${2:-}"
 publish_dir="$(cd -- "$publish_dir" && pwd)"
 # Single-file publish: the managed assemblies and Photino native library live inside the
 # executable, so only run-time data is expected beside it.
-for required in AbioticEditor.Web Mappings.usmap registry wiki THIRD-PARTY-NOTICES.txt launch-mac.sh wwwroot Templates/blank-world-template.sav Templates/blank-player-template.sav; do
+for required in AbioticEditor.Web Mappings.usmap registry wiki THIRD-PARTY-NOTICES.txt launch-mac.sh wwwroot wwwroot/AbioticEditor.Web.staticwebassets.endpoints.json Templates/blank-world-template.sav Templates/blank-player-template.sav; do
   test -e "$publish_dir/$required" || { echo "Published macOS host is missing '$required'." >&2; exit 1; }
 done
 

@@ -888,14 +888,24 @@ jobs:
       - name: Scan zips with VirusTotal
         id: vt
         if: steps.gate.outputs.enabled == 'true'
+        # The archives are already published and their checksums are in SHA256SUMS.txt; this
+        # scan only adds convenience links to the notes. VirusTotal refused the sixth upload
+        # of ten with a 409 on v2.1.5 and took the whole run red with it, so a bad day at
+        # their end must not mark a good release as failed.
+        continue-on-error: true
         uses: crazy-max/ghaction-virustotal@v5
         with:
           vt_api_key: ${{ secrets.VT_API_KEY }}
+          # Ten archives of 50-95 MB each, back to back, is what tripped the 409. The free
+          # tier allows four requests a minute; pace to it rather than racing.
+          request_rate: 4
           files: |
             dist/*.zip
 
       - name: Append VirusTotal results to the release body
-        if: steps.gate.outputs.enabled == 'true'
+        # Skipped when the scan produced nothing, so a failed scan leaves the notes alone
+        # instead of appending an empty section.
+        if: steps.gate.outputs.enabled == 'true' && steps.vt.outputs.analysis != ''
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.version.outputs.tag }}

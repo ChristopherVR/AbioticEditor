@@ -19,6 +19,12 @@ $required = @(
     'registry',
     'wiki',
     'wwwroot',
+    # The single-file bundler swallows this unless it is marked ExcludeFromSingleFile, and the
+    # window then opens with the blank default icon.
+    'appicon.ico',
+    # The app will not start without the static-assets manifest, and the build moves it in here
+    # to keep it out of the download's top level. Both halves have to stay true.
+    'wwwroot\AbioticEditor.Web.staticwebassets.endpoints.json',
     'Templates\blank-world-template.sav',
     'Templates\blank-player-template.sav'
 )
@@ -28,6 +34,20 @@ if ($strayDlls) { throw "Expected a single-file publish, found $($strayDlls.Coun
 foreach ($relative in $required) {
     if (-not (Test-Path -LiteralPath (Join-Path $root $relative))) { throw "Published Windows host is missing '$relative'." }
 }
+# Windows launchers cannot use the Linux/macOS shell scripts, so they must not be in this package.
+$strayScripts = Get-ChildItem -LiteralPath $root -Filter *.sh -File -ErrorAction SilentlyContinue
+if ($strayScripts) { throw "Windows package contains $($strayScripts.Count) shell script(s), e.g. $($strayScripts[0].Name)." }
+# A console-subsystem executable makes Windows flash a black console window before the editor
+# appears. The build rewrites this field after publishing; 2 is the graphical subsystem.
+$exe = [IO.File]::OpenRead((Join-Path $root 'AbioticEditor.Web.exe'))
+try {
+    $reader = New-Object IO.BinaryReader($exe)
+    $exe.Position = 0x3C
+    $exe.Position = $reader.ReadInt32() + 4 + 20 + 68
+    $subsystem = $reader.ReadUInt16()
+    if ($subsystem -ne 2) { throw "Published executable would open a console window (PE subsystem $subsystem, expected 2)." }
+}
+finally { $exe.Dispose() }
 
 if ($SkipSmoke) { Write-Host "Windows host publish layout verified: $root"; return }
 
