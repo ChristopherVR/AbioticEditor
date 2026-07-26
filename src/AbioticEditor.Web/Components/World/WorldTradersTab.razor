@@ -128,12 +128,7 @@
     /// <summary>Native rule: a curated spoiler-gate flag also counts as satisfied once the
     /// story has reached (or passed) the chapter that flag triggers.</summary>
     private bool IsSpoilerGateSatisfied(TraderLore.Entry? lore)
-    {
-        if (lore?.SpoilerGateFlag is not { } gate) return true;
-        if (HasWorldFlag(gate)) return true;
-        var gateChapter = StoryProgressionCatalog.ChapterIndexForFlag(gate);
-        return gateChapter >= 0 && StoryProgressionCatalog.FurthestReachedIndex(HasWorldFlag) >= gateChapter;
-    }
+        => TraderSpoilers.IsGateSatisfied(lore, HasWorldFlag);
 
     /// <summary>A trader the player hasn't reached yet is future content (native concealment).</summary>
     private bool IsConcealed(TraderInfo trader, TraderLore.Entry? lore)

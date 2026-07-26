@@ -30,6 +30,13 @@ change to a friend who plays Abiotic Factor but has no programming background:
   parenthetical so the plain sentence reads fine without it.
 - Short, friendly sentences. One idea per sentence. No bullet walls.
 
+### Commit trailers
+
+**Never put a chat/session link in a commit message.** No `Claude-Session:` trailer, no
+`https://claude.ai/code/...` URL, in the subject, the body or a trailer. These commits are
+public and the changelog built from them is published to Nexus Mods, so a session link
+would be shipped to players. A `Co-Authored-By:` line is fine.
+
 ## Build / test commands
 
 Requires the **.NET 10 SDK**. Clone with `--recursive` (or `git submodule update --init`); the

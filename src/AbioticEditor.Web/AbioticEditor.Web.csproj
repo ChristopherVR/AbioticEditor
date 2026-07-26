@@ -115,13 +115,19 @@
                              Condition="'%(ResolvedFileToPublish.Extension)' == '.pdb'" />
     </ItemGroup>
   </Target>
-  <ItemGroup>
+  <!-- Each platform's launcher ships only in that platform's package. The Linux and macOS
+       scripts are the documented way to start the editor there (they set the library paths and
+       clear macOS quarantine), but in the Windows download they were three files nobody can
+       use. Keyed off the publish RID, so a plain build without one keeps them all. -->
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == '' or $(RuntimeIdentifier.StartsWith('linux'))">
     <Content Include="launch-linux.sh"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />
     <Content Include="install-linux-desktop.sh"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == '' or $(RuntimeIdentifier.StartsWith('osx'))">
     <Content Include="launch-mac.sh"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />

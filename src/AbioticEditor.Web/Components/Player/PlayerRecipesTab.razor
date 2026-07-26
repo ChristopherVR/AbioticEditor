@@ -475,9 +475,22 @@
             .Select(trader => TraderDisplayName(trader.Id))
             .Distinct());
 
-    /// <summary>Native rule: localized lore name for known traders, raw id for unknown (e.g. modded) ones.</summary>
+    /// <summary>
+    /// Localized lore name for known traders, raw id for unknown (e.g. modded) ones - and
+    /// CLASSIFIED for a trader the save has not reached yet. Without that last part this line
+    /// named traders who only appear after the game is finished: looking up a taco recipe
+    /// announced Jimmy Sanders long before the player could ever meet him.
+    /// </summary>
     private string TraderDisplayName(string id)
-        => TraderLore.ById.ContainsKey(id) ? L.Resource($"WorldTraders_Lore_{id}_Name") : PlainNames.Words(id);
+    {
+        if (!TraderLore.ById.ContainsKey(id)) return PlainNames.Words(id);
+        return Spoilers.Enabled && TraderSpoilers.IsFutureContent(id, HasWorldFlag)
+            ? L.Resource("Spoiler_ClassifiedShort")
+            : L.Resource($"WorldTraders_Lore_{id}_Name");
+    }
+
+    /// <summary>Case-insensitive world-flag lookup against the sibling world's story flags.</summary>
+    private bool HasWorldFlag(string flag) => _worldFlags?.Contains(flag) == true;
 
     private async Task Changed()
     {
