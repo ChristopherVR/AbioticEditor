@@ -9,6 +9,7 @@
 @inject ItemCatalogService Catalog
 @inject SlotDragDropService Dnd
 @inject HostSpoilerPreferences Spoilers
+@inject HostAdvancedPreferences Advanced
 @inject ModalService Modals
 @inject IJSRuntime Js
 
@@ -509,7 +510,7 @@
             _paletteStatus = L.Resource(hotbarOnly ? "Slot_MsgNoEmptyHotbar" : "Slot_MsgNoEmptyAvailable");
             return;
         }
-        if (SlotDropRules.ValidateForSlot(L, target.Area, target.Role, item) is { } problem)
+        if (SlotDropRules.ValidateForSlot(L, target.Area, target.Role, item, Advanced.SkipEquipSlotValidation) is { } problem)
         {
             _paletteStatus = L.Resource("Slot_MsgBlocked", problem);
             return;
@@ -584,9 +585,9 @@
         var area = current.PlayerArea;
         var sourceRole = area is { } sourceArea ? SlotDropRules.RoleFor(sourceArea, source.Index) : null;
         var targetRole = area is { } targetArea ? SlotDropRules.RoleFor(targetArea, target.Index) : null;
-        if (SlotDropRules.ValidateForSlot(L, area, targetRole, Catalog.Find(source.ItemId)) is { } problem)
+        if (SlotDropRules.ValidateForSlot(L, area, targetRole, Catalog.Find(source.ItemId), Advanced.SkipEquipSlotValidation) is { } problem)
             return L.Resource("Slot_MsgBlocked", problem);
-        if (!target.IsEmpty && SlotDropRules.ValidateForSlot(L, area, sourceRole, Catalog.Find(target.ItemId)) is { } displaced)
+        if (!target.IsEmpty && SlotDropRules.ValidateForSlot(L, area, sourceRole, Catalog.Find(target.ItemId), Advanced.SkipEquipSlotValidation) is { } displaced)
             return L.Resource("Slot_MsgBlockedSwap", displaced);
         return null;
     }

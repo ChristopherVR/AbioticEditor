@@ -7,6 +7,7 @@
 @inject ItemCatalogService Catalog
 @inject InventorySelectionService Selection
 @inject SlotDragDropService Dnd
+@inject HostAdvancedPreferences Advanced
 @inject IJSRuntime Js
 
 @* Faithful port of the native PlayerInventoryTab: the AF-style paper-doll layout.
@@ -292,7 +293,7 @@
         // A mis-tap on a slot that cannot take the item should say why and keep hold of it,
         // rather than quietly putting it down again.
         if (Dnd.PaletteItem is { } palette
-            && SlotDropRules.ValidateForSlot(L, area, RoleFor(area, slot.Index), palette) is { } problem)
+            && SlotDropRules.ValidateForSlot(L, area, RoleFor(area, slot.Index), palette, Advanced.SkipEquipSlotValidation) is { } problem)
         {
             _status = L.Resource("Slot_MsgBlocked", problem);
             return;
@@ -348,7 +349,7 @@
     {
         _dragOverSlot = slot;
         // Surface the native "Blocked: ..." message live while hovering an ineligible slot.
-        if (Dnd.PaletteItem is { } palette && SlotDropRules.ValidateForSlot(L, area, RoleFor(area, slot.Index), palette) is { } problem)
+        if (Dnd.PaletteItem is { } palette && SlotDropRules.ValidateForSlot(L, area, RoleFor(area, slot.Index), palette, Advanced.SkipEquipSlotValidation) is { } problem)
             _status = L.Resource("Slot_MsgBlocked", problem);
         else if (Dnd.Source is { } source && !ReferenceEquals(source.Slot, slot) && SwapProblem(source, area, slot) is { } swapProblem)
             _status = swapProblem;
@@ -362,14 +363,14 @@
     private string? SwapProblem(SlotDragSource source, PlayerInventoryArea targetArea, PlayerInventorySlotEdit target)
         => SlotDropRules.SwapProblem(L, Catalog,
             source.Area, source.Role, source.Slot,
-            targetArea, RoleFor(targetArea, target.Index), target);
+            targetArea, RoleFor(targetArea, target.Index), target, Advanced.SkipEquipSlotValidation);
 
     /// <summary>"allowed"/"blocked" while a drag is in progress, null otherwise. Rendered as
     /// the data-dropzone attribute the JS dragover handler reads for the drop cursor.</summary>
     private string? DropStateFor(PlayerInventoryArea area, PlayerInventorySlotEdit slot)
     {
         if (Dnd.PaletteItem is { } palette)
-            return SlotDropRules.ValidateForSlot(L, area, RoleFor(area, slot.Index), palette) is null ? "allowed" : "blocked";
+            return SlotDropRules.ValidateForSlot(L, area, RoleFor(area, slot.Index), palette, Advanced.SkipEquipSlotValidation) is null ? "allowed" : "blocked";
         if (Dnd.Source is { } source)
         {
             if (ReferenceEquals(source.Slot, slot)) return "blocked";
@@ -394,7 +395,7 @@
         // Palette drops (sidebar or transmog palette) spawn a fresh copy of the item.
         if (palette is not null)
         {
-            if (SlotDropRules.ValidateForSlot(L, targetArea, RoleFor(targetArea, target.Index), palette) is { } problem)
+            if (SlotDropRules.ValidateForSlot(L, targetArea, RoleFor(targetArea, target.Index), palette, Advanced.SkipEquipSlotValidation) is { } problem)
             {
                 _status = L.Resource("Slot_MsgBlocked", problem);
                 return;

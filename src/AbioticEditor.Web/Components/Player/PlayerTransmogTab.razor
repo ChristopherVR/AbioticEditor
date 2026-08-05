@@ -7,6 +7,7 @@
 @inject ItemCatalogService Catalog
 @inject InventorySelectionService Selection
 @inject SlotDragDropService Dnd
+@inject HostAdvancedPreferences Advanced
 @inject IJSRuntime Js
 
 @* Faithful port of the native PlayerTransmogTab.xaml: a 6-across grid of 96px cosmetic
@@ -154,14 +155,14 @@
     // expected enumerator or the EquipmentSlots_All wildcard. Never id-prefix heuristics:
     // suit_hazmat_casual is a LEGS item despite its name.
     private string? ValidateForRole(string? role, ItemCatalogEntry? entry)
-        => SlotDropRules.ValidateForSlot(L, PlayerInventoryArea.Transmog, role, entry);
+        => SlotDropRules.ValidateForSlot(L, PlayerInventoryArea.Transmog, role, entry, Advanced.SkipEquipSlotValidation);
 
     // Swap validation both ways, like the native drop handler: the dragged item must fit the
     // target slot and the displaced item must fit the source slot.
     private string? SwapProblem(SlotDragSource source, PlayerInventorySlotEdit target)
         => SlotDropRules.SwapProblem(L, Catalog,
             source.Area, source.Role, source.Slot,
-            PlayerInventoryArea.Transmog, RoleOf(target.Index), target);
+            PlayerInventoryArea.Transmog, RoleOf(target.Index), target, Advanced.SkipEquipSlotValidation);
 
     // ---------- slot interactions ----------
 

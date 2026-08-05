@@ -2001,6 +2001,18 @@ This writes to the save straight away and reloads the editor, so anything you ha
   <data name="Settings_SpoilerProtection" xml:space="preserve">
     <value>Spoiler protection</value>
   </data>
+  <data name="Settings_Advanced" xml:space="preserve">
+    <value>ADVANCED</value>
+  </data>
+  <data name="Settings_AdvancedHint" xml:space="preserve">
+    <value>Expert options that can create equipment combinations the game itself would never let you reach. Only turn these on if you know what you're doing.</value>
+  </data>
+  <data name="Settings_SkipEquipSlotValidation" xml:space="preserve">
+    <value>Allow any item in any equipment/transmog slot</value>
+  </data>
+  <data name="Settings_SkipEquipSlotValidationHint" xml:space="preserve">
+    <value>Normally the editor blocks putting an item where the game wouldn't allow it (a helmet in the legs slot, for example). Turning this on lets you place any item in any equipment, transmog or hotbar slot, with no compatibility checks.</value>
+  </data>
   <data name="Settings_ManagePlugins" xml:space="preserve">
     <value>MANAGE PLUGINS</value>
   </data>

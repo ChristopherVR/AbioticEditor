@@ -77,9 +77,12 @@ public static class SlotDropRules
     /// EquipmentSlots_All wildcard. Never id-prefix heuristics: suit_hazmat_casual is a
     /// LEGS item despite its name. Returns null when the item fits.
     /// </summary>
-    public static string? ValidateForRole(HostLanguageService language, string? role, ItemCatalogEntry? entry)
+    /// <param name="skipValidation">The Settings &gt; Advanced "disable equip-slot checks"
+    /// escape hatch (<see cref="HostAdvancedPreferences.SkipEquipSlotValidation"/>): when true,
+    /// every item is treated as fitting.</param>
+    public static string? ValidateForRole(HostLanguageService language, string? role, ItemCatalogEntry? entry, bool skipValidation = false)
     {
-        if (role is null || entry is null) return null;
+        if (skipValidation || role is null || entry is null) return null;
         if (EquipSlotTypes.ExpectedFor(role) is not { } expected) return null;
         var actual = entry.EquipSlot;
         if (actual == expected || actual == EquipSlotTypes.All) return null;
@@ -96,8 +99,9 @@ public static class SlotDropRules
     /// backpack, the transmog grid (native builds it as a Main list) or a storage container
     /// (a null area). Returns a human-readable problem or null when the item fits.
     /// </summary>
-    public static string? ValidateForSlot(HostLanguageService language, PlayerInventoryArea? area, string? role, ItemCatalogEntry? entry)
+    public static string? ValidateForSlot(HostLanguageService language, PlayerInventoryArea? area, string? role, ItemCatalogEntry? entry, bool skipValidation = false)
     {
+        if (skipValidation) return null;
         if (ValidateForRole(language, role, entry) is { } roleProblem) return roleProblem;
         var mainKind = area is null or PlayerInventoryArea.Backpack or PlayerInventoryArea.Transmog;
         if (mainKind && EquipSlotTypes.IsHotbarOnly(entry))
@@ -114,8 +118,10 @@ public static class SlotDropRules
     public static string? SwapProblem(
         HostLanguageService language, ItemCatalogService catalog,
         PlayerInventoryArea sourceArea, string? sourceRole, PlayerInventorySlotEdit source,
-        PlayerInventoryArea targetArea, string? targetRole, PlayerInventorySlotEdit target)
+        PlayerInventoryArea targetArea, string? targetRole, PlayerInventorySlotEdit target,
+        bool skipValidation = false)
     {
+        if (skipValidation) return null;
         if (ValidateForSlot(language, targetArea, targetRole, catalog.Find(source.ItemId)) is { } problem)
             return language.Resource("Slot_MsgBlocked", problem);
         if (!target.IsEmpty && ValidateForSlot(language, sourceArea, sourceRole, catalog.Find(target.ItemId)) is { } displaced)

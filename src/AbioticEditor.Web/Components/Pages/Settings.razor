@@ -4,6 +4,7 @@
 @inject HostThemeService Theme
 @inject HostLanguageService Languages
 @inject HostSpoilerPreferences Spoilers
+@inject HostAdvancedPreferences Advanced
 @inject AbioticEditor.Ui.IExternalNavigationService ExternalNavigation
 @inject AbioticEditor.Ui.IFilePicker FilePicker
 @inject AbioticEditor.Ui.IFolderPicker FolderPicker
@@ -63,6 +64,12 @@
                             <label class="settings-switch-row"><span>@R("Settings_SpoilerProtection")</span><input type="checkbox" role="switch" checked="@Spoilers.Enabled" @onchange="SetSpoilerProtection" /></label>
                             <p class="muted">@(Spoilers.RevealedCount == 0 ? R("Settings_NothingRevealed") : R("Settings_ItemsRevealed", Spoilers.RevealedCount))</p>
                             <button class="secondary" type="button" @onclick="ResealSpoilers" disabled="@(Spoilers.RevealedCount == 0)">@R("Settings_ResealItems")</button>
+                        </article>
+                        <article class="settings-card">
+                            <h2>@R("Settings_Advanced")</h2>
+                            <p class="muted">@R("Settings_AdvancedHint")</p>
+                            <label class="settings-switch-row"><span>@R("Settings_SkipEquipSlotValidation")</span><input type="checkbox" role="switch" checked="@Advanced.SkipEquipSlotValidation" @onchange="SetSkipEquipSlotValidation" /></label>
+                            <p class="muted">@R("Settings_SkipEquipSlotValidationHint")</p>
                         </article>
                         break;
                     case SettingsTab.GameData:
@@ -269,6 +276,7 @@
     }
     private void SetSpoilerProtection(ChangeEventArgs e) => Spoilers.Enabled = e.Value as bool? ?? false;
     private void ResealSpoilers() => Spoilers.Reseal();
+    private void SetSkipEquipSlotValidation(ChangeEventArgs e) => Advanced.SkipEquipSlotValidation = e.Value as bool? ?? false;
     private async Task RevealLogsAsync()
     {
         _logFolderStatus = null;

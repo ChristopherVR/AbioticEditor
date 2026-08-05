@@ -64,6 +64,7 @@ public static class Program
         builder.Services.AddSingleton<HostLanguageService>();
         builder.Services.AddSingleton<HostThemeService>();
         builder.Services.AddSingleton<HostSpoilerPreferences>();
+        builder.Services.AddSingleton<HostAdvancedPreferences>();
         builder.Services.AddSingleton<ShellPreferencesService>();
         builder.Services.AddSingleton<InventorySelectionService>();
         builder.Services.AddSingleton<SlotDragDropService>();
