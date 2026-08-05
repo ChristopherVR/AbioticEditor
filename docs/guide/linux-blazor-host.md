@@ -25,13 +25,12 @@ dotnet publish src/AbioticEditor.Web -c Release -r linux-x64 --self-contained tr
 ```
 
 The published executable starts the loopback service and its native window together.
-On Linux it uses WebKitGTK 4.1; on Steam Deck, run it from Desktop Mode or install
-the included desktop-menu entry.
+On Linux it uses WebKitGTK 4.1. On Steam Deck (Desktop Mode), double-click the included
+`launch-linux.desktop` and accept the **Trust and Launch** prompt - no terminal needed.
 
-If double-clicking the extracted `launch-linux.sh` does nothing, or GTK/WebKitGTK
-libraries are missing (common on Steam Deck's read-only system partition), see the
-terminal steps and headless fallback in the
-[Linux desktop app guide](linux-local-host.md#if-double-clicking-the-download-does-nothing).
+If that prompt never appears, or GTK/WebKitGTK libraries are missing (common on Steam
+Deck's read-only system partition), see the terminal steps and headless fallback in the
+[Linux desktop app guide](linux-local-host.md#if-double-clicking-launch-linux-desktop-does-nothing-either).
 
 ## Architecture boundary
 

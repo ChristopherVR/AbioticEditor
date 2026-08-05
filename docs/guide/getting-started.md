@@ -25,7 +25,7 @@ Each zip's name carries the release version (e.g. `AbioticEditor-desktop-win-x64
 | Download | What it is |
 |---|---|
 | `AbioticEditor-desktop-win-x64-v<version>.zip` | Desktop editor (Windows). Extract and run `AbioticEditor.Web.exe`; no .NET install is needed. |
-| `AbioticEditor-desktop-linux-x64-v<version>.zip` | Desktop editor (Linux, Steam Deck, and Proton saves). Extract and run `launch-linux.sh`. |
+| `AbioticEditor-desktop-linux-x64-v<version>.zip` | Desktop editor (Linux, Steam Deck, and Proton saves). Extract, then double-click `launch-linux.desktop` and trust it. |
 | `AbioticEditor-cli-win-x64-v<version>.zip` | Command-line tool (Windows) |
 | `AbioticEditor-cli-linux-x64-v<version>.zip` | Command-line tool (Linux, including Steam Deck - finds saves inside the Proton prefix automatically) |
 | `AbioticEditor-cli-osx-x64-v<version>.zip` / `-osx-arm64-…` | Command-line tool (macOS) |
@@ -93,7 +93,8 @@ managed centrally in `Directory.Packages.props`.
 
 ::: tip Linux / Steam Deck (Proton)
 The self-contained Linux editor provides the full point-and-click UI in its own desktop window.
-Extract `AbioticEditor-desktop-linux-x64-v<version>.zip` and run `launch-linux.sh` from Desktop Mode.
+Extract `AbioticEditor-desktop-linux-x64-v<version>.zip` in Desktop Mode, then double-click
+`launch-linux.desktop` and choose Trust and Launch - no terminal needed.
 The editor and CLI scan every Steam library, including internal storage, SD cards, Flatpak, and
 Snap installs, and find saves inside Proton prefixes without requiring a manual `compatdata` path.
 :::

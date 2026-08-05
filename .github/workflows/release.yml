@@ -520,7 +520,7 @@ jobs:
 
       - name: Zip local Razor host
         run: |
-          chmod +x out/launch-linux.sh
+          chmod +x out/launch-linux.sh out/launch-linux.desktop
           cd out
           zip -r "../${ASSET_BASENAME}.zip" .
 
@@ -555,7 +555,7 @@ jobs:
 
       - name: Zip local Razor host (Nexus Mods build)
         run: |
-          chmod +x out-nexus/launch-linux.sh
+          chmod +x out-nexus/launch-linux.sh out-nexus/launch-linux.desktop
           cd out-nexus
           zip -r "../${ASSET_BASENAME}-nexus.zip" .
 

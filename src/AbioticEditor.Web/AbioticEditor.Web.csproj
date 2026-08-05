@@ -183,6 +183,13 @@
     <Content Include="install-linux-desktop.sh"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />
+    <!-- A double-clickable, no-terminal launcher: KDE Plasma (Steam Deck Desktop Mode)
+         offers to "Trust and Launch" a local .desktop file like this even when it lacks
+         the executable bit an ordinary script or binary would need, so this is the one
+         file in the archive that can survive an archive tool stripping permissions. -->
+    <Content Include="launch-linux.desktop"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup Condition="'$(RuntimeIdentifier)' == '' or $(RuntimeIdentifier.StartsWith('osx'))">
     <Content Include="launch-mac.sh"

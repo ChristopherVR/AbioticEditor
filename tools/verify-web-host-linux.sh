@@ -11,7 +11,7 @@ layout_only="${2:-}"
 publish_dir="$(cd -- "$publish_dir" && pwd)"
 # Single-file publish: the managed assemblies and Photino native library live inside the
 # executable, so only run-time data is expected beside it.
-for required in AbioticEditor.Web Mappings.usmap registry wiki THIRD-PARTY-NOTICES.txt launch-linux.sh install-linux-desktop.sh wwwroot wwwroot/AbioticEditor.Web.staticwebassets.endpoints.json Templates/blank-world-template.sav Templates/blank-player-template.sav; do
+for required in AbioticEditor.Web Mappings.usmap registry wiki THIRD-PARTY-NOTICES.txt launch-linux.sh install-linux-desktop.sh launch-linux.desktop wwwroot wwwroot/AbioticEditor.Web.staticwebassets.endpoints.json Templates/blank-world-template.sav Templates/blank-player-template.sav; do
   test -e "$publish_dir/$required" || { echo "Published Linux host is missing '$required'." >&2; exit 1; }
 done
 
@@ -21,6 +21,17 @@ bash -n "$publish_dir/install-linux-desktop.sh"
 grep -q 'ABIOTIC_EDITOR_URL="\$url"' "$publish_dir/launch-linux.sh"
 grep -q 'ABIOTIC_EDITOR_NO_DESKTOP=1' "$publish_dir/launch-linux.sh"
 grep -q 'libwebkit2gtk-4.1-0' "$publish_dir/launch-linux.sh"
+
+# launch-linux.sh must self-heal a stripped executable bit on the main binary before it
+# ever gets as far as an app to open.
+grep -q 'chmod +x "\$app_dir/AbioticEditor.Web"' "$publish_dir/launch-linux.sh"
+
+# The .desktop file's Exec resolves its own folder from the %k field code, with a cwd
+# fallback for launchers that do not substitute it. Pin the exact embedded shell snippet so
+# an edit here is deliberate: a bare existence/header check would miss a change that breaks
+# the actual path resolution while still leaving the file present with the right header.
+grep -q '^\[Desktop Entry\]$' "$publish_dir/launch-linux.desktop"
+grep -Fq 'Exec=bash -c '"'"'d="${1%/*}"; [ -x "$d/launch-linux.sh" ] || d="$PWD"; cd "$d" && exec ./launch-linux.sh'"'"' bash %k' "$publish_dir/launch-linux.desktop"
 
 if [[ "$layout_only" == "--layout-only" ]]; then
   echo "Linux publish layout checks passed (layout only): $publish_dir"

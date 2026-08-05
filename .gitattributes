@@ -4,6 +4,10 @@
 # core.autocrlf on, so without this the ending depends on whose machine last touched them.
 *.sh text eol=lf
 
+# Linux desktop-entry launchers are parsed by KIO/GLib desktop-file readers, which choke on
+# stray CR bytes the same way bash does on scripts.
+*.desktop text eol=lf
+
 # The Game Pass fixtures are binary containers; never let end-of-line conversion near them.
 *.sav binary
 *.usmap binary

@@ -36,6 +36,14 @@ the native window library, static assets, and save templates remain beside the e
 
 ## Run it
 
+Extract the archive, then double-click **launch-linux.desktop**. KDE Plasma (Steam Deck
+Desktop Mode and most other Linux desktops) offers to **Trust and Launch** a local
+`.desktop` file like this the first time, with no terminal and no permissions to fix by
+hand: unlike a plain script or binary, it does not need its own executable bit set to make
+that offer. Accept the prompt once and the editor opens in its desktop window.
+
+Alternatively, from a terminal:
+
 ```bash
 ./launch-linux.sh
 ```
@@ -51,13 +59,11 @@ ABIOTIC_EDITOR_URL=http://127.0.0.1:41000 ./launch-linux.sh
 The executable rejects wildcard, LAN, HTTPS, path, query, and privileged-port bindings.
 This is deliberate because the editor can access local saves selected by the user.
 
-### If double-clicking the download does nothing
+### If double-clicking launch-linux.desktop does nothing either
 
-Some archive tools and file-manager "extract" actions do not restore the Linux executable
-permission bit on the files they unpack, and some file managers try to run a file straight
-out of an unextracted archive view instead of a real path on disk - both look like "it
-doesn't know what program to run this with." Fix it from a terminal, which sidesteps both
-problems:
+A handful of very old or unusual desktop environments do not offer the trust-launch prompt
+for local `.desktop` files. Fall back to a terminal, which sidesteps every permission and
+file-association problem at once:
 
 ```bash
 cd path/to/the/extracted/folder
@@ -107,8 +113,10 @@ the menu integration with `./install-linux-desktop.sh --uninstall`.
 
 The release workflow publishes `AbioticEditor-desktop-linux-x64-v<version>.zip`. It includes
 the self-contained executable, `Photino.Native.so`, Razor assets, templates,
-`launch-linux.sh`, and `install-linux-desktop.sh`. CI verifies both headless health and a
-real WebKitGTK window under a virtual display before publishing.
+`launch-linux.sh`, `launch-linux.desktop`, and `install-linux-desktop.sh`. CI verifies
+headless health, a real WebKitGTK window under a virtual display, and the desktop-entry
+launcher's contents before publishing (see `tools/verify-web-host-linux.sh`; the trust-launch
+prompt itself is desktop-environment UI CI cannot drive, so that part is a manual check).
 
 The same archive is published as the **Linux / Steam Deck (Proton saves)** main file on Nexus
 Mods. It is a native Linux application that discovers and edits saves inside Proton
@@ -128,4 +136,8 @@ bash tools/verify-web-host-linux.sh out/AbioticEditor-desktop-linux-x64
 ```
 
 Then perform the manual Linux acceptance pass with real Steam and Proton save locations,
-folder selection and reveal, player and world save/revert, INI save, and plugin tools.
+folder selection and reveal, player and world save/revert, INI save, and plugin tools. Also
+double-click `launch-linux.desktop` from a real desktop's file manager (ideally Plasma, since
+that is what Steam Deck Desktop Mode runs) at least once per release: CI checks the file's
+contents are correct but cannot drive the actual "Trust and Launch" prompt, so this is the
+one part of the one-click path that stays a manual check.

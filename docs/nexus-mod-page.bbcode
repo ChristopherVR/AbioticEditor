@@ -110,14 +110,19 @@ Download the Linux / Steam Deck file from the FILES tab, then:
 
 [list=1]
 [*]Right-click the downloaded zip and choose [b]Extract[/b] (do not just double-click into the archive and try to run a file from inside it - that does not work).
-[*]Open the extracted folder, right-click empty space inside it, and choose [b]Open Terminal Here[/b] (Dolphin's default file manager has this in the right-click menu).
-[*]In the terminal, run:
-[code]bash launch-linux.sh[/code]
+[*]Open the extracted folder and double-click [b]launch-linux.desktop[/b].
+[*]Choose [b]Trust and Launch[/b] on the prompt that appears.
 [/list]
 
-That always works, even if the file manager's extract step stripped the "allow executing" flag Linux needs (the usual reason double-clicking the download does nothing or asks what program to open it with) - running it with [b]bash[/b] does not need that flag set at all.
+That's it - no terminal, and nothing to unzip permissions for by hand. The editor opens in its own desktop window and finds saves inside Steam Play / Proton folders automatically. Proton is not required to run the editor itself.
 
-The editor opens in its own desktop window and finds saves inside Steam Play / Proton folders automatically. Proton is not required to run the editor itself. Once it runs, run [code]bash install-linux-desktop.sh[/code] in the same terminal to add it to the Desktop Mode app menu so future launches are a normal double-click.
+[size=4][b]If double-clicking launch-linux.desktop does nothing[/b][/size]
+
+A few older or unusual setups don't offer that "Trust and Launch" prompt. Fall back to a terminal instead: right-click empty space inside the extracted folder and choose [b]Open Terminal Here[/b] (Dolphin's default file manager has this in the right-click menu), then run:
+
+[code]bash launch-linux.sh[/code]
+
+Running it with [b]bash[/b] works even if the file manager's extract step stripped the "allow executing" flag Linux needs - the usual reason double-clicking a plain script or program does nothing or asks what program to open it with. Once it runs, run [code]bash install-linux-desktop.sh[/code] in the same terminal to add it to the Desktop Mode app menu so future launches are a normal double-click too.
 
 If the terminal instead reports missing GTK 3, WebKitGTK 4.1, or libnotify libraries: Steam Deck's system files are read-only by default, so installing packages with pacman needs an extra unlock step most players should not need to bother with. Use the built-in fallback instead, which needs none of those libraries:
 
