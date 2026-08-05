@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here.
 
+## [2.3.0] - 2026-08-05
+
+### Bug Fixes
+- Linux/Steam Deck download now runs even if the "allow execute" flag gets lost
+
+
+### Features
+- Add a true one-click launcher for Linux and Steam Deck downloads
+- Add an advanced option to skip equipment/transmog slot checks
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.2.2 [skip ci]
+
+
 ## [2.2.2] - 2026-08-05
 
 ### Build
