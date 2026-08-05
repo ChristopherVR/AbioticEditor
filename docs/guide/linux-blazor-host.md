@@ -28,6 +28,11 @@ The published executable starts the loopback service and its native window toget
 On Linux it uses WebKitGTK 4.1; on Steam Deck, run it from Desktop Mode or install
 the included desktop-menu entry.
 
+If double-clicking the extracted `launch-linux.sh` does nothing, or GTK/WebKitGTK
+libraries are missing (common on Steam Deck's read-only system partition), see the
+terminal steps and headless fallback in the
+[Linux desktop app guide](linux-local-host.md#if-double-clicking-the-download-does-nothing).
+
 ## Architecture boundary
 
 The host owns discovery, world/save-file selection, and field-level editing through

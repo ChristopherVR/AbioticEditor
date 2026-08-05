@@ -52,4 +52,9 @@ GUIDANCE
 fi
 
 export ABIOTIC_EDITOR_URL="$url"
+
+# Some archive tools do not restore the executable permission bit on extraction, which
+# otherwise makes this fail with "Permission denied" even though the file is intact.
+chmod +x "$app_dir/AbioticEditor.Web" 2>/dev/null || true
+
 exec "$app_dir/AbioticEditor.Web"

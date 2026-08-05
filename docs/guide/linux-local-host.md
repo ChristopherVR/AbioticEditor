@@ -7,15 +7,18 @@ server remains restricted to the loopback interface. Save files never leave the 
 ## Runtime requirements
 
 The archive contains the .NET runtime and the Photino native library. The desktop must
-provide GTK 3, WebKitGTK 4.1, and libnotify. Steam Deck Desktop Mode already provides the
-required graphical environment. On Debian or Ubuntu, install missing libraries with:
+provide GTK 3, WebKitGTK 4.1, and libnotify. On Debian or Ubuntu, install missing libraries
+with:
 
 ```bash
 sudo apt-get install libgtk-3-0 libwebkit2gtk-4.1-0 libnotify4
 ```
 
 Package names can vary by distribution. Ubuntu 24.04 names the GTK package
-`libgtk-3-0t64`. A web browser is not required to display the editor.
+`libgtk-3-0t64`. A web browser is not required to display the editor, but on a system
+where these libraries are missing or hard to install (Steam Deck's read-only system
+partition in particular), `--headless` runs the same host without needing them at all;
+see [Headless fallback](#headless-fallback-no-gtk-webkitgtk-required) below.
 
 ## Build a release folder
 
@@ -48,12 +51,42 @@ ABIOTIC_EDITOR_URL=http://127.0.0.1:41000 ./launch-linux.sh
 The executable rejects wildcard, LAN, HTTPS, path, query, and privileged-port bindings.
 This is deliberate because the editor can access local saves selected by the user.
 
-`--headless` is reserved for automated health checks. It starts the same host without a
-window and is not the player-facing launch mode:
+### If double-clicking the download does nothing
+
+Some archive tools and file-manager "extract" actions do not restore the Linux executable
+permission bit on the files they unpack, and some file managers try to run a file straight
+out of an unextracted archive view instead of a real path on disk - both look like "it
+doesn't know what program to run this with." Fix it from a terminal, which sidesteps both
+problems:
+
+```bash
+cd path/to/the/extracted/folder
+bash launch-linux.sh
+```
+
+Running the script with `bash` works even when neither file has its executable bit set;
+`launch-linux.sh` fixes the main executable's permission itself before starting it. Once it
+runs once, `./install-linux-desktop.sh` (same folder) adds a normal double-clickable menu
+entry for next time.
+
+On Steam Deck this must be done from **Desktop Mode** (Power button -> Switch to Desktop);
+Gaming Mode has no file manager or terminal. Dolphin's right-click menu on empty space inside
+a folder has an **Open Terminal Here** entry.
+
+### Headless fallback (no GTK/WebKitGTK required)
+
+`--headless` starts the same host without opening a native window, so it needs none of the
+GTK 3 / WebKitGTK 4.1 / libnotify libraries the desktop window does:
 
 ```bash
 ./launch-linux.sh --headless
 ```
+
+Then open `http://127.0.0.1:37246` in any browser on the machine. This is the practical
+workaround when those libraries are missing and installing them is impractical, e.g. Steam
+Deck's read-only system partition (`pacman -S` there needs `steamos-readonly disable` first,
+which most players should not need to do just to run an editor). It also remains what CI uses
+for automated health checks.
 
 ## Desktop-menu install and updates
 

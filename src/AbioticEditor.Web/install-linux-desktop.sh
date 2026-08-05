@@ -15,8 +15,12 @@ if [[ "${1:-}" == "--uninstall" ]]; then
 fi
 
 [[ $# -eq 0 ]] || { echo "Usage: $(basename "$0") [--uninstall]" >&2; exit 64; }
-[[ -x "$app_dir/AbioticEditor.Web" ]] || { echo "Missing executable: $app_dir/AbioticEditor.Web" >&2; exit 1; }
-[[ -x "$app_dir/launch-linux.sh" ]] || { echo "Missing launcher: $app_dir/launch-linux.sh" >&2; exit 1; }
+[[ -f "$app_dir/AbioticEditor.Web" ]] || { echo "Missing executable: $app_dir/AbioticEditor.Web" >&2; exit 1; }
+[[ -f "$app_dir/launch-linux.sh" ]] || { echo "Missing launcher: $app_dir/launch-linux.sh" >&2; exit 1; }
+
+# Some archive tools do not restore the executable permission bit on extraction; fix it up
+# here too so a plain `bash install-linux-desktop.sh` works right after a fresh unzip.
+chmod +x "$app_dir/AbioticEditor.Web" "$app_dir/launch-linux.sh" 2>/dev/null || true
 
 mkdir -p -- "$desktop_dir"
 cat > "$desktop_file" <<EOF

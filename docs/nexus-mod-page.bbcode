@@ -104,13 +104,30 @@ Prefer a one-line install with no warning at all? You can install it with Scoop 
 
 [size=5][b]Installing on Linux / Steam Deck[/b][/size]
 
-Download the Linux / Steam Deck file from the FILES tab, unzip it, and run [b]launch-linux.sh[/b] from Desktop Mode. The editor opens in its own desktop window and finds saves inside Steam Play / Proton folders automatically. Proton is not required to run the editor itself.
+This needs [b]Desktop Mode[/b], not Gaming Mode: hold the Power button and choose [b]Switch to Desktop[/b] (or Steam menu -> Power -> Switch to Desktop). There is no way to unzip or run a program from Gaming Mode.
 
-The archive includes the .NET runtime. Your desktop must provide GTK 3, WebKitGTK 4.1, and libnotify. On Ubuntu 24.04, install any missing libraries with:
+Download the Linux / Steam Deck file from the FILES tab, then:
+
+[list=1]
+[*]Right-click the downloaded zip and choose [b]Extract[/b] (do not just double-click into the archive and try to run a file from inside it - that does not work).
+[*]Open the extracted folder, right-click empty space inside it, and choose [b]Open Terminal Here[/b] (Dolphin's default file manager has this in the right-click menu).
+[*]In the terminal, run:
+[code]bash launch-linux.sh[/code]
+[/list]
+
+That always works, even if the file manager's extract step stripped the "allow executing" flag Linux needs (the usual reason double-clicking the download does nothing or asks what program to open it with) - running it with [b]bash[/b] does not need that flag set at all.
+
+The editor opens in its own desktop window and finds saves inside Steam Play / Proton folders automatically. Proton is not required to run the editor itself. Once it runs, run [code]bash install-linux-desktop.sh[/code] in the same terminal to add it to the Desktop Mode app menu so future launches are a normal double-click.
+
+If the terminal instead reports missing GTK 3, WebKitGTK 4.1, or libnotify libraries: Steam Deck's system files are read-only by default, so installing packages with pacman needs an extra unlock step most players should not need to bother with. Use the built-in fallback instead, which needs none of those libraries:
+
+[code]./launch-linux.sh --headless[/code]
+
+Then open [b]http://127.0.0.1:37246[/b] in any web browser on the Deck (Desktop Mode ships one). The editor works exactly the same way, just inside a browser tab instead of its own window.
+
+On a regular Linux desktop (not Steam Deck) with those libraries missing, install them normally instead, e.g. on Ubuntu 24.04:
 
 [code]sudo apt-get install libgtk-3-0t64 libwebkit2gtk-4.1-0 libnotify4[/code]
-
-Package names vary on SteamOS and other distributions; install their WebKitGTK 4.1 equivalent.
 
 [line]
 
