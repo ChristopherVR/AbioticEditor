@@ -5,6 +5,43 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## OPEN: the browser build is NOT usable yet - two unfinished root causes (2026-08-08)
+
+Read this before touching the browser host again. Symptoms keep appearing one at a time
+(pet beds threw `DirectoryNotFoundException /Cascade/WorldSave_Facility.sav`, no recipes, no
+GATEPAL, missing pictures on some screens) because two underlying jobs are incomplete. Fix the
+causes, not the next symptom.
+
+### Cause 1: round-47's `ISaveFileSystem` seam was only half applied
+`SaveWorkspaceSessionService` and the two session writers were converted. **Everything else that
+opens a save by path was not**, so each throws in the browser the moment its screen is used:
+
+- `Services/SiblingWorldBedService.cs` (`WorldSaveReader.ReadFromFile`) - pet beds
+- `Services/RecipeProgressGateService.cs` (`ReadFromFile`) - recipe gating
+- `Services/SaveComparisonService.cs` (`ReadFromFile`)
+- `Services/SaveConversionService.cs` (`Directory.EnumerateFiles`)
+- `Components/World/WorldFeaturesTab.razor` (`ReadFromFile`)
+- `Components/Player/PlayerAchievementsTab.razor` (`Directory.EnumerateFiles`)
+- `Models/CustomizationSaveSession.cs` (`Directory.EnumerateFiles`)
+
+Each needs routing through `ISaveFileSystem` (preferred) or gating on `HasLocalPaths` so the
+feature hides instead of throwing. The preference stores (`Host*Preferences`, `HostThemeService`,
+`HostLanguageService`, `ShellPreferencesService`, `HostDiagnosticsStore`) also touch files but are
+harmless - they land in the in-memory file system and simply do not persist across a reload.
+
+### Cause 2: the bundled registry only carries ITEMS
+`GameDataRegistry` has `Items` and `ItemTableRefs` and nothing else, so every other pak-backed
+catalog is empty in the browser no matter what else is fixed: **recipes, codex/GATEPAL, traders,
+skill descriptions, customization**. Shipping icons did not help these - they are text, not art.
+
+The fix is to extend the registry: schema + `BuildFromInstall` + `dump-registry`, then have
+`RecipeCatalog` / `CodexCatalog` / `TraderCatalog` / `SkillCatalog` / `CustomizationCatalog` fall
+back to it the way `ItemCatalog` already does. That is a Core change and bumps
+`CurrentSchemaVersion`. Sizing note: this is all text and compresses well - the items-only dump is
+~1 MB, so carrying the rest is unlikely to be a payload problem.
+
+Only after BOTH are done is the browser build worth showing anyone.
+
 ## Round-50: bundled icons, and three silent browser-only failures (2026-08-08)
 
 Shipping game data to the browser build, plus the bugs found by actually driving it.
