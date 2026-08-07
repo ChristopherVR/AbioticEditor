@@ -10,6 +10,7 @@ public sealed class WorldSaveSession
 {
     private WorldSaveData _data;
     private readonly string _path;
+    private readonly AbioticEditor.Web.Services.ISaveFileSystem? _files;
     private HashSet<string> _originalFlags;
     private HashSet<string> _originalGlobalRecipes;
     private Dictionary<string, WorldDoor> _originalDoors;
@@ -57,10 +58,15 @@ public sealed class WorldSaveSession
     private readonly List<BenchUpgradeOperation> _benchUpgradeOperations = [];
     private readonly Dictionary<string, string> _rawEdits = new(StringComparer.Ordinal);
 
-    public WorldSaveSession(WorldSaveData data, string path)
+    /// <param name="files">
+    /// Where the save is written back to. Null means write straight to the local file system
+    /// (what the tests and any caller holding a real path expect); the hosts pass their own.
+    /// </param>
+    public WorldSaveSession(WorldSaveData data, string path, AbioticEditor.Web.Services.ISaveFileSystem? files = null)
     {
         _data = data;
         _path = path;
+        _files = files;
         Flags = new HashSet<string>(data.Flags, StringComparer.Ordinal);
         _originalFlags = new HashSet<string>(Flags, StringComparer.Ordinal);
         GlobalRecipes = new HashSet<string>(data.GlobalRecipes, StringComparer.Ordinal);
@@ -697,10 +703,10 @@ public sealed class WorldSaveSession
         return WorldEditResult.Failure(string.Empty);
     }
 
-    public ValueTask SaveAsync(CancellationToken cancellationToken = default)
+    public async ValueTask SaveAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!IsDirty) return ValueTask.CompletedTask;
+        if (!IsDirty) return;
         // Apply all staged state to a disposable clone. A rejected writer or failed disk write
         // therefore cannot leak partial mutations into this session's baseline.
         var workingData = CloneForFeatures(_data);
@@ -806,12 +812,18 @@ public sealed class WorldSaveSession
         foreach (var edit in _rawEdits)
             if (!RawSavePropertyEditor.TryApply(workingData.Raw, edit.Key, edit.Value, out var error))
                 throw new InvalidOperationException($"Raw edit '{edit.Key}' is no longer valid: {error}");
-        WorldSaveWriter.WriteToFile(workingData, _path);
+        await AbioticEditor.Web.Services.SaveFilePersistence
+            .WriteAsync(_files, _path, workingData.Raw, cancellationToken).ConfigureAwait(false);
         // A unit also keeps its own note of which creature it holds, and that note lives in the
         // region save the unit stands in - a different file from this one. Bring those back in
         // line after the map itself is safely written, so a failure here can never leave the
         // metadata save half-updated. Units that were already correct are not rewritten.
-        var unitSync = containmentsChanged
+        //
+        // This reaches sibling saves by local path, so it only runs where such paths exist. A
+        // browser-hosted workspace skips it rather than silently writing nothing (the
+        // containment tab is gated on the same capability).
+        var canReachSiblingSaves = _files is null || _files.HasLocalPaths;
+        var unitSync = containmentsChanged && canReachSiblingSaves
             ? ContainmentDirectory.SyncUnitRecords(_path, _containments)
             : new ContainmentDirectory.SyncResult(0, [], []);
         if (unitSync.FilesWritten.Count > 0 && _containmentSurvey is { } survey)
@@ -867,7 +879,6 @@ public sealed class WorldSaveSession
         Status = unitSync.FilesWritten.Count > 0
             ? $"Saved (a .bak backup was created). Also updated {string.Join(", ", unitSync.FilesWritten)} so the containment units match."
             : "Saved (a .bak backup was created).";
-        return ValueTask.CompletedTask;
     }
 
     public void Revert()

@@ -1,4 +1,4 @@
-using AbioticEditor.Core.PlayerSaves;
+﻿using AbioticEditor.Core.PlayerSaves;
 using AbioticEditor.Core.Saves;
 using AbioticEditor.Core.WorldSaves;
 using AbioticEditor.Web.Models;
@@ -257,7 +257,7 @@ public sealed class WebSaveWorkspaceSessionTests
     }
 
     private static SaveWorkspaceSessionService CreateWorkspace()
-        => new(new RecipeVocabularyService(), new ProgressionVocabularyService(), new CodexVocabularyService());
+        => new(new RecipeVocabularyService(), new ProgressionVocabularyService(), new CodexVocabularyService(), new DesktopSaveFileSystem());
 
     private static string FindPlayer(string worldPath)
         => Directory.EnumerateFiles(Path.Combine(worldPath, "PlayerData"), "Player_*.sav")

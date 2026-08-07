@@ -1,4 +1,4 @@
-using AbioticEditor.Web.Services;
+﻿using AbioticEditor.Web.Services;
 
 namespace AbioticEditor.Tests;
 
@@ -24,7 +24,7 @@ public sealed class SaveSelectionSchedulingTests
         var progression = new ProgressionVocabularyService();
         var codex = new CodexVocabularyService();
         var upgrades = new ItemUpgradeVocabularyService();
-        using var workspace = new SaveWorkspaceSessionService(recipes, upgrades, progression, codex);
+        using var workspace = new SaveWorkspaceSessionService(recipes, upgrades, progression, codex, new DesktopSaveFileSystem());
 
         var opened = await workspace.OpenAsync(copy.Path);
         var player = opened.Saves.First(save => save.Kind == SaveDocumentKind.Player);

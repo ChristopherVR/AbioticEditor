@@ -1,4 +1,4 @@
-using AbioticEditor.Web.Services;
+﻿using AbioticEditor.Web.Services;
 
 namespace AbioticEditor.Tests;
 
@@ -53,5 +53,5 @@ public sealed class WebPlayerIdentityTests
 
     private static SaveWorkspaceSessionService CreateWorkspace() => new(
         new RecipeVocabularyService(), new ProgressionVocabularyService(),
-        new CodexVocabularyService());
+        new CodexVocabularyService(), new DesktopSaveFileSystem());
 }

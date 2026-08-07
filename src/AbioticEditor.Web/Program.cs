@@ -58,9 +58,10 @@ public static class Program
         builder.Services.AddSingleton<SaveWorkspaceSessionService>();
         builder.Services.AddSingleton<RecipeProgressGateService>();
         builder.Services.AddSingleton<SiblingWorldBedService>();
-        // CreateWorldService is shared with the browser host, so it asks for its blank templates
-        // through ISaveTemplateSource rather than reading the ASP.NET content root directly.
+        // Both of these are seams the shared screens reach the outside world through, so the
+        // browser host can substitute its own. On this host they are the local machine.
         builder.Services.AddSingleton<ISaveTemplateSource, DesktopSaveTemplateSource>();
+        builder.Services.AddSingleton<ISaveFileSystem, DesktopSaveFileSystem>();
         builder.Services.AddSingleton<CreateWorldService>();
         builder.Services.AddSingleton<IniEditorSessionService>();
         builder.Services.AddSingleton<HostSettingsService>();

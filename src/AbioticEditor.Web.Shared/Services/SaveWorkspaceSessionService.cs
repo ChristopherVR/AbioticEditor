@@ -14,24 +14,40 @@ namespace AbioticEditor.Web.Services;
 /// </summary>
 public sealed class SaveWorkspaceSessionService : IDisposable
 {
+    /// <summary>
+    /// How much of a save to read when identifying it during discovery. The class name sits in
+    /// the GVAS header, after the engine version and the custom-format table, which is a few
+    /// hundred bytes at most; this leaves generous room without ever touching the body.
+    /// </summary>
+    private const int HeaderProbeBytes = 8 * 1024;
+
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly RecipeVocabularyService _recipeVocabulary;
     private readonly ItemUpgradeVocabularyService _itemUpgradeVocabulary;
     private readonly ProgressionVocabularyService _progressionVocabulary;
     private readonly CodexVocabularyService _codexVocabulary;
     private readonly HostLanguageService? _language;
+    private readonly ISaveFileSystem _files;
 
-    public SaveWorkspaceSessionService(RecipeVocabularyService recipeVocabulary, ProgressionVocabularyService progressionVocabulary, CodexVocabularyService codexVocabulary)
-        : this(recipeVocabulary, new ItemUpgradeVocabularyService(), progressionVocabulary, codexVocabulary) { }
+    public SaveWorkspaceSessionService(RecipeVocabularyService recipeVocabulary, ProgressionVocabularyService progressionVocabulary, CodexVocabularyService codexVocabulary, ISaveFileSystem files)
+        : this(recipeVocabulary, new ItemUpgradeVocabularyService(), progressionVocabulary, codexVocabulary, files) { }
 
-    public SaveWorkspaceSessionService(RecipeVocabularyService recipeVocabulary, ItemUpgradeVocabularyService itemUpgradeVocabulary, ProgressionVocabularyService progressionVocabulary, CodexVocabularyService codexVocabulary, HostLanguageService? language = null)
+    public SaveWorkspaceSessionService(RecipeVocabularyService recipeVocabulary, ItemUpgradeVocabularyService itemUpgradeVocabulary, ProgressionVocabularyService progressionVocabulary, CodexVocabularyService codexVocabulary, ISaveFileSystem files, HostLanguageService? language = null)
     {
         _recipeVocabulary = recipeVocabulary;
         _itemUpgradeVocabulary = itemUpgradeVocabulary;
         _progressionVocabulary = progressionVocabulary;
         _codexVocabulary = codexVocabulary;
+        _files = files;
         _language = language;
     }
+
+    /// <summary>
+    /// True when this workspace's saves have real local paths, so features that hand a path to
+    /// something outside the editor (revealing a file, the JSON side-car, Game Pass packing) can
+    /// be offered. False in the browser.
+    /// </summary>
+    public bool HasLocalPaths => _files.HasLocalPaths;
 
     /// <summary>The currently open workspace, or <see langword="null"/> before a folder is opened.</summary>
     public SaveWorkspace? Current { get; private set; }
@@ -83,15 +99,15 @@ public sealed class SaveWorkspaceSessionService : IDisposable
         {
             BusyOperation = "Extracting the Game Pass save…"; Changed?.Invoke();
             var previousWorkingDir = Current?.GamePass?.WorkingDir;
-            var (session, saves) = await Task.Run(() =>
+            var session = await Task.Run(() =>
             {
                 var set = GamePassSaveSet.Open(wgsFolder);
                 var working = Path.Combine(Path.GetTempPath(), "AbioticEditor", "GamePass",
                     $"{container}-{Guid.NewGuid():N}");
                 var worldName = set.ExtractWorld(container, working);
-                return (new GamePassWorkspaceSession(set, container, worldName, wgsFolder, working),
-                    DiscoverSaves(working));
+                return new GamePassWorkspaceSession(set, container, worldName, wgsFolder, working);
             }, cancellationToken).ConfigureAwait(false);
+            var saves = await DiscoverSavesAsync(session.WorkingDir, cancellationToken).ConfigureAwait(false);
 
             if (session.Set.IsMidSync)
             {
@@ -129,13 +145,17 @@ public sealed class SaveWorkspaceSessionService : IDisposable
         if (string.IsNullOrWhiteSpace(worldFolder))
             throw new ArgumentException("A world save folder is required.", nameof(worldFolder));
 
-        var fullPath = Path.GetFullPath(worldFolder);
-        if (!Directory.Exists(fullPath))
+        // Only a local path can be normalized; a browser folder handle's name is already the
+        // only identifier there is.
+        var fullPath = _files.HasLocalPaths ? Path.GetFullPath(worldFolder) : worldFolder;
+        if (!await _files.FolderExistsAsync(fullPath, cancellationToken).ConfigureAwait(false))
             throw new DirectoryNotFoundException($"The world save folder does not exist: {fullPath}");
 
         // A picked/dropped wgs container folder has no loose .sav files, so route it through
-        // the Game Pass extract flow instead of opening an empty workspace.
-        if (GamePassSaveSet.IsGamePassFolder(fullPath))
+        // the Game Pass extract flow instead of opening an empty workspace. Game Pass containers
+        // are read with the local file system directly, so this only applies to hosts that have
+        // one; a browser never sees an Xbox container folder in the first place.
+        if (_files.HasLocalPaths && GamePassSaveSet.IsGamePassFolder(fullPath))
         {
             var container = await Task.Run(
                 () => GamePassSaveSet.Open(fullPath).Entries()
@@ -153,7 +173,7 @@ public sealed class SaveWorkspaceSessionService : IDisposable
         {
             BusyOperation = "Scanning save folder…"; Changed?.Invoke();
             var previousWorkingDir = Current?.GamePass?.WorkingDir;
-            var saves = await Task.Run(() => DiscoverSaves(fullPath), cancellationToken).ConfigureAwait(false);
+            var saves = await DiscoverSavesAsync(fullPath, cancellationToken).ConfigureAwait(false);
             DeleteWorkingDir(previousWorkingDir);
             TransferPlayerSession = null;
             TransferWorldSession = null;
@@ -199,7 +219,7 @@ public sealed class SaveWorkspaceSessionService : IDisposable
                 WorldSession = null,
             };
             Changed?.Invoke();
-            var selection = await Task.Run(() => ReadSelection(save), cancellationToken).ConfigureAwait(false);
+            var selection = await ReadSelectionAsync(save, cancellationToken).ConfigureAwait(false);
             if (selection.PlayerSession is not null) TransferPlayerSession = selection.PlayerSession;
             if (selection.WorldSession is not null) TransferWorldSession = selection.WorldSession;
             Current = workspace with
@@ -273,10 +293,10 @@ public sealed class SaveWorkspaceSessionService : IDisposable
                 await Task.Run(() => gamePassRename.Set.RenamePlayerSave(gamePassRename.Container, oldFileName, newFileName), cancellationToken)
                     .ConfigureAwait(false);
             }
-            var saves = await Task.Run(() => DiscoverSaves(workspace.WorldFolder), cancellationToken).ConfigureAwait(false);
+            var saves = await DiscoverSavesAsync(workspace.WorldFolder, cancellationToken).ConfigureAwait(false);
             var renamed = saves.FirstOrDefault(save => string.Equals(save.Path, newPath, StringComparison.OrdinalIgnoreCase))
                 ?? throw new InvalidOperationException("The renamed player save was not rediscovered in this workspace.");
-            var selection = await Task.Run(() => ReadSelection(renamed), cancellationToken).ConfigureAwait(false);
+            var selection = await ReadSelectionAsync(renamed, cancellationToken).ConfigureAwait(false);
             TransferPlayerSession = selection.PlayerSession;
             Current = workspace with { Saves = saves, SelectedSave = renamed, Summary = selection.Summary, PlayerSession = selection.PlayerSession, WorldSession = null };
         }
@@ -317,24 +337,46 @@ public sealed class SaveWorkspaceSessionService : IDisposable
         Changed?.Invoke();
     }
 
-    private static WorkspaceSave[] DiscoverSaves(string worldFolder)
-        => Directory.EnumerateFiles(worldFolder, "*.sav", SearchOption.AllDirectories)
-            .Select(path => CreateSave(path, worldFolder))
+    private async Task<WorkspaceSave[]> DiscoverSavesAsync(string worldFolder, CancellationToken cancellationToken)
+    {
+        var entries = await _files.ListSavesAsync(worldFolder, cancellationToken).ConfigureAwait(false);
+        var discovered = new List<WorkspaceSave>(entries.Count);
+        foreach (var entry in entries)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            discovered.Add(await CreateSaveAsync(entry, cancellationToken).ConfigureAwait(false));
+        }
+
+        return discovered
             .Where(save => save.Kind is SaveDocumentKind.Player or SaveDocumentKind.World or SaveDocumentKind.WorldMetadata)
             .OrderBy(save => SortOrder(save.Kind))
             .ThenBy(save => save.Name, StringComparer.OrdinalIgnoreCase)
             .ToArray();
+    }
 
-    private static WorkspaceSave CreateSave(string path, string worldFolder)
+    private async Task<WorkspaceSave> CreateSaveAsync(SaveFileEntry entry, CancellationToken cancellationToken)
     {
-        var info = new FileInfo(path);
-        var saveClass = SaveFolderScanner.ReadSaveClassFromHeader(path);
+        // A save whose header cannot be read is not fatal: the file name alone still classifies
+        // it well enough to list, which is what the editor did before and how a save from a
+        // newer game version stays visible instead of vanishing from the sidebar.
+        string? saveClass = null;
+        try
+        {
+            var header = await _files.ReadHeaderAsync(entry.Path, HeaderProbeBytes, cancellationToken).ConfigureAwait(false);
+            using var stream = new MemoryStream(header, writable: false);
+            saveClass = SaveFolderScanner.ReadSaveClassFromHeader(stream);
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or EndOfStreamException or UnauthorizedAccessException)
+        {
+            EditorLog.Warn("Scan", $"Could not read the header of {entry.Name}: {ex.Message}");
+        }
+
         return new WorkspaceSave(
-            info.FullName,
-            Path.GetRelativePath(worldFolder, info.FullName),
-            info.Name,
-            info.Length,
-            Classify(saveClass, info.Name),
+            entry.Path,
+            entry.RelativePath,
+            entry.Name,
+            entry.Length,
+            Classify(saveClass, entry.Name),
             saveClass);
     }
 
@@ -356,27 +398,33 @@ public sealed class SaveWorkspaceSessionService : IDisposable
             : SaveDocumentKind.Unknown;
     }
 
-    private SaveSelection ReadSelection(WorkspaceSave save)
+    private async Task<SaveSelection> ReadSelectionAsync(WorkspaceSave save, CancellationToken cancellationToken)
     {
-        if (save.Kind == SaveDocumentKind.Player)
-        {
-            var data = PlayerSaveReader.ReadFromFile(save.Path);
-            _recipeVocabulary.TryGetRecipes(out var recipes);
-            _progressionVocabulary.TryGet(out var items, out var maps);
-            _codexVocabulary.TryGet(out var codex);
-            _itemUpgradeVocabulary.TryGet(out var upgrades);
-            return new SaveSelection(PlayerSummary(save, data),
-                new PlayerSaveSession(data, save.Path, recipes, items, maps, codex, upgrades,
-                    _language is null ? null : _language.Resource), null);
-        }
+        if (save.Kind is not (SaveDocumentKind.Player or SaveDocumentKind.World or SaveDocumentKind.WorldMetadata))
+            throw new InvalidOperationException($"'{save.Name}' is not a supported player or world save.");
 
-        if (save.Kind is SaveDocumentKind.World or SaveDocumentKind.WorldMetadata)
-        {
-            var data = WorldSaveReader.ReadFromFile(save.Path);
-            return new SaveSelection(WorldSummary(save, data), null, new WorldSaveSession(data, save.Path));
-        }
+        var bytes = await _files.ReadAllBytesAsync(save.Path, cancellationToken).ConfigureAwait(false);
 
-        throw new InvalidOperationException($"'{save.Name}' is not a supported player or world save.");
+        // Parsing a region save is the slow part (the Facility save is ~16 MB), so it stays off
+        // the caller's thread exactly as it did when the reader opened the file itself.
+        return await Task.Run(() =>
+        {
+            using var stream = new MemoryStream(bytes, writable: false);
+            if (save.Kind == SaveDocumentKind.Player)
+            {
+                var data = PlayerSaveReader.ReadFromStream(stream);
+                _recipeVocabulary.TryGetRecipes(out var recipes);
+                _progressionVocabulary.TryGet(out var items, out var maps);
+                _codexVocabulary.TryGet(out var codex);
+                _itemUpgradeVocabulary.TryGet(out var upgrades);
+                return new SaveSelection(PlayerSummary(save, data),
+                    new PlayerSaveSession(data, save.Path, recipes, items, maps, codex, upgrades,
+                        _language is null ? null : _language.Resource, _files), null);
+            }
+
+            var world = WorldSaveReader.ReadFromStream(stream);
+            return new SaveSelection(WorldSummary(save, world), null, new WorldSaveSession(world, save.Path, _files));
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private static PlayerSaveSummary PlayerSummary(WorkspaceSave save, PlayerSaveData data)

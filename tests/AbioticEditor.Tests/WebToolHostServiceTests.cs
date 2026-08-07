@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using AbioticEditor.Core.Plugins;
 using AbioticEditor.Plugins;
 using AbioticEditor.Plugins.Ui;
@@ -73,7 +73,7 @@ public sealed class WebToolHostServiceTests
         => service.TryGet(key, out var session) ? session : null;
 
     private static SaveWorkspaceSessionService CreateWorkspace()
-        => new(new RecipeVocabularyService(), new ProgressionVocabularyService(), new CodexVocabularyService());
+        => new(new RecipeVocabularyService(), new ProgressionVocabularyService(), new CodexVocabularyService(), new DesktopSaveFileSystem());
 
     private static PluginCapability<IWebTool> CreateCapability(string folder, IPluginHost host, IWebTool tool)
     {

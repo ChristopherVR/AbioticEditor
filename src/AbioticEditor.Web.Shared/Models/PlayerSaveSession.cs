@@ -14,6 +14,7 @@ public sealed class PlayerSaveSession : IPlayerVitalsSession
 {
     private readonly PlayerSaveData _data;
     private readonly string _path;
+    private readonly AbioticEditor.Web.Services.ISaveFileSystem? _files;
     private PlayerVitals _original;
     private HashSet<string> _originalRecipes;
     private List<string> _originalTraits;
@@ -32,12 +33,19 @@ public sealed class PlayerSaveSession : IPlayerVitalsSession
     // tree, then applied only to the writer's working data at Save time.
     private readonly Dictionary<string, string> _rawEdits = new(StringComparer.Ordinal);
 
+    /// <param name="files">
+    /// Where the save is written back to. Null means write straight to the local file system,
+    /// which is what the tests and any caller that already holds a real path expect; the hosts
+    /// pass their own so the browser can write through the browser's file APIs instead.
+    /// </param>
     public PlayerSaveSession(PlayerSaveData data, string path, IEnumerable<string>? recipeVocabulary = null,
         IEnumerable<string>? itemVocabulary = null, IEnumerable<string>? mapVocabulary = null,
         CodexVocabulary? codexVocabulary = null, ItemUpgradeCatalog? itemUpgrades = null,
-        Func<string, object?[], string>? codexLocalize = null)
+        Func<string, object?[], string>? codexLocalize = null,
+        AbioticEditor.Web.Services.ISaveFileSystem? files = null)
     {
         _codexLocalize = codexLocalize;
+        _files = files;
         _data = data;
         _path = path;
         Vitals = ToVitals(data);
@@ -159,7 +167,7 @@ public sealed class PlayerSaveSession : IPlayerVitalsSession
         || _rawEdits.Count > 0;
     public string? Status { get; private set; }
 
-    public ValueTask SaveAsync(CancellationToken cancellationToken = default)
+    public async ValueTask SaveAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         PlayerSaveWriter.ApplyStats(_data, new CharacterStats(
@@ -201,7 +209,8 @@ public sealed class PlayerSaveSession : IPlayerVitalsSession
         PlayerSaveWriter.ApplyFishCaught(_data, Codex.CurrentFish().OrderBy(id => id, StringComparer.Ordinal).ToList());
         PlayerSaveWriter.ApplyKillCounts(_data, Codex.CurrentKills().Select(k => new KillCount(k.Key, k.Value)).ToList());
         ApplyRawEdits(_data);
-        PlayerSaveWriter.WriteToFile(_data, _path);
+        await AbioticEditor.Web.Services.SaveFilePersistence
+            .WriteAsync(_files, _path, _data.Raw, cancellationToken).ConfigureAwait(false);
         _original = Vitals.Clone();
         foreach (var skill in Skills) skill.AcceptCurrentAsBaseline();
         _originalRecipes = CurrentRecipeSet();
@@ -225,7 +234,6 @@ public sealed class PlayerSaveSession : IPlayerVitalsSession
         _originalKills = Codex.CurrentKills();
         _rawEdits.Clear();
         Status = "Saved (a .bak backup was created).";
-        return ValueTask.CompletedTask;
     }
 
     public void Revert()

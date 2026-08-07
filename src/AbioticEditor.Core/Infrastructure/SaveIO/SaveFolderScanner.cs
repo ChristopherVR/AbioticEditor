@@ -95,7 +95,7 @@ public static class SaveFolderScanner
     /// Header-only probe of the save class AND the ABF_SAVE_VERSION from the custom
     /// save-class header that immediately follows it (see <c>AbioticCharacterSave</c> /
     /// <c>AbioticWorldSave</c> for the two layouts). Version is null for classes we
-    /// don't recognize. Same cost profile as <see cref="ReadSaveClassFromHeader"/>:
+    /// don't recognize. Same cost profile as <see cref="ReadSaveClassFromHeader(string)"/>:
     /// a few dozen bytes, never the property body.
     /// </summary>
     public static (string? SaveClass, int? AbfVersion) ReadHeaderInfo(string path)
@@ -132,7 +132,18 @@ public static class SaveFolderScanner
     public static string? ReadSaveClassFromHeader(string path)
     {
         using var fs = File.OpenRead(path);
-        using var reader = new BinaryReader(fs, Encoding.ASCII);
+        return ReadSaveClassFromHeader(fs);
+    }
+
+    /// <summary>
+    /// Same header-only probe against an already-open stream, for callers that hold the save's
+    /// bytes rather than a file path - the browser host reads saves the player picked through
+    /// the browser's own file APIs, where no readable path exists. The stream is left open.
+    /// </summary>
+    public static string? ReadSaveClassFromHeader(Stream stream)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        using var reader = new BinaryReader(stream, Encoding.ASCII, leaveOpen: true);
         return ReadSaveClassCore(reader);
     }
 
