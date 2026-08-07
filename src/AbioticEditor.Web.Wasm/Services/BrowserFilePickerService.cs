@@ -9,7 +9,7 @@ namespace AbioticEditor.Web.Wasm.Services;
 /// read into memory in JS and handed across the interop boundary; nothing is ever uploaded to a
 /// server, since this host has none.
 /// </summary>
-public sealed class BrowserFilePickerService(IJSRuntime js) : IFilePicker, IFolderPicker
+public sealed class BrowserFilePickerService(IJSRuntime js, BrowserSaveFileSystem saveFiles) : IFilePicker, IFolderPicker
 {
     public async Task<PickedFile?> PickFileAsync(FilePickerRequest request, CancellationToken cancellationToken = default)
     {
@@ -28,13 +28,22 @@ public sealed class BrowserFilePickerService(IJSRuntime js) : IFilePicker, IFold
             .ToArray();
     }
 
+    /// <summary>
+    /// Prompts for a save folder. This deliberately routes through
+    /// <see cref="BrowserSaveFileSystem"/> rather than picking a folder of its own: the granted
+    /// directory handle has to land in the registry that later reads and writes the saves, or
+    /// the editor would open a folder it cannot then touch.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="PickedFolder.Path"/> carries the file system's folder identifier, which is
+    /// what the caller hands to <c>SaveWorkspaceSessionService.OpenAsync</c>. It is not a local
+    /// path - see <see cref="AbioticEditor.Web.Services.ISaveFileSystem"/>.
+    /// </remarks>
     public async Task<PickedFolder?> PickFolderAsync(FolderPickerRequest request, CancellationToken cancellationToken = default)
     {
-        var picked = await js.InvokeAsync<PickedFolderJs?>("abioticFilePicker.pickFolder", cancellationToken, request.Title);
-        return picked is null ? null : new PickedFolder(picked.Name, null);
+        var folder = await saveFiles.PickFolderAsync(cancellationToken).ConfigureAwait(false);
+        return folder is null ? null : new PickedFolder(folder, folder);
     }
 
     private sealed record PickedFileJs(string Name, byte[] Bytes);
-
-    private sealed record PickedFolderJs(string Name);
 }

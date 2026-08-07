@@ -1,7 +1,9 @@
-// Browser-native file/folder pickers for the Wasm host, backing AbioticEditor.Ui.IFilePicker /
-// IFolderPicker. Prefers the File System Access API (Chromium only); throws a clear,
-// catchable error everywhere else so BrowserFilePickerService can surface host-appropriate
-// guidance instead of a raw JS exception.
+// Picking individual files for the browser host, backing AbioticEditor.Ui.IFilePicker.
+//
+// Folder picking is NOT here: a granted directory handle has to be kept by the code that later
+// reads and writes the saves inside it, so it lives in saveFileSystem.js and IFolderPicker
+// delegates there. Keeping one registry of handles is what stops the editor opening a folder it
+// then cannot touch.
 
 function toAcceptTypes(fileTypes) {
     if (!fileTypes || fileTypes.length === 0) return undefined;
@@ -13,11 +15,10 @@ function toAcceptTypes(fileTypes) {
 
 window.abioticFilePicker = {
     isSupported: () => typeof window.showOpenFilePicker === "function",
-    isFolderPickerSupported: () => typeof window.showDirectoryPicker === "function",
 
     pickFiles: async (title, multiple, fileTypes) => {
         if (!window.showOpenFilePicker) {
-            throw new Error("This browser does not support picking files from a page action (only drag-and-drop or the Choose File button). Try Chrome or Edge, or use the on-page file input instead.");
+            throw new Error("This browser cannot open a file from a page action. Try Chrome or Edge, or use the Choose File button instead.");
         }
         let handles;
         try {
@@ -25,29 +26,16 @@ window.abioticFilePicker = {
                 multiple: !!multiple,
                 types: toAcceptTypes(fileTypes),
             });
-        } catch (e) {
-            if (e && e.name === "AbortError") return [];
-            throw e;
+        } catch (error) {
+            if (error && error.name === "AbortError") return [];
+            throw error;
         }
+
         const result = [];
         for (const handle of handles) {
             const file = await handle.getFile();
-            const bytes = new Uint8Array(await file.arrayBuffer());
-            result.push({ name: file.name, bytes });
+            result.push({ name: file.name, bytes: new Uint8Array(await file.arrayBuffer()) });
         }
         return result;
-    },
-
-    pickFolder: async (title) => {
-        if (!window.showDirectoryPicker) {
-            throw new Error("This browser does not support picking a folder from a page action. Try Chrome or Edge.");
-        }
-        try {
-            const handle = await window.showDirectoryPicker();
-            return { name: handle.name };
-        } catch (e) {
-            if (e && e.name === "AbortError") return null;
-            throw e;
-        }
     },
 };

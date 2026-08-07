@@ -2,14 +2,31 @@ using AbioticEditor.Core.Saves;
 
 namespace AbioticEditor.Web.Services;
 
-public sealed class SaveLibraryService
+/// <summary>
+/// Finds the worlds already installed on this machine, for the "worlds found on this machine"
+/// list on the start screen.
+/// </summary>
+/// <remarks>
+/// This works by scanning the game's known save locations, which only means anything on a host
+/// that can see the local disk. A browser cannot: it only ever sees a folder the player picked
+/// and granted access to. Rather than scan a virtual file system that will never contain a
+/// world, both methods return nothing there, and the start screen shows its "pick a folder"
+/// path instead of an empty list that looks like a failed search.
+/// </remarks>
+public sealed class SaveLibraryService(ISaveFileSystem files)
 {
+    /// <summary>True when this host can look for worlds on its own; false in the browser.</summary>
+    public bool CanDiscover => files.HasLocalPaths;
+
     public Task<IReadOnlyList<DiscoveredWorld>> DiscoverAsync(CancellationToken cancellationToken = default)
-        => Task.Run(SaveDiscovery.DiscoverAll, cancellationToken);
+        => CanDiscover
+            ? Task.Run(SaveDiscovery.DiscoverAll, cancellationToken)
+            : Task.FromResult<IReadOnlyList<DiscoveredWorld>>(Array.Empty<DiscoveredWorld>());
 
     public Task<IReadOnlyList<SaveFile>> ListFilesAsync(string worldPath, CancellationToken cancellationToken = default)
         => Task.Run<IReadOnlyList<SaveFile>>(() =>
         {
+            if (!CanDiscover) return Array.Empty<SaveFile>();
             if (string.IsNullOrWhiteSpace(worldPath) || !Directory.Exists(worldPath)) return Array.Empty<SaveFile>();
             return Directory.EnumerateFiles(worldPath, "*.sav", SearchOption.AllDirectories)
                 .Select(path => new FileInfo(path))

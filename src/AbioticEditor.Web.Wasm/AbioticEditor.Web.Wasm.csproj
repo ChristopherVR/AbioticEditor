@@ -13,6 +13,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The blank saves a new world is built from. The desktop host copies these beside its
+         executable and reads them off disk; here they ship as ordinary static files that
+         BrowserSaveTemplateSource fetches from the page's own origin. -->
+    <Content Include="..\AbioticEditor.Core\Resources\blank-world-template.sav"
+             Link="wwwroot\Templates\blank-world-template.sav"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\AbioticEditor.Core\Resources\blank-player-template.sav"
+             Link="wwwroot\Templates\blank-player-template.sav"
+             CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\AbioticEditor.Core\AbioticEditor.Core.csproj" />
     <ProjectReference Include="..\AbioticEditor.Ui.Abstractions\AbioticEditor.Ui.Abstractions.csproj" />
     <!-- The editor's screens and services, shared with the desktop host. -->

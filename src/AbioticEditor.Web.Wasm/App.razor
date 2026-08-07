@@ -1,6 +1,19 @@
-﻿<Router AppAssembly="@typeof(App).Assembly" NotFoundPage="typeof(Pages.NotFound)">
+@using AbioticEditor.Web.Components.Pages
+@using AbioticEditor.Web.Components.Shared
+
+@* The browser host renders the SAME screens as the desktop app, from
+   AbioticEditor.Web.Shared. This host has no routable components of its own, so the router is
+   pointed straight at that library; a standalone WebAssembly app is interactive throughout, so
+   there is no render mode to declare (the desktop host declares InteractiveServer in its own
+   Routes.razor instead). *@
+<Router AppAssembly="typeof(WorkspaceShell).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)"/>
-        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
+    <NotFound>
+        <LayoutView Layout="typeof(MainLayout)">
+            <p role="alert">That page does not exist. <a href="">Go back to the editor</a>.</p>
+        </LayoutView>
+    </NotFound>
 </Router>

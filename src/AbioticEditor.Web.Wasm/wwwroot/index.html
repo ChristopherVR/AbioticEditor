@@ -4,13 +4,19 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Abiotic Editor (Browser)</title>
+    <title>Abiotic Editor</title>
     <!-- Local `dotnet run` serves this app at site root. The GitHub Pages workflow
          (.github/workflows/docs.yml) rewrites this to /AbioticEditor/app/ in the
          published output, since Pages serves it from that subpath. -->
     <base href="/" />
     <link rel="preload" id="webassembly" />
-    <link rel="stylesheet" href="css/app.css" />
+    <!-- The same look as the desktop app, from the same files: the shared screens and their
+         stylesheet, fonts and images all live in AbioticEditor.Web.Shared, published under
+         _content/. The scoped-CSS bundle is named after THIS app - the SDK folds a referenced
+         library's per-component styles into the consuming app's single bundle. -->
+    <link rel="stylesheet" href="AbioticEditor.Web.Wasm.styles.css" />
+    <link rel="stylesheet" href="_content/AbioticEditor.Web.Shared/parity.css" />
+    <link rel="icon" type="image/png" href="_content/AbioticEditor.Web.Shared/images/abiotic-factor.png" />
     <script type="importmap"></script>
 </head>
 
@@ -28,6 +34,7 @@
         <a href="." class="reload">Reload</a>
         <span class="dismiss">🗙</span>
     </div>
+    <script src="_content/AbioticEditor.Web.Shared/modal.js"></script>
     <script src="js/downloadFile.js"></script>
     <script src="js/filePicker.js"></script>
     <script src="js/saveFileSystem.js"></script>
