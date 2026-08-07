@@ -15,13 +15,24 @@
 {
     <section class="hero native-empty-state">
         <h1>@Languages.Resource("Empty_EditorTitle")</h1>
-        <p class="lede">@Languages.Resource("Empty_OpenYourSaveFolderInstructions")</p>
+        @* Where the save folder lives on disk only helps someone who can browse to it. In a
+           browser the folder is chosen through the browser's own picker, so that instruction
+           would be pointing at a path the player has no reason to type. *@
+        @if (Library.CanDiscover)
+        {
+            <p class="lede">@Languages.Resource("Empty_OpenYourSaveFolderInstructions")</p>
+        }
         <p class="empty-capabilities">@Languages.Resource("Empty_PlayersWorldsSummary")</p>
         <div class="empty-actions">
             <button class="primary" type="button" @onclick="PickFolderAsync" disabled="@_isLoading">@Languages.Resource("Empty_OpenFolder")</button>
             <a class="secondary button-link" href="/create-world">@Languages.Resource("Empty_NewWorld")</a>
         </div>
-        <p class="empty-note">@Languages.Resource("Empty_YouCanAlsoDropASaveFolderAnywhereOnThisWindow")</p>
+        @* Dropping a folder onto the window is a desktop-only trick; a browser tab is not given
+           the dropped folder's real location, so promising it here would be a dead end. *@
+        @if (Library.CanDiscover)
+        {
+            <p class="empty-note">@Languages.Resource("Empty_YouCanAlsoDropASaveFolderAnywhereOnThisWindow")</p>
+        }
         <p class="empty-note">@Languages.Resource("Empty_EveryWriteKeepsABakBackupNextToTheSave")</p>
 
         @if (_worlds.Count > 0)

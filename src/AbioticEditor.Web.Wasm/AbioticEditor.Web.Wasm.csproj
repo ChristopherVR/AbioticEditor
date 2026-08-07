@@ -22,6 +22,14 @@
     <Content Include="..\AbioticEditor.Core\Resources\blank-player-template.sav"
              Link="wwwroot\Templates\blank-player-template.sav"
              CopyToOutputDirectory="PreserveNewest" />
+    <!-- Game data dumped from the paks ahead of time (item, recipe and skill names, icon paths).
+         This is what lets the browser show real names without the game installed: mounting the
+         paks in a tab is not possible (see docs/PROGRESS.md round-45 - the IoStore container
+         alone is 4.6 GB against a ~2 GB WebAssembly heap), but this dump is about a megabyte.
+         Program.cs stages it where GameDataRegistry.LoadBundled() looks. -->
+    <Content Include="..\..\assets\registry\registry.json"
+             Link="wwwroot\registry\registry.json"
+             CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

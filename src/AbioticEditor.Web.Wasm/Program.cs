@@ -57,4 +57,32 @@ builder.Services.AddScoped<UserFacingErrorService>();
 builder.Services.AddScoped<ModalService>();
 builder.Services.AddScoped<ToastService>();
 
-await builder.Build().RunAsync();
+var host = builder.Build();
+await StageBundledGameDataAsync(host.Services);
+await host.RunAsync();
+
+// Item, recipe and skill names come from a dump of the game's data tables that ships with the
+// editor. Core looks for it as a FILE beside the executable, which in a browser means a file in
+// the in-memory file system WebAssembly gives us - so it is fetched once at startup and written
+// there, after which every catalog finds it exactly as it does on the desktop.
+//
+// This is the whole reason the browser can show real names at all: the paks themselves cannot be
+// mounted in a tab (docs/PROGRESS.md round-45 has the measurements), but this dump is ~1 MB.
+// Failing to fetch it is not fatal - the editor falls back to internal ids, which is the same
+// thing the desktop app does when it cannot find the game.
+static async Task StageBundledGameDataAsync(IServiceProvider services)
+{
+    try
+    {
+        var http = services.GetRequiredService<HttpClient>();
+        var bytes = await http.GetByteArrayAsync("registry/registry.json").ConfigureAwait(false);
+        var directory = Path.Combine(AppContext.BaseDirectory, "registry");
+        Directory.CreateDirectory(directory);
+        await File.WriteAllBytesAsync(Path.Combine(directory, "registry.json"), bytes).ConfigureAwait(false);
+    }
+    catch (Exception exception)
+    {
+        AbioticEditor.Core.Diagnostics.EditorLog.Warn(
+            "Assets", $"Could not load the bundled game data; names will show as internal ids. {exception.Message}");
+    }
+}

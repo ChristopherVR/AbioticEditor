@@ -56,7 +56,12 @@
     <main id="main-content" tabindex="-1"><WorkspaceShell>@Body</WorkspaceShell></main>
     <footer class="status-footer">
         <div class="live-status"><span aria-hidden="true"></span>@(Workspace.Current is null ? Languages.Text("status.ready") : Languages.Text("status.loaded", Workspace.Current.Saves.Count))</div>
-        <span class="logging-path" title="@HostSettings.CurrentLogPath">@Languages.Resource("Main_LoggingTo", HostSettings.CurrentLogPath)</span>
+        @* A browser tab writes no log file, so naming one would send anyone chasing a problem
+           to a path that does not exist. *@
+        @if (Workspace.HasLocalPaths)
+        {
+            <span class="logging-path" title="@HostSettings.CurrentLogPath">@Languages.Resource("Main_LoggingTo", HostSettings.CurrentLogPath)</span>
+        }
         <nav class="host-nav" aria-label="@Languages.Text("utilities")"><button type="button" class="settings-action" @onclick="OpenSettings"><span class="material-symbol" aria-hidden="true">settings</span>@Languages.Resource("Status_Settings")</button></nav>
         <span class="footer-product">@Languages.Resource("Common_AppName")</span>
     </footer>
