@@ -5,6 +5,59 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-46: `AbioticEditor.Web.Shared` - one screen set for both front-ends (2026-08-07)
+
+Round-45 built the browser host its OWN pages, which was the wrong shape: two editors would
+drift. Corrected here. New Razor Class Library `src/AbioticEditor.Web.Shared` holds the screens
+and their host-agnostic services; `AbioticEditor.Web` (desktop) references it and is otherwise
+unchanged, and the browser host will render the same components (phases 2-4 below).
+
+- **`RootNamespace` is deliberately `AbioticEditor.Web`, not the new project's name**, so every
+  moved type kept the namespace it already had and not one `using` in the 53 moved component
+  files had to change. Same reasoning as Core's folder layering (namespaces left alone on
+  purpose because they are the published API).
+- **What moved**: `Components/{Pages,Player,Shared,World}` + `Components/_Imports.razor`,
+  `Models/`, `Localization/` (all five resx), `HostVersion.cs`, and 41 of 48 `Services/`.
+  **What stayed** (cannot leave the desktop host): `Program.cs`, `App.razor`, `Routes.razor`,
+  `Components/Pages/{Updates,WebToolHost}.razor` (bundled updater + plugin web tools) and their
+  services, `DesktopHostService`, `DesktopWindowHost`, `WindowsDesktopPicker`,
+  `LocalHostEndpoint`, `BrowserSaveImportService`, `Diagnostics/`, `wwwroot/`.
+- **The one real code change**: `CreateWorldService` took `IWebHostEnvironment` purely to find
+  `ContentRootPath/Templates/*.sav`. That is ASP.NET-hosting-specific, so it now asks a new
+  `ISaveTemplateSource` instead (`DesktopSaveTemplateSource` reads the folder beside the
+  executable; the browser host will fetch them from its static files). Everything else moved
+  byte-for-byte - `git` recorded all 111 moves as 100% renames, so history follows the files.
+- **Two traps hit, both worth remembering.**
+  1. `_Imports.razor` does NOT cross project boundaries, and a Razor Class Library gets no
+     implicit usings from the Web SDK. `NavLink`/`LocationChangedEventArgs` stopped resolving
+     until a project-root `_Imports.razor` was added to the library (component tags resolve from
+     `@using`, not from C# `global using`, so GlobalUsings alone did not fix it). The desktop
+     host needed its own `Components/_Imports.razor` for the same reason - keep the two in step.
+  2. **`AddAdditionalAssemblies` on `MapRazorComponents` is required, not just
+     `AdditionalAssemblies` on `<Router>`.** Endpoint routing discovers routable components per
+     assembly and only scans `App`'s by default. With only the Router updated the app started
+     fine and `/healthz` answered 200 while EVERY shared route including `/` returned 404. All
+     919 tests still passed. Only actually opening the app caught it - do not treat a green
+     suite plus a healthy `/healthz` as evidence this host renders.
+- `CA1822` ("can be marked static") is suppressed in the library with a reason: the Razor Class
+  Library SDK reports it a level higher than the Web SDK did, and these are DI-injected service
+  members that must stay instance members (making them static would not compile at the call
+  sites, and would remove the seam the browser host swaps implementations into).
+- **Tests**: the six UI-parity classes each hardcoded `src/AbioticEditor.Web/...`, so 40 failed
+  on paths alone. Replaced their per-class root locators with one `tests/.../UiSource.cs` that
+  probes the shared library first and the desktop host second - correct today, and survives the
+  next file that moves between them. **919/919 pass.**
+- **Verified in a real browser against a real save folder**, not just built: world discovery
+  list, workspace sidebar (65 saves, player names resolved), the whole `PlayerEditor` tab strip,
+  and the inventory tab with real pak-extracted item names and icons. The RCL's scoped CSS does
+  bundle into the host's `AbioticEditor.Web.styles.css` as before (see the round-45 note and
+  CLAUDE.md on that bundle - it was the thing most likely to break here, and did not).
+- **Still to do**: `ISaveFileSystem` seam so `SaveWorkspaceSessionService` (525 lines, injected
+  by 18 components, path-centric throughout) stops assuming `System.IO`; a browser
+  implementation over the File System Access API's `showDirectoryPicker` (real read/write
+  directory handles, which map 1:1 onto the existing world-folder model, Chromium-only); then
+  pointing the Wasm host at these components and deleting the round-45 duplicates.
+
 ## Round-45: browser-only editor (Blazor WebAssembly, deployed to GitHub Pages) (2026-08-07)
 
 **New host**: `src/AbioticEditor.Web.Wasm` - a standalone Blazor WebAssembly app referencing
