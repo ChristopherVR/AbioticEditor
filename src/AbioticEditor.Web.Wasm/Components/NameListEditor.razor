@@ -1,0 +1,38 @@
+@* A save list that is just a set of internal ids (recipes, journal entries, read emails, ...).
+
+   Presented as one id per line rather than a tick-list, because the readable names for these
+   rows live in the game's own data files, which this browser host cannot read. A plain text
+   list is honest about that and still lets a player paste in a whole set at once. *@
+
+<div class="field">
+    <label for="@_id">@Label <span class="stat-readout">@Count</span></label>
+    <textarea id="@_id" rows="@Rows" spellcheck="false"
+              value="@_text" @onchange="OnChanged"></textarea>
+</div>
+
+@code {
+    private readonly string _id = $"list-{Guid.NewGuid():N}";
+    private string _text = string.Empty;
+
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public IReadOnlyList<string> Value { get; set; } = [];
+
+    [Parameter] public EventCallback<IReadOnlyList<string>> ValueChanged { get; set; }
+
+    [Parameter] public int Rows { get; set; } = 8;
+
+    private int Count => Value.Count;
+
+    protected override void OnParametersSet() => _text = string.Join("\n", Value);
+
+    private Task OnChanged(ChangeEventArgs e)
+    {
+        var lines = (e.Value?.ToString() ?? string.Empty)
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        return ValueChanged.InvokeAsync(lines);
+    }
+}

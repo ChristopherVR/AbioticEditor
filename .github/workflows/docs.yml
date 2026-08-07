@@ -90,6 +90,20 @@ jobs:
           # assemblies; without this the editor loads an empty shell with no app inside.
           touch docs/.vitepress/dist/.nojekyll
 
+      # The editor's routes (/app/stats, /app/skills, ...) exist only in its client-side
+      # router, so refreshing one - or following a link straight to it - asks Pages for a file
+      # that was never published. Pages answers any such request with the SITE-ROOT 404.html,
+      # which VitePress owns, so the fix belongs there rather than in a nested 404 the server
+      # would never reach. Injecting a redirect (instead of replacing the file) keeps the docs'
+      # own not-found page intact for docs URLs. Sending these to the editor's entry point
+      # rather than restoring the deep route is deliberate and costs nothing: the open save
+      # lives in memory only, so a reloaded deep link has no save to show either way.
+      - name: Route editor deep links back to the editor
+        run: |
+          sed -i 's#<head>#<head><script>(function(){var a="/AbioticEditor/app/";if(location.pathname.indexOf(a)===0\&\&location.pathname!==a){location.replace(a);}})();</script>#' \
+            docs/.vitepress/dist/404.html
+          grep -q 'AbioticEditor/app/' docs/.vitepress/dist/404.html
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:

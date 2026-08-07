@@ -1,0 +1,103 @@
+@page "/skills"
+@using AbioticEditor.Core.PlayerSaves
+@using AbioticEditor.Web.Wasm.Services
+@inject PlayerSaveSession Session
+
+<PageTitle>Skills - Abiotic Editor</PageTitle>
+
+@if (Session.Data is null)
+{
+    <NoSaveOpen />
+}
+else
+{
+    <h1>Skills</h1>
+    <p class="hint">
+        Each skill goes up to level @SkillCatalog.MaxLevel. Moving a slider sets the experience
+        to exactly the amount that level starts at, so the skill reads as freshly earned.
+    </p>
+
+    <div class="row-actions">
+        <button class="btn" @onclick="() => SetEveryLevel(SkillCatalog.MaxLevel)">Max every skill</button>
+        <button class="btn" @onclick="() => SetEveryLevel(0)">Reset every skill</button>
+    </div>
+
+    <div class="panel">
+        @for (var i = 0; i < _levels.Count; i++)
+        {
+            var index = i;
+            var definition = _definitions[index];
+            <div class="skill-row">
+                <span class="skill-name">@definition.DisplayName</span>
+                <span class="skill-level">Lv @_levels[index]</span>
+                <input type="range" min="0" max="@SkillCatalog.MaxLevel" step="1" value="@_levels[index]"
+                       aria-label="@definition.DisplayName level"
+                       @onchange="e => OnLevelChanged(index, e)" />
+                <span class="skill-xp">@_xp[index].ToString("N0") xp</span>
+            </div>
+        }
+    </div>
+
+    <p class="hint">
+        Experience is preserved exactly for any skill you do not touch, including skills from a
+        newer game version that this editor does not have a name for.
+    </p>
+}
+
+@code {
+    private IReadOnlyList<SkillDefinition> _definitions = Array.Empty<SkillDefinition>();
+    private List<int> _levels = [];
+    private List<float> _xp = [];
+    private List<float> _multipliers = [];
+
+    protected override void OnInitialized()
+    {
+        if (Session.Data is not { } data) return;
+
+        // The pak-backed catalog is unavailable in the browser, so the built-in table is
+        // always what we show. Pad it when the save carries more skills than we know about,
+        // so those entries still round-trip at their original position.
+        _definitions = SkillCatalog.WithUnknownPlaceholders(SkillCatalog.Fallback, data.Skills.Count);
+
+        foreach (var skill in data.Skills.OrderBy(s => s.Index))
+        {
+            _levels.Add(skill.Level);
+            _xp.Add(skill.Xp);
+            _multipliers.Add(skill.XpMultiplier);
+        }
+    }
+
+    private void OnLevelChanged(int index, ChangeEventArgs e)
+    {
+        if (!int.TryParse(e.Value?.ToString(), out var level)) return;
+        SetLevel(index, level);
+        Apply();
+    }
+
+    private void SetEveryLevel(int level)
+    {
+        for (var i = 0; i < _levels.Count; i++) SetLevel(i, level);
+        Apply();
+    }
+
+    private void SetLevel(int index, int level)
+    {
+        level = Math.Clamp(level, 0, SkillCatalog.MaxLevel);
+        _levels[index] = level;
+        _xp[index] = SkillCatalog.XpForLevel(level);
+    }
+
+    private void Apply()
+    {
+        if (Session.Data is not { } data) return;
+
+        var updated = new List<PlayerSkill>(_levels.Count);
+        for (var i = 0; i < _levels.Count; i++)
+        {
+            updated.Add(new PlayerSkill(i, _xp[i], _multipliers[i]));
+        }
+
+        PlayerSaveWriter.ApplySkills(data, updated);
+        Session.MarkDirty();
+    }
+}

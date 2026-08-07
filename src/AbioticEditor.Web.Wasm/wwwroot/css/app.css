@@ -1,24 +1,394 @@
-.valid.modified:not([type=checkbox]) {
-    outline: 1px solid #26b050;
+/* Browser-host theme. Deliberately self-contained (no framework): this app is served as
+   static files from GitHub Pages, and a strict, dependency-free stylesheet keeps the
+   download small and the first paint fast. Palette echoes the desktop app's dark
+   "Cascade Blue" shell with a hazard-orange accent. */
+
+:root {
+    --bg: #0c1a24;
+    --bg-panel: #12242f;
+    --bg-raised: #18303d;
+    --border: #24485a;
+    --text: #dfeaf0;
+    --text-dim: #90a9b7;
+    --accent: #f0862c;
+    --accent-dim: #b4651f;
+    --danger: #e0524a;
+    --ok: #3fa96a;
 }
 
-.invalid {
-    outline: 1px solid red;
+* {
+    box-sizing: border-box;
 }
 
-.validation-message {
-    color: red;
+html, body {
+    margin: 0;
+    padding: 0;
 }
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+h1, h2, h3 {
+    line-height: 1.2;
+    margin: 0 0 0.5rem;
+}
+
+h1 { font-size: 1.6rem; }
+h2 { font-size: 1.15rem; margin-top: 2rem; }
+h3 { font-size: 1rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+
+p { margin: 0 0 1rem; }
+
+a { color: var(--accent); }
+
+code {
+    background: var(--bg-raised);
+    border-radius: 3px;
+    padding: 0.1em 0.35em;
+    font-size: 0.9em;
+}
+
+/* ---------- shell ---------- */
+
+.shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.shell-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1.25rem;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+
+.brand {
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--text);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.brand-tag {
+    color: var(--accent);
+    font-size: 0.7rem;
+    margin-left: 0.5rem;
+    border: 1px solid var(--accent-dim);
+    border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.open-save {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-left: auto;
+    min-width: 0;
+}
+
+.open-save-name {
+    color: var(--text-dim);
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: 0.85rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.badge-dirty {
+    background: var(--accent-dim);
+    color: #fff;
+    border-radius: 999px;
+    padding: 0.1rem 0.6rem;
+    font-size: 0.72rem;
+    white-space: nowrap;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.shell-body {
+    display: flex;
+    flex: 1;
+    align-items: flex-start;
+}
+
+.shell-nav {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 0;
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border);
+    min-width: 13rem;
+    align-self: stretch;
+}
+
+.nav-item {
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 0.55rem 1.25rem;
+    border-left: 3px solid transparent;
+    font-size: 0.92rem;
+}
+
+    .nav-item:hover {
+        color: var(--text);
+        background: var(--bg-raised);
+    }
+
+    .nav-item.active {
+        color: var(--text);
+        border-left-color: var(--accent);
+        background: var(--bg-raised);
+    }
+
+.shell-main {
+    flex: 1;
+    padding: 1.5rem 2rem 4rem;
+    max-width: 60rem;
+    min-width: 0;
+}
+
+/* ---------- controls ---------- */
+
+.btn {
+    background: var(--bg-raised);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.88rem;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+    .btn:hover:not(:disabled) {
+        border-color: var(--accent-dim);
+    }
+
+    .btn:disabled {
+        opacity: 0.45;
+        cursor: default;
+    }
+
+.btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #1b1105;
+    font-weight: 600;
+}
+
+    .btn-primary:hover:not(:disabled) {
+        background: #ff9840;
+    }
+
+textarea {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.4rem 0.5rem;
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: 0.82rem;
+    width: 100%;
+    resize: vertical;
+}
+
+    textarea:focus {
+        outline: 2px solid var(--accent-dim);
+        outline-offset: -1px;
+    }
+
+input[type="text"],
+input[type="number"],
+select {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.35rem 0.5rem;
+    font-family: inherit;
+    font-size: 0.9rem;
+    width: 100%;
+}
+
+    input:focus, select:focus {
+        outline: 2px solid var(--accent-dim);
+        outline-offset: -1px;
+    }
+
+input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+}
+
+label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+}
+
+/* ---------- layout helpers ---------- */
+
+.panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    gap: 0.9rem;
+}
+
+.field {
+    /* Grid items default to min-content width, so a long save file name would push its column
+       wider than its share and paint over the next one. */
+    min-width: 0;
+}
+
+    .field label {
+        margin-bottom: 0.25rem;
+    }
+
+    .field strong {
+        display: block;
+        overflow-wrap: anywhere;
+    }
+
+.stat-readout {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    float: right;
+}
+
+.row-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.hint {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+}
+
+.error {
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    border-radius: 4px;
+    padding: 0.6rem 0.9rem;
+    background: rgba(224, 82, 74, 0.08);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-dim);
+}
+
+/* ---------- tables ---------- */
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+th, td {
+    text-align: left;
+    padding: 0.4rem 0.6rem;
+    border-bottom: 1px solid var(--border);
+}
+
+th {
+    color: var(--text-dim);
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+tbody tr:hover {
+    background: var(--bg-raised);
+}
+
+/* ---------- skills ---------- */
+
+.skill-row {
+    display: grid;
+    grid-template-columns: 9rem 3.5rem 1fr 6rem;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.35rem 0;
+}
+
+.skill-name { font-size: 0.9rem; }
+
+.skill-level {
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.skill-xp {
+    font-variant-numeric: tabular-nums;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    text-align: right;
+}
+
+/* ---------- checkbox lists ---------- */
+
+.check-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: 0.35rem 1rem;
+}
+
+.check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.88rem;
+    color: var(--text);
+    cursor: pointer;
+}
+
+    .check input {
+        width: auto;
+        accent-color: var(--accent);
+    }
+
+/* ---------- blazor built-ins ---------- */
 
 #blazor-error-ui {
-    color-scheme: light only;
-    background: lightyellow;
+    color-scheme: dark only;
+    background: #2a1410;
+    color: #ffd9c9;
     bottom: 0;
-    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
-    box-sizing: border-box;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.5);
     display: none;
     left: 0;
-    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    padding: 0.6rem 1.25rem;
     position: fixed;
     width: 100%;
     z-index: 1000;
@@ -31,35 +401,25 @@
         top: 0.5rem;
     }
 
-.blazor-error-boundary {
-    background: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNDkiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIG92ZXJmbG93PSJoaWRkZW4iPjxkZWZzPjxjbGlwUGF0aCBpZD0iY2xpcDAiPjxyZWN0IHg9IjIzNSIgeT0iNTEiIHdpZHRoPSI1NiIgaGVpZ2h0PSI0OSIvPjwvY2xpcFBhdGg+PC9kZWZzPjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMCkiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yMzUgLTUxKSI+PHBhdGggZD0iTTI2My41MDYgNTFDMjY0LjcxNyA1MSAyNjUuODEzIDUxLjQ4MzcgMjY2LjYwNiA1Mi4yNjU4TDI2Ny4wNTIgNTIuNzk4NyAyNjcuNTM5IDUzLjYyODMgMjkwLjE4NSA5Mi4xODMxIDI5MC41NDUgOTIuNzk1IDI5MC42NTYgOTIuOTk2QzI5MC44NzcgOTMuNTEzIDI5MSA5NC4wODE1IDI5MSA5NC42NzgyIDI5MSA5Ny4wNjUxIDI4OS4wMzggOTkgMjg2LjYxNyA5OUwyNDAuMzgzIDk5QzIzNy45NjMgOTkgMjM2IDk3LjA2NTEgMjM2IDk0LjY3ODIgMjM2IDk0LjM3OTkgMjM2LjAzMSA5NC4wODg2IDIzNi4wODkgOTMuODA3MkwyMzYuMzM4IDkzLjAxNjIgMjM2Ljg1OCA5Mi4xMzE0IDI1OS40NzMgNTMuNjI5NCAyNTkuOTYxIDUyLjc5ODUgMjYwLjQwNyA1Mi4yNjU4QzI2MS4yIDUxLjQ4MzcgMjYyLjI5NiA1MSAyNjMuNTA2IDUxWk0yNjMuNTg2IDY2LjAxODNDMjYwLjczNyA2Ni4wMTgzIDI1OS4zMTMgNjcuMTI0NSAyNTkuMzEzIDY5LjMzNyAyNTkuMzEzIDY5LjYxMDIgMjU5LjMzMiA2OS44NjA4IDI1OS4zNzEgNzAuMDg4N0wyNjEuNzk1IDg0LjAxNjEgMjY1LjM4IDg0LjAxNjEgMjY3LjgyMSA2OS43NDc1QzI2Ny44NiA2OS43MzA5IDI2Ny44NzkgNjkuNTg3NyAyNjcuODc5IDY5LjMxNzkgMjY3Ljg3OSA2Ny4xMTgyIDI2Ni40NDggNjYuMDE4MyAyNjMuNTg2IDY2LjAxODNaTTI2My41NzYgODYuMDU0N0MyNjEuMDQ5IDg2LjA1NDcgMjU5Ljc4NiA4Ny4zMDA1IDI1OS43ODYgODkuNzkyMSAyNTkuNzg2IDkyLjI4MzcgMjYxLjA0OSA5My41Mjk1IDI2My41NzYgOTMuNTI5NSAyNjYuMTE2IDkzLjUyOTUgMjY3LjM4NyA5Mi4yODM3IDI2Ny4zODcgODkuNzkyMSAyNjcuMzg3IDg3LjMwMDUgMjY2LjExNiA4Ni4wNTQ3IDI2My41NzYgODYuMDU0N1oiIGZpbGw9IiNGRkU1MDAiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L3N2Zz4=) no-repeat 1rem/1.8rem, #b32121;
-    padding: 1rem 1rem 1rem 3.7rem;
-    color: white;
-}
-
-    .blazor-error-boundary::after {
-        content: "An error has occurred."
-    }
-
 .loading-progress {
     position: absolute;
     display: block;
     width: 8rem;
     height: 8rem;
     inset: 20vh 0 auto 0;
-    margin: 0 auto 0 auto;
+    margin: 0 auto;
 }
 
     .loading-progress circle {
         fill: none;
-        stroke: #e0e0e0;
+        stroke: #1d3a49;
         stroke-width: 0.6rem;
         transform-origin: 50% 50%;
         transform: rotate(-90deg);
     }
 
         .loading-progress circle:last-child {
-            stroke: #1b6ec2;
+            stroke: var(--accent);
             stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
             transition: stroke-dasharray 0.05s ease-in-out;
         }
@@ -69,39 +429,48 @@
     text-align: center;
     font-weight: bold;
     inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
+    color: var(--text-dim);
 }
 
     .loading-progress-text:after {
         content: var(--blazor-load-percentage-text, "Loading");
     }
 
-code {
-    color: #c02d76;
-}
-
-body {
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-    max-width: 40rem;
-    margin: 2rem auto;
-    padding: 0 1rem;
-    color: #1b1b1b;
-}
-
-.stat-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
-    gap: 0.75rem;
-    margin: 1rem 0;
-}
-
-    .stat-grid label {
-        display: flex;
+@media (max-width: 700px) {
+    .shell-body {
         flex-direction: column;
-        gap: 0.25rem;
-        font-size: 0.9rem;
     }
 
-    .stat-grid input {
-        padding: 0.35rem;
-        font-size: 1rem;
+    .shell-nav {
+        flex-direction: row;
+        overflow-x: auto;
+        min-width: 0;
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        padding: 0;
     }
+
+    .nav-item {
+        border-left: none;
+        border-bottom: 3px solid transparent;
+        white-space: nowrap;
+    }
+
+        .nav-item.active {
+            border-left: none;
+            border-bottom-color: var(--accent);
+        }
+
+    .shell-main {
+        padding: 1rem;
+    }
+
+    .skill-row {
+        grid-template-columns: 7rem 2.5rem 1fr;
+    }
+
+    .skill-xp {
+        display: none;
+    }
+}

@@ -1,0 +1,124 @@
+@page "/traits"
+@using AbioticEditor.Core.PlayerSaves
+@using AbioticEditor.Web.Wasm.Services
+@inject PlayerSaveSession Session
+
+<PageTitle>Traits and background - Abiotic Editor</PageTitle>
+
+@if (Session.Data is null)
+{
+    <NoSaveOpen />
+}
+else
+{
+    <h1>Traits and background</h1>
+    <p class="hint">
+        Your background is the job you picked at character creation. Traits are the perks and
+        drawbacks chosen alongside it. The game does not re-check the point cost when it loads a
+        save, so you can take more than a fresh character could afford.
+    </p>
+
+    <h2>Background</h2>
+    <div class="panel">
+        <div class="field">
+            <label for="background">Job</label>
+            <select id="background" value="@_phd" @onchange="OnBackgroundChanged">
+                @foreach (var background in TraitCatalog.Backgrounds)
+                {
+                    <option value="@background.Key" selected="@(background.Key == _phd)">@background.Value</option>
+                }
+                @if (_phd is not null && !TraitCatalog.Backgrounds.ContainsKey(_phd))
+                {
+                    <option value="@_phd" selected>@_phd (not in this editor's list)</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <h2>Traits <span class="hint">(@_selected.Count selected)</span></h2>
+
+    <div class="row-actions">
+        <button class="btn" @onclick="ClearAll">Clear all</button>
+    </div>
+
+    <div class="panel">
+        <div class="check-grid">
+            @foreach (var trait in TraitCatalog.Traits.OrderBy(t => t.Value, StringComparer.OrdinalIgnoreCase))
+            {
+                var id = trait.Key;
+                <label class="check">
+                    <input type="checkbox" checked="@_selected.Contains(id)"
+                           @onchange="e => OnTraitToggled(id, e)" />
+                    <span>@trait.Value</span>
+                </label>
+            }
+        </div>
+    </div>
+
+    @if (_unknown.Count > 0)
+    {
+        <h2>Traits this editor doesn't recognise</h2>
+        <div class="panel">
+            <p class="hint">
+                Your save carries these, most likely from a newer game version or a mod. They are kept
+                as they are unless you clear them.
+            </p>
+            <div class="check-grid">
+                @foreach (var id in _unknown)
+                {
+                    var traitId = id;
+                    <label class="check">
+                        <input type="checkbox" checked="@_selected.Contains(traitId)"
+                               @onchange="e => OnTraitToggled(traitId, e)" />
+                        <span><code>@traitId</code></span>
+                    </label>
+                }
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private readonly HashSet<string> _selected = new(StringComparer.Ordinal);
+    private List<string> _unknown = [];
+    private string? _phd;
+
+    protected override void OnInitialized()
+    {
+        if (Session.Data is not { } data) return;
+
+        foreach (var trait in data.Traits) _selected.Add(trait);
+        _unknown = data.Traits.Where(t => !TraitCatalog.Traits.ContainsKey(t)).Distinct(StringComparer.Ordinal).ToList();
+        _phd = data.Phd;
+    }
+
+    private void OnTraitToggled(string id, ChangeEventArgs e)
+    {
+        if (e.Value is true) _selected.Add(id);
+        else _selected.Remove(id);
+        ApplyTraits();
+    }
+
+    private void ClearAll()
+    {
+        _selected.Clear();
+        ApplyTraits();
+    }
+
+    private void OnBackgroundChanged(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+        if (string.IsNullOrEmpty(value) || Session.Data is not { } data) return;
+
+        _phd = value;
+        PlayerSaveWriter.ApplyPhd(data, value);
+        Session.MarkDirty();
+    }
+
+    private void ApplyTraits()
+    {
+        if (Session.Data is not { } data) return;
+        PlayerSaveWriter.ApplyTraits(data, _selected.ToList());
+        Session.MarkDirty();
+    }
+}

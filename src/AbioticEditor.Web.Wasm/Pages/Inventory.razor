@@ -1,0 +1,58 @@
+@page "/inventory"
+@using AbioticEditor.Core.PlayerSaves
+@using AbioticEditor.Web.Wasm.Services
+@inject PlayerSaveSession Session
+
+<PageTitle>Inventory - Abiotic Editor</PageTitle>
+
+@if (Session.Data is null)
+{
+    <NoSaveOpen />
+}
+else
+{
+    <h1>Inventory</h1>
+    <p class="hint">
+        Item ids are the game's internal names, like <code>Item_Flashlight</code>. This browser
+        version cannot show real item names or icons, because that needs the game installed on the
+        same computer. The easiest way to get an id right is to copy one from an item you already
+        carry. Clearing a slot empties it.
+    </p>
+
+    <h2>Equipment</h2>
+    <div class="panel">
+        <InventoryTable Title="Equipment" Slots="_equipment" Changed="Apply" />
+    </div>
+
+    <h2>Hotbar</h2>
+    <div class="panel">
+        <InventoryTable Title="Hotbar" Slots="_hotbar" Changed="Apply" />
+    </div>
+
+    <h2>Backpack</h2>
+    <div class="panel">
+        <InventoryTable Title="Backpack" Slots="_main" Changed="Apply" />
+    </div>
+}
+
+@code {
+    private List<InventoryItemSlot> _equipment = [];
+    private List<InventoryItemSlot> _hotbar = [];
+    private List<InventoryItemSlot> _main = [];
+
+    protected override void OnInitialized()
+    {
+        if (Session.Data is not { } data) return;
+
+        _equipment = data.Inventory.Equipment.ToList();
+        _hotbar = data.Inventory.Hotbar.ToList();
+        _main = data.Inventory.Main.ToList();
+    }
+
+    private void Apply()
+    {
+        if (Session.Data is not { } data) return;
+        PlayerSaveWriter.ApplyInventory(data, new PlayerInventory(_equipment, _hotbar, _main));
+        Session.MarkDirty();
+    }
+}

@@ -1,87 +1,132 @@
 @page "/"
 @using AbioticEditor.Core.PlayerSaves
-@inject IJSRuntime JS
+@using AbioticEditor.Web.Wasm.Services
+@inject PlayerSaveSession Session
 
-<PageTitle>Abiotic Editor (Browser)</PageTitle>
+<PageTitle>Abiotic Editor (browser)</PageTitle>
 
-<h1>Abiotic Editor - Browser Edition</h1>
-<p>
-    Open a player save (<code>Player_&lt;steamid64&gt;.sav</code>) and edit it right here.
-    The file is parsed and re-written entirely in this browser tab; it is never uploaded
-    anywhere.
-</p>
-
-<InputFile OnChange="OnFileSelectedAsync" accept=".sav" />
-
-@if (_error is not null)
+@if (Session.Data is null)
 {
-    <p style="color:#c0392b">@_error</p>
-}
+    <h1>Edit your Abiotic Factor save, right here</h1>
+    <p>
+        Pick a character save and change your stats, skills, traits, inventory and progress.
+        Everything happens inside this browser tab: your save is never uploaded to a server,
+        because there is no server. Nothing is written back to your computer until you press
+        <strong>Download save</strong>.
+    </p>
 
-@if (_data is not null)
-{
-    <h2>@_fileName</h2>
-
-    <div class="stat-grid">
-        <label>Hunger <input type="number" min="0" max="100" step="1" @bind="_hunger" /></label>
-        <label>Thirst <input type="number" min="0" max="100" step="1" @bind="_thirst" /></label>
-        <label>Sanity <input type="number" min="0" max="100" step="1" @bind="_sanity" /></label>
-        <label>Fatigue <input type="number" min="0" max="100" step="1" @bind="_fatigue" /></label>
-        <label>Continence <input type="number" min="0" max="100" step="1" @bind="_continence" /></label>
-        <label>Money <input type="number" min="0" step="1" @bind="_money" /></label>
+    <div class="panel">
+        <h3>Open a save</h3>
+        <p class="hint">
+            Character saves are named <code>Player_&lt;steamid64&gt;.sav</code>. On Steam they live in
+            <code>%LOCALAPPDATA%\AbioticFactor\Saved\SaveGames</code>, inside your world's
+            <code>PlayerData</code> folder.
+        </p>
+        <InputFile OnChange="OnFileSelectedAsync" accept=".sav" />
     </div>
 
-    <button @onclick="SaveAndDownloadAsync">Apply &amp; download</button>
+    @if (_error is not null)
+    {
+        <p class="error">@_error</p>
+    }
+
+    <p class="hint">
+        Always keep a copy of your original save. This is a fan-made tool and is not part of the game.
+    </p>
+}
+else
+{
+    var data = Session.Data;
+
+    <h1>Overview</h1>
+
+    <div class="panel">
+        <div class="field-grid">
+            <div class="field">
+                <label>Save file</label>
+                <strong>@Session.FileName</strong>
+            </div>
+            <div class="field">
+                <label>Save version</label>
+                <strong>@(data.AbfVersion?.ToString() ?? "unknown")</strong>
+            </div>
+            <div class="field">
+                <label>Background</label>
+                <strong>@BackgroundName(data.Phd)</strong>
+            </div>
+            <div class="field">
+                <label>Money</label>
+                <strong>@data.Stats.Money</strong>
+            </div>
+        </div>
+    </div>
+
+    <h2>What's in this save</h2>
+    <div class="panel">
+        <table>
+            <tbody>
+                <tr><td>Skills</td><td>@data.Skills.Count (@TotalSkillLevels total levels)</td></tr>
+                <tr><td>Traits</td><td>@data.Traits.Count</td></tr>
+                <tr><td>Items carried</td><td>@FilledSlots of @TotalSlots slots filled</td></tr>
+                <tr><td>Recipes unlocked</td><td>@data.Recipes.Count</td></tr>
+                <tr><td>Journal entries</td><td>@data.Journals.Count</td></tr>
+                <tr><td>Emails read</td><td>@data.EmailsRead.Count</td></tr>
+                <tr><td>Maps unlocked</td><td>@data.MapsUnlocked.Count</td></tr>
+                <tr><td>Fish caught</td><td>@data.FishCaught.Count</td></tr>
+                <tr><td>Creatures killed</td><td>@data.KillCounts.Sum(k => k.Count)</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    @if (!data.HasKnownSaveClass)
+    {
+        <p class="error">
+            This file's save type (<code>@(data.SaveClassName ?? "unknown")</code>) is not one the editor
+            recognises. It has still been read, but treat any edit with caution and keep your backup.
+        </p>
+    }
+
+    <p class="hint">
+        Item and recipe names are shown as their internal ids in this browser version, because reading
+        the game's own data files needs the game installed on the same machine. The desktop app shows
+        real names and icons.
+    </p>
 }
 
 @code {
-    private const long MaximumFileSize = 64L * 1024 * 1024;
-
-    private PlayerSaveData? _data;
-    private string? _fileName;
     private string? _error;
-    private double _hunger, _thirst, _sanity, _fatigue, _continence;
-    private int _money;
+
+    private int TotalSkillLevels => Session.Data?.Skills.Sum(s => s.Level) ?? 0;
+
+    private int TotalSlots => AllSlots().Count();
+
+    private int FilledSlots => AllSlots().Count(s => !s.IsEmpty);
+
+    private IEnumerable<InventoryItemSlot> AllSlots()
+    {
+        var inventory = Session.Data?.Inventory;
+        if (inventory is null) return Array.Empty<InventoryItemSlot>();
+        return inventory.Equipment.Concat(inventory.Hotbar).Concat(inventory.Main);
+    }
+
+    private static string BackgroundName(string? phd)
+    {
+        if (string.IsNullOrEmpty(phd)) return "none";
+        return TraitCatalog.Backgrounds.TryGetValue(phd, out var name) ? name : phd;
+    }
 
     private async Task OnFileSelectedAsync(InputFileChangeEventArgs e)
     {
         _error = null;
-        _data = null;
         var file = e.File;
-
         try
         {
-            await using var stream = file.OpenReadStream(MaximumFileSize);
-            using var buffer = new MemoryStream();
-            await stream.CopyToAsync(buffer);
-            buffer.Position = 0;
-
-            _data = PlayerSaveReader.ReadFromStream(buffer);
-            _fileName = file.Name;
-            _hunger = _data.Stats.Hunger;
-            _thirst = _data.Stats.Thirst;
-            _sanity = _data.Stats.Sanity;
-            _fatigue = _data.Stats.Fatigue;
-            _continence = _data.Stats.Continence;
-            _money = _data.Stats.Money;
+            await using var stream = file.OpenReadStream(PlayerSaveSession.MaximumFileSize);
+            await Session.LoadAsync(stream, file.Name);
         }
         catch (Exception ex)
         {
-            _error = $"Couldn't read {file.Name} as a player save: {ex.Message}";
+            _error = $"Couldn't read {file.Name} as a character save: {ex.Message}";
         }
-    }
-
-    private async Task SaveAndDownloadAsync()
-    {
-        if (_data is null) return;
-
-        PlayerSaveWriter.ApplyStats(_data, new CharacterStats(_hunger, _thirst, _sanity, _fatigue, _continence, _money));
-
-        using var output = new MemoryStream();
-        _data.Raw.WriteTo(output);
-        output.Position = 0;
-
-        using var streamRef = new DotNetStreamReference(output, leaveOpen: true);
-        await JS.InvokeVoidAsync("downloadFileFromStream", _fileName, streamRef);
     }
 }

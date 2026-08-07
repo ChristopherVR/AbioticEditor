@@ -1,0 +1,111 @@
+@using AbioticEditor.Core.PlayerSaves
+
+@* One inventory array (equipment / hotbar / backpack) as an editable table.
+
+   Item ids are free text rather than a picker: the name-and-icon catalog is read from the
+   installed game's data files, which this browser host has no access to, so there is no list
+   to choose from. Typing an id the game does not know produces an item the game will drop on
+   load, which is why the hint below tells players to copy ids from an item they already have. *@
+
+@if (Slots.Count == 0)
+{
+    <p class="hint">This save has no @Title.ToLowerInvariant() slots.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr>
+                <th style="width:3rem">Slot</th>
+                <th>Item id</th>
+                <th style="width:5rem">Count</th>
+                <th style="width:8rem">Durability</th>
+                <th style="width:4rem"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (var i = 0; i < Slots.Count; i++)
+            {
+                var index = i;
+                var slot = Slots[index];
+                <tr>
+                    <td>@slot.Index</td>
+                    <td>
+                        <input type="text" value="@(slot.IsEmpty ? string.Empty : slot.ItemId)"
+                               placeholder="empty" aria-label="Slot @slot.Index item id"
+                               @onchange="e => OnItemIdChanged(index, e)" />
+                    </td>
+                    <td>
+                        <input type="number" min="0" step="1" value="@slot.Count"
+                               aria-label="Slot @slot.Index count"
+                               disabled="@slot.IsEmpty"
+                               @onchange="e => OnCountChanged(index, e)" />
+                    </td>
+                    <td>
+                        <input type="number" min="0" step="1" value="@Math.Round(slot.Durability)"
+                               aria-label="Slot @slot.Index durability"
+                               disabled="@(slot.IsEmpty || slot.MaxDurability <= 0)"
+                               @onchange="e => OnDurabilityChanged(index, e)" />
+                    </td>
+                    <td>
+                        <button class="btn" disabled="@slot.IsEmpty"
+                                title="Empty this slot"
+                                @onclick="() => ClearSlot(index)">Clear</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public List<InventoryItemSlot> Slots { get; set; } = [];
+
+    /// <summary>Raised after any slot in this table changes, so the page can re-apply the whole inventory.</summary>
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private Task OnItemIdChanged(int index, ChangeEventArgs e)
+    {
+        var raw = e.Value?.ToString()?.Trim();
+        var slot = Slots[index];
+
+        if (string.IsNullOrEmpty(raw))
+        {
+            return ClearSlot(index);
+        }
+
+        // A slot that was empty carries stack 0; give it a usable stack so the item actually
+        // appears, rather than a zero-count ghost the game discards.
+        var count = slot.IsEmpty && slot.Count <= 0 ? 1 : slot.Count;
+        Slots[index] = slot with { ItemId = raw, Count = count };
+        return Changed.InvokeAsync();
+    }
+
+    private Task OnCountChanged(int index, ChangeEventArgs e)
+    {
+        if (!int.TryParse(e.Value?.ToString(), out var count)) return Task.CompletedTask;
+        Slots[index] = Slots[index] with { Count = Math.Max(0, count) };
+        return Changed.InvokeAsync();
+    }
+
+    private Task OnDurabilityChanged(int index, ChangeEventArgs e)
+    {
+        if (!double.TryParse(e.Value?.ToString(), out var durability)) return Task.CompletedTask;
+        var slot = Slots[index];
+        var capped = Math.Clamp(durability, 0, slot.MaxDurability > 0 ? slot.MaxDurability : durability);
+        Slots[index] = slot with { Durability = capped };
+        return Changed.InvokeAsync();
+    }
+
+    private Task ClearSlot(int index)
+    {
+        Slots[index] = Slots[index] with
+        {
+            ItemId = PlayerSaveWriter.EmptySlotRowName,
+            Count = 0,
+        };
+        return Changed.InvokeAsync();
+    }
+}

@@ -1,0 +1,125 @@
+@page "/stats"
+@using AbioticEditor.Core.PlayerSaves
+@using AbioticEditor.Web.Wasm.Services
+@inject PlayerSaveSession Session
+
+<PageTitle>Vitals and health - Abiotic Editor</PageTitle>
+
+@if (Session.Data is null)
+{
+    <NoSaveOpen />
+}
+else
+{
+    <h1>Vitals and health</h1>
+    <p class="hint">
+        Survival needs run from 0 to 100, where 100 is completely satisfied. Money is your
+        balance in the vending machines and traders.
+    </p>
+
+    <div class="row-actions">
+        <button class="btn" @onclick="RestoreNeeds">Fill every need</button>
+        <button class="btn" @onclick="HealAllLimbs">Heal every limb</button>
+    </div>
+
+    <h2>Survival needs</h2>
+    <div class="panel">
+        <div class="field-grid">
+            <StatField Label="Hunger" Value="_hunger" ValueChanged="v => Set(ref _hunger, v)" />
+            <StatField Label="Thirst" Value="_thirst" ValueChanged="v => Set(ref _thirst, v)" />
+            <StatField Label="Sanity" Value="_sanity" ValueChanged="v => Set(ref _sanity, v)" />
+            <StatField Label="Fatigue" Value="_fatigue" ValueChanged="v => Set(ref _fatigue, v)" />
+            <StatField Label="Continence" Value="_continence" ValueChanged="v => Set(ref _continence, v)" />
+        </div>
+    </div>
+
+    <h2>Money</h2>
+    <div class="panel">
+        <div class="field">
+            <label for="money">Balance</label>
+            <input id="money" type="number" min="0" step="1" value="@_money"
+                   @onchange="OnMoneyChanged" />
+        </div>
+    </div>
+
+    <h2>Limb health</h2>
+    <div class="panel">
+        <div class="field-grid">
+            <StatField Label="Head" Value="_head" ValueChanged="v => SetLimb(ref _head, v)" />
+            <StatField Label="Torso" Value="_torso" ValueChanged="v => SetLimb(ref _torso, v)" />
+            <StatField Label="Left arm" Value="_leftArm" ValueChanged="v => SetLimb(ref _leftArm, v)" />
+            <StatField Label="Right arm" Value="_rightArm" ValueChanged="v => SetLimb(ref _rightArm, v)" />
+            <StatField Label="Left leg" Value="_leftLeg" ValueChanged="v => SetLimb(ref _leftLeg, v)" />
+            <StatField Label="Right leg" Value="_rightLeg" ValueChanged="v => SetLimb(ref _rightLeg, v)" />
+        </div>
+    </div>
+}
+
+@code {
+    private double _hunger, _thirst, _sanity, _fatigue, _continence;
+    private int _money;
+    private double _head, _torso, _leftArm, _rightArm, _leftLeg, _rightLeg;
+
+    protected override void OnInitialized()
+    {
+        if (Session.Data is not { } data) return;
+
+        _hunger = data.Stats.Hunger;
+        _thirst = data.Stats.Thirst;
+        _sanity = data.Stats.Sanity;
+        _fatigue = data.Stats.Fatigue;
+        _continence = data.Stats.Continence;
+        _money = data.Stats.Money;
+
+        _head = data.Health.Head;
+        _torso = data.Health.Torso;
+        _leftArm = data.Health.LeftArm;
+        _rightArm = data.Health.RightArm;
+        _leftLeg = data.Health.LeftLeg;
+        _rightLeg = data.Health.RightLeg;
+    }
+
+    private void Set(ref double field, double value)
+    {
+        field = value;
+        ApplyStats();
+    }
+
+    private void SetLimb(ref double field, double value)
+    {
+        field = value;
+        ApplyHealth();
+    }
+
+    private void OnMoneyChanged(ChangeEventArgs e)
+    {
+        _money = int.TryParse(e.Value?.ToString(), out var parsed) ? Math.Max(0, parsed) : 0;
+        ApplyStats();
+    }
+
+    private void RestoreNeeds()
+    {
+        _hunger = _thirst = _sanity = _fatigue = _continence = 100;
+        ApplyStats();
+    }
+
+    private void HealAllLimbs()
+    {
+        _head = _torso = _leftArm = _rightArm = _leftLeg = _rightLeg = 100;
+        ApplyHealth();
+    }
+
+    private void ApplyStats()
+    {
+        if (Session.Data is not { } data) return;
+        PlayerSaveWriter.ApplyStats(data, new CharacterStats(_hunger, _thirst, _sanity, _fatigue, _continence, _money));
+        Session.MarkDirty();
+    }
+
+    private void ApplyHealth()
+    {
+        if (Session.Data is not { } data) return;
+        PlayerSaveWriter.ApplyLimbHealth(data, new LimbHealth(_head, _torso, _leftArm, _rightArm, _leftLeg, _rightLeg));
+        Session.MarkDirty();
+    }
+}
