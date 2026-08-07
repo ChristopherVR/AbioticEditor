@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using AbioticEditor.Core.Assets;
 using AbioticEditor.Web.Services;
 using AbioticEditor.Web.Wasm;
 using AbioticEditor.Web.Wasm.Services;
@@ -77,12 +78,21 @@ static async Task StageBundledGameDataAsync(IServiceProvider services)
     {
         var http = services.GetRequiredService<HttpClient>();
         var bytes = await http.GetByteArrayAsync("registry/registry.json").ConfigureAwait(false);
-        var directory = Path.Combine(AppContext.BaseDirectory, "registry");
-        Directory.CreateDirectory(directory);
-        await File.WriteAllBytesAsync(Path.Combine(directory, "registry.json"), bytes).ConfigureAwait(false);
+        var registry = GameDataRegistry.TryRead(bytes);
+        GameDataRegistry.Supply(registry);
+
+        // Console, not just the log file: if this ever fails the whole editor comes up looking
+        // fine but with no item names, no recipes and no pictures anywhere, and the log it would
+        // otherwise complain to is a file nobody can reach from a browser.
+        if (registry is null)
+        {
+            Console.Error.WriteLine(
+                "Abiotic Editor: the bundled game data could not be read; names will show as internal ids.");
+        }
     }
     catch (Exception exception)
     {
+        Console.Error.WriteLine($"Abiotic Editor: could not load the bundled game data. {exception.Message}");
         AbioticEditor.Core.Diagnostics.EditorLog.Warn(
             "Assets", $"Could not load the bundled game data; names will show as internal ids. {exception.Message}");
     }

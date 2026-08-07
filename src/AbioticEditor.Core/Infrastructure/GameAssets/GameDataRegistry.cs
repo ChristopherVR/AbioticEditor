@@ -110,10 +110,54 @@ public sealed class GameDataRegistry
     /// </summary>
     public static GameDataRegistry? LoadBundled()
     {
+        // A host with no file system supplies the registry directly (see Supply). Checked first
+        // so it does not depend on a virtual file system behaving like a real one.
+        if (Supplied is { } supplied) return supplied;
+
         if (File.Exists(UserRegistryPath)) return TryLoad(UserRegistryPath);
 
         var bundled = Path.Combine(AppContext.BaseDirectory, "registry", RegistryFileName);
         return TryLoad(bundled);
+    }
+
+    private static GameDataRegistry? Supplied;
+
+    /// <summary>
+    /// Hands the registry to <see cref="LoadBundled"/> directly, for a host that cannot read it
+    /// off disk. The browser build fetches it over HTTP at startup and calls this.
+    /// </summary>
+    /// <remarks>
+    /// The alternative - writing the bytes into the in-memory file system WebAssembly provides
+    /// and letting the normal path find them - looked simpler but failed silently: the registry
+    /// never loaded, every catalog came back empty, and because that failure is only ever written
+    /// to the log FILE there was nothing in the browser console to say so. Supplying the object
+    /// removes the guesswork about what a virtual file system does with an absolute path.
+    /// </remarks>
+    public static void Supply(GameDataRegistry? registry) => Supplied = registry;
+
+    /// <summary>
+    /// Reads a registry from already-fetched bytes. Same validation as <see cref="TryLoad(string)"/>.
+    /// </summary>
+    public static GameDataRegistry? TryRead(ReadOnlySpan<byte> utf8Json)
+    {
+        try
+        {
+            var registry = JsonSerializer.Deserialize(utf8Json, GameDataRegistryJsonContext.Default.GameDataRegistry);
+            if (registry is null) return null;
+            if (registry.SchemaVersion != CurrentSchemaVersion)
+            {
+                EditorLog.Warn("Registry",
+                    $"Bundled registry is schema v{registry.SchemaVersion}, editor expects "
+                    + $"v{CurrentSchemaVersion}; ignoring it.");
+                return null;
+            }
+            return registry;
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("Registry", "Failed to read the supplied registry.", ex);
+            return null;
+        }
     }
 
     /// <summary>The canonical registry file name (same name in both the user-override and bundled dirs).</summary>

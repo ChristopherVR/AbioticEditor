@@ -12,33 +12,32 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" PrivateAssets="all" />
   </ItemGroup>
 
+  <!-- Data files this build serves over HTTP, copied from the repo's shared assets.
+
+       They are COPIED INTO wwwroot rather than declared as <Content Include Link="wwwroot\..."/>.
+       That looked equivalent and is not: a linked Content item lands in the output folder but is
+       never registered as a Blazor static web asset, so every request for one answered
+       "200 OK, Content-Length: 0". Nothing errored - the registry simply parsed as empty, and the
+       editor came up with no item names, no recipes and no pictures at all. Blazor takes static
+       web assets from the wwwroot folder itself, so the files have to actually be there.
+
+       The copies are generated, so wwwroot/{registry,icons,Templates} are gitignored; the
+       originals under assets/ are what is committed. -->
   <ItemGroup>
-    <!-- The blank saves a new world is built from. The desktop host copies these beside its
-         executable and reads them off disk; here they ship as ordinary static files that
-         BrowserSaveTemplateSource fetches from the page's own origin. -->
-    <Content Include="..\AbioticEditor.Core\Resources\blank-world-template.sav"
-             Link="wwwroot\Templates\blank-world-template.sav"
-             CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="..\AbioticEditor.Core\Resources\blank-player-template.sav"
-             Link="wwwroot\Templates\blank-player-template.sav"
-             CopyToOutputDirectory="PreserveNewest" />
-    <!-- Game data dumped from the paks ahead of time (item, recipe and skill names, icon paths).
-         This is what lets the browser show real names without the game installed: mounting the
-         paks in a tab is not possible (see docs/PROGRESS.md round-45 - the IoStore container
-         alone is 4.6 GB against a ~2 GB WebAssembly heap), but this dump is about a megabyte.
-         Program.cs stages it where GameDataRegistry.LoadBundled() looks. -->
-    <Content Include="..\..\assets\registry\registry.json"
-             Link="wwwroot\registry\registry.json"
-             CopyToOutputDirectory="PreserveNewest" />
-    <!-- Item pictures, dumped from the game ahead of time by `abioticeditor dump-icons`. Shipped
-         for THIS host only: the desktop app decodes them out of the installed game on demand and
-         carrying a copy would only make its download bigger. Icons are untranslated artwork, so
-         this one set serves every language - only the names beside them are localised, and those
-         live in registry.json above. -->
-    <Content Include="..\..\assets\icons\*.png"
-             Link="wwwroot\icons\%(Filename)%(Extension)"
-             CopyToOutputDirectory="PreserveNewest" />
+    <BrowserDataAsset Include="..\..\assets\registry\registry.json" TargetDir="registry" />
+    <BrowserDataAsset Include="..\..\assets\icons\*.png" TargetDir="icons" />
+    <BrowserDataAsset Include="..\AbioticEditor.Core\Resources\blank-world-template.sav" TargetDir="Templates" />
+    <BrowserDataAsset Include="..\AbioticEditor.Core\Resources\blank-player-template.sav" TargetDir="Templates" />
   </ItemGroup>
+
+  <Target Name="CopyBrowserDataAssets"
+          BeforeTargets="ResolveStaticWebAssetsInputs"
+          Inputs="@(BrowserDataAsset)"
+          Outputs="@(BrowserDataAsset -> 'wwwroot\%(TargetDir)\%(Filename)%(Extension)')">
+    <Copy SourceFiles="@(BrowserDataAsset)"
+          DestinationFiles="@(BrowserDataAsset -> 'wwwroot\%(TargetDir)\%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
 
   <ItemGroup>
     <ProjectReference Include="..\AbioticEditor.Core\AbioticEditor.Core.csproj" />
