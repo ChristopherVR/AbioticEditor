@@ -1,4 +1,4 @@
-@using AbioticEditor.Web.Components.Player
+﻿@using AbioticEditor.Web.Components.Player
 @using AbioticEditor.Web.Components.Pages
 @using AbioticEditor.Core.Steam
 @using Microsoft.JSInterop
@@ -217,7 +217,7 @@
     {
         if (!firstRender) return;
         _self = DotNetObjectReference.Create(this);
-        _splitterModule = await Js.InvokeAsync<IJSObjectReference>("import", "./workspace-shell.js");
+        _splitterModule = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/AbioticEditor.Web.Shared/workspace-shell.js");
         await _splitterModule.InvokeVoidAsync("attach", _fileSplitter, _self, "file");
         await _splitterModule.InvokeVoidAsync("attach", _detailsSplitter, _self, "details");
         await _splitterModule.InvokeVoidAsync("watch", _self);

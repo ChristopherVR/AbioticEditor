@@ -1,4 +1,4 @@
-@namespace AbioticEditor.Web.Components.World
+﻿@namespace AbioticEditor.Web.Components.World
 @using AbioticEditor.Web.Models
 @using AbioticEditor.Web.Services
 @using AbioticEditor.Web.Components.Player
@@ -613,7 +613,7 @@
         if (!firstRender) return;
         // Ask the browser whether this is a device that can hover a pointer. Phones cannot,
         // so the wording switches from "drag" to the two-tap flow.
-        _dnd = await Js.InvokeAsync<IJSObjectReference>("import", "./transmog-dnd.js");
+        _dnd = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/AbioticEditor.Web.Shared/transmog-dnd.js");
         await _dnd.InvokeVoidAsync("init");
         var touch = await _dnd.InvokeAsync<bool>("isTouch");
         if (touch == _touch) return;

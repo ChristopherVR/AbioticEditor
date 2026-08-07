@@ -1,4 +1,4 @@
-@page "/compare"
+﻿@page "/compare"
 @using AbioticEditor.Core.Compare
 @using AbioticEditor.Web.Components.Player
 @using Microsoft.JSInterop
@@ -385,7 +385,7 @@
 
     // ---------- export ----------
 
-    private async Task<IJSObjectReference> ModuleAsync() => _module ??= await Js.InvokeAsync<IJSObjectReference>("import", "./compare.js");
+    private async Task<IJSObjectReference> ModuleAsync() => _module ??= await Js.InvokeAsync<IJSObjectReference>("import", "./_content/AbioticEditor.Web.Shared/compare.js");
 
     private async Task CopyFileReportAsync()
     {

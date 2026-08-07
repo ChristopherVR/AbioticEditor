@@ -159,7 +159,12 @@ public sealed class RazorHostAcceptanceTests
             Assert.DoesNotMatch(
                 new System.Text.RegularExpressions.Regex(@"\b(?:exception|ex)\.Message\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase),
                 markup);
-            var textNodes = System.Text.RegularExpressions.Regex.Matches(markup, @">(?<text>[^<]+)<")
+            // Razor comments (@* ... *@) are stripped by the compiler and never reach the page,
+            // so they are not player-facing copy and must not be scanned as if they were -
+            // otherwise a note explaining the markup to the next maintainer fails this test.
+            var rendered = System.Text.RegularExpressions.Regex.Replace(
+                markup, @"@\*.*?\*@", string.Empty, System.Text.RegularExpressions.RegexOptions.Singleline);
+            var textNodes = System.Text.RegularExpressions.Regex.Matches(rendered, @">(?<text>[^<]+)<")
                 .Select(match => match.Groups["text"].Value)
                 .Where(text => !string.IsNullOrWhiteSpace(text));
             foreach (var text in textNodes)

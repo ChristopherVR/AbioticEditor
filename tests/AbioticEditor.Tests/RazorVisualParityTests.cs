@@ -5,7 +5,12 @@ public sealed class RazorVisualParityTests
     [Fact]
     public void Desktop_shell_loads_native_fonts_component_styles_and_parity_contract_last()
     {
-        var app = Source("Components", "App.razor");
+        // This asserts the ORDER the two stylesheets are linked in, so it has to look at real
+        // markup only: a Razor comment naming a stylesheet is stripped by the compiler and must
+        // not count as a link, or explaining the markup silently inverts the measured order.
+        var app = System.Text.RegularExpressions.Regex.Replace(
+            Source("Components", "App.razor"), @"@\*.*?\*@", string.Empty,
+            System.Text.RegularExpressions.RegexOptions.Singleline);
         var componentStyles = app.IndexOf("AbioticEditor.Web.styles.css", StringComparison.Ordinal);
         var parityStyles = app.IndexOf("parity.css", StringComparison.Ordinal);
 
