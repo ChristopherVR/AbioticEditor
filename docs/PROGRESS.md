@@ -5,6 +5,54 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-50: bundled icons, and three silent browser-only failures (2026-08-08)
+
+Shipping game data to the browser build, plus the bugs found by actually driving it.
+
+- **`assets/icons/`: 1,622 item icons at 256x256 (28 MB), committed**, produced by a new
+  `abioticeditor dump-icons` maintainer command (sibling of `dump-registry`; applies the same
+  per-item tinting the app draws with, so shipped art matches the desktop). Wired into the
+  **browser build only** - the desktop decodes from the installed game on demand and carrying a
+  copy would only grow its download. `ItemCatalogService.IconUrl` is host-aware: `/item-icons/{id}`
+  on the desktop, `icons/{id}.png` in the browser.
+  - **Icons are NOT multiplied by language.** They are untranslated artwork; only the names beside
+    them are localised, and those already live in `registry.json`. One dump covers every locale.
+  - `registry.json` was regenerated from a real install and came back **byte-identical** - already
+    current for this game build. Verified, not assumed.
+- **TRAP: `<Content Include="..\..\x" Link="wwwroot\x" />` does NOT create a Blazor static web
+  asset.** The file lands in the output folder and the dev server answers
+  **`200 OK, Content-Length: 0`** for it. Nothing throws. The registry parsed as empty, so the
+  editor came up looking perfectly healthy with no item names, no recipes and no pictures at all.
+  Blazor takes static web assets from the `wwwroot` folder itself, so a build target now COPIES
+  them in (`CopyBrowserDataAssets`, before `ResolveStaticWebAssetsInputs`); the generated copies
+  are gitignored and `assets/` stays the source of truth. This bit templates, the registry and
+  the icons simultaneously.
+- **TRAP: `EditorLog` is a FILE log, so in a browser it is a black hole.** The registry failure
+  above reported itself only there. Startup failures on this host now also write to
+  `Console.Error` so they show up in the browser console, which is the only diagnostic surface a
+  player (or a maintainer) actually has.
+- **`GameDataRegistry.Supply(...)`** added: a host with no usable file system hands the registry
+  over directly rather than staging bytes into WebAssembly's in-memory file system and hoping
+  `AppContext.BaseDirectory` resolves the same way on both sides. The staging approach failed
+  silently and was the harder half of the bug above.
+- **Fixed, all browser-only**: `SelectAsync` still ran `Path.GetFullPath` on the identifier, so
+  every save in the sidebar was unselectable ("not part of the open workspace") - the same fix
+  `OpenAsync` already had, missed on its sibling; folder drag-and-drop (via
+  `getAsFileSystemHandle`, asking for write permission during the drop gesture so SAVE does not
+  prompt later); Chrome's bare "contains system files" refusal now explains to pick the world
+  folder; the log button EXPORTS the log file instead of revealing a folder that cannot exist
+  (`IDiagnosticsLogDelivery`); the header falls back to the bundled logo instead of an "AF" tile.
+- **Fixed: the error bar flashed on every load.** `#blazor-error-ui` is plain markup always
+  present in the page, revealed by Blazor only on failure. Switching `index.html` to the shared
+  stylesheet had dropped the link to `css/app.css`, which holds the rule hiding it - so it showed
+  when nothing was wrong. `css/app.css` is now trimmed to Blazor's own furniture only.
+- **Fixed: stale-cache 404s.** Each build re-stamps the runtime files (`dotnet.<hash>.js`); a
+  browser holding an older `index.html` asks for names that no longer exist and shows a permanent
+  error that ordinary reloads cannot clear (they re-serve the same stale page). `index.html` now
+  detects that specific failure and reloads once bypassing cache, guarded by `sessionStorage` so a
+  real outage cannot become a reload loop. **This would have hit every returning visitor after
+  each Pages deploy.**
+
 ## Round-49: the browser host renders the SHARED screens (2026-08-07)
 
 Phase 4 done. `src/AbioticEditor.Web.Wasm` no longer has screens of its own: its `App.razor`
