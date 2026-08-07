@@ -1,0 +1,87 @@
+@page "/"
+@using AbioticEditor.Core.PlayerSaves
+@inject IJSRuntime JS
+
+<PageTitle>Abiotic Editor (Browser)</PageTitle>
+
+<h1>Abiotic Editor - Browser Edition</h1>
+<p>
+    Open a player save (<code>Player_&lt;steamid64&gt;.sav</code>) and edit it right here.
+    The file is parsed and re-written entirely in this browser tab; it is never uploaded
+    anywhere.
+</p>
+
+<InputFile OnChange="OnFileSelectedAsync" accept=".sav" />
+
+@if (_error is not null)
+{
+    <p style="color:#c0392b">@_error</p>
+}
+
+@if (_data is not null)
+{
+    <h2>@_fileName</h2>
+
+    <div class="stat-grid">
+        <label>Hunger <input type="number" min="0" max="100" step="1" @bind="_hunger" /></label>
+        <label>Thirst <input type="number" min="0" max="100" step="1" @bind="_thirst" /></label>
+        <label>Sanity <input type="number" min="0" max="100" step="1" @bind="_sanity" /></label>
+        <label>Fatigue <input type="number" min="0" max="100" step="1" @bind="_fatigue" /></label>
+        <label>Continence <input type="number" min="0" max="100" step="1" @bind="_continence" /></label>
+        <label>Money <input type="number" min="0" step="1" @bind="_money" /></label>
+    </div>
+
+    <button @onclick="SaveAndDownloadAsync">Apply &amp; download</button>
+}
+
+@code {
+    private const long MaximumFileSize = 64L * 1024 * 1024;
+
+    private PlayerSaveData? _data;
+    private string? _fileName;
+    private string? _error;
+    private double _hunger, _thirst, _sanity, _fatigue, _continence;
+    private int _money;
+
+    private async Task OnFileSelectedAsync(InputFileChangeEventArgs e)
+    {
+        _error = null;
+        _data = null;
+        var file = e.File;
+
+        try
+        {
+            await using var stream = file.OpenReadStream(MaximumFileSize);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            buffer.Position = 0;
+
+            _data = PlayerSaveReader.ReadFromStream(buffer);
+            _fileName = file.Name;
+            _hunger = _data.Stats.Hunger;
+            _thirst = _data.Stats.Thirst;
+            _sanity = _data.Stats.Sanity;
+            _fatigue = _data.Stats.Fatigue;
+            _continence = _data.Stats.Continence;
+            _money = _data.Stats.Money;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Couldn't read {file.Name} as a player save: {ex.Message}";
+        }
+    }
+
+    private async Task SaveAndDownloadAsync()
+    {
+        if (_data is null) return;
+
+        PlayerSaveWriter.ApplyStats(_data, new CharacterStats(_hunger, _thirst, _sanity, _fatigue, _continence, _money));
+
+        using var output = new MemoryStream();
+        _data.Raw.WriteTo(output);
+        output.Position = 0;
+
+        using var streamRef = new DotNetStreamReference(output, leaveOpen: true);
+        await JS.InvokeVoidAsync("downloadFileFromStream", _fileName, streamRef);
+    }
+}

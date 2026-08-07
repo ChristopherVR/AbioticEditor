@@ -27,6 +27,11 @@
          Windows and WebKitGTK on Linux while keeping the existing Razor UI intact. -->
     <PackageVersion Include="Photino.NET" Version="4.0.16" />
 
+    <!-- Browser-only host published as static files to GitHub Pages: no server, everything
+         (parsing, editing, re-serializing) runs client-side as WebAssembly. -->
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.10" />
+
     <!-- Transitive override (NOT a CUE4Parse mirror — Dependabot SHOULD keep this current):
          CUE4Parse references Microsoft.Bcl.Memory 9.0.0, which has a known vulnerability
          (GHSA-73j8-2gch-69rq, patched in 9.0.14). Force the patched version on our graph. -->

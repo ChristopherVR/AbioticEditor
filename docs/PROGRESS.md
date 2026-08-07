@@ -5,6 +5,67 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-45: browser-only editor (Blazor WebAssembly, deployed to GitHub Pages) (2026-08-07)
+
+**New host**: `src/AbioticEditor.Web.Wasm` - a standalone Blazor WebAssembly app referencing
+Core + Ui.Abstractions directly (no server, no SignalR circuit). Deployed by
+`.github/workflows/docs.yml` alongside the VitePress docs, at
+`https://christophervr.github.io/AbioticEditor/app/` (docs stay at the site root; Pages serves
+one artifact per deploy, so both are built into the same `docs/.vitepress/dist/` before upload -
+a second independent `deploy-pages` run would silently replace the other one). Local dev:
+`dotnet run --project src/AbioticEditor.Web.Wasm`.
+
+- **Proven, not assumed, that Core is WASM-loadable.** `dotnet publish -c Release` for
+  `browser-wasm` succeeds with the FULL dependency graph - CUE4Parse, CUE4Parse-Conversion,
+  UeSaveGame, Oodle.NET, OodleSharp, SkiaSharp, Jint, all of it. Verified end-to-end in a real
+  Chrome tab: uploaded a real fixture `Player_*.sav`, parsed it with the unmodified
+  `PlayerSaveReader`/`PlayerSaveWriter`, edited a stat, downloaded the result, and re-read the
+  download with a throwaway console app - the edited field changed and every other field was
+  byte-identical to the original. `Directory.Packages.props` gained the two
+  `Microsoft.AspNetCore.Components.WebAssembly*` package versions for this project.
+- Vertical slice lives on `Pages/Home.razor`: plain `<InputFile>` (works in every browser, no
+  API gating) -> `PlayerSaveReader.ReadFromStream` on the in-memory bytes -> six bound stat
+  fields -> `PlayerSaveWriter.ApplyStats` -> `SaveGame.WriteTo(MemoryStream)` -> browser download
+  via `DotNetStreamReference` + `wwwroot/js/downloadFile.js` (the documented Microsoft pattern
+  for Blazor file downloads). Nothing the user opens ever leaves the tab.
+- **`AbioticEditor.Ui.IFilePicker`/`IFolderPicker` now have a browser implementation**
+  (`Services/BrowserFilePickerService.cs` + `wwwroot/js/filePicker.js`), backed by the File
+  System Access API (`showOpenFilePicker`/`showDirectoryPicker` - Chromium only; throws a
+  catchable, host-appropriate message elsewhere, same pattern `DesktopHostService` already
+  uses for an unavailable OS picker). Not yet wired into any page - `Home.razor` uses plain
+  `InputFile` because it's universally supported - but it's the seam a future port of the full
+  desktop component tree onto this host would render through, matching how `DesktopHostService`
+  backs the same interfaces on the Photino host. `PickedFolder.Path` is always null here (routed
+  through `Ui.Abstractions`' pre-existing doc comment for exactly this case); reading a picked
+  folder's *contents* needs a different, richer surface than this interface offers (see below).
+- **Investigated in-browser game-pak mounting (item icons/names from the real game data) and
+  concluded it does not fit today, with real numbers, not a guess.** `Oodle.NET`/`OodleSharp`
+  are pure-managed (no native `oo2core` binary anywhere in a wasm publish output - confirmed by
+  inspecting the NuGet packages' `lib/` layout, no `runtimes/` folder), so the codec itself isn't
+  the blocker. The blocker is `GameAssetProvider.CreateForPaks` -> CUE4Parse's
+  `DefaultFileProvider(path, ...)`, which requires a real directory and memory-maps pak content
+  lazily from disk. A browser has no such path; the only way to hand it bytes at all is to stage
+  picked files into the Mono/Emscripten in-memory virtual filesystem first, which means the
+  *entire* file has to be WASM-heap-resident at once (no lazy/range reads once it's "just a
+  file" to .NET). Measured this installation's actual paks
+  (`C:\...\Steam\steamapps\common\AbioticFactor`): `pakchunk0-Windows.ucas` alone is **4.6 GB**,
+  and Blazor WASM builds this ship at (`--max-memory=2147483648`, i.e. 2 GB; wasm32 tops out
+  around 4 GB regardless without memory64, which isn't viable here). Not close. A real fix would
+  mean teaching CUE4Parse's pak/IoStore readers to do on-demand `Blob.slice()` range reads over
+  JS interop instead of assuming a seekable local file/memory-mapped region - a substantial
+  CUE4Parse-level project of its own, not attempted here. Until then the browser host simply
+  doesn't call `GameAssetProvider.CreateForLocalInstall` at all: editing works fully off typed
+  fields and (for anything backed by `Catalogs/`) curated static game-knowledge data, with no
+  icons/live game text, the same "degrades gracefully when assets are absent" story the desktop
+  app already tells when it can't find the game install.
+- **Follow-ups, not yet done**: only the stats page exists (no inventory/skills/traits/world
+  editors on this host yet - porting those means either duplicating Razor markup or extracting
+  the desktop `Components/` tree into a shared Razor Class Library referenced by both hosts,
+  which wasn't attempted this round); no multi-route client-side navigation yet, so the GH Pages
+  SPA-fallback (`404.html`) trick was skipped as unneeded for now; large-file browser
+  transfer uses `byte[]` JS interop (fine for saves, would need `IJSStreamReference` if ever
+  reused for something bigger).
+
 ## Round-44: doors - real sector-map pins, real story flags, ONLINE MAP removed (2026-07-25)
 
 **Area map.** The door detail card's "Area map" was an abstract 200x120 SVG scatter of dots on

@@ -1,14 +1,25 @@
 name: Docs
 
-# Build the VitePress documentation site (docs/) and deploy it to GitHub Pages.
-# The docs build is pure Node and does NOT compile the .NET projects, so it does
-# NOT need the git submodules (submodules/UeSaveGame, submodules/CUE4Parse).
+# Build the VitePress documentation site (docs/) AND the browser-only Blazor WebAssembly
+# editor (src/AbioticEditor.Web.Wasm), then deploy both together to GitHub Pages as one
+# site: the docs at the root (https://christophervr.github.io/AbioticEditor/) and the
+# editor at /app/ (https://christophervr.github.io/AbioticEditor/app/). GitHub Pages
+# serves exactly one artifact per deployment, so both halves have to be assembled into a
+# single directory before the upload step, not deployed from separate workflow runs -
+# a second independent deploy would silently replace the other one.
 
 on:
   push:
     branches: [main]
     paths:
       - docs/**
+      - src/AbioticEditor.Web.Wasm/**
+      - src/AbioticEditor.Core/**
+      - src/AbioticEditor.Ui.Abstractions/**
+      - src/AbioticEditor.Plugins.Abstractions/**
+      - submodules/**
+      - Directory.Packages.props
+      - Directory.Build.props
       - .github/workflows/docs.yml
   workflow_dispatch:
 
@@ -29,7 +40,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        # No submodules: the docs site does not build any .NET project.
+        with:
+          # The browser editor build needs Core, which needs both submodules.
+          submodules: recursive
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -38,16 +51,44 @@ jobs:
           cache: npm
           cache-dependency-path: docs/package-lock.json
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install wasm-tools workload
+        run: dotnet workload install wasm-tools
+
       - name: Configure Pages
         uses: actions/configure-pages@v6
 
-      - name: Install dependencies
+      - name: Install docs dependencies
         run: npm ci
         working-directory: docs
 
-      - name: Build site
+      - name: Build docs site
         run: npm run docs:build
         working-directory: docs
+
+      - name: Publish browser editor
+        run: dotnet publish src/AbioticEditor.Web.Wasm -c Release -o publish/app
+
+      # The published index.html is built for local `dotnet run` at site root ("/"), but
+      # this app is served from the /app/ subpath under the docs site's own base path.
+      # Blazor WASM has no MSBuild "base href" knob, so the published output is patched
+      # in place; this is the standard recipe for hosting a standalone Blazor WASM app
+      # under a subpath on static hosting.
+      - name: Rewrite base href for the /app/ subpath
+        run: sed -i 's#<base href="/" />#<base href="/AbioticEditor/app/" />#' publish/app/wwwroot/index.html
+
+      - name: Assemble combined site
+        run: |
+          mkdir -p docs/.vitepress/dist/app
+          cp -r publish/app/wwwroot/. docs/.vitepress/dist/app/
+          # GitHub Pages' legacy Jekyll processing ignores "_"-prefixed paths like
+          # _framework/, which is where Blazor WASM ships the actual runtime and app
+          # assemblies; without this the editor loads an empty shell with no app inside.
+          touch docs/.vitepress/dist/.nojekyll
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5

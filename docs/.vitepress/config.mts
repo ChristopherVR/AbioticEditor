@@ -59,6 +59,10 @@ export default defineConfig({
         text: 'Download',
         link: 'https://github.com/ChristopherVR/AbioticEditor/releases/latest',
       },
+      // Early, stats-only slice of the editor running entirely client-side (no install,
+      // no game-data icons yet). Deployed by the same workflow as this site; see
+      // src/AbioticEditor.Web.Wasm and docs/PROGRESS.md round-45 for what it does and doesn't do yet.
+      { text: 'Browser (beta)', link: '/app/' },
     ],
 
     sidebar: {
