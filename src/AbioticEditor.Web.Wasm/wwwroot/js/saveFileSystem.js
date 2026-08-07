@@ -63,6 +63,15 @@ window.abioticSaveFs = {
             handle = await window.showDirectoryPicker({ mode: "readwrite", id: "abiotic-saves" });
         } catch (error) {
             if (error && error.name === "AbortError") return null;
+            // Chrome refuses folders it considers sensitive - a whole drive, Windows, Program
+            // Files, your user folder's root - with a bare "system files" message that does not
+            // say what to do instead. Say it here.
+            if (error && (error.name === "SecurityError" || /system files/i.test(error.message ?? ""))) {
+                throw new Error(
+                    "The browser will not grant access to that folder because it is a system location. "
+                    + "Pick the world folder itself (the one holding WorldSave_*.sav and PlayerData), "
+                    + "usually under AbioticFactor/Saved/SaveGames, rather than a whole drive or your user folder.");
+            }
             throw error;
         }
         roots.set(handle.name, handle);
@@ -70,6 +79,48 @@ window.abioticSaveFs = {
     },
 
     folderExists: async (rootName) => roots.has(rootName),
+
+    /// Lets a folder dragged onto the window be opened like a picked one. A drop gives us a
+    /// FileSystemDirectoryHandle through getAsFileSystemHandle(), so it lands in the same
+    /// registry as a picked folder and behaves identically from then on. Registers the handler
+    /// once and calls back into .NET with the folder name.
+    listenForDroppedFolder: (dotNetRef) => {
+        if (window.__abioticDropWired) return;
+        window.__abioticDropWired = true;
+
+        // Without preventing dragover the browser navigates away to the dropped file instead.
+        window.addEventListener("dragover", event => event.preventDefault());
+
+        window.addEventListener("drop", async event => {
+            event.preventDefault();
+            const items = [...(event.dataTransfer?.items ?? [])];
+            for (const item of items) {
+                if (item.kind !== "file" || !item.getAsFileSystemHandle) continue;
+                let handle;
+                try {
+                    handle = await item.getAsFileSystemHandle();
+                } catch {
+                    continue;
+                }
+                if (!handle || handle.kind !== "directory") continue;
+
+                // A drop grants read access only; writing needs explicit consent, and asking
+                // now (while the drop gesture still counts as user activation) avoids a prompt
+                // appearing later at the moment the player presses SAVE.
+                try {
+                    if (handle.queryPermission && await handle.queryPermission({ mode: "readwrite" }) !== "granted") {
+                        await handle.requestPermission({ mode: "readwrite" });
+                    }
+                } catch {
+                    // Carry on read-only; the write itself will report if it is refused.
+                }
+
+                roots.set(handle.name, handle);
+                await dotNetRef.invokeMethodAsync("OnFolderDropped", handle.name);
+                return;
+            }
+        });
+    },
 
     listSaves: async (rootName) => {
         const directory = rootHandle(rootName);

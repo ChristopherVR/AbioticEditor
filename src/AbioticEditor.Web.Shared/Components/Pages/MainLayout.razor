@@ -28,7 +28,11 @@
                 <ChildContent>
                     <GameArtImage GameRef="@LogoFallbackRef" Alt="">
                         <ChildContent>
-                            <span class="brand-logo-tile" aria-hidden="true">AF</span>
+                            @* Last resort when the game is not installed (always, in the
+                               browser): the logo artwork that ships with the editor itself,
+                               rather than the bare "AF" lettering that used to sit here. *@
+                            <img class="brand-logo-bundled" alt=""
+                                 src="_content/AbioticEditor.Web.Shared/images/abiotic-factor.png" />
                         </ChildContent>
                     </GameArtImage>
                 </ChildContent>

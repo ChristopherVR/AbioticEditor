@@ -1,5 +1,12 @@
 @using AbioticEditor.Web.Components.Pages
 @using AbioticEditor.Web.Components.Shared
+@using AbioticEditor.Web.Services
+@implements IDisposable
+@inject BrowserSaveFileSystem SaveFiles
+@inject SaveWorkspaceSessionService Workspace
+@inject ToastService Toasts
+@inject UserFacingErrorService Errors
+@inject NavigationManager Navigation
 
 @* The browser host renders the SAME screens as the desktop app, from
    AbioticEditor.Web.Shared. This host has no routable components of its own, so the router is
@@ -17,3 +24,35 @@
         </LayoutView>
     </NotFound>
 </Router>
+
+@code {
+    // Dropping a save folder onto the window is wired up here rather than in the shared screens
+    // because only this host can do it: the desktop build handles drops in native window code,
+    // and the browser needs a page-level listener that turns the drop into a directory handle.
+    protected override void OnInitialized() => SaveFiles.FolderDropped += OnFolderDroppedAsync;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) await SaveFiles.ListenForDroppedFolderAsync();
+    }
+
+    private async Task OnFolderDroppedAsync(string folder)
+    {
+        try
+        {
+            await Workspace.OpenAsync(folder);
+            Toasts.Show($"Opened {folder}.", ToastKind.Success);
+            Navigation.NavigateTo("");
+        }
+        catch (Exception exception)
+        {
+            Errors.Record(exception, "Open dropped save folder");
+            Toasts.Show(
+                "That folder could not be opened. Drop the folder that holds your save files, not a drive or a system folder.",
+                ToastKind.Error, TimeSpan.FromSeconds(8));
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() => SaveFiles.FolderDropped -= OnFolderDroppedAsync;
+}

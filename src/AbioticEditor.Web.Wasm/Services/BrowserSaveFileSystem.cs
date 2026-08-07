@@ -36,6 +36,26 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem
     public async Task<string?> PickFolderAsync(CancellationToken cancellationToken = default)
         => await js.InvokeAsync<string?>("abioticSaveFs.pickFolder", cancellationToken).ConfigureAwait(false);
 
+    /// <summary>Raised when the player drops a save folder onto the window.</summary>
+    public event Func<string, Task>? FolderDropped;
+
+    /// <summary>
+    /// Starts listening for a folder dropped onto the window. Safe to call more than once; the
+    /// listener is only wired up the first time.
+    /// </summary>
+    public async Task ListenForDroppedFolderAsync(CancellationToken cancellationToken = default)
+    {
+        _dropReference ??= DotNetObjectReference.Create(this);
+        await js.InvokeVoidAsync("abioticSaveFs.listenForDroppedFolder", cancellationToken, _dropReference).ConfigureAwait(false);
+    }
+
+    /// <summary>Called from JavaScript once a dropped folder has been registered.</summary>
+    [JSInvokable]
+    public Task OnFolderDropped(string folder)
+        => FolderDropped is { } handler ? handler(folder) : Task.CompletedTask;
+
+    private DotNetObjectReference<BrowserSaveFileSystem>? _dropReference;
+
     public async Task<bool> FolderExistsAsync(string folder, CancellationToken cancellationToken = default)
         => await js.InvokeAsync<bool>("abioticSaveFs.folderExists", cancellationToken, folder).ConfigureAwait(false);
 

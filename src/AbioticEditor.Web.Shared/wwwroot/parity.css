@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Razor implementation of the retired MAUI visual contract.
  * Source of truth: AbioticStyles.xaml, ThemeService.cs, MainPage.xaml and the
  * repository's documented native-interface reference screenshots.
@@ -107,6 +107,7 @@ button,input,select,textarea{font:inherit}
 .brand-lockup img{display:block;flex:0 0 106px;width:106px;height:106px;object-fit:contain}
 /* Fallback tile shown when neither game-asset logo texture can be extracted (no local
    install / mappings), mirroring the native header's orange "AF" placeholder square. */
+.brand-logo-bundled{display:block;flex:0 0 auto;height:34px;width:auto;object-fit:contain}
 .brand-logo-tile{display:flex;flex:0 0 34px;width:34px;height:34px;align-items:center;justify-content:center;background:var(--orange);color:var(--on-accent);font:700 13px var(--font-ui);letter-spacing:.12em}
 .brand-lockup>span{color:var(--faint);font-size:10px;letter-spacing:.12em;white-space:nowrap}
 .active-folder{display:grid;gap:2px;min-width:0}

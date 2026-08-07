@@ -1,4 +1,4 @@
-using AbioticEditor.Core.Diagnostics;
+﻿using AbioticEditor.Core.Diagnostics;
 using AbioticEditor.Web.Components;
 using AbioticEditor.Web.Diagnostics;
 using AbioticEditor.Web.Services;
@@ -62,6 +62,7 @@ public static class Program
         // browser host can substitute its own. On this host they are the local machine.
         builder.Services.AddSingleton<ISaveTemplateSource, DesktopSaveTemplateSource>();
         builder.Services.AddSingleton<ISaveFileSystem, DesktopSaveFileSystem>();
+        builder.Services.AddSingleton<IDiagnosticsLogDelivery, DesktopLogDelivery>();
         builder.Services.AddSingleton<CreateWorldService>();
         builder.Services.AddSingleton<IniEditorSessionService>();
         builder.Services.AddSingleton<HostSettingsService>();

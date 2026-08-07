@@ -204,7 +204,11 @@ public sealed class SaveWorkspaceSessionService : IDisposable
         try
         {
             var workspace = Current ?? throw new InvalidOperationException("Open a world save folder before selecting a save.");
-            var fullPath = Path.GetFullPath(savePath);
+            // Only a local path can be normalized. A browser identifier ("Cascade/PlayerData/
+            // Player_x.sav") is not a path at all, and GetFullPath would rewrite it into an
+            // absolute one that matches nothing in the workspace - which is exactly how every
+            // save in the browser became unselectable.
+            var fullPath = _files.HasLocalPaths ? Path.GetFullPath(savePath) : savePath;
             var save = workspace.Saves.FirstOrDefault(s => string.Equals(s.Path, fullPath, StringComparison.OrdinalIgnoreCase))
                 ?? throw new InvalidOperationException("The selected save is not part of the open workspace.");
 

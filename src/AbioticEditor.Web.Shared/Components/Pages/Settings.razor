@@ -1,4 +1,4 @@
-@using AbioticEditor.Core.Plugins
+﻿@using AbioticEditor.Core.Plugins
 @implements IDisposable
 @inject HostSettingsService HostSettings
 @inject HostThemeService Theme
@@ -8,6 +8,7 @@
 @inject AbioticEditor.Ui.IExternalNavigationService ExternalNavigation
 @inject AbioticEditor.Ui.IFilePicker FilePicker
 @inject AbioticEditor.Ui.IFolderPicker FolderPicker
+@inject IDiagnosticsLogDelivery LogDelivery
 @inject ModalService Modals
 
 <section class="settings-sheet" role="dialog" aria-modal="true" aria-labelledby="settings-sheet-title" tabindex="-1" @onkeydown="HandleKeyDown">
@@ -53,7 +54,7 @@
                             <h2>@R("Settings_Diagnostics")</h2>
                             <p class="muted">@R("Settings_DiagnosticsHint")</p>
                             <label class="settings-switch-row"><span>@R("Settings_DiagnosticLogging")</span><input type="checkbox" role="switch" checked="@HostSettings.DiagnosticLoggingEnabled" @onchange="SetDiagnostics" /></label>
-                            <button class="secondary" type="button" @onclick="RevealLogsAsync">@R("Settings_OpenLogFolder")</button>
+                            <button class="secondary" type="button" @onclick="RevealLogsAsync">@(LogDelivery.RevealsFolder ? R("Settings_OpenLogFolder") : "EXPORT LOG FILE")</button>
                             @if (_logFolderStatus is not null) { <p class="muted" role="status">@_logFolderStatus</p> }
                         </article>
                         break;
@@ -280,8 +281,8 @@
     private async Task RevealLogsAsync()
     {
         _logFolderStatus = null;
-        try { await LogFolderOpener.OpenAsync(ExternalNavigation, HostSettings.LogDirectory); }
-        catch (Exception ex) { Errors.Record(ex, "Open log folder"); _logFolderStatus = R("Main_LogFolderOpenFailed"); }
+        try { await LogDelivery.DeliverAsync(HostSettings.LogDirectory, HostSettings.CurrentLogPath); }
+        catch (Exception ex) { Errors.Record(ex, "Deliver diagnostics log"); _logFolderStatus = LogDelivery.RevealsFolder ? R("Main_LogFolderOpenFailed") : "The log could not be exported. Turn on detailed logging, do the thing that went wrong, then try again."; }
     }
     private void TogglePlugin(PluginDescriptor plugin, ChangeEventArgs e) { if (!HostSettings.SetPluginEnabled(plugin, e.Value as bool? ?? false)) _error = R("Settings_PluginManifestFailed", plugin.Manifest.Name); }
     private async Task CloseAsync() => await OnClose.InvokeAsync();
