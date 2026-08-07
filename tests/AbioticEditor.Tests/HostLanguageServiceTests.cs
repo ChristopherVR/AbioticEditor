@@ -7,11 +7,9 @@ public sealed class HostLanguageServiceTests
     [Fact]
     public void Application_translations_live_only_in_resx_catalogs()
     {
-        var root = FindRepositoryRoot();
-        var services = Path.Combine(root, "src", "AbioticEditor.Web", "Services");
-        Assert.Empty(Directory.EnumerateFiles(services, "HostLanguageService.*Strings.cs"));
+        Assert.Empty(UiSource.EnumerateFiles("Services", "HostLanguageService.*Strings.cs"));
 
-        var implementation = File.ReadAllText(Path.Combine(services, "HostLanguageService.cs"));
+        var implementation = UiSource.ReadAllText("Services", "HostLanguageService.cs");
         Assert.DoesNotContain("Dictionary<string, IReadOnlyDictionary<string, string>>", implementation, StringComparison.Ordinal);
         Assert.DoesNotContain("ChromeStrings", implementation, StringComparison.Ordinal);
         Assert.DoesNotContain("EditorStrings", implementation, StringComparison.Ordinal);
@@ -19,7 +17,7 @@ public sealed class HostLanguageServiceTests
 
         foreach (var culture in new[] { "", ".es", ".fr", ".de", ".ru" })
         {
-            var resource = Path.Combine(root, "src", "AbioticEditor.Web", "Localization", $"AppResources{culture}.resx");
+            var resource = UiSource.Resolve("Localization", $"AppResources{culture}.resx");
             Assert.True(File.Exists(resource), $"Missing application resource catalog: {resource}");
         }
     }
@@ -199,13 +197,4 @@ public sealed class HostLanguageServiceTests
         }
     }
 
-    private static string FindRepositoryRoot()
-    {
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
-        {
-            if (Directory.Exists(Path.Combine(directory.FullName, "src", "AbioticEditor.Web"))) return directory.FullName;
-        }
-
-        throw new DirectoryNotFoundException("Could not locate the AbioticEditor.Web source root.");
-    }
 }

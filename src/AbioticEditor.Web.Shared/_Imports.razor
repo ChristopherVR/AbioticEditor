@@ -1,0 +1,7 @@
+@* Project-root imports for the shared screens.
+
+   These came from the desktop host's own root _Imports.razor. Razor resolves component tags
+   (NavLink and friends) from @using directives rather than C# global usings, so moving the
+   screens into this library without bringing this file along left NavLink unrecognised. *@
+@using Microsoft.AspNetCore.Components.Routing
+@using static Microsoft.AspNetCore.Components.Web.RenderMode

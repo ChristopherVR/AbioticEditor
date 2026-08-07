@@ -109,10 +109,10 @@ public sealed class PlayerUiParityContractTests
     [Fact]
     public void Player_ui_resource_references_exist_and_migrated_copy_does_not_return_to_Razor()
     {
-        var resources = XDocument.Load(Path.Combine(WebRoot(), "Localization", "AppResources.resx"))
+        var resources = XDocument.Load(UiSource.Resolve("Localization", "AppResources.resx"))
             .Descendants("data").Select(node => node.Attribute("name")?.Value)
             .Where(name => name is not null).ToHashSet(StringComparer.Ordinal);
-        var sources = Directory.EnumerateFiles(PlayerRoot(), "*.razor")
+        var sources = UiSource.EnumerateFiles(Path.Combine("Components", "Player"), "*.razor")
             .ToDictionary(path => Path.GetFileName(path)!, File.ReadAllText, StringComparer.Ordinal);
         var resourceReference = new Regex("(?:L|Languages)\\.Resource\\(\\\"(?<key>PlayerUi_[^\\\"]+)", RegexOptions.CultureInvariant);
         foreach (var (file, source) in sources)
@@ -134,15 +134,5 @@ public sealed class PlayerUiParityContractTests
                 Assert.DoesNotContain(phrase, source, StringComparison.Ordinal);
     }
 
-    private static string PlayerSource(string file) => File.ReadAllText(Path.Combine(PlayerRoot(), file));
-    private static string WebRoot() => Directory.GetParent(Directory.GetParent(PlayerRoot())!.FullName)!.FullName;
-    private static string PlayerRoot()
-    {
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
-        {
-            var root = Path.Combine(directory.FullName, "src", "AbioticEditor.Web", "Components", "Player");
-            if (Directory.Exists(root)) return root;
-        }
-        throw new DirectoryNotFoundException("Could not locate player component sources.");
-    }
+    private static string PlayerSource(string file) => UiSource.ReadAllText("Components", "Player", file);
 }

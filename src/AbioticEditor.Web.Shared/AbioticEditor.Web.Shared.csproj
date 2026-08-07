@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- The editor's screens and their supporting services, shared by both front-ends: the
+         local desktop host (src/AbioticEditor.Web, Razor server inside a Photino window) and
+         the browser-only host (src/AbioticEditor.Web.Wasm, published to GitHub Pages).
+
+         RootNamespace is deliberately the OLD project's namespace. Every type moved here kept
+         the namespace it had in AbioticEditor.Web, so not one `using` in the moved components
+         had to change and the desktop host sees an identical API surface. This mirrors the
+         choice already made for AbioticEditor.Core's folder layering, where the folders were
+         reorganised but the namespaces were left alone on purpose. -->
+    <RootNamespace>AbioticEditor.Web</RootNamespace>
+
+    <!-- CA1822 ("member can be marked static") fires across these services because many of them
+         are thin wrappers whose current implementation happens not to touch instance state.
+         They are registered and injected as services on purpose, so their members have to stay
+         instance members: making them static would not compile at the call sites, and would
+         also remove the seam that lets the browser host swap an implementation in. The Web SDK
+         the desktop host builds with reported this at suggestion level; the Razor Class Library
+         SDK reports it as a warning, which this repo turns into an error. -->
+    <NoWarn>$(NoWarn);CA1822</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Declares this library browser-compatible, so the WASM host's platform-compatibility
+         analyzer reports any call here that cannot work in a browser instead of failing at
+         run time in a published site. -->
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" />
+    <!-- Several services log through ILogger. The desktop host got these types from the
+         ASP.NET Core shared framework; a plain library needs the abstractions package. -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AbioticEditor.Core\AbioticEditor.Core.csproj" />
+    <ProjectReference Include="..\AbioticEditor.Ui.Abstractions\AbioticEditor.Ui.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

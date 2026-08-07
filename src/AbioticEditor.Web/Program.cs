@@ -58,6 +58,9 @@ public static class Program
         builder.Services.AddSingleton<SaveWorkspaceSessionService>();
         builder.Services.AddSingleton<RecipeProgressGateService>();
         builder.Services.AddSingleton<SiblingWorldBedService>();
+        // CreateWorldService is shared with the browser host, so it asks for its blank templates
+        // through ISaveTemplateSource rather than reading the ASP.NET content root directly.
+        builder.Services.AddSingleton<ISaveTemplateSource, DesktopSaveTemplateSource>();
         builder.Services.AddSingleton<CreateWorldService>();
         builder.Services.AddSingleton<IniEditorSessionService>();
         builder.Services.AddSingleton<HostSettingsService>();
@@ -159,7 +162,14 @@ public static class Program
             tools.Log(key, await reader.ReadToEndAsync(cancellationToken));
             return Results.NoContent();
         });
-        app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
+        // Most screens live in AbioticEditor.Web.Shared now (so the browser host can render the
+        // same ones). Endpoint routing discovers routable components per assembly and only scans
+        // App's by default, so the shared library has to be registered here as well as on the
+        // <Router> in Routes.razor. Without this every shared route - including "/" - 404s while
+        // the app still starts and answers /healthz perfectly happily.
+        app.MapRazorComponents<App>()
+            .AddAdditionalAssemblies(typeof(AbioticEditor.Web.Components.Shared.WorkspaceShell).Assembly)
+            .AddInteractiveServerRenderMode();
 
         // Keep the native window on this entry thread. On Windows, Photino/WebView2
         // requires the STA apartment established by Main's attribute; awaiting startup

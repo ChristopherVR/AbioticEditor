@@ -85,11 +85,9 @@ public sealed class RazorHostAcceptanceTests
     [Fact]
     public void Player_facing_copy_does_not_expose_application_architecture()
     {
-        var root = FindRepositoryRoot();
-        var components = Path.Combine(root, "src", "AbioticEditor.Web", "Components");
-        var sources = Directory.EnumerateFiles(components, "*.razor", SearchOption.AllDirectories)
-            .Append(Path.Combine(root, "src", "AbioticEditor.Web", "Services", "DesktopHostService.cs"))
-            .Concat(Directory.EnumerateFiles(Path.Combine(root, "src", "AbioticEditor.Web", "Localization"), "*.resx"));
+        var sources = UiSource.EnumerateFiles("Components", "*.razor", SearchOption.AllDirectories)
+            .Append(UiSource.Resolve("Services", "DesktopHostService.cs"))
+            .Concat(UiSource.EnumerateFiles("Localization", "*.resx"));
         var bannedPhrases = new[]
         {
             "HOST BOUNDARIES",
@@ -119,10 +117,10 @@ public sealed class RazorHostAcceptanceTests
                 Assert.DoesNotContain(phrase, content, StringComparison.OrdinalIgnoreCase);
         }
 
-        var settings = File.ReadAllText(Path.Combine(components, "Pages", "Settings.razor"));
+        var settings = UiSource.ReadAllText("Components", "Pages", "Settings.razor");
         Assert.DoesNotContain("HostDescription", settings, StringComparison.Ordinal);
         Assert.DoesNotContain("Manifest.Runtime", settings, StringComparison.Ordinal);
-        foreach (var resource in Directory.EnumerateFiles(Path.Combine(root, "src", "AbioticEditor.Web", "Localization"), "*.resx"))
+        foreach (var resource in UiSource.EnumerateFiles("Localization", "*.resx"))
             Assert.DoesNotContain("Plugins_WebToolsDesc", File.ReadAllText(resource), StringComparison.Ordinal);
 
         var implementationTerms = new[]
@@ -140,8 +138,8 @@ public sealed class RazorHostAcceptanceTests
             "WebView",
             "ASP.NET",
         };
-        var localizedValues = Directory
-            .EnumerateFiles(Path.Combine(root, "src", "AbioticEditor.Web", "Localization"), "*.resx")
+        var localizedValues = UiSource
+            .EnumerateFiles("Localization", "*.resx")
             .SelectMany(resource => System.Xml.Linq.XDocument.Load(resource)
                 .Descendants("value")
                 .Select(value => value.Value));
@@ -155,7 +153,7 @@ public sealed class RazorHostAcceptanceTests
         // Check literal rendered text separately so framework directives, namespaces, and
         // the Blazor bootstrap script do not create false positives. "Server" is valid only
         // on the INI screen, where players intentionally edit dedicated-server settings.
-        foreach (var source in Directory.EnumerateFiles(components, "*.razor", SearchOption.AllDirectories))
+        foreach (var source in UiSource.EnumerateFiles("Components", "*.razor", SearchOption.AllDirectories))
         {
             var markup = File.ReadAllText(source);
             Assert.DoesNotMatch(
@@ -178,18 +176,5 @@ public sealed class RazorHostAcceptanceTests
         => System.Text.RegularExpressions.Regex.Matches(source, "\\\"(?:\\\\.|[^\\\"\\\\])*\\\"")
             .Select(match => match.Value[1..^1]);
 
-    private static string Source(params string[] parts)
-    {
-        var root = FindRepositoryRoot();
-        return File.ReadAllText(Path.Combine([root, "src", "AbioticEditor.Web", .. parts]));
-    }
-
-    private static string FindRepositoryRoot()
-    {
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
-        {
-            if (Directory.Exists(Path.Combine(directory.FullName, "src", "AbioticEditor.Web"))) return directory.FullName;
-        }
-        throw new DirectoryNotFoundException("Could not locate the AbioticEditor.Web source root.");
-    }
+    private static string Source(params string[] parts) => UiSource.ReadAllText(parts);
 }

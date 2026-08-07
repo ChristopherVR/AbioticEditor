@@ -1,7 +1,12 @@
 @rendermode InteractiveServer
 @using AbioticEditor.Web.Components.Pages
 
-<Router AppAssembly="typeof(Program).Assembly">
+@* Most screens now live in AbioticEditor.Web.Shared so the browser build can render the same
+   ones. The router only scans the assembly it is given, so the shared library has to be listed
+   explicitly or none of its @page routes resolve. This host keeps two screens of its own
+   (Updates, WebToolHost), which is why AppAssembly is still this assembly. *@
+<Router AppAssembly="typeof(Program).Assembly"
+        AdditionalAssemblies="[typeof(AbioticEditor.Web.Components.Shared.WorkspaceShell).Assembly]">
     <Found Context="routeData">
         <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)" />
         <FocusOnNavigate RouteData="routeData" Selector="h1" />

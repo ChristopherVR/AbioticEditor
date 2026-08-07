@@ -15,6 +15,7 @@
     <Project Path="src/AbioticEditor.Ui.Abstractions/AbioticEditor.Ui.Abstractions.csproj" />
     <Project Path="src/AbioticEditor.Updater/AbioticEditor.Updater.csproj" />
     <Project Path="src/AbioticEditor.Web/AbioticEditor.Web.csproj" />
+    <Project Path="src/AbioticEditor.Web.Shared/AbioticEditor.Web.Shared.csproj" />
     <Project Path="src/AbioticEditor.Web.Wasm/AbioticEditor.Web.Wasm.csproj" />
   </Folder>
   <Folder Name="/plugins/">

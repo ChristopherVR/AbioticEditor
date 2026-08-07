@@ -23,7 +23,7 @@ public sealed class NativeSurfaceParityTests
     [MemberData(nameof(SurfaceMatrix))]
     public void Workbench_surface_retains_native_structure_and_interactions(string relativePath, string[] contracts)
     {
-        var source = File.ReadAllText(Path.Combine(WebRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar)));
+        var source = UiSource.ReadAllText(relativePath);
         foreach (var contract in contracts)
             Assert.Contains(contract, source, StringComparison.Ordinal);
     }
@@ -31,7 +31,7 @@ public sealed class NativeSurfaceParityTests
     [Fact]
     public void Workbench_visible_copy_is_resource_backed()
     {
-        var resources = File.ReadAllText(Path.Combine(WebRoot(), "Localization", "AppResources.resx"));
+        var resources = UiSource.ReadAllText("Localization", "AppResources.resx");
         var required = new[]
         {
             "WorldEditor_SectionsAria", "WorldTab_Flags", "Ini_EditorTitle", "Ini_StatusSaved",
@@ -62,11 +62,4 @@ public sealed class NativeSurfaceParityTests
         Assert.Equal(originalDay, session.WorldDay);
     }
 
-    private static string WebRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "AbioticEditor.slnx"))) directory = directory.Parent;
-        Assert.NotNull(directory);
-        return Path.Combine(directory!.FullName, "src", "AbioticEditor.Web");
-    }
 }

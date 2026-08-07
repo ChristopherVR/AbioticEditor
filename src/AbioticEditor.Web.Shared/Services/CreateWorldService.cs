@@ -6,9 +6,9 @@ namespace AbioticEditor.Web.Services;
 /// <summary>Creates a loose-file Steam world from the same blank templates as the desktop host.</summary>
 public sealed class CreateWorldService
 {
-    private readonly IWebHostEnvironment _environment;
+    private readonly ISaveTemplateSource _templates;
 
-    public CreateWorldService(IWebHostEnvironment environment) => _environment = environment;
+    public CreateWorldService(ISaveTemplateSource templates) => _templates = templates;
 
     public async Task<string> CreateSteamWorldAsync(CreateSteamWorldRequest request, CancellationToken cancellationToken = default)
         => await CreateWorldAsync(new CreateWorldRequest(request.WorldName, request.ParentDirectory, [request.SteamId], request.GameDifficulty), cancellationToken);
@@ -52,13 +52,8 @@ public sealed class CreateWorldService
         return await Task.Run(() => AbioticEditor.Core.PlayerSaves.PlayerSaveFactory.CreateFromTemplate(template, playerDirectory, playerId), cancellationToken);
     }
 
-    private async Task<byte[]> ReadTemplateAsync(string name, CancellationToken cancellationToken)
-    {
-        var path = Path.Combine(_environment.ContentRootPath, "Templates", name);
-        if (!File.Exists(path))
-            throw new InvalidOperationException($"The bundled {name} template is unavailable. Reinstall the editor.");
-        return await File.ReadAllBytesAsync(path, cancellationToken);
-    }
+    private Task<byte[]> ReadTemplateAsync(string name, CancellationToken cancellationToken)
+        => _templates.ReadTemplateAsync(name, cancellationToken);
 
     private static string ValidateWorldName(string? value)
     {

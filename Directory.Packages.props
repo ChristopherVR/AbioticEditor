@@ -31,6 +31,11 @@
          (parsing, editing, re-serializing) runs client-side as WebAssembly. -->
     <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.10" />
     <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.10" />
+    <!-- Razor Class Library shared by both front-ends. A plain net10.0 library does not get the
+         ASP.NET Core shared framework the desktop host builds against, so the Components types
+         its screens use come from this package instead. -->
+    <PackageVersion Include="Microsoft.AspNetCore.Components.Web" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
 
     <!-- Transitive override (NOT a CUE4Parse mirror — Dependabot SHOULD keep this current):
          CUE4Parse references Microsoft.Bcl.Memory 9.0.0, which has a known vulnerability

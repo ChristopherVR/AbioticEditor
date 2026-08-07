@@ -43,6 +43,8 @@
   <ItemGroup>
     <ProjectReference Include="..\AbioticEditor.Core\AbioticEditor.Core.csproj" />
     <ProjectReference Include="..\AbioticEditor.Ui.Abstractions\AbioticEditor.Ui.Abstractions.csproj" />
+    <!-- The editor's screens and their services, shared with the browser-only host. -->
+    <ProjectReference Include="..\AbioticEditor.Web.Shared\AbioticEditor.Web.Shared.csproj" />
     <!-- Nexus Mods does its own file versioning and their guidelines discourage bundled
          auto-updaters, so the build published there must not contain one at all. Building with
          -p:NexusMods=true drops the updater assembly entirely rather than merely hiding it. -->

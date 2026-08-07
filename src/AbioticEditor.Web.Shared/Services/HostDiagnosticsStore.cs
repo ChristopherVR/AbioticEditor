@@ -9,8 +9,11 @@ namespace AbioticEditor.Web.Services;
 /// started. Someone chasing an intermittent problem would turn it on, restart to reproduce the
 /// problem, and quietly be running with it off again. Every other preference (theme, language,
 /// spoilers) is kept beside this one.</para>
+///
+/// <para>Public rather than internal because each host restores it during its own startup, and
+/// startup now lives in a different assembly from this store.</para>
 /// </summary>
-internal static class HostDiagnosticsStore
+public static class HostDiagnosticsStore
 {
     private static readonly string ConfigPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AbioticEditor", "weblogging.txt");

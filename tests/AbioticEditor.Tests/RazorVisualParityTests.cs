@@ -17,7 +17,7 @@ public sealed class RazorVisualParityTests
                      "wwwroot/fonts/Digital7.ttf", "wwwroot/fonts/MaterialSymbolsOutlined.ttf",
                      "wwwroot/images/abiotic-factor.png", "wwwroot/images/abiotic-factor-transparent.png",
                  })
-            Assert.True(File.Exists(Path.Combine(WebRoot(), asset)), $"Missing visual asset {asset}");
+            Assert.True(UiSource.Exists(asset), $"Missing visual asset {asset}");
     }
 
     [Fact]
@@ -191,15 +191,5 @@ public sealed class RazorVisualParityTests
             Assert.DoesNotContain(literal, slotEditor, StringComparison.Ordinal);
     }
 
-    private static string Source(params string[] parts) => File.ReadAllText(Path.Combine([WebRoot(), .. parts]));
-
-    private static string WebRoot()
-    {
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
-        {
-            var root = Path.Combine(directory.FullName, "src", "AbioticEditor.Web");
-            if (Directory.Exists(root)) return root;
-        }
-        throw new DirectoryNotFoundException("Could not locate the AbioticEditor.Web source root.");
-    }
+    private static string Source(params string[] parts) => UiSource.ReadAllText(parts);
 }

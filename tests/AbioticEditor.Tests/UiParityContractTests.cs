@@ -64,7 +64,7 @@ public sealed class UiParityContractTests
         {
             Assert.NotEmpty(surface.BlazorTargets);
             foreach (var target in surface.BlazorTargets)
-                Assert.True(File.Exists(Path.Combine(WebRoot(), target.Replace('/', Path.DirectorySeparatorChar))),
+                Assert.True(File.Exists(UiSource.Resolve(target)),
                     $"{surface.NativeSource} has a missing Blazor counterpart: {target}");
         }
     }
@@ -89,7 +89,7 @@ public sealed class UiParityContractTests
     [Fact]
     public void Shared_visual_contract_preserves_native_geometry_typography_and_states()
     {
-        var css = File.ReadAllText(Path.Combine(WebRoot(), "wwwroot", "parity.css"));
+        var css = UiSource.ReadAllText("wwwroot", "parity.css");
         foreach (var rule in new[]
         {
             "--shell:#081119", "--page:#0c1a24", "--panel:#132736", "--elevated:#1b3648",
@@ -104,20 +104,13 @@ public sealed class UiParityContractTests
         })
             Assert.Contains(rule, css, StringComparison.OrdinalIgnoreCase);
 
-        var preferences = File.ReadAllText(Path.Combine(WebRoot(), "Services", "ShellPreferencesService.cs"));
+        var preferences = UiSource.ReadAllText("Services", "ShellPreferencesService.cs");
         Assert.Contains("new(340, 400, false, false)", preferences, StringComparison.Ordinal);
     }
 
     private static ParitySurface Surface(string source, params string[] targets) => new(source, targets);
 
-    private static string WebRoot() => Path.Combine(RepositoryRoot(), "src", "AbioticEditor.Web");
-
-    private static string RepositoryRoot()
-    {
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
-            if (Directory.Exists(Path.Combine(directory.FullName, "src", "AbioticEditor.Web"))) return directory.FullName;
-        throw new DirectoryNotFoundException("Could not locate the repository root.");
-    }
+    private static string RepositoryRoot() => UiSource.RepositoryRoot;
 
     private sealed record ParitySurface(string NativeSource, string[] BlazorTargets);
 }
