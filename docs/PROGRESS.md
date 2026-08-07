@@ -5,6 +5,53 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-48: browser file system + shared static assets (2026-08-07)
+
+Phase 3 of the shared-front-end work, plus the first half of phase 4.
+
+- **`BrowserSaveFileSystem`** (`src/AbioticEditor.Web.Wasm/Services`) implements
+  `ISaveFileSystem` over the File System Access API, with the handles themselves living in
+  `wwwroot/js/saveFileSystem.js` (they cannot cross the interop boundary). Identifiers are
+  `"<folderName>/<pathInsideFolder>"` - path-shaped so existing editor code is happy, but only
+  that JS file may interpret them, which is exactly what `HasLocalPaths == false` advertises.
+  - Bytes cross as `IJSStreamReference` (JS -> .NET) and `DotNetStreamReference` (.NET -> JS),
+    NOT as `byte[]`: default interop marshals arrays as base64 JSON, which for a 16 MB region
+    save would dominate the time to open a world.
+  - `readHeader` uses `Blob.slice`, so identifying 65 saves stays lazy exactly as the desktop's
+    header probe does.
+  - Writes copy to `<name>.sav.bak` first and use `createWritable()` (which swaps in on close,
+    so a failure partway cannot truncate). Unlike the desktop there is no file history to fall
+    back on, so a failed backup aborts the write rather than pressing on.
+  - `showDirectoryPicker` is Chromium-only; `IsSupportedAsync()` is the gate, and Firefox/Safari
+    keep single-file open + download.
+- **Static assets moved into the RCL** (`AbioticEditor.Web.Shared/wwwroot`): `parity.css`, the
+  four fonts, the images, `modal.js`, `compare.js`, `transmog-dnd.js`, `workspace-shell.js`.
+  They are served at `_content/AbioticEditor.Web.Shared/...`, so:
+  - the six components that did `import "./transmog-dnd.js"` (and friends) now import
+    `"./_content/AbioticEditor.Web.Shared/..."`;
+  - `App.razor`'s `@Assets[...]` entries changed to match. **The scoped-CSS bundle is still
+    named after the consuming app** (`AbioticEditor.Web.styles.css`) - the SDK folds a
+    referenced library's per-component styles into it - so the CLAUDE.md warning about that
+    bundle still applies unchanged.
+  - font `url(...)`s inside `parity.css` are relative to the CSS file, so moving the CSS and
+    `fonts/` together kept them correct with no edit.
+- **Two test false positives, fixed properly rather than by rewording.** `RazorHostAcceptanceTests`
+  scans `.razor` text nodes for implementation jargon and `RazorVisualParityTests` measures the
+  ORDER `parity.css` is linked in - both read raw source, so a `@* ... *@` comment explaining the
+  markup counted as player-facing copy and as a stylesheet link. Both now strip Razor comments
+  first, which is strictly more accurate (the compiler strips them; they never reach the page).
+- Verified in the running desktop app after the asset move: logo, fonts, colours, pak-extracted
+  item icons, the drag-and-drop inventory grid and the resizable sidebar all behave as before.
+  **922/922 tests pass.**
+- **Phase 4 is NOT finished.** Still to do before the browser host renders the shared screens:
+  register the ~25 shared services in the Wasm host; browser implementations for
+  `ISaveTemplateSource` (fetch the blank templates from static files) and the remaining
+  `AbioticEditor.Ui` interfaces; switch off what cannot work there (plugins/web tools, the
+  updater, Game Pass containers, the ini editor, the JSON side-car, "reveal in folder", and
+  local world discovery); an `App.razor`/`Routes.razor` for that host; and finally delete the
+  round-45 duplicate pages (`Pages/{Stats,Skills,Traits,Inventory,Progression}.razor`,
+  `Components/*`, `Services/PlayerSaveSession.cs`), which are still what the deployed site uses.
+
 ## Round-47: `ISaveFileSystem` - save IO behind a swappable seam (2026-08-07)
 
 Phase 2 of the shared-front-end work. `SaveWorkspaceSessionService` was path-centric throughout
