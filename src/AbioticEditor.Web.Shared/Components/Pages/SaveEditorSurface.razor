@@ -157,17 +157,32 @@
     private string? _containersInitialFilter;
     private string? _error;
     private void OpenVehicleContainer(string containerId) { _containersInitialFilter = containerId; _worldTab = "containers"; }
+    @* Each of these has to tell the workspace it changed something, the way PlayerChanged does.
+       Without it the edit stages and the panel even says "Unsaved changes", but the SAVE and
+       REVERT buttons never come back to life - so the new day or time could not be saved at all. *@
     private void SetWorldDay(ChangeEventArgs args)
     {
-        if (Workspace.Current?.WorldSession is { WorldTimeSeconds: { } seconds } world && int.TryParse(args.Value?.ToString(), out var day)) world.SetWorldClock(seconds, day);
+        if (Workspace.Current?.WorldSession is { WorldTimeSeconds: { } seconds } world && int.TryParse(args.Value?.ToString(), out var day))
+        {
+            world.SetWorldClock(seconds, day);
+            Workspace.NotifyEdited();
+        }
     }
     private void SetWorldTime(ChangeEventArgs args)
     {
-        if (Workspace.Current?.WorldSession is { WorldDay: { } day } world && double.TryParse(args.Value?.ToString(), out var seconds)) world.SetWorldClock(seconds, day);
+        if (Workspace.Current?.WorldSession is { WorldDay: { } day } world && double.TryParse(args.Value?.ToString(), out var seconds))
+        {
+            world.SetWorldClock(seconds, day);
+            Workspace.NotifyEdited();
+        }
     }
     private void SetDayDiscovered(ChangeEventArgs args)
     {
-        if (Workspace.Current?.WorldSession is { } world && int.TryParse(args.Value?.ToString(), out var day)) world.SetDayDiscovered(day);
+        if (Workspace.Current?.WorldSession is { } world && int.TryParse(args.Value?.ToString(), out var day))
+        {
+            world.SetDayDiscovered(day);
+            Workspace.NotifyEdited();
+        }
     }
     protected override void OnInitialized() => Workspace.Changed += WorkspaceChanged;
     private void WorkspaceChanged() => _ = InvokeAsync(StateHasChanged);

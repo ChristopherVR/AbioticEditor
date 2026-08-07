@@ -80,11 +80,46 @@ PNG beside it; every `WikiImageManifest` name has an offline copy.
 folded to underscores, `"Item Icon - Gem Crab.png"` -> `"Item_Icon_-_Gem_Crab.png"`), and the
 browser URL I had written used the raw name. Every wiki image would have 404'd.
 
-### Still not verified end-to-end
-The browser save round-trip (pick folder -> edit -> SAVE -> `.bak`) has **never been run by hand**.
-The folder picker needs a real user gesture and an OS dialog, which Playwright cannot drive, so
-automated checking stops at "the app loads clean and every asset serves with real bytes". Someone
-has to click through it once.
+### Verified end to end in a real browser (round-51b)
+The save round-trip has now been driven with Playwright against the Cascade fixture (62 saves,
+62 MB, including the 14 MB Facility region save).
+
+**How to repeat it.** The OS folder dialog cannot be driven, but it is the *only* part that
+cannot. The browser's own Origin Private File System hands out genuine
+`FileSystemDirectoryHandle` objects, so:
+1. Copy a fixture world to `src/AbioticEditor.Web.Wasm/wwwroot/e2e-fixture/` (gitignored) and
+   rename each `.sav` to `.sav.bin` - **the dev server 404s unknown MIME types**, and a plain
+   `.sav` will not serve.
+2. In page context, fetch each file (**with a cache-busting query** - even `cache: 'no-store'`
+   can be answered `204 No Content` from a stale entry) and write it into OPFS.
+3. `window.showDirectoryPicker = async () => opfsHandle`. Everything downstream -
+   `saveFileSystem.js`, `BrowserSaveFileSystem`, the Core readers and writers - runs untouched.
+
+**Results.** Player save: money 116 -> 31337, `.bak` written **byte-identical to the untouched
+fixture**, and the CLI (an independent reader) parses the browser-written file and reports
+`Money: 31337` with skills, traits and recipes intact. World save: day 292 -> 777 on the 14 MB
+Facility save, `.bak` byte-identical, and `compare` against the original fixture reports **"no
+gameplay differences (1 clock difference only)"** - `TimeOfDay.CurrentDay: 292 -> 777`. Screens
+confirmed live: recipes (467/586 with names, ingredients, benches, icons), GATEPAL (158/197 emails
+with senders), traits with descriptions, all 15 skill icons decoding from `assets/art/`, and the
+SPAWN tab resolving `Furniture CraftedBed T2 (claimed by Tribbes)` out of the Facility save - the
+exact lookup that used to throw `DirectoryNotFoundException`.
+
+**Two pre-existing bugs this surfaced** (neither introduced by round 51):
+- **World clock edits could never be saved.** `SetWorldDay`/`SetWorldTime`/`SetDayDiscovered` in
+  `SaveEditorSurface.razor` staged into the session but never called `Workspace.NotifyEdited()`,
+  so SAVE and REVERT stayed disabled while the panel read "Unsaved changes". Affected the desktop
+  host equally. Fixed, with `tests/AbioticEditor.Tests/WorldClockEditorWiringTests.cs` guarding
+  all three (verified failing on the old code).
+- **Saving a player rewrites four arrays in sorted order** even when untouched:
+  `PlayerSaveSession.Save()` always re-applies `ItemsPickedUp`, `CraftedItems`, `MapsUnlocked` and
+  the recipe list sorted. Content is preserved (1804 items in, 1804 out) and the game treats these
+  as sets, so it looks harmless - but it means a player save is never byte-stable across a no-op
+  save, and `compare` reports thousands of differences. Long-standing shared behaviour; left alone
+  rather than changed blind, but worth a decision.
+
+**Not covered by this run:** drag-and-drop folder open, the appearance editor's write path, and
+Firefox/Safari single-file mode.
 
 
 Shipping game data to the browser build, plus the bugs found by actually driving it.

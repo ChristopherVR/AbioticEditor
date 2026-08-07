@@ -48,3 +48,6 @@ src/AbioticEditor.Web.Wasm/wwwroot/icons/
 src/AbioticEditor.Web.Wasm/wwwroot/Templates/
 src/AbioticEditor.Web.Wasm/wwwroot/art/
 src/AbioticEditor.Web.Wasm/wwwroot/wiki/
+
+# Temporary fixture copy used only for browser end-to-end checks; never committed.
+src/AbioticEditor.Web.Wasm/wwwroot/e2e-fixture/
