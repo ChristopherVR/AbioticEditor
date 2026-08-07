@@ -5,6 +5,45 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-49: the browser host renders the SHARED screens (2026-08-07)
+
+Phase 4 done. `src/AbioticEditor.Web.Wasm` no longer has screens of its own: its `App.razor`
+points the router straight at `AbioticEditor.Web.Shared`, and the round-45 duplicates
+(`Pages/{Home,Stats,Skills,Traits,Inventory,Progression,NotFound}.razor`, `Components/*`,
+`Layout/MainLayout.razor`, `Services/PlayerSaveSession.cs`) are deleted. Confirmed by
+screenshot: the browser now draws the real masthead, workspace shell, status bar, start screen
+and the full five-step Create World wizard.
+
+- **Host-specific implementations added**: `BrowserSaveTemplateSource` (fetches the blank
+  templates from `Templates/` static files - they are copied into `wwwroot` by the csproj, since
+  there is no folder beside an executable here) and `BrowserNavigationService` (`window.open`
+  for links; `RevealPathAsync` is a deliberate no-op because a tab has no file manager and these
+  are not local paths anyway).
+- **One registry of directory handles, not two.** `IFolderPicker` on this host delegates to
+  `BrowserSaveFileSystem.PickFolderAsync` rather than picking a folder itself. Before that fix
+  OPEN FOLDER silently did nothing: `MainLayout` returns early when `PickedFolder.Path` is null,
+  and the old browser picker only returned a name. `PickedFolder.Path` now carries the file
+  system's folder identifier. `filePicker.js` lost its own `pickFolder` so a granted handle can
+  only ever land in the registry that later reads and writes the saves.
+- **`SaveLibraryService` gained `CanDiscover`** (`ISaveFileSystem.HasLocalPaths`). It is injected
+  by a shared screen so it must resolve, but scanning the game's install locations is meaningless
+  in a browser; it now returns nothing there instead of scanning a virtual file system, and the
+  start screen shows its "pick a folder" path rather than an empty "worlds found" list that reads
+  like a failed search.
+- **Deliberately NOT registered on this host** (they cannot work in a browser): the plugin host
+  and `WebToolHostService` (loads assemblies), `HostUpdateService` (replaces an executable), the
+  desktop pickers and `DesktopWindowHost`. `Updates.razor` and `WebToolHost.razor` stayed in the
+  desktop project in round-46 precisely so they cannot be routed to here.
+- The header logo showing an "AF" tile rather than the wordmark is CORRECT, not a bug: the logo
+  is a pak-extracted game asset and `GameArtImage` nests down to that fallback wherever the game
+  is not installed - the same thing the desktop app does without a game install.
+- **922/922 tests pass**; desktop host re-verified unchanged.
+- **Not verified end-to-end, and cannot be from here**: picking a real save folder in the browser
+  opens a native OS dialog that browser automation cannot drive (clicking it would freeze the
+  automation session), so the pick -> list -> read -> edit -> write round trip through
+  `BrowserSaveFileSystem` still needs one manual pass in Chrome or Edge. Everything up to the
+  dialog is verified. **Do that before announcing the browser build to players.**
+
 ## Round-48: browser file system + shared static assets (2026-08-07)
 
 Phase 3 of the shared-front-end work, plus the first half of phase 4.
