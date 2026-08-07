@@ -1,397 +1,24 @@
-/* Browser-host theme. Deliberately self-contained (no framework): this app is served as
-   static files from GitHub Pages, and a strict, dependency-free stylesheet keeps the
-   download small and the first paint fast. Palette echoes the desktop app's dark
-   "Cascade Blue" shell with a hazard-orange accent. */
+/* Blazor's own built-in furniture only. Everything else the editor draws comes from the shared
+   stylesheet (_content/AbioticEditor.Web.Shared/parity.css), which is what keeps the browser
+   build looking identical to the desktop app.
 
-:root {
-    --bg: #0c1a24;
-    --bg-panel: #12242f;
-    --bg-raised: #18303d;
-    --border: #24485a;
-    --text: #dfeaf0;
-    --text-dim: #90a9b7;
-    --accent: #f0862c;
-    --accent-dim: #b4651f;
-    --danger: #e0524a;
-    --ok: #3fa96a;
-}
-
-* {
-    box-sizing: border-box;
-}
-
-html, body {
-    margin: 0;
-    padding: 0;
-}
-
-body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    font-size: 15px;
-    line-height: 1.5;
-}
-
-h1, h2, h3 {
-    line-height: 1.2;
-    margin: 0 0 0.5rem;
-}
-
-h1 { font-size: 1.6rem; }
-h2 { font-size: 1.15rem; margin-top: 2rem; }
-h3 { font-size: 1rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
-
-p { margin: 0 0 1rem; }
-
-a { color: var(--accent); }
-
-code {
-    background: var(--bg-raised);
-    border-radius: 3px;
-    padding: 0.1em 0.35em;
-    font-size: 0.9em;
-}
-
-/* ---------- shell ---------- */
-
-.shell {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
-
-.shell-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.75rem 1.25rem;
-    background: var(--bg-panel);
-    border-bottom: 1px solid var(--border);
-    flex-wrap: wrap;
-}
-
-.brand {
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    color: var(--text);
-    text-decoration: none;
-    white-space: nowrap;
-}
-
-.brand-tag {
-    color: var(--accent);
-    font-size: 0.7rem;
-    margin-left: 0.5rem;
-    border: 1px solid var(--accent-dim);
-    border-radius: 999px;
-    padding: 0.1rem 0.5rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-}
-
-.open-save {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    margin-left: auto;
-    min-width: 0;
-}
-
-.open-save-name {
-    color: var(--text-dim);
-    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
-    font-size: 0.85rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.badge-dirty {
-    background: var(--accent-dim);
-    color: #fff;
-    border-radius: 999px;
-    padding: 0.1rem 0.6rem;
-    font-size: 0.72rem;
-    white-space: nowrap;
-}
-
-.header-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.shell-body {
-    display: flex;
-    flex: 1;
-    align-items: flex-start;
-}
-
-.shell-nav {
-    display: flex;
-    flex-direction: column;
-    padding: 1rem 0;
-    background: var(--bg-panel);
-    border-right: 1px solid var(--border);
-    min-width: 13rem;
-    align-self: stretch;
-}
-
-.nav-item {
-    color: var(--text-dim);
-    text-decoration: none;
-    padding: 0.55rem 1.25rem;
-    border-left: 3px solid transparent;
-    font-size: 0.92rem;
-}
-
-    .nav-item:hover {
-        color: var(--text);
-        background: var(--bg-raised);
-    }
-
-    .nav-item.active {
-        color: var(--text);
-        border-left-color: var(--accent);
-        background: var(--bg-raised);
-    }
-
-.shell-main {
-    flex: 1;
-    padding: 1.5rem 2rem 4rem;
-    max-width: 60rem;
-    min-width: 0;
-}
-
-/* ---------- controls ---------- */
-
-.btn {
-    background: var(--bg-raised);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 0.4rem 0.9rem;
-    font-size: 0.88rem;
-    cursor: pointer;
-    font-family: inherit;
-}
-
-    .btn:hover:not(:disabled) {
-        border-color: var(--accent-dim);
-    }
-
-    .btn:disabled {
-        opacity: 0.45;
-        cursor: default;
-    }
-
-.btn-primary {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #1b1105;
-    font-weight: 600;
-}
-
-    .btn-primary:hover:not(:disabled) {
-        background: #ff9840;
-    }
-
-textarea {
-    background: var(--bg);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 0.4rem 0.5rem;
-    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
-    font-size: 0.82rem;
-    width: 100%;
-    resize: vertical;
-}
-
-    textarea:focus {
-        outline: 2px solid var(--accent-dim);
-        outline-offset: -1px;
-    }
-
-input[type="text"],
-input[type="number"],
-select {
-    background: var(--bg);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 0.35rem 0.5rem;
-    font-family: inherit;
-    font-size: 0.9rem;
-    width: 100%;
-}
-
-    input:focus, select:focus {
-        outline: 2px solid var(--accent-dim);
-        outline-offset: -1px;
-    }
-
-input[type="range"] {
-    width: 100%;
-    accent-color: var(--accent);
-}
-
-label {
-    display: block;
-    font-size: 0.85rem;
-    color: var(--text-dim);
-}
-
-/* ---------- layout helpers ---------- */
-
-.panel {
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 1rem 1.25rem;
-    margin-bottom: 1.25rem;
-}
-
-.field-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
-    gap: 0.9rem;
-}
-
-.field {
-    /* Grid items default to min-content width, so a long save file name would push its column
-       wider than its share and paint over the next one. */
-    min-width: 0;
-}
-
-    .field label {
-        margin-bottom: 0.25rem;
-    }
-
-    .field strong {
-        display: block;
-        overflow-wrap: anywhere;
-    }
-
-.stat-readout {
-    color: var(--accent);
-    font-variant-numeric: tabular-nums;
-    float: right;
-}
-
-.row-actions {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    margin-bottom: 1rem;
-}
-
-.hint {
-    color: var(--text-dim);
-    font-size: 0.85rem;
-}
-
-.error {
-    color: var(--danger);
-    border: 1px solid var(--danger);
-    border-radius: 4px;
-    padding: 0.6rem 0.9rem;
-    background: rgba(224, 82, 74, 0.08);
-}
-
-.empty-state {
-    text-align: center;
-    padding: 3rem 1rem;
-    color: var(--text-dim);
-}
-
-/* ---------- tables ---------- */
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.88rem;
-}
-
-th, td {
-    text-align: left;
-    padding: 0.4rem 0.6rem;
-    border-bottom: 1px solid var(--border);
-}
-
-th {
-    color: var(--text-dim);
-    font-weight: 600;
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-
-tbody tr:hover {
-    background: var(--bg-raised);
-}
-
-/* ---------- skills ---------- */
-
-.skill-row {
-    display: grid;
-    grid-template-columns: 9rem 3.5rem 1fr 6rem;
-    gap: 0.75rem;
-    align-items: center;
-    padding: 0.35rem 0;
-}
-
-.skill-name { font-size: 0.9rem; }
-
-.skill-level {
-    font-variant-numeric: tabular-nums;
-    color: var(--accent);
-    font-weight: 600;
-}
-
-.skill-xp {
-    font-variant-numeric: tabular-nums;
-    color: var(--text-dim);
-    font-size: 0.8rem;
-    text-align: right;
-}
-
-/* ---------- checkbox lists ---------- */
-
-.check-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
-    gap: 0.35rem 1rem;
-}
-
-.check {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.88rem;
-    color: var(--text);
-    cursor: pointer;
-}
-
-    .check input {
-        width: auto;
-        accent-color: var(--accent);
-    }
-
-/* ---------- blazor built-ins ---------- */
+   This file must stay linked from index.html. Without it #blazor-error-ui has no rule hiding it,
+   so the "an unhandled error has occurred" bar - which is plain markup that is always in the
+   page and only meant to be revealed by Blazor when something actually fails - flashes up on
+   every single load. */
 
 #blazor-error-ui {
-    color-scheme: dark only;
-    background: #2a1410;
-    color: #ffd9c9;
-    bottom: 0;
-    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.5);
     display: none;
-    left: 0;
-    padding: 0.6rem 1.25rem;
     position: fixed;
+    bottom: 0;
+    left: 0;
     width: 100%;
     z-index: 1000;
+    padding: 0.6rem 1.25rem;
+    background: #2a1410;
+    color: #ffd9c9;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.5);
+    color-scheme: dark only;
 }
 
     #blazor-error-ui .dismiss {
@@ -401,6 +28,17 @@ tbody tr:hover {
         top: 0.5rem;
     }
 
+.blazor-error-boundary {
+    padding: 1rem;
+    background: #b32121;
+    color: #fff;
+}
+
+    .blazor-error-boundary::after {
+        content: "An error has occurred.";
+    }
+
+/* Startup spinner, shown until the runtime has booted. */
 .loading-progress {
     position: absolute;
     display: block;
@@ -419,7 +57,7 @@ tbody tr:hover {
     }
 
         .loading-progress circle:last-child {
-            stroke: var(--accent);
+            stroke: #f0862c;
             stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
             transition: stroke-dasharray 0.05s ease-in-out;
         }
@@ -429,48 +67,10 @@ tbody tr:hover {
     text-align: center;
     font-weight: bold;
     inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
-    color: var(--text-dim);
+    color: #90a9b7;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
     .loading-progress-text:after {
         content: var(--blazor-load-percentage-text, "Loading");
     }
-
-@media (max-width: 700px) {
-    .shell-body {
-        flex-direction: column;
-    }
-
-    .shell-nav {
-        flex-direction: row;
-        overflow-x: auto;
-        min-width: 0;
-        width: 100%;
-        border-right: none;
-        border-bottom: 1px solid var(--border);
-        padding: 0;
-    }
-
-    .nav-item {
-        border-left: none;
-        border-bottom: 3px solid transparent;
-        white-space: nowrap;
-    }
-
-        .nav-item.active {
-            border-left: none;
-            border-bottom-color: var(--accent);
-        }
-
-    .shell-main {
-        padding: 1rem;
-    }
-
-    .skill-row {
-        grid-template-columns: 7rem 2.5rem 1fr;
-    }
-
-    .skill-xp {
-        display: none;
-    }
-}

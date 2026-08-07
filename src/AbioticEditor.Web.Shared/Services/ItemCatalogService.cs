@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using AbioticEditor.Core.Assets;
 using AbioticEditor.Core.Items;
 
@@ -26,8 +26,16 @@ public sealed class ItemCatalogService : IDisposable
     /// </summary>
     private static readonly SemaphoreSlim IconDecodeGate = new(2, 2);
 
-    public ItemCatalogService(ProgressionVocabularyService? liveVocabulary = null)
+    private readonly bool _extractsIconsLive;
+
+    /// <param name="files">
+    /// Tells the two hosts apart. A host that can reach the local machine extracts icons from
+    /// the installed game on demand and serves them from its own endpoint; a browser cannot, so
+    /// it uses the icon set dumped ahead of time and shipped as static files.
+    /// </param>
+    public ItemCatalogService(ProgressionVocabularyService? liveVocabulary = null, ISaveFileSystem? files = null)
     {
+        _extractsIconsLive = files is null || files.HasLocalPaths;
         var registry = GameDataRegistry.LoadBundled();
         var merged = (registry?.Items ?? []).ToDictionary(entry => entry.Id, StringComparer.OrdinalIgnoreCase);
         // The slot editor is always present in the desktop shell. Do not make resolving it
@@ -48,7 +56,15 @@ public sealed class ItemCatalogService : IDisposable
 
     public IReadOnlyList<ItemCatalogEntry> Entries => _entries;
     public ItemCatalogEntry? Find(string? itemId) => itemId is not null && _byId.TryGetValue(itemId, out var entry) ? entry : null;
-    public string IconUrl(string itemId) => $"/item-icons/{Uri.EscapeDataString(itemId)}";
+    /// <summary>
+    /// Where to fetch an item's picture. The desktop host serves it from its own endpoint,
+    /// decoding it out of the installed game the first time it is asked for. The browser has no
+    /// endpoint and no game, so it points at the pre-dumped icon shipped with the app; a missing
+    /// file simply renders as the usual blank, exactly as an undecodable icon already does.
+    /// </summary>
+    public string IconUrl(string itemId) => _extractsIconsLive
+        ? $"/item-icons/{Uri.EscapeDataString(itemId)}"
+        : $"icons/{Uri.EscapeDataString(itemId)}.png";
 
     public Task<string?> GetIconPathAsync(string itemId)
         => _icons.GetOrAdd(itemId, static (id, service) => service.ExtractIconAsync(id), this);

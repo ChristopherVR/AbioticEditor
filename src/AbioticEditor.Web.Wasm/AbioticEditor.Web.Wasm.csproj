@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -29,6 +29,14 @@
          Program.cs stages it where GameDataRegistry.LoadBundled() looks. -->
     <Content Include="..\..\assets\registry\registry.json"
              Link="wwwroot\registry\registry.json"
+             CopyToOutputDirectory="PreserveNewest" />
+    <!-- Item pictures, dumped from the game ahead of time by `abioticeditor dump-icons`. Shipped
+         for THIS host only: the desktop app decodes them out of the installed game on demand and
+         carrying a copy would only make its download bigger. Icons are untranslated artwork, so
+         this one set serves every language - only the names beside them are localised, and those
+         live in registry.json above. -->
+    <Content Include="..\..\assets\icons\*.png"
+             Link="wwwroot\icons\%(Filename)%(Extension)"
              CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

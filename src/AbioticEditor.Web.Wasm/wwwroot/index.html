@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -14,6 +14,9 @@
          stylesheet, fonts and images all live in AbioticEditor.Web.Shared, published under
          _content/. The scoped-CSS bundle is named after THIS app - the SDK folds a referenced
          library's per-component styles into the consuming app's single bundle. -->
+    <!-- Blazor's own built-in styles (notably the rule that keeps the error bar hidden until
+         there IS an error). Must load before the shared stylesheet. -->
+    <link rel="stylesheet" href="css/app.css" />
     <link rel="stylesheet" href="AbioticEditor.Web.Wasm.styles.css" />
     <link rel="stylesheet" href="_content/AbioticEditor.Web.Shared/parity.css" />
     <link rel="icon" type="image/png" href="_content/AbioticEditor.Web.Shared/images/abiotic-factor.png" />
@@ -34,6 +37,31 @@
         <a href="." class="reload">Reload</a>
         <span class="dismiss">🗙</span>
     </div>
+    <!-- Every build stamps the runtime files with a new content hash, and the page that lists
+         them is an ordinary cacheable document. A browser holding yesterday's copy therefore
+         asks for runtime files that no longer exist, gets a 404, and shows a permanent "an
+         unhandled error has occurred" that ordinary reloads do not clear - because they serve
+         the same stale page again. Detect exactly that failure and reload once bypassing the
+         cache. The sessionStorage flag makes it strictly one attempt, so a genuine outage
+         cannot turn into a reload loop. -->
+    <script>
+        (function () {
+            const RETRY_KEY = "abiotic-stale-cache-retry";
+            function looksLikeStaleCache(message) {
+                return /Failed to start platform|Failed to fetch dynamically imported module|dotnet\..*\.js/i.test(message ?? "");
+            }
+            window.addEventListener("unhandledrejection", function (event) {
+                const message = event.reason?.message ?? String(event.reason ?? "");
+                if (!looksLikeStaleCache(message) || sessionStorage.getItem(RETRY_KEY)) return;
+                sessionStorage.setItem(RETRY_KEY, "1");
+                location.reload(true);
+            });
+            // Cleared only once the app has actually started, so a later stale deploy can heal too.
+            window.addEventListener("load", function () {
+                setTimeout(() => sessionStorage.removeItem(RETRY_KEY), 10000);
+            });
+        })();
+    </script>
     <script src="_content/AbioticEditor.Web.Shared/modal.js"></script>
     <script src="js/downloadFile.js"></script>
     <script src="js/filePicker.js"></script>
