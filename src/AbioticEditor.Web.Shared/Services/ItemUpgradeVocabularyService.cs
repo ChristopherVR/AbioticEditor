@@ -18,7 +18,19 @@ public sealed class ItemUpgradeVocabularyService
     public void Reload() => Interlocked.Exchange(ref _catalog, new Lazy<ItemUpgradeCatalog>(Load));
     private static ItemUpgradeCatalog Load()
     {
-        try { using var provider = GameDataGate.CreateProvider(); return provider is { HasMappings: true } ? ItemUpgradeCatalog.LoadFrom(provider) : ItemUpgradeCatalog.Empty; }
-        catch { return ItemUpgradeCatalog.Empty; }
+        try
+        {
+            using var provider = GameDataGate.CreateProvider();
+            if (provider is { HasMappings: true })
+            {
+                var live = ItemUpgradeCatalog.LoadFrom(provider);
+                if (live.Count > 0) return live;
+            }
+        }
+        catch { /* fall through to the bundled dump */ }
+
+        return GameDataRegistry.LoadBundled()?.ItemUpgrades is { Count: > 0 } upgrades
+            ? ItemUpgradeCatalog.FromRegistry(upgrades)
+            : ItemUpgradeCatalog.Empty;
     }
 }

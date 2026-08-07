@@ -105,13 +105,13 @@
         _loading = true;
         try
         {
+            // The sibling world's story flags feed the recipe unlock gate (native rule);
+            // the gate's email vocabulary is warmed here so the bulk action never stalls.
+            _worldFlags = await Gate.ResolveWorldFlagsAsync(sessionPath);
+            if (_worldFlags is not null) Gate.Warm();
+
             _catalog = await Task.Run(() =>
             {
-                // The sibling world's story flags feed the recipe unlock gate (native rule);
-                // the gate's email vocabulary is warmed here so the bulk action never stalls.
-                _worldFlags = Gate.ResolveWorldFlags(sessionPath);
-                if (_worldFlags is not null) Gate.Warm();
-
                 var recipes = RecipeVocabulary.GetRecipes();
                 // One retry: a mount that loses a race comes back empty rather than throwing,
                 // and this tab is usually the first thing opened, so it used to be the one

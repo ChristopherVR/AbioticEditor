@@ -15,6 +15,7 @@ public sealed record EmailEntry(
     IReadOnlyList<string> AttachmentRecipes,
     IReadOnlyList<string> UnlocksJournals)
 {
+    [System.Text.Json.Serialization.JsonIgnore]
     public string? FirstSender => Sections.Count > 0 ? Sections[0].Sender : null;
 }
 
@@ -66,9 +67,11 @@ public sealed record FishDefinition(
     int XpGain = 0)
 {
     /// <summary>True when the row needs a specific bait/condition to bite (rare variants).</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
     public bool RequiresSpecialCatch => RequiredBaitTag is not null;
 
     /// <summary>True when some time-of-day differs from the neutral multiplier of 1.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
     public bool HasTimePreference =>
         MidnightMult != 1 || DawnMult != 1 || NoonMult != 1 || DuskMult != 1;
 }

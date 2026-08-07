@@ -699,6 +699,12 @@ Mundos: contenedores · indicadores de misión · puertas · objetos en el suelo
   <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
     <value>DIAGNÓSTICO DE GUARDADO</value>
   </data>
+  <data name="Host_NeedsDesktopTitle" xml:space="preserve">
+    <value>Necesita el editor de escritorio</value>
+  </data>
+  <data name="Host_NeedsDesktopBody" xml:space="preserve">
+    <value>Esta herramienta accede a carpetas de tu ordenador, algo que una página web no puede hacer. Descarga el editor para usarla.</value>
+  </data>
   <data name="Compare_ScaffoldTitle" xml:space="preserve">
     <value>Comparar guardados</value>
   </data>

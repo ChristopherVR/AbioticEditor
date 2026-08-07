@@ -28,14 +28,16 @@ public sealed class CustomizationCatalogService : IDisposable
         try
         {
             var provider = _provider.Value;
-            return provider is not { HasMappings: true }
-                ? new Dictionary<string, IReadOnlyList<CustomizationOption>>()
-                : CustomizationCatalog.LoadFrom(provider);
+            if (provider is { HasMappings: true })
+            {
+                var live = CustomizationCatalog.LoadFrom(provider);
+                if (live.Count > 0) return live;
+            }
         }
-        catch
-        {
-            return new Dictionary<string, IReadOnlyList<CustomizationOption>>();
-        }
+        catch { /* fall through to the bundled dump */ }
+
+        return GameDataRegistry.LoadBundled()?.Customization
+            ?? new Dictionary<string, IReadOnlyList<CustomizationOption>>();
     }
 
     private static GameAssetProvider? CreateProvider()

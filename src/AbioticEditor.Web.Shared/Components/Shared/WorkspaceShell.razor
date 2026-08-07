@@ -436,8 +436,13 @@
         if (string.Equals(_claimPersonaFolder, worldFolder, StringComparison.OrdinalIgnoreCase)) return;
         _claimPersonaFolder = worldFolder;
         _claimPersonas = null;
-        var facility = Path.Combine(worldFolder, "WorldSave_Facility.sav");
-        if (!File.Exists(facility)) return;
+        // The workspace already knows every save it opened, which is the only way to name the
+        // facility save on a host with no local paths to combine.
+        var facility = (Workspace.Current?.Saves ?? [])
+            .FirstOrDefault(save => save.Kind == SaveDocumentKind.World
+                && string.Equals(save.Name, "WorldSave_Facility.sav", StringComparison.OrdinalIgnoreCase))
+            ?.Path;
+        if (facility is null) return;
         try
         {
             var deployables = await Beds.GetDeployablesAsync(facility, Workspace.Current?.WorldSession);

@@ -23,10 +23,23 @@ public sealed class CodexVocabularyService
         try
         {
             using var provider = GameDataGate.CreateProvider();
-            return provider is { HasMappings: true }
-                ? new(CodexCatalog.LoadEmails(provider), CodexCatalog.LoadJournals(provider), CodexCatalog.LoadCompendium(provider), CodexCatalog.LoadFish(provider))
-                : CodexVocabulary.Empty;
+            if (provider is { HasMappings: true })
+            {
+                var live = new CodexVocabulary(
+                    CodexCatalog.LoadEmails(provider),
+                    CodexCatalog.LoadJournals(provider),
+                    CodexCatalog.LoadCompendium(provider),
+                    CodexCatalog.LoadFish(provider));
+                if (live.Emails.Count > 0 || live.Compendium.Count > 0) return live;
+            }
         }
-        catch { return CodexVocabulary.Empty; }
+        catch { /* fall through to the bundled dump */ }
+
+        if (GameDataRegistry.LoadBundled() is not { } registry) return CodexVocabulary.Empty;
+        return new CodexVocabulary(
+            registry.Emails ?? Array.Empty<EmailEntry>(),
+            registry.Journals ?? Array.Empty<JournalEntry>(),
+            registry.Compendium ?? Array.Empty<CompendiumEntry>(),
+            registry.Fish ?? Array.Empty<FishDefinition>());
     }
 }

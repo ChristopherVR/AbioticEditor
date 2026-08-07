@@ -5,44 +5,87 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
-## OPEN: the browser build is NOT usable yet - two unfinished root causes (2026-08-08)
+## Round-51: both browser root causes closed (2026-08-08)
 
-Read this before touching the browser host again. Symptoms keep appearing one at a time
-(pet beds threw `DirectoryNotFoundException /Cascade/WorldSave_Facility.sav`, no recipes, no
-GATEPAL, missing pictures on some screens) because two underlying jobs are incomplete. Fix the
-causes, not the next symptom.
+Round-50 left the browser build unusable for two reasons, both now fixed. Read this before
+touching the browser host again.
 
-### Cause 1: round-47's `ISaveFileSystem` seam was only half applied
-`SaveWorkspaceSessionService` and the two session writers were converted. **Everything else that
-opens a save by path was not**, so each throws in the browser the moment its screen is used:
+### Cause 1 (closed): the `ISaveFileSystem` seam is now applied everywhere
+Round-47 converted `SaveWorkspaceSessionService` and the two session writers and stopped. Every
+other place that opened a save by path threw the moment its screen was used. All of them now go
+through the seam, or hide where the feature genuinely cannot work in a tab:
 
-- `Services/SiblingWorldBedService.cs` (`WorldSaveReader.ReadFromFile`) - pet beds
-- `Services/RecipeProgressGateService.cs` (`ReadFromFile`) - recipe gating
-- `Services/SaveComparisonService.cs` (`ReadFromFile`)
-- `Services/SaveConversionService.cs` (`Directory.EnumerateFiles`)
-- `Components/World/WorldFeaturesTab.razor` (`ReadFromFile`)
-- `Components/Player/PlayerAchievementsTab.razor` (`Directory.EnumerateFiles`)
-- `Models/CustomizationSaveSession.cs` (`Directory.EnumerateFiles`)
+| Site | What changed |
+| --- | --- |
+| `Services/SiblingWorldBedService.cs` | Reads via `ISaveFileSystem`; `FacilityPathForAsync` finds the facility save in the workspace first. This was the `DirectoryNotFoundException` in the user's report. |
+| `Services/RecipeProgressGateService.cs` | `ResolveWorldFlagsAsync` (was sync) reads through the seam; facility save found via the workspace. |
+| `Core/Services/World/StoryFlagSync.cs` | Split into `Plan*` (pure, takes an already-read save) and the file-based wrappers. New `Services/StoryFlagSyncService.cs` drives the plans through the seam - this was a second write path that bypassed it entirely. |
+| `Components/World/WorldFeaturesTab.razor` | Cross-region power-socket names read through the seam. |
+| `Components/Player/PlayerAchievementsTab.razor` | Comparison candidates come from the workspace's saves, not `Directory.EnumerateFiles`. |
+| `Models/CustomizationSaveSession.cs` | New `LoadFromBytes`/`SaveToBytes` reusing the Game Pass byte round-trip; the appearance editor discovers slots through the seam. |
+| `Components/Shared/WorkspaceShell.razor` | Bed-claim personas find the facility save in the workspace. |
+| `Compare.razor`, Home's "New world" link | Gated on `HasLocalPaths` with a localized "needs the desktop editor" panel (`Host_NeedsDesktop*`, all 5 languages). Both genuinely need arbitrary local folders. |
 
-Each needs routing through `ISaveFileSystem` (preferred) or gating on `HasLocalPaths` so the
-feature hides instead of throwing. The preference stores (`Host*Preferences`, `HostThemeService`,
-`HostLanguageService`, `ShellPreferencesService`, `HostDiagnosticsStore`) also touch files but are
-harmless - they land in the in-memory file system and simply do not persist across a reload.
+New seam member: `GetVersionStampAsync` (desktop = last-write ticks, browser = `lastModified:size`),
+because the caches these services keep were all keyed on `File.GetLastWriteTimeUtc`.
 
-### Cause 2: the bundled registry only carries ITEMS
-`GameDataRegistry` has `Items` and `ItemTableRefs` and nothing else, so every other pak-backed
-catalog is empty in the browser no matter what else is fixed: **recipes, codex/GATEPAL, traders,
-skill descriptions, customization**. Shipping icons did not help these - they are text, not art.
+The preference stores (`Host*Preferences`, `HostThemeService`, `HostLanguageService`,
+`ShellPreferencesService`, `HostDiagnosticsStore`) still touch files. That is harmless: they land
+in the in-memory file system and simply do not persist across a reload. Left alone deliberately.
 
-The fix is to extend the registry: schema + `BuildFromInstall` + `dump-registry`, then have
-`RecipeCatalog` / `CodexCatalog` / `TraderCatalog` / `SkillCatalog` / `CustomizationCatalog` fall
-back to it the way `ItemCatalog` already does. That is a Core change and bumps
-`CurrentSchemaVersion`. Sizing note: this is all text and compresses well - the items-only dump is
-~1 MB, so carrying the rest is unlikely to be a payload problem.
+### Cause 2 (closed): the registry now carries every catalog, at schema v2
+`GameDataRegistry` had `Items` and `ItemTableRefs` and nothing else, so recipes, the codex,
+traders, traits and appearance options were empty in the browser regardless of anything else.
+`CurrentSchemaVersion` is now **2** and `BuildFromInstall` reads each catalog through an
+`Optional(...)` wrapper, so one table a game patch renamed costs its own payload rather than the
+whole dump. What ships now (`assets/registry/registry.json`, ~2.0 MB):
 
-Only after BOTH are done is the browser build worth showing anyone.
+| Payload | Count | Payload | Count |
+| --- | --- | --- | --- |
+| Items | 1622 | Emails | 197 |
+| ItemTableRefs | 1622 | Journals | 138 |
+| Recipes | 584 | Compendium | 195 |
+| ItemUpgrades | 86 | Fish | 33 |
+| Maps | 11 | Traders | 9 |
+| Skills | 15 | SectorMaps | 11 |
+| SkillMilestones | 15 | Traits | 50 |
+| Customization | 13 tables | | |
 
-## Round-50: bundled icons, and three silent browser-only failures (2026-08-08)
+Each vocabulary service now prefers live pak data and falls back to the registry
+(`RecipeVocabularyService`, `ItemUpgradeVocabularyService`, `CodexVocabularyService`,
+`TraderVocabularyService`, `ProgressionVocabularyService`, `CustomizationCatalogService`), matching
+what `ItemCatalogService` already did.
+
+### Pictures beyond item icons
+`GameArtService.ArtUrl`/`WikiImageUrl` were hardcoded to the desktop's own endpoints, so skill
+icons, trader portraits, chapter cards, sector maps and creature portraits silently never rendered
+in a browser (the components gate on "can we extract it?" and drew their fallback symbol).
+
+- New CLI `dump-art` (companion to `dump-icons`) writes those textures plus a manifest of what it
+  managed to decode. Result: **351 pictures, 17 MB** in `assets/art/`.
+- New `Core/Infrastructure/GameAssets/BundledArt.cs` mirrors `GameDataRegistry`'s `Supply`/`TryRead`
+  pattern. `GameArtService` takes `ISaveFileSystem` and, in a browser, answers "does this picture
+  exist?" from the manifest instead of firing a request that 404s.
+- `assets/wiki/` (41 offline wiki images) is now bundled too.
+- 61 refs "could not be decoded" during the dump: those are `PetCatalog.CompendiumTextureRefs`
+  *candidates* that legitimately do not exist. Expected noise, not a gap.
+
+### Tests: `tests/AbioticEditor.Tests/BundledGameDataTests.cs` (new)
+Asserts against the files that actually ship, read the way the browser reads them
+(`TryRead(bytes)`, no install). Four tests: every registry payload present with a sane lower
+bound; a recipe's `CreatesItemId` resolves to a real named item; every art-manifest entry has its
+PNG beside it; every `WikiImageManifest` name has an offline copy.
+
+**This test immediately caught a real bug**: wiki files are stored under `SafeNameFor` (spaces
+folded to underscores, `"Item Icon - Gem Crab.png"` -> `"Item_Icon_-_Gem_Crab.png"`), and the
+browser URL I had written used the raw name. Every wiki image would have 404'd.
+
+### Still not verified end-to-end
+The browser save round-trip (pick folder -> edit -> SAVE -> `.bak`) has **never been run by hand**.
+The folder picker needs a real user gesture and an OS dialog, which Playwright cannot drive, so
+automated checking stops at "the app loads clean and every asset serves with real bytes". Someone
+has to click through it once.
+
 
 Shipping game data to the browser build, plus the bugs found by actually driving it.
 

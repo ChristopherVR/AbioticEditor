@@ -15,6 +15,17 @@
 <section class="tool-scaffold compare-scaffold">
     <header class="tool-scaffold-heading"><p class="eyebrow">@Languages.Resource("Compare_ScaffoldEyebrow")</p><h1>@Languages.Resource("Compare_ScaffoldTitle")</h1></header>
 
+@* Comparing takes two saves picked from anywhere on the machine, which a browser tab cannot
+   reach. Say so plainly instead of showing pickers that lead nowhere. *@
+@if (!Workspace.HasLocalPaths)
+{
+    <section class="compare-card">
+        <h2>@Languages.Resource("Host_NeedsDesktopTitle")</h2>
+        <p class="muted">@Languages.Resource("Host_NeedsDesktopBody")</p>
+    </section>
+}
+else
+{
     <section class="compare-card">
         <h2>@Languages.Resource("Compare_ModeCardHeader")</h2>
         <p class="muted">@Languages.Resource("Compare_ModeCardDescription")</p>
@@ -150,6 +161,7 @@
             }
         </section>
     }
+}
 </section>
 
 @code {

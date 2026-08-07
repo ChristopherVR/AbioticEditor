@@ -39,6 +39,7 @@ builder.Services.AddScoped<TraderVocabularyService>();
 builder.Services.AddScoped<SaveWorkspaceSessionService>();
 builder.Services.AddScoped<RecipeProgressGateService>();
 builder.Services.AddScoped<SiblingWorldBedService>();
+builder.Services.AddScoped<StoryFlagSyncService>();
 builder.Services.AddScoped<CreateWorldService>();
 builder.Services.AddScoped<IniEditorSessionService>();
 builder.Services.AddScoped<HostSettingsService>();
@@ -88,6 +89,19 @@ static async Task StageBundledGameDataAsync(IServiceProvider services)
         {
             Console.Error.WriteLine(
                 "Abiotic Editor: the bundled game data could not be read; names will show as internal ids.");
+        }
+
+        // The list of pictures that shipped. Failing this is much less serious than the registry:
+        // every screen that draws one already has a fallback symbol for when the picture is
+        // missing, so the editor just looks plainer.
+        try
+        {
+            var manifest = await http.GetByteArrayAsync($"art/{BundledArt.ManifestFileName}").ConfigureAwait(false);
+            BundledArt.Supply(BundledArt.TryRead(manifest));
+        }
+        catch (Exception exception)
+        {
+            Console.Error.WriteLine($"Abiotic Editor: could not load the bundled pictures. {exception.Message}");
         }
     }
     catch (Exception exception)

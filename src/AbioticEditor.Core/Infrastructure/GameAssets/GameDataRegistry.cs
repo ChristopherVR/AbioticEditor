@@ -1,7 +1,10 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using AbioticEditor.Core.Codex;
 using AbioticEditor.Core.Diagnostics;
 using AbioticEditor.Core.Items;
+using AbioticEditor.Core.PlayerSaves;
+using AbioticEditor.Core.WorldSaves;
 
 namespace AbioticEditor.Core.Assets;
 
@@ -24,7 +27,12 @@ namespace AbioticEditor.Core.Assets;
 public sealed class GameDataRegistry
 {
     /// <summary>Bumped when the on-disk shape changes incompatibly; a mismatch is ignored, not loaded.</summary>
-    public const int CurrentSchemaVersion = 1;
+    /// <remarks>
+    /// v2 added every catalog below <see cref="Items"/>. v1 carried items alone, which was enough
+    /// for the desktop app (it reads the rest straight from the install) but left the browser
+    /// build with no recipes, no codex, no traders, no skills and no appearance options at all.
+    /// </remarks>
+    public const int CurrentSchemaVersion = 2;
 
     /// <summary>Schema version of this payload (see <see cref="CurrentSchemaVersion"/>).</summary>
     public int SchemaVersion { get; init; } = CurrentSchemaVersion;
@@ -47,10 +55,56 @@ public sealed class GameDataRegistry
     /// </summary>
     public IReadOnlyDictionary<string, string>? ItemTableRefs { get; init; }
 
+    /// <summary>Every craftable recipe (<c>DT_Recipes</c> and friends); null if not dumped.</summary>
+    public IReadOnlyList<RecipeInfo>? Recipes { get; init; }
+
+    /// <summary>The item upgrade graph (<c>DT_ItemUpgrades</c>); null if not dumped.</summary>
+    public IReadOnlyList<ItemUpgrade>? ItemUpgrades { get; init; }
+
+    /// <summary>Level/region names the editor can teleport to; null if not dumped.</summary>
+    public IReadOnlyList<string>? Maps { get; init; }
+
+    /// <summary>Skill rows with their descriptions and icon paths; null if not dumped.</summary>
+    public IReadOnlyList<SkillDefinition>? Skills { get; init; }
+
+    /// <summary>Skill display name -> its per-level perks (<c>DT_SkillPerks</c>); null if not dumped.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<SkillMilestone>>? SkillMilestones { get; init; }
+
+    /// <summary>Trait/background id -> its full row (description, point cost); null if not dumped.</summary>
+    public IReadOnlyDictionary<string, TraitDetail>? Traits { get; init; }
+
+    /// <summary>Customization table name -> its selectable rows; null if not dumped.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<CustomizationOption>>? Customization { get; init; }
+
+    /// <summary>Codex emails; null if not dumped.</summary>
+    public IReadOnlyList<EmailEntry>? Emails { get; init; }
+
+    /// <summary>Codex journal objectives; null if not dumped.</summary>
+    public IReadOnlyList<JournalEntry>? Journals { get; init; }
+
+    /// <summary>Codex compendium lore entries; null if not dumped.</summary>
+    public IReadOnlyList<CompendiumEntry>? Compendium { get; init; }
+
+    /// <summary>Catchable fish rows; null if not dumped.</summary>
+    public IReadOnlyList<FishDefinition>? Fish { get; init; }
+
+    /// <summary>The trader roster and their barter stock; null if not dumped.</summary>
+    public IReadOnlyList<TraderInfo>? Traders { get; init; }
+
+    /// <summary>The game's own drawn sector maps and which level each depicts; null if not dumped.</summary>
+    public IReadOnlyList<SectorMapInfo>? SectorMaps { get; init; }
+
     /// <summary>
     /// Builds a registry from a mounted game install. Requires usmap mappings (each catalog's
     /// own loader throws without them). Adding a catalog: load it here and assign the payload.
     /// </summary>
+    /// <remarks>
+    /// Every catalog past the item table is read through <see cref="Optional"/>: one table the
+    /// current game build renamed must not throw away the whole dump, because a registry that
+    /// fails to build is the difference between "one screen is missing data" and "the browser
+    /// editor shows nothing at all". The items table stays required - without it there is no
+    /// useful registry to write.
+    /// </remarks>
     public static GameDataRegistry BuildFromInstall(GameAssetProvider provider, string? gameVersion = null)
     {
         var catalog = ItemCatalog.LoadFrom(provider);
@@ -60,7 +114,31 @@ public sealed class GameDataRegistry
             GameVersion = gameVersion,
             Items = catalog.Entries.ToList(),
             ItemTableRefs = catalog.TableRefs,
+            Recipes = Optional("recipes", () => RecipeCatalog.LoadInfosFrom(provider)),
+            ItemUpgrades = Optional("item upgrades", () => ItemUpgradeCatalog.LoadFrom(provider).Upgrades),
+            Maps = Optional("maps", () => MapCatalog.LoadFrom(provider)),
+            Skills = Optional("skills", () => SkillCatalog.LoadFrom(provider)),
+            SkillMilestones = Optional("skill perks", () => SkillMilestoneCatalog.LoadFrom(provider)),
+            Traits = Optional("traits", () => TraitCatalog.LoadDetailsFrom(provider)),
+            Customization = Optional("appearance options", () => CustomizationCatalog.LoadFrom(provider)),
+            Emails = Optional("emails", () => CodexCatalog.LoadEmails(provider)),
+            Journals = Optional("journals", () => CodexCatalog.LoadJournals(provider)),
+            Compendium = Optional("compendium", () => CodexCatalog.LoadCompendium(provider)),
+            Fish = Optional("fish", () => CodexCatalog.LoadFish(provider)),
+            Traders = Optional("traders", () => TraderCatalog.LoadFrom(provider)),
+            SectorMaps = Optional("sector maps", () => SectorMapCatalog.LoadFrom(provider)),
         };
+    }
+
+    /// <summary>Reads one optional catalog, logging and skipping it rather than failing the dump.</summary>
+    private static T? Optional<T>(string what, Func<T?> load) where T : class
+    {
+        try { return load(); }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("Registry", $"Skipping {what} in the game-data dump; the table could not be read.", ex);
+            return null;
+        }
     }
 
     /// <summary>Serializes this registry to <paramref name="path"/> (creating parent dirs).</summary>

@@ -698,6 +698,12 @@ Welten: Behälter · Quest-Flags · Türen · Bodengegenstände · Story-Fortsch
   <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
     <value>SPIELSTAND-DIAGNOSE</value>
   </data>
+  <data name="Host_NeedsDesktopTitle" xml:space="preserve">
+    <value>Erfordert den Desktop-Editor</value>
+  </data>
+  <data name="Host_NeedsDesktopBody" xml:space="preserve">
+    <value>Dieses Werkzeug greift auf Ordner auf deinem Computer zu, was einer Webseite nicht erlaubt ist. Lade den Editor herunter, um es zu verwenden.</value>
+  </data>
   <data name="Compare_ScaffoldTitle" xml:space="preserve">
     <value>Spielstände vergleichen</value>
   </data>

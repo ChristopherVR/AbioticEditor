@@ -31,4 +31,14 @@ public static class WikiImageManifest
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(static n => n, StringComparer.OrdinalIgnoreCase)
             .ToArray();
+
+    private static readonly HashSet<string> Lookup = new(AllFiles, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// True when <paramref name="fileName"/> is one of the verified names, and so has an offline
+    /// copy in the bundle. Used by the browser build, which serves those copies as static files
+    /// and has nowhere to download to.
+    /// </summary>
+    public static bool Contains(string? fileName)
+        => !string.IsNullOrEmpty(fileName) && Lookup.Contains(fileName);
 }

@@ -39,6 +39,13 @@ public interface ISaveFileSystem
     Task<byte[]> ReadAllBytesAsync(string path, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// A value that changes whenever the file does, for caches that would otherwise re-parse a
+    /// 16 MB region save on every glance. Null when the file is gone or the host cannot tell -
+    /// callers must treat that as "assume it changed" rather than as an error.
+    /// </summary>
+    Task<string?> GetVersionStampAsync(string path, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Reads at most <paramref name="maxBytes"/> from the start of a save, or the whole file if
     /// it is smaller. Opening a folder identifies every save from its header alone, and a region
     /// save can be 16 MB, so discovery must never pull whole files into memory just to read the

@@ -61,16 +61,35 @@ public sealed class ProgressionVocabularyService
         try
         {
             using var provider = GameDataGate.CreateProvider();
-            if (provider is not { HasMappings: true }) return Empty;
-            // Skill milestones come straight from the game's own DT_Skills/DT_SkillPerks
-            // tables when available (native GameDataServices does the same); the static
-            // wiki fallback remains for offline use.
-            SkillMilestoneCatalog.ApplyGameData(SkillMilestoneCatalog.LoadFrom(provider));
-            return new Vocabulary(
-                ItemCatalog.LoadFrom(provider).Entries.ToArray(),
-                MapCatalog.LoadFrom(provider),
-                TraitCatalog.LoadDetailsFrom(provider));
+            if (provider is { HasMappings: true })
+            {
+                // Skill milestones come straight from the game's own DT_Skills/DT_SkillPerks
+                // tables when available (native GameDataServices does the same); the static
+                // wiki fallback remains for offline use.
+                SkillMilestoneCatalog.ApplyGameData(SkillMilestoneCatalog.LoadFrom(provider));
+                return new Vocabulary(
+                    ItemCatalog.LoadFrom(provider).Entries.ToArray(),
+                    MapCatalog.LoadFrom(provider),
+                    TraitCatalog.LoadDetailsFrom(provider));
+            }
         }
-        catch { return Empty; }
+        catch { /* fall through to the bundled dump */ }
+
+        return FromRegistry();
+    }
+
+    /// <summary>
+    /// The same vocabulary read from the game-data dump the editor ships with, for hosts that
+    /// have no game install to mount - the browser build, and a desktop copy on a machine that
+    /// does not own the game. Everything here is text, so it is complete apart from artwork.
+    /// </summary>
+    private static Vocabulary FromRegistry()
+    {
+        if (GameDataRegistry.LoadBundled() is not { } registry) return Empty;
+        SkillMilestoneCatalog.ApplyGameData(registry.SkillMilestones);
+        return new Vocabulary(
+            registry.Items ?? Array.Empty<ItemCatalogEntry>(),
+            registry.Maps ?? Array.Empty<string>(),
+            registry.Traits ?? new Dictionary<string, TraitDetail>(StringComparer.Ordinal));
     }
 }

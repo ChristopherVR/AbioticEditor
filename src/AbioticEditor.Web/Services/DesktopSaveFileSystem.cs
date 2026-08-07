@@ -38,6 +38,11 @@ public sealed class DesktopSaveFileSystem : ISaveFileSystem
     public Task<byte[]> ReadAllBytesAsync(string path, CancellationToken cancellationToken = default)
         => File.ReadAllBytesAsync(path, cancellationToken);
 
+    public Task<string?> GetVersionStampAsync(string path, CancellationToken cancellationToken = default)
+        => Task.FromResult(File.Exists(path)
+            ? File.GetLastWriteTimeUtc(path).Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            : null);
+
     public async Task<byte[]> ReadHeaderAsync(string path, int maxBytes, CancellationToken cancellationToken = default)
     {
         await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, useAsync: true);

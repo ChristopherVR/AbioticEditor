@@ -16,6 +16,8 @@ public sealed class CustomizationSaveSession
     private readonly GamePassSaveSet? _gamePassSet;
     private readonly int _gamePassSlot;
     private byte[]? _gamePassBlob; // current slot bytes for re-serialization
+    private readonly string? _identifier;   // where the bytes came from, when not a local path
+    private byte[]? _bytes;                 // the loose-bytes counterpart of _gamePassBlob
 
     private CustomizationSaveSession(CustomizationSaveFile file, GamePassSaveSet? gamePassSet = null, int gamePassSlot = 0, byte[]? gamePassBlob = null)
     {
@@ -27,7 +29,14 @@ public sealed class CustomizationSaveSession
         _original = Fields.ToDictionary(edit => edit.PropertyName, edit => edit.Value, StringComparer.OrdinalIgnoreCase);
     }
 
-    public string Path => _file.FilePath;
+    private CustomizationSaveSession(CustomizationSaveFile file, string identifier, byte[] bytes)
+        : this(file)
+    {
+        _identifier = identifier;
+        _bytes = bytes;
+    }
+
+    public string Path => _identifier ?? _file.FilePath;
     public List<CustomizationFieldEdit> Fields { get; }
     public bool IsGamePass => _gamePassSet is not null;
     public bool IsDirty => Fields.Any(edit => !_original.TryGetValue(edit.PropertyName, out var value)
@@ -37,6 +46,42 @@ public sealed class CustomizationSaveSession
     {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("An appearance save path is required.", nameof(path));
         return new CustomizationSaveSession(CustomizationSaveFile.LoadFromFile(System.IO.Path.GetFullPath(path)));
+    }
+
+    /// <summary>
+    /// Loads an appearance save from bytes the host already read, for a host with no local file
+    /// system. <paramref name="identifier"/> is only carried back out through <see cref="Path"/>
+    /// so the caller knows where to write; nothing here interprets it.
+    /// </summary>
+    /// <remarks>
+    /// Uses the same byte round-trip the Game Pass path has always used, so an appearance edit
+    /// made in a browser goes through exactly the code a Game Pass edit does on the desktop.
+    /// </remarks>
+    public static CustomizationSaveSession LoadFromBytes(string identifier, byte[] bytes)
+    {
+        ArgumentNullException.ThrowIfNull(bytes);
+        return new CustomizationSaveSession(CustomizationSaveFile.LoadFromBytes(bytes), identifier, bytes);
+    }
+
+    /// <summary>
+    /// True when this session was loaded from bytes and so must be saved with
+    /// <see cref="SaveToBytes"/> rather than <see cref="Save"/>.
+    /// </summary>
+    public bool WritesBytes => _bytes is not null;
+
+    /// <summary>
+    /// The updated file contents for a byte-loaded session, for the caller to write back through
+    /// its own file system. Marks the staged edits as saved, so call it only when the write that
+    /// follows is going to happen.
+    /// </summary>
+    public byte[] SaveToBytes()
+    {
+        if (_bytes is null) throw new InvalidOperationException("This appearance save was loaded from a file; use Save().");
+
+        var values = Fields.ToDictionary(edit => edit.PropertyName, edit => edit.Value, StringComparer.OrdinalIgnoreCase);
+        _bytes = CustomizationSaveFile.ApplyChanges(_bytes, values);
+        foreach (var edit in Fields) _original[edit.PropertyName] = edit.Value;
+        return _bytes;
     }
 
     /// <summary>
@@ -107,6 +152,11 @@ public sealed class CustomizationSaveSession
         return null;
     }
 
+    /// <summary>
+    /// The appearance saves belonging to a player, found by walking up to the account folder on
+    /// disk. Desktop only - a host with no local paths has nothing to walk, and finds them in the
+    /// folder the player opened instead (see the appearance editor).
+    /// </summary>
     public static IReadOnlyList<string> DiscoverNearPlayer(string playerPath, string? playerIdentifier)
     {
         if (string.IsNullOrWhiteSpace(playerPath) || string.IsNullOrWhiteSpace(playerIdentifier)) return [];

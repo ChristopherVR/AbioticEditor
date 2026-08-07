@@ -6,6 +6,7 @@
 @inject AbioticEditor.Ui.IExternalNavigationService ExternalNavigation
 @inject HostSpoilerPreferences Spoilers
 @inject InventorySelectionService Selection
+@inject SaveWorkspaceSessionService Workspace
 @implements IDisposable
 
 @* Faithful port of the native PlayerAchievementsTab: STEAM ACHIEVEMENTS header with the
@@ -316,17 +317,22 @@
         }
     }
 
+    /// <summary>
+    /// The other characters in this world to compare against. Taken from the saves the workspace
+    /// already opened rather than from the folder on disk, so it answers the same on both hosts.
+    /// </summary>
     private IReadOnlyList<long> BuildCompareCandidates()
     {
         try
         {
-            var directory = System.IO.Path.GetDirectoryName(Session.Path);
-            if (directory is null || !Directory.Exists(directory)) return [];
             var candidates = new List<long>();
-            foreach (var file in Directory.EnumerateFiles(directory, "Player_*.sav"))
+            foreach (var save in Workspace.Current?.Saves ?? [])
             {
-                if (string.Equals(file, Session.Path, StringComparison.OrdinalIgnoreCase)) continue;
-                var name = System.IO.Path.GetFileNameWithoutExtension(file);
+                if (save.Kind != SaveDocumentKind.Player) continue;
+                if (string.Equals(save.Path, Session.Path, StringComparison.OrdinalIgnoreCase)) continue;
+                if (!save.Name.StartsWith("Player_", StringComparison.OrdinalIgnoreCase)) continue;
+
+                var name = save.Name[..^".sav".Length];
                 if (long.TryParse(name["Player_".Length..], NumberStyles.None, CultureInfo.InvariantCulture, out var id)) candidates.Add(id);
             }
             return candidates;

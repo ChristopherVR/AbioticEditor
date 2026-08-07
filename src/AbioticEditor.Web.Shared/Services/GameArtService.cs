@@ -29,17 +29,46 @@ public sealed class GameArtService : IDisposable
     private readonly ConcurrentDictionary<string, Task<SectorMap?>> _sectorMaps = new(StringComparer.OrdinalIgnoreCase);
     private Lazy<Task<IReadOnlyList<string>>>? _npcStates;
 
-    public string ArtUrl(string gameRef) => $"/game-art/{Uri.EscapeDataString(gameRef)}";
+    private readonly bool _extractsLive;
+
+    /// <param name="files">
+    /// Tells the two hosts apart, exactly as <see cref="ItemCatalogService"/> does. A host that can
+    /// reach the local machine pulls pictures out of the installed game on demand and serves them
+    /// from its own endpoint; a browser cannot, so it uses the set dumped ahead of time and shipped
+    /// as static files.
+    /// </param>
+    public GameArtService(ISaveFileSystem? files = null)
+    {
+        _extractsLive = files is null || files.HasLocalPaths;
+    }
+
+    public string ArtUrl(string gameRef) => _extractsLive
+        ? $"/game-art/{Uri.EscapeDataString(gameRef)}"
+        : $"art/{Uri.EscapeDataString(BundledArt.FileNameFor(gameRef))}";
 
     /// <summary>URL for a wiki-image file cached/downloaded via <see cref="Core.Assets.WikiImageCache"/>.</summary>
-    public string WikiImageUrl(string fileName) => $"/wiki-image/{Uri.EscapeDataString(fileName)}";
+    public string WikiImageUrl(string fileName) => _extractsLive
+        ? $"/wiki-image/{Uri.EscapeDataString(fileName)}"
+        // The bundle stores these under the same tidied name the cache writes on disk, because
+        // a wiki File: name can carry spaces and punctuation that do not belong in a URL.
+        : $"wiki/{Uri.EscapeDataString(Core.Assets.WikiImageCache.SafeNameFor(fileName))}.png";
 
-    public bool HasGameInstall => _provider.Value is not null;
+    public bool HasGameInstall => _extractsLive && _provider.Value is not null;
 
     public Task<string?> GetTexturePathAsync(string? gameRef)
-        => string.IsNullOrWhiteSpace(gameRef)
-            ? Task.FromResult<string?>(null)
-            : _paths.GetOrAdd(gameRef, static (r, service) => service.ExtractAsync(r), this);
+    {
+        if (string.IsNullOrWhiteSpace(gameRef)) return Task.FromResult<string?>(null);
+
+        // In a browser there is no local path to hand back and nothing to extract. What the
+        // callers actually want to know is "will drawing this show a picture or a broken image?",
+        // which the shipped manifest answers without a request. Returning the ref stands for yes.
+        if (!_extractsLive)
+        {
+            return Task.FromResult(BundledArt.LoadBundled()?.Has(gameRef) == true ? gameRef : null);
+        }
+
+        return _paths.GetOrAdd(gameRef, static (r, service) => service.ExtractAsync(r), this);
+    }
 
     private async Task<string?> ExtractAsync(string gameRef) => await Task.Run(() =>
     {
@@ -148,9 +177,11 @@ public sealed class GameArtService : IDisposable
             {
                 var fit = SectorMapCalibration.FitFor(name);
                 if (fit is null) return null;
-                var provider = service._provider.Value;
-                if (provider is not { HasMappings: true }) return null;
-                var info = SectorMapCatalog.ForRow(SectorMapCatalog.LoadFrom(provider), fit.PamphletRow);
+                var provider = service._extractsLive ? service._provider.Value : null;
+                var maps = provider is { HasMappings: true }
+                    ? SectorMapCatalog.LoadFrom(provider)
+                    : GameDataRegistry.LoadBundled()?.SectorMaps ?? Array.Empty<SectorMapInfo>();
+                var info = SectorMapCatalog.ForRow(maps, fit.PamphletRow);
                 return info is null ? null : new SectorMap(fit, info.TexturePath);
             }
             catch { return null; }
@@ -163,9 +194,18 @@ public sealed class GameArtService : IDisposable
     /// and no bundled offline copy ships either.
     /// </summary>
     public Task<string?> GetWikiImagePathAsync(string? fileName)
-        => string.IsNullOrWhiteSpace(fileName)
-            ? Task.FromResult<string?>(null)
-            : _wikiImages.GetOrAdd(fileName, static f => Core.Assets.WikiImageCache.Default.GetAsync(f));
+    {
+        if (string.IsNullOrWhiteSpace(fileName)) return Task.FromResult<string?>(null);
+
+        // The browser ships the offline copies as static files and has no disk to cache to, so
+        // the answer is simply "one shipped": see GetTexturePathAsync for why a name comes back.
+        if (!_extractsLive)
+        {
+            return Task.FromResult(Core.Assets.WikiImageManifest.Contains(fileName) ? fileName : null);
+        }
+
+        return _wikiImages.GetOrAdd(fileName, static f => Core.Assets.WikiImageCache.Default.GetAsync(f));
+    }
 
     /// <summary>
     /// A placed actor's original spawn transform, read live from its cooked level package - the

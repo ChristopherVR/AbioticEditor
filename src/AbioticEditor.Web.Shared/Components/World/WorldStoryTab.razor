@@ -8,6 +8,7 @@
 @inject RecipeVocabularyService RecipeVocabulary
 @inject ItemCatalogService Items
 @inject RecipeProgressGateService Gate
+@inject StoryFlagSyncService FlagSync
 @inject ToastService Toasts
 @inject ModalService Modals
 @inject TraderVocabularyService TraderVocabulary
@@ -198,7 +199,8 @@
         // sibling Facility save's flags. Resolving them reads a large file, so it happens off
         // the render path.
         var path = Session.Path;
-        _worldFlags = await Task.Run(() => { Gate.Warm(); return Gate.ResolveWorldFlags(path); });
+        await Task.Run(Gate.Warm);
+        _worldFlags = await Gate.ResolveWorldFlagsAsync(path);
         _traders = await Task.Run(TraderVocabulary.GetTraders);
     }
 
@@ -382,8 +384,8 @@
         try
         {
             var path = Session.Path;
-            var (added, _) = await Task.Run(() => StoryFlagSync.SyncFacilityFlags(path, row));
-            var (cleared, _) = await Task.Run(() => StoryFlagSync.ClearForwardFlags(path, row));
+            var (added, _) = await FlagSync.SyncToChapterAsync(path, row);
+            var (cleared, _) = await FlagSync.ClearForwardFlagsAsync(path, row);
             var statusExtra = string.Empty;
             if (_movePlayers)
             {
@@ -544,7 +546,7 @@
             if (Session.IsMetadataSave)
             {
                 var path = Session.Path;
-                var (_, message) = await Task.Run(() => StoryFlagSync.AddFacilityFlags(path, flags));
+                var (_, message) = await FlagSync.AddFlagsAsync(path, flags);
                 await RefreshWorldFlagsAsync();
                 await OnError.InvokeAsync(message);
             }
@@ -564,7 +566,7 @@
     private async Task RefreshWorldFlagsAsync()
     {
         var path = Session.Path;
-        _worldFlags = await Task.Run(() => Gate.ResolveWorldFlags(path));
+        _worldFlags = await Gate.ResolveWorldFlagsAsync(path);
     }
 
     private void SetMinutes(ChangeEventArgs args) { if (int.TryParse(args.Value?.ToString(), out var minutes)) { Session.SetMinutesPassed(minutes); Workspace.NotifyEdited(); } }

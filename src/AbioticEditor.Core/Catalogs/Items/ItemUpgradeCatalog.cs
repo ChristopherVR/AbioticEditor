@@ -39,6 +39,12 @@ public sealed class ItemUpgradeCatalog
 
     public static ItemUpgradeCatalog Empty { get; } = new(Array.Empty<ItemUpgrade>());
 
+    /// <summary>Rebuilds the graph from a previously-dumped registry, with no game install needed.</summary>
+    public static ItemUpgradeCatalog FromRegistry(IReadOnlyList<ItemUpgrade> upgrades) => new(upgrades);
+
+    /// <summary>Every upgrade row, in no particular order. Captured for the bundled registry dump.</summary>
+    public IReadOnlyList<ItemUpgrade> Upgrades => _bySource.Values.ToArray();
+
     public int Count => _bySource.Count;
 
     /// <summary>The upgrade applied TO this item (next tier), or null when maxed/not upgradable.</summary>

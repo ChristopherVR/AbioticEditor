@@ -5,6 +5,7 @@
 @using AbioticEditor.Core.PlayerSaves
 @inject CustomizationCatalogService Catalog
 @inject SaveWorkspaceSessionService Workspace
+@inject ISaveFileSystem Files
 
 @* Faithful port of the native appearance panel (PlayerCharacterTab.xaml, second AfPanel):
    header row with slot picker + SAVE APPEARANCE, explanatory captions, then the wrapped
@@ -22,7 +23,7 @@
                 @foreach (var slot in _slots.Keys) { <option value="@slot">@slot</option> }
             </select>
         }
-        <button class="primary appearance-save" type="button" disabled="@(_session is null || !_session.IsDirty)" @onclick="Save">@L.Resource("PlayerCharacter_SaveAppearance")</button>
+        <button class="primary appearance-save" type="button" disabled="@(_session is null || !_session.IsDirty)" @onclick="SaveAsync">@L.Resource("PlayerCharacter_SaveAppearance")</button>
     </div>
 
     @if (_session is not null)
@@ -31,7 +32,7 @@
         <small class="general-help">
             @(_gamePassSet is not null
                 ? L.Resource("Customization_AvailableCaptionGamePass", _selectedSlot)
-                : L.Resource("Customization_AvailableCaptionSteam", System.IO.Path.GetFileName(_session.Path)))
+                : L.Resource("Customization_AvailableCaptionSteam", SlotFileName(_session.Path)))
         </small>
     }
     @if (_status is not null) { <small class="appearance-status" role="status">@_status</small> }
@@ -102,10 +103,10 @@
     private int SelectedSlot
     {
         get => _selectedSlot;
-        set { if (_selectedSlot == value) return; _selectedSlot = value; LoadSlot(value); }
+        set { if (_selectedSlot == value) return; _selectedSlot = value; _ = LoadSlotAsync(value); }
     }
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         if (string.Equals(_playerPath, Player.Path, StringComparison.OrdinalIgnoreCase)) return;
         _playerPath = Player.Path;
@@ -113,15 +114,42 @@
         _status = null;
         _slots.Clear();
         _gamePassSet = null;
-        foreach (var path in CustomizationSaveSession.DiscoverNearPlayer(Player.Path, Player.SteamIdentifier))
-        {
-            var name = System.IO.Path.GetFileNameWithoutExtension(path);
-            var separator = name.LastIndexOf('_');
-            if (separator >= 0 && int.TryParse(name[(separator + 1)..], out var slot)) _slots[slot] = path;
-        }
+        foreach (var (slot, path) in await DiscoverSlotsAsync()) _slots[slot] = path;
         if (_slots.Count == 0) DiscoverGamePassSlots();
         _selectedSlot = _slots.Count > 0 ? _slots.Keys.First() : 0;
-        LoadSlot(_selectedSlot);
+        await LoadSlotAsync(_selectedSlot);
+    }
+
+    /// <summary>
+    /// The appearance saves this player has, as slot number -> where to read it from. On the
+    /// desktop they are found by walking up to the account folder; a host with no local paths
+    /// cannot walk anywhere, so it looks inside the folder the player actually opened.
+    /// </summary>
+    private async Task<IReadOnlyList<(int Slot, string Path)>> DiscoverSlotsAsync()
+    {
+        var found = new List<(int, string)>();
+        try
+        {
+            var candidates = Files.HasLocalPaths
+                ? CustomizationSaveSession.DiscoverNearPlayer(Player.Path, Player.SteamIdentifier)
+                    .Select(path => (Path: path, Name: System.IO.Path.GetFileNameWithoutExtension(path)))
+                    .ToArray()
+                : (await Files.ListSavesAsync(Workspace.Current?.WorldFolder ?? string.Empty))
+                    .Where(entry => entry.Name.StartsWith("ScientistCustomization_", StringComparison.OrdinalIgnoreCase))
+                    .Select(entry => (entry.Path, Name: entry.Name[..^".sav".Length]))
+                    .ToArray();
+
+            foreach (var (path, name) in candidates)
+            {
+                var separator = name.LastIndexOf('_');
+                if (separator >= 0 && int.TryParse(name[(separator + 1)..], out var slot)) found.Add((slot, path));
+            }
+        }
+        catch (Exception exception)
+        {
+            Errors.Record(exception, "Find the appearance saves for this character");
+        }
+        return found;
     }
 
     /// <summary>
@@ -153,7 +181,7 @@
         }
     }
 
-    private void LoadSlot(int slot)
+    private async Task LoadSlotAsync(int slot)
     {
         _session = null;
         if (!_slots.TryGetValue(slot, out var path))
@@ -171,8 +199,11 @@
                     : L.Resource("Customization_StatusEditingGamePass", slot);
                 return;
             }
-            _session = CustomizationSaveSession.Load(path!);
-            _status = L.Resource("Customization_StatusEditingFile", System.IO.Path.GetFileName(_session.Path));
+
+            _session = Files.HasLocalPaths
+                ? CustomizationSaveSession.Load(path!)
+                : CustomizationSaveSession.LoadFromBytes(path!, await Files.ReadAllBytesAsync(path!));
+            _status = L.Resource("Customization_StatusEditingFile", SlotFileName(path!));
         }
         catch (Exception exception)
         {
@@ -181,12 +212,25 @@
         }
     }
 
-    private void Save()
+    /// <summary>The file's own name, taken from the end of whatever identifies it on this host.</summary>
+    private string SlotFileName(string path)
+        => Files.HasLocalPaths ? System.IO.Path.GetFileName(path) : path[(path.LastIndexOf('/') + 1)..];
+
+    private async Task SaveAsync()
     {
         if (_session is null) return;
         try
         {
-            _session.Save();
+            // The browser has no file to write in place, so the updated bytes go back through
+            // the same file system the save came from - which keeps the .bak either way.
+            if (_session.WritesBytes)
+            {
+                await Files.WriteAllBytesAsync(_session.Path, _session.SaveToBytes());
+            }
+            else
+            {
+                _session.Save();
+            }
             _status = L.Resource("Customization_StatusSaved", $"{DateTime.Now:HH:mm:ss}");
         }
         catch (Exception exception)

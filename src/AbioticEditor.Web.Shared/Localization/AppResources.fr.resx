@@ -698,6 +698,12 @@ Mondes : conteneurs · indicateurs de quête · portes · objets au sol · progr
   <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
     <value>DIAGNOSTIC DE SAUVEGARDE</value>
   </data>
+  <data name="Host_NeedsDesktopTitle" xml:space="preserve">
+    <value>Nécessite l'éditeur de bureau</value>
+  </data>
+  <data name="Host_NeedsDesktopBody" xml:space="preserve">
+    <value>Cet outil accède à des dossiers sur votre ordinateur, ce qu'une page web n'a pas le droit de faire. Téléchargez l'éditeur pour l'utiliser.</value>
+  </data>
   <data name="Compare_ScaffoldTitle" xml:space="preserve">
     <value>Comparer les sauvegardes</value>
   </data>

@@ -23,11 +23,14 @@ public sealed class TraderVocabularyService
         {
             using var provider = GameDataGate.CreateProvider();
             // LoadFrom itself falls back to the snapshot when the tables are unreadable.
-            return provider is null ? TraderCatalog.Fallback : TraderCatalog.LoadFrom(provider);
+            if (provider is not null) return TraderCatalog.LoadFrom(provider);
         }
-        catch
-        {
-            return TraderCatalog.Fallback;
-        }
+        catch { /* fall through */ }
+
+        // The bundled dump carries each trader's full barter stock; the built-in snapshot only
+        // knows who they are and what unlocks them, so it is the last resort of the three.
+        return GameDataRegistry.LoadBundled()?.Traders is { Count: > 0 } traders
+            ? traders
+            : TraderCatalog.Fallback;
     }
 }

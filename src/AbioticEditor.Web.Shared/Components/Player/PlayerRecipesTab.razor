@@ -240,13 +240,10 @@
         // gate, warms the email vocabulary the gate consults, and loads the trader roster
         // (live pak stock when the game is installed, the built-in snapshot otherwise).
         var session = Session;
-        var (infos, worldFlags, traders) = await Task.Run(() =>
-        {
-            var recipeInfos = RecipeVocabulary.GetRecipeInfos();
-            var flags = Gate.ResolveWorldFlags(session.Path);
-            if (flags is not null) Gate.Warm();
-            return (recipeInfos, flags, TraderVocabulary.GetTraders());
-        });
+        var worldFlags = await Gate.ResolveWorldFlagsAsync(session.Path);
+        if (worldFlags is not null) Gate.Warm();
+        var (infos, traders) = await Task.Run(
+            () => (RecipeVocabulary.GetRecipeInfos(), TraderVocabulary.GetTraders()));
         if (!ReferenceEquals(_boundSession, Session)) return;
         _worldFlags = worldFlags;
         _traders = traders;

@@ -46,3 +46,5 @@ oo2core*.dll
 src/AbioticEditor.Web.Wasm/wwwroot/registry/
 src/AbioticEditor.Web.Wasm/wwwroot/icons/
 src/AbioticEditor.Web.Wasm/wwwroot/Templates/
+src/AbioticEditor.Web.Wasm/wwwroot/art/
+src/AbioticEditor.Web.Wasm/wwwroot/wiki/

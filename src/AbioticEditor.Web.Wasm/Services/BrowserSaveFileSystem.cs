@@ -73,6 +73,9 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem
     public Task<byte[]> ReadHeaderAsync(string path, int maxBytes, CancellationToken cancellationToken = default)
         => ReadStreamAsync("abioticSaveFs.readHeader", cancellationToken, path, maxBytes);
 
+    public async Task<string?> GetVersionStampAsync(string path, CancellationToken cancellationToken = default)
+        => await js.InvokeAsync<string?>("abioticSaveFs.versionStamp", cancellationToken, path).ConfigureAwait(false);
+
     public async Task WriteAllBytesAsync(string path, byte[] contents, CancellationToken cancellationToken = default)
     {
         using var source = new MemoryStream(contents, writable: false);

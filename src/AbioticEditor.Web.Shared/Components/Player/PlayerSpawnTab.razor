@@ -173,7 +173,7 @@
             {
                 _deployables = world.Deployables;
             }
-            else if (SiblingWorldBedService.FacilityPathFor(Session.Path) is { } facility)
+            else if (await Beds.FacilityPathForAsync(Session.Path, Workspace.Current) is { } facility)
             {
                 _deployables = await Beds.GetDeployablesAsync(facility, WorldSession);
             }
@@ -325,7 +325,7 @@
             // writes when the world is saved (SAVE WORLD below / the workspace SAVE).
             try
             {
-                var worldPath = WorldSession?.Path ?? SiblingWorldBedService.FacilityPathFor(Session.Path);
+                var worldPath = WorldSession?.Path ?? await Beds.FacilityPathForAsync(Session.Path, Workspace.Current);
                 if (worldPath is not null)
                 {
                     var session = await Beds.GetOrLoadSessionAsync(worldPath, WorldSession);

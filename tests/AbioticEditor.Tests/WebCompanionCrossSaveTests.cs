@@ -25,7 +25,9 @@ public sealed class WebCompanionCrossSaveTests
         var playerBytes = File.ReadAllBytes(playerPath);
         var worldBytes = File.ReadAllBytes(facilityPath);
 
-        var service = new SiblingWorldBedService();
+        // The desktop file system is the seam this service reads through; it is a pass-through
+        // to System.IO, so the behaviour asserted below is the behaviour the app has.
+        var service = new SiblingWorldBedService(new DesktopSaveFileSystem());
 
         // Discovery works without any world session loaded: the sibling scan finds the
         // region saves next to the player (never the metadata save) and their pet beds.

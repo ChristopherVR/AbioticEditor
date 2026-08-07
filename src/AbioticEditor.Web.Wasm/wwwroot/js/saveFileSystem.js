@@ -152,6 +152,19 @@ window.abioticSaveFs = {
         return await (await handle.getFile()).arrayBuffer();
     },
 
+    /// Cheap "has this changed?" token, so a screen that glances at a 16 MB region save does
+    /// not re-parse it every time. Null when the file has gone, which callers read as "changed".
+    versionStamp: async (path) => {
+        try {
+            const { rootName, relative } = splitPath(path);
+            const { handle } = await fileHandle(rootName, relative);
+            const file = await handle.getFile();
+            return `${file.lastModified}:${file.size}`;
+        } catch {
+            return null;
+        }
+    },
+
     /// Copies the current contents to "<name>.bak" and then replaces the file. The editor's
     /// promise is that one bad save can always be undone, so a failed backup stops the write
     /// rather than pressing on - unlike on the desktop, there is no file history to fall back on.

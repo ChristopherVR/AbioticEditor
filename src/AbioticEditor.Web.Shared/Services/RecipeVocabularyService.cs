@@ -49,14 +49,18 @@ public sealed class RecipeVocabularyService
         try
         {
             using var provider = GameDataGate.CreateProvider();
-            return provider is { HasMappings: true }
-                ? RecipeCatalog.LoadInfosFrom(provider)
-                : Array.Empty<RecipeInfo>();
+            if (provider is { HasMappings: true })
+            {
+                var live = RecipeCatalog.LoadInfosFrom(provider);
+                if (live.Count > 0) return live;
+            }
         }
         catch
         {
-            // Recipe editing still supports rows already present in a save if assets fail.
-            return Array.Empty<RecipeInfo>();
+            // Fall through to the bundled dump; recipe editing also still supports rows
+            // already present in a save even when neither source is available.
         }
+
+        return GameDataRegistry.LoadBundled()?.Recipes ?? Array.Empty<RecipeInfo>();
     }
 }

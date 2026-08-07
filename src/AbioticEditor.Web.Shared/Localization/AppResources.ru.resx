@@ -698,6 +698,12 @@
   <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
     <value>ДИАГНОСТИКА СОХРАНЕНИЙ</value>
   </data>
+  <data name="Host_NeedsDesktopTitle" xml:space="preserve">
+    <value>Нужен настольный редактор</value>
+  </data>
+  <data name="Host_NeedsDesktopBody" xml:space="preserve">
+    <value>Этот инструмент обращается к папкам на вашем компьютере, а веб-странице это не разрешено. Скачайте редактор, чтобы им воспользоваться.</value>
+  </data>
   <data name="Compare_ScaffoldTitle" xml:space="preserve">
     <value>Сравнить сохранения</value>
   </data>

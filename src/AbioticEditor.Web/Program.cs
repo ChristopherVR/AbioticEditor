@@ -58,6 +58,7 @@ public static class Program
         builder.Services.AddSingleton<SaveWorkspaceSessionService>();
         builder.Services.AddSingleton<RecipeProgressGateService>();
         builder.Services.AddSingleton<SiblingWorldBedService>();
+        builder.Services.AddScoped<StoryFlagSyncService>();
         // Both of these are seams the shared screens reach the outside world through, so the
         // browser host can substitute its own. On this host they are the local machine.
         builder.Services.AddSingleton<ISaveTemplateSource, DesktopSaveTemplateSource>();

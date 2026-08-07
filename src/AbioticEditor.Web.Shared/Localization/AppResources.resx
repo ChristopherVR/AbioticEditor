@@ -899,6 +899,12 @@ Worlds: containers · quest flags · doors · ground items · story progression<
   <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
     <value>SAVE DIAGNOSTICS</value>
   </data>
+  <data name="Host_NeedsDesktopTitle" xml:space="preserve">
+    <value>Needs the desktop editor</value>
+  </data>
+  <data name="Host_NeedsDesktopBody" xml:space="preserve">
+    <value>This tool reaches folders on your computer, which a web page is not allowed to do. Download the editor to use it.</value>
+  </data>
   <data name="Compare_ScaffoldTitle" xml:space="preserve">
     <value>Compare Saves</value>
   </data>

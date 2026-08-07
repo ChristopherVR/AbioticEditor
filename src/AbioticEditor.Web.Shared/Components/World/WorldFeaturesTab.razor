@@ -3,6 +3,7 @@
 @using AbioticEditor.Web.Models
 @using Microsoft.AspNetCore.Components.Web.Virtualization
 @inject AbioticEditor.Web.Services.SaveWorkspaceSessionService Workspace
+@inject AbioticEditor.Web.Services.ISaveFileSystem Files
 @implements IDisposable
 
 @* Faithful port of the native WorldFeatureTab: ONE world-map feature (buttons, elevators,
@@ -198,24 +199,7 @@ else
             .Where(path => !string.Equals(path, Session.Path, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
-        _ = Task.Run(() =>
-        {
-            var index = new Dictionary<string, Core.WorldSaves.PowerSocketDeviceResolver.DeviceInfo>(StringComparer.OrdinalIgnoreCase);
-            foreach (var path in siblings)
-            {
-                try
-                {
-                    var data = Core.WorldSaves.WorldSaveReader.ReadFromFile(path);
-                    Core.WorldSaves.PowerSocketDeviceResolver.MergeSave(index, System.IO.Path.GetFileName(path), data.Raw);
-                }
-                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
-                {
-                    // A sibling that cannot be read simply contributes no names.
-                    Core.Diagnostics.EditorLog.Warn("PowerSockets", $"Could not scan '{path}' for plugged-in devices.", exception);
-                }
-            }
-            return index;
-        }).ContinueWith(task =>
+        _ = ResolveAsync().ContinueWith(task =>
         {
             if (task.IsFaulted) return;
             foreach (var id in pending)
@@ -224,6 +208,37 @@ else
             }
             _ = InvokeAsync(StateHasChanged);
         }, TaskScheduler.Default);
+
+        // Reads through the host's file system rather than System.IO, so the browser resolves
+        // names out of the folder the player opened instead of a path it cannot reach. Parsing
+        // still happens off the UI thread, one sibling at a time.
+        async Task<Dictionary<string, Core.WorldSaves.PowerSocketDeviceResolver.DeviceInfo>> ResolveAsync()
+        {
+            var index = new Dictionary<string, Core.WorldSaves.PowerSocketDeviceResolver.DeviceInfo>(StringComparer.OrdinalIgnoreCase);
+            foreach (var path in siblings)
+            {
+                try
+                {
+                    var bytes = await Files.ReadAllBytesAsync(path);
+                    var data = await Task.Run(() =>
+                        Core.WorldSaves.WorldSaveReader.ReadFromStream(new MemoryStream(bytes, writable: false)));
+                    Core.WorldSaves.PowerSocketDeviceResolver.MergeSave(index, SaveName(path), data.Raw);
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
+                {
+                    // A sibling that cannot be read simply contributes no names.
+                    Core.Diagnostics.EditorLog.Warn("PowerSockets", $"Could not scan '{path}' for plugged-in devices.", exception);
+                }
+            }
+            return index;
+        }
+
+        // The workspace's own name for a save, since its path may be a browser handle name
+        // rather than something Path.GetFileName can take apart.
+        string SaveName(string path)
+            => (Workspace.Current?.Saves ?? []).FirstOrDefault(save =>
+                   string.Equals(save.Path, path, StringComparison.OrdinalIgnoreCase))?.Name
+               ?? System.IO.Path.GetFileName(path);
     }
 
     private void RefreshSnapshot()

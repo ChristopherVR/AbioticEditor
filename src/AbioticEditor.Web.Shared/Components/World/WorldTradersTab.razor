@@ -6,6 +6,7 @@
 @inject ItemCatalogService Items
 @inject TraderVocabularyService Traders
 @inject RecipeProgressGateService Gate
+@inject StoryFlagSyncService FlagSync
 @inject HostSpoilerPreferences Spoilers
 @inject SaveWorkspaceSessionService Workspace
 @inject ModalService Modals
@@ -86,9 +87,8 @@
     {
         Selection.Changed += SelectionChanged;
         var path = Session.Path;
-        var (roster, worldFlags) = await Task.Run(() => (Traders.GetTraders(), Gate.ResolveWorldFlags(path)));
-        _roster = roster;
-        _worldFlags = worldFlags;
+        _roster = await Task.Run(Traders.GetTraders);
+        _worldFlags = await Gate.ResolveWorldFlagsAsync(path);
         RefreshTraderDetail();
     }
 
@@ -478,8 +478,8 @@
             if (Session.IsMetadataSave)
             {
                 var path = Session.Path;
-                await Task.Run(() => StoryFlagSync.AddFacilityFlags(path, flags));
-                _worldFlags = await Task.Run(() => Gate.ResolveWorldFlags(path));
+                await FlagSync.AddFlagsAsync(path, flags);
+                _worldFlags = await Gate.ResolveWorldFlagsAsync(path);
             }
             else
             {

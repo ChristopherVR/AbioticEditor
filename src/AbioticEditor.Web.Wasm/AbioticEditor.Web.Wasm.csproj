@@ -26,6 +26,12 @@
   <ItemGroup>
     <BrowserDataAsset Include="..\..\assets\registry\registry.json" TargetDir="registry" />
     <BrowserDataAsset Include="..\..\assets\icons\*.png" TargetDir="icons" />
+    <!-- Everything the editor draws that is not an item icon: skill icons, trader portraits,
+         chapter cards, sector maps, creature and pet portraits, the logo. -->
+    <BrowserDataAsset Include="..\..\assets\art\*.png" TargetDir="art" />
+    <BrowserDataAsset Include="..\..\assets\art\manifest.json" TargetDir="art" />
+    <!-- The offline copies of the verified wiki images, which the desktop downloads on demand. -->
+    <BrowserDataAsset Include="..\..\assets\wiki\*.png" TargetDir="wiki" />
     <BrowserDataAsset Include="..\AbioticEditor.Core\Resources\blank-world-template.sav" TargetDir="Templates" />
     <BrowserDataAsset Include="..\AbioticEditor.Core\Resources\blank-player-template.sav" TargetDir="Templates" />
   </ItemGroup>

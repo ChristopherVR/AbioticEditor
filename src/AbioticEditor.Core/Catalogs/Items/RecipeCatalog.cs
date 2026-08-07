@@ -26,7 +26,11 @@ public sealed record RecipeInfo(
     IReadOnlyList<RecipeIngredient>? Ingredients = null,
     IReadOnlyList<string>? Benches = null)
 {
+    // Derived from the fields above, so writing them into the bundled registry would only make
+    // the download bigger and could not be read back (they have no setter).
+    [System.Text.Json.Serialization.JsonIgnore]
     public IReadOnlyList<RecipeIngredient> IngredientList => Ingredients ?? Array.Empty<RecipeIngredient>();
+    [System.Text.Json.Serialization.JsonIgnore]
     public IReadOnlyList<string> BenchList => Benches ?? Array.Empty<string>();
 }
 
