@@ -1,0 +1,128 @@
+// Reaching the player's save folder from a browser tab.
+//
+// The File System Access API hands out FileSystemDirectoryHandle objects, which cannot cross
+// the JavaScript/.NET boundary. They are kept here instead, keyed by the folder's own name, and
+// .NET refers to files by "<folderName>/<pathInsideFolder>". That is the "opaque identifier"
+// ISaveFileSystem documents: it looks path-shaped so the existing editor code is happy, but only
+// this file may interpret it. Re-picking a folder of the same name replaces its handle, which is
+// what a player re-opening the same world expects.
+//
+// Chromium only. Firefox and Safari have no directory picker at all, which is why isSupported()
+// exists and the browser host offers single-file mode there instead.
+
+const roots = new Map();
+
+function splitPath(path) {
+    const separator = path.indexOf("/");
+    if (separator < 0) return { rootName: path, relative: "" };
+    return { rootName: path.slice(0, separator), relative: path.slice(separator + 1) };
+}
+
+function rootHandle(rootName) {
+    const handle = roots.get(rootName);
+    if (!handle) {
+        throw new Error(`The folder "${rootName}" is no longer open. Pick your save folder again.`);
+    }
+    return handle;
+}
+
+// Walks down a "a/b/c.sav" relative path and returns the file handle at the end.
+async function fileHandle(rootName, relative, { create = false } = {}) {
+    let directory = rootHandle(rootName);
+    const segments = relative.split("/").filter(segment => segment.length > 0);
+    const fileName = segments.pop();
+    for (const segment of segments) {
+        directory = await directory.getDirectoryHandle(segment, { create });
+    }
+    return { directory, handle: await directory.getFileHandle(fileName, { create }), fileName };
+}
+
+async function* walk(directory, prefix) {
+    for await (const entry of directory.values()) {
+        const path = prefix ? `${prefix}/${entry.name}` : entry.name;
+        if (entry.kind === "directory") {
+            yield* walk(entry, path);
+        } else if (entry.name.toLowerCase().endsWith(".sav")) {
+            yield { entry, path };
+        }
+    }
+}
+
+window.abioticSaveFs = {
+    isSupported: () => typeof window.showDirectoryPicker === "function",
+
+    /// Prompts for a save folder and remembers it. Returns its name, or null if cancelled.
+    pickFolder: async () => {
+        if (!window.showDirectoryPicker) {
+            throw new Error("This browser cannot open a folder. Try Chrome or Edge, or open a single save file instead.");
+        }
+        let handle;
+        try {
+            // readwrite up front: asking again at save time would be a second permission prompt
+            // at the worst possible moment, right when the player expects their edit to land.
+            handle = await window.showDirectoryPicker({ mode: "readwrite", id: "abiotic-saves" });
+        } catch (error) {
+            if (error && error.name === "AbortError") return null;
+            throw error;
+        }
+        roots.set(handle.name, handle);
+        return handle.name;
+    },
+
+    folderExists: async (rootName) => roots.has(rootName),
+
+    listSaves: async (rootName) => {
+        const directory = rootHandle(rootName);
+        const results = [];
+        for await (const found of walk(directory, "")) {
+            const file = await found.entry.getFile();
+            results.push({
+                path: `${rootName}/${found.path}`,
+                relativePath: found.path,
+                name: found.entry.name,
+                length: file.size,
+            });
+        }
+        return results;
+    },
+
+    /// Only the first maxBytes. A Blob slice is lazy, so identifying 65 saves does not read
+    /// 16 MB region files off the disk.
+    readHeader: async (path, maxBytes) => {
+        const { rootName, relative } = splitPath(path);
+        const { handle } = await fileHandle(rootName, relative);
+        const file = await handle.getFile();
+        return await file.slice(0, Math.min(maxBytes, file.size)).arrayBuffer();
+    },
+
+    readAll: async (path) => {
+        const { rootName, relative } = splitPath(path);
+        const { handle } = await fileHandle(rootName, relative);
+        return await (await handle.getFile()).arrayBuffer();
+    },
+
+    /// Copies the current contents to "<name>.bak" and then replaces the file. The editor's
+    /// promise is that one bad save can always be undone, so a failed backup stops the write
+    /// rather than pressing on - unlike on the desktop, there is no file history to fall back on.
+    write: async (path, contentStreamReference) => {
+        const { rootName, relative } = splitPath(path);
+        const { directory, handle, fileName } = await fileHandle(rootName, relative);
+        // .NET hands the bytes over as a stream reference rather than a JSON-encoded array, so a
+        // 16 MB region save does not go through base64 on the way here.
+        const data = await contentStreamReference.arrayBuffer();
+
+        const existing = await handle.getFile();
+        if (existing.size > 0) {
+            const backup = await directory.getFileHandle(`${fileName}.bak`, { create: true });
+            const backupStream = await backup.createWritable();
+            await backupStream.write(await existing.arrayBuffer());
+            await backupStream.close();
+        }
+
+        // createWritable() buffers into a swap file and only replaces the target on close, so a
+        // failure partway cannot leave a truncated save behind.
+        const stream = await handle.createWritable();
+        await stream.write(data);
+        await stream.close();
+    },
+};
