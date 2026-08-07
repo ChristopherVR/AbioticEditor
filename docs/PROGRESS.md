@@ -5,6 +5,39 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-47: `ISaveFileSystem` - save IO behind a swappable seam (2026-08-07)
+
+Phase 2 of the shared-front-end work. `SaveWorkspaceSessionService` was path-centric throughout
+(`Directory.EnumerateFiles`, `FileInfo`, `ReadFromFile`, `WriteToFile`); it now reaches files
+only through `ISaveFileSystem`, so a host without a disk can supply its own.
+
+- **The seam is deliberately small**: `HasLocalPaths`, `FolderExistsAsync`, `ListSavesAsync`,
+  `ReadAllBytesAsync`, `ReadHeaderAsync`, `WriteAllBytesAsync`, plus a `SaveFileEntry` record.
+  `DesktopSaveFileSystem` (in the desktop host) is a thin pass-through that still writes via
+  Core's `SaveBackup`, so the desktop's backup-then-atomic-replace behaviour is unchanged rather
+  than reimplemented.
+- **`path` is now explicitly an opaque identifier, not necessarily a real path.** Only the
+  implementation that produced it may interpret it. `HasLocalPaths` is the gate for anything
+  that hands a path to something outside the editor (revealing a file, Game Pass container
+  packing, the JSON side-car, and `ContainmentDirectory.SyncUnitRecords`, which reaches sibling
+  region saves and is now skipped when paths are not local).
+- **`ReadHeaderAsync` exists for a reason, do not collapse it into `ReadAllBytesAsync`.**
+  Discovery identifies every save from its GVAS header. Reading whole files instead would pull
+  the ~16 MB Facility region save (and 64 others in the Cascade fixture) into memory just to
+  read a few dozen bytes. Core gained a `SaveFolderScanner.ReadSaveClassFromHeader(Stream)`
+  overload so that probe can run against bytes rather than a path.
+- Sessions take `ISaveFileSystem? files = null`; null keeps the old direct-to-disk write, which
+  is what the pre-existing session tests exercise. Both hosts pass a real one.
+- **Coverage gap this created, and closed.** All 11 existing `SaveAsync` tests construct
+  sessions with `files: null`, so they exercise the *fallback* - not the path the shipping app
+  now takes. `tests/.../SaveFileSystemSeamTests.cs` covers the seam directly: player save, world
+  save, and the full app flow (open folder -> select -> edit -> save), each asserting the `.bak`
+  holds the original bytes and the edit really landed. **922/922 pass.**
+- Verified in the running desktop app as well as by tests (round-46's lesson): folder discovery,
+  header classification into WORLD STORY / PLAYERS, and reading a player save all work through
+  the seam. Write behaviour was verified against a **copy** of the Cascade fixture, never the
+  user's real save folder.
+
 ## Round-46: `AbioticEditor.Web.Shared` - one screen set for both front-ends (2026-08-07)
 
 Round-45 built the browser host its OWN pages, which was the wrong shape: two editors would
