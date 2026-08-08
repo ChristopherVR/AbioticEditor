@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.JSInterop;
 using AbioticEditor.Core.Assets;
 using AbioticEditor.Web.Services;
 using AbioticEditor.Web.Wasm;
@@ -41,6 +42,7 @@ builder.Services.AddScoped<TraderVocabularyService>();
 builder.Services.AddScoped<SaveWorkspaceSessionService>();
 builder.Services.AddScoped<RecipeProgressGateService>();
 builder.Services.AddScoped<SiblingWorldBedService>();
+builder.Services.AddScoped<WorldLevelIndexService>();
 builder.Services.AddScoped<StoryFlagSyncService>();
 builder.Services.AddScoped<CreateWorldService>();
 builder.Services.AddScoped<IniEditorSessionService>();
@@ -61,10 +63,56 @@ builder.Services.AddScoped<SaveComparisonService>();
 builder.Services.AddScoped<UserFacingErrorService>();
 builder.Services.AddScoped<ModalService>();
 builder.Services.AddScoped<ToastService>();
+builder.Services.AddScoped<UnsavedChangesGuard>();
 
 var host = builder.Build();
+UseBrowserStorageForPreferences(host.Services);
 await StageBundledGameDataAsync(host.Services);
 await host.RunAsync();
+
+/// <summary>
+/// Keeps the editor's own settings in the browser's storage instead of in files.
+/// </summary>
+/// <remarks>
+/// A WebAssembly app does have a file system, and it is thrown away the moment the tab reloads -
+/// so the desktop's one-line settings files silently lost every choice the player made. Display
+/// language made that obvious, because choosing one reloads the page and the editor came straight
+/// back in the language it started in, but the theme and the game-data language were just as
+/// affected. localStorage is the browser's equivalent and survives properly.
+///
+/// Installed before any screen renders, and before the game data is fetched - that fetch reads
+/// the saved game-data language to decide which translation dump to download.
+/// </remarks>
+static void UseBrowserStorageForPreferences(IServiceProvider services)
+{
+    // In-process interop: these are read while services are being constructed, which cannot wait
+    // on an async call. Only WebAssembly offers it, which is exactly where this runs.
+    if (services.GetRequiredService<IJSRuntime>() is not IJSInProcessRuntime js) return;
+
+    string? Read(string key)
+    {
+        try { return js.Invoke<string?>("localStorage.getItem", key); }
+        catch (JSException) { return null; }
+    }
+
+    void Write(string key, string? value)
+    {
+        // A browser with storage switched off (private mode, blocked cookies) throws here. The
+        // setting still applies for this session; it just will not be remembered, which is far
+        // better than the editor refusing to change a setting at all.
+        try
+        {
+            if (value is null) js.InvokeVoid("localStorage.removeItem", key);
+            else js.InvokeVoid("localStorage.setItem", key, value);
+        }
+        catch (JSException) { }
+    }
+
+    HostPreferenceStore.UseStore(Read, Write);
+    GameDataLanguageStore.UseStore(
+        () => Read(HostPreferenceStore.Keys.GameDataLanguage),
+        value => Write(HostPreferenceStore.Keys.GameDataLanguage, value));
+}
 
 // Item names, recipes, the codex and the rest come from a dump of the game's data tables that
 // ships with the editor, fetched once at startup and handed to Core directly.
@@ -119,15 +167,21 @@ static async Task StageBundledGameDataAsync(IServiceProvider services)
 /// them is translated text: one file would mean a German player reading English item names. Only
 /// the matching file is downloaded, so carrying ten costs the player nothing.
 ///
-/// The language comes from the browser, which is what Blazor sets the current culture from. Tried
-/// most specific first ("pt-BR" before "pt"), because the game ships some regional variants and
-/// not their base language.
+/// The language is the one the player chose for game names if they chose one, and otherwise the
+/// browser's, which is what Blazor sets the current culture from. Tried most specific first
+/// ("pt-BR" before "pt"), because the game ships some regional variants and not their base
+/// language.
 /// </remarks>
 static async Task<GameDataRegistry?> FetchRegistryAsync(HttpClient http)
 {
     // Resolved against the list of what actually shipped, so exactly one file is requested and a
     // player whose language is not covered costs no failed request at all.
-    var culture = GameDataRegistry.BestCultureFor(System.Globalization.CultureInfo.CurrentUICulture.Name);
+    //
+    // The chosen game-data language wins over the browser's: the game ships languages the editor
+    // itself is not translated into, and someone playing in Japanese wants Japanese item names
+    // whichever language the buttons are in. Without this the setting existed and did nothing.
+    var preferred = GameDataLanguageStore.Saved ?? System.Globalization.CultureInfo.CurrentUICulture.Name;
+    var culture = GameDataRegistry.BestCultureFor(preferred);
 
     foreach (var candidate in new[] { culture, null })
     {

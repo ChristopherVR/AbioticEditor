@@ -3,10 +3,11 @@ namespace AbioticEditor.Web.Services;
 /// <summary>Persists the Razor host colour preference without requiring a platform UI toolkit.</summary>
 public sealed class HostThemeService
 {
-    private static readonly string ConfigPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AbioticEditor", "webtheme.txt");
-    private static readonly string AccentConfigPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AbioticEditor", "webaccent.txt");
+    // Through HostPreferenceStore rather than straight to these files: a browser tab's file
+    // system does not survive a reload, and choosing a display language reloads the page - so
+    // the theme would have reset itself every time the language changed.
+    private const string ConfigFileName = "webtheme.txt";
+    private const string AccentConfigFileName = "webaccent.txt";
 
     public event EventHandler? Changed;
 
@@ -18,8 +19,7 @@ public sealed class HostThemeService
         var theme = Parse(value);
         if (theme == Current) return;
 
-        Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
-        File.WriteAllText(ConfigPath, theme.ToString().ToLowerInvariant());
+        HostPreferenceStore.Write(HostPreferenceStore.Keys.Theme, ConfigFileName, theme.ToString().ToLowerInvariant());
         Current = theme;
         Changed?.Invoke(this, EventArgs.Empty);
     }
@@ -29,8 +29,7 @@ public sealed class HostThemeService
         var accent = ParseAccent(value);
         if (accent == Accent) return;
 
-        Directory.CreateDirectory(Path.GetDirectoryName(AccentConfigPath)!);
-        File.WriteAllText(AccentConfigPath, accent.ToString().ToLowerInvariant());
+        HostPreferenceStore.Write(HostPreferenceStore.Keys.Accent, AccentConfigFileName, accent.ToString().ToLowerInvariant());
         Accent = accent;
         Changed?.Invoke(this, EventArgs.Empty);
     }
@@ -45,11 +44,9 @@ public sealed class HostThemeService
     };
 
     private static HostTheme ReadSavedTheme()
-    {
-        try { return File.Exists(ConfigPath) ? Parse(File.ReadAllText(ConfigPath).Trim()) : HostTheme.Dark; }
-        catch (IOException) { return HostTheme.Dark; }
-        catch (UnauthorizedAccessException) { return HostTheme.Dark; }
-    }
+        => HostPreferenceStore.Read(HostPreferenceStore.Keys.Theme, ConfigFileName) is { } saved
+            ? Parse(saved)
+            : HostTheme.Dark;
 
     private static HostTheme Parse(string? value) => value?.Trim().ToLowerInvariant() switch
     {
@@ -62,9 +59,9 @@ public sealed class HostThemeService
     {
         // Cascade (the game-accurate blue-teal facility palette) is the default, matching the
         // native app's ThemeService. Hazard is the legacy alternate and remains available.
-        try { return File.Exists(AccentConfigPath) ? ParseAccent(File.ReadAllText(AccentConfigPath).Trim()) : HostThemeAccent.Cascade; }
-        catch (IOException) { return HostThemeAccent.Cascade; }
-        catch (UnauthorizedAccessException) { return HostThemeAccent.Cascade; }
+        return HostPreferenceStore.Read(HostPreferenceStore.Keys.Accent, AccentConfigFileName) is { } saved
+            ? ParseAccent(saved)
+            : HostThemeAccent.Cascade;
     }
 
     private static HostThemeAccent ParseAccent(string? value) => value?.Trim().ToLowerInvariant() switch

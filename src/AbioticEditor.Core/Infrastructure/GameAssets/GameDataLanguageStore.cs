@@ -16,6 +16,26 @@ public static class GameDataLanguageStore
         "gamedatalanguage.txt");
 
     /// <summary>
+    /// Somewhere other than a file to keep this in.
+    /// </summary>
+    /// <remarks>
+    /// A browser has no lasting file system - what a WebAssembly app writes is thrown away when
+    /// the tab reloads - so there the choice has to go into the browser's own storage instead.
+    /// The host installs a pair of accessors at start-up; left unset, this stays the single text
+    /// file the desktop app and the CLI have always shared.
+    /// </remarks>
+    public static void UseStore(Func<string?> read, Action<string?> write)
+    {
+        ArgumentNullException.ThrowIfNull(read);
+        ArgumentNullException.ThrowIfNull(write);
+        _read = read;
+        _write = write;
+    }
+
+    private static Func<string?>? _read;
+    private static Action<string?>? _write;
+
+    /// <summary>
     /// The user-chosen game-data culture code (e.g. <c>"ru"</c>), or null when unset - callers
     /// then fall back to matching the editor's own UI language.
     /// </summary>
@@ -23,14 +43,10 @@ public static class GameDataLanguageStore
     {
         get
         {
+            if (_read is { } read) return Trimmed(read());
             try
             {
-                if (!File.Exists(ConfigPath))
-                {
-                    return null;
-                }
-                var text = File.ReadAllText(ConfigPath).Trim();
-                return text.Length == 0 ? null : text;
+                return File.Exists(ConfigPath) ? Trimmed(File.ReadAllText(ConfigPath)) : null;
             }
             catch
             {
@@ -42,6 +58,7 @@ public static class GameDataLanguageStore
     /// <summary>Persists <paramref name="culture"/> as the chosen game-data language.</summary>
     public static void Save(string culture)
     {
+        if (_write is { } write) { write(culture.Trim()); return; }
         Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
         File.WriteAllText(ConfigPath, culture.Trim());
     }
@@ -49,6 +66,7 @@ public static class GameDataLanguageStore
     /// <summary>Removes any saved override so the game-data language follows the UI language again.</summary>
     public static void Clear()
     {
+        if (_write is { } write) { write(null); return; }
         try
         {
             if (File.Exists(ConfigPath))
@@ -60,5 +78,11 @@ public static class GameDataLanguageStore
         {
             // Best-effort: a failed clear just leaves the override in place.
         }
+    }
+
+    private static string? Trimmed(string? text)
+    {
+        var value = text?.Trim();
+        return string.IsNullOrEmpty(value) ? null : value;
     }
 }

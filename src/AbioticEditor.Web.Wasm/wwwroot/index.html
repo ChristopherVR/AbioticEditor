@@ -66,7 +66,23 @@
     <script src="js/downloadFile.js"></script>
     <script src="js/filePicker.js"></script>
     <script src="js/saveFileSystem.js"></script>
-    <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+    <script src="_framework/blazor.webassembly#[.{fingerprint}].js" autostart="false"></script>
+    <!-- The editor's own language has to be settled BEFORE the app boots: the translations for
+         each language are separate downloads, and the runtime only fetches the one for the
+         culture it starts in. Picking a language reloads the page for exactly this reason, so
+         the choice is read back here, from the browser's own storage (a WebAssembly app's file
+         system does not survive a reload). Anything unexpected falls through to a plain start
+         rather than leaving the player with a page that never loads. -->
+    <script>
+        (function () {
+            let options = {};
+            try {
+                const saved = localStorage.getItem("abiotic.language");
+                if (saved) options = { applicationCulture: saved };
+            } catch { /* storage blocked: start in the browser's own language */ }
+            Blazor.start(options).catch(function () { });
+        })();
+    </script>
 </body>
 
 </html>

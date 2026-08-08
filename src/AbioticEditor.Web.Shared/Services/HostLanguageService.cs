@@ -21,11 +21,29 @@ public sealed class HostLanguageService
     private static readonly ResourceManager AppResources = new(
         "AbioticEditor.Web.Localization.AppResources", typeof(HostLanguageService).Assembly);
 
-    private static readonly string ConfigPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AbioticEditor", "weblanguage.txt");
+    private const string ConfigFileName = "weblanguage.txt";
+
+    /// <summary>
+    /// Each language's name in its own words, spelled out here rather than looked up.
+    /// </summary>
+    /// <remarks>
+    /// These are the one set of strings that must never be translated - a picker exists so
+    /// someone who cannot read the current language can get out of it, and "German" is no help
+    /// to a German speaker. Reading them from the translation catalogs also could not work in a
+    /// browser: it only downloads the catalog for the language in use, so every other entry fell
+    /// back to English and the list read "English" five times over.
+    /// </remarks>
+    private static readonly Dictionary<string, string> NativeNames = new(StringComparer.Ordinal)
+    {
+        ["en"] = "English",
+        ["es"] = "Español",
+        ["fr"] = "Français",
+        ["de"] = "Deutsch",
+        ["ru"] = "Русский",
+    };
 
     public IReadOnlyList<HostLanguage> Available => SupportedCodes
-        .Select(code => new HostLanguage(code, ResourceFor(code, "Language_NativeName")))
+        .Select(code => new HostLanguage(code, NativeNames.TryGetValue(code, out var name) ? name : code))
         .ToArray();
 
     public IReadOnlyList<HostLanguage> AvailableGameData => SupportedGameDataCodes
@@ -54,8 +72,7 @@ public sealed class HostLanguageService
     public void SetLanguage(string? code)
     {
         var selected = Normalize(code);
-        Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
-        File.WriteAllText(ConfigPath, selected);
+        HostPreferenceStore.Write(HostPreferenceStore.Keys.Language, ConfigFileName, selected);
         CurrentCode = selected;
         Changed?.Invoke(this, EventArgs.Empty);
     }
@@ -170,11 +187,9 @@ public sealed class HostLanguageService
         => code.Replace('-', '_');
 
     private static string? ReadSavedCode()
-    {
-        try { return File.Exists(ConfigPath) ? Normalize(File.ReadAllText(ConfigPath).Trim()) : null; }
-        catch (IOException) { return null; }
-        catch (UnauthorizedAccessException) { return null; }
-    }
+        => HostPreferenceStore.Read(HostPreferenceStore.Keys.Language, ConfigFileName) is { } saved
+            ? Normalize(saved)
+            : null;
 
     private static string Normalize(string? code)
         => SupportedCodes.Any(language => string.Equals(language, code, StringComparison.OrdinalIgnoreCase))

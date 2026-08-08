@@ -11,6 +11,7 @@
 @inject IDiagnosticsLogDelivery LogDelivery
 @inject ModalService Modals
 @inject SaveWorkspaceSessionService Workspace
+@inject NavigationManager Navigation
 
 <section class="settings-sheet" role="dialog" aria-modal="true" aria-labelledby="settings-sheet-title" tabindex="-1" @onkeydown="HandleKeyDown">
     <header class="settings-sheet-header">
@@ -51,6 +52,28 @@
                             <p class="muted">@R("Settings_Language_Hint")</p>
                             <div class="settings-value-row"><strong>@CurrentLanguageName()</strong><button class="secondary" type="button" @onclick="() => _languageChooserOpen = true">@R("Settings_LanguageChange")</button></div>
                         </article>
+                        @* The language item names, recipes and journal entries are shown in.
+                           It normally lives on the GAME DATA tab, which a browser does not get -
+                           everything else on that tab points at files on the player's own machine.
+                           The setting itself works perfectly well here (the names come from a
+                           translated copy of the game's tables that ships with the editor), so it
+                           gets a home of its own rather than being lost with the rest of the tab. *@
+                        @if (!Workspace.HasLocalPaths)
+                        {
+                            <article class="settings-card">
+                                <h2>@R("GameDataSettings_LanguageTitle")</h2>
+                                <p class="muted">@R("Language_GameDataDescription")</p>
+                                <select class="settings-select" aria-label="@R("GameDataSettings_LanguageTitle")"
+                                        value="@(Languages.GameDataLanguage ?? string.Empty)" @onchange="SetGameDataLanguageAsync">
+                                    <option value="">@R("GameDataSettings_LanguageAuto")</option>
+                                    @foreach (var language in Languages.AvailableGameData)
+                                    {
+                                        <option value="@language.Code">@language.NativeName</option>
+                                    }
+                                </select>
+                                @if (_gameDataStatus is not null) { <p class="muted" role="status">@_gameDataStatus</p> }
+                            </article>
+                        }
                         <article class="settings-card">
                             <h2>@R("Settings_Diagnostics")</h2>
                             <p class="muted">@R("Settings_DiagnosticsHint")</p>
@@ -204,6 +227,14 @@
         _pendingGameLanguage = HostLanguageService.MapEditorToGameData(code);
         Languages.SetLanguage(code);
         _languageChooserOpen = false;
+        // A browser only downloads the wording for the language it started in, so the new one is
+        // not in the page yet - it has to start again. Settings survive that (they are kept in
+        // the browser's own storage), and unsaved edits are protected by the page's own
+        // leave-this-page warning, which a reload triggers just like closing the tab.
+        //
+        // The follow-up "switch the game names too?" prompt is skipped here on purpose: with no
+        // language chosen for them, the names simply follow whatever the editor restarts in.
+        if (!Workspace.HasLocalPaths) { RestartForLanguage(); return; }
         if (!string.Equals(_previousGameLanguage, _pendingGameLanguage, StringComparison.OrdinalIgnoreCase)) RequestGameLanguageSync();
     }
 
@@ -252,8 +283,22 @@
     {
         var culture = args.Value?.ToString();
         Languages.SetGameDataLanguage(string.IsNullOrWhiteSpace(culture) ? null : culture);
+        // The desktop re-reads the names out of the installed game. A browser has no game to
+        // read: it downloaded one translated copy of the tables when it started, so getting a
+        // different one means starting again.
+        if (!Workspace.HasLocalPaths) { RestartForLanguage(); return; }
         await ReloadGameDataBusyAsync();
     }
+
+    /// <summary>
+    /// Reloads the editor so a language change takes effect.
+    /// </summary>
+    /// <remarks>
+    /// Only the browser needs this, and it needs it for both languages: the editor's own wording
+    /// and the game's names each arrive as a separate download chosen at start-up. The desktop
+    /// carries every language already and simply re-renders.
+    /// </remarks>
+    private void RestartForLanguage() => Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
     private async Task AcceptGameLanguageSyncAsync()
     {
         Languages.SetGameDataLanguage(_gameLanguageWasAutomatic ? null : _pendingGameLanguage);
