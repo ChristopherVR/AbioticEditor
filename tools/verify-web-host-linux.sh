@@ -102,7 +102,12 @@ check_asset() {
   rm -f -- "$asset_file"
 }
 
-for asset in / /parity.css /AbioticEditor.Web.styles.css /fonts/Digital7.ttf /fonts/MaterialSymbolsOutlined.ttf /fonts/OpenSans-Regular.ttf /fonts/OpenSans-Semibold.ttf /images/abiotic-factor.png /_framework/blazor.web.js; do
+# The look-and-feel files live in the shared screen library, so they are served from
+# _content/<library>/ rather than the host's own root; only the scoped-CSS bundle (named
+# after this app) and the Blazor framework files sit at the root. Checking the old root
+# paths passed for as long as those files lived here and then failed the moment they moved,
+# even though the app itself was serving them correctly the whole time.
+for asset in / /_content/AbioticEditor.Web.Shared/parity.css /AbioticEditor.Web.styles.css /_content/AbioticEditor.Web.Shared/fonts/Digital7.ttf /_content/AbioticEditor.Web.Shared/fonts/MaterialSymbolsOutlined.ttf /_content/AbioticEditor.Web.Shared/fonts/OpenSans-Regular.ttf /_content/AbioticEditor.Web.Shared/fonts/OpenSans-Semibold.ttf /_content/AbioticEditor.Web.Shared/images/abiotic-factor.png /_framework/blazor.web.js; do
   check_asset "$asset"
 done
 kill "$launcher_pid"

@@ -88,15 +88,20 @@ try {
         catch { Start-Sleep -Milliseconds 100 }
     }
     if (-not $healthy) { throw "Published Windows host did not pass /healthz within 10 seconds.`n$(Get-Content -LiteralPath $log,$errorLog -Raw -ErrorAction SilentlyContinue)" }
+    # The look-and-feel files live in the shared screen library, so they are served from
+    # _content/<library>/ rather than the host's own root; only the scoped-CSS bundle (named
+    # after this app) and the Blazor framework files sit at the root. Checking the old root
+    # paths passed for as long as those files lived here and then failed the moment they moved,
+    # even though the app itself was serving them correctly the whole time.
     $assets = @(
         '/',
-        '/parity.css',
+        '/_content/AbioticEditor.Web.Shared/parity.css',
         '/AbioticEditor.Web.styles.css',
-        '/fonts/Digital7.ttf',
-        '/fonts/MaterialSymbolsOutlined.ttf',
-        '/fonts/OpenSans-Regular.ttf',
-        '/fonts/OpenSans-Semibold.ttf',
-        '/images/abiotic-factor.png',
+        '/_content/AbioticEditor.Web.Shared/fonts/Digital7.ttf',
+        '/_content/AbioticEditor.Web.Shared/fonts/MaterialSymbolsOutlined.ttf',
+        '/_content/AbioticEditor.Web.Shared/fonts/OpenSans-Regular.ttf',
+        '/_content/AbioticEditor.Web.Shared/fonts/OpenSans-Semibold.ttf',
+        '/_content/AbioticEditor.Web.Shared/images/abiotic-factor.png',
         '/_framework/blazor.web.js'
     )
     foreach ($asset in $assets) {
