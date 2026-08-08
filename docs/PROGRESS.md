@@ -5,6 +5,36 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-55: the remaining unverified paths, checked (2026-08-08)
+
+Everything left on the round-52/53 "not covered" list except Safari, driven in a real browser.
+
+| Path | Result |
+| --- | --- |
+| **Drag and drop a folder** | Works. Dropping a folder handle opens it ("Opened Account.", 22 saves listed), no errors. Driven by dispatching a `drop` event carrying the shape the handler reads (`dataTransfer.items[].getAsFileSystemHandle()`), backed by a real OPFS handle. |
+| **Appearance editor - read** | Works. Finds `ScientistCustomization_1.sav`, 13 fields, and real option names from the registry's Customization payload ("Hubert", "Beth", "Alessandro"). |
+| **Appearance editor - write** | Works. Head `Head_M01a` -> `Head_F01a`, SAVE APPEARANCE enabled, file hash changed, **`.bak` written**, and the result is valid GVAS containing `Head_F01a` with the old value gone. |
+| **Game Pass in a browser** | Degrades correctly. With no customization file present the Xbox-container fallback runs, finds nothing, and says "No saved character look was found on this computer." No crash. The Convert tab and the conversion entry points are hidden there anyway. |
+| **Plugins / web tools** | Not reachable. Neither has a route in the shared library (the web-tool host lives in the desktop project), and the Plugins settings tab is hidden. All seven routes render with no page errors and no error bar. |
+
+### Found and fixed while checking
+`/create-world` still rendered the wizard in the browser. Round 52 hid the *link* on the home
+screen but never gated the *page*, so the address was still reachable and the wizard would have
+failed at the first folder it tried to write. Now shows the same "needs the desktop editor" panel
+as `/compare`. Both confirmed in a browser.
+
+### Appearance editing has a real constraint worth knowing
+Character looks are stored **per account, one level above the world folder**
+(`SaveGames/<id>/ScientistCustomization_*.sav`, beside `Worlds/`). The desktop walks up to find
+them; a browser can only see inside the folder that was opened. So in the browser the appearance
+editor only works when the player opens the **account** folder rather than a single world. Opening
+the account folder does work - every world under it is listed together - but it is not obvious,
+and nothing currently tells the player.
+
+### Minor
+Each page load probes one registry file that does not exist (e.g. `registry.en-US.json`) before
+falling back to `registry.en.json`. Harmless, one 404 per load, but it is avoidable noise if the
+shipped culture list is ever emitted as a manifest.
 ## Round-54: game data in every language, and no dead settings in the browser (2026-08-08)
 
 ### The bundled game data was English only

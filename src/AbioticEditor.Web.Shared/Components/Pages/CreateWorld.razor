@@ -13,6 +13,17 @@
 <section class="tool-scaffold create-world-wizard">
     <header class="tool-scaffold-heading"><p class="eyebrow">@R("CreateWorld_Eyebrow")</p><h1>@R("CreateWorld_ScaffoldTitle")</h1></header>
 
+@* Making a world writes a whole folder tree wherever the player chooses, which is past what a
+   browser tab can do. The link to here is hidden there, but the address is still reachable. *@
+@if (!Workspace.HasLocalPaths)
+{
+    <section class="create-world-card">
+        <h2>@R("Host_NeedsDesktopTitle")</h2>
+        <p class="muted">@R("Host_NeedsDesktopBody")</p>
+    </section>
+}
+else
+{
     @if (_step == 0)
     {
         <section class="create-world-card"><h2>@R("CreateWorld_PlatformCardTitle")</h2><p class="muted">@R("CreateWorld_PlatformCardDesc")</p>
@@ -63,6 +74,7 @@
     }
 
     <footer class="wizard-footer"><span>@R("CreateWorld_StepProgress", _step + 1, 5)</span><button class="secondary" @onclick="Cancel">@R("CreateWorld_Cancel")</button>@if (_step > 0) { <button class="secondary" @onclick="Back" disabled="@_isCreating">@R("CreateWorld_Back")</button> }@if (_step < 4) { <button class="primary" @onclick="NextAsync">@NextLabel</button> } else { <button class="primary" @onclick="CreateAsync" disabled="@_isCreating">@R("CreateWorld_CreateWorld")</button> }</footer>
+}
 </section>
 
 @code {
