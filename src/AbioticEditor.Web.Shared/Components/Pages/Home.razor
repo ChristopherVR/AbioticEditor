@@ -6,6 +6,10 @@
 @inject SaveLibraryService Library
 @inject SaveWorkspaceSessionService Workspace
 @inject AbioticEditor.Ui.IFolderPicker FolderPicker
+@inject AbioticEditor.Ui.IFilePicker FilePicker
+@inject ISaveFileSystem Files
+@inject ToastService Toasts
+@inject UnsavedChangesGuard Unsaved
 @inject HostLanguageService Languages
 @inject NavigationManager Navigation
 
@@ -13,7 +17,11 @@
 
 @if (Workspace.Current?.SelectedSave is null || IsBrowsing)
 {
-    <section class="hero native-empty-state">
+    @* The middle of the page IS the drop target - the whole window accepts a drop, and saying so
+       with a dashed frame around the buttons is what makes that discoverable. It used to be one
+       line of small print, and only on the desktop, so browser players had no idea they could
+       drop anything at all. *@
+    <section class="hero native-empty-state empty-dropzone">
         <h1>@Languages.Resource("Empty_EditorTitle")</h1>
         @* Where the save folder lives on disk only helps someone who can browse to it. In a
            browser the folder is chosen through the browser's own picker, so that instruction
@@ -22,9 +30,14 @@
         {
             <p class="lede">@Languages.Resource("Empty_OpenYourSaveFolderInstructions")</p>
         }
-        <p class="empty-capabilities">@Languages.Resource("Empty_PlayersWorldsSummary")</p>
         <div class="empty-actions">
             <button class="primary" type="button" @onclick="PickFolderAsync" disabled="@_isLoading">@Languages.Resource("Empty_OpenFolder")</button>
+            @* Opening a zip is the other end of EXPORT, and the only way in at all on a browser
+               with no folder picker. A desktop player unzips and opens the folder instead. *@
+            @if (Bundles is not null)
+            {
+                <button class="secondary" type="button" @onclick="OpenBundleAsync" disabled="@_isLoading">@Languages.Resource("Bundle_Open")</button>
+            }
             @* Making a world writes a whole folder tree wherever the player chooses, which is
                past what a browser tab is allowed to do. *@
             @if (Workspace.HasLocalPaths)
@@ -32,13 +45,38 @@
                 <a class="secondary button-link" href="create-world">@Languages.Resource("Empty_NewWorld")</a>
             }
         </div>
-        @* Dropping a folder onto the window is a desktop-only trick; a browser tab is not given
-           the dropped folder's real location, so promising it here would be a dead end. *@
-        @if (Library.CanDiscover)
-        {
-            <p class="empty-note">@Languages.Resource("Empty_YouCanAlsoDropASaveFolderAnywhereOnThisWindow")</p>
-        }
+        <p class="empty-drop-hint">
+            <span class="material-symbol" aria-hidden="true">upload</span>
+            @(Workspace.HasLocalPaths
+                ? Languages.Resource("Empty_YouCanAlsoDropASaveFolderAnywhereOnThisWindow")
+                : Languages.Resource("Empty_DropHere"))
+        </p>
         <p class="empty-note">@Languages.Resource("Empty_EveryWriteKeepsABakBackupNextToTheSave")</p>
+
+        @* Worlds opened in an earlier visit. A browser forgets the folder when the tab closes,
+           so without this a refresh meant finding it in the picker all over again. *@
+        @if (_recent.Count > 0)
+        {
+            <section class="recent-worlds" aria-labelledby="recent-worlds-title">
+                <h2 id="recent-worlds-title">@Languages.Resource("Empty_Recent")</h2>
+                <p>@Languages.Resource("Empty_RecentHint")</p>
+                <div class="discovered-world-list">
+                    @foreach (var recent in _recent)
+                    {
+                        <article class="discovered-world-card">
+                            <div>
+                                <h3>@recent.Name</h3>
+                                @if (recent.OpenedAt is { } opened) { <p>@opened.LocalDateTime.ToString("g")</p> }
+                            </div>
+                            <div class="recent-world-actions">
+                                <button class="primary" type="button" @onclick="() => ReopenRecentAsync(recent)" disabled="@_isLoading">@Languages.Resource("Empty_Open")</button>
+                                <button class="secondary" type="button" @onclick="() => ForgetRecentAsync(recent)" disabled="@_isLoading">@Languages.Resource("Empty_Forget")</button>
+                            </div>
+                        </article>
+                    }
+                </div>
+            </section>
+        }
 
         @if (_worlds.Count > 0)
         {
@@ -66,8 +104,19 @@ else
 
 @code {
     private IReadOnlyList<DiscoveredWorld> _worlds = Array.Empty<DiscoveredWorld>();
+    private IReadOnlyList<RecentWorld> _recent = Array.Empty<RecentWorld>();
     private bool _isLoading;
     private string? _error;
+
+    /// <summary>
+    /// The two browser-only capabilities this page offers, or null on a host without them.
+    /// </summary>
+    /// <remarks>
+    /// Asked of the file system rather than injected, so the desktop needs no do-nothing
+    /// implementations and the buttons simply are not built where they would do nothing.
+    /// </remarks>
+    private ISaveBundleReader? Bundles => Files as ISaveBundleReader;
+    private IRecentWorldStore? Recents => Files as IRecentWorldStore;
 
     /// <summary>
     /// The header's home button lands on /browse so the world list shows even while a
@@ -95,17 +144,105 @@ else
                 && !string.IsNullOrWhiteSpace(autoFolder) && Directory.Exists(autoFolder))
                 await Workspace.OpenAsync(autoFolder);
             _worlds = await Library.DiscoverAsync();
+            await LoadRecentAsync();
         }
         catch (Exception ex) { Errors.Record(ex, "Discover save folders"); }
         finally { _isLoading = false; }
     }
 
-    private async Task SelectWorldAsync(DiscoveredWorld world)
+    private async Task LoadRecentAsync()
+    {
+        if (Recents is not { } recents) return;
+        try { _recent = await recents.ListAsync(); }
+        catch (Exception ex) { Errors.Record(ex, "List recently opened worlds"); }
+    }
+
+    /// <summary>
+    /// Re-opens a world from an earlier visit. The browser asks the player's permission again
+    /// here, which is why this hangs off a button: a permission prompt with no click behind it
+    /// is refused outright.
+    /// </summary>
+    private async Task ReopenRecentAsync(RecentWorld recent)
+    {
+        if (Recents is not { } recents) return;
+        _isLoading = true; _error = null;
+        try
+        {
+            // The permission prompt has to ride on this click, so it happens before the
+            // unsaved-changes question rather than after it.
+            var folder = await recents.ReopenAsync(recent.Name);
+            if (folder is null)
+            {
+                // Either the player said no, or the folder has been moved or deleted. Neither is
+                // an error to report as a fault - the entry simply cannot be used any more.
+                _error = Languages.Resource("Empty_RecentUnavailable");
+                return;
+            }
+            await SelectWorldAsync(new(folder, folder, DiscoveredWorldSource.Client, null));
+        }
+        catch (Exception ex) { _error = Errors.Present(ex, Languages.Resource("Home_SaveFolderOpenFailed"), Languages.Resource("Home_SaveFolderOpenGuidance")); }
+        finally { _isLoading = false; }
+    }
+
+    private async Task ForgetRecentAsync(RecentWorld recent)
+    {
+        if (Recents is not { } recents) return;
+        try
+        {
+            await recents.ForgetAsync(recent.Name);
+            await LoadRecentAsync();
+        }
+        catch (Exception ex) { Errors.Record(ex, "Forget a recently opened world"); }
+    }
+
+    /// <summary>
+    /// Opens a zipped save folder the player points at - the other end of EXPORT, and the only
+    /// way in at all on a browser with no folder picker.
+    /// </summary>
+    private async Task OpenBundleAsync()
+    {
+        if (Bundles is not { } bundles) return;
+        _isLoading = true; _error = null;
+        try
+        {
+            var picked = await FilePicker.PickFileAsync(new()
+            {
+                Title = Languages.Resource("Bundle_OpenTitle"),
+                FileTypes = [new(Languages.Resource("Bundle_OpenTitle"), [".zip"])],
+            });
+            if (picked is null) { _error = Languages.Resource("Bundle_Cancelled"); return; }
+
+            await using var stream = await picked.OpenReadAsync(CancellationToken.None);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+
+            var folder = await bundles.OpenBundleAsync(picked.Name, buffer.ToArray());
+            await SelectWorldAsync(new(folder, folder, DiscoveredWorldSource.Client, null));
+            Toasts.Show(Languages.Resource("Bundle_Opened", folder), ToastKind.Success);
+        }
+        catch (Exception ex)
+        {
+            Errors.Record(ex, "Open a zip of saves");
+            _error = Errors.Present(ex, Languages.Resource("Bundle_OpenFailed"), Languages.Resource("Bundle_OpenGuidance"));
+        }
+        finally { _isLoading = false; }
+    }
+
+    /// <summary>
+    /// Opens a world, asking first when the one already open has edits that would be lost.
+    /// </summary>
+    /// <remarks>
+    /// Every way into a world from this page funnels through here - a discovered world, a picked
+    /// folder, a zip, a remembered world - so the question is asked once, in one place.
+    /// </remarks>
+    private Task SelectWorldAsync(DiscoveredWorld world) => Unsaved.ConfirmAsync(() => OpenWorldAsync(world));
+
+    private async Task OpenWorldAsync(DiscoveredWorld world)
     {
         _isLoading = true; _error = null;
         try { await Workspace.OpenAsync(world); }
         catch (Exception ex) { _error = Errors.Present(ex, Languages.Resource("Home_SaveFolderOpenFailed"), Languages.Resource("Home_SaveFolderOpenGuidance")); }
-        finally { _isLoading = false; }
+        finally { _isLoading = false; await InvokeAsync(StateHasChanged); }
     }
 
     private async Task PickFolderAsync()

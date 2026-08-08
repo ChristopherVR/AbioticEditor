@@ -1,11 +1,15 @@
 @using AbioticEditor.Web.Components.Pages
 @using AbioticEditor.Web.Components.Shared
 @using AbioticEditor.Web.Services
+@using Microsoft.JSInterop
 @implements IDisposable
+@inject IJSRuntime Js
 @inject BrowserSaveFileSystem SaveFiles
 @inject SaveWorkspaceSessionService Workspace
 @inject ToastService Toasts
 @inject UserFacingErrorService Errors
+@inject UnsavedChangesGuard Unsaved
+@inject HostLanguageService Languages
 @inject NavigationManager Navigation
 
 @* The browser host renders the SAME screens as the desktop app, from
@@ -29,20 +33,102 @@
     // Dropping a save folder onto the window is wired up here rather than in the shared screens
     // because only this host can do it: the desktop build handles drops in native window code,
     // and the browser needs a page-level listener that turns the drop into a directory handle.
-    protected override void OnInitialized() => SaveFiles.FolderDropped += OnFolderDroppedAsync;
+    protected override void OnInitialized()
+    {
+        SaveFiles.FolderDropped += OnFolderDroppedAsync;
+        SaveFiles.BundleDropped += OnBundleDroppedAsync;
+        Workspace.Changed += WorkspaceChanged;
+    }
+
+    /// <summary>
+    /// Opens a zipped save folder the player dropped onto the window - the other end of EXPORT,
+    /// and the only way in at all on a browser with no folder picker (Firefox, Safari).
+    /// </summary>
+    private async Task OnBundleDroppedAsync(string fileName)
+    {
+        try
+        {
+            // Unpacked before the question is asked: only then is it certain the drop is a real
+            // save folder, and there is no point warning about losing work over a zip of photos.
+            var folder = await SaveFiles.OpenDroppedBundleAsync(fileName);
+            await Unsaved.ConfirmAsync(async () =>
+            {
+                await Workspace.OpenAsync(folder);
+                Toasts.Show(Languages.Resource("Bundle_Opened", folder), ToastKind.Success);
+                Navigation.NavigateTo("");
+            });
+        }
+        catch (Exception exception)
+        {
+            Errors.Record(exception, "Open dropped zip of saves");
+            Toasts.Show(
+                Errors.Present(exception, Languages.Resource("Bundle_OpenFailed"), Languages.Resource("Bundle_OpenGuidance")),
+                ToastKind.Error, TimeSpan.FromSeconds(10));
+        }
+        await InvokeAsync(StateHasChanged);
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender) await SaveFiles.ListenForDroppedFolderAsync();
     }
 
+    /// <summary>
+    /// Keeps the browser's own "leave this page?" warning switched on exactly while there are
+    /// staged edits.
+    /// </summary>
+    /// <remarks>
+    /// Closing the tab, reloading, or following a link away takes the whole editor with it, and
+    /// staged edits live only in the page - on a folder the tab could only read, so does the
+    /// saved result until it is downloaded. The in-editor prompt cannot cover any of that, so
+    /// the browser's own one does. It is only armed while something is actually at stake:
+    /// a page that always asks is a page people learn to click through.
+    /// </remarks>
+    private bool _guardingUnsavedWork;
+    private string? _rememberedFolder;
+
+    private void WorkspaceChanged()
+    {
+        var shouldGuard = Workspace.HasStagedEdits;
+        if (shouldGuard != _guardingUnsavedWork)
+        {
+            _guardingUnsavedWork = shouldGuard;
+            _ = GuardAsync(shouldGuard);
+        }
+
+        // Every way into a world - the picker, a drop, a zip, the home page's own list - ends up
+        // here, so this is the one place that sees them all and the only place that has to
+        // remember. Recorded once per world rather than on every change the workspace announces.
+        var folder = Workspace.Current?.WorldFolder;
+        if (folder is { Length: > 0 } && !string.Equals(folder, _rememberedFolder, StringComparison.OrdinalIgnoreCase))
+        {
+            _rememberedFolder = folder;
+            _ = RememberAsync(folder);
+        }
+    }
+
+    private async Task RememberAsync(string folder)
+    {
+        try { await SaveFiles.RememberAsync(folder); }
+        catch (Exception exception) { Errors.Record(exception, "Remember the world that was opened"); }
+    }
+
+    private async Task GuardAsync(bool on)
+    {
+        try { await Js.InvokeVoidAsync("abioticSaveFs.warnBeforeLeaving", on); }
+        catch (JSException exception) { Errors.Record(exception, "Arm the unsaved-work warning"); }
+    }
+
     private async Task OnFolderDroppedAsync(string folder)
     {
         try
         {
-            await Workspace.OpenAsync(folder);
-            Toasts.Show($"Opened {folder}.", ToastKind.Success);
-            Navigation.NavigateTo("");
+            await Unsaved.ConfirmAsync(async () =>
+            {
+                await Workspace.OpenAsync(folder);
+                Toasts.Show($"Opened {folder}.", ToastKind.Success);
+                Navigation.NavigateTo("");
+            });
         }
         catch (Exception exception)
         {
@@ -54,5 +140,10 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    public void Dispose() => SaveFiles.FolderDropped -= OnFolderDroppedAsync;
+    public void Dispose()
+    {
+        SaveFiles.FolderDropped -= OnFolderDroppedAsync;
+        SaveFiles.BundleDropped -= OnBundleDroppedAsync;
+        Workspace.Changed -= WorkspaceChanged;
+    }
 }

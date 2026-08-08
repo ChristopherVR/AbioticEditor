@@ -5,12 +5,27 @@
 // delegates there. Keeping one registry of handles is what stops the editor opening a folder it
 // then cannot touch.
 
+// A media type per extension. showOpenFilePicker groups the accepted extensions under one, and
+// naming a real one is what makes the operating system's own dialog treat them as a known kind
+// (and, on macOS, actually enable those files) rather than as anonymous binary blobs.
+const mediaTypes = {
+    ".json": "application/json",
+    ".zip": "application/zip",
+    ".txt": "text/plain",
+    ".ini": "text/plain",
+    ".cfg": "text/plain",
+};
+
 function toAcceptTypes(fileTypes) {
     if (!fileTypes || fileTypes.length === 0) return undefined;
-    return fileTypes.map(ft => ({
-        description: ft.name,
-        accept: { "application/octet-stream": ft.extensions },
-    }));
+    return fileTypes.map(ft => {
+        const accept = {};
+        for (const extension of ft.extensions ?? []) {
+            const media = mediaTypes[extension.toLowerCase()] ?? "application/octet-stream";
+            (accept[media] ??= []).push(extension);
+        }
+        return { description: ft.name, accept };
+    });
 }
 
 /// The everywhere-fallback for choosing files: a hidden <input type="file">. Resolves to the same
@@ -57,11 +72,16 @@ window.abioticFilePicker = {
         // writes back through the handle.
         if (!window.showOpenFilePicker) return await pickWithInput(multiple, fileTypes);
 
+        const types = toAcceptTypes(fileTypes);
         let handles;
         try {
             handles = await window.showOpenFilePicker({
                 multiple: !!multiple,
-                types: toAcceptTypes(fileTypes),
+                types,
+                // Without this the dialog still offers "All files", and Chrome remembers that
+                // choice per site - so a picker asked for one kind of file quietly went back to
+                // showing everything, and the caller got handed something it cannot read.
+                excludeAcceptAllOption: types !== undefined,
             });
         } catch (error) {
             if (error && error.name === "AbortError") return [];
