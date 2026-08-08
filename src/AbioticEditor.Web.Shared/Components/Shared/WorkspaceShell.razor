@@ -416,20 +416,36 @@
         // desktop the editor sits beside the list, so there is nothing to close.
         if (DrawerMode && _detailsDrawer) { _detailsDrawer = false; Refresh(); }
     }
+    /// <summary>
+    /// Selecting a slot surfaces the slot editor wherever it currently lives: as a drawer on
+    /// phones, or by un-collapsing the auto-collapsed inline pane on desktops (never overriding
+    /// an explicit user hide). Mirrors the native ActiveSlot handling.
+    /// </summary>
+    /// <remarks>
+    /// Only redraws the shell when that actually moved a pane. Nothing in the shell's own markup
+    /// depends on which slot is selected, and the slot editor listens for the same event and
+    /// redraws itself - so the unconditional refresh that used to be here was rebuilding the save
+    /// list and the whole editor surface behind it on every single click of an item. Measured at
+    /// roughly a third of a second per click on a real save, in a release build.
+    /// </remarks>
     private void SelectionChanged()
     {
-        // Selecting a slot surfaces the slot editor wherever it currently lives: as a
-        // drawer on phones, or by un-collapsing the auto-collapsed inline pane on
-        // desktops (never overriding an explicit user hide). Mirrors the native
-        // ActiveSlot handling.
         var hasSelection = InventorySelection.HasAnySelection;
+        var movedAPane = false;
         if (hasSelection && !_hadSlotSelection)
         {
-            if (DrawerMode) { if (!_detailsDrawer) { _detailsDrawer = true; _fileDrawer = false; } }
-            else if (_detailsAutoCollapsed && !Preferences.State.DetailsPaneCollapsed) { _detailsAutoCollapsed = false; }
+            if (DrawerMode)
+            {
+                if (!_detailsDrawer) { _detailsDrawer = true; _fileDrawer = false; movedAPane = true; }
+            }
+            else if (_detailsAutoCollapsed && !Preferences.State.DetailsPaneCollapsed)
+            {
+                _detailsAutoCollapsed = false;
+                movedAPane = true;
+            }
         }
         _hadSlotSelection = hasSelection;
-        Refresh();
+        if (movedAPane) Refresh();
     }
     private void ToggleAddPlayer() { _showAddPlayer = !_showAddPlayer; _addPlayerStatus = null; }
     private async Task AddPlayerAsync()

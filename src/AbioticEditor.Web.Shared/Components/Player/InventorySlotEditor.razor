@@ -116,7 +116,7 @@
                 <label>@L.Inventory("itemRow")
                     <input list="shell-item-palette" @bind="selected.ItemId" @bind:after="ItemRowChanged" placeholder="@L.Inventory("empty")" autocomplete="off" />
                 </label>
-                <datalist id="shell-item-palette">@foreach (var item in Catalog.Entries) { <option value="@item.Id">@item.DisplayName</option> }</datalist>
+                <ItemPaletteDatalist />
                 <div class="slot-field-pair">
                     <label>@L.Inventory("count")<input type="number" min="0" @bind="selected.Count" @bind:after="Changed" /></label>
                     @if (HasAmmoCapacity(selected)) { <label>@L.Inventory("ammo")<input type="number" min="0" @bind="selected.AmmoInMagazine" @bind:after="Changed" /></label> }
@@ -309,8 +309,36 @@
             || item.DisplayName.Contains(_paletteFilter.Trim(), StringComparison.OrdinalIgnoreCase)
             || item.Id.Contains(_paletteFilter.Trim(), StringComparison.OrdinalIgnoreCase)
             || item.Tags.Any(tag => tag.Contains(_paletteFilter.Trim(), StringComparison.OrdinalIgnoreCase))));
-    private List<ItemCatalogEntry> PaletteItems => PaletteMatches.Take(_paletteWindow).ToList();
-    private int PaletteMatchCount => PaletteMatches.Count();
+    /// <summary>
+    /// The filter result, worked out once per change of filter rather than once per render.
+    /// </summary>
+    /// <remarks>
+    /// The two properties below both used to run the whole filter, so every render walked the
+    /// sixteen-hundred-item catalog twice - classifying each item by category and validating it
+    /// against the slot's role, which between them are dozens of case-insensitive substring
+    /// searches per item. That ran on every single click of an inventory slot and cost about a
+    /// third of a second each time. None of it depends on which slot is selected, only on the
+    /// filter controls, so it is kept until one of those actually changes.
+    /// </remarks>
+    private List<ItemCatalogEntry> Matches
+    {
+        get
+        {
+            var key = (_paletteFitsRole, Selection.Current?.Role, _paletteCategory, _paletteFilter, Catalog.Entries.Count);
+            if (_matches is null || key != _matchesFor)
+            {
+                _matchesFor = key;
+                _matches = PaletteMatches.ToList();
+            }
+            return _matches;
+        }
+    }
+
+    private List<ItemCatalogEntry>? _matches;
+    private (bool FitsRole, string? Role, string Category, string Filter, int CatalogCount) _matchesFor;
+
+    private List<ItemCatalogEntry> PaletteItems => Matches.Take(_paletteWindow).ToList();
+    private int PaletteMatchCount => Matches.Count;
     private void LoadMore() => _paletteWindow += PaletteWindowStep;
     private void ResetPaletteWindow() => _paletteWindow = PaletteWindowStep;
 

@@ -100,7 +100,24 @@ public sealed class ItemCatalogService : IDisposable
         }
     }
 
+    /// <summary>
+    /// Which palette group an item belongs to, worked out once per item and then remembered.
+    /// </summary>
+    /// <remarks>
+    /// The answer depends only on the item, and deciding it means dozens of case-insensitive
+    /// substring searches over its id and tags. Whole-catalog sweeps call this sixteen hundred
+    /// times in a row, so doing the work again every time was a measurable share of the delay
+    /// when picking an inventory slot. Keyed by id: two entries sharing an id are the same item.
+    /// </remarks>
     public static string CategoryOf(ItemCatalogEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        return Categories.GetOrAdd(entry.Id, static (_, item) => Classify(item), entry);
+    }
+
+    private static readonly ConcurrentDictionary<string, string> Categories = new(StringComparer.OrdinalIgnoreCase);
+
+    private static string Classify(ItemCatalogEntry entry)
     {
         bool Tag(string prefix) => entry.Tags.Any(tag => tag.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
         bool IdHas(params string[] hints) => hints.Any(hint => entry.Id.Contains(hint, StringComparison.OrdinalIgnoreCase));

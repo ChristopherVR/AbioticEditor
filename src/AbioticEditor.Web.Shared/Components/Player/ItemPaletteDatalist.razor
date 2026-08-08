@@ -1,0 +1,36 @@
+@namespace AbioticEditor.Web.Components.Player
+@inject ItemCatalogService Catalog
+
+@* The autocomplete list behind the ITEM ROW box: every item in the game, by id.
+
+   It lives in a component of its own purely so it can refuse to re-render. The list is the
+   same sixteen hundred items all session, but it used to sit inline in the slot editor, so
+   every click on a slot rebuilt and re-diffed the whole thing - about 3,200 nodes, and the
+   overwhelming bulk of that panel. That was most of the delay between clicking an item and
+   the editor responding. Rendered once, a click has almost nothing left to redraw. *@
+<datalist id="shell-item-palette">
+    @foreach (var item in Catalog.Entries)
+    {
+        <option value="@item.Id">@item.DisplayName</option>
+    }
+</datalist>
+
+@code {
+    private int _rendered = -1;
+
+    /// <summary>
+    /// Renders once, then only if the catalog itself has grown.
+    /// </summary>
+    /// <remarks>
+    /// The count is the guard rather than a plain "have I rendered" flag because the desktop can
+    /// gain items part-way through a session: pointing the editor at a game folder reloads the
+    /// catalogs, and the list must pick those up. Nothing else can change it, so comparing the
+    /// count is enough and costs nothing.
+    /// </remarks>
+    protected override bool ShouldRender()
+    {
+        if (_rendered == Catalog.Entries.Count) return false;
+        _rendered = Catalog.Entries.Count;
+        return true;
+    }
+}
