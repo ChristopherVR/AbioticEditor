@@ -23,7 +23,7 @@
     }
     <a class="skip-link" href="#main-content">@Languages.Text("skip")</a>
     <header class="masthead">
-        <a class="brand-lockup" href="/browse" aria-label="@Languages.Text("brand.home")">
+        <a class="brand-lockup" href="browse" aria-label="@Languages.Text("brand.home")">
             <GameArtImage GameRef="@LogoPrimaryRef" Alt="">
                 <ChildContent>
                     <GameArtImage GameRef="@LogoFallbackRef" Alt="">
@@ -52,7 +52,7 @@
             }
             @* /browse always lands on the home page (world list), even while a save is
                open - a plain "/" would just re-render the open editor surface. *@
-            <NavLink class="round-action material-symbol" href="/browse" Match="NavLinkMatch.All" title="@Languages.Text("home")" aria-label="@Languages.Text("home")">home</NavLink>
+            <NavLink class="round-action material-symbol" href="browse" Match="NavLinkMatch.All" title="@Languages.Text("home")" aria-label="@Languages.Text("home")">home</NavLink>
             <button class="open-folder-action" type="button" @onclick="PickFolderAsync" disabled="@_openingFolder"><span class="material-symbol" aria-hidden="true">folder_open</span>@(_openingFolder ? Languages.Text("opening") : Languages.Text("open").ToUpperInvariant())</button>
         </nav>
     </header>
@@ -110,7 +110,7 @@
             if (picked?.Path is null) return;
             await Workspace.OpenAsync(picked.Path);
             Toasts.Show(Languages.Text("folder.opened", Path.GetFileName(picked.Path)), ToastKind.Success);
-            Navigation.NavigateTo("/");
+            Navigation.NavigateTo("./");
         }
         catch (Exception exception)
         {

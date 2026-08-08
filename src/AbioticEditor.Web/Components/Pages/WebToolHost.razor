@@ -39,5 +39,5 @@ else if (_session is not null)
     }
 
     public void Dispose() { if (_session is not null) WebTools.Close(_session.Key); }
-    private void Close() => Navigation.NavigateTo("/");
+    private void Close() => Navigation.NavigateTo("./");
 }

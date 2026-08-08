@@ -103,7 +103,7 @@ else
     private string DifficultyLabel(int value) => R(value switch { 1 => "CreateWorld_DiffCasual", 3 => "CreateWorld_DiffSurvival", 4 => "CreateWorld_DiffNightmare", _ => "CreateWorld_DiffNormal" });
     private string DifficultyDescription(int value) => R(value switch { 1 => "CreateWorld_DiffCasualDesc", 3 => "CreateWorld_DiffSurvivalDesc", 4 => "CreateWorld_DiffNightmareDesc", _ => "CreateWorld_DiffNormalDesc" });
     private void Back() { _status = null; _step--; }
-    private void Cancel() => Navigation.NavigateTo("/");
+    private void Cancel() => Navigation.NavigateTo("./");
 
     protected override void OnInitialized()
     {
@@ -261,7 +261,7 @@ else
             if (_gamePass && !_alsoOtherPlatform && gamePassPath is not null) Directory.Delete(steamPath, recursive: true);
             _status = R("CreateWorld_StatusLoading");
             await Workspace.OpenAsync(openPath);
-            Navigation.NavigateTo("/");
+            Navigation.NavigateTo("./");
         }
         catch (Exception ex) { Errors.Record(ex, "Create world"); _failed = true; _status = R("CreateWorld_StatusFailed", R("CreateWorld_StatusFailedHelp")); }
         finally { _isCreating = false; }

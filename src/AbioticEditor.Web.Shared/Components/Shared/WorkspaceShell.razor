@@ -338,7 +338,7 @@
                 // Save rows are global navigation in the native workbench. Return to the
                 // editor surface immediately so its loading state and eventual session are
                 // visible even when the user selected the save from INI or another tool.
-                Navigation.NavigateTo("/");
+                Navigation.NavigateTo("./");
             }
             await Workspace.SelectAsync(save.Path);
         }
