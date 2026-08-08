@@ -34,6 +34,22 @@ name: Release
 # workflows. The job-level `if` guard (skip on chore(release)/[skip ci]) is
 # belt-and-suspenders.
 #
+# Holding a release back: put `[skip release]` in the message of the LAST commit
+# of the push and this whole workflow stands down - no version bump, no tag, no
+# GitHub Release, no NexusMods upload, no NuGet push.
+#
+# Use it when work has landed that is not ready to go out to players yet, most
+# often browser-editor work: the browser is published straight to GitHub Pages by
+# docs.yml, so it does not need a versioned desktop release to reach anyone.
+#
+# `[skip release]` deliberately does NOT use GitHub's own `[skip ci]`, which would
+# also stop docs.yml and so stop the browser editor from deploying at all. This
+# marker is understood only here.
+#
+# It holds back ONE push. Those commits are still in the history, so the next
+# release picks them up and ships them then - which is what you want, because a
+# browser change often carries a fix the desktop app shares.
+#
 # Concurrency model (per-JOB, not workflow-level, so a fresh push cancels only
 # the work that has NOT published anything yet):
 #   - Pre-publish jobs (test, build, build-web-linux, build-web-win, build-web-mac) use `cancel-in-progress: true`.
@@ -85,7 +101,8 @@ jobs:
     if: >-
       ${{ github.event_name == 'workflow_dispatch' ||
           (!contains(github.event.head_commit.message, 'chore(release)') &&
-           !contains(github.event.head_commit.message, '[skip ci]')) }}
+           !contains(github.event.head_commit.message, '[skip ci]') &&
+           !contains(github.event.head_commit.message, '[skip release]')) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -132,7 +149,8 @@ jobs:
     if: >-
       ${{ github.event_name == 'workflow_dispatch' ||
           (!contains(github.event.head_commit.message, 'chore(release)') &&
-           !contains(github.event.head_commit.message, '[skip ci]')) }}
+           !contains(github.event.head_commit.message, '[skip ci]') &&
+           !contains(github.event.head_commit.message, '[skip release]')) }}
     outputs:
       version: ${{ steps.compute.outputs.version }}
       tag: ${{ steps.compute.outputs.tag }}
