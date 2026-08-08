@@ -59,10 +59,10 @@ export default defineConfig({
         text: 'Download',
         link: 'https://github.com/ChristopherVR/AbioticEditor/releases/latest',
       },
-      // Early, stats-only slice of the editor running entirely client-side (no install,
-      // no game-data icons yet). Deployed by the same workflow as this site; see
-      // src/AbioticEditor.Web.Wasm and docs/PROGRESS.md round-45 for what it does and doesn't do yet.
-      { text: 'Browser (beta)', link: '/app/' },
+      // The full editor running client-side, deployed to /app/ by this same workflow.
+      // Saves never leave the player's machine. What it cannot do (compare, new world,
+      // settings files, achievements) is gated in the app itself and listed in the guide.
+      { text: 'Open in browser', link: '/app/' },
     ],
 
     sidebar: {
@@ -72,6 +72,7 @@ export default defineConfig({
           text: 'Use the editor',
           items: [
             { text: 'Getting started', link: '/guide/getting-started' },
+            { text: 'Edit in your browser', link: '/guide/browser-editor' },
             { text: 'Desktop app', link: '/guide/desktop-app' },
             { text: 'Command-line tool', link: '/guide/cli' },
             { text: 'Game Pass saves', link: '/guide/game-pass' },

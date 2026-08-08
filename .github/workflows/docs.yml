@@ -14,6 +14,9 @@ on:
     paths:
       - docs/**
       - src/AbioticEditor.Web.Wasm/**
+      # Every screen the editor renders lives here, shared with the desktop host. Leaving it
+      # out meant a change to any editor screen never reached the published site.
+      - src/AbioticEditor.Web.Shared/**
       - src/AbioticEditor.Core/**
       - src/AbioticEditor.Ui.Abstractions/**
       - src/AbioticEditor.Plugins.Abstractions/**
@@ -78,8 +81,14 @@ jobs:
       # Blazor WASM has no MSBuild "base href" knob, so the published output is patched
       # in place; this is the standard recipe for hosting a standalone Blazor WASM app
       # under a subpath on static hosting.
+      # The grep is the point of this step as much as the sed. sed exits 0 when it matches
+      # nothing, so if the published template ever stops saying exactly <base href="/" /> the
+      # rewrite would quietly do nothing and every asset the editor asks for would 404 - a
+      # blank page, from a green build. Fail here instead.
       - name: Rewrite base href for the /app/ subpath
-        run: sed -i 's#<base href="/" />#<base href="/AbioticEditor/app/" />#' publish/app/wwwroot/index.html
+        run: |
+          sed -i 's#<base href="/" />#<base href="/AbioticEditor/app/" />#' publish/app/wwwroot/index.html
+          grep -q '<base href="/AbioticEditor/app/" />' publish/app/wwwroot/index.html
 
       - name: Assemble combined site
         run: |
