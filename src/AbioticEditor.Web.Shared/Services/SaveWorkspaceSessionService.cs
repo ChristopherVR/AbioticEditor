@@ -66,6 +66,26 @@ public sealed class SaveWorkspaceSessionService : IDisposable
     public event Action? Changed;
 
     /// <summary>
+    /// Puts a message in the shell's busy line and gives the page a turn to draw it.
+    /// </summary>
+    /// <remarks>
+    /// <para>The yield is the important half. A browser runs the editor on the same single thread
+    /// it draws with, so setting a busy message and then getting straight on with the work meant
+    /// the message never appeared: the render sat queued behind seconds of work and the page was
+    /// simply frozen. Awaiting here hands control back long enough for the message to land.</para>
+    ///
+    /// <para>Public because some of the slowest work happens before there is a workspace to speak
+    /// of - unpacking a dropped zip, most of all - and that still needs to say what it is doing.
+    /// Pass null to clear.</para>
+    /// </remarks>
+    public async Task ReportBusyAsync(string? message)
+    {
+        BusyOperation = message;
+        Changed?.Invoke();
+        await UiBreather.BreatheAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Announces that an open session was edited in place. Editor tabs mutate the session
     /// models directly, so without this the shell (a sibling component, not an ancestor)
     /// never re-reads IsDirty and keeps showing SAVED STATE until an unrelated interaction.
@@ -178,7 +198,7 @@ public sealed class SaveWorkspaceSessionService : IDisposable
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            BusyOperation = "Scanning save folder…"; Changed?.Invoke();
+            await ReportBusyAsync("Scanning save folder…").ConfigureAwait(false);
             var previousWorkingDir = Current?.GamePass?.WorkingDir;
             var saves = await DiscoverSavesAsync(fullPath, cancellationToken).ConfigureAwait(false);
             DeleteWorkingDir(previousWorkingDir);
@@ -374,6 +394,12 @@ public sealed class SaveWorkspaceSessionService : IDisposable
         foreach (var entry in entries)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            // Identifying each save reads and parses its header, and a world holds sixty-odd of
+            // them. On a host where that read completes without ever waiting - a world already
+            // unpacked into memory from a zip - the whole loop would run in one go and freeze the
+            // page. Reporting progress yields, which both keeps the page alive and shows a count
+            // that is actually moving.
+            await ReportBusyAsync($"Reading saves… {discovered.Count + 1}/{entries.Count}").ConfigureAwait(false);
             discovered.Add(await CreateSaveAsync(entry, cancellationToken).ConfigureAwait(false));
         }
 

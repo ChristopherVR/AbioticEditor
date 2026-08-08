@@ -2,6 +2,12 @@ using System.IO.Compression;
 
 namespace AbioticEditor.Web.Services;
 
+/// <summary>How far unpacking a zip has got, for the "please wait" line on screen.</summary>
+/// <param name="Done">Files unpacked so far, counting the one in progress.</param>
+/// <param name="Total">Files to unpack in all.</param>
+/// <param name="CurrentFile">The file being unpacked, without its folder.</param>
+public sealed record SaveBundleProgress(int Done, int Total, string CurrentFile);
+
 /// <summary>A world unpacked from a zip: what to call it, and every save inside it.</summary>
 /// <param name="Name">The world's name, for the sidebar and the file identifiers built from it.</param>
 /// <param name="Saves">Save contents keyed by their path within the world folder, using '/'.</param>
@@ -23,6 +29,13 @@ public static class SaveBundle
     private const long MaximumUnpackedBytes = 512L * 1024 * 1024;
 
     /// <summary>
+    /// How much of one save to decompress before letting the page draw. Small enough that the
+    /// biggest save in the game cannot stall a frame for long, large enough that the pauses do
+    /// not dominate: a 16 MB save costs sixteen of them.
+    /// </summary>
+    private const int ChunkBytes = 1024 * 1024;
+
+    /// <summary>
     /// Unpacks the saves out of <paramref name="zip"/>.
     /// </summary>
     /// <param name="fallbackName">
@@ -33,6 +46,23 @@ public static class SaveBundle
     /// The file is not a readable zip, or holds no save at all.
     /// </exception>
     public static SaveBundleContents Read(Stream zip, string fallbackName)
+        => ReadAsync(zip, fallbackName).GetAwaiter().GetResult();
+
+    /// <summary>
+    /// Unpacks the saves out of <paramref name="zip"/>, giving the page a chance to draw between
+    /// files and telling <paramref name="progress"/> how far along it is.
+    /// </summary>
+    /// <remarks>
+    /// The yielding is the whole point of this overload. A browser runs the editor on the one
+    /// thread it also draws with, so unpacking a real world - sixty-odd files, seventy megabytes -
+    /// locked the tab solid for several seconds with nothing on screen to say why. Handing control
+    /// back between files costs a few milliseconds and turns a frozen page into a moving one.
+    /// </remarks>
+    public static async Task<SaveBundleContents> ReadAsync(
+        Stream zip,
+        string fallbackName,
+        IProgress<SaveBundleProgress>? progress = null,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(zip);
 
@@ -62,11 +92,38 @@ public static class SaveBundle
         var saves = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
         for (var index = 0; index < entries.Length; index++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            var entry = entries[index];
             var relative = worldFolder is null ? paths[index] : paths[index][(worldFolder.Length + 1)..];
-            using var contents = entries[index].Open();
-            using var buffer = new MemoryStream();
-            contents.CopyTo(buffer);
-            saves[relative] = buffer.ToArray();
+
+            progress?.Report(new SaveBundleProgress(index + 1, entries.Length, NameOf(relative)));
+            // Before the file, not after: the report above is only worth making if the page gets
+            // a turn to draw it.
+            await UiBreather.BreatheAsync(cancellationToken).ConfigureAwait(false);
+
+            // Straight into an array of the size the zip already declares. Going through a
+            // growing MemoryStream first meant holding two copies of every save and repeatedly
+            // reallocating - on the 16 MB facility save that is the difference worth having.
+            var contents = new byte[entry.Length];
+            using (var reader = entry.Open())
+            {
+                // Read in pieces rather than in one call. Decompressing is the slow part, and the
+                // facility save alone is ~16 MB - long enough on its own to freeze the page even
+                // if every other file is handled politely. Breathing between pieces keeps the
+                // longest stall down to roughly the cost of one piece.
+                var read = 0;
+                while (read < contents.Length)
+                {
+                    var wanted = Math.Min(ChunkBytes, contents.Length - read);
+                    var got = await reader
+                        .ReadAtLeastAsync(contents.AsMemory(read, wanted), wanted, throwOnEndOfStream: false, cancellationToken)
+                        .ConfigureAwait(false);
+                    if (got == 0) break;
+                    read += got;
+                    if (read < contents.Length) await UiBreather.BreatheAsync(cancellationToken).ConfigureAwait(false);
+                }
+            }
+            saves[relative] = contents;
         }
 
         return new SaveBundleContents(worldFolder ?? CleanName(fallbackName), saves);
@@ -100,6 +157,12 @@ public static class SaveBundle
     /// <summary>Zip entries always use '/', but a zip written on Windows by some tools uses '\'.</summary>
     private static string Normalize(string entryPath) => entryPath.Replace('\\', '/').TrimStart('/');
 
+    private static string NameOf(string relative)
+    {
+        var separator = relative.LastIndexOf('/');
+        return separator < 0 ? relative : relative[(separator + 1)..];
+    }
+
     /// <summary>The zip's file name without its extension, as the world's name.</summary>
     private static string CleanName(string fileName)
     {
@@ -125,14 +188,27 @@ public interface ISaveBundleReader
     /// Opens the saves inside a zip as the current workspace folder, read-only: nothing goes back
     /// into the zip, and the player takes their edits away with EXPORT.
     /// </summary>
+    /// <param name="progress">
+    /// Told how far the unpacking has got, so a screen can say so. Unpacking a real world takes
+    /// seconds, which is far too long to leave a page looking like it has died.
+    /// </param>
     /// <returns>The folder identifier to hand to <c>SaveWorkspaceSessionService.OpenAsync</c>.</returns>
-    Task<string> OpenBundleAsync(string fileName, byte[] contents, CancellationToken cancellationToken = default);
+    Task<string> OpenBundleAsync(
+        string fileName,
+        byte[] contents,
+        IProgress<SaveBundleProgress>? progress = null,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>A world the player opened before, offered as a way straight back into it.</summary>
 /// <param name="Name">The folder's name, which is also what the sidebar showed.</param>
 /// <param name="OpenedAt">When it was last opened, or null when that was not recorded.</param>
-public sealed record RecentWorld(string Name, DateTimeOffset? OpenedAt);
+/// <param name="FromZip">
+/// True when this world came from a zip rather than a folder. It reopens without asking anyone's
+/// permission (the zip was kept), but it also reopens exactly as it was first opened - edits made
+/// last time are not in it, because a zip is only ever read.
+/// </param>
+public sealed record RecentWorld(string Name, DateTimeOffset? OpenedAt, bool FromZip = false);
 
 /// <summary>
 /// A host that can remember which worlds were open and get back into them later.
@@ -158,7 +234,14 @@ public interface IRecentWorldStore
     /// Asks the player's permission again and makes <paramref name="folder"/> readable.
     /// Must be called from a click. Returns null when permission was refused or it has gone.
     /// </summary>
-    Task<string?> ReopenAsync(string folder, CancellationToken cancellationToken = default);
+    /// <param name="progress">
+    /// Told how far along a remembered zip is being unpacked. A folder reopens instantly and
+    /// reports nothing; a zip takes as long as it did the first time and must say so.
+    /// </param>
+    Task<string?> ReopenAsync(
+        string folder,
+        IProgress<SaveBundleProgress>? progress = null,
+        CancellationToken cancellationToken = default);
 
     /// <summary>Drops a world from the offered list.</summary>
     Task ForgetAsync(string folder, CancellationToken cancellationToken = default);

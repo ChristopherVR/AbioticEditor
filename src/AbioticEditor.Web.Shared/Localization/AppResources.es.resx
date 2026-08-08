@@ -3445,4 +3445,13 @@ No se escribe nada hasta que pulses GUARDAR, y REVERTIR lo deshace antes de eso.
   <data name="Empty_Forget" xml:space="preserve">
     <value>QUITAR</value>
   </data>
+  <data name="Bundle_Unpacking" xml:space="preserve">
+    <value>Descomprimiendo tus guardados… {0} de {1}</value>
+  </data>
+  <data name="Empty_BusyHint" xml:space="preserve">
+    <value>Los mundos grandes tardan unos segundos. Deja esta pagina abierta.</value>
+  </data>
+  <data name="Empty_RecentFromZip" xml:space="preserve">
+    <value>Desde un zip - lo que cambiaste la ultima vez no esta incluido</value>
+  </data>
 </root>

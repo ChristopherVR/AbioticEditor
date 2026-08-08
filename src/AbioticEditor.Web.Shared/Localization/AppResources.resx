@@ -3758,4 +3758,13 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Empty_Forget" xml:space="preserve">
     <value>REMOVE</value>
   </data>
+  <data name="Bundle_Unpacking" xml:space="preserve">
+    <value>Unpacking your saves… {0} of {1}</value>
+  </data>
+  <data name="Empty_BusyHint" xml:space="preserve">
+    <value>Large worlds take a few seconds. Leave this page open.</value>
+  </data>
+  <data name="Empty_RecentFromZip" xml:space="preserve">
+    <value>From a zip - anything you changed last time is not in it</value>
+  </data>
 </root>

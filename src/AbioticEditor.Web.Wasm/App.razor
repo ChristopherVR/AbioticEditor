@@ -50,7 +50,7 @@
         {
             // Unpacked before the question is asked: only then is it certain the drop is a real
             // save folder, and there is no point warning about losing work over a zip of photos.
-            var folder = await SaveFiles.OpenDroppedBundleAsync(fileName);
+            var folder = await SaveFiles.OpenDroppedBundleAsync(fileName, UnpackProgress());
             await Unsaved.ConfirmAsync(async () =>
             {
                 await Workspace.OpenAsync(folder);
@@ -65,8 +65,20 @@
                 Errors.Present(exception, Languages.Resource("Bundle_OpenFailed"), Languages.Resource("Bundle_OpenGuidance")),
                 ToastKind.Error, TimeSpan.FromSeconds(10));
         }
+        finally
+        {
+            // Whatever happened, the "unpacking" line must not be left on screen.
+            await Workspace.ReportBusyAsync(null);
+        }
         await InvokeAsync(StateHasChanged);
     }
+
+    /// <summary>
+    /// Reports unpacking progress into the shell's busy line, so the page shows a moving count
+    /// rather than sitting there looking broken for several seconds.
+    /// </summary>
+    private IProgress<SaveBundleProgress> UnpackProgress() => new Progress<SaveBundleProgress>(step =>
+        _ = Workspace.ReportBusyAsync(Languages.Resource("Bundle_Unpacking", step.Done, step.Total)));
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

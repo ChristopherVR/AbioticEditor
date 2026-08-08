@@ -3444,4 +3444,13 @@ Rien n'est écrit tant que vous n'appuyez pas sur ENREGISTRER, et ANNULER le dé
   <data name="Empty_Forget" xml:space="preserve">
     <value>RETIRER</value>
   </data>
+  <data name="Bundle_Unpacking" xml:space="preserve">
+    <value>Decompression de tes sauvegardes… {0} sur {1}</value>
+  </data>
+  <data name="Empty_BusyHint" xml:space="preserve">
+    <value>Les grands mondes prennent quelques secondes. Laisse cette page ouverte.</value>
+  </data>
+  <data name="Empty_RecentFromZip" xml:space="preserve">
+    <value>Depuis un zip - tes dernieres modifications n'y sont pas</value>
+  </data>
 </root>

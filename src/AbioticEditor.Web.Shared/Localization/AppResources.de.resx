@@ -3444,4 +3444,13 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   <data name="Empty_Forget" xml:space="preserve">
     <value>ENTFERNEN</value>
   </data>
+  <data name="Bundle_Unpacking" xml:space="preserve">
+    <value>Spielstande werden entpackt… {0} von {1}</value>
+  </data>
+  <data name="Empty_BusyHint" xml:space="preserve">
+    <value>Grosse Welten brauchen ein paar Sekunden. Lass diese Seite offen.</value>
+  </data>
+  <data name="Empty_RecentFromZip" xml:space="preserve">
+    <value>Aus einem Zip - deine letzten Anderungen sind nicht enthalten</value>
+  </data>
 </root>

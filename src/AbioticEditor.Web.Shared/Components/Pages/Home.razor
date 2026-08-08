@@ -21,7 +21,18 @@
        with a dashed frame around the buttons is what makes that discoverable. It used to be one
        line of small print, and only on the desktop, so browser players had no idea they could
        drop anything at all. *@
-    <section class="hero native-empty-state empty-dropzone">
+    @* Opening a world takes real time - unpacking a zip runs to several seconds - and the middle
+       of the page is where anyone dropping something is looking. It said nothing at all, so the
+       editor looked hung. This is the same busy line the shell shows, given the space it needs. *@
+    @if (Workspace.BusyOperation is { } busy)
+    {
+        <section class="hero native-empty-state empty-busy" role="status" aria-live="polite">
+            <span class="blocking-busy-spinner" aria-hidden="true"></span>
+            <strong>@busy</strong>
+            <p class="empty-note">@Languages.Resource("Empty_BusyHint")</p>
+        </section>
+    }
+    <section class="hero native-empty-state empty-dropzone @(Workspace.BusyOperation is null ? null : "is-busy")">
         <h1>@Languages.Resource("Empty_EditorTitle")</h1>
         @* Where the save folder lives on disk only helps someone who can browse to it. In a
            browser the folder is chosen through the browser's own picker, so that instruction
@@ -67,6 +78,9 @@
                             <div>
                                 <h3>@recent.Name</h3>
                                 @if (recent.OpenedAt is { } opened) { <p>@opened.LocalDateTime.ToString("g")</p> }
+                                @* A zip reopens without asking permission, but it reopens as the
+                                   zip was - say so rather than let anyone assume otherwise. *@
+                                @if (recent.FromZip) { <small>@Languages.Resource("Empty_RecentFromZip")</small> }
                             </div>
                             <div class="recent-world-actions">
                                 <button class="primary" type="button" @onclick="() => ReopenRecentAsync(recent)" disabled="@_isLoading">@Languages.Resource("Empty_Open")</button>
@@ -170,7 +184,7 @@ else
         {
             // The permission prompt has to ride on this click, so it happens before the
             // unsaved-changes question rather than after it.
-            var folder = await recents.ReopenAsync(recent.Name);
+            var folder = await recents.ReopenAsync(recent.Name, UnpackProgress());
             if (folder is null)
             {
                 // Either the player said no, or the folder has been moved or deleted. Neither is
@@ -181,8 +195,12 @@ else
             await SelectWorldAsync(new(folder, folder, DiscoveredWorldSource.Client, null));
         }
         catch (Exception ex) { _error = Errors.Present(ex, Languages.Resource("Home_SaveFolderOpenFailed"), Languages.Resource("Home_SaveFolderOpenGuidance")); }
-        finally { _isLoading = false; }
+        finally { _isLoading = false; await Workspace.ReportBusyAsync(null); }
     }
+
+    /// <summary>Shows unpacking progress in the shell's busy line, which this page also draws.</summary>
+    private IProgress<SaveBundleProgress> UnpackProgress() => new Progress<SaveBundleProgress>(step =>
+        _ = Workspace.ReportBusyAsync(Languages.Resource("Bundle_Unpacking", step.Done, step.Total)));
 
     private async Task ForgetRecentAsync(RecentWorld recent)
     {
@@ -216,7 +234,7 @@ else
             using var buffer = new MemoryStream();
             await stream.CopyToAsync(buffer);
 
-            var folder = await bundles.OpenBundleAsync(picked.Name, buffer.ToArray());
+            var folder = await bundles.OpenBundleAsync(picked.Name, buffer.ToArray(), UnpackProgress());
             await SelectWorldAsync(new(folder, folder, DiscoveredWorldSource.Client, null));
             Toasts.Show(Languages.Resource("Bundle_Opened", folder), ToastKind.Success);
         }
@@ -225,7 +243,7 @@ else
             Errors.Record(ex, "Open a zip of saves");
             _error = Errors.Present(ex, Languages.Resource("Bundle_OpenFailed"), Languages.Resource("Bundle_OpenGuidance"));
         }
-        finally { _isLoading = false; }
+        finally { _isLoading = false; await Workspace.ReportBusyAsync(null); }
     }
 
     /// <summary>

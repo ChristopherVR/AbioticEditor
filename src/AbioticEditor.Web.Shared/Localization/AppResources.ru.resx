@@ -3444,4 +3444,13 @@
   <data name="Empty_Forget" xml:space="preserve">
     <value>УБРАТЬ</value>
   </data>
+  <data name="Bundle_Unpacking" xml:space="preserve">
+    <value>Распаковка сохранений… {0} из {1}</value>
+  </data>
+  <data name="Empty_BusyHint" xml:space="preserve">
+    <value>Большие миры занимают несколько секунд. Не закрывайте страницу.</value>
+  </data>
+  <data name="Empty_RecentFromZip" xml:space="preserve">
+    <value>Из ZIP - последние изменения в него не вошли</value>
+  </data>
 </root>

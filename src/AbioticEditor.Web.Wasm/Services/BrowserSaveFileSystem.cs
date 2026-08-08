@@ -47,7 +47,7 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem, ISav
     public async Task<string?> PickFolderAsync(CancellationToken cancellationToken = default)
     {
         var folder = await js.InvokeAsync<string?>("abioticSaveFs.pickFolder", cancellationToken).ConfigureAwait(false);
-        if (folder is not null) { _bundles.Remove(folder); CanWrite = true; }
+        if (folder is not null) { _bundles.Remove(folder); _openedBundles.Remove(folder); CanWrite = true; }
         return folder;
     }
 
@@ -61,7 +61,7 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem, ISav
     public async Task<string?> UploadFolderAsync(CancellationToken cancellationToken = default)
     {
         var folder = await js.InvokeAsync<string?>("abioticSaveFs.uploadFolder", cancellationToken).ConfigureAwait(false);
-        if (folder is not null) { _bundles.Remove(folder); CanWrite = false; }
+        if (folder is not null) { _bundles.Remove(folder); _openedBundles.Remove(folder); CanWrite = false; }
         return folder;
     }
 
@@ -95,10 +95,13 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem, ISav
     /// Unpacks the zip JavaScript is holding from the last drop and opens it as the workspace.
     /// </summary>
     /// <returns>The folder identifier to hand to the workspace.</returns>
-    public async Task<string> OpenDroppedBundleAsync(string fileName, CancellationToken cancellationToken = default)
+    public async Task<string> OpenDroppedBundleAsync(
+        string fileName,
+        IProgress<SaveBundleProgress>? progress = null,
+        CancellationToken cancellationToken = default)
     {
         var contents = await ReadStreamAsync("abioticSaveFs.readDroppedZip", cancellationToken).ConfigureAwait(false);
-        return await OpenBundleAsync(fileName, contents, cancellationToken).ConfigureAwait(false);
+        return await OpenBundleAsync(fileName, contents, progress, cancellationToken).ConfigureAwait(false);
     }
 
     private DotNetObjectReference<BrowserSaveFileSystem>? _dropReference;
@@ -108,20 +111,45 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem, ISav
     public Task RememberAsync(string folder, CancellationToken cancellationToken = default)
         => js.InvokeVoidAsync(
             "abioticSaveFs.rememberRecent", cancellationToken,
-            folder, DateTimeOffset.UtcNow.ToString("O", System.Globalization.CultureInfo.InvariantCulture)).AsTask();
+            folder,
+            DateTimeOffset.UtcNow.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+            // A world unpacked from a zip has no folder behind it, so the zip goes in instead -
+            // otherwise the one kind of world a browser can always reopen would be the one kind
+            // that never appeared in the list.
+            _openedBundles.TryGetValue(folder, out var zip) ? zip : null).AsTask();
 
     public async Task<IReadOnlyList<RecentWorld>> ListAsync(CancellationToken cancellationToken = default)
     {
         var entries = await js.InvokeAsync<RecentEntry[]>("abioticSaveFs.listRecent", cancellationToken).ConfigureAwait(false);
-        return entries.Select(entry => new RecentWorld(entry.Name, ParseOpenedAt(entry.OpenedAt))).ToArray();
+        return entries
+            .Select(entry => new RecentWorld(entry.Name, ParseOpenedAt(entry.OpenedAt), entry.FromZip))
+            .ToArray();
     }
 
-    public async Task<string?> ReopenAsync(string folder, CancellationToken cancellationToken = default)
+    public async Task<string?> ReopenAsync(
+        string folder,
+        IProgress<SaveBundleProgress>? progress = null,
+        CancellationToken cancellationToken = default)
     {
+        // A remembered zip needs no permission - it is already ours - so it is unpacked straight
+        // back in, read-only as it was before.
+        var zip = await ReadRecentZipAsync(folder, cancellationToken).ConfigureAwait(false);
+        if (zip is not null) return await OpenBundleAsync($"{folder}.zip", zip, progress, cancellationToken).ConfigureAwait(false);
+
         var reopened = await js.InvokeAsync<string?>("abioticSaveFs.reopenRecent", cancellationToken, folder).ConfigureAwait(false);
         // Re-granted folders are writable again, and are no longer served from a zip.
-        if (reopened is not null) { _bundles.Remove(reopened); CanWrite = true; }
+        if (reopened is not null) { _bundles.Remove(reopened); _openedBundles.Remove(reopened); CanWrite = true; }
         return reopened;
+    }
+
+    private async Task<byte[]?> ReadRecentZipAsync(string folder, CancellationToken cancellationToken)
+    {
+        var reference = await js.InvokeAsync<IJSStreamReference?>("abioticSaveFs.recentZip", cancellationToken, folder).ConfigureAwait(false);
+        if (reference is null) return null;
+        await using var stream = await reference.OpenReadStreamAsync(MaximumSaveSize, cancellationToken).ConfigureAwait(false);
+        using var buffer = new MemoryStream();
+        await stream.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
+        return buffer.ToArray();
     }
 
     public Task ForgetAsync(string folder, CancellationToken cancellationToken = default)
@@ -134,7 +162,14 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem, ISav
             ? parsed
             : null;
 
-    private sealed record RecentEntry(string Name, string? OpenedAt);
+    private sealed record RecentEntry(string Name, string? OpenedAt, bool FromZip);
+
+    /// <summary>
+    /// The zip each open bundle came from, so it can be kept for next time. Held here rather
+    /// than handed straight to storage because a world is only worth remembering once it has
+    /// actually opened.
+    /// </summary>
+    private readonly Dictionary<string, byte[]> _openedBundles = new(StringComparer.OrdinalIgnoreCase);
 
     // ---------- worlds opened from a zip ----------
 
@@ -150,16 +185,22 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem, ISav
     /// </remarks>
     private readonly Dictionary<string, Dictionary<string, byte[]>> _bundles = new(StringComparer.OrdinalIgnoreCase);
 
-    public async Task<string> OpenBundleAsync(string fileName, byte[] contents, CancellationToken cancellationToken = default)
+    public async Task<string> OpenBundleAsync(
+        string fileName,
+        byte[] contents,
+        IProgress<SaveBundleProgress>? progress = null,
+        CancellationToken cancellationToken = default)
     {
-        // Unpacking a world can take a moment (the facility save alone is ~16 MB), so it stays
-        // off the render thread like every other save read.
-        var bundle = await Task.Run(
-            () => SaveBundle.Read(new MemoryStream(contents, writable: false), fileName), cancellationToken)
+        // Not Task.Run: a browser has one thread, so that would not move the work off anything -
+        // it would just block the same thread a moment later, which is exactly what froze the tab
+        // for six seconds. ReadAsync hands control back between files instead.
+        var bundle = await SaveBundle
+            .ReadAsync(new MemoryStream(contents, writable: false), fileName, progress, cancellationToken)
             .ConfigureAwait(false);
 
         _bundles[bundle.Name] = bundle.Saves.ToDictionary(
             pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
+        _openedBundles[bundle.Name] = contents;
         // Re-opening a world of the same name must win over a folder opened earlier, and vice
         // versa, so exactly one source ever answers for a given name.
         await js.InvokeVoidAsync("abioticSaveFs.forget", cancellationToken, bundle.Name).ConfigureAwait(false);
