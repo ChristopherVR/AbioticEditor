@@ -8,6 +8,8 @@
 @inject InventorySelectionService Selection
 @inject SlotDragDropService Dnd
 @inject HostAdvancedPreferences Advanced
+@inject AbioticEditor.Web.Services.SiblingWorldBedService Beds
+@inject AbioticEditor.Web.Services.SaveWorkspaceSessionService Workspace
 @inject IJSRuntime Js
 
 @* Faithful port of the native PlayerInventoryTab: the AF-style paper-doll layout.
@@ -109,6 +111,8 @@
     [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
     [Parameter] public WorldSaveSession? WorldSession { get; set; }
     [Parameter] public EventCallback OnChanged { get; set; }
+
+    protected override void OnParametersSet() => _ = LoadSiblingBenchesAsync();
 
     private string? _status;
     private PlayerInventorySlotEdit? _dragOverSlot;
@@ -269,8 +273,45 @@
         else if (Session.Backpack.Contains(slot)) Select(PlayerInventoryArea.Backpack, slot);
     }
 
+    /// <summary>
+    /// The crafting benches a personal teleporter can be tied to, for TELEPORTER SYNC.
+    /// </summary>
+    /// <remarks>
+    /// Benches live in the world, and only one save is open at a time - so while a player save is
+    /// selected there is no loaded world session to read them from and the list was always empty,
+    /// leaving TELEPORTER SYNC with nothing to pick and its button dead. They come from the same
+    /// place the spawn screen's bed list does: the world save sitting beside this player, read
+    /// once in the background.
+    /// </remarks>
     private IReadOnlyList<AbioticEditor.Core.WorldSaves.WorldDeployable> Benches
-        => WorldSession?.Deployables.Where(deployable => deployable.IsCraftingBench).ToArray() ?? [];
+        => (WorldSession?.Deployables ?? _siblingDeployables)
+            .Where(deployable => deployable.IsCraftingBench)
+            .ToArray();
+
+    private IReadOnlyList<AbioticEditor.Core.WorldSaves.WorldDeployable> _siblingDeployables = [];
+    private string? _benchScanFor;
+
+    /// <summary>
+    /// Reads the neighbouring world's deployables so the bench list has something in it. Only
+    /// when no world session is loaded (that one is already the better answer, staged edits and
+    /// all), and only once per player save.
+    /// </summary>
+    private async Task LoadSiblingBenchesAsync()
+    {
+        if (WorldSession is not null) return;
+        if (string.Equals(_benchScanFor, Session.Path, StringComparison.OrdinalIgnoreCase)) return;
+        _benchScanFor = Session.Path;
+        try
+        {
+            if (await Beds.FacilityPathForAsync(Session.Path, Workspace.Current) is not { } facility) return;
+            _siblingDeployables = await Beds.GetDeployablesAsync(facility, WorldSession);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception exception)
+        {
+            Errors.Record(exception, "Read crafting benches from the world beside this player");
+        }
+    }
 
     private Task Changed() { Session.MarkChanged(); return OnChanged.InvokeAsync(); }
     private Task SwapWithin(PlayerInventoryArea area, (int First, int Second) pair) { Session.TrySwapInventorySlots(area, pair.First, pair.Second); return OnChanged.InvokeAsync(); }
