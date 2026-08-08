@@ -33,6 +33,12 @@
          the JSON reader, never by our own code, so the trimmer removed their constructors and
          the very first click - OPEN FOLDER - failed with "DeserializeNoConstructor". -->
     <TrimmerRootAssembly Include="AbioticEditor.Web.Wasm" />
+    <!-- The picker requests and results travel the same way, and full trim also strips
+         constructor PARAMETER NAMES, which is what the JSON writer matches properties against.
+         Without this, asking for a file threw "ConstructorContainsNullParameterNames" while
+         packing up the arguments - before the chooser could even appear, so OPEN APPEARANCE FILE
+         reported that the file could not be read when no file had been chosen yet. -->
+    <TrimmerRootAssembly Include="AbioticEditor.Ui.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>

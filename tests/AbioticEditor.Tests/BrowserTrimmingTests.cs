@@ -50,6 +50,9 @@ public sealed class BrowserTrimmingTests
     [InlineData("AbioticEditor.Web.Shared")]
     // The browser host: its records are built by the JSON reader when JavaScript answers back.
     [InlineData("AbioticEditor.Web.Wasm")]
+    // The picker requests/results, which travel the same way. Full trim also strips constructor
+    // parameter names, so leaving this out broke asking for a file before the chooser appeared.
+    [InlineData("AbioticEditor.Ui.Abstractions")]
     public void BrowserBuild_KeepsReflectionDrivenAssembliesWhole(string assembly)
     {
         var roots = BrowserProject()
