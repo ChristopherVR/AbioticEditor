@@ -84,6 +84,24 @@ public static class WorldLevelIndex
     }
 
     /// <summary>
+    /// The same raw scan over bytes already in hand, for a host that cannot open a file.
+    /// </summary>
+    /// <remarks>
+    /// A browser reads through the folder handle the player granted, not through a path, so the
+    /// streaming overload above cannot run there at all - which is why the spawn screen's region
+    /// list came up empty in the browser. Callers there pass the tail of each save: the value
+    /// sits within the last few hundred bytes of nearly every region file (the main facility save
+    /// being the exception), so reading a small slice off the end finds it without pulling
+    /// sixty-odd megabytes of world across the interop boundary.
+    /// </remarks>
+    /// <returns>The GUID, or null when this slice does not contain the property and its value.</returns>
+    public static string? TryReadLevelGuid(byte[] buffer)
+    {
+        ArgumentNullException.ThrowIfNull(buffer);
+        return ScanForGuid(buffer, buffer.Length, buffer.Length);
+    }
+
+    /// <summary>
     /// Scans buffer[0..count) for the needle (matches starting before
     /// <paramref name="evalLimit"/>) followed by a 32-hex-char run terminated by NUL.
     /// </summary>

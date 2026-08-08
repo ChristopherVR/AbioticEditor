@@ -89,6 +89,38 @@ public sealed class SaveFileSystemSeamTests
         Assert.Equal((int)(money + 7), PlayerSaveReader.ReadFromFile(player.Path).Stats.Money);
     }
 
+    /// <summary>
+    /// The spawn screen's region list is built from the open workspace through the seam.
+    /// </summary>
+    /// <remarks>
+    /// It used to walk the folder the player save sits in with <c>System.IO</c>, which a browser
+    /// cannot do - so "pick the area the spawn point is in" was empty there with no error to
+    /// explain it. Reading the tail of each save works on both hosts, and this checks the result
+    /// against the answer the original whole-file scan gives.
+    /// </remarks>
+    [Fact]
+    public async Task Region_list_is_read_through_the_seam_and_matches_a_full_scan()
+    {
+        using var world = CopyCascadeWorld();
+        using var workspace = new SaveWorkspaceSessionService(
+            new RecipeVocabularyService(), new ProgressionVocabularyService(),
+            new CodexVocabularyService(), new DesktopSaveFileSystem());
+        var opened = await workspace.OpenAsync(world.Path);
+
+        var levels = await new WorldLevelIndexService(new DesktopSaveFileSystem()).GetLevelsAsync(opened);
+
+        Assert.NotEmpty(levels);
+        // Every region save the workspace found must have contributed one entry.
+        Assert.Equal(opened.Saves.Count(save => save.Kind == SaveDocumentKind.World), levels.Count);
+
+        // And each id must be the one Core's own whole-file scan reads out of that same file.
+        foreach (var level in levels)
+        {
+            var file = Path.Combine(world.Path, level.FileName + ".sav");
+            Assert.Equal(WorldLevelIndex.TryReadLevelGuid(file), level.LevelGuid);
+        }
+    }
+
     private static string FindPlayer(string worldPath)
         => Directory.EnumerateFiles(Path.Combine(worldPath, "PlayerData"), "Player_*.sav")
             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)

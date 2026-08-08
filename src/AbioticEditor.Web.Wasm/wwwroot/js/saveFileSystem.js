@@ -15,6 +15,45 @@
 
 const roots = new Map();
 
+// Worlds the player has opened before, so a refresh does not mean picking the folder again.
+//
+// IndexedDB, not localStorage, because what is stored is a FileSystemDirectoryHandle - a live
+// reference to a real folder, which IndexedDB can hold and plain string storage cannot. The
+// browser deliberately drops the read permission that came with it when the tab closes, so
+// re-opening one asks the player again; that prompt needs a click behind it, which is why
+// reopening is a button and never happens on its own.
+//
+// Only folders picked or dropped as folders are remembered. A folder uploaded read-only, or a
+// zip, is a snapshot of bytes with nothing to point back at, so there is nothing to reopen.
+const RECENT_DB = "abiotic-editor";
+const RECENT_STORE = "recent-worlds";
+const RECENT_LIMIT = 3;
+
+function openRecentDb() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(RECENT_DB, 1);
+        request.onupgradeneeded = () => {
+            const db = request.result;
+            if (!db.objectStoreNames.contains(RECENT_STORE)) {
+                db.createObjectStore(RECENT_STORE, { keyPath: "name" });
+            }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+function recentTransaction(db, mode) {
+    return db.transaction(RECENT_STORE, mode).objectStore(RECENT_STORE);
+}
+
+function awaitRequest(request) {
+    return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
 // The read-only counterpart of `roots`, for browsers with no File System Access API at all.
 // An <input type="file" webkitdirectory> gives every file in a chosen folder as a File, each
 // carrying its path within that folder - enough to read a whole world, but the File objects are
@@ -202,10 +241,107 @@ window.abioticSaveFs = {
 
     folderExists: async (rootName) => roots.has(rootName) || uploads.has(rootName),
 
-    /// Lets a folder dragged onto the window be opened like a picked one. A drop gives us a
-    /// FileSystemDirectoryHandle through getAsFileSystemHandle(), so it lands in the same
-    /// registry as a picked folder and behaves identically from then on. Registers the handler
-    /// once and calls back into .NET with the folder name.
+    /// Drops any folder held under this name. Called when the same world is re-opened from a zip
+    /// instead, so exactly one source ever answers for a given name.
+    forget: (rootName) => {
+        roots.delete(rootName);
+        uploads.delete(rootName);
+        overlays.delete(rootName);
+    },
+
+    /// Remembers a world so the home page can offer it after a refresh. Silently does nothing
+    /// for a world with no folder behind it (an uploaded copy, or a zip): there would be nothing
+    /// to reopen, and an entry that cannot be opened is worse than no entry.
+    rememberRecent: async (rootName, openedAt) => {
+        const handle = roots.get(rootName);
+        if (!handle) return;
+        try {
+            const db = await openRecentDb();
+            await awaitRequest(recentTransaction(db, "readwrite")
+                .put({ name: rootName, handle, openedAt }));
+
+            // Keep only the newest few, so the list stays a shortcut rather than a history.
+            const all = await awaitRequest(recentTransaction(db, "readonly").getAll());
+            all.sort((a, b) => (b.openedAt ?? "").localeCompare(a.openedAt ?? ""));
+            const store = recentTransaction(db, "readwrite");
+            for (const stale of all.slice(RECENT_LIMIT)) store.delete(stale.name);
+            db.close();
+        } catch {
+            // A browser with storage switched off just does not offer the shortcut.
+        }
+    },
+
+    /// The remembered worlds, newest first. Names only - the handles never leave this file.
+    listRecent: async () => {
+        try {
+            const db = await openRecentDb();
+            const all = await awaitRequest(recentTransaction(db, "readonly").getAll());
+            db.close();
+            all.sort((a, b) => (b.openedAt ?? "").localeCompare(a.openedAt ?? ""));
+            return all.slice(0, RECENT_LIMIT).map(entry => ({ name: entry.name, openedAt: entry.openedAt ?? "" }));
+        } catch {
+            return [];
+        }
+    },
+
+    /// Re-opens a remembered world, asking the player's permission again. Must be called from a
+    /// click: the browser refuses a permission prompt that no gesture asked for. Returns the
+    /// folder name, or null when permission was refused or the folder has gone.
+    reopenRecent: async (rootName) => {
+        let handle;
+        try {
+            const db = await openRecentDb();
+            const entry = await awaitRequest(recentTransaction(db, "readonly").get(rootName));
+            db.close();
+            handle = entry?.handle;
+        } catch {
+            return null;
+        }
+        if (!handle) return null;
+
+        try {
+            let permission = await handle.queryPermission({ mode: "readwrite" });
+            if (permission !== "granted") permission = await handle.requestPermission({ mode: "readwrite" });
+            if (permission !== "granted") return null;
+            // Proves the folder is still there before the editor commits to it.
+            await handle.values().next();
+        } catch {
+            return null;
+        }
+
+        roots.set(handle.name, handle);
+        uploads.delete(handle.name);
+        return handle.name;
+    },
+
+    /// Drops a world from the remembered list.
+    forgetRecent: async (rootName) => {
+        try {
+            const db = await openRecentDb();
+            await awaitRequest(recentTransaction(db, "readwrite").delete(rootName));
+            db.close();
+        } catch {
+            // Nothing to do: the list is a convenience, not state anything depends on.
+        }
+    },
+
+    /// A zip the player dropped, held until .NET asks for it (unzipping happens there - the
+    /// editor already carries a zip reader and the browser has none of its own).
+    droppedZip: null,
+
+    /// Hands the dropped zip's bytes over as a stream, the same way saves are read.
+    readDroppedZip: async () => {
+        const file = window.abioticSaveFs.droppedZip;
+        if (!file) throw new Error("There is no dropped file to read.");
+        window.abioticSaveFs.droppedZip = null;
+        return await file.arrayBuffer();
+    },
+
+    /// Lets a folder - or a zip of one - dragged onto the window be opened like a picked one.
+    /// A dropped folder gives us a FileSystemDirectoryHandle through getAsFileSystemHandle(), so
+    /// it lands in the same registry as a picked folder and behaves identically from then on. A
+    /// dropped zip is held for .NET to unpack. Registers the handler once and calls back into
+    /// .NET with the folder name, or with the zip's name for it to fetch and unpack.
     listenForDroppedFolder: (dotNetRef) => {
         if (window.__abioticDropWired) return;
         window.__abioticDropWired = true;
@@ -216,6 +352,17 @@ window.abioticSaveFs = {
         window.addEventListener("drop", async event => {
             event.preventDefault();
             const items = [...(event.dataTransfer?.items ?? [])];
+
+            // A zip first: it is a plain file, so it never produces a directory handle and would
+            // otherwise fall through the loop below and be ignored without a word.
+            const zip = [...(event.dataTransfer?.files ?? [])]
+                .find(file => file.name.toLowerCase().endsWith(".zip"));
+            if (zip) {
+                window.abioticSaveFs.droppedZip = zip;
+                await dotNetRef.invokeMethodAsync("OnZipDropped", zip.name);
+                return;
+            }
+
             for (const item of items) {
                 if (item.kind !== "file" || !item.getAsFileSystemHandle) continue;
                 let handle;
@@ -242,6 +389,22 @@ window.abioticSaveFs = {
                 return;
             }
         });
+    },
+
+    /// Turns the browser's own "leave this page?" confirmation on and off. Armed only while the
+    /// editor is holding edits nobody has saved yet: those live in the page and go with it when
+    /// the tab closes or reloads. Browsers ignore any wording we supply and show their own, so
+    /// there is nothing to translate here - only the handler's presence matters.
+    warnBeforeLeaving: (on) => {
+        if (on) {
+            if (window.__abioticLeaveGuard) return;
+            window.__abioticLeaveGuard = (event) => { event.preventDefault(); event.returnValue = ""; };
+            window.addEventListener("beforeunload", window.__abioticLeaveGuard);
+            return;
+        }
+        if (!window.__abioticLeaveGuard) return;
+        window.removeEventListener("beforeunload", window.__abioticLeaveGuard);
+        window.__abioticLeaveGuard = null;
     },
 
     listSaves: async (rootName) => {
@@ -284,6 +447,20 @@ window.abioticSaveFs = {
         const { handle } = await fileHandle(rootName, relative);
         const file = await handle.getFile();
         return await file.slice(0, Math.min(maxBytes, file.size)).arrayBuffer();
+    },
+
+    /// Only the last maxBytes. Used to find the region id a save belongs to, which the game
+    /// writes near the end of the file - a lazy Blob slice, so listing a world's regions costs
+    /// a few hundred bytes per save instead of reading tens of megabytes.
+    readTail: async (path, maxBytes) => {
+        const slice = (blob) => blob.slice(Math.max(0, blob.size - maxBytes)).arrayBuffer();
+
+        const uploaded = uploadedBlob(path);
+        if (uploaded) return await slice(uploaded);
+
+        const { rootName, relative } = splitPath(path);
+        const { handle } = await fileHandle(rootName, relative);
+        return await slice(await handle.getFile());
     },
 
     readAll: async (path) => {

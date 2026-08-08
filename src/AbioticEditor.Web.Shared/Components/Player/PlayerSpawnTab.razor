@@ -5,6 +5,7 @@
 @using AbioticEditor.Core.WorldSaves
 @inject AbioticEditor.Web.Services.SiblingWorldBedService Beds
 @inject AbioticEditor.Web.Services.SaveWorkspaceSessionService Workspace
+@inject AbioticEditor.Web.Services.WorldLevelIndexService Regions
 @inject AbioticEditor.Web.Services.ModalService Modals
 
 @* Faithful port of the retired native SPAWN tab: one "SPAWN & HOME" panel with the
@@ -126,7 +127,7 @@
     private string? _selectedBedId;
     private string? _status;
     private bool _bedsLoading;
-    private object? _bedSource;
+    private object? _bedsLoadedFrom;
     private IReadOnlyList<WorldDeployable> _deployables = [];
     private IReadOnlyList<(WorldDeployable Bed, string Label)> _bedOptions = [];
     private WorldSaveSession? _claimSession;
@@ -147,16 +148,41 @@
             _terminalBaseline = Session.Respawn.TerminalGuid;
             _status = null;
             _selectedBedId = null;
-            _bedSource = null;
+            _bedsLoadedFrom = null;
             _claimSession = null;
-            // Sibling world saves live two levels up from PlayerData\Player_<id>.sav.
-            var worldDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetDirectoryName(Session.Path));
-            Levels = worldDir is null ? [] : WorldLevelIndex.ScanFolder(worldDir);
+            _ = LoadRegionsAsync();
         }
-        if (!ReferenceEquals(_bedSource, WorldSession) || _bedSource is null)
+        // Compared against what was actually loaded from, not against WorldSession. The old test
+        // was false on every pass whenever no world save was open - the usual state while a
+        // player save is selected - so the ~16 MB facility read was kicked off again on every
+        // render and the bed list never settled. It simply looked permanently empty.
+        var bedSource = (object?)WorldSession ?? Session.Path;
+        if (!ReferenceEquals(_bedsLoadedFrom, bedSource))
         {
-            _bedSource = WorldSession ?? (object?)Session.Path;
+            _bedsLoadedFrom = bedSource;
             _ = LoadBedsAsync();
+        }
+    }
+
+    /// <summary>
+    /// The world's regions, for the spawn-region picker. Read through the host's file system
+    /// rather than by walking the folder the player save sits in: a browser has no folder to
+    /// walk, which is why this list used to come up empty there.
+    /// </summary>
+    private async Task LoadRegionsAsync()
+    {
+        try
+        {
+            Levels = await Regions.GetLevelsAsync(Workspace.Current);
+        }
+        catch (Exception ex)
+        {
+            Errors.Record(ex, "List the regions of the open world");
+            Levels = [];
+        }
+        finally
+        {
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -332,7 +358,7 @@
                     session.SetDeployableCustomName(bed.Id, $"{playerId}{WorldDeployable.ClaimSeparator}{ResolvePlayerName(playerId)}");
                     _claimSession = session;
                     _deployables = session.Deployables;
-                    _bedSource = null; // labels now reflect the staged claim
+                    _bedsLoadedFrom = null; // labels now reflect the staged claim
                     RefreshBeds();
                 }
             }
@@ -354,7 +380,7 @@
             await session.SaveAsync();
             _status = L.Resource("PlayerPets_WorldSaved", System.IO.Path.GetFileName(session.Path));
             Workspace.NotifyEdited();
-            _bedSource = null;
+            _bedsLoadedFrom = null;
             await LoadBedsAsync();
         }
         catch (Exception ex)

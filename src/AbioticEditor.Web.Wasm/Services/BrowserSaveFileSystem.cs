@@ -20,7 +20,7 @@ namespace AbioticEditor.Web.Wasm.Services;
 /// folder that is fine. <see cref="IsSupportedAsync"/> reports the capability; nothing calls it
 /// yet, because there is no second mode to switch to.</para>
 /// </remarks>
-public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem
+public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem, ISaveBundleReader, IRecentWorldStore
 {
     /// <summary>
     /// Ceiling for a single save read. The largest real save is the ~16 MB Facility region save;
@@ -47,7 +47,7 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem
     public async Task<string?> PickFolderAsync(CancellationToken cancellationToken = default)
     {
         var folder = await js.InvokeAsync<string?>("abioticSaveFs.pickFolder", cancellationToken).ConfigureAwait(false);
-        if (folder is not null) CanWrite = true;
+        if (folder is not null) { _bundles.Remove(folder); CanWrite = true; }
         return folder;
     }
 
@@ -61,12 +61,15 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem
     public async Task<string?> UploadFolderAsync(CancellationToken cancellationToken = default)
     {
         var folder = await js.InvokeAsync<string?>("abioticSaveFs.uploadFolder", cancellationToken).ConfigureAwait(false);
-        if (folder is not null) CanWrite = false;
+        if (folder is not null) { _bundles.Remove(folder); CanWrite = false; }
         return folder;
     }
 
     /// <summary>Raised when the player drops a save folder onto the window.</summary>
     public event Func<string, Task>? FolderDropped;
+
+    /// <summary>Raised when the player drops a zipped save folder onto the window.</summary>
+    public event Func<string, Task>? BundleDropped;
 
     /// <summary>
     /// Starts listening for a folder dropped onto the window. Safe to call more than once; the
@@ -83,13 +86,113 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem
     public Task OnFolderDropped(string folder)
         => FolderDropped is { } handler ? handler(folder) : Task.CompletedTask;
 
+    /// <summary>Called from JavaScript when the dropped file is a zip, naming it.</summary>
+    [JSInvokable]
+    public Task OnZipDropped(string fileName)
+        => BundleDropped is { } handler ? handler(fileName) : Task.CompletedTask;
+
+    /// <summary>
+    /// Unpacks the zip JavaScript is holding from the last drop and opens it as the workspace.
+    /// </summary>
+    /// <returns>The folder identifier to hand to the workspace.</returns>
+    public async Task<string> OpenDroppedBundleAsync(string fileName, CancellationToken cancellationToken = default)
+    {
+        var contents = await ReadStreamAsync("abioticSaveFs.readDroppedZip", cancellationToken).ConfigureAwait(false);
+        return await OpenBundleAsync(fileName, contents, cancellationToken).ConfigureAwait(false);
+    }
+
     private DotNetObjectReference<BrowserSaveFileSystem>? _dropReference;
 
+    // ---------- worlds the player opened before ----------
+
+    public Task RememberAsync(string folder, CancellationToken cancellationToken = default)
+        => js.InvokeVoidAsync(
+            "abioticSaveFs.rememberRecent", cancellationToken,
+            folder, DateTimeOffset.UtcNow.ToString("O", System.Globalization.CultureInfo.InvariantCulture)).AsTask();
+
+    public async Task<IReadOnlyList<RecentWorld>> ListAsync(CancellationToken cancellationToken = default)
+    {
+        var entries = await js.InvokeAsync<RecentEntry[]>("abioticSaveFs.listRecent", cancellationToken).ConfigureAwait(false);
+        return entries.Select(entry => new RecentWorld(entry.Name, ParseOpenedAt(entry.OpenedAt))).ToArray();
+    }
+
+    public async Task<string?> ReopenAsync(string folder, CancellationToken cancellationToken = default)
+    {
+        var reopened = await js.InvokeAsync<string?>("abioticSaveFs.reopenRecent", cancellationToken, folder).ConfigureAwait(false);
+        // Re-granted folders are writable again, and are no longer served from a zip.
+        if (reopened is not null) { _bundles.Remove(reopened); CanWrite = true; }
+        return reopened;
+    }
+
+    public Task ForgetAsync(string folder, CancellationToken cancellationToken = default)
+        => js.InvokeVoidAsync("abioticSaveFs.forgetRecent", cancellationToken, folder).AsTask();
+
+    private static DateTimeOffset? ParseOpenedAt(string? value)
+        => DateTimeOffset.TryParse(
+            value, System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.RoundtripKind, out var parsed)
+            ? parsed
+            : null;
+
+    private sealed record RecentEntry(string Name, string? OpenedAt);
+
+    // ---------- worlds opened from a zip ----------
+
+    /// <summary>
+    /// Worlds unpacked from a zip, by world name, each holding its saves by path within it.
+    /// </summary>
+    /// <remarks>
+    /// These live here in .NET rather than in the JavaScript registry the picked and uploaded
+    /// folders use, because unpacking the zip is .NET's job - the browser has no unzip of its
+    /// own and the editor already carries one. Every read below therefore checks here first,
+    /// and a write lands here too: nothing goes back into the zip file, so the edited copy stays
+    /// in the tab until EXPORT hands it back, exactly like a folder opened read-only.
+    /// </remarks>
+    private readonly Dictionary<string, Dictionary<string, byte[]>> _bundles = new(StringComparer.OrdinalIgnoreCase);
+
+    public async Task<string> OpenBundleAsync(string fileName, byte[] contents, CancellationToken cancellationToken = default)
+    {
+        // Unpacking a world can take a moment (the facility save alone is ~16 MB), so it stays
+        // off the render thread like every other save read.
+        var bundle = await Task.Run(
+            () => SaveBundle.Read(new MemoryStream(contents, writable: false), fileName), cancellationToken)
+            .ConfigureAwait(false);
+
+        _bundles[bundle.Name] = bundle.Saves.ToDictionary(
+            pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
+        // Re-opening a world of the same name must win over a folder opened earlier, and vice
+        // versa, so exactly one source ever answers for a given name.
+        await js.InvokeVoidAsync("abioticSaveFs.forget", cancellationToken, bundle.Name).ConfigureAwait(false);
+        CanWrite = false;
+        return bundle.Name;
+    }
+
+    /// <summary>The unpacked world a path belongs to, or null when it is not one of them.</summary>
+    private Dictionary<string, byte[]>? BundleFor(string path, out string relative)
+    {
+        relative = string.Empty;
+        var separator = path.IndexOf('/');
+        var root = separator < 0 ? path : path[..separator];
+        if (!_bundles.TryGetValue(root, out var bundle)) return null;
+        relative = separator < 0 ? string.Empty : path[(separator + 1)..];
+        return bundle;
+    }
+
     public async Task<bool> FolderExistsAsync(string folder, CancellationToken cancellationToken = default)
-        => await js.InvokeAsync<bool>("abioticSaveFs.folderExists", cancellationToken, folder).ConfigureAwait(false);
+        => _bundles.ContainsKey(folder)
+            || await js.InvokeAsync<bool>("abioticSaveFs.folderExists", cancellationToken, folder).ConfigureAwait(false);
 
     public async Task<IReadOnlyList<SaveFileEntry>> ListSavesAsync(string folder, CancellationToken cancellationToken = default)
     {
+        if (_bundles.TryGetValue(folder, out var bundle))
+        {
+            return bundle
+                .Where(pair => pair.Key.EndsWith(".sav", StringComparison.OrdinalIgnoreCase))
+                .Select(pair => new SaveFileEntry(
+                    $"{folder}/{pair.Key}", pair.Key, NameOf(pair.Key), pair.Value.LongLength))
+                .ToArray();
+        }
+
         var entries = await js.InvokeAsync<BrowserEntry[]>("abioticSaveFs.listSaves", cancellationToken, folder).ConfigureAwait(false);
         return entries
             .Select(entry => new SaveFileEntry(entry.Path, entry.RelativePath, entry.Name, entry.Length))
@@ -97,19 +200,62 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem
     }
 
     public Task<byte[]> ReadAllBytesAsync(string path, CancellationToken cancellationToken = default)
-        => ReadStreamAsync("abioticSaveFs.readAll", cancellationToken, path);
+        => BundleFor(path, out var relative) is { } bundle
+            ? Task.FromResult(FromBundle(bundle, relative))
+            : ReadStreamAsync("abioticSaveFs.readAll", cancellationToken, path);
 
     public Task<byte[]> ReadHeaderAsync(string path, int maxBytes, CancellationToken cancellationToken = default)
-        => ReadStreamAsync("abioticSaveFs.readHeader", cancellationToken, path, maxBytes);
+        => BundleFor(path, out var relative) is { } bundle
+            ? Task.FromResult(Slice(FromBundle(bundle, relative), fromEnd: false, maxBytes))
+            : ReadStreamAsync("abioticSaveFs.readHeader", cancellationToken, path, maxBytes);
+
+    public Task<byte[]> ReadTailAsync(string path, int maxBytes, CancellationToken cancellationToken = default)
+        => BundleFor(path, out var relative) is { } bundle
+            ? Task.FromResult(Slice(FromBundle(bundle, relative), fromEnd: true, maxBytes))
+            : ReadStreamAsync("abioticSaveFs.readTail", cancellationToken, path, maxBytes);
 
     public async Task<string?> GetVersionStampAsync(string path, CancellationToken cancellationToken = default)
-        => await js.InvokeAsync<string?>("abioticSaveFs.versionStamp", cancellationToken, path).ConfigureAwait(false);
+    {
+        // An unpacked save only changes when the editor itself writes it, and a write replaces
+        // the array - so its length and identity together are a sound "has this changed" token.
+        if (BundleFor(path, out var relative) is { } bundle)
+        {
+            return bundle.TryGetValue(relative, out var contents)
+                ? $"{contents.Length}:{contents.GetHashCode()}"
+                : null;
+        }
+        return await js.InvokeAsync<string?>("abioticSaveFs.versionStamp", cancellationToken, path).ConfigureAwait(false);
+    }
 
     public async Task WriteAllBytesAsync(string path, byte[] contents, CancellationToken cancellationToken = default)
     {
+        if (BundleFor(path, out var relative) is { } bundle)
+        {
+            // The zip the player chose is never touched, so it IS the backup.
+            bundle[relative] = contents;
+            return;
+        }
         using var source = new MemoryStream(contents, writable: false);
         using var streamRef = new DotNetStreamReference(source, leaveOpen: true);
         await js.InvokeVoidAsync("abioticSaveFs.write", cancellationToken, path, streamRef).ConfigureAwait(false);
+    }
+
+    private static byte[] FromBundle(Dictionary<string, byte[]> bundle, string relative)
+        => bundle.TryGetValue(relative, out var contents)
+            ? contents
+            : throw new FileNotFoundException($"'{relative}' is not in the zip you opened. Open it again.", relative);
+
+    private static byte[] Slice(byte[] contents, bool fromEnd, int maxBytes)
+    {
+        var length = Math.Min(maxBytes, contents.Length);
+        var start = fromEnd ? contents.Length - length : 0;
+        return contents.AsSpan(start, length).ToArray();
+    }
+
+    private static string NameOf(string relative)
+    {
+        var separator = relative.LastIndexOf('/');
+        return separator < 0 ? relative : relative[(separator + 1)..];
     }
 
     /// <summary>

@@ -66,6 +66,20 @@ public interface ISaveFileSystem
     Task<byte[]> ReadHeaderAsync(string path, int maxBytes, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Reads at most <paramref name="maxBytes"/> from the END of a save, or the whole file if it
+    /// is smaller.
+    /// </summary>
+    /// <remarks>
+    /// The counterpart of <see cref="ReadHeaderAsync"/>, for the handful of top-level properties
+    /// the game writes last - <c>LevelGUID</c> above all, which names the region a save belongs
+    /// to and sits within a few hundred bytes of the end of nearly every region file. Listing the
+    /// regions of a world therefore costs a slice off each file rather than the sixty-odd
+    /// megabytes reading them whole would cost. Callers must treat a short answer as "not found
+    /// here" and ask for more, never as "not in this file".
+    /// </remarks>
+    Task<byte[]> ReadTailAsync(string path, int maxBytes, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Replaces a save's contents, first keeping the previous contents as a <c>.bak</c> beside
     /// it. Implementations must not leave a truncated file behind if the write fails partway:
     /// the editor's promise is that one bad save can always be undone.

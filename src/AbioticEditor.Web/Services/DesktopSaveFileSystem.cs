@@ -54,6 +54,16 @@ public sealed class DesktopSaveFileSystem : ISaveFileSystem
         return buffer;
     }
 
+    public async Task<byte[]> ReadTailAsync(string path, int maxBytes, CancellationToken cancellationToken = default)
+    {
+        await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, useAsync: true);
+        var length = (int)Math.Min(maxBytes, stream.Length);
+        stream.Seek(-length, SeekOrigin.End);
+        var buffer = new byte[length];
+        await stream.ReadExactlyAsync(buffer, cancellationToken).ConfigureAwait(false);
+        return buffer;
+    }
+
     public Task WriteAllBytesAsync(string path, byte[] contents, CancellationToken cancellationToken = default)
         => Task.Run(() => SaveBackup.WriteWithBackup(path, stream => stream.Write(contents, 0, contents.Length)), cancellationToken);
 }
