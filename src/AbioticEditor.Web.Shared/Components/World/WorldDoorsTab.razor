@@ -366,18 +366,25 @@
                     @L.Resource("WorldDoors_SubLevelFormat", string.IsNullOrEmpty(map) ? L.Resource("WorldDoors_PersistentLevel") : map.Replace('_', ' '))<br />
                     @L.Resource("WorldDoors_ActorFormat", actor)
                 </p>
-                <span class="detail-label">@L.Resource("Slot_ExactPosition")</span>
-                @if (_isLocatingPosition)
+                @* A door's exact spot is read out of the installed game's own level files. A
+                   browser has no machine to read them from, so the whole line is left out there
+                   rather than shown as "your installed game was not found" - which reads as a
+                   fault to go and fix, when nothing is wrong and nothing can be done about it. *@
+                @if (Art.CanReadInstalledGame)
                 {
-                    <p class="detail-status">@L.Resource("Slot_ReadingTheLevelFromTheGameFiles")</p>
-                }
-                else if (_selectedDoorPosition is { } position)
-                {
-                    <p class="detail-value">X @position.X.ToString("N0")&nbsp;&nbsp;·&nbsp;&nbsp;Y @position.Y.ToString("N0")&nbsp;&nbsp;·&nbsp;&nbsp;Z @position.Z.ToString("N0")</p>
-                }
-                else
-                {
-                    <p class="detail-status">@L.Resource("WorldDoors_GameInstallNotFound")</p>
+                    <span class="detail-label">@L.Resource("Slot_ExactPosition")</span>
+                    @if (_isLocatingPosition)
+                    {
+                        <p class="detail-status">@L.Resource("Slot_ReadingTheLevelFromTheGameFiles")</p>
+                    }
+                    else if (_selectedDoorPosition is { } position)
+                    {
+                        <p class="detail-value">X @position.X.ToString("N0")&nbsp;&nbsp;·&nbsp;&nbsp;Y @position.Y.ToString("N0")&nbsp;&nbsp;·&nbsp;&nbsp;Z @position.Z.ToString("N0")</p>
+                    }
+                    else
+                    {
+                        <p class="detail-status">@L.Resource("WorldDoors_GameInstallNotFound")</p>
+                    }
                 }
                 @* The area map. When the game ships a sector map drawing for this sub-level we
                    pin the door on the very picture the player has seen in-game, which is the

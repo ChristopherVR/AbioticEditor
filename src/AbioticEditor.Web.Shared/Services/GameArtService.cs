@@ -55,6 +55,19 @@ public sealed class GameArtService : IDisposable
 
     public bool HasGameInstall => _extractsLive && _provider.Value is not null;
 
+    /// <summary>
+    /// True when this host could ever read an installed copy of the game. False in a browser,
+    /// where there is no machine to look on - so a screen must not tell the player their install
+    /// "was not found", which invites them to go looking for a fault that does not exist. Screens
+    /// offering an install-only extra should leave it out entirely here.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately separate from <see cref="HasGameInstall"/>: that answers "is the game there
+    /// right now", which is a question worth reporting on a desktop and meaningless in a tab.
+    /// Reading it also mounts the paks, which this must never do.
+    /// </remarks>
+    public bool CanReadInstalledGame => _extractsLive;
+
     public Task<string?> GetTexturePathAsync(string? gameRef)
     {
         if (string.IsNullOrWhiteSpace(gameRef)) return Task.FromResult<string?>(null);

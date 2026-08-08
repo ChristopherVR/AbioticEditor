@@ -201,7 +201,13 @@
         _session = null;
         if (!_slots.TryGetValue(slot, out var path))
         {
-            _status = L.Resource(IsGamePassOrigin ? "Customization_StatusNotFoundGamePass" : "Customization_StatusNotFound");
+            // "Nothing was found on this computer" is only true where there is a computer to
+            // look at. A browser was only ever handed one world folder, and a character's look
+            // is not kept inside one, so nothing was searched for and nothing is missing - the
+            // panel says so with its own OPEN FILE prompt instead.
+            _status = Files.HasLocalPaths
+                ? L.Resource(IsGamePassOrigin ? "Customization_StatusNotFoundGamePass" : "Customization_StatusNotFound")
+                : null;
             return;
         }
         try

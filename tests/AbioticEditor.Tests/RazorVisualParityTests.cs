@@ -125,7 +125,11 @@ public sealed class RazorVisualParityTests
         var toast = Source("Components", "Shared", "ToastHost.razor");
         var css = Source("wwwroot", "parity.css");
 
-        Assert.Contains("class=\"footer-product\"", layout, StringComparison.Ordinal);
+        // The app's own name no longer sits in the footer: it pushed SETTINGS - the only control
+        // in that bar - away from the right edge, and repeated what the title bar already says.
+        Assert.DoesNotContain("class=\"footer-product\"", layout, StringComparison.Ordinal);
+        Assert.Contains("class=\"settings-action\"", layout, StringComparison.Ordinal);
+        Assert.Contains(".host-nav{display:flex!important;flex:0 0 auto;align-items:center;gap:8px!important;margin:0 0 0 auto!important}", css, StringComparison.Ordinal);
         Assert.Contains("FolderPicker.PickFolderAsync", settings, StringComparison.Ordinal);
         Assert.Contains("class=\"blocking-busy-overlay\"", settings, StringComparison.Ordinal);
         Assert.Contains("Task.Run(work)", settings, StringComparison.Ordinal);
