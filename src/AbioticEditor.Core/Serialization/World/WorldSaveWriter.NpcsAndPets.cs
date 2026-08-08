@@ -89,10 +89,27 @@ public static partial class WorldSaveWriter
     /// be placed into a world that has never had one, as long as it contains some creature.</para>
     /// </summary>
     public static string? AddPet(WorldSaveData data, WorldPet pet, double? totalHealth = null)
+        => AddPet(data, pet, totalHealth, out _);
+
+    /// <inheritdoc cref="AddPet(WorldSaveData, WorldPet, double?)"/>
+    /// <param name="experiencePreserved">
+    /// False when the pet's XP could not be carried across, which happens when the entry had to
+    /// be cloned from a story NPC: a pet keeps its XP in a dynamic-property list that story NPCs
+    /// simply do not have, and there is nothing in such a world to copy that list's shape from.
+    /// The pet still arrives, with its name, kind, place and health - it just starts at level one.
+    /// Callers that promise the level survives must check this before saying so.
+    /// </param>
+    public static string? AddPet(WorldSaveData data, WorldPet pet, double? totalHealth, out bool experiencePreserved)
     {
-        // The PetNPC map node must exist to add into (it can be empty - we will clone a template
-        // from the NPC map in that case).
-        if (data.Raw.Properties?.FindByPrefix("PetNPC")?.Property is not MapProperty mp || mp.Value is null)
+        experiencePreserved = false;
+
+        // The PetNPC map node has to exist to add into. Most regions have never had a pet in
+        // them, and the game omits a map it has never written, so this legitimately finds nothing
+        // on a perfectly healthy save - only the Facility save usually carries one. It is created
+        // below in that case rather than refused, which is what used to make sending a companion
+        // to a bed anywhere but the main facility stage happily and then fail on save.
+        var mp = FindOrCreatePetMap(data.Raw);
+        if (mp?.Value is null)
         {
             return null;
         }
@@ -133,11 +150,56 @@ public static partial class WorldSaveWriter
                 vec.Value = v;
             }
             DistributeLimbHealth(ps.Properties, totalHealth);
-            ApplyDynamicInt(ps.Properties, "XP", pet.Xp);
+            experiencePreserved = ApplyDynamicInt(ps.Properties, "XP", pet.Xp);
         }
 
         mp.Value.Add(new KeyValuePair<FProperty, FProperty>(key, value));
         return newId;
+    }
+
+    /// <summary>
+    /// The save's <c>PetNPC</c> map, created empty when the world has never held a pet.
+    /// </summary>
+    /// <remarks>
+    /// <para>A region the player has never taken a companion into simply has no such map: the game
+    /// delta-serializes, and a map still at its blueprint default is left out of the file
+    /// entirely. In practice only <c>WorldSave_Facility.sav</c> ships one, so refusing to create
+    /// it meant a pet could only ever be sent to the main facility.</para>
+    ///
+    /// <para>The new map is built from <c>NarrativeNPCMap</c>'s own tag rather than assembled from
+    /// scratch, because that tag already carries the exact key and value type names the game
+    /// wrote, and the two maps hold the same NPC-state struct. Copying them is what makes the
+    /// created map serialize identically to one the game would have written. Returns null when
+    /// there is no NPC map to copy the shape from - a world with no creature of any kind, which
+    /// is also a world with nothing to clone an entry from.</para>
+    /// </remarks>
+    private static MapProperty? FindOrCreatePetMap(SaveGame save)
+    {
+        if (save.Properties?.FindByPrefix("PetNPC")?.Property is MapProperty existing && existing.Value is not null)
+        {
+            return existing;
+        }
+        if (save.Properties is not { } properties) return null;
+        if (properties.FindByPrefix("NarrativeNPCMap") is not { } narrativeTag
+            || narrativeTag.Property is not MapProperty narrative)
+        {
+            return null;
+        }
+
+        // A plain top-level name with no blueprint hash suffix, exactly as it appears in the
+        // saves that do carry one.
+        var name = new FString("PetNPC");
+        var type = narrativeTag.Type.Clone();
+        if (FProperty.Create(name, type) is not MapProperty created) return null;
+
+        // Older engine versions keep the key/value type names in the property's own header
+        // instead of in the tag's type name, and ProcessTypeName only fills them in on the
+        // newer layout - so they are copied across directly for both.
+        created.KeyType = narrative.KeyType;
+        created.ValueType = narrative.ValueType;
+        created.Value = new List<KeyValuePair<FProperty, FProperty>>();
+        properties.Add(new FPropertyTag(name, type, EPropertyTagFlags.None) { Property = created });
+        return created;
     }
 
     /// <summary>
@@ -232,7 +294,8 @@ public static partial class WorldSaveWriter
     /// delta-omitted is no longer silently lost. Only truly a no-op when the pet has no
     /// <c>DynamicProperties_</c> array at all (nothing to clone a prototype from).
     /// </summary>
-    private static void ApplyDynamicInt(IList<FPropertyTag> props, string keySuffix, int value)
+    /// <summary>Returns false when the entry has no dynamic-property list to write into.</summary>
+    private static bool ApplyDynamicInt(IList<FPropertyTag> props, string keySuffix, int value)
         => PetDynamicProperties.SetOrAdd(props, keySuffix, value);
 
     private static void ApplyNpcMap(WorldSaveData data, string prefix, Dictionary<string, WorldNpc> byId)

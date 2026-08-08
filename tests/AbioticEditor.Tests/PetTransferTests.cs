@@ -116,6 +116,78 @@ public class PetTransferTests
         finally { dir.Delete(recursive: true); }
     }
 
+    /// <summary>A region save that carries story NPCs but has never held a pet.</summary>
+    private static string? FindWorldWithNpcsButNoPets()
+    {
+        var root = FixturesRoot();
+        if (root is null) return null;
+        foreach (var f in Directory.EnumerateFiles(root, "WorldSave_*.sav", SearchOption.AllDirectories))
+        {
+            if (Path.GetFileName(f).Equals("WorldSave_MetaData.sav", StringComparison.OrdinalIgnoreCase)) continue;
+            try
+            {
+                var world = WorldSaveReader.ReadFromFile(f);
+                if (world.Pets.Count == 0 && world.Npcs.Count > 0) return f;
+            }
+            catch { }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// A companion can be sent to a region that has never had one in it.
+    /// </summary>
+    /// <remarks>
+    /// The game leaves the pet map out of a save entirely until something is written into it, so
+    /// all but the main facility save lack one. The editor used to refuse those at the last
+    /// moment: the send looked like it worked, and saving the receiving world then failed with
+    /// "could not place pet". The map is now created from the story-NPC map's own shape.
+    /// </remarks>
+    [Fact]
+    public void PlayerToWorld_places_a_pet_in_a_region_that_has_never_had_one()
+    {
+        var worldSrc = FindWorldWithNpcsButNoPets();
+        var playerSrc = FindPlayerWithCarriedPet();
+        if (worldSrc is null || playerSrc is null) return; // fixtures absent: skip
+
+        var dir = Directory.CreateTempSubdirectory("pet-p2w-fresh");
+        try
+        {
+            var worldCopy = Path.Combine(dir.FullName, Path.GetFileName(worldSrc));
+            var playerCopy = Path.Combine(dir.FullName, Path.GetFileName(playerSrc));
+            File.Copy(worldSrc, worldCopy);
+            File.Copy(playerSrc, playerCopy);
+
+            var world = WorldSaveReader.ReadFromFile(worldCopy);
+            var player = PlayerSaveReader.ReadFromFile(playerCopy);
+            Assert.Empty(world.Pets);
+            var carried = player.CarriedPets[0];
+            var expectedClass = PetItemCatalog.NpcClassFor(carried.ItemRow);
+
+            var result = PetTransfer.PlayerToWorld(player, carried.Slot, carried.Index, world, 11, 22, 33);
+            Assert.True(result.Ok, result.Message);
+
+            WorldSaveWriter.WriteToFile(world, worldCopy);
+
+            // Re-read from disk: the created map has to survive a full serialize/parse round trip,
+            // which is the part a purely in-memory check would not prove.
+            var worldBack = WorldSaveReader.ReadFromFile(worldCopy);
+            var placed = Assert.Single(worldBack.Pets);
+            Assert.Equal(expectedClass, placed.NpcClass);
+            Assert.True(Math.Abs(placed.X - 11) < 1 && Math.Abs(placed.Y - 22) < 1);
+            // Everything else in the save must be untouched by the new map.
+            Assert.Equal(WorldSaveReader.ReadFromFile(worldSrc).Npcs.Count, worldBack.Npcs.Count);
+
+            // The one thing that cannot come across: the entry was cloned from a story NPC, and
+            // a pet keeps its experience in a list story NPCs do not carry, so there is nothing
+            // in this world to copy that list's shape from. The result must say so rather than
+            // claim a level it did not write.
+            Assert.Equal(0, placed.Xp);
+            Assert.Contains("starts again at level 1", result.Message, StringComparison.Ordinal);
+        }
+        finally { dir.Delete(recursive: true); }
+    }
+
     [Fact]
     public void PlayerToWorld_places_a_pet_and_round_trips()
     {

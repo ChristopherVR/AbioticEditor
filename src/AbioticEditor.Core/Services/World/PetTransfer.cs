@@ -120,7 +120,8 @@ public static class PetTransfer
             Xp: carried.Xp, State: null);
 
         // Carry the item's durability across as the world pet's total limb health (1:1 best-effort).
-        var newId = WorldSaveWriter.AddPet(world, worldPet, carried.Health > 0 ? carried.Health : null);
+        var newId = WorldSaveWriter.AddPet(
+            world, worldPet, carried.Health > 0 ? carried.Health : null, out var levelKept);
         if (newId is null)
         {
             return new(false,
@@ -129,6 +130,11 @@ public static class PetTransfer
         }
 
         PlayerSaveWriter.RemoveCarriedPet(player, kind, index);
-        return new(true, $"placed '{carried.DisplayName}' into the world at ({x:F0}, {y:F0}, {z:F0}) (level {carried.Level} and {carried.Health:0} HP preserved).");
+        // Only claim the level survived when it did. A region that has never held a pet has no
+        // experience list to copy, so the companion arrives back at level one.
+        var kept = levelKept
+            ? $"(level {carried.Level} and {carried.Health:0} HP preserved)"
+            : $"({carried.Health:0} HP preserved, but it starts again at level 1 - this area has never held a pet, so there was no level to copy)";
+        return new(true, $"placed '{carried.DisplayName}' into the world at ({x:F0}, {y:F0}, {z:F0}) {kept}.");
     }
 }

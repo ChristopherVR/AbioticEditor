@@ -132,6 +132,7 @@
     [Parameter] public EventCallback OnChanged { get; set; }
     [Inject] private SiblingWorldBedService Beds { get; set; } = null!;
     [Inject] private SaveWorkspaceSessionService Workspace { get; set; } = null!;
+    [Inject] private AbioticEditor.Web.Services.ToastService Toasts { get; set; } = null!;
     private CarriedPetEdit? _selected;
     private int _selectedBedIndex;
     private string? _transferStatus;
@@ -305,15 +306,27 @@
             }
             else
             {
-                _transferStatus = L.Resource("PlayerEditor_PetMoveFailed", message);
+                ReportMoveFailed(message);
             }
         }
         catch (Exception ex)
         {
             Errors.Record(ex, "Send a carried pet to a world save");
-            _transferStatus = L.Resource("PlayerEditor_PetMoveFailed", L.Resource("PlayerPets_CheckLogHelp"));
+            ReportMoveFailed(L.Resource("PlayerPets_CheckLogHelp"));
         }
     }
+
+    /// <summary>
+    /// A failed move is announced, not filed. It used to replace the line under the send button,
+    /// which is a spot the player is not looking at and which the next successful action quietly
+    /// overwrote - so a move that did not happen could pass unnoticed. The line itself is left
+    /// showing whatever last succeeded.
+    /// </summary>
+    private void ReportMoveFailed(string detail)
+        => Toasts.Show(
+            L.Resource("PlayerEditor_PetMoveFailed", detail),
+            AbioticEditor.Web.Services.ToastKind.Error,
+            TimeSpan.FromSeconds(9));
 
     /// <summary>Writes the staged world session (with its .bak) so the sent pet lands on disk.</summary>
     private async Task SaveTargetWorld()
@@ -329,7 +342,7 @@
         catch (Exception ex)
         {
             Errors.Record(ex, "Save the world file that received a pet");
-            _transferStatus = L.Resource("PlayerEditor_PetMoveFailed", L.Resource("PlayerPets_CheckLogHelp"));
+            ReportMoveFailed(Errors.Present(ex, L.Resource("PlayerPets_SaveWorld"), L.Resource("PlayerPets_CheckLogHelp")));
         }
     }
 }
