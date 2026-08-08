@@ -66,8 +66,6 @@
   <data name="Empty_NewWorld" xml:space="preserve"><value>NEUE WELT</value></data>
   <data name="Empty_OpenFolder" xml:space="preserve"><value>ORDNER ÖFFNEN</value></data>
   <data name="Empty_OpenYourSaveFolderInstructions" xml:space="preserve"><value>Öffnen Sie Ihren Speicherordner (normalerweise …\AppData\Local\AbioticFactor\Saved\SaveGames\&lt;steamid&gt;\Worlds\&lt;WorldName&gt;) und wählen Sie dann in der Seitenleiste einen Spieler- oder Welt-Spielstand aus.</value></data>
-  <data name="Empty_PlayersWorldsSummary" xml:space="preserve"><value>Spieler: Werte · Inventar · Fähigkeiten · Eigenschaften · Rezepte · Kodex · Erfolge
-Welten: Behälter · Quest-Flags · Türen · Bodengegenstände · Story-Fortschritt</value></data>
   <data name="Empty_SaveFoldersDetectedAutomatically" xml:space="preserve"><value>Speicherordner werden automatisch aus dem Spiel-Client und jedem installierten dedizierten Server erkannt. Wählen Sie einen aus, oder nutzen Sie ORDNER ÖFFNEN / ziehen Sie einen Ordner hinein.</value></data>
   <data name="Empty_WorldsFoundOnThisMachine" xml:space="preserve"><value>AUF DIESEM COMPUTER GEFUNDENE WELTEN</value></data>
   <data name="Empty_YouCanAlsoDropASaveFolderAnywhereOnThisWindow" xml:space="preserve"><value>Sie können einen Speicherordner auch an einer beliebigen Stelle dieses Fensters ablegen.</value></data>
@@ -3397,5 +3395,53 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   </data>
   <data name="Workspace_SavedUseExportReadOnly" xml:space="preserve">
     <value>Nur in diesem Tab gespeichert. Dein Browser kann nicht in diesen Ordner schreiben - nutze EXPORT, um deine Spielstande herunterzuladen, bevor du ihn schliesst.</value>
+  </data>
+  <data name="Unsaved_LeaveTitle" xml:space="preserve">
+    <value>Nicht gespeicherte Anderungen</value>
+  </data>
+  <data name="Unsaved_LeaveMessage" xml:space="preserve">
+    <value>{0} hat Anderungen, die noch nicht gespeichert sind. Wenn du jetzt etwas anderes offnest, gehen sie verloren.</value>
+  </data>
+  <data name="Unsaved_LeaveConfirm" xml:space="preserve">
+    <value>VERWERFEN UND WEITER</value>
+  </data>
+  <data name="Unsaved_LeaveCancel" xml:space="preserve">
+    <value>HIER BLEIBEN</value>
+  </data>
+  <data name="Unsaved_ThisSave" xml:space="preserve">
+    <value>Dieser Spielstand</value>
+  </data>
+  <data name="Bundle_Open" xml:space="preserve">
+    <value>ZIP OFFNEN</value>
+  </data>
+  <data name="Bundle_OpenTitle" xml:space="preserve">
+    <value>Gezippten Speicherordner wahlen</value>
+  </data>
+  <data name="Bundle_Opened" xml:space="preserve">
+    <value>{0} aus einem Zip geoffnet. Nutze EXPORT, um deine Anderungen mitzunehmen.</value>
+  </data>
+  <data name="Bundle_OpenFailed" xml:space="preserve">
+    <value>Dieses Zip konnte nicht geoffnet werden.</value>
+  </data>
+  <data name="Bundle_OpenGuidance" xml:space="preserve">
+    <value>Zippe den Weltordner selbst, oder nutze das Zip aus dem EXPORT des Editors.</value>
+  </data>
+  <data name="Bundle_Cancelled" xml:space="preserve">
+    <value>Es wurde kein Zip gewahlt.</value>
+  </data>
+  <data name="Empty_DropHere" xml:space="preserve">
+    <value>Ziehe einen Speicherordner oder ein Zip davon an eine beliebige Stelle dieses Fensters.</value>
+  </data>
+  <data name="Empty_Recent" xml:space="preserve">
+    <value>Da weitermachen, wo du aufgehort hast</value>
+  </data>
+  <data name="Empty_RecentHint" xml:space="preserve">
+    <value>Welten, die du schon einmal geoffnet hast. Dein Browser fragt vor dem Lesen erneut nach Erlaubnis.</value>
+  </data>
+  <data name="Empty_RecentUnavailable" xml:space="preserve">
+    <value>Diese Welt liegt nicht mehr dort. Offne ihren Ordner erneut.</value>
+  </data>
+  <data name="Empty_Forget" xml:space="preserve">
+    <value>ENTFERNEN</value>
   </data>
 </root>

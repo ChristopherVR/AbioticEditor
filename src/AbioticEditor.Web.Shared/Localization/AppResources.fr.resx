@@ -66,8 +66,6 @@
   <data name="Empty_NewWorld" xml:space="preserve"><value>NOUVEAU MONDE</value></data>
   <data name="Empty_OpenFolder" xml:space="preserve"><value>OUVRIR UN DOSSIER</value></data>
   <data name="Empty_OpenYourSaveFolderInstructions" xml:space="preserve"><value>Ouvrez votre dossier de sauvegarde (généralement …\AppData\Local\AbioticFactor\Saved\SaveGames\&lt;steamid&gt;\Worlds\&lt;WorldName&gt;), puis choisissez une sauvegarde de joueur ou de monde dans la barre latérale.</value></data>
-  <data name="Empty_PlayersWorldsSummary" xml:space="preserve"><value>Joueurs : stats · inventaire · compétences · traits · recettes · codex · succès
-Mondes : conteneurs · indicateurs de quête · portes · objets au sol · progression de l'histoire</value></data>
   <data name="Empty_SaveFoldersDetectedAutomatically" xml:space="preserve"><value>Dossiers de sauvegarde détectés automatiquement à partir du client du jeu et de tout serveur dédié installé. Choisissez-en un, ou utilisez OUVRIR UN DOSSIER / glissez-y un dossier.</value></data>
   <data name="Empty_WorldsFoundOnThisMachine" xml:space="preserve"><value>MONDES TROUVÉS SUR CETTE MACHINE</value></data>
   <data name="Empty_YouCanAlsoDropASaveFolderAnywhereOnThisWindow" xml:space="preserve"><value>Vous pouvez aussi déposer un dossier de sauvegarde n'importe où sur cette fenêtre.</value></data>
@@ -3397,5 +3395,53 @@ Rien n'est écrit tant que vous n'appuyez pas sur ENREGISTRER, et ANNULER le dé
   </data>
   <data name="Workspace_SavedUseExportReadOnly" xml:space="preserve">
     <value>Enregistre dans cet onglet uniquement. Ton navigateur ne peut pas ecrire dans ce dossier : utilise EXPORTER pour telecharger tes sauvegardes avant de le fermer.</value>
+  </data>
+  <data name="Unsaved_LeaveTitle" xml:space="preserve">
+    <value>Modifications non enregistrees</value>
+  </data>
+  <data name="Unsaved_LeaveMessage" xml:space="preserve">
+    <value>{0} contient des modifications non enregistrees. Ouvrir autre chose maintenant les perdra.</value>
+  </data>
+  <data name="Unsaved_LeaveConfirm" xml:space="preserve">
+    <value>ABANDONNER ET CONTINUER</value>
+  </data>
+  <data name="Unsaved_LeaveCancel" xml:space="preserve">
+    <value>RESTER ICI</value>
+  </data>
+  <data name="Unsaved_ThisSave" xml:space="preserve">
+    <value>Cette sauvegarde</value>
+  </data>
+  <data name="Bundle_Open" xml:space="preserve">
+    <value>OUVRIR UN ZIP</value>
+  </data>
+  <data name="Bundle_OpenTitle" xml:space="preserve">
+    <value>Choisir un dossier de sauvegarde compresse</value>
+  </data>
+  <data name="Bundle_Opened" xml:space="preserve">
+    <value>{0} ouvert depuis un zip. Utilise EXPORT pour emporter tes modifications.</value>
+  </data>
+  <data name="Bundle_OpenFailed" xml:space="preserve">
+    <value>Ce zip n'a pas pu etre ouvert.</value>
+  </data>
+  <data name="Bundle_OpenGuidance" xml:space="preserve">
+    <value>Compresse le dossier du monde lui-meme, ou utilise le zip fourni par EXPORT.</value>
+  </data>
+  <data name="Bundle_Cancelled" xml:space="preserve">
+    <value>Aucun zip n'a ete choisi.</value>
+  </data>
+  <data name="Empty_DropHere" xml:space="preserve">
+    <value>Depose un dossier de sauvegarde, ou un zip de celui-ci, n'importe ou sur cette fenetre.</value>
+  </data>
+  <data name="Empty_Recent" xml:space="preserve">
+    <value>Reprendre la ou tu t'es arrete</value>
+  </data>
+  <data name="Empty_RecentHint" xml:space="preserve">
+    <value>Mondes deja ouverts. Ton navigateur redemandera l'autorisation avant de les lire.</value>
+  </data>
+  <data name="Empty_RecentUnavailable" xml:space="preserve">
+    <value>Ce monde n'est plus la ou il etait. Ouvre son dossier a nouveau.</value>
+  </data>
+  <data name="Empty_Forget" xml:space="preserve">
+    <value>RETIRER</value>
   </data>
 </root>

@@ -67,8 +67,6 @@
   <data name="Empty_NewWorld" xml:space="preserve"><value>NUEVO MUNDO</value></data>
   <data name="Empty_OpenFolder" xml:space="preserve"><value>ABRIR CARPETA</value></data>
   <data name="Empty_OpenYourSaveFolderInstructions" xml:space="preserve"><value>Abre tu carpeta de guardados (normalmente …\AppData\Local\AbioticFactor\Saved\SaveGames\&lt;steamid&gt;\Worlds\&lt;WorldName&gt;) y luego elige un guardado de jugador o de mundo en la barra lateral.</value></data>
-  <data name="Empty_PlayersWorldsSummary" xml:space="preserve"><value>Jugadores: estadísticas · inventario · habilidades · rasgos · recetas · códice · logros
-Mundos: contenedores · indicadores de misión · puertas · objetos en el suelo · progreso de la historia</value></data>
   <data name="Empty_SaveFoldersDetectedAutomatically" xml:space="preserve"><value>Carpetas de guardado detectadas automáticamente desde el cliente del juego y cualquier servidor dedicado instalado. Elige una, o usa ABRIR CARPETA / arrastra una carpeta aquí.</value></data>
   <data name="Empty_WorldsFoundOnThisMachine" xml:space="preserve"><value>MUNDOS ENCONTRADOS EN ESTE EQUIPO</value></data>
   <data name="Empty_YouCanAlsoDropASaveFolderAnywhereOnThisWindow" xml:space="preserve"><value>También puedes soltar una carpeta de guardado en cualquier parte de esta ventana.</value></data>
@@ -3398,5 +3396,53 @@ No se escribe nada hasta que pulses GUARDAR, y REVERTIR lo deshace antes de eso.
   </data>
   <data name="Workspace_SavedUseExportReadOnly" xml:space="preserve">
     <value>Guardado solo en esta pestana. Tu navegador no puede escribir en esa carpeta, asi que usa EXPORTAR para descargar tus partidas antes de cerrarla.</value>
+  </data>
+  <data name="Unsaved_LeaveTitle" xml:space="preserve">
+    <value>Cambios sin guardar</value>
+  </data>
+  <data name="Unsaved_LeaveMessage" xml:space="preserve">
+    <value>{0} tiene cambios que aun no has guardado. Si abres otra cosa ahora, se perderan.</value>
+  </data>
+  <data name="Unsaved_LeaveConfirm" xml:space="preserve">
+    <value>DESCARTAR Y CONTINUAR</value>
+  </data>
+  <data name="Unsaved_LeaveCancel" xml:space="preserve">
+    <value>QUEDARME AQUI</value>
+  </data>
+  <data name="Unsaved_ThisSave" xml:space="preserve">
+    <value>Este guardado</value>
+  </data>
+  <data name="Bundle_Open" xml:space="preserve">
+    <value>ABRIR UN ZIP</value>
+  </data>
+  <data name="Bundle_OpenTitle" xml:space="preserve">
+    <value>Elige una carpeta de guardados comprimida</value>
+  </data>
+  <data name="Bundle_Opened" xml:space="preserve">
+    <value>{0} abierto desde un zip. Usa EXPORT para llevarte tus cambios.</value>
+  </data>
+  <data name="Bundle_OpenFailed" xml:space="preserve">
+    <value>No se pudo abrir ese zip.</value>
+  </data>
+  <data name="Bundle_OpenGuidance" xml:space="preserve">
+    <value>Comprime la carpeta del mundo, o usa el zip que te da el EXPORT del editor.</value>
+  </data>
+  <data name="Bundle_Cancelled" xml:space="preserve">
+    <value>No se eligio ningun zip.</value>
+  </data>
+  <data name="Empty_DropHere" xml:space="preserve">
+    <value>Suelta una carpeta de guardados, o un zip de una, en cualquier parte de esta ventana.</value>
+  </data>
+  <data name="Empty_Recent" xml:space="preserve">
+    <value>Continua donde lo dejaste</value>
+  </data>
+  <data name="Empty_RecentHint" xml:space="preserve">
+    <value>Mundos que abriste antes. Tu navegador volvera a pedir permiso antes de leerlos.</value>
+  </data>
+  <data name="Empty_RecentUnavailable" xml:space="preserve">
+    <value>Este mundo ya no esta donde estaba. Abre su carpeta de nuevo.</value>
+  </data>
+  <data name="Empty_Forget" xml:space="preserve">
+    <value>QUITAR</value>
   </data>
 </root>

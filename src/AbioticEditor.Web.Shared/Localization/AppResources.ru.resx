@@ -66,8 +66,6 @@
   <data name="Empty_NewWorld" xml:space="preserve"><value>НОВЫЙ МИР</value></data>
   <data name="Empty_OpenFolder" xml:space="preserve"><value>ОТКРЫТЬ ПАПКУ</value></data>
   <data name="Empty_OpenYourSaveFolderInstructions" xml:space="preserve"><value>Откройте папку с сохранением (обычно …\AppData\Local\AbioticFactor\Saved\SaveGames\&lt;steamid&gt;\Worlds\&lt;WorldName&gt;), затем выберите игрока или мир из боковой панели.</value></data>
-  <data name="Empty_PlayersWorldsSummary" xml:space="preserve"><value>Игроки: характеристики · инвентарь · навыки · черты · рецепты · кодекс · достижения
-Миры: контейнеры · флаги заданий · двери · предметы на земле · развитие сюжета</value></data>
   <data name="Empty_SaveFoldersDetectedAutomatically" xml:space="preserve"><value>Папки сохранений определяются автоматически из клиента игры и любого установленного выделенного сервера. Выберите одну или используйте ОТКРЫТЬ ПАПКУ / перетащите папку сюда.</value></data>
   <data name="Empty_WorldsFoundOnThisMachine" xml:space="preserve"><value>МИРЫ, НАЙДЕННЫЕ НА ЭТОМ КОМПЬЮТЕРЕ</value></data>
   <data name="Empty_YouCanAlsoDropASaveFolderAnywhereOnThisWindow" xml:space="preserve"><value>Вы также можете перетащить папку с сохранением в любое место этого окна.</value></data>
@@ -3397,5 +3395,53 @@
   </data>
   <data name="Workspace_SavedUseExportReadOnly" xml:space="preserve">
     <value>Сохранено только в этой вкладке. Браузер не может писать в эту папку - используйте ЭКСПОРТ, чтобы скачать сохранения перед закрытием.</value>
+  </data>
+  <data name="Unsaved_LeaveTitle" xml:space="preserve">
+    <value>Несохранённые изменения</value>
+  </data>
+  <data name="Unsaved_LeaveMessage" xml:space="preserve">
+    <value>В {0} есть изменения, которые ещё не сохранены. Если открыть что-то другое, они пропадут.</value>
+  </data>
+  <data name="Unsaved_LeaveConfirm" xml:space="preserve">
+    <value>ОТМЕНИТЬ И ПРОДОЛЖИТЬ</value>
+  </data>
+  <data name="Unsaved_LeaveCancel" xml:space="preserve">
+    <value>ОСТАТЬСЯ</value>
+  </data>
+  <data name="Unsaved_ThisSave" xml:space="preserve">
+    <value>Этот сохранённый файл</value>
+  </data>
+  <data name="Bundle_Open" xml:space="preserve">
+    <value>ОТКРЫТЬ ZIP</value>
+  </data>
+  <data name="Bundle_OpenTitle" xml:space="preserve">
+    <value>Выберите ZIP с папкой сохранений</value>
+  </data>
+  <data name="Bundle_Opened" xml:space="preserve">
+    <value>{0} открыт из ZIP. Используйте EXPORT, чтобы забрать изменения.</value>
+  </data>
+  <data name="Bundle_OpenFailed" xml:space="preserve">
+    <value>Не удалось открыть этот ZIP.</value>
+  </data>
+  <data name="Bundle_OpenGuidance" xml:space="preserve">
+    <value>Заархивируйте саму папку мира или используйте ZIP из EXPORT редактора.</value>
+  </data>
+  <data name="Bundle_Cancelled" xml:space="preserve">
+    <value>ZIP не выбран.</value>
+  </data>
+  <data name="Empty_DropHere" xml:space="preserve">
+    <value>Перетащите папку сохранений или ZIP с ней в любое место этого окна.</value>
+  </data>
+  <data name="Empty_Recent" xml:space="preserve">
+    <value>Продолжить с того же места</value>
+  </data>
+  <data name="Empty_RecentHint" xml:space="preserve">
+    <value>Миры, которые вы уже открывали. Браузер снова спросит разрешение перед чтением.</value>
+  </data>
+  <data name="Empty_RecentUnavailable" xml:space="preserve">
+    <value>Этого мира больше нет на прежнем месте. Откройте его папку заново.</value>
+  </data>
+  <data name="Empty_Forget" xml:space="preserve">
+    <value>УБРАТЬ</value>
   </data>
 </root>

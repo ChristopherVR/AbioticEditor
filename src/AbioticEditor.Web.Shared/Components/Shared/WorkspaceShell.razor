@@ -11,6 +11,7 @@
 @inject CreateWorldService WorldCreator
 @inject IniEditorSessionService IniSessions
 @inject ToastService Toasts
+@inject UnsavedChangesGuard Unsaved
 @inject NavigationManager Navigation
 @inject AbioticEditor.Ui.IExternalNavigationService External
 @inject IJSRuntime Js
@@ -327,7 +328,16 @@
     }
     private bool Matches(string? value) => string.IsNullOrWhiteSpace(_filter) || value?.Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase) == true;
     private void ClearFilter() => _filter = string.Empty;
-    private async Task SelectAsync(WorkspaceSave save)
+    /// <summary>
+    /// Opens a save from the sidebar, asking first when the open one has edits that would be
+    /// thrown away. Selecting the save that is already open changes nothing, so it never asks.
+    /// </summary>
+    private Task SelectAsync(WorkspaceSave save)
+        => string.Equals(save.Path, Workspace.Current?.SelectedSave?.Path, StringComparison.OrdinalIgnoreCase)
+            ? Task.CompletedTask
+            : Unsaved.ConfirmAsync(() => OpenAsync(save));
+
+    private async Task OpenAsync(WorkspaceSave save)
     {
         try
         {

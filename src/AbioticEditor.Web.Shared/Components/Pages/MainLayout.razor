@@ -6,6 +6,7 @@
 @inject SaveWorkspaceSessionService Workspace
 @inject AbioticEditor.Ui.IFolderPicker FolderPicker
 @inject ToastService Toasts
+@inject UnsavedChangesGuard Unsaved
 @inject NavigationManager Navigation
 
 <div class="app-frame @Theme.CssClass">
@@ -66,8 +67,10 @@
         {
             <span class="logging-path" title="@HostSettings.CurrentLogPath">@Languages.Resource("Main_LoggingTo", HostSettings.CurrentLogPath)</span>
         }
+        @* Settings is the last thing in the bar and sits hard against the right edge. The app's
+           own name used to sit to the right of it, which pushed the one button anyone comes to
+           this bar for away from the corner, and said nothing the title bar does not. *@
         <nav class="host-nav" aria-label="@Languages.Text("utilities")"><button type="button" class="settings-action" @onclick="OpenSettings"><span class="material-symbol" aria-hidden="true">settings</span>@Languages.Resource("Status_Settings")</button></nav>
-        <span class="footer-product">@Languages.Resource("Common_AppName")</span>
     </footer>
     <ModalHost />
     <ToastHost />
@@ -108,9 +111,15 @@
         {
             var picked = await FolderPicker.PickFolderAsync(new() { Title = Languages.Text("folder.choose.title") });
             if (picked?.Path is null) return;
-            await Workspace.OpenAsync(picked.Path);
-            Toasts.Show(Languages.Text("folder.opened", Path.GetFileName(picked.Path)), ToastKind.Success);
-            Navigation.NavigateTo("./");
+            // Opening another world replaces whatever is loaded, staged edits included, so the
+            // player is asked first if there are any. Asked after the folder is chosen rather
+            // than before: a picker they then cancel is not worth a warning.
+            await Unsaved.ConfirmAsync(async () =>
+            {
+                await Workspace.OpenAsync(picked.Path);
+                Toasts.Show(Languages.Text("folder.opened", Path.GetFileName(picked.Path)), ToastKind.Success);
+                Navigation.NavigateTo("./");
+            });
         }
         catch (Exception exception)
         {

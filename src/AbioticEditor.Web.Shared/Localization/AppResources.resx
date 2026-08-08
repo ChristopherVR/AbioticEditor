@@ -118,8 +118,6 @@
   <data name="Empty_NewWorld" xml:space="preserve"><value>NEW WORLD</value></data>
   <data name="Empty_OpenFolder" xml:space="preserve"><value>OPEN FOLDER</value></data>
   <data name="Empty_OpenYourSaveFolderInstructions" xml:space="preserve"><value>Open your save folder (usually …\AppData\Local\AbioticFactor\Saved\SaveGames\&lt;steamid&gt;\Worlds\&lt;WorldName&gt;), then pick a player or world save from the sidebar.</value></data>
-  <data name="Empty_PlayersWorldsSummary" xml:space="preserve"><value>Players: stats · inventory · skills · traits · recipes · codex · achievements
-Worlds: containers · quest flags · doors · ground items · story progression</value></data>
   <data name="Empty_SaveFoldersDetectedAutomatically" xml:space="preserve"><value>Save folders detected automatically from the game client and any installed dedicated server. Pick one, or use OPEN FOLDER / drag a folder in.</value></data>
   <data name="Empty_WorldsFoundOnThisMachine" xml:space="preserve"><value>WORLDS FOUND ON THIS MACHINE</value></data>
   <data name="Empty_YouCanAlsoDropASaveFolderAnywhereOnThisWindow" xml:space="preserve"><value>You can also drop a save folder anywhere on this window.</value></data>
@@ -3711,5 +3709,53 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   </data>
   <data name="Workspace_SavedUseExportReadOnly" xml:space="preserve">
     <value>Saved in this tab only. Your browser cannot write to that folder, so use EXPORT to download your saves before you close it.</value>
+  </data>
+  <data name="Unsaved_LeaveTitle" xml:space="preserve">
+    <value>Unsaved changes</value>
+  </data>
+  <data name="Unsaved_LeaveMessage" xml:space="preserve">
+    <value>{0} has changes you have not saved yet. Opening something else now will lose them.</value>
+  </data>
+  <data name="Unsaved_LeaveConfirm" xml:space="preserve">
+    <value>DISCARD AND CONTINUE</value>
+  </data>
+  <data name="Unsaved_LeaveCancel" xml:space="preserve">
+    <value>STAY HERE</value>
+  </data>
+  <data name="Unsaved_ThisSave" xml:space="preserve">
+    <value>This save</value>
+  </data>
+  <data name="Bundle_Open" xml:space="preserve">
+    <value>OPEN A ZIP</value>
+  </data>
+  <data name="Bundle_OpenTitle" xml:space="preserve">
+    <value>Choose a zipped save folder</value>
+  </data>
+  <data name="Bundle_Opened" xml:space="preserve">
+    <value>Opened {0} from a zip. Use EXPORT to take your edits away.</value>
+  </data>
+  <data name="Bundle_OpenFailed" xml:space="preserve">
+    <value>That zip could not be opened.</value>
+  </data>
+  <data name="Bundle_OpenGuidance" xml:space="preserve">
+    <value>Zip the world folder itself, or use the zip the editor's own EXPORT hands you.</value>
+  </data>
+  <data name="Bundle_Cancelled" xml:space="preserve">
+    <value>No zip was chosen.</value>
+  </data>
+  <data name="Empty_DropHere" xml:space="preserve">
+    <value>Drop a save folder or a .zip of one anywhere on this window.</value>
+  </data>
+  <data name="Empty_Recent" xml:space="preserve">
+    <value>Pick up where you left off</value>
+  </data>
+  <data name="Empty_RecentHint" xml:space="preserve">
+    <value>Worlds you opened before. Your browser will ask permission again before reading them.</value>
+  </data>
+  <data name="Empty_RecentUnavailable" xml:space="preserve">
+    <value>This world is no longer where it was. Open its folder again.</value>
+  </data>
+  <data name="Empty_Forget" xml:space="preserve">
+    <value>REMOVE</value>
   </data>
 </root>
