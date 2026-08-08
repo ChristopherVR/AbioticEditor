@@ -698,6 +698,15 @@ Welten: Behälter · Quest-Flags · Türen · Bodengegenstände · Story-Fortsch
   <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
     <value>SPIELSTAND-DIAGNOSE</value>
   </data>
+  <data name="Customization_OpenFile" xml:space="preserve">
+    <value>AUSSEHEN-DATEI ÖFFNEN</value>
+  </data>
+  <data name="Customization_OpenFileHint" xml:space="preserve">
+    <value>Das Aussehen deiner Figur liegt neben deinen Welten, nicht in einer davon, also nicht im geöffneten Ordner. Wähle die ScientistCustomization-Datei aus, um es zu bearbeiten.</value>
+  </data>
+  <data name="Customization_StatusDownloaded" xml:space="preserve">
+    <value>{0} heruntergeladen. Lege sie wieder neben deinen Worlds-Ordner.</value>
+  </data>
   <data name="FileSidebar_ExportedUnsaved" xml:space="preserve">
     <value>{0} Spielstand/Spielstände exportiert, deine ungespeicherten Änderungen sind aber NICHT enthalten. Erst SPEICHERN, dann erneut exportieren.</value>
   </data>

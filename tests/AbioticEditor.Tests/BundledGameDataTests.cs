@@ -121,6 +121,36 @@ public sealed class BundledGameDataTests
         Assert.NotEqual(original, translated);
     }
 
+    /// <summary>
+    /// The hardcoded culture list must match the files that actually ship. It exists so the
+    /// browser asks for exactly one file instead of probing and taking a 404 on every page load,
+    /// which only works while the two agree.
+    /// </summary>
+    [Fact]
+    public void BundledCultures_MatchTheFilesOnDisk()
+    {
+        var onDisk = Directory.EnumerateFiles(Path.Combine(AssetsDirectory, "registry"), "registry.*.json")
+            .Select(Path.GetFileName)
+            .Select(name => name!["registry.".Length..^".json".Length])
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(
+            GameDataRegistry.BundledCultures.OrderBy(name => name, StringComparer.Ordinal).ToArray(),
+            onDisk);
+    }
+
+    [Theory]
+    [InlineData("de-DE", "de")]        // regional variant of a shipped language
+    [InlineData("de", "de")]
+    [InlineData("pt-BR", "pt-BR")]     // exact match wins over the language fallback
+    [InlineData("pt-PT", "pt-BR")]     // the game ships no European Portuguese; Brazilian is closer than English
+    [InlineData("zh-Hans", "zh-Hans")]
+    [InlineData("nl-NL", null)]        // not shipped at all -> the default dump
+    [InlineData("", null)]
+    public void BestCultureFor_PicksTheClosestShippedLanguage(string requested, string? expected)
+        => Assert.Equal(expected, GameDataRegistry.BestCultureFor(requested));
+
     private static string? NameOf(GameDataRegistry registry, string itemId)
         => registry.Items?.FirstOrDefault(item =>
             item.Id.Equals(itemId, StringComparison.OrdinalIgnoreCase))?.DisplayName;

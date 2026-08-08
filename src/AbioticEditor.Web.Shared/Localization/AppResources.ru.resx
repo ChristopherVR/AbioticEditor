@@ -698,6 +698,15 @@
   <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
     <value>ДИАГНОСТИКА СОХРАНЕНИЙ</value>
   </data>
+  <data name="Customization_OpenFile" xml:space="preserve">
+    <value>ОТКРЫТЬ ФАЙЛ ВНЕШНОСТИ</value>
+  </data>
+  <data name="Customization_OpenFileHint" xml:space="preserve">
+    <value>Внешность персонажа хранится рядом с мирами, а не внутри мира, поэтому её нет в открытой папке. Выберите файл ScientistCustomization, чтобы изменить её.</value>
+  </data>
+  <data name="Customization_StatusDownloaded" xml:space="preserve">
+    <value>Скачано: {0}. Положите файл обратно рядом с папкой Worlds.</value>
+  </data>
   <data name="FileSidebar_ExportedUnsaved" xml:space="preserve">
     <value>Экспортировано сохранений: {0}, но несохранённые изменения НЕ вошли. Сначала нажмите СОХРАНИТЬ, затем экспортируйте снова.</value>
   </data>

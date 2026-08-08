@@ -6,6 +6,8 @@
 @inject CustomizationCatalogService Catalog
 @inject SaveWorkspaceSessionService Workspace
 @inject ISaveFileSystem Files
+@inject AbioticEditor.Ui.IFilePicker FilePicker
+@inject ISaveExporter Exporter
 
 @* Faithful port of the native appearance panel (PlayerCharacterTab.xaml, second AfPanel):
    header row with slot picker + SAVE APPEARANCE, explanatory captions, then the wrapped
@@ -36,6 +38,18 @@
         </small>
     }
     @if (_status is not null) { <small class="appearance-status" role="status">@_status</small> }
+    @* A character's look is stored beside the WORLDS folder, not inside a world, so a host that
+       can only see the folder it was given cannot find it on its own. Let the player point at
+       the file instead of leaving them with a dead panel. *@
+    @if (_session is null && !Files.HasLocalPaths)
+    {
+        <div class="appearance-open-row">
+            <p class="general-help">@L.Resource("Customization_OpenFileHint")</p>
+            <button class="secondary" type="button" disabled="@_opening" @onclick="OpenAppearanceFileAsync">
+                @L.Resource("Customization_OpenFile")
+            </button>
+        </div>
+    }
     @if (_session is not null)
     {
         <small class="appearance-status">@L.Resource("Customization_VoiceNote")</small>
@@ -111,6 +125,7 @@
         if (string.Equals(_playerPath, Player.Path, StringComparison.OrdinalIgnoreCase)) return;
         _playerPath = Player.Path;
         _session = null;
+        _sessionIsPickedFile = false;
         _status = null;
         _slots.Clear();
         _gamePassSet = null;
@@ -212,6 +227,49 @@
         }
     }
 
+    private bool _opening;
+    private bool _sessionIsPickedFile;
+
+    /// <summary>
+    /// Opens an appearance save the player points at directly. Needed because these live one
+    /// level above the world folder (beside <c>Worlds/</c>), which a browser cannot reach from
+    /// the folder it was granted - so without this, opening a single world means no appearance
+    /// editing at all. Loaded from bytes and saved back with DOWNLOAD, since a picked file is a
+    /// snapshot with nowhere to write.
+    /// </summary>
+    private async Task OpenAppearanceFileAsync()
+    {
+        if (_opening) return;
+        _opening = true;
+        try
+        {
+            var picked = await FilePicker.PickFileAsync(new()
+            {
+                Title = L.Resource("Customization_OpenFile"),
+                FileTypes = [new("Abiotic Factor save", [".sav"])],
+            });
+            if (picked is null) return;
+
+            await using var stream = await picked.OpenReadAsync(CancellationToken.None);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+
+            _session = CustomizationSaveSession.LoadFromBytes(picked.Name, buffer.ToArray());
+            _sessionIsPickedFile = true;
+            _gamePassSet = null;
+            _status = L.Resource("Customization_StatusEditingFile", picked.Name);
+        }
+        catch (Exception exception)
+        {
+            _session = null;
+            _status = Errors.Present(exception, L.Resource("PlayerUi_AppearanceOpenFailed"), L.Resource("PlayerUi_CheckFileReadable"));
+        }
+        finally
+        {
+            _opening = false;
+        }
+    }
+
     /// <summary>The file's own name, taken from the end of whatever identifies it on this host.</summary>
     private string SlotFileName(string path)
         => Files.HasLocalPaths ? System.IO.Path.GetFileName(path) : path[(path.LastIndexOf('/') + 1)..];
@@ -221,17 +279,25 @@
         if (_session is null) return;
         try
         {
-            // The browser has no file to write in place, so the updated bytes go back through
-            // the same file system the save came from - which keeps the .bak either way.
-            if (_session.WritesBytes)
+            // A file the player pointed at directly is not in the open folder, so there is nowhere
+            // to put it back - it comes back as a download instead.
+            if (_sessionIsPickedFile)
             {
+                await Exporter.ExportAsync(_session.Path, _session.SaveToBytes());
+                _status = L.Resource("Customization_StatusDownloaded", _session.Path);
+            }
+            else if (_session.WritesBytes)
+            {
+                // Read from the open folder, so it goes back through the same file system - which
+                // keeps the .bak, or updates the in-memory copy on a read-only folder.
                 await Files.WriteAllBytesAsync(_session.Path, _session.SaveToBytes());
+                _status = L.Resource("Customization_StatusSaved", $"{DateTime.Now:HH:mm:ss}");
             }
             else
             {
                 _session.Save();
+                _status = L.Resource("Customization_StatusSaved", $"{DateTime.Now:HH:mm:ss}");
             }
-            _status = L.Resource("Customization_StatusSaved", $"{DateTime.Now:HH:mm:ss}");
         }
         catch (Exception exception)
         {

@@ -125,25 +125,25 @@ static async Task StageBundledGameDataAsync(IServiceProvider services)
 /// </remarks>
 static async Task<GameDataRegistry?> FetchRegistryAsync(HttpClient http)
 {
-    var uiCulture = System.Globalization.CultureInfo.CurrentUICulture;
-    var candidates = new List<string?>();
-    if (!string.IsNullOrEmpty(uiCulture.Name)) candidates.Add(uiCulture.Name);
-    if (!string.IsNullOrEmpty(uiCulture.TwoLetterISOLanguageName)) candidates.Add(uiCulture.TwoLetterISOLanguageName);
-    candidates.Add(null); // the default dump, which always ships
+    // Resolved against the list of what actually shipped, so exactly one file is requested and a
+    // player whose language is not covered costs no failed request at all.
+    var culture = GameDataRegistry.BestCultureFor(System.Globalization.CultureInfo.CurrentUICulture.Name);
 
-    foreach (var culture in candidates)
+    foreach (var candidate in new[] { culture, null })
     {
         try
         {
-            var response = await http.GetAsync($"registry/{GameDataRegistry.FileNameFor(culture)}").ConfigureAwait(false);
+            var response = await http.GetAsync($"registry/{GameDataRegistry.FileNameFor(candidate)}").ConfigureAwait(false);
             if (!response.IsSuccessStatusCode) continue;
             var bytes = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
             if (GameDataRegistry.TryRead(bytes) is { } registry) return registry;
         }
         catch (HttpRequestException)
         {
-            // That language did not ship; try the next candidate.
+            // Fall through to the default dump, which always ships.
         }
+
+        if (candidate is null) break;
     }
     return null;
 }

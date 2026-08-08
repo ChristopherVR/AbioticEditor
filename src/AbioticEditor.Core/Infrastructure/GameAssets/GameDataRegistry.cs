@@ -60,6 +60,46 @@ public sealed class GameDataRegistry
     public static string FileNameFor(string? culture)
         => string.IsNullOrWhiteSpace(culture) ? RegistryFileName : $"registry.{culture}.json";
 
+    /// <summary>
+    /// The cultures a dump ships for, in the game's own spelling. Kept as a list here rather than
+    /// discovered at run time so a host can pick the right file with no wasted request: asking for
+    /// a language that did not ship used to mean a 404 on every single page load.
+    /// </summary>
+    /// <remarks>
+    /// Must match the files in <c>assets/registry/</c>; a test asserts the two agree, so a dump
+    /// that adds or drops a language fails the build rather than silently mismatching.
+    /// </remarks>
+    public static IReadOnlyList<string> BundledCultures { get; } =
+        ["de", "en", "es-419", "fr", "ja", "pt-BR", "ru", "zh-Hans", "zh-Hant"];
+
+    /// <summary>
+    /// The shipped culture closest to <paramref name="requested"/> (a culture name like
+    /// <c>"de-DE"</c> or <c>"pt-BR"</c>), or null to use the default dump.
+    /// </summary>
+    /// <remarks>
+    /// Exact match first, because the game ships some regional variants (<c>pt-BR</c>,
+    /// <c>es-419</c>) and not their base language. Then any shipped culture with the same
+    /// language, so <c>de-AT</c> gets German and <c>pt-PT</c> gets the Brazilian text rather than
+    /// falling all the way back to English.
+    /// </remarks>
+    public static string? BestCultureFor(string? requested)
+    {
+        if (string.IsNullOrWhiteSpace(requested)) return null;
+
+        foreach (var culture in BundledCultures)
+        {
+            if (string.Equals(culture, requested, StringComparison.OrdinalIgnoreCase)) return culture;
+        }
+
+        var language = requested.Split('-')[0];
+        foreach (var culture in BundledCultures)
+        {
+            if (string.Equals(culture.Split('-')[0], language, StringComparison.OrdinalIgnoreCase)) return culture;
+        }
+
+        return null;
+    }
+
     // ----- catalog payloads (each nullable so older/newer bundles degrade to "absent") -----
 
     /// <summary>Every item row (<c>ItemTable_Global</c> + supplemental tables); null if not dumped.</summary>

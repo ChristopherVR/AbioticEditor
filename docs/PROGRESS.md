@@ -5,6 +5,54 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-56: the 404 probe, appearance in the browser, and a payload measurement (2026-08-08)
+
+### The per-load 404 is gone
+The browser used to guess: ask for `registry.en-US.json`, take a 404, then ask for
+`registry.en.json`. Replaced with `GameDataRegistry.BundledCultures` (the list of what actually
+ships) plus `BestCultureFor`, so exactly one file is requested. Exact match wins first, then the
+same language, so `pt-PT` gets the Brazilian text rather than falling back to English, and
+`de-AT` gets German. A test asserts the hardcoded list matches the files in `assets/registry/`,
+because the whole scheme only works while those two agree. **Verified: zero 404s on load.**
+
+### Appearance editing works in the browser now
+Round 55 found the constraint: a character's look lives beside `Worlds/`, one level ABOVE the
+world folder, so a browser given a single world can never see it. The panel now offers **OPEN
+APPEARANCE FILE**, which reads the file the player points at and saves it back as a download
+(a picked file is a snapshot with nowhere to write).
+
+This needed `filePicker.js` fixing too: it threw outright without `showOpenFilePicker`, so single
+file open was Chromium-only. It now falls back to a plain `<input type="file">`, which works
+everywhere - so `IFilePicker` is usable on every browser, not just for this screen.
+
+**Verified in Firefox** with only a world folder open: button and hint shown, file picked, 13
+fields with real option names, edit saved as a download.
+
+### Performance: measured, with one large finding I did NOT act on
+Published payload (what GitHub Pages would serve):
+
+| | |
+| --- | --- |
+| Framework, raw | **33.9 MB** |
+| Framework, brotli | **10.7 MB** |
+| Largest assemblies | BouncyCastle 4.9 MB, dotnet.native 3.0 MB, CUE4Parse 2.9 MB, CoreLib 2.3 MB, Jint 2.2 MB |
+
+**Roughly 10 MB of that can never run in a browser.** CUE4Parse and BouncyCastle exist to mount
+the game's pak archives, which round 45 measured as impossible in a tab; Jint is the plugin
+JavaScript runtime, and plugins are not registered on this host at all. They ship because
+`AbioticEditor.Core` references them and the browser app references Core.
+
+No trimming is configured anywhere (`PublishTrimmed` is unset). **I deliberately did not enable
+it.** UeSaveGame resolves save property types by reflection, so a trimmer could break save
+parsing itself - the one thing that must never break - and verifying that properly means
+re-running the whole save-round-trip suite against a trimmed build, which is its own piece of work.
+
+The real fix is architectural: split the pak-mounting and plugin-hosting code out of Core so the
+browser build never references them. That would cut the download by about a third and is worth
+doing deliberately, not as a footnote.
+
+The data folders (`registry` 28 MB, `icons` 28 MB, `art` 17 MB) are NOT a startup cost - one
+registry file is fetched, and icons and art load on demand.
 ## Round-55: the remaining unverified paths, checked (2026-08-08)
 
 Everything left on the round-52/53 "not covered" list except Safari, driven in a real browser.

@@ -698,6 +698,15 @@ Mondes : conteneurs · indicateurs de quête · portes · objets au sol · progr
   <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
     <value>DIAGNOSTIC DE SAUVEGARDE</value>
   </data>
+  <data name="Customization_OpenFile" xml:space="preserve">
+    <value>OUVRIR LE FICHIER D'APPARENCE</value>
+  </data>
+  <data name="Customization_OpenFileHint" xml:space="preserve">
+    <value>L'apparence de votre personnage est enregistrée à côté de vos mondes, pas dans l'un d'eux, donc pas dans le dossier ouvert. Choisissez le fichier ScientistCustomization pour la modifier.</value>
+  </data>
+  <data name="Customization_StatusDownloaded" xml:space="preserve">
+    <value>{0} téléchargé. Replacez-le à côté de votre dossier Worlds.</value>
+  </data>
   <data name="FileSidebar_ExportedUnsaved" xml:space="preserve">
     <value>{0} sauvegarde(s) exportée(s), mais vos modifications non enregistrées n'y sont PAS. Enregistrez d'abord, puis réexportez.</value>
   </data>

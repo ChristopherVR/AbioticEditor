@@ -699,6 +699,15 @@ Mundos: contenedores · indicadores de misión · puertas · objetos en el suelo
   <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
     <value>DIAGNÓSTICO DE GUARDADO</value>
   </data>
+  <data name="Customization_OpenFile" xml:space="preserve">
+    <value>ABRIR ARCHIVO DE ASPECTO</value>
+  </data>
+  <data name="Customization_OpenFileHint" xml:space="preserve">
+    <value>El aspecto de tu personaje se guarda junto a tus mundos, no dentro de uno, así que no está en la carpeta que abriste. Elige el archivo ScientistCustomization para editarlo.</value>
+  </data>
+  <data name="Customization_StatusDownloaded" xml:space="preserve">
+    <value>Se descargó {0}. Vuelve a colocarlo junto a tu carpeta Worlds.</value>
+  </data>
   <data name="FileSidebar_ExportedUnsaved" xml:space="preserve">
     <value>Se exportaron {0} partida(s), pero tus cambios sin guardar NO están incluidos. Pulsa GUARDAR y vuelve a exportar.</value>
   </data>

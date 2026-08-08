@@ -899,6 +899,15 @@ Worlds: containers · quest flags · doors · ground items · story progression<
   <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
     <value>SAVE DIAGNOSTICS</value>
   </data>
+  <data name="Customization_OpenFile" xml:space="preserve">
+    <value>OPEN APPEARANCE FILE</value>
+  </data>
+  <data name="Customization_OpenFileHint" xml:space="preserve">
+    <value>Your character's look is saved next to your worlds, not inside one, so it is not in the folder you opened. Pick the ScientistCustomization file to edit it.</value>
+  </data>
+  <data name="Customization_StatusDownloaded" xml:space="preserve">
+    <value>Downloaded {0}. Put it back next to your Worlds folder.</value>
+  </data>
   <data name="FileSidebar_ExportedUnsaved" xml:space="preserve">
     <value>Exported {0} save(s), but your unsaved changes are NOT in it. Press SAVE first, then export again.</value>
   </data>
