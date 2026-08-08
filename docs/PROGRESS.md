@@ -5,6 +5,57 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-57: build gates for the browser payload - reviewed, prototyped, NOT landed (2026-08-08)
+
+Round 56 measured ~10 MB of assemblies the browser downloads and can never run: CUE4Parse and
+BouncyCastle (pak mounting, impossible in a tab per round 45) and Jint (the script-plugin engine,
+not registered on that host). This round tried to gate them out at build time. **The obvious
+mechanism does not work. Nothing was landed.** Read this before trying again.
+
+### What was tried
+`AbioticNoScripting` as a property: conditional `<PackageReference Include="Jint">`, a
+`<Compile Remove="Plugins\Scripting\**">`, an `ABIOTIC_NO_SCRIPTING` constant guarding the one
+call site (`PluginManager.CreatePlugin`), and `AdditionalProperties="AbioticNoScripting=true"` on
+the browser app's project references to Core AND Web.Shared (both, since Core is reached two ways
+and a global property flows down the whole graph).
+
+Jint was chosen first deliberately: it touches **2 files** and **1 call site**, so if the mechanism
+worked anywhere it would work there.
+
+### Why it does not work
+The compile half worked - Core genuinely rebuilt without the scripting sources. **The package half
+did not: `Jint.wasm` still shipped after a clean build.**
+
+`PackageReference` conditions are evaluated at **restore**, and restore writes ONE
+`obj/project.assets.json` per project. It does not know about build-time global properties.
+Proved directly: `dotnet restore src/AbioticEditor.Core -p:AbioticNoScripting=true` dropped the
+Jint references in the assets file, while a normal `dotnet build` of the browser app left them.
+
+So the result depends on whichever restore ran last - the desktop build and the browser build
+would fight over one shared assets file. That is worse than no gate: it would work on the machine
+that last restored the right way and silently regress everywhere else, including CI.
+
+### The mechanism that would work
+Make it a **TargetFramework** difference, not a global-property difference, because restore
+naturally produces one dependency graph per TFM. That means multi-targeting Core and conditioning
+both the package references and the source excludes on `$(TargetFramework)`.
+
+That is real work with real blast radius: Core is a published NuGet package whose TFM list is part
+of its contract, and the CLI, desktop host and test project all reference it. It also only pays
+off fully if CUE4Parse goes too, and CUE4Parse is far more entangled than Jint - 19 files use it
+directly and `GameAssetProvider` is referenced by 22 Core files and 5 in Web.Shared, so the browser
+TFM would need a stubbed provider (present but always reporting no game) rather than a plain
+exclusion.
+
+### Also found
+`BouncyCastle.Cryptography` is a `PackageReference` in Core's own csproj but **no Core source uses
+it** - it is there because CUE4Parse needs it. Dead config; removing it changes nothing today
+(CUE4Parse still pulls it transitively) but it should not be re-declared as if Core needed it.
+
+### Recommendation
+Do it as its own piece of work, TFM-based, CUE4Parse and Jint together, with the save round-trip
+suite re-run against the browser TFM before believing it. Do not retry the AdditionalProperties
+route.
 ## Round-56: the 404 probe, appearance in the browser, and a payload measurement (2026-08-08)
 
 ### The per-load 404 is gone
