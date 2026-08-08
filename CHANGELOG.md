@@ -2,19 +2,79 @@
 
 All notable changes to this project are documented here.
 
+## [2.3.1] - 2026-08-08
+
+### Bug Fixes
+- The browser-editor link no longer 404s the first time you click it
+- Sending a pet to another world now works in the browser [skip release]
+- The home and new-world links no longer throw you out of the browser editor [skip release]
+
+
+### CI
+- Look for the editor's styling where it now lives [skip release]
+- Allow a push to skip cutting a release [skip release]
+
+
+### Documentation
+- Record what the live browser editor actually downloads [skip release]
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.3.0 [skip ci]
+
+
 ## [2.3.0] - 2026-08-05
 
 ### Bug Fixes
+- Picking a file in the browser works again
+- The settings editor no longer looks broken in a browser
+- Making a new world no longer opens a dead page in the browser
+- The world day and time of day can be saved again
+- Item names, recipes and pictures now actually load in the browser
+- The browser editor can open saves again, and takes dropped folders
 - Linux/Steam Deck download now runs even if the "allow execute" flag gets lost
 
 
+### Documentation
+- Point people at the browser editor from the front page
+- Record why the browser download cannot be trimmed the easy way
+- Record what is still unfinished in the browser build
+- Record the bundled icons and the browser-only failure modes
+- Record the browser host switching to the shared screens
+- Record the browser file system and shared asset move
+- Record the save file-access seam
+- Record how the shared screens are laid out
+
+
 ### Features
+- Get single saves out of the browser, and fix raw JSON export
+- Edit your character's look in the browser, and one less wasted request
+- Item names and story text now show in your own language
+- Firefox and Safari can open saves now
+- Export a whole world as a zip, and tell Firefox users the truth
+- The browser editor now shows recipes, traders, the codex and its pictures
+- Real item pictures in the browser editor
+- The browser editor now shows real item and recipe names
+- The browser editor is now the same editor, not a cut-down one
+- Let the browser version open your real save folder
+- The browser editor now covers skills, traits, inventory and progress
+- Add a browser version of the editor, no download required
 - Add a true one-click launcher for Linux and Steam Deck downloads
 - Add an advanced option to skip equipment/transmog slot checks
 
 
 ### Miscellaneous Tasks
 - Point bucket at v2.2.2 [skip ci]
+
+
+### Performance
+- The browser editor now downloads about half as much
+
+
+### Refactor
+- Move the editor's look and feel where both versions can reach it
+- Let the editor read and write saves from somewhere other than a disk
+- Put the editor's screens in one place both versions can use
 
 
 ## [2.2.2] - 2026-08-05
