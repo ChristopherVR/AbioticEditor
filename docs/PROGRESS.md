@@ -5,6 +5,75 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-58: the browser download, halved (2026-08-08)
+
+Round 57 concluded the payload could not be cut without multi-targeting Core. That was the wrong
+problem. The lever was never *which assemblies get referenced* - it was **how hard the trimmer is
+allowed to work on them**.
+
+### Correcting round 56
+Round 56 recorded "No trimming is configured anywhere (`PublishTrimmed` is unset)". Unset does not
+mean off: the Blazor SDK defaults `PublishTrimmed=true` for a Release publish. What it also
+defaults is **`TrimMode=partial`**, which only trims assemblies whose authors marked them
+trimmable. None of our dependencies are marked, so the pak-reading and scripting libraries were
+shipping **whole** through a trimming publish. Measured proof: BouncyCastle publishes at 4,912,409
+bytes against an original of 4,924,576.
+
+`<TrimMode>full</TrimMode>` on the browser project is the entire fix.
+
+| | raw | brotli | requests |
+| --- | --- | --- | --- |
+| Before (partial) | 33.9 MB | 10.7 MB | 133 |
+| After (full + roots) | **22.9 MB** | **7.0 MB** | **94** |
+
+Actually transferred on a cold load, measured in the browser: **31.0 MB -> 19.9 MB**. Jint,
+CUE4Parse-Conversion, Fmod5Sharp, OggVorbisEncoder, SkiaSharp and ImageSharp are gone entirely;
+BouncyCastle drops 4.9 MB -> 1.1 MB, CUE4Parse 2.9 MB -> 1.3 MB.
+
+### Full trim on its own ships a broken editor
+Unrooted, full trim reaches **17.1 MB / 5.2 MB** - and **deletes the save engine**. UeSaveGame and
+UeSaveGame.Json were dropped outright and Core fell from 1007 KB to 268 KB, because save parsing
+reads a property's type name out of the file and builds that type by name, so a trimmer sees
+almost none of it as reachable. Rooting the five reflection-driven assemblies costs about 5.8 MB
+of the saving and buys back the one thing that must never break.
+
+The trimmer emitted **zero IL2xxx warnings** in either case. Silence is not evidence: those
+warnings are only produced for assemblies marked trimmable, which is the same reason partial mode
+skipped them. Do not read a clean build as a safe one here.
+
+Rooting the browser project itself was needed too, and was found only by clicking: the little
+records handed back from JavaScript are built by the JSON reader, so their constructors were
+trimmed and **the very first action, OPEN FOLDER, failed** with `DeserializeNoConstructor`.
+
+### Verified by round-tripping real saves through the trimmed build
+Driven in a browser against a published trimmed build, with the CLI as an independent reader:
+
+| Check | Result |
+| --- | --- |
+| Player save edit (money 116 -> 4242) | CLI reads the written file back: `Money: 4242`, SteamID/PhD/15 skills/467 recipes intact |
+| Backup written | `.bak` **byte-identical** to the original fixture |
+| Trimmed vs untrimmed output | **Byte-identical** (same SHA-256) for the same edit - trimming changes nothing about what gets written |
+| 14.2 MB region save | Opens in 1.3 s, all 16 tabs; saves in 2.2 s; CLI reports **"no gameplay differences"** beyond the intended world-day edit |
+| Item names, icons, recipes | Resolve normally ("Hyperion Helm", "Nuke-Vac"); registry and bundled art unaffected |
+
+The byte-identical result between trimmed and untrimmed builds is the load-bearing one: it also
+proved the `ItemsPickedUp` array re-sorting seen in the diff is the **pre-existing** save-path
+behaviour, not something trimming introduced.
+
+`tests/AbioticEditor.Tests/BrowserTrimmingTests.cs` pins the trim mode and all five roots, because
+removing one produces no build error - just an editor that ships, starts, and then cannot open a
+save.
+
+### Still open
+- Whether GitHub Pages serves `.wasm` compressed is **unmeasured** - the `/app/` half is not
+  deployed yet (it is in the unpushed commits). Pages does gzip JavaScript, confirmed on the live
+  docs site. If it does not compress wasm, players download the 22.9 MB raw figure rather than
+  7.0 MB, which would dwarf every other saving here. Measure it on the first real deploy.
+- The remaining CUE4Parse (1.3 MB) and BouncyCastle (1.1 MB) are only still there because Core is
+  rooted, which keeps the pak-mounting entry points reachable. A linker feature switch
+  (`FeatureSwitchDefinition` + `RuntimeHostConfigurationOption`) could fold those branches away as
+  constants without any multi-targeting. Not attempted.
+
 ## Round-57: build gates for the browser payload - reviewed, prototyped, NOT landed (2026-08-08)
 
 Round 56 measured ~10 MB of assemblies the browser downloads and can never run: CUE4Parse and

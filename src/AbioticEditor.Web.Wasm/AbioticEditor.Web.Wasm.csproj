@@ -5,7 +5,35 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+
+    <!-- Cuts the download roughly in half (see docs/PROGRESS.md round-58 for the measurements).
+         Blazor already publishes trimmed, but at TrimMode=partial, which only touches assemblies
+         whose authors marked them trimmable. Nothing we depend on is marked, so the pak-reading
+         and plugin-scripting libraries shipped WHOLE even though a browser can never run them.
+         Full mode trims everything, which is what finally removes them. -->
+    <TrimMode>full</TrimMode>
   </PropertyGroup>
+
+  <!-- Assemblies the trimmer must keep INTACT.
+
+       Save files are parsed by looking up a property type by its name in the file and building
+       it with Activator.CreateInstance, so nothing statically references most of those types
+       and a trimmer sees them as dead code. Left to itself, full trim deletes the whole save
+       engine: a measured run dropped UeSaveGame and UeSaveGame.Json outright and cut Core from
+       1007 KB to 268 KB, which would have shipped an editor that cannot open a save at all.
+       Rooting these keeps every type that a save file might name.
+
+       Cost is about 2 MB of the 17 MB, and it buys back the one thing that must never break. -->
+  <ItemGroup>
+    <TrimmerRootAssembly Include="UeSaveGame" />
+    <TrimmerRootAssembly Include="UeSaveGame.Json" />
+    <TrimmerRootAssembly Include="AbioticEditor.Core" />
+    <TrimmerRootAssembly Include="AbioticEditor.Web.Shared" />
+    <!-- This project too. The little records handed back and forth with JavaScript are built by
+         the JSON reader, never by our own code, so the trimmer removed their constructors and
+         the very first click - OPEN FOLDER - failed with "DeserializeNoConstructor". -->
+    <TrimmerRootAssembly Include="AbioticEditor.Web.Wasm" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
