@@ -24,7 +24,8 @@
        The copies are generated, so wwwroot/{registry,icons,Templates} are gitignored; the
        originals under assets/ are what is committed. -->
   <ItemGroup>
-    <BrowserDataAsset Include="..\..\assets\registry\registry.json" TargetDir="registry" />
+    <!-- One per language the game ships. Only the one matching the player is ever downloaded. -->
+    <BrowserDataAsset Include="..\..\assets\registry\registry*.json" TargetDir="registry" />
     <BrowserDataAsset Include="..\..\assets\icons\*.png" TargetDir="icons" />
     <!-- Everything the editor draws that is not an item icon: skill icons, trader portraits,
          chapter cards, sector maps, creature and pet portraits, the logo. -->

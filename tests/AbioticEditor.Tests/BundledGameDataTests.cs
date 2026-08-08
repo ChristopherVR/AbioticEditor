@@ -30,8 +30,16 @@ public sealed class BundledGameDataTests
         Assert.NotNull(registry);
         Assert.Equal(GameDataRegistry.CurrentSchemaVersion, registry!.SchemaVersion);
 
-        // Lower bounds, well under the real counts, so a genuinely truncated dump fails while a
-        // game patch that adds or retires a few rows does not.
+        AssertHasEnough(registry);
+    }
+
+    /// <summary>
+    /// Lower bounds, well under the real counts, so a genuinely truncated dump fails while a game
+    /// patch that adds or retires a few rows does not. Applied to every language's dump, since a
+    /// per-language build could fail for one culture alone.
+    /// </summary>
+    private static void AssertHasEnough(GameDataRegistry registry)
+    {
         AssertHas(registry.Items?.Count, 1_000, "items");
         AssertHas(registry.ItemTableRefs?.Count, 1_000, "item table references");
         AssertHas(registry.Recipes?.Count, 300, "recipes");
@@ -73,6 +81,49 @@ public sealed class BundledGameDataTests
         Assert.False(string.IsNullOrWhiteSpace(crafted.DisplayName));
         Assert.NotEqual(crafted.Id, crafted.DisplayName);
     }
+
+    /// <summary>
+    /// Every language the game ships must have its own dump, and each must actually be in that
+    /// language.
+    /// </summary>
+    /// <remarks>
+    /// The browser build has no game to read, so a missing language file silently means English
+    /// names for that player. Sizes alone would not catch a bug that wrote ten copies of English,
+    /// so this compares the actual text.
+    /// </remarks>
+    [Theory]
+    [InlineData("de")]
+    [InlineData("es-419")]
+    [InlineData("fr")]
+    [InlineData("ja")]
+    [InlineData("pt-BR")]
+    [InlineData("ru")]
+    [InlineData("zh-Hans")]
+    [InlineData("zh-Hant")]
+    public void ShippedRegistry_HasATranslatedDumpFor(string culture)
+    {
+        var path = Path.Combine(AssetsDirectory, "registry", GameDataRegistry.FileNameFor(culture));
+        Assert.True(File.Exists(path),
+            $"No game data shipped for '{culture}'. Re-run the CLI's dump-registry --all-cultures.");
+
+        var localized = GameDataRegistry.TryRead(File.ReadAllBytes(path));
+        Assert.NotNull(localized);
+        Assert.Equal(culture, localized!.Culture);
+        AssertHasEnough(localized);
+
+        // The same item, in two languages, must not read the same - otherwise the "translated"
+        // dump is just another copy of English and nobody would notice until a player complained.
+        var fallback = GameDataRegistry.TryRead(
+            File.ReadAllBytes(Path.Combine(AssetsDirectory, "registry", GameDataRegistry.RegistryFileName)));
+        var translated = NameOf(localized, "scrap_metal");
+        var original = NameOf(fallback!, "scrap_metal");
+        Assert.False(string.IsNullOrWhiteSpace(translated));
+        Assert.NotEqual(original, translated);
+    }
+
+    private static string? NameOf(GameDataRegistry registry, string itemId)
+        => registry.Items?.FirstOrDefault(item =>
+            item.Id.Equals(itemId, StringComparison.OrdinalIgnoreCase))?.DisplayName;
 
     [Fact]
     public void ShippedArt_ManifestMatchesThePicturesBesideIt()

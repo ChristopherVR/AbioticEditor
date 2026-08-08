@@ -44,6 +44,22 @@ public sealed class GameDataRegistry
     /// </summary>
     public string? GameVersion { get; init; }
 
+    /// <summary>
+    /// The game culture this dump's text was read in (e.g. <c>"ru"</c>), or null for the game's
+    /// default (English). Every display name, description, email and journal entry in here is in
+    /// that one language, so a host with no game install needs the dump matching the player's
+    /// language - see <see cref="FileNameFor"/>.
+    /// </summary>
+    public string? Culture { get; init; }
+
+    /// <summary>
+    /// The file a given game culture's dump is stored under: <c>registry.ru.json</c>, and plain
+    /// <c>registry.json</c> for the default. Kept as a rule rather than an index so a host can
+    /// ask for a language directly and fall back when it did not ship.
+    /// </summary>
+    public static string FileNameFor(string? culture)
+        => string.IsNullOrWhiteSpace(culture) ? RegistryFileName : $"registry.{culture}.json";
+
     // ----- catalog payloads (each nullable so older/newer bundles degrade to "absent") -----
 
     /// <summary>Every item row (<c>ItemTable_Global</c> + supplemental tables); null if not dumped.</summary>
@@ -105,13 +121,14 @@ public sealed class GameDataRegistry
     /// editor shows nothing at all". The items table stays required - without it there is no
     /// useful registry to write.
     /// </remarks>
-    public static GameDataRegistry BuildFromInstall(GameAssetProvider provider, string? gameVersion = null)
+    public static GameDataRegistry BuildFromInstall(GameAssetProvider provider, string? gameVersion = null, string? culture = null)
     {
         var catalog = ItemCatalog.LoadFrom(provider);
         return new GameDataRegistry
         {
             SchemaVersion = CurrentSchemaVersion,
             GameVersion = gameVersion,
+            Culture = culture,
             Items = catalog.Entries.ToList(),
             ItemTableRefs = catalog.TableRefs,
             Recipes = Optional("recipes", () => RecipeCatalog.LoadInfosFrom(provider)),
@@ -194,8 +211,16 @@ public sealed class GameDataRegistry
 
         if (File.Exists(UserRegistryPath)) return TryLoad(UserRegistryPath);
 
-        var bundled = Path.Combine(AppContext.BaseDirectory, "registry", RegistryFileName);
-        return TryLoad(bundled);
+        // The player's chosen game-data language first, then the default. A player reading the
+        // editor in German with no game installed should see German item names, not English ones.
+        var directory = Path.Combine(AppContext.BaseDirectory, "registry");
+        if (GameDataLanguageStore.Saved is { Length: > 0 } culture)
+        {
+            var localized = Path.Combine(directory, FileNameFor(culture));
+            if (File.Exists(localized) && TryLoad(localized) is { } match) return match;
+        }
+
+        return TryLoad(Path.Combine(directory, RegistryFileName));
     }
 
     private static GameDataRegistry? Supplied;

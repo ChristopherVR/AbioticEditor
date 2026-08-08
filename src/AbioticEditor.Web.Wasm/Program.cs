@@ -66,13 +66,11 @@ var host = builder.Build();
 await StageBundledGameDataAsync(host.Services);
 await host.RunAsync();
 
-// Item, recipe and skill names come from a dump of the game's data tables that ships with the
-// editor. Core looks for it as a FILE beside the executable, which in a browser means a file in
-// the in-memory file system WebAssembly gives us - so it is fetched once at startup and written
-// there, after which every catalog finds it exactly as it does on the desktop.
+// Item names, recipes, the codex and the rest come from a dump of the game's data tables that
+// ships with the editor, fetched once at startup and handed to Core directly.
 //
 // This is the whole reason the browser can show real names at all: the paks themselves cannot be
-// mounted in a tab (docs/PROGRESS.md round-45 has the measurements), but this dump is ~1 MB.
+// mounted in a tab (docs/PROGRESS.md round-45 has the measurements), but one dump is ~2 MB.
 // Failing to fetch it is not fatal - the editor falls back to internal ids, which is the same
 // thing the desktop app does when it cannot find the game.
 static async Task StageBundledGameDataAsync(IServiceProvider services)
@@ -80,8 +78,7 @@ static async Task StageBundledGameDataAsync(IServiceProvider services)
     try
     {
         var http = services.GetRequiredService<HttpClient>();
-        var bytes = await http.GetByteArrayAsync("registry/registry.json").ConfigureAwait(false);
-        var registry = GameDataRegistry.TryRead(bytes);
+        var registry = await FetchRegistryAsync(http).ConfigureAwait(false);
         GameDataRegistry.Supply(registry);
 
         // Console, not just the log file: if this ever fails the whole editor comes up looking
@@ -112,4 +109,41 @@ static async Task StageBundledGameDataAsync(IServiceProvider services)
         AbioticEditor.Core.Diagnostics.EditorLog.Warn(
             "Assets", $"Could not load the bundled game data; names will show as internal ids. {exception.Message}");
     }
+}
+
+/// <summary>
+/// Fetches the game-data dump for the player's language, falling back to the game's default.
+/// </summary>
+/// <remarks>
+/// The dumps are per language because every display name, description, email and journal entry in
+/// them is translated text: one file would mean a German player reading English item names. Only
+/// the matching file is downloaded, so carrying ten costs the player nothing.
+///
+/// The language comes from the browser, which is what Blazor sets the current culture from. Tried
+/// most specific first ("pt-BR" before "pt"), because the game ships some regional variants and
+/// not their base language.
+/// </remarks>
+static async Task<GameDataRegistry?> FetchRegistryAsync(HttpClient http)
+{
+    var uiCulture = System.Globalization.CultureInfo.CurrentUICulture;
+    var candidates = new List<string?>();
+    if (!string.IsNullOrEmpty(uiCulture.Name)) candidates.Add(uiCulture.Name);
+    if (!string.IsNullOrEmpty(uiCulture.TwoLetterISOLanguageName)) candidates.Add(uiCulture.TwoLetterISOLanguageName);
+    candidates.Add(null); // the default dump, which always ships
+
+    foreach (var culture in candidates)
+    {
+        try
+        {
+            var response = await http.GetAsync($"registry/{GameDataRegistry.FileNameFor(culture)}").ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode) continue;
+            var bytes = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+            if (GameDataRegistry.TryRead(bytes) is { } registry) return registry;
+        }
+        catch (HttpRequestException)
+        {
+            // That language did not ship; try the next candidate.
+        }
+    }
+    return null;
 }

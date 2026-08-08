@@ -10,6 +10,7 @@
 @inject AbioticEditor.Ui.IFolderPicker FolderPicker
 @inject IDiagnosticsLogDelivery LogDelivery
 @inject ModalService Modals
+@inject SaveWorkspaceSessionService Workspace
 
 <section class="settings-sheet" role="dialog" aria-modal="true" aria-labelledby="settings-sheet-title" tabindex="-1" @onkeydown="HandleKeyDown">
     <header class="settings-sheet-header">
@@ -153,12 +154,23 @@
     [Parameter] public EventCallback OnClose { get; set; }
 
     private readonly record struct TabChoice(SettingsTab Id, string ResourceKey);
-    private static readonly TabChoice[] Tabs =
+    private static readonly TabChoice[] AllTabs =
     [
         new(SettingsTab.General, "Settings_TabGeneral"), new(SettingsTab.Editor, "Settings_TabEditor"),
         new(SettingsTab.GameData, "Settings_GameData"), new(SettingsTab.Convert, "Settings_TabConvert"),
         new(SettingsTab.Plugins, "Settings_Plugins"), new(SettingsTab.Compare, "Compare_TabLabel"),
     ];
+
+    /// <summary>
+    /// The tabs this host can actually do something with. Four of them exist only to point at
+    /// things on the player's own machine - the installed game and its data files, mods, the Xbox
+    /// container folders, plugin DLLs, and two save files picked from anywhere on disk - none of
+    /// which a browser tab can reach. Offering them there would be offering settings that cannot
+    /// take effect.
+    /// </summary>
+    private IReadOnlyList<TabChoice> Tabs => Workspace.HasLocalPaths
+        ? AllTabs
+        : AllTabs.Where(tab => tab.Id is SettingsTab.General or SettingsTab.Editor).ToArray();
     private SettingsTab _selectedTab;
     private string? _error;
     private string? _gameDataStatus;

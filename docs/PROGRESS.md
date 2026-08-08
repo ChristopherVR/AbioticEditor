@@ -5,6 +5,45 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-54: game data in every language, and no dead settings in the browser (2026-08-08)
+
+### The bundled game data was English only
+Round 50 recorded that "icons are not multiplied by language ... only the names beside them are
+localised, and those already live in `registry.json`". The first half is right; the second was
+misleading, and I wrote it. **`registry.json` held one language.** Neither `dump-registry` nor
+`GameDataRegistry` knew what a culture was, so every player - German, Russian, Japanese - read
+English item names, recipes, emails and journal entries in the browser build.
+
+Fixed: `GameDataRegistry.Culture` + `FileNameFor(culture)` (`registry.ru.json`, plain
+`registry.json` for the default), `dump-registry --culture` and `--all-cultures`. The game ships
+text for **de, en, es-419, fr, ja, pt-BR, ru, zh-Hans, zh-Hant**; all ten dumps now ship (~23 MB
+total in `assets/registry/`, but **only the matching one is ever downloaded**, ~2-3.5 MB).
+
+Each culture needs its own pak mount - the translations are applied at mount time, so one provider
+cannot produce two languages.
+
+Selection is most-specific-first: `de-DE` tries `registry.de-DE.json`, then `registry.de.json`,
+then the default. Verified in Chromium with `locale: de-DE` and `ru-RU`: both fall through to the
+right file. The desktop's offline path (`LoadBundled`) now picks by `GameDataLanguageStore.Saved`
+the same way.
+
+Guarded by `BundledGameDataTests`, which asserts every culture ships, carries its own `Culture`
+stamp, meets the same row-count floors, and - the part that matters - that its `scrap_metal` name
+**differs** from the default. Sizes alone would not catch ten copies of English.
+
+### The browser no longer offers settings it cannot honour
+Four Settings tabs existed only to point at things on the player's own machine: **Game Data** (the
+installed game's folder, its usmap, the game-data language, mods), **Convert** (Xbox container
+folders), **Plugins** (loads DLLs) and **Compare** (two files picked from anywhere on disk). The
+browser now shows **General** and **Editor** only.
+
+Note the game-data language picker is desktop-only for a real reason: there it re-mounts the paks
+in the chosen language. The browser instead follows the browser's own language, because that is
+what picks the dump at startup.
+
+### Known gap found while here
+`Settings.razor` has a hardcoded English `"EXPORT LOG FILE"` where every sibling string is
+localised. Not fixed here.
 ## Round-53: Firefox and Safari can open saves (2026-08-08)
 
 Round 52 left those browsers unable to open anything. They can now, through the route flagged
