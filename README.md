@@ -10,7 +10,11 @@ Open your save, change almost anything (your stats, inventory, skills, recipes, 
 progress, even the whole world), and play on. No hex editors, no spreadsheets, no risk to
 your originals.
 
-[Download](https://github.com/ChristopherVR/AbioticEditor/releases/latest) ·
+### ▶ [**Edit your save in your browser - nothing to install**](https://christophervr.github.io/AbioticEditor/app/)
+
+Same editor, running in the page. Your saves never leave your computer.
+
+[Download the app](https://github.com/ChristopherVR/AbioticEditor/releases/latest) ·
 [Documentation](https://christophervr.github.io/AbioticEditor/) ·
 [Getting started](https://christophervr.github.io/AbioticEditor/guide/getting-started)
 
@@ -40,6 +44,22 @@ kit, and a save inspector rolled into one. It's handy if you want to:
 
 If you've never edited a save before, start with the
 **[Getting started guide](https://christophervr.github.io/AbioticEditor/guide/getting-started)**.
+
+## Two ways to use it
+
+**[In your browser](https://christophervr.github.io/AbioticEditor/app/)** - nothing to
+download. Open the page, press OPEN FOLDER, choose your save folder, and edit. It is the same
+editor and the same save engine as the download; it just runs inside the page. Your saves never
+leave your computer - there is no server for them to go to. In Chrome or Edge it writes changes
+straight back to your folder, keeping a `.bak` like the app does. Firefox and Safari do not let
+any web page write to your disk, so there your changes live in the tab until you press EXPORT to
+download them; you can drop that zip back onto the page later to carry on. Full walkthrough:
+**[Edit in your browser](https://christophervr.github.io/AbioticEditor/guide/browser-editor)**.
+
+**[The downloadable app](https://github.com/ChristopherVR/AbioticEditor/releases/latest)** -
+for Windows and Linux. Everything the browser version does, plus the things only a program on
+your own computer can: finding your worlds by itself, Game Pass saves, creating a new world,
+reading item pictures out of your installed copy of the game, and plugins.
 
 ## How it works (the short version)
 

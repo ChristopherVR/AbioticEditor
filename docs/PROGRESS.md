@@ -5,6 +5,65 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-59: browser-editor field report, worked through (2026-08-09)
+
+A list of things a player hit in the published browser build. Most turned out to be one of three
+shapes, which is the useful part to carry forward.
+
+### Shape 1: code reaching for a file system the browser does not have
+`System.IO` in shared code is invisible on the desktop and dead in a tab.
+
+- **Raw JSON import** wrote the converted save straight to a disk path
+  (`SaveBackup.WriteWithBackup`), failing with `DirectoryNotFound /Cascade/...sav.tmp`. Split the
+  conversion (`SaveJsonBridge.ReadJsonAsSaveBytes`) from the write, which now goes through
+  `ISaveFileSystem`. Both raw tabs also **reload the save afterwards** - without that the session
+  still held the pre-import parse and the next SAVE would have written it straight back over.
+- **The spawn screen's region list** used `WorldLevelIndex.ScanFolder`, which enumerates a folder
+  and streams each file from the front. `LevelGUID` sits near the **end** of a save (242 bytes
+  from the end in a small region; 3.4 MB from the end of the 16 MB facility save), so
+  `ISaveFileSystem` gained `ReadTailAsync` and `WorldLevelIndexService` reads tails at growing
+  sizes. Listing a 68 MB world's regions costs a few hundred KB.
+- **Settings** (language, theme, game-data language) were one-line files under
+  `LocalApplicationData`. A WebAssembly file system is in memory and dies with the tab - and
+  choosing a language *reloads the page*, so the setting was gone before it could be read back.
+  `HostPreferenceStore` (and a matching hook on `GameDataLanguageStore`) is a seam the browser
+  fills with localStorage.
+
+### Shape 2: delta serialization, again
+`AddPet` refused any world whose `PetNPC` map was absent - which is **every region save but the
+facility one**, because the game omits a map it has never written. Staging succeeded and SAVE
+then failed with "Could not place pet". The map is now created by copying `NarrativeNPCMap`'s own
+tag (same NPC-state struct, so the key/value type names are right). One caveat is now documented
+and tested rather than hidden: a pet cloned from a story NPC **loses its XP**, because experience
+lives in a dynamic-property list story NPCs do not carry, and `PetTransfer` no longer claims a
+level it did not write.
+
+### Shape 3: a case-insensitive file system hiding a case-sensitive one
+Item icons are dumped as `<item id>.png`, but the id is spelled differently in different places -
+a save says `Bandage`, the data-table row is `bandage`. Windows and the desktop host do not care;
+GitHub Pages does, so those items 404ed and drew "?". All 1,622 shipped icons are now lower-case
+and so is the URL. `File.Exists` cannot guard this (case-insensitive on Windows), so the test
+compares names ordinally.
+
+### Also in this round
+- **Zips as an input** (`SaveBundle` + `ISaveBundleReader`): the other end of EXPORT, by picker or
+  drop, and the only way in at all on Firefox/Safari. Handles both layouts - saves at the top of
+  the zip, or under a folder named after the world.
+- **Recent worlds** (`IRecentWorldStore`): FileSystemDirectoryHandles kept in IndexedDB. The
+  permission is deliberately dropped when the tab closes, so reopening asks again and must hang
+  off a click.
+- **Unsaved-work guards**: `UnsavedChangesGuard` before anything replaces the open session, plus a
+  `beforeunload` handler armed only while edits are staged.
+- Host-only notices hidden in the browser (door positions, "no character look on this computer"),
+  toasts given real contrast in the blue theme, and the container grid's scrollbar fight fixed
+  (`overflow-x:hidden` + `scrollbar-gutter:stable`).
+- A **churn bug** in the spawn tab: `ReferenceEquals(_bedSource, WorldSession)` was false on every
+  pass with no world open, so the 16 MB facility read restarted on every render and the bed list
+  never settled. It looked exactly like "the picker is empty".
+
+Verified in a real browser (drop a zip, open the save, switch language to German, reload and see
+it stick). 966 tests green.
+
 ## Round-58: the browser download, halved (2026-08-08)
 
 Round 57 concluded the payload could not be cut without multi-targeting Core. That was the wrong

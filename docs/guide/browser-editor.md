@@ -35,6 +35,30 @@ Paste that into the address bar of the folder chooser.
 
 Press **OPEN FOLDER**, choose that folder, and allow the browser to view it when it asks.
 
+You can also **drag the folder onto the page** instead of using the chooser - anywhere on the
+window will do.
+
+## Coming back later
+
+The editor remembers the last three worlds you opened and offers them on its home page, so a
+refresh does not mean hunting through the folder chooser again. Press **OPEN** on one and your
+browser will ask permission to read that folder once more (it deliberately forgets that
+permission when you close the tab). If a world has been moved or deleted since, the editor says
+so and you can remove it from the list.
+
+Nothing about your save is stored: what is remembered is a bookmark to the folder, not its
+contents.
+
+## Opening a zip
+
+**OPEN A ZIP** on the home page takes a zipped save folder - either the one **EXPORT** gave
+you, or one you made yourself by zipping the world folder. You can drop a `.zip` onto the page
+too.
+
+This is the way back in for Firefox and Safari, where the editor cannot reopen a folder: export
+your zip before you close the tab, then drop it back on next time and carry on. Saves opened
+from a zip are edited in the tab and leave the same way, through **EXPORT**.
+
 ## Your browser matters
 
 | Browser | What happens |
@@ -43,7 +67,8 @@ Press **OPEN FOLDER**, choose that folder, and allow the browser to view it when
 | **Firefox, Safari** | Read-only. The editor can open your folder and edit everything, but the browser will not let any web page write to your disk. Your changes live in the tab until you **export** them. |
 
 On Firefox and Safari, nothing is lost as long as you export before closing the tab. The
-editor says so on screen rather than letting you find out afterwards.
+editor says so on screen rather than letting you find out afterwards, and the browser itself
+will ask you to confirm before you close or reload a tab holding unsaved edits.
 
 ## Getting your saves back out
 

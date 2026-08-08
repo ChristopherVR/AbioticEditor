@@ -46,6 +46,10 @@ No download, no install. **[Open the editor](/app/)** and you are three clicks a
    character's look, which is stored beside `Worlds/` rather than inside it.
 3. Allow the browser to view the folder when it asks, then pick a save and edit.
 
+Dragging the folder onto the page works too, and so does dropping a `.zip` of one - including
+the zip the editor's own **EXPORT** hands you. The last three worlds you opened are offered on
+the home page, so coming back is a single click.
+
 Your saves never leave your computer. There is no server behind this: the editor runs inside
 the page and reads the folder you chose straight off your disk.
 
