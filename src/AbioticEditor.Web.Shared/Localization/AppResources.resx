@@ -899,6 +899,24 @@ Worlds: containers · quest flags · doors · ground items · story progression<
   <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
     <value>SAVE DIAGNOSTICS</value>
   </data>
+  <data name="Host_NoFolderPicker" xml:space="preserve">
+    <value>This browser cannot open a folder. Chrome or Edge can. You can still open the editor there, or use the desktop version.</value>
+  </data>
+  <data name="FileSidebar_ExportFailed" xml:space="preserve">
+    <value>That export did not finish. Nothing was changed.</value>
+  </data>
+  <data name="FileSidebar_Export" xml:space="preserve">
+    <value>EXPORT</value>
+  </data>
+  <data name="FileSidebar_ExportTooltip" xml:space="preserve">
+    <value>Save a copy of every file in this world as one zip. Editing one save can change others, so this takes the whole set.</value>
+  </data>
+  <data name="FileSidebar_Exporting" xml:space="preserve">
+    <value>Packing...</value>
+  </data>
+  <data name="FileSidebar_Exported" xml:space="preserve">
+    <value>Exported {0} save(s).</value>
+  </data>
   <data name="Host_NeedsDesktopTitle" xml:space="preserve">
     <value>Needs the desktop editor</value>
   </data>

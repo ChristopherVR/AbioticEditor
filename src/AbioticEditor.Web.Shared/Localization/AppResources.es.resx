@@ -699,6 +699,24 @@ Mundos: contenedores · indicadores de misión · puertas · objetos en el suelo
   <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
     <value>DIAGNÓSTICO DE GUARDADO</value>
   </data>
+  <data name="Host_NoFolderPicker" xml:space="preserve">
+    <value>Este navegador no puede abrir una carpeta. Chrome o Edge sí. Usa el editor allí o la versión de escritorio.</value>
+  </data>
+  <data name="FileSidebar_ExportFailed" xml:space="preserve">
+    <value>La exportación no se completó. No se cambió nada.</value>
+  </data>
+  <data name="FileSidebar_Export" xml:space="preserve">
+    <value>EXPORTAR</value>
+  </data>
+  <data name="FileSidebar_ExportTooltip" xml:space="preserve">
+    <value>Guarda una copia de todos los archivos de este mundo en un zip. Editar una partida puede cambiar otras, así que se incluyen todas.</value>
+  </data>
+  <data name="FileSidebar_Exporting" xml:space="preserve">
+    <value>Empaquetando...</value>
+  </data>
+  <data name="FileSidebar_Exported" xml:space="preserve">
+    <value>Se exportaron {0} partida(s).</value>
+  </data>
   <data name="Host_NeedsDesktopTitle" xml:space="preserve">
     <value>Necesita el editor de escritorio</value>
   </data>

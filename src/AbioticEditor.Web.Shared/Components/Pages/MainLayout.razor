@@ -115,7 +115,16 @@
         catch (Exception exception)
         {
             Errors.Record(exception, "Open save folder");
-            Toasts.Show(Languages.Text("folder.open.error", "Check that the folder still exists and that you can read it."), ToastKind.Error, TimeSpan.FromSeconds(8));
+
+            // A browser with no folder picker at all (Firefox, Safari) is not the same problem as
+            // a folder that cannot be read, and telling those players to check their folder sends
+            // them looking for a fault that is not there.
+            Toasts.Show(
+                UserFacingErrorService.IsFolderPickerUnavailable(exception)
+                    ? Languages.Resource("Host_NoFolderPicker")
+                    : Languages.Text("folder.open.error", "Check that the folder still exists and that you can read it."),
+                ToastKind.Error,
+                TimeSpan.FromSeconds(10));
         }
         finally
         {

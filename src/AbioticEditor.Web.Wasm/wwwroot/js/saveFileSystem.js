@@ -7,8 +7,9 @@
 // this file may interpret it. Re-picking a folder of the same name replaces its handle, which is
 // what a player re-opening the same world expects.
 //
-// Chromium only. Firefox and Safari have no directory picker at all, which is why isSupported()
-// exists and the browser host offers single-file mode there instead.
+// Chromium only. Firefox and Safari have no directory picker at all and no showOpenFilePicker
+// either, so on those browsers the editor runs but cannot open a save; isSupported() reports that
+// so the UI can say so plainly. There is no fallback mode yet - see docs/PROGRESS.md round 52.
 
 const roots = new Map();
 

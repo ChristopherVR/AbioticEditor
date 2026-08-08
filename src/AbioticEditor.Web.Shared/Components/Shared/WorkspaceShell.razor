@@ -4,6 +4,7 @@
 @using Microsoft.JSInterop
 @implements IAsyncDisposable
 @inject SaveWorkspaceSessionService Workspace
+@inject SaveExportService Export
 @inject SiblingWorldBedService Beds
 @inject ShellPreferencesService Preferences
 @inject InventorySelectionService InventorySelection
@@ -26,7 +27,22 @@
                 <input @bind="_filter" @bind:event="oninput" placeholder="@L.Resource("FileSidebar_SearchSavesAndConfig")" aria-label="@L.Resource("FileSidebar_SearchSavesAndConfig")" />
                 @if (!string.IsNullOrWhiteSpace(_filter)) { <button class="material-symbol" type="button" @onclick="ClearFilter" aria-label="@L.Resource("FileSidebar_ClearFilter")">close</button> }
             </label>
-            @if (Workspace.Current is { } loadedWorkspace) { <span class="sidebar-count">@L.Text("items.count", loadedWorkspace.Saves.Count)</span> }
+            @if (Workspace.Current is { } loadedWorkspace)
+            {
+                <span class="sidebar-count">@L.Text("items.count", loadedWorkspace.Saves.Count)</span>
+                @* The whole world, not just the open save: setting a story chapter rewrites the
+                   Facility save, and the "move players" option rewrites every player save, so a
+                   copy of only the file on screen would quietly leave those behind. *@
+                @if (Export.CanExport)
+                {
+                    <button class="sidebar-export" type="button" disabled="@_exporting"
+                            title="@L.Resource("FileSidebar_ExportTooltip")"
+                            @onclick="ExportWorkspaceAsync">
+                        <span class="material-symbol" aria-hidden="true">archive</span>
+                        @(_exporting ? L.Resource("FileSidebar_Exporting") : L.Resource("FileSidebar_Export"))
+                    </button>
+                }
+            }
         </header>
 
         @if (Workspace.Current is not { } workspace)
@@ -422,6 +438,33 @@
     }
 
     private static string? NullIfEmpty(string value) => value.Length == 0 ? null : value;
+
+    private bool _exporting;
+
+    /// <summary>
+    /// Hands the player a zip of every save in the open world. Deliberately the whole world
+    /// rather than the selected file: several editor actions change saves the player never
+    /// opened, so exporting only what is on screen would hand back an incomplete set.
+    /// </summary>
+    private async Task ExportWorkspaceAsync()
+    {
+        if (_exporting) return;
+        _exporting = true;
+        try
+        {
+            var count = await Export.ExportWorkspaceAsync();
+            Toasts.Show(L.Resource("FileSidebar_Exported", count), ToastKind.Success);
+        }
+        catch (Exception exception)
+        {
+            Errors.Record(exception, "Export the open world");
+            Toasts.Show(L.Resource("FileSidebar_ExportFailed"), ToastKind.Error);
+        }
+        finally
+        {
+            _exporting = false;
+        }
+    }
 
     private IReadOnlyDictionary<string, string>? _claimPersonas;
     private string? _claimPersonaFolder;

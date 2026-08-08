@@ -19,6 +19,8 @@ builder.Services.AddScoped<BrowserSaveFileSystem>();
 builder.Services.AddScoped<ISaveFileSystem>(sp => sp.GetRequiredService<BrowserSaveFileSystem>());
 builder.Services.AddScoped<ISaveTemplateSource, BrowserSaveTemplateSource>();
 builder.Services.AddScoped<IDiagnosticsLogDelivery, BrowserLogDelivery>();
+builder.Services.AddScoped<ISaveExporter, BrowserSaveExporter>();
+builder.Services.AddScoped<SaveExportService>();
 builder.Services.AddScoped<BrowserFilePickerService>();
 builder.Services.AddScoped<AbioticEditor.Ui.IFilePicker>(sp => sp.GetRequiredService<BrowserFilePickerService>());
 builder.Services.AddScoped<AbioticEditor.Ui.IFolderPicker>(sp => sp.GetRequiredService<BrowserFilePickerService>());

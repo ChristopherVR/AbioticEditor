@@ -698,6 +698,24 @@ Welten: Behälter · Quest-Flags · Türen · Bodengegenstände · Story-Fortsch
   <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
     <value>SPIELSTAND-DIAGNOSE</value>
   </data>
+  <data name="Host_NoFolderPicker" xml:space="preserve">
+    <value>Dieser Browser kann keinen Ordner öffnen. Chrome oder Edge können es. Nutze den Editor dort oder die Desktop-Version.</value>
+  </data>
+  <data name="FileSidebar_ExportFailed" xml:space="preserve">
+    <value>Der Export wurde nicht abgeschlossen. Es wurde nichts geändert.</value>
+  </data>
+  <data name="FileSidebar_Export" xml:space="preserve">
+    <value>EXPORTIEREN</value>
+  </data>
+  <data name="FileSidebar_ExportTooltip" xml:space="preserve">
+    <value>Speichert eine Kopie aller Dateien dieser Welt als ein Zip. Das Bearbeiten eines Spielstands kann andere verändern, daher wird alles mitgenommen.</value>
+  </data>
+  <data name="FileSidebar_Exporting" xml:space="preserve">
+    <value>Wird gepackt...</value>
+  </data>
+  <data name="FileSidebar_Exported" xml:space="preserve">
+    <value>{0} Spielstand/Spielstände exportiert.</value>
+  </data>
   <data name="Host_NeedsDesktopTitle" xml:space="preserve">
     <value>Erfordert den Desktop-Editor</value>
   </data>

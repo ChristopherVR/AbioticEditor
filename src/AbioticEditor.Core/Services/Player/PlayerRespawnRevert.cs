@@ -12,6 +12,21 @@ namespace AbioticEditor.Core.PlayerSaves;
 public static class PlayerRespawnRevert
 {
     /// <summary>
+    /// The move worked out for one already-read player save, as the fields to apply. Null when
+    /// the chapter has no known terminal. Separated from the file walk so a host that cannot
+    /// reach a local disk (the browser) can supply the saves itself.
+    /// </summary>
+    public static RespawnTerminal? PlanFor(string chapterRow)
+        => RespawnTerminalCatalog.ForChapter(chapterRow);
+
+    /// <summary>Applies a planned move to an already-read player save (caller writes it back).</summary>
+    public static void Apply(PlayerSaveData player, RespawnTerminal terminal)
+    {
+        PlayerSaveWriter.ApplyRespawn(player, terminal.X, terminal.Y, terminal.Z);
+        PlayerSaveWriter.ApplyRespawnTerminal(player, terminal.TerminalGuid);
+    }
+
+    /// <summary>
     /// Writes <paramref name="chapterRow"/>'s terminal position to every <c>Player_*.sav</c>
     /// in the <c>PlayerData</c> folder next to <paramref name="metadataSavePath"/> (standard
     /// pre-write backup each). A no-op (with an explanatory message) when the chapter has no

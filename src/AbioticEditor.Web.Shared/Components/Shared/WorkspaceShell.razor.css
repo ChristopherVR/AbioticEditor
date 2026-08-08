@@ -128,6 +128,39 @@
     letter-spacing: .1em;
 }
 
+/* Sits under the file count, full width of the pane: it acts on the whole world rather than on
+   whichever save happens to be selected, so it must not look like part of the list below. */
+.sidebar-export {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: calc(100% - 32px);
+    margin: 0 16px 10px;
+    padding: 6px 10px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--muted);
+    font: 600 10px var(--font-ui);
+    letter-spacing: .1em;
+    cursor: pointer;
+}
+
+.sidebar-export:hover:not(:disabled) {
+    color: var(--text);
+    border-color: var(--accent);
+}
+
+.sidebar-export:disabled {
+    opacity: .55;
+    cursor: default;
+}
+
+.sidebar-export .material-symbol {
+    font-size: 14px;
+}
+
 .shell-empty {
     padding: 24px 16px;
     color: var(--muted);

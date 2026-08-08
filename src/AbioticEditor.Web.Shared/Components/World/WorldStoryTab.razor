@@ -389,7 +389,7 @@
             var statusExtra = string.Empty;
             if (_movePlayers)
             {
-                var (moved, moveMessage) = await Task.Run(() => PlayerRespawnRevert.MoveToChapterTerminal(path, row));
+                var (moved, moveMessage) = await FlagSync.MovePlayersToChapterTerminalAsync(row);
                 statusExtra = moved > 0 ? $", {moveMessage}" : $" ({moveMessage})";
             }
             await RefreshWorldFlagsAsync();

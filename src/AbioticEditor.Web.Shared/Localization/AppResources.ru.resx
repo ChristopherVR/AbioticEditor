@@ -698,6 +698,24 @@
   <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
     <value>ДИАГНОСТИКА СОХРАНЕНИЙ</value>
   </data>
+  <data name="Host_NoFolderPicker" xml:space="preserve">
+    <value>Этот браузер не может открыть папку. Chrome или Edge могут. Откройте редактор там или используйте настольную версию.</value>
+  </data>
+  <data name="FileSidebar_ExportFailed" xml:space="preserve">
+    <value>Экспорт не завершён. Ничего не изменено.</value>
+  </data>
+  <data name="FileSidebar_Export" xml:space="preserve">
+    <value>ЭКСПОРТ</value>
+  </data>
+  <data name="FileSidebar_ExportTooltip" xml:space="preserve">
+    <value>Сохраняет копию всех файлов этого мира в один zip. Изменение одного сохранения может затронуть другие, поэтому берётся весь набор.</value>
+  </data>
+  <data name="FileSidebar_Exporting" xml:space="preserve">
+    <value>Упаковка...</value>
+  </data>
+  <data name="FileSidebar_Exported" xml:space="preserve">
+    <value>Экспортировано сохранений: {0}.</value>
+  </data>
   <data name="Host_NeedsDesktopTitle" xml:space="preserve">
     <value>Нужен настольный редактор</value>
   </data>

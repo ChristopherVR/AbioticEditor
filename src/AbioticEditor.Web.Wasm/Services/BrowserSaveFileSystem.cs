@@ -13,8 +13,12 @@ namespace AbioticEditor.Web.Wasm.Services;
 /// file-system paths, which is why <see cref="HasLocalPaths"/> is false and every feature that
 /// would hand a path to something outside the editor is switched off on this host.</para>
 ///
-/// <para>Chromium only. <see cref="IsSupportedAsync"/> is how the UI decides whether to offer
-/// folder mode at all; Firefox and Safari get single-file open and download instead.</para>
+/// <para>Chromium only, and there is currently no fallback: Firefox and Safari have neither the
+/// directory picker nor <c>showOpenFilePicker</c>, so on those browsers the editor loads and runs
+/// but cannot open a save at all. The player is told exactly that (see
+/// <c>UserFacingErrorService.IsFolderPickerUnavailable</c>) rather than being sent to check a
+/// folder that is fine. <see cref="IsSupportedAsync"/> reports the capability; nothing calls it
+/// yet, because there is no second mode to switch to.</para>
 /// </remarks>
 public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem
 {

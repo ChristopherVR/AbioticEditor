@@ -5,6 +5,64 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-52: Firefox, cross-save effects, and export (2026-08-08)
+
+### Firefox: tested for real, and it cannot open anything
+Probed with actual Firefox 153 (`playwright install firefox`), not a simulation. The app **loads
+and runs fine** - WebAssembly, the registry, the artwork, all of it. But `showDirectoryPicker` and
+`showOpenFilePicker` are both undefined, so OPEN FOLDER is the only way in and it fails.
+
+**The "single-file mode" the code comments promised does not exist.** There is no
+`<input type="file">` anywhere in the editor and `IsSupportedAsync` is never called by any screen;
+those comments (in `saveFileSystem.js` and `BrowserSaveFileSystem`) described an intention, not a
+feature. Corrected here.
+
+What was fixed now: Firefox showed *"Could not open that folder: Check that the folder still
+exists and that you can read it"* - advice for a fault that does not exist - while the real error
+underneath said "This browser cannot open a folder". The two cases are now told apart
+(`UserFacingErrorService.IsFolderPickerUnavailable`) and Firefox gets the honest message.
+
+**Still open:** Firefox and Safari cannot open saves at all. The most promising route is
+`<input type="file" webkitdirectory>`, which Firefox *does* support: it yields every file in a
+chosen folder with its relative path, read-only. Combined with the export below that is a complete
+story (open read-only -> edit -> download the zip), and it reuses the existing screens. It needs a
+read-only `ISaveFileSystem` whose `WriteAllBytesAsync` refuses, plus UI that steers those hosts to
+export instead of SAVE.
+
+### Cross-save effects: five actions write files you never opened
+This is why export matters. Three of them write **immediately**, with no staging and no undo,
+which quietly breaks the editor's usual "edits stage until SAVE" contract:
+
+| Action | Writes | When |
+| --- | --- | --- |
+| STORY tab -> SET chapter | `WorldSave_Facility.sav` | immediately |
+| STORY tab -> SET chapter with "move players" ticked | **every** `Player_*.sav` in the world | immediately |
+| STORY / TRADERS tab -> unlock | `WorldSave_Facility.sav` | immediately |
+| Player COMPANIONS -> send pet to bed | a world save | on SAVE WORLD |
+| Player SPAWN -> claim bed | a world save | on SAVE WORLD |
+
+`PlayerRespawnRevert.MoveToChapterTerminal` (the second row) was **an eighth direct-file-I/O site
+that round 51's sweep missed** - it walked `PlayerData` with `Directory.EnumerateFiles` and wrote
+each player with `PlayerSaveWriter.WriteToFile`, so it threw in the browser. Now split into
+`PlanFor`/`Apply` in Core with `StoryFlagSyncService.MovePlayersToChapterTerminalAsync` driving it
+through `ISaveFileSystem`.
+
+### Export
+New `ISaveExporter` seam (browser: a download; desktop: writes to Downloads and reveals it) and
+`SaveExportService`. The EXPORT button in the save sidebar takes the **whole world** as one zip,
+not the selected file - precisely because of the table above. Entries keep their folder layout, so
+`PlayerData/Player_*.sav` lands back where the game expects it and the zip can be copied straight
+over a save folder.
+
+Verified end to end in the browser: real download of `Cascade.zip` (65,198,858 bytes, 62 entries),
+extracted and compared file by file against the fixtures - **all 62 byte-identical**, folder layout
+intact.
+
+### Also fixed
+`Player_facing_copy_does_not_expose_application_architecture` caught `exception.Message` in a razor
+file (used to classify, not display, but the rule is right). Moved into
+`UserFacingErrorService.IsFolderPickerUnavailable` where exception internals belong.
+
 ## Round-51: both browser root causes closed (2026-08-08)
 
 Round-50 left the browser build unusable for two reasons, both now fixed. Read this before

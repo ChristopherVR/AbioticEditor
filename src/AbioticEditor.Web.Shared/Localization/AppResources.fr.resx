@@ -698,6 +698,24 @@ Mondes : conteneurs · indicateurs de quête · portes · objets au sol · progr
   <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
     <value>DIAGNOSTIC DE SAUVEGARDE</value>
   </data>
+  <data name="Host_NoFolderPicker" xml:space="preserve">
+    <value>Ce navigateur ne peut pas ouvrir un dossier. Chrome ou Edge le peuvent. Utilisez l'éditeur là-bas, ou la version bureau.</value>
+  </data>
+  <data name="FileSidebar_ExportFailed" xml:space="preserve">
+    <value>L'exportation ne s'est pas terminée. Rien n'a été modifié.</value>
+  </data>
+  <data name="FileSidebar_Export" xml:space="preserve">
+    <value>EXPORTER</value>
+  </data>
+  <data name="FileSidebar_ExportTooltip" xml:space="preserve">
+    <value>Enregistre une copie de tous les fichiers de ce monde dans un zip. Modifier une sauvegarde peut en changer d'autres, donc tout est inclus.</value>
+  </data>
+  <data name="FileSidebar_Exporting" xml:space="preserve">
+    <value>Compression...</value>
+  </data>
+  <data name="FileSidebar_Exported" xml:space="preserve">
+    <value>{0} sauvegarde(s) exportée(s).</value>
+  </data>
   <data name="Host_NeedsDesktopTitle" xml:space="preserve">
     <value>Nécessite l'éditeur de bureau</value>
   </data>

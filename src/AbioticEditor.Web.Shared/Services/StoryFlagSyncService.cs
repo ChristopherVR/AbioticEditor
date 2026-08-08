@@ -1,3 +1,4 @@
+using AbioticEditor.Core.PlayerSaves;
 using AbioticEditor.Core.WorldSaves;
 
 namespace AbioticEditor.Web.Services;
@@ -29,6 +30,48 @@ public sealed class StoryFlagSyncService(ISaveFileSystem files, SaveWorkspaceSes
     public Task<(int Count, string Message)> ClearForwardFlagsAsync(
         string metadataSavePath, string chapterRow, CancellationToken cancellationToken = default)
         => ApplyAsync(metadataSavePath, facility => StoryFlagSync.PlanClearForwardFlags(facility, chapterRow), cancellationToken);
+
+    /// <summary>
+    /// Moves every player in this world back to <paramref name="chapterRow"/>'s punch-card
+    /// terminal, the position counterpart of a story rewind. Reads and writes each player save
+    /// through the host's file system, so it works in a browser too.
+    /// </summary>
+    /// <remarks>
+    /// This writes files the player never opened - every <c>Player_*.sav</c> in the world. It is
+    /// only ever reached from the STORY tab's explicit "move players" opt-in.
+    /// </remarks>
+    public async Task<(int Moved, string Message)> MovePlayersToChapterTerminalAsync(
+        string chapterRow, CancellationToken cancellationToken = default)
+    {
+        if (PlayerRespawnRevert.PlanFor(chapterRow) is not { } terminal)
+        {
+            return (0, $"No known respawn terminal for chapter '{chapterRow}' or anything earlier in the story.");
+        }
+
+        var players = (workspace.Current?.Saves ?? [])
+            .Where(save => save.Kind == SaveDocumentKind.Player)
+            .ToList();
+        if (players.Count == 0) return (0, "No player saves found to move.");
+
+        var moved = 0;
+        foreach (var player in players)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var bytes = await files.ReadAllBytesAsync(player.Path, cancellationToken).ConfigureAwait(false);
+            var written = await Task.Run(() =>
+            {
+                var data = PlayerSaveReader.ReadFromStream(new MemoryStream(bytes, writable: false));
+                PlayerRespawnRevert.Apply(data, terminal);
+                using var buffer = new MemoryStream();
+                data.Raw.WriteTo(buffer);
+                return buffer.ToArray();
+            }, cancellationToken).ConfigureAwait(false);
+            await files.WriteAllBytesAsync(player.Path, written, cancellationToken).ConfigureAwait(false);
+            moved++;
+        }
+
+        return (moved, $"Moved {moved} player(s) to the {terminal.LocationName} terminal (backups kept).");
+    }
 
     private async Task<(int Count, string Message)> ApplyAsync(
         string metadataSavePath, Func<WorldSaveData, StoryFlagSync.FlagPlan> plan, CancellationToken cancellationToken)

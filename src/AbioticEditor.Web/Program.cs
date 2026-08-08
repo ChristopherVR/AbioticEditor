@@ -64,6 +64,8 @@ public static class Program
         builder.Services.AddSingleton<ISaveTemplateSource, DesktopSaveTemplateSource>();
         builder.Services.AddSingleton<ISaveFileSystem, DesktopSaveFileSystem>();
         builder.Services.AddSingleton<IDiagnosticsLogDelivery, DesktopLogDelivery>();
+        builder.Services.AddSingleton<ISaveExporter, DesktopSaveExporter>();
+        builder.Services.AddScoped<SaveExportService>();
         builder.Services.AddSingleton<CreateWorldService>();
         builder.Services.AddSingleton<IniEditorSessionService>();
         builder.Services.AddSingleton<HostSettingsService>();
