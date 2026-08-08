@@ -83,7 +83,11 @@ public static class DumpIconsCommand
                 var cached = raw is null ? null : IconColorizer.Colorize(raw, entry);
                 if (cached is null || !File.Exists(cached)) { failed.Add(entry.Id); continue; }
 
-                File.Copy(cached, Path.Combine(outDir, entry.Id + ".png"), overwrite: true);
+                // Lower-cased on purpose. The same item is spelled differently in different
+                // places (a save says "Bandage", the data-table row is "bandage"), and the web
+                // server that serves these does care about the difference even though Windows
+                // does not. One agreed spelling on both sides is what stops those items 404ing.
+                File.Copy(cached, Path.Combine(outDir, entry.Id.ToLowerInvariant() + ".png"), overwrite: true);
                 written++;
             }
             catch (Exception exception) when (exception is IOException or InvalidDataException or NotSupportedException)

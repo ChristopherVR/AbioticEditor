@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using AbioticEditor.Core.Assets;
+using AbioticEditor.Web.Services;
 
 namespace AbioticEditor.Tests;
 
@@ -177,6 +178,54 @@ public sealed class BundledGameDataTests
 
         // The logo the shell draws on every screen, which is the most visible one to lose.
         Assert.True(manifest.Has("AbioticFactor/Content/Textures/GUI/Inventory/T_ABF_Logo_1024"));
+    }
+
+    /// <summary>
+    /// Every shipped item picture is named in lower case, and so is the URL the browser asks for.
+    /// </summary>
+    /// <remarks>
+    /// The dump names each file after the game's own data-table row, but a save spells the same
+    /// item differently - the row is <c>bandage</c> where the save says <c>Bandage</c>. Windows,
+    /// where the pictures are dumped and where the desktop app reads them, treats those as one
+    /// name; the web server that serves the browser build does not, so those items answered 404
+    /// and drew a "?" tile. One agreed spelling on both sides is the whole fix, and File.Exists
+    /// cannot guard it (it is case-insensitive on Windows) - the names have to be compared here.
+    /// </remarks>
+    [Fact]
+    public void ShippedItemIcons_AreNamedInOneCaseTheBrowserCanAskFor()
+    {
+        var iconDirectory = Path.Combine(AssetsDirectory, "icons");
+        Assert.True(Directory.Exists(iconDirectory), $"The bundled item icons are missing: {iconDirectory}");
+
+        var mixedCase = Directory.EnumerateFiles(iconDirectory, "*.png")
+            .Select(Path.GetFileName)
+            .Where(name => !string.Equals(name, name!.ToLowerInvariant(), StringComparison.Ordinal))
+            .Take(10)
+            .ToArray();
+
+        Assert.True(mixedCase.Length == 0,
+            "These shipped item icons are not named in lower case, so the browser build 404s on them: "
+            + string.Join(", ", mixedCase)
+            + ". Re-run the CLI's dump-icons (it lower-cases) and commit the result.");
+
+        // The URL side of the same agreement, checked with an id spelled the way a save spells it.
+        using var catalog = new ItemCatalogService(files: new NoLocalPathsFileSystem());
+        Assert.Equal("icons/bandage.png", catalog.IconUrl("Bandage"));
+    }
+
+    /// <summary>A browser-shaped host: no local paths, so the bundled pictures are used.</summary>
+    private sealed class NoLocalPathsFileSystem : AbioticEditor.Web.Services.ISaveFileSystem
+    {
+        public bool HasLocalPaths => false;
+        public bool CanWrite => false;
+        public Task<bool> FolderExistsAsync(string folder, CancellationToken cancellationToken = default) => Task.FromResult(false);
+        public Task<IReadOnlyList<AbioticEditor.Web.Services.SaveFileEntry>> ListSavesAsync(string folder, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<AbioticEditor.Web.Services.SaveFileEntry>>([]);
+        public Task<byte[]> ReadAllBytesAsync(string path, CancellationToken cancellationToken = default) => Task.FromResult(Array.Empty<byte>());
+        public Task<string?> GetVersionStampAsync(string path, CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
+        public Task<byte[]> ReadHeaderAsync(string path, int maxBytes, CancellationToken cancellationToken = default) => Task.FromResult(Array.Empty<byte>());
+        public Task<byte[]> ReadTailAsync(string path, int maxBytes, CancellationToken cancellationToken = default) => Task.FromResult(Array.Empty<byte>());
+        public Task WriteAllBytesAsync(string path, byte[] contents, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
     [Fact]

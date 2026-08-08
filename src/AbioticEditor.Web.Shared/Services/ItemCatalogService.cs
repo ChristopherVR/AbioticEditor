@@ -62,9 +62,16 @@ public sealed class ItemCatalogService : IDisposable
     /// endpoint and no game, so it points at the pre-dumped icon shipped with the app; a missing
     /// file simply renders as the usual blank, exactly as an undecodable icon already does.
     /// </summary>
+    /// <remarks>
+    /// The shipped file name is the item id lower-cased, and so is this URL. An id is spelled
+    /// differently in different places - a save writes <c>Bandage</c> where the game's own data
+    /// table calls the row <c>bandage</c> - and Windows, where the pictures were dumped and the
+    /// desktop app reads them, does not care. A web server does: every item whose two spellings
+    /// disagreed answered 404 and drew the "?" tile instead of its picture.
+    /// </remarks>
     public string IconUrl(string itemId) => _extractsIconsLive
         ? $"/item-icons/{Uri.EscapeDataString(itemId)}"
-        : $"icons/{Uri.EscapeDataString(itemId)}.png";
+        : $"icons/{Uri.EscapeDataString(itemId.ToLowerInvariant())}.png";
 
     public Task<string?> GetIconPathAsync(string itemId)
         => _icons.GetOrAdd(itemId, static (id, service) => service.ExtractIconAsync(id), this);
