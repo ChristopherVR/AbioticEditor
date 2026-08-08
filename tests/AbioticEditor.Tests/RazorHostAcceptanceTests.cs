@@ -26,9 +26,12 @@ public sealed class RazorHostAcceptanceTests
         Assert.Contains("skip-link", layout, StringComparison.Ordinal);
         Assert.Contains("href=\"#main-content\"", layout, StringComparison.Ordinal);
         Assert.Contains("<main id=\"main-content\" tabindex=\"-1\">", layout, StringComparison.Ordinal);
-        // The home button and brand link land on /browse: the world list must show even
+        // The home button and brand link land on browse: the world list must show even
         // while a save is open, and a plain "/" would just re-render the open editor.
-        Assert.Contains("href=\"/browse\"", layout, StringComparison.Ordinal);
+        // Written WITHOUT a leading slash so it resolves against the page's base address -
+        // the published browser editor is served from a sub-folder, where "/browse" would
+        // leave the editor entirely and land on a 404.
+        Assert.Contains("href=\"browse\"", layout, StringComparison.Ordinal);
         Assert.Contains("@onclick=\"OpenSettings\"", layout, StringComparison.Ordinal);
         Assert.Contains("<Settings OnClose=\"CloseSettings\" />", layout, StringComparison.Ordinal);
         Assert.DoesNotContain("more-menu", layout, StringComparison.Ordinal);

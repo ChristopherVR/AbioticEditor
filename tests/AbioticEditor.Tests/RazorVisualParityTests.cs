@@ -167,7 +167,9 @@ public sealed class RazorVisualParityTests
         Assert.Contains("persona", shell, StringComparison.Ordinal);
         Assert.Contains("Main_ChipSandbox", shellCode, StringComparison.Ordinal);
         Assert.Contains("Path.GetDirectoryName(config.FullPath)", shellCode, StringComparison.Ordinal);
-        Assert.Contains("Navigation.NavigateTo(\"/\")", shell, StringComparison.Ordinal);
+        // Relative, not "/": the published browser editor lives in a sub-folder, where a
+        // rooted path leaves the editor entirely and lands on a 404.
+        Assert.Contains("Navigation.NavigateTo(\"./\")", shell, StringComparison.Ordinal);
 
         Assert.Contains("grid-template-columns:var(--file-pane-width) 16px minmax(0,1fr) 16px var(--details-pane-width)", css, StringComparison.Ordinal);
         Assert.Contains("grid-template-rows:auto minmax(0,1fr) auto", css, StringComparison.Ordinal);

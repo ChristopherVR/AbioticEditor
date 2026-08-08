@@ -143,7 +143,10 @@ public sealed class SiblingWorldBedService(ISaveFileSystem files)
             return cached.Session;
 
         var save = await ReadAsync(fullPath, cancellationToken).ConfigureAwait(false);
-        var session = new WorldSaveSession(save, fullPath);
+        // Hand the session the host's file system. Without it, saving this world falls back to
+        // writing straight to a disk path, which works on the desktop and cannot work in a
+        // browser - so sending a pet to another world staged fine and then failed at SAVE WORLD.
+        var session = new WorldSaveSession(save, fullPath, files);
         _sessions[fullPath] = new CachedSession(stamp, session);
         return session;
     }
