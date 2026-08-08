@@ -12,6 +12,7 @@ hero:
     - theme: brand
       text: Edit your save in the browser
       link: /app/
+      target: _self
     - theme: alt
       text: Download the app
       link: https://github.com/ChristopherVR/AbioticEditor/releases/latest

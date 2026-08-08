@@ -35,6 +35,20 @@ export default defineConfig({
     html: false,
   },
 
+  // The editor at /app/ is a separately-published static app, not a VitePress page, so
+  // VitePress's client-side router has no route for it. Clicking a plain internal-looking
+  // link (no `target` attribute) makes the router push the URL and then try to fetch it as
+  // a page, which 404s inside the SPA even though the real file is right there; a hard
+  // reload/new tab bypasses the router and loads it fine. `target` on nav items and hero
+  // actions dodges this (see themeConfig.nav above), but prose links written as plain
+  // markdown `[text](/app/)` can't carry a `target` attribute because `markdown.html` is
+  // off above, so they're patched here after render instead.
+  transformHtml: (code) =>
+    code.replace(
+      /<a href="\/AbioticEditor\/app\/"(?![^>]*\btarget=)/g,
+      '<a href="/AbioticEditor/app/" target="_self"',
+    ),
+
   head: [
     ['link', { rel: 'icon', type: 'image/png', href: '/AbioticEditor/logo.png' }],
     ['meta', { name: 'theme-color', content: '#0c1a24' }],
@@ -62,7 +76,7 @@ export default defineConfig({
       // The full editor running client-side, deployed to /app/ by this same workflow.
       // Saves never leave the player's machine. What it cannot do (compare, new world,
       // settings files, achievements) is gated in the app itself and listed in the guide.
-      { text: 'Open in browser', link: '/app/' },
+      { text: 'Open in browser', link: '/app/', target: '_self' },
     ],
 
     sidebar: {
