@@ -7,7 +7,20 @@
 
 <PageTitle>@Languages.Resource("Ini_EditorTitle") · @Languages.Resource("App_Title")</PageTitle>
 
-@if (IniSessions.Current is { } document)
+@* Settings files are found by walking a folder path on the machine, which a browser tab cannot
+   do - it only ever holds the handles the player granted. Without this the page rendered its
+   pickers as normal, and FIND SETTINGS FILES failed on an empty path with "Settings files could
+   not be checked", which reads like a broken editor rather than a thing browsers cannot do.
+   Same gate, and the same wording, as the compare and create-world screens. *@
+@if (!Workspace.HasLocalPaths)
+{
+    <section class="hero compact-hero">
+        <p class="eyebrow">@Languages.Resource("Ini_WorkbenchEyebrow")</p>
+        <h1>@Languages.Resource("Host_NeedsDesktopTitle")</h1>
+        <p class="lede">@Languages.Resource("Host_NeedsDesktopBody")</p>
+    </section>
+}
+else if (IniSessions.Current is { } document)
 {
     <section class="ini-editor-panel">
         <header class="ini-editor-heading"><div><div class="ini-title-row"><h2>@document.FileName</h2><span class="ini-kind-badge">@document.KindLabel</span></div><p class="path">@document.File.FullPath</p><p class="muted">@document.Description</p></div>

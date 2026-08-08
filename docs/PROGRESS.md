@@ -64,6 +64,35 @@ behaviour, not something trimming introduced.
 removing one produces no build error - just an editor that ships, starts, and then cannot open a
 save.
 
+### Every save kind re-checked on the trimmed build
+Asked to confirm the editor still works, not just start. Each kind edited in a browser against the
+published trimmed build and read back with the CLI:
+
+| Save kind | Result |
+| --- | --- |
+| Player | Money 116 -> 4242; byte-identical to the untrimmed build's output |
+| World region (14.2 MB) | Opens 1.3 s, saves 2.2 s, "no gameplay differences" beyond the edit |
+| World metadata / story | Minutes played 40127 -> 55555; **exactly one difference**, chapter (DarkLens) intact |
+| Character look | `Head_M01a` -> `Head_F01a`; valid GVAS, old value gone, `.bak` written |
+| Settings (.ini) | **Did not work** - see below |
+
+Every one wrote a `.bak` first, byte-identical to the original.
+
+### The settings editor was broken in the browser, and is now honest about it
+`/ini` had **no browser gate at all**. It rendered its folder picker as normal, and FIND SETTINGS
+FILES then threw on an empty path, surfacing as "Settings files could not be checked" - which
+reads as a broken editor rather than something a browser cannot do. The whole screen is path-based
+(a typed folder, `File.FullPath`, `AbioticIniCatalog.Discover(path)`), so a tab holding only
+granted handles can never drive it. It now shows the same "needs the desktop editor" panel as
+compare and create-world.
+
+Unrelated to trimming: the failure is an empty-string argument, not a missing type.
+
+This is the **second** time this exact bug shape has shipped (round 55 found `/create-world` had
+its link hidden but its page reachable). Hiding a link never helps - the route survives typing it,
+a bookmark, or a refresh. `DesktopOnlyPageGateTests` now asserts all three pages carry the gate
+and the shared wording.
+
 ### Still open
 - Whether GitHub Pages serves `.wasm` compressed is **unmeasured** - the `/app/` half is not
   deployed yet (it is in the unpushed commits). Pages does gzip JavaScript, confirmed on the live
