@@ -319,10 +319,17 @@ public sealed class PlayerSaveSession : IPlayerVitalsSession
     /// The JSON need not be the copy exported beside the save: an edited copy kept anywhere,
     /// or one taken from another machine, works too.
     /// </summary>
-    public Task ImportJsonFromFileAsync(string jsonPath, CancellationToken cancellationToken = default)
+    /// <remarks>
+    /// The conversion happens off the caller's thread and the result is handed to the host's own
+    /// file system, so this works in a browser too - it used to write straight to a disk path,
+    /// which a browser tab does not have.
+    /// </remarks>
+    public async Task ImportJsonFromFileAsync(string jsonPath, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(jsonPath);
-        return Task.Run(() => SaveJsonBridge.ImportJsonFromFile(jsonPath, _path), cancellationToken);
+        var bytes = await Task.Run(() => SaveJsonBridge.ReadJsonAsSaveBytes(jsonPath), cancellationToken).ConfigureAwait(false);
+        await AbioticEditor.Web.Services.SaveFilePersistence
+            .WriteBytesAsync(_files, _path, bytes, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Stages one exact top-level primitive property edit after validating it on a clone.</summary>

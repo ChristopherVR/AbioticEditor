@@ -3,6 +3,7 @@
 @inject AbioticEditor.Ui.IFilePicker FilePicker
 @inject AbioticEditor.Web.Services.ISaveFileSystem Files
 @inject AbioticEditor.Web.Services.ISaveExporter Exporter
+@inject AbioticEditor.Web.Services.SaveWorkspaceSessionService Workspace
 
 @* Faithful port of the native PlayerRawTab: one panel with the RAW SAVE JSON
    export -> edit externally -> import workflow and a status readout. The native tab
@@ -76,7 +77,15 @@
         }
 
         _jsonBusy = true; _jsonStatus = L.Resource("PlayerUi_ImportingJson");
-        try { await Session.ImportJsonFromFileAsync(chosen); _jsonStatus = L.Resource("PlayerUi_JsonImported"); }
+        try
+        {
+            await Session.ImportJsonFromFileAsync(chosen);
+            _jsonStatus = L.Resource("PlayerUi_JsonImported");
+            // The save on disk is now the imported one, but every screen is still showing the
+            // save as it was read. Leaving it that way invites the next SAVE to write the old
+            // contents straight back over the import, so the file is re-read here instead.
+            await Workspace.ReloadSelectedAsync();
+        }
         catch (Exception ex) { _jsonStatus = Errors.Present(ex, L.Resource("PlayerUi_ImportFailed"), L.Resource("PlayerUi_SaveNotReplaced")); }
         finally { _jsonBusy = false; RawJsonImport.CleanUp(chosen, temporary); }
     }

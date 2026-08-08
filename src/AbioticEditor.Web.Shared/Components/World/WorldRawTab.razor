@@ -4,6 +4,7 @@
 @inject AbioticEditor.Ui.IFilePicker FilePicker
 @inject AbioticEditor.Web.Services.ISaveFileSystem Files
 @inject AbioticEditor.Web.Services.ISaveExporter Exporter
+@inject AbioticEditor.Web.Services.SaveWorkspaceSessionService Workspace
 
 @* Faithful port of the native WorldRawTab (the RAW JSON tab): one panel with the RAW SAVE
    JSON export -> edit externally -> import workflow and a status readout, mirroring the
@@ -78,7 +79,15 @@
         }
 
         _jsonBusy = true; _jsonStatus = L.Resource("WorldEditor_ImportingJson");
-        try { await Session.ImportJsonFromFileAsync(chosen); _jsonStatus = L.Resource("WorldEditor_ImportedJsonFormat", DateTime.Now); }
+        try
+        {
+            await Session.ImportJsonFromFileAsync(chosen);
+            _jsonStatus = L.Resource("WorldEditor_ImportedJsonFormat", DateTime.Now);
+            // The file is now the imported one, but every screen is still showing the world as
+            // it was read. Leaving it that way invites the next SAVE to write the old contents
+            // straight back over the import, so the file is re-read here instead.
+            await Workspace.ReloadSelectedAsync();
+        }
         catch (Exception ex) { _jsonStatus = L.Resource("WorldEditor_ImportFailedFormat", Errors.Present(ex, "The world data could not be imported.", "The save was not replaced; check the JSON and try again.")); }
         finally { _jsonBusy = false; RawJsonImport.CleanUp(chosen, temporary); }
     }

@@ -81,18 +81,34 @@ public static class SaveJsonBridge
         Diagnostics.EditorLog.Info("JsonBridge", $"Importing JSON from {jsonPath} into {savPath} (+ .bak backup)");
         try
         {
-            AbioticSaveClasses.EnsureLoaded();
-            var serializer = new SaveGameSerializer();
-            using var jsonIn = File.OpenRead(jsonPath);
-            using var savOut = new MemoryStream();
-            serializer.ConvertFromJson(jsonIn, savOut);
-
-            Saves.SaveBackup.WriteWithBackup(savPath, savOut.WriteTo);
+            var bytes = ReadJsonAsSaveBytes(jsonPath);
+            Saves.SaveBackup.WriteWithBackup(savPath, stream => stream.Write(bytes, 0, bytes.Length));
         }
         catch (Exception ex)
         {
             Diagnostics.EditorLog.Error("JsonBridge", $"JSON import from {jsonPath} failed (save untouched unless backup line was logged)", ex);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Converts an edited JSON file into the save bytes it describes, without writing anything.
+    /// Throws if the JSON is malformed.
+    /// </summary>
+    /// <remarks>
+    /// The half of the import that has nothing to do with the file system, split out because
+    /// where the result goes now depends on the host. Only a desktop can put it back at a path;
+    /// a browser has no paths at all and hands the bytes to the folder handle the player granted
+    /// instead. Doing the conversion first also keeps the old promise intact either way: a save
+    /// is only touched once the JSON has parsed cleanly.
+    /// </remarks>
+    public static byte[] ReadJsonAsSaveBytes(string jsonPath)
+    {
+        AbioticSaveClasses.EnsureLoaded();
+        var serializer = new SaveGameSerializer();
+        using var jsonIn = File.OpenRead(jsonPath);
+        using var savOut = new MemoryStream();
+        serializer.ConvertFromJson(jsonIn, savOut);
+        return savOut.ToArray();
     }
 }

@@ -36,10 +36,30 @@ internal static class SaveFilePersistence
         // Facility region save, and the desktop path immediately streams it back out to disk.
         using var buffer = new MemoryStream();
         save.WriteTo(buffer);
+        await WriteBytesAsync(files, path, buffer.ToArray(), cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Writes ready-made save bytes to <paramref name="path"/> through
+    /// <paramref name="files"/>, or straight to the local file system when none was supplied.
+    /// For the callers that produce a whole save without an in-memory tree to serialize - the
+    /// raw-JSON import being the one that does.
+    /// </summary>
+    public static async ValueTask WriteBytesAsync(
+        ISaveFileSystem? files,
+        string path,
+        byte[] contents,
+        CancellationToken cancellationToken = default)
+    {
+        if (files is null)
+        {
+            SaveBackup.WriteWithBackup(path, stream => stream.Write(contents, 0, contents.Length));
+            return;
+        }
 
         try
         {
-            await files.WriteAllBytesAsync(path, buffer.ToArray(), cancellationToken).ConfigureAwait(false);
+            await files.WriteAllBytesAsync(path, contents, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
