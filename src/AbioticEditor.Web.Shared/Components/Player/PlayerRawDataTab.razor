@@ -1,6 +1,8 @@
 @namespace AbioticEditor.Web.Components.Player
 @inject AbioticEditor.Ui.IExternalNavigationService ExternalNavigation
 @inject AbioticEditor.Ui.IFilePicker FilePicker
+@inject AbioticEditor.Web.Services.ISaveFileSystem Files
+@inject AbioticEditor.Web.Services.ISaveExporter Exporter
 
 @* Faithful port of the native PlayerRawTab: one panel with the RAW SAVE JSON
    export -> edit externally -> import workflow and a status readout. The native tab
@@ -29,6 +31,17 @@
         _jsonBusy = true; _jsonStatus = L.Resource("PlayerUi_ExportingJson");
         try
         {
+            // A browser has no folder to write the JSON into, so it arrives as a download instead.
+            // Writing it beside the save used to be attempted anyway, which failed outright.
+            if (!Files.HasLocalPaths)
+            {
+                var name = Session.JsonPath[(Session.JsonPath.LastIndexOfAny(['/', '\\']) + 1)..];
+                var bytes = await Session.ExportJsonBytesAsync();
+                await Exporter.ExportAsync(name, bytes);
+                _jsonStatus = L.Resource("PlayerUi_JsonExported", bytes.Length / 1024d / 1024d, name);
+                return;
+            }
+
             await Session.ExportJsonToFileAsync();
             _jsonStatus = L.Resource("PlayerUi_JsonExported", new FileInfo(Session.JsonPath).Length / 1024d / 1024d, Session.JsonPath);
         }
@@ -36,6 +49,7 @@
         finally { _jsonBusy = false; }
         // Showing the finished file in the file manager is a courtesy: if it fails, the export
         // still succeeded, so never let it replace the success message with an export error.
+        // A browser has no file manager to show, so it is skipped there entirely.
         try { await ExternalNavigation.RevealPathAsync(Session.JsonPath); }
         catch (Exception ex) { Errors.Record(ex, "Reveal the exported player JSON file"); }
     }

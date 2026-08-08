@@ -3383,4 +3383,19 @@
   <data name="PlayerPets_StatusAddedPending" xml:space="preserve"><value>Добавлен - сохраните, чтобы оживить</value></data>
   <data name="PlayerPets_StatusTakenOutPending" xml:space="preserve"><value>Убран из этой ячейки</value></data>
   <data name="PlayerPets_PendingHelp" xml:space="preserve"><value>Питомцы, которых вы только что добавили или убрали, показаны, но пока недоступны для правки. Нажмите СОХРАНИТЬ и откройте файл заново, чтобы у них появились уровень, здоровье и имя.</value></data>
+  <data name="FileSidebar_ExportThisSave" xml:space="preserve">
+    <value>ЭКСПОРТИРОВАТЬ ЭТО СОХРАНЕНИЕ</value>
+  </data>
+  <data name="FileSidebar_ExportedOneSave" xml:space="preserve">
+    <value>{0} экспортировано.</value>
+  </data>
+  <data name="FileSidebar_ExportOneSaveFailed" xml:space="preserve">
+    <value>Не удалось экспортировать {0}. Ничего не изменено.</value>
+  </data>
+  <data name="Workspace_SavedUseExport" xml:space="preserve">
+    <value>Сохранено. Используйте ЭКСПОРТ, чтобы сохранить копию: изменение одного сохранения может затронуть другие, поэтому берётся весь мир.</value>
+  </data>
+  <data name="Workspace_SavedUseExportReadOnly" xml:space="preserve">
+    <value>Сохранено только в этой вкладке. Браузер не может писать в эту папку - используйте ЭКСПОРТ, чтобы скачать сохранения перед закрытием.</value>
+  </data>
 </root>

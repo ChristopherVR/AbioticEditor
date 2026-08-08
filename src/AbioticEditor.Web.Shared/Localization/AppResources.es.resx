@@ -3384,4 +3384,19 @@ No se escribe nada hasta que pulses GUARDAR, y REVERTIR lo deshace antes de eso.
   <data name="PlayerPets_StatusAddedPending" xml:space="preserve"><value>Añadido: guarda para darle vida</value></data>
   <data name="PlayerPets_StatusTakenOutPending" xml:space="preserve"><value>Sacado de esa ranura</value></data>
   <data name="PlayerPets_PendingHelp" xml:space="preserve"><value>Las mascotas que acabas de meter o sacar aparecen aquí, pero todavía no se pueden editar. Pulsa GUARDAR y vuelve a abrir la partida para darles nivel, salud y nombre.</value></data>
+  <data name="FileSidebar_ExportThisSave" xml:space="preserve">
+    <value>EXPORTAR ESTA PARTIDA</value>
+  </data>
+  <data name="FileSidebar_ExportedOneSave" xml:space="preserve">
+    <value>{0} exportado.</value>
+  </data>
+  <data name="FileSidebar_ExportOneSaveFailed" xml:space="preserve">
+    <value>No se pudo exportar {0}. No se cambio nada.</value>
+  </data>
+  <data name="Workspace_SavedUseExport" xml:space="preserve">
+    <value>Guardado. Usa EXPORTAR para llevarte una copia: editar una partida puede cambiar otras, asi que se lleva el mundo entero.</value>
+  </data>
+  <data name="Workspace_SavedUseExportReadOnly" xml:space="preserve">
+    <value>Guardado solo en esta pestana. Tu navegador no puede escribir en esa carpeta, asi que usa EXPORTAR para descargar tus partidas antes de cerrarla.</value>
+  </data>
 </root>

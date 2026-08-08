@@ -3383,4 +3383,19 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   <data name="PlayerPets_StatusAddedPending" xml:space="preserve"><value>Hinzugefügt - zum Erwecken speichern</value></data>
   <data name="PlayerPets_StatusTakenOutPending" xml:space="preserve"><value>Aus diesem Platz genommen</value></data>
   <data name="PlayerPets_PendingHelp" xml:space="preserve"><value>Gerade ein- oder ausgeräumte Begleiter werden angezeigt, sind aber noch nicht bearbeitbar. Speichere und öffne den Spielstand erneut, damit sie Stufe, Leben und Namen bekommen.</value></data>
+  <data name="FileSidebar_ExportThisSave" xml:space="preserve">
+    <value>DIESEN SPIELSTAND EXPORTIEREN</value>
+  </data>
+  <data name="FileSidebar_ExportedOneSave" xml:space="preserve">
+    <value>{0} exportiert.</value>
+  </data>
+  <data name="FileSidebar_ExportOneSaveFailed" xml:space="preserve">
+    <value>{0} konnte nicht exportiert werden. Es wurde nichts geandert.</value>
+  </data>
+  <data name="Workspace_SavedUseExport" xml:space="preserve">
+    <value>Gespeichert. Mit EXPORT eine Kopie sichern - das Bearbeiten eines Spielstands kann andere verandern, daher wird die ganze Welt gesichert.</value>
+  </data>
+  <data name="Workspace_SavedUseExportReadOnly" xml:space="preserve">
+    <value>Nur in diesem Tab gespeichert. Dein Browser kann nicht in diesen Ordner schreiben - nutze EXPORT, um deine Spielstande herunterzuladen, bevor du ihn schliesst.</value>
+  </data>
 </root>

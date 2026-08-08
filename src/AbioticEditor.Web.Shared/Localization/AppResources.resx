@@ -3697,4 +3697,19 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="PlayerPets_StatusAddedPending" xml:space="preserve"><value>Added - save to bring it to life</value></data>
   <data name="PlayerPets_StatusTakenOutPending" xml:space="preserve"><value>Taken out of that slot</value></data>
   <data name="PlayerPets_PendingHelp" xml:space="preserve"><value>Pets you have just moved in or out are listed but cannot be edited yet. Press SAVE and reopen the save to give them a level, health and a name.</value></data>
+  <data name="FileSidebar_ExportThisSave" xml:space="preserve">
+    <value>EXPORT THIS SAVE</value>
+  </data>
+  <data name="FileSidebar_ExportedOneSave" xml:space="preserve">
+    <value>Exported {0}.</value>
+  </data>
+  <data name="FileSidebar_ExportOneSaveFailed" xml:space="preserve">
+    <value>{0} could not be exported. Nothing was changed.</value>
+  </data>
+  <data name="Workspace_SavedUseExport" xml:space="preserve">
+    <value>Saved. Use EXPORT to take a copy away - editing one save can change others, so it takes the whole world.</value>
+  </data>
+  <data name="Workspace_SavedUseExportReadOnly" xml:space="preserve">
+    <value>Saved in this tab only. Your browser cannot write to that folder, so use EXPORT to download your saves before you close it.</value>
+  </data>
 </root>

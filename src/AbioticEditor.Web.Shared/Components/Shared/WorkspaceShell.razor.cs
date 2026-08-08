@@ -26,6 +26,36 @@ public partial class WorkspaceShell
     private void CloseSaveMenu() => _saveMenuFor = null;
 
     /// <summary>
+    /// Hands this one save back to the player, under its own name.
+    /// </summary>
+    /// <remarks>
+    /// The whole-world zip is the safe default, because editing one save can change others. This
+    /// is for when the player knows they only want the one file - and in a browser it is the only
+    /// way to get a single save out without taking everything.
+    ///
+    /// It exports what is ON DISK, so an edit still staged in an open editor is not included.
+    /// Saying so is better than quietly exporting the old bytes.
+    /// </remarks>
+    private async Task ExportSelectedSaveAsync()
+    {
+        var save = _saveMenuFor;
+        CloseSaveMenu();
+        if (save is null) return;
+
+        try
+        {
+            await Export.ExportSaveAsync(save).ConfigureAwait(false);
+            Toasts.Show(L.Resource("FileSidebar_ExportedOneSave", save.Name), ToastKind.Success);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
+            or InvalidOperationException or Microsoft.JSInterop.JSException)
+        {
+            EditorLog.Error("Shell", $"Could not export '{save.Path}'", exception);
+            Toasts.Show(L.Resource("FileSidebar_ExportOneSaveFailed", save.Name), ToastKind.Error);
+        }
+    }
+
+    /// <summary>
     /// What "show this save" should actually open.
     ///
     /// <para>Normally the save file itself. For a Game Pass world it is the Xbox container

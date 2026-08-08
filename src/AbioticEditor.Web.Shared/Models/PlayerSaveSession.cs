@@ -303,6 +303,13 @@ public sealed class PlayerSaveSession : IPlayerVitalsSession
     public Task ExportJsonToFileAsync(CancellationToken cancellationToken = default)
         => Task.Run(() => SaveJsonBridge.ExportJsonToFile(_data.Raw, JsonPath), cancellationToken);
 
+    /// <summary>
+    /// The same JSON as bytes, for hosts that have nowhere to write a file beside the save.
+    /// A browser has no folder to put it in, so it hands these bytes to the player as a download.
+    /// </summary>
+    public Task<byte[]> ExportJsonBytesAsync(CancellationToken cancellationToken = default)
+        => Task.Run(() => System.Text.Encoding.UTF8.GetBytes(ExportRawJson()), cancellationToken);
+
     /// <summary>Imports the JSON file sitting beside this save, through Core's validated conversion and backup path.</summary>
     public Task ImportJsonFromFileAsync(CancellationToken cancellationToken = default)
         => ImportJsonFromFileAsync(JsonPath, cancellationToken);

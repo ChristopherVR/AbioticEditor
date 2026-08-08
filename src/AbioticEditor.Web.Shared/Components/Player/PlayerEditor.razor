@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject HostLanguageService Languages
 @inject InventorySelectionService Selection
+@inject AbioticEditor.Web.Services.ISaveFileSystem Files
 
 <section class="player-editor" aria-label="@Languages.Resource("PlayerUi_PlayerEditor")">
     <nav class="editor-tabs" role="tablist" aria-label="@Languages.Resource("PlayerUi_PlayerEditorSections")">
@@ -26,7 +27,10 @@
 @code {
     // The native app calls this single surface GATEPal. Its email, notes, compendium
     // and fish data are the typed PlayerCodexEdit state and save through PlayerSaveWriter.
-    private IReadOnlyList<PlayerEditorTab> Tabs => AllTabs.Where(tab => tab.Id != "achievements" || AbioticEditor.Core.PlayerSaves.PlayerIdentifier.IsSteamId(Session.SteamIdentifier)).ToArray();
+    // Achievements need the Steam files on this computer, which a browser tab cannot reach, so
+    // that tab is hidden there rather than shown with nothing behind it.
+    private IReadOnlyList<PlayerEditorTab> Tabs => AllTabs.Where(tab => tab.Id != "achievements"
+        || (Files.HasLocalPaths && AbioticEditor.Core.PlayerSaves.PlayerIdentifier.IsSteamId(Session.SteamIdentifier))).ToArray();
     // Same order and labels as the native PlayerEditorView tab bar.
     private static readonly PlayerEditorTab[] AllTabs =
     [

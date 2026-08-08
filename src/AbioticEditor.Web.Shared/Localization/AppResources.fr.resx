@@ -3383,4 +3383,19 @@ Rien n'est écrit tant que vous n'appuyez pas sur ENREGISTRER, et ANNULER le dé
   <data name="PlayerPets_StatusAddedPending" xml:space="preserve"><value>Ajouté - enregistrez pour lui donner vie</value></data>
   <data name="PlayerPets_StatusTakenOutPending" xml:space="preserve"><value>Retiré de cet emplacement</value></data>
   <data name="PlayerPets_PendingHelp" xml:space="preserve"><value>Les compagnons que vous venez d'ajouter ou de retirer sont listés mais pas encore modifiables. Enregistrez puis rouvrez la sauvegarde pour leur donner un niveau, des points de vie et un nom.</value></data>
+  <data name="FileSidebar_ExportThisSave" xml:space="preserve">
+    <value>EXPORTER CETTE SAUVEGARDE</value>
+  </data>
+  <data name="FileSidebar_ExportedOneSave" xml:space="preserve">
+    <value>{0} exporte.</value>
+  </data>
+  <data name="FileSidebar_ExportOneSaveFailed" xml:space="preserve">
+    <value>Impossible d'exporter {0}. Rien n'a ete modifie.</value>
+  </data>
+  <data name="Workspace_SavedUseExport" xml:space="preserve">
+    <value>Enregistre. Utilise EXPORTER pour en garder une copie : modifier une sauvegarde peut en changer d'autres, donc tout le monde est pris.</value>
+  </data>
+  <data name="Workspace_SavedUseExportReadOnly" xml:space="preserve">
+    <value>Enregistre dans cet onglet uniquement. Ton navigateur ne peut pas ecrire dans ce dossier : utilise EXPORTER pour telecharger tes sauvegardes avant de le fermer.</value>
+  </data>
 </root>

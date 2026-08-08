@@ -2,6 +2,8 @@
 @using AbioticEditor.Web.Models
 @inject AbioticEditor.Ui.IExternalNavigationService ExternalNavigation
 @inject AbioticEditor.Ui.IFilePicker FilePicker
+@inject AbioticEditor.Web.Services.ISaveFileSystem Files
+@inject AbioticEditor.Web.Services.ISaveExporter Exporter
 
 @* Faithful port of the native WorldRawTab (the RAW JSON tab): one panel with the RAW SAVE
    JSON export -> edit externally -> import workflow and a status readout, mirroring the
@@ -32,6 +34,17 @@
         _jsonBusy = true; _jsonStatus = L.Resource("WorldEditor_ExportingJson");
         try
         {
+            // A browser has no folder to write the JSON into, so it arrives as a download instead.
+            // Writing it beside the save used to be attempted anyway, which failed outright.
+            if (!Files.HasLocalPaths)
+            {
+                var name = Session.JsonPath[(Session.JsonPath.LastIndexOfAny(['/', '\\']) + 1)..];
+                var bytes = await Session.ExportJsonBytesAsync();
+                await Exporter.ExportAsync(name, bytes);
+                _jsonStatus = L.Resource("WorldEditor_ExportedJsonFormat", bytes.Length / 1024d / 1024d, name);
+                return;
+            }
+
             await Session.ExportJsonToFileAsync();
             _jsonStatus = L.Resource("WorldEditor_ExportedJsonFormat", new FileInfo(Session.JsonPath).Length / 1024d / 1024d, Path.GetFileName(Session.JsonPath));
         }

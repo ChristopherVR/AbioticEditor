@@ -89,7 +89,17 @@
             {
                 <div class="save-menu-backdrop" role="presentation" @onclick="CloseSaveMenu" @oncontextmenu="CloseSaveMenu" @oncontextmenu:preventDefault></div>
                 <div class="save-context-menu" role="menu" style="@_saveMenuStyle">
-                    <button type="button" role="menuitem" @onclick="RevealSelectedSaveAsync">@RevealLabel</button>
+                    @* Saving one file on its own. In a browser this is the only way to take a
+                       single save away without exporting the whole world as a zip. *@
+                    @if (Export.CanExport)
+                    {
+                        <button type="button" role="menuitem" @onclick="ExportSelectedSaveAsync">@L.Resource("FileSidebar_ExportThisSave")</button>
+                    }
+                    @* Opening a folder on the computer, which a browser tab cannot do. *@
+                    @if (Workspace.HasLocalPaths)
+                    {
+                        <button type="button" role="menuitem" @onclick="RevealSelectedSaveAsync">@RevealLabel</button>
+                    }
                 </div>
             }
 
@@ -341,7 +351,25 @@
     private Task ReloadAsync() => Workspace.ReloadSelectedAsync();
     private async Task SaveAsync()
     {
-        try { await Workspace.SaveSelectedAsync(); }
+        try
+        {
+            await Workspace.SaveSelectedAsync();
+
+            // In a browser, saving is not the end of the story. On a folder the tab cannot write
+            // to, the result only exists here until it is downloaded; and even on one it can
+            // write to, editing a single save can change others, so the way to take the result
+            // away intact is the whole-world EXPORT. Neither is obvious, hence the reminder.
+            // The desktop writes straight to the game's folder and needs no such nudge.
+            if (Export.CanExport && !Workspace.HasLocalPaths)
+            {
+                Toasts.Show(
+                    Workspace.CanWrite
+                        ? L.Resource("Workspace_SavedUseExport")
+                        : L.Resource("Workspace_SavedUseExportReadOnly"),
+                    Workspace.CanWrite ? ToastKind.Success : ToastKind.Warning,
+                    TimeSpan.FromSeconds(9));
+            }
+        }
         catch (Exception exception)
         {
             // SaveSelectedAsync can throw (a locked file, a save missing an expected
