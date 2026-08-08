@@ -30,7 +30,14 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem
 
     public bool HasLocalPaths => false;
 
-    /// <summary>True when this browser can open a folder at all (Chromium at time of writing).</summary>
+    /// <summary>
+    /// False once a folder has been opened read-only, which is what happens on a browser with no
+    /// File System Access API. Set by whichever open method was used; the editor holds one
+    /// workspace at a time, so this describes the folder that is actually open.
+    /// </summary>
+    public bool CanWrite { get; private set; } = true;
+
+    /// <summary>True when this browser can open a folder it can also write back to (Chromium).</summary>
     public ValueTask<bool> IsSupportedAsync() => js.InvokeAsync<bool>("abioticSaveFs.isSupported");
 
     /// <summary>
@@ -38,7 +45,25 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem
     /// <see cref="ListSavesAsync"/>, or null when the player cancelled.
     /// </summary>
     public async Task<string?> PickFolderAsync(CancellationToken cancellationToken = default)
-        => await js.InvokeAsync<string?>("abioticSaveFs.pickFolder", cancellationToken).ConfigureAwait(false);
+    {
+        var folder = await js.InvokeAsync<string?>("abioticSaveFs.pickFolder", cancellationToken).ConfigureAwait(false);
+        if (folder is not null) CanWrite = true;
+        return folder;
+    }
+
+    /// <summary>
+    /// Opens a save folder read-only, for browsers that cannot grant write access to one. The
+    /// player picks the folder in their own OS dialog and every file in it is handed over as a
+    /// snapshot, so the editor can read and edit a whole world but must hand the result back
+    /// through <see cref="ISaveExporter"/> instead of saving in place.
+    /// </summary>
+    /// <returns>The folder's name, or null when the player cancelled.</returns>
+    public async Task<string?> UploadFolderAsync(CancellationToken cancellationToken = default)
+    {
+        var folder = await js.InvokeAsync<string?>("abioticSaveFs.uploadFolder", cancellationToken).ConfigureAwait(false);
+        if (folder is not null) CanWrite = false;
+        return folder;
+    }
 
     /// <summary>Raised when the player drops a save folder onto the window.</summary>
     public event Func<string, Task>? FolderDropped;

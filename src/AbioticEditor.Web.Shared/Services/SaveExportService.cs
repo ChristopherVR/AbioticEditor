@@ -32,11 +32,25 @@ public sealed class SaveExportService(ISaveFileSystem files, ISaveExporter expor
     /// Exports every save in the open world as one zip, laid out the way the game's own folder is
     /// so it can be copied straight back over a save folder.
     /// </summary>
-    /// <returns>How many saves went into the zip.</returns>
-    public async Task<int> ExportWorkspaceAsync(
+    /// <returns>How many saves went into the zip, and whether unsaved edits were left out of it.</returns>
+    /// <remarks>
+    /// The zip is built by reading the saves back, so anything still staged in an open editor is
+    /// NOT in it unless it has been written first. On a read-only folder that write is free (it
+    /// only updates the copy held in this tab) so it happens automatically. On a normal folder it
+    /// must not: the player asked to export, not to save. There they are told instead, because an
+    /// export that quietly omits the edit they just made is the worst possible outcome.
+    /// </remarks>
+    public async Task<(int Files, bool UnsavedEditsOmitted)> ExportWorkspaceAsync(
         IProgress<string>? progress = null, CancellationToken cancellationToken = default)
     {
-        if (workspace.Current is not { } current) return 0;
+        if (workspace.Current is not { } current) return (0, false);
+
+        var unsavedOmitted = false;
+        if (workspace.HasStagedEdits)
+        {
+            if (workspace.CanWrite) unsavedOmitted = true;
+            else await workspace.FlushStagedEditsAsync(cancellationToken).ConfigureAwait(false);
+        }
 
         // Built in memory: the whole point is hosts with no scratch disk. A world is tens of
         // megabytes, which a tab holds comfortably, and the saves are already compressed-ish so
@@ -66,7 +80,7 @@ public sealed class SaveExportService(ISaveFileSystem files, ISaveExporter expor
         }
 
         await exporter.ExportAsync(FileNameFor(current), buffer.ToArray(), cancellationToken).ConfigureAwait(false);
-        return written;
+        return (written, unsavedOmitted);
     }
 
     /// <summary>

@@ -33,6 +33,13 @@
                 @* The whole world, not just the open save: setting a story chapter rewrites the
                    Facility save, and the "move players" option rewrites every player save, so a
                    copy of only the file on screen would quietly leave those behind. *@
+                @* Said once, where the file list is, rather than on every screen: this is a
+                   property of the folder that is open, and the player needs to know before they
+                   edit anything that their work leaves through EXPORT. *@
+                @if (!Workspace.CanWrite)
+                {
+                    <p class="sidebar-readonly" role="note">@L.Resource("Workspace_ReadOnlyNotice")</p>
+                }
                 @if (Export.CanExport)
                 {
                     <button class="sidebar-export" type="button" disabled="@_exporting"
@@ -126,7 +133,23 @@
                 <div class="selected-save-title"><strong>@SaveDisplayName(save)</strong><span><b>@KindLabel(save.Kind)</b> @save.Size</span></div>
                 @* Native header: a hazard dot + UNSAVED only while changes are staged; nothing when clean. *@
                 @if (IsDirty) { <span class="dirty unsaved-chip"><i aria-hidden="true"></i>@L.Resource("Main_Unsaved")</span> }
-                <div class="editor-actions"><button class="secondary" type="button" @onclick="ReloadAsync">@L.Editor("workspace.reload").ToUpperInvariant()</button><button class="secondary" type="button" disabled="@(!IsDirty)" @onclick="Revert">@L.Text("revert").ToUpperInvariant()</button><button class="primary" type="button" disabled="@(!IsDirty)" @onclick="SaveAsync">@L.Text("save").ToUpperInvariant()</button></div>
+                @* A folder opened read-only (a browser that cannot write to one) has no SAVE to
+                   offer. Rather than a disabled button with no explanation, the same slot becomes
+                   the action that DOES work here: download the edited copy. *@
+                <div class="editor-actions">
+                    <button class="secondary" type="button" @onclick="ReloadAsync">@L.Editor("workspace.reload").ToUpperInvariant()</button>
+                    <button class="secondary" type="button" disabled="@(!IsDirty)" @onclick="Revert">@L.Text("revert").ToUpperInvariant()</button>
+                    @if (Workspace.CanWrite)
+                    {
+                        <button class="primary" type="button" disabled="@(!IsDirty)" @onclick="SaveAsync">@L.Text("save").ToUpperInvariant()</button>
+                    }
+                    else
+                    {
+                        <button class="primary" type="button" disabled="@_exporting"
+                                title="@L.Resource("Workspace_ReadOnlyExportTooltip")"
+                                @onclick="ExportSelectedAsync">@L.Resource("Workspace_Download")</button>
+                    }
+                </div>
             }
             else { <span>@L.Editor("workspace.selectHint")</span> }
         </section>
@@ -442,6 +465,34 @@
     private bool _exporting;
 
     /// <summary>
+    /// The read-only counterpart of SAVE: applies the staged edits (which land in memory rather
+    /// than on the player's disk, because this folder could only be read) and then hands that one
+    /// save back as a download.
+    /// </summary>
+    private async Task ExportSelectedAsync()
+    {
+        if (_exporting || Workspace.Current?.SelectedSave is not { } selected) return;
+        _exporting = true;
+        try
+        {
+            // The same save path as always. On a read-only folder it writes into the in-memory
+            // copy, which is exactly what the export then reads, so the download carries the edits.
+            if (IsDirty) await Workspace.SaveSelectedAsync();
+            await Export.ExportSaveAsync(selected);
+            Toasts.Show(L.Resource("Workspace_Downloaded", selected.Name), ToastKind.Success);
+        }
+        catch (Exception exception)
+        {
+            Errors.Record(exception, "Download the edited save");
+            Toasts.Show(L.Resource("FileSidebar_ExportFailed"), ToastKind.Error);
+        }
+        finally
+        {
+            _exporting = false;
+        }
+    }
+
+    /// <summary>
     /// Hands the player a zip of every save in the open world. Deliberately the whole world
     /// rather than the selected file: several editor actions change saves the player never
     /// opened, so exporting only what is on screen would hand back an incomplete set.
@@ -452,8 +503,16 @@
         _exporting = true;
         try
         {
-            var count = await Export.ExportWorkspaceAsync();
-            Toasts.Show(L.Resource("FileSidebar_Exported", count), ToastKind.Success);
+            var (count, unsavedOmitted) = await Export.ExportWorkspaceAsync();
+            // Never let an export look complete when the edit the player just made is not in it.
+            if (unsavedOmitted)
+            {
+                Toasts.Show(L.Resource("FileSidebar_ExportedUnsaved", count), ToastKind.Warning, TimeSpan.FromSeconds(10));
+            }
+            else
+            {
+                Toasts.Show(L.Resource("FileSidebar_Exported", count), ToastKind.Success);
+            }
         }
         catch (Exception exception)
         {

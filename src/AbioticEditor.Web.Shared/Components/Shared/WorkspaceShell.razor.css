@@ -128,6 +128,17 @@
     letter-spacing: .1em;
 }
 
+/* Told once, before the player edits anything, because it changes how their work gets saved. */
+.sidebar-readonly {
+    margin: 0 16px 8px;
+    padding: 7px 9px;
+    border-left: 2px solid var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.45;
+}
+
 /* Sits under the file count, full width of the pane: it acts on the whole world rather than on
    whichever save happens to be selected, so it must not look like part of the list below. */
 .sidebar-export {

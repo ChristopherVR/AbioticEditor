@@ -15,6 +15,9 @@ public sealed class DesktopSaveFileSystem : ISaveFileSystem
 {
     public bool HasLocalPaths => true;
 
+    /// <summary>Always true: the desktop host opened the folder from the machine's own disk.</summary>
+    public bool CanWrite => true;
+
     public Task<bool> FolderExistsAsync(string folder, CancellationToken cancellationToken = default)
         => Task.FromResult(Directory.Exists(folder));
 

@@ -899,6 +899,21 @@ Worlds: containers · quest flags · doors · ground items · story progression<
   <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
     <value>SAVE DIAGNOSTICS</value>
   </data>
+  <data name="FileSidebar_ExportedUnsaved" xml:space="preserve">
+    <value>Exported {0} save(s), but your unsaved changes are NOT in it. Press SAVE first, then export again.</value>
+  </data>
+  <data name="Workspace_Download" xml:space="preserve">
+    <value>DOWNLOAD</value>
+  </data>
+  <data name="Workspace_ReadOnlyExportTooltip" xml:space="preserve">
+    <value>Your browser cannot write to the folder you opened, so your edits download as a file instead.</value>
+  </data>
+  <data name="Workspace_ReadOnlyNotice" xml:space="preserve">
+    <value>Your browser can only read this folder. Edits are kept here while the tab is open - download them to keep them.</value>
+  </data>
+  <data name="Workspace_Downloaded" xml:space="preserve">
+    <value>Downloaded {0}.</value>
+  </data>
   <data name="Host_NoFolderPicker" xml:space="preserve">
     <value>This browser cannot open a folder. Chrome or Edge can. You can still open the editor there, or use the desktop version.</value>
   </data>

@@ -5,9 +5,61 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-53: Firefox and Safari can open saves (2026-08-08)
+
+Round 52 left those browsers unable to open anything. They can now, through the route flagged
+there, and the whole flow is verified in real Firefox 153.
+
+### How it works
+`showDirectoryPicker` is Chromium-only, but `<input type="file" webkitdirectory>` works
+everywhere. `abioticSaveFs` therefore keeps two kinds of folder:
+
+- **Writable** (Chromium): a real directory handle, read and written in place. Unchanged.
+- **Read-only** (Firefox, Safari): every file handed over as a snapshot, plus an **in-memory
+  overlay** that writes go into and reads prefer.
+
+The overlay is what makes this cheap. Every existing write path keeps working untouched -
+including the cross-save ones from round 52 (story flags rewriting the Facility save, "move
+players" rewriting every character) - and EXPORT then hands back the edited set. The player's own
+files are never written, so the originals are the backup.
+
+`ISaveFileSystem.CanWrite` tells the shared screens which kind is open. Where it is false the
+sidebar shows a plain notice, and the SAVE button becomes **DOWNLOAD** (apply the staged edits,
+then download that one save). Nothing about the desktop host changes.
+
+### The near-miss this turned up
+The first Firefox zip **looked perfect and contained the ORIGINAL character, not the edited one.**
+`ExportWorkspaceAsync` builds its zip by reading saves back, and the staged edit had never been
+written, so it silently exported stale bytes.
+
+Fixed by splitting the two cases, which are genuinely different:
+- **Read-only folder:** staged edits are flushed first. That costs nothing - it only updates the
+  copy held in the tab - so they belong in the download.
+- **Normal folder:** they are NOT flushed (the player asked to export, not to save) and the toast
+  says so, because an export that quietly omits the edit just made is the worst outcome available.
+  `FlushStagedEditsAsync` throws if called on a writable workspace, so this cannot be got wrong later.
+
+### Verified in real Firefox 153
+Open folder read-only (62 saves, names and sizes right, read-only notice shown) -> edit a
+character's money to 4242 -> **DOWNLOAD** gives a valid save the CLI reads back as `Money: 4242`
+-> **EXPORT** gives a 62-entry zip whose player carries the edit while every untouched sibling
+compares `identical` to the fixture. The source folder on disk: **unchanged, zero `.bak` files**.
+
+Driving it needs one piece of scaffolding: headless Firefox cannot show the OS folder dialog and
+fires `cancel` at once, so the test catches the `<input>` as it is added (before the editor
+attaches its own listeners), swallows that cancel, and calls `setInputFiles` with the **directory
+path** - Playwright rejects a file list for a `webkitdirectory` input.
+
+### Not covered
+No unit test for the export-flush rule. It needs `SaveExportService` to take an interface rather
+than the concrete session service, which is a DI change across both hosts and was not worth
+half-landing here. The behaviour is verified end to end in a real browser; the rule itself is
+guarded at runtime by the throw in `FlushStagedEditsAsync`. Safari is untested (no binary to hand)
+though it takes the same path as Firefox.
+
 ## Round-52: Firefox, cross-save effects, and export (2026-08-08)
 
-### Firefox: tested for real, and it cannot open anything
+### Firefox: tested for real (superseded by round 53 - it works now)
 Probed with actual Firefox 153 (`playwright install firefox`), not a simulation. The app **loads
 and runs fine** - WebAssembly, the registry, the artwork, all of it. But `showDirectoryPicker` and
 `showOpenFilePicker` are both undefined, so OPEN FOLDER is the only way in and it fails.

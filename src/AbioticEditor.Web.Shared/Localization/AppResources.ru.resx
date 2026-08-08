@@ -698,6 +698,21 @@
   <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
     <value>ДИАГНОСТИКА СОХРАНЕНИЙ</value>
   </data>
+  <data name="FileSidebar_ExportedUnsaved" xml:space="preserve">
+    <value>Экспортировано сохранений: {0}, но несохранённые изменения НЕ вошли. Сначала нажмите СОХРАНИТЬ, затем экспортируйте снова.</value>
+  </data>
+  <data name="Workspace_Download" xml:space="preserve">
+    <value>СКАЧАТЬ</value>
+  </data>
+  <data name="Workspace_ReadOnlyExportTooltip" xml:space="preserve">
+    <value>Ваш браузер не может писать в открытую папку, поэтому изменения скачиваются файлом.</value>
+  </data>
+  <data name="Workspace_ReadOnlyNotice" xml:space="preserve">
+    <value>Ваш браузер может только читать эту папку. Изменения сохраняются, пока вкладка открыта - скачайте их, чтобы не потерять.</value>
+  </data>
+  <data name="Workspace_Downloaded" xml:space="preserve">
+    <value>Скачано: {0}.</value>
+  </data>
   <data name="Host_NoFolderPicker" xml:space="preserve">
     <value>Этот браузер не может открыть папку. Chrome или Edge могут. Откройте редактор там или используйте настольную версию.</value>
   </data>

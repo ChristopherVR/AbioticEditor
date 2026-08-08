@@ -35,13 +35,20 @@ public sealed class BrowserFilePickerService(IJSRuntime js, BrowserSaveFileSyste
     /// the editor would open a folder it cannot then touch.
     /// </summary>
     /// <remarks>
-    /// <see cref="PickedFolder.Path"/> carries the file system's folder identifier, which is
+    /// <para><see cref="PickedFolder.Path"/> carries the file system's folder identifier, which is
     /// what the caller hands to <c>SaveWorkspaceSessionService.OpenAsync</c>. It is not a local
-    /// path - see <see cref="AbioticEditor.Web.Services.ISaveFileSystem"/>.
+    /// path - see <see cref="AbioticEditor.Web.Services.ISaveFileSystem"/>.</para>
+    ///
+    /// <para>A browser without the File System Access API (Firefox, Safari) falls back to opening
+    /// the folder read-only. That is a real difference the player will notice - they save with
+    /// EXPORT instead - but it is far better than the alternative, which until now was simply
+    /// being unable to open anything at all.</para>
     /// </remarks>
     public async Task<PickedFolder?> PickFolderAsync(FolderPickerRequest request, CancellationToken cancellationToken = default)
     {
-        var folder = await saveFiles.PickFolderAsync(cancellationToken).ConfigureAwait(false);
+        var folder = await saveFiles.IsSupportedAsync().ConfigureAwait(false)
+            ? await saveFiles.PickFolderAsync(cancellationToken).ConfigureAwait(false)
+            : await saveFiles.UploadFolderAsync(cancellationToken).ConfigureAwait(false);
         return folder is null ? null : new PickedFolder(folder, folder);
     }
 

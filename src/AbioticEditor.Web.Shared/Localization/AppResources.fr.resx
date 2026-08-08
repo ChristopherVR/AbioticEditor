@@ -698,6 +698,21 @@ Mondes : conteneurs · indicateurs de quête · portes · objets au sol · progr
   <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
     <value>DIAGNOSTIC DE SAUVEGARDE</value>
   </data>
+  <data name="FileSidebar_ExportedUnsaved" xml:space="preserve">
+    <value>{0} sauvegarde(s) exportée(s), mais vos modifications non enregistrées n'y sont PAS. Enregistrez d'abord, puis réexportez.</value>
+  </data>
+  <data name="Workspace_Download" xml:space="preserve">
+    <value>TÉLÉCHARGER</value>
+  </data>
+  <data name="Workspace_ReadOnlyExportTooltip" xml:space="preserve">
+    <value>Votre navigateur ne peut pas écrire dans le dossier ouvert, vos modifications sont donc téléchargées sous forme de fichier.</value>
+  </data>
+  <data name="Workspace_ReadOnlyNotice" xml:space="preserve">
+    <value>Votre navigateur ne peut que lire ce dossier. Les modifications sont conservées tant que l'onglet est ouvert : téléchargez-les pour les garder.</value>
+  </data>
+  <data name="Workspace_Downloaded" xml:space="preserve">
+    <value>{0} téléchargé.</value>
+  </data>
   <data name="Host_NoFolderPicker" xml:space="preserve">
     <value>Ce navigateur ne peut pas ouvrir un dossier. Chrome ou Edge le peuvent. Utilisez l'éditeur là-bas, ou la version bureau.</value>
   </data>

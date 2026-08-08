@@ -698,6 +698,21 @@ Welten: Behälter · Quest-Flags · Türen · Bodengegenstände · Story-Fortsch
   <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
     <value>SPIELSTAND-DIAGNOSE</value>
   </data>
+  <data name="FileSidebar_ExportedUnsaved" xml:space="preserve">
+    <value>{0} Spielstand/Spielstände exportiert, deine ungespeicherten Änderungen sind aber NICHT enthalten. Erst SPEICHERN, dann erneut exportieren.</value>
+  </data>
+  <data name="Workspace_Download" xml:space="preserve">
+    <value>HERUNTERLADEN</value>
+  </data>
+  <data name="Workspace_ReadOnlyExportTooltip" xml:space="preserve">
+    <value>Dein Browser kann nicht in den geöffneten Ordner schreiben, daher werden deine Änderungen als Datei heruntergeladen.</value>
+  </data>
+  <data name="Workspace_ReadOnlyNotice" xml:space="preserve">
+    <value>Dein Browser kann diesen Ordner nur lesen. Änderungen bleiben erhalten, solange der Tab offen ist - lade sie herunter, um sie zu behalten.</value>
+  </data>
+  <data name="Workspace_Downloaded" xml:space="preserve">
+    <value>{0} heruntergeladen.</value>
+  </data>
   <data name="Host_NoFolderPicker" xml:space="preserve">
     <value>Dieser Browser kann keinen Ordner öffnen. Chrome oder Edge können es. Nutze den Editor dort oder die Desktop-Version.</value>
   </data>

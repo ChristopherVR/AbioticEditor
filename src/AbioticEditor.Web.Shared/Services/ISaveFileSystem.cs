@@ -26,6 +26,18 @@ public interface ISaveFileSystem
     /// </summary>
     bool HasLocalPaths { get; }
 
+    /// <summary>
+    /// True when the folder currently open can be written back to. False on a browser with no
+    /// File System Access API (Firefox, Safari), where a folder can only be read: there the
+    /// editor still opens and edits everything, and the player takes the result away with EXPORT.
+    /// </summary>
+    /// <remarks>
+    /// A property of the open folder rather than of the host, because the same browser build can
+    /// have either kind. The editor holds one workspace at a time, so a single flag is the whole
+    /// truth; screens should read it after opening a folder, not cache it across opens.
+    /// </remarks>
+    bool CanWrite { get; }
+
     /// <summary>True when <paramref name="folder"/> is present and readable.</summary>
     Task<bool> FolderExistsAsync(string folder, CancellationToken cancellationToken = default);
 

@@ -49,6 +49,13 @@ public sealed class SaveWorkspaceSessionService : IDisposable
     /// </summary>
     public bool HasLocalPaths => _files.HasLocalPaths;
 
+    /// <summary>
+    /// False when the open folder can only be read, which is what a browser without the File
+    /// System Access API gets. Everything still opens and edits; the result leaves through EXPORT
+    /// rather than SAVE, so screens offering a save action must check this first.
+    /// </summary>
+    public bool CanWrite => _files.CanWrite;
+
     /// <summary>The currently open workspace, or <see langword="null"/> before a folder is opened.</summary>
     public SaveWorkspace? Current { get; private set; }
     /// <summary>Most recently opened player session in this workspace, retained for staged container transfers.</summary>
@@ -332,6 +339,25 @@ public sealed class SaveWorkspaceSessionService : IDisposable
             }
         }
         finally { BusyOperation = null; Changed?.Invoke(); }
+    }
+
+    /// <summary>True when an open session is holding edits that have not been written yet.</summary>
+    public bool HasStagedEdits => Current?.PlayerSession?.IsDirty == true || Current?.WorldSession?.IsDirty == true;
+
+    /// <summary>
+    /// Writes any staged edits out, so something that reads the saves back (the exporter) sees
+    /// them. Only meaningful where writing does not touch the player's own files - on a folder
+    /// opened read-only, where "writing" means updating the copy held in this tab.
+    /// </summary>
+    public async Task FlushStagedEditsAsync(CancellationToken cancellationToken = default)
+    {
+        if (_files.CanWrite)
+        {
+            throw new InvalidOperationException(
+                "Refusing to flush staged edits to a writable folder: that would save the player's "
+                + "files behind their back. Only a read-only workspace may be flushed.");
+        }
+        if (HasStagedEdits) await SaveSelectedAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public void RevertSelected()

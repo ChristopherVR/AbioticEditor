@@ -699,6 +699,21 @@ Mundos: contenedores · indicadores de misión · puertas · objetos en el suelo
   <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
     <value>DIAGNÓSTICO DE GUARDADO</value>
   </data>
+  <data name="FileSidebar_ExportedUnsaved" xml:space="preserve">
+    <value>Se exportaron {0} partida(s), pero tus cambios sin guardar NO están incluidos. Pulsa GUARDAR y vuelve a exportar.</value>
+  </data>
+  <data name="Workspace_Download" xml:space="preserve">
+    <value>DESCARGAR</value>
+  </data>
+  <data name="Workspace_ReadOnlyExportTooltip" xml:space="preserve">
+    <value>Tu navegador no puede escribir en la carpeta que abriste, así que tus cambios se descargan como archivo.</value>
+  </data>
+  <data name="Workspace_ReadOnlyNotice" xml:space="preserve">
+    <value>Tu navegador solo puede leer esta carpeta. Los cambios se conservan mientras la pestaña esté abierta: descárgalos para guardarlos.</value>
+  </data>
+  <data name="Workspace_Downloaded" xml:space="preserve">
+    <value>Se descargó {0}.</value>
+  </data>
   <data name="Host_NoFolderPicker" xml:space="preserve">
     <value>Este navegador no puede abrir una carpeta. Chrome o Edge sí. Usa el editor allí o la versión de escritorio.</value>
   </data>
