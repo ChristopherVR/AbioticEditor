@@ -93,11 +93,25 @@ its link hidden but its page reachable). Hiding a link never helps - the route s
 a bookmark, or a refresh. `DesktopOnlyPageGateTests` now asserts all three pages carry the gate
 and the shared wording.
 
+### Answered on the first real deploy: GitHub Pages DOES compress wasm
+The round-58 unknown below is settled. Measured against the live site:
+
+| | |
+| --- | --- |
+| Decoded | 19.9 MB |
+| **Actually transferred** | **7.7 MB** |
+| Requests | 94 |
+| `.wasm` files compressed by Pages | **89 of 89** |
+
+So the worry that players might pull the full raw payload was unfounded - Pages gzips every
+assembly. The trimming work therefore lands as roughly **7.7 MB downloaded instead of ~12 MB**.
+
+Confirmed live it is the trimmed build: BouncyCastle 1.14 MB (was 4.9), CUE4Parse 1.28 MB
+(was 2.9). Jint still ships at 2.2 MB, as expected - rooting Core keeps the plugin entry point
+reachable, which is the known cost recorded below.
+
 ### Still open
-- Whether GitHub Pages serves `.wasm` compressed is **unmeasured** - the `/app/` half is not
-  deployed yet (it is in the unpushed commits). Pages does gzip JavaScript, confirmed on the live
-  docs site. If it does not compress wasm, players download the 22.9 MB raw figure rather than
-  7.0 MB, which would dwarf every other saving here. Measure it on the first real deploy.
+- ~~Whether GitHub Pages serves `.wasm` compressed~~ - answered above.
 - The remaining CUE4Parse (1.3 MB) and BouncyCastle (1.1 MB) are only still there because Core is
   rooted, which keeps the pak-mounting entry points reachable. A linker feature switch
   (`FeatureSwitchDefinition` + `RuntimeHostConfigurationOption`) could fold those branches away as
