@@ -252,13 +252,18 @@ window.abioticSaveFs = {
     /// Remembers a world so the home page can offer it after a refresh. Silently does nothing
     /// for a world with no folder behind it (an uploaded copy, or a zip): there would be nothing
     /// to reopen, and an entry that cannot be opened is worse than no entry.
-    rememberRecent: async (rootName, openedAt) => {
+    rememberRecent: async (rootName, openedAt, zipBytes) => {
+        // A folder is remembered by its handle - a live reference the browser can re-open once
+        // the player says yes again. A world opened from a zip has no such thing, so the zip
+        // itself is kept instead: it is the only way back into that world, and being handed your
+        // own export back is exactly what "carry on where I left off" means for it.
         const handle = roots.get(rootName);
-        if (!handle) return;
+        const zip = zipBytes ? new Blob([zipBytes]) : null;
+        if (!handle && !zip) return;
         try {
             const db = await openRecentDb();
             await awaitRequest(recentTransaction(db, "readwrite")
-                .put({ name: rootName, handle, openedAt }));
+                .put({ name: rootName, handle, zip, openedAt }));
 
             // Keep only the newest few, so the list stays a shortcut rather than a history.
             const all = await awaitRequest(recentTransaction(db, "readonly").getAll());
@@ -278,9 +283,28 @@ window.abioticSaveFs = {
             const all = await awaitRequest(recentTransaction(db, "readonly").getAll());
             db.close();
             all.sort((a, b) => (b.openedAt ?? "").localeCompare(a.openedAt ?? ""));
-            return all.slice(0, RECENT_LIMIT).map(entry => ({ name: entry.name, openedAt: entry.openedAt ?? "" }));
+            return all.slice(0, RECENT_LIMIT).map(entry => ({
+                name: entry.name,
+                openedAt: entry.openedAt ?? "",
+                // Tells .NET which way back in to use: a folder to ask permission for, or a zip
+                // to unpack again.
+                fromZip: !entry.handle && !!entry.zip,
+            }));
         } catch {
             return [];
+        }
+    },
+
+    /// The stored zip for a remembered world, as bytes for .NET to unpack. Null when that world
+    /// was a folder rather than a zip.
+    recentZip: async (rootName) => {
+        try {
+            const db = await openRecentDb();
+            const entry = await awaitRequest(recentTransaction(db, "readonly").get(rootName));
+            db.close();
+            return entry?.zip ? await entry.zip.arrayBuffer() : null;
+        } catch {
+            return null;
         }
     },
 
