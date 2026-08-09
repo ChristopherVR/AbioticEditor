@@ -49,18 +49,21 @@ public sealed class RecipeProgressGateService
     private readonly CodexVocabularyService _codex;
     private readonly SaveWorkspaceSessionService _workspace;
     private readonly ISaveFileSystem _files;
-    // Flag sets read from a file, keyed by facility path + version stamp so an outside change re-reads.
-    private readonly ConcurrentDictionary<string, IReadOnlySet<string>> _fileFlagCache =
-        new(StringComparer.OrdinalIgnoreCase);
+    // Reading the world is shared with the bed and companion pickers rather than done again
+    // here: it means parsing the ~16 MB facility save, and doing that twice per session cost
+    // over five seconds of frozen page each time in a browser.
+    private readonly SiblingWorldBedService _world;
 
     private const string FacilitySaveName = "WorldSave_Facility.sav";
 
     public RecipeProgressGateService(
-        CodexVocabularyService codex, SaveWorkspaceSessionService workspace, ISaveFileSystem files)
+        CodexVocabularyService codex, SaveWorkspaceSessionService workspace, ISaveFileSystem files,
+        SiblingWorldBedService world)
     {
         _codex = codex;
         _workspace = workspace;
         _files = files;
+        _world = world;
     }
 
     /// <summary>Forces the email vocabulary to load off the render path (mounting paks is expensive).</summary>
@@ -85,20 +88,7 @@ public sealed class RecipeProgressGateService
 
         try
         {
-            var stamp = await _files.GetVersionStampAsync(facility, cancellationToken).ConfigureAwait(false);
-            if (stamp is null) return null;
-
-            var key = $"{facility}|{stamp}";
-            if (_fileFlagCache.TryGetValue(key, out var cached)) return cached;
-
-            var bytes = await _files.ReadAllBytesAsync(facility, cancellationToken).ConfigureAwait(false);
-            var flags = await Task.Run(
-                () => (IReadOnlySet<string>)new HashSet<string>(
-                    WorldSaveReader.ReadFromStream(new MemoryStream(bytes, writable: false)).Flags,
-                    StringComparer.OrdinalIgnoreCase),
-                cancellationToken).ConfigureAwait(false);
-            _fileFlagCache[key] = flags;
-            return flags;
+            return await _world.GetFlagsAsync(facility, session, cancellationToken).ConfigureAwait(false);
         }
         catch
         {

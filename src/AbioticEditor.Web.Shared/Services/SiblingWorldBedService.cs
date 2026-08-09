@@ -33,6 +33,60 @@ public sealed class SiblingWorldBedService(ISaveFileSystem files)
     private sealed record CachedDeployables(string? Stamp, IReadOnlyList<WorldDeployable> Deployables);
     private sealed record CachedSession(string? Stamp, WorldSaveSession Session);
 
+    /// <summary>
+    /// What one read of a world save yields, so nothing has to read it twice.
+    /// </summary>
+    /// <remarks>
+    /// Only the small derived facts are kept, never the parsed tree: holding a ~16 MB world's
+    /// full object graph would cost far more memory than a browser tab should spend on a save
+    /// nobody has open. Deployables and flags together are a few thousand short strings.
+    /// </remarks>
+    private sealed record CachedFacts(
+        string? Stamp,
+        IReadOnlyList<WorldDeployable> Deployables,
+        IReadOnlySet<string> Flags,
+        IReadOnlyList<SiblingPetBed> Beds);
+
+    private readonly ConcurrentDictionary<string, CachedFacts> _factCache = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The quest flags of a world save, sharing the one read its deployables also come from.
+    /// </summary>
+    /// <remarks>
+    /// The recipe gate used to parse the facility save itself, purely for this list, with its own
+    /// cache. So the same ~16 MB save was parsed twice per session - once for the GENERAL tab and
+    /// again for the bed and companion pickers - at over five seconds a time, on the one thread a
+    /// browser draws with. One read now answers both.
+    /// </remarks>
+    public async Task<IReadOnlySet<string>> GetFlagsAsync(
+        string worldPath, WorldSaveSession? loadedSession = null, CancellationToken cancellationToken = default)
+    {
+        var fullPath = Normalize(worldPath);
+        if (SessionFor(fullPath, loadedSession) is { } session)
+            return new HashSet<string>(session.Flags, StringComparer.OrdinalIgnoreCase);
+        return (await GetFactsAsync(fullPath, cancellationToken).ConfigureAwait(false)).Flags;
+    }
+
+    /// <summary>Reads a world once and keeps what the editor actually asks it for.</summary>
+    private async Task<CachedFacts> GetFactsAsync(string fullPath, CancellationToken cancellationToken)
+    {
+        var stamp = await files.GetVersionStampAsync(fullPath, cancellationToken).ConfigureAwait(false);
+        if (_factCache.TryGetValue(fullPath, out var cached) && stamp is not null && cached.Stamp == stamp) return cached;
+
+        var save = await ReadAsync(fullPath, cancellationToken).ConfigureAwait(false);
+        var deployables = (IReadOnlyList<WorldDeployable>)[.. save.Deployables];
+        var facts = new CachedFacts(
+            stamp,
+            deployables,
+            new HashSet<string>(save.Flags, StringComparer.OrdinalIgnoreCase),
+            // Derived once with everything else, so repeated lookups hand back the very same
+            // list rather than filtering the deployables again on each glance.
+            BedsFrom(deployables));
+        _factCache[fullPath] = facts;
+        Loaded?.Invoke();
+        return facts;
+    }
+
     /// <summary>The Facility region save's file name, which is where beds are looked up.</summary>
     private const string FacilitySaveName = "WorldSave_Facility.sav";
 
@@ -73,14 +127,29 @@ public sealed class SiblingWorldBedService(ISaveFileSystem files)
         var fullPath = Normalize(worldPath);
         if (SessionFor(fullPath, loadedSession) is { } session) return session.Deployables;
 
-        var stamp = await files.GetVersionStampAsync(fullPath, cancellationToken).ConfigureAwait(false);
-        if (IsFresh(_deployableCache, fullPath, stamp, out var cached)) return cached.Deployables;
-
-        var save = await ReadAsync(fullPath, cancellationToken).ConfigureAwait(false);
-        var deployables = (IReadOnlyList<WorldDeployable>)[.. save.Deployables];
-        _deployableCache[fullPath] = new CachedDeployables(stamp, deployables);
-        return deployables;
+        return (await GetFactsAsync(fullPath, cancellationToken).ConfigureAwait(false)).Deployables;
     }
+
+    /// <summary>
+    /// The deployables for a world <b>only if they have already been read</b>, never triggering
+    /// the read itself.
+    /// </summary>
+    /// <remarks>
+    /// Reading them means parsing the whole world save, which for the ~16 MB facility one takes
+    /// several seconds and, in a browser, takes the page with it. That is a fair price for a
+    /// screen the player asked for - the bed picker, the companion send - but not for decorating
+    /// the file list with co-op names, which is what used to trigger it. Anything merely nice to
+    /// have asks this instead and does without until something else has done the work.
+    /// </remarks>
+    public IReadOnlyList<WorldDeployable>? DeployablesIfAlreadyRead(string worldPath, WorldSaveSession? loadedSession = null)
+    {
+        var fullPath = Normalize(worldPath);
+        if (SessionFor(fullPath, loadedSession) is { } session) return session.Deployables;
+        return _factCache.TryGetValue(fullPath, out var cached) ? cached.Deployables : null;
+    }
+
+    /// <summary>Raised once a world's deployables have been read, so opportunistic callers can look again.</summary>
+    public event Action? Loaded;
 
     /// <summary>
     /// World saves a pet can be sent to: the open workspace's region saves when available
@@ -116,13 +185,7 @@ public sealed class SiblingWorldBedService(ISaveFileSystem files)
         if (SessionFor(fullPath, loadedSession) is { } session)
             return BedsFrom(session.Deployables);
 
-        var stamp = await files.GetVersionStampAsync(fullPath, cancellationToken).ConfigureAwait(false);
-        if (IsFresh(_bedCache, fullPath, stamp, out var cached)) return cached.Beds;
-
-        var save = await ReadAsync(fullPath, cancellationToken).ConfigureAwait(false);
-        var beds = BedsFrom(save.Deployables);
-        _bedCache[fullPath] = new CachedBeds(stamp, beds);
-        return beds;
+        return (await GetFactsAsync(fullPath, cancellationToken).ConfigureAwait(false)).Beds;
     }
 
     /// <summary>
@@ -165,11 +228,27 @@ public sealed class SiblingWorldBedService(ISaveFileSystem files)
     /// </summary>
     private async Task<WorldSaveData> ReadAsync(string path, CancellationToken cancellationToken)
     {
-        var bytes = await files.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
-        return await Task.Run(
-            () => WorldSaveReader.ReadFromStream(new MemoryStream(bytes, writable: false)), cancellationToken)
-            .ConfigureAwait(false);
+        // Announced, because it is slow and the player deserves to know why the page has paused.
+        // Reading the facility save means parsing ~16 MB of world, which a browser does on the
+        // one thread it also draws with - several seconds of stillness with nothing said was
+        // indistinguishable from the editor having hung.
+        Reading?.Invoke(true);
+        try
+        {
+            var bytes = await files.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
+            await UiBreather.BreatheAsync(cancellationToken).ConfigureAwait(false);
+            return await Task.Run(
+                () => WorldSaveReader.ReadFromStream(new MemoryStream(bytes, writable: false)), cancellationToken)
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            Reading?.Invoke(false);
+        }
     }
+
+    /// <summary>Raised with true when a world save is about to be read, and false when it is done.</summary>
+    public event Action<bool>? Reading;
 
     /// <summary>
     /// True when a cached entry can still be trusted. An unknown stamp counts as changed, so a

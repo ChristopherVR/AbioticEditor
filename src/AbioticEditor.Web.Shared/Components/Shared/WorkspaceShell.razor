@@ -262,7 +262,7 @@
         }
     }
 
-    protected override void OnInitialized() { Workspace.Changed += WorkspaceChanged; Preferences.Changed += Refresh; InventorySelection.Changed += SelectionChanged; InventorySelection.ItemCommitted += ItemCommitted; Navigation.LocationChanged += NavigationChanged; _selectedSavePath = Workspace.Current?.SelectedSave?.Path; _workspaceFolder = Workspace.Current?.WorldFolder; _playerSession = Workspace.Current?.PlayerSession; _worldSession = Workspace.Current?.WorldSession; _hadSlotSelection = InventorySelection.HasAnySelection; if (Workspace.Current is { } open) _ = LoadClaimPersonasAsync(open.WorldFolder); }
+    protected override void OnInitialized() { Workspace.Changed += WorkspaceChanged; Preferences.Changed += Refresh; InventorySelection.Changed += SelectionChanged; InventorySelection.ItemCommitted += ItemCommitted; Navigation.LocationChanged += NavigationChanged; _selectedSavePath = Workspace.Current?.SelectedSave?.Path; _workspaceFolder = Workspace.Current?.WorldFolder; _playerSession = Workspace.Current?.PlayerSession; _worldSession = Workspace.Current?.WorldSession; _hadSlotSelection = InventorySelection.HasAnySelection; if (Workspace.Current is { } open) LoadClaimPersonas(open.WorldFolder); Beds.Loaded += DeployablesLoaded; Beds.Reading += WorldReading; }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
@@ -316,7 +316,7 @@
                 if (Preferences.State.FilePaneCollapsed) Preferences.ToggleFilePane();
             }
         }
-        if (Workspace.Current is { } open) _ = LoadClaimPersonasAsync(open.WorldFolder);
+        if (Workspace.Current is { } open) LoadClaimPersonas(open.WorldFolder);
         Refresh();
     }
     private void Refresh() => _ = InvokeAsync(StateHasChanged);
@@ -587,13 +587,28 @@
     /// WorldSave_Facility.sav carry the in-game names of every claiming co-op player.
     /// Read off-thread and cached by the bed service; rows re-render when names arrive.
     /// </summary>
-    private async Task LoadClaimPersonasAsync(string worldFolder)
+    private void LoadClaimPersonas(string worldFolder)
     {
         if (string.Equals(_claimPersonaFolder, worldFolder, StringComparison.OrdinalIgnoreCase)) return;
         _claimPersonaFolder = worldFolder;
         _claimPersonas = null;
-        // The workspace already knows every save it opened, which is the only way to name the
-        // facility save on a host with no local paths to combine.
+        RefreshClaimPersonas();
+    }
+
+    /// <summary>
+    /// Picks up co-op names from the world save if - and only if - it has already been read.
+    /// </summary>
+    /// <remarks>
+    /// This used to read the save itself, which means parsing all ~16 MB of the facility one.
+    /// In a browser that is several seconds on the only thread there is, and because it was
+    /// kicked off in the background at world-open it landed on whichever control the player
+    /// touched first: measured at 5.6 seconds of dead page on the first click of a session, for
+    /// a label. The screens that genuinely need the world - the bed picker, sending a companion,
+    /// teleporter sync - still read it and say they are doing so; when one of them has, this
+    /// picks the names up for free.
+    /// </remarks>
+    private void RefreshClaimPersonas()
+    {
         var facility = (Workspace.Current?.Saves ?? [])
             .FirstOrDefault(save => save.Kind == SaveDocumentKind.World
                 && string.Equals(save.Name, "WorldSave_Facility.sav", StringComparison.OrdinalIgnoreCase))
@@ -601,20 +616,34 @@
         if (facility is null) return;
         try
         {
-            var deployables = await Beds.GetDeployablesAsync(facility, Workspace.Current?.WorldSession);
+            if (Beds.DeployablesIfAlreadyRead(facility, Workspace.Current?.WorldSession) is not { } deployables) return;
             _claimPersonas = SteamPersonaIndex.FromDeployables(deployables);
-            await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
         {
             Errors.Record(exception, "Read bed-claim player names from the world save");
         }
     }
+
+    /// <summary>The world was read by something else; the file list can now show its co-op names.</summary>
+    private void DeployablesLoaded()
+    {
+        RefreshClaimPersonas();
+        Refresh();
+    }
+
+    /// <summary>
+    /// Puts reading the world save into the shell's busy line. It is the slowest thing the
+    /// browser build does - parsing the ~16 MB facility save - and it happens on the one thread
+    /// the page draws with, so without this the editor just stops for several seconds.
+    /// </summary>
+    private void WorldReading(bool reading)
+        => _ = Workspace.ReportBusyAsync(reading ? L.Resource("Workspace_ReadingWorld") : null);
     private string KindLabel(SaveDocumentKind kind) => L.Resource(kind switch { SaveDocumentKind.Player => "Main_ChipPlayer", SaveDocumentKind.WorldMetadata => "Main_ChipMeta", SaveDocumentKind.World => "Main_ChipWorld", _ => "Main_ChipSave" });
     private static string KindClass(SaveDocumentKind kind) => kind.ToString().ToLowerInvariant();
     public async ValueTask DisposeAsync()
     {
-        Workspace.Changed -= WorkspaceChanged; Preferences.Changed -= Refresh; InventorySelection.Changed -= SelectionChanged; InventorySelection.ItemCommitted -= ItemCommitted; Navigation.LocationChanged -= NavigationChanged;
+        Workspace.Changed -= WorkspaceChanged; Beds.Loaded -= DeployablesLoaded; Beds.Reading -= WorldReading; Preferences.Changed -= Refresh; InventorySelection.Changed -= SelectionChanged; InventorySelection.ItemCommitted -= ItemCommitted; Navigation.LocationChanged -= NavigationChanged;
         if (_splitterModule is not null) { try { await _splitterModule.InvokeVoidAsync("unwatch"); await _splitterModule.DisposeAsync(); } catch (JSDisconnectedException) { } }
         _self?.Dispose();
     }

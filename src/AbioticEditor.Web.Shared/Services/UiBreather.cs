@@ -17,7 +17,7 @@ namespace AbioticEditor.Web.Services;
 ///
 /// <para>Costs about a millisecond per call, so call it per file or per save - never per item.</para>
 /// </remarks>
-internal static class UiBreather
+public static class UiBreather
 {
     /// <summary>Returns to the browser's event loop so pending renders paint.</summary>
     public static Task BreatheAsync(CancellationToken cancellationToken = default)
