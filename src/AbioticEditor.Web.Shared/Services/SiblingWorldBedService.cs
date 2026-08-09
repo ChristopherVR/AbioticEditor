@@ -23,8 +23,10 @@ public sealed record SiblingPetBed(double X, double Y, double Z, string DisplayN
 /// The desktop behaviour is unchanged; the browser has no disk to walk, so its Facility save is
 /// found among the folder the player opened instead of beside a path.
 /// </remarks>
-public sealed class SiblingWorldBedService(ISaveFileSystem files)
+public sealed class SiblingWorldBedService(ISaveFileSystem files, IWorldFactsCache? factsCache = null)
 {
+    private readonly IWorldFactsCache _factsCache = factsCache ?? new NoWorldFactsCache();
+
     private readonly ConcurrentDictionary<string, CachedBeds> _bedCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, CachedDeployables> _deployableCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, CachedSession> _sessions = new(StringComparer.OrdinalIgnoreCase);
@@ -67,11 +69,27 @@ public sealed class SiblingWorldBedService(ISaveFileSystem files)
         return (await GetFactsAsync(fullPath, cancellationToken).ConfigureAwait(false)).Flags;
     }
 
-    /// <summary>Reads a world once and keeps what the editor actually asks it for.</summary>
+    /// <summary>
+    /// Reads a world once and keeps what the editor actually asks it for - in memory for this
+    /// session, and through <see cref="IWorldFactsCache"/> for the next one.
+    /// </summary>
+    /// <remarks>
+    /// The stored copy is keyed by the save's own version stamp, so editing or replacing the file
+    /// leaves the old entry unreachable rather than stale. Where storing costs nothing useful -
+    /// the desktop, which parses in a quarter of a second - the cache does nothing and this is
+    /// just a read.
+    /// </remarks>
     private async Task<CachedFacts> GetFactsAsync(string fullPath, CancellationToken cancellationToken)
     {
         var stamp = await files.GetVersionStampAsync(fullPath, cancellationToken).ConfigureAwait(false);
         if (_factCache.TryGetValue(fullPath, out var cached) && stamp is not null && cached.Stamp == stamp) return cached;
+
+        if (stamp is not null && await ReadStoredFactsAsync(fullPath, stamp, cancellationToken).ConfigureAwait(false) is { } stored)
+        {
+            _factCache[fullPath] = stored;
+            Loaded?.Invoke();
+            return stored;
+        }
 
         var save = await ReadAsync(fullPath, cancellationToken).ConfigureAwait(false);
         var deployables = (IReadOnlyList<WorldDeployable>)[.. save.Deployables];
@@ -83,9 +101,47 @@ public sealed class SiblingWorldBedService(ISaveFileSystem files)
             // list rather than filtering the deployables again on each glance.
             BedsFrom(deployables));
         _factCache[fullPath] = facts;
+        if (stamp is not null) await StoreFactsAsync(fullPath, stamp, save, cancellationToken).ConfigureAwait(false);
         Loaded?.Invoke();
         return facts;
     }
+
+    private async Task<CachedFacts?> ReadStoredFactsAsync(string fullPath, string stamp, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var json = await _factsCache.ReadAsync(CacheKey(fullPath, stamp), cancellationToken).ConfigureAwait(false);
+            if (WorldFactsJson.Read(json) is not { } stored) return null;
+            var deployables = stored.ToDeployables();
+            return new CachedFacts(
+                stamp, deployables, new HashSet<string>(stored.Flags, StringComparer.OrdinalIgnoreCase), BedsFrom(deployables));
+        }
+        catch (Exception exception)
+        {
+            // A cache that cannot be read is not a failure worth surfacing: the world is simply
+            // read from the save instead, which is what happened before it existed.
+            AbioticEditor.Core.Diagnostics.EditorLog.Warn(
+                "WorldFacts", $"Could not read the stored copy of {fullPath}: {exception.Message}");
+            return null;
+        }
+    }
+
+    private async Task StoreFactsAsync(string fullPath, string stamp, WorldSaveData save, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var json = WorldFactsJson.Write(CachedWorldFacts.From([.. save.Deployables], save.Flags));
+            await _factsCache.WriteAsync(CacheKey(fullPath, stamp), json, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            AbioticEditor.Core.Diagnostics.EditorLog.Warn(
+                "WorldFacts", $"Could not store the world read of {fullPath}: {exception.Message}");
+        }
+    }
+
+    /// <summary>Path plus version stamp, so a changed save never matches its old entry.</summary>
+    private static string CacheKey(string fullPath, string stamp) => $"{fullPath}|{stamp}";
 
     /// <summary>The Facility region save's file name, which is where beds are looked up.</summary>
     private const string FacilitySaveName = "WorldSave_Facility.sav";

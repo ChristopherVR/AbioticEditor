@@ -34,6 +34,12 @@ const RECENT_STORE = "recent-worlds";
 const RECENT_FILES = "recent-files";
 const RECENT_LIMIT = 3;
 
+// What reading a world save produced, kept so it need not be read again. Parsing one takes over
+// five seconds here - twenty times what the same work costs outside a browser - and the answer
+// only changes when the save does, so entries are keyed by the save's own version stamp.
+const WORLD_FACTS = "world-facts";
+const WORLD_FACTS_LIMIT = 12;
+
 // One connection, reused. Storing and restoring a world is one call per save - sixty-odd of them
 // - and opening the database each time made restoring take twice as long as unzipping the same
 // world from scratch. The connection is cheap to hold and closes with the tab.
@@ -45,7 +51,7 @@ function openRecentDb() {
 
 function connectRecentDb() {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open(RECENT_DB, 2);
+        const request = indexedDB.open(RECENT_DB, 3);
         request.onupgradeneeded = () => {
             const db = request.result;
             if (!db.objectStoreNames.contains(RECENT_STORE)) {
@@ -55,6 +61,9 @@ function connectRecentDb() {
             // file that changed instead of reading back and re-storing the whole 68 MB world.
             if (!db.objectStoreNames.contains(RECENT_FILES)) {
                 db.createObjectStore(RECENT_FILES, { keyPath: ["world", "path"] });
+            }
+            if (!db.objectStoreNames.contains(WORLD_FACTS)) {
+                db.createObjectStore(WORLD_FACTS, { keyPath: "key" });
             }
         };
         request.onsuccess = () => resolve(request.result);
@@ -68,6 +77,10 @@ function recentTransaction(db, mode) {
 
 function filesTransaction(db, mode) {
     return db.transaction(RECENT_FILES, mode).objectStore(RECENT_FILES);
+}
+
+function factsTransaction(db, mode) {
+    return db.transaction(WORLD_FACTS, mode).objectStore(WORLD_FACTS);
 }
 
 /// Every stored file belonging to one world. Keys are ["world", "path"], so a bounded range
@@ -392,6 +405,36 @@ window.abioticSaveFs = {
         roots.set(handle.name, handle);
         uploads.delete(handle.name);
         return handle.name;
+    },
+
+    /// What was stored from reading a world save, or null. The key carries the save's version
+    /// stamp, so a save that has changed simply will not match and gets read properly again.
+    worldFactsGet: async (key) => {
+        try {
+            const db = await openRecentDb();
+            const entry = await awaitRequest(factsTransaction(db, "readonly").get(key));
+            return entry?.json ?? null;
+        } catch {
+            return null;
+        }
+    },
+
+    /// Stores what reading a world save produced. Old entries are pruned by age so a player who
+    /// works through many worlds does not accumulate them forever.
+    worldFactsPut: async (key, json) => {
+        try {
+            const db = await openRecentDb();
+            await awaitRequest(factsTransaction(db, "readwrite").put({ key, json, storedAt: Date.now() }));
+
+            const all = await awaitRequest(factsTransaction(db, "readonly").getAll());
+            if (all.length <= WORLD_FACTS_LIMIT) return;
+            all.sort((a, b) => (b.storedAt ?? 0) - (a.storedAt ?? 0));
+            for (const stale of all.slice(WORLD_FACTS_LIMIT)) {
+                await awaitRequest(factsTransaction(db, "readwrite").delete(stale.key));
+            }
+        } catch {
+            // Storage full or refused: the world still opens, it is just read again next time.
+        }
     },
 
     /// Drops a world from the remembered list, saves and all.

@@ -41,6 +41,8 @@ builder.Services.AddScoped<CodexVocabularyService>();
 builder.Services.AddScoped<TraderVocabularyService>();
 builder.Services.AddScoped<SaveWorkspaceSessionService>();
 builder.Services.AddScoped<RecipeProgressGateService>();
+// Reading a world costs seconds here, so what it produced is kept between visits.
+builder.Services.AddScoped<IWorldFactsCache, BrowserWorldFactsCache>();
 builder.Services.AddScoped<SiblingWorldBedService>();
 builder.Services.AddScoped<WorldLevelIndexService>();
 builder.Services.AddScoped<StoryFlagSyncService>();

@@ -57,6 +57,9 @@ public static class Program
         builder.Services.AddSingleton<TraderVocabularyService>();
         builder.Services.AddSingleton<SaveWorkspaceSessionService>();
         builder.Services.AddSingleton<RecipeProgressGateService>();
+        // The desktop parses a world in about a quarter of a second, so there is nothing
+        // worth caching to disk - it registers the do-nothing cache.
+        builder.Services.AddSingleton<IWorldFactsCache, NoWorldFactsCache>();
         builder.Services.AddSingleton<SiblingWorldBedService>();
         builder.Services.AddSingleton<WorldLevelIndexService>();
         builder.Services.AddScoped<UnsavedChangesGuard>();
