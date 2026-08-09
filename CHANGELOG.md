@@ -2,6 +2,46 @@
 
 All notable changes to this project are documented here.
 
+## [2.4.0] - 2026-08-09
+
+### Bug Fixes
+- The item pictures really are renamed this time
+- Worlds you opened from a zip are offered again next time
+- Teleporter sync had no benches to pick from
+- The editor no longer freezes while opening a zip
+- Tidy up the editor's chrome and a few misleading notes
+- Choosing a language in the browser editor
+- Empty bed and area pickers on the spawn screen in the browser
+- Importing raw JSON in the browser editor
+- Sending a pet to any area other than the main facility
+- Missing item pictures in the browser editor
+
+
+### Build
+- Bump taiki-e/install-action in the actions-all group
+
+
+### Documentation
+- Make the browser editor easy to find
+
+
+### Features
+- A world opened from a zip is kept, edits and all
+- A warning before unsaved changes are thrown away
+- Open a zip of saves, and pick up where you left off
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.3.1 [skip ci]
+
+
+### Performance
+- The editor only reads your world the slow way once
+- Opening a world tab no longer copies the whole world first
+- The editor stops freezing when it reads your world
+- Clicking an item in your inventory is about five times faster
+
+
 ## [2.3.1] - 2026-08-08
 
 ### Bug Fixes
