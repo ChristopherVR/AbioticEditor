@@ -190,6 +190,15 @@ public sealed class BundledGameDataTests
     /// name; the web server that serves the browser build does not, so those items answered 404
     /// and drew a "?" tile. One agreed spelling on both sides is the whole fix, and File.Exists
     /// cannot guard it (it is case-insensitive on Windows) - the names have to be compared here.
+    ///
+    /// <para><b>This can pass on Windows and still fail in CI, and that is not a flaky test.</b>
+    /// It reads the working tree, which on a case-insensitive file system can be perfectly
+    /// lower-case while git's own index still holds the old capitalised paths - renaming a file
+    /// only in case is exactly the change Windows hides. It has happened once already: the
+    /// rename was made, the working tree looked right, and the commit carried the old names, so
+    /// the published site kept 404ing. A Linux checkout materialises whatever git actually has,
+    /// which is why CI is the thing that catches it. If this fails there and passes here, look
+    /// at <c>git ls-files assets/icons</c>, not at the folder.</para>
     /// </remarks>
     [Fact]
     public void ShippedItemIcons_AreNamedInOneCaseTheBrowserCanAskFor()
