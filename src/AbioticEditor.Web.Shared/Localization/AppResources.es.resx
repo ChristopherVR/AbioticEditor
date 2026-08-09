@@ -3451,7 +3451,10 @@ No se escribe nada hasta que pulses GUARDAR, y REVERTIR lo deshace antes de eso.
   <data name="Empty_BusyHint" xml:space="preserve">
     <value>Los mundos grandes tardan unos segundos. Deja esta pagina abierta.</value>
   </data>
-  <data name="Empty_RecentFromZip" xml:space="preserve">
-    <value>Desde un zip - lo que cambiaste la ultima vez no esta incluido</value>
+  <data name="Empty_RecentStored" xml:space="preserve">
+    <value>Guardado en este navegador, con los cambios que guardaste. Usa EXPORT para llevartelo.</value>
+  </data>
+  <data name="Workspace_ReadingWorld" xml:space="preserve">
+    <value>Leyendo el mundo…</value>
   </data>
 </root>

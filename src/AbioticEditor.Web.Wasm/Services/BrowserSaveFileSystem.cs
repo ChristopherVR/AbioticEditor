@@ -47,7 +47,7 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem, ISav
     public async Task<string?> PickFolderAsync(CancellationToken cancellationToken = default)
     {
         var folder = await js.InvokeAsync<string?>("abioticSaveFs.pickFolder", cancellationToken).ConfigureAwait(false);
-        if (folder is not null) { _bundles.Remove(folder); _openedBundles.Remove(folder); CanWrite = true; }
+        if (folder is not null) { _bundles.Remove(folder); _storedWorlds.Remove(folder); CanWrite = true; }
         return folder;
     }
 
@@ -61,7 +61,7 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem, ISav
     public async Task<string?> UploadFolderAsync(CancellationToken cancellationToken = default)
     {
         var folder = await js.InvokeAsync<string?>("abioticSaveFs.uploadFolder", cancellationToken).ConfigureAwait(false);
-        if (folder is not null) { _bundles.Remove(folder); _openedBundles.Remove(folder); CanWrite = false; }
+        if (folder is not null) { _bundles.Remove(folder); _storedWorlds.Remove(folder); CanWrite = false; }
         return folder;
     }
 
@@ -108,21 +108,49 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem, ISav
 
     // ---------- worlds the player opened before ----------
 
-    public Task RememberAsync(string folder, CancellationToken cancellationToken = default)
-        => js.InvokeVoidAsync(
+    /// <summary>
+    /// Notes an open world so it can be offered later, storing its saves when there is no folder
+    /// to point back at.
+    /// </summary>
+    /// <remarks>
+    /// The saves are stored unpacked rather than as the zip they arrived in. Reopening is then a
+    /// straight read with no unzipping, and - the part that matters - an edit can replace the one
+    /// file it touched, so the world comes back as the player left it instead of as they first
+    /// opened it.
+    /// </remarks>
+    public async Task RememberAsync(string folder, CancellationToken cancellationToken = default)
+    {
+        var contents = _bundles.TryGetValue(folder, out var saves) ? saves : null;
+        await js.InvokeVoidAsync(
             "abioticSaveFs.rememberRecent", cancellationToken,
             folder,
             DateTimeOffset.UtcNow.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
-            // A world unpacked from a zip has no folder behind it, so the zip goes in instead -
-            // otherwise the one kind of world a browser can always reopen would be the one kind
-            // that never appeared in the list.
-            _openedBundles.TryGetValue(folder, out var zip) ? zip : null).AsTask();
+            contents is not null).ConfigureAwait(false);
+        if (contents is null) return;
+
+        foreach (var (relative, bytes) in contents.ToArray())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await StoreRecentFileAsync(folder, relative, bytes, cancellationToken).ConfigureAwait(false);
+            // Storing a whole world is dozens of writes; let the page draw between them so
+            // remembering never costs the responsiveness that opening just regained.
+            await UiBreather.BreatheAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task StoreRecentFileAsync(string folder, string relative, byte[] bytes, CancellationToken cancellationToken)
+    {
+        using var source = new MemoryStream(bytes, writable: false);
+        using var streamRef = new DotNetStreamReference(source, leaveOpen: true);
+        await js.InvokeVoidAsync("abioticSaveFs.rememberRecentFile", cancellationToken, folder, relative, streamRef)
+            .ConfigureAwait(false);
+    }
 
     public async Task<IReadOnlyList<RecentWorld>> ListAsync(CancellationToken cancellationToken = default)
     {
         var entries = await js.InvokeAsync<RecentEntry[]>("abioticSaveFs.listRecent", cancellationToken).ConfigureAwait(false);
         return entries
-            .Select(entry => new RecentWorld(entry.Name, ParseOpenedAt(entry.OpenedAt), entry.FromZip))
+            .Select(entry => new RecentWorld(entry.Name, ParseOpenedAt(entry.OpenedAt), entry.FromStorage))
             .ToArray();
     }
 
@@ -131,25 +159,25 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem, ISav
         IProgress<SaveBundleProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        // A remembered zip needs no permission - it is already ours - so it is unpacked straight
-        // back in, read-only as it was before.
-        var zip = await ReadRecentZipAsync(folder, cancellationToken).ConfigureAwait(false);
-        if (zip is not null) return await OpenBundleAsync($"{folder}.zip", zip, progress, cancellationToken).ConfigureAwait(false);
+        // Saves kept in storage need nobody's permission - they are already ours - so they come
+        // straight back, edits and all, read-only exactly as they were.
+        // Only the list of saves and their sizes - a few kilobytes. The contents stay in storage
+        // until something actually asks for them, exactly as a folder's files stay on disk.
+        // Pulling all sixty-odd across up front took six and a half seconds for a world the
+        // player might only want one save out of.
+        var stored = await js.InvokeAsync<StoredFile[]>("abioticSaveFs.recentFileList", cancellationToken, folder).ConfigureAwait(false);
+        if (stored.Length > 0)
+        {
+            _storedWorlds[folder] = stored.ToDictionary(file => file.Path, file => file.Length, StringComparer.OrdinalIgnoreCase);
+            _bundles[folder] = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+            CanWrite = true;
+            return folder;
+        }
 
         var reopened = await js.InvokeAsync<string?>("abioticSaveFs.reopenRecent", cancellationToken, folder).ConfigureAwait(false);
-        // Re-granted folders are writable again, and are no longer served from a zip.
-        if (reopened is not null) { _bundles.Remove(reopened); _openedBundles.Remove(reopened); CanWrite = true; }
+        // A re-granted folder is writable again, and is no longer served from memory.
+        if (reopened is not null) { _bundles.Remove(reopened); _storedWorlds.Remove(reopened); CanWrite = true; }
         return reopened;
-    }
-
-    private async Task<byte[]?> ReadRecentZipAsync(string folder, CancellationToken cancellationToken)
-    {
-        var reference = await js.InvokeAsync<IJSStreamReference?>("abioticSaveFs.recentZip", cancellationToken, folder).ConfigureAwait(false);
-        if (reference is null) return null;
-        await using var stream = await reference.OpenReadStreamAsync(MaximumSaveSize, cancellationToken).ConfigureAwait(false);
-        using var buffer = new MemoryStream();
-        await stream.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
-        return buffer.ToArray();
     }
 
     public Task ForgetAsync(string folder, CancellationToken cancellationToken = default)
@@ -162,14 +190,41 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem, ISav
             ? parsed
             : null;
 
-    private sealed record RecentEntry(string Name, string? OpenedAt, bool FromZip);
+    private sealed record RecentEntry(string Name, string? OpenedAt, bool FromStorage);
+
+    private sealed record StoredFile(string Path, long Length);
 
     /// <summary>
-    /// The zip each open bundle came from, so it can be kept for next time. Held here rather
-    /// than handed straight to storage because a world is only worth remembering once it has
-    /// actually opened.
+    /// Worlds whose saves live in the browser's storage: path to size, contents left behind.
     /// </summary>
-    private readonly Dictionary<string, byte[]> _openedBundles = new(StringComparer.OrdinalIgnoreCase);
+    /// <remarks>
+    /// The counterpart of <see cref="_bundles"/>, which holds contents actually in memory. A
+    /// world reopened from storage starts with this list and an empty bundle, and each save is
+    /// pulled across only when something reads it - then cached in the bundle so a second read is
+    /// free. Header and tail reads are served by slicing in JavaScript and never load the file.
+    /// </remarks>
+    private readonly Dictionary<string, Dictionary<string, long>> _storedWorlds = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>How many times the editor has written each save, keyed by its full identifier.</summary>
+    private readonly Dictionary<string, int> _bundleRevisions = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>The sizes of a stored world's saves, or null when this world is not one.</summary>
+    private Dictionary<string, long>? StoredWorldFor(string path, out string root, out string relative)
+    {
+        var separator = path.IndexOf('/');
+        root = separator < 0 ? path : path[..separator];
+        relative = separator < 0 ? string.Empty : path[(separator + 1)..];
+        return _storedWorlds.TryGetValue(root, out var files) ? files : null;
+    }
+
+    /// <summary>
+    /// Reads part of a save kept in storage, without loading the rest of it.
+    /// </summary>
+    /// <param name="offset">Negative counts back from the end, for a tail read.</param>
+    /// <param name="length">-1 for everything from <paramref name="offset"/> on.</param>
+    private Task<byte[]> ReadStoredSliceAsync(
+        string root, string relative, long offset, long length, CancellationToken cancellationToken)
+        => ReadStreamAsync("abioticSaveFs.recentFileSlice", cancellationToken, root, relative, offset, length);
 
     // ---------- worlds opened from a zip ----------
 
@@ -200,11 +255,16 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem, ISav
 
         _bundles[bundle.Name] = bundle.Saves.ToDictionary(
             pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
-        _openedBundles[bundle.Name] = contents;
+        // Freshly unpacked: everything is in memory, so nothing is owed to storage yet.
+        _storedWorlds.Remove(bundle.Name);
         // Re-opening a world of the same name must win over a folder opened earlier, and vice
         // versa, so exactly one source ever answers for a given name.
         await js.InvokeVoidAsync("abioticSaveFs.forget", cancellationToken, bundle.Name).ConfigureAwait(false);
-        CanWrite = false;
+        // Writable, because a write now lands somewhere that survives the tab: the copy kept in
+        // the browser. SAVE therefore means saved, and the world comes back with those edits next
+        // time. It still is not the player's own folder - the toast after a save says as much,
+        // and EXPORT remains the way to get the files back to the game.
+        CanWrite = true;
         return bundle.Name;
     }
 
@@ -227,10 +287,14 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem, ISav
     {
         if (_bundles.TryGetValue(folder, out var bundle))
         {
-            return bundle
+            // Sizes come from storage for a reopened world, whose bundle starts empty, and from
+            // the bundle itself for one just unpacked. Either way no save is read to list it.
+            var sizes = _storedWorlds.TryGetValue(folder, out var stored)
+                ? stored
+                : bundle.ToDictionary(pair => pair.Key, pair => pair.Value.LongLength, StringComparer.OrdinalIgnoreCase);
+            return sizes
                 .Where(pair => pair.Key.EndsWith(".sav", StringComparison.OrdinalIgnoreCase))
-                .Select(pair => new SaveFileEntry(
-                    $"{folder}/{pair.Key}", pair.Key, NameOf(pair.Key), pair.Value.LongLength))
+                .Select(pair => new SaveFileEntry($"{folder}/{pair.Key}", pair.Key, NameOf(pair.Key), pair.Value))
                 .ToArray();
         }
 
@@ -240,29 +304,64 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem, ISav
             .ToArray();
     }
 
-    public Task<byte[]> ReadAllBytesAsync(string path, CancellationToken cancellationToken = default)
-        => BundleFor(path, out var relative) is { } bundle
-            ? Task.FromResult(FromBundle(bundle, relative))
-            : ReadStreamAsync("abioticSaveFs.readAll", cancellationToken, path);
+    public async Task<byte[]> ReadAllBytesAsync(string path, CancellationToken cancellationToken = default)
+    {
+        if (BundleFor(path, out var relative) is not { } bundle)
+            return await ReadStreamAsync("abioticSaveFs.readAll", cancellationToken, path).ConfigureAwait(false);
 
-    public Task<byte[]> ReadHeaderAsync(string path, int maxBytes, CancellationToken cancellationToken = default)
-        => BundleFor(path, out var relative) is { } bundle
-            ? Task.FromResult(Slice(FromBundle(bundle, relative), fromEnd: false, maxBytes))
-            : ReadStreamAsync("abioticSaveFs.readHeader", cancellationToken, path, maxBytes);
+        if (bundle.TryGetValue(relative, out var loaded)) return loaded;
 
-    public Task<byte[]> ReadTailAsync(string path, int maxBytes, CancellationToken cancellationToken = default)
-        => BundleFor(path, out var relative) is { } bundle
-            ? Task.FromResult(Slice(FromBundle(bundle, relative), fromEnd: true, maxBytes))
-            : ReadStreamAsync("abioticSaveFs.readTail", cancellationToken, path, maxBytes);
+        // Not in memory yet: this world came back from storage. Fetch the save once and keep it,
+        // so editing it and saving it behave exactly as they do for a freshly unpacked world.
+        var contents = await ReadStoredAsync(path, relative, -1, cancellationToken).ConfigureAwait(false);
+        bundle[relative] = contents;
+        return contents;
+    }
+
+    public async Task<byte[]> ReadHeaderAsync(string path, int maxBytes, CancellationToken cancellationToken = default)
+    {
+        if (BundleFor(path, out var relative) is not { } bundle)
+            return await ReadStreamAsync("abioticSaveFs.readHeader", cancellationToken, path, maxBytes).ConfigureAwait(false);
+        if (bundle.TryGetValue(relative, out var loaded)) return Slice(loaded, fromEnd: false, maxBytes);
+        return await ReadStoredAsync(path, relative, maxBytes, cancellationToken, fromEnd: false).ConfigureAwait(false);
+    }
+
+    public async Task<byte[]> ReadTailAsync(string path, int maxBytes, CancellationToken cancellationToken = default)
+    {
+        if (BundleFor(path, out var relative) is not { } bundle)
+            return await ReadStreamAsync("abioticSaveFs.readTail", cancellationToken, path, maxBytes).ConfigureAwait(false);
+        if (bundle.TryGetValue(relative, out var loaded)) return Slice(loaded, fromEnd: true, maxBytes);
+        return await ReadStoredAsync(path, relative, maxBytes, cancellationToken, fromEnd: true).ConfigureAwait(false);
+    }
+
+    /// <summary>Serves a read for a world whose saves are still in storage.</summary>
+    private async Task<byte[]> ReadStoredAsync(
+        string path, string relative, long maxBytes, CancellationToken cancellationToken, bool fromEnd = false)
+    {
+        if (StoredWorldFor(path, out var root, out _) is null)
+        {
+            throw new FileNotFoundException($"'{relative}' is not in the world you opened. Open it again.", relative);
+        }
+        var offset = fromEnd ? -maxBytes : 0;
+        return await ReadStoredSliceAsync(root, relative, offset, maxBytes, cancellationToken).ConfigureAwait(false);
+    }
 
     public async Task<string?> GetVersionStampAsync(string path, CancellationToken cancellationToken = default)
     {
-        // An unpacked save only changes when the editor itself writes it, and a write replaces
-        // the array - so its length and identity together are a sound "has this changed" token.
+        // The stamp has to mean "has this file changed", and nothing else. Length paired with a
+        // write counter does exactly that, and - the part that matters - gives the same answer
+        // whether the save happens to be in memory yet or still sitting in storage.
+        //
+        // It used to be length plus the byte array's identity, which changed the moment a save
+        // was first read in. Every cache keyed on the stamp therefore missed as soon as its file
+        // was loaded, and the ~16 MB facility save was re-parsed from scratch each time: several
+        // seconds of frozen page, over and over, for a world that had not changed at all.
         if (BundleFor(path, out var relative) is { } bundle)
         {
-            return bundle.TryGetValue(relative, out var contents)
-                ? $"{contents.Length}:{contents.GetHashCode()}"
+            var revision = _bundleRevisions.TryGetValue(path, out var written) ? written : 0;
+            if (bundle.TryGetValue(relative, out var contents)) return $"{contents.Length}:{revision}";
+            return StoredWorldFor(path, out _, out _) is { } sizes && sizes.TryGetValue(relative, out var size)
+                ? $"{size}:{revision}"
                 : null;
         }
         return await js.InvokeAsync<string?>("abioticSaveFs.versionStamp", cancellationToken, path).ConfigureAwait(false);
@@ -272,8 +371,15 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem, ISav
     {
         if (BundleFor(path, out var relative) is { } bundle)
         {
-            // The zip the player chose is never touched, so it IS the backup.
+            // The file the player chose is never touched, so it IS the backup.
             bundle[relative] = contents;
+            // The one thing that genuinely invalidates anything cached about this save.
+            _bundleRevisions[path] = (_bundleRevisions.TryGetValue(path, out var written) ? written : 0) + 1;
+            // And the remembered copy moves with it, so closing the tab and coming back gives
+            // this world as the player left it rather than as they first opened it.
+            var separator = path.IndexOf('/');
+            var world = separator < 0 ? path : path[..separator];
+            await StoreRecentFileAsync(world, relative, contents, cancellationToken).ConfigureAwait(false);
             return;
         }
         using var source = new MemoryStream(contents, writable: false);
@@ -307,10 +413,34 @@ public sealed class BrowserSaveFileSystem(IJSRuntime js) : ISaveFileSystem, ISav
     {
         var reference = await js.InvokeAsync<IJSStreamReference>(identifier, cancellationToken, arguments).ConfigureAwait(false);
         await using var stream = await reference.OpenReadStreamAsync(MaximumSaveSize, cancellationToken).ConfigureAwait(false);
-        using var buffer = new MemoryStream();
-        await stream.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
-        return buffer.ToArray();
+
+        // The length is known up front, so the buffer is allocated once instead of doubling its
+        // way up to 16 MB.
+        var length = (int)reference.Length;
+        var contents = new byte[length];
+        var read = 0;
+        while (read < length)
+        {
+            var wanted = Math.Min(TransferChunkBytes, length - read);
+            var got = await stream
+                .ReadAtLeastAsync(contents.AsMemory(read, wanted), wanted, throwOnEndOfStream: false, cancellationToken)
+                .ConfigureAwait(false);
+            if (got == 0) break;
+            read += got;
+            // Awaiting the read is not enough to let the page draw: on this runtime those
+            // continuations run inside the same turn. Fetching a 16 MB region save therefore
+            // stalled the tab for whole seconds in one go. Breathing between chunks costs a
+            // millisecond each and keeps the editor answering while a big save comes across.
+            if (read < length) await UiBreather.BreatheAsync(cancellationToken).ConfigureAwait(false);
+        }
+        return read == length ? contents : contents[..read];
     }
+
+    /// <summary>
+    /// How much of a save to bring across before letting the page draw. Big enough that the
+    /// pauses do not dominate a transfer, small enough that no single chunk is a visible stall.
+    /// </summary>
+    private const int TransferChunkBytes = 2 * 1024 * 1024;
 
     private sealed record BrowserEntry(string Path, string RelativePath, string Name, long Length);
 }

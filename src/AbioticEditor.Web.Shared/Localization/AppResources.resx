@@ -3764,7 +3764,10 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Empty_BusyHint" xml:space="preserve">
     <value>Large worlds take a few seconds. Leave this page open.</value>
   </data>
-  <data name="Empty_RecentFromZip" xml:space="preserve">
-    <value>From a zip - anything you changed last time is not in it</value>
+  <data name="Empty_RecentStored" xml:space="preserve">
+    <value>Kept in this browser, with the edits you saved. Use EXPORT to take it away.</value>
+  </data>
+  <data name="Workspace_ReadingWorld" xml:space="preserve">
+    <value>Reading the world…</value>
   </data>
 </root>

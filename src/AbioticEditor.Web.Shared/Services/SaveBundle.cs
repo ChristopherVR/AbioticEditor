@@ -203,12 +203,14 @@ public interface ISaveBundleReader
 /// <summary>A world the player opened before, offered as a way straight back into it.</summary>
 /// <param name="Name">The folder's name, which is also what the sidebar showed.</param>
 /// <param name="OpenedAt">When it was last opened, or null when that was not recorded.</param>
-/// <param name="FromZip">
-/// True when this world came from a zip rather than a folder. It reopens without asking anyone's
-/// permission (the zip was kept), but it also reopens exactly as it was first opened - edits made
-/// last time are not in it, because a zip is only ever read.
+/// <param name="StoredInBrowser">
+/// True when the saves themselves are kept in the browser rather than in a folder on disk - a
+/// world opened from a zip, or from a browser that could only take a copy. It reopens without
+/// asking anyone's permission and comes back exactly as it was left, edits included, because
+/// each save was re-stored as it was written. It is still a copy: taking it anywhere real means
+/// EXPORT.
 /// </param>
-public sealed record RecentWorld(string Name, DateTimeOffset? OpenedAt, bool FromZip = false);
+public sealed record RecentWorld(string Name, DateTimeOffset? OpenedAt, bool StoredInBrowser = false);
 
 /// <summary>
 /// A host that can remember which worlds were open and get back into them later.

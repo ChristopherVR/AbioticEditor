@@ -3450,7 +3450,10 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   <data name="Empty_BusyHint" xml:space="preserve">
     <value>Grosse Welten brauchen ein paar Sekunden. Lass diese Seite offen.</value>
   </data>
-  <data name="Empty_RecentFromZip" xml:space="preserve">
-    <value>Aus einem Zip - deine letzten Anderungen sind nicht enthalten</value>
+  <data name="Empty_RecentStored" xml:space="preserve">
+    <value>In diesem Browser gespeichert, samt deiner Anderungen. Nutze EXPORT, um sie mitzunehmen.</value>
+  </data>
+  <data name="Workspace_ReadingWorld" xml:space="preserve">
+    <value>Welt wird gelesen…</value>
   </data>
 </root>

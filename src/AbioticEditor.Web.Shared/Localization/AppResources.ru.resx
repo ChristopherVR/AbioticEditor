@@ -3450,7 +3450,10 @@
   <data name="Empty_BusyHint" xml:space="preserve">
     <value>Большие миры занимают несколько секунд. Не закрывайте страницу.</value>
   </data>
-  <data name="Empty_RecentFromZip" xml:space="preserve">
-    <value>Из ZIP - последние изменения в него не вошли</value>
+  <data name="Empty_RecentStored" xml:space="preserve">
+    <value>Хранится в этом браузере вместе с вашими изменениями. Используйте EXPORT, чтобы забрать.</value>
+  </data>
+  <data name="Workspace_ReadingWorld" xml:space="preserve">
+    <value>Чтение мира…</value>
   </data>
 </root>

@@ -3450,7 +3450,10 @@ Rien n'est écrit tant que vous n'appuyez pas sur ENREGISTRER, et ANNULER le dé
   <data name="Empty_BusyHint" xml:space="preserve">
     <value>Les grands mondes prennent quelques secondes. Laisse cette page ouverte.</value>
   </data>
-  <data name="Empty_RecentFromZip" xml:space="preserve">
-    <value>Depuis un zip - tes dernieres modifications n'y sont pas</value>
+  <data name="Empty_RecentStored" xml:space="preserve">
+    <value>Conserve dans ce navigateur, avec tes modifications enregistrees. Utilise EXPORT pour l'emporter.</value>
+  </data>
+  <data name="Workspace_ReadingWorld" xml:space="preserve">
+    <value>Lecture du monde…</value>
   </data>
 </root>

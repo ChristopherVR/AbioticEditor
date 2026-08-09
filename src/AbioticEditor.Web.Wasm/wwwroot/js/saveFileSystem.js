@@ -17,25 +17,44 @@ const roots = new Map();
 
 // Worlds the player has opened before, so a refresh does not mean picking the folder again.
 //
-// IndexedDB, not localStorage, because what is stored is a FileSystemDirectoryHandle - a live
-// reference to a real folder, which IndexedDB can hold and plain string storage cannot. The
-// browser deliberately drops the read permission that came with it when the tab closes, so
-// re-opening one asks the player again; that prompt needs a click behind it, which is why
-// reopening is a button and never happens on its own.
+// IndexedDB, not localStorage, because neither of the two things worth keeping is a string.
 //
-// Only folders picked or dropped as folders are remembered. A folder uploaded read-only, or a
-// zip, is a snapshot of bytes with nothing to point back at, so there is nothing to reopen.
+// For a folder the player granted, it is a FileSystemDirectoryHandle - a live reference to the
+// real folder on their disk. The browser deliberately drops the read permission that came with it
+// when the tab closes, so re-opening one asks the player again; that prompt needs a click behind
+// it, which is why reopening is a button and never happens on its own.
+//
+// For a world with no folder behind it - opened from a zip, or from a browser that can only take
+// a read-only copy - it is the saves themselves, one record per file. They are stored unpacked
+// rather than as the original zip so that reopening is a straight read with no unzipping, and so
+// that saving an edit can replace just the file that changed. That is what lets the editor hand
+// back the world as you left it rather than as you first opened it.
 const RECENT_DB = "abiotic-editor";
 const RECENT_STORE = "recent-worlds";
+const RECENT_FILES = "recent-files";
 const RECENT_LIMIT = 3;
 
+// One connection, reused. Storing and restoring a world is one call per save - sixty-odd of them
+// - and opening the database each time made restoring take twice as long as unzipping the same
+// world from scratch. The connection is cheap to hold and closes with the tab.
+let recentDb = null;
+
 function openRecentDb() {
+    return recentDb ??= connectRecentDb().catch(error => { recentDb = null; throw error; });
+}
+
+function connectRecentDb() {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open(RECENT_DB, 1);
+        const request = indexedDB.open(RECENT_DB, 2);
         request.onupgradeneeded = () => {
             const db = request.result;
             if (!db.objectStoreNames.contains(RECENT_STORE)) {
                 db.createObjectStore(RECENT_STORE, { keyPath: "name" });
+            }
+            // One record per save, not one big record per world: an edit then rewrites only the
+            // file that changed instead of reading back and re-storing the whole 68 MB world.
+            if (!db.objectStoreNames.contains(RECENT_FILES)) {
+                db.createObjectStore(RECENT_FILES, { keyPath: ["world", "path"] });
             }
         };
         request.onsuccess = () => resolve(request.result);
@@ -45,6 +64,16 @@ function openRecentDb() {
 
 function recentTransaction(db, mode) {
     return db.transaction(RECENT_STORE, mode).objectStore(RECENT_STORE);
+}
+
+function filesTransaction(db, mode) {
+    return db.transaction(RECENT_FILES, mode).objectStore(RECENT_FILES);
+}
+
+/// Every stored file belonging to one world. Keys are ["world", "path"], so a bounded range
+/// picks out exactly that world's saves.
+function worldFileRange(world) {
+    return IDBKeyRange.bound([world, ""], [world, "￿"]);
 }
 
 function awaitRequest(request) {
@@ -252,27 +281,42 @@ window.abioticSaveFs = {
     /// Remembers a world so the home page can offer it after a refresh. Silently does nothing
     /// for a world with no folder behind it (an uploaded copy, or a zip): there would be nothing
     /// to reopen, and an entry that cannot be opened is worse than no entry.
-    rememberRecent: async (rootName, openedAt, zipBytes) => {
+    rememberRecent: async (rootName, openedAt, keepsContents) => {
         // A folder is remembered by its handle - a live reference the browser can re-open once
-        // the player says yes again. A world opened from a zip has no such thing, so the zip
-        // itself is kept instead: it is the only way back into that world, and being handed your
-        // own export back is exactly what "carry on where I left off" means for it.
-        const handle = roots.get(rootName);
-        const zip = zipBytes ? new Blob([zipBytes]) : null;
-        if (!handle && !zip) return;
+        // the player says yes again. A world with no folder behind it is remembered by its saves,
+        // which .NET writes in separately through rememberRecentFile.
+        const handle = roots.get(rootName) ?? null;
+        if (!handle && !keepsContents) return;
         try {
             const db = await openRecentDb();
             await awaitRequest(recentTransaction(db, "readwrite")
-                .put({ name: rootName, handle, zip, openedAt }));
+                .put({ name: rootName, handle, hasContents: !!keepsContents, openedAt }));
 
             // Keep only the newest few, so the list stays a shortcut rather than a history.
             const all = await awaitRequest(recentTransaction(db, "readonly").getAll());
             all.sort((a, b) => (b.openedAt ?? "").localeCompare(a.openedAt ?? ""));
-            const store = recentTransaction(db, "readwrite");
-            for (const stale of all.slice(RECENT_LIMIT)) store.delete(stale.name);
-            db.close();
+            for (const stale of all.slice(RECENT_LIMIT)) {
+                await awaitRequest(recentTransaction(db, "readwrite").delete(stale.name));
+                // Its saves go with it, or they would sit in storage forever unreachable.
+                await awaitRequest(filesTransaction(db, "readwrite").delete(worldFileRange(stale.name)));
+            }
         } catch {
             // A browser with storage switched off just does not offer the shortcut.
+        }
+    },
+
+    /// Stores (or replaces) one save of a remembered world. Called when the world is first
+    /// opened and again whenever an edit to it is saved, which is what keeps the remembered
+    /// copy in step with what the player has actually done.
+    rememberRecentFile: async (rootName, relative, contentStreamReference) => {
+        try {
+            const data = await contentStreamReference.arrayBuffer();
+            const db = await openRecentDb();
+            await awaitRequest(filesTransaction(db, "readwrite")
+                .put({ world: rootName, path: relative, bytes: new Blob([data]) }));
+        } catch {
+            // Out of quota or storage refused: the world still works, it just will not be offered
+            // back later. Not worth interrupting an edit over.
         }
     },
 
@@ -281,31 +325,44 @@ window.abioticSaveFs = {
         try {
             const db = await openRecentDb();
             const all = await awaitRequest(recentTransaction(db, "readonly").getAll());
-            db.close();
             all.sort((a, b) => (b.openedAt ?? "").localeCompare(a.openedAt ?? ""));
             return all.slice(0, RECENT_LIMIT).map(entry => ({
                 name: entry.name,
                 openedAt: entry.openedAt ?? "",
-                // Tells .NET which way back in to use: a folder to ask permission for, or a zip
-                // to unpack again.
-                fromZip: !entry.handle && !!entry.zip,
+                // Tells .NET which way back in to use: ask permission for a folder, or read the
+                // saves straight back out of storage.
+                fromStorage: !entry.handle && !!entry.hasContents,
             }));
         } catch {
             return [];
         }
     },
 
-    /// The stored zip for a remembered world, as bytes for .NET to unpack. Null when that world
-    /// was a folder rather than a zip.
-    recentZip: async (rootName) => {
+    /// Every save stored for a remembered world, with its size but NOT its contents - the same
+    /// thing listing a folder gives. Empty for a world that was a folder, whose files stay on the
+    /// player's own disk. Reopening reads this and nothing else, so it costs a few kilobytes
+    /// rather than the whole world.
+    recentFileList: async (rootName) => {
         try {
             const db = await openRecentDb();
-            const entry = await awaitRequest(recentTransaction(db, "readonly").get(rootName));
-            db.close();
-            return entry?.zip ? await entry.zip.arrayBuffer() : null;
+            const entries = await awaitRequest(filesTransaction(db, "readonly").getAll(worldFileRange(rootName)));
+            return entries.map(entry => ({ path: entry.path, length: entry.bytes?.size ?? 0 }));
         } catch {
-            return null;
+            return [];
         }
+    },
+
+    /// Part of one stored save. Offsets let the editor read a header or a tail without pulling
+    /// a 16 MB region save across for the sake of a few hundred bytes; a length of -1 means the
+    /// rest of the file. Blob.slice is lazy, so only what is asked for is ever read.
+    recentFileSlice: async (rootName, relative, offset, length) => {
+        const db = await openRecentDb();
+        const entry = await awaitRequest(filesTransaction(db, "readonly").get([rootName, relative]));
+        if (!entry?.bytes) throw new Error(`"${relative}" is no longer stored for ${rootName}.`);
+        const blob = entry.bytes;
+        const start = offset < 0 ? Math.max(0, blob.size + offset) : Math.min(offset, blob.size);
+        const end = length < 0 ? blob.size : Math.min(start + length, blob.size);
+        return await blob.slice(start, end).arrayBuffer();
     },
 
     /// Re-opens a remembered world, asking the player's permission again. Must be called from a
@@ -316,7 +373,6 @@ window.abioticSaveFs = {
         try {
             const db = await openRecentDb();
             const entry = await awaitRequest(recentTransaction(db, "readonly").get(rootName));
-            db.close();
             handle = entry?.handle;
         } catch {
             return null;
@@ -338,12 +394,12 @@ window.abioticSaveFs = {
         return handle.name;
     },
 
-    /// Drops a world from the remembered list.
+    /// Drops a world from the remembered list, saves and all.
     forgetRecent: async (rootName) => {
         try {
             const db = await openRecentDb();
             await awaitRequest(recentTransaction(db, "readwrite").delete(rootName));
-            db.close();
+            await awaitRequest(filesTransaction(db, "readwrite").delete(worldFileRange(rootName)));
         } catch {
             // Nothing to do: the list is a convenience, not state anything depends on.
         }

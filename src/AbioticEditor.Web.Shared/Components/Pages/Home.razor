@@ -78,9 +78,10 @@
                             <div>
                                 <h3>@recent.Name</h3>
                                 @if (recent.OpenedAt is { } opened) { <p>@opened.LocalDateTime.ToString("g")</p> }
-                                @* A zip reopens without asking permission, but it reopens as the
-                                   zip was - say so rather than let anyone assume otherwise. *@
-                                @if (recent.FromZip) { <small>@Languages.Resource("Empty_RecentFromZip")</small> }
+                                @* This one lives in the browser rather than in a folder, so it
+                                   comes back with its edits but still has to be exported to
+                                   reach the game. Worth saying on the card itself. *@
+                                @if (recent.StoredInBrowser) { <small>@Languages.Resource("Empty_RecentStored")</small> }
                             </div>
                             <div class="recent-world-actions">
                                 <button class="primary" type="button" @onclick="() => ReopenRecentAsync(recent)" disabled="@_isLoading">@Languages.Resource("Empty_Open")</button>

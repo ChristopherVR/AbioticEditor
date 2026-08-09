@@ -27,10 +27,17 @@ public interface ISaveFileSystem
     bool HasLocalPaths { get; }
 
     /// <summary>
-    /// True when the folder currently open can be written back to. False on a browser with no
-    /// File System Access API (Firefox, Safari), where a folder can only be read: there the
-    /// editor still opens and edits everything, and the player takes the result away with EXPORT.
+    /// True when a save written here lands somewhere that outlives the moment - the player's own
+    /// folder, or a copy the browser keeps for them. False on a browser with no File System
+    /// Access API (Firefox, Safari), where a folder can only be read: there the editor still
+    /// opens and edits everything, and the player takes the result away with EXPORT.
     /// </summary>
+    /// <remarks>
+    /// Deliberately not "is this the player's real folder" - that is <see cref="HasLocalPaths"/>.
+    /// A world opened from a zip is written back to the browser's own storage, which is durable
+    /// and comes back on the next visit, so SAVE genuinely saves there even though the game's
+    /// folder is untouched until the player exports.
+    /// </remarks>
     /// <remarks>
     /// A property of the open folder rather than of the host, because the same browser build can
     /// have either kind. The editor holds one workspace at a time, so a single flag is the whole
