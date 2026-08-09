@@ -151,11 +151,27 @@ else
         public string Key => Entry.Key;
     }
 
+    /// <summary>
+    /// Decodes the feature only when there is a different one to decode.
+    /// </summary>
+    /// <remarks>
+    /// This used to re-decode on every pass, and a pass happens whenever anything above re-renders
+    /// - not only when the player switches tab. Decoding means walking every entry in the map and
+    /// building a row for each, which on the facility world's teleporter list was measured at 1.5
+    /// seconds of frozen page. Doing it again for a tab that has not changed bought nothing. The
+    /// edit paths still call <see cref="RefreshSnapshot"/> directly, so staged changes still show.
+    /// </remarks>
     protected override void OnParametersSet()
     {
         // Feature tab -> feature tab reuses this component instance with a new FeatureId, so
         // the selection, filter, and errors must reset with it.
-        if (!string.Equals(_renderedFeatureId, FeatureId, StringComparison.Ordinal))
+        var featureChanged = !string.Equals(_renderedFeatureId, FeatureId, StringComparison.Ordinal);
+        // A different save behind the same tab has to be re-read even when the feature has not
+        // changed - switching between two region saves keeps this component and its FeatureId.
+        var sessionChanged = !ReferenceEquals(_renderedSession, Session);
+        if (!featureChanged && !sessionChanged) return;
+
+        if (featureChanged)
         {
             _renderedFeatureId = FeatureId;
             _filter = string.Empty;
@@ -165,8 +181,11 @@ else
             _crossRegionDevices.Clear();
             _crossRegionStarted = false;
         }
+        _renderedSession = Session;
         RefreshSnapshot();
     }
+
+    private WorldSaveSession? _renderedSession;
 
     // Cross-region plugged-in devices, resolved once per tab visit. A null value means the id was
     // searched for folder-wide and genuinely is not there any more.

@@ -102,6 +102,22 @@ public sealed class WorldSaveSession
     /// <summary>The isolated tree the feature/bench editors patch, built on first use.</summary>
     private WorldSaveData FeatureData => _featureData ??= CloneForFeatures(_data);
 
+    /// <summary>
+    /// The tree to <b>read</b> feature state from: the staged one if any edit has been made,
+    /// otherwise the loaded save itself.
+    /// </summary>
+    /// <remarks>
+    /// Reading used to go through <see cref="FeatureData"/> too, which meant that merely opening
+    /// a tab like BUTTONS or POWER SOCKETS built the isolated copy - and building it re-serializes
+    /// and re-parses the entire save. On the ~16 MB facility world that was measured at 8.6
+    /// seconds of frozen page, paid by whichever of those tabs the player happened to open first,
+    /// for a screen they had not edited anything on.
+    ///
+    /// Nothing here mutates, so the loaded tree is a perfectly good source until an edit exists;
+    /// once one does, the staged tree is the only one showing it, and this switches to it.
+    /// </remarks>
+    private UeSaveGame.SaveGame ReadableFeatureRaw => (_featureData ?? _data).Raw;
+
     public HashSet<string> Flags { get; private set; }
     /// <summary>World-wide unlocked/researched recipe rows (<c>GlobalUnlocks</c>, metadata save only).</summary>
     public HashSet<string> GlobalRecipes { get; private set; }
@@ -172,7 +188,7 @@ public sealed class WorldSaveSession
             feature.MapName,
             feature.SupportsRemoval,
             feature.RemoveActionLabel,
-            feature.Read(FeatureData.Raw));
+            feature.Read(ReadableFeatureRaw));
     }
     public bool IsDirty => !_originalFlags.SetEquals(Flags) || GlobalRecipesAreDirty() || DoorsAreDirty() || ContainersAreDirty() || NpcsAreDirty() || PetsAreDirty() || _pendingPetPlacements.Count > 0 || DroppedItemsAreDirty() || VehiclesAreDirty() || DeployablesAreDirty() || StoryIsDirty() || WorldTimeIsDirty() || ContainmentsAreDirty() || _featureOperations.Count > 0 || _benchUpgradeOperations.Count > 0 || _rawEdits.Count > 0 || _stagedWorldUnlocks.Count > 0;
     public string? Status { get; private set; }
@@ -657,12 +673,12 @@ public sealed class WorldSaveSession
 
     /// <summary>True when this deployable can carry bench upgrade modules (its gameplay-tag container exists).</summary>
     public bool BenchSupportsUpgrades(string deployableId)
-        => WorldMapAccessor.FindEntry(FeatureData.Raw, "DeployedObjectMap", deployableId) is { } props
+        => WorldMapAccessor.FindEntry(ReadableFeatureRaw, "DeployedObjectMap", deployableId) is { } props
             && BenchUpgradeCatalog.SupportsUpgrades(props);
 
     /// <summary>The upgrade rows currently installed on a bench, staged edits included.</summary>
     public IReadOnlyList<string> BenchInstalledUpgrades(string deployableId)
-        => WorldMapAccessor.FindEntry(FeatureData.Raw, "DeployedObjectMap", deployableId) is { } props
+        => WorldMapAccessor.FindEntry(ReadableFeatureRaw, "DeployedObjectMap", deployableId) is { } props
             ? BenchUpgradeCatalog.ReadInstalledRows(props)
             : Array.Empty<string>();
 
