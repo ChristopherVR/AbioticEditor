@@ -49,9 +49,12 @@ internal static class Cli
             return UserError;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
-            or InvalidDataException or FormatException or NotSupportedException)
+            or InvalidDataException or FormatException or NotSupportedException
+            or InvalidOperationException or ArgumentException)
         {
-            // Bad or inaccessible input files are the user's domain, not a crash.
+            // Bad or inaccessible input files are the user's domain, not a crash. So is a refusal
+            // the editor makes on purpose ("that folder already holds a save"): printing a stack
+            // trace for one reads as a bug in the tool rather than the answer to the question.
             Console.Error.WriteLine($"error: {ex.Message}");
             return UserError;
         }

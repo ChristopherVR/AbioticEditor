@@ -23,6 +23,39 @@ internal static class GamePassCommands
         cmd.Subcommands.Add(BuildCompare(quiet));
         cmd.Subcommands.Add(BuildToGamePass(quiet));
         cmd.Subcommands.Add(BuildToSteam(quiet));
+        cmd.Subcommands.Add(BuildRenamePlayer(quiet));
+        return cmd;
+    }
+
+    // Renaming a packed player has to go through the container: the bundle carries its own list of
+    // member names, so extracting, running 'steamid', and importing again puts the edited save back
+    // under the OLD name and the old id quietly returns.
+    private static Command BuildRenamePlayer(Option<bool> quiet)
+    {
+        var folderArg = new Argument<string>("wgs-folder") { Description = "Path to the wgs container folder." };
+        var memberArg = new Argument<string>("member") { Description = "The player save to re-home (e.g. Player_2533...)." };
+        var idArg = new Argument<string>("new-id") { Description = "The account id to give it." };
+        var cmd = new Command("rename-player",
+            "Re-home a packed player save to another account id, rewriting both its name and the owner "
+            + "id stored inside it (backs up the folder).");
+        cmd.Arguments.Add(folderArg);
+        cmd.Arguments.Add(memberArg);
+        cmd.Arguments.Add(idArg);
+        cmd.SetAction(pr => Cli.Run(() =>
+        {
+            var set = OpenSet(pr.GetValue(folderArg));
+            var entry = ResolveEntry(set, pr.GetValue(memberArg));
+            if (entry.Kind != GamePassSaveKind.Player)
+            {
+                throw new CliUserErrorException($"'{entry.FileName}' is not a player save.");
+            }
+            var newId = pr.GetValue(idArg) ?? throw new CliUserErrorException("a new account id is required.");
+            var renamed = set.RenamePlayerToAccount(entry, newId);
+            Cli.Info(pr.GetValue(quiet),
+                $"Re-homed {entry.FileName} -> {renamed} in '{entry.ContainerName}' "
+                + "(wgs folder backed up to <folder>.bak).");
+            return Cli.Ok;
+        }));
         return cmd;
     }
 
@@ -218,20 +251,34 @@ internal static class GamePassCommands
         var destArg = new Argument<string>("dest") { Description = "Output folder for the new Game Pass (wgs) container." };
         var worldOpt = new Option<string?>("--world") { Description = "World name to use inside the container (default: the folder name)." };
         var idOpt = new Option<string?>("--player-id") { Description = "Re-home the single player save to this account id (default: keep existing ids)." };
+        var intoOpt = new Option<bool>("--into")
+        {
+            Description = "Add the world to the Xbox save folder already at <dest>, keeping the saves in it "
+                + "(default: refuse, because a fresh container list would orphan them).",
+        };
         var cmd = new Command("to-gamepass", "Convert a Steam world folder into a Game Pass / Xbox container save.");
         cmd.Arguments.Add(srcArg);
         cmd.Arguments.Add(destArg);
         cmd.Options.Add(worldOpt);
         cmd.Options.Add(idOpt);
+        cmd.Options.Add(intoOpt);
         cmd.SetAction(pr => Cli.Run(() =>
         {
             var src = pr.GetValue(srcArg) ?? throw new CliUserErrorException("a Steam world folder is required.");
             if (!Directory.Exists(src)) throw new CliUserErrorException($"folder not found: {src}");
             var dest = pr.GetValue(destArg) ?? throw new CliUserErrorException("a destination folder is required.");
-            var outDir = GamePassConverter.SteamWorldToGamePass(src, dest, pr.GetValue(worldOpt), pr.GetValue(idOpt));
-            Cli.Info(pr.GetValue(quiet),
-                $"Converted Steam world -> Game Pass container at {outDir}. Copy this folder into the game's "
-                + "wgs storage (Packages\\<PFN>\\SystemAppData\\wgs) and verify it loads in-game.");
+            var into = pr.GetValue(intoOpt);
+            if (into && !GamePassSaveSet.IsGamePassFolder(dest))
+            {
+                throw new CliUserErrorException($"--into needs an existing Xbox save folder, and {dest} is not one.");
+            }
+            var outDir = GamePassConverter.SteamWorldToGamePass(
+                src, dest, pr.GetValue(worldOpt), pr.GetValue(idOpt), mergeIntoExisting: into);
+            Cli.Info(pr.GetValue(quiet), into
+                ? $"Added the world to the Xbox save folder at {outDir}. Launch the game offline to check it loads."
+                : $"Converted Steam world -> Game Pass container at {outDir}. This is a save folder of its own: "
+                    + "to put it in the game, run this again with --into pointing at your real Xbox save folder "
+                    + "(find it with 'gamepass discover'), with the game and the Xbox app closed.");
             return Cli.Ok;
         }));
         return cmd;
