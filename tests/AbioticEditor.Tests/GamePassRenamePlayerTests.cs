@@ -14,8 +14,8 @@ public class GamePassRenamePlayerTests
 {
     private static void WithFixtureCopy(Action<GamePassSaveSet, string> body)
     {
-        if (Fixtures.GamePassWgsDir is null) return; // fixture absent - skip
-        if (!OodleCodec.IsAvailable) return;         // no native Oodle (non-Windows) - skip
+        Skip.IfNot(Fixtures.GamePassWgsDir is not null, "the Game Pass fixture is not in this checkout");
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
 
         var work = Directory.CreateTempSubdirectory("gp-rename");
         try

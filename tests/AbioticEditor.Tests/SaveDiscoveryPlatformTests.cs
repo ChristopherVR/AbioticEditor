@@ -8,10 +8,10 @@ namespace AbioticEditor.Tests;
 /// </summary>
 public class SaveDiscoveryPlatformTests
 {
-    [Fact]
+    [SkippableFact]
     public void Steam_account_folder_is_tagged_steam()
     {
-        if (Fixtures.ClientSavedDir is null) return; // fixture absent - skip
+        Skip.IfNot(Fixtures.ClientSavedDir is not null, "the client save fixture is not in this checkout");
         var worlds = SaveDiscovery.DiscoverClientWorlds(Fixtures.ClientSavedDir!);
         Assert.NotEmpty(worlds);
         Assert.All(worlds, w =>
@@ -44,10 +44,10 @@ public class SaveDiscoveryPlatformTests
         }
     }
 
-    [Fact]
+    [SkippableFact]
     public void GamePass_container_world_is_tagged_game_pass()
     {
-        if (Fixtures.GamePassWgsDir is null) return; // fixture absent - skip
+        Skip.IfNot(Fixtures.GamePassWgsDir is not null, "the Game Pass fixture is not in this checkout");
 
         var store = AbioticEditor.Core.GamePass.WgsContainerStore.Open(Fixtures.GamePassWgsDir!);
         var wc = store.Containers.First(c => c.Name.EndsWith("-WC", StringComparison.OrdinalIgnoreCase));

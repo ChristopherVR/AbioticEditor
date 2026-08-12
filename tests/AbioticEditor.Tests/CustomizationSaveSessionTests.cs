@@ -78,13 +78,14 @@ public sealed class CustomizationSaveSessionTests
         finally { scratch.Delete(recursive: true); }
     }
 
-    [Fact]
+    [SkippableFact]
     public void GamePass_store_is_located_beside_a_converted_Steam_copy()
     {
-        if (Fixtures.GamePassWgsDir is not { } fixture) return; // fixture absent - skip
+        Skip.IfNot(Fixtures.GamePassWgsDir is not null, "the Game Pass fixture is not in this checkout");
+        var fixture = Fixtures.GamePassWgsDir!;
         // Game Pass bundles are Oodle-compressed and the only Oodle build the editor can bind
         // to is the game's Windows DLL, so this cannot run on Linux or macOS CI.
-        if (!OodleCodec.IsAvailable) return;
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
         var scratch = Directory.CreateTempSubdirectory("abiotic-gp-locate-");
         var wgs = Path.Combine(scratch.FullName, "Fixture");
         try

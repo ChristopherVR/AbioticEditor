@@ -96,10 +96,10 @@ public class GamePassTests
         }
     }
 
-    [Fact]
+    [SkippableFact]
     public void AbfBundle_round_trips_through_oodle()
     {
-        if (!OodleCodec.IsAvailable) return; // no native Oodle here - skip
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
 
         var body = GamePassMemberCodec.ToMemberBody(CharClass, FixturePlayer());
         var bundle = TestBundle(("Profile/Worlds/W/PlayerData/Player_1", CharClass, body));
@@ -118,10 +118,10 @@ public class GamePassTests
     /// Field1 must equal the actual total decompressed size after member edits. This test verifies
     /// that Serialize() writes Field1 = sum(member.Body.Length) even when a member grows.
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void AbfBundle_serialize_updates_field1_to_match_total_body_size()
     {
-        if (!OodleCodec.IsAvailable) return;
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
 
         var smallBody = new byte[] { 1, 2, 3, 4 };
         var bundle = TestBundle(("Profile/Worlds/W/PlayerData/Player_1", CharClass, smallBody));
@@ -139,10 +139,10 @@ public class GamePassTests
         Assert.Equal(largerBody, reparsed.Members[0].Body);
     }
 
-    [Fact]
+    [SkippableFact]
     public void OodleCompress_roundtrips_large_payload()
     {
-        if (!OodleCodec.IsAvailable) return;
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
 
         const int Size = 660738; // same size as the real-world failure case
         var original = new byte[Size];
@@ -154,14 +154,14 @@ public class GamePassTests
         Assert.Equal(original, decompressed);
     }
 
-    [Theory]
+    [SkippableTheory]
     [InlineData(524287)]
     [InlineData(524288)]
     [InlineData(524289)]
     [InlineData(700000)]
     public void OodleCompress_roundtrips_sizes_around_512KB_boundary(int size)
     {
-        if (!OodleCodec.IsAvailable) return;
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
 
         var original = new byte[size];
         for (var i = 0; i < size; i++) original[i] = (byte)(i * 13 % 251);
@@ -173,10 +173,10 @@ public class GamePassTests
         Assert.Equal(original, decompressed);
     }
 
-    [Fact]
+    [SkippableFact]
     public void GamePassSaveSet_edits_a_packed_player_end_to_end()
     {
-        if (!OodleCodec.IsAvailable) return;
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
 
         var dir = Directory.CreateTempSubdirectory("gp-set");
         try
@@ -211,11 +211,11 @@ public class GamePassTests
         }
     }
 
-    [Fact]
+    [SkippableFact]
     public void RealFixture_lists_reads_and_edits_a_packed_player()
     {
-        if (Fixtures.GamePassWgsDir is null) return; // fixture absent - skip
-        if (!OodleCodec.IsAvailable) return;         // no native Oodle - skip
+        Skip.IfNot(Fixtures.GamePassWgsDir is not null, "the Game Pass fixture is not in this checkout");
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
 
         // Work on a throwaway copy so the committed fixture is never mutated.
         var work = Directory.CreateTempSubdirectory("gp-fixture");
@@ -265,11 +265,11 @@ public class GamePassTests
         }
     }
 
-    [Fact]
+    [SkippableFact]
     public void Converts_Steam_world_to_GamePass_and_back_losslessly()
     {
-        if (Fixtures.CascadeDir is null) return; // fixture absent - skip
-        if (!OodleCodec.IsAvailable) return;     // no native Oodle - skip
+        Skip.IfNot(Fixtures.CascadeDir is not null, "the Steam world fixture is not in this checkout");
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
 
         var tmp = Directory.CreateTempSubdirectory("steam-gp-convert");
         try
@@ -307,11 +307,11 @@ public class GamePassTests
         }
     }
 
-    [Fact]
+    [SkippableFact]
     public void Conversion_can_rehome_the_player_to_a_new_id()
     {
-        if (Fixtures.CascadeDir is null) return;
-        if (!OodleCodec.IsAvailable) return;
+        Skip.IfNot(Fixtures.CascadeDir is not null, "the Steam world fixture is not in this checkout");
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
 
         var tmp = Directory.CreateTempSubdirectory("gp-rehome");
         try

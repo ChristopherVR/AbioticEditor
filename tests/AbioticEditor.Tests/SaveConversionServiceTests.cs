@@ -6,12 +6,13 @@ namespace AbioticEditor.Tests;
 
 public sealed class SaveConversionServiceTests
 {
-    [Fact]
+    [SkippableFact]
     public void Recognises_real_Steam_and_GamePass_world_fixtures()
     {
         var steam = Fixtures.CascadeDir;
         var gamePass = Fixtures.GamePassWgsDir;
-        if (steam is null || gamePass is null) return;
+        Skip.IfNot(steam is not null && gamePass is not null,
+            "the Steam and Game Pass world fixtures are not both in this checkout");
 
         Assert.Equal(SaveConversionSourceValidation.Valid,
             SaveConversionService.ValidateSource(SaveConversionDirection.ToGamePass, steam));
@@ -32,13 +33,14 @@ public sealed class SaveConversionServiceTests
         Assert.Equal(Path.GetFullPath(source) + suffix, SaveConversionService.DestinationFor(direction, source));
     }
 
-    [Fact]
+    [SkippableFact]
     public void Converts_the_GamePass_fixture_through_the_settings_service()
     {
-        if (Fixtures.GamePassWgsDir is not { } fixture) return;
+        Skip.IfNot(Fixtures.GamePassWgsDir is not null, "the Game Pass fixture is not in this checkout");
+        var fixture = Fixtures.GamePassWgsDir!;
         // Game Pass bundles are Oodle-compressed and the only Oodle build the editor can bind
         // to is the game's Windows DLL, so this cannot run on Linux or macOS CI.
-        if (!OodleCodec.IsAvailable) return;
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
         var root = Path.Combine(Path.GetTempPath(), "AbioticEditorTests", Guid.NewGuid().ToString("N"));
         var source = Path.Combine(root, "Fixture");
         try
