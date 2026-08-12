@@ -1423,6 +1423,10 @@ WICHTIG: Weil diese Synchronisierung nie fertig wurde, schreibt das Aufräumen (
   <data name="Main_GpWriteFailedMessage" xml:space="preserve">
     <value>Ihre Änderung wurde gespeichert, aber das Zurückschreiben in Ihre Xbox-Spielstände ist fehlgeschlagen: {0}</value>
   </data>
+  <data name="Main_GpWriteFailedRecovery" xml:space="preserve">
+    <value>Deine Änderungen liegen sicher in diesem Ordner, es ist also nichts verloren: {0}
+Schließe das Spiel und die Xbox-App und drücke dann erneut SPEICHERN. Wenn es weiterhin fehlschlägt, kopiere die Dateien aus diesem Ordner von Hand in deinen Spielstand.</value>
+  </data>
   <data name="Main_SlotSelected" xml:space="preserve">
     <value>{0} ausgewählt (Slot {1})</value>
   </data>
@@ -1809,6 +1813,9 @@ Dies schreibt sofort in den Spielstand und lädt den Editor neu, alles noch nich
   </data>
   <data name="Settings_Converting" xml:space="preserve">
     <value>Wird umgewandelt…  (beim ersten Mal wird eventuell ein benötigtes Komprimierungsprogramm heruntergeladen)</value>
+  </data>
+  <data name="Settings_ConvertPickWorld" xml:space="preserve">
+    <value>Dieser Spielstand enthält mehrere Welten. Welche möchtest du konvertieren?</value>
   </data>
   <data name="Settings_ConvertDone" xml:space="preserve">
     <value>Fertig. Konvertierte Kopie geschrieben nach:

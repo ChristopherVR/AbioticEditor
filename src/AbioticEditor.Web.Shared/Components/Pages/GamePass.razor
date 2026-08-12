@@ -21,6 +21,21 @@
     </button>
     <p class="muted conversion-hint">@R("Settings_ConvertToSteamHint")</p>
 
+    @if (_worldChoices is { Count: > 0 } choices)
+    {
+        <p class="muted">@R("Settings_ConvertPickWorld")</p>
+        <ul class="conversion-world-list">
+            @foreach (var world in choices)
+            {
+                <li>
+                    <button class="secondary" type="button" @onclick="() => ChooseWorldAsync(world)" disabled="@_busy">
+                        @WorldLabel(world)
+                    </button>
+                </li>
+            }
+        </ul>
+    }
+
     @if (_status is not null)
     {
         <p class="@(_failed ? "error" : "success")" role="@(_failed ? "alert" : "status")">@_status</p>
@@ -37,8 +52,15 @@
     private string? _status;
     private bool _busy;
     private bool _failed;
+    private IReadOnlyList<string>? _worldChoices;
+    private string? _pendingSource;
+    private string? _pendingId;
 
     private string R(string key, params object?[] args) => Languages.Resource(key, args);
+
+    /// <summary>Container names carry a "-WC" suffix that means nothing to a player.</summary>
+    private static string WorldLabel(string container)
+        => container.EndsWith("-WC", StringComparison.OrdinalIgnoreCase) ? container[..^3] : container;
 
     private async Task ConvertAsync(SaveConversionDirection direction)
     {
@@ -68,20 +90,64 @@
             }
 
             var id = string.IsNullOrWhiteSpace(_playerAccountId) ? null : _playerAccountId.Trim();
-            _outputFolder = await Task.Run(() => SaveConversionService.Convert(direction, sourceFolder, id));
-            _status = R("Settings_ConvertDone", _outputFolder);
+
+            // A Game Pass folder can hold several worlds. Converting whichever one came first was a
+            // coin toss the player never saw, so ask when there is a choice to make.
+            var worlds = await Task.Run(() => SaveConversionService.WorldContainers(direction, sourceFolder));
+            string? container = null;
+            if (worlds.Count > 1)
+            {
+                _pendingSource = sourceFolder;
+                _pendingId = id;
+                _worldChoices = worlds;
+                _status = null;
+                return;
+            }
+
+            await RunConversionAsync(direction, sourceFolder, id, container);
         }
         catch (Exception exception)
         {
             _failed = true;
-            Errors.Record(exception, "Convert save");
-            _status = R("Settings_ConvertFailed");
+            _status = Errors.Detail(exception, "Convert save", R("Settings_ConvertFailed"));
         }
         finally
         {
             _busy = false;
         }
     }
+
+    private async Task ChooseWorldAsync(string container)
+    {
+        var source = _pendingSource;
+        if (source is null) return;
+        _worldChoices = null;
+        _busy = true;
+        try
+        {
+            await RunConversionAsync(SaveConversionDirection.ToSteam, source, _pendingId, container);
+        }
+        catch (Exception exception)
+        {
+            _failed = true;
+            _status = Errors.Detail(exception, "Convert save", R("Settings_ConvertFailed"));
+        }
+        finally
+        {
+            _busy = false;
+            _pendingSource = null;
+            _pendingId = null;
+        }
+    }
+
+    private async Task RunConversionAsync(
+        SaveConversionDirection direction, string sourceFolder, string? id, string? container)
+    {
+        _status = R("Settings_Converting");
+        _outputFolder = await Task.Run(() => SaveConversionService.Convert(direction, sourceFolder, id, container));
+        _status = R("Settings_ConvertDone", _outputFolder);
+    }
+
 
     private async Task OpenOutputFolderAsync()
     {

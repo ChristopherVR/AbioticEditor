@@ -314,15 +314,38 @@ public sealed class SaveWorkspaceSessionService : IDisposable
 
             BusyOperation = "Changing player ID..."; Changed?.Invoke();
             var oldFileName = Path.GetFileName(player.Path);
-            var newPath = await Task.Run(() => PlayerSaveIdentity.ChangeSteamId(player.Path, newIdentifier), cancellationToken).ConfigureAwait(false);
+
             // A Game Pass world is edited through an unpacked copy, and the repack walks the
-            // container's own list of names. Rename it there too or the new id never reaches the
-            // container and the old player quietly comes back.
+            // container's own list of names, so the rename has to reach the container too or the
+            // new id never lands and the old player quietly comes back. Stage it there BEFORE
+            // touching the working copy: staging is the step that can refuse (the id is already
+            // taken), and doing it first means a refusal leaves both sides untouched instead of a
+            // renamed file whose container still knows the old name. Nothing is written to the
+            // player's Xbox saves until the next SAVE.
+            var newFileName = $"Player_{newIdentifier}.sav";
+            var staged = false;
             if (workspace.GamePass is { } gamePassRename)
             {
-                var newFileName = Path.GetFileName(newPath);
-                await Task.Run(() => gamePassRename.Set.RenamePlayerSave(gamePassRename.Container, oldFileName, newFileName), cancellationToken)
-                    .ConfigureAwait(false);
+                staged = await Task.Run(
+                    () => gamePassRename.Set.StagePlayerRename(gamePassRename.Container, oldFileName, newFileName),
+                    cancellationToken).ConfigureAwait(false);
+            }
+
+            string newPath;
+            try
+            {
+                newPath = await Task.Run(() => PlayerSaveIdentity.ChangeSteamId(player.Path, newIdentifier), cancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                // The container now expects a name the working copy does not have. Left alone, the
+                // next save would write that name over the OLD character's data - a player renamed
+                // in the list but not in fact. Put the staged name back so the two agree again.
+                if (staged && workspace.GamePass is { } undo)
+                {
+                    undo.Set.StagePlayerRename(undo.Container, newFileName, oldFileName);
+                }
+                throw;
             }
             var saves = await DiscoverSavesAsync(workspace.WorldFolder, cancellationToken).ConfigureAwait(false);
             var renamed = saves.FirstOrDefault(save => string.Equals(save.Path, newPath, StringComparison.OrdinalIgnoreCase))
@@ -354,11 +377,82 @@ public sealed class SaveWorkspaceSessionService : IDisposable
             if (current?.GamePass is { } gamePass)
             {
                 BusyOperation = "Packing the save into the Game Pass container…"; Changed?.Invoke();
-                await Task.Run(() => gamePass.Set.ApplyWorld(gamePass.Container, gamePass.WorkingDir), cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    await Task.Run(() => gamePass.Set.ApplyWorld(gamePass.Container, gamePass.WorkingDir), cancellationToken).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // The edit reached the working copy but not the player's Xbox saves. That copy
+                    // is now the only place it exists, and the next open (or the startup sweep)
+                    // deletes working copies - so mark it to be kept, and let the failure reach the
+                    // caller so the player is told rather than shown a successful-looking save.
+                    ProtectWorkingDir(gamePass.WorkingDir);
+                    EditorLog.Error("GamePass",
+                        $"Packing into container '{gamePass.Container}' failed; the edited saves are kept "
+                        + $"in {gamePass.WorkingDir}");
+                    throw;
+                }
+
+                // The retry landed, so the working copy is no longer the only home for this work
+                // and goes back to being an ordinary temp folder.
+                ClearWorkingDirProtection(gamePass.WorkingDir);
                 EditorLog.Info("GamePass", $"Saved into Game Pass container '{gamePass.Container}'.");
             }
         }
         finally { BusyOperation = null; Changed?.Invoke(); }
+    }
+
+    /// <summary>
+    /// A Game Pass working copy holding edits that never reached the player's Xbox saves, because
+    /// packing them back failed. It is exempt from the usual cleanup: deleting it would throw away
+    /// the only copy of work the player believes they saved.
+    /// </summary>
+    private string? _protectedWorkingDir;
+
+    /// <summary>
+    /// The folder holding edits that could not be written back into the Xbox save, or null when
+    /// there are none. The host shows this to the player so the work can be recovered by hand.
+    /// </summary>
+    public string? UnwrittenEditsFolder => _protectedWorkingDir;
+
+    /// <summary>Marker file that exempts a working copy from cleanup.</summary>
+    private const string UnwrittenMarkerFile = ".unwritten-edits";
+
+    /// <summary>
+    /// Marks a working copy as holding unwritten edits, in memory and on disk. The on-disk marker
+    /// matters because the sweep that clears stale working copies runs in a later process: without
+    /// it, closing the editor after a failed write and reopening it would delete the very folder
+    /// the player was told to recover their work from.
+    /// </summary>
+    private void ProtectWorkingDir(string dir)
+    {
+        _protectedWorkingDir = dir;
+        try
+        {
+            if (Directory.Exists(dir)) File.WriteAllText(Path.Combine(dir, UnwrittenMarkerFile), string.Empty);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            EditorLog.Warn("GamePass", $"Could not mark {dir} as holding unwritten edits: {ex.Message}");
+        }
+    }
+
+    /// <summary>Lifts the exemption once the edits have actually reached the Xbox save.</summary>
+    private void ClearWorkingDirProtection(string dir)
+    {
+        if (!string.Equals(dir, _protectedWorkingDir, StringComparison.OrdinalIgnoreCase)) return;
+        _protectedWorkingDir = null;
+        try
+        {
+            var marker = Path.Combine(dir, UnwrittenMarkerFile);
+            if (File.Exists(marker)) File.Delete(marker);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // A leftover marker only costs a stale temp folder, never data.
+            EditorLog.Warn("GamePass", $"Could not clear the unwritten-edits marker in {dir}: {ex.Message}");
+        }
     }
 
     /// <summary>True when an open session is holding edits that have not been written yet.</summary>
@@ -530,9 +624,15 @@ public sealed class SaveWorkspaceSessionService : IDisposable
     }
 
     /// <summary>Best-effort removal of a Game Pass temp working copy that is no longer open.</summary>
-    private static void DeleteWorkingDir(string? dir)
+    private void DeleteWorkingDir(string? dir)
     {
         if (string.IsNullOrEmpty(dir)) return;
+        if (string.Equals(dir, _protectedWorkingDir, StringComparison.OrdinalIgnoreCase))
+        {
+            EditorLog.Warn("GamePass",
+                $"Keeping {dir}: it holds edits that could not be written back to the Xbox save.");
+            return;
+        }
         try
         {
             if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true);
@@ -553,8 +653,22 @@ public sealed class SaveWorkspaceSessionService : IDisposable
         if (!Directory.Exists(root)) return;
         foreach (var dir in Directory.EnumerateDirectories(root))
         {
-            try { Directory.Delete(dir, recursive: true); }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+            try
+            {
+                // A copy marked as holding unwritten edits is the only surviving version of work a
+                // previous run failed to write back, so it outlives the run that made it.
+                if (File.Exists(Path.Combine(dir, UnwrittenMarkerFile)))
+                {
+                    EditorLog.Warn("GamePass",
+                        $"Keeping {dir}: it holds edits from an earlier run that never reached the Xbox save.");
+                    continue;
+                }
+                Directory.Delete(dir, recursive: true);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // A stale copy that cannot be removed costs temp space and nothing else.
+            }
         }
     }
 

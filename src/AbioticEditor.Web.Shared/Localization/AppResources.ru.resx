@@ -1423,6 +1423,10 @@
   <data name="Main_GpWriteFailedMessage" xml:space="preserve">
     <value>Ваше изменение сохранено, но записать его обратно в ваши сохранения Xbox не удалось: {0}</value>
   </data>
+  <data name="Main_GpWriteFailedRecovery" xml:space="preserve">
+    <value>Ваши изменения сохранены в этой папке, поэтому ничего не потеряно: {0}
+Закройте игру и приложение Xbox, затем нажмите СОХРАНИТЬ ещё раз. Если ошибка повторяется, скопируйте файлы из этой папки в сохранение вручную.</value>
+  </data>
   <data name="Main_SlotSelected" xml:space="preserve">
     <value>Выбрано {0} (ячейка {1})</value>
   </data>
@@ -1809,6 +1813,9 @@
   </data>
   <data name="Settings_Converting" xml:space="preserve">
     <value>Конвертация…  (при первом запуске может загрузиться нужный упаковщик)</value>
+  </data>
+  <data name="Settings_ConvertPickWorld" xml:space="preserve">
+    <value>В этом сохранении несколько миров. Какой из них преобразовать?</value>
   </data>
   <data name="Settings_ConvertDone" xml:space="preserve">
     <value>Готово. Конвертированная копия записана в:

@@ -29,6 +29,33 @@ public sealed class UserFacingErrorService(ILogger<UserFacingErrorService> logge
     }
 
     /// <summary>
+    /// The part of a failure that is worth showing the player, or <paramref name="fallback"/> when
+    /// there is none.
+    /// </summary>
+    /// <remarks>
+    /// <para>Most exceptions are technical accidents whose text means nothing to a player, which is
+    /// why screens otherwise show authored copy instead. But some are the editor refusing on
+    /// purpose - "that folder already contains a save", "this world has several characters, so one
+    /// account id will not do" - and those messages ARE the authored copy: they were written for
+    /// the player and they say the one thing that makes the problem fixable. Flattening them into
+    /// a generic "it failed" is how someone ends up unable to tell a refusal from a bug.</para>
+    ///
+    /// <para>Deliberate refusals are identified by type. Everything else - a null reference, an
+    /// out-of-range index, a parse error deep in a save - falls back to authored copy, so no raw
+    /// internals reach the screen. Screens call this rather than reading an exception themselves,
+    /// which is what keeps that judgement in one place.</para>
+    /// </remarks>
+    public string Detail(Exception exception, string action, string fallback)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+        Record(exception, action);
+        return exception is InvalidOperationException or InvalidDataException or ArgumentException
+            or IOException or UnauthorizedAccessException or NotSupportedException
+            ? exception.Message
+            : fallback;
+    }
+
+    /// <summary>
     /// True when opening a folder failed because this browser has no folder picker at all
     /// (Firefox, Safari), rather than because something was wrong with the folder. The two
     /// deserve completely different advice: one is "your browser cannot do this", the other is

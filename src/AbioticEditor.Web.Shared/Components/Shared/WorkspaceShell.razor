@@ -12,6 +12,7 @@
 @inject IniEditorSessionService IniSessions
 @inject ToastService Toasts
 @inject UnsavedChangesGuard Unsaved
+@inject ModalService Modals
 @inject NavigationManager Navigation
 @inject AbioticEditor.Ui.IExternalNavigationService External
 @inject IJSRuntime Js
@@ -384,8 +385,25 @@
         {
             // SaveSelectedAsync can throw (a locked file, a save missing an expected
             // struct, etc.); an uncaught exception here would otherwise take down the
-            // whole editor session instead of just failing this one write.
-            Errors.Record(exception, "Save selected file");
+            // whole editor session instead of just failing this one write. Both paths below
+            // record the cause themselves.
+
+            // A Game Pass save that failed to pack back is not an ordinary failed write: the edit
+            // exists, but only in a working copy the player does not know about. A toast that
+            // fades after eight seconds is the wrong place to tell someone where their work went,
+            // so that case gets a dialog naming the folder it is waiting in.
+            if (Workspace.UnwrittenEditsFolder is { } stranded)
+            {
+                var why = Errors.Detail(exception, "Pack Game Pass save", L.Editor("workspace.saveFailed"));
+                Modals.Show(new ModalRequest(
+                    L.Resource("Main_GpWriteFailedTitle"),
+                    @<div>
+                        <p>@L.Resource("Main_GpWriteFailedMessage", why)</p>
+                        <p>@L.Resource("Main_GpWriteFailedRecovery", stranded)</p>
+                    </div>,
+                    CancelText: L.Resource("Common_Close")));
+                return;
+            }
             Toasts.Show(Errors.Present(exception, L.Editor("workspace.saveFailed"), L.Resource("PlayerUi_ChangesRemainOpen")), ToastKind.Error, TimeSpan.FromSeconds(8));
         }
     }

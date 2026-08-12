@@ -1424,6 +1424,10 @@ IMPORTANTE: como esa sincronización nunca terminó, arreglarlo (y todo lo que e
   <data name="Main_GpWriteFailedMessage" xml:space="preserve">
     <value>Tu cambio se guardó, pero no se pudo escribir de vuelta en tus guardados de Xbox: {0}</value>
   </data>
+  <data name="Main_GpWriteFailedRecovery" xml:space="preserve">
+    <value>Tus cambios están a salvo en esta carpeta, así que no se ha perdido nada: {0}
+Cierra el juego y la aplicación de Xbox y vuelve a pulsar GUARDAR. Si sigue fallando, copia los archivos de esa carpeta en tu partida a mano.</value>
+  </data>
   <data name="Main_SlotSelected" xml:space="preserve">
     <value>{0} seleccionado (ranura {1})</value>
   </data>
@@ -1810,6 +1814,9 @@ Esto escribe en el guardado de inmediato y recarga el editor, así que se pierde
   </data>
   <data name="Settings_Converting" xml:space="preserve">
     <value>Convirtiendo…  (la primera vez puede que se descargue un compresor necesario)</value>
+  </data>
+  <data name="Settings_ConvertPickWorld" xml:space="preserve">
+    <value>Esta partida tiene más de un mundo. ¿Cuál quieres convertir?</value>
   </data>
   <data name="Settings_ConvertDone" xml:space="preserve">
     <value>Listo. Copia convertida escrita en:

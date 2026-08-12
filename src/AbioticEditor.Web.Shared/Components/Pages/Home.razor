@@ -10,6 +10,7 @@
 @inject ISaveFileSystem Files
 @inject ToastService Toasts
 @inject UnsavedChangesGuard Unsaved
+@inject GamePassSafetyGuard GamePassSafety
 @inject HostLanguageService Languages
 @inject NavigationManager Navigation
 
@@ -252,9 +253,12 @@ else
     /// </summary>
     /// <remarks>
     /// Every way into a world from this page funnels through here - a discovered world, a picked
-    /// folder, a zip, a remembered world - so the question is asked once, in one place.
+    /// folder, a zip, a remembered world - so the question is asked once, in one place. A Game Pass
+    /// world picks up a second gate here for the same reason: the cloud-sync workflow has to be
+    /// explained before the first edit, whichever way the player got to the world.
     /// </remarks>
-    private Task SelectWorldAsync(DiscoveredWorld world) => Unsaved.ConfirmAsync(() => OpenWorldAsync(world));
+    private Task SelectWorldAsync(DiscoveredWorld world) => Unsaved.ConfirmAsync(
+        () => GamePassSafety.OpenAsync(world.FolderPath, () => OpenWorldAsync(world)));
 
     private async Task OpenWorldAsync(DiscoveredWorld world)
     {

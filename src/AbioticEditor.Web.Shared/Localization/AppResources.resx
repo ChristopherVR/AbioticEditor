@@ -1714,6 +1714,10 @@ IMPORTANT: because that sync never finished, tidying up (and anything you edit a
   <data name="Main_GpWriteFailedMessage" xml:space="preserve">
     <value>Your change was saved, but writing it back into your Xbox saves failed: {0}</value>
   </data>
+  <data name="Main_GpWriteFailedRecovery" xml:space="preserve">
+    <value>Your edits are safe in this folder, so nothing is lost: {0}
+Close the game and the Xbox app, then press SAVE again. If that keeps failing, copy the files from that folder into your save by hand.</value>
+  </data>
   <data name="Main_SlotSelected" xml:space="preserve">
     <value>Selected {0} (slot {1})</value>
   </data>
@@ -2112,6 +2116,9 @@ This writes to the save straight away and reloads the editor, so anything you ha
   </data>
   <data name="Settings_Converting" xml:space="preserve">
     <value>Converting…  (the first run may download a compressor it needs)</value>
+  </data>
+  <data name="Settings_ConvertPickWorld" xml:space="preserve">
+    <value>This save has more than one world. Which one do you want to convert?</value>
   </data>
   <data name="Settings_ConvertDone" xml:space="preserve">
     <value>Done. Converted copy written to:
