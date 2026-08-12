@@ -5,6 +5,72 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-60: Game Pass end-to-end audit and repair (2026-08-13)
+
+Full review of the Xbox/Game Pass path (Core, CLI, Web, tests, docs). The format engineering was
+sound; almost everything that made Game Pass "finicky" was either **safety UX lost in the MAUI ->
+Blazor port** or a **data-loss window in the save/convert paths**. Verified throughout against the
+real 70-member wgs dump, not just the sanitized fixture.
+
+**The port had dropped every Game Pass dialog.** `Main_Gp*` existed in all five languages and was
+referenced by nothing: no cloud-sync warning, no mid-sync repair offer, no write-failure recovery.
+Restored via a new `GamePassSafetyGuard` (Web.Shared), hooked into `Home.SelectWorldAsync` - the one
+funnel every route into a world already passes through. Warning shows once per run; the repair
+dialog now actually calls `RepairMidSync`, which was CLI-only before.
+
+**Save-path data loss (the "my edit vanished" class):**
+- `SaveSelectedAsync` cleared the dirty flag, then packed. A failed pack left the edit *only* in a
+  temp working copy that the next open / dispose / startup sweep deleted. Now the copy is marked
+  (in memory **and** with an on-disk `.unwritten-edits` marker, because the sweep runs in a later
+  process), the failure reaches the caller, and the shell shows a dialog naming the folder. Cleared
+  on a successful retry.
+- `ApplyWorld` silently no-opped when no member matched (`changed == 0` -> no repack, no error):
+  SAVE looked successful and wrote nothing. Now throws.
+- Player-id change was a two-phase write that repacked the real container *outside* SAVE. Split
+  into `StagePlayerRename` (in-memory, rides the next SAVE) + `RenamePlayerSave`/
+  `RenamePlayerToAccount` (immediate, for the CLI). Staging happens first because it is the step
+  that can refuse; the file rewrite is unwound if it fails, so the two can never disagree.
+- `containers.index` was rewritten with `File.WriteAllBytes` - a crash mid-write loses every
+  container at once. Now temp-file + atomic replace (`WriteFileAtomic`), manifests too.
+
+**Container-store correctness:**
+- `FindFallbackBlob` accepted a sole candidate with **no size check**, and `RepairMidSync` then made
+  that guess permanent. Now a recorded size must match.
+- `WriteBlob` deliberately kept old generations, which is exactly what made that fallback ambiguous.
+  Now prunes to one manifest + one blob per folder, matching what the game itself leaves.
+- `WriteNewContainer` would happily overwrite a real store's index, orphaning every other world in
+  it. Now refuses; `AddOrReplaceContainer` is the merge path (CLI `to-gamepass --into`).
+- Truncated-header case no longer silently skips the recency stamp (that stamp is the only thing
+  stopping cloud sync from rolling an edit back), and backups are capped at 8.
+
+**Conversion:** `SandboxSettings.ini` was dropped in both directions, so every converted world
+silently reset to default difficulty. Now carried (flag=1 member, stored as plaintext with every
+byte **decremented by one** - confirmed against the real dump). Unreadable saves now abort instead
+of vanishing from the output with an Info log. Destinations are guarded and never clobber. Non-ASCII
+world names work (UE writes those FStrings as UTF-16 with a negative length; the reader was
+ASCII-only). Web convert card shows the real refusal text and offers a world picker.
+
+**Oodle on Linux:** CUE4Parse downloads `liboodle-data-shared.so`, but the cache lookup only listed
+the Windows DLL names - so the "downloaded once, cached forever" promise never held on Linux and an
+offline machine could not open a Game Pass save at all. Fixed, and the misleading "cannot be read on
+this system" message replaced.
+
+**Tests: 966 -> 988.** xUnit v2 has no dynamic skip, so ~14 Game Pass tests reported **passed** while
+asserting nothing whenever Oodle was unavailable (i.e. plausibly all of CI). Added
+`Xunit.SkippableFact` (test-only) and converted every gate; verified a skip now reports `[SKIP]`.
+New `GamePassSafetyTests` covers the previously untested paths that touch real Xbox data:
+missing-blob recovery + the wrong-size refusal, `RepairRecoveredManifests`, merge, generation
+pruning, monotonic index stamps, the `ApplyWorld` no-op refusal, ini round-trip and byte shift,
+`ToMemberBody` for **all three** save classes (the 33-vs-8 custom-header constant had no direct
+test), and hostile member paths staying inside the working folder.
+
+Also: CLI refusals were surfacing as stack traces (`InvalidOperationException` was not in the
+user-error bucket); a repo test correctly caught raw `exception.Message` reaching player copy, so
+that judgement now lives in `UserFacingErrorService.Detail`.
+
+Still unverifiable from here: whether Xbox accepts a rewritten container in-game. That needs a real
+console/PC sync cycle - `gamepass snapshot` / `compare` exist for exactly that.
+
 ## Round-59: browser-editor field report, worked through (2026-08-09)
 
 A list of things a player hit in the published browser build. Most turned out to be one of three
