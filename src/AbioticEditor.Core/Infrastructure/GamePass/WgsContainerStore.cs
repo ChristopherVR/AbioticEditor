@@ -46,7 +46,9 @@ public sealed class WgsContainerStore
     private byte[] _header = Array.Empty<byte>();
     private uint _version;
 
-    public IReadOnlyList<WgsContainer> Containers { get; private set; } = Array.Empty<WgsContainer>();
+    private List<WgsContainer> _containers = new();
+
+    public IReadOnlyList<WgsContainer> Containers => _containers;
 
     private readonly List<string> _recoveredContainers = new();
 
@@ -175,7 +177,7 @@ public sealed class WgsContainerStore
                 BlobSize = size,
             });
         }
-        Containers = list;
+        _containers = list;
     }
 
     public WgsContainer? Find(string name)
@@ -299,8 +301,12 @@ public sealed class WgsContainerStore
     /// <summary>
     /// Looks for a GUID-named blob file in <paramref name="folder"/> that could serve as a
     /// fallback when the manifest-referenced blob is absent. Returns the path to use, or null.
-    /// Only returns a result when there is no ambiguity: exactly one candidate exists, or exactly
-    /// one candidate matches the expected size.
+    ///
+    /// <para>Only an unambiguous, corroborated candidate is accepted. When the index records a
+    /// blob size (the normal case) exactly one file must match it: substituting a
+    /// different-sized blob would silently swap in save data from another point in time, and the
+    /// caller treats the result as the real save. The "sole candidate, size unknown" fallback is
+    /// kept only for the case where the index has no size to check against.</para>
     /// </summary>
     private static string? FindFallbackBlob(string folder, Guid expectedGuid, long expectedSize)
     {
@@ -319,8 +325,8 @@ public sealed class WgsContainerStore
                 sizeMatch.Add(file);
         }
         if (sizeMatch.Count == 1) return sizeMatch[0];
-        if (all.Count == 1) return all[0];
-        return null;
+        if (expectedSize > 0) return null;
+        return all.Count == 1 ? all[0] : null;
     }
 
     private static bool IsHex(string s)
@@ -334,10 +340,23 @@ public sealed class WgsContainerStore
     /// <summary>
     /// Writes new blob bytes for a logical container: a fresh GUID blob file, a new
     /// <c>container.&lt;N+1&gt;</c> manifest, and an updated index entry. Rewrites
-    /// <c>containers.index</c>. The previous generation's files are left for rollback.
+    /// <c>containers.index</c>.
+    ///
+    /// <para>Order matters: the blob lands first, then the manifest that names it, then the index
+    /// that names the manifest. A crash at any point therefore leaves the previous generation
+    /// still fully described, never a manifest pointing at a blob that does not exist.</para>
+    ///
+    /// <para>Once the index is committed the superseded generation is deleted, because the game
+    /// keeps exactly one <c>container.N</c> + one blob per folder and leftovers actively cause
+    /// harm: a stray same-folder blob is what makes <see cref="FindFallbackBlob"/> ambiguous, so
+    /// hoarding old generations would sabotage the recovery path for a rollback nobody can
+    /// perform from here anyway. The whole folder is backed up before the first write
+    /// (<see cref="GamePassSaveSet"/>), which is the real rollback.</para>
     /// </summary>
     public void WriteBlob(WgsContainer container, byte[] blob)
     {
+        ArgumentNullException.ThrowIfNull(container);
+        ArgumentNullException.ThrowIfNull(blob);
         var folder = Path.Combine(_root, container.FolderName);
         Directory.CreateDirectory(folder);
 
@@ -355,8 +374,86 @@ public sealed class WgsContainerStore
         container.SyncId = $"\"0x{DateTime.UtcNow.ToFileTimeUtc():X}\"";
 
         WriteIndex();
+        PruneSupersededGenerations(folder, newNumber, newBlobGuid);
         Diagnostics.EditorLog.Info("GamePass",
             $"wgs: wrote container '{container.Name}' gen {newNumber} ({blob.Length} bytes).");
+    }
+
+    /// <summary>
+    /// Adds a logical container to this store, or replaces the blob of one that already exists.
+    /// This is how a converted world is merged INTO a real Game Pass save folder: the existing
+    /// index and every other container in it are preserved, unlike
+    /// <see cref="WriteNewContainer"/> which builds a fresh single-container folder.
+    /// </summary>
+    public void AddOrReplaceContainer(string containerName, byte[] blob)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(containerName);
+        ArgumentNullException.ThrowIfNull(blob);
+
+        if (Find(containerName) is { } existing)
+        {
+            WriteBlob(existing, blob);
+            return;
+        }
+
+        var folderGuid = Guid.NewGuid();
+        var folder = Path.Combine(_root, folderGuid.ToString("N").ToUpperInvariant());
+        Directory.CreateDirectory(folder);
+        var blobGuid = Guid.NewGuid();
+        File.WriteAllBytes(Path.Combine(folder, blobGuid.ToString("N").ToUpperInvariant()), blob);
+        WriteManifest(folder, 1, blobGuid);
+
+        var now = DateTime.UtcNow.ToFileTimeUtc();
+        _containers.Add(new WgsContainer
+        {
+            Name = containerName,
+            Name2 = containerName,
+            SyncId = $"\"0x{now:X}\"",
+            ContainerNumber = 1,
+            Generation = 1,
+            FolderGuid = folderGuid,
+            FileTime = now,
+            Reserved = 0,
+            BlobSize = blob.Length,
+        });
+        WriteIndex();
+        Diagnostics.EditorLog.Info("GamePass",
+            $"wgs: added container '{containerName}' to {_root} ({blob.Length} bytes).");
+    }
+
+    /// <summary>
+    /// Deletes the manifests and blobs left over from earlier generations of one container
+    /// folder, keeping only the generation just committed. Best-effort: the index already points
+    /// at the new generation, so a file that cannot be deleted (locked by the Xbox app) is a
+    /// cosmetic leftover, not a failed save.
+    /// </summary>
+    private static void PruneSupersededGenerations(string folder, byte keepNumber, Guid keepBlob)
+    {
+        var keepBlobName = keepBlob.ToString("N").ToUpperInvariant();
+        var keepManifest = $"container.{keepNumber}";
+        try
+        {
+            foreach (var file in Directory.EnumerateFiles(folder).ToList())
+            {
+                var name = Path.GetFileName(file);
+                var isManifest = name.StartsWith("container.", StringComparison.OrdinalIgnoreCase);
+                var isBlob = name.Length == 32 && IsHex(name);
+                if (!isManifest && !isBlob) continue;
+                if (isManifest && name.Equals(keepManifest, StringComparison.OrdinalIgnoreCase)) continue;
+                if (isBlob && name.Equals(keepBlobName, StringComparison.OrdinalIgnoreCase)) continue;
+
+                try { File.Delete(file); }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    Diagnostics.EditorLog.Warn("GamePass",
+                        $"Could not remove superseded save file '{name}': {ex.Message}");
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Diagnostics.EditorLog.Warn("GamePass", $"Could not tidy container folder '{folder}': {ex.Message}");
+        }
     }
 
     /// <summary>
@@ -364,10 +461,24 @@ public sealed class WgsContainerStore
     /// logical container (<paramref name="containerName"/>) whose blob is <paramref name="blob"/>.
     /// Writes <c>containers.index</c>, the GUID container folder, its <c>container.1</c> manifest and
     /// the blob. Used to convert a Steam world into a Game Pass save.
+    ///
+    /// <para>Refuses to run on a folder that already holds a <c>containers.index</c>. The index it
+    /// writes describes exactly one container, so overwriting a real save store's index would
+    /// orphan every other world and profile container in it - the folder would still hold the
+    /// data, but nothing would reference it. Merge into an existing store with
+    /// <see cref="AddOrReplaceContainer"/> instead.</para>
     /// </summary>
     public static void WriteNewContainer(string destFolder, string containerName, byte[] blob)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(destFolder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(containerName);
         ArgumentNullException.ThrowIfNull(blob);
+        if (IsContainerFolder(destFolder))
+        {
+            throw new InvalidOperationException(
+                $"'{destFolder}' is already an Xbox save folder. Writing a new container list here would "
+                + "orphan the saves already in it. Choose an empty folder, or merge into this one instead.");
+        }
         Directory.CreateDirectory(destFolder);
 
         var folderGuid = Guid.NewGuid();
@@ -399,7 +510,7 @@ public sealed class WgsContainerStore
         w.Write(0L);                               // reserved
         w.Write((long)blob.Length);
         w.Flush();
-        File.WriteAllBytes(Path.Combine(destFolder, IndexFileName), ms.ToArray());
+        WriteFileAtomic(Path.Combine(destFolder, IndexFileName), ms.ToArray());
         Diagnostics.EditorLog.Info("GamePass", $"Created wgs container '{containerName}' at {destFolder} ({blob.Length} bytes).");
     }
 
@@ -426,7 +537,29 @@ public sealed class WgsContainerStore
         w.Write(nameField);
         w.Write(blobGuid.ToByteArray());
         w.Write(blobGuid.ToByteArray()); // duplicated (current + baseline)
-        File.WriteAllBytes(Path.Combine(folder, $"container.{number}"), ms.ToArray());
+        WriteFileAtomic(Path.Combine(folder, $"container.{number}"), ms.ToArray());
+    }
+
+    /// <summary>
+    /// Writes <paramref name="bytes"/> to <paramref name="path"/> through a sibling temp file and
+    /// an atomic same-volume replace, so an interrupted write can never leave a half-written file
+    /// behind. The index in particular is the single file the entire save store hangs off: a
+    /// truncated one loses every container at once, which no per-save backup can undo.
+    /// </summary>
+    private static void WriteFileAtomic(string path, byte[] bytes)
+    {
+        var temp = path + ".tmp";
+        try
+        {
+            File.WriteAllBytes(temp, bytes);
+            File.Move(temp, path, overwrite: true);
+        }
+        catch
+        {
+            try { if (File.Exists(temp)) File.Delete(temp); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* best effort */ }
+            throw;
+        }
     }
 
     private void WriteIndex()
@@ -436,7 +569,7 @@ public sealed class WgsContainerStore
         // (1) the container count, recomputed from the live list, and (2) the index-level FILETIME.
         // The FILETIME sits right after the version (4), count (4), reserved (4) and the length-
         // prefixed package-family-name string (4 + len*2).
-        BitConverter.GetBytes((uint)Containers.Count).CopyTo(_header, 4);
+        BitConverter.GetBytes((uint)_containers.Count).CopyTo(_header, 4);
         var fileTimeOffset = 16 + PackageFamilyName.Length * 2;
         if (fileTimeOffset + 8 <= _header.Length)
         {
@@ -448,12 +581,23 @@ public sealed class WgsContainerStore
             var now = DateTime.UtcNow.ToFileTimeUtc();
             var stamp = now > previous ? now : previous + 1;
             BitConverter.GetBytes(stamp).CopyTo(_header, fileTimeOffset);
+            IndexFileTime = stamp;
+        }
+        else
+        {
+            // Only reachable on a malformed/truncated header. Without the recency stamp Xbox sync
+            // can decide the cloud copy is the newer one and roll the edit back, so refuse rather
+            // than write a save that looks stale the moment it lands.
+            throw new InvalidDataException(
+                "This Xbox save's container list is too short to carry its last-modified time, so an "
+                + "edit could not be marked as newer than the cloud copy. The file looks damaged; "
+                + "restore it from a backup or let the game rewrite it before editing.");
         }
 
         using var ms = new MemoryStream();
         ms.Write(_header, 0, _header.Length);
         using var w = new BinaryWriter(ms, Encoding.Unicode, leaveOpen: true);
-        foreach (var c in Containers)
+        foreach (var c in _containers)
         {
             WriteWString(w, c.Name);
             WriteWString(w, c.Name2);
@@ -466,7 +610,7 @@ public sealed class WgsContainerStore
             w.Write(c.BlobSize);
         }
         w.Flush();
-        File.WriteAllBytes(Path.Combine(_root, IndexFileName), ms.ToArray());
+        WriteFileAtomic(Path.Combine(_root, IndexFileName), ms.ToArray());
     }
 
     private static uint ReadU32(byte[] d, ref int p) { var v = BitConverter.ToUInt32(d, p); p += 4; return v; }

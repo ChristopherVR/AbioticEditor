@@ -1,3 +1,5 @@
+using AbioticEditor.Core.PlayerSaves;
+
 namespace AbioticEditor.Core.GamePass;
 
 /// <summary>The kind of editable save a Game Pass bundle member maps to.</summary>
@@ -6,6 +8,10 @@ public enum GamePassSaveKind
     Player,
     World,
     WorldMetadata,
+
+    /// <summary>The world's <c>SandboxSettings.ini</c> (difficulty knobs) - text, not a GVAS save,
+    /// so the save editors do not open it, but it travels with the world.</summary>
+    SandboxSettings,
     Other,
 }
 
@@ -22,19 +28,31 @@ public sealed class GamePassSaveEntry
     public required GamePassSaveKind Kind { get; init; }
 
     /// <summary>The <c>Player_&lt;id&gt;.sav</c> / <c>WorldSave_*.sav</c> file name. In-bundle paths
-    /// drop the extension, so it is re-added to match how the rest of the editor names saves.</summary>
+    /// drop the extension, so it is re-added to match how the rest of the editor names saves. The
+    /// ini member keeps its own extension.</summary>
     public string FileName
     {
         get
         {
             var name = Path.GetFileName(MemberPath.Replace('\\', '/'));
+            if (Kind == GamePassSaveKind.SandboxSettings) return name;
             return name.EndsWith(".sav", StringComparison.OrdinalIgnoreCase) ? name : name + ".sav";
         }
     }
 
     /// <summary>True for members the editor can open (player + world GVAS saves).</summary>
-    public bool IsEditable => Kind != GamePassSaveKind.Other;
+    public bool IsEditable => Kind is not (GamePassSaveKind.Other or GamePassSaveKind.SandboxSettings);
+
+    /// <summary>True for members that belong in an extracted world folder - the GVAS saves plus the
+    /// world's <c>SandboxSettings.ini</c>, which is not editable here but must survive a
+    /// round-trip rather than being dropped on the floor.</summary>
+    public bool TravelsWithWorld => IsEditable || Kind == GamePassSaveKind.SandboxSettings;
 }
+
+/// <summary>A world container that could not be unpacked, and why.</summary>
+/// <param name="ContainerName">The wgs logical container, e.g. <c>ForScience-WC</c>.</param>
+/// <param name="Message">The failure as reported by the bundle/blob layer.</param>
+public sealed record GamePassContainerFault(string ContainerName, string Message);
 
 /// <summary>
 /// High-level view of one Xbox "wgs" folder for Abiotic Factor: it surfaces the world/player saves
@@ -44,11 +62,26 @@ public sealed class GamePassSaveEntry
 /// </summary>
 public sealed class GamePassSaveSet
 {
+    /// <summary>How many <c>.bak</c> snapshots of the wgs folder to keep. Each one is a full copy
+    /// of the save folder, and they sit next to the player's real saves, so an unbounded series
+    /// would quietly fill a drive with near-identical megabytes.</summary>
+    private const int MaxBackups = 8;
+
     private readonly WgsContainerStore _store;
     private readonly Dictionary<string, AbfSaveBundle> _bundles = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<GamePassContainerFault> _faults = new();
     private bool _backedUp;
 
     public string FolderPath { get; }
+
+    /// <summary>
+    /// World containers that failed to unpack the last time <see cref="Entries"/> ran. They are
+    /// skipped rather than aborting the whole folder (one broken world should not hide the others),
+    /// but a caller that is about to act on "the world in this folder" must be able to tell the
+    /// difference between a folder with one world and a folder where a second world failed to
+    /// open.
+    /// </summary>
+    public IReadOnlyList<GamePassContainerFault> Faults => _faults;
 
     private GamePassSaveSet(string folder, WgsContainerStore store)
     {
@@ -92,6 +125,7 @@ public sealed class GamePassSaveSet
     public IReadOnlyList<GamePassSaveEntry> Entries()
     {
         var entries = new List<GamePassSaveEntry>();
+        _faults.Clear();
         foreach (var container in _store.Containers)
         {
             // World bundles are the "-WC" containers; "-WC-B" are backups, others are profile/settings.
@@ -105,6 +139,7 @@ public sealed class GamePassSaveSet
             catch (Exception ex)
             {
                 Diagnostics.EditorLog.Warn("GamePass", $"Could not read bundle '{container.Name}': {ex.Message}");
+                _faults.Add(new GamePassContainerFault(container.Name, ex.Message));
                 continue;
             }
 
@@ -117,7 +152,7 @@ public sealed class GamePassSaveSet
                     WorldName = world,
                     MemberPath = m.Path,
                     SaveClass = m.SaveClass,
-                    Kind = KindOf(m.SaveClass),
+                    Kind = KindOf(m),
                 });
             }
         }
@@ -153,11 +188,16 @@ public sealed class GamePassSaveSet
     {
         Directory.CreateDirectory(destDir);
         string world = containerName;
-        foreach (var entry in Entries().Where(e => e.ContainerName.Equals(containerName, StringComparison.OrdinalIgnoreCase) && e.IsEditable))
+        foreach (var entry in Entries().Where(e => e.ContainerName.Equals(containerName, StringComparison.OrdinalIgnoreCase) && e.TravelsWithWorld))
         {
             world = entry.WorldName;
             var path = ResolveMemberPath(entry, destDir);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            if (entry.Kind == GamePassSaveKind.SandboxSettings)
+            {
+                File.WriteAllText(path, GamePassMemberCodec.DecodeIniText(Member(entry).Body));
+                continue;
+            }
             File.WriteAllBytes(path, ReadSave(entry));
         }
         // Nothing was extracted for this container. Call LoadBundle directly so the real cause
@@ -172,38 +212,74 @@ public sealed class GamePassSaveSet
     }
 
     /// <summary>
-    /// Re-packs every edited <c>.sav</c> under <paramref name="srcDir"/> (as laid out by
+    /// Re-packs every edited save under <paramref name="srcDir"/> (as laid out by
     /// <see cref="ExtractWorld"/>) back into <paramref name="containerName"/> in one pass: each
-    /// member body is refreshed from disk, the bundle is Oodle-recompressed once, and a single new
-    /// blob generation is written. Backs up the wgs folder on first write. Returns the count written.
+    /// member body is refreshed from disk, any staged player rename is applied, the bundle is
+    /// Oodle-recompressed once, and a single new blob generation is written. Backs up the wgs
+    /// folder on first write. Returns the number of members written.
     /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Not one member of the container was found in <paramref name="srcDir"/>. That means the
+    /// working copy is not the one this container was extracted to (moved, cleaned up, or
+    /// renamed), and packing would write the container back unchanged - so the caller's save
+    /// would silently do nothing. Failing here is what lets the host keep the edit and say so.
+    /// </exception>
     public int ApplyWorld(string containerName, string srcDir)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(containerName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(srcDir);
         BackupOnce();
+
+        var members = Entries()
+            .Where(e => e.ContainerName.Equals(containerName, StringComparison.OrdinalIgnoreCase) && e.TravelsWithWorld)
+            .ToList();
+
         var changed = 0;
-        foreach (var entry in Entries().Where(e => e.ContainerName.Equals(containerName, StringComparison.OrdinalIgnoreCase) && e.IsEditable))
+        var missing = new List<string>();
+        foreach (var entry in members)
         {
             var path = ResolveMemberPath(entry, srcDir);
-            if (!File.Exists(path)) continue;
-            Member(entry).Body = GamePassMemberCodec.ToMemberBody(entry.SaveClass, File.ReadAllBytes(path));
+            if (!File.Exists(path)) { missing.Add(entry.FileName); continue; }
+            Member(entry).Body = entry.Kind == GamePassSaveKind.SandboxSettings
+                ? GamePassMemberCodec.EncodeIniText(File.ReadAllText(path))
+                : GamePassMemberCodec.ToMemberBody(entry.SaveClass, File.ReadAllBytes(path));
             changed++;
         }
-        if (changed > 0) Repack(containerName);
+
+        if (changed == 0)
+        {
+            throw new InvalidOperationException(
+                $"None of the saves for '{containerName}' were found in '{srcDir}', so there was nothing "
+                + "to pack back into the Xbox save. The working copy of this world is missing; reopen the "
+                + "save and make the change again.");
+        }
+        if (missing.Count > 0)
+        {
+            Diagnostics.EditorLog.Warn("GamePass",
+                $"Packing '{containerName}': {missing.Count} member(s) were not in the working copy and keep "
+                + $"their previous contents ({string.Join(", ", missing)}).");
+        }
+
+        Repack(containerName);
         return changed;
     }
 
     /// <summary>
-    /// Renames a player save inside <paramref name="containerName"/>'s bundle, so re-homing a
-    /// player to another account id survives the repack.
+    /// Renames a player save inside <paramref name="containerName"/>'s bundle in memory, so
+    /// re-homing a player to another account id survives the next repack. Nothing is written to
+    /// the player's Xbox save until <see cref="ApplyWorld"/> or <see cref="WriteSave"/> runs, which
+    /// keeps a rename part of the same SAVE as the edits around it instead of a separate write the
+    /// player never asked for (and which would leave the container half-renamed if the save that
+    /// followed it failed).
     ///
-    /// <para>Without this the rename is silently lost: <see cref="ApplyWorld"/> walks the
-    /// bundle's own table of contents and looks on disk for each member's recorded name, so a
-    /// file renamed in the working copy simply stops being found and the container keeps the old
+    /// <para>The rename has to reach the bundle at all because <see cref="ApplyWorld"/> walks the
+    /// bundle's own table of contents and looks on disk for each member's recorded name: a file
+    /// renamed only in the working copy simply stops being found, and the container keeps the old
     /// player under the old id.</para>
     /// </summary>
     /// <returns>True when a member was renamed.</returns>
     /// <exception cref="InvalidOperationException">The new name is already taken in this bundle.</exception>
-    public bool RenamePlayerSave(string containerName, string oldFileName, string newFileName)
+    public bool StagePlayerRename(string containerName, string oldFileName, string newFileName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(containerName);
         ArgumentException.ThrowIfNullOrWhiteSpace(oldFileName);
@@ -220,15 +296,73 @@ public sealed class GamePassSaveSet
         if (bundle.Members.Any(m => WithoutSavExtension(m.Name).Equals(newMemberName, StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException($"'{newFileName}' already exists in this Game Pass world.");
 
-        BackupOnce();
         // Keep the member's own folder; only the file name at the end of it changes.
         var separator = member.Path.Contains('\\', StringComparison.Ordinal) ? '\\' : '/';
         var lastSeparator = member.Path.LastIndexOfAny(['\\', '/']);
         member.Path = lastSeparator < 0
             ? newMemberName
             : string.Concat(member.Path.AsSpan(0, lastSeparator), separator.ToString(), newMemberName);
+        return true;
+    }
+
+    /// <summary>
+    /// Stages a player rename (see <see cref="StagePlayerRename"/>) and immediately writes the
+    /// container, for callers with no later save step of their own (the command line).
+    /// </summary>
+    /// <returns>True when a member was renamed and the container rewritten.</returns>
+    public bool RenamePlayerSave(string containerName, string oldFileName, string newFileName)
+    {
+        if (!StagePlayerRename(containerName, oldFileName, newFileName)) return false;
+        BackupOnce();
         Repack(containerName);
         return true;
+    }
+
+    /// <summary>
+    /// Re-homes a packed player save to <paramref name="newAccountId"/> and writes the container
+    /// once. An owner id lives in two places - the save's file name and the <c>SaveIdentifier</c>
+    /// inside it - and both are rewritten here in a single repack, so the container can never end
+    /// up carrying a member named for one account whose contents claim another.
+    /// </summary>
+    /// <returns>The new file name.</returns>
+    public string RenamePlayerToAccount(GamePassSaveEntry entry, string newAccountId)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        ArgumentException.ThrowIfNullOrWhiteSpace(newAccountId);
+        if (entry.Kind != GamePassSaveKind.Player)
+        {
+            throw new InvalidOperationException($"'{entry.FileName}' is not a player save.");
+        }
+        if (!PlayerIdentifier.IsSafeFileToken(newAccountId))
+        {
+            throw new ArgumentException(
+                $"'{newAccountId}' is not a valid account id (use letters, digits, '-', '_' or '.').",
+                nameof(newAccountId));
+        }
+
+        var newFileName = $"Player_{newAccountId}.sav";
+        var member = Member(entry);
+
+        // Rewrite the owner id inside the save first: if the name is already taken the rename below
+        // throws and nothing has been written to the player's container yet.
+        var save = UeSaveGame.SaveGame.LoadFrom(new MemoryStream(GamePassMemberCodec.ToGvas(entry.SaveClass, member.Body), writable: false));
+        PlayerSaveIdentity.StampIdentifier(save, newAccountId);
+        using var restamped = new MemoryStream();
+        save.WriteTo(restamped);
+        var newBody = GamePassMemberCodec.ToMemberBody(entry.SaveClass, restamped.ToArray());
+
+        if (!StagePlayerRename(entry.ContainerName, entry.FileName, newFileName))
+        {
+            throw new InvalidOperationException(
+                $"'{entry.FileName}' is already owned by {newAccountId}.");
+        }
+        member.Body = newBody;
+
+        BackupOnce();
+        Repack(entry.ContainerName);
+        Diagnostics.EditorLog.Info("GamePass",
+            $"Re-homed {entry.FileName} -> {newFileName} in '{entry.ContainerName}'.");
+        return newFileName;
     }
 
     private static string WithoutSavExtension(string name)
@@ -239,12 +373,19 @@ public sealed class GamePassSaveSet
     /// <paramref name="baseDir"/>. The member's name comes from a bundle TOC path inside a save the
     /// user opened, so it is untrusted; this guards against a crafted container writing outside the
     /// working folder (zip-slip), on top of the leaf-only <see cref="GamePassSaveEntry.FileName"/>.
+    /// Not hypothetical for the ini member in particular: the game records it under the absolute
+    /// Windows path it had on the machine that wrote the save.
     /// </summary>
     private static string ResolveMemberPath(GamePassSaveEntry entry, string baseDir)
     {
         var relative = entry.Kind == GamePassSaveKind.Player
             ? Path.Combine("PlayerData", entry.FileName)
             : entry.FileName;
+        if (Path.IsPathRooted(relative) || relative.Contains("..", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Game Pass member '{entry.MemberPath}' has an unsafe name - extraction aborted.");
+        }
         var root = Path.GetFullPath(baseDir);
         var full = Path.GetFullPath(Path.Combine(root, relative));
         if (!full.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
@@ -334,7 +475,8 @@ public sealed class GamePassSaveSet
     private void BackupOnce()
     {
         if (_backedUp) return;
-        var dest = FolderPath.TrimEnd('/', '\\') + ".bak";
+        var baseDest = FolderPath.TrimEnd('/', '\\') + ".bak";
+        var dest = baseDest;
         if (Directory.Exists(dest))
         {
             dest += "-" + DateTime.UtcNow.ToFileTimeUtc().ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -342,26 +484,70 @@ public sealed class GamePassSaveSet
         CopyDirectory(FolderPath, dest);
         _backedUp = true;
         Diagnostics.EditorLog.Info("GamePass", $"Backed up wgs folder to {dest}");
+        PruneOldBackups(baseDest);
+    }
+
+    /// <summary>
+    /// Keeps the <see cref="MaxBackups"/> most recent snapshots and deletes the rest. Each editing
+    /// session makes one, so without this an often-edited save accumulates full copies of itself
+    /// indefinitely, next to the real saves. Best-effort: failing to delete an old backup must
+    /// never fail the save it was taken for.
+    /// </summary>
+    private static void PruneOldBackups(string baseDest)
+    {
+        try
+        {
+            var parent = Path.GetDirectoryName(baseDest);
+            if (string.IsNullOrEmpty(parent)) return;
+            var prefix = Path.GetFileName(baseDest);
+
+            var backups = Directory.EnumerateDirectories(parent, prefix + "*")
+                .Select(d => new DirectoryInfo(d))
+                .OrderByDescending(d => d.LastWriteTimeUtc)
+                .Skip(MaxBackups)
+                .ToList();
+
+            foreach (var old in backups)
+            {
+                try
+                {
+                    old.Delete(recursive: true);
+                    Diagnostics.EditorLog.Info("GamePass", $"Removed old save backup {old.Name}.");
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    Diagnostics.EditorLog.Warn("GamePass", $"Could not remove old backup '{old.Name}': {ex.Message}");
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Diagnostics.EditorLog.Warn("GamePass", $"Could not tidy old save backups: {ex.Message}");
+        }
     }
 
     private static void CopyDirectory(string source, string dest)
     {
+        // Rebuild each path from its position under the source root. A plain string replace
+        // corrupts any path where the source folder's name occurs again further down.
         Directory.CreateDirectory(dest);
         foreach (var dir in Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories))
         {
-            Directory.CreateDirectory(dir.Replace(source, dest));
+            Directory.CreateDirectory(Path.Combine(dest, Path.GetRelativePath(source, dir)));
         }
         foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
         {
-            File.Copy(file, file.Replace(source, dest), overwrite: true);
+            File.Copy(file, Path.Combine(dest, Path.GetRelativePath(source, file)), overwrite: true);
         }
     }
 
-    private static GamePassSaveKind KindOf(string saveClass) => saveClass switch
-    {
-        GamePassMemberCodec.CharacterSaveClass => GamePassSaveKind.Player,
-        GamePassMemberCodec.WorldSaveClass => GamePassSaveKind.World,
-        GamePassMemberCodec.WorldMetadataSaveClass => GamePassSaveKind.WorldMetadata,
-        _ => GamePassSaveKind.Other,
-    };
+    private static GamePassSaveKind KindOf(AbfMember member) => member.IsIni
+        ? GamePassSaveKind.SandboxSettings
+        : member.SaveClass switch
+        {
+            GamePassMemberCodec.CharacterSaveClass => GamePassSaveKind.Player,
+            GamePassMemberCodec.WorldSaveClass => GamePassSaveKind.World,
+            GamePassMemberCodec.WorldMetadataSaveClass => GamePassSaveKind.WorldMetadata,
+            _ => GamePassSaveKind.Other,
+        };
 }

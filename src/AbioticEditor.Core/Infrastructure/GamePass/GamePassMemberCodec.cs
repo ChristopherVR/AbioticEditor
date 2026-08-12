@@ -24,6 +24,29 @@ public static class GamePassMemberCodec
     public static bool IsEditableSaveClass(string? saveClass) => HeaderFor(saveClass) is not null;
 
     /// <summary>
+    /// Decodes the bundle's <c>SandboxSettings.ini</c> member to its real text. The game stores
+    /// that member with every byte decremented by one (so <c>[SandboxSettings]</c> is written as
+    /// <c>ZR`mcanwRdsshmfr\</c>); it is the only member that is not a GVAS body.
+    /// </summary>
+    public static string DecodeIniText(ReadOnlySpan<byte> memberBody)
+    {
+        var plain = new byte[memberBody.Length];
+        for (var i = 0; i < memberBody.Length; i++) plain[i] = unchecked((byte)(memberBody[i] + 1));
+        return Encoding.UTF8.GetString(plain);
+    }
+
+    /// <summary>Re-encodes ini text into the shifted form the bundle stores (inverse of
+    /// <see cref="DecodeIniText"/>).</summary>
+    public static byte[] EncodeIniText(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        var plain = Encoding.UTF8.GetBytes(text);
+        var body = new byte[plain.Length];
+        for (var i = 0; i < plain.Length; i++) body[i] = unchecked((byte)(plain[i] - 1));
+        return body;
+    }
+
+    /// <summary>
     /// Reconstructs a full GVAS save from a headerless member body by prepending the class-matched
     /// header template.
     /// </summary>

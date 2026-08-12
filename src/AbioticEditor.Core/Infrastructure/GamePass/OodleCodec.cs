@@ -19,7 +19,17 @@ namespace AbioticEditor.Core.GamePass;
 /// </summary>
 public static class OodleCodec
 {
-    private static readonly string[] DllNames = { "oo2core_9_win64.dll", "oodle-data-shared.dll" };
+    // Both platforms' names are listed on every platform on purpose: the cache lookup has to find
+    // whatever CUE4Parse's downloader wrote, and on Linux that is the .so. Listing only the Windows
+    // DLLs meant a Linux download was cached and then never found again, so every run needed the
+    // internet and an offline machine could not open a Game Pass save at all.
+    private static readonly string[] DllNames =
+    {
+        "oo2core_9_win64.dll",
+        "oodle-data-shared.dll",
+        "liboodle-data-shared.so",
+        "liboo2corelinux64.so",
+    };
 
     /// <summary>Where a downloaded Oodle library is cached so later runs don't need internet again.</summary>
     private static readonly string CacheDir = Path.Combine(

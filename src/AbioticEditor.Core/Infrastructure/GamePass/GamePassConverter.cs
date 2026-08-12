@@ -27,7 +27,8 @@ public static class GamePassConverter
     /// world (one id can't own several characters).</para>
     /// </summary>
     public static string SteamWorldToGamePass(
-        string steamWorldDir, string destWgsDir, string? worldName = null, string? newPlayerId = null)
+        string steamWorldDir, string destWgsDir, string? worldName = null, string? newPlayerId = null,
+        bool mergeIntoExisting = false)
     {
         if (!Directory.Exists(steamWorldDir))
         {
@@ -46,9 +47,13 @@ public static class GamePassConverter
             var saveClass = ReadSaveClass(bytes);
             if (saveClass is null || !GamePassMemberCodec.IsEditableSaveClass(saveClass))
             {
-                Diagnostics.EditorLog.Info("GamePass",
-                    $"Skipping '{Path.GetFileName(file.Path)}' (unsupported save class '{saveClass ?? "?"}').");
-                continue;
+                // Dropping a save here used to be a one-line log entry, which meant a corrupt or
+                // newer-than-this-editor character simply vanished from the converted world and the
+                // player found out when they went looking for it. Refuse the whole conversion instead.
+                throw new InvalidDataException(
+                    $"'{Path.GetFileName(file.Path)}' could not be read as an Abiotic Factor save"
+                    + (saveClass is null ? "" : $" (its type is '{saveClass}')")
+                    + ". Converting would leave it out of the new save, so nothing was written.");
             }
 
             // In-bundle member paths use forward slashes, no extension, under Profile/Worlds/<World>.
@@ -75,27 +80,63 @@ public static class GamePassConverter
             throw new InvalidDataException($"No Abiotic Factor saves found under '{steamWorldDir}'.");
         }
 
+        // The world's difficulty settings live beside the saves rather than inside them, and the
+        // game packs them into the bundle as a text member. Leaving it out would quietly reset a
+        // converted world to default difficulty.
+        var sandbox = Path.Combine(steamWorldDir, SandboxSettingsFileName);
+        if (File.Exists(sandbox))
+        {
+            members.Add(new AbfMember
+            {
+                Path = $"Profile/Worlds/{worldName}/{SandboxSettingsFileName}",
+                SaveClass = string.Empty,
+                Flag = AbfMember.IniFlag,
+                Body = GamePassMemberCodec.EncodeIniText(File.ReadAllText(sandbox)),
+            });
+        }
+
+        var containerName = $"{worldName}-WC";
         var blob = AbfSaveBundle.Create(members).Serialize();
-        WgsContainerStore.WriteNewContainer(destWgsDir, $"{worldName}-WC", blob);
+        if (mergeIntoExisting)
+        {
+            WgsContainerStore.Open(destWgsDir).AddOrReplaceContainer(containerName, blob);
+        }
+        else
+        {
+            WgsContainerStore.WriteNewContainer(destWgsDir, containerName, blob);
+        }
         Diagnostics.EditorLog.Info("GamePass",
-            $"Converted Steam world '{worldName}' ({members.Count} save(s)) -> Game Pass container at {destWgsDir}.");
+            $"Converted Steam world '{worldName}' ({members.Count} member(s)) -> Game Pass container at {destWgsDir}.");
         return destWgsDir;
     }
 
+    /// <summary>The world difficulty settings file that sits next to a world's saves.</summary>
+    private const string SandboxSettingsFileName = "SandboxSettings.ini";
+
     /// <summary>
-    /// The "nothing readable in this folder" error. A Game Pass world bundle is Oodle
-    /// compressed, and the only Oodle build the editor can bind to is the game's own Windows
-    /// library, so on Linux and macOS every container fails to unpack and the folder looks
-    /// empty. Saying "no world containers found" there sends people hunting for a problem with
-    /// their save folder that does not exist, so the reason is named instead.
+    /// The "nothing readable in this folder" error. A Game Pass world bundle is compressed with
+    /// Oodle, which the editor borrows from the installed game or downloads once, so a folder can
+    /// also look empty simply because that library could not be obtained. Saying "no world
+    /// containers found" then sends people hunting for a problem with their save folder that does
+    /// not exist, so the real reason is named instead. Any world container that failed to unpack
+    /// for its own reason is reported with that reason.
     /// </summary>
-    private static InvalidDataException NoContainers(string wgsDir)
-        => OodleCodec.IsAvailable
+    private static InvalidDataException NoContainers(string wgsDir, IReadOnlyList<GamePassContainerFault> faults)
+    {
+        if (faults.Count > 0)
+        {
+            var detail = string.Join("; ", faults.Select(f => $"{f.ContainerName}: {f.Message}"));
+            return new InvalidDataException(
+                $"The worlds in '{wgsDir}' could not be unpacked ({detail}).");
+        }
+        return OodleCodec.IsAvailable
             ? new InvalidDataException($"No world containers found in '{wgsDir}'.")
             : new InvalidDataException(
-                $"Game Pass saves in '{wgsDir}' cannot be read on this system. They are packed "
-                + "with Oodle, and the editor can only borrow that from an installed Windows copy "
-                + "of the game. Convert the save on a Windows machine and copy the result over.");
+                $"Game Pass saves in '{wgsDir}' could not be unpacked because the Oodle compression "
+                + "library is not available. The editor takes it from an installed copy of the game, "
+                + "or downloads it once if you are online. Connect to the internet and try again, or "
+                + "set ABIOTIC_OODLE_DLL to the path of a copy.");
+    }
 
     /// <summary>
     /// Unpacks a Game Pass world container into a Steam world folder at
@@ -108,10 +149,19 @@ public static class GamePassConverter
         string wgsDir, string? containerName, string destSteamDir, string? newPlayerId = null)
     {
         newPlayerId = ValidateOptionalId(newPlayerId);
+        GuardEmptyDestination(destSteamDir);
         var set = GamePassSaveSet.Open(wgsDir);
+        var entries = set.Entries();
+        var containers = entries.Select(e => e.ContainerName).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        if (containerName is null && containers.Count > 1)
+        {
+            throw new InvalidOperationException(
+                $"'{wgsDir}' holds more than one world ({string.Join(", ", containers)}). "
+                + "Say which one to convert.");
+        }
         var container = containerName
-            ?? set.Entries().Select(e => e.ContainerName).Distinct().FirstOrDefault()
-            ?? throw NoContainers(wgsDir);
+            ?? containers.FirstOrDefault()
+            ?? throw NoContainers(wgsDir, set.Faults);
         set.ExtractWorld(container, destSteamDir);
 
         if (newPlayerId is not null)
@@ -132,6 +182,31 @@ public static class GamePassConverter
         Diagnostics.EditorLog.Info("GamePass",
             $"Converted Game Pass container '{container}' -> Steam world folder at {destSteamDir}.");
         return destSteamDir;
+    }
+
+    /// <summary>The <c>&lt;World&gt;-WC</c> containers in a wgs folder, so a caller can offer a choice
+    /// instead of silently converting whichever one happens to come first.</summary>
+    public static IReadOnlyList<string> ListWorldContainers(string wgsDir)
+        => GamePassSaveSet.Open(wgsDir).Entries()
+            .Select(e => e.ContainerName)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    /// <summary>
+    /// Refuses a destination that already holds saves. Conversion writes a world into this folder
+    /// and, when re-homing, deletes the backup it made of the freshly extracted player - both of
+    /// which are safe for a new folder and destructive for one with a world already in it.
+    /// </summary>
+    private static void GuardEmptyDestination(string destDir)
+    {
+        if (!Directory.Exists(destDir)) return;
+        if (Directory.EnumerateFiles(destDir, "*.sav", SearchOption.AllDirectories).Any()
+            || WgsContainerStore.IsContainerFolder(destDir))
+        {
+            throw new InvalidOperationException(
+                $"'{destDir}' already contains a save. Converting into it could overwrite that world, "
+                + "so nothing was written. Choose an empty folder.");
+        }
     }
 
     private static bool IsPlayerSave(string relative)

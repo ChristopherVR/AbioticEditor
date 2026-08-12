@@ -9,6 +9,10 @@ namespace AbioticEditor.Core.GamePass;
 /// </summary>
 public sealed class AbfMember
 {
+    /// <summary>The <see cref="Flag"/> value marking the text <c>SandboxSettings.ini</c> member
+    /// (every GVAS save member uses 0).</summary>
+    public const int IniFlag = 1;
+
     /// <summary>
     /// The save's path inside the bundle. Settable because a player save can be re-homed to a
     /// different account id, which renames the file - and the bundle's own table of contents is
@@ -18,6 +22,9 @@ public sealed class AbfMember
     public required string SaveClass { get; init; }
     public int Flag { get; init; }
     public required byte[] Body { get; set; }
+
+    /// <summary>True for the text <c>SandboxSettings.ini</c> member rather than a GVAS save.</summary>
+    public bool IsIni => Flag == IniFlag;
 
     /// <summary>The file name component of <see cref="Path"/>, e.g. <c>Player_2533...</c>.</summary>
     public string Name => System.IO.Path.GetFileName(Path.Replace('\\', '/'));
@@ -69,6 +76,12 @@ public sealed class AbfSaveBundle
         if (len is < 1 or > 64 || 4 + len > data.Length) return null;
         return Encoding.ASCII.GetString(data.Slice(4, len)).TrimEnd('\0');
     }
+
+    /// <summary>The member holding the world's <c>SandboxSettings.ini</c>, or null when the bundle
+    /// has none. Identified by its flag rather than its path, because the game records that member
+    /// under the absolute path it had on the machine that wrote it.</summary>
+    public AbfMember? SandboxSettings
+        => Members.FirstOrDefault(m => m.Flag == AbfMember.IniFlag);
 
     public static AbfSaveBundle Parse(byte[] data)
     {
@@ -176,12 +189,27 @@ public sealed class AbfSaveBundle
         return v;
     }
 
-    // UE FString: int32 length (incl. null), then ASCII bytes incl. the trailing null.
+    // UE FString: int32 length (incl. the null terminator), then the characters. A POSITIVE
+    // length counts ASCII bytes; a NEGATIVE one counts UTF-16 characters, which is what the
+    // engine writes as soon as a string holds anything outside ASCII - an accented or
+    // non-Latin world name, for instance, which is otherwise perfectly legal to name a save.
     private static string ReadUnrealString(byte[] d, ref int pos)
     {
         var len = ReadInt(d, ref pos);
         if (len == 0) return string.Empty;
-        if (len < 0 || pos + len > d.Length)
+
+        if (len < 0)
+        {
+            if (len == int.MinValue) throw new InvalidDataException("Corrupt FString in bundle.");
+            var chars = -len;
+            var bytes = chars * 2;
+            if (pos + bytes > d.Length) throw new InvalidDataException("Corrupt FString in bundle.");
+            var wide = Encoding.Unicode.GetString(d, pos, bytes).TrimEnd('\0');
+            pos += bytes;
+            return wide;
+        }
+
+        if (pos + len > d.Length)
         {
             throw new InvalidDataException("Corrupt FString in bundle.");
         }
@@ -192,9 +220,29 @@ public sealed class AbfSaveBundle
 
     private static void WriteUnrealString(BinaryWriter w, string s)
     {
-        var bytes = Encoding.ASCII.GetBytes(s);
-        w.Write(bytes.Length + 1);
-        w.Write(bytes);
-        w.Write((byte)0);
+        // Stay byte-identical to the game (and to what we read) for the ASCII case; only reach
+        // for UTF-16 when the string genuinely needs it, exactly as the engine does.
+        if (IsAscii(s))
+        {
+            var bytes = Encoding.ASCII.GetBytes(s);
+            w.Write(bytes.Length + 1);
+            w.Write(bytes);
+            w.Write((byte)0);
+            return;
+        }
+
+        var wide = Encoding.Unicode.GetBytes(s);
+        w.Write(-(s.Length + 1));
+        w.Write(wide);
+        w.Write((ushort)0);
+    }
+
+    private static bool IsAscii(string s)
+    {
+        foreach (var c in s)
+        {
+            if (c > '\x007f') return false;
+        }
+        return true;
     }
 }
