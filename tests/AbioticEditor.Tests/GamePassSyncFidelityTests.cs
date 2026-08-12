@@ -42,7 +42,7 @@ public class GamePassSyncFidelityTests
 
             var store = WgsContainerStore.Open(dir.FullName);
             var c = store.Find("W-WC")!;
-            var (oldGen, oldNum) = (c.Generation, c.ContainerNumber);
+            var (oldState, oldNum) = (c.State, c.ContainerNumber);
 
             // Simulate the editor saving an edit into the container.
             store.WriteBlob(c, new byte[] { 9, 9, 9, 9, 9, 9 });
@@ -56,8 +56,14 @@ public class GamePassSyncFidelityTests
             // the manifest points at the blob actually on disk (no mid-sync inconsistency we created).
             var reopened = WgsContainerStore.Open(dir.FullName);
             var c2 = reopened.Find("W-WC")!;
-            Assert.Equal(unchecked((uint)(oldGen + 1)), c2.Generation);
             Assert.Equal(unchecked((byte)(oldNum + 1)), c2.ContainerNumber);
+
+            // The per-entry state field must come back untouched. Every container in a real
+            // game-written index carries 1 regardless of how many times it has been saved, so
+            // incrementing it (which this editor used to do) writes a value the game never
+            // produces into a folder Xbox is about to arbitrate over.
+            Assert.Equal(oldState, c2.State);
+            Assert.Equal(1u, c2.State);
             Assert.False(reopened.NeededBlobFallback);
             Assert.Equal(new byte[] { 9, 9, 9, 9, 9, 9 }, reopened.ReadBlob(c2));
         }

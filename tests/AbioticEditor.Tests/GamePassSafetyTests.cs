@@ -166,6 +166,38 @@ public class GamePassSafetyTests
         for (var i = 1; i < stamps.Count; i++) Assert.True(stamps[i] > stamps[i - 1], $"stamp {i} did not advance");
     }
 
+    [Fact]
+    public void The_sync_token_is_written_in_the_same_units_the_game_uses()
+    {
+        using var scratch = new Scratch();
+        WgsContainerStore.WriteNewContainer(scratch.Path, "World-WC", Payload(256, seed: 40));
+
+        var token = WgsContainerStore.Open(scratch.Path).Containers[0].SyncId;
+
+        // A real save carries tokens like "0x8DEBCCC41BE9635": a .NET tick count, 100ns since year
+        // 1. This editor used to write a Win32 FILETIME (100ns since 1601) - about 4.7x smaller,
+        // "0x1DCE..." - so anything reading the token as a version number saw a save from the
+        // 1800s and preferred the other copy. Pin the magnitude, not the exact value.
+        Assert.StartsWith("\"0x", token, StringComparison.Ordinal);
+        Assert.EndsWith("\"", token, StringComparison.Ordinal);
+
+        var ticks = long.Parse(token.Trim('"')[2..], System.Globalization.NumberStyles.HexNumber,
+            System.Globalization.CultureInfo.InvariantCulture);
+        var asDate = new DateTime(ticks, DateTimeKind.Utc);
+        Assert.InRange(asDate, new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(2100, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+    }
+
+    [Fact]
+    public void Container_timestamps_use_the_games_millisecond_granularity()
+    {
+        using var scratch = new Scratch();
+        WgsContainerStore.WriteNewContainer(scratch.Path, "World-WC", Payload(256, seed: 41));
+
+        // Every entry timestamp in a real save divides exactly by one millisecond.
+        var entry = WgsContainerStore.Open(scratch.Path).Containers[0];
+        Assert.Equal(0, entry.FileTime % TimeSpan.TicksPerMillisecond);
+    }
+
     // ---- bundle + member codec -------------------------------------------------------------
 
     [SkippableFact]

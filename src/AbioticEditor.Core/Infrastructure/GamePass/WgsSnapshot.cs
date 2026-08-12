@@ -3,8 +3,11 @@ using System.Security.Cryptography;
 namespace AbioticEditor.Core.GamePass;
 
 /// <summary>One container's identity + content fingerprint at a moment in time.</summary>
+/// <param name="Number">The <c>container.N</c> number, which is what advances on each write.</param>
+/// <param name="State">The per-entry field the game always writes as 1; recorded so a snapshot
+/// would show it if Xbox ever changed it, not used to detect a rollback.</param>
 public sealed record WgsContainerState(
-    string Name, byte Number, uint Generation, long BlobSize, string? BlobSha256, string? Error);
+    string Name, byte Number, uint State, long BlobSize, string? BlobSha256, string? Error);
 
 /// <summary>
 /// A point-in-time fingerprint of a whole wgs folder: the index-level recency timestamp plus each
@@ -32,7 +35,7 @@ public sealed record WgsSnapshot(long IndexFileTime, IReadOnlyList<WgsContainerS
             {
                 error = ex.Message;
             }
-            states.Add(new WgsContainerState(c.Name, c.ContainerNumber, c.Generation, c.BlobSize, sha, error));
+            states.Add(new WgsContainerState(c.Name, c.ContainerNumber, c.State, c.BlobSize, sha, error));
         }
         return new WgsSnapshot(store.IndexFileTime, states);
     }
@@ -56,13 +59,18 @@ public sealed record WgsSnapshot(long IndexFileTime, IReadOnlyList<WgsContainerS
                 lines.Add($"DROPPED   {b.Name} - removed from the index (Xbox sync discarded it)");
                 continue;
             }
-            if (a.Generation < b.Generation)
+            // The container NUMBER is what actually advances on each write (container.170 ->
+            // container.171). The neighbouring per-entry field is 1 on every container the game
+            // has ever written, so comparing that would flag nothing. The number is a byte and
+            // wraps at 255, so a single backwards step across that boundary reads as a jump
+            // forward; content is compared regardless, which is what catches it.
+            if (a.Number < b.Number)
             {
-                lines.Add($"ROLLED BACK {b.Name} - generation {b.Generation} -> {a.Generation} (reverted to an older copy)");
+                lines.Add($"ROLLED BACK {b.Name} - container {b.Number} -> {a.Number} (reverted to an older copy)");
             }
             else if (!string.Equals(a.BlobSha256, b.BlobSha256, StringComparison.OrdinalIgnoreCase))
             {
-                lines.Add($"CHANGED   {b.Name} - content differs (gen {b.Generation} -> {a.Generation}, {b.BlobSize} -> {a.BlobSize} bytes)");
+                lines.Add($"CHANGED   {b.Name} - content differs (container {b.Number} -> {a.Number}, {b.BlobSize} -> {a.BlobSize} bytes)");
             }
         }
         foreach (var a in after.Containers)

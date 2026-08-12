@@ -7,9 +7,27 @@ public sealed class WgsContainer
 {
     public required string Name { get; init; }
     public required string Name2 { get; init; }
+
+    /// <summary>
+    /// The quoted hex token Xbox stamps on a container when it syncs, e.g.
+    /// <c>"0x8DEBCCC41BE9635"</c>. It is a .NET-style tick count (100ns since year 1) - NOT a
+    /// Win32 FILETIME (100ns since 1601), which is a factor of roughly 4.7 smaller and is what
+    /// this editor used to write. See <see cref="WgsContainerStore.NewSyncId"/>.
+    /// </summary>
     public required string SyncId { get; set; }
+
     public byte ContainerNumber { get; set; }
-    public uint Generation { get; set; }
+
+    /// <summary>
+    /// A per-entry field that every container in a real, game-written index carries as 1 -
+    /// across container numbers 5, 10, 35, 109, 113, 167, 170 and 222 in the reference save, so
+    /// it is emphatically not a write counter. Its exact meaning is unknown (most likely a state
+    /// or format flag), which is precisely why it is round-tripped verbatim rather than
+    /// interpreted: this editor used to increment it on every write, inventing values the game
+    /// never produces.
+    /// </summary>
+    public uint State { get; set; } = 1;
+
     public required Guid FolderGuid { get; init; }
     public long FileTime { get; set; }
     public long Reserved { get; set; }
@@ -25,10 +43,16 @@ public sealed class WgsContainer
 /// sub-folder has a <c>container.N</c> manifest pointing at a GUID-named blob file (the actual
 /// payload). See the project memory "Game Pass save format" for the byte layout.
 ///
-/// <para>Writing a blob follows the game's own generation scheme: a fresh GUID blob is written, a
-/// new <c>container.&lt;N+1&gt;</c> points at it, and the index entry is updated (number bumped,
-/// new sync token, size, timestamp), leaving the previous generation in place for rollback. The
-/// whole folder should be backed up first (callers use <see cref="GamePassSaveSet"/> which does).</para>
+/// <para>Writing a blob follows the game's own scheme: a fresh GUID blob is written, a new
+/// <c>container.&lt;N+1&gt;</c> points at it, and the index entry is updated (number bumped, new
+/// sync token, size, timestamp), then the superseded generation is removed so the folder keeps the
+/// one-manifest-one-blob shape the game itself maintains. The whole folder is backed up first
+/// (callers use <see cref="GamePassSaveSet"/>, which does that), and that backup is the rollback.</para>
+///
+/// <para>Fields whose meaning is not established are round-tripped verbatim rather than
+/// recomputed. Xbox arbitrates between this folder and its own cloud copy, so a field this editor
+/// invents a value for is a field that can make an edit lose that arbitration - silently, hours
+/// later. See <see cref="WgsContainer.SyncId"/> and <see cref="WgsContainer.State"/>.</para>
 /// </summary>
 public sealed class WgsContainerStore
 {
@@ -159,7 +183,7 @@ public sealed class WgsContainerStore
             var name2 = ReadWString(d, ref pos);
             var sync = ReadWString(d, ref pos);
             var num = d[pos]; pos += 1;
-            var gen = ReadU32(d, ref pos);
+            var state = ReadU32(d, ref pos);
             var folder = new Guid(d.AsSpan(pos, 16).ToArray()); pos += 16;
             var ft = ReadI64(d, ref pos);
             var reserved = ReadI64(d, ref pos);
@@ -170,7 +194,7 @@ public sealed class WgsContainerStore
                 Name2 = name2,
                 SyncId = sync,
                 ContainerNumber = num,
-                Generation = gen,
+                State = state,
                 FolderGuid = folder,
                 FileTime = ft,
                 Reserved = reserved,
@@ -368,10 +392,10 @@ public sealed class WgsContainerStore
         WriteManifest(folder, newNumber, newBlobGuid);
 
         container.ContainerNumber = newNumber;
-        container.Generation = unchecked(container.Generation + 1);
+        // State is deliberately left as it was read: the game never varies it (see WgsContainer.State).
         container.BlobSize = blob.Length;
-        container.FileTime = DateTime.UtcNow.ToFileTimeUtc();
-        container.SyncId = $"\"0x{DateTime.UtcNow.ToFileTimeUtc():X}\"";
+        container.FileTime = NowEntryFileTime();
+        container.SyncId = NewSyncId();
 
         WriteIndex();
         PruneSupersededGenerations(folder, newNumber, newBlobGuid);
@@ -403,14 +427,14 @@ public sealed class WgsContainerStore
         File.WriteAllBytes(Path.Combine(folder, blobGuid.ToString("N").ToUpperInvariant()), blob);
         WriteManifest(folder, 1, blobGuid);
 
-        var now = DateTime.UtcNow.ToFileTimeUtc();
+        var now = NowEntryFileTime();
         _containers.Add(new WgsContainer
         {
             Name = containerName,
             Name2 = containerName,
-            SyncId = $"\"0x{now:X}\"",
+            SyncId = NewSyncId(),
             ContainerNumber = 1,
-            Generation = 1,
+            State = 1,
             FolderGuid = folderGuid,
             FileTime = now,
             Reserved = 0,
@@ -489,22 +513,22 @@ public sealed class WgsContainerStore
         File.WriteAllBytes(Path.Combine(folder, blobGuid.ToString("N").ToUpperInvariant()), blob);
         WriteManifest(folder, 1, blobGuid);
 
-        var now = DateTime.UtcNow.ToFileTimeUtc();
+        var now = NowEntryFileTime();
         using var ms = new MemoryStream();
         using var w = new BinaryWriter(ms, Encoding.Unicode, leaveOpen: true);
         w.Write(14u);                              // version
         w.Write(1u);                               // container count
         w.Write(0u);                               // reserved
         WriteWString(w, AbioticPackageFamilyName);
-        w.Write(now);                              // index FILETIME
+        w.Write(DateTime.UtcNow.ToFileTimeUtc());  // index FILETIME (full precision, as the game writes)
         w.Write(3u);                               // constant
         WriteWString(w, Guid.NewGuid().ToString());// root GUID
         w.Write(new byte[] { 0, 0, 0, 0x10, 0, 0, 0, 0 }); // 8 reserved bytes (as the game writes)
         WriteWString(w, containerName);
         WriteWString(w, containerName);
-        WriteWString(w, $"\"0x{now:X}\"");         // sync token
+        WriteWString(w, NewSyncId());              // sync token (.NET ticks, not a FILETIME)
         w.Write((byte)1);                          // container number -> container.1
-        w.Write(1u);                               // generation
+        w.Write(1u);                               // per-entry state (the game always writes 1)
         w.Write(folderGuid.ToByteArray());
         w.Write(now);                              // entry FILETIME
         w.Write(0L);                               // reserved
@@ -512,6 +536,33 @@ public sealed class WgsContainerStore
         w.Flush();
         WriteFileAtomic(Path.Combine(destFolder, IndexFileName), ms.ToArray());
         Diagnostics.EditorLog.Info("GamePass", $"Created wgs container '{containerName}' at {destFolder} ({blob.Length} bytes).");
+    }
+
+    /// <summary>
+    /// A fresh sync token in the game's own format: <c>"0x&lt;hex&gt;"</c> of a .NET tick count
+    /// (100ns since year 1), e.g. <c>"0x8DEBCCC41BE9635"</c>.
+    /// </summary>
+    /// <remarks>
+    /// This editor previously wrote a Win32 FILETIME here (100ns since <b>1601</b>), which for any
+    /// present-day date is roughly 4.7x smaller - <c>0x1DCE...</c> against the game's
+    /// <c>0x8DEB...</c>. Every container the editor touched therefore carried a token that, read as
+    /// the same kind of number the game writes, dates to the nineteenth century. Anything comparing
+    /// tokens to decide which copy of a save is newer would pick the other one every single time,
+    /// which is exactly the "my edit was there and then it wasn't" report from players who edited
+    /// while Xbox was online.
+    /// </remarks>
+    internal static string NewSyncId() => $"\"0x{DateTime.UtcNow.Ticks:X}\"";
+
+    /// <summary>
+    /// The current time as the game stamps a container entry: a FILETIME truncated to whole
+    /// milliseconds. Every entry in the reference save divides exactly by 10,000 ticks, so full
+    /// 100ns precision is not something the game ever writes here.
+    /// </summary>
+    private static long NowEntryFileTime()
+    {
+        const long TicksPerMillisecond = 10_000;
+        var now = DateTime.UtcNow.ToFileTimeUtc();
+        return now - (now % TicksPerMillisecond);
     }
 
     private static Guid ReadManifestBlobGuid(string folder, byte number)
@@ -603,7 +654,7 @@ public sealed class WgsContainerStore
             WriteWString(w, c.Name2);
             WriteWString(w, c.SyncId);
             w.Write(c.ContainerNumber);
-            w.Write(c.Generation);
+            w.Write(c.State);
             w.Write(c.FolderGuid.ToByteArray());
             w.Write(c.FileTime);
             w.Write(c.Reserved);
