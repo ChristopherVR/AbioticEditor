@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [2.5.2] - 2026-08-13
+
+### Bug Fixes
+- Buttons that could be pressed twice, and an export that was on the wrong platform
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.5.1 [skip ci]
+
+
 ## [2.5.1] - 2026-08-13
 
 ### Bug Fixes
