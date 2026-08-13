@@ -1,6 +1,7 @@
 using UeSaveGame;
 using AbioticEditor.Core.PlayerSaves;
 using AbioticEditor.Core.SaveClasses;
+using AbioticEditor.Core.WorldSaves;
 
 namespace AbioticEditor.Core.GamePass;
 
@@ -39,8 +40,10 @@ public static class GamePassConverter
 
         var saves = EnumerateWorldSaves(steamWorldDir).ToList();
         GuardSingleRehome(newPlayerId, saves.Count(s => IsPlayerSave(s.Relative)));
+        var oldPlayerId = SoleOwnerId(saves.Select(s => s.Path), newPlayerId);
 
         var members = new List<AbfMember>();
+        var rehomedClaims = 0;
         foreach (var file in saves)
         {
             var bytes = File.ReadAllBytes(file.Path);
@@ -64,6 +67,15 @@ public static class GamePassConverter
             {
                 bytes = StampOwner(bytes, newPlayerId);
                 rel = $"PlayerData/Player_{newPlayerId}";
+            }
+            else if (oldPlayerId is not null && newPlayerId is not null && !IsPlayerSave(file.Relative))
+            {
+                // The character moved accounts, so the beds it claimed have to move with it or the
+                // player arrives in their own base unable to sleep in their own bed. A Steam id and
+                // an Xbox one are different lengths, which is exactly the case the patcher handles
+                // by re-serializing rather than swapping bytes.
+                bytes = WorldSteamIdPatcher.PatchBytes(bytes, oldPlayerId, newPlayerId, out var claims);
+                rehomedClaims += claims;
             }
 
             members.Add(new AbfMember
@@ -106,7 +118,9 @@ public static class GamePassConverter
             WgsContainerStore.WriteNewContainer(destWgsDir, containerName, blob);
         }
         Diagnostics.EditorLog.Info("GamePass",
-            $"Converted Steam world '{worldName}' ({members.Count} member(s)) -> Game Pass container at {destWgsDir}.");
+            $"Converted Steam world '{worldName}' ({members.Count} member(s)"
+            + (rehomedClaims > 0 ? $", {rehomedClaims} bed claim(s) re-homed" : "")
+            + $") -> Game Pass container at {destWgsDir}.");
         return destWgsDir;
     }
 
@@ -173,9 +187,30 @@ public static class GamePassConverter
             GuardSingleRehome(newPlayerId, players.Length);
             if (players.Length == 1)
             {
+                // Read the account the world currently belongs to off the save itself. Asking the
+                // caller for it would let a typo silently leave the beds where they were.
+                var oldPlayerId = SoleOwnerId(players, newPlayerId);
                 PlayerSaveIdentity.ChangeSteamId(players[0], newPlayerId);
-                var bak = players[0] + ".bak";
-                if (File.Exists(bak)) File.Delete(bak); // the freshly-extracted original needs no backup
+                DeleteFreshExtractionBackup(players[0]);
+
+                if (oldPlayerId is not null)
+                {
+                    // Beds and other claimable deployables record their owner inside the world
+                    // saves, so a character that changes account without this stays locked out of
+                    // its own bed. An Xbox id is 16 digits and a SteamID64 is 17, which is why this
+                    // could not be done until the patcher learned to re-serialize.
+                    var claims = WorldSteamIdPatcher.PatchFolder(destSteamDir, oldPlayerId, newPlayerId);
+                    foreach (var world in Directory.EnumerateFiles(
+                        destSteamDir, "WorldSave_*.sav", SearchOption.TopDirectoryOnly))
+                    {
+                        DeleteFreshExtractionBackup(world);
+                    }
+                    if (claims > 0)
+                    {
+                        Diagnostics.EditorLog.Info("GamePass",
+                            $"Re-homed {claims} bed claim(s) from {oldPlayerId} to {newPlayerId}.");
+                    }
+                }
             }
         }
 
@@ -211,6 +246,33 @@ public static class GamePassConverter
 
     private static bool IsPlayerSave(string relative)
         => Path.GetFileName(relative).StartsWith("Player_", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The account id the world being converted currently belongs to, taken from the name of its
+    /// one and only player save, or null when the conversion is not re-homing anyone or the id is
+    /// already the target. Returns null rather than throwing for a world with no readable player
+    /// id: not being able to move the bed claims is a smaller problem than refusing the whole
+    /// conversion over it.
+    /// </summary>
+    private static string? SoleOwnerId(IEnumerable<string> savePaths, string? newPlayerId)
+    {
+        if (newPlayerId is null) return null;
+        var players = savePaths.Where(p => IsPlayerSave(p)).ToList();
+        if (players.Count != 1) return null;
+        if (!PlayerIdentifier.TryParseFromPlayerFileName(players[0], out var oldId)) return null;
+        return string.Equals(oldId, newPlayerId, StringComparison.Ordinal) ? null : oldId;
+    }
+
+    /// <summary>
+    /// Drops the <c>.bak</c> the re-home left behind. Conversion writes into a brand-new folder,
+    /// so the "previous" file it preserves is one the editor extracted seconds earlier, and
+    /// leaving it would hand the player a world folder full of stale duplicates.
+    /// </summary>
+    private static void DeleteFreshExtractionBackup(string savePath)
+    {
+        var bak = savePath + ".bak";
+        if (File.Exists(bak)) File.Delete(bak);
+    }
 
     private static string? ValidateOptionalId(string? id)
     {

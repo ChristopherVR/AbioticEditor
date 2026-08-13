@@ -5,6 +5,39 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-61: bed claims survive a different-length owner-id change (2026-08-13)
+
+Closes follow-up 5 of `docs/reference/research/research-gamepass-to-steam.md`. A claim is
+`<ownerId>}|!|{<name>` in a deployable's `CustomTextDisplay_`; `WorldSteamIdPatcher` could only
+swap ids of equal length (SteamID64 -> SteamID64) and **threw** otherwise, which is every Game Pass
+case (Xbox 16 digits vs SteamID64 17).
+
+- `WorldSteamIdPatcher` now picks its route from the id lengths. Same length keeps the byte
+  replacement (byte-identical everywhere else, still ASCII + UTF-16LE). Different length goes
+  through `WorldSaveWriter.RewriteDeployableClaims` + a full re-serialize, which recomputes the
+  FString length prefixes. New `PatchBytes` overload for in-memory callers. A world with no
+  matching claim is never written (no `.bak`, no re-serialize); re-homing to the same id is a
+  no-op. Writes go through `SaveBackup.WriteWithBackup`.
+- `RewriteDeployableClaims` matches only text that **starts with** `<oldId>}|!|{`, because the game
+  reuses the same separator as the line break in sign text (`"Stolas}|!|{castle"` is a two-line
+  sign, not a claim). Everything from the separator on is carried over verbatim, so names keep the
+  private-use glyphs `ParseClaim` strips for display.
+- Wired into all four places an owner id changes: `GamePassConverter` both directions (old id read
+  off the save being converted, not asked of the caller), `GamePassSaveSet.RenamePlayerToAccount`
+  (in the same repack), the CLI `steamid` command, and the app's
+  `ChangeSelectedPlayerIdentifierAsync` - which re-homed the player file only, so the confirm
+  dialog's "any beds they claimed move across too" had been untrue since it was written. The
+  contradicting `PlayerGeneral_ChangeSteamIdHelp` string was corrected in all five languages.
+- **Where claims actually live (measured, not assumed):** a tree walk of the reference dump and
+  every fixture found the separator only in `DeployedObjectMap[*].CustomTextDisplay_` (claims) and
+  `.PlayerMadeString_` (sign text line breaks); tree-walk occurrence counts equal the raw
+  ASCII+UTF-16 byte counts in every file, so nothing hides outside the walk.
+- **Other owner-id references, deliberately left alone**: `CookingData_.ChefID_` on cooked-food item
+  proxies (who cooked it), item `PlayerMadeString_` name tags a player typed an id into, and the
+  metadata save's `ServerEntitlements` / `UserEntitlements` maps, which are **keyed** by owner id.
+  Entitlements are account purchases, so following a character to a new account is not obviously
+  right, and a key rewrite could collide with an id already in the map.
+
 ## Round-60: Game Pass end-to-end audit and repair (2026-08-13)
 
 Full review of the Xbox/Game Pass path (Core, CLI, Web, tests, docs). The format engineering was

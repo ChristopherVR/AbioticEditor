@@ -148,26 +148,77 @@ public static partial class WorldSaveWriter
             }
             if (kvp.Value is not StructProperty sp || sp.Value is not PropertiesStruct ps) return false;
 
-            var tag = ps.Properties.FindByPrefix("CustomTextDisplay_");
-            switch (tag?.Property)
-            {
-                case StrProperty str:
-                    str.Value = new FString(text);
-                    return true;
-                case TextProperty tp when tp.Value is UeSaveGame.DataTypes.FText ft
-                    && ft.HistoryType == UeSaveGame.TextData.TextHistoryType.None:
-                    if (ft.Value is not UeSaveGame.TextData.TextData_None none)
-                    {
-                        none = new UeSaveGame.TextData.TextData_None();
-                        ft.Value = none;
-                    }
-                    none.Value = text.Length == 0 ? null : new FString(text);
-                    return true;
-                default:
-                    return false;
-            }
+            return SetCustomTextDisplay(ps.Properties.FindByPrefix("CustomTextDisplay_")?.Property, text);
         }
         return false;
+    }
+
+    /// <summary>
+    /// The deployable text slot, which the game writes as either a plain string or a piece of
+    /// localizable text depending on how it was set. Both shapes have to be handled here rather
+    /// than at the call sites, because the two are indistinguishable from the outside and a save
+    /// can carry a mix of them.
+    /// </summary>
+    private static bool SetCustomTextDisplay(FProperty? property, string text)
+    {
+        switch (property)
+        {
+            case StrProperty str:
+                str.Value = new FString(text);
+                return true;
+            case TextProperty tp when tp.Value is UeSaveGame.DataTypes.FText ft
+                && ft.HistoryType == UeSaveGame.TextData.TextHistoryType.None:
+                if (ft.Value is not UeSaveGame.TextData.TextData_None none)
+                {
+                    none = new UeSaveGame.TextData.TextData_None();
+                    ft.Value = none;
+                }
+                none.Value = text.Length == 0 ? null : new FString(text);
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// Re-homes every claim held by <paramref name="oldOwnerId"/> in <c>DeployedObjectMap</c> to
+    /// <paramref name="newOwnerId"/> and returns how many were rewritten. Everything from the
+    /// separator onwards is carried over untouched, so the claimer's name survives exactly -
+    /// including the invisible private-use glyphs some in-game names wrap themselves in, which
+    /// the display path strips but the file must keep.
+    ///
+    /// <para>Only a text that <em>starts</em> with <c>&lt;oldOwnerId&gt;}|!|{</c> counts. The game
+    /// reuses the same separator as the line break in sign text, so a hand-typed sign reading
+    /// "Stolas}|!|{castle" is two lines rather than a claim by a player called Stolas, and a
+    /// match anywhere in the middle of a string is somebody's typing, not an ownership record.</para>
+    ///
+    /// <para>This is the different-length-safe half of an owner-id change: because the save is
+    /// re-serialized afterwards, the FString length prefixes are recomputed and the ids do not
+    /// have to be the same size. See <see cref="WorldSteamIdPatcher"/> for the byte-level fast
+    /// path used when they are.</para>
+    /// </summary>
+    public static int RewriteDeployableClaims(WorldSaveData data, string oldOwnerId, string newOwnerId)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentException.ThrowIfNullOrEmpty(oldOwnerId);
+        ArgumentException.ThrowIfNullOrEmpty(newOwnerId);
+
+        var pairs = WorldSaveReader.GetMapPairs(data.Raw.Properties, "DeployedObjectMap");
+        if (pairs is null) return 0;
+
+        var claimPrefix = oldOwnerId + WorldDeployable.ClaimSeparator;
+        var rewritten = 0;
+        foreach (var kvp in pairs)
+        {
+            if (kvp.Value is not StructProperty sp || sp.Value is not PropertiesStruct ps) continue;
+
+            var property = ps.Properties.FindByPrefix("CustomTextDisplay_")?.Property;
+            if (property?.Value?.ToString() is not { } current) continue;
+            if (!current.StartsWith(claimPrefix, StringComparison.Ordinal)) continue;
+
+            if (SetCustomTextDisplay(property, newOwnerId + current[oldOwnerId.Length..])) rewritten++;
+        }
+        return rewritten;
     }
 
     /// <summary>

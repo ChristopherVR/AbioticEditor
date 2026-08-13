@@ -326,8 +326,8 @@ internal static class GamePassCommands
         var idArg = new Argument<string>("new-id") { Description = "The account id to give it." };
         var forceOpt = ForceOption();
         var cmd = new Command("rename-player",
-            "Re-home a packed player save to another account id, rewriting both its name and the owner "
-            + "id stored inside it (backs up the folder).");
+            "Re-home a packed player save to another account id, rewriting its name, the owner id "
+            + "stored inside it and the beds it claimed in the world (backs up the folder).");
         cmd.Arguments.Add(folderArg);
         cmd.Arguments.Add(memberArg);
         cmd.Arguments.Add(idArg);

@@ -217,7 +217,7 @@
   <data name="PlayerGeneral_Account" xml:space="preserve"><value>ACCOUNT</value></data>
   <data name="PlayerGeneral_BulkUnlocks" xml:space="preserve"><value>BULK UNLOCKS</value></data>
   <data name="PlayerGeneral_ChangeSteamId" xml:space="preserve"><value>CHANGE STEAM ID</value></data>
-  <data name="PlayerGeneral_ChangeSteamIdHelp" xml:space="preserve"><value>Hands this character over to a different account. Beds they claimed in the world stay listed under the old account.</value></data>
+  <data name="PlayerGeneral_ChangeSteamIdHelp" xml:space="preserve"><value>Hands this character over to a different account. Beds they claimed in the world move across with them.</value></data>
   <data name="PlayerGeneral_DiscoverAll" xml:space="preserve"><value>DISCOVER ALL</value></data>
   <data name="PlayerGeneral_DiscoverAllItemsTooltip" xml:space="preserve"><value>Adds every catalog item to this player's seen-items list. Effect: no more yellow NEW badges in the inventory, and pickup-gated compendium hints treat everything as encountered. No quest or stat impact.</value></data>
   <data name="PlayerGeneral_ItemsSeenHelp" xml:space="preserve"><value>Stops the game putting a NEW badge on items you have not come across yet.</value></data>

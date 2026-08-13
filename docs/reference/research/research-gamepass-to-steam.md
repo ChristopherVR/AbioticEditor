@@ -41,6 +41,9 @@ problem, but it is a real gap (§5).
 **Confirmed.** Bed-claim owner strings inside `WorldSave_*.sav` still carry the old Xbox
 account ids after conversion, and `WorldSteamIdPatcher` cannot fix them because an Xbox
 XUID (16 digits) and a SteamID64 (17 digits) differ in length (§6).
+*(Fixed in round-61: the patcher now re-serializes when the lengths differ, and both
+conversion directions call it. §6 and follow-up 5 below describe the state at the time of
+this investigation.)*
 
 **Not a factor (checked and cleared).** The `ABF_SAVE_VERSION` custom-header int, the
 header `Id` field, the engine/custom-format block of the template, and the
@@ -368,5 +371,9 @@ walker + PDB public-symbol reader + capstone disassembler); none were kept in th
    `SaveVersion` property.
 4. **Carry the `Profile*` containers** (or at least tell the user they are being left
    behind). Cosmetics and achievements are cheap to lose but surprising to lose silently.
-5. **Bed claims across a different-length id change** need a reserialize-based rewrite
-   before a converted multiplayer world can be fully re-homed.
+5. ~~**Bed claims across a different-length id change** need a reserialize-based rewrite
+   before a converted multiplayer world can be fully re-homed.~~ **Done (round-61):**
+   `WorldSteamIdPatcher` re-serializes when the ids differ in length, and both conversion
+   directions, the in-container player rename and the app's change-id flow call it. Note the
+   multiplayer half of this is still open on its own terms: `GuardSingleRehome` refuses a world
+   with several characters, so `ForScience` still cannot be re-homed at all.

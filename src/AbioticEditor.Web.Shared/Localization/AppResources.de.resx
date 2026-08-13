@@ -165,7 +165,7 @@
   <data name="PlayerGeneral_Account" xml:space="preserve"><value>KONTO</value></data>
   <data name="PlayerGeneral_BulkUnlocks" xml:space="preserve"><value>MASSENFREISCHALTUNGEN</value></data>
   <data name="PlayerGeneral_ChangeSteamId" xml:space="preserve"><value>STEAM-ID ÄNDERN</value></data>
-  <data name="PlayerGeneral_ChangeSteamIdHelp" xml:space="preserve"><value>Übergibt diese Figur an ein anderes Konto. Betten, die sie in der Welt beansprucht hat, bleiben beim alten Konto eingetragen.</value></data>
+  <data name="PlayerGeneral_ChangeSteamIdHelp" xml:space="preserve"><value>Übergibt diese Figur an ein anderes Konto. Betten, die sie in der Welt beansprucht hat, wechseln mit.</value></data>
   <data name="PlayerGeneral_DiscoverAll" xml:space="preserve"><value>ALLES ENTDECKEN</value></data>
   <data name="PlayerGeneral_DiscoverAllItemsTooltip" xml:space="preserve"><value>Fügt jeden Katalog-Gegenstand zur Liste der gesehenen Gegenstände dieses Spielers hinzu. Effekt: keine gelben NEU-Abzeichen mehr im Inventar, und aufsammelbasierte Kompendium-Hinweise behandeln alles als bereits angetroffen. Keine Auswirkung auf Quests oder Werte.</value></data>
   <data name="PlayerGeneral_ItemsSeenHelp" xml:space="preserve"><value>Verhindert, dass das Spiel noch nicht entdeckte Gegenstände mit NEU markiert.</value></data>

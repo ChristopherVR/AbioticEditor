@@ -458,6 +458,144 @@ public class GamePassTests
         }
     }
 
+    /// <summary>
+    /// The account id claiming beds in the Facility fixture, and the character save that belongs to
+    /// it. A conversion that re-homes this character has to move those claims with it.
+    /// </summary>
+    private const string ClaimOwnerId = "76561197993781479";
+
+    /// <summary>
+    /// Builds a Steam world folder holding the one region that carries bed claims, its metadata and
+    /// the single character those claims belong to. Single-player on purpose: re-homing is refused
+    /// for a world with several characters, since one id cannot own them all.
+    /// </summary>
+    private static string ClaimedWorld(string root)
+    {
+        var steam = Path.Combine(root, "W");
+        Directory.CreateDirectory(Path.Combine(steam, "PlayerData"));
+        foreach (var name in new[] { "WorldSave_MetaData.sav", "WorldSave_Facility.sav" })
+        {
+            File.Copy(Path.Combine(Fixtures.CascadeDir!, name), Path.Combine(steam, name));
+        }
+        File.Copy(
+            Path.Combine(Fixtures.CascadeDir!, "PlayerData", $"Player_{ClaimOwnerId}.sav"),
+            Path.Combine(steam, "PlayerData", $"Player_{ClaimOwnerId}.sav"));
+        return steam;
+    }
+
+    /// <summary>
+    /// The reported Game Pass bug: the character was re-homed to the player's Steam account but the
+    /// beds it had claimed stayed with the Xbox id, so the player woke up in someone else's base.
+    /// The two ids are different lengths, which is what used to make this impossible.
+    /// </summary>
+    [SkippableFact]
+    public void Conversion_to_Steam_rehomes_bed_claims_to_the_new_player_id()
+    {
+        Skip.IfNot(Fixtures.CascadeDir is not null, "the Steam world fixture is not in this checkout");
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
+
+        var tmp = Directory.CreateTempSubdirectory("gp-claim-rehome");
+        try
+        {
+            var steam = ClaimedWorld(tmp.FullName);
+            var claimed = AbioticEditor.Core.WorldSaves.WorldSaveReader
+                .ReadFromFile(Path.Combine(steam, "WorldSave_Facility.sav")).Deployables
+                .Count(d => d.OwnerId == ClaimOwnerId);
+            Assert.True(claimed > 0, "the fixture region should carry claims by this account");
+
+            var wgs = GamePassConverter.SteamWorldToGamePass(steam, Path.Combine(tmp.FullName, "gp"), worldName: "W");
+
+            // An Xbox account id is 16 digits against a SteamID64's 17.
+            const string newId = "2533274900397709";
+            var back = GamePassConverter.GamePassToSteamWorld(
+                wgs, "W-WC", Path.Combine(tmp.FullName, "back"), newPlayerId: newId);
+
+            Assert.True(File.Exists(Path.Combine(back, "PlayerData", $"Player_{newId}.sav")));
+            var after = AbioticEditor.Core.WorldSaves.WorldSaveReader
+                .ReadFromFile(Path.Combine(back, "WorldSave_Facility.sav")).Deployables;
+            Assert.Equal(claimed, after.Count(d => d.OwnerId == newId));
+            Assert.DoesNotContain(after, d => d.OwnerId == ClaimOwnerId);
+
+            // A freshly converted folder is nobody's edit history: the backups the re-home made of
+            // files the editor extracted seconds earlier must not be handed to the player.
+            Assert.Empty(Directory.GetFiles(back, "*.bak", SearchOption.AllDirectories));
+        }
+        finally
+        {
+            tmp.Delete(recursive: true);
+        }
+    }
+
+    /// <summary>The same thing in reverse: a Steam world packed for Game Pass under a new id.</summary>
+    [SkippableFact]
+    public void Conversion_to_GamePass_rehomes_bed_claims_to_the_new_player_id()
+    {
+        Skip.IfNot(Fixtures.CascadeDir is not null, "the Steam world fixture is not in this checkout");
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
+
+        var tmp = Directory.CreateTempSubdirectory("gp-claim-pack");
+        try
+        {
+            var steam = ClaimedWorld(tmp.FullName);
+            var claimed = AbioticEditor.Core.WorldSaves.WorldSaveReader
+                .ReadFromFile(Path.Combine(steam, "WorldSave_Facility.sav")).Deployables
+                .Count(d => d.OwnerId == ClaimOwnerId);
+            Assert.True(claimed > 0);
+
+            const string newId = "msft-9Z8Y7X";
+            var wgs = GamePassConverter.SteamWorldToGamePass(
+                steam, Path.Combine(tmp.FullName, "gp"), worldName: "W", newPlayerId: newId);
+
+            var set = GamePassSaveSet.Open(wgs);
+            var region = set.Entries().Single(e => e.FileName == "WorldSave_Facility.sav");
+            var after = AbioticEditor.Core.WorldSaves.WorldSaveReader
+                .ReadFromStream(new MemoryStream(set.ReadSave(region))).Deployables;
+            Assert.Equal(claimed, after.Count(d => d.OwnerId == newId));
+            Assert.DoesNotContain(after, d => d.OwnerId == ClaimOwnerId);
+        }
+        finally
+        {
+            tmp.Delete(recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// The third way an owner id changes: re-homing a character that stays inside its Game Pass
+    /// container. The claims have to move in the same write, so the container can never hold a
+    /// character on one account whose bed still belongs to another.
+    /// </summary>
+    [SkippableFact]
+    public void Renaming_a_packed_player_rehomes_its_bed_claims()
+    {
+        Skip.IfNot(Fixtures.CascadeDir is not null, "the Steam world fixture is not in this checkout");
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
+
+        var tmp = Directory.CreateTempSubdirectory("gp-claim-rename");
+        try
+        {
+            var steam = ClaimedWorld(tmp.FullName);
+            var wgs = GamePassConverter.SteamWorldToGamePass(steam, Path.Combine(tmp.FullName, "gp"), worldName: "W");
+
+            var set = GamePassSaveSet.Open(wgs);
+            var player = set.Entries().Single(e => e.Kind == GamePassSaveKind.Player);
+            const string newId = "2533274900397709";
+            set.RenamePlayerToAccount(player, newId);
+
+            // Reopened from disk: the re-home has to be in the written container, not just memory.
+            var reopened = GamePassSaveSet.Open(wgs);
+            Assert.Contains(reopened.Entries(), e => e.FileName == $"Player_{newId}.sav");
+            var region = reopened.Entries().Single(e => e.FileName == "WorldSave_Facility.sav");
+            var after = AbioticEditor.Core.WorldSaves.WorldSaveReader
+                .ReadFromStream(new MemoryStream(reopened.ReadSave(region))).Deployables;
+            Assert.Contains(after, d => d.OwnerId == newId);
+            Assert.DoesNotContain(after, d => d.OwnerId == ClaimOwnerId);
+        }
+        finally
+        {
+            tmp.Delete(recursive: true);
+        }
+    }
+
     // ---- helpers: build a minimal but real wgs container folder + ABF bundle ----
 
     private static AbfSaveBundle TestBundle(params (string Path, string Class, byte[] Body)[] members)

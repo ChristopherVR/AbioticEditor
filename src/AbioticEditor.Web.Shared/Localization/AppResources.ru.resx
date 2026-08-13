@@ -165,7 +165,7 @@
   <data name="PlayerGeneral_Account" xml:space="preserve"><value>АККАУНТ</value></data>
   <data name="PlayerGeneral_BulkUnlocks" xml:space="preserve"><value>МАССОВЫЕ РАЗБЛОКИРОВКИ</value></data>
   <data name="PlayerGeneral_ChangeSteamId" xml:space="preserve"><value>ИЗМЕНИТЬ STEAM ID</value></data>
-  <data name="PlayerGeneral_ChangeSteamIdHelp" xml:space="preserve"><value>Передаёт этого персонажа другому аккаунту. Кровати, которые он занял в мире, останутся закреплены за прежним аккаунтом.</value></data>
+  <data name="PlayerGeneral_ChangeSteamIdHelp" xml:space="preserve"><value>Передаёт этого персонажа другому аккаунту. Кровати, которые он занял в мире, перейдут вместе с ним.</value></data>
   <data name="PlayerGeneral_DiscoverAll" xml:space="preserve"><value>ОТКРЫТЬ ВСЁ</value></data>
   <data name="PlayerGeneral_DiscoverAllItemsTooltip" xml:space="preserve"><value>Добавляет каждый предмет каталога в список увиденных предметов этого игрока. Эффект: больше нет жёлтых значков НОВОЕ в инвентаре, а подсказки компендиума, зависящие от подбора, считают всё уже встреченным. Не влияет на задания или характеристики.</value></data>
   <data name="PlayerGeneral_ItemsSeenHelp" xml:space="preserve"><value>Убирает значок НОВОЕ у предметов, которые вы ещё не встречали.</value></data>

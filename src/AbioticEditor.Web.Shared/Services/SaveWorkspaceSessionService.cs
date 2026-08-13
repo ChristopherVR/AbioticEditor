@@ -301,7 +301,8 @@ public sealed class SaveWorkspaceSessionService : IDisposable
     /// <summary>
     /// Re-homes the selected player to a new account id, then rebuilds the workspace
     /// selection around the renamed file. Core rewrites both the filename and the
-    /// embedded SaveIdentifier and preserves the original as a backup.
+    /// embedded SaveIdentifier and preserves the original as a backup, and the beds this
+    /// character claimed are moved to the new id in the world saves as well.
     /// </summary>
     public async Task ChangeSelectedPlayerIdentifierAsync(string newIdentifier, CancellationToken cancellationToken = default)
     {
@@ -314,6 +315,9 @@ public sealed class SaveWorkspaceSessionService : IDisposable
 
             BusyOperation = "Changing player ID..."; Changed?.Invoke();
             var oldFileName = Path.GetFileName(player.Path);
+            // The id this character is leaving lives in the file name, so it has to be read before
+            // the rename or the beds it claimed can no longer be found.
+            var hasOldIdentifier = PlayerIdentifier.TryParseFromPlayerFileName(player.Path, out var oldIdentifier);
 
             // A Game Pass world is edited through an unpacked copy, and the repack walks the
             // container's own list of names, so the rename has to reach the container too or the
@@ -347,6 +351,25 @@ public sealed class SaveWorkspaceSessionService : IDisposable
                 }
                 throw;
             }
+
+            // A bed remembers who claimed it by account id, so a character that changes id without
+            // this arrives in its own base unable to sleep in its own bed. Done after the rename so
+            // a refused rename leaves the world untouched. A Game Pass world is edited through an
+            // unpacked working copy and the whole copy is packed back on SAVE, so patching the loose
+            // world files here reaches the container the same way any other world edit does.
+            if (hasOldIdentifier)
+            {
+                var worldFolder = workspace.WorldFolder;
+                var claims = await Task.Run(
+                    () => WorldSteamIdPatcher.PatchFolder(worldFolder, oldIdentifier, newIdentifier),
+                    cancellationToken).ConfigureAwait(false);
+                if (claims > 0)
+                {
+                    EditorLog.Info("PlayerSave",
+                        $"Moved {claims} bed claim(s) from {oldIdentifier} to {newIdentifier}.");
+                }
+            }
+
             var saves = await DiscoverSavesAsync(workspace.WorldFolder, cancellationToken).ConfigureAwait(false);
             var renamed = saves.FirstOrDefault(save => string.Equals(save.Path, newPath, StringComparison.OrdinalIgnoreCase))
                 ?? throw new InvalidOperationException("The renamed player save was not rediscovered in this workspace.");

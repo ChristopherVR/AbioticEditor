@@ -1,4 +1,5 @@
 using AbioticEditor.Core.PlayerSaves;
+using AbioticEditor.Core.WorldSaves;
 
 namespace AbioticEditor.Core.GamePass;
 
@@ -427,11 +428,41 @@ public sealed class GamePassSaveSet
         }
         member.Body = newBody;
 
+        // The beds this character claimed record the owner id inside the world members of the same
+        // container, so they move here too - in the same repack, so the container can never carry a
+        // character on one account whose bed still belongs to another.
+        var claims = RehomeClaims(entry.ContainerName, entry.FileName, newAccountId);
+
         BackupOnce();
         Repack(entry.ContainerName);
         Diagnostics.EditorLog.Info("GamePass",
-            $"Re-homed {entry.FileName} -> {newFileName} in '{entry.ContainerName}'.");
+            $"Re-homed {entry.FileName} -> {newFileName} in '{entry.ContainerName}'"
+            + (claims > 0 ? $", including {claims} bed claim(s)." : "."));
         return newFileName;
+    }
+
+    /// <summary>
+    /// Moves every claim held by the account named in <paramref name="oldPlayerFileName"/> over to
+    /// <paramref name="newAccountId"/> across the container's world members, in memory. Returns how
+    /// many changed; the caller repacks. A world member that carries none is left byte-for-byte as
+    /// it was rather than re-serialized, so a rename only rewrites the regions it has to.
+    /// </summary>
+    private int RehomeClaims(string containerName, string oldPlayerFileName, string newAccountId)
+    {
+        if (!PlayerIdentifier.TryParseFromPlayerFileName(oldPlayerFileName, out var oldAccountId)) return 0;
+
+        var claims = 0;
+        foreach (var world in EntriesForContainer(containerName)
+                     .Where(e => e.Kind is GamePassSaveKind.World or GamePassSaveKind.WorldMetadata))
+        {
+            var worldMember = Member(world);
+            var gvas = GamePassMemberCodec.ToGvas(world.SaveClass, worldMember.Body);
+            var patched = WorldSteamIdPatcher.PatchBytes(gvas, oldAccountId, newAccountId, out var rewritten);
+            if (rewritten == 0) continue;
+            worldMember.Body = GamePassMemberCodec.ToMemberBody(world.SaveClass, patched);
+            claims += rewritten;
+        }
+        return claims;
     }
 
     private static string WithoutSavExtension(string name)

@@ -1,12 +1,14 @@
 using System.CommandLine;
 using AbioticEditor.Core.PlayerSaves;
+using AbioticEditor.Core.WorldSaves;
 
 namespace AbioticEditor.Cli;
 
 /// <summary>
 /// <c>steamid &lt;player.sav&gt; &lt;newid&gt;</c> - re-homes a player save to another
-/// owner: renames the file AND rewrites the internal SaveIdentifier together
-/// (Core <see cref="PlayerSaveIdentity.ChangeSteamId"/>; .bak kept). The id is a
+/// owner: renames the file, rewrites the internal SaveIdentifier
+/// (Core <see cref="PlayerSaveIdentity.ChangeSteamId"/>; .bak kept) and moves the bed claims in
+/// the surrounding world folder across too (Core <see cref="WorldSteamIdPatcher"/>). The id is a
 /// SteamID64 on Steam, or any safe token for a non-Steam (Game Pass / Epic) save.
 /// </summary>
 internal static class SteamIdCommand
@@ -42,10 +44,23 @@ internal static class SteamIdCommand
                 $"'{newId}' is not a valid player id (use letters, digits, '-', '_' or '.').");
         }
 
+        // The old id has to be read before the rename, because the file name is where it lives.
+        var hasOldId = PlayerIdentifier.TryParseFromPlayerFileName(path, out var oldId);
+
         // Core throws IOException when Player_<id>.sav already exists -> exit 1 via Cli.Run.
         var newPath = PlayerSaveIdentity.ChangeSteamId(path, id);
+
+        // Beds and other claimables record their owner in the world saves that sit one level up
+        // from PlayerData, so the character keeps what it claimed instead of arriving locked out.
+        var claims = 0;
+        var worldDir = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetFullPath(newPath)));
+        if (hasOldId && worldDir is not null)
+        {
+            claims = WorldSteamIdPatcher.PatchFolder(worldDir, oldId, id);
+        }
+
         Cli.Info(quiet, $"Re-homed {Path.GetFileName(path)} -> {Path.GetFileName(newPath)} "
-            + "(SaveIdentifier rewritten, .bak kept). Note: bed claims in world saves still reference the old id.");
+            + $"(SaveIdentifier rewritten, .bak kept). {claims} bed claim(s) moved to the new id.");
         return Cli.Ok;
     }
 }
