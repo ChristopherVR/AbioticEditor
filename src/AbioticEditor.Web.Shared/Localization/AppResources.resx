@@ -1672,15 +1672,9 @@ The world is updated straight away. Continue?</value>
     <value>Before you edit this Game Pass save</value>
   </data>
   <data name="Main_GpCloudSyncWarningMessage" xml:space="preserve">
-    <value>IMPORTANT - read this before editing a Game Pass save. Xbox cloud sync treats the cloud copy as the boss, so it can quietly throw your edits away. The ONLY reliable way to make edits stick is to keep the cloud out of it until your edit is done:
-
-1. Fully close Abiotic Factor AND the Xbox app (check the system tray).
-2. Disconnect from the internet (Wi-Fi off / airplane mode) - this is the key step.
-3. Make your edits here in the editor and SAVE.
-4. While STILL offline, launch the game once, load the save, then save in-game and quit. This makes the game itself adopt your edit as the newest copy.
-5. Only now reconnect to the internet. If asked, choose Keep local / Upload to cloud.
-
-If you save while online, or pick "download from cloud" at the prompt, the cloud copy wins and your edit is gone. A backup of the whole save folder is made before every write.</value>
+    <value>Xbox keeps a copy of this save in the cloud, and when the two disagree the cloud copy can win. That is how an edit can look fine now and be gone later.
+To make an edit stick: close the game and the Xbox app, go offline, edit and save here, then launch the game once while still offline and save in it. Reconnect only after that.
+The whole save folder is copied to a backup before every write. There is more detail in the Game Pass guide.</value>
   </data>
   <data name="Main_GpCloudSyncWarningContinue" xml:space="preserve">
     <value>I understand, open it</value>

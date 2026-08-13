@@ -104,7 +104,7 @@ public sealed class GamePassSafetyGuard(
             return open();
         }
 
-        if (repairable.Count == 0) return open();
+        if (repairable.Count == 0) return OpenThenExplainAsync(open);
 
         EditorLog.Warn("GamePass",
             $"'{folder}' has {repairable.Count} part(s) a repair would put right: {string.Join(", ", repairable)}");
@@ -114,7 +114,7 @@ public sealed class GamePassSafetyGuard(
             ConfirmText: language.Resource("Main_GpMidSyncRepair"),
             OnConfirm: () => RepairThenOpenAsync(folder, open),
             CancelText: language.Resource("Main_GpMidSyncSkip"),
-            OnCancel: open));
+            OnCancel: () => OpenThenExplainAsync(open)));
         return Task.CompletedTask;
     }
 
@@ -130,43 +130,44 @@ public sealed class GamePassSafetyGuard(
             EditorLog.Error("GamePass", "Repairing a Game Pass save failed", ex);
             toasts.Show(language.Resource("Main_GpRepairFailed"), ToastKind.Error);
         }
-        await open().ConfigureAwait(false);
+        await OpenThenExplainAsync(open).ConfigureAwait(false);
     }
 
     /// <summary>
-    /// Says what the world that just opened is going to be like to save, while the player still has
-    /// the chance to act on it: a repair the editor can do itself, or a reason only they can clear.
+    /// Opens the world, then says so if it cannot be saved back yet.
     /// </summary>
     /// <remarks>
-    /// <para>At most one dialog, and only for something that would refuse a save. The warnings the
-    /// guard also reports are led by "the Xbox app is running", which on a Game Pass machine is
-    /// true essentially always - a dialog for that would be dismissed unread every single time, and
-    /// would take the blocking cases down with it.</para>
+    /// This has to happen after the open, because whether a save can be written depends on the save
+    /// that is now loaded. It is still worth saying at this moment rather than leaving it to the
+    /// first SAVE: someone told after an hour of editing that the game needed closing the whole time
+    /// has done that hour twice. Every route into a Game Pass world goes through here for that
+    /// reason - it was left out of one of them once, and the result was a world that edited happily
+    /// and refused every save with no warning until the player pressed the button.
+    /// </remarks>
+    private async Task OpenThenExplainAsync(Func<Task> open)
+    {
+        await open().ConfigureAwait(false);
+        ExplainSaveState();
+    }
+
+    /// <summary>
+    /// Says so when the world that just opened cannot be saved back yet, and why.
+    /// </summary>
+    /// <remarks>
+    /// <para>Only for something that would refuse a save outright, and only for reasons the player
+    /// has to clear themselves: the game still being open, or a conflict Xbox has not settled.
+    /// Anything the editor can fix by itself was offered as a repair before the world opened, so it
+    /// cannot reach here.</para>
     ///
-    /// <para>Repair comes first when it applies, because a folder left half-synced is both the
-    /// cause of the refusal and the thing the editor can actually fix.</para>
+    /// <para>The guard also reports warnings, led by "the Xbox app is running", which on a Game Pass
+    /// machine is true essentially always. Those get no dialog: one that appears every single time
+    /// is one nobody reads, and it would take the cases that matter down with it. They still appear
+    /// in the list whenever a dialog is shown for another reason.</para>
     /// </remarks>
     public void ExplainSaveState()
     {
-        if (workspace.Current?.GamePass?.Set is not { } set) return;
+        if (workspace.Current?.GamePass is null) return;
         var check = workspace.GamePassWriteState();
-
-        if (set.IsMidSync || set.NeedsAttention)
-        {
-            EditorLog.Warn("GamePass",
-                $"Opened a save needing attention (mid-sync: {set.IsMidSync}, "
-                + $"unresolved conflict: {set.HasUnresolvedConflicts}, "
-                + $"recovered: {string.Join(", ", set.RecoveredContainers)}, "
-                + $"bad state: {string.Join(", ", set.InvalidStateContainers)}).");
-            modals.Show(new ModalRequest(
-                language.Resource("Main_GpMidSyncTitle"),
-                Paragraphs(language.Resource("Main_GpMidSyncMessage"), check?.Lines()),
-                ConfirmText: language.Resource("Main_GpMidSyncRepair"),
-                OnConfirm: RepairAsync,
-                CancelText: language.Resource("Main_GpMidSyncSkip")));
-            return;
-        }
-
         if (check is null || check.CanWrite) return;
 
         EditorLog.Warn("GamePass",

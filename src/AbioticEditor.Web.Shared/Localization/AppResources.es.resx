@@ -1382,15 +1382,9 @@ El mundo se actualiza de inmediato. ¿Continuar?</value>
     <value>Antes de editar este guardado de Game Pass</value>
   </data>
   <data name="Main_GpCloudSyncWarningMessage" xml:space="preserve">
-    <value>IMPORTANTE - léelo antes de editar un guardado de Game Pass. La sincronización en la nube de Xbox trata la copia de la nube como la que manda, así que puede descartar tus cambios sin avisar. La ÚNICA forma fiable de que los cambios se mantengan es dejar la nube fuera hasta terminar tu edición:
-
-1. Cierra Abiotic Factor Y la aplicación de Xbox por completo (revisa la bandeja del sistema).
-2. Desconéctate de internet (Wi-Fi apagado / modo avión) - este es el paso clave.
-3. Haz tus ediciones aquí en el editor y GUARDA.
-4. SIN conexión todavía, abre el juego una vez, carga el guardado, guarda dentro del juego y sal. Así el propio juego adopta tu cambio como la copia más reciente.
-5. Solo ahora vuelve a conectarte a internet. Si te preguntan, elige Conservar local / Subir a la nube.
-
-Si guardas con conexión, o eliges "descargar de la nube" en el aviso, la copia de la nube gana y tu cambio se pierde. Se hace una copia de seguridad de toda la carpeta del guardado antes de cada escritura.</value>
+    <value>Xbox guarda una copia de esta partida en la nube, y cuando las dos no coinciden la copia de la nube puede ganar. Así es como un cambio parece correcto ahora y ha desaparecido más tarde.
+Para que un cambio se mantenga: cierra el juego y la aplicación de Xbox, desconéctate de internet, edita y guarda aquí, luego abre el juego una vez sin conexión y guarda dentro. Vuelve a conectarte solo después de eso.
+Se hace una copia de seguridad de toda la carpeta antes de cada escritura. Hay más detalles en la guía de Game Pass.</value>
   </data>
   <data name="Main_GpCloudSyncWarningContinue" xml:space="preserve">
     <value>Entendido, abrir</value>
