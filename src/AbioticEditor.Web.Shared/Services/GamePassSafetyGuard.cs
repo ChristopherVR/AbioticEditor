@@ -38,14 +38,16 @@ public sealed class GamePassSafetyGuard(
     /// <summary>
     /// Runs <paramref name="open"/>, first explaining the cloud-sync workflow when
     /// <paramref name="folder"/> is a Game Pass save and this run has not explained it yet, and
-    /// afterwards offering to repair a half-synced folder.
+    /// afterwards offering to repair a half-synced folder. <paramref name="declined"/> runs
+    /// instead when the player backs out of the warning, so nothing opens.
     /// </summary>
     /// <remarks>
     /// Like <see cref="UnsavedChangesGuard.ConfirmAsync"/>, this returns as soon as a question is
     /// on screen; the open happens later, through the dialog's confirm. Callers must not assume
-    /// the world is open once this has been awaited.
+    /// the world is open once this has been awaited, and must use <paramref name="declined"/>
+    /// rather than the returned task to know that the attempt is over.
     /// </remarks>
-    public Task OpenAsync(string? folder, Func<Task> open)
+    public Task OpenAsync(string? folder, Func<Task> open, Func<Task>? declined = null)
     {
         ArgumentNullException.ThrowIfNull(open);
 
@@ -59,13 +61,24 @@ public sealed class GamePassSafetyGuard(
             return OfferRepairThenOpenAsync(folder!, open);
         }
 
-        _cloudSyncWarningShown = true;
+        // Marked as read only when the player actually acknowledges it. Setting it as the dialog
+        // goes up meant that backing out of the warning counted as having read it, so the next
+        // attempt to open a Game Pass save went straight in with no warning at all - the one case
+        // where someone has just shown they were not ready to proceed.
         modals.Show(new ModalRequest(
             language.Resource("Main_GpCloudSyncWarningTitle"),
             Paragraphs(language.Resource("Main_GpCloudSyncWarningMessage")),
             ConfirmText: language.Resource("Main_GpCloudSyncWarningContinue"),
-            OnConfirm: () => OfferRepairThenOpenAsync(folder!, open),
-            CancelText: language.Resource("Common_Cancel")));
+            OnConfirm: () =>
+            {
+                _cloudSyncWarningShown = true;
+                return OfferRepairThenOpenAsync(folder!, open);
+            },
+            CancelText: language.Resource("Common_Cancel"),
+            // Backing out of the warning opens nothing at all, so the caller is told the attempt
+            // is over. This is the one decline here: cancelling the repair question below still
+            // opens the world, because "no thanks" there means "without tidying it up first".
+            OnCancel: declined));
         return Task.CompletedTask;
     }
 

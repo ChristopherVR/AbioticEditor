@@ -169,6 +169,7 @@ else
     private string _right = string.Empty;
     private bool _folderMode = true;
     private bool _working;
+    private bool _picking;
     private string? _error;
     private string? _exportMessage;
     private ComparisonResult? _result;
@@ -189,7 +190,7 @@ else
             </select>
         }
         <div class="compare-source-path" title="@path">@(string.IsNullOrWhiteSpace(path) ? Languages.Resource("Compare_NothingSelected") : path)</div>
-        <button class="secondary" type="button" @onclick="() => PickAsync(left)">@Languages.Resource("Compare_BrowseButton")</button>
+        <button class="secondary" type="button" @onclick="() => PickAsync(left)" disabled="@_picking">@Languages.Resource("Compare_BrowseButton")</button>
     </div>;
 
     @* ---------- side-by-side A | B rendering ----------
@@ -381,8 +382,15 @@ else
         finally { _working = false; }
     }
 
+    /// <summary>
+    /// Chooses one side of the comparison. Both BROWSE buttons are held while a chooser is open,
+    /// because the chooser is what takes the time and a second press behind it just stacks another
+    /// window the player has to dismiss.
+    /// </summary>
     private async Task PickAsync(bool left)
     {
+        if (_picking) return;
+        _picking = true;
         _error = null;
         try
         {
@@ -393,6 +401,7 @@ else
             if (left) _left = path; else _right = path;
         }
         catch (Exception exception) { _error = Errors.Present(exception, Languages.Resource("Compare_PickerFailedTitle"), Languages.Resource("Compare_PickTwoMessage")); }
+        finally { _picking = false; }
     }
 
     // ---------- export ----------

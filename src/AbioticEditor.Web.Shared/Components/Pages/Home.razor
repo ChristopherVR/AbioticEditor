@@ -174,6 +174,38 @@ else
     }
 
     /// <summary>
+    /// Takes the page's one-thing-at-a-time guard, or reports that something is already running.
+    /// </summary>
+    /// <remarks>
+    /// Opening a world can pause part-way through, waiting on a question the player has not
+    /// answered yet - unsaved edits, the Game Pass cloud-sync warning. Both of those hand control
+    /// straight back the moment their dialog is on screen, so the button that started it used to
+    /// come alive again immediately and every extra click began another open. Several then
+    /// finished one after another, each replacing the loaded world and redrawing this page, which
+    /// is the flicker between two versions of the screen. The guard is held for the whole attempt,
+    /// dialogs included.
+    /// </remarks>
+    private bool BeginWork()
+    {
+        if (_isLoading) return false;
+        _isLoading = true;
+        return true;
+    }
+
+    /// <summary>
+    /// Hands the guard back, and must run on every ending an attempt can have: a world that
+    /// opened, one that failed, a picker the player closed, and a question they answered with
+    /// "no". A guard released only on success leaves every button on this page dead until the
+    /// editor is restarted, which looks exactly like the editor ignoring the click.
+    /// </summary>
+    private async Task EndWorkAsync()
+    {
+        _isLoading = false;
+        await Workspace.ReportBusyAsync(null);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
     /// Re-opens a world from an earlier visit. The browser asks the player's permission again
     /// here, which is why this hangs off a button: a permission prompt with no click behind it
     /// is refused outright.
@@ -181,7 +213,8 @@ else
     private async Task ReopenRecentAsync(RecentWorld recent)
     {
         if (Recents is not { } recents) return;
-        _isLoading = true; _error = null;
+        if (!BeginWork()) return;
+        _error = null;
         try
         {
             // The permission prompt has to ride on this click, so it happens before the
@@ -192,12 +225,16 @@ else
                 // Either the player said no, or the folder has been moved or deleted. Neither is
                 // an error to report as a fault - the entry simply cannot be used any more.
                 _error = Languages.Resource("Empty_RecentUnavailable");
+                await EndWorkAsync();
                 return;
             }
-            await SelectWorldAsync(new(folder, folder, DiscoveredWorldSource.Client, null));
+            await ContinueOpenAsync(new(folder, folder, DiscoveredWorldSource.Client, null));
         }
-        catch (Exception ex) { _error = Errors.Present(ex, Languages.Resource("Home_SaveFolderOpenFailed"), Languages.Resource("Home_SaveFolderOpenGuidance")); }
-        finally { _isLoading = false; await Workspace.ReportBusyAsync(null); }
+        catch (Exception ex)
+        {
+            _error = Errors.Present(ex, Languages.Resource("Home_SaveFolderOpenFailed"), Languages.Resource("Home_SaveFolderOpenGuidance"));
+            await EndWorkAsync();
+        }
     }
 
     /// <summary>Shows unpacking progress in the shell's busy line, which this page also draws.</summary>
@@ -207,12 +244,14 @@ else
     private async Task ForgetRecentAsync(RecentWorld recent)
     {
         if (Recents is not { } recents) return;
+        if (!BeginWork()) return;
         try
         {
             await recents.ForgetAsync(recent.Name);
             await LoadRecentAsync();
         }
         catch (Exception ex) { Errors.Record(ex, "Forget a recently opened world"); }
+        finally { await EndWorkAsync(); }
     }
 
     /// <summary>
@@ -222,7 +261,8 @@ else
     private async Task OpenBundleAsync()
     {
         if (Bundles is not { } bundles) return;
-        _isLoading = true; _error = null;
+        if (!BeginWork()) return;
+        _error = null;
         try
         {
             var picked = await FilePicker.PickFileAsync(new()
@@ -230,54 +270,91 @@ else
                 Title = Languages.Resource("Bundle_OpenTitle"),
                 FileTypes = [new(Languages.Resource("Bundle_OpenTitle"), [".zip"])],
             });
-            if (picked is null) { _error = Languages.Resource("Bundle_Cancelled"); return; }
+            if (picked is null)
+            {
+                _error = Languages.Resource("Bundle_Cancelled");
+                await EndWorkAsync();
+                return;
+            }
 
             await using var stream = await picked.OpenReadAsync(CancellationToken.None);
             using var buffer = new MemoryStream();
             await stream.CopyToAsync(buffer);
 
             var folder = await bundles.OpenBundleAsync(picked.Name, buffer.ToArray(), UnpackProgress());
-            await SelectWorldAsync(new(folder, folder, DiscoveredWorldSource.Client, null));
+            // Said here rather than after the open below, because the unpacking is what finished:
+            // the open itself may still be waiting on a question, and announcing "opened" from
+            // behind an unanswered dialog is a claim the editor cannot back up yet.
             Toasts.Show(Languages.Resource("Bundle_Opened", folder), ToastKind.Success);
+            await ContinueOpenAsync(new(folder, folder, DiscoveredWorldSource.Client, null));
         }
         catch (Exception ex)
         {
             Errors.Record(ex, "Open a zip of saves");
             _error = Errors.Present(ex, Languages.Resource("Bundle_OpenFailed"), Languages.Resource("Bundle_OpenGuidance"));
+            await EndWorkAsync();
         }
-        finally { _isLoading = false; await Workspace.ReportBusyAsync(null); }
+    }
+
+    /// <summary>Opens a world from the discovered list, one attempt at a time.</summary>
+    private async Task SelectWorldAsync(DiscoveredWorld world)
+    {
+        if (!BeginWork()) return;
+        await ContinueOpenAsync(world);
     }
 
     /// <summary>
-    /// Opens a world, asking first when the one already open has edits that would be lost.
+    /// The rest of an open, for the ways in that already hold the guard, asking first when the
+    /// world already loaded has edits that would be lost.
     /// </summary>
     /// <remarks>
     /// Every way into a world from this page funnels through here - a discovered world, a picked
     /// folder, a zip, a remembered world - so the question is asked once, in one place. A Game Pass
     /// world picks up a second gate here for the same reason: the cloud-sync workflow has to be
     /// explained before the first edit, whichever way the player got to the world.
+    ///
+    /// Both gates hand back as soon as their question is on screen, so the guard is not released
+    /// here. It is released by whichever of the three endings arrives: the world opening, the
+    /// player declining, or this throwing on the spot.
     /// </remarks>
-    private Task SelectWorldAsync(DiscoveredWorld world) => Unsaved.ConfirmAsync(
-        () => GamePassSafety.OpenAsync(world.FolderPath, () => OpenWorldAsync(world)));
+    private async Task ContinueOpenAsync(DiscoveredWorld world)
+    {
+        try
+        {
+            await Unsaved.ConfirmAsync(
+                () => GamePassSafety.OpenAsync(world.FolderPath, () => OpenWorldAsync(world), EndWorkAsync),
+                EndWorkAsync);
+        }
+        catch (Exception ex)
+        {
+            _error = Errors.Present(ex, Languages.Resource("Home_SaveFolderOpenFailed"), Languages.Resource("Home_SaveFolderOpenGuidance"));
+            await EndWorkAsync();
+        }
+    }
 
     private async Task OpenWorldAsync(DiscoveredWorld world)
     {
-        _isLoading = true; _error = null;
+        _error = null;
         try { await Workspace.OpenAsync(world); }
         catch (Exception ex) { _error = Errors.Present(ex, Languages.Resource("Home_SaveFolderOpenFailed"), Languages.Resource("Home_SaveFolderOpenGuidance")); }
-        finally { _isLoading = false; await InvokeAsync(StateHasChanged); }
+        finally { await EndWorkAsync(); }
     }
 
     private async Task PickFolderAsync()
     {
+        if (!BeginWork()) return;
         _error = null;
         try
         {
             var picked = await FolderPicker.PickFolderAsync(new() { Title = Languages.Text("folder.choose.title") });
-            if (picked?.Path is null) return;
-            await SelectWorldAsync(new(picked.Path, Path.GetFileName(picked.Path), DiscoveredWorldSource.Client, null));
+            if (picked?.Path is null) { await EndWorkAsync(); return; }
+            await ContinueOpenAsync(new(picked.Path, Path.GetFileName(picked.Path), DiscoveredWorldSource.Client, null));
         }
-        catch (Exception ex) { _error = Errors.Present(ex, Languages.Resource("Home_FolderPickerFailed"), Languages.Resource("Home_FolderPickerGuidance")); }
+        catch (Exception ex)
+        {
+            _error = Errors.Present(ex, Languages.Resource("Home_FolderPickerFailed"), Languages.Resource("Home_FolderPickerGuidance"));
+            await EndWorkAsync();
+        }
     }
 
     private string PlatformLabel(DiscoveredWorld world) => Languages.PlatformLabel(world.Platform, world.Source);

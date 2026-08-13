@@ -42,7 +42,7 @@
                 {
                     <p class="sidebar-readonly" role="note">@L.Resource("Workspace_ReadOnlyNotice")</p>
                 }
-                @if (Export.CanExport)
+                @if (Export.OffersSaveExport)
                 {
                     <button class="sidebar-export" type="button" disabled="@_exporting"
                             title="@L.Resource("FileSidebar_ExportTooltip")"
@@ -91,9 +91,10 @@
             {
                 <div class="save-menu-backdrop" role="presentation" @onclick="CloseSaveMenu" @oncontextmenu="CloseSaveMenu" @oncontextmenu:preventDefault></div>
                 <div class="save-context-menu" role="menu" style="@_saveMenuStyle">
-                    @* Saving one file on its own. In a browser this is the only way to take a
-                       single save away without exporting the whole world as a zip. *@
-                    @if (Export.CanExport)
+                    @* Saving one file on its own, in a browser: the only way to take a single save
+                       away without exporting the whole world as a zip. The desktop has the file
+                       itself in the game's folder, so it offers the folder instead. *@
+                    @if (Export.OffersSaveExport)
                     {
                         <button type="button" role="menuitem" @onclick="ExportSelectedSaveAsync">@L.Resource("FileSidebar_ExportThisSave")</button>
                     }
@@ -112,7 +113,7 @@
                     <h2 id="add-player-title">@L.Resource("Main_AddPlayerHeader")</h2>
                     <label>@L.Text("player.new.steamid")<input @bind="_newPlayerId" inputmode="numeric" autocomplete="off" /></label>
                     <label class="checkbox-field"><input type="checkbox" @bind="_copySelectedPlayer" disabled="@(workspace.PlayerSession is null)" /> @L.Text("player.copy.selected")</label>
-                    <div><button class="primary" type="submit" disabled="@string.IsNullOrWhiteSpace(_newPlayerId)">@L.Text("player.add")</button><button class="secondary" type="button" @onclick="ToggleAddPlayer">@L.Text("cancel")</button></div>
+                    <div><button class="primary" type="submit" disabled="@(_addingPlayer || string.IsNullOrWhiteSpace(_newPlayerId))">@L.Text("player.add")</button><button class="secondary" type="button" @onclick="ToggleAddPlayer">@L.Text("cancel")</button></div>
                     @if (_addPlayerStatus is not null) { <p role="status">@_addPlayerStatus</p> }
                 </form>
                 </div>
@@ -153,13 +154,13 @@
                    offer. Rather than a disabled button with no explanation, the same slot becomes
                    the action that DOES work here: download the edited copy. *@
                 <div class="editor-actions">
-                    <button class="secondary" type="button" @onclick="ReloadAsync">@L.Editor("workspace.reload").ToUpperInvariant()</button>
-                    <button class="secondary" type="button" disabled="@(!IsDirty)" @onclick="Revert">@L.Text("revert").ToUpperInvariant()</button>
+                    <button class="secondary" type="button" disabled="@_writing" @onclick="ReloadAsync">@L.Editor("workspace.reload").ToUpperInvariant()</button>
+                    <button class="secondary" type="button" disabled="@(!IsDirty || _writing)" @onclick="Revert">@L.Text("revert").ToUpperInvariant()</button>
                     @if (Workspace.CanWrite)
                     {
-                        <button class="primary" type="button" disabled="@(!IsDirty)" @onclick="SaveAsync">@L.Text("save").ToUpperInvariant()</button>
+                        <button class="primary" type="button" disabled="@(!IsDirty || _writing)" @onclick="SaveAsync">@L.Text("save").ToUpperInvariant()</button>
                     }
-                    else
+                    else if (Export.OffersSaveExport)
                     {
                         <button class="primary" type="button" disabled="@_exporting"
                                 title="@L.Resource("Workspace_ReadOnlyExportTooltip")"
@@ -211,6 +212,12 @@
     private string _newPlayerId = string.Empty;
     private bool _copySelectedPlayer;
     private string? _addPlayerStatus;
+    // Held for the whole of one write (SAVE, RELOAD, save-anyway) and one save switch. Both cover
+    // work that carries on after the click returns, so the flag is what stops a second press
+    // starting the same work again, and the buttons read it to say so.
+    private bool _writing;
+    private bool _switchingSave;
+    private bool _addingPlayer;
     private string? _activeIniFileName;
     private string? _selectedSavePath;
     private string? _workspaceFolder;
@@ -337,10 +344,27 @@
     /// Opens a save from the sidebar, asking first when the open one has edits that would be
     /// thrown away. Selecting the save that is already open changes nothing, so it never asks.
     /// </summary>
+    /// <remarks>
+    /// One at a time, held for the whole attempt. The unsaved-edits question hands control back
+    /// as soon as it is on screen, so without this a player clicking down the list while that
+    /// question was up started a parse of every save they touched, each finishing later and
+    /// replacing what was on the editor surface.
+    /// </remarks>
     private Task SelectAsync(WorkspaceSave save)
-        => string.Equals(save.Path, Workspace.Current?.SelectedSave?.Path, StringComparison.OrdinalIgnoreCase)
-            ? Task.CompletedTask
-            : Unsaved.ConfirmAsync(() => OpenAsync(save));
+    {
+        if (_switchingSave) return Task.CompletedTask;
+        if (string.Equals(save.Path, Workspace.Current?.SelectedSave?.Path, StringComparison.OrdinalIgnoreCase))
+            return Task.CompletedTask;
+        _switchingSave = true;
+        return Unsaved.ConfirmAsync(() => OpenAsync(save), DoneSwitchingSaveAsync);
+    }
+
+    /// <summary>Frees the save list again, whether the save opened, failed, or was not wanted.</summary>
+    private Task DoneSwitchingSaveAsync()
+    {
+        _switchingSave = false;
+        return InvokeAsync(StateHasChanged);
+    }
 
     private async Task OpenAsync(WorkspaceSave save)
     {
@@ -362,10 +386,31 @@
             Errors.Record(exception, "Open save from sidebar");
             Toasts.Show(L.Resource("Main_LoadSaveFailed", save.Name), ToastKind.Error, TimeSpan.FromSeconds(8));
         }
+        finally
+        {
+            await DoneSwitchingSaveAsync();
+        }
     }
-    private Task ReloadAsync() => Workspace.ReloadSelectedAsync();
+    private async Task ReloadAsync()
+    {
+        if (_writing) return;
+        _writing = true;
+        try { await Workspace.ReloadSelectedAsync(); }
+        finally { _writing = false; }
+    }
+
+    /// <summary>
+    /// Writes the staged edits into the save.
+    /// </summary>
+    /// <remarks>
+    /// Guarded because writing a save is not instant and the button says nothing while it runs:
+    /// a second press would start a second write of the same file, over a backup the first press
+    /// had just made, and on a Game Pass world two repacks of one container at once.
+    /// </remarks>
     private async Task SaveAsync()
     {
+        if (_writing) return;
+        _writing = true;
         try
         {
             await Workspace.SaveSelectedAsync();
@@ -374,8 +419,9 @@
             // to, the result only exists here until it is downloaded; and even on one it can
             // write to, editing a single save can change others, so the way to take the result
             // away intact is the whole-world EXPORT. Neither is obvious, hence the reminder.
-            // The desktop writes straight to the game's folder and needs no such nudge.
-            if (Export.CanExport && !Workspace.HasLocalPaths)
+            // The desktop writes straight to the game's folder, has no EXPORT to point at, and
+            // needs no such nudge.
+            if (Export.OffersSaveExport)
             {
                 Toasts.Show(
                     Workspace.CanWrite
@@ -417,6 +463,10 @@
                 return;
             }
             Toasts.Show(Errors.Present(exception, L.Editor("workspace.saveFailed"), L.Resource("PlayerUi_ChangesRemainOpen")), ToastKind.Error, TimeSpan.FromSeconds(8));
+        }
+        finally
+        {
+            _writing = false;
         }
     }
 
@@ -481,6 +531,8 @@
     /// </summary>
     private async Task SaveAnywayAsync()
     {
+        if (_writing) return;
+        _writing = true;
         Modals.Close();
         try
         {
@@ -490,6 +542,10 @@
         catch (Exception exception)
         {
             Toasts.Show(Errors.Present(exception, L.Editor("workspace.saveFailed"), L.Resource("PlayerUi_ChangesRemainOpen")), ToastKind.Error, TimeSpan.FromSeconds(8));
+        }
+        finally
+        {
+            _writing = false;
         }
     }
     private void Revert() { InventorySelection.Clear(); Workspace.RevertSelected(); }
@@ -554,6 +610,10 @@
     private async Task AddPlayerAsync()
     {
         if (Workspace.Current is not { } workspace || !CanAddPlayer) return;
+        // Pressing Enter twice on the form would otherwise write two characters into the world
+        // under the same id, which the game has no way to tell apart afterwards.
+        if (_addingPlayer) return;
+        _addingPlayer = true;
         try
         {
             var copy = _copySelectedPlayer ? workspace.PlayerSession?.Path : null;
@@ -562,6 +622,7 @@
             _newPlayerId = string.Empty; _copySelectedPlayer = false; _showAddPlayer = false;
         }
         catch (Exception ex) { _addPlayerStatus = Errors.Present(ex, L.Resource("Main_AddPlayerFailedTitle"), L.Resource("Main_NewPlayerIdMessage")); }
+        finally { _addingPlayer = false; }
     }
     private void OpenConfig(AbioticIniFile config)
     {

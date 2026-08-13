@@ -12,7 +12,11 @@ namespace AbioticEditor.Web.Wasm.Services;
 /// </remarks>
 public sealed class BrowserSaveExporter(IJSRuntime js) : ISaveExporter
 {
-    public bool CanExport => true;
+    /// <summary>
+    /// True: in a browser an edited save exists nowhere but in this tab, so EXPORT is the only
+    /// way the player's work ever reaches the game.
+    /// </summary>
+    public bool OffersSaveExport => true;
 
     public async Task ExportAsync(string fileName, byte[] contents, CancellationToken cancellationToken = default)
     {

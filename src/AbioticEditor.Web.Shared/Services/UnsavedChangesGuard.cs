@@ -21,14 +21,21 @@ public sealed class UnsavedChangesGuard(
 {
     /// <summary>
     /// Runs <paramref name="proceed"/> straight away when nothing is staged, and otherwise asks
-    /// first, running it only if the player says to carry on.
+    /// first, running it only if the player says to carry on. <paramref name="declined"/> runs
+    /// instead when they choose to stay put.
     /// </summary>
     /// <remarks>
-    /// Returns as soon as the question is on screen, because the dialog is not modal to the
+    /// <para>Returns as soon as the question is on screen, because the dialog is not modal to the
     /// caller - the answer arrives later through <paramref name="proceed"/>. Callers must
-    /// therefore not do anything after awaiting this that assumes the action has happened.
+    /// therefore not do anything after awaiting this that assumes the action has happened.</para>
+    ///
+    /// <para>That is what <paramref name="declined"/> is for. A screen that disables its buttons
+    /// while an action is under way cannot tell from the returned task whether the action ever
+    /// started, so without a way to hear "no" it would either leave those buttons dead for the
+    /// rest of the session or re-enable them while the question was still on screen. Exactly one
+    /// of the two callbacks runs, so a refusal ends the same way a completed action does.</para>
     /// </remarks>
-    public Task ConfirmAsync(Func<Task> proceed)
+    public Task ConfirmAsync(Func<Task> proceed, Func<Task>? declined = null)
     {
         ArgumentNullException.ThrowIfNull(proceed);
         if (!workspace.HasStagedEdits) return proceed();
@@ -39,7 +46,8 @@ public sealed class UnsavedChangesGuard(
             ConfirmText: language.Resource("Unsaved_LeaveConfirm"),
             OnConfirm: proceed,
             CancelText: language.Resource("Unsaved_LeaveCancel"),
-            IsDestructive: true));
+            IsDestructive: true,
+            OnCancel: declined));
         return Task.CompletedTask;
     }
 

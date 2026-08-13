@@ -17,8 +17,8 @@ namespace AbioticEditor.Web.Services;
 /// </remarks>
 public sealed class SaveExportService(ISaveFileSystem files, ISaveExporter exporter, SaveWorkspaceSessionService workspace)
 {
-    /// <summary>True when this host can hand files back at all.</summary>
-    public bool CanExport => exporter.CanExport;
+    /// <summary>True when this host puts the EXPORT actions on screen at all.</summary>
+    public bool OffersSaveExport => exporter.OffersSaveExport;
 
     /// <summary>Exports a single save under its own name.</summary>
     public async Task ExportSaveAsync(WorkspaceSave save, CancellationToken cancellationToken = default)

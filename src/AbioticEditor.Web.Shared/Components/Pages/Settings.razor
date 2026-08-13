@@ -1,4 +1,4 @@
-﻿@using AbioticEditor.Core.Plugins
+@using AbioticEditor.Core.Plugins
 @implements IDisposable
 @inject HostSettingsService HostSettings
 @inject HostThemeService Theme
@@ -101,8 +101,8 @@
                         <article class="settings-card">
                             <h2>@R("Settings_GameData")</h2>
                             <p class="muted">@R("GameDataSettings_CardHint")</p>
-                            <div class="game-data-path-row"><span>@R("GameDataSettings_GameFolderLabel", HostSettings.SavedGamePath ?? HostSettings.PaksPath ?? R("GameDataSettings_FolderNotFound"))</span><button class="primary" type="button" @onclick="PickGameFolderAsync">@R("GameDataSettings_SetGameFolder")</button>@if (HostSettings.SavedGamePath is not null) { <button class="secondary" type="button" @onclick="ClearGamePathAsync">@R("GameDataSettings_UseAutoDetect")</button> }</div>
-                            <div class="game-data-path-row"><span>@R("GameDataSettings_UsmapLabel", HostSettings.MappingsPath is null ? R("GameDataSettings_UsmapNotFound") : Path.GetFileName(HostSettings.MappingsPath))</span><button class="secondary" type="button" @onclick="ImportMappingsAsync">@R("GameDataSettings_ImportDataFile")</button></div>
+                            <div class="game-data-path-row"><span>@R("GameDataSettings_GameFolderLabel", HostSettings.SavedGamePath ?? HostSettings.PaksPath ?? R("GameDataSettings_FolderNotFound"))</span><button class="primary" type="button" @onclick="PickGameFolderAsync" disabled="@GameDataBusy">@R("GameDataSettings_SetGameFolder")</button>@if (HostSettings.SavedGamePath is not null) { <button class="secondary" type="button" @onclick="ClearGamePathAsync" disabled="@GameDataBusy">@R("GameDataSettings_UseAutoDetect")</button> }</div>
+                            <div class="game-data-path-row"><span>@R("GameDataSettings_UsmapLabel", HostSettings.MappingsPath is null ? R("GameDataSettings_UsmapNotFound") : Path.GetFileName(HostSettings.MappingsPath))</span><button class="secondary" type="button" @onclick="ImportMappingsAsync" disabled="@GameDataBusy">@R("GameDataSettings_ImportDataFile")</button></div>
                             <label for="game-data-language">@R("GameDataSettings_LanguageTitle")</label>
                             <select id="game-data-language" class="settings-select" value="@(Languages.GameDataLanguage ?? string.Empty)" @onchange="SetGameDataLanguageAsync">
                                 <option value="">@R("GameDataSettings_LanguageAuto")</option>
@@ -255,20 +255,46 @@
         builder.AddContent(1, text);
         builder.CloseElement();
     };
+    /// <summary>
+    /// True while one of the game-data actions below is under way, including the part where a
+    /// chooser is open. The busy panel only appears once the reload itself starts, so without
+    /// this the buttons stayed live during the chooser and a second press opened a second one.
+    /// </summary>
+    private bool _gameDataBusy;
+    private bool GameDataBusy => _gameDataBusy || _busyMessage is not null;
+
     private async Task PickGameFolderAsync()
     {
-        var picked = await FolderPicker.PickFolderAsync(new() { Title = R("GameDataSettings_SetGameFolder") });
-        if (picked is null || string.IsNullOrWhiteSpace(picked.Path)) return;
-        if (!HostSettings.SaveGamePath(picked.Path)) { _error = R("GameDataSettings_NoGameDataMessage", picked.Path); return; }
-        _error = null;
-        await ReloadGameDataBusyAsync();
+        if (GameDataBusy) return;
+        _gameDataBusy = true;
+        try
+        {
+            var picked = await FolderPicker.PickFolderAsync(new() { Title = R("GameDataSettings_SetGameFolder") });
+            if (picked is null || string.IsNullOrWhiteSpace(picked.Path)) return;
+            if (!HostSettings.SaveGamePath(picked.Path)) { _error = R("GameDataSettings_NoGameDataMessage", picked.Path); return; }
+            _error = null;
+            await ReloadGameDataBusyAsync();
+        }
+        finally { _gameDataBusy = false; }
     }
-    private async Task ClearGamePathAsync() { HostSettings.ClearGamePath(); _error = null; await ReloadGameDataBusyAsync(); }
+    private async Task ClearGamePathAsync()
+    {
+        if (GameDataBusy) return;
+        _gameDataBusy = true;
+        try { HostSettings.ClearGamePath(); _error = null; await ReloadGameDataBusyAsync(); }
+        finally { _gameDataBusy = false; }
+    }
     private async Task ImportMappingsAsync()
     {
-        var picked = await FilePicker.PickFileAsync(new() { Title = R("GameDataSettings_ImportDataFile"), FileTypes = [new(R("GameDataSettings_ImportDataFile"), [".usmap"])] });
-        if (picked is null || string.IsNullOrWhiteSpace(picked.Path)) return;
-        await RunGameDataWorkAsync(() => HostSettings.InstallMappings(picked.Path));
+        if (GameDataBusy) return;
+        _gameDataBusy = true;
+        try
+        {
+            var picked = await FilePicker.PickFileAsync(new() { Title = R("GameDataSettings_ImportDataFile"), FileTypes = [new(R("GameDataSettings_ImportDataFile"), [".usmap"])] });
+            if (picked is null || string.IsNullOrWhiteSpace(picked.Path)) return;
+            await RunGameDataWorkAsync(() => HostSettings.InstallMappings(picked.Path));
+        }
+        finally { _gameDataBusy = false; }
     }
     private Task ReloadGameDataBusyAsync() => RunGameDataWorkAsync(HostSettings.ReloadGameData);
     private async Task RunGameDataWorkAsync(Func<GameDataReloadStatus> work)

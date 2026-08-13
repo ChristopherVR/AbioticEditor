@@ -35,7 +35,7 @@ else
     {
         <section class="create-world-card"><h2>@R("CreateWorld_WorldCardTitle")</h2><p class="muted">@R("CreateWorld_WorldCardDesc")</p>
             <label for="world-name">@R("CreateWorld_WorldNameLabel")</label><input id="world-name" maxlength="64" @bind="_worldName" placeholder="@R("CreateWorld_WorldNamePlaceholder")" />
-            <label for="save-location">@R("CreateWorld_SaveLocationLabel")</label><div class="settings-input"><input id="save-location" @bind="_parentDirectory" placeholder="@R("CreateWorld_SaveFolderPlaceholder")" /><button class="secondary" @onclick="PickDestinationAsync">@R("CreateWorld_Browse")</button></div>
+            <label for="save-location">@R("CreateWorld_SaveLocationLabel")</label><div class="settings-input"><input id="save-location" @bind="_parentDirectory" placeholder="@R("CreateWorld_SaveFolderPlaceholder")" /><button class="secondary" @onclick="PickDestinationAsync" disabled="@_picking">@R("CreateWorld_Browse")</button></div>
         </section>
     }
     else if (_step == 2)
@@ -89,6 +89,7 @@ else
     private int _playerCount = 1;
     private int _difficulty = 2;
     private bool _isCreating;
+    private bool _picking;
     private bool _failed;
     private string? _status;
 
@@ -267,9 +268,16 @@ else
         finally { _isCreating = false; }
     }
 
+    /// <summary>
+    /// Chooses where the new world folder goes. Held while the chooser is open: it is the slow
+    /// part, and a second press behind it only puts another chooser on screen.
+    /// </summary>
     private async Task PickDestinationAsync()
     {
+        if (_picking) return;
+        _picking = true;
         try { var folder = await FolderPicker.PickFolderAsync(new() { Title = R("CreateWorld_Browse") }); if (folder?.Path is not null) _parentDirectory = folder.Path; }
         catch (Exception ex) { Errors.Record(ex, "Choose new world folder"); await Fail("CreateWorld_LocationNotFoundMsg"); }
+        finally { _picking = false; }
     }
 }

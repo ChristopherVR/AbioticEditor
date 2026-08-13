@@ -7,6 +7,7 @@
 @inject AbioticEditor.Ui.IFolderPicker FolderPicker
 @inject ToastService Toasts
 @inject UnsavedChangesGuard Unsaved
+@inject GamePassSafetyGuard GamePassSafety
 @inject NavigationManager Navigation
 
 <div class="app-frame @Theme.CssClass">
@@ -103,6 +104,15 @@
     private void CloseSettings() => _settingsOpen = false;
     private void Refresh(object? sender, EventArgs args) => _ = InvokeAsync(StateHasChanged);
     private void RefreshWorkspace() => _ = InvokeAsync(StateHasChanged);
+    /// <summary>
+    /// The header's OPEN: choose a folder, then load it as the working world.
+    /// </summary>
+    /// <remarks>
+    /// The button stays disabled for the whole attempt, questions included. Both gates below hand
+    /// control back the instant their dialog is on screen, so releasing the flag when this method
+    /// returned meant OPEN came alive again while the player was still reading the question, and
+    /// every further click opened another picker and started another world load on top.
+    /// </remarks>
     private async Task PickFolderAsync()
     {
         if (_openingFolder) return;
@@ -110,35 +120,66 @@
         try
         {
             var picked = await FolderPicker.PickFolderAsync(new() { Title = Languages.Text("folder.choose.title") });
-            if (picked?.Path is null) return;
+            if (picked?.Path is null) { await DoneOpeningAsync(); return; }
             // Opening another world replaces whatever is loaded, staged edits included, so the
             // player is asked first if there are any. Asked after the folder is chosen rather
             // than before: a picker they then cancel is not worth a warning.
-            await Unsaved.ConfirmAsync(async () =>
-            {
-                await Workspace.OpenAsync(picked.Path);
-                Toasts.Show(Languages.Text("folder.opened", Path.GetFileName(picked.Path)), ToastKind.Success);
-                Navigation.NavigateTo("./");
-            });
+            //
+            // An Xbox save then gets the cloud-sync warning, exactly as it does when the same
+            // world is opened from the start screen. Without it, this one button was the way into
+            // a Game Pass world that skipped the warning entirely.
+            await Unsaved.ConfirmAsync(
+                () => GamePassSafety.OpenAsync(picked.Path, () => OpenFolderAsync(picked.Path), DoneOpeningAsync),
+                DoneOpeningAsync);
         }
         catch (Exception exception)
         {
-            Errors.Record(exception, "Open save folder");
+            ReportOpenFailure(exception);
+            await DoneOpeningAsync();
+        }
+    }
 
-            // A browser with no folder picker at all (Firefox, Safari) is not the same problem as
-            // a folder that cannot be read, and telling those players to check their folder sends
-            // them looking for a fault that is not there.
-            Toasts.Show(
-                UserFacingErrorService.IsFolderPickerUnavailable(exception)
-                    ? Languages.Resource("Host_NoFolderPicker")
-                    : Languages.Text("folder.open.error", "Check that the folder still exists and that you can read it."),
-                ToastKind.Error,
-                TimeSpan.FromSeconds(10));
+    private async Task OpenFolderAsync(string folder)
+    {
+        try
+        {
+            await Workspace.OpenAsync(folder);
+            Toasts.Show(Languages.Text("folder.opened", Path.GetFileName(folder)), ToastKind.Success);
+            Navigation.NavigateTo("./");
+        }
+        catch (Exception exception)
+        {
+            ReportOpenFailure(exception);
         }
         finally
         {
-            _openingFolder = false;
+            await DoneOpeningAsync();
         }
+    }
+
+    /// <summary>
+    /// Frees OPEN again. Runs on every ending, a loaded world, a failure, a closed picker and a
+    /// question answered with "no", because a button freed only on success never comes back.
+    /// </summary>
+    private Task DoneOpeningAsync()
+    {
+        _openingFolder = false;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private void ReportOpenFailure(Exception exception)
+    {
+        Errors.Record(exception, "Open save folder");
+
+        // A browser with no folder picker at all (Firefox, Safari) is not the same problem as
+        // a folder that cannot be read, and telling those players to check their folder sends
+        // them looking for a fault that is not there.
+        Toasts.Show(
+            UserFacingErrorService.IsFolderPickerUnavailable(exception)
+                ? Languages.Resource("Host_NoFolderPicker")
+                : Languages.Text("folder.open.error", "Check that the folder still exists and that you can read it."),
+            ToastKind.Error,
+            TimeSpan.FromSeconds(10));
     }
     public void Dispose() { Languages.Changed -= Refresh; Theme.Changed -= Refresh; Workspace.Changed -= RefreshWorkspace; }
 }

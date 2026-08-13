@@ -57,7 +57,7 @@
     }
     @if (_outputFolder is not null)
     {
-        <button class="secondary" type="button" @onclick="OpenOutputFolderAsync">@R("Settings_OpenOutputFolder")</button>
+        <button class="secondary" type="button" @onclick="OpenOutputFolderAsync" disabled="@_busy">@R("Settings_OpenOutputFolder")</button>
     }
 </article>
 
@@ -80,23 +80,33 @@
     private static string WorldLabel(string container)
         => container.EndsWith("-WC", StringComparison.OrdinalIgnoreCase) ? container[..^3] : container;
 
+    /// <summary>
+    /// Converts a save folder between the Steam and Game Pass layouts, starting by asking which
+    /// folder to convert.
+    /// </summary>
+    /// <remarks>
+    /// The card is marked busy before the folder chooser opens, not after it closes. Choosing a
+    /// folder is the slow part, and while it was open the button was still live, so every further
+    /// click put another chooser on screen and queued another conversion behind it.
+    /// </remarks>
     private async Task ConvertAsync(SaveConversionDirection direction)
     {
-        var picked = await FolderPicker.PickFolderAsync(new()
-        {
-            Title = R(direction == SaveConversionDirection.ToGamePass
-                ? "Settings_ConvertToGamePass"
-                : "Settings_ConvertToSteam"),
-        });
-        if (picked is null || string.IsNullOrWhiteSpace(picked.Path)) return;
-        var sourceFolder = picked.Path;
-
+        if (_busy) return;
         _busy = true;
-        _failed = false;
-        _outputFolder = null;
-        _status = R("Settings_Converting");
         try
         {
+            var picked = await FolderPicker.PickFolderAsync(new()
+            {
+                Title = R(direction == SaveConversionDirection.ToGamePass
+                    ? "Settings_ConvertToGamePass"
+                    : "Settings_ConvertToSteam"),
+            });
+            if (picked is null || string.IsNullOrWhiteSpace(picked.Path)) return;
+            var sourceFolder = picked.Path;
+
+            _failed = false;
+            _outputFolder = null;
+            _status = R("Settings_Converting");
             var validation = SaveConversionService.ValidateSource(direction, sourceFolder);
             if (validation != SaveConversionSourceValidation.Valid)
             {
@@ -137,6 +147,9 @@
 
     private async Task ChooseWorldAsync(string container)
     {
+        // The list is disabled while a conversion runs, but a double-click lands both presses
+        // before the card is redrawn, so the flag is checked as well as shown.
+        if (_busy) return;
         var source = _pendingSource;
         if (source is null) return;
         _worldChoices = null;
@@ -187,6 +200,7 @@
 
     private async Task ChooseCharacterAsync(string character)
     {
+        if (_busy) return;
         var source = _pendingSource;
         if (source is null) return;
         _characterChoices = null;
@@ -228,7 +242,8 @@
 
     private async Task OpenOutputFolderAsync()
     {
-        if (_outputFolder is null) return;
+        if (_busy || _outputFolder is null) return;
+        _busy = true;
         try { await ExternalNavigation.RevealPathAsync(_outputFolder); }
         catch (Exception exception)
         {
@@ -236,5 +251,6 @@
             Errors.Record(exception, "Open converted save folder");
             _status = R("Settings_ConvertFailed");
         }
+        finally { _busy = false; }
     }
 }
