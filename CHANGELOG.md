@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [2.6.2] - 2026-08-13
+
+### Bug Fixes
+- A save Xbox left marked as disputed can be unstuck
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.6.1 [skip ci]
+
+
 ## [2.6.1] - 2026-08-13
 
 ### Bug Fixes
