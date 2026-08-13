@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [2.6.0] - 2026-08-13
+
+### Features
+- Make converting a save between Steam and Game Pass easier to get right
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.5.2 [skip ci]
+
+
 ## [2.5.2] - 2026-08-13
 
 ### Bug Fixes
