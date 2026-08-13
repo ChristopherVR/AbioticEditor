@@ -99,6 +99,17 @@ Repairing puts the note right. It does not make Xbox forget the cloud copy, so f
 [offline routine](#before-you-edit-the-offline-routine) afterwards: stay offline, launch the game
 once and save in-game, and only then reconnect.
 
+If the world still will not load after repairing, fall back to the game's own spare copy of it.
+Abiotic Factor keeps one for every world, a single save behind:
+
+```console
+abioticeditor gamepass backups        "<your Game Pass save folder>"
+abioticeditor gamepass restore-backup "<your Game Pass save folder>" <world-name>
+```
+
+You lose whatever happened between that copy and now, which is usually one session's worth. Your
+whole save folder is backed up before anything is replaced.
+
 ### My edits keep reverting
 
 This is the cloud copy winning. Work through the checklist:
@@ -129,17 +140,40 @@ abioticeditor gamepass compare  "<save folder>" before.json
 
 If a world you know exists no longer shows up in the editor or in the game, Xbox has most likely
 dropped it from the save folder's own list of contents. The world's data usually **still sits on
-disk**, unlisted.
+disk**, unlisted. There are three ways back, easiest first. Close the game and the Xbox app before
+any of them.
 
-With the game and the Xbox app closed:
+**1. Put the leftover world back on the list.** This is the one to try first, because it does not
+throw away any progress: the world is already there, it has just stopped being listed.
 
-1. Look next to your Game Pass save folder for folders with the same name plus `.bak`. The editor
-   copies the whole save folder there before every write, and keeps the last eight.
-2. Pick the newest one from before things went wrong and check it with
-   `abioticeditor gamepass list "<that .bak folder>"`. It lists the worlds and characters inside.
-3. When you find the one you want, copy that backup folder's contents back over your save folder.
-4. Follow the [offline routine](#before-you-edit-the-offline-routine) so your restored copy is the
-   one Xbox keeps.
+```console
+abioticeditor gamepass orphans        "<your Game Pass save folder>"
+abioticeditor gamepass recover-orphan "<your Game Pass save folder>" <folder-name>
+```
+
+`orphans` only looks. It tells you which world each leftover is and when it was last written, so
+you can pick the right one. `recover-orphan` then puts it back on the list. Only the list changes;
+your save data is not moved or rewritten.
+
+**2. Use the game's own spare copy.** Abiotic Factor quietly keeps a second copy of every world,
+one save behind the live one. The editor can list those and put one back:
+
+```console
+abioticeditor gamepass backups        "<your Game Pass save folder>"
+abioticeditor gamepass restore-backup "<your Game Pass save folder>" <world-name>
+```
+
+The spare copy is a whole world, not a fragment: every area, every character, and your difficulty
+settings. But it is **one save behind**, so anything you did after that point is gone. Your whole
+save folder is copied to a backup before anything is replaced.
+
+**3. Use one of the editor's own backups.** The editor copies your whole save folder before every
+write and keeps the last eight, in folders named after your save folder plus `.bak`. Check one with
+`abioticeditor gamepass list "<that .bak folder>"` to see the worlds and characters inside, then
+copy its contents back over your save folder.
+
+Whichever route you take, finish with the [offline routine](#before-you-edit-the-offline-routine)
+so your restored copy is the one Xbox keeps.
 
 If the editor ever refuses to open a save because there are **two versions of its data on disk**,
 that is Xbox part-way through a sync. Nothing on disk says which one is meant to win, so the editor
@@ -228,6 +262,10 @@ abioticeditor gamepass discover                       # find Game Pass saves on 
 abioticeditor gamepass status <save-folder>           # how Xbox sees this save (changes nothing)
 abioticeditor gamepass list <save-folder>             # the worlds and characters packed inside
 abioticeditor gamepass repair <save-folder>           # fix a mislabelled or half-synced save
+abioticeditor gamepass backups <save-folder>          # the game's own spare copy of each world
+abioticeditor gamepass restore-backup <save-folder> <world>
+abioticeditor gamepass orphans <save-folder>          # worlds Xbox dropped but did not delete
+abioticeditor gamepass recover-orphan <save-folder> <folder>
 abioticeditor gamepass extract <save-folder> <name> <out.sav>
 abioticeditor gamepass import <save-folder> <name> <in.sav>
 abioticeditor gamepass rename-player <save-folder> <name> <new-id>
@@ -252,6 +290,10 @@ A few notes worth having:
   and keeps the worlds already in it. Without `--into`, the editor refuses to write into a folder
   that already holds saves.
 - **`snapshot`** and **`compare`** are the way to prove whether a real Xbox sync kept your edit.
+- **Anything that writes can refuse.** If Xbox has an unsettled argument about your save, or part of
+  it is mislabelled, or Abiotic Factor is still running, the editor stops and tells you why instead
+  of saving into a mess. Fix what it names, or pass `--force` if you have read the reason and want
+  to go ahead anyway.
   Snapshot, let the sync happen, compare.
 
 ## How the format works
