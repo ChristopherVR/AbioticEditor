@@ -36,22 +36,51 @@ overrule Xbox on its own.
 
 The routine that makes edits stick:
 
-1. Fully close Abiotic Factor **and** the Xbox app (check the system tray).
+1. Fully close Abiotic Factor **and** the Xbox app (check the system tray), then **wait a minute**.
+   Xbox uploads for up to ~30 seconds after a game exits, and editing into that window is asking
+   for a conflict.
 2. **Go offline** (Wi-Fi off / airplane mode). This is the step that does the work.
 3. Make your edits in the editor and press **SAVE**.
-4. **Still offline**, launch the game once, load the save, save in-game, and quit. Now the game
-   itself owns your edit as the newest copy.
-5. Reconnect. If Xbox asks, choose **keep local / upload**.
+4. **Still offline**, launch the game once, load the save, save in-game, and quit. This is not
+   superstition: Microsoft's own tooling documentation says data written directly to disk is only
+   uploaded "the next time the title launches and acquires the Game Saves provider". The game
+   itself has to adopt your edit.
+5. Reconnect. If Xbox asks which copy to keep, choose the **local / this device** one.
 
-If you save while online, or pick "download from cloud" at the prompt, the cloud copy wins and the
-edit is gone. The editor shows this as a reminder the first time you open a Game Pass world, and it
-backs the whole save folder up before every write either way.
+If you save while online, or pick the cloud copy at the prompt, the cloud copy wins and the edit is
+gone. The editor shows this reminder the first time you open a Game Pass world, and it backs the
+whole save folder up before every write either way.
 :::
 
-If the editor says the save **needs a quick repair**, that means Xbox left it half-synced: the save
-points at a piece of data that is not on disk. The editor found the real one, and offers to fix the
-pointer so the warning stops. Do it with the game and Xbox app closed - and note that a save in this
-state was already broken before the editor touched it.
+::: warning The conflict prompt is one-way
+When Xbox asks "which one do you want to use?", the copy you do **not** pick is **deleted**, and it
+does not tell you what is inside either one. If you have just edited offline and the local copy is
+the one you want, pick local. If you are not sure, back up the whole save folder first: there is no
+undo and no version history on this system.
+
+Two related traps: a Game Pass game may refuse to launch offline unless you have played it on that
+PC before, and the prompt sometimes does not appear at all, in which case the save simply reverts.
+:::
+
+If an edit does go missing, the editor's `gamepass snapshot` and `gamepass compare` commands exist
+precisely to catch it in the act: fingerprint the folder, let Xbox sync, then compare.
+
+If the editor says the save **needs a quick repair**, that means one of two things, and both are
+worth letting it fix, with the game and Xbox app closed:
+
+- Xbox left the save half-synced: it points at a piece of data that is not on disk. The editor
+  found the real one. A save in this state was already broken before the editor touched it.
+- Part of the save is labelled with a status Xbox does not recognise. **Versions of this editor
+  before v2.5 caused this**: they treated a status field as a counter and increased it on every
+  save, which eventually made a world claim to be deleted, or to be in no valid state at all. That
+  is enough for Xbox or the game to ignore it. If your Game Pass world stopped loading after
+  editing, this is very likely why, and the repair puts it back.
+
+You can check any save without changing it:
+
+```console
+abioticeditor gamepass status <wgs-folder>
+```
 
 ## Opening a Game Pass save in the desktop app
 

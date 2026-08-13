@@ -131,12 +131,12 @@ public class GamePassSyncFidelityTests
         var before = new WgsSnapshot(100, new[]
         {
             new WgsContainerState("World-WC", 5, WgsEntryState.Modified, 100, "AAAA", null),
-            new WgsContainerState("Settings", 3, WgsEntryState.Synched, 50, "BBBB", null),
+            new WgsContainerState("Settings", 3, WgsEntryState.Synced, 50, "BBBB", null),
         });
         var after = new WgsSnapshot(90, new[]
         {
             // World-WC is gone; Settings reverted to an earlier container number.
-            new WgsContainerState("Settings", 2, WgsEntryState.Synched, 50, "CCCC", null),
+            new WgsContainerState("Settings", 2, WgsEntryState.Synced, 50, "CCCC", null),
         });
 
         var diff = WgsSnapshot.Compare(before, after);

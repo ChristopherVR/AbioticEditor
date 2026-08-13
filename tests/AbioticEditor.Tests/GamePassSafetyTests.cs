@@ -167,21 +167,24 @@ public class GamePassSafetyTests
     }
 
     [Fact]
-    public void A_written_container_is_marked_as_differing_from_the_cloud()
+    public void A_container_that_has_never_been_uploaded_says_so_and_carries_no_cloud_token()
     {
         using var scratch = new Scratch();
         WgsContainerStore.WriteNewContainer(scratch.Path, "World-WC", Payload(256, seed: 40));
 
-        // Brand new: the service has never seen it, and there is no cloud version to name.
         var created = WgsContainerStore.Open(scratch.Path);
         Assert.Equal(WgsEntryState.Created, created.Containers[0].State);
         Assert.Equal(string.Empty, created.Containers[0].Etag);
+        Assert.False(created.Containers[0].StateContradictsEtag);
 
         created.WriteBlob(created.Containers[0], Payload(300, seed: 41));
 
+        // Still never uploaded, so it stays Created rather than claiming to be a change to a cloud
+        // version that does not exist.
         var after = WgsContainerStore.Open(scratch.Path);
         Assert.Equal(WgsEntryState.Created, after.Containers[0].State);
-        Assert.False(after.SyncFlags.HasFlag(WgsSyncState.FullyUploaded));
+        Assert.False(after.Containers[0].StateContradictsEtag);
+        Assert.False(after.SyncState.HasFlag(WgsSyncState.FullyUploaded));
     }
 
     [Fact]
@@ -190,47 +193,58 @@ public class GamePassSafetyTests
         using var scratch = new Scratch();
         WgsContainerStore.WriteNewContainer(scratch.Path, "World-WC", Payload(256, seed: 42));
 
-        // Stand in for a container the service has synced: it has an ETag it issued, and it agrees
-        // with the cloud.
+        // Stand in for a container the service has synced: it carries an ETag Xbox issued, and it
+        // currently agrees with the cloud.
         var seeded = WgsContainerStore.Open(scratch.Path);
         seeded.Containers[0].Etag = "\"0x8DEBCCC41BE9635\"";
-        seeded.Containers[0].State = WgsEntryState.Synched;
+        seeded.Containers[0].State = WgsEntryState.Synced;
+        seeded.Containers[0].RawState = (uint)WgsEntryState.Synced;
         seeded.WriteBlob(seeded.Containers[0], Payload(400, seed: 43));
 
         var after = WgsContainerStore.Open(scratch.Path);
+
+        // Modified, not Created: the cloud knows this container, and saying otherwise is what the
+        // Palworld tools found the sync engine quietly discards.
         Assert.Equal(WgsEntryState.Modified, after.Containers[0].State);
         Assert.Equal("\"0x8DEBCCC41BE9635\"", after.Containers[0].Etag);
+        Assert.False(after.Containers[0].StateContradictsEtag);
     }
 
-    [Fact]
-    public void A_container_left_in_a_state_the_format_does_not_define_is_repaired()
+    [Theory]
+    [InlineData(7u)]    // past the end of the range entirely
+    [InlineData(3u)]    // Deleted - a tombstone the service may act on
+    public void A_container_left_in_a_state_that_makes_no_sense_is_repaired(uint badState)
     {
         using var scratch = new Scratch();
         WgsContainerStore.WriteNewContainer(scratch.Path, "World-WC", Payload(256, seed: 44));
 
-        // Earlier versions of this editor incremented the state field on every save, so real saves
-        // in the wild carry values like 6 and 7 - and, on the way there, Deleted(3).
-        PatchFirstEntryState(scratch.Path, 7);
+        // Earlier versions of this editor incremented the state on every save, so real saves in the
+        // wild carry values like 6 and 7 - and, on the way there, Deleted(3).
+        PatchFirstEntryState(scratch.Path, badState);
 
-        var reopened = WgsContainerStore.Open(scratch.Path);
-        Assert.Contains("World-WC", reopened.InvalidStateContainers);
-
-        Assert.Contains("World-WC", reopened.RepairRecoveredManifests());
+        var broken = WgsContainerStore.Open(scratch.Path);
+        Assert.Contains("World-WC", broken.RepairRecoveredManifests());
 
         var repaired = WgsContainerStore.Open(scratch.Path);
         Assert.Empty(repaired.InvalidStateContainers);
-        Assert.Equal(WgsEntryState.Modified, repaired.Containers[0].State);
+        Assert.False(repaired.Containers[0].StateContradictsEtag);
     }
 
     [Fact]
-    public void Container_timestamps_use_the_games_millisecond_granularity()
+    public void A_state_that_disagrees_with_the_cloud_token_is_reported_and_repaired()
     {
         using var scratch = new Scratch();
-        WgsContainerStore.WriteNewContainer(scratch.Path, "World-WC", Payload(256, seed: 41));
+        WgsContainerStore.WriteNewContainer(scratch.Path, "World-WC", Payload(256, seed: 45));
 
-        // Every entry timestamp in a real save divides exactly by one millisecond.
-        var entry = WgsContainerStore.Open(scratch.Path).Containers[0];
-        Assert.Equal(0, entry.FileTime % TimeSpan.TicksPerMillisecond);
+        // Created(5) says "never uploaded", but an ETag says the cloud knows it. Two independently
+        // written parsers reject that combination outright, so the editor must never leave one.
+        var seeded = WgsContainerStore.Open(scratch.Path);
+        seeded.Containers[0].Etag = "\"0x8DEBCCC41BE9635\"";
+        seeded.WriteBlob(seeded.Containers[0], Payload(260, seed: 46));
+
+        var after = WgsContainerStore.Open(scratch.Path);
+        Assert.Equal(WgsEntryState.Modified, after.Containers[0].State);
+        Assert.Empty(after.InvalidStateContainers);
     }
 
     // ---- bundle + member codec -------------------------------------------------------------

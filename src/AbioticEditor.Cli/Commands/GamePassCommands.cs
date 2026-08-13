@@ -46,7 +46,7 @@ internal static class GamePassCommands
             }
             var store = WgsContainerStore.Open(dir);
 
-            Console.WriteLine($"Sync state: {store.SyncFlags}");
+            Console.WriteLine($"Sync state: {store.SyncState}");
             if (store.HasUnresolvedConflicts)
             {
                 Console.WriteLine(

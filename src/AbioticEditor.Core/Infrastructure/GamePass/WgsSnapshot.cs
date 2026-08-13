@@ -5,7 +5,7 @@ namespace AbioticEditor.Core.GamePass;
 /// <summary>One container's identity + content fingerprint at a moment in time.</summary>
 /// <param name="Number">The <c>container.N</c> number, which is what advances on each write.</param>
 /// <param name="State">How the container stands against its cloud copy. Recorded because watching
-/// it go from Modified back to Synched without the content changing is Xbox having resolved a
+/// it go from Modified back to Synced without the content changing is Xbox having resolved a
 /// conflict in the cloud's favour.</param>
 public sealed record WgsContainerState(
     string Name, byte Number, WgsEntryState State, long BlobSize, string? BlobSha256, string? Error);
@@ -71,7 +71,7 @@ public sealed record WgsSnapshot(long IndexFileTime, IReadOnlyList<WgsContainerS
             {
                 lines.Add($"CHANGED   {b.Name} - content differs (container {b.Number} -> {a.Number}, {b.BlobSize} -> {a.BlobSize} bytes)");
             }
-            else if (b.State == WgsEntryState.Modified && a.State == WgsEntryState.Synched)
+            else if (b.State == WgsEntryState.Modified && a.State == WgsEntryState.Synced)
             {
                 // Same bytes, but Xbox now considers the container settled. Either the edit
                 // uploaded, or the service decided the cloud copy was the right one and this is
