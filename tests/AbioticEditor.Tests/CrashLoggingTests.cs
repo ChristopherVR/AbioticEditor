@@ -9,6 +9,12 @@ namespace AbioticEditor.Tests;
 /// These cover the bridge that makes <see cref="ILogger"/> output land in the editor's log file
 /// instead, which is the only record a player can send us after something breaks.
 /// </summary>
+/// <remarks>
+/// In the EditorLog collection because these redirect the process-global <see cref="EditorLog"/>
+/// to a temp folder and toggle it on and off. That is shared state, so running them in parallel
+/// with the other classes that do the same made each one see the other's settings.
+/// </remarks>
+[Collection("EditorLog")]
 public class CrashLoggingTests : IDisposable
 {
     private readonly string _directory;

@@ -16,6 +16,13 @@ namespace AbioticEditor.Tests;
 /// save-operation runner (driven by an in-test operation). The full reflection/load path
 /// is exercised end to end by the CLI against the shipped sample plugins.
 /// </summary>
+/// <remarks>
+/// In the EditorLog collection because <c>RaiseEvent_DispatchesToJavaScriptHandler</c> redirects
+/// the process-global <see cref="EditorLog"/> to a temp folder to read back what a plugin logged.
+/// Running that in parallel with the other classes that do the same yanked the log directory out
+/// from under whichever one lost the race.
+/// </remarks>
+[Collection("EditorLog")]
 public sealed class PluginTests
 {
     // ---------- manifest IO ----------

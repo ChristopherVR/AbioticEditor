@@ -5,7 +5,9 @@ namespace AbioticEditor.Tests;
 
 /// <summary>
 /// EditorLog is process-global static state, so these tests serialize on a collection
-/// and always restore the default (disabled, %LOCALAPPDATA% directory) when done.
+/// and always restore the default (disabled, %LOCALAPPDATA% directory) when done. Every other
+/// class that redirects or toggles the log joins the same collection (CrashLoggingTests,
+/// PluginTests); leaving one out lets it run in parallel and clobber whatever is set here.
 /// </summary>
 [Collection("EditorLog")]
 public class EditorLogTests : IDisposable
