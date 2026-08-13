@@ -61,7 +61,7 @@ public sealed class GamePassRecoveryServiceTests
     }
 
     [SkippableFact]
-    public void An_unsettled_cloud_conflict_alone_is_not_offered_as_a_repair()
+    public void A_stale_cloud_conflict_is_offered_as_a_repair_and_really_clears()
     {
         Skip.IfNot(Fixtures.CascadeDir is not null, "the Steam world fixture is not in this checkout");
         Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
@@ -70,10 +70,52 @@ public sealed class GamePassRecoveryServiceTests
         var wgs = BuildGamePassWorld(scratch.Path, "MyWorld");
         SetUnresolvedConflict(wgs);
 
-        // Only Xbox can settle a conflict. The save is worth warning about, but a repair would do
-        // nothing to it, so it must not be dressed up as one.
+        // The editor used to leave this marker strictly alone, because only the service that set it
+        // can know the conflict is over. On a real save that produced a world nobody could ever edit
+        // again: the marker was observed set continuously for seven weeks, across many play
+        // sessions, blocking every write, with nothing in existence that would take it off.
         Assert.True(WgsContainerStore.Open(wgs).HasUnresolvedConflicts);
+        Assert.NotEmpty(GamePassSaveSet.PartsNeedingRepair(wgs));
+
+        var repaired = GamePassSaveSet.Open(wgs).RepairMidSync();
+        Assert.NotEmpty(repaired);
+
+        var after = WgsContainerStore.Open(wgs);
+        Assert.False(after.HasUnresolvedConflicts);
+        Assert.True(after.CheckWritable().CanWrite);
         Assert.Empty(GamePassSaveSet.PartsNeedingRepair(wgs));
+    }
+
+    [SkippableFact]
+    public void Clearing_a_stale_conflict_does_not_touch_the_save_data()
+    {
+        Skip.IfNot(Fixtures.CascadeDir is not null, "the Steam world fixture is not in this checkout");
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
+
+        using var scratch = TempCopy.Empty("gp-repair-conflict-data-");
+        var wgs = BuildGamePassWorld(scratch.Path, "MyWorld");
+        SetUnresolvedConflict(wgs);
+
+        var before = BlobHashes(wgs);
+        GamePassSaveSet.Open(wgs).RepairMidSync();
+
+        // The marker lives in the folder's contents list, not in a world. Clearing it must leave
+        // every byte of every save exactly where it was, or a repair is a gamble rather than a fix.
+        Assert.Equal(before, BlobHashes(wgs));
+    }
+
+    /// <summary>Hashes of every data blob in the folder, so a repair can be shown to leave the
+    /// saves themselves untouched.</summary>
+    private static HashSet<string> BlobHashes(string wgsFolder)
+    {
+        var hashes = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var file in Directory.EnumerateFiles(wgsFolder, "*", SearchOption.AllDirectories))
+        {
+            var name = Path.GetFileName(file);
+            if (name.Length != 32) continue;
+            hashes.Add(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(file))));
+        }
+        return hashes;
     }
 
     [SkippableFact]

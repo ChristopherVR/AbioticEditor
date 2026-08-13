@@ -721,9 +721,16 @@ public sealed class WgsContainerStore
     /// things that make a save look unwell here (an unresolved cloud conflict, most of all) are not
     /// something this editor can put right at all.
     /// </remarks>
+    /// <summary>
+    /// The label used for the index-level conflict marker in the repair lists, which are otherwise
+    /// container names.
+    /// </summary>
+    public const string CloudConflictLabel = "the unsettled Xbox conflict";
+
     public IReadOnlyList<string> ContainersNeedingRepair()
     {
         var needing = new List<string>();
+        if (HasUnresolvedConflicts) needing.Add(CloudConflictLabel);
         foreach (var container in _containers)
         {
             if (NeedsStateRepair(container)) { needing.Add(container.Name); continue; }
@@ -757,6 +764,27 @@ public sealed class WgsContainerStore
     {
         var repaired = new List<string>();
         var indexNeedsRewrite = false;
+
+        // Clear the "Xbox has not settled a conflict here" marker.
+        //
+        // This editor used to leave it strictly alone, on the reasoning that only the service that
+        // set it can know the conflict is over. That reasoning produces a save nobody can ever edit
+        // again: the marker is not self-clearing, and on a real save it was observed set
+        // continuously for seven weeks across many play sessions while every write stayed blocked.
+        // A marker that never comes off is not protecting anything, it is just a locked door.
+        //
+        // So it comes off here and only here: never as a side effect of a save, always as something
+        // the player asked for, and always after the whole folder has been copied. libNOM.io, the
+        // engine behind the mainstream No Man's Sky editor, clears the same bit on every single
+        // write, which is a good sign that clearing it is not the hazard it looked like.
+        if (HasUnresolvedConflicts)
+        {
+            SyncState &= ~WgsSyncState.HasUnresolvedConflicts;
+            indexNeedsRewrite = true;
+            repaired.Add(CloudConflictLabel);
+            Diagnostics.EditorLog.Info("GamePass",
+                "Cleared the unresolved-conflict marker; Xbox had left it set with nothing to clear it.");
+        }
 
         // Put back any container state that is not a value the format defines. Earlier versions of
         // this editor treated the state field as a write counter and incremented it on every save,
