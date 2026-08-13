@@ -57,7 +57,34 @@ You can edit your vitals, inventory, skills, traits, recipes, journal, appearanc
 [*][b]Dedicated servers:[/b] point it at the folder with your Worlds and edit any player or the world itself.
 [/list]
 
-[b]Bonus:[/b] it can [b]convert a world between Steam and Game Pass[/b] (losslessly, in either direction) and even re-home a character to a different account while it does. Moving your run from Game Pass to Steam, or the other way around, is a couple of clicks.
+[b]Bonus:[/b] it can [b]convert a world between Steam and Game Pass[/b] (losslessly, in either direction) and even re-home a character to a different account while it does. Moving your run from Game Pass to Steam, or the other way around, is a couple of clicks. Your difficulty settings come along with the world.
+
+[line]
+
+[size=5][b]Game Pass: if your save stopped loading, or your edits keep vanishing[/b][/size]
+
+[b]This is fixed, and a damaged save can be rescued.[/b] Here is what to do.
+
+[b]1. If your world will not load any more, or edits keep coming back undone.[/b] An Xbox save folder keeps a note for the Xbox cloud about each part of your save. Older versions of this editor (before v2.5) filled that note in wrongly, and edit after edit it drifted until a world ended up claiming to be [i]deleted[/i], or claiming something Xbox has no meaning for at all. That is enough for the game or Xbox to skip straight past your world. Both problems are fixed, and the editor can put an already-damaged save back.
+
+Close the game and the Xbox app, open the Game Pass world in the editor, and choose [b]Repair now[/b] if it offers. Your whole save folder is copied to a backup before anything is touched. The command-line tool does the same thing with [b]gamepass repair[/b], and [b]gamepass status[/b] shows you how Xbox currently sees a save without changing a thing.
+
+[b]2. Then edit offline, every time.[/b] This is the part that actually stops edits vanishing. Your Game Pass save is not the only copy: Xbox keeps one in the cloud, and when the two disagree the cloud copy can win.
+
+[list=1]
+[*]Close Abiotic Factor [b]and[/b] the Xbox app (check the system tray).
+[*]Wait about a minute. Xbox keeps uploading for up to half a minute after a game closes.
+[*]Go offline: Wi-Fi off, or airplane mode.
+[*]Make your edits and press [b]SAVE[/b].
+[*][b]Still offline[/b], launch the game once, load the world, save in game, and quit. This is the step people skip, and it is the one that makes the game itself adopt your edit as the newest copy.
+[*]Only now reconnect. If Xbox asks which copy to keep, pick the one from [b]this device[/b].
+[/list]
+
+[b]Careful with that prompt:[/b] the copy you do not pick is deleted, and Xbox does not show you what is inside either one first. There is no per-game switch to turn cloud saves off on PC, so going offline at the right moment really is the only lever you have. If you would rather avoid all of it, convert your world to the Steam layout and edit that instead: a Steam-style save has no cloud copy arguing with it.
+
+The editor also warns you before your first Game Pass edit, and if writing back into your Xbox save ever fails, it keeps your work and tells you where it is instead of losing it.
+
+Full walkthrough, including what to do if a world has disappeared entirely: https://christophervr.github.io/AbioticEditor/guide/game-pass
 
 [line]
 

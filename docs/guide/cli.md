@@ -33,6 +33,13 @@ Exit codes: `0` success, `1` usage or data error, `2` unexpected failure. `--jso
 Flatpak/Snap installs of Steam. Run it first and copy the printed path into the other commands.
 :::
 
+::: tip Game Pass / Xbox saves
+Game Pass saves are packed into an Xbox container, so they get their own family of verbs:
+`gamepass discover`, `status`, `list`, `repair`, `extract`, `import`, `rename-player`, `snapshot`,
+`compare`, `to-steam` and `to-gamepass`. They are documented, with the offline routine that keeps a
+Game Pass edit from being reverted by the cloud, in **[Game Pass saves](/guide/game-pass)**.
+:::
+
 ::: tip Maintainer-only commands
 A few verbs (`dump-registry`, `download-wiki-images`) regenerate data that ships *with* the editor.
 You only need them when rebuilding the bundle for a new game build or wiki change. They live in the

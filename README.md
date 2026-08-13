@@ -81,6 +81,35 @@ copy of the game, so what you see matches what's in-game.
 > prerequisites rather than let you skip ahead into a broken story). That said, it's a
 > save editor. Keep your own backups of saves you care about.
 
+## Game Pass / Microsoft Store saves
+
+Game Pass packs your whole world into an Xbox save container instead of loose `.sav` files.
+The downloadable app finds those worlds by itself, tags them **GAME PASS** in the list, and
+opens them like any other save. It can also convert a world between the Steam and Game Pass
+layouts in either direction, difficulty settings included, and hand a character over to a
+different account while it does.
+
+One thing about Game Pass is worth knowing before you edit: **your save is not the only copy**.
+Xbox keeps one in the cloud, and when the two disagree the cloud copy can win, which is why a
+Game Pass edit can look fine and then quietly revert. The cure is a short offline routine:
+close the game and the Xbox app, go offline, edit, then launch the game once **while still
+offline** and save in-game before you reconnect. The editor reminds you the first time you open
+a Game Pass world, and it copies the whole save folder to a backup before it writes.
+
+If a Game Pass world has already stopped loading, or your edits keep coming back undone, the
+editor can put it right. Older versions (before v2.5) mislabelled the notes an Xbox save keeps
+for the cloud, which eventually made a world claim to be deleted; both the cause and the damage
+are fixed.
+
+```console
+abioticeditor gamepass discover                  # find your Game Pass saves
+abioticeditor gamepass status <save-folder>      # how Xbox sees this save (changes nothing)
+abioticeditor gamepass repair <save-folder>      # put a mislabelled or half-synced save back
+```
+
+Full walkthrough, troubleshooting, and the whole `gamepass` command set:
+**[Game Pass saves](https://christophervr.github.io/AbioticEditor/guide/game-pass)**.
+
 ## A quick tour
 
 ### Your character
@@ -239,6 +268,10 @@ shows "Windows protected your PC", click **More info ▸ Run anyway**.
 
 - **Game client:** `%LOCALAPPDATA%\AbioticFactor\Saved\SaveGames\<steamid>\Worlds\<WorldName>`
 - **Dedicated server:** the folder that contains `Worlds\<WorldName>`.
+- **Game Pass / Microsoft Store:** an Xbox save folder under
+  `%LOCALAPPDATA%\Packages\<AbioticFactor package>\SystemAppData\wgs\`, or
+  `<drive>:\XboxGames\GameSave\wgs\`. You should never need to type either: use
+  `abioticeditor gamepass discover`, or just pick the world off the welcome screen.
 
 The editor also detects client and server save folders on your machine automatically and
 lists them on the welcome screen, so you can usually just click **LOAD** instead of browsing.
