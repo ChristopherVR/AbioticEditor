@@ -1814,6 +1814,9 @@ Dies schreibt sofort in den Spielstand und lädt den Editor neu, alles noch nich
   <data name="Settings_Converting" xml:space="preserve">
     <value>Wird umgewandelt…  (beim ersten Mal wird eventuell ein benötigtes Komprimierungsprogramm heruntergeladen)</value>
   </data>
+  <data name="Settings_ConvertPickCharacter" xml:space="preserve">
+    <value>In dieser Welt gibt es mehrere Figuren. Welche ist deine? Die anderen werden unverändert übernommen.</value>
+  </data>
   <data name="Settings_ConvertPickWorld" xml:space="preserve">
     <value>Dieser Spielstand enthält mehrere Welten. Welche möchtest du konvertieren?</value>
   </data>

@@ -9,6 +9,10 @@ namespace AbioticEditor.Tests;
 /// looking on disk for each recorded name. Renaming only the unpacked file therefore lost the
 /// change silently: the repack stopped finding it and the old player came back under the old id.
 /// The name has to change in the container too.</para>
+///
+/// <para>Every test here is a <c>SkippableFact</c> because <see cref="WithFixtureCopy"/> can skip:
+/// with a plain <c>Fact</c> the skip surfaces as a red build on any machine without Oodle, which is
+/// what CI is.</para>
 /// </summary>
 public class GamePassRenamePlayerTests
 {
@@ -30,7 +34,7 @@ public class GamePassRenamePlayerTests
         }
     }
 
-    [Fact]
+    [SkippableFact]
     public void Renaming_a_player_changes_the_name_the_container_records()
     {
         WithFixtureCopy((set, dir) =>
@@ -50,7 +54,7 @@ public class GamePassRenamePlayerTests
     }
 
     /// <summary>The save itself must come through the rename untouched.</summary>
-    [Fact]
+    [SkippableFact]
     public void Renaming_a_player_keeps_its_contents()
     {
         WithFixtureCopy((set, dir) =>
@@ -71,7 +75,7 @@ public class GamePassRenamePlayerTests
     /// Checked against every member, not just players: colliding with the world's own metadata
     /// save would be just as destructive.
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void Renaming_onto_a_name_already_in_the_world_is_refused()
     {
         WithFixtureCopy((set, _) =>
@@ -86,7 +90,7 @@ public class GamePassRenamePlayerTests
     }
 
     /// <summary>The extension is the editor's convention; inside the bundle it is not there.</summary>
-    [Fact]
+    [SkippableFact]
     public void The_sav_extension_is_optional_on_both_names()
     {
         WithFixtureCopy((set, dir) =>
@@ -101,7 +105,7 @@ public class GamePassRenamePlayerTests
         });
     }
 
-    [Fact]
+    [SkippableFact]
     public void Renaming_to_the_same_name_does_nothing()
     {
         WithFixtureCopy((set, _) =>
@@ -112,7 +116,7 @@ public class GamePassRenamePlayerTests
         });
     }
 
-    [Fact]
+    [SkippableFact]
     public void Renaming_a_player_that_is_not_there_reports_nothing_was_renamed()
     {
         WithFixtureCopy((set, _) =>

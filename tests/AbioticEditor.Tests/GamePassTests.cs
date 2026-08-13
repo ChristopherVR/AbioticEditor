@@ -33,7 +33,7 @@ public class GamePassTests
             .Order(StringComparer.Ordinal)
             .ToList();
 
-    [Fact]
+    [SkippableFact]
     public void MemberCodec_strips_and_restores_header_losslessly()
     {
         var save = FixturePlayer();
@@ -75,7 +75,7 @@ public class GamePassTests
     /// length. Splicing it onto a different body unchanged produced a save that opened in the
     /// editor (which ignores the field) and was refused in-game as an incompatible world save.
     /// </summary>
-    [Theory]
+    [SkippableTheory]
     [InlineData(GamePassMemberCodec.CharacterSaveClass)]
     [InlineData(GamePassMemberCodec.WorldSaveClass)]
     [InlineData(GamePassMemberCodec.WorldMetadataSaveClass)]
@@ -144,7 +144,7 @@ public class GamePassTests
         }
     }
 
-    [Fact]
+    [SkippableFact]
     public void WgsContainerStore_writes_and_reads_a_blob()
     {
         var dir = Directory.CreateTempSubdirectory("wgs-test");
@@ -171,7 +171,7 @@ public class GamePassTests
         }
     }
 
-    [Fact]
+    [SkippableFact]
     public void ResolveContainerFolder_finds_the_index_from_any_nearby_level()
     {
         var parent = Directory.CreateTempSubdirectory("wgs-resolve");
@@ -589,6 +589,146 @@ public class GamePassTests
                 .ReadFromStream(new MemoryStream(reopened.ReadSave(region))).Deployables;
             Assert.Contains(after, d => d.OwnerId == newId);
             Assert.DoesNotContain(after, d => d.OwnerId == ClaimOwnerId);
+        }
+        finally
+        {
+            tmp.Delete(recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// A shared world: the region carrying the claims, its metadata, and every character in the
+    /// fixture. This is the reported world's shape (nine characters, one of them the reporter's).
+    /// </summary>
+    private static string SharedWorld(string root)
+    {
+        var steam = Path.Combine(root, "Shared");
+        Directory.CreateDirectory(Path.Combine(steam, "PlayerData"));
+        foreach (var name in new[] { "WorldSave_MetaData.sav", "WorldSave_Facility.sav" })
+        {
+            File.Copy(Path.Combine(Fixtures.CascadeDir!, name), Path.Combine(steam, name));
+        }
+        foreach (var name in FixturePlayerNames())
+        {
+            File.Copy(
+                Path.Combine(Fixtures.CascadeDir!, "PlayerData", name),
+                Path.Combine(steam, "PlayerData", name));
+        }
+        return steam;
+    }
+
+    /// <summary>
+    /// A world with several characters is ambiguous, not impossible. Refusing to convert it at all
+    /// left a co-op world unmovable; now the caller names the character and the rest come along
+    /// untouched. The error has to list the candidates, because the id is the only way to tell them
+    /// apart and the player has no other place to look it up.
+    /// </summary>
+    [SkippableFact]
+    public void A_shared_world_asks_which_character_rather_than_refusing()
+    {
+        Skip.IfNot(Fixtures.CascadeDir is not null, "the Steam world fixture is not in this checkout");
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
+
+        var tmp = Directory.CreateTempSubdirectory("gp-shared-ambiguous");
+        try
+        {
+            var steam = SharedWorld(tmp.FullName);
+            var ambiguous = Assert.Throws<InvalidOperationException>(
+                () => GamePassConverter.SteamWorldToGamePass(
+                    steam, Path.Combine(tmp.FullName, "gp"), worldName: "S", newPlayerId: "msft-9Z8Y7X"));
+            foreach (var name in FixturePlayerNames())
+            {
+                Assert.Contains(name[..^4]["Player_".Length..], ambiguous.Message, StringComparison.Ordinal);
+            }
+
+            // Naming a character the world does not have is refused just as clearly.
+            Assert.Throws<InvalidOperationException>(
+                () => GamePassConverter.SteamWorldToGamePass(
+                    steam, Path.Combine(tmp.FullName, "gp2"), worldName: "S",
+                    newPlayerId: "msft-9Z8Y7X", sourcePlayerId: "76561190000000000"));
+        }
+        finally
+        {
+            tmp.Delete(recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// The reported case end to end: a shared world where one character becomes the player's on the
+    /// other platform. Their beds follow them; everyone else's character and beds are left exactly
+    /// as they were, because those belong to other people's accounts.
+    /// </summary>
+    [SkippableFact]
+    public void A_named_character_is_rehomed_and_the_rest_of_a_shared_world_is_untouched()
+    {
+        Skip.IfNot(Fixtures.CascadeDir is not null, "the Steam world fixture is not in this checkout");
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
+
+        var tmp = Directory.CreateTempSubdirectory("gp-shared-rehome");
+        try
+        {
+            var steam = SharedWorld(tmp.FullName);
+            var before = AbioticEditor.Core.WorldSaves.WorldSaveReader
+                .ReadFromFile(Path.Combine(steam, "WorldSave_Facility.sav")).Deployables;
+            var mine = before.Count(d => d.OwnerId == ClaimOwnerId);
+            var others = before.Where(d => d.OwnerId is not null && d.OwnerId != ClaimOwnerId)
+                .Select(d => d.OwnerId!).OrderBy(id => id, StringComparer.Ordinal).ToList();
+            Assert.True(mine > 0);
+            Assert.NotEmpty(others);
+
+            const string newId = "2533274900397709";
+            var wgs = GamePassConverter.SteamWorldToGamePass(
+                steam, Path.Combine(tmp.FullName, "gp"), worldName: "S",
+                newPlayerId: newId, sourcePlayerId: ClaimOwnerId);
+
+            var set = GamePassSaveSet.Open(wgs);
+            var players = set.Entries().Where(e => e.Kind == GamePassSaveKind.Player)
+                .Select(e => e.FileName).ToList();
+
+            // Exactly one character changed hands; the other characters are all still there.
+            Assert.Contains($"Player_{newId}.sav", players);
+            Assert.DoesNotContain($"Player_{ClaimOwnerId}.sav", players);
+            Assert.Equal(FixturePlayerNames().Count, players.Count);
+            foreach (var name in FixturePlayerNames().Where(n => n != $"Player_{ClaimOwnerId}.sav"))
+            {
+                Assert.Contains(name, players);
+            }
+
+            var region = set.Entries().Single(e => e.FileName == "WorldSave_Facility.sav");
+            var after = AbioticEditor.Core.WorldSaves.WorldSaveReader
+                .ReadFromStream(new MemoryStream(set.ReadSave(region))).Deployables;
+            Assert.Equal(mine, after.Count(d => d.OwnerId == newId));
+            Assert.DoesNotContain(after, d => d.OwnerId == ClaimOwnerId);
+            Assert.Equal(others, after.Where(d => d.OwnerId is not null && d.OwnerId != newId)
+                .Select(d => d.OwnerId!).OrderBy(id => id, StringComparer.Ordinal).ToList());
+        }
+        finally
+        {
+            tmp.Delete(recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// Two characters under one account id would leave the game loading whichever it found first and
+    /// the other one unreachable, so the collision is refused instead of quietly created.
+    /// </summary>
+    [SkippableFact]
+    public void Rehoming_onto_an_id_another_character_already_has_is_refused()
+    {
+        Skip.IfNot(Fixtures.CascadeDir is not null, "the Steam world fixture is not in this checkout");
+
+        var tmp = Directory.CreateTempSubdirectory("gp-shared-collide");
+        try
+        {
+            var steam = SharedWorld(tmp.FullName);
+            var taken = FixturePlayerNames()
+                .Select(n => n[..^4]["Player_".Length..])
+                .First(id => id != ClaimOwnerId);
+
+            Assert.Throws<InvalidOperationException>(
+                () => GamePassConverter.SteamWorldToGamePass(
+                    steam, Path.Combine(tmp.FullName, "gp"), worldName: "S",
+                    newPlayerId: taken, sourcePlayerId: ClaimOwnerId));
         }
         finally
         {

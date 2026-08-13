@@ -1814,6 +1814,9 @@
   <data name="Settings_Converting" xml:space="preserve">
     <value>Конвертация…  (при первом запуске может загрузиться нужный упаковщик)</value>
   </data>
+  <data name="Settings_ConvertPickCharacter" xml:space="preserve">
+    <value>В этом мире несколько персонажей. Какой из них ваш? Остальные переносятся без изменений.</value>
+  </data>
   <data name="Settings_ConvertPickWorld" xml:space="preserve">
     <value>В этом сохранении несколько миров. Какой из них преобразовать?</value>
   </data>

@@ -2117,6 +2117,9 @@ This writes to the save straight away and reloads the editor, so anything you ha
   <data name="Settings_Converting" xml:space="preserve">
     <value>Converting…  (the first run may download a compressor it needs)</value>
   </data>
+  <data name="Settings_ConvertPickCharacter" xml:space="preserve">
+    <value>This world has more than one character. Which one is yours? The others are carried over unchanged.</value>
+  </data>
   <data name="Settings_ConvertPickWorld" xml:space="preserve">
     <value>This save has more than one world. Which one do you want to convert?</value>
   </data>

@@ -53,8 +53,31 @@ public static class SaveConversionService
             ? GamePassConverter.ListWorldContainers(sourceFolder)
             : Array.Empty<string>();
 
+    /// <summary>
+    /// The characters in the world about to be converted, so the caller can ask which one is the
+    /// player's before re-homing. A shared world holds the player's friends' characters too, and
+    /// only the player knows which of the ids is theirs. Empty when the source cannot be read: this
+    /// only drives an optional question, and failing to ask must not fail the conversion.
+    /// </summary>
+    public static IReadOnlyList<string> Characters(
+        SaveConversionDirection direction, string sourceFolder, string? containerName = null)
+    {
+        try
+        {
+            return direction == SaveConversionDirection.ToGamePass
+                ? GamePassConverter.ListSteamWorldPlayers(sourceFolder)
+                : GamePassConverter.ListContainerPlayers(sourceFolder, containerName);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
+                                              or InvalidDataException or InvalidOperationException)
+        {
+            return Array.Empty<string>();
+        }
+    }
+
     public static string Convert(
-        SaveConversionDirection direction, string sourceFolder, string? playerAccountId, string? containerName = null)
+        SaveConversionDirection direction, string sourceFolder, string? playerAccountId,
+        string? containerName = null, string? sourcePlayerId = null)
     {
         var validation = ValidateSource(direction, sourceFolder);
         if (validation != SaveConversionSourceValidation.Valid)
@@ -62,7 +85,11 @@ public static class SaveConversionService
 
         var destination = DestinationFor(direction, sourceFolder);
         return direction == SaveConversionDirection.ToGamePass
-            ? GamePassConverter.SteamWorldToGamePass(sourceFolder, destination, worldName: null, newPlayerId: playerAccountId)
-            : GamePassConverter.GamePassToSteamWorld(sourceFolder, containerName, destination, newPlayerId: playerAccountId);
+            ? GamePassConverter.SteamWorldToGamePass(
+                sourceFolder, destination, worldName: null, newPlayerId: playerAccountId,
+                sourcePlayerId: sourcePlayerId)
+            : GamePassConverter.GamePassToSteamWorld(
+                sourceFolder, containerName, destination, newPlayerId: playerAccountId,
+                sourcePlayerId: sourcePlayerId);
     }
 }

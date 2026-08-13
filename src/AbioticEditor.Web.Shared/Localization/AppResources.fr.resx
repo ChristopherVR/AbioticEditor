@@ -1814,6 +1814,9 @@ Cela écrit dans la sauvegarde tout de suite et recharge l'éditeur : tout ce qu
   <data name="Settings_Converting" xml:space="preserve">
     <value>Conversion en cours…  (au premier lancement, un compresseur nécessaire peut être téléchargé)</value>
   </data>
+  <data name="Settings_ConvertPickCharacter" xml:space="preserve">
+    <value>Ce monde compte plusieurs personnages. Lequel est le tien ? Les autres sont repris tels quels.</value>
+  </data>
   <data name="Settings_ConvertPickWorld" xml:space="preserve">
     <value>Cette sauvegarde contient plusieurs mondes. Lequel voulez-vous convertir ?</value>
   </data>

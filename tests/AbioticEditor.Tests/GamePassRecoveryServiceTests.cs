@@ -18,7 +18,7 @@ public sealed class GamePassRecoveryServiceTests
 {
     // ---- nothing to rescue -----------------------------------------------------------------
 
-    [Fact]
+    [SkippableFact]
     public void An_ordinary_world_offers_no_rescue_at_all()
     {
         using var workspace = NewWorkspace();
@@ -50,7 +50,7 @@ public sealed class GamePassRecoveryServiceTests
 
     // ---- what a leftover is allowed to offer -----------------------------------------------
 
-    [Fact]
+    [SkippableFact]
     public void A_leftover_core_declined_to_name_is_not_offered_a_button()
     {
         // Core withholds a name when the data does not say which world it is, and when a live world
@@ -61,7 +61,7 @@ public sealed class GamePassRecoveryServiceTests
         Assert.True(GamePassRecovery.CanPutBack(Leftover(world: "Cascade", suggested: "Cascade-WC")));
     }
 
-    [Theory]
+    [SkippableTheory]
     [InlineData(512L, "512 B")]
     [InlineData(2048L, "2.0 KB")]
     [InlineData(3L * 1024 * 1024, "3.0 MB")]
@@ -134,7 +134,7 @@ public sealed class GamePassRecoveryServiceTests
     /// already having a bad day; being handed half an explanation in a language they do not read is
     /// not a small blemish, it is the moment they give up and delete something.
     /// </summary>
-    [Theory]
+    [SkippableTheory]
     [InlineData("en")]
     [InlineData("es")]
     [InlineData("fr")]
@@ -152,7 +152,7 @@ public sealed class GamePassRecoveryServiceTests
         }
     }
 
-    [Theory]
+    [SkippableTheory]
     [InlineData("Main_GpBackupMeta", 2)]
     [InlineData("Main_GpOrphanMeta", 2)]
     [InlineData("Main_GpRestoreTitle", 1)]

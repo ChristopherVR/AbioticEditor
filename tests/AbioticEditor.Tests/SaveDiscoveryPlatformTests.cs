@@ -22,7 +22,7 @@ public class SaveDiscoveryPlatformTests
         });
     }
 
-    [Fact]
+    [SkippableFact]
     public void Non_steam_account_folder_is_tagged_unknown()
     {
         var root = Directory.CreateTempSubdirectory("discovery-unknown");

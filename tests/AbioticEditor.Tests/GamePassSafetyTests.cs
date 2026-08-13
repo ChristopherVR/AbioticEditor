@@ -15,7 +15,7 @@ public class GamePassSafetyTests
 
     // ---- missing-blob fallback -------------------------------------------------------------
 
-    [Fact]
+    [SkippableFact]
     public void A_container_whose_blob_is_missing_is_recovered_from_the_one_on_disk()
     {
         using var scratch = new Scratch();
@@ -34,7 +34,7 @@ public class GamePassSafetyTests
         Assert.Equal("World-WC", Assert.Single(store.RecoveredContainers));
     }
 
-    [Fact]
+    [SkippableFact]
     public void A_wrong_sized_blob_is_never_substituted_for_the_missing_one()
     {
         using var scratch = new Scratch();
@@ -51,7 +51,7 @@ public class GamePassSafetyTests
         Assert.Contains("missing", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact]
+    [SkippableFact]
     public void The_previous_blob_the_manifest_names_is_preferred_over_guessing()
     {
         using var scratch = new Scratch();
@@ -74,7 +74,7 @@ public class GamePassSafetyTests
         Assert.True(store.NeededBlobFallback);
     }
 
-    [Fact]
+    [SkippableFact]
     public void A_save_with_two_live_versions_of_its_data_refuses_to_guess()
     {
         using var scratch = new Scratch();
@@ -92,7 +92,7 @@ public class GamePassSafetyTests
         Assert.Contains("two versions", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact]
+    [SkippableFact]
     public void Repairing_a_half_synced_save_makes_it_open_cleanly_again()
     {
         using var scratch = new Scratch();
@@ -114,7 +114,7 @@ public class GamePassSafetyTests
         Assert.False(reopened.NeededBlobFallback);
     }
 
-    [Fact]
+    [SkippableFact]
     public void Repairing_a_healthy_save_changes_nothing()
     {
         using var scratch = new Scratch();
@@ -127,7 +127,7 @@ public class GamePassSafetyTests
 
     // ---- writing ---------------------------------------------------------------------------
 
-    [Fact]
+    [SkippableFact]
     public void Writing_a_new_container_list_over_an_existing_save_store_is_refused()
     {
         using var scratch = new Scratch();
@@ -139,7 +139,7 @@ public class GamePassSafetyTests
         Assert.Contains("already an Xbox save folder", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact]
+    [SkippableFact]
     public void Merging_adds_a_world_and_keeps_the_ones_already_there()
     {
         using var scratch = new Scratch();
@@ -155,7 +155,7 @@ public class GamePassSafetyTests
         Assert.Equal(second, store.ReadBlob(store.Find("Second-WC")!));
     }
 
-    [Fact]
+    [SkippableFact]
     public void Merging_over_an_existing_world_replaces_just_that_world()
     {
         using var scratch = new Scratch();
@@ -168,7 +168,7 @@ public class GamePassSafetyTests
         Assert.Equal(replacement, store.ReadBlob(Assert.Single(store.Containers)));
     }
 
-    [Fact]
+    [SkippableFact]
     public void Writing_leaves_exactly_one_generation_behind()
     {
         using var scratch = new Scratch();
@@ -188,7 +188,7 @@ public class GamePassSafetyTests
         Assert.False(reopened.NeededBlobFallback);
     }
 
-    [Fact]
+    [SkippableFact]
     public void The_index_timestamp_never_goes_backwards_across_writes()
     {
         using var scratch = new Scratch();
@@ -207,7 +207,7 @@ public class GamePassSafetyTests
         for (var i = 1; i < stamps.Count; i++) Assert.True(stamps[i] > stamps[i - 1], $"stamp {i} did not advance");
     }
 
-    [Fact]
+    [SkippableFact]
     public void A_container_that_has_never_been_uploaded_says_so_and_carries_no_cloud_token()
     {
         using var scratch = new Scratch();
@@ -228,7 +228,7 @@ public class GamePassSafetyTests
         Assert.False(after.SyncState.HasFlag(WgsSyncState.FullyUploaded));
     }
 
-    [Fact]
+    [SkippableFact]
     public void Editing_a_synced_container_marks_it_modified_and_keeps_its_cloud_version_token()
     {
         using var scratch = new Scratch();
@@ -251,7 +251,7 @@ public class GamePassSafetyTests
         Assert.False(after.Containers[0].StateContradictsEtag);
     }
 
-    [Theory]
+    [SkippableTheory]
     [InlineData(7u)]    // past the end of the range entirely
     [InlineData(3u)]    // Deleted - a tombstone the service may act on
     public void A_container_left_in_a_state_that_makes_no_sense_is_repaired(uint badState)
@@ -271,7 +271,7 @@ public class GamePassSafetyTests
         Assert.False(repaired.Containers[0].StateContradictsEtag);
     }
 
-    [Fact]
+    [SkippableFact]
     public void A_state_that_disagrees_with_the_cloud_token_is_reported_and_repaired()
     {
         using var scratch = new Scratch();
@@ -305,14 +305,14 @@ public class GamePassSafetyTests
         Assert.Equal(path, Assert.Single(reparsed.Members).Path);
     }
 
-    [Fact]
+    [SkippableFact]
     public void Sandbox_settings_text_survives_a_round_trip()
     {
         const string ini = "[SandboxSettings]\r\nGameDifficulty=3\r\nItemStackSizeMultiplier=30.0\r\n";
         Assert.Equal(ini, GamePassMemberCodec.DecodeIniText(GamePassMemberCodec.EncodeIniText(ini)));
     }
 
-    [Fact]
+    [SkippableFact]
     public void Sandbox_settings_are_stored_the_way_the_game_stores_them()
     {
         // Every byte is shifted down by one, which is why the packed member reads as gibberish
@@ -321,7 +321,7 @@ public class GamePassSafetyTests
         Assert.Equal("ZR`mcanwRdsshmfr\\", Encoding.ASCII.GetString(encoded));
     }
 
-    [Theory]
+    [SkippableTheory]
     [InlineData(GamePassMemberCodec.WorldSaveClass)]
     [InlineData(GamePassMemberCodec.WorldMetadataSaveClass)]
     [InlineData(GamePassMemberCodec.CharacterSaveClass)]
@@ -335,7 +335,7 @@ public class GamePassSafetyTests
         Assert.Equal(body, GamePassMemberCodec.ToMemberBody(saveClass, gvas));
     }
 
-    [Fact]
+    [SkippableFact]
     public void An_unknown_save_class_is_refused_rather_than_guessed()
     {
         Assert.Throws<NotSupportedException>(

@@ -22,14 +22,15 @@ public static class GamePassConverter
     /// <summary>
     /// Packs the Steam world folder at <paramref name="steamWorldDir"/> into a new Game Pass wgs
     /// container at <paramref name="destWgsDir"/>. Returns the wgs folder path.
-    /// <para>When <paramref name="newPlayerId"/> is set the (single) player save is re-homed to that
-    /// account id - the id in its file name and its <c>SaveIdentifier</c> - so it belongs to the
-    /// target account. Leave it null to keep the existing ids. Re-homing requires a single-player
-    /// world (one id can't own several characters).</para>
+    /// <para>When <paramref name="newPlayerId"/> is set a character is re-homed to that account id -
+    /// the id in its file name and its <c>SaveIdentifier</c>, plus the beds it claimed - so it
+    /// belongs to the target account. Leave it null to keep the existing ids. On a world with several
+    /// characters say which one with <paramref name="sourcePlayerId"/>; the others are packed
+    /// unchanged.</para>
     /// </summary>
     public static string SteamWorldToGamePass(
         string steamWorldDir, string destWgsDir, string? worldName = null, string? newPlayerId = null,
-        bool mergeIntoExisting = false)
+        bool mergeIntoExisting = false, string? sourcePlayerId = null)
     {
         if (!Directory.Exists(steamWorldDir))
         {
@@ -37,10 +38,16 @@ public static class GamePassConverter
         }
         worldName ??= Path.GetFileName(Path.TrimEndingDirectorySeparator(Path.GetFullPath(steamWorldDir)));
         newPlayerId = ValidateOptionalId(newPlayerId);
+        sourcePlayerId = ValidateOptionalId(sourcePlayerId);
 
         var saves = EnumerateWorldSaves(steamWorldDir).ToList();
-        GuardSingleRehome(newPlayerId, saves.Count(s => IsPlayerSave(s.Relative)));
-        var oldPlayerId = SoleOwnerId(saves.Select(s => s.Path), newPlayerId);
+        var playerIds = saves
+            .Where(s => IsPlayerSave(s.Relative))
+            .Select(s => PlayerIdentifier.TryParseFromPlayerFileName(s.Path, out var id) ? id : null)
+            .Where(id => id is not null)
+            .Select(id => id!)
+            .ToList();
+        var oldPlayerId = ResolveRehomeSource(playerIds, newPlayerId, sourcePlayerId);
 
         var members = new List<AbfMember>();
         var rehomedClaims = 0;
@@ -63,7 +70,12 @@ public static class GamePassConverter
             var rel = file.Relative.Replace('\\', '/');
             if (rel.EndsWith(".sav", StringComparison.OrdinalIgnoreCase)) rel = rel[..^4];
 
-            if (newPlayerId is not null && saveClass == GamePassMemberCodec.CharacterSaveClass)
+            // Only the character that was actually chosen changes hands. Re-homing every character
+            // save in sight would have packed a shared world's nine players over the top of each
+            // other, all under one name.
+            if (oldPlayerId is not null && newPlayerId is not null
+                && saveClass == GamePassMemberCodec.CharacterSaveClass
+                && IsPlayerFor(file.Path, oldPlayerId))
             {
                 bytes = StampOwner(bytes, newPlayerId);
                 rel = $"PlayerData/Player_{newPlayerId}";
@@ -155,14 +167,18 @@ public static class GamePassConverter
     /// <summary>
     /// Unpacks a Game Pass world container into a Steam world folder at
     /// <paramref name="destSteamDir"/> (loose <c>.sav</c> files). When <paramref name="containerName"/>
-    /// is null the only world container is used. When <paramref name="newPlayerId"/> is set the
-    /// (single) player save is re-homed to that account id so the world belongs to the target Steam
-    /// account; leave it null to keep the existing ids. Returns the world folder path.
+    /// is null the only world container is used. When <paramref name="newPlayerId"/> is set a
+    /// character is re-homed to that account id so the world belongs to the target Steam account;
+    /// leave it null to keep the existing ids. On a world with several characters say which one with
+    /// <paramref name="sourcePlayerId"/>; the others are carried over untouched. Returns the world
+    /// folder path.
     /// </summary>
     public static string GamePassToSteamWorld(
-        string wgsDir, string? containerName, string destSteamDir, string? newPlayerId = null)
+        string wgsDir, string? containerName, string destSteamDir, string? newPlayerId = null,
+        string? sourcePlayerId = null)
     {
         newPlayerId = ValidateOptionalId(newPlayerId);
+        sourcePlayerId = ValidateOptionalId(sourcePlayerId);
         GuardEmptyDestination(destSteamDir);
         var set = GamePassSaveSet.Open(wgsDir);
         var entries = set.Entries();
@@ -176,40 +192,43 @@ public static class GamePassConverter
         var container = containerName
             ?? containers.FirstOrDefault()
             ?? throw NoContainers(wgsDir, set.Faults);
+
+        // Settle who is being re-homed BEFORE anything is written. Resolving after the extract
+        // meant a world the editor was always going to refuse still left a full copy of itself in
+        // the destination, which then failed the empty-destination check on the next attempt.
+        var playerIds = set.EntriesForContainer(container)
+            .Where(e => e.Kind == GamePassSaveKind.Player)
+            .Select(e => PlayerIdentifier.TryParseFromPlayerFileName(e.FileName, out var id) ? id : null)
+            .Where(id => id is not null)
+            .Select(id => id!)
+            .ToList();
+        var oldPlayerId = ResolveRehomeSource(playerIds, newPlayerId, sourcePlayerId);
+
         set.ExtractWorld(container, destSteamDir);
 
-        if (newPlayerId is not null)
+        if (oldPlayerId is not null && newPlayerId is not null)
         {
-            var playerDir = Path.Combine(destSteamDir, "PlayerData");
-            var players = Directory.Exists(playerDir)
-                ? Directory.GetFiles(playerDir, "Player_*.sav")
-                : Array.Empty<string>();
-            GuardSingleRehome(newPlayerId, players.Length);
-            if (players.Length == 1)
+            var source = Path.Combine(destSteamDir, "PlayerData", $"Player_{oldPlayerId}.sav");
+            if (File.Exists(source))
             {
-                // Read the account the world currently belongs to off the save itself. Asking the
-                // caller for it would let a typo silently leave the beds where they were.
-                var oldPlayerId = SoleOwnerId(players, newPlayerId);
-                PlayerSaveIdentity.ChangeSteamId(players[0], newPlayerId);
-                DeleteFreshExtractionBackup(players[0]);
+                PlayerSaveIdentity.ChangeSteamId(source, newPlayerId);
+                DeleteFreshExtractionBackup(source);
 
-                if (oldPlayerId is not null)
+                // Beds and other claimable deployables record their owner inside the world saves,
+                // so a character that changes account without this stays locked out of its own bed.
+                // An Xbox id is 16 digits and a SteamID64 is 17, which is why this could not be done
+                // until the patcher learned to re-serialize. Only this character's claims move; the
+                // other players in a shared world keep theirs.
+                var claims = WorldSteamIdPatcher.PatchFolder(destSteamDir, oldPlayerId, newPlayerId);
+                foreach (var world in Directory.EnumerateFiles(
+                    destSteamDir, "WorldSave_*.sav", SearchOption.TopDirectoryOnly))
                 {
-                    // Beds and other claimable deployables record their owner inside the world
-                    // saves, so a character that changes account without this stays locked out of
-                    // its own bed. An Xbox id is 16 digits and a SteamID64 is 17, which is why this
-                    // could not be done until the patcher learned to re-serialize.
-                    var claims = WorldSteamIdPatcher.PatchFolder(destSteamDir, oldPlayerId, newPlayerId);
-                    foreach (var world in Directory.EnumerateFiles(
-                        destSteamDir, "WorldSave_*.sav", SearchOption.TopDirectoryOnly))
-                    {
-                        DeleteFreshExtractionBackup(world);
-                    }
-                    if (claims > 0)
-                    {
-                        Diagnostics.EditorLog.Info("GamePass",
-                            $"Re-homed {claims} bed claim(s) from {oldPlayerId} to {newPlayerId}.");
-                    }
+                    DeleteFreshExtractionBackup(world);
+                }
+                if (claims > 0)
+                {
+                    Diagnostics.EditorLog.Info("GamePass",
+                        $"Re-homed {claims} bed claim(s) from {oldPlayerId} to {newPlayerId}.");
                 }
             }
         }
@@ -217,6 +236,38 @@ public static class GamePassConverter
         Diagnostics.EditorLog.Info("GamePass",
             $"Converted Game Pass container '{container}' -> Steam world folder at {destSteamDir}.");
         return destSteamDir;
+    }
+
+    /// <summary>
+    /// The account ids of the characters in a Game Pass world, so a caller can ask which one to
+    /// re-home instead of guessing. <paramref name="containerName"/> may be null when the folder
+    /// holds a single world.
+    /// </summary>
+    public static IReadOnlyList<string> ListContainerPlayers(string wgsDir, string? containerName = null)
+    {
+        var set = GamePassSaveSet.Open(wgsDir);
+        var container = containerName
+            ?? set.Entries().Select(e => e.ContainerName).Distinct(StringComparer.OrdinalIgnoreCase).FirstOrDefault();
+        if (container is null) return Array.Empty<string>();
+        return set.EntriesForContainer(container)
+            .Where(e => e.Kind == GamePassSaveKind.Player)
+            .Select(e => PlayerIdentifier.TryParseFromPlayerFileName(e.FileName, out var id) ? id : null)
+            .Where(id => id is not null)
+            .Select(id => id!)
+            .ToList();
+    }
+
+    /// <summary>The account ids of the characters in a loose Steam world folder. The counterpart of
+    /// <see cref="ListContainerPlayers"/> for the other conversion direction.</summary>
+    public static IReadOnlyList<string> ListSteamWorldPlayers(string steamWorldDir)
+    {
+        var playerData = Path.Combine(steamWorldDir, "PlayerData");
+        if (!Directory.Exists(playerData)) return Array.Empty<string>();
+        return Directory.EnumerateFiles(playerData, "Player_*.sav", SearchOption.TopDirectoryOnly)
+            .Select(p => PlayerIdentifier.TryParseFromPlayerFileName(p, out var id) ? id : null)
+            .Where(id => id is not null)
+            .Select(id => id!)
+            .ToList();
     }
 
     /// <summary>The <c>&lt;World&gt;-WC</c> containers in a wgs folder, so a caller can offer a choice
@@ -247,21 +298,11 @@ public static class GamePassConverter
     private static bool IsPlayerSave(string relative)
         => Path.GetFileName(relative).StartsWith("Player_", StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>
-    /// The account id the world being converted currently belongs to, taken from the name of its
-    /// one and only player save, or null when the conversion is not re-homing anyone or the id is
-    /// already the target. Returns null rather than throwing for a world with no readable player
-    /// id: not being able to move the bed claims is a smaller problem than refusing the whole
-    /// conversion over it.
-    /// </summary>
-    private static string? SoleOwnerId(IEnumerable<string> savePaths, string? newPlayerId)
-    {
-        if (newPlayerId is null) return null;
-        var players = savePaths.Where(p => IsPlayerSave(p)).ToList();
-        if (players.Count != 1) return null;
-        if (!PlayerIdentifier.TryParseFromPlayerFileName(players[0], out var oldId)) return null;
-        return string.Equals(oldId, newPlayerId, StringComparison.Ordinal) ? null : oldId;
-    }
+    /// <summary>True when <paramref name="savePath"/> is the character save for
+    /// <paramref name="playerId"/>. File names are matched the way the filesystem would.</summary>
+    private static bool IsPlayerFor(string savePath, string playerId)
+        => PlayerIdentifier.TryParseFromPlayerFileName(savePath, out var id)
+           && string.Equals(id, playerId, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Drops the <c>.bak</c> the re-home left behind. Conversion writes into a brand-new folder,
@@ -286,14 +327,62 @@ public static class GamePassConverter
         return id;
     }
 
-    private static void GuardSingleRehome(string? newPlayerId, int playerCount)
+    /// <summary>
+    /// Works out which character a conversion is re-homing, or null when it is not re-homing one.
+    ///
+    /// <para>A shared world used to be refused outright, on the reasoning that one account id cannot
+    /// own several characters. True, but the conclusion was wrong: the player only ever wanted
+    /// <em>their own</em> character to become theirs on the new platform, and their friends'
+    /// characters were never the target. Refusing meant a co-op world could not be moved at all - the
+    /// game found no save for the player's account and offered character creation on top of a world
+    /// they had 200 hours in. So several characters is fine as long as the caller says which one;
+    /// only the ambiguity is refused, and the message lists the candidates so the answer is to hand.</para>
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The choice is ambiguous, names a character the
+    /// world does not have, or would collide with a character already on the target id.</exception>
+    private static string? ResolveRehomeSource(
+        List<string> playerIds, string? newPlayerId, string? sourcePlayerId)
     {
-        if (newPlayerId is not null && playerCount > 1)
+        if (newPlayerId is null)
+        {
+            if (sourcePlayerId is not null)
+            {
+                throw new InvalidOperationException(
+                    $"Nothing was said to re-home '{sourcePlayerId}' to. Give the new account id as well.");
+            }
+            return null;
+        }
+        if (playerIds.Count == 0) return null;
+
+        var listed = string.Join(", ", playerIds);
+        if (sourcePlayerId is null)
+        {
+            if (playerIds.Count > 1)
+            {
+                throw new InvalidOperationException(
+                    $"This world has {playerIds.Count} characters, so say which one becomes "
+                    + $"{newPlayerId}: {listed}. The others are carried over unchanged.");
+            }
+            sourcePlayerId = playerIds[0];
+        }
+        else if (!playerIds.Any(id => string.Equals(id, sourcePlayerId, StringComparison.OrdinalIgnoreCase)))
         {
             throw new InvalidOperationException(
-                "Re-homing to a single account id needs a single-player world; this world has "
-                + $"{playerCount} player saves. Convert without an id to keep the existing ones.");
+                $"This world has no character '{sourcePlayerId}'. It has: {listed}.");
         }
+
+        // Two characters under one account id would leave the game loading whichever it saw first
+        // and the other one silently unreachable, so a collision is refused rather than resolved.
+        if (playerIds.Any(id => string.Equals(id, newPlayerId, StringComparison.OrdinalIgnoreCase))
+            && !string.Equals(sourcePlayerId, newPlayerId, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"This world already has a character on account {newPlayerId}, so moving another one "
+                + "there would hide it. Pick a different account id.");
+        }
+
+        // Re-homing a character to the id it already has is nothing to do.
+        return string.Equals(sourcePlayerId, newPlayerId, StringComparison.Ordinal) ? null : sourcePlayerId;
     }
 
     private static byte[] StampOwner(byte[] gvas, string newId)

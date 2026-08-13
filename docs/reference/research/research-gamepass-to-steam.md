@@ -342,6 +342,13 @@ Re-homing is additionally refused outright for multiplayer worlds
 saves. Without `--player-id` the Steam game finds no `Player_<theirSteamID64>.sav` in the
 world and offers character creation - the second symptom in the report.
 
+*(Fixed in round-61. The blanket refusal was wrong: the reporter only ever wanted their own
+character re-homed, never their friends'. The converters now take a `sourcePlayerId` naming
+which character to move, and refuse only the ambiguity - listing the candidate ids, since
+that is the one thing the player cannot look up anywhere else. Verified on this dump: all
+nine characters convert, the named one becomes the target SteamID64 with its bed claim, and
+the other eight are byte-identical.)*
+
 ---
 
 ## 7. Repro
@@ -374,6 +381,4 @@ walker + PDB public-symbol reader + capstone disassembler); none were kept in th
 5. ~~**Bed claims across a different-length id change** need a reserialize-based rewrite
    before a converted multiplayer world can be fully re-homed.~~ **Done (round-61):**
    `WorldSteamIdPatcher` re-serializes when the ids differ in length, and both conversion
-   directions, the in-container player rename and the app's change-id flow call it. Note the
-   multiplayer half of this is still open on its own terms: `GuardSingleRehome` refuses a world
-   with several characters, so `ForScience` still cannot be re-homed at all.
+   directions, the in-container player rename and the app's change-id flow call it.

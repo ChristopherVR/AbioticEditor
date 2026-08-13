@@ -38,6 +38,42 @@ case (Xbox 16 digits vs SteamID64 17).
   Entitlements are account purchases, so following a character to a new account is not obviously
   right, and a key rewrite could collide with an id already in the map.
 
+### Shared worlds can be converted at all now (same round)
+
+Closes the other half of the same report. `GuardSingleRehome` refused any re-home on a world with
+several characters, so the reporter's nine-character `ForScience` could not be moved: the Steam game
+found no save for their account and offered character creation on top of a 200-hour world. The
+reasoning ("one id can't own several characters") was true but led to the wrong conclusion - the
+player only ever wanted **their own** character re-homed, never their friends'.
+
+- Both converters now take `sourcePlayerId` naming which character moves; the rest are carried over
+  untouched. Only the ambiguity is refused, and the message **lists the candidate ids**, which is the
+  one thing a player cannot look up anywhere else. A collision (moving a character onto an id another
+  character in the same world already has) is refused too, since the game would load one and leave
+  the other unreachable.
+- Fixed alongside: `SteamWorldToGamePass` re-homed **every** character save it saw, which on a shared
+  world would have packed all nine over each other under one name. And `GamePassToSteamWorld`
+  resolved the re-home *after* extracting, so a refusal still left a full copy of the world in the
+  destination, which then tripped the empty-destination check on the next attempt.
+- Surfaced as CLI `--from` on both `gamepass to-steam` / `to-gamepass`, and in the app as a
+  "which character is yours?" step mirroring the existing "which world?" one
+  (`Settings_ConvertPickCharacter`, five languages).
+- Verified on the real dump: all nine characters convert, the named one becomes the target SteamID64
+  with its bed claim, the other eight and their claims are untouched.
+
+### CI: a skip was being reported as a failure
+
+`GamePassRenamePlayerTests` used plain `[Fact]` with a `Skip.IfNot` helper, so on any machine without
+Oodle (i.e. CI) the skip surfaced as a red build. Now `[SkippableFact]`, matching every other
+Oodle-dependent class; a sweep confirmed it was the only file with the mistake.
+
+The reason it went red *intermittently* was separate: `OodleCodec` re-ran the one-off library
+**download** on every availability probe, inside its lock, with no memory of having failed. Two
+probes seconds apart could therefore disagree - one caught a transient failure, the next caught a
+working retry - which is exactly the "one test of six failed" pattern. A failed download is now
+remembered for the run. Only the network step is; the cheap local lookups still run every time, so
+setting `ABIOTIC_OODLE_DLL` or installing the game mid-session is still picked up.
+
 ## Round-60: Game Pass end-to-end audit and repair (2026-08-13)
 
 Full review of the Xbox/Game Pass path (Core, CLI, Web, tests, docs). The format engineering was

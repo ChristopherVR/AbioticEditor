@@ -24,7 +24,7 @@ public sealed class SaveConversionServiceTests
             SaveConversionService.ValidateSource(SaveConversionDirection.ToGamePass, gamePass));
     }
 
-    [Theory]
+    [SkippableTheory]
     [InlineData(SaveConversionDirection.ToGamePass, "-GamePass")]
     [InlineData(SaveConversionDirection.ToSteam, "-Steam")]
     public void Writes_the_converted_copy_beside_the_selected_folder(SaveConversionDirection direction, string suffix)
@@ -57,7 +57,7 @@ public sealed class SaveConversionServiceTests
         }
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task Opening_logs_creates_the_folder_before_revealing_it()
     {
         var path = Path.Combine(Path.GetTempPath(), "AbioticEditorTests", Guid.NewGuid().ToString("N"), "logs");

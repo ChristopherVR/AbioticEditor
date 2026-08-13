@@ -36,6 +36,21 @@
         </ul>
     }
 
+    @if (_characterChoices is { Count: > 0 } characters)
+    {
+        <p class="muted">@R("Settings_ConvertPickCharacter")</p>
+        <ul class="conversion-world-list">
+            @foreach (var character in characters)
+            {
+                <li>
+                    <button class="secondary" type="button" @onclick="() => ChooseCharacterAsync(character)" disabled="@_busy">
+                        @character
+                    </button>
+                </li>
+            }
+        </ul>
+    }
+
     @if (_status is not null)
     {
         <p class="@(_failed ? "error" : "success")" role="@(_failed ? "alert" : "status")">@_status</p>
@@ -53,8 +68,11 @@
     private bool _busy;
     private bool _failed;
     private IReadOnlyList<string>? _worldChoices;
+    private IReadOnlyList<string>? _characterChoices;
     private string? _pendingSource;
     private string? _pendingId;
+    private string? _pendingContainer;
+    private SaveConversionDirection _pendingDirection;
 
     private string R(string key, params object?[] args) => Languages.Resource(key, args);
 
@@ -94,17 +112,17 @@
             // A Game Pass folder can hold several worlds. Converting whichever one came first was a
             // coin toss the player never saw, so ask when there is a choice to make.
             var worlds = await Task.Run(() => SaveConversionService.WorldContainers(direction, sourceFolder));
-            string? container = null;
             if (worlds.Count > 1)
             {
                 _pendingSource = sourceFolder;
                 _pendingId = id;
+                _pendingDirection = direction;
                 _worldChoices = worlds;
                 _status = null;
                 return;
             }
 
-            await RunConversionAsync(direction, sourceFolder, id, container);
+            await ContinueConversionAsync(direction, sourceFolder, id, container: null);
         }
         catch (Exception exception)
         {
@@ -125,7 +143,57 @@
         _busy = true;
         try
         {
-            await RunConversionAsync(SaveConversionDirection.ToSteam, source, _pendingId, container);
+            await ContinueConversionAsync(_pendingDirection, source, _pendingId, container);
+        }
+        catch (Exception exception)
+        {
+            _failed = true;
+            _status = Errors.Detail(exception, "Convert save", R("Settings_ConvertFailed"));
+            ClearPending();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    /// <summary>
+    /// The step between picking a world and converting it: when an account id was given and the
+    /// world holds several characters, ask which one is the player's. Core refuses to guess, and
+    /// rightly - only the player knows which of their co-op group's ids is theirs - so without this
+    /// question a shared world could not be converted at all.
+    /// </summary>
+    private async Task ContinueConversionAsync(
+        SaveConversionDirection direction, string sourceFolder, string? id, string? container)
+    {
+        if (id is not null)
+        {
+            var characters = await Task.Run(
+                () => SaveConversionService.Characters(direction, sourceFolder, container));
+            if (characters.Count > 1)
+            {
+                _pendingSource = sourceFolder;
+                _pendingId = id;
+                _pendingContainer = container;
+                _pendingDirection = direction;
+                _characterChoices = characters;
+                _status = null;
+                return;
+            }
+        }
+
+        await RunConversionAsync(direction, sourceFolder, id, container, sourcePlayerId: null);
+    }
+
+    private async Task ChooseCharacterAsync(string character)
+    {
+        var source = _pendingSource;
+        if (source is null) return;
+        _characterChoices = null;
+        _busy = true;
+        try
+        {
+            await RunConversionAsync(_pendingDirection, source, _pendingId, _pendingContainer, character);
         }
         catch (Exception exception)
         {
@@ -135,17 +203,26 @@
         finally
         {
             _busy = false;
-            _pendingSource = null;
-            _pendingId = null;
+            ClearPending();
         }
     }
 
+    private void ClearPending()
+    {
+        _pendingSource = null;
+        _pendingId = null;
+        _pendingContainer = null;
+    }
+
     private async Task RunConversionAsync(
-        SaveConversionDirection direction, string sourceFolder, string? id, string? container)
+        SaveConversionDirection direction, string sourceFolder, string? id, string? container,
+        string? sourcePlayerId)
     {
         _status = R("Settings_Converting");
-        _outputFolder = await Task.Run(() => SaveConversionService.Convert(direction, sourceFolder, id, container));
+        _outputFolder = await Task.Run(
+            () => SaveConversionService.Convert(direction, sourceFolder, id, container, sourcePlayerId));
         _status = R("Settings_ConvertDone", _outputFolder);
+        ClearPending();
     }
 
 

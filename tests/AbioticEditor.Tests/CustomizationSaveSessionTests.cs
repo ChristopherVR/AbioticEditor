@@ -6,7 +6,7 @@ namespace AbioticEditor.Tests;
 
 public sealed class CustomizationSaveSessionTests
 {
-    [Fact]
+    [SkippableFact]
     public void Appearance_edits_are_revertible_and_save_with_backup()
     {
         Assert.NotNull(Fixtures.ClientSavedDir);
@@ -34,7 +34,7 @@ public sealed class CustomizationSaveSessionTests
         finally { directory.Delete(recursive: true); }
     }
 
-    [Fact]
+    [SkippableFact]
     public void Appearance_discovery_uses_the_player_account_directory()
     {
         Assert.NotNull(Fixtures.ClientSavedDir);
@@ -44,7 +44,7 @@ public sealed class CustomizationSaveSessionTests
         Assert.Contains(discovered, path => Path.GetFileName(path) == "ScientistCustomization_1.sav");
     }
 
-    [Fact]
+    [SkippableFact]
     public void GamePass_appearance_edits_write_back_into_the_profile_container_with_a_backup()
     {
         // The wgs fixture has no ProfileScientistCustomization container, so build one in a

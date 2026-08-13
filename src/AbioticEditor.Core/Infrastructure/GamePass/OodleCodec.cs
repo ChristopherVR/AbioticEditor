@@ -45,6 +45,17 @@ public static class OodleCodec
 
     private static readonly object Gate = new();
     private static bool _resolved;
+
+    /// <summary>
+    /// Whether the one-off download has already been tried and failed this run. Without it every
+    /// availability probe on an offline machine re-ran the download, inside <see cref="Gate"/>, so
+    /// each probe paid a fresh network timeout with every other caller blocked behind it - and, worse,
+    /// two probes moments apart could disagree, because one caught a transient failure and the next
+    /// caught a working retry. That made "is Oodle available?" non-deterministic within a single run.
+    /// Only the network step is remembered: the cheap local lookups below still run every time, so
+    /// setting ABIOTIC_OODLE_DLL or installing the game mid-session is still picked up.
+    /// </summary>
+    private static bool _downloadFailed;
     private static OodleLZ_DecompressDelegate? _decompress;
     private static OodleLZ_CompressDelegate? _compress;
 
@@ -194,6 +205,7 @@ public static class OodleCodec
         // plain File.Copy of a native library is not guaranteed to preserve everything the loader
         // needs. A best-effort copy into our cache dir (step 3) is still made for next time, but
         // it never changes what gets loaded this run.
+        if (_downloadFailed) return null;
         try
         {
             string? path = null;
@@ -203,9 +215,11 @@ public static class OodleCodec
                 TryCacheForNextRun(path);
                 return path;
             }
+            _downloadFailed = true;
         }
         catch (Exception ex)
         {
+            _downloadFailed = true;
             Diagnostics.EditorLog.Warn("GamePass", $"Oodle DLL download failed: {ex.Message}");
         }
         return null;
