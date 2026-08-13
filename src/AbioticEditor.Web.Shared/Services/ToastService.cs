@@ -42,13 +42,22 @@ public sealed class ToastService
 
     private async Task RemoveAfterAsync(Guid id, TimeSpan duration)
     {
+        // Count down by the time that actually passed, not by the length of the tick we asked for.
+        // A delay only resumes when the scheduler gets round to it, so on a busy machine each turn
+        // of this loop can take far longer than the tick - and counting ticks instead of seconds
+        // left a toast on screen for as long as the machine was busy, rather than for the time it
+        // was given.
         var remaining = duration;
+        var last = System.Diagnostics.Stopwatch.GetTimestamp();
         while (remaining > TimeSpan.Zero)
         {
             await Task.Delay(Tick);
+            var elapsed = System.Diagnostics.Stopwatch.GetElapsedTime(last);
+            last = System.Diagnostics.Stopwatch.GetTimestamp();
+
             if (_messages.All(message => message.Id != id)) return; // dismissed by hand
             if (_paused.Contains(id)) continue; // hovered: hold the countdown
-            remaining -= Tick;
+            remaining -= elapsed;
         }
         Dismiss(id);
     }
