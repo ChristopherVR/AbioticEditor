@@ -2,6 +2,40 @@
 
 All notable changes to this project are documented here.
 
+## [2.5.0] - 2026-08-13
+
+### Bug Fixes
+- Converted Game Pass worlds are no longer rejected as incompatible
+- Pop-up messages no longer linger while the app is busy
+- The browser editor would not start
+- Use the spare copy of a save's data before guessing at one
+- Use the sync status values Xbox actually understands
+- Tell Xbox the truth about an edited Game Pass save
+- Write Game Pass sync stamps the way the game writes them
+- Stop Game Pass edits from going missing
+
+
+### Documentation
+- Explain the new ways to get a lost Game Pass world back
+- Rewrite the Game Pass guidance for players
+- Explain the offline routine for editing Game Pass saves
+
+
+### Features
+- Bring the Game Pass safety net into the app
+- Stop risky Game Pass saves before they happen, and rescue broken ones
+- Re-home a packed Game Pass character from the command line
+- Warn about Xbox cloud sync before editing a Game Pass save
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.4.0 [skip ci]
+
+
+### Testing
+- Cover the Game Pass paths that touch real Xbox saves
+
+
 ## [2.4.0] - 2026-08-09
 
 ### Bug Fixes
