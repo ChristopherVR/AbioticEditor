@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Text;
 
 namespace AbioticEditor.Core.GamePass;
@@ -10,9 +11,10 @@ namespace AbioticEditor.Core.GamePass;
 /// custom header are all stripped, with the save class recorded in the bundle TOC instead. To make
 /// the existing readers/writers work we prepend a class-matched header captured from a real save
 /// (<see cref="GvasHeaderTemplates"/>); the body bytes are byte-identical, so the editor parses and
-/// re-serializes them faithfully. On write we strip the same-length header back off. The custom
-/// header's data-length field is recomputed by the writer and ignored on read, so the splice is
-/// lossless.</para>
+/// re-serializes them faithfully. On write we strip the same-length header back off. The one field
+/// in that header that describes the body rather than the format - the custom header's data-length -
+/// is rewritten for the body actually being spliced on, because the captured template carries the
+/// length of the save it came from.</para>
 /// </summary>
 public static class GamePassMemberCodec
 {
@@ -48,7 +50,7 @@ public static class GamePassMemberCodec
 
     /// <summary>
     /// Reconstructs a full GVAS save from a headerless member body by prepending the class-matched
-    /// header template.
+    /// header template and stamping the body's own length into the template's data-length field.
     /// </summary>
     public static byte[] ToGvas(string saveClass, ReadOnlySpan<byte> memberBody)
     {
@@ -57,7 +59,38 @@ public static class GamePassMemberCodec
         var result = new byte[header.Length + memberBody.Length];
         header.CopyTo(result, 0);
         memberBody.CopyTo(result.AsSpan(header.Length));
+
+        // Every template ends with a custom header whose last field counts the bytes that follow it,
+        // and the captured template still carries the count from the one save it was taken from. The
+        // editor ignores that field on read, so a wrong value is invisible here, but the game checks
+        // it: a converted world whose saves misreport their own length is refused as an incompatible
+        // world save. Stamp the real length into our copy - never into the shared template array,
+        // which every later call reuses.
+        BinaryPrimitives.WriteInt32LittleEndian(
+            result.AsSpan(DataLengthOffset(saveClass, header), sizeof(int)), memberBody.Length);
         return result;
+    }
+
+    /// <summary>
+    /// Where the data-length field sits in a header template: the last four bytes of the custom
+    /// header, which is itself the last thing in the template. Located from the class name rather
+    /// than assumed, so a template regenerated with anything extra on the end is rejected here
+    /// instead of silently having four body bytes overwritten.
+    /// </summary>
+    private static int DataLengthOffset(string saveClass, byte[] header)
+    {
+        var (marker, customHeaderSize) = ClassMarker(saveClass)
+            ?? throw new NotSupportedException($"Unsupported save class '{saveClass}'.");
+        var markerBytes = Encoding.ASCII.GetBytes(marker);
+        var idx = header.AsSpan().IndexOf(markerBytes);
+        var headerEnd = idx < 0 ? -1 : idx + markerBytes.Length + customHeaderSize;
+        if (headerEnd != header.Length)
+        {
+            throw new InvalidDataException(
+                $"The GVAS header template for '{saveClass}' does not end with its custom header "
+                + $"(expected {header.Length} bytes, the class name ends its header at {headerEnd}).");
+        }
+        return header.Length - sizeof(int);
     }
 
     /// <summary>

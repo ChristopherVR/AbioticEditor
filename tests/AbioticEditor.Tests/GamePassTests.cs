@@ -21,6 +21,18 @@ public class GamePassTests
         return File.ReadAllBytes(path);
     }
 
+    /// <summary>
+    /// The fixture world's player file names, in a fixed order. Directory enumeration hands them
+    /// back in whatever order the filesystem keeps them, which differs between Windows and Linux,
+    /// so a test that took "the first one" was quietly a different test on each platform.
+    /// </summary>
+    private static List<string> FixturePlayerNames()
+        => Directory.EnumerateFiles(Path.Combine(Fixtures.CascadeDir!, "PlayerData"), "Player_*.sav")
+            .Select(Path.GetFileName)
+            .OfType<string>()
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
     [Fact]
     public void MemberCodec_strips_and_restores_header_losslessly()
     {
@@ -36,6 +48,100 @@ public class GamePassTests
         data.Raw.WriteTo(ms);
         var reBody = GamePassMemberCodec.ToMemberBody(CharClass, ms.ToArray());
         Assert.Equal(body, reBody);
+    }
+
+    /// <summary>
+    /// Establishes what the length in a save's header actually counts, against real saves of all
+    /// three kinds, so the reconstruction tests below are checking the game's rule rather than our
+    /// own reading of it.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData("PlayerData/Player_76561197993781479.sav")]
+    [InlineData("WorldSave_H_Cabin.sav")]
+    [InlineData("WorldSave_MetaData.sav")]
+    public void A_real_save_declares_the_bytes_that_follow_its_header(string relative)
+    {
+        Skip.IfNot(Fixtures.CascadeDir is not null, "the Steam world fixture is not in this checkout");
+
+        var path = Path.Combine(Fixtures.CascadeDir!, relative.Replace('/', Path.DirectorySeparatorChar));
+        Skip.IfNot(File.Exists(path), $"the fixture {relative} is not in this checkout");
+
+        var (declared, actual) = GvasCustomHeader.Measure(File.ReadAllBytes(path));
+        Assert.Equal(actual, declared);
+    }
+
+    /// <summary>
+    /// The header template is captured from one real save, so it arrives carrying that save's
+    /// length. Splicing it onto a different body unchanged produced a save that opened in the
+    /// editor (which ignores the field) and was refused in-game as an incompatible world save.
+    /// </summary>
+    [Theory]
+    [InlineData(GamePassMemberCodec.CharacterSaveClass)]
+    [InlineData(GamePassMemberCodec.WorldSaveClass)]
+    [InlineData(GamePassMemberCodec.WorldMetadataSaveClass)]
+    public void A_reconstructed_save_declares_its_own_length(string saveClass)
+    {
+        // Rebuild several bodies in a row: the templates are shared statics, so a fix that stamped
+        // the length into the template itself would pass on the first body and poison the rest.
+        foreach (var size in new[] { 4096, 1, 70_000, 4096 })
+        {
+            var body = new byte[size];
+            var gvas = GamePassMemberCodec.ToGvas(saveClass, body);
+
+            var (declared, actual) = GvasCustomHeader.Measure(gvas);
+            Assert.Equal(size, actual);
+            Assert.Equal(size, declared);
+        }
+    }
+
+    /// <summary>
+    /// A Game Pass member is only the save's body, so the format numbers in front of the length
+    /// (a character save's version; a world save's version and id) can only come from the captured
+    /// template - nothing in the bundle carries them per save. They are the same in every real save
+    /// we have, across game versions, so the template's copies are right; this is what notices if a
+    /// game update ever moves them and the templates need recapturing.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(GamePassMemberCodec.CharacterSaveClass, "PlayerData/Player_76561197993781479.sav")]
+    [InlineData(GamePassMemberCodec.WorldSaveClass, "WorldSave_H_Cabin.sav")]
+    [InlineData(GamePassMemberCodec.WorldMetadataSaveClass, "WorldSave_MetaData.sav")]
+    public void A_reconstructed_save_carries_the_format_numbers_a_real_save_carries(string saveClass, string relative)
+    {
+        Skip.IfNot(Fixtures.CascadeDir is not null, "the Steam world fixture is not in this checkout");
+
+        var path = Path.Combine(Fixtures.CascadeDir!, relative.Replace('/', Path.DirectorySeparatorChar));
+        Skip.IfNot(File.Exists(path), $"the fixture {relative} is not in this checkout");
+
+        Assert.Equal(
+            GvasCustomHeader.Versions(File.ReadAllBytes(path)),
+            GvasCustomHeader.Versions(GamePassMemberCodec.ToGvas(saveClass, new byte[64])));
+    }
+
+    [SkippableFact]
+    public void Every_save_taken_out_of_a_real_Game_Pass_world_declares_its_own_length()
+    {
+        Skip.IfNot(Fixtures.GamePassWgsDir is not null, "the Game Pass fixture is not in this checkout");
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
+
+        var work = Directory.CreateTempSubdirectory("gp-extract-lengths");
+        try
+        {
+            var set = GamePassSaveSet.Open(Fixtures.GamePassWgsDir!);
+            var container = set.Entries().Select(e => e.ContainerName).Distinct(StringComparer.OrdinalIgnoreCase).First();
+            set.ExtractWorld(container, work.FullName);
+
+            var saves = Directory.GetFiles(work.FullName, "*.sav", SearchOption.AllDirectories);
+            Assert.NotEmpty(saves);
+            foreach (var save in saves)
+            {
+                var (declared, actual) = GvasCustomHeader.Measure(File.ReadAllBytes(save));
+                Assert.Equal(actual, declared);
+            }
+        }
+        finally
+        {
+            work.Delete(recursive: true);
+        }
     }
 
     [Fact]
@@ -274,29 +380,41 @@ public class GamePassTests
         var tmp = Directory.CreateTempSubdirectory("steam-gp-convert");
         try
         {
-            // A minimal Steam world: the metadata + one player (copied from the Cascade fixture).
+            // A minimal Steam world: the metadata + every player in the Cascade fixture. All of them
+            // matters: each save carries its own length in its header, so a conversion that hands
+            // out one save's length to all of them still looks perfect on whichever player happens
+            // to come first.
             var steam = Path.Combine(tmp.FullName, "MyWorld");
             Directory.CreateDirectory(Path.Combine(steam, "PlayerData"));
             File.Copy(Path.Combine(Fixtures.CascadeDir!, "WorldSave_MetaData.sav"),
                 Path.Combine(steam, "WorldSave_MetaData.sav"));
-            var srcPlayer = Directory.EnumerateFiles(Path.Combine(Fixtures.CascadeDir!, "PlayerData"), "Player_*.sav").First();
-            var playerName = Path.GetFileName(srcPlayer);
-            File.Copy(srcPlayer, Path.Combine(steam, "PlayerData", playerName));
+            var playerNames = FixturePlayerNames();
+            Assert.True(playerNames.Count > 1, "the world fixture should hold several players");
+            foreach (var name in playerNames)
+            {
+                File.Copy(Path.Combine(Fixtures.CascadeDir!, "PlayerData", name),
+                    Path.Combine(steam, "PlayerData", name));
+            }
 
             // Steam -> Game Pass.
             var wgs = GamePassConverter.SteamWorldToGamePass(steam, Path.Combine(tmp.FullName, "gp"));
             Assert.True(GamePassSaveSet.IsGamePassFolder(wgs));
             var set = GamePassSaveSet.Open(wgs);
-            Assert.Contains(set.Entries(), e => e.FileName == playerName);
+            foreach (var name in playerNames)
+            {
+                Assert.Contains(set.Entries(), e => e.FileName == name);
+            }
 
             // Game Pass -> Steam, into a new folder.
             var back = GamePassConverter.GamePassToSteamWorld(wgs, $"MyWorld-WC", Path.Combine(tmp.FullName, "back"));
 
-            // The player save survives the round-trip byte-for-byte.
-            Assert.True(File.Exists(Path.Combine(back, "PlayerData", playerName)));
-            Assert.Equal(
-                File.ReadAllBytes(Path.Combine(steam, "PlayerData", playerName)),
-                File.ReadAllBytes(Path.Combine(back, "PlayerData", playerName)));
+            // Every save survives the round-trip byte-for-byte, not just the first one.
+            foreach (var name in playerNames)
+            {
+                var restored = Path.Combine(back, "PlayerData", name);
+                Assert.True(File.Exists(restored), $"{name} did not come back from the round-trip");
+                Assert.Equal(File.ReadAllBytes(Path.Combine(steam, "PlayerData", name)), File.ReadAllBytes(restored));
+            }
             Assert.Equal(
                 File.ReadAllBytes(Path.Combine(steam, "WorldSave_MetaData.sav")),
                 File.ReadAllBytes(Path.Combine(back, "WorldSave_MetaData.sav")));
@@ -320,8 +438,9 @@ public class GamePassTests
             Directory.CreateDirectory(Path.Combine(steam, "PlayerData"));
             File.Copy(Path.Combine(Fixtures.CascadeDir!, "WorldSave_MetaData.sav"),
                 Path.Combine(steam, "WorldSave_MetaData.sav"));
-            var srcPlayer = Directory.EnumerateFiles(Path.Combine(Fixtures.CascadeDir!, "PlayerData"), "Player_*.sav").First();
-            File.Copy(srcPlayer, Path.Combine(steam, "PlayerData", Path.GetFileName(srcPlayer)));
+            var srcPlayer = FixturePlayerNames()[0];
+            File.Copy(Path.Combine(Fixtures.CascadeDir!, "PlayerData", srcPlayer),
+                Path.Combine(steam, "PlayerData", srcPlayer));
 
             const string newId = "msft-9Z8Y7X";
             var wgs = GamePassConverter.SteamWorldToGamePass(steam, Path.Combine(tmp.FullName, "gp"), worldName: "W", newPlayerId: newId);
@@ -430,5 +549,57 @@ public class GamePassTests
     {
         w.Write((uint)s.Length);
         w.Write(Encoding.Unicode.GetBytes(s));
+    }
+}
+
+/// <summary>
+/// Reads the two numbers that have to agree in any Abiotic Factor save: the length its custom
+/// header declares, and the bytes that really follow that header. Measured straight out of the
+/// bytes, by finding the save class name and skipping the class's fixed-size custom header, so a
+/// test using it is not simply asking the production codec whether the production codec is right.
+/// </summary>
+internal static class GvasCustomHeader
+{
+    // Class name (with its FString null terminator) and the size of the custom header behind it:
+    // a character save's is [int Version][int DataLength]; a world or metadata save's adds the
+    // "ABF_SAVE_VERSION" marker and an id in front of the same length.
+    private static readonly (string Marker, int CustomHeaderSize)[] Classes =
+    [
+        ("Abiotic_CharacterSave_C\0", 8),
+        ("Abiotic_WorldSave_C\0", 33),
+        ("Abiotic_WorldMetadataSave_C\0", 33),
+    ];
+
+    public static (int Declared, int Actual) Measure(byte[] gvas)
+    {
+        var (headerEnd, _) = Locate(gvas);
+        return (BitConverter.ToInt32(gvas, headerEnd - sizeof(int)), gvas.Length - headerEnd);
+    }
+
+    /// <summary>
+    /// The format numbers in front of the length: a character save's single version, or a world or
+    /// metadata save's version and id (null for a character save, which has no id).
+    /// </summary>
+    public static (int Version, int? Id) Versions(byte[] gvas)
+    {
+        var (headerEnd, customHeaderSize) = Locate(gvas);
+        var customHeader = headerEnd - customHeaderSize;
+        return customHeaderSize == 8
+            ? (BitConverter.ToInt32(gvas, customHeader), null)
+            // Past the FString length and the 17 bytes of "ABF_SAVE_VERSION" plus its terminator.
+            : (BitConverter.ToInt32(gvas, customHeader + 21), BitConverter.ToInt32(gvas, customHeader + 25));
+    }
+
+    private static (int HeaderEnd, int CustomHeaderSize) Locate(byte[] gvas)
+    {
+        foreach (var (marker, customHeaderSize) in Classes)
+        {
+            var markerBytes = Encoding.ASCII.GetBytes(marker);
+            var idx = gvas.AsSpan().IndexOf(markerBytes);
+            if (idx < 0) continue;
+
+            return (idx + markerBytes.Length + customHeaderSize, customHeaderSize);
+        }
+        throw new InvalidDataException("These bytes are not an Abiotic Factor save of a known class.");
     }
 }
