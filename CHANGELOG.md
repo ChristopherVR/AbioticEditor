@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented here.
 
+## [2.5.1] - 2026-08-13
+
+### Bug Fixes
+- Stop nagging about Game Pass saves that are perfectly fine
+- Move a shared world to Steam, and stop a skipped test failing the build
+- Your beds come with you when a character changes account
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.5.0 [skip ci]
+
+
+### Testing
+- Stop two test groups fighting over the log settings
+
+
 ## [2.5.0] - 2026-08-13
 
 ### Bug Fixes
