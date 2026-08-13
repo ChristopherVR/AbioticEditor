@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [2.6.1] - 2026-08-13
+
+### Bug Fixes
+- Say a Game Pass save cannot be saved yet when you open it, not when you try
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.6.0 [skip ci]
+
+
 ## [2.6.0] - 2026-08-13
 
 ### Features
