@@ -52,6 +52,47 @@ public class GamePassSafetyTests
     }
 
     [Fact]
+    public void The_previous_blob_the_manifest_names_is_preferred_over_guessing()
+    {
+        using var scratch = new Scratch();
+        var blob = Payload(4096, seed: 60);
+        WgsContainerStore.WriteNewContainer(scratch.Path, "World-WC", blob);
+
+        // A manifest records two ids: the blob as the cloud last knew it, and the one on disk. When
+        // the current one is gone, the other is a name the save itself gives us, not a guess - so it
+        // must win over scanning the folder, and it must win even against a same-sized decoy.
+        var folder = ContainerFolder(scratch.Path);
+        var real = BlobFiles(folder).Single();
+        var previousGuid = Guid.NewGuid();
+        File.Move(real, Path.Combine(folder, previousGuid.ToString("N").ToUpperInvariant()));
+        var decoy = Payload(4096, seed: 61);
+        File.WriteAllBytes(Path.Combine(folder, Guid.NewGuid().ToString("N").ToUpperInvariant()), decoy);
+        PatchManifestPreviousGuid(folder, previousGuid);
+
+        var store = WgsContainerStore.Open(scratch.Path);
+        Assert.Equal(blob, store.ReadBlob(store.Containers[0]));
+        Assert.True(store.NeededBlobFallback);
+    }
+
+    [Fact]
+    public void A_save_with_two_live_versions_of_its_data_refuses_to_guess()
+    {
+        using var scratch = new Scratch();
+        WgsContainerStore.WriteNewContainer(scratch.Path, "World-WC", Payload(4096, seed: 62));
+
+        // Both ids the manifest names exist and differ: a sync really is in flight, and nothing on
+        // disk says which side is meant to win. Picking one would hand back the wrong save silently.
+        var folder = ContainerFolder(scratch.Path);
+        var previousGuid = Guid.NewGuid();
+        File.WriteAllBytes(Path.Combine(folder, previousGuid.ToString("N").ToUpperInvariant()), Payload(4096, seed: 63));
+        PatchManifestPreviousGuid(folder, previousGuid);
+
+        var store = WgsContainerStore.Open(scratch.Path);
+        var ex = Assert.Throws<InvalidDataException>(() => store.ReadBlob(store.Containers[0]));
+        Assert.Contains("two versions", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Repairing_a_half_synced_save_makes_it_open_cleanly_again()
     {
         using var scratch = new Scratch();
@@ -487,6 +528,19 @@ public class GamePassSafetyTests
         pos += 1;                           // container number
         BitConverter.GetBytes(state).CopyTo(d, pos);
         File.WriteAllBytes(path, d);
+    }
+
+    /// <summary>
+    /// Rewrites the first blob id in a <c>container.N</c> manifest (the one naming the blob as the
+    /// cloud last knew it), leaving the second - the file on disk - alone. The store only ever
+    /// writes the two identical, so an in-flight manifest has to be built by hand.
+    /// </summary>
+    private static void PatchManifestPreviousGuid(string containerFolder, Guid previous)
+    {
+        var manifest = Directory.GetFiles(containerFolder, "container.*").Single();
+        var d = File.ReadAllBytes(manifest);
+        previous.ToByteArray().CopyTo(d, 8 + 128);
+        File.WriteAllBytes(manifest, d);
     }
 
     private static void SkipWideString(byte[] d, ref int pos)

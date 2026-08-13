@@ -348,20 +348,43 @@ public sealed class WgsContainerStore
     public byte[] ReadBlob(WgsContainer container)
     {
         var folder = Path.Combine(_root, container.FolderName);
-        var blobGuid = ReadManifestBlobGuid(folder, container.ContainerNumber);
+        var (blobGuid, previousGuid) = ReadManifestBlobGuids(folder, container.ContainerNumber);
         var blobPath = Path.Combine(folder, blobGuid.ToString("N").ToUpperInvariant());
-        if (File.Exists(blobPath))
-            return File.ReadAllBytes(blobPath);
+        var previousPath = Path.Combine(folder, previousGuid.ToString("N").ToUpperInvariant());
+        var haveCurrent = File.Exists(blobPath);
+        var havePrevious = previousGuid != blobGuid && File.Exists(previousPath);
 
-        // The expected blob is missing - this happens when Xbox Connected Storage updated the
-        // container manifest (or synced one from the cloud) but the corresponding blob file was
-        // never written or was renamed. Look for the only other GUID-named blob in the folder;
-        // if exactly one exists and its size matches the index record, use it with a warning.
+        // Both ids present and different means a sync is genuinely in flight: one of these is the
+        // cloud's copy and one is this machine's, and nothing on disk says which is meant to win.
+        // Guessing here would hand back the wrong save as though it were the right one.
+        if (haveCurrent && havePrevious)
+        {
+            MarkRecovered(container.Name);
+            throw new InvalidDataException(
+                $"'{container.Name}' has two versions of its data on disk ({blobGuid:N} and {previousGuid:N}), "
+                + "which means Xbox is part-way through syncing this save. Close the game and the Xbox app, "
+                + "wait for syncing to finish, and open it again.");
+        }
+
+        if (haveCurrent) return File.ReadAllBytes(blobPath);
+
+        // The current id is missing but the manifest also names the id the cloud last knew. That is
+        // a recorded alternative rather than a guess, so it beats scanning the folder.
+        if (havePrevious)
+        {
+            MarkRecovered(container.Name);
+            Diagnostics.EditorLog.Warn("GamePass",
+                $"Save blob '{blobGuid:N}' for '{container.Name}' is not on disk; using the previous one "
+                + $"the manifest names ('{previousGuid:N}'). Xbox has not finished syncing this save.");
+            return File.ReadAllBytes(previousPath);
+        }
+
+        // Neither id is on disk. Last resort: the only other GUID-named blob in the folder, and
+        // only when its size matches what the index records for this container.
         var fallback = FindFallbackBlob(folder, blobGuid, container.BlobSize);
         if (fallback is not null)
         {
-            if (!_recoveredContainers.Contains(container.Name, StringComparer.OrdinalIgnoreCase))
-                _recoveredContainers.Add(container.Name);
+            MarkRecovered(container.Name);
             Diagnostics.EditorLog.Warn("GamePass",
                 $"Save blob '{blobGuid:N}' for '{container.Name}' not found on disk - " +
                 $"using existing blob '{Path.GetFileName(fallback)}' as a fallback. " +
@@ -692,7 +715,24 @@ public sealed class WgsContainerStore
         return now - (now % TicksPerMillisecond);
     }
 
+    private void MarkRecovered(string name)
+    {
+        if (!_recoveredContainers.Contains(name, StringComparer.OrdinalIgnoreCase))
+        {
+            _recoveredContainers.Add(name);
+        }
+    }
+
     private static Guid ReadManifestBlobGuid(string folder, byte number)
+        => ReadManifestBlobGuids(folder, number).Current;
+
+    /// <summary>
+    /// Both blob ids a <c>container.N</c> manifest records. The first names the blob as the cloud
+    /// last knew it, the second the file on disk; a settled container has them identical, which is
+    /// what this editor writes. They differ while a sync is in flight, and that is the one case
+    /// where the older id is a genuine, named alternative rather than a guess.
+    /// </summary>
+    private static (Guid Current, Guid Previous) ReadManifestBlobGuids(string folder, byte number)
     {
         var path = Path.Combine(folder, $"container.{number}");
         var d = File.ReadAllBytes(path);
@@ -701,7 +741,9 @@ public sealed class WgsContainerStore
         var blobCount = ReadU32(d, ref pos); // blob entries (1)
         if (blobCount < 1) throw new InvalidDataException($"{path} declares no blobs.");
         pos += BlobNameFieldBytes;           // fixed "Data" name field
-        return new Guid(d.AsSpan(pos, 16).ToArray());
+        var previous = new Guid(d.AsSpan(pos, 16).ToArray());
+        var current = new Guid(d.AsSpan(pos + 16, 16).ToArray());
+        return (current, previous);
     }
 
     private static void WriteManifest(string folder, byte number, Guid blobGuid)
