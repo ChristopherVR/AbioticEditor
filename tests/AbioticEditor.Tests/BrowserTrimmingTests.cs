@@ -67,4 +67,49 @@ public sealed class BrowserTrimmingTests
             + "trimmer removes types that are only ever built by name, and the published editor opens "
             + "with no error and then fails on a real save.");
     }
+
+    /// <summary>
+    /// Every service a shared screen asks for must be registered by the browser host too.
+    /// </summary>
+    /// <remarks>
+    /// The two hosts share their screens but register their own services, and nothing checks that
+    /// the second list keeps up with the first. A service added for the desktop and injected into a
+    /// shared component does not fail to compile and does not fail on the desktop; it fails in the
+    /// browser, at the moment that screen first renders. When the screen is the start screen, that
+    /// is the whole editor. This is exactly how a Game Pass guard written for the desktop took the
+    /// browser's landing page down.
+    /// </remarks>
+    [Fact]
+    public void BrowserHost_RegistersEveryServiceTheSharedScreensInject()
+    {
+        var root = UiSource.RepositoryRoot;
+        var wasmProgram = File.ReadAllText(
+            Path.Combine(root, "src", "AbioticEditor.Web.Wasm", "Program.cs"));
+
+        var componentsDir = Path.Combine(root, "src", "AbioticEditor.Web.Shared", "Components");
+        var injected = Directory
+            .EnumerateFiles(componentsDir, "*.razor", SearchOption.AllDirectories)
+            .SelectMany(file => System.Text.RegularExpressions.Regex
+                .Matches(File.ReadAllText(file), @"@inject\s+([\w.]+)\s")
+                .Select(match => match.Groups[1].Value))
+            .Select(name => name[(name.LastIndexOf('.') + 1)..])
+            // Blazor registers these itself, so a host never lists them.
+            .Where(name => name is not ("NavigationManager" or "IJSRuntime" or "HttpClient"))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+
+        Assert.NotEmpty(injected);
+
+        var missing = injected
+            .Where(name => !wasmProgram.Contains(name, StringComparison.Ordinal))
+            .ToList();
+
+        Assert.True(
+            missing.Count == 0,
+            "The browser host does not register these services, which shared screens inject: "
+            + string.Join(", ", missing)
+            + ". Add them to src/AbioticEditor.Web.Wasm/Program.cs. A service that is only registered "
+            + "on the desktop throws in the browser the first time its screen renders.");
+    }
 }
