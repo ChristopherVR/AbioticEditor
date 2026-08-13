@@ -1795,6 +1795,36 @@ Esto escribe en el guardado de inmediato y recarga el editor, así que se pierde
   <data name="Settings_ConvertIdHint" xml:space="preserve">
     <value>Opcional. Un SteamID64 de 17 dígitos (Steam) o id de carpeta de cuenta (Game Pass). El guardado del jugador se reasigna a él para que el mundo sea tuyo en la plataforma de destino. Solo un jugador.</value>
   </data>
+  <data name="Settings_ConvertOrphanCharacter" xml:space="preserve">
+    <value>Cuidado: el personaje de este mundo no será tuyo en la otra plataforma. El juego te empezará con un personaje nuevo, y el que llevas jugando todo este tiempo se quedará en la carpeta sin que puedas llegar a él.</value>
+  </data>
+  <data name="Settings_ConvertOrphanCharacterFix" xml:space="preserve">
+    <value>Para seguir jugando con el mismo personaje, pon tu cuenta en el campo de arriba (elige una de la lista o escríbela) y convierte con ella.</value>
+  </data>
+  <data name="Settings_ConvertWithAccount" xml:space="preserve">
+    <value>CONVERTIR CON ESTA CUENTA</value>
+  </data>
+  <data name="Settings_ConvertAnyway" xml:space="preserve">
+    <value>CONVERTIR DE TODOS MODOS</value>
+  </data>
+  <data name="Settings_ConvertIdNotSteam" xml:space="preserve">
+    <value>Esto no parece una cuenta de Steam. Si vas a convertir a Steam, compruébalo antes de continuar. Aun así puedes convertir con ella.</value>
+  </data>
+  <data name="Settings_ConvertIdUnusable" xml:space="preserve">
+    <value>Una partida guardada lleva el nombre de su cuenta, y con esa no se puede. Solo valen letras, números, puntos, guiones y guiones bajos, así que la conversión la rechazará.</value>
+  </data>
+  <data name="Settings_ConvertAccountsFound" xml:space="preserve">
+    <value>Cuentas encontradas en este equipo. Elige una para rellenar el campo de arriba, o escribe la cuenta que quieras.</value>
+  </data>
+  <data name="Settings_ConvertWorldsFound" xml:space="preserve">
+    <value>O convierte uno de los mundos encontrados en este equipo:</value>
+  </data>
+  <data name="Settings_ConvertThisWorld" xml:space="preserve">
+    <value>CONVERTIR ESTE</value>
+  </data>
+  <data name="Settings_ConvertLookingForSaves" xml:space="preserve">
+    <value>Buscando partidas guardadas en este equipo…</value>
+  </data>
   <data name="Settings_ConvertToGamePass" xml:space="preserve">
     <value>CONVERTIR  ·  STEAM  →  GAME PASS</value>
   </data>

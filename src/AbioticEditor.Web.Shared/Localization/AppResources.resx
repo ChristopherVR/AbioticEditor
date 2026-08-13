@@ -2097,6 +2097,36 @@ This writes to the save straight away and reloads the editor, so anything you ha
   <data name="Settings_ConvertIdHint" xml:space="preserve">
     <value>Optional. A 17-digit SteamID64 (Steam) or account folder id (Game Pass). The player save is re-homed to it so the world is yours on the target platform. Single-player only.</value>
   </data>
+  <data name="Settings_ConvertOrphanCharacter" xml:space="preserve">
+    <value>Careful: the character in this world will not be yours on the other platform. The game will start you with a brand new character, and the one you have played all this time will sit in the folder where you cannot reach it.</value>
+  </data>
+  <data name="Settings_ConvertOrphanCharacterFix" xml:space="preserve">
+    <value>To keep playing the same character, put your account in the box above (pick one from the list, or type it) and convert with it.</value>
+  </data>
+  <data name="Settings_ConvertWithAccount" xml:space="preserve">
+    <value>CONVERT WITH THIS ACCOUNT</value>
+  </data>
+  <data name="Settings_ConvertAnyway" xml:space="preserve">
+    <value>CONVERT ANYWAY</value>
+  </data>
+  <data name="Settings_ConvertIdNotSteam" xml:space="preserve">
+    <value>That doesn't look like a Steam account. If you're converting to Steam, check it before you go ahead. You can still convert with it.</value>
+  </data>
+  <data name="Settings_ConvertIdUnusable" xml:space="preserve">
+    <value>A save is named after its account, and that one can't be. Only letters, numbers, dots, dashes and underscores work, so the conversion will turn it down.</value>
+  </data>
+  <data name="Settings_ConvertAccountsFound" xml:space="preserve">
+    <value>Accounts found on this machine. Pick one to fill in the box above, or type any account you like.</value>
+  </data>
+  <data name="Settings_ConvertWorldsFound" xml:space="preserve">
+    <value>Or convert one of the worlds found on this machine:</value>
+  </data>
+  <data name="Settings_ConvertThisWorld" xml:space="preserve">
+    <value>CONVERT THIS ONE</value>
+  </data>
+  <data name="Settings_ConvertLookingForSaves" xml:space="preserve">
+    <value>Looking for saves on this machine…</value>
+  </data>
   <data name="Settings_ConvertToGamePass" xml:space="preserve">
     <value>CONVERT  ·  STEAM  →  GAME PASS</value>
   </data>

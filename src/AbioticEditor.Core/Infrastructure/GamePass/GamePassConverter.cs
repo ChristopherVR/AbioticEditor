@@ -239,6 +239,35 @@ public static class GamePassConverter
     }
 
     /// <summary>
+    /// True when converting this world without re-homing anybody would leave its characters owned
+    /// by accounts the destination platform will never look for, so the game starts the player
+    /// with a brand new character while their real one sits unopened in the folder.
+    /// </summary>
+    /// <remarks>
+    /// <para>The game finds a character by file name: Steam looks for <c>Player_&lt;SteamID64&gt;.sav</c>
+    /// and Game Pass for the Xbox account's. A conversion carries every character across intact, but
+    /// under the id it already had, so a world that changes platform without an account id given
+    /// arrives complete and unreachable. This is what a player reports as "it made me a new level 1
+    /// character": nothing was lost, it is simply owned by the account they just left.</para>
+    /// <para>Only the cases that really bite say true. Heading for Steam, a character already on a
+    /// SteamID64 is fine as it is. Heading for Game Pass, a SteamID64 is definitely not an Xbox
+    /// account, while any other token might be, so only the certain mismatch is called out: a
+    /// warning that cries wolf on a correct conversion is worse than none.</para>
+    /// </remarks>
+    /// <param name="destination">The platform the world is being converted to.</param>
+    /// <param name="characterIds">The world's character ids, from <see cref="ListContainerPlayers"/>
+    /// or <see cref="ListSteamWorldPlayers"/>.</param>
+    public static bool WouldStrandCharacters(Saves.SavePlatform destination, IEnumerable<string>? characterIds)
+    {
+        var ids = characterIds?.ToList() ?? [];
+        if (ids.Count == 0) return false;
+
+        return destination == Saves.SavePlatform.Steam
+            ? !ids.Any(PlayerIdentifier.IsSteamId)
+            : ids.Any(PlayerIdentifier.IsSteamId);
+    }
+
+    /// <summary>
     /// The account ids of the characters in a Game Pass world, so a caller can ask which one to
     /// re-home instead of guessing. <paramref name="containerName"/> may be null when the folder
     /// holds a single world.

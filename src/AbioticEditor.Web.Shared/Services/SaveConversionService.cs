@@ -1,10 +1,26 @@
 using AbioticEditor.Core.GamePass;
+using AbioticEditor.Core.PlayerSaves;
+using AbioticEditor.Core.Saves;
 
 namespace AbioticEditor.Web.Services;
 
 public enum SaveConversionDirection { ToGamePass, ToSteam }
 
 public enum SaveConversionSourceValidation { Valid, MissingSteamWorldSave, MissingGamePassContainer }
+
+/// <summary>How doubtful a typed account looks. Never a refusal: see
+/// <see cref="SaveConversionService.WarnAboutAccountId"/>.</summary>
+public enum SaveConversionIdWarning
+{
+    /// <summary>Nothing to say about it.</summary>
+    None,
+
+    /// <summary>The conversion will refuse this one: it cannot name a save file.</summary>
+    UnusableInFileName,
+
+    /// <summary>Allowed, but it is not shaped like a Steam account and Steam is the destination.</summary>
+    NotShapedLikeASteamId,
+}
 
 /// <summary>Desktop conversion workflow shared by the settings UI and its parity tests.</summary>
 public static class SaveConversionService
@@ -25,6 +41,30 @@ public static class SaveConversionService
             SaveConversionDirection.ToGamePass => SaveConversionSourceValidation.MissingSteamWorldSave,
             _ => SaveConversionSourceValidation.MissingGamePassContainer,
         };
+    }
+
+    /// <summary>
+    /// What looks doubtful about an account the player typed, so the caller can say so beside the
+    /// box. This deliberately never refuses anything: the editor cannot know every id every
+    /// platform issues, and the ordinary reason to type one at all is to hand a world to an
+    /// account this machine has never seen. A blank account is not doubtful either, it means
+    /// "leave the existing ones alone".
+    /// </summary>
+    public static SaveConversionIdWarning WarnAboutAccountId(
+        SaveConversionDirection direction, string? playerAccountId)
+    {
+        var id = playerAccountId?.Trim();
+        if (string.IsNullOrEmpty(id)) return SaveConversionIdWarning.None;
+
+        // This one is not a guess. A save is named after its account, so an id that cannot be
+        // part of a file name is turned away by the conversion itself further down.
+        if (!PlayerIdentifier.IsSafeFileToken(id)) return SaveConversionIdWarning.UnusableInFileName;
+
+        // Only Steam has a shape worth checking. Xbox ids are opaque, so there is nothing
+        // honest to say about one going the other way.
+        return direction == SaveConversionDirection.ToSteam && !PlayerIdentifier.IsSteamId(id)
+            ? SaveConversionIdWarning.NotShapedLikeASteamId
+            : SaveConversionIdWarning.None;
     }
 
     public static string DestinationFor(SaveConversionDirection direction, string sourceFolder)
@@ -74,6 +114,20 @@ public static class SaveConversionService
             return Array.Empty<string>();
         }
     }
+
+    /// <summary>
+    /// True when running this conversion as it stands would hand the player a world whose
+    /// characters are not theirs on the other platform, so the game starts them fresh. Giving an
+    /// account to re-home to is what turns this off, which is why a blank one is the trigger.
+    /// </summary>
+    public static bool WouldStrandCharacters(
+        SaveConversionDirection direction, IReadOnlyList<string>? characters, string? playerAccountId)
+        => string.IsNullOrWhiteSpace(playerAccountId)
+            && GamePassConverter.WouldStrandCharacters(DestinationPlatform(direction), characters);
+
+    /// <summary>The platform a direction ends on, which is the one whose naming rules apply.</summary>
+    public static SavePlatform DestinationPlatform(SaveConversionDirection direction)
+        => direction == SaveConversionDirection.ToSteam ? SavePlatform.Steam : SavePlatform.GamePass;
 
     public static string Convert(
         SaveConversionDirection direction, string sourceFolder, string? playerAccountId,

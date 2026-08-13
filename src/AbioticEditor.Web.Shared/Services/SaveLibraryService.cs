@@ -23,6 +23,15 @@ public sealed class SaveLibraryService(ISaveFileSystem files)
             ? Task.Run(SaveDiscovery.DiscoverAll, cancellationToken)
             : Task.FromResult<IReadOnlyList<DiscoveredWorld>>(Array.Empty<DiscoveredWorld>());
 
+    /// <summary>
+    /// The player accounts this machine has some trace of, offered as a shortcut wherever the
+    /// editor asks for one. Nothing in a browser, for the same reason as the world list.
+    /// </summary>
+    public Task<IReadOnlyList<DiscoveredAccount>> DiscoverAccountsAsync(CancellationToken cancellationToken = default)
+        => CanDiscover
+            ? Task.Run(PlayerAccountDiscovery.DiscoverAll, cancellationToken)
+            : Task.FromResult<IReadOnlyList<DiscoveredAccount>>(Array.Empty<DiscoveredAccount>());
+
     public Task<IReadOnlyList<SaveFile>> ListFilesAsync(string worldPath, CancellationToken cancellationToken = default)
         => Task.Run<IReadOnlyList<SaveFile>>(() =>
         {

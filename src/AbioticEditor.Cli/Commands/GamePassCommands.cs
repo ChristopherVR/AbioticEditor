@@ -573,6 +573,11 @@ internal static class GamePassCommands
             {
                 throw new CliUserErrorException($"--into needs an existing Xbox save folder, and {dest} is not one.");
             }
+            WarnIfCharactersWouldBeStranded(
+                Core.Saves.SavePlatform.GamePass, pr.GetValue(idOpt),
+                () => GamePassConverter.ListSteamWorldPlayers(src),
+                "your Xbox account", "--player-id <your Xbox account id>");
+
             var outDir = GamePassConverter.SteamWorldToGamePass(
                 src, dest, pr.GetValue(worldOpt), pr.GetValue(idOpt), mergeIntoExisting: into,
                 sourcePlayerId: pr.GetValue(fromOpt));
@@ -611,6 +616,12 @@ internal static class GamePassCommands
                 throw new CliUserErrorException($"not a Game Pass save folder (no containers.index): {src}");
             }
             var dest = pr.GetValue(destArg) ?? throw new CliUserErrorException("a destination folder is required.");
+
+            WarnIfCharactersWouldBeStranded(
+                Core.Saves.SavePlatform.Steam, pr.GetValue(idOpt),
+                () => GamePassConverter.ListContainerPlayers(src, pr.GetValue(containerOpt)),
+                "your Steam account", "--player-id <your SteamID64>");
+
             var outDir = GamePassConverter.GamePassToSteamWorld(
                 src, pr.GetValue(containerOpt), dest, pr.GetValue(idOpt), pr.GetValue(fromOpt));
             Cli.Info(pr.GetValue(quiet),
@@ -619,6 +630,40 @@ internal static class GamePassCommands
             return Cli.Ok;
         }));
         return cmd;
+    }
+
+    /// <summary>
+    /// Says so when the conversion about to run would carry the characters across still owned by
+    /// the platform they came from. The game then finds no character of its own to load and starts
+    /// a brand new one, while the played-for-months character sits in the output folder unreachable.
+    /// It converted, so this warns and carries on: making an unclaimed copy of a world is a fair
+    /// thing to want, and only the player knows which it was.
+    /// </summary>
+    private static void WarnIfCharactersWouldBeStranded(
+        Core.Saves.SavePlatform destination, string? playerId, Func<IReadOnlyList<string>> readCharacters,
+        string accountDescription, string flag)
+    {
+        if (!string.IsNullOrWhiteSpace(playerId)) return;
+
+        IReadOnlyList<string> characters;
+        try
+        {
+            characters = readCharacters();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
+                                       or InvalidDataException or InvalidOperationException)
+        {
+            // Only a warning rides on this. If the characters cannot be listed the conversion
+            // itself will say so properly a moment later.
+            return;
+        }
+
+        if (!GamePassConverter.WouldStrandCharacters(destination, characters)) return;
+
+        Cli.Warn(
+            $"The character in this world will not belong to {accountDescription}, so the game will "
+            + "start you with a brand new one and leave the character you have been playing sitting "
+            + $"in the folder where you cannot reach it. Pass {flag} to make the character yours.");
     }
 
     private static GamePassSaveSet OpenSet(string? folder)

@@ -400,6 +400,15 @@ h1[tabindex="-1"]:focus{outline:none}
 .settings-tab-embedded>.hero{display:none}
 .settings-tab-embedded>.settings-card,.settings-tab-embedded>.compare-card,.settings-tab-embedded>.compare-results{margin:0 0 14px!important}
 .gamepass-card input{box-sizing:border-box;width:100%}.gamepass-card .conversion-action{display:block;margin-top:14px}.gamepass-card .conversion-hint{margin:5px 0 0!important}
+/* The accounts found on this machine: chips that fill the box above, so they wrap rather than
+   forcing the card wider on a machine with several accounts on it. */
+.conversion-account-list{display:flex;flex-wrap:wrap;gap:6px;margin:7px 0 0;padding:0;list-style:none}
+.conversion-account-list button{display:inline-flex;align-items:center;gap:7px;text-align:left}
+.conversion-account-list .platform-badge{min-height:0;padding:2px 6px;border-radius:0;font-size:8px;letter-spacing:.15em}
+.conversion-account-list small{color:var(--faint);font-size:9px}
+/* Doubtful, not wrong: warm orange rather than the alert red, because the button stays live. */
+.conversion-id-warning{margin:7px 0 0;color:var(--orange);font-size:11px}
+.gamepass-card .conversion-world-choices{margin-top:7px}
 .settings-subdialog-backdrop{position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:24px;background:#02070db8}
 .settings-subdialog{box-sizing:border-box;width:min(520px,100%);max-height:min(680px,90vh);overflow:auto;padding:20px;border:1px solid var(--divider);border-radius:8px;background:var(--panel);box-shadow:0 24px 70px #000b}
 .settings-subdialog h2{margin:0;color:var(--section);font-size:17px;letter-spacing:.1em}

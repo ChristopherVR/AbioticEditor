@@ -1794,6 +1794,36 @@ Dies schreibt sofort in den Spielstand und lädt den Editor neu, alles noch nich
   <data name="Settings_ConvertIdHint" xml:space="preserve">
     <value>Optional. Eine 17-stellige SteamID64 (Steam) oder Konto-Ordner-ID (Game Pass). Der Spieler-Spielstand wird darauf umgezogen, damit die Welt auf der Zielplattform dir gehört. Nur Einzelspieler.</value>
   </data>
+  <data name="Settings_ConvertOrphanCharacter" xml:space="preserve">
+    <value>Achtung: Die Figur in dieser Welt gehört dir auf der anderen Plattform nicht. Das Spiel startet dich mit einer völlig neuen Figur, und die, mit der du die ganze Zeit gespielt hast, liegt dann im Ordner, ohne dass du an sie herankommst.</value>
+  </data>
+  <data name="Settings_ConvertOrphanCharacterFix" xml:space="preserve">
+    <value>Damit du mit derselben Figur weiterspielen kannst, trage oben dein Konto ein (wähle eines aus der Liste oder tippe es ein) und konvertiere damit.</value>
+  </data>
+  <data name="Settings_ConvertWithAccount" xml:space="preserve">
+    <value>MIT DIESEM KONTO KONVERTIEREN</value>
+  </data>
+  <data name="Settings_ConvertAnyway" xml:space="preserve">
+    <value>TROTZDEM KONVERTIEREN</value>
+  </data>
+  <data name="Settings_ConvertIdNotSteam" xml:space="preserve">
+    <value>Das sieht nicht nach einem Steam-Konto aus. Wenn du nach Steam konvertierst, prüfe es lieber noch einmal. Konvertieren kannst du trotzdem.</value>
+  </data>
+  <data name="Settings_ConvertIdUnusable" xml:space="preserve">
+    <value>Ein Spielstand wird nach seinem Konto benannt, und mit diesem geht das nicht. Es funktionieren nur Buchstaben, Zahlen, Punkte, Bindestriche und Unterstriche, sonst lehnt die Konvertierung es ab.</value>
+  </data>
+  <data name="Settings_ConvertAccountsFound" xml:space="preserve">
+    <value>Auf diesem Rechner gefundene Konten. Wähle eines aus, um das Feld oben zu füllen, oder tippe ein beliebiges Konto ein.</value>
+  </data>
+  <data name="Settings_ConvertWorldsFound" xml:space="preserve">
+    <value>Oder konvertiere eine der auf diesem Rechner gefundenen Welten:</value>
+  </data>
+  <data name="Settings_ConvertThisWorld" xml:space="preserve">
+    <value>DIESE KONVERTIEREN</value>
+  </data>
+  <data name="Settings_ConvertLookingForSaves" xml:space="preserve">
+    <value>Es wird nach Spielständen auf diesem Rechner gesucht…</value>
+  </data>
   <data name="Settings_ConvertToGamePass" xml:space="preserve">
     <value>KONVERTIEREN  ·  STEAM  →  GAME PASS</value>
   </data>

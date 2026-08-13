@@ -1794,6 +1794,36 @@
   <data name="Settings_ConvertIdHint" xml:space="preserve">
     <value>Необязательно. 17-значный SteamID64 (Steam) или id папки аккаунта (Game Pass). Сохранение игрока перепривязывается к нему, чтобы мир принадлежал вам на целевой платформе. Только для одиночной игры.</value>
   </data>
+  <data name="Settings_ConvertOrphanCharacter" xml:space="preserve">
+    <value>Внимание: персонаж в этом мире не будет вашим на другой платформе. Игра начнёт вас с совершенно новым персонажем, а тот, которым вы играли всё это время, останется в папке, и добраться до него не выйдет.</value>
+  </data>
+  <data name="Settings_ConvertOrphanCharacterFix" xml:space="preserve">
+    <value>Чтобы продолжить тем же персонажем, укажите свою учётную запись в поле выше (выберите из списка или введите) и преобразуйте с ней.</value>
+  </data>
+  <data name="Settings_ConvertWithAccount" xml:space="preserve">
+    <value>ПРЕОБРАЗОВАТЬ С ЭТОЙ ЗАПИСЬЮ</value>
+  </data>
+  <data name="Settings_ConvertAnyway" xml:space="preserve">
+    <value>ВСЁ РАВНО ПРЕОБРАЗОВАТЬ</value>
+  </data>
+  <data name="Settings_ConvertIdNotSteam" xml:space="preserve">
+    <value>Это не похоже на учётную запись Steam. Если вы преобразуете в Steam, проверьте её перед началом. Преобразовать с ней всё равно можно.</value>
+  </data>
+  <data name="Settings_ConvertIdUnusable" xml:space="preserve">
+    <value>Сохранение называется по имени учётной записи, а с этой так не получится. Подходят только буквы, цифры, точки, дефисы и подчёркивания, иначе преобразование её отклонит.</value>
+  </data>
+  <data name="Settings_ConvertAccountsFound" xml:space="preserve">
+    <value>Учётные записи, найденные на этом компьютере. Выберите одну, чтобы заполнить поле выше, или введите любую другую.</value>
+  </data>
+  <data name="Settings_ConvertWorldsFound" xml:space="preserve">
+    <value>Или преобразуйте один из миров, найденных на этом компьютере:</value>
+  </data>
+  <data name="Settings_ConvertThisWorld" xml:space="preserve">
+    <value>ПРЕОБРАЗОВАТЬ ЭТОТ</value>
+  </data>
+  <data name="Settings_ConvertLookingForSaves" xml:space="preserve">
+    <value>Идёт поиск сохранений на этом компьютере…</value>
+  </data>
   <data name="Settings_ConvertToGamePass" xml:space="preserve">
     <value>КОНВЕРТИРОВАТЬ  ·  STEAM  →  GAME PASS</value>
   </data>
