@@ -3777,4 +3777,118 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Workspace_ReadingWorld" xml:space="preserve">
     <value>Reading the world…</value>
   </data>
+  <data name="Main_GpSaveRefusedTitle" xml:space="preserve">
+    <value>Not saved yet</value>
+  </data>
+  <data name="Main_GpSaveRefusedMessage" xml:space="preserve">
+    <value>The editor stopped just short of writing this into your Xbox saves, because right now the change probably would not survive. Here is what it found:</value>
+  </data>
+  <data name="Main_GpSaveRefusedSafe" xml:space="preserve">
+    <value>Nothing is lost. Your change is still here, ready to go in the moment this is sorted out.</value>
+  </data>
+  <data name="Main_GpSaveAnywayHint" xml:space="preserve">
+    <value>If you would rather write it now and take your chances, you can. Xbox may still throw the change away, and if it does there is nothing the editor can do about it.</value>
+  </data>
+  <data name="Main_GpSaveAnyway" xml:space="preserve">
+    <value>Save anyway</value>
+  </data>
+  <data name="Main_GpSavedAnyway" xml:space="preserve">
+    <value>Written into your Xbox saves. Stay offline until you have launched the game once and saved in game, or Xbox may still throw the change away.</value>
+  </data>
+  <data name="Main_GpRepairThenSave" xml:space="preserve">
+    <value>Repair and save</value>
+  </data>
+  <data name="Main_GpRepairFailed" xml:space="preserve">
+    <value>The repair did not go through. Close Abiotic Factor and the Xbox app, then try again.</value>
+  </data>
+  <data name="Main_GpNotWritableTitle" xml:space="preserve">
+    <value>You can edit this, but not save it yet</value>
+  </data>
+  <data name="Main_GpNotWritableMessage" xml:space="preserve">
+    <value>This save opened fine and you are welcome to look around and change things. Saving is off for the moment, because of this:</value>
+  </data>
+  <data name="Main_GpNotWritableFix" xml:space="preserve">
+    <value>Sort that out and press SAVE as normal. If you would rather not wait, SAVE will offer to write it anyway.</value>
+  </data>
+  <data name="Main_GpRecoveryTitle" xml:space="preserve">
+    <value>Rescue a world</value>
+  </data>
+  <data name="Main_GpBackupsHeading" xml:space="preserve">
+    <value>Spare copies the game keeps</value>
+  </data>
+  <data name="Main_GpBackupsHint" xml:space="preserve">
+    <value>Abiotic Factor quietly keeps one spare copy of each world. It is always one save behind, so anything you did in your most recent session is not in it.</value>
+  </data>
+  <data name="Main_GpBackupMeta" xml:space="preserve">
+    <value>{0}, kept {1}</value>
+  </data>
+  <data name="Main_GpBackupOnlyCopy" xml:space="preserve">
+    <value>The live world is gone. This spare copy is all that is left of it.</value>
+  </data>
+  <data name="Main_GpRestoreBackup" xml:space="preserve">
+    <value>Put this copy back</value>
+  </data>
+  <data name="Main_GpRestoreTitle" xml:space="preserve">
+    <value>Put the spare copy of {0} back?</value>
+  </data>
+  <data name="Main_GpRestoreMessage" xml:space="preserve">
+    <value>This replaces {0} with the spare copy the game kept.</value>
+  </data>
+  <data name="Main_GpRestoreBehind" xml:space="preserve">
+    <value>That copy is one save behind, so whatever happened in your most recent session goes away with it. That is the trade.</value>
+  </data>
+  <data name="Main_GpRestoreBackedUp" xml:space="preserve">
+    <value>Your whole save folder is copied first, so you can still get today's version back if you change your mind.</value>
+  </data>
+  <data name="Main_GpRestoreConfirm" xml:space="preserve">
+    <value>Put it back</value>
+  </data>
+  <data name="Main_GpRestored" xml:space="preserve">
+    <value>{0} is back to the game's spare copy. Remember it is one save behind.</value>
+  </data>
+  <data name="Main_GpRestoreFailed" xml:space="preserve">
+    <value>That copy could not be put back.</value>
+  </data>
+  <data name="Main_GpOrphansHeading" xml:space="preserve">
+    <value>Worlds Xbox lost track of</value>
+  </data>
+  <data name="Main_GpOrphansHint" xml:space="preserve">
+    <value>This world is still on your computer, but Xbox dropped it off its list, so the game cannot see it any more. Putting it back only fixes the list; the world itself is left exactly as it is.</value>
+  </data>
+  <data name="Main_GpOrphanMeta" xml:space="preserve">
+    <value>{0}, last written {1}</value>
+  </data>
+  <data name="Main_GpOrphanNameTaken" xml:space="preserve">
+    <value>You already have a world by this name, so this is an older copy of that one rather than a world you are missing.</value>
+  </data>
+  <data name="Main_GpOrphanUnknownWorld" xml:space="preserve">
+    <value>This one does not say which world it is, so the editor cannot put it back on its own.</value>
+  </data>
+  <data name="Main_GpRecoverOrphan" xml:space="preserve">
+    <value>Put this world back</value>
+  </data>
+  <data name="Main_GpRecoverTitle" xml:space="preserve">
+    <value>Put {0} back on the list?</value>
+  </data>
+  <data name="Main_GpRecoverMessage" xml:space="preserve">
+    <value>This puts {0} back where the game can see it, and opens it here so you can check it is the one you were missing.</value>
+  </data>
+  <data name="Main_GpRecoverBackedUp" xml:space="preserve">
+    <value>Only the list of worlds changes. The world itself is left where it is, and your whole save folder is copied first.</value>
+  </data>
+  <data name="Main_GpRecoverConfirm" xml:space="preserve">
+    <value>Put it back</value>
+  </data>
+  <data name="Main_GpRecovered" xml:space="preserve">
+    <value>{0} is back on the list, so it will be in the game's load menu again.</value>
+  </data>
+  <data name="Main_GpRecoverFailed" xml:space="preserve">
+    <value>That world could not be put back.</value>
+  </data>
+  <data name="Main_GpUnknownWorld" xml:space="preserve">
+    <value>Unnamed save data</value>
+  </data>
+  <data name="Main_GpWhenUnknown" xml:space="preserve">
+    <value>date unknown</value>
+  </data>
 </root>

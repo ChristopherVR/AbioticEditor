@@ -3463,4 +3463,118 @@ Rien n'est écrit tant que vous n'appuyez pas sur ENREGISTRER, et ANNULER le dé
   <data name="Workspace_ReadingWorld" xml:space="preserve">
     <value>Lecture du monde…</value>
   </data>
+  <data name="Main_GpSaveRefusedTitle" xml:space="preserve">
+    <value>Pas encore enregistré</value>
+  </data>
+  <data name="Main_GpSaveRefusedMessage" xml:space="preserve">
+    <value>L'éditeur s'est arrêté juste avant d'écrire ceci dans tes sauvegardes Xbox, parce que pour l'instant la modification ne survivrait sans doute pas. Voici ce qu'il a trouvé :</value>
+  </data>
+  <data name="Main_GpSaveRefusedSafe" xml:space="preserve">
+    <value>Rien n'est perdu. Ta modification est toujours là, prête à partir dès que ce sera réglé.</value>
+  </data>
+  <data name="Main_GpSaveAnywayHint" xml:space="preserve">
+    <value>Si tu préfères l'écrire tout de suite et tenter le coup, tu peux. Xbox peut quand même jeter la modification, et dans ce cas l'éditeur n'y pourra rien.</value>
+  </data>
+  <data name="Main_GpSaveAnyway" xml:space="preserve">
+    <value>Enregistrer quand même</value>
+  </data>
+  <data name="Main_GpSavedAnyway" xml:space="preserve">
+    <value>Écrit dans tes sauvegardes Xbox. Reste hors ligne jusqu'à avoir lancé le jeu une fois et enregistré dans le jeu, sinon Xbox peut encore jeter la modification.</value>
+  </data>
+  <data name="Main_GpRepairThenSave" xml:space="preserve">
+    <value>Réparer et enregistrer</value>
+  </data>
+  <data name="Main_GpRepairFailed" xml:space="preserve">
+    <value>La réparation n'est pas passée. Ferme Abiotic Factor et l'application Xbox, puis réessaie.</value>
+  </data>
+  <data name="Main_GpNotWritableTitle" xml:space="preserve">
+    <value>Tu peux modifier ceci, mais pas encore l'enregistrer</value>
+  </data>
+  <data name="Main_GpNotWritableMessage" xml:space="preserve">
+    <value>La sauvegarde s'est ouverte sans problème et tu peux regarder et changer ce que tu veux. L'enregistrement est coupé pour le moment, à cause de ceci :</value>
+  </data>
+  <data name="Main_GpNotWritableFix" xml:space="preserve">
+    <value>Règle cela, puis appuie sur ENREGISTRER comme d'habitude. Si tu préfères ne pas attendre, ENREGISTRER te proposera de l'écrire quand même.</value>
+  </data>
+  <data name="Main_GpRecoveryTitle" xml:space="preserve">
+    <value>Sauver un monde</value>
+  </data>
+  <data name="Main_GpBackupsHeading" xml:space="preserve">
+    <value>Copies de secours gardées par le jeu</value>
+  </data>
+  <data name="Main_GpBackupsHint" xml:space="preserve">
+    <value>Abiotic Factor garde discrètement une copie de secours de chaque monde. Elle a toujours une sauvegarde de retard : rien de ta dernière session ne s'y trouve.</value>
+  </data>
+  <data name="Main_GpBackupMeta" xml:space="preserve">
+    <value>{0}, gardée {1}</value>
+  </data>
+  <data name="Main_GpBackupOnlyCopy" xml:space="preserve">
+    <value>Le monde d'origine a disparu. Cette copie de secours est tout ce qu'il en reste.</value>
+  </data>
+  <data name="Main_GpRestoreBackup" xml:space="preserve">
+    <value>Remettre cette copie</value>
+  </data>
+  <data name="Main_GpRestoreTitle" xml:space="preserve">
+    <value>Remettre la copie de secours de {0} ?</value>
+  </data>
+  <data name="Main_GpRestoreMessage" xml:space="preserve">
+    <value>Cela remplace {0} par la copie de secours gardée par le jeu.</value>
+  </data>
+  <data name="Main_GpRestoreBehind" xml:space="preserve">
+    <value>Cette copie a une sauvegarde de retard : tout ce qui s'est passé pendant ta dernière session disparaît avec elle. C'est le marché.</value>
+  </data>
+  <data name="Main_GpRestoreBackedUp" xml:space="preserve">
+    <value>Tout ton dossier de sauvegardes est copié avant, tu pourras donc récupérer la version d'aujourd'hui si tu changes d'avis.</value>
+  </data>
+  <data name="Main_GpRestoreConfirm" xml:space="preserve">
+    <value>Remettre</value>
+  </data>
+  <data name="Main_GpRestored" xml:space="preserve">
+    <value>{0} est revenu à la copie de secours du jeu. N'oublie pas qu'elle a une sauvegarde de retard.</value>
+  </data>
+  <data name="Main_GpRestoreFailed" xml:space="preserve">
+    <value>Cette copie n'a pas pu être remise.</value>
+  </data>
+  <data name="Main_GpOrphansHeading" xml:space="preserve">
+    <value>Mondes que Xbox a perdus de vue</value>
+  </data>
+  <data name="Main_GpOrphansHint" xml:space="preserve">
+    <value>Ce monde est encore sur ton ordinateur, mais Xbox l'a retiré de sa liste, donc le jeu ne le voit plus. Le remettre ne corrige que la liste ; le monde lui-même reste exactement tel quel.</value>
+  </data>
+  <data name="Main_GpOrphanMeta" xml:space="preserve">
+    <value>{0}, écrit pour la dernière fois {1}</value>
+  </data>
+  <data name="Main_GpOrphanNameTaken" xml:space="preserve">
+    <value>Tu as déjà un monde de ce nom : c'est donc une copie plus ancienne de celui-là, pas un monde qui te manque.</value>
+  </data>
+  <data name="Main_GpOrphanUnknownWorld" xml:space="preserve">
+    <value>Celui-ci ne dit pas de quel monde il s'agit, l'éditeur ne peut donc pas le remettre tout seul.</value>
+  </data>
+  <data name="Main_GpRecoverOrphan" xml:space="preserve">
+    <value>Remettre ce monde</value>
+  </data>
+  <data name="Main_GpRecoverTitle" xml:space="preserve">
+    <value>Remettre {0} dans la liste ?</value>
+  </data>
+  <data name="Main_GpRecoverMessage" xml:space="preserve">
+    <value>Cela remet {0} là où le jeu peut le voir, et l'ouvre ici pour que tu vérifies que c'est bien celui qui te manquait.</value>
+  </data>
+  <data name="Main_GpRecoverBackedUp" xml:space="preserve">
+    <value>Seule la liste des mondes change. Le monde reste où il est, et tout ton dossier de sauvegardes est copié avant.</value>
+  </data>
+  <data name="Main_GpRecoverConfirm" xml:space="preserve">
+    <value>Remettre</value>
+  </data>
+  <data name="Main_GpRecovered" xml:space="preserve">
+    <value>{0} est de retour dans la liste : il réapparaîtra dans le menu de chargement du jeu.</value>
+  </data>
+  <data name="Main_GpRecoverFailed" xml:space="preserve">
+    <value>Ce monde n'a pas pu être remis.</value>
+  </data>
+  <data name="Main_GpUnknownWorld" xml:space="preserve">
+    <value>Données de sauvegarde sans nom</value>
+  </data>
+  <data name="Main_GpWhenUnknown" xml:space="preserve">
+    <value>date inconnue</value>
+  </data>
 </root>

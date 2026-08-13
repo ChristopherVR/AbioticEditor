@@ -1,11 +1,12 @@
 using AbioticEditor.Core.Diagnostics;
 using AbioticEditor.Core.GamePass;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Rendering;
 
 namespace AbioticEditor.Web.Services;
 
 /// <summary>
-/// The two things a player has to be told before editing a Game Pass save, and the one repair the
+/// The things a player has to be told before editing a Game Pass save, and the one repair the
 /// editor can offer them.
 /// </summary>
 /// <remarks>
@@ -23,6 +24,11 @@ namespace AbioticEditor.Web.Services;
 /// real data), but the folder is inconsistent, and writing into it in that state is exactly what
 /// leads Xbox to drop the save later. That one is repairable, so it is offered as a repair rather
 /// than a warning.</para>
+///
+/// <para>The third case is everything the write guard can see that is not about the folder at all:
+/// most of the time, Abiotic Factor still being open. That one is said at OPEN rather than at SAVE
+/// on purpose. A player who is told after an hour of editing that the game had to be closed the
+/// whole time has already done the work twice.</para>
 /// </remarks>
 public sealed class GamePassSafetyGuard(
     SaveWorkspaceSessionService workspace, ModalService modals, HostLanguageService language, ToastService toasts)
@@ -50,7 +56,7 @@ public sealed class GamePassSafetyGuard(
 
         if (_cloudSyncWarningShown)
         {
-            return OpenThenOfferRepairAsync(open);
+            return OpenThenExplainAsync(open);
         }
 
         _cloudSyncWarningShown = true;
@@ -58,52 +64,77 @@ public sealed class GamePassSafetyGuard(
             language.Resource("Main_GpCloudSyncWarningTitle"),
             Paragraphs(language.Resource("Main_GpCloudSyncWarningMessage")),
             ConfirmText: language.Resource("Main_GpCloudSyncWarningContinue"),
-            OnConfirm: () => OpenThenOfferRepairAsync(open),
+            OnConfirm: () => OpenThenExplainAsync(open),
             CancelText: language.Resource("Common_Cancel")));
         return Task.CompletedTask;
     }
 
-    private async Task OpenThenOfferRepairAsync(Func<Task> open)
+    private async Task OpenThenExplainAsync(Func<Task> open)
     {
         await open().ConfigureAwait(false);
-        OfferRepairIfMidSync();
+        ExplainSaveState();
     }
 
     /// <summary>
-    /// Offers the repair when the world that just opened had to recover data from a half-finished
-    /// sync. Declining is a real choice - the save reads correctly either way - so the dialog says
-    /// what it fixes rather than insisting.
+    /// Says what the world that just opened is going to be like to save, while the player still has
+    /// the chance to act on it: a repair the editor can do itself, or a reason only they can clear.
     /// </summary>
-    private void OfferRepairIfMidSync()
+    /// <remarks>
+    /// <para>At most one dialog, and only for something that would refuse a save. The warnings the
+    /// guard also reports are led by "the Xbox app is running", which on a Game Pass machine is
+    /// true essentially always - a dialog for that would be dismissed unread every single time, and
+    /// would take the blocking cases down with it.</para>
+    ///
+    /// <para>Repair comes first when it applies, because a folder left half-synced is both the
+    /// cause of the refusal and the thing the editor can actually fix.</para>
+    /// </remarks>
+    public void ExplainSaveState()
     {
         if (workspace.Current?.GamePass?.Set is not { } set) return;
-        if (!set.IsMidSync && !set.NeedsAttention) return;
+        var check = workspace.GamePassWriteState();
+
+        if (set.IsMidSync || set.NeedsAttention)
+        {
+            EditorLog.Warn("GamePass",
+                $"Opened a save needing attention (mid-sync: {set.IsMidSync}, "
+                + $"unresolved conflict: {set.HasUnresolvedConflicts}, "
+                + $"recovered: {string.Join(", ", set.RecoveredContainers)}, "
+                + $"bad state: {string.Join(", ", set.InvalidStateContainers)}).");
+            modals.Show(new ModalRequest(
+                language.Resource("Main_GpMidSyncTitle"),
+                Paragraphs(language.Resource("Main_GpMidSyncMessage"), check?.Lines()),
+                ConfirmText: language.Resource("Main_GpMidSyncRepair"),
+                OnConfirm: RepairAsync,
+                CancelText: language.Resource("Main_GpMidSyncSkip")));
+            return;
+        }
+
+        if (check is null || check.CanWrite) return;
 
         EditorLog.Warn("GamePass",
-            $"Opened a save needing attention (mid-sync: {set.IsMidSync}, "
-            + $"unresolved conflict: {set.HasUnresolvedConflicts}, "
-            + $"recovered: {string.Join(", ", set.RecoveredContainers)}, "
-            + $"bad state: {string.Join(", ", set.InvalidStateContainers)}).");
+            $"Opened a save that cannot be written yet: {string.Join(" ", check.Lines())}");
         modals.Show(new ModalRequest(
-            language.Resource("Main_GpMidSyncTitle"),
-            Paragraphs(language.Resource("Main_GpMidSyncMessage")),
-            ConfirmText: language.Resource("Main_GpMidSyncRepair"),
-            OnConfirm: RepairAsync,
-            CancelText: language.Resource("Main_GpMidSyncSkip")));
+            language.Resource("Main_GpNotWritableTitle"),
+            Paragraphs(
+                language.Resource("Main_GpNotWritableMessage"),
+                check.Lines(),
+                language.Resource("Main_GpNotWritableFix")),
+            CancelText: language.Resource("Common_Close")));
     }
 
-    private async Task RepairAsync()
+    /// <summary>Repairs the open save, then says how much of it was put right.</summary>
+    public async Task RepairAsync()
     {
-        if (workspace.Current?.GamePass?.Set is not { } set) return;
+        if (workspace.Current?.GamePass is null) return;
         try
         {
-            var repaired = await Task.Run(set.RepairMidSync).ConfigureAwait(false);
+            var repaired = await GamePassRecovery.RepairAsync(workspace).ConfigureAwait(false);
             toasts.Show(language.Resource("Main_GpMidSyncRepaired", repaired.Count), ToastKind.Success);
         }
         catch (Exception ex)
         {
             EditorLog.Error("GamePass", "Repairing a half-synced save failed", ex);
-            toasts.Show(language.Resource("Main_GpWriteFailedMessage", ex.Message), ToastKind.Error);
+            toasts.Show(language.Resource("Main_GpRepairFailed"), ToastKind.Error);
         }
     }
 
@@ -114,11 +145,35 @@ public sealed class GamePassSafetyGuard(
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return false; }
     }
 
-    /// <summary>Renders the warning text as paragraphs. It is a numbered, multi-line procedure, and
-    /// collapsing it into one run-on block is how a set of steps stops reading as steps.</summary>
-    private static RenderFragment Paragraphs(string text) => builder =>
+    /// <summary>
+    /// Renders the warning text as paragraphs, optionally followed by a list of what the write
+    /// guard found and a closing paragraph. The warnings are numbered, multi-line procedures, and
+    /// collapsing one into a run-on block is how a set of steps stops reading as steps; the guard's
+    /// findings are separate facts, so they get a list rather than being run together.
+    /// </summary>
+    private static RenderFragment Paragraphs(
+        string text, IReadOnlyList<string>? findings = null, string? closing = null) => builder =>
     {
         var sequence = 0;
+        WriteParagraphs(builder, ref sequence, text);
+
+        if (findings is { Count: > 0 })
+        {
+            builder.OpenElement(sequence++, "ul");
+            foreach (var finding in findings)
+            {
+                builder.OpenElement(sequence++, "li");
+                builder.AddContent(sequence++, finding);
+                builder.CloseElement();
+            }
+            builder.CloseElement();
+        }
+
+        if (!string.IsNullOrWhiteSpace(closing)) WriteParagraphs(builder, ref sequence, closing);
+    };
+
+    private static void WriteParagraphs(RenderTreeBuilder builder, ref int sequence, string text)
+    {
         foreach (var line in text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
         {
             if (line.Length == 0) continue;
@@ -126,5 +181,5 @@ public sealed class GamePassSafetyGuard(
             builder.AddContent(sequence++, line);
             builder.CloseElement();
         }
-    };
+    }
 }

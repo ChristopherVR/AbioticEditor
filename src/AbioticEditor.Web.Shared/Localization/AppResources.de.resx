@@ -3463,4 +3463,118 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   <data name="Workspace_ReadingWorld" xml:space="preserve">
     <value>Welt wird gelesen…</value>
   </data>
+  <data name="Main_GpSaveRefusedTitle" xml:space="preserve">
+    <value>Noch nicht gespeichert</value>
+  </data>
+  <data name="Main_GpSaveRefusedMessage" xml:space="preserve">
+    <value>Der Editor hat kurz vor dem Schreiben in deine Xbox-Spielstände angehalten, weil die Änderung im Moment wahrscheinlich nicht überleben würde. Das hier hat er gefunden:</value>
+  </data>
+  <data name="Main_GpSaveRefusedSafe" xml:space="preserve">
+    <value>Nichts ist verloren. Deine Änderung ist noch da und geht rein, sobald das geklärt ist.</value>
+  </data>
+  <data name="Main_GpSaveAnywayHint" xml:space="preserve">
+    <value>Wenn du sie lieber jetzt schreiben und es darauf ankommen lassen willst, kannst du das. Xbox kann die Änderung trotzdem verwerfen, und dagegen kann der Editor dann nichts mehr tun.</value>
+  </data>
+  <data name="Main_GpSaveAnyway" xml:space="preserve">
+    <value>Trotzdem speichern</value>
+  </data>
+  <data name="Main_GpSavedAnyway" xml:space="preserve">
+    <value>In deine Xbox-Spielstände geschrieben. Bleib offline, bis du das Spiel einmal gestartet und im Spiel gespeichert hast, sonst kann Xbox die Änderung doch noch verwerfen.</value>
+  </data>
+  <data name="Main_GpRepairThenSave" xml:space="preserve">
+    <value>Reparieren und speichern</value>
+  </data>
+  <data name="Main_GpRepairFailed" xml:space="preserve">
+    <value>Die Reparatur hat nicht geklappt. Schließe Abiotic Factor und die Xbox-App und versuche es noch einmal.</value>
+  </data>
+  <data name="Main_GpNotWritableTitle" xml:space="preserve">
+    <value>Du kannst hier bearbeiten, aber noch nicht speichern</value>
+  </data>
+  <data name="Main_GpNotWritableMessage" xml:space="preserve">
+    <value>Der Spielstand hat sich einwandfrei geöffnet, und du darfst dich gern umsehen und etwas ändern. Speichern ist im Moment aus, und zwar deswegen:</value>
+  </data>
+  <data name="Main_GpNotWritableFix" xml:space="preserve">
+    <value>Kläre das, und drücke dann wie gewohnt auf SPEICHERN. Wenn du nicht warten willst, bietet SPEICHERN an, es trotzdem zu schreiben.</value>
+  </data>
+  <data name="Main_GpRecoveryTitle" xml:space="preserve">
+    <value>Welt retten</value>
+  </data>
+  <data name="Main_GpBackupsHeading" xml:space="preserve">
+    <value>Ersatzkopien, die das Spiel behält</value>
+  </data>
+  <data name="Main_GpBackupsHint" xml:space="preserve">
+    <value>Abiotic Factor behält still und leise eine Ersatzkopie jeder Welt. Sie ist immer einen Spielstand älter, alles aus deiner letzten Sitzung fehlt darin also.</value>
+  </data>
+  <data name="Main_GpBackupMeta" xml:space="preserve">
+    <value>{0}, gesichert {1}</value>
+  </data>
+  <data name="Main_GpBackupOnlyCopy" xml:space="preserve">
+    <value>Die eigentliche Welt ist weg. Diese Ersatzkopie ist alles, was von ihr übrig ist.</value>
+  </data>
+  <data name="Main_GpRestoreBackup" xml:space="preserve">
+    <value>Diese Kopie zurückholen</value>
+  </data>
+  <data name="Main_GpRestoreTitle" xml:space="preserve">
+    <value>Ersatzkopie von {0} zurückholen?</value>
+  </data>
+  <data name="Main_GpRestoreMessage" xml:space="preserve">
+    <value>Damit wird {0} durch die Ersatzkopie ersetzt, die das Spiel behalten hat.</value>
+  </data>
+  <data name="Main_GpRestoreBehind" xml:space="preserve">
+    <value>Diese Kopie ist einen Spielstand älter, alles aus deiner letzten Sitzung geht damit verloren. Das ist der Preis.</value>
+  </data>
+  <data name="Main_GpRestoreBackedUp" xml:space="preserve">
+    <value>Dein ganzer Spielstand-Ordner wird vorher kopiert, du kommst also weiter an die heutige Fassung heran, falls du es dir anders überlegst.</value>
+  </data>
+  <data name="Main_GpRestoreConfirm" xml:space="preserve">
+    <value>Zurückholen</value>
+  </data>
+  <data name="Main_GpRestored" xml:space="preserve">
+    <value>{0} steht wieder auf der Ersatzkopie des Spiels. Denk daran: sie ist einen Spielstand älter.</value>
+  </data>
+  <data name="Main_GpRestoreFailed" xml:space="preserve">
+    <value>Diese Kopie konnte nicht zurückgeholt werden.</value>
+  </data>
+  <data name="Main_GpOrphansHeading" xml:space="preserve">
+    <value>Welten, die Xbox aus den Augen verloren hat</value>
+  </data>
+  <data name="Main_GpOrphansHint" xml:space="preserve">
+    <value>Diese Welt liegt noch auf deinem Rechner, aber Xbox hat sie von seiner Liste gestrichen, das Spiel sieht sie also nicht mehr. Das Zurückholen bringt nur die Liste in Ordnung; die Welt selbst bleibt genau so, wie sie ist.</value>
+  </data>
+  <data name="Main_GpOrphanMeta" xml:space="preserve">
+    <value>{0}, zuletzt geschrieben {1}</value>
+  </data>
+  <data name="Main_GpOrphanNameTaken" xml:space="preserve">
+    <value>Du hast bereits eine Welt mit diesem Namen, das hier ist also eine ältere Kopie davon und keine fehlende Welt.</value>
+  </data>
+  <data name="Main_GpOrphanUnknownWorld" xml:space="preserve">
+    <value>Hier steht nicht, um welche Welt es geht, der Editor kann sie deshalb nicht von allein zurückholen.</value>
+  </data>
+  <data name="Main_GpRecoverOrphan" xml:space="preserve">
+    <value>Diese Welt zurückholen</value>
+  </data>
+  <data name="Main_GpRecoverTitle" xml:space="preserve">
+    <value>{0} wieder auf die Liste setzen?</value>
+  </data>
+  <data name="Main_GpRecoverMessage" xml:space="preserve">
+    <value>Damit kommt {0} dorthin zurück, wo das Spiel sie sieht, und wird hier geöffnet, damit du prüfen kannst, ob es die vermisste ist.</value>
+  </data>
+  <data name="Main_GpRecoverBackedUp" xml:space="preserve">
+    <value>Es ändert sich nur die Liste der Welten. Die Welt selbst bleibt liegen, wo sie ist, und dein ganzer Spielstand-Ordner wird vorher kopiert.</value>
+  </data>
+  <data name="Main_GpRecoverConfirm" xml:space="preserve">
+    <value>Zurückholen</value>
+  </data>
+  <data name="Main_GpRecovered" xml:space="preserve">
+    <value>{0} steht wieder auf der Liste und taucht damit auch wieder im Lademenü des Spiels auf.</value>
+  </data>
+  <data name="Main_GpRecoverFailed" xml:space="preserve">
+    <value>Diese Welt konnte nicht zurückgeholt werden.</value>
+  </data>
+  <data name="Main_GpUnknownWorld" xml:space="preserve">
+    <value>Namenlose Spielstanddaten</value>
+  </data>
+  <data name="Main_GpWhenUnknown" xml:space="preserve">
+    <value>Datum unbekannt</value>
+  </data>
 </root>

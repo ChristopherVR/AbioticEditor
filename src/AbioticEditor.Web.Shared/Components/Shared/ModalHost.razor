@@ -27,7 +27,11 @@
     private Task BackdropClicked(ModalRequest modal) => modal.CloseOnBackdrop ? CancelAsync() : Task.CompletedTask;
     private Task HandleKeyDown(KeyboardEventArgs args) => args.Key == "Escape" ? CancelAsync() : Task.CompletedTask;
     private async Task CancelAsync() { var modal = Modals.Current; Modals.Close(); if (modal?.OnCancel is { } declined) await declined(); }
-    private async Task ConfirmAsync() { var action = Modals.Current?.OnConfirm; if (action is null) return; _confirming = true; try { await action(); Modals.Close(); } finally { _confirming = false; } }
+    // Confirming closes THIS dialog, and only this one. Some confirmations lead straight to another
+    // question - repairing a save and then being refused again, opening a world that turns out to
+    // need attention - and an unconditional close swallowed the follow-up the instant it appeared,
+    // so the player answered the first question and then saw nothing at all.
+    private async Task ConfirmAsync() { var modal = Modals.Current; var action = modal?.OnConfirm; if (action is null) return; _confirming = true; try { await action(); if (ReferenceEquals(Modals.Current, modal)) Modals.Close(); } finally { _confirming = false; } }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_focusPending && Modals.Current is not null)

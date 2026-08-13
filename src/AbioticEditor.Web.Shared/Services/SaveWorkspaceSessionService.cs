@@ -381,6 +381,18 @@ public sealed class SaveWorkspaceSessionService : IDisposable
                 {
                     await Task.Run(() => gamePass.Set.ApplyWorld(gamePass.Container, gamePass.WorkingDir), cancellationToken).ConfigureAwait(false);
                 }
+                catch (GamePassUnsafeWriteException refused)
+                {
+                    // Nothing went wrong: the editor declined on purpose, because the save is in a
+                    // state where Xbox would probably discard the edit. The working copy is still
+                    // marked, because a player who closes the editor instead of resolving it would
+                    // otherwise lose the edit to the startup sweep - but the caller shows this as a
+                    // refusal to be answered, never as work that went missing.
+                    ProtectWorkingDir(gamePass.WorkingDir);
+                    EditorLog.Warn("GamePass",
+                        $"Refused to pack into container '{gamePass.Container}': {refused.Message}");
+                    throw;
+                }
                 catch
                 {
                     // The edit reached the working copy but not the player's Xbox saves. That copy
@@ -401,6 +413,42 @@ public sealed class SaveWorkspaceSessionService : IDisposable
             }
         }
         finally { BusyOperation = null; Changed?.Invoke(); }
+    }
+
+    /// <summary>
+    /// Everything known about whether an edit written into the open Game Pass save would survive,
+    /// or null when the open save is not a Game Pass one. Never throws: a check that cannot be made
+    /// must not be the thing that stops a screen from rendering.
+    /// </summary>
+    public GamePassWriteCheck? GamePassWriteState()
+    {
+        if (Current?.GamePass?.Set is not { } set) return null;
+        try
+        {
+            return set.CheckWritable();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            EditorLog.Warn("GamePass", $"Could not check whether this save is safe to write: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Saves again after the player has been shown why the editor refused and has said to do it
+    /// anyway. The acceptance covers this open save only, so the next one starts from a refusal.
+    /// </summary>
+    /// <param name="reason">Who accepted the risk and why. Recorded in the log beside the write,
+    /// because the damage this permits shows up days later with nothing on screen to explain it.</param>
+    public async Task SaveSelectedAcceptingGamePassRiskAsync(
+        string reason, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        if (Current?.GamePass?.Set is not { } set)
+            throw new InvalidOperationException("No Game Pass save is open.");
+
+        set.AllowUnsafeWrites(GamePassWriteOverride.AcceptRiskOfLosingThisSave(reason));
+        await SaveSelectedAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

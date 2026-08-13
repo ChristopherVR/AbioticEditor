@@ -1,0 +1,197 @@
+@using AbioticEditor.Core.GamePass
+@implements IDisposable
+@inject SaveWorkspaceSessionService Workspace
+@inject UnsavedChangesGuard Unsaved
+@inject ModalService Modals
+@inject ToastService Toasts
+
+@* The two ways back from a world that has gone wrong. Shown beside the save list rather than on a
+   settings screen, because both belong to the folder that is open and to no other: these are this
+   save's spare copies and this save's leftovers. Absent entirely when there is nothing to offer, so
+   an ordinary Game Pass world never grows a rescue panel it does not need. *@
+@if (_backups.Count > 0 || _orphans.Count > 0)
+{
+    <section class="gp-recovery" aria-labelledby="gp-recovery-title">
+        <header class="gp-recovery-heading" id="gp-recovery-title"><strong>@L.Resource("Main_GpRecoveryTitle")</strong></header>
+
+        @if (_backups.Count > 0)
+        {
+            <h3 class="gp-recovery-subheading">@L.Resource("Main_GpBackupsHeading")</h3>
+            <p class="gp-recovery-hint">@L.Resource("Main_GpBackupsHint")</p>
+            @foreach (var backup in _backups)
+            {
+                <article class="gp-recovery-row">
+                    <strong>@backup.WorldName</strong>
+                    <small>@L.Resource("Main_GpBackupMeta", GamePassRecovery.FormatSize(backup.BlobSize), When(backup.LastSavedUtc))</small>
+                    @if (!backup.LiveWorldExists)
+                    {
+                        <small class="gp-recovery-note">@L.Resource("Main_GpBackupOnlyCopy")</small>
+                    }
+                    <button class="secondary" type="button" disabled="@_busy" @onclick="() => AskRestoreAsync(backup)">@L.Resource("Main_GpRestoreBackup")</button>
+                </article>
+            }
+        }
+
+        @if (_orphans.Count > 0)
+        {
+            <h3 class="gp-recovery-subheading">@L.Resource("Main_GpOrphansHeading")</h3>
+            <p class="gp-recovery-hint">@L.Resource("Main_GpOrphansHint")</p>
+            @foreach (var orphan in _orphans)
+            {
+                <article class="gp-recovery-row">
+                    <strong>@WorldLabel(orphan)</strong>
+                    <small>@L.Resource("Main_GpOrphanMeta", GamePassRecovery.FormatSize(orphan.BlobSize), When(orphan.LastWrittenUtc))</small>
+                    @if (GamePassRecovery.CanPutBack(orphan))
+                    {
+                        <button class="secondary" type="button" disabled="@_busy" @onclick="() => AskPutBackAsync(orphan)">@L.Resource("Main_GpRecoverOrphan")</button>
+                    }
+                    else
+                    {
+                        <small class="gp-recovery-note">@L.Resource(WhyItCannotGoBack(orphan))</small>
+                    }
+                </article>
+            }
+        }
+    </section>
+}
+
+@code {
+    private IReadOnlyList<GamePassWorldBackup> _backups = [];
+    private IReadOnlyList<WgsOrphanedContainer> _orphans = [];
+    private string? _readFor;
+    private bool _busy;
+
+    protected override void OnInitialized() => Workspace.Changed += Refresh;
+
+    protected override void OnParametersSet() => ReadIfWorldChanged();
+
+    public void Dispose() => Workspace.Changed -= Refresh;
+
+    /// <summary>
+    /// Re-reads only when a different world is open.
+    /// </summary>
+    /// <remarks>
+    /// The workspace announces every staged edit through the same event, and both lists walk the
+    /// save folder on disk. Reading them on each announcement would put a directory scan behind
+    /// every keystroke in the editor.
+    /// </remarks>
+    private void Refresh()
+    {
+        if (!ReadIfWorldChanged()) return;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private bool ReadIfWorldChanged()
+    {
+        var key = Workspace.Current?.GamePass is { } session ? $"{session.WgsFolder}|{session.Container}" : null;
+        if (string.Equals(key, _readFor, StringComparison.Ordinal)) return false;
+        _readFor = key;
+        Read();
+        return true;
+    }
+
+    private void Read()
+    {
+        _backups = GamePassRecovery.Backups(Workspace);
+        _orphans = GamePassRecovery.Orphans(Workspace);
+    }
+
+    private string WorldLabel(WgsOrphanedContainer orphan)
+        => orphan.WorldName is { Length: > 0 } world ? world : L.Resource("Main_GpUnknownWorld");
+
+    /// <summary>
+    /// Why a leftover has no button. Core declines to name one either because the data does not say
+    /// which world it is, or because a live world already holds that name - which makes this an
+    /// older copy of a world that is not missing at all. Both are worth saying: a row with no button
+    /// and no explanation reads as the editor having given up.
+    /// </summary>
+    private static string WhyItCannotGoBack(WgsOrphanedContainer orphan)
+        => orphan.WorldName is { Length: > 0 } ? "Main_GpOrphanNameTaken" : "Main_GpOrphanUnknownWorld";
+
+    /// <summary>A damaged folder can carry a date no calendar has, so say so rather than showing
+    /// the year 1601 as though it meant something.</summary>
+    private string When(DateTime utc)
+        => utc == DateTime.MinValue
+            ? L.Resource("Main_GpWhenUnknown")
+            : utc.ToLocalTime().ToString("g", System.Globalization.CultureInfo.GetCultureInfo(L.CurrentCode));
+
+    /// <summary>
+    /// Restoring replaces a world wholesale with an older copy of itself, so it asks first and says
+    /// plainly what is being traded away. Staged edits go through the usual question before that:
+    /// the restored world replaces them whether they were saved or not.
+    /// </summary>
+    private Task AskRestoreAsync(GamePassWorldBackup backup) => Unsaved.ConfirmAsync(() =>
+    {
+        Modals.Show(new ModalRequest(
+            L.Resource("Main_GpRestoreTitle", backup.WorldName),
+            @<div>
+                <p>@L.Resource("Main_GpRestoreMessage", backup.WorldName)</p>
+                <p>@L.Resource("Main_GpRestoreBehind")</p>
+                <p>@L.Resource("Main_GpRestoreBackedUp")</p>
+            </div>,
+            ConfirmText: L.Resource("Main_GpRestoreConfirm"),
+            OnConfirm: () => RestoreAsync(backup),
+            CancelText: L.Resource("Common_Cancel"),
+            IsDestructive: true));
+        return Task.CompletedTask;
+    });
+
+    private async Task RestoreAsync(GamePassWorldBackup backup)
+    {
+        _busy = true;
+        try
+        {
+            var world = await GamePassRecovery.RestoreAsync(Workspace, backup);
+            Toasts.Show(L.Resource("Main_GpRestored", world), ToastKind.Success, TimeSpan.FromSeconds(12));
+        }
+        catch (Exception exception)
+        {
+            Toasts.Show(Errors.Detail(exception, "Restore a Game Pass world", L.Resource("Main_GpRestoreFailed")), ToastKind.Error);
+        }
+        finally
+        {
+            _busy = false;
+            Read();
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Putting a leftover back only rewrites the folder's list of worlds, so it is not the one-way
+    /// door a restore is. It still asks, because the world it then opens replaces what is on screen.
+    /// </summary>
+    private Task AskPutBackAsync(WgsOrphanedContainer orphan) => Unsaved.ConfirmAsync(() =>
+    {
+        var world = WorldLabel(orphan);
+        Modals.Show(new ModalRequest(
+            L.Resource("Main_GpRecoverTitle", world),
+            @<div>
+                <p>@L.Resource("Main_GpRecoverMessage", world)</p>
+                <p>@L.Resource("Main_GpRecoverBackedUp")</p>
+            </div>,
+            ConfirmText: L.Resource("Main_GpRecoverConfirm"),
+            OnConfirm: () => PutBackAsync(orphan),
+            CancelText: L.Resource("Common_Cancel")));
+        return Task.CompletedTask;
+    });
+
+    private async Task PutBackAsync(WgsOrphanedContainer orphan)
+    {
+        _busy = true;
+        try
+        {
+            await GamePassRecovery.PutBackAsync(Workspace, orphan);
+            Toasts.Show(L.Resource("Main_GpRecovered", WorldLabel(orphan)), ToastKind.Success, TimeSpan.FromSeconds(12));
+        }
+        catch (Exception exception)
+        {
+            Toasts.Show(Errors.Detail(exception, "Put a leftover Game Pass world back", L.Resource("Main_GpRecoverFailed")), ToastKind.Error);
+        }
+        finally
+        {
+            _busy = false;
+            Read();
+            StateHasChanged();
+        }
+    }
+}

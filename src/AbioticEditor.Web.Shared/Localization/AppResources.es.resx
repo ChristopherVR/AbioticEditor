@@ -3464,4 +3464,118 @@ No se escribe nada hasta que pulses GUARDAR, y REVERTIR lo deshace antes de eso.
   <data name="Workspace_ReadingWorld" xml:space="preserve">
     <value>Leyendo el mundo…</value>
   </data>
+  <data name="Main_GpSaveRefusedTitle" xml:space="preserve">
+    <value>Todavía sin guardar</value>
+  </data>
+  <data name="Main_GpSaveRefusedMessage" xml:space="preserve">
+    <value>El editor se detuvo justo antes de escribir esto en tus partidas de Xbox, porque ahora mismo el cambio seguramente no sobreviviría. Esto es lo que encontró:</value>
+  </data>
+  <data name="Main_GpSaveRefusedSafe" xml:space="preserve">
+    <value>No se ha perdido nada. Tu cambio sigue aquí, listo para entrar en cuanto esto se resuelva.</value>
+  </data>
+  <data name="Main_GpSaveAnywayHint" xml:space="preserve">
+    <value>Si prefieres escribirlo ahora y arriesgarte, puedes hacerlo. Xbox aún puede tirar el cambio a la basura, y si lo hace el editor no podrá hacer nada.</value>
+  </data>
+  <data name="Main_GpSaveAnyway" xml:space="preserve">
+    <value>Guardar de todos modos</value>
+  </data>
+  <data name="Main_GpSavedAnyway" xml:space="preserve">
+    <value>Escrito en tus partidas de Xbox. Quédate sin conexión hasta que hayas abierto el juego una vez y guardado dentro, o Xbox todavía puede descartar el cambio.</value>
+  </data>
+  <data name="Main_GpRepairThenSave" xml:space="preserve">
+    <value>Reparar y guardar</value>
+  </data>
+  <data name="Main_GpRepairFailed" xml:space="preserve">
+    <value>La reparación no salió adelante. Cierra Abiotic Factor y la aplicación Xbox, y vuelve a intentarlo.</value>
+  </data>
+  <data name="Main_GpNotWritableTitle" xml:space="preserve">
+    <value>Puedes editar esto, pero todavía no guardarlo</value>
+  </data>
+  <data name="Main_GpNotWritableMessage" xml:space="preserve">
+    <value>La partida se abrió sin problemas y puedes mirar y cambiar lo que quieras. Guardar está desactivado por ahora, por esto:</value>
+  </data>
+  <data name="Main_GpNotWritableFix" xml:space="preserve">
+    <value>Resuelve eso y pulsa GUARDAR como siempre. Si prefieres no esperar, GUARDAR te ofrecerá escribirlo de todos modos.</value>
+  </data>
+  <data name="Main_GpRecoveryTitle" xml:space="preserve">
+    <value>Rescatar un mundo</value>
+  </data>
+  <data name="Main_GpBackupsHeading" xml:space="preserve">
+    <value>Copias de repuesto que guarda el juego</value>
+  </data>
+  <data name="Main_GpBackupsHint" xml:space="preserve">
+    <value>Abiotic Factor guarda en silencio una copia de repuesto de cada mundo. Siempre va una partida por detrás, así que nada de tu última sesión está en ella.</value>
+  </data>
+  <data name="Main_GpBackupMeta" xml:space="preserve">
+    <value>{0}, guardada {1}</value>
+  </data>
+  <data name="Main_GpBackupOnlyCopy" xml:space="preserve">
+    <value>El mundo original ya no está. Esta copia de repuesto es todo lo que queda de él.</value>
+  </data>
+  <data name="Main_GpRestoreBackup" xml:space="preserve">
+    <value>Recuperar esta copia</value>
+  </data>
+  <data name="Main_GpRestoreTitle" xml:space="preserve">
+    <value>¿Recuperar la copia de repuesto de {0}?</value>
+  </data>
+  <data name="Main_GpRestoreMessage" xml:space="preserve">
+    <value>Esto sustituye {0} por la copia de repuesto que guardó el juego.</value>
+  </data>
+  <data name="Main_GpRestoreBehind" xml:space="preserve">
+    <value>Esa copia va una partida por detrás, así que todo lo que pasó en tu última sesión se pierde con ella. Ese es el trato.</value>
+  </data>
+  <data name="Main_GpRestoreBackedUp" xml:space="preserve">
+    <value>Toda tu carpeta de partidas se copia antes, así que aún podrás recuperar la versión de hoy si cambias de idea.</value>
+  </data>
+  <data name="Main_GpRestoreConfirm" xml:space="preserve">
+    <value>Recuperarla</value>
+  </data>
+  <data name="Main_GpRestored" xml:space="preserve">
+    <value>{0} ha vuelto a la copia de repuesto del juego. Recuerda que va una partida por detrás.</value>
+  </data>
+  <data name="Main_GpRestoreFailed" xml:space="preserve">
+    <value>No se ha podido recuperar esa copia.</value>
+  </data>
+  <data name="Main_GpOrphansHeading" xml:space="preserve">
+    <value>Mundos que Xbox ha perdido de vista</value>
+  </data>
+  <data name="Main_GpOrphansHint" xml:space="preserve">
+    <value>Este mundo sigue en tu equipo, pero Xbox lo quitó de su lista, así que el juego ya no lo ve. Recuperarlo solo arregla la lista; el mundo en sí se queda tal cual está.</value>
+  </data>
+  <data name="Main_GpOrphanMeta" xml:space="preserve">
+    <value>{0}, escrito por última vez {1}</value>
+  </data>
+  <data name="Main_GpOrphanNameTaken" xml:space="preserve">
+    <value>Ya tienes un mundo con este nombre, así que esta es una copia más antigua de ese y no un mundo que te falte.</value>
+  </data>
+  <data name="Main_GpOrphanUnknownWorld" xml:space="preserve">
+    <value>Este no dice de qué mundo se trata, así que el editor no puede recuperarlo por su cuenta.</value>
+  </data>
+  <data name="Main_GpRecoverOrphan" xml:space="preserve">
+    <value>Recuperar este mundo</value>
+  </data>
+  <data name="Main_GpRecoverTitle" xml:space="preserve">
+    <value>¿Devolver {0} a la lista?</value>
+  </data>
+  <data name="Main_GpRecoverMessage" xml:space="preserve">
+    <value>Esto devuelve {0} a donde el juego puede verlo, y lo abre aquí para que compruebes que es el que te faltaba.</value>
+  </data>
+  <data name="Main_GpRecoverBackedUp" xml:space="preserve">
+    <value>Solo cambia la lista de mundos. El mundo se queda donde está, y toda tu carpeta de partidas se copia antes.</value>
+  </data>
+  <data name="Main_GpRecoverConfirm" xml:space="preserve">
+    <value>Devolverlo</value>
+  </data>
+  <data name="Main_GpRecovered" xml:space="preserve">
+    <value>{0} vuelve a estar en la lista, así que aparecerá otra vez en el menú de carga del juego.</value>
+  </data>
+  <data name="Main_GpRecoverFailed" xml:space="preserve">
+    <value>No se ha podido devolver ese mundo.</value>
+  </data>
+  <data name="Main_GpUnknownWorld" xml:space="preserve">
+    <value>Datos de partida sin nombre</value>
+  </data>
+  <data name="Main_GpWhenUnknown" xml:space="preserve">
+    <value>fecha desconocida</value>
+  </data>
 </root>

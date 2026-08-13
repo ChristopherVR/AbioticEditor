@@ -118,6 +118,11 @@
                 </div>
             }
 
+            @* Only ever draws anything for a Game Pass save that has a spare copy or a leftover to
+               offer, so it costs an ordinary world nothing. It sits below the file list because it
+               is about the folder rather than about any one save in it. *@
+            <GamePassRecoveryPanel />
+
             @if (VisibleConfigFiles.Count > 0)
             {
                 <section class="config-group" aria-labelledby="config-files-title">
@@ -381,6 +386,14 @@
                     TimeSpan.FromSeconds(9));
             }
         }
+        catch (AbioticEditor.Core.GamePass.GamePassUnsafeWriteException refusal)
+        {
+            // A refusal is not a failure. Nothing went wrong and nothing is lost: the editor
+            // declined on purpose because the save is in a state where Xbox would probably throw
+            // the edit away later. Caught ahead of the general handler below so it never reads as
+            // work that went missing - the answer here is to clear the reason, or to insist.
+            ShowSaveRefused(refusal);
+        }
         catch (Exception exception)
         {
             // SaveSelectedAsync can throw (a locked file, a save missing an expected
@@ -404,6 +417,79 @@
                     CancelText: L.Resource("Common_Close")));
                 return;
             }
+            Toasts.Show(Errors.Present(exception, L.Editor("workspace.saveFailed"), L.Resource("PlayerUi_ChangesRemainOpen")), ToastKind.Error, TimeSpan.FromSeconds(8));
+        }
+    }
+
+    /// <summary>
+    /// Says why the editor would not write into the Xbox save, and offers the two ways forward.
+    /// </summary>
+    /// <remarks>
+    /// The way out that is most likely to work is the one on the button: a half-synced folder is
+    /// something the editor can put right itself, so that becomes the confirm action and the save
+    /// follows automatically. Insisting is deliberately not the confirm button - it is the one
+    /// choice here that can lose the save for good, so it sits apart from the dialog's own actions
+    /// and is marked as the hazard it is.
+    /// </remarks>
+    private void ShowSaveRefused(AbioticEditor.Core.GamePass.GamePassUnsafeWriteException refusal)
+    {
+        // The guard fills in what it found; a refusal raised any other way has only its own text,
+        // and that text is authored for the player, so it is shown rather than flattened away.
+        var why = Errors.Detail(refusal, "Pack Game Pass save", L.Editor("workspace.saveFailed"));
+        IReadOnlyList<string> reasons = refusal.Check.Lines();
+        if (reasons.Count == 0) reasons = [why];
+        var repairable = GamePassRecovery.RepairIsTheRemedy(Workspace);
+        Modals.Show(new ModalRequest(
+            L.Resource("Main_GpSaveRefusedTitle"),
+            @<div>
+                <p>@L.Resource("Main_GpSaveRefusedMessage")</p>
+                <ul>
+                    @foreach (var reason in reasons)
+                    {
+                        <li>@reason</li>
+                    }
+                </ul>
+                <p>@L.Resource("Main_GpSaveRefusedSafe")</p>
+                <p class="muted">@L.Resource("Main_GpSaveAnywayHint")</p>
+                <button class="danger" type="button" @onclick="SaveAnywayAsync">@L.Resource("Main_GpSaveAnyway")</button>
+            </div>,
+            ConfirmText: repairable ? L.Resource("Main_GpRepairThenSave") : null,
+            OnConfirm: repairable ? RepairThenSaveAsync : null,
+            CancelText: L.Resource("Common_Close")));
+    }
+
+    /// <summary>Puts the folder right, then saves again. A second refusal simply asks again.</summary>
+    private async Task RepairThenSaveAsync()
+    {
+        try
+        {
+            var repaired = await GamePassRecovery.RepairAsync(Workspace);
+            Toasts.Show(L.Resource("Main_GpMidSyncRepaired", repaired.Count), ToastKind.Success);
+        }
+        catch (Exception exception)
+        {
+            Errors.Record(exception, "Repair Game Pass save");
+            Toasts.Show(L.Resource("Main_GpRepairFailed"), ToastKind.Error);
+            return;
+        }
+        await SaveAsync();
+    }
+
+    /// <summary>
+    /// Writes the edit despite the refusal, on the player's word. Everything about this is recorded
+    /// - the acceptance carries into the log beside the write, because if this is the wrong call the
+    /// damage turns up days later with nothing on screen to connect it to.
+    /// </summary>
+    private async Task SaveAnywayAsync()
+    {
+        Modals.Close();
+        try
+        {
+            await Workspace.SaveSelectedAcceptingGamePassRiskAsync("player confirmed in the save-anyway dialog");
+            Toasts.Show(L.Resource("Main_GpSavedAnyway"), ToastKind.Warning, TimeSpan.FromSeconds(12));
+        }
+        catch (Exception exception)
+        {
             Toasts.Show(Errors.Present(exception, L.Editor("workspace.saveFailed"), L.Resource("PlayerUi_ChangesRemainOpen")), ToastKind.Error, TimeSpan.FromSeconds(8));
         }
     }
