@@ -2,6 +2,44 @@ using System.Text;
 
 namespace AbioticEditor.Core.GamePass;
 
+/// <summary>
+/// How Xbox Connected Storage tracks one container against its cloud copy. Values from
+/// LibXblContainer (<c>github.com/LukeFZ/XblContainerReader</c>), which reads the same index the
+/// Xbox service writes; every state observed in real saves falls in this range.
+/// </summary>
+public enum WgsEntryState : uint
+{
+    None = 0,
+
+    /// <summary>Local and cloud agree. What a container sits at after a completed sync.</summary>
+    Synched = 1,
+    Unknown = 2,
+
+    /// <summary>Marked for removal. A container left in this state is one the service is entitled
+    /// to take away.</summary>
+    Deleted = 3,
+
+    /// <summary>Newly made locally, never yet uploaded.</summary>
+    Created = 4,
+
+    /// <summary>Changed locally since the last sync - what a save the editor has just written is.</summary>
+    Modified = 5,
+}
+
+/// <summary>
+/// Index-level sync flags (LibXblContainer <c>ContainerSyncFlags</c>). Bit 4 is the one that
+/// matters here: a store carrying it has a conflict Xbox has not resolved, and editing into that
+/// is how an edit gets thrown away.
+/// </summary>
+[Flags]
+public enum WgsSyncState : uint
+{
+    None = 0,
+    FullyUploaded = 1 << 0,
+    FullyDownloaded = 1 << 1,
+    HasUnresolvedConflicts = 1 << 4,
+}
+
 /// <summary>One logical container in an Xbox "wgs" (Connected Storage) folder.</summary>
 public sealed class WgsContainer
 {
@@ -9,24 +47,28 @@ public sealed class WgsContainer
     public required string Name2 { get; init; }
 
     /// <summary>
-    /// The quoted hex token Xbox stamps on a container when it syncs, e.g.
-    /// <c>"0x8DEBCCC41BE9635"</c>. It is a .NET-style tick count (100ns since year 1) - NOT a
-    /// Win32 FILETIME (100ns since 1601), which is a factor of roughly 4.7 smaller and is what
-    /// this editor used to write. See <see cref="WgsContainerStore.NewSyncId"/>.
+    /// The container's ETag: a version token issued by the Xbox service, not by this machine.
+    /// It is echoed back untouched on every local write - the service uses it to recognise which
+    /// cloud version the local copy was based on. Generating a fresh one locally claims a version
+    /// the service never issued, which is exactly how an upload stops matching.
     /// </summary>
-    public required string SyncId { get; set; }
+    public required string Etag { get; set; }
 
     public byte ContainerNumber { get; set; }
 
     /// <summary>
-    /// A per-entry field that every container in a real, game-written index carries as 1 -
-    /// across container numbers 5, 10, 35, 109, 113, 167, 170 and 222 in the reference save, so
-    /// it is emphatically not a write counter. Its exact meaning is unknown (most likely a state
-    /// or format flag), which is precisely why it is round-tripped verbatim rather than
-    /// interpreted: this editor used to increment it on every write, inventing values the game
-    /// never produces.
+    /// Where this container stands against its cloud copy. A save just written locally is
+    /// <see cref="WgsEntryState.Modified"/>; a brand new one is <see cref="WgsEntryState.Created"/>.
     /// </summary>
-    public uint State { get; set; } = 1;
+    public WgsEntryState State { get; set; } = WgsEntryState.Synched;
+
+    /// <summary>The raw state as read, so a value outside <see cref="WgsEntryState"/> can be
+    /// reported and repaired rather than silently reinterpreted.</summary>
+    public uint RawState { get; set; } = (uint)WgsEntryState.Synched;
+
+    /// <summary>True when the index carried a state this format does not define (anything above
+    /// <see cref="WgsEntryState.Modified"/>).</summary>
+    public bool HasInvalidState => RawState > (uint)WgsEntryState.Modified;
 
     public required Guid FolderGuid { get; init; }
     public long FileTime { get; set; }
@@ -44,15 +86,19 @@ public sealed class WgsContainer
 /// payload). See the project memory "Game Pass save format" for the byte layout.
 ///
 /// <para>Writing a blob follows the game's own scheme: a fresh GUID blob is written, a new
-/// <c>container.&lt;N+1&gt;</c> points at it, and the index entry is updated (number bumped, new
-/// sync token, size, timestamp), then the superseded generation is removed so the folder keeps the
-/// one-manifest-one-blob shape the game itself maintains. The whole folder is backed up first
-/// (callers use <see cref="GamePassSaveSet"/>, which does that), and that backup is the rollback.</para>
+/// <c>container.&lt;N+1&gt;</c> points at it, and the index entry is updated (number bumped, state
+/// moved to <see cref="WgsEntryState.Modified"/>, size, timestamp), then the superseded generation
+/// is removed so the folder keeps the one-manifest-one-blob shape the game itself maintains. The
+/// whole folder is backed up first (callers use <see cref="GamePassSaveSet"/>, which does that),
+/// and that backup is the rollback.</para>
 ///
-/// <para>Fields whose meaning is not established are round-tripped verbatim rather than
-/// recomputed. Xbox arbitrates between this folder and its own cloud copy, so a field this editor
-/// invents a value for is a field that can make an edit lose that arbitration - silently, hours
-/// later. See <see cref="WgsContainer.SyncId"/> and <see cref="WgsContainer.State"/>.</para>
+/// <para>This folder is one half of a conversation with the Xbox cloud, not a private file format.
+/// The index records what the service should believe about each container - whether it matches the
+/// cloud (<see cref="WgsContainer.State"/>) and which cloud version it was based on
+/// (<see cref="WgsContainer.Etag"/>). Getting those wrong does not fail loudly; it loses an
+/// argument later, out of sight, and takes the edit with it. So state is set to what actually
+/// happened, the ETag is echoed rather than invented, and anything whose meaning is not established
+/// is round-tripped verbatim.</para>
 /// </summary>
 public sealed class WgsContainerStore
 {
@@ -95,6 +141,28 @@ public sealed class WgsContainerStore
     /// cloud sync compares to decide which copy (local vs cloud) is newer. The game advances it on every
     /// save; so does this editor (see <see cref="WriteIndex"/>).</summary>
     public long IndexFileTime { get; private set; }
+
+    /// <summary>Index-level sync state (see <see cref="WgsSyncState"/>).</summary>
+    public WgsSyncState SyncFlags { get; private set; }
+
+    private int _syncFlagsOffset;
+
+    /// <summary>
+    /// True when Xbox has a conflict for this save that it has not resolved. Writing into a store
+    /// in this state is not a normal edit: the service already believes local and cloud disagree,
+    /// so whatever is written here is one side of an argument that gets settled later, out of
+    /// sight, and can be settled against you.
+    /// </summary>
+    public bool HasUnresolvedConflicts => SyncFlags.HasFlag(WgsSyncState.HasUnresolvedConflicts);
+
+    /// <summary>
+    /// Containers whose recorded state is not a value the format defines. Only this editor is
+    /// known to have produced them: it used to treat the state field as a write counter and
+    /// increment it, walking containers through Deleted(3) and Created(4) and out the far end to
+    /// 6, 7 and beyond. Reported so they can be put back to a real state.
+    /// </summary>
+    public IReadOnlyList<string> InvalidStateContainers
+        => _containers.Where(c => c.HasInvalidState).Select(c => c.Name).ToList();
 
     /// <summary>True when <paramref name="folder"/> is a wgs container store for Abiotic Factor
     /// (the index names the Abiotic package). Cheap: reads only the index, no decompression.</summary>
@@ -170,7 +238,8 @@ public sealed class WgsContainerStore
         _ = ReadU32(d, ref pos);            // reserved (0)
         PackageFamilyName = ReadWString(d, ref pos);
         IndexFileTime = ReadI64(d, ref pos); // index-level FILETIME (the recency token sync compares)
-        ReadU32(d, ref pos);                // constant (3)
+        _syncFlagsOffset = pos;
+        SyncFlags = (WgsSyncState)ReadU32(d, ref pos);
         ReadWString(d, ref pos);            // root GUID string
         pos += 8;                           // 8 reserved bytes
 
@@ -181,7 +250,7 @@ public sealed class WgsContainerStore
         {
             var name = ReadWString(d, ref pos);
             var name2 = ReadWString(d, ref pos);
-            var sync = ReadWString(d, ref pos);
+            var etag = ReadWString(d, ref pos);
             var num = d[pos]; pos += 1;
             var state = ReadU32(d, ref pos);
             var folder = new Guid(d.AsSpan(pos, 16).ToArray()); pos += 16;
@@ -192,9 +261,10 @@ public sealed class WgsContainerStore
             {
                 Name = name,
                 Name2 = name2,
-                SyncId = sync,
+                Etag = etag,
                 ContainerNumber = num,
-                State = state,
+                RawState = state,
+                State = state <= (uint)WgsEntryState.Modified ? (WgsEntryState)state : WgsEntryState.Synched,
                 FolderGuid = folder,
                 FileTime = ft,
                 Reserved = reserved,
@@ -285,6 +355,23 @@ public sealed class WgsContainerStore
     {
         var repaired = new List<string>();
         var indexNeedsRewrite = false;
+
+        // Put back any container state that is not a value the format defines. Earlier versions of
+        // this editor treated the state field as a write counter and incremented it on every save,
+        // marching containers through Deleted(3) and Created(4) and then past the end of the range
+        // entirely. A container claiming to be deleted, or claiming a state nothing recognises, is
+        // one the service and the game are entitled to ignore - which is what a save that "stopped
+        // loading after editing" looks like from the outside. Modified is the honest description of
+        // a container this editor has written and Xbox has not yet taken.
+        foreach (var container in _containers.Where(c => c.HasInvalidState || c.State == WgsEntryState.Deleted))
+        {
+            Diagnostics.EditorLog.Warn("GamePass",
+                $"Container '{container.Name}' carried state {container.RawState}; setting it to Modified.");
+            container.State = WgsEntryState.Modified;
+            container.RawState = (uint)WgsEntryState.Modified;
+            indexNeedsRewrite = true;
+            repaired.Add(container.Name);
+        }
 
         // Scan every container, not just the ones already read this session - the whole point is to
         // leave the folder fully consistent so Xbox has nothing left to reconcile away.
@@ -392,15 +479,20 @@ public sealed class WgsContainerStore
         WriteManifest(folder, newNumber, newBlobGuid);
 
         container.ContainerNumber = newNumber;
-        // State is deliberately left as it was read: the game never varies it (see WgsContainer.State).
         container.BlobSize = blob.Length;
         container.FileTime = NowEntryFileTime();
-        container.SyncId = NewSyncId();
+
+        // Say what actually happened: this container now differs from the cloud copy. That is what
+        // the Xbox service reads to decide there is something here worth uploading. The ETag is
+        // deliberately untouched - it names the cloud version this edit was based on, and only the
+        // service may issue a new one.
+        container.State = container.State == WgsEntryState.Created ? WgsEntryState.Created : WgsEntryState.Modified;
+        container.RawState = (uint)container.State;
 
         WriteIndex();
         PruneSupersededGenerations(folder, newNumber, newBlobGuid);
         Diagnostics.EditorLog.Info("GamePass",
-            $"wgs: wrote container '{container.Name}' gen {newNumber} ({blob.Length} bytes).");
+            $"wgs: wrote container '{container.Name}' as {container.State}, container.{newNumber} ({blob.Length} bytes).");
     }
 
     /// <summary>
@@ -432,9 +524,12 @@ public sealed class WgsContainerStore
         {
             Name = containerName,
             Name2 = containerName,
-            SyncId = NewSyncId(),
+            // No ETag: the service has never seen this container, so there is no cloud version for
+            // it to name. It issues one when the container first uploads.
+            Etag = string.Empty,
             ContainerNumber = 1,
-            State = 1,
+            State = WgsEntryState.Created,
+            RawState = (uint)WgsEntryState.Created,
             FolderGuid = folderGuid,
             FileTime = now,
             Reserved = 0,
@@ -521,14 +616,15 @@ public sealed class WgsContainerStore
         w.Write(0u);                               // reserved
         WriteWString(w, AbioticPackageFamilyName);
         w.Write(DateTime.UtcNow.ToFileTimeUtc());  // index FILETIME (full precision, as the game writes)
-        w.Write(3u);                               // constant
+        // Nothing here has ever been uploaded or downloaded, and there is no conflict to inherit.
+        w.Write((uint)WgsSyncState.None);
         WriteWString(w, Guid.NewGuid().ToString());// root GUID
         w.Write(new byte[] { 0, 0, 0, 0x10, 0, 0, 0, 0 }); // 8 reserved bytes (as the game writes)
         WriteWString(w, containerName);
         WriteWString(w, containerName);
-        WriteWString(w, NewSyncId());              // sync token (.NET ticks, not a FILETIME)
+        WriteWString(w, string.Empty);             // no ETag until the service issues one
         w.Write((byte)1);                          // container number -> container.1
-        w.Write(1u);                               // per-entry state (the game always writes 1)
+        w.Write((uint)WgsEntryState.Created);
         w.Write(folderGuid.ToByteArray());
         w.Write(now);                              // entry FILETIME
         w.Write(0L);                               // reserved
@@ -538,20 +634,6 @@ public sealed class WgsContainerStore
         Diagnostics.EditorLog.Info("GamePass", $"Created wgs container '{containerName}' at {destFolder} ({blob.Length} bytes).");
     }
 
-    /// <summary>
-    /// A fresh sync token in the game's own format: <c>"0x&lt;hex&gt;"</c> of a .NET tick count
-    /// (100ns since year 1), e.g. <c>"0x8DEBCCC41BE9635"</c>.
-    /// </summary>
-    /// <remarks>
-    /// This editor previously wrote a Win32 FILETIME here (100ns since <b>1601</b>), which for any
-    /// present-day date is roughly 4.7x smaller - <c>0x1DCE...</c> against the game's
-    /// <c>0x8DEB...</c>. Every container the editor touched therefore carried a token that, read as
-    /// the same kind of number the game writes, dates to the nineteenth century. Anything comparing
-    /// tokens to decide which copy of a save is newer would pick the other one every single time,
-    /// which is exactly the "my edit was there and then it wasn't" report from players who edited
-    /// while Xbox was online.
-    /// </remarks>
-    internal static string NewSyncId() => $"\"0x{DateTime.UtcNow.Ticks:X}\"";
 
     /// <summary>
     /// The current time as the game stamps a container entry: a FILETIME truncated to whole
@@ -645,6 +727,17 @@ public sealed class WgsContainerStore
                 + "restore it from a backup or let the game rewrite it before editing.");
         }
 
+        // The store now holds something the cloud does not, so it is no longer fully uploaded.
+        // Leaving that bit set describes a save that is already safely in the cloud, which would
+        // invite the service to treat the cloud copy as authoritative and pull it back over this
+        // one. The conflict bit is NOT touched here: only Xbox can decide a conflict is resolved,
+        // and clearing it locally would hide a real problem instead of fixing it.
+        SyncFlags &= ~WgsSyncState.FullyUploaded;
+        if (_syncFlagsOffset + 4 <= _header.Length)
+        {
+            BitConverter.GetBytes((uint)SyncFlags).CopyTo(_header, _syncFlagsOffset);
+        }
+
         using var ms = new MemoryStream();
         ms.Write(_header, 0, _header.Length);
         using var w = new BinaryWriter(ms, Encoding.Unicode, leaveOpen: true);
@@ -652,9 +745,9 @@ public sealed class WgsContainerStore
         {
             WriteWString(w, c.Name);
             WriteWString(w, c.Name2);
-            WriteWString(w, c.SyncId);
+            WriteWString(w, c.Etag);
             w.Write(c.ContainerNumber);
-            w.Write(c.State);
+            w.Write((uint)c.State);
             w.Write(c.FolderGuid.ToByteArray());
             w.Write(c.FileTime);
             w.Write(c.Reserved);

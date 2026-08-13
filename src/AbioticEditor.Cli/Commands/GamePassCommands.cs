@@ -24,6 +24,55 @@ internal static class GamePassCommands
         cmd.Subcommands.Add(BuildToGamePass(quiet));
         cmd.Subcommands.Add(BuildToSteam(quiet));
         cmd.Subcommands.Add(BuildRenamePlayer(quiet));
+        cmd.Subcommands.Add(BuildStatus(quiet));
+        return cmd;
+    }
+
+    // Read-only. The whole point is to be able to look at a save that is misbehaving without
+    // touching it, since touching it is what tends to make these problems worse.
+    private static Command BuildStatus(Option<bool> quiet)
+    {
+        var folderArg = new Argument<string>("wgs-folder") { Description = "Path to the wgs container folder." };
+        var cmd = new Command("status",
+            "Show how Xbox currently sees this save: whether it has an unresolved cloud conflict, and "
+            + "what state each part of it is in. Changes nothing.");
+        cmd.Arguments.Add(folderArg);
+        cmd.SetAction(pr => Cli.Run(() =>
+        {
+            var dir = pr.GetValue(folderArg) ?? throw new CliUserErrorException("a wgs folder path is required.");
+            if (!GamePassSaveSet.IsGamePassFolder(dir))
+            {
+                throw new CliUserErrorException($"not a Game Pass save folder (no containers.index): {dir}");
+            }
+            var store = WgsContainerStore.Open(dir);
+
+            Console.WriteLine($"Sync state: {store.SyncFlags}");
+            if (store.HasUnresolvedConflicts)
+            {
+                Console.WriteLine(
+                    "  WARNING: Xbox has a conflict for this save that it has not settled. Launch the game "
+                    + "and let it load and save this world before editing, or the next sync may discard "
+                    + "whatever you change.");
+            }
+
+            var invalid = store.InvalidStateContainers;
+            if (invalid.Count > 0)
+            {
+                Console.WriteLine(
+                    $"  WARNING: {invalid.Count} part(s) of this save carry a state Xbox does not define "
+                    + $"({string.Join(", ", invalid)}). An older version of this editor wrote those. "
+                    + "Run 'gamepass repair' to put them back.");
+            }
+
+            Console.WriteLine();
+            Console.WriteLine($"{"Container",-34}{"Number",-8}{"State",-10}Size");
+            foreach (var c in store.Containers)
+            {
+                var state = c.HasInvalidState ? $"?{c.RawState}" : c.State.ToString();
+                Console.WriteLine($"{c.Name,-34}{c.ContainerNumber,-8}{state,-10}{c.BlobSize}");
+            }
+            return Cli.Ok;
+        }));
         return cmd;
     }
 

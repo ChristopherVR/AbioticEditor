@@ -167,24 +167,59 @@ public class GamePassSafetyTests
     }
 
     [Fact]
-    public void The_sync_token_is_written_in_the_same_units_the_game_uses()
+    public void A_written_container_is_marked_as_differing_from_the_cloud()
     {
         using var scratch = new Scratch();
         WgsContainerStore.WriteNewContainer(scratch.Path, "World-WC", Payload(256, seed: 40));
 
-        var token = WgsContainerStore.Open(scratch.Path).Containers[0].SyncId;
+        // Brand new: the service has never seen it, and there is no cloud version to name.
+        var created = WgsContainerStore.Open(scratch.Path);
+        Assert.Equal(WgsEntryState.Created, created.Containers[0].State);
+        Assert.Equal(string.Empty, created.Containers[0].Etag);
 
-        // A real save carries tokens like "0x8DEBCCC41BE9635": a .NET tick count, 100ns since year
-        // 1. This editor used to write a Win32 FILETIME (100ns since 1601) - about 4.7x smaller,
-        // "0x1DCE..." - so anything reading the token as a version number saw a save from the
-        // 1800s and preferred the other copy. Pin the magnitude, not the exact value.
-        Assert.StartsWith("\"0x", token, StringComparison.Ordinal);
-        Assert.EndsWith("\"", token, StringComparison.Ordinal);
+        created.WriteBlob(created.Containers[0], Payload(300, seed: 41));
 
-        var ticks = long.Parse(token.Trim('"')[2..], System.Globalization.NumberStyles.HexNumber,
-            System.Globalization.CultureInfo.InvariantCulture);
-        var asDate = new DateTime(ticks, DateTimeKind.Utc);
-        Assert.InRange(asDate, new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(2100, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var after = WgsContainerStore.Open(scratch.Path);
+        Assert.Equal(WgsEntryState.Created, after.Containers[0].State);
+        Assert.False(after.SyncFlags.HasFlag(WgsSyncState.FullyUploaded));
+    }
+
+    [Fact]
+    public void Editing_a_synced_container_marks_it_modified_and_keeps_its_cloud_version_token()
+    {
+        using var scratch = new Scratch();
+        WgsContainerStore.WriteNewContainer(scratch.Path, "World-WC", Payload(256, seed: 42));
+
+        // Stand in for a container the service has synced: it has an ETag it issued, and it agrees
+        // with the cloud.
+        var seeded = WgsContainerStore.Open(scratch.Path);
+        seeded.Containers[0].Etag = "\"0x8DEBCCC41BE9635\"";
+        seeded.Containers[0].State = WgsEntryState.Synched;
+        seeded.WriteBlob(seeded.Containers[0], Payload(400, seed: 43));
+
+        var after = WgsContainerStore.Open(scratch.Path);
+        Assert.Equal(WgsEntryState.Modified, after.Containers[0].State);
+        Assert.Equal("\"0x8DEBCCC41BE9635\"", after.Containers[0].Etag);
+    }
+
+    [Fact]
+    public void A_container_left_in_a_state_the_format_does_not_define_is_repaired()
+    {
+        using var scratch = new Scratch();
+        WgsContainerStore.WriteNewContainer(scratch.Path, "World-WC", Payload(256, seed: 44));
+
+        // Earlier versions of this editor incremented the state field on every save, so real saves
+        // in the wild carry values like 6 and 7 - and, on the way there, Deleted(3).
+        PatchFirstEntryState(scratch.Path, 7);
+
+        var reopened = WgsContainerStore.Open(scratch.Path);
+        Assert.Contains("World-WC", reopened.InvalidStateContainers);
+
+        Assert.Contains("World-WC", reopened.RepairRecoveredManifests());
+
+        var repaired = WgsContainerStore.Open(scratch.Path);
+        Assert.Empty(repaired.InvalidStateContainers);
+        Assert.Equal(WgsEntryState.Modified, repaired.Containers[0].State);
     }
 
     [Fact]
@@ -415,6 +450,36 @@ public class GamePassSafetyTests
         }
     }
 
+
+    /// <summary>
+    /// Overwrites the first entry's state directly in <c>containers.index</c>, to reproduce a save
+    /// that a previous version of this editor left in a state the format does not define. The store
+    /// will not write such a value any more, so the bytes are made by hand rather than by adding a
+    /// production API that exists only for this.
+    /// </summary>
+    private static void PatchFirstEntryState(string wgsFolder, uint state)
+    {
+        var path = Path.Combine(wgsFolder, "containers.index");
+        var d = File.ReadAllBytes(path);
+        var pos = 12;                       // version + count + reserved
+        SkipWideString(d, ref pos);         // package family name
+        pos += 8;                           // index FILETIME
+        pos += 4;                           // sync flags
+        SkipWideString(d, ref pos);         // root GUID
+        pos += 8;                           // reserved
+        SkipWideString(d, ref pos);         // entry name
+        SkipWideString(d, ref pos);         // entry name (again)
+        SkipWideString(d, ref pos);         // etag
+        pos += 1;                           // container number
+        BitConverter.GetBytes(state).CopyTo(d, pos);
+        File.WriteAllBytes(path, d);
+    }
+
+    private static void SkipWideString(byte[] d, ref int pos)
+    {
+        var chars = BitConverter.ToUInt32(d, pos);
+        pos += 4 + ((int)chars * 2);
+    }
 
     private static byte[] Payload(int length, int seed)
     {

@@ -104,6 +104,20 @@ public sealed class GamePassSaveSet
     public IReadOnlyList<string> RecoveredContainers => _store.RecoveredContainers;
 
     /// <summary>
+    /// True when Xbox is holding an unsettled conflict for this save, or when part of it carries a
+    /// state no version of the format defines (which older builds of this editor wrote). Both mean
+    /// the save is already in an argument with the cloud before the player changes anything, and
+    /// both are reasons an edit can be thrown away later or the world can stop loading.
+    /// </summary>
+    public bool NeedsAttention => _store.HasUnresolvedConflicts || _store.InvalidStateContainers.Count > 0;
+
+    /// <summary>True when Xbox has a conflict for this save it has not resolved.</summary>
+    public bool HasUnresolvedConflicts => _store.HasUnresolvedConflicts;
+
+    /// <summary>Parts of the save left in a state the format does not define.</summary>
+    public IReadOnlyList<string> InvalidStateContainers => _store.InvalidStateContainers;
+
+    /// <summary>
     /// Permanently repairs the mid-sync inconsistency (see <see cref="IsMidSync"/>) by pointing each
     /// recovered container's manifest at the blob that exists on disk. Backs up the whole wgs folder
     /// once first. After this, <see cref="IsMidSync"/> is false and the save reopens cleanly. Returns

@@ -42,7 +42,7 @@ public class GamePassSyncFidelityTests
 
             var store = WgsContainerStore.Open(dir.FullName);
             var c = store.Find("W-WC")!;
-            var (oldState, oldNum) = (c.State, c.ContainerNumber);
+            var (oldEtag, oldNum) = (c.Etag, c.ContainerNumber);
 
             // Simulate the editor saving an edit into the container.
             store.WriteBlob(c, new byte[] { 9, 9, 9, 9, 9, 9 });
@@ -58,12 +58,16 @@ public class GamePassSyncFidelityTests
             var c2 = reopened.Find("W-WC")!;
             Assert.Equal(unchecked((byte)(oldNum + 1)), c2.ContainerNumber);
 
-            // The per-entry state field must come back untouched. Every container in a real
-            // game-written index carries 1 regardless of how many times it has been saved, so
-            // incrementing it (which this editor used to do) writes a value the game never
-            // produces into a folder Xbox is about to arbitrate over.
-            Assert.Equal(oldState, c2.State);
-            Assert.Equal(1u, c2.State);
+            // This container was made here and has never been uploaded, so it stays Created:
+            // "changed since the last sync" would be a claim about a sync that never happened.
+            // Either way the index says there is something here the cloud does not have, which is
+            // what tells the service to upload rather than to overwrite.
+            Assert.Equal(WgsEntryState.Created, c2.State);
+
+            // The ETag names the cloud version this edit was based on. Only the service issues one,
+            // so it is echoed back untouched; minting a fresh one claims a version that never
+            // existed. (This editor used to write a timestamp here, in the wrong epoch at that.)
+            Assert.Equal(oldEtag, c2.Etag);
             Assert.False(reopened.NeededBlobFallback);
             Assert.Equal(new byte[] { 9, 9, 9, 9, 9, 9 }, reopened.ReadBlob(c2));
         }
@@ -126,13 +130,13 @@ public class GamePassSyncFidelityTests
         // and rolling one back to an older generation. Compare must call both out by name.
         var before = new WgsSnapshot(100, new[]
         {
-            new WgsContainerState("World-WC", 5, 5, 100, "AAAA", null),
-            new WgsContainerState("Settings", 3, 2, 50, "BBBB", null),
+            new WgsContainerState("World-WC", 5, WgsEntryState.Modified, 100, "AAAA", null),
+            new WgsContainerState("Settings", 3, WgsEntryState.Synched, 50, "BBBB", null),
         });
         var after = new WgsSnapshot(90, new[]
         {
-            // World-WC is gone; Settings reverted from gen 2 to gen 1.
-            new WgsContainerState("Settings", 2, 1, 50, "CCCC", null),
+            // World-WC is gone; Settings reverted to an earlier container number.
+            new WgsContainerState("Settings", 2, WgsEntryState.Synched, 50, "CCCC", null),
         });
 
         var diff = WgsSnapshot.Compare(before, after);

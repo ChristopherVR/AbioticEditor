@@ -76,10 +76,14 @@ public sealed class GamePassSafetyGuard(
     /// </summary>
     private void OfferRepairIfMidSync()
     {
-        if (workspace.Current?.GamePass?.Set is not { IsMidSync: true } set) return;
+        if (workspace.Current?.GamePass?.Set is not { } set) return;
+        if (!set.IsMidSync && !set.NeedsAttention) return;
 
         EditorLog.Warn("GamePass",
-            $"Opened a save that is mid-sync (recovered: {string.Join(", ", set.RecoveredContainers)}).");
+            $"Opened a save needing attention (mid-sync: {set.IsMidSync}, "
+            + $"unresolved conflict: {set.HasUnresolvedConflicts}, "
+            + $"recovered: {string.Join(", ", set.RecoveredContainers)}, "
+            + $"bad state: {string.Join(", ", set.InvalidStateContainers)}).");
         modals.Show(new ModalRequest(
             language.Resource("Main_GpMidSyncTitle"),
             Paragraphs(language.Resource("Main_GpMidSyncMessage")),
