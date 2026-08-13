@@ -42,10 +42,9 @@ public static class GamePassDiscovery
                 // Log a verdict for every candidate so a remote dump shows exactly why a
                 // Game Pass save was or wasn't picked up (the checks below are otherwise silent).
                 var name = Path.GetFileName(accountDir);
-                if (name.Contains(".bak", StringComparison.OrdinalIgnoreCase))
+                if (IgnoredFolderReason(name) is { } reason)
                 {
-                    Diagnostics.EditorLog.Info("GamePass",
-                        $"Discovery: '{name}' is a backup folder - skipped.");
+                    Diagnostics.EditorLog.Info("GamePass", $"Discovery: '{name}' is {reason} - skipped.");
                     continue;
                 }
                 if (!WgsContainerStore.IsContainerFolder(accountDir))
@@ -59,6 +58,16 @@ public static class GamePassDiscovery
                     Diagnostics.EditorLog.Info("GamePass",
                         $"Discovery: '{name}' has containers.index but is not an Abiotic Factor store - skipped.");
                     continue;
+                }
+                if (!IsAccountFolderName(name))
+                {
+                    // Accepted anyway: the layout is "<XUID>_<TitleScid>", but refusing everything
+                    // that does not match would mean a save the editor can plainly read going
+                    // missing because its folder was named in a way nobody here anticipated. Losing
+                    // sight of a player's only save is worse than editing an unusual copy of one.
+                    Diagnostics.EditorLog.Warn("GamePass",
+                        $"Discovery: '{name}' holds an Abiotic save but is not named like an Xbox account "
+                        + "folder. It may be a copy of one rather than the save the game uses.");
                 }
                 Diagnostics.EditorLog.Info("GamePass", $"Discovery: accepted Abiotic wgs folder '{name}'.");
                 results.Add(new DiscoveredGamePassSave(
@@ -115,6 +124,70 @@ public static class GamePassDiscovery
             catch { /* skip */ }
             if (root is not null) yield return root;
         }
+    }
+
+    /// <summary>
+    /// Why a folder inside a <c>wgs</c> root is not a live save store, or null when it looks like
+    /// one. Not everything in there is an account folder, and editing the wrong one is silent: the
+    /// player's real save stays broken while the editor happily rewrites a copy of it.
+    /// </summary>
+    /// <remarks>
+    /// <para>The <c>t</c> folder is Connected Storage's own scratch area. On a live Abiotic Factor
+    /// install it sits next to the account folder, holds no <c>containers.index</c>, and was empty
+    /// every time it was looked at. It is named here rather than left to the no-index check so the
+    /// log says what it is instead of implying something is wrong with it.</para>
+    /// <para>The rest are backup and copy shapes: this editor's own <c>.bak</c> snapshots (which
+    /// stack up as <c>.bak-&lt;timestamp&gt;</c> and even <c>.bak.bak</c>), plus the naming other
+    /// tools and the Xbox app are reported to leave behind.</para>
+    /// </remarks>
+    public static string? IgnoredFolderReason(string folderName)
+    {
+        ArgumentNullException.ThrowIfNull(folderName);
+        if (string.Equals(folderName, "t", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Xbox's own working folder, not a save";
+        }
+        if (folderName.StartsWith('~') || folderName.StartsWith('.'))
+        {
+            return "a hidden or temporary folder";
+        }
+        if (folderName.Contains(".bak", StringComparison.OrdinalIgnoreCase)
+            || folderName.Contains("backup", StringComparison.OrdinalIgnoreCase))
+        {
+            return "a backup folder";
+        }
+        if (folderName.EndsWith(".old", StringComparison.OrdinalIgnoreCase)
+            || folderName.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase)
+            || folderName.EndsWith(".temp", StringComparison.OrdinalIgnoreCase))
+        {
+            return "a leftover folder";
+        }
+        if (folderName.Contains("copy", StringComparison.OrdinalIgnoreCase))
+        {
+            return "a copy of a save folder";
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// True when the folder is named the way Xbox names an account's save folder:
+    /// <c>&lt;XUID&gt;_&lt;TitleScid&gt;</c>, both halves hexadecimal.
+    /// </summary>
+    public static bool IsAccountFolderName(string folderName)
+    {
+        ArgumentNullException.ThrowIfNull(folderName);
+        var us = folderName.IndexOf('_', StringComparison.Ordinal);
+        if (us < 8 || us == folderName.Length - 1) return false;
+        return IsHex(folderName.AsSpan(0, us)) && IsHex(folderName.AsSpan(us + 1));
+    }
+
+    private static bool IsHex(ReadOnlySpan<char> s)
+    {
+        foreach (var c in s)
+        {
+            if (!Uri.IsHexDigit(c)) return false;
+        }
+        return true;
     }
 
     // wgs account folders are named "<XUID>_<TitleScid>"; the XUID is the part before the underscore.

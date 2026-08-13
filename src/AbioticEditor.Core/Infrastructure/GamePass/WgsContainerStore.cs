@@ -107,6 +107,28 @@ public sealed class WgsContainer
 }
 
 /// <summary>
+/// Save data sitting in a wgs folder that the container list no longer points at - what Xbox cloud
+/// sync leaves behind when it drops a world from the index but not from the disk.
+/// </summary>
+/// <param name="FolderName">The GUID folder name (32 hex characters), as it appears on disk.</param>
+/// <param name="FolderPath">The full path to that folder.</param>
+/// <param name="ContainerNumber">The generation its newest <c>container.N</c> manifest describes.</param>
+/// <param name="BlobId">The data blob that manifest points at (or the one found beside it).</param>
+/// <param name="BlobSize">That blob's size in bytes - the quickest way to tell two leftovers apart.</param>
+/// <param name="LastWrittenUtc">When the data was last written.</param>
+/// <param name="WorldName">The world name read out of the data, or null when it is not a world.</param>
+/// <param name="SuggestedContainerName">The name to put it back under, or null when none can be worked out.</param>
+public sealed record WgsOrphanedContainer(
+    string FolderName,
+    string FolderPath,
+    byte ContainerNumber,
+    Guid BlobId,
+    long BlobSize,
+    DateTime LastWrittenUtc,
+    string? WorldName,
+    string? SuggestedContainerName);
+
+/// <summary>
 /// Reads and writes an Xbox "wgs" (Windows Game Saves / Connected Storage) folder - the on-disk
 /// shape a Game Pass / Microsoft Store title uses instead of loose <c>.sav</c> files. The folder
 /// holds a <c>containers.index</c> mapping logical container names to GUID sub-folders; each
@@ -192,6 +214,74 @@ public sealed class WgsContainerStore
     /// </summary>
     public IReadOnlyList<string> InvalidStateContainers
         => _containers.Where(c => c.HasInvalidState || c.StateContradictsEtag).Select(c => c.Name).ToList();
+
+    /// <summary>
+    /// Containers a write must not be allowed to build on: their state is either outside the format
+    /// entirely, or a deletion tombstone. Both describe a container the service is entitled to take
+    /// away, so an edit written into one can vanish with it.
+    /// </summary>
+    public IReadOnlyList<string> UnsafeStateContainers
+        => _containers.Where(c => c.HasInvalidState || c.State == WgsEntryState.Deleted)
+            .Select(c => c.Name).ToList();
+
+    /// <summary>
+    /// Containers whose state and cloud version token contradict each other. Writing the container
+    /// puts it right (see <see cref="WriteBlob"/>), so this is reported rather than refused.
+    /// </summary>
+    public IReadOnlyList<string> ContradictoryStateContainers
+        => _containers.Where(c => !c.HasInvalidState && c.StateContradictsEtag).Select(c => c.Name).ToList();
+
+    /// <summary>
+    /// Accepted risk that lets writes proceed into a store this editor would otherwise refuse
+    /// (see <see cref="AllowUnsafeWrites"/>). Null until a caller sets it deliberately.
+    /// </summary>
+    public GamePassWriteOverride? WriteOverride { get; private set; }
+
+    /// <summary>
+    /// Everything known about whether writing to this store now would survive: the index's own
+    /// conflict flag, container states, and what is running on this machine.
+    /// </summary>
+    public GamePassWriteCheck CheckWritable()
+        => GamePassWriteCheck.For(
+            HasUnresolvedConflicts,
+            UnsafeStateContainers,
+            ContradictoryStateContainers,
+            GamePassEnvironment.Scan(),
+            GamePassEnvironment.IsInsideConnectedStorage(_root));
+
+    /// <summary>
+    /// Records that a caller has accepted the risk described by <see cref="CheckWritable"/> and
+    /// wants the write to happen anyway. Applies to this store instance only, so accepting the risk
+    /// once never carries over to the next save the editor opens.
+    /// </summary>
+    /// <param name="acknowledgement">The accepted risk (see <see cref="GamePassWriteOverride"/>).</param>
+    public void AllowUnsafeWrites(GamePassWriteOverride acknowledgement)
+    {
+        ArgumentNullException.ThrowIfNull(acknowledgement);
+        WriteOverride = acknowledgement;
+        Diagnostics.EditorLog.Warn("GamePass",
+            $"Writes to '{_root}' were allowed past the safety check: {acknowledgement.Reason}");
+    }
+
+    /// <summary>
+    /// Refuses the write when this save is in no state to take one, unless a caller has explicitly
+    /// accepted the risk (<see cref="AllowUnsafeWrites"/>). Every write path calls this before it
+    /// touches anything, including before taking the backup, so a refused save leaves the folder
+    /// exactly as it was.
+    /// </summary>
+    /// <exception cref="GamePassUnsafeWriteException">The save is not safe to write and no risk was accepted.</exception>
+    public void EnsureWritable()
+    {
+        var check = CheckWritable();
+        if (check.CanWrite) return;
+        if (WriteOverride is not null)
+        {
+            Diagnostics.EditorLog.Warn("GamePass",
+                $"Writing to '{_root}' despite: {check.BlockingMessage()} (accepted: {WriteOverride.Reason})");
+            return;
+        }
+        throw new GamePassUnsafeWriteException(check);
+    }
 
     /// <summary>True when <paramref name="folder"/> is a wgs container store for Abiotic Factor
     /// (the index names the Abiotic package). Cheap: reads only the index, no decompression.</summary>
@@ -319,13 +409,31 @@ public sealed class WgsContainerStore
     /// effort: an unreadable folder returns false rather than throwing.
     /// </summary>
     public static bool HasOrphanedWorldFolders(string folder)
+        => FindOrphanedContainers(folder).Count > 0;
+
+    /// <summary>
+    /// Every GUID sub-folder of <paramref name="folder"/> that still holds save data no
+    /// <c>containers.index</c> entry points at, with enough detail to tell one from another: which
+    /// folder it is, which generation, how big its data is, when it was written, and the world name
+    /// read out of the data itself where that is possible.
+    ///
+    /// <para>This is the shape Xbox cloud sync leaves behind when it drops a world from the index:
+    /// the entry goes, the data stays. Listing them is what turns "my world disappeared" into
+    /// something a player can put back (<see cref="ReRegisterOrphan"/>).</para>
+    ///
+    /// <para>Best effort throughout: an unreadable folder contributes nothing rather than throwing.</para>
+    /// </summary>
+    public static IReadOnlyList<WgsOrphanedContainer> FindOrphanedContainers(string folder)
     {
+        var orphans = new List<WgsOrphanedContainer>();
         try
         {
-            if (!IsContainerFolder(folder)) return false;
+            if (!IsContainerFolder(folder)) return orphans;
             var store = Open(folder);
             var referenced = new HashSet<string>(
                 store.Containers.Select(c => c.FolderName), StringComparer.OrdinalIgnoreCase);
+            var takenNames = new HashSet<string>(
+                store.Containers.Select(c => c.Name), StringComparer.OrdinalIgnoreCase);
 
             foreach (var sub in Directory.EnumerateDirectories(folder))
             {
@@ -333,15 +441,209 @@ public sealed class WgsContainerStore
                 // GUID "N" sub-folders are 32 hex chars; skip anything else (and referenced ones).
                 if (name.Length != 32 || !IsHex(name)) continue;
                 if (referenced.Contains(name)) continue;
-                // An orphan that still carries a container.N manifest is real, recoverable save data.
-                if (Directory.EnumerateFiles(sub, "container.*").Any()) return true;
+                if (Describe(sub, name, takenNames) is { } orphan) orphans.Add(orphan);
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // Treat an unreadable tree as "nothing recoverable detected".
         }
-        return false;
+        return orphans;
+    }
+
+    /// <summary>Orphaned container folders in this store (see <see cref="FindOrphanedContainers"/>).</summary>
+    public IReadOnlyList<WgsOrphanedContainer> OrphanedContainers() => FindOrphanedContainers(_root);
+
+    /// <summary>
+    /// Turns one orphaned folder back into a container the game can see, by adding an index entry
+    /// that points at the data already on disk. Nothing is copied or rewritten: the save data is
+    /// left exactly where it is, and only <c>containers.index</c> changes.
+    ///
+    /// <para>The new entry carries no ETag and so is <see cref="WgsEntryState.Created"/>: whatever
+    /// the cloud once knew about this container went with the index entry that named it, and
+    /// inventing a version token the service never issued is how an upload stops matching.</para>
+    /// </summary>
+    /// <param name="orphan">One of the entries from <see cref="OrphanedContainers"/>.</param>
+    /// <param name="containerName">
+    /// The logical name to give it (for instance <c>MyWorld-WC</c>). Defaults to the orphan's
+    /// suggested name, which comes from the world name inside its own data.
+    /// </param>
+    /// <returns>The container as it now appears in the index.</returns>
+    /// <exception cref="InvalidOperationException">The name is already used, or no name could be worked out.</exception>
+    public WgsContainer ReRegisterOrphan(WgsOrphanedContainer orphan, string? containerName = null)
+    {
+        ArgumentNullException.ThrowIfNull(orphan);
+        EnsureWritable();
+
+        var name = containerName ?? orphan.SuggestedContainerName
+            ?? throw new InvalidOperationException(
+                "This leftover save does not say which world it belongs to, so it needs a name to be "
+                + "put back. Choose one ending in '-WC' to match the world it came from.");
+        if (Find(name) is not null)
+        {
+            throw new InvalidOperationException(
+                $"This save already has a world called '{name}'. Put the leftover back under a different "
+                + "name, or rename the world that is in the way first.");
+        }
+        if (!Guid.TryParseExact(orphan.FolderName, "N", out var folderGuid))
+        {
+            throw new InvalidOperationException($"'{orphan.FolderName}' is not a save data folder.");
+        }
+
+        var container = new WgsContainer
+        {
+            Name = name,
+            Name2 = name,
+            Etag = string.Empty,
+            ContainerNumber = orphan.ContainerNumber,
+            State = WgsEntryState.Created,
+            RawState = (uint)WgsEntryState.Created,
+            FolderGuid = folderGuid,
+            FileTime = NowEntryFileTime(),
+            Reserved = 0,
+            BlobSize = orphan.BlobSize,
+        };
+        _containers.Add(container);
+        WriteIndex();
+        Diagnostics.EditorLog.Info("GamePass",
+            $"Put leftover save folder '{orphan.FolderName}' back into the container list as '{name}' "
+            + $"(container.{orphan.ContainerNumber}, {orphan.BlobSize} bytes).");
+        return container;
+    }
+
+    /// <summary>
+    /// Works out what an unreferenced GUID folder holds. Returns null when it holds nothing usable
+    /// (no manifest, or a manifest whose blob is gone), because offering to restore an empty folder
+    /// would just move the disappointment further along.
+    /// </summary>
+    private static WgsOrphanedContainer? Describe(string sub, string folderName, HashSet<string> takenNames)
+    {
+        byte number = 0;
+        try
+        {
+            foreach (var manifest in Directory.EnumerateFiles(sub, "container.*"))
+            {
+                var suffix = Path.GetFileName(manifest)["container.".Length..];
+                if (byte.TryParse(suffix, out var n) && n >= number) number = n;
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return null; }
+        if (number == 0) return null;
+
+        Guid blobGuid;
+        try { blobGuid = ReadManifestBlobGuid(sub, number); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException
+            or ArgumentException) { return null; }
+
+        var blobPath = Path.Combine(sub, blobGuid.ToString("N").ToUpperInvariant());
+        if (!File.Exists(blobPath))
+        {
+            // The manifest's own blob is missing, but the folder may still hold exactly one other,
+            // which is the same recorded-size recovery the read path uses.
+            var fallback = FindFallbackBlob(sub, blobGuid, expectedSize: 0);
+            if (fallback is null) return null;
+            blobPath = fallback;
+            if (Guid.TryParseExact(Path.GetFileName(fallback), "N", out var recovered)) blobGuid = recovered;
+        }
+
+        long size;
+        DateTime written;
+        try
+        {
+            var info = new FileInfo(blobPath);
+            size = info.Length;
+            written = info.LastWriteTimeUtc;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return null; }
+
+        var world = ReadWorldNameFromBundle(blobPath);
+        var suggested = world is null ? null : $"{world}-WC";
+        if (suggested is not null && takenNames.Contains(suggested))
+        {
+            // The live world of that name is still in the index, so this is an older copy of it
+            // rather than the missing one. Suggesting the taken name would only be refused later.
+            suggested = null;
+        }
+
+        return new WgsOrphanedContainer(
+            folderName, sub, number, blobGuid, size, written, world, suggested);
+    }
+
+    /// <summary>
+    /// Reads the world name out of a world bundle by looking at its table of contents only.
+    ///
+    /// <para>The TOC (member paths, sizes and save classes) sits uncompressed at the front of the
+    /// blob; only the member bodies go through Oodle. That matters here: identifying a leftover
+    /// world has to work on a machine with no Oodle library at all, which is exactly the machine
+    /// where a player is least able to check for themselves what they lost.</para>
+    ///
+    /// <para>Returns null for anything that is not a world bundle (profile containers, settings)
+    /// or that cannot be read.</para>
+    /// </summary>
+    private static string? ReadWorldNameFromBundle(string blobPath)
+    {
+        try
+        {
+            // The TOC's first member path is a few hundred bytes in at most; reading the whole of a
+            // multi-megabyte world blob to find it would make listing orphans feel broken.
+            var head = new byte[8192];
+            int read;
+            using (var stream = File.OpenRead(blobPath))
+            {
+                read = stream.ReadAtLeast(head, head.Length, throwOnEndOfStream: false);
+            }
+            var data = head.AsSpan(0, read);
+
+            var pos = 0;
+            if (ReadBundleString(data, ref pos) != "ABF_SAVE_VERSION") return null;
+            pos += 16; // version, uncompressed size, opaque field, member count
+            if (pos >= data.Length) return null;
+            var first = ReadBundleString(data, ref pos);
+            if (first is null) return null;
+
+            // Members are recorded as "Profile/Worlds/<World>/WorldSave_..." (or with backslashes).
+            var parts = first.Replace('\\', '/').Split('/');
+            for (var i = 0; i < parts.Length - 1; i++)
+            {
+                if (parts[i].Equals("Worlds", StringComparison.OrdinalIgnoreCase)
+                    && !string.IsNullOrWhiteSpace(parts[i + 1]))
+                {
+                    return parts[i + 1];
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
+            or ArgumentException or ArgumentOutOfRangeException)
+        {
+            // A blob that cannot be read simply has no name to offer.
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// One UE FString from a bundle header: a positive length counts ASCII bytes, a negative one
+    /// counts UTF-16 characters (which is what the engine writes as soon as a world name leaves
+    /// ASCII). Returns null rather than throwing when the bytes do not describe a string.
+    /// </summary>
+    private static string? ReadBundleString(ReadOnlySpan<byte> data, ref int pos)
+    {
+        if (pos + 4 > data.Length) return null;
+        var length = BitConverter.ToInt32(data[pos..]);
+        pos += 4;
+        if (length == 0) return string.Empty;
+        if (length > 0)
+        {
+            if (length > 4096 || pos + length > data.Length) return null;
+            var ascii = Encoding.ASCII.GetString(data.Slice(pos, length)).TrimEnd('\0');
+            pos += length;
+            return ascii;
+        }
+        if (length == int.MinValue) return null;
+        var bytes = -length * 2;
+        if (bytes > 8192 || pos + bytes > data.Length) return null;
+        var wide = Encoding.Unicode.GetString(data.Slice(pos, bytes)).TrimEnd('\0');
+        pos += bytes;
+        return wide;
     }
 
     /// <summary>Reads the blob bytes for a logical container (via its <c>container.N</c> manifest).</summary>
@@ -532,6 +834,10 @@ public sealed class WgsContainerStore
     {
         ArgumentNullException.ThrowIfNull(container);
         ArgumentNullException.ThrowIfNull(blob);
+        // Last line of defence: the higher layers check before they back anything up, but every
+        // path that changes a player's save ends here, so this is the one place that cannot be
+        // routed around by a new caller.
+        EnsureWritable();
         var folder = Path.Combine(_root, container.FolderName);
         Directory.CreateDirectory(folder);
 
@@ -580,6 +886,7 @@ public sealed class WgsContainerStore
             return;
         }
 
+        EnsureWritable();
         var folderGuid = Guid.NewGuid();
         var folder = Path.Combine(_root, folderGuid.ToString("N").ToUpperInvariant());
         Directory.CreateDirectory(folder);

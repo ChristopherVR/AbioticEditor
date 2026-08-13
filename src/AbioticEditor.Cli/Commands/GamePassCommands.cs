@@ -25,7 +25,45 @@ internal static class GamePassCommands
         cmd.Subcommands.Add(BuildToSteam(quiet));
         cmd.Subcommands.Add(BuildRenamePlayer(quiet));
         cmd.Subcommands.Add(BuildStatus(quiet));
+        cmd.Subcommands.Add(BuildBackups(quiet));
+        cmd.Subcommands.Add(BuildRestoreBackup(quiet));
+        cmd.Subcommands.Add(BuildOrphans(quiet));
+        cmd.Subcommands.Add(BuildRecoverOrphan(quiet));
         return cmd;
+    }
+
+    /// <summary>
+    /// The option every command that writes into a real Xbox save carries. Without it a save that
+    /// Xbox is arguing with itself about, or one the running game still owns, is refused rather
+    /// than written into.
+    /// </summary>
+    private static Option<bool> ForceOption() => new("--force")
+    {
+        Description = "Save anyway when the checks say Xbox may throw the change away "
+            + "(the game running, an unsettled cloud conflict). Last resort.",
+    };
+
+    /// <summary>
+    /// Prints what the safety check found and refuses the write unless <c>--force</c> was passed.
+    /// Runs before anything is backed up or written, so a refusal leaves the save exactly as it was.
+    /// </summary>
+    private static void RequireWritable(GamePassSaveSet set, bool force)
+    {
+        var check = set.CheckWritable();
+        foreach (var warning in check.Warnings)
+        {
+            Cli.Warn(warning.Message);
+        }
+        if (check.CanWrite) return;
+        if (force)
+        {
+            set.AllowUnsafeWrites(GamePassWriteOverride.AcceptRiskOfLosingThisSave(
+                "--force was passed on the command line"));
+            Cli.Warn($"{check.BlockingMessage()} Saving anyway because --force was passed.");
+            return;
+        }
+        throw new CliUserErrorException(
+            $"{check.BlockingMessage()} Pass --force to save anyway.");
     }
 
     // Read-only. The whole point is to be able to look at a save that is misbehaving without
@@ -34,8 +72,8 @@ internal static class GamePassCommands
     {
         var folderArg = new Argument<string>("wgs-folder") { Description = "Path to the wgs container folder." };
         var cmd = new Command("status",
-            "Show how Xbox currently sees this save: whether it has an unresolved cloud conflict, and "
-            + "what state each part of it is in. Changes nothing.");
+            "Show how Xbox currently sees this save: whether it has an unresolved cloud conflict, what "
+            + "state each part of it is in, what is running, and what spare copies exist. Changes nothing.");
         cmd.Arguments.Add(folderArg);
         cmd.SetAction(pr => Cli.Run(() =>
         {
@@ -64,6 +102,26 @@ internal static class GamePassCommands
                     + "Run 'gamepass repair' to put them back.");
             }
 
+            var scan = GamePassEnvironment.Scan();
+            Console.WriteLine();
+            Console.WriteLine(scan.Found.Count == 0
+                ? scan.Unknown
+                    ? "Running now: could not read the process list, so this is unknown."
+                    : "Running now: nothing that touches Xbox saves."
+                : $"Running now: {string.Join(", ", scan.Found.Select(p => $"{p.Name} ({p.Role})"))}");
+
+            // The same verdict every write path uses, so 'status' answers "can I edit this right
+            // now" rather than leaving the player to work it out from the fields above.
+            var check = store.CheckWritable();
+            Console.WriteLine();
+            Console.WriteLine(check.CanWrite
+                ? "Editing: nothing is blocking a change right now."
+                : "Editing: BLOCKED. Pass --force on a write command to go ahead anyway.");
+            foreach (var line in check.Lines())
+            {
+                Console.WriteLine($"  - {line}");
+            }
+
             Console.WriteLine();
             Console.WriteLine($"{"Container",-34}{"Number",-8}{"State",-10}Size");
             foreach (var c in store.Containers)
@@ -71,6 +129,188 @@ internal static class GamePassCommands
                 var state = c.HasInvalidState ? $"?{c.RawState}" : c.State.ToString();
                 Console.WriteLine($"{c.Name,-34}{c.ContainerNumber,-8}{state,-10}{c.BlobSize}");
             }
+
+            var set = GamePassSaveSet.Open(dir);
+            var backups = set.WorldBackups();
+            Console.WriteLine();
+            if (backups.Count == 0)
+            {
+                Console.WriteLine("Spare copies the game keeps: none in this save.");
+            }
+            else
+            {
+                Console.WriteLine("Spare copies the game keeps (use 'gamepass restore-backup' to put one back):");
+                foreach (var b in backups)
+                {
+                    Console.WriteLine(
+                        $"  {b.WorldName,-24}{b.BlobSize,12} bytes  last saved {b.LastSavedUtc:yyyy-MM-dd HH:mm} UTC"
+                        + (b.LiveWorldExists ? string.Empty : "  (the live world is GONE - this copy is all that is left)"));
+                }
+            }
+
+            var orphans = set.OrphanedContainers();
+            Console.WriteLine();
+            if (orphans.Count == 0)
+            {
+                Console.WriteLine("Leftover save data not in the container list: none.");
+            }
+            else
+            {
+                Console.WriteLine("Leftover save data not in the container list "
+                    + "(use 'gamepass recover-orphan' to put one back):");
+                foreach (var o in orphans)
+                {
+                    Console.WriteLine($"  {o.FolderName}  {o.WorldName ?? "unknown world",-24}{o.BlobSize,12} bytes");
+                }
+            }
+            return Cli.Ok;
+        }));
+        return cmd;
+    }
+
+    // Read-only, like 'status': a player looking for an intact copy of a broken world should be
+    // able to see what is there without anything being written on their behalf.
+    private static Command BuildBackups(Option<bool> quiet)
+    {
+        var folderArg = new Argument<string>("wgs-folder") { Description = "Path to the wgs container folder." };
+        var jsonOpt = new Option<bool>("--json") { Description = "Emit JSON." };
+        var cmd = new Command("backups",
+            "List the spare copies of each world that the game itself keeps (the '-WC-B' containers). "
+            + "Each one is a complete world, one save behind the live copy. Changes nothing.");
+        cmd.Arguments.Add(folderArg);
+        cmd.Options.Add(jsonOpt);
+        cmd.SetAction(pr => Cli.Run(() =>
+        {
+            var set = OpenSet(pr.GetValue(folderArg));
+            var backups = set.WorldBackups();
+            if (pr.GetValue(jsonOpt))
+            {
+                Cli.WriteJson(backups);
+                return Cli.Ok;
+            }
+            if (backups.Count == 0)
+            {
+                Console.WriteLine("This save has no spare copies (the game writes one per world once it has saved twice).");
+                return Cli.Ok;
+            }
+            foreach (var b in backups)
+            {
+                Console.WriteLine($"{b.WorldName,-24}{b.ContainerName,-28}{b.BlobSize,12} bytes  "
+                    + $"last saved {b.LastSavedUtc:yyyy-MM-dd HH:mm} UTC"
+                    + (b.LiveWorldExists ? string.Empty : "  (the live world is GONE)"));
+            }
+            return Cli.Ok;
+        }));
+        return cmd;
+    }
+
+    // Recovery, not editing: this throws away the live world and puts an older one in its place.
+    private static Command BuildRestoreBackup(Option<bool> quiet)
+    {
+        var folderArg = new Argument<string>("wgs-folder") { Description = "Path to the wgs container folder." };
+        var worldArg = new Argument<string>("world") { Description = "The world to restore (e.g. ForScience)." };
+        var forceOpt = ForceOption();
+        var cmd = new Command("restore-backup",
+            "Put the game's own spare copy of a world back over the live one, for a world that has "
+            + "broken. Everything since that copy was made is lost, so the whole save folder is backed "
+            + "up first. Close the game and the Xbox app.");
+        cmd.Arguments.Add(folderArg);
+        cmd.Arguments.Add(worldArg);
+        cmd.Options.Add(forceOpt);
+        cmd.SetAction(pr => Cli.Run(() =>
+        {
+            var set = OpenSet(pr.GetValue(folderArg));
+            var needle = pr.GetValue(worldArg) ?? throw new CliUserErrorException("a world name is required.");
+            var backups = set.WorldBackups();
+            var match = backups.FirstOrDefault(b =>
+                            b.WorldName.Equals(needle, StringComparison.OrdinalIgnoreCase)
+                            || b.ContainerName.Equals(needle, StringComparison.OrdinalIgnoreCase))
+                        ?? throw new CliUserErrorException(
+                            $"no spare copy for '{needle}'. Use 'gamepass backups' to see what is there.");
+
+            RequireWritable(set, pr.GetValue(forceOpt));
+            var world = set.RestoreWorldFromBackup(match.ContainerName);
+            Cli.Info(pr.GetValue(quiet),
+                $"Restored '{world}' from the copy the game saved on {match.LastSavedUtc:yyyy-MM-dd HH:mm} UTC. "
+                + "The whole save folder was backed up first (.bak next to it). Launch the game to check it loads.");
+            return Cli.Ok;
+        }));
+        return cmd;
+    }
+
+    private static Command BuildOrphans(Option<bool> quiet)
+    {
+        var folderArg = new Argument<string>("wgs-folder") { Description = "Path to the wgs container folder." };
+        var jsonOpt = new Option<bool>("--json") { Description = "Emit JSON." };
+        var cmd = new Command("orphans",
+            "List save data still on disk that the container list no longer points at - what Xbox "
+            + "leaves behind when it drops a world from a save. Changes nothing.");
+        cmd.Arguments.Add(folderArg);
+        cmd.Options.Add(jsonOpt);
+        cmd.SetAction(pr => Cli.Run(() =>
+        {
+            var folder = pr.GetValue(folderArg) ?? throw new CliUserErrorException("a wgs folder path is required.");
+            if (!GamePassSaveSet.IsGamePassFolder(folder))
+            {
+                throw new CliUserErrorException($"not a Game Pass save folder (no containers.index): {folder}");
+            }
+            var orphans = WgsContainerStore.FindOrphanedContainers(folder);
+            if (pr.GetValue(jsonOpt))
+            {
+                Cli.WriteJson(orphans);
+                return Cli.Ok;
+            }
+            if (orphans.Count == 0)
+            {
+                Console.WriteLine("Nothing left over - every folder of save data is in the container list.");
+                return Cli.Ok;
+            }
+            Console.WriteLine($"{"Folder",-36}{"Gen",-6}{"World",-24}{"Size",12}  Last written");
+            foreach (var o in orphans)
+            {
+                Console.WriteLine($"{o.FolderName,-36}{o.ContainerNumber,-6}{o.WorldName ?? "unknown",-24}{o.BlobSize,12}"
+                    + $"  {o.LastWrittenUtc:yyyy-MM-dd HH:mm} UTC");
+            }
+            Console.WriteLine();
+            Console.WriteLine("Put one back with 'gamepass recover-orphan <wgs-folder> <folder>'.");
+            return Cli.Ok;
+        }));
+        return cmd;
+    }
+
+    private static Command BuildRecoverOrphan(Option<bool> quiet)
+    {
+        var folderArg = new Argument<string>("wgs-folder") { Description = "Path to the wgs container folder." };
+        var orphanArg = new Argument<string>("folder") { Description = "The leftover folder from 'gamepass orphans' (the start of it is enough)." };
+        var nameOpt = new Option<string?>("--name")
+        {
+            Description = "The world container name to put it back as (default: the world name in the data, plus '-WC').",
+        };
+        var forceOpt = ForceOption();
+        var cmd = new Command("recover-orphan",
+            "Put leftover save data back into the container list so the game can see that world again. "
+            + "Only the list changes; the save data stays where it is. Backs up the save folder first.");
+        cmd.Arguments.Add(folderArg);
+        cmd.Arguments.Add(orphanArg);
+        cmd.Options.Add(nameOpt);
+        cmd.Options.Add(forceOpt);
+        cmd.SetAction(pr => Cli.Run(() =>
+        {
+            var set = OpenSet(pr.GetValue(folderArg));
+            var needle = pr.GetValue(orphanArg) ?? throw new CliUserErrorException("a leftover folder name is required.");
+            var orphans = set.OrphanedContainers();
+            var match = orphans.FirstOrDefault(o =>
+                            o.FolderName.Equals(needle, StringComparison.OrdinalIgnoreCase))
+                        ?? orphans.FirstOrDefault(o =>
+                            o.FolderName.StartsWith(needle, StringComparison.OrdinalIgnoreCase))
+                        ?? throw new CliUserErrorException(
+                            $"no leftover save data matching '{needle}'. Use 'gamepass orphans' to see what is there.");
+
+            RequireWritable(set, pr.GetValue(forceOpt));
+            var name = set.RecoverOrphanedWorld(match, pr.GetValue(nameOpt));
+            Cli.Info(pr.GetValue(quiet),
+                $"Put '{match.FolderName}' back as '{name}'. The save folder was backed up first (.bak next to "
+                + "it). Launch the game to check the world is there.");
             return Cli.Ok;
         }));
         return cmd;
@@ -84,12 +324,14 @@ internal static class GamePassCommands
         var folderArg = new Argument<string>("wgs-folder") { Description = "Path to the wgs container folder." };
         var memberArg = new Argument<string>("member") { Description = "The player save to re-home (e.g. Player_2533...)." };
         var idArg = new Argument<string>("new-id") { Description = "The account id to give it." };
+        var forceOpt = ForceOption();
         var cmd = new Command("rename-player",
             "Re-home a packed player save to another account id, rewriting both its name and the owner "
             + "id stored inside it (backs up the folder).");
         cmd.Arguments.Add(folderArg);
         cmd.Arguments.Add(memberArg);
         cmd.Arguments.Add(idArg);
+        cmd.Options.Add(forceOpt);
         cmd.SetAction(pr => Cli.Run(() =>
         {
             var set = OpenSet(pr.GetValue(folderArg));
@@ -99,6 +341,7 @@ internal static class GamePassCommands
                 throw new CliUserErrorException($"'{entry.FileName}' is not a player save.");
             }
             var newId = pr.GetValue(idArg) ?? throw new CliUserErrorException("a new account id is required.");
+            RequireWritable(set, pr.GetValue(forceOpt));
             var renamed = set.RenamePlayerToAccount(entry, newId);
             Cli.Info(pr.GetValue(quiet),
                 $"Re-homed {entry.FileName} -> {renamed} in '{entry.ContainerName}' "
@@ -275,16 +518,19 @@ internal static class GamePassCommands
         var folderArg = new Argument<string>("wgs-folder") { Description = "Path to the wgs container folder." };
         var memberArg = new Argument<string>("member") { Description = "Member file name to replace." };
         var inArg = new Argument<string>("in") { Description = "Edited .sav to pack back in." };
+        var forceOpt = ForceOption();
         var cmd = new Command("import", "Pack an edited .sav back into the Game Pass save (backs up the folder).");
         cmd.Arguments.Add(folderArg);
         cmd.Arguments.Add(memberArg);
         cmd.Arguments.Add(inArg);
+        cmd.Options.Add(forceOpt);
         cmd.SetAction(pr => Cli.Run(() =>
         {
             var set = OpenSet(pr.GetValue(folderArg));
             var entry = ResolveEntry(set, pr.GetValue(memberArg));
             var inPath = Cli.RequireFile(pr.GetValue(inArg), "edited save");
             var bytes = File.ReadAllBytes(inPath);
+            RequireWritable(set, pr.GetValue(forceOpt));
             set.WriteSave(entry, bytes);
             Cli.Info(pr.GetValue(quiet),
                 $"Imported {Path.GetFileName(inPath)} -> {entry.FileName} in '{entry.ContainerName}' "

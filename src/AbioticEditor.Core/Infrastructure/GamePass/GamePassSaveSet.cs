@@ -55,6 +55,32 @@ public sealed class GamePassSaveEntry
 public sealed record GamePassContainerFault(string ContainerName, string Message);
 
 /// <summary>
+/// The game's own spare copy of a world: the <c>&lt;World&gt;-WC-B</c> container that sits beside
+/// every <c>&lt;World&gt;-WC</c> in a Game Pass save.
+/// </summary>
+/// <remarks>
+/// Confirmed against a real 8-container Xbox save: the <c>-WC-B</c> container is a complete world
+/// bundle, not a fragment. It held all 70 members of its live twin (every region save, the
+/// metadata, all nine player saves and the world's <c>SandboxSettings.ini</c>) under the same world
+/// name, at an earlier generation - container.113 against container.170, with a slightly smaller
+/// Facility region. So it is a full, loadable rolling backup one generation behind, which is
+/// exactly what a player whose world has broken needs and could not previously see.
+/// </remarks>
+/// <param name="ContainerName">The backup container, e.g. <c>ForScience-WC-B</c>.</param>
+/// <param name="WorldName">The world it is a backup of, e.g. <c>ForScience</c>.</param>
+/// <param name="LiveContainerName">The world container it would be restored over.</param>
+/// <param name="LiveWorldExists">False when the live world is gone and only this copy remains.</param>
+/// <param name="BlobSize">Size of the packed backup in bytes.</param>
+/// <param name="LastSavedUtc">When the game last refreshed this backup.</param>
+public sealed record GamePassWorldBackup(
+    string ContainerName,
+    string WorldName,
+    string LiveContainerName,
+    bool LiveWorldExists,
+    long BlobSize,
+    DateTime LastSavedUtc);
+
+/// <summary>
 /// High-level view of one Xbox "wgs" folder for Abiotic Factor: it surfaces the world/player saves
 /// packed inside each world container (<c>&lt;World&gt;-WC</c>) as virtual <c>.sav</c> files, hands
 /// the existing readers reconstructed GVAS bytes, and writes edits back through the bundle + wgs
@@ -118,6 +144,21 @@ public sealed class GamePassSaveSet
     public IReadOnlyList<string> InvalidStateContainers => _store.InvalidStateContainers;
 
     /// <summary>
+    /// Everything known about whether an edit written now would survive: Xbox's own conflict flag,
+    /// container states, and whether the game or the Xbox app is running. Callers that intend to
+    /// save should ask first, so the player is warned before they do the work rather than after.
+    /// </summary>
+    public GamePassWriteCheck CheckWritable() => _store.CheckWritable();
+
+    /// <summary>
+    /// Records that the player has been shown what <see cref="CheckWritable"/> found and wants to
+    /// save anyway. Applies to this open save only.
+    /// </summary>
+    /// <param name="acknowledgement">The accepted risk (see <see cref="GamePassWriteOverride"/>).</param>
+    public void AllowUnsafeWrites(GamePassWriteOverride acknowledgement)
+        => _store.AllowUnsafeWrites(acknowledgement);
+
+    /// <summary>
     /// Permanently repairs the mid-sync inconsistency (see <see cref="IsMidSync"/>) by pointing each
     /// recovered container's manifest at the blob that exists on disk. Backs up the whole wgs folder
     /// once first. After this, <see cref="IsMidSync"/> is false and the save reopens cleanly. Returns
@@ -142,35 +183,43 @@ public sealed class GamePassSaveSet
         _faults.Clear();
         foreach (var container in _store.Containers)
         {
-            // World bundles are the "-WC" containers; "-WC-B" are backups, others are profile/settings.
-            if (!container.Name.EndsWith("-WC", StringComparison.OrdinalIgnoreCase)) continue;
+            // World bundles are the "-WC" containers; "-WC-B" are the game's own backups (see
+            // WorldBackups), others are profile/settings.
+            if (!container.Name.EndsWith(WorldSuffix, StringComparison.OrdinalIgnoreCase)) continue;
 
-            AbfSaveBundle bundle;
             try
             {
-                bundle = LoadBundle(container.Name);
+                entries.AddRange(EntriesForContainer(container.Name));
             }
             catch (Exception ex)
             {
                 Diagnostics.EditorLog.Warn("GamePass", $"Could not read bundle '{container.Name}': {ex.Message}");
                 _faults.Add(new GamePassContainerFault(container.Name, ex.Message));
-                continue;
-            }
-
-            var world = container.Name[..^"-WC".Length];
-            foreach (var m in bundle.Members)
-            {
-                entries.Add(new GamePassSaveEntry
-                {
-                    ContainerName = container.Name,
-                    WorldName = world,
-                    MemberPath = m.Path,
-                    SaveClass = m.SaveClass,
-                    Kind = KindOf(m),
-                });
             }
         }
         return entries;
+    }
+
+    /// <summary>
+    /// The saves packed in one container, whether it is a live world or one of the game's own
+    /// backups (<see cref="WorldBackups"/>). Unlike <see cref="Entries"/> a failure here is thrown
+    /// rather than recorded as a fault, because a caller naming a single container needs the reason
+    /// it could not be opened, not an empty list.
+    /// </summary>
+    /// <param name="containerName">The wgs logical container, e.g. <c>ForScience-WC</c>.</param>
+    public IReadOnlyList<GamePassSaveEntry> EntriesForContainer(string containerName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(containerName);
+        var bundle = LoadBundle(containerName);
+        var world = WorldNameOf(containerName);
+        return bundle.Members.Select(m => new GamePassSaveEntry
+        {
+            ContainerName = containerName,
+            WorldName = world,
+            MemberPath = m.Path,
+            SaveClass = m.SaveClass,
+            Kind = KindOf(m),
+        }).ToList();
     }
 
     /// <summary>Reconstructs a full GVAS save the editor can parse for the given entry.</summary>
@@ -187,6 +236,9 @@ public sealed class GamePassSaveSet
     public void WriteSave(GamePassSaveEntry entry, byte[] editedGvas)
     {
         ArgumentNullException.ThrowIfNull(editedGvas);
+        // Ask before backing anything up: a refused save must leave the folder untouched, not
+        // scatter a snapshot of it for a write that never happened.
+        _store.EnsureWritable();
         BackupOnce();
         Member(entry).Body = GamePassMemberCodec.ToMemberBody(entry.SaveClass, editedGvas);
         Repack(entry.ContainerName);
@@ -196,13 +248,15 @@ public sealed class GamePassSaveSet
     /// Extracts every editable save in <paramref name="containerName"/> to <paramref name="destDir"/>
     /// as loose <c>.sav</c> files in the normal world layout (<c>WorldSave_*.sav</c> at the top,
     /// <c>PlayerData/Player_*.sav</c> underneath) so the standard folder editor can open them.
-    /// Returns the world name.
+    /// Returns the world name. Works for one of the game's own backup containers
+    /// (<see cref="WorldBackups"/>) too, which is how a player gets an intact copy of a broken
+    /// world out without restoring over anything.
     /// </summary>
     public string ExtractWorld(string containerName, string destDir)
     {
         Directory.CreateDirectory(destDir);
         string world = containerName;
-        foreach (var entry in Entries().Where(e => e.ContainerName.Equals(containerName, StringComparison.OrdinalIgnoreCase) && e.TravelsWithWorld))
+        foreach (var entry in EntriesForContainer(containerName).Where(e => e.TravelsWithWorld))
         {
             world = entry.WorldName;
             var path = ResolveMemberPath(entry, destDir);
@@ -242,11 +296,10 @@ public sealed class GamePassSaveSet
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(containerName);
         ArgumentException.ThrowIfNullOrWhiteSpace(srcDir);
+        _store.EnsureWritable();
         BackupOnce();
 
-        var members = Entries()
-            .Where(e => e.ContainerName.Equals(containerName, StringComparison.OrdinalIgnoreCase) && e.TravelsWithWorld)
-            .ToList();
+        var members = EntriesForContainer(containerName).Where(e => e.TravelsWithWorld).ToList();
 
         var changed = 0;
         var missing = new List<string>();
@@ -326,6 +379,7 @@ public sealed class GamePassSaveSet
     /// <returns>True when a member was renamed and the container rewritten.</returns>
     public bool RenamePlayerSave(string containerName, string oldFileName, string newFileName)
     {
+        _store.EnsureWritable();
         if (!StagePlayerRename(containerName, oldFileName, newFileName)) return false;
         BackupOnce();
         Repack(containerName);
@@ -353,6 +407,7 @@ public sealed class GamePassSaveSet
                 $"'{newAccountId}' is not a valid account id (use letters, digits, '-', '_' or '.').",
                 nameof(newAccountId));
         }
+        _store.EnsureWritable();
 
         var newFileName = $"Player_{newAccountId}.sav";
         var member = Member(entry);
@@ -441,6 +496,137 @@ public sealed class GamePassSaveSet
                ?? throw new InvalidOperationException($"Member '{entry.MemberPath}' not found.");
     }
 
+    private const string WorldSuffix = "-WC";
+    private const string BackupSuffix = "-WC-B";
+
+    /// <summary>
+    /// The game's own spare copies of the worlds in this folder (the <c>-WC-B</c> containers).
+    ///
+    /// <para>These are kept separate from <see cref="Entries"/> on purpose. A backup holds the same
+    /// world under the same name one generation back, so folding the two together would leave a
+    /// player unable to tell which copy they were editing, which is a worse problem than not seeing
+    /// the backup at all. Restore one deliberately with <see cref="RestoreWorldFromBackup"/>.</para>
+    /// </summary>
+    public IReadOnlyList<GamePassWorldBackup> WorldBackups()
+    {
+        var live = new HashSet<string>(
+            _store.Containers.Select(c => c.Name), StringComparer.OrdinalIgnoreCase);
+        var backups = new List<GamePassWorldBackup>();
+        foreach (var container in _store.Containers)
+        {
+            if (!container.Name.EndsWith(BackupSuffix, StringComparison.OrdinalIgnoreCase)) continue;
+            var world = container.Name[..^BackupSuffix.Length];
+            var liveName = world + WorldSuffix;
+            backups.Add(new GamePassWorldBackup(
+                container.Name,
+                world,
+                liveName,
+                live.Contains(liveName),
+                container.BlobSize,
+                SafeFileTime(container.FileTime)));
+        }
+        return backups;
+    }
+
+    /// <summary>
+    /// Copies the game's own backup of a world over the live world container, so a world that has
+    /// broken can be put back to the copy the game itself kept.
+    ///
+    /// <para>A recovery action, never part of a normal save: the live world's current contents are
+    /// replaced wholesale by an older generation, and everything that happened since is gone. The
+    /// whole wgs folder is backed up first (the <c>.bak</c> beside it), so the state being replaced
+    /// is still recoverable afterwards.</para>
+    /// </summary>
+    /// <param name="backupContainerName">A container from <see cref="WorldBackups"/>, e.g. <c>ForScience-WC-B</c>.</param>
+    /// <returns>The world that was restored.</returns>
+    /// <exception cref="InvalidOperationException">No such backup container.</exception>
+    /// <exception cref="InvalidDataException">The backup does not hold a world.</exception>
+    public string RestoreWorldFromBackup(string backupContainerName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(backupContainerName);
+        if (!backupContainerName.EndsWith(BackupSuffix, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"'{backupContainerName}' is not one of the game's backup copies (those end in '-WC-B').");
+        }
+        var backup = _store.Find(backupContainerName)
+            ?? throw new InvalidOperationException(
+                $"This save has no backup copy called '{backupContainerName}'.");
+        _store.EnsureWritable();
+
+        var blob = _store.ReadBlob(backup);
+        // Check before anything is written: restoring bytes that are not a world would replace a
+        // damaged world with one the game cannot open at all.
+        if (!AbfSaveBundle.LooksLikeBundle(blob))
+        {
+            throw new InvalidDataException(
+                $"The backup copy '{backupContainerName}' does not hold a world, so it cannot be restored.");
+        }
+
+        var world = backupContainerName[..^BackupSuffix.Length];
+        var liveName = world + WorldSuffix;
+        BackupOnce();
+        if (_store.Find(liveName) is { } liveContainer)
+        {
+            _store.WriteBlob(liveContainer, blob);
+        }
+        else
+        {
+            // The live world is gone from the index entirely, which is the case where this backup is
+            // the only copy left. Adding it back is the whole point.
+            _store.AddOrReplaceContainer(liveName, blob);
+        }
+        // The old contents are what any cached bundle still holds, and a save made from that cache
+        // would put the broken world straight back.
+        _bundles.Remove(liveName);
+        Diagnostics.EditorLog.Info("GamePass",
+            $"Restored '{liveName}' from the game's backup copy '{backupContainerName}' ({blob.Length} bytes).");
+        return world;
+    }
+
+    /// <summary>
+    /// Save data in this folder that the container list no longer points at - a world Xbox cloud
+    /// sync dropped from the index while leaving it on disk. See
+    /// <see cref="WgsContainerStore.FindOrphanedContainers"/>.
+    /// </summary>
+    public IReadOnlyList<WgsOrphanedContainer> OrphanedContainers() => _store.OrphanedContainers();
+
+    /// <summary>
+    /// Puts one leftover folder back into the container list so the game can see that world again.
+    /// Backs up the whole wgs folder first. Only the container list changes: the save data stays
+    /// exactly where it already is.
+    /// </summary>
+    /// <param name="orphan">One of the entries from <see cref="OrphanedContainers"/>.</param>
+    /// <param name="containerName">The name to put it back under (default: the orphan's suggestion).</param>
+    /// <returns>The name it was registered under.</returns>
+    public string RecoverOrphanedWorld(WgsOrphanedContainer orphan, string? containerName = null)
+    {
+        ArgumentNullException.ThrowIfNull(orphan);
+        _store.EnsureWritable();
+        BackupOnce();
+        return _store.ReRegisterOrphan(orphan, containerName).Name;
+    }
+
+    /// <summary>The world a container holds, with the world or backup suffix taken off.</summary>
+    private static string WorldNameOf(string containerName)
+    {
+        if (containerName.EndsWith(BackupSuffix, StringComparison.OrdinalIgnoreCase))
+        {
+            return containerName[..^BackupSuffix.Length];
+        }
+        return containerName.EndsWith(WorldSuffix, StringComparison.OrdinalIgnoreCase)
+            ? containerName[..^WorldSuffix.Length]
+            : containerName;
+    }
+
+    /// <summary>A container's FILETIME as a date, tolerating the out-of-range values a damaged
+    /// index can carry rather than throwing while listing what is in a folder.</summary>
+    private static DateTime SafeFileTime(long fileTime)
+    {
+        try { return DateTime.FromFileTimeUtc(fileTime); }
+        catch (ArgumentOutOfRangeException) { return DateTime.MinValue; }
+    }
+
     private const string ProfileCustomizationPrefix = "ProfileScientistCustomization_";
 
     /// <summary>
@@ -478,6 +664,7 @@ public sealed class GamePassSaveSet
     /// </summary>
     public void WriteProfileCustomization(int slot, byte[] gvasBytes)
     {
+        _store.EnsureWritable();
         BackupOnce();
         var name = $"{ProfileCustomizationPrefix}{slot}";
         var container = _store.Find(name)
