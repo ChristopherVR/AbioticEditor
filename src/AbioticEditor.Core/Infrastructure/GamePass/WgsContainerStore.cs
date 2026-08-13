@@ -710,6 +710,49 @@ public sealed class WgsContainerStore
     /// fallback and the "mid-sync" warning stops. It only repairs the pointer, never the save data.
     /// Returns the container names repaired. Call with the game and Xbox app closed.
     /// </summary>
+    /// <summary>
+    /// The containers <see cref="RepairRecoveredManifests"/> would actually change, without
+    /// changing anything. Reads the index and checks which blobs are on disk; it never
+    /// decompresses, so it is cheap enough to run before a save is opened.
+    /// </summary>
+    /// <remarks>
+    /// Offering a repair is only honest when there is something to repair. Asking the question and
+    /// then reporting that nothing was fixed teaches people to distrust the prompt, and some of the
+    /// things that make a save look unwell here (an unresolved cloud conflict, most of all) are not
+    /// something this editor can put right at all.
+    /// </remarks>
+    public IReadOnlyList<string> ContainersNeedingRepair()
+    {
+        var needing = new List<string>();
+        foreach (var container in _containers)
+        {
+            if (NeedsStateRepair(container)) { needing.Add(container.Name); continue; }
+
+            var folder = Path.Combine(_root, container.FolderName);
+            try
+            {
+                var (current, previous) = ReadManifestBlobGuids(folder, container.ContainerNumber);
+                if (File.Exists(Path.Combine(folder, current.ToString("N").ToUpperInvariant()))) continue;
+                if (previous != current
+                    && File.Exists(Path.Combine(folder, previous.ToString("N").ToUpperInvariant())))
+                {
+                    needing.Add(container.Name);
+                    continue;
+                }
+                if (FindFallbackBlob(folder, current, container.BlobSize) is not null) needing.Add(container.Name);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+            {
+                // An unreadable manifest is not something repair can mend either, so it is not
+                // reported as repairable.
+            }
+        }
+        return needing;
+    }
+
+    private static bool NeedsStateRepair(WgsContainer c)
+        => c.HasInvalidState || c.State == WgsEntryState.Deleted || c.StateContradictsEtag;
+
     public IReadOnlyList<string> RepairRecoveredManifests()
     {
         var repaired = new List<string>();
@@ -722,8 +765,7 @@ public sealed class WgsContainerStore
         // one the service and the game are entitled to ignore - which is what a save that "stopped
         // loading after editing" looks like from the outside. Modified is the honest description of
         // a container this editor has written and Xbox has not yet taken.
-        foreach (var container in _containers.Where(
-                     c => c.HasInvalidState || c.State == WgsEntryState.Deleted || c.StateContradictsEtag))
+        foreach (var container in _containers.Where(NeedsStateRepair))
         {
             // Whether the container has an ETag decides what it is allowed to say about itself:
             // with one it is a known cloud item that has changed locally, without one it has never

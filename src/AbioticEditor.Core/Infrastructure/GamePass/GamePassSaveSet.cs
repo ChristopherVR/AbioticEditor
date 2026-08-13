@@ -120,6 +120,30 @@ public sealed class GamePassSaveSet
     public static bool IsGamePassFolder(string folder) => WgsContainerStore.IsContainerFolder(folder);
 
     /// <summary>
+    /// The parts of the save at <paramref name="folder"/> that a repair would actually put right,
+    /// answered without opening the world. Empty when there is nothing to repair.
+    /// </summary>
+    /// <remarks>
+    /// Cheap on purpose: it reads the container list and checks which data files are present, and
+    /// never unpacks a world. That is what lets a host ask the question BEFORE it opens a save,
+    /// which is the only time the answer is any use. Asking afterwards leaves the player looking at
+    /// a world that is already open, being offered the choice of opening it.
+    /// </remarks>
+    public static IReadOnlyList<string> PartsNeedingRepair(string folder)
+    {
+        try
+        {
+            return WgsContainerStore.Open(folder).ContainersNeedingRepair();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            // A folder this editor cannot even read the container list of is not one it can offer
+            // to repair; opening it will report the real problem.
+            return Array.Empty<string>();
+        }
+    }
+
+    /// <summary>
     /// True when opening/reading this save had to recover a container from a sibling blob because the
     /// one its manifest referenced was missing - a reliable sign Xbox cloud sync has not finished. In
     /// this state the save reads fine but writing risks Xbox discarding the edit, so the host should
@@ -264,7 +288,13 @@ public sealed class GamePassSaveSet
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             if (entry.Kind == GamePassSaveKind.SandboxSettings)
             {
-                File.WriteAllText(path, GamePassMemberCodec.DecodeIniText(Member(entry).Body));
+                // A world that has never had its difficulty settings changed carries an empty
+                // settings member, and writing that out produces a nought-byte file the editor then
+                // offers as something to open. Someone clicking it sees a blank screen and no
+                // explanation. Better to leave the file out: no settings were stored, so there is
+                // nothing to show, and a later save writes the member back untouched either way.
+                var ini = GamePassMemberCodec.DecodeIniText(Member(entry).Body);
+                if (ini.Length > 0) File.WriteAllText(path, ini);
                 continue;
             }
             File.WriteAllBytes(path, ReadSave(entry));

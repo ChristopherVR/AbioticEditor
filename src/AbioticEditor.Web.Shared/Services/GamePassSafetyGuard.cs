@@ -56,7 +56,7 @@ public sealed class GamePassSafetyGuard(
 
         if (_cloudSyncWarningShown)
         {
-            return OpenThenExplainAsync(open);
+            return OfferRepairThenOpenAsync(folder!, open);
         }
 
         _cloudSyncWarningShown = true;
@@ -64,15 +64,60 @@ public sealed class GamePassSafetyGuard(
             language.Resource("Main_GpCloudSyncWarningTitle"),
             Paragraphs(language.Resource("Main_GpCloudSyncWarningMessage")),
             ConfirmText: language.Resource("Main_GpCloudSyncWarningContinue"),
-            OnConfirm: () => OpenThenExplainAsync(open),
+            OnConfirm: () => OfferRepairThenOpenAsync(folder!, open),
             CancelText: language.Resource("Common_Cancel")));
         return Task.CompletedTask;
     }
 
-    private async Task OpenThenExplainAsync(Func<Task> open)
+    /// <summary>
+    /// Asks about a repair before the world opens, and only when there is something to repair.
+    /// </summary>
+    /// <remarks>
+    /// Both halves of that matter. Asking afterwards left the player looking at an open world while
+    /// being offered the choice of opening it, and asking when nothing was wrong ended in "fixed 0
+    /// saves", which is how a prompt teaches people to click past it. The check reads the container
+    /// list and looks for the data files; it never unpacks a world, so it is quick enough to happen
+    /// before the open rather than after.
+    /// </remarks>
+    private Task OfferRepairThenOpenAsync(string folder, Func<Task> open)
     {
+        IReadOnlyList<string> repairable;
+        try
+        {
+            repairable = GamePassSaveSet.PartsNeedingRepair(folder);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return open();
+        }
+
+        if (repairable.Count == 0) return open();
+
+        EditorLog.Warn("GamePass",
+            $"'{folder}' has {repairable.Count} part(s) a repair would put right: {string.Join(", ", repairable)}");
+        modals.Show(new ModalRequest(
+            language.Resource("Main_GpMidSyncTitle"),
+            Paragraphs(language.Resource("Main_GpMidSyncMessage", repairable.Count)),
+            ConfirmText: language.Resource("Main_GpMidSyncRepair"),
+            OnConfirm: () => RepairThenOpenAsync(folder, open),
+            CancelText: language.Resource("Main_GpMidSyncSkip"),
+            OnCancel: open));
+        return Task.CompletedTask;
+    }
+
+    private async Task RepairThenOpenAsync(string folder, Func<Task> open)
+    {
+        try
+        {
+            var repaired = await Task.Run(() => GamePassSaveSet.Open(folder).RepairMidSync()).ConfigureAwait(false);
+            toasts.Show(language.Resource("Main_GpMidSyncRepaired", repaired.Count), ToastKind.Success);
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("GamePass", "Repairing a Game Pass save failed", ex);
+            toasts.Show(language.Resource("Main_GpRepairFailed"), ToastKind.Error);
+        }
         await open().ConfigureAwait(false);
-        ExplainSaveState();
     }
 
     /// <summary>

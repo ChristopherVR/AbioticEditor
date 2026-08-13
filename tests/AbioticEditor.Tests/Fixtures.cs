@@ -57,6 +57,30 @@ internal static class Fixtures
     /// </summary>
     public static string? GamePassWgsDir { get; } = LocateGamePassWgs();
 
+    /// <summary>
+    /// Every live world-folder copy of <paramref name="fileName"/> under <see cref="ClientSavedDir"/>
+    /// (i.e. under a <c>Worlds/</c> segment, never a Backups copy), in a stable ordinal order.
+    /// </summary>
+    /// <remarks>
+    /// Directory enumeration order is the filesystem's business, not .NET's: NTFS returns names
+    /// already sorted, ext4 returns them in hash order. The client fixture holds more than one world
+    /// and they do not all contain the same structures, so an unsorted "first match" silently picks
+    /// a different world on Linux than on Windows - which is how CI once failed on tests that were
+    /// green on every developer machine. Callers get a fixed order and pick deliberately.
+    /// </remarks>
+    public static IReadOnlyList<string> ClientWorldSaves(string fileName)
+    {
+        var root = ClientSavedDir;
+        if (root is null || !Directory.Exists(root))
+        {
+            return [];
+        }
+        return Directory.EnumerateFiles(root, fileName, SearchOption.AllDirectories)
+            .Where(p => p.Replace('\\', '/').Contains("/Worlds/", StringComparison.Ordinal))
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+    }
+
     /// <summary>Walks up from the test binary looking for <c>tests/fixtures</c> (or <c>fixtures</c>).</summary>
     private static IEnumerable<string> FixtureRoots()
     {

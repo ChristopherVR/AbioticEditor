@@ -1,6 +1,5 @@
 using System.IO;
 using System.Linq;
-using AbioticEditor.Core.WorldSaves;
 using AbioticEditor.Core.WorldSaves.Features;
 using UeSaveGame;
 
@@ -9,21 +8,12 @@ namespace AbioticEditor.Tests.Features;
 /// <summary>
 /// Covers the cross-feature additions: numbered display names (no raw GUID labels), the wiki
 /// image catalog, teleporter pad link summaries, and entry removal (a new write path). Tests that
-/// need a region save use the ClientSaved Facility fixture and skip gracefully when it's absent.
+/// need a region save use the built-up Facility fixture picked by <see cref="FacilityFixture"/>,
+/// and skip when that fixture is absent from the checkout.
 /// </summary>
 public sealed class FeatureMapExtrasTests
 {
-    private static SaveGame? LoadFacility()
-    {
-        var root = Fixtures.ClientSavedDir;
-        if (root is null || !Directory.Exists(root))
-        {
-            return null;
-        }
-        var path = Directory.EnumerateFiles(root, "WorldSave_Facility.sav", SearchOption.AllDirectories)
-            .FirstOrDefault(p => p.Replace('\\', '/').Contains("/Worlds/"));
-        return path is not null && File.Exists(path) ? WorldSaveReader.ReadFromFile(path).Raw : null;
-    }
+    private static SaveGame LoadFacility() => FacilityFixture.Load();
 
     // ---------- display names ----------
 
@@ -35,39 +25,25 @@ public sealed class FeatureMapExtrasTests
         Assert.Equal("World Teleporters", portals!.DisplayName);
     }
 
-    [Fact]
+    [SkippableFact]
     public void Power_sockets_get_numbered_labels_not_guids()
     {
         var save = LoadFacility();
-        if (save is null)
-        {
-            return;
-        }
         var feature = WorldMapFeatures.Find("power-sockets")!;
         var entries = feature.Read(save);
-        if (entries.Count == 0)
-        {
-            return; // this region carries no sockets
-        }
+        Assert.NotEmpty(entries);
         // The label is a friendly "Power Socket N", never the raw GUID key.
         Assert.StartsWith("Power Socket 1", entries[0].Label, System.StringComparison.Ordinal);
         Assert.All(entries, e => Assert.DoesNotContain(e.Key, e.Label));
     }
 
-    [Fact]
+    [SkippableFact]
     public void Teleporter_pads_expose_a_link_summary_field()
     {
         var save = LoadFacility();
-        if (save is null)
-        {
-            return;
-        }
         var feature = WorldMapFeatures.Find("teleporter-pads")!;
         var pads = feature.Read(save);
-        if (pads.Count == 0)
-        {
-            return;
-        }
+        Assert.NotEmpty(pads);
         var linked = pads[0].Fields.Single(f => f.Id == "linkedWith");
         Assert.False(linked.Editable);
         Assert.False(string.IsNullOrWhiteSpace(linked.Value));
@@ -117,20 +93,13 @@ public sealed class FeatureMapExtrasTests
         Assert.False(WorldMapFeatures.Find("server-entitlements")!.SupportsRemoval);
     }
 
-    [Fact]
+    [SkippableFact]
     public void Remove_drops_a_power_socket_entry_and_round_trips()
     {
         var save = LoadFacility();
-        if (save is null)
-        {
-            return;
-        }
         var feature = WorldMapFeatures.Find("power-sockets")!;
         var before = feature.Read(save);
-        if (before.Count == 0)
-        {
-            return;
-        }
+        Assert.NotEmpty(before);
         var key = before[0].Key;
 
         var result = feature.Remove(save, key);
@@ -151,21 +120,15 @@ public sealed class FeatureMapExtrasTests
         Assert.DoesNotContain(persisted, e => e.Key == key);
     }
 
-    [Fact]
+    [SkippableFact]
     public void Remove_rejects_unknown_key_and_unsupported_feature()
     {
         var save = LoadFacility();
-        if (save is null)
-        {
-            return;
-        }
         Assert.True(WorldMapFeatures.Find("power-sockets")!.Remove(save, "no-such-key").IsError);
         // Teleporter pads opt out of removal entirely.
         var pads = WorldMapFeatures.Find("teleporter-pads")!;
         var padList = pads.Read(save);
-        if (padList.Count > 0)
-        {
-            Assert.True(pads.Remove(save, padList[0].Key).IsError);
-        }
+        Assert.NotEmpty(padList);
+        Assert.True(pads.Remove(save, padList[0].Key).IsError);
     }
 }

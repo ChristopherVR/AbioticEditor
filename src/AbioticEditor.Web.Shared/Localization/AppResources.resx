@@ -1686,21 +1686,19 @@ If you save while online, or pick "download from cloud" at the prompt, the cloud
     <value>I understand, open it</value>
   </data>
   <data name="Main_GpMidSyncTitle" xml:space="preserve">
-    <value>This save needs a quick repair</value>
+    <value>Tidy up this save first?</value>
   </data>
   <data name="Main_GpMidSyncMessage" xml:space="preserve">
-    <value>This Game Pass save is looking for a piece of data that is not there, left over from an Xbox sync that never finished. The editor found the real one and used that, which is why the warning keeps coming back. It can tidy this up now so the save is whole again.
-
-IMPORTANT: because that sync never finished, tidying up (and anything you edit afterwards) writes into the Xbox sync folder while it is still in that state, and that is exactly what makes Xbox drop a save later. First fully close Abiotic Factor and the Xbox app. Then go offline (Wi-Fi off or airplane mode) and stay offline through your edits and your save. Only go back online after you have launched the game once offline, loaded the save and saved in game. That makes your version the one Xbox keeps. Either way, the whole save folder is backed up first.</value>
+    <value>Part of this save describes itself wrongly, which is enough for the game to skip past it. The editor can put that right before opening it. Your whole save folder is copied to a backup first.</value>
   </data>
   <data name="Main_GpMidSyncRepair" xml:space="preserve">
-    <value>Repair now</value>
+    <value>Tidy up and open</value>
   </data>
   <data name="Main_GpMidSyncSkip" xml:space="preserve">
-    <value>Just open it</value>
+    <value>Open without tidying</value>
   </data>
   <data name="Main_GpMidSyncRepaired" xml:space="preserve">
-    <value>Fixed {0} save(s), so this one is whole again. Stay offline until you have launched the game once and saved, or Xbox may still throw the change away.</value>
+    <value>Tidied up {0} part(s) of this save.</value>
   </data>
   <data name="Main_GpPacking" xml:space="preserve">
     <value>Writing "{0}" back into your Xbox saves…</value>
@@ -3812,86 +3810,5 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   </data>
   <data name="Main_GpNotWritableFix" xml:space="preserve">
     <value>Sort that out and press SAVE as normal. If you would rather not wait, SAVE will offer to write it anyway.</value>
-  </data>
-  <data name="Main_GpRecoveryTitle" xml:space="preserve">
-    <value>Rescue a world</value>
-  </data>
-  <data name="Main_GpBackupsHeading" xml:space="preserve">
-    <value>Spare copies the game keeps</value>
-  </data>
-  <data name="Main_GpBackupsHint" xml:space="preserve">
-    <value>Abiotic Factor quietly keeps one spare copy of each world. It is always one save behind, so anything you did in your most recent session is not in it.</value>
-  </data>
-  <data name="Main_GpBackupMeta" xml:space="preserve">
-    <value>{0}, kept {1}</value>
-  </data>
-  <data name="Main_GpBackupOnlyCopy" xml:space="preserve">
-    <value>The live world is gone. This spare copy is all that is left of it.</value>
-  </data>
-  <data name="Main_GpRestoreBackup" xml:space="preserve">
-    <value>Put this copy back</value>
-  </data>
-  <data name="Main_GpRestoreTitle" xml:space="preserve">
-    <value>Put the spare copy of {0} back?</value>
-  </data>
-  <data name="Main_GpRestoreMessage" xml:space="preserve">
-    <value>This replaces {0} with the spare copy the game kept.</value>
-  </data>
-  <data name="Main_GpRestoreBehind" xml:space="preserve">
-    <value>That copy is one save behind, so whatever happened in your most recent session goes away with it. That is the trade.</value>
-  </data>
-  <data name="Main_GpRestoreBackedUp" xml:space="preserve">
-    <value>Your whole save folder is copied first, so you can still get today's version back if you change your mind.</value>
-  </data>
-  <data name="Main_GpRestoreConfirm" xml:space="preserve">
-    <value>Put it back</value>
-  </data>
-  <data name="Main_GpRestored" xml:space="preserve">
-    <value>{0} is back to the game's spare copy. Remember it is one save behind.</value>
-  </data>
-  <data name="Main_GpRestoreFailed" xml:space="preserve">
-    <value>That copy could not be put back.</value>
-  </data>
-  <data name="Main_GpOrphansHeading" xml:space="preserve">
-    <value>Worlds Xbox lost track of</value>
-  </data>
-  <data name="Main_GpOrphansHint" xml:space="preserve">
-    <value>This world is still on your computer, but Xbox dropped it off its list, so the game cannot see it any more. Putting it back only fixes the list; the world itself is left exactly as it is.</value>
-  </data>
-  <data name="Main_GpOrphanMeta" xml:space="preserve">
-    <value>{0}, last written {1}</value>
-  </data>
-  <data name="Main_GpOrphanNameTaken" xml:space="preserve">
-    <value>You already have a world by this name, so this is an older copy of that one rather than a world you are missing.</value>
-  </data>
-  <data name="Main_GpOrphanUnknownWorld" xml:space="preserve">
-    <value>This one does not say which world it is, so the editor cannot put it back on its own.</value>
-  </data>
-  <data name="Main_GpRecoverOrphan" xml:space="preserve">
-    <value>Put this world back</value>
-  </data>
-  <data name="Main_GpRecoverTitle" xml:space="preserve">
-    <value>Put {0} back on the list?</value>
-  </data>
-  <data name="Main_GpRecoverMessage" xml:space="preserve">
-    <value>This puts {0} back where the game can see it, and opens it here so you can check it is the one you were missing.</value>
-  </data>
-  <data name="Main_GpRecoverBackedUp" xml:space="preserve">
-    <value>Only the list of worlds changes. The world itself is left where it is, and your whole save folder is copied first.</value>
-  </data>
-  <data name="Main_GpRecoverConfirm" xml:space="preserve">
-    <value>Put it back</value>
-  </data>
-  <data name="Main_GpRecovered" xml:space="preserve">
-    <value>{0} is back on the list, so it will be in the game's load menu again.</value>
-  </data>
-  <data name="Main_GpRecoverFailed" xml:space="preserve">
-    <value>That world could not be put back.</value>
-  </data>
-  <data name="Main_GpUnknownWorld" xml:space="preserve">
-    <value>Unnamed save data</value>
-  </data>
-  <data name="Main_GpWhenUnknown" xml:space="preserve">
-    <value>date unknown</value>
   </data>
 </root>

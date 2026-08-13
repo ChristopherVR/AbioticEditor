@@ -1,5 +1,4 @@
 using System.IO;
-using AbioticEditor.Core.WorldSaves;
 using AbioticEditor.Core.WorldSaves.Features;
 using UeSaveGame;
 
@@ -7,27 +6,19 @@ namespace AbioticEditor.Tests.Features;
 
 /// <summary>
 /// Tests for the Teleporter Pad tag editor. The placed pads live in the (newer) ClientSaved
-/// fixture's Facility region save; tests skip gracefully when it's absent. Also unit-tests the
-/// tag↔frequency catalog, whose ordering is verified against real save values.
+/// fixture's Facility region save; tests skip when that fixture is absent from the checkout. Also
+/// unit-tests the tag↔frequency catalog, whose ordering is verified against real save values.
 /// </summary>
 public sealed class TeleporterPadFeatureTests
 {
-    private static string? FacilityPath()
-    {
-        var root = Fixtures.ClientSavedDir;
-        if (root is null || !Directory.Exists(root))
-        {
-            return null;
-        }
-        // The live world save (not a Backups copy).
-        return Directory.EnumerateFiles(root, "WorldSave_Facility.sav", SearchOption.AllDirectories)
-            .FirstOrDefault(p => p.Replace('\\', '/').Contains("/Worlds/"));
-    }
+    private static SaveGame LoadFacility() => FacilityFixture.Load();
 
-    private static SaveGame? LoadFacility()
+    /// <summary>The pads a test edits, asserted non-empty so a broken read reports itself.</summary>
+    private static IReadOnlyList<WorldMapEntry> ReadPads(IWorldMapFeature feature, SaveGame save)
     {
-        var path = FacilityPath();
-        return path is not null && File.Exists(path) ? WorldSaveReader.ReadFromFile(path).Raw : null;
+        var pads = feature.Read(save);
+        Assert.True(pads.Count > 0, $"{FacilityFixture.Path} reported no teleporter pads");
+        return pads;
     }
 
     // ---------- catalog ----------
@@ -73,33 +64,23 @@ public sealed class TeleporterPadFeatureTests
 
     // ---------- feature ----------
 
-    [Fact]
+    [SkippableFact]
     public void Feature_is_discovered_and_applies_to_facility_with_pads()
     {
         var feature = WorldMapFeatures.Find("teleporter-pads");
         Assert.NotNull(feature);
         Assert.Equal("DeployedObjectMap", feature!.MapName);
 
-        var save = LoadFacility();
-        if (save is null)
-        {
-            return;
-        }
-        Assert.True(feature.AppliesTo(save));
+        Assert.True(feature.AppliesTo(LoadFacility()));
     }
 
-    [Fact]
+    [SkippableFact]
     public void Read_returns_pads_with_tag_and_frequency_fields()
     {
         var save = LoadFacility();
-        if (save is null)
-        {
-            return;
-        }
         var feature = WorldMapFeatures.Find("teleporter-pads")!;
-        var pads = feature.Read(save);
+        var pads = ReadPads(feature, save);
 
-        Assert.NotEmpty(pads);
         var entry = pads[0];
         var tag = entry.Fields.Single(f => f.Id == "tag");
         Assert.Equal(WorldFieldKind.Enum, tag.Kind);
@@ -118,16 +99,12 @@ public sealed class TeleporterPadFeatureTests
         });
     }
 
-    [Fact]
+    [SkippableFact]
     public void SetField_tag_changes_frequency_and_round_trips()
     {
         var save = LoadFacility();
-        if (save is null)
-        {
-            return;
-        }
         var feature = WorldMapFeatures.Find("teleporter-pads")!;
-        var key = feature.Read(save)[0].Key;
+        var key = ReadPads(feature, save)[0].Key;
 
         var result = feature.SetField(save, key, "tag", "Alpha");
         Assert.True(result.Changed);
@@ -147,32 +124,24 @@ public sealed class TeleporterPadFeatureTests
         Assert.Equal("Alpha", persisted.Fields.Single(f => f.Id == "tag").Value);
     }
 
-    [Fact]
+    [SkippableFact]
     public void SetField_frequency_sets_named_tag()
     {
         var save = LoadFacility();
-        if (save is null)
-        {
-            return;
-        }
         var feature = WorldMapFeatures.Find("teleporter-pads")!;
-        var key = feature.Read(save)[0].Key;
+        var key = ReadPads(feature, save)[0].Key;
 
         Assert.True(feature.SetField(save, key, "frequency", "34").Changed);
         var entry = feature.Read(save).Single(e => e.Key == key);
         Assert.Equal("The Reactors", entry.Fields.Single(f => f.Id == "tag").Value);
     }
 
-    [Fact]
+    [SkippableFact]
     public void SetField_rejects_bad_tag_frequency_field_and_entry()
     {
         var save = LoadFacility();
-        if (save is null)
-        {
-            return;
-        }
         var feature = WorldMapFeatures.Find("teleporter-pads")!;
-        var key = feature.Read(save)[0].Key;
+        var key = ReadPads(feature, save)[0].Key;
 
         Assert.True(feature.SetField(save, key, "tag", "Nonexistent Tag").IsError);
         Assert.True(feature.SetField(save, key, "frequency", "-1").IsError); // negative
@@ -181,16 +150,12 @@ public sealed class TeleporterPadFeatureTests
         Assert.True(feature.SetField(save, "no-such-pad", "tag", "Alpha").IsError);
     }
 
-    [Fact]
+    [SkippableFact]
     public void SetField_accepts_future_frequency_and_shows_it_as_unknown()
     {
         var save = LoadFacility();
-        if (save is null)
-        {
-            return;
-        }
         var feature = WorldMapFeatures.Find("teleporter-pads")!;
-        var key = feature.Read(save)[0].Key;
+        var key = ReadPads(feature, save)[0].Key;
 
         // A value beyond the known 133 (a hypothetical DLC tag) is allowed, not rejected.
         var result = feature.SetField(save, key, "frequency", "200");

@@ -1395,21 +1395,19 @@
     <value>Понятно, открыть</value>
   </data>
   <data name="Main_GpMidSyncTitle" xml:space="preserve">
-    <value>Этому сохранению нужен быстрый ремонт</value>
+    <value>Сначала привести сохранение в порядок?</value>
   </data>
   <data name="Main_GpMidSyncMessage" xml:space="preserve">
-    <value>Это сохранение Game Pass ищет данные, которых нет на месте: они остались от синхронизации с Xbox, которая не завершилась. Редактор нашёл настоящие данные и взял их, поэтому предупреждение и появляется снова и снова. Он может привести всё в порядок прямо сейчас, чтобы сохранение опять стало целым.
-
-ВАЖНО: раз та синхронизация не завершилась, наведение порядка (и всё, что вы измените после) запишется в папку синхронизации Xbox, пока она всё ещё в таком состоянии, а именно из-за этого Xbox позже может выбросить сохранение. Сначала полностью закройте Abiotic Factor и приложение Xbox. Затем отключитесь от интернета (Wi-Fi выключен или режим полёта) и оставайтесь офлайн, пока вносите изменения и сохраняете. Возвращайтесь в сеть только после того, как офлайн один раз запустите игру, загрузите сохранение и сохранитесь в игре. Тогда Xbox оставит именно вашу версию. В любом случае перед этим создаётся резервная копия всей папки с сохранением.</value>
+    <value>Часть этого сохранения описывает себя неверно, и этого достаточно, чтобы игра его пропустила. Редактор может исправить это перед открытием. Сначала создаётся копия всей папки сохранения.</value>
   </data>
   <data name="Main_GpMidSyncRepair" xml:space="preserve">
-    <value>Починить сейчас</value>
+    <value>Исправить и открыть</value>
   </data>
   <data name="Main_GpMidSyncSkip" xml:space="preserve">
-    <value>Просто открыть</value>
+    <value>Открыть без исправления</value>
   </data>
   <data name="Main_GpMidSyncRepaired" xml:space="preserve">
-    <value>Исправлено сохранений: {0}, теперь это снова целое. Оставайтесь офлайн, пока не запустите игру один раз и не сохранитесь, иначе Xbox всё ещё может выбросить изменение.</value>
+    <value>Исправлено частей сохранения: {0}.</value>
   </data>
   <data name="Main_GpPacking" xml:space="preserve">
     <value>Записываем «{0}» обратно в ваши сохранения Xbox…</value>
@@ -3498,86 +3496,5 @@
   </data>
   <data name="Main_GpNotWritableFix" xml:space="preserve">
     <value>Разберитесь с этим и нажмите СОХРАНИТЬ как обычно. Если ждать не хочется, СОХРАНИТЬ предложит записать всё равно.</value>
-  </data>
-  <data name="Main_GpRecoveryTitle" xml:space="preserve">
-    <value>Спасти мир</value>
-  </data>
-  <data name="Main_GpBackupsHeading" xml:space="preserve">
-    <value>Запасные копии, которые хранит игра</value>
-  </data>
-  <data name="Main_GpBackupsHint" xml:space="preserve">
-    <value>Abiotic Factor тихо хранит по одной запасной копии каждого мира. Она всегда на одно сохранение позади, так что всего из вашей последней сессии в ней нет.</value>
-  </data>
-  <data name="Main_GpBackupMeta" xml:space="preserve">
-    <value>{0}, сохранена {1}</value>
-  </data>
-  <data name="Main_GpBackupOnlyCopy" xml:space="preserve">
-    <value>Основного мира больше нет. Эта запасная копия - всё, что от него осталось.</value>
-  </data>
-  <data name="Main_GpRestoreBackup" xml:space="preserve">
-    <value>Вернуть эту копию</value>
-  </data>
-  <data name="Main_GpRestoreTitle" xml:space="preserve">
-    <value>Вернуть запасную копию мира {0}?</value>
-  </data>
-  <data name="Main_GpRestoreMessage" xml:space="preserve">
-    <value>Это заменит {0} запасной копией, которую сохранила игра.</value>
-  </data>
-  <data name="Main_GpRestoreBehind" xml:space="preserve">
-    <value>Эта копия на одно сохранение позади, поэтому всё из вашей последней сессии пропадёт вместе с ней. Такова цена.</value>
-  </data>
-  <data name="Main_GpRestoreBackedUp" xml:space="preserve">
-    <value>Вся папка сохранений копируется заранее, так что сегодняшнюю версию можно будет вернуть, если передумаете.</value>
-  </data>
-  <data name="Main_GpRestoreConfirm" xml:space="preserve">
-    <value>Вернуть</value>
-  </data>
-  <data name="Main_GpRestored" xml:space="preserve">
-    <value>{0} вернулся к запасной копии игры. Помните: она на одно сохранение позади.</value>
-  </data>
-  <data name="Main_GpRestoreFailed" xml:space="preserve">
-    <value>Эту копию вернуть не удалось.</value>
-  </data>
-  <data name="Main_GpOrphansHeading" xml:space="preserve">
-    <value>Миры, которые Xbox потерял из виду</value>
-  </data>
-  <data name="Main_GpOrphansHint" xml:space="preserve">
-    <value>Этот мир всё ещё на вашем компьютере, но Xbox убрал его из своего списка, и игра его больше не видит. Возврат исправляет только список; сам мир остаётся точно таким, какой он есть.</value>
-  </data>
-  <data name="Main_GpOrphanMeta" xml:space="preserve">
-    <value>{0}, последняя запись {1}</value>
-  </data>
-  <data name="Main_GpOrphanNameTaken" xml:space="preserve">
-    <value>Мир с таким именем у вас уже есть, значит это его более старая копия, а не пропавший мир.</value>
-  </data>
-  <data name="Main_GpOrphanUnknownWorld" xml:space="preserve">
-    <value>Здесь не указано, какой это мир, поэтому редактор не может вернуть его сам.</value>
-  </data>
-  <data name="Main_GpRecoverOrphan" xml:space="preserve">
-    <value>Вернуть этот мир</value>
-  </data>
-  <data name="Main_GpRecoverTitle" xml:space="preserve">
-    <value>Вернуть {0} в список?</value>
-  </data>
-  <data name="Main_GpRecoverMessage" xml:space="preserve">
-    <value>Это вернёт {0} туда, где игра его видит, и откроет здесь, чтобы вы убедились, что это тот самый.</value>
-  </data>
-  <data name="Main_GpRecoverBackedUp" xml:space="preserve">
-    <value>Меняется только список миров. Сам мир остаётся на месте, а вся папка сохранений копируется заранее.</value>
-  </data>
-  <data name="Main_GpRecoverConfirm" xml:space="preserve">
-    <value>Вернуть</value>
-  </data>
-  <data name="Main_GpRecovered" xml:space="preserve">
-    <value>{0} снова в списке, значит он опять появится в меню загрузки игры.</value>
-  </data>
-  <data name="Main_GpRecoverFailed" xml:space="preserve">
-    <value>Этот мир вернуть не удалось.</value>
-  </data>
-  <data name="Main_GpUnknownWorld" xml:space="preserve">
-    <value>Безымянные данные сохранения</value>
-  </data>
-  <data name="Main_GpWhenUnknown" xml:space="preserve">
-    <value>дата неизвестна</value>
   </data>
 </root>

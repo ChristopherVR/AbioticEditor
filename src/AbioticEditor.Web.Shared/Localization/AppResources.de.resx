@@ -1395,21 +1395,19 @@ Wenn du online speicherst oder bei der Abfrage "aus der Cloud herunterladen" wä
     <value>Verstanden, öffnen</value>
   </data>
   <data name="Main_GpMidSyncTitle" xml:space="preserve">
-    <value>Dieser Spielstand muss kurz repariert werden</value>
+    <value>Diesen Spielstand zuerst in Ordnung bringen?</value>
   </data>
   <data name="Main_GpMidSyncMessage" xml:space="preserve">
-    <value>Dieser Game-Pass-Spielstand sucht nach einem Datenstück, das nicht da ist, ein Überbleibsel einer nie beendeten Xbox-Synchronisierung. Der Editor hat das echte gefunden und verwendet, deshalb kommt die Warnung immer wieder. Er kann das jetzt in Ordnung bringen, damit der Spielstand wieder vollständig ist.
-
-WICHTIG: Weil diese Synchronisierung nie fertig wurde, schreibt das Aufräumen (und alles, was Sie danach bearbeiten) in den Xbox-Synchronisierungsordner, während er noch in diesem Zustand ist, und genau das führt dazu, dass Xbox einen Spielstand später verwirft. Schließen Sie zuerst Abiotic Factor und die Xbox-App vollständig. Gehen Sie dann offline (WLAN aus oder Flugmodus) und bleiben Sie während Ihrer Änderungen und beim Speichern offline. Gehen Sie erst wieder online, nachdem Sie das Spiel einmal offline gestartet, den Spielstand geladen und im Spiel gespeichert haben. So wird Ihre Fassung die, die Xbox behält. In jedem Fall wird zuerst der gesamte Spielstandordner gesichert.</value>
+    <value>Ein Teil dieses Spielstands beschreibt sich selbst falsch, und das reicht, damit das Spiel ihn überspringt. Der Editor kann das vor dem Öffnen richtigstellen. Dein ganzer Spielstandordner wird vorher gesichert.</value>
   </data>
   <data name="Main_GpMidSyncRepair" xml:space="preserve">
-    <value>Jetzt reparieren</value>
+    <value>In Ordnung bringen und öffnen</value>
   </data>
   <data name="Main_GpMidSyncSkip" xml:space="preserve">
-    <value>Einfach öffnen</value>
+    <value>Ohne Aufräumen öffnen</value>
   </data>
   <data name="Main_GpMidSyncRepaired" xml:space="preserve">
-    <value>{0} Spielstand/Spielstände repariert, dieser ist wieder vollständig. Bleiben Sie offline, bis Sie das Spiel einmal gestartet und gespeichert haben, sonst verwirft Xbox die Änderung möglicherweise doch noch.</value>
+    <value>{0} Teil(e) dieses Spielstands in Ordnung gebracht.</value>
   </data>
   <data name="Main_GpPacking" xml:space="preserve">
     <value>"{0}" wird zurück in Ihre Xbox-Spielstände geschrieben…</value>
@@ -3498,86 +3496,5 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   </data>
   <data name="Main_GpNotWritableFix" xml:space="preserve">
     <value>Kläre das, und drücke dann wie gewohnt auf SPEICHERN. Wenn du nicht warten willst, bietet SPEICHERN an, es trotzdem zu schreiben.</value>
-  </data>
-  <data name="Main_GpRecoveryTitle" xml:space="preserve">
-    <value>Welt retten</value>
-  </data>
-  <data name="Main_GpBackupsHeading" xml:space="preserve">
-    <value>Ersatzkopien, die das Spiel behält</value>
-  </data>
-  <data name="Main_GpBackupsHint" xml:space="preserve">
-    <value>Abiotic Factor behält still und leise eine Ersatzkopie jeder Welt. Sie ist immer einen Spielstand älter, alles aus deiner letzten Sitzung fehlt darin also.</value>
-  </data>
-  <data name="Main_GpBackupMeta" xml:space="preserve">
-    <value>{0}, gesichert {1}</value>
-  </data>
-  <data name="Main_GpBackupOnlyCopy" xml:space="preserve">
-    <value>Die eigentliche Welt ist weg. Diese Ersatzkopie ist alles, was von ihr übrig ist.</value>
-  </data>
-  <data name="Main_GpRestoreBackup" xml:space="preserve">
-    <value>Diese Kopie zurückholen</value>
-  </data>
-  <data name="Main_GpRestoreTitle" xml:space="preserve">
-    <value>Ersatzkopie von {0} zurückholen?</value>
-  </data>
-  <data name="Main_GpRestoreMessage" xml:space="preserve">
-    <value>Damit wird {0} durch die Ersatzkopie ersetzt, die das Spiel behalten hat.</value>
-  </data>
-  <data name="Main_GpRestoreBehind" xml:space="preserve">
-    <value>Diese Kopie ist einen Spielstand älter, alles aus deiner letzten Sitzung geht damit verloren. Das ist der Preis.</value>
-  </data>
-  <data name="Main_GpRestoreBackedUp" xml:space="preserve">
-    <value>Dein ganzer Spielstand-Ordner wird vorher kopiert, du kommst also weiter an die heutige Fassung heran, falls du es dir anders überlegst.</value>
-  </data>
-  <data name="Main_GpRestoreConfirm" xml:space="preserve">
-    <value>Zurückholen</value>
-  </data>
-  <data name="Main_GpRestored" xml:space="preserve">
-    <value>{0} steht wieder auf der Ersatzkopie des Spiels. Denk daran: sie ist einen Spielstand älter.</value>
-  </data>
-  <data name="Main_GpRestoreFailed" xml:space="preserve">
-    <value>Diese Kopie konnte nicht zurückgeholt werden.</value>
-  </data>
-  <data name="Main_GpOrphansHeading" xml:space="preserve">
-    <value>Welten, die Xbox aus den Augen verloren hat</value>
-  </data>
-  <data name="Main_GpOrphansHint" xml:space="preserve">
-    <value>Diese Welt liegt noch auf deinem Rechner, aber Xbox hat sie von seiner Liste gestrichen, das Spiel sieht sie also nicht mehr. Das Zurückholen bringt nur die Liste in Ordnung; die Welt selbst bleibt genau so, wie sie ist.</value>
-  </data>
-  <data name="Main_GpOrphanMeta" xml:space="preserve">
-    <value>{0}, zuletzt geschrieben {1}</value>
-  </data>
-  <data name="Main_GpOrphanNameTaken" xml:space="preserve">
-    <value>Du hast bereits eine Welt mit diesem Namen, das hier ist also eine ältere Kopie davon und keine fehlende Welt.</value>
-  </data>
-  <data name="Main_GpOrphanUnknownWorld" xml:space="preserve">
-    <value>Hier steht nicht, um welche Welt es geht, der Editor kann sie deshalb nicht von allein zurückholen.</value>
-  </data>
-  <data name="Main_GpRecoverOrphan" xml:space="preserve">
-    <value>Diese Welt zurückholen</value>
-  </data>
-  <data name="Main_GpRecoverTitle" xml:space="preserve">
-    <value>{0} wieder auf die Liste setzen?</value>
-  </data>
-  <data name="Main_GpRecoverMessage" xml:space="preserve">
-    <value>Damit kommt {0} dorthin zurück, wo das Spiel sie sieht, und wird hier geöffnet, damit du prüfen kannst, ob es die vermisste ist.</value>
-  </data>
-  <data name="Main_GpRecoverBackedUp" xml:space="preserve">
-    <value>Es ändert sich nur die Liste der Welten. Die Welt selbst bleibt liegen, wo sie ist, und dein ganzer Spielstand-Ordner wird vorher kopiert.</value>
-  </data>
-  <data name="Main_GpRecoverConfirm" xml:space="preserve">
-    <value>Zurückholen</value>
-  </data>
-  <data name="Main_GpRecovered" xml:space="preserve">
-    <value>{0} steht wieder auf der Liste und taucht damit auch wieder im Lademenü des Spiels auf.</value>
-  </data>
-  <data name="Main_GpRecoverFailed" xml:space="preserve">
-    <value>Diese Welt konnte nicht zurückgeholt werden.</value>
-  </data>
-  <data name="Main_GpUnknownWorld" xml:space="preserve">
-    <value>Namenlose Spielstanddaten</value>
-  </data>
-  <data name="Main_GpWhenUnknown" xml:space="preserve">
-    <value>Datum unbekannt</value>
   </data>
 </root>
