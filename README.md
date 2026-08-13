@@ -38,6 +38,8 @@ kit, and a save inspector rolled into one. It's handy if you want to:
   unlock a recipe, or hand yourself an item you're missing.
 - 🛠️ **Run or fix a dedicated server**: edit any player's save, adjust world state, change
   difficulty in `SandboxSettings.ini`, or move a save to a new Steam account.
+- 🔄 **Move a world between Game Pass and Steam**: convert a save between the two, in either
+  direction, and hand a character to a different account while you're at it.
 - ↩️ **Undo a mistake**: recover from a bad decision, un-kill an NPC, refill a harvested
   node, or compare a broken save against a backup to see exactly what changed.
 - 🔍 **Just look**: see what the game actually records, with every value labelled.

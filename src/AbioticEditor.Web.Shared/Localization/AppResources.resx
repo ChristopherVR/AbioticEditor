@@ -2095,7 +2095,7 @@ This writes to the save straight away and reloads the editor, so anything you ha
     <value>Careful: the character in this world will not be yours on the other platform. The game will start you with a brand new character, and the one you have played all this time will sit in the folder where you cannot reach it.</value>
   </data>
   <data name="Settings_ConvertOrphanCharacterFix" xml:space="preserve">
-    <value>To keep playing the same character, put your account in the box above (pick one from the list, or type it) and convert with it.</value>
+    <value>To keep playing the same character, put your account in the box below and convert with it.</value>
   </data>
   <data name="Settings_ConvertWithAccount" xml:space="preserve">
     <value>CONVERT WITH THIS ACCOUNT</value>
@@ -2167,6 +2167,39 @@ Your original was not changed. Verify it loads in-game before relying on it.</va
   </data>
   <data name="Settings_SaveConversionHint" xml:space="preserve">
     <value>Move a world between Steam and Game Pass. The world itself is identical either way, only the packaging changes. The converted copy is written next to the folder you pick, so your original is untouched.</value>
+  </data>
+  <data name="Settings_ConvertStepSourceTitle" xml:space="preserve">
+    <value>CONVERT A SAVE</value>
+  </data>
+  <data name="Settings_ConvertStepSourceDesc" xml:space="preserve">
+    <value>Pick the platform the save is on right now.</value>
+  </data>
+  <data name="Settings_ConvertStepDestinationTitle" xml:space="preserve">
+    <value>ACCOUNT &amp; DESTINATION</value>
+  </data>
+  <data name="Settings_ConvertStepDestinationDesc" xml:space="preserve">
+    <value>Steam and Game Pass are the only two platforms this converts between, so the one you didn't pick is where this is headed.</value>
+  </data>
+  <data name="Settings_ConvertTargetLabel" xml:space="preserve">
+    <value>CONVERTING TO</value>
+  </data>
+  <data name="Settings_ConvertStepWorldTitle" xml:space="preserve">
+    <value>PICK THE WORLD</value>
+  </data>
+  <data name="Settings_ConvertStepPlayerTitle" xml:space="preserve">
+    <value>WHO ARE YOU CONVERTING?</value>
+  </data>
+  <data name="Settings_ConvertStepDoneTitle" xml:space="preserve">
+    <value>RESULT</value>
+  </data>
+  <data name="Settings_ConvertStartOver" xml:space="preserve">
+    <value>START OVER</value>
+  </data>
+  <data name="Settings_ConvertAnotherSave" xml:space="preserve">
+    <value>CONVERT ANOTHER SAVE</value>
+  </data>
+  <data name="Settings_ConvertNext" xml:space="preserve">
+    <value>NEXT</value>
   </data>
   <data name="Settings_InstalledVersion" xml:space="preserve">
     <value>Installed version: {0}.</value>
