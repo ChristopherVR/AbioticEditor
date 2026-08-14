@@ -400,6 +400,7 @@ h1[tabindex="-1"]:focus{outline:none}
 .settings-tab-embedded>.hero{display:none}
 .settings-tab-embedded>.settings-card,.settings-tab-embedded>.compare-card,.settings-tab-embedded>.compare-results{margin:0 0 14px!important}
 .gamepass-card input,.gamepass-card select{box-sizing:border-box;width:100%}.gamepass-card .conversion-action{display:block;margin-top:14px}.gamepass-card .conversion-hint{margin:5px 0 0!important}
+.conversion-nav-row{display:flex;gap:8px;margin-top:8px}
 /* One row per character in the world, so a co-op group can give each of their characters its own
    destination account instead of the conversion being limited to claiming a single one. */
 .conversion-player-row{display:grid;grid-template-columns:minmax(90px,1fr) 2fr;align-items:center;gap:8px;margin-top:10px}

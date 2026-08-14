@@ -16,13 +16,13 @@
     @if (_step != ConvertStep.PickSave)
     {
         <p class="conversion-hint"><span class="platform-badge @PlatformClass(DestinationPlatform)">@R("Settings_ConvertTargetLabel")</span> <strong>@Languages.PlatformLabel(DestinationPlatform)</strong></p>
-        <button class="secondary conversion-action" type="button" @onclick="ResetWizard" disabled="@_busy">
-            @R("Settings_ConvertStartOver")
-        </button>
-    }
-    @if (_step is ConvertStep.ChooseWorld or ConvertStep.ChoosePlayer)
-    {
-        <button class="secondary conversion-action" type="button" @onclick="Back" disabled="@_busy">@R("CreateWorld_Back")</button>
+        <div class="conversion-nav-row">
+            @if (_step is ConvertStep.ChooseWorld or ConvertStep.ChoosePlayer)
+            {
+                <button class="secondary" type="button" @onclick="Back" disabled="@_busy">@R("CreateWorld_Back")</button>
+            }
+            <button class="secondary" type="button" @onclick="ResetWizard" disabled="@_busy">@R("Settings_ConvertStartOver")</button>
+        </div>
     }
 
     @if (_step == ConvertStep.PickSave)
