@@ -125,10 +125,13 @@ public sealed class CustomizationSaveSession
     /// <summary>
     /// Locates the Xbox wgs container folder an open workspace came from, so a Game Pass
     /// world edited as loose files can still reach its account-level appearance containers.
-    /// The conversion flow writes the loose copy beside the container folder as
-    /// <c>&lt;wgs&gt;-Steam</c>, so that sibling is probed first; a working copy that lives
-    /// inside the wgs folder itself is found through its ancestors. Read-only and
-    /// best-effort: returns null when nothing nearby is a wgs container folder.
+    /// The conversion flow leaves a marker naming its source (see
+    /// <see cref="GamePassConverter.SourceMarkerFileName"/>), which works no matter where the
+    /// converted copy was written; a copy converted before the marker existed - always named
+    /// <c>&lt;wgs&gt;-Steam</c> beside its source back then - is still found through that old
+    /// naming, and a working copy that lives inside the wgs folder itself is found through its
+    /// ancestors. Read-only and best-effort: returns null when nothing nearby is a wgs
+    /// container folder.
     /// </summary>
     public static string? TryLocateGamePassStore(string? workspaceFolder)
     {
@@ -136,6 +139,9 @@ public sealed class CustomizationSaveSession
         try
         {
             var full = System.IO.Path.TrimEndingDirectorySeparator(System.IO.Path.GetFullPath(workspaceFolder));
+
+            if (GamePassConverter.TryReadSourceMarker(full) is { } marked) return marked;
+
             const string convertedSuffix = "-Steam";
             if (full.EndsWith(convertedSuffix, StringComparison.OrdinalIgnoreCase))
             {

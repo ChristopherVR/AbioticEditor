@@ -88,13 +88,16 @@ public sealed class CustomizationSaveSessionTests
         Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
         var scratch = Directory.CreateTempSubdirectory("abiotic-gp-locate-");
         var wgs = Path.Combine(scratch.FullName, "Fixture");
+        string? converted = null;
         try
         {
             CopyDirectory(fixture, wgs);
-            var converted = SaveConversionService.Convert(SaveConversionDirection.ToSteam, wgs, playerAccountId: null);
+            converted = SaveConversionService.Convert(SaveConversionDirection.ToSteam, wgs, playerAccountId: null);
 
-            // The loose copy the workspace opens sits beside the container folder as
-            // "<wgs>-Steam"; appearance editing must find its way back to the containers.
+            // The converted copy is written to the normal Steam save location, not necessarily
+            // beside the source, so appearance editing has to find its way back to the wgs
+            // containers through the marker the conversion leaves rather than the copy's own
+            // name or location.
             Assert.Equal(wgs, CustomizationSaveSession.TryLocateGamePassStore(converted));
 
             // This fixture ships no profile customization container: the editor must land in
@@ -105,7 +108,13 @@ public sealed class CustomizationSaveSessionTests
             if (Fixtures.CascadeDir is not null)
                 Assert.Null(CustomizationSaveSession.TryLocateGamePassStore(Fixtures.CascadeDir));
         }
-        finally { scratch.Delete(recursive: true); }
+        finally
+        {
+            scratch.Delete(recursive: true);
+            // Unlike wgs, the converted copy is not under scratch - it lands in the real Steam
+            // save location, same as a genuine conversion would - so it needs its own cleanup.
+            if (converted is not null && Directory.Exists(converted)) Directory.Delete(converted, recursive: true);
+        }
     }
 
     private static void CopyDirectory(string source, string destination)

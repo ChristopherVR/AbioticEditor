@@ -1,6 +1,7 @@
 using AbioticEditor.Core.GamePass;
 using AbioticEditor.Core.PlayerSaves;
 using AbioticEditor.Core.Saves;
+using AbioticEditor.Core.Steam;
 
 namespace AbioticEditor.Web.Services;
 
@@ -67,20 +68,90 @@ public static class SaveConversionService
             : SaveConversionIdWarning.None;
     }
 
-    public static string DestinationFor(SaveConversionDirection direction, string sourceFolder)
+    /// <summary>
+    /// Where a conversion writes its output. <paramref name="containerName"/>, when known, names
+    /// the specific world being converted (used only for the Game Pass -&gt; Steam direction, to
+    /// name the destination folder); pass null to let it be worked out from the source.
+    /// </summary>
+    public static string DestinationFor(
+        SaveConversionDirection direction, string sourceFolder, string? containerName = null)
     {
-        var source = Path.GetFullPath(sourceFolder).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        var baseName = source + (direction == SaveConversionDirection.ToGamePass ? "-GamePass" : "-Steam");
+        if (direction == SaveConversionDirection.ToGamePass)
+        {
+            // A Steam world folder already lives somewhere normal and writable, so the Game
+            // Pass copy goes right beside it - easy to find, and obviously paired with its
+            // source.
+            var source = Path.GetFullPath(sourceFolder).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            return UniqueFolder(source + "-GamePass");
+        }
 
-        // Never hand back a folder that already holds something. Converting twice used to aim at
-        // the same path both times, so the second run wrote a world on top of the first one's.
+        // A Game Pass source lives inside the Xbox app's own virtualized package folder
+        // (...\Packages\<publisher>\SystemAppData\wgs\...). Writing "beside it" - the rule
+        // above, and this direction's rule until this was reported - buried the converted
+        // Steam world inside that Xbox package folder instead of anywhere a player, or the
+        // game, would think to look. A Steam world belongs in the same place a new one would
+        // be created.
+        var worldName = WorldNameFor(sourceFolder, containerName);
+        return UniqueFolder(Path.Combine(DefaultSteamSaveRoot(), worldName));
+    }
+
+    /// <summary>The name a converted Steam world's destination folder should have: the world's
+    /// own name (its container, minus the "-WC" suffix that means nothing to a player) when it
+    /// can be determined, or the source folder's own name otherwise.</summary>
+    private static string WorldNameFor(string sourceFolder, string? containerName)
+    {
+        var container = containerName;
+        if (container is null)
+        {
+            try
+            {
+                var containers = GamePassConverter.ListWorldContainers(sourceFolder);
+                container = containers.Count > 0 ? containers[0] : null;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
+                                                  or InvalidDataException or InvalidOperationException)
+            {
+                container = null;
+            }
+        }
+        if (container is not null)
+        {
+            return container.EndsWith("-WC", StringComparison.OrdinalIgnoreCase) ? container[..^3] : container;
+        }
+        return Path.GetFileName(Path.TrimEndingDirectorySeparator(Path.GetFullPath(sourceFolder)));
+    }
+
+    /// <summary>The folder a newly converted (or newly created) Steam world belongs under: the
+    /// first known Steam account's Worlds folder, or the platform's base SaveGames folder when no
+    /// account is known yet. Mirrors where the "create a new world" flow puts a fresh Steam
+    /// world, so a converted one ends up findable the same way.</summary>
+    private static string DefaultSteamSaveRoot()
+    {
+        var accounts = SteamPersonaIndex.LoadMachineAccounts();
+        if (accounts.Count > 0)
+        {
+            var candidate = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "AbioticFactor", "Saved", "SaveGames", accounts.Keys.First(), "Worlds");
+            if (Directory.Exists(candidate)) return candidate;
+        }
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "AbioticFactor", "Saved", "SaveGames");
+    }
+
+    /// <summary>Never hands back a folder that already holds something. Converting twice used to
+    /// aim at the same path both times, so the second run wrote a world on top of the first
+    /// one's.</summary>
+    private static string UniqueFolder(string baseName)
+    {
         if (!Exists(baseName)) return baseName;
         for (var n = 2; n < 1000; n++)
         {
             var candidate = $"{baseName}-{n}";
             if (!Exists(candidate)) return candidate;
         }
-        throw new InvalidOperationException($"Could not find an unused folder name next to '{source}'.");
+        throw new InvalidOperationException($"Could not find an unused folder name near '{baseName}'.");
     }
 
     private static bool Exists(string folder)
@@ -146,7 +217,7 @@ public static class SaveConversionService
         if (validation != SaveConversionSourceValidation.Valid)
             throw new InvalidOperationException(validation.ToString());
 
-        var destination = DestinationFor(direction, sourceFolder);
+        var destination = DestinationFor(direction, sourceFolder, containerName);
         return direction == SaveConversionDirection.ToGamePass
             ? GamePassConverter.SteamWorldToGamePass(
                 sourceFolder, destination, worldName: null, newPlayerId: playerAccountId,

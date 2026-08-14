@@ -150,6 +150,50 @@ public static class GamePassConverter
     private const string SandboxSettingsFileName = "SandboxSettings.ini";
 
     /// <summary>
+    /// The file a Game Pass -&gt; Steam conversion leaves behind naming the wgs folder it came
+    /// from, so appearance editing can still reach the account-level customization containers
+    /// that live only in the Game Pass container, never in the extracted loose files. This used
+    /// to be inferred from the destination's own name and location (a fixed "&lt;wgs&gt;-Steam"
+    /// sibling of the source), which broke once the destination stopped always being that -
+    /// a marker records the real source directly instead of relying on where the copy happens
+    /// to live.
+    /// </summary>
+    public const string SourceMarkerFileName = ".abiotic-gamepass-source";
+
+    private static void WriteSourceMarker(string destSteamDir, string wgsDir)
+    {
+        try
+        {
+            File.WriteAllText(
+                Path.Combine(destSteamDir, SourceMarkerFileName),
+                Path.GetFullPath(wgsDir));
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            // Best-effort only: appearance editing falls back to walking the folder's ancestors
+            // when this cannot be written, so a locked-down destination still converts fine.
+            Diagnostics.EditorLog.Warn("GamePass", $"Could not record the Game Pass source next to '{destSteamDir}': {exception.Message}");
+        }
+    }
+
+    /// <summary>Reads back what <see cref="WriteSourceMarker"/> recorded, if anything and if it
+    /// still points at a real Game Pass folder. Read-only and best-effort.</summary>
+    public static string? TryReadSourceMarker(string steamWorldDir)
+    {
+        try
+        {
+            var markerPath = Path.Combine(steamWorldDir, SourceMarkerFileName);
+            if (!File.Exists(markerPath)) return null;
+            var recorded = File.ReadAllText(markerPath).Trim();
+            return recorded.Length > 0 && GamePassSaveSet.IsGamePassFolder(recorded) ? recorded : null;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
     /// The "nothing readable in this folder" error. A Game Pass world bundle is compressed with
     /// Oodle, which the editor borrows from the installed game or downloads once, so a folder can
     /// also look empty simply because that library could not be obtained. Saying "no world
@@ -215,6 +259,7 @@ public static class GamePassConverter
         var rehomeMap = ResolveRehomeMap(playerIds, newPlayerId, sourcePlayerId, rehomes);
 
         set.ExtractWorld(container, destSteamDir);
+        WriteSourceMarker(destSteamDir, wgsDir);
 
         foreach (var (oldPlayerId, newPlayerIdValue) in rehomeMap)
         {

@@ -144,13 +144,32 @@ public sealed class SaveConversionServiceTests
         SaveConversionDirection direction, SavePlatform expected)
         => Assert.Equal(expected, SaveConversionService.DestinationPlatform(direction));
 
-    [SkippableTheory]
-    [InlineData(SaveConversionDirection.ToGamePass, "-GamePass")]
-    [InlineData(SaveConversionDirection.ToSteam, "-Steam")]
-    public void Writes_the_converted_copy_beside_the_selected_folder(SaveConversionDirection direction, string suffix)
+    [Fact]
+    public void Writes_a_GamePass_conversion_beside_the_selected_Steam_folder()
     {
+        // A Steam world folder already lives somewhere normal, so the Game Pass copy goes right
+        // beside it.
         var source = Path.Combine(Path.GetTempPath(), "AbioticEditor conversion source");
-        Assert.Equal(Path.GetFullPath(source) + suffix, SaveConversionService.DestinationFor(direction, source));
+        Assert.Equal(
+            Path.GetFullPath(source) + "-GamePass",
+            SaveConversionService.DestinationFor(SaveConversionDirection.ToGamePass, source));
+    }
+
+    [Fact]
+    public void Writes_a_Steam_conversion_to_the_normal_save_location_not_inside_the_Xbox_package_folder()
+    {
+        // The reported bug: a Game Pass source lives inside the Xbox app's own virtualized
+        // package folder, and writing "beside it" buried the converted Steam world in there too -
+        // nowhere the game, or the player, would ever look for a Steam save.
+        var source = Path.Combine(
+            Path.GetTempPath(), "Packages", "PlayStack.AbioticFactor_3wcqaesafpzy",
+            "SystemAppData", "wgs", "0009_00000000");
+        var destination = SaveConversionService.DestinationFor(SaveConversionDirection.ToSteam, source, "MyWorld-WC");
+
+        Assert.Equal("MyWorld", Path.GetFileName(destination));
+        Assert.Contains(Path.Combine("AbioticFactor", "Saved", "SaveGames"), destination);
+        Assert.DoesNotContain("Packages", destination, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("wgs", destination, StringComparison.OrdinalIgnoreCase);
     }
 
     [SkippableFact]
@@ -163,17 +182,25 @@ public sealed class SaveConversionServiceTests
         Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
         var root = Path.Combine(Path.GetTempPath(), "AbioticEditorTests", Guid.NewGuid().ToString("N"));
         var source = Path.Combine(root, "Fixture");
+        string? output = null;
         try
         {
             CopyDirectory(fixture, source);
-            var output = SaveConversionService.Convert(SaveConversionDirection.ToSteam, source, playerAccountId: null);
+            output = SaveConversionService.Convert(SaveConversionDirection.ToSteam, source, playerAccountId: null);
 
-            Assert.Equal(source + "-Steam", output);
+            // The destination is the normal Steam save location, not beside the source - see
+            // SaveConversionServiceTests.Writes_a_Steam_conversion_to_the_normal_save_location...
+            // for why writing beside the source was wrong for this direction.
+            Assert.Contains(Path.Combine("AbioticFactor", "Saved", "SaveGames"), output);
             Assert.NotEmpty(Directory.EnumerateFiles(output, "WorldSave_*.sav", SearchOption.AllDirectories));
         }
         finally
         {
             if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            // Unlike the source, the output does not live under root - it is written to the real
+            // Steam save location, same as the app would for a genuine conversion - so it needs
+            // its own cleanup or every run leaves another test world behind on the machine.
+            if (output is not null && Directory.Exists(output)) Directory.Delete(output, recursive: true);
         }
     }
 
