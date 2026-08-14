@@ -79,70 +79,45 @@
     {
         <section>
             <h3>@R("Settings_ConvertStepPlayerTitle")</h3>
-            @* A conversion with no account carries the characters across still owned by the platform they
-               came from, where the game cannot find them and starts a new one instead. That is a ruined
-               afternoon discovered in-game, so it is said up front, not after the fact - and this is a
-               heads-up, not a wall, because copying a world without claiming it is a fair thing to want. *@
-            @if (_wouldStrandIfBlank)
+            <p class="muted">@R(_characters is { Count: > 1 } ? "Settings_ConvertStepPlayerDescMulti" : "Settings_ConvertStepPlayerDescSingle")</p>
+            @* A character left "as is" stays owned by the account it came from, where the platform
+               it is heading to cannot find it and starts a new one instead. That is a ruined
+               afternoon discovered in-game, so it is said up front, not after the fact - and this is
+               a heads-up, not a wall, because carrying a character over as it is stays a fair thing
+               to want. *@
+            @if (StrandedIfLeftAsIs.Count > 0)
             {
                 <p class="conversion-id-warning" role="alert">@R("Settings_ConvertOrphanCharacter")</p>
             }
 
-            <label for="conversion-account-id">@R("Settings_ConvertPlayerAccountId")</label>
-            @* Checked on every keystroke rather than when the box loses focus: the point of the warning
-               is to catch a mistyped account while it is still being typed. *@
-            <input id="conversion-account-id" @bind="_playerAccountId" @bind:event="oninput"
-                   placeholder="@R("Settings_ConvertIdPlaceholder")" disabled="@_busy" />
-            @if (IdWarning is not SaveConversionIdWarning.None)
+            @foreach (var character in _characters ?? Array.Empty<string>())
             {
-                <p class="conversion-id-warning" role="status">@IdWarningText</p>
-            }
-            @* A shortcut only: whatever is typed over it afterwards is what gets used. *@
-            @if (_accounts.Count > 0)
-            {
-                <p class="muted conversion-hint">@R("Settings_ConvertAccountsFound")</p>
-                <ul class="conversion-account-list">
-                    @foreach (var account in _accounts)
+                <div class="conversion-player-row">
+                    <label for="@RowInputId(character)">@character</label>
+                    <select id="@RowInputId(character)" value="@RowChoice(character)"
+                            @onchange="args => SetRowChoice(character, args.Value?.ToString())" disabled="@_busy">
+                        <option value="@LeaveAsIsOption">@R("Settings_ConvertLeaveAsIs")</option>
+                        @foreach (var account in _accounts)
+                        {
+                            <option value="@account.AccountId">@(account.DisplayName ?? account.AccountId) (@Languages.PlatformLabel(account.Platform))</option>
+                        }
+                        <option value="@CustomAccountOption">@R("Settings_ConvertCustomId")</option>
+                    </select>
+                    @if (RowChoice(character) == CustomAccountOption)
                     {
-                        <li>
-                            <button class="secondary" type="button" @onclick="() => UseAccount(account)" disabled="@_busy">
-                                <span class="platform-badge @PlatformClass(account.Platform)">@Languages.PlatformLabel(account.Platform)</span>
-                                <strong>@(account.DisplayName ?? account.AccountId)</strong>
-                                @if (account.DisplayName is not null)
-                                {
-                                    <small>@account.AccountId</small>
-                                }
-                            </button>
-                        </li>
+                        <input value="@RowCustomValue(character)" @oninput="args => SetCustomId(character, args.Value?.ToString())"
+                               placeholder="@R("Settings_ConvertIdPlaceholder")" disabled="@_busy" />
+                        @if (RowWarning(character) is not SaveConversionIdWarning.None)
+                        {
+                            <p class="conversion-id-warning" role="status">@RowWarningText(character)</p>
+                        }
                     }
-                </ul>
+                </div>
             }
             <p class="muted conversion-hint">@R("Settings_ConvertIdHint")</p>
 
-            @if (_characterChoices is { Count: > 0 } characters)
-            {
-                <p class="muted">@R("Settings_ConvertPickCharacter")</p>
-                <ul class="conversion-world-list">
-                    @foreach (var character in characters)
-                    {
-                        <li>
-                            <button class="secondary" type="button" @onclick="() => FinishAsync(character)"
-                                    disabled="@(_busy || !HasAccountId)" title="@(HasAccountId ? null : R("Settings_ConvertNeedsAccountFirst"))">
-                                @character
-                            </button>
-                        </li>
-                    }
-                </ul>
-            }
-            else
-            {
-                <button class="primary conversion-action" type="button" @onclick="() => FinishAsync(null)"
-                        disabled="@(_busy || !HasAccountId)" title="@(HasAccountId ? null : R("Settings_ConvertNeedsAccountFirst"))">
-                    @R("Settings_ConvertFinish")
-                </button>
-            }
-            <button class="secondary conversion-action" type="button" @onclick="FinishWithoutClaimingAsync" disabled="@_busy">
-                @R("Settings_ConvertWithoutClaiming")
+            <button class="primary conversion-action" type="button" @onclick="FinishAsync" disabled="@_busy">
+                @R("Settings_ConvertFinish")
             </button>
         </section>
     }
@@ -172,17 +147,23 @@
     // off the save itself (its own platform badge, or auto-detected from a browsed folder)
     // rather than asked as a separate question up front.
     private SaveConversionDirection? _direction;
-    private string _playerAccountId = string.Empty;
     private string? _outputFolder;
     private string? _status;
     private bool _busy;
     private bool _searching;
     private bool _failed;
-    private bool _wouldStrandIfBlank;
     private IReadOnlyList<string>? _worldChoices;
-    private IReadOnlyList<string>? _characterChoices;
+    // Every character in the save being converted, each with its own row on the ChoosePlayer
+    // step - a shared world can have several, and each one's account is independent of the rest.
+    private IReadOnlyList<string>? _characters;
     private string? _pendingSource;
     private string? _pendingContainer;
+
+    private const string LeaveAsIsOption = "__leave__";
+    private const string CustomAccountOption = "__custom__";
+    // character id -> the account it is being re-homed to. A character with no entry here is left
+    // exactly as it is, which is a fine and common choice, not just a fallback.
+    private readonly Dictionary<string, string> _rehomes = new(StringComparer.OrdinalIgnoreCase);
 
     private IReadOnlyList<DiscoveredAccount> _accounts = Array.Empty<DiscoveredAccount>();
     private IReadOnlyList<DiscoveredWorld> _worldsToSteam = Array.Empty<DiscoveredWorld>();
@@ -191,6 +172,50 @@
     private string R(string key, params object?[] args) => Languages.Resource(key, args);
 
     private SavePlatform DestinationPlatform => _direction is { } direction ? SaveConversionService.DestinationPlatform(direction) : SavePlatform.Unknown;
+
+    /// <summary>Characters currently set to carry over untouched that would land on the far
+    /// platform unreachable - the fact that drives the heads-up banner. Computed live off the
+    /// current row choices rather than once up front, since re-homing a character is exactly
+    /// what takes it off this list.</summary>
+    private IReadOnlyList<string> StrandedIfLeftAsIs =>
+        (_characters ?? Array.Empty<string>())
+            .Where(character => !_rehomes.ContainsKey(character))
+            .Where(character => GamePassConverter.WouldStrandCharacters(DestinationPlatform, new[] { character }))
+            .ToList();
+
+    private static string RowInputId(string character) => $"conversion-player-{character}";
+
+    /// <summary>The select's current value for a character: the account it is set to move to, the
+    /// custom-id sentinel if that account isn't one of the discovered ones, or "leave as is".</summary>
+    private string RowChoice(string character) =>
+        _rehomes.TryGetValue(character, out var id)
+            ? (_accounts.Any(account => string.Equals(account.AccountId, id, StringComparison.OrdinalIgnoreCase))
+                ? id
+                : CustomAccountOption)
+            : LeaveAsIsOption;
+
+    private string RowCustomValue(string character) => _rehomes.GetValueOrDefault(character, string.Empty);
+
+    private void SetRowChoice(string character, string? value)
+    {
+        if (string.IsNullOrEmpty(value) || value == LeaveAsIsOption) { _rehomes.Remove(character); return; }
+        // Switching to "type an account...": start the box empty rather than pre-filled with
+        // whatever this row's select value happened to be.
+        _rehomes[character] = value == CustomAccountOption ? string.Empty : value;
+    }
+
+    private void SetCustomId(string character, string? value) => _rehomes[character] = value?.Trim() ?? string.Empty;
+
+    private SaveConversionIdWarning RowWarning(string character)
+        => _direction is { } direction && _rehomes.TryGetValue(character, out var id) && !string.IsNullOrWhiteSpace(id)
+            ? SaveConversionService.WarnAboutAccountId(direction, id)
+            : SaveConversionIdWarning.None;
+
+    private string RowWarningText(string character) => RowWarning(character) switch
+    {
+        SaveConversionIdWarning.UnusableInFileName => R("Settings_ConvertIdUnusable"),
+        _ => R("Settings_ConvertIdNotSteam"),
+    };
 
     /// <summary>Every world found on this machine, in either direction, so the first screen is
     /// "pick a save" rather than an abstract "pick a platform" before a save is even in view -
@@ -250,19 +275,8 @@
     }
 
     /// <summary>Fills the box from the list. Typing over it afterwards is the whole point.</summary>
-    private void UseAccount(DiscoveredAccount account) => _playerAccountId = account.AccountId;
-
-    private SaveConversionIdWarning IdWarning
-        => _direction is { } direction ? SaveConversionService.WarnAboutAccountId(direction, _playerAccountId) : SaveConversionIdWarning.None;
-
-    private string IdWarningText => IdWarning switch
-    {
-        SaveConversionIdWarning.UnusableInFileName => R("Settings_ConvertIdUnusable"),
-        _ => R("Settings_ConvertIdNotSteam"),
-    };
-
-    /// <summary>Drops back to picking a save, but keeps whatever account id was already typed -
-    /// the save was the wrong pick, not the account.</summary>
+    /// <summary>Drops back to picking a save. The account choices on this run were about a
+    /// specific world's specific characters, so a different save means starting those over too.</summary>
     private void Back()
     {
         _step = ConvertStep.PickSave;
@@ -270,17 +284,14 @@
         _failed = false;
         _direction = null;
         _worldChoices = null;
-        _wouldStrandIfBlank = false;
         ClearPending();
     }
 
-    /// <summary>Back to the very first question, clearing everything including the account box.
-    /// Every conversion call is one-shot and safe to re-run, so this is nothing more than
-    /// clearing the state gathered so far.</summary>
+    /// <summary>Back to the very first question. Every conversion call is one-shot and safe to
+    /// re-run, so this is nothing more than clearing the state gathered so far.</summary>
     private void ResetWizard()
     {
         Back();
-        _playerAccountId = string.Empty;
         _outputFolder = null;
     }
 
@@ -368,7 +379,8 @@
         _failed = false;
         _outputFolder = null;
         _worldChoices = null;
-        _characterChoices = null;
+        _characters = null;
+        _rehomes.Clear();
         _status = null;
 
         var validation = SaveConversionService.ValidateSource(direction, sourceFolder);
@@ -424,11 +436,10 @@
     }
 
     /// <summary>
-    /// The step between picking a world and converting it: who does this world belong to
-    /// afterward. The account box and the character question live on the same screen, because
-    /// whether an account is worth typing depends on which character it is claiming, and whether
-    /// a character needs claiming depends on what (if anything) is typed - splitting the two
-    /// across separate screens meant one could not usefully be answered without the other.
+    /// The step between picking a world and converting it: who does each of its characters
+    /// belong to afterward. Every character gets its own row rather than the conversion being
+    /// limited to claiming one, so a shared world's co-op group can each keep their own character
+    /// instead of everyone but the one claimed starting over.
     /// </summary>
     private async Task ContinueConversionAsync(string sourceFolder, string? container)
     {
@@ -438,62 +449,19 @@
 
         if (characters.Count == 0)
         {
-            await RunConversionAsync(sourceFolder, container, sourcePlayerId: null, claim: true);
+            await RunConversionAsync(sourceFolder, container);
             return;
         }
 
         _pendingSource = sourceFolder;
         _pendingContainer = container;
-        // More than one character means Core cannot guess which one is the player's - only the
-        // player knows which of their co-op group's accounts is theirs - so the list is shown
-        // whenever there is a real choice, account box or not.
-        _characterChoices = characters.Count > 1 ? characters : null;
-        // Whether leaving the account box empty strands a character is a fact about the save
-        // itself, not about what happens to be typed right now, so it is worked out once up
-        // front and shown as a heads-up alongside the box rather than only after the fact.
-        _wouldStrandIfBlank = SaveConversionService.WouldStrandCharacters(direction, characters, playerAccountId: null);
+        _characters = characters;
         _step = ConvertStep.ChoosePlayer;
     }
 
-    /// <summary>Whether there is an account to claim a character with. The claim buttons (the
-    /// character list, or the single "Convert" button when there is only one) stay disabled
-    /// without one - picking a character with nothing to re-home it to used to look like a
-    /// choice that did nothing, which is exactly how a player ends up staring at a brand new
-    /// character in-game with no idea why.</summary>
-    private bool HasAccountId => !string.IsNullOrWhiteSpace(_playerAccountId);
-
-    /// <summary>Claims a character for whatever account is in the box. Only reachable once the
-    /// box has something in it, so this always means what it looks like it means.</summary>
-    private async Task FinishAsync(string? sourcePlayerId)
-    {
-        if (_busy || !HasAccountId) return;
-        var source = _pendingSource;
-        if (source is null) return;
-        _busy = true;
-        try
-        {
-            await RunConversionAsync(source, _pendingContainer, sourcePlayerId, claim: true);
-        }
-        catch (Exception exception)
-        {
-            Fail(exception);
-        }
-        finally
-        {
-            _busy = false;
-            ClearPending();
-        }
-    }
-
-    /// <summary>
-    /// The deliberate escape hatch: convert without claiming any character, ignoring whatever is
-    /// in the account box. Copying a world, or handing one to somebody else to claim, are both
-    /// real reasons to want exactly this - it is a separate button rather than what clicking a
-    /// character with an empty box used to do, because that made "I didn't mean to give up my
-    /// character" and "I meant to copy it unclaimed" look identical until the game proved which
-    /// one had happened.
-    /// </summary>
-    private async Task FinishWithoutClaimingAsync()
+    /// <summary>Runs the conversion with whatever the rows on this screen currently say - an
+    /// account per character that is being re-homed, and nothing for any character left as is.</summary>
+    private async Task FinishAsync()
     {
         if (_busy) return;
         var source = _pendingSource;
@@ -501,7 +469,7 @@
         _busy = true;
         try
         {
-            await RunConversionAsync(source, _pendingContainer, sourcePlayerId: null, claim: false);
+            await RunConversionAsync(source, _pendingContainer);
         }
         catch (Exception exception)
         {
@@ -518,7 +486,8 @@
     {
         _pendingSource = null;
         _pendingContainer = null;
-        _characterChoices = null;
+        _characters = null;
+        _rehomes.Clear();
     }
 
     private void Fail(Exception exception)
@@ -527,13 +496,14 @@
         _status = Errors.Detail(exception, "Convert save", R("Settings_ConvertFailed"));
     }
 
-    private async Task RunConversionAsync(string sourceFolder, string? container, string? sourcePlayerId, bool claim)
+    private async Task RunConversionAsync(string sourceFolder, string? container)
     {
         _step = ConvertStep.Done;
         _status = R("Settings_Converting");
-        var id = claim && HasAccountId ? _playerAccountId.Trim() : null;
+        var rehomes = _rehomes.Count > 0 ? new Dictionary<string, string>(_rehomes, StringComparer.OrdinalIgnoreCase) : null;
         _outputFolder = await Task.Run(
-            () => SaveConversionService.Convert(_direction!.Value, sourceFolder, id, container, id is null ? null : sourcePlayerId));
+            () => SaveConversionService.Convert(
+                _direction!.Value, sourceFolder, playerAccountId: null, container, sourcePlayerId: null, rehomes: rehomes));
         _status = R("Settings_ConvertDone", _outputFolder);
         ClearPending();
     }

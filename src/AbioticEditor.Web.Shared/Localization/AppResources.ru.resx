@@ -1797,9 +1797,6 @@
   <data name="Settings_ConvertIdUnusable" xml:space="preserve">
     <value>Сохранение называется по имени учётной записи, а с этой так не получится. Подходят только буквы, цифры, точки, дефисы и подчёркивания, иначе преобразование её отклонит.</value>
   </data>
-  <data name="Settings_ConvertAccountsFound" xml:space="preserve">
-    <value>Учётные записи, найденные на этом компьютере. Выберите одну, чтобы заполнить поле выше, или введите любую другую.</value>
-  </data>
   <data name="Settings_ConvertWorldsFound" xml:space="preserve">
     <value>Или преобразуйте один из миров, найденных на этом компьютере:</value>
   </data>
@@ -1814,9 +1811,6 @@
   </data>
   <data name="Settings_Converting" xml:space="preserve">
     <value>Конвертация…  (при первом запуске может загрузиться нужный упаковщик)</value>
-  </data>
-  <data name="Settings_ConvertPickCharacter" xml:space="preserve">
-    <value>В этом мире несколько персонажей. Какой из них ваш? Остальные переносятся без изменений.</value>
   </data>
   <data name="Settings_ConvertPickWorld" xml:space="preserve">
     <value>В этом сохранении несколько миров. Какой из них преобразовать?</value>
@@ -1834,9 +1828,6 @@
   </data>
   <data name="Settings_ConvertNoContainers" xml:space="preserve">
     <value>Это не папка с сохранениями Game Pass. Выберите папку, в которой лежат ваши сохранения Xbox.</value>
-  </data>
-  <data name="Settings_ConvertPlayerAccountId" xml:space="preserve">
-    <value>ID АККАУНТА ИГРОКА</value>
   </data>
   <data name="Settings_SaveConversion" xml:space="preserve">
     <value>КОНВЕРТАЦИЯ СОХРАНЕНИЯ</value>

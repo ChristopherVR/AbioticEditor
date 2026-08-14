@@ -27,18 +27,23 @@ public static class GamePassConverter
     /// belongs to the target account. Leave it null to keep the existing ids. On a world with several
     /// characters say which one with <paramref name="sourcePlayerId"/>; the others are packed
     /// unchanged.</para>
+    /// <para>To re-home more than one character in the same run (a co-op world where several
+    /// people are converting together), pass <paramref name="rehomes"/> instead - a map of each
+    /// character's current account id to the account it should belong to on the target platform.
+    /// When given, it is used in place of <paramref name="newPlayerId"/>/<paramref name="sourcePlayerId"/>.
+    /// A character left out of the map keeps its existing id, same as leaving both of those
+    /// null.</para>
     /// </summary>
     public static string SteamWorldToGamePass(
         string steamWorldDir, string destWgsDir, string? worldName = null, string? newPlayerId = null,
-        bool mergeIntoExisting = false, string? sourcePlayerId = null)
+        bool mergeIntoExisting = false, string? sourcePlayerId = null,
+        IReadOnlyDictionary<string, string>? rehomes = null)
     {
         if (!Directory.Exists(steamWorldDir))
         {
             throw new DirectoryNotFoundException($"Steam world folder not found: {steamWorldDir}");
         }
         worldName ??= Path.GetFileName(Path.TrimEndingDirectorySeparator(Path.GetFullPath(steamWorldDir)));
-        newPlayerId = ValidateOptionalId(newPlayerId);
-        sourcePlayerId = ValidateOptionalId(sourcePlayerId);
 
         var saves = EnumerateWorldSaves(steamWorldDir).ToList();
         var playerIds = saves
@@ -47,7 +52,7 @@ public static class GamePassConverter
             .Where(id => id is not null)
             .Select(id => id!)
             .ToList();
-        var oldPlayerId = ResolveRehomeSource(playerIds, newPlayerId, sourcePlayerId);
+        var rehomeMap = ResolveRehomeMap(playerIds, newPlayerId, sourcePlayerId, rehomes);
 
         var members = new List<AbfMember>();
         var rehomedClaims = 0;
@@ -70,24 +75,29 @@ public static class GamePassConverter
             var rel = file.Relative.Replace('\\', '/');
             if (rel.EndsWith(".sav", StringComparison.OrdinalIgnoreCase)) rel = rel[..^4];
 
-            // Only the character that was actually chosen changes hands. Re-homing every character
-            // save in sight would have packed a shared world's nine players over the top of each
-            // other, all under one name.
-            if (oldPlayerId is not null && newPlayerId is not null
-                && saveClass == GamePassMemberCodec.CharacterSaveClass
-                && IsPlayerFor(file.Path, oldPlayerId))
+            // Only characters named in the map change hands. Re-homing every character save in
+            // sight would have packed a shared world's nine players over the top of each other,
+            // all under one name.
+            if (saveClass == GamePassMemberCodec.CharacterSaveClass
+                && PlayerIdentifier.TryParseFromPlayerFileName(file.Path, out var thisPlayerId)
+                && thisPlayerId is not null && rehomeMap.TryGetValue(thisPlayerId, out var newId))
             {
-                bytes = StampOwner(bytes, newPlayerId);
-                rel = $"PlayerData/Player_{newPlayerId}";
+                bytes = StampOwner(bytes, newId);
+                rel = $"PlayerData/Player_{newId}";
             }
-            else if (oldPlayerId is not null && newPlayerId is not null && !IsPlayerSave(file.Relative))
+            else if (!IsPlayerSave(file.Relative) && rehomeMap.Count > 0)
             {
-                // The character moved accounts, so the beds it claimed have to move with it or the
-                // player arrives in their own base unable to sleep in their own bed. A Steam id and
-                // an Xbox one are different lengths, which is exactly the case the patcher handles
-                // by re-serializing rather than swapping bytes.
-                bytes = WorldSteamIdPatcher.PatchBytes(bytes, oldPlayerId, newPlayerId, out var claims);
-                rehomedClaims += claims;
+                // The characters that moved accounts had their beds move with them too, or the
+                // player arrives in their own base unable to sleep in their own bed. A Steam id
+                // and an Xbox one are different lengths, which is exactly the case the patcher
+                // handles by re-serializing rather than swapping bytes. Each mapping only ever
+                // touches references to its own old id, so applying them one after another is
+                // safe even with several characters re-homed in the same run.
+                foreach (var (oldId, mappedId) in rehomeMap)
+                {
+                    bytes = WorldSteamIdPatcher.PatchBytes(bytes, oldId, mappedId, out var claims);
+                    rehomedClaims += claims;
+                }
             }
 
             members.Add(new AbfMember
@@ -170,15 +180,15 @@ public static class GamePassConverter
     /// is null the only world container is used. When <paramref name="newPlayerId"/> is set a
     /// character is re-homed to that account id so the world belongs to the target Steam account;
     /// leave it null to keep the existing ids. On a world with several characters say which one with
-    /// <paramref name="sourcePlayerId"/>; the others are carried over untouched. Returns the world
-    /// folder path.
+    /// <paramref name="sourcePlayerId"/>; the others are carried over untouched. To re-home more than
+    /// one character in the same run, pass <paramref name="rehomes"/> instead (see
+    /// <see cref="SteamWorldToGamePass"/> for its shape); when given it replaces
+    /// <paramref name="newPlayerId"/>/<paramref name="sourcePlayerId"/>. Returns the world folder path.
     /// </summary>
     public static string GamePassToSteamWorld(
         string wgsDir, string? containerName, string destSteamDir, string? newPlayerId = null,
-        string? sourcePlayerId = null)
+        string? sourcePlayerId = null, IReadOnlyDictionary<string, string>? rehomes = null)
     {
-        newPlayerId = ValidateOptionalId(newPlayerId);
-        sourcePlayerId = ValidateOptionalId(sourcePlayerId);
         GuardEmptyDestination(destSteamDir);
         var set = GamePassSaveSet.Open(wgsDir);
         var entries = set.Entries();
@@ -202,34 +212,37 @@ public static class GamePassConverter
             .Where(id => id is not null)
             .Select(id => id!)
             .ToList();
-        var oldPlayerId = ResolveRehomeSource(playerIds, newPlayerId, sourcePlayerId);
+        var rehomeMap = ResolveRehomeMap(playerIds, newPlayerId, sourcePlayerId, rehomes);
 
         set.ExtractWorld(container, destSteamDir);
 
-        if (oldPlayerId is not null && newPlayerId is not null)
+        foreach (var (oldPlayerId, newPlayerIdValue) in rehomeMap)
         {
             var source = Path.Combine(destSteamDir, "PlayerData", $"Player_{oldPlayerId}.sav");
-            if (File.Exists(source))
-            {
-                PlayerSaveIdentity.ChangeSteamId(source, newPlayerId);
-                DeleteFreshExtractionBackup(source);
+            if (!File.Exists(source)) continue;
 
-                // Beds and other claimable deployables record their owner inside the world saves,
-                // so a character that changes account without this stays locked out of its own bed.
-                // An Xbox id is 16 digits and a SteamID64 is 17, which is why this could not be done
-                // until the patcher learned to re-serialize. Only this character's claims move; the
-                // other players in a shared world keep theirs.
-                var claims = WorldSteamIdPatcher.PatchFolder(destSteamDir, oldPlayerId, newPlayerId);
-                foreach (var world in Directory.EnumerateFiles(
-                    destSteamDir, "WorldSave_*.sav", SearchOption.TopDirectoryOnly))
-                {
-                    DeleteFreshExtractionBackup(world);
-                }
-                if (claims > 0)
-                {
-                    Diagnostics.EditorLog.Info("GamePass",
-                        $"Re-homed {claims} bed claim(s) from {oldPlayerId} to {newPlayerId}.");
-                }
+            PlayerSaveIdentity.ChangeSteamId(source, newPlayerIdValue);
+            DeleteFreshExtractionBackup(source);
+
+            // Beds and other claimable deployables record their owner inside the world saves, so
+            // a character that changes account without this stays locked out of its own bed. An
+            // Xbox id is 16 digits and a SteamID64 is 17, which is why this could not be done
+            // until the patcher learned to re-serialize. Only this character's claims move; the
+            // other players in a shared world keep theirs, even when several are re-homed in the
+            // same run - each pass only ever touches references to its own old id.
+            var claims = WorldSteamIdPatcher.PatchFolder(destSteamDir, oldPlayerId, newPlayerIdValue);
+            if (claims > 0)
+            {
+                Diagnostics.EditorLog.Info("GamePass",
+                    $"Re-homed {claims} bed claim(s) from {oldPlayerId} to {newPlayerIdValue}.");
+            }
+        }
+        if (rehomeMap.Count > 0)
+        {
+            foreach (var world in Directory.EnumerateFiles(
+                destSteamDir, "WorldSave_*.sav", SearchOption.TopDirectoryOnly))
+            {
+                DeleteFreshExtractionBackup(world);
             }
         }
 
@@ -369,6 +382,71 @@ public static class GamePassConverter
     /// </summary>
     /// <exception cref="InvalidOperationException">The choice is ambiguous, names a character the
     /// world does not have, or would collide with a character already on the target id.</exception>
+    private static readonly Dictionary<string, string> EmptyRehomeMap = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Works out the full set of characters being re-homed this run, keyed by their current
+    /// account id. <paramref name="rehomes"/>, when given and non-empty, takes over from
+    /// <paramref name="newPlayerId"/>/<paramref name="sourcePlayerId"/> entirely - it exists so a
+    /// co-op world can convert everyone's character to their own new account in one pass, instead
+    /// of the single-character shape those two parameters are limited to.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">An entry names a character the world does not
+    /// have, or two characters would collide on the same destination account.</exception>
+    private static Dictionary<string, string> ResolveRehomeMap(
+        List<string> playerIds, string? newPlayerId, string? sourcePlayerId,
+        IReadOnlyDictionary<string, string>? rehomes)
+    {
+        if (rehomes is not { Count: > 0 })
+        {
+            var single = ResolveRehomeSource(
+                playerIds, ValidateOptionalId(newPlayerId), ValidateOptionalId(sourcePlayerId));
+            return single is null
+                ? EmptyRehomeMap
+                : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [single] = ValidateOptionalId(newPlayerId)! };
+        }
+
+        var listed = string.Join(", ", playerIds);
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (rawSource, rawDest) in rehomes)
+        {
+            var source = ValidateOptionalId(rawSource)
+                ?? throw new ArgumentException("A character to re-home was given with no account id.", nameof(rehomes));
+            var dest = ValidateOptionalId(rawDest)
+                ?? throw new ArgumentException($"No destination account id was given for '{source}'.", nameof(rehomes));
+            if (!playerIds.Any(id => string.Equals(id, source, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new InvalidOperationException($"This world has no character '{source}'. It has: {listed}.");
+            }
+            // Re-homing a character to the id it already has is nothing to do.
+            if (!string.Equals(source, dest, StringComparison.Ordinal)) map[source] = dest;
+        }
+
+        // Two characters under one account id would leave the game loading whichever it saw first
+        // and the other one silently unreachable, so a collision is refused rather than resolved -
+        // whether it is two characters both moving to the same account, or one moving onto an
+        // account a third, untouched character already has.
+        var collision = map.GroupBy(entry => entry.Value, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault(group => group.Count() > 1);
+        if (collision is not null)
+        {
+            throw new InvalidOperationException(
+                $"More than one character is being moved to account {collision.Key}, so one of them "
+                + "would be hidden. Give each character a different account.");
+        }
+        var takenByBystander = map.Values.FirstOrDefault(dest =>
+            playerIds.Any(id => string.Equals(id, dest, StringComparison.OrdinalIgnoreCase))
+            && !map.ContainsKey(dest));
+        if (takenByBystander is not null)
+        {
+            throw new InvalidOperationException(
+                $"This world already has a character on account {takenByBystander}, so moving another "
+                + "one there would hide it. Pick a different account id.");
+        }
+
+        return map;
+    }
+
     private static string? ResolveRehomeSource(
         List<string> playerIds, string? newPlayerId, string? sourcePlayerId)
     {

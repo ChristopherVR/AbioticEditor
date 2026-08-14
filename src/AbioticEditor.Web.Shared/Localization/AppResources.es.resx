@@ -1798,9 +1798,6 @@ Esto escribe en el guardado de inmediato y recarga el editor, así que se pierde
   <data name="Settings_ConvertIdUnusable" xml:space="preserve">
     <value>Una partida guardada lleva el nombre de su cuenta, y con esa no se puede. Solo valen letras, números, puntos, guiones y guiones bajos, así que la conversión la rechazará.</value>
   </data>
-  <data name="Settings_ConvertAccountsFound" xml:space="preserve">
-    <value>Cuentas encontradas en este equipo. Elige una para rellenar el campo de arriba, o escribe la cuenta que quieras.</value>
-  </data>
   <data name="Settings_ConvertWorldsFound" xml:space="preserve">
     <value>O convierte uno de los mundos encontrados en este equipo:</value>
   </data>
@@ -1815,9 +1812,6 @@ Esto escribe en el guardado de inmediato y recarga el editor, así que se pierde
   </data>
   <data name="Settings_Converting" xml:space="preserve">
     <value>Convirtiendo…  (la primera vez puede que se descargue un compresor necesario)</value>
-  </data>
-  <data name="Settings_ConvertPickCharacter" xml:space="preserve">
-    <value>Este mundo tiene más de un personaje. ¿Cuál es el tuyo? Los demás se copian sin cambios.</value>
   </data>
   <data name="Settings_ConvertPickWorld" xml:space="preserve">
     <value>Esta partida tiene más de un mundo. ¿Cuál quieres convertir?</value>
@@ -1835,9 +1829,6 @@ Tu original no se modificó. Verifica que cargue en el juego antes de confiar en
   </data>
   <data name="Settings_ConvertNoContainers" xml:space="preserve">
     <value>Esa no es una carpeta de guardados de Game Pass. Elige la carpeta donde están tus guardados de Xbox.</value>
-  </data>
-  <data name="Settings_ConvertPlayerAccountId" xml:space="preserve">
-    <value>ID DE CUENTA DEL JUGADOR</value>
   </data>
   <data name="Settings_SaveConversion" xml:space="preserve">
     <value>CONVERSIÓN DE GUARDADO</value>

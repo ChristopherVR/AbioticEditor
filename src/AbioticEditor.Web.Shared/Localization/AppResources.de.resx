@@ -1797,9 +1797,6 @@ Dies schreibt sofort in den Spielstand und lädt den Editor neu, alles noch nich
   <data name="Settings_ConvertIdUnusable" xml:space="preserve">
     <value>Ein Spielstand wird nach seinem Konto benannt, und mit diesem geht das nicht. Es funktionieren nur Buchstaben, Zahlen, Punkte, Bindestriche und Unterstriche, sonst lehnt die Konvertierung es ab.</value>
   </data>
-  <data name="Settings_ConvertAccountsFound" xml:space="preserve">
-    <value>Auf diesem Rechner gefundene Konten. Wähle eines aus, um das Feld oben zu füllen, oder tippe ein beliebiges Konto ein.</value>
-  </data>
   <data name="Settings_ConvertWorldsFound" xml:space="preserve">
     <value>Oder konvertiere eine der auf diesem Rechner gefundenen Welten:</value>
   </data>
@@ -1814,9 +1811,6 @@ Dies schreibt sofort in den Spielstand und lädt den Editor neu, alles noch nich
   </data>
   <data name="Settings_Converting" xml:space="preserve">
     <value>Wird umgewandelt…  (beim ersten Mal wird eventuell ein benötigtes Komprimierungsprogramm heruntergeladen)</value>
-  </data>
-  <data name="Settings_ConvertPickCharacter" xml:space="preserve">
-    <value>In dieser Welt gibt es mehrere Figuren. Welche ist deine? Die anderen werden unverändert übernommen.</value>
   </data>
   <data name="Settings_ConvertPickWorld" xml:space="preserve">
     <value>Dieser Spielstand enthält mehrere Welten. Welche möchtest du konvertieren?</value>
@@ -1834,9 +1828,6 @@ Dein Original wurde nicht verändert. Prüfe im Spiel, ob es lädt, bevor du dic
   </data>
   <data name="Settings_ConvertNoContainers" xml:space="preserve">
     <value>Das ist kein Game-Pass-Spielstandordner. Wählen Sie den Ordner, in dem Ihre Xbox-Spielstände liegen.</value>
-  </data>
-  <data name="Settings_ConvertPlayerAccountId" xml:space="preserve">
-    <value>SPIELERKONTO-ID</value>
   </data>
   <data name="Settings_SaveConversion" xml:space="preserve">
     <value>SPIELSTAND-KONVERTIERUNG</value>

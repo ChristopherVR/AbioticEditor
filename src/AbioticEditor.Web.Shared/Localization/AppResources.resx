@@ -2089,7 +2089,7 @@ This writes to the save straight away and reloads the editor, so anything you ha
     <value>leave blank to keep existing ids</value>
   </data>
   <data name="Settings_ConvertIdHint" xml:space="preserve">
-    <value>Optional. A 17-digit SteamID64 (Steam) or account folder id (Game Pass). The player save is re-homed to it so the world is yours on the target platform. Single-player only.</value>
+    <value>An account id is a 17-digit SteamID64 (Steam) or an account folder id (Game Pass).</value>
   </data>
   <data name="Settings_ConvertOrphanCharacter" xml:space="preserve">
     <value>Careful: the character in this world will not be yours on the other platform. The game will start you with a brand new character, and the one you have played all this time will sit in the folder where you cannot reach it.</value>
@@ -2099,9 +2099,6 @@ This writes to the save straight away and reloads the editor, so anything you ha
   </data>
   <data name="Settings_ConvertIdUnusable" xml:space="preserve">
     <value>A save is named after its account, and that one can't be. Only letters, numbers, dots, dashes and underscores work, so the conversion will turn it down.</value>
-  </data>
-  <data name="Settings_ConvertAccountsFound" xml:space="preserve">
-    <value>Accounts found on this machine. Pick one to fill in the box above, or type any account you like.</value>
   </data>
   <data name="Settings_ConvertWorldsFound" xml:space="preserve">
     <value>Or convert one of the worlds found on this machine:</value>
@@ -2127,14 +2124,17 @@ This writes to the save straight away and reloads the editor, so anything you ha
   <data name="Settings_Converting" xml:space="preserve">
     <value>Converting…  (the first run may download a compressor it needs)</value>
   </data>
-  <data name="Settings_ConvertPickCharacter" xml:space="preserve">
-    <value>This world has more than one character. Put your account in the box above, then pick which one is yours below - the others are carried over unchanged.</value>
+  <data name="Settings_ConvertStepPlayerDescMulti" xml:space="preserve">
+    <value>This world has more than one character. Give any of them a new account to keep it theirs on the other platform - leave the rest as is and they carry over unchanged.</value>
   </data>
-  <data name="Settings_ConvertNeedsAccountFirst" xml:space="preserve">
-    <value>Put an account in the box above first, so there is somewhere to claim this character to.</value>
+  <data name="Settings_ConvertStepPlayerDescSingle" xml:space="preserve">
+    <value>Give this character a new account to keep it yours on the other platform, or leave it as is to carry it over unchanged.</value>
   </data>
-  <data name="Settings_ConvertWithoutClaiming" xml:space="preserve">
-    <value>CONVERT WITHOUT CLAIMING A CHARACTER</value>
+  <data name="Settings_ConvertLeaveAsIs" xml:space="preserve">
+    <value>Leave as is</value>
+  </data>
+  <data name="Settings_ConvertCustomId" xml:space="preserve">
+    <value>Type an account…</value>
   </data>
   <data name="Settings_ConvertPickWorld" xml:space="preserve">
     <value>This save has more than one world. Which one do you want to convert?</value>
@@ -2152,9 +2152,6 @@ Your original was not changed. Verify it loads in-game before relying on it.</va
   </data>
   <data name="Settings_ConvertNoContainers" xml:space="preserve">
     <value>That is not a Game Pass save folder. Pick the folder your Xbox saves are in.</value>
-  </data>
-  <data name="Settings_ConvertPlayerAccountId" xml:space="preserve">
-    <value>PLAYER ACCOUNT ID</value>
   </data>
   <data name="Settings_SaveConversion" xml:space="preserve">
     <value>SAVE CONVERSION</value>

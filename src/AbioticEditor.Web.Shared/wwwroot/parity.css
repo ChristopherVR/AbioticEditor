@@ -399,7 +399,12 @@ h1[tabindex="-1"]:focus{outline:none}
 .mod-switch-row{padding-top:10px;border-top:1px solid var(--divider)}
 .settings-tab-embedded>.hero{display:none}
 .settings-tab-embedded>.settings-card,.settings-tab-embedded>.compare-card,.settings-tab-embedded>.compare-results{margin:0 0 14px!important}
-.gamepass-card input{box-sizing:border-box;width:100%}.gamepass-card .conversion-action{display:block;margin-top:14px}.gamepass-card .conversion-hint{margin:5px 0 0!important}
+.gamepass-card input,.gamepass-card select{box-sizing:border-box;width:100%}.gamepass-card .conversion-action{display:block;margin-top:14px}.gamepass-card .conversion-hint{margin:5px 0 0!important}
+/* One row per character in the world, so a co-op group can give each of their characters its own
+   destination account instead of the conversion being limited to claiming a single one. */
+.conversion-player-row{display:grid;grid-template-columns:minmax(90px,1fr) 2fr;align-items:center;gap:8px;margin-top:10px}
+.conversion-player-row label{margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.conversion-player-row input{grid-column:1/-1}
 /* The accounts found on this machine: chips that fill the box above, so they wrap rather than
    forcing the card wider on a machine with several accounts on it. */
 .conversion-account-list{display:flex;flex-wrap:wrap;gap:6px;margin:7px 0 0;padding:0;list-style:none}

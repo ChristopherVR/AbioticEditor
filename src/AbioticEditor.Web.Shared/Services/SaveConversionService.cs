@@ -129,9 +129,18 @@ public static class SaveConversionService
     public static SavePlatform DestinationPlatform(SaveConversionDirection direction)
         => direction == SaveConversionDirection.ToSteam ? SavePlatform.Steam : SavePlatform.GamePass;
 
+    /// <summary>
+    /// Converts <paramref name="sourceFolder"/> and returns the destination path. <paramref
+    /// name="rehomes"/>, when given and non-empty, re-homes every character it names to its own
+    /// destination account in one pass - a co-op world's players each keep their own character
+    /// instead of the conversion being limited to claiming a single one. When it is null or empty,
+    /// <paramref name="playerAccountId"/>/<paramref name="sourcePlayerId"/> behave as before (one
+    /// character, or the world's only one).
+    /// </summary>
     public static string Convert(
         SaveConversionDirection direction, string sourceFolder, string? playerAccountId,
-        string? containerName = null, string? sourcePlayerId = null)
+        string? containerName = null, string? sourcePlayerId = null,
+        IReadOnlyDictionary<string, string>? rehomes = null)
     {
         var validation = ValidateSource(direction, sourceFolder);
         if (validation != SaveConversionSourceValidation.Valid)
@@ -141,9 +150,9 @@ public static class SaveConversionService
         return direction == SaveConversionDirection.ToGamePass
             ? GamePassConverter.SteamWorldToGamePass(
                 sourceFolder, destination, worldName: null, newPlayerId: playerAccountId,
-                sourcePlayerId: sourcePlayerId)
+                sourcePlayerId: sourcePlayerId, rehomes: rehomes)
             : GamePassConverter.GamePassToSteamWorld(
                 sourceFolder, containerName, destination, newPlayerId: playerAccountId,
-                sourcePlayerId: sourcePlayerId);
+                sourcePlayerId: sourcePlayerId, rehomes: rehomes);
     }
 }
