@@ -126,7 +126,8 @@
                     @foreach (var character in characters)
                     {
                         <li>
-                            <button class="secondary" type="button" @onclick="() => FinishAsync(character)" disabled="@_busy">
+                            <button class="secondary" type="button" @onclick="() => FinishAsync(character)"
+                                    disabled="@(_busy || !HasAccountId)" title="@(HasAccountId ? null : R("Settings_ConvertNeedsAccountFirst"))">
                                 @character
                             </button>
                         </li>
@@ -135,10 +136,14 @@
             }
             else
             {
-                <button class="primary conversion-action" type="button" @onclick="() => FinishAsync(null)" disabled="@_busy">
+                <button class="primary conversion-action" type="button" @onclick="() => FinishAsync(null)"
+                        disabled="@(_busy || !HasAccountId)" title="@(HasAccountId ? null : R("Settings_ConvertNeedsAccountFirst"))">
                     @R("Settings_ConvertFinish")
                 </button>
             }
+            <button class="secondary conversion-action" type="button" @onclick="FinishWithoutClaimingAsync" disabled="@_busy">
+                @R("Settings_ConvertWithoutClaiming")
+            </button>
         </section>
     }
     else
@@ -433,7 +438,7 @@
 
         if (characters.Count == 0)
         {
-            await RunConversionAsync(sourceFolder, container, sourcePlayerId: null);
+            await RunConversionAsync(sourceFolder, container, sourcePlayerId: null, claim: true);
             return;
         }
 
@@ -450,10 +455,45 @@
         _step = ConvertStep.ChoosePlayer;
     }
 
-    /// <summary>Runs the conversion with whatever is currently in the account box - filling it
-    /// in, picking a character, or leaving both alone are all read live from this same screen,
-    /// so there is nothing left to remember from an earlier step.</summary>
+    /// <summary>Whether there is an account to claim a character with. The claim buttons (the
+    /// character list, or the single "Convert" button when there is only one) stay disabled
+    /// without one - picking a character with nothing to re-home it to used to look like a
+    /// choice that did nothing, which is exactly how a player ends up staring at a brand new
+    /// character in-game with no idea why.</summary>
+    private bool HasAccountId => !string.IsNullOrWhiteSpace(_playerAccountId);
+
+    /// <summary>Claims a character for whatever account is in the box. Only reachable once the
+    /// box has something in it, so this always means what it looks like it means.</summary>
     private async Task FinishAsync(string? sourcePlayerId)
+    {
+        if (_busy || !HasAccountId) return;
+        var source = _pendingSource;
+        if (source is null) return;
+        _busy = true;
+        try
+        {
+            await RunConversionAsync(source, _pendingContainer, sourcePlayerId, claim: true);
+        }
+        catch (Exception exception)
+        {
+            Fail(exception);
+        }
+        finally
+        {
+            _busy = false;
+            ClearPending();
+        }
+    }
+
+    /// <summary>
+    /// The deliberate escape hatch: convert without claiming any character, ignoring whatever is
+    /// in the account box. Copying a world, or handing one to somebody else to claim, are both
+    /// real reasons to want exactly this - it is a separate button rather than what clicking a
+    /// character with an empty box used to do, because that made "I didn't mean to give up my
+    /// character" and "I meant to copy it unclaimed" look identical until the game proved which
+    /// one had happened.
+    /// </summary>
+    private async Task FinishWithoutClaimingAsync()
     {
         if (_busy) return;
         var source = _pendingSource;
@@ -461,7 +501,7 @@
         _busy = true;
         try
         {
-            await RunConversionAsync(source, _pendingContainer, sourcePlayerId);
+            await RunConversionAsync(source, _pendingContainer, sourcePlayerId: null, claim: false);
         }
         catch (Exception exception)
         {
@@ -487,16 +527,11 @@
         _status = Errors.Detail(exception, "Convert save", R("Settings_ConvertFailed"));
     }
 
-    private async Task RunConversionAsync(string sourceFolder, string? container, string? sourcePlayerId)
+    private async Task RunConversionAsync(string sourceFolder, string? container, string? sourcePlayerId, bool claim)
     {
         _step = ConvertStep.Done;
         _status = R("Settings_Converting");
-        var id = string.IsNullOrWhiteSpace(_playerAccountId) ? null : _playerAccountId.Trim();
-        // Re-homing a character needs somewhere to re-home it to. Picking one from the list
-        // without an account typed above has nothing to claim it with, so Core refuses outright
-        // (it has no destination to give the character) - here that just means the world is
-        // converted without claiming anyone, which is what an empty box already meant everywhere
-        // else on this screen.
+        var id = claim && HasAccountId ? _playerAccountId.Trim() : null;
         _outputFolder = await Task.Run(
             () => SaveConversionService.Convert(_direction!.Value, sourceFolder, id, container, id is null ? null : sourcePlayerId));
         _status = R("Settings_ConvertDone", _outputFolder);

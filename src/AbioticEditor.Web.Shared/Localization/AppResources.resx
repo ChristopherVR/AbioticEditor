@@ -2128,7 +2128,13 @@ This writes to the save straight away and reloads the editor, so anything you ha
     <value>Converting…  (the first run may download a compressor it needs)</value>
   </data>
   <data name="Settings_ConvertPickCharacter" xml:space="preserve">
-    <value>This world has more than one character. If one of them is yours, put an account in the box above first, then pick it below - the others are carried over unchanged. With no account above, picking one does nothing extra; the whole world still converts.</value>
+    <value>This world has more than one character. Put your account in the box above, then pick which one is yours below - the others are carried over unchanged.</value>
+  </data>
+  <data name="Settings_ConvertNeedsAccountFirst" xml:space="preserve">
+    <value>Put an account in the box above first, so there is somewhere to claim this character to.</value>
+  </data>
+  <data name="Settings_ConvertWithoutClaiming" xml:space="preserve">
+    <value>CONVERT WITHOUT CLAIMING A CHARACTER</value>
   </data>
   <data name="Settings_ConvertPickWorld" xml:space="preserve">
     <value>This save has more than one world. Which one do you want to convert?</value>
