@@ -2157,7 +2157,7 @@ Your original was not changed. Verify it loads in-game before relying on it.</va
     <value>SAVE CONVERSION</value>
   </data>
   <data name="Settings_SaveConversionHint" xml:space="preserve">
-    <value>Move a world between Steam and Game Pass. The world itself is identical either way, only the packaging changes. The converted copy is written next to the folder you pick, so your original is untouched.</value>
+    <value>Move a world between Steam and Game Pass. The world itself is identical either way, only the packaging changes. A converted copy is written to the usual save location for the platform it's heading to; your original is untouched.</value>
   </data>
   <data name="Settings_ConvertStepSourceTitle" xml:space="preserve">
     <value>PICK A SAVE</value>
