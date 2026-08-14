@@ -2094,15 +2094,6 @@ This writes to the save straight away and reloads the editor, so anything you ha
   <data name="Settings_ConvertOrphanCharacter" xml:space="preserve">
     <value>Careful: the character in this world will not be yours on the other platform. The game will start you with a brand new character, and the one you have played all this time will sit in the folder where you cannot reach it.</value>
   </data>
-  <data name="Settings_ConvertOrphanCharacterFix" xml:space="preserve">
-    <value>To keep playing the same character, put your account in the box below and convert with it.</value>
-  </data>
-  <data name="Settings_ConvertWithAccount" xml:space="preserve">
-    <value>CONVERT WITH THIS ACCOUNT</value>
-  </data>
-  <data name="Settings_ConvertAnyway" xml:space="preserve">
-    <value>CONVERT ANYWAY</value>
-  </data>
   <data name="Settings_ConvertIdNotSteam" xml:space="preserve">
     <value>That doesn't look like a Steam account. If you're converting to Steam, check it before you go ahead. You can still convert with it.</value>
   </data>
@@ -2121,17 +2112,14 @@ This writes to the save straight away and reloads the editor, so anything you ha
   <data name="Settings_ConvertLookingForSaves" xml:space="preserve">
     <value>Looking for saves on this machine…</value>
   </data>
-  <data name="Settings_ConvertToGamePass" xml:space="preserve">
-    <value>CONVERT  ·  STEAM  →  GAME PASS</value>
+  <data name="Settings_ConvertBrowse" xml:space="preserve">
+    <value>BROWSE FOR A SAVE</value>
   </data>
-  <data name="Settings_ConvertToGamePassHint" xml:space="preserve">
-    <value>Pick a Steam world folder. A Game Pass copy is written next to it.</value>
+  <data name="Settings_ConvertUnrecognised" xml:space="preserve">
+    <value>That doesn't look like a Steam world or a Game Pass save. Pick a different folder.</value>
   </data>
-  <data name="Settings_ConvertToSteam" xml:space="preserve">
-    <value>CONVERT  ·  GAME PASS  →  STEAM</value>
-  </data>
-  <data name="Settings_ConvertToSteamHint" xml:space="preserve">
-    <value>Pick your Game Pass save folder. A Steam world folder is written next to it.</value>
+  <data name="Settings_ConvertFinish" xml:space="preserve">
+    <value>CONVERT</value>
   </data>
   <data name="Settings_OpenOutputFolder" xml:space="preserve">
     <value>OPEN OUTPUT FOLDER</value>
@@ -2140,7 +2128,7 @@ This writes to the save straight away and reloads the editor, so anything you ha
     <value>Converting…  (the first run may download a compressor it needs)</value>
   </data>
   <data name="Settings_ConvertPickCharacter" xml:space="preserve">
-    <value>This world has more than one character. Which one is yours? The others are carried over unchanged.</value>
+    <value>This world has more than one character. If one of them is yours, put an account in the box above first, then pick it below - the others are carried over unchanged. With no account above, picking one does nothing extra; the whole world still converts.</value>
   </data>
   <data name="Settings_ConvertPickWorld" xml:space="preserve">
     <value>This save has more than one world. Which one do you want to convert?</value>
@@ -2169,16 +2157,10 @@ Your original was not changed. Verify it loads in-game before relying on it.</va
     <value>Move a world between Steam and Game Pass. The world itself is identical either way, only the packaging changes. The converted copy is written next to the folder you pick, so your original is untouched.</value>
   </data>
   <data name="Settings_ConvertStepSourceTitle" xml:space="preserve">
-    <value>CONVERT A SAVE</value>
+    <value>PICK A SAVE</value>
   </data>
   <data name="Settings_ConvertStepSourceDesc" xml:space="preserve">
-    <value>Pick the platform the save is on right now.</value>
-  </data>
-  <data name="Settings_ConvertStepDestinationTitle" xml:space="preserve">
-    <value>ACCOUNT &amp; DESTINATION</value>
-  </data>
-  <data name="Settings_ConvertStepDestinationDesc" xml:space="preserve">
-    <value>Steam and Game Pass are the only two platforms this converts between, so the one you didn't pick is where this is headed.</value>
+    <value>Choose one of the saves found on this machine below, or browse for one. Steam and Game Pass saves both work here; which way it converts follows from what you pick.</value>
   </data>
   <data name="Settings_ConvertTargetLabel" xml:space="preserve">
     <value>CONVERTING TO</value>
@@ -2187,7 +2169,7 @@ Your original was not changed. Verify it loads in-game before relying on it.</va
     <value>PICK THE WORLD</value>
   </data>
   <data name="Settings_ConvertStepPlayerTitle" xml:space="preserve">
-    <value>WHO ARE YOU CONVERTING?</value>
+    <value>WHO IS THIS FOR?</value>
   </data>
   <data name="Settings_ConvertStepDoneTitle" xml:space="preserve">
     <value>RESULT</value>
@@ -2197,9 +2179,6 @@ Your original was not changed. Verify it loads in-game before relying on it.</va
   </data>
   <data name="Settings_ConvertAnotherSave" xml:space="preserve">
     <value>CONVERT ANOTHER SAVE</value>
-  </data>
-  <data name="Settings_ConvertNext" xml:space="preserve">
-    <value>NEXT</value>
   </data>
   <data name="Settings_InstalledVersion" xml:space="preserve">
     <value>Installed version: {0}.</value>

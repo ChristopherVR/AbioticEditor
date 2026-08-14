@@ -1791,15 +1791,6 @@
   <data name="Settings_ConvertOrphanCharacter" xml:space="preserve">
     <value>Внимание: персонаж в этом мире не будет вашим на другой платформе. Игра начнёт вас с совершенно новым персонажем, а тот, которым вы играли всё это время, останется в папке, и добраться до него не выйдет.</value>
   </data>
-  <data name="Settings_ConvertOrphanCharacterFix" xml:space="preserve">
-    <value>Чтобы продолжить тем же персонажем, укажите свою учётную запись в поле выше (выберите из списка или введите) и преобразуйте с ней.</value>
-  </data>
-  <data name="Settings_ConvertWithAccount" xml:space="preserve">
-    <value>ПРЕОБРАЗОВАТЬ С ЭТОЙ ЗАПИСЬЮ</value>
-  </data>
-  <data name="Settings_ConvertAnyway" xml:space="preserve">
-    <value>ВСЁ РАВНО ПРЕОБРАЗОВАТЬ</value>
-  </data>
   <data name="Settings_ConvertIdNotSteam" xml:space="preserve">
     <value>Это не похоже на учётную запись Steam. Если вы преобразуете в Steam, проверьте её перед началом. Преобразовать с ней всё равно можно.</value>
   </data>
@@ -1817,18 +1808,6 @@
   </data>
   <data name="Settings_ConvertLookingForSaves" xml:space="preserve">
     <value>Идёт поиск сохранений на этом компьютере…</value>
-  </data>
-  <data name="Settings_ConvertToGamePass" xml:space="preserve">
-    <value>КОНВЕРТИРОВАТЬ  ·  STEAM  →  GAME PASS</value>
-  </data>
-  <data name="Settings_ConvertToGamePassHint" xml:space="preserve">
-    <value>Выберите папку мира Steam. Копия для Game Pass будет записана рядом.</value>
-  </data>
-  <data name="Settings_ConvertToSteam" xml:space="preserve">
-    <value>КОНВЕРТИРОВАТЬ  ·  GAME PASS  →  STEAM</value>
-  </data>
-  <data name="Settings_ConvertToSteamHint" xml:space="preserve">
-    <value>Выберите папку с сохранениями Game Pass. Папка мира Steam будет записана рядом.</value>
   </data>
   <data name="Settings_OpenOutputFolder" xml:space="preserve">
     <value>ОТКРЫТЬ ПАПКУ ВЫВОДА</value>

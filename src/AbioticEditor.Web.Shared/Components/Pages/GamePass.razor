@@ -13,88 +13,43 @@
     {
         <p class="muted conversion-hint" role="status">@R("Settings_ConvertLookingForSaves")</p>
     }
-    @if (_step != ConvertStep.SourcePlatform)
+    @if (_step != ConvertStep.PickSave)
     {
+        <p class="conversion-hint"><span class="platform-badge @PlatformClass(DestinationPlatform)">@R("Settings_ConvertTargetLabel")</span> <strong>@Languages.PlatformLabel(DestinationPlatform)</strong></p>
         <button class="secondary conversion-action" type="button" @onclick="ResetWizard" disabled="@_busy">
             @R("Settings_ConvertStartOver")
         </button>
     }
+    @if (_step is ConvertStep.ChooseWorld or ConvertStep.ChoosePlayer)
+    {
+        <button class="secondary conversion-action" type="button" @onclick="Back" disabled="@_busy">@R("CreateWorld_Back")</button>
+    }
 
-    @if (_step == ConvertStep.SourcePlatform)
+    @if (_step == ConvertStep.PickSave)
     {
         <section>
             <h3>@R("Settings_ConvertStepSourceTitle")</h3>
             <p class="muted">@R("Settings_ConvertStepSourceDesc")</p>
-            <div class="segmented-control">
-                <button class="@(!_sourceIsGamePass ? "selected" : null)" type="button" @onclick="() => SelectSourcePlatform(false)">@R("CreateWorld_SegSteam")</button>
-                <button class="@(_sourceIsGamePass ? "selected" : null)" type="button" @onclick="() => SelectSourcePlatform(true)">@R("CreateWorld_SegGamePass")</button>
-            </div>
-        </section>
-    }
-    else if (_step == ConvertStep.Destination)
-    {
-        <section>
-            <h3>@R("Settings_ConvertStepDestinationTitle")</h3>
-            <p class="muted">@R("Settings_ConvertStepDestinationDesc")</p>
-            <p><span class="platform-badge @PlatformClass(DestinationPlatform)">@R("Settings_ConvertTargetLabel")</span> <strong>@Languages.PlatformLabel(DestinationPlatform)</strong></p>
-
-            <label for="conversion-account-id">@R("Settings_ConvertPlayerAccountId")</label>
-            @* Checked on every keystroke rather than when the box loses focus: the point of the warning
-               is to catch a mistyped account while it is still being typed. *@
-            <input id="conversion-account-id" @bind="_playerAccountId" @bind:event="oninput"
-                   placeholder="@R("Settings_ConvertIdPlaceholder")" disabled="@_busy" />
-            @if (IdWarning is not SaveConversionIdWarning.None)
-            {
-                <p class="conversion-id-warning" role="status">@IdWarningText</p>
-            }
-            @* A shortcut only: whatever is typed over it afterwards is what gets used. *@
-            @if (_accounts.Count > 0)
-            {
-                <p class="muted conversion-hint">@R("Settings_ConvertAccountsFound")</p>
-                <ul class="conversion-account-list">
-                    @foreach (var account in _accounts)
-                    {
-                        <li>
-                            <button class="secondary" type="button" @onclick="() => UseAccount(account)" disabled="@_busy">
-                                <span class="platform-badge @PlatformClass(account.Platform)">@Languages.PlatformLabel(account.Platform)</span>
-                                <strong>@(account.DisplayName ?? account.AccountId)</strong>
-                                @if (account.DisplayName is not null)
-                                {
-                                    <small>@account.AccountId</small>
-                                }
-                            </button>
-                        </li>
-                    }
-                </ul>
-            }
-            <p class="muted conversion-hint">@R("Settings_ConvertIdHint")</p>
-        </section>
-    }
-    else if (_step == ConvertStep.ChooseSave)
-    {
-        <section>
-            <h3>@R(_sourceIsGamePass ? "Settings_ConvertToSteam" : "Settings_ConvertToGamePass")</h3>
-            <p class="muted">@R(_sourceIsGamePass ? "Settings_ConvertToSteamHint" : "Settings_ConvertToGamePassHint")</p>
             <button class="primary conversion-action" type="button" @onclick="ConvertAsync" disabled="@_busy">
-                @R(_sourceIsGamePass ? "Settings_ConvertToSteam" : "Settings_ConvertToGamePass")
+                @R("Settings_ConvertBrowse")
             </button>
 
-            @if (CurrentWorlds is { Count: > 0 } found)
+            @if (AllDiscoveredWorlds.Any())
             {
                 <p class="muted conversion-hint">@R("Settings_ConvertWorldsFound")</p>
                 <div class="discovered-world-list conversion-world-choices">
-                    @foreach (var world in found)
+                    @foreach (var entry in AllDiscoveredWorlds.OrderByDescending(entry => entry.World.LastPlayed))
                     {
                         <article class="discovered-world-card">
                             <div>
                                 <h3>
-                                    @world.WorldName
-                                    <span class="platform-badge @PlatformClass(world.Platform)">@Languages.PlatformLabel(world.Platform, world.Source)</span>
+                                    @entry.World.WorldName
+                                    <span class="platform-badge @PlatformClass(entry.World.Platform)">@Languages.PlatformLabel(entry.World.Platform, entry.World.Source)</span>
                                 </h3>
-                                <p>@world.LastPlayed.ToString("g")</p>
-                                <small title="@world.FolderPath">@world.FolderPath</small>
+                                <p>@entry.World.LastPlayed.ToString("g")</p>
+                                <small title="@entry.World.FolderPath">@entry.World.FolderPath</small>
                             </div>
-                            <button class="primary" type="button" @onclick="() => ConvertDiscoveredAsync(world)" disabled="@_busy">
+                            <button class="primary" type="button" @onclick="() => ConvertDiscoveredAsync(entry.Direction, entry.World)" disabled="@_busy">
                                 @R("Settings_ConvertThisWorld")
                             </button>
                         </article>
@@ -126,36 +81,63 @@
             <h3>@R("Settings_ConvertStepPlayerTitle")</h3>
             @* A conversion with no account carries the characters across still owned by the platform they
                came from, where the game cannot find them and starts a new one instead. That is a ruined
-               afternoon discovered in-game, so it is said here rather than after the fact - and it is a
-               warning, not a wall, because copying a world without claiming it is a fair thing to want. *@
-            @if (_strandedCharacters is { Count: > 0 })
+               afternoon discovered in-game, so it is said up front, not after the fact - and this is a
+               heads-up, not a wall, because copying a world without claiming it is a fair thing to want. *@
+            @if (_wouldStrandIfBlank)
             {
                 <p class="conversion-id-warning" role="alert">@R("Settings_ConvertOrphanCharacter")</p>
-                <p class="muted conversion-hint">@R("Settings_ConvertOrphanCharacterFix")</p>
-                <label for="conversion-account-id-stranded">@R("Settings_ConvertPlayerAccountId")</label>
-                <input id="conversion-account-id-stranded" @bind="_playerAccountId" @bind:event="oninput"
-                       placeholder="@R("Settings_ConvertIdPlaceholder")" disabled="@_busy" />
-                <button class="primary conversion-action" type="button" @onclick="ConvertWithAccountAsync"
-                        disabled="@(_busy || string.IsNullOrWhiteSpace(_playerAccountId))">
-                    @R("Settings_ConvertWithAccount")
-                </button>
-                <button class="secondary conversion-action" type="button" @onclick="ConvertAnywayAsync" disabled="@_busy">
-                    @R("Settings_ConvertAnyway")
-                </button>
             }
-            else if (_characterChoices is { Count: > 0 } characters)
+
+            <label for="conversion-account-id">@R("Settings_ConvertPlayerAccountId")</label>
+            @* Checked on every keystroke rather than when the box loses focus: the point of the warning
+               is to catch a mistyped account while it is still being typed. *@
+            <input id="conversion-account-id" @bind="_playerAccountId" @bind:event="oninput"
+                   placeholder="@R("Settings_ConvertIdPlaceholder")" disabled="@_busy" />
+            @if (IdWarning is not SaveConversionIdWarning.None)
+            {
+                <p class="conversion-id-warning" role="status">@IdWarningText</p>
+            }
+            @* A shortcut only: whatever is typed over it afterwards is what gets used. *@
+            @if (_accounts.Count > 0)
+            {
+                <p class="muted conversion-hint">@R("Settings_ConvertAccountsFound")</p>
+                <ul class="conversion-account-list">
+                    @foreach (var account in _accounts)
+                    {
+                        <li>
+                            <button class="secondary" type="button" @onclick="() => UseAccount(account)" disabled="@_busy">
+                                <span class="platform-badge @PlatformClass(account.Platform)">@Languages.PlatformLabel(account.Platform)</span>
+                                <strong>@(account.DisplayName ?? account.AccountId)</strong>
+                                @if (account.DisplayName is not null)
+                                {
+                                    <small>@account.AccountId</small>
+                                }
+                            </button>
+                        </li>
+                    }
+                </ul>
+            }
+            <p class="muted conversion-hint">@R("Settings_ConvertIdHint")</p>
+
+            @if (_characterChoices is { Count: > 0 } characters)
             {
                 <p class="muted">@R("Settings_ConvertPickCharacter")</p>
                 <ul class="conversion-world-list">
                     @foreach (var character in characters)
                     {
                         <li>
-                            <button class="secondary" type="button" @onclick="() => ChooseCharacterAsync(character)" disabled="@_busy">
+                            <button class="secondary" type="button" @onclick="() => FinishAsync(character)" disabled="@_busy">
                                 @character
                             </button>
                         </li>
                     }
                 </ul>
+            }
+            else
+            {
+                <button class="primary conversion-action" type="button" @onclick="() => FinishAsync(null)" disabled="@_busy">
+                    @R("Settings_ConvertFinish")
+                </button>
             }
         </section>
     }
@@ -171,39 +153,30 @@
         </section>
     }
 
-    @if (_step is ConvertStep.Destination or ConvertStep.ChooseSave)
-    {
-        <footer class="wizard-footer">
-            <button class="secondary" type="button" @onclick="Back" disabled="@_busy">@R("CreateWorld_Back")</button>
-            @if (_step != ConvertStep.ChooseSave)
-            {
-                <button class="primary" type="button" @onclick="() => _step++" disabled="@_busy">@R("Settings_ConvertNext")</button>
-            }
-        </footer>
-    }
-
     @if (_status is not null)
     {
-        <p class="@(_failed ? "error" : "success")" role="@(_failed ? "alert" : "status")">@_status</p>
+        <p class="conversion-status @(_failed ? "error" : "success")" role="@(_failed ? "alert" : "status")">@_status</p>
     }
 </article>
 
 @code {
-    private enum ConvertStep { SourcePlatform, Destination, ChooseSave, ChooseWorld, ChoosePlayer, Done }
+    private enum ConvertStep { PickSave, ChooseWorld, ChoosePlayer, Done }
 
-    private ConvertStep _step = ConvertStep.SourcePlatform;
-    private bool _sourceIsGamePass;
+    private ConvertStep _step = ConvertStep.PickSave;
+    // Which way this run is converting. Unknown until a save is picked: the direction is read
+    // off the save itself (its own platform badge, or auto-detected from a browsed folder)
+    // rather than asked as a separate question up front.
+    private SaveConversionDirection? _direction;
     private string _playerAccountId = string.Empty;
     private string? _outputFolder;
     private string? _status;
     private bool _busy;
     private bool _searching;
     private bool _failed;
+    private bool _wouldStrandIfBlank;
     private IReadOnlyList<string>? _worldChoices;
     private IReadOnlyList<string>? _characterChoices;
-    private IReadOnlyList<string>? _strandedCharacters;
     private string? _pendingSource;
-    private string? _pendingId;
     private string? _pendingContainer;
 
     private IReadOnlyList<DiscoveredAccount> _accounts = Array.Empty<DiscoveredAccount>();
@@ -212,11 +185,14 @@
 
     private string R(string key, params object?[] args) => Languages.Resource(key, args);
 
-    /// <summary>There are only two platforms this converts between, so the source platform
-    /// picked in step one fully determines both the direction and the destination.</summary>
-    private SaveConversionDirection Direction => _sourceIsGamePass ? SaveConversionDirection.ToSteam : SaveConversionDirection.ToGamePass;
-    private SavePlatform DestinationPlatform => SaveConversionService.DestinationPlatform(Direction);
-    private IReadOnlyList<DiscoveredWorld> CurrentWorlds => _sourceIsGamePass ? _worldsToSteam : _worldsToGamePass;
+    private SavePlatform DestinationPlatform => _direction is { } direction ? SaveConversionService.DestinationPlatform(direction) : SavePlatform.Unknown;
+
+    /// <summary>Every world found on this machine, in either direction, so the first screen is
+    /// "pick a save" rather than an abstract "pick a platform" before a save is even in view -
+    /// each entry already carries the direction converting it implies.</summary>
+    private IEnumerable<(DiscoveredWorld World, SaveConversionDirection Direction)> AllDiscoveredWorlds =>
+        _worldsToSteam.Select(world => (world, SaveConversionDirection.ToSteam))
+            .Concat(_worldsToGamePass.Select(world => (world, SaveConversionDirection.ToGamePass)));
 
     /// <summary>Container names carry a "-WC" suffix that means nothing to a player.</summary>
     private static string WorldLabel(string container)
@@ -268,22 +244,11 @@
         }
     }
 
-    /// <summary>There is nothing else to ask on this step - picking a platform is the whole
-    /// answer - so the click advances straight to the next question instead of waiting on a
-    /// separate Next press.</summary>
-    private void SelectSourcePlatform(bool gamePass)
-    {
-        _sourceIsGamePass = gamePass;
-        _step = ConvertStep.Destination;
-    }
-
     /// <summary>Fills the box from the list. Typing over it afterwards is the whole point.</summary>
     private void UseAccount(DiscoveredAccount account) => _playerAccountId = account.AccountId;
 
-    /// <summary>What looks doubtful about the account in the box, for the direction this wizard
-    /// is already committed to.</summary>
     private SaveConversionIdWarning IdWarning
-        => SaveConversionService.WarnAboutAccountId(Direction, _playerAccountId);
+        => _direction is { } direction ? SaveConversionService.WarnAboutAccountId(direction, _playerAccountId) : SaveConversionIdWarning.None;
 
     private string IdWarningText => IdWarning switch
     {
@@ -291,35 +256,33 @@
         _ => R("Settings_ConvertIdNotSteam"),
     };
 
+    /// <summary>Drops back to picking a save, but keeps whatever account id was already typed -
+    /// the save was the wrong pick, not the account.</summary>
     private void Back()
     {
+        _step = ConvertStep.PickSave;
         _status = null;
         _failed = false;
-        _step = _step switch
-        {
-            ConvertStep.Destination => ConvertStep.SourcePlatform,
-            ConvertStep.ChooseSave => ConvertStep.Destination,
-            _ => _step,
-        };
-    }
-
-    /// <summary>Back to the very first question. Every conversion call is one-shot and safe to
-    /// re-run, so this is nothing more than clearing the state gathered so far.</summary>
-    private void ResetWizard()
-    {
-        _step = ConvertStep.SourcePlatform;
-        _sourceIsGamePass = false;
-        _playerAccountId = string.Empty;
-        _outputFolder = null;
-        _status = null;
-        _failed = false;
+        _direction = null;
         _worldChoices = null;
-        _characterChoices = null;
+        _wouldStrandIfBlank = false;
         ClearPending();
     }
 
+    /// <summary>Back to the very first question, clearing everything including the account box.
+    /// Every conversion call is one-shot and safe to re-run, so this is nothing more than
+    /// clearing the state gathered so far.</summary>
+    private void ResetWizard()
+    {
+        Back();
+        _playerAccountId = string.Empty;
+        _outputFolder = null;
+    }
+
     /// <summary>
-    /// Converts a save folder, starting by asking which folder to convert.
+    /// Converts a save folder, starting by asking which folder to convert. The folder's own
+    /// shape says which direction it is going - a Steam world folder can only go to Game Pass
+    /// and vice versa - so nothing needs to be picked beforehand.
     /// </summary>
     /// <remarks>
     /// The card is marked busy before the folder chooser opens, not after it closes. Choosing a
@@ -332,13 +295,18 @@
         _busy = true;
         try
         {
-            var picked = await FolderPicker.PickFolderAsync(new()
-            {
-                Title = R(_sourceIsGamePass ? "Settings_ConvertToSteam" : "Settings_ConvertToGamePass"),
-            });
+            var picked = await FolderPicker.PickFolderAsync(new() { Title = R("Settings_ConvertBrowse") });
             if (picked is null || string.IsNullOrWhiteSpace(picked.Path)) return;
 
-            await BeginConversionAsync(picked.Path, container: null);
+            var direction = DetectDirection(picked.Path);
+            if (direction is null)
+            {
+                _failed = true;
+                _status = R("Settings_ConvertUnrecognised");
+                return;
+            }
+
+            await BeginConversionAsync(direction.Value, picked.Path, container: null);
         }
         catch (Exception exception)
         {
@@ -350,18 +318,29 @@
         }
     }
 
+    /// <summary>A folder is a valid source for exactly one direction (a Steam world folder never
+    /// also looks like a Game Pass container and vice versa), so trying both tells us which.</summary>
+    private static SaveConversionDirection? DetectDirection(string folder)
+    {
+        if (SaveConversionService.ValidateSource(SaveConversionDirection.ToGamePass, folder) == SaveConversionSourceValidation.Valid)
+            return SaveConversionDirection.ToGamePass;
+        if (SaveConversionService.ValidateSource(SaveConversionDirection.ToSteam, folder) == SaveConversionSourceValidation.Valid)
+            return SaveConversionDirection.ToSteam;
+        return null;
+    }
+
     /// <summary>
     /// Converts a world straight from the list of ones found on this machine. Both answers the
     /// folder chooser would have produced are already known here, including which world inside a
-    /// Game Pass save it is, so neither question is asked again.
+    /// Game Pass save it is and which direction it is heading, so nothing is asked again.
     /// </summary>
-    private async Task ConvertDiscoveredAsync(DiscoveredWorld world)
+    private async Task ConvertDiscoveredAsync(SaveConversionDirection direction, DiscoveredWorld world)
     {
         if (_busy) return;
         _busy = true;
         try
         {
-            await BeginConversionAsync(world.FolderPath, world.GamePassContainer);
+            await BeginConversionAsync(direction, world.FolderPath, world.GamePassContainer);
         }
         catch (Exception exception)
         {
@@ -378,16 +357,16 @@
     /// this can stop half-way to ask a question, and the flag has to stay taken until it is
     /// answered.
     /// </summary>
-    private async Task BeginConversionAsync(string sourceFolder, string? container)
+    private async Task BeginConversionAsync(SaveConversionDirection direction, string sourceFolder, string? container)
     {
+        _direction = direction;
         _failed = false;
         _outputFolder = null;
         _worldChoices = null;
         _characterChoices = null;
-        _strandedCharacters = null;
         _status = null;
 
-        var validation = SaveConversionService.ValidateSource(Direction, sourceFolder);
+        var validation = SaveConversionService.ValidateSource(direction, sourceFolder);
         if (validation != SaveConversionSourceValidation.Valid)
         {
             _failed = true;
@@ -397,25 +376,22 @@
             return;
         }
 
-        var id = string.IsNullOrWhiteSpace(_playerAccountId) ? null : _playerAccountId.Trim();
-
         // A Game Pass folder can hold several worlds. Converting whichever one came first was a
         // coin toss the player never saw, so ask when there is a choice still to make - picking a
         // world from the list above has already made it.
         if (container is null)
         {
-            var worlds = await Task.Run(() => SaveConversionService.WorldContainers(Direction, sourceFolder));
+            var worlds = await Task.Run(() => SaveConversionService.WorldContainers(direction, sourceFolder));
             if (worlds.Count > 1)
             {
                 _pendingSource = sourceFolder;
-                _pendingId = id;
                 _worldChoices = worlds;
                 _step = ConvertStep.ChooseWorld;
                 return;
             }
         }
 
-        await ContinueConversionAsync(sourceFolder, id, container);
+        await ContinueConversionAsync(sourceFolder, container);
     }
 
     private async Task ChooseWorldAsync(string container)
@@ -429,7 +405,7 @@
         _busy = true;
         try
         {
-            await ContinueConversionAsync(source, _pendingId, container);
+            await ContinueConversionAsync(source, container);
         }
         catch (Exception exception)
         {
@@ -443,128 +419,49 @@
     }
 
     /// <summary>
-    /// The step between picking a world and converting it, where the two questions about the
-    /// characters in it get asked.
+    /// The step between picking a world and converting it: who does this world belong to
+    /// afterward. The account box and the character question live on the same screen, because
+    /// whether an account is worth typing depends on which character it is claiming, and whether
+    /// a character needs claiming depends on what (if anything) is typed - splitting the two
+    /// across separate screens meant one could not usefully be answered without the other.
     /// </summary>
-    /// <remarks>
-    /// <para>With an account given and several characters in the world, ask which one is the
-    /// player's. Core refuses to guess, and rightly - only the player knows which of their co-op
-    /// group's accounts is theirs - so without this question a shared world could not be converted
-    /// at all.</para>
-    /// <para>With no account given, and characters that will not be reachable on the platform the
-    /// world is heading for, warn instead. That conversion succeeds and then hands the player a new
-    /// level 1 character with no explanation, which is the worst kind of failure: a silent one that
-    /// only shows up in-game.</para>
-    /// </remarks>
-    private async Task ContinueConversionAsync(string sourceFolder, string? id, string? container)
+    private async Task ContinueConversionAsync(string sourceFolder, string? container)
     {
+        var direction = _direction!.Value;
         var characters = await Task.Run(
-            () => SaveConversionService.Characters(Direction, sourceFolder, container));
+            () => SaveConversionService.Characters(direction, sourceFolder, container));
 
-        if (id is not null)
+        if (characters.Count == 0)
         {
-            if (characters.Count > 1)
-            {
-                RememberPending(sourceFolder, id, container);
-                _characterChoices = characters;
-                _step = ConvertStep.ChoosePlayer;
-                return;
-            }
-        }
-        else if (SaveConversionService.WouldStrandCharacters(Direction, characters, id))
-        {
-            RememberPending(sourceFolder, id: null, container);
-            _strandedCharacters = characters;
-            _step = ConvertStep.ChoosePlayer;
+            await RunConversionAsync(sourceFolder, container, sourcePlayerId: null);
             return;
         }
 
-        await RunConversionAsync(sourceFolder, id, container, sourcePlayerId: null);
-    }
-
-    private void RememberPending(string sourceFolder, string? id, string? container)
-    {
         _pendingSource = sourceFolder;
-        _pendingId = id;
         _pendingContainer = container;
+        // More than one character means Core cannot guess which one is the player's - only the
+        // player knows which of their co-op group's accounts is theirs - so the list is shown
+        // whenever there is a real choice, account box or not.
+        _characterChoices = characters.Count > 1 ? characters : null;
+        // Whether leaving the account box empty strands a character is a fact about the save
+        // itself, not about what happens to be typed right now, so it is worked out once up
+        // front and shown as a heads-up alongside the box rather than only after the fact.
+        _wouldStrandIfBlank = SaveConversionService.WouldStrandCharacters(direction, characters, playerAccountId: null);
+        _step = ConvertStep.ChoosePlayer;
     }
 
-    /// <summary>
-    /// Resumes the paused conversion, handing the world's character to the account now in the box.
-    /// With exactly one character there is nothing left to ask - it is plainly the one they mean -
-    /// so the whole fix is this single press.
-    /// </summary>
-    private async Task ConvertWithAccountAsync()
-    {
-        if (_busy) return;
-        var source = _pendingSource;
-        var stranded = _strandedCharacters;
-        if (source is null || stranded is null) return;
-        var id = string.IsNullOrWhiteSpace(_playerAccountId) ? null : _playerAccountId.Trim();
-        if (id is null) return;
-
-        _strandedCharacters = null;
-        _busy = true;
-        try
-        {
-            if (stranded.Count == 1)
-            {
-                await RunConversionAsync(source, id, _pendingContainer, stranded[0]);
-            }
-            else
-            {
-                await ContinueConversionAsync(source, id, _pendingContainer);
-            }
-        }
-        catch (Exception exception)
-        {
-            Fail(exception);
-            ClearPending();
-        }
-        finally
-        {
-            _busy = false;
-        }
-    }
-
-    /// <summary>
-    /// Converts without claiming the characters, which is what the player asked for in the first
-    /// place. Copying a world, or handing one to somebody else to claim, are both real reasons to
-    /// want exactly this, so the warning above never takes the choice away.
-    /// </summary>
-    private async Task ConvertAnywayAsync()
+    /// <summary>Runs the conversion with whatever is currently in the account box - filling it
+    /// in, picking a character, or leaving both alone are all read live from this same screen,
+    /// so there is nothing left to remember from an earlier step.</summary>
+    private async Task FinishAsync(string? sourcePlayerId)
     {
         if (_busy) return;
         var source = _pendingSource;
         if (source is null) return;
-
-        _strandedCharacters = null;
         _busy = true;
         try
         {
-            await RunConversionAsync(source, id: null, _pendingContainer, sourcePlayerId: null);
-        }
-        catch (Exception exception)
-        {
-            Fail(exception);
-            ClearPending();
-        }
-        finally
-        {
-            _busy = false;
-        }
-    }
-
-    private async Task ChooseCharacterAsync(string character)
-    {
-        if (_busy) return;
-        var source = _pendingSource;
-        if (source is null) return;
-        _characterChoices = null;
-        _busy = true;
-        try
-        {
-            await RunConversionAsync(source, _pendingId, _pendingContainer, character);
+            await RunConversionAsync(source, _pendingContainer, sourcePlayerId);
         }
         catch (Exception exception)
         {
@@ -580,9 +477,8 @@
     private void ClearPending()
     {
         _pendingSource = null;
-        _pendingId = null;
         _pendingContainer = null;
-        _strandedCharacters = null;
+        _characterChoices = null;
     }
 
     private void Fail(Exception exception)
@@ -591,13 +487,18 @@
         _status = Errors.Detail(exception, "Convert save", R("Settings_ConvertFailed"));
     }
 
-    private async Task RunConversionAsync(
-        string sourceFolder, string? id, string? container, string? sourcePlayerId)
+    private async Task RunConversionAsync(string sourceFolder, string? container, string? sourcePlayerId)
     {
         _step = ConvertStep.Done;
         _status = R("Settings_Converting");
+        var id = string.IsNullOrWhiteSpace(_playerAccountId) ? null : _playerAccountId.Trim();
+        // Re-homing a character needs somewhere to re-home it to. Picking one from the list
+        // without an account typed above has nothing to claim it with, so Core refuses outright
+        // (it has no destination to give the character) - here that just means the world is
+        // converted without claiming anyone, which is what an empty box already meant everywhere
+        // else on this screen.
         _outputFolder = await Task.Run(
-            () => SaveConversionService.Convert(Direction, sourceFolder, id, container, sourcePlayerId));
+            () => SaveConversionService.Convert(_direction!.Value, sourceFolder, id, container, id is null ? null : sourcePlayerId));
         _status = R("Settings_ConvertDone", _outputFolder);
         ClearPending();
     }

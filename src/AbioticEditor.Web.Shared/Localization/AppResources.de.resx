@@ -1791,15 +1791,6 @@ Dies schreibt sofort in den Spielstand und lädt den Editor neu, alles noch nich
   <data name="Settings_ConvertOrphanCharacter" xml:space="preserve">
     <value>Achtung: Die Figur in dieser Welt gehört dir auf der anderen Plattform nicht. Das Spiel startet dich mit einer völlig neuen Figur, und die, mit der du die ganze Zeit gespielt hast, liegt dann im Ordner, ohne dass du an sie herankommst.</value>
   </data>
-  <data name="Settings_ConvertOrphanCharacterFix" xml:space="preserve">
-    <value>Damit du mit derselben Figur weiterspielen kannst, trage oben dein Konto ein (wähle eines aus der Liste oder tippe es ein) und konvertiere damit.</value>
-  </data>
-  <data name="Settings_ConvertWithAccount" xml:space="preserve">
-    <value>MIT DIESEM KONTO KONVERTIEREN</value>
-  </data>
-  <data name="Settings_ConvertAnyway" xml:space="preserve">
-    <value>TROTZDEM KONVERTIEREN</value>
-  </data>
   <data name="Settings_ConvertIdNotSteam" xml:space="preserve">
     <value>Das sieht nicht nach einem Steam-Konto aus. Wenn du nach Steam konvertierst, prüfe es lieber noch einmal. Konvertieren kannst du trotzdem.</value>
   </data>
@@ -1817,18 +1808,6 @@ Dies schreibt sofort in den Spielstand und lädt den Editor neu, alles noch nich
   </data>
   <data name="Settings_ConvertLookingForSaves" xml:space="preserve">
     <value>Es wird nach Spielständen auf diesem Rechner gesucht…</value>
-  </data>
-  <data name="Settings_ConvertToGamePass" xml:space="preserve">
-    <value>KONVERTIEREN  ·  STEAM  →  GAME PASS</value>
-  </data>
-  <data name="Settings_ConvertToGamePassHint" xml:space="preserve">
-    <value>Wählen Sie einen Steam-Weltordner. Eine Game-Pass-Kopie wird daneben abgelegt.</value>
-  </data>
-  <data name="Settings_ConvertToSteam" xml:space="preserve">
-    <value>KONVERTIEREN  ·  GAME PASS  →  STEAM</value>
-  </data>
-  <data name="Settings_ConvertToSteamHint" xml:space="preserve">
-    <value>Wählen Sie Ihren Game-Pass-Spielstandordner. Ein Steam-Weltordner wird daneben angelegt.</value>
   </data>
   <data name="Settings_OpenOutputFolder" xml:space="preserve">
     <value>AUSGABEORDNER ÖFFNEN</value>

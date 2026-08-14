@@ -1792,15 +1792,6 @@ Esto escribe en el guardado de inmediato y recarga el editor, así que se pierde
   <data name="Settings_ConvertOrphanCharacter" xml:space="preserve">
     <value>Cuidado: el personaje de este mundo no será tuyo en la otra plataforma. El juego te empezará con un personaje nuevo, y el que llevas jugando todo este tiempo se quedará en la carpeta sin que puedas llegar a él.</value>
   </data>
-  <data name="Settings_ConvertOrphanCharacterFix" xml:space="preserve">
-    <value>Para seguir jugando con el mismo personaje, pon tu cuenta en el campo de arriba (elige una de la lista o escríbela) y convierte con ella.</value>
-  </data>
-  <data name="Settings_ConvertWithAccount" xml:space="preserve">
-    <value>CONVERTIR CON ESTA CUENTA</value>
-  </data>
-  <data name="Settings_ConvertAnyway" xml:space="preserve">
-    <value>CONVERTIR DE TODOS MODOS</value>
-  </data>
   <data name="Settings_ConvertIdNotSteam" xml:space="preserve">
     <value>Esto no parece una cuenta de Steam. Si vas a convertir a Steam, compruébalo antes de continuar. Aun así puedes convertir con ella.</value>
   </data>
@@ -1818,18 +1809,6 @@ Esto escribe en el guardado de inmediato y recarga el editor, así que se pierde
   </data>
   <data name="Settings_ConvertLookingForSaves" xml:space="preserve">
     <value>Buscando partidas guardadas en este equipo…</value>
-  </data>
-  <data name="Settings_ConvertToGamePass" xml:space="preserve">
-    <value>CONVERTIR  ·  STEAM  →  GAME PASS</value>
-  </data>
-  <data name="Settings_ConvertToGamePassHint" xml:space="preserve">
-    <value>Elige una carpeta de mundo de Steam. Se escribe una copia de Game Pass al lado.</value>
-  </data>
-  <data name="Settings_ConvertToSteam" xml:space="preserve">
-    <value>CONVERTIR  ·  GAME PASS  →  STEAM</value>
-  </data>
-  <data name="Settings_ConvertToSteamHint" xml:space="preserve">
-    <value>Elige tu carpeta de guardados de Game Pass. Se escribe una carpeta de mundo de Steam al lado.</value>
   </data>
   <data name="Settings_OpenOutputFolder" xml:space="preserve">
     <value>ABRIR CARPETA DE SALIDA</value>

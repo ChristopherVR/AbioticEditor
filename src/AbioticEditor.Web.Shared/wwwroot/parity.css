@@ -409,6 +409,9 @@ h1[tabindex="-1"]:focus{outline:none}
 /* Doubtful, not wrong: warm orange rather than the alert red, because the button stays live. */
 .conversion-id-warning{margin:7px 0 0;color:var(--orange);font-size:11px}
 .gamepass-card .conversion-world-choices{margin-top:7px}
+/* The result message carries a full Windows folder path with no spaces to break on, which the
+   browser's default line-breaking treats as one unbreakable run and lets overflow the card. */
+.gamepass-card .conversion-status{margin-top:14px;overflow-wrap:anywhere;white-space:pre-line}
 .settings-subdialog-backdrop{position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:24px;background:#02070db8}
 .settings-subdialog{box-sizing:border-box;width:min(520px,100%);max-height:min(680px,90vh);overflow:auto;padding:20px;border:1px solid var(--divider);border-radius:8px;background:var(--panel);box-shadow:0 24px 70px #000b}
 .settings-subdialog h2{margin:0;color:var(--section);font-size:17px;letter-spacing:.1em}

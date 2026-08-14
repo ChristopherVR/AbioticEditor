@@ -1791,15 +1791,6 @@ Cela écrit dans la sauvegarde tout de suite et recharge l'éditeur : tout ce qu
   <data name="Settings_ConvertOrphanCharacter" xml:space="preserve">
     <value>Attention : le personnage de ce monde ne sera pas le tien sur l'autre plateforme. Le jeu te fera commencer avec un tout nouveau personnage, et celui avec lequel tu joues depuis le début restera dans le dossier sans que tu puisses l'atteindre.</value>
   </data>
-  <data name="Settings_ConvertOrphanCharacterFix" xml:space="preserve">
-    <value>Pour continuer avec le même personnage, indique ton compte dans le champ ci-dessus (choisis-en un dans la liste ou saisis-le) et lance la conversion avec.</value>
-  </data>
-  <data name="Settings_ConvertWithAccount" xml:space="preserve">
-    <value>CONVERTIR AVEC CE COMPTE</value>
-  </data>
-  <data name="Settings_ConvertAnyway" xml:space="preserve">
-    <value>CONVERTIR QUAND MÊME</value>
-  </data>
   <data name="Settings_ConvertIdNotSteam" xml:space="preserve">
     <value>Cela ne ressemble pas à un compte Steam. Si tu convertis vers Steam, vérifie avant de continuer. Tu peux quand même lancer la conversion.</value>
   </data>
@@ -1817,18 +1808,6 @@ Cela écrit dans la sauvegarde tout de suite et recharge l'éditeur : tout ce qu
   </data>
   <data name="Settings_ConvertLookingForSaves" xml:space="preserve">
     <value>Recherche des sauvegardes sur cet ordinateur…</value>
-  </data>
-  <data name="Settings_ConvertToGamePass" xml:space="preserve">
-    <value>CONVERTIR  ·  STEAM  →  GAME PASS</value>
-  </data>
-  <data name="Settings_ConvertToGamePassHint" xml:space="preserve">
-    <value>Choisissez un dossier de monde Steam. Une copie Game Pass est écrite à côté.</value>
-  </data>
-  <data name="Settings_ConvertToSteam" xml:space="preserve">
-    <value>CONVERTIR  ·  GAME PASS  →  STEAM</value>
-  </data>
-  <data name="Settings_ConvertToSteamHint" xml:space="preserve">
-    <value>Choisissez votre dossier de sauvegardes Game Pass. Un dossier de monde Steam est écrit à côté.</value>
   </data>
   <data name="Settings_OpenOutputFolder" xml:space="preserve">
     <value>OUVRIR LE DOSSIER DE SORTIE</value>
