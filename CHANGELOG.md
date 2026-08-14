@@ -2,19 +2,35 @@
 
 All notable changes to this project are documented here.
 
+## [2.7.1] - 2026-08-14
+
+### Miscellaneous Tasks
+- Point bucket at v2.7.0 [skip ci]
+
+
 ## [2.7.0] - 2026-08-14
 
 ### Bug Fixes
+- Stop Game Pass to Steam conversions writing inside the Xbox package folder
 - Stop Convert from quietly giving up your character
 - Make converting a save simpler and fix a couple of Convert bugs
 
 
+### Documentation
+- Correct the Convert screen's description of where a copy is written
+
+
 ### Features
+- Let every player in a shared world keep their own character when converting
 - Walk you through converting a Game Pass save step by step
 
 
 ### Miscellaneous Tasks
 - Point bucket at v2.6.2 [skip ci]
+
+
+### Styling
+- Put Back and Start over side by side on the Convert screen
 
 
 ## [2.6.2] - 2026-08-13
