@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here.
 
+## [2.7.0] - 2026-08-14
+
+### Bug Fixes
+- Stop Convert from quietly giving up your character
+- Make converting a save simpler and fix a couple of Convert bugs
+
+
+### Features
+- Walk you through converting a Game Pass save step by step
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.6.2 [skip ci]
+
+
 ## [2.6.2] - 2026-08-13
 
 ### Bug Fixes
