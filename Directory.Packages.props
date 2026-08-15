@@ -17,11 +17,11 @@
   <ItemGroup>
     <!-- CLI. The GA 2.0 line replaced the beta4 SetHandler API with SetAction +
          ParseResult; Program.cs's Build().Parse(args).InvokeAsync() is GA-shaped. -->
-    <PackageVersion Include="System.CommandLine" Version="2.0.10" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.11" />
 
     <!-- JavaScript plugin runtime. Jint is a pure-managed ES interpreter with no native deps,
          so it works across the CLI and local Razor host. -->
-    <PackageVersion Include="Jint" Version="4.15.3" />
+    <PackageVersion Include="Jint" Version="4.16.0" />
 
     <!-- Native desktop window for the local Razor host. Photino uses WebView2 on
          Windows and WebKitGTK on Linux while keeping the existing Razor UI intact. -->
@@ -34,8 +34,8 @@
     <!-- Razor Class Library shared by both front-ends. A plain net10.0 library does not get the
          ASP.NET Core shared framework the desktop host builds against, so the Components types
          its screens use come from this package instead. -->
-    <PackageVersion Include="Microsoft.AspNetCore.Components.Web" Version="10.0.10" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.Web" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.11" />
 
     <!-- Transitive override (NOT a CUE4Parse mirror — Dependabot SHOULD keep this current):
          CUE4Parse references Microsoft.Bcl.Memory 9.0.0, which has a known vulnerability
@@ -47,7 +47,7 @@
 
     <!-- Tests -->
     <PackageVersion Include="coverlet.collector" Version="10.0.1" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
     <!-- xUnit v2 has no dynamic skip, so a test that bailed out on a missing fixture or a missing
