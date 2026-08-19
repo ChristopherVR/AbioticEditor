@@ -1,13 +1,16 @@
+/* --file-col / --details-col (declared in parity.css on .workspace-shell) are the
+   user-dragged pane widths capped to a share of the window, so the two side panes can
+   never squeeze the centre editor below a usable width. The raw widths are the fallback. */
 .workspace-shell.shell-with-splitters {
-    grid-template-columns: var(--file-pane-width) 16px minmax(0, 1fr) 16px var(--details-pane-width) !important;
+    grid-template-columns: var(--file-col, var(--file-pane-width)) 16px minmax(0, 1fr) 16px var(--details-col, var(--details-pane-width)) !important;
 }
 
 .workspace-shell.shell-with-splitters.file-collapsed {
-    grid-template-columns: 0 16px minmax(0, 1fr) 16px var(--details-pane-width) !important;
+    grid-template-columns: 0 16px minmax(0, 1fr) 16px var(--details-col, var(--details-pane-width)) !important;
 }
 
 .workspace-shell.shell-with-splitters.details-collapsed {
-    grid-template-columns: var(--file-pane-width) 16px minmax(0, 1fr) 16px 0 !important;
+    grid-template-columns: var(--file-col, var(--file-pane-width)) 16px minmax(0, 1fr) 16px 0 !important;
 }
 
 .workspace-shell.shell-with-splitters.file-collapsed.details-collapsed {
@@ -17,7 +20,7 @@
 /* No save selected yet (the Home hero): the slot editor has nothing to show, so the
    whole right pane disappears - rail, chevron, and drag grip included. */
 .workspace-shell.shell-with-splitters.details-unavailable {
-    grid-template-columns: var(--file-pane-width) 16px minmax(0, 1fr) 0 0 !important;
+    grid-template-columns: var(--file-col, var(--file-pane-width)) 16px minmax(0, 1fr) 0 0 !important;
 }
 
 .workspace-shell.shell-with-splitters.details-unavailable.file-collapsed {

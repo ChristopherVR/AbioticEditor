@@ -63,7 +63,7 @@ button,input,select,textarea{font:inherit}
   --divider:#2e5471;--line:#224158;--ink:#dceff9;--muted:#a9cbe0;--faint:#93b3c8;--alert-text:#ff8f80;
   --orange:#f89a4f;--orange-dim:#b86f33;--hazard:#ffe563;--terminal:#7fe9e2;
   --terminal-dim:#3f837e;--alert:#e25b4b;--section:#71c5f6;--on-accent:#07121a;--acid:#7fe9e2;
-  display:grid;grid-template-rows:78px 3px minmax(0,1fr) 49px;height:100vh;min-height:580px;
+  display:grid;grid-template-rows:78px 3px minmax(0,1fr) 49px;height:100vh;height:100dvh;min-height:580px;
   background:var(--page);color:var(--ink);color-scheme:dark
 }
 .app-frame.theme-light{
@@ -131,9 +131,14 @@ button,input,select,textarea{font:inherit}
 
 /* The application is a desktop workbench, not a centered web page. */
 .app-frame>main{max-width:none;margin:0;padding:0;min-width:0;min-height:0;overflow:hidden}
-.workspace-shell{display:grid;height:100%;min-height:0!important;grid-template-columns:var(--file-pane-width) 16px minmax(0,1fr) 16px var(--details-pane-width)!important;border:0!important;background:var(--page)!important}
-.workspace-shell.file-collapsed{grid-template-columns:0 16px minmax(0,1fr) 16px var(--details-pane-width)!important}
-.workspace-shell.details-collapsed{grid-template-columns:var(--file-pane-width) 16px minmax(0,1fr) 16px 0!important}
+/* The side panes keep their user-dragged widths, but each is also capped to a share of the
+   window so the two of them can never squeeze the centre editor below a usable width (~360px).
+   On a wide desktop the caps sit above the drag limits (600/680), so nothing changes there;
+   the clamp only bites as the window narrows toward the 900px stacked layout. */
+.workspace-shell{--pane-budget:calc(100vw - 392px);--file-col:min(var(--file-pane-width),calc(var(--pane-budget)*.45));--details-col:min(var(--details-pane-width),calc(var(--pane-budget)*.55))}
+.workspace-shell{display:grid;height:100%;min-height:0!important;grid-template-columns:var(--file-col) 16px minmax(0,1fr) 16px var(--details-col)!important;border:0!important;background:var(--page)!important}
+.workspace-shell.file-collapsed{grid-template-columns:0 16px minmax(0,1fr) 16px var(--details-col)!important}
+.workspace-shell.details-collapsed{grid-template-columns:var(--file-col) 16px minmax(0,1fr) 16px 0!important}
 .workspace-shell.file-collapsed.details-collapsed{grid-template-columns:0 16px minmax(0,1fr) 16px 0!important}
 .shell-pane{box-sizing:border-box;padding:0!important;background:var(--panel)!important;color:var(--ink);overflow:hidden auto;scrollbar-color:var(--faint) var(--panel)}
 .file-pane{display:grid;grid-template-rows:auto minmax(0,1fr) auto;border-right:1px solid var(--divider)!important;overflow:hidden}
@@ -197,7 +202,10 @@ button,input,select,textarea{font:inherit}
 .shell-splitter>button{width:16px;min-width:16px;padding:0;border:0;border-radius:0;background:transparent;color:var(--muted);letter-spacing:0}
 .shell-splitter:hover,.shell-splitter:focus-within{background:var(--hover)}
 
-.shell-center{display:flex;flex-direction:column;min-height:0;background:var(--page)}
+/* The centre editor is a size container: the save-title bar and the editor surfaces below
+   respond to the pane's own width (it can be narrow while the window is wide, whenever the
+   side panes are open), not to the viewport. */
+.shell-center{display:flex;flex-direction:column;min-height:0;background:var(--page);container:editor-center/inline-size}
 .shell-status{display:flex!important;align-items:center;gap:13px;box-sizing:border-box;min-height:75px!important;padding:16px 28px!important;border-bottom:1px solid var(--divider)!important;background:var(--page)!important;color:var(--muted)!important;font:10px var(--font-ui)!important;letter-spacing:.08em}
 .shell-status strong{font:600 22px var(--font-ui)!important;letter-spacing:.08em;color:var(--ink)!important}
 .shell-status .dirty{color:var(--hazard)!important}
@@ -205,7 +213,9 @@ button,input,select,textarea{font:inherit}
 .shell-status .unsaved-chip{display:inline-flex;align-items:center;gap:8px;font:600 10px var(--font-ui);letter-spacing:.12em;text-transform:uppercase}
 .shell-status .unsaved-chip i{width:8px;height:8px;border-radius:4px;background:var(--hazard)}
 .shell-status .editor-actions{margin-left:auto!important}
-.shell-body{min-height:0;overflow:auto;scrollbar-color:var(--faint) var(--page)}
+/* Also a container: editor tabs without their own inline-size container (INI, doors,
+   flags, vitals...) resolve their @container rules against the pane width through this. */
+.shell-body{min-height:0;overflow:auto;scrollbar-color:var(--faint) var(--page);container:editor-body/inline-size}
 .shell-body>section,.shell-body>.hero{max-width:none!important}
 .details-pane dl{grid-template-columns:68px minmax(0,1fr)!important;padding-top:8px;color:var(--ink);font:11px var(--font-ui)!important}
 .details-pane dt{color:var(--muted)!important;font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
@@ -282,7 +292,7 @@ h1[tabindex="-1"]:focus{outline:none}
 @keyframes editor-spin{to{transform:rotate(360deg)}}
 .save-picker{display:none}
 .path-actions{display:flex;align-items:center;gap:12px;padding-bottom:10px;border-bottom:1px solid var(--divider)}
-.path{color:var(--faint)!important;font:10px var(--font-ui)!important}
+.path{color:var(--faint)!important;font:10px var(--font-ui)!important;overflow-wrap:anywhere}
 .save-summary{margin:0 0 18px;padding:14px 16px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
 .save-summary dl{display:grid;grid-template-columns:repeat(4,minmax(80px,auto) minmax(80px,1fr));gap:6px 10px;margin:8px 0 0;font-size:10px}
 /* Same label-and-value readout as the one in the side pane, so it wears the same face.
@@ -325,7 +335,7 @@ h1[tabindex="-1"]:focus{outline:none}
 .body-health-head .amber-field-label{font-size:12px;letter-spacing:5px}
 /* Native skill cards: uniform ~430px cards, at most 3 across (ResponsiveLayout ItemWidth
    430 / MaxSpan 3), so the default desktop pane shows two columns like the native shot. */
-.skill-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr))!important;gap:12px!important}.skill-card.dirty,.inventory-slot.dirty{border-color:var(--hazard)!important}.skill-title span{color:var(--terminal)!important}
+.skill-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr))!important;gap:12px!important}.skill-card.dirty,.inventory-slot.dirty{border-color:var(--hazard)!important}.skill-title span{color:var(--terminal)!important}
 .skill-title.card-title-row{display:flex!important;gap:10px;margin-top:8px}.skill-title .offer-icon{flex:0 0 auto}
 .skill-fields input,.inventory-fields input,.pet-fields input{color:var(--terminal)!important;font-family:var(--font-num)!important}
 .recipe-toolbar input,.recipe-toolbar select{color:var(--terminal)!important;font-family:var(--font-ui)!important}
@@ -400,7 +410,9 @@ h1[tabindex="-1"]:focus{outline:none}
 .settings-tab-embedded>.hero{display:none}
 .settings-tab-embedded>.settings-card,.settings-tab-embedded>.compare-card,.settings-tab-embedded>.compare-results{margin:0 0 14px!important}
 .gamepass-card input,.gamepass-card select{box-sizing:border-box;width:100%}.gamepass-card .conversion-action{display:block;margin-top:14px}.gamepass-card .conversion-hint{margin:5px 0 0!important}
-.conversion-nav-row{display:flex;gap:8px;margin-top:8px}
+.conversion-nav-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
+.conversion-nav-row .conversion-hint{margin:0!important}
+.conversion-nav-actions{display:flex;flex-wrap:wrap;gap:8px}
 /* One row per character in the world, so a co-op group can give each of their characters its own
    destination account instead of the conversion being limited to claiming a single one. */
 .conversion-player-row{display:grid;grid-template-columns:minmax(90px,1fr) 2fr;align-items:center;gap:8px;margin-top:10px}
@@ -447,8 +459,8 @@ h1[tabindex="-1"]:focus{outline:none}
 .visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 
 /* Native world and tool surfaces. */
-.world-editor-summary{display:grid;gap:14px;margin-bottom:10px}.world-summary-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.world-summary-heading h2{margin:0;color:var(--section);font-size:17px;letter-spacing:.09em}.world-summary-heading>span,.world-summary-readouts span{color:var(--muted);font-size:11px}.world-summary-readouts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}.world-summary-readouts>div{display:grid;gap:3px}.world-summary-readouts small,.world-clock-editor label,.world-day-discovered label{color:var(--muted);font-size:10px;font-weight:600;letter-spacing:.12em}.world-summary-readouts strong{color:var(--terminal);font-family:var(--font-lcd);font-size:22px}.world-clock-editor{display:grid;grid-template-columns:auto minmax(220px,1fr) auto;align-items:end;gap:12px;padding-top:12px;border-top:6px solid var(--hazard)}.world-clock-editor label{display:grid;gap:5px}.world-clock-editor input[type=number],.world-day-discovered input{width:90px}.world-clock-editor output{color:var(--terminal);font-family:var(--font-lcd);font-size:20px}.world-time-slider input{accent-color:var(--hazard)}.world-day-discovered{display:flex;align-items:end;gap:12px}.world-day-discovered label{display:grid;gap:5px}.world-day-discovered small{color:var(--muted);padding-bottom:8px}
-.ini-editor-panel{box-sizing:border-box;padding:20px 24px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}.ini-editor-heading{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center}.ini-title-row{display:flex;align-items:center;gap:10px}.ini-title-row h2{margin:0;color:var(--ink);font-size:21px}.ini-kind-badge{padding:3px 7px;background:var(--orange);color:var(--on-accent);font-size:9px;font-weight:700;letter-spacing:.16em}.ini-editor-heading .path{margin:4px 0;font-size:10px}.ini-editor-heading .muted{margin:0}.ini-section{padding:12px 16px!important}.ini-entry{display:grid;grid-template-columns:320px minmax(160px,1fr) auto;gap:12px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}.ini-entry code{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ini-entry .secondary{padding:5px 9px!important}
+.world-editor-summary{display:grid;gap:14px;margin-bottom:10px;container-type:inline-size}.world-summary-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.world-summary-heading h2{margin:0;color:var(--section);font-size:17px;letter-spacing:.09em}.world-summary-heading>span,.world-summary-readouts span{color:var(--muted);font-size:11px}.world-summary-readouts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}.world-summary-readouts>div{display:grid;gap:3px}.world-summary-readouts small,.world-clock-editor label,.world-day-discovered label{color:var(--muted);font-size:10px;font-weight:600;letter-spacing:.12em}.world-summary-readouts strong{color:var(--terminal);font-family:var(--font-lcd);font-size:22px}.world-clock-editor{display:grid;grid-template-columns:auto minmax(220px,1fr) auto;align-items:end;gap:12px;padding-top:12px;border-top:6px solid var(--hazard)}.world-clock-editor label{display:grid;gap:5px}.world-clock-editor input[type=number],.world-day-discovered input{width:90px}.world-clock-editor output{color:var(--terminal);font-family:var(--font-lcd);font-size:20px}.world-time-slider input{accent-color:var(--hazard)}.world-day-discovered{display:flex;align-items:end;gap:12px}.world-day-discovered label{display:grid;gap:5px}.world-day-discovered small{color:var(--muted);padding-bottom:8px}
+.ini-editor-panel{box-sizing:border-box;padding:20px 24px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}.ini-editor-heading{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center}.ini-title-row{display:flex;align-items:center;gap:10px}.ini-title-row h2{margin:0;color:var(--ink);font-size:21px}.ini-kind-badge{padding:3px 7px;background:var(--orange);color:var(--on-accent);font-size:9px;font-weight:700;letter-spacing:.16em}.ini-editor-heading .path{margin:4px 0;font-size:10px}.ini-editor-heading .muted{margin:0}.ini-section{padding:12px 16px!important}.ini-entry{display:grid;grid-template-columns:minmax(140px,320px) minmax(120px,1fr) auto;gap:12px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}.ini-entry code{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ini-entry .secondary{padding:5px 9px!important}
 .tool-scaffold{box-sizing:border-box;width:min(100%,980px);margin:0 auto;display:grid;gap:14px}.tool-scaffold-heading{padding:4px 2px 8px}.tool-scaffold-heading h1{margin:3px 0 0;font-size:25px}.segmented-control{display:flex;flex-wrap:wrap;gap:4px}.segmented-control button{min-height:36px;padding:8px 18px;border:1px solid var(--line);border-radius:5px;background:var(--elevated);color:var(--ink);font:600 11px var(--font-ui);letter-spacing:.08em}.segmented-control button.selected{border-color:var(--orange);background:var(--orange);color:var(--on-accent)}.compare-card{max-width:none!important;margin:0!important}.compare-card h2{margin:0 0 8px;color:var(--section);font-size:16px;letter-spacing:.08em}.compare-sources{display:grid;grid-template-columns:1fr 1fr;gap:18px}.compare-source{display:grid;gap:7px}.compare-source-path{min-height:38px;box-sizing:border-box;padding:10px;border:1px solid var(--line);border-radius:4px;background:var(--elevated);color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.compare-source .secondary{justify-self:start}.compare-run-card{display:grid;grid-template-columns:1fr auto;align-items:center}.compare-run-card h2{margin:0}.compare-run-card .error{grid-column:1/-1}.create-world-wizard{width:min(100%,580px)}.create-world-wizard .create-world-card{width:100%;max-width:none;margin:0}.create-world-wizard .segmented-control button{flex:1}.create-review{display:grid;grid-template-columns:minmax(110px,1fr) 2fr;gap:8px 12px}.create-review dt{color:var(--muted);font-size:10px;font-weight:600;letter-spacing:.1em}.create-review dd{margin:0;overflow-wrap:anywhere}.wizard-footer{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:12px 20px;border:1px solid var(--line);border-radius:8px;background:var(--elevated)}.wizard-footer>span{margin-right:auto;color:var(--muted);font-size:10px;font-weight:600;letter-spacing:.14em}
 
 @media(max-width:1100px){.save-summary dl{grid-template-columns:auto 1fr auto 1fr}.logging-path{display:none}}
@@ -1187,8 +1199,8 @@ button.world-feature-row{flex:0 0 auto}
    WorldDroppedTab.xaml. Native mapping: AfH2 -> var(--section), AfAmber -> var(--section),
    AfReadout (Digital7) -> var(--terminal), AfFieldLabel -> muted 10px caps, AfStatusText ->
    var(--faint) 10px, AfShellBackground list frames -> var(--shell) with a --line border. */
-.wc-tab,.wf-tab,.wd-tab{display:grid;gap:14px;align-content:start}
-.wg-tab{display:grid;gap:12px;align-content:start}
+.wc-tab,.wf-tab,.wd-tab{display:grid;gap:14px;align-content:start;container-type:inline-size}
+.wg-tab{display:grid;gap:12px;align-content:start;container-type:inline-size}
 .wc-tab .empty,.wg-tab .empty{color:var(--muted)}
 
 /* CONTAINERS: filter + HIDE EMPTY row, then the 2fr:3fr master/detail split (560px tall) */
@@ -1667,3 +1679,116 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 .wd-map-overlay-inner{position:relative;display:grid;gap:8px;max-width:min(1400px,95vw)}
 .wd-sector-map--large{width:min(1400px,92vw)}
 .wd-map-close{position:absolute;top:-14px;right:-14px;z-index:1;width:32px;height:32px;padding:0;border:1px solid var(--divider);border-radius:50%;background:var(--elevated);color:var(--ink);cursor:pointer}
+
+/* ==== responsive workbench ====================================================
+   Everything below keys off the editor pane's own width (the editor-center and
+   editor-body containers declared on .shell-center / .shell-body) or off real
+   phone conditions (a narrow viewport, a coarse pointer). The wide desktop layout
+   is untouched: these rules only fire when the space is actually tight, whether
+   because the window is small or because the side panes have taken it. */
+
+/* Save-title bar: when the centre pane is narrow, RELOAD / REVERT / SAVE take their
+   own full-width line under the title instead of stacking into a tall column beside
+   it and painting over the editor below. */
+@container editor-center (max-width:680px){
+  /* flex:0 0 auto matters: the status bar is a shrinkable flex child, and with min-height
+     released the editor below would otherwise squash it and the wrapped buttons would paint
+     over the first card. */
+  .shell-status{flex:0 0 auto;flex-wrap:wrap;min-height:0!important;padding:12px 16px!important}
+  .shell-status strong{font-size:16px!important}
+  .shell-status .selected-save-title{flex:1 1 160px;min-width:0}
+  .shell-status .editor-actions{width:100%;margin:8px 0 0!important}
+  .shell-status .editor-actions button{flex:1 1 auto;min-width:96px}
+}
+@container editor-center (max-width:560px){
+  .workspace,.single-workspace{padding:14px!important}
+}
+
+/* The world save summary stacks its readouts and clock on the summary's own width. */
+@container (max-width:680px){
+  .world-summary-heading{flex-wrap:wrap}
+  .world-summary-readouts{grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px}
+  .world-clock-editor{grid-template-columns:minmax(0,1fr)}
+  .world-day-discovered{flex-direction:column;align-items:stretch}
+}
+
+/* Rows and toolbars that were built as fixed side-by-side columns stack when the
+   pane that holds them is narrow, exactly as they already do on a narrow window. */
+@container (max-width:960px){
+  .save-summary dl{grid-template-columns:auto 1fr auto 1fr}
+}
+@container (max-width:660px){
+  .ini-editor-heading{grid-template-columns:minmax(0,1fr)}
+  .ini-entry{grid-template-columns:minmax(0,1fr) auto;row-gap:6px}
+  .ini-entry code{grid-column:1/-1;white-space:normal;overflow-wrap:anywhere}
+  .save-summary dl{grid-template-columns:auto 1fr}
+  .door-row,.npc-row{grid-template-columns:1fr 1fr}
+  .door-identity,.npc-identity{grid-column:1/-1}
+  .compare-row{grid-template-columns:1fr 1fr}
+  .compare-row>div:first-of-type{grid-column:1/-1}
+  .settings-grid{grid-template-columns:1fr}
+  .folder-row{grid-template-columns:1fr}
+  .folder-row>div:first-of-type{grid-column:1/-1}
+  .semantic-scalar-row{grid-template-columns:1fr}
+  .wf-toolbar{grid-template-columns:1fr}
+  .ws-chapter-row{grid-template-columns:auto auto minmax(0,1fr);row-gap:4px}
+}
+
+/* Master/detail splits stack when the pane cannot hold two columns side by side. */
+@container (max-width:820px){
+  .wt-md{grid-template-columns:1fr;height:auto}
+  .wt-list{max-height:380px}
+  .world-native-tab .wt-detail{min-height:280px}
+  .base-map-cell{height:300px}
+}
+@container (max-width:760px){
+  .wc-split{grid-template-columns:1fr;height:auto}
+  .wc-master{height:320px}
+  .wc-tab .wc-detail{height:440px}
+  .world-feature-panes{grid-template-columns:1fr}
+  .world-feature-list{max-height:380px}
+  .wt-cards .wt-card{flex:1 1 100%}
+}
+
+/* Player tab internals follow the pane too (they own their widths with !important
+   above, so the narrow variants must repeat it to win). */
+@container (max-width:700px){
+  .limb-grid{grid-template-columns:1fr!important}
+  .recipe-toolbar{grid-template-columns:1fr!important}
+  .money-field{grid-template-columns:110px minmax(0,1fr)!important}
+  .card-title-row{align-items:flex-start!important;flex-direction:column}
+  .transmog-grid,.transmog-visibility{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@container (max-width:480px){
+  .vital-slider{grid-template-columns:82px minmax(60px,1fr) 46px!important}
+  .limb-grid .vital-slider{grid-template-columns:82px minmax(50px,1fr) 46px!important}
+  .money-field{grid-template-columns:1fr!important}
+  .transmog-grid,.transmog-visibility{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* ---- phones ---- */
+@media(max-width:640px){
+  /* Tab strips become one swipeable row instead of a tall stack of wrapped chips. */
+  .player-editor>.editor-tabs,.world-tabs{flex-wrap:nowrap!important;overflow-x:auto!important;scrollbar-width:none;padding-bottom:4px}
+  .editor-tab,.world-tabs button{white-space:nowrap}
+  .brand-lockup img{flex-basis:78px}
+  .modal-backdrop{padding:10px}
+  .modal{width:100%}
+  .toast-stack{right:12px;left:12px;width:auto}
+  .native-empty-state{margin:20px auto!important;padding:26px 16px!important}
+  .discovered-world-card{grid-template-columns:1fr;gap:10px}
+  .discovered-world-card>button{justify-self:start}
+  .recent-world-actions{flex-wrap:wrap}
+  .workspace,.single-workspace{padding:12px!important}
+  .shell-status{padding:10px 12px!important}
+}
+
+/* ---- touch ---- */
+@media(pointer:coarse){
+  .editor-tab,.world-tabs button{min-height:44px!important}
+  .shell-save-list .save-file-row{min-height:60px}
+  /* 16px is the size below which iOS Safari zooms the page on every focused field. */
+  input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea{font-size:16px}
+  .sidebar-search input:not([type=checkbox]):not([type=radio]):not([type=range]),
+  .catalog-search input:not([type=checkbox]):not([type=radio]):not([type=range]){font-size:16px}
+}
