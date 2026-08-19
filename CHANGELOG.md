@@ -2,10 +2,26 @@
 
 All notable changes to this project are documented here.
 
+## [2.7.3] - 2026-08-19
+
+### Miscellaneous Tasks
+- Point bucket at v2.7.2 [skip ci]
+
+
 ## [2.7.2] - 2026-08-19
+
+### Bug Fixes
+- Compare logic
+- Side panels now slide over the screen on small windows
+- The editor no longer falls apart on narrow windows and phones
+
 
 ### Build
 - Bump taiki-e/install-action in the actions-all group
+
+
+### Features
+- Block Game Pass saves in the browser version
 
 
 ### Miscellaneous Tasks
