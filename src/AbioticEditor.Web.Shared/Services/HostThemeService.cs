@@ -57,17 +57,17 @@ public sealed class HostThemeService
 
     private static HostThemeAccent ReadSavedAccent()
     {
-        // Cascade (the game-accurate blue-teal facility palette) is the default, matching the
-        // native app's ThemeService. Hazard is the legacy alternate and remains available.
+        // Hazard (the warm orange accent) is the default. Cascade remains available as the
+        // alternate blue-teal facility palette.
         return HostPreferenceStore.Read(HostPreferenceStore.Keys.Accent, AccentConfigFileName) is { } saved
             ? ParseAccent(saved)
-            : HostThemeAccent.Cascade;
+            : HostThemeAccent.Hazard;
     }
 
     private static HostThemeAccent ParseAccent(string? value) => value?.Trim().ToLowerInvariant() switch
     {
-        "hazard" => HostThemeAccent.Hazard,
-        _ => HostThemeAccent.Cascade,
+        "cascade" => HostThemeAccent.Cascade,
+        _ => HostThemeAccent.Hazard,
     };
 }
 

@@ -53,9 +53,9 @@ public sealed class RazorVisualParityTests
         Assert.Contains("class=\"theme-segments\"", settings, StringComparison.Ordinal);
         Assert.Contains("HostThemeAccent.Cascade", settings, StringComparison.Ordinal);
         Assert.Contains("HostThemeAccent.Hazard", settings, StringComparison.Ordinal);
-        // Cascade (the game-accurate blue-teal facility palette) is the default, matching the
-        // native app's ThemeService; Hazard is the legacy alternate, not the default.
-        Assert.Contains(": HostThemeAccent.Cascade", service, StringComparison.Ordinal);
+        // Hazard (the warm orange accent) is the default; Cascade remains available as the
+        // alternate blue-teal facility palette.
+        Assert.Contains(": HostThemeAccent.Hazard", service, StringComparison.Ordinal);
         Assert.Contains(": HostTheme.Dark", service, StringComparison.Ordinal);
     }
 

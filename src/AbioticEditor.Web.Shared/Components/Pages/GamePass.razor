@@ -15,13 +15,15 @@
     }
     @if (_step != ConvertStep.PickSave)
     {
-        <p class="conversion-hint"><span class="platform-badge @PlatformClass(DestinationPlatform)">@R("Settings_ConvertTargetLabel")</span> <strong>@Languages.PlatformLabel(DestinationPlatform)</strong></p>
         <div class="conversion-nav-row">
-            @if (_step is ConvertStep.ChooseWorld or ConvertStep.ChoosePlayer)
-            {
-                <button class="secondary" type="button" @onclick="Back" disabled="@_busy">@R("CreateWorld_Back")</button>
-            }
-            <button class="secondary" type="button" @onclick="ResetWizard" disabled="@_busy">@R("Settings_ConvertStartOver")</button>
+            <p class="conversion-hint"><span class="platform-badge @PlatformClass(DestinationPlatform)">@R("Settings_ConvertTargetLabel")</span> <strong>@Languages.PlatformLabel(DestinationPlatform)</strong></p>
+            <div class="conversion-nav-actions">
+                @if (_step is ConvertStep.ChooseWorld or ConvertStep.ChoosePlayer)
+                {
+                    <button class="secondary" type="button" @onclick="Back" disabled="@_busy">@R("CreateWorld_Back")</button>
+                }
+                <button class="secondary" type="button" @onclick="ResetWizard" disabled="@_busy">@R("Settings_ConvertStartOver")</button>
+            </div>
         </div>
     }
 
@@ -99,7 +101,7 @@
                         <option value="@LeaveAsIsOption">@R("Settings_ConvertLeaveAsIs")</option>
                         @foreach (var account in _accounts)
                         {
-                            <option value="@account.AccountId">@(account.DisplayName ?? account.AccountId) (@Languages.PlatformLabel(account.Platform))</option>
+                            <option value="@account.AccountId">@AccountOptionLabel(account)</option>
                         }
                         <option value="@CustomAccountOption">@R("Settings_ConvertCustomId")</option>
                     </select>
@@ -127,8 +129,7 @@
             <h3>@R("Settings_ConvertStepDoneTitle")</h3>
             @if (_outputFolder is not null)
             {
-                <button class="secondary" type="button" @onclick="OpenOutputFolderAsync" disabled="@_busy">@R("Settings_OpenOutputFolder")</button>
-                <button class="primary conversion-action" type="button" @onclick="ResetWizard" disabled="@_busy">@R("Settings_ConvertAnotherSave")</button>
+                <button class="secondary conversion-action" type="button" @onclick="OpenOutputFolderAsync" disabled="@_busy">@R("Settings_OpenOutputFolder")</button>
             }
         </section>
     }
@@ -216,6 +217,13 @@
         SaveConversionIdWarning.UnusableInFileName => R("Settings_ConvertIdUnusable"),
         _ => R("Settings_ConvertIdNotSteam"),
     };
+
+    /// <summary>An account's row in the re-home dropdown: its resolved name with the raw id
+    /// alongside it, since the id is what actually gets written and is worth confirming before
+    /// committing a character to it.</summary>
+    private string AccountOptionLabel(DiscoveredAccount account) => account.DisplayName is { Length: > 0 } name
+        ? $"{name} ({account.AccountId}) ({Languages.PlatformLabel(account.Platform)})"
+        : $"{account.AccountId} ({Languages.PlatformLabel(account.Platform)})";
 
     /// <summary>Every world found on this machine, in either direction, so the first screen is
     /// "pick a save" rather than an abstract "pick a platform" before a save is even in view -

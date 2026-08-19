@@ -5,6 +5,7 @@
 @implements IAsyncDisposable
 @inject SaveComparisonService ComparisonService
 @inject SaveWorkspaceSessionService Workspace
+@inject SaveLibraryService Library
 @inject AbioticEditor.Ui.IFilePicker FilePicker
 @inject AbioticEditor.Ui.IFolderPicker FolderPicker
 @inject HostLanguageService Languages
@@ -34,6 +35,57 @@ else
             <button type="button" class="@(_folderMode ? "selected" : null)" @onclick="() => SetMode(true)">@Languages.Resource("Compare_ModeFolderVsFolder")</button>
         </div>
     </section>
+
+    @if (Library.CanDiscover)
+    {
+        <section class="compare-card">
+            <h2>@Languages.Resource("Compare_DiscoveredCardHeader")</h2>
+            <p class="muted">@Languages.Resource("Compare_DiscoveredCardDescription")</p>
+            @if (_discovering)
+            {
+                <p class="muted conversion-hint" role="status">@Languages.Resource("Compare_DiscoveredLooking")</p>
+            }
+            @if (_discoveredWorlds.Count > 0)
+            {
+                <div class="discovered-world-list">
+                    @foreach (var world in _discoveredWorlds)
+                    {
+                        <article class="discovered-world-card">
+                            <div>
+                                <h3>@world.WorldName <span class="platform-badge @PlatformClass(world)">@PlatformLabel(world)</span></h3>
+                                <p>@world.LastPlayed.ToString("g") · @Languages.Resource("Main_SaveFileCount", world.SaveFileCount)</p>
+                                <small title="@world.FolderPath">@world.FolderPath</small>
+                                @if (_expandedWorld == world.FolderPath)
+                                {
+                                    <div class="compare-discovered-files">
+                                        @if (_loadingFiles)
+                                        {
+                                            <p class="muted">@Languages.Resource("Common_Working")</p>
+                                        }
+                                        else if (_expandedFiles is { Count: > 0 })
+                                        {
+                                            @foreach (var file in _expandedFiles)
+                                            {
+                                                <button class="secondary" type="button" @onclick="() => SelectExpandedFile(file)">@file.Name <small>@file.Size</small></button>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <p class="muted">@Languages.Resource("Compare_NoSaveFilesFound")</p>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                            <div class="recent-world-actions">
+                                <button class="secondary" type="button" @onclick="() => UseDiscoveredAsync(true, world)" disabled="@_working">@(_folderMode ? Languages.Resource("Compare_UseAsA") : Languages.Resource("Compare_ChooseFileForA"))</button>
+                                <button class="secondary" type="button" @onclick="() => UseDiscoveredAsync(false, world)" disabled="@_working">@(_folderMode ? Languages.Resource("Compare_UseAsB") : Languages.Resource("Compare_ChooseFileForB"))</button>
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+    }
 
     <section class="compare-card">
         <h2>@Languages.Resource("Compare_SourcesCardHeader")</h2>
@@ -178,7 +230,79 @@ else
     private string? _expandedFolderRow;
     private IJSObjectReference? _module;
 
-    protected override void OnInitialized() => _left = Workspace.Current?.WorldFolder ?? string.Empty;
+    private IReadOnlyList<DiscoveredWorld> _discoveredWorlds = Array.Empty<DiscoveredWorld>();
+    private bool _discovering;
+    private string? _expandedWorld;
+    private bool _expandedForLeft;
+    private IReadOnlyList<SaveFile>? _expandedFiles;
+    private bool _loadingFiles;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _left = Workspace.Current?.WorldFolder ?? string.Empty;
+        if (!Library.CanDiscover) return;
+        _discovering = true;
+        try
+        {
+            // A Game Pass container's folder is the whole wgs bundle, not a plain world folder of
+            // .sav files, so it cannot be pointed at directly the way a comparison needs.
+            _discoveredWorlds = (await Library.DiscoverAsync()).Where(world => !world.IsGamePassContainer).ToList();
+        }
+        catch (Exception exception) { Errors.Record(exception, "Discover save folders for compare"); }
+        finally { _discovering = false; }
+    }
+
+    /// <summary>
+    /// A discovered world picked for one side. In folder mode the world's own folder is the
+    /// comparison target; in file mode a folder is not a valid side, so this opens that world's
+    /// file list in place instead of picking anything yet.
+    /// </summary>
+    private async Task UseDiscoveredAsync(bool left, DiscoveredWorld world)
+    {
+        if (_folderMode)
+        {
+            SetSide(left, world.FolderPath);
+            return;
+        }
+
+        if (_expandedWorld == world.FolderPath && _expandedForLeft == left)
+        {
+            _expandedWorld = null;
+            _expandedFiles = null;
+            return;
+        }
+
+        _expandedWorld = world.FolderPath;
+        _expandedForLeft = left;
+        _expandedFiles = null;
+        _loadingFiles = true;
+        try { _expandedFiles = await Library.ListFilesAsync(world.FolderPath); }
+        catch (Exception exception) { _error = Errors.Present(exception, Languages.Resource("Compare_PickerFailedTitle"), Languages.Resource("Compare_PickTwoMessage")); }
+        finally { _loadingFiles = false; }
+    }
+
+    private void SelectExpandedFile(SaveFile file)
+    {
+        SetSide(_expandedForLeft, file.Path);
+        _expandedWorld = null;
+        _expandedFiles = null;
+    }
+
+    private void SetSide(bool left, string path)
+    {
+        if (left) _left = path; else _right = path;
+    }
+
+    private string PlatformLabel(DiscoveredWorld world) => Languages.PlatformLabel(world.Platform, world.Source);
+
+    // Native badge fill: Xbox green for Game Pass, Steam blue for Steam, orange otherwise -
+    // shared with the sidebar and start-screen badges.
+    private static string PlatformClass(DiscoveredWorld world) => world.Platform switch
+    {
+        SavePlatform.GamePass => "platform-gamepass",
+        SavePlatform.Steam => "platform-steam",
+        _ => "platform-unknown",
+    };
 
     private RenderFragment SourcePicker(bool left, string label, string path) => @<div class="compare-source">
         <label>@label</label>
@@ -349,6 +473,8 @@ else
         _result = null;
         _error = null;
         _exportMessage = null;
+        _expandedWorld = null;
+        _expandedFiles = null;
     }
 
     private void PickFromWorkspace(bool left, string? path)
