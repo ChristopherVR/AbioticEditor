@@ -1,5 +1,6 @@
 using AbioticEditor.Core.GamePass;
 using AbioticEditor.Core.PlayerSaves;
+using AbioticEditor.Ui;
 using AbioticEditor.Web.Services;
 
 namespace AbioticEditor.Tests;
@@ -144,6 +145,76 @@ public sealed class OpenGuardTests
         Assert.Null(host.Modals.Current);
     }
 
+    // ---- Game Pass, blocked from the browser build -----------------------------------------
+
+    [Fact]
+    public async Task An_ordinary_save_folder_opens_with_no_warning_in_the_browser_build_too()
+    {
+        var navigation = new FakeExternalNavigation();
+        var guard = new BrowserGamePassBlockGuard(new ModalService(), new HostLanguageService(), navigation);
+        using var folder = new ScratchFolder();
+        var opened = 0;
+
+        await guard.OpenAsync(folder.Path, () => { opened++; return Task.CompletedTask; }, () => Task.CompletedTask);
+
+        Assert.Equal(1, opened);
+        Assert.Empty(navigation.OpenedUrls);
+    }
+
+    [Fact]
+    public async Task A_gamepass_folder_never_opens_in_the_browser_build()
+    {
+        var modals = new ModalService();
+        var guard = new BrowserGamePassBlockGuard(modals, new HostLanguageService(), new FakeExternalNavigation());
+        using var folder = ScratchFolder.WithGamePassSave();
+        var opened = 0;
+
+        await guard.OpenAsync(folder.Path, () => { opened++; return Task.CompletedTask; }, () => Task.CompletedTask);
+
+        Assert.Equal(0, opened);
+        Assert.NotNull(modals.Current);
+    }
+
+    [Fact]
+    public async Task Confirming_the_gamepass_block_opens_the_releases_page_and_still_declines_the_open()
+    {
+        var modals = new ModalService();
+        var navigation = new FakeExternalNavigation();
+        var guard = new BrowserGamePassBlockGuard(modals, new HostLanguageService(), navigation);
+        using var folder = ScratchFolder.WithGamePassSave();
+        var opened = 0;
+        var declined = 0;
+
+        await guard.OpenAsync(folder.Path, () => { opened++; return Task.CompletedTask; }, () => { declined++; return Task.CompletedTask; });
+        var modal = Assert.IsType<ModalRequest>(modals.Current);
+        Assert.NotNull(modal.OnConfirm);
+        await modal.OnConfirm!();
+
+        Assert.Equal(0, opened);
+        Assert.Equal(1, declined);
+        Assert.Equal(BrowserGamePassBlockGuard.ReleasesUrl, Assert.Single(navigation.OpenedUrls).ToString());
+    }
+
+    [Fact]
+    public async Task Backing_out_of_the_gamepass_block_opens_nothing_and_visits_no_page()
+    {
+        var modals = new ModalService();
+        var navigation = new FakeExternalNavigation();
+        var guard = new BrowserGamePassBlockGuard(modals, new HostLanguageService(), navigation);
+        using var folder = ScratchFolder.WithGamePassSave();
+        var opened = 0;
+        var declined = 0;
+
+        await guard.OpenAsync(folder.Path, () => { opened++; return Task.CompletedTask; }, () => { declined++; return Task.CompletedTask; });
+        var modal = Assert.IsType<ModalRequest>(modals.Current);
+        Assert.NotNull(modal.OnCancel);
+        await modal.OnCancel!();
+
+        Assert.Equal(0, opened);
+        Assert.Equal(1, declined);
+        Assert.Empty(navigation.OpenedUrls);
+    }
+
     // ---- the screens' side of the bargain ---------------------------------------------------
 
     /// <summary>
@@ -262,6 +333,19 @@ public sealed class OpenGuardTests
         }
 
         public void Dispose() => Workspace.Dispose();
+    }
+
+    private sealed class FakeExternalNavigation : IExternalNavigationService
+    {
+        public List<Uri> OpenedUrls { get; } = [];
+
+        public Task OpenUrlAsync(Uri url, CancellationToken cancellationToken = default)
+        {
+            OpenedUrls.Add(url);
+            return Task.CompletedTask;
+        }
+
+        public Task RevealPathAsync(string path, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
     /// <summary>A throwaway folder, optionally carrying enough of an Xbox save to be recognised.</summary>

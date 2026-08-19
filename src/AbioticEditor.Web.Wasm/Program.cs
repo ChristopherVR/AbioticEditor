@@ -69,7 +69,7 @@ builder.Services.AddScoped<UnsavedChangesGuard>();
 // A browser tab never sees an Xbox save folder, so this guard has nothing to do here. It is
 // registered anyway because the shared start screen injects it, and a service a shared component
 // asks for and does not get is not a quiet no-op: it fails the moment that page renders.
-builder.Services.AddScoped<GamePassSafetyGuard>();
+builder.Services.AddScoped<IGamePassSafetyGuard, BrowserGamePassBlockGuard>();
 
 var host = builder.Build();
 UseBrowserStorageForPreferences(host.Services);

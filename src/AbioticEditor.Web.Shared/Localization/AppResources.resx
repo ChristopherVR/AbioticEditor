@@ -64,7 +64,7 @@
   <data name="Settings_Title" xml:space="preserve"><value>SETTINGS</value></data>
   <data name="Settings_Theme" xml:space="preserve"><value>THEME</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>LANGUAGE</value></data>
-  <data name="Settings_Language_Hint" xml:space="preserve"><value>The editor's display language. Applies immediately.</value></data>
+  <data name="Settings_Language_Hint" xml:space="preserve"><value>The editor's display language.</value></data>
   <data name="Settings_Diagnostics" xml:space="preserve"><value>DIAGNOSTICS</value></data>
   <data name="Settings_Plugins" xml:space="preserve"><value>PLUGINS</value></data>
   <data name="Settings_Spoilers" xml:space="preserve"><value>SPOILERS</value></data>
@@ -894,6 +894,30 @@
   <data name="Compare_CompareCardHeader" xml:space="preserve">
     <value>COMPARE</value>
   </data>
+  <data name="Compare_DiscoveredCardHeader" xml:space="preserve">
+    <value>DISCOVERED SAVES</value>
+  </data>
+  <data name="Compare_DiscoveredCardDescription" xml:space="preserve">
+    <value>Save folders found automatically on this machine. Pick one for either side instead of browsing to it.</value>
+  </data>
+  <data name="Compare_DiscoveredLooking" xml:space="preserve">
+    <value>Looking for saves on this machine…</value>
+  </data>
+  <data name="Compare_UseAsA" xml:space="preserve">
+    <value>USE AS A</value>
+  </data>
+  <data name="Compare_UseAsB" xml:space="preserve">
+    <value>USE AS B</value>
+  </data>
+  <data name="Compare_ChooseFileForA" xml:space="preserve">
+    <value>CHOOSE FILE FOR A</value>
+  </data>
+  <data name="Compare_ChooseFileForB" xml:space="preserve">
+    <value>CHOOSE FILE FOR B</value>
+  </data>
+  <data name="Compare_NoSaveFilesFound" xml:space="preserve">
+    <value>No save files found in this folder.</value>
+  </data>
   <data name="Compare_ScaffoldEyebrow" xml:space="preserve">
     <value>SAVE DIAGNOSTICS</value>
   </data>
@@ -1679,6 +1703,16 @@ The whole save folder is copied to a backup before every write. There is more de
   <data name="Main_GpCloudSyncWarningContinue" xml:space="preserve">
     <value>I understand, open it</value>
   </data>
+  <data name="Main_GpBrowserUnsupportedTitle" xml:space="preserve">
+    <value>Game Pass isn't supported in the browser version</value>
+  </data>
+  <data name="Main_GpBrowserUnsupportedMessage" xml:space="preserve">
+    <value>This folder is an Xbox Game Pass save. Editing Game Pass saves needs the desktop app, so the browser version can't open it.
+Download the desktop app from the GitHub releases page to edit this save.</value>
+  </data>
+  <data name="Main_GpBrowserUnsupportedOpenReleases" xml:space="preserve">
+    <value>Open GitHub releases</value>
+  </data>
   <data name="Main_GpMidSyncTitle" xml:space="preserve">
     <value>Tidy up this save first?</value>
   </data>
@@ -2014,7 +2048,7 @@ This writes to the save straight away and reloads the editor, so anything you ha
     <value>HAZARD ORANGE</value>
   </data>
   <data name="Settings_ThemeHint" xml:space="preserve">
-    <value>Accent family for the editor chrome. Applies immediately; the editor view reloads.</value>
+    <value>Accent family for the editor chrome.</value>
   </data>
   <data name="Settings_ThemeActive" xml:space="preserve">
     <value>{0}  ✓</value>
@@ -2026,7 +2060,7 @@ This writes to the save straight away and reloads the editor, so anything you ha
     <value>OPEN LOG FOLDER</value>
   </data>
   <data name="Settings_DiagnosticsHint" xml:space="preserve">
-    <value>Records what the editor opens, changes and writes, plus anything in a save it does not recognise. Off by default.</value>
+    <value>Records what the editor opens, changes and writes, plus anything in a save it does not recognise.</value>
   </data>
   <data name="Settings_ResealItems" xml:space="preserve">
     <value>RE-SEAL REVEALED ITEMS</value>
@@ -2179,9 +2213,6 @@ Your original was not changed. Verify it loads in-game before relying on it.</va
   </data>
   <data name="Settings_ConvertStartOver" xml:space="preserve">
     <value>START OVER</value>
-  </data>
-  <data name="Settings_ConvertAnotherSave" xml:space="preserve">
-    <value>CONVERT ANOTHER SAVE</value>
   </data>
   <data name="Settings_InstalledVersion" xml:space="preserve">
     <value>Installed version: {0}.</value>

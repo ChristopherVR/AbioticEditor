@@ -30,8 +30,20 @@ namespace AbioticEditor.Web.Services;
 /// on purpose. A player who is told after an hour of editing that the game had to be closed the
 /// whole time has already done the work twice.</para>
 /// </remarks>
+public interface IGamePassSafetyGuard
+{
+    /// <summary>
+    /// Runs <paramref name="open"/>, first raising whatever Game Pass warning the host requires
+    /// when <paramref name="folder"/> is a Game Pass save. <paramref name="declined"/> runs
+    /// instead when the player backs out (or the host refuses the open outright), so nothing
+    /// opens.
+    /// </summary>
+    Task OpenAsync(string? folder, Func<Task> open, Func<Task>? declined = null);
+}
+
 public sealed class GamePassSafetyGuard(
     SaveWorkspaceSessionService workspace, ModalService modals, HostLanguageService language, ToastService toasts)
+    : IGamePassSafetyGuard
 {
     private bool _cloudSyncWarningShown;
 
