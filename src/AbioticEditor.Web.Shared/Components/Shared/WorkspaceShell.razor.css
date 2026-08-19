@@ -366,7 +366,7 @@
 /* CSS-only guard for the moment between a resize below the drawer threshold and the
    server applying .drawer-mode: fold the inline panes away immediately so the center
    editor never gets crushed between two still-open panes at phone widths. */
-@media (max-width: 799.98px) {
+@media (max-width: 899.98px) {
     .workspace-shell.shell-with-splitters:not(.drawer-mode) {
         grid-template-columns: 0 16px minmax(0, 1fr) 16px 0 !important;
     }

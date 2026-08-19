@@ -199,7 +199,7 @@
 @code {
     [Parameter, EditorRequired] public RenderFragment ChildContent { get; set; } = null!;
     // Responsive state machine, mirroring the native ResponsivePaneController:
-    // below 800 the panes are slide-in overlay drawers; below 1150 the inline panes
+    // below 900 the panes are slide-in overlay drawers; below 1150 the inline panes
     // auto-collapse (and restore on widen) while a user toggle is remembered separately.
     private string _viewport = "wide";
     private bool _fileAutoCollapsed;

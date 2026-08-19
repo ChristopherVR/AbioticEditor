@@ -507,6 +507,10 @@ h1[tabindex="-1"]:focus{outline:none}
   }
   .app-frame main .workspace-shell .file-splitter{left:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px))}
   .app-frame main .workspace-shell .details-splitter{right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+  /* No save open means no slot editor: its corner button would open an empty sheet,
+     so it leaves the screen entirely (the fixed-position rules above outrank the
+     desktop hide in the scoped sheet, hence the repeat here). */
+  .app-frame main .workspace-shell.details-unavailable .details-splitter{display:none}
   .app-frame main .workspace-shell .shell-splitter>span{display:none}
   .app-frame main .workspace-shell .shell-splitter>button{
     width:52px;min-width:52px;height:52px;min-height:52px;margin:0;padding:0;
@@ -524,18 +528,22 @@ h1[tabindex="-1"]:focus{outline:none}
     content:"close";font-family:MaterialSymbols;font-size:26px;line-height:1;font-feature-settings:"liga"
   }
 
-  /* Full-screen sheets. The dimming layer behind the old side drawers is dropped: it used
-     to wash out an expanded card that was still showing in the editor underneath. */
+  /* Overlay drawers: the panes slide in from their own edge OVER the editor, like a
+     sidebar, behind a dimming scrim that closes them on a tap outside. Fixed to the
+     viewport (not the shell) because the page itself scrolls at these widths. On real
+     phone widths the 640px block below turns them into full-screen sheets instead. */
   .app-frame .workspace-shell.drawer-mode .shell-pane{
-    position:fixed;inset:0;z-index:1000;width:100%;max-width:none;max-height:none;
-    border:0!important;box-shadow:none;overflow:auto;overscroll-behavior:contain;
-    transform:translateY(102%)
+    position:fixed;top:0;bottom:0;z-index:1000;max-width:none;max-height:none;
+    border:0!important;box-shadow:0 0 34px #000c;overflow:auto;overscroll-behavior:contain;
+    visibility:hidden;transition:transform 180ms cubic-bezier(.55,.055,.675,.19),visibility 0s 180ms
   }
+  .app-frame .workspace-shell.drawer-mode .file-pane{left:0;right:auto;width:min(380px,86vw);transform:translateX(-102%)}
+  .app-frame .workspace-shell.drawer-mode .details-pane{right:0;left:auto;width:min(440px,86vw);transform:translateX(102%)}
   .app-frame .workspace-shell.drawer-mode.file-drawer-open .file-pane,
   .app-frame .workspace-shell.drawer-mode.details-drawer-open .details-pane{
-    visibility:visible;transform:translateY(0)
+    visibility:visible;transform:none;transition:transform 220ms cubic-bezier(.215,.61,.355,1),visibility 0s
   }
-  .app-frame .workspace-shell.drawer-mode .drawer-scrim{display:none}
+  .app-frame .workspace-shell.drawer-mode .drawer-scrim{display:block;position:fixed;inset:0;z-index:900}
   html:has(.workspace-shell.file-drawer-open),html:has(.workspace-shell.details-drawer-open),
   body:has(.workspace-shell.file-drawer-open),body:has(.workspace-shell.details-drawer-open){overflow:hidden}
 
@@ -1768,6 +1776,13 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 
 /* ---- phones ---- */
 @media(max-width:640px){
+  /* Real phones: the overlay drawers become full-screen sheets (a side drawer would
+     cover the whole screen anyway), the scrim goes, and the corner button's ✕ closes
+     them. Later in the file than the 900px drawer rules on purpose, so these win. */
+  .app-frame .workspace-shell.drawer-mode .shell-pane{inset:0;width:100%;box-shadow:none;transform:translateY(102%)}
+  .app-frame .workspace-shell.drawer-mode.file-drawer-open .file-pane,
+  .app-frame .workspace-shell.drawer-mode.details-drawer-open .details-pane{transform:none}
+  .app-frame .workspace-shell.drawer-mode .drawer-scrim{display:none}
   /* Tab strips become one swipeable row instead of a tall stack of wrapped chips. */
   .player-editor>.editor-tabs,.world-tabs{flex-wrap:nowrap!important;overflow-x:auto!important;scrollbar-width:none;padding-bottom:4px}
   .editor-tab,.world-tabs button{white-space:nowrap}

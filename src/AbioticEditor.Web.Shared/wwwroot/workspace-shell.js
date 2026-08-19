@@ -39,13 +39,14 @@ export function attach(element, dotnet, pane) {
     });
 }
 
-// Native responsive thresholds (ResponsivePaneController): below 800 the side
-// panes become slide-in overlay drawers; below 1150 the inline panes auto-collapse.
+// Responsive thresholds: below 900 the side panes become slide-in overlay drawers
+// (matching the 900px stacked-layout media query, so the panes never render as a
+// stack above the editor); below 1150 the inline panes auto-collapse.
 let viewport = null;
 
 export function watch(dotnet) {
     unwatch();
-    const drawer = window.matchMedia("(max-width: 799.98px)");
+    const drawer = window.matchMedia("(max-width: 899.98px)");
     const compact = window.matchMedia("(max-width: 1149.98px)");
     const notify = () => dotnet
         .invokeMethodAsync("ViewportChanged", drawer.matches ? "drawer" : compact.matches ? "compact" : "wide")

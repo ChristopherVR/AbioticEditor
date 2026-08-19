@@ -175,7 +175,11 @@ public sealed class RazorVisualParityTests
         // rooted path leaves the editor entirely and lands on a 404.
         Assert.Contains("Navigation.NavigateTo(\"./\")", shell, StringComparison.Ordinal);
 
-        Assert.Contains("grid-template-columns:var(--file-pane-width) 16px minmax(0,1fr) 16px var(--details-pane-width)", css, StringComparison.Ordinal);
+        // The pane tracks are the user-dragged widths capped to a share of the viewport
+        // (--file-col/--details-col), so the two side panes can never crush the editor.
+        Assert.Contains("grid-template-columns:var(--file-col) 16px minmax(0,1fr) 16px var(--details-col)", css, StringComparison.Ordinal);
+        Assert.Contains("--file-col:min(var(--file-pane-width)", css, StringComparison.Ordinal);
+        Assert.Contains("--details-col:min(var(--details-pane-width)", css, StringComparison.Ordinal);
         Assert.Contains("grid-template-rows:auto minmax(0,1fr) auto", css, StringComparison.Ordinal);
         Assert.Contains("height:38px", css, StringComparison.Ordinal);
         Assert.Contains(".save-group-heading", css, StringComparison.Ordinal);

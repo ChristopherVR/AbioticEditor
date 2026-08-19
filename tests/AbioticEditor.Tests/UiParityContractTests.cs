@@ -95,7 +95,9 @@ public sealed class UiParityContractTests
             "--shell:#081119", "--page:#0c1a24", "--panel:#132736", "--elevated:#1b3648",
             "--hover:#26475d", "--divider:#2e5471", "--line:#224158", "--ink:#dceff9",
             "--orange:#f89a4f", "--hazard:#ffe563", "--terminal:#7fe9e2", "--section:#71c5f6",
-            "grid-template-columns:var(--file-pane-width) 16px minmax(0,1fr) 16px var(--details-pane-width)",
+            // The pane tracks are the user-dragged widths capped to a viewport share
+            // (--file-col/--details-col) so the side panes can never crush the editor.
+            "grid-template-columns:var(--file-col) 16px minmax(0,1fr) 16px var(--details-col)",
             // The seven-segment "Digital7" readout face was retired: it made numbers hard to
             // read on phones and could not draw non-Latin translated readouts. Numbers now use
             // the shared --font-num face, so the contract asserts that token exists instead.
