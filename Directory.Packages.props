@@ -29,8 +29,8 @@
 
     <!-- Browser-only host published as static files to GitHub Pages: no server, everything
          (parsing, editing, re-serializing) runs client-side as WebAssembly. -->
-    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.10" />
-    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.11" />
     <!-- Razor Class Library shared by both front-ends. A plain net10.0 library does not get the
          ASP.NET Core shared framework the desktop host builds against, so the Components types
          its screens use come from this package instead. -->
