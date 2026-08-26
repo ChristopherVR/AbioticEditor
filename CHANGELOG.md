@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [2.7.4] - 2026-08-26
+
+### Build
+- Bump taiki-e/install-action in the actions-all group
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.7.3 [skip ci]
+
+
 ## [2.7.3] - 2026-08-19
 
 ### Miscellaneous Tasks
