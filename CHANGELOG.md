@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here.
 
+## [2.7.5] - 2026-08-26
+
+### Bug Fixes
+- Story-event search now finds events that have not happened yet
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.7.4 [skip ci]
+
+
+### Testing
+- Add coverage that saving traits/skills never corrupts other data
+
+
 ## [2.7.4] - 2026-08-26
 
 ### Build
