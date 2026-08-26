@@ -5,7 +5,33 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
-## Round-61: bed claims survive a different-length owner-id change (2026-08-13)
+## Round-62: investigated Nexus bug #1 - "stuck radiation-suit visor after editing traits/skills" (2026-08-27)
+
+Player report (mod page bug tracker): adding `Trait_FannyPack` to an existing character, and
+separately maxing a skill's XP, both left a stuck curved black-bar "helmet vision" overlay
+(~1/5 of the screen top and bottom) after reloading - not tied to actually wearing a hazmat suit,
+since the reporter confirmed the suit was unequipped before editing/saving.
+
+Audited the write path for both edits (`PlayerSaveWriter.ApplySkills`, `.ApplyTraits`, and the
+shared `GvasTags.FindOrCreate` create-on-miss helper both go through). No corruption found:
+`FPropertyTag.Size` is always back-patched from the real serialized length at write time
+(`WriteSize` seeks to a placeholder and rewrites it), so a freshly created tag can't leave a stale
+size header regardless of whether the source property existed before. Confirmed empirically too,
+not just by reading the serializer: `SaveReaderWriterValidationTests` gained
+`Player_EditUntouchedSkillXp_CreatesTagAndChangesOnlyThatLeaf` (a skill whose XP/multiplier tags
+were still delta-omitted - the exact "max a skill" repro, since the existing isolation test only
+ever touched an already-present tag) and `Player_AddTrait_ChangesOnlyThatLeaf` (the fanny-pack
+repro) - both against real fixture saves, both show exactly one leaf changed and nothing else in
+the file moved. Ruled out: no `Hazmat`/`IsWearing`/visor-related boolean exists anywhere in the
+schema for the writer to have mishandled; the effect is driven purely by the Suit equipment slot,
+which neither edit touches.
+
+Conclusion: this is very likely the base game's own known "helmet vision" desync (Steam
+discussions describe the same hazmat-suit visor effect getting stuck after a reload/session-state
+change, unrelated to any save editor, fixed only by a session restart in at least one report) - not
+something the save file format or this editor's writer can corrupt into existing. No code fix
+applied; the two new tests stand as permanent regression coverage for the create-on-miss path,
+which had a real gap (only the already-present-tag case was isolation-tested before).
 
 Closes follow-up 5 of `docs/reference/research/research-gamepass-to-steam.md`. A claim is
 `<ownerId>}|!|{<name>` in a deployable's `CustomTextDisplay_`; `WorldSteamIdPatcher` could only

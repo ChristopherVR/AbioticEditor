@@ -180,6 +180,103 @@ public class SaveReaderWriterValidationTests
         }
     }
 
+    /// <summary>
+    /// Reproduces a Nexus bug report ("add fanny pack trait / max a skill -> stuck radiation-
+    /// suit visor overlay after reload"): confirms the create-on-miss path (a skill whose
+    /// <c>CurrentSkillXP_</c>/<c>CurrentXPMultiplier_</c> tags are still delta-omitted, i.e.
+    /// genuinely untouched) writes a byte-clean, single-leaf edit with no side effects on
+    /// unrelated data - same guarantee <see cref="Player_EditOneSkillXp_ChangesOnlyThatLeaf"/>
+    /// already covers for a skill whose tags already exist. Skips if no fixture player has an
+    /// untouched skill (XP 0 / multiplier still at the 1.0 default).
+    /// </summary>
+    [Fact]
+    public void Player_EditUntouchedSkillXp_CreatesTagAndChangesOnlyThatLeaf()
+    {
+        Assert.NotNull(Fixtures.CascadeDir);
+        string[] candidates =
+        [
+            "Player_76561197993781479.sav",
+            "Player_76561198128277890.sav",
+            "Player_76561198144558108.sav",
+            "Player_76561198179787042.sav",
+        ];
+        var path = candidates
+            .Select(f => Path.Combine(Fixtures.CascadeDir!, "PlayerData", f))
+            .FirstOrDefault(p => File.Exists(p)
+                && PlayerSaveReader.ReadFromFile(p).Skills.Any(s => s.Xp == 0f && s.XpMultiplier == 1f));
+        if (path is null) return;
+
+        var temp = Path.Combine(Path.GetTempPath(), $"abf-iso-skill-new-{Guid.NewGuid():N}.sav");
+        try
+        {
+            File.Copy(path, temp);
+
+            var data = PlayerSaveReader.ReadFromFile(temp);
+            var skill = data.Skills.First(s => s.Xp == 0f && s.XpMultiplier == 1f);
+            var maxXp = SkillCatalog.XpForLevel(SkillCatalog.MaxLevel);
+            PlayerSaveWriter.ApplySkills(data, new[] { skill with { Xp = maxXp } });
+            PlayerSaveWriter.WriteToFile(data, temp);
+
+            var diff = SaveComparer.CompareFiles(path, temp);
+            DumpDiff(diff);
+
+            // The tag didn't exist before (SaveComparer reads it via the same default-valued
+            // getter the domain model uses, so a materialized delta-omitted tag reads as a
+            // CHANGE from its implied default, not an ADD) - but still exactly one leaf, nothing
+            // else in the save moved.
+            Assert.Equal(1, diff.ChangedCount);
+            Assert.Equal(0, diff.AddedCount);
+            Assert.Equal(0, diff.RemovedCount);
+            var leaf = diff.Differences.Single();
+            Assert.Contains($"Skills[{skill.Index}]", leaf.Path);
+            Assert.Contains("CurrentSkillXP", leaf.Path);
+
+            var reread = PlayerSaveReader.ReadFromFile(temp);
+            Assert.Equal(maxXp, reread.Skills[skill.Index].Xp);
+        }
+        finally
+        {
+            CleanUp(temp);
+        }
+    }
+
+    [Fact]
+    public void Player_AddTrait_ChangesOnlyThatLeaf()
+    {
+        Assert.NotNull(Fixtures.CascadeDir);
+        var path = PlayerSavePath();
+        if (path is null) return;
+
+        var temp = Path.Combine(Path.GetTempPath(), $"abf-iso-trait-{Guid.NewGuid():N}.sav");
+        try
+        {
+            File.Copy(path, temp);
+
+            var data = PlayerSaveReader.ReadFromFile(temp);
+            var originalTraits = data.Traits.ToList();
+            var originalCount = originalTraits.Count;
+            PlayerSaveWriter.ApplyTraits(data, originalTraits.Append("Trait_FannyPack").ToList());
+            PlayerSaveWriter.WriteToFile(data, temp);
+
+            var diff = SaveComparer.CompareFiles(path, temp);
+            DumpDiff(diff);
+
+            Assert.Equal(0, diff.ChangedCount);
+            Assert.Equal(1, diff.AddedCount);
+            Assert.Equal(0, diff.RemovedCount);
+            var leaf = diff.Differences.Single();
+            Assert.Contains($"Traits[{originalCount}]", leaf.Path);
+            Assert.Equal("Trait_FannyPack", leaf.Right);
+
+            var reread = PlayerSaveReader.ReadFromFile(temp);
+            Assert.Equal(originalTraits.Append("Trait_FannyPack"), reread.Traits);
+        }
+        finally
+        {
+            CleanUp(temp);
+        }
+    }
+
     [Fact]
     public void World_AppendOneFlag_AddsOnlyThatLeaf()
     {
