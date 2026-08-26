@@ -531,13 +531,16 @@
   <!-- WorldFlags -->
   <data name="WorldFlags_AddFlag" xml:space="preserve"><value>EREIGNIS HINZUFÜGEN</value></data>
   <data name="WorldFlags_AddFlagPlaceholder" xml:space="preserve"><value>Weiteres Ereignis hinzufügen…</value></data>
+  <data name="WorldFlags_AlreadySetDespiteMissingPrereq" xml:space="preserve"><value>Dieses Ereignis ist in deinem Spielstand bereits als geschehen markiert, auch wenn etwas, das normalerweise zuerst passieren müsste, noch nicht geschehen ist. Das kannst du so lassen - LÖSCHEN entfernt es, falls du es lieber zurücksetzen möchtest.</value></data>
   <data name="WorldFlags_Clear" xml:space="preserve"><value>LÖSCHEN</value></data>
+  <data name="WorldFlags_Set" xml:space="preserve"><value>SETZEN</value></data>
   <data name="WorldFlags_FilterPlaceholder" xml:space="preserve"><value>Nach Gebiet oder Name filtern…</value></data>
   <data name="WorldFlags_FlagsIntro" xml:space="preserve"><value>Dies sind die Story-Ereignisse, die dieses Gebiet bereits erreicht hat. Die ganze Welt teilt sich eine Story, daher kann das Einschalten eines Ereignisses hier auch anderswo etwas voranbringen. Ausschalten spult dieses Ereignis zurück.</value></data>
   <data name="WorldFlags_HowQuestsWork" xml:space="preserve"><value>WIE QUESTS FUNKTIONIEREN</value></data>
   <data name="WorldFlags_HowQuestsWorkBody" xml:space="preserve"><value>Die Welt merkt sich, was passiert ist: eine geöffnete Tür, eine getroffene Person, ein abgeschlossener Sektor. Die Hauptstory läuft der Reihe nach: Office, Manufacturing West, Labs, Security, Hydroplant, Reactors, Residence. UMSCHALTEN schaltet ein Ereignis ein oder aus. Einschalten lässt die Welt glauben, es sei passiert, Sie springen also nach vorn. Ausschalten spult es zurück, doch Türen und Gegenstände, die es bereits verändert hat, bleiben so, wie sie sind. Der Rest steuert nur Kleinigkeiten wie Tutorial-Hinweise und TV-Tipps.</value></data>
   <data name="WorldFlags_InThisFile" xml:space="preserve"><value>IN DIESEM GEBIET</value></data>
   <data name="WorldFlags_NoFlags" xml:space="preserve"><value>In diesem Gebiet ist noch nichts passiert, oder nichts passt zu Ihrem Filter.</value></data>
+  <data name="WorldFlags_NotYetHappened" xml:space="preserve"><value>NOCH NICHT</value></data>
   <data name="WorldFlags_QuestFlags" xml:space="preserve"><value>STORY-EREIGNISSE</value></data>
 
   <!-- WorldNpcs -->

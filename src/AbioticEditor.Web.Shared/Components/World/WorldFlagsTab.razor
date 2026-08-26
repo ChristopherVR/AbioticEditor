@@ -43,7 +43,7 @@
                 <div class="wf-group-head" @key="groupKey"><span>@group.Title</span><small>@group.Items.Count</small></div>
                 @foreach (var flag in group.Items)
                 {
-                    <div class="wf-row @(_selected == flag.RawName ? "selected" : null)" role="listitem" @key="flag.RawName"
+                    <div class="wf-row @(_selected == flag.RawName ? "selected" : null) @(flag.IsSet ? null : "wf-row-pending")" role="listitem" @key="flag.RawName"
                          @onclick="() => SelectFlag(flag.RawName)">
                         <span class="wf-chip" style="background:@flag.CategoryColor">@flag.CategoryLabel</span>
                         <span class="wf-texts">
@@ -52,7 +52,14 @@
                             @if (flag.IsStoryTrigger) { <em class="wf-story">@flag.StoryChapterText</em> }
                             <span class="wf-desc">@flag.Description</span>
                         </span>
-                        <button class="wf-clear" type="button" @onclick="() => ClearFlag(flag.RawName)" @onclick:stopPropagation>@L.Resource("WorldFlags_Clear")</button>
+                        @if (flag.IsSet)
+                        {
+                            <button class="wf-clear" type="button" @onclick="() => ClearFlag(flag.RawName)" @onclick:stopPropagation>@L.Resource("WorldFlags_Clear")</button>
+                        }
+                        else
+                        {
+                            <span class="wf-pending-chip">@L.Resource("WorldFlags_NotYetHappened")</span>
+                        }
                     </div>
                 }
             }
@@ -93,7 +100,7 @@
 
     /// <summary>A flag row enriched exactly like the native FlagItemViewModel (catalog
     /// friendly name, area, category chip, story-trigger chip, plain-language description).</summary>
-    private sealed record FlagRowModel(string RawName, FlagInfo Info, StoryChapter? Chapter)
+    private sealed record FlagRowModel(string RawName, FlagInfo Info, StoryChapter? Chapter, bool IsSet)
     {
         public string FriendlyName => Info.FriendlyName;
         public string Area => Info.Area;
@@ -107,6 +114,7 @@
         public string RawName => Model.RawName;
         public string FriendlyName => Model.FriendlyName;
         public bool IsStoryTrigger => Model.IsStoryTrigger;
+        public bool IsSet => Model.IsSet;
     }
 
     private IReadOnlyList<FlagGroupModel> VisibleFlagGroups
@@ -114,13 +122,21 @@
         get
         {
             IEnumerable<FlagRowModel> items = Session.Flags
-                .Select(flag => new FlagRowModel(flag, QuestFlagCatalog.Lookup(flag), StoryProgressionCatalog.ChapterForFlag(flag)));
-            if (!string.IsNullOrWhiteSpace(_filter))
+                .Select(flag => new FlagRowModel(flag, QuestFlagCatalog.Lookup(flag), StoryProgressionCatalog.ChapterForFlag(flag), IsSet: true));
+            var f = _filter.Trim();
+            if (f.Length > 0)
             {
-                var f = _filter.Trim();
-                items = items.Where(x => x.RawName.Contains(f, StringComparison.OrdinalIgnoreCase)
-                    || x.FriendlyName.Contains(f, StringComparison.OrdinalIgnoreCase)
-                    || x.Area.Contains(f, StringComparison.OrdinalIgnoreCase));
+                items = items.Where(x => MatchesFilter(x, f));
+                // A flag that has not happened yet has no row at all otherwise, which leaves
+                // someone hunting for e.g. "Manufacturing West" with nothing to click and only
+                // the raw ADD EVENT textbox (which needs the exact internal flag name typed
+                // verbatim) to fall back on. Once there is something to narrow the ~100-flag
+                // catalog down to, searching also surfaces the ones that have not happened yet.
+                var notYetHappened = QuestFlagCatalog.KnownFlags
+                    .Where(flag => !Session.Flags.Contains(flag))
+                    .Select(flag => new FlagRowModel(flag, QuestFlagCatalog.Lookup(flag), StoryProgressionCatalog.ChapterForFlag(flag), IsSet: false))
+                    .Where(x => MatchesFilter(x, f));
+                items = items.Concat(notYetHappened);
             }
 
             // Story-ordered grouping, ported from the native ApplyFlagFilter: flags read like
@@ -136,6 +152,7 @@
                 .Select(g => new FlagGroupModel(
                     g.Key.Title,
                     g.OrderByDescending(x => x.IsStoryTrigger)
+                     .ThenByDescending(x => x.IsSet)
                      .ThenBy(x => x.FriendlyName, StringComparer.Ordinal)
                      .Select(ToRow)
                      .ToList()))
@@ -143,12 +160,18 @@
         }
     }
 
+    private static bool MatchesFilter(FlagRowModel x, string filter)
+        => x.RawName.Contains(filter, StringComparison.OrdinalIgnoreCase)
+            || x.FriendlyName.Contains(filter, StringComparison.OrdinalIgnoreCase)
+            || x.Area.Contains(filter, StringComparison.OrdinalIgnoreCase);
+
     private FlagRow ToRow(FlagRowModel model) => new(model, CategoryLabel(model.Category), CategoryColor(model.Category), DescriptionFor(model), StoryChapterTextFor(model));
 
-    private FlagRow? FindFlagRow(string rawName)
-        => Session.Flags.Contains(rawName)
-            ? ToRow(new FlagRowModel(rawName, QuestFlagCatalog.Lookup(rawName), StoryProgressionCatalog.ChapterForFlag(rawName)))
-            : null;
+    /// <summary>Looks up any known raw flag for the detail pane, set or not - unlike the list
+    /// above (which needs a search to surface a not-yet-happened flag), a row already on screen
+    /// must always be able to reopen its own card.</summary>
+    private FlagRow FindFlagRow(string rawName)
+        => ToRow(new FlagRowModel(rawName, QuestFlagCatalog.Lookup(rawName), StoryProgressionCatalog.ChapterForFlag(rawName), Session.Flags.Contains(rawName)));
 
     /// <summary>"01 · OFFICE SECTOR" group titles, ported from the native RegionTitleFor.</summary>
     private string RegionTitleFor(StoryChapter chapter)
@@ -334,7 +357,8 @@
         {
             var chapter = FlagGate.RegionChapterFor(selected);
             var missing = MissingPrerequisitesFor(selected);
-            var canEnable = Session.Flags.Contains(selected) || missing.Count == 0;
+            var isSet = Session.Flags.Contains(selected);
+            var canEnable = isSet || missing.Count == 0;
             <div class="detail-card detail-card--orange wf-detail">
                 <div class="detail-head">
                     <span class="detail-title"><strong>@row.FriendlyName</strong><small>@row.RawName</small></span>
@@ -349,14 +373,32 @@
                 @if (row.IsStoryTrigger) { <em class="wf-story">@row.StoryChapterText</em> }
                 <span class="detail-label">@L.Resource("Slot_Prerequisites")</span>
                 <p class="detail-value wf-prereqs">@PrereqTextFor(selected)</p>
+                @* The button and status line used to read TOGGLE / "cannot be switched on" even
+                   when the flag was already set (e.g. the save has it true despite a missing
+                   prerequisite) or already fully enabled - both readings are wrong in those
+                   states, so the label and message now track isSet/canEnable instead of always
+                   showing the same blocked-toggle copy. *@
                 <div class="wf-detail-actions">
-                    <button class="wf-clear" type="button" disabled="@(!canEnable)" @onclick="() => ToggleFlag(selected)">@L.Resource("Slot_ToggleFlag")</button>
+                    <button class="wf-clear" type="button" disabled="@(!canEnable)" @onclick="() => ToggleFlag(selected)">
+                        @(isSet ? L.Resource("WorldFlags_Clear") : L.Resource("WorldFlags_Set"))
+                    </button>
                     @if (!canEnable)
                     {
                         <button class="wf-set-prereqs" type="button" @onclick="() => RequestEnableWithPrerequisites(selected)">@L.Resource("Slot_SetPrerequisites")</button>
                     }
                 </div>
-                <p class="detail-status">@L.Resource("Slot_EnablingIsBlockedUntilPrerequisitesAreSetSinceTheGameNeverProducesOutOfOrderStoryStateStageSaveToWrite")</p>
+                @if (!canEnable)
+                {
+                    <p class="detail-status">@L.Resource("Slot_EnablingIsBlockedUntilPrerequisitesAreSetSinceTheGameNeverProducesOutOfOrderStoryStateStageSaveToWrite")</p>
+                }
+                else if (isSet && missing.Count > 0)
+                {
+                    <p class="detail-status">@L.Resource("WorldFlags_AlreadySetDespiteMissingPrereq")</p>
+                }
+                else
+                {
+                    <p class="detail-status">@L.Resource("Slot_ChangesStaged")</p>
+                }
             </div>
         }
     };

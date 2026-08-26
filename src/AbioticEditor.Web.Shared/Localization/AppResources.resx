@@ -721,13 +721,16 @@
   <!-- WorldFlags -->
   <data name="WorldFlags_AddFlag" xml:space="preserve"><value>ADD EVENT</value></data>
   <data name="WorldFlags_AddFlagPlaceholder" xml:space="preserve"><value>Add another event…</value></data>
+  <data name="WorldFlags_AlreadySetDespiteMissingPrereq" xml:space="preserve"><value>This event is already marked as happened in your save, even though something it would normally need first has not happened yet. That is fine to leave as-is - CLEAR removes it if you would rather reset it.</value></data>
   <data name="WorldFlags_Clear" xml:space="preserve"><value>CLEAR</value></data>
+  <data name="WorldFlags_Set" xml:space="preserve"><value>SET</value></data>
   <data name="WorldFlags_FilterPlaceholder" xml:space="preserve"><value>Filter by area or name…</value></data>
   <data name="WorldFlags_FlagsIntro" xml:space="preserve"><value>These are the story events this area has already reached. The whole world shares one story, so switching an event on here can also move things along elsewhere. Switching one off rewinds that event.</value></data>
   <data name="WorldFlags_HowQuestsWork" xml:space="preserve"><value>HOW QUESTS WORK</value></data>
   <data name="WorldFlags_HowQuestsWorkBody" xml:space="preserve"><value>The world remembers what has happened: a door opened, someone met, a sector finished. The main story runs in order: Office, Manufacturing West, Labs, Security, Hydroplant, Reactors, Residence. TOGGLE turns an event on or off. Turning one on makes the world believe it happened, so you skip ahead. Turning one off rewinds it, though doors and items it already changed stay as they are. The rest only control small things like tutorial pop-ups and TV tips.</value></data>
   <data name="WorldFlags_InThisFile" xml:space="preserve"><value>IN THIS AREA</value></data>
   <data name="WorldFlags_NoFlags" xml:space="preserve"><value>Nothing has happened in this area yet, or nothing matches your filter.</value></data>
+  <data name="WorldFlags_NotYetHappened" xml:space="preserve"><value>NOT YET</value></data>
   <data name="WorldFlags_QuestFlags" xml:space="preserve"><value>STORY EVENTS</value></data>
 
   <!-- WorldNpcs -->

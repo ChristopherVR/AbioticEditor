@@ -531,13 +531,16 @@
   <!-- WorldFlags -->
   <data name="WorldFlags_AddFlag" xml:space="preserve"><value>ДОБАВИТЬ СОБЫТИЕ</value></data>
   <data name="WorldFlags_AddFlagPlaceholder" xml:space="preserve"><value>Добавить ещё событие…</value></data>
+  <data name="WorldFlags_AlreadySetDespiteMissingPrereq" xml:space="preserve"><value>Это событие уже отмечено как произошедшее в вашем сохранении, хотя то, что обычно должно происходить раньше, ещё не случилось. Это можно оставить как есть - кнопка «ОЧИСТИТЬ» уберёт отметку, если вы хотите сбросить событие.</value></data>
   <data name="WorldFlags_Clear" xml:space="preserve"><value>ОЧИСТИТЬ</value></data>
+  <data name="WorldFlags_Set" xml:space="preserve"><value>УСТАНОВИТЬ</value></data>
   <data name="WorldFlags_FilterPlaceholder" xml:space="preserve"><value>Фильтр по зоне или названию…</value></data>
   <data name="WorldFlags_FlagsIntro" xml:space="preserve"><value>Это сюжетные события, которых эта зона уже достигла. История в мире одна на всех, поэтому включённое здесь событие может продвинуть дела и в других местах. Если выключить событие, оно отматывается назад.</value></data>
   <data name="WorldFlags_HowQuestsWork" xml:space="preserve"><value>КАК РАБОТАЮТ ЗАДАНИЯ</value></data>
   <data name="WorldFlags_HowQuestsWorkBody" xml:space="preserve"><value>Мир помнит, что уже случилось: открытая дверь, встреча с кем-то, пройденный сектор. Основная история идёт по порядку: Офисный сектор, Западное производство, Лаборатории, Безопасность, Гидростанция, Реакторы, Жилой сектор. ПЕРЕКЛЮЧИТЬ включает или выключает событие. Если включить его, мир поверит, что оно произошло, и вы перескочите вперёд. Если выключить, событие отматывается назад, но двери и предметы, которые оно уже изменило, останутся как есть. Остальные события отвечают только за мелочи вроде обучающих подсказок и советов по телевизору.</value></data>
   <data name="WorldFlags_InThisFile" xml:space="preserve"><value>В ЭТОЙ ЗОНЕ</value></data>
   <data name="WorldFlags_NoFlags" xml:space="preserve"><value>В этой зоне пока ничего не произошло, либо ничего не подходит под фильтр.</value></data>
+  <data name="WorldFlags_NotYetHappened" xml:space="preserve"><value>ЕЩЁ НЕТ</value></data>
   <data name="WorldFlags_QuestFlags" xml:space="preserve"><value>СЮЖЕТНЫЕ СОБЫТИЯ</value></data>
 
   <!-- WorldNpcs -->

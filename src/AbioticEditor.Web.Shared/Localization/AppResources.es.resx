@@ -532,13 +532,16 @@
   <!-- WorldFlags -->
   <data name="WorldFlags_AddFlag" xml:space="preserve"><value>AÑADIR SUCESO</value></data>
   <data name="WorldFlags_AddFlagPlaceholder" xml:space="preserve"><value>Añadir otro suceso…</value></data>
+  <data name="WorldFlags_AlreadySetDespiteMissingPrereq" xml:space="preserve"><value>Este suceso ya está marcado como ocurrido en tu partida, aunque algo que normalmente debería pasar antes todavía no ha ocurrido. Puedes dejarlo así sin problema; LIMPIAR lo quita si prefieres reiniciarlo.</value></data>
   <data name="WorldFlags_Clear" xml:space="preserve"><value>LIMPIAR</value></data>
+  <data name="WorldFlags_Set" xml:space="preserve"><value>MARCAR</value></data>
   <data name="WorldFlags_FilterPlaceholder" xml:space="preserve"><value>Filtrar por zona o nombre…</value></data>
   <data name="WorldFlags_FlagsIntro" xml:space="preserve"><value>Estos son los sucesos de la historia que esta zona ya ha alcanzado. Todo el mundo comparte una sola historia, así que activar un suceso aquí también puede hacer avanzar cosas en otras partes. Desactivarlo rebobina ese suceso.</value></data>
   <data name="WorldFlags_HowQuestsWork" xml:space="preserve"><value>CÓMO FUNCIONAN LAS MISIONES</value></data>
   <data name="WorldFlags_HowQuestsWorkBody" xml:space="preserve"><value>El mundo recuerda lo que ha pasado: una puerta abierta, alguien a quien conociste, un sector terminado. La historia principal va en orden: Office, Manufacturing West, Labs, Security, Hydroplant, Reactors, Residence. ALTERNAR activa o desactiva un suceso. Al activarlo, el mundo cree que ocurrió, así que avanzas de golpe. Al desactivarlo se rebobina, aunque las puertas y los objetos que ya cambió se quedan como están. El resto solo controla detalles como los avisos del tutorial y los consejos de la tele.</value></data>
   <data name="WorldFlags_InThisFile" xml:space="preserve"><value>EN ESTA ZONA</value></data>
   <data name="WorldFlags_NoFlags" xml:space="preserve"><value>Aún no ha pasado nada en esta zona, o nada coincide con tu filtro.</value></data>
+  <data name="WorldFlags_NotYetHappened" xml:space="preserve"><value>TODAVÍA NO</value></data>
   <data name="WorldFlags_QuestFlags" xml:space="preserve"><value>SUCESOS DE LA HISTORIA</value></data>
 
   <!-- WorldNpcs -->

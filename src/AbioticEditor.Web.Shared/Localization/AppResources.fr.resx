@@ -531,13 +531,16 @@
   <!-- WorldFlags -->
   <data name="WorldFlags_AddFlag" xml:space="preserve"><value>AJOUTER UN ÉVÉNEMENT</value></data>
   <data name="WorldFlags_AddFlagPlaceholder" xml:space="preserve"><value>Ajouter un autre événement…</value></data>
+  <data name="WorldFlags_AlreadySetDespiteMissingPrereq" xml:space="preserve"><value>Cet événement est déjà marqué comme arrivé dans votre sauvegarde, même si quelque chose qu'il faudrait normalement avant ne s'est pas encore produit. Vous pouvez le laisser tel quel ; EFFACER le retire si vous préférez le réinitialiser.</value></data>
   <data name="WorldFlags_Clear" xml:space="preserve"><value>EFFACER</value></data>
+  <data name="WorldFlags_Set" xml:space="preserve"><value>MARQUER</value></data>
   <data name="WorldFlags_FilterPlaceholder" xml:space="preserve"><value>Filtrer par zone ou par nom…</value></data>
   <data name="WorldFlags_FlagsIntro" xml:space="preserve"><value>Voici les événements de l'histoire que cette zone a déjà atteints. Le monde entier partage une seule histoire, donc activer un événement ici peut aussi faire avancer les choses ailleurs. Le désactiver rembobine cet événement.</value></data>
   <data name="WorldFlags_HowQuestsWork" xml:space="preserve"><value>COMMENT FONCTIONNENT LES QUÊTES</value></data>
   <data name="WorldFlags_HowQuestsWorkBody" xml:space="preserve"><value>Le monde se souvient de ce qui s'est passé : une porte ouverte, quelqu'un rencontré, un secteur terminé. L'histoire principale se déroule dans l'ordre : Office, Manufacturing West, Labs, Security, Hydroplant, Reactors, Residence. BASCULER active ou désactive un événement. L'activer fait croire au monde qu'il a eu lieu, vous avancez donc d'un coup. Le désactiver le rembobine, mais les portes et objets qu'il a déjà changés restent tels quels. Le reste ne contrôle que de petites choses comme les fenêtres du tutoriel et les conseils à la télé.</value></data>
   <data name="WorldFlags_InThisFile" xml:space="preserve"><value>DANS CETTE ZONE</value></data>
   <data name="WorldFlags_NoFlags" xml:space="preserve"><value>Rien ne s'est encore produit dans cette zone, ou rien ne correspond à votre filtre.</value></data>
+  <data name="WorldFlags_NotYetHappened" xml:space="preserve"><value>PAS ENCORE</value></data>
   <data name="WorldFlags_QuestFlags" xml:space="preserve"><value>ÉVÉNEMENTS DE L'HISTOIRE</value></data>
 
   <!-- WorldNpcs -->

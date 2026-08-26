@@ -1286,6 +1286,10 @@ button.world-feature-row{flex:0 0 auto}
 .wf-clear{min-height:0;padding:4px 10px;border:0;background:var(--orange);color:var(--on-accent);font:600 10px var(--font-ui);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
 .wf-clear:hover{filter:brightness(1.08)}
 .wf-clear:disabled{opacity:.72;cursor:default}
+/* A search-matched flag that has not happened yet in this save (see WorldFlagsTab's
+   VisibleFlagGroups): dimmed row, no CLEAR button, just a chip saying so. */
+.wf-row-pending{opacity:.72}
+.wf-pending-chip{align-self:center;padding:2px 8px;border:1px solid var(--divider);color:var(--faint);font:600 9px var(--font-ui);letter-spacing:.15em;text-transform:uppercase;white-space:nowrap}
 .wf-detail .wf-prereqs{white-space:pre-line}
 .wf-detail-actions{display:flex;gap:8px;flex-wrap:wrap}
 /* Missing-prerequisite list inside the SET PREREQUISITES confirm dialog. */
