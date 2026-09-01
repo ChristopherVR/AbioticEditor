@@ -7,9 +7,8 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- CS1591/CS1573: this engine has a large public surface; many members (and record
          parameters) are documented at the type level rather than per-parameter. Ship the XML
-         doc for what IS documented without failing on the rest. NU5104: CUE4Parse depends on
-         SharpGLTF prerelease, so our stable package legitimately carries a prerelease dependency. -->
-    <NoWarn>$(NoWarn);CS1591;CS1573;NU5104</NoWarn>
+         doc for what IS documented without failing on the rest. -->
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
 
     <!-- NuGet package (published to nuget.org by .github/workflows/release.yml). -->
     <IsPackable>true</IsPackable>
@@ -88,6 +87,7 @@
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="SubstreamSharp" />
     <PackageReference Include="System.IO.Hashing" />
+    <PackageReference Include="System.Numerics.Tensors" />
     <PackageReference Include="VGAudio" />
     <PackageReference Include="Zlib-ng.NET" />
     <PackageReference Include="ZstdSharp.Port" />
