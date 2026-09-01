@@ -5,6 +5,52 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-63: CUE4Parse bump + live-game content gap scoping (2026-09-02)
+
+**CUE4Parse submodule bumped** from `1125f5bc` (2026-06-09) to `b4e95441` (2026-08-31), 494
+commits; `submodules/UeSaveGame` was already current and untouched. One API break: the usmap
+type-mappings provider moved namespace, fixed at its two call sites. Package mirror
+(`submodules/CUE4Parse.PackageVersions.props`) updated to match (Blake3 to 3.0.2, SharpGLTF now a
+stable 1.0.6 release instead of the alpha CUE4Parse used to pin, and a new `System.Numerics.Tensors`
+dependency added). Full suite green: 1139/1139. Committed as `18b7ecf`.
+
+**Usmap refresh attempted, not completed.** The installed game (Steam, real local install) is at
+engine build `5.4.4-1040001+++DF+ABF` per the player's own `AbioticFactor.log` from a real
+2026-09-01 session, ahead of the `5.4.4-1030002+++DF+ABF-01e0a584` this editor is validated
+against (`SaveVersionRegistry.ValidatedGameBuild`). UE4SS is already installed in the game folder
+and is confirmed to be how the bundled `assets/Mappings.usmap` was originally produced (a
+byte-identical copy, `AbioticFactor-5.4.4-1030002...usmap`, sits directly in the game's `ue4ss/`
+folder, dated the same 2026-05-19). **It does not regenerate automatically on every launch** - the
+player's real 2026-09-01 session at build 1040001 did not produce a new file - so refreshing it
+needs a deliberate maintainer step (a console command or mod trigger) not yet identified/documented
+here. Launching the game from tooling was also unreliable: the bare exe exits immediately (code 1,
+Steam DRM wrapper), and `steam://run/427410` can leave Steam stuck on an unattended "Set Launch
+Options" popup that scripted `SendKeys`/`AppActivate` could not dismiss. Follow-up: find and
+document the actual UE4SS usmap-dump trigger, then redo this.
+
+**Missing-feature scoping for the live game's Cosmic Companions (2026-05-04) and Community
+Update #4 / Anniversary Update (2026-05-13) content**, from wiki/patch-note research
+cross-referenced against `Core`: grepping for Chemistry/Tincture/Coating/Flask/Distill/Companion
+across `Core` returns zero matches, so none of that is implemented. Believed already covered by
+existing generic mechanisms, but **not verified against a real fixture**: pet mutation into new
+species (the existing pet-upgrade feature already rewrites `NPCClass_`) and the new portal world
+(`PortalMapFeature` is generic/tag-based, not hardcoded per portal). Genuine gaps, effort estimated
+by analogy to how the pet/vehicle systems were originally built (Domain + Catalog + writer + UI +
+CLI each):
+- Companion pet equipment slot (new dedicated slot) - **S**, one `FullNames` entry once a real tag
+  name is known.
+- Pet "downed"/stabilization state (`PetHealth`/`WorldPet` have no such flag today) - **M**.
+- Chemistry system (Distillation/Chemistry Benches, Tinctures, Coatings, Flasks) - **L**, real
+  uncertainty until a save with an in-progress brew is inspected (could be M if brews are stateless
+  items).
+
+**Deliberately not started.** This repo's byte-exact write discipline (writers must create a
+missing tag using its exact hash-suffixed name, see the root CLAUDE.md) needs a real save fixture
+exercising each system before any writer code is written - guessing a tag name risks silently
+writing to the wrong property in a player's save. No such fixture was available this round: the
+player's own dev/test world saves under `Saved/SaveGames/` predate this content. Parked until a
+fixture with this content turns up.
+
 ## Round-62: investigated Nexus bug #1 - "stuck radiation-suit visor after editing traits/skills" (2026-08-27)
 
 Player report (mod page bug tracker): adding `Trait_FannyPack` to an existing character, and
