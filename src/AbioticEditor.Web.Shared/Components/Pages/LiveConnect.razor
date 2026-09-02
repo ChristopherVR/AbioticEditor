@@ -1,0 +1,137 @@
+@page "/live"
+@using AbioticEditor.Core.LiveEditing
+@using AbioticEditor.Core.LiveEditing.Player
+@using AbioticEditor.Web.Components.Player
+@implements IAsyncDisposable
+@inject HostLanguageService L
+@inject NavigationManager Navigation
+
+<PageTitle>@L.Resource("Common_AppName")</PageTitle>
+
+<section class="hero native-empty-state live-connect">
+    <h1>@L.Resource("Live_Title")</h1>
+
+    @if (_session is null)
+    {
+        <p class="lede">@L.Resource("Live_ConnectSubtitle")</p>
+        <div class="live-connect-form">
+            <label>
+                @L.Resource("Live_Host")
+                <input @bind="_host" @bind:event="oninput" disabled="@_isConnecting" />
+            </label>
+            <label>
+                @L.Resource("Live_Port")
+                <input type="number" @bind="_port" @bind:event="oninput" disabled="@_isConnecting" />
+            </label>
+            <label>
+                @L.Resource("Live_Token")
+                <input type="password" @bind="_token" @bind:event="oninput" disabled="@_isConnecting" />
+            </label>
+            <button class="primary" type="button" @onclick="ConnectAsync" disabled="@_isConnecting">
+                @(_isConnecting ? L.Resource("Live_Connecting") : L.Resource("Live_Connect"))
+            </button>
+            @if (_error is not null)
+            {
+                <p class="error-text" role="alert">@_error</p>
+            }
+        </div>
+        <p class="empty-note">@L.Resource("Live_ConnectHint")</p>
+    }
+    else
+    {
+        <p class="lede live-warning">@L.Resource("Live_ImmediateWarning")</p>
+        <PlayerVitalsTab Vitals="_session.Vitals" OnChanged="OnVitalsChanged" />
+        <div class="live-connect-actions">
+            <button class="primary" type="button" @onclick="ApplyAsync" disabled="@(!_session.IsDirty || _isBusy)">
+                @L.Resource("Live_Apply")
+            </button>
+            <button class="secondary" type="button" @onclick="Revert" disabled="@(!_session.IsDirty || _isBusy)">
+                @L.Resource("Common_Revert")
+            </button>
+            <button class="secondary" type="button" @onclick="DisconnectAsync" disabled="@_isBusy">
+                @L.Resource("Live_Disconnect")
+            </button>
+        </div>
+        @if (_session.Status is not null)
+        {
+            <p class="status-text">@_session.Status</p>
+        }
+        @if (_error is not null)
+        {
+            <p class="error-text" role="alert">@_error</p>
+        }
+    }
+</section>
+
+@code {
+    private string _host = "127.0.0.1";
+    private int _port = 42117;
+    private string _token = string.Empty;
+    private bool _isConnecting;
+    private bool _isBusy;
+    private string? _error;
+    private ILiveGameChannel? _channel;
+    private LivePlayerVitalsSession? _session;
+
+    private async Task ConnectAsync()
+    {
+        _error = null;
+        _isConnecting = true;
+        var channel = new TcpLiveGameChannel();
+        try
+        {
+            await channel.ConnectAsync(new LiveConnectionInfo(_host, _port, _token));
+            _session = await LivePlayerVitalsSession.ConnectAsync(new LivePlayerVitalsChannel(channel));
+            _channel = channel;
+        }
+        catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
+            or IOException or OperationCanceledException)
+        {
+            _error = Errors.Present(exception, "Connect to the running game.",
+                "Check the host, port and token, and that the live-agent mod is running.");
+            await channel.DisposeAsync();
+        }
+        finally
+        {
+            _isConnecting = false;
+        }
+    }
+
+    private void OnVitalsChanged(AbioticEditor.Web.Models.PlayerVitals _) { }
+
+    private async Task ApplyAsync()
+    {
+        if (_session is null) return;
+        _isBusy = true;
+        _error = null;
+        try
+        {
+            await _session.SaveAsync();
+        }
+        catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
+            or IOException or OperationCanceledException)
+        {
+            _error = Errors.Present(exception, "Apply the live edit.",
+                "The connection may have dropped; try reconnecting.");
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private void Revert() => _session?.Revert();
+
+    private async Task DisconnectAsync()
+    {
+        _session = null;
+        if (_channel is not null) await _channel.DisposeAsync();
+        _channel = null;
+        _error = null;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_channel is not null) await _channel.DisposeAsync();
+    }
+}

@@ -1814,3 +1814,16 @@ button.wd-sector-map:hover{opacity:1;transform:none}
   .sidebar-search input:not([type=checkbox]):not([type=radio]):not([type=range]),
   .catalog-search input:not([type=checkbox]):not([type=radio]):not([type=range]){font-size:16px}
 }
+
+/* Mode-select landing screen and the live-editing connect/session screen. */
+.mode-select-cards{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin:20px 0}
+.mode-select-card{box-sizing:border-box;width:280px;padding:20px;border:1px solid var(--line);border-radius:8px;background:var(--elevated);color:var(--ink);cursor:pointer;text-align:left;transition:background .12s,border-color .12s}
+.mode-select-card:hover,.mode-select-card:focus-visible{background:var(--hover);border-color:var(--section)}
+.mode-select-card-title{display:block;font-size:14px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--section);margin-bottom:6px}
+.mode-select-card-note{display:block;color:var(--muted);font-size:12px}
+.live-connect-form{display:flex;flex-direction:column;gap:12px;max-width:360px;margin:0 auto}
+.live-connect-form label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);text-align:left}
+.live-connect-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:14px 0}
+.live-warning{color:var(--alert-text)}
+.error-text{color:var(--alert-text);font-size:12px;margin-top:8px}
+.status-text{color:var(--muted);font-size:12px;margin-top:8px}

@@ -3884,4 +3884,21 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Main_GpNotWritableFix" xml:space="preserve">
     <value>Sort that out and press SAVE as normal. If you would rather not wait, SAVE will offer to write it anyway.</value>
   </data>
+  <data name="ModeSelect_Title" xml:space="preserve"><value>What do you want to do?</value></data>
+  <data name="ModeSelect_Subtitle" xml:space="preserve"><value>Choose how you want to edit today.</value></data>
+  <data name="ModeSelect_FileTitle" xml:space="preserve"><value>Edit a save file</value></data>
+  <data name="ModeSelect_FileNote" xml:space="preserve"><value>Open a save folder and edit it while the game is closed, exactly like before.</value></data>
+  <data name="ModeSelect_LiveTitle" xml:space="preserve"><value>Live-edit a running game</value></data>
+  <data name="ModeSelect_LiveNote" xml:space="preserve"><value>Connect to a game that is open right now (yours, or a dedicated server you run) and change things immediately.</value></data>
+  <data name="Live_Title" xml:space="preserve"><value>Live-edit a running game</value></data>
+  <data name="Live_ConnectSubtitle" xml:space="preserve"><value>Needs the AbioticEditorLiveAgent mod installed and running in the game.</value></data>
+  <data name="Live_Host" xml:space="preserve"><value>Host</value></data>
+  <data name="Live_Port" xml:space="preserve"><value>Port</value></data>
+  <data name="Live_Token" xml:space="preserve"><value>Token</value></data>
+  <data name="Live_Connect" xml:space="preserve"><value>CONNECT</value></data>
+  <data name="Live_Connecting" xml:space="preserve"><value>CONNECTING…</value></data>
+  <data name="Live_ConnectHint" xml:space="preserve"><value>Use 127.0.0.1 for a game running on this PC, or a dedicated server's address if you run one. The token comes from the mod's own log the first time it starts.</value></data>
+  <data name="Live_ImmediateWarning" xml:space="preserve"><value>Changes here apply to the running game immediately. There is no undo the way a file's backup gives you - use REVERT before you apply if you change your mind.</value></data>
+  <data name="Live_Apply" xml:space="preserve"><value>APPLY</value></data>
+  <data name="Live_Disconnect" xml:space="preserve"><value>DISCONNECT</value></data>
 </root>

@@ -5,6 +5,60 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-64: live in-game editing, Phase 0 (2026-09-02)
+
+First slice of a new capability alongside the existing offline file editor: editing a **running**
+game's memory in real time instead of a `.sav` file. Scoped deliberately small (player vitals
+only) to prove the whole pipeline end to end before expanding feature-by-feature the same way the
+file editor itself grew over many rounds; see the approved plan this round worked from for the
+full architecture and the Phase 1+ roadmap it intentionally deferred (inventory, skills, quest
+flags, world state, pets, vehicles, ...).
+
+**Architecture**: a new `Core/LiveEditing/` layer (`ILiveGameChannel` + `TcpLiveGameChannel`, a
+newline-delimited-JSON TCP protocol - see `docs/reference/live-editing-protocol.md`) parallels
+`Serialization/` the way a live reader/writer pair parallels a file reader/writer pair, but both
+sides produce/consume the exact same Domain records (`CharacterStats`, `LimbHealth`) the file
+writer already uses - confirmed this round that Domain and Catalogs needed zero changes to be
+reusable for a live backing, only Serialization needed a parallel (not shared) implementation. A
+new `LivePlayerVitalsSession` implements the same narrow `IPlayerVitalsSession` interface
+`PlayerSaveSession` already implements, so the existing `PlayerVitalsTab` widget binds to it with
+**zero changes** - the exact reuse pattern the plan bet on. A new `ModeSelect.razor` landing
+screen ("what do you want to do?") replaces `Home.razor` at `/` (which moved to `/browse`, already
+its second route); an `ILiveEditingCapability` marker service the desktop host registers and the
+WASM host does not is the entire mechanism keeping live editing out of the browser build, with no
+`#if`/conditional-compile split anywhere in the shared screens.
+
+**A load-bearing assumption in the original plan turned out wrong, caught before writing the mod**:
+UE4SS's Lua environment has no networking module at all (confirmed against its own docs), so a
+pure-Lua TCP mod - what was originally planned - is not buildable. Switched to a C++ UE4SS mod
+per the user's choice among three options presented (the alternatives: local-only file-polling
+IPC, or a bundled native helper process a Lua mod launches over stdio).
+
+**What is genuinely verified, end to end, this round** (not just "compiles"): the real desktop
+app's Blazor UI, connected through the real `TcpLiveGameChannel`/`LivePlayerVitalsSession`
+classes, to a real MSVC-compiled instance of the mod's transport+JSON layer
+(`live-agent/AbioticEditorLiveAgent/src/LiveAgentServer.cpp` + `JsonLine.h`) - connect, the
+`hello` token handshake (both accepted and rejected), reading live-shaped vitals data into the
+UI, editing a value, clicking Apply, and seeing "Applied live" - all actually happened, driven
+through Playwright against the running app, not simulated. `tests/TcpLiveGameChannelTests.cs`
+covers the same protocol against an in-process fake agent for CI (no native build needed there).
+
+**What is NOT verified**: `VitalsCommands.cpp`/`Mod.cpp`, the part that reads/writes real live
+UObjects, because that needs UE4SS's actual C++ Mod SDK (matched to the installed build, `UE4SS
+v3.0.1 Beta, git SHA 01e0a584`), which was not available this round - no vendored copy, and no
+reliable way to fetch and build one in-session. The property names it guesses (`Hunger_`,
+`Thirst_`, ...) are reasonable by analogy with the save-file property names but **unconfirmed
+against a real live property dump** - `live-agent/README.md` spells out exactly what is and is
+not trustworthy here and the steps to close the gap (get the matching SDK, dump real property
+names, build, verify against the running game).
+
+Also solved along the way: launching the actual game from tooling turned out unreliable (the bare
+exe exits immediately - Steam DRM wrapper; `steam://run/427410` can leave Steam stuck on an
+unattended "Set Launch Options" popup no scripted `SendKeys`/`AppActivate` attempt could dismiss),
+so the cross-language interop proof above used a standalone compiled instance of the mod's
+transport layer instead of the real game - which is exactly why that layer was split out to have
+zero UE4SS/game dependency in the first place.
+
 ## Round-63: CUE4Parse bump + live-game content gap scoping (2026-09-02)
 
 **CUE4Parse submodule bumped** from `1125f5bc` (2026-06-09) to `b4e95441` (2026-08-31), 494

@@ -92,6 +92,7 @@ export default defineConfig({
             { text: 'Game Pass saves', link: '/guide/game-pass' },
             { text: 'Plugins & language packs', link: '/guide/plugins' },
             { text: 'Keeping game data current', link: '/guide/game-data' },
+            { text: 'Live-edit a running game', link: '/guide/live-editing' },
           ],
         },
         {
@@ -127,6 +128,12 @@ export default defineConfig({
             { text: 'Building & installing', link: '/reference/plugin-building' },
             { text: 'Sample catalog', link: '/reference/plugin-samples' },
             { text: 'Fix-up cookbook', link: '/reference/plugin-fixups' },
+          ],
+        },
+        {
+          text: 'Live editing',
+          items: [
+            { text: 'Wire protocol', link: '/reference/live-editing-protocol' },
           ],
         },
         {

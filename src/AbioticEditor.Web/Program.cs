@@ -89,6 +89,9 @@ public static class Program
         builder.Services.AddSingleton<SteamStatusService>();
         builder.Services.AddSingleton<SaveSemanticDiff>();
         builder.Services.AddSingleton<SaveComparisonService>();
+        // Only the desktop host registers this: its presence is what ModeSelect.razor uses to
+        // decide whether to offer live in-game editing at all (absent on the WASM/browser host).
+        builder.Services.AddSingleton<ILiveEditingCapability, DesktopLiveEditingCapability>();
 #if !NEXUSMODS
         // Absent from the Nexus Mods build: that channel manages its own file versions and its
         // guidelines discourage bundled auto-updaters, so no update code ships there at all.
