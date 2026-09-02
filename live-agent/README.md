@@ -158,13 +158,62 @@ more than once), so this was deliberately stopped here rather than continuing to
 resume with a fresh session and one of the above, informed by everything above instead of
 starting from zero.
 
+## Ground truth from a real mod (2026-09-02, same day)
+
+The user pointed at [Nexus mod 28](https://www.nexusmods.com/abioticfactor/mods/28) -
+Igromanru's CheatConsoleCommands - which happened to already be installed in the test
+environment (`Binaries/Win64/ue4ss/Mods/CheatConsoleCommands/`, a real, working, published Lua
+mod for this exact game). Its full source was readable directly off disk, so instead of guessing
+at the `GetClass()` mystery further, this round read how a real working mod does the exact same
+kind of thing. It does it completely differently, and that difference almost certainly explains
+the earlier hang:
+
+- **Never calls `GetClass()`/`ForEachProperty` anywhere, in ~800 lines**, for property access.
+  Properties are read/written by **direct dot-indexing** (`myPlayer.CurrentHunger`,
+  `myPlayer.CurrentHunger = value`) - UE4SS's own `__index`/`__newindex` metamethods resolve the
+  name, no manual reflection walk needed at all for these fields.
+- **Gets the player via `GetMyPlayerController().MyPlayerCharacter`**, a genuine UE4SS/UEHelpers
+  global, never `FindFirstOf`. `FindFirstOf("AbioticCharacterPlayerState")` had tested as
+  returning "found" in the earlier round, but `FindFirstOf`'s short-name matching against
+  *some* instance is not the same guarantee as reaching the live player through the real object
+  graph a working mod actually uses - a wrong/unexpected instance (a CDO, a stale replicated
+  proxy, ...) is the leading theory for why `GetClass()` hung specifically on whatever it
+  returned.
+- **Most vitals fields carry NO hash suffix at all** - confirmed exact, working names:
+  `CurrentHunger`/`MaxHunger`, `CurrentThirst`/`MaxThirst`, `CurrentFatigue`,
+  `CurrentContinence`/`MaxContinence`, `CurrentMoney`, `CurrentHealth_Head/Torso/LeftArm/
+  RightArm/LeftLeg/RightLeg`. (`CurrentSanity` was not found in that mod's source - it has no
+  sanity-related command - so it is inferred from the pattern the other eleven share, not
+  directly confirmed; worth checking first if it comes back wrong.) Money changes go through
+  `Request_ModifyMoney` first (a server RPC, for proper multiplayer replication) with a direct
+  set alongside for immediate local feedback - the same pattern this repo mirrors now.
+- **Skills are a completely different shape than assumed**: not a plain array on PlayerState, but
+  a **key/value map** (`CharacterSkills_Keys` + `CharacterSkills_Values`, parallel arrays) on a
+  **`CharacterProgressionComponent`** on the player character, keyed by a `CharacterSkills` enum
+  with its *own*, unrelated numbering to this repo's file-position order (built and verified by
+  matching skill names between `Core/Catalogs/Player/SkillCatalog.cs` and that mod's
+  `AFUtils/Enums.lua` - `main.lua`'s `FileIndexToLiveSkillId` table). The XP struct field DOES
+  carry a hash suffix (`CurrentSkillXP_20_8F7934CD4A4542F036AE5C9649362556`, confirmed exact from
+  that mod's source) - hardcoded rather than scanned for, since struct-instance property
+  scanning has no confirmed-working precedent to copy the way object scanning does, and this
+  exact string is proven working in a real published mod today. Setting XP is not a direct write
+  either - it goes through `Server_RemoveAllXPFromSkill` + `Server_AddXPToSkill` RPCs, the game's
+  own validated progression system.
+
+`main.lua` was rewritten around all of this and re-verified the same rigorous way as before: the
+real Lua interpreter, a fake environment now shaped like the real object graph above (not
+`FindFirstOf`/`GetClass`), and the full real-compiled-helper + real-.NET-client pipeline - all
+passing, including the corrected file-index/live-skill-id mapping and the remove-then-add RPC
+write pattern. **Not yet re-tested against the actual running game** - that is the immediate next
+step, with much higher confidence now than the previous round's guesswork, since almost every
+name and pattern below is copied verbatim from code that is proven to already work in this game.
+
 ## Getting from here to a fully working setup
 
-1. **Confirm the real property names and class name.** Dump a running local player's
-   `PlayerState` (UE4SS's own object-dump console command, or a throwaway diagnostic Lua script)
-   and update the prefixes in `main.lua` (`Hunger_`, `CurrentSkillXP_`, ...) and
-   `findLocalPlayerState`'s class name to match what is actually there. This is now a
-   drop-the-script-in-and-test loop, not a rebuild.
+1. **Test against a real running game.** Most property names in `main.lua` are now copied
+   verbatim from a real working mod (see "Ground truth from a real mod" above), not guessed -
+   only `CurrentSanity` is unconfirmed. If something still does not resolve, the fix is a
+   drop-the-script-in-and-test loop, not a rebuild - no SDK, no compiling.
 2. **Install the Lua mod**: copy `AbioticEditorLiveAgentLua/Scripts/` into
    `<game>/Binaries/Win64/ue4ss/Mods/AbioticEditorLiveAgentLua/Scripts/` and enable it in
    `Mods/mods.txt` (matches how any other UE4SS Lua mod installs - this game already has several).

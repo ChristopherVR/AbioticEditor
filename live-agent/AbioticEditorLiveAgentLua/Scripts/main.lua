@@ -6,30 +6,20 @@
 -- AbioticEditorLiveAgentHelper's FileMailbox.h for the other side of this bridge, and
 -- docs/reference/live-editing-protocol.md for the wire shapes both ultimately carry.
 --
--- STATUS: extensively tested against a real running game this round (see live-agent/README.md
--- "Real-game debugging session" for the full log). What is CONFIRMED:
---   - The mod loads and runs with zero errors (require, os.getenv, LoopAsync, file mailbox).
---   - FindFirstOf("AbioticCharacterPlayerState") is the correct class name - it returns a real
---     object, fast, every time.
---   - Calling GetClass() from LoopAsync's own callback (i.e. off the game thread) FROZE THE WHOLE
---     GAME. ExecuteInGameThread genuinely dispatches to the game thread fast (~5ms) and prevents
---     that catastrophic freeze - confirmed via debug timestamps.
---   - The first version's real bug (not a freeze, a budget problem): it re-scanned every property
---     from scratch once per field (12 full scans for vitals.get alone) - fixed by
---     collectPropertyNames scanning once and reusing the result (see MAX_PROPERTIES_TO_SCAN).
--- What is NOT yet resolved: even from inside ExecuteInGameThread, on the confirmed-correct
--- object, GetClass() itself still does not return within the 5s round-trip budget - and this
--- happens without freezing the game this time (ping keeps working throughout), so it is not the
--- same catastrophic issue as before. A real published UE4SS mod
--- (github.com/Matraweber/PalWorkPriority, Scripts/icons.lua) uses the identical
--- `object:GetClass():ForEachProperty(...)` pattern successfully, so the API usage itself is not
--- wrong - the likely next thing to try is calling this from a `RegisterHook` on a naturally
--- recurring, already-game-thread-bound function (the pattern most working mods actually use for
--- per-frame reflection access) instead of ExecuteInGameThread, or attaching a native debugger to
--- see exactly what GetClass() is blocked on. Needs a fresh live-game session to continue -
--- MAX_PROPERTIES_TO_SCAN below is currently set low (30) for that next diagnostic round; raise it
--- back once ForEachProperty is confirmed to complete cleanly. The individual property prefixes
--- (Hunger_, CurrentSkillXP_, ...) remain unconfirmed guesses until GetClass() itself works.
+-- STATUS: rewritten this round around real, confirmed ground truth pulled from a real published,
+-- working UE4SS Lua mod for this exact game (Igromanru's CheatConsoleCommands, already installed
+-- in the test environment - see live-agent/README.md "Ground truth from a real mod" for the full
+-- source references). The previous version's `FindFirstOf("AbioticCharacterPlayerState")` +
+-- `GetClass():ForEachProperty(...)` approach is GONE - that published mod never calls GetClass()
+-- for property access anywhere in ~800 lines, and gets the player through
+-- `GetMyPlayerController().MyPlayerCharacter` instead of FindFirstOf, which is almost certainly
+-- what the previous round's unexplained GetClass() hang was actually about (a wrong/heavy object,
+-- not a wrong API). Vitals property names below (CurrentHunger, CurrentHealth_Head, ...) are
+-- copied verbatim from that mod's working source, not guessed. The skills file-index <-> live
+-- skill-id mapping is newly derived by matching skill names between this repo's own
+-- Core/Catalogs/Player/SkillCatalog.cs (file order) and that mod's AFUtils/Enums.lua
+-- (CharacterSkills enum) - the two use different, unrelated numbering, confirmed by inspection,
+-- not assumed. NOT yet re-tested against a real running game after this rewrite - do that next.
 
 local json = require("json")
 
@@ -38,94 +28,35 @@ local requestPath = ipcDir .. "\\request.json"
 local responsePath = ipcDir .. "\\response.json"
 local responseTempPath = responsePath .. ".tmp"
 
--- Every call that touches a live UObject (FindFirstOf, GetClass, ForEachProperty,
--- Get/SetPropertyValue) MUST run on the game thread - LoopAsync's own callback does not run on
--- it, and calling these off-thread deadlocked the whole game the first time this mod was tested
--- live (see the STATUS comment above). ExecuteInGameThread is fire-and-forget/async with no
--- synchronous return (confirmed against UE4SS's own docs), so `work` reports its own outcome by
--- calling `respond(result, err)` itself instead of returning a value.
+-- Every call that touches a live UObject MUST run on the game thread - LoopAsync's own callback
+-- does not run on it, and calling reflection APIs off-thread deadlocked the whole game in an
+-- earlier round (see docs/PROGRESS.md round-67). ExecuteInGameThread is fire-and-forget/async
+-- with no synchronous return, so `work` reports its own outcome by calling `respond(result, err)`
+-- itself instead of returning a value.
 local function runOnGameThread(work, respond)
-    print("[AbioticEditorLiveAgentLua] DEBUG runOnGameThread: calling ExecuteInGameThread\n")
     ExecuteInGameThread(function()
-        print("[AbioticEditorLiveAgentLua] DEBUG ExecuteInGameThread callback FIRING\n")
         local ok, result, err = pcall(work)
-        print("[AbioticEditorLiveAgentLua] DEBUG work() returned ok=" .. tostring(ok) .. "\n")
         if not ok then
             respond(nil, "handler error: " .. tostring(result))
         else
             respond(result, err)
         end
     end)
-    print("[AbioticEditorLiveAgentLua] DEBUG runOnGameThread: ExecuteInGameThread call returned (queued)\n")
 end
 
--- Mirrors PropertyTagExtensions.FindByPrefix on the .NET side (Serialization/Gvas) and
--- VitalsCommands.cpp's FindPropertyByPrefix: live reflection properties carry the same
--- blueprint-compiler hash suffix the save file's properties do (both come from the same compiled
--- blueprint class), so an exact name would break on the next game patch the same way a save
--- writer's exact-name lookup would - this has to search by prefix, not guess a full name.
---
--- MAX_PROPERTIES_TO_SCAN is a hard circuit breaker in case a broken callback (e.g. one that
--- errors before reaching its `return true`) would otherwise make ForEachProperty call it forever
--- instead of stopping. Generous (a real PlayerState-shaped blueprint class can easily carry
--- several hundred properties across its whole inheritance chain) - collectPropertyNames below
--- scans ONCE per object regardless of how many prefixes are looked up against the result, so a
--- larger cap here is cheap.
---
--- IMPORTANT (found by real-game timing, not by inspection): the first version of this scanned
--- ONCE PER FIELD (12 separate full ForEachProperty passes for vitals.get alone) and blew past the
--- 5s round-trip budget - not a freeze, just real native-call cost multiplied by 12. Every caller
--- must now collect names ONCE per object with collectPropertyNames and reuse the result.
-local MAX_PROPERTIES_TO_SCAN = 30 -- TEMPORARILY small for this diagnostic round - raise once ForEachProperty is confirmed to complete cleanly on the game thread.
+-- ===== Player access (verbatim pattern from CheatConsoleCommands' PlayersManager.lua /
+-- AFUtils/ObjectsGetter.lua - NOT FindFirstOf) =====
 
-local function collectPropertyNames(object)
-    print("[AbioticEditorLiveAgentLua] DEBUG collectPropertyNames: calling GetClass()\n")
-    local class = object:GetClass()
-    print("[AbioticEditorLiveAgentLua] DEBUG collectPropertyNames: GetClass() returned, hasClass="
-        .. tostring(class ~= nil) .. "\n")
-    if not class then return {} end
-    local names = {}
-    local count = 0
-    print("[AbioticEditorLiveAgentLua] DEBUG collectPropertyNames: calling ForEachProperty\n")
-    class:ForEachProperty(function(property)
-        count = count + 1
-        table.insert(names, property:GetFName():ToString())
-        if count % 5 == 0 then
-            print("[AbioticEditorLiveAgentLua] DEBUG collectPropertyNames: scanned " .. count
-                .. " so far, last=" .. names[#names] .. "\n")
-        end
-        if count >= MAX_PROPERTIES_TO_SCAN then return true end -- circuit breaker
-        return false
-    end)
-    print("[AbioticEditorLiveAgentLua] DEBUG collectPropertyNames: ForEachProperty returned, total="
-        .. count .. "\n")
-    return names
-end
-
-local function findInNames(names, prefix)
-    for _, name in ipairs(names) do
-        if name:sub(1, #prefix) == prefix then return name end
-    end
-    return nil
-end
-
-local function getByPrefix(object, names, prefix, fallback)
-    local name = findInNames(names, prefix)
-    if not name then return fallback end
-    return object:GetPropertyValue(name)
-end
-
-local function setByPrefix(object, names, prefix, value)
-    local name = findInNames(names, prefix)
-    if not name then return end -- Unknown on this game build: leave it alone, do not guess.
-    object:SetPropertyValue(name, value)
-end
-
--- See VitalsCommands.cpp's FindLocalPlayerState for the same "no player-selection yet, one
--- process = one player" simplification this Phase-0/1 scope accepts. Must only ever be called
--- from inside runOnGameThread's `work`.
-local function findLocalPlayerState()
-    return FindFirstOf("AbioticCharacterPlayerState")
+---Returns the live player character (the pawn, not PlayerState) for whoever this mod is running
+---as, or nil. One process = one local player, matching this project's current scope (a locally
+---hosted session, or a dedicated server the operator controls and could extend to
+---player-selection later - see docs/reference/live-editing-protocol.md).
+local function getMyPlayer()
+    local controller = GetMyPlayerController()
+    if not controller or not controller:IsValid() then return nil end
+    local player = controller.MyPlayerCharacter
+    if not player or not player:IsValid() then return nil end
+    return player
 end
 
 local handlers = {}
@@ -137,95 +68,163 @@ handlers["ping"] = function(_, respond)
     respond({ pong = true }, nil)
 end
 
--- Calls ONLY FindFirstOf, nothing else - a minimal real-game-touching diagnostic.
+-- Calls only GetMyPlayerController()/.MyPlayerCharacter, nothing else - a minimal
+-- real-game-touching diagnostic (the live equivalent of the old diag.findplayer).
 handlers["diag.findplayer"] = function(_, respond)
     runOnGameThread(function()
-        return { found = findLocalPlayerState() ~= nil }
+        return { found = getMyPlayer() ~= nil }
     end, respond)
 end
 
+-- Every field here is a DIRECT, no-suffix property name confirmed against
+-- CheatConsoleCommands/Scripts/{AFUtils/AFUtils.lua,Features.lua,CommandsManager.lua} - e.g.
+-- `myPlayer.CurrentHealth_Head = 70.0` and `myPlayer.CurrentHunger = myPlayer.MaxHunger` are used
+-- there verbatim. No property-name scanning needed for any of these (unlike skills' XP struct
+-- field below, which does carry a hash suffix). "sanity" was not found in that mod's source (it
+-- has no sanity-related command), so `CurrentSanity` is inferred from the naming pattern the
+-- other eleven fields all share, not directly confirmed - the one field in this table still
+-- worth double-checking first if it comes back wrong.
 handlers["vitals.get"] = function(_, respond)
     runOnGameThread(function()
-        local playerState = findLocalPlayerState()
-        if not playerState then error("no local player state found") end
-        local names = collectPropertyNames(playerState) -- ONE scan, reused for all 12 fields below.
+        local myPlayer = getMyPlayer()
+        if not myPlayer then error("no local player found") end
         return {
-            hunger = getByPrefix(playerState, names, "Hunger_", 100),
-            thirst = getByPrefix(playerState, names, "Thirst_", 100),
-            sanity = getByPrefix(playerState, names, "Sanity_", 100),
-            fatigue = getByPrefix(playerState, names, "Fatigue_", 0),
-            continence = getByPrefix(playerState, names, "Continence_", 100),
-            money = getByPrefix(playerState, names, "Money_", 0),
-            head = getByPrefix(playerState, names, "Head_", 100),
-            torso = getByPrefix(playerState, names, "Torso_", 100),
-            leftArm = getByPrefix(playerState, names, "LeftArm_", 100),
-            rightArm = getByPrefix(playerState, names, "RightArm_", 100),
-            leftLeg = getByPrefix(playerState, names, "LeftLeg_", 100),
-            rightLeg = getByPrefix(playerState, names, "RightLeg_", 100),
+            hunger = myPlayer.CurrentHunger,
+            thirst = myPlayer.CurrentThirst,
+            sanity = myPlayer.CurrentSanity,
+            fatigue = myPlayer.CurrentFatigue,
+            continence = myPlayer.CurrentContinence,
+            money = myPlayer.CurrentMoney,
+            head = myPlayer.CurrentHealth_Head,
+            torso = myPlayer.CurrentHealth_Torso,
+            leftArm = myPlayer.CurrentHealth_LeftArm,
+            rightArm = myPlayer.CurrentHealth_RightArm,
+            leftLeg = myPlayer.CurrentHealth_LeftLeg,
+            rightLeg = myPlayer.CurrentHealth_RightLeg,
         }
     end, respond)
 end
 
 handlers["vitals.set"] = function(payload, respond)
     runOnGameThread(function()
-        local playerState = findLocalPlayerState()
-        if not playerState then error("no local player state found") end
-        local names = collectPropertyNames(playerState)
-        local fields = {
-            hunger = "Hunger_", thirst = "Thirst_", sanity = "Sanity_", fatigue = "Fatigue_",
-            continence = "Continence_", money = "Money_", head = "Head_", torso = "Torso_",
-            leftArm = "LeftArm_", rightArm = "RightArm_", leftLeg = "LeftLeg_", rightLeg = "RightLeg_",
-        }
-        for key, prefix in pairs(fields) do
-            if payload[key] ~= nil then setByPrefix(playerState, names, prefix, payload[key]) end
+        local myPlayer = getMyPlayer()
+        if not myPlayer then error("no local player found") end
+        if payload.hunger ~= nil then myPlayer.CurrentHunger = payload.hunger end
+        if payload.thirst ~= nil then myPlayer.CurrentThirst = payload.thirst end
+        if payload.sanity ~= nil then myPlayer.CurrentSanity = payload.sanity end
+        if payload.fatigue ~= nil then myPlayer.CurrentFatigue = payload.fatigue end
+        if payload.continence ~= nil then myPlayer.CurrentContinence = payload.continence end
+        if payload.money ~= nil then
+            -- Mirrors CommandsManager.lua's money command: the RPC keeps server-authoritative
+            -- state and other systems in sync, the direct set makes it visible immediately
+            -- locally. Wrapped in pcall because the RPC's exact signature is copied from a
+            -- specific mod version and could drift; the direct set alone still mostly works if it
+            -- fails, just without the same immediate server-side consistency.
+            pcall(function() myPlayer:Request_ModifyMoney(payload.money - myPlayer.CurrentMoney) end)
+            myPlayer.CurrentMoney = payload.money
         end
+        if payload.head ~= nil then myPlayer.CurrentHealth_Head = payload.head end
+        if payload.torso ~= nil then myPlayer.CurrentHealth_Torso = payload.torso end
+        if payload.leftArm ~= nil then myPlayer.CurrentHealth_LeftArm = payload.leftArm end
+        if payload.rightArm ~= nil then myPlayer.CurrentHealth_RightArm = payload.rightArm end
+        if payload.leftLeg ~= nil then myPlayer.CurrentHealth_LeftLeg = payload.leftLeg end
+        if payload.rightLeg ~= nil then myPlayer.CurrentHealth_RightLeg = payload.rightLeg end
+        -- AFUtils.HealFullAllLimbs calls this after writing CurrentHealth_* directly, to push the
+        -- new values out through replication/UI instead of leaving them locally-set only.
+        pcall(function() myPlayer:OnRep_CurrentHealth() end)
         return nil
     end, respond)
 end
 
--- Mirrors PlayerSaveReader.ReadSkills/PlayerSaveWriter.ApplySkills: the Skills_ array is a fixed
--- list of structs, one per skill, matched by ARRAY INDEX (skill structs are not individually
--- named properties) - see SkillsCommands.cpp for the same shape in the blocked C++-mod approach.
+-- ===== Skills (verbatim pattern from CheatConsoleCommands/Scripts/Skills.lua - a completely
+-- different shape than first assumed: a KEY/VALUE MAP on CharacterProgressionComponent, keyed by
+-- a CharacterSkills enum id, not a plain array on PlayerState) =====
+
+-- File-position (0-based, matches this repo's own Core/Catalogs/Player/SkillCatalog.cs order,
+-- which the file editor's UI and tests are already built around) to the live CharacterSkills
+-- enum value (from AFUtils/Enums.lua in a real published mod). These are two independent,
+-- differently-ordered numbering schemes - built by matching skill NAMES between both real
+-- sources, not by any formula (index+1, etc. do NOT hold - confirmed by inspection).
+local FileIndexToLiveSkillId = {
+    [0] = 1,   -- Sprinting
+    [1] = 15,  -- Strength
+    [2] = 16,  -- Throwing
+    [3] = 4,   -- Sneaking
+    [4] = 6,   -- BluntMelee
+    [5] = 5,   -- SharpMelee (the live enum spells this "SharpMeele")
+    [6] = 2,   -- Accuracy
+    [7] = 3,   -- Reloading
+    [8] = 14,  -- Fortitude
+    [9] = 8,   -- Crafting
+    [10] = 9,  -- Construction
+    [11] = 10, -- FirstAid
+    [12] = 12, -- Cooking
+    [13] = 11, -- Agriculture
+    [14] = 7,  -- Fishing
+}
+
+-- The skill struct's XP field DOES carry a compiler hash suffix (unlike the vitals fields above -
+-- it lives inside a UStruct, not directly on the character UClass), confirmed exact in
+-- CommandsManager.lua: `skillStruct.CurrentSkillXP_20_8F7934CD4A4542F036AE5C9649362556`. Hardcoded
+-- rather than scanned for (unlike the file-format writers' FindByPrefix discipline) because this
+-- exact string is proven working in a real published mod right now, and struct-instance property
+-- scanning (as opposed to UObject scanning) has no confirmed-working precedent from that mod to
+-- copy - if this breaks on a future game patch, that is the trade-off to revisit then, with a
+-- real error message pointing at exactly which field name stopped resolving.
+local SKILL_XP_FIELD = "CurrentSkillXP_20_8F7934CD4A4542F036AE5C9649362556"
+
+---@return userdata? progressionComponent
+local function getMyProgressionComponent()
+    local myPlayer = getMyPlayer()
+    if not myPlayer then return nil end
+    local component = myPlayer.CharacterProgressionComponent
+    if not component or not component:IsValid() then return nil end
+    return component
+end
+
 handlers["skills.get"] = function(_, respond)
     runOnGameThread(function()
-        local playerState = findLocalPlayerState()
-        if not playerState then error("no local player state found") end
-        local skillsArrayName = findInNames(collectPropertyNames(playerState), "Skills_")
-        if not skillsArrayName then error("no Skills_ array property found") end
-        local skillsArray = playerState:GetPropertyValue(skillsArrayName)
+        local progressionComponent = getMyProgressionComponent()
+        if not progressionComponent then error("no CharacterProgressionComponent found") end
+        local keys = progressionComponent.CharacterSkills_Keys
+        local values = progressionComponent.CharacterSkills_Values
 
         local result = { __forceArray = true }
-        for i = 1, #skillsArray do
-            local element = skillsArray[i]
-            local elementNames = collectPropertyNames(element) -- one scan per skill struct, reused for 2 fields.
-            result[i] = {
-                index = i - 1,
-                xp = getByPrefix(element, elementNames, "CurrentSkillXP_", 0),
-                xpMultiplier = getByPrefix(element, elementNames, "CurrentXPMultiplier_", 1),
-            }
+        for fileIndex = 0, 14 do
+            local liveId = FileIndexToLiveSkillId[fileIndex]
+            local xp = 0
+            for i = 1, #keys do
+                if keys[i] == liveId then
+                    local ok, value = pcall(function() return values[i][SKILL_XP_FIELD] end)
+                    if ok and value then xp = value end
+                    break
+                end
+            end
+            table.insert(result, { index = fileIndex, xp = xp, xpMultiplier = 1 })
         end
         return result
     end, respond)
 end
 
+-- Unlike vitals, skill XP is not a direct property write - Skills.lua's AddXp/RemoveXp use
+-- server RPCs (Server_AddXPToSkill / Server_RemoveAllXPFromSkill) that go through the game's own
+-- validated progression system, so setting an ABSOLUTE xp value (this protocol's contract, see
+-- docs/reference/live-editing-protocol.md) means remove-then-add rather than one direct set.
+-- xpMultiplier has no confirmed live equivalent (that mod does not implement a per-skill XP-rate
+-- feature) - accepted but not applied, same "unknown on this build, do not guess" stance the file
+-- writers take for a property they cannot find.
 handlers["skills.set"] = function(payload, respond)
     runOnGameThread(function()
-        local playerState = findLocalPlayerState()
-        if not playerState then error("no local player state found") end
-        local skillsArrayName = findInNames(collectPropertyNames(playerState), "Skills_")
-        if not skillsArrayName then error("no Skills_ array property found") end
-        local skillsArray = playerState:GetPropertyValue(skillsArrayName)
+        local progressionComponent = getMyProgressionComponent()
+        if not progressionComponent then error("no CharacterProgressionComponent found") end
 
         for i = 1, #payload do
             local row = payload[i]
-            local index = row.index
-            if index ~= nil and index >= 0 and index < #skillsArray then
-                local element = skillsArray[index + 1]
-                local elementNames = collectPropertyNames(element)
-                if row.xp ~= nil then setByPrefix(element, elementNames, "CurrentSkillXP_", row.xp) end
-                if row.xpMultiplier ~= nil then
-                    setByPrefix(element, elementNames, "CurrentXPMultiplier_", row.xpMultiplier)
-                end
+            local liveId = FileIndexToLiveSkillId[row.index]
+            if liveId and row.xp ~= nil then
+                progressionComponent:Server_RemoveAllXPFromSkill(liveId)
+                local outSuccess = { Success = false }
+                progressionComponent:Server_AddXPToSkill(liveId, math.floor(row.xp), true, outSuccess)
             end
         end
         return nil
@@ -276,7 +275,7 @@ local function handleOneRequest()
 
     -- The handler itself calls respondToCurrentRequest (immediately for "ping", or later via
     -- runOnGameThread's ExecuteInGameThread for anything that touches the game) - this call does
-    -- NOT produce the response itself, unlike the old synchronous-return design.
+    -- NOT produce the response itself, unlike a plain synchronous-return design.
     local dispatchOk, dispatchErr = pcall(handler, request.payload or {}, respondToCurrentRequest)
     if not dispatchOk then
         -- The handler function itself raised before calling runOnGameThread/respond at all

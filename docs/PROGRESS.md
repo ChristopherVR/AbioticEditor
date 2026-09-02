@@ -5,6 +5,41 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-68: rewrote main.lua around a real published mod's source (2026-09-02)
+
+Continuation of round-67, same day. User pointed at
+[Nexus mod 28](https://www.nexusmods.com/abioticfactor/mods/28) (Igromanru's
+CheatConsoleCommands) - which turned out to already be installed in the test environment, so its
+full Lua source was readable directly off disk. Read it instead of guessing at round-67's
+`GetClass()` mystery further, and it explains that mystery: a real, working, ~800-line mod for
+this exact game never calls `GetClass()`/`ForEachProperty` anywhere, gets the player through
+`GetMyPlayerController().MyPlayerCharacter` (never `FindFirstOf`), and reads/writes most vitals
+by direct dot-indexing with NO hash suffix at all (`myPlayer.CurrentHunger`,
+`myPlayer.CurrentHealth_Head = 70.0`). The likely truth: `FindFirstOf("AbioticCharacterPlayerState")`
+was probably returning the wrong kind of instance (a CDO or stale proxy), and `GetClass()` never
+hung in general - it hung on THAT specific wrong object.
+
+Also found, and genuinely surprising: skills are not a plain array on PlayerState at all, but a
+key/value map (`CharacterSkills_Keys`/`CharacterSkills_Values`) on a
+`CharacterProgressionComponent`, keyed by a `CharacterSkills` enum with its own numbering
+completely unrelated to this repo's file-position order. Built and verified the mapping between
+the two by matching skill names between `Core/Catalogs/Player/SkillCatalog.cs` (file order,
+already tested against real fixtures) and the mod's `AFUtils/Enums.lua` (live enum) - the two
+lists share no formula (index+1 etc.), had to be matched name-by-name. Setting XP is not a
+property write either - it goes through `Server_RemoveAllXPFromSkill` + `Server_AddXPToSkill`
+RPCs, the game's own validated progression system, confirmed exact from that mod's
+`Skills.AddXp`/`RemoveXp`.
+
+`main.lua` rewritten around all of this. Re-verified the same way as every round since round-66:
+real Lua 5.4 interpreter, a fake environment now shaped like the confirmed real object graph
+(`GetMyPlayerController` instead of `FindFirstOf`, direct fields instead of `GetClass` scanning),
+and the full real-compiled-helper-plus-real-.NET-client pipeline - all passing, including the
+corrected skill-id mapping and the remove-then-add RPC write pattern. Not yet re-tested against
+the actual game (stopped deliberately, same reasoning as round-67: each live round carries real
+cost/risk) - but confidence is much higher this time, since nearly every name and access pattern
+is now copied verbatim from code proven to already work in this exact game, not guessed by
+analogy from the save-file format.
+
 ## Round-67: real-game live testing - one real bug fixed, one still open (2026-09-02)
 
 Continuation of round-66, same day, user asked to "run the game and test it." Did exactly that -
