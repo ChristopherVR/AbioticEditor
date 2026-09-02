@@ -26,12 +26,15 @@ public sealed class RazorHostAcceptanceTests
         Assert.Contains("skip-link", layout, StringComparison.Ordinal);
         Assert.Contains("href=\"#main-content\"", layout, StringComparison.Ordinal);
         Assert.Contains("<main id=\"main-content\" tabindex=\"-1\">", layout, StringComparison.Ordinal);
-        // The home button and brand link land on browse: the world list must show even
-        // while a save is open, and a plain "/" would just re-render the open editor.
-        // Written WITHOUT a leading slash so it resolves against the page's base address -
-        // the published browser editor is served from a sub-folder, where "/browse" would
-        // leave the editor entirely and land on a 404.
-        Assert.Contains("href=\"browse\"", layout, StringComparison.Ordinal);
+        // The home button and brand link land on browse?home: the world list must show even
+        // while a save is open, and a plain "/" would just re-render ModeSelect (it owns that
+        // route). Written WITHOUT a leading slash so it resolves against the page's base
+        // address - the published browser editor is served from a sub-folder, where "/browse"
+        // would leave the editor entirely and land on a 404. The "?home" query flag (not just
+        // the "browse" path) is what tells Home.razor's IsBrowsing to force the world list -
+        // since ModeSelect claimed "/", "browse" is this page's ONLY route, so the path alone
+        // can no longer distinguish "clicked Home" from "picked a save while already here".
+        Assert.Contains("href=\"browse?home\"", layout, StringComparison.Ordinal);
         Assert.Contains("@onclick=\"OpenSettings\"", layout, StringComparison.Ordinal);
         Assert.Contains("<Settings OnClose=\"CloseSettings\" />", layout, StringComparison.Ordinal);
         Assert.DoesNotContain("more-menu", layout, StringComparison.Ordinal);

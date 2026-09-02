@@ -134,12 +134,17 @@ else
     private IRecentWorldStore? Recents => Files as IRecentWorldStore;
 
     /// <summary>
-    /// The header's home button lands on /browse so the world list shows even while a
-    /// save is open; the open session and its staged edits stay untouched, and picking
-    /// a save from the sidebar returns to the editor.
+    /// The header's home button lands on /browse?home so the world list shows even while a
+    /// save is open; the open session and its staged edits stay untouched, and picking a save
+    /// from the sidebar (WorkspaceShell.OpenAsync, a bare "browse" with no query) returns to
+    /// the editor. A query flag, not just the "/browse" path, because this is the ONLY route
+    /// this page has since ModeSelect claimed "/" - both "I clicked Home" and "I picked a save
+    /// from the sidebar while already here" land on that exact same path, so the path alone can
+    /// no longer tell them apart the way it could when this page still also owned "/".
     /// </summary>
-    private bool IsBrowsing => Navigation.ToBaseRelativePath(Navigation.Uri).TrimEnd('/')
-        .Equals("browse", StringComparison.OrdinalIgnoreCase);
+    private bool IsBrowsing => new Uri(Navigation.Uri).Query.TrimStart('?')
+        .Split('&', StringSplitOptions.RemoveEmptyEntries)
+        .Any(param => param.Equals("home", StringComparison.OrdinalIgnoreCase));
     protected override async Task OnInitializedAsync()
     {
         Workspace.Changed += WorkspaceChanged;

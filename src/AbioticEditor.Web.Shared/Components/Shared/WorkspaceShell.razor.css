@@ -234,6 +234,11 @@
 .save-file-row.kind-player { --kind-color: var(--terminal); }
 .save-file-row.kind-world { --kind-color: var(--orange); }
 .save-file-row.kind-worldmetadata { --kind-color: var(--section); }
+/* A player row that is also currently connected to a live session (WorkspaceShell.IsLiveOnlinePlayer)
+   - clicking it switches the live view instead of opening the file, so it gets the acid accent
+   the live sidebar itself uses rather than the plain per-kind color every other row gets. */
+.save-file-row.live-online { --kind-color: var(--acid); }
+.save-file-row.live-online .save-file-meta b { background: var(--acid); color: var(--on-accent); padding: 1px 5px; border-radius: 3px; }
 .save-file-row:hover { background: color-mix(in srgb, var(--elevated, #20251f) 82%, transparent) !important; }
 .save-file-row.selected { background: var(--elevated, #20251f) !important; box-shadow: inset 3px 0 var(--kind-color); }
 .save-file-row > strong { overflow: hidden; color: var(--ink); font-size: 13px !important; font-weight: 500 !important; text-overflow: ellipsis; white-space: nowrap; }

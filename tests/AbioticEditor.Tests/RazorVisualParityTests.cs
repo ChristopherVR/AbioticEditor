@@ -172,8 +172,10 @@ public sealed class RazorVisualParityTests
         Assert.Contains("Main_ChipSandbox", shellCode, StringComparison.Ordinal);
         Assert.Contains("Path.GetDirectoryName(config.FullPath)", shellCode, StringComparison.Ordinal);
         // Relative, not "/": the published browser editor lives in a sub-folder, where a
-        // rooted path leaves the editor entirely and lands on a 404.
-        Assert.Contains("Navigation.NavigateTo(\"./\")", shell, StringComparison.Ordinal);
+        // rooted path leaves the editor entirely and lands on a 404. ("browse", not "./" -
+        // that resolved to ModeSelect's "/" once ModeSelect claimed the root route; "browse"
+        // keeps the same relative-not-rooted safety property this comment is about.)
+        Assert.Contains("Navigation.NavigateTo(\"browse\")", shell, StringComparison.Ordinal);
 
         // The pane tracks are the user-dragged widths capped to a share of the viewport
         // (--file-col/--details-col), so the two side panes can never crush the editor.

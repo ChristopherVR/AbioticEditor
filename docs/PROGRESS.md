@@ -5,6 +5,73 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-72: merged players+world-saves sidebar, and a real pre-existing routing bug found and fixed (2026-09-02)
+
+Continuation of round-71, same session. Two user requests: (1) offline players (not currently
+connected) should still be editable, live wherever a live path exists, file otherwise; (2) the
+live sidebar should also show world saves, not just connected players.
+
+**Research first, honestly reported** (a dedicated fork agent, same rigor as round-71's player-
+directory research): quest/story flags and containers have **no evidenced live UObject path** in
+any installed mod - building that now would mean guessing, exactly what burned this session once
+already (`GetMyPlayerController`). NPCs have a narrow real path (`FindAllOf("NPC_Base_ParentBP_C")`,
+`.IsDead`/`.Faction`/`.Invincible`, `CommandsManager.lua:1408-1420`) but no health/position field,
+and - a first for this session - genuinely need `IsHost()` gating (`CommandsManager.lua:1394-1399`
+wraps the kill-all command in `CheckHasNoAuthority`). A promising but **unconfirmed** lead for
+offline players specifically: `gameInstance:GetPlayerSave(uniquePlayerId, false)`
+(`ObjectsGetter.lua:159-188`), never exercised with an actually-offline id by any real mod found.
+Told the user plainly: no safe live path exists yet for world data, so this round's scope is the
+file-based merge (safe, evidenced, buildable today), not a live world-editing feature.
+
+**What was actually built**: the live sidebar (when a world folder is ALSO opened via the header's
+existing OPEN FOLDER, live-connected or not) now shows the SAME merged save list the offline editor
+already builds - every player (online or offline) and every world save. A player currently in
+`players.list` gets a "LIVE" badge and clicking it switches the live view to them
+(`LiveSessionService.PlayerSwitchRequested`, a pub/sub the sidebar uses to ask `LiveConnect.razor` -
+which owns the actual vitals/skills sessions - to switch, since the sidebar has no access to those
+itself). Everything else (an offline player, or any world save) opens in the ordinary file editor,
+exactly as it always has - reusing `WorkspaceShell.OpenAsync` unchanged apart from one thing below.
+
+**Found and fixed a real, separate, pre-existing regression while verifying this against the real
+game**: selecting ANY save from the sidebar silently showed the "open a save folder" empty state
+instead of the actual editor, ever since `ModeSelect` claimed the `/` route earlier this session
+(round-64/`226a7ad`). `Home.razor`'s `IsBrowsing` flag compared the current path against
+`"browse"` to distinguish "clicked Home" from "picked a save" - correct back when this page also
+owned `/`, but with only one route left, that comparison is permanently true, so
+`<SaveEditorSurface />` never rendered. Confirmed via `git show 226a7ad` before fixing, then fixed
+with a `?home` query flag on the Home links instead of a path comparison, and verified live: the
+same `WorldSave_MetaData.sav` click that showed the empty state before this fix now shows the real
+37-chapter story editor with real save data (untouched by any of today's live changes - the file
+editor's own long-standing behavior, just unblocked). This had been silently broken for every user
+of the offline editor since earlier today, not just this round's own new work - worth flagging
+loudly since nothing about round-71's live-only testing would ever have caught it.
+
+**Two more real bugs from the same root cause, found and fixed alongside it**: `WorkspaceShell.
+OpenAsync` and `MainLayout.OpenFolderAsync` both navigated to `"./"` after selecting a save/folder
+from a non-editor page - also a leftover from when `/` meant the editor surface. Since ModeSelect
+now owns `/`, `"./"` sent players to the mode chooser instead. Fixed to `NavigateTo("browse")`
+(kept relative, no leading slash, so `SubpathNavigationTests` - the test guarding exactly this
+class of regression for the published sub-folder browser build - still passes). `OpenFolderAsync`
+additionally now stays on `/live` if that is where OPEN FOLDER was clicked from, instead of always
+leaving it, since that is exactly how a live session picks up the merged sidebar.
+
+**A second real near-miss with the live character, caught and fixed**: mid-round, a rebuild
+required killing and restarting the desktop app process, and by the time testing resumed the real
+"Chrissie" character (left alone in a cold area again) had reached hunger 26.6, **thirst 0.0, and
+all six limb healths at 0** - effectively dead or about to be. Fixed immediately via the live
+editor itself (HEAL ALL + setting hunger/thirst to 100 + APPLY), confirmed via a fresh reconnect
+before continuing. Round-70's and round-71's own leftover `money: 1050` (from earlier autosave
+races) was also caught and reverted to `1000` again in the same pass.
+
+**Verified live, in order**: `players.list` still correct after the helper's command-allowlist fix
+from round-71; merged sidebar renders (1 world-story save, 1 player with a LIVE badge, 20 world
+region saves, 5 settings files - all real, from the real "Chrissie" folder); clicking the LIVE
+player row stays on `/live`; clicking a world save navigates to `/browse` and shows the real story
+editor (the `IsBrowsing` fix); the Home link still forces the world list even with a save selected
+(`?home` query flag confirmed working); a full fresh reconnect confirmed every one of today's
+edits (health, hunger, thirst, money) genuinely stuck on the real running game, not just in a
+stale UI state.
+
 ## Round-71: connected-player list, host/client status, and correct live-mode shell labeling (2026-09-02)
 
 Continuation of round-70, same session. Three user requests: (1) local play should never require

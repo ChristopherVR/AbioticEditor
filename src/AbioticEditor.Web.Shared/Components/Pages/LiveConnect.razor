@@ -141,6 +141,11 @@
     // is made; everything past here is the same connect path either way.
     protected override async Task OnInitializedAsync()
     {
+        // The sidebar has no access to _vitals/_skills (they live on this page), so it asks
+        // through LiveSessionService instead of switching players itself - see
+        // WorkspaceShell.SwitchLivePlayerAsync, the only other caller of RequestPlayerSwitchAsync.
+        LiveSession.PlayerSwitchRequested += HandlePlayerSwitchRequestedAsync;
+
         var localToken = Services.GetService<ILiveEditingCapability>()?.TryReadLocalToken();
         if (string.IsNullOrEmpty(localToken)) return;
 
@@ -148,6 +153,14 @@
         _autoConnectInFlight = true;
         await ConnectAsync(isAutoConnect: true);
         _autoConnectInFlight = false;
+    }
+
+    private async Task HandlePlayerSwitchRequestedAsync(string playerId)
+    {
+        if (_vitals is null || _skills is null) return;
+        _selectedPlayerId = playerId;
+        await PlayerPickedAsync();
+        await InvokeAsync(StateHasChanged);
     }
 
     private void UseManualConnection()
@@ -262,6 +275,7 @@
 
     public async ValueTask DisposeAsync()
     {
+        LiveSession.PlayerSwitchRequested -= HandlePlayerSwitchRequestedAsync;
         LiveSession.Disconnected();
         if (_channel is not null) await _channel.DisposeAsync();
     }

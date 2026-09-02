@@ -20,8 +20,12 @@
 
 <div class="workspace-shell shell-with-splitters @(DrawerMode ? "drawer-mode" : null) @FileClass @DetailsClass" style="@ShellStyle">
     <aside class="shell-pane file-pane" aria-label="@(Live.IsConnected ? L.Resource("Live_SidebarSubtitle") : L.Text("save.workspace"))">
-    @if (Live.IsConnected)
+    @if (Live.IsConnected && Workspace.Current is null)
     {
+        @* No world folder opened yet this session - all we know is who is live-connected. Once a
+           folder is opened (the header's OPEN FOLDER, same button file mode uses), the merged list
+           below takes over and every player/world save in it becomes reachable, live where
+           possible and file-edited otherwise - see IsLiveOnlinePlayer/SelectOrSwitchAsync. *@
         <header class="file-sidebar-header">
             <div class="file-pane-heading">
                 <strong>@L.Resource("Live_ConnectedPlayers")</strong>
@@ -52,6 +56,7 @@
         {
             <div class="shell-empty"><strong>@L.Resource("Live_SidebarNoPlayers")</strong></div>
         }
+        <p class="sidebar-readonly" role="note">@L.Resource("Live_OpenFolderHint")</p>
     }
     else
     {
@@ -77,6 +82,10 @@
                 @if (!Workspace.CanWrite)
                 {
                     <p class="sidebar-readonly" role="note">@L.Resource("Workspace_ReadOnlyNotice")</p>
+                }
+                @if (Live.IsConnected)
+                {
+                    <p class="sidebar-readonly" role="note">@L.Resource("Live_MergedSidebarHint")</p>
                 }
                 @if (Export.OffersSaveExport)
                 {
@@ -109,11 +118,14 @@
                         </header>
                         @foreach (var save in group.Saves)
                         {
-                            <button type="button" class="save-file-row kind-@KindClass(save.Kind) @(workspace.SelectedSave == save ? "selected" : null)" aria-current="@(workspace.SelectedSave == save ? "true" : null)" title="@save.Path" @onclick="() => SelectAsync(save)"
+                            <button type="button" class="save-file-row kind-@KindClass(save.Kind) @(workspace.SelectedSave == save ? "selected" : null) @(IsLiveOnlinePlayer(save) ? "live-online" : null)" aria-current="@(workspace.SelectedSave == save ? "true" : null)" title="@save.Path" @onclick="() => SelectOrSwitchAsync(save)"
                                     @oncontextmenu="@(args => OpenSaveMenu(save, args))" @oncontextmenu:preventDefault>
                                 <span class="save-kind-marker" aria-hidden="true"></span>
                                 <strong class="save-file-name">@MiddleTruncation.Truncate(SaveDisplayName(save), SaveNameBudget)</strong>
-                                <span class="save-file-meta"><b>@KindLabel(save.Kind)</b><small>@save.Size</small></span>
+                                <span class="save-file-meta">
+                                    <b>@(IsLiveOnlinePlayer(save) ? L.Resource("Live_LiveChip") : KindLabel(save.Kind))</b>
+                                    <small>@save.Size</small>
+                                </span>
                             </button>
                         }
                     </section>
@@ -397,6 +409,34 @@
         return Unsaved.ConfirmAsync(() => OpenAsync(save), DoneSwitchingSaveAsync);
     }
 
+    /// <summary>A player row is "live" only when it is BOTH currently connected to the running
+    /// game AND we are live-connected ourselves - an offline player (in the world folder but not
+    /// in Live.Directory right now) has nothing live to edit, so falls back to the ordinary file
+    /// row below regardless of this flag.</summary>
+    private bool IsLiveOnlinePlayer(WorkspaceSave save) =>
+        Live.IsConnected && save.Kind == SaveDocumentKind.Player
+        && SteamPersonaIndex.IdFromPlayerPath(save.Path) is { } steamId
+        && Live.Directory?.Players.Any(player => player.Id == steamId) == true;
+
+    /// <summary>The sidebar's one click handler for every row once a live connection AND a world
+    /// folder are both open: a currently-connected player switches the live view to them (no file
+    /// touched, matching what the user asked for - live memory wherever a live path exists);
+    /// anything else (an offline player, or any world save - live world editing does not exist
+    /// yet) opens it for ordinary file editing exactly as SelectAsync always has.</summary>
+    private Task SelectOrSwitchAsync(WorkspaceSave save)
+    {
+        if (IsLiveOnlinePlayer(save) && SteamPersonaIndex.IdFromPlayerPath(save.Path) is { } steamId)
+            return SwitchLivePlayerAsync(steamId);
+        return SelectAsync(save);
+    }
+
+    private async Task SwitchLivePlayerAsync(string playerId)
+    {
+        await Live.RequestPlayerSwitchAsync(playerId);
+        if (!string.Equals(Navigation.ToBaseRelativePath(Navigation.Uri), "live", StringComparison.OrdinalIgnoreCase))
+            Navigation.NavigateTo("live");
+    }
+
     /// <summary>Frees the save list again, whether the save opened, failed, or was not wanted.</summary>
     private Task DoneSwitchingSaveAsync()
     {
@@ -410,12 +450,14 @@
         {
             CloseDrawers();
             _activeIniFileName = null;
-            if (!string.IsNullOrEmpty(Navigation.ToBaseRelativePath(Navigation.Uri)))
+            if (!string.Equals(Navigation.ToBaseRelativePath(Navigation.Uri), "browse", StringComparison.OrdinalIgnoreCase))
             {
                 // Save rows are global navigation in the native workbench. Return to the
                 // editor surface immediately so its loading state and eventual session are
-                // visible even when the user selected the save from INI or another tool.
-                Navigation.NavigateTo("./");
+                // visible even when the user selected the save from INI, live editing, or
+                // another tool. "browse" (not "./" - that resolved to ModeSelect's "/" once
+                // ModeSelect claimed the root route, not the editor surface it used to mean).
+                Navigation.NavigateTo("browse");
             }
             await Workspace.SelectAsync(save.Path);
         }

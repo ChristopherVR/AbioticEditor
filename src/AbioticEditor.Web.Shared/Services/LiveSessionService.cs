@@ -23,6 +23,12 @@ public sealed class LiveSessionService
 
     public event Action? Changed;
 
+    /// <summary>Raised by <see cref="RequestPlayerSwitchAsync"/>; <c>LiveConnect.razor</c> is the
+    /// only subscriber (it owns the actual vitals/skills sessions), so the sidebar (which has no
+    /// access to those) can still ask it to switch who is being edited - the same
+    /// publish/subscribe shape <see cref="Changed"/> uses, just going the other direction.</summary>
+    public event Func<string, Task>? PlayerSwitchRequested;
+
     public void Connected(LivePlayerDirectory directory, string? selectedPlayerId)
     {
         IsConnected = true;
@@ -51,4 +57,11 @@ public sealed class LiveSessionService
         SelectedPlayerId = null;
         Changed?.Invoke();
     }
+
+    /// <summary>Asks whoever owns the live connection to switch to <paramref name="playerId"/>.
+    /// A no-op (not an error) when nothing is connected to hear it - the sidebar can only ever
+    /// offer this on a row it already knows is live, but the connection could still have dropped
+    /// a moment earlier.</summary>
+    public Task RequestPlayerSwitchAsync(string playerId) =>
+        PlayerSwitchRequested is { } handler ? handler.Invoke(playerId) : Task.CompletedTask;
 }

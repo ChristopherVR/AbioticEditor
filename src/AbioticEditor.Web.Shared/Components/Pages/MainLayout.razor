@@ -26,7 +26,7 @@
     }
     <a class="skip-link" href="#main-content">@Languages.Text("skip")</a>
     <header class="masthead">
-        <a class="brand-lockup" href="browse" aria-label="@Languages.Text("brand.home")">
+        <a class="brand-lockup" href="browse?home" aria-label="@Languages.Text("brand.home")">
             <GameArtImage GameRef="@LogoPrimaryRef" Alt="">
                 <ChildContent>
                     <GameArtImage GameRef="@LogoFallbackRef" Alt="">
@@ -63,7 +63,7 @@
             }
             @* /browse always lands on the home page (world list), even while a save is
                open - a plain "/" would just re-render the open editor surface. *@
-            <NavLink class="round-action material-symbol" href="browse" Match="NavLinkMatch.All" title="@Languages.Text("home")" aria-label="@Languages.Text("home")">home</NavLink>
+            <NavLink class="round-action material-symbol" href="browse?home" Match="NavLinkMatch.All" title="@Languages.Text("home")" aria-label="@Languages.Text("home")">home</NavLink>
             <button class="open-folder-action" type="button" @onclick="PickFolderAsync" disabled="@_openingFolder"><span class="material-symbol" aria-hidden="true">folder_open</span>@(_openingFolder ? Languages.Text("opening") : Languages.Text("open").ToUpperInvariant())</button>
         </nav>
     </header>
@@ -155,7 +155,17 @@
         {
             await Workspace.OpenAsync(folder);
             Toasts.Show(Languages.Text("folder.opened", Path.GetFileName(folder)), ToastKind.Success);
-            Navigation.NavigateTo("./");
+            // Stay on /live if that is where OPEN FOLDER was clicked from - opening a folder there
+            // is exactly how a live session picks up its merged players+world-saves sidebar, and
+            // navigating away would undo the reason the player opened it. Anywhere else lands on
+            // the editor surface, same as always ("./" used to mean that too, back before
+            // ModeSelect claimed the root route out from under it).
+            var current = Navigation.ToBaseRelativePath(Navigation.Uri);
+            if (!string.Equals(current, "browse", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(current, "live", StringComparison.OrdinalIgnoreCase))
+            {
+                Navigation.NavigateTo("browse");
+            }
         }
         catch (Exception exception)
         {

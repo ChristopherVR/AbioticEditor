@@ -3910,6 +3910,9 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Live_ClientChip" xml:space="preserve"><value>CLIENT</value></data>
   <data name="Live_SidebarNoPlayers" xml:space="preserve"><value>No players found yet.</value></data>
   <data name="Live_SidebarSubtitle" xml:space="preserve"><value>Live-editing a running game.</value></data>
+  <data name="Live_OpenFolderHint" xml:space="preserve"><value>Open this world's save folder (OPEN FOLDER above) to also see and edit its players and world saves here.</value></data>
+  <data name="Live_MergedSidebarHint" xml:space="preserve"><value>A connected player switches the live view when clicked. Everything else opens for editing while the game keeps running.</value></data>
+  <data name="Live_LiveChip" xml:space="preserve"><value>LIVE</value></data>
   <data name="Live_Apply" xml:space="preserve"><value>APPLY</value></data>
   <data name="Live_Disconnect" xml:space="preserve"><value>DISCONNECT</value></data>
   <data name="Live_Sections" xml:space="preserve"><value>Live editor sections</value></data>
