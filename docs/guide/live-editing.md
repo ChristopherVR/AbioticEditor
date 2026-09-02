@@ -1,9 +1,10 @@
 # Live-edit a running game
 
-::: warning Early / Phase 0
-This is a first slice, not full parity with the file editor: today it covers player vitals
-(hunger, thirst, sanity, fatigue, continence, money, and limb health) only. More areas are
-planned in the same shape. It also needs a mod you install yourself - see below.
+::: warning Early
+This is not full parity with the file editor yet: today it covers player vitals (hunger, thirst,
+sanity, fatigue, continence, money, limb health) and skills (level/XP and XP rate per skill,
+including MAX ALL and the milestone track). More areas are planned in the same shape. It also
+needs a mod you install yourself - see below.
 :::
 
 Editing a save file works with the game closed. Live editing is the opposite: you connect to a

@@ -66,6 +66,39 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
         Assert.Equal("simulated agent failure", exception.Message);
     }
 
+    [Fact]
+    public async Task LivePlayerSkillsChannel_GetAsync_deserializes_a_real_JSON_array()
+    {
+        await using var channel = new TcpLiveGameChannel();
+        await channel.ConnectAsync(new LiveConnectionInfo("127.0.0.1", _agent.Port, "correct-token"));
+        var skills = new AbioticEditor.Core.LiveEditing.Player.LivePlayerSkillsChannel(channel);
+
+        var result = await skills.GetAsync();
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal(0, result[0].Index);
+        Assert.Equal(100, result[0].Xp);
+        Assert.Equal(1, result[0].XpMultiplier);
+        Assert.Equal(1, result[1].Index);
+        Assert.Equal(200, result[1].Xp);
+        Assert.Equal(1.5f, result[1].XpMultiplier);
+    }
+
+    [Fact]
+    public async Task LivePlayerSkillsChannel_SetAsync_sends_a_real_JSON_array()
+    {
+        await using var channel = new TcpLiveGameChannel();
+        await channel.ConnectAsync(new LiveConnectionInfo("127.0.0.1", _agent.Port, "correct-token"));
+        var skills = new AbioticEditor.Core.LiveEditing.Player.LivePlayerSkillsChannel(channel);
+
+        // The fake agent's fallback echoes any non-special-cased command's payload straight back
+        // as "ok:true"; SetAsync succeeding without throwing proves the request itself encoded
+        // as a well-formed array the agent could parse (a malformed line would fault the channel).
+        await skills.SetAsync([new AbioticEditor.Core.PlayerSaves.PlayerSkill(0, 999, 3)]);
+
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
     private sealed record EchoPayload(string Name, double Value);
 
     /// <summary>A minimal stand-in for the real UE4SS agent: accepts one connection, checks the
@@ -143,7 +176,19 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
                     continue;
                 }
 
-                // "echo" (and anything else): hand the payload straight back as the result.
+                if (cmd == "skills.get")
+                {
+                    // A real JSON array, exactly like the C++ agent's skills.get (see
+                    // live-agent's StandaloneProtocolSmokeTest.cpp) - proves the array shape
+                    // deserializes into IReadOnlyList<PlayerSkill> correctly, not just objects.
+                    var skillsLine = "{\"Id\":\"" + id + "\",\"Ok\":true,\"Result\":["
+                        + "{\"index\":0,\"xp\":100,\"xpMultiplier\":1},"
+                        + "{\"index\":1,\"xp\":200,\"xpMultiplier\":1.5}]}";
+                    await writer.WriteLineAsync(skillsLine.AsMemory(), cancellationToken).ConfigureAwait(false);
+                    continue;
+                }
+
+                // "echo"/"skills.set" (and anything else): hand the payload straight back as the result.
                 var payload = root.TryGetProperty("payload", out var p) ? p.GetRawText() : "null";
                 var echoLine = "{\"Id\":\"" + id + "\",\"Ok\":true,\"Result\":" + payload + "}";
                 await writer.WriteLineAsync(echoLine.AsMemory(), cancellationToken).ConfigureAwait(false);

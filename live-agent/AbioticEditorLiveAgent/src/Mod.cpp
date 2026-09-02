@@ -13,6 +13,7 @@
 
 #include "LiveAgentServer.h"
 #include "VitalsCommands.h"
+#include "SkillsCommands.h"
 
 namespace
 {
@@ -46,6 +47,7 @@ public:
             RC::Output::send<RC::LogLevel::Normal>(STR("[AbioticEditorLiveAgent] {}\n"), RC::to_wstring(line));
         });
         LiveAgent::RegisterVitalsCommands(*m_server);
+        LiveAgent::RegisterSkillsCommands(*m_server);
         m_server->Start();
         RC::Output::send<RC::LogLevel::Normal>(
             STR("[AbioticEditorLiveAgent] Ready on port {}. Token is in AbioticEditorLiveAgent-token.txt "

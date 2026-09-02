@@ -23,7 +23,9 @@ object itself is the unit, and neither side's payloads ever contain a raw embedd
 - `token`: only present on `"hello"`. Every later request on the same connection relies on that
   connection already being authenticated - the agent tracks this per-connection, not per-request.
 - `payload`: present when the command needs one (e.g. `vitals.set`'s new values); absent (or
-  `null`) for a command with no input, like `vitals.get`.
+  `null`) for a command with no input, like `vitals.get`. Usually a flat object, but a flat JSON
+  array of such objects is also valid (e.g. `skills.set`'s per-skill rows) - `result` can be
+  either shape too.
 
 ## Response
 
@@ -65,11 +67,28 @@ Deliberately flat (not nested `stats`/`health` objects) so the C++ side only has
 struct from the live PlayerState's properties, mirroring how `LivePlayerVitalsChannel` on the
 .NET side flattens the same two domain records for the wire.
 
+## `skills.get` / `skills.set`
+
+`skills.get` takes no payload and returns a flat JSON **array**, one object per skill, ordered by
+index. `skills.set` takes the same array shape as its payload (any subset of skills, matched by
+`index`; skills it does not mention are left untouched) and returns no result.
+
+| Field | Type | Matches |
+|---|---|---|
+| `index` | number | `PlayerSkill.Index` (`Core/Domain/Player/PlayerSkill.cs`) - position in the save's `Skills_` array, not a name |
+| `xp` | number | `PlayerSkill.Xp` |
+| `xpMultiplier` | number | `PlayerSkill.XpMultiplier` |
+
+```json
+[{"index":0,"xp":100,"xpMultiplier":1},{"index":1,"xp":200,"xpMultiplier":1.5}]
+```
+
 ## Extending this for a new area
 
-Adding a new live-editable area (inventory, skills, ...) means: a new command pair on both sides
-(`<area>.get`/`<area>.set` following the existing naming), a new `Live<Area>Channel` in
-`Core/LiveEditing/<Area>/` mirroring the shape of `LivePlayerVitalsChannel`, and a new handler
-pair registered in the mod's C++ - the same shape `VitalsCommands.cpp` already follows. No
-protocol-level change is needed; `hello` and the request/response envelope stay the same for
-every area.
+Adding a new live-editable area (inventory, more of world state, ...) means: a new command pair
+on both sides (`<area>.get`/`<area>.set` following the existing naming), a new `Live<Area>Channel`
+in `Core/LiveEditing/<Area>/` mirroring the shape of `LivePlayerVitalsChannel`/
+`LivePlayerSkillsChannel`, and a new handler pair registered in the mod's C++ - the same shape
+`VitalsCommands.cpp`/`SkillsCommands.cpp` already follow. No `hello`/envelope-level change is
+needed for a new area; the envelope's `payload`/`result` already accept either a flat object or a
+flat array of them, which has covered every area so far.

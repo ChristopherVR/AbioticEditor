@@ -11,7 +11,7 @@
 <section class="hero native-empty-state live-connect">
     <h1>@L.Resource("Live_Title")</h1>
 
-    @if (_session is null)
+    @if (_vitals is null || _skills is null)
     {
         <p class="lede">@L.Resource("Live_ConnectSubtitle")</p>
         <div class="live-connect-form">
@@ -40,21 +40,42 @@
     else
     {
         <p class="lede live-warning">@L.Resource("Live_ImmediateWarning")</p>
-        <PlayerVitalsTab Vitals="_session.Vitals" OnChanged="OnVitalsChanged" />
+
+        <nav class="editor-tabs" role="tablist" aria-label="@L.Resource("Live_Sections")">
+            <button type="button" role="tab" class="editor-tab @(_activeTab == "vitals" ? "active" : null)"
+                    aria-selected="@(_activeTab == "vitals")" @onclick='() => _activeTab = "vitals"'>
+                @L.Resource("PlayerVitals_CharacterStats")
+            </button>
+            <button type="button" role="tab" class="editor-tab @(_activeTab == "skills" ? "active" : null)"
+                    aria-selected="@(_activeTab == "skills")" @onclick='() => _activeTab = "skills"'>
+                @L.Resource("PlayerSkills_Skills")
+            </button>
+        </nav>
+        <div class="player-tab-viewport">
+            @if (_activeTab == "vitals")
+            {
+                <PlayerVitalsTab Vitals="_vitals.Vitals" OnChanged="() => {}" />
+            }
+            else
+            {
+                <PlayerSkillsTab Session="_skills" OnChanged="() => {}" />
+            }
+        </div>
+
         <div class="live-connect-actions">
-            <button class="primary" type="button" @onclick="ApplyAsync" disabled="@(!_session.IsDirty || _isBusy)">
+            <button class="primary" type="button" @onclick="ApplyAsync" disabled="@(!ActiveIsDirty || _isBusy)">
                 @L.Resource("Live_Apply")
             </button>
-            <button class="secondary" type="button" @onclick="Revert" disabled="@(!_session.IsDirty || _isBusy)">
+            <button class="secondary" type="button" @onclick="RevertActive" disabled="@(!ActiveIsDirty || _isBusy)">
                 @L.Resource("Common_Revert")
             </button>
             <button class="secondary" type="button" @onclick="DisconnectAsync" disabled="@_isBusy">
                 @L.Resource("Live_Disconnect")
             </button>
         </div>
-        @if (_session.Status is not null)
+        @if (ActiveStatus is not null)
         {
-            <p class="status-text">@_session.Status</p>
+            <p class="status-text">@ActiveStatus</p>
         }
         @if (_error is not null)
         {
@@ -70,8 +91,13 @@
     private bool _isConnecting;
     private bool _isBusy;
     private string? _error;
+    private string _activeTab = "vitals";
     private ILiveGameChannel? _channel;
-    private LivePlayerVitalsSession? _session;
+    private LivePlayerVitalsSession? _vitals;
+    private LivePlayerSkillsSession? _skills;
+
+    private bool ActiveIsDirty => _activeTab == "vitals" ? _vitals?.IsDirty == true : _skills?.IsDirty == true;
+    private string? ActiveStatus => _activeTab == "vitals" ? _vitals?.Status : _skills?.Status;
 
     private async Task ConnectAsync()
     {
@@ -81,7 +107,11 @@
         try
         {
             await channel.ConnectAsync(new LiveConnectionInfo(_host, _port, _token));
-            _session = await LivePlayerVitalsSession.ConnectAsync(new LivePlayerVitalsChannel(channel));
+            // Both sessions share the one connection/token handshake - each area gets its own
+            // channel wrapper (LivePlayerVitalsChannel, LivePlayerSkillsChannel) over it, the
+            // same shape the file-backed PlayerSaveSession's slices share one PlayerSaveData.
+            _vitals = await LivePlayerVitalsSession.ConnectAsync(new LivePlayerVitalsChannel(channel));
+            _skills = await LivePlayerSkillsSession.ConnectAsync(new LivePlayerSkillsChannel(channel));
             _channel = channel;
         }
         catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
@@ -97,16 +127,14 @@
         }
     }
 
-    private void OnVitalsChanged(AbioticEditor.Web.Models.PlayerVitals _) { }
-
     private async Task ApplyAsync()
     {
-        if (_session is null) return;
         _isBusy = true;
         _error = null;
         try
         {
-            await _session.SaveAsync();
+            if (_activeTab == "vitals" && _vitals is not null) await _vitals.SaveAsync();
+            else if (_skills is not null) await _skills.SaveAsync();
         }
         catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
             or IOException or OperationCanceledException)
@@ -120,11 +148,16 @@
         }
     }
 
-    private void Revert() => _session?.Revert();
+    private void RevertActive()
+    {
+        if (_activeTab == "vitals") _vitals?.Revert();
+        else _skills?.Revert();
+    }
 
     private async Task DisconnectAsync()
     {
-        _session = null;
+        _vitals = null;
+        _skills = null;
         if (_channel is not null) await _channel.DisposeAsync();
         _channel = null;
         _error = null;

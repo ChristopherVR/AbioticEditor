@@ -17,6 +17,7 @@ endif()
 add_library(AbioticEditorLiveAgent SHARED
     src/Mod.cpp
     src/VitalsCommands.cpp
+    src/SkillsCommands.cpp
     src/LiveAgentServer.cpp
 )
 target_include_directories(AbioticEditorLiveAgent PRIVATE src "${UE4SS_SDK_DIR}/include")

@@ -5,6 +5,47 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-65: live editing, Phase 1 (skills) + a real SDK-from-source attempt (2026-09-02)
+
+Continuation of round-64, same day. Two threads, both user-directed ("both, SDK attempt first"):
+
+**Tried to build the real UE4SS C++ Mod SDK from source, hit a genuine access-control wall.**
+Cloned `UE4SS-RE/RE-UE4SS` and checked out the installed game's exact commit (`01e0a584` -
+confirmed present, not a typo). Its `deps/first/Unreal` submodule
+(`git@github.com:Re-UE4SS/UEPseudo.git`) 404s even over HTTPS - a private, presumably
+Epic-access-gated dependency this project has no credentials for. The public `v3.0.1` tag's own
+release SDK is a *different* commit (`d935b5b`) and upstream's own release notes say "C++ mods
+must be rebuilt to work on 3.0.1," i.e. it is documented as ABI-incompatible with our target
+build - not a usable substitute. This is a real, external blocker (credentials this project does
+not and should not try to obtain around), not a shortcut that was merely skipped; `live-agent/README.md` records it for whoever picks this up next.
+
+**Expanded live editing to skills (`skills.get`/`skills.set`)**, the same shape as vitals:
+- `Core/LiveEditing/Player/LivePlayerSkillsChannel.cs` mirrors `PlayerSaveReader.ReadSkills`/
+  `PlayerSaveWriter.ApplySkills`, working over the same positional `PlayerSkill` list.
+- New `IPlayerSkillsSession` interface, extracted from `PlayerSaveSession`'s existing skills slice
+  (exactly the members `PlayerSkillsTab.razor` uses: `Skills`, `MarkChanged()`, `MaxAllSkills()`,
+  `IsDirty`/`Status`/`SaveAsync`/`Revert`) - `PlayerSaveSession` now implements it too, and
+  `PlayerSkillsTab`'s `Session` parameter is retyped from the concrete class to this interface.
+  This is the second data point (after `IPlayerVitalsSession`) for the "introduce a narrow
+  interface per widget, incrementally" reuse pattern the round-64 exploration predicted - it held
+  up exactly as expected, and the widget needed literally zero other changes.
+- `live-agent/AbioticEditorLiveAgent/src/SkillsCommands.{h,cpp}` (new, same unverified-pending-SDK
+  status as `VitalsCommands.cpp`), registered in `Mod.cpp` alongside vitals.
+- **`JsonLine.h` gained real JSON array support** (`JsonArray`, `AsArray()`, array parsing/writing)
+  - the protocol doc's original "no protocol-level change needed" claim for a new area was wrong
+    for an array-shaped one; skills' per-skill rows need an actual array, not vitals' flat object,
+    so this was a real (small, contained) gap the skills slice exposed and closed, not a
+    hypothetical. `docs/reference/live-editing-protocol.md` corrected to say so.
+- **Verified the same way as round-64's vitals slice, and re-verified vitals too**: recompiled the
+  standalone smoke test (now asserting a real `"result":[{...}]` array shape), ran a real
+  cross-language check (compiled C++ server &lt;-&gt; real `LivePlayerSkillsChannel`), added
+  `LivePlayerSkillsChannel`-specific xUnit tests (1145 total, all green), and drove the actual
+  desktop app UI via Playwright against the real compiled C++ agent end to end: connected, switched
+  to the new SKILLS tab, saw three real skills (names/icons/milestones from the real
+  `SkillCatalog`, not placeholders), clicked MAX ALL, saw milestone perks unlock and reveal their
+  real text, clicked Apply, got "Applied live." The vitals tab and its own Apply/Revert were
+  re-checked in the same pass and are unaffected.
+
 ## Round-64: live in-game editing, Phase 0 (2026-09-02)
 
 First slice of a new capability alongside the existing offline file editor: editing a **running**

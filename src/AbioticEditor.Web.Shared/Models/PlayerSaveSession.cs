@@ -10,7 +10,7 @@ namespace AbioticEditor.Web.Models;
 /// A Razor-hosted editing session for one player save.  It deliberately depends only on
 /// Core save types: neither this class nor callers need a native view model.
 /// </summary>
-public sealed class PlayerSaveSession : IPlayerVitalsSession
+public sealed class PlayerSaveSession : IPlayerVitalsSession, IPlayerSkillsSession
 {
     private readonly PlayerSaveData _data;
     private readonly string _path;

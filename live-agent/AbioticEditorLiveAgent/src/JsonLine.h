@@ -1,8 +1,9 @@
 #pragma once
-// A deliberately minimal JSON reader/writer for ONE flat message shape: an object whose values
-// are strings, numbers, booleans, null, or one level of nested flat object (the "payload"). The
-// wire protocol (see docs/reference/live-editing-protocol.md) never needs arrays or deeper
-// nesting, so this avoids vendoring a general JSON library for a handful of known fields.
+// A deliberately minimal JSON reader/writer for the message shapes this protocol actually sends:
+// an object whose values are strings, numbers, booleans, null, one level of nested flat object
+// (the "payload"), or a flat array of such objects (e.g. skills.get's per-skill rows). The wire
+// protocol (see docs/reference/live-editing-protocol.md) never needs deeper nesting than that,
+// so this avoids vendoring a general JSON library for a handful of known shapes.
 //
 // This mirrors AbioticEditor.Core.LiveEditing.TcpLiveGameChannel on the .NET side: that class
 // serializes with System.Text.Json using camelCase property names, so every key this reads or
@@ -13,11 +14,13 @@
 #include <sstream>
 #include <string>
 #include <variant>
+#include <vector>
 
 namespace LiveAgent
 {
     class JsonValue;
     using JsonObject = std::map<std::string, JsonValue>;
+    using JsonArray = std::vector<JsonValue>;
 
     class JsonValue
     {
@@ -29,9 +32,11 @@ namespace LiveAgent
         JsonValue(int value) : m_data(static_cast<double>(value)) {}
         JsonValue(bool value) : m_data(value) {}
         JsonValue(JsonObject value) : m_data(std::make_shared<JsonObject>(std::move(value))) {}
+        JsonValue(JsonArray value) : m_data(std::make_shared<JsonArray>(std::move(value))) {}
 
         bool IsNull() const { return std::holds_alternative<std::nullptr_t>(m_data); }
         bool IsObject() const { return std::holds_alternative<std::shared_ptr<JsonObject>>(m_data); }
+        bool IsArray() const { return std::holds_alternative<std::shared_ptr<JsonArray>>(m_data); }
 
         std::string AsString(const std::string& fallback = {}) const
         {
@@ -54,6 +59,12 @@ namespace LiveAgent
         const JsonObject* AsObject() const
         {
             if (auto* value = std::get_if<std::shared_ptr<JsonObject>>(&m_data)) return value->get();
+            return nullptr;
+        }
+
+        const JsonArray* AsArray() const
+        {
+            if (auto* value = std::get_if<std::shared_ptr<JsonArray>>(&m_data)) return value->get();
             return nullptr;
         }
 
@@ -87,6 +98,19 @@ namespace LiveAgent
                 out << '}';
                 return;
             }
+            if (auto* a = std::get_if<std::shared_ptr<JsonArray>>(&m_data))
+            {
+                out << '[';
+                bool first = true;
+                for (const auto& value : **a)
+                {
+                    if (!first) out << ',';
+                    first = false;
+                    value.Write(out);
+                }
+                out << ']';
+                return;
+            }
         }
 
         static void WriteEscaped(std::ostringstream& out, const std::string& text)
@@ -108,14 +132,15 @@ namespace LiveAgent
         }
 
     private:
-        std::variant<std::nullptr_t, std::string, double, bool, std::shared_ptr<JsonObject>> m_data;
+        std::variant<std::nullptr_t, std::string, double, bool,
+            std::shared_ptr<JsonObject>, std::shared_ptr<JsonArray>> m_data;
     };
 
-    // A small recursive-descent parser for exactly the shapes this protocol sends: an object of
-    // string/number/bool/null/object values, one level deep of nested objects. Throws
-    // std::runtime_error on anything it does not understand (malformed line, an array, etc.) -
-    // the caller treats that as "the request could not be read" and answers with ok:false rather
-    // than crashing the game process.
+    // A small recursive-descent parser for exactly the shapes this protocol sends: an object or
+    // array of string/number/bool/null/object/array values, one level deep of nesting. Throws
+    // std::runtime_error on anything it does not understand (a malformed line) - the caller
+    // treats that as "the request could not be read" and answers with ok:false rather than
+    // crashing the game process.
     class JsonParser
     {
     public:
@@ -127,6 +152,7 @@ namespace LiveAgent
             if (m_pos >= m_text.size()) throw std::runtime_error("unexpected end of JSON");
             char c = m_text[m_pos];
             if (c == '{') return ParseObject();
+            if (c == '[') return ParseArray();
             if (c == '"') return JsonValue(ParseString());
             if (c == 't' && m_text.compare(m_pos, 4, "true") == 0) { m_pos += 4; return JsonValue(true); }
             if (c == 'f' && m_text.compare(m_pos, 5, "false") == 0) { m_pos += 5; return JsonValue(false); }
@@ -160,6 +186,23 @@ namespace LiveAgent
                 throw std::runtime_error("expected ',' or '}'");
             }
             return JsonValue(std::move(object));
+        }
+
+        JsonValue ParseArray()
+        {
+            JsonArray array;
+            ++m_pos; // '['
+            SkipWhitespace();
+            if (m_pos < m_text.size() && m_text[m_pos] == ']') { ++m_pos; return JsonValue(std::move(array)); }
+            while (true)
+            {
+                array.push_back(ParseValue());
+                SkipWhitespace();
+                if (m_pos < m_text.size() && m_text[m_pos] == ',') { ++m_pos; continue; }
+                if (m_pos < m_text.size() && m_text[m_pos] == ']') { ++m_pos; break; }
+                throw std::runtime_error("expected ',' or ']'");
+            }
+            return JsonValue(std::move(array));
         }
 
         std::string ParseString()

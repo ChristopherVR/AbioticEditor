@@ -82,6 +82,24 @@ int main(int argc, char** argv)
         return JsonValue(std::move(result));
     });
     server.RegisterCommand("vitals.set", [](const JsonValue&) { return JsonValue(); });
+    server.RegisterCommand("skills.get", [](const JsonValue&) {
+        JsonArray rows;
+        for (int i = 0; i < 3; ++i)
+        {
+            JsonObject row;
+            row.emplace("index", i);
+            row.emplace("xp", 100.0 * (i + 1));
+            row.emplace("xpMultiplier", 1);
+            rows.push_back(JsonValue(std::move(row)));
+        }
+        return JsonValue(std::move(rows));
+    });
+    // Echoes the array straight back so the test can assert the client's own array survives a
+    // real round trip through this server's parser/writer, not just this handler's own shape.
+    server.RegisterCommand("skills.set", [](const JsonValue& payload) {
+        if (!payload.AsArray()) throw CommandFailed("skills.set expected an array payload");
+        return payload;
+    });
     server.Start();
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
@@ -118,6 +136,20 @@ int main(int argc, char** argv)
         std::cout << "vitals.get response: " << vitalsResponse << "\n";
         assert(vitalsResponse.find("\"hunger\":42.5") != std::string::npos);
         assert(vitalsResponse.find("\"money\":7") != std::string::npos);
+
+        SendLine(client, R"({"id":"3","cmd":"skills.get"})");
+        std::string skillsResponse = ReadLineBlocking(client);
+        std::cout << "skills.get response: " << skillsResponse << "\n";
+        assert(skillsResponse.find("\"result\":[{") != std::string::npos); // a real JSON array, not an object.
+        assert(skillsResponse.find("\"index\":0") != std::string::npos);
+        assert(skillsResponse.find("\"index\":2") != std::string::npos);
+        assert(skillsResponse.find("\"xp\":300") != std::string::npos);
+
+        SendLine(client, R"({"id":"4","cmd":"skills.set","payload":[{"index":0,"xp":50,"xpMultiplier":2}]})");
+        std::string setResponse = ReadLineBlocking(client);
+        std::cout << "skills.set response: " << setResponse << "\n";
+        assert(setResponse.find("\"index\":0") != std::string::npos);
+        assert(setResponse.find("\"xpMultiplier\":2") != std::string::npos);
         closesocket(client);
     }
 
