@@ -6,22 +6,33 @@
 -- AbioticEditorLiveAgentHelper's FileMailbox.h for the other side of this bridge, and
 -- docs/reference/live-editing-protocol.md for the wire shapes both ultimately carry.
 --
--- STATUS: rewritten this round around real, confirmed ground truth pulled from a real published,
--- working UE4SS Lua mod for this exact game (Igromanru's CheatConsoleCommands, already installed
--- in the test environment - see live-agent/README.md "Ground truth from a real mod" for the full
--- source references). The previous version's `FindFirstOf("AbioticCharacterPlayerState")` +
--- `GetClass():ForEachProperty(...)` approach is GONE - that published mod never calls GetClass()
--- for property access anywhere in ~800 lines, and gets the player through
--- `GetMyPlayerController().MyPlayerCharacter` instead of FindFirstOf, which is almost certainly
--- what the previous round's unexplained GetClass() hang was actually about (a wrong/heavy object,
--- not a wrong API). Vitals property names below (CurrentHunger, CurrentHealth_Head, ...) are
--- copied verbatim from that mod's working source, not guessed. The skills file-index <-> live
--- skill-id mapping is newly derived by matching skill names between this repo's own
--- Core/Catalogs/Player/SkillCatalog.cs (file order) and that mod's AFUtils/Enums.lua
--- (CharacterSkills enum) - the two use different, unrelated numbering, confirmed by inspection,
--- not assumed. NOT yet re-tested against a real running game after this rewrite - do that next.
+-- STATUS: CONFIRMED WORKING against the real, running game (2026-09-02), all six commands, on a
+-- real save with real progression data ("Chrissie", 2h57m played) - not a fake/mocked environment.
+-- ping, diag.findplayer, vitals.get, vitals.set, skills.get, and skills.set all round-tripped
+-- correctly: vitals.get returned real live values (including CurrentSanity, previously unconfirmed
+-- - it returned 100 with no error, so that field name is now confirmed too, closing the one gap
+-- called out in the previous round's version of this comment); vitals.set's money and head-health
+-- writes were confirmed both via a follow-up vitals.get AND visually in a screenshot (the HUD's
+-- head-injury indicator cleared when head health was set to 100); skills.get returned real non-zero
+-- XP for all 15 file indices (confirming the FileIndexToLiveSkillId table is fully correct, not
+-- just plausible); skills.set's remove-then-add RPC pattern wrote an exact value
+-- (51102.9 -> 60000 -> reverted to 51102.9) with every other skill left untouched. All test edits
+-- were reverted back to their original values before ending the session, since this ran against a
+-- real save, not a disposable fixture.
+--
+-- One real bug was found and fixed on the way here: `GetMyPlayerController()` is NOT a bare UE4SS
+-- global (calling it as one failed immediately with "attempt to call a nil value"). It is the
+-- CheatConsoleCommands mod's OWN locally-defined function
+-- (AFUtils/BaseUtils/BaseUtils.lua), built on UE4SS's bundled shared `UEHelpers` module
+-- (ue4ss/Mods/shared/UEHelpers/UEHelpers.lua, `require("UEHelpers")`, available to any mod). The
+-- fix here calls `UEHelpers.GetPlayerController()` directly (FindAllOf + IsPlayerController()
+-- checks only, no GetClass()/ForEachProperty, so no game-thread freeze risk) then
+-- `.MyPlayerCharacter`, which was already correct. See getMyPlayer() below for the exact fix, and
+-- live-agent/README.md "Ground truth from a real mod" / docs/PROGRESS.md round 69 for the full
+-- story of how this was found (a real published mod's source, not guessing).
 
 local json = require("json")
+local UEHelpers = require("UEHelpers")
 
 local ipcDir = (os.getenv("LOCALAPPDATA") or "") .. "\\AbioticEditorLiveAgent\\ipc"
 local requestPath = ipcDir .. "\\request.json"
@@ -44,15 +55,27 @@ local function runOnGameThread(work, respond)
     end)
 end
 
--- ===== Player access (verbatim pattern from CheatConsoleCommands' PlayersManager.lua /
--- AFUtils/ObjectsGetter.lua - NOT FindFirstOf) =====
+-- ===== Player access (verbatim pattern from CheatConsoleCommands' AFUtils/ObjectsGetter.lua /
+-- AFUtils/BaseUtils/BaseUtils.lua) =====
+--
+-- CORRECTION (re-tested live 2026-09-02): `GetMyPlayerController()` is NOT a bare UE4SS global -
+-- it is that mod's OWN locally-defined function (AFUtils/BaseUtils/BaseUtils.lua), built on top
+-- of `UEHelpers.GetPlayerController()`, a function from UE4SS's bundled shared `UEHelpers`
+-- module (ue4ss/Mods/shared/UEHelpers/UEHelpers.lua, available to any mod via
+-- `require("UEHelpers")`). Calling the bare global here failed immediately on the real game with
+-- "attempt to call a nil value (global 'GetMyPlayerController')" - this mod has no such global
+-- because it never required/defined it. `.MyPlayerCharacter` itself (the property on the
+-- controller) was already correct, confirmed again at AFUtils/ObjectsGetter.lua:37.
+-- UEHelpers.GetPlayerController() uses FindAllOf("PlayerController")/IsPlayerController() checks
+-- only - no GetClass()/ForEachProperty walk, so it carries none of the game-thread freeze risk
+-- that API had.
 
 ---Returns the live player character (the pawn, not PlayerState) for whoever this mod is running
 ---as, or nil. One process = one local player, matching this project's current scope (a locally
 ---hosted session, or a dedicated server the operator controls and could extend to
 ---player-selection later - see docs/reference/live-editing-protocol.md).
 local function getMyPlayer()
-    local controller = GetMyPlayerController()
+    local controller = UEHelpers.GetPlayerController()
     if not controller or not controller:IsValid() then return nil end
     local player = controller.MyPlayerCharacter
     if not player or not player:IsValid() then return nil end

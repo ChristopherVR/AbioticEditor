@@ -60,13 +60,16 @@ built and shipped as its own standalone artifact(s), not something `dotnet build
   a re-read after each write to confirm it actually stuck, all passed. Only the connection between
   Lua and an *actual* running game is outside what could be exercised this way.
 
-**Tested against the real game this round** (see "Real-game debugging session" below for the full
-log) - `main.lua` genuinely loads and runs with zero errors in real UE4SS, `FindFirstOf` is
-confirmed correct, and a real catastrophic-freeze bug was found and fixed. **Still open**:
-`GetClass()` on the confirmed-correct player object does not return within the round-trip budget
-even from the game thread, for a reason not yet root-caused - see that section for exactly what
-was tried and what to try next. The property name prefixes (`Hunger_`, `CurrentSkillXP_`, ...)
-remain unconfirmed guesses until that is resolved.
+**CONFIRMED WORKING against the real, running game (2026-09-02)** - see "Ground truth from a real
+mod" and the dated section below it for the full story. All six commands (`ping`,
+`diag.findplayer`, `vitals.get`, `vitals.set`, `skills.get`, `skills.set`) round-tripped correctly
+against a real save with real progression data, including `CurrentSanity` (previously an
+unconfirmed guess, now confirmed) and every entry in the `FileIndexToLiveSkillId` table (confirmed
+by getting back non-zero XP for all 15 skills, not just no-error). The earlier
+`GetClass()`-times-out mystery is now understood to have been the wrong approach entirely (see
+below) rather than an unsolved timing bug - the fix replaced `GetClass()`/`FindFirstOf` with
+`UEHelpers.GetPlayerController().MyPlayerCharacter`, and no property-name scanning is used
+anywhere in the current `main.lua`.
 
 **Also not verified**: `AbioticEditorLiveAgent/src/VitalsCommands.cpp`,
 `AbioticEditorLiveAgent/src/SkillsCommands.cpp`, and `Mod.cpp` (the secondary, pure-C++-mod
@@ -172,8 +175,13 @@ the earlier hang:
   Properties are read/written by **direct dot-indexing** (`myPlayer.CurrentHunger`,
   `myPlayer.CurrentHunger = value`) - UE4SS's own `__index`/`__newindex` metamethods resolve the
   name, no manual reflection walk needed at all for these fields.
-- **Gets the player via `GetMyPlayerController().MyPlayerCharacter`**, a genuine UE4SS/UEHelpers
-  global, never `FindFirstOf`. `FindFirstOf("AbioticCharacterPlayerState")` had tested as
+- **Gets the player via `GetMyPlayerController().MyPlayerCharacter`**, never `FindFirstOf`.
+  (CORRECTION, confirmed by testing against the real game: `GetMyPlayerController()` itself is
+  NOT a bare UE4SS/UEHelpers global - it is that mod's own locally-defined function
+  (`AFUtils/BaseUtils/BaseUtils.lua`), built on the real global `UEHelpers.GetPlayerController()`
+  from UE4SS's bundled shared module. This repo's `main.lua` now calls
+  `UEHelpers.GetPlayerController()` directly instead. `.MyPlayerCharacter` itself was already
+  right.) `FindFirstOf("AbioticCharacterPlayerState")` had tested as
   returning "found" in the earlier round, but `FindFirstOf`'s short-name matching against
   *some* instance is not the same guarantee as reaching the live player through the real object
   graph a working mod actually uses - a wrong/unexpected instance (a CDO, a stale replicated
@@ -204,9 +212,44 @@ the earlier hang:
 real Lua interpreter, a fake environment now shaped like the real object graph above (not
 `FindFirstOf`/`GetClass`), and the full real-compiled-helper + real-.NET-client pipeline - all
 passing, including the corrected file-index/live-skill-id mapping and the remove-then-add RPC
-write pattern. **Not yet re-tested against the actual running game** - that is the immediate next
-step, with much higher confidence now than the previous round's guesswork, since almost every
-name and pattern below is copied verbatim from code that is proven to already work in this game.
+write pattern.
+
+## Confirmed working end to end against the real game (2026-09-02, later the same day)
+
+Re-tested live immediately after the rewrite above. First attempt hit one real bug:
+`GetMyPlayerController()` failed with `attempt to call a nil value (global
+'GetMyPlayerController')` - it genuinely is not a bare UE4SS global (see the correction inline in
+the section above). Fixed by requiring `UEHelpers` and calling
+`UEHelpers.GetPlayerController()` directly, then redeployed.
+
+After the fix, all six commands were exercised against the actual running game, on a real save
+with real progression ("Chrissie", 2h57m played, loaded through the game's own main menu - not a
+fresh/empty character):
+
+- `ping` - baseline dispatch/mailbox check, unchanged from earlier rounds.
+- `diag.findplayer` - `found: false` at the main menu (no player exists yet, correctly), `found:
+  true` once a world was actually loaded into gameplay.
+- `vitals.get` - returned real live values for all twelve fields on the first try, including
+  `CurrentSanity: 100` with no error, closing the one previously-unconfirmed guess in the vitals
+  table.
+- `vitals.set` - set `money` and `head` health; a follow-up `vitals.get` showed the exact new
+  values with every other field untouched, and a screenshot confirmed it visually too (the HUD's
+  head-injury indicator cleared once head health was set to 100).
+- `skills.get` - returned real, non-zero XP for all 15 file indices on a save with actual playtime
+  behind it - not just "no error", but the `FileIndexToLiveSkillId` table actually resolving every
+  single entry against the live `CharacterSkills_Keys`/`_Values` arrays.
+- `skills.set` - set file index 0 (Sprinting) from `51102.9` to `60000` via the remove-then-add RPC
+  pair; a follow-up `skills.get` showed exactly `60000` for that entry and the original value for
+  every other skill.
+
+All test edits (money, head health, the one skill's XP) were reverted back to their original
+values before the game was closed, since this ran against a real save rather than a disposable
+fixture.
+
+**Net result: the Lua+helper hybrid architecture, end to end, against the actual game, works.**
+Every remaining "unconfirmed guess" flagged earlier in this document (`CurrentSanity`, the full
+`FileIndexToLiveSkillId` table, the remove-then-add RPC pattern) is now confirmed by a real
+round trip, not just "no error was thrown."
 
 ## Getting from here to a fully working setup
 

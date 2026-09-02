@@ -5,6 +5,42 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-69: live editing CONFIRMED WORKING against the real game, end to end (2026-09-02)
+
+Continuation of round-68, same day, user asked to "test against actual game now." Launched the
+game, loaded a real save with real progress ("Chrissie", 2h57m played, via the game's own main
+menu - not a fresh/empty character), and exercised all six live commands for real.
+
+**One real bug hit and fixed first**: `GetMyPlayerController()` failed immediately with `attempt
+to call a nil value (global 'GetMyPlayerController')` - round-68's assumption that it was a bare
+UE4SS global was wrong. It is CheatConsoleCommands' own locally-defined function
+(`AFUtils/BaseUtils/BaseUtils.lua`), built on the real UE4SS-bundled global
+`UEHelpers.GetPlayerController()` (`require("UEHelpers")`, from
+`ue4ss/Mods/shared/UEHelpers/UEHelpers.lua`). Fixed `main.lua` to call
+`UEHelpers.GetPlayerController()` directly (`.MyPlayerCharacter` was already right) and
+redeployed.
+
+**After the fix, everything worked, first try, on real data**:
+- `ping`/`diag.findplayer` - baseline dispatch and player lookup both correct (`found: false` at
+  the main menu before a world loaded, `found: true` once in gameplay).
+- `vitals.get` - all twelve fields came back with real values, including `CurrentSanity: 100`
+  (round-68's one unconfirmed guess - now confirmed correct).
+- `vitals.set` - set money and head health; confirmed both via a follow-up `vitals.get` and
+  visually (a screenshot showed the HUD's head-injury indicator clear after healing to 100).
+- `skills.get` - real non-zero XP for all 15 file indices on a save with actual playtime,
+  confirming every entry in round-68's `FileIndexToLiveSkillId` table actually resolves against
+  the live game, not just that the code runs without error.
+- `skills.set` - set Sprinting (file index 0) from `51102.9` to `60000` via the remove-then-add
+  RPC pair; confirmed exact via a follow-up `skills.get`, with every other skill untouched.
+
+All test edits were reverted back to their original values before closing the game, since this
+ran against a real save rather than a disposable fixture. Full log in `live-agent/README.md`
+("Confirmed working end to end against the real game").
+
+**Net result**: the Lua+helper hybrid architecture (round-66) is now proven working end to end,
+not just individually-verified-but-never-connected-to-a-real-game. Phase 0 (vitals) and Phase 1
+(skills) of live editing are both real and working today.
+
 ## Round-68: rewrote main.lua around a real published mod's source (2026-09-02)
 
 Continuation of round-67, same day. User pointed at
