@@ -5,7 +5,7 @@
 // the part of the live-agent mod that has no dependency on the game or UE4SS at all.
 //
 // Build (from a "x64 Native Tools Command Prompt for VS 2022"):
-//   cl /std:c++20 /EHsc /I ..\src StandaloneProtocolSmokeTest.cpp ..\src\LiveAgentServer.cpp /link ws2_32.lib
+//   cl /std:c++20 /EHsc /I ..\..\Shared StandaloneProtocolSmokeTest.cpp ..\..\Shared\LiveAgentServer.cpp /link ws2_32.lib
 //   StandaloneProtocolSmokeTest.exe
 
 #define WIN32_LEAN_AND_MEAN
@@ -18,7 +18,7 @@
 #include <iostream>
 #include <thread>
 
-#include "../src/LiveAgentServer.h"
+#include "../../Shared/LiveAgentServer.h"
 
 namespace
 {

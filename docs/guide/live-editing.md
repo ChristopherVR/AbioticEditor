@@ -15,21 +15,24 @@ game that is **open right now** - your own locally-hosted session, or a dedicate
 
 1. **[UE4SS](https://github.com/UE4SS-RE/RE-UE4SS)** installed for the game (it already is, if
    you use other Abiotic Factor mods - most of them need it too).
-2. **The AbioticEditorLiveAgent mod** built and installed into the game's (or your dedicated
-   server's) `Binaries/Win64/ue4ss/Mods/` folder. See `live-agent/README.md` in the editor's
-   source repository for how to build it - this part is maintainer/advanced-user territory for
-   now, not a one-click install yet.
-3. The **token** the mod writes to its own `token.txt` the first time it runs.
+2. **The AbioticEditorLiveAgentLua Scripts folder**, installed like any other UE4SS Lua mod, into
+   the game's (or your dedicated server's) `Binaries/Win64/ue4ss/Mods/` folder.
+3. **AbioticEditorLiveAgentHelper.exe**, a small companion program, running alongside the game
+   (it is not injected into anything - just a console window you leave open). See
+   `live-agent/README.md` in the editor's source repository for how to build and run both -
+   this part is maintainer/advanced-user territory for now, not a one-click install yet.
+4. The **token** the helper program prints on first run and writes to its own `token.txt`.
 
 ## Connecting
 
-1. Launch the game (or your dedicated server) with the mod installed and running.
+1. Launch the game (or your dedicated server) with the Lua mod installed, and start
+   `AbioticEditorLiveAgentHelper.exe` alongside it.
 2. Open the desktop editor. On the "What do you want to do?" screen, choose **Live-edit a
    running game**.
 3. Enter:
    - **Host**: `127.0.0.1` for a game running on this PC, or your dedicated server's address.
    - **Port**: `42117` unless you changed it.
-   - **Token**: from the mod's `token.txt`.
+   - **Token**: from the helper program's `token.txt`.
 4. Press **Connect**. The vitals panel fills in with the running game's current values.
 
 ## Editing

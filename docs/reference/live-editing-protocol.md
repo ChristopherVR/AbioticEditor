@@ -1,9 +1,11 @@
 # Live-editing wire protocol
 
 The protocol between the desktop editor (`AbioticEditor.Core.LiveEditing.TcpLiveGameChannel`) and
-the AbioticEditorLiveAgent UE4SS mod (`live-agent/AbioticEditorLiveAgent/`, outside the .NET
-solution - see its own README). One TCP connection, one request in flight at a time, one line of
-JSON per message in either direction.
+whichever in-game agent is listening (`live-agent/`, outside the .NET solution - see its own
+README for the two implementations: the primary Lua-mod-plus-native-helper hybrid, and the
+secondary pure-C++-mod). Both speak the identical protocol described here - the client cannot
+tell which one it is talking to, by design. One TCP connection, one request in flight at a time,
+one line of JSON per message in either direction.
 
 ## Framing
 

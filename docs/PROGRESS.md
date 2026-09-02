@@ -5,6 +5,53 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-66: unblocked the live-agent with a Lua + native-helper hybrid (2026-09-02)
+
+Continuation of round-65, same day, user asked "is there another way around it." There was.
+
+**Confirmed the SDK-from-source block was real, then found the actual gap in it.** Epic account
+GitHub-linking (round-65's "unlocker" theory) is real and documented, but re-tested this round: it
+grants access to *Epic's own* repos, not automatically to `Re-UE4SS/UEPseudo` - a separate
+third-party org's own private mirror, gated independently (confirmed by retrying the clone
+authenticated after linking; still 404s). Inspecting the checked-out source at the pinned commit
+confirmed why this is a hard stop for the pure-C++ approach specifically: `UE4SS/include/` has no
+top-level `Unreal/` folder at all - every `Unreal::UObject`/`FProperty` type a mod's C++ would
+touch lives entirely inside that gated submodule.
+
+**But UE4SS's public Lua API doesn't need any of that.** `FindFirstOf`, `GetPropertyValue`/
+`SetPropertyValue`, `ForEachProperty`, and `LoopAsync` are all documented, public, and usable with
+zero build step. Only the TCP networking piece genuinely needs C++ - and pure Winsock networking
+needs no UE4SS dependency at all. Result: a new hybrid design, approved by the user before
+building it.
+
+- **`live-agent/AbioticEditorLiveAgentHelper/`** (new, primary): a standalone native `.exe`, zero
+  UE4SS dependency, that does the TCP networking and forwards every command to the Lua mod
+  through a two-file mailbox in `%LOCALAPPDATA%\AbioticEditorLiveAgent\ipc\` (atomic
+  temp-file-then-rename on both sides), polled every 50ms via `LoopAsync`. Reuses the token
+  generation fixed in round-65's security review (`BCryptGenRandom`).
+- **`live-agent/AbioticEditorLiveAgentLua/`** (new, primary): the actual UE4SS Lua mod - does all
+  the real property get/set work, with a hand-rolled `json.lua` (no bundled Lua JSON library
+  assumed) and the same prefix-matching discipline as the file-format writers.
+  `live-agent/AbioticEditorLiveAgent/` (the pure C++ mod) is kept as the secondary approach for
+  if/when SDK access closes.
+- **`live-agent/Shared/`** (new): `JsonLine.h`/`LiveAgentServer.{h,cpp}` moved here so both the
+  primary helper and the secondary C++ mod use the identical, already-verified transport code
+  instead of duplicating it.
+
+**Verification went further than round-64/65's, because more of this could actually be tested
+without the game.** Built a real Lua 5.4.7 interpreter from lua.org source with the same MSVC
+toolchain (no local Lua was installed) and used it for real: `json.lua` round-trip tested (caught
+and fixed a real bug - `isArray`'s heuristic miscounted a decoded array's own `__forceArray`
+marker key), then the actual unmodified `main.lua` driven under a fake-but-shaped UE4SS
+environment (stub `FindFirstOf`/`LoopAsync`, a fake player-state object matching UE4SS's
+documented property-access shape) - every command's dispatch, property-prefix matching, and
+file-mailbox read/write exercised for real. Then the **full pipeline together**: real .NET
+`TcpLiveGameChannel` to real compiled `AbioticEditorLiveAgentHelper.exe` to the real file mailbox
+to the real Lua interpreter running the real `main.lua` against the fake player state - vitals and
+skills reads, writes, and re-reads-after-write (to confirm a write actually stuck, not just "no
+error") all passed. The only thing still outside reach is the real UE4SS Lua runtime and a real
+running game; `live-agent/README.md` is explicit about exactly that boundary.
+
 ## Round-65: live editing, Phase 1 (skills) + a real SDK-from-source attempt (2026-09-02)
 
 Continuation of round-64, same day. Two threads, both user-directed ("both, SDK attempt first"):
