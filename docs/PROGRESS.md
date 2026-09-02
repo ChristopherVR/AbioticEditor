@@ -5,6 +5,43 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-70: proved the actual desktop UI against the real game, not just the raw protocol (2026-09-02)
+
+Continuation of round-69, same session, user asked to "go with option A [drive the desktop app
+UI against the real game]" after being told round-69 only exercised the raw wire protocol, not
+the UI a player would actually use. Also confirmed: the launch-time chooser ("Edit a save file"
+vs "Live-edit a running game," `ModeSelect.razor`) already existed from round-64 and needed no
+new work, just verification.
+
+Ran the real `AbioticEditor.Web` build (`ABIOTIC_EDITOR_NO_DESKTOP=1`, the established headless
+verification mode - same served Blazor content as the Photino window, just without the native
+frame, so Playwright can drive it) against the real running game (the "Chrissie" save again) and
+the real compiled helper:
+
+- The mode-select screen showed both cards; clicking "Live-edit a running game" routed to `/live`.
+- The connect form's host/port were correctly prefilled (`127.0.0.1`, `42117`); pasting the
+  helper's real token and clicking CONNECT succeeded immediately and landed on the live editor
+  surface with real values already populated - matching round-69's raw-protocol numbers exactly
+  (hunger 94.3, sanity 100, money 1000, etc.).
+- Edited CURRENT MONEY to 1050 through the UI and clicked APPLY: "Applied live - this took effect
+  in the running game immediately." Disconnected and reconnected (forcing a completely fresh read,
+  not a locally-cached UI value) - money read back as 1050, confirming the write reached the real
+  game through the real UI code path, not just the raw protocol.
+- Same for SKILLS: the tab showed all real skill XP values matching round-69's numbers exactly
+  (Sprinting 51103, Strength 56335, ...). Edited Sprinting's XP to 60000 through the UI, applied,
+  confirmed live.
+- Reverted both edits back to their original values (money -> 1000, Sprinting XP -> 51102) through
+  the same UI flow, confirmed via one final fresh reconnect, since this ran against a real save.
+
+**One non-bug worth recording**: attempting a second, concurrent raw TCP connection while the app
+was already connected hung until timeout. Read `Shared/LiveAgentServer.h`'s own doc comment - this
+is intentional ("one connection at a time"), not a defect. Verification that needs to double-check
+a live value while the UI holds the connection should disconnect/reconnect through the UI itself,
+not open a second client.
+
+**Net result**: the entire user-facing flow - the mode chooser, the connect form, both live tabs,
+apply, and revert - is now proven against the real game, not just the underlying protocol.
+
 ## Round-69: live editing CONFIRMED WORKING against the real game, end to end (2026-09-02)
 
 Continuation of round-68, same day, user asked to "test against actual game now." Launched the
