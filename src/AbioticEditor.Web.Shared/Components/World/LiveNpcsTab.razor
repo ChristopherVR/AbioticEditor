@@ -1,0 +1,111 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Core.LiveEditing
+@using AbioticEditor.Core.LiveEditing.World
+
+@* Unlike the player vitals/skills tabs on this same page, edits here apply immediately per NPC
+   (see LiveNpcSession's own doc comment for why) rather than staging for a page-level APPLY. *@
+<section class="editor-card" aria-label="@L.Resource("LiveNpcs_Title")">
+    <div class="card-title-row">
+        <h3>@L.Resource("LiveNpcs_Title")</h3>
+        <button class="secondary" type="button" disabled="@_busy" @onclick="RefreshAsync">@L.Resource("LiveNpcs_Refresh")</button>
+    </div>
+
+    @if (!Session.IsHost)
+    {
+        <p class="error-text" role="alert">@L.Resource("LiveNpcs_NotHostWarning")</p>
+    }
+    <p class="muted">@L.Resource("LiveNpcs_Intro")</p>
+
+    @if (Session.Npcs.Count == 0)
+    {
+        <p class="muted">@L.Resource("LiveNpcs_NoneFound")</p>
+    }
+    else
+    {
+        <div class="shell-save-list">
+            @foreach (var npc in Session.Npcs)
+            {
+                <div class="save-file-row kind-player" @key="npc.Id">
+                    <span class="save-kind-marker" aria-hidden="true"></span>
+                    <strong class="save-file-name">@npc.Label</strong>
+                    <div class="live-npc-controls">
+                        <button class="secondary" type="button" disabled="@(!Session.IsHost || _busy)"
+                                @onclick="() => ToggleDeadAsync(npc)">
+                            @(npc.IsDead ? L.Resource("LiveNpcs_Revive") : L.Resource("LiveNpcs_Kill"))
+                        </button>
+                        <label class="checkbox-field">
+                            <input type="checkbox" checked="@npc.IsDisabled" disabled="@(!Session.IsHost || _busy)"
+                                   @onchange="e => SetDisabledAsync(npc, (bool)e.Value!)" />
+                            @L.Resource("LiveNpcs_Disabled")
+                        </label>
+                        <label class="checkbox-field">
+                            <input type="checkbox" checked="@npc.Invincible" disabled="@(!Session.IsHost || _busy)"
+                                   @onchange="e => SetInvincibleAsync(npc, (bool)e.Value!)" />
+                            @L.Resource("LiveNpcs_Invincible")
+                        </label>
+                        <label class="live-npc-faction">
+                            @L.Resource("LiveNpcs_Faction")
+                            <input type="number" value="@npc.Faction" disabled="@(!Session.IsHost || _busy)"
+                                   @onchange="e => SetFactionAsync(npc, e)" />
+                        </label>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    @if (Session.Status is not null)
+    {
+        <p class="status-text">@Session.Status</p>
+    }
+    @if (_error is not null)
+    {
+        <p class="error-text" role="alert">@_error</p>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public LiveNpcSession Session { get; set; } = null!;
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private bool _busy;
+    private string? _error;
+
+    private async Task RefreshAsync() => await RunAsync(() => Session.RefreshAsync());
+
+    private Task ToggleDeadAsync(LiveNpc npc) =>
+        RunAsync(() => Session.ApplyAsync(new LiveNpcEdit(npc.Id, IsDead: !npc.IsDead)));
+
+    private Task SetDisabledAsync(LiveNpc npc, bool value) =>
+        RunAsync(() => Session.ApplyAsync(new LiveNpcEdit(npc.Id, IsDisabled: value)));
+
+    private Task SetInvincibleAsync(LiveNpc npc, bool value) =>
+        RunAsync(() => Session.ApplyAsync(new LiveNpcEdit(npc.Id, Invincible: value)));
+
+    private Task SetFactionAsync(LiveNpc npc, ChangeEventArgs args)
+    {
+        if (!int.TryParse(args.Value?.ToString(), out var faction)) return Task.CompletedTask;
+        return RunAsync(() => Session.ApplyAsync(new LiveNpcEdit(npc.Id, Faction: faction)));
+    }
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            await action();
+            await OnChanged.InvokeAsync();
+        }
+        catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
+            or IOException or OperationCanceledException)
+        {
+            _error = Errors.Present(exception, "Edit this NPC.", "The connection may have dropped; try reconnecting.");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

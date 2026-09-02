@@ -3916,4 +3916,14 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Live_Apply" xml:space="preserve"><value>APPLY</value></data>
   <data name="Live_Disconnect" xml:space="preserve"><value>DISCONNECT</value></data>
   <data name="Live_Sections" xml:space="preserve"><value>Live editor sections</value></data>
+  <data name="LiveNpcs_Title" xml:space="preserve"><value>NPCS</value></data>
+  <data name="LiveNpcs_Refresh" xml:space="preserve"><value>REFRESH</value></data>
+  <data name="LiveNpcs_Intro" xml:space="preserve"><value>Every NPC currently loaded in the game. Changes apply immediately, one at a time - there is no APPLY step here. No health or position editing yet.</value></data>
+  <data name="LiveNpcs_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to edit NPCs. Editing here as a joined client would not stick.</value></data>
+  <data name="LiveNpcs_NoneFound" xml:space="preserve"><value>No NPCs are currently loaded.</value></data>
+  <data name="LiveNpcs_Kill" xml:space="preserve"><value>KILL</value></data>
+  <data name="LiveNpcs_Revive" xml:space="preserve"><value>REVIVE</value></data>
+  <data name="LiveNpcs_Disabled" xml:space="preserve"><value>Disabled</value></data>
+  <data name="LiveNpcs_Invincible" xml:space="preserve"><value>Invincible</value></data>
+  <data name="LiveNpcs_Faction" xml:space="preserve"><value>Faction</value></data>
 </root>

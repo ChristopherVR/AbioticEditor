@@ -5,6 +5,53 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-73: NPC live editing verified against the real game, plus a screen-automation coordinate bug (2026-09-03)
+
+Continuation of round-72, resumed after a context compaction. Round-72 had already built
+`npcs.list`/`npcs.set` (kill/revive, Disabled, Invincible, Faction) end to end - Lua handlers,
+native-helper allowlist, `LiveNpcChannel`/`LiveNpcSession`, the NPCS tab - but left it unverified
+against the real game. This round finished that verification.
+
+**The tool used to drive the game window in rounds 69-72 was not available this round** (a fresh
+tool context after compaction). Rebuilt the same capability from scratch as inline PowerShell:
+`System.Drawing` `CopyFromScreen` for screenshots, `user32.dll` `SetCursorPos`/`mouse_event` for
+clicks, `keybd_event` for keys - saved as a small reusable helper script for future rounds.
+
+**Two real automation bugs found and fixed while getting this working, both worth remembering**:
+1. The desktop is multi-monitor with the game's monitor as *primary* (origin `0,0`) and the
+   second monitor at a *negative* X offset (`VirtualScreen.Left = -1920`). A screenshot bitmap's
+   pixel coordinates and `SetCursorPos`'s real coordinates are **not the same numbers** on this
+   kind of layout - clicking at a bitmap-read coordinate silently clamped the cursor to the
+   screen edge and did nothing, with no error. Every click helper now converts
+   `bitmap coordinate + VirtualScreen.Left/Top` before calling `SetCursorPos`.
+2. Windows' foreground-lock meant a plain `SetForegroundWindow` call from a script with no message
+   pump was silently ignored (clicks landed on an unfocused game window and did nothing) - fixed
+   with the standard `keybd_event`-then-`SetForegroundWindow` trick (a synthetic Alt key press
+   relaxes the lock for the next foreground switch from the same thread).
+
+**A third bug, in this round's own throwaway test tooling, not the product**: a PowerShell
+`$PayloadJsons = if (...) { $x | ForEach-Object {...} }` pattern silently unwraps a one-element
+pipeline result into a bare string, so `$PayloadJsons[0]` indexed a *character* of the JSON
+(`{`) instead of the whole payload - a revert command silently sent an empty payload and did
+nothing, caught by re-listing and comparing rather than trusting the "ok" response. Fixed by
+wrapping the whole expression in `@(...)`.
+
+**Verified, in order**: raw-protocol `npcs.list` (16 real NPCs, correct ids/faction/dead/disabled/
+invincible, `isHost: true` on this singleplayer save); raw-protocol `npcs.set` toggling and
+reverting `Invincible` on one NPC, round-tripped via a follow-up `npcs.list` each time; the actual
+NPCS tab in the desktop UI (headless + Playwright) showing all 16 real NPCs correctly, a checkbox
+click applying immediately and the list refreshing, reverted the same way; a fresh reconnect
+confirming NPC state matched the pre-test baseline exactly (same three `Disabled` Pests, nothing
+left `Invincible`). Also learned the native helper's C++ server is single-threaded
+(`accept()` -> `ServeClient()` in one loop) - it serves exactly one client connection at a time,
+so the raw-protocol test client and the Blazor UI's live connection can't be open simultaneously.
+
+**Character safety, again**: on reconnecting this round, the real "Chrissie" character (idle
+since round-72 while this round's tooling was rebuilt) was at thirst 0.0 and hunger 5.9 - not as
+severe as round-72's near-death find, but still fixed immediately via the live editor (HUNGER and
+THIRST to 85, HEAD to 100) and confirmed via a fresh reconnect. `money: 1000` was still correct
+(no repeat of the earlier autosave-race artifact).
+
 ## Round-72: merged players+world-saves sidebar, and a real pre-existing routing bug found and fixed (2026-09-02)
 
 Continuation of round-71, same session. Two user requests: (1) offline players (not currently

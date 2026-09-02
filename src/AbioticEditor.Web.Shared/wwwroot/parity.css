@@ -1827,3 +1827,9 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 .live-warning{color:var(--alert-text)}
 .error-text{color:var(--alert-text);font-size:12px;margin-top:8px}
 .status-text{color:var(--muted);font-size:12px;margin-top:8px}
+.live-player-picker{display:flex;align-items:center;gap:8px;justify-content:center;margin:0 0 14px;font-size:12px;color:var(--muted)}
+.live-player-picker select{padding:6px 10px;border:1px solid var(--divider);border-radius:4px;background:var(--panel);color:var(--ink)}
+.live-npc-controls{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-left:auto}
+.live-npc-controls .checkbox-field{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
+.live-npc-faction{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);white-space:nowrap}
+.live-npc-faction input{width:56px;padding:4px 6px;border:1px solid var(--divider);border-radius:4px;background:var(--panel);color:var(--ink)}

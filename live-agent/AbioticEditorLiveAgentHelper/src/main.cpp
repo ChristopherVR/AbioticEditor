@@ -47,7 +47,8 @@ int main()
     Server server(Port, token, [](const std::string& line) { std::cout << line << "\n"; });
 
     for (const char* command : {"ping", "diag.findplayer", "diag.getclass", "diag.countprops",
-        "vitals.get", "vitals.set", "skills.get", "skills.set", "players.list"})
+        "vitals.get", "vitals.set", "skills.get", "skills.set", "players.list",
+        "npcs.list", "npcs.set"})
         ForwardToLua(server, mailbox, command);
 
     server.Start();

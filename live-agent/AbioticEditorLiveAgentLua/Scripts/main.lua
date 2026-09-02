@@ -354,6 +354,109 @@ handlers["skills.set"] = function(payload, respond)
     end, respond)
 end
 
+-- ===== NPCs (verbatim pattern from CheatConsoleCommands' CommandsManager.lua:1394-1428, the
+-- "killall"/"spawnall" commands) - the first live-editing area that genuinely needs host
+-- authority: NPC state is server-owned, so a client's direct writes here would just get
+-- overwritten by replication from whoever the real host is. No health or position field is
+-- evidenced anywhere in that mod's ~800 lines for NPCs - only IsDead/Invincible/IsDisabled/
+-- Faction are ever read or written there, so that is the extent of what this exposes too;
+-- guessing further would repeat exactly the mistake this project already got burned by once
+-- (GetMyPlayerController).
+
+-- Copied verbatim from AFUtils/BaseUtils/BaseUtils.lua:137-140's IsHost() - the exact check
+-- CommandsManager.lua:1397 uses to gate the same kind of NPC edit (CheckHasNoAuthority). This is
+-- a world-level authority check (unlike players.list's per-actor HasAuthority(), which answers
+-- "can MY OWN pawn's writes stick" - NPCs are nobody's own actor, so the question here is
+-- "is this process the host at all", which is what AuthorityGameMode validity answers).
+local function isHost()
+    local ok, world = pcall(function() return UEHelpers.GetWorld() end)
+    if not ok or not world or not world:IsValid() then return false end
+    local ok2, gameMode = pcall(function() return world.AuthorityGameMode end)
+    return ok2 and gameMode ~= nil and gameMode:IsValid()
+end
+
+local function allNpcs()
+    local ok, npcs = pcall(function() return FindAllOf("NPC_Base_ParentBP_C") end)
+    if not ok or not npcs then return {} end
+    return npcs
+end
+
+-- GetFullName() is a lightweight, direct UE4SS binding on any UObject - confirmed real and safe
+-- at CommandsManager.lua:1857/1869 (called straight on the actor, e.g. `hitActor:GetFullName()`,
+-- never through GetClass(), so it carries none of that API's game-thread freeze risk). Used here
+-- as this protocol's NPC id: a fresh FindAllOf scan is re-run for every npcs.set (an NPC roster
+-- changes constantly - wildlife wanders, things die - so an array index from an earlier
+-- npcs.list could easily point at a completely different NPC by the time an edit lands; the full
+-- name is stable for the life of that specific object, so re-matching by it is always correct or
+-- correctly finds nothing, never silently wrong).
+local function npcFullName(npc)
+    local ok, fullName = pcall(function() return npc:GetFullName() end)
+    if ok and fullName then return tostring(fullName) end
+    return nil
+end
+
+-- The part of GetFullName() before the first space is the object's class (e.g.
+-- "BP_FeralOoze_C") - no friendlier display name is evidenced anywhere for this actor type, so
+-- this is what the UI shows rather than inventing one.
+local function npcLabel(fullName)
+    return fullName and fullName:match("^(%S+)") or "NPC"
+end
+
+local function findNpcByFullName(target)
+    local npcs = allNpcs()
+    for _, npc in ipairs(npcs) do
+        if npc:IsValid() and npcFullName(npc) == target then return npc end
+    end
+    return nil
+end
+
+handlers["npcs.list"] = function(_, respond)
+    runOnGameThread(function()
+        local npcs = allNpcs()
+        local result = { __forceArray = true }
+        for _, npc in ipairs(npcs) do
+            if npc:IsValid() then
+                local fullName = npcFullName(npc)
+                if fullName then
+                    table.insert(result, {
+                        id = fullName,
+                        label = npcLabel(fullName),
+                        isDead = npc.IsDead == true,
+                        isDisabled = npc.IsDisabled == true,
+                        invincible = npc.Invincible == true,
+                        faction = npc.Faction,
+                    })
+                end
+            end
+        end
+        return { npcs = result, isHost = isHost() }
+    end, respond)
+end
+
+handlers["npcs.set"] = function(payload, respond)
+    runOnGameThread(function()
+        if not isHost() then error("only the host can edit NPCs") end
+        local rows = payload.npcs or {}
+        for i = 1, #rows do
+            local row = rows[i]
+            local npc = row.id and findNpcByFullName(row.id)
+            if npc then
+                if row.isDead ~= nil and npc.IsDead ~= row.isDead then
+                    npc.IsDead = row.isDead
+                    -- Mirrors the real mod's kill command: pushes the change out through
+                    -- replication/UI instead of leaving it locally-set only (the same pattern
+                    -- vitals.set already uses for OnRep_CurrentHealth).
+                    pcall(function() npc:OnRep_IsDead() end)
+                end
+                if row.isDisabled ~= nil then npc.IsDisabled = row.isDisabled end
+                if row.invincible ~= nil then npc.Invincible = row.invincible end
+                if row.faction ~= nil then npc.Faction = row.faction end
+            end
+        end
+        return nil
+    end, respond)
+end
+
 -- ===== The file-mailbox poll loop =====
 -- Atomic publish: write to a temp file, then rename over the real path, so the helper's reader
 -- never observes a half-written response (matches FileMailbox::WriteAtomic on the helper side).
