@@ -20,7 +20,7 @@ add_library(AbioticEditorLiveAgent SHARED
     src/LiveAgentServer.cpp
 )
 target_include_directories(AbioticEditorLiveAgent PRIVATE src "${UE4SS_SDK_DIR}/include")
-target_link_libraries(AbioticEditorLiveAgent PRIVATE ws2_32 "${UE4SS_SDK_DIR}/lib/UE4SS.lib")
+target_link_libraries(AbioticEditorLiveAgent PRIVATE ws2_32 bcrypt "${UE4SS_SDK_DIR}/lib/UE4SS.lib")
 set_target_properties(AbioticEditorLiveAgent PROPERTIES OUTPUT_NAME "AbioticEditorLiveAgent")
 
 # The standalone protocol test has NO dependency on UE4SS_SDK_DIR - it only exercises

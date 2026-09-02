@@ -5,7 +5,11 @@
 
 #include <filesystem>
 #include <fstream>
-#include <random>
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <bcrypt.h>
+#pragma comment(lib, "bcrypt.lib")
 
 #include "LiveAgentServer.h"
 #include "VitalsCommands.h"
@@ -73,14 +77,23 @@ private:
         return token;
     }
 
+    // Uses the OS CSPRNG (not std::mt19937, whose state is recoverable from its own output and
+    // so is not fit to generate a bearer secret) - this token is the only thing standing between
+    // "the editor" and "anyone on the network who can guess it" being able to write to a live
+    // game process, so it needs real cryptographic randomness, not merely well-distributed bytes.
     static std::string GenerateRandomToken()
     {
         static const char alphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        std::random_device rd;
-        std::mt19937 rng(rd());
-        std::uniform_int_distribution<int> dist(0, static_cast<int>(sizeof(alphabet) - 2));
-        std::string token(32, '\0');
-        for (char& c : token) c = alphabet[dist(rng)];
+        constexpr size_t length = 32;
+        unsigned char randomBytes[length];
+        NTSTATUS status = BCryptGenRandom(
+            nullptr, randomBytes, static_cast<ULONG>(length), BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+        if (status != 0 /* STATUS_SUCCESS */)
+            throw std::runtime_error("BCryptGenRandom failed while generating the live-agent token");
+
+        std::string token(length, '\0');
+        for (size_t i = 0; i < length; ++i)
+            token[i] = alphabet[randomBytes[i] % (sizeof(alphabet) - 1)];
         return token;
     }
 };
