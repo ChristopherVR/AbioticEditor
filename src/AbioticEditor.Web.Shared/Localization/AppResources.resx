@@ -3902,6 +3902,14 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Live_AutoConnected" xml:space="preserve"><value>Connected automatically to the game on this PC.</value></data>
   <data name="Live_UseManualConnection" xml:space="preserve"><value>Connect to a different game instead</value></data>
   <data name="Live_ImmediateWarning" xml:space="preserve"><value>Changes here apply to the running game immediately. There is no undo the way a file's backup gives you - use REVERT before you apply if you change your mind.</value></data>
+  <data name="Live_EditingPlayer" xml:space="preserve"><value>Editing</value></data>
+  <data name="Live_You" xml:space="preserve"><value>you</value></data>
+  <data name="Live_ConnectedPlayers" xml:space="preserve"><value>CONNECTED PLAYERS</value></data>
+  <data name="Live_YouChip" xml:space="preserve"><value>YOU</value></data>
+  <data name="Live_HostChip" xml:space="preserve"><value>HOSTING</value></data>
+  <data name="Live_ClientChip" xml:space="preserve"><value>CLIENT</value></data>
+  <data name="Live_SidebarNoPlayers" xml:space="preserve"><value>No players found yet.</value></data>
+  <data name="Live_SidebarSubtitle" xml:space="preserve"><value>Live-editing a running game.</value></data>
   <data name="Live_Apply" xml:space="preserve"><value>APPLY</value></data>
   <data name="Live_Disconnect" xml:space="preserve"><value>DISCONNECT</value></data>
   <data name="Live_Sections" xml:space="preserve"><value>Live editor sections</value></data>

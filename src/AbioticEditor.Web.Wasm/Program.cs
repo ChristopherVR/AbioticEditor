@@ -41,6 +41,9 @@ builder.Services.AddScoped<CodexVocabularyService>();
 builder.Services.AddScoped<TraderVocabularyService>();
 builder.Services.AddScoped<SaveWorkspaceSessionService>();
 builder.Services.AddScoped<RecipeProgressGateService>();
+// Never populated here - ILiveEditingCapability is absent on this host, so /live is never
+// reached - but WorkspaceShell injects it unconditionally, so it still has to exist.
+builder.Services.AddScoped<LiveSessionService>();
 // Reading a world costs seconds here, so what it produced is kept between visits.
 builder.Services.AddScoped<IWorldFactsCache, BrowserWorldFactsCache>();
 builder.Services.AddScoped<SiblingWorldBedService>();

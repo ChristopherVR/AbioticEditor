@@ -8,6 +8,7 @@
 @inject HostLanguageService L
 @inject NavigationManager Navigation
 @inject IServiceProvider Services
+@inject LiveSessionService LiveSession
 
 <PageTitle>@L.Resource("Common_AppName")</PageTitle>
 
@@ -57,6 +58,19 @@
             </p>
         }
         <p class="lede live-warning">@L.Resource("Live_ImmediateWarning")</p>
+
+        @if (_directory is { Players.Count: > 1 })
+        {
+            <label class="live-player-picker">
+                @L.Resource("Live_EditingPlayer")
+                <select @bind="_selectedPlayerId" @bind:event="oninput" @bind:after="PlayerPickedAsync" disabled="@_isBusy">
+                    @foreach (var player in _directory.Players)
+                    {
+                        <option value="@player.Id">@player.Name@(player.IsLocal ? $" ({L.Resource("Live_You")})" : null)</option>
+                    }
+                </select>
+            </label>
+        }
 
         <nav class="editor-tabs" role="tablist" aria-label="@L.Resource("Live_Sections")">
             <button type="button" role="tab" class="editor-tab @(_activeTab == "vitals" ? "active" : null)"
@@ -114,6 +128,8 @@
     private ILiveGameChannel? _channel;
     private LivePlayerVitalsSession? _vitals;
     private LivePlayerSkillsSession? _skills;
+    private LivePlayerDirectory? _directory;
+    private string? _selectedPlayerId;
 
     private bool ActiveIsDirty => _activeTab == "vitals" ? _vitals?.IsDirty == true : _skills?.IsDirty == true;
     private string? ActiveStatus => _activeTab == "vitals" ? _vitals?.Status : _skills?.Status;
@@ -148,20 +164,28 @@
         try
         {
             await channel.ConnectAsync(new LiveConnectionInfo(_host, _port, _token));
-            // Both sessions share the one connection/token handshake - each area gets its own
-            // channel wrapper (LivePlayerVitalsChannel, LivePlayerSkillsChannel) over it, the
-            // same shape the file-backed PlayerSaveSession's slices share one PlayerSaveData.
-            _vitals = await LivePlayerVitalsSession.ConnectAsync(new LivePlayerVitalsChannel(channel));
-            _skills = await LivePlayerSkillsSession.ConnectAsync(new LivePlayerSkillsChannel(channel));
+            // Every area shares the one connection/token handshake - each gets its own channel
+            // wrapper over it, the same shape the file-backed PlayerSaveSession's slices share
+            // one PlayerSaveData. The directory is read first so vitals/skills can seed straight
+            // from the local player's id instead of the mod's own "no playerId given" default -
+            // the two happen to be the same player today, but reading the id explicitly is what
+            // lets the picker below hand back a DIFFERENT one later without a special case.
+            var directory = await new LivePlayerDirectoryChannel(channel).GetAsync();
+            var localPlayerId = directory.Players.FirstOrDefault(player => player.IsLocal)?.Id;
+            _vitals = await LivePlayerVitalsSession.ConnectAsync(new LivePlayerVitalsChannel(channel), localPlayerId);
+            _skills = await LivePlayerSkillsSession.ConnectAsync(new LivePlayerSkillsChannel(channel), localPlayerId);
             _channel = channel;
             _autoConnected = isAutoConnect;
+            _directory = directory;
+            _selectedPlayerId = localPlayerId;
+            LiveSession.Connected(directory, localPlayerId);
         }
         catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
             or IOException or OperationCanceledException)
         {
             _error = isAutoConnect
                 ? Errors.Present(exception, "Connect to the game on this PC.",
-                    "Make sure the game is running with the live-agent mod loaded, or enter a dedicated server's details below.")
+                    "Make sure the game is running with the live-agent mod loaded, or enter a different computer's connection details below.")
                 : Errors.Present(exception, "Connect to the running game.",
                     "Check the host, port and token, and that the live-agent mod is running.");
             await channel.DisposeAsync();
@@ -199,17 +223,46 @@
         else _skills?.Revert();
     }
 
+    /// <summary>Switches both tabs to a different connected player, discarding any unsaved edits
+    /// for whoever was selected before - REVERT only ever undoes edits, never a player switch.</summary>
+    private async Task PlayerPickedAsync()
+    {
+        if (_vitals is null || _skills is null) return;
+        _isBusy = true;
+        _error = null;
+        try
+        {
+            await _vitals.SwitchPlayerAsync(_selectedPlayerId);
+            await _skills.SwitchPlayerAsync(_selectedPlayerId);
+            LiveSession.PlayerSelected(_selectedPlayerId);
+        }
+        catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
+            or IOException or OperationCanceledException)
+        {
+            _error = Errors.Present(exception, "Switch to a different player.",
+                "The connection may have dropped; try reconnecting.");
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
     private async Task DisconnectAsync()
     {
         _vitals = null;
         _skills = null;
+        _directory = null;
+        _selectedPlayerId = null;
         if (_channel is not null) await _channel.DisposeAsync();
         _channel = null;
         _error = null;
+        LiveSession.Disconnected();
     }
 
     public async ValueTask DisposeAsync()
     {
+        LiveSession.Disconnected();
         if (_channel is not null) await _channel.DisposeAsync();
     }
 }

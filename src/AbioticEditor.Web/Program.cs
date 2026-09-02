@@ -92,6 +92,7 @@ public static class Program
         // Only the desktop host registers this: its presence is what ModeSelect.razor uses to
         // decide whether to offer live in-game editing at all (absent on the WASM/browser host).
         builder.Services.AddSingleton<ILiveEditingCapability, DesktopLiveEditingCapability>();
+        builder.Services.AddSingleton<LiveSessionService>();
 #if !NEXUSMODS
         // Absent from the Nexus Mods build: that channel manages its own file versions and its
         // guidelines discourage bundled auto-updaters, so no update code ships there at all.

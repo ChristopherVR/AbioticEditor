@@ -30,6 +30,18 @@
 -- `.MyPlayerCharacter`, which was already correct. See getMyPlayer() below for the exact fix, and
 -- live-agent/README.md "Ground truth from a real mod" / docs/PROGRESS.md round 69 for the full
 -- story of how this was found (a real published mod's source, not guessing).
+--
+-- ADDED (round 71, same day): multiple-player support. `players.list` (real API, confirmed via
+-- CheatConsoleCommands' PlayersManager.lua and UEHelpers.lua:159-187 - `UEHelpers.GetAllPlayerStates()`
+-- reads AGameStateBase.PlayerArray, a base-engine field, not Abiotic-specific, so this works
+-- identically whether this process is hosting or has joined someone else's game) lists every
+-- connected player and reports whether THIS process has authority (`HasAuthority()`, confirmed
+-- used the same way in that mod's own main.lua:60). Every vitals/skills handler now accepts an
+-- optional payload.playerId to target a DIFFERENT connected player instead of always the local
+-- one - resolvePlayer() below is the single place that lookup happens. Tested live only against a
+-- singleplayer/hosted session (one player, isHost=true) - the multi-player path (a second real
+-- client actually joined) has NOT been tested against the real game yet, only reasoned about from
+-- the reference mod's source.
 
 local json = require("json")
 local UEHelpers = require("UEHelpers")
@@ -71,9 +83,8 @@ end
 -- that API had.
 
 ---Returns the live player character (the pawn, not PlayerState) for whoever this mod is running
----as, or nil. One process = one local player, matching this project's current scope (a locally
----hosted session, or a dedicated server the operator controls and could extend to
----player-selection later - see docs/reference/live-editing-protocol.md).
+---as, or nil. This is the default target for every command that does not name a playerId - see
+---resolvePlayer below for editing a DIFFERENT connected player.
 local function getMyPlayer()
     local controller = UEHelpers.GetPlayerController()
     if not controller or not controller:IsValid() then return nil end
@@ -82,7 +93,93 @@ local function getMyPlayer()
     return player
 end
 
+-- ===== Multiple connected players (verbatim pattern from UE4SS's own bundled UEHelpers module -
+-- NOT a mod-local wrapper like GetMyPlayerController turned out to be - confirmed independently
+-- by CheatConsoleCommands' PlayersManager.lua using the same underlying field under its own
+-- wrapper) =====
+--
+-- `UEHelpers.GetAllPlayerStates()` reads `AGameStateBase.PlayerArray`, a base-engine replicated
+-- property listing every connected player (not just the local one) - real, reachable from a
+-- joined client exactly the same as from the host. Each PlayerState exposes `.PlayerNamePrivate`
+-- (display name) and `.PawnPrivate` (that player's live character, the same kind of object
+-- getMyPlayer() above returns for the local player). `.UniquePlayerID` (confirmed at
+-- AFUtils/ObjectsGetter.lua:262-263) is Abiotic's own per-player id, used here as this protocol's
+-- stable playerId; if a future build ever lacks it, playerId() falls back to a positional id
+-- rather than breaking the whole directory.
+
+---@return table[] # every connected player's PlayerState, PawnPrivate/PlayerNamePrivate readable.
+local function allPlayerStates()
+    local ok, states = pcall(function() return UEHelpers.GetAllPlayerStates() end)
+    if not ok or not states then return {} end
+    return states
+end
+
+local function playerId(playerState, fallbackIndex)
+    local ok, uid = pcall(function() return playerState.UniquePlayerID:ToString() end)
+    if ok and uid and uid ~= "" then return uid end
+    return "index:" .. tostring(fallbackIndex)
+end
+
+local function localPlayerId()
+    local controller = UEHelpers.GetPlayerController()
+    if not controller or not controller:IsValid() then return nil end
+    local state = controller.PlayerState
+    if not state or not state:IsValid() then return nil end
+    return playerId(state, 0)
+end
+
+---Resolves which player character a request targets: payload.playerId when given (matched
+---against the same id players.list handed out, any connected player - not just the local one),
+---otherwise getMyPlayer() - unchanged default behavior for every command from before player
+---selection existed, so vitals/skills callers that never send playerId keep working exactly as
+---they did.
+local function resolvePlayer(payload)
+    if not payload or not payload.playerId then return getMyPlayer() end
+    for index, state in ipairs(allPlayerStates()) do
+        if state:IsValid() and playerId(state, index - 1) == payload.playerId then
+            local pawn = state.PawnPrivate
+            if pawn and pawn:IsValid() then return pawn end
+            return nil
+        end
+    end
+    return nil
+end
+
 local handlers = {}
+
+-- Lists every connected player (name + a stable id) plus whether THIS process currently has
+-- authority (see the "Host/client authority" note above handlers["vitals.set"] below) - the UI
+-- uses this both to offer a player picker and to show whether edits here are expected to stick.
+handlers["players.list"] = function(_, respond)
+    runOnGameThread(function()
+        local myId = localPlayerId()
+        local players = { __forceArray = true }
+        for index, state in ipairs(allPlayerStates()) do
+            if state:IsValid() then
+                local ok, name = pcall(function() return state.PlayerNamePrivate:ToString() end)
+                local id = playerId(state, index - 1)
+                table.insert(players, {
+                    id = id,
+                    name = (ok and name and name ~= "") and name or ("Player " .. tostring(index)),
+                    isLocal = id == myId,
+                })
+            end
+        end
+        -- HasAuthority() is a real per-actor AActor::HasAuthority() call, confirmed used the same
+        -- way in CheatConsoleCommands' main.lua:60 to decide whether a direct property write on
+        -- THIS specific actor will actually stick (vs. get silently overwritten by replication
+        -- from whoever the real host is). Checked on the local player's own pawn, not whichever
+        -- player is being viewed - authority is about what THIS process (host or client) can
+        -- make stick, independent of which player's data is currently on screen.
+        local myPlayer = getMyPlayer()
+        local hasAuthority = false
+        if myPlayer then
+            local ok, result = pcall(function() return myPlayer:HasAuthority() end)
+            if ok then hasAuthority = result end
+        end
+        return { players = players, isHost = hasAuthority }
+    end, respond)
+end
 
 -- Touches ZERO UE4SS/game APIs - a safe baseline to confirm the dispatch/mailbox loop itself is
 -- healthy before calling anything that reaches into the game. Responds synchronously (no game
@@ -107,10 +204,10 @@ end
 -- has no sanity-related command), so `CurrentSanity` is inferred from the naming pattern the
 -- other eleven fields all share, not directly confirmed - the one field in this table still
 -- worth double-checking first if it comes back wrong.
-handlers["vitals.get"] = function(_, respond)
+handlers["vitals.get"] = function(payload, respond)
     runOnGameThread(function()
-        local myPlayer = getMyPlayer()
-        if not myPlayer then error("no local player found") end
+        local myPlayer = resolvePlayer(payload)
+        if not myPlayer then error("player not found") end
         return {
             hunger = myPlayer.CurrentHunger,
             thirst = myPlayer.CurrentThirst,
@@ -130,8 +227,8 @@ end
 
 handlers["vitals.set"] = function(payload, respond)
     runOnGameThread(function()
-        local myPlayer = getMyPlayer()
-        if not myPlayer then error("no local player found") end
+        local myPlayer = resolvePlayer(payload)
+        if not myPlayer then error("player not found") end
         if payload.hunger ~= nil then myPlayer.CurrentHunger = payload.hunger end
         if payload.thirst ~= nil then myPlayer.CurrentThirst = payload.thirst end
         if payload.sanity ~= nil then myPlayer.CurrentSanity = payload.sanity end
@@ -197,17 +294,17 @@ local FileIndexToLiveSkillId = {
 local SKILL_XP_FIELD = "CurrentSkillXP_20_8F7934CD4A4542F036AE5C9649362556"
 
 ---@return userdata? progressionComponent
-local function getMyProgressionComponent()
-    local myPlayer = getMyPlayer()
-    if not myPlayer then return nil end
-    local component = myPlayer.CharacterProgressionComponent
+local function getProgressionComponent(payload)
+    local targetPlayer = resolvePlayer(payload)
+    if not targetPlayer then return nil end
+    local component = targetPlayer.CharacterProgressionComponent
     if not component or not component:IsValid() then return nil end
     return component
 end
 
-handlers["skills.get"] = function(_, respond)
+handlers["skills.get"] = function(payload, respond)
     runOnGameThread(function()
-        local progressionComponent = getMyProgressionComponent()
+        local progressionComponent = getProgressionComponent(payload)
         if not progressionComponent then error("no CharacterProgressionComponent found") end
         local keys = progressionComponent.CharacterSkills_Keys
         local values = progressionComponent.CharacterSkills_Values
@@ -235,14 +332,17 @@ end
 -- docs/reference/live-editing-protocol.md) means remove-then-add rather than one direct set.
 -- xpMultiplier has no confirmed live equivalent (that mod does not implement a per-skill XP-rate
 -- feature) - accepted but not applied, same "unknown on this build, do not guess" stance the file
--- writers take for a property they cannot find.
+-- writers take for a property they cannot find. The rows themselves live under payload.skills (not
+-- payload directly) so playerId can sit alongside them in the same object, matching every other
+-- command's shape now that player selection exists.
 handlers["skills.set"] = function(payload, respond)
     runOnGameThread(function()
-        local progressionComponent = getMyProgressionComponent()
+        local progressionComponent = getProgressionComponent(payload)
         if not progressionComponent then error("no CharacterProgressionComponent found") end
 
-        for i = 1, #payload do
-            local row = payload[i]
+        local rows = payload.skills or {}
+        for i = 1, #rows do
+            local row = rows[i]
             local liveId = FileIndexToLiveSkillId[row.index]
             if liveId and row.xp ~= nil then
                 progressionComponent:Server_RemoveAllXPFromSkill(liveId)

@@ -4,6 +4,7 @@
 @inject HostThemeService Theme
 @inject HostSettingsService HostSettings
 @inject SaveWorkspaceSessionService Workspace
+@inject LiveSessionService Live
 @inject AbioticEditor.Ui.IFolderPicker FolderPicker
 @inject ToastService Toasts
 @inject UnsavedChangesGuard Unsaved
@@ -42,10 +43,18 @@
             <span>@Languages.Resource("HeaderBar_VersionLabel", AppVersion)</span>
         </a>
         <div class="active-folder">
-            <span>@Languages.Text("active.save.folder")</span>
-            @* Game Pass workspaces read from a temp extraction the player never made; show
-               the real Xbox save folder instead, exactly like the native app's header. *@
-            <strong>@(Workspace.Current?.DisplayFolder ?? Languages.Text("none.selected"))</strong>
+            @if (Live.IsConnected)
+            {
+                <span>@Languages.Resource("Live_SidebarSubtitle")</span>
+                <strong>@(Live.Directory?.IsHost == true ? Languages.Resource("Live_HostChip") : Languages.Resource("Live_ClientChip"))</strong>
+            }
+            else
+            {
+                <span>@Languages.Text("active.save.folder")</span>
+                @* Game Pass workspaces read from a temp extraction the player never made; show
+                   the real Xbox save folder instead, exactly like the native app's header. *@
+                <strong>@(Workspace.Current?.DisplayFolder ?? Languages.Text("none.selected"))</strong>
+            }
         </div>
         <nav class="header-actions" aria-label="@Languages.Text("application.actions")">
             @if (Workspace.BusyOperation is { } busy)
@@ -96,6 +105,7 @@
         Languages.Changed += Refresh;
         Theme.Changed += Refresh;
         Workspace.Changed += RefreshWorkspace;
+        Live.Changed += RefreshWorkspace;
     }
 
     private bool _openingFolder;
@@ -181,5 +191,5 @@
             ToastKind.Error,
             TimeSpan.FromSeconds(10));
     }
-    public void Dispose() { Languages.Changed -= Refresh; Theme.Changed -= Refresh; Workspace.Changed -= RefreshWorkspace; }
+    public void Dispose() { Languages.Changed -= Refresh; Theme.Changed -= Refresh; Workspace.Changed -= RefreshWorkspace; Live.Changed -= RefreshWorkspace; }
 }

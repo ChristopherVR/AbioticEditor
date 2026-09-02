@@ -4,6 +4,7 @@
 @using Microsoft.JSInterop
 @implements IAsyncDisposable
 @inject SaveWorkspaceSessionService Workspace
+@inject LiveSessionService Live
 @inject SaveExportService Export
 @inject SiblingWorldBedService Beds
 @inject ShellPreferencesService Preferences
@@ -18,7 +19,42 @@
 @inject IJSRuntime Js
 
 <div class="workspace-shell shell-with-splitters @(DrawerMode ? "drawer-mode" : null) @FileClass @DetailsClass" style="@ShellStyle">
-    <aside class="shell-pane file-pane" aria-label="@L.Text("save.workspace")">
+    <aside class="shell-pane file-pane" aria-label="@(Live.IsConnected ? L.Resource("Live_SidebarSubtitle") : L.Text("save.workspace"))">
+    @if (Live.IsConnected)
+    {
+        <header class="file-sidebar-header">
+            <div class="file-pane-heading">
+                <strong>@L.Resource("Live_ConnectedPlayers")</strong>
+                <span class="platform-badge @(Live.Directory?.IsHost == true ? "platform-steam" : "platform-gamepass")">
+                    @(Live.Directory?.IsHost == true ? L.Resource("Live_HostChip") : L.Resource("Live_ClientChip"))
+                </span>
+            </div>
+        </header>
+        @if (Live.Directory is { Players.Count: > 0 } directory)
+        {
+            <div class="shell-save-list save-groups-scroll">
+                <section class="save-group">
+                    @foreach (var player in directory.Players)
+                    {
+                        <div class="save-file-row kind-player @(player.Id == Live.SelectedPlayerId ? "selected" : null)">
+                            <span class="save-kind-marker" aria-hidden="true"></span>
+                            <strong class="save-file-name">@player.Name</strong>
+                            @if (player.IsLocal)
+                            {
+                                <span class="save-file-meta"><b>@L.Resource("Live_YouChip")</b></span>
+                            }
+                        </div>
+                    }
+                </section>
+            </div>
+        }
+        else
+        {
+            <div class="shell-empty"><strong>@L.Resource("Live_SidebarNoPlayers")</strong></div>
+        }
+    }
+    else
+    {
         <header class="file-sidebar-header">
             <div class="file-pane-heading">
                 <strong>@L.Resource("FileSidebar_SaveFiles")</strong>
@@ -136,6 +172,7 @@
                 </section>
             }
         }
+    }
     </aside>
 
     <div class="shell-splitter file-splitter" @ref="_fileSplitter" role="separator" tabindex="0" @onkeydown="ResizeFileWithKeyboard" aria-orientation="vertical" aria-label="@L.Text("resize.saves")" aria-valuemin="220" aria-valuemax="600" aria-valuenow="@Preferences.State.FilePaneWidth">
@@ -168,6 +205,7 @@
                     }
                 </div>
             }
+            else if (Live.IsConnected) { <span>@L.Resource("Live_SidebarSubtitle")</span> }
             else { <span>@L.Editor("workspace.selectHint")</span> }
         </section>
         <div class="shell-body">
@@ -274,7 +312,7 @@
         }
     }
 
-    protected override void OnInitialized() { Workspace.Changed += WorkspaceChanged; Preferences.Changed += Refresh; InventorySelection.Changed += SelectionChanged; InventorySelection.ItemCommitted += ItemCommitted; Navigation.LocationChanged += NavigationChanged; _selectedSavePath = Workspace.Current?.SelectedSave?.Path; _workspaceFolder = Workspace.Current?.WorldFolder; _playerSession = Workspace.Current?.PlayerSession; _worldSession = Workspace.Current?.WorldSession; _hadSlotSelection = InventorySelection.HasAnySelection; if (Workspace.Current is { } open) LoadClaimPersonas(open.WorldFolder); Beds.Loaded += DeployablesLoaded; Beds.Reading += WorldReading; }
+    protected override void OnInitialized() { Workspace.Changed += WorkspaceChanged; Live.Changed += Refresh; Preferences.Changed += Refresh; InventorySelection.Changed += SelectionChanged; InventorySelection.ItemCommitted += ItemCommitted; Navigation.LocationChanged += NavigationChanged; _selectedSavePath = Workspace.Current?.SelectedSave?.Path; _workspaceFolder = Workspace.Current?.WorldFolder; _playerSession = Workspace.Current?.PlayerSession; _worldSession = Workspace.Current?.WorldSession; _hadSlotSelection = InventorySelection.HasAnySelection; if (Workspace.Current is { } open) LoadClaimPersonas(open.WorldFolder); Beds.Loaded += DeployablesLoaded; Beds.Reading += WorldReading; }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
@@ -807,7 +845,7 @@
     private static string KindClass(SaveDocumentKind kind) => kind.ToString().ToLowerInvariant();
     public async ValueTask DisposeAsync()
     {
-        Workspace.Changed -= WorkspaceChanged; Beds.Loaded -= DeployablesLoaded; Beds.Reading -= WorldReading; Preferences.Changed -= Refresh; InventorySelection.Changed -= SelectionChanged; InventorySelection.ItemCommitted -= ItemCommitted; Navigation.LocationChanged -= NavigationChanged;
+        Workspace.Changed -= WorkspaceChanged; Live.Changed -= Refresh; Beds.Loaded -= DeployablesLoaded; Beds.Reading -= WorldReading; Preferences.Changed -= Refresh; InventorySelection.Changed -= SelectionChanged; InventorySelection.ItemCommitted -= ItemCommitted; Navigation.LocationChanged -= NavigationChanged;
         if (_splitterModule is not null) { try { await _splitterModule.InvokeVoidAsync("unwatch"); await _splitterModule.DisposeAsync(); } catch (JSDisconnectedException) { } }
         _self?.Dispose();
     }

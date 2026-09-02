@@ -43,7 +43,7 @@ public sealed class RazorHostAcceptanceTests
     {
         var shell = Source("Components", "Shared", "WorkspaceShell.razor");
 
-        Assert.Contains("aria-label=\"@L.Text(\"save.workspace\")\"", shell, StringComparison.Ordinal);
+        Assert.Contains("L.Text(\"save.workspace\")", shell, StringComparison.Ordinal);
         Assert.Contains("aria-live=\"polite\"", shell, StringComparison.Ordinal);
         Assert.Contains("@onclick=\"ReloadAsync\"", shell, StringComparison.Ordinal);
         Assert.Contains("@onclick=\"Revert\"", shell, StringComparison.Ordinal);

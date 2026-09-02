@@ -15,21 +15,24 @@ public sealed class LivePlayerVitalsSession : IPlayerVitalsSession
 {
     private readonly LivePlayerVitalsChannel _channel;
     private PlayerVitals _original;
+    private string? _playerId;
 
-    private LivePlayerVitalsSession(LivePlayerVitalsChannel channel, PlayerVitals initial)
+    private LivePlayerVitalsSession(LivePlayerVitalsChannel channel, string? playerId, PlayerVitals initial)
     {
         _channel = channel;
+        _playerId = playerId;
         Vitals = initial;
         _original = initial.Clone();
     }
 
-    /// <summary>Connects and reads the live player's current vitals to seed the session.</summary>
+    /// <summary>Connects and reads the current vitals for <paramref name="playerId"/> (or the
+    /// local player when omitted) to seed the session.</summary>
     public static async Task<LivePlayerVitalsSession> ConnectAsync(
-        LivePlayerVitalsChannel channel, CancellationToken cancellationToken = default)
+        LivePlayerVitalsChannel channel, string? playerId = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(channel);
-        var (stats, health) = await channel.GetAsync(cancellationToken).ConfigureAwait(false);
-        return new LivePlayerVitalsSession(channel, ToVitals(stats, health));
+        var (stats, health) = await channel.GetAsync(playerId, cancellationToken).ConfigureAwait(false);
+        return new LivePlayerVitalsSession(channel, playerId, ToVitals(stats, health));
     }
 
     public PlayerVitals Vitals { get; private set; }
@@ -45,7 +48,7 @@ public sealed class LivePlayerVitalsSession : IPlayerVitalsSession
             new CharacterStats(Vitals.Hunger, Vitals.Thirst, Vitals.Sanity, Vitals.Fatigue,
                 Vitals.Continence, (int)Math.Round(Vitals.Money)),
             new LimbHealth(Vitals.Head, Vitals.Torso, Vitals.LeftArm, Vitals.RightArm, Vitals.LeftLeg, Vitals.RightLeg),
-            cancellationToken).ConfigureAwait(false);
+            _playerId, cancellationToken).ConfigureAwait(false);
         _original = Vitals.Clone();
         Status = "Applied live - this took effect in the running game immediately.";
     }
@@ -59,10 +62,18 @@ public sealed class LivePlayerVitalsSession : IPlayerVitalsSession
     /// <summary>Re-reads the live player's vitals, discarding any unsaved local edits.</summary>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
-        var (stats, health) = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
+        var (stats, health) = await _channel.GetAsync(_playerId, cancellationToken).ConfigureAwait(false);
         Vitals = ToVitals(stats, health);
         _original = Vitals.Clone();
         Status = "Refreshed from the running game.";
+    }
+
+    /// <summary>Switches which connected player this session edits (discarding any unsaved local
+    /// edits for the previous one) and re-reads that player's vitals.</summary>
+    public async Task SwitchPlayerAsync(string? playerId, CancellationToken cancellationToken = default)
+    {
+        _playerId = playerId;
+        await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static PlayerVitals ToVitals(CharacterStats stats, LimbHealth health) => new()
