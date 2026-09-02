@@ -60,15 +60,13 @@ built and shipped as its own standalone artifact(s), not something `dotnet build
   a re-read after each write to confirm it actually stuck, all passed. Only the connection between
   Lua and an *actual* running game is outside what could be exercised this way.
 
-**NOT verified: whether UE4SS's real Lua API behaves exactly like the fake stand-in above**, and
-whether the property names (`Hunger_`, `CurrentSkillXP_`, ...) and class name
-(`AbioticCharacterPlayerState`) in `main.lua` are correct. They are reasonable guesses by analogy
-with the save-file property names this repo already knows (`Core/Domain/Player/`), not confirmed
-live property names - same rule as always: don't trust them until checked against a real running
-game (UE4SS's own object-dump tooling, or just watching the mod's `print()` output for errors).
-This is a *much* smaller and easier-to-close gap than the pure-C++-mod approach's, because closing
-it needs nothing more than dropping the Lua script into a real game and testing it - no rebuild,
-no SDK.
+**Tested against the real game this round** (see "Real-game debugging session" below for the full
+log) - `main.lua` genuinely loads and runs with zero errors in real UE4SS, `FindFirstOf` is
+confirmed correct, and a real catastrophic-freeze bug was found and fixed. **Still open**:
+`GetClass()` on the confirmed-correct player object does not return within the round-trip budget
+even from the game thread, for a reason not yet root-caused - see that section for exactly what
+was tried and what to try next. The property name prefixes (`Hunger_`, `CurrentSkillXP_`, ...)
+remain unconfirmed guesses until that is resolved.
 
 **Also not verified**: `AbioticEditorLiveAgent/src/VitalsCommands.cpp`,
 `AbioticEditorLiveAgent/src/SkillsCommands.cpp`, and `Mod.cpp` (the secondary, pure-C++-mod
@@ -101,6 +99,64 @@ Rather than stay blocked on (2), UE4SS's public **Lua** API (`FindFirstOf`, `Get
 step or source access - does the same property-level work the blocked C++ code would have done,
 with the same prefix-matching discipline. Only the networking piece needed C++, and pure Winsock
 networking needs no UE4SS dependency at all.
+
+## Real-game debugging session (2026-09-02)
+
+The game was actually launched and the mod actually tested live this round (see
+`docs/PROGRESS.md` round-67). What happened, in order:
+
+1. **The mod loaded cleanly.** `require("json")`, `os.getenv("LOCALAPPDATA")`, `LoopAsync` - all
+   worked with zero errors on the very first try, printing the correct real path.
+2. **`FindFirstOf("AbioticCharacterPlayerState")` is confirmed correct.** Isolated behind a
+   `diag.findplayer` command with no other API calls: returns a real object, fast, every time.
+3. **`GetClass()` called from `LoopAsync`'s own callback froze the entire game.** Not just this
+   mod - zero log activity from *any* mod for 2+ minutes afterward, consistent with the whole
+   UE4SS event loop being stuck. Confirmed by isolating it behind a `diag.getclass` command: the
+   debug log showed `calling GetClass()` and then nothing, ever, from any mod. Had to force-kill
+   the game.
+4. **Root cause identified**: `LoopAsync`'s callback does not run on the game thread, and Unreal
+   reflection calls need to. `ExecuteInGameThread` is UE4SS's documented mechanism for exactly
+   this (confirmed via its own docs and a GitHub issue describing the identical class of bug in
+   another mod - "eliminate FindAllOf calls on the async thread"). Fixed: every actual
+   game-touching call now goes through `runOnGameThread`, which wraps `ExecuteInGameThread`
+   (fire-and-forget/async, confirmed no synchronous return - handlers now report their outcome via
+   a `respond` callback instead of a return value).
+5. **That fix worked - no more freeze.** Debug timestamps showed `ExecuteInGameThread`'s callback
+   firing ~5ms after being queued, every time, and `ping` (which touches no game API) kept
+   answering successfully throughout every subsequent test, proving the game stayed healthy.
+6. **But `vitals.get` still timed out** - consistently, at exactly the helper's 5000ms budget, not
+   gradually improving. Investigation found a real, separate bug: the original code called
+   `findPropertyNameByPrefix` **once per field** - 12 full `ForEachProperty` scans for one
+   `vitals.get` call. Fixed: `collectPropertyNames` now scans once per object and
+   `getByPrefix`/`setByPrefix` look up against that single collected list.
+7. **Still times out after that fix, at the exact same budget.** Re-added targeted debug prints
+   (kept in the file, `MAX_PROPERTIES_TO_SCAN` temporarily lowered to 30) and re-tested: the debug
+   log shows `ExecuteInGameThread callback FIRING`, then `collectPropertyNames: calling
+   GetClass()`, then **nothing** - `GetClass()` itself does not return within the budget, even
+   though it is now confirmed to be running on the correct thread, and even though this time nothing
+   else freezes (`ping` still answered afterward).
+8. **Ruled out API misuse**: found a real published UE4SS mod on GitHub
+   (`Matraweber/PalWorkPriority`, `Scripts/icons.lua`) using the exact same
+   `object:GetClass():ForEachProperty(...)` pattern successfully, so this is not a wrong method
+   name or wrong calling convention.
+
+**Where this leaves things**: `ExecuteInGameThread` is the documented right mechanism and does
+dispatch to the game thread correctly and fast, but `GetClass()` on this specific object still
+does not complete within budget for a reason not yet identified. Candidates for a future session,
+roughly in order of promise:
+- Call it from `RegisterHook` on a function that already runs on the game thread naturally (a
+  Tick-equivalent, or reuse an existing hook point another mod in this install already
+  registers), instead of `ExecuteInGameThread` - this is the pattern most working mods that do
+  per-frame reflection access actually use, and was not tried this round.
+- Raise the helper's `FileMailbox::Request` timeout well past 5000ms temporarily and see if it
+  eventually completes at all (currently unknown whether it is stuck forever or just very slow).
+- Attach a native debugger to the game process during the hang to see what `GetClass()`'s native
+  implementation is actually blocked on.
+
+Every restart cycle in this session cost real time and real risk (the game had to be force-killed
+more than once), so this was deliberately stopped here rather than continuing to guess live -
+resume with a fresh session and one of the above, informed by everything above instead of
+starting from zero.
 
 ## Getting from here to a fully working setup
 

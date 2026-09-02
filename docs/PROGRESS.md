@@ -5,6 +5,54 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-67: real-game live testing - one real bug fixed, one still open (2026-09-02)
+
+Continuation of round-66, same day, user asked to "run the game and test it." Did exactly that -
+installed the Lua mod and helper into the real, currently-installed game and iterated against it
+directly, not simulated. Full session log lives in `live-agent/README.md` ("Real-game debugging
+session"); summary here.
+
+**Launching the game itself needed troubleshooting first** (the user was away from the PC for
+most of this round, so all of it had to be handled without anyone able to manually intervene on
+screen). `steam://run/427410` initially got silently stuck behind a leftover "Set Launch Options"
+dialog from earlier in the session; a graceful Steam client restart (`steam.exe -shutdown`, wait,
+relaunch) cleared it and launches worked reliably afterward.
+
+**Two real bugs found and fixed, one real bug found and still open:**
+1. **Fixed - a genuine game-freezing bug**: the original design called `GetClass()`/
+   `ForEachProperty` directly from `LoopAsync`'s own callback. That callback does not run on the
+   game thread, and calling Unreal reflection APIs off it froze the *entire game* (not just this
+   mod - every mod's logging stopped for 2+ minutes; had to force-kill). Root-caused precisely via
+   isolated diagnostic commands (`diag.findplayer`, `diag.getclass`) added specifically to bisect
+   which single call was responsible. Fixed by routing every game-touching call through
+   `ExecuteInGameThread` (UE4SS's documented mechanism for exactly this), which required
+   restructuring the whole dispatch flow from synchronous handler returns to an async
+   `respond(result, err)` callback, since `ExecuteInGameThread` has no synchronous return.
+2. **Fixed - a real performance bug, not a freeze**: `vitals.get` called `findPropertyNameByPrefix`
+   once per field (12 full `ForEachProperty` scans for one request), consistently blowing the 5s
+   round-trip budget. Fixed by scanning each object's properties once (`collectPropertyNames`) and
+   reusing the list for every prefix lookup against it.
+3. **Still open**: even after both fixes, with `FindFirstOf` confirmed correct and
+   `ExecuteInGameThread` confirmed to dispatch to the game thread in ~5ms (via debug timestamps),
+   `GetClass()` on the live player object still does not return within budget - without freezing
+   anything else this time (`ping` kept answering throughout). Ruled out API misuse: found a real
+   published UE4SS mod on GitHub (`Matraweber/PalWorkPriority`) using the identical
+   `object:GetClass():ForEachProperty(...)` call successfully. Next candidate, not yet tried: call
+   it from `RegisterHook` on an already-game-thread-bound function instead of
+   `ExecuteInGameThread`, which is the pattern most working per-frame-reflection mods actually use.
+
+Every finding came from genuinely isolating one variable at a time with purpose-built diagnostic
+commands (`ping` -> `diag.findplayer` -> `diag.getclass` -> instrumented `collectPropertyNames`),
+each re-verified against the real Lua interpreter (built from source this round - see round-66)
+before being redeployed, rather than guessing at the live game repeatedly. Also verified along the
+way: re-tested the Epic-GitHub-account-linking theory from round-66 with the user confirming their
+account was linked - `Re-UE4SS/UEPseudo` still 404s, confirming that gate really is separate from
+Epic's own org access, not a lingering propagation delay.
+
+Stopped deliberately at this point rather than continuing to guess live: each restart cycle costs
+real time and real risk (the game needed force-killing more than once), and the remaining question
+needs either a different hook pattern or a native debugger, not more of the same kind of guess.
+
 ## Round-66: unblocked the live-agent with a Lua + native-helper hybrid (2026-09-02)
 
 Continuation of round-65, same day, user asked "is there another way around it." There was.
