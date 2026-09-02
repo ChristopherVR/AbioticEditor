@@ -3897,7 +3897,10 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Live_Token" xml:space="preserve"><value>Token</value></data>
   <data name="Live_Connect" xml:space="preserve"><value>CONNECT</value></data>
   <data name="Live_Connecting" xml:space="preserve"><value>CONNECTING…</value></data>
-  <data name="Live_ConnectHint" xml:space="preserve"><value>Use 127.0.0.1 for a game running on this PC, or a dedicated server's address if you run one. The token comes from the mod's own log the first time it starts.</value></data>
+  <data name="Live_ConnectHint" xml:space="preserve"><value>A game running on this PC connects automatically. Use this form for a dedicated server's address, or if the automatic connection didn't work. The token comes from the mod's own log the first time it starts.</value></data>
+  <data name="Live_AutoConnecting" xml:space="preserve"><value>Looking for a game running on this PC…</value></data>
+  <data name="Live_AutoConnected" xml:space="preserve"><value>Connected automatically to the game on this PC.</value></data>
+  <data name="Live_UseManualConnection" xml:space="preserve"><value>Connect to a different game instead</value></data>
   <data name="Live_ImmediateWarning" xml:space="preserve"><value>Changes here apply to the running game immediately. There is no undo the way a file's backup gives you - use REVERT before you apply if you change your mind.</value></data>
   <data name="Live_Apply" xml:space="preserve"><value>APPLY</value></data>
   <data name="Live_Disconnect" xml:space="preserve"><value>DISCONNECT</value></data>

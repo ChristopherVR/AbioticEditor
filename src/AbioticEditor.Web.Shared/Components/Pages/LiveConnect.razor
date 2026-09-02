@@ -2,9 +2,12 @@
 @using AbioticEditor.Core.LiveEditing
 @using AbioticEditor.Core.LiveEditing.Player
 @using AbioticEditor.Web.Components.Player
+@using AbioticEditor.Web.Services
+@using Microsoft.Extensions.DependencyInjection
 @implements IAsyncDisposable
 @inject HostLanguageService L
 @inject NavigationManager Navigation
+@inject IServiceProvider Services
 
 <PageTitle>@L.Resource("Common_AppName")</PageTitle>
 
@@ -13,32 +16,46 @@
 
     @if (_vitals is null || _skills is null)
     {
-        <p class="lede">@L.Resource("Live_ConnectSubtitle")</p>
-        <div class="live-connect-form">
-            <label>
-                @L.Resource("Live_Host")
-                <input @bind="_host" @bind:event="oninput" disabled="@_isConnecting" />
-            </label>
-            <label>
-                @L.Resource("Live_Port")
-                <input type="number" @bind="_port" @bind:event="oninput" disabled="@_isConnecting" />
-            </label>
-            <label>
-                @L.Resource("Live_Token")
-                <input type="password" @bind="_token" @bind:event="oninput" disabled="@_isConnecting" />
-            </label>
-            <button class="primary" type="button" @onclick="ConnectAsync" disabled="@_isConnecting">
-                @(_isConnecting ? L.Resource("Live_Connecting") : L.Resource("Live_Connect"))
-            </button>
-            @if (_error is not null)
-            {
-                <p class="error-text" role="alert">@_error</p>
-            }
-        </div>
-        <p class="empty-note">@L.Resource("Live_ConnectHint")</p>
+        @if (_autoConnectInFlight)
+        {
+            <p class="lede">@L.Resource("Live_AutoConnecting")</p>
+        }
+        else
+        {
+            <p class="lede">@L.Resource("Live_ConnectSubtitle")</p>
+            <div class="live-connect-form">
+                <label>
+                    @L.Resource("Live_Host")
+                    <input @bind="_host" @bind:event="oninput" disabled="@_isConnecting" />
+                </label>
+                <label>
+                    @L.Resource("Live_Port")
+                    <input type="number" @bind="_port" @bind:event="oninput" disabled="@_isConnecting" />
+                </label>
+                <label>
+                    @L.Resource("Live_Token")
+                    <input type="password" @bind="_token" @bind:event="oninput" disabled="@_isConnecting" />
+                </label>
+                <button class="primary" type="button" @onclick="() => ConnectAsync(isAutoConnect: false)" disabled="@_isConnecting">
+                    @(_isConnecting ? L.Resource("Live_Connecting") : L.Resource("Live_Connect"))
+                </button>
+                @if (_error is not null)
+                {
+                    <p class="error-text" role="alert">@_error</p>
+                }
+            </div>
+            <p class="empty-note">@L.Resource("Live_ConnectHint")</p>
+        }
     }
     else
     {
+        @if (_autoConnected)
+        {
+            <p class="empty-note">
+                @L.Resource("Live_AutoConnected")
+                <button class="secondary" type="button" @onclick="UseManualConnection">@L.Resource("Live_UseManualConnection")</button>
+            </p>
+        }
         <p class="lede live-warning">@L.Resource("Live_ImmediateWarning")</p>
 
         <nav class="editor-tabs" role="tablist" aria-label="@L.Resource("Live_Sections")">
@@ -90,6 +107,8 @@
     private string _token = string.Empty;
     private bool _isConnecting;
     private bool _isBusy;
+    private bool _autoConnectInFlight;
+    private bool _autoConnected;
     private string? _error;
     private string _activeTab = "vitals";
     private ILiveGameChannel? _channel;
@@ -99,7 +118,29 @@
     private bool ActiveIsDirty => _activeTab == "vitals" ? _vitals?.IsDirty == true : _skills?.IsDirty == true;
     private string? ActiveStatus => _activeTab == "vitals" ? _vitals?.Status : _skills?.Status;
 
-    private async Task ConnectAsync()
+    // A game running on this PC needs nothing typed in: the live-agent mod writes its token to a
+    // well-known local file, and the desktop host can just read it (see
+    // ILiveEditingCapability.TryReadLocalToken). Only a remote machine with no local file to read
+    // still needs the manual host/port/token form below. This is the one place that distinction
+    // is made; everything past here is the same connect path either way.
+    protected override async Task OnInitializedAsync()
+    {
+        var localToken = Services.GetService<ILiveEditingCapability>()?.TryReadLocalToken();
+        if (string.IsNullOrEmpty(localToken)) return;
+
+        _token = localToken;
+        _autoConnectInFlight = true;
+        await ConnectAsync(isAutoConnect: true);
+        _autoConnectInFlight = false;
+    }
+
+    private void UseManualConnection()
+    {
+        _autoConnected = false;
+        _ = DisconnectAsync();
+    }
+
+    private async Task ConnectAsync(bool isAutoConnect)
     {
         _error = null;
         _isConnecting = true;
@@ -113,12 +154,16 @@
             _vitals = await LivePlayerVitalsSession.ConnectAsync(new LivePlayerVitalsChannel(channel));
             _skills = await LivePlayerSkillsSession.ConnectAsync(new LivePlayerSkillsChannel(channel));
             _channel = channel;
+            _autoConnected = isAutoConnect;
         }
         catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
             or IOException or OperationCanceledException)
         {
-            _error = Errors.Present(exception, "Connect to the running game.",
-                "Check the host, port and token, and that the live-agent mod is running.");
+            _error = isAutoConnect
+                ? Errors.Present(exception, "Connect to the game on this PC.",
+                    "Make sure the game is running with the live-agent mod loaded, or enter a dedicated server's details below.")
+                : Errors.Present(exception, "Connect to the running game.",
+                    "Check the host, port and token, and that the live-agent mod is running.");
             await channel.DisposeAsync();
         }
         finally
