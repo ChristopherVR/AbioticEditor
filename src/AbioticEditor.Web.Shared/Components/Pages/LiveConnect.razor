@@ -87,6 +87,10 @@
                     aria-selected="@(_activeTab == "npcs")" @onclick='() => _activeTab = "npcs"'>
                 @L.Resource("LiveNpcs_Title")
             </button>
+            <button type="button" role="tab" class="editor-tab @(_activeTab == "inventory" ? "active" : null)"
+                    aria-selected="@(_activeTab == "inventory")" @onclick='() => _activeTab = "inventory"'>
+                @L.Resource("LiveInventory_Title")
+            </button>
         </nav>
         <div class="player-tab-viewport">
             @if (_activeTab == "vitals")
@@ -97,15 +101,20 @@
             {
                 <PlayerSkillsTab Session="_skills" OnChanged="() => {}" />
             }
-            else if (_npcs is not null)
+            else if (_activeTab == "npcs" && _npcs is not null)
             {
                 <LiveNpcsTab Session="_npcs" OnChanged="() => {}" />
             }
+            else if (_inventory is not null)
+            {
+                <LiveInventoryTab Session="_inventory" OnChanged="() => {}" />
+            }
         </div>
 
-        @* NPCs apply immediately per row (LiveNpcsTab manages its own status/error) - the
-           page-level APPLY/REVERT bar only makes sense for the staged vitals/skills tabs. *@
-        @if (_activeTab != "npcs")
+        @* NPCs and inventory both apply immediately per row (each tab manages its own
+           status/error) - the page-level APPLY/REVERT bar only makes sense for the staged
+           vitals/skills tabs. *@
+        @if (_activeTab != "npcs" && _activeTab != "inventory")
         {
             <div class="live-connect-actions">
                 <button class="primary" type="button" @onclick="ApplyAsync" disabled="@(!ActiveIsDirty || _isBusy)">
@@ -152,6 +161,7 @@
     private LivePlayerVitalsSession? _vitals;
     private LivePlayerSkillsSession? _skills;
     private LiveNpcSession? _npcs;
+    private LiveInventorySession? _inventory;
     private LivePlayerDirectory? _directory;
     private string? _selectedPlayerId;
 
@@ -222,6 +232,7 @@
             _vitals = await LivePlayerVitalsSession.ConnectAsync(new LivePlayerVitalsChannel(channel), localPlayerId);
             _skills = await LivePlayerSkillsSession.ConnectAsync(new LivePlayerSkillsChannel(channel), localPlayerId);
             _npcs = await LiveNpcSession.ConnectAsync(new LiveNpcChannel(channel));
+            _inventory = await LiveInventorySession.ConnectAsync(new LiveInventoryChannel(channel), localPlayerId);
             _channel = channel;
             _autoConnected = isAutoConnect;
             _directory = directory;
@@ -282,6 +293,7 @@
         {
             await _vitals.SwitchPlayerAsync(_selectedPlayerId);
             await _skills.SwitchPlayerAsync(_selectedPlayerId);
+            if (_inventory is not null) await _inventory.SwitchPlayerAsync(_selectedPlayerId);
             LiveSession.PlayerSelected(_selectedPlayerId);
         }
         catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
@@ -301,6 +313,7 @@
         _vitals = null;
         _skills = null;
         _npcs = null;
+        _inventory = null;
         _directory = null;
         _selectedPlayerId = null;
         if (_channel is not null) await _channel.DisposeAsync();

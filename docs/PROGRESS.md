@@ -5,6 +5,76 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-74: live player inventory editing, plus quest/story flags and world containers confirmed as a genuine live-editing limitation (2026-09-03)
+
+The user asked for two things: research and, if real, build live quest/story flag editing; and
+build live editing for player inventory and world containers, being honest if any of it turns out
+to be a genuine limitation.
+
+**Fresh, dedicated research pass** (a fork agent, grepping every installed reference mod for
+inventory/container/flag-related UObject access): confirms round-72's finding on quest/story
+flags - no `QuestFlag`/`StoryFlag`/`FlagManager`/`ProgressManager` or any `FindAllOf` against a
+flag-tracking actor exists anywhere. **This is a genuine limitation of live editing**, not
+something this round declined to build - there is nothing real to build it on. One narrower,
+adjacent thing IS real (not built this round, flagged for later if wanted): journal/codex
+**section unlocking** via `AFUtils.GetMyCharacterProgressionComponent():Request_UnlockCompendiumSection`
+(`CheatConsoleCommands/scripts/Features.lua:894-900`) - a narrow server RPC, not the general
+quest-flag system. **World containers** (chests, storage furniture): also no evidence anywhere -
+no `FindAllOf` against any storage/container actor class in any installed mod. Also a genuine
+limitation, confirmed independently this round, not carried over unverified from round-72.
+
+**Player inventory: real evidence, built and verified live.** `CheatConsoleCommands/scripts/
+AFUtils/ObjectsGetter.lua:60-86` (`GetMyInventoryComponent`/`GetMyEquipmentInventory`/
+`GetMyHotbarInventory` - real getters returning `CharacterInventory`/`CharacterEquipSlotInventory`/
+`CharacterHotbarInventory`, each with a `.CurrentInventory` array of item-slot structs) and
+`AFUtils/AFUtils.lua:682-695` (`SetItemSlot`, the exact hash-suffixed field names). **Honestly
+weaker evidence than every other live-editing area**: grepping confirmed these getters/setters are
+real, defined functions with exact field names, but unlike vitals/skills/NPCs, `SetItemSlot`/
+`AddToItemStack` are never actually CALLED by any shipped, ENABLED command in the reference mod -
+the only two call sites are both commented out, and both are about slot COUNT, not slot content.
+Built and tested live anyway (low blast-radius, direct field write, same shape as every other
+confirmed area) - and it worked cleanly. New `inventory.list`/`inventory.set` handlers in
+`main.lua`, `LiveInventoryChannel.cs`, `LiveInventorySession.cs` (immediate-apply, like NPCs, but
+per-row since a slot edit is usually several fields at once), `LiveInventoryTab.razor` (reuses the
+file editor's existing `ItemCatalogService`/`ItemPaletteDatalist` for the item-id autocomplete and
+display names - no new catalog needed).
+
+**One real bug found and fixed before it shipped**: the game's own empty-slot sentinel string is
+`"Empty"` (confirmed live), not `"None"` - `isEmpty` was computed wrong on the first pass
+(`rowName == "None"`), and the CLEAR path was writing `NAME_None` instead of the real `"Empty"`
+FName. Fixed both before the live test round that would have caught it anyway, but worth noting:
+this project already knew "Empty" is the sentinel (see memory: abiotic-save-schema-facts) and
+still nearly re-guessed it wrong for the live path specifically.
+
+**Verified, in order**: raw-protocol `inventory.list` (real backpack/equip/hotbar data - actual
+equipped gear: Cold Storage Pack, Crystalline Vial, Keypad Hacker T5, Shredshot, Hand Drill,
+Electron Grenades, matching the real character exactly); raw-protocol `inventory.set` placing
+`scrap_metal x3` in an empty backpack slot, confirmed both via a follow-up `inventory.list` AND
+**visually in the actual game's inventory UI** (correct icon, correct stack count, no manual
+refresh needed - unlike vitals/NPCs, no `OnRep`-style call exists for inventory and none was
+needed); `inventory.set` clearing the same slot back to empty, confirmed the same two ways; the
+actual desktop UI's INVENTORY tab (headless + Playwright) showing all 51 real slots with correct
+catalog-resolved display names, filling and applying a slot, and clearing it via the UI's own
+CLEAR SLOT button - both confirmed via the rendered `<strong>` label changing
+(`"Slot 0"` -> `"Slot 0 · Metal Scrap"` -> `"Slot 0"`).
+
+**Screen-automation practice, carried over from round-73 with two more real bugs fixed**: the
+scroll-wheel helper crashed on a negative `WHEEL_DELTA` (`[uint32](-120)` throws in PowerShell -
+fixed via `[BitConverter]`, not a plain cast). More importantly: **the native helper's C++ server
+only serves one client connection at a time** (confirmed in round-73, re-encountered here) - after
+closing the Playwright browser tab without clicking DISCONNECT first, the Blazor Server circuit
+kept its `TcpLiveGameChannel` connection open server-side, and the helper's blocking accept loop
+kept serving it, so raw-protocol test connections got refused (not just delayed) until the
+headless host process itself was killed. Always stop the headless app process explicitly at the
+end of a round, not just close the browser tab - see [[live-game-screen-automation]] memory,
+updated with this.
+
+**Character safety**: the real "Chrissie" character loaded dead twice this round (a save captured
+mid-death from the prior round's force-stopped process, both before and after the mod-script
+relaunch) - respawned at YOUR BED both times, not a code bug. Vitals otherwise fine
+(hunger/thirst/sanity/fatigue/continence all reasonable); head health was at 80, healed to 100.
+Money still correctly 1000.
+
 ## Round-73: NPC live editing verified against the real game, plus a screen-automation coordinate bug (2026-09-03)
 
 Continuation of round-72, resumed after a context compaction. Round-72 had already built

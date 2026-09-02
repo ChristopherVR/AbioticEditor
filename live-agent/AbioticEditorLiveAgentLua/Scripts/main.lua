@@ -457,6 +457,143 @@ handlers["npcs.set"] = function(payload, respond)
     end, respond)
 end
 
+-- ===== Player inventory (backpack/equip/hotbar) - verbatim pattern from CheatConsoleCommands'
+-- AFUtils/ObjectsGetter.lua:60-86 (GetMyInventoryComponent/GetMyEquipmentInventory/
+-- GetMyHotbarInventory, real getters returning CharacterInventory/CharacterEquipSlotInventory/
+-- CharacterHotbarInventory - each a UAbiotic_InventoryComponent_C with a .CurrentInventory array
+-- of FAbiotic_InventoryItemSlotStruct) and AFUtils/AFUtils.lua:682-695 (SetItemSlot, the exact
+-- hash-suffixed field names below).
+--
+-- HONESTLY WEAKER EVIDENCE THAN EVERY OTHER AREA IN THIS FILE, worth flagging plainly: grepping
+-- every installed mod found SetItemSlot/AddToItemStack/GetMyInventoryComponent are real, defined
+-- functions with real hash-suffixed field names, but they are never actually CALLED by any
+-- shipped, ENABLED command in the reference mod - the only two call sites
+-- (CommandsManager.lua:1488, Features.lua:925) are both commented out, and both are about slot
+-- COUNT, not slot content. This is real source, not a guessed API - the field names are exact,
+-- hash-suffixed matches against the same struct the real GETTERS above return - but it has not
+-- been exercised by any live gameplay test this session has evidence of, unlike vitals/skills/NPCs
+-- which all have at least one real, currently-active command doing the same write. Built and
+-- tested live anyway since the write shape (direct field assignment, same pattern vitals/NPCs
+-- already use) carries low blast-radius risk to verify empirically - but if this behaves
+-- unexpectedly, this comment is where to look first.
+--
+-- Also unconfirmed: whether an inventory write needs an OnRep-style call to refresh the HUD (no
+-- OnRep_*Inventory* or similar exists anywhere in the reference mod, unlike vitals'
+-- OnRep_CurrentHealth or NPCs' OnRep_IsDead) - tested live to find out, see docs/PROGRESS.md.
+--
+-- NAME_None (real global, confirmed used the same way at AFUtils.lua:558) marks an empty slot.
+-- FName(string, EFindName.FNAME_Find) (real, used by the ACTIVE SetNextWeatherEvent command at
+-- AFUtils.lua:587) converts a row-name string into the FName these fields need - FNAME_Find only
+-- finds an FName already interned somewhere in the running game, which every real item row name
+-- already is (the item data table itself references it), so this can never silently fabricate a
+-- bogus new name.
+
+-- Ordered (not a plain hash-iterated table) so inventory.list's output is stable across calls.
+local INVENTORY_KINDS = { "backpack", "equip", "hotbar" }
+local INVENTORY_PROPERTY_BY_KIND = {
+    backpack = "CharacterInventory",
+    equip = "CharacterEquipSlotInventory",
+    hotbar = "CharacterHotbarInventory",
+}
+
+local function inventoryComponent(player, kind)
+    local propName = INVENTORY_PROPERTY_BY_KIND[kind]
+    if not propName then return nil end
+    local ok, inv = pcall(function() return player[propName] end)
+    if not ok or not inv or not inv:IsValid() then return nil end
+    return inv
+end
+
+local function slotRowName(slot)
+    local ok, rowName = pcall(function()
+        return slot.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B.RowName:ToString()
+    end)
+    if ok and rowName then return rowName end
+    return ""
+end
+
+handlers["inventory.list"] = function(payload, respond)
+    runOnGameThread(function()
+        local player = resolvePlayer(payload)
+        if not player then error("player not found") end
+
+        local result = { __forceArray = true }
+        for _, kind in ipairs(INVENTORY_KINDS) do
+            local inv = inventoryComponent(player, kind)
+            if inv and inv.CurrentInventory then
+                for i = 1, #inv.CurrentInventory do
+                    local slot = inv.CurrentInventory[i]
+                    local rowName = slotRowName(slot)
+                    local changeableData = slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313
+                    table.insert(result, {
+                        kind = kind,
+                        slotIndex = i - 1,
+                        itemId = rowName,
+                        -- "Empty" (confirmed real, capitalized) is this game's own empty-slot
+                        -- sentinel string - not "None", which NAME_None:ToString() never actually
+                        -- produces for this field (confirmed live: an untouched slot's RowName
+                        -- prints "Empty", not "None"). "" is kept as a defensive fallback only.
+                        isEmpty = rowName == "" or rowName == "Empty",
+                        stack = changeableData and changeableData.CurrentStack_9_D443B69044D640B0989FD8A629801A49 or 0,
+                        durability = changeableData and changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 or 0,
+                        maxDurability = changeableData and changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B or 0,
+                    })
+                end
+            end
+        end
+        return result
+    end, respond)
+end
+
+-- Not host-gated (unlike npcs.set): an inventory component belongs to a specific player's own
+-- pawn, the same "player-owned data" category vitals.set already writes without an isHost() check
+-- - a client editing their OWN connected player's inventory has authority over their own pawn the
+-- same way vitals.set already relies on; editing a DIFFERENT player's inventory as a non-host
+-- client carries the same known limitation vitals.set already has (the write may not stick,
+-- silently, same as it already can for vitals).
+handlers["inventory.set"] = function(payload, respond)
+    runOnGameThread(function()
+        local player = resolvePlayer(payload)
+        if not player then error("player not found") end
+
+        local rows = payload.edits or {}
+        for i = 1, #rows do
+            local row = rows[i]
+            local inv = row.kind and inventoryComponent(player, row.kind)
+            local slot = inv and inv.CurrentInventory and row.slotIndex ~= nil
+                and inv.CurrentInventory[row.slotIndex + 1]
+            if slot then
+                local changeableData = slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313
+                if row.clear then
+                    -- "Empty" (confirmed live), not NAME_None - see inventory.list's isEmpty
+                    -- comment above for why: this game's own empty-slot sentinel is the literal
+                    -- interned name "Empty", not the engine's generic none-name.
+                    slot.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B.RowName =
+                        FName("Empty", EFindName.FNAME_Find)
+                    changeableData.CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 0
+                    changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = 0
+                    changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = 0
+                else
+                    if row.itemId ~= nil and row.itemId ~= "" then
+                        slot.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B.RowName =
+                            FName(row.itemId, EFindName.FNAME_Find)
+                    end
+                    if row.stack ~= nil then
+                        changeableData.CurrentStack_9_D443B69044D640B0989FD8A629801A49 = row.stack
+                    end
+                    if row.durability ~= nil then
+                        changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = row.durability
+                    end
+                    if row.maxDurability ~= nil then
+                        changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = row.maxDurability
+                    end
+                end
+            end
+        end
+        return nil
+    end, respond)
+end
+
 -- ===== The file-mailbox poll loop =====
 -- Atomic publish: write to a temp file, then rename over the real path, so the helper's reader
 -- never observes a half-written response (matches FileMailbox::WriteAtomic on the helper side).

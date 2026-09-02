@@ -48,7 +48,7 @@ int main()
 
     for (const char* command : {"ping", "diag.findplayer", "diag.getclass", "diag.countprops",
         "vitals.get", "vitals.set", "skills.get", "skills.set", "players.list",
-        "npcs.list", "npcs.set"})
+        "npcs.list", "npcs.set", "inventory.list", "inventory.set"})
         ForwardToLua(server, mailbox, command);
 
     server.Start();

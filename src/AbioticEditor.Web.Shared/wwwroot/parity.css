@@ -1833,3 +1833,8 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 .live-npc-controls .checkbox-field{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
 .live-npc-faction{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);white-space:nowrap}
 .live-npc-faction input{width:56px;padding:4px 6px;border:1px solid var(--divider);border-radius:4px;background:var(--panel);color:var(--ink)}
+.live-inventory-group{margin:16px 0 6px;font-size:12px;letter-spacing:.04em;color:var(--muted)}
+.live-inventory-controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-left:auto}
+.live-inventory-controls>input[list]{width:160px;padding:5px 8px;border:1px solid var(--divider);border-radius:4px;background:var(--panel);color:var(--ink)}
+.live-inventory-field{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);white-space:nowrap}
+.live-inventory-field input{width:64px;padding:4px 6px;border:1px solid var(--divider);border-radius:4px;background:var(--panel);color:var(--ink)}
