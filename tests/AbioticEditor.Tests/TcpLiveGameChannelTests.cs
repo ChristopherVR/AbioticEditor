@@ -249,6 +249,10 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
         Assert.Equal(2, bench.StoredItemCount);
 
         await bases.SetCustomNameAsync(bench.Id, "Renamed Bench");
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
+    [Fact]
     public async Task LiveContainmentChannel_GetAsync_reads_units_and_occupants()
     {
         await using var channel = await ConnectedChannelAsync();
@@ -284,6 +288,10 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
         Assert.True(forklift.Driveable);
 
         await vehicles.SetAsync(forklift.Id, driveable: false, x: 5, y: 6, z: 7);
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
+    [Fact]
     public async Task LiveTradersChannel_GetAsync_reads_set_flags()
     {
         await using var channel = await ConnectedChannelAsync();
@@ -309,6 +317,10 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
         Assert.False(directory.Available);
         Assert.True(directory.IsHost);
         Assert.False(string.IsNullOrWhiteSpace(directory.Reason));
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
+    [Fact]
     public async Task LivePortalsChannel_GetAsync_reads_teleporter_pads()
     {
         await using var channel = await ConnectedChannelAsync();
