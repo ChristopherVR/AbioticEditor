@@ -2,6 +2,7 @@
 @using AbioticEditor.Web.Models
 @using AbioticEditor.Web.Services
 @using AbioticEditor.Core.WorldSaves
+@using AbioticEditor.Core.LiveEditing
 @implements IDisposable
 @inject SaveWorkspaceSessionService Workspace
 @inject InventorySelectionService Selection
@@ -10,7 +11,9 @@
 @* Faithful port of the native WorldFlagsTab.xaml: heading + IN THIS FILE count, intro,
    HOW QUESTS WORK card, filter/add row, then the story-ordered grouped flag list with
    category chips and per-row CLEAR. Tapping a row opens the flag's detail card in the
-   right-hand pane (the native SlotSidebarView quest-flag panel) via ShowDetail. *@
+   right-hand pane (the native SlotSidebarView quest-flag panel) via ShowDetail. Shared with the
+   live-editing page (LiveConnect.razor) over IWorldFlagsSession: WorldSaveSession stages flags
+   for SAVE, LiveWorldFlagsSession applies each change immediately in the running game. *@
 <section class="world-editor wf-tab" aria-label="@L.Resource("WorldFlags_QuestFlags")">
     @if (!Session.CanEditFlags)
     {
@@ -18,6 +21,10 @@
     }
     else
     {
+        @if (Session.AppliesImmediately && !Session.IsHost)
+        {
+            <p class="error-text" role="alert">@L.Resource("LiveFlags_NotHostWarning")</p>
+        }
         <div class="wf-head">
             <h2 class="wf-title">@L.Resource("WorldFlags_QuestFlags")</h2>
             <div class="wf-count"><span class="wf-count-label">@L.Resource("WorldFlags_InThisFile")</span><span class="wf-count-value">@Session.Flags.Count</span></div>
@@ -30,7 +37,11 @@
         <div class="wf-toolbar">
             <input aria-label="@L.Resource("WorldFlags_FilterPlaceholder")" @bind="_filter" @bind:event="oninput" placeholder="@L.Resource("WorldFlags_FilterPlaceholder")" />
             <input aria-label="@L.Resource("WorldFlags_AddFlagPlaceholder")" @bind="_newFlag" @bind:event="oninput" placeholder="@L.Resource("WorldFlags_AddFlagPlaceholder")" />
-            <button class="secondary" disabled="@string.IsNullOrWhiteSpace(_newFlag)" @onclick="AddFlag">@L.Resource("WorldFlags_AddFlag")</button>
+            <button class="secondary" disabled="@(string.IsNullOrWhiteSpace(_newFlag) || _busy || (Session.AppliesImmediately && !Session.IsHost))" @onclick="AddFlagAsync">@L.Resource("WorldFlags_AddFlag")</button>
+            @if (Session.AppliesImmediately)
+            {
+                <button class="secondary" type="button" disabled="@_busy" @onclick="RefreshAsync">@L.Resource("LiveNpcs_Refresh")</button>
+            }
         </div>
         <div class="wf-list" role="list" aria-label="@L.Resource("WorldFlags_QuestFlags")">
             @{ var groups = VisibleFlagGroups; var groupIndex = 0; }
@@ -54,7 +65,7 @@
                         </span>
                         @if (flag.IsSet)
                         {
-                            <button class="wf-clear" type="button" @onclick="() => ClearFlag(flag.RawName)" @onclick:stopPropagation>@L.Resource("WorldFlags_Clear")</button>
+                            <button class="wf-clear" type="button" disabled="@(_busy || (Session.AppliesImmediately && !Session.IsHost))" @onclick="() => ClearFlagAsync(flag.RawName)" @onclick:stopPropagation>@L.Resource("WorldFlags_Clear")</button>
                         }
                         else
                         {
@@ -64,17 +75,27 @@
                 }
             }
         </div>
+        @if (Session.Status is not null)
+        {
+            <p class="status-text">@Session.Status</p>
+        }
+        @if (_error is not null)
+        {
+            <p class="error-text" role="alert">@_error</p>
+        }
     }
 </section>
 
 @code {
-    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter, EditorRequired] public IWorldFlagsSession Session { get; set; } = null!;
     [Parameter] public string Title { get; set; } = "World editor";
     [Parameter] public EventCallback<string?> OnError { get; set; }
     private const string DetailKeyPrefix = "world-flag:";
     private string _filter = string.Empty;
     private string _newFlag = string.Empty;
     private string? _selected;
+    private bool _busy;
+    private string? _error;
 
     protected override void OnInitialized() => Selection.Changed += OnSelectionChanged;
 
@@ -294,29 +315,57 @@
     }
 
     /// <summary>Native CLEAR semantics: removing a flag also removes everything the curated
-    /// dependency graph says required it, so the save never carries out-of-order story state.</summary>
-    private void ClearFlag(string flag)
+    /// dependency graph says required it, so the world never carries out-of-order story state.
+    /// Offline this stages the change; live it applies immediately in the running game.</summary>
+    private Task ClearFlagAsync(string flag) => RunAsync(async () =>
     {
-        foreach (var dependent in FlagGate.DependentsOf(new[] { flag }, Session.Flags))
-        {
-            Session.SetFlag(dependent, false);
-        }
-        Workspace.NotifyEdited();
+        await Session.ClearFlagWithDependentsAsync(flag);
+        NotifyEdited();
         // The cleared flag (or a cascaded dependent) may be the one shown in the pane; a
-        // flag that left the file has no row anymore, so its card closes with it.
+        // flag that is no longer set has no row anymore, so its card closes with it.
         if (_selected is { } selected && !Session.Flags.Contains(selected)) CloseOwnDetail();
-    }
+    });
 
-    private void ToggleFlag(string flag)
+    private Task ToggleFlagAsync(string flag) => RunAsync(async () =>
     {
-        if (Session.Flags.Contains(flag)) { ClearFlag(flag); return; }
+        if (Session.Flags.Contains(flag)) { await Session.ClearFlagWithDependentsAsync(flag); NotifyEdited(); ShowFlagDetail(); return; }
         if (MissingPrerequisitesFor(flag).Count > 0) return;
-        Session.SetFlag(flag, true);
-        Workspace.NotifyEdited();
+        await Session.SetFlagAsync(flag, true);
+        NotifyEdited();
         ShowFlagDetail();
-    }
+    });
 
-    private void AddFlag() { if (Session.AddFlag(_newFlag)) { _newFlag = string.Empty; Workspace.NotifyEdited(); } }
+    private Task AddFlagAsync() => RunAsync(async () =>
+    {
+        if (await Session.AddFlagAsync(_newFlag)) { _newFlag = string.Empty; NotifyEdited(); }
+    });
+
+    /// <summary>Live only: the world's own triggers can set a flag at any moment, so a manual
+    /// re-read is worth offering (the file session's list is already authoritative).</summary>
+    private Task RefreshAsync() => RunAsync(() => Session.RefreshAsync());
+
+    /// <summary>Marks the file workspace dirty; meaningless (and skipped) for the live session,
+    /// which has nothing staged - every change already applied the moment it was made.</summary>
+    private void NotifyEdited() { if (!Session.AppliesImmediately) Workspace.NotifyEdited(); }
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            await action();
+        }
+        catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
+            or IOException or OperationCanceledException)
+        {
+            _error = Errors.Present(exception, "Change this quest flag.", "The connection may have dropped; try reconnecting.");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
 
     /// <summary>Native OnEnableFlagPrereqs: a confirm dialog listing the missing flags, then
     /// the additive story-order-safe set (shared ModalService, like the player tabs).</summary>
@@ -330,13 +379,12 @@
             L.Resource("Slot_SetPrereqsTitle"),
             ParagraphLines(body),
             ConfirmText: L.Resource("Slot_SetThem"),
-            OnConfirm: () =>
+            OnConfirm: () => RunAsync(async () =>
             {
-                Session.EnableFlagWithPrerequisites(flag);
-                Workspace.NotifyEdited();
+                await Session.EnableFlagWithPrerequisitesAsync(flag);
+                NotifyEdited();
                 ShowFlagDetail();
-                return Task.CompletedTask;
-            },
+            }),
             CancelText: L.Resource("Common_Cancel")));
     }
 
@@ -379,7 +427,7 @@
                    states, so the label and message now track isSet/canEnable instead of always
                    showing the same blocked-toggle copy. *@
                 <div class="wf-detail-actions">
-                    <button class="wf-clear" type="button" disabled="@(!canEnable)" @onclick="() => ToggleFlag(selected)">
+                    <button class="wf-clear" type="button" disabled="@(!canEnable || _busy || (Session.AppliesImmediately && !Session.IsHost))" @onclick="() => ToggleFlagAsync(selected)">
                         @(isSet ? L.Resource("WorldFlags_Clear") : L.Resource("WorldFlags_Set"))
                     </button>
                     @if (!canEnable)

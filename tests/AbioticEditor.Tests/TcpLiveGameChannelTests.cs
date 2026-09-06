@@ -167,6 +167,26 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task LiveStoryChannel_GetAsync_reads_the_current_quest_row()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var state = await new AbioticEditor.Core.LiveEditing.World.LiveStoryChannel(channel).GetAsync();
+
+        Assert.True(state.IsHost);
+        Assert.Equal("Office", state.CurrentQuestRow);
+    }
+
+    [Fact]
+    public async Task LiveStoryChannel_story_set_is_rejected_since_there_is_no_live_write_path()
+    {
+        await using var channel = await ConnectedChannelAsync();
+
+        var exception = await Assert.ThrowsAsync<LiveAgentException>(
+            () => channel.RequestAsync<object?>("story.set", payload: null));
+        Assert.Contains("cannot be set", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task LiveDoorsChannel_GetAsync_distinguishes_door_kinds()
     {
         await using var channel = await ConnectedChannelAsync();
@@ -298,6 +318,17 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
                     continue;
                 }
 
+                if (cmd == "story.set")
+                {
+                    // The real Lua area (areas/story.lua) always rejects this - there is no
+                    // grounded live write path for the story chapter, see docs/reference/
+                    // live-editing-protocol.md.
+                    var rejected = "{\"Id\":\"" + id
+                        + "\",\"Ok\":false,\"Error\":\"the story chapter cannot be set from outside the game\"}";
+                    await writer.WriteLineAsync(rejected.AsMemory(), cancellationToken).ConfigureAwait(false);
+                    continue;
+                }
+
                 if (cmd == "skills.get")
                 {
                     // A real JSON array, exactly like the C++ agent's skills.get (see
@@ -321,6 +352,7 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
                     "world.get" => "{\"isHost\":true,\"day\":12,\"timeSeconds\":48600,\"isNight\":false,\"paused\":false,"
                         + "\"currentWeather\":\"Fog\",\"weatherOptions\":[\"None\",\"Fog\",\"RadLeak\"]}",
                     "flags.list" => "{\"flags\":[{\"name\":\"Office_PowerOn\",\"isSet\":true},{\"name\":\"Manufacturing_West\",\"isSet\":false}],\"isHost\":true}",
+                    "story.get" => "{\"currentQuestRow\":\"Office\",\"isHost\":true}",
                     "doors.list" => "{\"doors\":[{\"id\":\"SimpleDoor_ParentBP_C /Game/Maps/Facility.Facility:PersistentLevel.SimpleDoor_ParentBP_C_7\",\"label\":\"SimpleDoor_ParentBP_C\",\"kind\":\"simple\",\"state\":2,\"isOpen\":false,\"oneWayUnlocked\":false,\"disabled\":false,\"x\":100.5,\"y\":-20,\"z\":3},"
                         + "{\"id\":\"SecurityDoor_C /Game/Maps/Facility.Facility:PersistentLevel.SecurityDoor_C_2\",\"label\":\"SecurityDoor_C\",\"kind\":\"security\",\"state\":1,\"isOpen\":true,\"oneWayUnlocked\":false,\"disabled\":false,\"x\":0,\"y\":0,\"z\":0}],\"isHost\":false}",
                     "containers.list" => "{\"containers\":[{\"id\":\"Deployed_StorageCrate_Makeshift_C /Game/Maps/Facility.Facility:PersistentLevel.Deployed_StorageCrate_Makeshift_C_3\",\"label\":\"Deployed_StorageCrate_Makeshift_C\",\"x\":1,\"y\":2,\"z\":3,"

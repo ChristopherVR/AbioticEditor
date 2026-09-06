@@ -144,13 +144,13 @@
                    interfaces), so a slot dragged between the two areas still works. *@
                 <PlayerTransmogTab Session="_inventory" OnChanged="() => {}" />
             }
-            else if (_activeTab == "world" && _world is not null)
+            else if (_activeTab == "world" && _story is not null && _flags is not null)
             {
-                <LiveWorldTab Session="_world" OnChanged="() => {}" />
+                <WorldStoryTab Session="_story" Flags="_flags" OnError="e => _error = e" />
             }
             else if (_activeTab == "flags" && _flags is not null)
             {
-                <LiveFlagsTab Session="_flags" OnChanged="() => {}" />
+                <WorldFlagsTab Session="_flags" OnError="e => _error = e" />
             }
             else if (_activeTab == "doors" && _doors is not null)
             {
@@ -225,7 +225,7 @@
     private LivePlayerSkillsSession? _skills;
     private LiveNpcSession? _npcs;
     private LiveInventorySession? _inventory;
-    private LiveWorldStateSession? _world;
+    private LiveStorySession? _story;
     private LiveWorldFlagsSession? _flags;
     private IWorldDoorsSession? _doors;
     private LiveContainersSession? _containers;
@@ -305,7 +305,7 @@
             // DayNightManager, doors, or containers yet), so each one that fails to read is left
             // null and its tab says so, instead of failing the whole connection - the player
             // areas above still work from the menu.
-            _world = await TryConnectWorldAreaAsync(() => LiveWorldStateSession.ConnectAsync(new LiveWorldStateChannel(channel)));
+            _story = await TryConnectWorldAreaAsync(() => LiveStorySession.ConnectAsync(new LiveStoryChannel(channel), new LiveWorldStateChannel(channel)));
             _flags = await TryConnectWorldAreaAsync(() => LiveWorldFlagsSession.ConnectAsync(new LiveWorldFlagsChannel(channel)));
             _doors = await TryConnectWorldAreaAsync(() => LiveDoorsSession.ConnectAsync(new LiveDoorsChannel(channel)));
             _containers = await TryConnectWorldAreaAsync(() => LiveContainersSession.ConnectAsync(new LiveContainersChannel(channel)));
@@ -416,7 +416,7 @@
         _skills = null;
         _npcs = null;
         _inventory = null;
-        _world = null;
+        _story = null;
         _flags = null;
         _doors = null;
         _containers = null;
