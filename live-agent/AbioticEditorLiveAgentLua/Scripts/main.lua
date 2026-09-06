@@ -1086,6 +1086,60 @@ handlers["dropped.remove"] = function(payload, respond)
     end, respond)
 end
 
+-- ===== Area modules =====
+-- Each live-editing area added after round 75 lives in its own file under Scripts/areas/ and is
+-- listed in Scripts/areas/manifest.lua. A module is `return function(ctx) ... end` and registers
+-- its handlers on ctx.handlers, using the shared helpers below instead of re-implementing them.
+-- Kept as separate files so several areas can be developed at once without everyone editing
+-- this file; see areas/README.md for the contract. A module that fails to load is logged and
+-- skipped - one broken area never takes the whole mod down.
+local ctx = {
+    handlers = handlers,
+    json = json,
+    UEHelpers = UEHelpers,
+    runOnGameThread = runOnGameThread,
+    isHost = isHost,
+    getMyPlayer = getMyPlayer,
+    resolvePlayer = resolvePlayer,
+    allPlayerStates = allPlayerStates,
+    playerId = playerId,
+    inventoryComponent = inventoryComponent,
+    slotRowName = slotRowName,
+    slotRow = slotRow,
+    writeSlot = writeSlot,
+    findAll = findAll,
+    findByFullName = findByFullName,
+    fullName = fullName,
+    classLabel = classLabel,
+    actorLocation = actorLocation,
+    outNames = outNames,
+    dayNightManager = dayNightManager,
+    weatherLibrary = weatherLibrary,
+    worldFlagSubsystem = worldFlagSubsystem,
+    worldFlagLibrary = worldFlagLibrary,
+    currentWorldFlags = currentWorldFlags,
+    containerInventory = containerInventory,
+}
+
+local okManifest, areaModules = pcall(require, "areas.manifest")
+if not okManifest or type(areaModules) ~= "table" then
+    print("[AbioticEditorLiveAgentLua] no areas/manifest.lua (" .. tostring(areaModules) .. ")\n")
+    areaModules = {}
+end
+for _, moduleName in ipairs(areaModules) do
+    local okLoad, area = pcall(require, moduleName)
+    if okLoad and type(area) == "function" then
+        local okInit, initErr = pcall(area, ctx)
+        if okInit then
+            print("[AbioticEditorLiveAgentLua] area loaded: " .. moduleName .. "\n")
+        else
+            print("[AbioticEditorLiveAgentLua] area FAILED to initialise: " .. moduleName .. ": " .. tostring(initErr) .. "\n")
+        end
+    else
+        print("[AbioticEditorLiveAgentLua] area FAILED to load: " .. moduleName .. ": " .. tostring(area) .. "\n")
+    end
+end
+
 -- ===== The file-mailbox poll loop =====
 -- Atomic publish: write to a temp file, then rename over the real path, so the helper's reader
 -- never observes a half-written response (matches FileMailbox::WriteAtomic on the helper side).

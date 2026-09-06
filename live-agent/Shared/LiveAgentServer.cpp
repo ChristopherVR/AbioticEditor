@@ -170,12 +170,15 @@ namespace LiveAgent
         if (!authenticated) throw CommandFailed("not authenticated - send 'hello' with the token first");
 
         CommandHandler handler;
+        DefaultHandler fallback;
         {
             std::lock_guard lock(m_handlersMutex);
             auto it = m_handlers.find(command);
-            if (it == m_handlers.end()) throw CommandFailed("unknown command '" + command + "'");
-            handler = it->second;
+            if (it != m_handlers.end()) handler = it->second;
+            else fallback = m_default;
         }
-        return handler(payload);
+        if (handler) return handler(payload);
+        if (fallback) return fallback(command, payload);
+        throw CommandFailed("unknown command '" + command + "'");
     }
 }

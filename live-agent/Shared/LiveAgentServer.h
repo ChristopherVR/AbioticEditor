@@ -31,6 +31,9 @@ namespace LiveAgent
     };
 
     using CommandHandler = std::function<JsonValue(const JsonValue& payload)>;
+    // Receives every authenticated command that has no explicit RegisterCommand entry, with the
+    // command name, so a host can forward "anything else" to another layer (the Lua mod).
+    using DefaultHandler = std::function<JsonValue(const std::string& command, const JsonValue& payload)>;
 
     class Server
     {
@@ -46,6 +49,12 @@ namespace LiveAgent
         {
             std::lock_guard lock(m_handlersMutex);
             m_handlers[name] = std::move(handler);
+        }
+
+        void RegisterDefaultHandler(DefaultHandler handler)
+        {
+            std::lock_guard lock(m_handlersMutex);
+            m_default = std::move(handler);
         }
 
         // Starts the accept loop on a background thread. Safe to call once; call Stop() before a
@@ -68,6 +77,7 @@ namespace LiveAgent
         std::thread m_acceptThread;
         std::uintptr_t m_listenSocket = 0; // SOCKET, kept as uintptr_t so this header need not include <winsock2.h>.
         std::mutex m_handlersMutex;
+        DefaultHandler m_default;
         std::unordered_map<std::string, CommandHandler> m_handlers;
     };
 }

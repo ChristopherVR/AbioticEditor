@@ -19,16 +19,6 @@ namespace
 {
     constexpr int Port = 42117;
 
-    // Registers one command as "forward the payload to the Lua mailbox, return its result" -
-    // every command this helper knows about (vitals.get/set, skills.get/set, and any area added
-    // later) is exactly this shape, so adding a new area is one line here plus the matching
-    // handler in main.lua - no new C++ needed.
-    void ForwardToLua(LiveAgent::Server& server, LiveAgent::FileMailbox& mailbox, const std::string& command)
-    {
-        server.RegisterCommand(command, [&mailbox, command](const LiveAgent::JsonValue& payload) {
-            return mailbox.Request(command, payload);
-        });
-    }
 }
 
 int main()
@@ -46,12 +36,13 @@ int main()
     FileMailbox mailbox(rootDir + "\\ipc");
     Server server(Port, token, [](const std::string& line) { std::cout << line << "\n"; });
 
-    for (const char* command : {"ping", "diag.findplayer", "diag.getclass", "diag.countprops",
-        "vitals.get", "vitals.set", "skills.get", "skills.set", "players.list",
-        "npcs.list", "npcs.set", "inventory.list", "inventory.set",
-        "world.get", "world.set", "flags.list", "flags.set", "doors.list", "doors.set",
-        "containers.list", "containers.set", "dropped.list", "dropped.remove"})
-        ForwardToLua(server, mailbox, command);
+    // Every command except "hello" is the Lua mod's business: forward it by name and relay the
+    // answer. The mod answers "unknown command" itself for anything it does not implement, so
+    // adding a live-editing area no longer needs this helper rebuilt - only main.lua (and its
+    // areas/ modules) change.
+    server.RegisterDefaultHandler([&mailbox](const std::string& command, const LiveAgent::JsonValue& payload) {
+        return mailbox.Request(command, payload);
+    });
 
     server.Start();
     std::cout << "Ready.\n";
