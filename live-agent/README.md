@@ -290,6 +290,81 @@ Test edits were reverted (flag cleared, door closed, slot emptied, weather clear
 restored); the one dropped warning sign stays removed. The character was also found dead on
 load and healed/respawned first, as in earlier rounds.
 
+## The stub-environment test harness (round 76/77): coverage without launching the game
+
+`AbioticEditorLiveAgentLua/tests/` grew into a small, standalone test suite for `main.lua` and
+every `Scripts/areas/*.lua` module, so a round of live-editing work can be exercised, and its
+bugs found and fixed, without ever launching the game:
+
+- `tests/harness.lua` fakes just enough of the UE4SS Lua API to load the real, unmodified
+  `main.lua` and drive its handlers exactly the way the mailbox loop does: `H.object(className,
+  fields, methods)` builds a fake UObject that answers `IsValid()`/`GetFullName()`/`IsA()`, and
+  a call to any method NOT declared on it fails loudly (mirroring "attempt to call a nil value" /
+  "UFunction expected" live) instead of silently doing nothing. `FindAllOf`/`FindFirstOf`/
+  `StaticFindObject`, `FName`/`FText`, `NAME_None`/`EFindName`, and `LoopAsync`/
+  `ExecuteInGameThread` are all stubbed - deliberately with NO `FVector()`/`FRotator()`
+  constructor, because those are not real UE4SS Lua globals either (found live in round 76: a
+  plain `{X,Y,Z}`/`{Pitch,Yaw,Roll}` table is what the real API accepts). `H.dispatch(cmd,
+  payload)` calls a handler and round-trips its reply through the mod's own `json.lua`, so an
+  FString/FName/UObject userdata a handler forgot to convert fails the same way it failed live
+  (round 76's actual bug) instead of silently "working" in the test.
+- `tests/cases/*.lua` (registered in `tests/cases/manifest.lua`) are the actual test suites, one
+  per area, each `return function(H) ... end` using `H.hostSession()`/`H.clientSession()` for a
+  ready-made connected-player fixture and `H.eq`/`H.ok`/`H.fails`/`H.check` to assert. `core.lua`
+  covers the original areas from `main.lua` (dispatch, players, vitals, inventory, flags, world,
+  doors, containers, dropped items, NPCs); one file per round-76 area (`containment.lua`,
+  `traders.lua`, `portals.lua`, `spawn.lua`, `companions.lua`, `bases.lua`, `vehicles.lua`) plus
+  `doors.lua` (a deeper pass on both door kinds) and `players.lua` (a second connected player,
+  `playerId` targeting) followed in round 77. Every case asserts non-host refusal on every
+  host-gated write and that a missing object id fails with a player-safe message, not a raw Lua
+  error.
+- `tests/run.lua` loads the harness, loads every area module the same way `main.lua` itself does
+  (a module that fails to load fails the run), then runs every case in the manifest and exits 0
+  only if every check passed.
+
+**Running it by hand** (from the repo root, with a Lua 5.4 interpreter on PATH or given
+directly):
+```console
+lua live-agent/AbioticEditorLiveAgentLua/tests/run.lua
+```
+
+**Building a Lua 5.4 interpreter** (there is no package manager involved on Windows - this is how
+round 75/76 built the one used for every syntax check and harness run in this project, with no
+local Lua install and no vendored copy in the repo):
+1. Download the `lua-5.4.7` source tarball from lua.org and extract it.
+2. From an "x64 Native Tools Command Prompt for VS 2022" (so MSVC's `cl`/`link` are on PATH),
+   `cd` into the extracted `src/` folder and compile every `.c` file to an object file
+   (`cl /c /O2 *.c`), then link `lua.exe` from `lua.obj` plus every OTHER library object file
+   (`lapi.obj`, `lauxlib.obj`, `lbaselib.obj`, ... - everything except `luac.obj`, which carries
+   its own separate `main()` for the bytecode compiler and is not needed here and would conflict
+   if linked into the same executable as `lua.c`'s `main()`).
+3. The resulting `lua.exe` (Windows) or `lua` (Linux/macOS, via that platform's own `make`
+   instead) is a complete, standalone interpreter with `io`/`os` available - point
+   `ABIOTIC_LUA_EXE` at it, or put it on PATH as `lua`, `lua54`, or `lua5.4`.
+
+**Running it as part of `dotnet test`**: `tests/AbioticEditor.Tests/LiveAgentLuaHarnessTests.cs`
+shells out to `tests/run.lua` above and asserts exit code 0, printing the harness's own output
+either way. It resolves the interpreter the same three ways: the `ABIOTIC_LUA_EXE` environment
+variable first, then `lua54`, `lua5.4`, or `lua` on PATH. When none is found it **skips** (via
+`Xunit.SkippableFact`) rather than failing, so CI and any machine without a Lua interpreter stay
+green:
+```console
+dotnet test tests/AbioticEditor.Tests -f net10.0 --filter "FullyQualifiedName~LiveAgentLuaHarnessTests"
+```
+
+**Where this stops being useful**: the harness proves a handler resolves the objects/functions it
+expects, converts everything it hands back into something `json.lua` can encode, and honours host
+gating - it can NEVER prove a property or function actually exists with that exact name on the
+real class (the fake objects are only as honest as the class dump that built them - see
+`tests/AbioticEditor.Probes/LiveClassPropsProbe.cs`), and it cannot exercise anything that
+depends on real UE4SS marshalling behavior the stub cannot fully model (for example: a plain Lua
+string assigned to a native `FStrProperty` struct field is accepted and auto-converted by the
+real engine on write, confirmed live in round 76 for a pet's custom name, but the stub's own
+nested struct tables are plain Lua tables with no such auto-conversion - so a case testing that
+kind of write checks the raw field it landed on directly, rather than requiring a full round
+trip back through the corresponding `*.list` handler). Anything the harness cannot settle either
+way is still a real-game verification item, not a pass.
+
 ## Getting from here to a fully working setup
 
 1. **Test against a real running game.** Most property names in `main.lua` are now copied

@@ -177,7 +177,10 @@ name), `kind` (`simple` for hinged doors, `security` for sliding security doors)
 `E_DoorStates` number the file editor's `DoorStateNames` maps: 0 closed, 1 open, 2 locked, ...),
 `isOpen`, `oneWayUnlocked`, `disabled`, and world position `x`/`y`/`z` in centimetres.
 `doors.set` takes `{"doors":[{"id","kind","state"?,"isOpen"?,"oneWayUnlocked"?,"disabled"?}]}`
-- `state` applies to hinged doors, `isOpen` to security doors. Host only.
+- `state` applies to hinged doors, `isOpen` to security doors. Host only. Every row whose `id`
+still resolves is applied even if another row in the same call does not; the reply only turns
+into an error (naming the first id that could not be found - unloaded, destroyed, or mistyped)
+once every row has had its chance.
 
 ## `containers.list` / `containers.set`
 
@@ -281,7 +284,9 @@ the save's `PortalMap`). `portals.list` returns
 for every loaded `BP_Teleporter_ParentBP_C`; `teleporterId`/`destinationId` are the pad's own
 level-baked linking ids (read-only). `portals.set` takes
 `{"portals":[{"id","active"?}]}` and flips whether a pad is active/unlocked. Host only. No
-installed mod exercises this actor class; this is the first live write to it.
+installed mod exercises this actor class; this is the first live write to it. Same partial-apply
+behavior as `doors.set`: a row with an unresolved `id` does not block the others in the same
+call, but the overall reply becomes an error naming it.
 ## `spawn.get` / `spawn.set` - player position and respawn point
 
 `spawn.get` takes no payload (or `{"playerId":"…"}`) and returns:

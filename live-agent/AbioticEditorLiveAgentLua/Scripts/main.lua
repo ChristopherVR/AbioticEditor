@@ -892,6 +892,23 @@ end
 -- SecurityDoor: IsDoorOpen, OnRep_IsDoorOpen. Direct write + OnRep is the exact shape every other
 -- confirmed area here uses (vitals, NPCs); DoorUpdateState is what the door's own blueprint
 -- runs after a state change, so it is called too (pcall - no mod precedent).
+--
+-- REVIEWED (round 77): the class also exposes TryOpenOrUnlockDoor(CharacterToTest, DoorKick,
+-- ForceDoor, ForceDoorState) and MarkOneWayDoorAsUnlocked(SkipSave) - confirmed real, 4 and 1
+-- reflected inputs respectively, from a fresh class dump. TryOpenOrUnlockDoor looks tempting (it
+-- even takes a ForceDoorState byte, so it could in principle BE the "set to this state" call),
+-- but it was NOT adopted here: it needs a CharacterToTest actor reference with no evidenced
+-- source for one (this mod has no "the player who is editing" actor handy inside a doors.set
+-- call the way an interact prompt would), no installed mod calls it or MarkOneWayDoorAsUnlocked
+-- at all (unlike DoorState/OnRep_DoorState, which at least match the pattern every other
+-- confirmed area already uses), and its real behavior when ForceDoor is combined with
+-- ForceDoorState on an ALREADY-unlocked or ALREADY-locked door is unverified - it may run lock
+-- logic (sounds, kick-knockback, one-way checks) this protocol does not want on every plain
+-- state edit. The existing direct-write shape is also the one round 75 already confirmed live
+-- (state read back correctly on a real save, only the swing ANIMATION was left unwatched) - since
+-- there is no working precedent for the alternative and the current shape has real-game evidence
+-- behind it, this stays as direct DoorState + OnRep_DoorState + DoorUpdateState. Not changing the
+-- write shape without evidence, per this round's own instructions.
 
 local function doorRows()
     local result = { __forceArray = true }
@@ -939,17 +956,29 @@ handlers["doors.list"] = function(_, respond)
     end, respond)
 end
 
+-- BUG FOUND BY THE HARNESS (round 77, fixed here): a row whose id did not resolve to a live door
+-- (unloaded, destroyed, or simply mistyped) used to be silently skipped, so the whole call
+-- reported success even though nothing happened for that row - not a Lua crash, but not
+-- "player-safe" either, since the player gets no indication anything was wrong. Every OTHER
+-- resolvable row in the same call is still applied (an unloaded door two rows down should not
+-- block editing the ones that ARE still loaded); only the final reply turns into an error naming
+-- the first id that could not be found, once every row has had its chance.
 handlers["doors.set"] = function(payload, respond)
     runOnGameThread(function()
         if not isHost() then error("only the host can change doors") end
         local rows = payload.doors or {}
+        local missingId = nil
         for i = 1, #rows do
             local row = rows[i]
             if row.kind == "security" then
                 local door = row.id and findByFullName("SecurityDoor_C", row.id)
-                if door and row.isOpen ~= nil then
-                    door.IsDoorOpen = row.isOpen
-                    pcall(function() door:OnRep_IsDoorOpen() end)
+                if door then
+                    if row.isOpen ~= nil then
+                        door.IsDoorOpen = row.isOpen
+                        pcall(function() door:OnRep_IsDoorOpen() end)
+                    end
+                else
+                    missingId = missingId or row.id
                 end
             else
                 local door = row.id and findByFullName("SimpleDoor_ParentBP_C", row.id)
@@ -961,9 +990,12 @@ handlers["doors.set"] = function(payload, respond)
                     end
                     if row.oneWayUnlocked ~= nil then door.OneWayDoor_HasBeenUnlocked = row.oneWayUnlocked end
                     if row.disabled ~= nil then door.DoorDisabled = row.disabled end
+                else
+                    missingId = missingId or row.id
                 end
             end
         end
+        if missingId then error("door not found (it may have been unloaded or destroyed): " .. tostring(missingId)) end
         return nil
     end, respond)
 end

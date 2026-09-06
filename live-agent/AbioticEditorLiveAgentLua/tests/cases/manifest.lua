@@ -4,4 +4,13 @@ return {
     "story",
     "codex",
     "worldunlocks",
+    "containment",
+    "traders",
+    "portals",
+    "spawn",
+    "companions",
+    "bases",
+    "vehicles",
+    "doors",
+    "players",
 }
