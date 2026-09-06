@@ -178,6 +178,60 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
         Assert.Equal(1, await dropped.RemoveAsync([item.Id]));
     }
 
+    [Fact]
+    public async Task LiveContainmentChannel_GetAsync_reads_units_and_occupants()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var containment = new AbioticEditor.Core.LiveEditing.World.LiveContainmentChannel(channel);
+
+        var directory = await containment.GetAsync();
+        Assert.True(directory.IsHost);
+        Assert.Equal(2, directory.Units.Count);
+        Assert.Equal("Leyak", directory.Units[0].Creature);
+        Assert.Equal(85, directory.Units[0].Stability);
+        Assert.Null(directory.Units[1].Creature);
+        Assert.Null(directory.Units[1].Stability);
+
+        // Fallback path (unspecial-cased command echoes payload back as ok:true) proves the
+        // assign/release/swap requests themselves encode as well-formed JSON the agent could parse.
+        await containment.AssignAsync(directory.Units[1].Id, "Krasue");
+        await containment.ReleaseAsync("Leyak");
+        await containment.SwapAsync(directory.Units[0].Id, directory.Units[1].Id);
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
+    [Fact]
+    public async Task LiveTradersChannel_GetAsync_reads_set_flags()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var traders = new AbioticEditor.Core.LiveEditing.World.LiveTradersChannel(channel);
+
+        var flags = await traders.GetAsync();
+        Assert.True(flags.IsHost);
+        Assert.True(flags.HasFlag("Office_PowerOn"));
+        Assert.False(flags.HasFlag("Manufacturing_West"));
+
+        await traders.UnlockAsync(["Manufacturing_West"]);
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
+    [Fact]
+    public async Task LivePortalsChannel_GetAsync_reads_teleporter_pads()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var portals = new AbioticEditor.Core.LiveEditing.World.LivePortalsChannel(channel);
+
+        var directory = await portals.GetAsync();
+        Assert.False(directory.IsHost);
+        var pad = Assert.Single(directory.Portals);
+        Assert.True(pad.Active);
+        Assert.Equal("TP_A", pad.TeleporterId);
+        Assert.Equal("TP_B", pad.DestinationId);
+
+        await portals.SetActiveAsync(pad.Id, false);
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
     private async Task<TcpLiveGameChannel> ConnectedChannelAsync()
     {
         var channel = new TcpLiveGameChannel();
@@ -287,6 +341,11 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
                         + "\"slots\":[{\"slotIndex\":0,\"itemId\":\"scrap_metal\",\"isEmpty\":false,\"stack\":5,\"durability\":0,\"maxDurability\":0},{\"slotIndex\":1,\"itemId\":\"Empty\",\"isEmpty\":true,\"stack\":0,\"durability\":0,\"maxDurability\":0}]}],\"isHost\":true}",
                     "dropped.list" => "{\"items\":[{\"id\":\"Abiotic_Item_Dropped_C /Game/Maps/Facility.Facility:PersistentLevel.Abiotic_Item_Dropped_C_9\",\"itemId\":\"scrap_cloth\",\"stack\":3,\"x\":4,\"y\":5,\"z\":6}],\"isHost\":true}",
                     "dropped.remove" => "{\"removed\":1}",
+                    // Round-76 areas: containment units, trader flag gating, world teleporters.
+                    "containment.list" => "{\"units\":[{\"id\":\"Deployed_LeyakContainment_C /Game/Maps/Facility.Facility:PersistentLevel.Deployed_LeyakContainment_C_1\",\"x\":10,\"y\":20,\"z\":30,\"stability\":85,\"creature\":\"Leyak\"},"
+                        + "{\"id\":\"Deployed_LeyakContainment_C /Game/Maps/Facility.Facility:PersistentLevel.Deployed_LeyakContainment_C_2\",\"x\":40,\"y\":50,\"z\":60,\"stability\":null,\"creature\":null}],\"isHost\":true}",
+                    "traders.list" => "{\"setFlags\":[\"Office_PowerOn\"],\"isHost\":true}",
+                    "portals.list" => "{\"portals\":[{\"id\":\"BP_Teleporter_ParentBP_C /Game/Maps/Facility.Facility:PersistentLevel.BP_Teleporter_ParentBP_C_4\",\"label\":\"BP_Teleporter_ParentBP_C\",\"active\":true,\"teleporterId\":\"TP_A\",\"destinationId\":\"TP_B\",\"x\":7,\"y\":8,\"z\":9}],\"isHost\":false}",
                     _ => null,
                 };
                 if (canned is not null)

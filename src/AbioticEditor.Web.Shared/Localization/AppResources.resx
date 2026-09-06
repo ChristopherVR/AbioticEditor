@@ -3926,6 +3926,15 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="LiveNpcs_Disabled" xml:space="preserve"><value>Disabled</value></data>
   <data name="LiveNpcs_Invincible" xml:space="preserve"><value>Invincible</value></data>
   <data name="LiveNpcs_Faction" xml:space="preserve"><value>Faction</value></data>
+  <data name="Live_TabPortals" xml:space="preserve"><value>WORLD TELEPORTERS</value></data>
+  <data name="Live_TabEntitlements" xml:space="preserve"><value>ENTITLEMENTS</value></data>
+  <data name="LiveTraders_Title" xml:space="preserve"><value>TRADERS</value></data>
+  <data name="LiveTraders_Intro" xml:space="preserve"><value>The trader roster and what still gates each one. Unlocking sets the missing quest flags through the running game's own flag system - the same effect as reaching that moment in the story.</value></data>
+  <data name="LiveTraders_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to unlock traders. Editing here as a joined client would not stick.</value></data>
+  <data name="LiveTraders_Unlock" xml:space="preserve"><value>UNLOCK</value></data>
+  <data name="LiveContainment_OfflineWorldUnlocksNote" xml:space="preserve"><value>World-wide discovery counts (items seen, emails read, journal pages, compendium entries) live only in the save file, not in the running game - open this world's save to edit those.</value></data>
+  <data name="Live_EntitlementsOfflineOnly" xml:space="preserve"><value>Entitlements (Early Access, Supporter's Edition ownership) live only in the save file's server metadata - there is no running-game object to read or write, so this is edit-the-file only. Open the world's metadata save to change it.</value></data>
+  <data name="Live_RawOfflineOnly" xml:space="preserve"><value>The RAW SAVE JSON tab exports and imports the save file itself - there is nothing to show for a running game with no file open. Open the world's save to use it.</value></data>
   <data name="LiveInventory_Title" xml:space="preserve"><value>INVENTORY</value></data>
   <data name="LiveInventory_Intro" xml:space="preserve"><value>The backpack, equipment and hotbar for the selected player. Type an item row id (or pick one from the list), set the count and durability, then APPLY - each slot applies on its own.</value></data>
   <data name="LiveInventory_Backpack" xml:space="preserve"><value>BACKPACK</value></data>

@@ -6,7 +6,7 @@ using AbioticEditor.Core.WorldSaves.Features;
 namespace AbioticEditor.Web.Models;
 
 /// <summary>Razor-hosted staged edit session for a world save.</summary>
-public sealed class WorldSaveSession
+public sealed class WorldSaveSession : IWorldContainmentSession, IWorldFeaturesSession
 {
     private WorldSaveData _data;
     private readonly string _path;
@@ -573,6 +573,43 @@ public sealed class WorldSaveSession
         if (inB is not null) _containments[inB] = unitIdA;
         UpdateStatus();
     }
+
+    // ---------- IWorldContainmentSession (the async boundary WorldContainmentTab binds to) ----------
+    // A file session stages edits in memory and never touches disk here, so every call below
+    // completes synchronously; the Task-returning shape exists purely so the same tab can bind to
+    // a live session, whose equivalent calls really do round-trip to the running game.
+
+    /// <inheritdoc cref="IWorldContainmentSession.AppliesImmediately"/>
+    bool IWorldContainmentSession.AppliesImmediately => false;
+
+    Task IWorldContainmentSession.LoadContainmentUnitsAsync(CancellationToken cancellationToken) => LoadContainmentUnitsAsync();
+
+    Task IWorldContainmentSession.SetContainmentUnitOccupantAsync(string unitId, string? creature, CancellationToken cancellationToken)
+    {
+        SetContainmentUnitOccupant(unitId, creature);
+        return Task.CompletedTask;
+    }
+
+    Task IWorldContainmentSession.SwapContainmentUnitsAsync(string unitIdA, string unitIdB, CancellationToken cancellationToken)
+    {
+        SwapContainmentUnits(unitIdA, unitIdB);
+        return Task.CompletedTask;
+    }
+
+    Task IWorldContainmentSession.ReleaseContainmentAsync(string creature, CancellationToken cancellationToken)
+    {
+        ReleaseContainment(creature);
+        return Task.CompletedTask;
+    }
+
+    // ---------- IWorldFeaturesSession (Path/Deployables/MapFeature are already implicit; only
+    // the two mutators need adapting since a file edit is synchronous) ----------
+
+    Task<WorldEditResult> IWorldFeaturesSession.SetMapFeatureField(string featureId, string entryKey, string fieldId, string? value)
+        => Task.FromResult(SetMapFeatureField(featureId, entryKey, fieldId, value));
+
+    Task<WorldEditResult> IWorldFeaturesSession.RemoveMapFeatureEntry(string featureId, string entryKey)
+        => Task.FromResult(RemoveMapFeatureEntry(featureId, entryKey));
 
     /// <summary>World-wide (<c>GlobalUnlocks</c>) array prefixes, metadata save only.</summary>
     private static class GlobalUnlockPrefix

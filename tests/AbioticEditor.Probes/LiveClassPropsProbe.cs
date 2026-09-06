@@ -58,6 +58,10 @@ public class LiveClassPropsProbe
             "Abiotic_InventoryComponent", "AI_Director", "Deployed_Storage", "Deployed_Container",
             "Abiotic_PlayerController", "WorldFlag", "Abiotic_PlayerCharacter.", "AbioticDeployed_Furniture_ParentBP",
             "Abiotic_PlayerState", "WorldSave", "Abiotic_WorldSave", "Deployed_Chest", "Deployed_Locker", "Abiotic_Item_Dropped", "E_DoorStates", "Abiotic_Item_ParentBP.",
+            // Round-76 live-editing slice: containment, narrative NPCs, traders, teleporters/portals.
+            "Deployed_LeyakContainment", "LeyakDirectorComponent", "KrasueDirectorComponent",
+            "NarrativeNPC_ParentBP", "NarrativeNPC_Human_ParentBP", "Trader", "BP_Teleporter_ParentBP",
+            "Deployed_Toilet_Portal", "Entitlement",
         ];
 
         var outPath = Environment.GetEnvironmentVariable("LIVE_CLASS_PROBE_OUT");
