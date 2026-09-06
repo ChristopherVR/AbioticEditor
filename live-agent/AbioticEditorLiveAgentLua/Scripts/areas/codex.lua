@@ -31,9 +31,14 @@ return function(ctx)
     end
 
     -- Same indexed iteration + :ToString() the reference mod's "traits" console command uses on
-    -- progressionComponen.Traits - applied here to TArray<FName>/TSet<FName> properties with no
-    -- precedent of their own, hence the pcall. TSet elements are indexed the same way UE4SS
-    -- exposes TArray elements (confirmed for Local_AllCompendiumEntries specifically below).
+    -- progressionComponen.Traits (a TArray<FName>) - applied here to that same shape for
+    -- EmailsRead/JournalEntries/FishCaughtArray (all TArray<FName> per the pak dump), and,
+    -- separately, to Local_AllCompendiumEntries, which the dump says is a TSet<FName>, not a
+    -- TArray. Whether UE4SS's Lua binding exposes a TSet with the same #/[i] indexing as a
+    -- TArray is NOT confirmed anywhere in this project - untested against the real game. The
+    -- pcall means a TSet that does not support this just comes back as an empty compendium list
+    -- (a visible "0 known" rather than a crash), which is an acceptable failure mode precisely
+    -- because COMPENDIUM is already read-only here.
     local function readNameArray(getArray)
         local result = { __forceArray = true }
         local ok, arr = pcall(getArray)
