@@ -58,6 +58,10 @@ public class LiveClassPropsProbe
             "Abiotic_InventoryComponent", "AI_Director", "Deployed_Storage", "Deployed_Container",
             "Abiotic_PlayerController", "WorldFlag", "Abiotic_PlayerCharacter.", "AbioticDeployed_Furniture_ParentBP",
             "Abiotic_PlayerState", "WorldSave", "Abiotic_WorldSave", "Deployed_Chest", "Deployed_Locker", "Abiotic_Item_Dropped", "E_DoorStates", "Abiotic_Item_ParentBP.",
+            // Round 76: BASES / VEHICLES / PETS live-editing research.
+            "Deployed_Bench", "Deployed_CraftingBench", "ABF_Vehicle", "AbioticWheeledVehiclePawn",
+            "NPC_Base_ParentBP", "NPC_Monster_ParentBP", "NPC_Monster_Pest.", "NPC_Monster_Peccary.",
+            "NPC_Peccary_Sow", "NPC_Skink_Basic", "NPC_Monster_WinterSprite", "TameableComponent", "PetComponent",
         ];
 
         var outPath = Environment.GetEnvironmentVariable("LIVE_CLASS_PROBE_OUT");

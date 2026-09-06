@@ -2,4 +2,7 @@
 -- to this Scripts folder). Add a line here when you add a file to this folder - see README.md.
 return {
     "areas.story",
+    "areas.bases",
+    "areas.vehicles",
+    "areas.pets",
 }

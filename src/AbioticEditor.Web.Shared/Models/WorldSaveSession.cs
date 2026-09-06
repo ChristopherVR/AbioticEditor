@@ -6,7 +6,7 @@ using AbioticEditor.Core.WorldSaves.Features;
 namespace AbioticEditor.Web.Models;
 
 /// <summary>Razor-hosted staged edit session for a world save.</summary>
-public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSession, IWorldDroppedItemsSession, IWorldFlagsSession, IWorldStorySession
+public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSession, IWorldDroppedItemsSession, IWorldFlagsSession, IWorldStorySession, IWorldBasesSession, IWorldVehiclesSession, IWorldPetsSession
 {
     private WorldSaveData _data;
     private readonly string _path;
@@ -545,6 +545,47 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
             UpdateStatus();
         }
     }
+
+    // ---------- IWorldBasesSession / IWorldVehiclesSession / IWorldPetsSession ----------
+    // Thin async wrappers so WorldBasesTab/WorldVehiclesTab/WorldPetsTab can bind to the same
+    // narrow interfaces a live session implements (see Models/WorldBasesSession.cs and friends).
+    // Every mutation here still just stages the edit exactly as before; nothing here changes
+    // the file session's own staged/save-on-SAVE behaviour.
+
+    bool IWorldBasesSession.AppliesImmediately => false;
+    bool IWorldBasesSession.SupportsContainerPeek => true;
+    Task IWorldBasesSession.SetCustomNameAsync(string deployableId, string? customName, CancellationToken cancellationToken)
+    {
+        SetDeployableCustomName(deployableId, customName);
+        return Task.CompletedTask;
+    }
+    Task<bool> IWorldBasesSession.SetBenchUpgradeAsync(string deployableId, string row, bool installed, CancellationToken cancellationToken)
+        => Task.FromResult(SetBenchUpgrade(deployableId, row, installed));
+
+    bool IWorldVehiclesSession.AppliesImmediately => false;
+    bool IWorldVehiclesSession.SupportsWreckedState => true;
+    Task IWorldVehiclesSession.SetVehicleAsync(string id, bool driveable, bool destroyed, double x, double y, double z, CancellationToken cancellationToken)
+    {
+        SetVehicle(id, driveable, destroyed, x, y, z);
+        return Task.CompletedTask;
+    }
+
+    bool IWorldPetsSession.AppliesImmediately => false;
+    bool IWorldPetsSession.IsAvailable => true;
+    string? IWorldPetsSession.UnavailableReason => null;
+    Task IWorldPetsSession.SetPetAsync(string id, bool isDead, string? npcClass, string? customName, int xp,
+        IReadOnlyDictionary<string, double> limbHealth, CancellationToken cancellationToken)
+    {
+        SetPet(id, isDead, npcClass, customName, xp, limbHealth);
+        return Task.CompletedTask;
+    }
+    Task IWorldPetsSession.RemovePetAsync(string id, CancellationToken cancellationToken)
+    {
+        RemovePet(id);
+        return Task.CompletedTask;
+    }
+    Task<bool> IWorldPetsSession.RestorePetAsync(WorldPet pet, CancellationToken cancellationToken)
+        => Task.FromResult(RestorePet(pet));
     public void ClearDeployableCustomNames(IEnumerable<string> ids)
     {
         foreach (var id in ids)

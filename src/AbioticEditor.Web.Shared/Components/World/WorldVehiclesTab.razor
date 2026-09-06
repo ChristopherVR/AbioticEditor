@@ -75,10 +75,13 @@
                             <input type="checkbox" checked="@vehicle.Driveable" @onchange="e => Update(vehicle, driveable: e.Value is bool value && value)" />
                             @L.Resource("WorldVehicles_DrivableUnlocked")
                         </label>
-                        <label class="wt-check">
-                            <input type="checkbox" checked="@vehicle.Destroyed" @onchange="e => Update(vehicle, destroyed: e.Value is bool value && value)" />
-                            @L.Resource("WorldVehicles_Wrecked")
-                        </label>
+                        @if (Session.SupportsWreckedState)
+                        {
+                            <label class="wt-check">
+                                <input type="checkbox" checked="@vehicle.Destroyed" @onchange="e => Update(vehicle, destroyed: e.Value is bool value && value)" />
+                                @L.Resource("WorldVehicles_Wrecked")
+                            </label>
+                        }
                     </div>
 
                     <hr class="wt-divider" />
@@ -132,7 +135,11 @@
 </section>
 
 @code {
-    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    // IWorldVehiclesSession, not the concrete WorldSaveSession - see Models/WorldVehiclesSession.cs.
+    // WorldSaveSession implements it directly (staged edits); LiveConnect binds a
+    // LiveVehiclesSession instead (immediate writes against a running game, no wrecked-state
+    // support - see SupportsWreckedState).
+    [Parameter, EditorRequired] public IWorldVehiclesSession Session { get; set; } = null!;
     [Parameter] public string Title { get; set; } = "World editor";
     [Parameter] public EventCallback<string?> OnError { get; set; }
     /// <summary>Raised with a vehicle's on-board container id when the user wants to edit its
@@ -198,25 +205,35 @@
             : L.Resource("WorldVehicles_MovedFromSpawn", $"{s.X:F0}, {s.Y:F0}, {s.Z:F0}");
     }
 
-    private void ResetToSpawn(WorldVehicle vehicle)
+    private Task ResetToSpawn(WorldVehicle vehicle)
     {
-        if (_spawn is not { } s) return;
-        Session.SetVehicle(vehicle.Id, vehicle.Driveable, vehicle.Destroyed, s.X, s.Y, s.Z);
-        Workspace.NotifyEdited();
+        if (_spawn is not { } s) return Task.CompletedTask;
+        return ApplyAsync(vehicle, x: s.X, y: s.Y, z: s.Z);
     }
 
-    private void Update(WorldVehicle vehicle, bool? driveable = null, bool? destroyed = null)
+    private Task Update(WorldVehicle vehicle, bool? driveable = null, bool? destroyed = null)
+        => ApplyAsync(vehicle, driveable: driveable, destroyed: destroyed);
+
+    private Task UpdateCoordinate(WorldVehicle vehicle, int coordinate, string? raw)
     {
-        Session.SetVehicle(vehicle.Id, driveable ?? vehicle.Driveable, destroyed ?? vehicle.Destroyed, vehicle.X, vehicle.Y, vehicle.Z);
-        Workspace.NotifyEdited();
+        if (!double.TryParse(raw, out var value)) return Task.CompletedTask;
+        return ApplyAsync(vehicle,
+            x: coordinate == 0 ? value : null, y: coordinate == 1 ? value : null, z: coordinate == 2 ? value : null);
     }
 
-    private void UpdateCoordinate(WorldVehicle vehicle, int coordinate, string? raw)
+    private async Task ApplyAsync(WorldVehicle vehicle, bool? driveable = null, bool? destroyed = null,
+        double? x = null, double? y = null, double? z = null)
     {
-        if (!double.TryParse(raw, out var value)) return;
-        Session.SetVehicle(vehicle.Id, vehicle.Driveable, vehicle.Destroyed,
-            coordinate == 0 ? value : vehicle.X, coordinate == 1 ? value : vehicle.Y, coordinate == 2 ? value : vehicle.Z);
-        Workspace.NotifyEdited();
+        try
+        {
+            await Session.SetVehicleAsync(vehicle.Id, driveable ?? vehicle.Driveable, destroyed ?? vehicle.Destroyed,
+                x ?? vehicle.X, y ?? vehicle.Y, z ?? vehicle.Z);
+            if (!Session.AppliesImmediately) Workspace.NotifyEdited();
+        }
+        catch (Exception exception)
+        {
+            await OnError.InvokeAsync(Errors.Present(exception, "Change this vehicle.", "The connection may have dropped; try reconnecting."));
+        }
     }
 
     private Task OpenContainer(WorldVehicle vehicle) => OnOpenContainer.InvokeAsync(vehicle.Id);
