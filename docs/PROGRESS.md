@@ -59,14 +59,20 @@ Three bugs found only by running live, all fixed: `vehicles.list` and `companion
 FString userdata straight into the reply so `json.encode` threw inside the reply path and the
 editor saw a timeout (now converted, and the reply path reports an unencodable result as an
 error instead of silence); `spawn.set` used `FRotator(...)`/`FVector(...)` constructors that do
-not exist as UE4SS Lua globals (plain `{X,Y,Z}`/`{Pitch,Yaw,Roll}` tables now). Note UE4SS hot
-reload is off in this install (`EnableHotReloadSystem = 0`), so every script fix costs a game
-restart. Full suite 1236/1236 after one copy-guard fix (a code comment said "Blazor").
+not exist as UE4SS Lua globals (plain `{X,Y,Z}`/`{Pitch,Yaw,Roll}` tables now); and the
+blueprint `TeleportPlayer` takes five parameters on the current game build (UE4SS refused the
+reference mod's four-argument call with "UFunction expected"), so the player teleport now uses
+the native `K2_TeleportTo` that already moved the forklift, with the blueprint call as a
+fallback - verified: 1.5 m up (gravity settled her at +19 cm) and back to the exact spot.
+The forklift moved +1 m and back the same way. Note UE4SS hot reload is off in this install
+(`EnableHotReloadSystem = 0`), so every script fix cost a full game restart (four this round).
+Full suite 1236/1236 after one copy-guard fix (a code comment said "Blazor").
 
 **Still open**: the shared tabs were exercised live through the raw protocol and a headless
-Playwright pass of the page, not every button; the live door swing, the containment assign/
-release sequence (no units were loaded in the test world) and any non-host client run remain
-untested; `LiveNpcsTab`/`LiveTradersTab` are the two remaining live-only screens.
+Playwright pass of the page (recipes, flags, containers, base manager, spawn, companions all
+rendered real data), not every button; the live door swing, the containment assign/release
+sequence (no units were loaded in the test world) and any non-host client run remain untested;
+`LiveNpcsTab`/`LiveTradersTab` are the two remaining live-only screens.
 
 ## Round-75: live world editing (clock, weather, quest flags, doors, containers, dropped items), plus the real cause of Nexus bug #1 (2026-09-06)
 
