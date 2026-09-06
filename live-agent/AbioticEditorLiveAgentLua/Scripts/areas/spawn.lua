@@ -61,12 +61,32 @@ return function(ctx)
                 local rotation = { Pitch = 0, Yaw = 0, Roll = 0 }
                 local okRotation, currentRotation = pcall(function() return player:K2_GetActorRotation() end)
                 if okRotation and currentRotation then rotation = currentRotation end
-                -- Like FRotator above, FVector is not a UE4SS global either; a plain table with
-                -- X/Y/Z is what UE4SS accepts for a struct parameter (found live, round 76).
-                local target = { X = payload.teleport.x, Y = payload.teleport.y, Z = payload.teleport.z }
-                local okCall, success = pcall(function() return player:TeleportPlayer(target, rotation, true, false) end)
+                -- FVector is not a UE4SS global either. The reference mod's own teleport
+                -- (AFUtils.TeleportPlayerToPlayer) takes the vector the game hands back from
+                -- K2_GetActorLocation and overwrites its X/Y/Z fields - copy that exactly, since a
+                -- plain X/Y/Z table was accepted by the native K2_TeleportTo (vehicles) but not by
+                -- this blueprint function (found live, round 76).
+                local okVector, target = pcall(function()
+                    local vector = player:K2_GetActorLocation()
+                    vector.X = payload.teleport.x
+                    vector.Y = payload.teleport.y
+                    vector.Z = payload.teleport.z
+                    return vector
+                end)
+                if not okVector then target = { X = payload.teleport.x, Y = payload.teleport.y, Z = payload.teleport.z } end
+                -- K2_TeleportTo is the native AActor teleport the reference mod uses for any actor
+                -- (BaseUtils.TeleportActorToActor) and the one this protocol's vehicle move already
+                -- proved live. The blueprint TeleportPlayer takes five parameters on the current
+                -- game build (DestLocation, DestRotation, Force, SkipAdjustment, ExitChairs) and
+                -- UE4SS refused the reference mod's four-argument form, so it is only the fallback.
+                local okCall, success = pcall(function() return player:K2_TeleportTo(target, rotation) end)
                 if not okCall or not success then
-                    error("teleport failed (the destination may be blocked, or outside the loaded world)")
+                    local okBp, bpSuccess = pcall(function() return player:TeleportPlayer(target, rotation, true, false, true) end)
+                    if not okBp then
+                        error("teleport failed: " .. tostring(success) .. " / " .. tostring(bpSuccess))
+                    elseif not bpSuccess then
+                        error("teleport failed (the destination may be blocked, or outside the loaded world)")
+                    end
                 end
             end
 
