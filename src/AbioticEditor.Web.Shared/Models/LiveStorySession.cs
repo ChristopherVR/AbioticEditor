@@ -58,7 +58,7 @@ public sealed class LiveStorySession : IWorldStorySession
     public bool IsHost => _world.IsHost;
     public string? Status { get; private set; }
 
-    // ---------- story chapter / progression (read-only live) ----------
+    // ---------- story chapter / progression ----------
 
     public bool CanShowStory => true;
 
