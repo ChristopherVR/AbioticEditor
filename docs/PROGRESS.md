@@ -5,6 +5,89 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-75: live world editing (clock, weather, quest flags, doors, containers, dropped items), plus the real cause of Nexus bug #1 (2026-09-06)
+
+Three asks: extend live editing to the remaining world areas, merge the open PRs, and re-check
+the Nexus bug report the previous round had closed as "not a bug" after the reporter added detail.
+
+**PRs**: #33 (git-cliff install-action bump) and #34 (System.Numerics.Tensors 10.0.11) merged on
+GitHub; local `main` (14 unpushed commits from rounds 64-74) rebased onto the result. Nothing
+pushed - that remains the user's call.
+
+**Nexus bug #1 IS a real editor bug, two of them.** The reporter's follow-up ("black, not the
+grey rad-suit visor; happens after ANY save incl. a skill change; revert fixes it") pointed at
+something the app writes on every save. Built a no-edit round-trip test through the app's own
+`PlayerSaveSession.SaveAsync` (which re-applies EVERY section, not just what changed) and a
+per-writer byte-impact test, and found:
+1. `PlayerSaveReader.ReadStats` assumed a delta-omitted survival stat meant 100. The game's own
+   defaults are 0 for all five - confirmed from the pak, not guessed:
+   `Default__Abiotic_CharacterSave_C.CharacterSaveData.CurrentSurvivalStats` and
+   `CharacterStatsSave_Struct` both carry 0 (new `LiveClassPropsProbe` dumps them). Fatigue also
+   runs the OTHER way from the rest: 0 = just slept, it climbs while awake (the CDO's
+   `FatigueIncreaseAmount`, `FatigueRequiredToSleep = 40`; CheatConsoleCommands' "no fatigue"
+   writes `CurrentFatigue = 0.0`; the live "Chrissie" read 96 while nearly collapsing). So a
+   player who slept right before quitting has fatigue exactly 0, the game omits the tag, the
+   editor reads 100 and writes it back on any save -> the character loads fully exhausted, with
+   the black drowsiness bands top and bottom of the screen. Exactly the report. Fixed: missing
+   stat reads 0, and `ApplyStats` only creates a missing tag for a non-zero value (byte-identical
+   otherwise). `RepairNeeds` sample plugin and the blank-character template now put fatigue at
+   0, not 100 (both were silently writing "about to pass out").
+2. `ApplySlot` (player + world container writers) retargeted EVERY empty slot's row-handle
+   `DataTable` from the game's `ItemTable_Pickups` default to `ItemTable_Global` on every save
+   (+595 bytes on one fixture with no edit at all) - the June "repair items on the wrong table"
+   logic never excluded the `Empty` sentinel. Now: retarget only when the write changes the
+   slot's row (or the loaded catalog positively knows the item lives elsewhere), never the
+   sentinel, never a slot the game itself wrote.
+New permanent tests: `PlayerSaveSessionRoundTripTests` (no-edit app save == original, arrays
+compared as multisets since the app sorts several string lists), `PlayerSaveWriterByteImpactTests`
+(every in-place writer handed back the reader's own values is byte-identical),
+`PlayerSurvivalStatDefaultTests`. Round-62's `Player_AddTrait_ChangesOnlyThatLeaf` was right
+about the Core writer in isolation and wrong about the app, because the app applies everything.
+Not verified in-game which of the two the reporter saw (the fatigue one matches every detail);
+a reply for the Nexus thread is drafted in the session summary.
+
+**Live world editing - research that overturned rounds 72/74.** Those rounds concluded quest
+flags and containers had "no evidenced live path" because no installed mod touched them. This
+round went to the game's own data instead: `LiveClassPropsProbe` dumps blueprint property and
+function lists from the paks (DayNightManager_C, SimpleDoor_ParentBP_C, SecurityDoor_C,
+Deployed_Container_ParentBP_C, Abiotic_Item_Dropped_C, the GameMode/GameState/GameInstance,
+Abiotic_WorldSave_C) plus native usmap layouts, and the shipped `AbioticFactor-Win64-Shipping.pdb`
+gave the mangled native signatures of the flag system: `UWorldFlagSubsystem::SetWorldFlag(
+FWorldFlagRowHandle, bool, UObject*)`, `GetWorldFlags(TArray<FName>&)`, `HasWorldFlag(...)`, and
+`UWorldFlagHandleFunctionLibrary::GetAllWorldFlagRowNames/RowHandles` - the exact objects every
+`Trigger_WorldFlag_C` and story-gated door in the game calls (their ubergraphs reference
+`GetWorldSubsystem` -> `HasWorldFlag`). Containers turned out to be the same
+`Abiotic_InventoryComponent_C` as the player backpack (`ContainerInventory`), so the slot write
+is shared.
+
+**Built**: `world.get/set`, `flags.list/set`, `doors.list/set`, `containers.list/set`,
+`dropped.list/remove` in `main.lua`; helper allowlist extended and the exe rebuilt (MSVC via
+`vcvars64`); five `Live*Channel`s in `Core/LiveEditing/World/`, five `Live*Session`s and five
+tabs (`LiveWorldTab`, `LiveFlagsTab`, `LiveDoorsTab`, `LiveContainersTab`,
+`LiveDroppedItemsTab`) wired into `LiveConnect.razor`. World areas connect independently and
+degrade to an "not available, load a world" note (a player at the main menu has no
+DayNightManager yet). The flags tab reuses `QuestFlagCatalog`/`FlagGate`: SET on a flag with
+unmet prerequisites applies them in the same request, the way the file editor offers to.
+Protocol doc, user guide and live-agent README updated; 5 new fake-agent channel tests; a Lua
+5.4 interpreter built from source (scratchpad) syntax-checks `main.lua`.
+
+**Verified against the real game** (Chrissie world, day 22, hosting; character found dead on
+load, healed + respawned first): every list returned real data (257 flags/59 set, 76 doors,
+193 containers, 112 loose items, 7 weather rows); `MapReveal_Security` set then cleared;
+`SimpleDoor_ParentBP_C_9` opened (state 0->1) and closed; `scrap_metal x3` placed in a tram
+storage slot and cleared back to `Empty`; clock to 21:00 (night on the next game tick) and
+back to midday; `Fog` triggered and cleared; a warning sign removed (`removed: 1`, gone on the
+next list - `InitDespawn` is timer-based). Then the desktop UI itself, headless + Playwright:
+auto-connected, all nine tabs render with the live data (WORLD readout "Day 22, 13:28", flags
+list with SET / SET (+1 BEFORE IT), doors with state pickers, containers master/detail with
+real slots). One correction from the live run: loot-spill bags carry row `None` in unused
+slots, so `isEmpty` treats `None` like `Empty`.
+
+**Open**: hinged-door writes are direct `DoorState` + `OnRep_DoorState` + `DoorUpdateState`
+(no mod precedent for the last call) - the readback is right but the swing animation was not
+watched on screen; a client (non-host) run of any world area is still untested; flags shown for
+rows the catalog does not know (e.g. `91Contained`) print the raw name as their area.
+
 ## Round-74: live player inventory editing, plus quest/story flags and world containers confirmed as a genuine live-editing limitation (2026-09-03)
 
 The user asked for two things: research and, if real, build live quest/story flag editing; and

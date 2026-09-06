@@ -1,0 +1,108 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Services
+@using AbioticEditor.Core.LiveEditing
+@using AbioticEditor.Core.LiveEditing.World
+
+@inject ItemCatalogService Catalog
+
+@* Items lying loose in the loaded world. REMOVE despawns one immediately; REMOVE ALL clears
+   every listed item (the reference mod's "destroy all dropped items" command, per item). *@
+<section class="editor-card" aria-label="@L.Resource("LiveDropped_Title")">
+    <div class="card-title-row">
+        <h3>@L.Resource("LiveDropped_Title")</h3>
+        <button class="secondary" type="button" disabled="@_busy" @onclick="RefreshAsync">@L.Resource("LiveNpcs_Refresh")</button>
+    </div>
+
+    @if (!Session.IsHost)
+    {
+        <p class="error-text" role="alert">@L.Resource("LiveDropped_NotHostWarning")</p>
+    }
+    <p class="muted">@L.Resource("LiveDropped_Intro", Session.Items.Count)</p>
+
+    @if (Session.Items.Count == 0)
+    {
+        <p class="muted">@L.Resource("LiveDropped_NoneFound")</p>
+    }
+    else
+    {
+        <div class="live-toolbar">
+            <input aria-label="@L.Resource("LiveDropped_FilterPlaceholder")" @bind="_filter" @bind:event="oninput" placeholder="@L.Resource("LiveDropped_FilterPlaceholder")" />
+            <button class="secondary" type="button" disabled="@(!Session.IsHost || _busy)" @onclick="RemoveAllAsync">@L.Resource("LiveDropped_RemoveAll", VisibleItems.Count())</button>
+        </div>
+        <div class="shell-save-list">
+            @foreach (var item in VisibleItems)
+            {
+                <div class="save-file-row kind-player" @key="item.Id">
+                    <span class="save-kind-marker" aria-hidden="true"></span>
+                    <span class="live-flag-texts">
+                        <strong class="save-file-name">@DisplayName(item)@(item.Stack > 1 ? $" ×{item.Stack}" : null)</strong>
+                        <small>@item.ItemId · @Position(item)</small>
+                    </span>
+                    <div class="live-npc-controls">
+                        <button class="secondary" type="button" disabled="@(!Session.IsHost || _busy)" @onclick="() => RemoveAsync(item)">@L.Resource("LiveDropped_Remove")</button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    @if (Session.Status is not null)
+    {
+        <p class="status-text">@Session.Status</p>
+    }
+    @if (_error is not null)
+    {
+        <p class="error-text" role="alert">@_error</p>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public LiveDroppedItemsSession Session { get; set; } = null!;
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private bool _busy;
+    private string? _error;
+    private string _filter = string.Empty;
+
+    private IEnumerable<LiveDroppedItem> VisibleItems
+    {
+        get
+        {
+            var filter = _filter.Trim();
+            if (filter.Length == 0) return Session.Items;
+            return Session.Items.Where(i => i.ItemId.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                || DisplayName(i).Contains(filter, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    private string DisplayName(LiveDroppedItem item)
+        => Catalog.Find(item.ItemId)?.DisplayName ?? AbioticEditor.Web.Components.Shared.PlainNames.Words(item.ItemId);
+
+    private static string Position(LiveDroppedItem item)
+        => $"{item.X / 100:0}, {item.Y / 100:0}, {item.Z / 100:0} m";
+
+    private Task RefreshAsync() => RunAsync(() => Session.RefreshAsync());
+    private Task RemoveAsync(LiveDroppedItem item) => RunAsync(() => Session.RemoveAsync([item.Id]));
+    private Task RemoveAllAsync() => RunAsync(() => Session.RemoveAsync(VisibleItems.Select(i => i.Id).ToList()));
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            await action();
+            await OnChanged.InvokeAsync();
+        }
+        catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
+            or IOException or OperationCanceledException)
+        {
+            _error = Errors.Present(exception, "Remove this item.", "The connection may have dropped; try reconnecting.");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

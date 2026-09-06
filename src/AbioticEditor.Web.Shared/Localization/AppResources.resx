@@ -3933,4 +3933,53 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="LiveInventory_Hotbar" xml:space="preserve"><value>HOTBAR</value></data>
   <data name="LiveInventory_Slot" xml:space="preserve"><value>Slot {0}</value></data>
   <data name="LiveInventory_Apply" xml:space="preserve"><value>APPLY</value></data>
+  <data name="Live_WorldAreaUnavailable" xml:space="preserve"><value>This part of the game is not available right now. Load into a world (not just the main menu), then DISCONNECT and reconnect. If it stays unavailable, the live-agent mod in the game may be an older version without this area.</value></data>
+  <data name="LiveWorld_Title" xml:space="preserve"><value>WORLD</value></data>
+  <data name="LiveWorld_Intro" xml:space="preserve"><value>The running world's clock and weather. Each button applies immediately - there is no APPLY step here.</value></data>
+  <data name="LiveWorld_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to change the clock or weather. Changing them here as a joined client would not stick.</value></data>
+  <data name="LiveWorld_Clock" xml:space="preserve"><value>CLOCK</value></data>
+  <data name="LiveWorld_Readout" xml:space="preserve"><value>Day {0}, {1}:{2}</value></data>
+  <data name="LiveWorld_Day" xml:space="preserve"><value>DAY</value></data>
+  <data name="LiveWorld_Night" xml:space="preserve"><value>NIGHT</value></data>
+  <data name="LiveWorld_Paused" xml:space="preserve"><value>PAUSED</value></data>
+  <data name="LiveWorld_Hour" xml:space="preserve"><value>hour</value></data>
+  <data name="LiveWorld_Minute" xml:space="preserve"><value>minute</value></data>
+  <data name="LiveWorld_SetTime" xml:space="preserve"><value>SET TIME</value></data>
+  <data name="LiveWorld_DayNumber" xml:space="preserve"><value>day</value></data>
+  <data name="LiveWorld_SetDay" xml:space="preserve"><value>SET DAY</value></data>
+  <data name="LiveWorld_Weather" xml:space="preserve"><value>WEATHER</value></data>
+  <data name="LiveWorld_CurrentWeather" xml:space="preserve"><value>Right now: {0}</value></data>
+  <data name="LiveWorld_WeatherNone" xml:space="preserve"><value>Clear</value></data>
+  <data name="LiveWorld_TriggerNow" xml:space="preserve"><value>START NOW</value></data>
+  <data name="LiveWorld_QueueTomorrow" xml:space="preserve"><value>SET FOR TOMORROW</value></data>
+  <data name="LiveWorld_WeatherHelp" xml:space="preserve"><value>START NOW begins the event immediately (pick Clear to end the current one). SET FOR TOMORROW queues it for the next in-game day instead.</value></data>
+  <data name="LiveFlags_Title" xml:space="preserve"><value>QUEST FLAGS</value></data>
+  <data name="LiveFlags_Intro" xml:space="preserve"><value>{0} of {1} story flags are set in the running world. SET and CLEAR apply immediately; setting a flag also sets the story steps it depends on, just like the file editor offers to.</value></data>
+  <data name="LiveFlags_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to change quest flags. Changing them here as a joined client would not stick.</value></data>
+  <data name="LiveFlags_OnlySet" xml:space="preserve"><value>Only flags already set</value></data>
+  <data name="LiveFlags_NoneFound" xml:space="preserve"><value>No quest flags were reported by the game. Are you in a world yet?</value></data>
+  <data name="LiveFlags_Set" xml:space="preserve"><value>SET</value></data>
+  <data name="LiveFlags_SetWithPrereqs" xml:space="preserve"><value>SET (+{0} before it)</value></data>
+  <data name="LiveFlags_WillAlsoSet" xml:space="preserve"><value>Also sets: {0}</value></data>
+  <data name="LiveDoors_Title" xml:space="preserve"><value>DOORS</value></data>
+  <data name="LiveDoors_Intro" xml:space="preserve"><value>{0} doors are loaded around the players right now. Changes apply immediately - a door opens, closes, locks or unlocks in front of you.</value></data>
+  <data name="LiveDoors_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to change doors. Changing them here as a joined client would not stick.</value></data>
+  <data name="LiveDoors_NoneFound" xml:space="preserve"><value>No doors are loaded right now.</value></data>
+  <data name="LiveDoors_KindSimple" xml:space="preserve"><value>Hinged door</value></data>
+  <data name="LiveDoors_KindSecurity" xml:space="preserve"><value>Security door</value></data>
+  <data name="LiveDoors_OneWayUnlocked" xml:space="preserve"><value>One-way side unlocked</value></data>
+  <data name="LiveDoors_Open" xml:space="preserve"><value>OPEN</value></data>
+  <data name="LiveDoors_Close" xml:space="preserve"><value>CLOSE</value></data>
+  <data name="LiveContainers_Title" xml:space="preserve"><value>CONTAINERS</value></data>
+  <data name="LiveContainers_Intro" xml:space="preserve"><value>{0} storage containers are loaded right now. Pick one, then edit its slots - each slot applies on its own, immediately.</value></data>
+  <data name="LiveContainers_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to change containers. Changing them here as a joined client would not stick.</value></data>
+  <data name="LiveContainers_NoneFound" xml:space="preserve"><value>No storage containers are loaded right now.</value></data>
+  <data name="LiveContainers_Count" xml:space="preserve"><value>{0} of {1} slots used</value></data>
+  <data name="LiveDropped_Title" xml:space="preserve"><value>DROPPED ITEMS</value></data>
+  <data name="LiveDropped_Intro" xml:space="preserve"><value>{0} items are lying loose in the loaded world. REMOVE despawns an item immediately - it is gone for good.</value></data>
+  <data name="LiveDropped_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to remove dropped items. Removing them here as a joined client would not stick.</value></data>
+  <data name="LiveDropped_NoneFound" xml:space="preserve"><value>Nothing is lying loose in the loaded world right now.</value></data>
+  <data name="LiveDropped_Remove" xml:space="preserve"><value>REMOVE</value></data>
+  <data name="LiveDropped_FilterPlaceholder" xml:space="preserve"><value>Filter items by name…</value></data>
+  <data name="LiveDropped_RemoveAll" xml:space="preserve"><value>REMOVE ALL ({0})</value></data>
 </root>

@@ -251,6 +251,45 @@ Every remaining "unconfirmed guess" flagged earlier in this document (`CurrentSa
 `FileIndexToLiveSkillId` table, the remove-then-add RPC pattern) is now confirmed by a real
 round trip, not just "no error was thrown."
 
+## World areas confirmed live (2026-09-06, round 75)
+
+Five more command pairs - `world.get/set` (clock + weather), `flags.list/set` (quest/story
+flags), `doors.list/set`, `containers.list/set`, and `dropped.list/remove` - were built from
+the game's OWN class layouts rather than from a reference mod: `tests/AbioticEditor.Probes/
+LiveClassPropsProbe.cs` dumps the blueprint property/function lists (DayNightManager_C,
+SimpleDoor_ParentBP_C, SecurityDoor_C, Deployed_Container_ParentBP_C, Abiotic_Item_Dropped_C)
+and the native usmap layouts, and the quest-flag path came from the shipped PDB: the native
+`UWorldFlagSubsystem` (`SetWorldFlag(FWorldFlagRowHandle, bool, UObject*)`, `GetWorldFlags(
+TArray<FName>&)`) plus `UWorldFlagHandleFunctionLibrary` (`GetAllWorldFlagRowNames/RowHandles`),
+which is exactly what every in-game `Trigger_WorldFlag_C` and story-gated door calls. Earlier
+rounds had concluded flags and containers had no live path only because no *installed mod*
+touched them.
+
+Every one of them was then exercised against the real running game ("Chrissie", day 22, host):
+
+- `world.get` returned day 22, 11:31, clear weather, and all seven weather rows straight from
+  the game's table. `world.set` moved the clock to 21:00 (the game flipped to night on its next
+  tick and the HUD's cold indicator appeared), triggered `Fog` (`currentWeather` read back
+  `Fog`), then cleared it and put the clock back to midday.
+- `flags.list` returned 257 known flags with 59 set (the real story state). `flags.set` set
+  `MapReveal_Security` and read back set; clearing it read back clear.
+- `doors.list` returned 76 loaded doors (42 hinged, 34 security incl. tram rail doors).
+  `doors.set` opened hinged door `SimpleDoor_ParentBP_C_9` (state 0 -> 1, `isOpen` true) and
+  closed it again.
+- `containers.list` returned 193 containers (mostly loot-spill bags, 69 player-usable ones with
+  a free slot). `containers.set` put `scrap_metal x3` into slot 1 of a tram storage container,
+  read back exactly, then cleared it back to `Empty`.
+- `dropped.list` returned 112 loose items; `dropped.remove` on a warning sign returned
+  `removed: 1`, and the item was gone from the next list a few seconds later (`InitDespawn` is
+  timer-based, so the very next read can still show it). A bogus id returns `removed: 0`.
+
+One correction found live: loot-spill bags carry the row name `None` (not `Empty`) in an
+unused slot, so `isEmpty` now treats both as empty, matching the file editor.
+
+Test edits were reverted (flag cleared, door closed, slot emptied, weather cleared, clock
+restored); the one dropped warning sign stays removed. The character was also found dead on
+load and healed/respawned first, as in earlier rounds.
+
 ## Getting from here to a fully working setup
 
 1. **Test against a real running game.** Most property names in `main.lua` are now copied

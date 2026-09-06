@@ -594,6 +594,498 @@ handlers["inventory.set"] = function(payload, respond)
     end, respond)
 end
 
+-- ===== Shared world helpers for the areas below =====
+--
+-- ADDED (round 75, 2026-09-06): world clock + weather, quest/story flags, doors, world
+-- containers, and dropped items. Every UObject/UFunction name below was taken from the game's
+-- OWN class layouts (blueprint property/function lists and native-class signatures pulled from
+-- the installed paks/usmap and the shipped PDB by tests/AbioticEditor.Probes/
+-- LiveClassPropsProbe.cs), cross-checked against CheatConsoleCommands where that mod touches the
+-- same object - not guessed from naming patterns. Where a call has NO precedent in a working mod
+-- it says so at the call site and is wrapped in pcall so one wrong signature degrades that one
+-- field, never the whole command.
+
+-- FVector -> plain numbers. K2_GetActorLocation is used verbatim at AFUtils.lua:641 and
+-- LocationsManager.lua:81 in the reference mod.
+local function actorLocation(actor)
+    local ok, loc = pcall(function() return actor:K2_GetActorLocation() end)
+    if ok and loc then
+        local okx, x, y, z = pcall(function() return loc.X, loc.Y, loc.Z end)
+        if okx then return x, y, z end
+    end
+    return 0, 0, 0
+end
+
+local function fullName(obj)
+    local ok, name = pcall(function() return obj:GetFullName() end)
+    if ok and name then return tostring(name) end
+    return nil
+end
+
+local function classLabel(name)
+    return name and name:match("^(%S+)") or "?"
+end
+
+local function findAll(className)
+    local ok, list = pcall(function() return FindAllOf(className) end)
+    if not ok or not list then return {} end
+    return list
+end
+
+local function findByFullName(className, target)
+    for _, obj in ipairs(findAll(className)) do
+        if obj:IsValid() and fullName(obj) == target then return obj end
+    end
+    return nil
+end
+
+-- Reads the FName elements of an out-param TArray<FName> the way AFUtils.lua:553-567 /
+-- WeatherManager.lua:22-25 read GetAllWeatherEventRowNames/RowHandles: each element is a
+-- LocalUnrealParam whose :get() is the value.
+local function outNames(fill)
+    local out = {}
+    local ok = pcall(fill, out)
+    local names = {}
+    if not ok then return names end
+    for i = 1, #out do
+        local okName, name = pcall(function() return out[i]:get():ToString() end)
+        if okName and name then table.insert(names, name) end
+    end
+    return names
+end
+
+-- ===== World clock + weather (DayNightManager_C) =====
+-- Fields/functions confirmed on the blueprint class itself: CurrentTimeInSeconds, CurrentDay,
+-- IsNight, CurrentWeatherEvent (FName), DayNightManuallyPaused, RequiredDaysBetweenWeather,
+-- Weather_RequestByPlayer, TriggerWeatherEvent(EventRow), IsCurrentlyDaytime(),
+-- OnRep_CurrentTimeInSeconds, OnRep_IsNight, OnRep_CurrentDay. The time/weather writes below
+-- are the reference mod's own settime / setweather / setnextweather commands
+-- (AFUtils.lua:546-593, 715-729; CommandsManager.lua:1243-1370), which are host-only there too.
+
+local function dayNightManager()
+    local ok, manager = pcall(function() return FindFirstOf("DayNightManager_C") end)
+    if ok and manager and manager:IsValid() then return manager end
+    return nil
+end
+
+local function weatherLibrary()
+    local ok, lib = pcall(function()
+        return StaticFindObject("/Script/AbioticFactor.Default__WeatherEventHandleFunctionLibrary")
+    end)
+    if ok and lib and lib:IsValid() then return lib end
+    return nil
+end
+
+local function weatherRowHandleToTable(handle)
+    return { RowName = handle.RowName, DataTablePath = handle.DataTablePath }
+end
+
+local function triggerWeather(manager, eventName)
+    local lib = weatherLibrary()
+    if not lib then error("weather library not available") end
+    local out = {}
+    lib:GetAllWeatherEventRowHandles(out)
+    if #out == 0 then error("no weather events found") end
+    if eventName == "None" then
+        local handle = out[1]:get()
+        handle.RowName = NAME_None
+        manager:TriggerWeatherEvent(weatherRowHandleToTable(handle))
+        return
+    end
+    for i = 1, #out do
+        local handle = out[i]:get()
+        if handle.RowName:ToString() == eventName then
+            manager:TriggerWeatherEvent(weatherRowHandleToTable(handle))
+            return
+        end
+    end
+    error("unknown weather event " .. tostring(eventName))
+end
+
+handlers["world.get"] = function(_, respond)
+    runOnGameThread(function()
+        local manager = dayNightManager()
+        if not manager then error("the world clock is not loaded (are you in a world?)") end
+        local weatherNames = {}
+        local lib = weatherLibrary()
+        if lib then
+            weatherNames = outNames(function(out) lib:GetAllWeatherEventRowNames(out) end)
+        end
+        local weatherOptions = { __forceArray = true, "None" }
+        for _, name in ipairs(weatherNames) do
+            if name ~= "None" then table.insert(weatherOptions, name) end
+        end
+        local okWeather, currentWeather = pcall(function() return manager.CurrentWeatherEvent:ToString() end)
+        local okPaused, paused = pcall(function() return manager.DayNightManuallyPaused == true end)
+        return {
+            isHost = isHost(),
+            day = manager.CurrentDay,
+            timeSeconds = manager.CurrentTimeInSeconds,
+            isNight = manager.IsNight == true,
+            paused = okPaused and paused or false,
+            currentWeather = (okWeather and currentWeather) or "None",
+            weatherOptions = weatherOptions,
+        }
+    end, respond)
+end
+
+handlers["world.set"] = function(payload, respond)
+    runOnGameThread(function()
+        if not isHost() then error("only the host can change the world clock or weather") end
+        local manager = dayNightManager()
+        if not manager then error("the world clock is not loaded (are you in a world?)") end
+        if payload.timeSeconds ~= nil then
+            -- AFUtils.SetGameTime, minus its "+10 seconds" nudge (the editor sends the exact
+            -- second it wants). OnRep pushes it to clients/UI; the IsNight recompute mirrors
+            -- AFUtils.CalculateAndSetDaytime but asks the manager's own IsCurrentlyDaytime()
+            -- instead of re-deriving the hour thresholds (which that mod hardcodes).
+            manager.CurrentTimeInSeconds = payload.timeSeconds
+            pcall(function() manager:OnRep_CurrentTimeInSeconds() end)
+            pcall(function()
+                local isDay = manager:IsCurrentlyDaytime()
+                if manager.IsNight == isDay then
+                    manager.IsNight = not isDay
+                    manager:OnRep_IsNight()
+                end
+            end)
+        end
+        if payload.day ~= nil then
+            manager.CurrentDay = payload.day
+            pcall(function() manager:OnRep_CurrentDay() end)
+        end
+        if payload.weather ~= nil and payload.weather ~= "" then
+            triggerWeather(manager, payload.weather)
+        end
+        if payload.nextWeather ~= nil and payload.nextWeather ~= "" then
+            -- AFUtils.SetNextWeatherEvent verbatim.
+            manager.RequiredDaysBetweenWeather = 0
+            manager.Weather_RequestByPlayer.RowName = FName(payload.nextWeather, EFindName.FNAME_Find)
+        end
+        return nil
+    end, respond)
+end
+
+-- ===== Quest / story flags (native UWorldFlagSubsystem) =====
+-- Earlier rounds could not find a live path for these because no installed mod touches them.
+-- The game's own blueprints do: doors, triggers and effects all call GetWorldSubsystem ->
+-- HasWorldFlag / SetWorldFlag on a native world subsystem, and its exact native signatures are in
+-- the shipped PDB:
+--   bool HasWorldFlag(const UObject* WorldContext, FWorldFlagRowHandle Flag)
+--   void SetWorldFlag(FWorldFlagRowHandle Flag, bool Value, UObject* Instigator)
+--   bool GetWorldFlags(TArray<FName>& Out)
+--   bool HasWorldFlagsLoaded()
+-- plus a static UWorldFlagHandleFunctionLibrary (GetAllWorldFlagRowNames / RowHandles,
+-- MakeWorldFlagRowHandle) shaped exactly like the weather library the reference mod already
+-- drives. Trigger_WorldFlag_C is the in-game actor that flips a flag when the player walks into
+-- it, and it goes through this same subsystem - so this is the game's own write path, not a
+-- shortcut around it. NO published mod exercises it, so every call is pcall-guarded and the
+-- first live run is what proves it (see docs/PROGRESS.md round 75).
+
+local function worldFlagSubsystem()
+    local ok, subsystem = pcall(function() return FindFirstOf("WorldFlagSubsystem") end)
+    if ok and subsystem and subsystem:IsValid() then return subsystem end
+    return nil
+end
+
+local function worldFlagLibrary()
+    local ok, lib = pcall(function()
+        return StaticFindObject("/Script/AbioticFactor.Default__WorldFlagHandleFunctionLibrary")
+    end)
+    if ok and lib and lib:IsValid() then return lib end
+    return nil
+end
+
+local function currentWorldFlags()
+    local set = {}
+    local subsystem = worldFlagSubsystem()
+    if subsystem then
+        local names = outNames(function(out) subsystem:GetWorldFlags(out) end)
+        for _, name in ipairs(names) do set[name] = true end
+        if next(set) ~= nil then return set end
+    end
+    -- Fallback: the replicated AbioticGameState.WorldFlags array (native, from the usmap).
+    local ok, gameState = pcall(function() return UEHelpers.GetGameStateBase() end)
+    if ok and gameState and gameState:IsValid() then
+        pcall(function()
+            local flags = gameState.WorldFlags
+            for i = 1, #flags do
+                local okName, name = pcall(function() return flags[i]:ToString() end)
+                if okName and name then set[name] = true end
+            end
+        end)
+    end
+    return set
+end
+
+handlers["flags.list"] = function(_, respond)
+    runOnGameThread(function()
+        local set = currentWorldFlags()
+        local known = {}
+        local lib = worldFlagLibrary()
+        if lib then
+            known = outNames(function(out) lib:GetAllWorldFlagRowNames(out) end)
+        end
+        local seen = {}
+        local result = { __forceArray = true }
+        for _, name in ipairs(known) do
+            seen[name] = true
+            table.insert(result, { name = name, isSet = set[name] == true })
+        end
+        for name, _ in pairs(set) do
+            if not seen[name] then table.insert(result, { name = name, isSet = true }) end
+        end
+        return { flags = result, isHost = isHost() }
+    end, respond)
+end
+
+handlers["flags.set"] = function(payload, respond)
+    runOnGameThread(function()
+        if not isHost() then error("only the host can change quest flags") end
+        local subsystem = worldFlagSubsystem()
+        local lib = worldFlagLibrary()
+        if not subsystem or not lib then error("the quest flag system is not loaded (are you in a world?)") end
+        local out = {}
+        lib:GetAllWorldFlagRowHandles(out)
+        local handles = {}
+        for i = 1, #out do
+            local okHandle, handle = pcall(function() return out[i]:get() end)
+            if okHandle and handle then
+                local okName, name = pcall(function() return handle.RowName:ToString() end)
+                if okName and name then handles[name] = handle end
+            end
+        end
+        local instigator = getMyPlayer()
+        local rows = payload.flags or {}
+        for i = 1, #rows do
+            local row = rows[i]
+            local handle = row.name and handles[row.name]
+            if not handle then error("unknown quest flag " .. tostring(row.name)) end
+            local value = row.isSet == true
+            -- Same struct-as-table pattern the reference mod uses for TriggerWeatherEvent; the
+            -- raw handle userdata is the fallback if the table form is rejected.
+            local okCall = pcall(function()
+                subsystem:SetWorldFlag({ RowName = handle.RowName, DataTablePath = handle.DataTablePath }, value, instigator)
+            end)
+            if not okCall then subsystem:SetWorldFlag(handle, value, instigator) end
+        end
+        return nil
+    end, respond)
+end
+
+-- ===== Doors (SimpleDoor_ParentBP_C / SecurityDoor_C) =====
+-- SimpleDoor: DoorState (byte, the same E_DoorStates the file editor writes: 0 closed, 1 open,
+-- 2 locked, ...), OneWayDoor_HasBeenUnlocked, DoorDisabled, OnRep_DoorState, DoorUpdateState.
+-- SecurityDoor: IsDoorOpen, OnRep_IsDoorOpen. Direct write + OnRep is the exact shape every other
+-- confirmed area here uses (vitals, NPCs); DoorUpdateState is what the door's own blueprint
+-- runs after a state change, so it is called too (pcall - no mod precedent).
+
+local function doorRows()
+    local result = { __forceArray = true }
+    for _, door in ipairs(findAll("SimpleDoor_ParentBP_C")) do
+        if door:IsValid() then
+            local name = fullName(door)
+            if name then
+                local x, y, z = actorLocation(door)
+                local okState, state = pcall(function() return door.DoorState end)
+                local okOneWay, oneWay = pcall(function() return door.OneWayDoor_HasBeenUnlocked == true end)
+                local okDisabled, disabled = pcall(function() return door.DoorDisabled == true end)
+                table.insert(result, {
+                    id = name, label = classLabel(name), kind = "simple",
+                    state = okState and tonumber(state) or 0,
+                    isOpen = okState and tonumber(state) == 1,
+                    oneWayUnlocked = okOneWay and oneWay or false,
+                    disabled = okDisabled and disabled or false,
+                    x = x, y = y, z = z,
+                })
+            end
+        end
+    end
+    for _, door in ipairs(findAll("SecurityDoor_C")) do
+        if door:IsValid() then
+            local name = fullName(door)
+            if name then
+                local x, y, z = actorLocation(door)
+                local okOpen, open = pcall(function() return door.IsDoorOpen == true end)
+                table.insert(result, {
+                    id = name, label = classLabel(name), kind = "security",
+                    state = (okOpen and open) and 1 or 0,
+                    isOpen = okOpen and open or false,
+                    oneWayUnlocked = false, disabled = false,
+                    x = x, y = y, z = z,
+                })
+            end
+        end
+    end
+    return result
+end
+
+handlers["doors.list"] = function(_, respond)
+    runOnGameThread(function()
+        return { doors = doorRows(), isHost = isHost() }
+    end, respond)
+end
+
+handlers["doors.set"] = function(payload, respond)
+    runOnGameThread(function()
+        if not isHost() then error("only the host can change doors") end
+        local rows = payload.doors or {}
+        for i = 1, #rows do
+            local row = rows[i]
+            if row.kind == "security" then
+                local door = row.id and findByFullName("SecurityDoor_C", row.id)
+                if door and row.isOpen ~= nil then
+                    door.IsDoorOpen = row.isOpen
+                    pcall(function() door:OnRep_IsDoorOpen() end)
+                end
+            else
+                local door = row.id and findByFullName("SimpleDoor_ParentBP_C", row.id)
+                if door then
+                    if row.state ~= nil then
+                        door.DoorState = row.state
+                        pcall(function() door:OnRep_DoorState() end)
+                        pcall(function() door:DoorUpdateState() end)
+                    end
+                    if row.oneWayUnlocked ~= nil then door.OneWayDoor_HasBeenUnlocked = row.oneWayUnlocked end
+                    if row.disabled ~= nil then door.DoorDisabled = row.disabled end
+                end
+            end
+        end
+        return nil
+    end, respond)
+end
+
+-- ===== World containers (Deployed_Container_ParentBP_C) =====
+-- Every storage crate/locker/cabinet in the world derives from this class and owns a
+-- ContainerInventory (an Abiotic_InventoryComponent_C - the SAME component class the player
+-- inventory area above already edits, with the same CurrentInventory slot structs and the same
+-- hash-suffixed field names). OnRep_CurrentInventory exists on the component and is called after
+-- a write so clients/UI refresh (pcall - no mod precedent for calling it directly).
+
+local function slotRow(slot, index)
+    local rowName = slotRowName(slot)
+    local changeableData = slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313
+    return {
+        slotIndex = index,
+        itemId = rowName,
+        -- "Empty" is the sentinel the game writes; "None" also shows up on loot-spill bags in a
+        -- real world (confirmed live, round 75) and the file editor treats both as empty.
+        isEmpty = rowName == "" or rowName == "Empty" or rowName == "None",
+        stack = changeableData and changeableData.CurrentStack_9_D443B69044D640B0989FD8A629801A49 or 0,
+        durability = changeableData and changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 or 0,
+        maxDurability = changeableData and changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B or 0,
+    }
+end
+
+local function writeSlot(slot, row)
+    local changeableData = slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313
+    if row.clear then
+        slot.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B.RowName = FName("Empty", EFindName.FNAME_Find)
+        changeableData.CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 0
+        changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = 0
+        changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = 0
+        return
+    end
+    if row.itemId ~= nil and row.itemId ~= "" then
+        slot.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B.RowName = FName(row.itemId, EFindName.FNAME_Find)
+    end
+    if row.stack ~= nil then changeableData.CurrentStack_9_D443B69044D640B0989FD8A629801A49 = row.stack end
+    if row.durability ~= nil then changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = row.durability end
+    if row.maxDurability ~= nil then changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = row.maxDurability end
+end
+
+local function containerInventory(container)
+    local ok, inv = pcall(function() return container.ContainerInventory end)
+    if ok and inv and inv:IsValid() then return inv end
+    return nil
+end
+
+handlers["containers.list"] = function(_, respond)
+    runOnGameThread(function()
+        local result = { __forceArray = true }
+        for _, container in ipairs(findAll("Deployed_Container_ParentBP_C")) do
+            if container:IsValid() then
+                local name = fullName(container)
+                local inv = containerInventory(container)
+                if name and inv and inv.CurrentInventory then
+                    local x, y, z = actorLocation(container)
+                    local slots = { __forceArray = true }
+                    for i = 1, #inv.CurrentInventory do
+                        table.insert(slots, slotRow(inv.CurrentInventory[i], i - 1))
+                    end
+                    table.insert(result, { id = name, label = classLabel(name), x = x, y = y, z = z, slots = slots })
+                end
+            end
+        end
+        return { containers = result, isHost = isHost() }
+    end, respond)
+end
+
+handlers["containers.set"] = function(payload, respond)
+    runOnGameThread(function()
+        if not isHost() then error("only the host can change containers") end
+        local container = payload.id and findByFullName("Deployed_Container_ParentBP_C", payload.id)
+        if not container then error("container not found (it may have been unloaded or destroyed)") end
+        local inv = containerInventory(container)
+        if not inv or not inv.CurrentInventory then error("container has no inventory") end
+        local rows = payload.edits or {}
+        for i = 1, #rows do
+            local row = rows[i]
+            local slot = row.slotIndex ~= nil and inv.CurrentInventory[row.slotIndex + 1]
+            if slot then writeSlot(slot, row) end
+        end
+        pcall(function() inv:OnRep_CurrentInventory() end)
+        return nil
+    end, respond)
+end
+
+-- ===== Dropped items (Abiotic_Item_Dropped_C) =====
+-- FindAllOf("Abiotic_Item_Dropped_C") + HasBeenPickedUp + InitDespawn()/OnItemDespawn() are the
+-- reference mod's own "destroy all dropped items" command, verbatim (CommandsManager.lua:1464-
+-- 1478, host-only there too). ItemDataRow/ChangeableData are on the blueprint class layout.
+
+handlers["dropped.list"] = function(_, respond)
+    runOnGameThread(function()
+        local result = { __forceArray = true }
+        for _, item in ipairs(findAll("Abiotic_Item_Dropped_C")) do
+            if item:IsValid() then
+                local name = fullName(item)
+                local okPicked, picked = pcall(function() return item.HasBeenPickedUp == true end)
+                if name and not (okPicked and picked) then
+                    local x, y, z = actorLocation(item)
+                    local okRow, rowName = pcall(function() return item.ItemDataRow.RowName:ToString() end)
+                    local okStack, stack = pcall(function()
+                        return item.ChangeableData.CurrentStack_9_D443B69044D640B0989FD8A629801A49
+                    end)
+                    table.insert(result, {
+                        id = name,
+                        itemId = (okRow and rowName) or classLabel(name),
+                        stack = (okStack and stack) or 1,
+                        x = x, y = y, z = z,
+                    })
+                end
+            end
+        end
+        return { items = result, isHost = isHost() }
+    end, respond)
+end
+
+handlers["dropped.remove"] = function(payload, respond)
+    runOnGameThread(function()
+        if not isHost() then error("only the host can remove dropped items") end
+        local ids = payload.ids or {}
+        local removed = 0
+        for i = 1, #ids do
+            local item = findByFullName("Abiotic_Item_Dropped_C", ids[i])
+            if item then
+                item:InitDespawn()
+                item:OnItemDespawn()
+                removed = removed + 1
+            end
+        end
+        return { removed = removed }
+    end, respond)
+end
+
 -- ===== The file-mailbox poll loop =====
 -- Atomic publish: write to a temp file, then rename over the real path, so the helper's reader
 -- never observes a half-written response (matches FileMailbox::WriteAtomic on the helper side).

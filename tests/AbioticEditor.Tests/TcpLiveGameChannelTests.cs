@@ -99,6 +99,92 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
         Assert.Equal(LiveConnectionState.Connected, channel.State);
     }
 
+    [Fact]
+    public async Task LiveWorldStateChannel_GetAsync_reads_clock_and_weather()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var state = await new AbioticEditor.Core.LiveEditing.World.LiveWorldStateChannel(channel).GetAsync();
+
+        Assert.True(state.IsHost);
+        Assert.Equal(12, state.Day);
+        Assert.Equal(13, state.Hour);
+        Assert.Equal(30, state.Minute);
+        Assert.False(state.IsNight);
+        Assert.Equal("Fog", state.CurrentWeather);
+        Assert.Equal(["None", "Fog", "RadLeak"], state.WeatherOptions);
+    }
+
+    [Fact]
+    public async Task LiveWorldFlagsChannel_round_trips_flags()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var flags = new AbioticEditor.Core.LiveEditing.World.LiveWorldFlagsChannel(channel);
+
+        var directory = await flags.GetAsync();
+        Assert.Equal(2, directory.Flags.Count);
+        Assert.True(directory.Flags[0].IsSet);
+        Assert.Equal("Manufacturing_West", directory.Flags[1].Name);
+        Assert.False(directory.Flags[1].IsSet);
+
+        await flags.SetAsync([new AbioticEditor.Core.LiveEditing.World.LiveWorldFlag("Manufacturing_West", true)]);
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
+    [Fact]
+    public async Task LiveDoorsChannel_GetAsync_distinguishes_door_kinds()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var directory = await new AbioticEditor.Core.LiveEditing.World.LiveDoorsChannel(channel).GetAsync();
+
+        Assert.False(directory.IsHost);
+        Assert.Equal(2, directory.Doors.Count);
+        Assert.Equal(AbioticEditor.Core.LiveEditing.World.LiveDoorKind.Simple, directory.Doors[0].Kind);
+        Assert.Equal(2, directory.Doors[0].State);
+        Assert.Equal(100.5, directory.Doors[0].X);
+        Assert.Equal(AbioticEditor.Core.LiveEditing.World.LiveDoorKind.Security, directory.Doors[1].Kind);
+        Assert.True(directory.Doors[1].IsOpen);
+    }
+
+    [Fact]
+    public async Task LiveContainersChannel_GetAsync_reads_slots()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var containers = new AbioticEditor.Core.LiveEditing.World.LiveContainersChannel(channel);
+
+        var directory = await containers.GetAsync();
+        var crate = Assert.Single(directory.Containers);
+        Assert.Equal("Deployed_StorageCrate_Makeshift_C", crate.Label);
+        Assert.Equal(2, crate.Slots.Count);
+        Assert.Equal(1, crate.OccupiedCount);
+        Assert.Equal("scrap_metal", crate.Slots[0].ItemId);
+        Assert.Equal(5, crate.Slots[0].Stack);
+        Assert.True(crate.Slots[1].IsEmpty);
+
+        await containers.SetAsync(crate.Id, [new AbioticEditor.Core.LiveEditing.World.LiveContainerSlotEdit(1, ItemId: "scrap_cloth", Stack: 2)]);
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
+    [Fact]
+    public async Task LiveDroppedItemsChannel_lists_and_removes()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var dropped = new AbioticEditor.Core.LiveEditing.World.LiveDroppedItemsChannel(channel);
+
+        var directory = await dropped.GetAsync();
+        var item = Assert.Single(directory.Items);
+        Assert.Equal("scrap_cloth", item.ItemId);
+        Assert.Equal(3, item.Stack);
+
+        Assert.Equal(1, await dropped.RemoveAsync([item.Id]));
+    }
+
+    private async Task<TcpLiveGameChannel> ConnectedChannelAsync()
+    {
+        var channel = new TcpLiveGameChannel();
+        await channel.ConnectAsync(new LiveConnectionInfo("127.0.0.1", _agent.Port, "correct-token"));
+        return channel;
+    }
+
     private sealed record EchoPayload(string Name, double Value);
 
     /// <summary>A minimal stand-in for the real UE4SS agent: accepts one connection, checks the
@@ -185,6 +271,28 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
                         + "{\"index\":0,\"xp\":100,\"xpMultiplier\":1},"
                         + "{\"index\":1,\"xp\":200,\"xpMultiplier\":1.5}]}";
                     await writer.WriteLineAsync(skillsLine.AsMemory(), cancellationToken).ConfigureAwait(false);
+                    continue;
+                }
+
+                // Round-75 world areas: one canned reading each, in the exact JSON the Lua mod's
+                // json.lua emits (camelCase keys, __forceArray lists as real arrays).
+                string? canned = cmd switch
+                {
+                    "world.get" => "{\"isHost\":true,\"day\":12,\"timeSeconds\":48600,\"isNight\":false,\"paused\":false,"
+                        + "\"currentWeather\":\"Fog\",\"weatherOptions\":[\"None\",\"Fog\",\"RadLeak\"]}",
+                    "flags.list" => "{\"flags\":[{\"name\":\"Office_PowerOn\",\"isSet\":true},{\"name\":\"Manufacturing_West\",\"isSet\":false}],\"isHost\":true}",
+                    "doors.list" => "{\"doors\":[{\"id\":\"SimpleDoor_ParentBP_C /Game/Maps/Facility.Facility:PersistentLevel.SimpleDoor_ParentBP_C_7\",\"label\":\"SimpleDoor_ParentBP_C\",\"kind\":\"simple\",\"state\":2,\"isOpen\":false,\"oneWayUnlocked\":false,\"disabled\":false,\"x\":100.5,\"y\":-20,\"z\":3},"
+                        + "{\"id\":\"SecurityDoor_C /Game/Maps/Facility.Facility:PersistentLevel.SecurityDoor_C_2\",\"label\":\"SecurityDoor_C\",\"kind\":\"security\",\"state\":1,\"isOpen\":true,\"oneWayUnlocked\":false,\"disabled\":false,\"x\":0,\"y\":0,\"z\":0}],\"isHost\":false}",
+                    "containers.list" => "{\"containers\":[{\"id\":\"Deployed_StorageCrate_Makeshift_C /Game/Maps/Facility.Facility:PersistentLevel.Deployed_StorageCrate_Makeshift_C_3\",\"label\":\"Deployed_StorageCrate_Makeshift_C\",\"x\":1,\"y\":2,\"z\":3,"
+                        + "\"slots\":[{\"slotIndex\":0,\"itemId\":\"scrap_metal\",\"isEmpty\":false,\"stack\":5,\"durability\":0,\"maxDurability\":0},{\"slotIndex\":1,\"itemId\":\"Empty\",\"isEmpty\":true,\"stack\":0,\"durability\":0,\"maxDurability\":0}]}],\"isHost\":true}",
+                    "dropped.list" => "{\"items\":[{\"id\":\"Abiotic_Item_Dropped_C /Game/Maps/Facility.Facility:PersistentLevel.Abiotic_Item_Dropped_C_9\",\"itemId\":\"scrap_cloth\",\"stack\":3,\"x\":4,\"y\":5,\"z\":6}],\"isHost\":true}",
+                    "dropped.remove" => "{\"removed\":1}",
+                    _ => null,
+                };
+                if (canned is not null)
+                {
+                    var cannedLine = "{\"Id\":\"" + id + "\",\"Ok\":true,\"Result\":" + canned + "}";
+                    await writer.WriteLineAsync(cannedLine.AsMemory(), cancellationToken).ConfigureAwait(false);
                     continue;
                 }
 

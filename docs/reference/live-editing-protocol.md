@@ -85,12 +85,76 @@ index. `skills.set` takes the same array shape as its payload (any subset of ski
 [{"index":0,"xp":100,"xpMultiplier":1},{"index":1,"xp":200,"xpMultiplier":1.5}]
 ```
 
+## `players.list`, `npcs.list` / `npcs.set`, `inventory.list` / `inventory.set`
+
+The player directory, NPC and player-inventory areas share the envelope above. `players.list`
+returns `{"players":[{"id","name","isLocal"}],"isHost":bool}`. Every player-scoped command
+(`vitals.*`, `skills.*`, `inventory.*`) accepts an optional `playerId` in its payload to target a
+different connected player; omitted means the local player. `npcs.list` returns
+`{"npcs":[{"id","label","isDead","isDisabled","invincible","faction"}],"isHost":bool}` and
+`npcs.set` takes `{"npcs":[{"id", ...any of those fields...}]}`. `inventory.list` returns a flat
+array of `{"kind":"backpack"|"equip"|"hotbar","slotIndex","itemId","isEmpty","stack",
+"durability","maxDurability"}` and `inventory.set` takes `{"edits":[{"kind","slotIndex",
+"clear"?,"itemId"?,"stack"?,"durability"?,"maxDurability"?}],"playerId"?}`.
+
+An `id` in any world area is the game's own full object name for that exact actor
+(`GetFullName()`), re-resolved by a fresh scan on every write: the loaded set of doors, crates,
+NPCs and loose items changes constantly, so an index from an earlier list is never trusted.
+
+## `world.get` / `world.set` - clock and weather
+
+`world.get` takes no payload and returns:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `day` | number | In-game day counter |
+| `timeSeconds` | number | Seconds into the current day (0..86400), the world save's `TimeOfDay` unit |
+| `isNight`, `paused` | bool | Day/night flag; whether the clock is manually paused |
+| `currentWeather` | string | Active weather event row (`None` when clear) |
+| `weatherOptions` | string[] | Every weather row the game knows, `None` first |
+| `isHost` | bool | Whether this process can change any of it |
+
+`world.set` takes any subset of `{"timeSeconds","day","weather","nextWeather"}`. `weather`
+triggers that event immediately (`None` ends the current one); `nextWeather` queues it for the
+next in-game day. Host only.
+
+## `flags.list` / `flags.set` - quest and story flags
+
+`flags.list` returns `{"flags":[{"name","isSet"}],"isHost":bool}`: every world-flag row the game
+knows (the same names as the world save's `WorldFlags` array and `QuestFlagCatalog`), plus any
+set flag the table does not list. `flags.set` takes `{"flags":[{"name","isSet"}]}` and applies
+them in order through the game's own world-flag subsystem, so dependent doors, effects and
+triggers react exactly as if the flag had been earned in play. Host only.
+
+## `doors.list` / `doors.set`
+
+`doors.list` returns `{"doors":[...],"isHost":bool}` with, per loaded door: `id`, `label` (class
+name), `kind` (`simple` for hinged doors, `security` for sliding security doors), `state` (the
+`E_DoorStates` number the file editor's `DoorStateNames` maps: 0 closed, 1 open, 2 locked, ...),
+`isOpen`, `oneWayUnlocked`, `disabled`, and world position `x`/`y`/`z` in centimetres.
+`doors.set` takes `{"doors":[{"id","kind","state"?,"isOpen"?,"oneWayUnlocked"?,"disabled"?}]}`
+- `state` applies to hinged doors, `isOpen` to security doors. Host only.
+
+## `containers.list` / `containers.set`
+
+`containers.list` returns `{"containers":[{"id","label","x","y","z","slots":[...]}],"isHost":bool}`
+where each slot is `{"slotIndex","itemId","isEmpty","stack","durability","maxDurability"}` - the
+same slot shape as `inventory.list`, because a container's storage is the same inventory
+component class as a player's backpack. `containers.set` takes `{"id","edits":[{"slotIndex",
+"clear"?,"itemId"?,"stack"?,"durability"?,"maxDurability"?}]}`. Host only.
+
+## `dropped.list` / `dropped.remove`
+
+`dropped.list` returns `{"items":[{"id","itemId","stack","x","y","z"}],"isHost":bool}` for every
+item lying loose in the loaded world that nobody has picked up. `dropped.remove` takes
+`{"ids":[...]}` and returns `{"removed":n}` - the count actually found and despawned. Host only.
+
 ## Extending this for a new area
 
 Adding a new live-editable area (inventory, more of world state, ...) means: a new command pair
 on both sides (`<area>.get`/`<area>.set` following the existing naming), a new `Live<Area>Channel`
 in `Core/LiveEditing/<Area>/` mirroring the shape of `LivePlayerVitalsChannel`/
-`LivePlayerSkillsChannel`, and a new handler pair registered in the mod's C++ - the same shape
-`VitalsCommands.cpp`/`SkillsCommands.cpp` already follow. No `hello`/envelope-level change is
+`LivePlayerSkillsChannel`, a new handler pair in the Lua mod's `main.lua`, and the command names added to the
+native helper's forwarding allowlist (`AbioticEditorLiveAgentHelper/src/main.cpp`). No `hello`/envelope-level change is
 needed for a new area; the envelope's `payload`/`result` already accept either a flat object or a
 flat array of them, which has covered every area so far.

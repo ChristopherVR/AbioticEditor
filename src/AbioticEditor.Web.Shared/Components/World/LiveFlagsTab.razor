@@ -1,0 +1,133 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Core.LiveEditing
+@using AbioticEditor.Core.LiveEditing.World
+@using AbioticEditor.Core.WorldSaves
+
+@* Quest / story flags of the running world. Same catalog names, categories and prerequisite
+   rules as the file editor's WorldFlagsTab, but each SET / CLEAR applies immediately. Setting a
+   flag whose story prerequisites are not yet set applies those prerequisites in the same request
+   (the file editor offers exactly this instead of creating inconsistent state). *@
+<section class="editor-card" aria-label="@L.Resource("LiveFlags_Title")">
+    <div class="card-title-row">
+        <h3>@L.Resource("LiveFlags_Title")</h3>
+        <button class="secondary" type="button" disabled="@_busy" @onclick="RefreshAsync">@L.Resource("LiveNpcs_Refresh")</button>
+    </div>
+
+    @if (!Session.IsHost)
+    {
+        <p class="error-text" role="alert">@L.Resource("LiveFlags_NotHostWarning")</p>
+    }
+    <p class="muted">@L.Resource("LiveFlags_Intro", Session.Flags.Count(f => f.IsSet), Session.Flags.Count)</p>
+
+    <div class="live-toolbar">
+        <input aria-label="@L.Resource("WorldFlags_FilterPlaceholder")" @bind="_filter" @bind:event="oninput" placeholder="@L.Resource("WorldFlags_FilterPlaceholder")" />
+        <label class="checkbox-field"><input type="checkbox" @bind="_onlySet" /> @L.Resource("LiveFlags_OnlySet")</label>
+    </div>
+
+    @if (Session.Flags.Count == 0)
+    {
+        <p class="muted">@L.Resource("LiveFlags_NoneFound")</p>
+    }
+    else
+    {
+        <div class="shell-save-list">
+            @foreach (var flag in VisibleFlags)
+            {
+                var info = QuestFlagCatalog.Lookup(flag.Name);
+                var missing = flag.IsSet ? [] : MissingPrerequisites(flag.Name);
+                <div class="save-file-row kind-world @(flag.IsSet ? null : "live-flag-unset")" @key="flag.Name">
+                    <span class="save-kind-marker" aria-hidden="true"></span>
+                    <span class="live-flag-texts">
+                        <strong class="save-file-name">@info.FriendlyName</strong>
+                        <small>@flag.Name@(string.Equals(info.Area, flag.Name, StringComparison.Ordinal) ? null : $" · {info.Area}")</small>
+                        @if (!string.IsNullOrEmpty(info.Description)) { <span class="live-flag-desc">@info.Description</span> }
+                        @if (missing.Count > 0) { <span class="live-flag-desc">@L.Resource("LiveFlags_WillAlsoSet", string.Join(", ", missing.Select(m => QuestFlagCatalog.Lookup(m).FriendlyName)))</span> }
+                    </span>
+                    <div class="live-npc-controls">
+                        @if (flag.IsSet)
+                        {
+                            <button class="secondary" type="button" disabled="@(!Session.IsHost || _busy)" @onclick="() => ClearAsync(flag)">@L.Resource("WorldFlags_Clear")</button>
+                        }
+                        else
+                        {
+                            <button class="secondary" type="button" disabled="@(!Session.IsHost || _busy)" @onclick="() => SetAsync(flag, missing)">
+                                @(missing.Count > 0 ? L.Resource("LiveFlags_SetWithPrereqs", missing.Count) : L.Resource("LiveFlags_Set"))
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    @if (Session.Status is not null)
+    {
+        <p class="status-text">@Session.Status</p>
+    }
+    @if (_error is not null)
+    {
+        <p class="error-text" role="alert">@_error</p>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public LiveWorldFlagsSession Session { get; set; } = null!;
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private bool _busy;
+    private string? _error;
+    private string _filter = string.Empty;
+    private bool _onlySet;
+
+    private IEnumerable<LiveWorldFlag> VisibleFlags
+    {
+        get
+        {
+            IEnumerable<LiveWorldFlag> flags = Session.Flags;
+            if (_onlySet) flags = flags.Where(f => f.IsSet);
+            var filter = _filter.Trim();
+            if (filter.Length > 0)
+            {
+                flags = flags.Where(f => f.Name.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                    || QuestFlagCatalog.Lookup(f.Name).FriendlyName.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                    || QuestFlagCatalog.Lookup(f.Name).Area.Contains(filter, StringComparison.OrdinalIgnoreCase));
+            }
+            return flags.OrderBy(f => QuestFlagCatalog.Lookup(f.Name).Area, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(f => f.Name, StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
+    private List<string> MissingPrerequisites(string flag)
+    {
+        var set = Session.SetFlags;
+        return FlagGate.PrerequisitesFor(flag).Where(p => !set.Contains(p)).ToList();
+    }
+
+    private Task RefreshAsync() => RunAsync(() => Session.RefreshAsync());
+
+    private Task SetAsync(LiveWorldFlag flag, List<string> missing) => RunAsync(() => Session.ApplyAsync(
+        missing.Select(m => new LiveWorldFlag(m, true)).Append(new LiveWorldFlag(flag.Name, true)).ToList()));
+
+    private Task ClearAsync(LiveWorldFlag flag) => RunAsync(() => Session.ApplyAsync([new LiveWorldFlag(flag.Name, false)]));
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            await action();
+            await OnChanged.InvokeAsync();
+        }
+        catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
+            or IOException or OperationCanceledException)
+        {
+            _error = Errors.Present(exception, "Change this quest flag.", "The connection may have dropped; try reconnecting.");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}
