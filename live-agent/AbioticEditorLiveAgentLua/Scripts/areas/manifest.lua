@@ -14,4 +14,5 @@ return {
     "areas.codex",
     "areas.general",
     "areas.worldunlocks",
+    "areas.transmog",
 }

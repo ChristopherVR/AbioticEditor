@@ -69,6 +69,9 @@ public class LiveClassPropsProbe
             "Abiotic_InventoryChangeableDataStruct", "Abiotic_InventoryItemSlotStruct", "EDynamicProperty",
             "PunchCardTerminal", "Deployed_PunchCardTerminal", "Item_Pet", "Companion",
             "CharacterProgressionComponent", "Abiotic_PlayerCharacter.", "Compendium", "Recipe", "DT_Compendium", "DT_Recipe",
+            // Round-77 live player gaps: transmog visibility, crafted-items tracking, PhD/background, traits.
+            "TransmogInventoryComp", "Abiotic_PlayerState.", "PlayerTrait", "Trait", "PhD", "Background",
+            "CharacterProgressionComponent", "Abiotic_InventoryComponent.", "CraftedItem",
         ];
 
         var outPath = Environment.GetEnvironmentVariable("LIVE_CLASS_PROBE_OUT");

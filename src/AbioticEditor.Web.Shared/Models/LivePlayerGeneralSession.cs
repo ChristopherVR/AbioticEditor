@@ -10,7 +10,9 @@ namespace AbioticEditor.Web.Models;
 /// round trip per batch; ITEMS CRAFTED is read-only (<see cref="IPlayerDiscoverySection.CanDiscoverAll"/>
 /// is false - see <c>LivePlayerGeneralChannel</c>'s remarks) and the account/owner-id change is
 /// unavailable entirely (<see cref="CanChangeOwnerId"/> is always false - there is no live concept
-/// of "which save file this character came from" to change).
+/// of "which save file this character came from" to change). BACKGROUND applies live immediately
+/// (a real, grounded property write - see <see cref="SetBackgroundAsync"/>); TRAITS is a
+/// read-only readout (see <see cref="IPlayerGeneralSession.Traits"/>'s remarks).
 /// </summary>
 public sealed class LivePlayerGeneralSession : IPlayerGeneralSession
 {
@@ -19,6 +21,7 @@ public sealed class LivePlayerGeneralSession : IPlayerGeneralSession
     private readonly HashSet<string> _itemsSeen = new(StringComparer.Ordinal);
     private readonly HashSet<string> _itemsCrafted = new(StringComparer.Ordinal);
     private readonly HashSet<string> _maps = new(StringComparer.Ordinal);
+    private List<string> _traits = [];
 
     private LivePlayerGeneralSession(LivePlayerGeneralChannel channel, string? playerId, string? ownerId)
     {
@@ -74,13 +77,34 @@ public sealed class LivePlayerGeneralSession : IPlayerGeneralSession
     public IPlayerDiscoverySection Maps { get; }
     public string? Status { get; private set; }
 
-    /// <summary>Re-reads the live player's known items/maps.</summary>
+    /// <summary>The running character's background/PhD row name. See
+    /// <see cref="LivePlayerGeneralChannel"/>'s remarks for how this is read and written.</summary>
+    public string? Background { get; private set; }
+
+    /// <summary>True once a connected player is resolved - see
+    /// <see cref="IPlayerGeneralSession.CanChangeBackground"/>'s remarks for the write path.</summary>
+    public bool CanChangeBackground => true;
+
+    public IReadOnlyList<string> Traits => _traits;
+
+    /// <summary>Applies a new background/PhD row name to the running character immediately.</summary>
+    public async Task SetBackgroundAsync(string? background)
+    {
+        if (string.IsNullOrWhiteSpace(background)) return;
+        await _channel.SetAsync(background: background, playerId: _playerId).ConfigureAwait(false);
+        Background = background;
+        Status = "Applied live - this took effect in the running game immediately.";
+    }
+
+    /// <summary>Re-reads the live player's known items/maps/traits and background.</summary>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var directory = await _channel.GetAsync(_playerId, cancellationToken).ConfigureAwait(false);
         _itemsSeen.Clear(); foreach (var id in directory.ItemsSeen) _itemsSeen.Add(id);
         _itemsCrafted.Clear(); foreach (var id in directory.ItemsCrafted) _itemsCrafted.Add(id);
         _maps.Clear(); foreach (var id in directory.Maps) _maps.Add(id);
+        _traits = directory.Traits.ToList();
+        Background = directory.Background;
     }
 
     /// <summary>Switches which connected player this session reads/edits and re-reads that

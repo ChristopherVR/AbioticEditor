@@ -13,4 +13,5 @@ return {
     "vehicles",
     "doors",
     "players",
+    "player_gaps",
 }

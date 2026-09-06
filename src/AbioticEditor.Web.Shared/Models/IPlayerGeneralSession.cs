@@ -31,6 +31,28 @@ public interface IPlayerGeneralSession
     IPlayerDiscoverySection ItemsCrafted { get; }
 
     IPlayerDiscoverySection Maps { get; }
+
+    /// <summary>The chosen background/PhD row name (e.g. <c>PhD_HumanBio</c>), or null/empty when
+    /// none is set. Always readable.</summary>
+    string? Background { get; }
+
+    /// <summary>True when <see cref="SetBackgroundAsync"/> can actually change something right
+    /// now. Always true for the file session (a staged edit); true live once a connected player
+    /// is resolved - a grounded write path exists (see <c>LivePlayerGeneralChannel</c>'s remarks:
+    /// <c>Abiotic_PlayerState_C.PhD</c> is a direct, no-<c>OnRep</c> property write).</summary>
+    bool CanChangeBackground { get; }
+
+    /// <summary>Applies a new background/PhD row name. The file session only stages the change;
+    /// the live session writes it to the running character immediately.</summary>
+    Task SetBackgroundAsync(string? background);
+
+    /// <summary>The chosen trait row names. Read-only through this interface even for the file
+    /// session (full add/remove lives on the CHARACTER tab, <c>PlayerCharacterTab.razor</c>,
+    /// which binds to <c>PlayerSaveSession.Traits</c> directly and is not available live) - this
+    /// is just a readout so a live session, which has no such tab, can still show what a
+    /// character actually has (see <c>LivePlayerGeneralChannel</c>'s remarks for why there is no
+    /// live write path for a single trait).</summary>
+    IReadOnlyList<string> Traits { get; }
 }
 
 /// <summary>One bulk-discovery row (items seen, items crafted, maps): how many are already known

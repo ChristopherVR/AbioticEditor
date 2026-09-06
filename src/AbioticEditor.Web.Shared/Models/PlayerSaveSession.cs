@@ -148,6 +148,17 @@ public sealed class PlayerSaveSession : IPlayerVitalsSession, IPlayerSkillsSessi
     public IReadOnlyList<PlayerInventorySlotEdit> Backpack { get; }
     public IReadOnlyList<PlayerInventorySlotEdit> Transmog { get; }
     public IReadOnlyList<TransmogVisibilityEdit> TransmogVisibility { get; }
+
+    /// <summary>Stages one visibility toggle. See <see cref="SetUnlockedAsync"/> for why this is a
+    /// completed <see cref="Task"/> rather than a plain setter.</summary>
+    public Task SetTransmogVisibilityAsync(int index, bool isVisible)
+    {
+        var toggle = TransmogVisibility.FirstOrDefault(t => t.Index == index);
+        if (toggle is not null) toggle.IsVisible = isVisible;
+        MarkChanged();
+        return Task.CompletedTask;
+    }
+
     public PlayerRespawnEdit Respawn { get; }
     public IReadOnlyList<RespawnTerminal> RespawnTerminals => RespawnTerminalCatalog.All;
     public List<CarriedPetEdit> CarriedPets { get; }
@@ -202,6 +213,25 @@ public sealed class PlayerSaveSession : IPlayerVitalsSession, IPlayerSkillsSessi
     public IPlayerDiscoverySection ItemsSeen { get; private set; } = null!;
     public IPlayerDiscoverySection ItemsCrafted { get; private set; } = null!;
     public IPlayerDiscoverySection Maps { get; private set; } = null!;
+
+    /// <summary>True here: a staged background change is just another field edit.
+    /// <c>LivePlayerGeneralSession</c> also reports true once a connected player is resolved -
+    /// see <see cref="IPlayerGeneralSession.CanChangeBackground"/>'s remarks.</summary>
+    public bool CanChangeBackground => true;
+
+    /// <summary>Stages a new background/PhD row name. See <see cref="SetUnlockedAsync"/> for why
+    /// this is a completed <see cref="Task"/> rather than a plain setter.</summary>
+    public Task SetBackgroundAsync(string? background)
+    {
+        Background = background;
+        MarkChanged();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Read-only through <see cref="IPlayerGeneralSession"/> - see that member's
+    /// remarks. Full add/remove is still <see cref="Traits"/> above, used directly by
+    /// <c>PlayerCharacterTab</c>.</summary>
+    IReadOnlyList<string> IPlayerGeneralSession.Traits => Traits;
     public string Path => _path;
     public string JsonPath => _path + ".json";
     public bool JsonFileExists => File.Exists(JsonPath);

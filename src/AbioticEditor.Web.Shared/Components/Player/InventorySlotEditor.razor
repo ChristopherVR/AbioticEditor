@@ -550,7 +550,18 @@
         _paletteStatus = null;
         Selection.NotifyItemCommitted();
         if (current is not null) await current.NotifyChanged();
-        else { palette!.Session.MarkChanged(); await palette.NotifyChanged(); }
+        else
+        {
+            palette!.Session.MarkChanged();
+            // A live session (LiveInventorySession) has nothing staged by MarkChanged above - the
+            // fill above only touched the local mirror, so it must be pushed to the game here,
+            // the same way PlayerTransmogTab/PlayerInventoryTab push a sidebar-mutated slot via
+            // PushSlotAsync. target.Area is never null for this fallback path (both the file and
+            // live QuickGiveFallback implementations always return backpack or hotbar).
+            if (palette.Session.AppliesImmediately && target.Area is { } liveArea)
+                await palette.Session.PushSlotAsync(liveArea, target.Slot);
+            await palette.NotifyChanged();
+        }
     }
 
     /// <summary>The item's real name; only spaced-out stored text when the game files are not
