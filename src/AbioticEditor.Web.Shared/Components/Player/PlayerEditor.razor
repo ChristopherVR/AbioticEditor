@@ -9,7 +9,7 @@
         @foreach (var tab in Tabs) { <button type="button" role="tab" class="editor-tab @(ActiveTab == tab.Id ? "active" : null)" aria-selected="@(ActiveTab == tab.Id)" @onclick="() => ActiveTab = tab.Id">@Languages.Resource(tab.LabelKey)</button> }
     </nav>
     <div class="player-tab-viewport">
-    @if (ActiveTab == "general") { <PlayerGeneralTab Session="Session" OnChanged="NotifyChanged" /> }
+    @if (ActiveTab == "general") { <PlayerGeneralTab General="Session" Recipes="Session" OnChanged="NotifyChanged" /> }
     else if (ActiveTab == "vitals") { <PlayerVitalsTab Vitals="Session.Vitals" OnChanged="NotifyChanged" /> }
     else if (ActiveTab == "character") { <PlayerCharacterTab Session="Session" OnChanged="NotifyChanged" /> }
     else if (ActiveTab == "transmog") { <PlayerTransmogTab Session="Session" OnChanged="NotifyChanged" /> }

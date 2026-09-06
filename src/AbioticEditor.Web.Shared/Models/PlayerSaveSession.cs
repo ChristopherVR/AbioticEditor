@@ -10,7 +10,8 @@ namespace AbioticEditor.Web.Models;
 /// A Razor-hosted editing session for one player save.  It deliberately depends only on
 /// Core save types: neither this class nor callers need a native view model.
 /// </summary>
-public sealed class PlayerSaveSession : IPlayerVitalsSession, IPlayerSkillsSession
+public sealed class PlayerSaveSession : IPlayerVitalsSession, IPlayerSkillsSession,
+    IPlayerRecipesSession, IPlayerCodexSession, IPlayerGeneralSession
 {
     private readonly PlayerSaveData _data;
     private readonly string _path;
@@ -83,6 +84,12 @@ public sealed class PlayerSaveSession : IPlayerVitalsSession, IPlayerSkillsSessi
         _originalKills = Codex.CurrentKills();
         SteamIdentifier = PlayerIdentifier.TryParseFromPlayerFileName(path, out var id) ? id : null;
         ItemUpgrades = itemUpgrades ?? ItemUpgradeCatalog.Empty;
+        ItemsSeen = new DelegateDiscoverySection(() => ItemsPickedUp, canDiscoverAll: true,
+            vocabulary => { DiscoverAllItems(vocabulary); return Task.CompletedTask; });
+        ItemsCrafted = new DelegateDiscoverySection(() => CraftedItems, canDiscoverAll: true,
+            vocabulary => { DiscoverAllCraftedItems(vocabulary); return Task.CompletedTask; });
+        Maps = new DelegateDiscoverySection(() => MapsUnlocked, canDiscoverAll: true,
+            vocabulary => { UnlockAllMaps(vocabulary); return Task.CompletedTask; });
     }
 
     public PlayerVitals Vitals { get; private set; }
@@ -103,6 +110,29 @@ public sealed class PlayerSaveSession : IPlayerVitalsSession, IPlayerSkillsSessi
         {
             if (!string.IsNullOrWhiteSpace(id) && known.Add(id)) _recipes.Add(new PlayerRecipeEdit(id, false));
         }
+    }
+
+    /// <summary>False here: file edits stage until Save. <c>LivePlayerRecipesSession</c>/
+    /// <c>LivePlayerCodexSession</c> report true - their writes apply to the running game
+    /// immediately, the same way <c>IPlayerVitalsSession</c>'s live counterpart does.</summary>
+    public bool AppliesImmediately => false;
+
+    /// <summary>True here: a staged recipe can be unchecked again like any other file edit.
+    /// <c>LivePlayerRecipesSession</c> reports false - the running game has no function to
+    /// re-lock a recipe once unlocked.</summary>
+    public bool CanLock => true;
+
+    /// <summary>Stages an unlock/re-lock for one recipe, adding a row for an id this session had
+    /// not seen yet. Synchronous under the hood (a staged edit never leaves this process), wrapped
+    /// as a completed <see cref="Task"/> so <c>PlayerRecipesTab</c> can call it identically to
+    /// <c>LivePlayerRecipesSession</c>'s network round trip.</summary>
+    public Task SetUnlockedAsync(string recipeId, bool unlocked)
+    {
+        EnsureRecipeRows([recipeId]);
+        var edit = _recipes.First(recipe => string.Equals(recipe.Id, recipeId, StringComparison.Ordinal));
+        edit.IsUnlocked = unlocked;
+        MarkChanged();
+        return Task.CompletedTask;
     }
     public List<string> Traits { get; }
     public string? Background { get; set; }
@@ -138,11 +168,41 @@ public sealed class PlayerSaveSession : IPlayerVitalsSession, IPlayerSkillsSessi
         return true;
     }
 
+    /// <summary>True here: a staged known flag can be unchecked again like any other file edit.
+    /// <c>LivePlayerCodexSession</c> reports false - see the interface's remarks.</summary>
+    public bool CanUnsetKnown => true;
+
+    IReadOnlyList<CodexRowEdit> IPlayerCodexSession.Emails => Codex.Emails;
+    IReadOnlyList<CodexRowEdit> IPlayerCodexSession.Journals => Codex.Journals;
+    IReadOnlyList<CodexRowEdit> IPlayerCodexSession.Compendium => Codex.Compendium;
+    IReadOnlyList<CodexRowEdit> IPlayerCodexSession.Fish => Codex.Fish;
+
+    /// <summary>Stages a known/unknown flip for one codex row. See <see cref="SetUnlockedAsync"/>
+    /// for why this is a completed <see cref="Task"/> rather than a plain setter.</summary>
+    public Task SetKnownAsync(CodexRowEdit row, bool known)
+    {
+        row.IsKnown = known;
+        MarkChanged();
+        return Task.CompletedTask;
+    }
+
     public IReadOnlyList<RawSaveProperty> RawProperties => RawSavePropertyEditor.List(_data.Raw)
         .Select(property => _rawEdits.TryGetValue(property.Name, out var staged)
             ? property with { Value = staged } : property).ToArray();
     /// <summary>Steam account id inferred from the player filename, when applicable.</summary>
     public string? SteamIdentifier { get; }
+
+    string? IPlayerGeneralSession.OwnerId => SteamIdentifier;
+    bool IPlayerGeneralSession.IsSteamOwnerId => PlayerIdentifier.IsSteamId(SteamIdentifier ?? string.Empty);
+
+    /// <summary>True here: renaming a player file is purely a file-system operation.
+    /// <c>LivePlayerGeneralSession</c> reports false - there is no live concept of "which save
+    /// file this character came from" to change.</summary>
+    public bool CanChangeOwnerId => true;
+
+    public IPlayerDiscoverySection ItemsSeen { get; private set; } = null!;
+    public IPlayerDiscoverySection ItemsCrafted { get; private set; } = null!;
+    public IPlayerDiscoverySection Maps { get; private set; } = null!;
     public string Path => _path;
     public string JsonPath => _path + ".json";
     public bool JsonFileExists => File.Exists(JsonPath);

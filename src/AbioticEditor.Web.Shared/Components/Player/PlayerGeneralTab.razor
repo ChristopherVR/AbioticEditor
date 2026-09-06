@@ -15,17 +15,28 @@
     <div class="tab-hazard-stripe" aria-hidden="true"></div>
 
     <p class="tab-section-label">@L.Resource("PlayerGeneral_Account")</p>
-    <div class="general-account-row">
-        <span class="general-field-label">@OwnerIdLabel</span>
-        <input class="general-id-input" @bind="_ownerIdInput" readonly="@(!CanEditOwnerId)" aria-label="@OwnerIdLabel" autocomplete="off" spellcheck="false" />
-        @if (CanEditOwnerId)
-        {
+    @if (General.CanChangeOwnerId)
+    {
+        <div class="general-account-row">
+            <span class="general-field-label">@OwnerIdLabel</span>
+            <input class="general-id-input" @bind="_ownerIdInput" aria-label="@OwnerIdLabel" autocomplete="off" spellcheck="false" />
             <button class="general-hazard-button" type="button" @onclick="RequestIdentity">@L.Resource("PlayerGeneral_ChangeSteamId")</button>
             <small class="general-help">@L.Resource("PlayerGeneral_ChangeSteamIdHelp")</small>
-        }
-    </div>
-    @if (!IsSteamSave) { <small class="general-help">@L.Resource("PlayerEditor_OwnerIdNote")</small> }
-    @if (_identityError is not null) { <p class="error" role="alert"><strong>@L.Resource("PlayerGeneral_SteamIdChangeFailedTitle"):</strong> @_identityError</p> }
+        </div>
+        @if (!IsSteamSave) { <small class="general-help">@L.Resource("PlayerEditor_OwnerIdNote")</small> }
+        @if (_identityError is not null) { <p class="error" role="alert"><strong>@L.Resource("PlayerGeneral_SteamIdChangeFailedTitle"):</strong> @_identityError</p> }
+    }
+    else
+    {
+        @* Renaming which save file a character belongs to is purely a file-system operation - a
+           running game has no such concept, so this section becomes a plain readout live rather
+           than offering a CHANGE button that could never do anything. *@
+        <div class="general-account-row">
+            <span class="general-field-label">@OwnerIdLabel</span>
+            <span class="general-readout">@(General.OwnerId ?? L.Resource("PlayerGeneral_OwnerIdUnknown"))</span>
+        </div>
+        <small class="general-help live-warning">@L.Resource("PlayerGeneral_OwnerIdLiveUnavailable")</small>
+    }
     <div class="tab-divider" aria-hidden="true"></div>
 
     <p class="tab-section-label">@L.Resource("PlayerGeneral_BulkUnlocks")</p>
@@ -51,22 +62,29 @@
        section, which meant reading all three explanations to find the one you wanted. *@
     <div class="general-unlock-grid">
         <span class="general-field-label">@L.Resource("PlayerGeneral_ItemsSeen")</span>
-        <span class="general-readout">@L.Resource("PlayerEditor_ItemsSeenCount", Session.ItemsPickedUp.Count)</span>
-        <button class="general-elevated-button" type="button" title="@L.Resource("PlayerGeneral_DiscoverAllItemsTooltip")" disabled="@(_catalog is not { Items.Count: > 0 })" @onclick="RequestItems">@L.Resource("PlayerGeneral_DiscoverAll")</button>
+        <span class="general-readout">@L.Resource("PlayerEditor_ItemsSeenCount", General.ItemsSeen.Known.Count)</span>
+        <button class="general-elevated-button" type="button" title="@L.Resource("PlayerGeneral_DiscoverAllItemsTooltip")" disabled="@(!General.ItemsSeen.CanDiscoverAll || _catalog is not { Items.Count: > 0 })" @onclick="RequestItems">@L.Resource("PlayerGeneral_DiscoverAll")</button>
     </div>
     <small class="general-help">@L.Resource("PlayerGeneral_ItemsSeenHelp")</small>
 
     <div class="general-unlock-grid">
         <span class="general-field-label">@L.Resource("PlayerGeneral_ItemsCrafted")</span>
-        <span class="general-readout">@L.Resource("PlayerEditor_ItemsCraftedCount", Session.CraftedItems.Count)</span>
-        <button class="general-elevated-button" type="button" disabled="@(_catalog is not { Items.Count: > 0 })" @onclick="RequestCrafted">@L.Resource("PlayerGeneral_DiscoverAll")</button>
+        <span class="general-readout">@L.Resource("PlayerEditor_ItemsCraftedCount", General.ItemsCrafted.Known.Count)</span>
+        <button class="general-elevated-button" type="button" disabled="@(!General.ItemsCrafted.CanDiscoverAll || _catalog is not { Items.Count: > 0 })" @onclick="RequestCrafted">@L.Resource("PlayerGeneral_DiscoverAll")</button>
     </div>
-    <small class="general-help">@L.Resource("PlayerGeneral_ItemsCraftedHelp")</small>
+    @if (General.ItemsCrafted.CanDiscoverAll)
+    {
+        <small class="general-help">@L.Resource("PlayerGeneral_ItemsCraftedHelp")</small>
+    }
+    else
+    {
+        <small class="general-help live-warning">@L.Resource("PlayerGeneral_ItemsCraftedLiveReadOnlyHelp")</small>
+    }
 
     <div class="general-unlock-grid">
         <span class="general-field-label">@L.Resource("PlayerGeneral_Maps")</span>
         <span class="general-readout">@MapsText</span>
-        <button class="general-hazard-button" type="button" title="@L.Resource("PlayerGeneral_MapsTooltip")" disabled="@(_catalog is not { Maps.Count: > 0 })" @onclick="RequestMaps">@L.Resource("PlayerGeneral_UnlockAll")</button>
+        <button class="general-hazard-button" type="button" title="@L.Resource("PlayerGeneral_MapsTooltip")" disabled="@(!General.Maps.CanDiscoverAll || _catalog is not { Maps.Count: > 0 })" @onclick="RequestMaps">@L.Resource("PlayerGeneral_UnlockAll")</button>
     </div>
     <small class="general-help">@L.Resource("PlayerGeneral_MapsHelp")</small>
 
@@ -75,9 +93,14 @@
 </section>
 
 @code {
-    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    /// <summary>Bound to <see cref="IPlayerGeneralSession"/> for the account/bulk-discovery
+    /// slice. Recipe count/unlock-all is a separate parameter (see <see cref="Recipes"/>) rather
+    /// than part of that interface: it reuses the exact same object the RECIPES tab itself edits
+    /// instead of duplicating recipe-unlock logic here.</summary>
+    [Parameter, EditorRequired] public IPlayerGeneralSession General { get; set; } = null!;
+    [Parameter, EditorRequired] public IPlayerRecipesSession Recipes { get; set; } = null!;
     [Parameter] public EventCallback OnChanged { get; set; }
-    private string? _sessionPath;
+    private IPlayerGeneralSession? _boundGeneral;
     private string _ownerIdInput = string.Empty;
     private string? _identityError;
     private GameCatalog? _catalog;
@@ -89,9 +112,9 @@
 
     protected override void OnParametersSet()
     {
-        if (string.Equals(_sessionPath, Session.Path, StringComparison.OrdinalIgnoreCase)) return;
-        _sessionPath = Session.Path;
-        _ownerIdInput = Session.SteamIdentifier ?? string.Empty;
+        if (ReferenceEquals(_boundGeneral, General)) return;
+        _boundGeneral = General;
+        _ownerIdInput = General.OwnerId ?? string.Empty;
         _identityError = null;
     }
 
@@ -101,13 +124,14 @@
         // so this tab loads the recipe/item/map vocabularies on demand - the same on-demand
         // pattern the world story tab uses - mirroring the native app, which had game data
         // loaded before its General tab was reachable.
-        var sessionPath = Session.Path;
         _loading = true;
         try
         {
-            // The sibling world's story flags feed the recipe unlock gate (native rule);
-            // the gate's email vocabulary is warmed here so the bulk action never stalls.
-            _worldFlags = await Gate.ResolveWorldFlagsAsync(sessionPath);
+            // The sibling world's story flags feed the recipe unlock gate (native rule); live
+            // editing has no on-disk world save to look next to, so a live session simply skips
+            // gating (SessionPathOrNull returns null, which the gate already treats as "unknown,
+            // nothing gated" - see PlayerRecipesTab's identical helper).
+            _worldFlags = await Gate.ResolveWorldFlagsAsync(SessionPathOrNull(Recipes));
             if (_worldFlags is not null) Gate.Warm();
 
             _catalog = await Task.Run(() =>
@@ -128,12 +152,9 @@
         }
     }
 
-    private bool IsSteamSave => PlayerIdentifier.IsSteamId(Session.SteamIdentifier ?? string.Empty);
-    // Any player save can be re-homed, not just ones whose id happens to look like a SteamID64.
-    // Gating on the id's shape locked ordinary saves with short or hand-made ids out of the one
-    // screen that exists to change them. Game Pass worlds are included too: the container's own
-    // copy of the name is renamed alongside the file.
-    private bool CanEditOwnerId => true;
+    private static string? SessionPathOrNull(IPlayerRecipesSession session) => (session as PlayerSaveSession)?.Path;
+
+    private bool IsSteamSave => General.IsSteamOwnerId;
     private string OwnerIdLabel => L.Resource(IsSteamSave ? "PlayerEditor_SteamId64Label" : "PlayerEditor_AccountIdLabel");
 
     private string RecipeCountText
@@ -143,11 +164,11 @@
             if (_loading) return L.Resource("PlayerGeneral_ReadingGameFilesShort");
             if (_catalog is not { } catalog || catalog.Recipes.Count == 0) return L.Resource("PlayerRecipes_GameDataUnavailable");
             var total = catalog.Recipes
-                .Concat(Session.Recipes.Select(recipe => recipe.Id))
+                .Concat(Recipes.Recipes.Select(recipe => recipe.Id))
                 .Where(id => !string.IsNullOrWhiteSpace(id))
                 .Distinct(StringComparer.Ordinal)
                 .Count();
-            return L.Resource("PlayerRecipes_CountUnlocked", Session.UnlockedRecipeCount, total);
+            return L.Resource("PlayerRecipes_CountUnlocked", Recipes.UnlockedRecipeCount, total);
         }
     }
 
@@ -162,14 +183,12 @@
         get
         {
             if (_loading) return L.Resource("PlayerGeneral_ReadingGameFilesShort");
+            var known = General.Maps.Known;
             if (_catalog is not { Maps.Count: > 0 } catalog)
-                return L.Resource("PlayerEditor_MapsCount", Session.MapsUnlocked.Count);
-            var total = catalog.Maps
-                .Concat(Session.MapsUnlocked)
-                .Where(id => !string.IsNullOrWhiteSpace(id))
-                .Distinct(StringComparer.Ordinal)
-                .Count();
-            return L.Resource("PlayerEditor_MapsOfTotal", Session.MapsUnlocked.Count, total);
+                return L.Resource("PlayerEditor_MapsCount", known.Count);
+            var total = catalog.Maps.Concat(known).Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct(StringComparer.Ordinal).Count();
+            return L.Resource("PlayerEditor_MapsOfTotal", known.Count, total);
         }
     }
 
@@ -179,17 +198,19 @@
     /// <summary>
     /// Native routes this button through the recipe browser's gated unlock-all, so recipes
     /// granted by an email in an unreached region stay locked here too; the last refusal
-    /// reason is the one left showing (native status-line behavior).
+    /// reason is the one left showing (native status-line behavior). Live, each unlock is its
+    /// own network round trip through <see cref="IPlayerRecipesSession.SetUnlockedAsync"/> - the
+    /// same RECIPES tab reuses for a single row.
     /// </summary>
-    private void UnlockAllRecipesGated(IReadOnlyList<string> vocabulary)
+    private async Task UnlockAllRecipesGated(IReadOnlyList<string> vocabulary)
     {
-        Session.EnsureRecipeRows(vocabulary);
+        Recipes.EnsureRecipeRows(vocabulary);
         RecipeGateBlock? lastBlock = null;
-        foreach (var edit in Session.Recipes)
+        foreach (var edit in Recipes.Recipes)
         {
             if (edit.IsUnlocked) continue;
             if (Gate.CheckUnlock(edit.Id, _worldFlags) is { } block) { lastBlock = block; continue; }
-            edit.IsUnlocked = true;
+            await Recipes.SetUnlockedAsync(edit.Id, true);
         }
         if (lastBlock is not null)
         {
@@ -197,17 +218,17 @@
                 L.Resource("Progress_RecipeGated", lastBlock.RecipeId, lastBlock.EmailSubject, lastBlock.ChapterTitle, lastBlock.TriggerFlag),
                 ToastKind.Warning);
         }
-        Session.MarkChanged();
+        Recipes.MarkChanged();
     }
-    private void RequestItems() { if (_catalog is { } c) ConfirmBulk(L.Resource("PlayerGeneral_BulkDiscoverItemsWhat"), () => Session.DiscoverAllItems(c.Items)); }
-    private void RequestCrafted() { if (_catalog is { } c) ConfirmBulk(L.Resource("PlayerGeneral_BulkDiscoverCraftedWhat"), () => Session.DiscoverAllCraftedItems(c.Items)); }
-    private void RequestMaps() { if (_catalog is { } c) ConfirmBulk(L.Resource("PlayerGeneral_BulkUnlockMapsWhat"), () => Session.UnlockAllMaps(c.Maps)); }
+    private void RequestItems() { if (_catalog is { } c) ConfirmBulk(L.Resource("PlayerGeneral_BulkDiscoverItemsWhat"), () => General.ItemsSeen.DiscoverAllAsync(c.Items)); }
+    private void RequestCrafted() { if (_catalog is { } c) ConfirmBulk(L.Resource("PlayerGeneral_BulkDiscoverCraftedWhat"), () => General.ItemsCrafted.DiscoverAllAsync(c.Items)); }
+    private void RequestMaps() { if (_catalog is { } c) ConfirmBulk(L.Resource("PlayerGeneral_BulkUnlockMapsWhat"), () => General.Maps.DiscoverAllAsync(c.Maps)); }
 
-    private void ConfirmBulk(string what, Action apply) => Modals.Show(new ModalRequest(
+    private void ConfirmBulk(string what, Func<Task> apply) => Modals.Show(new ModalRequest(
         L.Resource("Dialog_BulkConfirmTitle"),
         Paragraph(L.Resource("Dialog_BulkConfirmMessage", what)),
         ConfirmText: L.Resource("Dialog_BulkConfirmAccept"),
-        OnConfirm: async () => { apply(); await OnChanged.InvokeAsync(); },
+        OnConfirm: async () => { await apply(); await OnChanged.InvokeAsync(); },
         CancelText: L.Resource("Common_Cancel")));
 
     private void RequestIdentity()
