@@ -322,6 +322,92 @@ uses), but no reference-mod command reads or writes it over UE4SS Lua, so readin
 struct array's `Key`/`Value` this way is genuinely new and unverified against the real game until
 tested. `itemId`/`name`/`health`/`maxHealth` carry the same confidence as `inventory.list`/`.set`'s
 fields (round 74), since they are the identical hash-suffixed struct members.
+## `recipes.get` / `recipes.set`
+
+Live recipe-unlock editing, the counterpart to the file editor's RECIPES tab. `recipes.get` takes
+an optional `{"playerId":"…"}` payload (omitted targets the local player) and returns
+`{"unlockedIds":["Recipe_Foo", ...]}` - only the recipe row names the running character currently
+has unlocked (the full catalog of every recipe the game knows comes from the desktop app's own
+game-data vocabulary, the same one the file editor uses; the live agent has no path to enumerate
+`DT_Recipes`' row names, only what one specific character has already unlocked).
+
+`recipes.set` takes `{"playerId":"…", "unlockIds":["Recipe_Foo", ...]}` and unlocks each id
+immediately. **There is no way to re-lock a recipe live** - the game's own
+`Abiotic_CharacterProgressionComponent_C` has no lock/relock/remove-recipe function anywhere in its
+exported API (confirmed by `tests/AbioticEditor.Probes/LiveClassPropsProbe.cs`, fragment
+"CharacterProgressionComponent"), only "unlock" ones. The desktop app's RECIPES tab disables
+un-checking an already-unlocked row when connected live instead of sending a request that would
+silently do nothing.
+
+## `codex.get` / `codex.set`
+
+Live journal/codex ("GATEPal") editing, the counterpart to the file editor's EMAIL, NOTES and FISH
+sections. `codex.get` takes an optional `{"playerId":"…"}` payload and returns:
+
+```json
+{"emails":["Email_Foo"],"journals":["Journal_Bar"],"fish":["Fish_Baz"],"compendium":["Compendium_Qux"]}
+```
+
+Each list is the row names the running character currently knows in that section (again, the full
+catalog of possible ids comes from the desktop app's own game-data vocabulary). `codex.set` takes
+`{"playerId":"…", "emails"?:[...], "journals"?:[...], "fish"?:[...]}` and marks each given id known
+immediately; omitted categories are left untouched.
+
+**`compendium` is read-only** - it is reported by `codex.get` but `codex.set` does not accept it.
+The game's only unlock function for it, `Request_UnlockCompendiumSection(CompendiumRow,
+UnlockType)`, takes an `UnlockType` enum parameter this project could not ground: the one place a
+real mod calls it (`CheatConsoleCommands/scripts/Features.lua:894-900`, the journal-entry-unlocker
+hook) only ever forwards a value read live off a UI widget property, never a literal, and the pak
+dump carries no enum value names to guess from. The desktop app's COMPENDIUM section is shown but
+not editable when connected live, for the same reason.
+
+**There is no way to un-know an e-mail, note or fish live either** (same one-directional limit as
+recipes above - no such function exists). The desktop app disables un-checking an already-known row
+when connected live.
+
+## `general.get` / `general.set`
+
+Live "bulk unlocks" editing, the counterpart to the file editor's General tab ITEMS SEEN, ITEMS
+CRAFTED and MAPS rows (the account/owner-id change has no live counterpart at all - see below).
+`general.get` takes an optional `{"playerId":"…"}` payload and returns:
+
+```json
+{"itemsSeen":["metal_scrap"],"itemsCrafted":["torch"],"maps":["Sector_A"]}
+```
+
+`general.set` takes `{"playerId":"…", "itemsSeen"?:[...], "maps"?:[...]}` and discovers/unlocks
+each given id immediately; omitted categories are left untouched.
+
+**`itemsCrafted` is read-only** - it is reported by `general.get` but `general.set` does not accept
+it. The game's `CharacterProgressionComponent` tracks crafted items automatically (from actually
+crafting something) but exposes no single-item "mark as crafted" function anywhere in its exported
+API, unlike items-seen (`Server_CheckNewItemPickedUp`) and maps (`Server_AddMapToJournal`). The
+desktop app's ITEMS CRAFTED row disables its DISCOVER ALL button when connected live.
+
+**The account/owner-id change has no live path at all** and is not part of this wire protocol:
+renaming which save file a character belongs to is purely a file-system operation, with no running
+in-game concept to change. The desktop app hides that section's CHANGE button when connected live
+and shows the connected player's own id as a plain readout instead.
+
+## Recipes/codex/general evidence
+
+All three of the areas above are grounded the same way: `tests/AbioticEditor.Probes/
+LiveClassPropsProbe.cs` (fragment "CharacterProgressionComponent") dumps the exported properties
+and functions of `Content/Blueprints/Characters/Abiotic_CharacterProgressionComponent.uasset` from
+the installed game's own paks - not guessed, and not copied from a mod that implements this exact
+feature (no installed mod unlocks recipes, marks codex entries known, or discovers items/maps).
+The read side (`RecipesUnlockedArray`, `EmailsRead`, `JournalEntries`, `FishCaughtArray`,
+`ItemsPickedUpArray`, `CraftedItems`, `CurrentMaps`) is a direct property read, the same indexed
+`for i = 1, #arr do arr[i]:ToString() end` pattern the reference mod's own "traits" console command
+uses on a different property (`progressionComponen.Traits`) - real precedent for the TECHNIQUE, not
+for these specific property names, hence every read is wrapped in `pcall`. The write side
+(`Request_UnlockNewRecipe`, `Server_AddEmailToReadList`, `Server_AddNoteToJournal`,
+`Request_UnlockNewFish`, `Server_CheckNewItemPickedUp`, `Server_AddMapToJournal`) is a direct
+UFunction call with an `FName` argument built the same way `main.lua`'s `writeSlot()` already
+builds one (`FName(str, EFindName.FNAME_Find)`) - real precedent for the CALLING CONVENTION
+(confirmed working for `Request_UnlockCompendiumSection` in `Features.lua:900`), not for these
+specific function names, hence every call is wrapped in `pcall` too. None of the six write
+functions is called by any installed reference mod.
 
 ## Extending this for a new area
 

@@ -7,6 +7,7 @@
 @inject HostSpoilerPreferences Spoilers
 @inject RecipeProgressGateService Gate
 @inject TraderVocabularyService TraderVocabulary
+@inject ItemUpgradeVocabularyService ItemUpgrades
 @inject ToastService Toasts
 @inject ModalService Modals
 @inject InventorySelectionService Selection
@@ -64,7 +65,7 @@
                          @onclick="() => SelectRow(row)" @onkeydown="e => RowKeyDown(e, row)">
                         @* The @key includes a nonce so a progress-gated (refused) unlock recreates the
                            checkbox and it visibly snaps back to unchecked, like the native toggle. *@
-                        <input class="rb-checkbox" type="checkbox" checked="@row.Edit.IsUnlocked" disabled="@concealed"
+                        <input class="rb-checkbox" type="checkbox" checked="@row.Edit.IsUnlocked" disabled="@(concealed || LockedIn(row))"
                                aria-label="@ShownName(row)" @key="@($"{row.Info.Id}:{_gateNonce}")"
                                @onclick:stopPropagation @onchange="e => SetUnlocked(row, e.Value is bool value && value)" />
                         <span class="rb-row-icon">
@@ -89,6 +90,10 @@
     </div>
 
     <p class="rb-help">@L.Resource("PlayerRecipes_FooterHelp")</p>
+    @if (Session.AppliesImmediately)
+    {
+        <p class="rb-help live-warning">@L.Resource("PlayerRecipes_LiveUnlockOnlyHelp")</p>
+    }
 </section>
 
 @code {
@@ -187,7 +192,11 @@
         }
     }
 
-    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    /// <summary>Bound to the narrow <see cref="IPlayerRecipesSession"/> boundary, not the
+    /// concrete file session, so this widget renders identically for <c>PlayerSaveSession</c>
+    /// (staged, re-lockable) and <c>LivePlayerRecipesSession</c> (applies immediately, unlock
+    /// only) - see <c>IPlayerRecipesSession</c>'s remarks.</summary>
+    [Parameter, EditorRequired] public IPlayerRecipesSession Session { get; set; } = null!;
     [Parameter] public EventCallback OnChanged { get; set; }
 
     private enum Show { All, Locked, Unlocked }
@@ -195,9 +204,10 @@
     /// <summary>One recipe row: the game-data definition, its crafted item and the staged unlock flag.</summary>
     private sealed record RecipeRow(RecipeInfo Info, ItemCatalogEntry? CreatedItem, PlayerRecipeEdit Edit);
 
-    private PlayerSaveSession? _boundSession;
+    private IPlayerRecipesSession? _boundSession;
     private IReadOnlyList<RecipeRow>? _rows;
     private ILookup<string, RecipeInfo>? _usedIn;
+    private AbioticEditor.Core.Items.ItemUpgradeCatalog _itemUpgrades = AbioticEditor.Core.Items.ItemUpgradeCatalog.Empty;
     // World story progress for the unlock gate (null = unknown, nothing gated) and the
     // trader roster (live pak stock preferred, built-in snapshot otherwise).
     private IReadOnlySet<string>? _worldFlags;
@@ -229,6 +239,14 @@
 
     protected override void OnInitialized() => Selection.Changed += OnSelectionChanged;
 
+    /// <summary>
+    /// The story-flag gate needs a save's file path to find its sibling world; live editing has
+    /// no such path at all (there is no on-disk world save to look next to), so a live session
+    /// simply skips gating (<c>_worldFlags</c> stays null, which <c>RecipeProgressGateService</c>
+    /// already treats as "unknown, nothing gated" rather than "everything blocked").
+    /// </summary>
+    private static string? SessionPathOrNull(IPlayerRecipesSession session) => (session as PlayerSaveSession)?.Path;
+
     protected override async Task OnParametersSetAsync()
     {
         if (ReferenceEquals(_boundSession, Session)) return;
@@ -240,13 +258,14 @@
         // gate, warms the email vocabulary the gate consults, and loads the trader roster
         // (live pak stock when the game is installed, the built-in snapshot otherwise).
         var session = Session;
-        var worldFlags = await Gate.ResolveWorldFlagsAsync(session.Path);
+        var worldFlags = await Gate.ResolveWorldFlagsAsync(SessionPathOrNull(session));
         if (worldFlags is not null) Gate.Warm();
-        var (infos, traders) = await Task.Run(
-            () => (RecipeVocabulary.GetRecipeInfos(), TraderVocabulary.GetTraders()));
+        var (infos, traders, itemUpgrades) = await Task.Run(
+            () => (RecipeVocabulary.GetRecipeInfos(), TraderVocabulary.GetTraders(), ItemUpgrades.Get()));
         if (!ReferenceEquals(_boundSession, Session)) return;
         _worldFlags = worldFlags;
         _traders = traders;
+        _itemUpgrades = itemUpgrades;
         Session.EnsureRecipeRows(infos.Select(info => info.Id));
         var editsById = Session.Recipes.ToDictionary(edit => edit.Id, StringComparer.Ordinal);
         _rows = infos
@@ -377,6 +396,11 @@
 
     private void SetFilter(Show filter) => _filter = filter;
 
+    /// <summary>A row whose unlock is already applied and, live, cannot be taken back (see
+    /// <see cref="IPlayerRecipesSession.CanLock"/>) - the checkbox is disabled rather than
+    /// accepting a click that would silently do nothing.</summary>
+    private bool LockedIn(RecipeRow row) => row.Edit.IsUnlocked && !Session.CanLock;
+
     private async Task SetUnlocked(RecipeRow row, bool unlocked)
     {
         // Progress gate (native rule): recipes granted by an email in an unreached region
@@ -387,7 +411,7 @@
             _gateNonce++;
             return;
         }
-        row.Edit.IsUnlocked = unlocked;
+        await Session.SetUnlockedAsync(row.Info.Id, unlocked);
         await Changed();
     }
 
@@ -400,7 +424,7 @@
         {
             if (row.Edit.IsUnlocked) continue;
             if (Gate.CheckUnlock(row.Info.Id, _worldFlags) is { } block) { lastBlock = block; continue; }
-            row.Edit.IsUnlocked = true;
+            await Session.SetUnlockedAsync(row.Info.Id, true);
         }
         if (lastBlock is not null) Toasts.Show(GateMessage(lastBlock), ToastKind.Warning);
         await Changed();
@@ -447,7 +471,7 @@
     private string UpgradePathText(RecipeRow row)
     {
         if (row.Info.CreatesItemId is not { } itemId) return string.Empty;
-        var upgrade = Session.ItemUpgrades.UpgradeFor(itemId);
+        var upgrade = _itemUpgrades.UpgradeFor(itemId);
         if (upgrade is null) return string.Empty;
         var cost = string.Join(", ", upgrade.Required.Select(required =>
             $"{required.Count}× {Items.Find(required.ItemId)?.DisplayName ?? PlainNames.Words(required.ItemId)}"));

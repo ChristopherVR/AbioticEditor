@@ -114,6 +114,18 @@
                     aria-selected="@(_activeTab == "transmog")" @onclick='() => _activeTab = "transmog"'>
                 @L.Resource("PlayerEditor_Transmog")
             </button>
+            <button type="button" role="tab" class="editor-tab @(_activeTab == "recipes" ? "active" : null)"
+                    aria-selected="@(_activeTab == "recipes")" @onclick='() => _activeTab = "recipes"'>
+                @L.Resource("PlayerEditor_Recipes")
+            </button>
+            <button type="button" role="tab" class="editor-tab @(_activeTab == "codex" ? "active" : null)"
+                    aria-selected="@(_activeTab == "codex")" @onclick='() => _activeTab = "codex"'>
+                @L.Resource("PlayerEditor_Gatepal")
+            </button>
+            <button type="button" role="tab" class="editor-tab @(_activeTab == "general" ? "active" : null)"
+                    aria-selected="@(_activeTab == "general")" @onclick='() => _activeTab = "general"'>
+                @L.Resource("PlayerEditor_General")
+            </button>
             <button type="button" role="tab" class="editor-tab @(_activeTab == "world" ? "active" : null)"
                     aria-selected="@(_activeTab == "world")" @onclick='() => _activeTab = "world"'>
                 @L.Resource("LiveWorld_Title")
@@ -207,6 +219,18 @@
                    IPlayerInventorySession instead of the concrete PlayerSaveSession - see
                    LiveInventorySession's own doc comment. *@
                 <PlayerInventoryTab Session="_inventory" OnChanged="() => {}" />
+            }
+            else if (_activeTab == "recipes" && _recipes is not null)
+            {
+                <PlayerRecipesTab Session="_recipes" OnChanged="() => {}" />
+            }
+            else if (_activeTab == "codex" && _codex is not null)
+            {
+                <PlayerCodexTab Session="_codex" OnChanged="() => {}" />
+            }
+            else if (_activeTab == "general" && _general is not null && _recipes is not null)
+            {
+                <PlayerGeneralTab General="_general" Recipes="_recipes" OnChanged="() => {}" />
             }
             else if (_activeTab == "transmog" && _inventory is not null)
             {
@@ -338,6 +362,9 @@
     private LiveNpcSession? _npcs;
     private LiveInventorySession? _inventory;
     private LiveStorySession? _story;
+    private LivePlayerRecipesSession? _recipes;
+    private LivePlayerCodexSession? _codex;
+    private LivePlayerGeneralSession? _general;
     private LiveWorldFlagsSession? _flags;
     private IWorldDoorsSession? _doors;
     private LiveContainersSession? _containers;
@@ -421,6 +448,9 @@
             _inventory = await LiveInventorySession.ConnectAsync(new LiveInventoryChannel(channel), localPlayerId, Upgrades.Get());
             _spawn = await LivePlayerSpawnSession.ConnectAsync(new LiveSpawnChannel(channel), localPlayerId);
             _companions = await LivePlayerCompanionsSession.ConnectAsync(new LiveCompanionsChannel(channel), localPlayerId);
+            _recipes = await LivePlayerRecipesSession.ConnectAsync(new LivePlayerRecipesChannel(channel), localPlayerId);
+            _codex = await LivePlayerCodexSession.ConnectAsync(new LivePlayerCodexChannel(channel), localPlayerId);
+            _general = await LivePlayerGeneralSession.ConnectAsync(new LivePlayerGeneralChannel(channel), localPlayerId, localPlayerId);
             // The world areas need a loaded world (a player sitting in the main menu has no
             // DayNightManager, doors, or containers yet), so each one that fails to read is left
             // null and its tab says so, instead of failing the whole connection - the player
@@ -531,6 +561,10 @@
             }
             if (_spawn is not null) await _spawn.SwitchPlayerAsync(_selectedPlayerId);
             if (_companions is not null) await _companions.SwitchPlayerAsync(_selectedPlayerId);
+            if (_inventory is not null) await _inventory.SwitchPlayerAsync(_selectedPlayerId);
+            if (_recipes is not null) await _recipes.SwitchPlayerAsync(_selectedPlayerId);
+            if (_codex is not null) await _codex.SwitchPlayerAsync(_selectedPlayerId);
+            if (_general is not null) await _general.SwitchPlayerAsync(_selectedPlayerId, _selectedPlayerId);
             LiveSession.PlayerSelected(_selectedPlayerId);
         }
         catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
@@ -565,6 +599,9 @@
         _npcs = null;
         _inventory = null;
         _story = null;
+        _recipes = null;
+        _codex = null;
+        _general = null;
         _flags = null;
         _doors = null;
         _containers = null;

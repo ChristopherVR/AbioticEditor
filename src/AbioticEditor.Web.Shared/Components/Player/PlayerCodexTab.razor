@@ -45,7 +45,7 @@
                 @foreach (var row in Visible)
                 {
                     <div class="codex-row @(_selected == row ? "selected" : null)" role="option" aria-selected="@(_selected == row)" @key="row.Id" @onclick="() => Select(row)">
-                        <input type="checkbox" checked="@row.IsKnown" disabled="@(!row.Editable)" @onclick:stopPropagation @onchange="e => SetKnown(row, e.Value is bool value && value)" />
+                        <input type="checkbox" checked="@row.IsKnown" disabled="@(!row.Editable || LockedIn(row))" @onclick:stopPropagation @onchange="e => SetKnown(row, e.Value is bool value && value)" />
                         @if (row.ItemId is { } rowItemId) { <span class="codex-icon"><ItemIcon ItemId="@rowItemId" Alt="@RowTitle(row)" /></span> }
                         <span class="codex-titles"><strong>@RowTitle(row)</strong>@if (RowSubtitle(row) is { Length: > 0 } subtitle) { <small>@subtitle</small> }</span>
                     </div>
@@ -53,6 +53,14 @@
             </div>
         </div>
         <p class="muted gatepal-footer">@L.Resource("PlayerCodex_FooterHelp")</p>
+        @if (Session.AppliesImmediately && Active == "compendium")
+        {
+            <p class="muted gatepal-footer live-warning">@L.Resource("PlayerCodex_LiveCompendiumReadOnlyHelp")</p>
+        }
+        else if (Session.AppliesImmediately)
+        {
+            <p class="muted gatepal-footer live-warning">@L.Resource("PlayerCodex_LiveMarkKnownOnlyHelp")</p>
+        }
     </div>
 </section>
 
@@ -141,7 +149,11 @@
         }
     };
 
-    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    /// <summary>Bound to the narrow <see cref="IPlayerCodexSession"/> boundary, not the concrete
+    /// file session, so this widget renders identically for <c>PlayerSaveSession</c> (staged,
+    /// every row editable) and <c>LivePlayerCodexSession</c> (applies immediately, COMPENDIUM
+    /// read-only, EMAIL/NOTES/FISH unlock-only) - see <c>IPlayerCodexSession</c>'s remarks.</summary>
+    [Parameter, EditorRequired] public IPlayerCodexSession Session { get; set; } = null!;
     [Parameter] public EventCallback OnChanged { get; set; }
     private string Active { get; set; } = "emails";
     private string Filter { get; set; } = string.Empty;
@@ -190,10 +202,10 @@
     // never drops them) but are hidden like native, which lists game-data entries only.
     private IEnumerable<CodexRowEdit> Current => (Active switch
     {
-        "journals" => Session.Codex.Journals,
-        "compendium" => Session.Codex.Compendium,
-        "fish" => Session.Codex.Fish,
-        _ => Session.Codex.Emails,
+        "journals" => Session.Journals,
+        "compendium" => Session.Compendium,
+        "fish" => Session.Fish,
+        _ => Session.Emails,
     }).Where(row => !row.SaveOnly);
 
     private IEnumerable<CodexRowEdit> Visible
@@ -352,7 +364,12 @@
         }
     }
 
+    /// <summary>A row already known that, live, cannot be un-known again (see
+    /// <see cref="IPlayerCodexSession.CanUnsetKnown"/>) - the checkbox is disabled rather than
+    /// accepting a click that would silently do nothing.</summary>
+    private bool LockedIn(CodexRowEdit row) => row.IsKnown && !Session.CanUnsetKnown;
+
     private async Task Changed() { Session.MarkChanged(); await OnChanged.InvokeAsync(); }
-    private async Task SetKnown(CodexRowEdit row, bool known) { row.IsKnown = known; await Changed(); }
-    private async Task MarkAll() { foreach (var row in Current) row.IsKnown = true; await Changed(); }
+    private async Task SetKnown(CodexRowEdit row, bool known) { await Session.SetKnownAsync(row, known); await Changed(); }
+    private async Task MarkAll() { foreach (var row in Current.Where(row => row.Editable)) await Session.SetKnownAsync(row, true); await Changed(); }
 }

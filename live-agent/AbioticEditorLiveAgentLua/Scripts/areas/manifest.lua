@@ -10,4 +10,7 @@ return {
     "areas.portals",
     "areas.spawn",
     "areas.companions",
+    "areas.recipes",
+    "areas.codex",
+    "areas.general",
 }

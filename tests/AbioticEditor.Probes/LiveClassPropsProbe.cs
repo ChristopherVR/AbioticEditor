@@ -68,6 +68,7 @@ public class LiveClassPropsProbe
             "Deployed_Toilet_Portal", "Entitlement",
             "Abiotic_InventoryChangeableDataStruct", "Abiotic_InventoryItemSlotStruct", "EDynamicProperty",
             "PunchCardTerminal", "Deployed_PunchCardTerminal", "Item_Pet", "Companion",
+            "CharacterProgressionComponent", "Abiotic_PlayerCharacter.", "Compendium", "Recipe", "DT_Compendium", "DT_Recipe",
         ];
 
         var outPath = Environment.GetEnvironmentVariable("LIVE_CLASS_PROBE_OUT");

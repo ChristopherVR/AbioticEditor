@@ -188,6 +188,8 @@
   <data name="PlayerCodex_EmailUnlocksJournal" xml:space="preserve"><value>READING THIS UNLOCKS JOURNAL: {0}</value></data>
   <data name="PlayerCodex_FetchingImage" xml:space="preserve"><value>Fetching image from the wiki...</value></data>
   <data name="PlayerCodex_FooterHelp" xml:space="preserve"><value>Emails, journal, compendium and fish can all be edited here. Compendium entries unlock their matching sections for you.</value></data>
+  <data name="PlayerCodex_LiveCompendiumReadOnlyHelp" xml:space="preserve"><value>Compendium entries are read-only live: the running game's unlock function for this section needs information this editor could not safely determine.</value></data>
+  <data name="PlayerCodex_LiveMarkKnownOnlyHelp" xml:space="preserve"><value>Live editing can only mark an entry known, never un-know one - the running game has no way to take that back.</value></data>
   <data name="PlayerCodex_Journal" xml:space="preserve"><value>JOURNAL</value></data>
   <data name="PlayerCodex_Kills" xml:space="preserve"><value>KILLS</value></data>
   <data name="PlayerCodex_MarkAllRead" xml:space="preserve"><value>MARK ALL READ</value></data>
@@ -222,6 +224,9 @@
   <data name="PlayerGeneral_DiscoverAllItemsTooltip" xml:space="preserve"><value>Adds every catalog item to this player's seen-items list. Effect: no more yellow NEW badges in the inventory, and pickup-gated compendium hints treat everything as encountered. No quest or stat impact.</value></data>
   <data name="PlayerGeneral_ItemsSeenHelp" xml:space="preserve"><value>Stops the game putting a NEW badge on items you have not come across yet.</value></data>
   <data name="PlayerGeneral_ItemsCraftedHelp" xml:space="preserve"><value>Records these as things you have made before. A few in-game hints only appear once you have crafted something.</value></data>
+  <data name="PlayerGeneral_ItemsCraftedLiveReadOnlyHelp" xml:space="preserve"><value>Read-only live: the running game tracks crafted items on its own but has no function to mark one crafted on demand.</value></data>
+  <data name="PlayerGeneral_OwnerIdUnknown" xml:space="preserve"><value>(unknown)</value></data>
+  <data name="PlayerGeneral_OwnerIdLiveUnavailable" xml:space="preserve"><value>Not available while connected to a running game - there is no live concept of which save file a character came from.</value></data>
   <data name="PlayerGeneral_MapsHelp" xml:space="preserve"><value>Reveals the sector map pamphlets in the GATEPal map screen, as though you had picked every one of them up.</value></data>
   <data name="PlayerGeneral_DiscoveryHelp" xml:space="preserve"><value>None of these three advance quests, open doors or change your stats.</value></data>
   <data name="PlayerGeneral_General" xml:space="preserve"><value>GENERAL</value></data>
@@ -414,6 +419,7 @@
   <!-- PlayerRecipes -->
   <data name="PlayerRecipes_CraftedAt" xml:space="preserve"><value>CRAFTED AT</value></data>
   <data name="PlayerRecipes_FooterHelp" xml:space="preserve"><value>Tap a recipe to see its full details. Ticking a box marks it to change.</value></data>
+  <data name="PlayerRecipes_LiveUnlockOnlyHelp" xml:space="preserve"><value>Live editing can only unlock a recipe, never lock one back up - the running game has no way to take an unlock back.</value></data>
   <data name="PlayerRecipes_Ingredients" xml:space="preserve"><value>INGREDIENTS</value></data>
   <data name="PlayerRecipes_NoRecipesMatch" xml:space="preserve"><value>No recipes match (or game data is unavailable).</value></data>
   <data name="PlayerRecipes_RecipeBook" xml:space="preserve"><value>RECIPE BOOK</value></data>

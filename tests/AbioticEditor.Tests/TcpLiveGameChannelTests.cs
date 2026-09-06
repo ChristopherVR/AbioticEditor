@@ -400,6 +400,53 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
         Assert.Equal(LiveConnectionState.Connected, channel.State);
     }
 
+    [Fact]
+    public async Task LivePlayerRecipesChannel_round_trips_unlocks()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var recipes = new AbioticEditor.Core.LiveEditing.Player.LivePlayerRecipesChannel(channel);
+
+        var unlocked = await recipes.GetUnlockedAsync();
+        Assert.Equal(["Recipe_Axe", "Recipe_Torch"], unlocked);
+
+        // The fake agent's fallback echoes any non-special-cased command's payload straight back
+        // as "ok:true"; UnlockAsync succeeding without throwing proves the request itself encoded
+        // as a well-formed object the agent could parse.
+        await recipes.UnlockAsync(["Recipe_Bandage"]);
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
+    [Fact]
+    public async Task LivePlayerCodexChannel_reads_all_four_sections_and_sets_known()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var codex = new AbioticEditor.Core.LiveEditing.Player.LivePlayerCodexChannel(channel);
+
+        var directory = await codex.GetAsync();
+        Assert.Equal(["Email_Foo"], directory.Emails);
+        Assert.Equal(["Journal_Bar"], directory.Journals);
+        Assert.Equal(["Fish_Baz"], directory.Fish);
+        Assert.Equal(["Compendium_Qux"], directory.Compendium);
+
+        await codex.SetKnownAsync(emails: ["Email_Foo"], fish: ["Fish_Baz"]);
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
+    [Fact]
+    public async Task LivePlayerGeneralChannel_reads_items_and_maps_and_discovers_more()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var general = new AbioticEditor.Core.LiveEditing.Player.LivePlayerGeneralChannel(channel);
+
+        var directory = await general.GetAsync();
+        Assert.Equal(["metal_scrap"], directory.ItemsSeen);
+        Assert.Equal(["torch"], directory.ItemsCrafted);
+        Assert.Equal(["Sector_A"], directory.Maps);
+
+        await general.SetAsync(itemsSeen: ["wood_plank"], maps: ["Sector_B"]);
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
     private async Task<TcpLiveGameChannel> ConnectedChannelAsync()
     {
         var channel = new TcpLiveGameChannel();
@@ -540,6 +587,11 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
                     "spawn.get" => "{\"x\":100,\"y\":-200,\"z\":50,\"levelName\":\"Facility\",\"terminalGuid\":\"AFB31D8E4DFBB5BE74BEAAADD681A636\",\"isHost\":true}",
                     "companions.list" => "{\"pets\":[{\"kind\":\"equip\",\"slotIndex\":12,\"itemId\":\"Skink_Magma_Crafted\",\"name\":\"Sparky\","
                         + "\"health\":87.5,\"maxHealth\":100,\"xp\":4200,\"mutationProgress\":3,\"petMutation\":1}],\"isHost\":true}",
+                    "recipes.get" => "{\"unlockedIds\":[\"Recipe_Axe\",\"Recipe_Torch\"]}",
+                    "codex.get" => "{\"emails\":[\"Email_Foo\"],\"journals\":[\"Journal_Bar\"],"
+                        + "\"fish\":[\"Fish_Baz\"],\"compendium\":[\"Compendium_Qux\"]}",
+                    "general.get" => "{\"itemsSeen\":[\"metal_scrap\"],\"itemsCrafted\":[\"torch\"],\"maps\":[\"Sector_A\"]}",
+                    
                     _ => null,
                 };
                 if (canned is not null)
