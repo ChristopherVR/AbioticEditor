@@ -5,6 +5,58 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-77 wrap-up: story chapter, compendium, transmog visibility and PhD now settable live; everything proven without launching the game (2026-09-06)
+
+Product-owner direction for this round: "Continue with unverified without launching the game -
+and fill the remaining gaps. The 'read-only' for story progression makes no sense to me, and
+ensure compendium, fish unlocks etc. is settable." Five parallel workstreams (story, codex +
+world unlocks, player gaps, world gaps, Lua harness) were merged into `main`; the two entries
+below this one are the ones their authors wrote themselves. This entry records the other three
+and the integration result.
+
+**STORY chapter is settable live** (was read-only in round 76). The chapter is a pure function
+of world flags: every `Trigger_WorldFlag_C` in the game advances the quest through
+`UWorldFlagSubsystem::SetWorldFlag` (verified live in round 75 as `flags.set`), and the native
+`FindCurrentQuest` recomputes the replicated `CurrentQuest` row from the flag set. So
+`story.set` reuses `applyWorldFlagRows` (the shared body of `flags.set`) with a plan computed
+editor-side by `LiveStorySession.ComputeFlagPlan` from `StoryProgressionCatalog` + `FlagGate`
+(set the chapter's trigger flag and every prerequisite, clear every dependent when moving
+backwards), then nudges `CurrentQuest.RowName` directly so the HUD refreshes without waiting
+for the next trigger. The shared `WorldStoryTab` now offers the same chapter picker live that it
+offers for a file. Unverified live this round (no game launch, by instruction); the flag write
+underneath it is the one write path in this project with the most live evidence.
+
+**PLAYER gaps** (`areas/transmog.lua`, `areas/general.lua`, harness `cases/player_gaps.lua`):
+transmog per-slot visibility (the eye toggle) writes through the transmog component's own
+`Request_ChangeTransmogVisibilityFlag(Index, bool)` RPC, found in the pak dump of
+`Abiotic_TransmogInventoryComp` (round 76 had only looked at the save-file property name).
+PhD/background writes `Abiotic_PlayerState_C.PhD` (a plain unsuffixed `FName`, no OnRep).
+Traits stay read-only with evidence: the only functions touching the array are
+`SetTraits`/`InitializeTraits`, which re-run character creation, and the native
+`Server_AddTraitBuff` is a different (buff) system. Items-crafted counters likewise have no
+write RPC. The live INVENTORY/TRANSMOG tabs now publish the sidebar ITEM CATALOG context the way
+the file editor does, so quick-give works with no slot selected.
+
+**Lua harness** (`live-agent/AbioticEditorLiveAgentLua/tests/`): a stub UE4SS runtime
+(`harness.lua`: fake UObjects with `__fields`/call counters, `FString`/`FText` userdata that
+must be `:ToString()`'d, json round-trip through the real reply path) runs every area module
+without the game. `run.lua` executes `tests/cases/manifest.lua`; the dotnet wrapper
+`LiveAgentLuaHarnessTests` runs it when a Lua 5.4 interpreter is available (`ABIOTIC_LUA_EXE`
+or on PATH) and skips otherwise. It found three real bugs before any game launch (containment
+`TrapLeyak` arg count, a `"Free Leyak"` call missing its receiver, silent missing-id lookups
+in doors/portals), all fixed. Integration of the five branches surfaced three stale assertions
+(two "honestly unsupported" checks that round 77 made supported, one FText rename comparison)
+and two stale dotnet tests (the spawn teleport call shape from before the round-76 live fix, and
+the copy guard catching a file name inside an XML doc comment); all updated.
+
+**Result**: 364 harness checks green, 1244 dotnet tests green (net10.0), Web host builds. Still
+read-only live, each with the evidence recorded in its module: world-wide recipe unlocks
+(`worldunlocks.set`), traits, items-crafted counters, kill-requirement compendium rows, bench
+upgrade removal, pet species change/removal, Peccary/Lamogi pets. What only the real game can
+prove: enum-as-integer RPC arguments (compendium section type, narrative state byte), whether
+`PendingDestroy` alone updates wreck visuals, the reconstructed bench-upgrade table path, and
+`Request_DropInventorySlot` landing position.
+
 ## Round-77: grounding the compendium unlock enum, and researching world-wide unlocks (2026-09-06)
 
 The product owner's direction: "ensure compendium, fish unlocks etc. is settable live - read-only
