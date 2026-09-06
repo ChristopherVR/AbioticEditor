@@ -1,5 +1,6 @@
 @namespace AbioticEditor.Web.Components.World
 @using AbioticEditor.Core.Assets
+@using AbioticEditor.Core.LiveEditing
 @using AbioticEditor.Core.WorldSaves
 @using AbioticEditor.Web.Models
 @using AbioticEditor.Web.Services
@@ -16,6 +17,10 @@
    (the native SlotSidebarView door panel, mini-map and position included) in the
    right-hand pane via ShowDetail. *@
 <section class="world-editor wd-tab" aria-label="@L.Resource("WorldDoors_Title")">
+    @if (Session.AppliesImmediately && !Session.IsHost)
+    {
+        <p class="error-text" role="alert">@L.Resource("LiveDoors_NotHostWarning")</p>
+    }
     @if (!Session.CanEditDoors)
     {
         <p class="empty">@L.Resource("WorldContainers_NoContainersMatch")</p>
@@ -49,10 +54,16 @@
                         <span class="wd-kind-chip">@KindLabel(door)</span>
                         <strong class="wd-class">@friendlyClass</strong>
                         <span class="wd-lock-chip">@L.Resource("WorldDoors_LockChip_" + lockKind)</span>
-                        <label class="wd-keep" title="@L.Resource("WorldDoors_KeepStateTooltip")" @onclick:stopPropagation>
-                            <span>@L.Resource("WorldDoors_KeepState")</span>
-                            <input type="checkbox" checked="@(door.NoReset == true)" @onchange="e => Stage(() => Session.SetDoorNoReset(door.Id, e.Value is bool value && value))" />
-                        </label>
+                        @* "Keep state" only means anything to the save file's own session-restart
+                           logic - a live door has no such concept, so the control is left out
+                           rather than shown disabled and unexplained. *@
+                        @if (!Session.AppliesImmediately)
+                        {
+                            <label class="wd-keep" title="@L.Resource("WorldDoors_KeepStateTooltip")" @onclick:stopPropagation>
+                                <span>@L.Resource("WorldDoors_KeepState")</span>
+                                <input type="checkbox" checked="@(door.NoReset == true)" @onchange="e => StageAsync(() => Session.SetDoorNoReset(door.Id, e.Value is bool value && value))" />
+                            </label>
+                        }
                     </div>
                     @* stopPropagation sits on the individual controls, not this whole block:
                        with it on the container, most of the card's surface silently ate the
@@ -72,7 +83,7 @@
                             <span class="wd-help">@L.Resource("WorldDoors_SimpleStateHelp")</span>
                             <label class="wd-check-row" @onclick:stopPropagation>
                                 <span class="wd-field-label">@L.Resource("WorldDoors_AlreadyOpenedOneWay")</span>
-                                <input type="checkbox" checked="@(door.OneWayUnlocked == true)" @onchange="e => Stage(() => Session.SetOneWayUnlocked(door.Id, e.Value is bool value && value))" />
+                                <input type="checkbox" checked="@(door.OneWayUnlocked == true)" @onchange="e => StageAsync(() => Session.SetOneWayUnlocked(door.Id, e.Value is bool value && value))" />
                             </label>
                             <span class="wd-help">@L.Resource("WorldDoors_OneWayHelp")</span>
                         }
@@ -81,7 +92,7 @@
                             <label class="wd-check-row" @onclick:stopPropagation>
                                 <span class="wd-field-label">@L.Resource("WorldDoors_State")</span>
                                 <span class="wd-field-label">@L.Resource("WorldDoors_Open")</span>
-                                <input type="checkbox" checked="@(door.IsDoorOpen == true)" @onchange="e => Stage(() => Session.SetSecurityDoorOpen(door.Id, e.Value is bool value && value))" />
+                                <input type="checkbox" checked="@(door.IsDoorOpen == true)" @onchange="e => StageAsync(() => Session.SetSecurityDoorOpen(door.Id, e.Value is bool value && value))" />
                             </label>
                             <span class="wd-help">@L.Resource("WorldDoors_SecurityStateHelp")</span>
                         }
@@ -91,15 +102,24 @@
             }
             @if (VisibleDoors.Count == 0) { <p class="empty">@L.Resource("WorldContainers_NoContainersMatch")</p> }
         </div>
+        @if (Session.Status is not null)
+        {
+            <p class="status-text">@Session.Status</p>
+        }
+        @if (_error is not null)
+        {
+            <p class="error-text" role="alert">@_error</p>
+        }
     }
 </section>
 
 @code {
-    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter, EditorRequired] public IWorldDoorsSession Session { get; set; } = null!;
     [Parameter] public string Title { get; set; } = "World editor";
     [Parameter] public EventCallback<string?> OnError { get; set; }
     private const string DetailKeyPrefix = "world-door:";
     private string _filter = string.Empty;
+    private string? _error;
     private string? _selectedDoorId;
     private (double X, double Y, double Z)? _selectedDoorPosition;
     private bool _isLocatingPosition;
@@ -221,21 +241,42 @@
 
     private static bool IsStableState(string? value) => value is null or "E_DoorStates::NewEnumerator0" or "E_DoorStates::NewEnumerator1" or "E_DoorStates::NewEnumerator2";
     private static string SimpleState(WorldDoor door) => door.DoorState ?? "E_DoorStates::NewEnumerator0";
-    private void SetSimpleState(string id, string? value) { if (!string.IsNullOrEmpty(value)) Stage(() => Session.SetSimpleDoorState(id, value)); }
+    private Task SetSimpleState(string id, string? value) =>
+        string.IsNullOrEmpty(value) ? Task.CompletedTask : StageAsync(() => Session.SetSimpleDoorState(id, value));
 
-    /// <summary>Stages a door edit and pokes the shell so REVERT/SAVE light up immediately.
-    /// An open detail card re-publishes so its state controls track the row's.</summary>
-    private void Stage(Action edit)
+    /// <summary>
+    /// Applies a door edit - staged in memory for the file session, immediate against the
+    /// running game for the live one (see <see cref="IWorldDoorsSession.AppliesImmediately"/>) -
+    /// and pokes the shell so REVERT/SAVE light up immediately for the file session. An open
+    /// detail card re-publishes so its state controls track the row's. A live edit that fails
+    /// (the connection dropped, the game rejected it) surfaces here instead of throwing into the
+    /// Blazor renderer, the same way every other live tab presents that failure.
+    /// </summary>
+    private async Task StageAsync(Func<Task> edit)
     {
-        edit();
-        Workspace.NotifyEdited();
+        _error = null;
+        try
+        {
+            await edit();
+        }
+        catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
+            or IOException or OperationCanceledException)
+        {
+            _error = Errors.Present(exception, "Change this door.", "The connection may have dropped; try reconnecting.");
+        }
+        if (!Session.AppliesImmediately) Workspace.NotifyEdited();
         if (_selectedDoorId is not null) ShowDoorDetail();
+        await InvokeAsync(StateHasChanged);
     }
 
-    /// <summary>"DOORS - Office Sector - Arrival" heading (native DoorsRegionTitle).</summary>
-    private string DoorsRegionTitle => RegionChapterForFile() is { } chapter
-        ? L.Resource("WorldDoors_TitleWithRegionFormat", chapter.Title)
-        : L.Resource("WorldDoors_Title");
+    /// <summary>"DOORS - Office Sector - Arrival" heading (native DoorsRegionTitle); live has no
+    /// file to guess a region from, so it falls back to a plain "DOORS - LIVE" heading instead.</summary>
+    private string DoorsRegionTitle => RegionChapterForFile() switch
+    {
+        { } chapter => L.Resource("WorldDoors_TitleWithRegionFormat", chapter.Title),
+        null when Session.AppliesImmediately => L.Resource("WorldDoors_TitleLive"),
+        _ => L.Resource("WorldDoors_Title"),
+    };
 
     /// <summary>Toggles the clicked door's detail card in the right-hand pane and, when opening
     /// it, kicks off the (potentially slow, first-time-per-level) live position lookup from the
@@ -247,20 +288,27 @@
             CloseOwnDetail();
             return;
         }
+        // A live door already knows its own exact position (the running game just reported it);
+        // only the file session needs the slow, first-time-per-level lookup from the installed
+        // game's level files below.
+        var livePosition = door.X is { } x && door.Y is { } y && door.Z is { } z ? ((double X, double Y, double Z)?)(x, y, z) : null;
         _selectedDoorId = door.Id;
-        _selectedDoorPosition = null;
+        _selectedDoorPosition = livePosition;
         _selectedSectorMap = null;
         _selectedSectorPins = null;
         _selectedDoorGate = null;
         _mapEnlarged = false;
-        _isLocatingPosition = true;
+        _isLocatingPosition = livePosition is null;
         ShowDoorDetail();
         var requestId = door.Id;
         try
         {
-            var position = await Art.TryGetDoorPositionAsync(map, actor);
-            if (_selectedDoorId != requestId) return;
-            _selectedDoorPosition = position;
+            if (livePosition is null)
+            {
+                var position = await Art.TryGetDoorPositionAsync(map, actor);
+                if (_selectedDoorId != requestId) return;
+                _selectedDoorPosition = position;
+            }
             _selectedDoorGate = await Art.TryGetDoorGateAsync(map, actor);
             if (_selectedDoorId != requestId) return;
 
@@ -366,11 +414,13 @@
                     @L.Resource("WorldDoors_SubLevelFormat", string.IsNullOrEmpty(map) ? L.Resource("WorldDoors_PersistentLevel") : map.Replace('_', ' '))<br />
                     @L.Resource("WorldDoors_ActorFormat", actor)
                 </p>
-                @* A door's exact spot is read out of the installed game's own level files. A
-                   browser has no machine to read them from, so the whole line is left out there
-                   rather than shown as "your installed game was not found" - which reads as a
-                   fault to go and fix, when nothing is wrong and nothing can be done about it. *@
-                @if (Art.CanReadInstalledGame)
+                @* A door's exact spot is normally read out of the installed game's own level
+                   files. A browser has no machine to read them from, so the whole line is left
+                   out there rather than shown as "your installed game was not found" - which
+                   reads as a fault to go and fix, when nothing is wrong and nothing can be done
+                   about it. A live door needs none of that: the running game already reported its
+                   exact position, so the line shows regardless. *@
+                @if (Art.CanReadInstalledGame || door.X is not null)
                 {
                     <span class="detail-label">@L.Resource("Slot_ExactPosition")</span>
                     @if (_isLocatingPosition)
@@ -486,24 +536,22 @@
                     </div>
                     <label class="wd-check-row">
                         <span class="wd-field-label">@L.Resource("Slot_OneWayUnlocked")</span>
-                        <input type="checkbox" checked="@(door.OneWayUnlocked == true)" @onchange="e => Stage(() => Session.SetOneWayUnlocked(door.Id, e.Value is bool value && value))" />
+                        <input type="checkbox" checked="@(door.OneWayUnlocked == true)" @onchange="e => StageAsync(() => Session.SetOneWayUnlocked(door.Id, e.Value is bool value && value))" />
                     </label>
                 }
                 else
                 {
                     <label class="wd-check-row">
                         <span class="wd-field-label">@L.Resource("Slot_Open")</span>
-                        <input type="checkbox" checked="@(door.IsDoorOpen == true)" @onchange="e => Stage(() => Session.SetSecurityDoorOpen(door.Id, e.Value is bool value && value))" />
+                        <input type="checkbox" checked="@(door.IsDoorOpen == true)" @onchange="e => StageAsync(() => Session.SetSecurityDoorOpen(door.Id, e.Value is bool value && value))" />
                     </label>
                 }
             </div>
         }
     };
 
-    private void StageDetailState(string id, string? value)
-    {
-        if (!string.IsNullOrEmpty(value)) Stage(() => Session.SetSimpleDoorState(id, value));
-    }
+    private Task StageDetailState(string id, string? value) =>
+        string.IsNullOrEmpty(value) ? Task.CompletedTask : StageAsync(() => Session.SetSimpleDoorState(id, value));
 
     private static string F(double value) => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
     private static string PinStyle(SectorPin pin) => $"left:{F(pin.X * 100)}%;top:{F(pin.Y * 100)}%";

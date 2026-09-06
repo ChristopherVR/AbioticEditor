@@ -83,6 +83,30 @@ public class DoorAndFlagCatalogTests
     }
 
     [Fact]
+    public void DoorIdParser_ExtractsMapAndActor_FromLiveFullNameForm()
+    {
+        // Live doors report the game's own GetFullName() form: "<ClassName> <ObjectPath>" -
+        // the class name and the same actor-path layout as a saved file's id, joined by a space.
+        var (map, actor) = DoorIdParser.Parse(
+            "SimpleDoor_ParentBP_C /Game/Maps/Facility.Facility:PersistentLevel.SimpleDoor_ParentBP_C_9");
+        Assert.Equal("Facility", map);
+        Assert.Equal("SimpleDoor_ParentBP_C_9", actor);
+        Assert.Equal("SimpleDoor_ParentBP_C", DoorIdParser.ClassNameFromActor(actor));
+
+        var (map2, actor2) = DoorIdParser.Parse(
+            "SecurityDoor_Animated_C /Game/Maps/Facility_Containment.Facility_Containment:PersistentLevel.SecurityDoor_Animated_C_12");
+        Assert.Equal("Facility_Containment", map2);
+        Assert.Equal("SecurityDoor_Animated_C_12", actor2);
+
+        // A bare actor path (the saved-file form) has no space before "/Game/...", so it must
+        // not be mistaken for the live form.
+        var (map3, actor3) = DoorIdParser.Parse(
+            "/Game/Maps/Facility.Facility:PersistentLevel.SimpleDoor_ParentBP_C_0");
+        Assert.Equal("Facility", map3);
+        Assert.Equal("SimpleDoor_ParentBP_C_0", actor3);
+    }
+
+    [Fact]
     public void DoorClassCatalog_LookupKnownAndUnknown()
     {
         var simple = DoorClassCatalog.Lookup("SimpleDoor_ParentBP_C");

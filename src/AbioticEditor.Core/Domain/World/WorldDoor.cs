@@ -54,6 +54,12 @@ public enum WorldDoorKind
 /// If <c>true</c>, this door is exempted from session-restart resets. Present
 /// on both kinds.
 /// </param>
+/// <param name="X">World X position in centimetres, when known. A saved file's doors leave this
+/// <c>null</c>; the UI resolves their position separately from the installed game's level files.
+/// A live-editing session fills it directly from the running game instead, so it needs no such
+/// lookup.</param>
+/// <param name="Y">World Y position in centimetres. See <see cref="X"/>.</param>
+/// <param name="Z">World Z position in centimetres. See <see cref="X"/>.</param>
 public sealed record WorldDoor(
     string Id,
     WorldDoorKind Kind,
@@ -61,4 +67,7 @@ public sealed record WorldDoor(
     double? Yaw,
     bool? OneWayUnlocked,
     bool? IsDoorOpen,
-    bool? NoReset);
+    bool? NoReset,
+    double? X = null,
+    double? Y = null,
+    double? Z = null);

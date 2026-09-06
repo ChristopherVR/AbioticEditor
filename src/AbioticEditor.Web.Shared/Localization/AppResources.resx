@@ -3518,6 +3518,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldDoors_CountFormat" xml:space="preserve"><value>{0} DOORS</value></data>
   <data name="WorldDoors_Title" xml:space="preserve"><value>DOORS</value></data>
   <data name="WorldDoors_TitleWithRegionFormat" xml:space="preserve"><value>DOORS - {0}</value></data>
+  <data name="WorldDoors_TitleLive" xml:space="preserve"><value>DOORS - LIVE</value></data>
   <data name="WorldEditor_DroppedSummaryFormat" xml:space="preserve"><value>{0} item(s) on the ground</value></data>
   <data name="WorldEditor_DroppedSummaryWithDeletionsFormat" xml:space="preserve"><value>{0} item(s) · {1} marked for deletion</value></data>
   <data name="WorldStory_RegionOtherAnomaliesMeta" xml:space="preserve"><value>OTHER · ANOMALIES</value></data>

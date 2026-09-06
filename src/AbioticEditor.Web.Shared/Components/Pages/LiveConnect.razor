@@ -139,7 +139,7 @@
             }
             else if (_activeTab == "doors" && _doors is not null)
             {
-                <LiveDoorsTab Session="_doors" OnChanged="() => {}" />
+                <WorldDoorsTab Session="_doors" />
             }
             else if (_activeTab == "containers" && _containers is not null)
             {
@@ -208,7 +208,7 @@
     private LiveInventorySession? _inventory;
     private LiveWorldStateSession? _world;
     private LiveWorldFlagsSession? _flags;
-    private LiveDoorsSession? _doors;
+    private IWorldDoorsSession? _doors;
     private LiveContainersSession? _containers;
     private LiveDroppedItemsSession? _dropped;
     private LivePlayerDirectory? _directory;

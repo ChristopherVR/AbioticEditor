@@ -11,6 +11,11 @@ public static class DoorIdParser
     /// Parses <c>/Game/Maps/Facility.Facility:PersistentLevel.SimpleDoor_ParentBP_C_0</c>
     /// into <c>("Facility", "SimpleDoor_ParentBP_C_0")</c>.
     ///
+    /// Also accepts a live-editing id, the game's own <c>GetFullName()</c> form:
+    /// <c>"SimpleDoor_ParentBP_C /Game/Maps/Facility.Facility:PersistentLevel.SimpleDoor_ParentBP_C_9"</c>
+    /// (class name, a space, then the same actor-path layout as above) - the leading class-name
+    /// token is stripped before parsing so both id shapes land on the same (map, actor) pair.
+    ///
     /// If the input doesn't follow the conventional UE actor-path layout, the
     /// best-effort fallback is <c>("", id)</c>: an empty map, and the entire
     /// input as the actor name. <c>null</c> is never returned.
@@ -18,6 +23,15 @@ public static class DoorIdParser
     public static (string Map, string Actor) Parse(string id)
     {
         if (string.IsNullOrEmpty(id)) return (string.Empty, string.Empty);
+
+        // Live full-name form: "<ClassName> <ObjectPath>". A saved file's id never contains a
+        // space, so seeing one before the path is unambiguous.
+        var spaceIdx = id.IndexOf(' ');
+        if (spaceIdx > 0)
+        {
+            var afterSpace = id[(spaceIdx + 1)..];
+            if (afterSpace.StartsWith('/')) id = afterSpace;
+        }
 
         // Map portion: between "/Game/Maps/" and the first '.'.
         string map = string.Empty;

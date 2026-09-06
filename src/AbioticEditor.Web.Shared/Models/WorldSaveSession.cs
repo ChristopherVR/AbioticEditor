@@ -6,7 +6,7 @@ using AbioticEditor.Core.WorldSaves.Features;
 namespace AbioticEditor.Web.Models;
 
 /// <summary>Razor-hosted staged edit session for a world save.</summary>
-public sealed class WorldSaveSession
+public sealed class WorldSaveSession : IWorldDoorsSession
 {
     private WorldSaveData _data;
     private readonly string _path;
@@ -128,6 +128,13 @@ public sealed class WorldSaveSession
     public bool CanEditFlags => _data.Raw.Properties.FindByPrefix("WorldFlags") is not null;
     public bool CanEditGlobalRecipes => _data.Raw.Properties.FindByPrefix("GlobalUnlocks") is not null;
     public bool CanEditDoors => _doors.Count > 0;
+    /// <summary>Always false: this is the staged file-backed session (<c>IWorldDoorsSession</c>) -
+    /// edits sit in memory until <see cref="Save"/>, unlike <c>LiveDoorsSession</c>.</summary>
+    bool IWorldDoorsSession.AppliesImmediately => false;
+    /// <summary>Always true: editing your own loaded save file needs no game-host authority,
+    /// unlike the live session's <c>IsHost</c>.</summary>
+    bool IWorldDoorsSession.IsHost => true;
+    IReadOnlySet<string> IWorldDoorsSession.Flags => Flags;
     public IReadOnlyList<WorldContainer> Containers => _containers.Values.OrderBy(container => container.Source).ThenBy(container => container.Id, StringComparer.OrdinalIgnoreCase).ToArray();
     public IReadOnlyList<WorldNpc> Npcs => _npcs.Values.OrderBy(npc => npc.IsPet).ThenBy(npc => npc.ActorName, StringComparer.OrdinalIgnoreCase).ToArray();
     /// <summary>Tamed companions from the PetNPC map, with edits staged until save.</summary>
@@ -257,42 +264,48 @@ public sealed class WorldSaveSession
         return Flags.Count - before;
     }
 
-    /// <summary>Stages a stable simple-door state: Closed, Open, or Locked.</summary>
-    public void SetSimpleDoorState(string id, string rawState)
+    /// <summary>Stages a stable simple-door state: Closed, Open, or Locked. Returns an
+    /// already-completed task: this is the file-backed session, and the edit is only staged in
+    /// memory until <see cref="SaveAsync"/> - see <see cref="IWorldDoorsSession"/>.</summary>
+    public Task SetSimpleDoorState(string id, string rawState)
     {
         if (_doors.TryGetValue(id, out var door) && door.Kind == WorldDoorKind.Simple)
         {
             _doors[id] = door with { DoorState = rawState };
             UpdateStatus();
         }
+        return Task.CompletedTask;
     }
 
-    public void SetSecurityDoorOpen(string id, bool open)
+    public Task SetSecurityDoorOpen(string id, bool open)
     {
         if (_doors.TryGetValue(id, out var door) && door.Kind == WorldDoorKind.Security)
         {
             _doors[id] = door with { IsDoorOpen = open };
             UpdateStatus();
         }
+        return Task.CompletedTask;
     }
 
-    public void SetOneWayUnlocked(string id, bool unlocked)
+    public Task SetOneWayUnlocked(string id, bool unlocked)
     {
         if (_doors.TryGetValue(id, out var door) && door.Kind == WorldDoorKind.Simple)
         {
             _doors[id] = door with { OneWayUnlocked = unlocked };
             UpdateStatus();
         }
+        return Task.CompletedTask;
     }
 
     /// <summary>Stages the "keep state (no auto-reset)" marker on a door of either kind.</summary>
-    public void SetDoorNoReset(string id, bool noReset)
+    public Task SetDoorNoReset(string id, bool noReset)
     {
         if (_doors.TryGetValue(id, out var door))
         {
             _doors[id] = door with { NoReset = noReset };
             UpdateStatus();
         }
+        return Task.CompletedTask;
     }
 
     public void SetAllSimpleDoors(string state) { foreach (var door in _doors.Values.Where(door => door.Kind == WorldDoorKind.Simple).ToArray()) _doors[door.Id] = door with { DoorState = state }; UpdateStatus(); }
