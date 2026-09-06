@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here.
 
+## [2.7.6] - 2026-09-06
+
+### Build
+- Bump taiki-e/install-action in the actions-all group
+
+
+### Documentation
+- Log the game-file library update and scope upcoming update support
+
+
+### Miscellaneous Tasks
+- Update the bundled game-file reading library to its latest version
+- Point bucket at v2.7.5 [skip ci]
+
+
 ## [2.7.5] - 2026-08-26
 
 ### Bug Fixes
