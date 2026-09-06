@@ -11,6 +11,12 @@
     <h2 class="wt-h2">@L.Resource("WorldPets_TamedPetsInThisWorld")</h2>
     <p class="wt-intro">@L.Resource("WorldPets_PetListIntro")</p>
 
+    @if (!Session.IsAvailable)
+    {
+        <p class="wt-notice">@(Session.UnavailableReason ?? L.Resource("WorldPets_NoPetsInThisWorldSave"))</p>
+    }
+    else
+    {
     <div class="wt-md">
         <div class="wt-list" role="listbox" aria-label="@L.Resource("WorldPets_TamedPetsInThisWorld")">
             @if (AllPets.Count == 0)
@@ -161,10 +167,15 @@
             }
         </div>
     </div>
+    }
 </section>
 
 @code {
-    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    // IWorldPetsSession, not the concrete WorldSaveSession - see Models/WorldPetsSession.cs.
+    // WorldSaveSession implements it directly (staged edits, always available); LiveConnect
+    // binds a LivePetsSession instead, which always reports IsAvailable false today - see that
+    // class's own doc comment for why.
+    [Parameter, EditorRequired] public IWorldPetsSession Session { get; set; } = null!;
     [Parameter] public PlayerSaveSession? PlayerSession { get; set; }
     [Parameter] public string Title { get; set; } = "World editor";
     [Parameter] public EventCallback<string?> OnError { get; set; }
@@ -219,7 +230,9 @@
     private string LocationText(WorldPet pet)
     {
         var coords = $"X {pet.X:0}, Y {pet.Y:0}, Z {pet.Z:0}";
-        var area = WorldAreaCatalog.FriendlyNameFromSaveFile(Session.Path);
+        // A live session has no file path to derive an area name from; not needed anyway since
+        // pets are never available live today (see class remarks on LivePetsSession).
+        var area = Session is WorldSaveSession fileSession ? WorldAreaCatalog.FriendlyNameFromSaveFile(fileSession.Path) : null;
         return string.IsNullOrEmpty(area) ? coords : $"{area}  ({coords})";
     }
 
@@ -254,29 +267,35 @@
         return baseline;
     }
 
-    private void Apply(WorldPet pet, bool? dead = null, string? npcClass = null, string? name = null, int? xp = null, IReadOnlyDictionary<string, double>? limbs = null)
+    private async Task Apply(WorldPet pet, bool? dead = null, string? npcClass = null, string? name = null, int? xp = null, IReadOnlyDictionary<string, double>? limbs = null)
     {
-        Session.SetPet(pet.Id, dead ?? pet.IsDead, npcClass ?? pet.NpcClass, name ?? pet.CustomName, xp ?? pet.Xp, limbs ?? pet.LimbHealth);
-        Workspace.NotifyEdited();
+        try
+        {
+            await Session.SetPetAsync(pet.Id, dead ?? pet.IsDead, npcClass ?? pet.NpcClass, name ?? pet.CustomName, xp ?? pet.Xp, limbs ?? pet.LimbHealth);
+            if (!Session.AppliesImmediately) Workspace.NotifyEdited();
+        }
+        catch (Exception exception)
+        {
+            await OnError.InvokeAsync(Errors.Present(exception, "Change this pet.", "The connection may have dropped; try reconnecting."));
+        }
     }
 
-    private void SetName(WorldPet pet, string? value) { Session.SetPet(pet.Id, pet.IsDead, pet.NpcClass, value, pet.Xp, pet.LimbHealth); Workspace.NotifyEdited(); }
-    private void SetClass(WorldPet pet, string? value) { Session.SetPet(pet.Id, pet.IsDead, value, pet.CustomName, pet.Xp, pet.LimbHealth); Workspace.NotifyEdited(); }
-    private void SetDead(WorldPet pet, bool value) => Apply(pet, dead: value);
-    private void SetXp(WorldPet pet, string? value) { if (int.TryParse(value, out var xp)) Apply(pet, xp: xp); }
-    private void SetLevel(WorldPet pet, string? value)
-    {
-        if (int.TryParse(value, out var level))
-            Apply(pet, xp: PetCatalog.XpForLevel(Math.Clamp(level, 0, PetCatalog.MaxLevel)));
-    }
+    private Task SetName(WorldPet pet, string? value) => Apply(pet, name: value);
+    private Task SetClass(WorldPet pet, string? value) => Apply(pet, npcClass: value);
+    private Task SetDead(WorldPet pet, bool value) => Apply(pet, dead: value);
+    private Task SetXp(WorldPet pet, string? value) => int.TryParse(value, out var xp) ? Apply(pet, xp: xp) : Task.CompletedTask;
+    private Task SetLevel(WorldPet pet, string? value)
+        => int.TryParse(value, out var level)
+            ? Apply(pet, xp: PetCatalog.XpForLevel(Math.Clamp(level, 0, PetCatalog.MaxLevel)))
+            : Task.CompletedTask;
 
-    private void SetLimb(WorldPet pet, string key, string? value)
+    private Task SetLimb(WorldPet pet, string key, string? value)
     {
-        if (!double.TryParse(value, out var health)) return;
+        if (!double.TryParse(value, out var health)) return Task.CompletedTask;
         HealBaseline(pet);
         var limbs = pet.LimbHealth.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
         limbs[key] = health;
-        Apply(pet, limbs: limbs);
+        return Apply(pet, limbs: limbs);
     }
 
     private void SetUsedLimbs(WorldPet pet, double target, out Dictionary<string, double> limbs)
@@ -286,17 +305,44 @@
         foreach (var key in used) limbs[key] = target;
     }
 
-    private void Heal(WorldPet pet) { SetUsedLimbs(pet, HealBaseline(pet).Full, out var limbs); Apply(pet, dead: false, limbs: limbs); }
-    private void Down(WorldPet pet) { SetUsedLimbs(pet, 0, out var limbs); Apply(pet, dead: false, limbs: limbs); }
-    private void Revive(WorldPet pet)
+    private Task Heal(WorldPet pet) { SetUsedLimbs(pet, HealBaseline(pet).Full, out var limbs); return Apply(pet, dead: false, limbs: limbs); }
+    private Task Down(WorldPet pet) { SetUsedLimbs(pet, 0, out var limbs); return Apply(pet, dead: false, limbs: limbs); }
+    private Task Revive(WorldPet pet)
     {
         var full = HealBaseline(pet).Full;
         SetUsedLimbs(pet, full > 0 ? Math.Max(1, full * 0.25) : 1, out var limbs);
-        Apply(pet, dead: false, limbs: limbs);
+        return Apply(pet, dead: false, limbs: limbs);
     }
 
-    private void Delete(WorldPet pet) { _deleted[pet.Id] = pet; Session.RemovePet(pet.Id); Workspace.NotifyEdited(); }
-    private void UndoDelete(WorldPet pet) { if (Session.RestorePet(pet)) { _deleted.Remove(pet.Id); Workspace.NotifyEdited(); } }
+    private async Task Delete(WorldPet pet)
+    {
+        try
+        {
+            _deleted[pet.Id] = pet;
+            await Session.RemovePetAsync(pet.Id);
+            if (!Session.AppliesImmediately) Workspace.NotifyEdited();
+        }
+        catch (Exception exception)
+        {
+            await OnError.InvokeAsync(Errors.Present(exception, "Remove this pet.", "The connection may have dropped; try reconnecting."));
+        }
+    }
+
+    private async Task UndoDelete(WorldPet pet)
+    {
+        try
+        {
+            if (await Session.RestorePetAsync(pet))
+            {
+                _deleted.Remove(pet.Id);
+                if (!Session.AppliesImmediately) Workspace.NotifyEdited();
+            }
+        }
+        catch (Exception exception)
+        {
+            await OnError.InvokeAsync(Errors.Present(exception, "Restore this pet.", "The connection may have dropped; try reconnecting."));
+        }
+    }
 
     private async Task SendToPlayer(WorldPet pet)
     {
@@ -306,10 +352,10 @@
         var kind = _sendToCompanion ? PetSlotKind.Equipment : PetSlotKind.Hotbar;
         if (PlayerSession.TryAddWorldPet(pet, kind, out var message))
         {
-            Session.RemovePet(pet.Id);
+            await Session.RemovePetAsync(pet.Id);
             if (_selectedId == pet.Id) _selectedId = null;
             _petMoveStatus = L.Resource("WorldPets_SentFormat", PetName(pet), target);
-            Workspace.NotifyEdited();
+            if (!Session.AppliesImmediately) Workspace.NotifyEdited();
         }
         else
         {

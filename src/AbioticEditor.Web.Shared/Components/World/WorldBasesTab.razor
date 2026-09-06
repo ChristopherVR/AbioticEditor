@@ -185,9 +185,16 @@
 </section>
 
 @code {
-    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    // IWorldBasesSession, not the concrete WorldSaveSession: the same tab renders for both the
+    // file editor (WorldSaveSession, staged edits) and LiveConnect (LiveBasesSession, immediate
+    // writes against a running game) - see Models/WorldBasesSession.cs. The bench-contents
+    // slot-grid sub-feature below is a file-only extra (it shares the CONTAINERS tab's staged
+    // slot model, which has no live-session equivalent bound to this interface) and downcasts
+    // to the concrete file session rather than widening the shared interface for it.
+    [Parameter, EditorRequired] public IWorldBasesSession Session { get; set; } = null!;
     [Parameter] public string Title { get; set; } = "World editor";
     [Parameter] public EventCallback<string?> OnError { get; set; }
+    private WorldSaveSession? FileSession => Session as WorldSaveSession;
 
     private const float MapW = 640f;
     private const float MapH = 356f;
@@ -224,9 +231,10 @@
 
     private IReadOnlyList<WorldBase> Bases => BaseDetector.Detect(Session.Deployables);
     private WorldBase? SelectedBase => _selectedBaseName is null ? null : Bases.FirstOrDefault(worldBase => worldBase.Name == _selectedBaseName);
-    private WorldContainer? OpenContainer => _openContainerId is null
+    // Crate contents only open in the file editor - see FileSession's own doc comment above.
+    private WorldContainer? OpenContainer => _openContainerId is null || FileSession is not { } fileSession
         ? null
-        : Session.Containers.FirstOrDefault(container => container.Source == WorldContainerSource.Deployed && container.Id == _openContainerId);
+        : fileSession.Containers.FirstOrDefault(container => container.Source == WorldContainerSource.Deployed && container.Id == _openContainerId);
 
     private void SelectBase(WorldBase worldBase)
     {
@@ -256,8 +264,9 @@
 
     private List<WorldContainer> BaseContainers(WorldBase worldBase)
     {
+        if (FileSession is not { } fileSession) return [];
         var ids = new HashSet<string>(worldBase.Deployables.Where(deployable => deployable.HasInventory).Select(deployable => deployable.Id), StringComparer.Ordinal);
-        return Session.Containers.Where(container => container.Source == WorldContainerSource.Deployed && ids.Contains(container.Id)).ToList();
+        return fileSession.Containers.Where(container => container.Source == WorldContainerSource.Deployed && ids.Contains(container.Id)).ToList();
     }
 
     private static string ContainerDisplayName(WorldContainer container)
@@ -343,13 +352,14 @@
         });
     }
 
-    /// <summary>Stages every slot edit into the world session (the single save/revert path).</summary>
+    /// <summary>Stages every slot edit into the world session (the single save/revert path).
+    /// File-editor only - see FileSession's own doc comment.</summary>
     private Task ApplySlotEditsAsync()
     {
-        if (OpenContainer is not { } container) return Task.CompletedTask;
+        if (OpenContainer is not { } container || FileSession is not { } fileSession) return Task.CompletedTask;
         for (var i = 0; i < _slotEdits.Count; i++)
         {
-            Session.TrySetContainerSlot(container.Source, container.Id, 0, i, _slotEdits[i].ToInventorySlot());
+            fileSession.TrySetContainerSlot(container.Source, container.Id, 0, i, _slotEdits[i].ToInventorySlot());
             _slotEdits[i].AcceptCurrentAsBaseline();
         }
         Workspace.NotifyEdited();
@@ -359,12 +369,12 @@
 
     private async Task SwapSlotsAsync((int First, int Second) pair)
     {
-        if (OpenContainer is not { } container) return;
+        if (OpenContainer is not { } container || FileSession is not { } fileSession) return;
         var first = _slotEdits.FindIndex(edit => edit.Index == pair.First);
         var second = _slotEdits.FindIndex(edit => edit.Index == pair.Second);
         if (first < 0 || second < 0 || first == second) return;
         await ApplySlotEditsAsync();
-        Session.TrySwapContainerSlots(container.Source, container.Id, 0, first, second);
+        fileSession.TrySwapContainerSlots(container.Source, container.Id, 0, first, second);
         SyncSlotsFromSession();
     }
 
@@ -410,19 +420,35 @@
                    @onchange="e => RenameBench(bench.Id, e.Value?.ToString())" />
         </label>
         <small class="wt-muted">@L.Resource("WorldBases_DetailCustomNameHint")</small>
-        @if (Session.Containers.FirstOrDefault(c => c.Source == WorldContainerSource.Deployed && c.Id == bench.Id) is { } stored)
+        @if (FileSession is { } fileSessionForCard
+            && fileSessionForCard.Containers.FirstOrDefault(c => c.Source == WorldContainerSource.Deployed && c.Id == bench.Id) is { } stored)
         {
             <hr class="wt-divider" />
             <button type="button" class="wt-btn" @onclick="() => OpenContainerFor(bench.Id)">
                 @L.Resource("WorldBases_DetailOpenContents", ContainerCountText(stored))
             </button>
         }
+        else if (bench.HasInventory)
+        {
+            @* Live session: no shared write path into a bench's contents here (see the
+               CONTAINERS tab for live slot editing instead) - just show the count. *@
+            <p class="wt-muted">@L.Resource("WorldBases_DetailContentsCountLive", bench.StoredItemCount)</p>
+        }
     </div>;
 
-    private void RenameBench(string benchId, string? name)
+    /// <summary>Renames a bench/deployable. Applies immediately for a live session, otherwise
+    /// stages the edit like every other field on this tab.</summary>
+    private async Task RenameBench(string benchId, string? name)
     {
-        Session.SetDeployableCustomName(benchId, name);
-        Workspace.NotifyEdited();
+        try
+        {
+            await Session.SetCustomNameAsync(benchId, name);
+            if (!Session.AppliesImmediately) Workspace.NotifyEdited();
+        }
+        catch (Exception exception)
+        {
+            await OnError.InvokeAsync(Errors.Present(exception, "Rename this object.", "The connection may have dropped; try reconnecting."));
+        }
     }
 
     private void OpenContainerFor(string deployableId)
@@ -441,9 +467,17 @@
     private bool IsUpgradeInstalled(string benchId, string row)
         => Session.BenchInstalledUpgrades(benchId).Contains(row, StringComparer.OrdinalIgnoreCase);
 
-    private void SetUpgrade(string benchId, string row, bool installed)
+    private async Task SetUpgrade(string benchId, string row, bool installed)
     {
-        if (Session.SetBenchUpgrade(benchId, row, installed)) Workspace.NotifyEdited();
+        try
+        {
+            if (await Session.SetBenchUpgradeAsync(benchId, row, installed) && !Session.AppliesImmediately)
+                Workspace.NotifyEdited();
+        }
+        catch (Exception exception)
+        {
+            await OnError.InvokeAsync(Errors.Present(exception, "Change this bench upgrade.", "The connection may have dropped; try reconnecting."));
+        }
     }
 
     // ---------- top-down map (port of the native BaseMapDrawable) ----------

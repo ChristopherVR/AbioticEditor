@@ -574,6 +574,7 @@
   <data name="WorldBases_DetailCustomName" xml:space="preserve"><value>Name you gave it</value></data>
   <data name="WorldBases_DetailCustomNameHint" xml:space="preserve"><value>Leave this empty to go back to the standard name.</value></data>
   <data name="WorldBases_DetailOpenContents" xml:space="preserve"><value>Open contents ({0})</value></data>
+  <data name="WorldBases_DetailContentsCountLive" xml:space="preserve"><value>Holds {0} item(s) - open the CONTAINERS tab to edit them live.</value></data>
 
   <!-- WorldContainers -->
   <data name="WorldContainers_DragHelp" xml:space="preserve"><value>Drag a slot onto a container in the list to move the item into that container's first empty slot.</value></data>

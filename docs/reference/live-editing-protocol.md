@@ -149,6 +149,59 @@ component class as a player's backpack. `containers.set` takes `{"id","edits":[{
 item lying loose in the loaded world that nobody has picked up. `dropped.remove` takes
 `{"ids":[...]}` and returns `{"removed":n}` - the count actually found and despawned. Host only.
 
+## `bases.list` / `bases.set` - deployables (round 76)
+
+`bases.list` returns `{"deployables":[{"id","className","x","y","z","customName","hasInventory",
+"storedItemCount"}],"isHost":bool,"supportsBenchUpgrades":false}` for every deployable currently
+loaded (`AbioticDeployed_ParentBP` and every subclass - benches, furniture, defenses,
+containers). `bases.set` takes `{"id","customName"}` and renames the object immediately. Host
+only, like `containers.set`/`doors.set`.
+
+`supportsBenchUpgrades` is always `false` and there is no way to install or remove a bench
+upgrade over this protocol: the live bench class does expose an `UpgradeTagContainer` property,
+but no installed mod touches it, there is no confirmed way to build a valid
+`BenchUpgradeRowHandle` from a bare row name (unlike weather/flags, which can always enumerate
+real handles from a matching function library), and the array-of-struct add/remove API for a
+live `GameplayTagContainer` has no working precedent to copy. The shared `WorldBasesTab` hides
+the bench-upgrades section entirely for a live session instead of guessing. Opening a bench or
+crate's contents inline (the file editor's slot grid) is also file-only - it shares the
+CONTAINERS tab's staged slot model, which has no live equivalent wired into this area; use the
+CONTAINERS tab for live slot editing instead.
+
+## `vehicles.list` / `vehicles.set` - round 76
+
+`vehicles.list` returns `{"vehicles":[{"id","vehicleId","vehicleClass","driveable","x","y","z"}],
+"isHost":bool,"supportsWreckedState":false}` for every vehicle currently loaded
+(`ABF_Vehicle_ParentBP` and its subclasses). `vehicles.set` takes `{"id","driveable"?,"x"?,"y"?,
+"z"?}` - `driveable` is a direct property write (`VehicleDriveable` + `OnRep_VehicleDriveable`,
+confirmed on the live class layout); a position takes effect via `K2_TeleportTo` (confirmed real,
+used the same way in `CheatConsoleCommands/AFUtils/BaseUtils/BaseUtils.lua`'s
+`TeleportActorToActor`), keeping the vehicle's current rotation. Host only.
+
+`supportsWreckedState` is always `false` and `destroyed` is never accepted or returned: the
+closest hit anywhere in the game's own class layout for the save's `Destroyed` flag is a local
+variable inside the vehicle's own `UpdateWorldSave` function (computed from something at save
+time, not a class member this protocol can read or write), so the shared `WorldVehiclesTab`
+hides the "Wrecked" checkbox for a live session rather than showing a value nobody can read.
+On-board vehicle storage is also not exposed here (`hasInventory`/`inventoryItemCount` are
+always `false`/`0` for a live vehicle) - it is a different inventory component than the world
+containers this protocol's `containers.*` commands already cover.
+
+## `pets.list` - round 76 (no `pets.set`; no general live path)
+
+`pets.list` returns `{"pets":[],"isHost":bool,"available":false,"reason":"..."}`. There is
+deliberately no `pets.set`. Research found no general live path for tamed pets: a tamed pet is
+the same `NPC_Base_ParentBP_C` actor `npcs.list` already finds, but the fields a world save's
+`PetNPC` record needs are exposed wildly inconsistently between creature families in the game's
+own class layout - the Pest family (and Skink, which inherits from it) directly exposes
+`PetName`/`Guid`/`FollowingOwner`/`DynamicProperties`/`SanitizedName`; the Peccary family exposes
+none of those; the Lamogi family exposes only a bare `WasTamed` bool. There is no single property
+to match a live actor back to a specific save record across every species, health has no
+confirmed setter (`GetCurrentHealthMap` exists only as a getter the game's own save-writing code
+calls), and species mutation would mean an unconfirmed despawn/respawn through the GameMode's
+`SpawnPet` function. The shared `WorldPetsTab` shows `reason` instead of an empty list so this
+reads as "not supported yet", not "no pets here".
+
 ## Extending this for a new area
 
 Adding a new live-editable area (inventory, more of world state, ...) means: a new command pair

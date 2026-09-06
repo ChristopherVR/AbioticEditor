@@ -178,6 +178,54 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
         Assert.Equal(1, await dropped.RemoveAsync([item.Id]));
     }
 
+    [Fact]
+    public async Task LiveBasesChannel_GetAsync_reads_deployables_and_SetAsync_renames()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var bases = new AbioticEditor.Core.LiveEditing.World.LiveBasesChannel(channel);
+
+        var directory = await bases.GetAsync();
+        var bench = Assert.Single(directory.Deployables);
+        Assert.True(directory.IsHost);
+        Assert.Equal("Deployed_CraftingBench_Default_C", bench.ClassName);
+        Assert.Equal("Main Bench", bench.CustomName);
+        Assert.True(bench.HasInventory);
+        Assert.Equal(2, bench.StoredItemCount);
+
+        await bases.SetCustomNameAsync(bench.Id, "Renamed Bench");
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
+    [Fact]
+    public async Task LiveVehiclesChannel_GetAsync_reads_vehicles_and_SetAsync_moves_them()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var vehicles = new AbioticEditor.Core.LiveEditing.World.LiveVehiclesChannel(channel);
+
+        var directory = await vehicles.GetAsync();
+        var forklift = Assert.Single(directory.Vehicles);
+        Assert.True(directory.IsHost);
+        Assert.False(directory.SupportsWreckedState);
+        Assert.Equal("ABF_Vehicle_Forklift_C", forklift.VehicleClass);
+        Assert.True(forklift.Driveable);
+
+        await vehicles.SetAsync(forklift.Id, driveable: false, x: 5, y: 6, z: 7);
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
+    [Fact]
+    public async Task LivePetsChannel_GetAsync_reports_unavailable_with_a_player_safe_reason()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var pets = new AbioticEditor.Core.LiveEditing.World.LivePetsChannel(channel);
+
+        var directory = await pets.GetAsync();
+
+        Assert.False(directory.Available);
+        Assert.True(directory.IsHost);
+        Assert.False(string.IsNullOrWhiteSpace(directory.Reason));
+    }
+
     private async Task<TcpLiveGameChannel> ConnectedChannelAsync()
     {
         var channel = new TcpLiveGameChannel();
@@ -287,6 +335,10 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
                         + "\"slots\":[{\"slotIndex\":0,\"itemId\":\"scrap_metal\",\"isEmpty\":false,\"stack\":5,\"durability\":0,\"maxDurability\":0},{\"slotIndex\":1,\"itemId\":\"Empty\",\"isEmpty\":true,\"stack\":0,\"durability\":0,\"maxDurability\":0}]}],\"isHost\":true}",
                     "dropped.list" => "{\"items\":[{\"id\":\"Abiotic_Item_Dropped_C /Game/Maps/Facility.Facility:PersistentLevel.Abiotic_Item_Dropped_C_9\",\"itemId\":\"scrap_cloth\",\"stack\":3,\"x\":4,\"y\":5,\"z\":6}],\"isHost\":true}",
                     "dropped.remove" => "{\"removed\":1}",
+                    // Round-76 world areas.
+                    "bases.list" => "{\"deployables\":[{\"id\":\"Deployed_CraftingBench_Default_C /Game/Maps/Facility.Facility:PersistentLevel.Deployed_CraftingBench_Default_C_1\",\"className\":\"Deployed_CraftingBench_Default_C\",\"x\":10,\"y\":20,\"z\":0,\"customName\":\"Main Bench\",\"hasInventory\":true,\"storedItemCount\":2}],\"isHost\":true,\"supportsBenchUpgrades\":false}",
+                    "vehicles.list" => "{\"vehicles\":[{\"id\":\"ABF_Vehicle_Forklift_C /Game/Maps/Facility.Facility:PersistentLevel.ABF_Vehicle_Forklift_C_2\",\"vehicleId\":\"VehicleSpawn_1\",\"vehicleClass\":\"ABF_Vehicle_Forklift_C\",\"driveable\":true,\"x\":1,\"y\":2,\"z\":3}],\"isHost\":true,\"supportsWreckedState\":false}",
+                    "pets.list" => "{\"pets\":[],\"isHost\":true,\"available\":false,\"reason\":\"Live pet editing isn't available yet.\"}",
                     _ => null,
                 };
                 if (canned is not null)

@@ -111,6 +111,18 @@
                     aria-selected="@(_activeTab == "dropped")" @onclick='() => _activeTab = "dropped"'>
                 @L.Resource("LiveDropped_Title")
             </button>
+            <button type="button" role="tab" class="editor-tab @(_activeTab == "bases" ? "active" : null)"
+                    aria-selected="@(_activeTab == "bases")" @onclick='() => _activeTab = "bases"'>
+                @L.Resource("WorldBases_BaseManager")
+            </button>
+            <button type="button" role="tab" class="editor-tab @(_activeTab == "vehicles" ? "active" : null)"
+                    aria-selected="@(_activeTab == "vehicles")" @onclick='() => _activeTab = "vehicles"'>
+                @L.Resource("WorldVehicles_VehiclesInThisWorld")
+            </button>
+            <button type="button" role="tab" class="editor-tab @(_activeTab == "pets" ? "active" : null)"
+                    aria-selected="@(_activeTab == "pets")" @onclick='() => _activeTab = "pets"'>
+                @L.Resource("WorldPets_TamedPetsInThisWorld")
+            </button>
         </nav>
         <div class="player-tab-viewport">
             @if (_activeTab == "vitals")
@@ -149,7 +161,19 @@
             {
                 <LiveDroppedItemsTab Session="_dropped" OnChanged="() => {}" />
             }
-            else if (_activeTab is "world" or "flags" or "doors" or "containers" or "dropped")
+            else if (_activeTab == "bases" && _bases is not null)
+            {
+                <WorldBasesTab Session="_bases" Title="@L.Resource("WorldBases_BaseManager")" OnError="ShowWorldAreaError" />
+            }
+            else if (_activeTab == "vehicles" && _vehicles is not null)
+            {
+                <WorldVehiclesTab Session="_vehicles" Title="@L.Resource("WorldVehicles_VehiclesInThisWorld")" OnError="ShowWorldAreaError" />
+            }
+            else if (_activeTab == "pets" && _pets is not null)
+            {
+                <WorldPetsTab Session="_pets" Title="@L.Resource("WorldPets_TamedPetsInThisWorld")" OnError="ShowWorldAreaError" />
+            }
+            else if (_activeTab is "world" or "flags" or "doors" or "containers" or "dropped" or "bases" or "vehicles" or "pets")
             {
                 <p class="muted">@L.Resource("Live_WorldAreaUnavailable")</p>
             }
@@ -211,6 +235,9 @@
     private LiveDoorsSession? _doors;
     private LiveContainersSession? _containers;
     private LiveDroppedItemsSession? _dropped;
+    private LiveBasesSession? _bases;
+    private LiveVehiclesSession? _vehicles;
+    private LivePetsSession? _pets;
     private LivePlayerDirectory? _directory;
     private string? _selectedPlayerId;
 
@@ -291,6 +318,9 @@
             _doors = await TryConnectWorldAreaAsync(() => LiveDoorsSession.ConnectAsync(new LiveDoorsChannel(channel)));
             _containers = await TryConnectWorldAreaAsync(() => LiveContainersSession.ConnectAsync(new LiveContainersChannel(channel)));
             _dropped = await TryConnectWorldAreaAsync(() => LiveDroppedItemsSession.ConnectAsync(new LiveDroppedItemsChannel(channel)));
+            _bases = await TryConnectWorldAreaAsync(() => LiveBasesSession.ConnectAsync(new LiveBasesChannel(channel)));
+            _vehicles = await TryConnectWorldAreaAsync(() => LiveVehiclesSession.ConnectAsync(new LiveVehiclesChannel(channel)));
+            _pets = await TryConnectWorldAreaAsync(() => LivePetsSession.ConnectAsync(new LivePetsChannel(channel)));
             _channel = channel;
             _autoConnected = isAutoConnect;
             _directory = directory;
@@ -381,6 +411,14 @@
         }
     }
 
+    /// <summary>BASES/VEHICLES/PETS apply immediately per edit and report their own errors
+    /// through the same OnError parameter the file editor's tabs already use.</summary>
+    private Task ShowWorldAreaError(string? message)
+    {
+        _error = message;
+        return InvokeAsync(StateHasChanged);
+    }
+
     private async Task DisconnectAsync()
     {
         _vitals = null;
@@ -392,6 +430,9 @@
         _doors = null;
         _containers = null;
         _dropped = null;
+        _bases = null;
+        _vehicles = null;
+        _pets = null;
         _directory = null;
         _selectedPlayerId = null;
         if (_channel is not null) await _channel.DisposeAsync();
