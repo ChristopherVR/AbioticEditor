@@ -13,6 +13,14 @@ public enum WorldContainerSource
 
     /// <summary>On-board storage of a <c>VehicleMap</c> actor (keyed by the vehicle's spawn path).</summary>
     Vehicle,
+
+    /// <summary>
+    /// Not a file-save source at all: a live-editing view of a container currently loaded in a
+    /// running game (see <c>LiveContainersSession</c>). Never appears in a saved file and is
+    /// never written by <c>WorldSaveWriter</c> - the live session talks to the game directly
+    /// over its own channel instead.
+    /// </summary>
+    Live,
 }
 
 /// <summary>
@@ -33,11 +41,20 @@ public enum WorldContainerSource
 /// almost always exactly one entry, but the underlying property is an array so we
 /// preserve the count.
 /// </param>
+/// <param name="X">
+/// World position in centimetres, 0 when unknown. File-save sources never populate this (a
+/// deployed object's own actor transform is not read for the container list); only
+/// <see cref="WorldContainerSource.Live"/> containers carry a real position, read straight
+/// from the running game.
+/// </param>
 public sealed record WorldContainer(
     string Id,
     WorldContainerSource Source,
     string? ClassName,
-    IReadOnlyList<WorldInventory> Inventories);
+    IReadOnlyList<WorldInventory> Inventories,
+    double X = 0,
+    double Y = 0,
+    double Z = 0);
 
 /// <summary>
 /// A single inventory grid (one <c>SaveData_Inventories_Struct</c>) with its slots.
