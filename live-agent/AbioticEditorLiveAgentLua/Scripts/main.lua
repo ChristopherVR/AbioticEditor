@@ -1079,6 +1079,14 @@ handlers["containers.set"] = function(payload, respond)
             local slot = row.slotIndex ~= nil and inv.CurrentInventory[row.slotIndex + 1]
             if slot then writeSlot(slot, row) end
         end
+        if payload.sort then
+            -- SortInventory() is a real, ZERO-parameter function on Abiotic_InventoryComponent_C
+            -- (LiveClassPropsProbe, fragment "Abiotic_InventoryComponent") - reorders
+            -- CurrentInventory in place the same way the in-game "sort" button does. Not
+            -- exercised by any mod, so pcall-guarded (round 77).
+            local ok = pcall(function() inv:SortInventory() end)
+            if not ok then error("could not sort this container on this game build") end
+        end
         pcall(function() inv:OnRep_CurrentInventory() end)
         return nil
     end, respond)
@@ -1129,6 +1137,60 @@ handlers["dropped.remove"] = function(payload, respond)
             end
         end
         return { removed = removed }
+    end, respond)
+end
+
+-- ===== dropped.add: spawn a NEW item on the ground (round 77) =====
+-- No SpawnDroppedItem/"give item" precedent exists anywhere in the reference mod - checked, and
+-- there is no additem/spawnitem/give-style command in it at all, only "givexp" for skill XP (not
+-- items). So this does not construct an Abiotic_Item_Dropped_C actor from scratch (guessing an
+-- FTransform/spawn-params shape with no precedent is exactly the mistake this project already got
+-- burned by once, GetMyPlayerController). Instead it chains two ALREADY-PROVEN mechanisms:
+--   1. inventory.set's own writeSlot (proven live, round 74) puts the requested item into a free
+--      slot of the target player's own inventory.
+--   2. Abiotic_PlayerCharacter_C's Request_DropInventorySlot(Inventory: object, Index: int) - a
+--      real function confirmed from the game's own class layout (LiveClassPropsProbe, fragment
+--      "Abiotic_PlayerCharacter."), with exactly two simple parameters (an object reference and
+--      an int) - the same action pressing "drop" on that slot performs in the inventory UI.
+-- Not exercised by any mod, so pcall-guarded; the item lands wherever the game's own
+-- FindBestItemDropLocation puts it (near the player), NOT at a caller-chosen position - unlike
+-- the file editor's TryAddDroppedItem, which takes an explicit x/y/z. Genuinely unproven
+-- end-to-end against the running game.
+handlers["dropped.add"] = function(payload, respond)
+    runOnGameThread(function()
+        if not isHost() then error("only the host can add dropped items") end
+        if not payload.itemId or payload.itemId == "" then error("itemId is required") end
+        local player = resolvePlayer(payload)
+        if not player then error("player not found") end
+
+        -- Hotbar first (smallest, closest to what a player would actually drop), then backpack.
+        local targetInv, targetSlot, targetIndex
+        for _, kind in ipairs({ "hotbar", "backpack" }) do
+            local candidate = inventoryComponent(player, kind)
+            if candidate and candidate.CurrentInventory then
+                for i = 1, #candidate.CurrentInventory do
+                    local rowName = slotRowName(candidate.CurrentInventory[i])
+                    if rowName == "" or rowName == "Empty" then
+                        targetInv, targetSlot, targetIndex = candidate, candidate.CurrentInventory[i], i - 1
+                        break
+                    end
+                end
+            end
+            if targetSlot then break end
+        end
+        if not targetSlot then error("no free inventory slot to route the drop through") end
+
+        writeSlot(targetSlot, {
+            itemId = payload.itemId,
+            stack = payload.stack or 1,
+            durability = payload.durability,
+            maxDurability = payload.maxDurability,
+        })
+        pcall(function() targetInv:OnRep_CurrentInventory() end)
+
+        local ok, err = pcall(function() player:Request_DropInventorySlot(targetInv, targetIndex) end)
+        if not ok then error("could not drop this item on this game build: " .. tostring(err)) end
+        return nil
     end, respond)
 end
 

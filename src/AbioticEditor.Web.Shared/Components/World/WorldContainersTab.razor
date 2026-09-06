@@ -64,6 +64,7 @@
                 {
                     <h3 class="wc-title">@DisplayName(selected)</h3>
                     <p class="wc-id">@WhereText(selected)</p>
+                    <button type="button" class="wt-btn wt-yellow" disabled="@(Session.AppliesImmediately && !Session.IsHost)" @onclick="() => SortAsync(selected)">@L.Resource("WorldContainers_Sort")</button>
                     <div class="wc-divider"></div>
                     <div class="wc-slot-grid">
                         @foreach (var edit in _slotEdits)
@@ -540,6 +541,30 @@
         {
             _liveError = Errors.Present(exception, "Edit this container.", "The connection may have dropped; try reconnecting.");
             return false;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task SortAsync(WorldContainer container)
+    {
+        _busy = true;
+        try
+        {
+            var sorted = await Session.SortContainerSlotsAsync(container.Source, container.Id, 0);
+            if (sorted)
+            {
+                _liveError = null;
+                if (SelectedContainer is { } refreshed) SelectContainer(refreshed);
+                InvalidateSummaries();
+                Workspace.NotifyEdited();
+            }
+        }
+        catch (Exception exception) when (IsLiveTransportFailure(exception))
+        {
+            _liveError = Errors.Present(exception, "Sort this container.", "The connection may have dropped; try reconnecting.");
         }
         finally
         {

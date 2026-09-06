@@ -5,11 +5,11 @@ namespace AbioticEditor.Web.Models;
 
 /// <summary>
 /// Live VEHICLES editing session, implementing the same <see cref="IWorldVehiclesSession"/> the
-/// file session does so <c>WorldVehiclesTab</c> renders unchanged for either host. Whether a
-/// vehicle is wrecked has no evidenced live property (see <c>areas/vehicles.lua</c>'s own
-/// comment): every mapped <see cref="AbioticEditor.Core.WorldSaves.WorldVehicle"/> reports
-/// <c>Destroyed = false</c> and <see cref="SupportsWreckedState"/> is always false, so the
-/// shared tab hides that control rather than showing a value this session cannot read or write.
+/// file session does so <c>WorldVehiclesTab</c> renders unchanged for either host. Wrecked is
+/// grounded in the vehicle's own <c>PendingDestroy</c> property (round 77, see
+/// <c>areas/vehicles.lua</c>'s own comment) - read/write both go through it, but whether flipping
+/// it alone updates the vehicle's wreck visuals live (versus only the value the save later
+/// persists) is unverified against the running game.
 /// </summary>
 public sealed class LiveVehiclesSession : IWorldVehiclesSession
 {
@@ -35,11 +35,8 @@ public sealed class LiveVehiclesSession : IWorldVehiclesSession
 
     private void Apply(LiveVehicleDirectory directory)
     {
-        // Destroyed/wrecked has no evidenced live property (see areas/vehicles.lua) - every
-        // mapped vehicle reports false, and SupportsWreckedState below tells the shared tab to
-        // hide that control rather than show a value this session cannot actually read.
         Vehicles = directory.Vehicles
-            .Select(v => new WorldVehicle(v.Id, v.VehicleId, v.VehicleClass, v.Driveable, Destroyed: false,
+            .Select(v => new WorldVehicle(v.Id, v.VehicleId, v.VehicleClass, v.Driveable, v.Wrecked,
                 v.X, v.Y, v.Z, QuatX: 0, QuatY: 0, QuatZ: 0, QuatW: 1, InventoryItemCount: 0, HasInventory: false))
             .ToList();
         IsHost = directory.IsHost;
@@ -48,17 +45,17 @@ public sealed class LiveVehiclesSession : IWorldVehiclesSession
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
         => Apply(await _channel.GetAsync(cancellationToken).ConfigureAwait(false));
 
-    public async Task SetVehicleAsync(string id, bool driveable, double x, double y, double z,
+    public async Task SetVehicleAsync(string id, bool driveable, bool wrecked, double x, double y, double z,
         CancellationToken cancellationToken = default)
     {
-        await _channel.SetAsync(id, driveable, x, y, z, cancellationToken).ConfigureAwait(false);
+        await _channel.SetAsync(id, driveable, wrecked, x, y, z, cancellationToken).ConfigureAwait(false);
         Status = "Applied live - this took effect in the running game immediately.";
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
 
     bool IWorldVehiclesSession.AppliesImmediately => true;
-    bool IWorldVehiclesSession.SupportsWreckedState => false;
+    bool IWorldVehiclesSession.SupportsWreckedState => true;
     Task IWorldVehiclesSession.SetVehicleAsync(string id, bool driveable, bool destroyed, double x, double y, double z,
         CancellationToken cancellationToken)
-        => SetVehicleAsync(id, driveable, x, y, z, cancellationToken);
+        => SetVehicleAsync(id, driveable, destroyed, x, y, z, cancellationToken);
 }

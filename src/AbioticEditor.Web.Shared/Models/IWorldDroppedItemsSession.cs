@@ -53,4 +53,19 @@ public interface IWorldDroppedItemsSession
 
     /// <summary>File only: bulk-sets every item's despawn-timer flag. Not offered live.</summary>
     void SetAllDroppedNoDespawn(bool noDespawn);
+
+    /// <summary>
+    /// True for a live session (round 77): a new item can be spawned on the ground by routing it
+    /// through a free inventory slot and the character's own drop RPC - see
+    /// <see cref="AddDroppedItemLiveAsync"/> and <c>dropped.add</c> in
+    /// <c>live-agent/AbioticEditorLiveAgentLua/Scripts/main.lua</c> for exactly what that does and
+    /// its caveats (no caller-chosen position, unlike <see cref="TryAddDroppedItem"/>). Always
+    /// false for a file session, which uses <see cref="TryAddDroppedItem"/> instead.
+    /// </summary>
+    bool SupportsLiveAdd { get; }
+
+    /// <summary>Live only: spawns <paramref name="itemId"/> (stack <paramref name="stack"/>) on
+    /// the ground near the local player. Throws <see cref="NotSupportedException"/> when
+    /// <see cref="SupportsLiveAdd"/> is false.</summary>
+    Task AddDroppedItemLiveAsync(string itemId, int stack, CancellationToken cancellationToken = default);
 }

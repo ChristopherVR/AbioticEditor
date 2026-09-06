@@ -91,8 +91,12 @@ public sealed class LiveSpawnCompanionsContractTests
         var spawn = LuaSource("areas", "spawn.lua");
         Assert.Contains("handlers[\"spawn.get\"]", spawn, StringComparison.Ordinal);
         Assert.Contains("handlers[\"spawn.set\"]", spawn, StringComparison.Ordinal);
-        // Verbatim call shape from AFUtils.TeleportPlayerToPlayer / LocationsManager.LoadLocation.
-        Assert.Contains("TeleportPlayer(target, rotation, true, false)", spawn, StringComparison.Ordinal);
+        // Round 76 live finding: the blueprint TeleportPlayer takes five parameters on the current
+        // build and the native K2_TeleportTo is the call that actually worked, so the native call
+        // goes first and the reference mod's blueprint call (now with its fifth parameter) is the
+        // fallback. Both shapes must stay exactly as proven live.
+        Assert.Contains("player:K2_TeleportTo(target, rotation)", spawn, StringComparison.Ordinal);
+        Assert.Contains("TeleportPlayer(target, rotation, true, false, true)", spawn, StringComparison.Ordinal);
         Assert.Contains("K2_GetActorRotation", spawn, StringComparison.Ordinal);
         // TerminalRespawnID has no reference-mod precedent - found in the game's own class
         // layout only, so it must stay pcall-guarded.

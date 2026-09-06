@@ -62,6 +62,7 @@
                 else if (_worldTab == "flags") { <WorldFlagsTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
                 else if (_worldTab == "doors") { <WorldDoorsTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
                 else if (_worldTab == "dropped") { <WorldDroppedItemsTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
+                else if (_worldTab == "npcs") { <WorldNpcsTab Session="@world" OnError="WorldError" /> }
                 else if (_worldTab == "pets") { <WorldPetsTab Title="@workspace.SelectedSave!.Name" Session="@world" PlayerSession="@Workspace.TransferPlayerSession" OnError="WorldError" /> }
                 else if (_worldTab == "vehicles") { <WorldVehiclesTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" OnOpenContainer="OpenVehicleContainer" /> }
                 else if (_worldTab == "bases") { <WorldBasesTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
@@ -131,6 +132,7 @@
             Add("doors", "WorldEditor_TabDoors");
         }
         if (world.DroppedItems.Count > 0) Add("dropped", "WorldEditor_TabDropped");
+        if (((IWorldNpcsSession)world).Npcs.Count > 0) Add("npcs", "WorldEditor_TabNpcs");
         if (world.Pets.Count > 0) Add("pets", "WorldEditor_TabPets");
         if (world.Vehicles.Count > 0) Add("vehicles", "WorldEditor_TabVehicles");
         if (world.Deployables.Count > 0) Add("bases", "WorldEditor_TabBases");

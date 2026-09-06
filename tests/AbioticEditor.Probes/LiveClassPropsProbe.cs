@@ -72,6 +72,9 @@ public class LiveClassPropsProbe
             // Round-77 live player gaps: transmog visibility, crafted-items tracking, PhD/background, traits.
             "TransmogInventoryComp", "Abiotic_PlayerState.", "PlayerTrait", "Trait", "PhD", "Background",
             "CharacterProgressionComponent", "Abiotic_InventoryComponent.", "CraftedItem",
+            // Round-77 world-gaps research: pet health/heal RPCs, vehicle wrecked/repair, bench
+            // upgrades, dropped-item spawning, inventory sort, narrative NPC state.
+            "BenchUpgrade",
         ];
 
         var outPath = Environment.GetEnvironmentVariable("LIVE_CLASS_PROBE_OUT");

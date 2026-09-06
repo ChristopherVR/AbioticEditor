@@ -14,4 +14,5 @@ return {
     "doors",
     "players",
     "player_gaps",
+    "world_gaps",
 }

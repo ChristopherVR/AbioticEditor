@@ -31,7 +31,7 @@ return function(H)
 
     local list = H.ok(H.dispatch("bases.list"), "bases.list")
     H.eq(#list.deployables, 2, "both deployables found through the shared parent class")
-    H.eq(list.supportsBenchUpgrades, false, "bench upgrades honestly unsupported live")
+    H.eq(list.supportsBenchUpgrades, true, "bench upgrades supported live (round 77 AddUpgrade path)")
     local benchId, lockerId = bench:GetFullName(), locker:GetFullName()
     local benchRow, lockerRow
     for _, d in ipairs(list.deployables) do

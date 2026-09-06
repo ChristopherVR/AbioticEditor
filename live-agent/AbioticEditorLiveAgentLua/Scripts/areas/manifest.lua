@@ -15,4 +15,5 @@ return {
     "areas.general",
     "areas.worldunlocks",
     "areas.transmog",
+    "areas.narrative",
 }

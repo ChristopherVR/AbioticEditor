@@ -37,6 +37,15 @@
             <button class="wg-delete-all" type="button" disabled="@(_busy || (Session.AppliesImmediately && !Session.IsHost))" @onclick="DeleteShown">@L.Resource("WorldDropped_DeleteAllShown")</button>
         </div>
         <p class="wg-intro">@L.Resource("WorldDropped_GroundItemsIntro")</p>
+        @if (Session.SupportsLiveAdd)
+        {
+            <div class="wg-spawn">
+                <input class="wg-filter" aria-label="@L.Resource("WorldDropped_SpawnItemIdPlaceholder")" @bind="_spawnItemId" placeholder="@L.Resource("WorldDropped_SpawnItemIdPlaceholder")" />
+                <input type="number" min="1" class="wt-readout-input" aria-label="@L.Resource("WorldDropped_SpawnStack")" @bind="_spawnStack" />
+                <button type="button" class="wt-btn wt-green" disabled="@(_busy || !Session.IsHost || string.IsNullOrWhiteSpace(_spawnItemId))" @onclick="SpawnItem">@L.Resource("WorldDropped_SpawnNearMe")</button>
+                <small class="wt-muted">@L.Resource("WorldDropped_SpawnNearMeHelp")</small>
+            </div>
+        }
         <input class="wg-filter" aria-label="@L.Resource("WorldDropped_FilterPlaceholder")" @bind="_filter" @bind:event="oninput" placeholder="@L.Resource("WorldDropped_FilterPlaceholder")" />
         <div class="wg-list" role="list" aria-label="@L.Resource("WorldDropped_ItemsOnTheGround")">
             @foreach (var item in Visible)
@@ -61,6 +70,8 @@
     [Parameter] public string Title { get; set; } = "World editor";
     [Parameter] public EventCallback<string?> OnError { get; set; }
     private string _filter = string.Empty;
+    private string _spawnItemId = string.Empty;
+    private int _spawnStack = 1;
     // Set only while a removal is talking to a live game; the file session's own methods
     // complete synchronously so this never has anything to wait on there.
     private bool _busy;
@@ -96,6 +107,13 @@
     /// <summary>"Deployable_Chair_Office_01 · ×1 · no despawn" - the native SubText verbatim.</summary>
     private static string SubText(WorldDroppedItem item)
         => $"{item.Slot.ItemId} · ×{item.Slot.Count}" + (item.NoDespawn ? " · no despawn" : "");
+
+    private Task SpawnItem() => RunAsync(async () =>
+    {
+        await Session.AddDroppedItemLiveAsync(_spawnItemId.Trim(), Math.Max(1, _spawnStack));
+        _spawnItemId = string.Empty;
+        _spawnStack = 1;
+    });
 
     private Task Delete(WorldDroppedItem item) => RunAsync(async () =>
     {

@@ -27,6 +27,16 @@ public interface IWorldPetsSession
     /// <summary>Player-safe explanation shown by the tab when <see cref="IsAvailable"/> is false.</summary>
     string? UnavailableReason { get; }
 
+    /// <summary>False when this session has no way to change a pet's species/creature type (a
+    /// live session never does - see <see cref="LivePetsSession"/>'s remarks). The tab hides the
+    /// creature-type dropdown when this is false.</summary>
+    bool SupportsSpeciesChange { get; }
+
+    /// <summary>False when this session has no way to remove a pet (a live session never does -
+    /// no despawn/respawn round trip has any precedent for a living NPC). The tab hides the
+    /// delete/undo-delete controls when this is false.</summary>
+    bool SupportsRemoval { get; }
+
     /// <summary>Stages/applies a pet's persisted fields.</summary>
     Task SetPetAsync(string id, bool isDead, string? npcClass, string? customName, int xp,
         IReadOnlyDictionary<string, double> limbHealth, CancellationToken cancellationToken = default);

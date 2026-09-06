@@ -56,6 +56,59 @@ this round (no live session available) - the enum values and property names are 
 game's own data (usmap + pak dumps), not guessed, but the RPC's actual runtime behavior when passed
 a plain Lua integer for an enum parameter is unconfirmed until tested live, same honesty caveat
 every other `pcall`-wrapped write in this project already carries on first use.
+## Round-77: closing five WORLD live-editing gaps (2026-09-06)
+
+Direction: fill the remaining live-editing gaps on the world side, finding the game's own write
+path rather than reporting "not available". `LiveClassPropsProbe` fragments extended
+(`BenchUpgrade`); re-checked several classes round 76 had already dumped.
+
+**Pets (partial, not the blanket `available:false` round 76 shipped)**: Pest/Skink family pets
+directly expose `PetName`/`Guid`/`DynamicProperties` (no hash suffix) and are matched to a stable
+id by their own `Guid`. Health is universal, not pet-specific: `AbioticCharacter` (native base of
+every player AND NPC) carries `CurrentHealth_Head/Torso/LeftArm/RightArm/LeftLeg/RightLeg` with
+one shared `OnRep_CurrentHealth` - the same fields `vitals.set` already writes for the player,
+confirmed live. Peccary/Lamogi families still carry none of those properties (re-confirmed, not
+assumed) and stay file-only. No live species change or removal (no despawn/respawn precedent for
+a living NPC) - `IWorldPetsSession` gained `SupportsSpeciesChange`/`SupportsRemoval` flags
+(mirroring `IWorldVehiclesSession.SupportsWreckedState`) so `WorldPetsTab` hides those controls
+live instead of throwing silently.
+
+**Vehicle wrecked**: `ABF_Vehicle_ParentBP_C.PendingDestroy` is a real, unsuffixed bool property
+(the save's `Destroyed` flag was fed from a function-local variable, but this is a genuine class
+member near it) - read/write both go through it, direct field write (no confirmed OnRep).
+Unverified against the running game whether flipping it alone updates the wreck visuals.
+
+**Bench upgrades (install only)**: `AbioticDeployed_CraftingBench_ParentBP_C.AddUpgrade(handle)`
+and `"Has Upgrade"(handle)` (note the literal space in that function's own compiled name - called
+via `bench["Has Upgrade"](bench, handle)`) are real functions. The row-handle's `DataTablePath`
+is reconstructed from the pak's own asset path since no enumeration function exists for this
+table (unlike weather/flags) - the one part of this feature unverified against the real game.
+Removal is refused outright: no `RemoveUpgrade` exists anywhere in the class.
+
+**Dropped items add + container sort**: no give-item precedent exists in the reference mod at
+all, so `dropped.add` chains two already-proven mechanisms - `writeSlot` into a free player
+inventory slot, then the character's own `Request_DropInventorySlot(Inventory, Index)` RPC (a
+real 2-parameter function). The item lands near the player, not at a caller-chosen position.
+Container sort calls the inventory component's own zero-parameter `SortInventory()` - the exact
+reorder the in-game button performs; wired into a `SORT` button on `WorldContainersTab` (the
+`SortContainerSlotsAsync` interface member existed already but no live implementation or file UI
+had ever called it).
+
+**Narrative NPCs**: the offline session already had `WorldSaveSession.Npcs`/`SetNpc` (filtered to
+`IsPet == false`) with no tab. New shared `IWorldNpcsSession`/`WorldNpcsTab.razor`
+(`NarrativeNPC_ParentBP_C.IsCorpse`/`NarrativeState`, real `SetNewNarrativeState(byte)` setter),
+rendered in both `SaveEditorSurface` (new NPCS tab) and `LiveConnect` (new NARRATIVENPCS tab,
+kept distinct from the existing creature `LiveNpcsTab` - not folded in, given the time budget).
+`NarrativeState` travels as a raw enum byte over the wire, not the file's `NewEnumeratorN` string
+(no probe carries that enum's names).
+
+Tests: `live-agent/.../tests/cases/world_gaps.lua` (62 checks, all six gaps plus non-host
+gating) registered in `tests/cases/manifest.lua`; `TcpLiveGameChannelTests` extended/updated for
+the new wire shapes; `WorldLiveTabParityContractTests`'s stale round-76 "no path" assertions
+updated to match. Full solution + targeted `World`/`Live` test filters green (one pre-existing,
+unrelated failure in `LiveSpawnCompanionsContractTests` predates this round). Not run against
+the real game this round - see the commit and each Lua module's own comments for exactly what
+remains unverified.
 
 ## Round-76: one set of screens for offline and live editing, and live parity for the remaining areas (2026-09-06)
 

@@ -1,0 +1,104 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Core.WorldSaves
+@inject SaveWorkspaceSessionService Workspace
+
+@* Round 77: the first tab for narrative NPCs (story characters/traders) - the offline session
+   already carried this data (WorldSaveSession.Npcs/SetNpc) with nothing to edit it with.
+   Shared with live editing the same way WorldBasesTab/WorldVehiclesTab are (IWorldNpcsSession),
+   grounded in NarrativeNPC_ParentBP_C's own IsCorpse/NarrativeState fields - see
+   areas/narrative.lua. Tamed pets have their own PETS tab (WorldPetsTab). *@
+<section class="world-editor world-native-tab" aria-label="@L.Resource("WorldNpcs_StoryNpcsAndTraders")">
+    <h2 class="wt-h2">@L.Resource("WorldNpcs_StoryNpcsAndTraders")</h2>
+    <p class="wt-intro">@L.Resource("WorldNpcs_NpcsIntro")</p>
+
+    @if (Session.AppliesImmediately && !Session.IsHost)
+    {
+        <p class="error-text" role="alert">@L.Resource("LiveDropped_NotHostWarning")</p>
+    }
+
+    @if (Session.Npcs.Count == 0)
+    {
+        <p class="wt-empty">@L.Resource("WorldNpcs_NoNarrativeNpcs")</p>
+    }
+    else
+    {
+        <div class="wt-md">
+            <div class="wt-list" role="listbox" aria-label="@L.Resource("WorldNpcs_StoryNpcsAndTraders")">
+                @foreach (var npc in Session.Npcs)
+                {
+                    <button type="button" role="option" aria-selected="@(_selectedId == npc.Id)"
+                            class="wt-row @(_selectedId == npc.Id ? "selected" : null)" @key="npc.Id"
+                            @onclick="() => _selectedId = npc.Id">
+                        <span class="wt-row-text">
+                            <strong>@npc.ActorName</strong>
+                            <small>@npc.State</small>
+                        </span>
+                        <span class="wt-row-status">@(npc.IsDead ? L.Resource("WorldPets_StatusDead") : L.Resource("WorldPets_StatusHealthy"))</span>
+                    </button>
+                }
+            </div>
+            <div class="wt-detail">
+                @if (Selected is not { } selected)
+                {
+                    <p class="wt-select-hint">@L.Resource("WorldPets_SelectAPetToEditIt")</p>
+                }
+                else
+                {
+                    <h3 class="wt-h3">@selected.ActorName</h3>
+                    <div class="wt-field">
+                        <span class="wt-label">@L.Resource("WorldPets_Location")</span>
+                        <span class="wt-muted">X @selected.X.ToString("0"), Y @selected.Y.ToString("0"), Z @selected.Z.ToString("0")</span>
+                    </div>
+                    <label class="wt-check">
+                        <input type="checkbox" checked="@selected.IsDead" disabled="@(_busy || (Session.AppliesImmediately && !Session.IsHost))" @onchange="e => SetDead(selected, e.Value is bool value && value)" />
+                        @L.Resource("WorldPets_Dead")
+                    </label>
+                    <div class="wt-button-row">
+                        <button type="button" class="wt-btn wt-green" title="@L.Resource("WorldNpcs_ReviveTooltip")" disabled="@(_busy || (Session.AppliesImmediately && !Session.IsHost))" @onclick="() => SetDead(selected, false)">@L.Resource("WorldNpcs_Revive")</button>
+                    </div>
+                    <label class="wt-field">
+                        <span class="wt-label" title="@L.Resource("WorldNpcs_ScriptPhaseTooltip")">@L.Resource("WorldNpcs_ScriptPhase")</span>
+                        <input class="wt-input" value="@selected.State" disabled="@(_busy || (Session.AppliesImmediately && !Session.IsHost))" @onchange="e => SetState(selected, e.Value?.ToString())" />
+                    </label>
+                }
+            </div>
+        </div>
+    }
+    @if (Session.AppliesImmediately && Session.Status is not null) { <p class="status-text">@Session.Status</p> }
+    @if (_liveError is not null) { <p class="error-text" role="alert">@_liveError</p> }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public IWorldNpcsSession Session { get; set; } = null!;
+    [Parameter] public EventCallback<string?> OnError { get; set; }
+
+    private string? _selectedId;
+    private bool _busy;
+    private string? _liveError;
+
+    private WorldNpc? Selected => _selectedId is null ? null : Session.Npcs.FirstOrDefault(npc => npc.Id == _selectedId);
+
+    private Task SetDead(WorldNpc npc, bool isDead) => Apply(npc, isDead: isDead);
+    private Task SetState(WorldNpc npc, string? state) => Apply(npc, state: state);
+
+    private async Task Apply(WorldNpc npc, bool? isDead = null, string? state = null)
+    {
+        _busy = true;
+        try
+        {
+            await Session.SetNpcAsync(npc.Id, isDead ?? npc.IsDead, state ?? npc.State);
+            _liveError = null;
+            if (!Session.AppliesImmediately) Workspace.NotifyEdited();
+        }
+        catch (Exception exception)
+        {
+            _liveError = Errors.Present(exception, "Change this NPC.", "The connection may have dropped; try reconnecting.");
+            await OnError.InvokeAsync(_liveError);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

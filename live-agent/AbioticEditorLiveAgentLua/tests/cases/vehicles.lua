@@ -15,7 +15,7 @@ return function(H)
     }))
 
     local list = H.ok(H.dispatch("vehicles.list"), "vehicles.list")
-    H.eq(#list.vehicles, 1, "one vehicle"); H.eq(list.supportsWreckedState, false, "wrecked state honestly unsupported live")
+    H.eq(#list.vehicles, 1, "one vehicle"); H.eq(list.supportsWreckedState, true, "wrecked state supported live (round 77 PendingDestroy path)")
     H.eq(list.vehicles[1].vehicleId, "Forklift_01", "vehicle id converted from FString")
     H.eq(list.vehicles[1].driveable, true, "driveable read")
     local id = list.vehicles[1].id

@@ -65,9 +65,19 @@ public sealed class LiveDroppedItemsSession : IWorldDroppedItemsSession
     public bool RestoreDroppedItem(WorldDroppedItem item)
         => throw new NotSupportedException("A live-removed ground item cannot be restored.");
 
-    /// <summary>No live equivalent: dropping a brand-new item into the world is not offered live.</summary>
+    /// <summary>File-only, explicit-position add - a live session uses
+    /// <see cref="AddDroppedItemLiveAsync"/> instead (round 77, see the interface remarks).</summary>
     public bool TryAddDroppedItem(InventoryItemSlot slot, double x, double y, double z, out string pendingId)
-        => throw new NotSupportedException("Adding a ground item is not available while editing live.");
+        => throw new NotSupportedException("Adding a ground item this way is only available while editing a save file.");
+
+    public bool SupportsLiveAdd => true;
+
+    public async Task AddDroppedItemLiveAsync(string itemId, int stack, CancellationToken cancellationToken = default)
+    {
+        await _channel.AddAsync(itemId, stack, cancellationToken).ConfigureAwait(false);
+        Status = "Spawned on the ground near the player - this took effect in the running game immediately.";
+        await RefreshAsync(cancellationToken).ConfigureAwait(false);
+    }
 
     /// <summary>No live equivalent: there is no live despawn-timer bulk toggle.</summary>
     public void SetAllDroppedNoDespawn(bool noDespawn)

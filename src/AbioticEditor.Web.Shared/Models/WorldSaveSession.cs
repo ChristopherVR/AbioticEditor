@@ -6,7 +6,7 @@ using AbioticEditor.Core.WorldSaves.Features;
 namespace AbioticEditor.Web.Models;
 
 /// <summary>Razor-hosted staged edit session for a world save.</summary>
-public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSession, IWorldDroppedItemsSession, IWorldFlagsSession, IWorldStorySession, IWorldBasesSession, IWorldVehiclesSession, IWorldPetsSession, IWorldContainmentSession, IWorldFeaturesSession
+public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSession, IWorldDroppedItemsSession, IWorldFlagsSession, IWorldStorySession, IWorldBasesSession, IWorldVehiclesSession, IWorldPetsSession, IWorldContainmentSession, IWorldFeaturesSession, IWorldNpcsSession
 {
     private WorldSaveData _data;
     private readonly string _path;
@@ -437,6 +437,21 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
         }
     }
 
+    // ---------- IWorldNpcsSession ----------
+    // Narrative NPCs (traders/story NPCs, WorldNpc rows with IsPet == false) already had data
+    // (Npcs/SetNpc above) with no dedicated tab until round 77's shared WorldNpcsTab.
+    IReadOnlyList<WorldNpc> IWorldNpcsSession.Npcs => _npcs.Values.Where(npc => !npc.IsPet)
+        .OrderBy(npc => npc.ActorName, StringComparer.OrdinalIgnoreCase).ToArray();
+    bool IWorldNpcsSession.AppliesImmediately => false;
+    bool IWorldNpcsSession.IsHost => true;
+    string? IWorldNpcsSession.Status => null;
+    Task IWorldNpcsSession.SetNpcAsync(string id, bool isDead, string? state, CancellationToken cancellationToken)
+    {
+        var customName = _npcs.TryGetValue(id, out var existing) ? existing.CustomName : null;
+        SetNpc(id, isDead, state, customName);
+        return Task.CompletedTask;
+    }
+
     /// <summary>Stages a pet's persisted fields. Limb keys are retained exactly as read.</summary>
     public void SetPet(string id, bool isDead, string? npcClass, string? customName, int xp, IReadOnlyDictionary<string, double> limbHealth)
     {
@@ -508,6 +523,12 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
         return Task.CompletedTask;
     }
 
+    /// <summary>File sessions use <see cref="TryAddDroppedItem"/> instead - see the interface
+    /// remarks.</summary>
+    bool IWorldDroppedItemsSession.SupportsLiveAdd => false;
+    Task IWorldDroppedItemsSession.AddDroppedItemLiveAsync(string itemId, int stack, CancellationToken cancellationToken)
+        => throw new NotSupportedException("Spawning a ground item this way is only available while editing live.");
+
     /// <summary>Stages a new ground item. Save uses Core's clone-an-existing-entry writer.</summary>
     public bool TryAddDroppedItem(InventoryItemSlot slot, double x, double y, double z, out string pendingId)
     {
@@ -573,6 +594,8 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
     bool IWorldPetsSession.AppliesImmediately => false;
     bool IWorldPetsSession.IsAvailable => true;
     string? IWorldPetsSession.UnavailableReason => null;
+    bool IWorldPetsSession.SupportsSpeciesChange => true;
+    bool IWorldPetsSession.SupportsRemoval => true;
     Task IWorldPetsSession.SetPetAsync(string id, bool isDead, string? npcClass, string? customName, int xp,
         IReadOnlyDictionary<string, double> limbHealth, CancellationToken cancellationToken)
     {
