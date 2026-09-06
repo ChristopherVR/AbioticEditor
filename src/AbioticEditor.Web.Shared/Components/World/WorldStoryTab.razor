@@ -27,7 +27,13 @@
    chapter opens the native SlotSidebarView chapter detail panel in the right-hand pane via the
    shared detail host. *@
 <section class="world-editor world-meta-panel" aria-label="@L.Resource("WorldStory_MainQuestProgression")">
-    <h3 class="wm-h2">@L.Resource("WorldStory_MainQuestProgression")</h3>
+    <div class="card-title-row">
+        <h3 class="wm-h2">@L.Resource("WorldStory_MainQuestProgression")</h3>
+        @if (Session.AppliesImmediately)
+        {
+            <button class="secondary" type="button" disabled="@_busy" @onclick="() => RunAsync(() => Session.RefreshAsync())">@L.Resource("LiveNpcs_Refresh")</button>
+        }
+    </div>
     <p class="wm-intro">@L.Resource("WorldStory_StorySplitIntro")</p>
     @if (!Session.CanShowStory)
     {

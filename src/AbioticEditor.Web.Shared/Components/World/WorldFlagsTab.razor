@@ -38,6 +38,10 @@
             <input aria-label="@L.Resource("WorldFlags_FilterPlaceholder")" @bind="_filter" @bind:event="oninput" placeholder="@L.Resource("WorldFlags_FilterPlaceholder")" />
             <input aria-label="@L.Resource("WorldFlags_AddFlagPlaceholder")" @bind="_newFlag" @bind:event="oninput" placeholder="@L.Resource("WorldFlags_AddFlagPlaceholder")" />
             <button class="secondary" disabled="@(string.IsNullOrWhiteSpace(_newFlag) || _busy || (Session.AppliesImmediately && !Session.IsHost))" @onclick="AddFlagAsync">@L.Resource("WorldFlags_AddFlag")</button>
+            @if (Session.AppliesImmediately)
+            {
+                <button class="secondary" type="button" disabled="@_busy" @onclick="RefreshAsync">@L.Resource("LiveNpcs_Refresh")</button>
+            }
         </div>
         <div class="wf-list" role="list" aria-label="@L.Resource("WorldFlags_QuestFlags")">
             @{ var groups = VisibleFlagGroups; var groupIndex = 0; }
@@ -335,6 +339,10 @@
     {
         if (await Session.AddFlagAsync(_newFlag)) { _newFlag = string.Empty; NotifyEdited(); }
     });
+
+    /// <summary>Live only: the world's own triggers can set a flag at any moment, so a manual
+    /// re-read is worth offering (the file session's list is already authoritative).</summary>
+    private Task RefreshAsync() => RunAsync(() => Session.RefreshAsync());
 
     /// <summary>Marks the file workspace dirty; meaningless (and skipped) for the live session,
     /// which has nothing staged - every change already applied the moment it was made.</summary>
