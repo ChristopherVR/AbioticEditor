@@ -1,5 +1,6 @@
 @inherits LayoutComponentBase
 @implements IDisposable
+@using Microsoft.Extensions.DependencyInjection
 @inject HostLanguageService Languages
 @inject HostThemeService Theme
 @inject HostSettingsService HostSettings
@@ -10,6 +11,8 @@
 @inject UnsavedChangesGuard Unsaved
 @inject IGamePassSafetyGuard GamePassSafety
 @inject NavigationManager Navigation
+@inject IServiceProvider Services
+@inject ModalService Modals
 
 <div class="app-frame @Theme.CssClass">
     @if (!RendererInfo.IsInteractive)
@@ -64,6 +67,12 @@
             @* /browse always lands on the home page (world list), even while a save is
                open - a plain "/" would just re-render the open editor surface. *@
             <NavLink class="round-action material-symbol" href="browse?home" Match="NavLinkMatch.All" title="@Languages.Text("home")" aria-label="@Languages.Text("home")">home</NavLink>
+            @* Only the desktop host registers ILiveEditingCapability, which is also what put the
+               choice on screen in the first place - a browser tab has nothing to re-prompt. *@
+            @if (_liveEditingAvailable)
+            {
+                <button class="round-action material-symbol" type="button" @onclick="OpenModeSelect" title="@Languages.Resource("ModeSelect_ReopenButton")" aria-label="@Languages.Resource("ModeSelect_ReopenButton")">swap_horiz</button>
+            }
             <button class="open-folder-action" type="button" @onclick="PickFolderAsync" disabled="@_openingFolder"><span class="material-symbol" aria-hidden="true">folder_open</span>@(_openingFolder ? Languages.Text("opening") : Languages.Text("open").ToUpperInvariant())</button>
         </nav>
     </header>
@@ -88,6 +97,10 @@
     {
         <Settings OnClose="CloseSettings" />
     }
+    @if (_modeSelectOpen)
+    {
+        <ModeSelectDialog OnClose="CloseModeSelect" />
+    }
 </div>
 
 @code {
@@ -106,12 +119,30 @@
         Theme.Changed += Refresh;
         Workspace.Changed += RefreshWorkspace;
         Live.Changed += RefreshWorkspace;
+
+        // Absent on the WASM/browser host (see ILiveEditingCapability's doc comment), so a
+        // browser tab gets neither the automatic prompt below nor the header button to
+        // re-open it - there is nothing to choose between without a local game to live-edit.
+        _liveEditingAvailable = Services.GetService<ILiveEditingCapability>()?.IsAvailable == true;
+        // MainLayout is created once per circuit, so this runs exactly once per app launch -
+        // the same "only when the app just started" moment ModeSelect's now-removed "/" page
+        // used to own before the dialog replaced it.
+        if (_liveEditingAvailable) _modeSelectOpen = true;
     }
 
     private bool _openingFolder;
     private bool _settingsOpen;
+    private bool _modeSelectOpen;
+    private bool _liveEditingAvailable;
     private void OpenSettings() => _settingsOpen = true;
     private void CloseSettings() => _settingsOpen = false;
+    // Refuses while a confirm dialog (e.g. the "you have unsaved changes" prompt a save switch
+    // in the sidebar shows) is still waiting on an answer, rather than piling a second overlay
+    // on top of it - answering that prompt is what frees the sidebar's own "switching" flag, and
+    // stacking the mode dialog over it made it easy to navigate away instead of answering, which
+    // used to leave the sidebar unresponsive for the rest of the session.
+    private void OpenModeSelect() { if (Modals.Current is null) _modeSelectOpen = true; }
+    private void CloseModeSelect() => _modeSelectOpen = false;
     private void Refresh(object? sender, EventArgs args) => _ = InvokeAsync(StateHasChanged);
     private void RefreshWorkspace() => _ = InvokeAsync(StateHasChanged);
     /// <summary>

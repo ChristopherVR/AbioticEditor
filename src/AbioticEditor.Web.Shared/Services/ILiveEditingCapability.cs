@@ -5,10 +5,11 @@ namespace AbioticEditor.Web.Services;
 /// <summary>
 /// Marker for whether this host offers live in-game editing. Registered only by the desktop
 /// host's <c>Program.cs</c> - the WASM host never registers it, so
-/// <c>ModeSelect.razor</c> resolves it through <see cref="IServiceProvider.GetService"/> rather
-/// than a required <c>[Inject]</c>, and skips straight to the file-editing flow when it is
-/// absent instead of throwing. This is the entire mechanism that keeps live editing out of the
-/// browser build with no `#if`/conditional-compile split anywhere in the shared screens.
+/// <c>MainLayout.razor</c> resolves it through <see cref="IServiceProvider.GetService"/> rather
+/// than a required <c>[Inject]</c>, and skips both the automatic "what do you want to do"
+/// prompt and its header button when it is absent instead of throwing. This is the entire
+/// mechanism that keeps live editing out of the browser build with no `#if`/conditional-compile
+/// split anywhere in the shared screens.
 /// </summary>
 public interface ILiveEditingCapability
 {

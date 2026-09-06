@@ -31,7 +31,22 @@
     // question - repairing a save and then being refused again, opening a world that turns out to
     // need attention - and an unconditional close swallowed the follow-up the instant it appeared,
     // so the player answered the first question and then saw nothing at all.
-    private async Task ConfirmAsync() { var modal = Modals.Current; var action = modal?.OnConfirm; if (action is null) return; _confirming = true; try { await action(); if (ReferenceEquals(Modals.Current, modal)) Modals.Close(); } finally { _confirming = false; } }
+    private async Task ConfirmAsync()
+    {
+        var modal = Modals.Current;
+        var action = modal?.OnConfirm;
+        if (action is null) return;
+        _confirming = true;
+        try
+        {
+            // Marks the window in which action() is allowed to chain straight into a follow-up
+            // Modals.Show() without that being mistaken for the still-resolving modal having
+            // been abandoned - see ModalService.Show.
+            using (Modals.BeginResolving()) { await action(); }
+            if (ReferenceEquals(Modals.Current, modal)) Modals.Close();
+        }
+        finally { _confirming = false; }
+    }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_focusPending && Modals.Current is not null)

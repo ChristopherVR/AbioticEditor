@@ -1,0 +1,31 @@
+@inject NavigationManager Navigation
+
+<div class="settings-subdialog-backdrop mode-select-backdrop" role="presentation">
+    <section class="settings-subdialog mode-select-dialog" role="dialog" aria-modal="true" aria-labelledby="mode-select-title" tabindex="-1" @onkeydown="HandleKeyDown">
+        <h2 id="mode-select-title">@L.Resource("ModeSelect_Title")</h2>
+        <p class="muted">@L.Resource("ModeSelect_Subtitle")</p>
+        <div class="mode-select-cards">
+            <button class="mode-select-card" type="button" @onclick="ChooseFile">
+                <span class="mode-select-card-title">@L.Resource("ModeSelect_FileTitle")</span>
+                <span class="mode-select-card-note">@L.Resource("ModeSelect_FileNote")</span>
+            </button>
+            <button class="mode-select-card" type="button" @onclick="ChooseLive">
+                <span class="mode-select-card-title">@L.Resource("ModeSelect_LiveTitle")</span>
+                <span class="mode-select-card-note">@L.Resource("ModeSelect_LiveNote")</span>
+            </button>
+        </div>
+        <footer><button class="secondary" type="button" @onclick="Close">@L.Resource("Common_Close")</button></footer>
+    </section>
+</div>
+
+@code {
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    // Navigating first and closing after: picking a card while the dialog was reopened from
+    // some other screen (the header button, not just the initial launch) should actually take
+    // the player there, not merely dismiss the dialog over whatever page they already had open.
+    private Task ChooseFile() { Navigation.NavigateTo("browse"); return Close(); }
+    private Task ChooseLive() { Navigation.NavigateTo("live"); return Close(); }
+    private Task Close() => OnClose.InvokeAsync();
+    private Task HandleKeyDown(KeyboardEventArgs args) => args.Key == "Escape" ? Close() : Task.CompletedTask;
+}

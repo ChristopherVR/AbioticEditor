@@ -1815,7 +1815,9 @@ button.wd-sector-map:hover{opacity:1;transform:none}
   .catalog-search input:not([type=checkbox]):not([type=radio]):not([type=range]){font-size:16px}
 }
 
-/* Mode-select landing screen and the live-editing connect/session screen. */
+/* Mode-select dialog (the "what do you want to do" prompt, reused from the settings-subdialog
+   pattern) and the live-editing connect/session screen. */
+.mode-select-dialog{width:min(620px,100%);text-align:center}
 .mode-select-cards{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin:20px 0}
 .mode-select-card{box-sizing:border-box;width:280px;padding:20px;border:1px solid var(--line);border-radius:8px;background:var(--elevated);color:var(--ink);cursor:pointer;text-align:left;transition:background .12s,border-color .12s}
 .mode-select-card:hover,.mode-select-card:focus-visible{background:var(--hover);border-color:var(--section)}
@@ -1824,6 +1826,13 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 .live-connect-form{display:flex;flex-direction:column;gap:12px;max-width:360px;margin:0 auto}
 .live-connect-form label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);text-align:left}
 .live-connect-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:14px 0}
+.live-waiting{display:flex;align-items:center;justify-content:center;gap:10px}
+.live-need-note{box-sizing:border-box;max-width:440px;margin:20px auto 0;padding:14px 18px;border:1px solid var(--line);border-radius:8px;background:var(--elevated);text-align:left}
+.live-need-note strong{display:block;margin-bottom:6px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--section)}
+.live-need-note p{margin:0 0 8px;color:var(--muted);font-size:12px}
+.live-need-note p:last-of-type{margin-bottom:0}
+.live-need-note a{display:inline-block;margin-top:8px;color:var(--orange);font-size:12px;text-decoration:none}
+.live-need-note a:hover{text-decoration:underline}
 .live-warning{color:var(--alert-text)}
 .error-text{color:var(--alert-text);font-size:12px;margin-top:8px}
 .status-text{color:var(--muted);font-size:12px;margin-top:8px}

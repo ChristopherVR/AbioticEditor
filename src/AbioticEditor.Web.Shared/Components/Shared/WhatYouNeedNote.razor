@@ -1,0 +1,13 @@
+@inject AbioticEditor.Ui.IExternalNavigationService ExternalNavigation
+
+<div class="live-need-note">
+    <strong>@L.Resource("Live_WhatYouNeedTitle")</strong>
+    <p>@L.Resource("Live_WhatYouNeedMod")</p>
+    <p>@L.Resource("Live_WhatYouNeedToken")</p>
+    <a href="@GuideUrl" @onclick="OpenGuideAsync" @onclick:preventDefault>@L.Resource("Live_LearnMore")</a>
+</div>
+
+@code {
+    private const string GuideUrl = "https://christophervr.github.io/AbioticEditor/guide/live-editing";
+    private Task OpenGuideAsync() => ExternalNavigation.OpenUrlAsync(new Uri(GuideUrl));
+}

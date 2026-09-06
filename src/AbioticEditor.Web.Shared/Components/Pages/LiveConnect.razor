@@ -26,9 +26,36 @@
         {
             <p class="lede">@L.Resource("Live_AutoConnecting")</p>
         }
-        else
+        else if (_target is null)
         {
             <p class="lede">@L.Resource("Live_ConnectSubtitle")</p>
+            <p class="lede">@L.Resource("Live_TargetQuestion")</p>
+            <div class="mode-select-cards">
+                <button class="mode-select-card" type="button" @onclick="ChooseLocal">
+                    <span class="mode-select-card-title">@L.Resource("Live_TargetLocalTitle")</span>
+                    <span class="mode-select-card-note">@L.Resource("Live_TargetLocalNote")</span>
+                </button>
+                <button class="mode-select-card" type="button" @onclick="ChooseRemote">
+                    <span class="mode-select-card-title">@L.Resource("Live_TargetRemoteTitle")</span>
+                    <span class="mode-select-card-note">@L.Resource("Live_TargetRemoteNote")</span>
+                </button>
+            </div>
+            <WhatYouNeedNote />
+        }
+        else if (_target == LiveConnectTarget.Local)
+        {
+            <p class="lede live-waiting" role="status" aria-live="polite">
+                <span class="blocking-busy-spinner" aria-hidden="true"></span>
+                @L.Resource("Live_WaitingForLocalGame")
+            </p>
+            <p class="empty-note">@L.Resource("Live_WaitingForLocalGameHint")</p>
+            <div class="live-connect-actions">
+                <button class="secondary" type="button" @onclick="BackToChoice">@L.Resource("Live_Back")</button>
+            </div>
+        }
+        else
+        {
+            <p class="lede">@L.Resource("Live_RemoteSubtitle")</p>
             <div class="live-connect-form">
                 <label>
                     @L.Resource("Live_Host")
@@ -45,12 +72,13 @@
                 <button class="primary" type="button" @onclick="() => ConnectAsync(isAutoConnect: false)" disabled="@_isConnecting">
                     @(_isConnecting ? L.Resource("Live_Connecting") : L.Resource("Live_Connect"))
                 </button>
+                <button class="secondary" type="button" @onclick="BackToChoice" disabled="@_isConnecting">@L.Resource("Live_Back")</button>
                 @if (_error is not null)
                 {
                     <p class="error-text" role="alert">@_error</p>
                 }
             </div>
-            <p class="empty-note">@L.Resource("Live_ConnectHint")</p>
+            <WhatYouNeedNote />
         }
     }
     else
@@ -362,6 +390,8 @@
     private bool _isBusy;
     private bool _autoConnectInFlight;
     private bool _autoConnected;
+    private LiveConnectTarget? _target;
+    private CancellationTokenSource? _waitCts;
     private string? _error;
     private string _activeTab = "vitals";
     private ILiveGameChannel? _channel;
@@ -419,7 +449,11 @@
 
         _token = localToken;
         _autoConnectInFlight = true;
-        await ConnectAsync(isAutoConnect: true);
+        // Silent: this is a background optimization the player never asked for yet, not a
+        // connection attempt they are watching - a failure here should fall through to the
+        // "where's the game running" choice below with nothing alarming on screen, not an
+        // error banner about a game they never said was running.
+        await ConnectAsync(isAutoConnect: true, silent: true);
         _autoConnectInFlight = false;
     }
 
@@ -474,7 +508,63 @@
         _ = DisconnectAsync();
     }
 
-    private async Task ConnectAsync(bool isAutoConnect)
+    private void ChooseRemote()
+    {
+        _target = LiveConnectTarget.Remote;
+        _host = string.Empty;
+        _port = 42117;
+        _token = string.Empty;
+        _error = null;
+    }
+
+    /// <summary>Starts (or restarts) waiting for a local game - see <see cref="WaitForLocalGameAsync"/>.</summary>
+    private void ChooseLocal()
+    {
+        _target = LiveConnectTarget.Local;
+        _host = "127.0.0.1";
+        _port = 42117;
+        _error = null;
+        _ = WaitForLocalGameAsync();
+    }
+
+    /// <summary>Back to the "where's the game running" choice, cancelling any local wait in progress.</summary>
+    private void BackToChoice()
+    {
+        _waitCts?.Cancel();
+        _target = null;
+        _error = null;
+    }
+
+    /// <summary>
+    /// Retries reading the local live-agent token and connecting with it until one succeeds or
+    /// the player cancels (BackToChoice) - "just wait indefinitely on the local PC" rather than
+    /// dropping the player into a manual form the moment the game is not up yet. Silent throughout:
+    /// "not connected yet" is the expected state while waiting, not a failure worth an error banner.
+    /// </summary>
+    private async Task WaitForLocalGameAsync()
+    {
+        _waitCts?.Cancel();
+        var cts = new CancellationTokenSource();
+        _waitCts = cts;
+        var capability = Services.GetService<ILiveEditingCapability>();
+        while (!cts.IsCancellationRequested)
+        {
+            if (capability?.TryReadLocalToken() is { Length: > 0 } localToken)
+            {
+                _token = localToken;
+                await ConnectAsync(isAutoConnect: true, silent: true);
+                if (_vitals is not null)
+                {
+                    await InvokeAsync(StateHasChanged);
+                    return;
+                }
+            }
+            try { await Task.Delay(TimeSpan.FromSeconds(2), cts.Token); }
+            catch (TaskCanceledException) { return; }
+        }
+    }
+
+    private async Task ConnectAsync(bool isAutoConnect, bool silent = false)
     {
         _error = null;
         _isConnecting = true;
@@ -527,11 +617,19 @@
         catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
             or IOException or OperationCanceledException)
         {
-            _error = isAutoConnect
-                ? Errors.Present(exception, "Connect to the game on this PC.",
-                    "Make sure the game is running with the live-agent mod loaded, or enter a different computer's connection details below.")
-                : Errors.Present(exception, "Connect to the running game.",
-                    "Check the host, port and token, and that the live-agent mod is running.");
+            // Silent callers (the page-load auto-connect, and the "waiting for a local game"
+            // retry loop) expect this to fail repeatedly until the game is up - that is the
+            // normal, waiting state, not an application error, so it is not logged or shown
+            // (Errors.Present logs at Error level; a two-second retry loop would otherwise fill
+            // the log with one "failure" per tick for as long as the player leaves it waiting).
+            if (!silent)
+            {
+                _error = isAutoConnect
+                    ? Errors.Present(exception, "Connect to the game on this PC.",
+                        "Make sure the game is running with the live-agent mod loaded, or enter a different computer's connection details below.")
+                    : Errors.Present(exception, "Connect to the running game.",
+                        "Check the host, port and token, and that the live-agent mod is running.");
+            }
             await channel.DisposeAsync();
         }
         finally
@@ -668,6 +766,11 @@
         if (_channel is not null) await _channel.DisposeAsync();
         _channel = null;
         _error = null;
+        // Back to the "where's the game running" choice, not straight into whichever path
+        // brought them here - DISCONNECT is a fresh start, same as it always was before this
+        // page had more than one way in.
+        _waitCts?.Cancel();
+        _target = null;
         LiveSession.Disconnected();
     }
 
@@ -676,6 +779,9 @@
         LiveSession.PlayerSwitchRequested -= HandlePlayerSwitchRequestedAsync;
         LiveSession.Disconnected();
         Selection.SetPaletteContext(null);
+        _waitCts?.Cancel();
         if (_channel is not null) await _channel.DisposeAsync();
     }
+
+    private enum LiveConnectTarget { Local, Remote }
 }

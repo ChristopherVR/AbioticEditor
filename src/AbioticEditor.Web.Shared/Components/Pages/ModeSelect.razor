@@ -1,44 +1,11 @@
 @page "/"
-@using Microsoft.Extensions.DependencyInjection
-@inject HostLanguageService L
 @inject NavigationManager Navigation
-@inject IServiceProvider Services
 
-@* The live-editing choice only exists on hosts that register ILiveEditingCapability (the
-   desktop host does; the WASM/browser build never does - see that interface's doc comment).
-   A host without it skips this screen entirely (OnInitialized redirects it below) and lands
-   exactly where every host used to land before this screen existed, so the browser build's
-   behavior is unchanged byte-for-byte. *@
-@if (_liveEditingAvailable)
-{
-    <PageTitle>@L.Resource("Common_AppName")</PageTitle>
-
-    <section class="hero native-empty-state mode-select">
-        <h1>@L.Resource("ModeSelect_Title")</h1>
-        <p class="lede">@L.Resource("ModeSelect_Subtitle")</p>
-        <div class="mode-select-cards">
-            <button class="mode-select-card" type="button" @onclick="ChooseFile">
-                <span class="mode-select-card-title">@L.Resource("ModeSelect_FileTitle")</span>
-                <span class="mode-select-card-note">@L.Resource("ModeSelect_FileNote")</span>
-            </button>
-            <button class="mode-select-card" type="button" @onclick="ChooseLive">
-                <span class="mode-select-card-title">@L.Resource("ModeSelect_LiveTitle")</span>
-                <span class="mode-select-card-note">@L.Resource("ModeSelect_LiveNote")</span>
-            </button>
-        </div>
-    </section>
-}
-
+@* This route only exists because something has to own "/" (Photino's start URL, and any
+   bookmark or link back to root). The actual "what do you want to do" choice moved into
+   ModeSelectDialog, shown as an overlay by MainLayout - see MainLayout.OnInitialized - so
+   every host lands on the normal browse screen here, same as the old "live editing not
+   available" branch used to. *@
 @code {
-    private bool _liveEditingAvailable;
-
-    protected override void OnInitialized()
-    {
-        var capability = Services.GetService<AbioticEditor.Web.Services.ILiveEditingCapability>();
-        _liveEditingAvailable = capability?.IsAvailable == true;
-        if (!_liveEditingAvailable) Navigation.NavigateTo("browse", replace: true);
-    }
-
-    private void ChooseFile() => Navigation.NavigateTo("browse");
-    private void ChooseLive() => Navigation.NavigateTo("live");
+    protected override void OnInitialized() => Navigation.NavigateTo("browse", replace: true);
 }
