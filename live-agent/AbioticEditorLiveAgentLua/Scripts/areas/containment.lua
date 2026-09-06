@@ -92,23 +92,41 @@ return function(ctx)
         end, respond)
     end
 
-    -- Verbatim FreeLeyakTypeNpc (AFUtils.lua:785-793): the unit's own "Free Leyak" function
-    -- (called with no arguments, exactly as that mod calls it: LeyakContainment['Free Leyak']()),
-    -- then clear the matching director's ActiveLeyakContainmentID.
+    -- Verbatim FreeLeyakTypeNpc (AFUtils.lua:785-793): the unit's own "Free Leyak" function, then
+    -- clear the matching director's ActiveLeyakContainmentID.
+    --
+    -- BUG FOUND BY THE HARNESS (fixed here): a UE4SS UFunction call always needs its owning
+    -- object as the implicit receiver, whether invoked with colon sugar (`unit:Func()`) or, as
+    -- here, bracket indexing because the name has a space and colon syntax cannot spell it
+    -- (`unit["Free Leyak"](unit)`) - the function's OWN declared parameter list being empty (see
+    -- the class dump: `Free Leyak` takes no reflected inputs) is unrelated to this; the receiver
+    -- is always required. The original code called `unit["Free Leyak"]()` with no receiver at
+    -- all, which the stub caught immediately (a nil `self` inside the fake's own implementation) -
+    -- every other call in this file already gets this right via colon syntax
+    -- (`unit:TrapLeyak(...)`, `unit:ServerUpdateStabilityLevel(...)`, `director:SetLeyakContainmentID(...)`);
+    -- this was the one call that could not use colon syntax and dropped the receiver instead of
+    -- passing it explicitly.
     local function freeUnit(unit)
         local occupant = unitOccupant(unit)
         if not occupant then return end
         local director = directorComponent(occupant)
-        pcall(function() unit["Free Leyak"]() end)
+        pcall(function() unit["Free Leyak"](unit) end)
         if director then pcall(function() director:SetLeyakContainmentID("") end) end
     end
 
     -- Verbatim TrapLeyakTypeNpc (AFUtils.lua:754-767): feed the unit's stability item to full,
-    -- then TrapLeyak(0.0, rowName) (the working mod's own two-argument call - the class dump only
-    -- lists one reflected child property on the function, but the shipped mod's call is proven
-    -- live, so it is followed exactly rather than trusting an incomplete-looking reflection dump),
-    -- then point the matching director's ActiveLeyakContainmentID at this unit's own
-    -- SpawnedAssetID (inherited from AbioticDeployed_ParentBP_C, probed in round 75).
+    -- then TrapLeyak(rowName), then point the matching director's ActiveLeyakContainmentID at
+    -- this unit's own SpawnedAssetID (inherited from AbioticDeployed_ParentBP_C, probed in round
+    -- 75).
+    --
+    -- BUG FOUND BY THE HARNESS (fixed here): a fresh class dump (re-run this round, see
+    -- docs/PROGRESS.md) shows `TrapLeyak` takes exactly ONE reflected input, `LeyakRowName`
+    -- (FNameProperty) - no amount/food parameter at all. The previous call passed two arguments
+    -- (`0.0, FName(row, ...)`), trusting a claimed two-argument call in the reference mod over an
+    -- "incomplete-looking" dump; the dump was right; this now calls TrapLeyak with just the row
+    -- name, matching the class layout exactly. Feeding the stability item to full is done
+    -- separately just above via ServerUpdateStabilityLevel(Value, RowName), which DOES take two
+    -- reflected inputs (confirmed in the same dump) and already matched.
     local function trapInto(unit, row)
         local director = directorComponent(row)
         if not director then error("the " .. row .. " director is not loaded (are you in a world?)") end
@@ -116,7 +134,7 @@ return function(ctx)
         if food then
             pcall(function() unit:ServerUpdateStabilityLevel(unit.MaxStability, FName(food, EFindName.FNAME_Find)) end)
         end
-        unit:TrapLeyak(0.0, FName(row, EFindName.FNAME_Find))
+        unit:TrapLeyak(FName(row, EFindName.FNAME_Find))
         local okAsset, assetId = pcall(function() return unit.SpawnedAssetID:ToString() end)
         if okAsset then pcall(function() director:SetLeyakContainmentID(assetId) end) end
     end

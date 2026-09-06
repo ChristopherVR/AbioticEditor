@@ -42,22 +42,33 @@ return function(ctx)
         end, respond)
     end
 
+    -- BUG FOUND BY THE HARNESS (round 77, fixed here): matching doors.set, a row whose id did not
+    -- resolve to a live teleporter used to be silently skipped - success with nothing done, no
+    -- indication to the player. Every other resolvable row is still applied; the reply only
+    -- becomes an error (naming the first id that could not be found) once every row has run.
     ctx.handlers["portals.set"] = function(payload, respond)
         ctx.runOnGameThread(function()
             if not ctx.isHost() then error("only the host can change world teleporters") end
             local rows = payload.portals or {}
+            local missingId = nil
             for i = 1, #rows do
                 local row = rows[i]
                 local teleporter = row.id and ctx.findByFullName(TELEPORTER_CLASS, row.id)
-                if teleporter and row.active ~= nil then
-                    teleporter.IsTeleporterActive = row.active
-                    -- No mod precedent for either call on this actor (see file header); direct
-                    -- write + OnRep is the same shape doors/NPCs already use elsewhere in this
-                    -- mod, and SavePortalState is the blueprint's own "persist this now" function.
-                    pcall(function() teleporter:OnRep_IsTeleporterActive() end)
-                    pcall(function() teleporter:SavePortalState(true) end)
+                if teleporter then
+                    if row.active ~= nil then
+                        teleporter.IsTeleporterActive = row.active
+                        -- No mod precedent for either call on this actor (see file header);
+                        -- direct write + OnRep is the same shape doors/NPCs already use elsewhere
+                        -- in this mod, and SavePortalState is the blueprint's own "persist this
+                        -- now" function.
+                        pcall(function() teleporter:OnRep_IsTeleporterActive() end)
+                        pcall(function() teleporter:SavePortalState(true) end)
+                    end
+                else
+                    missingId = missingId or row.id
                 end
             end
+            if missingId then error("teleporter not found (it may have been unloaded or destroyed): " .. tostring(missingId)) end
             return nil
         end, respond)
     end

@@ -139,6 +139,10 @@ function H.install()
     _G.NAME_None = H.fname("None")
     _G.EFindName = { FNAME_Find = 0, FNAME_Add = 1 }
     _G.FName = function(text) return H.fname(text) end
+    -- FText(string), unlike FVector()/FRotator(), IS a real UE4SS Lua global (bases.lua relies on
+    -- it, with a plain-string fallback for older UE4SS builds) - the resulting value needs
+    -- :ToString() same as FString, so it reuses the same fake userdata type.
+    _G.FText = function(text) return H.fstring(text) end
     _G.CreateInvalidObject = function() return H.object("Invalid", {}, {}); end
     _G.IsValid = function(obj) return obj ~= nil and obj:IsValid() end
     -- The ONLY globals a real UE4SS mod has for structs are the ones above: there is no FVector()

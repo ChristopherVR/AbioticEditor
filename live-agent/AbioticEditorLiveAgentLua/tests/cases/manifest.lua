@@ -1,4 +1,13 @@
 -- Test case files under tests/cases/, run in this order. Each file returns `function(H) ... end`.
 return {
     "core",
+    "containment",
+    "traders",
+    "portals",
+    "spawn",
+    "companions",
+    "bases",
+    "vehicles",
+    "doors",
+    "players",
 }
