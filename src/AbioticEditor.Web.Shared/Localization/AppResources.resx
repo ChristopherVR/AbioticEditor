@@ -372,6 +372,7 @@
   <data name="PlayerInventory_GroundNearbyHelp" xml:space="preserve"><value>Items lying within reach of where this character last stood. PICK UP puts one in the first empty backpack slot, and SAVE writes it and clears it off the ground. DISCARD leaves it where it is.</value></data>
   <data name="PlayerInventory_Hotbar" xml:space="preserve"><value>HOTBAR</value></data>
   <data name="PlayerInventory_Inventory" xml:space="preserve"><value>INVENTORY</value></data>
+  <data name="PlayerInventory_LiveMoneyHint" xml:space="preserve"><value>Money changes live on the VITALS tab instead.</value></data>
   <data name="PlayerInventory_Money" xml:space="preserve"><value>MONEY</value></data>
   <data name="PlayerInventory_Occupied" xml:space="preserve"><value>OCCUPIED</value></data>
   <data name="PlayerInventory_OnTheGroundNearby" xml:space="preserve"><value>ON THE GROUND NEARBY</value></data>
@@ -455,6 +456,7 @@
   <data name="PlayerTransmog_ArmorTransmog" xml:space="preserve"><value>ARMOR TRANSMOG</value></data>
   <data name="PlayerTransmog_TransmogHelp" xml:space="preserve"><value>The look worn over each armor slot, the same as the Transmogrifier's purple slots. Only the appearance changes, and your real gear keeps its stats. Tap a slot to change it, then press SAVE.</value></data>
   <data name="PlayerTransmog_ExtraSlotFormat" xml:space="preserve"><value>Extra slot {0}</value></data>
+  <data name="PlayerTransmog_LiveVisibilityHint" xml:space="preserve"><value>These can't be changed live yet, so they're shown read-only here.</value></data>
   <data name="PlayerTransmog_Visibility" xml:space="preserve"><value>VISIBILITY (the eye toggles; unchecked hides that armor piece's visuals entirely)</value></data>
 
   <!-- PlayerVitals -->

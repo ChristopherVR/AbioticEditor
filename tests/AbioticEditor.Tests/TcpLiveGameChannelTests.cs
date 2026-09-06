@@ -99,6 +99,42 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
         Assert.Equal(LiveConnectionState.Connected, channel.State);
     }
 
+    /// <summary>
+    /// Round 76: transmog reads/writes through the SAME inventory.list/inventory.set commands as
+    /// backpack/equip/hotbar (see docs/reference/live-editing-protocol.md), just a fourth "kind"
+    /// value - this proves the client-side channel round-trips that kind untouched, since it
+    /// never interprets "kind" itself.
+    /// </summary>
+    [Fact]
+    public async Task LiveInventoryChannel_GetAsync_includes_the_transmog_kind()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var inventory = new AbioticEditor.Core.LiveEditing.Player.LiveInventoryChannel(channel);
+
+        var slots = await inventory.GetAsync();
+
+        var transmog = Assert.Single(slots, slot => slot.Kind == "transmog");
+        Assert.Equal(0, transmog.SlotIndex);
+        Assert.Equal("suit_hazmat_casual", transmog.ItemId);
+        Assert.False(transmog.IsEmpty);
+        var backpack = Assert.Single(slots, slot => slot.Kind == "backpack");
+        Assert.True(backpack.IsEmpty);
+    }
+
+    [Fact]
+    public async Task LiveInventoryChannel_SetAsync_sends_a_transmog_edit()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var inventory = new AbioticEditor.Core.LiveEditing.Player.LiveInventoryChannel(channel);
+
+        // Same fallback-echo proof as LivePlayerSkillsChannel_SetAsync_sends_a_real_JSON_array:
+        // succeeding without throwing proves the "transmog" kind encodes as a well-formed edit.
+        await inventory.SetAsync([new AbioticEditor.Core.LiveEditing.Player.LiveInventoryEdit(
+            "transmog", 0, ItemId: "suit_hazmat_casual", Stack: 1)]);
+
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
     [Fact]
     public async Task LiveWorldStateChannel_GetAsync_reads_clock_and_weather()
     {
@@ -278,6 +314,10 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
                 // json.lua emits (camelCase keys, __forceArray lists as real arrays).
                 string? canned = cmd switch
                 {
+                    // Round 76: a fourth "transmog" kind riding the same inventory.list array as
+                    // backpack/equip/hotbar (see LiveInventoryChannel_GetAsync_includes_the_transmog_kind).
+                    "inventory.list" => "[{\"kind\":\"backpack\",\"slotIndex\":0,\"itemId\":\"Empty\",\"isEmpty\":true,\"stack\":0,\"durability\":0,\"maxDurability\":0},"
+                        + "{\"kind\":\"transmog\",\"slotIndex\":0,\"itemId\":\"suit_hazmat_casual\",\"isEmpty\":false,\"stack\":1,\"durability\":0,\"maxDurability\":0}]",
                     "world.get" => "{\"isHost\":true,\"day\":12,\"timeSeconds\":48600,\"isNight\":false,\"paused\":false,"
                         + "\"currentWeather\":\"Fog\",\"weatherOptions\":[\"None\",\"Fog\",\"RadLeak\"]}",
                     "flags.list" => "{\"flags\":[{\"name\":\"Office_PowerOn\",\"isSet\":true},{\"name\":\"Manufacturing_West\",\"isSet\":false}],\"isHost\":true}",

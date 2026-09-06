@@ -11,6 +11,8 @@
 @inject NavigationManager Navigation
 @inject IServiceProvider Services
 @inject LiveSessionService LiveSession
+@inject InventorySelectionService Selection
+@inject ItemUpgradeVocabularyService Upgrades
 
 <PageTitle>@L.Resource("Common_AppName")</PageTitle>
 
@@ -91,6 +93,10 @@
                     aria-selected="@(_activeTab == "inventory")" @onclick='() => _activeTab = "inventory"'>
                 @L.Resource("LiveInventory_Title")
             </button>
+            <button type="button" role="tab" class="editor-tab @(_activeTab == "transmog" ? "active" : null)"
+                    aria-selected="@(_activeTab == "transmog")" @onclick='() => _activeTab = "transmog"'>
+                @L.Resource("PlayerEditor_Transmog")
+            </button>
             <button type="button" role="tab" class="editor-tab @(_activeTab == "world" ? "active" : null)"
                     aria-selected="@(_activeTab == "world")" @onclick='() => _activeTab = "world"'>
                 @L.Resource("LiveWorld_Title")
@@ -127,7 +133,16 @@
             }
             else if (_activeTab == "inventory" && _inventory is not null)
             {
-                <LiveInventoryTab Session="_inventory" OnChanged="() => {}" />
+                @* Same PlayerInventoryTab the file-backed player editor uses, bound to
+                   IPlayerInventorySession instead of the concrete PlayerSaveSession - see
+                   LiveInventorySession's own doc comment. *@
+                <PlayerInventoryTab Session="_inventory" OnChanged="() => {}" />
+            }
+            else if (_activeTab == "transmog" && _inventory is not null)
+            {
+                @* Same session object as the inventory tab above (it implements both
+                   interfaces), so a slot dragged between the two areas still works. *@
+                <PlayerTransmogTab Session="_inventory" OnChanged="() => {}" />
             }
             else if (_activeTab == "world" && _world is not null)
             {
@@ -281,7 +296,7 @@
             _vitals = await LivePlayerVitalsSession.ConnectAsync(new LivePlayerVitalsChannel(channel), localPlayerId);
             _skills = await LivePlayerSkillsSession.ConnectAsync(new LivePlayerSkillsChannel(channel), localPlayerId);
             _npcs = await LiveNpcSession.ConnectAsync(new LiveNpcChannel(channel));
-            _inventory = await LiveInventorySession.ConnectAsync(new LiveInventoryChannel(channel), localPlayerId);
+            _inventory = await LiveInventorySession.ConnectAsync(new LiveInventoryChannel(channel), localPlayerId, Upgrades.Get());
             // The world areas need a loaded world (a player sitting in the main menu has no
             // DayNightManager, doors, or containers yet), so each one that fails to read is left
             // null and its tab says so, instead of failing the whole connection - the player
@@ -366,7 +381,14 @@
         {
             await _vitals.SwitchPlayerAsync(_selectedPlayerId);
             await _skills.SwitchPlayerAsync(_selectedPlayerId);
-            if (_inventory is not null) await _inventory.SwitchPlayerAsync(_selectedPlayerId);
+            if (_inventory is not null)
+            {
+                await _inventory.SwitchPlayerAsync(_selectedPlayerId);
+                // A different player's slots are not the same objects any more (see
+                // LiveInventorySession.SwitchPlayerAsync); drop any sidebar slot selection so it
+                // does not keep pointing at the previous player's now-orphaned slot.
+                if (Selection.Current?.PlayerArea is not null) Selection.Clear();
+            }
             LiveSession.PlayerSelected(_selectedPlayerId);
         }
         catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
@@ -383,6 +405,9 @@
 
     private async Task DisconnectAsync()
     {
+        // The sidebar slot editor is rendered globally and reads live objects that are about to
+        // go away; clear any selection so it does not keep showing a now-dead live slot.
+        if (Selection.Current?.PlayerArea is not null) Selection.Clear();
         _vitals = null;
         _skills = null;
         _npcs = null;

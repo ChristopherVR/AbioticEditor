@@ -50,8 +50,14 @@ public sealed class SlotDragDropService
 /// A dragged slot: the session it belongs to, the inventory area it lives in and the
 /// equipment/transmog role of that position (null for hotbar/backpack slots).
 /// </summary>
+/// <remarks>
+/// <see cref="Session"/> is the narrow <see cref="IPlayerInventorySession"/> boundary, not the
+/// concrete <see cref="PlayerSaveSession"/>, so a drag can start on either the file-backed
+/// player editor or the live inventory/transmog tabs (both bind the same shared tab components
+/// to this service) and still cross between inventory and transmog areas either way.
+/// </remarks>
 public sealed record SlotDragSource(
-    PlayerSaveSession Session,
+    IPlayerInventorySession Session,
     PlayerInventoryArea Area,
     PlayerInventorySlotEdit Slot,
     string? Role);

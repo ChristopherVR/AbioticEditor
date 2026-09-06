@@ -62,8 +62,17 @@
                 @foreach (var slot in Session.Backpack) { @SlotTile(PlayerInventoryArea.Backpack, slot, null, null) }
             </div>
             <div class="pockets-footer">
-                <label class="amber-field-label" for="inventory-money">@L.Resource("PlayerInventory_Money")</label>
-                <input id="inventory-money" class="money-entry" type="number" step="1" @bind="Session.Vitals.Money" @bind:after="Changed" />
+                @* Money lives with the rest of a live player's vitals (pushed by the VITALS
+                   tab's own SaveAsync), so editing it here would silently do nothing live. *@
+                @if (!Session.AppliesImmediately)
+                {
+                    <label class="amber-field-label" for="inventory-money">@L.Resource("PlayerInventory_Money")</label>
+                    <input id="inventory-money" class="money-entry" type="number" step="1" @bind="Session.Vitals.Money" @bind:after="Changed" />
+                }
+                else
+                {
+                    <span class="muted">@L.Resource("PlayerInventory_LiveMoneyHint")</span>
+                }
                 <span class="pockets-footer-spacer"></span>
                 <button class="secondary" type="button" title="@L.Resource("PlayerInventory_SortTooltip")" @onclick="SortBackpack">@L.Resource("PlayerInventory_Sort")</button>
                 @* The tooltip has to name the reason the button is off. It used to always say
@@ -87,6 +96,9 @@
                  Message="@HoldingMessage" OnStart="StartMove" OnCancel="CancelMove" />
 
     @if (_status is not null) { <p class="muted inventory-status" role="status">@_status</p> }
+    @* Live edits reach the game the moment they're made; this is the same "applied live"
+       status the vitals/skills tabs surface, instead of a page-level SAVE. *@
+    @if (Session.AppliesImmediately && Session.Status is not null) { <p class="muted inventory-status" role="status">@Session.Status</p> }
 
     @if (NearbyGroundItems.Count > 0)
     {
@@ -108,11 +120,14 @@
 </section>
 
 @code {
-    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    [Parameter, EditorRequired] public IPlayerInventorySession Session { get; set; } = null!;
     [Parameter] public WorldSaveSession? WorldSession { get; set; }
     [Parameter] public EventCallback OnChanged { get; set; }
 
-    protected override void OnParametersSet() => _ = LoadSiblingBenchesAsync();
+    // A live session (Session.AppliesImmediately) has no save file to key the lookup by and no
+    // world session ever attached here, so the sibling-bench scan (a file-only convenience for
+    // TELEPORTER SYNC) is skipped entirely rather than running against a meaningless path.
+    protected override void OnParametersSet() { if (!Session.AppliesImmediately) _ = LoadSiblingBenchesAsync(); }
 
     private string? _status;
     private PlayerInventorySlotEdit? _dragOverSlot;
@@ -313,10 +328,25 @@
         }
     }
 
-    private Task Changed() { Session.MarkChanged(); return OnChanged.InvokeAsync(); }
-    private Task SwapWithin(PlayerInventoryArea area, (int First, int Second) pair) { Session.TrySwapInventorySlots(area, pair.First, pair.Second); return OnChanged.InvokeAsync(); }
-    private Task Upgrade(PlayerInventoryArea area, (int Index, bool Downgrade) action) { Session.TryApplyItemUpgrade(area, action.Index, action.Downgrade); return OnChanged.InvokeAsync(); }
-    private async Task SortBackpack() { Session.SortInventorySlots(PlayerInventoryArea.Backpack); await OnChanged.InvokeAsync(); }
+    // Pushes whichever slot the sidebar editor just mutated in place (a no-op for the file
+    // session, which already staged the edit; the live session sends inventory.set for it).
+    private async Task Changed()
+    {
+        Session.MarkChanged();
+        if (Selection.Current is { PlayerArea: { } area, Slot: { } slot }) await Session.PushSlotAsync(area, slot);
+        await OnChanged.InvokeAsync();
+    }
+    private async Task SwapWithin(PlayerInventoryArea area, (int First, int Second) pair)
+    {
+        await Session.TrySwapInventorySlotsAsync(area, pair.First, area, pair.Second);
+        await OnChanged.InvokeAsync();
+    }
+    private async Task Upgrade(PlayerInventoryArea area, (int Index, bool Downgrade) action)
+    {
+        await Session.TryApplyItemUpgradeAsync(area, action.Index, action.Downgrade);
+        await OnChanged.InvokeAsync();
+    }
+    private async Task SortBackpack() { await Session.SortInventorySlotsAsync(PlayerInventoryArea.Backpack); await OnChanged.InvokeAsync(); }
 
     // ---------- pick-then-place (the touch path) ----------
 
@@ -463,7 +493,7 @@
 
         // Cross-surface swap: the source may be a transmog slot - the native drop handler
         // moves between the transmog grid and the inventory the same way.
-        if (!Session.TrySwapInventorySlots(source.Area, source.Slot.Index, targetArea, target.Index)) return;
+        if (!await Session.TrySwapInventorySlotsAsync(source.Area, source.Slot.Index, targetArea, target.Index)) return;
         Select(targetArea, target);
         _status = L.Resource("Slot_MsgSwapped", DisplayName(target));
         Selection.NotifyItemCommitted();
