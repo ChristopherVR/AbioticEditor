@@ -29,9 +29,11 @@ time). Report `NoChange` when there is nothing to do so the host skips the write
 
 ## Recipe 1 - repair a corrupted/zeroed value (typed writer)
 
-Game delta-serialization omits default-valued tags, so a need the game never wrote reads back
-as `0`. The [`RepairNeeds`](../../plugins/RepairNeeds) sample tops every survival need back to
-full using the typed player reader/writer:
+Game delta-serialization omits default-valued tags, so a need sitting at its default reads back
+as `0` (which IS the game's value for it, not missing data). The
+[`RepairNeeds`](../../plugins/RepairNeeds) sample tops every survival need back to full (100,
+or 0 for fatigue, which the game counts upwards from "just slept") using the typed player
+reader/writer:
 
 ```csharp
 public SaveKind AppliesTo => SaveKind.Player;
@@ -45,7 +47,7 @@ public Task<SaveOperationResult> ExecuteAsync(ISaveOperationContext context, Can
 
     PlayerSaveWriter.ApplyStats(data, data.Stats with
     {
-        Hunger = 100, Thirst = 100, Sanity = 100, Fatigue = 100, Continence = 100,
+        Hunger = 100, Thirst = 100, Sanity = 100, Fatigue = 0, Continence = 100,
     });
     context.MarkChanged();
     return Task.FromResult(SaveOperationResult.Ok($"restored {below} need(s).", below));

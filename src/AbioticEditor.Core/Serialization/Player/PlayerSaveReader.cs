@@ -286,21 +286,28 @@ public static class PlayerSaveReader
         // The wrapper field is named CurrentSurvivalStats_<hash>; its struct type is
         // CharacterStatsSave_Struct.
         //
-        // Abiotic Factor delta-serializes: a stat still at its blueprint default is
-        // omitted from the struct entirely (e.g. a fresh character that never ate has
-        // no Hunger_ tag because hunger is still full). The blueprint default for all
-        // five survival stats is 100 ("full"; Continence drains downward from 100 just
-        // like the others), so a missing tag must read as 100 - not 0, which would
-        // display a brand-new character as starving.
+        // Abiotic Factor delta-serializes: a stat still at its blueprint default is omitted
+        // from the struct entirely. That default is 0 for all five - confirmed against the
+        // game's own data, not assumed: Default__Abiotic_CharacterSave_C.CharacterSaveData.
+        // CurrentSurvivalStats (the object the game diffs against when saving) and the
+        // CharacterStatsSave_Struct defaults both carry Hunger/Thirst/Sanity/Fatigue/
+        // Continence = 0 (see LiveClassPropsProbe's CharacterStatsStructDefaultValuesProbe).
+        // A missing tag therefore reads as 0, and 0 is a value a real character hits: the
+        // game clamps fatigue to 0 when you sleep (0 = fully rested, it climbs as you stay
+        // awake - CheatConsoleCommands' "no fatigue" feature writes CurrentFatigue = 0.0),
+        // and hunger/thirst/sanity/continence bottom out at 0 as well. An earlier build
+        // assumed a missing stat meant 100, which turned every freshly-slept character into
+        // a fully exhausted one on the next save (Nexus bug report #1: the black curved
+        // drowsiness bands top and bottom of the screen after ANY edit).
         var statsTag = root.FindByPrefix("CurrentSurvivalStats_");
-        double hunger = 100, thirst = 100, sanity = 100, fatigue = 100, continence = 100;
+        double hunger = 0, thirst = 0, sanity = 0, fatigue = 0, continence = 0;
         if (statsTag?.Property is StructProperty statsSp && statsSp.Value is PropertiesStruct statsPs)
         {
-            hunger = statsPs.Properties.GetDouble("Hunger_", 100);
-            thirst = statsPs.Properties.GetDouble("Thirst_", 100);
-            sanity = statsPs.Properties.GetDouble("Sanity_", 100);
-            fatigue = statsPs.Properties.GetDouble("Fatigue_", 100);
-            continence = statsPs.Properties.GetDouble("Continence_", 100);
+            hunger = statsPs.Properties.GetDouble("Hunger_", 0);
+            thirst = statsPs.Properties.GetDouble("Thirst_", 0);
+            sanity = statsPs.Properties.GetDouble("Sanity_", 0);
+            fatigue = statsPs.Properties.GetDouble("Fatigue_", 0);
+            continence = statsPs.Properties.GetDouble("Continence_", 0);
         }
 
         var money = (int)root.GetLong("CurrentMoney_", defaultValue: 0);

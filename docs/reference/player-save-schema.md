@@ -8,7 +8,7 @@ struct property. All field names carry blueprint hash suffixes - match by prefix
 
 | Property prefix          | Type | Notes |
 |--------------------------|------|-------|
-| `CurrentSurvivalStats_`  | Struct | Hunger/Thirst/Sanity/Fatigue/Continence doubles, 0–100. |
+| `CurrentSurvivalStats_`  | Struct | Hunger/Thirst/Sanity/Fatigue/Continence doubles, 0–100. Every member's blueprint default is **0**, so a stat sitting at exactly 0 is omitted from the file (the game delta-serializes). Fatigue counts *up* from 0 (rested) as you stay awake, so "0 = just slept" is a common omission; the reader must treat a missing stat as 0, never 100. |
 | `CurrentMoney_`          | Int | Vending-machine money; counter caps at 1000 in-game. |
 | `EquipmentInventory_`    | Array<Abiotic_InventoryItemSlotStruct> | 13 slots, paper-doll. |
 | `HotbarInventory_`       | Array<...> | 8 slots (10 with Fanny Pack). |

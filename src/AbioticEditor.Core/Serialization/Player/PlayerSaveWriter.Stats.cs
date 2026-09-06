@@ -23,14 +23,27 @@ public static partial class PlayerSaveWriter
         var statsTag = root.FindByPrefix("CurrentSurvivalStats_");
         if (statsTag?.Property is StructProperty sp && sp.Value is PropertiesStruct ps)
         {
-            SetDouble(ps.Properties, "Hunger_", newStats.Hunger, FullNames.Hunger);
-            SetDouble(ps.Properties, "Thirst_", newStats.Thirst, FullNames.Thirst);
-            SetDouble(ps.Properties, "Sanity_", newStats.Sanity, FullNames.Sanity);
-            SetDouble(ps.Properties, "Fatigue_", newStats.Fatigue, FullNames.Fatigue);
-            SetDouble(ps.Properties, "Continence_", newStats.Continence, FullNames.Continence);
+            // The game omits a stat sitting at its default (0 - see PlayerSaveReader.ReadStats),
+            // so a value of 0 for a tag that does not exist is already what the file says:
+            // creating the tag would only churn bytes. Any other value must create it, since a
+            // prefix lookup legitimately fails on a healthy save (the central writer rule).
+            SetDeltaDouble(ps.Properties, "Hunger_", newStats.Hunger, FullNames.Hunger);
+            SetDeltaDouble(ps.Properties, "Thirst_", newStats.Thirst, FullNames.Thirst);
+            SetDeltaDouble(ps.Properties, "Sanity_", newStats.Sanity, FullNames.Sanity);
+            SetDeltaDouble(ps.Properties, "Fatigue_", newStats.Fatigue, FullNames.Fatigue);
+            SetDeltaDouble(ps.Properties, "Continence_", newStats.Continence, FullNames.Continence);
         }
 
         SetInt(root, "CurrentMoney_", newStats.Money, FullNames.CurrentMoney);
+    }
+
+    /// <summary>Sets a delta-serialized double: an existing tag is always updated; a missing
+    /// one is created only when <paramref name="value"/> differs from the blueprint default of
+    /// 0, because "absent" already means 0 to the game.</summary>
+    private static void SetDeltaDouble(IList<FPropertyTag> tags, string prefix, double value, string createFullName)
+    {
+        if (tags.FindByPrefix(prefix) is null && value == 0) return;
+        SetDouble(tags, prefix, value, createFullName);
     }
 
     /// <summary>

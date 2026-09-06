@@ -10,9 +10,10 @@ namespace AbioticEditor.Tests;
 
 /// <summary>
 /// Tests for the delta-serialization fix: Abiotic Factor omits properties that sit at
-/// their blueprint default (e.g. a fresh character's <c>Hunger_</c> is absent from
-/// <c>CurrentSurvivalStats_</c>). The reader must fall back to the game default (100)
-/// and the writer must create the missing tag rather than silently dropping the edit.
+/// their blueprint default (e.g. a rested character's <c>Fatigue_</c>, or a starving one's
+/// <c>Hunger_</c>, is absent from <c>CurrentSurvivalStats_</c>). The reader must fall back to
+/// the game's actual default (0 for every survival stat) and the writer must create the
+/// missing tag rather than silently dropping the edit.
 /// </summary>
 public class MissingTagWriteTests
 {
@@ -78,11 +79,12 @@ public class MissingTagWriteTests
         Fixtures.CascadeDir ?? string.Empty, "PlayerData", "Player_76561197993781479.sav");
 
     // =====================================================================
-    // Reader: missing stat tags read as the game default (100), not 0
+    // Reader: missing stat tags read as the game's blueprint default, which is 0 for every
+    // survival stat (Default__Abiotic_CharacterSave_C.CharacterSaveData.CurrentSurvivalStats)
     // =====================================================================
 
     [Fact]
-    public void Reader_MissingHungerTag_DefaultsTo100()
+    public void Reader_MissingHungerTag_DefaultsToZero()
     {
         var path = FindPlayerSaveWithoutHunger();
         if (path is null)
@@ -94,7 +96,7 @@ public class MissingTagWriteTests
 
         var save = PlayerSaveReader.ReadFromFile(path);
 
-        Assert.Equal(100.0, save.Stats.Hunger);
+        Assert.Equal(0.0, save.Stats.Hunger);
         // The other stats were explicitly serialized on this save (they had drifted off
         // their defaults) and must not be touched by the defaulting logic.
         Assert.NotEqual(0.0, save.Stats.Thirst);

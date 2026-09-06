@@ -30,8 +30,9 @@ public static class PlayerSaveFactory
     {
         ArgumentNullException.ThrowIfNull(data);
 
-        // Vitals full, wallet empty.
-        PlayerSaveWriter.ApplyStats(data, new CharacterStats(100, 100, 100, 100, 100, Money: 0));
+        // Vitals full, wallet empty. Fatigue is the odd one out: the game counts it UP from 0
+        // (just slept) as you stay awake, so a fresh, rested character has 0, not 100.
+        PlayerSaveWriter.ApplyStats(data, new CharacterStats(100, 100, 100, Fatigue: 0, 100, Money: 0));
         PlayerSaveWriter.ApplyLimbHealth(data, LimbHealth.Full);
 
         // Skills back to level 0 (0 XP), multiplier neutral - keep the positional array.

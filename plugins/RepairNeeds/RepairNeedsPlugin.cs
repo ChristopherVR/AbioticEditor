@@ -16,22 +16,24 @@ public sealed class RepairNeedsPlugin : IAbioticPlugin
 
 /// <summary>
 /// Tops every survival need (hunger, thirst, sanity, fatigue, continence) back up to full
-/// on a player save, leaving money alone. A practical "fix-up": it also repairs the
-/// delta-serialization case where a need the game never wrote reads back as 0 - this writes
-/// the tag at 100. Only the needs that are actually below full are changed, so a healthy save
-/// reports no change (and the host skips the backup + write entirely).
+/// on a player save, leaving money alone. "Full" is 100 for four of them and 0 for fatigue:
+/// the game's fatigue climbs from 0 (just slept) upwards as you stay awake, so a rested
+/// character has 0 fatigue, not 100 (an earlier build of this sample wrote 100, which is a
+/// character about to pass out). Only the needs that are actually off full are changed, so a
+/// healthy save reports no change (and the host skips the backup + write entirely).
 /// </summary>
 public sealed class RepairNeedsOperation : ISaveOperation
 {
     private const double Full = 100d;
+    private const double Rested = 0d;
 
     public string Id => "repair-needs";
 
     public string DisplayName => "Repair Needs";
 
     public string Description =>
-        "Restores hunger, thirst, sanity, fatigue and continence to 100 on a player save "
-        + "(also fixes needs that read as 0 because the game never wrote the tag). Money is untouched.";
+        "Restores hunger, thirst, sanity and continence to 100 and fatigue to 0 (fully rested) "
+        + "on a player save. Money is untouched.";
 
     public SaveKind AppliesTo => SaveKind.Player;
 
@@ -43,14 +45,14 @@ public sealed class RepairNeedsOperation : ISaveOperation
         var stats = data.Stats;
 
         // Count which needs are below full so the report is accurate and a healthy save no-ops.
-        var below = new (string Name, double Value)[]
+        var below = new (string Name, bool OffFull)[]
         {
-            ("hunger", stats.Hunger),
-            ("thirst", stats.Thirst),
-            ("sanity", stats.Sanity),
-            ("fatigue", stats.Fatigue),
-            ("continence", stats.Continence),
-        }.Count(s => s.Value < Full);
+            ("hunger", stats.Hunger < Full),
+            ("thirst", stats.Thirst < Full),
+            ("sanity", stats.Sanity < Full),
+            ("fatigue", stats.Fatigue > Rested),
+            ("continence", stats.Continence < Full),
+        }.Count(s => s.OffFull);
 
         if (below == 0)
         {
@@ -62,7 +64,7 @@ public sealed class RepairNeedsOperation : ISaveOperation
             Hunger = Full,
             Thirst = Full,
             Sanity = Full,
-            Fatigue = Full,
+            Fatigue = Rested,
             Continence = Full,
         };
         PlayerSaveWriter.ApplyStats(data, repaired);

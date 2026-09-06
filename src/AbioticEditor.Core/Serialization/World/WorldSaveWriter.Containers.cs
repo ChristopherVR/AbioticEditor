@@ -146,18 +146,29 @@ public static partial class WorldSaveWriter
             var rowHandle = slotProps.FindByPrefix("ItemDataTable_");
             if (rowHandle?.Property is StructProperty rhSp && rhSp.Value is PropertiesStruct rhPs)
             {
+                var previousRow = rhPs.Properties.GetString("RowName");
                 SetName(rhPs.Properties, "RowName", newSlot.ItemId);
 
-                // Same fix as PlayerSaveWriter.ApplySlot: point the row handle at the item's real
-                // table, but only when it still has the empty-slot default (ItemTable_Pickups) or
-                // nothing. This fills a new item and repairs one an earlier build left on the wrong
-                // table (which renders blank); a real item keeps its table (byte-perfect edit).
+                // Point the row handle at the table that actually holds this item. An empty slot
+                // defaults to ItemTable_Pickups, which does NOT contain catalog items, so an item
+                // placed into one and left on that table fails to resolve in-game (the slot reads
+                // as occupied but renders blank). Retarget only when this write actually changes
+                // what the slot holds, or when the loaded catalog positively knows the item lives
+                // elsewhere (which also REPAIRS an item an earlier editor build left on the wrong
+                // table). Everything else - including every slot the GAME wrote, and the "Empty"
+                // sentinel row itself - keeps its table, because the app re-applies every slot on
+                // every save and any "normalization" here would rewrite saves the player never
+                // asked to change (Nexus bug report #1 was exactly that class of churn).
                 var currentTable = (rhPs.Properties.FindByPrefix("DataTable")?.Property as ObjectProperty)?.ObjectType?.ToString();
-                if (string.IsNullOrEmpty(currentTable)
-                    || currentTable.EndsWith("ItemTable_Pickups", StringComparison.OrdinalIgnoreCase))
+                var knownTable = Core.Items.ItemTableIndex.TableRefFor(newSlot.ItemId);
+                var rowChanged = !string.Equals(previousRow, newSlot.ItemId, StringComparison.Ordinal);
+                var onEmptySlotTable = string.IsNullOrEmpty(currentTable)
+                    || currentTable.EndsWith("ItemTable_Pickups", StringComparison.OrdinalIgnoreCase);
+                var catalogDisagrees = knownTable is not null
+                    && !string.Equals(knownTable, currentTable, StringComparison.OrdinalIgnoreCase);
+                if (!newSlot.IsEmpty && ((rowChanged && onEmptySlotTable) || catalogDisagrees))
                 {
-                    PlayerSaveWriter.SetObjectPath(rhPs.Properties, "DataTable",
-                        Core.Items.ItemTableIndex.TableRefFor(newSlot.ItemId) ?? PlayerSaveWriter.ItemTableGlobalPath);
+                    PlayerSaveWriter.SetObjectPath(rhPs.Properties, "DataTable", knownTable ?? PlayerSaveWriter.ItemTableGlobalPath);
                 }
             }
         }

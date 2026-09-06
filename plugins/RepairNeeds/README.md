@@ -9,10 +9,10 @@ A good example of a parameter-free operation and of handling the game's delta-se
 
 ## What it does
 
-Restores hunger, thirst, sanity, fatigue, and continence to 100. It also fixes the case where a
-need reads as 0 because it was at its blueprint default and therefore omitted from the file (the
-game delta-serializes, so a missing property is a real value, not "no data"). Money and everything
-else are left untouched. If every need is already full it reports a no-op.
+Restores hunger, thirst, sanity, and continence to 100, and fatigue to 0. Fatigue runs the other
+way from the rest: the game counts it up from 0 (you just slept) as you stay awake, so "rested" is
+0, and 100 would be a character about to collapse. Money and everything else are left untouched.
+If every need is already full it reports a no-op.
 
 ## Manifest
 

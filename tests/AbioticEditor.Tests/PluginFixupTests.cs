@@ -47,7 +47,7 @@ public class PluginFixupTests
         Assert.Equal(100, reloaded.Hunger);
         Assert.Equal(100, reloaded.Thirst);
         Assert.Equal(100, reloaded.Sanity);
-        Assert.Equal(100, reloaded.Fatigue);
+        Assert.Equal(0, reloaded.Fatigue);
         Assert.Equal(100, reloaded.Continence);
 
         // A real write leaves a .bak; a no-change run does not.
