@@ -126,23 +126,22 @@ public static partial class PlayerSaveWriter
                 SetName(rhPs.Properties, "RowName", newSlot.ItemId);
 
                 // Point the row handle at the table that actually holds this item. An empty slot
-                // defaults to ItemTable_Pickups, which does NOT contain catalog items, so an item
-                // placed into one and left on that table fails to resolve in-game (the slot reads
-                // as occupied but renders blank). Retarget only when this write actually changes
-                // what the slot holds, or when the loaded catalog positively knows the item lives
-                // elsewhere (which also REPAIRS an item an earlier editor build left on the wrong
-                // table). Everything else - including every slot the GAME wrote, and the "Empty"
-                // sentinel row itself - keeps its table, because the app re-applies every slot on
-                // every save and any "normalization" here would rewrite saves the player never
-                // asked to change (Nexus bug report #1 was exactly that class of churn).
+                // defaults to ItemTable_Pickups, which does NOT contain most catalog items, so an
+                // item placed into one and left on that table fails to resolve in-game (the slot
+                // reads as occupied but renders blank). Retarget ONLY when this write actually
+                // changes what the slot holds (or the handle has no table at all). Every slot the
+                // GAME wrote keeps its table even when the catalog would file the item elsewhere
+                // (real saves carry game-written items on ItemTable_Pickups that the game resolves
+                // fine), and the "Empty" sentinel row is never touched: the app re-applies every
+                // slot on every save, so any "normalization" here rewrote saves the player never
+                // asked to change (Nexus bug report #1 was exactly that class of churn). To fix an
+                // item an old build left on the wrong table, re-place it in the slot.
                 var currentTable = (rhPs.Properties.FindByPrefix("DataTable")?.Property as ObjectProperty)?.ObjectType?.ToString();
                 var knownTable = Items.ItemTableIndex.TableRefFor(newSlot.ItemId);
                 var rowChanged = !string.Equals(previousRow, newSlot.ItemId, StringComparison.Ordinal);
                 var onEmptySlotTable = string.IsNullOrEmpty(currentTable)
                     || currentTable.EndsWith("ItemTable_Pickups", StringComparison.OrdinalIgnoreCase);
-                var catalogDisagrees = knownTable is not null
-                    && !string.Equals(knownTable, currentTable, StringComparison.OrdinalIgnoreCase);
-                if (!newSlot.IsEmpty && ((rowChanged && onEmptySlotTable) || catalogDisagrees))
+                if (!newSlot.IsEmpty && rowChanged && onEmptySlotTable)
                 {
                     SetObjectPath(rhPs.Properties, "DataTable", knownTable ?? ItemTableGlobalPath);
                 }
