@@ -4,6 +4,7 @@
 @using AbioticEditor.Core.PlayerSaves
 @using AbioticEditor.Core.Items
 @using AbioticEditor.Core.Codex
+@using AbioticEditor.Core.LiveEditing
 @using AbioticEditor.Web.Components.Player
 @inject RecipeVocabularyService RecipeVocabulary
 @inject ItemCatalogService Items
@@ -17,41 +18,97 @@
 @implements IDisposable
 
 @* Native WorldStoryTab.xaml: the MAIN QUEST PROGRESSION panel with the minutes-played LCD row,
-   the 37-chapter checklist (reached dot, DONE/READY/LOCKED, CURRENT badge, SET) and the
-   world-recipes browser with the progress gate. Tapping a chapter opens the native
-   SlotSidebarView chapter detail panel (card art, status, trigger flag, unlock-through /
-   set-current actions) in the right-hand pane via the shared detail host. *@
+   the 37-chapter checklist (reached dot, DONE/READY/LOCKED, CURRENT badge, SET), a weather
+   section (live only - not part of any save) and the world-recipes browser with the progress
+   gate (file editor only). Shared with the live-editing page (LiveConnect.razor) over
+   IWorldStorySession: WorldSaveSession stages chapter/clock edits for SAVE, LiveStorySession
+   applies clock/weather immediately and shows the running game's current-quest row read-only
+   (no grounded live write path moves the story chapter itself - see areas/story.lua). Tapping a
+   chapter opens the native SlotSidebarView chapter detail panel in the right-hand pane via the
+   shared detail host. *@
 <section class="world-editor world-meta-panel" aria-label="@L.Resource("WorldStory_MainQuestProgression")">
     <h3 class="wm-h2">@L.Resource("WorldStory_MainQuestProgression")</h3>
     <p class="wm-intro">@L.Resource("WorldStory_StorySplitIntro")</p>
-    @if (!Session.IsMetadataSave)
+    @if (!Session.CanShowStory)
     {
         <p class="empty">@L.Resource("WorldStory_WhyMetadata")</p>
     }
     else
     {
+        @if (Session.AppliesImmediately && !Session.IsHost)
+        {
+            <p class="error-text" role="alert">@L.Resource("LiveWorld_NotHostWarning")</p>
+        }
         <div class="wm-divider" role="presentation"></div>
 
-        <div class="ws-minutes-row">
-            <span class="wm-label">@L.Resource("WorldStory_MinutesPlayed")</span>
-            <input type="number" min="0" value="@Session.MinutesPassed" aria-label="@L.Resource("WorldStory_MinutesPlayed")" @onchange="SetMinutes" />
-            <span class="wm-readout">@L.Resource("WorldStory_PlaytimeFormat", (Session.MinutesPassed ?? 0) / 60, (Session.MinutesPassed ?? 0) % 60)</span>
-            @if (Session.LastPlayedText is { } lastPlayed)
-            {
-                <span class="wm-status ws-last-played">@L.Resource("WorldStory_LastPlayedFormat", lastPlayed)</span>
-            }
-        </div>
+        @if (Session.MinutesPassed is not null || Session.CanSetMinutesPassed)
+        {
+            <div class="ws-minutes-row">
+                <span class="wm-label">@L.Resource("WorldStory_MinutesPlayed")</span>
+                <input type="number" min="0" value="@Session.MinutesPassed" disabled="@(!Session.CanSetMinutesPassed)" aria-label="@L.Resource("WorldStory_MinutesPlayed")" @onchange="SetMinutesAsync" />
+                <span class="wm-readout">@L.Resource("WorldStory_PlaytimeFormat", (Session.MinutesPassed ?? 0) / 60, (Session.MinutesPassed ?? 0) % 60)</span>
+                @if (Session.LastPlayedText is { } lastPlayed)
+                {
+                    <span class="wm-status ws-last-played">@L.Resource("WorldStory_LastPlayedFormat", lastPlayed)</span>
+                }
+            </div>
 
-        <div class="wm-divider" role="presentation"></div>
+            <div class="wm-divider" role="presentation"></div>
+        }
+
+        @if (Session.WorldTimeSeconds is { } clockSeconds && Session.WorldDay is { } clockDay)
+        {
+            <div class="live-world-grid">
+                <div class="live-world-block">
+                    <h4 class="live-inventory-group">@L.Resource("LiveWorld_Clock")</h4>
+                    <p class="live-world-readout">
+                        @L.Resource("LiveWorld_Readout", clockDay, ((int)(Math.Clamp(clockSeconds, 0, 86399) / 3600)).ToString("00"), ((int)(Math.Clamp(clockSeconds, 0, 86399) % 3600 / 60)).ToString("00"))
+                    </p>
+                    <div class="live-inventory-controls live-world-controls">
+                        <label class="live-inventory-field">@L.Resource("LiveWorld_Hour")<input type="number" min="0" max="23" disabled="@(!Session.CanSetWorldClock || _busy)" @bind="_clockHour" /></label>
+                        <label class="live-inventory-field">@L.Resource("LiveWorld_Minute")<input type="number" min="0" max="59" disabled="@(!Session.CanSetWorldClock || _busy)" @bind="_clockMinute" /></label>
+                        <button class="secondary" type="button" disabled="@(!Session.CanSetWorldClock || _busy)" @onclick="SetClockTimeAsync">@L.Resource("LiveWorld_SetTime")</button>
+                    </div>
+                    <div class="live-inventory-controls live-world-controls">
+                        <label class="live-inventory-field">@L.Resource("LiveWorld_DayNumber")<input type="number" min="0" disabled="@(!Session.CanSetWorldClock || _busy)" @bind="_clockDay" /></label>
+                        <button class="secondary" type="button" disabled="@(!Session.CanSetWorldClock || _busy)" @onclick="SetClockDayAsync">@L.Resource("LiveWorld_SetDay")</button>
+                    </div>
+                </div>
+
+                @if (Session.SupportsWeather)
+                {
+                    <div class="live-world-block">
+                        <h4 class="live-inventory-group">@L.Resource("LiveWorld_Weather")</h4>
+                        <p class="live-world-readout">@L.Resource("LiveWorld_CurrentWeather", WeatherLabel(Session.CurrentWeather))</p>
+                        <div class="live-inventory-controls live-world-controls">
+                            <select @bind="_weather" disabled="@_busy">
+                                @foreach (var option in Session.WeatherOptions)
+                                {
+                                    <option value="@option">@WeatherLabel(option)</option>
+                                }
+                            </select>
+                            <button class="secondary" type="button" disabled="@(!Session.IsHost || _busy)" @onclick="TriggerWeatherAsync">@L.Resource("LiveWorld_TriggerNow")</button>
+                            <button class="secondary" type="button" disabled="@(!Session.IsHost || _busy || _weather == "None")" @onclick="QueueWeatherAsync">@L.Resource("LiveWorld_QueueTomorrow")</button>
+                        </div>
+                        <p class="muted">@L.Resource("LiveWorld_WeatherHelp")</p>
+                    </div>
+                }
+            </div>
+
+            <div class="wm-divider" role="presentation"></div>
+        }
 
         <div class="ws-chapters-head">
             <span class="wm-label">@L.Resource("WorldStory_ChaptersHeader")</span>
             <span class="wm-readout">@ChapterIndexText</span>
         </div>
 
-        <label class="ws-move-players" title="@L.Resource("WorldStory_MovePlayersCaption")">
-            <input type="checkbox" @bind="_movePlayers" /> @L.Resource("WorldStory_MovePlayersLabel")
-        </label>
+        @if (Session.CanSetStoryChapter)
+        {
+            <label class="ws-move-players" title="@L.Resource("WorldStory_MovePlayersCaption")">
+                <input type="checkbox" @bind="_movePlayers" /> @L.Resource("WorldStory_MovePlayersLabel")
+            </label>
+        }
 
         <div class="ws-chapter-list" role="listbox" aria-label="@L.Resource("WorldStory_ChaptersHeader")">
             @foreach (var (chapter, index) in StoryProgressionCatalog.Chapters.Select((chapter, index) => (chapter, index)))
@@ -85,101 +142,127 @@
                     {
                         <span role="presentation"></span>
                     }
-                    <button type="button" class="ws-chapter-set" disabled="@(current || _settingChapter)"
-                            @onclick:stopPropagation="true" @onclick="() => SetChapterAsync(chapter.Row)">@L.Resource("WorldStory_Set")</button>
+                    @if (Session.CanSetStoryChapter)
+                    {
+                        <button type="button" class="ws-chapter-set" disabled="@(current || _settingChapter)"
+                                @onclick:stopPropagation="true" @onclick="() => SetChapterAsync(chapter.Row)">@L.Resource("WorldStory_Set")</button>
+                    }
+                    else
+                    {
+                        <span role="presentation"></span>
+                    }
                 </div>
             }
         </div>
 
-        <div class="wm-divider" role="presentation"></div>
+        @if (Session.SupportsRecipes)
+        {
+            <div class="wm-divider" role="presentation"></div>
 
-        <p class="wm-note">@L.Resource("WorldStory_ContainmentMoved")</p>
+            <p class="wm-note">@L.Resource("WorldStory_ContainmentMoved")</p>
 
-        <div class="ws-recipes-head">
-            <span class="wm-label">@L.Resource("WorldStory_WorldRecipes")</span>
-            <span class="wm-readout">@RecipesCountText</span>
-            <input type="search" placeholder="@L.Resource("WorldStory_SearchRecipes")" aria-label="@L.Resource("WorldStory_SearchRecipes")"
-                   @bind="_recipeSearch" @bind:event="oninput" />
-            <button type="button" class="wm-hazard-btn"
-                    disabled="@(!CanEditRecipes || !AllWorldRecipeRows.Any(row => !Session.GlobalRecipes.Contains(row.Id)))"
-                    @onclick="UnlockAllRecipes">@L.Resource("WorldStory_UnlockAll")</button>
-        </div>
+            <div class="ws-recipes-head">
+                <span class="wm-label">@L.Resource("WorldStory_WorldRecipes")</span>
+                <span class="wm-readout">@RecipesCountText</span>
+                <input type="search" placeholder="@L.Resource("WorldStory_SearchRecipes")" aria-label="@L.Resource("WorldStory_SearchRecipes")"
+                       @bind="_recipeSearch" @bind:event="oninput" />
+                <button type="button" class="wm-hazard-btn"
+                        disabled="@(!CanEditRecipes || !AllWorldRecipeRows.Any(row => !RecipeIsUnlocked(row.Id)))"
+                        @onclick="UnlockAllRecipes">@L.Resource("WorldStory_UnlockAll")</button>
+            </div>
 
-        <div class="ws-recipe-list" role="listbox" aria-label="@L.Resource("WorldStory_WorldRecipes")">
-            @if (!CanEditRecipes || !VisibleWorldRecipeRows.Any())
-            {
-                <p class="ws-recipes-empty">@L.Resource("WorldStory_NoRecipes")</p>
-            }
-            @if (CanEditRecipes)
-            {
-                @foreach (var row in VisibleWorldRecipeRows)
+            <div class="ws-recipe-list" role="listbox" aria-label="@L.Resource("WorldStory_WorldRecipes")">
+                @if (!CanEditRecipes || !VisibleWorldRecipeRows.Any())
                 {
-                    var unlocked = Session.GlobalRecipes.Contains(row.Id);
-                    <div class="ws-recipe-row @(row.Id == _selectedWorldRecipeId ? "selected" : null)" @key="row.Id"
-                         role="option" aria-selected="@(row.Id == _selectedWorldRecipeId)" tabindex="0"
-                         @onclick="() => ToggleRecipeDetail(row.Id)" @onkeydown="e => RecipeKeyDown(e, row.Id)">
-                        <input type="checkbox" checked="@unlocked" aria-label="@row.DisplayName" @key="@($"{row.Id}:{_gateNonce}")"
-                               @onclick:stopPropagation="true" @onchange="e => SetRecipe(row.Id, e.Value is bool value && value)" />
-                        <span class="ws-recipe-icon">
-                            @if (row.Info?.CreatesItemId is { } createdId)
+                    <p class="ws-recipes-empty">@L.Resource("WorldStory_NoRecipes")</p>
+                }
+                @if (CanEditRecipes)
+                {
+                    @foreach (var row in VisibleWorldRecipeRows)
+                    {
+                        var unlocked = RecipeIsUnlocked(row.Id);
+                        <div class="ws-recipe-row @(row.Id == _selectedWorldRecipeId ? "selected" : null)" @key="row.Id"
+                             role="option" aria-selected="@(row.Id == _selectedWorldRecipeId)" tabindex="0"
+                             @onclick="() => ToggleRecipeDetail(row.Id)" @onkeydown="e => RecipeKeyDown(e, row.Id)">
+                            <input type="checkbox" checked="@unlocked" aria-label="@row.DisplayName" @key="@($"{row.Id}:{_gateNonce}")"
+                                   @onclick:stopPropagation="true" @onchange="e => SetRecipe(row.Id, e.Value is bool value && value)" />
+                            <span class="ws-recipe-icon">
+                                @if (row.Info?.CreatesItemId is { } createdId)
+                                {
+                                    <ItemIcon ItemId="@createdId" Alt="" />
+                                }
+                            </span>
+                            <span class="ws-recipe-text">
+                                <strong>@row.DisplayName</strong>
+                                <small>@SubText(row)</small>
+                            </span>
+                            <span class="ws-recipe-status">@L.Resource(unlocked ? "PlayerRecipes_BadgeUnlocked" : "PlayerRecipes_BadgeLocked")</span>
+                        </div>
+                    }
+                }
+            </div>
+
+            @if (SelectedWorldRecipeRow is { } selected)
+            {
+                var unlocked = RecipeIsUnlocked(selected.Id);
+                <div class="detail-card detail-card--orange">
+                    <div class="detail-head">
+                        <span class="offer-icon">
+                            @if (selected.Info?.CreatesItemId is { } createdItemId)
                             {
-                                <ItemIcon ItemId="@createdId" Alt="" />
+                                <ItemIcon ItemId="@createdItemId" Alt="@selected.DisplayName" />
+                            }
+                            else
+                            {
+                                <span class="material-symbol" aria-hidden="true">auto_fix_high</span>
                             }
                         </span>
-                        <span class="ws-recipe-text">
-                            <strong>@row.DisplayName</strong>
-                            <small>@SubText(row)</small>
-                        </span>
-                        <span class="ws-recipe-status">@L.Resource(unlocked ? "PlayerRecipes_BadgeUnlocked" : "PlayerRecipes_BadgeLocked")</span>
+                        @* What one craft yields and where it is made. The stored recipe name is not
+                           shown anywhere, not even on hover: it means nothing to a player. *@
+                        <span class="detail-title"><strong>@selected.DisplayName</strong><small>@SubText(selected)</small></span>
                     </div>
-                }
-            }
-        </div>
+                    <p class="detail-value">@L.Resource("PlayerRecipes_MakesCount", selected.Info is { Count: > 1 } info ? info.Count : 1)</p>
 
-        @if (SelectedWorldRecipeRow is { } selected)
-        {
-            var unlocked = Session.GlobalRecipes.Contains(selected.Id);
-            <div class="detail-card detail-card--orange">
-                <div class="detail-head">
-                    <span class="offer-icon">
-                        @if (selected.Info?.CreatesItemId is { } createdItemId)
-                        {
-                            <ItemIcon ItemId="@createdItemId" Alt="@selected.DisplayName" />
-                        }
-                        else
-                        {
-                            <span class="material-symbol" aria-hidden="true">auto_fix_high</span>
-                        }
-                    </span>
-                    @* What one craft yields and where it is made. The stored recipe name is not
-                       shown anywhere, not even on hover: it means nothing to a player. *@
-                    <span class="detail-title"><strong>@selected.DisplayName</strong><small>@SubText(selected)</small></span>
+                    <span class="detail-label">@L.Resource("PlayerRecipes_Ingredients")</span>
+                    <p class="detail-value">@IngredientsText(selected.Info)</p>
+
+                    <span class="detail-label">@L.Resource("PlayerRecipes_CraftedAt")</span>
+                    <p class="detail-value">@BenchesText(selected.Info)</p>
+
+                    @if (UsedInText(selected.Info) is { Length: > 0 } usedIn)
+                    {
+                        <span class="detail-label">@L.Resource("PlayerRecipes_UsedIn")</span>
+                        <p class="detail-value">@usedIn</p>
+                    }
+
+                    <label class="door-toggle"><input type="checkbox" checked="@unlocked" @onchange="e => SetRecipe(selected.Id, e.Value is bool value && value)" /> @L.Resource("PlayerRecipes_BadgeUnlocked")</label>
                 </div>
-                <p class="detail-value">@L.Resource("PlayerRecipes_MakesCount", selected.Info is { Count: > 1 } info ? info.Count : 1)</p>
+            }
 
-                <span class="detail-label">@L.Resource("PlayerRecipes_Ingredients")</span>
-                <p class="detail-value">@IngredientsText(selected.Info)</p>
-
-                <span class="detail-label">@L.Resource("PlayerRecipes_CraftedAt")</span>
-                <p class="detail-value">@BenchesText(selected.Info)</p>
-
-                @if (UsedInText(selected.Info) is { Length: > 0 } usedIn)
-                {
-                    <span class="detail-label">@L.Resource("PlayerRecipes_UsedIn")</span>
-                    <p class="detail-value">@usedIn</p>
-                }
-
-                <label class="door-toggle"><input type="checkbox" checked="@unlocked" @onchange="e => SetRecipe(selected.Id, e.Value is bool value && value)" /> @L.Resource("PlayerRecipes_BadgeUnlocked")</label>
-            </div>
+            <p class="wm-note">@L.Resource("WorldStory_WhyMetadata")</p>
         }
-
-        <p class="wm-note">@L.Resource("WorldStory_WhyMetadata")</p>
     }
-    <div class="editor-actions"><button class="primary" disabled="@(!Session.IsDirty)" @onclick="SaveAsync">@L.Text("save").ToUpperInvariant() @L.Text("world").ToUpperInvariant()</button><button class="secondary" disabled="@(!Session.IsDirty)" @onclick="Revert">@L.Text("revert").ToUpperInvariant()</button></div>
+    @if (!Session.AppliesImmediately)
+    {
+        <div class="editor-actions"><button class="primary" disabled="@(!Session.IsDirty)" @onclick="SaveAsync">@L.Text("save").ToUpperInvariant() @L.Text("world").ToUpperInvariant()</button><button class="secondary" disabled="@(!Session.IsDirty)" @onclick="Revert">@L.Text("revert").ToUpperInvariant()</button></div>
+    }
+    @if (Session.Status is not null)
+    {
+        <p class="status-text">@Session.Status</p>
+    }
+    @if (_error is not null)
+    {
+        <p class="error-text" role="alert">@_error</p>
+    }
 </section>
 
 @code {
-    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter, EditorRequired] public IWorldStorySession Session { get; set; } = null!;
+    /// <summary>Where the currently-set flags come from - the same <c>WorldSaveSession</c>
+    /// instance offline (it implements both interfaces), the sibling <c>LiveWorldFlagsSession</c>
+    /// live. Chapter DONE/READY/LOCKED status is computed from this, not from <see cref="Session"/>,
+    /// because live keeps flags and story as separate connections.</summary>
+    [Parameter, EditorRequired] public IWorldFlagsSession Flags { get; set; } = null!;
     [Parameter] public string Title { get; set; } = "World editor";
     [Parameter] public EventCallback<string?> OnError { get; set; }
     private bool _movePlayers;
@@ -189,19 +272,37 @@
     private string? _selectedWorldRecipeId;
     private int _gateNonce;
     private IReadOnlySet<string>? _worldFlags;
-    /// <summary>The trader roster, used to preview who a story jump would bring out.</summary>
+    /// <summary>The trader roster, used to preview who a story jump would bring out (file editor only).</summary>
     private IReadOnlyList<TraderInfo> _traders = [];
+    private bool _busy;
+    private string? _error;
+    private int _clockHour;
+    private int _clockMinute;
+    private int _clockDay;
+    private string _weather = "None";
+    private IWorldStorySession? _clockSeededFrom;
+
+    /// <summary>Escape hatch for the recipe browser and the sibling-save flag sync, both of which
+    /// only exist for the file editor - live has no save file to read alongside, and the running
+    /// game already knows what it has unlocked. Non-null exactly when <see cref="Session"/> is a
+    /// <c>WorldSaveSession</c>, i.e. whenever <see cref="IWorldStorySession.SupportsRecipes"/> or
+    /// <see cref="IWorldStorySession.CanSetStoryChapter"/> is true.</summary>
+    private WorldSaveSession? FileSession => Session as WorldSaveSession;
 
     protected override async Task OnInitializedAsync()
     {
         Selection.Changed += SelectionChanged;
-        // Native gates world recipe unlocks (and chapter DONE/READY/LOCKED state) through the
-        // sibling Facility save's flags. Resolving them reads a large file, so it happens off
-        // the render path.
-        var path = Session.Path;
-        await Task.Run(Gate.Warm);
-        _worldFlags = await Gate.ResolveWorldFlagsAsync(path);
-        _traders = await Task.Run(TraderVocabulary.GetTraders);
+        if (FileSession is { } file)
+        {
+            // Native gates world recipe unlocks (and chapter DONE/READY/LOCKED state) through the
+            // sibling Facility save's flags. Resolving them reads a large file, so it happens off
+            // the render path. Live needs none of this: the running world's own flag set already
+            // has everything (see HasWorldFlag below).
+            var path = file.Path;
+            await Task.Run(Gate.Warm);
+            _worldFlags = await Gate.ResolveWorldFlagsAsync(path);
+            _traders = await Task.Run(TraderVocabulary.GetTraders);
+        }
     }
 
     /// <summary>Another surface took over the right-hand pane: drop the row highlight.</summary>
@@ -222,9 +323,10 @@
 
     // ---------- chapter checklist state (native StoryChapterItemViewModel) ----------
 
-    /// <summary>Case-insensitive world-flag lookup; metadata saves read the sibling Facility flags.</summary>
+    /// <summary>World-flag lookup; metadata saves also read the sibling Facility flags (live
+    /// needs no such fallback - the running world's own flag set is already complete).</summary>
     private bool HasWorldFlag(string flag)
-        => Session.Flags.Contains(flag) || _worldFlags?.Contains(flag) == true;
+        => Flags.Flags.Contains(flag) || _worldFlags?.Contains(flag) == true;
 
     private bool IsCurrent(StoryChapter chapter)
         => string.Equals(Session.StoryProgressionRow, chapter.Row, StringComparison.OrdinalIgnoreCase);
@@ -354,14 +456,21 @@
                 <span class="wm-label ws-detail-blocked">@L.Resource("Slot_BlockedByLinearDependencies")</span>
                 <p class="ws-detail-missing">@MissingDependenciesText(chapterMissing)</p>
             }
-            <div class="ws-detail-actions">
-                <button type="button" class="wm-hazard-btn" disabled="@_settingChapter"
-                        title="@L.Resource("Slot_AddsEveryChapterTriggerFlagFromTheStartOfTheStoryThroughThisChapterTheDependencySafeWayToUnlockItAdditiveOnlyNeverRemovesFlags")"
-                        @onclick="() => RequestUnlockThrough(chapter)">@L.Resource("Slot_UnlockStoryThroughHere")</button>
-                <button type="button" class="secondary" disabled="@(_settingChapter || IsCurrent(chapter))"
-                        @onclick="() => SetChapterAsync(chapter.Row)">@L.Resource("Slot_SetAsCurrentChapter")</button>
-            </div>
-            <p class="wm-note">@L.Resource("Slot_ChaptersAreStrictlyLinearAQuestCantReallyBeginUntilEveryEarlierTriggerFlagIsSetStageSaveToWrite")</p>
+            @if (Session.CanSetStoryChapter)
+            {
+                <div class="ws-detail-actions">
+                    <button type="button" class="wm-hazard-btn" disabled="@_settingChapter"
+                            title="@L.Resource("Slot_AddsEveryChapterTriggerFlagFromTheStartOfTheStoryThroughThisChapterTheDependencySafeWayToUnlockItAdditiveOnlyNeverRemovesFlags")"
+                            @onclick="() => RequestUnlockThrough(chapter)">@L.Resource("Slot_UnlockStoryThroughHere")</button>
+                    <button type="button" class="secondary" disabled="@(_settingChapter || IsCurrent(chapter))"
+                            @onclick="() => SetChapterAsync(chapter.Row)">@L.Resource("Slot_SetAsCurrentChapter")</button>
+                </div>
+                <p class="wm-note">@L.Resource("Slot_ChaptersAreStrictlyLinearAQuestCantReallyBeginUntilEveryEarlierTriggerFlagIsSetStageSaveToWrite")</p>
+            }
+            else
+            {
+                <p class="wm-note">@L.Resource("WorldStory_LiveChapterReadOnly")</p>
+            }
         </aside>;
 
     private void ChapterKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs args, StoryChapter chapter)
@@ -376,14 +485,15 @@
     /// </summary>
     private async Task SetChapterAsync(string row)
     {
-        Session.SetStoryProgression(row);
-        Workspace.NotifyEdited();
-        if (!Session.IsMetadataSave) { RefreshChapterDetail(); return; }
+        if (!Session.CanSetStoryChapter) return;
+        await Session.SetStoryChapterAsync(row);
+        NotifyEdited();
+        if (FileSession is not { } file || !Session.CanShowStory) { RefreshChapterDetail(); return; }
         _settingChapter = true;
         RefreshChapterDetail();
         try
         {
-            var path = Session.Path;
+            var path = file.Path;
             var (added, _) = await FlagSync.SyncToChapterAsync(path, row);
             var (cleared, _) = await FlagSync.ClearForwardFlagsAsync(path, row);
             var statusExtra = string.Empty;
@@ -409,6 +519,7 @@
     /// </summary>
     private void RequestUnlockThrough(StoryChapter chapter)
     {
+        if (!Session.CanSetStoryChapter) return;
         var flags = FlagsThrough(chapter);
         if (flags.Length == 0) return;
 
@@ -543,17 +654,18 @@
         RefreshChapterDetail();
         try
         {
-            if (Session.IsMetadataSave)
+            if (FileSession is not { } file) return;
+            if (Session.CanShowStory)
             {
-                var path = Session.Path;
+                var path = file.Path;
                 var (_, message) = await FlagSync.AddFlagsAsync(path, flags);
                 await RefreshWorldFlagsAsync();
                 await OnError.InvokeAsync(message);
             }
             else
             {
-                Session.EnableFlags(flags);
-                Workspace.NotifyEdited();
+                file.EnableFlags(flags);
+                NotifyEdited();
             }
         }
         catch (Exception ex)
@@ -565,15 +677,79 @@
 
     private async Task RefreshWorldFlagsAsync()
     {
-        var path = Session.Path;
-        _worldFlags = await Gate.ResolveWorldFlagsAsync(path);
+        if (FileSession is not { } file) return;
+        _worldFlags = await Gate.ResolveWorldFlagsAsync(file.Path);
     }
 
-    private void SetMinutes(ChangeEventArgs args) { if (int.TryParse(args.Value?.ToString(), out var minutes)) { Session.SetMinutesPassed(minutes); Workspace.NotifyEdited(); } }
+    private Task SetMinutesAsync(ChangeEventArgs args) => RunAsync(async () =>
+    {
+        if (int.TryParse(args.Value?.ToString(), out var minutes))
+        {
+            await Session.SetMinutesPassedAsync(minutes);
+            NotifyEdited();
+        }
+    });
 
-    // ---------- world recipes browser (native GlobalRecipeBrowser) ----------
+    /// <summary>Marks the file workspace dirty; meaningless (and skipped) for the live session,
+    /// which has nothing staged - every change already applied the moment it was made.</summary>
+    private void NotifyEdited() { if (!Session.AppliesImmediately) Workspace.NotifyEdited(); }
 
-    private bool CanEditRecipes => Session.CanEditGlobalRecipes;
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            await action();
+        }
+        catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
+            or IOException or OperationCanceledException)
+        {
+            _error = Errors.Present(exception, "Change the world clock or weather.", "The connection may have dropped; try reconnecting.");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    // ---------- world clock + weather (live: LiveWorldStateChannel via LiveStorySession) ----------
+
+    protected override void OnParametersSet()
+    {
+        // Seed the clock inputs from the session once per fresh reading, never while typing.
+        if (ReferenceEquals(_clockSeededFrom, Session)) return;
+        _clockSeededFrom = Session;
+        if (Session.WorldTimeSeconds is { } seconds)
+        {
+            _clockHour = (int)(Math.Clamp(seconds, 0, 86399) / 3600);
+            _clockMinute = (int)(Math.Clamp(seconds, 0, 86399) % 3600 / 60);
+        }
+        if (Session.WorldDay is { } day) _clockDay = day;
+        if (Session.SupportsWeather && !Session.WeatherOptions.Contains(_weather))
+        {
+            _weather = Session.WeatherOptions.FirstOrDefault() ?? "None";
+        }
+    }
+
+    private string WeatherLabel(string? raw) => raw is null or "None" or ""
+        ? L.Resource("LiveWorld_WeatherNone")
+        : AbioticEditor.Web.Components.Shared.PlainNames.Words(raw);
+
+    private Task SetClockTimeAsync() => RunAsync(() => Session.SetWorldClockAsync(
+        Math.Clamp(_clockHour, 0, 23) * 3600 + Math.Clamp(_clockMinute, 0, 59) * 60, Session.WorldDay ?? _clockDay));
+
+    private Task SetClockDayAsync() => RunAsync(() => Session.SetWorldClockAsync(Session.WorldTimeSeconds ?? 0, Math.Max(0, _clockDay)));
+
+    private Task TriggerWeatherAsync() => RunAsync(() => Session.TriggerWeatherAsync(_weather));
+
+    private Task QueueWeatherAsync() => RunAsync(() => Session.QueueWeatherAsync(_weather));
+
+    // ---------- world recipes browser (native GlobalRecipeBrowser; file editor only) ----------
+
+    private bool CanEditRecipes => Session.SupportsRecipes;
+
+    private bool RecipeIsUnlocked(string id) => FileSession?.GlobalRecipes.Contains(id) == true;
 
     /// <summary>Every known recipe row (from the installed game's vocabulary) plus any recipe
     /// id already unlocked in this save that the vocabulary doesn't know about (e.g. game data
@@ -583,7 +759,7 @@
         get
         {
             var infosById = RecipeVocabulary.GetRecipeInfos().ToDictionary(recipe => recipe.Id, StringComparer.Ordinal);
-            var ids = infosById.Keys.Concat(Session.GlobalRecipes).Distinct(StringComparer.Ordinal);
+            var ids = infosById.Keys.Concat(FileSession?.GlobalRecipes ?? []).Distinct(StringComparer.Ordinal);
             return ids.Select(id =>
             {
                 infosById.TryGetValue(id, out var info);
@@ -611,7 +787,7 @@
         {
             var rows = AllWorldRecipeRows.ToList();
             return rows.Count > 0
-                ? L.Resource("PlayerRecipes_CountUnlocked", rows.Count(row => Session.GlobalRecipes.Contains(row.Id)), rows.Count)
+                ? L.Resource("PlayerRecipes_CountUnlocked", rows.Count(row => RecipeIsUnlocked(row.Id)), rows.Count)
                 : L.Resource("PlayerRecipes_GameDataUnavailable");
         }
     }
@@ -642,6 +818,7 @@
 
     private void SetRecipe(string id, bool unlocked)
     {
+        if (FileSession is not { } file) return;
         // Progress gate (native rule): recipes granted by an email in an unreached region stay
         // locked; the refusal reason lands on a toast and the checkbox snaps back.
         if (unlocked && Gate.CheckUnlock(id, _worldFlags) is { } block)
@@ -650,12 +827,13 @@
             _gateNonce++;
             return;
         }
-        Session.SetGlobalRecipe(id, unlocked);
-        Workspace.NotifyEdited();
+        file.SetGlobalRecipe(id, unlocked);
+        NotifyEdited();
     }
 
     private void UnlockAllRecipes()
     {
+        if (FileSession is not { } file) return;
         RecipeGateBlock? lastBlock = null;
         var allowed = new List<string>();
         foreach (var id in RecipeVocabulary.GetRecipeInfos().Select(recipe => recipe.Id))
@@ -663,8 +841,8 @@
             if (Gate.CheckUnlock(id, _worldFlags) is { } block) { lastBlock = block; continue; }
             allowed.Add(id);
         }
-        Session.EnableGlobalRecipes(allowed);
-        Workspace.NotifyEdited();
+        file.EnableGlobalRecipes(allowed);
+        NotifyEdited();
         if (lastBlock is not null)
             Toasts.Show(L.Resource("Progress_RecipeGated", PlainNames.Words(lastBlock.RecipeId), lastBlock.EmailSubject, lastBlock.ChapterTitle, PlainNames.Flag(L, lastBlock.TriggerFlag)), ToastKind.Warning);
     }
@@ -688,6 +866,9 @@
 
     private void Revert() { Session.Revert(); Workspace.NotifyEdited(); }
     private async Task SaveAsync() { try { await Session.SaveAsync(); Workspace.NotifyEdited(); } catch (Exception ex) { await OnError.InvokeAsync(Errors.Present(ex, "The world save could not be written.", "Your changes remain open; check folder permissions and try again.")); } }
+    // (Revert/SaveAsync are only ever reachable when !Session.AppliesImmediately, i.e. the file
+    // session - see the SAVE/REVERT bar's guard above - so Workspace.NotifyEdited() here is safe
+    // unconditionally, unlike NotifyEdited() elsewhere in this file.)
 
     private sealed record WorldRecipeRow(string Id, RecipeInfo? Info, string DisplayName);
 }

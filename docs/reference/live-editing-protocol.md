@@ -126,6 +126,34 @@ set flag the table does not list. `flags.set` takes `{"flags":[{"name","isSet"}]
 them in order through the game's own world-flag subsystem, so dependent doors, effects and
 triggers react exactly as if the flag had been earned in play. Host only.
 
+## `story.get` / `story.set` - main-quest indicator (read-only)
+
+`story.get` takes no payload and returns `{"currentQuestRow":string,"isHost":bool}`.
+`currentQuestRow` is the running game's current-quest row name (`"None"` when it reports no
+active quest), read from the replicated `CurrentQuest` field on `Abiotic_Survival_GameState_C`
+(confirmed by `tests/AbioticEditor.Probes/LiveClassPropsProbe.cs` dumping
+`AbioticFactor/Content/Blueprints/Meta/Abiotic_Survival_GameState.uasset`: a `CurrentQuest`
+`FStructProperty` plus an `OnRep_CurrentQuest` client notify). The Razor host feeds this row into
+the same `StoryProgressionCatalog` lookup the file editor's chapter checklist uses; a row the
+catalog does not recognise renders as "unknown chapter", the existing graceful fallback for an
+unfamiliar save value.
+
+**There is no live write path for the story chapter.** The shipped
+`AbioticFactor-Win64-Shipping.pdb` has a native `bool UWorldFlagSubsystem::FindCurrentQuest(
+FQuestRowHandle&)` and a `UQuestHandleFunctionLibrary` (`MakeQuestRowHandle`,
+`GetQuestRow(FQuestRowHandle, FQuestData&, ERowValid&)`, `GetAllQuestRowNames/Handles`,
+`DoesQuestRowExist`), but no `SetCurrentQuest` or any other native function that writes it, and no
+settable `OnRep_CurrentQuest` (it is an outbound notify, not an input). `story.set` therefore
+always returns `ok:false` with a player-safe explanation; the shared story tab hides its SET
+controls whenever the session reports `CanSetStoryChapter: false` instead of offering a button
+that cannot work. Setting a chapter's own trigger flags on the QUEST FLAGS tab (`flags.set`)
+remains the real live way to advance the story, exactly like the file editor's "unlock story
+through here" action does on disk.
+
+The world clock and weather that used to have their own `LiveWorldTab` now render inside the same
+shared story tab (`WorldStoryTab`, bound to `IWorldStorySession`) - see `world.get`/`world.set`
+above; nothing changed in that wire shape, only which Razor component renders it.
+
 ## `doors.list` / `doors.set`
 
 `doors.list` returns `{"doors":[...],"isHost":bool}` with, per loaded door: `id`, `label` (class

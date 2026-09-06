@@ -6,7 +6,7 @@ using AbioticEditor.Core.WorldSaves.Features;
 namespace AbioticEditor.Web.Models;
 
 /// <summary>Razor-hosted staged edit session for a world save.</summary>
-public sealed class WorldSaveSession
+public sealed class WorldSaveSession : IWorldFlagsSession, IWorldStorySession
 {
     private WorldSaveData _data;
     private readonly string _path;
@@ -257,6 +257,38 @@ public sealed class WorldSaveSession
         return Flags.Count - before;
     }
 
+    /// <summary>Clears a flag together with everything the curated dependency graph says
+    /// required it - the native CLEAR semantics <c>WorldFlagsTab</c> already relied on before it
+    /// became shared with the live session.</summary>
+    public void ClearFlagWithDependents(string flag)
+    {
+        foreach (var dependent in FlagGate.DependentsOf(new[] { flag }, Flags)) SetFlag(dependent, false);
+    }
+
+    // ---------- IWorldFlagsSession (staged: applies on SAVE like every other world edit) ----------
+
+    IReadOnlySet<string> IWorldFlagsSession.Flags => Flags;
+    bool IWorldFlagsSession.AppliesImmediately => false;
+    bool IWorldFlagsSession.IsHost => true;
+    Task IWorldFlagsSession.SetFlagAsync(string flag, bool enabled, CancellationToken cancellationToken)
+    {
+        SetFlag(flag, enabled);
+        return Task.CompletedTask;
+    }
+    Task<bool> IWorldFlagsSession.AddFlagAsync(string? flag, CancellationToken cancellationToken)
+        => Task.FromResult(AddFlag(flag));
+    Task IWorldFlagsSession.EnableFlagWithPrerequisitesAsync(string flag, CancellationToken cancellationToken)
+    {
+        EnableFlagWithPrerequisites(flag);
+        return Task.CompletedTask;
+    }
+    Task IWorldFlagsSession.ClearFlagWithDependentsAsync(string flag, CancellationToken cancellationToken)
+    {
+        ClearFlagWithDependents(flag);
+        return Task.CompletedTask;
+    }
+    Task IWorldFlagsSession.RefreshAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
     /// <summary>Stages a stable simple-door state: Closed, Open, or Locked.</summary>
     public void SetSimpleDoorState(string id, string rawState)
     {
@@ -486,6 +518,40 @@ public sealed class WorldSaveSession
         _minutesPassed = Math.Max(0, minutes);
         UpdateStatus();
     }
+
+    // ---------- IWorldStorySession (staged: applies on SAVE like every other world edit) ----------
+
+    bool IWorldStorySession.AppliesImmediately => false;
+    bool IWorldStorySession.IsHost => true;
+    bool IWorldStorySession.CanShowStory => IsMetadataSave;
+    bool IWorldStorySession.CanSetStoryChapter => IsMetadataSave;
+    Task IWorldStorySession.SetStoryChapterAsync(string row, CancellationToken cancellationToken)
+    {
+        SetStoryProgression(row);
+        return Task.CompletedTask;
+    }
+    bool IWorldStorySession.CanSetMinutesPassed => IsMetadataSave;
+    Task IWorldStorySession.SetMinutesPassedAsync(int minutes, CancellationToken cancellationToken)
+    {
+        SetMinutesPassed(minutes);
+        return Task.CompletedTask;
+    }
+    bool IWorldStorySession.CanSetWorldClock => _worldTimeSeconds is not null && _worldDay is not null;
+    Task IWorldStorySession.SetWorldClockAsync(double seconds, int day, CancellationToken cancellationToken)
+    {
+        SetWorldClock(seconds, day);
+        return Task.CompletedTask;
+    }
+    // Weather is not stored in any save; only the live session has anything to show here.
+    bool IWorldStorySession.SupportsWeather => false;
+    string? IWorldStorySession.CurrentWeather => null;
+    IReadOnlyList<string> IWorldStorySession.WeatherOptions => [];
+    Task IWorldStorySession.TriggerWeatherAsync(string weather, CancellationToken cancellationToken)
+        => throw new InvalidOperationException("Weather is not part of a save file.");
+    Task IWorldStorySession.QueueWeatherAsync(string weather, CancellationToken cancellationToken)
+        => throw new InvalidOperationException("Weather is not part of a save file.");
+    bool IWorldStorySession.SupportsRecipes => CanEditGlobalRecipes;
+    Task IWorldStorySession.RefreshAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     public void ReleaseContainment(string creature)
     {

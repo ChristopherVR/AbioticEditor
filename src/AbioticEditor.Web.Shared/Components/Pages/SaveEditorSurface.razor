@@ -65,7 +65,7 @@
                 else if (_worldTab == "pets") { <WorldPetsTab Title="@workspace.SelectedSave!.Name" Session="@world" PlayerSession="@Workspace.TransferPlayerSession" OnError="WorldError" /> }
                 else if (_worldTab == "vehicles") { <WorldVehiclesTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" OnOpenContainer="OpenVehicleContainer" /> }
                 else if (_worldTab == "bases") { <WorldBasesTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
-                else if (_worldTab == "story") { <WorldStoryTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
+                else if (_worldTab == "story") { <WorldStoryTab Title="@workspace.SelectedSave!.Name" Session="@world" Flags="@world" OnError="WorldError" /> }
                 else if (_worldTab == "traders") { <WorldTradersTab Title="@workspace.SelectedSave!.Name" Session="@world" /> }
                 else if (_worldTab == "containment") { <WorldContainmentTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
                 else if (_worldTab == FeatureTabPrefix + WorldEntitlementsTab.EntitlementsFeatureId) { <WorldEntitlementsTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
