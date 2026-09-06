@@ -441,13 +441,17 @@
   <data name="PlayerSpawn_ChooseBedTitle" xml:space="preserve"><value>Choose a bed…</value></data>
   <data name="PlayerSpawn_HomeAndRespawn" xml:space="preserve"><value>HOME &amp; RESPAWN</value></data>
   <data name="PlayerSpawn_HomeBed" xml:space="preserve"><value>HOME BED:</value></data>
+  <data name="PlayerSpawn_LiveCurrentPosition" xml:space="preserve"><value>You're currently at X {0}, Y {1}, Z {2}.</value></data>
   <data name="PlayerSpawn_PickRegionTitle" xml:space="preserve"><value>Pick the area the spawn point is in…</value></data>
   <data name="PlayerSpawn_PickTerminalTitle" xml:space="preserve"><value>Pick the punch-card terminal to respawn at…</value></data>
   <data name="PlayerSpawn_Region" xml:space="preserve"><value>REGION</value></data>
   <data name="PlayerSpawn_RespawnTerminal" xml:space="preserve"><value>RESPAWN TERMINAL</value></data>
+  <data name="PlayerSpawn_SetAsMyRespawnPoint" xml:space="preserve"><value>SET AS MY RESPAWN POINT</value></data>
   <data name="PlayerSpawn_SetSpawnHere" xml:space="preserve"><value>SET SPAWN HERE</value></data>
   <data name="PlayerSpawn_SpawnAndHome" xml:space="preserve"><value>SPAWN &amp; HOME</value></data>
   <data name="PlayerSpawn_SpawnHelp" xml:space="preserve"><value>The spawn point is the last safe spot, in the area shown above. SET SPAWN HERE copies a bed's position, so pick the area that bed is in if it differs. Sleeping bags let you rest without moving your spawn.</value></data>
+  <data name="PlayerSpawn_TeleportHere" xml:space="preserve"><value>TELEPORT ME HERE</value></data>
+  <data name="PlayerSpawn_UseCurrentPosition" xml:space="preserve"><value>USE MY CURRENT POSITION</value></data>
   <data name="PlayerSpawn_X" xml:space="preserve"><value>X</value></data>
   <data name="PlayerSpawn_Y" xml:space="preserve"><value>Y</value></data>
   <data name="PlayerSpawn_Z" xml:space="preserve"><value>Z</value></data>
@@ -3948,6 +3952,9 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="LiveInventory_Slot" xml:space="preserve"><value>Slot {0}</value></data>
   <data name="LiveInventory_Apply" xml:space="preserve"><value>APPLY</value></data>
   <data name="Live_WorldAreaUnavailable" xml:space="preserve"><value>This part of the game is not available right now. Load into a world (not just the main menu), then DISCONNECT and reconnect. If it stays unavailable, the live-agent mod in the game may be an older version without this area.</value></data>
+  <data name="Live_OfflineOnlyNote" xml:space="preserve"><value>{0} isn't available while live-editing a running game - it needs the save file itself. Open this player's save file instead to use it.</value></data>
+  <data name="LiveSpawn_Title" xml:space="preserve"><value>SPAWN</value></data>
+  <data name="LiveCompanions_Title" xml:space="preserve"><value>COMPANIONS</value></data>
   <data name="LiveWorld_Title" xml:space="preserve"><value>WORLD</value></data>
   <data name="LiveWorld_Intro" xml:space="preserve"><value>The running world's clock and weather. Each button applies immediately - there is no APPLY step here.</value></data>
   <data name="LiveWorld_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to change the clock or weather. Changing them here as a joined client would not stick.</value></data>

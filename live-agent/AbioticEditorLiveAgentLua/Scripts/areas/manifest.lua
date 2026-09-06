@@ -8,4 +8,6 @@ return {
     "areas.containment",
     "areas.traders",
     "areas.portals",
+    "areas.spawn",
+    "areas.companions",
 }

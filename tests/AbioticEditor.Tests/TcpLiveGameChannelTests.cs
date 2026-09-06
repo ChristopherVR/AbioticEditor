@@ -221,6 +221,69 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task LiveSpawnChannel_GetAsync_reads_position_and_terminal()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var state = await new AbioticEditor.Core.LiveEditing.Player.LiveSpawnChannel(channel).GetAsync();
+
+        Assert.Equal(100, state.X);
+        Assert.Equal(-200, state.Y);
+        Assert.Equal(50, state.Z);
+        Assert.Equal("Facility", state.LevelName);
+        Assert.Equal("AFB31D8E4DFBB5BE74BEAAADD681A636", state.TerminalGuid);
+        Assert.True(state.IsHost);
+    }
+
+    [Fact]
+    public async Task LiveSpawnChannel_TeleportAsync_and_SetRespawnTerminalAsync_send_well_formed_requests()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var spawn = new AbioticEditor.Core.LiveEditing.Player.LiveSpawnChannel(channel);
+
+        // The fake agent's fallback echoes any non-canned command's payload back as "ok:true";
+        // both calls succeeding without throwing proves each encoded as a well-formed request
+        // the agent could parse (a malformed line would fault the channel).
+        await spawn.TeleportAsync(1, 2, 3);
+        await spawn.SetRespawnTerminalAsync("95CAED254C17360B69B3738E468CD49C");
+
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
+    [Fact]
+    public async Task LiveCompanionsChannel_ListAsync_reads_pet_fields()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var companions = new AbioticEditor.Core.LiveEditing.Player.LiveCompanionsChannel(channel);
+
+        var rows = await companions.ListAsync();
+
+        var pet = Assert.Single(rows);
+        Assert.Equal("equip", pet.Kind);
+        Assert.Equal(12, pet.SlotIndex);
+        Assert.Equal("Skink_Magma_Crafted", pet.ItemId);
+        Assert.Equal("Sparky", pet.Name);
+        Assert.Equal(87.5, pet.Health);
+        Assert.Equal(100, pet.MaxHealth);
+        Assert.Equal(4200, pet.Xp);
+        Assert.Equal(3, pet.MutationProgress);
+        Assert.Equal(1, pet.PetMutation);
+    }
+
+    [Fact]
+    public async Task LiveCompanionsChannel_SetAsync_and_ClearAsync_send_well_formed_requests()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var companions = new AbioticEditor.Core.LiveEditing.Player.LiveCompanionsChannel(channel);
+        var pet = new AbioticEditor.Core.PlayerSaves.CarriedPet(
+            AbioticEditor.Core.PlayerSaves.PetSlotKind.Equipment, 12, "Skink_Magma_Crafted", "Sparky", 100, 100, 4300, 3, 1);
+
+        await companions.SetAsync("equip", 12, pet);
+        await companions.ClearAsync("equip", 12);
+
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
+    [Fact]
     public async Task LiveDroppedItemsChannel_lists_and_removes()
     {
         await using var channel = await ConnectedChannelAsync();
@@ -471,6 +534,12 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
                         + "{\"id\":\"Deployed_LeyakContainment_C /Game/Maps/Facility.Facility:PersistentLevel.Deployed_LeyakContainment_C_2\",\"x\":40,\"y\":50,\"z\":60,\"stability\":null,\"creature\":null}],\"isHost\":true}",
                     "traders.list" => "{\"setFlags\":[\"Office_PowerOn\"],\"isHost\":true}",
                     "portals.list" => "{\"portals\":[{\"id\":\"BP_Teleporter_ParentBP_C /Game/Maps/Facility.Facility:PersistentLevel.BP_Teleporter_ParentBP_C_4\",\"label\":\"BP_Teleporter_ParentBP_C\",\"active\":true,\"teleporterId\":\"TP_A\",\"destinationId\":\"TP_B\",\"x\":7,\"y\":8,\"z\":9}],\"isHost\":false}",
+                    // Round-76 player areas: SPAWN (position + claimed respawn terminal) and
+                    // COMPANIONS (carried pets, reusing the same slot shape as inventory.list plus
+                    // name/xp/mutation).
+                    "spawn.get" => "{\"x\":100,\"y\":-200,\"z\":50,\"levelName\":\"Facility\",\"terminalGuid\":\"AFB31D8E4DFBB5BE74BEAAADD681A636\",\"isHost\":true}",
+                    "companions.list" => "{\"pets\":[{\"kind\":\"equip\",\"slotIndex\":12,\"itemId\":\"Skink_Magma_Crafted\",\"name\":\"Sparky\","
+                        + "\"health\":87.5,\"maxHealth\":100,\"xp\":4200,\"mutationProgress\":3,\"petMutation\":1}],\"isHost\":true}",
                     _ => null,
                 };
                 if (canned is not null)

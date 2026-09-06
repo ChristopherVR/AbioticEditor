@@ -66,6 +66,8 @@ public class LiveClassPropsProbe
             "Deployed_LeyakContainment", "LeyakDirectorComponent", "KrasueDirectorComponent",
             "NarrativeNPC_ParentBP", "NarrativeNPC_Human_ParentBP", "Trader", "BP_Teleporter_ParentBP",
             "Deployed_Toilet_Portal", "Entitlement",
+            "Abiotic_InventoryChangeableDataStruct", "Abiotic_InventoryItemSlotStruct", "EDynamicProperty",
+            "PunchCardTerminal", "Deployed_PunchCardTerminal", "Item_Pet", "Companion",
         ];
 
         var outPath = Environment.GetEnvironmentVariable("LIVE_CLASS_PROBE_OUT");
