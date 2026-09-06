@@ -2,19 +2,96 @@
 
 All notable changes to this project are documented here.
 
+## [2.8.0] - 2026-09-06
+
+### Bug Fixes
+- The live TELEPORT button now moves you the way the game itself does
+- Live teleport and vehicle moves use positions the game script understands
+- Live vehicle and pet lists no longer time out, and live teleport works
+- Bring back the manual refresh button on the live flags and story screens
+
+
+### Documentation
+- Record what became editable live this round and what is still file-only
+- Tidy a leftover comment about the story chapter being read-only live
+- Record that the live teleport and vehicle move were checked in a real game
+- Be upfront that one journal read is unverified against the real game
+
+
+### Features
+- Give the mode picker its own popup, and rework how you connect for live editing
+- Pets, wrecked vehicles, bench upgrades, dropped items and NPCs can now be changed live
+- More live editing for pets, vehicles, benches and story characters
+- Hide or show your gear live, and set your background while playing
+- Compendium entries can now be unlocked live while you play
+- You can now jump the story chapter forward or back while hosting live
+- Your recipes, journal and account bulk-unlocks now work while you play
+- Your spawn point and carried pets can now be edited live while you play
+- Containment units and world teleporters can now be edited live while you play
+- Live editing now covers bases, vehicles and (partly) tamed pets
+- Quest flags, main story and the world clock now use the same screens live and offline
+- Live containers and dropped items now use the same screens as offline editing
+- Live editing now shares the real inventory and transmog screens
+
+
+### Miscellaneous Tasks
+- Hold this push back from an automatic release [skip release]
+- Hold this push back from an automatic release [skip release]
+- Hold this push back from an automatic release [skip release]
+- Point bucket at v2.7.6 [skip ci]
+
+
+### Refactor
+- Live door editing now uses the same doors screen you already know
+- The live-editing companion can grow new areas without a rebuild
+
+
+### Testing
+- Catch more live-editing bugs before they ever reach the game
+- The in-game script can now be checked without launching the game
+- Repair the live channel tests after merging several live-editing branches
+- The shared-session contract check no longer depends on interface order
+
+
 ## [2.7.6] - 2026-09-06
+
+### Bug Fixes
+- Items the game placed in a slot keep the item table the game chose
+- Saving a character no longer leaves them exhausted or quietly rewrites their empty slots
+- The live-editing companion now actually finds you in game
+- Rebuild the live-editing companion on a real working mod's code
+- Prevent the live-editing companion from freezing the game
+- Strengthen the live-agent's connection secret to real randomness
+
 
 ### Build
 - Bump taiki-e/install-action in the actions-all group
 
 
 ### Documentation
+- Log that the live-editing screens were tested for real, not just the pipe
 - Log the game-file library update and scope upcoming update support
+
+
+### Features
+- The world clock, weather, quest flags, doors, containers and dropped items can now be edited while you play
+- Your backpack, gear and hotbar can now be edited live while you play
+- NPCs near you can now be killed, revived, disabled or made invincible while you're playing
+- Live editing's side panel now shows every player and world save
+- Live editing now shows who's actually connected, and looks right while you're using it
+- Live editing connects to your own game automatically
+- Unblock the live-editing companion with a new setup
+- Extend live editing to character skills
+- Lay the groundwork for editing a running game in real time
 
 
 ### Miscellaneous Tasks
 - Update the bundled game-file reading library to its latest version
 - Point bucket at v2.7.5 [skip ci]
+
+
+### Testing
+- Research probes build again after the game-file library update, plus a live-editing class-layout probe
 
 
 ## [2.7.5] - 2026-08-26
