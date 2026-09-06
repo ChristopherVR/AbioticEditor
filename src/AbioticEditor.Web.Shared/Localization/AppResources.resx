@@ -3588,7 +3588,8 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldStory_PlaytimeFormat" xml:space="preserve"><value>{0}h {1:D2}m played</value></data>
   <data name="WorldStory_ChapterIndexFormat" xml:space="preserve"><value>chapter {0} of {1}</value></data>
   <data name="WorldStory_UnknownChapter" xml:space="preserve"><value>(unknown chapter)</value></data>
-  <data name="WorldStory_LiveChapterReadOnly" xml:space="preserve"><value>The story chapter can't be set from here while playing live - the running game has no way to move it directly. Set the chapter's flags on the QUEST FLAGS tab instead; the chapter will update once the game recognises them.</value></data>
+  <data name="WorldStory_LiveChapterReadOnly" xml:space="preserve"><value>You need to be hosting this game to set the story chapter here. Joined players can still watch it change; only the host can move it.</value></data>
+  <data name="WorldStory_LiveSetAppliesImmediately" xml:space="preserve"><value>The story runs in order, so a chapter cannot really begin until the earlier ones have happened. Setting a chapter here applies immediately in the running game (its flags are set or cleared to match, both directions) - there's no SAVE step live.</value></data>
   <data name="WorldStory_ChapterSetStatusFormat" xml:space="preserve"><value>Chapter set · {0} story event(s) added and {1} undone in the facility{2}. Press SAVE to finish.</value></data>
   <data name="WorldStory_ChapterSyncFailedFormat" xml:space="preserve"><value>The chapter could not be brought in line: {0}</value></data>
   <data name="WorldStory_SettingChapterStatus" xml:space="preserve"><value>Setting the chapter and bringing the facility's story events in line…</value></data>

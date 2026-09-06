@@ -31,10 +31,10 @@ public interface IWorldStorySession
     /// chapter" the same way the file editor already handles an unfamiliar row.</summary>
     string? StoryProgressionRow { get; }
 
-    /// <summary>Whether <see cref="SetStoryChapterAsync"/> is meaningful right now. False for the
-    /// live session: no grounded write path moves the story chapter directly (see
-    /// docs/reference/live-editing-protocol.md, "story.get / story.set"); the flags tab remains
-    /// the live way to earn a chapter's trigger flags.</summary>
+    /// <summary>Whether <see cref="SetStoryChapterAsync"/> is meaningful right now: always true
+    /// for a metadata save offline, host authority only live (moving the story means setting or
+    /// clearing world flags in the running game - see docs/reference/live-editing-protocol.md,
+    /// "story.get / story.set" - the same authority every other live world write needs).</summary>
     bool CanSetStoryChapter { get; }
 
     Task SetStoryChapterAsync(string row, CancellationToken cancellationToken = default);

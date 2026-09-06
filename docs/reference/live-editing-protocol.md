@@ -131,7 +131,7 @@ set flag the table does not list. `flags.set` takes `{"flags":[{"name","isSet"}]
 them in order through the game's own world-flag subsystem, so dependent doors, effects and
 triggers react exactly as if the flag had been earned in play. Host only.
 
-## `story.get` / `story.set` - main-quest indicator (read-only)
+## `story.get` / `story.set` - main-quest indicator and setter
 
 `story.get` takes no payload and returns `{"currentQuestRow":string,"isHost":bool}`.
 `currentQuestRow` is the running game's current-quest row name (`"None"` when it reports no
@@ -143,17 +143,28 @@ the same `StoryProgressionCatalog` lookup the file editor's chapter checklist us
 catalog does not recognise renders as "unknown chapter", the existing graceful fallback for an
 unfamiliar save value.
 
-**There is no live write path for the story chapter.** The shipped
-`AbioticFactor-Win64-Shipping.pdb` has a native `bool UWorldFlagSubsystem::FindCurrentQuest(
-FQuestRowHandle&)` and a `UQuestHandleFunctionLibrary` (`MakeQuestRowHandle`,
-`GetQuestRow(FQuestRowHandle, FQuestData&, ERowValid&)`, `GetAllQuestRowNames/Handles`,
-`DoesQuestRowExist`), but no `SetCurrentQuest` or any other native function that writes it, and no
-settable `OnRep_CurrentQuest` (it is an outbound notify, not an input). `story.set` therefore
-always returns `ok:false` with a player-safe explanation; the shared story tab hides its SET
-controls whenever the session reports `CanSetStoryChapter: false` instead of offering a button
-that cannot work. Setting a chapter's own trigger flags on the QUEST FLAGS tab (`flags.set`)
-remains the real live way to advance the story, exactly like the file editor's "unlock story
-through here" action does on disk.
+**The story chapter is a function of world flags, so it is settable live the same way the file
+editor's chapter SET action moves it on disk.** `StoryProgressionCatalog` maps every chapter to
+its `TriggerFlag`; `FlagGate` knows the linear prerequisite/dependent closure; and `flags.set`
+above (`UWorldFlagSubsystem::SetWorldFlag`, verified against the real game in round 75) is the
+game's own mechanism for moving the story - every `Trigger_WorldFlag_C` in the game advances the
+quest exactly this way, the native `bool UWorldFlagSubsystem::FindCurrentQuest(FQuestRowHandle&)`
+recomputes `CurrentQuest` from the flag set, and `OnRep_CurrentQuest` pushes the change to
+clients. `story.set` takes
+`{"currentQuestRow":string,"flagsToSet":[string],"flagsToClear":[string]}`: the Razor host's
+`LiveStorySession` (which already has the catalogs) computes `flagsToSet` (every chapter trigger
+flag from the start of the story through the target, plus the curated
+`FlagGate.PrerequisitesFor` closure, excluding anything already set - the same computation as the
+file editor's "unlock story through here" action) and `flagsToClear` (for a backward move: every
+chapter/quest flag that belongs strictly after the target and is currently set, via
+`FlagGate.DependentsOf` + `FlagGate.FlagsPastChapter` - mirroring `StoryFlagSync.PlanClearForwardFlags`)
+from the running world's own current flag set (`flags.list`). The mod applies both lists through
+the same `applyWorldFlagRows` helper `flags.set` uses (factored out of it for this reuse), then
+writes `gameState.CurrentQuest.RowName` directly and calls `OnRep_CurrentQuest()` as a
+belt-and-braces nudge - both wrapped in `pcall` since no installed mod writes that struct member
+directly; the flags are the real, game-native write, and the game will recompute `CurrentQuest`
+from them on its own regardless. Host only - the same authority every other live world write
+needs (`CanSetStoryChapter` on `LiveStorySession` mirrors `IsHost`).
 
 The world clock and weather that used to have their own `LiveWorldTab` now render inside the same
 shared story tab (`WorldStoryTab`, bound to `IWorldStorySession`) - see `world.get`/`world.set`

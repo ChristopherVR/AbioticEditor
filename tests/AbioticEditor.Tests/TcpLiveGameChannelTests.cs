@@ -177,13 +177,18 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task LiveStoryChannel_story_set_is_rejected_since_there_is_no_live_write_path()
+    public async Task LiveStoryChannel_SetAsync_sends_the_computed_flag_lists()
     {
         await using var channel = await ConnectedChannelAsync();
+        var story = new AbioticEditor.Core.LiveEditing.World.LiveStoryChannel(channel);
 
-        var exception = await Assert.ThrowsAsync<LiveAgentException>(
-            () => channel.RequestAsync<object?>("story.set", payload: null));
-        Assert.Contains("cannot be set", exception.Message, StringComparison.OrdinalIgnoreCase);
+        // The fake agent's fallback echoes the payload straight back as "ok:true"; succeeding
+        // without throwing proves the request encoded as a well-formed object the agent could
+        // parse (a malformed line would fault the channel), the same proof pattern
+        // LivePlayerSkillsChannel_SetAsync_sends_a_real_JSON_array uses above.
+        await story.SetAsync("Office2", ["Office_InformationFound"], ["MapReveal_Security"]);
+
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
     }
 
     [Fact]
@@ -528,17 +533,6 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
                 {
                     var failed = "{\"Id\":\"" + id + "\",\"Ok\":false,\"Error\":\"simulated agent failure\"}";
                     await writer.WriteLineAsync(failed.AsMemory(), cancellationToken).ConfigureAwait(false);
-                    continue;
-                }
-
-                if (cmd == "story.set")
-                {
-                    // The real Lua area (areas/story.lua) always rejects this - there is no
-                    // grounded live write path for the story chapter, see docs/reference/
-                    // live-editing-protocol.md.
-                    var rejected = "{\"Id\":\"" + id
-                        + "\",\"Ok\":false,\"Error\":\"the story chapter cannot be set from outside the game\"}";
-                    await writer.WriteLineAsync(rejected.AsMemory(), cancellationToken).ConfigureAwait(false);
                     continue;
                 }
 

@@ -30,7 +30,9 @@ end
   `writeSlot(slot, row)`, `findAll(className)`, `findByFullName(className, fullName)`,
   `fullName(obj)`, `classLabel(fullName)`, `actorLocation(actor)` -> x, y, z, `outNames(fill)`
   (reads a `TArray<FName>&` out-param), `dayNightManager`, `weatherLibrary`,
-  `worldFlagSubsystem`, `worldFlagLibrary`, `currentWorldFlags`, `containerInventory`,
+  `worldFlagSubsystem`, `worldFlagLibrary`, `currentWorldFlags`, `applyWorldFlagRows` (given a
+  list of `{ name, isSet }` rows, resolves each to its row handle and flips it through the
+  subsystem - the shared body of `flags.set`), `containerInventory`,
   plus `json` and `UEHelpers`.
 - Lists return `{ <plural> = { __forceArray = true, ... }, isHost = ctx.isHost() }`
   (`__forceArray` makes json.lua emit `[]` for an empty list). Object ids are `ctx.fullName(obj)`

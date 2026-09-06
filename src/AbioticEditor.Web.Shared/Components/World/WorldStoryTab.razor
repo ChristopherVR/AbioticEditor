@@ -22,10 +22,12 @@
    section (live only - not part of any save) and the world-recipes browser with the progress
    gate (file editor only). Shared with the live-editing page (LiveConnect.razor) over
    IWorldStorySession: WorldSaveSession stages chapter/clock edits for SAVE, LiveStorySession
-   applies clock/weather immediately and shows the running game's current-quest row read-only
-   (no grounded live write path moves the story chapter itself - see areas/story.lua). Tapping a
-   chapter opens the native SlotSidebarView chapter detail panel in the right-hand pane via the
-   shared detail host. *@
+   applies clock/weather/chapter changes immediately (round 77: the story chapter is a function of
+   world flags, so SET computes and applies the same flag lists the offline editor would have
+   written to WorldSave_Facility.sav, then nudges the running game's replicated current-quest row
+   - see areas/story.lua and LiveStorySession's remarks; only the host can do this, same as every
+   other live world write). Tapping a chapter opens the native SlotSidebarView chapter detail
+   panel in the right-hand pane via the shared detail host. *@
 <section class="world-editor world-meta-panel" aria-label="@L.Resource("WorldStory_MainQuestProgression")">
     <div class="card-title-row">
         <h3 class="wm-h2">@L.Resource("WorldStory_MainQuestProgression")</h3>
@@ -465,13 +467,25 @@
             @if (Session.CanSetStoryChapter)
             {
                 <div class="ws-detail-actions">
-                    <button type="button" class="wm-hazard-btn" disabled="@_settingChapter"
-                            title="@L.Resource("Slot_AddsEveryChapterTriggerFlagFromTheStartOfTheStoryThroughThisChapterTheDependencySafeWayToUnlockItAdditiveOnlyNeverRemovesFlags")"
-                            @onclick="() => RequestUnlockThrough(chapter)">@L.Resource("Slot_UnlockStoryThroughHere")</button>
+                    @* "Unlock story through here" is an additive-only, pointer-untouched action
+                       that reads the sibling Facility save's flags directly (FlagSync/EnableFlags)
+                       - a file-editor-only affordance. Live's SET button already does the
+                       equivalent (and more: it also moves the pointer and clears anything past
+                       the target), so this stays file-only rather than rendering a button whose
+                       handler silently no-ops live (UnlockThroughAsync returns early without a
+                       FileSession). *@
+                    @if (FileSession is not null)
+                    {
+                        <button type="button" class="wm-hazard-btn" disabled="@_settingChapter"
+                                title="@L.Resource("Slot_AddsEveryChapterTriggerFlagFromTheStartOfTheStoryThroughThisChapterTheDependencySafeWayToUnlockItAdditiveOnlyNeverRemovesFlags")"
+                                @onclick="() => RequestUnlockThrough(chapter)">@L.Resource("Slot_UnlockStoryThroughHere")</button>
+                    }
                     <button type="button" class="secondary" disabled="@(_settingChapter || IsCurrent(chapter))"
                             @onclick="() => SetChapterAsync(chapter.Row)">@L.Resource("Slot_SetAsCurrentChapter")</button>
                 </div>
-                <p class="wm-note">@L.Resource("Slot_ChaptersAreStrictlyLinearAQuestCantReallyBeginUntilEveryEarlierTriggerFlagIsSetStageSaveToWrite")</p>
+                <p class="wm-note">@L.Resource(FileSession is not null
+                    ? "Slot_ChaptersAreStrictlyLinearAQuestCantReallyBeginUntilEveryEarlierTriggerFlagIsSetStageSaveToWrite"
+                    : "WorldStory_LiveSetAppliesImmediately")</p>
             }
             else
             {
@@ -494,7 +508,17 @@
         if (!Session.CanSetStoryChapter) return;
         await Session.SetStoryChapterAsync(row);
         NotifyEdited();
-        if (FileSession is not { } file || !Session.CanShowStory) { RefreshChapterDetail(); return; }
+        if (FileSession is not { } file || !Session.CanShowStory)
+        {
+            // Live: Session (LiveStorySession) already applied the flag edits in the game through
+            // its own connection; Flags is a SIBLING session (LiveWorldFlagsSession) over the same
+            // running world, so it needs its own re-read for the chapter checklist's DONE/READY
+            // status to reflect them. A no-op offline (Flags.AppliesImmediately is false there and
+            // RefreshAsync does nothing).
+            await Flags.RefreshAsync();
+            RefreshChapterDetail();
+            return;
+        }
         _settingChapter = true;
         RefreshChapterDetail();
         try

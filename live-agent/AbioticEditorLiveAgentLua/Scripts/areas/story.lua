@@ -1,4 +1,4 @@
--- Live main-quest / story-progression indicator.
+-- Live main-quest / story-progression indicator AND setter.
 --
 -- GROUNDING (round 76, see docs/PROGRESS.md and docs/reference/live-editing-protocol.md):
 -- `tests/AbioticEditor.Probes/LiveClassPropsProbe.cs` dumps the blueprint
@@ -20,13 +20,23 @@
 -- it is the same "read a struct property's .RowName field" pattern `world.get` already uses for
 -- `manager.CurrentWeatherEvent:ToString()` - so that is the only read this module performs.
 --
--- NO WRITE PATH: no `SetCurrentQuest`, no settable `OnRep_CurrentQuest` (it is a client
--- notification, not an input), and no native "set story progression" function anywhere in the
--- PDB. The story chapter is therefore READ-ONLY live - `story.set` always errors, and the C#
--- side's LiveStorySession.CanSetStoryChapter is false so the shared WorldStoryTab hides the SET
--- controls instead of offering something that cannot work. The QUEST FLAGS tab remains the real
--- live way to earn a chapter's trigger flags (flags.set), which is what actually advances quests
--- in the running game.
+-- ROUND 77 (product owner's verdict: "the 'read-only' for story progression makes no sense" -
+-- they are right): the story chapter IS a function of world flags. The editor's own
+-- `Core/Catalogs/World/StoryProgressionCatalog.cs` maps every chapter to its `TriggerFlag`,
+-- `Core/Services/World/FlagGate.cs` knows the linear-order prerequisite/dependent closure, and
+-- `flags.set` above (`UWorldFlagSubsystem::SetWorldFlag`, verified against the real game in
+-- round 75) IS the game's own mechanism for moving the story: every `Trigger_WorldFlag_C` in the
+-- game advances the quest exactly this way, `UWorldFlagSubsystem::FindCurrentQuest` recomputes
+-- `CurrentQuest` from the flag set, and `OnRep_CurrentQuest` pushes the change to clients. So
+-- `story.set` no longer refuses: the .NET side (`LiveStorySession`) already has the catalogs, so
+-- it computes the flag list once and sends it here as `flagsToSet`/`flagsToClear` - this module
+-- does not reimplement the chapter/prerequisite math, it only applies flags the same way
+-- `flags.set` does (via `ctx.applyWorldFlagRows`, factored out of `flags.set` in main.lua for
+-- exactly this reuse) and then nudges the replicated `CurrentQuest` row directly as a
+-- belt-and-braces extra - the flags are the real, game-native write; the direct struct-member
+-- write has no mod precedent anywhere, so it is best-effort or in a pcall and never treated as
+-- the source of truth (the game will recompute `CurrentQuest` from the flags on its own the next
+-- time anything calls `FindCurrentQuest`/re-evaluates it, same as any other flag-driven state).
 return function(ctx)
     local function currentGameState()
         local ok, gameState = pcall(function() return ctx.UEHelpers.GetGameStateBase() end)
@@ -48,9 +58,35 @@ return function(ctx)
         end, respond)
     end
 
-    ctx.handlers["story.set"] = function(_, respond)
+    -- payload: { currentQuestRow = "<target chapter row>", flagsToSet = {...}, flagsToClear = {...} }
+    -- (both flag lists are computed .NET-side by LiveStorySession from StoryProgressionCatalog +
+    -- FlagGate - see docs/reference/live-editing-protocol.md "story.get / story.set").
+    ctx.handlers["story.set"] = function(payload, respond)
         ctx.runOnGameThread(function()
-            error("the story chapter cannot be set from outside the game - set its trigger flags on the quest flags tab instead")
+            if not ctx.isHost() then error("only the host can change the story chapter") end
+            local gameState = currentGameState()
+            if not gameState then error("the world is not loaded (are you in a world?)") end
+
+            local rows = {}
+            for _, name in ipairs(payload.flagsToSet or {}) do
+                table.insert(rows, { name = name, isSet = true })
+            end
+            for _, name in ipairs(payload.flagsToClear or {}) do
+                table.insert(rows, { name = name, isSet = false })
+            end
+            if #rows > 0 then ctx.applyWorldFlagRows(rows) end
+
+            -- Belt-and-braces nudge only: no installed mod writes a struct member directly, so
+            -- this is wrapped in pcall and is not what makes the story move - the flags above are
+            -- the game's own mechanism, and FindCurrentQuest will recompute this from them anyway.
+            if payload.currentQuestRow and payload.currentQuestRow ~= "" then
+                pcall(function()
+                    gameState.CurrentQuest.RowName = FName(payload.currentQuestRow, EFindName.FNAME_Find)
+                end)
+                pcall(function() gameState:OnRep_CurrentQuest() end)
+            end
+
+            return nil
         end, respond)
     end
 end

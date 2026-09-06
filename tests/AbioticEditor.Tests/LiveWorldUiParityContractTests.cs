@@ -59,9 +59,10 @@ public sealed class LiveWorldUiParityContractTests
 
         var liveStory = UiSource.ReadAllText("Models", "LiveStorySession.cs");
         Assert.Contains("IWorldStorySession", liveStory, StringComparison.Ordinal);
-        // Read-only story chapter live: no grounded write path (see docs/reference/
-        // live-editing-protocol.md, "story.get / story.set").
-        Assert.Contains("CanSetStoryChapter => false", liveStory, StringComparison.Ordinal);
+        // Round 77: the story chapter is settable live (it's a function of world flags), gated
+        // on host authority like every other live world write - see docs/reference/
+        // live-editing-protocol.md, "story.get / story.set".
+        Assert.Contains("CanSetStoryChapter => IsHost", liveStory, StringComparison.Ordinal);
     }
 
     [Fact]

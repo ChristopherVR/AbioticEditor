@@ -843,36 +843,45 @@ handlers["flags.list"] = function(_, respond)
     end, respond)
 end
 
+-- Resolves a list of { name = "<flag row>", isSet = true/false } rows to their
+-- FWorldFlagRowHandle and flips each one through the native subsystem. Factored out so
+-- areas/story.lua (round 77: setting the story chapter IS setting/clearing its flags) can apply
+-- the same edits flags.set does without a second round trip or a re-implementation. Must run
+-- inside runOnGameThread; callers still do their own isHost() check first since the refusal
+-- message differs per area ("...change quest flags" vs "...change the story chapter").
+local function applyWorldFlagRows(rows)
+    local subsystem = worldFlagSubsystem()
+    local lib = worldFlagLibrary()
+    if not subsystem or not lib then error("the quest flag system is not loaded (are you in a world?)") end
+    local out = {}
+    lib:GetAllWorldFlagRowHandles(out)
+    local handles = {}
+    for i = 1, #out do
+        local okHandle, handle = pcall(function() return out[i]:get() end)
+        if okHandle and handle then
+            local okName, name = pcall(function() return handle.RowName:ToString() end)
+            if okName and name then handles[name] = handle end
+        end
+    end
+    local instigator = getMyPlayer()
+    for i = 1, #rows do
+        local row = rows[i]
+        local handle = row.name and handles[row.name]
+        if not handle then error("unknown quest flag " .. tostring(row.name)) end
+        local value = row.isSet == true
+        -- Same struct-as-table pattern the reference mod uses for TriggerWeatherEvent; the
+        -- raw handle userdata is the fallback if the table form is rejected.
+        local okCall = pcall(function()
+            subsystem:SetWorldFlag({ RowName = handle.RowName, DataTablePath = handle.DataTablePath }, value, instigator)
+        end)
+        if not okCall then subsystem:SetWorldFlag(handle, value, instigator) end
+    end
+end
+
 handlers["flags.set"] = function(payload, respond)
     runOnGameThread(function()
         if not isHost() then error("only the host can change quest flags") end
-        local subsystem = worldFlagSubsystem()
-        local lib = worldFlagLibrary()
-        if not subsystem or not lib then error("the quest flag system is not loaded (are you in a world?)") end
-        local out = {}
-        lib:GetAllWorldFlagRowHandles(out)
-        local handles = {}
-        for i = 1, #out do
-            local okHandle, handle = pcall(function() return out[i]:get() end)
-            if okHandle and handle then
-                local okName, name = pcall(function() return handle.RowName:ToString() end)
-                if okName and name then handles[name] = handle end
-            end
-        end
-        local instigator = getMyPlayer()
-        local rows = payload.flags or {}
-        for i = 1, #rows do
-            local row = rows[i]
-            local handle = row.name and handles[row.name]
-            if not handle then error("unknown quest flag " .. tostring(row.name)) end
-            local value = row.isSet == true
-            -- Same struct-as-table pattern the reference mod uses for TriggerWeatherEvent; the
-            -- raw handle userdata is the fallback if the table form is rejected.
-            local okCall = pcall(function()
-                subsystem:SetWorldFlag({ RowName = handle.RowName, DataTablePath = handle.DataTablePath }, value, instigator)
-            end)
-            if not okCall then subsystem:SetWorldFlag(handle, value, instigator) end
-        end
+        applyWorldFlagRows(payload.flags or {})
         return nil
     end, respond)
 end
@@ -1123,6 +1132,7 @@ local ctx = {
     worldFlagSubsystem = worldFlagSubsystem,
     worldFlagLibrary = worldFlagLibrary,
     currentWorldFlags = currentWorldFlags,
+    applyWorldFlagRows = applyWorldFlagRows,
     containerInventory = containerInventory,
 }
 
