@@ -6,7 +6,7 @@ using AbioticEditor.Core.WorldSaves.Features;
 namespace AbioticEditor.Web.Models;
 
 /// <summary>Razor-hosted staged edit session for a world save.</summary>
-public sealed class WorldSaveSession : IWorldDoorsSession
+public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSession, IWorldDroppedItemsSession
 {
     private WorldSaveData _data;
     private readonly string _path;
@@ -141,6 +141,12 @@ public sealed class WorldSaveSession : IWorldDoorsSession
     public IReadOnlyList<WorldPet> Pets => _pets.Values.Concat(_pendingPetPlacements.Select(placement => placement.Pet))
         .OrderBy(pet => pet.DisplayName, StringComparer.OrdinalIgnoreCase).ToArray();
     public bool CanEditContainers => _containers.Count > 0;
+    /// <summary>File edits are never gated by connection/authority - see
+    /// <see cref="IWorldContainersSession.IsHost"/> / <see cref="IWorldDroppedItemsSession.IsHost"/>.</summary>
+    public bool IsHost => true;
+    /// <summary>False: a file session stages every edit until Save, unlike a live session -
+    /// see <see cref="IWorldContainersSession.AppliesImmediately"/> / <see cref="IWorldDroppedItemsSession.AppliesImmediately"/>.</summary>
+    public bool AppliesImmediately => false;
     public bool CanEditNpcs => _npcs.Values.Any(npc => !npc.IsPet);
     public IReadOnlyList<WorldDroppedItem> DroppedItems => _droppedItems.Values.Concat(_pendingDroppedItems).OrderBy(item => item.Slot.ItemId, StringComparer.OrdinalIgnoreCase).ToArray();
     public IReadOnlyList<WorldVehicle> Vehicles => _vehicles.Values.OrderBy(vehicle => vehicle.Region).ThenBy(vehicle => vehicle.DisplayName, StringComparer.OrdinalIgnoreCase).ToArray();
@@ -358,6 +364,25 @@ public sealed class WorldSaveSession : IWorldDoorsSession
             && TrySetContainerSlot(source, id, inventoryIndex, secondIndex, first);
     }
 
+    // ---- IWorldContainersSession's async-capable mutators: a file edit is already in
+    // memory, so these just wrap the synchronous versions above in a completed task. The
+    // live counterpart (LiveContainersSession) is the one that actually awaits a network
+    // round trip - see that class and IWorldContainersSession's remarks.
+    Task<bool> IWorldContainersSession.TrySetContainerSlotAsync(WorldContainerSource source, string id, int inventoryIndex, int slotIndex, InventoryItemSlot slot, CancellationToken cancellationToken)
+        => Task.FromResult(TrySetContainerSlot(source, id, inventoryIndex, slotIndex, slot));
+
+    Task<bool> IWorldContainersSession.TrySwapContainerSlotsAsync(WorldContainerSource source, string id, int inventoryIndex, int firstIndex, int secondIndex, CancellationToken cancellationToken)
+        => Task.FromResult(TrySwapContainerSlots(source, id, inventoryIndex, firstIndex, secondIndex));
+
+    Task<bool> IWorldContainersSession.SortContainerSlotsAsync(WorldContainerSource source, string id, int inventoryIndex, CancellationToken cancellationToken)
+        => Task.FromResult(SortContainerSlots(source, id, inventoryIndex));
+
+    Task IWorldContainersSession.SetContainerSlotCountAsync(WorldContainerSource source, string id, int inventoryIndex, int slotIndex, int count, CancellationToken cancellationToken)
+    {
+        SetContainerSlotCount(source, id, inventoryIndex, slotIndex, count);
+        return Task.CompletedTask;
+    }
+
     public bool SortContainerSlots(WorldContainerSource source, string id, int inventoryIndex)
     {
         if (!TryGetContainerInventory(source, id, inventoryIndex, out var container, out var inventory)) return false;
@@ -440,6 +465,15 @@ public sealed class WorldSaveSession : IWorldDoorsSession
         var pending = _pendingDroppedItems.FindIndex(item => string.Equals(item.Id, id, StringComparison.Ordinal));
         if (pending >= 0) { _pendingDroppedItems.RemoveAt(pending); UpdateStatus(); return; }
         if (_droppedItems.Remove(id)) { _removedDroppedItemIds.Add(id); UpdateStatus(); }
+    }
+
+    /// <summary>IWorldDroppedItemsSession's async-capable removal: a file edit only ever
+    /// touches the in-memory staged tree, so this is <see cref="RemoveDroppedItem"/> wrapped
+    /// in a completed task. The live counterpart actually despawns the item over the wire.</summary>
+    Task IWorldDroppedItemsSession.RemoveDroppedItemAsync(string id, CancellationToken cancellationToken)
+    {
+        RemoveDroppedItem(id);
+        return Task.CompletedTask;
     }
 
     /// <summary>Stages a new ground item. Save uses Core's clone-an-existing-entry writer.</summary>

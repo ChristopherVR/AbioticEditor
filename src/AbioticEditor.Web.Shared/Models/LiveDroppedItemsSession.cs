@@ -1,16 +1,27 @@
 using AbioticEditor.Core.LiveEditing.World;
+using AbioticEditor.Core.PlayerSaves;
+using AbioticEditor.Core.WorldSaves;
 
 namespace AbioticEditor.Web.Models;
 
-/// <summary>Live dropped-item session: list what is lying around, remove chosen items immediately.</summary>
-public sealed class LiveDroppedItemsSession
+/// <summary>
+/// The live-edit counterpart to <see cref="WorldSaveSession"/>'s ground-item slice: implements
+/// the same <see cref="IWorldDroppedItemsSession"/> boundary the shared
+/// <c>WorldDroppedItemsTab</c> widget binds to, so that widget needs zero changes to work
+/// against a running game instead of a loaded file. Only listing and removing are real live
+/// operations (<c>dropped.remove</c> despawns immediately and cannot be undone); the file-only
+/// members (restore, count/no-despawn edit, add) throw rather than pretend to work - see
+/// <see cref="AppliesImmediately"/> on the interface, which the tab checks before ever calling
+/// them.
+/// </summary>
+public sealed class LiveDroppedItemsSession : IWorldDroppedItemsSession
 {
     private readonly LiveDroppedItemsChannel _channel;
 
     private LiveDroppedItemsSession(LiveDroppedItemsChannel channel, LiveDroppedItemDirectory directory)
     {
         _channel = channel;
-        Items = directory.Items;
+        DroppedItems = ToWorldDroppedItems(directory.Items);
         IsHost = directory.IsHost;
     }
 
@@ -22,23 +33,55 @@ public sealed class LiveDroppedItemsSession
         return new LiveDroppedItemsSession(channel, directory);
     }
 
-    public IReadOnlyList<LiveDroppedItem> Items { get; private set; }
+    public IReadOnlyList<WorldDroppedItem> DroppedItems { get; private set; }
+    public bool CanEditDroppedItems => true;
+    public bool AppliesImmediately => true;
     public bool IsHost { get; private set; }
     public string? Status { get; private set; }
 
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var directory = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
-        Items = directory.Items;
+        DroppedItems = ToWorldDroppedItems(directory.Items);
         IsHost = directory.IsHost;
     }
 
-    public async Task RemoveAsync(IReadOnlyList<string> ids, CancellationToken cancellationToken = default)
+    public async Task RemoveDroppedItemAsync(string id, CancellationToken cancellationToken = default)
     {
-        var removed = await _channel.RemoveAsync(ids, cancellationToken).ConfigureAwait(false);
-        Status = removed == 1
-            ? "Removed 1 item from the running game."
-            : $"Removed {removed} items from the running game.";
+        var removed = await _channel.RemoveAsync([id], cancellationToken).ConfigureAwait(false);
+        Status = removed > 0
+            ? "Removed from the running game."
+            : "Already gone - someone else picked it up or it despawned first.";
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>No live equivalent - see the class remarks. The shared tab only shows the
+    /// count/no-despawn edit affordance when <see cref="AppliesImmediately"/> is false, so this
+    /// is never expected to be called; it throws rather than silently no-op.</summary>
+    public void SetDroppedItem(string id, int count, bool noDespawn)
+        => throw new NotSupportedException("Ground-item count and despawn-timer edits are not available while editing live.");
+
+    /// <summary>No live equivalent: a live despawn cannot be undone. See the class remarks.</summary>
+    public bool RestoreDroppedItem(WorldDroppedItem item)
+        => throw new NotSupportedException("A live-removed ground item cannot be restored.");
+
+    /// <summary>No live equivalent: dropping a brand-new item into the world is not offered live.</summary>
+    public bool TryAddDroppedItem(InventoryItemSlot slot, double x, double y, double z, out string pendingId)
+        => throw new NotSupportedException("Adding a ground item is not available while editing live.");
+
+    /// <summary>No live equivalent: there is no live despawn-timer bulk toggle.</summary>
+    public void SetAllDroppedNoDespawn(bool noDespawn)
+        => throw new NotSupportedException("Ground-item despawn-timer edits are not available while editing live.");
+
+    /// <summary>Maps the live wire shape onto the same <see cref="WorldDroppedItem"/>/
+    /// <see cref="InventoryItemSlot"/> domain records the file editor uses, so the shared tab's
+    /// display and icon lookups work unchanged. <see cref="WorldDroppedItem.NoDespawn"/> is
+    /// always false: the live protocol does not report it, only lets the file editor set it.</summary>
+    private static WorldDroppedItem[] ToWorldDroppedItems(IReadOnlyList<LiveDroppedItem> items)
+        => items.Select(i => new WorldDroppedItem(
+            i.Id,
+            new InventoryItemSlot(0, i.ItemId, i.Stack, Durability: 0, MaxDurability: 0,
+                AmmoInMagazine: 0, LiquidLevel: 0, LiquidType: null, DynamicState: false,
+                PlayerMadeString: null, AssetId: null),
+            NoDespawn: false, i.X, i.Y, i.Z)).ToArray();
 }

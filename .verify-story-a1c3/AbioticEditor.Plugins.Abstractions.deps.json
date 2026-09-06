@@ -1,0 +1,39 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "AbioticEditor.Plugins.Abstractions/2.7.6": {
+        "dependencies": {
+          "UeSaveGame": "0.1.0"
+        },
+        "runtime": {
+          "AbioticEditor.Plugins.Abstractions.dll": {}
+        }
+      },
+      "UeSaveGame/0.1.0": {
+        "runtime": {
+          "UeSaveGame.dll": {
+            "assemblyVersion": "0.1.0.0",
+            "fileVersion": "0.1.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "AbioticEditor.Plugins.Abstractions/2.7.6": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UeSaveGame/0.1.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

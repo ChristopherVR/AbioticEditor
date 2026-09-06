@@ -3,6 +3,7 @@
 @using AbioticEditor.Web.Services
 @using AbioticEditor.Web.Components.Player
 @using AbioticEditor.Core.Items
+@using AbioticEditor.Core.LiveEditing
 @using AbioticEditor.Core.PlayerSaves
 @using AbioticEditor.Core.WorldSaves
 @using Microsoft.JSInterop
@@ -25,6 +26,10 @@
     }
     else
     {
+        @if (Session.AppliesImmediately && !Session.IsHost)
+        {
+            <p class="error-text" role="alert">@L.Resource("LiveContainers_NotHostWarning")</p>
+        }
         <div class="wc-filter-row">
             <input aria-label="@L.Resource("WorldContainers_FilterPlaceholder")" @bind="_filter" @bind:event="oninput" placeholder="@L.Resource("WorldContainers_FilterPlaceholder")" />
             <label class="wc-hide-empty"><input type="checkbox" @bind="_hideEmpty" /> <span>@L.Resource("WorldContainers_HideEmpty")</span></label>
@@ -112,14 +117,20 @@
         <p class="wc-help">@L.Resource(_touch ? "PlayerUi_MoveBetweenAreasHelp" : "WorldContainers_DragHelp")</p>
         @if (!_touch) { <p class="wc-help">@L.Resource("WorldContainers_SendHelp")</p> }
         @if (_moveStatus is { } status) { <p class="wc-status">@status</p> }
+        @if (Session.AppliesImmediately && Session.Status is not null) { <p class="status-text">@Session.Status</p> }
+        @if (_liveError is not null) { <p class="error-text" role="alert">@_liveError</p> }
     }
 </section>
 
 @code {
-    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter, EditorRequired] public IWorldContainersSession Session { get; set; } = null!;
     [Parameter] public PlayerSaveSession? PlayerSession { get; set; }
     [Parameter] public string Title { get; set; } = "World editor";
     [Parameter] public EventCallback<string?> OnError { get; set; }
+    // Set only while an edit is talking to a live game; the file session's own methods
+    // complete synchronously so this never has anything to wait on there.
+    private bool _busy;
+    private string? _liveError;
     /// <summary>Set by the host (e.g. a "view on-board storage" jump from the Vehicles tab) to
     /// pre-fill the filter box once when this tab is shown; the user's own typing after that
     /// is never overwritten.</summary>
@@ -214,6 +225,13 @@
     /// </summary>
     private string WhereText(WorldContainer container)
     {
+        // A live container has no fixed "what's inside" summary worth caching the way a
+        // file crate does (its contents can change out from under this tab at any moment,
+        // refreshed after every edit) - and unlike a file container, it has a real world
+        // position, which is the more useful "where" for a crate you can walk up to right
+        // now. Same units and rounding as the live tab this replaces.
+        if (container.Source == WorldContainerSource.Live)
+            return $"{container.X / 100:0}, {container.Y / 100:0}, {container.Z / 100:0} m";
         DropSummariesIfLanguageChanged();
         var cacheKey = ContainerKey(container);
         if (_summaries.TryGetValue(cacheKey, out var cached)) return cached;
@@ -330,6 +348,7 @@
     /// </summary>
     private async Task TapSlot(PlayerInventorySlotEdit edit)
     {
+        if (_busy) return;
         if (Dnd.PaletteItem is not null) { _holding = null; await DropOnSlot(edit); return; }
         if (Dnd.Source is { } carried) { _holding = null; await TakeFromCharacterAsync(carried, edit); return; }
         if (_holding is { } held)
@@ -347,6 +366,7 @@
     /// there, which is what dropping a slot onto the row does with a mouse.</summary>
     private async Task TapContainer(WorldContainer container)
     {
+        if (_busy) return;
         if (Dnd.PaletteItem is { } palette) { _holding = null; await GiveToContainerAsync(container, palette); return; }
         if (Dnd.Source is { } carried) { _holding = null; await TakeFromCharacterAsync(carried, container); return; }
         if (_holding is { } held && !held.IsEmpty)
@@ -367,6 +387,11 @@
     private async Task TakeFromCharacterAsync(SlotDragSource carried, PlayerInventorySlotEdit target)
     {
         Dnd.End();
+        // Trading with a player's own file save only makes sense when that save is staged
+        // in this same editor - a live container has no such save to trade with, so this
+        // whole path is out of scope live rather than pretending a stale carried slot (from
+        // some other tab) still applies. See IWorldContainersSession.AppliesImmediately.
+        if (Session.AppliesImmediately) { _moveStatus = L.Resource("WorldContainers_LivePlayerTransferUnavailable"); return; }
         if (_slotEdits is null || _selectedKey is not { } key) return;
         var position = _slotEdits.IndexOf(target);
         if (position < 0) return;
@@ -377,6 +402,7 @@
     private async Task TakeFromCharacterAsync(SlotDragSource carried, WorldContainer container)
     {
         Dnd.End();
+        if (Session.AppliesImmediately) { _moveStatus = L.Resource("WorldContainers_LivePlayerTransferUnavailable"); return; }
         if (FirstEmptySlot(container) is not { } position)
         {
             _moveStatus = L.Resource("WorldContainers_ContainerFullFormat", DisplayName(container));
@@ -387,12 +413,17 @@
 
     private async Task TransferFromCharacterAsync(SlotDragSource carried, WorldContainerSource source, string containerId, int position)
     {
+        // InventoryTransferService coordinates an atomic swap against the concrete staged
+        // session type - it has no live counterpart (see IWorldContainersSession.AppliesImmediately
+        // and the callers above, which never reach here for a live session). This is a
+        // defensive fallback, not the normal guard.
+        if (Session is not WorldSaveSession worldSession) { _moveStatus = L.Resource("WorldContainers_LivePlayerTransferUnavailable"); return; }
         var moved = SlotName(carried.Slot);
         // Any typing still sitting in the slot editor is written into the world first, so the
         // trade below starts from what is actually on screen.
         await ApplyEditsAsync();
         if (!InventoryTransferService.TrySwapPlayerAndContainer(
-                carried.Session, carried.Area, carried.Slot.Index, Session, source, containerId, 0, position))
+                carried.Session, carried.Area, carried.Slot.Index, worldSession, source, containerId, 0, position))
         {
             _moveStatus = L.Resource("WorldContainers_MoveNotPossible");
             return;
@@ -422,7 +453,7 @@
         await ApplyEditsAsync();
         var fresh = new PlayerInventorySlotEdit(FirstInventorySlots(container)[position]);
         SlotDropRules.FillFromCatalog(fresh, palette);
-        if (!Session.TrySetContainerSlot(container.Source, container.Id, 0, position, fresh.ToInventorySlot()))
+        if (!await TrySetSlotAsync(container.Source, container.Id, 0, position, fresh.ToInventorySlot()))
         {
             _moveStatus = L.Resource("WorldContainers_MoveNotPossible");
             return;
@@ -473,21 +504,71 @@
         }
     }
 
-    /// <summary>Stages every slot edit into the world session (the single save/revert path).</summary>
-    private Task ApplyEditsAsync()
+    /// <summary>Stages every slot edit into the world session (the single save/revert path) -
+    /// or, live, sends each changed slot to the running game immediately.</summary>
+    private async Task ApplyEditsAsync()
     {
-        if (_slotEdits is null || _selectedKey is not { } key) return Task.CompletedTask;
+        if (_slotEdits is null || _selectedKey is not { } key) return;
         for (var i = 0; i < _slotEdits.Count; i++)
         {
             var edit = _slotEdits[i];
-            Session.TrySetContainerSlot(key.Source, key.Id, 0, i, edit.ToInventorySlot());
+            await TrySetSlotAsync(key.Source, key.Id, 0, i, edit.ToInventorySlot());
             edit.AcceptCurrentAsBaseline();
         }
         InvalidateSummaries();
         Workspace.NotifyEdited();
         StateHasChanged();
-        return Task.CompletedTask;
     }
+
+    /// <summary>
+    /// Every write this tab makes to the session funnels through here (or
+    /// <see cref="TrySwapSlotsAsync"/>): a file session's version of these calls always
+    /// succeeds synchronously, but a live session's talks to the running game over the
+    /// network, so this is also the one place that catches a dropped connection instead of
+    /// letting it crash out of a UI event handler.
+    /// </summary>
+    private async Task<bool> TrySetSlotAsync(WorldContainerSource source, string id, int inventoryIndex, int slotIndex, InventoryItemSlot slot)
+    {
+        _busy = true;
+        try
+        {
+            var applied = await Session.TrySetContainerSlotAsync(source, id, inventoryIndex, slotIndex, slot);
+            if (applied) _liveError = null;
+            return applied;
+        }
+        catch (Exception exception) when (IsLiveTransportFailure(exception))
+        {
+            _liveError = Errors.Present(exception, "Edit this container.", "The connection may have dropped; try reconnecting.");
+            return false;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task<bool> TrySwapSlotsAsync(WorldContainerSource source, string id, int inventoryIndex, int firstIndex, int secondIndex)
+    {
+        _busy = true;
+        try
+        {
+            var swapped = await Session.TrySwapContainerSlotsAsync(source, id, inventoryIndex, firstIndex, secondIndex);
+            if (swapped) _liveError = null;
+            return swapped;
+        }
+        catch (Exception exception) when (IsLiveTransportFailure(exception))
+        {
+            _liveError = Errors.Present(exception, "Edit this container.", "The connection may have dropped; try reconnecting.");
+            return false;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static bool IsLiveTransportFailure(Exception exception) => exception is LiveAgentException
+        or System.Net.Sockets.SocketException or IOException or OperationCanceledException;
 
     /// <summary>Opens the slot in the right-hand sidebar editor (native slot-tap semantics).</summary>
     private void SelectSlot(PlayerInventorySlotEdit edit)
@@ -516,7 +597,7 @@
         var second = _slotEdits.FindIndex(edit => edit.Index == pair.Second);
         if (first < 0 || second < 0 || first == second) return;
         await ApplyEditsAsync();
-        Session.TrySwapContainerSlots(key.Source, key.Id, 0, first, second);
+        await TrySwapSlotsAsync(key.Source, key.Id, 0, first, second);
         SyncEditsFromSession();
     }
 
@@ -535,6 +616,7 @@
     /// spawns a fresh copy of the catalog item here (native container drop rules).</summary>
     private async Task DropOnSlot(PlayerInventorySlotEdit target)
     {
+        if (_busy) return;
         if (Dnd.PaletteItem is { } palette)
         {
             Dnd.End();
@@ -556,6 +638,7 @@
     /// container's first empty slot; the source slot is cleared.</summary>
     private async Task DropOnContainer(WorldContainer target)
     {
+        if (_busy) return;
         if (Dnd.PaletteItem is { } palette) { await GiveToContainerAsync(target, palette); return; }
         if (Dnd.Source is { } carried) { await TakeFromCharacterAsync(carried, target); return; }
         if (_dragEdit is not { } source || source.IsEmpty) return;
@@ -576,7 +659,7 @@
         }
         var moved = SlotName(source);
         await ApplyEditsAsync();
-        if (!Session.TrySetContainerSlot(target.Source, target.Id, 0, emptyIndex, source.ToInventorySlot()))
+        if (!await TrySetSlotAsync(target.Source, target.Id, 0, emptyIndex, source.ToInventorySlot()))
         {
             _moveStatus = L.Resource("WorldContainers_MoveNotPossible");
             return;

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Abiotic Editor
+Comment=Save editor for Abiotic Factor
+Icon=appicon.png
+Exec=bash -c 'd="${1%/*}"; [ -x "$d/launch-linux.sh" ] || d="$PWD"; cd "$d" && exec ./launch-linux.sh' bash %k
+Terminal=false
+Categories=Game;Utility;
+Keywords=Abiotic;Factor;save;editor;
+StartupNotify=true

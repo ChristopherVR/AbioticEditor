@@ -158,11 +158,15 @@
             }
             else if (_activeTab == "containers" && _containers is not null)
             {
-                <LiveContainersTab Session="_containers" OnChanged="() => {}" />
+                @* Same tab the offline editor uses (IWorldContainersSession is the shared
+                   boundary) - see LiveContainersSession for the live implementation. *@
+                <WorldContainersTab Session="_containers" Title="@L.Resource("LiveContainers_Title")" />
             }
             else if (_activeTab == "dropped" && _dropped is not null)
             {
-                <LiveDroppedItemsTab Session="_dropped" OnChanged="() => {}" />
+                @* Same tab the offline editor uses (IWorldDroppedItemsSession is the shared
+                   boundary) - see LiveDroppedItemsSession for the live implementation. *@
+                <WorldDroppedItemsTab Session="_dropped" Title="@L.Resource("LiveDropped_Title")" />
             }
             else if (_activeTab is "world" or "flags" or "doors" or "containers" or "dropped")
             {

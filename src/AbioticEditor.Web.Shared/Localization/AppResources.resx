@@ -3985,4 +3985,5 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="LiveDropped_Remove" xml:space="preserve"><value>REMOVE</value></data>
   <data name="LiveDropped_FilterPlaceholder" xml:space="preserve"><value>Filter items by name…</value></data>
   <data name="LiveDropped_RemoveAll" xml:space="preserve"><value>REMOVE ALL ({0})</value></data>
+  <data name="WorldContainers_LivePlayerTransferUnavailable" xml:space="preserve"><value>Trading items with a player save is not available while editing a container live.</value></data>
 </root>

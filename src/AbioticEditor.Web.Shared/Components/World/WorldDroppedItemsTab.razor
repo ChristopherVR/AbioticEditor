@@ -1,6 +1,7 @@
 @namespace AbioticEditor.Web.Components.World
 @using AbioticEditor.Web.Models
 @using AbioticEditor.Web.Services
+@using AbioticEditor.Core.LiveEditing
 @using AbioticEditor.Core.WorldSaves
 @inject ItemCatalogService Items
 @inject InventorySelectionService Selection
@@ -9,7 +10,11 @@
 @* Faithful port of the native WorldDroppedTab.xaml: "ITEMS ON THE GROUND" heading with the
    Digital7 summary readout, RESTORE and DELETE ALL SHOWN, the intro line, one filter box,
    and simple name/subtext rows with a per-row DELETE. Tapping a row opens the item's
-   encyclopedia card in the right-hand sidebar, exactly like the native tap handler. *@
+   encyclopedia card in the right-hand sidebar, exactly like the native tap handler.
+
+   Shared with live editing (see IWorldDroppedItemsSession): a live session only really
+   supports listing and removing, so RESTORE disappears and every removal applies straight
+   to the running game instead of staging - see AppliesImmediately below. *@
 <section class="world-editor wg-tab" aria-label="@L.Resource("WorldDropped_ItemsOnTheGround")">
     @if (!Session.CanEditDroppedItems)
     {
@@ -17,11 +22,19 @@
     }
     else
     {
+        @if (Session.AppliesImmediately && !Session.IsHost)
+        {
+            <p class="error-text" role="alert">@L.Resource("LiveDropped_NotHostWarning")</p>
+        }
         <div class="wg-head">
             <h2 class="wg-title">@L.Resource("WorldDropped_ItemsOnTheGround")</h2>
             <span class="wg-summary">@Summary</span>
-            <button class="wg-restore" type="button" @onclick="RestoreAll">@L.Resource("WorldDropped_Restore")</button>
-            <button class="wg-delete-all" type="button" @onclick="DeleteShown">@L.Resource("WorldDropped_DeleteAllShown")</button>
+            @* A live despawn cannot be undone, so RESTORE only exists for a staged file edit. *@
+            @if (!Session.AppliesImmediately)
+            {
+                <button class="wg-restore" type="button" @onclick="RestoreAll">@L.Resource("WorldDropped_Restore")</button>
+            }
+            <button class="wg-delete-all" type="button" disabled="@(_busy || (Session.AppliesImmediately && !Session.IsHost))" @onclick="DeleteShown">@L.Resource("WorldDropped_DeleteAllShown")</button>
         </div>
         <p class="wg-intro">@L.Resource("WorldDropped_GroundItemsIntro")</p>
         <input class="wg-filter" aria-label="@L.Resource("WorldDropped_FilterPlaceholder")" @bind="_filter" @bind:event="oninput" placeholder="@L.Resource("WorldDropped_FilterPlaceholder")" />
@@ -33,21 +46,28 @@
                         <strong>@DisplayName(item)</strong>
                         <small>@SubText(item)</small>
                     </span>
-                    <button class="wg-delete" type="button" @onclick="() => Delete(item)" @onclick:stopPropagation>@L.Resource("WorldDropped_Delete")</button>
+                    <button class="wg-delete" type="button" disabled="@(_busy || (Session.AppliesImmediately && !Session.IsHost))" @onclick="() => Delete(item)" @onclick:stopPropagation>@L.Resource("WorldDropped_Delete")</button>
                 </div>
             }
             @if (Visible.Count == 0) { <p class="wg-empty">@L.Resource("WorldDropped_NoGroundItems")</p> }
         </div>
+        @if (Session.AppliesImmediately && Session.Status is not null) { <p class="status-text">@Session.Status</p> }
+        @if (_liveError is not null) { <p class="error-text" role="alert">@_liveError</p> }
     }
 </section>
 
 @code {
-    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter, EditorRequired] public IWorldDroppedItemsSession Session { get; set; } = null!;
     [Parameter] public string Title { get; set; } = "World editor";
     [Parameter] public EventCallback<string?> OnError { get; set; }
     private string _filter = string.Empty;
-    // Ground items whose staged removal this tab can undo (native RESTORE). Pruned each
-    // render so a session Revert (which restores everything itself) resets the counter.
+    // Set only while a removal is talking to a live game; the file session's own methods
+    // complete synchronously so this never has anything to wait on there.
+    private bool _busy;
+    private string? _liveError;
+    // Ground items whose staged removal this tab can undo (native RESTORE; file only - a
+    // live despawn cannot be undone). Pruned each render so a session Revert (which restores
+    // everything itself) resets the counter.
     private readonly List<WorldDroppedItem> _removed = [];
 
     /// <summary>Capped at 200 rows like native - long-lived worlds accumulate 1000+ ground items.</summary>
@@ -77,14 +97,20 @@
     private static string SubText(WorldDroppedItem item)
         => $"{item.Slot.ItemId} · ×{item.Slot.Count}" + (item.NoDespawn ? " · no despawn" : "");
 
-    private void Delete(WorldDroppedItem item)
+    private Task Delete(WorldDroppedItem item) => RunAsync(async () =>
     {
-        Session.RemoveDroppedItem(item.Id);
-        if (!item.Id.StartsWith("pending-", StringComparison.Ordinal)) _removed.Add(item);
-        Workspace.NotifyEdited();
-    }
+        await Session.RemoveDroppedItemAsync(item.Id);
+        if (!Session.AppliesImmediately && !item.Id.StartsWith("pending-", StringComparison.Ordinal)) _removed.Add(item);
+    });
 
-    private void DeleteShown() { foreach (var item in Visible) Delete(item); }
+    private Task DeleteShown() => RunAsync(async () =>
+    {
+        foreach (var item in Visible)
+        {
+            await Session.RemoveDroppedItemAsync(item.Id);
+            if (!Session.AppliesImmediately && !item.Id.StartsWith("pending-", StringComparison.Ordinal)) _removed.Add(item);
+        }
+    });
 
     private void RestoreAll()
     {
@@ -102,4 +128,30 @@
 
     /// <summary>Native tap: the item's encyclopedia card opens in the right-hand sidebar.</summary>
     private void Inspect(WorldDroppedItem item) => Selection.ShowEncyclopedia(item.Slot.ItemId);
+
+    /// <summary>
+    /// Every removal funnels through here: a file session's version always succeeds
+    /// synchronously, but a live session's talks to the running game over the network, so
+    /// this is also the one place that catches a dropped connection instead of letting it
+    /// crash out of a UI event handler.
+    /// </summary>
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        _liveError = null;
+        try
+        {
+            await action();
+            Workspace.NotifyEdited();
+        }
+        catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
+            or IOException or OperationCanceledException)
+        {
+            _liveError = Errors.Present(exception, "Remove this item.", "The connection may have dropped; try reconnecting.");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
 }
