@@ -13,11 +13,38 @@
    spawn-to-bed picker and the resolved home-bed line. Beds come from the sibling
    WorldSave_Facility.sav (read-only, off-thread) exactly like the native lookup - no
    world save needs to be open. Claim rewrites stage into a world session and finish
-   with SAVE WORLD, the established web contract. *@
+   with SAVE WORLD, the established web contract.
+
+   Also rendered live (LiveConnect.razor), bound to IPlayerSpawnSession instead of the
+   concrete file session (see PlayerSpawn.cs) - Session.SupportsWorldIntegration hides the
+   region/bed pickers below (they need a save file on disk) and Session.SupportsLiveActions
+   shows the extra TELEPORT / SET AS MY RESPAWN POINT actions instead. Editing the coordinate
+   or terminal fields never moves anyone by itself in either mode - only those two buttons do. *@
 <section class="editor-card spawn-panel" aria-label="@L.Resource("PlayerSpawn_SpawnAndHome")">
     <h3>@L.Resource("PlayerSpawn_SpawnAndHome")</h3>
     <div class="hazard" role="presentation"></div>
     <p class="spawn-sublabel">@L.Resource("PlayerSpawn_HomeAndRespawn")</p>
+
+    @if (Session.SupportsLiveActions)
+    {
+        <div class="spawn-live-block">
+            @if (Session.LivePosition is { } livePosition)
+            {
+                <p class="muted spawn-live-position">
+                    @L.Resource("PlayerSpawn_LiveCurrentPosition", livePosition.X.ToString("F0", CultureInfo.InvariantCulture),
+                        livePosition.Y.ToString("F0", CultureInfo.InvariantCulture), livePosition.Z.ToString("F0", CultureInfo.InvariantCulture))
+                </p>
+            }
+            <div class="spawn-live-actions">
+                <button class="secondary" type="button" disabled="@(_liveBusy || Session.LivePosition is null)" @onclick="UseCurrentLivePosition">@L.Resource("PlayerSpawn_UseCurrentPosition")</button>
+                <button class="heal-all-button" type="button" disabled="@_liveBusy" @onclick="TeleportHereAsync">@L.Resource("PlayerSpawn_TeleportHere")</button>
+                <button class="heal-all-button" type="button" disabled="@(_liveBusy || string.IsNullOrEmpty(Session.Respawn.TerminalGuid))" @onclick="ClaimRespawnTerminalAsync">@L.Resource("PlayerSpawn_SetAsMyRespawnPoint")</button>
+            </div>
+            @if (Session.Status is not null) { <p class="spawn-status" role="status">@Session.Status</p> }
+            @if (_liveError is not null) { <p class="error-text" role="alert">@_liveError</p> }
+        </div>
+        <hr class="af-divider" />
+    }
 
     <div class="spawn-coord-grid">
         <span class="sp-label">@L.Resource("PlayerSpawn_X")</span>
@@ -29,22 +56,25 @@
         <span class="sp-label">@L.Resource("PlayerSpawn_Z")</span>
         <input type="number" step="1" aria-label="@L.Resource("PlayerSpawn_Z")"
                value="@Coordinate(Session.Respawn.Z)" @onchange="e => SetCoordinate(e, value => Session.Respawn.Z = value)" />
-        <span class="sp-label spawn-region-label">@L.Resource("PlayerSpawn_Region")</span>
-        <span class="spawn-picker-stack">
-            @* The native Picker renders its Title as a muted caption above the box. *@
-            <span class="spawn-picker-caption">@L.Resource("PlayerSpawn_PickRegionTitle")</span>
-            <select aria-label="@L.Resource("PlayerSpawn_Region")" title="@L.Resource("PlayerSpawn_PickRegionTitle")"
-                    value="@(SelectedLevelGuid ?? string.Empty)" @onchange="RegionSelected">
-                @if (SelectedLevelGuid is null)
-                {
-                    <option value="" disabled selected></option>
-                }
-                @foreach (var level in Levels)
-                {
-                    <option value="@level.LevelGuid">@level.DisplayName</option>
-                }
-            </select>
-        </span>
+        @if (Session.SupportsWorldIntegration)
+        {
+            <span class="sp-label spawn-region-label">@L.Resource("PlayerSpawn_Region")</span>
+            <span class="spawn-picker-stack">
+                @* The native Picker renders its Title as a muted caption above the box. *@
+                <span class="spawn-picker-caption">@L.Resource("PlayerSpawn_PickRegionTitle")</span>
+                <select aria-label="@L.Resource("PlayerSpawn_Region")" title="@L.Resource("PlayerSpawn_PickRegionTitle")"
+                        value="@(SelectedLevelGuid ?? string.Empty)" @onchange="RegionSelected">
+                    @if (SelectedLevelGuid is null)
+                    {
+                        <option value="" disabled selected></option>
+                    }
+                    @foreach (var level in Levels)
+                    {
+                        <option value="@level.LevelGuid">@level.DisplayName</option>
+                    }
+                </select>
+            </span>
+        }
     </div>
 
     <div class="spawn-row">
@@ -71,32 +101,35 @@
         </span>
     </div>
 
-    <div class="spawn-bed-row">
-        <span class="sp-label">@L.Resource("PlayerSpawn_Beds")</span>
-        <span class="spawn-picker-stack">
-            <span class="spawn-picker-caption">@L.Resource("PlayerSpawn_ChooseBedTitle")</span>
-            <select aria-label="@L.Resource("PlayerSpawn_Beds")" title="@L.Resource("PlayerSpawn_ChooseBedTitle")"
-                    @bind="_selectedBedId">
-                @if (_selectedBedId is null)
-                {
-                    <option value="" disabled selected></option>
-                }
-                @foreach (var bed in BedOptions)
-                {
-                    <option value="@bed.Bed.Id">@bed.Label</option>
-                }
-            </select>
-        </span>
-        <button type="button" class="spawn-set-btn" disabled="@(string.IsNullOrEmpty(_selectedBedId))" @onclick="SetSpawnToBed">@L.Resource("PlayerSpawn_SetSpawnHere")</button>
-    </div>
-    @if (_bedsLoading) { <p class="muted spawn-beds-loading">@L.Resource("PlayerPets_BedsLoading")</p> }
-
-    @if (HomeBedText is { } homeBed)
+    @if (Session.SupportsWorldIntegration)
     {
-        <div class="spawn-homebed">
-            <span class="sp-label">@L.Resource("PlayerSpawn_HomeBed")</span>
-            <span class="spawn-homebed-value">@homeBed</span>
+        <div class="spawn-bed-row">
+            <span class="sp-label">@L.Resource("PlayerSpawn_Beds")</span>
+            <span class="spawn-picker-stack">
+                <span class="spawn-picker-caption">@L.Resource("PlayerSpawn_ChooseBedTitle")</span>
+                <select aria-label="@L.Resource("PlayerSpawn_Beds")" title="@L.Resource("PlayerSpawn_ChooseBedTitle")"
+                        @bind="_selectedBedId">
+                    @if (_selectedBedId is null)
+                    {
+                        <option value="" disabled selected></option>
+                    }
+                    @foreach (var bed in BedOptions)
+                    {
+                        <option value="@bed.Bed.Id">@bed.Label</option>
+                    }
+                </select>
+            </span>
+            <button type="button" class="spawn-set-btn" disabled="@(string.IsNullOrEmpty(_selectedBedId))" @onclick="SetSpawnToBed">@L.Resource("PlayerSpawn_SetSpawnHere")</button>
         </div>
+        @if (_bedsLoading) { <p class="muted spawn-beds-loading">@L.Resource("PlayerPets_BedsLoading")</p> }
+
+        @if (HomeBedText is { } homeBed)
+        {
+            <div class="spawn-homebed">
+                <span class="sp-label">@L.Resource("PlayerSpawn_HomeBed")</span>
+                <span class="spawn-homebed-value">@homeBed</span>
+            </div>
+        }
     }
 
     @if (_status is { } status)
@@ -115,7 +148,7 @@
 </section>
 
 @code {
-    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    [Parameter, EditorRequired] public IPlayerSpawnSession Session { get; set; } = null!;
     [Parameter] public WorldSaveSession? WorldSession { get; set; }
     [Parameter] public EventCallback OnChanged { get; set; }
 
@@ -126,6 +159,8 @@
     private string? _terminalBaseline;
     private string? _selectedBedId;
     private string? _status;
+    private bool _liveBusy;
+    private string? _liveError;
     private bool _bedsLoading;
     private object? _bedsLoadedFrom;
     private IReadOnlyList<WorldDeployable> _deployables = [];
@@ -137,30 +172,73 @@
     private IReadOnlyList<(WorldDeployable Bed, string Label)> BedOptions => _bedOptions;
     private string? HomeBedText => _homeBedText;
 
+    // Beds/regions only render/run when Session.SupportsWorldIntegration is true, which is only
+    // ever the file session - these two just give the methods below something typed to read.
+    private string? FilePath => (Session as PlayerSaveSession)?.Path;
+    private string? FileSteamIdentifier => (Session as PlayerSaveSession)?.SteamIdentifier;
+
     protected override void OnParametersSet()
     {
-        if (!string.Equals(_scannedPath, Session.Path, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(_scannedPath, Session.SessionKey, StringComparison.OrdinalIgnoreCase))
         {
-            _scannedPath = Session.Path;
+            _scannedPath = Session.SessionKey;
             // The snap-to-anchor guards compare against the values stored in the save, so
             // Picker churn replaying the stored value never moves the spot (native rule).
             _regionBaseline = Session.Respawn.LevelGuid;
             _terminalBaseline = Session.Respawn.TerminalGuid;
             _status = null;
+            _liveError = null;
             _selectedBedId = null;
             _bedsLoadedFrom = null;
             _claimSession = null;
-            _ = LoadRegionsAsync();
+            if (Session.SupportsWorldIntegration) _ = LoadRegionsAsync();
         }
+        // Regions/beds are file-only (see PlayerSpawn.cs's SupportsWorldIntegration) - a live
+        // connection has no folder to walk and no sibling world save to read beds from.
+        if (!Session.SupportsWorldIntegration) return;
         // Compared against what was actually loaded from, not against WorldSession. The old test
         // was false on every pass whenever no world save was open - the usual state while a
         // player save is selected - so the ~16 MB facility read was kicked off again on every
         // render and the bed list never settled. It simply looked permanently empty.
-        var bedSource = (object?)WorldSession ?? Session.Path;
+        var bedSource = (object?)WorldSession ?? Session.SessionKey;
         if (!ReferenceEquals(_bedsLoadedFrom, bedSource))
         {
             _bedsLoadedFrom = bedSource;
             _ = LoadBedsAsync();
+        }
+    }
+
+    private void UseCurrentLivePosition()
+    {
+        if (Session.LivePosition is not { } position) return;
+        Session.Respawn.X = position.X;
+        Session.Respawn.Y = position.Y;
+        Session.Respawn.Z = position.Z;
+    }
+
+    private Task TeleportHereAsync() => RunLiveActionAsync(live => live.TeleportAsync());
+    private Task ClaimRespawnTerminalAsync() => RunLiveActionAsync(live => live.ClaimRespawnTerminalAsync());
+
+    /// <summary>Runs one explicit live action (teleport / claim respawn point) - both are no-ops
+    /// when <see cref="Session"/> is not actually a live session (defensive; the buttons that call
+    /// these are only shown when <c>Session.SupportsLiveActions</c> is true).</summary>
+    private async Task RunLiveActionAsync(Func<LivePlayerSpawnSession, Task> action)
+    {
+        if (Session is not LivePlayerSpawnSession live) return;
+        _liveBusy = true;
+        _liveError = null;
+        try
+        {
+            await action(live);
+        }
+        catch (Exception exception) when (exception is AbioticEditor.Core.LiveEditing.LiveAgentException
+            or System.Net.Sockets.SocketException or IOException or OperationCanceledException)
+        {
+            _liveError = Errors.Present(exception, "Change the live spawn point.", "The connection may have dropped; try reconnecting.");
+        }
+        finally
+        {
+            _liveBusy = false;
         }
     }
 
@@ -199,7 +277,7 @@
             {
                 _deployables = world.Deployables;
             }
-            else if (await Beds.FacilityPathForAsync(Session.Path, Workspace.Current) is { } facility)
+            else if (await Beds.FacilityPathForAsync(FilePath ?? string.Empty, Workspace.Current) is { } facility)
             {
                 _deployables = await Beds.GetDeployablesAsync(facility, WorldSession);
             }
@@ -224,7 +302,7 @@
     /// <summary>Player beds as spawn targets, claimed-by-this-player first (native ordering).</summary>
     private void RefreshBeds()
     {
-        var playerId = Session.SteamIdentifier ?? string.Empty;
+        var playerId = FileSteamIdentifier ?? string.Empty;
         var deployables = _deployables;
         if (deployables.Count == 0)
         {
@@ -311,7 +389,7 @@
     {
         var option = _bedOptions.FirstOrDefault(candidate => candidate.Bed.Id == _selectedBedId);
         if (option.Bed is not { } bed) return;
-        var playerId = Session.SteamIdentifier ?? string.Empty;
+        var playerId = FileSteamIdentifier ?? string.Empty;
         var claimedByOther = bed.OwnerId is { Length: > 0 } owner && owner != playerId;
         if (claimedByOther)
         {
@@ -342,7 +420,7 @@
         Session.Respawn.X = bed.X;
         Session.Respawn.Y = bed.Y;
         Session.Respawn.Z = bed.Z + 90;
-        var playerId = Session.SteamIdentifier ?? string.Empty;
+        var playerId = FileSteamIdentifier ?? string.Empty;
         if (playerId.Length > 0 && bed.OwnerId != playerId)
         {
             // Take (or reassign) the bed claim by staging it in a world session for the
@@ -351,7 +429,7 @@
             // writes when the world is saved (SAVE WORLD below / the workspace SAVE).
             try
             {
-                var worldPath = WorldSession?.Path ?? await Beds.FacilityPathForAsync(Session.Path, Workspace.Current);
+                var worldPath = WorldSession?.Path ?? await Beds.FacilityPathForAsync(FilePath ?? string.Empty, Workspace.Current);
                 if (worldPath is not null)
                 {
                     var session = await Beds.GetOrLoadSessionAsync(worldPath, WorldSession);

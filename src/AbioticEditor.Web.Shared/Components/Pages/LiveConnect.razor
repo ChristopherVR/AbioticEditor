@@ -83,6 +83,22 @@
                     aria-selected="@(_activeTab == "skills")" @onclick='() => _activeTab = "skills"'>
                 @L.Resource("PlayerSkills_Skills")
             </button>
+            <button type="button" role="tab" class="editor-tab @(_activeTab == "spawn" ? "active" : null)"
+                    aria-selected="@(_activeTab == "spawn")" @onclick='() => _activeTab = "spawn"'>
+                @L.Resource("LiveSpawn_Title")
+            </button>
+            <button type="button" role="tab" class="editor-tab @(_activeTab == "companions" ? "active" : null)"
+                    aria-selected="@(_activeTab == "companions")" @onclick='() => _activeTab = "companions"'>
+                @L.Resource("LiveCompanions_Title")
+            </button>
+            <button type="button" role="tab" class="editor-tab @(_activeTab == "achievements" ? "active" : null)"
+                    aria-selected="@(_activeTab == "achievements")" @onclick='() => _activeTab = "achievements"'>
+                @L.Resource("PlayerAchievements_SteamAchievements")
+            </button>
+            <button type="button" role="tab" class="editor-tab @(_activeTab == "data" ? "active" : null)"
+                    aria-selected="@(_activeTab == "data")" @onclick='() => _activeTab = "data"'>
+                @L.Resource("PlayerRaw_RawSaveJson")
+            </button>
             <button type="button" role="tab" class="editor-tab @(_activeTab == "npcs" ? "active" : null)"
                     aria-selected="@(_activeTab == "npcs")" @onclick='() => _activeTab = "npcs"'>
                 @L.Resource("LiveNpcs_Title")
@@ -120,6 +136,27 @@
             else if (_activeTab == "skills")
             {
                 <PlayerSkillsTab Session="_skills" OnChanged="() => {}" />
+            }
+            else if (_activeTab == "spawn" && _spawn is not null)
+            {
+                <PlayerSpawnTab Session="_spawn" OnChanged="() => {}" />
+            }
+            else if (_activeTab == "companions" && _companions is not null)
+            {
+                <PlayerCompanionsTab Session="_companions" OnChanged="() => {}" />
+            }
+            else if (_activeTab == "achievements")
+            {
+                @* Steam achievements need this computer's local Steam cache files, keyed by
+                   file path, not a running-game concept - genuinely offline-only (see
+                   PlayerAchievementsTab.razor). *@
+                <p class="muted">@L.Resource("Live_OfflineOnlyNote", L.Resource("PlayerAchievements_SteamAchievements"))</p>
+            }
+            else if (_activeTab == "data")
+            {
+                @* The raw property tree is the FILE's own tag list - there is no live
+                   equivalent of it in a running game (see PlayerRawDataTab.razor). *@
+                <p class="muted">@L.Resource("Live_OfflineOnlyNote", L.Resource("PlayerRaw_RawSaveJson"))</p>
             }
             else if (_activeTab == "npcs" && _npcs is not null)
             {
@@ -204,6 +241,8 @@
     private ILiveGameChannel? _channel;
     private LivePlayerVitalsSession? _vitals;
     private LivePlayerSkillsSession? _skills;
+    private LivePlayerSpawnSession? _spawn;
+    private LivePlayerCompanionsSession? _companions;
     private LiveNpcSession? _npcs;
     private LiveInventorySession? _inventory;
     private LiveWorldStateSession? _world;
@@ -282,6 +321,8 @@
             _skills = await LivePlayerSkillsSession.ConnectAsync(new LivePlayerSkillsChannel(channel), localPlayerId);
             _npcs = await LiveNpcSession.ConnectAsync(new LiveNpcChannel(channel));
             _inventory = await LiveInventorySession.ConnectAsync(new LiveInventoryChannel(channel), localPlayerId);
+            _spawn = await LivePlayerSpawnSession.ConnectAsync(new LiveSpawnChannel(channel), localPlayerId);
+            _companions = await LivePlayerCompanionsSession.ConnectAsync(new LiveCompanionsChannel(channel), localPlayerId);
             // The world areas need a loaded world (a player sitting in the main menu has no
             // DayNightManager, doors, or containers yet), so each one that fails to read is left
             // null and its tab says so, instead of failing the whole connection - the player
@@ -367,6 +408,8 @@
             await _vitals.SwitchPlayerAsync(_selectedPlayerId);
             await _skills.SwitchPlayerAsync(_selectedPlayerId);
             if (_inventory is not null) await _inventory.SwitchPlayerAsync(_selectedPlayerId);
+            if (_spawn is not null) await _spawn.SwitchPlayerAsync(_selectedPlayerId);
+            if (_companions is not null) await _companions.SwitchPlayerAsync(_selectedPlayerId);
             LiveSession.PlayerSelected(_selectedPlayerId);
         }
         catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
@@ -385,6 +428,8 @@
     {
         _vitals = null;
         _skills = null;
+        _spawn = null;
+        _companions = null;
         _npcs = null;
         _inventory = null;
         _world = null;

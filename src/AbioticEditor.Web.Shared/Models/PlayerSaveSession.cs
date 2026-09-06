@@ -10,7 +10,7 @@ namespace AbioticEditor.Web.Models;
 /// A Razor-hosted editing session for one player save.  It deliberately depends only on
 /// Core save types: neither this class nor callers need a native view model.
 /// </summary>
-public sealed class PlayerSaveSession : IPlayerVitalsSession, IPlayerSkillsSession
+public sealed class PlayerSaveSession : IPlayerVitalsSession, IPlayerSkillsSession, IPlayerSpawnSession, IPlayerCompanionsSession
 {
     private readonly PlayerSaveData _data;
     private readonly string _path;
@@ -258,6 +258,40 @@ public sealed class PlayerSaveSession : IPlayerVitalsSession, IPlayerSkillsSessi
     }
 
     public void MarkChanged() => Status = IsDirty ? "Unsaved changes" : null;
+
+    // ---------- IPlayerSpawnSession / IPlayerCompanionsSession glue ----------
+    // Respawn/CarriedPets/IsDirty/Status/SaveAsync/Revert/MarkChanged above already satisfy both
+    // interfaces' shared members (this session's SaveAsync/Revert already cover every slice, spawn
+    // and companions included) - only the file-vs-live capability flags below are new.
+    string IPlayerSpawnSession.SessionKey => _path;
+    bool IPlayerSpawnSession.SupportsWorldIntegration => true;
+    bool IPlayerSpawnSession.SupportsLiveActions => false;
+    (double X, double Y, double Z)? IPlayerSpawnSession.LivePosition => null;
+
+    // CarriedPets is a List<CarriedPetEdit> for the file editor's own code (it needs Add/RemoveAll),
+    // so it cannot implicitly satisfy the interface's IReadOnlyList<CarriedPetEdit> return type -
+    // property implementation requires an exact type match, unlike a plain method return.
+    IReadOnlyList<CarriedPetEdit> IPlayerCompanionsSession.CarriedPets => CarriedPets;
+    string IPlayerCompanionsSession.SessionKey => _path;
+    bool IPlayerCompanionsSession.SupportsWorldIntegration => true;
+    bool IPlayerCompanionsSession.AppliesImmediately => false;
+
+    /// <summary>File session: an "apply" is just staging the edit (the row is already mutated by
+    /// the tab's bindings) - the real write happens at the workspace SAVE, same as every other slice.</summary>
+    Task IPlayerCompanionsSession.ApplyPetAsync(CarriedPetEdit pet, CancellationToken cancellationToken)
+    {
+        MarkChanged();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>File session: toggles the staged-deletion flag (reversible via UNDO REMOVE until
+    /// SAVE), the same behavior <c>PlayerCompanionsTab</c>'s remove button always had.</summary>
+    Task IPlayerCompanionsSession.RemovePetAsync(CarriedPetEdit pet, CancellationToken cancellationToken)
+    {
+        pet.IsDeleted = !pet.IsDeleted;
+        MarkChanged();
+        return Task.CompletedTask;
+    }
 
     public void MaxAllSkills()
     {

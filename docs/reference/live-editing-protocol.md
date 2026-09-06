@@ -149,6 +149,58 @@ component class as a player's backpack. `containers.set` takes `{"id","edits":[{
 item lying loose in the loaded world that nobody has picked up. `dropped.remove` takes
 `{"ids":[...]}` and returns `{"removed":n}` - the count actually found and despawned. Host only.
 
+## `spawn.get` / `spawn.set` - player position and respawn point
+
+`spawn.get` takes no payload (or `{"playerId":"…"}`) and returns:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `x`, `y`, `z` | number | The character's actual current live position (`K2_GetActorLocation`) |
+| `levelName` | string? | The controller's `ActiveLevelName` (a display-only streaming level name; NOT the file's `RespawnLevelGuid` - live has no direct equivalent of that field) |
+| `terminalGuid` | string? | The claimed respawn terminal's `TerminalRespawnID` (a `RespawnTerminalCatalog` guid), or absent when none is set |
+| `isHost` | bool | Whether this process is hosting (shown for transparency; not enforced) |
+
+`spawn.set` takes `{"teleport":{"x","y","z"}?, "terminalGuid"?, "playerId"?}` and returns no result.
+`teleport` moves the character there immediately (`TeleportPlayer`, keeping the character's current
+facing). `terminalGuid` claims a different respawn terminal immediately by writing the controller's
+own `TerminalRespawnID` field directly - the only field in this pair with no reference-mod
+precedent (found in the game's own class layout instead; see `areas/spawn.lua`'s own comment).
+Neither happens unless the field is present in the payload - editing values client-side never
+moves anyone by itself. `terminalGuid` only ever targets the LOCAL player's own controller,
+regardless of `playerId` (there is no getter for a different connected player's controller).
+
+## `companions.list` / `companions.set` - carried pets
+
+A carried pet is an `Item.Pet` row living in the same backpack/equip/hotbar inventory arrays
+`inventory.list`/`inventory.set` already read/write (see above) - `companions.list` returns every
+OCCUPIED slot across those three (like `inventory.list`, but only non-empty rows) with two extra
+fields no other command surfaces:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `kind`, `slotIndex`, `itemId` | as `inventory.list` | Which slot and what item row is in it |
+| `name` | string? | The pet's custom name (`PlayerMadeString_`, the same field `inventory.list`'s slot struct already carries) |
+| `health`, `maxHealth` | number | Durability fields, same meaning as `inventory.list`'s `durability`/`maxDurability` |
+| `xp`, `mutationProgress`, `petMutation` | number | The pet's `DynamicProperties_` array, keyed by `EDynamicProperty::XP`/`::MutationProgress`/`::PetMutation` - the same array and enum names `PlayerSaveWriter.Pets.cs` uses for the file format |
+| `isHost` | bool | Shown for transparency; not enforced |
+
+The Lua mod has no item-data-table catalog of its own, so it returns every occupied slot; deciding
+which rows are actually pets (`PetItemCatalog.IsPetItem`, or the Companion equipment slot -
+`kind:"equip"`, `slotIndex:12` - regardless of whether the catalog recognises the row) happens on
+the .NET side, in `LivePlayerCompanionsSession`.
+
+`companions.set` takes one pet row at a time: `{"kind","slotIndex","clear"?,"itemId"?,"name"?,
+"health"?,"maxHealth"?,"xp"?,"mutationProgress"?,"petMutation"?,"playerId"?}` and returns no
+result. `clear` empties the slot and ignores every other field, exactly like `inventory.set`'s
+`clear`. Applying happens immediately, one pet at a time - there is no batch form.
+
+**Honesty about `xp`/`mutationProgress`/`petMutation`**: the `DynamicProperties_` array itself is
+real (found in the game's own class layout, the identical array/enum the file format already
+uses), but no reference-mod command reads or writes it over UE4SS Lua, so reading an enum-keyed
+struct array's `Key`/`Value` this way is genuinely new and unverified against the real game until
+tested. `itemId`/`name`/`health`/`maxHealth` carry the same confidence as `inventory.list`/`.set`'s
+fields (round 74), since they are the identical hash-suffixed struct members.
+
 ## Extending this for a new area
 
 Adding a new live-editable area (inventory, more of world state, ...) means: a new command pair

@@ -6,10 +6,23 @@
 
 @* Faithful port of the native PlayerPetsTab: a master list of carried pets beside a
    detail editor (name, variant, level + XP, health + heal, staged remove/undo, and the
-   send-to-a-pet-bed hand-off into a world save). *@
+   send-to-a-pet-bed hand-off into a world save).
+
+   Also rendered live (LiveConnect.razor), bound to IPlayerCompanionsSession instead of the
+   concrete file session (see PlayerCompanions.cs) - every field commits immediately through
+   Session.ApplyPetAsync when Session.AppliesImmediately is true, and the "SEND TO A PET BED"
+   section (Session.SupportsWorldIntegration) hides itself since a live connection has no world
+   save file to write a bed claim into. *@
 <section class="companions-tab" aria-label="@L.Resource("PlayerEditor_Companions")">
-    <h3 class="companions-title">@L.Resource("PlayerPets_CarriedPetsCompanions")</h3>
+    <div class="card-title-row">
+        <h3 class="companions-title">@L.Resource("PlayerPets_CarriedPetsCompanions")</h3>
+        @if (Session.AppliesImmediately)
+        {
+            <button class="secondary" type="button" disabled="@_refreshing" @onclick="RefreshAsync">@L.Resource("LiveNpcs_Refresh")</button>
+        }
+    </div>
     <p class="muted companions-help">@L.Resource("PlayerPets_IntroHelp")</p>
+    @if (Session.Status is not null) { <p class="status-text">@Session.Status</p> }
 
     <div class="pets-split">
         <div class="pet-master" role="listbox" aria-label="@L.Resource("PlayerPets_CarriedPetsCompanions")">
@@ -61,11 +74,11 @@
                 </div>
 
                 <label class="pet-field">@L.Resource("PlayerPets_Name")
-                    <input @bind="pet.Name" @bind:after="Changed" placeholder="@L.Resource("PlayerPets_NamePlaceholder")" />
+                    <input @bind="pet.Name" @bind:after="() => CommitAsync(pet)" placeholder="@L.Resource("PlayerPets_NamePlaceholder")" />
                 </label>
 
                 <label class="pet-field">@L.Resource("PlayerPets_Variant")
-                    <select @bind="pet.ItemRow" @bind:after="Changed">
+                    <select @bind="pet.ItemRow" @bind:after="() => CommitAsync(pet)">
                         @if (PetItemCatalog.ForRow(pet.ItemRow) is null) { <option value="@pet.ItemRow">@pet.ItemRow</option> }
                         @foreach (var variant in HeldVariants) { <option value="@variant.ItemRow">@variant.Friendly</option> }
                     </select>
@@ -77,7 +90,7 @@
                     <label>@L.Resource("PlayerPets_Lv")</label>
                     <span class="pet-stepper"><button class="secondary" type="button" @onclick="() => StepLevel(pet, -1)">-</button><span class="pet-level-readout">@pet.Level</span><button class="secondary" type="button" @onclick="() => StepLevel(pet, 1)">+</button></span>
                     <label>@L.Resource("PlayerPets_Xp")</label>
-                    <input class="pet-xp" type="number" min="0" @bind="pet.Xp" @bind:after="Changed" />
+                    <input class="pet-xp" type="number" min="0" @bind="pet.Xp" @bind:after="() => CommitAsync(pet)" />
                 </div>
 
                 <hr class="af-divider" />
@@ -127,13 +140,14 @@
 </section>
 
 @code {
-    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    [Parameter, EditorRequired] public IPlayerCompanionsSession Session { get; set; } = null!;
     [Parameter] public WorldSaveSession? WorldSession { get; set; }
     [Parameter] public EventCallback OnChanged { get; set; }
     [Inject] private SiblingWorldBedService Beds { get; set; } = null!;
     [Inject] private SaveWorkspaceSessionService Workspace { get; set; } = null!;
     [Inject] private AbioticEditor.Web.Services.ToastService Toasts { get; set; } = null!;
     private CarriedPetEdit? _selected;
+    private bool _refreshing;
     private int _selectedBedIndex;
     private string? _transferStatus;
     private string? _scannedPlayerPath;
@@ -159,17 +173,27 @@
 
     protected override void OnParametersSet()
     {
-        if (string.Equals(_scannedPlayerPath, Session.Path, StringComparison.OrdinalIgnoreCase)) return;
-        _scannedPlayerPath = Session.Path;
-        var options = Beds.SiblingWorlds(Session.Path, Workspace.Current).ToList();
+        if (string.Equals(_scannedPlayerPath, Session.SessionKey, StringComparison.OrdinalIgnoreCase)) return;
+        _scannedPlayerPath = Session.SessionKey;
+        _transferStatus = null;
+        _targetSession = null;
+        // Sending a pet to a world bed needs a sibling world save on disk - file only (see
+        // PlayerCompanions.cs's SupportsWorldIntegration). A live connection has no such file, so
+        // the whole "SEND TO A PET BED" section stays hidden (SiblingWorldOptions.Count == 0).
+        if (Session is not PlayerSaveSession { } fileSession || !Session.SupportsWorldIntegration)
+        {
+            _siblingWorlds = [];
+            _selectedWorldPath = null;
+            _ = LoadBedsAsync(null);
+            return;
+        }
+        var options = Beds.SiblingWorlds(fileSession.Path, Workspace.Current).ToList();
         if (WorldSession is { } loaded
             && !options.Any(option => string.Equals(System.IO.Path.GetFullPath(option.Path), System.IO.Path.GetFullPath(loaded.Path), StringComparison.OrdinalIgnoreCase)))
         {
             options.Insert(0, new SiblingWorldOption(loaded.Path, System.IO.Path.GetFileName(loaded.Path)));
         }
         _siblingWorlds = options;
-        _transferStatus = null;
-        _targetSession = null;
         // Default to the loaded world (so staged claims show), else the first sibling - native
         // defaults to the first world save it finds next to the player.
         _selectedWorldPath = WorldSession is { } world
@@ -241,31 +265,39 @@
         (PlayerInventoryArea.Backpack, PetSlotKind.Main),
     ];
 
+    /// <summary>File only: a live session's <see cref="IPlayerCompanionsSession.CarriedPets"/> is
+    /// always a fresh read, so there is no "pending" concept for it - see
+    /// <see cref="IPlayerCompanionsSession.AppliesImmediately"/>.</summary>
     private IEnumerable<(PetSlotKind Kind, int Index, string ItemId)> PetItemsInInventory()
     {
+        if (Session is not PlayerSaveSession fileSession) yield break;
         foreach (var (area, kind) in PetBearingAreas)
-            foreach (var slot in SlotsFor(area))
+            foreach (var slot in SlotsFor(fileSession, area))
                 if (!slot.IsEmpty && slot.ItemId is { } itemId && PetItemCatalog.IsPetItem(itemId))
                     yield return (kind, slot.Index, itemId);
     }
 
-    private IReadOnlyList<PlayerInventorySlotEdit> SlotsFor(PlayerInventoryArea area) => area switch
+    private static IReadOnlyList<PlayerInventorySlotEdit> SlotsFor(PlayerSaveSession session, PlayerInventoryArea area) => area switch
     {
-        PlayerInventoryArea.Equipment => Session.Equipment,
-        PlayerInventoryArea.Hotbar => Session.Hotbar,
-        _ => Session.Backpack,
+        PlayerInventoryArea.Equipment => session.Equipment,
+        PlayerInventoryArea.Hotbar => session.Hotbar,
+        _ => session.Backpack,
     };
 
-    /// <summary>True while the slot this pet was read from still holds it.</summary>
+    /// <summary>True while the slot this pet was read from still holds it. Live: always true - a
+    /// row only exists in <see cref="IPlayerCompanionsSession.CarriedPets"/> while it is actually
+    /// there (see <see cref="AbioticEditor.Web.Models.LivePlayerCompanionsSession.RemovePetAsync"/>).</summary>
     private bool StillInInventory(CarriedPetEdit pet)
-        => PetItemsInInventory().Any(found => found.Kind == pet.Slot && found.Index == pet.Index);
+        => Session.AppliesImmediately || PetItemsInInventory().Any(found => found.Kind == pet.Slot && found.Index == pet.Index);
 
-    private List<PendingPet> PendingPets => PetItemsInInventory()
-        .Where(found => !Session.CarriedPets.Any(pet => pet.Slot == found.Kind && pet.Index == found.Index))
-        .Select(found => new PendingPet(
-            PetItemCatalog.FriendlyName(found.ItemId) ?? found.ItemId,
-            L.Resource("PlayerPets_SlotFormat", L.Resource($"PlayerPets_SlotKind_{found.Kind}"), found.Index)))
-        .ToList();
+    private List<PendingPet> PendingPets => Session.AppliesImmediately
+        ? []
+        : PetItemsInInventory()
+            .Where(found => !Session.CarriedPets.Any(pet => pet.Slot == found.Kind && pet.Index == found.Index))
+            .Select(found => new PendingPet(
+                PetItemCatalog.FriendlyName(found.ItemId) ?? found.ItemId,
+                L.Resource("PlayerPets_SlotFormat", L.Resource($"PlayerPets_SlotKind_{found.Kind}"), found.Index)))
+            .ToList();
 
     private string BedLabel(int index)
     {
@@ -276,15 +308,75 @@
         return area is { Length: > 0 } ? $"{label} - {area}" : label;
     }
 
-    private Task Changed() { Session.MarkChanged(); return OnChanged.InvokeAsync(); }
-    private Task SetHealth(CarriedPetEdit pet, double value) { pet.Health = value; return Changed(); }
-    private Task SetMaxHealth(CarriedPetEdit pet, double value) { pet.MaxHealth = value; return Changed(); }
-    private async Task Heal(CarriedPetEdit pet) { pet.Heal(); await Changed(); }
-    private async Task ToggleDeleted(CarriedPetEdit pet) { pet.IsDeleted = !pet.IsDeleted; await Changed(); }
-    private async Task StepLevel(CarriedPetEdit pet, int delta) { pet.Level = pet.Level + delta; await Changed(); }
+    /// <summary>Live only: re-reads every carried pet from the running game.</summary>
+    private async Task RefreshAsync()
+    {
+        if (Session is not LivePlayerCompanionsSession live) return;
+        _refreshing = true;
+        try
+        {
+            await live.RefreshAsync();
+            _selected = null;
+        }
+        catch (Exception exception) when (IsLiveTransportException(exception))
+        {
+            ReportMoveFailed(Errors.Present(exception, "Refresh carried pets.", "The connection may have dropped; try reconnecting."));
+        }
+        finally
+        {
+            _refreshing = false;
+        }
+    }
+
+    private static bool IsLiveTransportException(Exception exception) =>
+        exception is AbioticEditor.Core.LiveEditing.LiveAgentException or System.Net.Sockets.SocketException
+            or IOException or OperationCanceledException;
+
+    /// <summary>Commits one pet's current field values: stages it (file) or writes it to the
+    /// running game right away (live) - see <see cref="IPlayerCompanionsSession.ApplyPetAsync"/>.</summary>
+    private async Task CommitAsync(CarriedPetEdit pet)
+    {
+        try
+        {
+            await Session.ApplyPetAsync(pet);
+        }
+        catch (Exception exception) when (IsLiveTransportException(exception))
+        {
+            ReportMoveFailed(Errors.Present(exception, "Apply this pet's changes.", "The connection may have dropped; try reconnecting."));
+            return;
+        }
+        await OnChanged.InvokeAsync();
+    }
+
+    private Task SetHealth(CarriedPetEdit pet, double value) { pet.Health = value; return CommitAsync(pet); }
+    private Task SetMaxHealth(CarriedPetEdit pet, double value) { pet.MaxHealth = value; return CommitAsync(pet); }
+    private async Task Heal(CarriedPetEdit pet) { pet.Heal(); await CommitAsync(pet); }
+    private async Task StepLevel(CarriedPetEdit pet, int delta) { pet.Level = pet.Level + delta; await CommitAsync(pet); }
+
+    /// <summary>Removes (file: stages, reversible) or clears (live: immediate, no undo - see
+    /// <see cref="IPlayerCompanionsSession.RemovePetAsync"/>) a carried pet.</summary>
+    private async Task ToggleDeleted(CarriedPetEdit pet)
+    {
+        try
+        {
+            await Session.RemovePetAsync(pet);
+        }
+        catch (Exception exception) when (IsLiveTransportException(exception))
+        {
+            ReportMoveFailed(Errors.Present(exception, "Remove this pet.", "The connection may have dropped; try reconnecting."));
+            return;
+        }
+        // Live already dropped the row from CarriedPets - clear a now-dangling selection so the
+        // detail panel does not keep showing a pet that is gone.
+        if (_selected == pet && !Session.CarriedPets.Contains(pet)) _selected = null;
+        await OnChanged.InvokeAsync();
+    }
 
     private async Task SendToBed(CarriedPetEdit pet)
     {
+        // Only reachable when the SEND TO A PET BED section renders, which requires
+        // Session.SupportsWorldIntegration - the file session only.
+        if (Session is not PlayerSaveSession fileSession) return;
         if (_selectedWorldPath is not { } worldPath) return;
         try
         {
@@ -302,7 +394,8 @@
                 _targetSession = session;
                 var where = bed is not null ? BedLabel(bedIndex) : L.Resource("PlayerEditor_WorldOriginFallback");
                 _transferStatus = L.Resource("PlayerEditor_PetPlacedAt", pet.DisplayName, where, System.IO.Path.GetFileName(worldPath));
-                await Changed();
+                fileSession.MarkChanged();
+                await OnChanged.InvokeAsync();
             }
             else
             {
