@@ -120,8 +120,9 @@
     }
 
     // Drafts are rebuilt only when the selected container's reading changes (a refresh after an
-    // apply hands back a new LiveContainer instance), never on an unrelated re-render - see
-    // LiveInventoryTab for why: it would wipe in-progress typing.
+    // apply hands back a new LiveContainer instance), never on an unrelated re-render: doing it
+    // on every render would wipe in-progress typing (the same reasoning LiveInventorySession
+    // avoids by updating its slot objects in place on refresh instead of replacing them).
     private List<SlotDraft> Drafts
     {
         get

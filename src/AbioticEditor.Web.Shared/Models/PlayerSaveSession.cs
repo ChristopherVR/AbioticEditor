@@ -10,7 +10,7 @@ namespace AbioticEditor.Web.Models;
 /// A Razor-hosted editing session for one player save.  It deliberately depends only on
 /// Core save types: neither this class nor callers need a native view model.
 /// </summary>
-public sealed class PlayerSaveSession : IPlayerVitalsSession, IPlayerSkillsSession
+public sealed class PlayerSaveSession : IPlayerVitalsSession, IPlayerSkillsSession, IPlayerTransmogSession
 {
     private readonly PlayerSaveData _data;
     private readonly string _path;
@@ -258,6 +258,31 @@ public sealed class PlayerSaveSession : IPlayerVitalsSession, IPlayerSkillsSessi
     }
 
     public void MarkChanged() => Status = IsDirty ? "Unsaved changes" : null;
+
+    /// <summary>Always false: a file session stages every edit until its own SaveAsync, unlike
+    /// a live session (see <see cref="IPlayerInventorySession.AppliesImmediately"/>).</summary>
+    public bool AppliesImmediately => false;
+
+    // ---------- IPlayerInventorySession/IPlayerTransmogSession async-capable members ----------
+    // Thin ValueTask wrappers over the synchronous methods below: the file session never talks
+    // to anything external, so these complete synchronously, but the interface's live
+    // implementation (LiveInventorySession) genuinely awaits a round trip to the game for each.
+
+    public ValueTask PushSlotAsync(PlayerInventoryArea area, PlayerInventorySlotEdit slot, CancellationToken cancellationToken = default)
+        => ValueTask.CompletedTask;
+
+    public ValueTask<bool> TrySwapInventorySlotsAsync(PlayerInventoryArea firstArea, int firstIndex,
+        PlayerInventoryArea secondArea, int secondIndex, CancellationToken cancellationToken = default)
+        => ValueTask.FromResult(TrySwapInventorySlots(firstArea, firstIndex, secondArea, secondIndex));
+
+    public ValueTask SortInventorySlotsAsync(PlayerInventoryArea area, CancellationToken cancellationToken = default)
+    {
+        SortInventorySlots(area);
+        return ValueTask.CompletedTask;
+    }
+
+    public ValueTask<bool> TryApplyItemUpgradeAsync(PlayerInventoryArea area, int index, bool downgrade, CancellationToken cancellationToken = default)
+        => ValueTask.FromResult(TryApplyItemUpgrade(area, index, downgrade));
 
     public void MaxAllSkills()
     {

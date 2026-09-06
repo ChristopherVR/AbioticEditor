@@ -93,9 +93,14 @@ returns `{"players":[{"id","name","isLocal"}],"isHost":bool}`. Every player-scop
 different connected player; omitted means the local player. `npcs.list` returns
 `{"npcs":[{"id","label","isDead","isDisabled","invincible","faction"}],"isHost":bool}` and
 `npcs.set` takes `{"npcs":[{"id", ...any of those fields...}]}`. `inventory.list` returns a flat
-array of `{"kind":"backpack"|"equip"|"hotbar","slotIndex","itemId","isEmpty","stack",
+array of `{"kind":"backpack"|"equip"|"hotbar"|"transmog","slotIndex","itemId","isEmpty","stack",
 "durability","maxDurability"}` and `inventory.set` takes `{"edits":[{"kind","slotIndex",
-"clear"?,"itemId"?,"stack"?,"durability"?,"maxDurability"?}],"playerId"?}`.
+"clear"?,"itemId"?,"stack"?,"durability"?,"maxDurability"?}],"playerId"?}`. `transmog` reads the
+same `Abiotic_InventoryComponent_C` slot struct as the other three kinds, over the player's
+`TmogInventory` component - the web editor's `LiveInventorySession` sends this kind for a
+transmog slot exactly like backpack/equip/hotbar, so no separate command pair exists for it.
+Armor-visibility toggles have no confirmed live property yet, so the web editor's transmog tab
+shows them read-only for a live session instead of an edit that would silently not apply.
 
 An `id` in any world area is the game's own full object name for that exact actor
 (`GetFullName()`), re-resolved by a fresh scan on every write: the loaded set of doors, crates,

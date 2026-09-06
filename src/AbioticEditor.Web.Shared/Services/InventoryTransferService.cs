@@ -12,7 +12,7 @@ namespace AbioticEditor.Web.Services;
 public static class InventoryTransferService
 {
     public static bool TrySwapPlayerAndContainer(
-        PlayerSaveSession player, PlayerInventoryArea playerArea, int playerSlotIndex,
+        IPlayerInventorySession player, PlayerInventoryArea playerArea, int playerSlotIndex,
         WorldSaveSession world, WorldContainerSource source, string containerId,
         int inventoryIndex, int containerSlotIndex)
     {
@@ -34,7 +34,7 @@ public static class InventoryTransferService
     }
 
     public static bool TryPickUpDroppedItem(
-        PlayerSaveSession player, PlayerInventoryArea playerArea, int playerSlotIndex,
+        IPlayerInventorySession player, PlayerInventoryArea playerArea, int playerSlotIndex,
         WorldSaveSession world, string droppedItemId)
     {
         var dropped = world.DroppedItems.FirstOrDefault(item => string.Equals(item.Id, droppedItemId, StringComparison.Ordinal));
@@ -49,7 +49,7 @@ public static class InventoryTransferService
     }
 
     public static bool TryDropPlayerSlot(
-        PlayerSaveSession player, PlayerInventoryArea playerArea, int playerSlotIndex,
+        IPlayerInventorySession player, PlayerInventoryArea playerArea, int playerSlotIndex,
         WorldSaveSession world, double x, double y, double z, out string pendingId)
     {
         pendingId = string.Empty;

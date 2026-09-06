@@ -73,16 +73,26 @@
                      Message="@HoldingMessage" OnStart="StartMove" OnCancel="CancelMove" />
 
         @if (_status is not null) { <p class="transmog-status" role="status">@_status</p> }
+        @* Live edits reach the game the moment they're made; this is the same "applied live"
+           status the vitals/skills tabs surface, instead of a page-level SAVE. *@
+        @if (Session.AppliesImmediately && Session.Status is not null) { <p class="transmog-status" role="status">@Session.Status</p> }
 
         @if (Session.TransmogVisibility.Count > 0)
         {
             <p class="transmog-visibility-label">@L.Resource("PlayerTransmog_Visibility")</p>
+            @if (Session.AppliesImmediately)
+            {
+                @* No confirmed live property writes these (see docs/reference/live-editing-
+                   protocol.md), so they are shown read-only here rather than letting an edit
+                   silently not apply. *@
+                <p class="muted">@L.Resource("PlayerTransmog_LiveVisibilityHint")</p>
+            }
             <div class="transmog-visibility">
                 @* Only the six visual gear slots render on the character (native shows the
                    same subset); the remaining stored flags round-trip untouched. *@
                 @foreach (var toggle in Session.TransmogVisibility.Take(6))
                 {
-                    <label><input type="checkbox" checked="@toggle.IsVisible" @onchange="e => SetVisibility(toggle, e.Value)" /><span>@RoleLabel(toggle.Index)</span></label>
+                    <label><input type="checkbox" checked="@toggle.IsVisible" disabled="@Session.AppliesImmediately" @onchange="e => SetVisibility(toggle, e.Value)" /><span>@RoleLabel(toggle.Index)</span></label>
                 }
             </div>
         }
@@ -90,7 +100,7 @@
 </section>
 
 @code {
-    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    [Parameter, EditorRequired] public IPlayerTransmogSession Session { get; set; } = null!;
     [Parameter] public EventCallback OnChanged { get; set; }
 
     private PlayerInventorySlotEdit? _selected;
@@ -176,7 +186,7 @@
             L.Resource("PlayerEditor_Transmog"), slot, Session.Transmog, Session.ItemVocabulary, [],
             Session.Transmog, false,
             Changed,
-            pair => { Session.TrySwapInventorySlots(PlayerInventoryArea.Transmog, pair.First, pair.Second); return OnChanged.InvokeAsync(); },
+            async pair => { await Session.TrySwapInventorySlotsAsync(PlayerInventoryArea.Transmog, pair.First, PlayerInventoryArea.Transmog, pair.Second); await OnChanged.InvokeAsync(); },
             _ => Task.CompletedTask, null, null)
         {
             PlayerArea = PlayerInventoryArea.Transmog,
@@ -322,7 +332,7 @@
         }
         // Cross-surface swap: the source may live in another inventory area (equipment,
         // hotbar, backpack) - the native drop handler moves between them the same way.
-        Session.TrySwapInventorySlots(source.Area, source.Slot.Index, PlayerInventoryArea.Transmog, target.Index);
+        await Session.TrySwapInventorySlotsAsync(source.Area, source.Slot.Index, PlayerInventoryArea.Transmog, target.Index);
         SelectSlot(target);
         _status = L.Resource("Slot_MsgSwapped", DisplayNameOf(target));
         Selection.NotifyItemCommitted();
@@ -353,10 +363,13 @@
         await Changed();
     }
 
-    private Task Changed()
+    // Pushes whichever slot the sidebar editor just mutated in place (a no-op for the file
+    // session, which already staged the edit; the live session sends inventory.set for it).
+    private async Task Changed()
     {
         Session.MarkChanged();
-        return OnChanged.InvokeAsync();
+        if (Selection.Current is { PlayerArea: { } area, Slot: { } slot }) await Session.PushSlotAsync(area, slot);
+        await OnChanged.InvokeAsync();
     }
 
     public async ValueTask DisposeAsync()

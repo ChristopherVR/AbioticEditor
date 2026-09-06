@@ -489,11 +489,16 @@ end
 -- bogus new name.
 
 -- Ordered (not a plain hash-iterated table) so inventory.list's output is stable across calls.
-local INVENTORY_KINDS = { "backpack", "equip", "hotbar" }
+-- "transmog" reads/writes the same Abiotic_InventoryComponent_C slot structs as the other three
+-- kinds, over TmogInventory (confirmed in the blueprint class dump) - the web editor's
+-- LiveInventorySession sends this kind for a transmog slot the same way it does backpack/equip/
+-- hotbar, so no new command pair was needed for it (see docs/reference/live-editing-protocol.md).
+local INVENTORY_KINDS = { "backpack", "equip", "hotbar", "transmog" }
 local INVENTORY_PROPERTY_BY_KIND = {
     backpack = "CharacterInventory",
     equip = "CharacterEquipSlotInventory",
     hotbar = "CharacterHotbarInventory",
+    transmog = "TmogInventory",
 }
 
 local function inventoryComponent(player, kind)
