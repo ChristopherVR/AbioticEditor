@@ -1145,6 +1145,11 @@ for _, moduleName in ipairs(areaModules) do
     end
 end
 
+-- Exposed for the stub-environment test harness (live-agent/AbioticEditorLiveAgentLua/tests):
+-- it loads this file under fake UE4SS globals and drives every handler directly. Harmless in
+-- the real game - nothing else reads it.
+AbioticEditorLiveAgentLua = { handlers = handlers, ctx = ctx }
+
 -- ===== The file-mailbox poll loop =====
 -- Atomic publish: write to a temp file, then rename over the real path, so the helper's reader
 -- never observes a half-written response (matches FileMailbox::WriteAtomic on the helper side).
