@@ -43,7 +43,11 @@ public sealed class LiveWorldContainersUiParityContractTests
         var worldSaveSession = UiSource.ReadAllText("Models", "WorldSaveSession.cs");
         var liveContainers = UiSource.ReadAllText("Models", "LiveContainersSession.cs");
         var liveDropped = UiSource.ReadAllText("Models", "LiveDroppedItemsSession.cs");
-        Assert.Contains(": IWorldContainersSession, IWorldDroppedItemsSession", worldSaveSession, StringComparison.Ordinal);
+        // The file session implements several shared interfaces on one declaration line, in
+        // whatever order they were added - check membership, not the exact spelling.
+        var declaration = worldSaveSession.Split((char)10).First(line => line.Contains("class WorldSaveSession", StringComparison.Ordinal));
+        Assert.Contains("IWorldContainersSession", declaration, StringComparison.Ordinal);
+        Assert.Contains("IWorldDroppedItemsSession", declaration, StringComparison.Ordinal);
         Assert.Contains(": IWorldContainersSession", liveContainers, StringComparison.Ordinal);
         Assert.Contains(": IWorldDroppedItemsSession", liveDropped, StringComparison.Ordinal);
     }
