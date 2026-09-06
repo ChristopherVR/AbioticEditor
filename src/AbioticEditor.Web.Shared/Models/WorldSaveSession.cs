@@ -639,6 +639,7 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
     Task IWorldStorySession.QueueWeatherAsync(string weather, CancellationToken cancellationToken)
         => throw new InvalidOperationException("Weather is not part of a save file.");
     bool IWorldStorySession.SupportsRecipes => CanEditGlobalRecipes;
+    IReadOnlyCollection<string> IWorldStorySession.GlobalRecipeIds => GlobalRecipes;
     Task IWorldStorySession.RefreshAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     public void ReleaseContainment(string creature)

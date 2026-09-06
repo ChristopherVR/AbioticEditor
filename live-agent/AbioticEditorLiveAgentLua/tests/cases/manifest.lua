@@ -2,4 +2,6 @@
 return {
     "core",
     "story",
+    "codex",
+    "worldunlocks",
 }

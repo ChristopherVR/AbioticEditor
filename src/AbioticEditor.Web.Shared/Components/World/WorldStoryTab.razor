@@ -179,34 +179,36 @@
                         @onclick="UnlockAllRecipes">@L.Resource("WorldStory_UnlockAll")</button>
             </div>
 
+            @if (!CanEditRecipes)
+            {
+                <p class="muted ws-recipes-readonly">@L.Resource("WorldStory_LiveGlobalRecipesReadOnlyHelp")</p>
+            }
+
             <div class="ws-recipe-list" role="listbox" aria-label="@L.Resource("WorldStory_WorldRecipes")">
-                @if (!CanEditRecipes || !VisibleWorldRecipeRows.Any())
+                @if (!VisibleWorldRecipeRows.Any())
                 {
                     <p class="ws-recipes-empty">@L.Resource("WorldStory_NoRecipes")</p>
                 }
-                @if (CanEditRecipes)
+                @foreach (var row in VisibleWorldRecipeRows)
                 {
-                    @foreach (var row in VisibleWorldRecipeRows)
-                    {
-                        var unlocked = RecipeIsUnlocked(row.Id);
-                        <div class="ws-recipe-row @(row.Id == _selectedWorldRecipeId ? "selected" : null)" @key="row.Id"
-                             role="option" aria-selected="@(row.Id == _selectedWorldRecipeId)" tabindex="0"
-                             @onclick="() => ToggleRecipeDetail(row.Id)" @onkeydown="e => RecipeKeyDown(e, row.Id)">
-                            <input type="checkbox" checked="@unlocked" aria-label="@row.DisplayName" @key="@($"{row.Id}:{_gateNonce}")"
-                                   @onclick:stopPropagation="true" @onchange="e => SetRecipe(row.Id, e.Value is bool value && value)" />
-                            <span class="ws-recipe-icon">
-                                @if (row.Info?.CreatesItemId is { } createdId)
-                                {
-                                    <ItemIcon ItemId="@createdId" Alt="" />
-                                }
-                            </span>
-                            <span class="ws-recipe-text">
-                                <strong>@row.DisplayName</strong>
-                                <small>@SubText(row)</small>
-                            </span>
-                            <span class="ws-recipe-status">@L.Resource(unlocked ? "PlayerRecipes_BadgeUnlocked" : "PlayerRecipes_BadgeLocked")</span>
-                        </div>
-                    }
+                    var unlocked = RecipeIsUnlocked(row.Id);
+                    <div class="ws-recipe-row @(row.Id == _selectedWorldRecipeId ? "selected" : null)" @key="row.Id"
+                         role="option" aria-selected="@(row.Id == _selectedWorldRecipeId)" tabindex="0"
+                         @onclick="() => ToggleRecipeDetail(row.Id)" @onkeydown="e => RecipeKeyDown(e, row.Id)">
+                        <input type="checkbox" checked="@unlocked" aria-label="@row.DisplayName" disabled="@(!CanEditRecipes)" @key="@($"{row.Id}:{_gateNonce}")"
+                               @onclick:stopPropagation="true" @onchange="e => SetRecipe(row.Id, e.Value is bool value && value)" />
+                        <span class="ws-recipe-icon">
+                            @if (row.Info?.CreatesItemId is { } createdId)
+                            {
+                                <ItemIcon ItemId="@createdId" Alt="" />
+                            }
+                        </span>
+                        <span class="ws-recipe-text">
+                            <strong>@row.DisplayName</strong>
+                            <small>@SubText(row)</small>
+                        </span>
+                        <span class="ws-recipe-status">@L.Resource(unlocked ? "PlayerRecipes_BadgeUnlocked" : "PlayerRecipes_BadgeLocked")</span>
+                    </div>
                 }
             </div>
 
@@ -243,7 +245,7 @@
                         <p class="detail-value">@usedIn</p>
                     }
 
-                    <label class="door-toggle"><input type="checkbox" checked="@unlocked" @onchange="e => SetRecipe(selected.Id, e.Value is bool value && value)" /> @L.Resource("PlayerRecipes_BadgeUnlocked")</label>
+                    <label class="door-toggle"><input type="checkbox" checked="@unlocked" disabled="@(!CanEditRecipes)" @onchange="e => SetRecipe(selected.Id, e.Value is bool value && value)" /> @L.Resource("PlayerRecipes_BadgeUnlocked")</label>
                 </div>
             }
 
@@ -777,9 +779,12 @@
 
     // ---------- world recipes browser (native GlobalRecipeBrowser; file editor only) ----------
 
-    private bool CanEditRecipes => Session.SupportsRecipes;
+    /// <summary>Whether the checkboxes/UNLOCK ALL button are enabled - false live (see
+    /// <see cref="IWorldStorySession.CanEditGlobalRecipes"/>'s remarks), independent of whether the
+    /// list itself has anything to show (<see cref="IWorldStorySession.SupportsRecipes"/>).</summary>
+    private bool CanEditRecipes => Session.CanEditGlobalRecipes;
 
-    private bool RecipeIsUnlocked(string id) => FileSession?.GlobalRecipes.Contains(id) == true;
+    private bool RecipeIsUnlocked(string id) => Session.GlobalRecipeIds.Contains(id);
 
     /// <summary>Every known recipe row (from the installed game's vocabulary) plus any recipe
     /// id already unlocked in this save that the vocabulary doesn't know about (e.g. game data
@@ -789,7 +794,7 @@
         get
         {
             var infosById = RecipeVocabulary.GetRecipeInfos().ToDictionary(recipe => recipe.Id, StringComparer.Ordinal);
-            var ids = infosById.Keys.Concat(FileSession?.GlobalRecipes ?? []).Distinct(StringComparer.Ordinal);
+            var ids = infosById.Keys.Concat(Session.GlobalRecipeIds).Distinct(StringComparer.Ordinal);
             return ids.Select(id =>
             {
                 infosById.TryGetValue(id, out var info);
@@ -848,7 +853,10 @@
 
     private void SetRecipe(string id, bool unlocked)
     {
-        if (FileSession is not { } file) return;
+        // Live never reaches here: CanEditRecipes is always false there, so the checkbox is
+        // disabled (see IWorldStorySession.CanEditGlobalRecipes's remarks) rather than sending a
+        // request that would silently do nothing.
+        if (!CanEditRecipes || FileSession is not { } file) return;
         // Progress gate (native rule): recipes granted by an email in an unreached region stay
         // locked; the refusal reason lands on a toast and the checkbox snaps back.
         if (unlocked && Gate.CheckUnlock(id, _worldFlags) is { } block)
@@ -863,7 +871,7 @@
 
     private void UnlockAllRecipes()
     {
-        if (FileSession is not { } file) return;
+        if (!CanEditRecipes || FileSession is not { } file) return;
         RecipeGateBlock? lastBlock = null;
         var allowed = new List<string>();
         foreach (var id in RecipeVocabulary.GetRecipeInfos().Select(recipe => recipe.Id))

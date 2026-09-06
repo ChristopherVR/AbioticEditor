@@ -15,10 +15,12 @@ public interface IPlayerCodexSession
     IReadOnlyList<CodexRowEdit> Emails { get; }
     IReadOnlyList<CodexRowEdit> Journals { get; }
 
-    /// <summary>Every row's <see cref="CodexRowEdit.Editable"/> is false on
-    /// <c>LivePlayerCodexSession</c> - the running game's compendium-unlock function needs an
-    /// enum parameter this project could not ground (see <c>LivePlayerCodexChannel</c>'s
-    /// remarks), so this section is shown but never live-editable.</summary>
+    /// <summary>Settable live: the running game's compendium-unlock RPC
+    /// (<c>Request_UnlockCompendiumSection</c>) takes an enum this project has grounded from the
+    /// game's own usmap enum table (see <c>LivePlayerCodexChannel</c>'s remarks). A row is
+    /// <see cref="CodexRowEdit.Editable"/> only when its entry has at least one section type the
+    /// RPC covers - a kill-requirement-only entry stays read-only, since that unlocks itself from
+    /// kill tracking.</summary>
     IReadOnlyList<CodexRowEdit> Compendium { get; }
     IReadOnlyList<CodexRowEdit> Fish { get; }
 
@@ -35,7 +37,8 @@ public interface IPlayerCodexSession
     bool ApplyCodexVocabulary(CodexVocabulary vocabulary, Func<string, object?[], string>? localize = null);
 
     /// <summary>Marks (or, when <see cref="CanUnsetKnown"/>, unmarks) one row known - refused for
-    /// a row whose <see cref="CodexRowEdit.Editable"/> is false (the COMPENDIUM section live).</summary>
+    /// a row whose <see cref="CodexRowEdit.Editable"/> is false (a kill-requirement-only
+    /// COMPENDIUM entry live).</summary>
     Task SetKnownAsync(CodexRowEdit row, bool known);
 
     void MarkChanged();

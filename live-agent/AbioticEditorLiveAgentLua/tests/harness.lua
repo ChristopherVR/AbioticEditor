@@ -269,6 +269,9 @@ function H.hostSession()
         EmailsRead = { H.fname("Email_Crossbow") }, JournalEntries = {}, FishCaughtArray = {},
         ItemsPickedUpArray = { H.fname("scrap_metal") }, CraftedItems = {}, CurrentMaps = { H.fname("map_office3") },
         Local_AllCompendiumEntries = {},
+        Compendium_ExplorationSections = { H.fname("Compendium_Office") },
+        Compendium_EmailSections = {},
+        Compendium_NarrativeNPCSections = {},
     }, {
         Request_UnlockNewRecipe = function() end,
         Server_AddEmailToReadList = function() end,
@@ -307,6 +310,14 @@ function H.hostSession()
     H.gameState = H.object("Abiotic_Survival_GameState_C", {
         PlayerArray = { state }, WorldFlags = { H.fname("Office_PowerOn") },
         CurrentQuest = { RowName = H.fname("quest_RES_EndInterlude") },
+        GlobalRecipesUnlocked = { H.fname("recipe_bandage") },
+        GlobalRecipesResearched = {},
+        GlobalItemsPickedUp = { H.fname("scrap_metal") },
+        GlobalEmailsRead = { H.fname("Email_Crossbow") },
+        GlobalJournalEntries = {},
+        GlobalCompendiumEmail = {},
+        GlobalCompendiumNarrative = {},
+        GlobalCompendiumExploration = { H.fname("Compendium_Office") },
     }, { OnRep_CurrentQuest = function() end })
     H.world.add(pawn)
     H.world.add(H.gameState)

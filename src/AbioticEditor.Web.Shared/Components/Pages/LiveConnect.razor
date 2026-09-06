@@ -455,7 +455,7 @@
             // DayNightManager, doors, or containers yet), so each one that fails to read is left
             // null and its tab says so, instead of failing the whole connection - the player
             // areas above still work from the menu.
-            _story = await TryConnectWorldAreaAsync(() => LiveStorySession.ConnectAsync(new LiveStoryChannel(channel), new LiveWorldStateChannel(channel), new LiveWorldFlagsChannel(channel)));
+            _story = await TryConnectWorldAreaAsync(() => LiveStorySession.ConnectAsync(new LiveStoryChannel(channel), new LiveWorldStateChannel(channel), new LiveWorldFlagsChannel(channel), new LiveWorldUnlocksChannel(channel)));
             _flags = await TryConnectWorldAreaAsync(() => LiveWorldFlagsSession.ConnectAsync(new LiveWorldFlagsChannel(channel)));
             _doors = await TryConnectWorldAreaAsync(() => LiveDoorsSession.ConnectAsync(new LiveDoorsChannel(channel)));
             _containers = await TryConnectWorldAreaAsync(() => LiveContainersSession.ConnectAsync(new LiveContainersChannel(channel)));

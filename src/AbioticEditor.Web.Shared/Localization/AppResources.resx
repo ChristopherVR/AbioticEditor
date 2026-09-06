@@ -188,7 +188,7 @@
   <data name="PlayerCodex_EmailUnlocksJournal" xml:space="preserve"><value>READING THIS UNLOCKS JOURNAL: {0}</value></data>
   <data name="PlayerCodex_FetchingImage" xml:space="preserve"><value>Fetching image from the wiki...</value></data>
   <data name="PlayerCodex_FooterHelp" xml:space="preserve"><value>Emails, journal, compendium and fish can all be edited here. Compendium entries unlock their matching sections for you.</value></data>
-  <data name="PlayerCodex_LiveCompendiumReadOnlyHelp" xml:space="preserve"><value>Compendium entries are read-only live: the running game's unlock function for this section needs information this editor could not safely determine.</value></data>
+  <data name="PlayerCodex_LiveCompendiumReadOnlyHelp" xml:space="preserve"><value>Compendium entries unlocked only by defeating a creature stay read-only live: that happens automatically from kill tracking, not from a button here.</value></data>
   <data name="PlayerCodex_LiveMarkKnownOnlyHelp" xml:space="preserve"><value>Live editing can only mark an entry known, never un-know one - the running game has no way to take that back.</value></data>
   <data name="PlayerCodex_Journal" xml:space="preserve"><value>JOURNAL</value></data>
   <data name="PlayerCodex_Kills" xml:space="preserve"><value>KILLS</value></data>
@@ -798,6 +798,7 @@
   <data name="WorldStory_MovePlayersLabel" xml:space="preserve"><value>ALSO MOVE PLAYERS TO THIS CHAPTER'S AREA</value></data>
   <data name="WorldStory_MovePlayersCaption" xml:space="preserve"><value>When ticked, SET also moves every character's respawn point to the punch-card terminal in that chapter's sector. Off by default, so leave it unticked if you only want the story itself changed.</value></data>
   <data name="WorldStory_NoRecipes" xml:space="preserve"><value>No recipes match (or game data is unavailable).</value></data>
+  <data name="WorldStory_LiveGlobalRecipesReadOnlyHelp" xml:space="preserve"><value>World recipes are read-only live: the running game has no button anywhere to unlock one world-wide, so this only shows what has already been researched. Use a character's own RECIPES tab to give them a recipe directly.</value></data>
   <data name="WorldStory_SearchRecipes" xml:space="preserve"><value>Search recipes…</value></data>
   <data name="WorldStory_Set" xml:space="preserve"><value>SET</value></data>
   <data name="WorldStory_StorySplitIntro" xml:space="preserve"><value>SET moves the story to that chapter and brings everything else in line. Earlier events are marked as done and later ones are undone. Emails, journal pages and codex entries you would no longer have seen are taken back, for the world and for every character. Some of it is written straight away, the rest when you press SAVE.</value></data>
