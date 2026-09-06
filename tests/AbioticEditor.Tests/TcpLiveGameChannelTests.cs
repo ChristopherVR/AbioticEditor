@@ -447,6 +447,39 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
         Assert.Equal(LiveConnectionState.Connected, channel.State);
     }
 
+    [Fact]
+    public async Task LivePlayerGeneralChannel_reads_background_and_traits_and_can_set_background()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var general = new AbioticEditor.Core.LiveEditing.Player.LivePlayerGeneralChannel(channel);
+
+        var directory = await general.GetAsync();
+        Assert.Equal("PhD_HumanBio", directory.Background);
+        Assert.Equal(["Trait_Chef"], directory.Traits);
+
+        // Same fallback-echo proof as the other SetAsync tests: succeeding without throwing
+        // proves the background field encodes as a well-formed general.set request.
+        await general.SetAsync(background: "PhD_Medicine");
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
+    [Fact]
+    public async Task LiveTransmogVisibilityChannel_GetAsync_reads_flags_and_SetAsync_sends_a_well_formed_request()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var visibility = new AbioticEditor.Core.LiveEditing.Player.LiveTransmogVisibilityChannel(channel);
+
+        var flags = await visibility.GetAsync();
+        Assert.Equal(2, flags.Count);
+        Assert.True(flags[0].IsVisible);
+        Assert.False(flags[1].IsVisible);
+        Assert.Equal(0, flags[0].Index);
+        Assert.Equal(1, flags[1].Index);
+
+        await visibility.SetAsync(1, true);
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
     private async Task<TcpLiveGameChannel> ConnectedChannelAsync()
     {
         var channel = new TcpLiveGameChannel();
@@ -590,8 +623,12 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
                     "recipes.get" => "{\"unlockedIds\":[\"Recipe_Axe\",\"Recipe_Torch\"]}",
                     "codex.get" => "{\"emails\":[\"Email_Foo\"],\"journals\":[\"Journal_Bar\"],"
                         + "\"fish\":[\"Fish_Baz\"],\"compendium\":[\"Compendium_Qux\"]}",
-                    "general.get" => "{\"itemsSeen\":[\"metal_scrap\"],\"itemsCrafted\":[\"torch\"],\"maps\":[\"Sector_A\"]}",
-                    
+                    // Round 77: BACKGROUND (a real live write) and TRAITS (read-only readout).
+                    "general.get" => "{\"itemsSeen\":[\"metal_scrap\"],\"itemsCrafted\":[\"torch\"],\"maps\":[\"Sector_A\"],"
+                        + "\"traits\":[\"Trait_Chef\"],\"background\":\"PhD_HumanBio\"}",
+                    // Round 77: transmog visibility (Request_ChangeTransmogVisibilityFlag).
+                    "transmog.get" => "{\"visibility\":[{\"index\":0,\"isVisible\":true},{\"index\":1,\"isVisible\":false}]}",
+
                     _ => null,
                 };
                 if (canned is not null)

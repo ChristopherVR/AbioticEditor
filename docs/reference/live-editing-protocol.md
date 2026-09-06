@@ -99,12 +99,26 @@ array of `{"kind":"backpack"|"equip"|"hotbar"|"transmog","slotIndex","itemId","i
 same `Abiotic_InventoryComponent_C` slot struct as the other three kinds, over the player's
 `TmogInventory` component - the web editor's `LiveInventorySession` sends this kind for a
 transmog slot exactly like backpack/equip/hotbar, so no separate command pair exists for it.
-Armor-visibility toggles have no confirmed live property yet, so the web editor's transmog tab
-shows them read-only for a live session instead of an edit that would silently not apply.
 
 An `id` in any world area is the game's own full object name for that exact actor
 (`GetFullName()`), re-resolved by a fresh scan on every write: the loaded set of doors, crates,
 NPCs and loose items changes constantly, so an index from an earlier list is never trusted.
+
+## `transmog.get` / `transmog.set` - armor-visibility toggles (round 77)
+
+Previously reported as having "no confirmed live property", the six per-slot "hide this armor
+piece" eye toggles (`PlayerTransmogTab`'s `TransmogVisibility`) turned out to have a real,
+grounded write path once the transmog inventory component's own class layout was checked (not
+just the save file's property name): `Abiotic_TransmogInventoryComp_C` (the exact class
+`inventory.list`/`.set` already reads/writes for the `transmog` kind, over the player's
+`TmogInventory`) declares `Request_ChangeTransmogVisibilityFlag(Index, Item)` as a genuine
+client -> server RPC. `transmog.get` takes an optional `{"playerId":"…"}` payload and returns
+`{"visibility":[{"index","isVisible"}, ...]}` for the six visual gear roles only (CHEST/HEAD/
+LEGS/BACK/ARMS/SUIT - the same subset `PlayerTransmogTab` shows; the remaining stored flags
+round-trip untouched). `transmog.set` takes `{"playerId"?, "visibility":[{"index","isVisible"}]}`
+and applies each flag via that RPC immediately; an index outside 0-5 is silently ignored rather
+than written. Not host-gated, the same "player-owned data" reasoning `inventory.set` already
+uses: this component belongs to a specific player's own pawn.
 
 ## `world.get` / `world.set` - clock and weather
 
@@ -368,21 +382,45 @@ when connected live.
 ## `general.get` / `general.set`
 
 Live "bulk unlocks" editing, the counterpart to the file editor's General tab ITEMS SEEN, ITEMS
-CRAFTED and MAPS rows (the account/owner-id change has no live counterpart at all - see below).
-`general.get` takes an optional `{"playerId":"…"}` payload and returns:
+CRAFTED, MAPS, BACKGROUND and TRAITS rows (the account/owner-id change has no live counterpart at
+all - see below). `general.get` takes an optional `{"playerId":"…"}` payload and returns:
 
 ```json
-{"itemsSeen":["metal_scrap"],"itemsCrafted":["torch"],"maps":["Sector_A"]}
+{"itemsSeen":["metal_scrap"],"itemsCrafted":["torch"],"maps":["Sector_A"],
+ "traits":["Trait_Chef"],"background":"PhD_HumanBio"}
 ```
 
-`general.set` takes `{"playerId":"…", "itemsSeen"?:[...], "maps"?:[...]}` and discovers/unlocks
-each given id immediately; omitted categories are left untouched.
+`general.set` takes `{"playerId":"…", "itemsSeen"?:[...], "maps"?:[...], "background"?:"…"}` and
+discovers/unlocks each given id (and applies the background) immediately; omitted fields are left
+untouched.
 
 **`itemsCrafted` is read-only** - it is reported by `general.get` but `general.set` does not accept
 it. The game's `CharacterProgressionComponent` tracks crafted items automatically (from actually
 crafting something) but exposes no single-item "mark as crafted" function anywhere in its exported
 API, unlike items-seen (`Server_CheckNewItemPickedUp`) and maps (`Server_AddMapToJournal`). The
 desktop app's ITEMS CRAFTED row disables its DISCOVER ALL button when connected live.
+
+**`background` (round 77) IS a real live write.** `Abiotic_PlayerState_C` declares a plain,
+no-hash-suffix `PhD : FNameProperty` with no `OnRep_PhD` - the same row-name concept the file
+format's `PhD_` tag stores. `general.set`'s `background` writes it directly on the connected
+player's `PlayerState` (found via `APawn.PlayerState`, the base-engine property `main.lua`'s own
+`localPlayerId()` already reads off the player CONTROLLER for a different purpose); no RPC is
+needed because a replicated UPROPERTY changed on the server's own authoritative object replicates
+to owning clients on the next network update.
+
+**`traits` (round 77) is read-only** - it is reported by `general.get` but `general.set` does not
+accept it. `CharacterProgressionComponent.Traits` is read the same way the reference mod's own
+"traits" console command does. The only functions that touch it (`SetTraits`/`GetTraits`/
+`InitializeTraits`) carry no `Server_`/`Request_` prefix - they are not RPCs, and are used only by
+the one-time character-creation flow (`Abiotic_PlayerController.Server_SetupInitialTraits` ->
+`Client_DoTraitSelectionSequence` -> `GoToTraitsSelection`); calling them mid-game would re-run
+that flow rather than swap one trait. The native engine's only trait-adjacent RPCs
+(`UCharacterBuffComponent::Server_AddTraitBuff`/`Server_RemoveTraitBuff(FBuffDebuffRowHandle)`,
+found in the shipped PDB) apply a different, temporary gameplay buff keyed by a buff/debuff row
+handle - they do not touch `CharacterProgressionComponent.Traits` or the save's `Traits_` array,
+so calling them would not actually add or remove a trait the way this list means. The desktop
+app's GENERAL tab shows TRAITS as a plain readout with a note pointing to the file-based CHARACTER
+tab for full add/remove.
 
 **The account/owner-id change has no live path at all** and is not part of this wire protocol:
 renaming which save file a character belongs to is purely a file-system operation, with no running

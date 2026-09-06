@@ -217,6 +217,13 @@
 
   <!-- PlayerGeneral -->
   <data name="PlayerGeneral_Account" xml:space="preserve"><value>ACCOUNT</value></data>
+  <data name="PlayerGeneral_Background" xml:space="preserve"><value>BACKGROUND</value></data>
+  <data name="PlayerGeneral_BackgroundHelp" xml:space="preserve"><value>Changing the background does not hand out its skill bonuses or starting gear again. It only changes which job your character is listed as. Applies live immediately when connected to a running game.</value></data>
+  <data name="PlayerGeneral_BackgroundNone" xml:space="preserve"><value>(none)</value></data>
+  <data name="PlayerGeneral_ChangeBackground" xml:space="preserve"><value>SET</value></data>
+  <data name="PlayerGeneral_Traits" xml:space="preserve"><value>TRAITS</value></data>
+  <data name="PlayerGeneral_TraitsHelp" xml:space="preserve"><value>A readout only here. Add or remove traits on the file-based CHARACTER tab; there is no way to add or remove a single trait while connected to a running game.</value></data>
+  <data name="PlayerGeneral_TraitsNone" xml:space="preserve"><value>(none)</value></data>
   <data name="PlayerGeneral_BulkUnlocks" xml:space="preserve"><value>BULK UNLOCKS</value></data>
   <data name="PlayerGeneral_ChangeSteamId" xml:space="preserve"><value>CHANGE STEAM ID</value></data>
   <data name="PlayerGeneral_ChangeSteamIdHelp" xml:space="preserve"><value>Hands this character over to a different account. Beds they claimed in the world move across with them.</value></data>
@@ -466,7 +473,7 @@
   <data name="PlayerTransmog_ArmorTransmog" xml:space="preserve"><value>ARMOR TRANSMOG</value></data>
   <data name="PlayerTransmog_TransmogHelp" xml:space="preserve"><value>The look worn over each armor slot, the same as the Transmogrifier's purple slots. Only the appearance changes, and your real gear keeps its stats. Tap a slot to change it, then press SAVE.</value></data>
   <data name="PlayerTransmog_ExtraSlotFormat" xml:space="preserve"><value>Extra slot {0}</value></data>
-  <data name="PlayerTransmog_LiveVisibilityHint" xml:space="preserve"><value>These can't be changed live yet, so they're shown read-only here.</value></data>
+  <data name="PlayerTransmog_LiveVisibilityAppliesHint" xml:space="preserve"><value>Applies live immediately - each toggle takes effect in the running game the moment you click it.</value></data>
   <data name="PlayerTransmog_Visibility" xml:space="preserve"><value>VISIBILITY (the eye toggles; unchecked hides that armor piece's visuals entirely)</value></data>
 
   <!-- PlayerVitals -->

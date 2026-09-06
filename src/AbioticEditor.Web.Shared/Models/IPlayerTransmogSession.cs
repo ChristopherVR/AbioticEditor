@@ -11,10 +11,16 @@ public interface IPlayerTransmogSession : IPlayerInventorySession
     IReadOnlyList<PlayerInventorySlotEdit> Transmog { get; }
 
     /// <summary>
-    /// The armor-visibility toggles. A live session has no confirmed property to write these
-    /// through (see <c>docs/reference/live-editing-protocol.md</c>), so it reports the six roles
-    /// as read-only; the tab checks <see cref="IPlayerInventorySession.AppliesImmediately"/> and
-    /// renders them disabled with a note there rather than letting an edit silently not apply.
+    /// The armor-visibility toggles (the first six only - see
+    /// <c>docs/reference/research/research-transmog-appearance.md</c>'s "Editor guidance"). Live
+    /// (round 77) writes through a real client-authoritative RPC pair on the same transmog
+    /// inventory component - see <see cref="SetTransmogVisibilityAsync"/> and
+    /// <c>docs/reference/live-editing-protocol.md</c>'s <c>transmog.get</c>/<c>transmog.set</c>.
     /// </summary>
     IReadOnlyList<TransmogVisibilityEdit> TransmogVisibility { get; }
+
+    /// <summary>Applies one visibility toggle. The file session only stages the change (a plain
+    /// field flip on the already-loaded <see cref="TransmogVisibility"/> edit); the live session
+    /// sends <c>transmog.set</c> immediately.</summary>
+    Task SetTransmogVisibilityAsync(int index, bool isVisible);
 }

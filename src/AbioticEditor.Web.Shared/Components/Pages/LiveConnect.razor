@@ -412,6 +412,43 @@
         _autoConnectInFlight = false;
     }
 
+    // Published after render (never inside the parameter/render phase, matching PlayerEditor's
+    // identical PublishPaletteContext - firing Selection.Changed mid-render corrupts the
+    // renderer's diff).
+    protected override void OnAfterRender(bool firstRender) => PublishPaletteContext();
+
+    /// <summary>
+    /// The sidebar ITEM CATALOG shows whenever the live INVENTORY or TRANSMOG tab is open, no
+    /// slot selection required - the same rule <c>PlayerEditor.PublishPaletteContext</c> already
+    /// applies for the file session, now wired to <see cref="LiveInventorySession"/> too (round
+    /// 77 - previously only <c>PlayerEditor.razor</c> called <see cref="InventorySelectionService.SetPaletteContext"/>,
+    /// so quick-give with no slot selected silently did nothing while connected live).
+    /// </summary>
+    private void PublishPaletteContext()
+    {
+        var showPalette = _inventory is not null && _activeTab is "inventory" or "transmog";
+        if (!showPalette && Selection.Current?.PlayerArea is not null) Selection.Clear();
+        Selection.SetPaletteContext(showPalette
+            ? new PaletteContext(
+                _inventory!,
+                _activeTab == "transmog" ? PlayerInventoryArea.Transmog : PlayerInventoryArea.Backpack,
+                QuickGiveFallback,
+                () => Task.CompletedTask)
+            : null);
+    }
+
+    /// <summary>Native quick-give auto-pick when no slot is selected: first empty backpack slot,
+    /// then hotbar - the same fallback <c>PlayerEditor.QuickGiveFallback</c> uses.</summary>
+    private QuickGiveTarget? QuickGiveFallback(bool hotbarOnly)
+    {
+        if (_inventory is null) return null;
+        var hotbar = _inventory.Hotbar.FirstOrDefault(slot => slot.IsEmpty);
+        if (hotbarOnly) return hotbar is null ? null : new(hotbar, PlayerInventoryArea.Hotbar, null);
+        if (_inventory.Backpack.FirstOrDefault(slot => slot.IsEmpty) is { } backpack)
+            return new(backpack, PlayerInventoryArea.Backpack, null);
+        return hotbar is null ? null : new(hotbar, PlayerInventoryArea.Hotbar, null);
+    }
+
     private async Task HandlePlayerSwitchRequestedAsync(string playerId)
     {
         if (_vitals is null || _skills is null) return;
@@ -445,7 +482,8 @@
             _vitals = await LivePlayerVitalsSession.ConnectAsync(new LivePlayerVitalsChannel(channel), localPlayerId);
             _skills = await LivePlayerSkillsSession.ConnectAsync(new LivePlayerSkillsChannel(channel), localPlayerId);
             _npcs = await LiveNpcSession.ConnectAsync(new LiveNpcChannel(channel));
-            _inventory = await LiveInventorySession.ConnectAsync(new LiveInventoryChannel(channel), localPlayerId, Upgrades.Get());
+            _inventory = await LiveInventorySession.ConnectAsync(new LiveInventoryChannel(channel), localPlayerId, Upgrades.Get(),
+                new LiveTransmogVisibilityChannel(channel));
             _spawn = await LivePlayerSpawnSession.ConnectAsync(new LiveSpawnChannel(channel), localPlayerId);
             _companions = await LivePlayerCompanionsSession.ConnectAsync(new LiveCompanionsChannel(channel), localPlayerId);
             _recipes = await LivePlayerRecipesSession.ConnectAsync(new LivePlayerRecipesChannel(channel), localPlayerId);
@@ -624,6 +662,7 @@
     {
         LiveSession.PlayerSwitchRequested -= HandlePlayerSwitchRequestedAsync;
         LiveSession.Disconnected();
+        Selection.SetPaletteContext(null);
         if (_channel is not null) await _channel.DisposeAsync();
     }
 }

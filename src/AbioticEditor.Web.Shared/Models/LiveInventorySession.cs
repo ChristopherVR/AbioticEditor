@@ -1,4 +1,5 @@
 using AbioticEditor.Core.Items;
+using AbioticEditor.Core.LiveEditing;
 using AbioticEditor.Core.LiveEditing.Player;
 using AbioticEditor.Core.PlayerSaves;
 
@@ -27,12 +28,15 @@ public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTrans
     private const string AppliedLiveStatus = "Applied live - this took effect in the running game immediately.";
 
     private readonly LiveInventoryChannel _channel;
+    private readonly LiveTransmogVisibilityChannel? _visibilityChannel;
     private string? _playerId;
     private bool _initialized;
 
-    private LiveInventorySession(LiveInventoryChannel channel, string? playerId, ItemUpgradeCatalog itemUpgrades)
+    private LiveInventorySession(LiveInventoryChannel channel, LiveTransmogVisibilityChannel? visibilityChannel,
+        string? playerId, ItemUpgradeCatalog itemUpgrades)
     {
         _channel = channel;
+        _visibilityChannel = visibilityChannel;
         _playerId = playerId;
         ItemUpgrades = itemUpgrades;
         Equipment = [];
@@ -43,12 +47,16 @@ public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTrans
     }
 
     /// <summary>Connects and reads the current inventory (all four kinds) for
-    /// <paramref name="playerId"/>, or the local player when omitted, to seed the session.</summary>
-    public static async Task<LiveInventorySession> ConnectAsync(LiveInventoryChannel channel, string? playerId = null,
-        ItemUpgradeCatalog? itemUpgrades = null, CancellationToken cancellationToken = default)
+    /// <paramref name="playerId"/>, or the local player when omitted, to seed the session.
+    /// <paramref name="visibilityChannel"/> is optional so existing callers/tests that only
+    /// exercise inventory slots keep working; without it <see cref="TransmogVisibility"/> falls
+    /// back to the six visual roles reported visible.</summary>
+    public static async Task<LiveInventorySession> ConnectAsync(LiveInventoryChannel channel,
+        string? playerId = null, ItemUpgradeCatalog? itemUpgrades = null,
+        LiveTransmogVisibilityChannel? visibilityChannel = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(channel);
-        var session = new LiveInventorySession(channel, playerId, itemUpgrades ?? ItemUpgradeCatalog.Empty);
+        var session = new LiveInventorySession(channel, visibilityChannel, playerId, itemUpgrades ?? ItemUpgradeCatalog.Empty);
         await session.RefreshAsync(cancellationToken).ConfigureAwait(false);
         return session;
     }
@@ -59,12 +67,24 @@ public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTrans
     public IReadOnlyList<PlayerInventorySlotEdit> Transmog { get; private set; }
 
     /// <summary>
-    /// No live property is confirmed for the armor-visibility toggles (see
-    /// <c>docs/reference/live-editing-protocol.md</c>), so this always reports the six visual
-    /// gear roles as visible; <c>PlayerTransmogTab</c> renders them disabled for a live session
-    /// rather than letting an edit silently not apply.
+    /// The six visual gear roles' visibility, read from the running game (round 77: a real RPC
+    /// pair exists on the same transmog inventory component - see
+    /// <see cref="SetTransmogVisibilityAsync"/> and <c>docs/reference/live-editing-protocol.md</c>'s
+    /// <c>transmog.get</c>/<c>transmog.set</c>). Falls back to all-visible when no
+    /// <see cref="LiveTransmogVisibilityChannel"/> was supplied at connect time, or when the mod
+    /// running in the game predates this command.
     /// </summary>
     public IReadOnlyList<TransmogVisibilityEdit> TransmogVisibility { get; private set; }
+
+    /// <summary>Applies one visibility toggle to the running character immediately.</summary>
+    public async Task SetTransmogVisibilityAsync(int index, bool isVisible)
+    {
+        if (_visibilityChannel is null) return;
+        await _visibilityChannel.SetAsync(index, isVisible, _playerId).ConfigureAwait(false);
+        var toggle = TransmogVisibility.FirstOrDefault(t => t.Index == index);
+        if (toggle is not null) toggle.IsVisible = isVisible;
+        Status = AppliedLiveStatus;
+    }
 
     /// <summary>No live command exposes a discovered-item vocabulary; the sidebar palette's
     /// search still works from the full item catalog, just without this shortcut list.</summary>
@@ -191,6 +211,30 @@ public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTrans
             UpdateInPlace(Hotbar, wire, "hotbar");
             UpdateInPlace(Backpack, wire, "backpack");
             UpdateInPlace(Transmog, wire, "transmog");
+        }
+        await RefreshTransmogVisibilityAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Re-reads the six visibility flags in place, so a toggle mid-drag on the SAME
+    /// <see cref="TransmogVisibilityEdit"/> objects the tab is bound to never goes stale. Silently
+    /// keeps whatever is already there when no channel was supplied or the running mod predates
+    /// <c>transmog.get</c> (an older install) - a live editing gap should never fail the whole
+    /// refresh.</summary>
+    private async Task RefreshTransmogVisibilityAsync(CancellationToken cancellationToken)
+    {
+        if (_visibilityChannel is null) return;
+        try
+        {
+            var flags = await _visibilityChannel.GetAsync(_playerId, cancellationToken).ConfigureAwait(false);
+            foreach (var flag in flags)
+            {
+                var toggle = TransmogVisibility.FirstOrDefault(t => t.Index == flag.Index);
+                if (toggle is not null) toggle.IsVisible = flag.IsVisible;
+            }
+        }
+        catch (LiveAgentException)
+        {
+            // Older mod install with no transmog.get command yet - keep the all-visible fallback.
         }
     }
 

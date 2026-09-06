@@ -82,17 +82,17 @@
             <p class="transmog-visibility-label">@L.Resource("PlayerTransmog_Visibility")</p>
             @if (Session.AppliesImmediately)
             {
-                @* No confirmed live property writes these (see docs/reference/live-editing-
-                   protocol.md), so they are shown read-only here rather than letting an edit
-                   silently not apply. *@
-                <p class="muted">@L.Resource("PlayerTransmog_LiveVisibilityHint")</p>
+                @* Round 77: a real client -> server RPC pair writes these live (see
+                   docs/reference/live-editing-protocol.md's transmog.get/transmog.set), so the
+                   toggle is no longer disabled here - each click applies immediately. *@
+                <p class="muted">@L.Resource("PlayerTransmog_LiveVisibilityAppliesHint")</p>
             }
             <div class="transmog-visibility">
                 @* Only the six visual gear slots render on the character (native shows the
                    same subset); the remaining stored flags round-trip untouched. *@
                 @foreach (var toggle in Session.TransmogVisibility.Take(6))
                 {
-                    <label><input type="checkbox" checked="@toggle.IsVisible" disabled="@Session.AppliesImmediately" @onchange="e => SetVisibility(toggle, e.Value)" /><span>@RoleLabel(toggle.Index)</span></label>
+                    <label><input type="checkbox" checked="@toggle.IsVisible" @onchange="e => SetVisibility(toggle, e.Value)" /><span>@RoleLabel(toggle.Index)</span></label>
                 }
             </div>
         }
@@ -359,8 +359,9 @@
 
     private async Task SetVisibility(TransmogVisibilityEdit toggle, object? value)
     {
-        toggle.IsVisible = value is bool visible && visible;
-        await Changed();
+        var visible = value is bool isVisible && isVisible;
+        await Session.SetTransmogVisibilityAsync(toggle.Index, visible);
+        await OnChanged.InvokeAsync();
     }
 
     // Pushes whichever slot the sidebar editor just mutated in place (a no-op for the file

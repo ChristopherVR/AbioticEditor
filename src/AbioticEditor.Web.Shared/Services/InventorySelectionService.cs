@@ -200,9 +200,15 @@ public sealed record QuickGiveTarget(PlayerInventorySlotEdit Slot, PlayerInvento
 /// The ambient sidebar-palette surface for the active editor tab (native ShowItemPalette):
 /// which player session the palette gives items to, the tab it represents, and the
 /// no-selection quick-give fallback (first empty backpack slot, hotbar for pets).
+///
+/// <see cref="Session"/> is the narrow <see cref="IPlayerInventorySession"/> boundary (not the
+/// concrete <see cref="PlayerSaveSession"/>) so <c>LiveConnect.razor</c> can publish a palette
+/// context for <see cref="Models.LiveInventorySession"/> too - see
+/// <c>InventorySlotEditor.razor</c>'s <c>QuickGive</c>, which pushes the placed item live via
+/// <see cref="IPlayerInventorySession.PushSlotAsync"/> when <see cref="IPlayerInventorySession.AppliesImmediately"/>.
 /// </summary>
 public sealed record PaletteContext(
-    PlayerSaveSession Session,
+    IPlayerInventorySession Session,
     PlayerInventoryArea Area,
     Func<bool, QuickGiveTarget?> QuickGiveFallback,
     Func<Task> NotifyChanged);

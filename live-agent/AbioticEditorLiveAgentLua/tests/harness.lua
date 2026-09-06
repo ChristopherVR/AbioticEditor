@@ -246,7 +246,7 @@ end
 -- components every player area expects. Returns the pawn.
 function H.hostSession()
     H.world.reset()
-    local function inventory(count, kind)
+    local function inventory(count, kind, extraFields, extraMethods)
         local slots = {}
         for i = 1, count do
             slots[i] = {
@@ -260,8 +260,11 @@ function H.hostSession()
                 },
             }
         end
-        return H.object("Abiotic_InventoryComponent_C", { CurrentInventory = slots, __kind = kind },
-            { OnRep_CurrentInventory = function() end })
+        local fields = { CurrentInventory = slots, __kind = kind }
+        if extraFields then for k, v in pairs(extraFields) do fields[k] = v end end
+        local methods = { OnRep_CurrentInventory = function() end }
+        if extraMethods then for k, v in pairs(extraMethods) do methods[k] = v end end
+        return H.object("Abiotic_InventoryComponent_C", fields, methods)
     end
     local progression = H.object("Abiotic_CharacterProgressionComponent_C", {
         CharacterSkills_Keys = {}, CharacterSkills_Values = {},
@@ -269,6 +272,8 @@ function H.hostSession()
         EmailsRead = { H.fname("Email_Crossbow") }, JournalEntries = {}, FishCaughtArray = {},
         ItemsPickedUpArray = { H.fname("scrap_metal") }, CraftedItems = {}, CurrentMaps = { H.fname("map_office3") },
         Local_AllCompendiumEntries = {},
+        -- Round 77: read-only through general.get - see general.lua's header comment.
+        Traits = { H.fname("Trait_Chef") },
     }, {
         Request_UnlockNewRecipe = function() end,
         Server_AddEmailToReadList = function() end,
@@ -278,6 +283,19 @@ function H.hostSession()
         Server_AddMapToJournal = function() end,
         Request_UnlockCompendiumSection = function() end,
     })
+    -- Round 77: TransmogVisibility/DisableTransmogArray + the two Request_ RPCs, confirmed real
+    -- on Abiotic_TransmogInventoryComp_C (see areas/transmog.lua's header comment).
+    local tmog = inventory(6, "transmog", {
+        TransmogVisibility = { true, true, true, true, true, true, true, true, true, true, true, true },
+        DisableTransmogArray = { true, true, true, true, true, true, true, true, true, true, true, true, true },
+    }, {
+        Request_ChangeTransmogVisibilityFlag = function(self, index, item)
+            rawget(self, "__fields").TransmogVisibility[index + 1] = item
+        end,
+        Request_ChangeDisableTransmogArray = function(self, index, item)
+            rawget(self, "__fields").DisableTransmogArray[index + 1] = item
+        end,
+    })
     local pawn = H.object("Abiotic_PlayerCharacter_C", {
         CurrentHunger = 50, CurrentThirst = 60, CurrentSanity = 100, CurrentFatigue = 10, CurrentContinence = 75,
         CurrentMoney = 1000, CurrentHealth_Head = 80, CurrentHealth_Torso = 100, CurrentHealth_LeftArm = 100,
@@ -285,7 +303,7 @@ function H.hostSession()
         CharacterInventory = inventory(30, "backpack"),
         CharacterEquipSlotInventory = inventory(13, "equip"),
         CharacterHotbarInventory = inventory(8, "hotbar"),
-        TmogInventory = inventory(6, "transmog"),
+        TmogInventory = tmog,
         CharacterProgressionComponent = progression,
     }, {
         HasAuthority = function() return true end,
@@ -297,7 +315,13 @@ function H.hostSession()
     })
     local state = H.object("Abiotic_PlayerState_C", {
         PawnPrivate = pawn, PlayerNamePrivate = H.fstring("Tribbes"), UniquePlayerID = H.fstring("76561197993781479"),
+        -- Round 77: general.lua reads/writes this directly (no OnRep_PhD exists) for BACKGROUND.
+        PhD = H.fname("PhD_HumanBio"),
     })
+    -- APawn.PlayerState (base-engine): general.lua's getPlayerState() reads this off the PAWN for
+    -- the "no playerId given" (local player) case, the same property main.lua's own
+    -- localPlayerId() already reads off the CONTROLLER for a different purpose.
+    pawn.PlayerState = state
     H.playerStates = { state }
     H.playerController = H.object("Abiotic_PlayerController_C", {
         MyPlayerCharacter = pawn, PlayerState = state,

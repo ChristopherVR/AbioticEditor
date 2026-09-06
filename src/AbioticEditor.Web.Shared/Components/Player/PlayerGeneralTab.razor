@@ -37,6 +37,25 @@
         </div>
         <small class="general-help live-warning">@L.Resource("PlayerGeneral_OwnerIdLiveUnavailable")</small>
     }
+
+    <div class="general-account-row">
+        <span class="general-field-label">@L.Resource("PlayerGeneral_Background")</span>
+        @if (General.CanChangeBackground)
+        {
+            <input class="general-id-input" @bind="_backgroundInput" aria-label="@L.Resource("PlayerGeneral_Background")" autocomplete="off" spellcheck="false" />
+            <button class="general-hazard-button" type="button" @onclick="ApplyBackground">@L.Resource("PlayerGeneral_ChangeBackground")</button>
+        }
+        else
+        {
+            <span class="general-readout">@BackgroundDisplay</span>
+        }
+    </div>
+    <small class="general-help">@L.Resource("PlayerGeneral_BackgroundHelp")</small>
+    <div class="tab-divider" aria-hidden="true"></div>
+
+    <p class="tab-section-label">@L.Resource("PlayerGeneral_Traits")</p>
+    <p class="general-readout">@TraitsDisplay</p>
+    <small class="general-help">@L.Resource("PlayerGeneral_TraitsHelp")</small>
     <div class="tab-divider" aria-hidden="true"></div>
 
     <p class="tab-section-label">@L.Resource("PlayerGeneral_BulkUnlocks")</p>
@@ -102,6 +121,7 @@
     [Parameter] public EventCallback OnChanged { get; set; }
     private IPlayerGeneralSession? _boundGeneral;
     private string _ownerIdInput = string.Empty;
+    private string _backgroundInput = string.Empty;
     private string? _identityError;
     private GameCatalog? _catalog;
     private bool _loading = true;
@@ -115,6 +135,7 @@
         if (ReferenceEquals(_boundGeneral, General)) return;
         _boundGeneral = General;
         _ownerIdInput = General.OwnerId ?? string.Empty;
+        _backgroundInput = General.Background ?? string.Empty;
         _identityError = null;
     }
 
@@ -156,6 +177,25 @@
 
     private bool IsSteamSave => General.IsSteamOwnerId;
     private string OwnerIdLabel => L.Resource(IsSteamSave ? "PlayerEditor_SteamId64Label" : "PlayerEditor_AccountIdLabel");
+
+    /// <summary>Friendly job name when the game data recognizes the row id (the same
+    /// <see cref="TraitCatalog"/> the CHARACTER tab uses), the raw id otherwise.</summary>
+    private string BackgroundDisplay => string.IsNullOrEmpty(General.Background)
+        ? L.Resource("PlayerGeneral_BackgroundNone")
+        : TraitCatalog.DisplayNameFor(General.Background);
+
+    private string TraitsDisplay => General.Traits.Count == 0
+        ? L.Resource("PlayerGeneral_TraitsNone")
+        : string.Join(", ", General.Traits.Select(TraitCatalog.DisplayNameFor));
+
+    private async Task ApplyBackground()
+    {
+        var background = _backgroundInput.Trim();
+        if (background.Length == 0) return;
+        await General.SetBackgroundAsync(background);
+        _backgroundInput = General.Background ?? string.Empty;
+        await OnChanged.InvokeAsync();
+    }
 
     private string RecipeCountText
     {
