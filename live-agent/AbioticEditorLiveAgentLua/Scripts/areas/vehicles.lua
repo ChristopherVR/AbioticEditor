@@ -26,7 +26,9 @@ return function(ctx)
                 local name = ctx.fullName(obj)
                 if name then
                     local x, y, z = ctx.actorLocation(obj)
-                    local okId, vehicleId = pcall(function() return obj.VehicleID end)
+                    -- VehicleID is an FString userdata - it must be converted, or json.encode
+                    -- rejects the whole reply (found live, round 76).
+                    local okId, vehicleId = pcall(function() return obj.VehicleID:ToString() end)
                     local okDrive, driveable = pcall(function() return obj.VehicleDriveable == true end)
                     table.insert(result, {
                         id = name,

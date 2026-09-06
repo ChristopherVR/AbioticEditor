@@ -54,7 +54,11 @@ return function(ctx)
             if not player then error("player not found") end
 
             if payload.teleport then
-                local rotation = FRotator()
+                -- There is no FRotator constructor in UE4SS Lua (found live, round 76); keep the
+                -- player's own rotation (K2_GetActorRotation, used the same way by the reference
+                -- mod's TeleportPlayerToPlayer) and fall back to a plain table, which UE4SS
+                -- accepts for a struct parameter.
+                local rotation = { Pitch = 0, Yaw = 0, Roll = 0 }
                 local okRotation, currentRotation = pcall(function() return player:K2_GetActorRotation() end)
                 if okRotation and currentRotation then rotation = currentRotation end
                 local target = FVector(payload.teleport.x, payload.teleport.y, payload.teleport.z)

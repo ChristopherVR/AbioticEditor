@@ -250,7 +250,7 @@
     /// and pokes the shell so REVERT/SAVE light up immediately for the file session. An open
     /// detail card re-publishes so its state controls track the row's. A live edit that fails
     /// (the connection dropped, the game rejected it) surfaces here instead of throwing into the
-    /// Blazor renderer, the same way every other live tab presents that failure.
+    /// page renderer, the same way every other live tab presents that failure.
     /// </summary>
     private async Task StageAsync(Func<Task> edit)
     {

@@ -1162,8 +1162,17 @@ end
 local function respondToCurrentRequest(result, err)
     if err then
         writeResponseAtomic(json.encode({ ok = false, error = err }))
+        return
+    end
+    -- A result that json.lua cannot encode (a raw UObject/FName/FText userdata left in a table
+    -- by a handler) used to throw here, after the handler had already "succeeded" - so no reply
+    -- was ever written and the editor only saw a timeout (found live in round 76 with two new
+    -- areas). Turn that into an ok:false reply naming the problem instead.
+    local okEncode, encoded = pcall(json.encode, { ok = true, result = result })
+    if okEncode then
+        writeResponseAtomic(encoded)
     else
-        writeResponseAtomic(json.encode({ ok = true, result = result }))
+        writeResponseAtomic(json.encode({ ok = false, error = "the mod produced a reply it could not encode: " .. tostring(encoded) }))
     end
 end
 

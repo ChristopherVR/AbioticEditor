@@ -77,8 +77,11 @@ return function(ctx)
                         local rowName = ctx.slotRowName(slot)
                         if rowName ~= "" and rowName ~= "Empty" and rowName ~= "None" then
                             local changeableData = slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313
+                            -- PlayerMadeString is an FString userdata - convert it, or json.encode
+                            -- rejects the whole reply (found live, round 76).
                             local okName, name = pcall(function()
-                                return changeableData.PlayerMadeString_42_CC0B72B24DBEAB2CC04454AAFFD4BBE9
+                                local value = changeableData.PlayerMadeString_42_CC0B72B24DBEAB2CC04454AAFFD4BBE9
+                                return value and value:ToString() or ""
                             end)
                             table.insert(result, {
                                 kind = kind,
