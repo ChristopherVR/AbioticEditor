@@ -62,7 +62,9 @@ return function(ctx)
             end
             if payload.x ~= nil and payload.y ~= nil and payload.z ~= nil then
                 local okRot, rotation = pcall(function() return obj:K2_GetActorRotation() end)
-                local target = FVector(payload.x, payload.y, payload.z)
+                -- FVector is not a UE4SS Lua global (found live, round 76); a plain X/Y/Z table
+                -- is what UE4SS accepts for a struct parameter.
+                local target = { X = payload.x, Y = payload.y, Z = payload.z }
                 if okRot then
                     obj:K2_TeleportTo(target, rotation)
                 else

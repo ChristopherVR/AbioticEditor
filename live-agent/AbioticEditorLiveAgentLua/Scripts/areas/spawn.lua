@@ -61,7 +61,9 @@ return function(ctx)
                 local rotation = { Pitch = 0, Yaw = 0, Roll = 0 }
                 local okRotation, currentRotation = pcall(function() return player:K2_GetActorRotation() end)
                 if okRotation and currentRotation then rotation = currentRotation end
-                local target = FVector(payload.teleport.x, payload.teleport.y, payload.teleport.z)
+                -- Like FRotator above, FVector is not a UE4SS global either; a plain table with
+                -- X/Y/Z is what UE4SS accepts for a struct parameter (found live, round 76).
+                local target = { X = payload.teleport.x, Y = payload.teleport.y, Z = payload.teleport.z }
                 local okCall, success = pcall(function() return player:TeleportPlayer(target, rotation, true, false) end)
                 if not okCall or not success then
                     error("teleport failed (the destination may be blocked, or outside the loaded world)")

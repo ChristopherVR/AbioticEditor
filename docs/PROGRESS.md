@@ -5,6 +5,69 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-76: one set of screens for offline and live editing, and live parity for the remaining areas (2026-09-06)
+
+The user's direction after round 75: "we are supposed to be using the same UI components as the
+offline editing capabilities - it's meant to be shared. Seamless experience", plus "add support
+for all the remaining gaps", fanned out to Sonnet subagents. Also: commit and push without
+cutting a release (the release workflow's own `[skip release]` marker on the last pushed commit).
+
+**Integration seam first** (`688b4d9`): the native helper now forwards ANY command by name to
+the Lua mod (`Server::RegisterDefaultHandler`), so a new area no longer needs the exe rebuilt;
+`main.lua` exposes its proven helpers as a `ctx` table and loads every module listed in
+`Scripts/areas/manifest.lua` (`return function(ctx) ... end`, contract in `areas/README.md`),
+so eight agents could add areas without all editing one file. Verified under a stubbed Lua
+environment before fan-out.
+
+**Eight agents, eight worktree branches, merged one by one** (conflicts were all "both sides
+appended" - manifest lines, the `WorldSaveSession`/`PlayerSaveSession` interface lists, the
+LiveConnect tab strip, the fake-agent switch, the protocol doc). Result: every duplicate
+`Live*Tab` is gone except `LiveNpcsTab` (no offline twin exists) and `LiveTradersTab` (the
+offline tab depends on the file-only split-pane and story-sync services). The pattern
+everywhere is the round-64 `IPlayerVitalsSession` one: a narrow interface (`IWorldFlagsSession`,
+`IWorldStorySession`, `IWorldDoorsSession`, `IWorldContainersSession`,
+`IWorldDroppedItemsSession`, `IPlayerInventorySession`, `IPlayerTransmogSession`,
+`IPlayerRecipesSession`, `IPlayerCodexSession`, `IPlayerGeneralSession`, `IPlayerSpawnSession`,
+`IPlayerCompanionsSession`, `IWorldBasesSession`, `IWorldVehiclesSession`, `IWorldPetsSession`,
+`IWorldContainmentSession`, `IWorldFeaturesSession`) with `AppliesImmediately` (false for the
+file session, true live) and async-capable mutators; the offline tab binds to it and is rendered
+by both `PlayerEditor`/`SaveEditorSurface` and `LiveConnect.razor`. Source-contract tests pin
+that no `Live*Tab` duplicate comes back.
+
+**New live areas, each grounded in the game's own class layouts** (`LiveClassPropsProbe` dumps
+plus PDB signatures, same method as round 75): `story.get` (read-only: `CurrentQuest` on the
+game state; no native setter exists), `bases.list/set` (rename any deployable via
+`AlternativeObjectName`), `vehicles.list/set` (`VehicleDriveable` + `OnRep`, position via
+`K2_TeleportTo`), `pets.list` (honestly `available:false` - tame/name/health fields differ per
+creature family), `containment.list/set` (the reference mod's own trap/free Leyak sequence),
+`traders.list/unlock` (trader gating IS world-flag state), `portals.list/set`
+(`IsTeleporterActive`), `spawn.get/set` (position + `TeleportPlayer`, respawn terminal via the
+controller's `TerminalRespawnID`), `companions.list/set` (pet slots incl. `DynamicProperties`
+XP/mutation), `recipes.get/set` (`Request_UnlockNewRecipe`), `codex.get/set`
+(`Server_AddEmailToReadList` / `Server_AddNoteToJournal` / `Request_UnlockNewFish`; compendium
+read-only), `general.get/set` (`Server_CheckNewItemPickedUp`, `Server_AddMapToJournal`), and a
+fourth `transmog` kind on `inventory.*` (`TmogInventory`, same component class). Achievements,
+raw data and entitlements are offline-only by nature and the live page says so.
+
+**Verified against the real game** (Chrissie world, hosting): every read returned real data
+(542 deployables, 113 portals, 239 recipes, 30 emails, 6 transmog slots, the forklift, the
+current quest row `quest_RES_EndInterlude`); writes with readback and revert: deployable renamed
+and restored, a portal pad toggled and restored, the forklift made undriveable and back, a
+pet-slot name set and cleared, a transmog slot filled and cleared, a trader flag set and cleared,
+`recipe_ammo_9mm` unlocked, `Email_Crossbow` marked read, `story.set` refused as designed.
+Three bugs found only by running live, all fixed: `vehicles.list` and `companions.list` put an
+FString userdata straight into the reply so `json.encode` threw inside the reply path and the
+editor saw a timeout (now converted, and the reply path reports an unencodable result as an
+error instead of silence); `spawn.set` used `FRotator(...)`/`FVector(...)` constructors that do
+not exist as UE4SS Lua globals (plain `{X,Y,Z}`/`{Pitch,Yaw,Roll}` tables now). Note UE4SS hot
+reload is off in this install (`EnableHotReloadSystem = 0`), so every script fix costs a game
+restart. Full suite 1236/1236 after one copy-guard fix (a code comment said "Blazor").
+
+**Still open**: the shared tabs were exercised live through the raw protocol and a headless
+Playwright pass of the page, not every button; the live door swing, the containment assign/
+release sequence (no units were loaded in the test world) and any non-host client run remain
+untested; `LiveNpcsTab`/`LiveTradersTab` are the two remaining live-only screens.
+
 ## Round-75: live world editing (clock, weather, quest flags, doors, containers, dropped items), plus the real cause of Nexus bug #1 (2026-09-06)
 
 Three asks: extend live editing to the remaining world areas, merge the open PRs, and re-check
