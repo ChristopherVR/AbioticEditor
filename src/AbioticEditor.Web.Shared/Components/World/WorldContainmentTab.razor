@@ -119,7 +119,11 @@
                                     {
                                         <small class="wm-status">@L.Resource("WorldContainment_FeedFormat", ItemName(feed))</small>
                                     }
-                                    <small class="wm-status">@L.Resource("WorldContainment_HeldInSaveFormat", unit.RegionSaveFileName)</small>
+                                    @* A live session has no region save file to name. *@
+                                    @if (unit.RegionSaveFileName is { Length: > 0 })
+                                    {
+                                        <small class="wm-status">@L.Resource("WorldContainment_HeldInSaveFormat", unit.RegionSaveFileName)</small>
+                                    }
                                 </div>
                             </aside>
                         }
@@ -155,35 +159,39 @@
         }
     }
 
-    <div class="wm-divider" role="presentation"></div>
-
-    @if (Session.HasWorldUnlocks)
+    @* The bulk world-unlock sweeps (items seen, emails read, journal pages, compendium) are
+       GlobalUnlocks save data with no live UObject equivalent - they only render when a
+       FileSession is supplied (the file editor passes the same WorldSaveSession twice; the
+       live page passes only Session and never sees this section). *@
+    @if (FileSession is { HasWorldUnlocks: true } fileSession)
     {
+        <div class="wm-divider" role="presentation"></div>
+
         <h3 class="wm-h2">@L.Resource("WorldContainment_WorldUnlocks")</h3>
         <p class="wm-intro">@L.Resource("WorldContainment_WorldUnlocksIntro")</p>
 
         <div class="wc-unlock-grid">
             <span class="wm-label">@L.Resource("WorldContainment_ItemsSeen")</span>
-            <span class="wm-readout">@L.Resource("WorldContainment_DiscoveredCountFormat", Session.WorldItemsSeenCount)</span>
+            <span class="wm-readout">@L.Resource("WorldContainment_DiscoveredCountFormat", fileSession.WorldItemsSeenCount)</span>
             @* Each of these sweeps the whole world at once, so it asks first, and seals itself
                off once there is nothing left for it to do. *@
             <button type="button" class="wc-unlock-btn" disabled="@(_worldUnlockBusy || _allItemsSeen)"
-                    @onclick="@(() => ConfirmWorldUnlock("WorldContainment_DiscoverAll", "WorldContainment_ConfirmDiscoverAll", UnlockAllItemsAsync))">@L.Resource("WorldContainment_DiscoverAll")</button>
+                    @onclick="@(() => ConfirmWorldUnlock(fileSession, "WorldContainment_DiscoverAll", "WorldContainment_ConfirmDiscoverAll", () => UnlockAllItemsAsync(fileSession)))">@L.Resource("WorldContainment_DiscoverAll")</button>
 
             <span class="wm-label">@L.Resource("WorldContainment_EmailsRead")</span>
-            <span class="wm-readout">@L.Resource("WorldContainment_ReadCountFormat", Session.WorldEmailsReadCount)</span>
+            <span class="wm-readout">@L.Resource("WorldContainment_ReadCountFormat", fileSession.WorldEmailsReadCount)</span>
             <button type="button" class="wc-unlock-btn" disabled="@(_worldUnlockBusy || _allEmailsRead)"
-                    @onclick="@(() => ConfirmWorldUnlock("WorldContainment_ReadAll", "WorldContainment_ConfirmReadAll", UnlockAllEmails))">@L.Resource("WorldContainment_ReadAll")</button>
+                    @onclick="@(() => ConfirmWorldUnlock(fileSession, "WorldContainment_ReadAll", "WorldContainment_ConfirmReadAll", () => UnlockAllEmails(fileSession)))">@L.Resource("WorldContainment_ReadAll")</button>
 
             <span class="wm-label">@L.Resource("WorldContainment_JournalPages")</span>
-            <span class="wm-readout">@L.Resource("WorldContainment_FoundCountFormat", Session.WorldJournalsFoundCount)</span>
+            <span class="wm-readout">@L.Resource("WorldContainment_FoundCountFormat", fileSession.WorldJournalsFoundCount)</span>
             <button type="button" class="wc-unlock-btn" disabled="@(_worldUnlockBusy || _allJournalsFound)"
-                    @onclick="@(() => ConfirmWorldUnlock("WorldContainment_FindAll", "WorldContainment_ConfirmFindAll", UnlockAllJournals))">@L.Resource("WorldContainment_FindAll")</button>
+                    @onclick="@(() => ConfirmWorldUnlock(fileSession, "WorldContainment_FindAll", "WorldContainment_ConfirmFindAll", () => UnlockAllJournals(fileSession)))">@L.Resource("WorldContainment_FindAll")</button>
 
             <span class="wm-label">@L.Resource("WorldContainment_Compendium")</span>
-            <span class="wm-readout">@L.Resource("WorldContainment_SectionUnlocksCountFormat", Session.WorldCompendiumUnlockedCount)</span>
+            <span class="wm-readout">@L.Resource("WorldContainment_SectionUnlocksCountFormat", fileSession.WorldCompendiumUnlockedCount)</span>
             <button type="button" class="wc-unlock-btn wm-hazard-btn" disabled="@(_worldUnlockBusy || _allCompendiumUnlocked)"
-                    @onclick="@(() => ConfirmWorldUnlock("WorldContainment_UnlockAll", "WorldContainment_ConfirmUnlockAll", UnlockAllCompendium))">@L.Resource("WorldContainment_UnlockAll")</button>
+                    @onclick="@(() => ConfirmWorldUnlock(fileSession, "WorldContainment_UnlockAll", "WorldContainment_ConfirmUnlockAll", () => UnlockAllCompendium(fileSession)))">@L.Resource("WorldContainment_UnlockAll")</button>
         </div>
         @if (_allItemsSeen && _allEmailsRead && _allJournalsFound && _allCompendiumUnlocked)
         {
@@ -191,17 +199,24 @@
         }
     }
     @* No save bar here on purpose: SAVE and REVERT live in the editor header and cover every
-       tab. A second pair at the foot of one tab only raised the question of which was real. *@
+       tab (file mode); a live session applies each containment edit immediately instead. *@
 </section>
 
 @code {
-    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter, EditorRequired] public IWorldContainmentSession Session { get; set; } = null!;
+    /// <summary>
+    /// The world-wide unlock sweeps (items/emails/journals/compendium) live only in the save
+    /// file, not in any live UObject, so they need the concrete file session rather than the
+    /// narrow containment interface. Null on the live page, where this whole section is hidden.
+    /// </summary>
+    [Parameter] public WorldSaveSession? FileSession { get; set; }
     [Parameter] public string Title { get; set; } = "World editor";
     [Parameter] public EventCallback<string?> OnError { get; set; }
     private string? _expanded;
     private bool _worldUnlockBusy;
 
-    /// <summary>The unit survey reads every sibling region save, so it runs off the render thread.</summary>
+    /// <summary>The unit survey reads every sibling region save (file) or the running game
+    /// (live), so it runs off the render thread.</summary>
     protected override async Task OnInitializedAsync()
     {
         RefreshCompletionFlags(null);
@@ -209,7 +224,7 @@
         StateHasChanged();
         // The codex vocabulary can need the paks mounted, so the three codex-backed buttons
         // only learn whether they still have work to do once that has been read.
-        if (Session.HasWorldUnlocks)
+        if (FileSession is { HasWorldUnlocks: true })
         {
             var codex = await Task.Run(Codex.Get);
             RefreshCompletionFlags(codex);
@@ -335,24 +350,48 @@
         builder.CloseElement();
     };
 
-    // ---------- staging edits ----------
+    // ---------- edits (staged until SAVE on a file session; immediate on a live one) ----------
 
-    private void Assign(string unitId, string? creature)
+    private async Task Assign(string unitId, string? creature)
     {
-        Session.SetContainmentUnitOccupant(unitId, string.IsNullOrWhiteSpace(creature) ? null : creature);
+        try
+        {
+            await Session.SetContainmentUnitOccupantAsync(unitId, string.IsNullOrWhiteSpace(creature) ? null : creature);
+        }
+        catch (Exception ex)
+        {
+            await OnError.InvokeAsync(Errors.Present(ex, "Assign this containment unit.", "The connection may have dropped; try again."));
+            return;
+        }
         if (Session.CreatureInUnit(unitId) is null) _expanded = null;
         Workspace.NotifyEdited();
     }
 
-    private void Swap(string unitA, string unitB)
+    private async Task Swap(string unitA, string unitB)
     {
-        Session.SwapContainmentUnits(unitA, unitB);
+        try
+        {
+            await Session.SwapContainmentUnitsAsync(unitA, unitB);
+        }
+        catch (Exception ex)
+        {
+            await OnError.InvokeAsync(Errors.Present(ex, "Swap these containment units.", "The connection may have dropped; try again."));
+            return;
+        }
         Workspace.NotifyEdited();
     }
 
-    private void Release(string creature)
+    private async Task Release(string creature)
     {
-        Session.ReleaseContainment(creature);
+        try
+        {
+            await Session.ReleaseContainmentAsync(creature);
+        }
+        catch (Exception ex)
+        {
+            await OnError.InvokeAsync(Errors.Present(ex, "Release this containment unit.", "The connection may have dropped; try again."));
+            return;
+        }
         _expanded = null;
         Workspace.NotifyEdited();
     }
@@ -372,44 +411,45 @@
 
     private void RefreshCompletionFlags(CodexVocabulary? codex)
     {
+        if (FileSession is not { } fileSession) return;
         _allItemsSeen = ItemCatalog.Entries.Count > 0
-            && Session.WorldItemsSeenCount >= ItemCatalog.Entries.Count;
+            && fileSession.WorldItemsSeenCount >= ItemCatalog.Entries.Count;
         if (codex is null) return;
-        _allEmailsRead = codex.Emails.Count > 0 && Session.WorldEmailsReadCount >= codex.Emails.Count;
-        _allJournalsFound = codex.Journals.Count > 0 && Session.WorldJournalsFoundCount >= codex.Journals.Count;
+        _allEmailsRead = codex.Emails.Count > 0 && fileSession.WorldEmailsReadCount >= codex.Emails.Count;
+        _allJournalsFound = codex.Journals.Count > 0 && fileSession.WorldJournalsFoundCount >= codex.Journals.Count;
         _allCompendiumUnlocked = codex.Compendium.Count > 0
-            && Session.WorldCompendiumUnlockedCount >= codex.Compendium.Count;
+            && fileSession.WorldCompendiumUnlockedCount >= codex.Compendium.Count;
     }
 
     /// <summary>
     /// Asks before a sweep runs. Each of these touches the whole world in one go and the only
     /// way back is REVERT, so the dialog says plainly what it is about to do.
     /// </summary>
-    private void ConfirmWorldUnlock(string titleKey, string messageKey, Func<Task> apply) => Modals.Show(new ModalRequest(
+    private void ConfirmWorldUnlock(WorldSaveSession fileSession, string titleKey, string messageKey, Func<Task> apply) => Modals.Show(new ModalRequest(
         L.Resource(titleKey),
         Paragraph(L.Resource(messageKey)),
         ConfirmText: L.Resource(titleKey),
         OnConfirm: async () => { await apply(); await InvokeAsync(StateHasChanged); },
         CancelText: L.Resource("Common_Cancel")));
 
-    private Task UnlockAllItemsAsync()
+    private Task UnlockAllItemsAsync(WorldSaveSession fileSession)
     {
-        Session.EnableWorldItemsSeen(ItemCatalog.Entries.Select(entry => entry.Id));
+        fileSession.EnableWorldItemsSeen(ItemCatalog.Entries.Select(entry => entry.Id));
         Workspace.NotifyEdited();
         RefreshCompletionFlags(null);
         return Task.CompletedTask;
     }
 
-    private Task UnlockAllEmails() => RunWorldUnlockAsync(codex => Session.EnableWorldEmailsRead(codex.Emails.Select(email => email.Id)));
-    private Task UnlockAllJournals() => RunWorldUnlockAsync(codex => Session.EnableWorldJournalsFound(codex.Journals.Select(journal => journal.Id)));
-    private Task UnlockAllCompendium() => RunWorldUnlockAsync(codex => Session.EnableWorldCompendium(
+    private Task UnlockAllEmails(WorldSaveSession fileSession) => RunWorldUnlockAsync(fileSession, codex => fileSession.EnableWorldEmailsRead(codex.Emails.Select(email => email.Id)));
+    private Task UnlockAllJournals(WorldSaveSession fileSession) => RunWorldUnlockAsync(fileSession, codex => fileSession.EnableWorldJournalsFound(codex.Journals.Select(journal => journal.Id)));
+    private Task UnlockAllCompendium(WorldSaveSession fileSession) => RunWorldUnlockAsync(fileSession, codex => fileSession.EnableWorldCompendium(
         codex.Compendium.Where(c => c.SectionTypes.Any(t => t.Contains("Email", StringComparison.OrdinalIgnoreCase))).Select(c => c.Id),
         codex.Compendium.Where(c => c.SectionTypes.Any(t => t.Contains("Narrative", StringComparison.OrdinalIgnoreCase))).Select(c => c.Id),
         codex.Compendium.Where(c => c.SectionTypes.Any(t => t.Contains("Exploration", StringComparison.OrdinalIgnoreCase))).Select(c => c.Id)));
 
     /// <summary>Emails/journals/compendium can require mounting the game's paks on first use
     /// (<see cref="CodexVocabularyService.Get"/>), so that lookup runs off the render thread.</summary>
-    private async Task RunWorldUnlockAsync(Action<CodexVocabulary> apply)
+    private async Task RunWorldUnlockAsync(WorldSaveSession fileSession, Action<CodexVocabulary> apply)
     {
         _worldUnlockBusy = true;
         try
@@ -421,6 +461,4 @@
         }
         finally { _worldUnlockBusy = false; }
     }
-    private void Revert() { Session.Revert(); Workspace.NotifyEdited(); }
-    private async Task SaveAsync() { try { await Session.SaveAsync(); Workspace.NotifyEdited(); } catch (Exception ex) { await OnError.InvokeAsync(Errors.Present(ex, "The world save could not be written.", "Your changes remain open; check folder permissions and try again.")); } }
 }

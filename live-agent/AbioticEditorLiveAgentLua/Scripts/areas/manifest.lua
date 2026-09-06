@@ -5,4 +5,7 @@ return {
     "areas.bases",
     "areas.vehicles",
     "areas.pets",
+    "areas.containment",
+    "areas.traders",
+    "areas.portals",
 }

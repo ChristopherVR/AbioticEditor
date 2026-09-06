@@ -1,0 +1,91 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Core.LiveEditing
+@using AbioticEditor.Core.Codex
+
+@* Dedicated live tab rather than a reuse of WorldTradersTab: that component's right-hand detail
+   pane leans on InventorySelectionService's master-detail split (a layout LiveConnect.razor's
+   flat single-column page does not have) plus file-only services (StoryFlagSyncService,
+   RecipeProgressGateService) for cross-region flag resolution a live session does not need
+   (the running game's flags ARE the current truth, no sibling-file merge required). The roster
+   and gating logic are the same (TraderCatalog/TraderLore, HasWorldFlag), just presented flat. *@
+<section class="editor-card" aria-label="@L.Resource("LiveTraders_Title")">
+    <div class="card-title-row">
+        <h3>@L.Resource("LiveTraders_Title")</h3>
+        <button class="secondary" type="button" disabled="@_busy" @onclick="RefreshAsync">@L.Resource("LiveNpcs_Refresh")</button>
+    </div>
+
+    @if (!Session.IsHost)
+    {
+        <p class="error-text" role="alert">@L.Resource("LiveTraders_NotHostWarning")</p>
+    }
+    <p class="muted">@L.Resource("LiveTraders_Intro")</p>
+
+    <div class="shell-save-list">
+        @foreach (var trader in Session.Roster.Where(t => !TraderLore.NonTraders.Contains(t.Id))
+            .OrderBy(t => TraderLore.ById.ContainsKey(t.Id) ? 0 : 1).ThenBy(t => t.Id, StringComparer.OrdinalIgnoreCase))
+        {
+            var missing = Session.MissingFlags(trader);
+            var available = Session.IsAvailable(trader);
+            <div class="save-file-row kind-player" @key="trader.Id">
+                <span class="save-kind-marker" aria-hidden="true"></span>
+                <strong class="save-file-name">@DisplayName(trader)</strong>
+                <div class="live-npc-controls">
+                    <span>@(available ? L.Resource("WorldTraders_Card_AvailableHere") : L.Resource("WorldTraders_Card_NotYetHere", PlainNames.Flags(L, missing)))</span>
+                    @if (missing.Count > 0)
+                    {
+                        <button class="secondary" type="button" disabled="@(!Session.IsHost || _busy)"
+                                @onclick="() => UnlockAsync(missing)">@L.Resource("LiveTraders_Unlock")</button>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (Session.Status is not null)
+    {
+        <p class="status-text">@Session.Status</p>
+    }
+    @if (_error is not null)
+    {
+        <p class="error-text" role="alert">@_error</p>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public LiveTradersSession Session { get; set; } = null!;
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private bool _busy;
+    private string? _error;
+
+    // Full localized lore names (WorldTraders_Lore_{id}_Name) are the file tab's job; this
+    // dedicated live view keeps to plain, always-available names instead of duplicating that
+    // resx-driven lookup for a tab that exists only because the split-pane detail view does not
+    // fit this page's layout.
+    private static string DisplayName(TraderInfo trader) => PlainNames.Words(trader.Id);
+
+    private async Task RefreshAsync() => await RunAsync(() => Session.RefreshAsync());
+
+    private async Task UnlockAsync(IReadOnlyList<string> flags) => await RunAsync(() => Session.UnlockAsync(flags));
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            await action();
+            await OnChanged.InvokeAsync();
+        }
+        catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
+            or IOException or OperationCanceledException)
+        {
+            _error = Errors.Present(exception, "Edit trader availability.", "The connection may have dropped; try reconnecting.");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

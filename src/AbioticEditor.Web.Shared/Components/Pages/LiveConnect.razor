@@ -13,6 +13,7 @@
 @inject LiveSessionService LiveSession
 @inject InventorySelectionService Selection
 @inject ItemUpgradeVocabularyService Upgrades
+@inject TraderVocabularyService TraderVocabulary
 
 <PageTitle>@L.Resource("Common_AppName")</PageTitle>
 
@@ -129,6 +130,26 @@
                     aria-selected="@(_activeTab == "pets")" @onclick='() => _activeTab = "pets"'>
                 @L.Resource("WorldPets_TamedPetsInThisWorld")
             </button>
+            <button type="button" role="tab" class="editor-tab @(_activeTab == "containment" ? "active" : null)"
+                    aria-selected="@(_activeTab == "containment")" @onclick='() => _activeTab = "containment"'>
+                @L.Resource("WorldEditor_TabContainment")
+            </button>
+            <button type="button" role="tab" class="editor-tab @(_activeTab == "traders" ? "active" : null)"
+                    aria-selected="@(_activeTab == "traders")" @onclick='() => _activeTab = "traders"'>
+                @L.Resource("WorldEditor_TabTraders")
+            </button>
+            <button type="button" role="tab" class="editor-tab @(_activeTab == "portals" ? "active" : null)"
+                    aria-selected="@(_activeTab == "portals")" @onclick='() => _activeTab = "portals"'>
+                @L.Resource("Live_TabPortals")
+            </button>
+            <button type="button" role="tab" class="editor-tab @(_activeTab == "entitlements" ? "active" : null)"
+                    aria-selected="@(_activeTab == "entitlements")" @onclick='() => _activeTab = "entitlements"'>
+                @L.Resource("Live_TabEntitlements")
+            </button>
+            <button type="button" role="tab" class="editor-tab @(_activeTab == "raw" ? "active" : null)"
+                    aria-selected="@(_activeTab == "raw")" @onclick='() => _activeTab = "raw"'>
+                @L.Resource("WorldEditor_TabRawJson")
+            </button>
         </nav>
         <div class="player-tab-viewport">
             @if (_activeTab == "vitals")
@@ -192,7 +213,35 @@
             {
                 <WorldPetsTab Session="_pets" Title="@L.Resource("WorldPets_TamedPetsInThisWorld")" OnError="ShowWorldAreaError" />
             }
-            else if (_activeTab is "world" or "flags" or "doors" or "containers" or "dropped" or "bases" or "vehicles" or "pets")
+            else if (_activeTab == "containment" && _containment is not null)
+            {
+                @* The exact same tab the file editor uses (WorldSaveSession implements the same
+                   IWorldContainmentSession boundary) - no FileSession here, so the world-wide
+                   discovery sweeps section (file-only, no live UObject) simply does not render. *@
+                <WorldContainmentTab Session="_containment" OnError="SetError" />
+                <p class="muted">@L.Resource("LiveContainment_OfflineWorldUnlocksNote")</p>
+            }
+            else if (_activeTab == "traders" && _traders is not null)
+            {
+                <LiveTradersTab Session="_traders" OnChanged="() => {}" />
+            }
+            else if (_activeTab == "portals" && _portals is not null)
+            {
+                @* Also the same shared tab the file editor's "World Teleporters" feature uses -
+                   LivePortalsFeatureSession implements IWorldFeaturesSession for this one feature
+                   only; every other feature id (power sockets, resource nodes, ...) has no live
+                   equivalent and is not offered here. *@
+                <WorldFeaturesTab Session="_portals" FeatureId="@LivePortalsFeatureSession.PortalsFeatureId" OnError="SetError" />
+            }
+            else if (_activeTab == "entitlements")
+            {
+                <p class="muted">@L.Resource("Live_EntitlementsOfflineOnly")</p>
+            }
+            else if (_activeTab == "raw")
+            {
+                <p class="muted">@L.Resource("Live_RawOfflineOnly")</p>
+            }
+            else if (_activeTab is "world" or "flags" or "doors" or "containers" or "dropped" or "bases" or "vehicles" or "pets" or "containment" or "traders" or "portals")
             {
                 <p class="muted">@L.Resource("Live_WorldAreaUnavailable")</p>
             }
@@ -257,6 +306,9 @@
     private LiveBasesSession? _bases;
     private LiveVehiclesSession? _vehicles;
     private LivePetsSession? _pets;
+    private LiveContainmentSession? _containment;
+    private LiveTradersSession? _traders;
+    private LivePortalsFeatureSession? _portals;
     private LivePlayerDirectory? _directory;
     private string? _selectedPlayerId;
 
@@ -340,6 +392,11 @@
             _bases = await TryConnectWorldAreaAsync(() => LiveBasesSession.ConnectAsync(new LiveBasesChannel(channel)));
             _vehicles = await TryConnectWorldAreaAsync(() => LiveVehiclesSession.ConnectAsync(new LiveVehiclesChannel(channel)));
             _pets = await TryConnectWorldAreaAsync(() => LivePetsSession.ConnectAsync(new LivePetsChannel(channel)));
+            _containment = await TryConnectWorldAreaAsync(() => LiveContainmentSession.ConnectAsync(new LiveContainmentChannel(channel)));
+            _portals = await TryConnectWorldAreaAsync(() => LivePortalsFeatureSession.ConnectAsync(new LivePortalsChannel(channel)));
+            // Trader gating is world-flag state, so it needs a loaded world like every other
+            // world area; the roster itself is static game data, read once up front.
+            _traders = await TryConnectWorldAreaAsync(() => LiveTradersSession.ConnectAsync(new LiveTradersChannel(channel), TraderVocabulary.GetTraders()));
             _channel = channel;
             _autoConnected = isAutoConnect;
             _directory = directory;
@@ -396,6 +453,14 @@
         {
             _isBusy = false;
         }
+    }
+
+    /// <summary>OnError callback shape shared by WorldContainmentTab/WorldFeaturesTab (both take
+    /// an EventCallback&lt;string?&gt;, matching every other file-editor tab's error surface).</summary>
+    private Task SetError(string? message)
+    {
+        _error = message;
+        return Task.CompletedTask;
     }
 
     private void RevertActive()
@@ -462,6 +527,9 @@
         _bases = null;
         _vehicles = null;
         _pets = null;
+        _containment = null;
+        _traders = null;
+        _portals = null;
         _directory = null;
         _selectedPlayerId = null;
         if (_channel is not null) await _channel.DisposeAsync();

@@ -62,6 +62,10 @@ public class LiveClassPropsProbe
             "Deployed_Bench", "Deployed_CraftingBench", "ABF_Vehicle", "AbioticWheeledVehiclePawn",
             "NPC_Base_ParentBP", "NPC_Monster_ParentBP", "NPC_Monster_Pest.", "NPC_Monster_Peccary.",
             "NPC_Peccary_Sow", "NPC_Skink_Basic", "NPC_Monster_WinterSprite", "TameableComponent", "PetComponent",
+            // Round-76 live-editing slice: containment, narrative NPCs, traders, teleporters/portals.
+            "Deployed_LeyakContainment", "LeyakDirectorComponent", "KrasueDirectorComponent",
+            "NarrativeNPC_ParentBP", "NarrativeNPC_Human_ParentBP", "Trader", "BP_Teleporter_ParentBP",
+            "Deployed_Toilet_Portal", "Entitlement",
         ];
 
         var outPath = Environment.GetEnvironmentVariable("LIVE_CLASS_PROBE_OUT");

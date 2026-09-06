@@ -67,7 +67,7 @@
                 else if (_worldTab == "bases") { <WorldBasesTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
                 else if (_worldTab == "story") { <WorldStoryTab Title="@workspace.SelectedSave!.Name" Session="@world" Flags="@world" OnError="WorldError" /> }
                 else if (_worldTab == "traders") { <WorldTradersTab Title="@workspace.SelectedSave!.Name" Session="@world" /> }
-                else if (_worldTab == "containment") { <WorldContainmentTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
+                else if (_worldTab == "containment") { <WorldContainmentTab Title="@workspace.SelectedSave!.Name" Session="@world" FileSession="@world" OnError="WorldError" /> }
                 else if (_worldTab == FeatureTabPrefix + WorldEntitlementsTab.EntitlementsFeatureId) { <WorldEntitlementsTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
                 else if (_worldTab.StartsWith(FeatureTabPrefix, StringComparison.Ordinal)) { <WorldFeaturesTab Title="@workspace.SelectedSave!.Name" Session="@world" FeatureId="@_worldTab[FeatureTabPrefix.Length..]" OnError="WorldError" OnOpenLink="OpenVehicleContainer" /> }
                 else { <WorldRawTab Title="@workspace.SelectedSave!.Name" Session="@world" /> }

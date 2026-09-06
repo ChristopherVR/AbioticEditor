@@ -249,6 +249,24 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
         Assert.Equal(2, bench.StoredItemCount);
 
         await bases.SetCustomNameAsync(bench.Id, "Renamed Bench");
+    public async Task LiveContainmentChannel_GetAsync_reads_units_and_occupants()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var containment = new AbioticEditor.Core.LiveEditing.World.LiveContainmentChannel(channel);
+
+        var directory = await containment.GetAsync();
+        Assert.True(directory.IsHost);
+        Assert.Equal(2, directory.Units.Count);
+        Assert.Equal("Leyak", directory.Units[0].Creature);
+        Assert.Equal(85, directory.Units[0].Stability);
+        Assert.Null(directory.Units[1].Creature);
+        Assert.Null(directory.Units[1].Stability);
+
+        // Fallback path (unspecial-cased command echoes payload back as ok:true) proves the
+        // assign/release/swap requests themselves encode as well-formed JSON the agent could parse.
+        await containment.AssignAsync(directory.Units[1].Id, "Krasue");
+        await containment.ReleaseAsync("Leyak");
+        await containment.SwapAsync(directory.Units[0].Id, directory.Units[1].Id);
         Assert.Equal(LiveConnectionState.Connected, channel.State);
     }
 
@@ -266,6 +284,17 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
         Assert.True(forklift.Driveable);
 
         await vehicles.SetAsync(forklift.Id, driveable: false, x: 5, y: 6, z: 7);
+    public async Task LiveTradersChannel_GetAsync_reads_set_flags()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var traders = new AbioticEditor.Core.LiveEditing.World.LiveTradersChannel(channel);
+
+        var flags = await traders.GetAsync();
+        Assert.True(flags.IsHost);
+        Assert.True(flags.HasFlag("Office_PowerOn"));
+        Assert.False(flags.HasFlag("Manufacturing_West"));
+
+        await traders.UnlockAsync(["Manufacturing_West"]);
         Assert.Equal(LiveConnectionState.Connected, channel.State);
     }
 
@@ -280,6 +309,20 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
         Assert.False(directory.Available);
         Assert.True(directory.IsHost);
         Assert.False(string.IsNullOrWhiteSpace(directory.Reason));
+    public async Task LivePortalsChannel_GetAsync_reads_teleporter_pads()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var portals = new AbioticEditor.Core.LiveEditing.World.LivePortalsChannel(channel);
+
+        var directory = await portals.GetAsync();
+        Assert.False(directory.IsHost);
+        var pad = Assert.Single(directory.Portals);
+        Assert.True(pad.Active);
+        Assert.Equal("TP_A", pad.TeleporterId);
+        Assert.Equal("TP_B", pad.DestinationId);
+
+        await portals.SetActiveAsync(pad.Id, false);
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
     }
 
     private async Task<TcpLiveGameChannel> ConnectedChannelAsync()
@@ -411,6 +454,11 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
                     "bases.list" => "{\"deployables\":[{\"id\":\"Deployed_CraftingBench_Default_C /Game/Maps/Facility.Facility:PersistentLevel.Deployed_CraftingBench_Default_C_1\",\"className\":\"Deployed_CraftingBench_Default_C\",\"x\":10,\"y\":20,\"z\":0,\"customName\":\"Main Bench\",\"hasInventory\":true,\"storedItemCount\":2}],\"isHost\":true,\"supportsBenchUpgrades\":false}",
                     "vehicles.list" => "{\"vehicles\":[{\"id\":\"ABF_Vehicle_Forklift_C /Game/Maps/Facility.Facility:PersistentLevel.ABF_Vehicle_Forklift_C_2\",\"vehicleId\":\"VehicleSpawn_1\",\"vehicleClass\":\"ABF_Vehicle_Forklift_C\",\"driveable\":true,\"x\":1,\"y\":2,\"z\":3}],\"isHost\":true,\"supportsWreckedState\":false}",
                     "pets.list" => "{\"pets\":[],\"isHost\":true,\"available\":false,\"reason\":\"Live pet editing isn't available yet.\"}",
+                    // Round-76 areas: containment units, trader flag gating, world teleporters.
+                    "containment.list" => "{\"units\":[{\"id\":\"Deployed_LeyakContainment_C /Game/Maps/Facility.Facility:PersistentLevel.Deployed_LeyakContainment_C_1\",\"x\":10,\"y\":20,\"z\":30,\"stability\":85,\"creature\":\"Leyak\"},"
+                        + "{\"id\":\"Deployed_LeyakContainment_C /Game/Maps/Facility.Facility:PersistentLevel.Deployed_LeyakContainment_C_2\",\"x\":40,\"y\":50,\"z\":60,\"stability\":null,\"creature\":null}],\"isHost\":true}",
+                    "traders.list" => "{\"setFlags\":[\"Office_PowerOn\"],\"isHost\":true}",
+                    "portals.list" => "{\"portals\":[{\"id\":\"BP_Teleporter_ParentBP_C /Game/Maps/Facility.Facility:PersistentLevel.BP_Teleporter_ParentBP_C_4\",\"label\":\"BP_Teleporter_ParentBP_C\",\"active\":true,\"teleporterId\":\"TP_A\",\"destinationId\":\"TP_B\",\"x\":7,\"y\":8,\"z\":9}],\"isHost\":false}",
                     _ => null,
                 };
                 if (canned is not null)

@@ -234,6 +234,43 @@ confirmed setter (`GetCurrentHealthMap` exists only as a getter the game's own s
 calls), and species mutation would mean an unconfirmed despawn/respawn through the GameMode's
 `SpawnPet` function. The shared `WorldPetsTab` shows `reason` instead of an empty list so this
 reads as "not supported yet", not "no pets here".
+## `containment.list` / `containment.set` - Leyak Containment Units
+
+`containment.list` returns `{"units":[{"id","x","y","z","stability","creature"}],"isHost":bool}`
+for every deployed `Deployed_LeyakContainment_C` unit: `stability` is the unit's own 0..100 gauge
+(null when it could not be read), `creature` is `"Leyak"`, `"Krasue"`, or `null` when the unit is
+empty. `containment.set` takes one action per call:
+
+| `payload.action` | Other fields | Effect |
+|---|---|---|
+| `"assign"` | `unitId`, `creature` | Traps `creature` into `unitId`, freeing it from any other unit and evicting whoever `unitId` already held |
+| `"release"` | `creature` | Frees `creature` from whichever unit currently holds it |
+| `"swap"` | `unitIdA`, `unitIdB` | Exchanges the two units' occupants in one step |
+
+Host only. The write path is the reference mod's own trap/free commands
+(`AFUtils.TrapLeyak`/`FreeLeyak`/`TrapKrasue`/`FreeKrasue`), so a unit fed to full stability the
+same way those commands already do live.
+
+## `traders.list` / `traders.unlock` - trader availability
+
+No mod anywhere touches a trader UObject directly - the barter UI is pure data-table driven -
+but trader/stock gating is a set of quest/story world flags, the same ones `flags.list`/
+`flags.set` already drive. `traders.list` returns `{"setFlags":[...],"isHost":bool}`: every
+quest/story flag currently set (a subset of `flags.list`'s full roster, filtered to just the set
+ones, since that is all trader gating needs). `traders.unlock` takes `{"flags":[...]}` and sets
+every named flag through the same `UWorldFlagSubsystem` `flags.set` uses. Host only. The trader
+roster itself (names, sells/accepts, which flags gate what) is static game data
+(`Core/Catalogs/Codex/TraderCatalog.cs`) and needs no live read.
+
+## `portals.list` / `portals.set` - world teleporters ("World Teleporters" pads)
+
+The live twin of the `portals` world-map feature (`Core/WorldSaves/Features/PortalMapFeature.cs`,
+the save's `PortalMap`). `portals.list` returns
+`{"portals":[{"id","label","active","teleporterId","destinationId","x","y","z"}],"isHost":bool}`
+for every loaded `BP_Teleporter_ParentBP_C`; `teleporterId`/`destinationId` are the pad's own
+level-baked linking ids (read-only). `portals.set` takes
+`{"portals":[{"id","active"?}]}` and flips whether a pad is active/unlocked. Host only. No
+installed mod exercises this actor class; this is the first live write to it.
 
 ## Extending this for a new area
 

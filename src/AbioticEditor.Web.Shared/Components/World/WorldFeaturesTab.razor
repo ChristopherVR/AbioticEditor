@@ -124,7 +124,7 @@ else
 }
 
 @code {
-    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter, EditorRequired] public IWorldFeaturesSession Session { get; set; } = null!;
     [Parameter, EditorRequired] public string FeatureId { get; set; } = string.Empty;
     [Parameter] public string Title { get; set; } = "World editor";
     [Parameter] public EventCallback<string?> OnError { get; set; }
@@ -185,7 +185,7 @@ else
         RefreshSnapshot();
     }
 
-    private WorldSaveSession? _renderedSession;
+    private IWorldFeaturesSession? _renderedSession;
 
     // Cross-region plugged-in devices, resolved once per tab visit. A null value means the id was
     // searched for folder-wide and genuinely is not there any more.
@@ -480,7 +480,7 @@ else
     // still appears, so a rejected edit is never silently swallowed.
     private async Task SetFieldAsync(string featureId, string entryKey, string fieldId, string? value)
     {
-        var result = Session.SetMapFeatureField(featureId, entryKey, fieldId, value);
+        var result = await Session.SetMapFeatureField(featureId, entryKey, fieldId, value);
         if (result.IsError)
         {
             var reason = result.Error is { Length: > 0 } explanation
@@ -502,7 +502,7 @@ else
 
     private async Task RemoveEntryAsync(string featureId, string entryKey)
     {
-        var result = Session.RemoveMapFeatureEntry(featureId, entryKey);
+        var result = await Session.RemoveMapFeatureEntry(featureId, entryKey);
         if (result.IsError)
         {
             await OnError.InvokeAsync(result.Error is { Length: > 0 } explanation
