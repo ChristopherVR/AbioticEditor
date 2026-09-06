@@ -430,6 +430,30 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
 
         await codex.SetKnownAsync(emails: ["Email_Foo"], fish: ["Fish_Baz"]);
         Assert.Equal(LiveConnectionState.Connected, channel.State);
+
+        // Round 77: compendium is settable too, one (row, sectionType) pair per call - the fake
+        // agent's echo fallback proves this encodes as a well-formed request the same way the
+        // other three categories already did.
+        await codex.SetKnownAsync(compendium: [new AbioticEditor.Core.LiveEditing.Player.CompendiumUnlock("Compendium_Qux", "Exploration")]);
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
+    [Fact]
+    public async Task LiveWorldUnlocksChannel_reads_world_level_unlocks_and_set_has_no_write_path()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var unlocks = new AbioticEditor.Core.LiveEditing.World.LiveWorldUnlocksChannel(channel);
+
+        var state = await unlocks.GetAsync();
+        Assert.True(state.IsHost);
+        Assert.Equal(["recipe_bandage"], state.RecipesUnlocked);
+        Assert.Empty(state.RecipesResearched);
+        Assert.Equal(["scrap_metal"], state.ItemsPickedUp);
+        Assert.Equal(["Email_Crossbow"], state.EmailsRead);
+        Assert.Empty(state.JournalEntries);
+        Assert.Empty(state.CompendiumEmail);
+        Assert.Empty(state.CompendiumNarrative);
+        Assert.Equal(["Compendium_Office"], state.CompendiumExploration);
     }
 
     [Fact]
@@ -591,7 +615,13 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
                     "codex.get" => "{\"emails\":[\"Email_Foo\"],\"journals\":[\"Journal_Bar\"],"
                         + "\"fish\":[\"Fish_Baz\"],\"compendium\":[\"Compendium_Qux\"]}",
                     "general.get" => "{\"itemsSeen\":[\"metal_scrap\"],\"itemsCrafted\":[\"torch\"],\"maps\":[\"Sector_A\"]}",
-                    
+                    // Round 77: world-level (not per-player) unlocks - read-only, see
+                    // LiveWorldUnlocksChannel's remarks for why worldunlocks.set has no canned
+                    // success case (it always errors from the real agent; here it just echoes).
+                    "worldunlocks.get" => "{\"isHost\":true,\"recipesUnlocked\":[\"recipe_bandage\"],\"recipesResearched\":[],"
+                        + "\"itemsPickedUp\":[\"scrap_metal\"],\"emailsRead\":[\"Email_Crossbow\"],\"journalEntries\":[],"
+                        + "\"compendiumEmail\":[],\"compendiumNarrative\":[],\"compendiumExploration\":[\"Compendium_Office\"]}",
+
                     _ => null,
                 };
                 if (canned is not null)

@@ -16,26 +16,39 @@ public sealed class LiveStorySession : IWorldStorySession
 {
     private readonly LiveStoryChannel _storyChannel;
     private readonly LiveWorldStateChannel _worldChannel;
+    private readonly LiveWorldUnlocksChannel _unlocksChannel;
     private LiveStoryState _story;
     private LiveWorldState _world;
+    private LiveWorldUnlocks? _unlocks;
 
     private LiveStorySession(LiveStoryChannel storyChannel, LiveWorldStateChannel worldChannel,
-        LiveStoryState story, LiveWorldState world)
+        LiveWorldUnlocksChannel unlocksChannel, LiveStoryState story, LiveWorldState world, LiveWorldUnlocks? unlocks)
     {
         _storyChannel = storyChannel;
         _worldChannel = worldChannel;
+        _unlocksChannel = unlocksChannel;
         _story = story;
         _world = world;
+        _unlocks = unlocks;
     }
 
     public static async Task<LiveStorySession> ConnectAsync(
-        LiveStoryChannel storyChannel, LiveWorldStateChannel worldChannel, CancellationToken cancellationToken = default)
+        LiveStoryChannel storyChannel, LiveWorldStateChannel worldChannel, LiveWorldUnlocksChannel unlocksChannel,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(storyChannel);
         ArgumentNullException.ThrowIfNull(worldChannel);
+        ArgumentNullException.ThrowIfNull(unlocksChannel);
         var story = await storyChannel.GetAsync(cancellationToken).ConfigureAwait(false);
         var world = await worldChannel.GetAsync(cancellationToken).ConfigureAwait(false);
-        return new LiveStorySession(storyChannel, worldChannel, story, world);
+        // World-level unlocks are a nice-to-have next to the clock/weather/story read above:
+        // an agent build too old to know "worldunlocks.get" (or a momentary read failure) should
+        // not stop the whole story tab from connecting - it just shows no world-recipes browser
+        // (SupportsRecipes stays false) instead of failing the connection outright.
+        LiveWorldUnlocks? unlocks = null;
+        try { unlocks = await unlocksChannel.GetAsync(cancellationToken).ConfigureAwait(false); }
+        catch { /* see remarks above */ }
+        return new LiveStorySession(storyChannel, worldChannel, unlocksChannel, story, world, unlocks);
     }
 
     public bool AppliesImmediately => true;
@@ -98,9 +111,11 @@ public sealed class LiveStorySession : IWorldStorySession
         await RefreshWorldAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    // ---------- recipes (file session only) ----------
+    // ---------- world recipes (read-only live; see LiveWorldUnlocksChannel's remarks) ----------
 
-    public bool SupportsRecipes => false;
+    public bool SupportsRecipes => _unlocks is not null;
+    public IReadOnlyCollection<string> GlobalRecipeIds => _unlocks?.RecipesUnlocked ?? [];
+    public bool CanEditGlobalRecipes => false;
 
     // ---------- whole-session save (file session only; live applies per action) ----------
 
@@ -112,6 +127,8 @@ public sealed class LiveStorySession : IWorldStorySession
     {
         _story = await _storyChannel.GetAsync(cancellationToken).ConfigureAwait(false);
         await RefreshWorldAsync(cancellationToken).ConfigureAwait(false);
+        try { _unlocks = await _unlocksChannel.GetAsync(cancellationToken).ConfigureAwait(false); }
+        catch { /* see ConnectAsync's remarks - a failed refresh just keeps the last known list */ }
     }
 
     private async Task RefreshWorldAsync(CancellationToken cancellationToken)

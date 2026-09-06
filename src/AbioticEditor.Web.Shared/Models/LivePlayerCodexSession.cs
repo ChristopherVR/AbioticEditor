@@ -7,11 +7,12 @@ namespace AbioticEditor.Web.Models;
 /// The live-edit counterpart to <see cref="PlayerSaveSession"/>'s codex slice: implements the
 /// same <see cref="IPlayerCodexSession"/> boundary <c>PlayerCodexTab</c> ("GATEPal") already binds
 /// to (see <c>IPlayerCodexSession.cs</c>), so that widget needs zero changes to work against a
-/// running game instead of a loaded file. EMAIL/NOTES/FISH mark known immediately and can never
-/// be un-known again (<see cref="CanUnsetKnown"/> is always false - see
-/// <c>LivePlayerCodexChannel</c>'s remarks). COMPENDIUM is read-only end to end: every row's
-/// <see cref="CodexRowEdit.Editable"/> is false, because the running game's compendium-unlock
-/// function needs an enum parameter this project could not ground.
+/// running game instead of a loaded file. EMAIL/NOTES/FISH/COMPENDIUM all mark known immediately
+/// and can never be un-known again (<see cref="CanUnsetKnown"/> is always false - see
+/// <c>LivePlayerCodexChannel</c>'s remarks). A COMPENDIUM row is only editable when its entry has
+/// at least one grounded <c>ECompendiumUnlockType</c> section (<see cref="CodexRowEdit.SectionTypes"/>);
+/// a row with only a kill-requirement section stays read-only, since that unlocks itself from kill
+/// tracking, never from this RPC.
 /// </summary>
 public sealed class LivePlayerCodexSession : IPlayerCodexSession
 {
@@ -76,11 +77,24 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
                 "This entry can't be un-known while the game is running - there is no game function to do it.");
         }
 
-        // Which category owns this row is decided by which of the three writable lists it came
-        // from, not its content - matches the three separate wire fields in codex.set.
+        // Which category owns this row is decided by which of the four writable lists it came
+        // from, not its content - matches the separate wire fields in codex.set.
         if (ReferenceEquals(FindOwner(row), Emails)) await _channel.SetKnownAsync(emails: [row.Id], playerId: _playerId).ConfigureAwait(false);
         else if (ReferenceEquals(FindOwner(row), Journals)) await _channel.SetKnownAsync(journals: [row.Id], playerId: _playerId).ConfigureAwait(false);
         else if (ReferenceEquals(FindOwner(row), Fish)) await _channel.SetKnownAsync(fish: [row.Id], playerId: _playerId).ConfigureAwait(false);
+        else if (ReferenceEquals(FindOwner(row), Compendium))
+        {
+            // A compendium entry can span more than one section type (e.g. an entry unlocked
+            // partly by an email, partly by exploring somewhere) - one RPC call per section type
+            // fully unlocks the row.
+            var pairs = row.SectionTypes.Select(sectionType => new CompendiumUnlock(row.Id, sectionType)).ToList();
+            if (pairs.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    "This entry has no known section type to unlock (it may only have a kill-requirement section, unlocked by kill tracking).");
+            }
+            await _channel.SetKnownAsync(compendium: pairs, playerId: _playerId).ConfigureAwait(false);
+        }
         else throw new InvalidOperationException("Unknown codex section.");
 
         row.IsKnown = true;
@@ -130,9 +144,7 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
         Fish = BuildRows(
             vocabulary.Fish.Select(f => (f.Id, f.Id + (f.IsRare ? " (rare)" : ""), f.Location, string.Empty)),
             _fishIds, editable: true);
-        Compendium = BuildRows(
-            vocabulary.Compendium.Select(c => (c.Id, c.Title, c.Subtitle ?? c.Tag, string.Join("\n\n", c.SectionTexts))),
-            _compendiumIds, editable: false);
+        Compendium = BuildCompendiumRows(vocabulary.Compendium, _compendiumIds);
     }
 
     private static List<CodexRowEdit> BuildRows(
@@ -146,6 +158,22 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
         return rows.OrderBy(row => row.Title, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
+    /// <summary>Compendium rows carry <see cref="CodexRowEdit.SectionTypes"/> (the grounded
+    /// <c>ECompendiumUnlockType</c> names - see <see cref="LivePlayerCodexChannel"/>'s remarks) so
+    /// <see cref="SetKnownAsync"/> knows which section(s) to unlock. A row with no known section
+    /// type (only a kill-requirement section, unlocked by kill tracking rather than this RPC)
+    /// stays read-only, same as the file session shows it.</summary>
+    private static List<CodexRowEdit> BuildCompendiumRows(IReadOnlyList<CompendiumEntry> known, HashSet<string> knownIds)
+    {
+        var rows = known.Select(c => new CodexRowEdit(
+            c.Id, c.Title, c.Subtitle ?? c.Tag, string.Join("\n\n", c.SectionTexts),
+            knownIds.Contains(c.Id), editable: c.SectionTypes.Count > 0, c.SectionTypes) { Tag = c.Tag }).ToList();
+        var seen = rows.Select(row => row.Id).ToHashSet(StringComparer.Ordinal);
+        foreach (var id in knownIds.Where(seen.Add))
+            rows.Add(new CodexRowEdit(id, id, null, string.Empty, true, false, []));
+        return rows.OrderBy(row => row.Title, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
     private IReadOnlyList<CodexRowEdit>? FindOwner(CodexRowEdit row)
         => Emails.Contains(row) ? Emails : Journals.Contains(row) ? Journals : Fish.Contains(row) ? Fish
             : Compendium.Contains(row) ? Compendium : null;
@@ -153,5 +181,6 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
     private HashSet<string>? FindOwnerIds(CodexRowEdit row)
         => ReferenceEquals(FindOwner(row), Emails) ? _emailIds
             : ReferenceEquals(FindOwner(row), Journals) ? _journalIds
-            : ReferenceEquals(FindOwner(row), Fish) ? _fishIds : null;
+            : ReferenceEquals(FindOwner(row), Fish) ? _fishIds
+            : ReferenceEquals(FindOwner(row), Compendium) ? _compendiumIds : null;
 }

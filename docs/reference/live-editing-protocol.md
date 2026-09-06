@@ -341,29 +341,57 @@ silently do nothing.
 
 ## `codex.get` / `codex.set`
 
-Live journal/codex ("GATEPal") editing, the counterpart to the file editor's EMAIL, NOTES and FISH
-sections. `codex.get` takes an optional `{"playerId":"…"}` payload and returns:
+Live journal/codex ("GATEPal") editing, the counterpart to the file editor's EMAIL, NOTES, FISH and
+COMPENDIUM sections. `codex.get` takes an optional `{"playerId":"…"}` payload and returns:
 
 ```json
 {"emails":["Email_Foo"],"journals":["Journal_Bar"],"fish":["Fish_Baz"],"compendium":["Compendium_Qux"]}
 ```
 
 Each list is the row names the running character currently knows in that section (again, the full
-catalog of possible ids comes from the desktop app's own game-data vocabulary). `codex.set` takes
-`{"playerId":"…", "emails"?:[...], "journals"?:[...], "fish"?:[...]}` and marks each given id known
-immediately; omitted categories are left untouched.
+catalog of possible ids comes from the desktop app's own game-data vocabulary). `compendium` is the
+union of the three per-category arrays described below, deduplicated.
 
-**`compendium` is read-only** - it is reported by `codex.get` but `codex.set` does not accept it.
-The game's only unlock function for it, `Request_UnlockCompendiumSection(CompendiumRow,
-UnlockType)`, takes an `UnlockType` enum parameter this project could not ground: the one place a
-real mod calls it (`CheatConsoleCommands/scripts/Features.lua:894-900`, the journal-entry-unlocker
-hook) only ever forwards a value read live off a UI widget property, never a literal, and the pak
-dump carries no enum value names to guess from. The desktop app's COMPENDIUM section is shown but
-not editable when connected live, for the same reason.
+`codex.set` takes `{"playerId":"…", "emails"?:[...], "journals"?:[...], "fish"?:[...],
+"compendium"?:[{"row":"Compendium_Foo","sectionType":"Exploration"}, ...]}` and marks each given
+entry known immediately; omitted categories are left untouched.
 
-**There is no way to un-know an e-mail, note or fish live either** (same one-directional limit as
-recipes above - no such function exists). The desktop app disables un-checking an already-known row
-when connected live.
+**`compendium` is settable (round 77).** The game's unlock function,
+`Request_UnlockCompendiumSection(CompendiumRow, UnlockType)`, takes an `UnlockType` enum whose
+values were previously un-grounded (the one place a real mod calls it,
+`CheatConsoleCommands/scripts/Features.lua:894-900`, only ever forwards a value read live off a UI
+widget property, never a literal). This round grounded the enum directly: extending
+`LiveClassPropsProbe`'s dump with the usmap's own native enum table (`LiveNativeClassPropsProbe`,
+since `ECompendiumUnlockType` is a native C++ enum and never its own Blueprint `UEnum` package
+export) found:
+
+| Value | Enumerator | Sent by `codex.set`? |
+|---|---|---|
+| 0 | `Exploration` | yes - `sectionType: "Exploration"` |
+| 1 | `Email` | yes - `sectionType: "Email"` |
+| 2 | `NarrativeNPC` | yes - `sectionType: "NarrativeNPC"` |
+| 3 | `KilLRequirement` | no - unlocked automatically by kill tracking, never through this RPC |
+| 4 | `ECompendiumUnlockType_MAX` | no - a sentinel, not a real section |
+
+These three names match the file format's own `DT_Compendium` row data exactly
+(`Core/Catalogs/Codex/CodexCatalog.cs`'s `CompendiumEntry.SectionTypes`, built from each section's
+`UnlockRequirement` field - `"ECompendiumUnlockType::Exploration"` etc.), so the desktop app already
+knows, per compendium row, which section type(s) to send; a row whose entry spans more than one
+section type needs one `codex.set` pair per section type to fully unlock it. A row with only a
+kill-requirement section has no section type this RPC covers and stays read-only in the desktop
+app (its checkbox is disabled, not sent as a request that would silently do nothing).
+
+**Compendium read source (round 77):** `codex.get`'s `compendium` list reads
+`Compendium_ExplorationSections`, `Compendium_EmailSections` and `Compendium_NarrativeNPCSections`
+on `Abiotic_CharacterProgressionComponent_C` - all plain `FArrayProperty` (`TArray<FName>`), the
+same confirmed-working indexed-read technique `EmailsRead`/`JournalEntries`/`FishCaughtArray`
+already use. An earlier round read `Local_AllCompendiumEntries` instead (a `TSet<FName>` the game
+derives from those same three arrays); that TSet's Lua-array readability was never confirmed, so
+this round switched to the better-grounded per-category arrays instead.
+
+**There is no way to un-know an e-mail, note, fish or compendium entry live either** (same
+one-directional limit as recipes above - no such function exists for any of them). The desktop app
+disables un-checking an already-known row when connected live.
 
 ## `general.get` / `general.set`
 
@@ -388,6 +416,56 @@ desktop app's ITEMS CRAFTED row disables its DISCOVER ALL button when connected 
 renaming which save file a character belongs to is purely a file-system operation, with no running
 in-game concept to change. The desktop app hides that section's CHANGE button when connected live
 and shows the connected player's own id as a plain readout instead.
+
+## `worldunlocks.get` / `worldunlocks.set` - world-wide (not per-player) unlocks (round 77)
+
+The live counterpart to the file editor's world-recipes browser (`WorldStoryTab`'s "WORLD RECIPES"
+section, `WorldSaveSession.GlobalRecipes` / the save's `GlobalUnlocks` struct). `worldunlocks.get`
+takes no payload and returns:
+
+```json
+{"isHost":true,"recipesUnlocked":["recipe_bandage"],"recipesResearched":[],
+ "itemsPickedUp":["scrap_metal"],"emailsRead":["Email_Crossbow"],"journalEntries":[],
+ "compendiumEmail":[],"compendiumNarrative":[],"compendiumExploration":["Compendium_Office"]}
+```
+
+Grounded by extending `LiveClassPropsProbe`'s dump to `Abiotic_Survival_GameState.uasset` (the same
+package `story.get` already reads `CurrentQuest` from), which carries `GlobalRecipesUnlocked`,
+`GlobalRecipesResearched` (both `FSetProperty`) and `GlobalItemsPickedUp`, `GlobalEmailsRead`,
+`GlobalJournalEntries`, `GlobalCompendiumEmail`, `GlobalCompendiumNarrative`,
+`GlobalCompendiumExploration` (all `FArrayProperty`) - the world-wide analogues of the per-player
+arrays `codex.get`/`recipes.get` already read. The six `FArrayProperty` fields use the same
+confirmed indexed-read technique as `codex.get`; the two `FSetProperty` recipe fields use the same
+optimistic-pcall technique `codex.get` used for `Local_AllCompendiumEntries` before that was
+replaced (see above) - if UE4SS's Lua binding cannot index that TSet, they simply come back empty
+rather than failing the whole command.
+
+**`worldunlocks.set` has no grounded write path and always fails with `ok:false`** (same shape as
+`story.set`) - this is a researched absence, not something this round declined to build:
+
+- Neither `Abiotic_Survival_GameState_C` nor `Abiotic_Survival_GameMode_C`'s exported function list
+  (`LiveClassPropsProbe`) contains any function that touches these fields by name. The GameMode's
+  many `ApplyWorldSaveData|*`/`Update*ToWorldSave` function pairs are the file load/save round trip
+  for per-actor world state (doors, NPCs, pets, vehicles, ...); there is no matching pair for a
+  "GlobalRecipes"/"GlobalCompendium" world-save slice. The PDB grep for
+  `?[A-Za-z_]*@AAbioticGameState@@` (native, non-Blueprint functions) turns up nothing recipe- or
+  unlock-related either. The two local variables that DO reference these fields
+  (`K2Node_MakeStruct_SaveData_GlobalUnlocks_Struct` inside `SetTimeOfDayOnWorldSave`,
+  `LocalGlobalUnlocks` inside `UpdateActiveLeyakContainmentID`) are both inside the disk save/load
+  routines themselves, not a callable unlock RPC.
+- No installed reference mod anywhere writes directly into a `TSet`/`TArray` property (no `:Add(`,
+  no `:Remove(`, no element assignment) - every real write precedent in this whole project is
+  either a UFunction call (`Request_UnlockNewFish`, `SetWorldFlag`, `K2_TeleportTo`) or a
+  scalar/struct field assignment (`DoorState = 1`, `VehicleDriveable = true`). Inventing a
+  direct-mutation technique for a replicated `TSet<FName>`/`TArray<FName>` that other connected
+  players are also reading has no working precedent to copy and risks corrupting shared state.
+
+The desktop app's `IWorldStorySession.SupportsRecipes` is true live once a world is connected (the
+world-recipes browser shows real unlocked-recipe data), but
+`IWorldStorySession.CanEditGlobalRecipes` is always false live, so every checkbox and the UNLOCK ALL
+button are disabled with an explanatory note - exactly the "shown but not editable" pattern the
+COMPENDIUM section used before its own write path was grounded (see above). A character's own
+RECIPES tab (`recipes.get`/`recipes.set`) remains the live way to give a specific player a recipe.
 
 ## Recipes/codex/general evidence
 

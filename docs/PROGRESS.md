@@ -5,6 +5,58 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-77: grounding the compendium unlock enum, and researching world-wide unlocks (2026-09-06)
+
+The product owner's direction: "ensure compendium, fish unlocks etc. is settable live - read-only
+is not acceptable where the game itself changes the value; find the game's own write path."
+
+**COMPENDIUM is now settable live.** Round 76 left it read-only because
+`Request_UnlockCompendiumSection(CompendiumRow, UnlockType)` takes an enum this project could not
+ground. Extended `LiveClassPropsProbe` to also dump `UEnum` package exports (none turned up for any
+Compendium-tagged asset - `ECompendiumUnlockType` is a native C++ enum, never its own Blueprint
+asset) and `LiveNativeClassPropsProbe` to dump the usmap's own native enum table, which DOES carry
+it: `ECompendiumUnlockType` = `Exploration`(0), `Email`(1), `NarrativeNPC`(2), `KilLRequirement`(3,
+auto-unlocked by kill tracking, never this RPC), `ECompendiumUnlockType_MAX`(4, sentinel) - matching
+the file format's own `DT_Compendium` `UnlockRequirement` values exactly
+(`Core/Catalogs/Codex/CodexCatalog.cs`). `codex.set` now accepts
+`compendium:[{row,sectionType}]`; the desktop app's `CodexRowEdit.SectionTypes` (already computed
+for the file editor) tells `LivePlayerCodexSession` which section type(s) to send per row, so a row
+spanning several section types sends one call per type. Also re-grounded the COMPENDIUM read: the
+previous round read `Local_AllCompendiumEntries` (a `TSet`, unconfirmed Lua-array readability);
+this round found `Compendium_ExplorationSections`/`Compendium_EmailSections`/
+`Compendium_NarrativeNPCSections` are plain `TArray<FName>` (same confirmed technique as
+EmailsRead/JournalEntries), so `codex.get` now reads those instead.
+
+**FISH/EMAILS/JOURNALS verified still fully wired**: all three were already `editable:true` in
+`LivePlayerCodexSession` and unconditionally shown in `PlayerCodexTab` (no per-section hiding) -
+only the compendium gap needed closing.
+
+**WORLD-LEVEL unlocks: researched, read is real, no write path found.** `Abiotic_Survival_GameState_C`
+carries `GlobalRecipesUnlocked`/`GlobalRecipesResearched` (`FSetProperty`) and
+`GlobalItemsPickedUp`/`GlobalEmailsRead`/`GlobalJournalEntries`/`GlobalCompendiumEmail`/
+`GlobalCompendiumNarrative`/`GlobalCompendiumExploration` (`FArrayProperty`) - the world-wide
+analogues of the per-player arrays codex/recipes already read. New `worldunlocks.get` reads all
+eight (grounded); `GlobalRecipesUnlocked` powers `IWorldStorySession.SupportsRecipes` (now true
+live) so the shared `WorldStoryTab`'s world-recipes browser shows real data connected to a running
+game, not just a file. **`worldunlocks.set` has no grounded write path and always fails** (same
+shape as `story.set`): neither `Abiotic_Survival_GameState_C` nor `_GameMode_C`'s exported function
+list contains anything touching these fields (the GameMode's many `ApplyWorldSaveData|*`/
+`Update*ToWorldSave` pairs are the per-actor world-save round trip, not a matching "GlobalRecipes"
+slice), the PDB grep for native `AAbioticGameState` symbols turns up nothing recipe-related, and no
+installed mod anywhere writes directly into a `TSet`/`TArray` property (every real write precedent
+in this project is a UFunction call or a scalar/struct field assignment). `IWorldStorySession`
+grew `GlobalRecipeIds`/`CanEditGlobalRecipes` (the latter always false live) so `WorldStoryTab`
+shows the browser read-only live instead of hiding it, mirroring how COMPENDIUM looked before this
+round grounded its own write path.
+
+New: `LiveWorldUnlocksChannel` (`Core/LiveEditing/World`), `areas/worldunlocks.lua`, `tests/cases/
+codex.lua` + `worldunlocks.lua` (Lua harness, 102 checks total incl. existing), two new
+`TcpLiveGameChannelTests` facts. Protocol doc and resx updated. Not verified against the real game
+this round (no live session available) - the enum values and property names are grounded in the
+game's own data (usmap + pak dumps), not guessed, but the RPC's actual runtime behavior when passed
+a plain Lua integer for an enum parameter is unconfirmed until tested live, same honesty caveat
+every other `pcall`-wrapped write in this project already carries on first use.
+
 ## Round-76: one set of screens for offline and live editing, and live parity for the remaining areas (2026-09-06)
 
 The user's direction after round 75: "we are supposed to be using the same UI components as the

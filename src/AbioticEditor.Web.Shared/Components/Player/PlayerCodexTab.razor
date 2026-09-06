@@ -53,13 +53,13 @@
             </div>
         </div>
         <p class="muted gatepal-footer">@L.Resource("PlayerCodex_FooterHelp")</p>
-        @if (Session.AppliesImmediately && Active == "compendium")
-        {
-            <p class="muted gatepal-footer live-warning">@L.Resource("PlayerCodex_LiveCompendiumReadOnlyHelp")</p>
-        }
-        else if (Session.AppliesImmediately)
+        @if (Session.AppliesImmediately)
         {
             <p class="muted gatepal-footer live-warning">@L.Resource("PlayerCodex_LiveMarkKnownOnlyHelp")</p>
+            @if (Active == "compendium")
+            {
+                <p class="muted gatepal-footer live-warning">@L.Resource("PlayerCodex_LiveCompendiumReadOnlyHelp")</p>
+            }
         }
     </div>
 </section>

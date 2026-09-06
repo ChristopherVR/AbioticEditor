@@ -104,6 +104,16 @@ public class LiveClassPropsProbe
                             W($"    func {c.Name}");
                     }
                 }
+                // Compendium's unlock RPC (Request_UnlockCompendiumSection) takes an UnlockType
+                // enum whose values the UStruct dump above never carries - if the enum is its own
+                // package export (common for a Blueprint-defined enum asset), it shows up here
+                // instead, name + every enumerator + its integer value.
+                else if (export is UEnum en && key.Contains("Compendium", StringComparison.OrdinalIgnoreCase))
+                {
+                    W($"  ENUM {en.Name} ({en.Names.Length} values):");
+                    foreach (var (n, v) in en.Names)
+                        W($"    [{v}] {n.Text}");
+                }
             }
         }
     }
@@ -125,6 +135,18 @@ public class LiveNativeClassPropsProbe
         var outPath = Environment.GetEnvironmentVariable("LIVE_NATIVE_PROBE_OUT");
         using var writer = outPath is null ? null : new StreamWriter(outPath, false);
         void W(string s) { _output.WriteLine(s); writer?.WriteLine(s); }
+        // ECompendiumUnlockType (Request_UnlockCompendiumSection's second parameter) is a native
+        // C++ enum, not a Blueprint asset - so it never shows up as its own UEnum package export
+        // (see LiveClassPropsProbe above); the usmap's own enum table is the only place its
+        // enumerator-to-integer mapping lives.
+        foreach (var (enumName, values) in provider.MappingsForGame!.Enums)
+        {
+            if (!enumName.Contains("Compendium", StringComparison.OrdinalIgnoreCase)) continue;
+            W($"  USMAP ENUM {enumName} ({values.Count} values):");
+            foreach (var (value, name) in values.OrderBy(v => v.Key))
+                W($"    [{value}] {name}");
+        }
+
         var types = provider.MappingsForGame!.Types;
         W($"native types: {types.Count}");
         foreach (var (name, st) in types.OrderBy(t => t.Key, StringComparer.OrdinalIgnoreCase))

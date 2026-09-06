@@ -65,11 +65,24 @@ public interface IWorldStorySession
     Task TriggerWeatherAsync(string weather, CancellationToken cancellationToken = default);
     Task QueueWeatherAsync(string weather, CancellationToken cancellationToken = default);
 
-    // ---------- world recipes (file session only) ----------
+    // ---------- world recipes ----------
 
-    /// <summary>True only for the file session - the live game already knows what it has
-    /// unlocked, and reading/writing that live is out of this slice's scope.</summary>
+    /// <summary>Whether the world-recipes browser has anything to show at all: true for the file
+    /// session when its save carries an editable <c>GlobalUnlocks</c> list, true live once a world
+    /// is connected (see <see cref="GlobalRecipeIds"/>/<see cref="CanEditGlobalRecipes"/>).</summary>
     bool SupportsRecipes { get; }
+
+    /// <summary>Every recipe row id currently unlocked world-wide: the file session's own staged
+    /// <c>GlobalUnlocks</c> list, or, live, the running game's replicated
+    /// <c>GlobalRecipesUnlocked</c> set (read via <c>worldunlocks.get</c>).</summary>
+    IReadOnlyCollection<string> GlobalRecipeIds { get; }
+
+    /// <summary>Whether <see cref="GlobalRecipeIds"/> can be changed from here. Always false live:
+    /// the running game exposes no function and no confirmed direct-write technique for
+    /// <c>GlobalRecipesUnlocked</c> (a replicated <c>TSet</c>) - see
+    /// docs/reference/live-editing-protocol.md, "worldunlocks.get / worldunlocks.set". True for the
+    /// file session whenever <see cref="SupportsRecipes"/> is.</summary>
+    bool CanEditGlobalRecipes { get; }
 
     // ---------- whole-session save (file session only; live applies per action) ----------
 
