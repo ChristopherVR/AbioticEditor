@@ -69,6 +69,9 @@ public class LiveClassPropsProbe
             "Abiotic_InventoryChangeableDataStruct", "Abiotic_InventoryItemSlotStruct", "EDynamicProperty",
             "PunchCardTerminal", "Deployed_PunchCardTerminal", "Item_Pet", "Companion",
             "CharacterProgressionComponent", "Abiotic_PlayerCharacter.", "Compendium", "Recipe", "DT_Compendium", "DT_Recipe",
+            // Round-77 world-gaps research: pet health/heal RPCs, vehicle wrecked/repair, bench
+            // upgrades, dropped-item spawning, inventory sort, narrative NPC state.
+            "BenchUpgrade",
         ];
 
         var outPath = Environment.GetEnvironmentVariable("LIVE_CLASS_PROBE_OUT");

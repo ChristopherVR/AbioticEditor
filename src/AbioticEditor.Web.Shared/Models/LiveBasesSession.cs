@@ -7,13 +7,16 @@ namespace AbioticEditor.Web.Models;
 /// Live BASES editing session, implementing the same <see cref="IWorldBasesSession"/> the file
 /// session does so <c>WorldBasesTab</c> renders unchanged for either host - see
 /// <see cref="LiveContainersSession"/>/<see cref="LiveNpcSession"/> for the immediate-apply,
-/// re-read-after-write pattern this copies. Bench upgrades have no evidenced live write path
-/// (see <c>areas/bases.lua</c>'s own comment): <see cref="BenchSupportsUpgrades"/> always
-/// returns false and <see cref="SetBenchUpgradeAsync"/> always throws.
+/// re-read-after-write pattern this copies. Bench upgrade installation is grounded in the
+/// bench's own <c>AddUpgrade</c> function (round 77); removal has no evidenced live function and
+/// always throws - see <c>areas/bases.lua</c>'s own comment for what remains unverified (the
+/// upgrade row-handle's <c>DataTablePath</c> is reconstructed from the pak's asset location, not
+/// fetched from a live enumeration function, since none exists for this table).
 /// </summary>
 public sealed class LiveBasesSession : IWorldBasesSession
 {
     private readonly LiveBasesChannel _channel;
+    private Dictionary<string, LiveDeployable> _byId = new(StringComparer.Ordinal);
 
     private LiveBasesSession(LiveBasesChannel channel, LiveDeployableDirectory directory)
     {
@@ -35,8 +38,10 @@ public sealed class LiveBasesSession : IWorldBasesSession
 
     private void Apply(LiveDeployableDirectory directory)
     {
+        _byId = directory.Deployables.ToDictionary(d => d.Id, StringComparer.Ordinal);
         Deployables = directory.Deployables
-            .Select(d => new WorldDeployable(d.Id, d.ClassName, d.X, d.Y, d.Z, d.HasInventory, d.StoredItemCount, d.CustomName))
+            .Select(d => new WorldDeployable(d.Id, d.ClassName, d.X, d.Y, d.Z, d.HasInventory, d.StoredItemCount, d.CustomName,
+                d.InstalledUpgrades.Count > 0 ? d.InstalledUpgrades : null))
             .ToList();
         IsHost = directory.IsHost;
     }
@@ -53,9 +58,24 @@ public sealed class LiveBasesSession : IWorldBasesSession
 
     bool IWorldBasesSession.AppliesImmediately => true;
     bool IWorldBasesSession.SupportsContainerPeek => false;
-    bool IWorldBasesSession.BenchSupportsUpgrades(string deployableId) => false;
-    IReadOnlyList<string> IWorldBasesSession.BenchInstalledUpgrades(string deployableId) => [];
-    Task<bool> IWorldBasesSession.SetBenchUpgradeAsync(string deployableId, string row, bool installed, CancellationToken cancellationToken)
-        => throw new NotSupportedException(
-            "Installing or removing bench upgrades live isn't supported yet - see areas/bases.lua.");
+
+    bool IWorldBasesSession.BenchSupportsUpgrades(string deployableId)
+        => _byId.TryGetValue(deployableId, out var deployable) && deployable.SupportsUpgrades;
+
+    IReadOnlyList<string> IWorldBasesSession.BenchInstalledUpgrades(string deployableId)
+        => _byId.TryGetValue(deployableId, out var deployable) ? deployable.InstalledUpgrades : [];
+
+    async Task<bool> IWorldBasesSession.SetBenchUpgradeAsync(string deployableId, string row, bool installed, CancellationToken cancellationToken)
+    {
+        if (!installed)
+        {
+            throw new NotSupportedException(
+                "Removing an installed bench upgrade live isn't supported - no game function does it. Edit the save file instead.");
+        }
+
+        await _channel.SetBenchUpgradeAsync(deployableId, row, installed: true, cancellationToken).ConfigureAwait(false);
+        Status = "Applied live - this took effect in the running game immediately.";
+        await RefreshAsync(cancellationToken).ConfigureAwait(false);
+        return _byId.TryGetValue(deployableId, out var deployable) && deployable.InstalledUpgrades.Contains(row);
+    }
 }

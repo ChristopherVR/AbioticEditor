@@ -599,6 +599,7 @@
   <data name="WorldContainers_NoContainersMatch" xml:space="preserve"><value>No containers match filter.</value></data>
   <data name="WorldContainers_SelectAContainer" xml:space="preserve"><value>SELECT A CONTAINER</value></data>
   <data name="WorldContainers_SelectContainerHelp" xml:space="preserve"><value>Pick a container from the list to inspect or edit its slots. Tap a slot to edit it in the right panel.</value></data>
+  <data name="WorldContainers_Sort" xml:space="preserve"><value>SORT</value></data>
 
   <!-- WorldContainment -->
   <data name="WorldContainment_Compendium" xml:space="preserve"><value>COMPENDIUM</value></data>
@@ -689,6 +690,10 @@
   <data name="WorldDropped_ItemsOnTheGround" xml:space="preserve"><value>ITEMS ON THE GROUND</value></data>
   <data name="WorldDropped_NoGroundItems" xml:space="preserve"><value>No ground items match.</value></data>
   <data name="WorldDropped_Restore" xml:space="preserve"><value>RESTORE</value></data>
+  <data name="WorldDropped_SpawnItemIdPlaceholder" xml:space="preserve"><value>Item id, e.g. scrap_metal</value></data>
+  <data name="WorldDropped_SpawnStack" xml:space="preserve"><value>Stack</value></data>
+  <data name="WorldDropped_SpawnNearMe" xml:space="preserve"><value>SPAWN NEAR ME</value></data>
+  <data name="WorldDropped_SpawnNearMeHelp" xml:space="preserve"><value>Drops the item near the player currently editing - the game decides exactly where, not you.</value></data>
 
   <!-- WorldEditor -->
   <data name="WorldEditor_Containers" xml:space="preserve"><value>CONTAINERS</value></data>
@@ -747,6 +752,7 @@
   <data name="WorldFlags_QuestFlags" xml:space="preserve"><value>STORY EVENTS</value></data>
 
   <!-- WorldNpcs -->
+  <data name="WorldNpcs_NoNarrativeNpcs" xml:space="preserve"><value>No story NPCs or traders found here.</value></data>
   <data name="WorldNpcs_NpcsIntro" xml:space="preserve"><value>The story characters and traders in this area. REVIVE brings one back after they have been removed. Their story stage sets how far along their own part of the story is, so only change it if you know which stage you want. Tamed pets have their own PETS tab.</value></data>
   <data name="WorldNpcs_Revive" xml:space="preserve"><value>REVIVE</value></data>
   <data name="WorldNpcs_ReviveTooltip" xml:space="preserve"><value>Bring this character back to life at their usual story stage. Most of the dead ones left as part of the story, so reviving can bring back someone the plot already moved on from.</value></data>
@@ -765,6 +771,7 @@
   <data name="WorldPets_HealToFull" xml:space="preserve"><value>HEAL TO FULL</value></data>
   <data name="WorldPets_Health" xml:space="preserve"><value>HEALTH</value></data>
   <data name="WorldPets_LevelAndXp" xml:space="preserve"><value>LEVEL &amp; XP</value></data>
+  <data name="WorldPets_LiveSpeciesChangeUnavailable" xml:space="preserve"><value>Changing a pet's creature type isn't available while editing live. Edit the save file instead.</value></data>
   <data name="WorldPets_Location" xml:space="preserve"><value>LOCATION</value></data>
   <data name="WorldPets_Lv" xml:space="preserve"><value>LV</value></data>
   <data name="WorldPets_Name" xml:space="preserve"><value>NAME</value></data>
@@ -3496,6 +3503,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldEditor_TabQuestFlags" xml:space="preserve"><value>STORY EVENTS</value></data>
   <data name="WorldEditor_TabDoors" xml:space="preserve"><value>DOORS</value></data>
   <data name="WorldEditor_TabDropped" xml:space="preserve"><value>DROPPED</value></data>
+  <data name="WorldEditor_TabNpcs" xml:space="preserve"><value>NPCS</value></data>
   <data name="WorldEditor_TabPets" xml:space="preserve"><value>PETS</value></data>
   <data name="WorldEditor_TabVehicles" xml:space="preserve"><value>VEHICLES</value></data>
   <data name="WorldEditor_TabBases" xml:space="preserve"><value>BASES</value></data>

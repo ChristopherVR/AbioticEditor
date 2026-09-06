@@ -158,6 +158,10 @@
                     aria-selected="@(_activeTab == "pets")" @onclick='() => _activeTab = "pets"'>
                 @L.Resource("WorldPets_TamedPetsInThisWorld")
             </button>
+            <button type="button" role="tab" class="editor-tab @(_activeTab == "narrativenpcs" ? "active" : null)"
+                    aria-selected="@(_activeTab == "narrativenpcs")" @onclick='() => _activeTab = "narrativenpcs"'>
+                @L.Resource("WorldNpcs_StoryNpcsAndTraders")
+            </button>
             <button type="button" role="tab" class="editor-tab @(_activeTab == "containment" ? "active" : null)"
                     aria-selected="@(_activeTab == "containment")" @onclick='() => _activeTab = "containment"'>
                 @L.Resource("WorldEditor_TabContainment")
@@ -274,6 +278,12 @@
             {
                 <WorldPetsTab Session="_pets" Title="@L.Resource("WorldPets_TamedPetsInThisWorld")" OnError="ShowWorldAreaError" />
             }
+            else if (_activeTab == "narrativenpcs" && _narrativeNpcs is not null)
+            {
+                @* Same shared tab the file editor uses (IWorldNpcsSession) - not to be confused
+                   with the "npcs" tab above (LiveNpcsTab), which is wildlife/monster NPCs. *@
+                <WorldNpcsTab Session="_narrativeNpcs" OnError="ShowWorldAreaError" />
+            }
             else if (_activeTab == "containment" && _containment is not null)
             {
                 @* The exact same tab the file editor uses (WorldSaveSession implements the same
@@ -302,7 +312,7 @@
             {
                 <p class="muted">@L.Resource("Live_RawOfflineOnly")</p>
             }
-            else if (_activeTab is "world" or "flags" or "doors" or "containers" or "dropped" or "bases" or "vehicles" or "pets" or "containment" or "traders" or "portals")
+            else if (_activeTab is "world" or "flags" or "doors" or "containers" or "dropped" or "bases" or "vehicles" or "pets" or "narrativenpcs" or "containment" or "traders" or "portals")
             {
                 <p class="muted">@L.Resource("Live_WorldAreaUnavailable")</p>
             }
@@ -372,6 +382,7 @@
     private LiveBasesSession? _bases;
     private LiveVehiclesSession? _vehicles;
     private LivePetsSession? _pets;
+    private LiveNarrativeNpcsSession? _narrativeNpcs;
     private LiveContainmentSession? _containment;
     private LiveTradersSession? _traders;
     private LivePortalsFeatureSession? _portals;
@@ -463,6 +474,7 @@
             _bases = await TryConnectWorldAreaAsync(() => LiveBasesSession.ConnectAsync(new LiveBasesChannel(channel)));
             _vehicles = await TryConnectWorldAreaAsync(() => LiveVehiclesSession.ConnectAsync(new LiveVehiclesChannel(channel)));
             _pets = await TryConnectWorldAreaAsync(() => LivePetsSession.ConnectAsync(new LivePetsChannel(channel)));
+            _narrativeNpcs = await TryConnectWorldAreaAsync(() => LiveNarrativeNpcsSession.ConnectAsync(new LiveNarrativeNpcsChannel(channel)));
             _containment = await TryConnectWorldAreaAsync(() => LiveContainmentSession.ConnectAsync(new LiveContainmentChannel(channel)));
             _portals = await TryConnectWorldAreaAsync(() => LivePortalsFeatureSession.ConnectAsync(new LivePortalsChannel(channel)));
             // Trader gating is world-flag state, so it needs a loaded world like every other
@@ -609,6 +621,7 @@
         _bases = null;
         _vehicles = null;
         _pets = null;
+        _narrativeNpcs = null;
         _containment = null;
         _traders = null;
         _portals = null;

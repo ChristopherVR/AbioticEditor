@@ -28,10 +28,21 @@ public sealed class LiveDroppedItemsChannel(ILiveGameChannel channel)
         return wire.Removed;
     }
 
+    /// <summary>
+    /// Spawns <paramref name="itemId"/> (stack <paramref name="stack"/>) on the ground near the
+    /// local player - see <c>dropped.add</c> in <c>main.lua</c> for exactly how (a scratch
+    /// inventory slot plus the character's own <c>Request_DropInventorySlot</c> RPC, since no
+    /// direct "spawn a dropped item" function has any precedent). Host only. There is no
+    /// caller-chosen position - the item lands wherever the game's own drop logic puts it.
+    /// </summary>
+    public Task AddAsync(string itemId, int stack, CancellationToken cancellationToken = default)
+        => _channel.RequestAsync<object?>("dropped.add", new AddWire(itemId, stack), cancellationToken);
+
     private sealed record DirectoryWire(IReadOnlyList<ItemWire>? Items, bool IsHost);
     private sealed record ItemWire(string Id, string ItemId, int Stack, double X, double Y, double Z);
     private sealed record RemoveWire(IReadOnlyList<string> Ids);
     private sealed record RemovedWire(int Removed);
+    private sealed record AddWire(string ItemId, int Stack);
 }
 
 /// <summary>One loose item in the world. <paramref name="Id"/> is the game's full object name

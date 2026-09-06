@@ -45,21 +45,27 @@ public sealed class WorldLiveTabParityContractTests
     }
 
     [Fact]
-    public void Live_sessions_are_honest_about_what_has_no_grounded_live_path()
+    public void Live_sessions_are_honest_about_what_still_has_no_grounded_live_path()
     {
-        // Bench upgrades: no confirmed live write path (see areas/bases.lua) - the live session
-        // must say so via the interface's own capability flags, not silently no-op.
+        // Container peek (opening a bench's contents inline from the BASES tab) still has no
+        // live equivalent - unrelated to bench upgrades, which round 77 closed below.
         var liveBases = ModelsSource("LiveBasesSession.cs");
         Assert.Contains("SupportsContainerPeek => false", liveBases, StringComparison.Ordinal);
+        // Bench upgrade REMOVAL still has no evidenced live function (installation does, since
+        // round 77 - AddUpgrade) - the live session says so via NotSupportedException rather
+        // than silently no-op.
         Assert.Contains("NotSupportedException", liveBases, StringComparison.Ordinal);
 
-        // Wrecked/destroyed: no evidenced live property (see areas/vehicles.lua).
+        // Round 77: wrecked/destroyed IS now grounded (PendingDestroy) - the flag flipped to true.
         var liveVehicles = ModelsSource("LiveVehiclesSession.cs");
-        Assert.Contains("SupportsWreckedState => false", liveVehicles, StringComparison.Ordinal);
+        Assert.Contains("SupportsWreckedState => true", liveVehicles, StringComparison.Ordinal);
 
-        // Pets: no general live path at all (see areas/pets.lua) - reported, not guessed.
+        // Round 77: pets ARE now partially available (Pest/Skink family, matched by Guid) -
+        // species change and removal still have no grounded live path.
         var livePets = ModelsSource("LivePetsSession.cs");
-        Assert.Contains("IsAvailable => false", livePets, StringComparison.Ordinal);
+        Assert.Contains("SupportsSpeciesChange => false", livePets, StringComparison.Ordinal);
+        Assert.Contains("SupportsRemoval => false", livePets, StringComparison.Ordinal);
+        Assert.Contains("NotSupportedException", livePets, StringComparison.Ordinal);
     }
 
     [Fact]

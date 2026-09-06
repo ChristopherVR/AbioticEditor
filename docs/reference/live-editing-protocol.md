@@ -174,66 +174,125 @@ name), `kind` (`simple` for hinged doors, `security` for sliding security doors)
 where each slot is `{"slotIndex","itemId","isEmpty","stack","durability","maxDurability"}` - the
 same slot shape as `inventory.list`, because a container's storage is the same inventory
 component class as a player's backpack. `containers.set` takes `{"id","edits":[{"slotIndex",
-"clear"?,"itemId"?,"stack"?,"durability"?,"maxDurability"?}]}`. Host only.
+"clear"?,"itemId"?,"stack"?,"durability"?,"maxDurability"?}],"sort"?:bool}`. `sort:true` (round
+77) reorders the container's slots via the inventory component's own zero-parameter
+`SortInventory()` function - the same reorder the in-game "sort" button performs; not exercised
+by any mod before round 77. Host only.
 
-## `dropped.list` / `dropped.remove`
+## `dropped.list` / `dropped.remove` / `dropped.add`
 
 `dropped.list` returns `{"items":[{"id","itemId","stack","x","y","z"}],"isHost":bool}` for every
 item lying loose in the loaded world that nobody has picked up. `dropped.remove` takes
 `{"ids":[...]}` and returns `{"removed":n}` - the count actually found and despawned. Host only.
 
-## `bases.list` / `bases.set` - deployables (round 76)
+`dropped.add` (round 77) takes `{"itemId","stack"?,"durability"?,"maxDurability"?,"playerId"?}`
+and spawns a brand-new item on the ground. There is no `SpawnDroppedItem`/"give item" precedent
+anywhere in the reference mod (checked: no additem/spawnitem/give-style command exists in it at
+all), so this chains two already-proven mechanisms instead of constructing a dropped-item actor
+from scratch: it writes the item into a free slot of the target player's own inventory (the same
+`writeSlot` `inventory.set` already uses live), then calls the player's own
+`Request_DropInventorySlot(Inventory, Index)` RPC - a real function confirmed from the game's own
+class layout with exactly the two simple parameters (an object reference and an int) this module
+calls it with. Not exercised by any mod, so genuinely unproven end-to-end; the item lands
+wherever the game's own `FindBestItemDropLocation` puts it (near the player), not at a
+caller-chosen position - unlike the file editor's own explicit-`x`/`y`/`z` add. Host only.
+
+## `bases.list` / `bases.set` - deployables (round 76, bench upgrades round 77)
 
 `bases.list` returns `{"deployables":[{"id","className","x","y","z","customName","hasInventory",
-"storedItemCount"}],"isHost":bool,"supportsBenchUpgrades":false}` for every deployable currently
+"storedItemCount","supportsUpgrades","installedUpgrades":[...]}],"isHost":bool,
+"supportsBenchUpgrades":true,"supportsBenchUpgradeRemoval":false}` for every deployable currently
 loaded (`AbioticDeployed_ParentBP` and every subclass - benches, furniture, defenses,
-containers). `bases.set` takes `{"id","customName"}` and renames the object immediately. Host
+containers). `supportsUpgrades`/`installedUpgrades` are meaningful only for benches; every other
+deployable reports `false`/`[]`. `bases.set` takes `{"id","customName"?,"upgradeRow"?,
+"upgradeInstalled"?}` and renames the object and/or installs a bench upgrade immediately. Host
 only, like `containers.set`/`doors.set`.
 
-`supportsBenchUpgrades` is always `false` and there is no way to install or remove a bench
-upgrade over this protocol: the live bench class does expose an `UpgradeTagContainer` property,
-but no installed mod touches it, there is no confirmed way to build a valid
-`BenchUpgradeRowHandle` from a bare row name (unlike weather/flags, which can always enumerate
-real handles from a matching function library), and the array-of-struct add/remove API for a
-live `GameplayTagContainer` has no working precedent to copy. The shared `WorldBasesTab` hides
-the bench-upgrades section entirely for a live session instead of guessing. Opening a bench or
-crate's contents inline (the file editor's slot grid) is also file-only - it shares the
-CONTAINERS tab's staged slot model, which has no live equivalent wired into this area; use the
-CONTAINERS tab for live slot editing instead.
+Bench-upgrade **installation** (round 77) is grounded in the bench class's own real functions:
+`AddUpgrade(Upgrade: <RowHandle struct>)` and `"Has Upgrade"(Upgrade: <RowHandle struct>) : bool`
+- note the literal space in that second function's own compiled name (UE4SS Lua calls it as
+`bench["Has Upgrade"](bench, handle)`, not `bench:HasUpgrade()`). The row-handle struct's
+`DataTablePath` is reconstructed from the pak's own asset location
+(`Content/Blueprints/DataTables/DT_BenchUpgrades.uasset` -> `/Game/Blueprints/DataTables/
+DT_BenchUpgrades.DT_BenchUpgrades`) rather than fetched from a live enumeration function (none
+exists for this table, unlike weather/flags) - plausible and grounded in the pak layout, but
+genuinely **unverified against the running game**: `AddUpgrade` could silently no-op if this path
+is wrong. `bases.list`'s `installedUpgrades` lets a caller confirm a row actually took by reading
+it back. **Removal** is refused outright (`upgradeInstalled:false` is rejected with an error) -
+there is no `RemoveUpgrade`/`Server_RemoveUpgrade` anywhere in the bench's ~90 functions.
+Opening a bench or crate's contents inline (the file editor's slot grid) is still file-only - it
+shares the CONTAINERS tab's staged slot model; use the CONTAINERS tab for live slot editing.
 
-## `vehicles.list` / `vehicles.set` - round 76
+## `vehicles.list` / `vehicles.set` - round 76, wrecked state round 77
 
-`vehicles.list` returns `{"vehicles":[{"id","vehicleId","vehicleClass","driveable","x","y","z"}],
-"isHost":bool,"supportsWreckedState":false}` for every vehicle currently loaded
-(`ABF_Vehicle_ParentBP` and its subclasses). `vehicles.set` takes `{"id","driveable"?,"x"?,"y"?,
-"z"?}` - `driveable` is a direct property write (`VehicleDriveable` + `OnRep_VehicleDriveable`,
-confirmed on the live class layout); a position takes effect via `K2_TeleportTo` (confirmed real,
-used the same way in `CheatConsoleCommands/AFUtils/BaseUtils/BaseUtils.lua`'s
-`TeleportActorToActor`), keeping the vehicle's current rotation. Host only.
+`vehicles.list` returns `{"vehicles":[{"id","vehicleId","vehicleClass","driveable","wrecked",
+"x","y","z"}],"isHost":bool,"supportsWreckedState":true}` for every vehicle currently loaded
+(`ABF_Vehicle_ParentBP` and its subclasses). `vehicles.set` takes `{"id","driveable"?,"wrecked"?,
+"x"?,"y"?,"z"?}` - `driveable` is a direct property write (`VehicleDriveable` +
+`OnRep_VehicleDriveable`, confirmed on the live class layout); a position takes effect via
+`K2_TeleportTo` (confirmed real, used the same way in
+`CheatConsoleCommands/AFUtils/BaseUtils/BaseUtils.lua`'s `TeleportActorToActor`), keeping the
+vehicle's current rotation. Host only.
 
-`supportsWreckedState` is always `false` and `destroyed` is never accepted or returned: the
-closest hit anywhere in the game's own class layout for the save's `Destroyed` flag is a local
-variable inside the vehicle's own `UpdateWorldSave` function (computed from something at save
-time, not a class member this protocol can read or write), so the shared `WorldVehiclesTab`
-hides the "Wrecked" checkbox for a live session rather than showing a value nobody can read.
-On-board vehicle storage is also not exposed here (`hasInventory`/`inventoryItemCount` are
+`wrecked` (round 77) reads/writes the vehicle's own `PendingDestroy` property - a real,
+unsuffixed class member confirmed from the game's own class layout (the save's `Destroyed` flag
+is fed from a local variable inside the vehicle's own `UpdateWorldSave` function, and
+`PendingDestroy` is the only real class member anywhere near it). There is no confirmed
+`OnRep_PendingDestroy`/`OnRep_Destroyed`, so this is a direct field write like `bases.set`'s
+rename. **Genuinely unverified against the running game**: no mod anywhere reads or writes this
+field, and whether flipping it alone updates the vehicle's wreck visuals live (versus only the
+value the save later persists) is unknown without launching the game.
+On-board vehicle storage is still not exposed here (`hasInventory`/`inventoryItemCount` are
 always `false`/`0` for a live vehicle) - it is a different inventory component than the world
 containers this protocol's `containers.*` commands already cover.
 
-## `pets.list` - round 76 (no `pets.set`; no general live path)
+## `pets.list` / `pets.set` - round 76 (no path), partially closed round 77
 
-`pets.list` returns `{"pets":[],"isHost":bool,"available":false,"reason":"..."}`. There is
-deliberately no `pets.set`. Research found no general live path for tamed pets: a tamed pet is
-the same `NPC_Base_ParentBP_C` actor `npcs.list` already finds, but the fields a world save's
-`PetNPC` record needs are exposed wildly inconsistently between creature families in the game's
-own class layout - the Pest family (and Skink, which inherits from it) directly exposes
-`PetName`/`Guid`/`FollowingOwner`/`DynamicProperties`/`SanitizedName`; the Peccary family exposes
-none of those; the Lamogi family exposes only a bare `WasTamed` bool. There is no single property
-to match a live actor back to a specific save record across every species, health has no
-confirmed setter (`GetCurrentHealthMap` exists only as a getter the game's own save-writing code
-calls), and species mutation would mean an unconfirmed despawn/respawn through the GameMode's
-`SpawnPet` function. The shared `WorldPetsTab` shows `reason` instead of an empty list so this
-reads as "not supported yet", not "no pets here".
+`pets.list` returns `{"pets":[{"id","npcClass","isDead","customName","x","y","z","limbHealth":
+{...},"xp"}],"isHost":bool,"available":true,"supportsSpeciesChange":false,
+"supportsRemoval":false,"reason":"..."}`. Round 76 found no general live path for tamed pets: the
+fields a world save's `PetNPC` record needs are exposed wildly inconsistently between creature
+families. Round 77 re-checked the game's own class layout and found a real, **partial** path
+instead of guessing a universal one:
+
+- The Pest family (and Skink, which inherits from it) directly exposes, with no hash suffix:
+  `PetName` (`FTextProperty`, real `OnRep_PetName`), `Guid` (`FStrProperty` - a stable id matching
+  the save's own `PetNPC` key), `DynamicProperties` (the same `{Key,Value}` shape
+  `companions.list`'s carried-pet XP already reads/writes). `pets.list` only lists actors of this
+  family, matched by `id` = their own `Guid` string.
+- Per-limb health is **universal**, not pet-specific: `AbioticCharacter` (the native base of
+  every player AND every NPC) carries `CurrentHealth_Head/Torso/LeftArm/RightArm/LeftLeg/
+  RightLeg` as plain unsuffixed floats with one shared `OnRep_CurrentHealth` - the exact fields
+  `vitals.set` already writes for the local player, confirmed live. `pets.set` writes these the
+  same way.
+- Peccary and Lamogi family pets were re-checked and confirmed to still carry none of
+  `Guid`/`PetName`/`DynamicProperties` as their own properties - there is still no stable id for
+  them, so they are never listed; `reason` says so. `supportsSpeciesChange`/`supportsRemoval` are
+  always `false` - no confirmed despawn/respawn round trip exists for a living NPC (unlike
+  dropped items' `InitDespawn`/`OnItemDespawn` pairing).
+
+`pets.set` takes `{"id","isDead"?,"customName"?,"limbHealth"?,"xp"?}` - `npcClass` is never
+accepted (no live species change). Host only.
+
+## `narrativenpcs.list` / `narrativenpcs.set` - story NPCs and traders (round 77)
+
+`narrativenpcs.list` returns `{"npcs":[{"id","label","isCorpse","narrativeState","x","y","z"}],
+"isHost":bool}` for every `NarrativeNPC_ParentBP_C` (and subclass, e.g.
+`NarrativeNPC_Human_ParentBP_C`) currently loaded. `IsCorpse`/`NarrativeState` are real,
+unsuffixed class members confirmed from the game's own class layout.
+`narrativenpcs.set` takes `{"npcs":[{"id","isCorpse"?,"narrativeState"?}]}`. `isCorpse` is a
+direct field write (no confirmed `OnRep_IsCorpse` anywhere in this class). `narrativeState` calls
+the class's own real one-parameter setter, `SetNewNarrativeState(NarrativeState: byte)` (falls
+back to a direct field write if that call fails on a given build) - preferred over a bare write
+since it also updates `LastPlayedNarrativeState` and broadcasts `OnNarrativeStateChanged`
+internally. `narrativeState` is the enum's own raw integer value, not the file format's own
+`E_NarrativeNPCStates::NewEnumeratorN` string encoding - no probe dump anywhere carries that
+enum's value names, so this protocol does not attempt to decode/re-encode it; a caller wanting
+the file's string form keeps its own mapping. This is the live counterpart to the offline
+session's `Npcs`/`SetNpc` (which had no dedicated tab before round 77's shared `WorldNpcsTab`).
+Tamed pets are `pets.list`/`pets.set` above, not this command - matching the shared editor's split
+between `WorldNpcsTab` (narrative) and `WorldPetsTab` (pets). Host only.
+
 ## `containment.list` / `containment.set` - Leyak Containment Units
 
 `containment.list` returns `{"units":[{"id","x","y","z","stability","creature"}],"isHost":bool}`

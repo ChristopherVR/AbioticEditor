@@ -75,16 +75,27 @@
                                @onchange="e => SetName(pet, e.Value?.ToString())" />
                     </label>
 
-                    <div class="wt-field">
-                        <span class="wt-label">@L.Resource("WorldPets_CreatureTypeUpgradeDowngrade")</span>
-                        <select class="wt-input" value="@pet.NpcClass" @onchange="e => SetClass(pet, e.Value?.ToString())">
-                            @foreach (var variant in VariantOptions(pet))
-                            {
-                                <option value="@variant.ClassPath">@variant.FriendlyName</option>
-                            }
-                        </select>
-                        <small class="wt-muted">@L.Resource("WorldPets_FamilyFormat", FamilyName(pet))</small>
-                    </div>
+                    @if (Session.SupportsSpeciesChange)
+                    {
+                        <div class="wt-field">
+                            <span class="wt-label">@L.Resource("WorldPets_CreatureTypeUpgradeDowngrade")</span>
+                            <select class="wt-input" value="@pet.NpcClass" @onchange="e => SetClass(pet, e.Value?.ToString())">
+                                @foreach (var variant in VariantOptions(pet))
+                                {
+                                    <option value="@variant.ClassPath">@variant.FriendlyName</option>
+                                }
+                            </select>
+                            <small class="wt-muted">@L.Resource("WorldPets_FamilyFormat", FamilyName(pet))</small>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="wt-field">
+                            <span class="wt-label">@L.Resource("WorldPets_CreatureTypeUpgradeDowngrade")</span>
+                            <span class="wt-readout">@FriendlyClass(pet)</span>
+                            <small class="wt-muted">@L.Resource("WorldPets_LiveSpeciesChangeUnavailable")</small>
+                        </div>
+                    }
 
                     <hr class="wt-divider" />
 
@@ -138,13 +149,16 @@
                     <hr class="wt-divider" />
                 }
 
-                @if (!IsDeleted(pet))
+                @if (Session.SupportsRemoval)
                 {
-                    <button type="button" class="wt-btn wt-red wide" @onclick="() => Delete(pet)">@L.Resource("WorldPets_DeletePetFromWorld")</button>
-                }
-                else
-                {
-                    <button type="button" class="wt-btn wt-yellow wide" @onclick="() => UndoDelete(pet)">@L.Resource("WorldPets_UndoDelete")</button>
+                    @if (!IsDeleted(pet))
+                    {
+                        <button type="button" class="wt-btn wt-red wide" @onclick="() => Delete(pet)">@L.Resource("WorldPets_DeletePetFromWorld")</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="wt-btn wt-yellow wide" @onclick="() => UndoDelete(pet)">@L.Resource("WorldPets_UndoDelete")</button>
+                    }
                 }
 
                 @if (PlayerSession is not null && !pet.Id.StartsWith("pending-", StringComparison.Ordinal))

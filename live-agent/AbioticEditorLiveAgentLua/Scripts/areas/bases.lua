@@ -10,17 +10,73 @@
 -- Deployed_Container_ParentBP_C the same way), so this one scan covers every deployable a base
 -- is built from - no per-subclass enumeration needed.
 --
--- Bench upgrades (BenchUpgradeCatalog on the file side) are NOT exposed here: the live bench
--- class does carry an UpgradeTagContainer property (confirmed from the same probe dump, on
--- AbioticDeployed_CraftingBench_ParentBP_C), but no installed mod anywhere touches it, there is
--- no confirmed way to build a valid BenchUpgradeRowHandle from a bare row name (the weather/flag
--- areas could always ENUMERATE real handles from a matching function library; no such library
--- was found for bench upgrades), and the TArray-of-struct add/remove API for a live
--- GameplayTagContainer has no working precedent to copy either. Guessing three unconfirmed
--- things at once for a write that can leave a bench in a wrong state is exactly the mistake this
--- project already got burned by once (GetMyPlayerController) - so bases.lua reports
--- supportsBenchUpgrades = false instead, and the shared tab hides that section live.
+-- ===== Bench upgrades (round 77, closing the round-76 gap) =====
+-- Round 76 reported supportsBenchUpgrades = false because no function library could enumerate a
+-- real BenchUpgradeRowHandle the way flags.lua/world.lua enumerate WorldFlagRowHandle/
+-- WeatherEventRowHandle. Re-checked this round against AbioticDeployed_CraftingBench_ParentBP_C's
+-- own class layout (LiveClassPropsProbe, fragment "BenchUpgrade") instead of a function library,
+-- and it carries everything needed directly:
+--   SupportsUpgrades : FBoolProperty        -- whether THIS deployable can take upgrades at all
+--   UpgradeTagContainer : FStructProperty   -- read via the functions below, not parsed directly
+--   func AddUpgrade(Upgrade: <RowHandle struct>)          -- installs one upgrade module
+--   func "Has Upgrade"(Upgrade: <RowHandle struct>) : bool -- NOTE THE LITERAL SPACE in this
+--     function's own compiled name (confirmed in the dump: "func Has Upgrade", not
+--     "func HasUpgrade") - UE4SS Lua's `obj:HasUpgrade()` sugar would look up a member that does
+--     not exist, so this module calls it as `obj["Has Upgrade"](obj, ...)` instead. Worth
+--     flagging plainly since every other function this project has called so far happened to have
+--     a space-free name.
+--   func OnRep_UpgradeTagContainer                          -- called after AddUpgrade, best-effort
+-- There is no "RemoveUpgrade"/"Server_RemoveUpgrade" anywhere in this class's ~90 functions, so
+-- removing an installed upgrade still has no evidenced live path - bases.set rejects a removal
+-- request with a clear error instead of guessing at a raw GameplayTagContainer edit (the mistake
+-- this project got burned by once already, GetMyPlayerController).
+--
+-- The remaining unknown: AddUpgrade's own "Upgrade" parameter is a row-handle struct
+-- ({RowName, DataTablePath}, the same two-field shape as WorldFlagRowHandle/WeatherEventRowHandle
+-- - all three are the engine's own FDataTableRowHandle under a game-specific type alias) but,
+-- unlike flags/weather, there is no enumeration function anywhere to fetch a REAL handle from -
+-- every previous use of a row handle in this project (flags.lua, main.lua's world.set) copied one
+-- straight from a live GetAll*RowHandles() call, never built one from scratch. DataTablePath here
+-- is reconstructed from the pak's own asset location instead
+-- (Content/Blueprints/DataTables/DT_BenchUpgrades.uasset -> the standard UE soft-object-path form
+-- "/Game/Blueprints/DataTables/DT_BenchUpgrades.DT_BenchUpgrades", the same
+-- package-path-plus-object-name shape every enumerated handle in this project already carries) -
+-- plausible and grounded in the pak layout, but genuinely UNVERIFIED against the running game
+-- (AddUpgrade could silently no-op if this path is wrong, since UE4SS gives no error for a
+-- soft-reference that resolves to nothing). Wrapped in pcall; a caller should re-read bases.list
+-- afterward to confirm the row now reports installed = true rather than trust the call succeeding.
 return function(ctx)
+    -- The 11 known upgrade rows (DT_BenchUpgrades), matching
+    -- AbioticEditor.Core.WorldSaves.BenchUpgradeCatalog.All row-for-row so live and file report
+    -- the same catalog. Kept here rather than fetched live since there is no enumeration
+    -- function for this table (see header comment).
+    local BENCH_UPGRADE_ROWS = {
+        "ItemTransporter", "TougherBench", "BenchWarmer", "Dioxohealer", "PortalSuppression",
+        "MatterSynthesizer", "MetabolicField", "BenchTurret", "Cheffigy",
+        "ItemTransporter_ChefStation", "ItemTransporter_UpgradeBench",
+    }
+    local BENCH_UPGRADE_DATA_TABLE_PATH = "/Game/Blueprints/DataTables/DT_BenchUpgrades.DT_BenchUpgrades"
+
+    local function rowHandle(row)
+        return { RowName = FName(row, EFindName.FNAME_Find), DataTablePath = BENCH_UPGRADE_DATA_TABLE_PATH }
+    end
+
+    local function benchSupportsUpgrades(obj)
+        local ok, supports = pcall(function() return obj.SupportsUpgrades == true end)
+        return ok and supports
+    end
+
+    local function benchInstalledUpgrades(obj)
+        local installed = { __forceArray = true }
+        if not benchSupportsUpgrades(obj) then return installed end
+        for _, row in ipairs(BENCH_UPGRADE_ROWS) do
+            -- "Has Upgrade" has a literal space in its compiled name - see header comment.
+            local ok, has = pcall(function() return obj["Has Upgrade"](obj, rowHandle(row)) end)
+            if ok and has then table.insert(installed, row) end
+        end
+        return installed
+    end
+
     local function deployableRows()
         local result = { __forceArray = true }
         for _, obj in ipairs(ctx.findAll("AbioticDeployed_ParentBP_C")) do
@@ -46,6 +102,8 @@ return function(ctx)
                         customName = (okName and customName ~= "" and customName ~= nil) and customName or nil,
                         hasInventory = hasInventory,
                         storedItemCount = stored,
+                        supportsUpgrades = benchSupportsUpgrades(obj),
+                        installedUpgrades = benchInstalledUpgrades(obj),
                     })
                 end
             end
@@ -55,7 +113,8 @@ return function(ctx)
 
     ctx.handlers["bases.list"] = function(_, respond)
         ctx.runOnGameThread(function()
-            return { deployables = deployableRows(), isHost = ctx.isHost(), supportsBenchUpgrades = false }
+            return { deployables = deployableRows(), isHost = ctx.isHost(), supportsBenchUpgrades = true,
+                supportsBenchUpgradeRemoval = false }
         end, respond)
     end
 
@@ -63,7 +122,7 @@ return function(ctx)
     -- deployable belongs to the world, not to whichever client happens to be editing it.
     ctx.handlers["bases.set"] = function(payload, respond)
         ctx.runOnGameThread(function()
-            if not ctx.isHost() then error("only the host can rename deployables") end
+            if not ctx.isHost() then error("only the host can change deployables") end
             local obj = payload.id and ctx.findByFullName("AbioticDeployed_ParentBP_C", payload.id)
             if not obj then error("deployable not found (it may have been unloaded or destroyed)") end
             if payload.customName ~= nil then
@@ -76,6 +135,23 @@ return function(ctx)
                 local ok = pcall(function() obj.AlternativeObjectName = FText(text) end)
                 if not ok then ok = pcall(function() obj.AlternativeObjectName = text end) end
                 if not ok then error("could not set this object's custom name on this game build") end
+            end
+            if payload.upgradeRow ~= nil then
+                if payload.upgradeInstalled == false then
+                    -- No RemoveUpgrade/Server_RemoveUpgrade exists anywhere on this class (see
+                    -- header comment) - refuse rather than guess at a raw tag-container edit.
+                    error("removing an installed bench upgrade isn't supported on this game build " ..
+                        "(no game function does it) - edit the save file instead")
+                end
+                if not benchSupportsUpgrades(obj) then error("this deployable does not support upgrades") end
+                local found = false
+                for _, row in ipairs(BENCH_UPGRADE_ROWS) do
+                    if row == payload.upgradeRow then found = true break end
+                end
+                if not found then error("unknown bench upgrade row") end
+                local ok = pcall(function() obj:AddUpgrade(rowHandle(payload.upgradeRow)) end)
+                if not ok then error("could not install this upgrade on this game build") end
+                pcall(function() obj:OnRep_UpgradeTagContainer() end)
             end
             return nil
         end, respond)

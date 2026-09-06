@@ -13,4 +13,5 @@ return {
     "areas.recipes",
     "areas.codex",
     "areas.general",
+    "areas.narrative",
 }

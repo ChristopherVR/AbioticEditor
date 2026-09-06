@@ -83,11 +83,20 @@ public sealed class LiveContainersSession : IWorldContainersSession
             && await TrySetContainerSlotAsync(source, id, inventoryIndex, secondIndex, first, cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>Not offered live: the shared tab's SORT button is a file-only affordance
-    /// (native has no equivalent live command), so this always reports failure rather than
-    /// silently doing nothing.</summary>
-    public Task<bool> SortContainerSlotsAsync(WorldContainerSource source, string id, int inventoryIndex, CancellationToken cancellationToken = default)
-        => Task.FromResult(false);
+    /// <summary>
+    /// Round 77: grounded in the container's own inventory component's zero-parameter
+    /// <c>SortInventory()</c> function (LiveClassPropsProbe, fragment
+    /// "Abiotic_InventoryComponent") - the same reorder the in-game "sort" button performs.
+    /// Not exercised by any mod before this round.
+    /// </summary>
+    public async Task<bool> SortContainerSlotsAsync(WorldContainerSource source, string id, int inventoryIndex, CancellationToken cancellationToken = default)
+    {
+        if (inventoryIndex != 0) return false;
+        await _channel.SortAsync(id, cancellationToken).ConfigureAwait(false);
+        Status = "Applied live - this took effect in the running game immediately.";
+        await RefreshAsync(cancellationToken).ConfigureAwait(false);
+        return true;
+    }
 
     public Task SetContainerSlotCountAsync(WorldContainerSource source, string id, int inventoryIndex, int slotIndex, int count, CancellationToken cancellationToken = default)
     {

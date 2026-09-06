@@ -217,6 +217,7 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
         Assert.True(crate.Slots[1].IsEmpty);
 
         await containers.SetAsync(crate.Id, [new AbioticEditor.Core.LiveEditing.World.LiveContainerSlotEdit(1, ItemId: "scrap_cloth", Stack: 2)]);
+        await containers.SortAsync(crate.Id);
         Assert.Equal(LiveConnectionState.Connected, channel.State);
     }
 
@@ -295,6 +296,11 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
         Assert.Equal(3, item.Stack);
 
         Assert.Equal(1, await dropped.RemoveAsync([item.Id]));
+
+        // Fallback path (unspecial-cased command echoes payload back as ok:true) proves
+        // dropped.add's request itself encodes as well-formed JSON the agent could parse.
+        await dropped.AddAsync("scrap_metal", 5);
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
     }
 
     [Fact]
@@ -306,12 +312,16 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
         var directory = await bases.GetAsync();
         var bench = Assert.Single(directory.Deployables);
         Assert.True(directory.IsHost);
+        Assert.True(directory.SupportsBenchUpgrades);
         Assert.Equal("Deployed_CraftingBench_Default_C", bench.ClassName);
         Assert.Equal("Main Bench", bench.CustomName);
         Assert.True(bench.HasInventory);
         Assert.Equal(2, bench.StoredItemCount);
+        Assert.True(bench.SupportsUpgrades);
+        Assert.Equal(["TougherBench"], bench.InstalledUpgrades);
 
         await bases.SetCustomNameAsync(bench.Id, "Renamed Bench");
+        await bases.SetBenchUpgradeAsync(bench.Id, "BenchWarmer", installed: true);
         Assert.Equal(LiveConnectionState.Connected, channel.State);
     }
 
@@ -346,11 +356,12 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
         var directory = await vehicles.GetAsync();
         var forklift = Assert.Single(directory.Vehicles);
         Assert.True(directory.IsHost);
-        Assert.False(directory.SupportsWreckedState);
+        Assert.True(directory.SupportsWreckedState);
         Assert.Equal("ABF_Vehicle_Forklift_C", forklift.VehicleClass);
         Assert.True(forklift.Driveable);
+        Assert.False(forklift.Wrecked);
 
-        await vehicles.SetAsync(forklift.Id, driveable: false, x: 5, y: 6, z: 7);
+        await vehicles.SetAsync(forklift.Id, driveable: false, wrecked: true, x: 5, y: 6, z: 7);
         Assert.Equal(LiveConnectionState.Connected, channel.State);
     }
 
@@ -370,16 +381,41 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task LivePetsChannel_GetAsync_reports_unavailable_with_a_player_safe_reason()
+    public async Task LivePetsChannel_GetAsync_reports_a_partially_available_directory()
     {
         await using var channel = await ConnectedChannelAsync();
         var pets = new AbioticEditor.Core.LiveEditing.World.LivePetsChannel(channel);
 
         var directory = await pets.GetAsync();
 
-        Assert.False(directory.Available);
+        Assert.True(directory.Available);
         Assert.True(directory.IsHost);
+        Assert.False(directory.SupportsSpeciesChange);
+        Assert.False(directory.SupportsRemoval);
         Assert.False(string.IsNullOrWhiteSpace(directory.Reason));
+        var pet = Assert.Single(directory.Pets);
+        Assert.Equal("11111111-1111-1111-1111-111111111111", pet.Id);
+        Assert.Equal("Sparky", pet.CustomName);
+        Assert.Equal(50, pet.LimbHealth["Head"]);
+        Assert.Equal(40, pet.Xp);
+
+        await pets.SetAsync(pet.Id, isDead: false, customName: "Buddy", xp: 999, limbHealth: new Dictionary<string, double> { ["Head"] = 100 });
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
+    [Fact]
+    public async Task LiveNarrativeNpcsChannel_GetAsync_reads_narrative_state()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var narrative = new AbioticEditor.Core.LiveEditing.World.LiveNarrativeNpcsChannel(channel);
+
+        var directory = await narrative.GetAsync();
+        Assert.True(directory.IsHost);
+        var npc = Assert.Single(directory.Npcs);
+        Assert.False(npc.IsCorpse);
+        Assert.Equal(1, npc.NarrativeState);
+
+        await narrative.SetAsync([new AbioticEditor.Core.LiveEditing.World.LiveNarrativeNpcEdit(npc.Id, IsCorpse: true, NarrativeState: 2)]);
         Assert.Equal(LiveConnectionState.Connected, channel.State);
     }
 
@@ -573,9 +609,12 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
                     "dropped.list" => "{\"items\":[{\"id\":\"Abiotic_Item_Dropped_C /Game/Maps/Facility.Facility:PersistentLevel.Abiotic_Item_Dropped_C_9\",\"itemId\":\"scrap_cloth\",\"stack\":3,\"x\":4,\"y\":5,\"z\":6}],\"isHost\":true}",
                     "dropped.remove" => "{\"removed\":1}",
                     // Round-76 world areas.
-                    "bases.list" => "{\"deployables\":[{\"id\":\"Deployed_CraftingBench_Default_C /Game/Maps/Facility.Facility:PersistentLevel.Deployed_CraftingBench_Default_C_1\",\"className\":\"Deployed_CraftingBench_Default_C\",\"x\":10,\"y\":20,\"z\":0,\"customName\":\"Main Bench\",\"hasInventory\":true,\"storedItemCount\":2}],\"isHost\":true,\"supportsBenchUpgrades\":false}",
-                    "vehicles.list" => "{\"vehicles\":[{\"id\":\"ABF_Vehicle_Forklift_C /Game/Maps/Facility.Facility:PersistentLevel.ABF_Vehicle_Forklift_C_2\",\"vehicleId\":\"VehicleSpawn_1\",\"vehicleClass\":\"ABF_Vehicle_Forklift_C\",\"driveable\":true,\"x\":1,\"y\":2,\"z\":3}],\"isHost\":true,\"supportsWreckedState\":false}",
-                    "pets.list" => "{\"pets\":[],\"isHost\":true,\"available\":false,\"reason\":\"Live pet editing isn't available yet.\"}",
+                    // Round-77: bench upgrades (install grounded in AddUpgrade), vehicle wrecked
+                    // state (PendingDestroy), and pets partially available (Pest/Skink only).
+                    "bases.list" => "{\"deployables\":[{\"id\":\"Deployed_CraftingBench_Default_C /Game/Maps/Facility.Facility:PersistentLevel.Deployed_CraftingBench_Default_C_1\",\"className\":\"Deployed_CraftingBench_Default_C\",\"x\":10,\"y\":20,\"z\":0,\"customName\":\"Main Bench\",\"hasInventory\":true,\"storedItemCount\":2,\"supportsUpgrades\":true,\"installedUpgrades\":[\"TougherBench\"]}],\"isHost\":true,\"supportsBenchUpgrades\":true,\"supportsBenchUpgradeRemoval\":false}",
+                    "vehicles.list" => "{\"vehicles\":[{\"id\":\"ABF_Vehicle_Forklift_C /Game/Maps/Facility.Facility:PersistentLevel.ABF_Vehicle_Forklift_C_2\",\"vehicleId\":\"VehicleSpawn_1\",\"vehicleClass\":\"ABF_Vehicle_Forklift_C\",\"driveable\":true,\"wrecked\":false,\"x\":1,\"y\":2,\"z\":3}],\"isHost\":true,\"supportsWreckedState\":true}",
+                    "pets.list" => "{\"pets\":[{\"id\":\"11111111-1111-1111-1111-111111111111\",\"npcClass\":\"NPC_Monster_Pest_C\",\"isDead\":false,\"customName\":\"Sparky\",\"x\":1,\"y\":2,\"z\":3,\"limbHealth\":{\"Head\":50},\"xp\":40}],\"isHost\":true,\"available\":true,\"supportsSpeciesChange\":false,\"supportsRemoval\":false,\"reason\":\"Only Pest/Skink-family pets can be matched live.\"}",
+                    "narrativenpcs.list" => "{\"npcs\":[{\"id\":\"NarrativeNPC_ParentBP_C /Game/Maps/Facility.Facility:PersistentLevel.NarrativeNPC_ParentBP_C_1\",\"label\":\"NarrativeNPC_ParentBP_C\",\"isCorpse\":false,\"narrativeState\":1,\"x\":9,\"y\":9,\"z\":9}],\"isHost\":true}",
                     // Round-76 areas: containment units, trader flag gating, world teleporters.
                     "containment.list" => "{\"units\":[{\"id\":\"Deployed_LeyakContainment_C /Game/Maps/Facility.Facility:PersistentLevel.Deployed_LeyakContainment_C_1\",\"x\":10,\"y\":20,\"z\":30,\"stability\":85,\"creature\":\"Leyak\"},"
                         + "{\"id\":\"Deployed_LeyakContainment_C /Game/Maps/Facility.Facility:PersistentLevel.Deployed_LeyakContainment_C_2\",\"x\":40,\"y\":50,\"z\":60,\"stability\":null,\"creature\":null}],\"isHost\":true}",

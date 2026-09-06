@@ -9,11 +9,22 @@
 -- OnRep_VehicleDriveable is called via pcall, same treatment flags.set gives a call with no
 -- mod precedent.
 --
--- "Wrecked" (the save's Destroyed flag) has NO evidenced live property: the closest hit in the
--- whole probe dump is a LOCAL VARIABLE named Destroyed inside the vehicle's own UpdateWorldSave
--- function (computed from something at save time, not a class member), so there is nothing this
--- module can read or write for it - vehicles.lua does not report or accept it, and the shared
--- tab hides the "Wrecked" checkbox for a live session instead of guessing.
+-- "Wrecked" (round 77, closing the round-76 gap): UpdateWorldSave's own local "Destroyed"
+-- variable is fed by a REAL class property, confirmed this round from the same class dump -
+-- ABF_Vehicle_ParentBP_C carries:
+--   PendingDestroy : FBoolProperty   -- no hash suffix, a genuine class member (not a local)
+--   func ReceiveDestroyed(Destroyed: bool)  -- the engine's own AActor::Destroyed() event
+--     override; a callback the engine calls automatically when this actor is torn down, not
+--     something this module should invoke itself as a setter (calling it out of turn could run
+--     destruction-side gameplay logic no mod has ever exercised).
+-- PendingDestroy is written directly here, the same "no confirmed OnRep, write the field, done"
+-- pattern bases.lua's AlternativeObjectName rename already uses (there is no
+-- "OnRep_PendingDestroy"/"OnRep_Destroyed" anywhere in this class's function list either). This
+-- is grounded in the game's own layout, but genuinely UNVERIFIED against the running game: no
+-- mod anywhere reads or writes PendingDestroy, and whether flipping it alone updates the vehicle's
+-- wreck VISUALS (mesh/FX) live, or only the value UpdateWorldSave later persists, is unknown
+-- without launching the game. vehicles.list reports it back read-only-safe (a straight property
+-- read) so a caller can at least confirm the write stuck.
 --
 -- Move / reset-to-spawn is grounded in K2_TeleportTo(Location, Rotation), used verbatim in
 -- CheatConsoleCommands' AFUtils/BaseUtils/BaseUtils.lua (TeleportActorToActor) with the actor's
@@ -30,11 +41,13 @@ return function(ctx)
                     -- rejects the whole reply (found live, round 76).
                     local okId, vehicleId = pcall(function() return obj.VehicleID:ToString() end)
                     local okDrive, driveable = pcall(function() return obj.VehicleDriveable == true end)
+                    local okWrecked, wrecked = pcall(function() return obj.PendingDestroy == true end)
                     table.insert(result, {
                         id = name,
                         vehicleId = (okId and vehicleId ~= "") and vehicleId or nil,
                         vehicleClass = ctx.classLabel(name),
                         driveable = okDrive and driveable or false,
+                        wrecked = okWrecked and wrecked or false,
                         x = x, y = y, z = z,
                     })
                 end
@@ -45,7 +58,7 @@ return function(ctx)
 
     ctx.handlers["vehicles.list"] = function(_, respond)
         ctx.runOnGameThread(function()
-            return { vehicles = vehicleRows(), isHost = ctx.isHost(), supportsWreckedState = false }
+            return { vehicles = vehicleRows(), isHost = ctx.isHost(), supportsWreckedState = true }
         end, respond)
     end
 
@@ -59,6 +72,11 @@ return function(ctx)
             if payload.driveable ~= nil then
                 obj.VehicleDriveable = payload.driveable
                 pcall(function() obj:OnRep_VehicleDriveable() end)
+            end
+            if payload.wrecked ~= nil then
+                -- No confirmed OnRep for this field (see header comment) - direct write only.
+                local ok = pcall(function() obj.PendingDestroy = payload.wrecked end)
+                if not ok then error("could not set this vehicle's wrecked state on this game build") end
             end
             if payload.x ~= nil and payload.y ~= nil and payload.z ~= nil then
                 local okRot, rotation = pcall(function() return obj:K2_GetActorRotation() end)
