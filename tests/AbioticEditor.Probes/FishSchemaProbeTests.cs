@@ -34,7 +34,7 @@ public class FishSchemaProbeTests
 #pragma warning restore CS0618
         var mappings = GameAssetProvider.FindConventionalMappings();
         if (mappings is not null)
-            provider.MappingsContainer = new CUE4Parse.MappingsProvider.FileUsmapTypeMappingsProvider(mappings);
+            provider.MappingsContainer = new CUE4Parse.MappingsProvider.Usmap.FileUsmapTypeMappingsProvider(mappings);
         provider.Initialize();
         provider.SubmitKey(new FGuid(),
             new FAesKey("0x0000000000000000000000000000000000000000000000000000000000000000"));

@@ -252,7 +252,7 @@ public class SkillProbeTests
         var mappings = GameAssetProvider.FindConventionalMappings();
         if (mappings is not null)
         {
-            provider.MappingsContainer = new CUE4Parse.MappingsProvider.FileUsmapTypeMappingsProvider(mappings);
+            provider.MappingsContainer = new CUE4Parse.MappingsProvider.Usmap.FileUsmapTypeMappingsProvider(mappings);
         }
         provider.Initialize();
         provider.SubmitKey(new FGuid(),

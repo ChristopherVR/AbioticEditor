@@ -8,6 +8,7 @@ using CUE4Parse.UE4.Versions;
 using CUE4Parse.FileProvider.Objects;
 using CUE4Parse.UE4.Assets.Objects;
 using CUE4Parse.MappingsProvider;
+using CUE4Parse.MappingsProvider.Usmap;
 using CUE4Parse.UE4.Assets.Objects.Properties;
 using CUE4Parse.UE4;
 using Xunit.Abstractions;

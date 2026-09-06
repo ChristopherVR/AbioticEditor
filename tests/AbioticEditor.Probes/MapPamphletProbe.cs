@@ -33,7 +33,7 @@ public class MapPamphletProbe
             paks, SearchOption.TopDirectoryOnly, isCaseInsensitive: true,
             new VersionContainer(EGame.GAME_UE5_4));
 #pragma warning restore CS0618
-        provider.MappingsContainer = new CUE4Parse.MappingsProvider.FileUsmapTypeMappingsProvider(mappings);
+        provider.MappingsContainer = new CUE4Parse.MappingsProvider.Usmap.FileUsmapTypeMappingsProvider(mappings);
         provider.Initialize();
         provider.SubmitKey(new FGuid(),
             new FAesKey("0x0000000000000000000000000000000000000000000000000000000000000000"));
