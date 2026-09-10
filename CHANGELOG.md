@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [2.9.0] - 2026-09-10
+
+### Features
+- Fix a game-crashing bug in live editing, speed up bulk edits, and clean up the creatures tab
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.8.0 [skip ci]
+
+
 ## [2.8.0] - 2026-09-06
 
 ### Bug Fixes
