@@ -93,6 +93,20 @@ local function getMyPlayer()
     return player
 end
 
+---True when `player` is a genuine in-world player character with a loaded save behind it, not a
+---main-menu/default pawn. At the main menu the controller can already have a valid
+---MyPlayerCharacter, so getMyPlayer() alone is not proof anything real is loaded - vitals.get used
+---to trust it anyway and hand back plausible-looking default numbers (0/nil fields on a menu
+---pawn), which the C# side then read as "connected" only to fail moments later once it also asked
+---for skills. CharacterProgressionComponent is the same object skills.get already requires (see
+---getProgressionComponent below), so checking it here too means both commands agree on what
+---"ready" means instead of only one of them noticing the game has no world loaded yet.
+local function hasLoadedWorldState(player)
+    if not player or not player:IsValid() then return false end
+    local ok, component = pcall(function() return player.CharacterProgressionComponent end)
+    return ok and component ~= nil and component:IsValid()
+end
+
 -- ===== Multiple connected players (verbatim pattern from UE4SS's own bundled UEHelpers module -
 -- NOT a mod-local wrapper like GetMyPlayerController turned out to be - confirmed independently
 -- by CheatConsoleCommands' PlayersManager.lua using the same underlying field under its own
@@ -206,6 +220,10 @@ end
 -- worth double-checking first if it comes back wrong.
 handlers["vitals.get"] = function(payload, respond)
     runOnGameThread(function()
+        -- "Is a world loaded" is a question about THIS game's own state, so it is the local
+        -- character that gets checked - not the resolved target, which may be a joined guest
+        -- whose pawn is a lighter replicated proxy on this machine.
+        if not hasLoadedWorldState(getMyPlayer()) then error("no world loaded") end
         local myPlayer = resolvePlayer(payload)
         if not myPlayer then error("player not found") end
         return {
@@ -302,6 +320,19 @@ local function getProgressionComponent(payload)
     return component
 end
 
+-- keys[i] can surface as a plain Lua number OR as a UE4SS enum-wrapper value depending on how
+-- this specific TMap<CharacterSkills, ...> property gets bound (this is the one enum-KEYED TMap
+-- read anywhere in this mod - every other keyed lookup here is by FName/string, see
+-- getProgressionComponent's callers). A wrapper value never equals a plain Lua number with `==`,
+-- which would make every comparison below fail silently and read back as "every skill has 0 XP" -
+-- exactly a locked-forever skills tab, with no error to point at why. tostring() a real UE4SS
+-- enum wrapper renders as "EnumName::Value" or the bare number depending on binding version, so
+-- comparing tonumber(tostring(x)) first (falls back to the raw value when that fails to parse)
+-- matches a plain integer either way without needing to know which shape this build returns.
+local function skillKeyToNumber(key)
+    return tonumber(tostring(key)) or key
+end
+
 handlers["skills.get"] = function(payload, respond)
     runOnGameThread(function()
         local progressionComponent = getProgressionComponent(payload)
@@ -314,7 +345,7 @@ handlers["skills.get"] = function(payload, respond)
             local liveId = FileIndexToLiveSkillId[fileIndex]
             local xp = 0
             for i = 1, #keys do
-                if keys[i] == liveId then
+                if skillKeyToNumber(keys[i]) == liveId then
                     local ok, value = pcall(function() return values[i][SKILL_XP_FIELD] end)
                     if ok and value then xp = value end
                     break
@@ -335,6 +366,17 @@ end
 -- writers take for a property they cannot find. The rows themselves live under payload.skills (not
 -- payload directly) so playerId can sit alongside them in the same object, matching every other
 -- command's shape now that player selection exists.
+--
+-- IMPORTANT: only send rows for skills that actually changed. Remove-then-add briefly zeroes a
+-- skill before restoring it, and the game's own level-up popup fires on that restore regardless
+-- of whether the net XP moved - so resending every skill on every save (the editor used to do
+-- this) re-triggers that popup for every UNTOUCHED skill too. Fishing sits last in the file's
+-- positional order (Core/Catalogs/Player/SkillCatalog.cs's CanonicalOrder), so its redundant
+-- restore was always the last one applied and its popup was the one left on screen - read by a
+-- player as "editing any skill says Fishing unlocked" even though the skill they actually edited
+-- was written correctly underneath. LivePlayerSkillsSession.SaveAsync now filters to dirty rows
+-- before calling skills.set, so this handler no longer needs to guard against it itself, but keep
+-- it that way rather than reintroducing a full-list resend here.
 handlers["skills.set"] = function(payload, respond)
     runOnGameThread(function()
         local progressionComponent = getProgressionComponent(payload)
@@ -562,6 +604,9 @@ handlers["inventory.set"] = function(payload, respond)
         if not player then error("player not found") end
 
         local rows = payload.edits or {}
+        -- Every inventory component actually touched below, so it can be pushed out through
+        -- replication/UI once after the loop - see the OnRep_CurrentInventory call below.
+        local touchedInventories = {}
         for i = 1, #rows do
             local row = rows[i]
             local inv = row.kind and inventoryComponent(player, row.kind)
@@ -593,7 +638,20 @@ handlers["inventory.set"] = function(payload, respond)
                         changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = row.maxDurability
                     end
                 end
+                touchedInventories[inv] = inv
             end
+        end
+        -- BUG FIXED (found this round): this handler wrote the slot struct fields directly but
+        -- never called OnRep_CurrentInventory afterward, unlike every other write path in this
+        -- file that touches the identical Abiotic_InventoryComponent_C class - containers.set and
+        -- dropped.add both call it (see those handlers below) specifically because "OnRep_
+        -- CurrentInventory exists on the component and is called after a write so clients/UI
+        -- refresh". inventory.set predates that finding and was never updated to match, which
+        -- matches the reported symptom exactly: a live inventory edit landed in the underlying
+        -- data but never appeared anywhere (the in-game HUD, or a follow-up read) until something
+        -- unrelated forced a refresh. Same pcall-guarded shape as the other two call sites.
+        for inv in pairs(touchedInventories) do
+            pcall(function() inv:OnRep_CurrentInventory() end)
         end
         return nil
     end, respond)
@@ -767,6 +825,24 @@ handlers["world.set"] = function(payload, respond)
             manager.Weather_RequestByPlayer.RowName = FName(payload.nextWeather, EFindName.FNAME_Find)
         end
         return nil
+    end, respond)
+end
+
+-- Which region of the world is currently loaded (round 78) - the live counterpart of picking a
+-- WorldSave_<Region>.sav file offline, so the desktop app's live sidebar can show every region of
+-- this world (disabled) alongside the one actually loaded right now. Reuses the exact same
+-- evidenced read spawn.get already uses (the local controller's own ActiveLevelName - a
+-- display-only streaming level name, e.g. "Facility_MFWest") rather than introducing a new,
+-- unverified UEHelpers.GetWorld():GetMapName() call.
+handlers["world.info"] = function(_, respond)
+    runOnGameThread(function()
+        local levelToken
+        local ok, controller = pcall(function() return UEHelpers.GetPlayerController() end)
+        if ok and controller and controller:IsValid() then
+            local okLevel, level = pcall(function() return controller.ActiveLevelName:ToString() end)
+            if okLevel and level and level ~= "" then levelToken = level end
+        end
+        return { levelToken = levelToken, isHost = isHost() }
     end, respond)
 end
 
@@ -1131,9 +1207,13 @@ handlers["dropped.remove"] = function(payload, respond)
         for i = 1, #ids do
             local item = findByFullName("Abiotic_Item_Dropped_C", ids[i])
             if item then
-                item:InitDespawn()
-                item:OnItemDespawn()
-                removed = removed + 1
+                -- pcall per item (not one pcall around the whole loop): DELETE ALL SHOWN sends
+                -- every visible item in one call, and one item raising here (already mid-pickup,
+                -- an odd blueprint override, ...) used to abort the loop early and leave every
+                -- later item in the batch undeleted with no sign why - matching a player report
+                -- that "delete all shown" looked like it silently did nothing.
+                local ok = pcall(function() item:InitDespawn() item:OnItemDespawn() end)
+                if ok then removed = removed + 1 end
             end
         end
         return { removed = removed }

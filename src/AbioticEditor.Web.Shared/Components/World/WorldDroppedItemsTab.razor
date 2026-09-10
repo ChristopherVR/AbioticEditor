@@ -123,10 +123,17 @@
 
     private Task DeleteShown() => RunAsync(async () =>
     {
-        foreach (var item in Visible)
+        // One batched call (or the file session's cheap in-memory loop) instead of removing shown
+        // items one network round trip at a time - see
+        // IWorldDroppedItemsSession.RemoveDroppedItemsAsync's remarks.
+        var shown = Visible;
+        await Session.RemoveDroppedItemsAsync(shown.Select(item => item.Id));
+        if (!Session.AppliesImmediately)
         {
-            await Session.RemoveDroppedItemAsync(item.Id);
-            if (!Session.AppliesImmediately && !item.Id.StartsWith("pending-", StringComparison.Ordinal)) _removed.Add(item);
+            foreach (var item in shown)
+            {
+                if (!item.Id.StartsWith("pending-", StringComparison.Ordinal)) _removed.Add(item);
+            }
         }
     });
 

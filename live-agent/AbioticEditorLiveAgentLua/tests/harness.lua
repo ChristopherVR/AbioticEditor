@@ -289,6 +289,30 @@ function H.hostSession()
         Server_CheckNewItemPickedUp = function() end,
         Server_AddMapToJournal = function() end,
         Request_UnlockCompendiumSection = function() end,
+        -- skills.set's remove-then-add write pattern (see main.lua's own header comment on that
+        -- handler): mirrors the real TMap<CharacterSkills, ...> semantics closely enough to prove
+        -- one skill's write never touches another skill's entry - the real bug tests/cases/skills.lua
+        -- guards against ("editing Agriculture says Fishing unlocked").
+        Server_RemoveAllXPFromSkill = function(self, skillId)
+            local fields = rawget(self, "__fields")
+            for i = 1, #fields.CharacterSkills_Keys do
+                if fields.CharacterSkills_Keys[i] == skillId then
+                    fields.CharacterSkills_Values[i]["CurrentSkillXP_20_8F7934CD4A4542F036AE5C9649362556"] = 0
+                    return
+                end
+            end
+        end,
+        Server_AddXPToSkill = function(self, skillId, xpToAdd)
+            local fields = rawget(self, "__fields")
+            for i = 1, #fields.CharacterSkills_Keys do
+                if fields.CharacterSkills_Keys[i] == skillId then
+                    fields.CharacterSkills_Values[i]["CurrentSkillXP_20_8F7934CD4A4542F036AE5C9649362556"] = xpToAdd
+                    return
+                end
+            end
+            table.insert(fields.CharacterSkills_Keys, skillId)
+            table.insert(fields.CharacterSkills_Values, { ["CurrentSkillXP_20_8F7934CD4A4542F036AE5C9649362556"] = xpToAdd })
+        end,
     })
     -- Round 77: TransmogVisibility/DisableTransmogArray + the two Request_ RPCs, confirmed real
     -- on Abiotic_TransmogInventoryComp_C (see areas/transmog.lua's header comment).
@@ -302,6 +326,11 @@ function H.hostSession()
         Request_ChangeDisableTransmogArray = function(self, index, item)
             rawget(self, "__fields").DisableTransmogArray[index + 1] = item
         end,
+        -- Bug fix (round 78): a server never gets its own OnRep for a property it just wrote
+        -- locally, so transmog.set now calls this itself after the RPC - see areas/transmog.lua's
+        -- own header comment. The fake just needs to exist and be callable; H.calls() proves it
+        -- was actually invoked.
+        OnRep_TransmogVisibility = function() end,
     })
     local pawn = H.object("Abiotic_PlayerCharacter_C", {
         CurrentHunger = 50, CurrentThirst = 60, CurrentSanity = 100, CurrentFatigue = 10, CurrentContinence = 75,

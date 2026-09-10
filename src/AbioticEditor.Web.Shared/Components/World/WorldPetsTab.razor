@@ -10,6 +10,11 @@
 <section class="world-editor world-native-tab" aria-label="@L.Resource("WorldPets_TamedPetsInThisWorld")">
     <h2 class="wt-h2">@L.Resource("WorldPets_TamedPetsInThisWorld")</h2>
     <p class="wt-intro">@L.Resource("WorldPets_PetListIntro")</p>
+    @* Round 78: a live session's per-field warnings (e.g. "this pet has never earned XP yet, so
+       its level can't be raised live") - see LivePetsSession.SetPetAsync's own remarks. Not part
+       of IWorldPetsSession (the file session has nothing analogous to show), so this checks the
+       concrete live type directly, the same way LocationText below already does. *@
+    @if (Session is LivePetsSession { Status: { } liveStatus }) { <p class="wt-notice">@liveStatus</p> }
 
     @if (!Session.IsAvailable)
     {

@@ -28,5 +28,16 @@ public interface IPlayerRecipesSession
     /// <summary>Unlocks (or, when <see cref="CanLock"/>, re-locks) one recipe.</summary>
     Task SetUnlockedAsync(string recipeId, bool unlocked);
 
+    /// <summary>Unlocks every given recipe. The default loops <see cref="SetUnlockedAsync"/> one
+    /// at a time, which is fine for the file session (an in-memory edit, no round trip) but is
+    /// overridden live (<see cref="AppliesImmediately"/> true) to send one batched request instead
+    /// - UNLOCK ALL used to fire one network round trip per recipe (hundreds, for a fresh
+    /// character), which was slow enough to look hung and piled up that many in-flight allocations
+    /// before the UI ever got a chance to settle.</summary>
+    async Task SetUnlockedManyAsync(IEnumerable<string> recipeIds)
+    {
+        foreach (var id in recipeIds) await SetUnlockedAsync(id, true);
+    }
+
     void MarkChanged();
 }

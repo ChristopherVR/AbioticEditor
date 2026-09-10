@@ -42,6 +42,10 @@ public sealed class LivePlayerSpawnSession : IPlayerSpawnSession
     public bool IsDirty => false;
     public string? Status { get; private set; }
 
+    /// <summary>Raised after <see cref="RefreshAsync"/> re-reads the character's position/respawn
+    /// point and after every mutation (each of which already ends by refreshing).</summary>
+    public event Action? Changed;
+
     /// <summary>Immediate-apply session: nothing to mark, the tab's own action buttons drive
     /// every real write (see <see cref="TeleportAsync"/>/<see cref="ClaimRespawnTerminalAsync"/>).</summary>
     public void MarkChanged() { }
@@ -60,7 +64,8 @@ public sealed class LivePlayerSpawnSession : IPlayerSpawnSession
         var state = await _channel.GetAsync(_playerId, cancellationToken).ConfigureAwait(false);
         LivePosition = (state.X, state.Y, state.Z);
         Respawn = new PlayerRespawnEdit(state.X, state.Y, state.Z, state.LevelName, state.TerminalGuid);
-        Status = "Refreshed from the running game.";
+        Status = null;
+        Changed?.Invoke();
     }
 
     /// <summary>Moves the character to <see cref="Respawn"/>'s current X/Y/Z immediately (a real

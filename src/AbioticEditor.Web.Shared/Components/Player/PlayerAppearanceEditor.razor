@@ -62,32 +62,39 @@
                 @L.Resource("Customization_LoadingOptions")
             </p>
         }
-        <div class="appearance-fields">
-            @foreach (var appearanceField in _session.Fields)
-            {
-                var options = _catalogReady ? Catalog.OptionsFor(appearanceField.TableName) : Array.Empty<CustomizationOption>();
-                var selected = options.FirstOrDefault(option => string.Equals(option.RowName, appearanceField.Value, StringComparison.OrdinalIgnoreCase));
-                var swatch = SwatchHex(selected);
-                <div class="appearance-field">
-                    <span class="appearance-field-label">@appearanceField.Label</span>
-                    <div class="appearance-field-body">
-                        @* Live preview: the option's own icon render, or a color swatch. *@
-                        @if (selected?.IconAssetPath is { } icon)
-                        {
-                            <span class="appearance-preview"><GameArtImage GameRef="@icon" Alt="@selected.DisplayName" /></span>
-                        }
-                        else if (swatch is not null)
-                        {
-                            <span class="appearance-swatch" style="background:#@swatch" aria-hidden="true"></span>
-                        }
-                        <select @bind="appearanceField.Value" aria-label="@appearanceField.Label">
-                            @if (options.Count == 0 || selected is null) { <option value="@appearanceField.Value">@appearanceField.Value</option> }
-                            @foreach (var option in options) { <option value="@option.RowName">@option.DisplayName</option> }
-                        </select>
+        else
+        {
+            @* Rendered only once the option tables are ready: before that, every field's
+               stored value is just a raw internal row name with no display name, icon or
+               swatch to show for it yet - showing that alongside the spinner above read as a
+               broken, half-loaded panel rather than a loading one. *@
+            <div class="appearance-fields">
+                @foreach (var appearanceField in _session.Fields)
+                {
+                    var options = Catalog.OptionsFor(appearanceField.TableName);
+                    var selected = options.FirstOrDefault(option => string.Equals(option.RowName, appearanceField.Value, StringComparison.OrdinalIgnoreCase));
+                    var swatch = SwatchHex(selected);
+                    <div class="appearance-field">
+                        <span class="appearance-field-label">@appearanceField.Label</span>
+                        <div class="appearance-field-body">
+                            @* Live preview: the option's own icon render, or a color swatch. *@
+                            @if (selected?.IconAssetPath is { } icon)
+                            {
+                                <span class="appearance-preview"><GameArtImage GameRef="@icon" Alt="@selected.DisplayName" /></span>
+                            }
+                            else if (swatch is not null)
+                            {
+                                <span class="appearance-swatch" style="background:#@swatch" aria-hidden="true"></span>
+                            }
+                            <select @bind="appearanceField.Value" aria-label="@appearanceField.Label">
+                                @if (options.Count == 0 || selected is null) { <option value="@appearanceField.Value">@appearanceField.Value</option> }
+                                @foreach (var option in options) { <option value="@option.RowName">@option.DisplayName</option> }
+                            </select>
+                        </div>
                     </div>
-                </div>
-            }
-        </div>
+                }
+            </div>
+        }
     }
 </section>
 

@@ -36,7 +36,8 @@ public sealed class LivePlayerGeneralSession : IPlayerGeneralSession
                 if (ids.Count == 0) return;
                 await _channel.SetAsync(itemsSeen: ids, playerId: _playerId).ConfigureAwait(false);
                 foreach (var id in ids) _itemsSeen.Add(id);
-                Status = "Applied live - this took effect in the running game immediately.";
+                Status = null;
+                Changed?.Invoke();
             });
         ItemsCrafted = new DelegateDiscoverySection(() => _itemsCrafted, canDiscoverAll: false,
             _ => throw new InvalidOperationException(
@@ -48,7 +49,8 @@ public sealed class LivePlayerGeneralSession : IPlayerGeneralSession
                 if (ids.Count == 0) return;
                 await _channel.SetAsync(maps: ids, playerId: _playerId).ConfigureAwait(false);
                 foreach (var id in ids) _maps.Add(id);
-                Status = "Applied live - this took effect in the running game immediately.";
+                Status = null;
+                Changed?.Invoke();
             });
     }
 
@@ -87,13 +89,29 @@ public sealed class LivePlayerGeneralSession : IPlayerGeneralSession
 
     public IReadOnlyList<string> Traits => _traits;
 
+    /// <summary>False here: nothing is staged client-side, every mutation (background, discover)
+    /// already reached the running game by the time its awaiting call returns - the same
+    /// "applies immediately" rule every other live-editing area follows. This is what the
+    /// periodic live refresh loop checks before calling <see cref="RefreshAsync"/> so a refresh
+    /// never clobbers an edit still in flight.</summary>
+    public bool IsDirty => false;
+
+    /// <summary>False live - see <see cref="IPlayerGeneralSession.CanEditTraits"/>'s remarks.</summary>
+    public bool CanEditTraits => false;
+
+    /// <summary>Raised after <see cref="RefreshAsync"/> re-reads the running character, and after
+    /// every mutation below applies - lets a bound UI (the GENERAL and CHARACTER tabs) redraw
+    /// without polling this object itself.</summary>
+    public event Action? Changed;
+
     /// <summary>Applies a new background/PhD row name to the running character immediately.</summary>
     public async Task SetBackgroundAsync(string? background)
     {
         if (string.IsNullOrWhiteSpace(background)) return;
         await _channel.SetAsync(background: background, playerId: _playerId).ConfigureAwait(false);
         Background = background;
-        Status = "Applied live - this took effect in the running game immediately.";
+        Status = null;
+        Changed?.Invoke();
     }
 
     /// <summary>Re-reads the live player's known items/maps/traits and background.</summary>
@@ -105,6 +123,7 @@ public sealed class LivePlayerGeneralSession : IPlayerGeneralSession
         _maps.Clear(); foreach (var id in directory.Maps) _maps.Add(id);
         _traits = directory.Traits.ToList();
         Background = directory.Background;
+        Changed?.Invoke();
     }
 
     /// <summary>Switches which connected player this session reads/edits and re-reads that
@@ -114,7 +133,7 @@ public sealed class LivePlayerGeneralSession : IPlayerGeneralSession
         _playerId = playerId;
         OwnerId = ownerId ?? playerId;
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
-        Status = "Refreshed from the running game.";
+        Status = null;
     }
 
     private static List<string> CleanNew(IEnumerable<string> vocabulary, HashSet<string> known)

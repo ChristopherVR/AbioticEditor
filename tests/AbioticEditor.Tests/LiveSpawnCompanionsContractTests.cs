@@ -57,20 +57,27 @@ public sealed class LiveSpawnCompanionsContractTests
         var page = UiSource.ReadAllText("Components", "Pages", "LiveConnect.razor");
         Assert.Contains("LivePlayerSpawnSession.ConnectAsync", page, StringComparison.Ordinal);
         Assert.Contains("LivePlayerCompanionsSession.ConnectAsync", page, StringComparison.Ordinal);
-        Assert.Contains("<PlayerSpawnTab Session=\"_spawn\"", page, StringComparison.Ordinal);
-        Assert.Contains("<PlayerCompanionsTab Session=\"_companions\"", page, StringComparison.Ordinal);
-        // Achievements/raw data have no live equivalent - a shared note explains why instead of
-        // rendering nothing.
-        Assert.Contains("Live_OfflineOnlyNote", page, StringComparison.Ordinal);
-        Assert.Contains("PlayerAchievements_SteamAchievements", page, StringComparison.Ordinal);
-        Assert.Contains("PlayerRaw_RawSaveJson", page, StringComparison.Ordinal);
+        // Round 79: SPAWN/COMPANIONS render through the shared <PlayerEditor> component (the same
+        // one the file editor uses) instead of LiveConnect hosting its own copies of those tabs -
+        // see PlayerEditor.razor and LivePlayerEditorSession for where the two lines below moved.
+        Assert.Contains("<PlayerEditor Session=\"_playerFacade\"", page, StringComparison.Ordinal);
+        Assert.Contains("_playerFacade.SpawnSession = _spawn;", page, StringComparison.Ordinal);
+        Assert.Contains("_playerFacade.CompanionsSession = _companions;", page, StringComparison.Ordinal);
+        var editor = PlayerSource("PlayerEditor.razor");
+        Assert.Contains("<PlayerSpawnTab Session=\"Session\"", editor, StringComparison.Ordinal);
+        Assert.Contains("<PlayerCompanionsTab Session=\"Session\"", editor, StringComparison.Ordinal);
+        // Round 79: achievements/raw data have no live equivalent, so PlayerEditor now hides
+        // those two tabs entirely for a live session instead of live editing rendering its own
+        // separate "offline only" note for them (see PlayerEditor.razor's Tabs filter). CHARACTER
+        // is deliberately NOT in that list any more: background is editable live (round 80).
+        Assert.Contains("tab.Id is not (\"achievements\" or \"data\") || Session is PlayerSaveSession", editor, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Live_resource_keys_exist_in_AppResources()
     {
         var resx = UiSource.ReadAllText("Localization", "AppResources.resx");
-        foreach (var key in new[] { "LiveSpawn_Title", "LiveCompanions_Title", "Live_OfflineOnlyNote",
+        foreach (var key in new[] { "LiveSpawn_Title", "LiveCompanions_Title",
                      "PlayerSpawn_TeleportHere", "PlayerSpawn_SetAsMyRespawnPoint", "PlayerSpawn_UseCurrentPosition" })
         {
             Assert.Contains($"name=\"{key}\"", resx, StringComparison.Ordinal);
@@ -117,6 +124,30 @@ public sealed class LiveSpawnCompanionsContractTests
         Assert.Contains("MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B", companions, StringComparison.Ordinal);
         // The genuinely new, unverified access path (see the file's own header comment).
         Assert.Contains("DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7", companions, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LivePlayerCompanionsSession_despawns_the_live_follower_when_removing_the_active_companion_slot()
+    {
+        // Round 78 bug fix (reported live: "removing a pet from a player leaves the pet standing
+        // next to them, unable to be picked up"): clearing the Companion equipment slot's backing
+        // item used to leave the game's own live follower actor for it standing there, uninteractable
+        // - LiveClassPropsProbe's class dump found the fix (NPC_Monster_Pest_C's own
+        // FollowingOwner reference), so removal now goes through LiveCompanionsChannel.ClearAsync
+        // and reports whether a matching follower was actually despawned instead of refusing
+        // outright.
+        var session = UiSource.ReadAllText("Models", "LivePlayerCompanionsSession.cs");
+        Assert.Contains("pet.IsCompanionSlot", session, StringComparison.Ordinal);
+        Assert.Contains("DespawnedFollower", session, StringComparison.Ordinal);
+        Assert.Contains("_channel.ClearAsync(", session, StringComparison.Ordinal);
+
+        var channel = File.ReadAllText(Path.Combine(UiSource.RepositoryRoot,
+            "src", "AbioticEditor.Core", "LiveEditing", "Player", "LiveCompanionsChannel.cs"));
+        Assert.Contains("LiveClearResult", channel, StringComparison.Ordinal);
+
+        var companions = LuaSource("areas", "companions.lua");
+        Assert.Contains("FollowingOwner", companions, StringComparison.Ordinal);
+        Assert.Contains("K2_DestroyActor", companions, StringComparison.Ordinal);
     }
 
     [Fact]

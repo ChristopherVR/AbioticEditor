@@ -105,6 +105,23 @@ public class PlayerSaveReaderTests
     }
 
     [Fact]
+    public void ReadInventories_SomeSlotCarriesAVariantRowName()
+    {
+        // TextureVariantRow_ (poster art, armor color, ...) is delta-serialized away on most
+        // items - only present once the game has actually recorded a variant for that instance.
+        // At least one fixture slot has to carry it, or the reader is silently missing the tag.
+        Assert.NotNull(Fixtures.CascadeDir);
+        var found = false;
+        foreach (var path in Directory.EnumerateFiles(Path.Combine(Fixtures.CascadeDir!, "PlayerData"), "Player_*.sav"))
+        {
+            var save = PlayerSaveReader.ReadFromFile(path);
+            var allSlots = save.Inventory.Equipment.Concat(save.Inventory.Hotbar).Concat(save.Inventory.Main).Concat(save.TransmogSlots);
+            if (allSlots.Any(slot => slot.VariantRowName is not null)) { found = true; break; }
+        }
+        Assert.True(found, "expected at least one inventory slot across the fixture player saves to carry a TextureVariantRow_ RowName");
+    }
+
+    [Fact]
     public void ReadInventories_DumpsFirstItemsForInspection()
     {
         Assert.NotNull(Fixtures.CascadeDir);

@@ -193,6 +193,16 @@ public static partial class WorldSaveWriter
         // or dropped item the editor added registers in-game. Null leaves the existing id.
         SetString(p, "AssetID_", newSlot.AssetId,
             newSlot.AssetId is null ? null : PlayerSaveWriter.FullNames.AssetId);
+
+        // TextureVariantRow_ (poster art, armor color, ...) is a nested DataTableRowHandle
+        // struct, so it can only be patched when the game already recorded one for this item
+        // instance - see PlayerSaveWriter.ApplyVariantRowName for the same rule.
+        if (newSlot.VariantRowName is not null
+            && p.FindByPrefix("TextureVariantRow_")?.Property is StructProperty variantSp
+            && variantSp.Value is PropertiesStruct variantPs)
+        {
+            SetName(variantPs.Properties, "RowName", newSlot.VariantRowName);
+        }
     }
 
     // ---------- primitive setters ----------

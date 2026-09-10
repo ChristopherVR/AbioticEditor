@@ -365,8 +365,18 @@ public static class PlayerSaveReader
             LiquidType: p.GetEnumString("CurrentLiquid_"),
             DynamicState: p.GetBool("DynamicState_"),
             PlayerMadeString: p.GetString("PlayerMadeString_"),
-            AssetId: p.GetString("AssetID_"));
+            AssetId: p.GetString("AssetID_"),
+            VariantRowName: ReadVariantRowName(p));
     }
+
+    // TextureVariantRow_ is itself a DataTableRowHandle, same shape as ItemDataTable_ (a
+    // nested struct whose RowName is the thing that matters); most slots never had a variant
+    // chosen so the tag is delta-serialized away entirely, which reads as null here.
+    private static string? ReadVariantRowName(IList<FPropertyTag> changeableDataProps)
+        => changeableDataProps.FindByPrefix("TextureVariantRow_")?.Property is StructProperty variantSp
+            && variantSp.Value is PropertiesStruct variantPs
+            ? variantPs.Properties.GetString("RowName")
+            : null;
 
     private static InventoryItemSlot EmptySlot(int index)
         => new(index, null, 0, 0, 0, 0, 0, null, false, null, null);

@@ -35,6 +35,14 @@ public sealed class LiveContainmentSession : IWorldContainmentSession
     public bool IsHost { get; private set; }
     public string? Status { get; private set; }
 
+    /// <summary>Always false: a containment edit already reached the running game by the time
+    /// it returns, so there is never a client-side staged copy.</summary>
+    public bool IsDirty => false;
+
+    /// <summary>Raised after <see cref="RefreshAsync"/> re-reads the world and after every
+    /// mutation (each of which already ends by refreshing).</summary>
+    public event Action? Changed;
+
     bool IWorldContainmentSession.ContainmentUnitsLoaded => true;
 
     public IReadOnlyList<WorldContainmentUnit> ContainmentUnits => Units
@@ -65,6 +73,7 @@ public sealed class LiveContainmentSession : IWorldContainmentSession
         var directory = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
         Units = directory.Units;
         IsHost = directory.IsHost;
+        Changed?.Invoke();
     }
 
     public async Task SetContainmentUnitOccupantAsync(string unitId, string? creature, CancellationToken cancellationToken = default)
@@ -76,21 +85,21 @@ public sealed class LiveContainmentSession : IWorldContainmentSession
             return;
         }
         await _channel.AssignAsync(unitId, creature, cancellationToken).ConfigureAwait(false);
-        Status = "Applied live - this took effect in the running game immediately.";
+        Status = null;
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task SwapContainmentUnitsAsync(string unitIdA, string unitIdB, CancellationToken cancellationToken = default)
     {
         await _channel.SwapAsync(unitIdA, unitIdB, cancellationToken).ConfigureAwait(false);
-        Status = "Applied live - this took effect in the running game immediately.";
+        Status = null;
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task ReleaseContainmentAsync(string creature, CancellationToken cancellationToken = default)
     {
         await _channel.ReleaseAsync(creature, cancellationToken).ConfigureAwait(false);
-        Status = "Applied live - this took effect in the running game immediately.";
+        Status = null;
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
 }

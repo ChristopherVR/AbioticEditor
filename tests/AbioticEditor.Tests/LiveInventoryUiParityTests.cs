@@ -12,9 +12,15 @@ public sealed class LiveInventoryUiParityTests
     [Fact]
     public void LiveConnect_renders_the_shared_player_inventory_and_transmog_tabs()
     {
+        // Round 79: INVENTORY/TRANSMOG render through the shared <PlayerEditor> component (the
+        // same one the file editor uses) instead of LiveConnect hosting its own copies directly -
+        // see PlayerEditor.razor and LivePlayerEditorSession for where the two render lines moved.
         var source = UiSource.ReadAllText("Components", "Pages", "LiveConnect.razor");
-        Assert.Contains("<PlayerInventoryTab Session=\"_inventory\"", source, StringComparison.Ordinal);
-        Assert.Contains("<PlayerTransmogTab Session=\"_inventory\"", source, StringComparison.Ordinal);
+        Assert.Contains("<PlayerEditor Session=\"_playerFacade\"", source, StringComparison.Ordinal);
+        Assert.Contains("_playerFacade.InventorySession = _inventory;", source, StringComparison.Ordinal);
+        var editor = UiSource.ReadAllText("Components", "Player", "PlayerEditor.razor");
+        Assert.Contains("<PlayerInventoryTab Session=\"Session\"", editor, StringComparison.Ordinal);
+        Assert.Contains("<PlayerTransmogTab Session=\"Session\"", editor, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -35,10 +35,31 @@
 --
 -- Still NOT supported, honestly: changing species (SpawnPet is a GameMode function that would
 -- mean despawning and respawning the actor with an FTransform this probe never saw constructed
--- anywhere - see round 76 comment) and removal (no despawn/respawn round trip has any precedent
--- for a living NPC, unlike dropped items' InitDespawn/OnItemDespawn pairing) - pets.set never
--- accepts npcClass and there is no pets.remove; LivePetsSession reports
--- SupportsSpeciesChange/SupportsRemoval as false so the shared tab hides those controls live.
+-- anywhere - see round 76 comment) - pets.set never accepts npcClass, and LivePetsSession reports
+-- SupportsSpeciesChange as false so the shared tab hides that control live.
+--
+-- Round-78 bug fix #1 (reported live: "pet health and level editing doesn't seem to work"): the
+-- ROOT CAUSE was not that the writes themselves failed - it was that WorldPetsTab's Apply() always
+-- sends every field (isDead/customName/limbHealth/xp) in ONE combined pets.set call, and the old
+-- code raised a hard Lua error() the moment ANY one field looked unwritable, most commonly the xp
+-- field: a pet still at its untouched default has NO "XP" entry in DynamicProperties at all yet
+-- (the exact same delta-omission the save file itself uses; WorldSaveWriter.ApplyDynamicInt's own
+-- comment on the file-format equivalent of this gap notes it used to be "silently lost" there too),
+-- and setDynamicInt only ever patches an EXISTING entry - it never fabricates one (constructing a
+-- brand-new EDynamicProperty-keyed struct element over UE4SS Lua reflection has no working
+-- precedent anywhere in this project, and per areas/worldunlocks.lua's own header comment guessing
+-- a TArray-append technique is refused project-wide, not just here - that part of the gap is real
+-- and stays unsupported). Because Lua's error() aborts the WHOLE handler, that one unrelated xp
+-- mismatch threw away a health/name edit that had ALREADY been written into the live NPC's memory
+-- moments earlier in the same function (Lua runs top-to-bottom) - the C# side saw the whole call as
+-- failed, never called RefreshAsync(), and the tab kept showing stale values: exactly "editing
+-- doesn't seem to work" for BOTH health and level, even on requests that never touched level at
+-- all. Fixed by applying every field independently and collecting per-field WARNINGS instead of
+-- aborting: a request that changes health only ever fails because of a genuine health-write
+-- problem now, never because of an unrelated, unrequested XP echo-back; a request that genuinely
+-- tries to raise a never-earned pet's level still can't fabricate the entry, but says so as a
+-- warning alongside whatever else in the same call DID apply, instead of masking it as total
+-- failure. Per-limb health failures (a write pcall genuinely erroring) are reported the same way.
 return function(ctx)
     local PET_FAMILY_CLASS = "NPC_Monster_Pest_C" -- hierarchy-inclusive: also finds NPC_Skink_Basic_C.
     local LIMB_PROPERTY = {
@@ -89,14 +110,23 @@ return function(ctx)
         return limbs
     end
 
+    -- Bug fix (reported live: "pet health editing doesn't seem to work"): every per-limb write
+    -- used to be wrapped in its own throwaway pcall with the result discarded, so a write that
+    -- genuinely failed (wrong actor state, a field rejected by the engine, anything) looked
+    -- identical to one that succeeded - pets.set would still report ok, and the UI would refresh
+    -- to find nothing changed with no clue why. Returns the limb names that failed to write so the
+    -- caller can turn that into an honest error instead of a silent no-op.
     local function writeLimbHealth(npc, limbs)
+        local failed = {}
         for limb, propName in pairs(LIMB_PROPERTY) do
             if limbs[limb] ~= nil then
-                pcall(function() npc[propName] = limbs[limb] end)
+                local ok = pcall(function() npc[propName] = limbs[limb] end)
+                if not ok then table.insert(failed, limb) end
             end
         end
         -- Same call vitals.set already makes after writing these exact fields, confirmed live.
         pcall(function() npc:OnRep_CurrentHealth() end)
+        return failed
     end
 
     local function findPestByGuid(id)
@@ -140,19 +170,30 @@ return function(ctx)
                 isHost = ctx.isHost(),
                 available = true,
                 supportsSpeciesChange = false,
-                supportsRemoval = false,
+                -- Round 78: real removal, evidenced by the reference CheatConsoleCommands mod's
+                -- own "deleteobject" command destroying an arbitrary world actor with
+                -- `actor:K2_DestroyActor()` (CommandsManager.lua) - see pets.remove below. There
+                -- is no undo once this runs, unlike the file session's staged delete.
+                supportsRemoval = true,
                 reason = "Only Pest- and Skink-family pets can be matched to a save record live " ..
                     "right now (the game gives them a stable id); Peccary and Lamogi pets can " ..
-                    "still be renamed, healed and levelled up in the save file.",
+                    "still be renamed, healed and levelled up in the save file. Removing a pet " ..
+                    "here despawns it immediately - there is no undo.",
             }
         end, respond)
     end
 
+    -- Round 78: applies every field independently and collects non-fatal WARNINGS instead of
+    -- aborting the whole call on the first field that can't be written - see this file's own
+    -- header comment for the bug this fixes (a combined health+level request used to fail
+    -- entirely, and look stale in the UI, because of an unrelated/unrequested XP mismatch).
     ctx.handlers["pets.set"] = function(payload, respond)
         ctx.runOnGameThread(function()
             if not ctx.isHost() then error("only the host can edit pets") end
             local npc = payload.id and findPestByGuid(payload.id)
             if not npc then error("pet not found (it may have been unloaded, or isn't a Pest/Skink-family pet)") end
+
+            local warnings = { __forceArray = true }
 
             if payload.isDead ~= nil and npc.IsDead ~= payload.isDead then
                 npc.IsDead = payload.isDead
@@ -165,8 +206,51 @@ return function(ctx)
                 if not ok then ok = pcall(function() npc.PetName = payload.customName end) end
                 if ok then pcall(function() npc:OnRep_PetName() end) end
             end
-            if payload.limbHealth ~= nil then writeLimbHealth(npc, payload.limbHealth) end
-            if payload.xp ~= nil then setDynamicInt(npc, "XP", math.floor(payload.xp)) end
+            if payload.limbHealth ~= nil then
+                local failed = writeLimbHealth(npc, payload.limbHealth)
+                if #failed > 0 then
+                    table.insert(warnings, "couldn't write health for: " .. table.concat(failed, ", "))
+                end
+            end
+            -- setDynamicInt only ever patches an EXISTING DynamicProperties entry - same
+            -- no-fabrication limit companions.lua's own carried-pet version documents, and for the
+            -- same reason (no verified way to construct a brand-new EDynamicProperty-keyed struct
+            -- element over UE4SS Lua reflection - see areas/worldunlocks.lua's own header comment
+            -- on why guessing a TArray-append technique is refused project-wide). A pet that has
+            -- never earned real XP has no "XP" entry at all yet (the same delta-omission the save
+            -- file itself uses - see WorldSaveWriter.ApplyDynamicInt's own comment on this exact
+            -- gap once being "silently lost"). Only compare-and-warn when a real change was
+            -- actually requested, so unrelated edits (health/name/dead) on the very same pet never
+            -- get flagged because of this, and - the round-78 fix - never get thrown away either:
+            -- this is a WARNING now, not an error, so it never aborts the fields already applied
+            -- above.
+            if payload.xp ~= nil then
+                local target = math.floor(payload.xp)
+                if dynamicInt(npc, "XP") ~= target then
+                    local applied = setDynamicInt(npc, "XP", target)
+                    if not applied then
+                        table.insert(warnings, "this pet has never earned XP yet, so its level can't be " ..
+                            "raised live (edit the save file instead, or let it gain real XP first)")
+                    end
+                end
+            end
+            return { warnings = warnings }
+        end, respond)
+    end
+
+    -- Round 78: real live removal. No blueprint function cleanly "releases" a tamed world pet
+    -- (checked CreatePetItem/ReleaseFromAIDirector/IsFollower on NPC_Base_ParentBP_C - none of
+    -- them detach-and-vanish an already-world-placed NPC), so this destroys the actor outright,
+    -- the same technique the reference CheatConsoleCommands mod's own "deleteobject" console
+    -- command uses on an arbitrary world actor (CommandsManager.lua: `actor:K2_DestroyActor()`) -
+    -- a standard AActor function, not a guess specific to pets. No undo once this runs.
+    ctx.handlers["pets.remove"] = function(payload, respond)
+        ctx.runOnGameThread(function()
+            if not ctx.isHost() then error("only the host can remove pets") end
+            local npc = payload.id and findPestByGuid(payload.id)
+            if not npc then error("pet not found (it may already be gone)") end
+            local ok = pcall(function() npc:K2_DestroyActor() end)
+            if not ok then error("couldn't remove this pet from the world") end
             return nil
         end, respond)
     end

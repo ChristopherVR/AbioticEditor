@@ -120,6 +120,15 @@ and applies each flag via that RPC immediately; an index outside 0-5 is silently
 than written. Not host-gated, the same "player-owned data" reasoning `inventory.set` already
 uses: this component belongs to a specific player's own pawn.
 
+**Bug fix (reported live): the equipment tab didn't reflect a change until the player toggled the
+transmog button themselves.** Calling `Request_ChangeTransmogVisibilityFlag` writes the array on
+this process's own server-side copy of the component, but a server never receives its own
+property's `OnRep` callback the way a remote client does - only the in-game button's own trigger
+of that same callback was ever repainting the UI. `transmog.set` now also calls
+`OnRep_TransmogVisibility()` itself after every write (the same real function this file's own
+class-layout dump already found, just never invoked), forcing the repaint immediately instead of
+waiting for the player to press the button.
+
 ## `world.get` / `world.set` - clock and weather
 
 `world.get` takes no payload and returns:
@@ -136,6 +145,22 @@ uses: this component belongs to a specific player's own pawn.
 `world.set` takes any subset of `{"timeSeconds","day","weather","nextWeather"}`. `weather`
 triggers that event immediately (`None` ends the current one); `nextWeather` queues it for the
 next in-game day. Host only.
+
+## `world.info` - current region (round 78)
+
+`world.info` takes no payload and returns `{"levelToken":string?,"isHost":bool}`. `levelToken` is
+the local controller's own `ActiveLevelName` - the exact same evidenced read `spawn.get` already
+uses for its own `levelName` field (a display-only streaming level name, e.g. `Facility_MFWest`;
+NOT the file's `RespawnLevelGuid`), reused here rather than introducing a new, unverified
+`UEHelpers.GetWorld():GetMapName()` call. `levelToken` is absent when there is no local controller
+yet (main menu, or between loading screens). This is the live counterpart of picking a
+`WorldSave_<Region>.sav` file offline: the desktop app's live sidebar matches this token against
+`"WorldSave_" + levelToken + ".sav"` in the current world's own folder (see
+`Core/WorldSaves/LiveWorldFolderLocator.cs` for how that folder is found from a connected player's
+id) to show every region of this world, enabled only for the one actually loaded right now, and
+runs it through `Core/WorldSaves/WorldAreaCatalog.cs` for a friendly display name. Reading this
+needs no authority (unlike every other `.set` command in this file) - it is not a write, so a
+joined client reads its own accurate value too.
 
 ## `flags.list` / `flags.set` - quest and story flags
 
@@ -236,18 +261,26 @@ deployable reports `false`/`[]`. `bases.set` takes `{"id","customName"?,"upgrade
 "upgradeInstalled"?}` and renames the object and/or installs a bench upgrade immediately. Host
 only, like `containers.set`/`doors.set`.
 
-Bench-upgrade **installation** (round 77) is grounded in the bench class's own real functions:
+Bench-upgrade **installation, and the `installedUpgrades` probe, are both disabled (round 79)**.
+Round 77 grounded installation in the bench class's own real functions -
 `AddUpgrade(Upgrade: <RowHandle struct>)` and `"Has Upgrade"(Upgrade: <RowHandle struct>) : bool`
-- note the literal space in that second function's own compiled name (UE4SS Lua calls it as
-`bench["Has Upgrade"](bench, handle)`, not `bench:HasUpgrade()`). The row-handle struct's
-`DataTablePath` is reconstructed from the pak's own asset location
+(note the literal space in that second function's own compiled name: UE4SS Lua calls it as
+`bench["Has Upgrade"](bench, handle)`, not `bench:HasUpgrade()`) - but the row-handle struct's
+`DataTablePath` was reconstructed from the pak's own asset location
 (`Content/Blueprints/DataTables/DT_BenchUpgrades.uasset` -> `/Game/Blueprints/DataTables/
 DT_BenchUpgrades.DT_BenchUpgrades`) rather than fetched from a live enumeration function (none
-exists for this table, unlike weather/flags) - plausible and grounded in the pak layout, but
-genuinely **unverified against the running game**: `AddUpgrade` could silently no-op if this path
-is wrong. `bases.list`'s `installedUpgrades` lets a caller confirm a row actually took by reading
-it back. **Removal** is refused outright (`upgradeInstalled:false` is rejected with an error) -
-there is no `RemoveUpgrade`/`Server_RemoveUpgrade` anywhere in the bench's ~90 functions.
+exists for this table, unlike weather/flags), and stayed flagged "genuinely unverified against the
+running game" ever since. A player reported the BASES tab crashing the game with a fatal error
+every time it was opened; `bases.list` used to call `"Has Upgrade"` with this same fabricated
+handle for every one of the 11 known rows, for every bench, on every list/refresh - unconditional
+native reflection calls with a struct whose shape does not match the engine's real parameter type
+do not raise a catchable Lua error, they crash the process, which is consistent with the report.
+`installedUpgrades` is now always `[]`; `bases.set`'s `upgradeRow` (install) branch now refuses
+with an error instead of calling `AddUpgrade` with the same handle, until someone finds (or
+builds, live, field-by-field) a real handle to check the struct shape against. `supportsUpgrades`
+(a plain boolean property read, not the risky call) still reports correctly. **Removal** was
+already refused outright (`upgradeInstalled:false` is rejected with an error) - there is no
+`RemoveUpgrade`/`Server_RemoveUpgrade` anywhere in the bench's ~90 functions.
 Opening a bench or crate's contents inline (the file editor's slot grid) is still file-only - it
 shares the CONTAINERS tab's staged slot model; use the CONTAINERS tab for live slot editing.
 
@@ -274,11 +307,11 @@ On-board vehicle storage is still not exposed here (`hasInventory`/`inventoryIte
 always `false`/`0` for a live vehicle) - it is a different inventory component than the world
 containers this protocol's `containers.*` commands already cover.
 
-## `pets.list` / `pets.set` - round 76 (no path), partially closed round 77
+## `pets.list` / `pets.set` / `pets.remove` - round 76 (no path), partially closed round 77, removal added round 78
 
 `pets.list` returns `{"pets":[{"id","npcClass","isDead","customName","x","y","z","limbHealth":
 {...},"xp"}],"isHost":bool,"available":true,"supportsSpeciesChange":false,
-"supportsRemoval":false,"reason":"..."}`. Round 76 found no general live path for tamed pets: the
+"supportsRemoval":true,"reason":"..."}`. Round 76 found no general live path for tamed pets: the
 fields a world save's `PetNPC` record needs are exposed wildly inconsistently between creature
 families. Round 77 re-checked the game's own class layout and found a real, **partial** path
 instead of guessing a universal one:
@@ -286,21 +319,50 @@ instead of guessing a universal one:
 - The Pest family (and Skink, which inherits from it) directly exposes, with no hash suffix:
   `PetName` (`FTextProperty`, real `OnRep_PetName`), `Guid` (`FStrProperty` - a stable id matching
   the save's own `PetNPC` key), `DynamicProperties` (the same `{Key,Value}` shape
-  `companions.list`'s carried-pet XP already reads/writes). `pets.list` only lists actors of this
-  family, matched by `id` = their own `Guid` string.
+  `companions.list`'s carried-pet XP already reads/writes), and `FollowingOwner`
+  (`FObjectProperty`, a reference to the player it is currently following - see `companions.set`
+  below for what this unlocked). `pets.list` only lists actors of this family, matched by `id` =
+  their own `Guid` string.
 - Per-limb health is **universal**, not pet-specific: `AbioticCharacter` (the native base of
   every player AND every NPC) carries `CurrentHealth_Head/Torso/LeftArm/RightArm/LeftLeg/
   RightLeg` as plain unsuffixed floats with one shared `OnRep_CurrentHealth` - the exact fields
   `vitals.set` already writes for the local player, confirmed live. `pets.set` writes these the
   same way.
 - Peccary and Lamogi family pets were re-checked and confirmed to still carry none of
-  `Guid`/`PetName`/`DynamicProperties` as their own properties - there is still no stable id for
-  them, so they are never listed; `reason` says so. `supportsSpeciesChange`/`supportsRemoval` are
-  always `false` - no confirmed despawn/respawn round trip exists for a living NPC (unlike
-  dropped items' `InitDespawn`/`OnItemDespawn` pairing).
+  `Guid`/`PetName`/`DynamicProperties`/`FollowingOwner` as their own properties - there is still no
+  stable id for them, so they are never listed; `reason` says so. `supportsSpeciesChange` is always
+  `false` - no confirmed despawn/respawn round trip exists for a living NPC with a species change
+  in mind.
 
 `pets.set` takes `{"id","isDead"?,"customName"?,"limbHealth"?,"xp"?}` - `npcClass` is never
-accepted (no live species change). Host only.
+accepted (no live species change). Host only. It replies `{"warnings":[...]}` rather than failing
+outright when one field could not be applied - see the round-78 bug fix below.
+
+`pets.remove` takes `{"id"}` and destroys the pet's actor outright
+(`npc:K2_DestroyActor()` - the same standard `AActor` call the reference CheatConsoleCommands
+mod's own "deleteobject" console command already uses on an arbitrary world actor). No blueprint
+function cleanly "releases" a tamed world pet back into the wild (checked `CreatePetItem`/
+`ReleaseFromAIDirector`/`IsFollower` on `NPC_Base_ParentBP_C` - none of them detach-and-vanish an
+already-world-placed NPC), so this is the closest evidenced removal there is. Host only, and there
+is no undo once it returns.
+
+**Round-78 bug fix (reported live: "pet health and level editing doesn't seem to work").** The
+root cause was not that the writes themselves failed live - it was that a combined `pets.set` call
+(every field sent together, since the shared `WorldPetsTab` always sends the whole row) used to
+raise a hard error the moment ANY one field looked unwritable, most commonly `xp`: a pet that has
+never earned real XP yet has no `XP` entry in `DynamicProperties` at all (the identical
+delta-omission the save file itself uses, which is why `WorldSaveWriter.ApplyDynamicInt`'s
+file-format counterpart had to learn to append a missing entry by cloning an existing one's tag
+types - there is still no live-reflection equivalent of that trick, and per `worldunlocks.set`'s
+own "no working precedent" refusal, guessing a `TArray`-append technique over UE4SS Lua stays
+refused project-wide, so a never-levelled pet's level genuinely still can't be raised live). Because
+Lua's `error()` aborts the whole handler, that ONE unrelated field threw away a health/name edit
+that had already been written into the live NPC's memory earlier in the same call - the editor saw
+the whole request as failed and never refreshed, so it looked like health editing was broken too,
+even on requests that never touched level. Fixed by applying every field independently and
+returning non-fatal warnings instead of aborting: a request that only changes health can now only
+fail for a genuine health-write problem, never because of an unrelated XP echo-back, and the tab
+always refreshes to show what actually applied.
 
 ## `narrativenpcs.list` / `narrativenpcs.set` - story NPCs and traders (round 77)
 
@@ -401,9 +463,28 @@ which rows are actually pets (`PetItemCatalog.IsPetItem`, or the Companion equip
 the .NET side, in `LivePlayerCompanionsSession`.
 
 `companions.set` takes one pet row at a time: `{"kind","slotIndex","clear"?,"itemId"?,"name"?,
-"health"?,"maxHealth"?,"xp"?,"mutationProgress"?,"petMutation"?,"playerId"?}` and returns no
-result. `clear` empties the slot and ignores every other field, exactly like `inventory.set`'s
-`clear`. Applying happens immediately, one pet at a time - there is no batch form.
+"health"?,"maxHealth"?,"xp"?,"mutationProgress"?,"petMutation"?,"playerId"?}`. Applying happens
+immediately, one pet at a time - there is no batch form. `clear` empties the slot and ignores every
+other field, exactly like `inventory.set`'s `clear`, and replies `{"despawnedFollower":bool}` - see
+the round-78 fix below.
+
+**Round-78 bug fix (reported live): removing the active Companion pet left it stuck in the world,
+unable to be picked up.** `clear` used to only ever write the inventory slot struct back to
+`Empty` - a plain field write, like every other edit in this file - which for the Companion slot
+(`kind:"equip"`, `slotIndex:12`, the one slot the game visibly spawns a live follower actor for)
+desyncs the follower from its now-empty backing item instead of despawning it. No blueprint
+function cleanly releases it (checked for `Server_ReleasePet`/`DetachFromPlayer`/
+`RemoveCompanion`/`Dismiss`/`SetOwner`-shaped candidates), but `pets.list`'s own class dump found a
+real fix instead: Pest/Skink-family NPCs carry their own `FollowingOwner` reference (see above), so
+clearing the Companion slot now also searches Pest/Skink-family actors for one whose
+`FollowingOwner` matches the resolved player (compared by `GetFullName()`, the same object-identity
+technique `findByFullName` already uses) and destroys it with `K2_DestroyActor()` - the same call
+`pets.remove` uses. `despawnedFollower` says whether a match was found and destroyed: still `false`
+for a Peccary/WinterSprite-family companion (no evidenced live id for that family, the same gap
+`pets.list` has), so the caller can tell the player a stray actor might remain instead of claiming
+a clean removal it can't back up. A pet merely carried in the hotbar/backpack (not the active
+follower) has no such live actor, so clearing those slots never searches at all - only `kind:"equip"`,
+`slotIndex:12` does.
 
 **Honesty about `xp`/`mutationProgress`/`petMutation`**: the `DynamicProperties_` array itself is
 real (found in the game's own class layout, the identical array/enum the file format already
@@ -486,7 +567,10 @@ disables un-checking an already-known row when connected live.
 
 Live "bulk unlocks" editing, the counterpart to the file editor's General tab ITEMS SEEN, ITEMS
 CRAFTED, MAPS, BACKGROUND and TRAITS rows (the account/owner-id change has no live counterpart at
-all - see below). `general.get` takes an optional `{"playerId":"…"}` payload and returns:
+all - see below). The desktop app's CHARACTER tab (round 79/80) reuses this same channel for its
+own BACKGROUND picker and TRAITS readout, through the same `IPlayerGeneralSession` boundary the
+GENERAL tab already binds to - no separate channel or wire command exists for CHARACTER.
+`general.get` takes an optional `{"playerId":"…"}` payload and returns:
 
 ```json
 {"itemsSeen":["metal_scrap"],"itemsCrafted":["torch"],"maps":["Sector_A"],
@@ -521,14 +605,21 @@ that flow rather than swap one trait. The native engine's only trait-adjacent RP
 (`UCharacterBuffComponent::Server_AddTraitBuff`/`Server_RemoveTraitBuff(FBuffDebuffRowHandle)`,
 found in the shipped PDB) apply a different, temporary gameplay buff keyed by a buff/debuff row
 handle - they do not touch `CharacterProgressionComponent.Traits` or the save's `Traits_` array,
-so calling them would not actually add or remove a trait the way this list means. The desktop
-app's GENERAL tab shows TRAITS as a plain readout with a note pointing to the file-based CHARACTER
-tab for full add/remove.
+so calling them would not actually add or remove a trait the way this list means. Both the GENERAL
+and CHARACTER tabs show TRAITS as a plain readout when connected live; CHARACTER's own add/remove
+chip editor and trait browser render only for the file-based session
+(`IPlayerGeneralSession.CanEditTraits` is false live).
 
 **The account/owner-id change has no live path at all** and is not part of this wire protocol:
 renaming which save file a character belongs to is purely a file-system operation, with no running
 in-game concept to change. The desktop app hides that section's CHANGE button when connected live
-and shows the connected player's own id as a plain readout instead.
+and shows the connected player's own id (the live directory id `players.list` handed out - a
+SteamID64 for a Steam player) as a plain readout instead.
+
+**CHARACTER's appearance panel (head/hair/clothing) also has no live path.** It edits a separate
+`ScientistCustomization` save beside the player's own save file - there is nothing running in a
+live game that corresponds to it, so the desktop app shows a plain read-only note there instead of
+the file editor's swatch/option pickers.
 
 ## `worldunlocks.get` / `worldunlocks.set` - world-wide (not per-player) unlocks (round 77)
 

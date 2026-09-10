@@ -49,6 +49,13 @@ public sealed class LivePlayerRecipesSession : IPlayerRecipesSession
     public bool CanLock => false;
     public string? Status { get; private set; }
 
+    /// <summary>Always false: an unlock already reached the running game by the time it
+    /// returns, so there is never a client-side staged copy.</summary>
+    public bool IsDirty => false;
+
+    /// <summary>Raised after <see cref="RefreshAsync"/> and after every unlock.</summary>
+    public event Action? Changed;
+
     public void EnsureRecipeRows(IEnumerable<string> ids)
     {
         var known = _recipes.Select(recipe => recipe.Id).ToHashSet(StringComparer.Ordinal);
@@ -74,7 +81,31 @@ public sealed class LivePlayerRecipesSession : IPlayerRecipesSession
         var existing = _recipes.FirstOrDefault(recipe => string.Equals(recipe.Id, recipeId, StringComparison.Ordinal));
         if (existing is not null) existing.IsUnlocked = true;
         else _recipes.Add(new PlayerRecipeEdit(recipeId, true));
-        Status = "Applied live - this took effect in the running game immediately.";
+        Status = null;
+        Changed?.Invoke();
+    }
+
+    /// <summary>Unlocks every given recipe in one network round trip instead of one per recipe -
+    /// <c>recipes.set</c> already accepted a batch of ids (see <see cref="LivePlayerRecipesChannel.UnlockAsync"/>),
+    /// but PlayerRecipesTab's UNLOCK ALL used to call <see cref="SetUnlockedAsync"/> once per row
+    /// anyway, so a fresh character's few hundred recipes meant a few hundred sequential
+    /// round trips through the file-mailbox/game-thread relay - see
+    /// <see cref="IPlayerRecipesSession.SetUnlockedManyAsync"/>'s remarks for what that looked
+    /// like from the player's side.</summary>
+    public async Task SetUnlockedManyAsync(IEnumerable<string> recipeIds)
+    {
+        var ids = recipeIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct(StringComparer.Ordinal).ToArray();
+        if (ids.Length == 0) return;
+        await _channel.UnlockAsync(ids, _playerId).ConfigureAwait(false);
+        foreach (var id in ids)
+        {
+            _unlockedIds.Add(id);
+            var existing = _recipes.FirstOrDefault(recipe => string.Equals(recipe.Id, id, StringComparison.Ordinal));
+            if (existing is not null) existing.IsUnlocked = true;
+            else _recipes.Add(new PlayerRecipeEdit(id, true));
+        }
+        Status = null;
+        Changed?.Invoke();
     }
 
     /// <summary>No staged-dirty concept live (every write already applied); kept only so callers
@@ -95,7 +126,8 @@ public sealed class LivePlayerRecipesSession : IPlayerRecipesSession
             else { var added = new PlayerRecipeEdit(id, true); _recipes.Add(added); known[id] = added; }
         }
         foreach (var edit in _recipes) edit.IsUnlocked = _unlockedIds.Contains(edit.Id);
-        Status = "Refreshed from the running game.";
+        Status = null;
+        Changed?.Invoke();
     }
 
     /// <summary>Switches which connected player this session reads/edits and re-reads that

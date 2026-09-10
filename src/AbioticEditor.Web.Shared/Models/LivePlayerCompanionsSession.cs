@@ -40,12 +40,19 @@ public sealed class LivePlayerCompanionsSession : IPlayerCompanionsSession
     public bool AppliesImmediately => true;
 
     /// <summary>Always false: every row shown was either just read from the game or already
-    /// applied by <see cref="ApplyPetAsync"/>.</summary>
+    /// applied by <see cref="ApplyPetAsync"/>. This is what the periodic live refresh loop checks
+    /// before calling <see cref="RefreshAsync"/> so a refresh never clobbers an edit still in
+    /// flight.</summary>
     public bool IsDirty => false;
     public string? Status { get; private set; }
     public void MarkChanged() { }
     public ValueTask SaveAsync(CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
     public void Revert() { }
+
+    /// <summary>Raised after <see cref="RefreshAsync"/> re-reads the running game, and after every
+    /// mutation below applies - lets a bound UI (the COMPANIONS tab) redraw without polling this
+    /// object itself.</summary>
+    public event Action? Changed;
 
     /// <summary>Re-reads every carried pet from the running game, discarding local UI state for
     /// any row not currently mid-edit (there is nothing staged to lose - see <see cref="AppliesImmediately"/>).</summary>
@@ -59,7 +66,8 @@ public sealed class LivePlayerCompanionsSession : IPlayerCompanionsSession
                 string.IsNullOrEmpty(row.Name) ? null : row.Name, row.Health, row.MaxHealth,
                 row.Xp, row.MutationProgress, row.PetMutation)))
             .ToList();
-        Status = "Refreshed from the running game.";
+        Status = null;
+        Changed?.Invoke();
     }
 
     /// <summary>Writes <paramref name="pet"/>'s current field values to its slot immediately.</summary>
@@ -69,18 +77,40 @@ public sealed class LivePlayerCompanionsSession : IPlayerCompanionsSession
         await _channel.SetAsync(LiveCompanionsChannel.ToWireKind(pet.Slot), pet.Index, pet.ToCarriedPet(), _playerId, cancellationToken)
             .ConfigureAwait(false);
         pet.AcceptCurrentAsBaseline();
-        Status = "Applied live - this took effect in the running game immediately.";
+        Status = null;
+        Changed?.Invoke();
     }
 
     /// <summary>Clears <paramref name="pet"/>'s slot immediately and drops it from
-    /// <see cref="CarriedPets"/> - there is no undo, unlike the file session's staged removal.</summary>
+    /// <see cref="CarriedPets"/> - there is no undo, unlike the file session's staged removal.
+    ///
+    /// Round 78 (reported live: "removing a pet from a player leaves the pet standing next to
+    /// them, unable to be picked up"): the Companion equipment slot
+    /// (<see cref="CarriedPet.IsCompanionSlot"/>) used to be refused outright, because clearing it
+    /// only ever wrote the inventory slot struct back to "Empty" and left the game's own live
+    /// follower actor - the one it visibly spawns for that slot - standing there, desynced from
+    /// its now-empty backing item. <c>LiveClassPropsProbe</c>'s class dump found the fix instead:
+    /// Pest/Skink-family NPCs carry their own <c>FollowingOwner</c> reference, so
+    /// <c>companions.lua</c> can now find the actual matching follower and destroy it
+    /// (<c>K2_DestroyActor</c>, the same standard actor-destroy call the reference
+    /// CheatConsoleCommands mod's own "deleteobject" command already uses) before clearing the
+    /// slot - see that file's own remarks. <see cref="LiveClearResult.DespawnedFollower"/> says
+    /// whether a match was found: still no for a Peccary/WinterSprite-family companion (no
+    /// evidenced live id for that family, same gap <c>WorldPetsTab</c>'s own pets list has), so
+    /// <see cref="Status"/> says so rather than claiming success it can't back up. A pet merely
+    /// carried in the hotbar/backpack (not the active follower) has no such live actor, so
+    /// clearing those slots is unaffected either way.</summary>
     public async Task RemovePetAsync(CarriedPetEdit pet, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pet);
-        await _channel.ClearAsync(LiveCompanionsChannel.ToWireKind(pet.Slot), pet.Index, _playerId, cancellationToken)
+        var result = await _channel.ClearAsync(LiveCompanionsChannel.ToWireKind(pet.Slot), pet.Index, _playerId, cancellationToken)
             .ConfigureAwait(false);
         _pets.Remove(pet);
-        Status = "Removed live - this took effect in the running game immediately.";
+        Status = pet.IsCompanionSlot && !result.DespawnedFollower
+            ? "Removed live - but this pet's live follower couldn't be matched to despawn automatically " +
+              "(only Pest- and Skink-family companions can be); if it's still following you in-game, dismiss it there too."
+            : "Removed live - this took effect in the running game immediately.";
+        Changed?.Invoke();
     }
 
     /// <summary>Switches which connected player this session reads/acts on and re-reads immediately.</summary>

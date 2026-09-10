@@ -291,6 +291,7 @@
   <data name="PlayerVitals_RightArm" xml:space="preserve"><value>RECHTER ARM</value></data>
   <data name="PlayerVitals_RightLeg" xml:space="preserve"><value>RECHTES BEIN</value></data>
   <data name="PlayerVitals_Sanity" xml:space="preserve"><value>GEISTIGE GESUNDHEIT</value></data>
+  <data name="PlayerVitals_SanityTooltip" xml:space="preserve"><value>Die Speicherdatei (und das laufende Spiel) meldet einen Sanity-Wert neben Hunger, Durst, Erschöpfung und Kontinenz, aber es gibt bisher keine bestätigten öffentlichen Informationen darüber, was er im Spiel tatsächlich bewirkt - im Wiki ist er nicht dokumentiert. Er wird hier angezeigt, weil das Spiel ihn selbst erfasst.</value></data>
   <data name="PlayerVitals_Thirst" xml:space="preserve"><value>DURST</value></data>
   <data name="PlayerVitals_Torso" xml:space="preserve"><value>RUMPF</value></data>
 

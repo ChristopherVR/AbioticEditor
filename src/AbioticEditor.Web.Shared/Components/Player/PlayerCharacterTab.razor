@@ -1,7 +1,10 @@
 @namespace AbioticEditor.Web.Components.Player
 @using AbioticEditor.Core.PlayerSaves
 @using AbioticEditor.Web.Models
-@inject AbioticEditor.Web.Services.ProgressionVocabularyService Progression
+@using AbioticEditor.Web.Services
+@implements IDisposable
+@inject ProgressionVocabularyService Progression
+@inject InventorySelectionService Selection
 
 @* Faithful port of the native PlayerCharacterTab.xaml: a CHARACTER panel (background picker,
    trait chips, add-trait browser) followed by the per-account appearance panel. *@
@@ -12,7 +15,7 @@
 
         <div class="character-background-row">
             <span class="general-field-label">@L.Resource("PlayerCharacter_Background")</span>
-            <select class="character-background-select" @bind="Session.Background" @bind:after="Changed" aria-label="@L.Resource("PlayerCharacter_Background")">
+            <select class="character-background-select" value="@Session.Background" @onchange="OnBackgroundChangedAsync" disabled="@(!Session.CanChangeBackground)" aria-label="@L.Resource("PlayerCharacter_Background")">
                 @if (string.IsNullOrEmpty(Session.Background)) { <option value="" disabled hidden></option> }
                 else if (!TraitCatalog.Backgrounds.ContainsKey(Session.Background)) { <option value="@Session.Background">@Session.Background</option> }
                 @foreach (var background in TraitCatalog.Backgrounds) { <option value="@background.Key">@background.Value</option> }
@@ -22,56 +25,106 @@
         <div class="tab-divider" aria-hidden="true"></div>
 
         <p class="tab-section-label">@L.Resource("PlayerCharacter_Traits")</p>
-        <div class="trait-chips">
-            @foreach (var id in Session.Traits.ToArray())
-            {
-                <span class="trait-chip" title="@ChipTooltip(id)">
-                    <span class="trait-chip-name">@DisplayNameFor(id)</span>
-                    <small class="trait-chip-id">@id</small>
-                    <button class="trait-chip-remove" type="button" aria-label="@($"{L.Detail("remove")} {DisplayNameFor(id)}")" @onclick="() => RemoveTrait(id)">&#x2715;</button>
-                </span>
-            }
-        </div>
-
-        @* Trait browser: read what a trait does BEFORE adding it. *@
-        <input type="search" class="trait-search" placeholder="@L.Resource("PlayerCharacter_SearchTraitsPlaceholder")" aria-label="@L.Resource("PlayerUi_FilterTraits")" @bind="Search" @bind:event="oninput" />
-        @* Descriptions and costs come out of the game files and take a moment on first use.
-           Until they land the rows carry names only, which reads as though the traits have
-           nothing to say for themselves. *@
-        @if (_detailsLoading)
+        @if (Session.CanEditTraits && FileSession is { } file)
         {
-            <p class="general-loading" role="status">
-                <span class="header-busy-spinner" aria-hidden="true"></span>
-                @L.Resource("PlayerCharacter_LoadingTraitDetails")
-            </p>
-        }
-        <div class="trait-browser" role="list" aria-label="@L.Resource("PlayerUi_TraitDetails")">
-            @if (!VisibleTraitOptions.Any())
+            <div class="trait-chips">
+                @foreach (var id in file.Traits.ToArray())
+                {
+                    <span class="trait-chip @(_selectedTraitId == id ? "selected" : null)" title="@ChipTooltip(id)">
+                        <button class="trait-chip-name" type="button" @onclick="() => SelectTrait(id)">@DisplayNameFor(id)</button>
+                        <small class="trait-chip-id">@id</small>
+                        <button class="trait-chip-remove" type="button" aria-label="@($"{L.Detail("remove")} {DisplayNameFor(id)}")" @onclick="() => RemoveTrait(id)">&#x2715;</button>
+                    </span>
+                }
+            </div>
+
+            @* Trait browser: read what a trait does BEFORE adding it. *@
+            <input type="search" class="trait-search" placeholder="@L.Resource("PlayerCharacter_SearchTraitsPlaceholder")" aria-label="@L.Resource("PlayerUi_FilterTraits")" @bind="Search" @bind:event="oninput" />
+            @* Descriptions and costs come out of the game files and take a moment on first use.
+               Until they land the rows carry names only, which reads as though the traits have
+               nothing to say for themselves. *@
+            @if (_detailsLoading)
             {
-                <p class="trait-browser-empty">@L.Resource("PlayerCharacter_NoTraitsMatch")</p>
+                <p class="general-loading" role="status">
+                    <span class="header-busy-spinner" aria-hidden="true"></span>
+                    @L.Resource("PlayerCharacter_LoadingTraitDetails")
+                </p>
             }
-            @foreach (var row in VisibleTraitOptions)
+            else
             {
-                <div class="trait-browser-row" role="listitem">
-                    <span class="trait-browser-name">@row.DisplayName</span>
-                    <span class="trait-browser-cost">@CostText(row)</span>
-                    <span class="trait-browser-description">@row.Description</span>
-                    <button class="trait-browser-add" type="button" @onclick="() => AddTrait(row.Id)">@L.Resource("PlayerCharacter_Add")</button>
+                @* Rendered only once trait descriptions/costs are in: before that every row would
+                   show blank/placeholder text that then gets filled in underneath the spinner
+                   above, which reads as broken rather than loading. *@
+                <div class="trait-browser" role="list" aria-label="@L.Resource("PlayerUi_TraitDetails")">
+                    @if (!VisibleTraitOptions.Any())
+                    {
+                        <p class="trait-browser-empty">@L.Resource("PlayerCharacter_NoTraitsMatch")</p>
+                    }
+                    @foreach (var row in VisibleTraitOptions)
+                    {
+                        <div class="trait-browser-row" role="listitem">
+                            <span class="trait-browser-name">@row.DisplayName</span>
+                            <span class="trait-browser-cost">@CostText(row)</span>
+                            <span class="trait-browser-description">@row.Description</span>
+                            <button class="trait-browser-add" type="button" @onclick="() => AddTrait(row.Id)">@L.Resource("PlayerCharacter_Add")</button>
+                        </div>
+                    }
                 </div>
             }
-        </div>
+        }
+        else
+        {
+            @* No safe live function exists to add or remove a single trait (see
+               LivePlayerGeneralChannel's remarks) - a plain readout stands in for the chip
+               editor/browser above instead of offering buttons that could never do anything. *@
+            <div class="trait-chips">
+                @foreach (var id in Session.Traits)
+                {
+                    <span class="trait-chip" title="@ChipTooltip(id)">
+                        <span class="trait-chip-name">@DisplayNameFor(id)</span>
+                        <small class="trait-chip-id">@id</small>
+                    </span>
+                }
+            </div>
+            <small class="general-help live-warning">@L.Resource("PlayerCharacter_TraitsLiveReadOnlyHelp")</small>
+        }
     </section>
 
-    <PlayerAppearanceEditor Player="Session" />
+    @if (FileSession is { } appearanceSession)
+    {
+        <PlayerAppearanceEditor Player="appearanceSession" />
+    }
+    else
+    {
+        <section class="editor-card appearance-panel" aria-label="@L.Resource("PlayerCharacter_AppearanceHeadHairClothing")">
+            <p class="tab-section-label">@L.Resource("PlayerCharacter_AppearanceHeadHairClothing")</p>
+            <small class="general-help live-warning">@L.Resource("PlayerCharacter_AppearanceLiveReadOnlyHelp")</small>
+        </section>
+    }
 </div>
 
 @code {
-    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    [Parameter, EditorRequired] public IPlayerGeneralSession Session { get; set; } = null!;
     [Parameter] public EventCallback OnChanged { get; set; }
+    // The trait chip editor/browser and the appearance panel both need the concrete file session
+    // (full List<string> mutation for traits; the appearance save lives beside the player save
+    // file, never a live game) - null live, exactly like the player editor's own ACHIEVEMENTS/
+    // DATA tab gating.
+    private PlayerSaveSession? FileSession => Session as PlayerSaveSession;
+
+    private async Task OnBackgroundChangedAsync(ChangeEventArgs e)
+    {
+        var background = e.Value?.ToString();
+        if (string.IsNullOrEmpty(background)) return;
+        await Session.SetBackgroundAsync(background);
+        await OnChanged.InvokeAsync();
+    }
     private string Search { get; set; } = string.Empty;
     private IReadOnlyList<TraitBrowserRow>? _allRows;
     private IReadOnlyDictionary<string, TraitDetail> Details { get; set; } =
         new Dictionary<string, TraitDetail>(StringComparer.Ordinal);
+
+    protected override void OnInitialized() => Selection.Changed += OnSelectionChanged;
 
     protected override async Task OnInitializedAsync()
     {
@@ -87,7 +140,85 @@
         {
             _detailsLoading = false;
         }
+        // A trait card already open when details finish loading is still showing the
+        // name-only fallback - refresh it now that the full breakdown is available.
+        if (_selectedTraitId is not null) ShowTraitDetail();
     }
+
+    private const string DetailKeyPrefix = "player-trait:";
+    private string? _selectedTraitId;
+
+    /// <summary>Tap-to-toggle: opens a selected trait's points/description breakdown in the
+    /// right-hand pane; a second tap on the same chip closes it.</summary>
+    private void SelectTrait(string id)
+    {
+        if (Selection.DetailKey == DetailKeyPrefix + id)
+        {
+            _selectedTraitId = null;
+            Selection.CloseDetail();
+            return;
+        }
+        _selectedTraitId = id;
+        ShowTraitDetail();
+    }
+
+    private void ShowTraitDetail()
+    {
+        if (_selectedTraitId is { } id) Selection.ShowDetail(DetailKeyPrefix + id, TraitDetailContent);
+    }
+
+    private void CloseOwnDetail()
+    {
+        _selectedTraitId = null;
+        if (Selection.DetailKey?.StartsWith(DetailKeyPrefix, StringComparison.Ordinal) == true)
+        {
+            Selection.CloseDetail();
+        }
+    }
+
+    /// <summary>Drops the stale chip highlight when the pane closes or another tab takes it.</summary>
+    private void OnSelectionChanged()
+    {
+        if (_selectedTraitId is not null && Selection.DetailKey != DetailKeyPrefix + _selectedTraitId)
+        {
+            _selectedTraitId = null;
+        }
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Selection.Changed -= OnSelectionChanged;
+        // Leaving the tab retires this tab's own detail card (never someone else's).
+        if (Selection.DetailKey?.StartsWith(DetailKeyPrefix, StringComparison.Ordinal) == true)
+        {
+            Selection.CloseDetail();
+        }
+    }
+
+    /// <summary>A selected trait's points + description breakdown, the same information the
+    /// chip's hover tooltip carries, surfaced properly for touch (and easier reading) instead
+    /// of only on hover.</summary>
+    private RenderFragment TraitDetailContent => __builder =>
+    {
+        if (_selectedTraitId is { } id)
+        {
+            var name = DisplayNameFor(id);
+            var hasDetail = Details.TryGetValue(id, out var detail);
+            <div class="detail-card detail-card--terminal char-detail">
+                <div class="detail-head">
+                    <span class="detail-title"><strong>@name</strong><small>@id</small></span>
+                    <button class="detail-close" type="button" @onclick="CloseOwnDetail">✕</button>
+                </div>
+                @if (hasDetail && detail!.PointCost != 0)
+                {
+                    <span class="chip chip--orange">@PointsText(detail.PointCost)</span>
+                }
+                <span class="detail-label">@L.Resource("PlayerCharacter_Description")</span>
+                <p class="detail-value">@((hasDetail ? detail!.Description : null) ?? L.Resource("PlayerUi_TraitDescriptionUnavailable"))</p>
+            </div>
+        }
+    };
 
     /// <summary>True while the trait descriptions and costs are still being read from the game.</summary>
     private bool _detailsLoading = true;
@@ -138,9 +269,9 @@
         .OrderBy(row => row.DisplayName, StringComparer.OrdinalIgnoreCase)
         .ToList();
 
-    private async Task Changed() { Session.MarkChanged(); await OnChanged.InvokeAsync(); }
-    private async Task AddTrait(string id) { if (!Session.Traits.Contains(id, StringComparer.Ordinal)) { Session.Traits.Add(id); await Changed(); } }
-    private async Task RemoveTrait(string id) { if (Session.Traits.Remove(id)) await Changed(); }
+    private async Task Changed() { FileSession?.MarkChanged(); await OnChanged.InvokeAsync(); }
+    private async Task AddTrait(string id) { if (FileSession is { } file && !file.Traits.Contains(id, StringComparer.Ordinal)) { file.Traits.Add(id); await Changed(); } }
+    private async Task RemoveTrait(string id) { if (FileSession is { } file && file.Traits.Remove(id)) await Changed(); }
 
     /// <summary>The cost badge on an add-trait row. 0 is real data (traits picked up in the
     /// world, like Forbidden Diet), so it is shown rather than hidden.</summary>

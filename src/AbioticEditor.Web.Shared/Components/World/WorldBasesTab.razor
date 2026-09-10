@@ -9,6 +9,7 @@
 @inject InventorySelectionService Selection
 @inject SlotDragDropService Dnd
 @inject SaveWorkspaceSessionService Workspace
+@inject ToastService Toasts
 @implements IDisposable
 
 @* Faithful port of the native WorldBasesTab.xaml: base list + top-down deployable map
@@ -405,18 +406,29 @@
         Selection.ShowDetail(key, BenchCard(bench));
     }
 
-    private RenderFragment BenchCard(WorldDeployable bench) => @<div class="detail-card">
-        <h3>@bench.DisplayName</h3>
-        <p class="detail-sub">@PlainNames.Thing(bench.ClassName ?? string.Empty)</p>
-        <dl class="detail-list">
-            <dt>@L.Resource("WorldBases_DetailPosition")</dt>
-            <dd>@bench.X.ToString("F0"), @bench.Y.ToString("F0"), @bench.Z.ToString("F0")</dd>
-            <dt>@L.Resource("WorldBases_DetailId")</dt>
-            <dd><code>@bench.Id</code></dd>
-        </dl>
-        <label class="detail-field">
-            <span>@L.Resource("WorldBases_DetailCustomName")</span>
-            <input value="@bench.CustomName" placeholder="@bench.FriendlyClass"
+    @* Round 79: this used to be the only detail card in the editor built from CSS classes
+       (detail-list/detail-field/detail-sub) that were never actually styled anywhere in
+       parity.css - it rendered as raw, unstyled <dl>/<label>/<p> markup next to every other
+       detail card's polished layout, and had no close button either. Rebuilt on the same
+       detail-head/detail-title/detail-close/wt-field/wt-label shapes every other detail card in
+       the editor already uses (see PlayerRecipesTab/WorldDoorsTab/LiveNpcsTab). *@
+    private RenderFragment BenchCard(WorldDeployable bench) => @<div class="detail-card detail-card--orange" aria-label="@bench.DisplayName">
+        <div class="detail-head">
+            <span class="detail-title"><strong>@bench.DisplayName</strong><small>@PlainNames.Thing(bench.ClassName ?? string.Empty)</small></span>
+            <button class="detail-close" type="button" @onclick="() => Selection.CloseDetail()">✕</button>
+        </div>
+        <div class="wt-field">
+            <span class="wt-label">@L.Resource("WorldBases_DetailPosition")</span>
+            <span class="wt-muted">@bench.X.ToString("F0"), @bench.Y.ToString("F0"), @bench.Z.ToString("F0")</span>
+        </div>
+        <div class="wt-field">
+            <span class="wt-label">@L.Resource("WorldBases_DetailId")</span>
+            <span class="wt-muted"><code>@bench.Id</code></span>
+        </div>
+        <div class="rb-detail-divider" role="presentation"></div>
+        <label class="wt-field">
+            <span class="wt-label">@L.Resource("WorldBases_DetailCustomName")</span>
+            <input class="wt-input" value="@bench.CustomName" placeholder="@bench.FriendlyClass"
                    @onchange="e => RenameBench(bench.Id, e.Value?.ToString())" />
         </label>
         <small class="wt-muted">@L.Resource("WorldBases_DetailCustomNameHint")</small>
@@ -437,7 +449,10 @@
     </div>;
 
     /// <summary>Renames a bench/deployable. Applies immediately for a live session, otherwise
-    /// stages the edit like every other field on this tab.</summary>
+    /// stages the edit like every other field on this tab. A failure here is a one-off action on
+    /// a single object, not something wrong with the whole tab, so it surfaces as a toast (the
+    /// same convention PlayerRecipesTab already uses for a refused unlock) instead of the
+    /// page-level error banner.</summary>
     private async Task RenameBench(string benchId, string? name)
     {
         try
@@ -447,7 +462,7 @@
         }
         catch (Exception exception)
         {
-            await OnError.InvokeAsync(Errors.Present(exception, "Rename this object.", "The connection may have dropped; try reconnecting."));
+            Toasts.Show(Errors.Present(exception, "Rename this object.", "The connection may have dropped; try reconnecting."), ToastKind.Error);
         }
     }
 
@@ -467,6 +482,10 @@
     private bool IsUpgradeInstalled(string benchId, string row)
         => Session.BenchInstalledUpgrades(benchId).Contains(row, StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>A failure here (most often, live, the upgrade-install refusal - see
+    /// areas/bases.lua's header comment) is a one-off action on a single bench, not something
+    /// wrong with the whole tab, so it surfaces as a toast instead of the page-level error
+    /// banner - see <see cref="RenameBench"/>'s remarks.</summary>
     private async Task SetUpgrade(string benchId, string row, bool installed)
     {
         try
@@ -476,7 +495,7 @@
         }
         catch (Exception exception)
         {
-            await OnError.InvokeAsync(Errors.Present(exception, "Change this bench upgrade.", "The connection may have dropped; try reconnecting."));
+            Toasts.Show(Errors.Present(exception, "Change this bench upgrade.", "The connection may have dropped; try reconnecting."), ToastKind.Error);
         }
     }
 

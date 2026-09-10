@@ -70,6 +70,10 @@ public sealed class LiveStorySession : IWorldStorySession
     public bool IsHost => _world.IsHost;
     public string? Status { get; private set; }
 
+    /// <summary>Raised after <see cref="RefreshAsync"/> re-reads the world and after every
+    /// mutation (chapter, clock, or weather), so the tab can redraw without knowing which.</summary>
+    public event Action? Changed;
+
     // ---------- story chapter / progression ----------
 
     public bool CanShowStory => true;
@@ -93,7 +97,7 @@ public sealed class LiveStorySession : IWorldStorySession
         var (flagsToSet, flagsToClear) = ComputeFlagPlan(row, currentlySet);
 
         await _storyChannel.SetAsync(row, flagsToSet, flagsToClear, cancellationToken).ConfigureAwait(false);
-        Status = "Applied live - this took effect in the running game immediately.";
+        Status = null;
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -160,8 +164,9 @@ public sealed class LiveStorySession : IWorldStorySession
     public async Task SetWorldClockAsync(double seconds, int day, CancellationToken cancellationToken = default)
     {
         await _worldChannel.SetAsync(new LiveWorldStateEdit(TimeSeconds: seconds, Day: day), cancellationToken).ConfigureAwait(false);
-        Status = "Applied live - this took effect in the running game immediately.";
+        Status = null;
         await RefreshWorldAsync(cancellationToken).ConfigureAwait(false);
+        Changed?.Invoke();
     }
 
     // ---------- weather (live only) ----------
@@ -173,15 +178,17 @@ public sealed class LiveStorySession : IWorldStorySession
     public async Task TriggerWeatherAsync(string weather, CancellationToken cancellationToken = default)
     {
         await _worldChannel.SetAsync(new LiveWorldStateEdit(Weather: weather), cancellationToken).ConfigureAwait(false);
-        Status = "Applied live - this took effect in the running game immediately.";
+        Status = null;
         await RefreshWorldAsync(cancellationToken).ConfigureAwait(false);
+        Changed?.Invoke();
     }
 
     public async Task QueueWeatherAsync(string weather, CancellationToken cancellationToken = default)
     {
         await _worldChannel.SetAsync(new LiveWorldStateEdit(NextWeather: weather), cancellationToken).ConfigureAwait(false);
-        Status = "Applied live - this took effect in the running game immediately.";
+        Status = null;
         await RefreshWorldAsync(cancellationToken).ConfigureAwait(false);
+        Changed?.Invoke();
     }
 
     // ---------- world recipes (read-only live; see LiveWorldUnlocksChannel's remarks) ----------
@@ -202,6 +209,7 @@ public sealed class LiveStorySession : IWorldStorySession
         await RefreshWorldAsync(cancellationToken).ConfigureAwait(false);
         try { _unlocks = await _unlocksChannel.GetAsync(cancellationToken).ConfigureAwait(false); }
         catch { /* see ConnectAsync's remarks - a failed refresh just keeps the last known list */ }
+        Changed?.Invoke();
     }
 
     private async Task RefreshWorldAsync(CancellationToken cancellationToken)

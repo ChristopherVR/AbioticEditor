@@ -1,367 +1,93 @@
 @page "/live"
+@using System.Reflection
 @using AbioticEditor.Core.LiveEditing
 @using AbioticEditor.Core.LiveEditing.Player
 @using AbioticEditor.Core.LiveEditing.World
+@using AbioticEditor.Core.WorldSaves
 @using AbioticEditor.Web.Components.Player
 @using AbioticEditor.Web.Components.World
 @using AbioticEditor.Web.Services
-@using Microsoft.Extensions.DependencyInjection
 @implements IAsyncDisposable
 @inject HostLanguageService L
 @inject NavigationManager Navigation
-@inject IServiceProvider Services
 @inject LiveSessionService LiveSession
+@inject SaveWorkspaceSessionService Workspace
 @inject InventorySelectionService Selection
 @inject ItemUpgradeVocabularyService Upgrades
 @inject TraderVocabularyService TraderVocabulary
 
 <PageTitle>@L.Resource("Common_AppName")</PageTitle>
 
-<section class="hero native-empty-state live-connect">
-    <h1>@L.Resource("Live_Title")</h1>
-
-    @if (_vitals is null || _skills is null)
-    {
-        @if (_autoConnectInFlight)
-        {
-            <p class="lede">@L.Resource("Live_AutoConnecting")</p>
-        }
-        else if (_target is null)
-        {
-            <p class="lede">@L.Resource("Live_ConnectSubtitle")</p>
-            <p class="lede">@L.Resource("Live_TargetQuestion")</p>
-            <div class="mode-select-cards">
-                <button class="mode-select-card" type="button" @onclick="ChooseLocal">
-                    <span class="mode-select-card-title">@L.Resource("Live_TargetLocalTitle")</span>
-                    <span class="mode-select-card-note">@L.Resource("Live_TargetLocalNote")</span>
-                </button>
-                <button class="mode-select-card" type="button" @onclick="ChooseRemote">
-                    <span class="mode-select-card-title">@L.Resource("Live_TargetRemoteTitle")</span>
-                    <span class="mode-select-card-note">@L.Resource("Live_TargetRemoteNote")</span>
-                </button>
-            </div>
-            <WhatYouNeedNote />
-        }
-        else if (_target == LiveConnectTarget.Local)
-        {
-            <p class="lede live-waiting" role="status" aria-live="polite">
-                <span class="blocking-busy-spinner" aria-hidden="true"></span>
-                @L.Resource("Live_WaitingForLocalGame")
-            </p>
-            <p class="empty-note">@L.Resource("Live_WaitingForLocalGameHint")</p>
-            <div class="live-connect-actions">
-                <button class="secondary" type="button" @onclick="BackToChoice">@L.Resource("Live_Back")</button>
-            </div>
-        }
-        else
-        {
-            <p class="lede">@L.Resource("Live_RemoteSubtitle")</p>
-            <div class="live-connect-form">
-                <label>
-                    @L.Resource("Live_Host")
-                    <input @bind="_host" @bind:event="oninput" disabled="@_isConnecting" />
-                </label>
-                <label>
-                    @L.Resource("Live_Port")
-                    <input type="number" @bind="_port" @bind:event="oninput" disabled="@_isConnecting" />
-                </label>
-                <label>
-                    @L.Resource("Live_Token")
-                    <input type="password" @bind="_token" @bind:event="oninput" disabled="@_isConnecting" />
-                </label>
-                <button class="primary" type="button" @onclick="() => ConnectAsync(isAutoConnect: false)" disabled="@_isConnecting">
-                    @(_isConnecting ? L.Resource("Live_Connecting") : L.Resource("Live_Connect"))
-                </button>
-                <button class="secondary" type="button" @onclick="BackToChoice" disabled="@_isConnecting">@L.Resource("Live_Back")</button>
-                @if (_error is not null)
-                {
-                    <p class="error-text" role="alert">@_error</p>
-                }
-            </div>
-            <WhatYouNeedNote />
-        }
-    }
-    else
-    {
-        @if (_autoConnected)
-        {
-            <p class="empty-note">
-                @L.Resource("Live_AutoConnected")
-                <button class="secondary" type="button" @onclick="UseManualConnection">@L.Resource("Live_UseManualConnection")</button>
-            </p>
-        }
+@if (_vitals is null || _skills is null)
+{
+    @* Reachable only for the brief moment between OnInitializedAsync finding nothing to adopt
+       and the resulting redirect to the mode-select dialog landing - "where's the game
+       running?", the "this PC or somewhere else?" choice, and all the waiting that follows
+       either answer have exactly one home now (the dialog), and this page never renders any of
+       that itself. The empty-state "hero" card styling belongs here, not on the editing surface
+       below - that surface uses the same plain workspace wrapper the file editor uses instead
+       (see the else branch), since it is a real multi-tab editor now, not a placeholder. *@
+    <section class="hero native-empty-state live-connect">
+        <h1>@L.Resource("Live_Title")</h1>
+        <p class="lede" role="status" aria-live="polite"><span class="blocking-busy-spinner" aria-hidden="true"></span></p>
+    </section>
+}
+else
+{
+    <section class="workspace single-workspace live-connect" aria-label="@L.Resource("Live_Title")">
         <p class="lede live-warning">@L.Resource("Live_ImmediateWarning")</p>
 
-        @if (_directory is { Players.Count: > 1 })
+        @* ONE surface at a time, exactly like the file editor's own single-workspace section:
+           a player save's tabs OR a world save's tabs, never both stacked - see
+           LiveSessionService.Surface and WorkspaceShell's live sidebar, which is what actually
+           drives which one this renders now. The player picker that used to live here is gone:
+           the sidebar's connected-players list does that job already, the same way the file
+           editor has no such picker of its own. *@
+        @if (_surface == LiveSurface.OfflinePlayerFile)
         {
-            <label class="live-player-picker">
-                @L.Resource("Live_EditingPlayer")
-                <select @bind="_selectedPlayerId" @bind:event="oninput" @bind:after="PlayerPickedAsync" disabled="@_isBusy">
-                    @foreach (var player in _directory.Players)
-                    {
-                        <option value="@player.Id">@player.Name@(player.IsLocal ? $" ({L.Resource("Live_You")})" : null)</option>
-                    }
-                </select>
-            </label>
+            @* Round 78: a player who is NOT currently connected still has their own save file on
+               disk, right there in the same world folder as everyone who is - the sidebar lists
+               them (OFFLINE) alongside the connected players, and clicking one stages it on the
+               shared file-editing service exactly the way the offline editor's own sidebar does
+               (see WorkspaceShell's offline-player row handler). This renders the exact same
+               <PlayerEditor> the file editor uses for a selected player save (see
+               SaveEditorSurface.razor), just inside the live layout instead of the file one - the
+               SAVE/REVERT toolbar above (WorkspaceShell's shell-status bar) already reuses its own
+               file-mode markup for this surface too. *@
+            @if (Workspace.Current is { SelectedSave: { } offlineSave, PlayerSession: { } offlinePlayer })
+            {
+                <PlayerEditor Title="@offlineSave.Name" Session="@offlinePlayer"
+                              TransferWorldSession="@Workspace.TransferWorldSession"
+                              OnChanged="HandleOfflinePlayerChangedAsync" />
+            }
+            else
+            {
+                <p class="lede live-waiting" role="status" aria-live="polite">
+                    <span class="blocking-busy-spinner" aria-hidden="true"></span>
+                    @L.Resource("Common_Working")
+                </p>
+            }
         }
-
-        <nav class="editor-tabs" role="tablist" aria-label="@L.Resource("Live_Sections")">
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "vitals" ? "active" : null)"
-                    aria-selected="@(_activeTab == "vitals")" @onclick='() => _activeTab = "vitals"'>
-                @L.Resource("PlayerVitals_CharacterStats")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "skills" ? "active" : null)"
-                    aria-selected="@(_activeTab == "skills")" @onclick='() => _activeTab = "skills"'>
-                @L.Resource("PlayerSkills_Skills")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "spawn" ? "active" : null)"
-                    aria-selected="@(_activeTab == "spawn")" @onclick='() => _activeTab = "spawn"'>
-                @L.Resource("LiveSpawn_Title")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "companions" ? "active" : null)"
-                    aria-selected="@(_activeTab == "companions")" @onclick='() => _activeTab = "companions"'>
-                @L.Resource("LiveCompanions_Title")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "achievements" ? "active" : null)"
-                    aria-selected="@(_activeTab == "achievements")" @onclick='() => _activeTab = "achievements"'>
-                @L.Resource("PlayerAchievements_SteamAchievements")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "data" ? "active" : null)"
-                    aria-selected="@(_activeTab == "data")" @onclick='() => _activeTab = "data"'>
-                @L.Resource("PlayerRaw_RawSaveJson")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "npcs" ? "active" : null)"
-                    aria-selected="@(_activeTab == "npcs")" @onclick='() => _activeTab = "npcs"'>
-                @L.Resource("LiveNpcs_Title")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "inventory" ? "active" : null)"
-                    aria-selected="@(_activeTab == "inventory")" @onclick='() => _activeTab = "inventory"'>
-                @L.Resource("LiveInventory_Title")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "transmog" ? "active" : null)"
-                    aria-selected="@(_activeTab == "transmog")" @onclick='() => _activeTab = "transmog"'>
-                @L.Resource("PlayerEditor_Transmog")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "recipes" ? "active" : null)"
-                    aria-selected="@(_activeTab == "recipes")" @onclick='() => _activeTab = "recipes"'>
-                @L.Resource("PlayerEditor_Recipes")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "codex" ? "active" : null)"
-                    aria-selected="@(_activeTab == "codex")" @onclick='() => _activeTab = "codex"'>
-                @L.Resource("PlayerEditor_Gatepal")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "general" ? "active" : null)"
-                    aria-selected="@(_activeTab == "general")" @onclick='() => _activeTab = "general"'>
-                @L.Resource("PlayerEditor_General")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "world" ? "active" : null)"
-                    aria-selected="@(_activeTab == "world")" @onclick='() => _activeTab = "world"'>
-                @L.Resource("LiveWorld_Title")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "flags" ? "active" : null)"
-                    aria-selected="@(_activeTab == "flags")" @onclick='() => _activeTab = "flags"'>
-                @L.Resource("LiveFlags_Title")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "doors" ? "active" : null)"
-                    aria-selected="@(_activeTab == "doors")" @onclick='() => _activeTab = "doors"'>
-                @L.Resource("LiveDoors_Title")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "containers" ? "active" : null)"
-                    aria-selected="@(_activeTab == "containers")" @onclick='() => _activeTab = "containers"'>
-                @L.Resource("LiveContainers_Title")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "dropped" ? "active" : null)"
-                    aria-selected="@(_activeTab == "dropped")" @onclick='() => _activeTab = "dropped"'>
-                @L.Resource("LiveDropped_Title")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "bases" ? "active" : null)"
-                    aria-selected="@(_activeTab == "bases")" @onclick='() => _activeTab = "bases"'>
-                @L.Resource("WorldBases_BaseManager")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "vehicles" ? "active" : null)"
-                    aria-selected="@(_activeTab == "vehicles")" @onclick='() => _activeTab = "vehicles"'>
-                @L.Resource("WorldVehicles_VehiclesInThisWorld")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "pets" ? "active" : null)"
-                    aria-selected="@(_activeTab == "pets")" @onclick='() => _activeTab = "pets"'>
-                @L.Resource("WorldPets_TamedPetsInThisWorld")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "narrativenpcs" ? "active" : null)"
-                    aria-selected="@(_activeTab == "narrativenpcs")" @onclick='() => _activeTab = "narrativenpcs"'>
-                @L.Resource("WorldNpcs_StoryNpcsAndTraders")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "containment" ? "active" : null)"
-                    aria-selected="@(_activeTab == "containment")" @onclick='() => _activeTab = "containment"'>
-                @L.Resource("WorldEditor_TabContainment")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "traders" ? "active" : null)"
-                    aria-selected="@(_activeTab == "traders")" @onclick='() => _activeTab = "traders"'>
-                @L.Resource("WorldEditor_TabTraders")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "portals" ? "active" : null)"
-                    aria-selected="@(_activeTab == "portals")" @onclick='() => _activeTab = "portals"'>
-                @L.Resource("Live_TabPortals")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "entitlements" ? "active" : null)"
-                    aria-selected="@(_activeTab == "entitlements")" @onclick='() => _activeTab = "entitlements"'>
-                @L.Resource("Live_TabEntitlements")
-            </button>
-            <button type="button" role="tab" class="editor-tab @(_activeTab == "raw" ? "active" : null)"
-                    aria-selected="@(_activeTab == "raw")" @onclick='() => _activeTab = "raw"'>
-                @L.Resource("WorldEditor_TabRawJson")
-            </button>
-        </nav>
-        <div class="player-tab-viewport">
-            @if (_activeTab == "vitals")
-            {
-                <PlayerVitalsTab Vitals="_vitals.Vitals" OnChanged="() => {}" />
-            }
-            else if (_activeTab == "skills")
-            {
-                <PlayerSkillsTab Session="_skills" OnChanged="() => {}" />
-            }
-            else if (_activeTab == "spawn" && _spawn is not null)
-            {
-                <PlayerSpawnTab Session="_spawn" OnChanged="() => {}" />
-            }
-            else if (_activeTab == "companions" && _companions is not null)
-            {
-                <PlayerCompanionsTab Session="_companions" OnChanged="() => {}" />
-            }
-            else if (_activeTab == "achievements")
-            {
-                @* Steam achievements need this computer's local Steam cache files, keyed by
-                   file path, not a running-game concept - genuinely offline-only (see
-                   PlayerAchievementsTab.razor). *@
-                <p class="muted">@L.Resource("Live_OfflineOnlyNote", L.Resource("PlayerAchievements_SteamAchievements"))</p>
-            }
-            else if (_activeTab == "data")
-            {
-                @* The raw property tree is the FILE's own tag list - there is no live
-                   equivalent of it in a running game (see PlayerRawDataTab.razor). *@
-                <p class="muted">@L.Resource("Live_OfflineOnlyNote", L.Resource("PlayerRaw_RawSaveJson"))</p>
-            }
-            else if (_activeTab == "npcs" && _npcs is not null)
-            {
-                <LiveNpcsTab Session="_npcs" OnChanged="() => {}" />
-            }
-            else if (_activeTab == "inventory" && _inventory is not null)
-            {
-                @* Same PlayerInventoryTab the file-backed player editor uses, bound to
-                   IPlayerInventorySession instead of the concrete PlayerSaveSession - see
-                   LiveInventorySession's own doc comment. *@
-                <PlayerInventoryTab Session="_inventory" OnChanged="() => {}" />
-            }
-            else if (_activeTab == "recipes" && _recipes is not null)
-            {
-                <PlayerRecipesTab Session="_recipes" OnChanged="() => {}" />
-            }
-            else if (_activeTab == "codex" && _codex is not null)
-            {
-                <PlayerCodexTab Session="_codex" OnChanged="() => {}" />
-            }
-            else if (_activeTab == "general" && _general is not null && _recipes is not null)
-            {
-                <PlayerGeneralTab General="_general" Recipes="_recipes" OnChanged="() => {}" />
-            }
-            else if (_activeTab == "transmog" && _inventory is not null)
-            {
-                @* Same session object as the inventory tab above (it implements both
-                   interfaces), so a slot dragged between the two areas still works. *@
-                <PlayerTransmogTab Session="_inventory" OnChanged="() => {}" />
-            }
-            else if (_activeTab == "world" && _story is not null && _flags is not null)
-            {
-                <WorldStoryTab Session="_story" Flags="_flags" OnError="e => _error = e" />
-            }
-            else if (_activeTab == "flags" && _flags is not null)
-            {
-                <WorldFlagsTab Session="_flags" OnError="e => _error = e" />
-            }
-            else if (_activeTab == "doors" && _doors is not null)
-            {
-                <WorldDoorsTab Session="_doors" />
-            }
-            else if (_activeTab == "containers" && _containers is not null)
-            {
-                @* Same tab the offline editor uses (IWorldContainersSession is the shared
-                   boundary) - see LiveContainersSession for the live implementation. *@
-                <WorldContainersTab Session="_containers" Title="@L.Resource("LiveContainers_Title")" />
-            }
-            else if (_activeTab == "dropped" && _dropped is not null)
-            {
-                @* Same tab the offline editor uses (IWorldDroppedItemsSession is the shared
-                   boundary) - see LiveDroppedItemsSession for the live implementation. *@
-                <WorldDroppedItemsTab Session="_dropped" Title="@L.Resource("LiveDropped_Title")" />
-            }
-            else if (_activeTab == "bases" && _bases is not null)
-            {
-                <WorldBasesTab Session="_bases" Title="@L.Resource("WorldBases_BaseManager")" OnError="ShowWorldAreaError" />
-            }
-            else if (_activeTab == "vehicles" && _vehicles is not null)
-            {
-                <WorldVehiclesTab Session="_vehicles" Title="@L.Resource("WorldVehicles_VehiclesInThisWorld")" OnError="ShowWorldAreaError" />
-            }
-            else if (_activeTab == "pets" && _pets is not null)
-            {
-                <WorldPetsTab Session="_pets" Title="@L.Resource("WorldPets_TamedPetsInThisWorld")" OnError="ShowWorldAreaError" />
-            }
-            else if (_activeTab == "narrativenpcs" && _narrativeNpcs is not null)
-            {
-                @* Same shared tab the file editor uses (IWorldNpcsSession) - not to be confused
-                   with the "npcs" tab above (LiveNpcsTab), which is wildlife/monster NPCs. *@
-                <WorldNpcsTab Session="_narrativeNpcs" OnError="ShowWorldAreaError" />
-            }
-            else if (_activeTab == "containment" && _containment is not null)
-            {
-                @* The exact same tab the file editor uses (WorldSaveSession implements the same
-                   IWorldContainmentSession boundary) - no FileSession here, so the world-wide
-                   discovery sweeps section (file-only, no live UObject) simply does not render. *@
-                <WorldContainmentTab Session="_containment" OnError="SetError" />
-                <p class="muted">@L.Resource("LiveContainment_OfflineWorldUnlocksNote")</p>
-            }
-            else if (_activeTab == "traders" && _traders is not null)
-            {
-                <LiveTradersTab Session="_traders" OnChanged="() => {}" />
-            }
-            else if (_activeTab == "portals" && _portals is not null)
-            {
-                @* Also the same shared tab the file editor's "World Teleporters" feature uses -
-                   LivePortalsFeatureSession implements IWorldFeaturesSession for this one feature
-                   only; every other feature id (power sockets, resource nodes, ...) has no live
-                   equivalent and is not offered here. *@
-                <WorldFeaturesTab Session="_portals" FeatureId="@LivePortalsFeatureSession.PortalsFeatureId" OnError="SetError" />
-            }
-            else if (_activeTab == "entitlements")
-            {
-                <p class="muted">@L.Resource("Live_EntitlementsOfflineOnly")</p>
-            }
-            else if (_activeTab == "raw")
-            {
-                <p class="muted">@L.Resource("Live_RawOfflineOnly")</p>
-            }
-            else if (_activeTab is "world" or "flags" or "doors" or "containers" or "dropped" or "bases" or "vehicles" or "pets" or "narrativenpcs" or "containment" or "traders" or "portals")
-            {
-                <p class="muted">@L.Resource("Live_WorldAreaUnavailable")</p>
-            }
-        </div>
-
-        @* Every tab except vitals/skills applies immediately per row (each tab manages its own
-           status/error) - the page-level APPLY/REVERT bar only makes sense for the staged
-           vitals/skills tabs. *@
-        @if (_activeTab is "vitals" or "skills")
+        else if (_surface == LiveSurface.Player)
         {
-            <div class="live-connect-actions">
-                <button class="primary" type="button" @onclick="ApplyAsync" disabled="@(!ActiveIsDirty || _isBusy)">
-                    @L.Resource("Live_Apply")
-                </button>
-                <button class="secondary" type="button" @onclick="RevertActive" disabled="@(!ActiveIsDirty || _isBusy)">
-                    @L.Resource("Common_Revert")
-                </button>
-                <button class="secondary" type="button" @onclick="DisconnectAsync" disabled="@_isBusy">
-                    @L.Resource("Live_Disconnect")
-                </button>
-            </div>
+            @* The player tabs are the exact same PlayerEditor.razor the file-based editor uses - see
+               IPlayerEditorSession's own doc comment for why this reuse was worth a composite
+               interface. Its own internal tab strip (vitals/skills/spawn/inventory/...) replaces
+               what used to be a dozen hand-rolled buttons here. *@
+            <PlayerEditor Session="_playerFacade" OnTabActivated="HandlePlayerTabActivatedAsync"
+                          OnChanged="HandlePlayerChangedAsync" LoadingTabId="_connectingTabId">
+                <LoadingContent>
+                    <p class="lede live-waiting" role="status" aria-live="polite">
+                        <span class="blocking-busy-spinner" aria-hidden="true"></span>
+                        @L.Resource("Common_Working")
+                    </p>
+                </LoadingContent>
+            </PlayerEditor>
+            @* VITALS/SKILLS apply immediately now (debounced, see ScheduleAutoSave) - there is no
+               APPLY/REVERT step left to offer, so the only thing shown here is what the last
+               debounced push (or a background refresh) actually did. Every other tab reports its
+               own status inline, the same way it already did before this page had an actions bar
+               at all. *@
             @if (ActiveStatus is not null)
             {
                 <p class="status-text">@ActiveStatus</p>
@@ -369,32 +95,179 @@
         }
         else
         {
-            <div class="live-connect-actions">
-                <button class="secondary" type="button" @onclick="DisconnectAsync" disabled="@_isBusy">
-                    @L.Resource("Live_Disconnect")
-                </button>
-            </div>
+            @* The world tabs have no single shared "WorldEditor" component to delegate to the way
+               PlayerEditor.razor exists for the player side (the file editor's own world-tabs strip
+               is still inlined in SaveEditorSurface.razor) and live editing's world-area set is not a
+               1:1 match for the file editor's feature-map-driven tab list (story/traders/portals/
+               entitlements sit differently on each side) - so this mirrors the FILE editor's
+               world-tabs markup/CSS shape (see SaveEditorSurface.razor) rather than forcing an
+               awkward unification. The heading below is the same one and the same resource string
+               the file editor's own world section uses (see SaveEditorSurface.razor's
+               world-summary-heading). *@
+            <section class="world-editor-summary">
+                <header class="world-summary-heading">
+                    <h2>@L.Resource("LiveWorld_Title")</h2>
+                    @* Round 78: which of the two world tab sets this is - the region the game
+                       currently has loaded, or the world-wide metadata (story/traders/containment/
+                       entitlements) - so switching between a region row and the metadata row in
+                       the sidebar reads as going somewhere different, not just a silent tab reset. *@
+                    <span>@(_worldIsMetadata
+                        ? WorldAreaCatalog.FriendlyName("MetaData")
+                        : WorldAreaCatalog.FriendlyName(LiveSession.CurrentRegionToken) ?? L.Resource("Live_RegionUnknown"))</span>
+                </header>
+            </section>
+            <nav class="world-tabs" role="tablist" aria-label="@L.Resource("LiveWorld_Title")">
+                @if (_worldIsMetadata)
+                {
+                    <button role="tab" aria-selected="@(_worldTab == "world")" class="@(_worldTab == "world" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("world")'>@L.Resource("WorldEditor_TabStory")</button>
+                    <button role="tab" aria-selected="@(_worldTab == "containment")" class="@(_worldTab == "containment" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("containment")'>@L.Resource("WorldEditor_TabContainment")</button>
+                    <button role="tab" aria-selected="@(_worldTab == "traders")" class="@(_worldTab == "traders" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("traders")'>@L.Resource("WorldEditor_TabTraders")</button>
+                    <button role="tab" aria-selected="@(_worldTab == "entitlements")" class="@(_worldTab == "entitlements" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("entitlements")'>@L.Resource("Live_TabEntitlements")</button>
+                }
+                else
+                {
+                    <button role="tab" aria-selected="@(_worldTab == "flags")" class="@(_worldTab == "flags" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("flags")'>@L.Resource("WorldEditor_TabQuestFlags")</button>
+                    <button role="tab" aria-selected="@(_worldTab == "doors")" class="@(_worldTab == "doors" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("doors")'>@L.Resource("WorldEditor_TabDoors")</button>
+                    <button role="tab" aria-selected="@(_worldTab == "containers")" class="@(_worldTab == "containers" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("containers")'>@L.Resource("WorldEditor_TabContainers")</button>
+                    <button role="tab" aria-selected="@(_worldTab == "dropped")" class="@(_worldTab == "dropped" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("dropped")'>@L.Resource("WorldEditor_TabDropped")</button>
+                    <button role="tab" aria-selected="@(_worldTab == "npcs")" class="@(_worldTab == "npcs" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("npcs")'>@L.Resource("Live_TabWildlife")</button>
+                    <button role="tab" aria-selected="@(_worldTab == "bases")" class="@(_worldTab == "bases" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("bases")'>@L.Resource("WorldEditor_TabBases")</button>
+                    <button role="tab" aria-selected="@(_worldTab == "vehicles")" class="@(_worldTab == "vehicles" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("vehicles")'>@L.Resource("WorldEditor_TabVehicles")</button>
+                    <button role="tab" aria-selected="@(_worldTab == "pets")" class="@(_worldTab == "pets" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("pets")'>@L.Resource("WorldEditor_TabPets")</button>
+                    <button role="tab" aria-selected="@(_worldTab == "narrativenpcs")" class="@(_worldTab == "narrativenpcs" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("narrativenpcs")'>@L.Resource("WorldEditor_TabNpcs")</button>
+                    <button role="tab" aria-selected="@(_worldTab == "portals")" class="@(_worldTab == "portals" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("portals")'>@L.Resource("Live_TabPortals")</button>
+                    <button role="tab" aria-selected="@(_worldTab == "raw")" class="@(_worldTab == "raw" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("raw")'>@L.Resource("WorldEditor_TabRawJson")</button>
+                }
+            </nav>
+            @* No extra wrapper div here, matching SaveEditorSurface.razor exactly - each world tab's
+               content component renders directly as a sibling of the nav, the same as the file
+               editor, rather than reusing PlayerEditor's own "player-tab-viewport" wrapper class
+               (which did nothing for this content anyway: that class's actual styling is Blazor
+               scoped CSS private to PlayerEditor.razor, so it never applied outside that component). *@
+            @if (_worldTab == "world" && _story is not null && _flags is not null)
+            {
+                <WorldStoryTab Session="_story" Flags="_flags" OnError="e => _error = e" />
+            }
+            else if (_worldTab == "flags" && _flags is not null)
+            {
+                <WorldFlagsTab Session="_flags" OnError="e => _error = e" />
+            }
+            else if (_worldTab == "doors" && _doors is not null)
+            {
+                <WorldDoorsTab Session="_doors" />
+            }
+            else if (_worldTab == "containers" && _containers is not null)
+            {
+                @* Same tab the offline editor uses (IWorldContainersSession is the shared
+                   boundary) - see LiveContainersSession for the live implementation. *@
+                <WorldContainersTab Session="_containers" Title="@L.Resource("LiveContainers_Title")" />
+            }
+            else if (_worldTab == "dropped" && _dropped is not null)
+            {
+                @* Same tab the offline editor uses (IWorldDroppedItemsSession is the shared
+                   boundary) - see LiveDroppedItemsSession for the live implementation. *@
+                <WorldDroppedItemsTab Session="_dropped" Title="@L.Resource("LiveDropped_Title")" />
+            }
+            else if (_worldTab == "npcs" && _npcs is not null)
+            {
+                <LiveNpcsTab Session="_npcs" OnChanged="() => {}" />
+            }
+            else if (_worldTab == "bases" && _bases is not null)
+            {
+                <WorldBasesTab Session="_bases" Title="@L.Resource("WorldBases_BaseManager")" OnError="ShowWorldAreaError" />
+            }
+            else if (_worldTab == "vehicles" && _vehicles is not null)
+            {
+                <WorldVehiclesTab Session="_vehicles" Title="@L.Resource("WorldVehicles_VehiclesInThisWorld")" OnError="ShowWorldAreaError" />
+            }
+            else if (_worldTab == "pets" && _pets is not null)
+            {
+                <WorldPetsTab Session="_pets" Title="@L.Resource("WorldPets_TamedPetsInThisWorld")" OnError="ShowWorldAreaError" />
+            }
+            else if (_worldTab == "narrativenpcs" && _narrativeNpcs is not null)
+            {
+                @* Same shared tab the file editor uses (IWorldNpcsSession) - not to be confused
+                   with the "npcs" tab above (LiveNpcsTab, CREATURES), which is every creature and
+                   hostile NPC currently loaded, not story characters/traders. *@
+                <WorldNpcsTab Session="_narrativeNpcs" OnError="ShowWorldAreaError" />
+            }
+            else if (_worldTab == "containment" && _containment is not null)
+            {
+                @* The exact same tab the file editor uses (WorldSaveSession implements the same
+                   IWorldContainmentSession boundary) - no FileSession here, so the world-wide
+                   discovery sweeps section (file-only, no live UObject) simply does not render. *@
+                <WorldContainmentTab Session="_containment" OnError="SetError" />
+                <p class="muted">@L.Resource("LiveContainment_OfflineWorldUnlocksNote")</p>
+            }
+            else if (_worldTab == "traders" && _traders is not null)
+            {
+                <LiveTradersTab Session="_traders" OnChanged="() => {}" />
+            }
+            else if (_worldTab == "portals" && _portals is not null)
+            {
+                @* Also the same shared tab the file editor's "World Teleporters" feature uses -
+                   LivePortalsFeatureSession implements IWorldFeaturesSession for this one feature
+                   only; every other feature id (power sockets, resource nodes, ...) has no live
+                   equivalent and is not offered here. *@
+                <WorldFeaturesTab Session="_portals" FeatureId="@LivePortalsFeatureSession.PortalsFeatureId" OnError="SetError" />
+            }
+            else if (_worldTab == "entitlements")
+            {
+                <p class="muted">@L.Resource("Live_EntitlementsOfflineOnly")</p>
+            }
+            else if (_worldTab == "raw")
+            {
+                <p class="muted">@L.Resource("Live_RawOfflineOnly")</p>
+            }
+            else if (_connectingTabId == _worldTab)
+            {
+                @* The tab was just opened and its area is still being asked for - see
+                   EnsureAreaConnectedAsync. Without this, the moment between opening a tab and
+                   its data arriving showed nothing at all (or briefly flashed the "not available"
+                   message below before the real content replaced it). *@
+                <p class="lede live-waiting" role="status" aria-live="polite">
+                    <span class="blocking-busy-spinner" aria-hidden="true"></span>
+                    @L.Resource("Common_Working")
+                </p>
+            }
+            else
+            {
+                <p class="muted">@L.Resource("Live_WorldAreaUnavailable")</p>
+                @if (_lastWorldAreaError is { Length: > 0 } reason)
+                {
+                    <p class="muted">@reason</p>
+                }
+            }
         }
         @if (_error is not null)
         {
             <p class="error-text" role="alert">@_error</p>
         }
-    }
-</section>
+    </section>
+}
 
 @code {
-    private string _host = "127.0.0.1";
-    private int _port = 42117;
-    private string _token = string.Empty;
-    private bool _isConnecting;
-    private bool _isBusy;
-    private bool _autoConnectInFlight;
-    private bool _autoConnected;
-    private LiveConnectTarget? _target;
-    private CancellationTokenSource? _waitCts;
     private string? _error;
-    private string _activeTab = "vitals";
+    // Which player tab PlayerEditor currently has open, mirrored here via OnTabActivated - used
+    // to know which area to lazily connect next, and (for vitals/skills) which session an edit
+    // notification or a background refresh should target.
+    private string _playerActiveTab = "vitals";
+    // Which world tab this page's own world-tabs strip currently has open - independent of
+    // _playerActiveTab; only one of the two sections renders at a time now (see _surface), but
+    // each keeps its own "current tab" so switching back to a surface returns to where it was.
+    private string _worldTab = "containers";
+    // Which of the two mutually-exclusive sections below is on screen - driven entirely by the
+    // sidebar now (WorkspaceShell's live player rows and its WORLD row), never by anything on
+    // this page itself. Mirrored onto LiveSession.Surface so the sidebar can highlight the
+    // selected row.
+    private LiveSurface _surface = LiveSurface.Player;
+    // Round 78: which of the two world tab sets the nav shows - see LiveSessionService.WorldSurfaceIsMetadata.
+    private bool _worldIsMetadata;
+    private static readonly HashSet<string> MetadataWorldTabs = new(StringComparer.Ordinal)
+        { "world", "traders", "containment", "entitlements" };
+    private readonly LivePlayerEditorSession _playerFacade = new();
     private ILiveGameChannel? _channel;
+    private LiveWorldInfoChannel? _worldInfo;
     private LivePlayerVitalsSession? _vitals;
     private LivePlayerSkillsSession? _skills;
     private LivePlayerSpawnSession? _spawn;
@@ -416,262 +289,662 @@
     private LiveContainmentSession? _containment;
     private LiveTradersSession? _traders;
     private LivePortalsFeatureSession? _portals;
-    private LivePlayerDirectory? _directory;
     private string? _selectedPlayerId;
 
-    private bool ActiveIsDirty => _activeTab switch
-    {
-        "vitals" => _vitals?.IsDirty == true,
-        "skills" => _skills?.IsDirty == true,
-        _ => false,
-    };
-    private string? ActiveStatus => _activeTab switch
+    private string? ActiveStatus => _playerActiveTab switch
     {
         "vitals" => _vitals?.Status,
         "skills" => _skills?.Status,
         _ => null,
     };
 
-    // A game running on this PC needs nothing typed in: the live-agent mod writes its token to a
-    // well-known local file, and the desktop host can just read it (see
-    // ILiveEditingCapability.TryReadLocalToken). Only a remote machine with no local file to read
-    // still needs the manual host/port/token form below. This is the one place that distinction
-    // is made; everything past here is the same connect path either way.
+    /// <summary>
+    /// "Where's the game running?", "this PC or somewhere else?", and everything either
+    /// answer waits on all live in the mode-select dialog now - this page's only job is to adopt
+    /// the connection the dialog already proved works (a real TCP connect, hello handshake, and
+    /// a real vitals read - see ModeSelectDialog.TryConnectAsync) and show the tabs, or send the
+    /// player back to the dialog when there is nothing to adopt at all (a direct/bookmarked visit)
+    /// or the handed-off channel stopped answering in the instant between the dialog's last check
+    /// and this page loading (the game closed or crashed right then, say).
+    /// </summary>
     protected override async Task OnInitializedAsync()
     {
         // The sidebar has no access to _vitals/_skills (they live on this page), so it asks
-        // through LiveSessionService instead of switching players itself - see
-        // WorkspaceShell.SwitchLivePlayerAsync, the only other caller of RequestPlayerSwitchAsync.
+        // through LiveSessionService instead of switching players/surfaces itself - see
+        // WorkspaceShell's live sidebar, the only other place these three requests come from.
         LiveSession.PlayerSwitchRequested += HandlePlayerSwitchRequestedAsync;
+        LiveSession.WorldSurfaceRequested += HandleWorldSurfaceRequestedAsync;
+        LiveSession.OfflinePlayerFileRequested += HandleOfflinePlayerFileRequestedAsync;
+        LiveSession.DisconnectRequested += DisconnectAsync;
 
-        var localToken = Services.GetService<ILiveEditingCapability>()?.TryReadLocalToken();
-        if (string.IsNullOrEmpty(localToken)) return;
+        if (LiveSession.TakeVerifiedConnection() is { } handoff)
+        {
+            await ConnectAsync(handoff.Channel);
+            if (_vitals is not null) return;
+        }
 
-        _token = localToken;
-        _autoConnectInFlight = true;
-        // Silent: this is a background optimization the player never asked for yet, not a
-        // connection attempt they are watching - a failure here should fall through to the
-        // "where's the game running" choice below with nothing alarming on screen, not an
-        // error banner about a game they never said was running.
-        await ConnectAsync(isAutoConnect: true, silent: true);
-        _autoConnectInFlight = false;
+        RedirectToModeSelect();
     }
 
-    // Published after render (never inside the parameter/render phase, matching PlayerEditor's
-    // identical PublishPaletteContext - firing Selection.Changed mid-render corrupts the
-    // renderer's diff).
-    protected override void OnAfterRender(bool firstRender) => PublishPaletteContext();
-
-    /// <summary>
-    /// The sidebar ITEM CATALOG shows whenever the live INVENTORY or TRANSMOG tab is open, no
-    /// slot selection required - the same rule <c>PlayerEditor.PublishPaletteContext</c> already
-    /// applies for the file session, now wired to <see cref="LiveInventorySession"/> too (round
-    /// 77 - previously only the file-based player editor page published a palette context,
-    /// so quick-give with no slot selected silently did nothing while connected live).
-    /// </summary>
-    private void PublishPaletteContext()
+    /// <summary>"Where's the game running?" has exactly one home - the mode-select dialog - so
+    /// this page never renders that question itself; anywhere it would otherwise have nothing
+    /// left to show but that question sends the player back to the dialog instead.</summary>
+    private void RedirectToModeSelect()
     {
-        var showPalette = _inventory is not null && _activeTab is "inventory" or "transmog";
-        if (!showPalette && Selection.Current?.PlayerArea is not null) Selection.Clear();
-        Selection.SetPaletteContext(showPalette
-            ? new PaletteContext(
-                _inventory!,
-                _activeTab == "transmog" ? PlayerInventoryArea.Transmog : PlayerInventoryArea.Backpack,
-                QuickGiveFallback,
-                () => Task.CompletedTask)
-            : null);
+        LiveSession.RequestModeSelect();
+        Navigation.NavigateTo("browse");
     }
 
-    /// <summary>Native quick-give auto-pick when no slot is selected: first empty backpack slot,
-    /// then hotbar - the same fallback <c>PlayerEditor.QuickGiveFallback</c> uses.</summary>
-    private QuickGiveTarget? QuickGiveFallback(bool hotbarOnly)
-    {
-        if (_inventory is null) return null;
-        var hotbar = _inventory.Hotbar.FirstOrDefault(slot => slot.IsEmpty);
-        if (hotbarOnly) return hotbar is null ? null : new(hotbar, PlayerInventoryArea.Hotbar, null);
-        if (_inventory.Backpack.FirstOrDefault(slot => slot.IsEmpty) is { } backpack)
-            return new(backpack, PlayerInventoryArea.Backpack, null);
-        return hotbar is null ? null : new(hotbar, PlayerInventoryArea.Hotbar, null);
-    }
+    // The sidebar ITEM CATALOG for INVENTORY/TRANSMOG/GATEPal is now published by the nested
+    // <PlayerEditor> component itself (the exact same PublishPaletteContext the file editor
+    // already used) - this page no longer needs its own copy of that logic.
 
     private async Task HandlePlayerSwitchRequestedAsync(string playerId)
     {
+        // The surface flips back to the live player FIRST, before anything is awaited: coming
+        // back from an offline save file (or the world tabs) must show the live editor again even
+        // if reloading this player's areas is slow or one of them fails - a failure shows up as
+        // the usual error banner on the live surface, never as being stuck on the file editor.
+        _surface = LiveSurface.Player;
+        await InvokeAsync(StateHasChanged);
         if (_vitals is null || _skills is null) return;
+        // A pending debounced vitals/skills push belongs to whoever was selected before - letting
+        // it fire after the switch would push a stale edit onto the player who is now selected.
+        CancelPendingAutoSave();
         _selectedPlayerId = playerId;
         await PlayerPickedAsync();
         await InvokeAsync(StateHasChanged);
     }
 
-    private void UseManualConnection()
+    /// <summary>A sidebar region or world-metadata row: same one-surface-at-a-time switch as
+    /// picking a player, just with no player to load - the world session objects were already
+    /// connected lazily by <see cref="EnsureAreaConnectedAsync"/> the first time this or any
+    /// earlier visit opened a world tab. Switching metadata-ness resets the current tab to a
+    /// sensible default for the new set when the old tab does not belong to it (round 78).</summary>
+    private async Task HandleWorldSurfaceRequestedAsync(bool isMetadata)
     {
-        _autoConnected = false;
-        _ = DisconnectAsync();
-    }
-
-    private void ChooseRemote()
-    {
-        _target = LiveConnectTarget.Remote;
-        _host = string.Empty;
-        _port = 42117;
-        _token = string.Empty;
-        _error = null;
-    }
-
-    /// <summary>Starts (or restarts) waiting for a local game - see <see cref="WaitForLocalGameAsync"/>.</summary>
-    private void ChooseLocal()
-    {
-        _target = LiveConnectTarget.Local;
-        _host = "127.0.0.1";
-        _port = 42117;
-        _error = null;
-        _ = WaitForLocalGameAsync();
-    }
-
-    /// <summary>Back to the "where's the game running" choice, cancelling any local wait in progress.</summary>
-    private void BackToChoice()
-    {
-        _waitCts?.Cancel();
-        _target = null;
-        _error = null;
-    }
-
-    /// <summary>
-    /// Retries reading the local live-agent token and connecting with it until one succeeds or
-    /// the player cancels (BackToChoice) - "just wait indefinitely on the local PC" rather than
-    /// dropping the player into a manual form the moment the game is not up yet. Silent throughout:
-    /// "not connected yet" is the expected state while waiting, not a failure worth an error banner.
-    /// </summary>
-    private async Task WaitForLocalGameAsync()
-    {
-        _waitCts?.Cancel();
-        var cts = new CancellationTokenSource();
-        _waitCts = cts;
-        var capability = Services.GetService<ILiveEditingCapability>();
-        while (!cts.IsCancellationRequested)
+        _surface = LiveSurface.World;
+        if (isMetadata != _worldIsMetadata)
         {
-            if (capability?.TryReadLocalToken() is { Length: > 0 } localToken)
-            {
-                _token = localToken;
-                await ConnectAsync(isAutoConnect: true, silent: true);
-                if (_vitals is not null)
-                {
-                    await InvokeAsync(StateHasChanged);
-                    return;
-                }
-            }
-            try { await Task.Delay(TimeSpan.FromSeconds(2), cts.Token); }
-            catch (TaskCanceledException) { return; }
+            _worldIsMetadata = isMetadata;
+            var belongsToNewSet = MetadataWorldTabs.Contains(_worldTab) == isMetadata;
+            if (!belongsToNewSet) _worldTab = isMetadata ? "world" : "containers";
         }
+        LiveSession.WorldSurfaceSelected(isMetadata);
+        await EnsureAreaConnectedAsync(_worldTab);
+        await InvokeAsync(StateHasChanged);
     }
 
-    private async Task ConnectAsync(bool isAutoConnect, bool silent = false)
+    /// <summary>The sidebar's offline-player row: the file itself was already staged on
+    /// <see cref="Workspace"/> by the sidebar before this runs (see WorkspaceShell's handler) -
+    /// this just switches which surface is on screen, the same as the other two.</summary>
+    private Task HandleOfflinePlayerFileRequestedAsync()
     {
-        _error = null;
-        _isConnecting = true;
-        var channel = new TcpLiveGameChannel();
+        _surface = LiveSurface.OfflinePlayerFile;
+        LiveSession.OfflinePlayerFileSelected();
+        return InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>File-mode's own edit-notification glue (see the file editor's own
+    /// <c>PlayerChanged</c> handler) for the offline-player surface: an edit anywhere in the nested
+    /// <c>&lt;PlayerEditor&gt;</c> needs to flip the shared workspace dirty flag so the SAVE/REVERT
+    /// toolbar above (WorkspaceShell's shell-status bar) lights up.</summary>
+    private Task HandleOfflinePlayerChangedAsync()
+    {
+        Workspace.Current?.PlayerSession?.MarkChanged();
+        Workspace.NotifyEdited();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Adopts an already-connected, already-verified channel: reads the player
+    /// directory and connects vitals/skills for the default tab. Every other area connects
+    /// lazily instead, the first time its own tab is opened - see EnsureAreaConnectedAsync. This
+    /// used to be roughly twenty separate requests fired back-to-back the instant any connection
+    /// succeeded, regardless of which tab (if any) the player was about to look at; if exactly
+    /// one of those twenty handlers has a bug, that burst triggers it on literally every single
+    /// connection. Only asking for the one area a just-opened tab actually needs turns "which of
+    /// twenty things is doing this" into "whichever tab was open when it happened".</summary>
+    private async Task ConnectAsync(ILiveGameChannel channel)
+    {
         try
         {
-            await channel.ConnectAsync(new LiveConnectionInfo(_host, _port, _token));
-            // Every area shares the one connection/token handshake - each gets its own channel
-            // wrapper over it, the same shape the file-backed PlayerSaveSession's slices share
-            // one PlayerSaveData. The directory is read first so vitals/skills can seed straight
-            // from the local player's id instead of the mod's own "no playerId given" default -
-            // the two happen to be the same player today, but reading the id explicitly is what
-            // lets the picker below hand back a DIFFERENT one later without a special case.
+            // The directory is read first so vitals/skills can seed straight from the local
+            // player's id instead of the mod's own "no playerId given" default - the two happen
+            // to be the same player today, but reading the id explicitly is what lets the sidebar
+            // hand back a DIFFERENT one later without a special case.
             var directory = await new LivePlayerDirectoryChannel(channel).GetAsync();
             var localPlayerId = directory.Players.FirstOrDefault(player => player.IsLocal)?.Id;
             _vitals = await LivePlayerVitalsSession.ConnectAsync(new LivePlayerVitalsChannel(channel), localPlayerId);
             _skills = await LivePlayerSkillsSession.ConnectAsync(new LivePlayerSkillsChannel(channel), localPlayerId);
-            _npcs = await LiveNpcSession.ConnectAsync(new LiveNpcChannel(channel));
-            _inventory = await LiveInventorySession.ConnectAsync(new LiveInventoryChannel(channel), localPlayerId, Upgrades.Get(),
-                new LiveTransmogVisibilityChannel(channel));
-            _spawn = await LivePlayerSpawnSession.ConnectAsync(new LiveSpawnChannel(channel), localPlayerId);
-            _companions = await LivePlayerCompanionsSession.ConnectAsync(new LiveCompanionsChannel(channel), localPlayerId);
-            _recipes = await LivePlayerRecipesSession.ConnectAsync(new LivePlayerRecipesChannel(channel), localPlayerId);
-            _codex = await LivePlayerCodexSession.ConnectAsync(new LivePlayerCodexChannel(channel), localPlayerId);
-            _general = await LivePlayerGeneralSession.ConnectAsync(new LivePlayerGeneralChannel(channel), localPlayerId, localPlayerId);
-            // The world areas need a loaded world (a player sitting in the main menu has no
-            // DayNightManager, doors, or containers yet), so each one that fails to read is left
-            // null and its tab says so, instead of failing the whole connection - the player
-            // areas above still work from the menu.
-            _story = await TryConnectWorldAreaAsync(() => LiveStorySession.ConnectAsync(new LiveStoryChannel(channel), new LiveWorldStateChannel(channel), new LiveWorldFlagsChannel(channel), new LiveWorldUnlocksChannel(channel)));
-            _flags = await TryConnectWorldAreaAsync(() => LiveWorldFlagsSession.ConnectAsync(new LiveWorldFlagsChannel(channel)));
-            _doors = await TryConnectWorldAreaAsync(() => LiveDoorsSession.ConnectAsync(new LiveDoorsChannel(channel)));
-            _containers = await TryConnectWorldAreaAsync(() => LiveContainersSession.ConnectAsync(new LiveContainersChannel(channel)));
-            _dropped = await TryConnectWorldAreaAsync(() => LiveDroppedItemsSession.ConnectAsync(new LiveDroppedItemsChannel(channel)));
-            _bases = await TryConnectWorldAreaAsync(() => LiveBasesSession.ConnectAsync(new LiveBasesChannel(channel)));
-            _vehicles = await TryConnectWorldAreaAsync(() => LiveVehiclesSession.ConnectAsync(new LiveVehiclesChannel(channel)));
-            _pets = await TryConnectWorldAreaAsync(() => LivePetsSession.ConnectAsync(new LivePetsChannel(channel)));
-            _narrativeNpcs = await TryConnectWorldAreaAsync(() => LiveNarrativeNpcsSession.ConnectAsync(new LiveNarrativeNpcsChannel(channel)));
-            _containment = await TryConnectWorldAreaAsync(() => LiveContainmentSession.ConnectAsync(new LiveContainmentChannel(channel)));
-            _portals = await TryConnectWorldAreaAsync(() => LivePortalsFeatureSession.ConnectAsync(new LivePortalsChannel(channel)));
-            // Trader gating is world-flag state, so it needs a loaded world like every other
-            // world area; the roster itself is static game data, read once up front.
-            _traders = await TryConnectWorldAreaAsync(() => LiveTradersSession.ConnectAsync(new LiveTradersChannel(channel), TraderVocabulary.GetTraders()));
+            _playerFacade.VitalsSession = _vitals;
+            _playerFacade.SkillsSession = _skills;
             _channel = channel;
-            _autoConnected = isAutoConnect;
-            _directory = directory;
+            _worldInfo = new LiveWorldInfoChannel(channel);
             _selectedPlayerId = localPlayerId;
+            _surface = LiveSurface.Player;
             LiveSession.Connected(directory, localPlayerId);
+            StartLiveRefreshLoop();
+            // Round 78: which world folder on disk this connection's saves live in, so the
+            // sidebar can list this world's other regions (disabled) and offline players
+            // alongside the connected ones - see LiveWorldFolderLocator's own doc comment for why
+            // the lookup runs this way round (a live connection only ever hands back a player id,
+            // never a world/folder name). Off the request thread: it walks every discovered world
+            // on this machine, and must never delay adopting the connection itself.
+            _ = Task.Run(() => TryLocateLiveWorldFolderAsync(localPlayerId));
+            SyncChangedSubscriptions();
+            // Warms the item-upgrade catalog in the background the moment a live connection is
+            // adopted, off the request that actually needs it. ItemUpgradeVocabularyService.Get()
+            // is a plain in-memory Lazy<T> with its own try/catch (see that class) - unlike the
+            // twenty-RPC burst this method's own doc comment warns against, a bug in here cannot
+            // reach the running game or fail the connection, so firing it early carries none of
+            // that risk. Left cold, the FIRST tab that needs it (inventory OR transmog, whichever
+            // the player opens first) pays a full game-pak mount synchronously inside
+            // EnsureAreaConnectedAsync - the "Transmog tab takes a few seconds to open" report was
+            // really this mount landing on whichever of the two tabs happened to be opened first.
+            _ = Task.Run(() => Upgrades.Get());
         }
-        catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
-            or IOException or OperationCanceledException)
+        catch (Exception)
         {
-            // Silent callers (the page-load auto-connect, and the "waiting for a local game"
-            // retry loop) expect this to fail repeatedly until the game is up - that is the
-            // normal, waiting state, not an application error, so it is not logged or shown
-            // (Errors.Present logs at Error level; a two-second retry loop would otherwise fill
-            // the log with one "failure" per tick for as long as the player leaves it waiting).
-            if (!silent)
-            {
-                _error = isAutoConnect
-                    ? Errors.Present(exception, "Connect to the game on this PC.",
-                        "Make sure the game is running with the live-agent mod loaded, or enter a different computer's connection details below.")
-                    : Errors.Present(exception, "Connect to the running game.",
-                        "Check the host, port and token, and that the live-agent mod is running.");
-            }
+            // Catches everything, not just the expected transport exceptions: this only ever
+            // runs once, right after the dialog already proved the exact same channel worked -
+            // an unexpected shape here (a bug in one of these three areas, or a mismatch with an
+            // older/newer in-game mod build) must fail this one adoption attempt, same as a
+            // dropped connection would, rather than crash the whole app out from under the
+            // player the instant a game finishes loading a save. Silent: not worth an error
+            // banner on a page that is about to redirect straight back to the dialog anyway (see
+            // the caller in OnInitializedAsync).
             await channel.DisposeAsync();
         }
-        finally
+    }
+
+    /// <summary>
+    /// Finds this connection's world folder (see <see cref="LiveWorldFolderLocator"/>) and, when
+    /// it is safe to, opens it on the shared file-editing service so the sidebar's region and
+    /// offline-player rows have real save data to show (see WorkspaceShell's
+    /// <c>IsLiveWorldOpen</c>). Never touches an already-open, unrelated FILE workspace that has
+    /// edits staged in it - that folder stays exactly as the player left it, and the sidebar falls
+    /// back to its own static region list instead.
+    /// </summary>
+    private async Task TryLocateLiveWorldFolderAsync(string? localPlayerId)
+    {
+        try
         {
-            _isConnecting = false;
+            var world = LiveWorldFolderLocator.FindForPlayer(localPlayerId);
+            LiveSession.SetWorldFolder(world?.FolderPath);
+            if (world is null) return;
+
+            var alreadyOpen = string.Equals(Workspace.Current?.WorldFolder, world.FolderPath, StringComparison.OrdinalIgnoreCase);
+            if (alreadyOpen) return;
+            if (Workspace.Current is not null && Workspace.HasStagedEdits) return;
+
+            await Workspace.OpenAsync(world);
+        }
+        catch (Exception exception)
+        {
+            Errors.Record(exception, "Find this world's folder for the live sidebar");
         }
     }
 
     /// <summary>A world-area read that the agent rejects (no world loaded, or an older mod without
     /// that command) leaves that area unavailable rather than failing the connection. Transport
     /// failures still propagate: those mean the connection itself is gone.</summary>
-    private static async Task<T?> TryConnectWorldAreaAsync<T>(Func<Task<T>> connect) where T : class
+    private async Task<T?> TryConnectWorldAreaAsync<T>(Func<Task<T>> connect) where T : class
     {
         try
         {
-            return await connect();
+            var session = await connect();
+            _lastWorldAreaError = null;
+            return session;
         }
-        catch (LiveAgentException)
+        catch (LiveAgentException exception)
         {
+            // Kept for the "not available" message below: the game's own reason (no world loaded,
+            // an older in-game script without this command, ...) is the one thing that tells the
+            // player what to do about it.
+            _lastWorldAreaError = Errors.Present(exception, "Open this area.", "The game may not have a world loaded yet.");
             return null;
         }
     }
 
-    private async Task ApplyAsync()
+    /// <summary>What the game said the last time a world area refused to connect - shown under the
+    /// generic "not available" line so a blank world tab is never a mystery.</summary>
+    private string? _lastWorldAreaError;
+
+    /// <summary>The tab id currently being lazily connected, if any - PlayerEditor's LoadingTabId
+    /// and the world viewport both compare their own active tab against this, so a connect in
+    /// progress for one section never shows a spinner in the other.</summary>
+    private string? _connectingTabId;
+
+    private async Task HandlePlayerTabActivatedAsync(string tab)
     {
-        _isBusy = true;
-        _error = null;
+        _playerActiveTab = tab;
+        // VITALS/SKILLS are already connected before <PlayerEditor> ever exists (see
+        // ConnectAsync), so there is nothing to lazily connect here - and PlayerEditor now reports
+        // its initial tab on every mount (including every remount after a detour to the WORLD
+        // surface, which recreates it back at its own "vitals" default), so skipping the connect
+        // dance for these two avoids a spurious loading flash on top of the tab the player was
+        // already looking at.
+        if (tab is "vitals" or "skills") return;
+        await EnsureAreaConnectedAsync(tab);
+    }
+
+    private async Task SelectWorldTabAsync(string tab)
+    {
+        _worldTab = tab;
+        await EnsureAreaConnectedAsync(tab);
+    }
+
+    /// <summary>
+    /// Connects the one area a tab needs, the first time that tab is opened - see the comment
+    /// on <see cref="ConnectAsync"/> for why this is lazy at all. The <c>??=</c> on every field
+    /// makes revisiting an already-connected tab a no-op, and a world area that failed because no
+    /// world was loaded yet is deliberately retried on a later visit rather than remembered as a
+    /// permanent failure - the world can load mid-session. Every player-area case also mirrors its
+    /// result onto <see cref="_playerFacade"/>, the same object <c>&lt;PlayerEditor&gt;</c> reads
+    /// from - see <see cref="LivePlayerEditorSession"/>'s own doc comment.
+    /// </summary>
+    private async Task EnsureAreaConnectedAsync(string tab)
+    {
+        if (_channel is not { } channel) return;
+        _connectingTabId = tab;
+        await InvokeAsync(StateHasChanged);
         try
         {
-            if (_activeTab == "vitals" && _vitals is not null) await _vitals.SaveAsync();
-            else if (_skills is not null) await _skills.SaveAsync();
+            switch (tab)
+            {
+                case "npcs":
+                    _npcs ??= await LiveNpcSession.ConnectAsync(new LiveNpcChannel(channel));
+                    break;
+                case "inventory" or "transmog":
+                    _inventory ??= await LiveInventorySession.ConnectAsync(new LiveInventoryChannel(channel), _selectedPlayerId, Upgrades.Get(),
+                        new LiveTransmogVisibilityChannel(channel));
+                    _playerFacade.InventorySession = _inventory;
+                    break;
+                case "spawn":
+                    _spawn ??= await LivePlayerSpawnSession.ConnectAsync(new LiveSpawnChannel(channel), _selectedPlayerId);
+                    _playerFacade.SpawnSession = _spawn;
+                    break;
+                case "companions":
+                    _companions ??= await LivePlayerCompanionsSession.ConnectAsync(new LiveCompanionsChannel(channel), _selectedPlayerId);
+                    _playerFacade.CompanionsSession = _companions;
+                    break;
+                case "recipes":
+                    _recipes ??= await LivePlayerRecipesSession.ConnectAsync(new LivePlayerRecipesChannel(channel), _selectedPlayerId);
+                    _playerFacade.RecipesSession = _recipes;
+                    break;
+                case "codex":
+                    _codex ??= await LivePlayerCodexSession.ConnectAsync(new LivePlayerCodexChannel(channel), _selectedPlayerId);
+                    _playerFacade.CodexSession = _codex;
+                    break;
+                case "general":
+                case "character":
+                    // PlayerGeneralTab/PlayerCharacterTab both also need the recipes session
+                    // (progress gating) - see their render conditions below. CHARACTER now binds
+                    // to the same IPlayerGeneralSession GENERAL does (LivePlayerGeneralSession), so
+                    // opening either tab first connects both.
+                    _recipes ??= await LivePlayerRecipesSession.ConnectAsync(new LivePlayerRecipesChannel(channel), _selectedPlayerId);
+                    _playerFacade.RecipesSession = _recipes;
+                    _general ??= await LivePlayerGeneralSession.ConnectAsync(new LivePlayerGeneralChannel(channel), _selectedPlayerId, _selectedPlayerId);
+                    _playerFacade.GeneralSession = _general;
+                    break;
+                case "world":
+                    // WorldStoryTab needs both sessions - see its render condition below.
+                    _story ??= await TryConnectWorldAreaAsync(() => LiveStorySession.ConnectAsync(new LiveStoryChannel(channel), new LiveWorldStateChannel(channel), new LiveWorldFlagsChannel(channel), new LiveWorldUnlocksChannel(channel)));
+                    _flags ??= await TryConnectWorldAreaAsync(() => LiveWorldFlagsSession.ConnectAsync(new LiveWorldFlagsChannel(channel)));
+                    break;
+                case "flags":
+                    _flags ??= await TryConnectWorldAreaAsync(() => LiveWorldFlagsSession.ConnectAsync(new LiveWorldFlagsChannel(channel)));
+                    break;
+                case "doors":
+                    _doors ??= await TryConnectWorldAreaAsync(() => LiveDoorsSession.ConnectAsync(new LiveDoorsChannel(channel)));
+                    break;
+                case "containers":
+                    _containers ??= await TryConnectWorldAreaAsync(() => LiveContainersSession.ConnectAsync(new LiveContainersChannel(channel)));
+                    break;
+                case "dropped":
+                    _dropped ??= await TryConnectWorldAreaAsync(() => LiveDroppedItemsSession.ConnectAsync(new LiveDroppedItemsChannel(channel)));
+                    break;
+                case "bases":
+                    _bases ??= await TryConnectWorldAreaAsync(() => LiveBasesSession.ConnectAsync(new LiveBasesChannel(channel)));
+                    break;
+                case "vehicles":
+                    _vehicles ??= await TryConnectWorldAreaAsync(() => LiveVehiclesSession.ConnectAsync(new LiveVehiclesChannel(channel)));
+                    break;
+                case "pets":
+                    _pets ??= await TryConnectWorldAreaAsync(() => LivePetsSession.ConnectAsync(new LivePetsChannel(channel)));
+                    break;
+                case "narrativenpcs":
+                    _narrativeNpcs ??= await TryConnectWorldAreaAsync(() => LiveNarrativeNpcsSession.ConnectAsync(new LiveNarrativeNpcsChannel(channel)));
+                    break;
+                case "containment":
+                    _containment ??= await TryConnectWorldAreaAsync(() => LiveContainmentSession.ConnectAsync(new LiveContainmentChannel(channel)));
+                    break;
+                case "traders":
+                    // Trader gating is world-flag state, so it needs a loaded world like every
+                    // other world area; the roster itself is static game data.
+                    _traders ??= await TryConnectWorldAreaAsync(() => LiveTradersSession.ConnectAsync(new LiveTradersChannel(channel), TraderVocabulary.GetTraders()));
+                    break;
+                case "portals":
+                    _portals ??= await TryConnectWorldAreaAsync(() => LivePortalsFeatureSession.ConnectAsync(new LivePortalsChannel(channel)));
+                    break;
+            }
         }
-        catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
-            or IOException or OperationCanceledException)
+        catch (Exception exception)
+        {
+            _error = Errors.Present(exception, "Open this area.", "The connection may have dropped; try reconnecting.");
+        }
+        finally
+        {
+            _connectingTabId = null;
+            SyncChangedSubscriptions();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    // ---- VITALS/SKILLS: apply immediately, debounced, never overlapping ----
+    // Every other player tab pushes its own edits to the game the moment its own button/field
+    // commits (PlayerSpawnTab's TELEPORT HERE, PlayerCompanionsTab's SEND, PlayerInventoryTab's
+    // per-slot PushSlotAsync, ...) - PlayerEditor's OnChanged bubbles up from ALL of those too,
+    // but only vitals/skills actually need this page to do anything about it: their tabs just
+    // mutate the shared PlayerVitals/PlayerSkillEdit models in place on every keystroke/slider
+    // tick and rely on something else to push the result, the same way the file editor's SAVE
+    // button does for the staged copy. Live has no SAVE button any more, so this pushes on their
+    // behalf - a short debounce so a dragged slider collapses into one push instead of dozens,
+    // and a gate so a slow push never overlaps a second one for the same tab.
+    private CancellationTokenSource? _autoSaveDebounce;
+    private readonly SemaphoreSlim _autoSaveGate = new(1, 1);
+
+    private Task HandlePlayerChangedAsync()
+    {
+        if (_playerActiveTab is "vitals" or "skills") ScheduleAutoSave(_playerActiveTab);
+        return Task.CompletedTask;
+    }
+
+    private void ScheduleAutoSave(string tab)
+    {
+        CancelPendingAutoSave();
+        var cts = new CancellationTokenSource();
+        _autoSaveDebounce = cts;
+        _ = DebouncedAutoSaveAsync(tab, cts.Token);
+    }
+
+    private void CancelPendingAutoSave()
+    {
+        _autoSaveDebounce?.Cancel();
+        _autoSaveDebounce?.Dispose();
+        _autoSaveDebounce = null;
+    }
+
+    /// <summary>Waits out the debounce window, then pushes the tab's current state to the game -
+    /// serialized through <see cref="_autoSaveGate"/> so an in-flight push always finishes before
+    /// the next one starts, however fast the player keeps editing.</summary>
+    private async Task DebouncedAutoSaveAsync(string tab, CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(200), token);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        await _autoSaveGate.WaitAsync(CancellationToken.None);
+        try
+        {
+            if (token.IsCancellationRequested) return;
+            if (tab == "vitals" && _vitals is not null) await _vitals.SaveAsync();
+            else if (tab == "skills" && _skills is not null) await _skills.SaveAsync();
+            _error = null;
+        }
+        catch (Exception exception)
         {
             _error = Errors.Present(exception, "Apply the live edit.",
                 "The connection may have dropped; try reconnecting.");
         }
         finally
         {
-            _isBusy = false;
+            _autoSaveGate.Release();
+            await InvokeAsync(StateHasChanged);
         }
+    }
+
+    // ---- Background refresh: pick up changes made in the running game itself ----
+    // A single loop for the whole page lifetime rather than one started and stopped per tab/
+    // surface switch: every tick below already checks the surface and active tab first and
+    // simply does nothing when they do not match, which is exactly the same end result as
+    // tearing the timer down and recreating it, with far less to get wrong around a fast switch
+    // racing a tick. It stops for good in DisconnectAsync/DisposeAsync.
+    private CancellationTokenSource? _liveRefreshCts;
+
+    private void StartLiveRefreshLoop()
+    {
+        _liveRefreshCts = new CancellationTokenSource();
+        _ = LiveRefreshLoopAsync(_liveRefreshCts.Token);
+    }
+
+    private void StopLiveRefreshLoop()
+    {
+        _liveRefreshCts?.Cancel();
+        _liveRefreshCts?.Dispose();
+        _liveRefreshCts = null;
+    }
+
+    private async Task LiveRefreshLoopAsync(CancellationToken token)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
+            while (await timer.WaitForNextTickAsync(token))
+            {
+                await PollCurrentRegionAsync();
+                await RefreshActiveAreaAsync();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    /// <summary>Round 78: which region of the world the game currently has loaded, for the
+    /// sidebar's per-region rows (see WorkspaceShell). A cosmetic read - a transient failure here
+    /// is silently ignored, the same as <see cref="RefreshActiveAreaAsync"/> below.</summary>
+    private async Task PollCurrentRegionAsync()
+    {
+        if (_worldInfo is not { } worldInfo) return;
+        try
+        {
+            var info = await worldInfo.GetAsync();
+            LiveSession.SetCurrentRegion(info.LevelToken);
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    /// <summary>
+    /// Re-reads whichever live session backs the tab currently on screen, so a change made in the
+    /// running game itself (damage taken, an item picked up, a door someone else opened) shows up
+    /// here too - not only vitals/skills, which is all this used to cover. Generalised (round 78)
+    /// to reach every area by calling <c>RefreshAsync()</c>/<c>IsDirty</c> through reflection
+    /// (<see cref="LiveSessionReflection"/>) rather than a shared interface: several of these
+    /// session classes are picking up that convention in other, concurrently in-flight changes,
+    /// and reflecting on it by name means this loop keeps compiling and keeps working
+    /// incrementally as each one does, instead of needing every session to land the members in
+    /// lockstep with this file. A session with neither member yet is simply skipped - not an
+    /// error - until it picks them up. Never refreshes a dirty session (an edit in progress); for
+    /// vitals/skills specifically, also skipped while their own debounced push is pending or in
+    /// flight (the exact guard this loop used to apply to only those two).
+    /// </summary>
+    private async Task RefreshActiveAreaAsync()
+    {
+        foreach (var session in ActiveLiveSessions())
+        {
+            if (session is null) continue;
+            if ((ReferenceEquals(session, _vitals) || ReferenceEquals(session, _skills))
+                && _autoSaveGate.CurrentCount == 0)
+            {
+                continue;
+            }
+            try
+            {
+                if (LiveSessionReflection.IsDirty(session)) continue;
+                if (await LiveSessionReflection.TryRefreshAsync(session)) await InvokeAsync(StateHasChanged);
+            }
+            catch (Exception)
+            {
+                // A refresh is a nicety, not the player's own edit - a transient failure here is
+                // not worth an error banner every couple of seconds. The next tick tries again.
+            }
+        }
+    }
+
+    /// <summary>Every live session object that could back the tab currently on screen, player or
+    /// world - see <see cref="RefreshActiveAreaAsync"/>. "general" also refreshes recipes
+    /// (progress-gating), mirroring how <see cref="EnsureAreaConnectedAsync"/> connects the two
+    /// together. The offline-player-file surface has nothing live behind it, so nothing is
+    /// yielded for it - its own SAVE/REVERT toolbar is the only way it changes.</summary>
+    private IEnumerable<object?> ActiveLiveSessions()
+    {
+        if (_surface == LiveSurface.Player)
+        {
+            yield return _playerActiveTab switch
+            {
+                "vitals" => _vitals,
+                "skills" => _skills,
+                "inventory" or "transmog" => _inventory,
+                "spawn" => _spawn,
+                "companions" => _companions,
+                "recipes" => _recipes,
+                "codex" => _codex,
+                "general" or "character" => _general,
+                _ => null,
+            };
+            if (_playerActiveTab is "general" or "character") yield return _recipes;
+        }
+        else if (_surface == LiveSurface.World)
+        {
+            // -- Add a new world session's active-tab case here as it picks up RefreshAsync/IsDirty. --
+            switch (_worldTab)
+            {
+                case "world": yield return _story; yield return _flags; break;
+                case "flags": yield return _flags; break;
+                case "doors": yield return _doors; break;
+                case "containers": yield return _containers; break;
+                case "dropped": yield return _dropped; break;
+                case "npcs": yield return _npcs; break;
+                case "bases": yield return _bases; break;
+                case "vehicles": yield return _vehicles; break;
+                case "pets": yield return _pets; break;
+                case "narrativenpcs": yield return _narrativeNpcs; break;
+                case "containment": yield return _containment; break;
+                case "traders": yield return _traders; break;
+                case "portals": yield return _portals; break;
+                // "entitlements"/"raw" have no live session backing them - offline-only.
+            }
+        }
+    }
+
+    /// <summary>
+    /// Calls the <c>RefreshAsync()</c>/<c>IsDirty</c> members various live session classes are
+    /// gaining (some already have them; others are picking this convention up in other,
+    /// concurrently in-flight changes) by name, via reflection, instead of through a shared
+    /// interface every session would need to implement in lockstep with this file. See <see
+    /// cref="RefreshActiveAreaAsync"/> and <see cref="SyncChangedSubscriptions"/> (the same
+    /// by-name approach for the <c>Changed</c> event).
+    /// </summary>
+    private static class LiveSessionReflection
+    {
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, PropertyInfo?> IsDirtyProperties = new();
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, MethodInfo?> RefreshMethods = new();
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, EventInfo?> ChangedEvents = new();
+
+        public static bool IsDirty(object session)
+        {
+            var property = IsDirtyProperties.GetOrAdd(session.GetType(), type => type.GetProperty("IsDirty", typeof(bool)));
+            return property is not null && property.GetValue(session) is true;
+        }
+
+        public static async Task<bool> TryRefreshAsync(object session)
+        {
+            var method = RefreshMethods.GetOrAdd(session.GetType(), type => type.GetMethod("RefreshAsync", Type.EmptyTypes));
+            if (method is null) return false;
+            if (method.Invoke(session, null) is Task task) await task.ConfigureAwait(true);
+            return true;
+        }
+
+        public static EventInfo? ChangedEvent(object session)
+            => ChangedEvents.GetOrAdd(session.GetType(), type => type.GetEvent("Changed"));
+    }
+
+    // ---- Live "Changed" event subscriptions (round 78) ----
+    // Separate from RefreshActiveAreaAsync's own polling: a session that fires Changed the moment
+    // the running game's own state moves (rather than only when this loop next polls it) is
+    // picked up immediately instead of waiting up to two seconds. Subscribed to every currently
+    // connected session (not only the active tab's), so switching tabs never misses a change that
+    // happened while that tab was in the background; unsubscribed as a whole on disconnect/dispose.
+    private readonly HashSet<object> _changedSubscriptions = new();
+
+    private void OnLiveSessionChanged() => Refresh();
+    private Task OnLiveSessionChangedAsync() { Refresh(); return Task.CompletedTask; }
+    private void Refresh() => _ = InvokeAsync(StateHasChanged);
+
+    private IEnumerable<object?> AllKnownLiveSessions() => new object?[]
+    {
+        _vitals, _skills, _spawn, _companions, _npcs, _inventory, _story, _recipes, _codex, _general,
+        _flags, _doors, _containers, _dropped, _bases, _vehicles, _pets, _narrativeNpcs, _containment,
+        _traders, _portals,
+    };
+
+    /// <summary>Subscribes to every connected session's <c>Changed</c> event that is not already
+    /// subscribed to. Safe to call repeatedly (called after <see cref="ConnectAsync"/> and after
+    /// every <see cref="EnsureAreaConnectedAsync"/>, since either can hand back a newly connected
+    /// session) - already-subscribed sessions are skipped, and a session with no <c>Changed</c>
+    /// event yet, or one of a shape <see cref="MakeChangedHandler"/> does not recognise, is simply
+    /// left unsubscribed rather than guessed at.</summary>
+    private void SyncChangedSubscriptions()
+    {
+        foreach (var session in AllKnownLiveSessions())
+        {
+            if (session is null || !_changedSubscriptions.Add(session)) continue;
+            var changedEvent = LiveSessionReflection.ChangedEvent(session);
+            var handler = MakeChangedHandler(changedEvent);
+            if (handler is null) { _changedSubscriptions.Remove(session); continue; }
+            try { changedEvent!.AddEventHandler(session, handler); }
+            catch (Exception) { _changedSubscriptions.Remove(session); }
+        }
+    }
+
+    /// <summary>Unsubscribes every session <see cref="SyncChangedSubscriptions"/> subscribed to -
+    /// called once on disconnect/dispose rather than per-session, since nothing here needs to
+    /// unsubscribe earlier than that (a session that stops being the active tab still keeps its
+    /// own state current in the background, which is harmless).</summary>
+    private void UnsubscribeAllChangedEvents()
+    {
+        foreach (var session in _changedSubscriptions)
+        {
+            var handler = MakeChangedHandler(LiveSessionReflection.ChangedEvent(session));
+            if (handler is null) continue;
+            try { LiveSessionReflection.ChangedEvent(session)!.RemoveEventHandler(session, handler); }
+            catch (Exception) { }
+        }
+        _changedSubscriptions.Clear();
+    }
+
+    /// <summary>Builds a delegate matching whichever event-handler shape a session's own
+    /// <c>Changed</c> event declares. Every other "Changed" event in this codebase (<c>
+    /// SaveWorkspaceSessionService.Changed</c>, <c>LiveSessionService.Changed</c>, ...) is a plain
+    /// <c>Action</c>; this also accepts <c>Func&lt;Task&gt;</c> for a session that awaits
+    /// something to raise it. A delegate built here works for both subscribing and unsubscribing:
+    /// two separately-created delegates wrapping the same target and method are equal, so
+    /// <c>RemoveEventHandler</c> finds the one <c>AddEventHandler</c> added without needing the
+    /// exact same instance kept around.</summary>
+    private Delegate? MakeChangedHandler(EventInfo? changedEvent)
+    {
+        if (changedEvent is null) return null;
+        if (changedEvent.EventHandlerType == typeof(Action)) return new Action(OnLiveSessionChanged);
+        if (changedEvent.EventHandlerType == typeof(Func<Task>)) return new Func<Task>(OnLiveSessionChangedAsync);
+        return null;
     }
 
     /// <summary>OnError callback shape shared by WorldContainmentTab/WorldFeaturesTab (both take
@@ -682,18 +955,11 @@
         return Task.CompletedTask;
     }
 
-    private void RevertActive()
-    {
-        if (_activeTab == "vitals") _vitals?.Revert();
-        else _skills?.Revert();
-    }
-
     /// <summary>Switches both tabs to a different connected player, discarding any unsaved edits
-    /// for whoever was selected before - REVERT only ever undoes edits, never a player switch.</summary>
+    /// for whoever was selected before.</summary>
     private async Task PlayerPickedAsync()
     {
         if (_vitals is null || _skills is null) return;
-        _isBusy = true;
         _error = null;
         try
         {
@@ -715,15 +981,10 @@
             if (_general is not null) await _general.SwitchPlayerAsync(_selectedPlayerId, _selectedPlayerId);
             LiveSession.PlayerSelected(_selectedPlayerId);
         }
-        catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
-            or IOException or OperationCanceledException)
+        catch (Exception exception)
         {
             _error = Errors.Present(exception, "Switch to a different player.",
                 "The connection may have dropped; try reconnecting.");
-        }
-        finally
-        {
-            _isBusy = false;
         }
     }
 
@@ -737,9 +998,14 @@
 
     private async Task DisconnectAsync()
     {
+        StopLiveRefreshLoop();
+        CancelPendingAutoSave();
+        UnsubscribeAllChangedEvents();
         // The sidebar slot editor is rendered globally and reads live objects that are about to
         // go away; clear any selection so it does not keep showing a now-dead live slot.
         if (Selection.Current?.PlayerArea is not null) Selection.Clear();
+        _worldInfo = null;
+        _worldIsMetadata = false;
         _vitals = null;
         _skills = null;
         _spawn = null;
@@ -750,6 +1016,18 @@
         _recipes = null;
         _codex = null;
         _general = null;
+        _playerFacade.VitalsSession = null;
+        _playerFacade.SkillsSession = null;
+        _playerFacade.SpawnSession = null;
+        _playerFacade.CompanionsSession = null;
+        _playerFacade.InventorySession = null;
+        _playerFacade.RecipesSession = null;
+        _playerFacade.CodexSession = null;
+        _playerFacade.GeneralSession = null;
+        _playerActiveTab = "vitals";
+        _worldTab = "containers";
+        _surface = LiveSurface.Player;
+        _connectingTabId = null;
         _flags = null;
         _doors = null;
         _containers = null;
@@ -761,27 +1039,27 @@
         _containment = null;
         _traders = null;
         _portals = null;
-        _directory = null;
         _selectedPlayerId = null;
         if (_channel is not null) await _channel.DisposeAsync();
         _channel = null;
         _error = null;
-        // Back to the "where's the game running" choice, not straight into whichever path
-        // brought them here - DISCONNECT is a fresh start, same as it always was before this
-        // page had more than one way in.
-        _waitCts?.Cancel();
-        _target = null;
+        // DISCONNECT is a fresh start - back to "where's the game running", which lives in the
+        // mode-select dialog, not rendered inline here.
         LiveSession.Disconnected();
+        RedirectToModeSelect();
     }
 
     public async ValueTask DisposeAsync()
     {
         LiveSession.PlayerSwitchRequested -= HandlePlayerSwitchRequestedAsync;
+        LiveSession.WorldSurfaceRequested -= HandleWorldSurfaceRequestedAsync;
+        LiveSession.OfflinePlayerFileRequested -= HandleOfflinePlayerFileRequestedAsync;
+        LiveSession.DisconnectRequested -= DisconnectAsync;
+        StopLiveRefreshLoop();
+        CancelPendingAutoSave();
+        UnsubscribeAllChangedEvents();
         LiveSession.Disconnected();
         Selection.SetPaletteContext(null);
-        _waitCts?.Cancel();
         if (_channel is not null) await _channel.DisposeAsync();
     }
-
-    private enum LiveConnectTarget { Local, Remote }
 }

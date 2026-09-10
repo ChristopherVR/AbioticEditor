@@ -11,8 +11,9 @@ namespace AbioticEditor.Web.Models;
 /// research comment); Peccary and Lamogi pets stay file-only. There is no live species change
 /// (no confirmed despawn/respawn round trip for a living NPC - the file writer's class-change is
 /// a plain field edit, but doing that live would desync the actor's actual blueprint class from
-/// what the property claims) and no live removal - <see cref="SupportsSpeciesChange"/>/
-/// <see cref="SupportsRemoval"/> are always false so the shared tab hides those controls.
+/// what the property claims) - <see cref="SupportsSpeciesChange"/> is always false so the shared
+/// tab hides that control. Round 78 added real removal (<see cref="SupportsRemoval"/>, always
+/// true here) via <see cref="LivePetsChannel.RemoveAsync"/> - see that class's remarks.
 /// </summary>
 public sealed class LivePetsSession : IWorldPetsSession
 {
@@ -38,6 +39,16 @@ public sealed class LivePetsSession : IWorldPetsSession
     public string? UnavailableReason { get; private set; }
     public string? Status { get; private set; }
 
+    /// <summary>Always false: every row shown was either just read from the game or already
+    /// applied by <see cref="SetPetAsync"/>/removal, so there is never a client-side staged copy.
+    /// This is what the periodic live refresh loop checks before calling <see cref="RefreshAsync"/>
+    /// so a refresh never clobbers an edit still in flight.</summary>
+    public bool IsDirty => false;
+
+    /// <summary>Raised after <see cref="RefreshAsync"/> re-reads the world and after every
+    /// mutation below (each of which already ends by refreshing).</summary>
+    public event Action? Changed;
+
     private void Apply(LivePetDirectory directory)
     {
         Pets = directory.Pets
@@ -46,6 +57,7 @@ public sealed class LivePetsSession : IWorldPetsSession
         IsHost = directory.IsHost;
         IsAvailable = directory.Available;
         UnavailableReason = directory.Reason;
+        Changed?.Invoke();
     }
 
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
@@ -53,7 +65,7 @@ public sealed class LivePetsSession : IWorldPetsSession
 
     bool IWorldPetsSession.AppliesImmediately => true;
     bool IWorldPetsSession.SupportsSpeciesChange => false;
-    bool IWorldPetsSession.SupportsRemoval => false;
+    bool IWorldPetsSession.SupportsRemoval => true;
 
     async Task IWorldPetsSession.SetPetAsync(string id, bool isDead, string? npcClass, string? customName, int xp,
         IReadOnlyDictionary<string, double> limbHealth, CancellationToken cancellationToken)
@@ -61,15 +73,26 @@ public sealed class LivePetsSession : IWorldPetsSession
         // npcClass is accepted by the shared interface but ignored here: the tab's species
         // dropdown is hidden (SupportsSpeciesChange is false), so this is always the pet's own
         // current class, never a real change request.
-        await _channel.SetAsync(id, isDead, customName, xp, limbHealth, cancellationToken).ConfigureAwait(false);
-        Status = "Applied live - this took effect in the running game immediately.";
+        var result = await _channel.SetAsync(id, isDead, customName, xp, limbHealth, cancellationToken).ConfigureAwait(false);
+        // Round 78: a field that couldn't be applied (most commonly: raising the level of a pet
+        // that has never earned real XP, which can't be fabricated live - see pets.lua's own
+        // remarks) is a WARNING, not a thrown exception, so the fields that DID apply (health,
+        // name, dead) are never thrown away along with it, and the tab always refreshes to show
+        // what actually happened instead of going stale.
+        Status = result.Warnings.Count == 0 ? null : string.Join(" ", result.Warnings);
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    Task IWorldPetsSession.RemovePetAsync(string id, CancellationToken cancellationToken)
-        => throw new NotSupportedException(
-            "Removing a pet live isn't supported - there's no way to bring it back if that's wrong. Edit the save file instead.");
+    /// <summary>Removes a pet by destroying its live actor - see <see cref="LivePetsChannel.RemoveAsync"/>'s
+    /// remarks. There is no undo once this returns, unlike the file session's staged removal.</summary>
+    async Task IWorldPetsSession.RemovePetAsync(string id, CancellationToken cancellationToken)
+    {
+        await _channel.RemoveAsync(id, cancellationToken).ConfigureAwait(false);
+        Status = "Removed live - this despawned the pet in the running game immediately.";
+        await RefreshAsync(cancellationToken).ConfigureAwait(false);
+    }
 
     Task<bool> IWorldPetsSession.RestorePetAsync(WorldPet pet, CancellationToken cancellationToken)
-        => throw new NotSupportedException("Live pet removal cannot happen in the first place, so there is nothing to restore.");
+        => throw new NotSupportedException(
+            "Removing a pet live can't be undone - its actor is already gone. Edit the save file instead if this was a mistake.");
 }

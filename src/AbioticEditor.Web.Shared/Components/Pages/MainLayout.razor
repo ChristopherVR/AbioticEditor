@@ -46,10 +46,14 @@
             <span>@Languages.Resource("HeaderBar_VersionLabel", AppVersion)</span>
         </a>
         <div class="active-folder">
-            @if (Live.IsConnected)
+            @if (IsPureLiveMode)
             {
                 <span>@Languages.Resource("Live_SidebarSubtitle")</span>
-                <strong>@(Live.Directory?.IsHost == true ? Languages.Resource("Live_HostChip") : Languages.Resource("Live_ClientChip"))</strong>
+                <strong>
+                    @(Live.IsConnected
+                        ? (Live.Directory?.IsHost == true ? Languages.Resource("Live_HostChip") : Languages.Resource("Live_ClientChip"))
+                        : Languages.Resource("Live_ConnectingChip"))
+                </strong>
             }
             else
             {
@@ -64,22 +68,37 @@
             {
                 <span class="header-busy" role="status" aria-live="polite" title="@busy"><span class="header-busy-spinner" aria-hidden="true"></span></span>
             }
-            @* /browse always lands on the home page (world list), even while a save is
-               open - a plain "/" would just re-render the open editor surface. *@
-            <NavLink class="round-action material-symbol" href="browse?home" Match="NavLinkMatch.All" title="@Languages.Text("home")" aria-label="@Languages.Text("home")">home</NavLink>
+            @* /browse always lands on the home page (world list), even while a save is open - a
+               plain "/" would just re-render the open editor surface. A bare live session with no
+               world folder opened has no file view worth landing on instead, so home stays right
+               where it is rather than jumping to a world list that has nothing to do with it. *@
+            <NavLink class="round-action material-symbol" href="@(IsPureLiveMode ? "live" : "browse?home")" Match="NavLinkMatch.All" title="@Languages.Text("home")" aria-label="@Languages.Text("home")">home</NavLink>
             @* Only the desktop host registers ILiveEditingCapability, which is also what put the
                choice on screen in the first place - a browser tab has nothing to re-prompt. *@
             @if (_liveEditingAvailable)
             {
                 <button class="round-action material-symbol" type="button" @onclick="OpenModeSelect" title="@Languages.Resource("ModeSelect_ReopenButton")" aria-label="@Languages.Resource("ModeSelect_ReopenButton")">swap_horiz</button>
             }
-            <button class="open-folder-action" type="button" @onclick="PickFolderAsync" disabled="@_openingFolder"><span class="material-symbol" aria-hidden="true">folder_open</span>@(_openingFolder ? Languages.Text("opening") : Languages.Text("open").ToUpperInvariant())</button>
+            @* OPEN FOLDER is a file-workspace action, and /live is never the place for it: it stays
+               off the header for the whole time that route is active, loaded folder or not, the
+               same way the rest of the file chrome does. A bare live session reached some other
+               way (not yet on /live) with nothing file-based open yet has nothing for it to do
+               either. *@
+            @if (!IsPureLiveMode)
+            {
+                <button class="open-folder-action" type="button" @onclick="PickFolderAsync" disabled="@_openingFolder"><span class="material-symbol" aria-hidden="true">folder_open</span>@(_openingFolder ? Languages.Text("opening") : Languages.Text("open").ToUpperInvariant())</button>
+            }
         </nav>
     </header>
     <div class="hazard" aria-hidden="true"></div>
     <main id="main-content" tabindex="-1"><WorkspaceShell>@Body</WorkspaceShell></main>
     <footer class="status-footer">
-        <div class="live-status"><span aria-hidden="true"></span>@(Workspace.Current is null ? Languages.Text("status.ready") : Languages.Text("status.loaded", Workspace.Current.Saves.Count))</div>
+        <div class="live-status">
+            <span aria-hidden="true"></span>
+            @(IsPureLiveMode
+                ? Languages.Resource(Live.IsConnected ? "Host_StatusLiveConnected" : "Host_StatusLiveWaiting")
+                : Workspace.Current is null ? Languages.Text("status.ready") : Languages.Text("status.loaded", Workspace.Current.Saves.Count))
+        </div>
         @* A browser tab writes no log file, so naming one would send anyone chasing a problem
            to a path that does not exist. *@
         @if (Workspace.HasLocalPaths)
@@ -119,6 +138,11 @@
         Theme.Changed += Refresh;
         Workspace.Changed += RefreshWorkspace;
         Live.Changed += RefreshWorkspace;
+        Live.ModeSelectRequested += ReopenModeSelect;
+        // IsOnLivePage reads the current URL, and this layout persists across every navigation
+        // (it is never re-instantiated the way a page is), so without this the header/footer
+        // chrome below would keep showing whatever was true the one time this ran.
+        Navigation.LocationChanged += NavigationChanged;
 
         // Absent on the WASM/browser host (see ILiveEditingCapability's doc comment), so a
         // browser tab gets neither the automatic prompt below nor the header button to
@@ -186,14 +210,12 @@
         {
             await Workspace.OpenAsync(folder);
             Toasts.Show(Languages.Text("folder.opened", Path.GetFileName(folder)), ToastKind.Success);
-            // Stay on /live if that is where OPEN FOLDER was clicked from - opening a folder there
-            // is exactly how a live session picks up its merged players+world-saves sidebar, and
-            // navigating away would undo the reason the player opened it. Anywhere else lands on
-            // the editor surface, same as always ("./" used to mean that too, back before
+            // OPEN FOLDER no longer shows while on /live (that route never has file chrome to open
+            // a folder from), so the only place this can be clicked from already is the editor
+            // surface itself. Land there, same as always ("./" used to mean that too, back before
             // ModeSelect claimed the root route out from under it).
             var current = Navigation.ToBaseRelativePath(Navigation.Uri);
-            if (!string.Equals(current, "browse", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(current, "live", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(current, "browse", StringComparison.OrdinalIgnoreCase))
             {
                 Navigation.NavigateTo("browse");
             }
@@ -232,5 +254,29 @@
             ToastKind.Error,
             TimeSpan.FromSeconds(10));
     }
-    public void Dispose() { Languages.Changed -= Refresh; Theme.Changed -= Refresh; Workspace.Changed -= RefreshWorkspace; Live.Changed -= RefreshWorkspace; }
+    public void Dispose() { Languages.Changed -= Refresh; Theme.Changed -= Refresh; Workspace.Changed -= RefreshWorkspace; Live.Changed -= RefreshWorkspace; Live.ModeSelectRequested -= ReopenModeSelect; Navigation.LocationChanged -= NavigationChanged; }
+    private void NavigationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs args) => _ = InvokeAsync(StateHasChanged);
+
+    /// <summary>
+    /// True while the live-connect page is the active route, whether a connection has actually
+    /// landed yet or it is still being attempted - unlike <see cref="LiveSessionService.IsConnected"/>,
+    /// which only turns true after a real connection succeeds. Drives the header/sidebar/footer so
+    /// they stop showing file-workspace chrome the whole time a live connection is being set up,
+    /// not only once it is already live.
+    /// </summary>
+    private bool IsOnLivePage => string.Equals(Navigation.ToBaseRelativePath(Navigation.Uri), "live", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>True whenever the file-workspace chrome (the active-folder header text, OPEN
+    /// FOLDER, the file-based footer status) should stay off screen: being on <c>/live</c> always
+    /// wins, even with a file workspace loaded alongside it (switching to a connected player
+    /// navigates here without closing whatever folder was open, and this route has nothing to do
+    /// with editing its files) - and otherwise, a bare live session with no world folder opened
+    /// at all.</summary>
+    private bool IsPureLiveMode => IsOnLivePage || (Live.IsConnected && Workspace.Current is null);
+
+    /// <summary>"Where's the game running?" has exactly one home - the mode-select dialog - so
+    /// anything that would otherwise leave the player looking at a bare page asking that
+    /// (a dropped live connection, a direct/bookmarked visit to <c>/live</c> with no answer
+    /// picked yet) reopens it here instead. Same reopen the header's own button uses.</summary>
+    private void ReopenModeSelect() { OpenModeSelect(); _ = InvokeAsync(StateHasChanged); }
 }

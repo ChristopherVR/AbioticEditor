@@ -292,6 +292,7 @@
   <data name="PlayerVitals_RightArm" xml:space="preserve"><value>BRAZO DERECHO</value></data>
   <data name="PlayerVitals_RightLeg" xml:space="preserve"><value>PIERNA DERECHA</value></data>
   <data name="PlayerVitals_Sanity" xml:space="preserve"><value>CORDURA</value></data>
+  <data name="PlayerVitals_SanityTooltip" xml:space="preserve"><value>El archivo de guardado (y el juego en ejecución) registra un valor de Cordura junto al Hambre, la Sed, la Fatiga y la Continencia, pero todavía no hay información pública confirmada sobre lo que hace realmente en el juego: no está documentado en la wiki. Se muestra aquí porque el propio juego lo registra.</value></data>
   <data name="PlayerVitals_Thirst" xml:space="preserve"><value>SED</value></data>
   <data name="PlayerVitals_Torso" xml:space="preserve"><value>TORSO</value></data>
 

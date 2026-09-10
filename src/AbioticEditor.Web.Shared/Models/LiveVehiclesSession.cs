@@ -33,6 +33,14 @@ public sealed class LiveVehiclesSession : IWorldVehiclesSession
     public bool IsHost { get; private set; }
     public string? Status { get; private set; }
 
+    /// <summary>Always false: a vehicle edit already reached the running game by the time it
+    /// returns, so there is never a client-side staged copy.</summary>
+    public bool IsDirty => false;
+
+    /// <summary>Raised after <see cref="RefreshAsync"/> re-reads the world and after every
+    /// mutation (each of which already ends by refreshing).</summary>
+    public event Action? Changed;
+
     private void Apply(LiveVehicleDirectory directory)
     {
         Vehicles = directory.Vehicles
@@ -40,6 +48,7 @@ public sealed class LiveVehiclesSession : IWorldVehiclesSession
                 v.X, v.Y, v.Z, QuatX: 0, QuatY: 0, QuatZ: 0, QuatW: 1, InventoryItemCount: 0, HasInventory: false))
             .ToList();
         IsHost = directory.IsHost;
+        Changed?.Invoke();
     }
 
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
@@ -49,7 +58,7 @@ public sealed class LiveVehiclesSession : IWorldVehiclesSession
         CancellationToken cancellationToken = default)
     {
         await _channel.SetAsync(id, driveable, wrecked, x, y, z, cancellationToken).ConfigureAwait(false);
-        Status = "Applied live - this took effect in the running game immediately.";
+        Status = null;
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
 

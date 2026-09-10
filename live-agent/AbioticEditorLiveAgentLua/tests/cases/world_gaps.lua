@@ -31,7 +31,7 @@ return function(H)
     local petDir = H.ok(H.dispatch("pets.list"), "pets.list")
     H.eq(petDir.available, true, "pets available (partial)")
     H.eq(petDir.supportsSpeciesChange, false, "no live species change")
-    H.eq(petDir.supportsRemoval, false, "no live removal")
+    H.eq(petDir.supportsRemoval, true, "live removal supported (round 78: K2_DestroyActor)")
     H.eq(#petDir.pets, 2, "only Pest/Skink family listed (Peccary excluded)")
     local sparky
     for _, p in ipairs(petDir.pets) do if p.id == "11111111-1111-1111-1111-111111111111" then sparky = p end end
@@ -68,7 +68,12 @@ return function(H)
     H.eq(H.field(vehicle, "PendingDestroy"), true, "vehicle marked wrecked")
     H.eq(H.ok(H.dispatch("vehicles.list")).vehicles[1].wrecked, true, "wrecked read back")
 
-    -- ---------- bench upgrades: install-only ----------
+    -- ---------- bench upgrades: install AND the "Has Upgrade" probe are both disabled (round 79)
+    -- ---------- - see areas/bases.lua's header comment: the fabricated row-handle struct these
+    -- ---------- two calls shared crashed the real game with a fatal error, reproducibly, every
+    -- ---------- time the Bases tab opened (bases.list used to call "Has Upgrade" automatically
+    -- ---------- for every bench). Neither AddUpgrade nor "Has Upgrade" is exercised by this test
+    -- ---------- any more; SupportsUpgrades (a plain property) still reports correctly.
     local installed = {}
     local bench = H.world.add(H.object("AbioticDeployed_CraftingBench_ParentBP_C", {
         __bases = { "AbioticDeployed_ParentBP_C" }, SupportsUpgrades = true,
@@ -79,18 +84,17 @@ return function(H)
         K2_GetActorLocation = function() return H.vector(1, 1, 1) end,
     }))
     local basesDir = H.ok(H.dispatch("bases.list"), "bases.list")
-    H.eq(basesDir.supportsBenchUpgrades, true, "bench upgrades now supported")
+    H.eq(basesDir.supportsBenchUpgrades, true, "bench upgrades still reported supported (SupportsUpgrades)")
     H.eq(basesDir.supportsBenchUpgradeRemoval, false, "bench upgrade removal still unsupported")
     local benchRow = basesDir.deployables[1]
     H.eq(benchRow.supportsUpgrades, true, "bench reports SupportsUpgrades")
-    H.eq(#benchRow.installedUpgrades, 0, "no upgrades installed yet")
+    H.eq(#benchRow.installedUpgrades, 0, "installedUpgrades always empty now - the probe that filled it is disabled")
 
-    H.ok(H.dispatch("bases.set", { id = benchRow.id, upgradeRow = "TougherBench" }), "install upgrade")
-    H.eq(H.calls(bench, "AddUpgrade"), 1, "AddUpgrade called once")
-    H.eq(H.calls(bench, "OnRep_UpgradeTagContainer"), 1, "OnRep_UpgradeTagContainer pushed")
+    H.fails(H.dispatch("bases.set", { id = benchRow.id, upgradeRow = "TougherBench" }),
+        "isn't supported", "installing an upgrade is refused, not attempted with the unverified handle")
+    H.eq(H.calls(bench, "AddUpgrade"), 0, "AddUpgrade never called - the crash-causing call is disabled")
     local afterInstall = H.ok(H.dispatch("bases.list")).deployables[1]
-    H.eq(#afterInstall.installedUpgrades, 1, "one upgrade now installed")
-    H.eq(afterInstall.installedUpgrades[1], "TougherBench", "installed row name round-trips")
+    H.eq(#afterInstall.installedUpgrades, 0, "still empty - the refused install did not change anything")
 
     H.fails(H.dispatch("bases.set", { id = benchRow.id, upgradeRow = "TougherBench", upgradeInstalled = false }),
         "isn't supported", "removing an upgrade is refused, not guessed")

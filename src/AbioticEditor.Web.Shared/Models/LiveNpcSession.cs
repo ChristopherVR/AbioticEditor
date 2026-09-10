@@ -32,17 +32,26 @@ public sealed class LiveNpcSession
     public bool IsHost { get; private set; }
     public string? Status { get; private set; }
 
+    /// <summary>Always false: an NPC edit already reached the running game by the time it
+    /// returns, so there is never a client-side staged copy.</summary>
+    public bool IsDirty => false;
+
+    /// <summary>Raised after <see cref="RefreshAsync"/> re-reads the world and after every
+    /// mutation (each of which already ends by refreshing).</summary>
+    public event Action? Changed;
+
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var directory = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
         Npcs = directory.Npcs;
         IsHost = directory.IsHost;
+        Changed?.Invoke();
     }
 
     public async Task ApplyAsync(LiveNpcEdit edit, CancellationToken cancellationToken = default)
     {
         await _channel.SetAsync([edit], cancellationToken).ConfigureAwait(false);
-        Status = "Applied live - this took effect in the running game immediately.";
+        Status = null;
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
 }

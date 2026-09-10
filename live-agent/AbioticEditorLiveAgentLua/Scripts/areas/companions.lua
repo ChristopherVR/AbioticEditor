@@ -19,8 +19,47 @@
 -- occupied slot (like inventory.list does) plus the extra pet fields; filtering down to which
 -- rows are actually pets happens on the .NET side (PetItemCatalog.IsPetItem), same division of
 -- labor the file reader already uses (game-data catalogs live in Core, not in the mod).
+--
+-- Round-78 bug fix (reported live: "removing a pet from a player leaves the pet standing next to
+-- them, unable to be picked up"): equip slot 12 is the active Companion slot - the ONE slot the
+-- game visibly spawns a live, in-world follower actor for (see PlayerCompanions.cs's own remarks).
+-- Clearing that slot used to only ever write the inventory struct back to "Empty", which desyncs
+-- the follower actor from its now-empty backing item instead of despawning it - the actor stays
+-- there, still walking around, uninteractable. LiveClassPropsProbe's class dump
+-- (NPC_Monster_Pest.uasset) found the fix: NPC_Monster_Pest_C (and its subclass
+-- NPC_Skink_Basic_C) carries its own `FollowingOwner : FObjectProperty` - a direct reference to
+-- the player it is currently following - so clearing the Companion slot can now find the matching
+-- live follower (by comparing GetFullName() strings, the same object-identity technique
+-- ctx.findByFullName already uses) and destroy it with `K2_DestroyActor()`, the same standard
+-- AActor function the reference CheatConsoleCommands mod's own "deleteobject" console command
+-- already uses on an arbitrary world actor (CommandsManager.lua). FollowingOwner only exists on
+-- the Pest/Skink family (same limitation pets.lua's own research already documents), so a
+-- Peccary/WinterSprite companion still can't be matched and may still be left behind - a known,
+-- pre-existing gap, not something this fix makes worse. Scoped to slot 12 specifically (not every
+-- cleared slot) so a hotbar/backpack pet - never a live follower - can never trigger a search.
 return function(ctx)
     local PET_KINDS = { "equip", "hotbar", "backpack" }
+    local COMPANION_SLOT_KIND, COMPANION_SLOT_INDEX = "equip", 12
+    local FOLLOWER_FAMILY_CLASS = "NPC_Monster_Pest_C" -- hierarchy-inclusive: also finds NPC_Skink_Basic_C.
+
+    -- Finds the live follower actor for `player` among Pest/Skink-family pets (the only family
+    -- that exposes FollowingOwner) and destroys it. Best-effort and silent: no match (a
+    -- Peccary/WinterSprite companion, or no live actor at all) just returns false so the caller
+    -- still clears the inventory slot as before.
+    local function despawnFollowerFor(player)
+        if not player then return false end
+        local playerName = ctx.fullName(player)
+        if not playerName then return false end
+        for _, candidate in ipairs(ctx.findAll(FOLLOWER_FAMILY_CLASS)) do
+            if candidate:IsValid() then
+                local ok, owner = pcall(function() return candidate.FollowingOwner end)
+                if ok and owner and owner:IsValid() and ctx.fullName(owner) == playerName then
+                    if pcall(function() candidate:K2_DestroyActor() end) then return true end
+                end
+            end
+        end
+        return false
+    end
 
     -- Unverified against the real game (no mod precedent) - reads one int keyed by an
     -- EDynamicProperty enum tail, matching PlayerSaveReader.ReadSlotDynamicInt's own "ends with
@@ -122,7 +161,13 @@ return function(ctx)
                 changeableData.CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 0
                 changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = 0
                 changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = 0
-                return nil
+                -- Round 78: clearing the active Companion slot also despawns its matching live
+                -- follower actor, when one can be found - see this file's own header comment.
+                local despawnedFollower = false
+                if payload.kind == COMPANION_SLOT_KIND and payload.slotIndex == COMPANION_SLOT_INDEX then
+                    despawnedFollower = despawnFollowerFor(player)
+                end
+                return { despawnedFollower = despawnedFollower }
             end
 
             if payload.itemId ~= nil and payload.itemId ~= "" then

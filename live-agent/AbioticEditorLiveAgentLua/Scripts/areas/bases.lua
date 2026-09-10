@@ -41,10 +41,20 @@
 -- (Content/Blueprints/DataTables/DT_BenchUpgrades.uasset -> the standard UE soft-object-path form
 -- "/Game/Blueprints/DataTables/DT_BenchUpgrades.DT_BenchUpgrades", the same
 -- package-path-plus-object-name shape every enumerated handle in this project already carries) -
--- plausible and grounded in the pak layout, but genuinely UNVERIFIED against the running game
--- (AddUpgrade could silently no-op if this path is wrong, since UE4SS gives no error for a
--- soft-reference that resolves to nothing). Wrapped in pcall; a caller should re-read bases.list
--- afterward to confirm the row now reports installed = true rather than trust the call succeeding.
+-- plausible and grounded in the pak layout, but genuinely UNVERIFIED against the running game.
+--
+-- CRASH REPORT (round 79): a player reported the Bases tab crashing the game with a fatal error
+-- every time it was opened. bases.list used to call "Has Upgrade" with this same fabricated
+-- handle for every bench, for all 11 known rows, unconditionally, on every single list/refresh -
+-- unlike AddUpgrade below (only reached when a player explicitly clicks to install one upgrade on
+-- one bench), that made the unverified handle's native marshaling run constantly and
+-- automatically the moment the tab opened. A UFunction call through UE4SS's reflection bridge
+-- with a struct whose shape does not match the engine's real parameter type does not raise a Lua
+-- error pcall can catch - it corrupts memory or reads through a bad pointer on the C++ side,
+-- which is exactly what a "Fatal error" (not a Lua stack trace) looks like. Both the list-time
+-- probe AND this install call share the identical fabricated handle, so both are disabled below
+-- until someone can find (or build, live, field-by-field) a REAL handle to compare against -
+-- see benchInstalledUpgrades' and bases.set's own comments for what each now does instead.
 return function(ctx)
     -- The 11 known upgrade rows (DT_BenchUpgrades), matching
     -- AbioticEditor.Core.WorldSaves.BenchUpgradeCatalog.All row-for-row so live and file report
@@ -55,26 +65,20 @@ return function(ctx)
         "MatterSynthesizer", "MetabolicField", "BenchTurret", "Cheffigy",
         "ItemTransporter_ChefStation", "ItemTransporter_UpgradeBench",
     }
-    local BENCH_UPGRADE_DATA_TABLE_PATH = "/Game/Blueprints/DataTables/DT_BenchUpgrades.DT_BenchUpgrades"
-
-    local function rowHandle(row)
-        return { RowName = FName(row, EFindName.FNAME_Find), DataTablePath = BENCH_UPGRADE_DATA_TABLE_PATH }
-    end
 
     local function benchSupportsUpgrades(obj)
         local ok, supports = pcall(function() return obj.SupportsUpgrades == true end)
         return ok and supports
     end
 
-    local function benchInstalledUpgrades(obj)
-        local installed = { __forceArray = true }
-        if not benchSupportsUpgrades(obj) then return installed end
-        for _, row in ipairs(BENCH_UPGRADE_ROWS) do
-            -- "Has Upgrade" has a literal space in its compiled name - see header comment.
-            local ok, has = pcall(function() return obj["Has Upgrade"](obj, rowHandle(row)) end)
-            if ok and has then table.insert(installed, row) end
-        end
-        return installed
+    -- DISABLED (round 79, see header comment): this used to call "Has Upgrade" with a hand-built,
+    -- unverified row-handle struct for every one of the 11 known rows, for every bench, on every
+    -- bases.list call - the reproducible cause of the game crashing with a fatal error every time
+    -- the Bases tab was opened. Always reports "nothing known installed" now rather than probing;
+    -- SupportsUpgrades itself (a plain, proven boolean property read) still tells the UI whether a
+    -- bench can take upgrades at all.
+    local function benchInstalledUpgrades(_)
+        return { __forceArray = true }
     end
 
     local function deployableRows()
@@ -149,9 +153,12 @@ return function(ctx)
                     if row == payload.upgradeRow then found = true break end
                 end
                 if not found then error("unknown bench upgrade row") end
-                local ok = pcall(function() obj:AddUpgrade(rowHandle(payload.upgradeRow)) end)
-                if not ok then error("could not install this upgrade on this game build") end
-                pcall(function() obj:OnRep_UpgradeTagContainer() end)
+                -- DISABLED (round 79, see header comment): AddUpgrade takes the exact same
+                -- fabricated, unverified row-handle struct that made bases.list crash the game -
+                -- refuse rather than risk the same fatal error from installing one, until a real
+                -- handle can be found to check the struct shape against.
+                error("installing a bench upgrade isn't supported on this game build yet " ..
+                    "(the row-handle shape this needs is unverified) - edit the save file instead")
             end
             return nil
         end, respond)

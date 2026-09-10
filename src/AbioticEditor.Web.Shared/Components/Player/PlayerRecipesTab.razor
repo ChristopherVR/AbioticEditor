@@ -420,12 +420,16 @@
         // Native UNLOCK ALL runs each row through the same progress gate, so gated
         // recipes stay locked and the last refusal reason is the one left showing.
         RecipeGateBlock? lastBlock = null;
+        var toUnlock = new List<string>();
         foreach (var row in _rows ?? [])
         {
             if (row.Edit.IsUnlocked) continue;
             if (Gate.CheckUnlock(row.Info.Id, _worldFlags) is { } block) { lastBlock = block; continue; }
-            await Session.SetUnlockedAsync(row.Info.Id, true);
+            toUnlock.Add(row.Info.Id);
         }
+        // One batched call live instead of one round trip per recipe - see
+        // IPlayerRecipesSession.SetUnlockedManyAsync's remarks.
+        await Session.SetUnlockedManyAsync(toUnlock);
         if (lastBlock is not null) Toasts.Show(GateMessage(lastBlock), ToastKind.Warning);
         await Changed();
         await InvokeAsync(StateHasChanged);

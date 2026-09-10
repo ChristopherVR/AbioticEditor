@@ -23,6 +23,21 @@
 -- visual gear roles (CHEST/HEAD/LEGS/BACK/ARMS/SUIT) - see research-transmog-appearance.md's
 -- "Editor guidance" - the remaining stored flags round-trip untouched because this area never
 -- writes past index 5.
+--
+-- Bug fix (reported live: "the equipment tab doesn't reflect the change until you toggle the
+-- transmog button"): Request_ChangeTransmogVisibilityFlag is a genuine client -> server RPC, but
+-- when this mod calls it directly it runs as the SERVER's own copy (this process is always the
+-- host for anything it can write to at all - see every other host-gated area in this project) -
+-- the server sets the underlying array element and that value is what the save/other clients see,
+-- but a server never receives its own property's OnRep callback the way a REMOTE client does, so
+-- the local player's already-open equipment UI (bound to the OnRep, exactly like the in-game
+-- toggle button that normally fires it) never repaints until something else touches the array -
+-- which is exactly what physically toggling the button does. This is the identical shape as
+-- pets.set's own OnRep_IsDead/OnRep_CurrentHealth calls after a direct field write, and
+-- main.lua's vitals.set OnRep_CurrentHealth call (both confirmed live) - a genuine, real function
+-- on this exact component (see this file's own header comment above), just never previously
+-- called after the RPC. Calling it locally after the write forces the same repaint the button
+-- itself triggers, without waiting for the player to press it.
 return function(ctx)
     local VISIBLE_SLOTS = 6
 
@@ -63,6 +78,9 @@ return function(ctx)
                     end)
                 end
             end
+            -- Forces the same equipment-UI repaint the in-game toggle button's own OnRep would
+            -- have triggered on a remote client - see this file's header comment above.
+            pcall(function() component:OnRep_TransmogVisibility() end)
             return nil
         end, respond)
     end

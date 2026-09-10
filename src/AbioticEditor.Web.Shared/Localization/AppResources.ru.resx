@@ -291,6 +291,7 @@
   <data name="PlayerVitals_RightArm" xml:space="preserve"><value>ПРАВАЯ РУКА</value></data>
   <data name="PlayerVitals_RightLeg" xml:space="preserve"><value>ПРАВАЯ НОГА</value></data>
   <data name="PlayerVitals_Sanity" xml:space="preserve"><value>РАССУДОК</value></data>
+  <data name="PlayerVitals_SanityTooltip" xml:space="preserve"><value>Файл сохранения (и запущенная игра) сообщает значение параметра "Рассудок" наряду с Голодом, Жаждой, Усталостью и Терпением, но пока нет подтверждённой публичной информации о том, на что он реально влияет в игре - на вики он не описан. Показан здесь потому, что сама игра его отслеживает.</value></data>
   <data name="PlayerVitals_Thirst" xml:space="preserve"><value>ЖАЖДА</value></data>
   <data name="PlayerVitals_Torso" xml:space="preserve"><value>ТОРС</value></data>
 

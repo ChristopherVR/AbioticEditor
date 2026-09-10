@@ -179,6 +179,8 @@
   <data name="PlayerCharacter_SearchTraitsPlaceholder" xml:space="preserve"><value>Search traits to add...</value></data>
   <data name="PlayerCharacter_TraitPointsFormat" xml:space="preserve"><value>{0:+#;-#;0} pts</value></data>
   <data name="PlayerCharacter_Traits" xml:space="preserve"><value>TRAITS</value></data>
+  <data name="PlayerCharacter_TraitsLiveReadOnlyHelp" xml:space="preserve"><value>Traits can only be added or removed by editing the save file directly, not while connected to a running game.</value></data>
+  <data name="PlayerCharacter_AppearanceLiveReadOnlyHelp" xml:space="preserve"><value>A character's look (head, hair and clothing) lives in a separate file next to your saves and can only be changed there, not while connected to a running game.</value></data>
 
   <!-- PlayerCodex -->
   <data name="PlayerCodex_EquipThisBait" xml:space="preserve"><value>EQUIP THIS BAIT</value></data>
@@ -233,7 +235,6 @@
   <data name="PlayerGeneral_ItemsCraftedHelp" xml:space="preserve"><value>Records these as things you have made before. A few in-game hints only appear once you have crafted something.</value></data>
   <data name="PlayerGeneral_ItemsCraftedLiveReadOnlyHelp" xml:space="preserve"><value>Read-only live: the running game tracks crafted items on its own but has no function to mark one crafted on demand.</value></data>
   <data name="PlayerGeneral_OwnerIdUnknown" xml:space="preserve"><value>(unknown)</value></data>
-  <data name="PlayerGeneral_OwnerIdLiveUnavailable" xml:space="preserve"><value>Not available while connected to a running game - there is no live concept of which save file a character came from.</value></data>
   <data name="PlayerGeneral_MapsHelp" xml:space="preserve"><value>Reveals the sector map pamphlets in the GATEPal map screen, as though you had picked every one of them up.</value></data>
   <data name="PlayerGeneral_DiscoveryHelp" xml:space="preserve"><value>None of these three advance quests, open doors or change your stats.</value></data>
   <data name="PlayerGeneral_General" xml:space="preserve"><value>GENERAL</value></data>
@@ -490,6 +491,7 @@
   <data name="PlayerVitals_RightArm" xml:space="preserve"><value>RIGHT ARM</value></data>
   <data name="PlayerVitals_RightLeg" xml:space="preserve"><value>RIGHT LEG</value></data>
   <data name="PlayerVitals_Sanity" xml:space="preserve"><value>SANITY</value></data>
+  <data name="PlayerVitals_SanityTooltip" xml:space="preserve"><value>The save file (and the running game) reports a Sanity value alongside Hunger, Thirst, Fatigue and Continence, but there's no confirmed public info yet on what it actually does in-game - it isn't documented on the wiki. Shown here because the game itself tracks it.</value></data>
   <data name="PlayerVitals_Thirst" xml:space="preserve"><value>THIRST</value></data>
   <data name="PlayerVitals_Torso" xml:space="preserve"><value>TORSO</value></data>
 
@@ -504,6 +506,8 @@
   <data name="Slot_LinkedBenchHint" xml:space="preserve"><value>A teleporter remembers the bench it is tied to here. Use TELEPORTER SYNC below to change it; typing over it would unlink the teleporter.</value></data>
   <data name="Slot_HoldsContents" xml:space="preserve"><value>WHAT IS IN IT</value></data>
   <data name="Slot_HoldsContentsHint" xml:space="preserve"><value>A bowl or pot records what was cooked into it here. It is not a name, so it is shown as the game stores it.</value></data>
+  <data name="Slot_VariantRow" xml:space="preserve"><value>VISUAL VARIANT</value></data>
+  <data name="Slot_VariantRowHint" xml:space="preserve"><value>Which color or artwork variant this exact item shows (a poster's picture, a helmet's paint job, and similar). Only appears when the game has recorded one for this item. There's no full list of an item's possible variants yet, so the only choices are the one already set and NONE.</value></data>
   <data name="Slot_ChaptersAreStrictlyLinearAQuestCantReallyBeginUntilEveryEarlierTriggerFlagIsSetStageSaveToWrite" xml:space="preserve"><value>The story runs in order, so a chapter cannot really begin until the earlier ones have happened. Press SAVE to write your changes.</value></data>
   <data name="Slot_ChooseABench" xml:space="preserve"><value>Choose a bench...</value></data>
   <data name="Slot_ConfirmDismantle" xml:space="preserve"><value>CONFIRM DISMANTLE</value></data>
@@ -720,7 +724,7 @@
   <data name="WorldFeature_RemoveRefused" xml:space="preserve"><value>That entry could not be removed.</value></data>
   <data name="WorldFeature_FetchingImage" xml:space="preserve"><value>Fetching image from the wiki...</value></data>
   <data name="WorldFeature_PluggedIn" xml:space="preserve"><value>PLUGGED IN</value></data>
-  <data name="WorldFeature_NoEntries" xml:space="preserve"><value>No entries match (or this map has none in this save).</value></data>
+  <data name="WorldFeature_NoEntries" xml:space="preserve"><value>No entries match (or this world has none).</value></data>
   <data name="WorldFeature_Removing" xml:space="preserve"><value>REMOVING</value></data>
   <data name="WorldFeature_Search" xml:space="preserve"><value>Search...</value></data>
   <data name="WorldFeature_SelectEntry" xml:space="preserve"><value>Select an entry to edit it.</value></data>
@@ -746,7 +750,7 @@
   <!-- WorldFlags -->
   <data name="WorldFlags_AddFlag" xml:space="preserve"><value>ADD EVENT</value></data>
   <data name="WorldFlags_AddFlagPlaceholder" xml:space="preserve"><value>Add another event…</value></data>
-  <data name="WorldFlags_AlreadySetDespiteMissingPrereq" xml:space="preserve"><value>This event is already marked as happened in your save, even though something it would normally need first has not happened yet. That is fine to leave as-is - CLEAR removes it if you would rather reset it.</value></data>
+  <data name="WorldFlags_AlreadySetDespiteMissingPrereq" xml:space="preserve"><value>This event is already marked as happened in this world, even though something it would normally need first has not happened yet. That is fine to leave as-is - CLEAR removes it if you would rather reset it.</value></data>
   <data name="WorldFlags_Clear" xml:space="preserve"><value>CLEAR</value></data>
   <data name="WorldFlags_Set" xml:space="preserve"><value>SET</value></data>
   <data name="WorldFlags_FilterPlaceholder" xml:space="preserve"><value>Filter by area or name…</value></data>
@@ -760,7 +764,7 @@
 
   <!-- WorldNpcs -->
   <data name="WorldNpcs_NoNarrativeNpcs" xml:space="preserve"><value>No story NPCs or traders found here.</value></data>
-  <data name="WorldNpcs_NpcsIntro" xml:space="preserve"><value>The story characters and traders in this area. REVIVE brings one back after they have been removed. Their story stage sets how far along their own part of the story is, so only change it if you know which stage you want. Tamed pets have their own PETS tab.</value></data>
+  <data name="WorldNpcs_NpcsIntro" xml:space="preserve"><value>The story characters and traders in this area. You can mark one dead, use REVIVE to bring them back, or adjust their story stage - hover over STORY STAGE first if you're not sure what value to pick, since the wrong one can leave their dialogue or shop out of sync with the rest of the story. Tamed pets have their own PETS tab.</value></data>
   <data name="WorldNpcs_Revive" xml:space="preserve"><value>REVIVE</value></data>
   <data name="WorldNpcs_ReviveTooltip" xml:space="preserve"><value>Bring this character back to life at their usual story stage. Most of the dead ones left as part of the story, so reviving can bring back someone the plot already moved on from.</value></data>
   <data name="WorldNpcs_ScriptPhase" xml:space="preserve"><value>STORY STAGE</value></data>
@@ -815,7 +819,7 @@
   <data name="WorldStory_LiveGlobalRecipesReadOnlyHelp" xml:space="preserve"><value>World recipes are read-only live: the running game has no button anywhere to unlock one world-wide, so this only shows what has already been researched. Use a character's own RECIPES tab to give them a recipe directly.</value></data>
   <data name="WorldStory_SearchRecipes" xml:space="preserve"><value>Search recipes…</value></data>
   <data name="WorldStory_Set" xml:space="preserve"><value>SET</value></data>
-  <data name="WorldStory_StorySplitIntro" xml:space="preserve"><value>SET moves the story to that chapter and brings everything else in line. Earlier events are marked as done and later ones are undone. Emails, journal pages and codex entries you would no longer have seen are taken back, for the world and for every character. Some of it is written straight away, the rest when you press SAVE.</value></data>
+  <data name="WorldStory_StorySplitIntro" xml:space="preserve"><value>SET moves the story to that chapter and brings everything else in line. Earlier events are marked as done and later ones are undone. Emails, journal pages and codex entries you would no longer have seen are taken back, for the world and for every character.</value></data>
   <data name="WorldStory_UnlockAll" xml:space="preserve"><value>UNLOCK ALL</value></data>
   <data name="WorldStory_UnlockThroughConfirmTitle" xml:space="preserve"><value>Unlock the story through {0}?</value></data>
   <data name="WorldStory_UnlockThroughConfirmAccept" xml:space="preserve"><value>UNLOCK</value></data>
@@ -1002,6 +1006,54 @@
   </data>
   <data name="Compare_ScaffoldTitle" xml:space="preserve">
     <value>Compare Saves</value>
+  </data>
+  <data name="Transfer_Title" xml:space="preserve">
+    <value>Transfer Items</value>
+  </data>
+  <data name="Transfer_Eyebrow" xml:space="preserve">
+    <value>MOVE ITEMS BETWEEN WORLDS</value>
+  </data>
+  <data name="Transfer_ScaffoldTitle" xml:space="preserve">
+    <value>Transfer Items Between World Saves</value>
+  </data>
+  <data name="Transfer_Description" xml:space="preserve">
+    <value>Load two world saves (any two - the same world's regions, or two entirely separate playthroughs) and move items between their containers. Tap a filled slot to pick it up, then tap an empty slot on the other side to drop it there. Each side keeps its own .bak and saves independently.</value>
+  </data>
+  <data name="Transfer_SideHeaderFormat" xml:space="preserve">
+    <value>World {0}</value>
+  </data>
+  <data name="Transfer_LoadButton" xml:space="preserve">
+    <value>LOAD</value>
+  </data>
+  <data name="Transfer_SaveButton" xml:space="preserve">
+    <value>SAVE</value>
+  </data>
+  <data name="Transfer_Saved" xml:space="preserve">
+    <value>Saved (a .bak backup was created).</value>
+  </data>
+  <data name="Transfer_LoadFailedTitle" xml:space="preserve">
+    <value>Could not open that save</value>
+  </data>
+  <data name="Transfer_SaveFailedTitle" xml:space="preserve">
+    <value>Could not save</value>
+  </data>
+  <data name="Transfer_HoldingFormat" xml:space="preserve">
+    <value>Holding {0} from World {1} - tap an empty slot on the other side to place it there.</value>
+  </data>
+  <data name="Transfer_HoldingNone" xml:space="preserve">
+    <value>Tap a filled slot on either side to pick it up, then tap an empty slot on the other side to move it there.</value>
+  </data>
+  <data name="Transfer_MovedFormat" xml:space="preserve">
+    <value>Moved {0} into {1}.</value>
+  </data>
+  <data name="Transfer_MoveNotPossible" xml:space="preserve">
+    <value>That slot is no longer free, or the item could not be moved. Pick it up again and try another slot.</value>
+  </data>
+  <data name="Transfer_LoadOtherSideHint" xml:space="preserve">
+    <value>Load a save on the other side too, then tap items to move them across.</value>
+  </data>
+  <data name="Transfer_TapHelp" xml:space="preserve">
+    <value>Tap a filled slot to pick it up, then tap an empty slot on the other side to drop it there.</value>
   </data>
   <data name="Compare_QuickPickerTitle" xml:space="preserve">
     <value>Loaded saves…</value>
@@ -3059,6 +3111,8 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Host.opening" xml:space="preserve"><value>OPENING…</value></data>
   <data name="Host.status.ready" xml:space="preserve"><value>READY · POINT AT A SAVE FOLDER TO BEGIN</value></data>
   <data name="Host.status.loaded" xml:space="preserve"><value>Loaded {0} save(s).</value></data>
+  <data name="Host_StatusLiveWaiting" xml:space="preserve"><value>Live: waiting for the game</value></data>
+  <data name="Host_StatusLiveConnected" xml:space="preserve"><value>Live: connected</value></data>
   <data name="Host.utilities" xml:space="preserve"><value>Utilities</value></data>
   <data name="Host.more.tools" xml:space="preserve"><value>More tools</value></data>
   <data name="Host.more" xml:space="preserve"><value>MORE</value></data>
@@ -3739,6 +3793,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldContainers_SendItemDialogMessage" xml:space="preserve"><value>Choose the player save that should receive this item.</value></data>
   <data name="WorldContainers_SendItemDialogTitle" xml:space="preserve"><value>Send item to which player?</value></data>
   <data name="WorldContainers_SendToPlayerMenu" xml:space="preserve"><value>Send to player</value></data>
+  <data name="WorldContainers_TransferItemsLink" xml:space="preserve"><value>Move items to a different world save →</value></data>
   <data name="WorldContainers_SendingItemFormat" xml:space="preserve"><value>Sending {0} to {1}...</value></data>
   <data name="WorldContainment_BulkCompendiumWhat" xml:space="preserve"><value>unlock every compendium section world-wide</value></data>
   <data name="WorldContainment_BulkEmailsWhat" xml:space="preserve"><value>mark every email as read world-wide</value></data>
@@ -3919,61 +3974,71 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="ModeSelect_Title" xml:space="preserve"><value>What do you want to do?</value></data>
   <data name="ModeSelect_Subtitle" xml:space="preserve"><value>Choose how you want to edit today.</value></data>
   <data name="ModeSelect_FileTitle" xml:space="preserve"><value>Edit a save file</value></data>
-  <data name="ModeSelect_FileNote" xml:space="preserve"><value>Open a save folder and edit it while the game is closed, exactly like before.</value></data>
+  <data name="ModeSelect_FileNote" xml:space="preserve"><value>Open a save folder and edit it while the game is closed.</value></data>
   <data name="ModeSelect_LiveTitle" xml:space="preserve"><value>Live-edit a running game</value></data>
   <data name="ModeSelect_LiveNote" xml:space="preserve"><value>Connect to a game that is open right now (yours, or a dedicated server you run) and change things immediately.</value></data>
   <data name="ModeSelect_ReopenButton" xml:space="preserve"><value>Change mode</value></data>
   <data name="Live_Title" xml:space="preserve"><value>Live-edit a running game</value></data>
-  <data name="Live_ConnectSubtitle" xml:space="preserve"><value>Needs the AbioticEditorLiveAgent mod installed and running in the game.</value></data>
   <data name="Live_Host" xml:space="preserve"><value>Host</value></data>
   <data name="Live_Port" xml:space="preserve"><value>Port</value></data>
   <data name="Live_Token" xml:space="preserve"><value>Token</value></data>
   <data name="Live_Connect" xml:space="preserve"><value>CONNECT</value></data>
   <data name="Live_Connecting" xml:space="preserve"><value>CONNECTING…</value></data>
-  <data name="Live_ConnectHint" xml:space="preserve"><value>A game running on this PC connects automatically. Use this form for a dedicated server's address, or if the automatic connection didn't work. The token comes from the mod's own log the first time it starts.</value></data>
   <data name="Live_TargetQuestion" xml:space="preserve"><value>Where's the game running?</value></data>
   <data name="Live_TargetLocalTitle" xml:space="preserve"><value>This PC</value></data>
-  <data name="Live_TargetLocalNote" xml:space="preserve"><value>Wait for a locally running game with the live-agent mod - it connects on its own, nothing to type in.</value></data>
+  <data name="Live_TargetLocalNote" xml:space="preserve"><value>Wait for a locally running game - it connects on its own, nothing to type in.</value></data>
   <data name="Live_TargetRemoteTitle" xml:space="preserve"><value>A dedicated server</value></data>
   <data name="Live_TargetRemoteNote" xml:space="preserve"><value>Enter the address of a server you (or a friend) run, plus its connection token.</value></data>
   <data name="Live_WhatYouNeedTitle" xml:space="preserve"><value>What you need</value></data>
-  <data name="Live_WhatYouNeedMod" xml:space="preserve"><value>UE4SS and the AbioticEditorLiveAgent mod installed in the game's (or server's) ue4ss/Mods folder, plus its small helper program running alongside the game.</value></data>
-  <data name="Live_WhatYouNeedToken" xml:space="preserve"><value>The token comes from that helper program - it prints it, and saves it to its own token.txt, the first time it starts.</value></data>
-  <data name="Live_LearnMore" xml:space="preserve"><value>Full install steps ↗</value></data>
+  <data name="Live_WhatYouNeedMod" xml:space="preserve"><value>Live editing support set up for that game (or server) - see the guide below the first time you try it.</value></data>
+  <data name="Live_WhatYouNeedToken" xml:space="preserve"><value>Connecting to your own PC needs nothing typed in. A dedicated server's owner will give you its address and a connection token.</value></data>
+  <data name="Live_LearnMore" xml:space="preserve"><value>Set-up guide ↗</value></data>
   <data name="Live_WaitingForLocalGame" xml:space="preserve"><value>Waiting for the game on this PC…</value></data>
-  <data name="Live_WaitingForLocalGameHint" xml:space="preserve"><value>Launch Abiotic Factor with the live-agent mod running - this connects the moment it's up.</value></data>
+  <data name="Live_WaitingForLocalGameHint" xml:space="preserve"><value>Launch Abiotic Factor - this connects the moment the game is up.</value></data>
+  <data name="Live_NeedsUe4ss" xml:space="preserve"><value>This game needs UE4SS (a small, widely-used modding framework) installed once before live editing can connect - everything past that point is automatic. See the set-up guide below.</value></data>
+  <data name="Live_ConfirmDeployTitle" xml:space="preserve"><value>Set up live editing for this game?</value></data>
+  <data name="Live_ConfirmDeployBody" xml:space="preserve"><value>This copies a small script into: {0}
+
+It only adds this one folder and switches it on - nothing else already in your game's Mods folder is touched, moved or removed.</value></data>
+  <data name="Live_ConfirmDeployYes" xml:space="preserve"><value>Copy it and continue</value></data>
+  <data name="Live_ConfirmDeployNo" xml:space="preserve"><value>Not now</value></data>
+  <data name="Live_GameNotFound" xml:space="preserve"><value>Couldn't find Abiotic Factor installed on this PC automatically. If it's installed somewhere unusual, set its folder in SETTINGS first.</value></data>
+  <data name="Live_NotSupportedOnThisPlatform" xml:space="preserve"><value>Automatic set-up for a game on this PC isn't available on this operating system yet. Connecting to a dedicated server someone else hosts still works normally.</value></data>
+  <data name="Live_StillNotRespondingHint" xml:space="preserve"><value>This is taking longer than usual. If the game has been open for a while already, try fully restarting it - live editing support sometimes only starts responding on a fresh game session.</value></data>
   <data name="Live_Back" xml:space="preserve"><value>‹ BACK</value></data>
   <data name="Live_RemoteSubtitle" xml:space="preserve"><value>Enter the dedicated server's address, port and token below.</value></data>
-  <data name="Live_AutoConnecting" xml:space="preserve"><value>Looking for a game running on this PC…</value></data>
-  <data name="Live_AutoConnected" xml:space="preserve"><value>Connected automatically to the game on this PC.</value></data>
-  <data name="Live_UseManualConnection" xml:space="preserve"><value>Connect to a different game instead</value></data>
-  <data name="Live_ImmediateWarning" xml:space="preserve"><value>Changes here apply to the running game immediately. There is no undo the way a file's backup gives you - use REVERT before you apply if you change your mind.</value></data>
-  <data name="Live_EditingPlayer" xml:space="preserve"><value>Editing</value></data>
-  <data name="Live_You" xml:space="preserve"><value>you</value></data>
+  <data name="Live_RemoteConnectFailed" xml:space="preserve"><value>Could not connect. Check the address, port and token, and make sure a world is loaded on that server.</value></data>
+  <data name="Live_ImmediateWarning" xml:space="preserve"><value>Changes here happen in the game the moment you make them and cannot be undone.</value></data>
   <data name="Live_ConnectedPlayers" xml:space="preserve"><value>CONNECTED PLAYERS</value></data>
   <data name="Live_YouChip" xml:space="preserve"><value>YOU</value></data>
   <data name="Live_HostChip" xml:space="preserve"><value>HOSTING</value></data>
   <data name="Live_ClientChip" xml:space="preserve"><value>CLIENT</value></data>
+  <data name="Live_ConnectingChip" xml:space="preserve"><value>CONNECTING</value></data>
   <data name="Live_SidebarNoPlayers" xml:space="preserve"><value>No players found yet.</value></data>
   <data name="Live_SidebarSubtitle" xml:space="preserve"><value>Live-editing a running game.</value></data>
-  <data name="Live_OpenFolderHint" xml:space="preserve"><value>Open this world's save folder (OPEN FOLDER above) to also see and edit its players and world saves here.</value></data>
-  <data name="Live_MergedSidebarHint" xml:space="preserve"><value>A connected player switches the live view when clicked. Everything else opens for editing while the game keeps running.</value></data>
+  <data name="Live_OfflineChip" xml:space="preserve"><value>OFFLINE</value></data>
+  <data name="Live_HereChip" xml:space="preserve"><value>HERE</value></data>
+  <data name="Live_RegionNotHereHint" xml:space="preserve"><value>The game isn't in this area right now.</value></data>
+  <data name="Live_RegionUnknown" xml:space="preserve"><value>Finding out where you are...</value></data>
   <data name="Live_LiveChip" xml:space="preserve"><value>LIVE</value></data>
-  <data name="Live_Apply" xml:space="preserve"><value>APPLY</value></data>
   <data name="Live_Disconnect" xml:space="preserve"><value>DISCONNECT</value></data>
   <data name="Live_Sections" xml:space="preserve"><value>Live editor sections</value></data>
-  <data name="LiveNpcs_Title" xml:space="preserve"><value>NPCS</value></data>
+  <data name="LiveNpcs_Title" xml:space="preserve"><value>CREATURES</value></data>
   <data name="LiveNpcs_Refresh" xml:space="preserve"><value>REFRESH</value></data>
-  <data name="LiveNpcs_Intro" xml:space="preserve"><value>Every NPC currently loaded in the game. Changes apply immediately, one at a time - there is no APPLY step here. No health or position editing yet.</value></data>
-  <data name="LiveNpcs_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to edit NPCs. Editing here as a joined client would not stick.</value></data>
-  <data name="LiveNpcs_NoneFound" xml:space="preserve"><value>No NPCs are currently loaded.</value></data>
+  <data name="LiveNpcs_Intro" xml:space="preserve"><value>Every creature and hostile NPC currently loaded in the game - not just wildlife. Click one to see it in the side panel. Changes apply immediately, one at a time - there is no APPLY step here. No health, position or appearance data yet.</value></data>
+  <data name="LiveNpcs_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to edit creatures. Editing here as a joined client would not stick.</value></data>
+  <data name="LiveNpcs_NoneFound" xml:space="preserve"><value>No creatures are currently loaded.</value></data>
   <data name="LiveNpcs_Kill" xml:space="preserve"><value>KILL</value></data>
   <data name="LiveNpcs_Revive" xml:space="preserve"><value>REVIVE</value></data>
   <data name="LiveNpcs_Disabled" xml:space="preserve"><value>Disabled</value></data>
   <data name="LiveNpcs_Invincible" xml:space="preserve"><value>Invincible</value></data>
   <data name="LiveNpcs_Faction" xml:space="preserve"><value>Faction</value></data>
+  <data name="LiveNpcs_SelectToPreview" xml:space="preserve"><value>Select a creature to see it here.</value></data>
+  <data name="LiveNpcs_ClassLabel" xml:space="preserve"><value>Class</value></data>
+  <data name="LiveNpcs_NoAppearanceDataNote" xml:space="preserve"><value>The running game does not report this creature's position, health or appearance - only its name, life/death state, disabled/invincible flags and faction.</value></data>
   <data name="Live_TabPortals" xml:space="preserve"><value>WORLD TELEPORTERS</value></data>
   <data name="Live_TabEntitlements" xml:space="preserve"><value>ENTITLEMENTS</value></data>
+  <data name="Live_TabWildlife" xml:space="preserve"><value>CREATURES</value></data>
   <data name="LiveTraders_Title" xml:space="preserve"><value>TRADERS</value></data>
   <data name="LiveTraders_Intro" xml:space="preserve"><value>The trader roster and what still gates each one. Unlocking sets the missing quest flags through the running game's own flag system - the same effect as reaching that moment in the story.</value></data>
   <data name="LiveTraders_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to unlock traders. Editing here as a joined client would not stick.</value></data>
@@ -3988,11 +4053,11 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="LiveInventory_Hotbar" xml:space="preserve"><value>HOTBAR</value></data>
   <data name="LiveInventory_Slot" xml:space="preserve"><value>Slot {0}</value></data>
   <data name="LiveInventory_Apply" xml:space="preserve"><value>APPLY</value></data>
-  <data name="Live_WorldAreaUnavailable" xml:space="preserve"><value>This part of the game is not available right now. Load into a world (not just the main menu), then DISCONNECT and reconnect. If it stays unavailable, the live-agent mod in the game may be an older version without this area.</value></data>
-  <data name="Live_OfflineOnlyNote" xml:space="preserve"><value>{0} isn't available while live-editing a running game - it needs the save file itself. Open this player's save file instead to use it.</value></data>
+  <data name="Live_WorldAreaUnavailable" xml:space="preserve"><value>This part of the game is not available right now. Load into a world (not just the main menu), then DISCONNECT and reconnect. If it stays unavailable, this game's live editing set up may need updating to a newer version.</value></data>
   <data name="LiveSpawn_Title" xml:space="preserve"><value>SPAWN</value></data>
   <data name="LiveCompanions_Title" xml:space="preserve"><value>COMPANIONS</value></data>
   <data name="LiveWorld_Title" xml:space="preserve"><value>WORLD</value></data>
+  <data name="Live_InGameRegion" xml:space="preserve"><value>In the game right now: {0}</value></data>
   <data name="LiveWorld_Intro" xml:space="preserve"><value>The running world's clock and weather. Each button applies immediately - there is no APPLY step here.</value></data>
   <data name="LiveWorld_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to change the clock or weather. Changing them here as a joined client would not stick.</value></data>
   <data name="LiveWorld_Clock" xml:space="preserve"><value>CLOCK</value></data>

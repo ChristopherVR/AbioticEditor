@@ -29,10 +29,12 @@ public sealed class WorldLiveTabParityContractTests
             Assert.Contains($"<{tab} Session=", liveConnect, StringComparison.Ordinal);
 
         // Every world area connects independently and degrades gracefully (round-75 pattern),
-        // BASES/VEHICLES/PETS included.
-        Assert.Contains("_bases = await TryConnectWorldAreaAsync", liveConnect, StringComparison.Ordinal);
-        Assert.Contains("_vehicles = await TryConnectWorldAreaAsync", liveConnect, StringComparison.Ordinal);
-        Assert.Contains("_pets = await TryConnectWorldAreaAsync", liveConnect, StringComparison.Ordinal);
+        // BASES/VEHICLES/PETS included. Round 78 made every area lazy (connected the first time
+        // its tab opens, not all at once on connect - see EnsureAreaConnectedAsync), hence `??=`
+        // rather than `=`: a null result (no world loaded yet) is still retried on a later visit.
+        Assert.Contains("_bases ??= await TryConnectWorldAreaAsync", liveConnect, StringComparison.Ordinal);
+        Assert.Contains("_vehicles ??= await TryConnectWorldAreaAsync", liveConnect, StringComparison.Ordinal);
+        Assert.Contains("_pets ??= await TryConnectWorldAreaAsync", liveConnect, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -61,10 +63,13 @@ public sealed class WorldLiveTabParityContractTests
         Assert.Contains("SupportsWreckedState => true", liveVehicles, StringComparison.Ordinal);
 
         // Round 77: pets ARE now partially available (Pest/Skink family, matched by Guid) -
-        // species change and removal still have no grounded live path.
+        // species change still has no grounded live path. Round 78: removal IS now grounded too
+        // (K2_DestroyActor on the matched actor - see LivePetsChannel.RemoveAsync's remarks); only
+        // UNDOING a live removal has no path (the actor is already gone), which is what the
+        // remaining NotSupportedException below covers.
         var livePets = ModelsSource("LivePetsSession.cs");
         Assert.Contains("SupportsSpeciesChange => false", livePets, StringComparison.Ordinal);
-        Assert.Contains("SupportsRemoval => false", livePets, StringComparison.Ordinal);
+        Assert.Contains("SupportsRemoval => true", livePets, StringComparison.Ordinal);
         Assert.Contains("NotSupportedException", livePets, StringComparison.Ordinal);
     }
 

@@ -239,6 +239,14 @@
    the live sidebar itself uses rather than the plain per-kind color every other row gets. */
 .save-file-row.live-online { --kind-color: var(--acid); }
 .save-file-row.live-online .save-file-meta b { background: var(--acid); color: var(--on-accent); padding: 1px 5px; border-radius: 3px; }
+/* Round 78: an offline player's row (a connected account's save, but nobody is puppeting it live
+   right now) and a region row for a map the game is not currently in - the offline chip keeps the
+   player kind-color (it still opens for ordinary editing); a disabled region row is muted instead,
+   since there is nothing to click into until the game moves there. */
+.save-file-row.live-offline .save-file-meta b { background: var(--muted); color: var(--shell, #10130f); }
+.save-file-row.region-disabled { opacity: .45; cursor: default; }
+.save-file-row.region-disabled:hover { background: transparent !important; }
+.save-file-row.kind-world .save-file-meta b { background: var(--acid); color: var(--on-accent); padding: 1px 5px; border-radius: 3px; }
 .save-file-row:hover { background: color-mix(in srgb, var(--elevated, #20251f) 82%, transparent) !important; }
 .save-file-row.selected { background: var(--elevated, #20251f) !important; box-shadow: inset 3px 0 var(--kind-color); }
 .save-file-row > strong { overflow: hidden; color: var(--ink); font-size: 13px !important; font-weight: 500 !important; text-overflow: ellipsis; white-space: nowrap; }

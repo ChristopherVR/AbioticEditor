@@ -10,7 +10,7 @@ namespace AbioticEditor.Web.Models;
 /// A Razor-hosted editing session for one player save.  It deliberately depends only on
 /// Core save types: neither this class nor callers need a native view model.
 /// </summary>
-public sealed class PlayerSaveSession : IPlayerVitalsSession, IPlayerSkillsSession, IPlayerTransmogSession, IPlayerSpawnSession, IPlayerCompanionsSession, IPlayerRecipesSession, IPlayerCodexSession, IPlayerGeneralSession
+public sealed class PlayerSaveSession : IPlayerEditorSession
 {
     private readonly PlayerSaveData _data;
     private readonly string _path;
@@ -232,6 +232,10 @@ public sealed class PlayerSaveSession : IPlayerVitalsSession, IPlayerSkillsSessi
     /// remarks. Full add/remove is still <see cref="Traits"/> above, used directly by
     /// <c>PlayerCharacterTab</c>.</summary>
     IReadOnlyList<string> IPlayerGeneralSession.Traits => Traits;
+
+    /// <summary>True here: trait add/remove is a plain staged list edit. See
+    /// <see cref="IPlayerGeneralSession.CanEditTraits"/>'s remarks.</summary>
+    public bool CanEditTraits => true;
     public string Path => _path;
     public string JsonPath => _path + ".json";
     public bool JsonFileExists => File.Exists(JsonPath);
@@ -692,6 +696,10 @@ public sealed class PlayerInventorySlotEdit
     public bool DynamicState { get; set; }
     public string? PlayerMadeString { get; set; }
     public string? AssetId { get; set; }
+    /// <summary>Which visual variant this instance shows (poster art, armor color, ...).
+    /// Null when the game never recorded one for this item instance - in which case there is
+    /// nothing here yet to change (see <see cref="InventoryItemSlot.VariantRowName"/>).</summary>
+    public string? VariantRowName { get; set; }
     public bool IsEmpty => string.IsNullOrWhiteSpace(ItemId) || ItemId is "None" or "Empty";
     public string DisplayName => IsEmpty ? "Empty" : ItemId!;
     public bool IsDirty => !Equals(ToInventorySlot(), _original);
@@ -700,10 +708,10 @@ public sealed class PlayerInventorySlotEdit
     // as LiquidLevel = -1; normalizing them would make a newly opened session dirty and cause
     // unrelated player edits to rewrite every such slot.
     public InventoryItemSlot ToInventorySlot() => new(Index, string.IsNullOrWhiteSpace(ItemId) ? PlayerSaveWriter.EmptySlotRowName : ItemId,
-        Count, Durability, MaxDurability, AmmoInMagazine, LiquidLevel, LiquidType, DynamicState, PlayerMadeString, AssetId);
+        Count, Durability, MaxDurability, AmmoInMagazine, LiquidLevel, LiquidType, DynamicState, PlayerMadeString, AssetId, VariantRowName);
     public void AcceptCurrentAsBaseline() => _original = ToInventorySlot();
     public void Revert() => Load(_original);
-    public void LoadFrom(InventoryItemSlot source) { ItemId = source.ItemId; Count = source.Count; Durability = source.Durability; MaxDurability = source.MaxDurability; AmmoInMagazine = source.AmmoInMagazine; LiquidLevel = source.LiquidLevel; LiquidType = source.LiquidType; DynamicState = source.DynamicState; PlayerMadeString = source.PlayerMadeString; AssetId = source.AssetId; }
+    public void LoadFrom(InventoryItemSlot source) { ItemId = source.ItemId; Count = source.Count; Durability = source.Durability; MaxDurability = source.MaxDurability; AmmoInMagazine = source.AmmoInMagazine; LiquidLevel = source.LiquidLevel; LiquidType = source.LiquidType; DynamicState = source.DynamicState; PlayerMadeString = source.PlayerMadeString; AssetId = source.AssetId; VariantRowName = source.VariantRowName; }
     private void Load(InventoryItemSlot source) => LoadFrom(source);
 }
 

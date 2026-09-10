@@ -35,6 +35,14 @@ public sealed class LiveNarrativeNpcsSession : IWorldNpcsSession
     public string? Status { get; private set; }
     public bool AppliesImmediately => true;
 
+    /// <summary>Always false: a narrative-NPC edit already reached the running game by the time
+    /// it returns, so there is never a client-side staged copy.</summary>
+    public bool IsDirty => false;
+
+    /// <summary>Raised after <see cref="RefreshAsync"/> re-reads the world and after every
+    /// mutation (each of which already ends by refreshing).</summary>
+    public event Action? Changed;
+
     private void Apply(LiveNarrativeNpcDirectory directory)
     {
         Npcs = directory.Npcs
@@ -42,6 +50,7 @@ public sealed class LiveNarrativeNpcsSession : IWorldNpcsSession
                 n.X, n.Y, n.Z, IsPet: false, CustomName: null, NpcClass: n.Label))
             .ToList();
         IsHost = directory.IsHost;
+        Changed?.Invoke();
     }
 
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
@@ -52,7 +61,7 @@ public sealed class LiveNarrativeNpcsSession : IWorldNpcsSession
         int? narrativeState = int.TryParse(state, out var value) ? value : null;
         await _channel.SetAsync([new LiveNarrativeNpcEdit(id, IsCorpse: isDead, NarrativeState: narrativeState)], cancellationToken)
             .ConfigureAwait(false);
-        Status = "Applied live - this took effect in the running game immediately.";
+        Status = null;
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
 }

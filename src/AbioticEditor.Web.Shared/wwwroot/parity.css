@@ -333,6 +333,7 @@ h1[tabindex="-1"]:focus{outline:none}
 .vital-slider input[type=range]{width:100%;min-width:0}
 .vital-slider label,.money-field label,.inventory-fields label,.pet-fields label,.field-row label{color:var(--muted)!important;font:600 10px var(--font-ui)!important;letter-spacing:.12em;text-transform:uppercase}
 .vital-slider output{color:var(--terminal)!important;font:18px var(--font-lcd)!important;letter-spacing:.08em;text-align:right}
+.vital-hint{display:inline-block;margin-left:4px;cursor:help;letter-spacing:0;text-transform:none;font-size:11px;opacity:.75}
 .limb-grid .vital-slider{grid-template-columns:90px minmax(80px,1fr) 60px!important}
 .money-field{display:grid;align-items:center;gap:12px;grid-template-columns:110px 180px 1fr!important;padding-top:14px;border-top:1px solid var(--divider)}.money-field input{color:var(--terminal)!important;font:20px var(--font-num)!important}
 .body-health-head .amber-field-label{font-size:12px;letter-spacing:5px}
@@ -864,7 +865,9 @@ h1[tabindex="-1"]:focus{outline:none}
 .character-background-select{color:var(--terminal)!important}
 .trait-chips{display:flex;flex-wrap:wrap;gap:8px}
 .trait-chip{display:inline-flex;align-items:center;gap:8px;padding:4px 10px;border:1px solid var(--line);background:var(--elevated)}
-.trait-chip-name{color:var(--ink);font-size:12px}
+.trait-chip.selected{border-color:var(--section)}
+.trait-chip-name{margin:0;padding:0;border:0;background:none;color:var(--ink);font:inherit;font-size:12px;cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px}
+.trait-chip-name:hover,.trait-chip-name:focus-visible{color:var(--section)}
 .trait-chip-id{color:var(--faint);font-size:9px;letter-spacing:.08em}
 .trait-chip-remove{min-height:22px;height:22px;padding:0 6px;border:0;border-radius:4px;background:var(--panel);color:var(--alert-text);font-size:10px;line-height:1}
 .trait-browser{height:220px;overflow:auto;border:1px solid var(--line);background:var(--shell);scrollbar-color:var(--faint) var(--shell)}
@@ -1817,15 +1820,19 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 
 /* Mode-select dialog (the "what do you want to do" prompt, reused from the settings-subdialog
    pattern) and the live-editing connect/session screen. */
-.mode-select-dialog{width:min(620px,100%);text-align:center}
+.mode-select-dialog{width:min(640px,100%);text-align:center}
+.mode-select-dialog h2{text-transform:none;letter-spacing:.01em;font-size:19px}
 .mode-select-cards{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin:20px 0}
-.mode-select-card{box-sizing:border-box;width:280px;padding:20px;border:1px solid var(--line);border-radius:8px;background:var(--elevated);color:var(--ink);cursor:pointer;text-align:left;transition:background .12s,border-color .12s}
-.mode-select-card:hover,.mode-select-card:focus-visible{background:var(--hover);border-color:var(--section)}
-.mode-select-card-title{display:block;font-size:14px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--section);margin-bottom:6px}
-.mode-select-card-note{display:block;color:var(--muted);font-size:12px}
+.mode-select-card{display:flex;align-items:flex-start;gap:14px;box-sizing:border-box;width:280px;padding:18px;border:1px solid var(--line);border-radius:10px;background:var(--elevated);color:var(--ink);cursor:pointer;text-align:left;transition:background .12s,border-color .12s,transform .12s}
+.mode-select-card:hover,.mode-select-card:focus-visible{background:var(--hover);border-color:var(--section);transform:translateY(-1px)}
+.mode-select-card-icon{flex:none;display:grid;place-items:center;width:38px;height:38px;border-radius:8px;background:var(--panel);color:var(--section);font-size:20px}
+.mode-select-card-body{display:flex;flex-direction:column;gap:4px;min-width:0}
+.mode-select-card-title{font-size:15px;font-weight:600;letter-spacing:.01em;color:var(--section)}
+.mode-select-card-note{color:var(--muted);font-size:12px;line-height:1.4}
+.mode-select-dialog footer.mode-select-back-row{justify-content:flex-start}
+.mode-select-path{overflow-wrap:anywhere;word-break:break-word}
 .live-connect-form{display:flex;flex-direction:column;gap:12px;max-width:360px;margin:0 auto}
 .live-connect-form label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);text-align:left}
-.live-connect-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:14px 0}
 .live-waiting{display:flex;align-items:center;justify-content:center;gap:10px}
 .live-need-note{box-sizing:border-box;max-width:440px;margin:20px auto 0;padding:14px 18px;border:1px solid var(--line);border-radius:8px;background:var(--elevated);text-align:left}
 .live-need-note strong{display:block;margin-bottom:6px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--section)}
@@ -1836,8 +1843,6 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 .live-warning{color:var(--alert-text)}
 .error-text{color:var(--alert-text);font-size:12px;margin-top:8px}
 .status-text{color:var(--muted);font-size:12px;margin-top:8px}
-.live-player-picker{display:flex;align-items:center;gap:8px;justify-content:center;margin:0 0 14px;font-size:12px;color:var(--muted)}
-.live-player-picker select{padding:6px 10px;border:1px solid var(--divider);border-radius:4px;background:var(--panel);color:var(--ink)}
 .live-npc-controls{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-left:auto}
 .live-npc-controls .checkbox-field{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
 .live-npc-faction{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);white-space:nowrap}

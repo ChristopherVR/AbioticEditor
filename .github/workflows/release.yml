@@ -618,6 +618,20 @@ jobs:
           restore-keys: |
             nuget-${{ runner.os }}-
 
+      # Live editing's in-game helper (live-agent/AbioticEditorLiveAgentHelper, see its README):
+      # a tiny native .exe with zero dependencies beyond Winsock/BCrypt, built here (not by
+      # `dotnet build`, on purpose - see live-agent/README.md) so both publishes below can bundle
+      # it via AbioticEditor.Web.csproj's Condition="Exists(...)" content item. A failure here is
+      # non-fatal for the same reason CUE4Parse-Natives' optional native build is: the app still
+      # publishes and runs fine without it, just without live editing's automatic in-game setup
+      # (falling back to the fully manual setup that always worked).
+      - name: Build live-agent helper (native, non-fatal)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          cmake -S live-agent/AbioticEditorLiveAgentHelper -B live-agent/AbioticEditorLiveAgentHelper/build
+          cmake --build live-agent/AbioticEditorLiveAgentHelper/build --config Release
+
       - name: Publish desktop app (Windows, self-contained)
         run: >-
           dotnet publish src/AbioticEditor.Web

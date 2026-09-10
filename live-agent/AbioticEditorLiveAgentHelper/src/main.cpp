@@ -17,7 +17,7 @@
 
 namespace
 {
-    constexpr int Port = 42117;
+    constexpr int PreferredPort = 42117;
 
 }
 
@@ -30,11 +30,13 @@ int main()
     auto token = LoadOrCreateToken(rootDir);
     std::cout << "AbioticEditorLiveAgentHelper\n"
               << "Token (also written to " << rootDir << "\\token.txt): " << token << "\n"
-              << "Listening on port " << Port << ". Keep this window open while you live-edit.\n"
+              << "Preferred port: " << PreferredPort
+              << " (falls back to a nearby one automatically if that's already taken).\n"
+              << "Keep this window open while you live-edit.\n"
               << "Waiting for the AbioticEditorLiveAgent Lua mod to be loaded in the game...\n";
 
     FileMailbox mailbox(rootDir + "\\ipc");
-    Server server(Port, token, [](const std::string& line) { std::cout << line << "\n"; });
+    Server server(PreferredPort, token, [](const std::string& line) { std::cout << line << "\n"; });
 
     // Every command except "hello" is the Lua mod's business: forward it by name and relay the
     // answer. The mod answers "unknown command" itself for anything it does not implement, so
@@ -44,7 +46,18 @@ int main()
         return mailbox.Request(command, payload);
     });
 
-    server.Start();
-    std::cout << "Ready.\n";
+    if (!server.Start())
+    {
+        std::cout << "Could not open a live-edit port - exiting.\n";
+        return 1;
+    }
+
+    // Written next to the token so the editor can find the port this instance actually bound to
+    // (see LiveAgentServer::Start's fallback) the same way it already finds the token - no config
+    // file needed to keep the two sides in sync.
+    WritePortFile(rootDir, server.Port());
+
+    std::cout << "Listening on port " << server.Port() << ".\n"
+              << "Ready.\n";
     while (true) std::this_thread::sleep_for(std::chrono::seconds(1));
 }

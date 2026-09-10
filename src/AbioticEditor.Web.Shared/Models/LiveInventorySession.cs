@@ -25,12 +25,34 @@ namespace AbioticEditor.Web.Models;
 /// </summary>
 public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTransmogSession
 {
-    private const string AppliedLiveStatus = "Applied live - this took effect in the running game immediately.";
+    // Success is silent: the page-wide banner already says every live edit takes effect in the
+    // game immediately, so a per-row echo of that only adds noise. Status is for failures.
+    private const string? AppliedLiveStatus = null;
 
     private readonly LiveInventoryChannel _channel;
     private readonly LiveTransmogVisibilityChannel? _visibilityChannel;
     private string? _playerId;
     private bool _initialized;
+    private int _pendingOperations;
+
+    /// <summary>
+    /// Raised after every refresh (the host's own periodic poll included) and after every
+    /// mutation. There is no page-wide "SAVE re-renders everything" flow for a live session the
+    /// way <c>SaveEditorSurface.razor</c>'s <c>PlayerChanged</c> -&gt; <c>Workspace.NotifyEdited</c>
+    /// gives the file editor, so a host page that wants to reflect an inventory change it did not
+    /// itself trigger (another player picking something up, a periodic background refresh) needs
+    /// its own signal to re-render by - this is that signal.
+    /// </summary>
+    public event Action? Changed;
+
+    private void RaiseChanged() => Changed?.Invoke();
+
+    /// <summary>
+    /// True while a push (or the refresh that follows it) is in flight. A host running a
+    /// periodic background <see cref="RefreshAsync"/> loop should skip a tick while this is true,
+    /// so it never races a user-initiated edit that is still being applied and re-read.
+    /// </summary>
+    public bool IsDirty => Volatile.Read(ref _pendingOperations) > 0;
 
     private LiveInventorySession(LiveInventoryChannel channel, LiveTransmogVisibilityChannel? visibilityChannel,
         string? playerId, ItemUpgradeCatalog itemUpgrades)
@@ -80,10 +102,16 @@ public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTrans
     public async Task SetTransmogVisibilityAsync(int index, bool isVisible)
     {
         if (_visibilityChannel is null) return;
-        await _visibilityChannel.SetAsync(index, isVisible, _playerId).ConfigureAwait(false);
-        var toggle = TransmogVisibility.FirstOrDefault(t => t.Index == index);
-        if (toggle is not null) toggle.IsVisible = isVisible;
-        Status = AppliedLiveStatus;
+        Interlocked.Increment(ref _pendingOperations);
+        try
+        {
+            await _visibilityChannel.SetAsync(index, isVisible, _playerId).ConfigureAwait(false);
+            var toggle = TransmogVisibility.FirstOrDefault(t => t.Index == index);
+            if (toggle is not null) toggle.IsVisible = isVisible;
+            Status = AppliedLiveStatus;
+        }
+        finally { Interlocked.Decrement(ref _pendingOperations); }
+        RaiseChanged();
     }
 
     /// <summary>No live command exposes a discovered-item vocabulary; the sidebar palette's
@@ -136,9 +164,14 @@ public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTrans
 
     public async ValueTask PushSlotAsync(PlayerInventoryArea area, PlayerInventorySlotEdit slot, CancellationToken cancellationToken = default)
     {
-        await _channel.SetAsync([ToEdit(area, slot.ToInventorySlot())], _playerId, cancellationToken).ConfigureAwait(false);
-        Status = AppliedLiveStatus;
-        await RefreshAsync(cancellationToken).ConfigureAwait(false);
+        Interlocked.Increment(ref _pendingOperations);
+        try
+        {
+            await _channel.SetAsync([ToEdit(area, slot.ToInventorySlot())], _playerId, cancellationToken).ConfigureAwait(false);
+            Status = AppliedLiveStatus;
+            await RefreshAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally { Interlocked.Decrement(ref _pendingOperations); }
     }
 
     public async ValueTask<bool> TrySwapInventorySlotsAsync(PlayerInventoryArea firstArea, int firstIndex,
@@ -148,32 +181,42 @@ public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTrans
         var second = FindSlot(secondArea, secondIndex);
         if (first is null || second is null || ReferenceEquals(first, second)) return false;
 
-        var firstValue = first.ToInventorySlot();
-        var secondValue = second.ToInventorySlot();
-        await _channel.SetAsync(
-        [
-            ToEdit(firstArea, secondValue with { Index = first.Index }),
-            ToEdit(secondArea, firstValue with { Index = second.Index }),
-        ], _playerId, cancellationToken).ConfigureAwait(false);
-        Status = AppliedLiveStatus;
-        await RefreshAsync(cancellationToken).ConfigureAwait(false);
-        return true;
+        Interlocked.Increment(ref _pendingOperations);
+        try
+        {
+            var firstValue = first.ToInventorySlot();
+            var secondValue = second.ToInventorySlot();
+            await _channel.SetAsync(
+            [
+                ToEdit(firstArea, secondValue with { Index = first.Index }),
+                ToEdit(secondArea, firstValue with { Index = second.Index }),
+            ], _playerId, cancellationToken).ConfigureAwait(false);
+            Status = AppliedLiveStatus;
+            await RefreshAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        finally { Interlocked.Decrement(ref _pendingOperations); }
     }
 
     public async ValueTask SortInventorySlotsAsync(PlayerInventoryArea area, CancellationToken cancellationToken = default)
     {
-        var slots = SlotsFor(area);
-        var ordered = slots.Select(slot => slot.ToInventorySlot())
-            .OrderBy(slot => slot.IsEmpty)
-            .ThenBy(slot => slot.ItemId, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(slot => slot.PlayerMadeString, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-        var edits = new List<LiveInventoryEdit>(slots.Count);
-        for (var index = 0; index < slots.Count; index++)
-            edits.Add(ToEdit(area, ordered[index] with { Index = slots[index].Index }));
-        await _channel.SetAsync(edits, _playerId, cancellationToken).ConfigureAwait(false);
-        Status = AppliedLiveStatus;
-        await RefreshAsync(cancellationToken).ConfigureAwait(false);
+        Interlocked.Increment(ref _pendingOperations);
+        try
+        {
+            var slots = SlotsFor(area);
+            var ordered = slots.Select(slot => slot.ToInventorySlot())
+                .OrderBy(slot => slot.IsEmpty)
+                .ThenBy(slot => slot.ItemId, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(slot => slot.PlayerMadeString, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            var edits = new List<LiveInventoryEdit>(slots.Count);
+            for (var index = 0; index < slots.Count; index++)
+                edits.Add(ToEdit(area, ordered[index] with { Index = slots[index].Index }));
+            await _channel.SetAsync(edits, _playerId, cancellationToken).ConfigureAwait(false);
+            Status = AppliedLiveStatus;
+            await RefreshAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally { Interlocked.Decrement(ref _pendingOperations); }
     }
 
     public async ValueTask<bool> TryApplyItemUpgradeAsync(PlayerInventoryArea area, int index, bool downgrade, CancellationToken cancellationToken = default)
@@ -181,18 +224,25 @@ public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTrans
         if (!TryGetInventorySlot(area, index, out var slot) || slot.IsEmpty) return false;
         var edge = downgrade ? ItemUpgrades.SourceOf(slot.ItemId) : ItemUpgrades.UpgradeFor(slot.ItemId);
         if (edge is null) return false;
-        var updated = slot with { ItemId = downgrade ? edge.SourceId : edge.OutputId, AssetId = null };
-        await _channel.SetAsync([ToEdit(area, updated)], _playerId, cancellationToken).ConfigureAwait(false);
-        Status = AppliedLiveStatus;
-        await RefreshAsync(cancellationToken).ConfigureAwait(false);
-        return true;
+        Interlocked.Increment(ref _pendingOperations);
+        try
+        {
+            var updated = slot with { ItemId = downgrade ? edge.SourceId : edge.OutputId, AssetId = null };
+            await _channel.SetAsync([ToEdit(area, updated)], _playerId, cancellationToken).ConfigureAwait(false);
+            Status = AppliedLiveStatus;
+            await RefreshAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        finally { Interlocked.Decrement(ref _pendingOperations); }
     }
 
     /// <summary>Re-reads every slot from the running game. The first call (from
     /// <see cref="ConnectAsync"/>) builds the four lists; every later call updates the SAME
     /// <see cref="PlayerInventorySlotEdit"/> objects in place instead of replacing the lists, so
     /// a slot selected in the shared sidebar editor (which holds a reference to one of these
-    /// objects) does not go stale the instant this session applies its own edit and refreshes.</summary>
+    /// objects) does not go stale the instant this session applies its own edit and refreshes.
+    /// Also the host's own periodic background poll (see <see cref="IsDirty"/>), so every caller
+    /// - our own mutation methods and that poll alike - ends by raising <see cref="Changed"/>.</summary>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var wire = await _channel.GetAsync(_playerId, cancellationToken).ConfigureAwait(false);
@@ -213,6 +263,7 @@ public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTrans
             UpdateInPlace(Transmog, wire, "transmog");
         }
         await RefreshTransmogVisibilityAsync(cancellationToken).ConfigureAwait(false);
+        RaiseChanged();
     }
 
     /// <summary>Re-reads the six visibility flags in place, so a toggle mid-drag on the SAME
@@ -246,7 +297,7 @@ public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTrans
         _playerId = playerId;
         _initialized = false;
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
-        Status = "Refreshed from the running game.";
+        Status = null;
     }
 
     private static List<PlayerInventorySlotEdit> Build(IReadOnlyList<LiveInventorySlot> wire, string kind)

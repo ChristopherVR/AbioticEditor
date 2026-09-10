@@ -9,7 +9,11 @@
         @foreach (var tab in Tabs) { <button type="button" role="tab" class="editor-tab @(ActiveTab == tab.Id ? "active" : null)" aria-selected="@(ActiveTab == tab.Id)" @onclick="() => ActiveTab = tab.Id">@Languages.Resource(tab.LabelKey)</button> }
     </nav>
     <div class="player-tab-viewport">
-    @if (ActiveTab == "general") { <PlayerGeneralTab General="Session" Recipes="Session" OnChanged="NotifyChanged" /> }
+    @if (ActiveTab == LoadingTabId && LoadingContent is not null)
+    {
+        @LoadingContent
+    }
+    else if (ActiveTab == "general") { <PlayerGeneralTab General="Session" Recipes="Session" OnChanged="NotifyChanged" /> }
     else if (ActiveTab == "vitals") { <PlayerVitalsTab Vitals="Session.Vitals" OnChanged="NotifyChanged" /> }
     else if (ActiveTab == "character") { <PlayerCharacterTab Session="Session" OnChanged="NotifyChanged" /> }
     else if (ActiveTab == "transmog") { <PlayerTransmogTab Session="Session" OnChanged="NotifyChanged" /> }
@@ -19,8 +23,8 @@
     else if (ActiveTab == "skills") { <PlayerSkillsTab Session="Session" OnChanged="NotifyChanged" /> }
     else if (ActiveTab == "recipes") { <PlayerRecipesTab Session="Session" OnChanged="NotifyChanged" /> }
     else if (ActiveTab == "gatepal") { <PlayerCodexTab Session="Session" OnChanged="NotifyChanged" /> }
-    else if (ActiveTab == "achievements") { <PlayerAchievementsTab Session="Session" /> }
-    else if (ActiveTab == "data") { <PlayerRawDataTab Session="Session" /> }
+    else if (ActiveTab == "achievements" && Session is PlayerSaveSession fileSessionForAchievements) { <PlayerAchievementsTab Session="fileSessionForAchievements" /> }
+    else if (ActiveTab == "data" && Session is PlayerSaveSession fileSessionForData) { <PlayerRawDataTab Session="fileSessionForData" /> }
     </div>
 </section>
 
@@ -29,8 +33,19 @@
     // and fish data are the typed PlayerCodexEdit state and save through PlayerSaveWriter.
     // Achievements need the Steam files on this computer, which a browser tab cannot reach, so
     // that tab is hidden there rather than shown with nothing behind it.
-    private IReadOnlyList<PlayerEditorTab> Tabs => AllTabs.Where(tab => tab.Id != "achievements"
-        || (Files.HasLocalPaths && AbioticEditor.Core.PlayerSaves.PlayerIdentifier.IsSteamId(Session.SteamIdentifier))).ToArray();
+    //
+    // DATA (the raw save JSON tree) has no live equivalent at all - there is no file tree to show
+    // without a file - so it stays hidden whenever Session is not the concrete file-backed session
+    // (see IPlayerEditorSession's own doc comment for why that capability lives here as a type
+    // check rather than as a flag on the interface). CHARACTER is different: its background picker
+    // and trait readout both bind through IPlayerGeneralSession, which a live session implements
+    // too (see the character tab's own Session parameter), so that tab stays visible live -
+    // only the parts with no evidenced live path (adding/removing a trait, the appearance panel)
+    // fall back to a read-only readout inside it.
+    private IReadOnlyList<PlayerEditorTab> Tabs => AllTabs.Where(tab =>
+        (tab.Id is not ("achievements" or "data") || Session is PlayerSaveSession)
+        && (tab.Id != "achievements"
+            || (Files.HasLocalPaths && AbioticEditor.Core.PlayerSaves.PlayerIdentifier.IsSteamId((Session as PlayerSaveSession)?.SteamIdentifier)))).ToArray();
     // Same order and labels as the native PlayerEditorView tab bar.
     private static readonly PlayerEditorTab[] AllTabs =
     [
@@ -42,9 +57,20 @@
         new("achievements", "PlayerEditor_Achieve"), new("data", "PlayerEditor_Data"),
     ];
     [Parameter] public string Title { get; set; } = string.Empty;
-    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    [Parameter, EditorRequired] public IPlayerEditorSession Session { get; set; } = null!;
     [Parameter] public WorldSaveSession? TransferWorldSession { get; set; }
     [Parameter] public EventCallback OnChanged { get; set; }
+    // Fires whenever the active tab changes, before that tab's content renders - lets a live-editing
+    // host (see LiveConnect's own page component) lazily connect the corresponding area on demand,
+    // the same way it did with its own hand-rolled tab strip before this component replaced it. The
+    // file editor never sets this - PlayerSaveSession already has everything loaded, nothing to
+    // connect on demand.
+    [Parameter] public EventCallback<string> OnTabActivated { get; set; }
+    // While this equals the active tab, LoadingContent renders instead of that tab's real content -
+    // the host's way of covering the gap between a tab opening and its live area finishing its
+    // connect (see the comment above and LiveConnect's own EnsureAreaConnectedAsync method).
+    [Parameter] public string? LoadingTabId { get; set; }
+    [Parameter] public RenderFragment? LoadingContent { get; set; }
     private string _activeTab = "vitals";
     private string ActiveTab
     {
@@ -57,8 +83,22 @@
             // the palette-bearing inventory surfaces); leaving those tabs closes it, the
             // same way the native card disappears with the item palette.
             if (value is not ("inventory" or "transmog" or "gatepal")) Selection.CloseEncyclopedia();
+            _ = OnTabActivated.InvokeAsync(value);
         }
     }
+
+    // The field initializer above sets _activeTab directly, bypassing the ActiveTab property
+    // setter entirely - so without this, a live-editing host never learns which tab is showing
+    // until the player actually clicks a different one. That single missed notification is enough
+    // to desync a host's own "which tab is active" bookkeeping from what is genuinely on screen:
+    // the live-editing page recreates this component fresh (back to the "vitals" default) every
+    // time the surface returns from WORLD to a player, but its own tracked tab id is untouched by
+    // that recreation - it keeps whatever tab was active before the detour. Editing VITALS/SKILLS
+    // right after such a detour silently did nothing, because the host's stale tab id no longer
+    // matched "vitals"/"skills" and the debounced auto-save never triggered. Reporting the initial
+    // tab here, every time this component is (re)created, keeps the host's bookkeeping honest
+    // regardless of how it got here.
+    protected override void OnInitialized() => _ = OnTabActivated.InvokeAsync(_activeTab);
 
     // Published after render (never inside the parameter/render phase): the context change
     // raises Selection.Changed, and firing that mid-render corrupts the renderer's diff.

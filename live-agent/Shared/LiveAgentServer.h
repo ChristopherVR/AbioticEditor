@@ -40,8 +40,12 @@ namespace LiveAgent
     public:
         // `logLine` receives short diagnostic lines (connects, disconnects, errors) for the mod
         // to forward to UE4SS's own log; kept as a callback so this header stays UE4SS-free.
-        Server(int port, std::string token, std::function<void(const std::string&)> logLine)
-            : m_port(port), m_token(std::move(token)), m_log(std::move(logLine)) {}
+        // `preferredPort` is tried first; if it is already taken (another helper instance, or
+        // anything else on this PC), Start() falls back to the next few ports instead of giving
+        // up - see Start()'s doc comment and Port() for how a caller learns which one actually
+        // ended up bound.
+        Server(int preferredPort, std::string token, std::function<void(const std::string&)> logLine)
+            : m_port(preferredPort), m_token(std::move(token)), m_log(std::move(logLine)) {}
 
         ~Server() { Stop(); }
 
@@ -57,13 +61,22 @@ namespace LiveAgent
             m_default = std::move(handler);
         }
 
-        // Starts the accept loop on a background thread. Safe to call once; call Stop() before a
-        // second Start() if the port or token needs to change.
-        void Start();
+        // Binds (falling back to later ports if the preferred one is taken - see Port()) and
+        // starts the accept loop on a background thread. Safe to call once; call Stop() before a
+        // second Start() if the port or token needs to change. Returns false only when every
+        // candidate port failed to bind.
+        bool Start();
         void Stop();
+
+        // The port actually bound once Start() has returned true - not necessarily the
+        // `preferredPort` passed to the constructor, if that one was already in use.
+        int Port() const { return m_port; }
 
     private:
         void AcceptLoop();
+        // Attempts to bind+listen on exactly this port; on success stores the listening socket
+        // and updates m_port to it. Never touches m_running.
+        bool TryBindAndListen(int port);
         // Serves exactly one client to completion (until it disconnects or sends a bad line),
         // then returns so AcceptLoop can accept the next one. One connection at a time matches
         // TcpLiveGameChannel's own single-connection, single-in-flight-request design.

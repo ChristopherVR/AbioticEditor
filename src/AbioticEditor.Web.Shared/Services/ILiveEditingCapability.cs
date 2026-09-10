@@ -23,6 +23,17 @@ public interface ILiveEditingCapability
     /// read) and whenever no local live-agent has run yet.
     /// </summary>
     string? TryReadLocalToken();
+
+    /// <summary>
+    /// Reads the port the local live-agent helper actually bound to, if it has ever run and
+    /// written one. The helper's fixed preferred port can be taken (another helper instance
+    /// left running, or anything else on the machine), in which case it falls back to a nearby
+    /// port on its own and records the real one here - see <c>LiveAgentServer::Start</c> in the
+    /// native helper. Falls back to <see cref="LiveAgentSetup.DefaultPort"/> when no such file
+    /// exists yet (an old helper build, or the brief moment right after launch before it has
+    /// written one), matching this helper's own preferred port.
+    /// </summary>
+    int TryReadLocalPort();
 }
 
 /// <summary>The desktop host's registration: live editing is always offered there.</summary>
@@ -30,16 +41,24 @@ public sealed class DesktopLiveEditingCapability : ILiveEditingCapability
 {
     public bool IsAvailable => true;
 
-    public string? TryReadLocalToken()
+    public string? TryReadLocalToken() => TryReadFile("token.txt");
+
+    public int TryReadLocalPort()
+    {
+        var text = TryReadFile("port.txt");
+        return int.TryParse(text, out var port) ? port : LiveAgentSetup.DefaultPort;
+    }
+
+    private static string? TryReadFile(string fileName)
     {
         try
         {
             var path = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "AbioticEditorLiveAgent", "token.txt");
+                "AbioticEditorLiveAgent", fileName);
             if (!File.Exists(path)) return null;
-            var token = File.ReadAllText(path).Trim();
-            return token.Length == 0 ? null : token;
+            var text = File.ReadAllText(path).Trim();
+            return text.Length == 0 ? null : text;
         }
         catch (IOException) { return null; }
         catch (UnauthorizedAccessException) { return null; }

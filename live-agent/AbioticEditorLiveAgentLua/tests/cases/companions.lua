@@ -58,8 +58,37 @@ return function(H)
     H.eq(petSlot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313.PlayerMadeString_42_CC0B72B24DBEAB2CC04454AAFFD4BBE9, "Lord Scales", "the new name was actually written")
 
     -- companions.set clear: back to the "Empty" sentinel (confirmed live in round 74, not "None").
-    H.ok(H.dispatch("companions.set", { kind = "equip", slotIndex = 0, clear = true }), "companions.set clear")
+    -- Not the Companion slot (index 12), so no follower search ever runs.
+    local plainClear = H.ok(H.dispatch("companions.set", { kind = "equip", slotIndex = 0, clear = true }), "companions.set clear")
+    H.eq(plainClear.despawnedFollower, false, "an ordinary carried-pet slot never searches for a live follower")
     H.eq(#H.ok(H.dispatch("companions.list")).pets, 0, "cleared slot no longer listed")
+
+    -- Round-78 bug fix (reported live: "removing a pet from a player leaves the pet standing next
+    -- to them, unable to be picked up"): clearing slot 12 - the active Companion slot - also
+    -- despawns the matching live follower actor, found via its own FollowingOwner reference
+    -- (Pest/Skink family only) and destroyed with K2_DestroyActor (the same technique the
+    -- reference CheatConsoleCommands mod's own "deleteobject" command uses on an arbitrary world
+    -- actor). A different player's follower must never be touched.
+    local companionSlot = pawn.CharacterEquipSlotInventory.CurrentInventory[13]
+    companionSlot.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B.RowName = H.fname("pet_skink")
+    local followerMethods = { K2_DestroyActor = function(self) rawset(self, "__valid", false) end }
+    local follower = H.world.add(H.object("NPC_Monster_Pest_C",
+        { Guid = H.fstring("33333333-3333-3333-3333-333333333333"), FollowingOwner = pawn }, followerMethods))
+    local strangerPawn = H.object("Abiotic_PlayerCharacter_C", {})
+    local strangersFollower = H.world.add(H.object("NPC_Monster_Pest_C",
+        { Guid = H.fstring("44444444-4444-4444-4444-444444444444"), FollowingOwner = strangerPawn }, followerMethods))
+
+    local companionClear = H.ok(H.dispatch("companions.set", { kind = "equip", slotIndex = 12, clear = true }),
+        "companions.set clear (Companion slot)")
+    H.eq(companionClear.despawnedFollower, true, "the matching live follower was despawned")
+    H.eq(H.calls(follower, "K2_DestroyActor"), 1, "the follower actor was destroyed")
+    H.eq(follower:IsValid(), false, "the follower is gone")
+    H.eq(strangersFollower:IsValid(), true, "a different player's follower is left alone")
+
+    -- Clearing the same slot again finds nothing left to despawn - reports false, never errors.
+    local secondClear = H.ok(H.dispatch("companions.set", { kind = "equip", slotIndex = 12, clear = true }),
+        "companions.set clear (Companion slot) again")
+    H.eq(secondClear.despawnedFollower, false, "nothing left to despawn the second time")
 
     -- Missing slot: player-safe failure, not a Lua error.
     H.fails(H.dispatch("companions.set", { kind = "equip", slotIndex = 999, health = 1 }), "slot not found", "an out-of-range slot fails cleanly")

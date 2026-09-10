@@ -66,7 +66,7 @@ namespace LiveAgent
                     auto resultIt = object->find("result");
                     return resultIt != object->end() ? resultIt->second : JsonValue();
                 }
-                std::this_thread::sleep_for(std::chrono::milliseconds(20));
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
 
             DeleteFileA(RequestPath().c_str());

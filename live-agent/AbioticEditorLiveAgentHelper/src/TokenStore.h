@@ -60,4 +60,16 @@ namespace LiveAgent
         out << token;
         return token;
     }
+
+    // Written once this process knows which port it actually bound to (see
+    // LiveAgentServer::Start's fallback: the preferred port can be taken), the same
+    // no-config-file-needed trick as the token above - the editor reads this instead of assuming
+    // the preferred port ever since one helper instance can force another onto a different port.
+    inline void WritePortFile(const std::string& dir, int port, const std::string& fileName = "port.txt")
+    {
+        CreateDirectoryA(dir.c_str(), nullptr);
+        auto path = dir + "\\" + fileName;
+        std::ofstream out(path, std::ios::binary | std::ios::trunc);
+        if (out) out << port;
+    }
 }

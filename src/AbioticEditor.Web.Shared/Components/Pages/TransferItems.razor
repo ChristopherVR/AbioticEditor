@@ -1,0 +1,277 @@
+@page "/transfer-items"
+@using AbioticEditor.Core.PlayerSaves
+@using AbioticEditor.Core.WorldSaves
+@using AbioticEditor.Web.Components.Player
+@using AbioticEditor.Web.Models
+@inject SaveWorkspaceSessionService Workspace
+@inject AbioticEditor.Ui.IFilePicker FilePicker
+@inject ItemCatalogService Catalog
+@inject ISaveFileSystem Files
+@inject HostLanguageService L
+
+<PageTitle>@L.Resource("Transfer_Title") · @L.Resource("App_Title")</PageTitle>
+
+<section class="tool-scaffold">
+    <header class="tool-scaffold-heading"><p class="eyebrow">@L.Resource("Transfer_Eyebrow")</p><h1>@L.Resource("Transfer_ScaffoldTitle")</h1></header>
+
+    @* Picking an arbitrary .sav file from anywhere on disk needs a real file system, exactly
+       like the file-vs-file half of Compare - a browser tab without local paths cannot reach a
+       second world's files at all. *@
+    @if (!Workspace.HasLocalPaths)
+    {
+        <section class="compare-card">
+            <h2>@L.Resource("Host_NeedsDesktopTitle")</h2>
+            <p class="muted">@L.Resource("Host_NeedsDesktopBody")</p>
+        </section>
+    }
+    else
+    {
+        <p class="muted">@L.Resource("Transfer_Description")</p>
+
+        @SidePanel(_left, other: _right)
+        <section class="compare-card transfer-held-card">
+            @if (_held is { } held)
+            {
+                <p class="muted">@L.Resource("Transfer_HoldingFormat", held.ItemLabel, held.Side == _left ? "A" : "B")</p>
+            }
+            else
+            {
+                <p class="muted">@L.Resource("Transfer_HoldingNone")</p>
+            }
+        </section>
+        @SidePanel(_right, other: _left)
+    }
+</section>
+
+@code {
+    private sealed class Side
+    {
+        public string Label = string.Empty;
+        public string Path = string.Empty;
+        public WorldSaveSession? Session;
+        public (WorldContainerSource Source, string Id)? SelectedKey;
+        public string Filter = string.Empty;
+        public string? Error;
+        public string? Status;
+        public bool Busy;
+    }
+
+    private sealed record HeldItem(Side Side, WorldContainerSource Source, string ContainerId, int SlotIndex, string ItemLabel);
+
+    private readonly Side _left = new() { Label = "A" };
+    private readonly Side _right = new() { Label = "B" };
+    private HeldItem? _held;
+
+    protected override void OnInitialized()
+    {
+        // A world already open in the main editor is the most likely thing someone wants to
+        // move items out of - pre-fill side A with it rather than making them browse for a
+        // file they are currently looking at in another tab.
+        if (Workspace.Current?.WorldSession is { } open) { _left.Path = open.Path; }
+    }
+
+    private WorldContainer? SelectedContainer(Side side) => side.SelectedKey is { } key
+        ? side.Session?.Containers.FirstOrDefault(c => c.Source == key.Source && string.Equals(c.Id, key.Id, StringComparison.Ordinal))
+        : null;
+
+    private static IReadOnlyList<InventoryItemSlot> FirstSlots(WorldContainer container)
+        => container.Inventories.Count > 0 ? container.Inventories[0].Slots : Array.Empty<InventoryItemSlot>();
+
+    private List<WorldContainer> VisibleContainers(Side side)
+    {
+        if (side.Session is not { } session) return [];
+        IEnumerable<WorldContainer> q = session.Containers.Where(c => FirstSlots(c).Count > 0);
+        if (!string.IsNullOrWhiteSpace(side.Filter))
+        {
+            var f = side.Filter.Trim();
+            q = q.Where(c => DisplayName(c).Contains(f, StringComparison.OrdinalIgnoreCase)
+                || FirstSlots(c).Any(s => !s.IsEmpty && SlotLabel(s).Contains(f, StringComparison.OrdinalIgnoreCase)));
+        }
+        return q.ToList();
+    }
+
+    private string DisplayName(WorldContainer container) => container.ClassName is { Length: > 0 } className
+        ? PlainNames.Thing(className)
+        : PlainNames.Words(container.Id);
+
+    private string SlotLabel(InventoryItemSlot slot)
+        => slot.IsEmpty ? L.Inventory("empty") : Catalog.Find(slot.ItemId)?.DisplayName ?? PlainNames.Words(slot.ItemId);
+
+    private async Task BrowseAsync(Side side)
+    {
+        side.Error = null;
+        try
+        {
+            var picked = await FilePicker.PickFileAsync(new()
+            {
+                Title = L.Resource("Compare_PickFileTitle"),
+                FileTypes = [new(L.Resource("Compare_SaveFileType"), [".sav"])],
+            });
+            if (picked?.Path is { } path) side.Path = path;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            side.Error = Errors.Present(exception, L.Resource("Compare_PickerFailedTitle"), string.Empty);
+        }
+    }
+
+    private async Task LoadAsync(Side side)
+    {
+        if (string.IsNullOrWhiteSpace(side.Path)) return;
+        side.Error = null;
+        side.Status = null;
+        side.Busy = true;
+        StateHasChanged();
+        try
+        {
+            var data = await Task.Run(() => WorldSaveReader.ReadFromFile(side.Path));
+            side.Session = new WorldSaveSession(data, side.Path, Files);
+            side.SelectedKey = null;
+            if (ReferenceEquals(side, _left) ? _held?.Side == _left : _held?.Side == _right) _held = null;
+        }
+        catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException)
+        {
+            side.Session = null;
+            side.Error = Errors.Present(exception, L.Resource("Transfer_LoadFailedTitle"), string.Empty);
+        }
+        finally
+        {
+            side.Busy = false;
+        }
+    }
+
+    private async Task SaveAsync(Side side)
+    {
+        if (side.Session is not { } session) return;
+        side.Busy = true;
+        try
+        {
+            await session.SaveAsync();
+            side.Status = session.Status ?? L.Resource("Transfer_Saved");
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            side.Error = Errors.Present(exception, L.Resource("Transfer_SaveFailedTitle"), string.Empty);
+        }
+        finally
+        {
+            side.Busy = false;
+        }
+    }
+
+    private void SelectContainer(Side side, WorldContainer container) => side.SelectedKey = (container.Source, container.Id);
+
+    /// <summary>Clicking a filled slot picks it up (or drops it if it was already held);
+    /// clicking an empty slot completes a move from whatever is held on the other side.</summary>
+    private async Task TapSlot(Side side, WorldContainer container, int slotIndex)
+    {
+        var slots = FirstSlots(container);
+        if (slotIndex < 0 || slotIndex >= slots.Count) return;
+        var slot = slots[slotIndex];
+
+        if (_held is { } held && held.Side != side)
+        {
+            if (!slot.IsEmpty) return; // destination must be a free slot
+            var other = held.Side;
+            if (other.Session is not { } sourceSession || side.Session is not { } destSession) return;
+            var moved = InventoryTransferService.TryMoveContainerToContainer(
+                sourceSession, held.Source, held.ContainerId, 0, held.SlotIndex,
+                destSession, container.Source, container.Id, 0, slotIndex);
+            if (moved)
+            {
+                other.Status = L.Resource("Transfer_MovedFormat", held.ItemLabel, DisplayName(container));
+                side.Status = other.Status;
+                _held = null;
+            }
+            else
+            {
+                side.Error = L.Resource("Transfer_MoveNotPossible");
+            }
+            return;
+        }
+
+        if (slot.IsEmpty) { return; }
+        // Tapping the already-held slot again lets go of it without moving anything.
+        _held = _held is { } current && current.Side == side && current.ContainerId == container.Id
+            && current.Source == container.Source && current.SlotIndex == slotIndex
+            ? null
+            : new HeldItem(side, container.Source, container.Id, slotIndex, SlotLabel(slot));
+        await Task.CompletedTask;
+    }
+
+    private RenderFragment SidePanel(Side side, Side other) => __builder =>
+    {
+        <section class="compare-card">
+            <h2>@L.Resource("Transfer_SideHeaderFormat", side.Label)</h2>
+            <div class="compare-source">
+                <div class="compare-source-path" title="@side.Path">@(string.IsNullOrWhiteSpace(side.Path) ? L.Resource("Compare_NothingSelected") : side.Path)</div>
+                <div class="editor-actions">
+                    <button class="secondary" type="button" @onclick="() => BrowseAsync(side)" disabled="@side.Busy">@L.Resource("Compare_BrowseButton")</button>
+                    <button class="primary" type="button" @onclick="() => LoadAsync(side)" disabled="@(side.Busy || string.IsNullOrWhiteSpace(side.Path))">@(side.Busy ? L.Resource("Common_Working") : L.Resource("Transfer_LoadButton"))</button>
+                    @if (side.Session is { IsDirty: true })
+                    {
+                        <button class="secondary" type="button" @onclick="() => SaveAsync(side)" disabled="@side.Busy">@L.Resource("Transfer_SaveButton")</button>
+                    }
+                </div>
+            </div>
+            @if (side.Error is not null) { <p class="error" role="alert">@side.Error</p> }
+            @if (side.Status is not null) { <p class="muted" role="status">@side.Status</p> }
+
+            @if (side.Session is { } session)
+            {
+                <div class="wc-tab">
+                    <div class="wc-filter-row">
+                        <input aria-label="@L.Resource("WorldContainers_FilterPlaceholder")" @bind="side.Filter" @bind:event="oninput" placeholder="@L.Resource("WorldContainers_FilterPlaceholder")" />
+                    </div>
+                    <div class="wc-split">
+                        <div class="wc-master" role="list">
+                            @foreach (var container in VisibleContainers(side))
+                            {
+                                var key = (container.Source, container.Id);
+                                var occupied = FirstSlots(container).Count(s => !s.IsEmpty);
+                                <div class="wc-row @(side.SelectedKey == key ? "selected" : null)" role="listitem" @onclick="() => SelectContainer(side, container)">
+                                    <strong>@DisplayName(container)</strong>
+                                    <span class="wc-count">@occupied/@FirstSlots(container).Count</span>
+                                </div>
+                            }
+                            @if (VisibleContainers(side).Count == 0) { <p class="wc-empty">@L.Resource("WorldContainers_NoContainersMatch")</p> }
+                        </div>
+                        <div class="wc-detail">
+                            @if (SelectedContainer(side) is { } selected)
+                            {
+                                <h3 class="wc-title">@DisplayName(selected)</h3>
+                                <div class="wc-slot-grid">
+                                    @{ var slots = FirstSlots(selected); }
+                                    @for (var i = 0; i < slots.Count; i++)
+                                    {
+                                        var index = i;
+                                        var slot = slots[index];
+                                        var isHeld = _held is { } h && h.Side == side && h.Source == selected.Source
+                                            && h.ContainerId == selected.Id && h.SlotIndex == index;
+                                        <button type="button" class="wc-slot @(isHeld ? "selected" : null)" @onclick="() => TapSlot(side, selected, index)">
+                                            @if (!slot.IsEmpty && slot.ItemId is { } itemId)
+                                            {
+                                                <span class="wc-slot-icon"><ItemIcon ItemId="@itemId" Alt="@SlotLabel(slot)" /></span>
+                                                @if (slot.Count > 1) { <span class="wc-slot-count">@slot.Count</span> }
+                                                <span class="wc-slot-name">@SlotLabel(slot)</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="wc-slot-index">[@index.ToString("D2")]</span>
+                                            }
+                                        </button>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="wc-select-label">@L.Resource("WorldContainers_SelectAContainer")</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <p class="wc-help">@L.Resource(other.Session is null ? "Transfer_LoadOtherSideHint" : "Transfer_TapHelp")</p>
+            }
+        </section>
+    };
+}

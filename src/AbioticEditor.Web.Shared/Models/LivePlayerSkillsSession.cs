@@ -48,13 +48,26 @@ public sealed class LivePlayerSkillsSession : IPlayerSkillsSession
         MarkChanged();
     }
 
+    /// <summary>Pushes only the skills the player actually changed - not the whole positional
+    /// list - to the live game. This mattered for a real reason, not just efficiency: the live
+    /// write is a remove-then-add RPC pair (see <see cref="LivePlayerSkillsChannel.SetAsync"/>'s
+    /// own doc comment), so sending every skill on every save briefly zeroed and re-maxed every
+    /// UNTOUCHED skill too. Fishing sits last in file order (<see cref="SkillCatalog.CanonicalOrder"/>),
+    /// so it was always the last skill re-applied in that batch - the game's own level-up popup
+    /// for that redundant zero-then-restore cycle is what a player actually saw and reported as
+    /// "editing any skill says Fishing unlocked", even though the skill they edited was written
+    /// correctly underneath. Sending only the dirty rows stops every untouched skill (Fishing
+    /// included) from being re-applied at all, so its own popup can no longer be the one that wins.</summary>
     public async ValueTask SaveAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        await _channel.SetAsync(Skills.Select(skill => skill.ToPlayerSkill()).ToList(), _playerId, cancellationToken)
-            .ConfigureAwait(false);
+        var dirty = Skills.Where(skill => skill.IsDirty).Select(skill => skill.ToPlayerSkill()).ToList();
+        if (dirty.Count > 0)
+        {
+            await _channel.SetAsync(dirty, _playerId, cancellationToken).ConfigureAwait(false);
+        }
         foreach (var skill in Skills) skill.AcceptCurrentAsBaseline();
-        Status = "Applied live - this took effect in the running game immediately.";
+        Status = null;
     }
 
     public void Revert()
@@ -63,16 +76,25 @@ public sealed class LivePlayerSkillsSession : IPlayerSkillsSession
         Status = "Changes reverted.";
     }
 
+    /// <summary>Re-reads the live player's skills, discarding any unsaved local edits. Mirrors
+    /// <see cref="LivePlayerVitalsSession.RefreshAsync"/> - used to pick up progress made in the
+    /// running game (levelling up, say) while this tab is open and nothing is being edited right
+    /// now.</summary>
+    public async Task RefreshAsync(CancellationToken cancellationToken = default)
+    {
+        var skills = await _channel.GetAsync(_playerId, cancellationToken).ConfigureAwait(false);
+        Skills = skills.OrderBy(skill => skill.Index)
+            .Select(skill => new PlayerSkillEdit(skill, SkillDefinitionFor(skill.Index)))
+            .ToList();
+        Status = null;
+    }
+
     /// <summary>Switches which connected player this session edits (discarding any unsaved local
     /// edits for the previous one) and re-reads that player's skills.</summary>
     public async Task SwitchPlayerAsync(string? playerId, CancellationToken cancellationToken = default)
     {
         _playerId = playerId;
-        var skills = await _channel.GetAsync(_playerId, cancellationToken).ConfigureAwait(false);
-        Skills = skills.OrderBy(skill => skill.Index)
-            .Select(skill => new PlayerSkillEdit(skill, SkillDefinitionFor(skill.Index)))
-            .ToList();
-        Status = "Refreshed from the running game.";
+        await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static SkillDefinition SkillDefinitionFor(int index)

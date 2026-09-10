@@ -291,6 +291,7 @@
   <data name="PlayerVitals_RightArm" xml:space="preserve"><value>BRAS DROIT</value></data>
   <data name="PlayerVitals_RightLeg" xml:space="preserve"><value>JAMBE DROITE</value></data>
   <data name="PlayerVitals_Sanity" xml:space="preserve"><value>SANTÉ MENTALE</value></data>
+  <data name="PlayerVitals_SanityTooltip" xml:space="preserve"><value>Le fichier de sauvegarde (et le jeu en cours d'exécution) indique une valeur de Sanité aux côtés de la Faim, la Soif, la Fatigue et la Continence, mais il n'existe pour l'instant aucune information publique confirmée sur son effet réel en jeu : elle n'est pas documentée sur le wiki. Affichée ici car le jeu la suit lui-même.</value></data>
   <data name="PlayerVitals_Thirst" xml:space="preserve"><value>SOIF</value></data>
   <data name="PlayerVitals_Torso" xml:space="preserve"><value>TORSE</value></data>
 

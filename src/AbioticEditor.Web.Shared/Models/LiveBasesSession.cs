@@ -36,6 +36,14 @@ public sealed class LiveBasesSession : IWorldBasesSession
     public bool IsHost { get; private set; }
     public string? Status { get; private set; }
 
+    /// <summary>Always false: a rename or upgrade install already reached the running game by
+    /// the time it returns, so there is never a client-side staged copy.</summary>
+    public bool IsDirty => false;
+
+    /// <summary>Raised after <see cref="RefreshAsync"/> re-reads the world and after every
+    /// mutation (each of which already ends by refreshing).</summary>
+    public event Action? Changed;
+
     private void Apply(LiveDeployableDirectory directory)
     {
         _byId = directory.Deployables.ToDictionary(d => d.Id, StringComparer.Ordinal);
@@ -44,6 +52,7 @@ public sealed class LiveBasesSession : IWorldBasesSession
                 d.InstalledUpgrades.Count > 0 ? d.InstalledUpgrades : null))
             .ToList();
         IsHost = directory.IsHost;
+        Changed?.Invoke();
     }
 
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
@@ -52,7 +61,7 @@ public sealed class LiveBasesSession : IWorldBasesSession
     public async Task SetCustomNameAsync(string deployableId, string? customName, CancellationToken cancellationToken = default)
     {
         await _channel.SetCustomNameAsync(deployableId, customName, cancellationToken).ConfigureAwait(false);
-        Status = "Applied live - this took effect in the running game immediately.";
+        Status = null;
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -74,7 +83,7 @@ public sealed class LiveBasesSession : IWorldBasesSession
         }
 
         await _channel.SetBenchUpgradeAsync(deployableId, row, installed: true, cancellationToken).ConfigureAwait(false);
-        Status = "Applied live - this took effect in the running game immediately.";
+        Status = null;
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
         return _byId.TryGetValue(deployableId, out var deployable) && deployable.InstalledUpgrades.Contains(row);
     }

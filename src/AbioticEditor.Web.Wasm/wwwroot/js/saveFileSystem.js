@@ -215,8 +215,12 @@ window.abioticSaveFs = {
             if (error && (error.name === "SecurityError" || /system files/i.test(error.message ?? ""))) {
                 throw new Error(
                     "The browser will not grant access to that folder because it is a system location. "
-                    + "Pick the world folder itself (the one holding WorldSave_*.sav and PlayerData), "
-                    + "usually under AbioticFactor/Saved/SaveGames, rather than a whole drive or your user folder.");
+                    + "If you picked a whole drive or your user folder's root, try again and pick the save "
+                    + "folder itself instead (the one holding WorldSave_*.sav and PlayerData), usually under "
+                    + "AbioticFactor/Saved/SaveGames. If that folder is itself inside a protected location "
+                    + "like Program Files, the browser blocks everything under it too, no matter which "
+                    + "subfolder you pick, so copy the save folder to a normal location such as your Desktop "
+                    + "or Documents first, then open it from there.");
             }
             throw error;
         }

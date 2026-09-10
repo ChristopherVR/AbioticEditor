@@ -53,6 +53,13 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
     public bool CanUnsetKnown => false;
     public string? Status { get; private set; }
 
+    /// <summary>Always false: a codex unlock already reached the running game by the time it
+    /// returns, so there is never a client-side staged copy.</summary>
+    public bool IsDirty => false;
+
+    /// <summary>Raised after <see cref="RefreshAsync"/> and after every unlock.</summary>
+    public event Action? Changed;
+
     public bool ApplyCodexVocabulary(CodexVocabulary vocabulary, Func<string, object?[], string>? localize = null)
     {
         if (_hasVocabulary || vocabulary.IsEmpty) return false;
@@ -99,7 +106,8 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
 
         row.IsKnown = true;
         (FindOwnerIds(row))?.Add(row.Id);
-        Status = "Applied live - this took effect in the running game immediately.";
+        Status = null;
+        Changed?.Invoke();
     }
 
     public void MarkChanged() { }
@@ -110,7 +118,8 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
         var directory = await _channel.GetAsync(_playerId, cancellationToken).ConfigureAwait(false);
         LoadDirectory(directory);
         Rebuild(_hasVocabulary ? _lastVocabulary : CodexVocabulary.Empty);
-        Status = "Refreshed from the running game.";
+        Status = null;
+        Changed?.Invoke();
     }
 
     /// <summary>Switches which connected player this session reads/edits and re-reads that

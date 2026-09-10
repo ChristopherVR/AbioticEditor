@@ -232,7 +232,11 @@ public static partial class WorldSaveReader
             LiquidType: p.GetEnumString("CurrentLiquid_"),
             DynamicState: p.GetBool("DynamicState_"),
             PlayerMadeString: p.GetString("PlayerMadeString_"),
-            AssetId: p.GetString("AssetID_"));
+            AssetId: p.GetString("AssetID_"),
+            VariantRowName: p.FindByPrefix("TextureVariantRow_")?.Property is StructProperty variantSp
+                && variantSp.Value is PropertiesStruct variantPs
+                ? variantPs.Properties.GetString("RowName")
+                : null);
     }
 
     private static InventoryItemSlot EmptySlot(int index)

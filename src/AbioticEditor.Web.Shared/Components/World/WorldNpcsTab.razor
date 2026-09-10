@@ -31,8 +31,8 @@
                             class="wt-row @(_selectedId == npc.Id ? "selected" : null)" @key="npc.Id"
                             @onclick="() => _selectedId = npc.Id">
                         <span class="wt-row-text">
-                            <strong>@npc.ActorName</strong>
-                            <small>@npc.State</small>
+                            <strong>@npc.FriendlyLabel</strong>
+                            <small>@npc.ActorName</small>
                         </span>
                         <span class="wt-row-status">@(npc.IsDead ? L.Resource("WorldPets_StatusDead") : L.Resource("WorldPets_StatusHealthy"))</span>
                     </button>
@@ -45,7 +45,8 @@
                 }
                 else
                 {
-                    <h3 class="wt-h3">@selected.ActorName</h3>
+                    <h3 class="wt-h3">@selected.FriendlyLabel</h3>
+                    <p class="wt-muted">@selected.ActorName</p>
                     <div class="wt-field">
                         <span class="wt-label">@L.Resource("WorldPets_Location")</span>
                         <span class="wt-muted">X @selected.X.ToString("0"), Y @selected.Y.ToString("0"), Z @selected.Z.ToString("0")</span>

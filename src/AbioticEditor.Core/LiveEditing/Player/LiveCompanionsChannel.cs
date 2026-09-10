@@ -43,11 +43,20 @@ public sealed class LiveCompanionsChannel(ILiveGameChannel channel)
             cancellationToken);
 
     /// <summary>Clears a pet's slot back to empty immediately. There is no undo once this has been
-    /// sent - the caller must have already confirmed this with the player.</summary>
-    public Task ClearAsync(string kind, int slotIndex, string? playerId = null, CancellationToken cancellationToken = default)
-        => _channel.RequestAsync<object?>("companions.set",
+    /// sent - the caller must have already confirmed this with the player. Round 78: when
+    /// <paramref name="kind"/>/<paramref name="slotIndex"/> is the active Companion slot
+    /// (<see cref="CarriedPet.IsCompanionSlot"/>), <c>companions.lua</c> also tries to despawn the
+    /// matching live follower actor - <see cref="LiveClearResult.DespawnedFollower"/> says whether
+    /// that succeeded, so the caller can tell the player if a Peccary/WinterSprite-family follower
+    /// (no evidenced live match, unlike Pest/Skink) might still be standing around.</summary>
+    public async Task<LiveClearResult> ClearAsync(string kind, int slotIndex, string? playerId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var wire = await _channel.RequestAsync<ClearResultWire>("companions.set",
             new SetWire(kind, slotIndex, true, null, null, null, null, null, null, null, playerId),
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+        return new LiveClearResult(wire?.DespawnedFollower ?? false);
+    }
 
     /// <summary>Wire kind for a <see cref="PetSlotKind"/>, matching <c>companions.lua</c>'s
     /// <c>PET_KINDS</c> names (the same three the inventory area already uses).</summary>
@@ -71,7 +80,11 @@ public sealed class LiveCompanionsChannel(ILiveGameChannel channel)
         double Health, double MaxHealth, int Xp, int MutationProgress, int PetMutation);
     private sealed record SetWire(string Kind, int SlotIndex, bool? Clear, string? ItemId, string? Name,
         double? Health, double? MaxHealth, int? Xp, int? MutationProgress, int? PetMutation, string? PlayerId);
+    private sealed record ClearResultWire(bool? DespawnedFollower);
 }
+
+/// <summary>The outcome of <see cref="LiveCompanionsChannel.ClearAsync"/>. See its own remarks.</summary>
+public sealed record LiveClearResult(bool DespawnedFollower);
 
 /// <summary>One occupied player-inventory slot as read live, before pet filtering - see
 /// <see cref="LiveCompanionsChannel.ListAsync"/>.</summary>

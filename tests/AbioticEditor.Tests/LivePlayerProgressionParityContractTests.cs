@@ -75,12 +75,22 @@ public sealed class LivePlayerProgressionParityContractTests
     [Fact]
     public void LiveConnect_renders_the_same_shared_tabs_the_file_editor_uses()
     {
+        // Round 79: RECIPES/CODEX/GENERAL render through the shared <PlayerEditor> component (the
+        // same one the file editor uses) instead of LiveConnect hosting its own copies of those
+        // tabs directly - see PlayerEditor.razor and LivePlayerEditorSession for where the three
+        // render lines below moved.
         var source = UiSource.ReadAllText("Components", "Pages", "LiveConnect.razor");
-        Assert.Contains("<PlayerRecipesTab Session=\"_recipes\"", source, StringComparison.Ordinal);
-        Assert.Contains("<PlayerCodexTab Session=\"_codex\"", source, StringComparison.Ordinal);
-        Assert.Contains("<PlayerGeneralTab General=\"_general\" Recipes=\"_recipes\"", source, StringComparison.Ordinal);
+        Assert.Contains("<PlayerEditor Session=\"_playerFacade\"", source, StringComparison.Ordinal);
+        Assert.Contains("_playerFacade.RecipesSession = _recipes;", source, StringComparison.Ordinal);
+        Assert.Contains("_playerFacade.CodexSession = _codex;", source, StringComparison.Ordinal);
+        Assert.Contains("_playerFacade.GeneralSession = _general;", source, StringComparison.Ordinal);
         Assert.Contains("LivePlayerRecipesSession.ConnectAsync", source, StringComparison.Ordinal);
         Assert.Contains("LivePlayerCodexSession.ConnectAsync", source, StringComparison.Ordinal);
         Assert.Contains("LivePlayerGeneralSession.ConnectAsync", source, StringComparison.Ordinal);
+
+        var editor = UiSource.ReadAllText("Components", "Player", "PlayerEditor.razor");
+        Assert.Contains("<PlayerRecipesTab Session=\"Session\"", editor, StringComparison.Ordinal);
+        Assert.Contains("<PlayerCodexTab Session=\"Session\"", editor, StringComparison.Ordinal);
+        Assert.Contains("<PlayerGeneralTab General=\"Session\" Recipes=\"Session\"", editor, StringComparison.Ordinal);
     }
 }

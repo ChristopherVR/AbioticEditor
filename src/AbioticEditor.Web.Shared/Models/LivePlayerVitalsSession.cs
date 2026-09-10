@@ -50,7 +50,7 @@ public sealed class LivePlayerVitalsSession : IPlayerVitalsSession
             new LimbHealth(Vitals.Head, Vitals.Torso, Vitals.LeftArm, Vitals.RightArm, Vitals.LeftLeg, Vitals.RightLeg),
             _playerId, cancellationToken).ConfigureAwait(false);
         _original = Vitals.Clone();
-        Status = "Applied live - this took effect in the running game immediately.";
+        Status = null;
     }
 
     public void Revert()
@@ -65,7 +65,7 @@ public sealed class LivePlayerVitalsSession : IPlayerVitalsSession
         var (stats, health) = await _channel.GetAsync(_playerId, cancellationToken).ConfigureAwait(false);
         Vitals = ToVitals(stats, health);
         _original = Vitals.Clone();
-        Status = "Refreshed from the running game.";
+        Status = null;
     }
 
     /// <summary>Switches which connected player this session edits (discarding any unsaved local

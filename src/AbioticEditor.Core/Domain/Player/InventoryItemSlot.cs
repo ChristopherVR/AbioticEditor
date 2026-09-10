@@ -16,7 +16,12 @@ public sealed record InventoryItemSlot(
     string? LiquidType,
     bool DynamicState,
     string? PlayerMadeString,
-    string? AssetId)
+    string? AssetId,
+    // Which visual variant this instance shows (a poster's artwork, a helmet's paint color,
+    // ...): the RowName of the item struct's TextureVariantRow_ handle into
+    // DT_TextureVariants, independent of ItemId. Null when the game never wrote one for this
+    // instance (most items), in which case there is nothing here yet to change.
+    string? VariantRowName = null)
 {
     public bool IsEmpty => string.IsNullOrEmpty(ItemId) || ItemId is "None" or "Empty";
     public double DurabilityPercent => MaxDurability > 0 ? Durability / MaxDurability : 0;

@@ -1,3 +1,5 @@
+using AbioticEditor.Core.LiveEditing;
+
 namespace AbioticEditor.Web.Services;
 
 /// <summary>
@@ -11,6 +13,18 @@ public sealed class UserFacingErrorService(ILogger<UserFacingErrorService> logge
         new EventId(1001, "PlayerActionFailed"),
         "Player action failed: {Action}");
 
+    /// <summary>
+    /// <paramref name="guidance"/> is the fallback for a genuine technical accident (a dropped
+    /// socket, a malformed line) whose own message means nothing to a player. A
+    /// <see cref="LiveAgentException"/> is different: it is the live agent/game refusing on
+    /// purpose ("only the host can...", "this recipe can't be re-locked...", "installing a bench
+    /// upgrade isn't supported on this game build yet...") - authored copy written for exactly
+    /// this moment, the live-editing equivalent of the "deliberate refusal" exception types
+    /// <see cref="Detail"/> already special-cases. Showing <paramref name="guidance"/> instead of
+    /// that refusal (as every call site here used to, unconditionally) told a player "try
+    /// reconnecting" for a problem reconnecting can never fix, and hid the one line that actually
+    /// explained what would.
+    /// </summary>
     public string Present(Exception exception, string action, string guidance)
     {
         ArgumentNullException.ThrowIfNull(exception);
@@ -18,7 +32,7 @@ public sealed class UserFacingErrorService(ILogger<UserFacingErrorService> logge
         ArgumentException.ThrowIfNullOrWhiteSpace(guidance);
 
         LogActionFailure(logger, action, exception);
-        return $"{action} {guidance}";
+        return exception is LiveAgentException ? $"{action} {exception.Message}" : $"{action} {guidance}";
     }
 
     public void Record(Exception exception, string action)

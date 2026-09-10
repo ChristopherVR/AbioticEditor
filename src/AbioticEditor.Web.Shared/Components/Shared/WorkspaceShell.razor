@@ -19,44 +19,127 @@
 @inject IJSRuntime Js
 
 <div class="workspace-shell shell-with-splitters @(DrawerMode ? "drawer-mode" : null) @FileClass @DetailsClass" style="@ShellStyle">
-    <aside class="shell-pane file-pane" aria-label="@(Live.IsConnected ? L.Resource("Live_SidebarSubtitle") : L.Text("save.workspace"))">
-    @if (Live.IsConnected && Workspace.Current is null)
+    <aside class="shell-pane file-pane" aria-label="@(IsPureLiveMode ? L.Resource("Live_SidebarSubtitle") : L.Text("save.workspace"))">
+    @if (IsPureLiveMode)
     {
         @* No world folder opened yet this session - all we know is who is live-connected. Once a
            folder is opened (the header's OPEN FOLDER, same button file mode uses), the merged list
            below takes over and every player/world save in it becomes reachable, live where
            possible and file-edited otherwise - see IsLiveOnlinePlayer/SelectOrSwitchAsync. *@
-        <header class="file-sidebar-header">
-            <div class="file-pane-heading">
-                <strong>@L.Resource("Live_ConnectedPlayers")</strong>
-                <span class="platform-badge @(Live.Directory?.IsHost == true ? "platform-steam" : "platform-gamepass")">
-                    @(Live.Directory?.IsHost == true ? L.Resource("Live_HostChip") : L.Resource("Live_ClientChip"))
-                </span>
-            </div>
-        </header>
-        @if (Live.Directory is { Players.Count: > 0 } directory)
+        @if (!Live.IsConnected)
         {
-            <div class="shell-save-list save-groups-scroll">
-                <section class="save-group">
-                    @foreach (var player in directory.Players)
-                    {
-                        <div class="save-file-row kind-player @(player.Id == Live.SelectedPlayerId ? "selected" : null)">
-                            <span class="save-kind-marker" aria-hidden="true"></span>
-                            <strong class="save-file-name">@player.Name</strong>
-                            @if (player.IsLocal)
-                            {
-                                <span class="save-file-meta"><b>@L.Resource("Live_YouChip")</b></span>
-                            }
-                        </div>
-                    }
-                </section>
-            </div>
+            @* Still connecting (or waiting for a local game) - there is no player directory to
+               show yet, so say that plainly instead of an empty "no players" list that reads as
+               though a game were already connected and simply empty. *@
+            <header class="file-sidebar-header"><div class="file-pane-heading"><strong>@L.Resource("Live_SidebarSubtitle")</strong></div></header>
+            <div class="shell-empty"><strong>@L.Resource("Live_ConnectingChip")</strong></div>
         }
         else
         {
-            <div class="shell-empty"><strong>@L.Resource("Live_SidebarNoPlayers")</strong></div>
+            <header class="file-sidebar-header">
+                <div class="file-pane-heading">
+                    <strong>@L.Resource("Live_ConnectedPlayers")</strong>
+                    <span class="platform-badge @(Live.Directory?.IsHost == true ? "platform-steam" : "platform-gamepass")">
+                        @(Live.Directory?.IsHost == true ? L.Resource("Live_HostChip") : L.Resource("Live_ClientChip"))
+                    </span>
+                </div>
+                @* Moved here from the bottom of the live-editing surface itself, the same way the
+                   file sidebar's own EXPORT toolbar button lives in its header rather than under
+                   the file list - DISCONNECT is a property of the connection, not of whichever
+                   player/world surface happens to be on screen. Wired through LiveSessionService
+                   because the actual channel lives on LiveConnect.razor, not here. *@
+                <button class="sidebar-export" type="button" @onclick="DisconnectLiveAsync">
+                    <span class="material-symbol" aria-hidden="true">link_off</span>
+                    @L.Resource("Live_Disconnect")
+                </button>
+            </header>
+            <div class="shell-save-list save-groups-scroll">
+                <section class="save-group">
+                    @if (Live.Directory is { Players.Count: > 0 } directory)
+                    {
+                        @foreach (var player in directory.Players)
+                        {
+                            <button type="button" class="save-file-row kind-player @(IsSelectedLivePlayerSurface(player.Id) ? "selected" : null)" @onclick="() => SelectLivePlayerSurfaceAsync(player.Id)">
+                                <span class="save-kind-marker" aria-hidden="true"></span>
+                                <strong class="save-file-name">@player.Name</strong>
+                                @* B: the id the game itself identifies this player by (their SteamID64
+                                   on Steam) - muted secondary text, the same save-file-meta shape the
+                                   file sidebar uses for a player-save row's kind/size. *@
+                                <span class="save-file-meta">
+                                    @if (player.IsLocal) { <b>@L.Resource("Live_YouChip")</b> }
+                                    <small>@player.Id</small>
+                                </span>
+                            </button>
+                        }
+                    }
+                    else
+                    {
+                        <p class="shell-no-results">@L.Resource("Live_SidebarNoPlayers")</p>
+                    }
+                    @* C: accounts in this same world that are NOT connected right now - their save
+                       still opens for ordinary file editing right here, marked OFFLINE rather than
+                       the LIVE/YOU chips a connected row gets. *@
+                    @foreach (var offline in LiveOfflinePlayerSaves)
+                    {
+                        <button type="button" class="save-file-row kind-player live-offline @(IsSelectedOfflinePlayerFile(offline) ? "selected" : null)" @onclick="() => SelectOfflinePlayerFileAsync(offline)">
+                            <span class="save-kind-marker" aria-hidden="true"></span>
+                            <strong class="save-file-name">@MiddleTruncation.Truncate(SaveDisplayName(offline), SaveNameBudget)</strong>
+                            <span class="save-file-meta"><b>@L.Resource("Live_OfflineChip")</b></span>
+                        </button>
+                    }
+                    @* A: one row per region map of this world, enabled only for the one the game
+                       currently has loaded - mirrors the file sidebar's own per-save-file rows
+                       instead of the old single catch-all WORLD row. Falls back to a static,
+                       mostly-disabled region list when this world's folder could not be found on
+                       this PC (see LiveWorldFolderLocator via LiveSessionService.WorldFolder). *@
+                    @* Active first, the same "what you can act on comes before what you cannot"
+                       order the player rows above use: the region the game has loaded right now
+                       (HERE), then the metadata save, then every other region of this world,
+                       disabled. *@
+                    @if (IsLiveWorldOpen)
+                    {
+                        @foreach (var region in LiveRegionSaves.Where(IsCurrentLiveRegion))
+                        {
+                            <button type="button" class="save-file-row kind-world @(Live.Surface == LiveSurface.World && !Live.WorldSurfaceIsMetadata ? "selected" : null)"
+                                    title="@region.RelativePath" @onclick="() => SelectLiveRegionAsync(region)">
+                                <span class="save-kind-marker" aria-hidden="true"></span>
+                                <strong class="save-file-name">@MiddleTruncation.Truncate(SaveDisplayName(region), SaveNameBudget)</strong>
+                                <span class="save-file-meta"><b>@L.Resource("Live_HereChip")</b></span>
+                            </button>
+                        }
+                    }
+                    <button type="button" class="save-file-row kind-worldmetadata @(Live.Surface == LiveSurface.World && Live.WorldSurfaceIsMetadata ? "selected" : null)" @onclick="SelectLiveMetadataAsync">
+                        <span class="save-kind-marker" aria-hidden="true"></span>
+                        <strong class="save-file-name">@(LiveMetadataSave is { } metadata ? SaveDisplayName(metadata) : L.Resource("LiveWorld_Title"))</strong>
+                    </button>
+                    @if (IsLiveWorldOpen)
+                    {
+                        @foreach (var region in LiveRegionSaves.Where(region => !IsCurrentLiveRegion(region)))
+                        {
+                            <button type="button" class="save-file-row kind-world region-disabled" disabled title="@L.Resource("Live_RegionNotHereHint")">
+                                <span class="save-kind-marker" aria-hidden="true"></span>
+                                <strong class="save-file-name">@MiddleTruncation.Truncate(SaveDisplayName(region), SaveNameBudget)</strong>
+                            </button>
+                        }
+                    }
+                    else
+                    {
+                        @foreach (var token in FallbackRegionTokens)
+                        {
+                            var isCurrent = string.Equals(NormalizeLevelToken(Live.CurrentRegionToken), token, StringComparison.OrdinalIgnoreCase);
+                            <button type="button" class="save-file-row kind-world region-disabled" disabled title="@L.Resource("Live_RegionNotHereHint")">
+                                <span class="save-kind-marker" aria-hidden="true"></span>
+                                <strong class="save-file-name">@(WorldAreaCatalog.FriendlyName(token) ?? token)</strong>
+                                @if (isCurrent) { <span class="save-file-meta"><b>@L.Resource("Live_HereChip")</b></span> }
+                            </button>
+                        }
+                    }
+                    @* Says plainly which area the game itself reports, so a region list with
+                       nothing marked HERE is diagnosable at a glance instead of a mystery. *@
+                    <p class="shell-no-results">@L.Resource("Live_InGameRegion", NormalizeLevelToken(Live.CurrentRegionToken) is { } here ? (WorldAreaCatalog.FriendlyName(here) ?? here) : L.Resource("Live_RegionUnknown"))</p>
+                </section>
+            </div>
         }
-        <p class="sidebar-readonly" role="note">@L.Resource("Live_OpenFolderHint")</p>
     }
     else
     {
@@ -82,10 +165,6 @@
                 @if (!Workspace.CanWrite)
                 {
                     <p class="sidebar-readonly" role="note">@L.Resource("Workspace_ReadOnlyNotice")</p>
-                }
-                @if (Live.IsConnected)
-                {
-                    <p class="sidebar-readonly" role="note">@L.Resource("Live_MergedSidebarHint")</p>
                 }
                 @if (Export.OffersSaveExport)
                 {
@@ -193,7 +272,13 @@
 
     <section class="shell-center">
         <section class="shell-status" aria-live="polite">
+            @* /live wins outright, same as the sidebar: switching to a connected player can leave a
+               file still selected behind it, and that file's SAVE/RELOAD/REVERT toolbar has no
+               business showing on the live route. The one exception is the offline-player-file
+               surface (round 78): that save's own toolbar below is the whole point of opening it,
+               so it falls through to the very same markup the file editor's sidebar uses. *@
             @if (Workspace.BusyOperation is { } busy) { <span class="shell-busy">@busy</span> }
+            else if (IsPureLiveMode && Live.Surface != LiveSurface.OfflinePlayerFile) { <span>@L.Resource("Live_SidebarSubtitle")</span> }
             else if (Workspace.Current?.SelectedSave is { } save)
             {
                 <div class="selected-save-title"><strong>@SaveDisplayName(save)</strong><span><b>@KindLabel(save.Kind)</b> @save.Size</span></div>
@@ -217,7 +302,6 @@
                     }
                 </div>
             }
-            else if (Live.IsConnected) { <span>@L.Resource("Live_SidebarSubtitle")</span> }
             else { <span>@L.Editor("workspace.selectHint")</span> }
         </section>
         <div class="shell-body">
@@ -287,9 +371,11 @@
     // the screen edge when hidden, exactly like the native rails.
     private bool FileShown => DrawerMode ? _fileDrawer : FileVisible;
     private bool DetailsShown => DrawerMode ? _detailsDrawer : DetailsVisible;
-    // The slot editor only means something once a save is open; before that (the Home
-    // hero, a fresh workspace) the whole right pane and its rail stay out of the layout.
-    private bool DetailsAvailable => Workspace.Current?.SelectedSave is not null;
+    // The slot editor only means something once a save is open OR a live connection is up
+    // (PlayerEditor publishes the same palette context live, and InventorySlotEditor binds to
+    // InventorySelectionService either way - see LiveInventorySession); before either, the whole
+    // right pane and its rail stay out of the layout.
+    private bool DetailsAvailable => Workspace.Current?.SelectedSave is not null || Live.IsConnected;
     private string FileClass => DrawerMode ? (_fileDrawer ? "file-drawer-open" : string.Empty) : (FileVisible ? string.Empty : "file-collapsed");
     private string DetailsClass => !DetailsAvailable
         ? "details-unavailable"
@@ -323,6 +409,16 @@
             }.Where(group => group.Saves.Count > 0 || (group.Key == "players" && CanAddPlayer && string.IsNullOrWhiteSpace(_filter))).ToArray();
         }
     }
+
+    /// <summary>True while the live-connect page is the active route, whether a connection has
+    /// actually landed yet or is still being attempted - see MainLayout's identical property for
+    /// why this cannot just be <c>Live.IsConnected</c>.</summary>
+    private bool IsOnLivePage => string.Equals(Navigation.ToBaseRelativePath(Navigation.Uri), "live", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>True whenever the sidebar should show only live content (connected players), never
+    /// the file workspace's save list and settings files - see MainLayout's identical property for
+    /// why being on <c>/live</c> wins outright, loaded workspace or not.</summary>
+    private bool IsPureLiveMode => IsOnLivePage || (Live.IsConnected && Workspace.Current is null);
 
     protected override void OnInitialized() { Workspace.Changed += WorkspaceChanged; Live.Changed += Refresh; Preferences.Changed += Refresh; InventorySelection.Changed += SelectionChanged; InventorySelection.ItemCommitted += ItemCommitted; Navigation.LocationChanged += NavigationChanged; _selectedSavePath = Workspace.Current?.SelectedSave?.Path; _workspaceFolder = Workspace.Current?.WorldFolder; _playerSession = Workspace.Current?.PlayerSession; _worldSession = Workspace.Current?.WorldSession; _hadSlotSelection = InventorySelection.HasAnySelection; if (Workspace.Current is { } open) LoadClaimPersonas(open.WorldFolder); Beds.Loaded += DeployablesLoaded; Beds.Reading += WorldReading; }
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -436,6 +532,160 @@
         if (!string.Equals(Navigation.ToBaseRelativePath(Navigation.Uri), "live", StringComparison.OrdinalIgnoreCase))
             Navigation.NavigateTo("live");
     }
+
+    /// <summary>True when <paramref name="playerId"/> is both the selected live player AND the
+    /// Player surface is what is on screen - a player can be "selected" (their data loaded) while
+    /// the WORLD row is what is actually showing, in which case neither row should look selected
+    /// as a player row.</summary>
+    private bool IsSelectedLivePlayerSurface(string playerId) =>
+        Live.Surface == LiveSurface.Player && Live.SelectedPlayerId == playerId;
+
+    /// <summary>The pure-live sidebar's own player row click: always switches to that player's
+    /// Player surface. Reselecting the player who is already the Player surface is a no-op;
+    /// picking a different one runs the same full switch <see cref="SwitchLivePlayerAsync"/>
+    /// already did for the combined file+live sidebar. Returning here from the WORLD row for the
+    /// SAME player still needs a request (nothing else flips the surface back).</summary>
+    private Task SelectLivePlayerSurfaceAsync(string playerId)
+        => IsSelectedLivePlayerSurface(playerId) ? Task.CompletedTask : SwitchLivePlayerAsync(playerId);
+
+    /// <summary>A sidebar region row, or the metadata row: switches the live surface to the world
+    /// tabs (with the matching tab set - see LiveConnect's own metadata split) without
+    /// touching which player is loaded.</summary>
+    private async Task SelectLiveWorldSurfaceAsync(bool isMetadata)
+    {
+        if (Live.Surface == LiveSurface.World && Live.WorldSurfaceIsMetadata == isMetadata) return;
+        await Live.RequestWorldSurfaceAsync(isMetadata);
+        if (!string.Equals(Navigation.ToBaseRelativePath(Navigation.Uri), "live", StringComparison.OrdinalIgnoreCase))
+            Navigation.NavigateTo("live");
+    }
+
+    /// <summary>Round 78: whether this world's own folder was found and opened on the shared
+    /// file-editing service (see LiveConnect's <c>TryLocateLiveWorldFolderAsync</c>) - only
+    /// then do the region/offline-player rows below have real save data to draw from. False shows
+    /// a static, mostly-disabled region list instead (<see cref="FallbackRegionTokens"/>).</summary>
+    private bool IsLiveWorldOpen => Live.WorldFolder is not null
+        && string.Equals(Workspace.Current?.WorldFolder, Live.WorldFolder, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Every region save (<c>WorldSave_&lt;Region&gt;.sav</c>) in this world - one
+    /// sidebar row each, all but the currently loaded one disabled. Empty (and the fallback list
+    /// shows instead) until <see cref="IsLiveWorldOpen"/>.</summary>
+    private IReadOnlyList<WorkspaceSave> LiveRegionSaves => IsLiveWorldOpen
+        ? Workspace.Current!.Saves.Where(save => save.Kind == SaveDocumentKind.World).ToArray()
+        : [];
+
+    /// <summary>This world's metadata save, when its folder was found - used only to label the
+    /// metadata row; that row is shown and enabled regardless (it needs no file, only the live
+    /// channel - see LiveConnect's metadata tab set).</summary>
+    private WorkspaceSave? LiveMetadataSave => IsLiveWorldOpen
+        ? Workspace.Current!.Saves.FirstOrDefault(save => save.Kind == SaveDocumentKind.WorldMetadata)
+        : null;
+
+    /// <summary>C: this world's player saves that are NOT currently connected - shown as OFFLINE
+    /// rows under the connected ones. A player who IS connected never appears twice: their id is
+    /// excluded here regardless of surface.</summary>
+    private IReadOnlyList<WorkspaceSave> LiveOfflinePlayerSaves
+    {
+        get
+        {
+            if (!IsLiveWorldOpen) return [];
+            var onlineIds = (Live.Directory?.Players ?? [])
+                .Select(player => player.Id)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            return Workspace.Current!.Saves
+                .Where(save => save.Kind == SaveDocumentKind.Player
+                    && (SteamPersonaIndex.IdFromPlayerPath(save.Path) is not { } id || !onlineIds.Contains(id)))
+                .ToArray();
+        }
+    }
+
+    /// <summary>Whether a region save is the one the live game currently has loaded, matched by
+    /// its <c>WorldSave_&lt;token&gt;.sav</c> file name against <see
+    /// cref="LiveSessionService.CurrentRegionToken"/> (see <c>LiveWorldInfoChannel</c>).</summary>
+    private bool IsCurrentLiveRegion(WorkspaceSave save) =>
+        NormalizeLevelToken(Live.CurrentRegionToken) is { } token
+        && string.Equals(WorldAreaCatalog.TokenFromSaveFile(save.Path), token, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>The game can report its active level as a bare name (<c>Facility_MFWest</c>), as
+    /// a full package path (<c>/Game/Maps/Facility_MFWest.Facility_MFWest</c>), with a streaming
+    /// suffix (<c>:PersistentLevel</c>) or an editor-play prefix; the save file is always the bare
+    /// name, so every comparison happens on that.</summary>
+    private static string? NormalizeLevelToken(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return null;
+        var t = token.Trim();
+        var colon = t.IndexOf(':');
+        if (colon >= 0) t = t[..colon];
+        var slash = t.LastIndexOf('/');
+        if (slash >= 0) t = t[(slash + 1)..];
+        var dot = t.LastIndexOf('.');
+        if (dot >= 0) t = t[(dot + 1)..];
+        const string editorPlayPrefix = "UEDPIE_0_";
+        if (t.StartsWith(editorPlayPrefix, StringComparison.OrdinalIgnoreCase)) t = t[editorPlayPrefix.Length..];
+        return t.Length == 0 ? null : t;
+    }
+
+    /// <summary>The static region list shown (all disabled) when this world's folder could not be
+    /// found on this PC - a curated subset of the game's own Facility sub-levels, named through
+    /// the same <c>WorldAreaCatalog.FriendlyName</c> the real per-file rows use.</summary>
+    private static readonly string[] FallbackRegionTokens =
+    {
+        "Facility",
+        "Facility_Office1", "Facility_MFWest", "Facility_MFMines", "Facility_MFFoundry",
+        "Facility_MFHQ", "Facility_MFMaggot", "Facility_Labs", "Facility_Security",
+        "Facility_Dam", "Facility_Reservoir", "Facility_Pens", "Facility_Parking",
+        "Facility_Residence",
+    };
+
+    /// <summary>The current region row's click handler - a no-op (never reachable in the UI
+    /// anyway, since only the current region's row is enabled) for any other row.</summary>
+    private Task SelectLiveRegionAsync(WorkspaceSave save)
+        => IsCurrentLiveRegion(save) ? SelectLiveWorldSurfaceAsync(isMetadata: false) : Task.CompletedTask;
+
+    /// <summary>The metadata row's click handler - always reachable, unlike a region row.</summary>
+    private Task SelectLiveMetadataAsync() => SelectLiveWorldSurfaceAsync(isMetadata: true);
+
+    /// <summary>True when <paramref name="save"/> is the offline player file currently open on
+    /// <see cref="Workspace"/> AND that is what the page is actually showing - the same "selected
+    /// means both things" rule <see cref="IsSelectedLivePlayerSurface"/> applies to a live player
+    /// row.</summary>
+    private bool IsSelectedOfflinePlayerFile(WorkspaceSave save) =>
+        Live.Surface == LiveSurface.OfflinePlayerFile
+        && string.Equals(Workspace.Current?.SelectedSave?.Path, save.Path, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>C: clicking an offline player's row stages their save on the shared file-editing
+    /// service (asking first when a DIFFERENT save already has unsaved edits, the same guard
+    /// <see cref="SelectAsync"/> uses) and asks <c>LiveConnect</c> to show it.</summary>
+    private Task SelectOfflinePlayerFileAsync(WorkspaceSave save)
+    {
+        if (_switchingSave || IsSelectedOfflinePlayerFile(save)) return Task.CompletedTask;
+        _switchingSave = true;
+        return Unsaved.ConfirmAsync(() => OpenOfflinePlayerAsync(save), DoneSwitchingSaveAsync);
+    }
+
+    private async Task OpenOfflinePlayerAsync(WorkspaceSave save)
+    {
+        try
+        {
+            await Workspace.SelectAsync(save.Path);
+            await Live.RequestOfflinePlayerFileAsync();
+            if (!string.Equals(Navigation.ToBaseRelativePath(Navigation.Uri), "live", StringComparison.OrdinalIgnoreCase))
+                Navigation.NavigateTo("live");
+        }
+        catch (Exception exception)
+        {
+            Errors.Record(exception, "Open an offline player's save from the live sidebar");
+            Toasts.Show(L.Resource("Main_LoadSaveFailed", save.Name), ToastKind.Error, TimeSpan.FromSeconds(8));
+        }
+        finally
+        {
+            await DoneSwitchingSaveAsync();
+        }
+    }
+
+    /// <summary>The live sidebar header's DISCONNECT button - see LiveSessionService.RequestDisconnectAsync
+    /// for why this is a request rather than a direct call (the channel itself lives on the
+    /// live-editing page, which also handles returning to the mode-select dialog afterwards).</summary>
+    private Task DisconnectLiveAsync() => Live.RequestDisconnectAsync();
 
     /// <summary>Frees the save list again, whether the save opened, failed, or was not wanted.</summary>
     private Task DoneSwitchingSaveAsync()

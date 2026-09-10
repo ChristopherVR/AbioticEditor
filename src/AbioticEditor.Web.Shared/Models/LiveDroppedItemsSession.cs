@@ -39,11 +39,20 @@ public sealed class LiveDroppedItemsSession : IWorldDroppedItemsSession
     public bool IsHost { get; private set; }
     public string? Status { get; private set; }
 
+    /// <summary>Always false: a live remove/add already reached the running game by the time it
+    /// returns, so there is never a client-side staged copy of ground items.</summary>
+    public bool IsDirty => false;
+
+    /// <summary>Raised after <see cref="RefreshAsync"/> re-reads the world and after every
+    /// mutation (each of which already ends by refreshing).</summary>
+    public event Action? Changed;
+
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var directory = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
         DroppedItems = ToWorldDroppedItems(directory.Items);
         IsHost = directory.IsHost;
+        Changed?.Invoke();
     }
 
     public async Task RemoveDroppedItemAsync(string id, CancellationToken cancellationToken = default)
@@ -51,6 +60,20 @@ public sealed class LiveDroppedItemsSession : IWorldDroppedItemsSession
         var removed = await _channel.RemoveAsync([id], cancellationToken).ConfigureAwait(false);
         Status = removed > 0
             ? "Removed from the running game."
+            : "Already gone - someone else picked it up or it despawned first.";
+        await RefreshAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Despawns every given item in one <c>dropped.remove</c> call, then refreshes once -
+    /// see <see cref="IWorldDroppedItemsSession.RemoveDroppedItemsAsync"/>'s remarks for why this
+    /// exists instead of relying on the default one-at-a-time loop.</summary>
+    public async Task RemoveDroppedItemsAsync(IEnumerable<string> ids, CancellationToken cancellationToken = default)
+    {
+        var idList = ids as IReadOnlyList<string> ?? ids.ToArray();
+        if (idList.Count == 0) return;
+        var removed = await _channel.RemoveAsync(idList, cancellationToken).ConfigureAwait(false);
+        Status = removed > 0
+            ? $"Removed {removed} of {idList.Count} from the running game."
             : "Already gone - someone else picked it up or it despawned first.";
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }

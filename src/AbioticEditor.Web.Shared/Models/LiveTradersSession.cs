@@ -34,6 +34,14 @@ public sealed class LiveTradersSession
     public LiveTraderFlags Flags { get; private set; }
     public string? Status { get; private set; }
 
+    /// <summary>Always false: an unlock already reached the running game by the time it
+    /// returns, so there is never a client-side staged copy.</summary>
+    public bool IsDirty => false;
+
+    /// <summary>Raised after <see cref="RefreshAsync"/> re-reads the world's flags and after
+    /// every mutation (which already ends by refreshing).</summary>
+    public event Action? Changed;
+
     public bool IsHost => Flags.IsHost;
 
     public bool HasWorldFlag(string flag) => Flags.HasFlag(flag);
@@ -50,6 +58,7 @@ public sealed class LiveTradersSession
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         Flags = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
+        Changed?.Invoke();
     }
 
     /// <summary>Sets every flag in <paramref name="flags"/> live, through the game's own
@@ -58,7 +67,7 @@ public sealed class LiveTradersSession
     {
         if (flags.Count == 0) return;
         await _channel.UnlockAsync(flags, cancellationToken).ConfigureAwait(false);
-        Status = "Applied live - this took effect in the running game immediately.";
+        Status = null;
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
 }

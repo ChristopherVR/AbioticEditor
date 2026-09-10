@@ -16,6 +16,7 @@ namespace AbioticEditor.Web.Models;
 public sealed class LiveContainersSession : IWorldContainersSession
 {
     private readonly LiveContainersChannel _channel;
+    private int _pendingOperations;
 
     private LiveContainersSession(LiveContainersChannel channel, LiveContainerDirectory directory)
     {
@@ -41,11 +42,28 @@ public sealed class LiveContainersSession : IWorldContainersSession
     public bool IsHost { get; private set; }
     public string? Status { get; private set; }
 
+    /// <summary>
+    /// True while an edit (or the refresh that follows it) is in flight - see
+    /// <see cref="LiveInventorySession.IsDirty"/>'s remarks for why this matters: the host's
+    /// periodic background poll skips a tick while this is true, so it can never re-read the
+    /// container list and hand a stale snapshot to <c>WorldContainersTab</c>'s own sync logic
+    /// while a player-typed edit for a DIFFERENT, not-yet-sent slot in the same container is
+    /// still sitting locally - which used to silently overwrite it before it was ever sent
+    /// (reported as "changing a container item's quantity doesn't take effect").
+    /// </summary>
+    public bool IsDirty => Volatile.Read(ref _pendingOperations) > 0;
+
+    /// <summary>Raised after <see cref="RefreshAsync"/> re-reads the world and after every
+    /// mutation (each of which already ends by refreshing), so the tab that renders this session
+    /// can redraw without needing to know which specific edit path fired.</summary>
+    public event Action? Changed;
+
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var directory = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
         Containers = ToWorldContainers(directory.Containers);
         IsHost = directory.IsHost;
+        Changed?.Invoke();
     }
 
     public bool TryGetContainerSlot(WorldContainerSource source, string id, int inventoryIndex, int slotIndex, out InventoryItemSlot slot)
@@ -92,10 +110,15 @@ public sealed class LiveContainersSession : IWorldContainersSession
     public async Task<bool> SortContainerSlotsAsync(WorldContainerSource source, string id, int inventoryIndex, CancellationToken cancellationToken = default)
     {
         if (inventoryIndex != 0) return false;
-        await _channel.SortAsync(id, cancellationToken).ConfigureAwait(false);
-        Status = "Applied live - this took effect in the running game immediately.";
-        await RefreshAsync(cancellationToken).ConfigureAwait(false);
-        return true;
+        Interlocked.Increment(ref _pendingOperations);
+        try
+        {
+            await _channel.SortAsync(id, cancellationToken).ConfigureAwait(false);
+            Status = null;
+            await RefreshAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        finally { Interlocked.Decrement(ref _pendingOperations); }
     }
 
     public Task SetContainerSlotCountAsync(WorldContainerSource source, string id, int inventoryIndex, int slotIndex, int count, CancellationToken cancellationToken = default)
@@ -107,9 +130,14 @@ public sealed class LiveContainersSession : IWorldContainersSession
 
     private async Task ApplyAsync(string containerId, LiveContainerSlotEdit edit, CancellationToken cancellationToken)
     {
-        await _channel.SetAsync(containerId, [edit], cancellationToken).ConfigureAwait(false);
-        Status = "Applied live - this took effect in the running game immediately.";
-        await RefreshAsync(cancellationToken).ConfigureAwait(false);
+        Interlocked.Increment(ref _pendingOperations);
+        try
+        {
+            await _channel.SetAsync(containerId, [edit], cancellationToken).ConfigureAwait(false);
+            Status = null;
+            await RefreshAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally { Interlocked.Decrement(ref _pendingOperations); }
     }
 
     /// <summary>Maps the live wire shape onto the same <see cref="WorldContainer"/>/

@@ -46,13 +46,20 @@ public interface IPlayerGeneralSession
     /// the live session writes it to the running character immediately.</summary>
     Task SetBackgroundAsync(string? background);
 
-    /// <summary>The chosen trait row names. Read-only through this interface even for the file
-    /// session (full add/remove lives on the CHARACTER tab, <c>PlayerCharacterTab.razor</c>,
-    /// which binds to <c>PlayerSaveSession.Traits</c> directly and is not available live) - this
-    /// is just a readout so a live session, which has no such tab, can still show what a
-    /// character actually has (see <c>LivePlayerGeneralChannel</c>'s remarks for why there is no
-    /// live write path for a single trait).</summary>
+    /// <summary>The chosen trait row names. Read-only through this interface: full add/remove is
+    /// still exposed elsewhere for a session where <see cref="CanEditTraits"/> is true (the file
+    /// session's own <c>PlayerSaveSession.Traits</c> list, used directly by
+    /// <c>PlayerCharacterTab.razor</c>) - this member is just a readout, so the CHARACTER tab can
+    /// show what a character actually has even for a session that can't change one (see
+    /// <c>LivePlayerGeneralChannel</c>'s remarks for why there is no live write path for a single
+    /// trait).</summary>
     IReadOnlyList<string> Traits { get; }
+
+    /// <summary>True for the file session: trait add/remove is a plain list edit staged until
+    /// Save. False live - see <see cref="Traits"/>'s remarks for why no safe live write path
+    /// exists for a single trait. <c>PlayerCharacterTab.razor</c> shows the add/remove trait
+    /// browser only when this is true, and a plain read-only list otherwise.</summary>
+    bool CanEditTraits { get; }
 }
 
 /// <summary>One bulk-discovery row (items seen, items crafted, maps): how many are already known

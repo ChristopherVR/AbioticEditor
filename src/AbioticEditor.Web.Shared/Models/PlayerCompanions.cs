@@ -39,6 +39,11 @@ public interface IPlayerCompanionsSession
 
     /// <summary>Removes a carried pet. File: stages the removal, reversible until SAVE (or until
     /// UNDO REMOVE is pressed). Live: clears the slot in the running game immediately - there is
-    /// no undo once this has been pressed, and the row disappears from <see cref="CarriedPets"/>.</summary>
+    /// no undo once this has been pressed, and the row disappears from <see cref="CarriedPets"/>.
+    /// For the active Companion slot (<see cref="CarriedPet.IsCompanionSlot"/>), a live session
+    /// also tries to despawn the game's own live follower actor for that slot (round 78) so it
+    /// doesn't linger, stuck and uninteractable, after its backing item is gone - see
+    /// <c>LivePlayerCompanionsSession.RemovePetAsync</c>'s own remarks for how, and for the one
+    /// pet family that can't be matched yet.</summary>
     Task RemovePetAsync(CarriedPetEdit pet, CancellationToken cancellationToken = default);
 }

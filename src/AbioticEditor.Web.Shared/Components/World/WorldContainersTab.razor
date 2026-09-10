@@ -117,6 +117,13 @@
            right-clicking are mouse-only, so a touch screen is told about the buttons instead. *@
         <p class="wc-help">@L.Resource(_touch ? "PlayerUi_MoveBetweenAreasHelp" : "WorldContainers_DragHelp")</p>
         @if (!_touch) { <p class="wc-help">@L.Resource("WorldContainers_SendHelp")</p> }
+        @* Sending to a sibling player only reaches a save already open next to this one. Moving
+           items into a wholly different world (another region set, another playthrough) is a
+           separate tool, since it needs its own file picker rather than this tab's session. *@
+        @if (!Session.AppliesImmediately)
+        {
+            <p class="wc-help"><NavLink href="transfer-items">@L.Resource("WorldContainers_TransferItemsLink")</NavLink></p>
+        }
         @if (_moveStatus is { } status) { <p class="wc-status">@status</p> }
         @if (Session.AppliesImmediately && Session.Status is not null) { <p class="status-text">@Session.Status</p> }
         @if (_liveError is not null) { <p class="error-text" role="alert">@_liveError</p> }
@@ -505,14 +512,22 @@
         }
     }
 
-    /// <summary>Stages every slot edit into the world session (the single save/revert path) -
-    /// or, live, sends each changed slot to the running game immediately.</summary>
+    /// <summary>Stages every CHANGED slot edit into the world session (the single save/revert
+    /// path) - or, live, sends each changed slot to the running game immediately. Used to send
+    /// every slot unconditionally, dirty or not: live, that meant one edit (say, a stack count
+    /// typed into a single slot) fired one <c>containers.set</c> round trip PER SLOT in the
+    /// container, each of which ends in its own refresh - and that refresh's data (which does not
+    /// yet include the not-yet-sent slots later in the loop) could reach
+    /// <see cref="SyncEditsFromSession"/> before the loop got around to sending them, silently
+    /// overwriting the player's own not-yet-sent edit with the stale pre-edit value. Reported as
+    /// "changing a container item's quantity doesn't take effect."</summary>
     private async Task ApplyEditsAsync()
     {
         if (_slotEdits is null || _selectedKey is not { } key) return;
         for (var i = 0; i < _slotEdits.Count; i++)
         {
             var edit = _slotEdits[i];
+            if (!edit.IsDirty) continue;
             await TrySetSlotAsync(key.Source, key.Id, 0, i, edit.ToInventorySlot());
             edit.AcceptCurrentAsBaseline();
         }

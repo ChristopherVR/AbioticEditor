@@ -45,6 +45,14 @@ public sealed class LiveDoorsSession : IWorldDoorsSession
     public bool AppliesImmediately => true;
     public bool IsHost { get; private set; }
 
+    /// <summary>Always false: a door edit already reached the running game by the time it
+    /// returns, so there is never a client-side staged copy.</summary>
+    public bool IsDirty => false;
+
+    /// <summary>Raised after <see cref="RefreshAsync"/> re-reads the world and after every
+    /// mutation (each of which already ends by refreshing).</summary>
+    public event Action? Changed;
+
     /// <summary>Re-reads every loaded door from the running game, discarding nothing (there is
     /// nothing staged to discard).</summary>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
@@ -73,7 +81,7 @@ public sealed class LiveDoorsSession : IWorldDoorsSession
     private async Task ApplyEditAsync(string id, LiveDoorKind kind, int? state = null, bool? isOpen = null, bool? oneWayUnlocked = null)
     {
         await _channel.SetAsync([new LiveDoorEdit(id, kind, state, isOpen, oneWayUnlocked)]).ConfigureAwait(false);
-        Status = "Applied live - this took effect in the running game immediately.";
+        Status = null;
         await RefreshAsync().ConfigureAwait(false);
     }
 
@@ -81,6 +89,7 @@ public sealed class LiveDoorsSession : IWorldDoorsSession
     {
         Doors = directory.Doors.Select(ToWorldDoor).OrderBy(d => d.Id, StringComparer.OrdinalIgnoreCase).ToArray();
         IsHost = directory.IsHost;
+        Changed?.Invoke();
     }
 
     /// <summary>

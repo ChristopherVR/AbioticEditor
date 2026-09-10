@@ -38,6 +38,14 @@ public sealed class LivePortalsFeatureSession : IWorldFeaturesSession
     public IReadOnlyList<LivePortal> Portals { get; private set; }
     public bool IsHost { get; private set; }
 
+    /// <summary>Always false: a toggle already reached the running game by the time it
+    /// returns, so there is never a client-side staged copy.</summary>
+    public bool IsDirty => false;
+
+    /// <summary>Raised after <see cref="RefreshAsync"/> re-reads the world and after every
+    /// mutation (each of which already ends by refreshing).</summary>
+    public event Action? Changed;
+
     string IWorldFeaturesSession.Path => string.Empty;
     IReadOnlyList<WorldDeployable> IWorldFeaturesSession.Deployables => [];
 
@@ -46,6 +54,7 @@ public sealed class LivePortalsFeatureSession : IWorldFeaturesSession
         var directory = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
         Portals = directory.Portals;
         IsHost = directory.IsHost;
+        Changed?.Invoke();
     }
 
     public WorldMapFeatureSnapshot? MapFeature(string featureId)

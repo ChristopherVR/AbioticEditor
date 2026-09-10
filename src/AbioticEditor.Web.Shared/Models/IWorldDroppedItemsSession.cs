@@ -44,6 +44,16 @@ public interface IWorldDroppedItemsSession
     /// it in the running game immediately, then the caller should refresh.</summary>
     Task RemoveDroppedItemAsync(string id, CancellationToken cancellationToken = default);
 
+    /// <summary>Removes every given item. The default loops <see cref="RemoveDroppedItemAsync"/>
+    /// one at a time, which is fine for the file session (a staged, in-memory removal); overridden
+    /// live to despawn the whole batch in one round trip instead of one round trip (plus one full
+    /// re-list) per item - DELETE ALL SHOWN calling this one at a time used to mean up to 200
+    /// items meant up to 400 network round trips through the file-mailbox/game-thread relay.</summary>
+    async Task RemoveDroppedItemsAsync(IEnumerable<string> ids, CancellationToken cancellationToken = default)
+    {
+        foreach (var id in ids) await RemoveDroppedItemAsync(id, cancellationToken);
+    }
+
     /// <summary>File only: un-stages a pending removal. Not offered live - a live despawn
     /// cannot be undone.</summary>
     bool RestoreDroppedItem(WorldDroppedItem item);

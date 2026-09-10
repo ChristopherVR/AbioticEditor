@@ -5,6 +5,111 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-79: live-editing bug review - a real fatal-crash root cause, two N-round-trip perf bugs, and the Wildlife tab redesigned (2026-09-11)
+
+A player reported four live-editing problems in one pass: the app using 3GB+ of memory
+"especially when unlocking all recipes", the ground-items DELETE/DELETE ALL SHOWN buttons not
+working, the WILDLIFE tab being misleadingly named with no way to identify or preview an NPC in
+it (just a dense control-per-row list), and clicking the BASES tab crashing the game with a fatal
+error. All four were investigated and addressed without a live game session (static review of the
+Lua/C# live-editing paths plus the offline Lua harness); the crash fix in particular should be
+re-verified against a real game before being trusted long-term.
+
+**BASES tab crash - root cause found and fixed.** `bases.list` used to call the bench class's
+`"Has Upgrade"` function for every one of the 11 known upgrade rows, for every bench, on every
+single list/refresh (including the 2-second background poll) - and that call's row-handle
+argument was a hand-fabricated struct round 77 had already flagged as "genuinely unverified
+against the running game" (no live enumeration function exists for this table, unlike every other
+row-handle this project uses). A native UFunction call through UE4SS's reflection bridge with a
+struct that does not match the engine's real parameter shape does not raise a Lua error `pcall`
+can catch - it is memory corruption or a bad pointer read on the C++ side, which is exactly what a
+"Fatal error" (not a Lua stack trace) looks like, and matches the report being 100% reproducible
+on simply opening the tab. Both that probe and `bases.set`'s `AddUpgrade` install path (the same
+fabricated handle, just user-triggered instead of automatic) are now disabled: `installedUpgrades`
+always reports `[]`, and installing an upgrade live now fails with a clear message instead of
+attempting the call. `supportsUpgrades` (a plain, proven boolean property read) is unaffected.
+Lua harness (`tests/cases/world_gaps.lua`) updated to assert the refusal instead of a successful
+install; 461 checks still green. See `areas/bases.lua`'s header comment and
+`docs/reference/live-editing-protocol.md` for the full account.
+
+**Two "one network round trip per item" perf bugs, the likely source of "especially when
+unlocking all recipes."** UNLOCK ALL called `SetUnlockedAsync` once per recipe even though
+`recipes.set` already accepted a batch of ids - a few hundred sequential round trips through the
+file-mailbox/game-thread relay for a fresh character. `IPlayerRecipesSession` gained
+`SetUnlockedManyAsync` (default: loop, for the cheap in-memory file session; overridden live to
+send one batched `recipes.set`) and the tab now calls it once instead of looping. The ground-items
+DELETE ALL SHOWN tab had the identical shape (one `dropped.remove` plus one full `dropped.list`
+refresh *per item*, up to 400 round trips for 200 shown items) - `IWorldDroppedItemsSession`
+gained the same `RemoveDroppedItemsAsync` batching pattern. Neither fully explains a 3GB reading
+on its own from static review alone; if memory still climbs after this, it needs profiling against
+a live session, not further guessing.
+
+**Ground-items DELETE not working - likely cause: one bad item aborted the whole batch, silently.**
+`dropped.remove`'s per-item `InitDespawn()`/`OnItemDespawn()` calls had no `pcall` around them
+(every other risky call in this file does), so one problematic item (already mid-pickup, an odd
+blueprint override) raised a Lua error that aborted the whole request - and since DELETE ALL SHOWN
+used to send one item per request, that stopped the row loop dead at whichever item failed, with
+only an easy-to-miss error banner as the only sign why the rest never got removed. Now pcall-guarded
+per item so the rest of the batch keeps going.
+
+**WILDLIFE tab renamed CREATURES and redesigned.** The tab lists everything deriving from
+`NPC_Base_ParentBP_C` - hostile human NPCs included, not just animals - so "Wildlife" undersold
+what was actually killable in there; the card header said "NPCS" while the tab button said
+"WILDLIFE", not even self-consistent. Rows used to cram a KILL/REVIVE button, two checkboxes and a
+number field into a `shell-save-list` row borrowed wholesale from the save-file picker's own
+markup. Rows are now just a name (`PlainNames.Thing` on the class name - the only "what does this
+look like" data the live protocol exposes, since there is no position/health/appearance field
+here, see `LiveNpcChannel`'s remarks) and a status badge; clicking one opens a preview - name,
+class, status, and the actual edit controls - in the shared right-hand sidebar
+(`InventorySlotEditor`), the same "select a row, see/edit it over there" idiom
+`WorldDroppedItemsTab`/`PlayerRecipesTab` already use, kept fresh across the periodic live refresh
+via `OnParametersSet` re-publishing the open card.
+
+**Result**: 1257 dotnet tests + 461 Lua harness checks green, `AbioticEditor.Web` builds clean.
+
+Prompted by two pieces of player feedback plus a direct request: "no way to discern individual
+object variants such as specific posters or differently colored helmets" and "would it be
+possible to transfer items from one worldsave to another."
+
+- **Item texture variants (poster art, armor/helmet color) are now readable and, where the game
+  already recorded one, editable.** The mechanism is `TextureVariantRow_<hash>`
+  (`TextureVariantRow_28_1C7CF7A0441335E8AC4EA7B5CA91F636` in the current game build), a
+  `DataTableRowHandle` inside every inventory slot's `ChangeableData_` struct, independent of the
+  slot's `ItemId` - confirmed present in real fixtures (both player and world-container saves).
+  `InventoryItemSlot.VariantRowName` (new, trailing optional param so every existing positional
+  constructor call kept compiling) is read in `PlayerSaveReader.ReadSlot` /
+  `WorldSaveReader.Containers.ReadSlot` and patched in `PlayerSaveWriter.ApplySlot` /
+  `WorldSaveWriter.Containers.ApplySlot` - patch-only-if-the-tag-already-exists, mirroring the
+  established `ItemDataTable_` pattern, because most items never had a variant chosen and the tag
+  is delta-serialized away entirely; there is no curated picker yet (a raw row-name text field,
+  shown in the slot editor only when the game already recorded one). New test:
+  `PlayerSaveReaderTests.ReadInventories_SomeSlotCarriesAVariantRowName`.
+- **New tool: Transfer Items (`/transfer-items`)**, reachable from the world containers tab's
+  help line ("Move items to a different world save"). Loads two world saves completely
+  independently of the main open workspace (any two - two regions of one world, or two entirely
+  separate playthroughs) into their own `WorldSaveSession`s, and moves an item between their
+  containers (tap a filled slot to hold it, tap an empty slot on the other side to drop it); each
+  side saves independently with its own `.bak`. The underlying move,
+  `InventoryTransferService.TryMoveContainerToContainer`, works on any two `WorldSaveSession`
+  instances regardless of origin file - proven with two independently-loaded sessions built from
+  the same fixture in `InventoryTransferServiceCrossWorldTests`. Desktop-only (gated on
+  `Workspace.HasLocalPaths`, same as Compare), since picking an arbitrary second file needs a real
+  file system.
+- **"Sanity" status confusion**: a player asked why the editor shows a "Sanity" stat when the
+  wiki's Statuses page doesn't list one. Checked the wiki directly (Statuses and Buffs-and-Debuffs
+  pages) rather than assuming - neither mentions Sanity at all, and no player guide or community
+  discussion found one either, so there is currently no confirmed public documentation of what it
+  does in-game, even though both the save file (`Sanity_<hash>` inside `CurrentSurvivalStats_`)
+  and the live game (`CurrentSanity`, confirmed via the live-editing agent) report a value for it.
+  Rather than asserting an unverified explanation, the Player > Vitals tab's Sanity slider now
+  carries an (i) tooltip saying plainly that this is tracked by the game but not documented
+  anywhere yet, in all five UI languages.
+- **Chrome's "contains system files" folder-picker refusal** now tells the player what to actually
+  do about it: try the save folder itself (not a whole drive or the user-profile root), and if
+  that folder is itself inside a protected location like Program Files, copy it out to somewhere
+  normal first, since Chrome blocks everything under a protected root regardless of which
+  subfolder is picked (`saveFileSystem.js`).
+
 ## Round-77 wrap-up: story chapter, compendium, transmog visibility and PhD now settable live; everything proven without launching the game (2026-09-06)
 
 Product-owner direction for this round: "Continue with unverified without launching the game -

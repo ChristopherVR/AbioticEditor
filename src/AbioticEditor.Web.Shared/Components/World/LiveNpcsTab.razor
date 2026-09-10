@@ -1,10 +1,20 @@
 @namespace AbioticEditor.Web.Components.World
 @using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Components.Shared
 @using AbioticEditor.Core.LiveEditing
 @using AbioticEditor.Core.LiveEditing.World
+@inject InventorySelectionService Selection
+@implements IDisposable
 
-@* Unlike the player vitals/skills tabs on this same page, edits here apply immediately per NPC
-   (see LiveNpcSession's own doc comment for why) rather than staging for a page-level APPLY. *@
+@* Round 79: this tab used to be a flat list of every control for every creature at once (a
+   checkbox row plus a number field crammed into each line, borrowed from the save-file list's
+   own row markup) and was named WILDLIFE even though NPC_Base_ParentBP_C covers every hostile
+   NPC the game loads, not only animals - a player specifically flagged both. Rows are now just a
+   name and a status badge; clicking one opens a preview - name, class, status, and the actual
+   edit controls - in the shared right-hand sidebar (InventorySlotEditor), the same "select a row,
+   see/edit it over there" idiom WorldDroppedItemsTab and PlayerRecipesTab already use. A
+   split-pane detail column of this tab's own (the way the offline WorldNpcsTab does it) does not
+   fit here - see LiveTradersTab's own remarks on why this page's layout is flat. *@
 <section class="editor-card" aria-label="@L.Resource("LiveNpcs_Title")">
     <div class="card-title-row">
         <h3>@L.Resource("LiveNpcs_Title")</h3>
@@ -23,34 +33,16 @@
     }
     else
     {
-        <div class="shell-save-list">
+        <div class="shell-save-list live-containers-list" role="listbox" aria-label="@L.Resource("LiveNpcs_Title")">
             @foreach (var npc in Session.Npcs)
             {
-                <div class="save-file-row kind-player" @key="npc.Id">
+                <button type="button" role="option" aria-selected="@(_selectedId == npc.Id)"
+                        class="save-file-row kind-player @(_selectedId == npc.Id ? "selected" : null)" @key="npc.Id"
+                        @onclick="() => SelectRow(npc)">
                     <span class="save-kind-marker" aria-hidden="true"></span>
-                    <strong class="save-file-name">@npc.Label</strong>
-                    <div class="live-npc-controls">
-                        <button class="secondary" type="button" disabled="@(!Session.IsHost || _busy)"
-                                @onclick="() => ToggleDeadAsync(npc)">
-                            @(npc.IsDead ? L.Resource("LiveNpcs_Revive") : L.Resource("LiveNpcs_Kill"))
-                        </button>
-                        <label class="checkbox-field">
-                            <input type="checkbox" checked="@npc.IsDisabled" disabled="@(!Session.IsHost || _busy)"
-                                   @onchange="e => SetDisabledAsync(npc, (bool)e.Value!)" />
-                            @L.Resource("LiveNpcs_Disabled")
-                        </label>
-                        <label class="checkbox-field">
-                            <input type="checkbox" checked="@npc.Invincible" disabled="@(!Session.IsHost || _busy)"
-                                   @onchange="e => SetInvincibleAsync(npc, (bool)e.Value!)" />
-                            @L.Resource("LiveNpcs_Invincible")
-                        </label>
-                        <label class="live-npc-faction">
-                            @L.Resource("LiveNpcs_Faction")
-                            <input type="number" value="@npc.Faction" disabled="@(!Session.IsHost || _busy)"
-                                   @onchange="e => SetFactionAsync(npc, e)" />
-                        </label>
-                    </div>
-                </div>
+                    <strong class="save-file-name">@DisplayName(npc)</strong>
+                    <span class="live-npc-status">@(npc.IsDead ? L.Resource("WorldPets_StatusDead") : L.Resource("WorldPets_StatusHealthy"))</span>
+                </button>
             }
         </div>
     }
@@ -71,6 +63,89 @@
 
     private bool _busy;
     private string? _error;
+    private string? _selectedId;
+    private const string DetailKeyPrefix = "live-npc:";
+
+    /// <summary>The class name is the only "what does this look like" the running game reports at
+    /// all (see LiveNpcChannel's remarks) - PlainNames.Thing turns "ABF_NPC_Bloodtick_C" into
+    /// "Bloodtick" the same way it already does for placed objects.</summary>
+    private static string DisplayName(LiveNpc npc) => PlainNames.Thing(npc.Label) is { Length: > 0 } name ? name : npc.Label;
+
+    private LiveNpc? Selected => _selectedId is null ? null : Session.Npcs.FirstOrDefault(npc => npc.Id == _selectedId);
+
+    private void SelectRow(LiveNpc npc)
+    {
+        // Tapping the open row again closes its preview, matching every other list in the editor.
+        if (_selectedId == npc.Id && Selection.DetailKey == DetailKeyPrefix + npc.Id) { CloseOwnDetail(); return; }
+        _selectedId = npc.Id;
+        ShowOwnDetail();
+    }
+
+    /// <summary>(Re-)publishes the selected creature's preview to the right-hand pane - called
+    /// again after every edit and every background refresh so the open card never goes stale
+    /// while a player is looking at it (see ShowDetail's own "re-showing refreshes it" remark).</summary>
+    private void ShowOwnDetail()
+    {
+        if (Selected is { } npc) Selection.ShowDetail(DetailKeyPrefix + npc.Id, DetailContent);
+    }
+
+    private void CloseOwnDetail()
+    {
+        _selectedId = null;
+        if (Selection.DetailKey?.StartsWith(DetailKeyPrefix, StringComparison.Ordinal) == true) Selection.CloseDetail();
+    }
+
+    private RenderFragment DetailContent => __builder =>
+    {
+        @if (Selected is { } npc)
+        {
+            <div class="detail-card detail-card--terminal" aria-label="@DisplayName(npc)">
+                <div class="detail-head">
+                    <span class="detail-title"><strong>@DisplayName(npc)</strong><small>@L.Resource("LiveNpcs_ClassLabel"): @npc.Label</small></span>
+                    <button class="detail-close" type="button" @onclick="CloseOwnDetail">✕</button>
+                </div>
+                <p class="rb-detail-stats">@(npc.IsDead ? L.Resource("WorldPets_StatusDead") : L.Resource("WorldPets_StatusHealthy"))</p>
+                <div class="rb-detail-divider" role="presentation"></div>
+                <div class="wt-button-row">
+                    <button type="button" class="wt-btn wt-green" disabled="@(!Session.IsHost || _busy)"
+                            @onclick="() => ToggleDeadAsync(npc)">
+                        @(npc.IsDead ? L.Resource("LiveNpcs_Revive") : L.Resource("LiveNpcs_Kill"))
+                    </button>
+                </div>
+                <label class="wt-check">
+                    <input type="checkbox" checked="@npc.IsDisabled" disabled="@(!Session.IsHost || _busy)"
+                           @onchange="e => SetDisabledAsync(npc, (bool)e.Value!)" />
+                    @L.Resource("LiveNpcs_Disabled")
+                </label>
+                <label class="wt-check">
+                    <input type="checkbox" checked="@npc.Invincible" disabled="@(!Session.IsHost || _busy)"
+                           @onchange="e => SetInvincibleAsync(npc, (bool)e.Value!)" />
+                    @L.Resource("LiveNpcs_Invincible")
+                </label>
+                <label class="wt-field">
+                    <span class="wt-label">@L.Resource("LiveNpcs_Faction")</span>
+                    <input class="wt-input" type="number" value="@npc.Faction" disabled="@(!Session.IsHost || _busy)"
+                           @onchange="e => SetFactionAsync(npc, e)" />
+                </label>
+                <p class="wt-muted">@L.Resource("LiveNpcs_NoAppearanceDataNote")</p>
+            </div>
+        }
+    };
+
+    protected override void OnParametersSet()
+    {
+        // Keeps the sidebar preview in sync with the periodic live refresh and with edits made
+        // from elsewhere - drops the selection instead when the creature it pointed at unloaded
+        // or died out of the roster.
+        if (_selectedId is null) return;
+        if (Selected is not null) ShowOwnDetail();
+        else CloseOwnDetail();
+    }
+
+    public void Dispose()
+    {
+        if (Selection.DetailKey?.StartsWith(DetailKeyPrefix, StringComparison.Ordinal) == true) Selection.CloseDetail();
+    }
 
     private async Task RefreshAsync() => await RunAsync(() => Session.RefreshAsync());
 
@@ -96,12 +171,13 @@
         try
         {
             await action();
+            ShowOwnDetail();
             await OnChanged.InvokeAsync();
         }
         catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
             or IOException or OperationCanceledException)
         {
-            _error = Errors.Present(exception, "Edit this NPC.", "The connection may have dropped; try reconnecting.");
+            _error = Errors.Present(exception, "Edit this creature.", "The connection may have dropped; try reconnecting.");
         }
         finally
         {

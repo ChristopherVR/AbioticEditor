@@ -11,6 +11,12 @@ namespace LiveAgent
 {
     namespace
     {
+        // How many ports past the preferred one to try before giving up. A second helper left
+        // running from an earlier manual test (see docs/PROGRESS.md - this happened during
+        // development) or literally anything else on the machine bound to the same fixed port
+        // used to mean this helper opened no listener at all and only a log line said why.
+        constexpr int MaxPortAttempts = 10;
+
         // Reads one newline-delimited line from a blocking socket. Returns false on a clean
         // close or a socket error, matching how the .NET side's StreamReader.ReadLineAsync
         // returning null signals the same thing.
@@ -42,36 +48,10 @@ namespace LiveAgent
         }
     }
 
-    void Server::Start()
+    bool Server::TryBindAndListen(int port)
     {
-        if (m_running.exchange(true)) return;
-        m_acceptThread = std::thread([this] { AcceptLoop(); });
-    }
-
-    void Server::Stop()
-    {
-        if (!m_running.exchange(false)) return;
-        if (m_listenSocket) { closesocket(static_cast<SOCKET>(m_listenSocket)); m_listenSocket = 0; }
-        if (m_acceptThread.joinable()) m_acceptThread.join();
-    }
-
-    void Server::AcceptLoop()
-    {
-        WSADATA wsaData;
-        if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
-        {
-            m_log("Live agent: WSAStartup failed, the live-edit port will not open.");
-            return;
-        }
-
         SOCKET listenSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-        if (listenSocket == INVALID_SOCKET)
-        {
-            m_log("Live agent: could not create the listening socket.");
-            WSACleanup();
-            return;
-        }
-        m_listenSocket = static_cast<std::uintptr_t>(listenSocket);
+        if (listenSocket == INVALID_SOCKET) return false;
 
         // Bound to loopback + whatever interface a dedicated server operator explicitly wants
         // reachable is the operator's call, not this mod's - it binds all interfaces (0.0.0.0)
@@ -80,29 +60,74 @@ namespace LiveAgent
         sockaddr_in address{};
         address.sin_family = AF_INET;
         address.sin_addr.s_addr = INADDR_ANY;
-        address.sin_port = htons(static_cast<u_short>(m_port));
+        address.sin_port = htons(static_cast<u_short>(port));
 
         if (bind(listenSocket, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == SOCKET_ERROR
             || listen(listenSocket, /*backlog*/ 1) == SOCKET_ERROR)
         {
-            m_log("Live agent: could not bind/listen on port " + std::to_string(m_port)
-                + " - is something else already using it?");
             closesocket(listenSocket);
-            m_listenSocket = 0;
-            WSACleanup();
-            return;
+            return false;
         }
 
-        m_log("Live agent: listening on port " + std::to_string(m_port) + ".");
+        m_listenSocket = static_cast<std::uintptr_t>(listenSocket);
+        m_port = port;
+        return true;
+    }
 
+    bool Server::Start()
+    {
+        if (m_running.load()) return true;
+
+        WSADATA wsaData;
+        if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+        {
+            m_log("Live agent: WSAStartup failed, the live-edit port will not open.");
+            return false;
+        }
+
+        auto preferredPort = m_port;
+        bool bound = false;
+        for (int attempt = 0; attempt < MaxPortAttempts; ++attempt)
+        {
+            if (TryBindAndListen(preferredPort + attempt)) { bound = true; break; }
+        }
+
+        if (!bound)
+        {
+            m_log("Live agent: could not bind/listen on any port from " + std::to_string(preferredPort)
+                + " to " + std::to_string(preferredPort + MaxPortAttempts - 1)
+                + " - is something else already using all of them?");
+            WSACleanup();
+            return false;
+        }
+
+        m_log(m_port == preferredPort
+            ? "Live agent: listening on port " + std::to_string(m_port) + "."
+            : "Live agent: port " + std::to_string(preferredPort) + " was already in use, listening on port "
+                + std::to_string(m_port) + " instead.");
+
+        m_running = true;
+        m_acceptThread = std::thread([this] { AcceptLoop(); });
+        return true;
+    }
+
+    void Server::Stop()
+    {
+        if (!m_running.exchange(false)) return;
+        if (m_listenSocket) { closesocket(static_cast<SOCKET>(m_listenSocket)); m_listenSocket = 0; }
+        if (m_acceptThread.joinable()) m_acceptThread.join();
+        WSACleanup();
+    }
+
+    void Server::AcceptLoop()
+    {
+        SOCKET listenSocket = static_cast<SOCKET>(m_listenSocket);
         while (m_running.load())
         {
             SOCKET client = accept(listenSocket, nullptr, nullptr);
             if (client == INVALID_SOCKET) break; // Stop() closed the listening socket.
             ServeClient(static_cast<std::uintptr_t>(client));
         }
-
-        WSACleanup();
     }
 
     void Server::ServeClient(std::uintptr_t clientSocketHandle)

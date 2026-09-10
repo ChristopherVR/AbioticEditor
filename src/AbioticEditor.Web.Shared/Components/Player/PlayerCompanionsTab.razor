@@ -361,6 +361,15 @@
         {
             await Session.RemovePetAsync(pet);
         }
+        // Kept as a safety net: a live session no longer refuses the active Companion pet outright
+        // (see LivePlayerCompanionsSession.RemovePetAsync, round 78), but if some other path still
+        // throws NotSupportedException, its own message is the copy to show, not a generic
+        // connection hint - same as WorkspaceShell's Game Pass pack refusals.
+        catch (NotSupportedException exception)
+        {
+            ReportMoveFailed(Errors.Detail(exception, "Remove this pet.", "This pet can't be removed live."));
+            return;
+        }
         catch (Exception exception) when (IsLiveTransportException(exception))
         {
             ReportMoveFailed(Errors.Present(exception, "Remove this pet.", "The connection may have dropped; try reconnecting."));

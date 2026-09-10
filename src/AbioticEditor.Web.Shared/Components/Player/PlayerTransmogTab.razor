@@ -337,6 +337,10 @@
         _status = L.Resource("Slot_MsgSwapped", DisplayNameOf(target));
         Selection.NotifyItemCommitted();
         await OnChanged.InvokeAsync();
+        // Belt-and-suspenders: the source slot may belong to a DIFFERENT mounted tab reached via
+        // the shared SlotDragDropService (a pick-then-place move started on inventory, dropped
+        // here) - see the comment on Changed() above for why an explicit call is not redundant.
+        StateHasChanged();
     }
 
     /// <summary>Pets are hotbar-only, so their auto-picked destination is always a hotbar
@@ -362,15 +366,27 @@
         var visible = value is bool isVisible && isVisible;
         await Session.SetTransmogVisibilityAsync(toggle.Index, visible);
         await OnChanged.InvokeAsync();
+        StateHasChanged();
     }
 
     // Pushes whichever slot the sidebar editor just mutated in place (a no-op for the file
     // session, which already staged the edit; the live session sends inventory.set for it).
+    //
+    // The explicit StateHasChanged() calls in this method and DropOn/below matter because
+    // Changed/Swap/Upgrade are also reached as plain Func<Task> delegates captured by
+    // InventorySelectionService and invoked later from InventorySlotEditor (the shared sidebar,
+    // e.g. its item-row field or SWAP WITH button) - a plain delegate call carries none of the
+    // UI layer's automatic post-event re-render, which only fires for the component whose own
+    // markup owns the DOM event that started the call chain (InventorySlotEditor in that case,
+    // not this tab). Without the explicit call here, a sidebar-driven transmog edit updates the
+    // session correctly but leaves this grid showing the old slot until something else forces a
+    // re-render - closing and reopening the tab was the only way to see it land.
     private async Task Changed()
     {
         Session.MarkChanged();
         if (Selection.Current is { PlayerArea: { } area, Slot: { } slot }) await Session.PushSlotAsync(area, slot);
         await OnChanged.InvokeAsync();
+        StateHasChanged();
     }
 
     public async ValueTask DisposeAsync()

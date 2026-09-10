@@ -169,5 +169,19 @@ public static partial class PlayerSaveWriter
         // game registers and renders the item. Null means "leave the slot's existing id".
         SetString(p, "AssetID_", newSlot.AssetId,
             newSlot.AssetId is null ? null : FullNames.AssetId);
+
+        ApplyVariantRowName(p, newSlot.VariantRowName);
+    }
+
+    // TextureVariantRow_ is a DataTableRowHandle (a nested struct), not a primitive, so unlike
+    // the fields above it can only be patched when the tag already exists - the item instance
+    // must already have had a variant recorded by the game at least once. A slot that never
+    // had one (most items) stays untouched rather than silently gaining a fabricated struct.
+    private static void ApplyVariantRowName(IList<FPropertyTag> changeableDataProps, string? variantRowName)
+    {
+        if (variantRowName is null) return;
+        if (changeableDataProps.FindByPrefix("TextureVariantRow_")?.Property is not StructProperty variantSp
+            || variantSp.Value is not PropertiesStruct variantPs) return;
+        SetName(variantPs.Properties, "RowName", variantRowName);
     }
 }

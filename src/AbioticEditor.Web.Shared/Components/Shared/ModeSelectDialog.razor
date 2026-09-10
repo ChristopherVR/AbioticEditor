@@ -1,31 +1,370 @@
+@using AbioticEditor.Core.LiveEditing
+@using AbioticEditor.Core.LiveEditing.Player
+@using AbioticEditor.Web.Services
+@using Microsoft.Extensions.DependencyInjection
+@using System.Net.Sockets
+@implements IDisposable
 @inject NavigationManager Navigation
+@inject IServiceProvider Services
+@inject LiveSessionService LiveSession
 
 <div class="settings-subdialog-backdrop mode-select-backdrop" role="presentation">
-    <section class="settings-subdialog mode-select-dialog" role="dialog" aria-modal="true" aria-labelledby="mode-select-title" tabindex="-1" @onkeydown="HandleKeyDown">
-        <h2 id="mode-select-title">@L.Resource("ModeSelect_Title")</h2>
-        <p class="muted">@L.Resource("ModeSelect_Subtitle")</p>
-        <div class="mode-select-cards">
-            <button class="mode-select-card" type="button" @onclick="ChooseFile">
-                <span class="mode-select-card-title">@L.Resource("ModeSelect_FileTitle")</span>
-                <span class="mode-select-card-note">@L.Resource("ModeSelect_FileNote")</span>
-            </button>
-            <button class="mode-select-card" type="button" @onclick="ChooseLive">
-                <span class="mode-select-card-title">@L.Resource("ModeSelect_LiveTitle")</span>
-                <span class="mode-select-card-note">@L.Resource("ModeSelect_LiveNote")</span>
-            </button>
-        </div>
-        <footer><button class="secondary" type="button" @onclick="Close">@L.Resource("Common_Close")</button></footer>
+    <section class="settings-subdialog mode-select-dialog" role="dialog" aria-modal="true" aria-labelledby="mode-select-title" tabindex="-1">
+        @if (_step == Step.Choose)
+        {
+            <h2 id="mode-select-title">@L.Resource("ModeSelect_Title")</h2>
+            <p class="muted">@L.Resource("ModeSelect_Subtitle")</p>
+            <div class="mode-select-cards">
+                <button class="mode-select-card" type="button" @onclick="ChooseFile">
+                    <span class="material-symbol mode-select-card-icon" aria-hidden="true">folder_open</span>
+                    <span class="mode-select-card-body">
+                        <span class="mode-select-card-title">@L.Resource("ModeSelect_FileTitle")</span>
+                        <span class="mode-select-card-note">@L.Resource("ModeSelect_FileNote")</span>
+                    </span>
+                </button>
+                <button class="mode-select-card" type="button" @onclick="() => _step = Step.LiveTarget">
+                    <span class="material-symbol mode-select-card-icon" aria-hidden="true">sensors</span>
+                    <span class="mode-select-card-body">
+                        <span class="mode-select-card-title">@L.Resource("ModeSelect_LiveTitle")</span>
+                        <span class="mode-select-card-note">@L.Resource("ModeSelect_LiveNote")</span>
+                    </span>
+                </button>
+            </div>
+        }
+        else if (_step == Step.LiveTarget)
+        {
+            <h2 id="mode-select-title">@L.Resource("Live_TargetQuestion")</h2>
+            <p class="muted">@L.Resource("ModeSelect_LiveNote")</p>
+            <div class="mode-select-cards">
+                <button class="mode-select-card" type="button" @onclick="ChooseLocal">
+                    <span class="material-symbol mode-select-card-icon" aria-hidden="true">computer</span>
+                    <span class="mode-select-card-body">
+                        <span class="mode-select-card-title">@L.Resource("Live_TargetLocalTitle")</span>
+                        <span class="mode-select-card-note">@L.Resource("Live_TargetLocalNote")</span>
+                    </span>
+                </button>
+                <button class="mode-select-card" type="button" @onclick="ChooseRemote">
+                    <span class="material-symbol mode-select-card-icon" aria-hidden="true">dns</span>
+                    <span class="mode-select-card-body">
+                        <span class="mode-select-card-title">@L.Resource("Live_TargetRemoteTitle")</span>
+                        <span class="mode-select-card-note">@L.Resource("Live_TargetRemoteNote")</span>
+                    </span>
+                </button>
+            </div>
+            <footer class="mode-select-back-row">
+                <button class="secondary" type="button" @onclick="() => _step = Step.Choose">@L.Resource("Live_Back")</button>
+            </footer>
+        }
+        else if (_step == Step.ConfirmDeploy)
+        {
+            <h2 id="mode-select-title">@L.Resource("Live_ConfirmDeployTitle")</h2>
+            <p class="muted mode-select-path">@L.Resource("Live_ConfirmDeployBody", _deployTarget)</p>
+            <footer class="mode-select-back-row">
+                <button class="primary" type="button" @onclick="ConsentAndDeployAsync">@L.Resource("Live_ConfirmDeployYes")</button>
+                <button class="secondary" type="button" @onclick="BackToTarget">@L.Resource("Live_ConfirmDeployNo")</button>
+            </footer>
+        }
+        else if (_step == Step.RemoteForm)
+        {
+            @* The dedicated-server form lives here, not on the live-connect page - same reasoning
+               as the "This PC" waiting step below: the player answered a question in this dialog,
+               and everything that follows from that answer belongs right here until there is a
+               connected game worth switching to a full page for. *@
+            <h2 id="mode-select-title">@L.Resource("Live_TargetRemoteTitle")</h2>
+            <p class="muted">@L.Resource("Live_RemoteSubtitle")</p>
+            <div class="live-connect-form">
+                <label>
+                    @L.Resource("Live_Host")
+                    <input @bind="_host" @bind:event="oninput" disabled="@_isConnecting" />
+                </label>
+                <label>
+                    @L.Resource("Live_Port")
+                    <input type="number" @bind="_port" @bind:event="oninput" disabled="@_isConnecting" />
+                </label>
+                <label>
+                    @L.Resource("Live_Token")
+                    <input type="password" @bind="_token" @bind:event="oninput" disabled="@_isConnecting" />
+                </label>
+                @if (_remoteError is not null)
+                {
+                    <p class="error-text" role="alert">@_remoteError</p>
+                }
+            </div>
+            <WhatYouNeedNote />
+            <footer class="mode-select-back-row">
+                <button class="primary" type="button" @onclick="ConnectRemoteAsync" disabled="@_isConnecting">
+                    @(_isConnecting ? L.Resource("Live_Connecting") : L.Resource("Live_Connect"))
+                </button>
+                <button class="secondary" type="button" @onclick="() => _step = Step.LiveTarget" disabled="@_isConnecting">@L.Resource("Live_Back")</button>
+            </footer>
+        }
+        else
+        {
+            @* Connecting: stays a dialog step, same as the ones before it, rather than handing
+               off to a page that shows its own "waiting for the game" screen - the player asked
+               a question here and this is where the answer belongs, right up until there is
+               something worth switching to a full page for (the connected, tabbed editor). *@
+            <h2 id="mode-select-title">@L.Resource("Live_WaitingForLocalGame")</h2>
+            @if (_setupState == LiveAgentSetupState.NeedsUe4ss)
+            {
+                <p class="muted">@L.Resource("Live_NeedsUe4ss")</p>
+                <WhatYouNeedNote />
+            }
+            else if (_setupState == LiveAgentSetupState.GameNotFound)
+            {
+                <p class="muted">@L.Resource("Live_GameNotFound")</p>
+            }
+            else if (_setupState == LiveAgentSetupState.NotSupportedOnThisPlatform)
+            {
+                <p class="muted">@L.Resource("Live_NotSupportedOnThisPlatform")</p>
+            }
+            else
+            {
+                <p class="lede live-waiting" role="status" aria-live="polite">
+                    <span class="blocking-busy-spinner" aria-hidden="true"></span>
+                    @L.Resource("Live_WaitingForLocalGameHint")
+                </p>
+                @if (_slowToRespond)
+                {
+                    <p class="muted">@L.Resource("Live_StillNotRespondingHint")</p>
+                }
+            }
+            <footer class="mode-select-back-row">
+                <button class="secondary" type="button" @onclick="BackToTarget">@L.Resource("Live_Back")</button>
+            </footer>
+        }
     </section>
 </div>
 
 @code {
     [Parameter] public EventCallback OnClose { get; set; }
 
+    private enum Step { Choose, LiveTarget, ConfirmDeploy, RemoteForm, Connecting }
+    private Step _step = Step.Choose;
+    private LiveAgentSetupState? _setupState;
+    private string? _deployTarget;
+    private CancellationTokenSource? _waitCts;
+    private bool _slowToRespond;
+
+    private string _host = "127.0.0.1";
+    private int _port = LiveAgentSetup.DefaultPort;
+    private string _token = string.Empty;
+    private bool _isConnecting;
+    private string? _remoteError;
+
     // Navigating first and closing after: picking a card while the dialog was reopened from
     // some other screen (the header button, not just the initial launch) should actually take
     // the player there, not merely dismiss the dialog over whatever page they already had open.
+    //
+    // There is deliberately no CLOSE button and no Escape-to-dismiss here: this dialog is the
+    // one place that decides which of the two very different editing surfaces to show, and
+    // dismissing it without choosing either used to leave the player looking at whatever page
+    // happened to be underneath with no clear way forward.
     private Task ChooseFile() { Navigation.NavigateTo("browse"); return Close(); }
-    private Task ChooseLive() { Navigation.NavigateTo("live"); return Close(); }
     private Task Close() => OnClose.InvokeAsync();
-    private Task HandleKeyDown(KeyboardEventArgs args) => args.Key == "Escape" ? Close() : Task.CompletedTask;
+
+    private void ChooseLocal()
+    {
+        _step = Step.Connecting;
+        _setupState = null;
+        _ = ConnectLocalAsync();
+    }
+
+    private void ChooseRemote()
+    {
+        _step = Step.RemoteForm;
+        _host = "127.0.0.1";
+        _port = LiveAgentSetup.DefaultPort;
+        _token = string.Empty;
+        _remoteError = null;
+    }
+
+    private void BackToTarget()
+    {
+        _waitCts?.Cancel();
+        _waitCts = null;
+        _step = Step.LiveTarget;
+    }
+
+    /// <summary>
+    /// Deploys/launches the in-game side (<see cref="LiveAgentSetup"/>), then keeps trying an
+    /// actual connection - not just checking that a token file exists - until it genuinely
+    /// works, staying right here as a dialog step instead of handing off to a page. A token can
+    /// exist while nothing on the other end is really answering yet (the helper starts before
+    /// the game does, and can keep running after a crash or a restart), so a token alone is not
+    /// proof of anything; only a real round trip through to the running game is. Navigating to
+    /// <c>/live</c> only once that has actually succeeded means that page's own connect finds a
+    /// game that is already known-good, so the handoff reads as one continuous action, never a
+    /// second "waiting" screen the player did not ask to see again.
+    ///
+    /// <para>Never writes into the game's Mods folder without asking first - a
+    /// <see cref="LiveAgentSetupState.NeedsConsentToDeploy"/> result stops here and shows
+    /// <see cref="Step.ConfirmDeploy"/> instead of deploying silently.</para>
+    /// </summary>
+    private async Task ConnectLocalAsync(bool deployConsentGiven = false)
+    {
+        _waitCts?.Cancel();
+        var cts = new CancellationTokenSource();
+        _waitCts = cts;
+        _slowToRespond = false;
+
+        // Every await below is followed by a check that this is still the current attempt (the
+        // cts this method created is still the one _waitCts points at) before touching any field
+        // or navigating - cancelling the token is not enough by itself, since a step already
+        // in-flight (a TCP connect, a helper launch) does not necessarily unwind the instant it
+        // is asked to. Without this, clicking BACK while one of those was in flight could still
+        // have it land afterwards and silently overwrite BACK's own state change - the connecting
+        // screen would reappear, or the game would connect anyway, having ignored a click.
+        bool Superseded() => _waitCts != cts;
+
+        LiveAgentSetupResult setup;
+        try
+        {
+            setup = await LiveAgentSetup.EnsureReadyAsync(deployConsentGiven, cts.Token);
+        }
+        catch (Exception)
+        {
+            // Same reasoning as TryConnectAsync's own blanket catch: detecting/deploying/launching
+            // the in-game side is a best-effort probe of this player's own machine, and a bug or
+            // an unexpected environment quirk here must never crash the whole app out from under
+            // a "waiting for the game" screen. Falling back to "unavailable" still leaves a path
+            // forward (an already-running helper this build did not launch) instead of a blank
+            // reload.
+            setup = new LiveAgentSetupResult(LiveAgentSetupState.HelperUnavailable);
+        }
+        if (Superseded()) return;
+
+        if (setup.State == LiveAgentSetupState.NeedsConsentToDeploy)
+        {
+            _deployTarget = setup.Detail;
+            _step = Step.ConfirmDeploy;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        _step = Step.Connecting;
+        _setupState = setup.State;
+        await InvokeAsync(StateHasChanged);
+
+        var capability = Services.GetService<ILiveEditingCapability>();
+        var attempt = 0;
+        while (!Superseded())
+        {
+            // The helper's own preferred port can be taken (another instance, or anything else
+            // on the machine) - it falls back to a nearby one on its own and records whichever
+            // one it actually bound to, so this always follows that rather than assuming the
+            // preferred port ever answers.
+            var localPort = capability?.TryReadLocalPort() ?? LiveAgentSetup.DefaultPort;
+            if (capability?.TryReadLocalToken() is { Length: > 0 } token
+                && await TryConnectAsync("127.0.0.1", localPort, token, cts.Token) is { } verified)
+            {
+                if (Superseded()) { await verified.DisconnectAsync(); return; }
+                HandOffAndClose(verified, token);
+                return;
+            }
+            if (Superseded()) return;
+            attempt++;
+            // After the first half-minute of a token existing but nothing real answering, say
+            // so - the plain spinner alone reads as "still starting up" forever otherwise, when
+            // the actual state is "something is wrong and waiting longer will not fix it".
+            if (attempt >= 15 && !_slowToRespond)
+            {
+                _slowToRespond = true;
+                await InvokeAsync(StateHasChanged);
+            }
+            try { await Task.Delay(TimeSpan.FromSeconds(2), cts.Token); }
+            catch (TaskCanceledException) { return; }
+        }
+    }
+
+    /// <summary>
+    /// One-shot connection attempt to a remote host, entered by hand rather than found
+    /// automatically - a failure here is shown right on the form so it can be corrected and
+    /// retried, not treated as an indefinite wait the way the local target is.
+    /// </summary>
+    private async Task ConnectRemoteAsync()
+    {
+        _isConnecting = true;
+        _remoteError = null;
+        try
+        {
+            var verified = await TryConnectAsync(_host, _port, _token, CancellationToken.None);
+            if (verified is null)
+            {
+                _remoteError = L.Resource("Live_RemoteConnectFailed");
+                return;
+            }
+            HandOffAndClose(verified, _token);
+        }
+        finally
+        {
+            _isConnecting = false;
+        }
+    }
+
+    /// <summary>Hands a proven connection to the live-connect page and closes this dialog -
+    /// the one ending both the local wait loop and the remote form share.</summary>
+    private void HandOffAndClose(ILiveGameChannel channel, string token)
+    {
+        LiveSession.HandOffVerifiedConnection(channel, token);
+        Navigation.NavigateTo("live");
+        _ = Close();
+    }
+
+    /// <summary>
+    /// A real connection attempt: TCP connect + hello handshake, then three actual game-state
+    /// reads (the connected-player directory, then vitals and skills for the local player) rather
+    /// than stopping at "hello" succeeded. A game sitting at its main menu - no save loaded yet -
+    /// answers "hello" just fine and can even hand back a directory with no local player id, which
+    /// used to read as "connected" here and then immediately fail once the live-connect page tried
+    /// to read anything a real save provides; requiring a real local player id plus both vitals and
+    /// skills to read successfully means this dialog and that page agree on what "ready" actually
+    /// means (there is a loaded world with a real character in it), instead of the page bouncing
+    /// back out from under a "successful" handoff. Cheap enough to repeat every poll.
+    ///
+    /// <para>Returns the still-open, now-proven channel on success (the caller hands it off via
+    /// <see cref="LiveSessionService.HandOffVerifiedConnection"/> instead of reconnecting a
+    /// second time) - disconnects and returns null on any failure.</para>
+    ///
+    /// <para>Catches every exception, not just the expected transport ones: this runs in a
+    /// fire-and-forget polling loop with nothing else guarding it (see
+    /// <see cref="ConnectLocalAsync"/>), so a narrower filter meant an unexpected shape from a
+    /// game that had not loaded a world yet (a bug here, or a mismatch with an older/newer
+    /// in-game mod build) escaped uncaught, which crashes the whole app's connection to the
+    /// browser rather than just failing this one poll - reading as the entire "what do you want
+    /// to do" dialog silently closing and reopening moments after "waiting for the game" first
+    /// appeared. A probe that is only ever asking "is it ready yet" must never be able to bring
+    /// the app down.</para>
+    /// </summary>
+    private static async Task<ILiveGameChannel?> TryConnectAsync(string host, int port, string token, CancellationToken cancellationToken)
+    {
+        var channel = new TcpLiveGameChannel();
+        try
+        {
+            await channel.ConnectAsync(new LiveConnectionInfo(host, port, token), cancellationToken);
+            var directory = await new LivePlayerDirectoryChannel(channel).GetAsync(cancellationToken);
+            var localPlayerId = directory.Players.FirstOrDefault(player => player.IsLocal)?.Id;
+            // A game sitting at its main menu can answer "hello" and even hand back an empty (or
+            // local-player-less) directory - routing this through the same catch below as any
+            // other not-ready condition keeps this method's only two outcomes "proven channel" or
+            // "disconnected and null", instead of a third path that would leak the socket.
+            if (string.IsNullOrEmpty(localPlayerId)) throw new InvalidOperationException("no local player yet");
+            await new LivePlayerVitalsChannel(channel).GetAsync(localPlayerId, cancellationToken);
+            await new LivePlayerSkillsChannel(channel).GetAsync(localPlayerId, cancellationToken);
+            return channel;
+        }
+        catch (Exception)
+        {
+            // Including cancellation: the caller's Superseded() check right after this returns
+            // is what actually ends a superseded attempt, so swallowing it here too (rather than
+            // rethrowing) keeps every exit path through this method identical - "not connected
+            // yet" - for the loop in ConnectLocalAsync to interpret.
+            await channel.DisconnectAsync();
+            return null;
+        }
+    }
+
+    private Task ConsentAndDeployAsync() => ConnectLocalAsync(deployConsentGiven: true);
+
+    public void Dispose() => _waitCts?.Cancel();
 }

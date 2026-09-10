@@ -44,4 +44,16 @@ public sealed record WorldNpc(
             return idx >= 0 ? Id[(idx + 1)..] : Id;
         }
     }
+
+    /// <summary>
+    /// A player-facing label: the player-given name when there is one (via
+    /// <see cref="ActorName"/>), otherwise a curated class-hint lookup
+    /// (<see cref="NpcIdentityCatalog"/>) instead of the raw actor-class tail, since
+    /// narrative NPCs (traders, story hosts, holograms) almost never carry a custom name -
+    /// the save leaves <see cref="CustomName"/> empty for the whole cast (see
+    /// docs/reference/research/research-narrative-npcs.md).
+    /// </summary>
+    public string FriendlyLabel => !string.IsNullOrWhiteSpace(CustomName)
+        ? CustomName!
+        : NpcIdentityCatalog.LabelFor(Id, ActorName);
 }

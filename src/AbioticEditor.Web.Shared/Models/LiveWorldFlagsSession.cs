@@ -35,9 +35,18 @@ public sealed class LiveWorldFlagsSession : IWorldFlagsSession
     public bool IsHost => _directory.IsHost;
     public string? Status { get; private set; }
 
+    /// <summary>Always false: a flag edit already reached the running game by the time it
+    /// returns, so there is never a client-side staged copy.</summary>
+    public bool IsDirty => false;
+
+    /// <summary>Raised after <see cref="RefreshAsync"/> re-reads the world and after every
+    /// mutation (each of which already ends by refreshing).</summary>
+    public event Action? Changed;
+
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         _directory = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
+        Changed?.Invoke();
     }
 
     public Task SetFlagAsync(string flag, bool enabled, CancellationToken cancellationToken = default)
@@ -74,7 +83,7 @@ public sealed class LiveWorldFlagsSession : IWorldFlagsSession
     {
         if (edits.Count == 0) return;
         await _channel.SetAsync(edits, cancellationToken).ConfigureAwait(false);
-        Status = "Applied live - this took effect in the running game immediately.";
+        Status = null;
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
 }
