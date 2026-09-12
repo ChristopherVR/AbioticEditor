@@ -177,7 +177,7 @@ jobs:
           fetch-tags: true
 
       - name: Install git-cliff
-        uses: taiki-e/install-action@v2.87.4
+        uses: taiki-e/install-action@v2.87.9
         with:
           tool: git-cliff
 
