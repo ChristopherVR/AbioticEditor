@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.9.1] - 2026-09-13
+
+### Miscellaneous Tasks
+- Point bucket at v2.9.0 [skip ci]
+
+
 ## [2.9.0] - 2026-09-10
 
 ### Features
@@ -19,6 +25,12 @@ All notable changes to this project are documented here.
 - Live teleport and vehicle moves use positions the game script understands
 - Live vehicle and pet lists no longer time out, and live teleport works
 - Bring back the manual refresh button on the live flags and story screens
+- Items the game placed in a slot keep the item table the game chose
+- Saving a character no longer leaves them exhausted or quietly rewrites their empty slots
+- The live-editing companion now actually finds you in game
+- Rebuild the live-editing companion on a real working mod's code
+- Prevent the live-editing companion from freezing the game
+- Strengthen the live-agent's connection secret to real randomness
 
 
 ### Documentation
@@ -26,6 +38,7 @@ All notable changes to this project are documented here.
 - Tidy a leftover comment about the story chapter being read-only live
 - Record that the live teleport and vehicle move were checked in a real game
 - Be upfront that one journal read is unverified against the real game
+- Log that the live-editing screens were tested for real, not just the pipe
 
 
 ### Features
@@ -42,6 +55,15 @@ All notable changes to this project are documented here.
 - Quest flags, main story and the world clock now use the same screens live and offline
 - Live containers and dropped items now use the same screens as offline editing
 - Live editing now shares the real inventory and transmog screens
+- The world clock, weather, quest flags, doors, containers and dropped items can now be edited while you play
+- Your backpack, gear and hotbar can now be edited live while you play
+- NPCs near you can now be killed, revived, disabled or made invincible while you're playing
+- Live editing's side panel now shows every player and world save
+- Live editing now shows who's actually connected, and looks right while you're using it
+- Live editing connects to your own game automatically
+- Unblock the live-editing companion with a new setup
+- Extend live editing to character skills
+- Lay the groundwork for editing a running game in real time
 
 
 ### Miscellaneous Tasks
@@ -61,47 +83,22 @@ All notable changes to this project are documented here.
 - The in-game script can now be checked without launching the game
 - Repair the live channel tests after merging several live-editing branches
 - The shared-session contract check no longer depends on interface order
+- Research probes build again after the game-file library update, plus a live-editing class-layout probe
 
 
 ## [2.7.6] - 2026-09-06
-
-### Bug Fixes
-- Items the game placed in a slot keep the item table the game chose
-- Saving a character no longer leaves them exhausted or quietly rewrites their empty slots
-- The live-editing companion now actually finds you in game
-- Rebuild the live-editing companion on a real working mod's code
-- Prevent the live-editing companion from freezing the game
-- Strengthen the live-agent's connection secret to real randomness
-
 
 ### Build
 - Bump taiki-e/install-action in the actions-all group
 
 
 ### Documentation
-- Log that the live-editing screens were tested for real, not just the pipe
 - Log the game-file library update and scope upcoming update support
-
-
-### Features
-- The world clock, weather, quest flags, doors, containers and dropped items can now be edited while you play
-- Your backpack, gear and hotbar can now be edited live while you play
-- NPCs near you can now be killed, revived, disabled or made invincible while you're playing
-- Live editing's side panel now shows every player and world save
-- Live editing now shows who's actually connected, and looks right while you're using it
-- Live editing connects to your own game automatically
-- Unblock the live-editing companion with a new setup
-- Extend live editing to character skills
-- Lay the groundwork for editing a running game in real time
 
 
 ### Miscellaneous Tasks
 - Update the bundled game-file reading library to its latest version
 - Point bucket at v2.7.5 [skip ci]
-
-
-### Testing
-- Research probes build again after the game-file library update, plus a live-editing class-layout probe
 
 
 ## [2.7.5] - 2026-08-26
@@ -130,24 +127,24 @@ All notable changes to this project are documented here.
 
 ## [2.7.3] - 2026-08-19
 
-### Miscellaneous Tasks
-- Point bucket at v2.7.2 [skip ci]
-
-
-## [2.7.2] - 2026-08-19
-
 ### Bug Fixes
 - Compare logic
 - Side panels now slide over the screen on small windows
 - The editor no longer falls apart on narrow windows and phones
 
 
-### Build
-- Bump taiki-e/install-action in the actions-all group
-
-
 ### Features
 - Block Game Pass saves in the browser version
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.7.2 [skip ci]
+
+
+## [2.7.2] - 2026-08-19
+
+### Build
+- Bump taiki-e/install-action in the actions-all group
 
 
 ### Miscellaneous Tasks
@@ -156,16 +153,8 @@ All notable changes to this project are documented here.
 
 ## [2.7.1] - 2026-08-14
 
-### Miscellaneous Tasks
-- Point bucket at v2.7.0 [skip ci]
-
-
-## [2.7.0] - 2026-08-14
-
 ### Bug Fixes
 - Stop Game Pass to Steam conversions writing inside the Xbox package folder
-- Stop Convert from quietly giving up your character
-- Make converting a save simpler and fix a couple of Convert bugs
 
 
 ### Documentation
@@ -174,15 +163,29 @@ All notable changes to this project are documented here.
 
 ### Features
 - Let every player in a shared world keep their own character when converting
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.7.0 [skip ci]
+
+
+### Styling
+- Put Back and Start over side by side on the Convert screen
+
+
+## [2.7.0] - 2026-08-14
+
+### Bug Fixes
+- Stop Convert from quietly giving up your character
+- Make converting a save simpler and fix a couple of Convert bugs
+
+
+### Features
 - Walk you through converting a Game Pass save step by step
 
 
 ### Miscellaneous Tasks
 - Point bucket at v2.6.2 [skip ci]
-
-
-### Styling
-- Put Back and Start over side by side on the Convert screen
 
 
 ## [2.6.2] - 2026-08-13
@@ -321,6 +324,12 @@ All notable changes to this project are documented here.
 - The browser-editor link no longer 404s the first time you click it
 - Sending a pet to another world now works in the browser [skip release]
 - The home and new-world links no longer throw you out of the browser editor [skip release]
+- Picking a file in the browser works again
+- The settings editor no longer looks broken in a browser
+- Making a new world no longer opens a dead page in the browser
+- The world day and time of day can be saved again
+- Item names, recipes and pictures now actually load in the browser
+- The browser editor can open saves again, and takes dropped folders
 
 
 ### CI
@@ -330,25 +339,6 @@ All notable changes to this project are documented here.
 
 ### Documentation
 - Record what the live browser editor actually downloads [skip release]
-
-
-### Miscellaneous Tasks
-- Point bucket at v2.3.0 [skip ci]
-
-
-## [2.3.0] - 2026-08-05
-
-### Bug Fixes
-- Picking a file in the browser works again
-- The settings editor no longer looks broken in a browser
-- Making a new world no longer opens a dead page in the browser
-- The world day and time of day can be saved again
-- Item names, recipes and pictures now actually load in the browser
-- The browser editor can open saves again, and takes dropped folders
-- Linux/Steam Deck download now runs even if the "allow execute" flag gets lost
-
-
-### Documentation
 - Point people at the browser editor from the front page
 - Record why the browser download cannot be trimmed the easy way
 - Record what is still unfinished in the browser build
@@ -372,12 +362,10 @@ All notable changes to this project are documented here.
 - Let the browser version open your real save folder
 - The browser editor now covers skills, traits, inventory and progress
 - Add a browser version of the editor, no download required
-- Add a true one-click launcher for Linux and Steam Deck downloads
-- Add an advanced option to skip equipment/transmog slot checks
 
 
 ### Miscellaneous Tasks
-- Point bucket at v2.2.2 [skip ci]
+- Point bucket at v2.3.0 [skip ci]
 
 
 ### Performance
@@ -388,6 +376,21 @@ All notable changes to this project are documented here.
 - Move the editor's look and feel where both versions can reach it
 - Let the editor read and write saves from somewhere other than a disk
 - Put the editor's screens in one place both versions can use
+
+
+## [2.3.0] - 2026-08-05
+
+### Bug Fixes
+- Linux/Steam Deck download now runs even if the "allow execute" flag gets lost
+
+
+### Features
+- Add a true one-click launcher for Linux and Steam Deck downloads
+- Add an advanced option to skip equipment/transmog slot checks
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.2.2 [skip ci]
 
 
 ## [2.2.2] - 2026-08-05
@@ -523,6 +526,10 @@ All notable changes to this project are documented here.
 
 ## [1.23.5] - 2026-07-19
 
+### Bug Fixes
+- Translate the last remaining interface labels
+
+
 ### Build
 - Bump the actions-all group with 3 updates
 
@@ -534,7 +541,6 @@ All notable changes to this project are documented here.
 ## [1.23.4] - 2026-07-17
 
 ### Bug Fixes
-- Translate the last remaining interface labels
 - Translate the rest of the editor into German, Spanish, French and Russian
 
 
@@ -630,6 +636,10 @@ All notable changes to this project are documented here.
 
 ## [1.20.4] - 2026-07-08
 
+### Bug Fixes
+- Fix new traits not saving for characters who started with none
+
+
 ### Miscellaneous Tasks
 - Point bucket at v1.20.3 [skip ci]
 
@@ -637,8 +647,9 @@ All notable changes to this project are documented here.
 ## [1.20.3] - 2026-07-02
 
 ### Bug Fixes
-- Fix new traits not saving for characters who started with none
 - Fix a save-corrupting bug in the offline Oodle library caching
+- Warn more clearly before repairing a save that hasn't finished syncing
+- Stop needing internet every time you open a Game Pass save
 
 
 ### Miscellaneous Tasks
@@ -658,8 +669,7 @@ All notable changes to this project are documented here.
 ## [1.20.1] - 2026-07-02
 
 ### Bug Fixes
-- Warn more clearly before repairing a save that hasn't finished syncing
-- Stop needing internet every time you open a Game Pass save
+- Clear old codex spoilers and offer to move players back on a story rewind
 
 
 ### Miscellaneous Tasks
@@ -669,7 +679,6 @@ All notable changes to this project are documented here.
 ## [1.20.0] - 2026-07-01
 
 ### Bug Fixes
-- Clear old codex spoilers and offer to move players back on a story rewind
 - Rewinding the story past the Reactors now actually rewinds it
 
 
@@ -716,11 +725,13 @@ All notable changes to this project are documented here.
 - Update trader status the moment you change a story flag
 - Show your character's looks on Game Pass saves
 - Hide the Achievements tab on Game Pass saves
+- Recover gracefully when a save blob is missing from disk
 
 
 ### Features
 - Send a container item straight to a player
 - Keep contained creature names hidden until you reveal them
+- Warn about Xbox cloud sync before editing a save
 
 
 ### Miscellaneous Tasks
@@ -730,12 +741,7 @@ All notable changes to this project are documented here.
 ## [1.17.3] - 2026-06-25
 
 ### Bug Fixes
-- Recover gracefully when a save blob is missing from disk
 - Let Game Pass players edit their character's look
-
-
-### Features
-- Warn about Xbox cloud sync before editing a save
 
 
 ### Miscellaneous Tasks
@@ -760,11 +766,14 @@ All notable changes to this project are documented here.
 
 ### Bug Fixes
 - Add SpoilerGateFlag to all traders whose existence is story-gated
+- Conceal Jimmy and Blacksmith until their story gate flag is set
+- Conceal Jimmy and Blacksmith until their story gate flag is set
 
 
 ### Documentation
 - Write commit messages for Nexus Mods players, not developers
 - Split Pages into two first-class tracks (Guide vs Reference)
+- Restructure Pages - exclude research notes, add new guide pages
 
 
 ### Miscellaneous Tasks
@@ -774,21 +783,18 @@ All notable changes to this project are documented here.
 ## [1.17.0] - 2026-06-21
 
 ### Bug Fixes
-- Conceal Jimmy and Blacksmith until their story gate flag is set
-- Conceal Jimmy and Blacksmith until their story gate flag is set
 - Write correct Field1 (TotalRaw) in bundle serialization
 - Force single-quantum Oodle compression for Game Pass bundles
 - Compress bundle payload as single Oodle quantum
 - Compress in 512 KB quanta to match the game's chunked Oodle reader
 - Also skip timestamped .bak-<stamp> backup folders in discovery
-
-
-### Documentation
-- Restructure Pages - exclude research notes, add new guide pages
+- Bak-folder discovery, temp cleanup, home page OPEN button + remove, generation increment
+- Surface bundle-load errors instead of showing empty sidebar
 
 
 ### Features
 - Added assets
+- Strip auto-updater from Nexus Mods distribution build
 
 
 ### Miscellaneous Tasks
@@ -808,13 +814,10 @@ All notable changes to this project are documented here.
 ## [1.16.0] - 2026-06-21
 
 ### Bug Fixes
-- Bak-folder discovery, temp cleanup, home page OPEN button + remove, generation increment
-- Surface bundle-load errors instead of showing empty sidebar
 - Correct Game Pass session UX (folder display, reveal, reload, save indicator)
 
 
 ### Features
-- Strip auto-updater from Nexus Mods distribution build
 - Platform badge colors + game-data loading indicator
 
 
@@ -826,6 +829,7 @@ All notable changes to this project are documented here.
 
 ### Features
 - Settings polish - inline compare tab, plugin clarity, language fix
+- Inline plugins into settings tab, centre tab content
 
 
 ### Miscellaneous Tasks
@@ -834,8 +838,12 @@ All notable changes to this project are documented here.
 
 ## [1.14.5] - 2026-06-20
 
+### Bug Fixes
+- Refresh world discovery after creating a new world
+
+
 ### Features
-- Inline plugins into settings tab, centre tab content
+- Vertical settings tabs, compare rework, modal dialog fixes
 
 
 ### Miscellaneous Tasks
@@ -845,12 +853,7 @@ All notable changes to this project are documented here.
 ## [1.14.4] - 2026-06-20
 
 ### Bug Fixes
-- Refresh world discovery after creating a new world
 - Stop CLI build matrix legs from cancelling each other
-
-
-### Features
-- Vertical settings tabs, compare rework, modal dialog fixes
 
 
 ## [1.14.3] - 2026-06-20
@@ -933,6 +936,7 @@ All notable changes to this project are documented here.
 - Convert saves Steam <-> Game Pass, and create for both
 - Platform tags + open Game Pass worlds in the app
 - Read+write Game Pass / Xbox container saves
+- Support non-Steam saves (Game Pass / Epic) via opaque player ids
 
 
 ### Testing
@@ -945,15 +949,6 @@ All notable changes to this project are documented here.
 - Make the game-data banner action match the failure
 - Extend keypad upgrade chain to the Tier 6 Gatekey
 - Pin the Settings tab strip full-width and move diagnostics to General
-
-
-### Features
-- Support non-Steam saves (Game Pass / Epic) via opaque player ids
-
-
-## [1.11.0] - 2026-06-18
-
-### Bug Fixes
 - Repair items left on the empty-slot table, target each item's real table
 - Pin the header version tag to the build's release version
 - Repair mojibake in localized UI strings
@@ -964,6 +959,11 @@ All notable changes to this project are documented here.
 - Fall back to built-in trader data and flag missing game data
 - Tabbed Settings, clearer Game Data section, drop About
 - Let users set the game folder when auto-detection fails
+
+
+## [1.11.0] - 2026-06-18
+
+### Features
 - Translate UI to de/es/fr, add localization tests and docs
 
 
@@ -978,6 +978,8 @@ All notable changes to this project are documented here.
 - Add JavaScriptPlugin based capability for localization
 - Localize the UI and let plugins contribute translations
 - Log previously-unlogged mutating user actions
+- Show update download progress with cancel; stop auto-opening a world on startup
+- Make diagnostic logging opt-in, but always log critical errors
 
 
 ### Miscellaneous Tasks
@@ -996,8 +998,6 @@ All notable changes to this project are documented here.
 
 
 ### Features
-- Show update download progress with cancel; stop auto-opening a world on startup
-- Make diagnostic logging opt-in, but always log critical errors
 - Add RELOAD-from-disk with unsaved-changes confirm
 
 
@@ -1029,6 +1029,10 @@ All notable changes to this project are documented here.
 - Config discovery no longer leaks sibling-world sandbox settings
 
 
+### Features
+- Add Create New World wizard for starting fresh save games
+
+
 ### Miscellaneous Tasks
 - Point bucket at v1.7.0 [skip ci]
 
@@ -1036,7 +1040,6 @@ All notable changes to this project are documented here.
 ## [1.7.0] - 2026-06-17
 
 ### Features
-- Add Create New World wizard for starting fresh save games
 - Auto-discover all ItemTable_* files for DLC resilience
 
 
@@ -1155,6 +1158,10 @@ All notable changes to this project are documented here.
 - Re-publish orphaned tags so a release can't get stranded
 
 
+### CI
+- Don't let the Mac Catalyst build block the release
+
+
 ## [1.1.0] - 2026-06-14
 
 ### Bug Fixes
@@ -1163,10 +1170,6 @@ All notable changes to this project are documented here.
 - Keep pets in the hotbar/Companion slot, never the backpack
 - Keep the right sidebar to a single detail context
 - Wrap the editor tab bar so every tab stays visible
-
-
-### CI
-- Don't let the Mac Catalyst build block the release
 
 
 ### Features
@@ -1178,6 +1181,14 @@ All notable changes to this project are documented here.
 
 ## [1.0.1] - 2026-06-14
 
+### Bug Fixes
+- Disable the optional CUE4Parse-Natives CMake build
+
+
+### Features
+- First-class pet & vehicle systems + cross-save pet movement
+
+
 ### Miscellaneous Tasks
 - Drop master branch alias, use main only
 - Relicense MIT -> Apache-2.0 and add NOTICE
@@ -1186,7 +1197,6 @@ All notable changes to this project are documented here.
 ## [1.0.0] - 2026-06-14
 
 ### Bug Fixes
-- Disable the optional CUE4Parse-Natives CMake build
 - Set git-cliff initial_tag so the first release computes v1.0.0
 - Supply Linux Skia native and realign SkiaSharp to CUE4Parse's pin
 - Resolved issues with github page styling and some wording
@@ -1210,7 +1220,6 @@ All notable changes to this project are documented here.
 
 
 ### Features
-- First-class pet & vehicle systems + cross-save pet movement
 - Publish Core + Plugins.Abstractions to NuGet on release
 - Add VitePress docs site, release CI, and Dependabot
 
