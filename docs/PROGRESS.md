@@ -5,6 +5,26 @@ time; they are not a current feature list or test-count guarantee. The maintaine
 are `README.md`, `docs/guide/index.md`, and `docs/reference/architecture.md`.
 
 
+## World controls and INI editing refinement (2026-09-15)
+
+INI files now use readable setting labels, On/Off controls for literal booleans, a visible
+unsaved count, per-setting Undo, and responsive save controls. Technical details reveal raw
+keys, paths, and earlier repeated sandbox entries. The default sandbox view shows the latest
+value of each key; moderator lists retain every entry and their Add/Remove controls.
+Switching configuration files from the sidebar asks before discarding unsaved changes.
+The unrelated world save toolbar and inventory details no longer occupy the INI workspace.
+
+World doors and quests use compact, expandable help instead of repeated instructions.
+Door and quest names are keyboard-operable selection buttons. Raw quest-event entry is
+available on demand, and feature summaries leave more room for the editing controls.
+
+Verification: 50 focused INI, localization, UI parity, and open-guard tests passed. The final
+host build passed with no warnings or errors. Browser checks at desktop and 390px covered
+world doors, quests, buttons and elevators, INI editing/Undo, save and backup, technical
+entries, moderator lists, and cancelling or confirming a configuration-file switch. Save
+checks used a copied world under artifacts; original game saves were untouched. A new
+regression test verifies repeated-key ordering, comments, unchanged values, and backups.
+
 ## Player handbook and facility-style documentation (2026-09-15)
 
 Reworked the GitHub README, wiki entry points, and twelve player guides with three Terra

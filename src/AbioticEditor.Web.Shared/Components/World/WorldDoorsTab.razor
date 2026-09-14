@@ -23,7 +23,7 @@
     }
     @if (!Session.CanEditDoors)
     {
-        <p class="empty">@L.Resource("WorldContainers_NoContainersMatch")</p>
+        <p class="empty">@L.Resource("WorldUi_NoDoors")</p>
     }
     else
     {
@@ -39,6 +39,11 @@
             </div>
         }
         <input class="wd-filter" aria-label="@L.Resource("WorldDoors_FilterPlaceholder")" @bind="_filter" @bind:event="oninput" placeholder="@L.Resource("WorldDoors_FilterPlaceholder")" />
+        <details class="world-help"><summary>@L.Resource("WorldUi_DoorHelp")</summary>
+            <p>@L.Resource("WorldDoors_SimpleStateHelp")</p>
+            <p>@L.Resource("WorldDoors_OneWayHelp")</p>
+            <p>@L.Resource("WorldDoors_SecurityStateHelp")</p>
+        </details>
         <div class="wd-list" role="list" aria-label="@L.Resource("WorldDoors_Title")">
             @foreach (var door in VisibleDoors)
             {
@@ -52,7 +57,7 @@
                          @onclick="() => ToggleSelectAsync(door, map, actor)">
                     <div class="wd-row-top">
                         <span class="wd-kind-chip">@KindLabel(door)</span>
-                        <strong class="wd-class">@friendlyClass</strong>
+                        <button class="world-row-name" type="button" @onclick:stopPropagation @onclick="() => ToggleSelectAsync(door, map, actor)">@friendlyClass</button>
                         <span class="wd-lock-chip">@L.Resource("WorldDoors_LockChip_" + lockKind)</span>
                         @* "Keep state" only means anything to the save file's own session-restart
                            logic - a live door has no such concept, so the control is left out
@@ -73,19 +78,17 @@
                         {
                             <div class="wd-state-row">
                                 <span class="wd-field-label">@L.Resource("WorldDoors_State")</span>
-                                <select class="wd-state-picker" value="@SimpleState(door)" @onclick:stopPropagation @onchange="e => SetSimpleState(door.Id, e.Value?.ToString())">
+                                <select aria-label="@L.Resource("WorldDoors_State")" class="wd-state-picker" value="@SimpleState(door)" @onclick:stopPropagation @onchange="e => SetSimpleState(door.Id, e.Value?.ToString())">
                                     <option value="E_DoorStates::NewEnumerator0">@L.Resource("WorldDoors_State_Closed")</option>
                                     <option value="E_DoorStates::NewEnumerator1">@L.Resource("WorldDoors_State_Open")</option>
                                     <option value="E_DoorStates::NewEnumerator2">@L.Resource("WorldDoors_State_Locked")</option>
                                     @if (!IsStableState(door.DoorState)) { <option value="@door.DoorState">@StateLabel(door.DoorState)</option> }
                                 </select>
                             </div>
-                            <span class="wd-help">@L.Resource("WorldDoors_SimpleStateHelp")</span>
                             <label class="wd-check-row" @onclick:stopPropagation>
                                 <span class="wd-field-label">@L.Resource("WorldDoors_AlreadyOpenedOneWay")</span>
                                 <input type="checkbox" checked="@(door.OneWayUnlocked == true)" @onchange="e => StageAsync(() => Session.SetOneWayUnlocked(door.Id, e.Value is bool value && value))" />
                             </label>
-                            <span class="wd-help">@L.Resource("WorldDoors_OneWayHelp")</span>
                         }
                         else
                         {
@@ -94,13 +97,12 @@
                                 <span class="wd-field-label">@L.Resource("WorldDoors_Open")</span>
                                 <input type="checkbox" checked="@(door.IsDoorOpen == true)" @onchange="e => StageAsync(() => Session.SetSecurityDoorOpen(door.Id, e.Value is bool value && value))" />
                             </label>
-                            <span class="wd-help">@L.Resource("WorldDoors_SecurityStateHelp")</span>
                         }
                     </div>
                     <small class="wd-subtitle">@DoorSubtitle(map, actor)</small>
                 </article>
             }
-            @if (VisibleDoors.Count == 0) { <p class="empty">@L.Resource("WorldContainers_NoContainersMatch")</p> }
+            @if (VisibleDoors.Count == 0) { <p class="empty">@L.Resource("WorldUi_NoDoors")</p> }
         </div>
         @if (Session.Status is not null)
         {
@@ -527,7 +529,7 @@
                 @if (door.Kind == WorldDoorKind.Simple)
                 {
                     <div class="wd-state-row">
-                        <select class="wd-state-picker" value="@SimpleState(door)" @onchange="e => StageDetailState(door.Id, e.Value?.ToString())">
+                        <select aria-label="@L.Resource("WorldDoors_State")" class="wd-state-picker" value="@SimpleState(door)" @onchange="e => StageDetailState(door.Id, e.Value?.ToString())">
                             <option value="E_DoorStates::NewEnumerator0">@L.Resource("WorldDoors_State_Closed")</option>
                             <option value="E_DoorStates::NewEnumerator1">@L.Resource("WorldDoors_State_Open")</option>
                             <option value="E_DoorStates::NewEnumerator2">@L.Resource("WorldDoors_State_Locked")</option>

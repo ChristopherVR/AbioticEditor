@@ -2067,3 +2067,45 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 }
 
 .ini-section h3 { min-width:0; overflow-wrap:anywhere; }
+
+/* INI editing keeps save state and values readable without exposing raw syntax by default. */
+.ini-editor-panel .ini-editor-heading { position:sticky; top:0; z-index:3; padding:16px 0; background:var(--panel); border-bottom:1px solid var(--divider); }
+.ini-editor-heading .editor-actions { flex-wrap:wrap; align-items:center; }
+.ini-change-count { color:var(--muted); font-size:12px; }
+.ini-tools { display:flex; flex-wrap:wrap; align-items:center; gap:16px; margin:18px 0; }
+.ini-tools .ini-search { margin:0; flex:1 1 260px; }
+.ini-tools label { display:flex; gap:8px; align-items:center; font-size:13px; }
+.ini-file-details { padding:12px 16px; background:var(--elevated); font-size:12px; overflow-wrap:anywhere; }
+.ini-editor-panel .ini-entry { grid-template-columns:minmax(0,1.3fr) minmax(120px,1fr) minmax(64px,auto); padding:12px 8px; gap:16px; }
+.ini-entry.is-changed { border-left:3px solid var(--orange); background:var(--hover); }
+.ini-setting-name { display:grid; gap:4px; min-width:0; }
+.ini-setting-name label { font-size:14px; font-weight:600; line-height:1.5; letter-spacing:0; overflow-wrap:anywhere; }
+.ini-setting-name code { font-size:11px; color:var(--muted); overflow-wrap:anywhere; white-space:normal; }
+.ini-entry select { min-height:40px; min-width:0; width:100%; }
+.ini-row-actions { display:flex; gap:6px; justify-content:flex-end; }
+.ini-section-hint { font-size:12px; color:var(--muted); line-height:1.6; }
+.world-help { margin:12px 0 18px; padding:12px 14px; border:1px solid var(--divider); border-radius:4px; }
+.world-help summary { cursor:pointer; font-size:13px; color:var(--muted); }
+.world-help p { max-width:78ch; }
+.world-row-name { padding:0; border:0; background:transparent; color:var(--ink); font:600 14px var(--font-ui); text-align:left; text-transform:none; letter-spacing:0; cursor:pointer; }
+.world-row-name:hover { color:var(--orange); }
+.world-row-name:focus-visible { outline:2px solid var(--orange); outline-offset:3px; }
+.world-tab-viewport .wd-row { padding:16px; }
+.world-tab-viewport .wd-state { gap:12px; }
+.world-tab-viewport .wf-desc { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.5; }
+.world-feature-row .feature-summary { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; min-width:0; }
+.world-feature-detail h3 { overflow-wrap:anywhere; }
+@container editor-center (max-width:760px) {
+    .ini-editor-panel .ini-editor-heading { position:static; }
+    .ini-editor-panel .ini-entry { grid-template-columns:minmax(0,1fr) auto; gap:8px; }
+    .ini-setting-name { grid-column:1/-1; }
+    .ini-editor-panel .ini-entry > input, .ini-editor-panel .ini-entry > select { grid-column:1; }
+    .ini-change-count { flex-basis:100%; }
+    .world-feature-fields .world-feature-field-row { flex-wrap:wrap; }
+}
+
+.world-advanced summary { cursor:pointer; font-size:13px; color:var(--muted); padding:10px; }
+.world-advanced-fields { display:flex; flex-wrap:wrap; gap:8px; padding:10px; }
+.world-advanced-fields input { flex:1; min-width:120px; }
+
+.ini-workspace .shell-status { display:none!important; }

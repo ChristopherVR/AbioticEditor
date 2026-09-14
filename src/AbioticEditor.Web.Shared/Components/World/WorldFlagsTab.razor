@@ -30,14 +30,16 @@
             <div class="wf-count"><span class="wf-count-label">@L.Resource("WorldFlags_InThisFile")</span><span class="wf-count-value">@Session.Flags.Count</span></div>
         </div>
         <p class="wf-intro">@L.Resource("WorldFlags_FlagsIntro")</p>
-        <div class="wf-howto">
-            <span class="wf-howto-title">@L.Resource("WorldFlags_HowQuestsWork")</span>
+        <details class="wf-howto world-help">
+            <summary>@L.Resource("WorldFlags_HowQuestsWork")</summary>
             <p>@L.Resource("WorldFlags_HowQuestsWorkBody")</p>
-        </div>
+        </details>
         <div class="wf-toolbar">
             <input aria-label="@L.Resource("WorldFlags_FilterPlaceholder")" @bind="_filter" @bind:event="oninput" placeholder="@L.Resource("WorldFlags_FilterPlaceholder")" />
+            <details class="world-advanced"><summary>@L.Resource("WorldUi_AddEvent")</summary><div class="world-advanced-fields">
             <input aria-label="@L.Resource("WorldFlags_AddFlagPlaceholder")" @bind="_newFlag" @bind:event="oninput" placeholder="@L.Resource("WorldFlags_AddFlagPlaceholder")" />
             <button class="secondary" disabled="@(string.IsNullOrWhiteSpace(_newFlag) || _busy || (Session.AppliesImmediately && !Session.IsHost))" @onclick="AddFlagAsync">@L.Resource("WorldFlags_AddFlag")</button>
+            </div></details>
             @if (Session.AppliesImmediately)
             {
                 <button class="secondary" type="button" disabled="@_busy" @onclick="RefreshAsync">@L.Resource("LiveNpcs_Refresh")</button>
@@ -58,10 +60,9 @@
                          @onclick="() => SelectFlag(flag.RawName)">
                         <span class="wf-chip" style="background:@flag.CategoryColor">@flag.CategoryLabel</span>
                         <span class="wf-texts">
-                            <strong>@flag.FriendlyName</strong>
-                            <small>@flag.RawName</small>
+                            <button class="world-row-name" type="button" title="@flag.RawName" @onclick:stopPropagation @onclick="() => SelectFlag(flag.RawName)">@flag.FriendlyName</button>
                             @if (flag.IsStoryTrigger) { <em class="wf-story">@flag.StoryChapterText</em> }
-                            <span class="wf-desc">@flag.Description</span>
+                            <span class="wf-desc" title="@flag.Description">@flag.Description</span>
                         </span>
                         @if (flag.IsSet)
                         {

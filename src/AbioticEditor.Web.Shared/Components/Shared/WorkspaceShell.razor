@@ -18,7 +18,7 @@
 @inject AbioticEditor.Ui.IExternalNavigationService External
 @inject IJSRuntime Js
 
-<div class="workspace-shell shell-with-splitters @(IsEmptyWorkspace ? "workspace-start" : null) @(DrawerMode ? "drawer-mode" : null) @FileClass @DetailsClass" style="@ShellStyle">
+<div class="workspace-shell shell-with-splitters @(IsEditingIni ? "ini-workspace" : null) @(IsEmptyWorkspace ? "workspace-start" : null) @(DrawerMode ? "drawer-mode" : null) @FileClass @DetailsClass" style="@ShellStyle">
     <aside class="shell-pane file-pane" aria-label="@(IsPureLiveMode ? L.Resource("Live_SidebarSubtitle") : L.Text("save.workspace"))">
     @if (IsPureLiveMode)
     {
@@ -375,7 +375,8 @@
     private bool DetailsShown => DrawerMode ? _detailsDrawer : DetailsVisible;
     // Reserve the side panel only for a palette or an actual selection. General forms
     // and world lists use the space until an item or detail card needs it.
-    private bool DetailsAvailable => InventorySelection.HasAnySelection || InventorySelection.Palette is not null;
+    private bool IsEditingIni => new Uri(Navigation.Uri).AbsolutePath is var path && (path.Equals("/ini", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/ini/", StringComparison.OrdinalIgnoreCase));
+    private bool DetailsAvailable => !IsEditingIni && (InventorySelection.HasAnySelection || InventorySelection.Palette is not null);
     private string FileClass => DrawerMode ? (_fileDrawer ? "file-drawer-open" : string.Empty) : (FileVisible ? string.Empty : "file-collapsed");
     private string DetailsClass => !DetailsAvailable
         ? "details-unavailable"
@@ -958,13 +959,30 @@
     }
     private void OpenConfig(AbioticIniFile config)
     {
+        if (IniSessions.Current is { IsDirty: true } current
+            && !string.Equals(current.File.FullPath, config.FullPath, StringComparison.OrdinalIgnoreCase))
+        {
+            Modals.Show(new ModalRequest(
+                L.Resource("Unsaved_LeaveTitle"),
+                builder => builder.AddContent(0, L.Resource("Unsaved_LeaveMessage", current.FileName)),
+                ConfirmText: L.Resource("Unsaved_LeaveConfirm"),
+                OnConfirm: () => { OpenConfigCore(config); return Task.CompletedTask; },
+                CancelText: L.Resource("Unsaved_LeaveCancel"), IsDestructive: true));
+            return;
+        }
+        OpenConfigCore(config);
+    }
+    private void OpenConfigCore(AbioticIniFile config)
+    {
         try
         {
             var worldFolder = Workspace.Current!.WorldFolder;
             // Populate the shared session before navigating so the first render already has
             // the requested document. The query parameters below remain the durable fallback
             // when the page or host session is recreated.
-            IniSessions.OpenDiscovered(worldFolder, config.FullPath);
+            if (IniSessions.Current is not { IsDirty: true } current
+                || !string.Equals(current.File.FullPath, config.FullPath, StringComparison.OrdinalIgnoreCase))
+                IniSessions.OpenDiscovered(worldFolder, config.FullPath);
             _activeIniFileName = Path.GetFileName(config.FullPath);
             CloseDrawers();
             Navigation.NavigateTo($"/ini/{Uri.EscapeDataString(Path.GetFileName(config.FullPath))}");

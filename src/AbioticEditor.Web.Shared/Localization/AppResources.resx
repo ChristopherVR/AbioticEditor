@@ -4157,4 +4157,16 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Editing_FindSetting" xml:space="preserve"><value>Find a setting or section</value></data>
   <data name="Editing_NoSettingMatches" xml:space="preserve"><value>No matching settings. Try another name or clear the search.</value></data>
   <data name="Editing_LiveAppearanceHelp" xml:space="preserve"><value>Select a slot to change its appearance. Live changes apply immediately; equipment stats stay the same.</value></data>
+  <data name="IniUi_SaveHint" xml:space="preserve"><value>Close the game or stop the server before saving. A backup is kept.</value></data>
+  <data name="IniUi_Changes" xml:space="preserve"><value>Unsaved changes: {0}</value></data>
+  <data name="IniUi_NoChanges" xml:space="preserve"><value>No unsaved changes</value></data>
+  <data name="IniUi_Technical" xml:space="preserve"><value>Technical details</value></data>
+  <data name="IniUi_LastValues" xml:space="preserve"><value>Showing the latest value for each setting. Earlier entries are available under Technical details.</value></data>
+  <data name="IniUi_On" xml:space="preserve"><value>On</value></data>
+  <data name="IniUi_Off" xml:space="preserve"><value>Off</value></data>
+  <data name="IniUi_Undo" xml:space="preserve"><value>Undo</value></data>
+  <data name="IniUi_UndoSetting" xml:space="preserve"><value>Undo changes to {0}</value></data>
+  <data name="WorldUi_NoDoors" xml:space="preserve"><value>No doors match this view.</value></data>
+  <data name="WorldUi_DoorHelp" xml:space="preserve"><value>How door states work</value></data>
+  <data name="WorldUi_AddEvent" xml:space="preserve"><value>Add event by ID</value></data>
 </root>

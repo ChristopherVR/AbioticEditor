@@ -110,6 +110,7 @@ public sealed class IniDocumentSession
         }
         System.IO.File.Copy(File.FullPath, File.FullPath + ".bak", overwrite: true);
         _file.Save(File.FullPath);
+        Sections = BuildSections();
         StatusResourceKey = "Ini_StatusSaved";
     }
 
