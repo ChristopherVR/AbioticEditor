@@ -5,6 +5,24 @@ time; they are not a current feature list or test-count guarantee. The maintaine
 are `README.md`, `docs/guide/index.md`, and `docs/reference/architecture.md`.
 
 
+## Guided separate UE4SS installation (2026-09-14)
+
+Supersedes the automatic runtime download described in the previous entry. At the player's
+request, removed the UE4SS downloader and replaced it with a read-only prerequisite check.
+UE4SS is not bundled, downloaded, or installed by the app. When missing, live setup shows
+the official release link, installation help, exact detected Win64 folder, an Open game folder
+button, and Check again. After detection, the editor still offers to deploy its own agent and
+start its bundled helper. Both nested and flat standard UE4SS layouts are recognized.
+Updated the live guide and README introductions to explain the separate installation and
+remove automatic-runtime claims. Existing live feature limits and experimental notices remain.
+
+Verification: host build passed with no warnings or errors; 65 focused detection, host,
+localization and visual-contract tests passed. Documentation checked 1,737 links/images across
+43 pages. Browser checks at 1280px and 390px confirmed the path, official links, repeat check,
+and no horizontal page overflow. Missing-runtime checks left an empty scratch game folder
+untouched. Adding inert fixture files let Check again reach the editor-helper consent step.
+No real game files were changed and no helper was launched during those checks.
+
 ## Simpler editing UI and automatic live setup (2026-09-14)
 
 Shortened the in-app mode comparison and replaced the long live guide panel with a compact

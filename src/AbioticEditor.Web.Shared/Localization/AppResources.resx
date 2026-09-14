@@ -3990,19 +3990,19 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Live_Connecting" xml:space="preserve"><value>CONNECTING…</value></data>
   <data name="Live_TargetQuestion" xml:space="preserve"><value>Where's the game running?</value></data>
   <data name="Live_TargetLocalTitle" xml:space="preserve"><value>This PC</value></data>
-  <data name="Live_TargetLocalNote" xml:space="preserve"><value>Automatic setup. Internet needed the first time.</value></data>
+  <data name="Live_TargetLocalNote" xml:space="preserve"><value>Install UE4SS first. The app handles its own helper.</value></data>
   <data name="Live_TargetRemoteTitle" xml:space="preserve"><value>A dedicated server</value></data>
   <data name="Live_TargetRemoteNote" xml:space="preserve"><value>Connect using details from the server owner.</value></data>
   <data name="Live_WhatYouNeedTitle" xml:space="preserve"><value>What you need</value></data>
-  <data name="Live_WhatYouNeedMod" xml:space="preserve"><value>On Windows, this app sets up local live support for you.</value></data>
+  <data name="Live_WhatYouNeedMod" xml:space="preserve"><value>Install UE4SS on the game PC first. This app then sets up its own agent and helper.</value></data>
   <data name="Live_WhatYouNeedToken" xml:space="preserve"><value>For another machine, run setup there first and ask its owner for the connection details.</value></data>
   <data name="Live_LearnMore" xml:space="preserve"><value>Set-up guide ↗</value></data>
   <data name="Live_WaitingForLocalGame" xml:space="preserve"><value>Waiting for the game on this PC…</value></data>
   <data name="Live_WaitingForLocalGameHint" xml:space="preserve"><value>Start the game and load a world to connect.</value></data>
-  <data name="Live_NeedsUe4ss" xml:space="preserve"><value>Run automatic setup to add the missing live-support files.</value></data>
+  <data name="Live_NeedsUe4ss" xml:space="preserve"><value>UE4SS lets the editor talk to the game. Install it separately; this app does not bundle or download it.</value></data>
   <data name="Live_ConfirmDeployTitle" xml:space="preserve"><value>Set up live editing</value></data>
-  <data name="Live_ConfirmDeployBody" xml:space="preserve"><value>Close the game first. The app will download missing live-support files and install its game agent in {0}. Existing mods stay unchanged.</value></data>
-  <data name="Live_ConfirmDeployYes" xml:space="preserve"><value>Set up automatically</value></data>
+  <data name="Live_ConfirmDeployBody" xml:space="preserve"><value>Close the game first. The app will install or update its own game agent in {0} and start its helper. Your UE4SS installation stays unchanged.</value></data>
+  <data name="Live_ConfirmDeployYes" xml:space="preserve"><value>Set up editor helper</value></data>
   <data name="Live_ConfirmDeployNo" xml:space="preserve"><value>Back</value></data>
   <data name="Live_GameNotFound" xml:space="preserve"><value>Couldn't find Abiotic Factor installed on this PC automatically. If it's installed somewhere unusual, set its folder in SETTINGS first.</value></data>
   <data name="Live_NotSupportedOnThisPlatform" xml:space="preserve"><value>Automatic set-up for a game on this PC isn't available on this operating system yet. Connecting to a dedicated server someone else hosts still works normally.</value></data>
@@ -4117,7 +4117,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Editing_OfflineFeatures" xml:space="preserve"><value>Full editing tools.</value></data>
   <data name="Editing_ChooseOffline" xml:space="preserve"><value>Open offline editor</value></data>
   <data name="Editing_LiveTitle" xml:space="preserve"><value>Live editing</value></data>
-  <data name="Editing_LiveDescription" xml:space="preserve"><value>Edit while you play. The app handles local setup.</value></data>
+  <data name="Editing_LiveDescription" xml:space="preserve"><value>Edit while you play. Requires a separate UE4SS installation.</value></data>
   <data name="Editing_LiveTiming" xml:space="preserve"><value>Changes apply immediately.</value></data>
   <data name="Editing_LiveBackup" xml:space="preserve"><value>No automatic backups or undo.</value></data>
   <data name="Editing_LiveFeatures" xml:space="preserve"><value>Some tools are unavailable.</value></data>
@@ -4132,11 +4132,21 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Editing_LiveShort" xml:space="preserve"><value>Changes apply immediately. Some tools are unavailable.</value></data>
   <data name="Editing_GuideLink" xml:space="preserve"><value>Setup and limitations</value></data>
   <data name="Editing_SettingUp" xml:space="preserve"><value>Preparing live editing</value></data>
-  <data name="Editing_SettingUpHint" xml:space="preserve"><value>Checking and installing live support…</value></data>
+  <data name="Editing_SettingUpHint" xml:space="preserve"><value>Checking UE4SS and preparing the editor helper…</value></data>
   <data name="Editing_SetupFailed" xml:space="preserve"><value>Setup needs attention</value></data>
   <data name="Editing_Section" xml:space="preserve"><value>Section</value></data>
   <data name="Editing_SkillDetails" xml:space="preserve"><value>XP and perks</value></data>
   <data name="Editing_AccountDetails" xml:space="preserve"><value>Account and background</value></data>
   <data name="Editing_AdvancedGameData" xml:space="preserve"><value>Advanced game data</value></data>
   <data name="Editing_BenchLimit" xml:space="preserve"><value>Bench upgrades: offline editor only.</value></data>
+  <data name="Live_Ue4ssTitle" xml:space="preserve"><value>Install UE4SS first</value></data>
+  <data name="Live_Ue4ssDownloadStep" xml:space="preserve"><value>Close the game. Get the standard UE4SS ZIP from the official release page (not zDEV or Source code).</value></data>
+  <data name="Live_Ue4ssExtractStep" xml:space="preserve"><value>Extract the ZIP contents into the game folder shown below. Keep its folders together; do not put it in your saves folder.</value></data>
+  <data name="Live_Ue4ssReturnStep" xml:space="preserve"><value>Return here and check again. The app will then offer to set up its own helper.</value></data>
+  <data name="Live_Ue4ssFolder" xml:space="preserve"><value>Install into this folder</value></data>
+  <data name="Live_Ue4ssDownload" xml:space="preserve"><value>Get UE4SS</value></data>
+  <data name="Live_Ue4ssOpenFolder" xml:space="preserve"><value>Open game folder</value></data>
+  <data name="Live_Ue4ssHelp" xml:space="preserve"><value>Installation help</value></data>
+  <data name="Live_Ue4ssCheckAgain" xml:space="preserve"><value>Check again</value></data>
+  <data name="Live_Ue4ssFolderError" xml:space="preserve"><value>Could not open the folder. Copy the path above into File Explorer.</value></data>
 </root>

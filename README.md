@@ -66,11 +66,11 @@ find **Glass Pane**, turn **Harvested** off, and save while the game is closed.
 ## Live editing
 
 Live editing is **experimental and has fewer tools than offline editing**. On Windows, choose
-**Live editing > This PC** and let the app set it up. It downloads missing UE4SS support,
-installs its bundled agent, and starts the helper. No separate installer or manual mod copying
-is needed with a complete Windows release. Close the game for setup; the first download needs
-internet access. Existing mod installations are preserved. Remote connections need setup on
-the server machine too.
+**Live editing > This PC**. If UE4SS is missing, the app links to its official download and shows
+exactly where to install it. UE4SS is a separate prerequisite; the editor does not bundle or
+download it. Once it is installed, choose **Check again** and let the app set up its own agent
+and helper. Close the game during setup. Remote connections need UE4SS and the editor helper
+on the server machine too.
 
 Live changes affect the game immediately. Vitals and skills apply automatically after a short
 pause in input; other controls send their own actions. There is no editor `.bak` or universal

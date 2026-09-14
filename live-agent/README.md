@@ -12,17 +12,20 @@ built and shipped as its own standalone artifact(s), not something `dotnet build
 ## Player setup
 
 Live editing is experimental. With the complete Windows desktop release, choose
-**Live editing > This PC > Set up automatically**. The app downloads missing UE4SS support,
-deploys all bundled Lua modules, enables the agent, and starts the helper. No manual installation
-or compilation is needed. Close the game before setup; the first download needs internet access.
-Existing mod installations are preserved. The runtime follows the official experimental-latest
-channel and is checked against its published SHA-256 digest. This validates the download,
-not compatibility with every game patch.
+**Live editing > This PC**. The app checks for UE4SS and, if needed, opens a guided step with
+the official download, exact game folder, and a check-again action. UE4SS is not bundled,
+downloaded, or installed by the editor. Players install it separately using its publisher's
+instructions. Both standard nested and flat runtime layouts are detected.
+
+Once UE4SS is present, the editor offers to deploy its own Lua modules, enable its agent,
+and start its bundled helper. No compilation or manual agent copying is needed. Close the
+game before agent setup or updates. UE4SS runtime updates remain manual.
 
 See the [player guide](https://christophervr.github.io/AbioticEditor/guide/live-editing) for
-supported tools, limitations, troubleshooting, and remote setup. The instructions below are
-for contributors and manual server installations. Historical research describes evidence at
-that time; the protocol reference tracks current support. Bench upgrades remain disabled.
+installation steps, supported tools, limitations, troubleshooting, and remote setup.
+The instructions below are for contributors and manual server installations. Historical
+research describes evidence at that time; the protocol reference tracks current support.
+Bench upgrades remain disabled.
 
 ## Two approaches, one primary
 

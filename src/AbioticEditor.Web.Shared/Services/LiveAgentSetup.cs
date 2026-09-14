@@ -13,7 +13,7 @@ public enum LiveAgentSetupState
     /// A local connection attempt can proceed exactly as before.</summary>
     Ready,
 
-    /// <summary>Legacy setup state retained for compatibility.</summary>
+    /// <summary>UE4SS is missing or incomplete. Detail is the game's Win64 installation folder.</summary>
     NeedsUe4ss,
 
     /// <summary>No local Abiotic Factor install could be found at all (see
@@ -23,7 +23,7 @@ public enum LiveAgentSetupState
     /// <summary>The release is missing its bundled helper or agent files.</summary>
     HelperUnavailable,
 
-    /// <summary>Installing the runtime or updating the bundled agent needs consent.
+    /// <summary>Installing or updating the bundled agent needs consent.
     /// Detail names the game folder. Nothing has been written yet.</summary>
     NeedsConsentToDeploy,
 
@@ -40,11 +40,10 @@ public enum LiveAgentSetupState
 
 public sealed record LiveAgentSetupResult(LiveAgentSetupState State, string? Detail = null);
 
-/// <summary>Prepares local live editing on Windows: downloads a missing runtime after consent,
-/// updates the bundled agent, and starts the helper. Existing mod installations are preserved.</summary>
+/// <summary>Checks for UE4SS, updates the bundled agent after consent, and starts the helper.
+/// UE4SS is installed separately by the player.</summary>
 public static class LiveAgentSetup
 {
-    private static readonly HttpClient SetupHttp = new() { Timeout = TimeSpan.FromMinutes(2) };
     private const string ModFolderName = "AbioticEditorLiveAgentLua";
     private const string HelperProcessName = "AbioticEditorLiveAgentHelper";
 
@@ -96,27 +95,27 @@ public static class LiveAgentSetup
         }
 
         var win64 = Path.Combine(projectRoot, "Binaries", "Win64");
-        var modsDir = Path.Combine(win64, "ue4ss", "Mods");
+        var modsDir = Ue4ssInstallation.FindModsDirectory(win64);
+        if (modsDir is null) return new(LiveAgentSetupState.NeedsUe4ss, win64);
         if (!Directory.Exists(BundledScriptsDir) || (!File.Exists(BundledHelperPath) && !IsHelperRunning()))
             return new(LiveAgentSetupState.HelperUnavailable,
                 "This copy of the editor is missing live-support files. Extract the full Windows release and try again.");
 
-        if (!LiveRuntimeInstaller.IsInstalled(win64) || !IsModUpToDate(modsDir))
+        if (!IsModUpToDate(modsDir))
         {
             if (!deployConsentGiven)
-                return new(LiveAgentSetupState.NeedsConsentToDeploy, win64);
+                return new(LiveAgentSetupState.NeedsConsentToDeploy, Path.Combine(modsDir, ModFolderName));
             if (IsGameRunning())
                 return new(LiveAgentSetupState.SetupFailed, "Close Abiotic Factor or stop its server, then retry setup.");
             try
             {
-                await new LiveRuntimeInstaller(SetupHttp).InstallAsync(win64, cancellationToken).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
                 DeployMod(modsDir);
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or HttpRequestException
-                || (ex is OperationCanceledException && !cancellationToken.IsCancellationRequested))
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 return new(LiveAgentSetupState.SetupFailed,
-                    "Setup could not finish. Check your internet connection and game-folder permissions, then retry. " + ex.Message);
+                    "Setup could not finish. Check game-folder permissions, then retry. " + ex.Message);
             }
         }
 

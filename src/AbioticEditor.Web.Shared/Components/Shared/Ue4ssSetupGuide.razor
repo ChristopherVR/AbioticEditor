@@ -1,0 +1,32 @@
+@inject AbioticEditor.Ui.IExternalNavigationService ExternalNavigation
+
+<div class="ue4ss-setup-guide">
+    <p>@L.Resource("Live_NeedsUe4ss")</p>
+    <ol>
+        <li>@L.Resource("Live_Ue4ssDownloadStep")</li>
+        <li>@L.Resource("Live_Ue4ssExtractStep")</li>
+        <li>@L.Resource("Live_Ue4ssReturnStep")</li>
+    </ol>
+    <label class="ue4ss-folder-label" for="ue4ss-game-folder">@L.Resource("Live_Ue4ssFolder")</label>
+    <input id="ue4ss-game-folder" class="ue4ss-folder" value="@InstallPath" readonly spellcheck="false" />
+    <div class="ue4ss-setup-actions">
+        <a href="@DownloadUrl" @onclick="() => OpenUrlAsync(DownloadUrl)" @onclick:preventDefault>@L.Resource("Live_Ue4ssDownload")</a>
+        <button type="button" class="secondary" @onclick="RevealFolderAsync">@L.Resource("Live_Ue4ssOpenFolder")</button>
+        <a href="@HelpUrl" @onclick="() => OpenUrlAsync(HelpUrl)" @onclick:preventDefault>@L.Resource("Live_Ue4ssHelp")</a>
+    </div>
+    @if (_folderError) { <p role="alert">@L.Resource("Live_Ue4ssFolderError")</p> }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string InstallPath { get; set; } = string.Empty;
+    private bool _folderError;
+    private const string DownloadUrl = "https://github.com/UE4SS-RE/RE-UE4SS/releases/tag/experimental-latest";
+    private const string HelpUrl = "https://docs.ue4ss.com/dev/installation-guide.html";
+    private Task OpenUrlAsync(string url) => ExternalNavigation.OpenUrlAsync(new Uri(url));
+    private async Task RevealFolderAsync()
+    {
+        _folderError = false;
+        try { await ExternalNavigation.RevealPathAsync(InstallPath); }
+        catch (Exception) { _folderError = true; }
+    }
+}

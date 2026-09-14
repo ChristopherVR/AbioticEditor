@@ -4,10 +4,9 @@ Live editing changes your game while you play. **It is experimental and has fewe
 offline editing.** Game updates can affect compatibility. Choose offline editing when you need
 the full set of tools or want to review changes before saving.
 
-The Windows desktop app takes care of local setup. You do not need a separate installer,
-manual mod copying, a compiler, or developer tools. After you approve setup, the app downloads
-missing support files and prepares its bundled agent and helper. This adds files to your game
-folder: live editing still needs an in-game component, but the app handles it for you.
+**UE4SS is a separate prerequisite.** The editor does not bundle, download, or install it.
+The app shows you the official download, the exact game folder to install into, and a button
+to check again when you are done. After that, it handles its own agent and helper for you.
 
 ## Choose the right mode
 
@@ -28,51 +27,89 @@ changes, and no `.bak` from the editor. Back up your world before starting a ses
 
 ## Set up a game on this PC
 
-Automatic local setup is **Windows-only**. The Linux desktop editor can edit save files, but
-cannot run the bundled Windows helper or automatically install the live agent locally.
+Local helper setup is **Windows-only**. The Linux desktop editor can edit save files but cannot
+run the bundled Windows helper locally. The browser edition cannot connect live.
 
-1. Close Abiotic Factor or stop its server before installing or updating live support.
-2. In the complete Windows desktop release, use the editing-mode button in the top bar.
-   Choose **Set up live editing**, then **This PC**.
-3. Review the detected game folder and choose **Set up automatically**. The first download
-   needs internet access.
-4. Wait while the app prepares the files. When prompted, start the game and load a world.
-5. Keep the editor open. It starts the helper and reads your connection details automatically.
-   Once connected, select a player or world editing area.
+### 1. Let the app find your game
 
-If the editor cannot find your game, check **Settings > Game Data**. If it reports that the
-helper is unavailable, check your extracted release contains the `live-agent` folder. Source
-builds may require building the helper separately; the [agent source instructions](https://github.com/ChristopherVR/AbioticEditor/tree/main/live-agent)
-cover manual installation and compilation.
+Close Abiotic Factor or stop its server. In the complete Windows desktop release, choose the
+editing-mode button, **Set up live editing**, then **This PC**. If UE4SS is missing or incomplete,
+the app shows **Install UE4SS first** and the detected game's `Binaries/Win64` folder.
 
-### What automatic setup installs
+If the game cannot be found, choose its installation under **Settings > Game data** and retry.
+This is the installed game folder, not the folder containing your saved worlds.
 
-The app downloads a missing UE4SS runtime from the
-[official release service](https://github.com/UE4SS-RE/RE-UE4SS/releases), checks its size and
-published SHA-256 digest, and installs the required runtime and shared files. Example and cheat
-mods from that package are excluded. The app then copies its own bundled Lua agent, enables its
-entry in `mods.txt`, and starts the bundled helper in the background. You do not need to type a
-token or keep a command window open for **This PC**.
+### 2. Get UE4SS from its official publisher
 
-The download uses UE4SS's `experimental-latest` channel. Verification checks the downloaded
-file against its publisher's digest; it does not guarantee compatibility with every game patch.
+Choose **Get UE4SS** in the app to open the
+[official experimental release page](https://github.com/UE4SS-RE/RE-UE4SS/releases/tag/experimental-latest).
+Download the standard `UE4SS_*.zip` package, rather than `zDEV` or a source-code archive.
+The linked experimental channel changes over time; compatibility with every Abiotic Factor
+patch is not guaranteed. An existing working installation does not need to be replaced merely
+to use the editor.
 
-Existing complete UE4SS installations are reused without automatically upgrading them. Other
-mods and their settings are preserved. An incomplete installation or conflicting mod loader
-stops setup rather than being overwritten.
+UE4SS is the mod loader that allows the editor's agent to communicate with the game. It is
+provided separately by its own publisher. See the
+[official installation instructions](https://docs.ue4ss.com/dev/installation-guide.html) for
+loader configuration and alternate layouts.
+
+### 3. Extract it into the folder the app shows
+
+Use **Open game folder**, or copy the displayed path into File Explorer. Extract the ZIP's
+contents there, keeping the included folder structure. For a typical Steam installation the
+destination is:
+
+```text
+<Steam library>/steamapps/common/AbioticFactor/AbioticFactor/Binaries/Win64/
+```
+
+The currently linked package uses this layout:
+
+```text
+Win64/
+  AbioticFactor-Win64-Shipping.exe
+  dwmapi.dll
+  ue4ss/
+    UE4SS.dll
+    UE4SS-settings.ini
+    Mods/
+      shared/UEHelpers/UEHelpers.lua
+```
+
+Place the archive contents directly in `Win64`, not inside an extra folder named after the ZIP.
+Do not extract into your saves folder. If you already use UE4SS or another loader, follow its
+upgrade instructions and preserve your existing mods and settings instead of blindly replacing
+files. The editor itself does not alter the UE4SS runtime.
+
+The editor recognizes both the nested `ue4ss/` layout above and older flat installations where
+`UE4SS.dll` and `Mods/` sit directly in `Win64`. Detection requires the runtime and its shared
+`UEHelpers` module. Custom redirected runtime paths are not automatically detected.
+
+### 4. Return to the editor
+
+Choose **Check again**. Once UE4SS is detected, the app asks to install its own agent in the
+shown mod folder. Choose **Set up editor helper** while the game is still closed.
+
+The app copies its bundled agent scripts, enables its entry in `mods.txt`, and starts its
+bundled helper in the background. No compiler, manual agent copying, token entry, or command
+window is needed for **This PC**. Then start the game, load a world, and wait for the editor to
+connect. Select a player or world editing area.
 
 ### Reconnect or update
 
-Choose live editing and **This PC** again. If everything is current, no download is needed.
-The app checks every bundled agent script for updates, including individual feature modules.
-An editor update may ask to update those files: close the game first, allow setup, then restart
-and load your world. Selecting a save folder does not configure live setup; use the installed
-game folder under **Settings > Game data**.
+Choose **This PC** again. The editor checks every bundled agent script for updates, including
+individual feature modules. An editor update may ask to update those files: close the game,
+allow helper setup, then restart and load your world. UE4SS updates remain a separate manual
+step using the publisher's instructions. The app does not automatically download them.
+
+A complete Windows release includes the editor's `live-agent` folder. If that folder is
+missing, extract the full release again. Source builds may require building the helper
+separately; see the [agent source instructions](https://github.com/ChristopherVR/AbioticEditor/tree/main/live-agent).
 
 ## Connect to a server you run
 
 Prepare live support on the **game server machine**. With desktop access on Windows, run the
-editor there and use **This PC** setup while the server is stopped. Start the server afterward
+editor there, install UE4SS using its guidance, then use **This PC** helper setup while the server is stopped. Start the server afterward
 and keep its helper running under the same Windows account as the game. Headless installations
 can use the manual agent instructions linked above. Installing support on your own PC cannot
 change a server hosted elsewhere.
@@ -140,18 +177,18 @@ handling, but cannot prove that every game version will accept a live operation.
 | --- | --- |
 | Game not found | Select the installed game in **Settings > Game data**, then retry |
 | Close the game | Exit the game or stop its server, return to **This PC**, and retry |
-| Download or verification failed | Check access to GitHub and retry; unverified files are not installed |
+| UE4SS still missing | Check the displayed Win64 folder contains the runtime and shared UEHelpers module, without an extra archive-name folder |
 | Folder permission error | Check your Windows account can write to the selected game folder |
-| Existing or incomplete mod loader | Close the game and back up your mod folder. Repair your existing UE4SS installation using its own instructions before retrying; setup leaves conflicting files unchanged |
+| Existing or incomplete mod loader | Close the game, back up your mod folder, and follow the publisher's repair instructions. The editor does not overwrite the runtime |
 | Missing live-support files | Extract the full Windows release again, including its `live-agent` folder; source builds need the helper build described in the agent README |
 
 ### Files and logs
 
-These locations are for troubleshooting. Normal setup manages them for you.
+These locations are for troubleshooting. The editor manages its own agent and helper; UE4SS files belong to your separate installation.
 
 | Location | Purpose |
 | --- | --- |
-| `<game>/Binaries/Win64/dwmapi.dll` | Loader added during fresh automatic setup |
+| `<game>/Binaries/Win64/dwmapi.dll` | Loader from the separate UE4SS installation |
 | `<game>/Binaries/Win64/ue4ss/` | Runtime, shared files and settings |
 | `ue4ss/Mods/AbioticEditorLiveAgentLua/Scripts/` | Bundled agent scripts |
 | `ue4ss/Mods/mods.txt` | Enabled mod list |
@@ -171,4 +208,4 @@ close the game or stop the server, and follow the [save-file guide](./getting-st
 
 Disconnecting does not uninstall the agent. To disable it, close the game and set
 `AbioticEditorLiveAgentLua : 0` in its `mods.txt`. Keep shared UE4SS files if other mods use them.
-Choosing automatic live setup again can re-enable the agent.
+Choosing editor helper setup again can re-enable the agent.

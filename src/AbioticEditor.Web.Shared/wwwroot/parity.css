@@ -1977,3 +1977,11 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 .world-summary-heading h2{font-size:16px;letter-spacing:.02em;text-transform:none}
 .world-meta-panel .wm-intro{font-size:13px;line-height:1.6;letter-spacing:0}
 .skill-details .milestone-chip{font-size:12px!important}
+
+.ue4ss-setup-guide{font-size:14px;line-height:1.6}
+.ue4ss-setup-guide ol{padding-left:22px;margin:16px 0}
+.ue4ss-setup-guide li+li{margin-top:10px}
+.ue4ss-folder-label{display:block;font-weight:600;margin:16px 0 6px}
+.ue4ss-folder{box-sizing:border-box;width:100%;min-width:0;font-size:13px}
+.ue4ss-setup-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px 20px;margin-top:14px}
+.ue4ss-setup-actions a{color:var(--section);text-underline-offset:3px}

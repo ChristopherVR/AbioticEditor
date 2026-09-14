@@ -115,15 +115,14 @@
                off to a page that shows its own "waiting for the game" screen - the player asked
                a question here and this is where the answer belongs, right up until there is
                something worth switching to a full page for (the connected, tabbed editor). *@
-            <h2 id="mode-select-title">@L.Resource(_setupState is LiveAgentSetupState.SetupFailed or LiveAgentSetupState.HelperUnavailable ? "Editing_SetupFailed" : _setupState is null ? "Editing_SettingUp" : "Live_WaitingForLocalGame")</h2>
+            <h2 id="mode-select-title">@L.Resource(_setupState == LiveAgentSetupState.NeedsUe4ss ? "Live_Ue4ssTitle" : _setupState is LiveAgentSetupState.SetupFailed or LiveAgentSetupState.HelperUnavailable ? "Editing_SetupFailed" : _setupState is null ? "Editing_SettingUp" : "Live_WaitingForLocalGame")</h2>
             @if (_setupState is LiveAgentSetupState.SetupFailed or LiveAgentSetupState.HelperUnavailable)
             {
                 <p class="error-text" role="alert">@_setupError</p>
             }
             else if (_setupState == LiveAgentSetupState.NeedsUe4ss)
             {
-                <p class="muted">@L.Resource("Live_NeedsUe4ss")</p>
-                <WhatYouNeedNote />
+                <Ue4ssSetupGuide InstallPath="@(_setupError ?? string.Empty)" />
             }
             else if (_setupState == LiveAgentSetupState.GameNotFound)
             {
@@ -145,6 +144,10 @@
                 }
             }
             <footer class="mode-select-back-row">
+                @if (_setupState == LiveAgentSetupState.NeedsUe4ss)
+                {
+                    <button class="primary" type="button" @onclick="ChooseLocal">@L.Resource("Live_Ue4ssCheckAgain")</button>
+                }
                 <button class="secondary" type="button" @onclick="BackToTarget">@L.Resource("Live_Back")</button>
             </footer>
         }
