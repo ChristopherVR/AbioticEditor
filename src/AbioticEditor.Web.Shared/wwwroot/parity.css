@@ -1985,3 +1985,22 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 .ue4ss-folder{box-sizing:border-box;width:100%;min-width:0;font-size:13px}
 .ue4ss-setup-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px 20px;margin-top:14px}
 .ue4ss-setup-actions a{color:var(--section);text-underline-offset:3px}
+
+/* Discovery uses a single readable column, with compact world rows below the actions. */
+.workspace-start .native-empty-state.empty-dropzone { margin:24px auto!important; max-width:1040px!important; width:calc(100% - 48px); }
+.world-search { display:flex; align-items:center; gap:10px; max-width:440px; margin:14px 0; }
+.world-search input { min-width:0; width:100%; min-height:42px; font-size:14px; }
+.empty-dropzone .discovered-world-card { padding:14px 16px; }
+.empty-dropzone .discovered-world-card h3 { text-transform:none; letter-spacing:0; font-size:16px; }
+.empty-dropzone .discovered-world-card small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; opacity:.65; }
+.empty-dropzone .discovered-world-card h3 .platform-badge { vertical-align:middle; margin-left:8px; }
+.empty-dropzone .discovered-worlds { margin-top:24px; }
+.settings-tab-rail button:focus-visible { outline:2px solid var(--orange); outline-offset:-3px; }
+@media(max-width:640px) {
+    .workspace-start .native-empty-state.empty-dropzone { width:calc(100% - 24px); margin:12px auto!important; }
+    .empty-dropzone .discovered-world-card { padding:12px; }
+    .empty-dropzone .discovered-world-card small { max-width:100%; }
+}
+
+.active-folder.no-active-folder { visibility:hidden; }
+.empty-dropzone .discovered-worlds>h2 { text-transform:none; }

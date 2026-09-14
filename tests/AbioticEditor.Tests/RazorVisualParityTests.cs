@@ -102,7 +102,7 @@ public sealed class RazorVisualParityTests
         var css = Source("wwwroot", "parity.css");
 
         Assert.Contains("class=\"brand-lockup\"", layout, StringComparison.Ordinal);
-        Assert.Contains("class=\"active-folder\"", layout, StringComparison.Ordinal);
+        Assert.Contains("class=\"active-folder ", layout, StringComparison.Ordinal);
         Assert.Contains("class=\"status-footer\"", layout, StringComparison.Ordinal);
         Assert.Contains("Main_LoggingTo", layout, StringComparison.Ordinal);
         Assert.DoesNotContain("more-menu", layout, StringComparison.Ordinal);

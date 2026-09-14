@@ -18,7 +18,7 @@
 @inject AbioticEditor.Ui.IExternalNavigationService External
 @inject IJSRuntime Js
 
-<div class="workspace-shell shell-with-splitters @(DrawerMode ? "drawer-mode" : null) @FileClass @DetailsClass" style="@ShellStyle">
+<div class="workspace-shell shell-with-splitters @(IsEmptyWorkspace ? "workspace-start" : null) @(DrawerMode ? "drawer-mode" : null) @FileClass @DetailsClass" style="@ShellStyle">
     <aside class="shell-pane file-pane" aria-label="@(IsPureLiveMode ? L.Resource("Live_SidebarSubtitle") : L.Text("save.workspace"))">
     @if (IsPureLiveMode)
     {
@@ -364,6 +364,7 @@
     private static readonly Lazy<IReadOnlyDictionary<string, string>> MachinePersonas = new(SteamPersonaIndex.LoadMachineAccounts);
 
     private bool IsDirty => Workspace.Current?.PlayerSession?.IsDirty == true || Workspace.Current?.WorldSession?.IsDirty == true;
+    private bool IsEmptyWorkspace => Workspace.Current is null && !IsPureLiveMode;
     private bool DrawerMode => _viewport == "drawer";
     private bool FileVisible => !Preferences.State.FilePaneCollapsed && !_fileAutoCollapsed;
     private bool DetailsVisible => !Preferences.State.DetailsPaneCollapsed && !_detailsAutoCollapsed;

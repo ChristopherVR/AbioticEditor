@@ -28,10 +28,10 @@
         <nav class="settings-tab-rail" aria-label="@R("Settings_Title")" role="tablist" aria-orientation="vertical">
             @foreach (var tab in Tabs)
             {
-                <button type="button" role="tab" aria-selected="@(_selectedTab == tab.Id)" class="@(_selectedTab == tab.Id ? "selected" : null)" @onclick="() => SelectTab(tab.Id)">@R(tab.ResourceKey)</button>
+                <button id="@($"settings-tab-{tab.Id}")" aria-controls="settings-panel" tabindex="@(_selectedTab == tab.Id ? 0 : -1)" type="button" role="tab" aria-selected="@(_selectedTab == tab.Id ? "true" : "false")" class="@(_selectedTab == tab.Id ? "selected" : null)" @onclick="() => SelectTab(tab.Id)">@R(tab.ResourceKey)</button>
             }
         </nav>
-        <div class="settings-sheet-scroll" role="tabpanel" tabindex="0">
+        <div id="settings-panel" aria-labelledby="@($"settings-tab-{_selectedTab}")" class="settings-sheet-scroll" role="tabpanel" tabindex="0">
             <div class="settings-sheet-content">
                 @if (_error is not null) { <p class="error" role="alert">@_error</p> }
                 @switch (_selectedTab)

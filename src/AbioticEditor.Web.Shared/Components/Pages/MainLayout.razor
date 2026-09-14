@@ -45,7 +45,7 @@
             </GameArtImage>
             <span>@Languages.Resource("HeaderBar_VersionLabel", AppVersion)</span>
         </a>
-        <div class="active-folder">
+        <div class="active-folder @(Workspace.Current is null && !IsPureLiveMode ? "no-active-folder" : null)">
             @if (IsPureLiveMode)
             {
                 <span>@Languages.Resource("Live_SidebarSubtitle")</span>

@@ -101,13 +101,21 @@
         {
             <section class="discovered-worlds" aria-labelledby="discovered-worlds-title">
                 <h2 id="discovered-worlds-title">@Languages.Resource("Empty_WorldsFoundOnThisMachine")</h2>
-                <p>@Languages.Resource("Empty_SaveFoldersDetectedAutomatically")</p>
+                <label class="world-search" for="world-search">
+                    <span class="material-symbol" aria-hidden="true">search</span>
+                    <input id="world-search" type="search" @bind="_worldSearch" @bind:event="oninput"
+                           placeholder="@Languages.Resource("Editing_SearchWorlds")" aria-label="@Languages.Resource("Editing_SearchWorlds")" />
+                </label>
+                @if (!FilteredWorlds.Any())
+                {
+                    <p role="status">@Languages.Resource("Editing_NoWorldMatches")</p>
+                }
                 <div class="discovered-world-list">
-                    @foreach (var world in _worlds)
+                    @foreach (var world in FilteredWorlds)
                     {
                         <article class="discovered-world-card">
                             <div><h3>@world.WorldName <span class="platform-badge @PlatformClass(world)">@PlatformLabel(world)</span></h3><p>@world.LastPlayed.ToString("g") · @Languages.Resource("Main_SaveFileCount", world.SaveFileCount)</p><small title="@world.FolderPath">@world.FolderPath</small></div>
-                            <button class="primary" type="button" @onclick="() => SelectWorldAsync(world)" disabled="@_isLoading">@Languages.Resource("Empty_Open")</button>
+                            <button class="secondary" type="button" aria-label="@Languages.Resource("Editing_OpenWorld", world.WorldName)" @onclick="() => SelectWorldAsync(world)" disabled="@_isLoading">@Languages.Resource("Empty_Open")</button>
                         </article>
                     }
                 </div>
@@ -122,6 +130,10 @@ else
 }
 
 @code {
+    private string _worldSearch = string.Empty;
+    private IEnumerable<DiscoveredWorld> FilteredWorlds => _worlds.Where(world =>
+        world.WorldName.Contains(_worldSearch.Trim(), StringComparison.CurrentCultureIgnoreCase)
+        || PlatformLabel(world).Contains(_worldSearch.Trim(), StringComparison.CurrentCultureIgnoreCase));
     private IReadOnlyList<DiscoveredWorld> _worlds = Array.Empty<DiscoveredWorld>();
     private IReadOnlyList<RecentWorld> _recent = Array.Empty<RecentWorld>();
     private bool _isLoading;

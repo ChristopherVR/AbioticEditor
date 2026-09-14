@@ -119,7 +119,7 @@
   <data name="Empty_OpenFolder" xml:space="preserve"><value>OPEN FOLDER</value></data>
   <data name="Empty_OpenYourSaveFolderInstructions" xml:space="preserve"><value>Open your save folder (usually …\AppData\Local\AbioticFactor\Saved\SaveGames\&lt;steamid&gt;\Worlds\&lt;WorldName&gt;), then pick a player or world save from the sidebar.</value></data>
   <data name="Empty_SaveFoldersDetectedAutomatically" xml:space="preserve"><value>Save folders detected automatically from the game client and any installed dedicated server. Pick one, or use OPEN FOLDER / drag a folder in.</value></data>
-  <data name="Empty_WorldsFoundOnThisMachine" xml:space="preserve"><value>WORLDS FOUND ON THIS MACHINE</value></data>
+  <data name="Empty_WorldsFoundOnThisMachine" xml:space="preserve"><value>Your worlds</value></data>
   <data name="Empty_YouCanAlsoDropASaveFolderAnywhereOnThisWindow" xml:space="preserve"><value>You can also drop a save folder anywhere on this window.</value></data>
 
   <!-- FileSidebar -->
@@ -4149,4 +4149,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Live_Ue4ssHelp" xml:space="preserve"><value>Installation help</value></data>
   <data name="Live_Ue4ssCheckAgain" xml:space="preserve"><value>Check again</value></data>
   <data name="Live_Ue4ssFolderError" xml:space="preserve"><value>Could not open the folder. Copy the path above into File Explorer.</value></data>
+  <data name="Editing_SearchWorlds" xml:space="preserve"><value>Find a world by name or platform</value></data>
+  <data name="Editing_NoWorldMatches" xml:space="preserve"><value>No matching worlds. Try another name or clear the search.</value></data>
+  <data name="Editing_OpenWorld" xml:space="preserve"><value>Open {0}</value></data>
 </root>

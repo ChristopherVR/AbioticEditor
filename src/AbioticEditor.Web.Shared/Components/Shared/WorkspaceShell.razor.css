@@ -423,3 +423,17 @@
 .save-context-menu button:focus-visible {
     background: var(--af-accent-soft, #1d2b34);
 }
+
+/* Keep discovery central until there is a world or a live session to navigate. */
+.workspace-shell.shell-with-splitters.workspace-start {
+    grid-template-columns: minmax(0, 1fr) !important;
+}
+.workspace-start > .file-pane,
+.workspace-start > .shell-splitter,
+.workspace-start > .details-pane,
+.workspace-start .shell-status {
+    display: none !important;
+}
+.workspace-start > .shell-center {
+    grid-column: 1 !important;
+}

@@ -5,6 +5,23 @@ time; they are not a current feature list or test-count guarantee. The maintaine
 are `README.md`, `docs/guide/index.md`, and `docs/reference/architecture.md`.
 
 
+## Start screen and Settings refinement (2026-09-15)
+
+The empty workspace now hides the unused save sidebar, splitter and selection-status row.
+The folder heading stays quiet until a world is loaded. World discovery has a name/platform
+search, clear no-results feedback, descriptive Open button labels and quieter world rows.
+Long folder paths truncate visually and remain available in their title text. The normal
+sidebar and save controls return when a world/player is opened.
+
+Settings tabs now link to their named panel, expose lowercase ARIA selected values, and use
+one tab stop with arrow-key, Home and End navigation. Tab moves from the selected section
+into its content, and the existing modal focus trap respects negative tab indices.
+
+Verification: host build passed with no warnings/errors; 23 localization, visual-contract
+and shell-preference checks passed. Browser verified search/no-results/clear, Settings
+keyboard navigation, no horizontal overflow at 390px, and opening a world/player restores
+the sidebar and Save/Revert controls. No saves or game files were changed during testing.
+
 ## Live item DataTable repair (2026-09-14)
 
 Confirmed that player, container, ground-item and carried-pet writes changed RowName while
