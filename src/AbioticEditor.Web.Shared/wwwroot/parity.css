@@ -1880,14 +1880,9 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 .mode-badge{display:inline-block;padding:4px 8px;border:1px solid var(--divider);border-radius:4px;color:var(--section);font-size:12px;font-weight:600;line-height:1.4;letter-spacing:0;text-transform:none}
 .mode-badge.experimental{color:var(--alert-text);border-color:currentColor}
 .live-editing-guide{margin:0 0 20px;padding:16px 18px;border:1px solid var(--divider);border-left:3px solid var(--alert-text);border-radius:4px;background:var(--elevated);text-align:left}
-.live-guide-heading{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px;color:var(--ink)}
 .live-editing-guide p,.live-editing-guide li{font-size:14px;line-height:1.65;letter-spacing:0;color:var(--muted)}
 .live-editing-guide p{margin:10px 0}
 .live-editing-guide summary{cursor:pointer;padding:8px 0;color:var(--section);font-size:14px;font-weight:600;line-height:1.5}
-.live-guide-sections{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 24px;padding-top:12px;border-top:1px solid var(--divider)}
-.live-guide-sections h3{font-size:15px;line-height:1.4;letter-spacing:0;text-transform:none;margin:0;color:var(--ink)}
-.live-guide-sections ul{margin:10px 0;padding-left:18px}
-.live-guide-sections li+li{margin-top:8px}
 .mode-select-dialog .live-editing-guide{margin-top:20px}
 .mode-select-dialog footer{flex-wrap:wrap}
 .mode-select-dialog button{white-space:normal}
@@ -1919,9 +1914,66 @@ button.wd-sector-map:hover{opacity:1;transform:none}
   .mode-select-cards{flex-direction:column}
   .mode-option,.mode-select-card{min-width:0;width:100%}
   .mode-option{box-sizing:border-box;padding:18px}
-  .live-guide-sections{grid-template-columns:minmax(0,1fr)}
   .native-empty-state.empty-dropzone{padding:18px!important;margin:12px auto!important}
   .masthead{gap:8px;padding:10px 12px}
   .header-actions{gap:6px}
   .mode-switch-action{max-width:150px;font-size:12px}
 }
+
+/* Readable editing surfaces: controls first, optional detail on demand. */
+.live-guide-compact{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;padding:10px 14px;margin-bottom:14px;font-size:13px;line-height:1.5}
+.live-guide-compact a{margin-left:auto;color:var(--section);text-underline-offset:3px}
+.mode-option{padding:18px}
+.mode-option h3{margin-top:12px;font-size:20px}
+.mode-option ul{margin:12px 0 18px}
+.mode-option li{font-weight:400}
+.editor-disclosure{margin:12px 0;border-top:1px solid var(--divider)}
+.editor-disclosure>summary{padding:12px 0;cursor:pointer;font-size:13px;font-weight:600;letter-spacing:0;color:var(--section)}
+.editor-disclosure>summary:focus-visible{outline:2px solid var(--section);outline-offset:2px}
+.editor-section-picker{display:none}
+.editor-tabs .editor-tab,.world-tabs button{font-size:12px!important;letter-spacing:.015em!important;text-transform:none;min-height:40px!important;padding:9px 13px!important;border-radius:4px!important}
+.editor-card h3,.settings-sheet .settings-card h2,.settings-sheet .settings-card h3,.wm-h2{letter-spacing:.02em!important;font-size:16px!important;text-transform:none!important}
+.general-tab .general-help{font-size:12px;line-height:1.5;letter-spacing:0}
+.general-tab .general-field-label,.vital-slider label,.skill-lv-label{letter-spacing:.025em!important;font-size:12px!important}
+.skill-grid{gap:12px!important}
+.skills-card .skill-card{padding:14px!important}
+.skill-details{margin:8px 0 0}
+.skill-details>summary{padding:8px 0}
+.skill-details .milestone-track{margin-top:12px}
+.skill-passive{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.5!important;white-space:normal!important;letter-spacing:0!important}
+.settings-sheet-header{padding:16px 24px}
+.settings-sheet-header h1{font-size:22px;letter-spacing:0}
+.settings-close{margin-left:auto;display:grid;place-items:center;min-width:40px;min-height:40px;padding:8px}
+.settings-sheet-content{width:min(100%,1080px);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;gap:18px;padding:28px}
+.settings-sheet-content>.settings-card+.settings-card{margin-top:0}
+.settings-sheet-content>.settings-tab-embedded,.settings-sheet-content>.plugins-card,.settings-sheet-content>.error{grid-column:1/-1}
+.settings-sheet .settings-card{min-width:0;padding:20px!important;border-radius:5px!important}
+.settings-sheet .settings-card>.muted{font-size:13px;line-height:1.6;letter-spacing:0}
+.settings-sheet .settings-card label:not(.toggle-row){font-size:13px!important;letter-spacing:0!important;line-height:1.5!important}
+.settings-tab-rail button,.settings-sheet button,.settings-sheet select{font-size:13px;letter-spacing:0;text-transform:none}
+.settings-tab-rail button{min-height:44px;padding:10px 14px}
+.settings-switch-row{gap:16px;min-height:44px}
+.game-data-path-row{flex-wrap:wrap;gap:10px}
+.game-data-path-row>span{overflow-wrap:anywhere;white-space:normal;font-size:13px;line-height:1.5}
+.settings-select{max-width:100%}
+@media(max-width:1000px){.settings-sheet-content{grid-template-columns:minmax(0,1fr);padding:20px}}
+@media(max-width:640px){
+  .player-editor>.editor-tabs{display:none!important}
+  .editor-section-picker{display:flex;align-items:center;gap:12px;margin:0 0 16px;font-size:13px;color:var(--muted)}
+  .editor-section-picker select{flex:1;min-width:0;padding:10px;font-size:16px;background:var(--elevated);color:var(--ink);border:1px solid var(--divider);border-radius:4px}
+  .world-tabs{flex-wrap:wrap!important;overflow:visible!important}
+  .world-tabs button{flex:1 1 auto;min-height:44px!important}
+  .settings-sheet-content{padding:14px;gap:12px}
+  .settings-tab-rail{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:8px;gap:4px;overflow:visible}
+  .settings-tab-rail button{width:100%;padding:10px;font-size:13px;text-align:center;white-space:normal}
+  .live-guide-compact a{margin-left:0}
+  .settings-sheet .settings-card{padding:16px!important}
+}
+
+.skills-head{flex-direction:row;justify-content:space-between;align-items:center!important;margin-bottom:16px}
+.skill-details .skill-passive{display:block;font-size:13px!important;overflow:visible;white-space:normal;margin:6px 0 12px}
+@media(max-width:640px){.skill-head{gap:7px}.skill-icon{flex-basis:30px;width:30px;height:30px}.skill-lv{width:64px;min-width:64px;padding:6px!important}.skill-max{min-height:36px}}
+
+.world-summary-heading h2{font-size:16px;letter-spacing:.02em;text-transform:none}
+.world-meta-panel .wm-intro{font-size:13px;line-height:1.6;letter-spacing:0}
+.skill-details .milestone-chip{font-size:12px!important}

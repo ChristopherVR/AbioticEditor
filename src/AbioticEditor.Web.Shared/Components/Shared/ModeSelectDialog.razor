@@ -44,7 +44,7 @@
         else if (_step == Step.LiveTarget)
         {
             <h2 id="mode-select-title">@L.Resource("Live_TargetQuestion")</h2>
-            <LiveEditingGuide Expanded="true" />
+            <LiveEditingGuide />
             <div class="mode-select-cards">
                 <button class="mode-select-card" type="button" @onclick="ChooseLocal">
                     <span class="material-symbol mode-select-card-icon" aria-hidden="true">computer</span>
@@ -115,8 +115,12 @@
                off to a page that shows its own "waiting for the game" screen - the player asked
                a question here and this is where the answer belongs, right up until there is
                something worth switching to a full page for (the connected, tabbed editor). *@
-            <h2 id="mode-select-title">@L.Resource("Live_WaitingForLocalGame")</h2>
-            @if (_setupState == LiveAgentSetupState.NeedsUe4ss)
+            <h2 id="mode-select-title">@L.Resource(_setupState is LiveAgentSetupState.SetupFailed or LiveAgentSetupState.HelperUnavailable ? "Editing_SetupFailed" : _setupState is null ? "Editing_SettingUp" : "Live_WaitingForLocalGame")</h2>
+            @if (_setupState is LiveAgentSetupState.SetupFailed or LiveAgentSetupState.HelperUnavailable)
+            {
+                <p class="error-text" role="alert">@_setupError</p>
+            }
+            else if (_setupState == LiveAgentSetupState.NeedsUe4ss)
             {
                 <p class="muted">@L.Resource("Live_NeedsUe4ss")</p>
                 <WhatYouNeedNote />
@@ -133,7 +137,7 @@
             {
                 <p class="lede live-waiting" role="status" aria-live="polite">
                     <span class="blocking-busy-spinner" aria-hidden="true"></span>
-                    @L.Resource("Live_WaitingForLocalGameHint")
+                    @L.Resource(_setupState is null ? "Editing_SettingUpHint" : "Live_WaitingForLocalGameHint")
                 </p>
                 @if (_slowToRespond)
                 {
@@ -162,6 +166,7 @@
     private enum Step { Choose, LiveTarget, ConfirmDeploy, RemoteForm, Connecting }
     private Step _step = Step.Choose;
     private LiveAgentSetupState? _setupState;
+    private string? _setupError;
     private string? _deployTarget;
     private CancellationTokenSource? _waitCts;
     private bool _slowToRespond;
@@ -250,7 +255,7 @@
             // a "waiting for the game" screen. Falling back to "unavailable" still leaves a path
             // forward (an already-running helper this build did not launch) instead of a blank
             // reload.
-            setup = new LiveAgentSetupResult(LiveAgentSetupState.HelperUnavailable);
+            setup = new LiveAgentSetupResult(LiveAgentSetupState.SetupFailed, "Could not prepare live support. Check the game folder in Settings and retry.");
         }
         if (Superseded()) return;
 
@@ -264,7 +269,9 @@
 
         _step = Step.Connecting;
         _setupState = setup.State;
+        _setupError = setup.Detail;
         await InvokeAsync(StateHasChanged);
+        if (setup.State is not LiveAgentSetupState.Ready) return;
 
         var capability = Services.GetService<ILiveEditingCapability>();
         var attempt = 0;
@@ -384,7 +391,12 @@
         }
     }
 
-    private Task ConsentAndDeployAsync() => ConnectLocalAsync(deployConsentGiven: true);
+    private Task ConsentAndDeployAsync()
+    {
+        _step = Step.Connecting;
+        _setupState = null;
+        return ConnectLocalAsync(deployConsentGiven: true);
+    }
 
     public async ValueTask DisposeAsync()
     {

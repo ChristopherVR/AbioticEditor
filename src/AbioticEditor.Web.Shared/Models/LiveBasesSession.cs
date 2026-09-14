@@ -7,11 +7,8 @@ namespace AbioticEditor.Web.Models;
 /// Live BASES editing session, implementing the same <see cref="IWorldBasesSession"/> the file
 /// session does so <c>WorldBasesTab</c> renders unchanged for either host - see
 /// <see cref="LiveContainersSession"/>/<see cref="LiveNpcSession"/> for the immediate-apply,
-/// re-read-after-write pattern this copies. Bench upgrade installation is grounded in the
-/// bench's own <c>AddUpgrade</c> function (round 77); removal has no evidenced live function and
-/// always throws - see <c>areas/bases.lua</c>'s own comment for what remains unverified (the
-/// upgrade row-handle's <c>DataTablePath</c> is reconstructed from the pak's asset location, not
-/// fetched from a live enumeration function, since none exists for this table).
+/// re-read-after-write pattern. Upgrade availability comes from the agent directory.
+/// The bundled agent disables bench upgrades after native crashes in the attempted calls.
 /// </summary>
 public sealed class LiveBasesSession : IWorldBasesSession
 {
@@ -34,6 +31,7 @@ public sealed class LiveBasesSession : IWorldBasesSession
 
     public IReadOnlyList<WorldDeployable> Deployables { get; private set; } = [];
     public bool IsHost { get; private set; }
+    private bool _supportsBenchUpgrades;
     public string? Status { get; private set; }
 
     /// <summary>Always false: a rename or upgrade install already reached the running game by
@@ -52,6 +50,7 @@ public sealed class LiveBasesSession : IWorldBasesSession
                 d.InstalledUpgrades.Count > 0 ? d.InstalledUpgrades : null))
             .ToList();
         IsHost = directory.IsHost;
+        _supportsBenchUpgrades = directory.SupportsBenchUpgrades;
         Changed?.Invoke();
     }
 
@@ -69,13 +68,14 @@ public sealed class LiveBasesSession : IWorldBasesSession
     bool IWorldBasesSession.SupportsContainerPeek => false;
 
     bool IWorldBasesSession.BenchSupportsUpgrades(string deployableId)
-        => _byId.TryGetValue(deployableId, out var deployable) && deployable.SupportsUpgrades;
+        => _supportsBenchUpgrades && _byId.TryGetValue(deployableId, out var deployable) && deployable.SupportsUpgrades;
 
     IReadOnlyList<string> IWorldBasesSession.BenchInstalledUpgrades(string deployableId)
         => _byId.TryGetValue(deployableId, out var deployable) ? deployable.InstalledUpgrades : [];
 
     async Task<bool> IWorldBasesSession.SetBenchUpgradeAsync(string deployableId, string row, bool installed, CancellationToken cancellationToken)
     {
+        if (!_supportsBenchUpgrades) throw new NotSupportedException("Bench upgrades are available in the offline editor only.");
         if (!installed)
         {
             throw new NotSupportedException(

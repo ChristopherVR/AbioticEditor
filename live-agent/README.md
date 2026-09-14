@@ -9,6 +9,21 @@ See `docs/reference/live-editing-protocol.md` for the wire format, and `docs/PRO
 **None of this is part of the .NET solution.** Like the sample plugins under `plugins/`, it is
 built and shipped as its own standalone artifact(s), not something `dotnet build` touches.
 
+## Player setup
+
+Live editing is experimental. With the complete Windows desktop release, choose
+**Live editing > This PC > Set up automatically**. The app downloads missing UE4SS support,
+deploys all bundled Lua modules, enables the agent, and starts the helper. No manual installation
+or compilation is needed. Close the game before setup; the first download needs internet access.
+Existing mod installations are preserved. The runtime follows the official experimental-latest
+channel and is checked against its published SHA-256 digest. This validates the download,
+not compatibility with every game patch.
+
+See the [player guide](https://christophervr.github.io/AbioticEditor/guide/live-editing) for
+supported tools, limitations, troubleshooting, and remote setup. The instructions below are
+for contributors and manual server installations. Historical research describes evidence at
+that time; the protocol reference tracks current support. Bench upgrades remain disabled.
+
 ## Two approaches, one primary
 
 ### The Lua + helper hybrid (PRIMARY - buildable and verified today)
@@ -365,7 +380,7 @@ kind of write checks the raw field it landed on directly, rather than requiring 
 trip back through the corresponding `*.list` handler). Anything the harness cannot settle either
 way is still a real-game verification item, not a pass.
 
-## Getting from here to a fully working setup
+## Manual development and server setup
 
 1. **Test against a real running game.** Most property names in `main.lua` are now copied
    verbatim from a real working mod (see "Ground truth from a real mod" above), not guessed -

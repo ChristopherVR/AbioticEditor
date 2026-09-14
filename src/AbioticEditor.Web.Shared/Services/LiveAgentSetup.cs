@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.Versioning;
 using AbioticEditor.Core.Assets;
+using AbioticEditor.Core.LiveEditing;
 
 namespace AbioticEditor.Web.Services;
 
@@ -12,26 +13,18 @@ public enum LiveAgentSetupState
     /// A local connection attempt can proceed exactly as before.</summary>
     Ready,
 
-    /// <summary>A game install was found, but it has no <c>ue4ss</c> folder - the one
-    /// prerequisite this cannot install on the player's behalf (a separate, third-party
-    /// framework). Live editing cannot work here until that's installed once, by hand.</summary>
+    /// <summary>Legacy setup state retained for compatibility.</summary>
     NeedsUe4ss,
 
     /// <summary>No local Abiotic Factor install could be found at all (see
     /// <see cref="AfInstallLocator.FindPaksDirectory"/>).</summary>
     GameNotFound,
 
-    /// <summary>UE4SS is present and the script was deployed, but this build of the editor has
-    /// no bundled helper process to launch (a local dev build that never ran the native build -
-    /// see live-agent/README.md). Falls back to hoping one is already running, exactly like
-    /// the fully manual setup this replaces.</summary>
+    /// <summary>The release is missing its bundled helper or agent files.</summary>
     HelperUnavailable,
 
-    /// <summary>UE4SS is present, but the bundled script is missing or out of date in its Mods
-    /// folder and nothing has been written there yet - call <see cref="EnsureReadyAsync"/> again
-    /// with <c>deployConsentGiven: true</c> to actually copy it, only once the player has agreed
-    /// (<see cref="LiveAgentSetupResult.Detail"/> names the exact folder that would be written
-    /// to). Nothing is touched on disk while this state is returned.</summary>
+    /// <summary>Installing the runtime or updating the bundled agent needs consent.
+    /// Detail names the game folder. Nothing has been written yet.</summary>
     NeedsConsentToDeploy,
 
     /// <summary>This host's operating system cannot run either half of live editing's in-game
@@ -40,23 +33,18 @@ public enum LiveAgentSetupState
     /// an install. A dedicated server the player connects to remotely is unaffected; only the
     /// automatic "this PC" setup is unavailable here.</summary>
     NotSupportedOnThisPlatform,
+
+    /// <summary>Setup failed; Detail contains the recovery instructions.</summary>
+    SetupFailed,
 }
 
 public sealed record LiveAgentSetupResult(LiveAgentSetupState State, string? Detail = null);
 
-/// <summary>
-/// Prepares a detected local Abiotic Factor install for live editing with nothing for the
-/// player to do by hand: deploys the bundled Lua script into UE4SS's own <c>Mods</c> folder
-/// (enabling it in <c>mods.txt</c>, touching nothing else there) and launches the bundled helper
-/// process if one is not already running. Windows-only - UE4SS, and Abiotic Factor's own live
-/// editing support, are both Windows-only today.
-///
-/// <para>Deliberately narrow: this never installs UE4SS itself (a separate, third-party
-/// framework - see <see cref="LiveAgentSetupState.NeedsUe4ss"/>), never touches any other mod's
-/// files, and never rewrites <c>mods.txt</c> beyond the one line that enables this mod.</para>
-/// </summary>
+/// <summary>Prepares local live editing on Windows: downloads a missing runtime after consent,
+/// updates the bundled agent, and starts the helper. Existing mod installations are preserved.</summary>
 public static class LiveAgentSetup
 {
+    private static readonly HttpClient SetupHttp = new() { Timeout = TimeSpan.FromMinutes(2) };
     private const string ModFolderName = "AbioticEditorLiveAgentLua";
     private const string HelperProcessName = "AbioticEditorLiveAgentHelper";
 
@@ -107,28 +95,28 @@ public static class LiveAgentSetup
             return new(LiveAgentSetupState.GameNotFound);
         }
 
-        var modsDir = Path.Combine(projectRoot, "Binaries", "Win64", "ue4ss", "Mods");
-        if (!Directory.Exists(modsDir))
-        {
-            return new(LiveAgentSetupState.NeedsUe4ss);
-        }
+        var win64 = Path.Combine(projectRoot, "Binaries", "Win64");
+        var modsDir = Path.Combine(win64, "ue4ss", "Mods");
+        if (!Directory.Exists(BundledScriptsDir) || (!File.Exists(BundledHelperPath) && !IsHelperRunning()))
+            return new(LiveAgentSetupState.HelperUnavailable,
+                "This copy of the editor is missing live-support files. Extract the full Windows release and try again.");
 
-        if (!IsModUpToDate(modsDir))
+        if (!LiveRuntimeInstaller.IsInstalled(win64) || !IsModUpToDate(modsDir))
         {
             if (!deployConsentGiven)
-            {
-                return new(LiveAgentSetupState.NeedsConsentToDeploy, Path.Combine(modsDir, ModFolderName));
-            }
+                return new(LiveAgentSetupState.NeedsConsentToDeploy, win64);
+            if (IsGameRunning())
+                return new(LiveAgentSetupState.SetupFailed, "Close Abiotic Factor or stop its server, then retry setup.");
             try
             {
+                await new LiveRuntimeInstaller(SetupHttp).InstallAsync(win64, cancellationToken).ConfigureAwait(false);
                 DeployMod(modsDir);
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or HttpRequestException
+                || (ex is OperationCanceledException && !cancellationToken.IsCancellationRequested))
             {
-                // A Mods folder that exists but refuses writes reads the same as UE4SS not being
-                // properly set up - the fix (permissions, an antivirus lock, ...) is the same kind
-                // of one-time thing the set-up guide already walks through.
-                return new(LiveAgentSetupState.NeedsUe4ss, ex.Message);
+                return new(LiveAgentSetupState.SetupFailed,
+                    "Setup could not finish. Check your internet connection and game-folder permissions, then retry. " + ex.Message);
             }
         }
 
@@ -163,6 +151,19 @@ public static class LiveAgentSetup
     // Process.GetProcessesByName as reachable on every platform this assembly also ships on
     // (the browser/Wasm host, which never registers ILiveEditingCapability and so never calls in
     // here at all, but still compiles this file).
+    [SupportedOSPlatform("windows")]
+    private static bool IsGameRunning()
+    {
+        foreach (var process in Process.GetProcesses())
+        {
+            using (process)
+            {
+                if (process.ProcessName.StartsWith("AbioticFactor", StringComparison.OrdinalIgnoreCase)) return true;
+            }
+        }
+        return false;
+    }
+
     [SupportedOSPlatform("windows")]
     private static bool IsHelperRunning()
     {
@@ -224,25 +225,18 @@ public static class LiveAgentSetup
         _helperProcess = process;
     }
 
-    /// <summary>
-    /// True when there is nothing this would need to copy or change: either this build has no
-    /// bundled script to compare against (a dev build - see <see cref="BundledScriptsDir"/>), or
-    /// the destination already carries an identical copy and is already enabled. Comparing just
-    /// <c>main.lua</c> byte-for-byte is a deliberately cheap stand-in for the whole tree: every
-    /// file in it ships and updates together as one unit, so an identical entry point means an
-    /// identical everything-else too.
-    /// </summary>
+    /// <summary>Checks every bundled script, including area modules updated independently of main.lua.</summary>
     private static bool IsModUpToDate(string modsDir)
     {
         if (!Directory.Exists(BundledScriptsDir)) return true;
 
         try
         {
-            var bundledMain = Path.Combine(BundledScriptsDir, "main.lua");
-            var deployedMain = Path.Combine(modsDir, ModFolderName, "Scripts", "main.lua");
-            if (!File.Exists(bundledMain) || !File.Exists(deployedMain)) return false;
-            return File.ReadAllBytes(bundledMain).AsSpan().SequenceEqual(File.ReadAllBytes(deployedMain))
-                && IsEnabledInModsList(modsDir);
+            return Directory.EnumerateFiles(BundledScriptsDir, "*", SearchOption.AllDirectories).All(file =>
+            {
+                var target = Path.Combine(modsDir, ModFolderName, "Scripts", Path.GetRelativePath(BundledScriptsDir, file));
+                return File.Exists(target) && File.ReadAllBytes(file).AsSpan().SequenceEqual(File.ReadAllBytes(target));
+            }) && IsEnabledInModsList(modsDir);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

@@ -62,13 +62,13 @@
   <data name="Language_SystemDefault" xml:space="preserve"><value>System default</value></data>
 
   <data name="Settings_Title" xml:space="preserve"><value>SETTINGS</value></data>
-  <data name="Settings_Theme" xml:space="preserve"><value>THEME</value></data>
-  <data name="Settings_Language" xml:space="preserve"><value>LANGUAGE</value></data>
+  <data name="Settings_Theme" xml:space="preserve"><value>Theme</value></data>
+  <data name="Settings_Language" xml:space="preserve"><value>Language</value></data>
   <data name="Settings_Language_Hint" xml:space="preserve"><value>The editor's display language.</value></data>
-  <data name="Settings_Diagnostics" xml:space="preserve"><value>DIAGNOSTICS</value></data>
-  <data name="Settings_Plugins" xml:space="preserve"><value>PLUGINS</value></data>
-  <data name="Settings_Spoilers" xml:space="preserve"><value>SPOILERS</value></data>
-  <data name="Settings_GameData" xml:space="preserve"><value>GAME DATA</value></data>
+  <data name="Settings_Diagnostics" xml:space="preserve"><value>Diagnostics</value></data>
+  <data name="Settings_Plugins" xml:space="preserve"><value>Plugins</value></data>
+  <data name="Settings_Spoilers" xml:space="preserve"><value>Spoilers</value></data>
+  <data name="Settings_GameData" xml:space="preserve"><value>Game data</value></data>
   <data name="Settings_About" xml:space="preserve"><value>ABOUT</value></data>
   <data name="Settings_LightMode" xml:space="preserve"><value>Light mode</value></data>
   <data name="Settings_DiagnosticLogging" xml:space="preserve"><value>Diagnostic logging</value></data>
@@ -88,7 +88,7 @@
   <data name="Common_Ok" xml:space="preserve"><value>OK</value></data>
   <data name="Common_Yes" xml:space="preserve"><value>Yes</value></data>
   <data name="Common_No" xml:space="preserve"><value>No</value></data>
-  <data name="Compare_TabLabel" xml:space="preserve"><value>COMPARE</value></data>
+  <data name="Compare_TabLabel" xml:space="preserve"><value>Compare</value></data>
   <data name="GameDataSettings_ReloadingGameData" xml:space="preserve"><value>Reloading game data...</value></data>
   <data name="Plugins_OpenFolderButton" xml:space="preserve"><value>OPEN PLUGINS FOLDER</value></data>
   <data name="Plugins_SaveOperationsDesc" xml:space="preserve"><value>Bulk edits a plugin can run over the open save. The editor backs up the file first.</value></data>
@@ -204,18 +204,18 @@
   <data name="PlayerCodex_WhenYouCatchIt" xml:space="preserve"><value>WHEN YOU CATCH IT</value></data>
 
   <!-- PlayerEditor -->
-  <data name="PlayerEditor_Achieve" xml:space="preserve"><value>ACHIEVE</value></data>
-  <data name="PlayerEditor_Character" xml:space="preserve"><value>CHARACTER</value></data>
-  <data name="PlayerEditor_Companions" xml:space="preserve"><value>COMPANIONS</value></data>
-  <data name="PlayerEditor_Data" xml:space="preserve"><value>DATA</value></data>
+  <data name="PlayerEditor_Achieve" xml:space="preserve"><value>Achievements</value></data>
+  <data name="PlayerEditor_Character" xml:space="preserve"><value>Character</value></data>
+  <data name="PlayerEditor_Companions" xml:space="preserve"><value>Companions</value></data>
+  <data name="PlayerEditor_Data" xml:space="preserve"><value>Data</value></data>
   <data name="PlayerEditor_Gatepal" xml:space="preserve"><value>GATEPAL</value></data>
-  <data name="PlayerEditor_General" xml:space="preserve"><value>GENERAL</value></data>
-  <data name="PlayerEditor_Inventory" xml:space="preserve"><value>INVENTORY</value></data>
-  <data name="PlayerEditor_Recipes" xml:space="preserve"><value>RECIPES</value></data>
-  <data name="PlayerEditor_Skills" xml:space="preserve"><value>SKILLS</value></data>
-  <data name="PlayerEditor_Spawn" xml:space="preserve"><value>SPAWN</value></data>
-  <data name="PlayerEditor_Transmog" xml:space="preserve"><value>TRANSMOG</value></data>
-  <data name="PlayerEditor_Vitals" xml:space="preserve"><value>VITALS</value></data>
+  <data name="PlayerEditor_General" xml:space="preserve"><value>General</value></data>
+  <data name="PlayerEditor_Inventory" xml:space="preserve"><value>Inventory</value></data>
+  <data name="PlayerEditor_Recipes" xml:space="preserve"><value>Recipes</value></data>
+  <data name="PlayerEditor_Skills" xml:space="preserve"><value>Skills</value></data>
+  <data name="PlayerEditor_Spawn" xml:space="preserve"><value>Spawn</value></data>
+  <data name="PlayerEditor_Transmog" xml:space="preserve"><value>Transmog</value></data>
+  <data name="PlayerEditor_Vitals" xml:space="preserve"><value>Vitals</value></data>
 
   <!-- PlayerGeneral -->
   <data name="PlayerGeneral_Account" xml:space="preserve"><value>ACCOUNT</value></data>
@@ -718,7 +718,7 @@
   <data name="WorldEditor_TimeOfDay" xml:space="preserve"><value>TIME OF DAY</value></data>
   <data name="WorldEditor_WithContents" xml:space="preserve"><value>WITH CONTENTS</value></data>
   <data name="WorldEditor_WorldDay" xml:space="preserve"><value>WORLD DAY</value></data>
-  <data name="WorldEditor_WorldSave" xml:space="preserve"><value>WORLD SAVE</value></data>
+  <data name="WorldEditor_WorldSave" xml:space="preserve"><value>World save</value></data>
 
   <!-- WorldFeature -->
   <data name="WorldFeature_Area" xml:space="preserve"><value>AREA</value></data>
@@ -812,7 +812,7 @@
   <data name="WorldRaw_RawSaveJson" xml:space="preserve"><value>RAW JSON</value></data>
 
   <!-- WorldStory -->
-  <data name="WorldStory_ChaptersHeader" xml:space="preserve"><value>CHAPTERS: SET SKIPS OR REWINDS THE STORY AND BRINGS EVERYTHING IN LINE</value></data>
+  <data name="WorldStory_ChaptersHeader" xml:space="preserve"><value>Choose a chapter</value></data>
   <data name="WorldStory_ContainmentMoved" xml:space="preserve"><value>Trapped creatures and world-wide unlocks are on the CONTAINMENT tab.</value></data>
   <data name="WorldStory_Current" xml:space="preserve"><value>CURRENT</value></data>
   <data name="WorldStory_MainQuestProgression" xml:space="preserve"><value>MAIN QUEST PROGRESSION</value></data>
@@ -2165,7 +2165,7 @@ This writes to the save straight away and reloads the editor, so anything you ha
     <value>Spoiler protection</value>
   </data>
   <data name="Settings_Advanced" xml:space="preserve">
-    <value>ADVANCED</value>
+    <value>Advanced</value>
   </data>
   <data name="Settings_AdvancedHint" xml:space="preserve">
     <value>Expert options that can create equipment combinations the game itself would never let you reach. Only turn these on if you know what you're doing.</value>
@@ -2195,13 +2195,13 @@ This writes to the save straight away and reloads the editor, so anything you ha
     <value>{0}  ({1})</value>
   </data>
   <data name="Settings_TabGeneral" xml:space="preserve">
-    <value>GENERAL</value>
+    <value>General</value>
   </data>
   <data name="Settings_TabEditor" xml:space="preserve">
-    <value>EDITOR</value>
+    <value>Editor</value>
   </data>
   <data name="Settings_TabConvert" xml:space="preserve">
-    <value>CONVERT</value>
+    <value>Convert</value>
   </data>
   <data name="Settings_TabUpdates" xml:space="preserve">
     <value>UPDATES</value>
@@ -3565,18 +3565,18 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="PlayerPets_CheckLogHelp" xml:space="preserve">
     <value>see the log for details.</value>
   </data>
-  <data name="WorldEditor_TabContainers" xml:space="preserve"><value>CONTAINERS</value></data>
-  <data name="WorldEditor_TabQuestFlags" xml:space="preserve"><value>STORY EVENTS</value></data>
-  <data name="WorldEditor_TabDoors" xml:space="preserve"><value>DOORS</value></data>
-  <data name="WorldEditor_TabDropped" xml:space="preserve"><value>DROPPED</value></data>
-  <data name="WorldEditor_TabNpcs" xml:space="preserve"><value>NPCS</value></data>
-  <data name="WorldEditor_TabPets" xml:space="preserve"><value>PETS</value></data>
-  <data name="WorldEditor_TabVehicles" xml:space="preserve"><value>VEHICLES</value></data>
-  <data name="WorldEditor_TabBases" xml:space="preserve"><value>BASES</value></data>
-  <data name="WorldEditor_TabStory" xml:space="preserve"><value>STORY</value></data>
-  <data name="WorldEditor_TabTraders" xml:space="preserve"><value>TRADERS</value></data>
-  <data name="WorldEditor_TabContainment" xml:space="preserve"><value>CONTAINMENT</value></data>
-  <data name="WorldEditor_TabRawJson" xml:space="preserve"><value>RAW</value></data>
+  <data name="WorldEditor_TabContainers" xml:space="preserve"><value>Containers</value></data>
+  <data name="WorldEditor_TabQuestFlags" xml:space="preserve"><value>Story events</value></data>
+  <data name="WorldEditor_TabDoors" xml:space="preserve"><value>Doors</value></data>
+  <data name="WorldEditor_TabDropped" xml:space="preserve"><value>Dropped</value></data>
+  <data name="WorldEditor_TabNpcs" xml:space="preserve"><value>Npcs</value></data>
+  <data name="WorldEditor_TabPets" xml:space="preserve"><value>Pets</value></data>
+  <data name="WorldEditor_TabVehicles" xml:space="preserve"><value>Vehicles</value></data>
+  <data name="WorldEditor_TabBases" xml:space="preserve"><value>Bases</value></data>
+  <data name="WorldEditor_TabStory" xml:space="preserve"><value>Story</value></data>
+  <data name="WorldEditor_TabTraders" xml:space="preserve"><value>Traders</value></data>
+  <data name="WorldEditor_TabContainment" xml:space="preserve"><value>Containment</value></data>
+  <data name="WorldEditor_TabRawJson" xml:space="preserve"><value>Raw</value></data>
   <data name="WorldFeature_TitleFormat" xml:space="preserve"><value>{0} IN THIS WORLD</value></data>
   <data name="WorldEditor_ExportingJson" xml:space="preserve"><value>Writing the raw JSON... (the main facility save makes a file of about 100 MB, so this can take a moment)</value></data>
   <data name="WorldEditor_ExportedJsonFormat" xml:space="preserve"><value>Done - wrote {0:F1} MB → {1}</value></data>
@@ -3990,27 +3990,25 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Live_Connecting" xml:space="preserve"><value>CONNECTING…</value></data>
   <data name="Live_TargetQuestion" xml:space="preserve"><value>Where's the game running?</value></data>
   <data name="Live_TargetLocalTitle" xml:space="preserve"><value>This PC</value></data>
-  <data name="Live_TargetLocalNote" xml:space="preserve"><value>Wait for a locally running game - it connects on its own, nothing to type in.</value></data>
+  <data name="Live_TargetLocalNote" xml:space="preserve"><value>Automatic setup. Internet needed the first time.</value></data>
   <data name="Live_TargetRemoteTitle" xml:space="preserve"><value>A dedicated server</value></data>
-  <data name="Live_TargetRemoteNote" xml:space="preserve"><value>Enter the address of a server you (or a friend) run, plus its connection token.</value></data>
+  <data name="Live_TargetRemoteNote" xml:space="preserve"><value>Connect using details from the server owner.</value></data>
   <data name="Live_WhatYouNeedTitle" xml:space="preserve"><value>What you need</value></data>
-  <data name="Live_WhatYouNeedMod" xml:space="preserve"><value>Live editing support set up for that game (or server) - see the guide below the first time you try it.</value></data>
-  <data name="Live_WhatYouNeedToken" xml:space="preserve"><value>Connecting to your own PC needs nothing typed in. A dedicated server's owner will give you its address and a connection token.</value></data>
+  <data name="Live_WhatYouNeedMod" xml:space="preserve"><value>On Windows, this app sets up local live support for you.</value></data>
+  <data name="Live_WhatYouNeedToken" xml:space="preserve"><value>For another machine, run setup there first and ask its owner for the connection details.</value></data>
   <data name="Live_LearnMore" xml:space="preserve"><value>Set-up guide ↗</value></data>
   <data name="Live_WaitingForLocalGame" xml:space="preserve"><value>Waiting for the game on this PC…</value></data>
-  <data name="Live_WaitingForLocalGameHint" xml:space="preserve"><value>Launch Abiotic Factor - this connects the moment the game is up.</value></data>
-  <data name="Live_NeedsUe4ss" xml:space="preserve"><value>This game needs UE4SS (a small, widely-used modding framework) installed once before live editing can connect - everything past that point is automatic. See the set-up guide below.</value></data>
-  <data name="Live_ConfirmDeployTitle" xml:space="preserve"><value>Set up live editing for this game?</value></data>
-  <data name="Live_ConfirmDeployBody" xml:space="preserve"><value>This copies a small script into: {0}
-
-It only adds this one folder and switches it on - nothing else already in your game's Mods folder is touched, moved or removed.</value></data>
-  <data name="Live_ConfirmDeployYes" xml:space="preserve"><value>Copy it and continue</value></data>
-  <data name="Live_ConfirmDeployNo" xml:space="preserve"><value>Not now</value></data>
+  <data name="Live_WaitingForLocalGameHint" xml:space="preserve"><value>Start the game and load a world to connect.</value></data>
+  <data name="Live_NeedsUe4ss" xml:space="preserve"><value>Run automatic setup to add the missing live-support files.</value></data>
+  <data name="Live_ConfirmDeployTitle" xml:space="preserve"><value>Set up live editing</value></data>
+  <data name="Live_ConfirmDeployBody" xml:space="preserve"><value>Close the game first. The app will download missing live-support files and install its game agent in {0}. Existing mods stay unchanged.</value></data>
+  <data name="Live_ConfirmDeployYes" xml:space="preserve"><value>Set up automatically</value></data>
+  <data name="Live_ConfirmDeployNo" xml:space="preserve"><value>Back</value></data>
   <data name="Live_GameNotFound" xml:space="preserve"><value>Couldn't find Abiotic Factor installed on this PC automatically. If it's installed somewhere unusual, set its folder in SETTINGS first.</value></data>
   <data name="Live_NotSupportedOnThisPlatform" xml:space="preserve"><value>Automatic set-up for a game on this PC isn't available on this operating system yet. Connecting to a dedicated server someone else hosts still works normally.</value></data>
   <data name="Live_StillNotRespondingHint" xml:space="preserve"><value>This is taking longer than usual. If the game has been open for a while already, try fully restarting it - live editing support sometimes only starts responding on a fresh game session.</value></data>
   <data name="Live_Back" xml:space="preserve"><value>‹ BACK</value></data>
-  <data name="Live_RemoteSubtitle" xml:space="preserve"><value>Enter the dedicated server's address, port and token below.</value></data>
+  <data name="Live_RemoteSubtitle" xml:space="preserve"><value>Use the connection details from the server owner.</value></data>
   <data name="Live_RemoteConnectFailed" xml:space="preserve"><value>Could not connect. Check the address, port and token, and make sure a world is loaded on that server.</value></data>
   <data name="Live_ImmediateWarning" xml:space="preserve"><value>Changes here happen in the game the moment you make them and cannot be undone.</value></data>
   <data name="Live_ConnectedPlayers" xml:space="preserve"><value>CONNECTED PLAYERS</value></data>
@@ -4113,34 +4111,32 @@ It only adds this one folder and switches it on - nothing else already in your g
   <data name="Editing_Recommended" xml:space="preserve"><value>Recommended for most players</value></data>
   <data name="Editing_Experimental" xml:space="preserve"><value>Experimental</value></data>
   <data name="Editing_OfflineTitle" xml:space="preserve"><value>Offline save editor</value></data>
-  <data name="Editing_OfflineDescription" xml:space="preserve"><value>Edit a saved world or character with the game closed.</value></data>
-  <data name="Editing_OfflineTiming" xml:space="preserve"><value>Review your changes, then choose Save.</value></data>
-  <data name="Editing_OfflineBackup" xml:space="preserve"><value>A backup is kept each time you save.</value></data>
-  <data name="Editing_OfflineFeatures" xml:space="preserve"><value>The most complete set of editing tools.</value></data>
+  <data name="Editing_OfflineDescription" xml:space="preserve"><value>Edit a saved world with the game closed.</value></data>
+  <data name="Editing_OfflineTiming" xml:space="preserve"><value>Changes wait for Save.</value></data>
+  <data name="Editing_OfflineBackup" xml:space="preserve"><value>Backups on every save.</value></data>
+  <data name="Editing_OfflineFeatures" xml:space="preserve"><value>Full editing tools.</value></data>
   <data name="Editing_ChooseOffline" xml:space="preserve"><value>Open offline editor</value></data>
   <data name="Editing_LiveTitle" xml:space="preserve"><value>Live editing</value></data>
-  <data name="Editing_LiveDescription" xml:space="preserve"><value>Change a running game on this PC or a server you manage.</value></data>
-  <data name="Editing_LiveTiming" xml:space="preserve"><value>Edits affect the game as you make them.</value></data>
-  <data name="Editing_LiveBackup" xml:space="preserve"><value>No automatic backup or undo for live edits.</value></data>
-  <data name="Editing_LiveFeatures" xml:space="preserve"><value>Still in development. Some features are missing.</value></data>
-  <data name="Editing_ChooseLive" xml:space="preserve"><value>Learn about live editing</value></data>
-  <data name="Editing_LiveCaution" xml:space="preserve"><value>Changes go straight to the running game. Bugs can cause unexpected results or crashes. Back up your world before trying this mode.</value></data>
-  <data name="Editing_GuideTitle" xml:space="preserve"><value>How live editing works and what is missing</value></data>
-  <data name="Editing_HowTitle" xml:space="preserve"><value>Changes happen while you play</value></data>
-  <data name="Editing_HowBody" xml:space="preserve"><value>Supported edits, such as health, skills and inventory, are sent to the game as you change them. There is no final Save step to review all live changes. Disconnecting stops the connection; it does not undo changes already made.</value></data>
-  <data name="Editing_SaveTitle" xml:space="preserve"><value>The game still controls saving</value></data>
-  <data name="Editing_SaveBody" xml:space="preserve"><value>Applying an edit is not the same as saving your world to disk. The game must save for supported changes to persist, and some changes may be temporary or overwritten by gameplay. Live editing does not create the backup files that the offline editor creates.</value></data>
-  <data name="Editing_LimitsTitle" xml:space="preserve"><value>Current limitations</value></data>
-  <data name="Editing_LimitLoaded" xml:space="preserve"><value>Only players and objects currently loaded by the game are available. An empty list does not mean your whole world is empty. Many world changes require the host or server.</value></data>
-  <data name="Editing_LimitPlayer" xml:space="preserve"><value>Traits and items-crafted counters cannot be changed live. Some compendium entries that depend on kills are also unavailable.</value></data>
-  <data name="Editing_LimitWorld" xml:space="preserve"><value>Bench upgrades, world-wide recipe unlocks and some pet actions are unavailable. Raw save data and supporter unlocks require the offline editor. Other tools may offer fewer options than offline editing.</value></data>
-  <data name="Editing_SetupTitle" xml:space="preserve"><value>Before you connect</value></data>
-  <data name="Editing_SetupBody" xml:space="preserve"><value>Live editing needs UE4SS (the game mod loader) and the editor's live helper installed for the game or server. On this PC, setup checks what is installed and asks before adding the helper. Launch the game and load a world; the main menu is not enough. For a server, ask its owner for the connection details.</value></data>
-  <data name="Editing_RemoteHelp" xml:space="preserve"><value>These details come from the live helper on the server, not the game's multiplayer join screen. The token is a connection password. Ask the server owner if you do not have it.</value></data>
+  <data name="Editing_LiveDescription" xml:space="preserve"><value>Edit while you play. The app handles local setup.</value></data>
+  <data name="Editing_LiveTiming" xml:space="preserve"><value>Changes apply immediately.</value></data>
+  <data name="Editing_LiveBackup" xml:space="preserve"><value>No automatic backups or undo.</value></data>
+  <data name="Editing_LiveFeatures" xml:space="preserve"><value>Some tools are unavailable.</value></data>
+  <data name="Editing_ChooseLive" xml:space="preserve"><value>Set up live editing</value></data>
+  <data name="Editing_RemoteHelp" xml:space="preserve"><value>The token is the helper connection password, not a multiplayer invite code.</value></data>
   <data name="Editing_OfflinePlayerNote" xml:space="preserve"><value>Editing an offline player save: changes wait until you choose Save, which keeps a backup. This player is not being edited live.</value></data>
-  <data name="Editing_OfflineModeLabel" xml:space="preserve"><value>Offline / change mode</value></data>
-  <data name="Editing_LiveModeLabel" xml:space="preserve"><value>Live (experimental) / change mode</value></data>
+  <data name="Editing_OfflineModeLabel" xml:space="preserve"><value>Offline editing</value></data>
+  <data name="Editing_LiveModeLabel" xml:space="preserve"><value>Live editing</value></data>
   <data name="Editing_HomeTitle" xml:space="preserve"><value>Choose a world to edit</value></data>
-  <data name="Editing_HomeSteps" xml:space="preserve"><value>Close the game or stop the server first. Open a world below, choose a player or region, then save when you are ready.</value></data>
+  <data name="Editing_HomeSteps" xml:space="preserve"><value>Close the game, choose a world, then save your changes.</value></data>
   <data name="Editing_FindWorld" xml:space="preserve"><value>Cannot find your world?</value></data>
+  <data name="Editing_LiveShort" xml:space="preserve"><value>Changes apply immediately. Some tools are unavailable.</value></data>
+  <data name="Editing_GuideLink" xml:space="preserve"><value>Setup and limitations</value></data>
+  <data name="Editing_SettingUp" xml:space="preserve"><value>Preparing live editing</value></data>
+  <data name="Editing_SettingUpHint" xml:space="preserve"><value>Checking and installing live support…</value></data>
+  <data name="Editing_SetupFailed" xml:space="preserve"><value>Setup needs attention</value></data>
+  <data name="Editing_Section" xml:space="preserve"><value>Section</value></data>
+  <data name="Editing_SkillDetails" xml:space="preserve"><value>XP and perks</value></data>
+  <data name="Editing_AccountDetails" xml:space="preserve"><value>Account and background</value></data>
+  <data name="Editing_AdvancedGameData" xml:space="preserve"><value>Advanced game data</value></data>
+  <data name="Editing_BenchLimit" xml:space="preserve"><value>Bench upgrades: offline editor only.</value></data>
 </root>

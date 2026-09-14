@@ -84,7 +84,7 @@ return function(H)
         K2_GetActorLocation = function() return H.vector(1, 1, 1) end,
     }))
     local basesDir = H.ok(H.dispatch("bases.list"), "bases.list")
-    H.eq(basesDir.supportsBenchUpgrades, true, "bench upgrades still reported supported (SupportsUpgrades)")
+    H.eq(basesDir.supportsBenchUpgrades, false, "unsafe bench upgrades are not advertised")
     H.eq(basesDir.supportsBenchUpgradeRemoval, false, "bench upgrade removal still unsupported")
     local benchRow = basesDir.deployables[1]
     H.eq(benchRow.supportsUpgrades, true, "bench reports SupportsUpgrades")

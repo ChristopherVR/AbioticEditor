@@ -26,12 +26,15 @@
             {
                 <section class="world-editor-summary editor-card">
                     <header class="world-summary-heading">
-                        <h2>@Languages.Resource("WorldEditor_WorldSave")</h2>
+                        <h2>@Languages.Resource(world.IsMetadataSave ? "WorldEditor_TabStory" : "WorldEditor_WorldSave")</h2>
                         <span>@Path.GetFileName(world.Path)</span>
                     </header>
                     <div class="world-summary-readouts">
-                        <div><small>@Languages.Resource("WorldEditor_Containers")</small><strong>@world.ContainerCount</strong></div>
-                        <div><small>@Languages.Resource("WorldEditor_WithContents")</small><strong>@world.NonEmptyContainerCount</strong></div>
+                        @if (!world.IsMetadataSave)
+                        {
+                            <div><small>@Languages.Resource("WorldEditor_Containers")</small><strong>@world.ContainerCount</strong></div>
+                            <div><small>@Languages.Resource("WorldEditor_WithContents")</small><strong>@world.NonEmptyContainerCount</strong></div>
+                        }
                         @* An open world with nothing staged is "Saved state", NOT the shell's
                            empty-state line, which tells the player to go and pick a folder. *@
                         <div><small>@Languages.Resource("WorldEditor_Status")</small><span>@(world.Status ?? Languages.Editor("workspace.saved"))</span></div>
@@ -122,7 +125,7 @@
     private IReadOnlyList<WorldTabItem> BuildWorldTabs(WorldSaveSession world)
     {
         var tabs = new List<WorldTabItem>();
-        void Add(string id, string resourceKey) => tabs.Add(new WorldTabItem(id, Languages.Resource(resourceKey).ToUpperInvariant()));
+        void Add(string id, string resourceKey) => tabs.Add(new WorldTabItem(id, Languages.Resource(resourceKey)));
         if (!world.IsMetadataSave)
         {
             Add("containers", "WorldEditor_TabContainers");

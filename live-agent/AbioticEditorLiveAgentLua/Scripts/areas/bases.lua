@@ -117,7 +117,7 @@ return function(ctx)
 
     ctx.handlers["bases.list"] = function(_, respond)
         ctx.runOnGameThread(function()
-            return { deployables = deployableRows(), isHost = ctx.isHost(), supportsBenchUpgrades = true,
+            return { deployables = deployableRows(), isHost = ctx.isHost(), supportsBenchUpgrades = false,
                 supportsBenchUpgradeRemoval = false }
         end, respond)
     end

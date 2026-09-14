@@ -65,9 +65,12 @@ find **Glass Pane**, turn **Harvested** off, and save while the game is closed.
 
 ## Live editing
 
-The desktop app can connect to a running game using the UE4SS Lua agent and native helper.
-On Windows, install UE4SS first; the editor can then offer to deploy its bundled agent and start
-the helper for you. Remote connections require the agent/helper on the server you run.
+Live editing is **experimental and has fewer tools than offline editing**. On Windows, choose
+**Live editing > This PC** and let the app set it up. It downloads missing UE4SS support,
+installs its bundled agent, and starts the helper. No separate installer or manual mod copying
+is needed with a complete Windows release. Close the game for setup; the first download needs
+internet access. Existing mod installations are preserved. Remote connections need setup on
+the server machine too.
 
 Live changes affect the game immediately. Vitals and skills apply automatically after a short
 pause in input; other controls send their own actions. There is no editor `.bak` or universal

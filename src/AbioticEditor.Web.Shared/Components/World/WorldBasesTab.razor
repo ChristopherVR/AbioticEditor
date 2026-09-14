@@ -16,6 +16,7 @@
    (benches orange, containers green), bench upgrades, composition, and the base's
    containers which open as a slot grid over the map. *@
 <section class="world-editor world-native-tab" aria-label="@L.Resource("WorldBases_BaseManager")">
+    @if (Session.AppliesImmediately) { <p class="muted">@L.Resource("Editing_BenchLimit")</p> }
     <h2 class="wt-h2">@L.Resource("WorldBases_BaseManager")</h2>
     <p class="wt-intro">@L.Resource("WorldBases_BaseManagerIntro")</p>
     @* The tab's how-to, worded so it reads the same with a mouse or by touch. *@

@@ -28,7 +28,7 @@
         </div>
     }
     <a class="skip-link" href="#main-content">@Languages.Text("skip")</a>
-    <header class="masthead" inert="@(_modeSelectOpen ? "" : null)">
+    <header class="masthead" inert="@((_modeSelectOpen || _settingsOpen) ? "" : null)">
         <a class="brand-lockup" href="browse?home" aria-label="@Languages.Text("brand.home")">
             <GameArtImage GameRef="@LogoPrimaryRef" Alt="">
                 <ChildContent>
@@ -91,8 +91,8 @@
         </nav>
     </header>
     <div class="hazard" aria-hidden="true"></div>
-    <main id="main-content" tabindex="-1" inert="@(_modeSelectOpen ? "" : null)"><WorkspaceShell>@Body</WorkspaceShell></main>
-    <footer class="status-footer" inert="@(_modeSelectOpen ? "" : null)">
+    <main id="main-content" tabindex="-1" inert="@((_modeSelectOpen || _settingsOpen) ? "" : null)"><WorkspaceShell>@Body</WorkspaceShell></main>
+    <footer class="status-footer" inert="@((_modeSelectOpen || _settingsOpen) ? "" : null)">
         <div class="live-status">
             <span aria-hidden="true"></span>
             @(IsPureLiveMode

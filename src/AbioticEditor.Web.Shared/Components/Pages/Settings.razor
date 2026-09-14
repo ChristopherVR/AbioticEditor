@@ -1,5 +1,7 @@
 @using AbioticEditor.Core.Plugins
-@implements IDisposable
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject IJSRuntime Js
 @inject HostSettingsService HostSettings
 @inject HostThemeService Theme
 @inject HostLanguageService Languages
@@ -13,13 +15,13 @@
 @inject SaveWorkspaceSessionService Workspace
 @inject NavigationManager Navigation
 
-<section class="settings-sheet" role="dialog" aria-modal="true" aria-labelledby="settings-sheet-title" tabindex="-1" @onkeydown="HandleKeyDown">
+<section @ref="_sheet" inert="@(_languageChooserOpen || Modals.Current is not null ? "" : null)" class="settings-sheet" role="dialog" aria-modal="true" aria-labelledby="settings-sheet-title" tabindex="-1" @onkeydown="HandleKeyDown">
     <header class="settings-sheet-header">
         <span class="settings-badge" aria-hidden="true">AF</span>
         <div>
-            <p>@R("Settings_ScaffoldTitle")</p>
             <h1 id="settings-sheet-title">@R("Settings_ScaffoldSubtitle")</h1>
         </div>
+        <button class="secondary settings-close" type="button" @onclick="CloseAsync" aria-label="@R("Common_Close")"><span class="material-symbol" aria-hidden="true">close</span></button>
     </header>
     <div class="settings-sheet-hazard" aria-hidden="true"></div>
     <div class="settings-sheet-main">
@@ -37,7 +39,6 @@
                     case SettingsTab.General:
                         <article class="settings-card">
                             <h2>@R("Settings_Theme")</h2>
-                            <p class="muted">@R("Settings_ThemeHint")</p>
                             <div class="theme-segments" role="group" aria-label="@R("Settings_Theme")">
                                 <button type="button" class="@(Theme.Accent == HostThemeAccent.Cascade ? "selected" : null)" @onclick="() => SetAccent(HostThemeAccent.Cascade)">@ThemeLabel("Settings_ThemeCascade", HostThemeAccent.Cascade)</button>
                                 <button type="button" class="@(Theme.Accent == HostThemeAccent.Hazard ? "selected" : null)" @onclick="() => SetAccent(HostThemeAccent.Hazard)">@ThemeLabel("Settings_ThemeHazard", HostThemeAccent.Hazard)</button>
@@ -49,7 +50,6 @@
                         </article>
                         <article class="settings-card">
                             <h2>@R("Settings_Language")</h2>
-                            <p class="muted">@R("Settings_Language_Hint")</p>
                             <div class="settings-value-row"><strong>@CurrentLanguageName()</strong><button class="secondary" type="button" @onclick="() => _languageChooserOpen = true">@R("Settings_LanguageChange")</button></div>
                         </article>
                         @* The language item names, recipes and journal entries are shown in.
@@ -102,7 +102,9 @@
                             <h2>@R("Settings_GameData")</h2>
                             <p class="muted">@R("GameDataSettings_CardHint")</p>
                             <div class="game-data-path-row"><span>@R("GameDataSettings_GameFolderLabel", HostSettings.SavedGamePath ?? HostSettings.PaksPath ?? R("GameDataSettings_FolderNotFound"))</span><button class="primary" type="button" @onclick="PickGameFolderAsync" disabled="@GameDataBusy">@R("GameDataSettings_SetGameFolder")</button>@if (HostSettings.SavedGamePath is not null) { <button class="secondary" type="button" @onclick="ClearGamePathAsync" disabled="@GameDataBusy">@R("GameDataSettings_UseAutoDetect")</button> }</div>
+                            <details class="editor-disclosure"><summary>@R("Editing_AdvancedGameData")</summary>
                             <div class="game-data-path-row"><span>@R("GameDataSettings_UsmapLabel", HostSettings.MappingsPath is null ? R("GameDataSettings_UsmapNotFound") : Path.GetFileName(HostSettings.MappingsPath))</span><button class="secondary" type="button" @onclick="ImportMappingsAsync" disabled="@GameDataBusy">@R("GameDataSettings_ImportDataFile")</button></div>
+                            </details>
                             <label for="game-data-language">@R("GameDataSettings_LanguageTitle")</label>
                             <select id="game-data-language" class="settings-select" value="@(Languages.GameDataLanguage ?? string.Empty)" @onchange="SetGameDataLanguageAsync">
                                 <option value="">@R("GameDataSettings_LanguageAuto")</option>
@@ -161,7 +163,7 @@
 @if (_languageChooserOpen)
 {
     <div class="settings-subdialog-backdrop" role="presentation">
-        <section class="settings-subdialog" role="dialog" aria-modal="true" aria-labelledby="language-title">
+        <section @ref="_languageDialog" tabindex="-1" @onkeydown="HandleKeyDown" class="settings-subdialog" role="dialog" aria-modal="true" aria-labelledby="language-title">
             <h2 id="language-title">@R("Settings_Language")</h2>
             <p class="muted">@R("Settings_Language_Hint")</p>
             <div class="language-options">@foreach (var language in Languages.Available)
@@ -174,6 +176,17 @@
 }
 
 @code {
+    private ElementReference _sheet, _languageDialog;
+    private bool? _focusedLanguage;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) Modals.Changed += ModalChanged;
+        if (Modals.Current is not null || _focusedLanguage == _languageChooserOpen) return;
+        _focusedLanguage = _languageChooserOpen;
+        await Js.InvokeVoidAsync("abiotic.modal.activate", _languageChooserOpen ? _languageDialog : _sheet);
+    }
+    private void ModalChanged() { _focusedLanguage = null; _ = InvokeAsync(StateHasChanged); }
+
     [Parameter] public EventCallback OnClose { get; set; }
 
     private readonly record struct TabChoice(SettingsTab Id, string ResourceKey);
@@ -371,7 +384,12 @@
     private async Task CloseAsync() => await OnClose.InvokeAsync();
     private async Task HandleKeyDown(KeyboardEventArgs args) { if (args.Key == "Escape") { if (Modals.Current is not null) return; if (_languageChooserOpen) _languageChooserOpen = false; else await CloseAsync(); } }
     private void Refresh(object? sender, EventArgs args) => _ = InvokeAsync(StateHasChanged);
-    public void Dispose() { Languages.Changed -= Refresh; Theme.Changed -= Refresh; }
+    public async ValueTask DisposeAsync()
+    {
+        Languages.Changed -= Refresh; Theme.Changed -= Refresh; Modals.Changed -= ModalChanged;
+        try { await Js.InvokeVoidAsync("abiotic.modal.deactivate"); }
+        catch (JSDisconnectedException) { }
+    }
 
     private enum SettingsTab { General, Editor, GameData, Convert, Plugins, Compare }
 }

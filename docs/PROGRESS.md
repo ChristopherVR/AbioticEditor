@@ -5,6 +5,36 @@ time; they are not a current feature list or test-count guarantee. The maintaine
 are `README.md`, `docs/guide/index.md`, and `docs/reference/architecture.md`.
 
 
+## Simpler editing UI and automatic live setup (2026-09-14)
+
+Shortened the in-app mode comparison and replaced the long live guide panel with a compact
+experimental notice and documentation link. Settings uses readable cards, a mobile tab grid,
+and keyboard focus containment. Player sections use a selector on narrow screens; skill XP,
+perks, and account/background controls open on demand. World story summaries no longer show
+irrelevant zero container counts, and tab labels use normal capitalization.
+
+Windows local live setup now downloads a missing official UE4SS runtime after consent, checks
+the published digest and archive paths, excludes example mods, and preserves existing mod
+installations. It waits through short Windows file locks while activating the verified files.
+All bundled agent modules are checked for updates. Setup failures stop with recovery guidance,
+and Windows releases now require the native helper build to succeed. Bench upgrades advertise
+their actual unsupported status and the UI refuses the unavailable operation.
+
+Expanded the player live-editing guide, README, and agent introduction with automatic setup,
+reconnect/update steps, mode comparison, backup behavior, feature limits, remote setup,
+troubleshooting, file locations, and disabling the agent. Unverified gameplay operations were
+not enabled as part of this UI/setup work.
+
+Verification: full .NET suite passed 1,273 tests with one Lua harness skip (interpreter absent).
+After the installer lock fix and UI changes, 73 focused installer, live-base, host, localization,
+and visual-contract tests passed. Host builds succeeded with no warnings or errors. The docs
+build checked 1,734 local links/images across 43 pages. Browser checks covered all six Settings
+tabs, language dialog, local live setup consent, mode choice, player skills/general/inventory,
+and world story at desktop and phone widths. Mobile Settings and skills had no page overflow.
+A real official UE4SS package downloaded, verified, and extracted into a scratch folder; no
+runtime was loaded into the game and no player saves were written during this verification.
+Running-game compatibility of the current upstream experimental runtime remains unverified.
+
 ## Documentation and GitHub Pages refresh (2026-09-14)
 
 Reviewed the README, player guides, reference entry points, plugin/sample links, and Pages

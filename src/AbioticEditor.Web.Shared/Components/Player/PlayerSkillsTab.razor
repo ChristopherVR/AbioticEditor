@@ -6,18 +6,11 @@
 @inject ProgressionVocabularyService Progression
 @inject InventorySelectionService Selection
 
-@* Faithful port of the native PlayerSkillsTab: SKILLS header with the level-range hint
-   and an immediate MAX ALL, a hazard stripe, milestone help, then uniform skill cards
-   with icon, passive text, LV entry + per-skill MAX, an XP slider + raw XP entry, the
-   per-skill XP RATE percentage, and the milestone perk track. *@
 <section class="editor-card skills-card" aria-label="@L.Resource("PlayerSkills_Skills")">
     <div class="card-title-row skills-head">
         <h3>@L.Resource("PlayerSkills_Skills")</h3>
-        <span class="skills-hint">@L.Resource("PlayerSkills_LevelRangeHint")</span>
         <button class="accent-hazard" type="button" @onclick="MaxAll">@L.Resource("PlayerSkills_MaxAll")</button>
     </div>
-    <div class="hazard-stripe" aria-hidden="true"></div>
-    <p class="muted skills-milestone-help">@L.Resource("PlayerSkills_MilestoneHelp")</p>
 
     <div class="skill-grid">
         @foreach (var skill in Session.Skills)
@@ -27,19 +20,22 @@
             <article class="skill-card @(skill.IsDirty ? "dirty" : null)" @key="skill.Definition.SaveIndex" title="@skill.Description">
                 <div class="skill-head">
                     <span class="skill-icon"><GameArtImage GameRef="@skill.Definition.IconAssetPath" Alt="@skill.Name"><span class="material-symbol" aria-hidden="true">workspace_premium</span></GameArtImage></span>
-                    <span class="skill-name"><strong>@skill.Name</strong>@if (passive is not null) { <small class="skill-passive" title="@passive">@passive</small> }</span>
+                    <span class="skill-name"><strong>@skill.Name</strong></span>
                     <label class="skill-lv-label" for="skill-lv-@skill.Definition.SaveIndex">@L.Resource("PlayerSkills_Lv")</label>
-                    <input id="skill-lv-@skill.Definition.SaveIndex" class="skill-lv" type="number" min="0" max="@SkillCatalog.MaxLevel" value="@skill.Level" @onchange="e => SetLevel(skill, e)" />
+                    <input id="skill-lv-@skill.Definition.SaveIndex" class="skill-lv" aria-label="@(skill.Name + " " + L.Resource("PlayerSkills_Lv"))" type="number" min="0" max="@SkillCatalog.MaxLevel" value="@skill.Level" @onchange="e => SetLevel(skill, e)" />
                     <button class="secondary skill-max" type="button" disabled="@skill.IsMaxed" @onclick="() => Max(skill)">@L.Resource("PlayerSkills_Max")</button>
                 </div>
+                <details class="editor-disclosure skill-details">
+                    <summary>@L.Resource("Editing_SkillDetails")</summary>
+                    @if (passive is not null) { <p class="skill-passive">@passive</p> }
                 <div class="skill-xp-row">
-                    <input type="range" min="0" max="@skill.MaxXp" step="1" value="@skill.Xp" title="@L.Resource("PlayerSkills_XpSliderTooltip")" @oninput="e => SetXp(skill, e)" />
+                    <input type="range" min="0" max="@skill.MaxXp" step="1" value="@skill.Xp" aria-label="@(skill.Name + " XP")" title="@L.Resource("PlayerSkills_XpSliderTooltip")" @oninput="e => SetXp(skill, e)" />
                     <span class="skill-xp-text">@($"{skill.Xp:F0} XP")</span>
-                    <input class="skill-xp-raw" type="number" min="0" value="@skill.Xp.ToString("F0", System.Globalization.CultureInfo.InvariantCulture)" title="@L.Resource("PlayerSkills_RawXpTooltip")" @onchange="e => SetXp(skill, e)" />
+                    <input class="skill-xp-raw" aria-label="@(skill.Name + " XP")" type="number" min="0" value="@skill.Xp.ToString("F0", System.Globalization.CultureInfo.InvariantCulture)" title="@L.Resource("PlayerSkills_RawXpTooltip")" @onchange="e => SetXp(skill, e)" />
                 </div>
                 <div class="skill-rate-row">
                     <label>@L.Resource("PlayerSkills_XpRate")</label>
-                    <input type="number" min="0" value="@skill.MultiplierPercent.ToString("F0", System.Globalization.CultureInfo.InvariantCulture)" title="@L.Resource("PlayerSkills_XpRateTooltip")" @onchange="e => SetRate(skill, e)" />
+                    <input type="number" min="0" value="@skill.MultiplierPercent.ToString("F0", System.Globalization.CultureInfo.InvariantCulture)" aria-label="@(skill.Name + " " + L.Resource("PlayerSkills_XpRate"))" title="@L.Resource("PlayerSkills_XpRateTooltip")" @onchange="e => SetRate(skill, e)" />
                     <span>%</span>
                 </div>
                 @if (milestones.Count > 0)
@@ -61,6 +57,7 @@
                         }
                     </div>
                 }
+                </details>
             </article>
         }
     </div>

@@ -5,6 +5,11 @@
 @inject AbioticEditor.Web.Services.ISaveFileSystem Files
 
 <section class="player-editor" aria-label="@Languages.Resource("PlayerUi_PlayerEditor")">
+    <label class="editor-section-picker">@Languages.Resource("Editing_Section")
+        <select value="@ActiveTab" @onchange="e => ActiveTab = e.Value?.ToString() ?? ActiveTab">
+            @foreach (var tab in Tabs) { <option value="@tab.Id">@Languages.Resource(tab.LabelKey)</option> }
+        </select>
+    </label>
     <nav class="editor-tabs" role="tablist" aria-label="@Languages.Resource("PlayerUi_PlayerEditorSections")">
         @foreach (var tab in Tabs) { <button type="button" role="tab" class="editor-tab @(ActiveTab == tab.Id ? "active" : null)" aria-selected="@(ActiveTab == tab.Id)" @onclick="() => ActiveTab = tab.Id">@Languages.Resource(tab.LabelKey)</button> }
     </nav>

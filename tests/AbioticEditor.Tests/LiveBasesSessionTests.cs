@@ -60,8 +60,22 @@ public sealed class LiveBasesSessionTests
         Assert.Null(session.Status);
     }
 
+    [Fact]
+    public async Task Unsupported_bench_upgrades_are_unavailable_even_when_the_bench_has_upgrade_slots()
+    {
+        var channel = new FakeBasesChannel { SupportsBenchUpgrades = false };
+        channel.SetDeployable("d1", "Deployed_CraftingBench_Default_C", null);
+        IWorldBasesSession session =
+            await LiveBasesSession.ConnectAsync(new LiveBasesChannel(channel));
+
+        Assert.False(session.BenchSupportsUpgrades("d1"));
+        await Assert.ThrowsAsync<NotSupportedException>(() =>
+            session.SetBenchUpgradeAsync("d1", "Upgrade", true, CancellationToken.None));
+    }
+
     private sealed class FakeBasesChannel : ILiveGameChannel
     {
+        public bool SupportsBenchUpgrades { get; init; } = true;
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
         private readonly Dictionary<string, DeployableState> _deployables = new(StringComparer.Ordinal);
 
@@ -95,7 +109,7 @@ public sealed class LiveBasesSessionTests
                         installedUpgrades = kv.Value.InstalledUpgrades,
                     }).ToList(),
                     isHost = true,
-                    supportsBenchUpgrades = true,
+                    supportsBenchUpgrades = SupportsBenchUpgrades,
                 },
                 "bases.set" => ApplySet(payloadElement),
                 _ => throw new LiveAgentException($"unknown command '{command}' in fake channel"),
