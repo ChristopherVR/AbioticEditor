@@ -1,5 +1,26 @@
 # Live parity and performance review (2026-09-15)
 
+## Cascade runtime results
+
+Verified against the user's Cascade world in singleplayer, game 1.4.0.28206. The original
+75 save files were backed up before launch and restored after the game closed, with all
+SHA256 hashes matching. The temporary development hook and test helper were retired.
+
+- Base enumeration returned 1,861 deployables in 229 ms after replacing full item decoding
+  with row-name reads for occupied-slot counts. Before the fix it exceeded five seconds.
+- That timeout exposed a late-response bug: the next world request received the base list.
+  Native/Lua mailbox request IDs now prevent stale responses from answering later requests.
+  Both components must be updated together. Native timeout/correlation regression passes.
+- Host recipe removal worked, but the old unlock RPC silently failed to restore the recipe.
+  Direct authoritative-array updates now handle both directions, with runtime readback passing.
+- Global recipe removal/restoration passed with both sets matching their original contents.
+  GatePal email clear/restore and an unchanged rich inventory-details write also passed.
+- The real buff-handle factory and character buff component resolved in game. Trait effect
+  mutations remain unverified, so trait editing is still disabled.
+
+563 Lua checks pass. These results cover agent readback in one host session; full save/reload,
+multiplayer propagation, and the remaining parity gaps below still need implementation/testing.
+
 Source review of the shared player/world tabs, live session adapters, Core channels, Lua
 handlers, polling, catalog/image services, and save export/index services. This is an initial
 implementation pass, not a complete gameplay certification or a measured memory profile.

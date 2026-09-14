@@ -14,8 +14,14 @@ world-state request returned the correct payload. Recipe removal succeeded but t
 unlock RPC silently failed to restore it. Hosts now update the authoritative array for both
 directions; the removed recipe was restored and verified through the running agent.
 
-Full parity remains unfinished. Cascade remains the active verification world; the backup
-is under artifacts/cascade-live-backup-20260915-073257. Multiplayer propagation and complete
+World recipe removal/restoration also passed, returning both global recipe sets exactly to
+their initial contents. The native buff-handle factory and character buff component resolved
+successfully; trait effect mutations were not tested or enabled. Lua regression coverage
+passes 563 checks, and the native mailbox regression passes.
+
+Closed the game and test helper, removed the temporary installed development hook, and
+restored all 75 Cascade files from artifacts/cascade-live-backup-20260915-073257 with zero
+SHA256 mismatches. Full parity remains unfinished. Multiplayer propagation and complete
 save/reload coverage are still pending.
 
 ## Documentation screenshots (15 September 2026)
