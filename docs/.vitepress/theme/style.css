@@ -1,4 +1,4 @@
-/* Game inventory-inspired panels and cyan labels. Keep reading surfaces quiet. */
+/* Adapted from online game references, not the editor palette. See visual-reference.md. */
 :root {
   --vp-font-family-base: 'Trebuchet MS', 'Gill Sans', sans-serif;
   --vp-font-family-mono: 'Cascadia Code', 'SFMono-Regular', Consolas, monospace;
@@ -11,17 +11,18 @@
   --manual-glow: #52b9c71c;
 }
 .dark {
-  --vp-c-bg: #0c1a24; --vp-c-bg-alt: #081119; --vp-c-bg-soft: #132c39; --vp-c-bg-elv: #1b3648;
-  --vp-c-text-1: #dceff9; --vp-c-text-2: #a9cbe0; --vp-c-text-3: #93b3c8;
-  --vp-c-brand-1: #7fe9e2; --vp-c-brand-2: #aff8f0; --vp-c-brand-3: #36a7b0; --vp-c-brand-soft: #7fe9e218;
-  --vp-c-divider: #2e5471; --vp-c-border: #3d7183;
-  --manual-accent: #7fe9e2; --manual-panel: #132736; --manual-hazard: #ffe563;
-  --manual-button: #f89a4f; --manual-on-button: #07121a; --manual-grid: #7fe9e208;
-  --manual-glow: #40b7b522;
+  --vp-c-bg: #0c2023; --vp-c-bg-alt: #0a1517; --vp-c-bg-soft: #173b40; --vp-c-bg-elv: #224c51;
+  --vp-c-text-1: #e0f5f2; --vp-c-text-2: #b2d3d0; --vp-c-text-3: #95bdbb;
+  --vp-c-brand-1: #86f4ec; --vp-c-brand-2: #bbfff6; --vp-c-brand-3: #39baad; --vp-c-brand-soft: #86f4ec18;
+  --vp-c-divider: #315e64; --vp-c-border: #4c858c;
+  --manual-accent: #86f4ec; --manual-panel: #1b4248bd; --manual-hazard: #e9d979;
+  --manual-button: #86f4ec; --manual-on-button: #103236; --manual-grid: #86f4ec06;
+  --manual-glow: #41999d38;
 }
 a:focus-visible, button:focus-visible { outline: 3px solid var(--vp-c-brand-1); outline-offset: 5px; }
 .VPNavBarTitle .title, .vp-doc h1, .vp-doc h2, .vp-doc h3, .manual-intro h1, .manual-routes h2 {
-  font-family: 'Bahnschrift', 'Franklin Gothic Medium', 'Arial Narrow', sans-serif;
+  font-family: 'Arial Black', 'Franklin Gothic Heavy', 'Trebuchet MS', sans-serif;
+  font-weight: 900;
 }
 .VPNavBar { border-bottom: 1px solid var(--vp-c-border); }
 .VPNavBarTitle .title { letter-spacing: .025em; font-weight: 800; color: var(--manual-accent); }
@@ -37,14 +38,14 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--vp-c-brand-1); 
 .vp-doc img { cursor: zoom-in; border: 1px solid var(--vp-c-border); border-radius: 3px; }
 .vp-doc div[class*='language-'] { border: 1px solid var(--vp-c-divider); }
 .vp-doc .custom-block { border-radius: 3px; border-left: 3px solid var(--manual-accent); }
-.VPHome { background: radial-gradient(ellipse at 75% 18%, var(--manual-glow), transparent 45%); }
+.VPHome { background: radial-gradient(ellipse at 82% 16%, var(--manual-glow), transparent 40%), radial-gradient(ellipse at 18% 32%, var(--vp-c-brand-soft), transparent 40%); }
 .field-manual { max-width: 1280px; padding: 28px 32px 0; margin: auto; }
 .manual-status { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--vp-c-border); font: 11px/1.5 var(--vp-font-family-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--vp-c-text-2); }
 .manual-status > span:first-child::before { content: ''; display: inline-block; width: 7px; height: 7px; background: var(--manual-accent); margin-right: 10px; box-shadow: 0 0 8px var(--manual-accent); }
 .manual-hero { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 40px; padding: 48px 0; }
 .manual-kicker, .manual-preview-label, .manual-number { font: 12px/1.5 var(--vp-font-family-mono); text-transform: uppercase; letter-spacing: .12em; }
 .manual-kicker { color: var(--manual-accent); margin: 0 0 20px; font-weight: 700; }
-.manual-intro h1 { font-size: clamp(38px, 4.6vw, 62px); line-height: 1.06; letter-spacing: -.035em; font-weight: 800; margin: 0; }
+.manual-intro h1 { font-size: clamp(36px, 4vw, 56px); line-height: 1.06; letter-spacing: -.035em; font-weight: 800; margin: 0; }
 .manual-intro h1 em { font-style: normal; color: var(--manual-accent); }
 .manual-deck { font-size: 18px; line-height: 1.7; color: var(--vp-c-text-2); max-width: 490px; margin: 24px 0; }
 .manual-actions { display: flex; flex-wrap: wrap; gap: 12px; }
@@ -52,7 +53,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--vp-c-brand-1); 
 .manual-actions .manual-primary { background: var(--manual-button); color: var(--manual-on-button); border-color: var(--manual-button); }
 .manual-actions a:hover { outline: 1px solid var(--manual-accent); outline-offset: 3px; }
 .manual-note { font-size: 12px; color: var(--vp-c-text-2); margin: 20px 0 0; }
-.manual-preview { min-width: 0; margin: 0; padding: 14px; background: var(--manual-panel); border: 1px solid var(--vp-c-border); border-radius: 4px; box-shadow: 0 12px 40px #0002; }
+.manual-preview { min-width: 0; margin: 0; padding: 14px; background: var(--manual-panel); border: 1px solid var(--vp-c-border); border-radius: 12px; box-shadow: inset 0 1px 0 #b1fff017, 0 12px 40px #0002; }
 .manual-preview-label { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: var(--manual-accent); padding: 0 0 12px; border-bottom: 2px solid var(--manual-accent); margin-bottom: 14px; font-size: 10px; }
 .manual-preview img { display: block; width: 100%; height: auto; border: 1px solid var(--vp-c-border); }
 .manual-preview figcaption { font-size: 12px; color: var(--vp-c-text-2); line-height: 1.6; margin-top: 14px; }
@@ -60,7 +61,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--vp-c-brand-1); 
 .manual-checkpoint strong { color: var(--manual-hazard); font: 700 13px/1.6 var(--vp-font-family-mono); text-transform: uppercase; }
 .manual-checkpoint a { color: var(--vp-c-brand-1); font-weight: 700; text-decoration: underline; text-underline-offset: 4px; }
 .manual-routes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.manual-routes > a { padding: 24px; display: flex; flex-direction: column; border: 1px solid var(--vp-c-border); border-radius: 4px; background: linear-gradient(var(--manual-grid) 1px, transparent 1px), linear-gradient(90deg, var(--manual-grid) 1px, transparent 1px), var(--manual-panel); background-size: 28px 28px; }
+.manual-routes > a { padding: 24px; display: flex; flex-direction: column; border: 1px solid var(--vp-c-border); border-radius: 10px; background: linear-gradient(var(--manual-grid) 1px, transparent 1px), linear-gradient(90deg, var(--manual-grid) 1px, transparent 1px), var(--manual-panel); background-size: 28px 28px; }
 .manual-routes > a:hover { border-color: var(--manual-accent); background-color: var(--vp-c-bg-elv); }
 .manual-number { color: var(--manual-accent); border-bottom: 1px solid var(--vp-c-border); padding-bottom: 12px; }
 .manual-routes h2 { color: var(--manual-accent); font-size: 24px; line-height: 1.25; font-weight: 700; letter-spacing: .01em; margin: 18px 0 12px; }

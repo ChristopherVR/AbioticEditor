@@ -52,7 +52,7 @@ export default defineConfig({
 
   head: [
     ['link', { rel: 'icon', type: 'image/png', href: '/AbioticEditor/logo.png' }],
-    ['meta', { name: 'theme-color', content: '#0c1a24' }],
+    ['meta', { name: 'theme-color', content: '#0c2023' }],
     ['meta', { name: 'og:title', content: 'Abiotic Editor' }],
     [
       'meta',

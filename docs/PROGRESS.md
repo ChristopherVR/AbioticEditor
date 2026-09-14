@@ -25,6 +25,18 @@ entries, moderator lists, and cancelling or confirming a configuration-file swit
 checks used a copied world under artifacts; original game saves were untouched. A new
 regression test verifies repeated-key ordering, comments, unchanged values, and backups.
 
+## Online game-theme reference correction (2026-09-15)
+
+Reviewed the official Abiotic Factor website and publisher-provided Steam inventory
+screenshot directly online. Replaced the editor-derived navy/orange treatment with
+greener translucent teal panels, aqua primary buttons, rounded outlines, and heavier
+headings. Recorded reference links and the distinction between observed visual cues
+and chosen CSS approximations in the theme's visual-reference.md.
+
+Verification: build passed with 1,680 local links/images across 43 pages. Inspected the
+rendered desktop and mobile homepages; no horizontal overflow at 390px. No application
+palette or save data was changed.
+
 ## Documentation theme aligned with game inventory (2026-09-15)
 
 Replaced the green terminal palette with teal-blue panels and cyan headings using the
