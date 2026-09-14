@@ -1,0 +1,34 @@
+@namespace AbioticEditor.Web.Components.Shared
+@using AbioticEditor.Core.WorldSaves
+@inject AbioticEditor.Web.Services.ItemCatalogService Items
+<details class="pet-care-guide" @onclick="Load">
+    <summary>Feeding and mutation</summary>
+    @if (MutationProgress is { } progress) { <p>Saved mutation progress: @progress</p> }
+    @if (_loading) { <p role="status">Loading pet care...</p> }
+    else if (Care is { } care)
+    {
+        @if (care.TamingFoods.Count > 0) { <p><strong>Taming foods:</strong> @FoodNames(care.TamingFoods)</p> }
+        @foreach (var mutation in care.Mutations)
+        { <p><strong>@mutation.Target:</strong> @FoodNames(mutation.Foods)</p> }
+        @if (care.Mutations.Count == 0) { <p>No food mutations are listed for this variant.</p> }
+    }
+    else if (_loaded) { <p>Pet care details are unavailable. Check the game installation folder.</p> }
+    <p class="muted">Feed pets in the game. A save does not provide a reliable feeding countdown.</p>
+</details>
+@code {
+    [Parameter] public string? ItemRow { get; set; }
+    [Parameter] public string? ClassPath { get; set; }
+    [Parameter] public int? MutationProgress { get; set; }
+    private IReadOnlyList<PetCareDefinition> _care = [];
+    private bool _loading, _loaded;
+    private PetCareDefinition? Care => _care.FirstOrDefault(c => ItemRow is not null && c.ItemRow.Equals(ItemRow, StringComparison.OrdinalIgnoreCase)
+        || ClassPath is not null && string.Equals(c.ClassPath, ClassPath, StringComparison.OrdinalIgnoreCase));
+    private string FoodNames(IReadOnlyList<string> foods) => string.Join(", ", foods.Select(id => Items.Find(id)?.DisplayName ?? id.Replace('_', ' ')));
+    private async Task Load()
+    {
+        if (_loaded || _loading) return;
+        _loading = true;
+        try { _care = await Items.GetPetCareAsync(); _loaded = true; }
+        finally { _loading = false; }
+    }
+}

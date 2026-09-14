@@ -700,18 +700,20 @@ public sealed class PlayerInventorySlotEdit
     /// Null when the game never recorded one for this item instance - in which case there is
     /// nothing here yet to change (see <see cref="InventoryItemSlot.VariantRowName"/>).</summary>
     public string? VariantRowName { get; set; }
+    public int? CoatingIndex { get; set; }
+    public int? CoatingDurability { get; set; }
     public bool IsEmpty => string.IsNullOrWhiteSpace(ItemId) || ItemId is "None" or "Empty";
     public string DisplayName => IsEmpty ? "Empty" : ItemId!;
     public bool IsDirty => !Equals(ToInventorySlot(), _original);
-    public void Clear() { ItemId = PlayerSaveWriter.EmptySlotRowName; Count = 0; }
+    public void Clear() { ItemId = PlayerSaveWriter.EmptySlotRowName; Count = 0; if (CoatingIndex is not null || CoatingDurability is not null) { CoatingIndex = -1; CoatingDurability = 0; } }
     // Do not normalize loaded values here. Empty slots legitimately use sentinel values such
     // as LiquidLevel = -1; normalizing them would make a newly opened session dirty and cause
     // unrelated player edits to rewrite every such slot.
     public InventoryItemSlot ToInventorySlot() => new(Index, string.IsNullOrWhiteSpace(ItemId) ? PlayerSaveWriter.EmptySlotRowName : ItemId,
-        Count, Durability, MaxDurability, AmmoInMagazine, LiquidLevel, LiquidType, DynamicState, PlayerMadeString, AssetId, VariantRowName);
+        Count, Durability, MaxDurability, AmmoInMagazine, LiquidLevel, LiquidType, DynamicState, PlayerMadeString, AssetId, VariantRowName, CoatingIndex, CoatingDurability);
     public void AcceptCurrentAsBaseline() => _original = ToInventorySlot();
     public void Revert() => Load(_original);
-    public void LoadFrom(InventoryItemSlot source) { ItemId = source.ItemId; Count = source.Count; Durability = source.Durability; MaxDurability = source.MaxDurability; AmmoInMagazine = source.AmmoInMagazine; LiquidLevel = source.LiquidLevel; LiquidType = source.LiquidType; DynamicState = source.DynamicState; PlayerMadeString = source.PlayerMadeString; AssetId = source.AssetId; VariantRowName = source.VariantRowName; }
+    public void LoadFrom(InventoryItemSlot source) { ItemId = source.ItemId; Count = source.Count; Durability = source.Durability; MaxDurability = source.MaxDurability; AmmoInMagazine = source.AmmoInMagazine; LiquidLevel = source.LiquidLevel; LiquidType = source.LiquidType; DynamicState = source.DynamicState; PlayerMadeString = source.PlayerMadeString; AssetId = source.AssetId; VariantRowName = source.VariantRowName; CoatingIndex = source.CoatingIndex; CoatingDurability = source.CoatingDurability; }
     private void Load(InventoryItemSlot source) => LoadFrom(source);
 }
 

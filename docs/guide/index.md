@@ -21,6 +21,7 @@ Start with [Getting started](./getting-started) if this is your first visit. The
 | [Linux and Steam Deck](./linux-local-host) | Installing and opening the desktop editor |
 | [Game Pass saves](./game-pass) | Opening, repairing, and converting Game Pass saves |
 | [Steam and achievements](./steam-achievements) | Checking local Steam information and achievements |
+| [Coatings, garden care and settings](./review-features) | New item, world and configuration controls |
 | [Game data](./game-data) | Keeping item names and icons current after a game update |
 | [Plugins and language packs](./plugins) | Adding community extras and translations |
 

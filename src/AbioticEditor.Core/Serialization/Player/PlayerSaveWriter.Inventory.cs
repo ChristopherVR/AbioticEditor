@@ -21,9 +21,9 @@ public static partial class PlayerSaveWriter
     {
         var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
 
-        ApplyInventoryArray(root, "EquipmentInventory_", updated.Equipment);
-        ApplyInventoryArray(root, "HotbarInventory_", updated.Hotbar);
-        ApplyInventoryArray(root, "Inventory_", updated.Main);
+        ApplyInventoryArray(root, "EquipmentInventory_", updated.Equipment, data.Raw);
+        ApplyInventoryArray(root, "HotbarInventory_", updated.Hotbar, data.Raw);
+        ApplyInventoryArray(root, "Inventory_", updated.Main, data.Raw);
     }
 
     /// <summary>
@@ -34,7 +34,7 @@ public static partial class PlayerSaveWriter
     public static void ApplyTransmogSlots(PlayerSaveData data, IReadOnlyList<InventoryItemSlot> updated)
     {
         var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
-        ApplyInventoryArray(root, "TransmogInventory_", updated);
+        ApplyInventoryArray(root, "TransmogInventory_", updated, data.Raw);
     }
 
     /// <summary>
@@ -98,7 +98,7 @@ public static partial class PlayerSaveWriter
         }
     }
 
-    private static void ApplyInventoryArray(IList<FPropertyTag> root, string prefix, IReadOnlyList<InventoryItemSlot> updated)
+    private static void ApplyInventoryArray(IList<FPropertyTag> root, string prefix, IReadOnlyList<InventoryItemSlot> updated, SaveGame? save = null)
     {
         var tag = root.FindByPrefix(prefix);
         if (tag?.Property is not ArrayProperty array || array.Value is null) return;
@@ -109,11 +109,11 @@ public static partial class PlayerSaveWriter
                 continue;
 
             var newSlot = updated[i];
-            ApplySlot(ps.Properties, newSlot);
+            ApplySlot(ps.Properties, newSlot, save);
         }
     }
 
-    private static void ApplySlot(IList<FPropertyTag> slotProps, InventoryItemSlot newSlot)
+    private static void ApplySlot(IList<FPropertyTag> slotProps, InventoryItemSlot newSlot, SaveGame? save = null)
     {
         // RowName (item ID) - only patch if a valid id is provided; clearing to None
         // would require knowing the empty-slot sentinel AF uses, which differs.
@@ -171,6 +171,7 @@ public static partial class PlayerSaveWriter
             newSlot.AssetId is null ? null : FullNames.AssetId);
 
         ApplyVariantRowName(p, newSlot.VariantRowName);
+        PetDynamicProperties.ApplyCoating(p, newSlot.CoatingIndex, newSlot.CoatingDurability, save);
     }
 
     // TextureVariantRow_ is a DataTableRowHandle (a nested struct), not a primitive. Most

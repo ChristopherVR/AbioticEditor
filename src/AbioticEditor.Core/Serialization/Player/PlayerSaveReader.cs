@@ -366,7 +366,7 @@ public static class PlayerSaveReader
             DynamicState: p.GetBool("DynamicState_"),
             PlayerMadeString: p.GetString("PlayerMadeString_"),
             AssetId: p.GetString("AssetID_"),
-            VariantRowName: ReadVariantRowName(p));
+            VariantRowName: ReadVariantRowName(p), CoatingIndex: PetDynamicProperties.Read(p, "WeaponCoating"), CoatingDurability: PetDynamicProperties.Read(p, "CoatingDurability"));
     }
 
     // TextureVariantRow_ is itself a DataTableRowHandle, same shape as ItemDataTable_ (a

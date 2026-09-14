@@ -236,7 +236,7 @@ public static partial class WorldSaveReader
             VariantRowName: p.FindByPrefix("TextureVariantRow_")?.Property is StructProperty variantSp
                 && variantSp.Value is PropertiesStruct variantPs
                 ? variantPs.Properties.GetString("RowName")
-                : null);
+                : null, CoatingIndex: PetDynamicProperties.Read(p, "WeaponCoating"), CoatingDurability: PetDynamicProperties.Read(p, "CoatingDurability"));
     }
 
     private static InventoryItemSlot EmptySlot(int index)

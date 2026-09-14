@@ -28,6 +28,7 @@ public abstract class WorldMapFeatureBase : IWorldMapFeature
         var ordinal = 0;
         foreach (var entry in WorldMapAccessor.Entries(save, MapName))
         {
+            if (!IncludesEntry(entry.Props)) continue;
             ordinal++;
             var (linkId, linkLabel, needsHost) = LinkFor(entry.Key, entry.Props);
             list.Add(new WorldMapEntry(
@@ -42,6 +43,8 @@ public abstract class WorldMapFeatureBase : IWorldMapFeature
     /// Lets a feature build a per-read cache (e.g. a device index) that <see cref="ReadFields"/>
     /// and <see cref="LinkFor"/> then use. Default does nothing.
     /// </summary>
+    protected virtual bool IncludesEntry(IList<FPropertyTag> props) => true;
+
     protected virtual void OnBeginRead(SaveGame save)
     {
     }
@@ -58,7 +61,7 @@ public abstract class WorldMapFeatureBase : IWorldMapFeature
     {
         ArgumentNullException.ThrowIfNull(save);
         var props = WorldMapAccessor.FindEntry(save, MapName, entryKey);
-        if (props is null)
+        if (props is null || !IncludesEntry(props))
         {
             return WorldEditResult.Failure($"no entry '{entryKey}' in {MapName}.");
         }

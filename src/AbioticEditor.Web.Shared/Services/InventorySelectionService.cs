@@ -172,6 +172,9 @@ public sealed record InventorySelection(
     Func<PlayerInventorySlotEdit, bool>? CanUpgrade,
     Func<PlayerInventorySlotEdit, bool>? CanDowngrade)
 {
+    /// <summary>Whether this surface can persist applied weapon coatings.</summary>
+    public bool SupportsCoatingEdits { get; init; }
+
     /// <summary>The player inventory area the slot lives in; null for non-player surfaces
     /// (world container groups), which validate like Main/storage slots.</summary>
     public PlayerInventoryArea? PlayerArea { get; init; }

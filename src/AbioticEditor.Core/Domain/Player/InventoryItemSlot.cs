@@ -21,7 +21,7 @@ public sealed record InventoryItemSlot(
     // ...): the RowName of the item struct's TextureVariantRow_ handle into
     // DT_TextureVariants, independent of ItemId. Null when the game never wrote one for this
     // instance (most items), in which case there is nothing here yet to change.
-    string? VariantRowName = null)
+    string? VariantRowName = null, int? CoatingIndex = null, int? CoatingDurability = null)
 {
     public bool IsEmpty => string.IsNullOrEmpty(ItemId) || ItemId is "None" or "Empty";
     public double DurabilityPercent => MaxDurability > 0 ? Durability / MaxDurability : 0;

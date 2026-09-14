@@ -31,7 +31,7 @@
                             class="wt-row @(_selectedId == npc.Id ? "selected" : null)" @key="npc.Id"
                             @onclick="() => _selectedId = npc.Id">
                         <span class="wt-row-text">
-                            <strong>@npc.FriendlyLabel</strong>
+                            <strong>@CharacterName(npc)</strong>
                             <small>@npc.ActorName</small>
                         </span>
                         <span class="wt-row-status">@(npc.IsDead ? L.Resource("WorldPets_StatusDead") : L.Resource("WorldPets_StatusHealthy"))</span>
@@ -45,7 +45,7 @@
                 }
                 else
                 {
-                    <h3 class="wt-h3">@selected.FriendlyLabel</h3>
+                    <h3 class="wt-h3">@CharacterName(selected)</h3>
                     <p class="wt-muted">@selected.ActorName</p>
                     <div class="wt-field">
                         <span class="wt-label">@L.Resource("WorldPets_Location")</span>
@@ -58,10 +58,16 @@
                     <div class="wt-button-row">
                         <button type="button" class="wt-btn wt-green" title="@L.Resource("WorldNpcs_ReviveTooltip")" disabled="@(_busy || (Session.AppliesImmediately && !Session.IsHost))" @onclick="() => SetDead(selected, false)">@L.Resource("WorldNpcs_Revive")</button>
                     </div>
-                    <label class="wt-field">
-                        <span class="wt-label" title="@L.Resource("WorldNpcs_ScriptPhaseTooltip")">@L.Resource("WorldNpcs_ScriptPhase")</span>
-                        <input class="wt-input" value="@selected.State" disabled="@(_busy || (Session.AppliesImmediately && !Session.IsHost))" @onchange="e => SetState(selected, e.Value?.ToString())" />
-                    </label>
+                    <details>
+                        <summary>Story stage</summary>
+                        <p class="wt-muted">Stage numbers belong to this character's dialogue script. Changing one can skip conversations.</p>
+                        <label class="wt-field"><span class="wt-label">Stage</span>
+                            <select class="wt-input" value="@selected.State" disabled="@(_busy || (Session.AppliesImmediately && !Session.IsHost))" @onchange="e => SetState(selected, e.Value?.ToString())">
+                                @if (!StoryStages.Contains(selected.State)) { <option value="@selected.State">Unknown saved stage (@selected.State)</option> }
+                                @for (var i = 0; i < StoryStages.Length; i++) { <option value="@StoryStages[i]">Stage @i</option> }
+                            </select>
+                        </label>
+                    </details>
                 }
             </div>
         </div>
@@ -74,6 +80,15 @@
     [Parameter, EditorRequired] public IWorldNpcsSession Session { get; set; } = null!;
     [Parameter] public EventCallback<string?> OnError { get; set; }
 
+    [Inject] private AbioticEditor.Web.Services.ItemCatalogService Items { get; set; } = null!;
+    private static readonly string[] StoryStages = Enumerable.Range(0, 6).Select(i => $"E_NarrativeNPCStates::NewEnumerator{i}").ToArray();
+    private readonly Dictionary<string, string> _names = new(StringComparer.Ordinal);
+    private string CharacterName(WorldNpc npc) => _names.GetValueOrDefault(npc.Id, npc.FriendlyLabel);
+    protected override async Task OnParametersSetAsync()
+    {
+        foreach (var npc in Session.Npcs.Where(n => !_names.ContainsKey(n.Id)).ToArray())
+            _names[npc.Id] = await Items.GetCharacterNameAsync(npc.Id) ?? npc.FriendlyLabel;
+    }
     private string? _selectedId;
     private bool _busy;
     private string? _liveError;

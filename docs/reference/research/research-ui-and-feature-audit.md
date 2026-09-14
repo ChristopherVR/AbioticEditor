@@ -49,9 +49,45 @@ were included. The live connection was not exercised in this review.
   Existing stored XP stays unchanged unless the user edits it. Boundary tests cover all
   20 levels. Source: [Pets](https://abioticfactor.wiki.gg/wiki/Pet#Leveling_Pets).
 
-## Missing support worth adding
+## Implementation follow-up (15 September 2026)
 
-These are recommendations, not newly implemented save writers. A wiki describes gameplay;
+The review now has an implementation pass. See [the user guide](../../guide/review-features.md)
+for steps and limits. Game schemas were checked in the installed paks, including blueprint
+bytecode and the current mappings, rather than inferred from wiki labels.
+
+- Coatings: installed-table picker, separate durability, shared player/container readers and
+  writers. Existing values survive edits and upgrades; replacement/removal clears old coatings.
+- Gardens: water capacity checks, per-spot fertilizer and named growth-stage/progress controls.
+  A planting-spot selector keeps the detail panel short. Crop identity is read-only; digital
+  plots and missing fields are excluded.
+- Chemistry: three input readouts, output readout and a link to flask contents. ProcessingActive
+  and ProcessingTimestamp are runtime properties; no offline batch timer is fabricated.
+- Pets: expandable food/mutation guidance from DT_Pets, plus carried mutation-progress readout.
+  Feeding countdowns and mutation-target writes remain unavailable without a verified contract.
+- Power Chairs: a dedicated, storage-free battery panel with a 0-200 bound. The mapping follows
+  RechargeableComponent's LiquidLevel and the Chair_Power item capacity. No real chair fixture
+  was available; a constructed deployable-layout test covers the field writer.
+- Characters: names resolve through NarrativeNPC_ConversationRow and DT_NPC_Conversations.NPCName.
+  The stage picker preserves the six known values and unknown stored states. Semantic names for
+  stages remain unavailable because the game supplies only per-character numbered phases.
+- INI: Add a setting loads exact keys/defaults/types/options from DT_SandboxOptions, excludes
+  existing and unimplemented entries, stages additions and retains backup/revert behavior.
+  Verified current keys include ApocalypticAbilities and MaximizeEnemySpawns.
+
+Coating indices follow DT_WeaponCoatings row order. Dynamic properties use WeaponCoating and
+CoatingDurability. Garden growth uses GrowthStage (0-7) and GrowthProgress (0-10000) in item
+proxies. Fertilizer is the spot-indexed PlayerMadeString sequence separated by `,|,`.
+The implementation preserves raw tags and clones the existing complete type layout when an
+item needs a new dynamic-properties array.
+
+Browser checks used copied saves at 1440px and 390px. They exercised the coating picker,
+pet guidance, garden selection, chemistry contents navigation, resolved character names and
+adding/saving a sandbox default. In-game replication/rendering is still unverified for these
+new offline controls. They must not be advertised as new live-editing capabilities.
+
+## Original review recommendations
+
+These recommendations were recorded before the implementation pass above. A wiki describes gameplay;
 it does not establish the serialized field names, defaults or replication behavior needed
 for safe editing. Each addition needs current save fixtures and a game verification pass.
 

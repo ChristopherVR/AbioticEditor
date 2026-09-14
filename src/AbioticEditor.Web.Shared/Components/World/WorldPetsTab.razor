@@ -67,6 +67,8 @@
 
                 <GameArtImage GameRefs="@PetCatalog.CompendiumTextureRefs(pet.NpcClass)" Alt="@PetName(pet)" Class="pet-portrait" />
 
+                <PetCareGuide ClassPath="@pet.NpcClass" />
+
                 @if (!editable)
                 {
                     <p class="wt-notice">@L.Resource("WorldPets_ArmorSetSummonNotice")</p>

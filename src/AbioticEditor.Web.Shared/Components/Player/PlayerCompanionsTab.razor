@@ -104,6 +104,8 @@
                 </div>
 
                 <hr class="af-divider" />
+                <PetCareGuide ItemRow="@pet.ItemRow" MutationProgress="@pet.MutationProgress" />
+                <hr class="af-divider" />
                 @if (!pet.IsDeleted) { <button class="accent-alert" type="button" @onclick="() => ToggleDeleted(pet)">@L.Resource("PlayerPets_RemoveFromInventory")</button> }
                 else { <button class="accent-hazard" type="button" @onclick="() => ToggleDeleted(pet)">@L.Resource("PlayerPets_UndoRemove")</button> }
 

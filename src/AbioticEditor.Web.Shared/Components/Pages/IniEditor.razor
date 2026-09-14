@@ -2,6 +2,7 @@
 @page "/ini/{RequestedFileName}"
 @implements IDisposable
 @inject IniEditorSessionService IniSessions
+@inject ItemCatalogService ItemCatalog
 @inject SaveWorkspaceSessionService Workspace
 @inject HostLanguageService Languages
 
@@ -42,6 +43,30 @@ else if (IniSessions.Current is { } document)
         {
             <div class="ini-file-details"><p class="path">@document.File.FullPath</p><p>@document.Description</p></div>
         }
+        @if (document.File.Kind == AbioticIniKind.SandboxSettings)
+        {
+            <details class="ini-section">
+                <summary @onclick="LoadSettings">Add a setting</summary>
+                <p class="muted">Choose from your installed game. Changes apply after saving and reopening the world.</p>
+                @if (_loadingSettings) { <p role="status">Loading game settings...</p> }
+                else if (_settingsLoaded && _settings.Count == 0) { <p role="status">Set the game installation folder to discover supported settings.</p> }
+                else if (_settingsLoaded)
+                {
+                    <label>Setting
+                        <select @bind="_newSettingKey">
+                            <option value="">Choose a setting</option>
+                            @foreach (var setting in MissingSettings(document)) { <option value="@setting.Key">@setting.Label</option> }
+                        </select>
+                    </label>
+                    @if (_settings.FirstOrDefault(s => s.Key == _newSettingKey) is { } chosen)
+                    {
+                        <p class="muted">Default: @chosen.DefaultValue</p>
+                        <details><summary>What this changes</summary><p>@chosen.Description</p></details>
+                        <button type="button" class="secondary" @onclick="() => AddKnownSetting(document, chosen)">Add setting</button>
+                    }
+                }
+            </details>
+        }
         @{ var visibleSections = document.Sections.Where(section => VisibleEntries(document, section).Any() || (_filter.Length == 0 && section.SuggestedNewKey is not null)).ToList(); }
         @if (visibleSections.Count == 0) { <p role="status">@Languages.Resource("Editing_NoSettingMatches")</p> }
         @foreach (var draft in visibleSections)
@@ -55,10 +80,17 @@ else if (IniSessions.Current is { } document)
                 @foreach (var entry in VisibleEntries(document, draft))
                 {
                     <div class="ini-entry @(entry.IsDirty ? "is-changed" : null)" @key="entry">
-                        <div class="ini-setting-name"><label for="@EntryId(entry)" title="@entry.Key">@SettingLabel(entry.Key)</label>
+                        <div class="ini-setting-name"><label for="@EntryId(entry)" title="@entry.Key">@(SettingDefinition(document, entry.Key)?.Label ?? SettingLabel(entry.Key))</label>
                             @if (_advanced) { <code>@entry.Key</code> }
                         </div>
-                        @if (bool.TryParse(entry.OriginalValue, out _))
+                        @if (SettingDefinition(document, entry.Key) is { Options.Count: > 0 } definition)
+                        {
+                            <select id="@EntryId(entry)" @bind="entry.Value">
+                                @if (!definition.Options.Any(o => o.Value == entry.Value)) { <option value="@entry.Value">@entry.Value (saved value)</option> }
+                                @foreach (var option in definition.Options) { <option value="@option.Value">@option.Label</option> }
+                            </select>
+                        }
+                        else if (bool.TryParse(entry.OriginalValue ?? SettingDefinition(document, entry.Key)?.DefaultValue, out _))
                         {
                             <select id="@EntryId(entry)" value="@entry.Value" @onchange="e => entry.Value = e.Value?.ToString() ?? entry.Value">
                                 <option value="@BooleanText(entry, true)">@Languages.Resource("IniUi_On")</option>
@@ -104,6 +136,27 @@ else
     [Parameter]
     public string? RequestedFileName { get; set; }
 
+    private IReadOnlyList<SandboxSettingDefinition> _settings = [];
+    private bool _loadingSettings, _settingsLoaded;
+    private string _newSettingKey = string.Empty;
+    private async Task LoadSettings()
+    {
+        if (_settingsLoaded || _loadingSettings) return;
+        _loadingSettings = true;
+        try { _settings = await ItemCatalog.GetSandboxSettingsAsync(); _settingsLoaded = true; }
+        finally { _loadingSettings = false; }
+    }
+    private SandboxSettingDefinition? SettingDefinition(IniDocumentSession document, string key)
+        => document.File.Kind == AbioticIniKind.SandboxSettings ? _settings.FirstOrDefault(s => s.Key.Equals(key, StringComparison.OrdinalIgnoreCase)) : null;
+    private IEnumerable<SandboxSettingDefinition> MissingSettings(IniDocumentSession document)
+        => _settings.Where(s => !document.Sections.Where(section => section.Name.Equals("SandboxSettings", StringComparison.OrdinalIgnoreCase))
+            .SelectMany(section => section.Entries).Any(e => e.Key.Equals(s.Key, StringComparison.OrdinalIgnoreCase)));
+    private void AddKnownSetting(IniDocumentSession document, SandboxSettingDefinition setting)
+    {
+        document.AddSetting(setting);
+        _newSettingKey = string.Empty;
+        _filter = setting.Key;
+    }
     private bool _advanced;
     private IniDocumentSession? _displayedDocument;
     private readonly Dictionary<IniEntryDraft, string> _entryIds = new();
@@ -120,7 +173,7 @@ else
     }
     private static string BooleanText(IniEntryDraft entry, bool value)
     {
-        var original = entry.OriginalValue ?? string.Empty;
+        var original = entry.OriginalValue ?? entry.Value;
         var text = value ? "True" : "False";
         return original == original.ToLowerInvariant() ? text.ToLowerInvariant()
             : original == original.ToUpperInvariant() ? text.ToUpperInvariant() : text;

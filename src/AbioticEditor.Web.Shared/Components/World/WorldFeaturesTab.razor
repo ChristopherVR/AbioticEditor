@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Components.Web.Virtualization
 @inject AbioticEditor.Web.Services.SaveWorkspaceSessionService Workspace
 @inject AbioticEditor.Web.Services.ISaveFileSystem Files
+@inject AbioticEditor.Web.Services.ItemCatalogService Items
 @implements IDisposable
 
 @* Faithful port of the native WorldFeatureTab: ONE world-map feature (buttons, elevators,
@@ -79,8 +80,16 @@ else
                     @* The panel opens straight into the settings: the "nothing is written until
                        you press SAVE" reminder is already at the top of this tab. *@
                     <hr class="world-feature-divider" />
+                    @if (FeatureId == "garden-plots")
+                    {
+                        <label class="world-feature-field-row">Planting spot
+                            <select @bind="_gardenSpot" aria-label="Planting spot">
+                                @foreach (var spot in GardenSpots(selected)) { <option value="@spot">Spot @(int.Parse(spot, System.Globalization.CultureInfo.InvariantCulture) + 1)</option> }
+                            </select>
+                        </label>
+                    }
                     <div class="world-feature-fields">
-                        @foreach (var field in selected.Fields)
+                        @foreach (var field in VisibleFields(selected))
                         {
                             <div class="world-feature-field" @key="field.Id">
                                 <div class="world-feature-field-row">
@@ -99,6 +108,7 @@ else
                                     {
                                         <select value="@field.Value" @onchange="e => SetFieldAsync(feature.Id, selected.Key, field.Id, e.Value?.ToString())" aria-label="@FieldLabel(selected, field)">
                                             @* The stored choices are run-together names; spell them out. *@
+                                            @if (!field.Options.Contains(field.Value)) { <option value="@field.Value">@field.Value (saved value)</option> }
                                             @foreach (var option in field.Options) { <option value="@option">@PlainNames.Words(option)</option> }
                                         </select>
                                     }
@@ -339,6 +349,9 @@ else
     /// </summary>
     private string? DisplayFieldValue(WorldMapEntry entry, WorldMapField field)
     {
+        if ((FeatureId == "garden-plots" && field.Id.StartsWith("crop:", StringComparison.Ordinal))
+            || (FeatureId == "chemistry-benches" && field.Id.StartsWith("flask:", StringComparison.Ordinal)))
+            return Items.Find(field.Value)?.DisplayName ?? PlainNames.Words(field.Value);
         if (IsPowerSockets
             && string.Equals(field.Id, "pluggedInDevice", StringComparison.OrdinalIgnoreCase)
             && entry.LinkTargetId is { Length: > 0 } deviceId)
@@ -407,8 +420,17 @@ else
     /// name=value, which read like a debug dump; now each setting is spelled out with its
     /// proper label and yes/no answers instead of true/false.
     /// </summary>
+    private string _gardenSpot = "0";
+    private static IEnumerable<string> GardenSpots(WorldMapEntry entry) => entry.Fields.Where(f => f.Id.Contains(':')).Select(f => f.Id.Split(':')[1]).Distinct();
+    private IEnumerable<WorldMapField> VisibleFields(WorldMapEntry entry)
+    {
+        if (FeatureId != "garden-plots") return entry.Fields;
+        var spot = GardenSpots(entry).Contains(_gardenSpot) ? _gardenSpot : GardenSpots(entry).FirstOrDefault();
+        return entry.Fields.Where(f => !f.Id.Contains(':') || f.Id.EndsWith(":" + spot, StringComparison.Ordinal));
+    }
     private string Summary(WorldMapEntry entry)
     {
+        if (FeatureId == "garden-plots") return $"{entry.Fields.Count(f => f.Id.StartsWith("crop:", StringComparison.Ordinal))} planted spots";
         if (IsResourceNodes && entry.Fields.FirstOrDefault(field => field.Id == "harvested") is { } state)
             return $"{FieldLabel(entry, state)}: {StateText(entry, state)}";
         return string.Join(" · ", entry.Fields

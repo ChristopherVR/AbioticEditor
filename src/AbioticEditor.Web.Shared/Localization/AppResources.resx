@@ -768,7 +768,7 @@
 
   <!-- WorldNpcs -->
   <data name="WorldNpcs_NoNarrativeNpcs" xml:space="preserve"><value>No story NPCs or traders found here.</value></data>
-  <data name="WorldNpcs_NpcsIntro" xml:space="preserve"><value>Select a story character to edit health or story stage. Read the stage tooltip first: an incorrect value can disrupt dialogue or shops. Pets have their own tab.</value></data>
+  <data name="WorldNpcs_NpcsIntro" xml:space="preserve"><value>Select a character to restore them or inspect their story stage.</value></data>
   <data name="WorldNpcs_Revive" xml:space="preserve"><value>REVIVE</value></data>
   <data name="WorldNpcs_ReviveTooltip" xml:space="preserve"><value>Bring this character back to life at their usual story stage. Most of the dead ones left as part of the story, so reviving can bring back someone the plot already moved on from.</value></data>
   <data name="WorldNpcs_ScriptPhase" xml:space="preserve"><value>STORY STAGE</value></data>

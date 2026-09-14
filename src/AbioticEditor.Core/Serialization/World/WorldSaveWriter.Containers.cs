@@ -33,20 +33,20 @@ public static partial class WorldSaveWriter
                 case WorldContainerSource.Deployed:
                     if (deployedById.TryGetValue(container.Id, out var deployableProps))
                     {
-                        ApplyContainerInventoriesArray(deployableProps, container.Inventories);
+                        ApplyContainerInventoriesArray(deployableProps, container.Inventories, data.Raw);
                     }
                     break;
                 case WorldContainerSource.Custom:
                     if (customById.TryGetValue(container.Id, out var inventoryStructProps)
                         && container.Inventories.Count > 0)
                     {
-                        ApplyInventoryStruct(inventoryStructProps, container.Inventories[0]);
+                        ApplyInventoryStruct(inventoryStructProps, container.Inventories[0], data.Raw);
                     }
                     break;
                 case WorldContainerSource.Vehicle:
                     if (BuildMapLookup(data, "VehicleMap").TryGetValue(container.Id, out var vehicleProps))
                     {
-                        ApplyContainerInventoriesArray(vehicleProps, container.Inventories);
+                        ApplyContainerInventoriesArray(vehicleProps, container.Inventories, data.Raw);
                     }
                     break;
             }
@@ -109,7 +109,7 @@ public static partial class WorldSaveWriter
 
     // ---------- container / inventory writers ----------
 
-    private static void ApplyContainerInventoriesArray(IList<FPropertyTag> deployableProps, IReadOnlyList<WorldInventory> updated)
+    private static void ApplyContainerInventoriesArray(IList<FPropertyTag> deployableProps, IReadOnlyList<WorldInventory> updated, SaveGame? save = null)
     {
         var tag = deployableProps.FindByPrefix("ContainerInventories_");
         if (tag?.Property is not ArrayProperty array || array.Value is null) return;
@@ -118,11 +118,11 @@ public static partial class WorldSaveWriter
         {
             if (array.Value.GetValue(i) is not StructProperty outer || outer.Value is not PropertiesStruct ps)
                 continue;
-            ApplyInventoryStruct(ps.Properties, updated[i]);
+            ApplyInventoryStruct(ps.Properties, updated[i], save);
         }
     }
 
-    private static void ApplyInventoryStruct(IList<FPropertyTag> inventoryStructProps, WorldInventory inv)
+    private static void ApplyInventoryStruct(IList<FPropertyTag> inventoryStructProps, WorldInventory inv, SaveGame? save = null)
     {
         var content = inventoryStructProps.FindByPrefix("InventoryContent_");
         if (content?.Property is not ArrayProperty array || array.Value is null) return;
@@ -131,7 +131,7 @@ public static partial class WorldSaveWriter
         {
             if (array.Value.GetValue(i) is not StructProperty outer || outer.Value is not PropertiesStruct ps)
                 continue;
-            ApplySlot(ps.Properties, inv.Slots[i]);
+            ApplySlot(ps.Properties, inv.Slots[i], save);
         }
     }
 
@@ -139,7 +139,7 @@ public static partial class WorldSaveWriter
     /// Slot mutator. Kept private and parallel to <c>PlayerSaveWriter.ApplySlot</c> rather
     /// than reaching into it - the slot struct is shared but the writer surface isn't.
     /// </summary>
-    private static void ApplySlot(IList<FPropertyTag> slotProps, InventoryItemSlot newSlot)
+    private static void ApplySlot(IList<FPropertyTag> slotProps, InventoryItemSlot newSlot, SaveGame? save = null)
     {
         if (!string.IsNullOrEmpty(newSlot.ItemId))
         {
@@ -197,6 +197,7 @@ public static partial class WorldSaveWriter
         // Shared with player inventories so a container item can gain its first visual
         // variant even when the game delta-serialized the default row handle away.
         PlayerSaveWriter.ApplyVariantRowName(p, newSlot.VariantRowName);
+        PetDynamicProperties.ApplyCoating(p, newSlot.CoatingIndex, newSlot.CoatingDurability, save);
     }
 
     // ---------- primitive setters ----------

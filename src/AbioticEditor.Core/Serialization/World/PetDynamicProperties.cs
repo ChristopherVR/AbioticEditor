@@ -65,6 +65,57 @@ internal static class PetDynamicProperties
         return null;
     }
 
+    internal static int? Read(IList<FPropertyTag> props, string key)
+    {
+        if (props.FindByPrefix("DynamicProperties_")?.Property is not ArrayProperty { Value: { } values }) return null;
+        foreach (var element in values.OfType<StructProperty>())
+            if (element.Value is PropertiesStruct ps && ps.Properties.FindByPrefix("Key")?.Property?.Value?.ToString() == "EDynamicProperty::" + key)
+                return ps.Properties.FindByPrefix("Value")?.Property?.Value is int value ? value : null;
+        return null;
+    }
+
+    internal static void ApplyCoating(IList<FPropertyTag> props, int? index, int? durability, SaveGame? save)
+    {
+        if (index is null && durability is null)
+        {
+            if (Read(props, "WeaponCoating") is null && Read(props, "CoatingDurability") is null) return;
+            index = -1;
+            durability = 0;
+        }
+        if (index < -1 || durability < 0) throw new ArgumentOutOfRangeException(nameof(index));
+        foreach (var (key, value) in new[] { ("WeaponCoating", index), ("CoatingDurability", durability) })
+        {
+            if (value is null || Read(props, key) == value) continue;
+            if (SetOrAdd(props, key, value.Value)) continue;
+            if (save is null) throw new InvalidOperationException("This save cannot supply the item property layout.");
+            using var buffer = new MemoryStream();
+            save.WriteTo(buffer); buffer.Position = 0;
+            var clone = SaveGame.LoadFrom(buffer);
+            var template = FindTemplate(clone.Properties ?? []);
+            if (!WriteArray(props, template, [("EDynamicProperty::" + key, value.Value)]))
+                throw new InvalidOperationException("No compatible item property layout was found in this save.");
+        }
+    }
+
+    private static Template? FindTemplate(IEnumerable<FPropertyTag> tags)
+    {
+        foreach (var tag in tags)
+        {
+            if (tag.Name?.Value?.StartsWith("DynamicProperties_", StringComparison.Ordinal) == true && BuildTemplate(tag) is { } template) return template;
+            if (FindNested(tag.Property) is { } nested) return nested;
+        }
+        return null;
+    }
+    private static Template? FindNested(FProperty? property)
+    {
+        if (property is StructProperty { Value: PropertiesStruct ps }) return FindTemplate(ps.Properties);
+        if (property is ArrayProperty { Value: { } elements })
+            foreach (var element in elements.OfType<FProperty>()) { if (FindNested(element) is { } found) return found; }
+        if (property is MapProperty { Value: { } pairs })
+            foreach (var pair in pairs) { if (FindNested(pair.Value) is { } found) return found; }
+        return null;
+    }
+
     private static Template? BuildTemplate(FPropertyTag? arrayTag)
     {
         if (arrayTag?.Property is not ArrayProperty ap || ap.Value is null || ap.Value.Length == 0) return null;

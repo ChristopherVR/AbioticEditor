@@ -128,6 +128,27 @@
                         <label>@L.Inventory("maxDurability")<input type="number" min="0" step="any" @bind="selected.MaxDurability" @bind:after="Changed" /></label>
                     </div>
                 }
+                @if (selection.SupportsCoatingEdits && selectedEntry is not null && WeaponCoatingCatalog.Supports(selectedEntry))
+                {
+                    <details @onclick="LoadCoatings">
+                        <summary>Weapon coating</summary>
+                        @if (_coatingsLoading) { <p role="status">Loading coatings...</p> }
+                        else if (_coatings.Count > 0)
+                        {
+                            <label>Coating<select value="@(selected.CoatingIndex ?? -1)" @onchange="SetCoating">
+                                <option value="-1">None</option>
+                                @if (selected.CoatingIndex is >= 0 && !_coatings.Any(c => c.Index == selected.CoatingIndex)) { <option value="@selected.CoatingIndex">Unknown saved coating (@selected.CoatingIndex)</option> }
+                                @foreach (var coating in _coatings) { <option value="@coating.Index">@coating.Name</option> }
+                            </select></label>
+                            @if (selected.CoatingIndex is >= 0)
+                            {
+                                <label>Coating durability<input type="number" min="0" max="@CoatingMaximum(selected)" value="@selected.CoatingDurability" @onchange="SetCoatingDurability" /></label>
+                            }
+                            <small class="slot-editor-hint">One coating per weapon. Its durability is separate from the weapon's condition.</small>
+                        }
+                        else { <p class="slot-editor-hint">Choose the game installation folder to load coating choices.</p> }
+                    </details>
+                }
                 @if ((selectedEntry?.MaxLiquid ?? 0) > 0)
                 {
                     <label>@L.Inventory("liquid")<input type="number" min="0" max="@selectedEntry!.MaxLiquid" @bind="selected.LiquidLevel" @bind:after="Changed" /></label>
@@ -461,6 +482,30 @@
     // Choosing a category by hand pins it to the chosen slot, so the automatic pinning above
     // leaves it alone until the selection actually moves somewhere else.
     private void SelectCategory(string category) { _paletteCategory = category; _pinnedForSlot = Selection.Current?.Slot; ResetPaletteWindow(); }
+    private IReadOnlyList<WeaponCoatingDefinition> _coatings = [];
+    private bool _coatingsLoading;
+    private async Task LoadCoatings()
+    {
+        if (_coatingsLoading || _coatings.Count > 0) return;
+        _coatingsLoading = true;
+        try { _coatings = await Catalog.GetCoatingsAsync(); }
+        finally { _coatingsLoading = false; }
+    }
+    private int CoatingMaximum(PlayerInventorySlotEdit slot) => _coatings.FirstOrDefault(c => c.Index == slot.CoatingIndex)?.Durability ?? 100;
+    private async Task SetCoating(ChangeEventArgs args)
+    {
+        if (Selection.Current is not { SupportsCoatingEdits: true } current || !int.TryParse(args.Value?.ToString(), out var index)) return;
+        if (index != -1 && !_coatings.Any(c => c.Index == index)) return;
+        current.Slot.CoatingIndex = index;
+        current.Slot.CoatingDurability = index == -1 ? 0 : CoatingMaximum(current.Slot);
+        await Changed();
+    }
+    private async Task SetCoatingDurability(ChangeEventArgs args)
+    {
+        if (Selection.Current is not { SupportsCoatingEdits: true } current || !int.TryParse(args.Value?.ToString(), out var value)) return;
+        current.Slot.CoatingDurability = Math.Clamp(value, 0, CoatingMaximum(current.Slot));
+        await Changed();
+    }
     private async Task Changed() { if (Selection.Current is { } current) await current.NotifyChanged(); }
 
     /// <summary>

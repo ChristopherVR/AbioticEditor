@@ -59,6 +59,38 @@ public sealed class ItemCatalogService : IDisposable
         Variants = ItemVariantCatalog.FromRegistry(variantEntries);
     }
 
+    private Task<IReadOnlyList<AbioticEditor.Core.Ini.SandboxSettingDefinition>>? _sandboxSettings;
+    public Task<IReadOnlyList<AbioticEditor.Core.Ini.SandboxSettingDefinition>> GetSandboxSettingsAsync()
+        => _sandboxSettings ??= Task.Run<IReadOnlyList<AbioticEditor.Core.Ini.SandboxSettingDefinition>>(() =>
+        {
+            try { return _extractsIconsLive && _provider.Value is { } provider
+                ? AbioticEditor.Core.Ini.SandboxSettingCatalog.Load(provider) : []; }
+            catch (Exception) { return []; }
+        });
+
+    private Task<IReadOnlyList<WeaponCoatingDefinition>>? _coatings;
+    public Task<IReadOnlyList<WeaponCoatingDefinition>> GetCoatingsAsync()
+        => _coatings ??= Task.Run<IReadOnlyList<WeaponCoatingDefinition>>(() =>
+        {
+            try { return _extractsIconsLive && _provider.Value is { } provider ? WeaponCoatingCatalog.Load(provider) : []; }
+            catch (Exception) { return []; }
+        });
+
+    private Task<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetCareDefinition>>? _petCare;
+    public Task<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetCareDefinition>> GetPetCareAsync()
+        => _petCare ??= Task.Run<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetCareDefinition>>(() =>
+        {
+            try { return _extractsIconsLive && _provider.Value is { } provider ? AbioticEditor.Core.WorldSaves.PetCareCatalog.Load(provider) : []; }
+            catch (Exception) { return []; }
+        });
+
+    private readonly ConcurrentDictionary<string, Task<string?>> _characterNames = new(StringComparer.Ordinal);
+    public Task<string?> GetCharacterNameAsync(string actorPath) => _characterNames.GetOrAdd(actorPath, path => Task.Run(() =>
+    {
+        try { return _extractsIconsLive ? _provider.Value?.TryGetNarrativeCharacterName(path) : null; }
+        catch (Exception) { return null; }
+    }));
+
     public IReadOnlyList<ItemCatalogEntry> Entries => _entries;
     public ItemCatalogEntry? Find(string? itemId) => itemId is not null && _byId.TryGetValue(itemId, out var entry) ? entry : null;
     /// <summary>

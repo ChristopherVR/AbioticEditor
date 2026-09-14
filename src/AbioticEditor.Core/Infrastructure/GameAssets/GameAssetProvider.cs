@@ -465,6 +465,28 @@ public sealed class GameAssetProvider : IDisposable
         return null;
     }
 
+    private Dictionary<string, string>? _narrativeNames;
+    public string? TryGetNarrativeCharacterName(string actorPath)
+    {
+        if (_disposed) return null;
+        lock (_providerLoadLock)
+        {
+            if (!_provider.TryLoadPackageObject(actorPath, out var actor) || actor is null) return null;
+            var properties = Newtonsoft.Json.Linq.JObject.FromObject(actor)["Properties"];
+            var row = (string?)properties?["NarrativeNPC_ConversationRow"]?["RowName"];
+            if (string.IsNullOrEmpty(row)) return null;
+            if (_narrativeNames is null)
+            {
+                var table = TryLoadDataTable("AbioticFactor/Content/Blueprints/DataTables/DT_NPC_Conversations");
+                if (table is null) return null;
+                var rows = Newtonsoft.Json.Linq.JObject.FromObject(table)["Rows"] as Newtonsoft.Json.Linq.JObject;
+                _narrativeNames = rows?.Properties().ToDictionary(p => p.Name,
+                    p => (string?)p.Value["NPCName"]?["LocalizedString"] ?? "", StringComparer.OrdinalIgnoreCase) ?? [];
+            }
+            return _narrativeNames.TryGetValue(row, out var name) && !string.IsNullOrWhiteSpace(name) ? name : null;
+        }
+    }
+
     /// <summary>
     /// Resolves a placed actor's world transform from a cooked level package - used to find a
     /// vehicle's original spawn position (the <c>VehicleSpawn_*</c> actor named by its save key).

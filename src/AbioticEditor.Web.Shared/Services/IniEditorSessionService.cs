@@ -86,6 +86,20 @@ public sealed class IniDocumentSession
     public string? StatusResourceKey { get; private set; }
     public bool IsDirty => Sections.Any(s => s.Removed.Count != 0 || s.Entries.Any(e => e.IsDirty));
 
+    public bool AddSetting(SandboxSettingDefinition setting)
+    {
+        if (File.Kind != AbioticIniKind.SandboxSettings) return false;
+        var section = Sections.FirstOrDefault(s => string.Equals(s.Name, "SandboxSettings", StringComparison.OrdinalIgnoreCase));
+        if (section is null)
+        {
+            section = new IniSectionDraft("SandboxSettings", []);
+            Sections = [.. Sections, section];
+        }
+        if (section.Entries.Any(e => string.Equals(e.Key, setting.Key, StringComparison.OrdinalIgnoreCase))) return false;
+        section.Entries.Add(new IniEntryDraft(setting.Key, setting.DefaultValue, true));
+        return true;
+    }
+
     public void Save()
     {
         foreach (var section in Sections)

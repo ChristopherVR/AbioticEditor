@@ -4,6 +4,18 @@ Dated implementation and verification notes. Older entries describe the applicat
 time; they are not a current feature list or test-count guarantee. The maintained entry points
 are `README.md`, `docs/guide/index.md`, and `docs/reference/architecture.md`.
 
+## Review feature implementation (2026-09-15)
+
+Implemented coating fields and an installed-table picker for offline player/container slots;
+garden water/fertilizer/growth controls with one-spot-at-a-time details; chemistry flask
+summaries and contents links; Power Chair battery controls; pet food/mutation guidance;
+conversation-derived character names and a stage picker; and installed-table sandbox
+setting discovery. See docs/guide/review-features.md for the scope and remaining runtime
+limits. No real game session or deployed Power Chair fixture was available. Original saves
+were not written. Browser tests used copied saves at 1440px and 390px, including an INI save.
+The 171-check targeted suite passed, followed by seven focused checks after adding chair
+coverage and the coating-replacement regression. The host builds without warnings.
+
 ## Player/world detail audit and wiki comparison (2026-09-15)
 
 Opened all 12 player tabs, 18 populated Facility tabs and five metadata tabs at desktop
