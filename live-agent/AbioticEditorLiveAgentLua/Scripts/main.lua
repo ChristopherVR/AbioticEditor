@@ -1497,20 +1497,20 @@ local function writeResponseAtomic(text)
     os.rename(responseTempPath, responsePath)
 end
 
-local function respondToCurrentRequest(result, err)
+local function respondToCurrentRequest(result, err, requestId)
     if err then
-        writeResponseAtomic(json.encode({ ok = false, error = err }))
+        writeResponseAtomic(json.encode({ requestId = requestId, ok = false, error = err }))
         return
     end
     -- A result that json.lua cannot encode (a raw UObject/FName/FText userdata left in a table
     -- by a handler) used to throw here, after the handler had already "succeeded" - so no reply
     -- was ever written and the editor only saw a timeout (found live in round 76 with two new
     -- areas). Turn that into an ok:false reply naming the problem instead.
-    local okEncode, encoded = pcall(json.encode, { ok = true, result = result })
+    local okEncode, encoded = pcall(json.encode, { requestId = requestId, ok = true, result = result })
     if okEncode then
         writeResponseAtomic(encoded)
     else
-        writeResponseAtomic(json.encode({ ok = false, error = "the mod produced a reply it could not encode: " .. tostring(encoded) }))
+        writeResponseAtomic(json.encode({ requestId = requestId, ok = false, error = "the mod produced a reply it could not encode: " .. tostring(encoded) }))
     end
 end
 
@@ -1530,18 +1530,20 @@ local function handleOneRequest()
 
     local handler = handlers[request.cmd]
     if not handler then
-        writeResponseAtomic(json.encode({ ok = false, error = "unknown command '" .. request.cmd .. "'" }))
+        writeResponseAtomic(json.encode({ requestId = request.requestId, ok = false, error = "unknown command '" .. request.cmd .. "'" }))
         return
     end
 
     -- The handler itself calls respondToCurrentRequest (immediately for "ping", or later via
     -- runOnGameThread's ExecuteInGameThread for anything that touches the game) - this call does
     -- NOT produce the response itself, unlike a plain synchronous-return design.
-    local dispatchOk, dispatchErr = pcall(handler, request.payload or {}, respondToCurrentRequest)
+    -- Capture this request's id in the callback, never in a shared mutable current-id slot.
+    local respond = function(result, err) respondToCurrentRequest(result, err, request.requestId) end
+    local dispatchOk, dispatchErr = pcall(handler, request.payload or {}, respond)
     if not dispatchOk then
         -- The handler function itself raised before calling runOnGameThread/respond at all
         -- (a bug in the handler's own setup code, not inside the async game-thread work).
-        writeResponseAtomic(json.encode({ ok = false, error = "dispatch error: " .. tostring(dispatchErr) }))
+        writeResponseAtomic(json.encode({ requestId = request.requestId, ok = false, error = "dispatch error: " .. tostring(dispatchErr) }))
     end
 end
 

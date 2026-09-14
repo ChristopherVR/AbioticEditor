@@ -1,5 +1,23 @@
 # Abiotic Editor - Session history
 
+## Cascade live verification (2026-09-15)
+
+With permission to launch Cascade, backed up all 75 save files and verified their SHA256
+hashes before testing. Native testing found a timed-out base scan's late reply could be
+mistaken for the next command. The mailbox now correlates requests and responses, ignores
+stale replies, and rejects an older Lua agent without correlation support. Native regression
+coverage exercises timeout, late reply, matching reply, and legacy agent rejection.
+
+The base scan decoded full item metadata just to count occupied slots. Reading only item
+names reduced Cascade's 1,861-deployable scan from over five seconds to 229 ms. The next
+world-state request returned the correct payload. Recipe removal succeeded but the existing
+unlock RPC silently failed to restore it. Hosts now update the authoritative array for both
+directions; the removed recipe was restored and verified through the running agent.
+
+Full parity remains unfinished. Cascade remains the active verification world; the backup
+is under artifacts/cascade-live-backup-20260915-073257. Multiplayer propagation and complete
+save/reload coverage are still pending.
+
 ## Documentation screenshots (15 September 2026)
 
 Added a 28-image screenshot tour and refreshed the handbook illustrations for player saves, world containers and tools, INI editing, settings, Game Pass conversion, and experimental live setup. Technical references link to the relevant gallery sections; the agent README also shows the local helper step. Maintainer instructions cover future capture updates. Captures use copied saves in the Windows local host, frame out account IDs and personal save paths, and leave the remote token empty. Platform-specific installation screens and connected-game behavior are not represented.

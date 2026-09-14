@@ -28,6 +28,9 @@ public sealed class LiveParityClassProbe
         var paths = provider.Files.Keys.Where(path => path.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase)
             && (path.EndsWith("/Abiotic_CharacterProgressionComponent.uasset", StringComparison.OrdinalIgnoreCase)
                 || path.Contains("HumanCustomizationComp", StringComparison.OrdinalIgnoreCase)
+                || path.Contains("/Traits/", StringComparison.OrdinalIgnoreCase)
+                || path.EndsWith("/AbioticDeployed_CraftingBench_ParentBP.uasset", StringComparison.OrdinalIgnoreCase)
+                || path.EndsWith("/DT_BenchUpgrades.uasset", StringComparison.OrdinalIgnoreCase)
                 || path.EndsWith("/Abiotic_PlayerState.uasset", StringComparison.OrdinalIgnoreCase))).ToArray();
         Assert.NotEmpty(paths);
         foreach (var path in paths)

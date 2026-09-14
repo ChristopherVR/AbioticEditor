@@ -94,7 +94,8 @@ return function(ctx)
                     local stored = 0
                     if hasInventory then
                         for i = 1, #inv.CurrentInventory do
-                            if not ctx.slotRow(inv.CurrentInventory[i], i - 1).isEmpty then
+                            local rowName = ctx.slotRowName(inv.CurrentInventory[i])
+                            if rowName ~= "" and rowName ~= "None" and rowName ~= "Empty" then
                                 stored = stored + 1
                             end
                         end

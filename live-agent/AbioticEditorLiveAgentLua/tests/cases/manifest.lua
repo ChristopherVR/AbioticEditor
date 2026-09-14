@@ -22,4 +22,5 @@ return {
     "player_gaps",
     "world_gaps",
     "parity",
+    "mailbox",
 }

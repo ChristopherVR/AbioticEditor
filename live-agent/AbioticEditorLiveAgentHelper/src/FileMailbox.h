@@ -5,8 +5,8 @@
 // SDK access this project does not have).
 //
 // One request in flight at a time (matches TcpLiveGameChannel's own single-in-flight design), so
-// a single-slot mailbox is enough - no queue, no request ids needed at this layer (the TCP
-// envelope's own "id" is handled one level up, in main.cpp).
+// a single-slot mailbox is enough. Correlation ids are still necessary: a game-thread callback
+// can finish after a timeout and must never answer a later, unrelated request.
 //
 // Both sides derive the IPC folder from %LOCALAPPDATA% independently (no config file to keep in
 // sync): this helper via GetEnvironmentVariable, the Lua mod via os.getenv - both are the
@@ -42,6 +42,9 @@ namespace LiveAgent
             DeleteFileA(ResponsePath().c_str()); // Clear any stale response from a prior timeout.
 
             JsonObject requestObject;
+            const auto requestId = std::to_string(GetCurrentProcessId()) + "-" +
+                std::to_string(GetTickCount64()) + "-" + std::to_string(++m_sequence);
+            requestObject.emplace("requestId", requestId);
             requestObject.emplace("cmd", command);
             requestObject.emplace("payload", payload);
             WriteAtomic(RequestPath(), ToLine(JsonValue(std::move(requestObject))));
@@ -51,10 +54,14 @@ namespace LiveAgent
             {
                 if (TryReadAndDelete(ResponsePath(), m_lastLine))
                 {
-                    DeleteFileA(RequestPath().c_str()); // Defensive: normally the Lua mod already did.
                     JsonValue response = ParseLine(m_lastLine);
                     const JsonObject* object = response.AsObject();
                     if (!object) throw CommandFailed("the live-agent Lua mod sent a malformed response");
+                    auto idIt = object->find("requestId");
+                    if (idIt == object->end())
+                        throw CommandFailed("update the live-agent Lua mod to match this helper before editing");
+                    if (idIt->second.AsString() != requestId) continue;
+                    DeleteFileA(RequestPath().c_str()); // Only remove the matching request.
                     auto okIt = object->find("ok");
                     if (okIt == object->end() || !okIt->second.AsBool())
                     {
@@ -77,6 +84,7 @@ namespace LiveAgent
     private:
         std::string m_dir;
         std::string m_lastLine;
+        unsigned long long m_sequence = 0;
 
         std::string RequestPath() const { return m_dir + "\\request.json"; }
         std::string RequestTempPath() const { return m_dir + "\\request.json.tmp"; }

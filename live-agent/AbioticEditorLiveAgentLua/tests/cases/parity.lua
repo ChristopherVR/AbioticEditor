@@ -19,6 +19,11 @@ return function(H)
     H.eq(#recipes, 1, "only requested recipe removed")
     H.eq(recipes[1], "recipe_b", "other recipe retained")
     H.eq(dirty.RecipesUnlockedArray, component, "recipe replication notified")
+    H.ok(H.dispatch("recipes.set", { unlockIds = { "recipe_a", "recipe_a" } }), "restore host recipe")
+    local restored = H.ok(H.dispatch("recipes.get")).unlockedIds
+    H.eq(#restored, 2, "host unlock restores recipe without duplicates")
+    H.eq(restored[2], "recipe_a", "host unlock writes authoritative list")
+    H.eq(H.calls(component, "Request_UnlockNewRecipe"), 0, "host does not rely on ineffective discovery RPC")
     component.CraftedItems = { H.fname("existing") }
     H.ok(H.dispatch("general.set", { itemsCrafted = { "new", "new", "existing" } }), "discover crafted")
     H.eq(#H.ok(H.dispatch("general.get")).itemsCrafted, 2, "crafted discovery deduplicates")

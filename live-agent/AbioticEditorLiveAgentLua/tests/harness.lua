@@ -134,7 +134,7 @@ function H.install()
     end
     _G.StaticFindObject = function(path) return H.world.statics[path] end
     _G.ExecuteInGameThread = function(fn) fn() end
-    _G.LoopAsync = function() end
+    _G.LoopAsync = function(_, callback) H.poll = callback end
     _G.RegisterHook = function() end
     _G.NAME_None = H.fname("None")
     _G.EFindName = { FNAME_Find = 0, FNAME_Add = 1 }

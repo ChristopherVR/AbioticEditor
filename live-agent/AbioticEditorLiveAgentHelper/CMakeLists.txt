@@ -16,3 +16,10 @@ add_executable(AbioticEditorLiveAgentHelper
 )
 target_include_directories(AbioticEditorLiveAgentHelper PRIVATE src "${SHARED_DIR}")
 target_link_libraries(AbioticEditorLiveAgentHelper PRIVATE ws2_32 bcrypt)
+
+include(CTest)
+if(BUILD_TESTING)
+    add_executable(FileMailboxTests tests/FileMailboxTests.cpp)
+    target_include_directories(FileMailboxTests PRIVATE src "${SHARED_DIR}")
+    add_test(NAME FileMailboxCorrelation COMMAND FileMailboxTests)
+endif()

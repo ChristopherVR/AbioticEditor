@@ -1,5 +1,5 @@
 -- Recipe names are stored in CharacterProgressionComponent.RecipesUnlockedArray.
--- Unlocks use Request_UnlockNewRecipe. Hosts can relock by replacing the reflected
+-- Hosts unlock and relock by replacing the reflected
 -- FName array and invoking the exported OnRep_RecipesUnlockedArray. Array assignment
 -- is grounded in UE4SS LuaUObject.cpp push_arrayproperty, not an invented relock RPC.
 return function(ctx)
@@ -41,22 +41,21 @@ return function(ctx)
         ctx.runOnGameThread(function()
             local component = getProgressionComponent(payload)
             if not component then error("no CharacterProgressionComponent found") end
-            if payload.lockIds and #payload.lockIds > 0 then
-                if not ctx.isHost() then error("relocking recipes requires host authority") end
+            if ctx.isHost() and replication.available() then
                 local helper = replication.requireHelper()
-                local replacement = names.prepare(component.RecipesUnlockedArray, {}, payload.lockIds)
+                local replacement = names.prepare(component.RecipesUnlockedArray, payload.unlockIds, payload.lockIds)
                 component.RecipesUnlockedArray = replacement
                 replication.mark(helper, component, "RecipesUnlockedArray")
                 component:OnRep_RecipesUnlockedArray()
+                return nil
             end
+            if payload.lockIds and #payload.lockIds > 0 then error("relocking recipes requires host authority and replication notification support") end
             local ids = payload.unlockIds or {}
             for i = 1, #ids do
                 if ids[i] and ids[i] ~= "" then
                     -- Same FName-from-string pattern main.lua's writeSlot() uses for item ids:
                     -- FName(str, EFindName.FNAME_Find).
-                    pcall(function()
-                        component:Request_UnlockNewRecipe(FName(ids[i], EFindName.FNAME_Find))
-                    end)
+                    component:Request_UnlockNewRecipe(FName(ids[i], EFindName.FNAME_Find))
                 end
             end
             return nil
