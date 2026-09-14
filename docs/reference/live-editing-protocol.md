@@ -700,3 +700,28 @@ in `Core/LiveEditing/<Area>/` mirroring the shape of `LivePlayerVitalsChannel`/
 native helper's forwarding allowlist (`AbioticEditorLiveAgentHelper/src/main.cpp`). No `hello`/envelope-level change is
 needed for a new area; the envelope's `payload`/`result` already accept either a flat object or a
 flat array of them, which has covered every area so far.
+
+## Item-table validation for live writes
+
+`inventory.set` and `containers.set` accept optional `dataTable` on each edit;
+`dropped.add` and `companions.set` accept it on the request. It is a full Unreal object path,
+for example `/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global`. The editor resolves
+this from the same item catalog used by offline writers. It is not the slot's `assetId`.
+
+For a replacement, the agent resolves the DataTable UObject, loads the asset on the game
+thread if needed, and checks `DataTableFunctionLibrary.DoesDataTableRowExist` before writing
+both `DataTable` and `RowName`. An omitted table uses the global item table. A same-item edit
+preserves an existing valid table, including a mod override; an invalid existing table is
+repaired using the supplied/catalog table. Quantity-only edits without `itemId` and clearing
+a slot do not need table lookup. Empty slots may use `Empty` or `None` when read; clearing
+writes `Empty`.
+
+Inventory and container batches preflight all slot indices and item-table lookups before
+mutating slots. Missing tables, missing rows, and unavailable lookup support return an error
+instead of a row-only write. This is validation, not rollback for arbitrary runtime failures.
+The existing `OnRep_CurrentInventory` refresh remains once per affected inventory. Blueprint
+inspection confirms its delayed inventory update and equipment callback path, but does not
+prove multiplayer replication or backpack-capacity behavior in a running game.
+
+See the [live guide](/guide/live-editing#an-item-exists-but-is-invisible) for repairing items
+written by an older agent. These changes require updating the installed agent scripts.

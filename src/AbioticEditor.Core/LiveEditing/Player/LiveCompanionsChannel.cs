@@ -1,3 +1,4 @@
+using AbioticEditor.Core.Items;
 using AbioticEditor.Core.PlayerSaves;
 
 namespace AbioticEditor.Core.LiveEditing.Player;
@@ -39,7 +40,7 @@ public sealed class LiveCompanionsChannel(ILiveGameChannel channel)
         CancellationToken cancellationToken = default)
         => _channel.RequestAsync<object?>("companions.set",
             new SetWire(kind, slotIndex, false, pet.ItemRow, pet.Name, pet.Health, pet.MaxHealth,
-                pet.Xp, pet.MutationProgress, pet.PetMutation, playerId),
+                pet.Xp, pet.MutationProgress, pet.PetMutation, playerId, ItemTableIndex.TableRefFor(pet.ItemRow)),
             cancellationToken);
 
     /// <summary>Clears a pet's slot back to empty immediately. There is no undo once this has been
@@ -53,7 +54,7 @@ public sealed class LiveCompanionsChannel(ILiveGameChannel channel)
         CancellationToken cancellationToken = default)
     {
         var wire = await _channel.RequestAsync<ClearResultWire>("companions.set",
-            new SetWire(kind, slotIndex, true, null, null, null, null, null, null, null, playerId),
+            new SetWire(kind, slotIndex, true, null, null, null, null, null, null, null, playerId, null),
             cancellationToken).ConfigureAwait(false);
         return new LiveClearResult(wire?.DespawnedFollower ?? false);
     }
@@ -79,7 +80,7 @@ public sealed class LiveCompanionsChannel(ILiveGameChannel channel)
     private sealed record RowWire(string Kind, int SlotIndex, string ItemId, string? Name,
         double Health, double MaxHealth, int Xp, int MutationProgress, int PetMutation);
     private sealed record SetWire(string Kind, int SlotIndex, bool? Clear, string? ItemId, string? Name,
-        double? Health, double? MaxHealth, int? Xp, int? MutationProgress, int? PetMutation, string? PlayerId);
+        double? Health, double? MaxHealth, int? Xp, int? MutationProgress, int? PetMutation, string? PlayerId, string? DataTable);
     private sealed record ClearResultWire(bool? DespawnedFollower);
 }
 

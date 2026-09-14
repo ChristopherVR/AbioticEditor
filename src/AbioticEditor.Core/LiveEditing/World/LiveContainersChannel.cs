@@ -1,3 +1,4 @@
+using AbioticEditor.Core.Items;
 using AbioticEditor.Core.LiveEditing.Player;
 
 namespace AbioticEditor.Core.LiveEditing.World;
@@ -31,7 +32,7 @@ public sealed class LiveContainersChannel(ILiveGameChannel channel)
         CancellationToken cancellationToken = default)
         => _channel.RequestAsync<object?>("containers.set",
             new SetWire(containerId, edits.Select(e => new EditWire(
-                e.SlotIndex, e.Clear, e.ItemId, e.Stack, e.Durability, e.MaxDurability)).ToList(), Sort: null),
+                e.SlotIndex, e.Clear, e.ItemId, e.Stack, e.Durability, e.MaxDurability, ItemTableIndex.TableRefFor(e.ItemId))).ToList(), Sort: null),
             cancellationToken);
 
     /// <summary>
@@ -45,7 +46,7 @@ public sealed class LiveContainersChannel(ILiveGameChannel channel)
     private sealed record ContainerWire(string Id, string Label, double X, double Y, double Z, IReadOnlyList<SlotWire>? Slots);
     private sealed record SlotWire(int SlotIndex, string ItemId, bool IsEmpty, int Stack, double Durability, double MaxDurability);
     private sealed record SetWire(string Id, IReadOnlyList<EditWire> Edits, bool? Sort);
-    private sealed record EditWire(int SlotIndex, bool? Clear, string? ItemId, int? Stack, double? Durability, double? MaxDurability);
+    private sealed record EditWire(int SlotIndex, bool? Clear, string? ItemId, int? Stack, double? Durability, double? MaxDurability, string? DataTable);
 }
 
 /// <summary>One loaded container. <paramref name="Id"/> is the game's full object name for this

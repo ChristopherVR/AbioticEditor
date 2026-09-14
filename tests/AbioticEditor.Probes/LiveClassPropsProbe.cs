@@ -46,6 +46,30 @@ public class LiveClassPropsProbe
     }
 
     [Fact]
+    public void Dump_InventoryRefreshFlow()
+    {
+        var outPath = Environment.GetEnvironmentVariable("LIVE_INVENTORY_FLOW_OUT");
+        if (string.IsNullOrWhiteSpace(outPath)) return;
+        using var provider = CreateProvider();
+        if (provider is null) return;
+        provider.ReadScriptData = true;
+        using var writer = new StreamWriter(outPath, false);
+        foreach (var key in provider.Files.Keys.Where(k =>
+                     k.EndsWith("/Abiotic_InventoryComponent.uasset", StringComparison.OrdinalIgnoreCase)
+                     || k.EndsWith("/Abiotic_PlayerCharacter.uasset", StringComparison.OrdinalIgnoreCase)))
+        {
+            foreach (var function in provider.LoadPackage(key).GetExports().OfType<UFunction>().Where(f =>
+                         f.Name.Contains("InventoryUpdated", StringComparison.Ordinal)
+                         || f.Name is "OnRep_CurrentInventory" or "Request_RefreshEquipSlot" or "Server_DelayedUpdateBackpackSize"
+                         || f.Name.StartsWith("ExecuteUbergraph_", StringComparison.Ordinal)))
+            {
+                writer.WriteLine(key + " :: " + function.Name);
+                writer.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(function, Newtonsoft.Json.Formatting.Indented));
+            }
+        }
+    }
+
+    [Fact]
     public void Dump_LiveEditingClassLayouts()
     {
         using var provider = CreateProvider();

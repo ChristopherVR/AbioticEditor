@@ -170,9 +170,7 @@ return function(ctx)
                 return { despawnedFollower = despawnedFollower }
             end
 
-            if payload.itemId ~= nil and payload.itemId ~= "" then
-                slot.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B.RowName = FName(payload.itemId, EFindName.FNAME_Find)
-            end
+            ctx.writeSlot(slot, { itemId = payload.itemId, dataTable = payload.dataTable })
             if payload.health ~= nil then changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = payload.health end
             if payload.maxHealth ~= nil then changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = payload.maxHealth end
             if payload.name ~= nil then

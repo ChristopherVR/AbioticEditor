@@ -5,6 +5,32 @@ time; they are not a current feature list or test-count guarantee. The maintaine
 are `README.md`, `docs/guide/index.md`, and `docs/reference/architecture.md`.
 
 
+## Live item DataTable repair (2026-09-14)
+
+Confirmed that player, container, ground-item and carried-pet writes changed RowName while
+retaining the previous DataTable reference. Empty or unrelated tables can leave the item
+visible to the editor's row-name reader but unresolved in the game. All four Core channels
+now send the catalog table; the Lua agent validates the row and writes both handle fields.
+Same-item edits preserve valid existing tables, including mod overrides. Missing tables are
+loaded on the game thread before resolving names. Inventory/container batches preflight every
+slot and table before mutation. None is accepted as an empty-slot value alongside Empty.
+
+Added wire tests and Lua regressions for all four player inventories, wrong-table repair,
+valid overrides, rejected batches, late-loaded names, containers, carried pets and ground
+item staging. Inspected installed game Blueprint bytecode with an opt-in research probe:
+OnRep_CurrentInventory leads through delayed inventory updates and equipment callbacks.
+Kept that existing refresh path. Runtime multiplayer propagation, backpack capacity and
+character appearance still require a real-game check; no gameplay or game-file writes were
+performed. Direct array writes and network dirty-state handling remain a review follow-up
+if symptoms persist for remote players. Existing invisible items require an updated agent
+and reapplying the intended item; the guide explains this and the protocol documents the field.
+
+Verification: 1,270 .NET tests passed, one Lua-executable wrapper skipped. The Lua 5.4
+harness ran separately through a dev-only Lupa runtime: 498 checks passed. Host compiled
+as part of the suite. Both installed-game inspection probes passed. Documentation built
+and checked 1,740 links/images across 43 pages. Browser checks of the rendered live guide
+at 390px and 1280px confirmed the repair section and no horizontal page overflow.
+
 ## Guided separate UE4SS installation (2026-09-14)
 
 Supersedes the automatic runtime download described in the previous entry. At the player's

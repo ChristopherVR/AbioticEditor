@@ -519,16 +519,11 @@ end
 -- already use) carries low blast-radius risk to verify empirically - but if this behaves
 -- unexpectedly, this comment is where to look first.
 --
--- Also unconfirmed: whether an inventory write needs an OnRep-style call to refresh the HUD (no
--- OnRep_*Inventory* or similar exists anywhere in the reference mod, unlike vitals'
--- OnRep_CurrentHealth or NPCs' OnRep_IsDead) - tested live to find out, see docs/PROGRESS.md.
---
--- NAME_None (real global, confirmed used the same way at AFUtils.lua:558) marks an empty slot.
--- FName(string, EFindName.FNAME_Find) (real, used by the ACTIVE SetNextWeatherEvent command at
--- AFUtils.lua:587) converts a row-name string into the FName these fields need - FNAME_Find only
--- finds an FName already interned somewhere in the running game, which every real item row name
--- already is (the item data table itself references it), so this can never silently fabricate a
--- bogus new name.
+-- Inventory writes call OnRep_CurrentInventory once per changed inventory. The installed
+-- game's Blueprint routes this through DelayedInventoryUpdate and InventoryUpdated,
+-- including equipment callbacks. Multiplayer propagation still needs gameplay verification.
+-- Empty is the game's empty-slot sentinel. Resolve the table before using FNAME_Find
+-- for a replacement row, since loading an asset can introduce previously unknown names.
 
 -- Ordered (not a plain hash-iterated table) so inventory.list's output is stable across calls.
 -- "transmog" reads/writes the same Abiotic_InventoryComponent_C slot structs as the other three
@@ -559,6 +554,88 @@ local function slotRowName(slot)
     return ""
 end
 
+-- FDataTableRowHandle needs BOTH its UObject table and its row name. Keeping the old
+-- table (often ItemTable_Pickups on an empty slot) makes a newly assigned item invisible.
+local ITEM_TABLE_GLOBAL = "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global"
+local function isDataTable(value)
+    local ok, valid = pcall(function() return value and value:IsValid() and value:IsA("/Script/Engine.DataTable") end)
+    return ok and valid
+end
+
+local function resolveItemHandle(slot, row)
+    local library = StaticFindObject("/Script/Engine.Default__DataTableFunctionLibrary")
+    if not library or not library:IsValid() then error("cannot validate item data on this game build") end
+    local function hasRow(dataTable, name)
+        if not isDataTable(dataTable) then return false end
+        local ok, exists = pcall(function() return library:DoesDataTableRowExist(dataTable, name) end)
+        if not ok then error("cannot validate the item's DataTable on this game build") end
+        return exists == true
+    end
+    local handle = slot.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B
+    local name = FName(row.itemId, EFindName.FNAME_Find)
+    -- Preserve a working instance table for a same-item edit, including mod overrides.
+    if slotRowName(slot) == row.itemId and hasRow(handle.DataTable, name) then
+        return handle.DataTable, name
+    end
+    local path = row.dataTable or ITEM_TABLE_GLOBAL
+    if type(path) ~= "string" or path:sub(1, 1) ~= "/" then error("invalid item DataTable path") end
+    local dataTable = StaticFindObject(path)
+    if not isDataTable(dataTable) then
+        -- LoadAsset is a documented UE4SS global; this helper only runs on the game thread.
+        -- Find the object again because LoadAsset's return value varies between UE4SS builds.
+        if type(LoadAsset) == "function" then pcall(function() LoadAsset(path) end) end
+        dataTable = StaticFindObject(path)
+    end
+    if not isDataTable(dataTable) then
+        error("item DataTable is unavailable: " .. path .. ". Check matching game data in Settings.")
+    end
+    -- Loading the table interns its names. FNAME_Find before loading can return None.
+    name = FName(row.itemId, EFindName.FNAME_Find)
+    if name:ToString() == "None" or not hasRow(dataTable, name) then
+        error("item '" .. row.itemId .. "' was not found in " .. path .. ". Reload game data in Settings.")
+    end
+    return dataTable, name
+end
+
+local function prepareSlotWrite(slot, row)
+    local prepared = { slot = slot, row = row }
+    if not slot.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B
+        or not slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313 then
+        error("item slot data is unavailable")
+    end
+    if not row.clear and row.itemId ~= nil and row.itemId ~= "" then
+        if type(row.itemId) ~= "string" or row.itemId == "Empty" or row.itemId == "None" then
+            error("use clear to empty an item slot")
+        end
+        prepared.dataTable, prepared.name = resolveItemHandle(slot, row)
+    end
+    return prepared
+end
+
+local function applySlotWrite(prepared)
+    local slot, row = prepared.slot, prepared.row
+    local handle = slot.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B
+    local data = slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313
+    if row.clear then
+        handle.RowName = FName("Empty", EFindName.FNAME_Find)
+        data.CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 0
+        data.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = 0
+        data.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = 0
+        return
+    end
+    if prepared.name then
+        handle.DataTable = prepared.dataTable
+        handle.RowName = prepared.name
+    end
+    if row.stack ~= nil then data.CurrentStack_9_D443B69044D640B0989FD8A629801A49 = row.stack end
+    if row.durability ~= nil then data.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = row.durability end
+    if row.maxDurability ~= nil then data.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = row.maxDurability end
+end
+
+local function writeSlot(slot, row)
+    applySlotWrite(prepareSlotWrite(slot, row))
+end
+
 handlers["inventory.list"] = function(payload, respond)
     runOnGameThread(function()
         local player = resolvePlayer(payload)
@@ -577,10 +654,8 @@ handlers["inventory.list"] = function(payload, respond)
                         slotIndex = i - 1,
                         itemId = rowName,
                         -- "Empty" (confirmed real, capitalized) is this game's own empty-slot
-                        -- sentinel string - not "None", which NAME_None:ToString() never actually
-                        -- produces for this field (confirmed live: an untouched slot's RowName
-                        -- prints "Empty", not "None"). "" is kept as a defensive fallback only.
-                        isEmpty = rowName == "" or rowName == "Empty",
+                        -- sentinel. Accept None as well for uninitialized slots.
+                        isEmpty = rowName == "" or rowName == "Empty" or rowName == "None",
                         stack = changeableData and changeableData.CurrentStack_9_D443B69044D640B0989FD8A629801A49 or 0,
                         durability = changeableData and changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 or 0,
                         maxDurability = changeableData and changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B or 0,
@@ -606,50 +681,21 @@ handlers["inventory.set"] = function(payload, respond)
         local rows = payload.edits or {}
         -- Every inventory component actually touched below, so it can be pushed out through
         -- replication/UI once after the loop - see the OnRep_CurrentInventory call below.
-        local touchedInventories = {}
+        local touchedInventories, prepared = {}, {}
+        -- Resolve every slot/table before changing any slot in a multi-item operation.
         for i = 1, #rows do
             local row = rows[i]
             local inv = row.kind and inventoryComponent(player, row.kind)
-            local slot = inv and inv.CurrentInventory and row.slotIndex ~= nil
-                and inv.CurrentInventory[row.slotIndex + 1]
-            if slot then
-                local changeableData = slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313
-                if row.clear then
-                    -- "Empty" (confirmed live), not NAME_None - see inventory.list's isEmpty
-                    -- comment above for why: this game's own empty-slot sentinel is the literal
-                    -- interned name "Empty", not the engine's generic none-name.
-                    slot.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B.RowName =
-                        FName("Empty", EFindName.FNAME_Find)
-                    changeableData.CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 0
-                    changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = 0
-                    changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = 0
-                else
-                    if row.itemId ~= nil and row.itemId ~= "" then
-                        slot.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B.RowName =
-                            FName(row.itemId, EFindName.FNAME_Find)
-                    end
-                    if row.stack ~= nil then
-                        changeableData.CurrentStack_9_D443B69044D640B0989FD8A629801A49 = row.stack
-                    end
-                    if row.durability ~= nil then
-                        changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = row.durability
-                    end
-                    if row.maxDurability ~= nil then
-                        changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = row.maxDurability
-                    end
-                end
-                touchedInventories[inv] = inv
+            if type(row.slotIndex) ~= "number" or row.slotIndex < 0 or row.slotIndex % 1 ~= 0 then
+                error("invalid inventory slot index")
             end
+            local slot = inv and inv.CurrentInventory and inv.CurrentInventory[row.slotIndex + 1]
+            if not slot then error("inventory slot is unavailable; refresh and retry") end
+            prepared[i] = prepareSlotWrite(slot, row)
+            touchedInventories[inv] = inv
         end
-        -- BUG FIXED (found this round): this handler wrote the slot struct fields directly but
-        -- never called OnRep_CurrentInventory afterward, unlike every other write path in this
-        -- file that touches the identical Abiotic_InventoryComponent_C class - containers.set and
-        -- dropped.add both call it (see those handlers below) specifically because "OnRep_
-        -- CurrentInventory exists on the component and is called after a write so clients/UI
-        -- refresh". inventory.set predates that finding and was never updated to match, which
-        -- matches the reported symptom exactly: a live inventory edit landed in the underlying
-        -- data but never appeared anywhere (the in-game HUD, or a follow-up read) until something
-        -- unrelated forced a refresh. Same pcall-guarded shape as the other two call sites.
+        for i = 1, #prepared do applySlotWrite(prepared[i]) end
+        -- Keep the existing game inventory/equipment update path once per component.
         for inv in pairs(touchedInventories) do
             pcall(function() inv:OnRep_CurrentInventory() end)
         end
@@ -1098,23 +1144,6 @@ local function slotRow(slot, index)
     }
 end
 
-local function writeSlot(slot, row)
-    local changeableData = slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313
-    if row.clear then
-        slot.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B.RowName = FName("Empty", EFindName.FNAME_Find)
-        changeableData.CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 0
-        changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = 0
-        changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = 0
-        return
-    end
-    if row.itemId ~= nil and row.itemId ~= "" then
-        slot.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B.RowName = FName(row.itemId, EFindName.FNAME_Find)
-    end
-    if row.stack ~= nil then changeableData.CurrentStack_9_D443B69044D640B0989FD8A629801A49 = row.stack end
-    if row.durability ~= nil then changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = row.durability end
-    if row.maxDurability ~= nil then changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = row.maxDurability end
-end
-
 local function containerInventory(container)
     local ok, inv = pcall(function() return container.ContainerInventory end)
     if ok and inv and inv:IsValid() then return inv end
@@ -1149,12 +1178,17 @@ handlers["containers.set"] = function(payload, respond)
         if not container then error("container not found (it may have been unloaded or destroyed)") end
         local inv = containerInventory(container)
         if not inv or not inv.CurrentInventory then error("container has no inventory") end
-        local rows = payload.edits or {}
+        local rows, prepared = payload.edits or {}, {}
         for i = 1, #rows do
             local row = rows[i]
-            local slot = row.slotIndex ~= nil and inv.CurrentInventory[row.slotIndex + 1]
-            if slot then writeSlot(slot, row) end
+            if type(row.slotIndex) ~= "number" or row.slotIndex < 0 or row.slotIndex % 1 ~= 0 then
+                error("invalid container slot index")
+            end
+            local slot = inv.CurrentInventory[row.slotIndex + 1]
+            if not slot then error("container slot is unavailable; refresh and retry") end
+            prepared[i] = prepareSlotWrite(slot, row)
         end
+        for i = 1, #prepared do applySlotWrite(prepared[i]) end
         if payload.sort then
             -- SortInventory() is a real, ZERO-parameter function on Abiotic_InventoryComponent_C
             -- (LiveClassPropsProbe, fragment "Abiotic_InventoryComponent") - reorders
@@ -1250,7 +1284,7 @@ handlers["dropped.add"] = function(payload, respond)
             if candidate and candidate.CurrentInventory then
                 for i = 1, #candidate.CurrentInventory do
                     local rowName = slotRowName(candidate.CurrentInventory[i])
-                    if rowName == "" or rowName == "Empty" then
+                    if rowName == "" or rowName == "Empty" or rowName == "None" then
                         targetInv, targetSlot, targetIndex = candidate, candidate.CurrentInventory[i], i - 1
                         break
                     end
@@ -1262,6 +1296,7 @@ handlers["dropped.add"] = function(payload, respond)
 
         writeSlot(targetSlot, {
             itemId = payload.itemId,
+            dataTable = payload.dataTable,
             stack = payload.stack or 1,
             durability = payload.durability,
             maxDurability = payload.maxDurability,

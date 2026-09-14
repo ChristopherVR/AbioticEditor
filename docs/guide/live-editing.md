@@ -195,6 +195,27 @@ These locations are for troubleshooting. The editor manages its own agent and he
 | `%LOCALAPPDATA%/AbioticEditorLiveAgent/helper.log` | Helper startup and connection diagnostics |
 | `%LOCALAPPDATA%/AbioticEditorLiveAgent/token.txt` and `port.txt` | Local credentials and actual listening port |
 
+## An item exists but is invisible
+
+Older live-agent versions could change an item's name while keeping the slot's previous item
+table. The editor could show the item while the game could not resolve its icon or equipment.
+This affected player inventories, equipped backpacks, containers, and items added to the ground.
+
+1. Close the game and use the updated editor's helper setup to update its agent scripts.
+2. Restart the game, connect, and refresh the affected inventory or container.
+3. Select the affected slot and apply the intended item again. For a ground item, remove the
+   affected drop and add it again, checking the result before adding more.
+
+The agent now checks that the item exists in its game table before replacing it. If validation
+fails, check **Settings > Game data** points to the same game installation and reload its data.
+An invalid item or slot rejects an inventory/container batch before any of its edits are written.
+Existing items are not automatically scanned or repaired.
+
+Live equipment remains experimental. Automated checks cover table selection and refresh calls;
+they cannot confirm backpack capacity, character appearance, or what another player sees in
+an actual game. If a repaired item is still invisible, report the item name, affected slot,
+whether you are the host or a client, and whether it is missing in the game, editor, or both.
+
 ## Missing objects or a failed connection
 
 - **An object is absent:** only objects in loaded sectors can appear. Move a player near it and refresh.

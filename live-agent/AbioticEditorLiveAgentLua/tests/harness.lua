@@ -248,8 +248,19 @@ end
 
 -- A hosting session: one local player with a pawn carrying the stats/inventory/progression
 -- components every player area expects. Returns the pawn.
+function H.itemTable(path, rows)
+    local obj = H.object("/Script/Engine.DataTable", { __rows = rows }, {})
+    H.world.static(path, obj)
+    return obj
+end
+
 function H.hostSession()
     H.world.reset()
+    H.itemTable("/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
+        { scrap_metal = true, bandage = true, pet_skink = true })
+    H.world.static("/Script/Engine.Default__DataTableFunctionLibrary", H.object("DataTableFunctionLibrary", {}, {
+        DoesDataTableRowExist = function(_, dataTable, name) return dataTable.__rows[name:ToString()] == true end,
+    }))
     local function inventory(count, kind, extraFields, extraMethods)
         local slots = {}
         for i = 1, count do

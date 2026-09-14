@@ -1,3 +1,5 @@
+using AbioticEditor.Core.Items;
+
 namespace AbioticEditor.Core.LiveEditing.Player;
 
 /// <summary>
@@ -34,7 +36,7 @@ public sealed class LiveInventoryChannel(ILiveGameChannel channel)
         CancellationToken cancellationToken = default)
         => _channel.RequestAsync<object?>("inventory.set",
             new SetWire(edits.Select(e => new EditWire(
-                e.Kind, e.SlotIndex, e.Clear, e.ItemId, e.Stack, e.Durability, e.MaxDurability)).ToList(), playerId),
+                e.Kind, e.SlotIndex, e.Clear, e.ItemId, e.Stack, e.Durability, e.MaxDurability, ItemTableIndex.TableRefFor(e.ItemId))).ToList(), playerId),
             cancellationToken);
 
     private sealed record PlayerIdWire(string PlayerId);
@@ -42,7 +44,7 @@ public sealed class LiveInventoryChannel(ILiveGameChannel channel)
         int Stack, double Durability, double MaxDurability);
     private sealed record SetWire(IReadOnlyList<EditWire> Edits, string? PlayerId);
     private sealed record EditWire(string Kind, int SlotIndex, bool? Clear, string? ItemId,
-        int? Stack, double? Durability, double? MaxDurability);
+        int? Stack, double? Durability, double? MaxDurability, string? DataTable);
 }
 
 /// <summary>One inventory slot, as listed by <see cref="LiveInventoryChannel.GetAsync"/>.</summary>
