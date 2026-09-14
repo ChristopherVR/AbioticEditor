@@ -28,7 +28,7 @@
         </div>
     }
     <a class="skip-link" href="#main-content">@Languages.Text("skip")</a>
-    <header class="masthead">
+    <header class="masthead" inert="@(_modeSelectOpen ? "" : null)">
         <a class="brand-lockup" href="browse?home" aria-label="@Languages.Text("brand.home")">
             <GameArtImage GameRef="@LogoPrimaryRef" Alt="">
                 <ChildContent>
@@ -77,7 +77,7 @@
                choice on screen in the first place - a browser tab has nothing to re-prompt. *@
             @if (_liveEditingAvailable)
             {
-                <button class="round-action material-symbol" type="button" @onclick="OpenModeSelect" title="@Languages.Resource("ModeSelect_ReopenButton")" aria-label="@Languages.Resource("ModeSelect_ReopenButton")">swap_horiz</button>
+                <button class="secondary mode-switch-action" type="button" @onclick="OpenModeSelect" title="@Languages.Resource("ModeSelect_ReopenButton")"><span class="material-symbol" aria-hidden="true">swap_horiz</span>@Languages.Resource(IsPureLiveMode ? "Editing_LiveModeLabel" : "Editing_OfflineModeLabel")</button>
             }
             @* OPEN FOLDER is a file-workspace action, and /live is never the place for it: it stays
                off the header for the whole time that route is active, loaded folder or not, the
@@ -91,8 +91,8 @@
         </nav>
     </header>
     <div class="hazard" aria-hidden="true"></div>
-    <main id="main-content" tabindex="-1"><WorkspaceShell>@Body</WorkspaceShell></main>
-    <footer class="status-footer">
+    <main id="main-content" tabindex="-1" inert="@(_modeSelectOpen ? "" : null)"><WorkspaceShell>@Body</WorkspaceShell></main>
+    <footer class="status-footer" inert="@(_modeSelectOpen ? "" : null)">
         <div class="live-status">
             <span aria-hidden="true"></span>
             @(IsPureLiveMode

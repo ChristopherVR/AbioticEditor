@@ -35,7 +35,14 @@
 else
 {
     <section class="workspace single-workspace live-connect" aria-label="@L.Resource("Live_Title")">
-        <p class="lede live-warning">@L.Resource("Live_ImmediateWarning")</p>
+        @if (_surface == LiveSurface.OfflinePlayerFile)
+        {
+            <p class="editing-mode-note">@L.Resource("Editing_OfflinePlayerNote")</p>
+        }
+        else
+        {
+            <LiveEditingGuide />
+        }
 
         @* ONE surface at a time, exactly like the file editor's own single-workspace section:
            a player save's tabs OR a world save's tabs, never both stacked - see

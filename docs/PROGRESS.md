@@ -24,6 +24,30 @@ columns and does not cover helmets or weapons. Full findings and the conservativ
 in `docs/reference/research/research-item-visual-variants.md`; repeatable pak/save probes are in
 `tests/AbioticEditor.Probes/ItemVariantProbeTests.cs`.
 
+## UI review: clearer offline and experimental live editing (2026-09-14)
+
+Reworked the startup chooser into a readable comparison: offline editing is recommended,
+changes wait for Save, and every save keeps a backup. Live editing is explicitly experimental,
+has fewer tools, applies changes to the running game, and has no automatic backup or undo.
+A shared, expandable guide explains persistence, disconnect behavior, loaded-object limits,
+host requirements, unsupported traits/counters/bench upgrades/world-wide unlocks, and setup.
+It opens expanded before connection and stays available inside the live editor. Offline player
+files opened within a live session now get their own accurate staged-save message.
+
+The header has a labeled mode switch. Home explains the workflow, puts technical folder paths
+behind help, uses readable text, and trims wasted space. Side panels reserve more room for the
+actual editor on laptop screens. Mode dialogs keep keyboard focus, make background controls
+inert, and sit above mobile drawer controls. The existing landmark test permits the added inert
+attribute. New English copy is resource-backed; other locales use the normal English fallback.
+
+Browser verification used the local Razor host in Chromium at 1440px, 960px and 390px widths:
+mode choice, live guide, server form/back navigation, keyboard wrapping, world discovery and
+opening a real player save. No save writes or live game changes were made. Screenshots are local
+artifacts under artifacts/ui-*.png. The connected live-game branch was build-checked but could
+not be exercised without a running game. The final host build passed with zero warnings/errors.
+Full net10.0 suite: 1257 passed, 1 Lua-harness skip (interpreter unavailable), 0 failed.
+The initial test attempt hit the test host's locked build output; verification used isolated output.
+
 ## Round-79: live-editing bug review - a real fatal-crash root cause, two N-round-trip perf bugs, and the Wildlife tab redesigned (2026-09-11)
 
 A player reported four live-editing problems in one pass: the app using 3GB+ of memory

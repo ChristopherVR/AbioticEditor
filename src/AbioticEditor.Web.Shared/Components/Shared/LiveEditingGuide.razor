@@ -1,0 +1,36 @@
+<aside class="live-editing-guide" aria-label="@L.Resource("Editing_LiveTitle")">
+    <div class="live-guide-heading">
+        <span class="mode-badge experimental">@L.Resource("Editing_Experimental")</span>
+        <strong>@L.Resource("Editing_LiveFeatures")</strong>
+    </div>
+    <p>@L.Resource("Editing_LiveCaution")</p>
+    <details open="@Expanded">
+        <summary>@L.Resource("Editing_GuideTitle")</summary>
+        <div class="live-guide-sections">
+            <section>
+                <h3>@L.Resource("Editing_HowTitle")</h3>
+                <p>@L.Resource("Editing_HowBody")</p>
+            </section>
+            <section>
+                <h3>@L.Resource("Editing_SaveTitle")</h3>
+                <p>@L.Resource("Editing_SaveBody")</p>
+            </section>
+            <section>
+                <h3>@L.Resource("Editing_LimitsTitle")</h3>
+                <ul>
+                    <li>@L.Resource("Editing_LimitLoaded")</li>
+                    <li>@L.Resource("Editing_LimitPlayer")</li>
+                    <li>@L.Resource("Editing_LimitWorld")</li>
+                </ul>
+            </section>
+            <section>
+                <h3>@L.Resource("Editing_SetupTitle")</h3>
+                <p>@L.Resource("Editing_SetupBody")</p>
+            </section>
+        </div>
+    </details>
+</aside>
+
+@code {
+    [Parameter] public bool Expanded { get; set; }
+}

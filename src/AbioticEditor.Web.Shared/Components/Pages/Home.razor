@@ -33,13 +33,17 @@
         </section>
     }
     <section class="hero native-empty-state empty-dropzone @(Workspace.BusyOperation is null ? null : "is-busy")">
-        <h1>@Languages.Resource("Empty_EditorTitle")</h1>
+        <h1>@Languages.Resource("Editing_HomeTitle")</h1>
+        <p class="editing-mode-note">@Languages.Resource("Editing_HomeSteps")</p>
         @* Where the save folder lives on disk only helps someone who can browse to it. In a
            browser the folder is chosen through the browser's own picker, so that instruction
            would be pointing at a path the player has no reason to type. *@
         @if (Library.CanDiscover)
         {
-            <p class="lede">@Languages.Resource("Empty_OpenYourSaveFolderInstructions")</p>
+            <details class="save-location-help">
+                <summary>@Languages.Resource("Editing_FindWorld")</summary>
+                <p class="lede">@Languages.Resource("Empty_OpenYourSaveFolderInstructions")</p>
+            </details>
         }
         <div class="empty-actions">
             <button class="primary" type="button" @onclick="PickFolderAsync" disabled="@_isLoading">@Languages.Resource("Empty_OpenFolder")</button>

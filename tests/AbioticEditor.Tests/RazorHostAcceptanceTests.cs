@@ -25,7 +25,7 @@ public sealed class RazorHostAcceptanceTests
 
         Assert.Contains("skip-link", layout, StringComparison.Ordinal);
         Assert.Contains("href=\"#main-content\"", layout, StringComparison.Ordinal);
-        Assert.Contains("<main id=\"main-content\" tabindex=\"-1\">", layout, StringComparison.Ordinal);
+        Assert.Contains("<main id=\"main-content\" tabindex=\"-1\"", layout, StringComparison.Ordinal);
         // The home button and brand link land on browse?home: the world list must show even
         // while a save is open, and a plain "/" would just re-render ModeSelect (it owns that
         // route). Written WITHOUT a leading slash so it resolves against the page's base

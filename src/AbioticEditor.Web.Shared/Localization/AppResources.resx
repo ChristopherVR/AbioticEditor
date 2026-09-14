@@ -4106,4 +4106,37 @@ It only adds this one folder and switches it on - nothing else already in your g
   <data name="LiveDropped_FilterPlaceholder" xml:space="preserve"><value>Filter items by name…</value></data>
   <data name="LiveDropped_RemoveAll" xml:space="preserve"><value>REMOVE ALL ({0})</value></data>
   <data name="WorldContainers_LivePlayerTransferUnavailable" xml:space="preserve"><value>Trading items with a player save is not available while editing a container live.</value></data>
+  <data name="Editing_Recommended" xml:space="preserve"><value>Recommended for most players</value></data>
+  <data name="Editing_Experimental" xml:space="preserve"><value>Experimental</value></data>
+  <data name="Editing_OfflineTitle" xml:space="preserve"><value>Offline save editor</value></data>
+  <data name="Editing_OfflineDescription" xml:space="preserve"><value>Edit a saved world or character with the game closed.</value></data>
+  <data name="Editing_OfflineTiming" xml:space="preserve"><value>Review your changes, then choose Save.</value></data>
+  <data name="Editing_OfflineBackup" xml:space="preserve"><value>A backup is kept each time you save.</value></data>
+  <data name="Editing_OfflineFeatures" xml:space="preserve"><value>The most complete set of editing tools.</value></data>
+  <data name="Editing_ChooseOffline" xml:space="preserve"><value>Open offline editor</value></data>
+  <data name="Editing_LiveTitle" xml:space="preserve"><value>Live editing</value></data>
+  <data name="Editing_LiveDescription" xml:space="preserve"><value>Change a running game on this PC or a server you manage.</value></data>
+  <data name="Editing_LiveTiming" xml:space="preserve"><value>Edits affect the game as you make them.</value></data>
+  <data name="Editing_LiveBackup" xml:space="preserve"><value>No automatic backup or undo for live edits.</value></data>
+  <data name="Editing_LiveFeatures" xml:space="preserve"><value>Still in development. Some features are missing.</value></data>
+  <data name="Editing_ChooseLive" xml:space="preserve"><value>Learn about live editing</value></data>
+  <data name="Editing_LiveCaution" xml:space="preserve"><value>Changes go straight to the running game. Bugs can cause unexpected results or crashes. Back up your world before trying this mode.</value></data>
+  <data name="Editing_GuideTitle" xml:space="preserve"><value>How live editing works and what is missing</value></data>
+  <data name="Editing_HowTitle" xml:space="preserve"><value>Changes happen while you play</value></data>
+  <data name="Editing_HowBody" xml:space="preserve"><value>Supported edits, such as health, skills and inventory, are sent to the game as you change them. There is no final Save step to review all live changes. Disconnecting stops the connection; it does not undo changes already made.</value></data>
+  <data name="Editing_SaveTitle" xml:space="preserve"><value>The game still controls saving</value></data>
+  <data name="Editing_SaveBody" xml:space="preserve"><value>Applying an edit is not the same as saving your world to disk. The game must save for supported changes to persist, and some changes may be temporary or overwritten by gameplay. Live editing does not create the backup files that the offline editor creates.</value></data>
+  <data name="Editing_LimitsTitle" xml:space="preserve"><value>Current limitations</value></data>
+  <data name="Editing_LimitLoaded" xml:space="preserve"><value>Only players and objects currently loaded by the game are available. An empty list does not mean your whole world is empty. Many world changes require the host or server.</value></data>
+  <data name="Editing_LimitPlayer" xml:space="preserve"><value>Traits and items-crafted counters cannot be changed live. Some compendium entries that depend on kills are also unavailable.</value></data>
+  <data name="Editing_LimitWorld" xml:space="preserve"><value>Bench upgrades, world-wide recipe unlocks and some pet actions are unavailable. Raw save data and supporter unlocks require the offline editor. Other tools may offer fewer options than offline editing.</value></data>
+  <data name="Editing_SetupTitle" xml:space="preserve"><value>Before you connect</value></data>
+  <data name="Editing_SetupBody" xml:space="preserve"><value>Live editing needs UE4SS (the game mod loader) and the editor's live helper installed for the game or server. On this PC, setup checks what is installed and asks before adding the helper. Launch the game and load a world; the main menu is not enough. For a server, ask its owner for the connection details.</value></data>
+  <data name="Editing_RemoteHelp" xml:space="preserve"><value>These details come from the live helper on the server, not the game's multiplayer join screen. The token is a connection password. Ask the server owner if you do not have it.</value></data>
+  <data name="Editing_OfflinePlayerNote" xml:space="preserve"><value>Editing an offline player save: changes wait until you choose Save, which keeps a backup. This player is not being edited live.</value></data>
+  <data name="Editing_OfflineModeLabel" xml:space="preserve"><value>Offline / change mode</value></data>
+  <data name="Editing_LiveModeLabel" xml:space="preserve"><value>Live (experimental) / change mode</value></data>
+  <data name="Editing_HomeTitle" xml:space="preserve"><value>Choose a world to edit</value></data>
+  <data name="Editing_HomeSteps" xml:space="preserve"><value>Close the game or stop the server first. Open a world below, choose a player or region, then save when you are ready.</value></data>
+  <data name="Editing_FindWorld" xml:space="preserve"><value>Cannot find your world?</value></data>
 </root>
