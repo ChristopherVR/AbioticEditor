@@ -20,7 +20,7 @@ public sealed record SectorMap(SectorMapFit Fit, string TextureRef);
 public sealed class GameArtService : IDisposable
 {
     private readonly Lazy<GameAssetProvider?> _provider = new(CreateProvider, LazyThreadSafetyMode.ExecutionAndPublication);
-    private readonly ConcurrentDictionary<string, Task<string?>> _paths = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, Lazy<Task<string?>>> _paths = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, Task<(double X, double Y, double Z)?>> _doorPositions = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, Task<IReadOnlyDictionary<string, DoorWorldLocation>>> _doorMapPositions = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, Task<string?>> _wikiImages = new(StringComparer.OrdinalIgnoreCase);
@@ -80,7 +80,8 @@ public sealed class GameArtService : IDisposable
             return Task.FromResult(BundledArt.LoadBundled()?.Has(gameRef) == true ? gameRef : null);
         }
 
-        return _paths.GetOrAdd(gameRef, static (r, service) => service.ExtractAsync(r), this);
+        return _paths.GetOrAdd(gameRef, static (r, service) => new Lazy<Task<string?>>(
+            () => service.ExtractAsync(r), LazyThreadSafetyMode.ExecutionAndPublication), this).Value;
     }
 
     private async Task<string?> ExtractAsync(string gameRef) => await Task.Run(() =>

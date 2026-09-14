@@ -94,11 +94,17 @@ different connected player; omitted means the local player. `npcs.list` returns
 `{"npcs":[{"id","label","isDead","isDisabled","invincible","faction"}],"isHost":bool}` and
 `npcs.set` takes `{"npcs":[{"id", ...any of those fields...}]}`. `inventory.list` returns a flat
 array of `{"kind":"backpack"|"equip"|"hotbar"|"transmog","slotIndex","itemId","isEmpty","stack",
-"durability","maxDurability"}` and `inventory.set` takes `{"edits":[{"kind","slotIndex",
-"clear"?,"itemId"?,"stack"?,"durability"?,"maxDurability"?}],"playerId"?}`. `transmog` reads the
+"durability","maxDurability","ammoInMagazine"}` and `inventory.set` takes `{"edits":[{"kind","slotIndex",
+"clear"?,"itemId"?,"stack"?,"durability"?,"maxDurability"?,"ammoInMagazine"?}],"playerId"?}`. `transmog` reads the
 same `Abiotic_InventoryComponent_C` slot struct as the other three kinds, over the player's
 `TmogInventory` component - the web editor's `LiveInventorySession` sends this kind for a
 transmog slot exactly like backpack/equip/hotbar, so no separate command pair exists for it.
+
+Magazine ammo uses the same exact `CurrentAmmoInMagazine_` field as the save writer.
+It accepts non-negative 32-bit integers, preserves the field when omitted, and resets it
+when clearing a slot. Invalid ammo rejects the batch before mutations. Update the Lua agent
+to use this field; older agents omit it and ignore ammo edits. The new write path is covered
+by protocol/session tests but still needs verification inside a running game.
 
 An `id` in any world area is the game's own full object name for that exact actor
 (`GetFullName()`), re-resolved by a fresh scan on every write: the loaded set of doors, crates,

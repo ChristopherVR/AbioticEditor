@@ -15,7 +15,7 @@ public sealed class ItemCatalogService : IDisposable
     private readonly Dictionary<string, ItemCatalogEntry> _byId;
     public ItemVariantCatalog Variants { get; }
     private readonly Lazy<GameAssetProvider?> _provider = new(CreateProvider, LazyThreadSafetyMode.ExecutionAndPublication);
-    private readonly ConcurrentDictionary<string, Task<string?>> _icons = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, Lazy<Task<string?>>> _icons = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Caps how many icons are decoded at once. Opening a catalog category asks for ~72 icons
@@ -79,7 +79,13 @@ public sealed class ItemCatalogService : IDisposable
         : $"icons/{Uri.EscapeDataString(itemId.ToLowerInvariant())}.png";
 
     public Task<string?> GetIconPathAsync(string itemId)
-        => _icons.GetOrAdd(itemId, static (id, service) => service.ExtractIconAsync(id), this);
+    {
+        // Unknown URLs must not grow the cache, and concurrent requests for one real icon
+        // must not start duplicate decodes in ConcurrentDictionary's value factory.
+        if (Find(itemId) is not { IconAssetPath: { Length: > 0 } }) return Task.FromResult<string?>(null);
+        return _icons.GetOrAdd(itemId, static (id, service) => new Lazy<Task<string?>>(
+            () => service.ExtractIconAsync(id), LazyThreadSafetyMode.ExecutionAndPublication), this).Value;
+    }
 
     private async Task<string?> ExtractIconAsync(string itemId)
     {

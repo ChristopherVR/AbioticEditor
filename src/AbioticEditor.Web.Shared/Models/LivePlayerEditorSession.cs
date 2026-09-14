@@ -117,6 +117,8 @@ public sealed class LivePlayerEditorSession : IPlayerEditorSession
     public void EnsureRecipeRows(IEnumerable<string> ids) => RecipesSession?.EnsureRecipeRows(ids);
     public Task SetUnlockedAsync(string recipeId, bool unlocked) =>
         RecipesSession?.SetUnlockedAsync(recipeId, unlocked) ?? Task.CompletedTask;
+    public Task SetUnlockedManyAsync(IEnumerable<string> recipeIds) =>
+        RecipesSession?.SetUnlockedManyAsync(recipeIds) ?? Task.CompletedTask;
 
     // ---- IPlayerCodexSession ----
     public IReadOnlyList<CodexRowEdit> Emails => CodexSession?.Emails ?? [];
@@ -127,6 +129,8 @@ public sealed class LivePlayerEditorSession : IPlayerEditorSession
     public bool ApplyCodexVocabulary(CodexVocabulary vocabulary, Func<string, object?[], string>? localize = null) =>
         CodexSession?.ApplyCodexVocabulary(vocabulary, localize) ?? false;
     public Task SetKnownAsync(CodexRowEdit row, bool known) => CodexSession?.SetKnownAsync(row, known) ?? Task.CompletedTask;
+    public Task SetKnownManyAsync(IEnumerable<CodexRowEdit> rows) =>
+        CodexSession?.SetKnownManyAsync(rows) ?? Task.CompletedTask;
 
     // ---- IPlayerGeneralSession ----
     public string? OwnerId => GeneralSession?.OwnerId;

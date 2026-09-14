@@ -316,13 +316,13 @@ public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTrans
 
     private static InventoryItemSlot ToInventoryItemSlot(LiveInventorySlot slot) => new(
         slot.SlotIndex, slot.IsEmpty ? PlayerSaveWriter.EmptySlotRowName : slot.ItemId,
-        slot.Stack, slot.Durability, slot.MaxDurability, AmmoInMagazine: 0, LiquidLevel: 0,
+        slot.Stack, slot.Durability, slot.MaxDurability, AmmoInMagazine: slot.AmmoInMagazine, LiquidLevel: 0,
         LiquidType: null, DynamicState: false, PlayerMadeString: null, AssetId: null);
 
     private static LiveInventoryEdit ToEdit(PlayerInventoryArea area, InventoryItemSlot slot) => slot.IsEmpty
         ? new LiveInventoryEdit(WireKind(area), slot.Index, Clear: true)
         : new LiveInventoryEdit(WireKind(area), slot.Index, ItemId: slot.ItemId, Stack: slot.Count,
-            Durability: slot.Durability, MaxDurability: slot.MaxDurability);
+            Durability: slot.Durability, MaxDurability: slot.MaxDurability, AmmoInMagazine: slot.AmmoInMagazine);
 
     private static string WireKind(PlayerInventoryArea area) => area switch
     {

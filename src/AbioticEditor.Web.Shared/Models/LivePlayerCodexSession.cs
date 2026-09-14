@@ -112,6 +112,39 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
 
     public void MarkChanged() { }
 
+    public async Task SetKnownManyAsync(IEnumerable<CodexRowEdit> rows)
+    {
+        var pending = rows.Where(row => row.Editable && !row.IsKnown).Distinct().ToArray();
+        if (pending.Length == 0) return;
+        var emails = Emails.ToHashSet();
+        var journals = Journals.ToHashSet();
+        var fish = Fish.ToHashSet();
+        var compendium = Compendium.ToHashSet();
+        foreach (var row in pending)
+        {
+            if (!emails.Contains(row) && !journals.Contains(row) && !fish.Contains(row) && !compendium.Contains(row))
+                throw new InvalidOperationException("Unknown codex section.");
+            if (compendium.Contains(row) && row.SectionTypes.Count == 0)
+                throw new InvalidOperationException("This entry has no known section type to unlock.");
+        }
+        await _channel.SetKnownAsync(
+            emails: pending.Where(emails.Contains).Select(row => row.Id).ToArray(),
+            journals: pending.Where(journals.Contains).Select(row => row.Id).ToArray(),
+            fish: pending.Where(fish.Contains).Select(row => row.Id).ToArray(),
+            compendium: pending.Where(compendium.Contains)
+                .SelectMany(row => row.SectionTypes.Select(type => new CompendiumUnlock(row.Id, type))).Distinct().ToArray(),
+            playerId: _playerId).ConfigureAwait(false);
+        foreach (var row in pending)
+        {
+            row.IsKnown = true;
+            var ids = emails.Contains(row) ? _emailIds : journals.Contains(row) ? _journalIds
+                : fish.Contains(row) ? _fishIds : _compendiumIds;
+            ids.Add(row.Id);
+        }
+        Status = null;
+        Changed?.Invoke();
+    }
+
     /// <summary>Re-reads the live player's known e-mails/notes/fish/compendium entries.</summary>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {

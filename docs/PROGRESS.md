@@ -4,7 +4,6 @@ Dated implementation and verification notes. Older entries describe the applicat
 time; they are not a current feature list or test-count guarantee. The maintained entry points
 are `README.md`, `docs/guide/index.md`, and `docs/reference/architecture.md`.
 
-
 ## Player/world detail audit and wiki comparison (2026-09-15)
 
 Opened all 12 player tabs, 18 populated Facility tabs and five metadata tabs at desktop
@@ -27,6 +26,26 @@ Verification: 111 focused pet/localization/UI tests passed. Final host build had
 or errors. Browser rechecks confirmed keyboard selection, level 3 at 20 XP, unclipped pet
 fields, all four mobile GATEPal sections and compact recipe details. Live game behavior,
 Steam achievement writes and appearance-save editing were not tested in this pass.
+
+## Live parity and performance review, first implementation pass (2026-09-15)
+
+Compared the shared tabs, live sessions, channels, and agent handlers. Recorded the remaining
+feature gaps and performance candidates in `docs/reference/research/live-parity-performance-review.md`.
+Player magazine ammo now reads/writes through the live protocol and follows moved weapons.
+The exact field comes from the offline save writer; installed-agent updates and in-game
+verification are still required. Lua cases cover validation before batch mutation and clearing.
+
+Fixed recipe Unlock All losing batching through the shared player facade. Added batched GatePal
+Mark All with one success notification, no writes for already-known rows, and unchanged local
+state on request failure. Recipe batch updates now use indexed lookup. Item and game-art caches
+start only one extraction per key under contention; unknown item URLs no longer grow the cache.
+
+Verification: host and tests built successfully. Full suite: 1,292 passed, three AppData sandbox
+failures, one missing-Lua skip. All three blocked tests passed in permission-approved reruns;
+21 focused live/progression/inventory tests passed. Existing saves and installed game files were
+not edited; conversion tests created and cleaned up temporary worlds. No live game was exercised.
+Concurrent UI/theme changes were preserved separately.
+
 
 ## GATE Teal app theme (2026-09-15)
 

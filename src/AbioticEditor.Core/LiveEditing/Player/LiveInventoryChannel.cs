@@ -27,7 +27,7 @@ public sealed class LiveInventoryChannel(ILiveGameChannel channel)
         var wire = await _channel.RequestAsync<IReadOnlyList<SlotWire>>("inventory.list", payload, cancellationToken)
             .ConfigureAwait(false);
         return wire.Select(s => new LiveInventorySlot(
-            s.Kind, s.SlotIndex, s.ItemId, s.IsEmpty, s.Stack, s.Durability, s.MaxDurability)).ToList();
+            s.Kind, s.SlotIndex, s.ItemId, s.IsEmpty, s.Stack, s.Durability, s.MaxDurability, s.AmmoInMagazine)).ToList();
     }
 
     /// <summary>Applies edits to one or more slots immediately (or the local player's inventory
@@ -36,15 +36,15 @@ public sealed class LiveInventoryChannel(ILiveGameChannel channel)
         CancellationToken cancellationToken = default)
         => _channel.RequestAsync<object?>("inventory.set",
             new SetWire(edits.Select(e => new EditWire(
-                e.Kind, e.SlotIndex, e.Clear, e.ItemId, e.Stack, e.Durability, e.MaxDurability, ItemTableIndex.TableRefFor(e.ItemId))).ToList(), playerId),
+                e.Kind, e.SlotIndex, e.Clear, e.ItemId, e.Stack, e.Durability, e.MaxDurability, ItemTableIndex.TableRefFor(e.ItemId), e.AmmoInMagazine)).ToList(), playerId),
             cancellationToken);
 
     private sealed record PlayerIdWire(string PlayerId);
     private sealed record SlotWire(string Kind, int SlotIndex, string ItemId, bool IsEmpty,
-        int Stack, double Durability, double MaxDurability);
+        int Stack, double Durability, double MaxDurability, int AmmoInMagazine = 0);
     private sealed record SetWire(IReadOnlyList<EditWire> Edits, string? PlayerId);
     private sealed record EditWire(string Kind, int SlotIndex, bool? Clear, string? ItemId,
-        int? Stack, double? Durability, double? MaxDurability, string? DataTable);
+        int? Stack, double? Durability, double? MaxDurability, string? DataTable, int? AmmoInMagazine);
 }
 
 /// <summary>One inventory slot, as listed by <see cref="LiveInventoryChannel.GetAsync"/>.</summary>
@@ -54,9 +54,10 @@ public sealed class LiveInventoryChannel(ILiveGameChannel channel)
 /// <see cref="LiveInventoryEdit"/> to target this exact slot.</param>
 /// <param name="ItemId">The item's data-table row id, or empty when the slot has no item.</param>
 public sealed record LiveInventorySlot(string Kind, int SlotIndex, string ItemId, bool IsEmpty,
-    int Stack, double Durability, double MaxDurability);
+    int Stack, double Durability, double MaxDurability, int AmmoInMagazine = 0);
 
 /// <summary>One inventory slot edit; a null field is left untouched on that slot.
 /// <paramref name="Clear"/> set true empties the slot and ignores every other field.</summary>
 public sealed record LiveInventoryEdit(string Kind, int SlotIndex, bool? Clear = null,
-    string? ItemId = null, int? Stack = null, double? Durability = null, double? MaxDurability = null);
+    string? ItemId = null, int? Stack = null, double? Durability = null, double? MaxDurability = null,
+    int? AmmoInMagazine = null);

@@ -41,5 +41,12 @@ public interface IPlayerCodexSession
     /// COMPENDIUM entry live).</summary>
     Task SetKnownAsync(CodexRowEdit row, bool known);
 
+    /// <summary>Marks a group known. Live sessions batch the network request.</summary>
+    async Task SetKnownManyAsync(IEnumerable<CodexRowEdit> rows)
+    {
+        foreach (var row in rows.Where(row => row.Editable && !row.IsKnown).ToArray())
+            await SetKnownAsync(row, true);
+    }
+
     void MarkChanged();
 }

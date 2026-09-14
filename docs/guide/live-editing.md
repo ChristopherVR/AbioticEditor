@@ -54,6 +54,11 @@ Live controls depend on the selected player, your host authority, and what the g
 
 You can currently use supported controls for vitals, skills, inventories, transmog, recipes, GatePal records, selected background and spawn fields, story flags, clock and weather, loaded containers and ground items, creatures, story NPCs, traders, pets, doors, portals, vehicles, containment, and deployables.
 
+The updated agent adds player magazine-ammo editing and keeps ammo with a weapon when moving
+or sorting it. Update the helper while the game is closed before using this addition.
+This new field still needs in-game verification. Recipe **Unlock All** and GatePal **Mark All**
+now send one grouped request instead of a separate request for every entry.
+
 These limits are deliberate:
 
 - Bench-upgrade installation is disabled after a reported native game crash.

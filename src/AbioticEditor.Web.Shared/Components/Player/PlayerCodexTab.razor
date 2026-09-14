@@ -371,5 +371,5 @@
 
     private async Task Changed() { Session.MarkChanged(); await OnChanged.InvokeAsync(); }
     private async Task SetKnown(CodexRowEdit row, bool known) { await Session.SetKnownAsync(row, known); await Changed(); }
-    private async Task MarkAll() { foreach (var row in Current.Where(row => row.Editable)) await Session.SetKnownAsync(row, true); await Changed(); }
+    private async Task MarkAll() { await Session.SetKnownManyAsync(Current); await Changed(); }
 }

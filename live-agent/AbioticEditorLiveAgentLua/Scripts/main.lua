@@ -599,6 +599,10 @@ end
 
 local function prepareSlotWrite(slot, row)
     local prepared = { slot = slot, row = row }
+    if row.ammoInMagazine ~= nil and (type(row.ammoInMagazine) ~= "number"
+        or row.ammoInMagazine < 0 or row.ammoInMagazine > 2147483647 or row.ammoInMagazine % 1 ~= 0) then
+        error("ammo in magazine must be a non-negative integer")
+    end
     if not slot.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B
         or not slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313 then
         error("item slot data is unavailable")
@@ -619,6 +623,7 @@ local function applySlotWrite(prepared)
     if row.clear then
         handle.RowName = FName("Empty", EFindName.FNAME_Find)
         data.CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 0
+        data.CurrentAmmoInMagazine_12_D68C190F4B2FA78A4B1D57835B95C53D = 0
         data.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = 0
         data.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = 0
         return
@@ -628,6 +633,9 @@ local function applySlotWrite(prepared)
         handle.RowName = prepared.name
     end
     if row.stack ~= nil then data.CurrentStack_9_D443B69044D640B0989FD8A629801A49 = row.stack end
+    if row.ammoInMagazine ~= nil then
+        data.CurrentAmmoInMagazine_12_D68C190F4B2FA78A4B1D57835B95C53D = row.ammoInMagazine
+    end
     if row.durability ~= nil then data.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = row.durability end
     if row.maxDurability ~= nil then data.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = row.maxDurability end
 end
@@ -659,6 +667,7 @@ handlers["inventory.list"] = function(payload, respond)
                         stack = changeableData and changeableData.CurrentStack_9_D443B69044D640B0989FD8A629801A49 or 0,
                         durability = changeableData and changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 or 0,
                         maxDurability = changeableData and changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B or 0,
+                        ammoInMagazine = changeableData and changeableData.CurrentAmmoInMagazine_12_D68C190F4B2FA78A4B1D57835B95C53D or 0,
                     })
                 end
             end

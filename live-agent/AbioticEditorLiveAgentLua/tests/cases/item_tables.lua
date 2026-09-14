@@ -21,6 +21,20 @@ return function(H)
     end
 
     local slot = pawn.CharacterInventory.CurrentInventory[1]
+    local ammoKey = "CurrentAmmoInMagazine_12_D68C190F4B2FA78A4B1D57835B95C53D"
+    H.ok(H.dispatch("inventory.set", { edits = {
+        { kind = "backpack", slotIndex = 0, ammoInMagazine = 12 },
+    } }), "ammo can be edited without replacing an item")
+    H.eq(slot[dataKey][ammoKey], 12, "ammo reaches the real slot field")
+    H.ok(H.dispatch("inventory.set", { edits = {
+        { kind = "backpack", slotIndex = 0, stack = 1 },
+    } }), "omitted ammo remains untouched")
+    H.eq(slot[dataKey][ammoKey], 12, "quantity-only edit preserves ammo")
+    H.fails(H.dispatch("inventory.set", { edits = {
+        { kind = "backpack", slotIndex = 0, ammoInMagazine = 6 },
+        { kind = "backpack", slotIndex = 1, ammoInMagazine = -1 },
+    } }), "non-negative integer", "invalid ammo rejects a batch before mutation")
+    H.eq(slot[dataKey][ammoKey], 12, "failed batch preserves first magazine")
     -- An older write can already have the right row name and still be invisible.
     slot[handleKey].DataTable = pickups
     H.ok(H.dispatch("inventory.set", { edits = {
@@ -96,4 +110,5 @@ return function(H)
     H.ok(H.dispatch("inventory.set", { edits = {
         { kind = "backpack", slotIndex = 0, clear = true },
     } }), "clearing an invisible item does not require its table")
+    H.eq(slot[dataKey][ammoKey], 0, "cleared slot does not retain ammo")
 end

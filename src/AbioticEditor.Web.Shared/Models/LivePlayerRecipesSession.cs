@@ -94,14 +94,14 @@ public sealed class LivePlayerRecipesSession : IPlayerRecipesSession
     /// like from the player's side.</summary>
     public async Task SetUnlockedManyAsync(IEnumerable<string> recipeIds)
     {
-        var ids = recipeIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct(StringComparer.Ordinal).ToArray();
+        var ids = recipeIds.Where(id => !string.IsNullOrWhiteSpace(id) && !_unlockedIds.Contains(id)).Distinct(StringComparer.Ordinal).ToArray();
         if (ids.Length == 0) return;
         await _channel.UnlockAsync(ids, _playerId).ConfigureAwait(false);
+        var byId = _recipes.ToDictionary(recipe => recipe.Id, StringComparer.Ordinal);
         foreach (var id in ids)
         {
             _unlockedIds.Add(id);
-            var existing = _recipes.FirstOrDefault(recipe => string.Equals(recipe.Id, id, StringComparison.Ordinal));
-            if (existing is not null) existing.IsUnlocked = true;
+            if (byId.TryGetValue(id, out var existing)) existing.IsUnlocked = true;
             else _recipes.Add(new PlayerRecipeEdit(id, true));
         }
         Status = null;
