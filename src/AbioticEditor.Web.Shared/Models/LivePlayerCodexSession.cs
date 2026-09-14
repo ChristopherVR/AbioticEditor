@@ -4,15 +4,9 @@ using AbioticEditor.Core.LiveEditing.Player;
 namespace AbioticEditor.Web.Models;
 
 /// <summary>
-/// The live-edit counterpart to <see cref="PlayerSaveSession"/>'s codex slice: implements the
-/// same <see cref="IPlayerCodexSession"/> boundary <c>PlayerCodexTab</c> ("GATEPal") already binds
-/// to (see <c>IPlayerCodexSession.cs</c>), so that widget needs zero changes to work against a
-/// running game instead of a loaded file. EMAIL/NOTES/FISH/COMPENDIUM all mark known immediately
-/// and can never be un-known again (<see cref="CanUnsetKnown"/> is always false - see
-/// <c>LivePlayerCodexChannel</c>'s remarks). A COMPENDIUM row is only editable when its entry has
-/// at least one grounded <c>ECompendiumUnlockType</c> section (<see cref="CodexRowEdit.SectionTypes"/>);
-/// a row with only a kill-requirement section stays read-only, since that unlocks itself from kill
-/// tracking, never from this RPC.
+/// Live GATEPal editing through the shared player interface. Supported sections unlock
+/// through game RPCs and can be cleared by an updated host agent. Kill-only entries remain
+/// read-only. Bulk unlocks group all supported sections in one request.
 /// </summary>
 public sealed class LivePlayerCodexSession : IPlayerCodexSession
 {
@@ -50,7 +44,7 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
     public IReadOnlyList<CodexRowEdit> Compendium { get; private set; } = [];
     public IReadOnlyList<CodexRowEdit> Fish { get; private set; } = [];
     public bool AppliesImmediately => true;
-    public bool CanUnsetKnown => false;
+    public bool CanUnsetKnown { get; private set; }
     public string? Status { get; private set; }
 
     /// <summary>Always false: a codex unlock already reached the running game by the time it
@@ -68,9 +62,7 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
         return true;
     }
 
-    /// <summary>Marks one row known. Refused for a COMPENDIUM row (not <see cref="CodexRowEdit.Editable"/>)
-    /// or when asked to un-know an already-known row (<see cref="CanUnsetKnown"/> is always false) -
-    /// the tab disables both instead of ever calling this in either case.</summary>
+    /// <summary>Changes one supported entry. Clearing requires the host agent capability.</summary>
     public async Task SetKnownAsync(CodexRowEdit row, bool known)
     {
         if (!row.Editable)
@@ -80,8 +72,17 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
         }
         if (!known)
         {
-            throw new InvalidOperationException(
-                "This entry can't be un-known while the game is running - there is no game function to do it.");
+            if (!CanUnsetKnown) throw new InvalidOperationException("Clearing codex entries requires an updated agent with host authority.");
+            var owner = FindOwner(row);
+            var section = ReferenceEquals(owner, Emails) ? "emails" : ReferenceEquals(owner, Journals) ? "journals"
+                : ReferenceEquals(owner, Fish) ? "fish" : ReferenceEquals(owner, Compendium) ? "compendium"
+                : throw new InvalidOperationException("Unknown codex section.");
+            await _channel.ClearAsync(section, [row.Id], _playerId).ConfigureAwait(false);
+            row.IsKnown = false;
+            FindOwnerIds(row)?.Remove(row.Id);
+            Status = null;
+            Changed?.Invoke();
+            return;
         }
 
         // Which category owns this row is decided by which of the four writable lists it came
@@ -149,8 +150,12 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var directory = await _channel.GetAsync(_playerId, cancellationToken).ConfigureAwait(false);
+        var entriesChanged = !_emailIds.SetEquals(directory.Emails)
+            || !_journalIds.SetEquals(directory.Journals)
+            || !_fishIds.SetEquals(directory.Fish)
+            || !_compendiumIds.SetEquals(directory.Compendium);
         LoadDirectory(directory);
-        Rebuild(_hasVocabulary ? _lastVocabulary : CodexVocabulary.Empty);
+        if (entriesChanged) Rebuild(_hasVocabulary ? _lastVocabulary : CodexVocabulary.Empty);
         Status = null;
         Changed?.Invoke();
     }
@@ -165,6 +170,7 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
 
     private void LoadDirectory(LiveCodexDirectory directory)
     {
+        CanUnsetKnown = directory.CanUnsetKnown;
         _emailIds = directory.Emails.ToHashSet(StringComparer.Ordinal);
         _journalIds = directory.Journals.ToHashSet(StringComparer.Ordinal);
         _fishIds = directory.Fish.ToHashSet(StringComparer.Ordinal);

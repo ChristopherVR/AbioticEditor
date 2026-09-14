@@ -507,13 +507,11 @@ has unlocked (the full catalog of every recipe the game knows comes from the des
 game-data vocabulary, the same one the file editor uses; the live agent has no path to enumerate
 `DT_Recipes`' row names, only what one specific character has already unlocked).
 
-`recipes.set` takes `{"playerId":"…", "unlockIds":["Recipe_Foo", ...]}` and unlocks each id
-immediately. **There is no way to re-lock a recipe live** - the game's own
-`Abiotic_CharacterProgressionComponent_C` has no lock/relock/remove-recipe function anywhere in its
-exported API (confirmed by `tests/AbioticEditor.Probes/LiveClassPropsProbe.cs`, fragment
-"CharacterProgressionComponent"), only "unlock" ones. The desktop app's RECIPES tab disables
-un-checking an already-unlocked row when connected live instead of sending a request that would
-silently do nothing.
+`recipes.get` also reports `canLock`. `recipes.set` accepts `unlockIds` and optional
+`lockIds`. Unlocks use the existing game RPC. Relocking requires host authority and
+replication support, replaces the FName array after validating all names, marks
+`RecipesUnlockedArray` dirty for replication, and invokes its RepNotify. Older agents
+omit `canLock`, which the editor treats as false.
 
 ## `codex.get` / `codex.set`
 
@@ -565,9 +563,8 @@ already use. An earlier round read `Local_AllCompendiumEntries` instead (a `TSet
 derives from those same three arrays); that TSet's Lua-array readability was never confirmed, so
 this round switched to the better-grounded per-category arrays instead.
 
-**There is no way to un-know an e-mail, note, fish or compendium entry live either** (same
-one-directional limit as recipes above - no such function exists for any of them). The desktop app
-disables un-checking an already-known row when connected live.
+`canUnsetKnown` reports whether this host supports clearing known state. See the expanded
+codex edit schema below. Older agents omit the capability and remain unlock-only.
 
 ## `general.get` / `general.set`
 
@@ -587,11 +584,9 @@ GENERAL tab already binds to - no separate channel or wire command exists for CH
 discovers/unlocks each given id (and applies the background) immediately; omitted fields are left
 untouched.
 
-**`itemsCrafted` is read-only** - it is reported by `general.get` but `general.set` does not accept
-it. The game's `CharacterProgressionComponent` tracks crafted items automatically (from actually
-crafting something) but exposes no single-item "mark as crafted" function anywhere in its exported
-API, unlike items-seen (`Server_CheckNewItemPickedUp`) and maps (`Server_AddMapToJournal`). The
-desktop app's ITEMS CRAFTED row disables its DISCOVER ALL button when connected live.
+`general.get` reports `canDiscoverCrafted`. When true, `general.set` accepts
+`itemsCrafted:[...]`. The host appends unique names to `CraftedItems`, marks the property
+dirty for replication, and invokes `OnRep_CraftedItems`. Older agents remain read-only.
 
 **`background` (round 77) IS a real live write.** `Abiotic_PlayerState_C` declares a plain,
 no-hash-suffix `PhD : FNameProperty` with no `OnRep_PhD` - the same row-name concept the file
@@ -601,20 +596,13 @@ player's `PlayerState` (found via `APawn.PlayerState`, the base-engine property 
 needed because a replicated UPROPERTY changed on the server's own authoritative object replicates
 to owning clients on the next network update.
 
-**`traits` (round 77) is read-only** - it is reported by `general.get` but `general.set` does not
-accept it. `CharacterProgressionComponent.Traits` is read the same way the reference mod's own
-"traits" console command does. The only functions that touch it (`SetTraits`/`GetTraits`/
-`InitializeTraits`) carry no `Server_`/`Request_` prefix - they are not RPCs, and are used only by
-the one-time character-creation flow (`Abiotic_PlayerController.Server_SetupInitialTraits` ->
-`Client_DoTraitSelectionSequence` -> `GoToTraitsSelection`); calling them mid-game would re-run
-that flow rather than swap one trait. The native engine's only trait-adjacent RPCs
-(`UCharacterBuffComponent::Server_AddTraitBuff`/`Server_RemoveTraitBuff(FBuffDebuffRowHandle)`,
-found in the shipped PDB) apply a different, temporary gameplay buff keyed by a buff/debuff row
-handle - they do not touch `CharacterProgressionComponent.Traits` or the save's `Traits_` array,
-so calling them would not actually add or remove a trait the way this list means. Both the GENERAL
-and CHARACTER tabs show TRAITS as a plain readout when connected live; CHARACTER's own add/remove
-chip editor and trait browser render only for the file-based session
-(`IPlayerGeneralSession.CanEditTraits` is false live).
+**Traits remain read-only pending in-game validation.** The 2026-09-15 bytecode probe
+corrected the earlier claim that trait buffs were unrelated. `InitializeTraits` explicitly
+calls `Server_AddTraitBuff` using each trait row's buff handle. `SetTraits` changes the trait
+array and marks it for replication, preserving the Sundisk trait. It does not itself run
+initialization. `InitializeTraits` also grants items and changes skill state, so replaying it
+is unsuitable for an incremental edit. A complete setter needs to update the trait list and
+apply/remove the corresponding effects without replaying those rewards.
 
 **The account/owner-id change has no live path at all** and is not part of this wire protocol:
 renaming which save file a character belongs to is purely a file-system operation, with no running
@@ -622,10 +610,10 @@ in-game concept to change. The desktop app hides that section's CHANGE button wh
 and shows the connected player's own id (the live directory id `players.list` handed out - a
 SteamID64 for a Steam player) as a plain readout instead.
 
-**CHARACTER's appearance panel (head/hair/clothing) also has no live path.** It edits a separate
-`ScientistCustomization` save beside the player's own save file - there is nothing running in a
-live game that corresponds to it, so the desktop app shows a plain read-only note there instead of
-the file editor's swatch/option pickers.
+**Appearance remains unimplemented live.** The file editor edits `ScientistCustomization`.
+The exported `HumanCustomizationComponent.Server_ApplyCustomizationChange` provides a research
+path for live updates, but its row handles, enum values, voice object, and color vectors need
+in-game round-trip and persistence tests before enabling the controls.
 
 ## `worldunlocks.get` / `worldunlocks.set` - world-wide (not per-player) unlocks (round 77)
 
@@ -644,38 +632,16 @@ package `story.get` already reads `CurrentQuest` from), which carries `GlobalRec
 `GlobalRecipesResearched` (both `FSetProperty`) and `GlobalItemsPickedUp`, `GlobalEmailsRead`,
 `GlobalJournalEntries`, `GlobalCompendiumEmail`, `GlobalCompendiumNarrative`,
 `GlobalCompendiumExploration` (all `FArrayProperty`) - the world-wide analogues of the per-player
-arrays `codex.get`/`recipes.get` already read. The six `FArrayProperty` fields use the same
-confirmed indexed-read technique as `codex.get`; the two `FSetProperty` recipe fields use the same
-optimistic-pcall technique `codex.get` used for `Local_AllCompendiumEntries` before that was
-replaced (see above) - if UE4SS's Lua binding cannot index that TSet, they simply come back empty
-rather than failing the whole command.
+arrays `codex.get`/`recipes.get` already read. The array fields use indexed reads. Recipe sets use the documented UE4SS
+`TSet.ForEach` API when available, with the legacy read fallback on older runtimes.
 
-**`worldunlocks.set` has no grounded write path and always fails with `ok:false`** (same shape as
-`story.set`) - this is a researched absence, not something this round declined to build:
-
-- Neither `Abiotic_Survival_GameState_C` nor `Abiotic_Survival_GameMode_C`'s exported function list
-  (`LiveClassPropsProbe`) contains any function that touches these fields by name. The GameMode's
-  many `ApplyWorldSaveData|*`/`Update*ToWorldSave` function pairs are the file load/save round trip
-  for per-actor world state (doors, NPCs, pets, vehicles, ...); there is no matching pair for a
-  "GlobalRecipes"/"GlobalCompendium" world-save slice. The PDB grep for
-  `?[A-Za-z_]*@AAbioticGameState@@` (native, non-Blueprint functions) turns up nothing recipe- or
-  unlock-related either. The two local variables that DO reference these fields
-  (`K2Node_MakeStruct_SaveData_GlobalUnlocks_Struct` inside `SetTimeOfDayOnWorldSave`,
-  `LocalGlobalUnlocks` inside `UpdateActiveLeyakContainmentID`) are both inside the disk save/load
-  routines themselves, not a callable unlock RPC.
-- No installed reference mod anywhere writes directly into a `TSet`/`TArray` property (no `:Add(`,
-  no `:Remove(`, no element assignment) - every real write precedent in this whole project is
-  either a UFunction call (`Request_UnlockNewFish`, `SetWorldFlag`, `K2_TeleportTo`) or a
-  scalar/struct field assignment (`DoorState = 1`, `VehicleDriveable = true`). Inventing a
-  direct-mutation technique for a replicated `TSet<FName>`/`TArray<FName>` that other connected
-  players are also reading has no working precedent to copy and risks corrupting shared state.
-
-The desktop app's `IWorldStorySession.SupportsRecipes` is true live once a world is connected (the
-world-recipes browser shows real unlocked-recipe data), but
-`IWorldStorySession.CanEditGlobalRecipes` is always false live, so every checkbox and the UNLOCK ALL
-button are disabled with an explanatory note - exactly the "shown but not editable" pattern the
-COMPENDIUM section used before its own write path was grounded (see above). A character's own
-RECIPES tab (`recipes.get`/`recipes.set`) remains the live way to give a specific player a recipe.
+`worldunlocks.get` reports `canEditRecipes`, requiring host authority, TSet editing support,
+and replication notification support. `worldunlocks.set` accepts
+`{"recipes":[{"id":"recipe_bandage","unlocked":true}]}`. Names and values are validated
+before writes. Add/remove applies to both unlocked and researched sets, matching offline
+world recipe editing, and both properties are marked dirty for replication. Other global
+unlock lists remain read-only. The shared story tab now calls the session interface for
+single and bulk recipe edits, retaining its existing story prerequisite gate.
 
 ## Recipes/codex/general evidence
 
@@ -702,8 +668,8 @@ functions is called by any installed reference mod.
 Adding a new live-editable area (inventory, more of world state, ...) means: a new command pair
 on both sides (`<area>.get`/`<area>.set` following the existing naming), a new `Live<Area>Channel`
 in `Core/LiveEditing/<Area>/` mirroring the shape of `LivePlayerVitalsChannel`/
-`LivePlayerSkillsChannel`, a new handler pair in the Lua mod's `main.lua`, and the command names added to the
-native helper's forwarding allowlist (`AbioticEditorLiveAgentHelper/src/main.cpp`). No `hello`/envelope-level change is
+`LivePlayerSkillsChannel`, a new handler pair in the Lua mod's `main.lua`, and tests in the Lua harness. The native helper forwards all non-hello commands
+(`AbioticEditorLiveAgentHelper/src/main.cpp`). No `hello`/envelope-level change is
 needed for a new area; the envelope's `payload`/`result` already accept either a flat object or a
 flat array of them, which has covered every area so far.
 
@@ -731,3 +697,33 @@ prove multiplayer replication or backpack-capacity behavior in a running game.
 
 See the [live guide](/guide/live-editing#an-item-exists-but-is-invisible) for repairing items
 written by an older agent. These changes require updating the installed agent scripts.
+
+## Expanded inventory and codex edits (2026-09-15)
+
+Player and container slot responses include optional `details`:
+
+```json
+{"liquidLevel":25,"liquidType":"E_LiquidType::NewEnumerator13","dynamicState":true,
+ "playerMadeString":"My item","assetId":"instance-id","variantRowName":"Poster_Art"}
+```
+
+Container slots also include `ammoInMagazine`. Edits carrying details use
+`inventory.setfull` or `containers.setfull`, retaining the existing request shape. Distinct
+command names make older agents reject these writes rather than silently ignore fields.
+Empty text clears a custom label; empty/None variant resets its override. Liquid names map
+through the actual UEnum values, not their numeric-looking suffix. All edits in a batch
+validate before the first slot changes, including variant DataTable row existence. Rich
+writes require replication notification support. Dynamic property arrays, gameplay tags,
+and weapon coatings are not yet carried by this details object.
+
+`codex.get` reports `canUnsetKnown`. A host may send
+`codex.set` with `{"clear":{"section":"emails","ids":["Email_Row"]}}`. Sections are
+emails, journals, fish, and compendium. Compendium removal clears matching rows from all
+three supported section arrays. Each changed property is marked dirty for replication;
+exported RepNotify functions are invoked where present. Kill-only entries remain read-only.
+
+Array assignment is grounded in [UE4SS's property bridge](https://github.com/UE4SS-RE/RE-UE4SS/blob/main/UE4SS/src/LuaType/LuaUObject.cpp).
+Set operations follow the [UE4SS TSet API](https://docs.ue4ss.com/dev/lua-api/classes/tset.html).
+Direct replicated writes use [UNetPushModelHelpers.MarkPropertyDirty](https://dev.epicgames.com/documentation/unreal-engine/API/Runtime/Engine/Net/UNetPushModelHelpers/MarkPropertyDirty?application_version=5.5).
+These additions pass the stub harness, but actual multiplayer propagation and save/reload
+persistence still require an installed-game verification run.

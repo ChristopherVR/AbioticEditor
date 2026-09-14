@@ -177,6 +177,7 @@ public sealed record InventorySelection(
 
     /// <summary>The player inventory area the slot lives in; null for non-player surfaces
     /// (world container groups), which validate like Main/storage slots.</summary>
+    public bool SupportsLiquidTypeEdits { get; init; }
     public PlayerInventoryArea? PlayerArea { get; init; }
 
     /// <summary>The equipment/transmog role of the selected position (HEAD, SHIELD, ...),

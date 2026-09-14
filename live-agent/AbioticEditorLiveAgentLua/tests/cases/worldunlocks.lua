@@ -17,7 +17,7 @@ return function(H)
 
     -- No grounded write path exists at all - always ok:false with a player-safe explanation,
     -- exactly like story.set.
-    H.fails(H.dispatch("worldunlocks.set", {}), "cannot be changed from outside the game", "worldunlocks.set always refused")
+    H.fails(H.dispatch("worldunlocks.set", {}), "require UE4SS TSet support", "older runtimes cannot edit sets")
 
     -- Reading still works without a loaded world's game state being reachable... except it isn't:
     -- worldunlocks.get requires GetGameStateBase() to return something valid. Simulate "no world

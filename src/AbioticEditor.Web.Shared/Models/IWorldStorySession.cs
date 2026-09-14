@@ -77,12 +77,12 @@ public interface IWorldStorySession
     /// <c>GlobalRecipesUnlocked</c> set (read via <c>worldunlocks.get</c>).</summary>
     IReadOnlyCollection<string> GlobalRecipeIds { get; }
 
-    /// <summary>Whether <see cref="GlobalRecipeIds"/> can be changed from here. Always false live:
-    /// the running game exposes no function and no confirmed direct-write technique for
-    /// <c>GlobalRecipesUnlocked</c> (a replicated <c>TSet</c>) - see
-    /// docs/reference/live-editing-protocol.md, "worldunlocks.get / worldunlocks.set". True for the
-    /// file session whenever <see cref="SupportsRecipes"/> is.</summary>
+    /// <summary>Whether world recipes can be changed. Live requires host authority,
+    /// an updated agent, and a UE4SS runtime with TSet editing support.</summary>
     bool CanEditGlobalRecipes { get; }
+
+    Task SetGlobalRecipesAsync(IEnumerable<string> ids, bool unlocked, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException("This session cannot edit global recipes.");
 
     // ---------- whole-session save (file session only; live applies per action) ----------
 

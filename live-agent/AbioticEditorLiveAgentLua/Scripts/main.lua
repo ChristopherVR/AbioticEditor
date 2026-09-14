@@ -597,6 +597,84 @@ local function resolveItemHandle(slot, row)
     return dataTable, name
 end
 
+-- Field names and types are verified against Abiotic_InventoryChangeableDataStruct's
+-- exported schema. Use UEnum values rather than assuming NewEnumerator suffixes are ordinals.
+local LIQUID_FIELD = "CurrentLiquid_19_3E1652F448223AAE5F405FB510838109"
+local LEVEL_FIELD = "LiquidLevel_46_D6414A6E49082BC020AADC89CC29E35A"
+local TEXT_FIELD = "PlayerMadeString_42_CC0B72B24DBEAB2CC04454AAFFD4BBE9"
+local ASSET_FIELD = "AssetID_25_06DB7A12469849D19D5FC3BA6BEDEEAB"
+local STATE_FIELD = "DynamicState_39_7597AC6549E292B931C61BB13C9E42EB"
+local VARIANT_FIELD = "TextureVariantRow_28_1C7CF7A0441335E8AC4EA7B5CA91F636"
+local VARIANT_TABLE = "/Game/Blueprints/DataTables/Customization/DT_TextureVariants.DT_TextureVariants"
+local function textValue(value)
+    if value == nil then return nil end
+    if type(value) == "string" then return value end
+    return value:ToString()
+end
+local function liquidEnum()
+    local enum = StaticFindObject("/Game/Blueprints/Data/E_LiquidType.E_LiquidType")
+    if not enum or not enum:IsValid() then error("liquid enum is unavailable on this game build") end
+    return enum
+end
+local function readItemDetails(data)
+    if not data then return nil end
+    local liquid = data[LIQUID_FIELD]
+    local liquidName = liquid ~= nil and liquidEnum():GetNameByValue(liquid):ToString() or nil
+    local variant = data[VARIANT_FIELD]
+    return { liquidLevel = data[LEVEL_FIELD] or 0, liquidType = liquidName,
+        dynamicState = data[STATE_FIELD] == true, playerMadeString = textValue(data[TEXT_FIELD]),
+        assetId = textValue(data[ASSET_FIELD]), variantRowName = variant and textValue(variant.RowName) or nil }
+end
+local function prepareItemDetails(data, details)
+    if details == nil then return nil end
+    if type(details) ~= "table" then error("invalid item details") end
+    local result = { details = details }
+    if details.liquidLevel ~= nil and (type(details.liquidLevel) ~= "number" or details.liquidLevel < -1
+        or details.liquidLevel > 2147483647 or details.liquidLevel % 1 ~= 0) then error("invalid liquid level") end
+    if details.dynamicState ~= nil and type(details.dynamicState) ~= "boolean" then error("invalid item state") end
+    for _, field in ipairs({ "playerMadeString", "assetId", "variantRowName", "liquidType" }) do
+        if details[field] ~= nil and type(details[field]) ~= "string" then error("invalid " .. field) end
+    end
+    if details.liquidType ~= nil then
+        liquidEnum():ForEachName(function(name, value)
+            if name:ToString() == details.liquidType then result.liquid = value; return true end
+        end)
+        if result.liquid == nil then error("unknown liquid type: " .. details.liquidType) end
+    end
+    if details.variantRowName ~= nil then
+        if not data[VARIANT_FIELD] then error("texture variant field is unavailable") end
+        if details.variantRowName == "" or details.variantRowName == "None" then
+            result.variantName = FName("None", EFindName.FNAME_Find)
+        else
+            local tableObject = StaticFindObject(VARIANT_TABLE)
+            if not isDataTable(tableObject) and type(LoadAsset) == "function" then
+                LoadAsset(VARIANT_TABLE); tableObject = StaticFindObject(VARIANT_TABLE)
+            end
+            if not isDataTable(tableObject) then error("texture variant table is unavailable") end
+            local name = FName(details.variantRowName, EFindName.FNAME_Find)
+            local library = StaticFindObject("/Script/Engine.Default__DataTableFunctionLibrary")
+            if not library or not library:IsValid() or not library:DoesDataTableRowExist(tableObject, name) then
+                error("unknown texture variant: " .. details.variantRowName)
+            end
+            result.variantTable, result.variantName = tableObject, name
+        end
+    end
+    return result
+end
+local function applyItemDetails(data, prepared)
+    if not prepared then return end
+    local d = prepared.details
+    if d.liquidLevel ~= nil then data[LEVEL_FIELD] = d.liquidLevel end
+    if prepared.liquid ~= nil then data[LIQUID_FIELD] = prepared.liquid end
+    if d.dynamicState ~= nil then data[STATE_FIELD] = d.dynamicState end
+    if d.playerMadeString ~= nil then data[TEXT_FIELD] = d.playerMadeString end
+    if d.assetId ~= nil then data[ASSET_FIELD] = d.assetId end
+    if prepared.variantName then
+        if prepared.variantTable then data[VARIANT_FIELD].DataTable = prepared.variantTable end
+        data[VARIANT_FIELD].RowName = prepared.variantName
+    end
+end
+
 local function prepareSlotWrite(slot, row)
     local prepared = { slot = slot, row = row }
     if row.ammoInMagazine ~= nil and (type(row.ammoInMagazine) ~= "number"
@@ -613,6 +691,7 @@ local function prepareSlotWrite(slot, row)
         end
         prepared.dataTable, prepared.name = resolveItemHandle(slot, row)
     end
+    if not row.clear then prepared.details = prepareItemDetails(slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313, row.details) end
     return prepared
 end
 
@@ -626,6 +705,11 @@ local function applySlotWrite(prepared)
         data.CurrentAmmoInMagazine_12_D68C190F4B2FA78A4B1D57835B95C53D = 0
         data.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = 0
         data.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = 0
+        data[LEVEL_FIELD] = -1
+        data[TEXT_FIELD] = ""
+        data[ASSET_FIELD] = "-1"
+        data[STATE_FIELD] = false
+        if data[VARIANT_FIELD] then data[VARIANT_FIELD].RowName = FName("None", EFindName.FNAME_Find) end
         return
     end
     if prepared.name then
@@ -638,6 +722,7 @@ local function applySlotWrite(prepared)
     end
     if row.durability ~= nil then data.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = row.durability end
     if row.maxDurability ~= nil then data.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = row.maxDurability end
+    applyItemDetails(data, prepared.details)
 end
 
 local function writeSlot(slot, row)
@@ -668,6 +753,7 @@ handlers["inventory.list"] = function(payload, respond)
                         durability = changeableData and changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 or 0,
                         maxDurability = changeableData and changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B or 0,
                         ammoInMagazine = changeableData and changeableData.CurrentAmmoInMagazine_12_D68C190F4B2FA78A4B1D57835B95C53D or 0,
+                        details = readItemDetails(changeableData),
                     })
                 end
             end
@@ -691,6 +777,11 @@ handlers["inventory.set"] = function(payload, respond)
         -- Every inventory component actually touched below, so it can be pushed out through
         -- replication/UI once after the loop - see the OnRep_CurrentInventory call below.
         local touchedInventories, prepared = {}, {}
+        local replication = require("replication")
+        local helper
+        for _, row in ipairs(rows) do
+            if row.details then helper = replication.requireHelper(); break end
+        end
         -- Resolve every slot/table before changing any slot in a multi-item operation.
         for i = 1, #rows do
             local row = rows[i]
@@ -706,6 +797,7 @@ handlers["inventory.set"] = function(payload, respond)
         for i = 1, #prepared do applySlotWrite(prepared[i]) end
         -- Keep the existing game inventory/equipment update path once per component.
         for inv in pairs(touchedInventories) do
+            if helper then replication.mark(helper, inv, "CurrentInventory") end
             pcall(function() inv:OnRep_CurrentInventory() end)
         end
         return nil
@@ -713,6 +805,9 @@ handlers["inventory.set"] = function(payload, respond)
 end
 
 -- ===== Shared world helpers for the areas below =====
+-- Separate command names make older agents reject rich edits instead of silently
+-- ignoring the new details object.
+handlers["inventory.setfull"] = handlers["inventory.set"]
 --
 -- ADDED (round 75, 2026-09-06): world clock + weather, quest/story flags, doors, world
 -- containers, and dropped items. Every UObject/UFunction name below was taken from the game's
@@ -1150,6 +1245,8 @@ local function slotRow(slot, index)
         stack = changeableData and changeableData.CurrentStack_9_D443B69044D640B0989FD8A629801A49 or 0,
         durability = changeableData and changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 or 0,
         maxDurability = changeableData and changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B or 0,
+        ammoInMagazine = changeableData and changeableData.CurrentAmmoInMagazine_12_D68C190F4B2FA78A4B1D57835B95C53D or 0,
+        details = readItemDetails(changeableData),
     }
 end
 
@@ -1188,6 +1285,11 @@ handlers["containers.set"] = function(payload, respond)
         local inv = containerInventory(container)
         if not inv or not inv.CurrentInventory then error("container has no inventory") end
         local rows, prepared = payload.edits or {}, {}
+        local replication = require("replication")
+        local helper
+        for _, row in ipairs(rows) do
+            if row.details then helper = replication.requireHelper(); break end
+        end
         for i = 1, #rows do
             local row = rows[i]
             if type(row.slotIndex) ~= "number" or row.slotIndex < 0 or row.slotIndex % 1 ~= 0 then
@@ -1206,6 +1308,7 @@ handlers["containers.set"] = function(payload, respond)
             local ok = pcall(function() inv:SortInventory() end)
             if not ok then error("could not sort this container on this game build") end
         end
+        if helper then replication.mark(helper, inv, "CurrentInventory") end
         pcall(function() inv:OnRep_CurrentInventory() end)
         return nil
     end, respond)
@@ -1325,6 +1428,8 @@ end
 -- Kept as separate files so several areas can be developed at once without everyone editing
 -- this file; see areas/README.md for the contract. A module that fails to load is logged and
 -- skipped - one broken area never takes the whole mod down.
+handlers["containers.setfull"] = handlers["containers.set"]
+
 local ctx = {
     handlers = handlers,
     json = json,

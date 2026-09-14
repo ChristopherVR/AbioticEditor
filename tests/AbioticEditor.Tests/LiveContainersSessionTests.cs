@@ -1,5 +1,6 @@
 using System.Text.Json;
 using AbioticEditor.Core.LiveEditing;
+using AbioticEditor.Core.LiveEditing.Player;
 using AbioticEditor.Core.LiveEditing.World;
 using AbioticEditor.Core.PlayerSaves;
 using AbioticEditor.Web.Models;
@@ -17,6 +18,38 @@ namespace AbioticEditor.Tests;
 /// </summary>
 public sealed class LiveContainersSessionTests
 {
+    [Fact]
+    public async Task Swap_sends_both_sides_in_one_request_and_refreshes_once()
+    {
+        var channel = new FakeContainersChannel();
+        channel.SetContainer("c1", "Locker", 0, 0, 0);
+        channel.SetSlot("c1", 0, "first", 2);
+        channel.SetSlot("c1", 1, "second", 3);
+        var session = await LiveContainersSession.ConnectAsync(new LiveContainersChannel(channel));
+        var notifications = 0;
+        session.Changed += () => notifications++;
+        Assert.True(await session.TrySwapContainerSlotsAsync(AbioticEditor.Core.WorldSaves.WorldContainerSource.Live, "c1", 0, 0, 1));
+        Assert.Equal(1, channel.WriteRequests);
+        Assert.Equal(1, notifications);
+        Assert.Equal("second", session.Containers[0].Inventories[0].Slots[0].ItemId);
+        Assert.Equal("first", session.Containers[0].Inventories[0].Slots[1].ItemId);
+    }
+    [Fact]
+    public async Task Container_swap_preserves_ammo_and_instance_details()
+    {
+        var channel = new FakeContainersChannel();
+        channel.SetContainer("c1", "Locker", 0, 0, 0);
+        channel.SetSlot("c1", 0, "first", 1, ammo: 7,
+            details: new(25, "E_LiquidType::NewEnumerator13", true, "Custom", "identity", "Poster_Art"));
+        channel.SetSlot("c1", 1);
+        var session = await LiveContainersSession.ConnectAsync(new(channel));
+        var original = session.Containers[0].Inventories[0].Slots[0];
+        Assert.Equal(7, original.AmmoInMagazine);
+        Assert.Equal("Custom", original.PlayerMadeString);
+        Assert.True(await session.TrySwapContainerSlotsAsync(AbioticEditor.Core.WorldSaves.WorldContainerSource.Live, "c1", 0, 0, 1));
+        Assert.Equal(original with { Index = 1 }, session.Containers[0].Inventories[0].Slots[1]);
+        Assert.True(session.Containers[0].Inventories[0].Slots[0].IsEmpty);
+    }
     [Fact]
     public async Task RefreshAsync_picks_up_a_slot_changed_out_from_under_the_session_and_raises_Changed()
     {
@@ -70,6 +103,7 @@ public sealed class LiveContainersSessionTests
 
     private sealed class FakeContainersChannel : ILiveGameChannel
     {
+        public int WriteRequests { get; private set; }
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
         private readonly Dictionary<string, (string Label, double X, double Y, double Z)> _containers = new(StringComparer.Ordinal);
         private readonly Dictionary<(string ContainerId, int SlotIndex), SlotState> _slots = new();
@@ -82,8 +116,9 @@ public sealed class LiveContainersSessionTests
 
         public void SetContainer(string id, string label, double x, double y, double z) => _containers[id] = (label, x, y, z);
 
-        public void SetSlot(string containerId, int slotIndex, string? itemId = null, int stack = 0, bool isEmpty = false)
-            => _slots[(containerId, slotIndex)] = new SlotState(itemId ?? "Empty", isEmpty || itemId is null, stack, 0, 0);
+        public void SetSlot(string containerId, int slotIndex, string? itemId = null, int stack = 0, bool isEmpty = false,
+            int ammo = 0, LiveItemDetails? details = null)
+            => _slots[(containerId, slotIndex)] = new SlotState(itemId ?? "Empty", isEmpty || itemId is null, stack, 0, 0, ammo, details);
 
         public Task<TResponse> RequestAsync<TResponse>(string command, object? payload, CancellationToken cancellationToken = default)
         {
@@ -107,11 +142,13 @@ public sealed class LiveContainersSessionTests
                             stack = s.Value.Stack,
                             durability = s.Value.Durability,
                             maxDurability = s.Value.MaxDurability,
+                            ammoInMagazine = s.Value.Ammo,
+                            details = s.Value.Details,
                         }).ToList(),
                     }).ToList(),
                     isHost = true,
                 },
-                "containers.set" => ApplySet(payloadElement),
+                "containers.set" or "containers.setfull" => ApplySet(payloadElement),
                 _ => throw new LiveAgentException($"unknown command '{command}' in fake channel"),
             };
             var element = JsonSerializer.SerializeToElement(result, JsonOptions);
@@ -120,6 +157,7 @@ public sealed class LiveContainersSessionTests
 
         private object? ApplySet(JsonElement payload)
         {
+            WriteRequests++;
             var containerId = payload.GetProperty("id").GetString()!;
             if (!payload.TryGetProperty("edits", out var edits)) return null;
             foreach (var edit in edits.EnumerateArray())
@@ -136,11 +174,14 @@ public sealed class LiveContainersSessionTests
                     : null;
                 var stack = edit.TryGetProperty("stack", out var stackProp) && stackProp.ValueKind == JsonValueKind.Number
                     ? stackProp.GetInt32() : 0;
-                _slots[(containerId, slotIndex)] = new SlotState(itemId ?? "Empty", itemId is null, stack, 0, 0);
+                _slots[(containerId, slotIndex)] = new SlotState(itemId ?? "Empty", itemId is null, stack, 0, 0,
+                    edit.TryGetProperty("ammoInMagazine", out var ammo) && ammo.ValueKind == JsonValueKind.Number ? ammo.GetInt32() : 0,
+                    edit.TryGetProperty("details", out var details) ? details.Deserialize<LiveItemDetails>(JsonOptions) : null);
             }
             return null;
         }
 
-        private sealed record SlotState(string ItemId, bool IsEmpty, int Stack, double Durability, double MaxDurability);
+        private sealed record SlotState(string ItemId, bool IsEmpty, int Stack, double Durability, double MaxDurability,
+            int Ammo = 0, LiveItemDetails? Details = null);
     }
 }

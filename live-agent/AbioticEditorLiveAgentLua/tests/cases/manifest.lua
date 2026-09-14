@@ -21,4 +21,5 @@ return {
     "players",
     "player_gaps",
     "world_gaps",
+    "parity",
 }

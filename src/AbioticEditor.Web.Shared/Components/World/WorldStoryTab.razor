@@ -851,12 +851,9 @@
         if (args.Key is "Enter" or " ") ToggleRecipeDetail(id);
     }
 
-    private void SetRecipe(string id, bool unlocked)
+    private async Task SetRecipe(string id, bool unlocked)
     {
-        // Live never reaches here: CanEditRecipes is always false there, so the checkbox is
-        // disabled (see IWorldStorySession.CanEditGlobalRecipes's remarks) rather than sending a
-        // request that would silently do nothing.
-        if (!CanEditRecipes || FileSession is not { } file) return;
+        if (!CanEditRecipes) return;
         // Progress gate (native rule): recipes granted by an email in an unreached region stay
         // locked; the refusal reason lands on a toast and the checkbox snaps back.
         if (unlocked && Gate.CheckUnlock(id, _worldFlags) is { } block)
@@ -865,13 +862,13 @@
             _gateNonce++;
             return;
         }
-        file.SetGlobalRecipe(id, unlocked);
+        await Session.SetGlobalRecipesAsync([id], unlocked);
         NotifyEdited();
     }
 
-    private void UnlockAllRecipes()
+    private async Task UnlockAllRecipes()
     {
-        if (!CanEditRecipes || FileSession is not { } file) return;
+        if (!CanEditRecipes) return;
         RecipeGateBlock? lastBlock = null;
         var allowed = new List<string>();
         foreach (var id in RecipeVocabulary.GetRecipeInfos().Select(recipe => recipe.Id))
@@ -879,7 +876,7 @@
             if (Gate.CheckUnlock(id, _worldFlags) is { } block) { lastBlock = block; continue; }
             allowed.Add(id);
         }
-        file.EnableGlobalRecipes(allowed);
+        await Session.SetGlobalRecipesAsync(allowed, true);
         NotifyEdited();
         if (lastBlock is not null)
             Toasts.Show(L.Resource("Progress_RecipeGated", PlainNames.Words(lastBlock.RecipeId), lastBlock.EmailSubject, lastBlock.ChapterTitle, PlainNames.Flag(L, lastBlock.TriggerFlag)), ToastKind.Warning);

@@ -219,6 +219,13 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
         UpdateStatus();
     }
 
+    public Task SetGlobalRecipesAsync(IEnumerable<string> ids, bool unlocked, CancellationToken cancellationToken = default)
+    {
+        foreach (var id in ids) { if (unlocked) GlobalRecipes.Add(id); else GlobalRecipes.Remove(id); }
+        UpdateStatus();
+        return Task.CompletedTask;
+    }
+
     /// <summary>Stages every supplied recipe id as world-wide unlocked; used by the world recipes browser's unlock-all action.</summary>
     public int EnableGlobalRecipes(IEnumerable<string> ids)
     {

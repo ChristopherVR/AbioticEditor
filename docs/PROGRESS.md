@@ -4,6 +4,24 @@ Dated implementation and verification notes. Older entries describe the applicat
 time; they are not a current feature list or test-count guarantee. The maintained entry points
 are `README.md`, `docs/guide/index.md`, and `docs/reference/architecture.md`.
 
+## Full live parity follow-up (2026-09-15)
+
+Full parity is the requested target, still unfinished. Implemented host recipe relocking,
+crafted-item discovery, clearing supported GatePal entries, and world recipe editing when the
+runtime supports TSet mutation. Added liquid contents, custom text, asset IDs, and visual
+variants to player/container slot round trips, including the live liquid-type control. New
+rich commands reject older agents instead of silently dropping these fields. Direct writes
+notify push-model replication. Container swaps use one request/refresh; unchanged GatePal
+polls keep their existing rows.
+
+Full tests: 1,307 passed, one standalone-Lua skip. Ran Lua 5.4 separately: 553 checks passed.
+Nine focused .NET tests passed after final coverage additions. Host builds. Native gameplay,
+multiplayer propagation, and save/reload verification remain pending a disposable test world.
+No existing game saves were changed. Traits, appearance, bench upgrades, full item metadata,
+and the other remaining areas are listed in docs/reference/research/live-parity-performance-review.md.
+The opt-in LiveParityClassProbe corrects earlier research: InitializeTraits uses trait buffs
+but also grants rewards, so incremental trait edits must not replay initialization.
+
 ## Review feature implementation (2026-09-15)
 
 Implemented coating fields and an installed-table picker for offline player/container slots;

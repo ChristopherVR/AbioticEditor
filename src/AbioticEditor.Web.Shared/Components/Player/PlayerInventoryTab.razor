@@ -263,6 +263,7 @@
             s => Session.ItemUpgrades.SourceOf(s.ItemId) is not null)
         {
             SupportsCoatingEdits = !Session.AppliesImmediately,
+            SupportsLiquidTypeEdits = Session.AppliesImmediately,
             PlayerArea = area,
             Role = RoleFor(area, slot.Index),
             QuickGiveFallback = QuickGiveFallback,

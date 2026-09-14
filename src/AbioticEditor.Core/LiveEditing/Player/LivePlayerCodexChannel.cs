@@ -29,7 +29,7 @@ public sealed class LivePlayerCodexChannel(ILiveGameChannel channel)
         object? payload = playerId is null ? null : new PlayerIdWire(playerId);
         var wire = await _channel.RequestAsync<DirectoryWire>("codex.get", payload, cancellationToken)
             .ConfigureAwait(false);
-        return new LiveCodexDirectory(wire.Emails ?? [], wire.Journals ?? [], wire.Fish ?? [], wire.Compendium ?? []);
+        return new LiveCodexDirectory(wire.Emails ?? [], wire.Journals ?? [], wire.Fish ?? [], wire.Compendium ?? [], wire.CanUnsetKnown);
     }
 
     /// <summary>Marks the given e-mail/journal/fish row names, and/or compendium
@@ -44,9 +44,12 @@ public sealed class LivePlayerCodexChannel(ILiveGameChannel channel)
 
     private sealed record PlayerIdWire(string PlayerId);
 
+    public Task ClearAsync(string section, IReadOnlyList<string> ids, string? playerId = null, CancellationToken cancellationToken = default)
+        => _channel.RequestAsync<object?>("codex.set", new { playerId, clear = new { section, ids } }, cancellationToken);
+
     private sealed record DirectoryWire(
         IReadOnlyList<string>? Emails, IReadOnlyList<string>? Journals,
-        IReadOnlyList<string>? Fish, IReadOnlyList<string>? Compendium);
+        IReadOnlyList<string>? Fish, IReadOnlyList<string>? Compendium, bool CanUnsetKnown = false);
 
     private sealed record SetWire(
         string? PlayerId, IReadOnlyList<string>? Emails, IReadOnlyList<string>? Journals,
@@ -66,4 +69,4 @@ public readonly record struct CompendiumUnlock(string Row, string SectionType);
 /// <see cref="Compendium"/> is read-only - see <see cref="LivePlayerCodexChannel"/>'s remarks.</summary>
 public sealed record LiveCodexDirectory(
     IReadOnlyList<string> Emails, IReadOnlyList<string> Journals,
-    IReadOnlyList<string> Fish, IReadOnlyList<string> Compendium);
+    IReadOnlyList<string> Fish, IReadOnlyList<string> Compendium, bool CanUnsetKnown = false);

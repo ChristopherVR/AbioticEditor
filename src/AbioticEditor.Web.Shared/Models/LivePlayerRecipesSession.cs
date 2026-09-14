@@ -3,14 +3,8 @@ using AbioticEditor.Core.LiveEditing.Player;
 namespace AbioticEditor.Web.Models;
 
 /// <summary>
-/// The live-edit counterpart to <see cref="PlayerSaveSession"/>'s recipes slice: implements the
-/// same <see cref="IPlayerRecipesSession"/> boundary <c>PlayerRecipesTab</c> already binds to (see
-/// <c>IPlayerRecipesSession.cs</c>), so that widget needs zero changes to work against a running
-/// game instead of a loaded file. Unlike the file session, an unlock pushes straight to the live
-/// game per recipe (<see cref="SetUnlockedAsync"/> is one network round trip), and there is no way
-/// to undo it: <see cref="CanLock"/> is always false, matching the running game's own component,
-/// which has no lock/relock function anywhere in its exported API (see
-/// <c>LivePlayerRecipesChannel</c>'s remarks).
+/// Immediate live recipe editing. Unlocks use the game RPC; relocking is available
+/// only when the agent reports host-side array mutation support.
 /// </summary>
 public sealed class LivePlayerRecipesSession : IPlayerRecipesSession
 {
@@ -38,15 +32,15 @@ public sealed class LivePlayerRecipesSession : IPlayerRecipesSession
         LivePlayerRecipesChannel channel, string? playerId = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(channel);
-        var unlocked = await channel.GetUnlockedAsync(playerId, cancellationToken).ConfigureAwait(false);
-        return new LivePlayerRecipesSession(channel, playerId, unlocked);
+        var directory = await channel.GetAsync(playerId, cancellationToken).ConfigureAwait(false);
+        return new LivePlayerRecipesSession(channel, playerId, directory.UnlockedIds) { CanLock = directory.CanLock };
     }
 
     public IReadOnlyList<PlayerRecipeEdit> Recipes => _recipes;
     public int UnlockedRecipeCount => _recipes.Count(recipe => recipe.IsUnlocked);
     public int RecipeCount => _recipes.Count;
     public bool AppliesImmediately => true;
-    public bool CanLock => false;
+    public bool CanLock { get; private set; }
     public string? Status { get; private set; }
 
     /// <summary>Always false: an unlock already reached the running game by the time it
@@ -66,15 +60,19 @@ public sealed class LivePlayerRecipesSession : IPlayerRecipesSession
         }
     }
 
-    /// <summary>Unlocks one recipe immediately. Throws when asked to re-lock one - see
-    /// <see cref="CanLock"/>'s remarks; the tab disables the checkbox instead of ever calling this
-    /// with <paramref name="unlocked"/> = false for an already-unlocked row.</summary>
+    /// <summary>Changes one recipe immediately. Relocking requires the host agent capability.</summary>
     public async Task SetUnlockedAsync(string recipeId, bool unlocked)
     {
         if (!unlocked)
         {
-            throw new InvalidOperationException(
-                "This recipe can't be re-locked while the game is running - there is no game function to do it.");
+            if (!CanLock) throw new InvalidOperationException("Relocking recipes requires an updated agent with host authority.");
+            await _channel.LockAsync([recipeId], _playerId).ConfigureAwait(false);
+            _unlockedIds.Remove(recipeId);
+            var row = _recipes.FirstOrDefault(recipe => string.Equals(recipe.Id, recipeId, StringComparison.Ordinal));
+            if (row is not null) row.IsUnlocked = false;
+            Status = null;
+            Changed?.Invoke();
+            return;
         }
         await _channel.UnlockAsync([recipeId], _playerId).ConfigureAwait(false);
         _unlockedIds.Add(recipeId);
@@ -116,7 +114,9 @@ public sealed class LivePlayerRecipesSession : IPlayerRecipesSession
     /// (any locked rows added by <see cref="EnsureRecipeRows"/> for catalog ids are kept).</summary>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
-        var unlocked = await _channel.GetUnlockedAsync(_playerId, cancellationToken).ConfigureAwait(false);
+        var directory = await _channel.GetAsync(_playerId, cancellationToken).ConfigureAwait(false);
+        var unlocked = directory.UnlockedIds;
+        CanLock = directory.CanLock;
         _unlockedIds.Clear();
         foreach (var id in unlocked) _unlockedIds.Add(id);
         var known = _recipes.ToDictionary(recipe => recipe.Id, StringComparer.Ordinal);

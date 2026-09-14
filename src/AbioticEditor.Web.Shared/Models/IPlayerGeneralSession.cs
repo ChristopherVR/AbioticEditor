@@ -25,9 +25,7 @@ public interface IPlayerGeneralSession
 
     IPlayerDiscoverySection ItemsSeen { get; }
 
-    /// <summary>Read-only live: the running game tracks crafted items automatically but exposes
-    /// no function to mark one crafted on demand (see <c>LivePlayerGeneralChannel</c>'s
-    /// remarks) - <see cref="IPlayerDiscoverySection.CanDiscoverAll"/> is false here live.</summary>
+    /// <summary>Crafted-item discovery. Live support is reported by the host agent.</summary>
     IPlayerDiscoverySection ItemsCrafted { get; }
 
     IPlayerDiscoverySection Maps { get; }

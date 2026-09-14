@@ -1,4 +1,5 @@
 using AbioticEditor.Core.LiveEditing.World;
+using AbioticEditor.Core.LiveEditing.Player;
 using AbioticEditor.Core.PlayerSaves;
 using AbioticEditor.Core.WorldSaves;
 
@@ -81,10 +82,7 @@ public sealed class LiveContainersSession : IWorldContainersSession
     public async Task<bool> TrySetContainerSlotAsync(WorldContainerSource source, string id, int inventoryIndex, int slotIndex, InventoryItemSlot slot, CancellationToken cancellationToken = default)
     {
         if (inventoryIndex != 0 || !TryGetContainerSlot(source, id, inventoryIndex, slotIndex, out _)) return false;
-        var edit = slot.IsEmpty
-            ? new LiveContainerSlotEdit(slotIndex, Clear: true)
-            : new LiveContainerSlotEdit(slotIndex, ItemId: slot.ItemId, Stack: slot.Count,
-                Durability: slot.Durability, MaxDurability: slot.MaxDurability);
+        var edit = ToEdit(slotIndex, slot);
         await ApplyAsync(id, edit, cancellationToken).ConfigureAwait(false);
         return true;
     }
@@ -94,11 +92,15 @@ public sealed class LiveContainersSession : IWorldContainersSession
         if (inventoryIndex != 0 || firstIndex == secondIndex
             || !TryGetContainerSlot(source, id, inventoryIndex, firstIndex, out var first)
             || !TryGetContainerSlot(source, id, inventoryIndex, secondIndex, out var second)) return false;
-        // Neither send is atomic with the other on the wire, but both land before this
-        // returns and the caller always refreshes off the result, so the screen never shows
-        // a half-swapped state.
-        return await TrySetContainerSlotAsync(source, id, inventoryIndex, firstIndex, second, cancellationToken).ConfigureAwait(false)
-            && await TrySetContainerSlotAsync(source, id, inventoryIndex, secondIndex, first, cancellationToken).ConfigureAwait(false);
+        Interlocked.Increment(ref _pendingOperations);
+        try
+        {
+            await _channel.SetAsync(id, [ToEdit(firstIndex, second), ToEdit(secondIndex, first)], cancellationToken).ConfigureAwait(false);
+            Status = null;
+            await RefreshAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        finally { Interlocked.Decrement(ref _pendingOperations); }
     }
 
     /// <summary>
@@ -153,5 +155,13 @@ public sealed class LiveContainersSession : IWorldContainersSession
 
     private static InventoryItemSlot ToSlot(LiveContainerSlot slot) => new(
         slot.SlotIndex, slot.IsEmpty ? null : slot.ItemId, slot.Stack, slot.Durability, slot.MaxDurability,
-        AmmoInMagazine: 0, LiquidLevel: 0, LiquidType: null, DynamicState: false, PlayerMadeString: null, AssetId: null);
+        slot.AmmoInMagazine, slot.Details?.LiquidLevel ?? 0, slot.Details?.LiquidType,
+        slot.Details?.DynamicState ?? false, slot.Details?.PlayerMadeString, slot.Details?.AssetId,
+        slot.Details?.VariantRowName);
+
+    private static LiveContainerSlotEdit ToEdit(int index, InventoryItemSlot slot) => slot.IsEmpty
+        ? new(index, Clear: true)
+        : new(index, ItemId: slot.ItemId, Stack: slot.Count, Durability: slot.Durability,
+            MaxDurability: slot.MaxDurability, AmmoInMagazine: slot.AmmoInMagazine,
+            Details: LiveItemDetails.FromSlot(slot));
 }

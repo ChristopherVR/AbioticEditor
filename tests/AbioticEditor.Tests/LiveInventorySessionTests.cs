@@ -19,6 +19,28 @@ namespace AbioticEditor.Tests;
 public sealed class LiveInventorySessionTests
 {
     [Fact]
+    public async Task Instance_details_survive_a_move_and_edits_are_sent_to_the_agent()
+    {
+        var channel = new FakeInventoryChannel();
+        var details = new LiveItemDetails(15, "E_LiquidType::NewEnumerator13", true, "Soup name", "item-guid", "Poster_Art");
+        channel.SetSlot("hotbar", 0, "item_test", stack: 1, details: details);
+        channel.SetSlot("backpack", 0, isEmpty: true);
+        var session = await LiveInventorySession.ConnectAsync(new LiveInventoryChannel(channel));
+        var item = Assert.Single(session.Hotbar);
+        Assert.Equal(details.LiquidType, item.LiquidType);
+        Assert.Equal(details.VariantRowName, item.VariantRowName);
+        item.PlayerMadeString = "New name";
+        await session.PushSlotAsync(PlayerInventoryArea.Hotbar, item);
+        Assert.Equal("New name", item.PlayerMadeString);
+        Assert.True(await session.TrySwapInventorySlotsAsync(PlayerInventoryArea.Hotbar, 0, PlayerInventoryArea.Backpack, 0));
+        var moved = Assert.Single(session.Backpack);
+        Assert.Equal("item-guid", moved.AssetId);
+        Assert.Equal("New name", moved.PlayerMadeString);
+        Assert.Equal(15, moved.LiquidLevel);
+        Assert.True(moved.DynamicState);
+        Assert.Equal("Poster_Art", moved.VariantRowName);
+    }
+    [Fact]
     public async Task Ammo_is_read_edited_and_preserved_when_moving_a_weapon()
     {
         var channel = new FakeInventoryChannel();
@@ -201,8 +223,8 @@ public sealed class LiveInventorySessionTests
         public Task DisconnectAsync() => Task.CompletedTask;
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-        public void SetSlot(string kind, int index, string? itemId = null, int stack = 0, bool isEmpty = false, int ammo = 0)
-            => _slots[(kind, index)] = new SlotState(itemId ?? "Empty", isEmpty || itemId is null, stack, 0, 0, ammo);
+        public void SetSlot(string kind, int index, string? itemId = null, int stack = 0, bool isEmpty = false, int ammo = 0, LiveItemDetails? details = null)
+            => _slots[(kind, index)] = new SlotState(itemId ?? "Empty", isEmpty || itemId is null, stack, 0, 0, ammo, details);
 
         public Task<TResponse> RequestAsync<TResponse>(string command, object? payload, CancellationToken cancellationToken = default)
         {
@@ -219,8 +241,9 @@ public sealed class LiveInventorySessionTests
                     durability = kv.Value.Durability,
                     maxDurability = kv.Value.MaxDurability,
                     ammoInMagazine = kv.Value.AmmoInMagazine,
+                    details = kv.Value.Details,
                 }).ToList(),
-                "inventory.set" => ApplySet(payloadElement),
+                "inventory.set" or "inventory.setfull" => ApplySet(payloadElement),
                 "transmog.get" => new { visibility = Array.Empty<object>() },
                 _ => throw new LiveAgentException($"unknown command '{command}' in fake channel"),
             };
@@ -254,14 +277,16 @@ public sealed class LiveInventorySessionTests
                     ? maxDurProp.GetDouble() : 0;
                 var ammo = edit.TryGetProperty("ammoInMagazine", out var ammoProp) && ammoProp.ValueKind == JsonValueKind.Number
                     ? ammoProp.GetInt32() : 0;
-                _slots[(kind, index)] = new SlotState(itemId ?? "Empty", itemId is null, stack, durability, maxDurability, ammo);
+                var details = edit.TryGetProperty("details", out var detailsProp) && detailsProp.ValueKind == JsonValueKind.Object
+                    ? detailsProp.Deserialize<LiveItemDetails>(JsonOptions) : null;
+                _slots[(kind, index)] = new SlotState(itemId ?? "Empty", itemId is null, stack, durability, maxDurability, ammo, details);
                 sent.Add(new SentEdit(kind, index, Clear: false, itemId, stack));
             }
             LastSetEdits = sent;
             return null;
         }
 
-        private sealed record SlotState(string ItemId, bool IsEmpty, int Stack, double Durability, double MaxDurability, int AmmoInMagazine = 0);
+        private sealed record SlotState(string ItemId, bool IsEmpty, int Stack, double Durability, double MaxDurability, int AmmoInMagazine = 0, LiveItemDetails? Details = null);
         public sealed record SentEdit(string Kind, int SlotIndex, bool? Clear, string? ItemId, int? Stack);
     }
 }

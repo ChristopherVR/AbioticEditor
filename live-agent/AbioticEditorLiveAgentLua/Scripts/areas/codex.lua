@@ -52,6 +52,18 @@
 -- CompendiumRead_ tag (Core/Catalogs/Codex, PlayerSaveWriter.ApplyCompendium) - so this module reads
 -- and writes the per-player arrays, not the world-level ones.
 return function(ctx)
+    local replication = require("replication")
+    local names = require("name_arrays")
+    local clearFields = {
+        emails = { { "EmailsRead" } },
+        journals = { { "JournalEntries", "OnRep_JournalEntries" } },
+        fish = { { "FishCaughtArray", "OnRep_FishCaughtArray" } },
+        compendium = {
+            { "Compendium_ExplorationSections", "OnRep_Compendium_ExplorationSections" },
+            { "Compendium_EmailSections", "OnRep_Compendium_EmailSections" },
+            { "Compendium_NarrativeNPCSections", "OnRep_Compendium_NarrativeNPCSections" },
+        },
+    }
     ---@return userdata? progressionComponent
     local function getProgressionComponent(payload)
         local targetPlayer = ctx.resolvePlayer(payload)
@@ -106,6 +118,7 @@ return function(ctx)
                 journals = readNameArray(function() return component.JournalEntries end),
                 fish = readNameArray(function() return component.FishCaughtArray end),
                 compendium = readCompendiumKnown(component),
+                canUnsetKnown = ctx.isHost() and replication.available(),
             }
         end, respond)
     end
@@ -142,6 +155,21 @@ return function(ctx)
         ctx.runOnGameThread(function()
             local component = getProgressionComponent(payload)
             if not component then error("no CharacterProgressionComponent found") end
+            if payload.clear then
+                if not ctx.isHost() then error("clearing codex entries requires host authority") end
+                local fields = clearFields[payload.clear.section]
+                if not fields then error("unknown codex section") end
+                local helper = replication.requireHelper()
+                local prepared = {}
+                for _, field in ipairs(fields) do
+                    prepared[#prepared + 1] = { field = field, values = names.prepare(component[field[1]], {}, payload.clear.ids) }
+                end
+                for _, entry in ipairs(prepared) do
+                    component[entry.field[1]] = entry.values
+                    replication.mark(helper, component, entry.field[1])
+                end
+                for _, entry in ipairs(prepared) do if entry.field[2] then component[entry.field[2]](component) end end
+            end
             unlockEach(component, payload.emails or {}, function(c, name) c:Server_AddEmailToReadList(name) end)
             unlockEach(component, payload.journals or {}, function(c, name) c:Server_AddNoteToJournal(name) end)
             unlockEach(component, payload.fish or {}, function(c, name) c:Request_UnlockNewFish(name) end)

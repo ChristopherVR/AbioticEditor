@@ -1,50 +1,24 @@
--- Live WORLD-LEVEL unlocks (round 77): the counterpart to the file editor's world-recipes browser
--- (WorldStoryTab's "WORLD RECIPES" section, `WorldSaveWriter`'s `GlobalUnlocks` struct) plus the
--- other world-wide (not per-player) progress lists the game tracks.
---
--- GROUNDING: extending LiveClassPropsProbe's dump to `Abiotic_Survival_GameState.uasset` (the
--- SAME package `areas/story.lua` already reads `CurrentQuest` from) found:
---   prop GlobalRecipesUnlocked : FSetProperty
---   prop GlobalRecipesResearched : FSetProperty
---   prop GlobalItemsPickedUp : FArrayProperty
---   prop GlobalEmailsRead : FArrayProperty
---   prop GlobalJournalEntries : FArrayProperty
---   prop GlobalCompendiumEmail : FArrayProperty
---   prop GlobalCompendiumNarrative : FArrayProperty
---   prop GlobalCompendiumExploration : FArrayProperty
--- These are the world-wide analogues of the per-player arrays `areas/codex.lua` and
--- `areas/recipes.lua` already read (matches `WorldSaveSession.GlobalRecipes`/`GlobalUnlocks` on
--- the file side, `Core/Serialization/World/WorldSaveWriter`).
---
--- READ: the six FArrayProperty fields (everything except the two FSetProperty recipe fields) use
--- the exact same indexed `for i = 1, #arr do arr[i]:ToString() end` technique already confirmed
--- working for EmailsRead/JournalEntries/FishCaughtArray in `areas/codex.lua` - real precedent for
--- the TECHNIQUE, not these specific names, hence still wrapped in pcall. `recipesUnlocked`/
--- `recipesResearched` read the two FSetProperty fields the SAME optimistic-pcall way
--- `Local_AllCompendiumEntries` used to (see codex.lua's round-76 history): if UE4SS's Lua binding
--- does not expose a TSet with #/[i] indexing, these two come back as an empty list (a visible
--- "0 unlocked" rather than a crash) instead of failing the whole command.
---
--- NO WRITE PATH FOR ANY OF THESE - grounded absence, not a guess. Two independent checks came back
--- empty:
---   1. Neither `Abiotic_Survival_GameState_C` nor `Abiotic_Survival_GameMode_C`'s exported function
---      list (LiveClassPropsProbe) contains ANY function referencing "Recipe"/"Global"/"Unlock" by
---      name that touches these fields - the GameMode's many `ApplyWorldSaveData|*`/`Update*ToWorldSave`
---      functions are the file load/save round trip for per-ACTOR world state (doors, NPCs, pets,
---      vehicles, ...), and none of them is paired to a "GlobalRecipes"/"GlobalCompendium" world-save
---      slice - the two local variables that DO reference `SaveData_GlobalUnlocks_Struct`
---      (`SetTimeOfDayOnWorldSave`) and `LocalGlobalUnlocks` (`UpdateActiveLeyakContainmentID`) are
---      both inside the disk save/load routines themselves, not a callable unlock RPC.
---   2. No installed reference mod anywhere touches a `TSet`/`TArray` property directly (no `:Add(`,
---      no `:Remove(`, no direct element assignment) - every real write precedent in this whole
---      project is either a UFunction call (`Request_UnlockNewFish`, `SetWorldFlag`, `K2_TeleportTo`)
---      or a scalar/struct field assignment (`DoorState = 1`, `VehicleDriveable = true`). Appending to
---      `GlobalRecipesUnlocked` (a replicated `TSet<FName>`) the way `flags.set` appends to
---      `WorldFlags` would require inventing a technique with no working precedent anywhere in this
---      project or any installed mod - guessing it risks corrupting replicated state other players
---      are actively reading. `worldunlocks.set` therefore always returns `ok:false`, exactly like
---      `story.set` does for the same reason (see `areas/story.lua`).
+-- GlobalRecipesUnlocked/GlobalRecipesResearched are TSet<FName> on the game state.
+-- Use UE4SS TSet.ForEach/Add/Remove with host gating and runtime capability checks.
+-- GlobalItemsPickedUp, emails, journals and compendium lists are TArray<FName>.
+-- Fields are grounded in the exported Abiotic_Survival_GameState layout.
 return function(ctx)
+    local replication = require("replication")
+    local function canEditRecipes(state)
+        local ok, supported = pcall(function()
+            return state.GlobalRecipesUnlocked.Add ~= nil and state.GlobalRecipesUnlocked.Remove ~= nil
+                and state.GlobalRecipesUnlocked.ForEach ~= nil
+                and state.GlobalRecipesResearched.ForEach ~= nil
+                and state.GlobalRecipesResearched.Add ~= nil and state.GlobalRecipesResearched.Remove ~= nil
+        end)
+        return ok and supported
+    end
+    local function readSet(set)
+        local result = { __forceArray = true }
+        set:ForEach(function(element) result[#result + 1] = element:get():ToString() end)
+        table.sort(result)
+        return result
+    end
     local function currentGameState()
         local ok, gameState = pcall(function() return ctx.UEHelpers.GetGameStateBase() end)
         if ok and gameState and gameState:IsValid() then return gameState end
@@ -68,10 +42,13 @@ return function(ctx)
             if not gameState then error("the world is not loaded (are you in a world?)") end
             return {
                 isHost = ctx.isHost(),
+                canEditRecipes = ctx.isHost() and replication.available() and canEditRecipes(gameState),
                 -- FSetProperty: best-effort, same optimistic-pcall caveat as codex.lua's old
                 -- Local_AllCompendiumEntries read (see header comment).
-                recipesUnlocked = readArray(function() return gameState.GlobalRecipesUnlocked end),
-                recipesResearched = readArray(function() return gameState.GlobalRecipesResearched end),
+                recipesUnlocked = canEditRecipes(gameState) and readSet(gameState.GlobalRecipesUnlocked)
+                    or readArray(function() return gameState.GlobalRecipesUnlocked end),
+                recipesResearched = canEditRecipes(gameState) and readSet(gameState.GlobalRecipesResearched)
+                    or readArray(function() return gameState.GlobalRecipesResearched end),
                 -- FArrayProperty: same confirmed technique as codex.lua's EmailsRead/JournalEntries.
                 itemsPickedUp = readArray(function() return gameState.GlobalItemsPickedUp end),
                 emailsRead = readArray(function() return gameState.GlobalEmailsRead end),
@@ -83,10 +60,33 @@ return function(ctx)
         end, respond)
     end
 
-    ctx.handlers["worldunlocks.set"] = function(_, respond)
+    ctx.handlers["worldunlocks.set"] = function(payload, respond)
         ctx.runOnGameThread(function()
-            error("world-wide unlocks cannot be changed from outside the game - no unlock function exists for them, " ..
-                "and writing directly into the game's own unlock lists has no safe, confirmed technique yet")
+            if not ctx.isHost() then error("world-wide unlocks require host authority") end
+            local state = currentGameState()
+            if not state or not canEditRecipes(state) then error("world-wide unlocks require UE4SS TSet support") end
+            local helper = replication.requireHelper()
+            local prepared = {}
+            for _, edit in ipairs(payload.recipes or {}) do
+                if type(edit.id) ~= "string" or edit.id == "" or type(edit.unlocked) ~= "boolean" then error("invalid recipe edit") end
+                local name = FName(edit.id, EFindName.FNAME_Find)
+                if name:ToString() == "None" then error("unknown recipe name: " .. edit.id) end
+                prepared[#prepared + 1] = { name = name, unlocked = edit.unlocked }
+            end
+            for _, edit in ipairs(prepared) do
+                if edit.unlocked then
+                    state.GlobalRecipesUnlocked:Add(edit.name)
+                    state.GlobalRecipesResearched:Add(edit.name)
+                else
+                    state.GlobalRecipesUnlocked:Remove(edit.name)
+                    state.GlobalRecipesResearched:Remove(edit.name)
+                end
+            end
+            if #prepared > 0 then
+                replication.mark(helper, state, "GlobalRecipesUnlocked")
+                replication.mark(helper, state, "GlobalRecipesResearched")
+            end
+            return nil
         end, respond)
     end
 end

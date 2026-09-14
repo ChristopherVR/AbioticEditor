@@ -1,20 +1,10 @@
--- Live recipe-unlock editing (round 76). Grounded in the game's own class layout, NOT a working
--- mod: tests/AbioticEditor.Probes/LiveClassPropsProbe.cs (fragment "CharacterProgressionComponent")
--- dumps Content/Blueprints/Characters/Abiotic_CharacterProgressionComponent.uasset's exported
--- properties/functions from the installed game's paks. That dump carries:
---   prop RecipesUnlockedArray : FArrayProperty   -- the unlocked recipe row names, readable directly
---   func Request_UnlockNewRecipe(RecipeRow: FName)  -- the unlock RPC
--- Neither is called by any installed reference mod (CheatConsoleCommands has no recipe-unlocker
--- feature at all), but Request_UnlockNewRecipe is named and shaped exactly like
--- Request_UnlockCompendiumSection - a function on this SAME component class that IS confirmed
--- real by CheatConsoleCommands/scripts/Features.lua:900 (JournalEntryUnlocker), called the exact
--- same way (`component:Request_X(FName(...))`). See docs/reference/live-editing-protocol.md
--- "recipes.get / recipes.set" for the wire shape.
---
--- No lock/relock/remove-recipe function exists anywhere in the component's ~200 exported
--- functions - only "unlock" ones, matching how every "unlockallX" cheat in the reference mod is
--- one-directional too. So this area can only ever unlock a recipe, never lock one back up.
+-- Recipe names are stored in CharacterProgressionComponent.RecipesUnlockedArray.
+-- Unlocks use Request_UnlockNewRecipe. Hosts can relock by replacing the reflected
+-- FName array and invoking the exported OnRep_RecipesUnlockedArray. Array assignment
+-- is grounded in UE4SS LuaUObject.cpp push_arrayproperty, not an invented relock RPC.
 return function(ctx)
+    local replication = require("replication")
+    local names = require("name_arrays")
     ---@return userdata? progressionComponent
     local function getProgressionComponent(payload)
         local targetPlayer = ctx.resolvePlayer(payload)
@@ -43,7 +33,7 @@ return function(ctx)
         ctx.runOnGameThread(function()
             local component = getProgressionComponent(payload)
             if not component then error("no CharacterProgressionComponent found") end
-            return { unlockedIds = readNameArray(function() return component.RecipesUnlockedArray end) }
+            return { unlockedIds = readNameArray(function() return component.RecipesUnlockedArray end), canLock = ctx.isHost() and replication.available() }
         end, respond)
     end
 
@@ -51,6 +41,14 @@ return function(ctx)
         ctx.runOnGameThread(function()
             local component = getProgressionComponent(payload)
             if not component then error("no CharacterProgressionComponent found") end
+            if payload.lockIds and #payload.lockIds > 0 then
+                if not ctx.isHost() then error("relocking recipes requires host authority") end
+                local helper = replication.requireHelper()
+                local replacement = names.prepare(component.RecipesUnlockedArray, {}, payload.lockIds)
+                component.RecipesUnlockedArray = replacement
+                replication.mark(helper, component, "RecipesUnlockedArray")
+                component:OnRep_RecipesUnlockedArray()
+            end
             local ids = payload.unlockIds or {}
             for i = 1, #ids do
                 if ids[i] and ids[i] ~= "" then

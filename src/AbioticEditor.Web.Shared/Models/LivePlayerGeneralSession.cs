@@ -3,16 +3,8 @@ using AbioticEditor.Core.LiveEditing.Player;
 namespace AbioticEditor.Web.Models;
 
 /// <summary>
-/// The live-edit counterpart to <see cref="PlayerSaveSession"/>'s General-tab slice: implements
-/// the same <see cref="IPlayerGeneralSession"/> boundary <c>PlayerGeneralTab</c> already binds to
-/// (see <c>IPlayerGeneralSession.cs</c>), so that widget needs zero changes to work against a
-/// running game instead of a loaded file. ITEMS SEEN and MAPS discover immediately, one network
-/// round trip per batch; ITEMS CRAFTED is read-only (<see cref="IPlayerDiscoverySection.CanDiscoverAll"/>
-/// is false - see <c>LivePlayerGeneralChannel</c>'s remarks) and the account/owner-id change is
-/// unavailable entirely (<see cref="CanChangeOwnerId"/> is always false - there is no live concept
-/// of "which save file this character came from" to change). BACKGROUND applies live immediately
-/// (a real, grounded property write - see <see cref="SetBackgroundAsync"/>); TRAITS is a
-/// read-only readout (see <see cref="IPlayerGeneralSession.Traits"/>'s remarks).
+/// Immediate live discovery/background editing. Crafted-item discovery is enabled
+/// by the host agent capability. Owner identity is save-only and traits remain read-only.
 /// </summary>
 public sealed class LivePlayerGeneralSession : IPlayerGeneralSession
 {
@@ -41,7 +33,7 @@ public sealed class LivePlayerGeneralSession : IPlayerGeneralSession
             });
         ItemsCrafted = new DelegateDiscoverySection(() => _itemsCrafted, canDiscoverAll: false,
             _ => throw new InvalidOperationException(
-                "Crafted items can't be discovered live - the running game tracks them automatically but exposes no function to mark one crafted on demand."));
+                "Crafted-item discovery requires an updated agent with host authority."));
         Maps = new DelegateDiscoverySection(() => _maps, canDiscoverAll: true,
             async vocabulary =>
             {
@@ -75,7 +67,7 @@ public sealed class LivePlayerGeneralSession : IPlayerGeneralSession
     public bool IsSteamOwnerId => false;
     public bool CanChangeOwnerId => false;
     public IPlayerDiscoverySection ItemsSeen { get; }
-    public IPlayerDiscoverySection ItemsCrafted { get; }
+    public IPlayerDiscoverySection ItemsCrafted { get; private set; }
     public IPlayerDiscoverySection Maps { get; }
     public string? Status { get; private set; }
 
@@ -123,6 +115,19 @@ public sealed class LivePlayerGeneralSession : IPlayerGeneralSession
         _maps.Clear(); foreach (var id in directory.Maps) _maps.Add(id);
         _traits = directory.Traits.ToList();
         Background = directory.Background;
+        if (ItemsCrafted.CanDiscoverAll != directory.CanDiscoverCrafted)
+            ItemsCrafted = new DelegateDiscoverySection(() => _itemsCrafted, directory.CanDiscoverCrafted, DiscoverCraftedAsync);
+        Changed?.Invoke();
+    }
+
+    private async Task DiscoverCraftedAsync(IEnumerable<string> vocabulary)
+    {
+        if (!ItemsCrafted.CanDiscoverAll) throw new InvalidOperationException("Crafted-item discovery requires an updated agent with host authority.");
+        var ids = CleanNew(vocabulary, _itemsCrafted);
+        if (ids.Count == 0) return;
+        await _channel.DiscoverCraftedAsync(ids, _playerId).ConfigureAwait(false);
+        foreach (var id in ids) _itemsCrafted.Add(id);
+        Status = null;
         Changed?.Invoke();
     }
 

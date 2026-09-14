@@ -1,50 +1,10 @@
--- Live "bulk unlocks" editing (round 76): ITEMS SEEN and MAPS discover on demand; ITEMS CRAFTED
--- is read-only. Grounded in the game's own class layout, NOT a working mod: LiveClassPropsProbe's
--- dump of Content/Blueprints/Characters/Abiotic_CharacterProgressionComponent.uasset carries:
---   prop ItemsPickedUpArray : FArrayProperty   -- matches the file format's ItemsPickedUp concept
---   prop CurrentMaps : FArrayProperty           -- matches the file format's MapsUnlocked concept
---   prop CraftedItems : FArrayProperty          -- read-only, see below
---   func Server_CheckNewItemPickedUp(ItemRowName: FName)
---   func Server_AddMapToJournal(MapRow: FName)
--- Neither write function is called by any installed reference mod, but both are named/shaped
--- exactly like Request_UnlockCompendiumSection - a function on this SAME component class
--- confirmed real by CheatConsoleCommands/scripts/Features.lua:900. See
--- docs/reference/live-editing-protocol.md "general.get / general.set" for the wire shape.
---
--- CraftedItems is read-only: the component updates it automatically from actually crafting
--- something (Local_CheckForNewlyCraftedItems / OnRep_CraftedItems), but exposes no single-item
--- "mark as crafted" function anywhere in its ~200 exported functions, unlike items-seen and maps.
--- The account/owner-id change has no live path at all - renaming which save file a character
--- belongs to is a file-system operation with nothing to call live, so it is not part of this area
--- at all (the desktop app hides that whole section when connected live).
---
--- Round 77: BACKGROUND and TRAITS, re-checked against the game's own class layouts (round 76 had
--- not looked at either).
---
--- Background/PhD IS writable: LiveClassPropsProbe's dump of
--- Content/Blueprints/Meta/Abiotic_PlayerState.uasset (fragment "Abiotic_PlayerState.") carries a
--- plain, no-hash-suffix `prop PhD : FNameProperty` directly on Abiotic_PlayerState_C - the same
--- row-name concept the file format's PhD_ tag stores (see PlayerSaveReader.ReadStats). No
--- OnRep_PhD exists, so this is a direct field write on the server's own authoritative PlayerState
--- object, the same "low blast-radius direct write" category vitals.set/inventory.set already use
--- for fields with no RepNotify - a replicated UPROPERTY changed on the server object replicates to
--- owning clients on the next network update with no RPC call needed.
---
--- Traits stays read-only. CharacterProgressionComponent.Traits is read the same way the reference
--- mod's own "traits" console command does (CommandsManager.lua "Show Traits":
--- `progressionComponen.Traits[i]:ToString()`), so the read is solid precedent. The ONLY functions
--- touching that array are SetTraits/GetTraits/InitializeTraits - no Server_/Request_ prefix, i.e.
--- not RPCs, and used only by the one-time character-creation flow
--- (Abiotic_PlayerController.Server_SetupInitialTraits -> Client_DoTraitSelectionSequence ->
--- GoToTraitsSelection); calling SetTraits/InitializeTraits mid-game would re-run that creation
--- flow (re-rolls AmnesiaThreshold, resets FirstTimeTraitsRunning), not swap one trait. The native
--- PDB's only trait-adjacent RPCs are UCharacterBuffComponent::Server_AddTraitBuff/
--- Server_RemoveTraitBuff(FBuffDebuffRowHandle) - a DIFFERENT system (a temporary gameplay buff
--- keyed by a buff/debuff row handle) that does not touch CharacterProgressionComponent.Traits or
--- the save's Traits_ array at all, so calling it would not actually "give a trait" the way this
--- list means. No targeted single-trait write path exists; this area only reads the list so a live
--- session (which has no CHARACTER tab) can show what a character actually has.
+-- ItemsPickedUpArray/CurrentMaps use the existing discovery RPCs. Hosts can
+-- append to CraftedItems through UE4SS FName-array assignment and OnRep_CraftedItems.
+-- PhD is an FName on PlayerState. Traits remains a readout: its initialization has
+-- gameplay side effects that need dedicated verification before enabling mid-game edits.
 return function(ctx)
+    local replication = require("replication")
+    local names = require("name_arrays")
     ---@return userdata? progressionComponent
     local function getProgressionComponent(payload)
         local targetPlayer = ctx.resolvePlayer(payload)
@@ -106,6 +66,7 @@ return function(ctx)
                 -- the same array the reference mod's "traits" console command reads.
                 traits = readNameArray(function() return component.Traits end),
                 background = background,
+                canDiscoverCrafted = ctx.isHost() and replication.available(),
             }
         end, respond)
     end
@@ -122,9 +83,16 @@ return function(ctx)
         ctx.runOnGameThread(function()
             local component = getProgressionComponent(payload)
             if not component then error("no CharacterProgressionComponent found") end
+            if payload.itemsCrafted then
+                if not ctx.isHost() then error("crafted-item discovery requires host authority") end
+                local helper = replication.requireHelper()
+                local replacement = names.prepare(component.CraftedItems, payload.itemsCrafted, {})
+                component.CraftedItems = replacement
+                replication.mark(helper, component, "CraftedItems")
+                component:OnRep_CraftedItems()
+            end
             callEach(component, payload.itemsSeen or {}, function(c, name) c:Server_CheckNewItemPickedUp(name) end)
             callEach(component, payload.maps or {}, function(c, name) c:Server_AddMapToJournal(name) end)
-            -- payload.itemsCrafted is deliberately not accepted - see the file header comment.
             if payload.background and payload.background ~= "" then
                 local state = getPlayerState(payload)
                 if state then

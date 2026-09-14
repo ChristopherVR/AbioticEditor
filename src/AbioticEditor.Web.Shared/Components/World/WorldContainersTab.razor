@@ -625,6 +625,7 @@
             slotEdit => UpgradeCatalog.SourceOf(slotEdit.ItemId) is not null)
         {
             SupportsCoatingEdits = !Session.AppliesImmediately,
+            SupportsLiquidTypeEdits = Session.AppliesImmediately,
             QuickGiveFallback = _ => _slotEdits.FirstOrDefault(candidate => candidate.IsEmpty) is { } empty ? new(empty, null, null) : null,
             SelectSlot = SelectSibling,
         });

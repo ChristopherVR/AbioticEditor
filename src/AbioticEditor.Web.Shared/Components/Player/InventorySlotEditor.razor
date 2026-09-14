@@ -152,6 +152,21 @@
                 @if ((selectedEntry?.MaxLiquid ?? 0) > 0)
                 {
                     <label>@L.Inventory("liquid")<input type="number" min="0" max="@selectedEntry!.MaxLiquid" @bind="selected.LiquidLevel" @bind:after="Changed" /></label>
+                    @if (selection.SupportsLiquidTypeEdits)
+                    {
+                        <label>@L.Resource("Slot_LiquidTypeWhatThisItemIsAllowedToHold")
+                            <select @bind="selected.LiquidType" @bind:after="Changed">
+                                @if (!string.IsNullOrEmpty(selected.LiquidType) && !selectedEntry.AllowedLiquidList.Contains(LiquidTypes.ParseSaveValue(selected.LiquidType)))
+                                {
+                                    <option value="@selected.LiquidType">@LiquidTypes.NameFor(LiquidTypes.ParseSaveValue(selected.LiquidType))</option>
+                                }
+                                @foreach (var liquid in selectedEntry.AllowedLiquidList)
+                                {
+                                    <option value="@($"E_LiquidType::NewEnumerator{liquid}")">@LiquidTypes.NameFor(liquid)</option>
+                                }
+                            </select>
+                        </label>
+                    }
                 }
                 @* CUSTOM NAME is not offered on everything, because the game does not use this
                    field as a name on everything. A personal teleporter keeps its linked bench

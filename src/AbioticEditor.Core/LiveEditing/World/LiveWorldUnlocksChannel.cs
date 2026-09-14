@@ -1,18 +1,9 @@
 namespace AbioticEditor.Core.LiveEditing.World;
 
 /// <summary>
-/// Live WORLD-LEVEL (not per-player) unlock lists: <c>GlobalRecipesUnlocked</c>,
-/// <c>GlobalRecipesResearched</c>, <c>GlobalItemsPickedUp</c>, <c>GlobalEmailsRead</c>,
-/// <c>GlobalJournalEntries</c> and <c>GlobalCompendiumEmail</c>/<c>Narrative</c>/<c>Exploration</c>
-/// on <c>Abiotic_Survival_GameState_C</c> - the live counterpart to the file editor's world-recipes
-/// browser (<c>WorldSaveSession.GlobalRecipes</c>, the save's <c>GlobalUnlocks</c> struct). See
-/// <c>worldunlocks.get</c>/<c>worldunlocks.set</c> in
-/// <c>live-agent/AbioticEditorLiveAgentLua/Scripts/areas/worldunlocks.lua</c> for the grounding
-/// evidence and exactly why there is no write path: no unlock function exists anywhere in the
-/// game's own exported API for any of these fields, and directly mutating a replicated
-/// <c>TSet</c>/<c>TArray</c> property has no confirmed technique in this project or any installed
-/// mod. <see cref="SetAsync"/> therefore always throws - it exists only so a future grounded write
-/// path has somewhere to plug in without a wire-shape change.
+/// World-wide unlock lists on Abiotic_Survival_GameState_C. Updated UE4SS runtimes
+/// expose TSet.ForEach/Add/Remove, used for host-only world recipe editing. Runtime
+/// capability reporting keeps older agents read-only.
 /// </summary>
 public sealed class LiveWorldUnlocksChannel(ILiveGameChannel channel)
 {
@@ -26,18 +17,21 @@ public sealed class LiveWorldUnlocksChannel(ILiveGameChannel channel)
             wire.RecipesUnlocked ?? [], wire.RecipesResearched ?? [], wire.ItemsPickedUp ?? [],
             wire.EmailsRead ?? [], wire.JournalEntries ?? [],
             wire.CompendiumEmail ?? [], wire.CompendiumNarrative ?? [], wire.CompendiumExploration ?? [],
-            wire.IsHost);
+            wire.IsHost, wire.CanEditRecipes);
     }
 
-    /// <summary>Always throws - see the type remarks for exactly why no write path is grounded.</summary>
+    /// <summary>Legacy empty request. Use SetRecipesAsync to specify edits.</summary>
     public Task SetAsync(CancellationToken cancellationToken = default)
         => _channel.RequestAsync<object?>("worldunlocks.set", payload: null, cancellationToken);
+
+    public Task SetRecipesAsync(IReadOnlyList<LiveWorldRecipeEdit> recipes, CancellationToken cancellationToken = default)
+        => _channel.RequestAsync<object?>("worldunlocks.set", new { recipes }, cancellationToken);
 
     private sealed record UnlocksWire(
         IReadOnlyList<string>? RecipesUnlocked, IReadOnlyList<string>? RecipesResearched,
         IReadOnlyList<string>? ItemsPickedUp, IReadOnlyList<string>? EmailsRead, IReadOnlyList<string>? JournalEntries,
         IReadOnlyList<string>? CompendiumEmail, IReadOnlyList<string>? CompendiumNarrative,
-        IReadOnlyList<string>? CompendiumExploration, bool IsHost);
+        IReadOnlyList<string>? CompendiumExploration, bool IsHost, bool CanEditRecipes = false);
 }
 
 /// <summary>World-wide (not per-player) unlock lists, as read by <see cref="LiveWorldUnlocksChannel.GetAsync"/>.</summary>
@@ -45,4 +39,6 @@ public sealed record LiveWorldUnlocks(
     IReadOnlyList<string> RecipesUnlocked, IReadOnlyList<string> RecipesResearched,
     IReadOnlyList<string> ItemsPickedUp, IReadOnlyList<string> EmailsRead, IReadOnlyList<string> JournalEntries,
     IReadOnlyList<string> CompendiumEmail, IReadOnlyList<string> CompendiumNarrative,
-    IReadOnlyList<string> CompendiumExploration, bool IsHost);
+    IReadOnlyList<string> CompendiumExploration, bool IsHost, bool CanEditRecipes = false);
+
+public sealed record LiveWorldRecipeEdit(string Id, bool Unlocked);

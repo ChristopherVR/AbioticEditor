@@ -191,11 +191,23 @@ public sealed class LiveStorySession : IWorldStorySession
         Changed?.Invoke();
     }
 
-    // ---------- world recipes (read-only live; see LiveWorldUnlocksChannel's remarks) ----------
+    // ---------- world recipes (host capability required) ----------
 
     public bool SupportsRecipes => _unlocks is not null;
     public IReadOnlyCollection<string> GlobalRecipeIds => _unlocks?.RecipesUnlocked ?? [];
-    public bool CanEditGlobalRecipes => false;
+    public bool CanEditGlobalRecipes => IsHost && _unlocks?.CanEditRecipes == true;
+
+    public async Task SetGlobalRecipesAsync(IEnumerable<string> ids, bool unlocked, CancellationToken cancellationToken = default)
+    {
+        if (!CanEditGlobalRecipes) throw new InvalidOperationException("Global recipes require host authority and UE4SS TSet support.");
+        var edits = ids.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct(StringComparer.Ordinal)
+            .Select(id => new LiveWorldRecipeEdit(id, unlocked)).ToArray();
+        if (edits.Length == 0) return;
+        await _unlocksChannel.SetRecipesAsync(edits, cancellationToken).ConfigureAwait(false);
+        _unlocks = await _unlocksChannel.GetAsync(cancellationToken).ConfigureAwait(false);
+        Status = null;
+        Changed?.Invoke();
+    }
 
     // ---------- whole-session save (file session only; live applies per action) ----------
 
