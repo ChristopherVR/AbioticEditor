@@ -64,7 +64,7 @@ from a zip are edited in the tab and leave the same way, through **EXPORT**.
 | Browser | What happens |
 | --- | --- |
 | **Chrome, Edge, Opera** | Full use. The editor writes changes straight back to your save folder, keeping a `.bak` of the old file each time, exactly like the desktop app. |
-| **Firefox, Safari** | Read-only. The editor can open your folder and edit everything, but the browser will not let any web page write to your disk. Your changes live in the tab until you **export** them. |
+| **Firefox, Safari** | Export workflow. The editor can open your folder and edit everything, but the browser will not let any web page write to your disk. Your changes live in the tab until you **export** them. |
 
 On Firefox and Safari, nothing is lost as long as you export before closing the tab. The
 editor says so on screen rather than letting you find out afterwards, and the browser itself
@@ -82,8 +82,8 @@ player save with it.
 If you are certain you only want one file, **right-click any save in the list** and choose
 **EXPORT THIS SAVE**. That gives you just that `.sav`.
 
-::: warning Export saves what is on disk
-Press **SAVE** first. An edit still open in the editor is not in the export.
+::: warning Save before exporting
+Press **SAVE** first. Export includes committed files in the workspace, which may be in browser memory. Staged edits are not included.
 :::
 
 ## What the browser cannot do
@@ -93,6 +93,9 @@ show a "needs the desktop editor" note instead. Everything else is the same edit
 
 | Not in the browser | Why |
 | --- | --- |
+| Live editing | The browser edition has no live TCP connection. |
+| Transfer items between worlds | The tool requires desktop file paths. |
+| Game Pass containers | WGS discovery and conversion require the desktop or CLI. |
 | Compare two saves | Picks two saves from anywhere on your machine. |
 | Create a new world | Writes a whole folder of new files. |
 | Settings files (`.ini`) | Found by searching folders on your computer. |
@@ -109,3 +112,10 @@ works the same as the [desktop app](/guide/desktop-app).
 The [desktop app](/guide/desktop-app) has no such limits, reads your game's own item icons and
 names from your installed copy, and finds your saves for you.
 [Download it here](https://github.com/ChristopherVR/AbioticEditor/releases/latest).
+
+## Folder access is refused
+
+Choose the save/account folder itself, not a whole drive or your user-profile root. If the browser
+reports that a folder contains system files, copy the saves out of a protected location such as
+Program Files into a normal user folder, or use the desktop editor. Zip imports always require
+exporting the result, even in Chrome or Edge.

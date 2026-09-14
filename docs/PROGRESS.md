@@ -1,9 +1,32 @@
-# Abiotic Editor - Session Progress (compacted 2026-06-12, round 3)
+# Abiotic Editor - Session history
 
-State of the .NET save editor (repo root layout). **308 assertion tests + 95 probes
-green**; full solution builds clean; app multi-targets android/ios/maccatalyst/windows.
-Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
-host-UI bridge + Vite sample).
+Dated implementation and verification notes. Older entries describe the application at that
+time; they are not a current feature list or test-count guarantee. The maintained entry points
+are `README.md`, `docs/guide/index.md`, and `docs/reference/architecture.md`.
+
+
+## Documentation and GitHub Pages refresh (2026-09-14)
+
+Reviewed the README, player guides, reference entry points, plugin/sample links, and Pages
+configuration against the current shared Razor UI, host services, and live-agent protocol.
+Replaced the stale session-log summary with a historical-context notice. The README now points
+to maintained guides; new directory pages expose all player documentation and technical tracks.
+Added item-transfer instructions, a current architecture guide, and the missing plugin sample
+catalog. Corrected live setup, immediate live edits, bundled catalogs, browser exports, macOS
+CLI availability, localization paths, and links from the plugin samples and wiki. The old Linux
+host URL remains as a pointer to the maintained guide; the MAUI audit is labeled historical.
+
+Redesigned Pages with a responsive field-manual homepage, light/dark palettes, an editor preview,
+and numbered routes into the guides. Kept standard search, keyboard navigation, and screenshot
+zoom. Markdown browser-editor links retain their repository base and full-navigation target in
+both rendered HTML and client-side transitions. Removed root image.png and containment-tab.png.
+
+Verification: npm run docs:build passes, including 1,728 local links/images across 43 rendered
+pages. The new rendered-link checker also validates anchors and base paths; it caught four old
+plugin section links. Browser checks covered homepage and guide layouts at desktop and 390px,
+light/dark switching, search results for the transfer guide, and guide navigation. Only the
+existing large-bundle advisory remains. The Pages preview serves documentation, not the separately
+built WebAssembly app. No application code was changed for this refresh and no push was made.
 
 ## Round-80: item visual-variant game-data probe (2026-09-14)
 

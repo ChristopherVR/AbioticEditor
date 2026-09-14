@@ -1,212 +1,69 @@
-/**
- * Abiotic Factor "facility" theme for VitePress.
- *
- * Colors are lifted verbatim from the app's ThemeService Cascade palettes
- * (src/AbioticEditor.App/Services/ThemeService.cs):
- *   - dark  (.dark)  -> Cascade Dark : blue-teal facility chrome, cyan readouts
- *   - light (:root)  -> Cascade Light: paper-blue surfaces, darkened accents
- * Hazard orange / caution yellow are reserved for calls-to-action and warnings,
- * exactly as in the game's inventory UI.
- */
-
-/* ----------------------------------------------------------------------------
- * LIGHT: Cascade Light (paper-blue facility readout)
- *
- * Light lives in :root as the base; dark overrides it in .dark below. Order
- * matters: :root and .dark have equal specificity, so the dark block has to
- * come last for the appearance toggle to take effect.
- * ------------------------------------------------------------------------- */
+/* Field manual: paper, ink, copper, and numbered routes. No remote fonts. */
 :root {
-  --af-shell: #dce6ee;
-  --af-page: #e9f1f7;
-  --af-panel: #f4f9fd;
-  --af-elevated: #ffffff;
-  --af-divider: #c8d8e4;
-  --af-border: #b5c9d8;
-
-  --af-text-1: #16242f;
-  --af-text-2: #3e586c;
-  --af-text-3: #718999;
-
-  --af-cyan: #1b8c94;
-  --af-blue: #0f86c4;
-  --af-orange: #c76408;
-  --af-orange-bright: #e07a12;
-  --af-orange-dim: #9c4f07;
-  --af-yellow: #a87f04;
-  --af-red: #c03a22;
-  --af-hazard-dark: #1f2a16;
-
-  --vp-c-bg: var(--af-page);
-  --vp-c-bg-alt: var(--af-shell);
-  --vp-c-bg-soft: var(--af-panel);
-  --vp-c-bg-elv: var(--af-elevated);
-  --vp-c-gutter: #cdd9e3;
-
-  --vp-c-text-1: var(--af-text-1);
-  --vp-c-text-2: var(--af-text-2);
-  --vp-c-text-3: var(--af-text-3);
-
-  --vp-c-divider: var(--af-divider);
-  --vp-c-border: var(--af-border);
-
-  --vp-c-brand-1: #0e6fa8;
-  --vp-c-brand-2: #0f86c4;
-  --vp-c-brand-3: #1273b8;
-  --vp-c-brand-soft: rgba(18, 115, 184, 0.12);
-
-  --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: linear-gradient(120deg, #c76408 20%, #b8890a);
-  --vp-home-hero-image-background-image: linear-gradient(
-    135deg,
-    rgba(15, 134, 196, 0.35),
-    rgba(27, 140, 148, 0.35)
-  );
-  --vp-home-hero-image-filter: blur(56px);
-
-  --vp-c-tip-1: #1b8c94;
-  --vp-c-tip-soft: rgba(27, 140, 148, 0.12);
-  --vp-c-warning-1: #a87f04;
-  --vp-c-warning-soft: rgba(168, 127, 4, 0.12);
-  --vp-c-danger-1: #c03a22;
-  --vp-c-danger-soft: rgba(192, 58, 34, 0.12);
+  --vp-font-family-base: 'Trebuchet MS', 'Gill Sans', sans-serif;
+  --vp-font-family-mono: 'Cascadia Code', 'SFMono-Regular', Consolas, monospace;
+  --vp-c-bg: #f7f5ef; --vp-c-bg-alt: #eeece4; --vp-c-bg-soft: #eeece4; --vp-c-bg-elv: #fffdf8;
+  --vp-c-text-1: #202d2b; --vp-c-text-2: #4c5c58; --vp-c-text-3: #63716c;
+  --vp-c-brand-1: #8e421b; --vp-c-brand-2: #a64d20; --vp-c-brand-3: #8e421b; --vp-c-brand-soft: #a64d2014;
+  --vp-c-divider: #d5d8cd; --vp-c-border: #b8c0b6; --manual-accent: #ae4e22; --manual-panel: #e5e9de;
 }
-
-/* ----------------------------------------------------------------------------
- * DARK: Cascade Dark (the shipped, game-accurate look)
- * ------------------------------------------------------------------------- */
 .dark {
-  --af-shell: #081119;
-  --af-page: #0c1a24;
-  --af-panel: #132736;
-  --af-elevated: #1b3648;
-  --af-hover: #26475d;
-  --af-divider: #2e5471;
-  --af-border: #224158;
-
-  --af-text-1: #dceff9;
-  --af-text-2: #8fb8d0;
-  --af-text-3: #587c93;
-
-  --af-cyan: #7fe9e2; /* terminal readout            */
-  --af-cyan-bright: #8cfffb; /* item-name highlight   */
-  --af-blue: #71c5f6; /* POCKETS header              */
-  --af-orange: #f89a4f; /* hazard / CTA              */
-  --af-orange-bright: #ffb347;
-  --af-orange-dim: #b86f33;
-  --af-yellow: #ffe563; /* caution                   */
-  --af-red: #e25b4b;
-  --af-hazard-dark: #0a1721;
-
-  /* VitePress surface tokens */
-  --vp-c-bg: var(--af-page);
-  --vp-c-bg-alt: var(--af-shell);
-  --vp-c-bg-soft: var(--af-panel);
-  --vp-c-bg-elv: var(--af-elevated);
-  --vp-c-gutter: #050d13;
-
-  --vp-c-text-1: var(--af-text-1);
-  --vp-c-text-2: var(--af-text-2);
-  --vp-c-text-3: var(--af-text-3);
-
-  --vp-c-divider: var(--af-divider);
-  --vp-c-border: var(--af-border);
-
-  /* Brand = cyan terminal readouts (links, active nav, accents) */
-  --vp-c-brand-1: var(--af-cyan);
-  --vp-c-brand-2: var(--af-cyan-bright);
-  --vp-c-brand-3: var(--af-blue);
-  --vp-c-brand-soft: rgba(127, 233, 226, 0.14);
-
-  /* Hero name signage: hazard orange -> caution yellow */
-  --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: linear-gradient(120deg, #f89a4f 20%, #ffe563);
-  --vp-home-hero-image-background-image: linear-gradient(
-    135deg,
-    rgba(127, 233, 226, 0.55),
-    rgba(113, 197, 246, 0.55)
-  );
-  --vp-home-hero-image-filter: blur(56px);
-
-  /* Custom blocks mapped to the game's signal colors */
-  --vp-c-tip-1: var(--af-cyan);
-  --vp-c-tip-2: var(--af-blue);
-  --vp-c-tip-soft: rgba(127, 233, 226, 0.12);
-  --vp-c-note-1: var(--af-blue);
-  --vp-c-warning-1: var(--af-yellow);
-  --vp-c-warning-soft: rgba(255, 229, 99, 0.12);
-  --vp-c-danger-1: var(--af-red);
-  --vp-c-danger-soft: rgba(226, 91, 75, 0.12);
+  --vp-c-bg: #142321; --vp-c-bg-alt: #101c1b; --vp-c-bg-soft: #1c302c; --vp-c-bg-elv: #233a35;
+  --vp-c-text-1: #eff1e5; --vp-c-text-2: #bdc9bb; --vp-c-text-3: #99ad9e;
+  --vp-c-brand-1: #ffb183; --vp-c-brand-2: #ffc8a7; --vp-c-brand-3: #c36a3c; --vp-c-brand-soft: #ffb18318;
+  --vp-c-divider: #344a41; --vp-c-border: #52695c; --manual-accent: #ffb183; --manual-panel: #23372d;
 }
-
-/* ----------------------------------------------------------------------------
- * Hazard-orange CTA buttons (the game reserves orange for primary actions)
- * ------------------------------------------------------------------------- */
-:root,
-.dark {
-  --vp-button-brand-border: transparent;
-  --vp-button-brand-text: var(--af-hazard-dark);
-  --vp-button-brand-bg: var(--af-orange);
-  --vp-button-brand-hover-border: transparent;
-  --vp-button-brand-hover-text: #07121a;
-  --vp-button-brand-hover-bg: var(--af-orange-bright);
-  --vp-button-brand-active-border: transparent;
-  --vp-button-brand-active-text: #07121a;
-  --vp-button-brand-active-bg: var(--af-orange-dim);
+a:focus-visible, button:focus-visible { outline: 3px solid var(--vp-c-brand-1); outline-offset: 5px; }
+.VPNavBarTitle .title { letter-spacing: -.03em; font-weight: 800; }
+.vp-doc h1, .vp-doc h2, .vp-doc h3 { letter-spacing: -.03em; }
+.vp-doc h1 { font-size: clamp(30px, 4vw, 42px); line-height: 1.15; }
+.vp-doc p, .vp-doc li { line-height: 1.8; }
+.vp-doc a { text-underline-offset: 3px; }
+.vp-doc table { width: 100%; }
+.vp-doc th { text-align: left; }
+.vp-doc blockquote { border-left-color: var(--manual-accent); }
+.vp-doc img { cursor: zoom-in; border: 1px solid var(--vp-c-divider); border-radius: 4px; }
+.vp-doc div[class*='language-'] { border: 1px solid var(--vp-c-divider); }
+.VPSidebarItem.is-active > .item .link > .text { font-weight: 700; }
+.field-manual { max-width: 1280px; padding: 72px 32px 0; margin: auto; }
+.manual-hero { display: grid; grid-template-columns: 1fr 1.08fr; align-items: center; gap: 48px; padding-bottom: 64px; }
+.manual-kicker, .manual-preview-label, .manual-number { font: 12px/1.5 var(--vp-font-family-mono); text-transform: uppercase; letter-spacing: .1em; }
+.manual-kicker { color: var(--manual-accent); margin: 0 0 24px; font-weight: 700; }
+.manual-intro h1 { font-size: clamp(40px, 4.7vw, 65px); line-height: 1.04; letter-spacing: -.055em; font-weight: 800; margin: 0; }
+.manual-deck { font-size: 18px; line-height: 1.7; color: var(--vp-c-text-2); max-width: 490px; margin: 24px 0; }
+.manual-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.manual-actions a { padding: 13px 18px; font-size: 14px; font-weight: 700; border: 1px solid var(--vp-c-border); border-radius: 3px; display: flex; gap: 20px; align-items: center; }
+.manual-actions .manual-primary { background: var(--vp-c-text-1); color: var(--vp-c-bg); border-color: var(--vp-c-text-1); }
+.manual-actions a:hover { box-shadow: 0 3px 0 var(--manual-accent); }
+.manual-note { font-size: 12px; color: var(--vp-c-text-2); margin: 20px 0 0; }
+.manual-preview { min-width: 0; margin: 0; padding: 18px; background: var(--manual-panel); border: 1px solid var(--vp-c-border); border-top: 4px solid var(--manual-accent); box-shadow: 12px 12px 0 var(--vp-c-bg-alt); }
+.manual-preview-label { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: var(--vp-c-text-2); margin-bottom: 16px; font-size: 10px; }
+.manual-preview img { display: block; width: 100%; height: auto; border: 1px solid var(--vp-c-border); }
+.manual-preview figcaption { font-size: 12px; color: var(--vp-c-text-2); line-height: 1.6; margin-top: 14px; }
+.manual-routes { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--vp-c-border); border-bottom: 1px solid var(--vp-c-border); }
+.manual-routes > a { padding: 28px 28px 30px; display: flex; flex-direction: column; border-right: 1px solid var(--vp-c-border); }
+.manual-routes > a:first-child { padding-left: 0; }
+.manual-routes > a:last-child { border-right: 0; }
+.manual-routes > a:hover { background: var(--vp-c-bg-soft); }
+.manual-number { color: var(--manual-accent); }
+.manual-routes h2 { font-size: 24px; line-height: 1.25; font-weight: 700; letter-spacing: -.04em; margin: 18px 0 12px; }
+.manual-routes p { font-size: 15px; color: var(--vp-c-text-2); line-height: 1.7; margin: 0 0 24px; }
+.manual-route-link { margin-top: auto; font-size: 13px; font-weight: 700; color: var(--vp-c-brand-1); }
+.VPHome .vp-doc { max-width: 1216px; margin: auto; padding-top: 32px; }
+.medium-zoom-overlay { z-index: 60; }
+.medium-zoom-image--opened { z-index: 61; }
+@media (max-width: 960px) {
+  .manual-hero { grid-template-columns: 1fr; gap: 36px; }
+  .manual-intro h1 { font-size: clamp(40px, 7vw, 64px); }
+  .manual-deck { max-width: 620px; }
+  .manual-preview { max-width: 700px; }
 }
-
-.dark {
-  --vp-button-brand-text: #07121a;
-}
-
-:root {
-  --vp-button-brand-text: #fff6e2;
-  --vp-button-brand-hover-text: #fff6e2;
-  --vp-button-brand-active-text: #fff6e2;
-}
-
-/* ----------------------------------------------------------------------------
- * Facility flourishes
- * ------------------------------------------------------------------------- */
-
-/* Signage feel for the hero title. */
-.VPHero .name,
-.VPHero .text {
-  letter-spacing: 0.01em;
-}
-.VPHero .name {
-  text-transform: uppercase;
-}
-
-/* Cyan terminal accent on blockquotes. */
-.vp-doc blockquote {
-  border-left-color: var(--vp-c-brand-1);
-}
-
-/* Brand-tinted active sidebar item + inline code. */
-.vp-doc :not(pre) > code {
-  color: var(--vp-c-brand-1);
-}
-
-/* A subtle scanline-free panel feel for code groups/cards. */
-.vp-doc div[class*='language-'] {
-  border: 1px solid var(--vp-c-border);
-}
-
-/* Click-to-enlarge: content images zoom into a lightbox (see theme/index.ts).
-   The zoom-in cursor signals they are interactive; the zoomed-out state keeps
-   a soft border so screenshots read as framed panels. */
-.vp-doc img {
-  cursor: zoom-in;
-  border-radius: 6px;
-}
-
-/* medium-zoom's backdrop, tinted to the facility palette. */
-.medium-zoom-overlay {
-  z-index: var(--vp-z-index-backdrop, 60);
-}
-.medium-zoom-image--opened {
-  z-index: calc(var(--vp-z-index-backdrop, 60) + 1);
-  cursor: zoom-out;
-  border-radius: 6px;
+@media (max-width: 640px) {
+  .field-manual { padding: 40px 24px 0; }
+  .manual-hero { padding-bottom: 40px; }
+  .manual-routes { grid-template-columns: 1fr; }
+  .manual-routes > a, .manual-routes > a:first-child { border-right: 0; padding: 24px 0; border-bottom: 1px solid var(--vp-c-divider); }
+  .manual-routes > a:last-child { border-bottom: 0; }
+  .manual-actions { flex-direction: column; align-items: stretch; }
+  .manual-actions a { justify-content: space-between; }
 }

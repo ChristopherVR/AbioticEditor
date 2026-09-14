@@ -6,8 +6,9 @@
   "description": "VitePress documentation site for Abiotic Editor, deployed to GitHub Pages.",
   "scripts": {
     "docs:dev": "vitepress dev",
-    "docs:build": "vitepress build",
-    "docs:preview": "vitepress preview"
+    "docs:build": "vitepress build && node scripts/check-links.mjs",
+    "docs:preview": "vitepress preview",
+    "docs:check-links": "node scripts/check-links.mjs"
   },
   "devDependencies": {
     "medium-zoom": "^1.1.0",

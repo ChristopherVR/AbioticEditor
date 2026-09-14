@@ -1,78 +1,80 @@
 # Live-edit a running game
 
-::: warning Early
-This is not full parity with the file editor yet, but it now covers most of it: player vitals,
-skills, backpack / gear / hotbar, and NPCs near you, plus (when you are hosting) the world clock
-and weather, quest flags, doors, storage containers, and items lying on the ground. It needs a
-mod you install yourself - see below.
+Live editing connects the desktop editor to an open game through a UE4SS Lua mod and a companion
+helper. Changes affect the running session. The game can later persist them in its normal saves.
+The browser edition does not support live connections.
+
+::: warning Live changes have no editor backup
+Vitals and skills apply automatically after a short pause in input. Other controls send changes
+when you use their action or commit the edit. There is no universal SAVE or undo step for live
+changes, and no `.bak` from the editor. Back up your world before starting a session you want to experiment with.
 :::
 
-Editing a save file works with the game closed. Live editing is the opposite: you connect to a
-game that is **open right now** - your own locally-hosted session, or a dedicated server you run
-- and changes take effect immediately, no save/reload needed.
+## Set up a game on this PC
 
-## What you need
+Automatic local setup is **Windows-only**. The Linux desktop editor can edit save files, but
+cannot run the bundled Windows helper or automatically install the live agent locally.
 
-1. **[UE4SS](https://github.com/UE4SS-RE/RE-UE4SS)** installed for the game (it already is, if
-   you use other Abiotic Factor mods - most of them need it too).
-2. **The AbioticEditorLiveAgentLua Scripts folder**, installed like any other UE4SS Lua mod, into
-   the game's (or your dedicated server's) `Binaries/Win64/ue4ss/Mods/` folder.
-3. **AbioticEditorLiveAgentHelper.exe**, a small companion program, running alongside the game
-   (it is not injected into anything - just a console window you leave open). See
-   `live-agent/README.md` in the editor's source repository for how to build and run both -
-   this part is maintainer/advanced-user territory for now, not a one-click install yet.
-4. The **token** the helper program prints on first run and writes to its own `token.txt`.
+1. Install [UE4SS](https://github.com/UE4SS-RE/RE-UE4SS) for Abiotic Factor if it is not already
+   installed. The editor does not install this third-party mod framework for you.
+2. In the desktop editor, choose live editing and **This PC**.
+3. If asked, approve copying the bundled agent into the detected game's
+   `Binaries/Win64/ue4ss/Mods/AbioticEditorLiveAgentLua` folder. The editor also enables its
+   entry in `mods.txt`. An updated agent can require this step again.
+4. Start or restart the game after installing/updating the mod, then load a world.
+5. The editor starts its bundled helper and reads the local connection details automatically.
+   Wait for it to connect, then select a player or world surface.
 
-## Connecting
+If the editor cannot find your game, check **Settings > Game Data**. If it reports that the
+helper is unavailable, check your extracted release contains the `live-agent` folder. Source
+builds may require building the helper separately; the [agent source instructions](https://github.com/ChristopherVR/AbioticEditor/tree/main/live-agent)
+cover manual installation and compilation.
 
-1. Launch the game (or your dedicated server) with the Lua mod installed, and start
-   `AbioticEditorLiveAgentHelper.exe` alongside it.
-2. Open the desktop editor. On the "What do you want to do?" screen, choose **Live-edit a
-   running game**.
-3. Enter:
-   - **Host**: `127.0.0.1` for a game running on this PC, or your dedicated server's address.
-   - **Port**: `42117` unless you changed it.
-   - **Token**: from the helper program's `token.txt`.
-4. Press **Connect** (a game on this PC connects by itself). The tabs fill in with the running game's current values.
+## Connect to a server you run
 
-## Editing
+Install the Lua agent and run the helper on the game server machine. Choose the remote-server
+option in the desktop editor and enter the host, port, and token supplied by that helper.
+The default port is `42117`; use the helper's actual port if it selected another one.
+Local connection files live under `%LOCALAPPDATA%\AbioticEditorLiveAgent` (`token.txt` and `port.txt`).
 
-Changes apply **the moment you press Apply** - there is no `.bak` backup the way a file edit
-gets, because there is no file being written. If you want to back out, press **Revert** before
-Apply, not after.
+The helper must be reachable from the editor and the server must have a world loaded. A token
+connects the editor to the agent; joining an ordinary multiplayer server does not install an
+agent there or give you authority over that world. See the [protocol reference](/reference/live-editing-protocol)
+for the connection format and the agent README for listener configuration.
 
-### What you can change
+## What is available
 
-| Tab | What it does | Who can use it |
-|---|---|---|
-| **Character stats** / **Skills** | The same vitals and skill editors as the file editor, staged until APPLY. | Anyone (your own character; other connected players if you host). |
-| **Inventory** | Backpack, gear and hotbar slots - item, count, durability - one slot at a time. | Anyone, for their own character. |
-| **NPCs** | Kill, revive, disable or make invincible any creature currently loaded. | Host only. |
-| **World** | Set the time of day or day number; start a weather event now (or clear it) or queue one for tomorrow. | Host only. |
-| **Quest flags** | Set or clear story flags in the running world. Setting a flag also sets the story steps it depends on, and the game reacts (doors unlock, effects play) exactly as if you had earned it. | Host only. |
-| **Doors** | Open, close, lock or unlock any hinged or security door currently loaded around the players. | Host only. |
-| **Containers** | Every crate, locker and cabinet loaded around you: pick one and edit its slots like an inventory. | Host only. |
-| **Dropped items** | Everything lying loose in the loaded world, with a REMOVE button per item. | Host only. |
+The available controls depend on the selected player, host authority, and the objects the game
+currently has loaded. World changes require host authority. A client can edit supported parts
+of their own character; a host can select other connected players.
 
-"Loaded" matters: the game only keeps the sectors near the players in memory, so a door or crate
-on the far side of the Facility will not be in the list until someone walks near it. Use REFRESH
-after moving. The world tabs also need a world to be loaded - from the main menu they say so and
-the character tabs still work.
+| Area | Current controls and limits |
+| --- | --- |
+| Vitals and skills | Read and change values; edits apply automatically |
+| Inventory and transmog | Edit supported slots, give items, and change transmog visibility |
+| Recipes | Unlock or lock recipes, including batched bulk changes |
+| GatePal | Fish, emails, journals, and supported compendium sections; kill-requirement sections stay read-only |
+| General and spawn | Background/PhD and supported discovery fields, position/respawn actions; traits and crafted counters remain read-only |
+| Story and quest flags | Change chapter and flags with prerequisite planning; world-wide recipe unlocks are read-only |
+| Clock and weather | World day, time, and supported weather actions |
+| Containers and ground items | Edit loaded storage, add ground items, and remove individual or multiple dropped items |
+| Creatures | Select a loaded creature to inspect its status and use kill/revive or other available controls |
+| Story NPCs, traders, and pets | Supported narrative, availability, and pet controls; pet species changes are unavailable |
+| Doors, portals, vehicles, and containment | Controls for loaded objects, according to the agent's supported operations |
+| Bases | Supported deployable controls; live bench-upgrade installation is disabled |
 
-::: tip Joined a friend's game?
-As a client you can still edit your own character. Everything under the world tabs is owned by
-the host's game, and the tabs say so - changes made from a client would just be overwritten.
-:::
+Some operations have been verified in the real game; others have only source/data evidence and
+offline harness coverage. The [protocol reference](/reference/live-editing-protocol) records these
+limits per command. Bench-upgrade calls were disabled following a reported native crash, and
+are not available as an experimental toggle.
 
-::: tip No file-editing risk
-Live editing never touches the save file on disk. It reads and writes the game's own live memory
-through the mod. Your save file stays exactly as it was until the game itself writes it (which
-still makes normal backups, unaffected by any of this).
-:::
+## Missing objects or a failed connection
 
-## Only the browser editor is excluded
+- **An object is absent:** only objects in loaded sectors can appear. Move a player near it and refresh.
+- **No world is available:** load into the game, rather than staying on its main menu.
+- **A world action is unavailable:** check that you are hosting and that the agent supports that action.
+- **Connection times out:** check UE4SS loaded the mod, restart after an agent update, and check the helper is running.
+- **A change fails:** read the displayed error. Refresh to see the game's actual state before retrying.
 
-Live editing is a desktop-app feature only. The browser-based editor (the one published to
-GitHub Pages) does not offer it - a browser tab has no way to reach a TCP port on your own
-machine or a game server, so the choice screen does not even appear there. Everything else about
-the browser editor is unchanged.
+Disconnecting stops editing; it does not reverse changes. To edit files instead, disconnect,
+close the game or stop the server, and follow the [save-file guide](./getting-started).

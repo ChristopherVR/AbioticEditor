@@ -94,6 +94,8 @@ file name and the save's `SaveIdentifier`, and bed claims in the world saves are
 match, all in one step, with a `.bak` kept.
 :::
 
+Achievements show local Steam information read-only; see [Steam and achievements](./steam-achievements).
+
 ## 3. Edit the world
 
 Click a world region (`WorldSave_<Region>.sav`) to open the **world editor**. The header shows
@@ -108,8 +110,7 @@ tools as a player's inventory.
 **Quest flags** are the one-way switches the game flips as the story advances. The editor
 shows only the flags this save has actually reached, grouped by story chapter, with a
 plain-language explainer of how the quest chain works. Set or clear any flag, and when a flag
-has prerequisites, the editor offers to set them too, so you never create an impossible story
-state.
+has prerequisites, the editor offers to set them too, to help keep the story state consistent.
 
 ![World quest flags tab](/screenshots/21-world-questflags.png)
 
@@ -134,11 +135,11 @@ node to refill it, re-tag a teleporter pad, and so on.
 The **Resource Nodes** tab is for per-actor harvestable state. Search by the friendly node
 type, select an entry, then edit its fields:
 
-- **Harvested** — `true` means the node is depleted; set it to `false` to make it available
+- **Harvested**  -  `true` means the node is depleted; set it to `false` to make it available
   immediately.
-- **Day Picked Up** — the in-game day on which it was harvested. The game uses this for its
+- **Day Picked Up**  -  the in-game day on which it was harvested. The game uses this for its
   normal respawn timing; `0` means it has not been picked up.
-- **Position** — read-only coordinates that help identify one node among several with the
+- **Position**  -  read-only coordinates that help identify one node among several with the
   same name.
 
 This is also the way to repair the breakable office windows. The game stores these panes as
@@ -148,6 +149,17 @@ destructible-state map. Open the region containing the windows (for example,
 Nodes**, search for **Glass Pane**, and turn **Harvested** off for each pane you want restored.
 Save with the game or dedicated server stopped, then load the region again. Leave **Day Picked
 Up** unchanged unless you specifically want to adjust the respawn timer.
+
+### Transfer items to another world
+
+From **Containers**, follow **Move items to a different world save** to open two saves and move
+items between them. Both sides save independently. See the [transfer walkthrough](./transfer-items).
+
+## Live editing
+
+The desktop can also connect to a running game. Its controls and save timing differ from file
+editing: vitals and skills apply automatically, and live actions do not create editor backups.
+See [Live editing](./live-editing) for setup, coverage, and limitations.
 
 ## 4. Server config files
 
@@ -188,10 +200,10 @@ differ between them.
 
 ## Game data and icons
 
-Item, recipe, skill, flag, fish, and trait catalogs (and item icons) come from the installed
-game's pak archives, read through a bundled type-mappings file. **When the game isn't
-installed, these catalogs come back empty and icons are skipped**, but the editor still opens
-and edits saves.
+The shared UI loads bundled game-data registries, so catalog metadata is available even without
+an installed game. On desktop, item icons can be extracted lazily from the installed game's paks;
+the browser uses a bundled icon set. Missing data or images do not prevent opening saves.
+See [Keeping game data current](./game-data) when a game update adds content.
 
 ## Reference pictures from the wiki
 

@@ -1,5 +1,8 @@
 # Razor replacement parity audit
 
+> Historical migration record. The MAUI project has since been removed. See the
+> [current architecture](/reference/architecture) for the projects used today.
+
 Audit date: 2026-07-13  
 Scope: `src/AbioticEditor.Web` against `src/AbioticEditor.App`. This is a strict
 source and automated-host-contract audit. It is not evidence of a packaged Linux

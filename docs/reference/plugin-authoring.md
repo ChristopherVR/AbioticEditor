@@ -27,7 +27,7 @@ The host scans your entry assembly for the **single** public, parameterless type
 
 Reference the SDK (and Core if you use it) to **compile**, but don't **ship** them:
 the host provides them at runtime and unifies the types (see
-[isolation](plugin-system.md#isolation--the-shared-assembly-rule)). Output stays just your DLL +
+[isolation](plugin-system.md#isolation-the-shared-assembly-rule)). Output stays just your DLL +
 `plugin.json`.
 
 ```xml

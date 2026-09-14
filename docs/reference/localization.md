@@ -1,8 +1,8 @@
 # Localization
 
-The Razor host is the single user interface. Its localization is split by purpose:
+The desktop and browser hosts share the Razor user interface. Its localization is split by purpose:
 
-- `src/AbioticEditor.Web/Localization/AppResources.resx` contains the neutral English editor catalog.
+- `src/AbioticEditor.Web.Shared/Localization/AppResources.resx` contains the neutral English editor catalog.
 - `AppResources.de.resx`, `AppResources.es.resx`, `AppResources.fr.resx`, and `AppResources.ru.resx` contain shipped translations.
 - `HostLanguageService` provides host-specific navigation and formatting strings and resolves the RESX catalog.
 - Plugins may contribute strings through `PluginLocalizations`; plugin values override bundled values for the requested culture.

@@ -1,14 +1,14 @@
-// Custom VitePress theme: the default theme re-skinned in the Abiotic Factor
-// "facility" palette (see style.css). Both light and dark map to the game's
-// Cascade Light / Cascade Dark palettes lifted from the app's ThemeService.
+// Field-manual theme with the standard VitePress navigation and search.
 import DefaultTheme from 'vitepress/theme'
 import { useRoute } from 'vitepress'
-import { onMounted, watch, nextTick } from 'vue'
+import { h, onMounted, watch, nextTick } from 'vue'
 import mediumZoom from 'medium-zoom'
 import './style.css'
+import HomeLanding from './HomeLanding.vue'
 
 export default {
   extends: DefaultTheme,
+  Layout: () => h(DefaultTheme.Layout, null, { 'home-hero-before': () => h(HomeLanding) }),
   setup() {
     const route = useRoute()
 

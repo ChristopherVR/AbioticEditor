@@ -2,7 +2,7 @@
 
 The plugin system exists so the editor can keep reading, writing, and **repairing** saves as
 Abiotic Factor changes - without shipping a new build of the app. A "fix-up" is just an
-[`ISaveOperation`](../../src/AbioticEditor.Plugins.Abstractions/Saves/ISaveOperation.cs) that
+[`ISaveOperation`](https://github.com/ChristopherVR/AbioticEditor/blob/main/src/AbioticEditor.Plugins.Abstractions/Saves/ISaveOperation.cs) that
 repairs something: a value a patch corrupted, a flag the game dropped, content the editor's
 own UI does not model yet, or a save a newer game version wrote.
 
@@ -31,7 +31,7 @@ time). Report `NoChange` when there is nothing to do so the host skips the write
 
 Game delta-serialization omits default-valued tags, so a need sitting at its default reads back
 as `0` (which IS the game's value for it, not missing data). The
-[`RepairNeeds`](../../plugins/RepairNeeds) sample tops every survival need back to full (100,
+[`RepairNeeds`](https://github.com/ChristopherVR/AbioticEditor/tree/main/plugins/RepairNeeds) sample tops every survival need back to full (100,
 or 0 for fatigue, which the game counts upwards from "just slept") using the typed player
 reader/writer:
 
@@ -61,7 +61,7 @@ writer's edits land in the file. Prefer this whenever Core already models the da
 
 When you need to touch something Core has no vocabulary for - a brand-new quest flag, a value
 a future patch introduced - edit the property tree directly. The
-[`GrantFlag`](../../plugins/GrantFlag) sample adds an entry to a world save's `WorldFlags` array:
+[`GrantFlag`](https://github.com/ChristopherVR/AbioticEditor/tree/main/plugins/GrantFlag) sample adds an entry to a world save's `WorldFlags` array:
 
 ```csharp
 public SaveKind AppliesTo => SaveKind.World;
@@ -101,7 +101,7 @@ This pattern generalizes to the other examples you'll want over time:
 ## Recipe 3 - handle a save the editor can't yet read/write
 
 This is the "a new game version shipped and `LoadFrom` throws" case, and it has a first-class
-hook: [`ISaveUpgrader`](../src/AbioticEditor.Plugins.Abstractions/Saves/ISaveUpgrader.cs).
+hook: [`ISaveUpgrader`](https://github.com/ChristopherVR/AbioticEditor/blob/main/src/AbioticEditor.Plugins.Abstractions/Saves/ISaveUpgrader.cs).
 When the host fails to parse a save, it builds a header-only `SaveUpgradeProbe` (version
 fields, save class, the load error) and offers it to each registered upgrader; the first one
 whose `CanUpgrade` returns true gets the raw bytes and returns corrected bytes, which the host
@@ -121,20 +121,20 @@ public Task<SaveUpgradeResult> UpgradeAsync(ISaveUpgradeContext ctx, Cancellatio
 ```
 
 Register it with `registry.AddSaveUpgrader(...)`. The host drives this through
-[`SaveUpgradeService.LoadAsync`](../../src/AbioticEditor.Core/Plugins/SaveUpgradeService.cs),
+[`SaveUpgradeService.LoadAsync`](https://github.com/ChristopherVR/AbioticEditor/blob/main/src/AbioticEditor.Core/Plugins/SaveUpgradeService.cs),
 which falls back to the upgraders only when the normal parse fails (and rethrows the real load
-error when none can help). See the [`VersionShim`](../../plugins/VersionShim) sample and
-[`SaveUpgradeServiceTests`](../../tests/AbioticEditor.Tests/SaveUpgradeServiceTests.cs) for the
+error when none can help). See the [`VersionShim`](https://github.com/ChristopherVR/AbioticEditor/tree/main/plugins/VersionShim) sample and
+[`SaveUpgradeServiceTests`](https://github.com/ChristopherVR/AbioticEditor/blob/main/tests/AbioticEditor.Tests/SaveUpgradeServiceTests.cs) for the
 full round trip. A real game-format change would do a deeper transform than the version-field
 rewrite shown here, but the contract is the same.
 
 ## Testing a fix-up
 
 Drive your operation through the real
-[`SaveOperationRunner`](../src/AbioticEditor.Core/Plugins/SaveOperationRunner.cs) against a
+[`SaveOperationRunner`](https://github.com/ChristopherVR/AbioticEditor/blob/main/src/AbioticEditor.Core/Plugins/SaveOperationRunner.cs) against a
 throwaway copy of a fixture - that exercises the whole load -> kind-check -> execute ->
 backup+write path. See
-[`PluginFixupTests`](../tests/AbioticEditor.Tests/PluginFixupTests.cs) for the pattern:
+[`PluginFixupTests`](https://github.com/ChristopherVR/AbioticEditor/blob/main/tests/AbioticEditor.Tests/PluginFixupTests.cs) for the pattern:
 assert the post-condition on reload, that a `.bak` appears only on a real write, that a dry run
 leaves the bytes untouched, that the wrong save kind is rejected, and that a second run is a
 no-op (idempotence).

@@ -15,7 +15,7 @@ adds it if it is missing. Working at the raw property-tree level (rather than th
 is what makes it forward-compatible: it needs no built-in knowledge of the flag, so it can grant a
 flag this build of the editor has never heard of. If the flag is already set it reports a no-op.
 
-See [Plugin fix-ups](../../docs/plugin-fixups.md) for the wider pattern of using plugins to recover
+See [Plugin fix-ups](../../docs/reference/plugin-fixups.md) for the wider pattern of using plugins to recover
 or patch saves a game update changed.
 
 ## Manifest

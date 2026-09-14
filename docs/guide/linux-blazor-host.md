@@ -1,39 +1,7 @@
-# Linux and Steam Deck Blazor host
+# Linux and Steam Deck host
 
-`AbioticEditor.Web` is the Linux-capable UI host. It is a local Blazor Server
-application that uses the shared `AbioticEditor.Core` save engine.
-It listens only on the local machine during normal development, and never sends a
-save file to a remote service.
+The Linux setup instructions are maintained in the [Linux desktop app guide](./linux-local-host).
+That page covers the native window, runtime dependencies, launcher, local browser fallback,
+and release verification. This URL is retained for existing bookmarks.
 
-The Razor desktop app is the portable UI path for Windows, Linux, and Steam Deck.
-The packaged build includes its own .NET runtime and opens in a native Photino window.
-
-## Run from source
-
-```console
-dotnet run --project src/AbioticEditor.Web
-```
-
-The desktop window opens after the local server starts. Select **DISCOVER SAVES** to scan
-Steam, Steam Deck and Proton locations. Proton prefixes are detected under each
-Steam library's `steamapps/compatdata` directory.
-
-## Publish a Linux executable
-
-```console
-dotnet publish src/AbioticEditor.Web -c Release -r linux-x64 --self-contained true
-```
-
-The published executable starts the loopback service and its native window together.
-On Linux it uses WebKitGTK 4.1. On Steam Deck (Desktop Mode), double-click the included
-`launch-linux.desktop` and accept the **Trust and Launch** prompt - no terminal needed.
-
-If that prompt never appears, or GTK/WebKitGTK libraries are missing (common on Steam
-Deck's read-only system partition), see the terminal steps and headless fallback in the
-[Linux desktop app guide](linux-local-host.md#if-double-clicking-launch-linux-desktop-does-nothing-either).
-
-## Architecture boundary
-
-The host owns discovery, world/save-file selection, and field-level editing through
-host-neutral services. Save reads and writes remain in `AbioticEditor.Core`, preserving
-the same byte-safe serialization behavior on every platform.
+For the shared UI and host boundaries, see [Architecture and contributing](/reference/architecture).

@@ -1,14 +1,20 @@
 # Getting started
 
-Abiotic Editor is a save-game editor for [Abiotic Factor](https://store.steampowered.com/app/427410/Abiotic_Factor/).
-It reads and writes the game's GVAS save files, understands the game's own data tables
-(items, recipes, skills, quest flags, story progression) by mounting the installed game's
-pak archives, and ships both a desktop app and a command-line tool.
+Abiotic Editor edits Abiotic Factor saves in a browser, a Windows/Linux desktop app, or a CLI.
+The desktop app also supports [live editing](./live-editing), which has different save behavior.
 
-In plain terms: it opens the `.sav` files Abiotic Factor writes to disk and shows you what's
-inside as clickable controls (sliders for your needs, a grid for your inventory, a checklist
-for recipes), so you can change your run (or repair it) without a hex editor. Edits stage
-until you press **SAVE**, and every write keeps a `.bak` backup.
+## Your first save edit
+
+1. Close the game or stop the dedicated server. Copy the world folder somewhere separate as a backup.
+2. [Open the browser editor](/app/) or install the desktop app below.
+3. Choose your save folder. Opening the SteamID account folder also includes character appearance,
+   which lives beside `Worlds/`. The desktop app can discover local worlds automatically.
+4. Select a player or world save and make an edit. Review it, then press **SAVE**.
+5. If working from a zip or without browser write permission, press **EXPORT** after SAVE and
+   copy the exported files back to the game's save folder before playing.
+
+Direct file saves keep a `.bak` of the previous file. It is a rolling backup, not an unlimited
+history. See [Browser editing](./browser-editor) for folder permissions and export details.
 
 ![The editor with a save folder loaded](/screenshots/01-loaded.png)
 
@@ -38,12 +44,10 @@ Unzip and run. The app and CLI both self-update from GitHub Releases: the app fr
 
 The Windows builds are **not code-signed** (a certificate that clears those warnings costs
 money this free, fan-made tool doesn't spend), so Windows reports an unknown publisher and
-SmartScreen or your antivirus may warn on first run. The download is safe; the warning is just
-the absence of a paid signature. Two ways around it:
+SmartScreen or your antivirus may warn on first run. Check that you downloaded the release from this project before choosing to run it.
 
-::: tip Install with Scoop (no warning)
-A command-line install via [Scoop](https://scoop.sh/) skips the SmartScreen prompt entirely
-and gives you one-command upgrades. Scoop verifies each download against the SHA-256 pinned in
+::: tip Install with Scoop
+A command-line install via [Scoop](https://scoop.sh/) provides one-command upgrades. Scoop verifies each download against the SHA-256 pinned in
 the manifest before extracting it.
 
 ```console
@@ -58,9 +62,9 @@ If you'd rather run the zip download directly: right-click the downloaded `.zip`
 **Properties** ▸ tick **Unblock** ▸ **OK**, then unzip and run `AbioticEditor.Web.exe`. If
 SmartScreen still shows "Windows protected your PC", click **More info ▸ Run anyway**.
 
-::: tip macOS is unsigned
-The macOS builds are not code-signed, so Gatekeeper will warn on first launch. Right-click
-the app and choose **Open**, or clear the quarantine flag, to run it.
+::: tip macOS downloads are CLI-only
+Use the browser editor for the graphical interface on macOS. The downloadable macOS command-line
+builds are unsigned; review the download source if Gatekeeper flags the executable.
 :::
 
 ## Build from source
@@ -74,7 +78,7 @@ cd AbioticEditor
 
 dotnet build src/AbioticEditor.Web                                  # local desktop editor host
 dotnet build src/AbioticEditor.Cli                                   # CLI
-dotnet test  tests/AbioticEditor.Tests                               # tests
+dotnet test  tests/AbioticEditor.Tests -f net10.0                     # tests
 ```
 
 The Razor desktop app runs on Windows and Linux with the standard .NET SDK. Package versions are
@@ -104,6 +108,8 @@ Save kinds you'll see: `Player_<steamid64>.sav`, `WorldSave_<Region>.sav`, and
 
 ## Next steps
 
+- **[Documentation directory](/guide/)**: all player guides and reference links.
+- **[Live editing](./live-editing)**: connect to a running game.
 - **[Desktop app](/guide/desktop-app)**: the point-and-click editor.
 - **[Command-line tool](/guide/cli)**: scripting and server admin.
 - **[Plugins & language packs](/guide/plugins)**: install community tools and translations.

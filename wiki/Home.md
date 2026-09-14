@@ -30,5 +30,5 @@ Every plugin is a folder with a `plugin.json` manifest next to its `.dll` or `.j
 - **[Plugin API Reference](Plugin-API-Reference)** - a quick reference of the SDK surface.
 
 For the full, versioned docs see the [documentation
-site](https://christophervr.github.io/AbioticEditor/plugins) and the
+site](https://christophervr.github.io/AbioticEditor/guide/plugins) and the
 [`plugins/`](https://github.com/ChristopherVR/AbioticEditor/tree/main/plugins) sample folder.

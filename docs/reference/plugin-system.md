@@ -22,7 +22,7 @@ One plugin may provide any mix of these.
 > **Trust model up front:** .NET has no in-process sandbox. A loaded plugin runs with the
 > same privileges as the editor. The system is built to make loading *deliberate and
 > visible* (manifest gate, enable/disable, provenance in every list), **not** to contain
-> malicious code. Only install plugins you trust. See [Security](#security--trust).
+> malicious code. Only install plugins you trust. See [Security](#security-trust).
 
 ---
 
@@ -72,7 +72,7 @@ AbioticEditor.Cli        AbioticEditor.Web
 ```
 
 The sample plugins under `plugins/` reference the SDK and Core but ship **neither** (see
-[the shared-assembly rule](#the-shared-assembly-rule)).
+[the shared-assembly rule](#isolation-the-shared-assembly-rule)).
 
 ## How a plugin is found and loaded
 

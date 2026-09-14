@@ -1,14 +1,17 @@
 # Keeping game data current
 
-The editor shows real item names, icons, recipes, skills, quest text, fish, traits, and trader data
-by reading them straight from your **installed copy of the game**. Two pieces make that work: the
-game install it reads from, and a `Mappings.usmap` file that tells it how to interpret the game's
-data tables. This page covers keeping both in sync.
+The shared editor loads a **bundled game-data registry** for item names and other catalog metadata.
+It works without an installed copy of the game. The desktop can also read installed game assets;
+its item icons are extracted lazily from the paks. The browser uses pre-extracted, bundled icons.
 
-::: tip Everything degrades gracefully
-If the game isn't installed, or the usmap doesn't match, the editor **still opens and edits saves**.
-You just lose the asset-backed niceties (icons, catalog names) until it's sorted. You can't break a
-save by having stale game data.
+A `Mappings.usmap` tells the desktop asset reader how to interpret the game's data tables. Updating
+it helps with installed-game extraction; it does not regenerate the browser's bundled registry or
+icons. Those are shipped with editor releases and the Pages build.
+
+::: tip Missing assets do not prevent save editing
+Bundled metadata remains available when the game is absent. Missing images use a fallback. A newer
+game can introduce entries the bundled data does not yet know; use an updated editor and matching
+mappings, and review unknown values before editing them.
 :::
 
 ## The game install

@@ -6,11 +6,11 @@ each has its own `README.md` with the details.
 
 If you just want to understand the system, start with the docs:
 
-- [Plugin system](../docs/plugins.md) - the architecture, the trust model, and why it is shaped
+- [Plugin system](../docs/reference/plugin-system.md) - the architecture, the trust model, and why it is shaped
   this way.
-- [Authoring guide](../docs/plugin-authoring.md) - a step-by-step walkthrough of every capability,
+- [Authoring guide](../docs/reference/plugin-authoring.md) - a step-by-step walkthrough of every capability,
   managed and JavaScript.
-- [Plugin fix-ups](../docs/plugin-fixups.md) - using plugins to recover saves a game patch broke.
+- [Plugin fix-ups](../docs/reference/plugin-fixups.md) - using plugins to recover saves a game patch broke.
 
 ## What a plugin is
 
@@ -54,7 +54,7 @@ dotnet build plugins/MaxSkills -c Release
 The output of a .NET sample is just **its own DLL plus `plugin.json`**: the samples reference the
 SDK and Core with `Private="false" ExcludeAssets="runtime"`, so the shared assemblies are not
 copied (the host provides them at runtime). This is the [shared-assembly
-rule](../docs/plugins.md#isolation--the-shared-assembly-rule).
+rule](../docs/reference/plugin-system.md#isolation-the-shared-assembly-rule).
 
 **JavaScript samples** need no build. Copy the folder as-is. The one exception is
 `ReactAppDashboard`, whose React UI is built once with `npm run build` (its own README covers it).

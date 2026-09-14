@@ -12,7 +12,7 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: 'Abiotic Editor',
   description:
-    'A save-game editor for Abiotic Factor: desktop app, scriptable CLI, and a plugin SDK over one shared engine.',
+    'Edit Abiotic Factor saves in your browser, on desktop, or with the CLI. Setup guides, live editing, and technical reference.',
   base: '/AbioticEditor/',
   lang: 'en-US',
   cleanUrls: true,
@@ -23,9 +23,8 @@ export default defineConfig({
   // reference) but every folder's README.md stays out of the published site.
   srcExclude: ['PROGRESS.md', '**/README.md'],
 
-  // Reference docs cross-link each other and the repo with relative paths;
-  // don't fail the deploy if a link target ends up relocated or excluded.
-  ignoreDeadLinks: true,
+  // The browser editor is assembled separately by the Pages workflow.
+  ignoreDeadLinks: [/^\/app\/(?:index)?$/],
 
   // These docs were authored for GitHub's renderer, where literal angle brackets
   // in prose (e.g. <WorldName>, <steamid>) and type names are plain text. With
@@ -33,25 +32,26 @@ export default defineConfig({
   // compiler malformed tags, so the source notes build unchanged.
   markdown: {
     html: false,
+    config(md) {
+      const renderLink = md.renderer.rules.link_open
+      md.renderer.rules.link_open = (tokens, index, options, env, self) => {
+        const href = tokens[index].attrGet('href')
+        if (href === '/app/' || href === '/AbioticEditor/app/') {
+          tokens[index].attrSet('href', '/AbioticEditor/app/')
+          tokens[index].attrSet('target', '_self')
+        }
+        return renderLink ? renderLink(tokens, index, options, env, self)
+          : self.renderToken(tokens, index, options)
+      }
+    },
   },
 
-  // The editor at /app/ is a separately-published static app, not a VitePress page, so
-  // VitePress's client-side router has no route for it. Clicking a plain internal-looking
-  // link (no `target` attribute) makes the router push the URL and then try to fetch it as
-  // a page, which 404s inside the SPA even though the real file is right there; a hard
-  // reload/new tab bypasses the router and loads it fine. `target` on nav items and hero
-  // actions dodges this (see themeConfig.nav above), but prose links written as plain
-  // markdown `[text](/app/)` can't carry a `target` attribute because `markdown.html` is
-  // off above, so they're patched here after render instead.
-  transformHtml: (code) =>
-    code.replace(
-      /<a href="\/AbioticEditor\/app\/"(?![^>]*\btarget=)/g,
-      '<a href="/AbioticEditor/app/" target="_self"',
-    ),
+  // The Markdown renderer above keeps /app/ links as full navigations in both
+  // server-rendered HTML and client-side page transitions.
 
   head: [
     ['link', { rel: 'icon', type: 'image/png', href: '/AbioticEditor/logo.png' }],
-    ['meta', { name: 'theme-color', content: '#0c1a24' }],
+    ['meta', { name: 'theme-color', content: '#142321' }],
     ['meta', { name: 'og:title', content: 'Abiotic Editor' }],
     [
       'meta',
@@ -67,8 +67,8 @@ export default defineConfig({
 
     // Two top-level entries, one per track, plus the download.
     nav: [
-      { text: 'Guide', link: '/guide/getting-started', activeMatch: '/guide/' },
-      { text: 'Reference', link: '/reference/save-format', activeMatch: '/reference/' },
+      { text: 'Guide', link: '/guide/', activeMatch: '/guide/' },
+      { text: 'Reference', link: '/reference/', activeMatch: '/reference/' },
       {
         text: 'Download',
         link: 'https://github.com/ChristopherVR/AbioticEditor/releases/latest',
@@ -85,9 +85,13 @@ export default defineConfig({
         {
           text: 'Use the editor',
           items: [
+            { text: 'Documentation directory', link: '/guide/' },
             { text: 'Getting started', link: '/guide/getting-started' },
             { text: 'Edit in your browser', link: '/guide/browser-editor' },
             { text: 'Desktop app', link: '/guide/desktop-app' },
+            { text: 'Linux & Steam Deck', link: '/guide/linux-local-host' },
+            { text: 'Transfer items', link: '/guide/transfer-items' },
+            { text: 'Steam & achievements', link: '/guide/steam-achievements' },
             { text: 'Command-line tool', link: '/guide/cli' },
             { text: 'Game Pass saves', link: '/guide/game-pass' },
             { text: 'Plugins & language packs', link: '/guide/plugins' },
@@ -98,7 +102,7 @@ export default defineConfig({
         {
           text: 'Going deeper',
           items: [
-            { text: 'Technical reference', link: '/reference/save-format' },
+            { text: 'Technical reference', link: '/reference/' },
           ],
         },
       ],
@@ -108,7 +112,9 @@ export default defineConfig({
         {
           text: 'How saves work',
           items: [
-            { text: 'Overview', link: '/reference/save-format' },
+            { text: 'Reference directory', link: '/reference/' },
+            { text: 'Architecture & contributing', link: '/reference/architecture' },
+            { text: 'Save format', link: '/reference/save-format' },
             { text: 'Player save schema', link: '/reference/player-save-schema' },
             { text: 'World save schema', link: '/reference/world-save-schema' },
             { text: 'Game Pass format', link: '/reference/game-pass-format' },
@@ -155,7 +161,10 @@ export default defineConfig({
             { text: 'Respawn terminals', link: '/reference/research/research-respawn-terminals' },
             { text: 'Server saves', link: '/reference/research/research-server-saves' },
             { text: 'Slot types', link: '/reference/research/research-slot-types' },
+            { text: 'Item visual variants', link: '/reference/research/research-item-visual-variants' },
             { text: 'Transmog & appearance', link: '/reference/research/research-transmog-appearance' },
+            { text: 'Game Pass conversion', link: '/reference/research/research-gamepass-to-steam' },
+            { text: 'Historical Razor parity audit', link: '/architecture/razor-parity-audit' },
             { text: 'Wiki round 10', link: '/reference/research/research-wiki-round10' },
           ],
         },
