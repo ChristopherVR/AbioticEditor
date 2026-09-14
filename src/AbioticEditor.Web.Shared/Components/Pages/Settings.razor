@@ -42,6 +42,7 @@
                             <div class="theme-segments" role="group" aria-label="@R("Settings_Theme")">
                                 <button type="button" class="@(Theme.Accent == HostThemeAccent.Cascade ? "selected" : null)" @onclick="() => SetAccent(HostThemeAccent.Cascade)">@ThemeLabel("Settings_ThemeCascade", HostThemeAccent.Cascade)</button>
                                 <button type="button" class="@(Theme.Accent == HostThemeAccent.Hazard ? "selected" : null)" @onclick="() => SetAccent(HostThemeAccent.Hazard)">@ThemeLabel("Settings_ThemeHazard", HostThemeAccent.Hazard)</button>
+                                <button type="button" class="@(Theme.Accent == HostThemeAccent.Gate ? "selected" : null)" @onclick="() => SetAccent(HostThemeAccent.Gate)">@ThemeLabel("Settings_ThemeGate", HostThemeAccent.Gate)</button>
                             </div>
                             <label class="settings-switch-row">
                                 <span>@R("Settings_LightMode")</span>

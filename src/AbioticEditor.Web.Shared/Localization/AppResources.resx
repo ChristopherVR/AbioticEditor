@@ -2134,6 +2134,9 @@ This writes to the save straight away and reloads the editor, so anything you ha
   <data name="Settings_ThemeHazard" xml:space="preserve">
     <value>HAZARD ORANGE</value>
   </data>
+  <data name="Settings_ThemeGate" xml:space="preserve">
+    <value>GATE TEAL</value>
+  </data>
   <data name="Settings_ThemeHint" xml:space="preserve">
     <value>Accent family for the editor chrome.</value>
   </data>

@@ -67,9 +67,10 @@ public sealed class HostThemeService
     private static HostThemeAccent ParseAccent(string? value) => value?.Trim().ToLowerInvariant() switch
     {
         "cascade" => HostThemeAccent.Cascade,
+        "gate" => HostThemeAccent.Gate,
         _ => HostThemeAccent.Hazard,
     };
 }
 
 public enum HostTheme { System, Dark, Light }
-public enum HostThemeAccent { Cascade, Hazard }
+public enum HostThemeAccent { Cascade, Hazard, Gate }

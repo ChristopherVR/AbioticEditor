@@ -5,6 +5,20 @@ time; they are not a current feature list or test-count guarantee. The maintaine
 are `README.md`, `docs/guide/index.md`, and `docs/reference/architecture.md`.
 
 
+## GATE Teal app theme (2026-09-15)
+
+Added GATE Teal beside Facility Blue and Hazard Orange in Settings. Its aqua controls,
+teal panels, and warning colors follow the documentation's online game references. Dark,
+light, and system palettes use the shared app color tokens; the existing default is kept.
+The preference uses the existing desktop/browser storage, and the selector wraps on narrow
+screens. The player guide lists the new choice.
+
+Verification: host build passed without warnings/errors; 23 focused localization, visual
+contract, and shell preference checks passed. Browser verified selecting the theme, light
+mode, persistence across a host restart, and returning to Hazard Orange. Settings fits at
+390px without horizontal overflow. Documentation checked 1,680 links/images across 43 pages.
+Restored the original dark/Hazard preference after verification. No saves were edited.
+
 ## World controls and INI editing refinement (2026-09-15)
 
 INI files now use readable setting labels, On/Off controls for literal booleans, a visible

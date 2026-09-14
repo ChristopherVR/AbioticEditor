@@ -76,7 +76,7 @@ When you open a dedicated-server folder, the sidebar also shows **Config Files**
 
 Open **Settings** in the bottom-right corner.
 
-- **Theme** switches between Facility Blue and Hazard Orange, with a light-mode choice.
+- **Theme** switches between Facility Blue, Hazard Orange, and GATE Teal, with a light-mode choice. GATE Teal takes its aqua colors from the game's inventory screens.
 - **Spoiler protection** stamps unreached traders, recipes, flags, achievements, and codex entries as **CLASSIFIED** until you choose to reveal them.
 - **Game data** lets you refresh game mappings after a major game update. See [Game data](./game-data) if a new item has no familiar name or icon.
 - **Plugins** manages community additions and language packs.

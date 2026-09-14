@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Razor implementation of the retired MAUI visual contract.
  * Source of truth: AbioticStyles.xaml, ThemeService.cs, MainPage.xaml and the
  * repository's documented native-interface reference screenshots.
@@ -97,6 +97,27 @@ button,input,select,textarea{font:inherit}
   --divider:#c9bc9c;--line:#d8cdaf;--ink:#2a2417;--muted:#5d5440;--faint:#665b41;--alert-text:#9c2d18;
   --orange:#c76408;--orange-dim:#9c4f07;--hazard:#a87f04;--terminal:#4e8b25;
   --terminal-dim:#6fa94f;--alert:#b5371f;--section:#a86e06;--on-accent:#fff6e2;--acid:#4e8b25
+}}
+
+/* GATE Teal follows the official game's aqua inventory panels. The documentation's
+   .vitepress/theme/visual-reference.md records the online references and adaptations. */
+.app-frame.accent-gate{
+  --shell:#0a1517;--page:#0c2023;--panel:#173b40;--elevated:#224c51;--hover:#2c5a60;
+  --divider:#4c858c;--line:#315e64;--ink:#e0f5f2;--muted:#b2d3d0;--faint:#95bdbb;--alert-text:#ff9797;
+  --orange:#86f4ec;--orange-dim:#39baad;--hazard:#e9d979;--terminal:#86f4ec;
+  --terminal-dim:#469a93;--alert:#ff6666;--section:#86f4ec;--on-accent:#103236;--acid:#86f4ec
+}
+.app-frame.theme-light.accent-gate{
+  --shell:#d8e8e7;--page:#e8f2ef;--panel:#f2f8f5;--elevated:#dcece7;--hover:#c8e1da;
+  --divider:#94b8b2;--line:#b5cec7;--ink:#163832;--muted:#395f57;--faint:#496d64;--alert-text:#a62727;
+  --orange:#086876;--orange-dim:#075360;--hazard:#82620a;--terminal:#086876;
+  --terminal-dim:#337e74;--alert:#b93636;--section:#086876;--on-accent:#ffffff;--acid:#086876
+}
+@media(prefers-color-scheme:light){.app-frame.theme-system.accent-gate{
+  --shell:#d8e8e7;--page:#e8f2ef;--panel:#f2f8f5;--elevated:#dcece7;--hover:#c8e1da;
+  --divider:#94b8b2;--line:#b5cec7;--ink:#163832;--muted:#395f57;--faint:#496d64;--alert-text:#a62727;
+  --orange:#086876;--orange-dim:#075360;--hazard:#82620a;--terminal:#086876;
+  --terminal-dim:#337e74;--alert:#b93636;--section:#086876;--on-accent:#ffffff;--acid:#086876
 }}
 
 /* Native top chrome */
@@ -396,7 +417,7 @@ h1[tabindex="-1"]:focus{outline:none}
 .settings-sheet .settings-card>.muted{margin:0 0 12px;font-size:11px}
 .settings-sheet-footer{display:flex;justify-content:flex-end;padding:11px 20px;border-top:1px solid var(--line);background:var(--shell)}
 .settings-sheet-footer button{min-width:92px}
-.theme-segments{display:inline-flex;gap:3px;padding:3px;border:1px solid var(--divider);border-radius:8px;background:var(--elevated)}
+.theme-segments{display:inline-flex;flex-wrap:wrap;max-width:100%;gap:3px;padding:3px;border:1px solid var(--divider);border-radius:8px;background:var(--elevated)}
 .theme-segments button{min-height:32px;padding:6px 14px;border:0;border-radius:5px;background:transparent;color:var(--muted);font-size:10px}
 .theme-segments button.selected{background:var(--orange);color:var(--on-accent)}
 .toggle-row{display:flex!important;gap:10px;align-items:center}
