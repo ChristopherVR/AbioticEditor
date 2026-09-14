@@ -25,6 +25,17 @@ entries, moderator lists, and cancelling or confirming a configuration-file swit
 checks used a copied world under artifacts; original game saves were untouched. A new
 regression test verifies repeated-key ordering, comments, unchanged values, and backups.
 
+## Documentation theme aligned with game inventory (2026-09-15)
+
+Replaced the green terminal palette with teal-blue panels and cyan headings using the
+repository's in-game inventory reference and the editor's Facility Blue colors. Orange
+primary actions, thin panel outlines, subtle inventory grids, and a restrained teal glow
+bring the handbook closer to the game. Updated light mode and consolidated theme styles.
+
+Verification: documentation build checked 1,680 links/images across 43 pages. Inspected
+desktop and mobile homepages and the light-mode guide. Homepage and getting-started guide
+have no horizontal overflow at 390px. Application code and save files were not changed.
+
 ## Player handbook and facility-style documentation (2026-09-15)
 
 Reworked the GitHub README, wiki entry points, and twelve player guides with three Terra
