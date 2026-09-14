@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here.
 
+## [2.10.0] - 2026-09-14
+
+### Documentation
+- Refresh the guides and documentation website
+- Identify items with visual variants
+
+
+### Features
+- Make offline and experimental live editing clearer
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.9.1 [skip ci]
+
+
 ## [2.9.1] - 2026-09-13
 
 ### Miscellaneous Tasks
