@@ -1,0 +1,15 @@
+.codex-select { padding: 0; border: 0; border-radius: 0; min-height: 28px; background: transparent; color: var(--ink); font: inherit; font-weight: 600; text-align: left; text-transform: none; letter-spacing: normal; }
+.codex-select:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+.codex-titles { min-width: 0; }
+.codex-titles small { overflow-wrap: anywhere; }
+.gatepal-search { flex-wrap: wrap; }
+.gatepal-search input[type=search] { min-width: 0; flex: 1 1 200px; }
+@container (max-width: 600px) {
+    .gatepal-chrome { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; }
+    .weekday-strip { display: none; }
+    .journal-date { white-space: nowrap; }
+    .journal-count { grid-column: 1 / -1; }
+    .gatepal-apps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: visible; }
+    .gatepal-app { min-width: 0; padding: 10px 8px; }
+    .gatepal-body { padding: 12px; }
+}

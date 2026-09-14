@@ -46,9 +46,8 @@ public sealed record PetVariant(
 /// 3. The curated table below - friendly names, categories, and a working offline
 ///    fallback when no game install is available.
 ///
-/// Pets are level 0-20; level is derived from a cumulative-XP curve fit to the two values
-/// the wiki publishes (level 1 = 4 XP, level 20 = 750 XP). The stored <c>XP</c> integer is
-/// the source of truth; the level is a derived label.
+/// Pets are level 0-20, derived from the documented cumulative XP thresholds.
+/// The stored <c>XP</c> integer is the source of truth; the level is a derived label.
 /// </summary>
 public static class PetCatalog
 {
@@ -413,27 +412,11 @@ public static class PetCatalog
 
     // ---------- XP <-> level ----------
 
-    private static readonly int[] _thresholds = BuildThresholds();
-
-    private static int[] BuildThresholds()
-    {
-        // Cumulative XP per level, fit to the wiki's two anchors: level 1 = 4, level 20 = 750.
-        // cumulative(L) = 4 * L^b, with b chosen so cumulative(20) = 750.
-        var t = new int[MaxLevel + 1];
-        var b = Math.Log(750.0 / 4.0) / Math.Log(MaxLevel);
-        for (var l = 1; l <= MaxLevel; l++)
-        {
-            t[l] = (int)Math.Round(4 * Math.Pow(l, b));
-        }
-        t[0] = 0;
-        t[MaxLevel] = 750; // pin the published endpoint exactly
-        // Guarantee monotonic non-decreasing (rounding can't break it here, but be safe).
-        for (var l = 1; l <= MaxLevel; l++)
-        {
-            if (t[l] <= t[l - 1]) t[l] = t[l - 1] + 1;
-        }
-        return t;
-    }
+    // Cumulative thresholds documented by the game's wiki (reviewed 2026-09-15).
+    // https://abioticfactor.wiki.gg/wiki/Pet#Leveling_Pets
+    // An interpolated curve gave incorrect intermediate levels, e.g. 20 XP is level 3.
+    private static readonly int[] _thresholds =
+        [0, 4, 8, 20, 40, 60, 80, 100, 130, 160, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 750];
 
     /// <summary>Derives the level (0-20) for a stored XP value.</summary>
     public static int LevelForXp(int xp)

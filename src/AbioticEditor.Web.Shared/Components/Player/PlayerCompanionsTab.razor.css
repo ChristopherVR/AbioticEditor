@@ -1,0 +1,16 @@
+.companions-tab { container-type: inline-size; }
+.pets-split { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
+.pet-row { width: 100%; border: 0; border-radius: 0; text-align: left; background: transparent; text-transform: none; }
+.pet-row:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; }
+.pet-master, .pet-detail, .pet-field { min-width: 0; }
+.pet-detail { grid-template-columns: minmax(0, 1fr); }
+.pet-detail input, .pet-detail select { min-width: 0; max-width: 100%; box-sizing: border-box; }
+.pet-field input, .pet-field select { width: 100%; }
+.pet-level-row, .pet-health-row { flex-wrap: wrap; }
+.pet-health-row input { flex: 1 1 80px; width: 80px; }
+.pet-detail-title { overflow-wrap: anywhere; }
+@container (max-width: 760px) {
+    .pets-split { grid-template-columns: minmax(0, 1fr); }
+    .pet-detail { max-height: none; overflow: visible; }
+    .pet-master { max-height: 240px; }
+}

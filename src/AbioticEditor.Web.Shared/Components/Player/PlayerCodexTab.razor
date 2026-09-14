@@ -24,10 +24,10 @@
     <div class="gatepal-body">
         <div class="gatepal-markall"><button class="accent-hazard" type="button" @onclick="MarkAll">@L.Resource("PlayerCodex_MarkAllRead")</button></div>
         <div class="gatepal-apps" role="tablist">
-            <button type="button" role="tab" class="gatepal-app @(Active == "emails" ? "active" : null)" aria-selected="@(Active == "emails")" @onclick='() => SelectSection("emails")'>✉ E-MAIL</button>
-            <button type="button" role="tab" class="gatepal-app @(Active == "journals" ? "active" : null)" aria-selected="@(Active == "journals")" @onclick='() => SelectSection("journals")'>✎ NOTES</button>
-            <button type="button" role="tab" class="gatepal-app @(Active == "compendium" ? "active" : null)" aria-selected="@(Active == "compendium")" @onclick='() => SelectSection("compendium")'>◈ COMPENDIUM</button>
-            <button type="button" role="tab" class="gatepal-app @(Active == "fish" ? "active" : null)" aria-selected="@(Active == "fish")" @onclick='() => SelectSection("fish")'>🐟 FISH</button>
+            <button type="button" role="tab" class="gatepal-app @(Active == "emails" ? "active" : null)" aria-selected="@(Active == "emails" ? "true" : "false")" @onclick='() => SelectSection("emails")'>✉ E-MAIL</button>
+            <button type="button" role="tab" class="gatepal-app @(Active == "journals" ? "active" : null)" aria-selected="@(Active == "journals" ? "true" : "false")" @onclick='() => SelectSection("journals")'>✎ NOTES</button>
+            <button type="button" role="tab" class="gatepal-app @(Active == "compendium" ? "active" : null)" aria-selected="@(Active == "compendium" ? "true" : "false")" @onclick='() => SelectSection("compendium")'>◈ COMPENDIUM</button>
+            <button type="button" role="tab" class="gatepal-app @(Active == "fish" ? "active" : null)" aria-selected="@(Active == "fish" ? "true" : "false")" @onclick='() => SelectSection("fish")'>🐟 FISH</button>
         </div>
         <div class="gatepal-search">
             <input type="search" @bind="Filter" @bind:event="oninput" placeholder="@L.Resource("PlayerCodex_SearchPlaceholder")" aria-label="@L.Resource("PlayerCodex_SearchPlaceholder")" />
@@ -44,10 +44,10 @@
                 @if (!Visible.Any()) { <p class="muted codex-empty">@L.Resource("PlayerCodex_NothingMatches")</p> }
                 @foreach (var row in Visible)
                 {
-                    <div class="codex-row @(_selected == row ? "selected" : null)" role="option" aria-selected="@(_selected == row)" @key="row.Id" @onclick="() => Select(row)">
-                        <input type="checkbox" checked="@row.IsKnown" disabled="@(!row.Editable || LockedIn(row))" @onclick:stopPropagation @onchange="e => SetKnown(row, e.Value is bool value && value)" />
+                    <div class="codex-row @(_selected == row ? "selected" : null)" role="option" aria-selected="@(_selected == row ? "true" : "false")" @key="row.Id" @onclick="() => Select(row)">
+                        <input type="checkbox" aria-label="@RowTitle(row)" checked="@row.IsKnown" disabled="@(!row.Editable || LockedIn(row))" @onclick:stopPropagation @onchange="e => SetKnown(row, e.Value is bool value && value)" />
                         @if (row.ItemId is { } rowItemId) { <span class="codex-icon"><ItemIcon ItemId="@rowItemId" Alt="@RowTitle(row)" /></span> }
-                        <span class="codex-titles"><strong>@RowTitle(row)</strong>@if (RowSubtitle(row) is { Length: > 0 } subtitle) { <small>@subtitle</small> }</span>
+                        <span class="codex-titles"><button class="codex-select" type="button" @onclick="() => Select(row)" @onclick:stopPropagation>@RowTitle(row)</button>@if (RowSubtitle(row) is { Length: > 0 } subtitle) { <small>@subtitle</small> }</span>
                     </div>
                 }
             </div>
@@ -80,7 +80,7 @@
                         <strong>@RowTitle(detail)</strong>
                         @if (RowSubtitle(detail) is { Length: > 0 } detailSubtitle) { <small>@detailSubtitle</small> }
                     </span>
-                    <button class="detail-close" type="button" @onclick="CloseOwnDetail">✕</button>
+                    <button class="detail-close" type="button" aria-label="@L.Inventory("closeSlotEditor")" @onclick="CloseOwnDetail">✕</button>
                 </div>
 
                     @* The image area keeps a fixed-size frame while the wiki art downloads, so

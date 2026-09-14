@@ -26,7 +26,7 @@
         <div class="wt-list" role="listbox" aria-label="@L.Resource("WorldBases_BaseManager")">
             @foreach (var worldBase in Bases)
             {
-                <button type="button" role="option" aria-selected="@(_selectedBaseName == worldBase.Name)"
+                <button type="button" role="option" aria-selected="@(_selectedBaseName == worldBase.Name ? "true" : "false")"
                         class="wt-row base-row @(_selectedBaseName == worldBase.Name ? "selected" : null)" @key="worldBase.Name"
                         @onclick="() => SelectBase(worldBase)">
                     <span class="wt-row-text">

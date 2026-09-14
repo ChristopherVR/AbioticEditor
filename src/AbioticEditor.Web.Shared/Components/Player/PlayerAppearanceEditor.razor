@@ -28,6 +28,10 @@
         <button class="primary appearance-save" type="button" disabled="@(_session is null || !_session.IsDirty)" @onclick="SaveAsync">@L.Resource("PlayerCharacter_SaveAppearance")</button>
     </div>
 
+    @if (_session is null && !_catalogReady)
+    {
+        <p class="general-loading" role="status"><span class="header-busy-spinner" aria-hidden="true"></span>@L.Resource("Customization_LoadingOptions")</p>
+    }
     @if (_session is not null)
     {
         @* When the save exists: explain what is being edited and where it lives. *@

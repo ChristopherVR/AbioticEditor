@@ -15,7 +15,7 @@
 
 <section class="slot-editor" aria-label="@L.Inventory("slotEditorAria")">
     <header class="slot-editor-title">
-        <strong>@L.Resource("Slot_SlotEditor").ToUpperInvariant()</strong>
+        <strong>@L.Resource(Selection.Current is null ? "PlayerUi_Details" : "Slot_SlotEditor").ToUpperInvariant()</strong>
         @if (Selection.HasAnySelection)
         {
             <button class="icon-button" type="button" @onclick="Close" aria-label="@L.Inventory("closeSlotEditor")">×</button>

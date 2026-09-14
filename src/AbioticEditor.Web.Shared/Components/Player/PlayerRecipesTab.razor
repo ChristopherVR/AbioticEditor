@@ -60,7 +60,7 @@
                     var concealed = Concealed(row);
                     @* The hover text is just the item's own description, when it has one. *@
                     <div class="rb-row @(ReferenceEquals(row, SelectedRow) ? "selected" : null)" @key="row.Info.Id"
-                         role="option" aria-selected="@ReferenceEquals(row, SelectedRow)" tabindex="0"
+                         role="option" aria-selected="@(ReferenceEquals(row, SelectedRow) ? "true" : "false")" tabindex="0"
                          title="@(concealed ? L.Resource("Spoiler_ClassifiedHint") : RowTooltip(row))"
                          @onclick="() => SelectRow(row)" @onkeydown="e => RowKeyDown(e, row)">
                         @* The @key includes a nonce so a progress-gated (refused) unlock recreates the
@@ -109,7 +109,7 @@
             <div class="detail-card detail-card--terminal rb-detail-card" aria-label="@DisplayName(selected)">
                 <div class="detail-head">
                     <span class="detail-title"><strong>@DisplayName(selected)</strong><small>@SubText(selected.Info)</small></span>
-                    <button class="detail-close" type="button" @onclick="CloseOwnDetail">✕</button>
+                    <button class="detail-close" type="button" aria-label="@L.Inventory("closeSlotEditor")" @onclick="CloseOwnDetail">✕</button>
                 </div>
                 @if (selected.Info.CreatesItemId is { } selectedItemId)
                 {

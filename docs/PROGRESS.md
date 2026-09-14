@@ -5,6 +5,29 @@ time; they are not a current feature list or test-count guarantee. The maintaine
 are `README.md`, `docs/guide/index.md`, and `docs/reference/architecture.md`.
 
 
+## Player/world detail audit and wiki comparison (2026-09-15)
+
+Opened all 12 player tabs, 18 populated Facility tabs and five metadata tabs at desktop
+and 390px widths. Selected representative entries, including inventory/equipment slots,
+container contents, pet/vehicle/base controls, skill perks, recipes, all four GATEPal
+sections, story chapters, traders and containment units. Original saves were not written.
+
+Fixed clipped carried-pet fields, added keyboard selection and accessible labels, and
+made selected ARIA states explicit. GATEPal's mobile header and four section buttons now
+fit visibly. Detail close buttons stay compact; reference cards use the heading Details.
+The appearance panel shows loading feedback before its save is discovered.
+
+Wiki comparison found the pet XP curve was an estimate. Replaced it with documented
+thresholds and tested all 20 level boundaries. Existing stored XP remains unchanged.
+The feature report at `docs/reference/research/research-ui-and-feature-audit.md` prioritizes
+coatings, garden care, chemistry production, pet feeding/mutation progress and deployed
+Power Chair state. These larger additions require save-schema and in-game verification.
+
+Verification: 111 focused pet/localization/UI tests passed. Final host build had no warnings
+or errors. Browser rechecks confirmed keyboard selection, level 3 at 20 XP, unclipped pet
+fields, all four mobile GATEPal sections and compact recipe details. Live game behavior,
+Steam achievement writes and appearance-save editing were not tested in this pass.
+
 ## GATE Teal app theme (2026-09-15)
 
 Added GATE Teal beside Facility Blue and Hazard Orange in Settings. Its aqua controls,

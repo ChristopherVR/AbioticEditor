@@ -27,7 +27,7 @@
             <div class="wt-list" role="listbox" aria-label="@L.Resource("WorldNpcs_StoryNpcsAndTraders")">
                 @foreach (var npc in Session.Npcs)
                 {
-                    <button type="button" role="option" aria-selected="@(_selectedId == npc.Id)"
+                    <button type="button" role="option" aria-selected="@(_selectedId == npc.Id ? "true" : "false")"
                             class="wt-row @(_selectedId == npc.Id ? "selected" : null)" @key="npc.Id"
                             @onclick="() => _selectedId = npc.Id">
                         <span class="wt-row-text">

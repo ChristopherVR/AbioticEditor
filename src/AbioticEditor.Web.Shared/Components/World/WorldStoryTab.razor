@@ -125,7 +125,7 @@
                 var missing = MissingDependencies(index);
                 var status = StatusOf(chapter, missing);
                 <div class="ws-chapter-row @(ReferenceEquals(chapter, _selectedChapter) ? "selected" : null)" @key="chapter.Row"
-                     role="option" aria-selected="@ReferenceEquals(chapter, _selectedChapter)" tabindex="0"
+                     role="option" aria-selected="@(ReferenceEquals(chapter, _selectedChapter) ? "true" : "false")" tabindex="0"
                      title="@ChapterSummary(chapter)"
                      @onclick="() => SelectChapter(chapter)" @onkeydown="e => ChapterKeyDown(e, chapter)">
                     <span class="ws-chapter-num">@((index + 1).ToString("D2"))</span>
@@ -193,7 +193,7 @@
                 {
                     var unlocked = RecipeIsUnlocked(row.Id);
                     <div class="ws-recipe-row @(row.Id == _selectedWorldRecipeId ? "selected" : null)" @key="row.Id"
-                         role="option" aria-selected="@(row.Id == _selectedWorldRecipeId)" tabindex="0"
+                         role="option" aria-selected="@(row.Id == _selectedWorldRecipeId ? "true" : "false")" tabindex="0"
                          @onclick="() => ToggleRecipeDetail(row.Id)" @onkeydown="e => RecipeKeyDown(e, row.Id)">
                         <input type="checkbox" checked="@unlocked" aria-label="@row.DisplayName" disabled="@(!CanEditRecipes)" @key="@($"{row.Id}:{_gateNonce}")"
                                @onclick:stopPropagation="true" @onchange="e => SetRecipe(row.Id, e.Value is bool value && value)" />

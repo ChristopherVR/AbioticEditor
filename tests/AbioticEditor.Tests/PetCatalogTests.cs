@@ -75,6 +75,34 @@ public class PetCatalogTests
         }
     }
 
+    [Theory]
+    [InlineData(1, 4)]
+    [InlineData(2, 8)]
+    [InlineData(3, 20)]
+    [InlineData(4, 40)]
+    [InlineData(5, 60)]
+    [InlineData(6, 80)]
+    [InlineData(7, 100)]
+    [InlineData(8, 130)]
+    [InlineData(9, 160)]
+    [InlineData(10, 200)]
+    [InlineData(11, 250)]
+    [InlineData(12, 300)]
+    [InlineData(13, 350)]
+    [InlineData(14, 400)]
+    [InlineData(15, 450)]
+    [InlineData(16, 500)]
+    [InlineData(17, 550)]
+    [InlineData(18, 600)]
+    [InlineData(19, 650)]
+    [InlineData(20, 750)]
+    public void Pet_levels_match_documented_thresholds_and_boundaries(int level, int xp)
+    {
+        Assert.Equal(xp, PetCatalog.XpForLevel(level));
+        Assert.Equal(level, PetCatalog.LevelForXp(xp));
+        Assert.Equal(level - 1, PetCatalog.LevelForXp(xp - 1));
+    }
+
     [Fact]
     public void BuildVariants_without_paks_falls_back_to_curated()
     {

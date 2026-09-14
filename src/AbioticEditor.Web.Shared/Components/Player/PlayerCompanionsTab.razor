@@ -29,10 +29,10 @@
             @if (Session.CarriedPets.Count == 0 && PendingPets.Count == 0) { <p class="muted pet-empty">@L.Resource("PlayerPets_NoPets")</p> }
             @foreach (var row in Session.CarriedPets)
             {
-                <div class="pet-row @(_selected == row ? "selected" : null) @(StillInInventory(row) ? null : "pet-row-pending")" role="option" aria-selected="@(_selected == row)" @onclick="() => _selected = row">
+                <button type="button" class="pet-row @(_selected == row ? "selected" : null) @(StillInInventory(row) ? null : "pet-row-pending")" role="option" aria-selected="@(_selected == row ? "true" : "false")" @onclick="() => _selected = row">
                     <span class="pet-row-text"><strong>@row.DisplayName</strong><small>@SlotText(row)</small></span>
                     <span class="pet-row-status">@(StillInInventory(row) ? StatusText(row) : L.Resource("PlayerPets_StatusTakenOutPending"))</span>
-                </div>
+                </button>
             }
             @* Pets dropped into the inventory during this session. The save still knows nothing
                about them - their level, health and mutation only come into being when it is
@@ -88,9 +88,9 @@
                 <p class="hazard-field-label">@L.Resource("PlayerPets_LevelAndXp")</p>
                 <div class="pet-level-row">
                     <label>@L.Resource("PlayerPets_Lv")</label>
-                    <span class="pet-stepper"><button class="secondary" type="button" @onclick="() => StepLevel(pet, -1)">-</button><span class="pet-level-readout">@pet.Level</span><button class="secondary" type="button" @onclick="() => StepLevel(pet, 1)">+</button></span>
+                    <span class="pet-stepper"><button class="secondary" type="button" aria-label="@L.Resource("PlayerUi_DecreasePetLevel")" disabled="@(pet.Level == 0)" @onclick="() => StepLevel(pet, -1)">-</button><span class="pet-level-readout">@pet.Level</span><button class="secondary" type="button" aria-label="@L.Resource("PlayerUi_IncreasePetLevel")" disabled="@(pet.Level == PetCatalog.MaxLevel)" @onclick="() => StepLevel(pet, 1)">+</button></span>
                     <label>@L.Resource("PlayerPets_Xp")</label>
-                    <input class="pet-xp" type="number" min="0" @bind="pet.Xp" @bind:after="() => CommitAsync(pet)" />
+                    <input class="pet-xp" aria-label="@L.Resource("PlayerPets_Xp")" type="number" min="0" @bind="pet.Xp" @bind:after="() => CommitAsync(pet)" />
                 </div>
 
                 <hr class="af-divider" />
@@ -98,8 +98,8 @@
                 @* The stored floats carry accumulated game arithmetic (87.4999999…); show one
                    decimal at most and keep the save value exactly what the player types. *@
                 <div class="pet-health-row">
-                    <label>@L.Resource("PlayerPets_Hp")</label><input type="number" min="0" step="any" @bind:get="Math.Round(pet.Health, 1)" @bind:set="value => SetHealth(pet, value)" />
-                    <label>@L.Resource("PlayerPets_Max")</label><input type="number" min="0" step="any" @bind:get="Math.Round(pet.MaxHealth, 1)" @bind:set="value => SetMaxHealth(pet, value)" />
+                    <label>@L.Resource("PlayerPets_Hp")</label><input aria-label="@L.Resource("PlayerPets_Health")" type="number" min="0" step="any" @bind:get="Math.Round(pet.Health, 1)" @bind:set="value => SetHealth(pet, value)" />
+                    <label>@L.Resource("PlayerPets_Max")</label><input aria-label="@L.Resource("PlayerUi_MaxPetHealth")" type="number" min="0" step="any" @bind:get="Math.Round(pet.MaxHealth, 1)" @bind:set="value => SetMaxHealth(pet, value)" />
                     <button class="heal-all-button" type="button" @onclick="() => Heal(pet)">@L.Resource("PlayerPets_Heal")</button>
                 </div>
 
@@ -112,7 +112,7 @@
                     <hr class="af-divider" />
                     <p class="terminal-field-label">@L.Resource("PlayerPets_SendToAPetBed")</p>
                     <p class="muted pet-bed-help">@L.Resource("PlayerPets_World")</p>
-                    <select class="pet-world-select" value="@_selectedWorldPath" @onchange="WorldSelected">
+                    <select aria-label="@L.Resource("PlayerUi_PetWorld")" class="pet-world-select" value="@_selectedWorldPath" @onchange="WorldSelected">
                         @foreach (var world in SiblingWorldOptions) { <option value="@world.Path">@world.Name</option> }
                     </select>
                     @if (_bedsLoading) { <p class="muted pet-bed-help">@L.Resource("PlayerPets_BedsLoading")</p> }
@@ -120,7 +120,7 @@
                     else if (_beds.Count > 0)
                     {
                         <p class="muted pet-bed-help">@L.Resource("PlayerPets_PetBed")</p>
-                        <select @bind="_selectedBedIndex">
+                        <select aria-label="@L.Resource("PlayerUi_PetBed")" @bind="_selectedBedIndex">
                             @for (var index = 0; index < _beds.Count; index++) { var bedIndex = index; <option value="@bedIndex">@BedLabel(bedIndex)</option> }
                         </select>
                     }

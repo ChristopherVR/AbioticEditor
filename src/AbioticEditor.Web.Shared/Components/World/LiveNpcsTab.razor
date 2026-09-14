@@ -36,7 +36,7 @@
         <div class="shell-save-list live-containers-list" role="listbox" aria-label="@L.Resource("LiveNpcs_Title")">
             @foreach (var npc in Session.Npcs)
             {
-                <button type="button" role="option" aria-selected="@(_selectedId == npc.Id)"
+                <button type="button" role="option" aria-selected="@(_selectedId == npc.Id ? "true" : "false")"
                         class="save-file-row kind-player @(_selectedId == npc.Id ? "selected" : null)" @key="npc.Id"
                         @onclick="() => SelectRow(npc)">
                     <span class="save-kind-marker" aria-hidden="true"></span>

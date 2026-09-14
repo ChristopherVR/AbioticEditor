@@ -30,7 +30,7 @@
                     </div>
                     @foreach (var row in group)
                     {
-                        <button type="button" role="option" aria-selected="@(_selectedId == row.Id)"
+                        <button type="button" role="option" aria-selected="@(_selectedId == row.Id ? "true" : "false")"
                                 class="wt-row @(_selectedId == row.Id ? "selected" : null)" @key="row.Id"
                                 @onclick="() => Select(row)">
                             <span class="wt-row-text">

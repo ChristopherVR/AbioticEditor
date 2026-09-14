@@ -52,7 +52,7 @@
             {
                 <div class="wg-row" role="listitem" @key="item.Id" @onclick="() => Inspect(item)">
                     <span class="wg-texts">
-                        <strong>@DisplayName(item)</strong>
+                        <button class="world-row-name" type="button" @onclick="() => Inspect(item)" @onclick:stopPropagation>@DisplayName(item)</button>
                         <small>@SubText(item)</small>
                     </span>
                     <button class="wg-delete" type="button" disabled="@(_busy || (Session.AppliesImmediately && !Session.IsHost))" @onclick="() => Delete(item)" @onclick:stopPropagation>@L.Resource("WorldDropped_Delete")</button>
