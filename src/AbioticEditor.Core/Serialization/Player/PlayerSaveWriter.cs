@@ -47,6 +47,7 @@ public static partial class PlayerSaveWriter
         public const string DynamicState = "DynamicState_39_7597AC6549E292B931C61BB13C9E42EB";
         public const string PlayerMadeString = "PlayerMadeString_42_CC0B72B24DBEAB2CC04454AAFFD4BBE9";
         public const string AssetId = "AssetID_25_06DB7A12469849D19D5FC3BA6BEDEEAB";
+        public const string TextureVariantRow = "TextureVariantRow_28_1C7CF7A0441335E8AC4EA7B5CA91F636";
 
         // A character created without any traits never gets a Traits_ tag at all (an
         // empty array is the blueprint default), so ApplyTraits needs create-on-miss too.

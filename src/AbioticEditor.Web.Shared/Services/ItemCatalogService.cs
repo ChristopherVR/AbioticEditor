@@ -13,6 +13,7 @@ public sealed class ItemCatalogService : IDisposable
 {
     private readonly IReadOnlyList<ItemCatalogEntry> _entries;
     private readonly Dictionary<string, ItemCatalogEntry> _byId;
+    public ItemVariantCatalog Variants { get; }
     private readonly Lazy<GameAssetProvider?> _provider = new(CreateProvider, LazyThreadSafetyMode.ExecutionAndPublication);
     private readonly ConcurrentDictionary<string, Task<string?>> _icons = new(StringComparer.OrdinalIgnoreCase);
 
@@ -52,6 +53,10 @@ public sealed class ItemCatalogService : IDisposable
             .ThenBy(entry => entry.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ToArray();
         _byId = _entries.ToDictionary(entry => entry.Id, StringComparer.OrdinalIgnoreCase);
+        var variantEntries = registry?.ItemVariants ?? Array.Empty<ItemVariantDefinition>();
+        if (liveVocabulary is not null && liveVocabulary.TryGetItemVariants(out var liveVariants))
+            variantEntries = liveVariants;
+        Variants = ItemVariantCatalog.FromRegistry(variantEntries);
     }
 
     public IReadOnlyList<ItemCatalogEntry> Entries => _entries;

@@ -9,6 +9,8 @@ using CUE4Parse.UE4.Assets.Objects;
 using CUE4Parse.UE4.Objects.Core.Misc;
 using CUE4Parse.UE4.Objects.UObject;
 using CUE4Parse.UE4.Versions;
+using UeSaveGame.PropertyTypes;
+using UeSaveGame.StructData;
 using Xunit.Abstractions;
 
 namespace AbioticEditor.Tests;
@@ -28,6 +30,36 @@ public sealed class ItemVariantProbeTests
     private readonly ITestOutputHelper _output;
 
     public ItemVariantProbeTests(ITestOutputHelper output) => _output = output;
+
+    [Fact]
+    public void Dump_TextureVariantTag_Metadata()
+    {
+        Assert.NotNull(Fixtures.CascadeDir);
+        foreach (var path in Directory.EnumerateFiles(
+                     Path.Combine(Fixtures.CascadeDir!, "PlayerData"), "Player_*.sav"))
+        {
+            var save = PlayerSaveReader.ReadFromFile(path);
+            var root = (PropertiesStruct)((StructProperty)save.Raw.Properties!
+                .First(t => t.Name.Value.StartsWith("CharacterSaveData", StringComparison.Ordinal)).Property!).Value!;
+            foreach (var inventoryPrefix in new[] { "EquipmentInventory_", "HotbarInventory_", "Inventory_", "TransmogInventory_" })
+            {
+                if (root.Properties.FirstOrDefault(t => t.Name.Value.StartsWith(inventoryPrefix, StringComparison.Ordinal))?.Property
+                    is not ArrayProperty inventory) continue;
+                foreach (StructProperty slot in inventory.Value!)
+                {
+                    var slotProps = (PropertiesStruct)slot.Value!;
+                    if (slotProps.Properties.FirstOrDefault(t => t.Name.Value.StartsWith("ChangeableData_", StringComparison.Ordinal))?.Property
+                        is not StructProperty changeable) continue;
+                    var changeableProps = (PropertiesStruct)changeable.Value!;
+                    var tag = changeableProps.Properties.FirstOrDefault(
+                        t => t.Name.Value.StartsWith("TextureVariantRow_", StringComparison.Ordinal));
+                    if (tag?.Property is not StructProperty variant) continue;
+                    _output.WriteLine($"{tag.Name.Value}: type={tag.Type.Name.Value}; parameters={string.Join(", ", tag.Type.Parameters.Select(p => p.Name.Value))}; struct={variant.StructType?.Name.Value}; guid={variant.StructGuid}");
+                    return;
+                }
+            }
+        }
+    }
 
     [Fact]
     public void Dump_TextureVariants_And_ItemVariantFields()

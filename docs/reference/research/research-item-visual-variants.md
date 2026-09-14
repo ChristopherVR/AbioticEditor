@@ -88,7 +88,7 @@ by saves in this repository.
 | Hard Hat (`armor_helmet_hardhat`) | `gear_hardhat_blue`, `_brown`, `_gray`, `_green`, `_red`, `_white`, `_yellow` |
 | Karate Helmet (`armor_helmet_karate`) | `gear_armor_karatehelmet_black`, `_red`, `_white` |
 | Hydroplant Hat (`armor_helmet_hydrohat`) | `hydrohat_green`, `_orange`, `_red`, `_yellow` |
-| Lab Mask, likely `armor_helmet_labs` | `labmask_shiny_blue`, `_dark`, `_gold`, `_green`, `_orange`, `_pink`, `_purple`, `_red` |
+| Lab Mask (`armor_helmet_gasmask`) | `labmask_shiny_blue`, `_dark`, `_gold`, `_green`, `_orange`, `_pink`, `_purple`, `_red` |
 | Puffy Coat (`armor_chest_puffycoat`) | `puffycoat_gray`, `_red`, `_white` |
 
 Single alternate rows also exist for the Bonnet (`bonnet_black`), Floppy Hat

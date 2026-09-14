@@ -151,33 +151,32 @@
                         <label>@L.Inventory("customName")<input @bind="selected.PlayerMadeString" @bind:after="Changed" /></label>
                         break;
                 }
-                @* Only shown when the game has actually recorded a variant for this exact
-                   item instance (most items never had one chosen, so most slots have
-                   nothing here). See InventoryItemSlot.VariantRowName. *@
-                @if (!string.IsNullOrEmpty(selected.VariantRowName))
+                @{ var variantOptions = VariantOptions(selected.ItemId, selected.VariantRowName); }
+                @if (variantOptions.Count > 1)
                 {
-                    var variantOptions = VariantOptions(selected.VariantRowName);
                     <label>@L.Resource("Slot_VariantRow")
-                        @if (variantOptions.Count > 1)
-                        {
-                            <select @bind="selected.VariantRowName" @bind:after="Changed">
-                                @foreach (var option in variantOptions)
-                                {
-                                    <option value="@option">@option</option>
-                                }
-                            </select>
-                        }
-                        else
-                        {
-                            @* Nothing to actually choose - a dropdown with its one option
-                               already selected looks like a working control that just does
-                               nothing, which reads as broken rather than as "there's only one
-                               value here". A plain label says that honestly instead. *@
-                            <output>@variantOptions[0]</output>
-                        }
+                        <select @bind="selected.VariantRowName" @bind:after="Changed">
+                            @foreach (var option in variantOptions)
+                            {
+                                <option value="@option.RowName">@option.Label</option>
+                            }
+                        </select>
                     </label>
                     <small class="slot-editor-hint">@L.Resource("Slot_VariantRowHint")</small>
                 }
+                <details class="slot-variant-manual">
+                    <summary>@L.Resource("Slot_VariantManual")</summary>
+                    <label>@L.Resource("Slot_VariantRowName")
+                        <input list="item-variant-rows" @bind="selected.VariantRowName" @bind:after="Changed" />
+                        <datalist id="item-variant-rows">
+                            @foreach (var variant in Catalog.Variants.Entries)
+                            {
+                                <option value="@variant.RowName">@variant.DisplayName</option>
+                            }
+                        </datalist>
+                    </label>
+                    <small class="slot-editor-hint">@L.Resource("Slot_VariantManualHint")</small>
+                </details>
             </div>
 
             @* The COUNT box above is the only stack-size control. There were -1 / +1 / HALVE /
@@ -710,17 +709,27 @@
     }
 
     /// <summary>
-    /// Options for the VISUAL VARIANT dropdown: there is no curated list of an item's actual
-    /// variants yet (no <c>DT_TextureVariants</c> catalog), so the only safe choices are
-    /// whatever the game already recorded on this instance (<paramref name="current"/>) and the
-    /// game's own "no variant" sentinel row - never a free-typed value that could point at a row
-    /// that does not exist and leave the item unable to render.
+    /// Reviewed choices for the normal picker. An unknown row already carried by the save is
+    /// retained so newer game data is never hidden or discarded.
     /// </summary>
     private const string NoVariantRow = "None";
-    private static IReadOnlyList<string> VariantOptions(string? current)
-        => string.IsNullOrEmpty(current) || string.Equals(current, NoVariantRow, StringComparison.OrdinalIgnoreCase)
-            ? [NoVariantRow]
-            : [current, NoVariantRow];
+    private IReadOnlyList<VariantOption> VariantOptions(string? itemId, string? current)
+    {
+        var options = new List<VariantOption> { new(NoVariantRow, L.Resource("Slot_VariantDefault")) };
+        foreach (var variant in Catalog.Variants.ForItem(itemId))
+            options.Add(new(variant.RowName, VariantLabel(variant)));
+        if (!string.IsNullOrWhiteSpace(current)
+            && !options.Any(option => string.Equals(option.RowName, current, StringComparison.OrdinalIgnoreCase)))
+            options.Add(new(current, Catalog.Variants.Find(current) is { } found ? VariantLabel(found) : current));
+        return options;
+    }
+
+    private static string VariantLabel(ItemVariantDefinition variant)
+        => string.Equals(variant.DisplayName, variant.RowName, StringComparison.OrdinalIgnoreCase)
+            ? variant.RowName
+            : $"{variant.DisplayName} ({variant.RowName})";
+
+    private sealed record VariantOption(string RowName, string Label);
 
     private static bool IsTeleporter(PlayerInventorySlotEdit slot) => slot.ItemId?.Contains("personalteleporter", StringComparison.OrdinalIgnoreCase) == true || slot.ItemId?.Contains("moisture_teleporter", StringComparison.OrdinalIgnoreCase) == true;
     private static string? CurrentBenchId(PlayerInventorySlotEdit slot) => string.IsNullOrWhiteSpace(slot.PlayerMadeString) ? null : slot.PlayerMadeString.TrimEnd(',');

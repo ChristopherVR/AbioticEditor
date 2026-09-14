@@ -52,6 +52,10 @@ public sealed class GameDataRegistryTests
             ["scrap_metal"] = "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
             ["canteen"] = "/Game/Blueprints/Items/ItemTable_DLC.ItemTable_DLC",
         },
+        ItemVariants =
+        [
+            new ItemVariantDefinition("poster_0091", "IS-0091 Notice", "A notice poster.", "/Game/poster_0091"),
+        ],
     };
 
     [Fact]
@@ -74,6 +78,10 @@ public sealed class GameDataRegistryTests
             Assert.Null(canteen.Description);
             Assert.Equal(3, canteen.MaxLiquid);
             Assert.Equal([1, 2, 8], canteen.AllowedLiquidList);
+
+            var variant = Assert.Single(loaded.ItemVariants!);
+            Assert.Equal("poster_0091", variant.RowName);
+            Assert.Equal("IS-0091 Notice", variant.DisplayName);
 
             Assert.NotNull(loaded.ItemTableRefs);
             Assert.Equal(

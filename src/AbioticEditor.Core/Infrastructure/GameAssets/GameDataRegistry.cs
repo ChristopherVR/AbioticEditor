@@ -105,6 +105,9 @@ public sealed class GameDataRegistry
     /// <summary>Every item row (<c>ItemTable_Global</c> + supplemental tables); null if not dumped.</summary>
     public IReadOnlyList<ItemCatalogEntry>? Items { get; init; }
 
+    /// <summary>Every visual appearance row from <c>DT_TextureVariants</c>; null if not dumped.</summary>
+    public IReadOnlyList<ItemVariantDefinition>? ItemVariants { get; init; }
+
     /// <summary>
     /// Item id -> the DataTable object reference its row lives in, mirroring
     /// <see cref="ItemTableIndex"/> so the save writers resolve row tables offline.
@@ -170,6 +173,7 @@ public sealed class GameDataRegistry
             GameVersion = gameVersion,
             Culture = culture,
             Items = catalog.Entries.ToList(),
+            ItemVariants = Optional("item visual variants", () => ItemVariantCatalog.LoadFrom(provider).Entries),
             ItemTableRefs = catalog.TableRefs,
             Recipes = Optional("recipes", () => RecipeCatalog.LoadInfosFrom(provider)),
             ItemUpgrades = Optional("item upgrades", () => ItemUpgradeCatalog.LoadFrom(provider).Upgrades),

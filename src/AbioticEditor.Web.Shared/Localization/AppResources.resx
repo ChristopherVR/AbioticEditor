@@ -507,7 +507,11 @@
   <data name="Slot_HoldsContents" xml:space="preserve"><value>WHAT IS IN IT</value></data>
   <data name="Slot_HoldsContentsHint" xml:space="preserve"><value>A bowl or pot records what was cooked into it here. It is not a name, so it is shown as the game stores it.</value></data>
   <data name="Slot_VariantRow" xml:space="preserve"><value>VISUAL VARIANT</value></data>
-  <data name="Slot_VariantRowHint" xml:space="preserve"><value>Which color or artwork variant this exact item shows (a poster's picture, a helmet's paint job, and similar). Only appears when the game has recorded one for this item. There's no full list of an item's possible variants yet, so the only choices are the one already set and NONE.</value></data>
+  <data name="Slot_VariantRowHint" xml:space="preserve"><value>Which reviewed color, artwork, or model variant this item shows.</value></data>
+  <data name="Slot_VariantDefault" xml:space="preserve"><value>Default appearance</value></data>
+  <data name="Slot_VariantManual" xml:space="preserve"><value>Manual visual variant</value></data>
+  <data name="Slot_VariantRowName" xml:space="preserve"><value>VARIANT ROW</value></data>
+  <data name="Slot_VariantManualHint" xml:space="preserve"><value>Advanced: choose any known game row or type a newer row name. A row made for another item may render incorrectly.</value></data>
   <data name="Slot_ChaptersAreStrictlyLinearAQuestCantReallyBeginUntilEveryEarlierTriggerFlagIsSetStageSaveToWrite" xml:space="preserve"><value>The story runs in order, so a chapter cannot really begin until the earlier ones have happened. Press SAVE to write your changes.</value></data>
   <data name="Slot_ChooseABench" xml:space="preserve"><value>Choose a bench...</value></data>
   <data name="Slot_ConfirmDismantle" xml:space="preserve"><value>CONFIRM DISMANTLE</value></data>

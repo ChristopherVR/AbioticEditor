@@ -10,6 +10,7 @@ public sealed class ProgressionVocabularyService
     private volatile Vocabulary? _vocabulary;
     public IReadOnlyList<string> GetItems() => Value.ItemEntries.Select(entry => entry.Id).ToArray();
     public IReadOnlyList<ItemCatalogEntry> GetItemEntries() => Value.ItemEntries;
+    public IReadOnlyList<ItemVariantDefinition> GetItemVariants() => Value.ItemVariants;
     public IReadOnlyList<string> GetMaps() => Value.Maps;
     /// <summary>Full trait details (description, point cost) from CDT_AllTraits; empty without game data.</summary>
     public IReadOnlyDictionary<string, TraitDetail> GetTraitDetails() => Value.TraitDetails;
@@ -17,6 +18,12 @@ public sealed class ProgressionVocabularyService
     {
         if (_vocabulary is not { } loaded) { entries = Array.Empty<ItemCatalogEntry>(); return false; }
         entries = loaded.ItemEntries;
+        return true;
+    }
+    public bool TryGetItemVariants(out IReadOnlyList<ItemVariantDefinition> entries)
+    {
+        if (_vocabulary is not { } loaded) { entries = Array.Empty<ItemVariantDefinition>(); return false; }
+        entries = loaded.ItemVariants;
         return true;
     }
     public bool TryGet(out IReadOnlyList<string> items, out IReadOnlyList<string> maps)
@@ -50,11 +57,12 @@ public sealed class ProgressionVocabularyService
 
     private sealed record Vocabulary(
         IReadOnlyList<ItemCatalogEntry> ItemEntries,
+        IReadOnlyList<ItemVariantDefinition> ItemVariants,
         IReadOnlyList<string> Maps,
         IReadOnlyDictionary<string, TraitDetail> TraitDetails);
 
     private static readonly Vocabulary Empty = new(
-        Array.Empty<ItemCatalogEntry>(), Array.Empty<string>(), new Dictionary<string, TraitDetail>(StringComparer.Ordinal));
+        Array.Empty<ItemCatalogEntry>(), Array.Empty<ItemVariantDefinition>(), Array.Empty<string>(), new Dictionary<string, TraitDetail>(StringComparer.Ordinal));
 
     private static Vocabulary Load()
     {
@@ -69,6 +77,7 @@ public sealed class ProgressionVocabularyService
                 SkillMilestoneCatalog.ApplyGameData(SkillMilestoneCatalog.LoadFrom(provider));
                 return new Vocabulary(
                     ItemCatalog.LoadFrom(provider).Entries.ToArray(),
+                    ItemVariantCatalog.LoadFrom(provider).Entries,
                     MapCatalog.LoadFrom(provider),
                     TraitCatalog.LoadDetailsFrom(provider));
             }
@@ -89,6 +98,7 @@ public sealed class ProgressionVocabularyService
         SkillMilestoneCatalog.ApplyGameData(registry.SkillMilestones);
         return new Vocabulary(
             registry.Items ?? Array.Empty<ItemCatalogEntry>(),
+            registry.ItemVariants ?? Array.Empty<ItemVariantDefinition>(),
             registry.Maps ?? Array.Empty<string>(),
             registry.Traits ?? new Dictionary<string, TraitDetail>(StringComparer.Ordinal));
     }

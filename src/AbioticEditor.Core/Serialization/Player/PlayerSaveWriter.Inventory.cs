@@ -173,15 +173,44 @@ public static partial class PlayerSaveWriter
         ApplyVariantRowName(p, newSlot.VariantRowName);
     }
 
-    // TextureVariantRow_ is a DataTableRowHandle (a nested struct), not a primitive, so unlike
-    // the fields above it can only be patched when the tag already exists - the item instance
-    // must already have had a variant recorded by the game at least once. A slot that never
-    // had one (most items) stays untouched rather than silently gaining a fabricated struct.
-    private static void ApplyVariantRowName(IList<FPropertyTag> changeableDataProps, string? variantRowName)
+    // TextureVariantRow_ is a DataTableRowHandle (a nested struct), not a primitive. Most
+    // items omit it because None is the blueprint default, so selecting a first variant must
+    // create the complete row handle rather than silently dropping the edit.
+    internal static void ApplyVariantRowName(IList<FPropertyTag> changeableDataProps, string? variantRowName)
     {
         if (variantRowName is null) return;
-        if (changeableDataProps.FindByPrefix("TextureVariantRow_")?.Property is not StructProperty variantSp
-            || variantSp.Value is not PropertiesStruct variantPs) return;
-        SetName(variantPs.Properties, "RowName", variantRowName);
+        var rowName = string.IsNullOrWhiteSpace(variantRowName) ? "None" : variantRowName.Trim();
+
+        if (changeableDataProps.FindByPrefix("TextureVariantRow_")?.Property is StructProperty existing
+            && existing.Value is PropertiesStruct existingBody)
+        {
+            SetName(existingBody.Properties, "RowName", rowName, "RowName");
+            return;
+        }
+
+        // An absent handle already means the default variant. Avoid growing every ordinary
+        // slot merely because its editor field was left blank or set to None.
+        if (string.Equals(rowName, "None", StringComparison.OrdinalIgnoreCase)) return;
+
+        var name = new FString(FullNames.TextureVariantRow);
+        var structType = new FPropertyTypeName(new FString("DataTableRowHandle"));
+        var type = new FPropertyTypeName(new FString(nameof(StructProperty)), [structType]);
+        var body = new PropertiesStruct { Properties = new List<FPropertyTag>() };
+
+        var tableName = new FString("DataTable");
+        var tableType = new FPropertyTypeName(new FString(nameof(ObjectProperty)));
+        var table = new ObjectProperty(tableName)
+        {
+            ObjectType = new FString("/Game/Blueprints/DataTables/Customization/DT_TextureVariants.DT_TextureVariants"),
+        };
+        body.Properties.Add(new FPropertyTag(tableName, tableType, EPropertyTagFlags.None) { Property = table });
+        SetName(body.Properties, "RowName", rowName, "RowName");
+
+        var property = new StructProperty(name)
+        {
+            StructType = structType,
+            Value = body,
+        };
+        changeableDataProps.Add(new FPropertyTag(name, type, EPropertyTagFlags.None) { Property = property });
     }
 }

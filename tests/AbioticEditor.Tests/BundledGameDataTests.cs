@@ -42,6 +42,7 @@ public sealed class BundledGameDataTests
     private static void AssertHasEnough(GameDataRegistry registry)
     {
         AssertHas(registry.Items?.Count, 1_000, "items");
+        AssertHas(registry.ItemVariants?.Count, 500, "item visual variants");
         AssertHas(registry.ItemTableRefs?.Count, 1_000, "item table references");
         AssertHas(registry.Recipes?.Count, 300, "recipes");
         AssertHas(registry.ItemUpgrades?.Count, 40, "item upgrades");

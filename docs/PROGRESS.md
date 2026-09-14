@@ -47,6 +47,24 @@ columns and does not cover helmets or weapons. Full findings and the conservativ
 in `docs/reference/research/research-item-visual-variants.md`; repeatable pak/save probes are in
 `tests/AbioticEditor.Probes/ItemVariantProbeTests.cs`.
 
+## Round-81: item visual-variant catalog and editor (2026-09-14)
+
+Added a game-data-backed catalog for all 575 `DT_TextureVariants` rows and regenerated every
+bundled locale registry, so variant names, descriptions, and icons remain available without a
+local game install. The normal item picker uses a conservative item-to-row mapping for confirmed
+or strongly reviewed families: Poster artwork, colored Hard Hats, Karate Helmets, Hydroplant
+Hats, Lab Masks, Puffy Coats, Basic Backpacks, selected hats, arcade cabinets, confirmed office
+furniture, and rare fish. Fixed weapon and armor upgrade appearances remain separate item IDs and
+are intentionally not presented as skins.
+
+Every non-empty slot also has a collapsed manual variant editor. It can choose any known row or
+accept a free-typed row name from a future game update, warns about incompatible rows, and keeps an
+unknown row already found in a newer save. Player and world-container writers now construct a
+missing `TextureVariantRow_` DataTable row handle when an item receives its first override; clearing
+the manual value selects the default without needlessly growing a save. Fixture tests cover the
+new player and world write paths, while catalog, registry round-trip, and bundled-data tests cover
+offline availability.
+
 ## UI review: clearer offline and experimental live editing (2026-09-14)
 
 Reworked the startup chooser into a readable comparison: offline editing is recommended,

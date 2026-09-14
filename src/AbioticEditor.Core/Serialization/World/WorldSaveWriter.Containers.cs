@@ -194,15 +194,9 @@ public static partial class WorldSaveWriter
         SetString(p, "AssetID_", newSlot.AssetId,
             newSlot.AssetId is null ? null : PlayerSaveWriter.FullNames.AssetId);
 
-        // TextureVariantRow_ (poster art, armor color, ...) is a nested DataTableRowHandle
-        // struct, so it can only be patched when the game already recorded one for this item
-        // instance - see PlayerSaveWriter.ApplyVariantRowName for the same rule.
-        if (newSlot.VariantRowName is not null
-            && p.FindByPrefix("TextureVariantRow_")?.Property is StructProperty variantSp
-            && variantSp.Value is PropertiesStruct variantPs)
-        {
-            SetName(variantPs.Properties, "RowName", newSlot.VariantRowName);
-        }
+        // Shared with player inventories so a container item can gain its first visual
+        // variant even when the game delta-serialized the default row handle away.
+        PlayerSaveWriter.ApplyVariantRowName(p, newSlot.VariantRowName);
     }
 
     // ---------- primitive setters ----------
