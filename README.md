@@ -1,164 +1,82 @@
 <div align="center">
 
-<img src="docs/public/logo.png" alt="Abiotic Editor" width="100" />
+<img src="docs/public/logo.png" alt="Abiotic Editor" width="112" />
 
 # Abiotic Editor
 
-**A save editor and live-editing companion for Abiotic Factor.**
+### GATE field kit for the saves you care about
 
-[Open browser editor](https://christophervr.github.io/AbioticEditor/app/) ·
-[Download desktop app](https://github.com/ChristopherVR/AbioticEditor/releases/latest) ·
-[Documentation](https://christophervr.github.io/AbioticEditor/guide/) ·
-[Getting started](https://christophervr.github.io/AbioticEditor/guide/getting-started)
+Repair a world. Repack a backpack. Bring a lost friend home. Abiotic Editor is a fan-made save editor for **Abiotic Factor** that works on your own computer.
+
+[ðŸ§ª Open the browser editor](https://christophervr.github.io/AbioticEditor/app/) Â· [ðŸ“¦ Download the desktop app](https://github.com/ChristopherVR/AbioticEditor/releases/latest) Â· [ðŸ“– Read the player guide](https://christophervr.github.io/AbioticEditor/guide/getting-started)
 
 </div>
 
-![Player inventory and item catalog](docs/public/screenshots/11-player-inventory.png)
+![An Abiotic Factor player inventory open in Abiotic Editor](docs/public/screenshots/11-player-inventory.png)
 
-Edit your character, repair a world, move supplies, or inspect what the game recorded.
-The browser editor, Windows/Linux desktop app, and CLI share the same save engine.
-Save files stay on your computer. This is a fan-made tool, not part of the game.
+> **FIELD NOTE:** Make a copy of your save before an expedition. The desktop app makes a `.bak` copy when it saves, but your own spare copy is the safest way to experiment.
 
-## Choose an edition
+## Pick your route
 
-| Edition | Best for | Details |
+| Route | Choose it when | Start here |
 | --- | --- | --- |
-| [Browser](https://christophervr.github.io/AbioticEditor/app/) | Editing a save without installing anything | Choose a folder or zip. Direct folder saves where supported; otherwise SAVE and EXPORT a zip. |
-| [Desktop](https://github.com/ChristopherVR/AbioticEditor/releases/latest) | Local worlds and additional tools | Windows and Linux, including Steam Deck. Discovery, Game Pass, compare, transfers, plugins, and live connections. |
-| CLI | Scripts and server administration | Separate Windows, Linux, and macOS downloads. Run `abioticeditor --help`. |
+| **Browser editor** | You want a quick edit with no install. | [Open it in your browser](https://christophervr.github.io/AbioticEditor/app/) |
+| **Desktop app** | You play on Windows, Linux, or Steam Deck and want save discovery, transfers, Game Pass tools, and more. | [Download the latest release](https://github.com/ChristopherVR/AbioticEditor/releases/latest) |
+| **Live editing** | You are comfortable with an experimental Windows tool that changes a running game. | [Read the live-editing briefing](https://christophervr.github.io/AbioticEditor/guide/live-editing) |
 
-The browser includes bundled game metadata and icons. The desktop can also extract item icons
-from an installed copy of the game. Missing assets do not stop save editing.
+The browser editor works entirely in your browser. The desktop app works locally too. Your saves are not uploaded to a server.
 
-## Make your first edit
+## Your first save edit
 
-1. Close the game or stop the server and keep a separate copy of your world folder.
-2. Open the editor and select your save folder. The desktop can discover worlds automatically.
-3. Select a player or world save, make your changes, and press **SAVE**.
-4. If the browser cannot write to the folder, or you imported a zip, press **EXPORT** after SAVE.
-   Copy the exported files back to the game's save folder before playing.
+1. **Close Abiotic Factor** or stop the server. Copy your world folder somewhere safe.
+2. **Open a world** in the editor. On desktop, it can usually find your saves for you.
+3. **Choose a player or world file**, make the change, then select **SAVE**.
+4. In the browser, select **EXPORT** too if it asks you to download the changed save or zip.
+5. Start the game and check the result before changing anything else.
 
-Direct saves keep a `.bak` of the previous file. This is a rolling backup, not an unlimited
-history. Quest tools offer prerequisite planning to help keep story changes consistent, but
-save editing cannot guarantee every possible combination will behave correctly in the game.
+[Follow the full getting-started guide](https://christophervr.github.io/AbioticEditor/guide/getting-started) for save locations, downloads, and the small differences between platforms.
 
-On Windows, Steam saves are under
-`%LOCALAPPDATA%\AbioticFactor\Saved\SaveGames\<steamid>\Worlds\<WorldName>`.
-Open the account folder if you also want character appearance, which is stored beside `Worlds/`.
-See [Getting started](https://christophervr.github.io/AbioticEditor/guide/getting-started)
-for download names, installation, and save locations on other platforms.
+## What is in the kit?
 
-## What you can edit
+### Your character
 
-- **Player:** vitals, money, inventory and equipment, skills, recipes, background and traits,
-  GatePal entries, transmog, appearance, and spawn information. Steam achievement status is read-only.
-- **World:** containers, story and quest flags, doors, dropped items, NPCs and pets, bases,
-  vehicles, resource nodes, and other saved world features.
-- **Tools:** compare saves, transfer items between worlds, change a player's SteamID,
-  edit server INI settings, and inspect raw save data.
-- **Game Pass:** discover, repair, extract, and convert Xbox containers to or from Steam layouts.
-- **Plugins:** add save operations, CLI commands, UI tools, and other extensions in .NET or JavaScript.
+Restore health and needs, organise inventory and equipment, adjust skills and recipes, revisit appearance choices, and manage GatePal entries. Steam achievements are shown for reference only.
 
-The [desktop tour](https://christophervr.github.io/AbioticEditor/guide/desktop-app) explains the
-screens. For example, to restore broken office glass, open its region's **Resource Nodes** tab,
-find **Glass Pane**, turn **Harvested** off, and save while the game is closed.
+### Your facility
 
-## Live editing
+Search containers, recover dropped items, manage pets and NPCs, repair resource nodes, work with doors and vehicles, and inspect story progress. Quest changes offer prerequisite help because the Facility remembers more than one step at a time.
 
-Live editing is **experimental and has fewer tools than offline editing**. On Windows, choose
-**Live editing > This PC**. If UE4SS is missing, the app links to its official download and shows
-exactly where to install it. UE4SS is a separate prerequisite; the editor does not bundle or
-download it. Once it is installed, choose **Check again** and let the app set up its own agent
-and helper. Close the game during setup. Remote connections need UE4SS and the editor helper
-on the server machine too.
+### Recovery tools
 
-Live changes affect the game immediately. Vitals and skills apply automatically after a short
-pause in input; other controls send their own actions. There is no editor `.bak` or universal
-undo step, and the game can persist changes in its normal saves. Live coverage differs from file
-editing, and bench-upgrade installation is disabled.
+Compare two saves, move items between worlds, repair Game Pass save containers, adjust server settings, and inspect a save when something looks wrong.
 
-Read the [live-editing guide](https://christophervr.github.io/AbioticEditor/guide/live-editing)
-for setup, supported areas, and current limitations. The browser edition cannot connect live;
-automatic local agent setup is Windows-only.
+![A world save open in Abiotic Editor](docs/public/screenshots/20-world.png)
 
-## Find the right guide
+## Common missions
 
-| Task | Documentation |
+| I need to... | Guide |
 | --- | --- |
-| Browser folders, permissions, and exports | [Browser guide](https://christophervr.github.io/AbioticEditor/guide/browser-editor) |
-| Linux or Steam Deck setup | [Linux desktop guide](https://christophervr.github.io/AbioticEditor/guide/linux-local-host) |
-| Move items between worlds | [Item transfers](https://christophervr.github.io/AbioticEditor/guide/transfer-items) |
-| Xbox cloud sync, repair, and conversion | [Game Pass guide](https://christophervr.github.io/AbioticEditor/guide/game-pass) |
-| Steam account and achievement information | [Steam guide](https://christophervr.github.io/AbioticEditor/guide/steam-achievements) |
-| Missing or outdated game data | [Game-data guide](https://christophervr.github.io/AbioticEditor/guide/game-data) |
-| Install community tools | [Plugins and language packs](https://christophervr.github.io/AbioticEditor/guide/plugins) |
-| Write a plugin | [Authoring guide](https://christophervr.github.io/AbioticEditor/reference/plugin-authoring), [samples](plugins/) |
-| Script edits or manage servers | [CLI reference](https://christophervr.github.io/AbioticEditor/guide/cli) |
+| Open a save from a folder or zip in a browser | [Browser editor](https://christophervr.github.io/AbioticEditor/guide/browser-editor) |
+| Set up the desktop app on Linux or Steam Deck | [Linux and Steam Deck](https://christophervr.github.io/AbioticEditor/guide/linux-local-host) |
+| Move supplies or a character inventory to another world | [Transfer items](https://christophervr.github.io/AbioticEditor/guide/transfer-items) |
+| Work safely with Xbox / Game Pass saves | [Game Pass guide](https://christophervr.github.io/AbioticEditor/guide/game-pass) |
+| Find out why an item name or icon is missing | [Game data guide](https://christophervr.github.io/AbioticEditor/guide/game-data) |
+| Add a community tool or language pack | [Plugins and language packs](https://christophervr.github.io/AbioticEditor/guide/plugins) |
 
-For Game Pass edits, follow the guide's offline routine: close the game and Xbox app, go offline,
-edit, then load and save once in-game while still offline before reconnecting. Xbox cloud sync
-can otherwise replace the local edit.
+## Before you press save
 
-## Downloads and help
+Save editing is powerful, and the game may not enjoy every possible combination of story flags, items, or modded content. Change one thing at a time, keep a copy of the original, and test in game. The editor keeps ordinary file edits staged until you select **SAVE**.
 
-Download platform archives from [GitHub Releases](https://github.com/ChristopherVR/AbioticEditor/releases/latest)
-or the Windows/Linux files on [Nexus Mods](https://www.nexusmods.com/abioticfactor/mods/244?tab=files).
-Desktop packages include the .NET runtime. Windows runs `AbioticEditor.Web.exe`; Linux includes
-`launch-linux.desktop` and `launch-linux.sh`. macOS downloads are CLI-only.
+Live editing is different: it is experimental, changes the running game immediately, has fewer features, and has no editor backup or universal undo. It needs a separately installed UE4SS prerequisite on Windows. [Use the live-editing guide](https://christophervr.github.io/AbioticEditor/guide/live-editing) before setting it up.
 
-Windows builds are unsigned. Confirm the download source before allowing it to run. Release
-archives include `SHA256SUMS.txt`; Scoop installs are available through this repository's bucket:
+## Need help?
 
-```console
-scoop bucket add abiotic-editor https://github.com/ChristopherVR/AbioticEditor
-scoop install abiotic-editor
-scoop install abiotic-editor-cli
-```
+Start with the [player documentation](https://christophervr.github.io/AbioticEditor/guide/). If something fails, turn on **Settings > Diagnostics**, reproduce the problem, then use **OPEN LOG FOLDER**. Please include your editor version, platform, where the save came from, and what happened in a [GitHub issue](https://github.com/ChristopherVR/AbioticEditor/issues/new/choose) or a [Nexus Mods post](https://www.nexusmods.com/abioticfactor/mods/244?tab=posts).
 
-The desktop checks updates in **Settings > Updates**; the CLI supports `abioticeditor update`.
-For a bug report, include the editor version, platform, save source, what happened, and a log.
-Enable **Settings > Diagnostics**, reproduce the issue, and use **OPEN LOG FOLDER**. Errors are
-logged even with diagnostic tracing off. Report through
-[GitHub Issues](https://github.com/ChristopherVR/AbioticEditor/issues/new/choose) or
-[Nexus Mods posts](https://www.nexusmods.com/abioticfactor/mods/244?tab=posts).
+## For modders and server admins
 
-## Build and contribute
+The command line, plugin SDK, save-format notes, and build instructions live in the [technical reference](https://christophervr.github.io/AbioticEditor/reference/). Start with the [CLI guide](https://christophervr.github.io/AbioticEditor/guide/cli), [plugin authoring guide](https://christophervr.github.io/AbioticEditor/reference/plugin-authoring), or [architecture notes](docs/reference/architecture.md).
 
-Requires the **.NET 10 SDK** and the pinned source submodules:
+## Credits and licence
 
-```console
-git clone --recursive https://github.com/ChristopherVR/AbioticEditor.git
-cd AbioticEditor
-dotnet build src/AbioticEditor.Web
-dotnet build src/AbioticEditor.Cli
-dotnet test tests/AbioticEditor.Tests -f net10.0
-```
-
-Core owns parsing and editing. `Web.Shared` contains the shared Razor UI; `Web` hosts the local
-Photino desktop window, and `Web.Wasm` hosts the browser edition. `Ui.Abstractions` defines
-platform contracts. The CLI, plugin SDK, updater, and standalone live agent have separate roles.
-See [Architecture and contributing](docs/reference/architecture.md) for the full project map,
-save contract, test notes, and Pages workflow.
-
-To work on the documentation:
-
-```console
-cd docs
-npm ci
-npm run docs:dev
-npm run docs:build
-```
-
-The production build checks internal documentation links. GitHub Pages deploys the docs and the
-browser app together; the docs preview alone does not include `/app/`. The
-[technical reference](https://christophervr.github.io/AbioticEditor/reference/) includes save
-schemas, localization, maintainer commands, and dated research notes. `docs/PROGRESS.md` is the
-internal session history, not a current feature specification.
-
-## License
-
-[Apache License 2.0](LICENSE). Redistributions must retain [NOTICE](NOTICE) and identify changes.
-See [third-party notices](THIRD-PARTY-NOTICES.txt). Bundled wiki reference images are credited to
-[abioticfactor.wiki.gg](https://abioticfactor.wiki.gg) under CC BY-NC-SA.
-
-Not affiliated with or endorsed by the developers of Abiotic Factor.
+Abiotic Editor is not affiliated with or endorsed by the developers of Abiotic Factor. It is released under the [Apache License 2.0](LICENSE). Wiki reference images are credited to [abioticfactor.wiki.gg](https://abioticfactor.wiki.gg) under CC BY-NC-SA.

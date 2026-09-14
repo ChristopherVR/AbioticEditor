@@ -1,121 +1,56 @@
 # Edit in your browser
 
-There is nothing to install. **[Open the editor](/app/)**, point it at your save folder, and
-edit exactly as you would in the desktop app.
+Need a quick repair before the next expedition? **[Open the editor](/app/)**. There is nothing to install and your saves stay on your computer. The page reads only the folder you choose. It does not upload your world to a server.
 
-Your saves never leave your computer. There is no server: the editor is a program that runs
-inside the page, and it reads the folder you choose directly off your disk. Nothing is
-uploaded anywhere.
+## Open the right locker
 
-## Which folder to choose
-
-This is the one thing worth getting right, because picking the wrong level costs you features.
-
-Choose the folder for the **account**, not one world:
+Choose your **account folder**, not just one world, when possible. That gives the editor every world plus your saved character appearance.
 
 ```
 SaveGames/
-└── 76561198000000000/     <- choose THIS one
+└── 76561198000000000/     <- choose this folder
     ├── ScientistCustomization_1.sav
     └── Worlds/
         ├── Cascade/
         └── Chrissie/
 ```
 
-You can open a single world folder (`Cascade` above) and everything inside it works. But your
-character's **look** is stored next to `Worlds/`, not inside it, so a browser given only one
-world cannot see it. Open the account folder and every world is listed together, with the
-appearance editor working too.
+On Windows it is usually under `%LOCALAPPDATA%\AbioticFactor\Saved\SaveGames\<your SteamID>`. Choose **OPEN FOLDER**, pick that account folder, and allow the browser to see it. You can also drag the folder anywhere onto the editor window.
 
-::: tip Finding it on your computer
-On Windows, saves live under
-`%LOCALAPPDATA%\AbioticFactor\Saved\SaveGames\<your SteamID>`.
-Paste that into the address bar of the folder chooser.
+Choosing one world still works for player inventories, regions, and story progress. The only thing it misses is the character-look editor, because those appearance files sit beside `Worlds`.
+
+## Save, then pack your export
+
+1. Make your edits.
+2. Choose **SAVE** to commit them inside the editor.
+3. If you see **EXPORT**, choose it and keep the downloaded zip.
+4. With the game closed, copy the exported files back into the matching game save folder before playing.
+
+::: warning Export follows Save
+**EXPORT** contains saved changes. If you have staged changes, choose **SAVE** first or they will not be in the zip.
 :::
 
-Press **OPEN FOLDER**, choose that folder, and allow the browser to view it when it asks.
+Chrome, Edge, and Opera can normally write straight back to the folder you opened and keep a `.bak` copy of the previous file. Firefox and Safari keep edits in the page, then rely on **EXPORT** because those browsers do not allow a web page to write into your folders. Export before closing or refreshing the tab.
 
-You can also **drag the folder onto the page** instead of using the chooser - anywhere on the
-window will do.
+## Carry a zip instead
 
-## Coming back later
+Choose **OPEN A ZIP**, or drag a save zip onto the page. This is handy for Firefox and Safari, or for passing a backup between computers. Zip sessions always leave through **EXPORT**, even in Chrome and Edge.
 
-The editor remembers the last three worlds you opened and offers them on its home page, so a
-refresh does not mean hunting through the folder chooser again. Press **OPEN** on one and your
-browser will ask permission to read that folder once more (it deliberately forgets that
-permission when you close the tab). If a world has been moved or deleted since, the editor says
-so and you can remove it from the list.
+The editor remembers recent folders as bookmarks, not copies of your saves. When you return, choose **OPEN** and your browser will ask for access again.
 
-Nothing about your save is stored: what is remembered is a bookmark to the folder, not its
-contents.
+## Jobs that need the desktop app
 
-## Opening a zip
+The browser edition handles ordinary player and world editing: inventory, skills, recipes, GatePal entries, containers, quest flags, pets, vehicles, story progress, character appearance, and raw data tools. Use the [desktop app](./desktop-app) for these jobs:
 
-**OPEN A ZIP** on the home page takes a zipped save folder - either the one **EXPORT** gave
-you, or one you made yourself by zipping the world folder. You can drop a `.zip` onto the page
-too.
-
-This is the way back in for Firefox and Safari, where the editor cannot reopen a folder: export
-your zip before you close the tab, then drop it back on next time and carry on. Saves opened
-from a zip are edited in the tab and leave the same way, through **EXPORT**.
-
-## Your browser matters
-
-| Browser | What happens |
+| Job | Why it needs desktop |
 | --- | --- |
-| **Chrome, Edge, Opera** | Full use. The editor writes changes straight back to your save folder, keeping a `.bak` of the old file each time, exactly like the desktop app. |
-| **Firefox, Safari** | Export workflow. The editor can open your folder and edit everything, but the browser will not let any web page write to your disk. Your changes live in the tab until you **export** them. |
+| Edit a running game | It needs a local game connection. |
+| Move items between worlds | It opens two save files side by side. |
+| Game Pass saves | It needs access to the Game Pass save container. |
+| Compare two saves or make a new world | It needs to choose files from different places. |
+| Server settings, achievements, or plugins | It needs access beyond the folder you opened. |
+| Find saves automatically | Browsers are not allowed to search your computer. |
 
-On Firefox and Safari, nothing is lost as long as you export before closing the tab. The
-editor says so on screen rather than letting you find out afterwards, and the browser itself
-will ask you to confirm before you close or reload a tab holding unsaved edits.
+## If the browser refuses a folder
 
-## Getting your saves back out
-
-**EXPORT**, above the save list, downloads every file in the world as one zip, laid out the
-same way the game's folder is, so you can copy it straight back over your save folder.
-
-Take the whole set rather than one file wherever you can: editing one save can quietly change
-others. Setting a story chapter, for example, rewrites the world save and can rewrite every
-player save with it.
-
-If you are certain you only want one file, **right-click any save in the list** and choose
-**EXPORT THIS SAVE**. That gives you just that `.sav`.
-
-::: warning Save before exporting
-Press **SAVE** first. Export includes committed files in the workspace, which may be in browser memory. Staged edits are not included.
-:::
-
-## What the browser cannot do
-
-A web page is not allowed to roam your computer, so a few things are hidden in the browser and
-show a "needs the desktop editor" note instead. Everything else is the same editor.
-
-| Not in the browser | Why |
-| --- | --- |
-| Live editing | The browser edition has no live TCP connection. |
-| Transfer items between worlds | The tool requires desktop file paths. |
-| Game Pass containers | WGS discovery and conversion require the desktop or CLI. |
-| Compare two saves | Picks two saves from anywhere on your machine. |
-| Create a new world | Writes a whole folder of new files. |
-| Settings files (`.ini`) | Found by searching folders on your computer. |
-| Achievements | Needs the Steam files installed on your computer. |
-| Finding your saves automatically | The editor cannot look around your disk; you point it at the folder. |
-| Plugins | Load code, which a page cannot do. |
-
-Everything else - players, inventory, skills, recipes, the codex, worlds, containers, quest
-flags, pets, vehicles, story progression, your character's look, raw JSON import and export -
-works the same as the [desktop app](/guide/desktop-app).
-
-## If you would rather install it
-
-The [desktop app](/guide/desktop-app) has no such limits, reads your game's own item icons and
-names from your installed copy, and finds your saves for you.
-[Download it here](https://github.com/ChristopherVR/AbioticEditor/releases/latest).
-
-## Folder access is refused
-
-Choose the save/account folder itself, not a whole drive or your user-profile root. If the browser
-reports that a folder contains system files, copy the saves out of a protected location such as
-Program Files into a normal user folder, or use the desktop editor. Zip imports always require
-exporting the result, even in Chrome or Edge.
+Choose the save or account folder itself, not a whole drive or your entire user folder. If the saves are in a protected location, copy them into a normal folder first, edit the copy, then use the exported result. The desktop editor is the better option when a browser keeps getting in the way.

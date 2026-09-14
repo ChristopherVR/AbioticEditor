@@ -1,29 +1,30 @@
 # Transfer items between saves
 
-The desktop editor can move an item between containers in two world saves. These can be two
-regions of one world or two separate playthroughs. This tool is unavailable in the browser editor.
+Found a stash that belongs in another expedition? The desktop editor can move one item from a container in one world save to a container in another. It works for two regions in the same world or for two separate playthroughs. This station is not available in the browser editor.
 
-## Move an item
+## Before you move anything
 
-1. Close the game or stop the server for both worlds. Keep a separate backup of each world.
-2. Open the world's **Containers** tab and follow **Move items to a different world save**.
-3. Load a `WorldSave_<Region>.sav` on side A and a different save on side B.
-4. Choose a container on each side. Select a filled slot to hold its item, then an empty slot
-   on the other side to place it. The move is staged in both loaded saves.
-5. Save **both sides**. Each save writes independently and keeps its own `.bak`.
+Close the game or stop the server for **both** worlds. Make a separate copy of each world folder. A transfer changes two saves, so both need to reach the finish line.
 
-Saving only one side leaves the move incomplete. If a save fails, keep the tool open, resolve
-the error, and save that side before playing either world. Loading another file discards that
-side's staged changes, so finish and save the move first.
+## Move the item
 
-The tool loads its own copies of the two saves, separate from the main workspace. Reload a save
-in the main editor after a transfer, and avoid editing the same file in both places at once.
+1. In the desktop app, open a world save and go to **Containers**.
+2. Choose **Move items to a different world save**.
+3. Load a `WorldSave_<Region>.sav` on side A and the destination save on side B.
+4. Pick the source and destination containers.
+5. Select the filled slot on side A, then an empty slot on side B. The item now appears as a staged move on both sides.
+6. Choose **SAVE** for side A and **SAVE** for side B.
 
-## Item appearance variants
+Each side keeps its own `.bak` copy when saved. Do not play either world until both sides have saved successfully. Saving just one side leaves a duplicate or a missing item, depending on which side you saved.
 
-Some saved items carry a texture variant, such as poster artwork or helmet color. The slot
-editor shows the variant row when the game recorded one. It is a raw game row name, not a
-curated artwork picker. The editor preserves that value when moving the item; it does not
-invent a missing variant entry.
+::: warning Finish the transfer before changing files
+The transfer window keeps its own working copies. Loading another save or closing it can discard unsaved work on that side. If a save reports an error, leave the transfer open, fix the problem, and save that side before continuing.
+:::
 
-See the [desktop tour](./desktop-app) for ordinary container editing.
+After a successful transfer, reload either save in the main editor before editing it again. Avoid editing the same file in the main editor and the transfer window at the same time.
+
+## Posters, helmets, and other appearances
+
+Some items remember an appearance, such as poster artwork or a helmet colour. The editor carries that saved appearance across with the item when the game recorded one. It will not guess an appearance for an item that did not already have one.
+
+For regular container editing, see the [desktop app tour](./desktop-app#edit-a-world).

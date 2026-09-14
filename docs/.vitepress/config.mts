@@ -12,10 +12,11 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: 'Abiotic Editor',
   description:
-    'Edit Abiotic Factor saves in your browser, on desktop, or with the CLI. Setup guides, live editing, and technical reference.',
+    'Your Abiotic Factor player handbook. Edit your character, restock your backpack, and change your world with step-by-step help.',
   base: '/AbioticEditor/',
   lang: 'en-US',
   cleanUrls: true,
+  appearance: 'dark',
   lastUpdated: true,
 
   // PROGRESS.md is the internal session log (large, not user-facing). The
@@ -67,8 +68,8 @@ export default defineConfig({
 
     // Two top-level entries, one per track, plus the download.
     nav: [
-      { text: 'Guide', link: '/guide/', activeMatch: '/guide/' },
-      { text: 'Reference', link: '/reference/', activeMatch: '/reference/' },
+      { text: 'Player handbook', link: '/guide/', activeMatch: '/guide/' },
+      { text: 'For creators', link: '/reference/', activeMatch: '/reference/' },
       {
         text: 'Download',
         link: 'https://github.com/ChristopherVR/AbioticEditor/releases/latest',
@@ -83,16 +84,15 @@ export default defineConfig({
       // Track 1 - Using the editor: task-oriented, player-facing.
       '/guide/': [
         {
-          text: 'Use the editor',
+          text: 'Your field manual',
           items: [
-            { text: 'Documentation directory', link: '/guide/' },
+            { text: 'Find your guide', link: '/guide/' },
             { text: 'Getting started', link: '/guide/getting-started' },
             { text: 'Edit in your browser', link: '/guide/browser-editor' },
             { text: 'Desktop app', link: '/guide/desktop-app' },
             { text: 'Linux & Steam Deck', link: '/guide/linux-local-host' },
             { text: 'Transfer items', link: '/guide/transfer-items' },
             { text: 'Steam & achievements', link: '/guide/steam-achievements' },
-            { text: 'Command-line tool', link: '/guide/cli' },
             { text: 'Game Pass saves', link: '/guide/game-pass' },
             { text: 'Plugins & language packs', link: '/guide/plugins' },
             { text: 'Keeping game data current', link: '/guide/game-data' },
@@ -100,8 +100,9 @@ export default defineConfig({
           ],
         },
         {
-          text: 'Going deeper',
+          text: 'For experienced users',
           items: [
+            { text: 'Command-line tool', link: '/guide/cli' },
             { text: 'Technical reference', link: '/reference/' },
           ],
         },

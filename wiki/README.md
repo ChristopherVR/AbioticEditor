@@ -1,35 +1,31 @@
-# Wiki sources
+# Wiki source files
 
-These Markdown files are the source for the project's [GitHub
-Wiki](https://github.com/ChristopherVR/AbioticEditor/wiki). GitHub serves a wiki from a separate
-git repository (`AbioticEditor.wiki.git`), so the files here are staged copies you publish to that
-repo.
+These files are the staged source for the project's [GitHub Wiki](https://github.com/ChristopherVR/AbioticEditor/wiki). The wiki is a quick player-facing field guide with a small plugin corner. The maintained full handbook is the [documentation site](https://christophervr.github.io/AbioticEditor/guide/).
 
-## Page naming
+GitHub stores a wiki in a separate repository, `AbioticEditor.wiki.git`. Copy these files there when publishing a wiki update.
 
-GitHub maps a wiki page title to a file name by replacing spaces with hyphens. The names here follow
-that convention:
+## Pages
 
-| File | Wiki page |
-|---|---|
-| `Home.md` | Home (the wiki landing page) |
-| `Adding-Plugins.md` | Adding Plugins |
-| `Building-Plugins.md` | Building Plugins |
-| `Plugin-API-Reference.md` | Plugin API Reference |
-| `_Sidebar.md` | the wiki sidebar (shown on every page) |
+| File | Wiki page | Audience |
+| --- | --- | --- |
+| `Home.md` | Home | Players, with links into the main handbook |
+| `Adding-Plugins.md` | Adding Plugins | Players installing a community plugin |
+| `Building-Plugins.md` | Building Plugins | Plugin authors |
+| `Plugin-API-Reference.md` | Plugin API Reference | Plugin authors |
+| `_Sidebar.md` | Sidebar | Navigation shown on every page |
 
-## Publishing
+## Publish an update
 
-```bash
-# one-time: clone the wiki repo next to this one
+```console
+# one time: clone the wiki alongside this repository
 git clone https://github.com/ChristopherVR/AbioticEditor.wiki.git
 
-# each update: copy these files over and push
+# copy the staged pages, review them, then publish from the wiki repository
 cp wiki/*.md ../AbioticEditor.wiki/
 cd ../AbioticEditor.wiki
-git add -A && git commit -m "Update plugin docs" && git push
+git add -A
+git commit -m "Update field guide"
+git push
 ```
 
-The fuller, versioned documentation lives on the docs site
-(<https://christophervr.github.io/AbioticEditor/>) and under [`docs/`](../docs). The wiki is a
-lighter, task-focused entry point for plugin authors and users.
+Keep the wording welcoming and practical. Link player tasks to the documentation site; keep build instructions, APIs, and implementation details in the technical reference or this repository's `docs/` folder.

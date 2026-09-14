@@ -1,273 +1,114 @@
-# Desktop app
+# Desktop app field guide
 
-The desktop editor is a local Razor application for Windows and Linux. It opens in its own
-native window and binds only to the loopback interface, so saves never leave the machine.
-It is a thin front-end over the shared Core engine and writes the same output as the CLI.
-This page is a visual tour of everything it can do.
+The desktop app is the full Abiotic Editor workbench for Windows, Linux, and Steam Deck. It finds local saves, opens in its own window, and gives you the widest set of repair and organisation tools. Your saves stay on your machine.
 
-## 1. Open a save folder
+::: tip Work offline first
+For normal save editing, close Abiotic Factor or stop the server. Changes wait safely in the editor until you choose **SAVE**, and every written file receives a nearby backup copy. Choose **REVERT** to throw away changes you have not saved.
+:::
 
-Start the app. The welcome screen lists any client and dedicated-server save folders it
-finds on your machine; click **LOAD** on one, or use **OPEN FOLDER** (or drag a folder onto
-the window) to pick your own.
+## 1. Load the expedition
 
-- **Client saves:** `%LOCALAPPDATA%\AbioticFactor\Saved\SaveGames\<steamid>\Worlds\<WorldName>`
-- **Dedicated server:** the folder containing `Worlds\<WorldName>`.
+Start the app. The welcome screen lists save folders it finds. Choose **OPEN** beside the world you want, use **OPEN FOLDER** to pick one yourself, or drag a folder onto the window.
 
 ![The editor with a save folder loaded](/screenshots/01-loaded.png)
 
-Once a folder is loaded, the sidebar groups everything it found: the **world story /
-metadata** save, **players**, **world regions**, and any server **config files**. Use the
-search box to filter, or the **+** on the Players group to add a new player save. Every row
-has a right-click **Open in Explorer / Finder** action.
+The sidebar sorts what it found into story progress, players, world regions, and server settings. Use its search box when a big world has become a maze. Right-click a row to reveal its file in your file manager.
 
-::: tip Edits stage until you SAVE
-Nothing is written to disk until you press **SAVE**. Every write keeps a `.bak` copy of the
-previous file next to it, so you can always roll back. **REVERT** discards staged edits.
-:::
+Choose the account folder above **Worlds** when you can. That also loads character appearance presets, which are shared between your worlds.
 
-## 2. Edit a player
+## 2. Tune up a player
 
-Click a player save in the sidebar to open the **player editor**. It opens on **Vitals**:
-hunger, thirst, sanity, fatigue, continence, and per-body-part health as sliders you can drag
-or type into, plus your current money. **HEAL ALL** tops up body health in one click.
+Open a player from the sidebar. Each tab is a station on your survivor's workbench.
 
 ![Player vitals tab](/screenshots/10-player-vitals.png)
 
-### Inventory
-
-The **Inventory** tab shows every slot (backpack, pockets, equipment, hotbar, and a deployed
-backpack's contents) with the real in-game icons. Select a slot to edit the item, quantity,
-or durability in the right-hand **Slot Editor**; drag one slot onto another to swap. The
-searchable **Item Catalogue** on the right lets you drop in any item in the game, filtered by
-category.
+| Station | What you can do |
+| --- | --- |
+| **Vitals** | Top up hunger, thirst, sanity, fatigue, continence, body health, and money. **HEAL ALL** restores body health in one go. |
+| **Inventory** | Inspect pockets, equipment, hotbar, backpack, and deployed backpack storage. Change an item, quantity, or durability, swap slots, and use the searchable item catalogue. |
+| **Skills** | Adjust level or exact XP, use **MAX** on one skill, or **MAX ALL**. |
+| **Recipes** | Search your crafting book, unlock or hide individual recipes, or use **UNLOCK ALL**. |
+| **Character** | Set background, add or remove traits, and change saved hair, clothing, and other appearance choices. |
+| **GatePal** | Review e-mail, notes, compendium entries, and fish records. |
+| **Transmog and Spawn** | Adjust appearance overrides, respawn information, and teleporter-pad tags. |
+| **Achievements** | View the Steam information the editor can read locally. |
+| **General and Data** | Change a player SteamID or inspect information that does not yet have a friendly control. |
 
 ![Player inventory tab](/screenshots/11-player-inventory.png)
 
-### Skills
-
-The **Skills** tab lists all fifteen skills with their level, XP, and milestone perks. Nudge a
-level, type an exact XP value, **MAX** one skill, or **MAX ALL**. Tap a milestone for its full
-detail in the slot panel.
-
-![Player skills tab](/screenshots/12-player-skills.png)
-
-### Recipes
-
-The **Recipes** tab is your full crafting book: search by item name or recipe id, filter by
-category, tick recipes on or off individually, or **UNLOCK ALL**. The counter shows how many
-of the total you've unlocked.
-
-![Player recipes tab](/screenshots/13-player-recipes.png)
-
-### Character & traits
-
-The **Character** tab sets your background (job id), and lets you add or remove **traits**
-(each shown with its point cost and in-game description) and edit your **appearance**
-(head / hair / clothing, stored in `ScientistCustomization_*.sav`, which applies to every
-world this account plays).
-
-![Player character and traits tab](/screenshots/14-player-character.png)
-
-### GatePal journal
-
-The **GatePal** tab is the in-game journal device: **e-mail**, **notes**, the **compendium**,
-and the **fish** journal. Mark entries read or unread, search the full text, and (for fish)
-see the unlock and catch requirements: bait, location, time of day, and story gate. Each fish
-also shows a reference picture from the Abiotic Factor Wiki (see
-[Reference pictures from the wiki](#reference-pictures-from-the-wiki) below).
-
-![Player journal / GatePal tab](/screenshots/15-player-gatepal.png)
-
-### Transmog, spawn & achievements
-
-The remaining tabs cover **Transmog** (armour appearance overrides, slot by slot)…
-
-![Player transmog tab](/screenshots/16-player-transmog.png)
-
-…**Spawn** (your respawn point and teleporter-pad tags), **Achievements**, **General**
-(SteamID, raw identity), and **Data** (a raw view for anything else).
-
-::: tip Change a save's Steam account
-The **General** tab can re-home a player save to a new SteamID64. The id lives in both the
-file name and the save's `SaveIdentifier`, and bed claims in the world saves are updated to
-match, all in one step, with a `.bak` kept.
+::: tip Moving a player to a different Steam account
+Use **General** when you need to re-home a player save. The editor updates the player save and matching bed claims together, with backups. This is for deliberate migration, not an ordinary inventory transfer.
 :::
 
-Achievements show local Steam information read-only; see [Steam and achievements](./steam-achievements).
+## Edit a world
 
-## 3. Edit the world
-
-Click a world region (`WorldSave_<Region>.sav`) to open the **world editor**. The header shows
-the **world day** and **time of day**, and how many containers the region holds. It opens on
-**Containers**: every storage object in the region, with the same item-editing and catalogue
-tools as a player's inventory.
+Open a region such as **WorldSave_Facility.sav** to work on that part of the facility. The header shows the world day and time. Most places you build, loot, or repair live in a region save.
 
 ![World containers tab](/screenshots/20-world.png)
 
-### Quest flags
-
-**Quest flags** are the one-way switches the game flips as the story advances. The editor
-shows only the flags this save has actually reached, grouped by story chapter, with a
-plain-language explainer of how the quest chain works. Set or clear any flag, and when a flag
-has prerequisites, the editor offers to set them too, to help keep the story state consistent.
+| Station | What you can do |
+| --- | --- |
+| **Containers** | Restock or clean out storage, using the same slot tools as a player inventory. |
+| **Quest flags** | Review story switches by chapter. When a choice needs earlier story steps, the editor offers to add them too. |
+| **NPCs and pets** | Revive a story character, rename a pet, or change a narrative state. |
+| **Doors and dropped items** | Open or lock doors, and edit items left on the ground. |
+| **Bases and world maps** | Work with player-built structures, elevators, buttons, sockets, teleporter pads, vehicles, and other saved world state. |
+| **Resource nodes** | Refill harvestables and restore breakable glass panes. |
+| **Raw JSON** | Inspect advanced world information when a normal tab does not cover it. |
 
 ![World quest flags tab](/screenshots/21-world-questflags.png)
 
-### NPCs, doors & more
+### Refill a harvestable or restore a window
 
-- **NPCs** shows story characters and your tamed pets. Revive a dead NPC, rename a pet, or
-  change a story character's narrative state.
-- **Doors** toggles lock and open state; **Dropped** edits items lying on the ground;
-  **Bases** covers player-built structures; **Raw JSON** exposes anything the UI doesn't model.
+Open the region that contains it, then choose **Resource Nodes**. Search for the friendly name, select the result, and turn **Harvested** off to make it available again. For damaged office windows, search for **Glass Pane** in the relevant Office region. Leave **Day Picked Up** alone unless you specifically want to change the normal respawn timing.
 
-![World NPCs tab](/screenshots/22-world-npcs.png)
+### Move loot to another world
 
-::: tip Editable world-state maps
-Beyond the tabs above, the world save holds per-actor state maps: elevators, buttons,
-resource nodes, power sockets, teleporter pads, vehicles, and more. These are editable too
-(also from the CLI's `world` command and the in-app **Edit World Maps** screen): un-harvest a
-node to refill it, re-tag a teleporter pad, and so on.
-:::
+From **Containers**, choose **Move items to a different world save**. The transfer station opens two saves side by side and stages the move on both. Save both sides before playing. The full walkthrough is [Transfer items](./transfer-items).
 
-### Resource nodes: refill harvestables and repair broken glass
+## 4. Adjust a dedicated server
 
-The **Resource Nodes** tab is for per-actor harvestable state. Search by the friendly node
-type, select an entry, then edit its fields:
-
-- **Harvested**  -  `true` means the node is depleted; set it to `false` to make it available
-  immediately.
-- **Day Picked Up**  -  the in-game day on which it was harvested. The game uses this for its
-  normal respawn timing; `0` means it has not been picked up.
-- **Position**  -  read-only coordinates that help identify one node among several with the
-  same name.
-
-This is also the way to repair the breakable office windows. The game stores these panes as
-`ResourceNode_GlassPane_C` nodes, not as normal doors or entries in the generic
-destructible-state map. Open the region containing the windows (for example,
-`WorldSave_Facility_Office2.sav` or `WorldSave_Facility_Office3.sav`), choose **Resource
-Nodes**, search for **Glass Pane**, and turn **Harvested** off for each pane you want restored.
-Save with the game or dedicated server stopped, then load the region again. Leave **Day Picked
-Up** unchanged unless you specifically want to adjust the respawn timer.
-
-### Transfer items to another world
-
-From **Containers**, follow **Move items to a different world save** to open two saves and move
-items between them. Both sides save independently. See the [transfer walkthrough](./transfer-items).
-
-## Live editing
-
-The desktop can also connect to a running game. Its controls and save timing differ from file
-editing: vitals and skills apply automatically, and live actions do not create editor backups.
-See [Live editing](./live-editing) for setup, coverage, and limitations.
-
-## 4. Server config files
-
-If you opened a dedicated-server folder, the sidebar's **Config Files** group lists `Admin.ini`
-and each world's `SandboxSettings.ini`. Selecting one opens a key/value editor: change
-difficulty, XP and stack multipliers, spawn rates, refill rates, and the rest, then **SAVE
-INI** (a `.bak` is kept here too).
+When you open a dedicated-server folder, the sidebar also shows **Config Files**. Select **Admin.ini** or a world's **SandboxSettings.ini** to adjust difficulty, XP, stacking, spawn, and refill settings. Choose **SAVE INI** when ready. These files receive backup copies too.
 
 ![Sandbox settings INI editor](/screenshots/25-config-ini.png)
 
-## 5. Settings & spoiler protection
+## 5. Set up the workbench
 
-The **Settings** sheet (bottom-right) covers:
+Open **Settings** in the bottom-right corner.
 
-- **Theme**: Facility Blue or Hazard Orange, plus a light-mode toggle. Switching rebuilds the
-  UI live without losing your loaded save or staged edits.
-- **Diagnostics**: opt-in logging that traces every staged change and records any save
-  content this build doesn't recognise. Off by default. Turn it on, reproduce the problem,
-  then click **OPEN LOG FOLDER** to jump straight to the log file if you need to send it in
-  a bug report (see [Reporting a bug](#reporting-a-bug) below).
-- **Spoiler protection**: seals content you haven't reached yet (future quest flags, traders,
-  recipes, hidden achievements, codex entries) behind a `CLASSIFIED` stamp. Tap a sealed item
-  to reveal it; revealed items stay visible. Re-seal them all at any time.
-- **Game data**: **Import usmap** for a newer game version (see below).
-- **Plugins**: enable/disable installed plugins and open the **Manage Plugins** panel.
+- **Theme** switches between Facility Blue and Hazard Orange, with a light-mode choice.
+- **Spoiler protection** stamps unreached traders, recipes, flags, achievements, and codex entries as **CLASSIFIED** until you choose to reveal them.
+- **Game data** lets you refresh game mappings after a major game update. See [Game data](./game-data) if a new item has no familiar name or icon.
+- **Plugins** manages community additions and language packs.
+- **Updates** checks for a newer editor release and installs the matching package.
+- **Diagnostics** records extra detail when you need to report a problem.
 
 ![Settings panel](/screenshots/30-settings.png)
 
-## 6. Compare two saves
+## Compare two saves
 
-The **Compare** sheet diffs two saves, or two folders of saves (a world vs one of its
-backups). It lists every property-level difference, folding out noise (timestamps, instance
-ids, positions) so the meaningful changes stand out. For two player or two world saves it also
-builds a friendly, domain-aware summary: which recipes, fish, traits, items, or quest flags
-differ between them.
+Use the **Compare** sheet to see what changed between two saves or between a world and a backup. It filters out ordinary background noise and calls out meaningful differences such as items, recipes, traits, fish, and quest flags.
 
 ![Compare saves panel](/screenshots/31-compare.png)
 
-## Game data and icons
-
-The shared UI loads bundled game-data registries, so catalog metadata is available even without
-an installed game. On desktop, item icons can be extracted lazily from the installed game's paks;
-the browser uses a bundled icon set. Missing data or images do not prevent opening saves.
-See [Keeping game data current](./game-data) when a game update adds content.
-
 ## Reference pictures from the wiki
 
-A few editor surfaces show a representative picture of the thing you're editing, pulled from
-the **[Abiotic Factor Wiki](https://abioticfactor.wiki.gg)**:
+Some screens, including fish, vehicles, doors, and world features, can show a helpful picture
+from the [Abiotic Factor Wiki](https://abioticfactor.wiki.gg). The editor uses the current wiki
+picture when it can, and uses its included copy when you are offline. Missing pictures do not
+affect your save or the rest of the editor.
 
-- the **fish journal** (each species' icon),
-- the **vehicles** view (how each vehicle looks),
-- and the world **features** and **doors** views (teleporter pads, the tram, power sockets).
+## Live editing
 
-<div align="center">
-
-| Antefish | Gem Crab | Gutfish Eel | Forklift | Tram | Teleporter Pad |
-|:--:|:--:|:--:|:--:|:--:|:--:|
-| ![Antefish](/wiki/Itemicon_antefish.png) | ![Gem Crab](/wiki/Item_Icon_-_Gem_Crab.png) | ![Gutfish Eel](/wiki/Itemicon_eel.png) | ![Forklift](/wiki/Vehicle_-_Forklift.png) | ![Tram](/wiki/Vehicle_-_Tram.png) | ![Teleporter Pad](/wiki/Itemicon_craftedteleporter_lodestone.png) |
-
-<sub>Images: abioticfactor.wiki.gg, licensed CC BY-NC-SA 4.0</sub>
-
-</div>
-
-The editor always tries the live wiki first, so the artwork stays current as the wiki is
-updated. **When the wiki is unreachable, it falls back to a bundled copy** shipped next to the
-editor (a `wiki\` folder), so the pictures still appear offline. If neither has an image, the
-surface simply shows no picture; nothing else is affected. Each image carries the
-`Image: abioticfactor.wiki.gg` credit (the content is CC BY-NC-SA).
-
-::: tip For maintainers
-Regenerating the bundled image set is a maintainer task documented under
-[Maintainer commands](/reference/maintainer-commands#download-wiki-images).
-:::
-
-## Keeping the game build in sync (usmap)
-
-Reading the game's data tables needs a `Mappings.usmap` that matches the installed game build. A
-validated one is bundled, so this usually just works. When a game update makes the catalogs look
-stale, you can import a fresh usmap from **Settings ▸ Import usmap**. The full procedure (where the
-file lives, how to dump a new one) is in [Keeping game data current](/guide/game-data).
-
-## Updates
-
-The app checks GitHub Releases from its **Settings ▸ Updates** card. When a newer build is
-available it downloads the matching asset and replaces the running install in place, with no
-installer and no admin prompt.
+The desktop app can also connect to a running game on Windows. Live edits apply while you play, have fewer tools, and do not receive editor backups. Treat it as an experiment and make your own world backup first. [Read the live editing guide](./live-editing) before setting it up.
 
 ## Reporting a bug
 
-If something looks wrong, the fastest way to get it fixed is to include the editor's log file.
+A clear report gives a broken tool its best chance of being fixed.
 
-1. **Settings ▸ Diagnostics** and turn on **Diagnostic logging** (it's off by default, so
-   nothing is recorded until you flip this on).
-2. Reproduce the problem: reload the save, make the edit, whatever triggered it.
-3. Back in **Settings ▸ Diagnostics**, click **OPEN LOG FOLDER**. This opens
-   `%LOCALAPPDATA%\AbioticEditor\logs` in your file manager; the newest `editor-YYYYMMDD.log`
-   is today's.
-4. Attach that file to your report, along with what you were doing when it happened, whether
-   your save is Steam or Game Pass, and the editor version (app title bar, or Settings ▸
-   Updates).
+1. Open **Settings**, then **Diagnostics**, and turn on diagnostic logging.
+2. Repeat the problem if you can.
+3. Choose **OPEN LOG FOLDER**. Attach the newest log file.
+4. Include what you were doing, whether your save is Steam or Game Pass, and the editor version shown in **Settings**, then **Updates**.
 
-::: tip Crashes and write failures are always logged
-Errors are logged even with diagnostic logging switched off, so the log folder is worth
-checking even if you forgot to turn diagnostics on beforehand.
-:::
-
-Report it on **[GitHub Issues](https://github.com/ChristopherVR/AbioticEditor/issues/new/choose)**
-(there's a bug report template that walks through all of this), or in the **POSTS** tab on the
-[Nexus Mods page](https://www.nexusmods.com/abioticfactor/mods/244?tab=posts) if you'd rather
-not use GitHub. Bug reports and ideas are welcome either way.
+Crashes and write failures are recorded even when diagnostic logging was off. Report the issue on [GitHub Issues](https://github.com/ChristopherVR/AbioticEditor/issues/new/choose) or in the [POSTS tab on Nexus Mods](https://www.nexusmods.com/abioticfactor/mods/244?tab=posts).

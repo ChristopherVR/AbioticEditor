@@ -1,116 +1,63 @@
 # Getting started
 
-Abiotic Editor edits Abiotic Factor saves in a browser, a Windows/Linux desktop app, or a CLI.
-The desktop app also supports [live editing](./live-editing), which has different save behavior.
+Abiotic Editor gives you a workbench for your **Abiotic Factor** saves. It can run in a web browser or as a desktop app. Both let you inspect a save, make changes, and review them before you commit anything.
 
-## Your first save edit
+## First rule: secure the specimen
 
-1. Close the game or stop the dedicated server. Copy the world folder somewhere separate as a backup.
-2. [Open the browser editor](/app/) or install the desktop app below.
-3. Choose your save folder. Opening the SteamID account folder also includes character appearance,
-   which lives beside `Worlds/`. The desktop app can discover local worlds automatically.
-4. Select a player or world save and make an edit. Review it, then press **SAVE**.
-5. If working from a zip or without browser write permission, press **EXPORT** after SAVE and
-   copy the exported files back to the game's save folder before playing.
+1. Close Abiotic Factor, or stop the dedicated server.
+2. Copy your whole world folder somewhere safe. Give the copy a name such as `Cascade before edits`.
+3. Open the [browser editor](/app/) or install the desktop app.
+4. Load your saves, make one small change, then choose **SAVE**.
+5. In a browser session that offers **EXPORT**, choose **EXPORT** after saving, then copy the
+   exported files into the matching game save folder.
+6. Start the game and check that the change is where you expected it.
 
-Direct file saves keep a `.bak` of the previous file. It is a rolling backup, not an unlimited
-history. See [Browser editing](./browser-editor) for folder permissions and export details.
+The editor places a `.bak` copy beside every file it writes. That is useful for an immediate undo, but it is one rolling backup. Keep your own full-world copy for real experiments.
 
 ![The editor with a save folder loaded](/screenshots/01-loaded.png)
 
-## Install
-
-Grab the latest build for your platform from the
-[**Releases page**](https://github.com/ChristopherVR/AbioticEditor/releases/latest):
-
-The Windows and Linux / Steam Deck (Proton saves) editor packages are also available as separate
-files on the [Nexus Mods downloads page](https://www.nexusmods.com/abioticfactor/mods/244?tab=files).
-
-Each zip's name carries the release version (e.g. `AbioticEditor-desktop-win-x64-v1.2.0.zip`).
-
-| Download | What it is |
-|---|---|
-| `AbioticEditor-desktop-win-x64-v<version>.zip` | Desktop editor (Windows). Extract and run `AbioticEditor.Web.exe`; no .NET install is needed. |
-| `AbioticEditor-desktop-linux-x64-v<version>.zip` | Desktop editor (Linux, Steam Deck, and Proton saves). Extract, then double-click `launch-linux.desktop` and trust it. |
-| `AbioticEditor-cli-win-x64-v<version>.zip` | Command-line tool (Windows) |
-| `AbioticEditor-cli-linux-x64-v<version>.zip` | Command-line tool (Linux, including Steam Deck - finds saves inside the Proton prefix automatically) |
-| `AbioticEditor-cli-osx-x64-v<version>.zip` / `-osx-arm64-…` | Command-line tool (macOS) |
-
-Unzip and run. The app and CLI both self-update from GitHub Releases: the app from its
-**Settings ▸ Updates** card, the CLI via `abioticeditor update`. Each release also ships a
-`SHA256SUMS.txt` so you can verify a download.
-
-### Windows: "unknown publisher" / SmartScreen
-
-The Windows builds are **not code-signed** (a certificate that clears those warnings costs
-money this free, fan-made tool doesn't spend), so Windows reports an unknown publisher and
-SmartScreen or your antivirus may warn on first run. Check that you downloaded the release from this project before choosing to run it.
-
-::: tip Install with Scoop
-A command-line install via [Scoop](https://scoop.sh/) provides one-command upgrades. Scoop verifies each download against the SHA-256 pinned in
-the manifest before extracting it.
-
-```console
-scoop bucket add abiotic-editor https://github.com/ChristopherVR/AbioticEditor
-scoop install abiotic-editor          # desktop app
-scoop install abiotic-editor-cli      # command-line tool
-scoop update  abiotic-editor          # later, to upgrade
-```
+::: tip Choose your tool
+The [browser editor](./browser-editor) is quick and needs no installation. The [desktop app](./desktop-app) finds local saves, has more tools, and is needed for jobs such as transfers, Game Pass saves, and live editing.
 :::
 
-If you'd rather run the zip download directly: right-click the downloaded `.zip` ▸
-**Properties** ▸ tick **Unblock** ▸ **OK**, then unzip and run `AbioticEditor.Web.exe`. If
-SmartScreen still shows "Windows protected your PC", click **More info ▸ Run anyway**.
+## Download the desktop app
 
-::: tip macOS downloads are CLI-only
-Use the browser editor for the graphical interface on macOS. The downloadable macOS command-line
-builds are unsigned; review the download source if Gatekeeper flags the executable.
-:::
+Get the latest version from [GitHub Releases](https://github.com/ChristopherVR/AbioticEditor/releases/latest) or the [Nexus Mods downloads page](https://www.nexusmods.com/abioticfactor/mods/244?tab=files).
 
-## Build from source
+| Download | Use it when... |
+| --- | --- |
+| `AbioticEditor-desktop-win-x64-...zip` | You play on Windows. Extract it and run `AbioticEditor.Web.exe`. |
+| `AbioticEditor-desktop-linux-x64-...zip` | You play on Linux or Steam Deck. Extract it, then open `launch-linux.desktop` and choose Trust and Launch. |
+| `AbioticEditor-cli-...zip` | You already use command-line tools or run a server. Most players can skip this. |
 
-Requires the **.NET 10 SDK**. Clone with submodules, since the build depends on the pinned
-`submodules/` source projects (UeSaveGame and CUE4Parse).
+No .NET install is needed for the desktop packages.
 
-```console
-git clone --recursive https://github.com/ChristopherVR/AbioticEditor.git
-cd AbioticEditor
+### Windows first-run warning
 
-dotnet build src/AbioticEditor.Web                                  # local desktop editor host
-dotnet build src/AbioticEditor.Cli                                   # CLI
-dotnet test  tests/AbioticEditor.Tests -f net10.0                     # tests
-```
+This free fan tool is not code-signed, so Windows may call it an unknown publisher on its first launch. Check that the zip came from this project's Releases or Nexus page. If Windows blocks the zip, right-click it, choose **Properties**, tick **Unblock**, choose **OK**, then extract it. If SmartScreen appears, choose **More info**, then **Run anyway** only after checking the download source.
 
-The Razor desktop app runs on Windows and Linux with the standard .NET SDK. Package versions are
-managed centrally in `Directory.Packages.props`.
+## Find your saves
 
-> The `CUE4Parse-Natives … 'cmake' is not recognized` line during a build is **benign**.
-> The native texture decoder is optional and managed parsing still works.
+You usually do not need to hunt for files: the desktop app looks for them. If it needs a hand, open the folder for the world you want to edit.
 
-## Where saves live
+On Windows, open File Explorer and paste `%LOCALAPPDATA%\AbioticFactor\Saved\SaveGames` into its
+address bar, then press Enter. Open your numbered account folder, then **Worlds** to find your
+world folders.
 
-- **Client saves (Windows):** `%LOCALAPPDATA%\AbioticFactor\Saved\SaveGames\<steamid>\Worlds\<WorldName>`
-- **Client saves (Linux / Steam Deck, Proton):**
-  `<Steam library>/steamapps/compatdata/427410/pfx/drive_c/users/steamuser/AppData/Local/AbioticFactor/Saved/SaveGames/<steamid>/Worlds/<WorldName>`
-- **Dedicated server:** the folder containing `Worlds\<WorldName>` (the editor also finds
-  `Admin.ini` and each world's `SandboxSettings.ini`).
+| Where you play | Usual save location |
+| --- | --- |
+| Windows client | `%LOCALAPPDATA%\AbioticFactor\Saved\SaveGames\<your SteamID>\Worlds\<WorldName>` |
+| Linux or Steam Deck (Proton) | `<Steam library>\steamapps\compatdata\427410\pfx\drive_c\users\steamuser\AppData\Local\AbioticFactor\Saved\SaveGames\<your SteamID>\Worlds\<WorldName>` |
+| Dedicated server | The folder that contains `Worlds\<WorldName>` |
 
-::: tip Linux / Steam Deck (Proton)
-The self-contained Linux editor provides the full point-and-click UI in its own desktop window.
-Extract `AbioticEditor-desktop-linux-x64-v<version>.zip` in Desktop Mode, then double-click
-`launch-linux.desktop` and choose Trust and Launch - no terminal needed.
-The editor and CLI scan every Steam library, including internal storage, SD cards, Flatpak, and
-Snap installs, and find saves inside Proton prefixes without requiring a manual `compatdata` path.
-:::
+For character appearance editing, choose the **account folder** one level above `Worlds`, if you can. It contains your worlds and the saved appearance presets together. The browser guide shows exactly what that folder looks like.
 
-Save kinds you'll see: `Player_<steamid64>.sav`, `WorldSave_<Region>.sav`, and
-`WorldSave_MetaData.sav` (story/metadata).
+## Your next job
 
-## Next steps
+- Want a visual tour of player, world, and server tools? Read [Desktop app](./desktop-app).
+- Want to work in Chrome, Edge, Firefox, or Safari? Read [Edit in your browser](./browser-editor).
+- Want to shift loot between saves? Read [Transfer items](./transfer-items).
+- Something misbehaved? The [desktop guide](./desktop-app#reporting-a-bug) explains how to send a useful report.
 
-- **[Documentation directory](/guide/)**: all player guides and reference links.
-- **[Live editing](./live-editing)**: connect to a running game.
-- **[Desktop app](/guide/desktop-app)**: the point-and-click editor.
-- **[Command-line tool](/guide/cli)**: scripting and server admin.
-- **[Plugins & language packs](/guide/plugins)**: install community tools and translations.
-- **Something not working?** See [Reporting a bug](/guide/desktop-app#reporting-a-bug).
+The [command-line tool](./cli) and [technical reference](../reference/) are there for people who
+enjoy the machinery. You do not need either for ordinary save editing.

@@ -1,32 +1,35 @@
-# Documentation directory
+# Abiotic Editor field manual
 
-Choose a task below, or use Search to look across the guides and technical reference.
+Welcome, lab survivor. Abiotic Editor is a player-friendly toolkit for repairing, tidying, and experimenting with your **Abiotic Factor** saves. Use it to restock a cupboard, rescue a stuck story character, adjust a skill, or move supplies between worlds.
 
-## Open and edit saves
+Start with [Getting started](./getting-started) if this is your first visit. The editor is made for players: you do not need to know file formats or use a command window.
 
-| Guide | What you will find |
+## Pick your route
+
+| I want to... | Start here |
 | --- | --- |
-| [Getting started](./getting-started) | Choose an edition, find saves, and make your first edit |
-| [Browser editor](./browser-editor) | Folder permissions, zip imports, saving, and exporting |
-| [Desktop app](./desktop-app) | Player and world tabs, settings, backups, and reporting bugs |
-| [Linux and Steam Deck](./linux-local-host) | Installation, desktop launcher, and headless fallback |
-| [Live editing](./live-editing) | Agent setup, connecting, immediate changes, and limitations |
+| Make a safe first change | [Getting started](./getting-started) |
+| Edit without installing anything | [Edit in your browser](./browser-editor) |
+| Use the full editor on Windows, Linux, or Steam Deck | [Desktop app](./desktop-app) |
+| Move gear between two world saves | [Transfer items](./transfer-items) |
+| Edit a running game on Windows | [Live editing](./live-editing) |
 
-## Common tasks
+## Useful stations
 
-| Guide | What you will find |
+| Guide | What it helps with |
 | --- | --- |
-| [Transfer items](./transfer-items) | Move supplies between two region or world saves |
-| [Game Pass saves](./game-pass) | Open, repair, convert, and handle Xbox cloud sync |
-| [Steam and achievements](./steam-achievements) | Refresh local account information and view achievements |
-| [Game data](./game-data) | Bundled catalogs, icons, and updating game mappings |
-| [Plugins and language packs](./plugins) | Install and manage community extensions |
-| [Command-line tool](./cli) | Script save edits and administer servers |
+| [Linux and Steam Deck](./linux-local-host) | Installing and opening the desktop editor |
+| [Game Pass saves](./game-pass) | Opening, repairing, and converting Game Pass saves |
+| [Steam and achievements](./steam-achievements) | Checking local Steam information and achievements |
+| [Game data](./game-data) | Keeping item names and icons current after a game update |
+| [Plugins and language packs](./plugins) | Adding community extras and translations |
 
-## Build and understand the editor
+::: tip Before any expedition
+Close the game or stop the server before editing save files. Abiotic Editor keeps a `.bak` copy when it writes a file, but a separate copy of the whole world folder is the safest recovery kit.
+:::
 
-The [technical reference](../reference/) covers [architecture](../reference/architecture),
-[save formats](../reference/save-format), [plugin development](../reference/plugin-authoring),
-[translations](../reference/localization), and [maintainer tools](../reference/maintainer-commands).
+## For the curious
 
-Research notes are historical evidence about particular game builds, not a list of current editor limitations.
+The [command-line tool](./cli) helps with batch jobs and dedicated-server administration. The
+[technical reference](../reference/) explains how the editor works, how to make plugins, and how
+to contribute. You can safely skip both when your goal is simply getting back to science.

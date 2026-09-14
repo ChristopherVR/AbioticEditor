@@ -67,3 +67,49 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--vp-c-brand-1); 
   .manual-actions { flex-direction: column; align-items: stretch; }
   .manual-actions a { justify-content: space-between; }
 }
+/* Facility signage, phosphor green, and a paper manual in light mode. */
+:root {
+  --vp-c-brand-1: #506325; --vp-c-brand-2: #3e5118; --vp-c-brand-3: #506325;
+  --vp-c-brand-soft: #647a2418; --manual-accent: #526327;
+}
+.dark {
+  --vp-c-bg: #151b18; --vp-c-bg-alt: #101512; --vp-c-bg-soft: #202921; --vp-c-bg-elv: #263228;
+  --vp-c-text-1: #e8ebd7; --vp-c-text-2: #bac4ae; --vp-c-text-3: #9da990;
+  --vp-c-brand-1: #c6dc80; --vp-c-brand-2: #d9eba5; --vp-c-brand-3: #72883f;
+  --vp-c-brand-soft: #c6dc8018; --vp-c-divider: #364234; --vp-c-border: #52614a;
+  --manual-accent: #c6dc80; --manual-panel: #202b21;
+}
+.VPNavBarTitle .title, .vp-doc h1, .vp-doc h2, .manual-intro h1, .manual-routes h2 {
+  font-family: 'Bahnschrift', 'Franklin Gothic Medium', 'Arial Narrow', sans-serif;
+}
+.VPNavBar { border-bottom: 1px solid var(--vp-c-divider); }
+.vp-doc h1 { border-bottom: 3px solid var(--manual-accent); padding-bottom: 24px; }
+.vp-doc h2 { border-top-style: dashed; }
+.vp-doc .custom-block { border-radius: 0; border-left: 4px solid var(--manual-accent); }
+.field-manual { padding-top: 28px; }
+.manual-status { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--vp-c-border); font: 11px/1.5 var(--vp-font-family-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--vp-c-text-2); }
+.manual-status > span:first-child::before { content: ''; display: inline-block; width: 7px; height: 7px; background: var(--manual-accent); margin-right: 10px; }
+.manual-hero { gap: 40px; padding: 56px 0 48px; grid-template-columns: 1fr 1fr; }
+.manual-intro h1 { font-size: clamp(38px, 4.6vw, 62px); letter-spacing: -.04em; line-height: 1.06; }
+.manual-intro h1 em { font-style: normal; color: var(--manual-accent); }
+.manual-kicker { margin-bottom: 20px; }
+.manual-preview { padding: 14px; border-top: 0; position: relative; box-shadow: 8px 8px 0 var(--vp-c-bg-alt); background-image: linear-gradient(transparent 23px, #80926c09 24px); background-size: 24px 24px; }
+.manual-preview::before { content: ''; display: block; height: 6px; margin: -14px -14px 16px; background: repeating-linear-gradient(135deg, var(--manual-accent) 0 10px, var(--vp-c-bg-alt) 10px 20px); }
+.manual-actions a { border-radius: 0; }
+.manual-actions .manual-primary { background: var(--manual-accent); border-color: var(--manual-accent); color: var(--vp-c-bg); }
+.manual-checkpoint { display: grid; grid-template-columns: 210px 1fr auto; align-items: center; gap: 24px; border: 1px solid var(--vp-c-border); border-left: 5px solid var(--manual-accent); padding: 20px 24px; margin-bottom: 36px; background: var(--manual-panel); font-size: 14px; line-height: 1.6; }
+.manual-checkpoint strong { font: 700 13px/1.6 var(--vp-font-family-mono); text-transform: uppercase; }
+.manual-checkpoint a { color: var(--vp-c-brand-1); font-weight: 700; text-decoration: underline; text-underline-offset: 4px; }
+.manual-routes > a { position: relative; }
+.manual-routes > a:hover .manual-route-link { text-decoration: underline; text-underline-offset: 4px; }
+@media (max-width: 960px) {
+  .manual-hero { grid-template-columns: 1fr; }
+  .manual-intro h1 { max-width: 720px; font-size: clamp(38px, 7vw, 64px); }
+  .manual-checkpoint { grid-template-columns: 1fr; gap: 8px; }
+}
+@media (max-width: 640px) {
+  .field-manual { padding-top: 16px; }
+  .manual-status { font-size: 10px; }
+  .manual-hero { padding-top: 32px; }
+  .manual-checkpoint { padding: 18px; }
+}

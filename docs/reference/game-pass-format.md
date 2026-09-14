@@ -6,6 +6,32 @@ CLI unpack, edit and repack it for you. For the workflow (opening, editing, conv
 offline routine that keeps edits from being reverted) see the
 [Game Pass saves guide](/guide/game-pass).
 
+## Command reference
+
+This section is for experienced command-line users. Players should use the desktop editor's **Repair now** option first. These commands can inspect, recover, convert, or compare a Game Pass save folder.
+
+```console
+abioticeditor gamepass discover
+abioticeditor gamepass status <save-folder>
+abioticeditor gamepass list <save-folder>
+abioticeditor gamepass repair <save-folder>
+abioticeditor gamepass backups <save-folder>
+abioticeditor gamepass restore-backup <save-folder> <world>
+abioticeditor gamepass orphans <save-folder>
+abioticeditor gamepass recover-orphan <save-folder> <folder>
+abioticeditor gamepass extract <save-folder> <name> <out.sav>
+abioticeditor gamepass import <save-folder> <name> <in.sav>
+abioticeditor gamepass rename-player <save-folder> <name> <new-id>
+abioticeditor gamepass snapshot <save-folder> <out.json>
+abioticeditor gamepass compare <save-folder> <snapshot.json>
+abioticeditor gamepass to-steam <save-folder> <dest> [--container <name>] [--player-id <id>]
+abioticeditor gamepass to-gamepass <steam-world> <dest> [--world <name>] [--player-id <id>] [--into]
+```
+
+`status` and `list` only inspect. Every command that writes makes a backup first. `backups` shows the game's spare world copies; `restore-backup` restores one. `orphans` finds world data that Xbox no longer lists, and `recover-orphan` puts it back. `snapshot` and `compare` show whether a sync kept an edit. `rename-player` is the safe way to hand a character to another account.
+
+`to-gamepass --into` merges a converted world into an existing Game Pass save folder. Without `--into`, conversion refuses to write into a folder that already contains saves. Use `--force` only after reading why the editor refused to write.
+
 ## Why it differs from Steam
 
 A **Steam** save is a folder of loose `.sav` files: one per world region, plus a player file per

@@ -1,30 +1,33 @@
 ---
 layout: home
-title: Save and live editing for Abiotic Factor
-description: Edit Abiotic Factor saves in your browser or on Windows and Linux. Find setup instructions, live editing, Game Pass help, and the technical reference.
+title: The survivor's save-editing handbook
+description: Restock your backpack, adjust your skills, and get back to the Facility. Plain-language help for Abiotic Factor players.
 ---
 
-## Choose how you play
+## Choose your workbench
 
-| | Browser editor | Desktop app | Command-line tool |
-| --- | --- | --- | --- |
-| Get started | [Open the editor](/app/) | [Windows and Linux downloads](https://github.com/ChristopherVR/AbioticEditor/releases/latest) | Separate CLI downloads |
-| Save files | Choose a folder or import a zip | Discover local worlds or choose files | Script edits and inspect saves |
-| Write changes | SAVE; export a zip when direct writes are unavailable | SAVE, with backups | Commands write changes with backups |
-| Extra tools | Shared player and world editors | Game Pass, compare, transfers, plugins, live connection | Conversion, comparison, plugins, server administration |
-| Read the guide | [Browser walkthrough](/guide/browser-editor) | [Desktop tour](/guide/desktop-app) | [Command reference](/guide/cli) |
+**Want to try it now?** [Open the browser editor](/app/). You can choose your save folder or open a zip copy of it. There is nothing to install. [Follow the browser walkthrough](/guide/browser-editor).
 
-File edits are staged until **SAVE**. Close the game or stop the server before changing its files. A `.bak` preserves the previous file on direct saves; keep a separate copy of worlds you care about. In the browser, press **SAVE** before **EXPORT**, and export before closing a session opened from a zip.
+**Want the full toolbox?** [Download the desktop app](https://github.com/ChristopherVR/AbioticEditor/releases/latest) for Windows or Linux. It can find local worlds and gives you extra tools for moving items, comparing saves, and working with Game Pass saves. [Take the desktop tour](/guide/desktop-app).
 
-[Live editing](/guide/live-editing) is different: actions affect the running game, and the editor does not create a backup for those changes.
+## What brings you back to the Facility?
 
-## Keep your research moving
+| I want to... | Take me there |
+| --- | --- |
+| Change my character, gear, or world | [Make your first edit](/guide/getting-started) |
+| Carry supplies into another save | [Transfer items](/guide/transfer-items) |
+| Use my Xbox / PC Game Pass save | [Game Pass help](/guide/game-pass) |
+| Play on Steam Deck or Linux | [Set up the desktop app](/guide/linux-local-host) |
+| Fix missing item pictures or names | [Item names and pictures](/guide/game-data) |
+| See my Steam achievements | [Steam and achievements](/guide/steam-achievements) |
+| Change things while the game is running | [Experimental live editing](/guide/live-editing) |
 
-- **Playing on Steam Deck?** [Linux setup and troubleshooting](/guide/linux-local-host), including the local browser fallback.
-- **Moving between Xbox and Steam?** [Game Pass conversion and cloud-sync help](/guide/game-pass).
-- **Moving supplies to another world?** [Transfer items between saves](/guide/transfer-items).
-- **Missing an icon or recipe?** [How bundled and installed game data work](/guide/game-data).
-- **Looking for achievements?** [Steam accounts and read-only achievement status](/guide/steam-achievements).
-- **Building something?** [Architecture, plugins, and save schemas](/reference/).
+## Save, then head back in
 
-Find every guide in the **[documentation directory](/guide/)**, or use **Search** in the navigation bar.
+Changes to a save file wait until you press **SAVE**. When the editor writes directly to a file, it keeps the previous version as a backup with `.bak` at the end of its name. Keep a separate copy of a world you care about too.
+
+**Using a zip in the browser?** Press **SAVE**, then **EXPORT** to download your edited world before closing the page. The [browser guide](/guide/browser-editor) explains how to put it back into the game.
+
+**Live editing works differently.** Those actions change the running game immediately and do not create an editor backup. Start with the [live editing guide](/guide/live-editing) before connecting.
+
+Need something else? [Browse all player guides](/guide/) or use **Search** above. Contributors can find build instructions and other developer material in the [technical reference](/reference/).

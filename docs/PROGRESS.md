@@ -5,6 +5,23 @@ time; they are not a current feature list or test-count guarantee. The maintaine
 are `README.md`, `docs/guide/index.md`, and `docs/reference/architecture.md`.
 
 
+## Player handbook and facility-style documentation (2026-09-15)
+
+Reworked the GitHub README, wiki entry points, and twelve player guides with three Terra
+agents. Instructions now lead with player goals, plain-language steps, exact button names,
+and clear browser Save/Export handling. Game Pass recovery commands moved to the technical
+reference while the player guide leads with desktop repair and help routes.
+
+The Pages homepage now uses facility signage, green terminal colors, hazard-strip details,
+an inventory preview, and routes into first edits and item transfers. Dark mode is the default;
+the paper-colored light theme remains available. Main navigation favors the player handbook,
+with command-line material grouped under experienced users.
+
+Verification: documentation build passed with 1,680 local links/images across 43 pages.
+Browser checks covered desktop and 390px homepage/guide layouts, light/dark switching, and
+the production search index returning the transfer guide first. No horizontal overflow was
+found on the checked mobile pages. No application code or saves were changed for this work.
+
 ## Open-world tab refinement (2026-09-15)
 
 Reviewed Cascade in the browser: all 12 player tabs, 18 populated Facility tabs, five

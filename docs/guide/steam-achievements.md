@@ -1,26 +1,14 @@
 # Steam accounts and achievements
 
-Abiotic Editor can show Steam accounts and achievement information already
-available on your computer. Your Steam sign-in details always stay with Steam.
+Abiotic Editor can show Steam account and achievement information already available on your PC. It is a viewing station only: the editor cannot unlock achievements, change progress, alter your Steam account, or see your Steam password.
 
-## Sign-in and refresh flow
+## Refresh your records
 
-1. Open **Steam** in Abiotic Editor and choose **Open Steam sign-in**.
-2. Complete sign-in with Steam.
-3. Start the Steam client on the same machine and let it finish syncing.
-4. Return to the editor and choose **Refresh local status** or **Refresh**
-   in a player's Achievements tab.
+1. In Abiotic Editor, open **Steam** and choose **Open Steam sign-in**.
+2. Sign in through Steam's own page.
+3. Start Steam on this PC and let it finish syncing.
+4. Return to the editor and choose **Refresh local status**, or **Refresh** in a player's Achievements tab.
 
-The account and achievement views are read-only. Abiotic Editor never changes
-Steam accounts or Steam achievement progress.
+If an achievement is missing, repeat those steps after Steam has finished syncing. Private profiles can show fewer details. **Open Community Page** opens the profile in Steam when you want to check it there.
 
-## When achievements are missing
-
-Start Steam, sign in to the account, let Steam finish syncing, then return to
-Abiotic Editor and choose **Refresh**. A private Steam profile may show fewer
-details. You can also choose **Open Community Page** to view the profile on Steam.
-
-## Privacy
-
-Abiotic Editor does not receive your Steam password or bypass Steam privacy
-settings. Authentication and private account data remain with Steam.
+Your sign-in and private Steam data remain with Steam. Abiotic Editor respects Steam's privacy settings.
