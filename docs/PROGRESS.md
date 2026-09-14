@@ -5,6 +5,25 @@ green**; full solution builds clean; app multi-targets android/ios/maccatalyst/w
 Plugin system: round-15 (core), round-16 (events/menu/JS), round-17 (web tools HTML/React +
 host-UI bridge + Vite sample).
 
+## Round-80: item visual-variant game-data probe (2026-09-14)
+
+Probed the installed game data to determine which inventory items appear to support instance-level
+visual variants, prompted by poster art and differently colored helmets being indistinguishable in
+the editor. `DT_TextureVariants` has 575 rows, but it is a flat appearance table with no base-item
+or compatibility field. `ItemTable_Global` points each item at no more than one fixed appearance row;
+383 variant rows are consumed this way, including most weapon and armor upgrade appearances. Those
+are distinct item definitions and must not automatically become skin choices for their base item.
+
+The remaining 192 rows are plausible instance variants. Real Cascade saves confirm 12 non-default
+item/variant pairs across colored hats, the Hydroplant Hat, Basic Backpack, office furniture, a
+locker-room bench, and rare fish. Strong additional families in the game data include eight Poster
+art rows, 26 painting artworks, 24 photo-frame images, Hard Hat/Karate Helmet/Lab Mask color sets,
+Puffy Coat colors, arcade cabinets, TV screens, and more furniture variants. Paint is a separate
+system: `DT_PaintedDeployables` has 38 placed-object profiles with Default plus 13 paint-color
+columns and does not cover helmets or weapons. Full findings and the conservative catalog rule are
+in `docs/reference/research/research-item-visual-variants.md`; repeatable pak/save probes are in
+`tests/AbioticEditor.Probes/ItemVariantProbeTests.cs`.
+
 ## Round-79: live-editing bug review - a real fatal-crash root cause, two N-round-trip perf bugs, and the Wildlife tab redesigned (2026-09-11)
 
 A player reported four live-editing problems in one pass: the app using 3GB+ of memory
