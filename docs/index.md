@@ -31,3 +31,7 @@ Changes to a save file wait until you press **SAVE**. When the editor writes dir
 **Live editing works differently.** Those actions change the running game immediately and do not create an editor backup. Start with the [live editing guide](/guide/live-editing) before connecting.
 
 Need something else? [Browse all player guides](/guide/) or use **Search** above. Contributors can find build instructions and other developer material in the [technical reference](/reference/).
+
+## See the screens
+
+[Browse the screenshot tour](/guide/screenshots) for player editing, world tools, settings and experimental live setup.

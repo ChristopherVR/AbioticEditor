@@ -1,5 +1,12 @@
 # Abiotic Editor - Session history
 
+## Documentation screenshots (15 September 2026)
+
+Added a 28-image screenshot tour and refreshed the handbook illustrations for player saves, world containers and tools, INI editing, settings, Game Pass conversion, and experimental live setup. Technical references link to the relevant gallery sections; the agent README also shows the local helper step. Maintainer instructions cover future capture updates. Captures use copied saves in the Windows local host, frame out account IDs and personal save paths, and leave the remote token empty. Platform-specific installation screens and connected-game behavior are not represented.
+
+Verification: the documentation site builds and its generated links and image paths pass validation. Browser checks at 1440px and 390px found no broken gallery, live-guide or new-feature images and no page overflow. Click-to-enlarge opened successfully. No game files, saves, UE4SS installation or connection settings were changed for these captures.
+
+
 Dated implementation and verification notes. Older entries describe the application at that
 time; they are not a current feature list or test-count guarantee. The maintained entry points
 are `README.md`, `docs/guide/index.md`, and `docs/reference/architecture.md`.

@@ -203,3 +203,5 @@ Future work (not in this pass):
   IsGibbed (Bool), IsLooted (Bool)}>`; NPC corpses, e.g.
   `...PersistentLevel.CharacterCorpse_OrderSniper_C_1`. Harmless to leave unmodeled
   (round-trips untouched). Also from the server-save deep dive.
+
+Interface examples: [world saves](/guide/screenshots#world-saves).

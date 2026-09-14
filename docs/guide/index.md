@@ -4,6 +4,8 @@ Welcome, lab survivor. Abiotic Editor is a player-friendly toolkit for repairing
 
 Start with [Getting started](./getting-started) if this is your first visit. The editor is made for players: you do not need to know file formats or use a command window.
 
+[Browse the screenshot tour](/guide/screenshots) for current player, world, settings and live-setup screens.
+
 ## Pick your route
 
 | I want to... | Start here |

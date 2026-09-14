@@ -99,3 +99,5 @@ Class `Abiotic_WorldMetadataSave_C`. Key fields:
 - `MinutesPassed` (Int) - playtime.
 - `GlobalUnlocks` (Struct) - world-wide recipe/email/journal/compendium arrays.
 - `LeyakContainmentIDs`, `ServerEntitlements` (Maps).
+
+Interface examples: [player saves](/guide/screenshots#player-saves).

@@ -2,6 +2,11 @@
 
 Abiotic Editor has a native Linux desktop release. It opens its own local window and keeps your saves on your computer. It can also find Abiotic Factor saves inside Proton prefixes, the folders Steam uses to run Windows games on Linux. Proton is for finding the game saves, not for running the editor.
 
+
+![Shared player vitals controls](/screenshots/10-player-vitals.png)
+
+*Shared editor controls, captured on Windows. Linux installation steps are below.*
+
 ## Start here
 
 1. On Steam Deck, switch to **Desktop Mode** first: press the Power button, then choose **Switch to Desktop**.

@@ -80,3 +80,5 @@ The command line, plugin SDK, save-format notes, and build instructions live in 
 ## Credits and licence
 
 Abiotic Editor is not affiliated with or endorsed by the developers of Abiotic Factor. It is released under the [Apache License 2.0](LICENSE). Wiki reference images are credited to [abioticfactor.wiki.gg](https://abioticfactor.wiki.gg) under CC BY-NC-SA.
+
+See the [screenshot tour](https://christophervr.github.io/AbioticEditor/guide/screenshots) for player, world, settings and live-setup screens.

@@ -138,3 +138,5 @@ backup+write path. See
 assert the post-condition on reload, that a `.bak` appears only on a real write, that a dry run
 leaves the bytes untouched, that the wrong save kind is rejected, and that a second run is a
 no-op (idempotence).
+
+Interface examples: [settings and tools](/guide/screenshots#settings-and-tools).

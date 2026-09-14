@@ -41,3 +41,5 @@ Two rules follow from how the game stores data, and they shape every edit:
 - [World save schema](/reference/world-save-schema) - the region saves and their state maps.
 - [Game Pass format](/reference/game-pass-format) - how the Xbox container packages all of the above.
 - [Research notes](/reference/research/research-slot-types) - working notes behind the schemas.
+
+Interface examples: [player saves](/guide/screenshots#player-saves).

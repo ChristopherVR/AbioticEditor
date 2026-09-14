@@ -50,6 +50,11 @@ The editor looks for Game Pass saves automatically, on every drive. You should n
 
 Each folder belongs to one Xbox account. The discovered-worlds list shows the account ID and folder so you can check before opening anything.
 
+
+![Game Pass conversion settings](/screenshots/34-convert.png)
+
+*Conversion tools are separate from normal save editing.*
+
 ## Moving a world between Steam and Game Pass
 
 Choose **Settings ▸ Convert** to convert a world either way. Difficulty settings travel with it. You can enter a player account ID if you want to hand a character to a different account; leave it blank to retain its current ID.

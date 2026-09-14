@@ -727,3 +727,11 @@ Set operations follow the [UE4SS TSet API](https://docs.ue4ss.com/dev/lua-api/cl
 Direct replicated writes use [UNetPushModelHelpers.MarkPropertyDirty](https://dev.epicgames.com/documentation/unreal-engine/API/Runtime/Engine/Net/UNetPushModelHelpers/MarkPropertyDirty?application_version=5.5).
 These additions pass the stub harness, but actual multiplayer propagation and save/reload
 persistence still require an installed-game verification run.
+
+## Related screens
+
+See the [screenshot tour](/guide/screenshots) for the player-facing controls. Screenshots illustrate the interface; the schemas and behavior above remain the reference.
+
+![Local game or dedicated server choice in live setup](/screenshots/40-live-location.png)
+
+This is the desktop connection workflow. It does not indicate that a game is connected or that every protocol action is available.

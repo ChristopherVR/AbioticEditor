@@ -2,6 +2,11 @@
 
 The editor carries a field guide of item names, recipes, skills, flags, and other game information. You can edit saves even when Abiotic Factor is not installed. The desktop app can also read your installed game files for the freshest available names and icons; the browser edition uses the catalogue packed into its release.
 
+
+![Installed game data settings](/screenshots/32-game-data.png)
+
+*Settings > Game data connects names and icons to your installed game.*
+
 ## If the editor cannot find your game
 
 It normally finds Steam and Game Pass installs by itself. If it does not, open **Settings ▸ Game Data ▸ Set game folder** and select the Abiotic Factor installation folder. The Game Data card shows the folder currently in use.

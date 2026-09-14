@@ -2,6 +2,11 @@
 
 Abiotic Editor can show Steam account and achievement information already available on your PC. It is a viewing station only: the editor cannot unlock achievements, change progress, alter your Steam account, or see your Steam password.
 
+
+![Player achievements panel](/screenshots/19-player-achievements.png)
+
+*Choose Achievements to review the available records.*
+
 ## Refresh your records
 
 1. In Abiotic Editor, open **Steam** and choose **Open Steam sign-in**.

@@ -6,6 +6,11 @@ Plugins are community-made add-ons for Abiotic Editor. They can add a one-click 
 A plugin has the same access to your computer as the editor. The editor cannot safely contain a malicious add-on. Get plugins from authors you trust, keep a backup of anything important, and read what a plugin says it will do. Plugin saves still create a `.bak` backup.
 :::
 
+
+![Plugin management panel](/screenshots/33-plugins.png)
+
+*Settings > Plugins lists installed add-ons. This example has none installed.*
+
 ## Install an add-on
 
 1. Download and unzip the plugin folder. It must contain `plugin.json` alongside its files.

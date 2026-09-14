@@ -22,6 +22,11 @@ Weapons tagged by the game as incompatible do not show the picker. These new con
 are available for offline player inventories and containers. Live coating controls are
 not included in this change.
 
+
+![Expanded weapon coating selector](/screenshots/11-weapon-coating.png)
+
+*Select a compatible weapon, then expand Weapon coating.*
+
 ## Garden plots
 
 Open a region and choose **Garden plots**. This tab appears when the region contains
@@ -37,6 +42,11 @@ supported placed plots. Choose a plot, then choose a **Planting spot**.
 Only fields actually present in the save are offered. Digital garden plots are excluded:
 their water and growth behavior differs. Unsupported or future layouts remain intact.
 
+
+![Garden plot water, fertilizer and growth controls](/screenshots/26-world-garden.png)
+
+*Choose one plot and one planting spot at a time.*
+
 ## Chemistry benches
 
 Open **Chemistry benches** in a region containing a bench. The panel distinguishes the
@@ -47,6 +57,11 @@ The current game's processing flag and batch timestamp are runtime properties, n
 saved batch progress. The offline panel therefore does not offer a start, pause or
 progress control. Make and run mixtures in the game. The contents editor remains a
 save editor and does not simulate recipes or guarantee a valid mixture.
+
+
+![Chemistry bench contents](/screenshots/27-world-chemistry.png)
+
+*Select a bench to inspect its saved contents.*
 
 ## Pet feeding and mutation
 
@@ -59,6 +74,11 @@ value, not presented as an invented percentage. Existing variant controls remain
 way to choose a different pet form. This addition does not change feeding cooldowns or
 write guessed mutation targets. A save does not provide a reliable live feeding countdown.
 If a variant has no mutation recipes in its table, the guide says so.
+
+
+![Carried companions](/screenshots/18-player-companions.png)
+
+*Select a pet to open its details and feeding guide.*
 
 ## Power Chairs
 
@@ -78,6 +98,11 @@ and any unknown value already saved. The game's stage enum has no universal sema
 labels: Stage 3 does not mean the same quest milestone for every character. Changing a
 stage can skip dialogue, so the editor does not invent labels such as "quest complete".
 
+
+![World story characters](/screenshots/22-world-npcs.png)
+
+*Choose a character before opening its story-stage controls.*
+
 ## Add omitted sandbox settings
 
 Open `SandboxSettings.ini` and expand **Add a setting**. Choose an option, optionally
@@ -94,6 +119,11 @@ match a listed choice remain available as saved values.
 If the game folder or mappings are unavailable, the editor still edits existing settings.
 It cannot discover new options without the installed table. No second hard-coded list of
 wiki display names is used as configuration keys.
+
+
+![Sandbox settings editor](/screenshots/25-config-ini.png)
+
+*Settings stay staged until you choose Save settings.*
 
 ## Verification and limits
 

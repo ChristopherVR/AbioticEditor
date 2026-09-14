@@ -3,6 +3,8 @@
 For contributors, plugin authors, and anyone exploring what the game saves. To edit a world,
 start with the [player guides](/guide/).
 
+[Browse the screenshot tour](/guide/screenshots) for current player, world, settings and live-setup screens.
+
 ## Build and contribute
 
 - [Architecture and contributing](./architecture): projects, save contract, build commands, and documentation checks.

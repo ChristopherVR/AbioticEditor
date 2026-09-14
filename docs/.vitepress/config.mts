@@ -88,6 +88,8 @@ export default defineConfig({
           items: [
             { text: 'Find your guide', link: '/guide/' },
             { text: 'Getting started', link: '/guide/getting-started' },
+            { text: 'Screenshot tour', link: '/guide/screenshots' },
+            { text: 'Coatings, garden care & settings', link: '/guide/review-features' },
             { text: 'Edit in your browser', link: '/guide/browser-editor' },
             { text: 'Desktop app', link: '/guide/desktop-app' },
             { text: 'Linux & Steam Deck', link: '/guide/linux-local-host' },

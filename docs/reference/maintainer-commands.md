@@ -34,3 +34,19 @@ uses the same dump-and-replace flow an end user follows to
 [keep game data current](/guide/game-data#the-usmap-matching-the-game-build), except the maintainer
 replaces the file bundled in `assets/` and commits it, rather than dropping it in the per-user
 mappings folder.
+
+## Related screens
+
+See the [screenshot tour](/guide/screenshots) for the player-facing controls. Screenshots illustrate the interface; the schemas and behavior above remain the reference.
+
+## Updating documentation screenshots
+
+Keep application screenshots in `docs/public/screenshots/`. Use PNG files with descriptive names and reference them in handbook pages as `![What the screen shows](/screenshots/name.png)`. VitePress adds the deployment base path. Repository READMEs should use a relative path to the same image.
+
+1. Run the local host against a copy of a save. Use the browser to open the actual screen and select a representative item or setting.
+2. Wait for names, icons and details to finish loading. Capture the relevant panel at a readable desktop width. Keep account IDs, personal paths and tokens outside the frame.
+3. Add the image beside the steps it illustrates, with useful alt text and a short caption. Explain when a screenshot shows shared Windows controls rather than a different platform, and when a live screen shows setup rather than a connected game.
+4. Update the capture date and coverage in the [screenshot tour](/guide/screenshots). Link technical or historical pages to the current tour rather than presenting a new screenshot as historical evidence.
+5. Run `npm --prefix docs run docs:build` from the repository root. This checks generated page links and image paths. Preview the site and check image loading, click-to-enlarge, and narrow-screen layout.
+
+The September 2026 captures use the Hazard Orange theme and copied saves in the Windows local host. Live captures cover the mode choice, local helper setup after UE4SS detection, and the remote form with an empty token. They are not evidence of connected-game behavior.

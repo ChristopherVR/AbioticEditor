@@ -12,6 +12,11 @@ Live changes happen as you make them. There is no universal **SAVE**, undo butto
 | Tools | Full save-file editor | Supported live tools only |
 | Browser edition | Yes | No |
 
+
+![Offline and experimental live editing choices](/screenshots/00-editing-modes.png)
+
+*Choose the mode first. Offline edits wait for Save; live changes apply immediately.*
+
 ## Set up this PC (Windows)
 
 Live setup works in the complete Windows desktop release. The Linux desktop app can edit save files, but cannot run the Windows helper locally. The browser edition cannot connect to a live game.
@@ -34,6 +39,16 @@ If you already use UE4SS, keep its settings and other mods. Follow the loader pu
 
 The linked UE4SS channel is experimental and game updates can change compatibility. Read its [official installation guide](https://docs.ue4ss.com/dev/installation-guide.html) if your install uses a different layout.
 
+
+![Choose a local game or dedicated server](/screenshots/40-live-location.png)
+
+*This PC guides local setup. A dedicated server needs details from its owner.*
+
+
+![Helper setup after UE4SS has been detected](/screenshots/41-live-helper.png)
+
+*UE4SS is already installed separately in this example. This button installs the editor helper, not UE4SS.*
+
 ## Updating or reconnecting
 
 Choose **This PC** again. The editor checks its bundled agent files and offers an update when needed. Close the game, run **Set up editor helper**, then restart the game and load your world. Update UE4SS separately through its publisher.
@@ -47,6 +62,11 @@ Set up the helper on the **server machine**, while its game is stopped. On a Win
 Then choose the remote-server option in the desktop editor and enter the helper's host, port, and token. The usual port is `42117`; use the helper's actual port if it differs. Local details are in `%LOCALAPPDATA%\AbioticEditorLiveAgent` as `token.txt` and `port.txt`.
 
 Only the server owner can make the helper reachable through their network and firewall. Treat its token like a password. Do not include it in screenshots or reports. Joining somebody else's multiplayer server does not give the editor control over it.
+
+
+![Remote connection with an empty token field](/screenshots/42-live-server.png)
+
+*Enter the server helper details. Never share a screenshot containing your token.*
 
 ## What you can change
 

@@ -19,3 +19,5 @@ contains its own README and manifest. Plugins run with full trust; inspect an ex
 
 
 See [Building and installing](./plugin-building) for setup and the [Authoring guide](./plugin-authoring) for the SDK.
+
+Interface examples: [settings and tools](/guide/screenshots#settings-and-tools).

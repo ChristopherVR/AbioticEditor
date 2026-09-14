@@ -4,6 +4,11 @@
 Core library as the desktop app, so it writes the same output the app would. Run
 `abioticeditor --help` for the full surface.
 
+
+![World containers in the graphical editor](/screenshots/20-world.png)
+
+*Prefer clicking? The desktop editor also exposes save-editing tools visually. The commands below run in a terminal.*
+
 ## Common commands
 
 ```console

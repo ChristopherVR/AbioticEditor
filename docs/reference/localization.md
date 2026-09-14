@@ -18,3 +18,5 @@ dotnet test tests/AbioticEditor.Tests --filter FullyQualifiedName~HostLanguageSe
 ```
 
 Language selection is persisted locally. Missing plugin or locale-specific values fall back to the neutral English resource.
+
+Interface examples: [settings and tools](/guide/screenshots#settings-and-tools).

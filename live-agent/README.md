@@ -29,6 +29,10 @@ Bench upgrades remain disabled.
 
 ## Two approaches, one primary
 
+![Local editor helper setup after UE4SS has been installed](../docs/public/screenshots/41-live-helper.png)
+
+The desktop setup screen after detecting a separate UE4SS installation. See the [illustrated live guide](https://christophervr.github.io/AbioticEditor/guide/live-editing) for the complete player workflow.
+
 ### The Lua + helper hybrid (PRIMARY - buildable and verified today)
 
 - `AbioticEditorLiveAgentLua/` - a UE4SS **Lua** mod. Does all the actual game interaction

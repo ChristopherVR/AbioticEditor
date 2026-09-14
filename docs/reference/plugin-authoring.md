@@ -374,3 +374,5 @@ Reachable from `Configure` and every capability context:
 - [ ] `plugin.json` has a unique `id` and the correct `entryAssembly` file name.
 - [ ] Save operations mutate in place and call `MarkChanged()`; they never write files.
 - [ ] Console command names don't collide with built-ins (they'd be skipped).
+
+Interface examples: [settings and tools](/guide/screenshots#settings-and-tools).

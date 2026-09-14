@@ -308,3 +308,5 @@ Still unverified from here:
 The editor writes wgs files directly rather than through the Connected Storage API, so it cannot
 update any service-side sync database and cannot repair a corrupt **cloud** copy. That limit is why
 the offline routine in the [player guide](/guide/game-pass) is not optional advice.
+
+Interface examples: [settings and tools](/guide/screenshots#settings-and-tools).

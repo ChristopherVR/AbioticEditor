@@ -2,6 +2,11 @@
 
 Found a stash that belongs in another expedition? The desktop editor can move one item from a container in one world save to a container in another. It works for two regions in the same world or for two separate playthroughs. This station is not available in the browser editor.
 
+
+![Offline world container list](/screenshots/20-world.png)
+
+*Start in Containers. The transfer link is below the list.*
+
 ## Before you move anything
 
 Close the game or stop the server for **both** worlds. Make a separate copy of each world folder. A transfer changes two saves, so both need to reach the finish line.

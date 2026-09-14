@@ -144,3 +144,5 @@ also appear in the top-level **Plugins** menu.
 - [ ] `plugin.json` has a unique `id` and the correct `entryAssembly` or `entryScript`.
 - [ ] Save operations mutate in place and call `MarkChanged()`; they never write files themselves.
 - [ ] Console command names do not collide with built-ins (a collision is skipped with a warning).
+
+Interface examples: [settings and tools](/guide/screenshots#settings-and-tools).

@@ -78,3 +78,5 @@ full navigations so VitePress does not try to load them as documentation pages.
 verification there without presenting old test counts as the current state. Research notes
 should retain their historical context. Use Conventional Commits with player-facing descriptions;
 work goes on `main`, and publishing requires an explicitly authorized push.
+
+Interface examples: [player saves](/guide/screenshots#player-saves).

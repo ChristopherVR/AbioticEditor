@@ -14,7 +14,9 @@ Abiotic Editor gives you a workbench for your **Abiotic Factor** saves. It can r
 
 The editor places a `.bak` copy beside every file it writes. That is useful for an immediate undo, but it is one rolling backup. Keep your own full-world copy for real experiments.
 
-![The editor with a save folder loaded](/screenshots/01-loaded.png)
+![Choose offline or experimental live editing](/screenshots/00-editing-modes.png)
+
+*Choose Open offline editor to work on save files.*
 
 ::: tip Choose your tool
 The [browser editor](./browser-editor) is quick and needs no installation. The [desktop app](./desktop-app) finds local saves, has more tools, and is needed for jobs such as transfers, Game Pass saves, and live editing.

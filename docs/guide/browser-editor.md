@@ -2,6 +2,11 @@
 
 Need a quick repair before the next expedition? **[Open the editor](/app/)**. There is nothing to install and your saves stay on your computer. The page reads only the folder you choose. It does not upload your world to a server.
 
+
+![Shared player inventory controls](/screenshots/11-player-inventory.png)
+
+*Shared inventory controls, captured in the Windows local host. Browser file opening and export work differently, as described below.*
+
 ## Open the right locker
 
 Choose your **account folder**, not just one world, when possible. That gives the editor every world plus your saved character appearance.

@@ -10,7 +10,9 @@ For normal save editing, close Abiotic Factor or stop the server. Changes wait s
 
 Start the app. The welcome screen lists save folders it finds. Choose **OPEN** beside the world you want, use **OPEN FOLDER** to pick one yourself, or drag a folder onto the window.
 
-![The editor with a save folder loaded](/screenshots/01-loaded.png)
+![Choose offline or experimental live editing](/screenshots/00-editing-modes.png)
+
+*Choose Open offline editor to work on save files.*
 
 The sidebar sorts what it found into story progress, players, world regions, and server settings. Use its search box when a big world has become a maze. Right-click a row to reveal its file in your file manager.
 

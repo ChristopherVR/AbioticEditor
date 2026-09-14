@@ -290,3 +290,5 @@ worked samples under `plugins/`:
 | `ReactDashboard` | **JavaScript** | web tool | **React** UI (CDN) over the host bridge |
 | `ReactAppDashboard` | **JavaScript** | web tool + save op | **full Vite + React app** that drives the app via `abiotic.ui` |
 | `WebStats` | **JavaScript** | web tool | **offline HTML** served from a bundled `web/` folder |
+
+Interface examples: [settings and tools](/guide/screenshots#settings-and-tools).
