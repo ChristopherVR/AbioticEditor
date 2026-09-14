@@ -29,8 +29,7 @@
     }
     else
     {
-        <p class="tab-section-label">@L.Resource("PlayerTransmog_ArmorTransmog")</p>
-        <p class="transmog-help">@L.Resource("PlayerTransmog_TransmogHelp")</p>
+        <p class="transmog-help">@L.Resource(Session.AppliesImmediately ? "Editing_LiveAppearanceHelp" : "PlayerTransmog_TransmogHelp")</p>
 
         <div class="transmog-grid" role="list" aria-label="@L.Resource("PlayerTransmog_ArmorTransmog")">
             @foreach (var slot in Session.Transmog)

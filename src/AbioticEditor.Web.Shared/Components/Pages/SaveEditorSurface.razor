@@ -24,7 +24,8 @@
             }
             @if (workspace.WorldSession is { } world)
             {
-                <section class="world-editor-summary editor-card">
+                <details class="world-editor-summary editor-card">
+                    <summary>@Languages.Resource("Editing_WorldOverview")</summary>
                     <header class="world-summary-heading">
                         <h2>@Languages.Resource(world.IsMetadataSave ? "WorldEditor_TabStory" : "WorldEditor_WorldSave")</h2>
                         <span>@Path.GetFileName(world.Path)</span>
@@ -54,13 +55,19 @@
                             <small>@Languages.Resource("WorldEditor_DayDiscoveredHelp")</small>
                         </div>
                     }
-                </section>
+                </details>
+                <label class="editor-section-picker world-section-picker">@Languages.Resource("Editing_Section")
+                    <select value="@_worldTab" @onchange="e => SelectWorldTab(e.Value?.ToString() ?? _worldTab)">
+                        @foreach (var tab in WorldTabsFor(world)) { <option value="@tab.Id">@tab.Label</option> }
+                    </select>
+                </label>
                 <nav class="world-tabs" role="tablist" aria-label="@Languages.Resource("WorldEditor_SectionsAria")">
                     @foreach (var tab in WorldTabsFor(world))
                     {
-                        <button role="tab" aria-selected="@(_worldTab == tab.Id)" class="@(_worldTab == tab.Id ? "selected" : null)" @onclick="() => SelectWorldTab(tab.Id)">@tab.Label</button>
+                        <button type="button" id="@($"world-section-{tab.Id}")" aria-controls="world-section-panel" tabindex="@(_worldTab == tab.Id ? 0 : -1)" role="tab" aria-selected="@(_worldTab == tab.Id ? "true" : "false")" class="@(_worldTab == tab.Id ? "selected" : null)" @onclick="() => SelectWorldTab(tab.Id)">@tab.Label</button>
                     }
                 </nav>
+                <div class="world-tab-viewport" id="world-section-panel" role="tabpanel" aria-labelledby="@($"world-section-{_worldTab}")" tabindex="0">
                 @if (_worldTab == "containers") { <WorldContainersTab Title="@workspace.SelectedSave!.Name" Session="@world" PlayerSession="@Workspace.TransferPlayerSession" InitialFilter="@_containersInitialFilter" OnError="WorldError" /> }
                 else if (_worldTab == "flags") { <WorldFlagsTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
                 else if (_worldTab == "doors") { <WorldDoorsTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
@@ -75,6 +82,7 @@
                 else if (_worldTab == FeatureTabPrefix + WorldEntitlementsTab.EntitlementsFeatureId) { <WorldEntitlementsTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
                 else if (_worldTab.StartsWith(FeatureTabPrefix, StringComparison.Ordinal)) { <WorldFeaturesTab Title="@workspace.SelectedSave!.Name" Session="@world" FeatureId="@_worldTab[FeatureTabPrefix.Length..]" OnError="WorldError" OnOpenLink="OpenVehicleContainer" /> }
                 else { <WorldRawTab Title="@workspace.SelectedSave!.Name" Session="@world" /> }
+                </div>
             }
         }
     </section>
@@ -154,7 +162,7 @@
             var label = string.Equals(feature.Id, "resource-nodes", StringComparison.OrdinalIgnoreCase)
                 ? Languages.Resource("WorldResourceNodes_Title")
                 : feature.DisplayName;
-            tabs.Add(new WorldTabItem(FeatureTabPrefix + feature.Id, label.ToUpperInvariant()));
+            tabs.Add(new WorldTabItem(FeatureTabPrefix + feature.Id, label));
         }
         Add("raw", "WorldEditor_TabRawJson");
         return tabs;

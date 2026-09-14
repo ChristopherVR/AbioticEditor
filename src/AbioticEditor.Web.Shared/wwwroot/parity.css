@@ -2004,3 +2004,66 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 
 .active-folder.no-active-folder { visibility:hidden; }
 .empty-dropzone .discovered-worlds>h2 { text-transform:none; }
+
+/* Editing surfaces: quieter headings, readable controls, and room for the selected task. */
+.player-editor .player-tab-viewport, .world-tab-viewport { min-width:0; outline-offset:-2px; }
+.player-editor .player-tab-viewport h3, .world-tab-viewport h2,
+.world-tab-viewport h3, .ini-section h3 { font-size:17px!important; letter-spacing:0!important; text-transform:none!important; line-height:1.4; }
+.player-tab-viewport .general-help, .player-tab-viewport .transmog-help,
+.player-tab-viewport .skills-milestone-help, .world-tab-viewport p,
+.world-tab-viewport .wt-intro, .world-tab-viewport .wm-intro { font-size:13px; line-height:1.6; letter-spacing:0; }
+.player-tab-viewport .tab-section-label { letter-spacing:.04em; font-size:12px; }
+.player-tab-viewport .tab-hazard-stripe, .player-tab-viewport .hazard-divider { height:1px; opacity:.35; margin:8px 0; }
+.player-tab-viewport .editor-card, .world-tab-viewport > .world-editor { border-radius:5px!important; padding:20px!important; }
+.player-tab-viewport label, .world-tab-viewport label { font-size:12px!important; letter-spacing:.01em!important; }
+.player-tab-viewport button:not(.inventory-slot):not(.transmog-slot),
+.world-tab-viewport button:not(.inventory-slot) { letter-spacing:.015em; }
+.player-tab-viewport input:not([type=checkbox]):not([type=range]),
+.world-tab-viewport input:not([type=checkbox]):not([type=range]), .world-tab-viewport select { min-height:40px; max-width:100%; }
+.editor-tabs .editor-tab:focus-visible, .world-tabs button:focus-visible,
+.wc-row-select:focus-visible { outline:2px solid var(--orange)!important; outline-offset:-3px; }
+.world-editor-summary { margin-bottom:12px!important; padding:12px 16px!important; }
+.world-editor-summary > summary { cursor:pointer; font-size:13px; font-weight:600; color:var(--muted); }
+.world-editor-summary[open] > summary { margin-bottom:16px; }
+.world-tab-viewport .editor-heading .eyebrow { display:none; }
+.wc-row-select { display:grid; gap:5px; width:100%; padding:0; border:0; background:transparent; text-align:left; color:inherit; cursor:pointer; text-transform:none; }
+.wc-row-select small { color:var(--muted); }
+.world-tab-viewport .wt-row, .world-tab-viewport .wc-row { padding:12px; }
+.world-tab-viewport .wt-detail, .world-tab-viewport .wc-detail { min-width:0; }
+.world-tab-viewport .wt-intro, .world-tab-viewport .wm-intro, .world-flags-intro { max-width:78ch; }
+.player-tab-viewport .trait-chip { gap:8px; }
+.player-tab-viewport .trait-chip-name { text-transform:none; font-size:12px; }
+.player-tab-viewport .raw-json-card, .world-tab-viewport .raw-json-card { max-width:820px; }
+.ini-search { width:min(100%,520px); min-height:42px; margin:20px 0 8px; }
+.ini-editor-heading .path { overflow-wrap:anywhere; }
+.ini-entry { min-height:48px; }
+.ini-entry input { min-width:0; min-height:40px; }
+@container editor-center (max-width:760px) {
+    .editor-section-picker { display:flex; gap:12px; align-items:center; margin:0 0 14px; font-size:13px; }
+    .editor-section-picker select { flex:1; min-width:0; min-height:44px; font-size:16px; }
+    .player-editor > .editor-tabs, .save-list > .world-tabs { display:none!important; }
+    .world-tab-viewport .wt-md, .world-tab-viewport .world-feature-panes, .world-tab-viewport .wc-split { grid-template-columns:minmax(0,1fr); height:auto; }
+    .world-tab-viewport .wt-list, .world-tab-viewport .wc-master, .world-tab-viewport .world-feature-list { max-height:320px; }
+    .world-tab-viewport .wc-detail { height:auto; min-height:160px; }
+    .player-tab-viewport .recipe-toolbar { display:flex; flex-wrap:wrap; }
+    .player-tab-viewport .recipe-toolbar input { flex:1 1 180px; min-width:0; }
+    .player-tab-viewport .general-account-row { grid-template-columns:minmax(0,1fr); }
+}
+@media(max-width:640px) {
+    .world-section-picker { display:flex; }
+    .save-list > .world-tabs { display:none!important; }
+    .player-tab-viewport .editor-card, .world-tab-viewport > .world-editor { padding:14px!important; }
+    .world-tab-viewport .editor-heading { flex-wrap:wrap; }
+}
+
+@container editor-center (max-width:760px) {
+    .achievements-toolbar, .wg-head { flex-wrap:wrap; }
+    .achievements-toolbar input[type=search] { flex:1 1 100%; min-width:0; }
+    .achievements-toolbar .compare-picker { min-width:0; max-width:100%; }
+    .wg-head .wg-title { flex-basis:100%; }
+    .wg-head .wg-summary { margin-right:auto; }
+    .wg-row .wg-texts { min-width:0; overflow-wrap:anywhere; }
+    .wg-row .wg-delete { flex-shrink:0; }
+}
+
+.ini-section h3 { min-width:0; overflow-wrap:anywhere; }

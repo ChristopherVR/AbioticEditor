@@ -341,6 +341,7 @@
     private bool _fileDrawer;
     private bool _detailsDrawer;
     private bool _hadSlotSelection;
+    private bool _hadDetailsAvailable;
     private string _filter = string.Empty;
     private bool _showAddPlayer;
     private string _newPlayerId = string.Empty;
@@ -372,11 +373,9 @@
     // the screen edge when hidden, exactly like the native rails.
     private bool FileShown => DrawerMode ? _fileDrawer : FileVisible;
     private bool DetailsShown => DrawerMode ? _detailsDrawer : DetailsVisible;
-    // The slot editor only means something once a save is open OR a live connection is up
-    // (PlayerEditor publishes the same palette context live, and InventorySlotEditor binds to
-    // InventorySelectionService either way - see LiveInventorySession); before either, the whole
-    // right pane and its rail stay out of the layout.
-    private bool DetailsAvailable => Workspace.Current?.SelectedSave is not null || Live.IsConnected;
+    // Reserve the side panel only for a palette or an actual selection. General forms
+    // and world lists use the space until an item or detail card needs it.
+    private bool DetailsAvailable => InventorySelection.HasAnySelection || InventorySelection.Palette is not null;
     private string FileClass => DrawerMode ? (_fileDrawer ? "file-drawer-open" : string.Empty) : (FileVisible ? string.Empty : "file-collapsed");
     private string DetailsClass => !DetailsAvailable
         ? "details-unavailable"
@@ -935,7 +934,9 @@
             }
         }
         _hadSlotSelection = hasSelection;
-        if (movedAPane) Refresh();
+        var availabilityChanged = _hadDetailsAvailable != DetailsAvailable;
+        _hadDetailsAvailable = DetailsAvailable;
+        if (movedAPane || availabilityChanged) Refresh();
     }
     private void ToggleAddPlayer() { _showAddPlayer = !_showAddPlayer; _addPlayerStatus = null; }
     private async Task AddPlayerAsync()

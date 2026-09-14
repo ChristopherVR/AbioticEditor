@@ -32,7 +32,6 @@
                 {
                     <span class="trait-chip @(_selectedTraitId == id ? "selected" : null)" title="@ChipTooltip(id)">
                         <button class="trait-chip-name" type="button" @onclick="() => SelectTrait(id)">@DisplayNameFor(id)</button>
-                        <small class="trait-chip-id">@id</small>
                         <button class="trait-chip-remove" type="button" aria-label="@($"{L.Detail("remove")} {DisplayNameFor(id)}")" @onclick="() => RemoveTrait(id)">&#x2715;</button>
                     </span>
                 }
@@ -82,7 +81,6 @@
                 {
                     <span class="trait-chip" title="@ChipTooltip(id)">
                         <span class="trait-chip-name">@DisplayNameFor(id)</span>
-                        <small class="trait-chip-id">@id</small>
                     </span>
                 }
             </div>

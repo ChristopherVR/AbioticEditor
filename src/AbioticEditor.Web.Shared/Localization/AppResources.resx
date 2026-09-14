@@ -164,7 +164,7 @@
   <data name="PlayerAchievements_SignOutTooltip" xml:space="preserve"><value>Clears the stored Steam session cookie from memory and secure storage.</value></data>
   <data name="PlayerAchievements_SignedIn" xml:space="preserve"><value>SIGNED IN ·</value></data>
   <data name="PlayerAchievements_SignedInTooltip" xml:space="preserve"><value>A Steam session cookie is stored (OS-protected) - CHECK STEAM queries as that account.</value></data>
-  <data name="PlayerAchievements_SteamAchievements" xml:space="preserve"><value>STEAM ACHIEVEMENTS</value></data>
+  <data name="PlayerAchievements_SteamAchievements" xml:space="preserve"><value>Steam achievements</value></data>
   <data name="PlayerAchievements_ViewInBrowser" xml:space="preserve"><value>VIEW IN BROWSER</value></data>
   <data name="PlayerAchievements_ViewInBrowserTooltip" xml:space="preserve"><value>Opens Steam's own sign-in page in your browser, then shows this profile's Abiotic Factor achievements there. Your password stays with Steam.</value></data>
 
@@ -172,8 +172,8 @@
   <data name="PlayerCharacter_Add" xml:space="preserve"><value>ADD</value></data>
   <data name="PlayerCharacter_AppearanceHeadHairClothing" xml:space="preserve"><value>APPEARANCE (HEAD / HAIR / CLOTHING)</value></data>
   <data name="PlayerCharacter_Background" xml:space="preserve"><value>BACKGROUND</value></data>
-  <data name="PlayerCharacter_BackgroundHelp" xml:space="preserve"><value>Changing the background does not hand out its skill bonuses or starting gear again. It only changes which job your character is listed as.</value></data>
-  <data name="PlayerCharacter_Character" xml:space="preserve"><value>CHARACTER</value></data>
+  <data name="PlayerCharacter_BackgroundHelp" xml:space="preserve"><value>Changes your listed job only. Starting gear and skill bonuses stay the same.</value></data>
+  <data name="PlayerCharacter_Character" xml:space="preserve"><value>Character</value></data>
   <data name="PlayerCharacter_NoTraitsMatch" xml:space="preserve"><value>No traits match (or all are already applied).</value></data>
   <data name="PlayerCharacter_SaveAppearance" xml:space="preserve"><value>SAVE APPEARANCE</value></data>
   <data name="PlayerCharacter_SearchTraitsPlaceholder" xml:space="preserve"><value>Search traits to add...</value></data>
@@ -207,7 +207,7 @@
   <data name="PlayerEditor_Achieve" xml:space="preserve"><value>Achievements</value></data>
   <data name="PlayerEditor_Character" xml:space="preserve"><value>Character</value></data>
   <data name="PlayerEditor_Companions" xml:space="preserve"><value>Companions</value></data>
-  <data name="PlayerEditor_Data" xml:space="preserve"><value>Data</value></data>
+  <data name="PlayerEditor_Data" xml:space="preserve"><value>Advanced data</value></data>
   <data name="PlayerEditor_Gatepal" xml:space="preserve"><value>GATEPAL</value></data>
   <data name="PlayerEditor_General" xml:space="preserve"><value>General</value></data>
   <data name="PlayerEditor_Inventory" xml:space="preserve"><value>Inventory</value></data>
@@ -231,13 +231,13 @@
   <data name="PlayerGeneral_ChangeSteamIdHelp" xml:space="preserve"><value>Hands this character over to a different account. Beds they claimed in the world move across with them.</value></data>
   <data name="PlayerGeneral_DiscoverAll" xml:space="preserve"><value>DISCOVER ALL</value></data>
   <data name="PlayerGeneral_DiscoverAllItemsTooltip" xml:space="preserve"><value>Adds every catalog item to this player's seen-items list. Effect: no more yellow NEW badges in the inventory, and pickup-gated compendium hints treat everything as encountered. No quest or stat impact.</value></data>
-  <data name="PlayerGeneral_ItemsSeenHelp" xml:space="preserve"><value>Stops the game putting a NEW badge on items you have not come across yet.</value></data>
-  <data name="PlayerGeneral_ItemsCraftedHelp" xml:space="preserve"><value>Records these as things you have made before. A few in-game hints only appear once you have crafted something.</value></data>
+  <data name="PlayerGeneral_ItemsSeenHelp" xml:space="preserve"><value>Removes the NEW badge from these items.</value></data>
+  <data name="PlayerGeneral_ItemsCraftedHelp" xml:space="preserve"><value>Marks items as crafted, including their crafting hints.</value></data>
   <data name="PlayerGeneral_ItemsCraftedLiveReadOnlyHelp" xml:space="preserve"><value>Read-only live: the running game tracks crafted items on its own but has no function to mark one crafted on demand.</value></data>
   <data name="PlayerGeneral_OwnerIdUnknown" xml:space="preserve"><value>(unknown)</value></data>
-  <data name="PlayerGeneral_MapsHelp" xml:space="preserve"><value>Reveals the sector map pamphlets in the GATEPal map screen, as though you had picked every one of them up.</value></data>
-  <data name="PlayerGeneral_DiscoveryHelp" xml:space="preserve"><value>None of these three advance quests, open doors or change your stats.</value></data>
-  <data name="PlayerGeneral_General" xml:space="preserve"><value>GENERAL</value></data>
+  <data name="PlayerGeneral_MapsHelp" xml:space="preserve"><value>Reveals sector maps in GATEPal.</value></data>
+  <data name="PlayerGeneral_DiscoveryHelp" xml:space="preserve"><value>Discovery changes do not advance quests, open doors, or change stats.</value></data>
+  <data name="PlayerGeneral_General" xml:space="preserve"><value>General</value></data>
   <data name="PlayerGeneral_ItemsCrafted" xml:space="preserve"><value>ITEMS CRAFTED</value></data>
   <data name="PlayerGeneral_ItemsSeen" xml:space="preserve"><value>ITEMS SEEN</value></data>
   <data name="PlayerGeneral_Maps" xml:space="preserve"><value>MAPS</value></data>
@@ -245,7 +245,7 @@
   <data name="PlayerGeneral_Recipes" xml:space="preserve"><value>RECIPES</value></data>
   <data name="PlayerGeneral_ReadingGameFiles" xml:space="preserve"><value>Reading your installed game to find out what can be unlocked. This takes a moment the first time.</value></data>
   <data name="PlayerGeneral_ReadingGameFilesShort" xml:space="preserve"><value>reading your installed game...</value></data>
-  <data name="PlayerGeneral_RecipesHelp" xml:space="preserve"><value>Browse and toggle individual recipes in the RECIPES tab above.</value></data>
+  <data name="PlayerGeneral_RecipesHelp" xml:space="preserve"><value>Use Recipes to choose individual unlocks.</value></data>
   <data name="PlayerGeneral_SteamId64" xml:space="preserve"><value>STEAM ID 64</value></data>
   <data name="PlayerGeneral_UnlockAll" xml:space="preserve"><value>UNLOCK ALL</value></data>
 
@@ -384,7 +384,7 @@
   <data name="PlayerInventory_Equipment" xml:space="preserve"><value>EQUIPMENT</value></data>
   <data name="PlayerInventory_GroundNearbyHelp" xml:space="preserve"><value>Items lying within reach of where this character last stood. PICK UP puts one in the first empty backpack slot, and SAVE writes it and clears it off the ground. DISCARD leaves it where it is.</value></data>
   <data name="PlayerInventory_Hotbar" xml:space="preserve"><value>HOTBAR</value></data>
-  <data name="PlayerInventory_Inventory" xml:space="preserve"><value>INVENTORY</value></data>
+  <data name="PlayerInventory_Inventory" xml:space="preserve"><value>Inventory</value></data>
   <data name="PlayerInventory_LiveMoneyHint" xml:space="preserve"><value>Money changes live on the VITALS tab instead.</value></data>
   <data name="PlayerInventory_Money" xml:space="preserve"><value>MONEY</value></data>
   <data name="PlayerInventory_Occupied" xml:space="preserve"><value>OCCUPIED</value></data>
@@ -395,7 +395,7 @@
   <data name="PlayerInventory_Weight" xml:space="preserve"><value>WEIGHT</value></data>
 
   <!-- PlayerPets -->
-  <data name="PlayerPets_CarriedPetsCompanions" xml:space="preserve"><value>CARRIED PETS / COMPANIONS</value></data>
+  <data name="PlayerPets_CarriedPetsCompanions" xml:space="preserve"><value>Carried pets</value></data>
   <data name="PlayerPets_CarryOverHelp" xml:space="preserve"><value>Health, level and name carry over. Save other player edits first.</value></data>
   <data name="PlayerPets_Heal" xml:space="preserve"><value>HEAL</value></data>
   <data name="PlayerPets_Health" xml:space="preserve"><value>HEALTH</value></data>
@@ -421,7 +421,7 @@
   <!-- PlayerRaw -->
   <data name="PlayerRaw_ExportJsonAndOpen" xml:space="preserve"><value>EXPORT RAW JSON</value></data>
   <data name="PlayerRaw_ImportJsonToSave" xml:space="preserve"><value>IMPORT RAW JSON</value></data>
-  <data name="PlayerRaw_RawSaveJson" xml:space="preserve"><value>RAW JSON</value></data>
+  <data name="PlayerRaw_RawSaveJson" xml:space="preserve"><value>Advanced data</value></data>
   <data name="PlayerRaw_RawSaveJsonHelp" xml:space="preserve"><value>This save is too big to edit comfortably here. EXPORT RAW JSON writes it all out next to the save and shows it in your file manager. Edit it in any text editor, then press IMPORT RAW JSON to put it back.</value></data>
 
   <!-- PlayerRecipes -->
@@ -430,7 +430,7 @@
   <data name="PlayerRecipes_LiveUnlockOnlyHelp" xml:space="preserve"><value>Live editing can only unlock a recipe, never lock one back up - the running game has no way to take an unlock back.</value></data>
   <data name="PlayerRecipes_Ingredients" xml:space="preserve"><value>INGREDIENTS</value></data>
   <data name="PlayerRecipes_NoRecipesMatch" xml:space="preserve"><value>No recipes match (or game data is unavailable).</value></data>
-  <data name="PlayerRecipes_RecipeBook" xml:space="preserve"><value>RECIPE BOOK</value></data>
+  <data name="PlayerRecipes_RecipeBook" xml:space="preserve"><value>Recipe book</value></data>
   <data name="PlayerRecipes_SearchPlaceholder" xml:space="preserve"><value>Search recipes by item name or id…</value></data>
   <data name="PlayerRecipes_SoldBy" xml:space="preserve"><value>SOLD BY</value></data>
   <data name="PlayerRecipes_Tags" xml:space="preserve"><value>TAGS</value></data>
@@ -445,7 +445,7 @@
   <data name="PlayerSkills_MaxAll" xml:space="preserve"><value>MAX ALL</value></data>
   <data name="PlayerSkills_MilestoneHelp" xml:space="preserve"><value>Tap a milestone for its full detail in the slot panel. Milestone counts vary per skill, and locked perks stay sealed (hidden in-game) until you reach the level - or tap one to override clearance.</value></data>
   <data name="PlayerSkills_RawXpTooltip" xml:space="preserve"><value>Exact XP. The level follows from it.</value></data>
-  <data name="PlayerSkills_Skills" xml:space="preserve"><value>SKILLS</value></data>
+  <data name="PlayerSkills_Skills" xml:space="preserve"><value>Skills</value></data>
   <data name="PlayerSkills_XpRate" xml:space="preserve"><value>XP RATE</value></data>
   <data name="PlayerSkills_XpRateTooltip" xml:space="preserve"><value>How fast this skill earns XP. 100% is normal; raise it to level this skill faster, lower it to slow it down.</value></data>
   <data name="PlayerSkills_XpSliderTooltip" xml:space="preserve"><value>Drag to set the exact XP. The level follows from it.</value></data>
@@ -462,7 +462,7 @@
   <data name="PlayerSpawn_RespawnTerminal" xml:space="preserve"><value>RESPAWN TERMINAL</value></data>
   <data name="PlayerSpawn_SetAsMyRespawnPoint" xml:space="preserve"><value>SET AS MY RESPAWN POINT</value></data>
   <data name="PlayerSpawn_SetSpawnHere" xml:space="preserve"><value>SET SPAWN HERE</value></data>
-  <data name="PlayerSpawn_SpawnAndHome" xml:space="preserve"><value>SPAWN &amp; HOME</value></data>
+  <data name="PlayerSpawn_SpawnAndHome" xml:space="preserve"><value>Spawn and home</value></data>
   <data name="PlayerSpawn_SpawnHelp" xml:space="preserve"><value>The spawn point is the last safe spot, in the area shown above. SET SPAWN HERE copies a bed's position, so pick the area that bed is in if it differs. Sleeping bags let you rest without moving your spawn.</value></data>
   <data name="PlayerSpawn_TeleportHere" xml:space="preserve"><value>TELEPORT ME HERE</value></data>
   <data name="PlayerSpawn_UseCurrentPosition" xml:space="preserve"><value>USE MY CURRENT POSITION</value></data>
@@ -471,17 +471,17 @@
   <data name="PlayerSpawn_Z" xml:space="preserve"><value>Z</value></data>
 
   <!-- PlayerTransmog -->
-  <data name="PlayerTransmog_ArmorTransmog" xml:space="preserve"><value>ARMOR TRANSMOG</value></data>
-  <data name="PlayerTransmog_TransmogHelp" xml:space="preserve"><value>The look worn over each armor slot, the same as the Transmogrifier's purple slots. Only the appearance changes, and your real gear keeps its stats. Tap a slot to change it, then press SAVE.</value></data>
+  <data name="PlayerTransmog_ArmorTransmog" xml:space="preserve"><value>Armor appearance</value></data>
+  <data name="PlayerTransmog_TransmogHelp" xml:space="preserve"><value>Change how armor looks without changing its stats. Select a slot to choose an appearance, then save.</value></data>
   <data name="PlayerTransmog_ExtraSlotFormat" xml:space="preserve"><value>Extra slot {0}</value></data>
   <data name="PlayerTransmog_LiveVisibilityAppliesHint" xml:space="preserve"><value>Applies live immediately - each toggle takes effect in the running game the moment you click it.</value></data>
-  <data name="PlayerTransmog_Visibility" xml:space="preserve"><value>VISIBILITY (the eye toggles; unchecked hides that armor piece's visuals entirely)</value></data>
+  <data name="PlayerTransmog_Visibility" xml:space="preserve"><value>Visible armor (uncheck to hide)</value></data>
 
   <!-- PlayerVitals -->
-  <data name="PlayerVitals_BodyHealth" xml:space="preserve"><value>BODY HEALTH</value></data>
-  <data name="PlayerVitals_CharacterStats" xml:space="preserve"><value>CHARACTER STATS</value></data>
+  <data name="PlayerVitals_BodyHealth" xml:space="preserve"><value>Body health</value></data>
+  <data name="PlayerVitals_CharacterStats" xml:space="preserve"><value>Survival</value></data>
   <data name="PlayerVitals_Continence" xml:space="preserve"><value>CONTINENCE</value></data>
-  <data name="PlayerVitals_CurrentMoney" xml:space="preserve"><value>CURRENT MONEY</value></data>
+  <data name="PlayerVitals_CurrentMoney" xml:space="preserve"><value>Money</value></data>
   <data name="PlayerVitals_Fatigue" xml:space="preserve"><value>FATIGUE</value></data>
   <data name="PlayerVitals_Head" xml:space="preserve"><value>HEAD</value></data>
   <data name="PlayerVitals_HealAll" xml:space="preserve"><value>HEAL ALL</value></data>
@@ -583,7 +583,7 @@
 
   <!-- WorldBases -->
   <data name="WorldBases_BaseManager" xml:space="preserve"><value>BASE MANAGER</value></data>
-  <data name="WorldBases_BaseManagerIntro" xml:space="preserve"><value>Crafting benches anchor a base; everything deployed within ~30 m joins it. Select a base to see its composition and find it on the map (benches orange, containers green). Click one of its containers below and it opens right here over the map for editing.</value></data>
+  <data name="WorldBases_BaseManagerIntro" xml:space="preserve"><value>Select a base to view its map and contents. Bases group objects within about 30 m of a crafting bench. Select a container to edit it.</value></data>
   <data name="WorldBases_HowToHint" xml:space="preserve"><value>Once a base is selected you can tick the upgrades fitted to each of its benches, and open any of its containers to change how many of an item it holds.</value></data>
   <data name="WorldBases_ContainerEditHint" xml:space="preserve"><value>Change a number to set how many of that item the container holds.</value></data>
   <data name="WorldBases_CloseContainerTooltip" xml:space="preserve"><value>Close the container and show the base map again</value></data>
@@ -621,7 +621,7 @@
   <data name="WorldContainment_Contained" xml:space="preserve"><value>CONTAINED</value></data>
   <data name="WorldContainment_ContainedIn" xml:space="preserve"><value>CONTAINED IN</value></data>
   <data name="WorldContainment_ContainmentUnits" xml:space="preserve"><value>CONTAINMENT UNITS</value></data>
-  <data name="WorldContainment_ContainmentUnitsIntro" xml:space="preserve"><value>Every containment unit you have placed anywhere in the world, whether or not something is inside. Use HOLDS to move a creature into a unit, take it out, or put the two creatures in each other's unit. Tap an occupied unit to see what is inside and where it stands. A creature can only be in one unit at a time.</value></data>
+  <data name="WorldContainment_ContainmentUnitsIntro" xml:space="preserve"><value>Use Holds to move or swap contained creatures. Select an occupied unit for details. Each creature can occupy one unit.</value></data>
   <data name="WorldContainment_DiscoverAll" xml:space="preserve"><value>DISCOVER ALL</value></data>
   <data name="WorldContainment_ConfirmDiscoverAll" xml:space="preserve"><value>This marks every item in the game as already seen by everyone in this world, so nothing carries a NEW badge any more. It cannot be undone except by reverting your unsaved changes.</value></data>
   <data name="WorldContainment_ConfirmReadAll" xml:space="preserve"><value>This marks every e-mail in the game as read for this world. It cannot be undone except by reverting your unsaved changes.</value></data>
@@ -638,7 +638,7 @@
   <data name="WorldContainment_ReleaseTooltip" xml:space="preserve"><value>Lets this creature escape. REVERT puts it back.</value></data>
   <data name="WorldContainment_UnlockAll" xml:space="preserve"><value>UNLOCK ALL</value></data>
   <data name="WorldContainment_WorldUnlocks" xml:space="preserve"><value>WORLD UNLOCKS</value></data>
-  <data name="WorldContainment_WorldUnlocksIntro" xml:space="preserve"><value>Some discoveries are shared by everyone in the world: items seen, emails, journal pages and compendium sections found by any player show up here. Unlocking in bulk only adds, never removes.</value></data>
+  <data name="WorldContainment_WorldUnlocksIntro" xml:space="preserve"><value>Shared discoveries for every player. Bulk unlocks add entries without removing existing ones.</value></data>
 
   <!-- WorldDoors -->
   <data name="WorldDoors_AlreadyOpenedOneWay" xml:space="preserve"><value>ALREADY OPENED (ONE-WAY)</value></data>
@@ -701,7 +701,7 @@
   <data name="WorldDropped_Delete" xml:space="preserve"><value>DELETE</value></data>
   <data name="WorldDropped_DeleteAllShown" xml:space="preserve"><value>DELETE ALL SHOWN</value></data>
   <data name="WorldDropped_FilterPlaceholder" xml:space="preserve"><value>Filter ground items by name or id…</value></data>
-  <data name="WorldDropped_GroundItemsIntro" xml:space="preserve"><value>Old worlds build up hundreds of loose items, and that really does cost in-game performance. Mark what you want gone here. Search to find specific litter, such as 'rotten'.</value></data>
+  <data name="WorldDropped_GroundItemsIntro" xml:space="preserve"><value>Find and remove loose items from this region. Search by item name to narrow the list.</value></data>
   <data name="WorldDropped_ItemsOnTheGround" xml:space="preserve"><value>ITEMS ON THE GROUND</value></data>
   <data name="WorldDropped_NoGroundItems" xml:space="preserve"><value>No ground items match.</value></data>
   <data name="WorldDropped_Restore" xml:space="preserve"><value>RESTORE</value></data>
@@ -758,7 +758,7 @@
   <data name="WorldFlags_Clear" xml:space="preserve"><value>CLEAR</value></data>
   <data name="WorldFlags_Set" xml:space="preserve"><value>SET</value></data>
   <data name="WorldFlags_FilterPlaceholder" xml:space="preserve"><value>Filter by area or name…</value></data>
-  <data name="WorldFlags_FlagsIntro" xml:space="preserve"><value>These are the story events this area has already reached. The whole world shares one story, so switching an event on here can also move things along elsewhere. Switching one off rewinds that event.</value></data>
+  <data name="WorldFlags_FlagsIntro" xml:space="preserve"><value>Events reached in this region. Changes can affect progress elsewhere in the world; turning an event off rewinds it.</value></data>
   <data name="WorldFlags_HowQuestsWork" xml:space="preserve"><value>HOW QUESTS WORK</value></data>
   <data name="WorldFlags_HowQuestsWorkBody" xml:space="preserve"><value>The world remembers what has happened: a door opened, someone met, a sector finished. The main story runs in order: Office, Manufacturing West, Labs, Security, Hydroplant, Reactors, Residence. TOGGLE turns an event on or off. Turning one on makes the world believe it happened, so you skip ahead. Turning one off rewinds it, though doors and items it already changed stay as they are. The rest only control small things like tutorial pop-ups and TV tips.</value></data>
   <data name="WorldFlags_InThisFile" xml:space="preserve"><value>IN THIS AREA</value></data>
@@ -768,7 +768,7 @@
 
   <!-- WorldNpcs -->
   <data name="WorldNpcs_NoNarrativeNpcs" xml:space="preserve"><value>No story NPCs or traders found here.</value></data>
-  <data name="WorldNpcs_NpcsIntro" xml:space="preserve"><value>The story characters and traders in this area. You can mark one dead, use REVIVE to bring them back, or adjust their story stage - hover over STORY STAGE first if you're not sure what value to pick, since the wrong one can leave their dialogue or shop out of sync with the rest of the story. Tamed pets have their own PETS tab.</value></data>
+  <data name="WorldNpcs_NpcsIntro" xml:space="preserve"><value>Select a story character to edit health or story stage. Read the stage tooltip first: an incorrect value can disrupt dialogue or shops. Pets have their own tab.</value></data>
   <data name="WorldNpcs_Revive" xml:space="preserve"><value>REVIVE</value></data>
   <data name="WorldNpcs_ReviveTooltip" xml:space="preserve"><value>Bring this character back to life at their usual story stage. Most of the dead ones left as part of the story, so reviving can bring back someone the plot already moved on from.</value></data>
   <data name="WorldNpcs_ScriptPhase" xml:space="preserve"><value>STORY STAGE</value></data>
@@ -793,7 +793,7 @@
   <data name="WorldPets_NameYourPet" xml:space="preserve"><value>name your pet…</value></data>
   <data name="WorldPets_NoPetsInThisWorldSave" xml:space="preserve"><value>No pets in this world save.</value></data>
   <data name="WorldPets_PerLimbHealthHelp" xml:space="preserve"><value>Health is tracked limb by limb. The game does not record a maximum, so HEAL brings every limb up to the pet's healthiest one. A pet with every limb at 0 is downed, which means critically wounded.</value></data>
-  <data name="WorldPets_PetListIntro" xml:space="preserve"><value>Click a pet to edit it: rename it, heal it, down or revive it, set its level, or change what kind of creature it is. Delete removes it from the world. Armor-set summons (Exor, Mystagogue) are shown but cannot be edited.</value></data>
+  <data name="WorldPets_PetListIntro" xml:space="preserve"><value>Select a pet to edit its name, health, level, or species. Delete removes it. Armor-set summons are read-only.</value></data>
   <data name="WorldPets_Revive" xml:space="preserve"><value>REVIVE</value></data>
   <data name="WorldPets_SelectAPetToEditIt" xml:space="preserve"><value>Select a pet to edit it.</value></data>
   <data name="WorldPets_SendToAPlayer" xml:space="preserve"><value>SEND TO A PLAYER</value></data>
@@ -808,8 +808,8 @@
   <data name="WorldRaw_ImportJsonSave" xml:space="preserve"><value>IMPORT RAW JSON</value></data>
   <data name="Common_ChooseJsonFile" xml:space="preserve"><value>Choose the save JSON to import</value></data>
   <data name="Common_ImportJsonCancelled" xml:space="preserve"><value>No file was chosen, so the save was not replaced.</value></data>
-  <data name="WorldRaw_RawJsonIntro" xml:space="preserve"><value>World saves get very large (the main facility one is around 100 MB), so editing it here is not practical. EXPORT RAW JSON writes it out next to the save and shows it in your file manager. IMPORT RAW JSON puts your edited version back.</value></data>
-  <data name="WorldRaw_RawSaveJson" xml:space="preserve"><value>RAW JSON</value></data>
+  <data name="WorldRaw_RawJsonIntro" xml:space="preserve"><value>Advanced: export the save as JSON, edit it in a text editor, then import the edited file. Normal editing tabs are easier to use.</value></data>
+  <data name="WorldRaw_RawSaveJson" xml:space="preserve"><value>Advanced data</value></data>
 
   <!-- WorldStory -->
   <data name="WorldStory_ChaptersHeader" xml:space="preserve"><value>Choose a chapter</value></data>
@@ -874,7 +874,7 @@
   <data name="WorldTraders_UnlockNoOtherTraders" xml:space="preserve"><value>No other traders are affected.</value></data>
   <data name="WorldTraders_UnlockConfirmAccept" xml:space="preserve"><value>Write the flags</value></data>
   <data name="WorldTraders_Traders" xml:space="preserve"><value>TRADERS</value></data>
-  <data name="WorldTraders_TradersIntro" xml:space="preserve"><value>Everyone who barters in the facility. A trader, and parts of their stock, only turns up once you have reached the right point in the story. Tap a card to open it on the side, look at each item, and pick exactly which locked ones to unlock. Trading is barter, so no money changes hands.</value></data>
+  <data name="WorldTraders_TradersIntro" xml:space="preserve"><value>Select a trader to inspect stock and unlock requirements. Availability depends on story progress.</value></data>
   <data name="WorldTraders_SnapshotTitle" xml:space="preserve"><value>Built-in trader data</value></data>
   <data name="WorldTraders_SnapshotBody" xml:space="preserve"><value>The game isn't loaded, so this shows the editor's built-in trader snapshot. The trades and the world flags that unlock them (for example Dr. Carson's gear) are accurate and editable here, but item names and icons need the installed game. To load it, use Settings &gt; Game Data ("Locate game folder"); auto-detection only finds Steam installs, so Game Pass, Epic, or moved libraries need to be set manually.</value></data>
 
@@ -891,7 +891,7 @@
   <data name="WorldVehicles_ResetToSpawn" xml:space="preserve"><value>RESET TO SPAWN</value></data>
   <data name="WorldVehicles_SelectAVehicleToEditIt" xml:space="preserve"><value>Select a vehicle to edit it.</value></data>
   <data name="WorldVehicles_State" xml:space="preserve"><value>STATE</value></data>
-  <data name="WorldVehicles_VehicleListIntro" xml:space="preserve"><value>Click a vehicle to edit it: make it drivable or wrecked, move it, put it back where it started, or open its on-board storage.</value></data>
+  <data name="WorldVehicles_VehicleListIntro" xml:space="preserve"><value>Select a vehicle to change its condition, move it, restore its position, or open its storage.</value></data>
   <data name="WorldVehicles_VehiclesInThisWorld" xml:space="preserve"><value>VEHICLES IN THIS WORLD</value></data>
   <data name="WorldVehicles_Wrecked" xml:space="preserve"><value>WRECKED</value></data>
   <data name="Compare_Title" xml:space="preserve">
@@ -3568,15 +3568,15 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldEditor_TabContainers" xml:space="preserve"><value>Containers</value></data>
   <data name="WorldEditor_TabQuestFlags" xml:space="preserve"><value>Story events</value></data>
   <data name="WorldEditor_TabDoors" xml:space="preserve"><value>Doors</value></data>
-  <data name="WorldEditor_TabDropped" xml:space="preserve"><value>Dropped</value></data>
-  <data name="WorldEditor_TabNpcs" xml:space="preserve"><value>Npcs</value></data>
+  <data name="WorldEditor_TabDropped" xml:space="preserve"><value>Ground items</value></data>
+  <data name="WorldEditor_TabNpcs" xml:space="preserve"><value>Characters</value></data>
   <data name="WorldEditor_TabPets" xml:space="preserve"><value>Pets</value></data>
   <data name="WorldEditor_TabVehicles" xml:space="preserve"><value>Vehicles</value></data>
   <data name="WorldEditor_TabBases" xml:space="preserve"><value>Bases</value></data>
   <data name="WorldEditor_TabStory" xml:space="preserve"><value>Story</value></data>
   <data name="WorldEditor_TabTraders" xml:space="preserve"><value>Traders</value></data>
   <data name="WorldEditor_TabContainment" xml:space="preserve"><value>Containment</value></data>
-  <data name="WorldEditor_TabRawJson" xml:space="preserve"><value>Raw</value></data>
+  <data name="WorldEditor_TabRawJson" xml:space="preserve"><value>Advanced data</value></data>
   <data name="WorldFeature_TitleFormat" xml:space="preserve"><value>{0} IN THIS WORLD</value></data>
   <data name="WorldEditor_ExportingJson" xml:space="preserve"><value>Writing the raw JSON... (the main facility save makes a file of about 100 MB, so this can take a moment)</value></data>
   <data name="WorldEditor_ExportedJsonFormat" xml:space="preserve"><value>Done - wrote {0:F1} MB → {1}</value></data>
@@ -4152,4 +4152,9 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Editing_SearchWorlds" xml:space="preserve"><value>Find a world by name or platform</value></data>
   <data name="Editing_NoWorldMatches" xml:space="preserve"><value>No matching worlds. Try another name or clear the search.</value></data>
   <data name="Editing_OpenWorld" xml:space="preserve"><value>Open {0}</value></data>
+  <data name="Editing_WorldOverview" xml:space="preserve"><value>World details and time</value></data>
+  <data name="Editing_SelectNpc" xml:space="preserve"><value>Select a character to edit it.</value></data>
+  <data name="Editing_FindSetting" xml:space="preserve"><value>Find a setting or section</value></data>
+  <data name="Editing_NoSettingMatches" xml:space="preserve"><value>No matching settings. Try another name or clear the search.</value></data>
+  <data name="Editing_LiveAppearanceHelp" xml:space="preserve"><value>Select a slot to change its appearance. Live changes apply immediately; equipment stats stay the same.</value></data>
 </root>

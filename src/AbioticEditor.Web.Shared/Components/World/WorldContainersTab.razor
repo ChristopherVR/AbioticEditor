@@ -45,12 +45,13 @@
                        the game files it under is not shown anywhere: it is not something a
                        player can act on. *@
                     <div class="wc-row @(_selectedKey == key ? "selected" : null)" role="listitem" @key="ContainerKey(container)"
-                         @onclick="() => TapContainer(container)"
                          @ondragover:preventDefault
                          @ondrop="() => DropOnContainer(container)">
+                        <button class="wc-row-select" type="button" @onclick="() => TapContainer(container)">
                         <strong>@DisplayName(container)</strong>
                         <span class="wc-count">@CountText(container)</span>
                         <small>@WhereText(container)</small>
+                        </button>
                     </div>
                 }
             </div>

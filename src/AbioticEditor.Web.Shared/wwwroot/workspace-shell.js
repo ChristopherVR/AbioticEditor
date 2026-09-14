@@ -46,6 +46,7 @@ let viewport = null;
 
 export function watch(dotnet) {
     unwatch();
+    document.addEventListener("keydown", navigateSections);
     const drawer = window.matchMedia("(max-width: 899.98px)");
     const compact = window.matchMedia("(max-width: 1149.98px)");
     const notify = () => dotnet
@@ -58,8 +59,22 @@ export function watch(dotnet) {
 }
 
 export function unwatch() {
+    document.removeEventListener("keydown", navigateSections);
     if (!viewport) return;
     viewport.drawer.removeEventListener("change", viewport.notify);
     viewport.compact.removeEventListener("change", viewport.notify);
     viewport = null;
+}
+
+// The tab strip is one keyboard stop; arrow keys choose its neighboring section.
+function navigateSections(event) {
+    const tab = event.target.closest('.editor-tabs [role="tab"], .world-tabs [role="tab"]');
+    if (!tab || tab.closest('[inert]') || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    const tabs = [...tab.closest('[role="tablist"]').querySelectorAll('[role="tab"]')];
+    const step = event.key === "ArrowLeft" ? -1 : 1;
+    const index = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1
+        : (tabs.indexOf(tab) + step + tabs.length) % tabs.length;
+    event.preventDefault();
+    tabs[index].focus();
+    tabs[index].click();
 }

@@ -11,9 +11,9 @@
         </select>
     </label>
     <nav class="editor-tabs" role="tablist" aria-label="@Languages.Resource("PlayerUi_PlayerEditorSections")">
-        @foreach (var tab in Tabs) { <button type="button" role="tab" class="editor-tab @(ActiveTab == tab.Id ? "active" : null)" aria-selected="@(ActiveTab == tab.Id)" @onclick="() => ActiveTab = tab.Id">@Languages.Resource(tab.LabelKey)</button> }
+        @foreach (var tab in Tabs) { <button type="button" id="@($"player-section-{tab.Id}")" aria-controls="player-section-panel" tabindex="@(ActiveTab == tab.Id ? 0 : -1)" role="tab" class="editor-tab @(ActiveTab == tab.Id ? "active" : null)" aria-selected="@(ActiveTab == tab.Id ? "true" : "false")" @onclick="() => ActiveTab = tab.Id">@Languages.Resource(tab.LabelKey)</button> }
     </nav>
-    <div class="player-tab-viewport">
+    <div class="player-tab-viewport" id="player-section-panel" role="tabpanel" aria-labelledby="@($"player-section-{ActiveTab}")" tabindex="0">
     @if (ActiveTab == LoadingTabId && LoadingContent is not null)
     {
         @LoadingContent

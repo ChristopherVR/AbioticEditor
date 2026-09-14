@@ -5,6 +5,30 @@ time; they are not a current feature list or test-count guarantee. The maintaine
 are `README.md`, `docs/guide/index.md`, and `docs/reference/architecture.md`.
 
 
+## Open-world tab refinement (2026-09-15)
+
+Reviewed Cascade in the browser: all 12 player tabs, 18 populated Facility tabs, five
+metadata/story tabs, the four GATEPal sections, and six configuration files. Non-inventory
+tabs no longer reserve an empty right-hand panel. Item palettes and selected detail cards
+still open there. This gives ordinary player/world forms about 390px more room at 1440px.
+
+Player and world sections now have named panels, one keyboard tab stop and arrow/Home/End
+navigation. World tabs use a section selector when the editing area is narrow. World overview
+and clock controls open on demand. Shared tab cards have more readable labels, spacing and
+instructions. Removed duplicate Transmog headings and trait IDs from chips, distinguished
+live appearance instructions, labelled vital sliders, corrected the NPC empty prompt, and
+made container rows keyboard-operable. Feature tab names no longer force capitals.
+
+All configuration files gain a setting/section filter and no-results feedback. Browser checks
+found and fixed narrow-screen overflow in Achievements, Ground items, and long configuration
+section headings. Populated player, region and story tabs were swept at 390px; region tabs
+were also swept at 1440px. Tested tab keyboard navigation and selecting a container with Enter.
+No save values or game files were written. Gameplay/live behavior was not changed or tested.
+
+Verification: full suite passed 1,270 tests with one missing-Lua-executable skip. Final focused
+localization, visual-contract, live-inventory UI and shell checks passed 27 tests. Final host
+build passed without warnings or errors. New labels use the standard translation fallback.
+
 ## Start screen and Settings refinement (2026-09-15)
 
 The empty workspace now hides the unused save sidebar, splitter and selection-status row.

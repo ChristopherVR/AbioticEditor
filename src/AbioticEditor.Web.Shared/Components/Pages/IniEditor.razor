@@ -27,11 +27,15 @@ else if (IniSessions.Current is { } document)
                 <div class="editor-actions"><button class="secondary" @onclick="Revert">@Languages.Resource("Ini_Revert")</button><button class="primary" disabled="@(!document.IsDirty)" @onclick="Save">@Languages.Resource("Ini_SaveIni")</button></div></header>
             @if (_error is not null) { <p class="error" role="alert">@_error</p> }
             @if (document.StatusResourceKey is not null) { <p class="editor-status">@Languages.Resource(document.StatusResourceKey, document.FileName)</p> }
-            @foreach (var draft in document.Sections) {
+            <input class="ini-search" type="search" @bind="_filter" @bind:event="oninput" placeholder="@Languages.Resource("Editing_FindSetting")" aria-label="@Languages.Resource("Editing_FindSetting")" />
+            @{ var visibleSections = document.Sections.Where(section => section.Header.Contains(_filter, StringComparison.OrdinalIgnoreCase)
+                || section.Entries.Any(entry => entry.Key.Contains(_filter, StringComparison.OrdinalIgnoreCase))).ToList(); }
+            @if (visibleSections.Count == 0) { <p role="status">@Languages.Resource("Editing_NoSettingMatches")</p> }
+            @foreach (var draft in visibleSections) {
                 <section class="ini-section"><header><h3>@draft.Header</h3>
                     @if (draft.SuggestedNewKey is not null) { <button class="secondary" @onclick="() => Add(draft)">@Languages.Resource("Ini_Add")</button> }
                     </header>
-                    @foreach (var entry in draft.Entries) { <div class="ini-entry"><code title="@entry.Key">@entry.Key</code><input @bind="entry.Value" @bind:event="oninput" aria-label="@Languages.Resource("Ini_ValueAria", entry.Key)" /><button class="secondary" aria-label="@Languages.Resource("Ini_RemoveAria", entry.Key)" @onclick="() => Remove(draft, entry)">×</button></div> }
+                    @foreach (var entry in draft.Entries.Where(entry => entry.Key.Contains(_filter, StringComparison.OrdinalIgnoreCase) || draft.Header.Contains(_filter, StringComparison.OrdinalIgnoreCase))) { <div class="ini-entry"><code title="@entry.Key">@entry.Key</code><input @bind="entry.Value" @bind:event="oninput" aria-label="@Languages.Resource("Ini_ValueAria", entry.Key)" /><button class="secondary" aria-label="@Languages.Resource("Ini_RemoveAria", entry.Key)" @onclick="() => Remove(draft, entry)">×</button></div> }
                 </section>
             }
     </section>
@@ -63,6 +67,7 @@ else
     [Parameter]
     public string? RequestedFileName { get; set; }
 
+    private string _filter = string.Empty;
     private string _path = string.Empty;
     private bool _searched;
     private string? _error;
