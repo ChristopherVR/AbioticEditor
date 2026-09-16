@@ -2,6 +2,48 @@
 
 All notable changes to this project are documented here.
 
+## [2.11.0] - 2026-09-16
+
+### Bug Fixes
+- Keep live item details from looking unsaved and describe the new live tools
+- Load large live bases faster and restore recipes reliably
+- Polish player and world details and correct pet levels
+- Keep live items linked to the correct game data
+- Guide players through installing UE4SS separately
+
+
+### Documentation
+- Record the live parity and bundled UE4SS session
+- Record Cascade live editing checks
+- Add illustrated guides for players and live setup
+- Match the handbook to official game references
+- Bring the handbook closer to the game's inventory style
+- Give the player guides a Facility field-manual feel
+
+
+### Features
+- Include UE4SS in the Windows release and install it for you
+- Edit traits, appearance and bench upgrades in a live game
+- Expand live progression and inventory editing
+- Add weapon coatings and world care tools
+- Edit live weapon ammo and speed up bulk unlocks
+- Add a game-inspired GATE Teal theme
+- Make world controls and settings files easier to edit
+- Make world and player tabs clearer and easier to use
+- Simplify finding worlds and navigating settings
+- Simplify editing screens and handle live setup automatically
+- Add visual variant choices for items
+
+
+### Miscellaneous Tasks
+- Keep local test output out of the project
+- Point bucket at v2.10.0 [skip ci]
+
+
+### Testing
+- Run the live-agent checks without a separate Lua install
+
+
 ## [2.10.0] - 2026-09-14
 
 ### Documentation
