@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here.
 
+## [2.13.0] - 2026-09-16
+
+### Documentation
+- Record the release fix and the new colour, coating and pet tools
+
+
+### Features
+- Repaint placed objects in a saved world or a running game
+- Edit a carried pet's mutation progress and tidy pet limits
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.12.0 [skip ci]
+
+
 ## [2.12.0] - 2026-09-16
 
 ### Bug Fixes
