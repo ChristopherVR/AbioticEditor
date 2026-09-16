@@ -38,6 +38,10 @@ Open a player from the sidebar. Each tab is a station on your survivor's workben
 
 ![Player inventory tab](/screenshots/11-player-inventory.png)
 
+Selecting an item shows a collapsible **Stats** block with the same numbers the wiki
+publishes: weapon damage, armor and resistances, hunger/thirst/buffs for food, and what it
+repairs or salvages into. It only lists the groups that item actually has.
+
 ::: tip Moving a player to a different Steam account
 Use **General** when you need to re-home a player save. The editor updates the player save and matching bed claims together, with backups. This is for deliberate migration, not an ordinary inventory transfer.
 :::
@@ -70,7 +74,7 @@ From **Containers**, choose **Move items to a different world save**. The transf
 
 ## 4. Adjust a dedicated server
 
-When you open a dedicated-server folder, the sidebar also shows **Config Files**. Select **Admin.ini** or a world's **SandboxSettings.ini** to adjust difficulty, XP, stacking, spawn, and refill settings. Choose **SAVE INI** when ready. These files receive backup copies too.
+When you open a dedicated-server folder, the sidebar also shows **Config Files**. Select **Admin.ini** or a world's **SandboxSettings.ini** to adjust difficulty, XP, stacking, spawn, and refill settings. Choose **SAVE INI** when ready. These files receive backup copies too. If a setting is repeated in the file (the game appends rather than rewrites), the game uses the last occurrence, and saving here updates that same last occurrence so your change actually takes effect.
 
 ![Sandbox settings INI editor](/screenshots/25-config-ini.png)
 

@@ -40,6 +40,32 @@
                 <div><h3>@encyclopediaEntry.DisplayName</h3><p>@EncyclopediaStats(encyclopediaEntry)</p></div>
             </header>
             @if (!string.IsNullOrWhiteSpace(encyclopediaEntry.Description)) { <p class="encyclopedia-description">@encyclopediaEntry.Description</p> }
+            @if (encyclopediaEntry.Stats is { IsEmpty: false } encyclopediaStats)
+            {
+                <details class="editor-disclosure item-stats">
+                    <summary>@L.Resource("Slot_Stats")</summary>
+                    @if (encyclopediaStats.Weapon is { } weaponStats)
+                    {
+                        <p class="detail-value"><span class="detail-label">@L.Resource("Slot_Stats_Weapon")</span><br />@WeaponStatsText(weaponStats)</p>
+                    }
+                    @if (encyclopediaStats.Armor is { } armorStats)
+                    {
+                        <p class="detail-value"><span class="detail-label">@L.Resource("Slot_Stats_Armor")</span><br />@ArmorStatsText(armorStats)</p>
+                    }
+                    @if (encyclopediaStats.Consumable is { } consumableStats)
+                    {
+                        <p class="detail-value"><span class="detail-label">@L.Resource("Slot_Stats_Consumable")</span><br />@ConsumableStatsText(consumableStats)</p>
+                    }
+                    @if (encyclopediaStats.Repair is { } repairStats)
+                    {
+                        <p class="detail-value"><span class="detail-label">@L.Resource("Slot_Stats_Repair")</span><br />@RepairStatsText(repairStats)</p>
+                    }
+                    @if (encyclopediaStats.Salvage is { } salvageStats)
+                    {
+                        <p class="detail-value"><span class="detail-label">@L.Resource("Slot_Stats_Salvage")</span><br />@SalvageStatsText(salvageStats)</p>
+                    }
+                </details>
+            }
         </section>
     }
 
@@ -677,6 +703,56 @@
         if (includeWeapon && entry.IsWeapon) parts.Add(L.Resource("PlayerRecipes_StatWeapon"));
         return string.Join(" · ", parts);
     }
+
+    // ---------- wiki-style stat block (compact, collapsed-by-default) ----------
+
+    private string WeaponStatsText(WeaponStats weapon)
+    {
+        var parts = new List<string> { L.Resource("Slot_Stats_Damage", weapon.DamagePerHit) };
+        parts.Add(weapon.IsMelee
+            ? L.Resource("Slot_Stats_AttackTime", weapon.TimeBetweenAttacks)
+            : L.Resource("Slot_Stats_FireRate", weapon.TimeBetweenAttacks));
+        if (weapon.RequireAmmo) parts.Add(L.Resource("Slot_Stats_MagazineSize", weapon.MagazineSize));
+        if (!string.IsNullOrEmpty(weapon.DamageType)) parts.Add(PlainNames.Words(weapon.DamageType));
+        return string.Join(" · ", parts);
+    }
+
+    private string ArmorStatsText(ArmorStats armor)
+    {
+        var parts = new List<string> { L.Resource("Slot_Stats_ArmorBonus", armor.ArmorBonus) };
+        if (armor.HeatResist != 0) parts.Add(L.Resource("Slot_Stats_HeatResist", armor.HeatResist));
+        if (armor.ColdResist != 0) parts.Add(L.Resource("Slot_Stats_ColdResist", armor.ColdResist));
+        if (armor.SetBonusRow is { } setBonus) parts.Add(L.Resource("Slot_Stats_SetBonus", PlainNames.Words(setBonus)));
+        return string.Join(" · ", parts);
+    }
+
+    private string ConsumableStatsText(ConsumableStats consumable)
+    {
+        var parts = new List<string>();
+        if (consumable.HungerFill != 0) parts.Add(L.Resource("Slot_Stats_HungerFill", consumable.HungerFill));
+        if (consumable.ThirstFill != 0) parts.Add(L.Resource("Slot_Stats_ThirstFill", consumable.ThirstFill));
+        if (consumable.FatigueFill != 0) parts.Add(L.Resource("Slot_Stats_FatigueFill", consumable.FatigueFill));
+        if (consumable.SanityFill != 0) parts.Add(L.Resource("Slot_Stats_SanityFill", consumable.SanityFill));
+        foreach (var buff in consumable.BuffsApplied) parts.Add(L.Resource("Slot_Stats_Buff", PlainNames.Words(buff)));
+        return string.Join(" · ", parts);
+    }
+
+    private string RepairStatsText(RepairInfo repair)
+    {
+        var name = Catalog.Find(repair.ItemId)?.DisplayName ?? PlainNames.Words(repair.ItemId);
+        return repair.QuantityMin == repair.QuantityMax
+            ? L.Resource("Slot_Stats_RepairItem", name, repair.QuantityMin)
+            : L.Resource("Slot_Stats_RepairItemRange", name, repair.QuantityMin, repair.QuantityMax);
+    }
+
+    private string SalvageStatsText(SalvageInfo salvage)
+        => string.Join(" · ", salvage.Drops.Select(drop =>
+        {
+            var name = Catalog.Find(drop.ItemId)?.DisplayName ?? PlainNames.Words(drop.ItemId);
+            return drop.QuantityMin == drop.QuantityMax
+                ? L.Resource("Slot_Stats_RepairItem", name, drop.QuantityMin)
+                : L.Resource("Slot_Stats_RepairItemRange", name, drop.QuantityMin, drop.QuantityMax);
+        }));
 
     /// <summary>Hover text for a catalog tile: the item's name, what it does and the numbers
     /// that matter. The long reference the game files it under used to sit on the second line;

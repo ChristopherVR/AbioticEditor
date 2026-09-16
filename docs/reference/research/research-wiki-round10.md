@@ -319,3 +319,13 @@ Recommended additions, ranked by wiki-likeness payoff:
 | **Attack animation media** | Media | Wiki-only (GIF captures). Skip. |
 
 Practical recommendation: adding the **Weapon / Gear / Consumable stat blocks, repair+salvage, and research material** makes our detail pane essentially match a wiki infobox 1:1, and every one of those is a column in `ItemTable_Global` we already load via CUE4Parse. The only wiki-distinctive content we cannot derive is Sources/Trivia - a "View on wiki" deep link (`https://abioticfactor.wiki.gg/wiki/<Display_Name_with_underscores>`) covers that cheaply, though note wiki page titles use display names (with punctuation like `"Carrot"_&_Pumpkin_Soup`), so the link needs URL-encoding and won't always resolve.
+
+**2026-09-17 update:** the Weapon / Armor / Consumable / Repair / Salvage stat block is implemented
+(`AbioticEditor.Core.Items.ItemStats`, populated by `ItemCatalog.BuildStats` from `WeaponData_`,
+`EquipmentData_`, `ConsumableData_`, `RepairItem_` and a resolved `SalvageData_` -> `DT_Salvage`
+lookup; shown as a collapsed **Stats** disclosure on the player inventory item detail card). A live
+probe against the installed game turned up no top-level "research material" column on
+`ItemTable_Global` at all (41 distinct top-level fields, none research-related) - the "research
+material" idea above does not match the current game build's data and was left out rather than
+guessed. Set-bonus *descriptions* (only the row name is captured) and the per-damage-type
+`DamageMitigationType_` map (mostly empty across sampled rows) were also left out as further work.

@@ -61,6 +61,7 @@ public sealed class ItemCatalog
 
     private const string ItemsDir = "AbioticFactor/Content/Blueprints/Items/";
     private const string PrimaryTable = "AbioticFactor/Content/Blueprints/Items/ItemTable_Global";
+    private const string SalvageTable = "AbioticFactor/Content/Blueprints/DataTables/DT_Salvage";
 
     /// <summary>
     /// True when <paramref name="assetPath"/> (a mounted pak file path) is named like a
@@ -111,6 +112,19 @@ public sealed class ItemCatalog
         var primaryDt = pkg.GetExports().OfType<UDataTable>().FirstOrDefault()
             ?? throw new InvalidDataException("ItemTable_Global has no UDataTable export.");
 
+        // Best-effort: resolves SalvageData_ row references into concrete drop lists (see
+        // BuildStats). Absent entirely if the table can't be read - salvage stats just don't
+        // populate, same graceful-degradation rule as every other optional catalog.
+        UDataTable? salvageDt = null;
+        try
+        {
+            salvageDt = provider.LoadPackageInternal(SalvageTable).GetExports().OfType<UDataTable>().FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.EditorLog.Warn("ItemCatalog", "Failed to load DT_Salvage; salvage stats will be absent.", ex);
+        }
+
         // Case-insensitive: saves carry mixed-case row names (e.g. "PersonalTeleporter"
         // in the table vs lower-cased ids in some save arrays).
         var dict = new Dictionary<string, ItemCatalogEntry>(primaryDt.RowMap.Count, StringComparer.OrdinalIgnoreCase);
@@ -122,7 +136,7 @@ public sealed class ItemCatalog
         {
             var id = kv.Key.Text;
             if (string.IsNullOrEmpty(id)) continue;
-            dict[id] = BuildEntry(id, kv.Value);
+            dict[id] = BuildEntry(id, kv.Value, salvageDt);
             tableRefs[id] = globalRef;
         }
 
@@ -154,7 +168,7 @@ public sealed class ItemCatalog
                         continue;
                     }
 
-                    dict[id] = BuildEntry(id, kv.Value);
+                    dict[id] = BuildEntry(id, kv.Value, salvageDt);
                     tableRefs[id] = suppRef;
                     added++;
                 }
@@ -213,8 +227,9 @@ public sealed class ItemCatalog
         };
     }
 
-    private static ItemCatalogEntry BuildEntry(string id, FStructFallback row)
+    private static ItemCatalogEntry BuildEntry(string id, FStructFallback row, UDataTable? salvageTable)
     {
+        var isWeapon = ReadBool(row, "IsWeapon_");
         return new ItemCatalogEntry(
             Id: id,
             DisplayName: ReadText(row, "ItemName_") ?? id,
@@ -222,13 +237,234 @@ public sealed class ItemCatalog
             IconAssetPath: ReadSoftObjectPath(row, "InventoryIcon_"),
             StackSize: ReadInt(row, "StackSize_", 1),
             MaxDurability: ReadFloat(row, "MaxItemDurability_"),
-            IsWeapon: ReadBool(row, "IsWeapon_"),
+            IsWeapon: isWeapon,
             Weight: ReadFloat(row, "Weight_"),
             Tags: ReadGameplayTags(row, "GameplayTags_"),
             ContainerCapacity: ReadNestedInt(row, "EquipmentData_", "ContainerCapacity_"),
             EquipSlot: ReadNestedEnumInt(row, "EquipmentData_", "EquipSlot_"),
             MaxLiquid: ReadNestedInt(row, "LiquidData_", "MaxLiquid_"),
-            AllowedLiquids: ReadNestedEnumArray(row, "LiquidData_", "AllowedLiquids_"));
+            AllowedLiquids: ReadNestedEnumArray(row, "LiquidData_", "AllowedLiquids_"))
+        {
+            Stats = BuildStats(row, isWeapon, salvageTable),
+        };
+    }
+
+    // ---------- wiki-style stat block (see ItemStats.cs) ----------
+
+    /// <summary>
+    /// Builds the stat block for one row, gating every group on the same rule: a group only
+    /// appears when the row's data actually says something, because every item carries the full
+    /// set of nested structs (<c>WeaponData_</c>, <c>EquipmentData_</c>, <c>ConsumableData_</c>,
+    /// ...) whether or not it uses them - e.g. a can of food still has a placeholder
+    /// <c>WeaponData_</c> with 10 damage and a 0.5s swing.
+    /// </summary>
+    private static ItemStats? BuildStats(FStructFallback row, bool isWeapon, UDataTable? salvageTable)
+    {
+        var weapon = isWeapon ? BuildWeaponStats(row) : null;
+        var armor = BuildArmorStats(row);
+        var consumable = BuildConsumableStats(row);
+        var repair = BuildRepairInfo(row);
+        var salvage = BuildSalvageInfo(row, salvageTable);
+
+        if (weapon is null && armor is null && consumable is null && repair is null && salvage is null)
+            return null;
+        return new ItemStats(weapon, armor, consumable, repair, salvage);
+    }
+
+    private static WeaponStats? BuildWeaponStats(FStructFallback row)
+    {
+        GetByPrefix(row, "WeaponData_", out var tag);
+        if (!TryGetNestedStruct(tag, out var data)) return null;
+
+        return new WeaponStats(
+            IsMelee: ReadInnerBool(data, "Melee_"),
+            DamagePerHit: ReadInnerFloat(data, "DamagePerHit_"),
+            TimeBetweenAttacks: ReadInnerFloat(data, "TimeBetweenShots_"),
+            MagazineSize: (int)ReadInnerFloat(data, "MagazineSize_"),
+            RequireAmmo: ReadInnerBool(data, "RequireAmmo_"),
+            DamageType: ReadInnerClassShortName(data, "DamageType_Hitscan_"));
+    }
+
+    private static ArmorStats? BuildArmorStats(FStructFallback row)
+    {
+        GetByPrefix(row, "EquipmentData_", out var tag);
+        if (!TryGetNestedStruct(tag, out var data)) return null;
+
+        var armorBonus = ReadInnerFloat(data, "ArmorBonus_");
+        var heatResist = ReadInnerFloat(data, "HeatResist_");
+        var coldResist = ReadInnerFloat(data, "ColdResist_");
+        var setBonus = ReadInnerRowName(data, "SetBonus_");
+        if (armorBonus == 0 && heatResist == 0 && coldResist == 0 && setBonus is null) return null;
+
+        return new ArmorStats(armorBonus, heatResist, coldResist, setBonus);
+    }
+
+    private static ConsumableStats? BuildConsumableStats(FStructFallback row)
+    {
+        GetByPrefix(row, "ConsumableData_", out var tag);
+        if (!TryGetNestedStruct(tag, out var data)) return null;
+
+        var hunger = ReadInnerFloat(data, "HungerFill_");
+        var thirst = ReadInnerFloat(data, "ThirstFill_");
+        var fatigue = ReadInnerFloat(data, "FatigueFill_");
+        var sanity = ReadInnerFloat(data, "SanityFill_");
+        var buffs = ReadInnerStringArray(data, "BuffsToAdd_");
+        if (hunger == 0 && thirst == 0 && fatigue == 0 && sanity == 0 && buffs.Count == 0) return null;
+
+        return new ConsumableStats(hunger, thirst, fatigue, sanity, buffs);
+    }
+
+    private static RepairInfo? BuildRepairInfo(FStructFallback row)
+    {
+        GetByPrefix(row, "RepairItem_", out var tag);
+        if (tag?.Tag?.GenericValue is not { } raw) return null;
+        var data = Unwrap(raw);
+        if (data is not FStructFallback repair) return null;
+
+        var itemId = ReadInnerRowNameOf(repair, "ItemDataTable_");
+        if (string.IsNullOrEmpty(itemId)) return null;
+        var min = (int)ReadInnerFloat(repair, "QuantityMin_");
+        var max = (int)ReadInnerFloat(repair, "QuantityMax_");
+        return new RepairInfo(itemId, min, max <= 0 ? min : max);
+    }
+
+    private static SalvageInfo? BuildSalvageInfo(FStructFallback row, UDataTable? salvageTable)
+    {
+        if (salvageTable is null) return null;
+        GetByPrefix(row, "SalvageData_", out var tag);
+        if (tag?.Tag?.GenericValue is not { } raw) return null;
+        var salvageRowName = ReadRowNameOf(Unwrap(raw) as FStructFallback);
+        if (string.IsNullOrEmpty(salvageRowName)) return null;
+
+        var salvageRow = salvageTable.RowMap.FirstOrDefault(
+            kv => string.Equals(kv.Key.Text, salvageRowName, StringComparison.OrdinalIgnoreCase)).Value;
+        if (salvageRow is null) return null;
+
+        GetByPrefix(salvageRow, "SalvageDropItems_", out var dropsTag);
+        if (dropsTag?.Tag?.GenericValue is not CUE4Parse.UE4.Assets.Objects.UScriptArray array) return null;
+
+        var drops = new List<SalvageDrop>(array.Properties.Count);
+        foreach (var element in array.Properties)
+        {
+            if (Unwrap(element.GenericValue) is not FStructFallback drop) continue;
+            var itemId = ReadInnerRowNameOf(drop, "ItemDataTable_");
+            if (string.IsNullOrEmpty(itemId)) continue;
+            var min = (int)ReadInnerFloat(drop, "QuantityMin_");
+            var max = (int)ReadInnerFloat(drop, "QuantityMax_");
+            var chance = ReadInnerFloat(drop, "ChanceToDrop_");
+            drops.Add(new SalvageDrop(itemId, min, max <= 0 ? min : max, chance <= 0 ? 1 : chance));
+        }
+        return drops.Count > 0 ? new SalvageInfo(drops) : null;
+    }
+
+    /// <summary>Unwraps an <c>FScriptStruct</c> box to its inner <c>FStructFallback</c>, if any.</summary>
+    private static object? Unwrap(object? value)
+        => value is CUE4Parse.UE4.Assets.Objects.FScriptStruct scriptStruct ? scriptStruct.StructType : value;
+
+    private static bool TryGetNestedStruct(FPropertyTag? tag, out FStructFallback data)
+    {
+        var v = Unwrap(tag?.Tag?.GenericValue);
+        if (v is FStructFallback inner) { data = inner; return true; }
+        data = null!;
+        return false;
+    }
+
+    private static double ReadInnerFloat(FStructFallback data, string innerPrefix)
+    {
+        foreach (var p in data.Properties)
+        {
+            if (!p.Name.Text.StartsWith(innerPrefix, StringComparison.Ordinal)) continue;
+            return p.Tag?.GenericValue switch { float f => f, double d => d, int i => i, uint u => u, _ => 0 };
+        }
+        return 0;
+    }
+
+    private static bool ReadInnerBool(FStructFallback data, string innerPrefix)
+    {
+        foreach (var p in data.Properties)
+        {
+            if (!p.Name.Text.StartsWith(innerPrefix, StringComparison.Ordinal)) continue;
+            return p.Tag?.GenericValue is bool b && b;
+        }
+        return false;
+    }
+
+    /// <summary>Reads a nested <c>{ RowName: ... }</c> struct field, returning null for "None".</summary>
+    private static string? ReadInnerRowName(FStructFallback data, string innerPrefix)
+    {
+        foreach (var p in data.Properties)
+        {
+            if (!p.Name.Text.StartsWith(innerPrefix, StringComparison.Ordinal)) continue;
+            return ReadRowNameOf(Unwrap(p.Tag?.GenericValue) as FStructFallback);
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Reads a nested <c>{ DataTable: ..., RowName: ... }</c> DataTable-row-handle field (the
+    /// shape <c>RepairItem_</c>/<c>SalvageDropItems_</c> elements use for their item reference).
+    /// </summary>
+    private static string? ReadInnerRowNameOf(FStructFallback data, string innerPrefix)
+    {
+        foreach (var p in data.Properties)
+        {
+            if (!p.Name.Text.StartsWith(innerPrefix, StringComparison.Ordinal)) continue;
+            return ReadRowNameOf(Unwrap(p.Tag?.GenericValue) as FStructFallback);
+        }
+        return null;
+    }
+
+    private static string? ReadRowNameOf(FStructFallback? handle)
+    {
+        if (handle is null) return null;
+        var rowName = handle.Properties.FirstOrDefault(
+            p => p.Name.Text.Equals("RowName", StringComparison.OrdinalIgnoreCase))
+            ?.Tag?.GenericValue?.ToString();
+        return string.IsNullOrEmpty(rowName) || string.Equals(rowName, "None", StringComparison.OrdinalIgnoreCase)
+            ? null
+            : rowName;
+    }
+
+    private static IReadOnlyList<string> ReadInnerStringArray(FStructFallback data, string innerPrefix)
+    {
+        foreach (var p in data.Properties)
+        {
+            if (!p.Name.Text.StartsWith(innerPrefix, StringComparison.Ordinal)) continue;
+            if (p.Tag?.GenericValue is not CUE4Parse.UE4.Assets.Objects.UScriptArray array) return Array.Empty<string>();
+            var result = new List<string>(array.Properties.Count);
+            foreach (var element in array.Properties)
+            {
+                var s = element.GenericValue?.ToString();
+                if (!string.IsNullOrEmpty(s)) result.Add(s);
+            }
+            return result;
+        }
+        return Array.Empty<string>();
+    }
+
+    /// <summary>
+    /// The short asset name of a damage-type class reference, e.g.
+    /// <c>BlueprintGeneratedClass'/Game/.../DamageType_Blunt_HEAVY.DamageType_Blunt_HEAVY_C'</c>
+    /// becomes <c>"Blunt_HEAVY"</c>. Null for the generic base damage type or an empty reference.
+    /// </summary>
+    private static string? ReadInnerClassShortName(FStructFallback data, string innerPrefix)
+    {
+        foreach (var p in data.Properties)
+        {
+            if (!p.Name.Text.StartsWith(innerPrefix, StringComparison.Ordinal)) continue;
+            var s = p.Tag?.GenericValue?.ToString();
+            if (string.IsNullOrEmpty(s)) return null;
+
+            var dot = s.LastIndexOf('.');
+            var name = dot >= 0 ? s[(dot + 1)..] : s;
+            name = name.TrimEnd('\'');
+            if (name.EndsWith("_C", StringComparison.Ordinal)) name = name[..^2];
+            // "Abiotic_DamageType_ParentBP" is the field's placeholder default on a non-weapon
+            // row; real weapon rows always point at a specific DamageType_* class.
+            if (string.Equals(name, "Abiotic_DamageType_ParentBP", StringComparison.Ordinal)) return null;
+            return name.StartsWith("DamageType_", StringComparison.Ordinal) ? name["DamageType_".Length..] : name;
+        }
+        return null;
     }
 
     /// <summary>Array of byte-enum values inside a nested struct (LiquidData_ -> AllowedLiquids_).</summary>

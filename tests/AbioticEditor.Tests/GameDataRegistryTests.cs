@@ -46,6 +46,28 @@ public sealed class GameDataRegistryTests
                 EquipSlot: 0,
                 MaxLiquid: 3,
                 AllowedLiquids: [1, 2, 8]),
+            new ItemCatalogEntry(
+                Id: "sledgehammer",
+                DisplayName: "Sledgehammer",
+                Description: "An exceptionally heavy hammer.",
+                IconAssetPath: null,
+                StackSize: 1,
+                MaxDurability: 20,
+                IsWeapon: true,
+                Weight: 9,
+                Tags: ["Item.Weapon.HeavyWeapon"],
+                ContainerCapacity: 0,
+                EquipSlot: 1,
+                MaxLiquid: 0,
+                AllowedLiquids: null)
+            {
+                Stats = new ItemStats(
+                    Weapon: new WeaponStats(
+                        IsMelee: true, DamagePerHit: 45, TimeBetweenAttacks: 2,
+                        MagazineSize: 12, RequireAmmo: false, DamageType: "Blunt_HEAVY"),
+                    Repair: new RepairInfo("rebar", 1, 1),
+                    Salvage: new SalvageInfo([new SalvageDrop("woodplank", 1, 1, 1)])),
+            },
         ],
         ItemTableRefs = new Dictionary<string, string>
         {
@@ -71,13 +93,25 @@ public sealed class GameDataRegistryTests
             Assert.Equal(GameDataRegistry.CurrentSchemaVersion, loaded!.SchemaVersion);
             Assert.Equal("1.0.test", loaded.GameVersion);
             Assert.NotNull(loaded.Items);
-            Assert.Equal(2, loaded.Items!.Count);
+            Assert.Equal(3, loaded.Items!.Count);
 
             var canteen = Assert.Single(loaded.Items, i => i.Id == "canteen");
             Assert.Equal("Canteen", canteen.DisplayName);
             Assert.Null(canteen.Description);
             Assert.Equal(3, canteen.MaxLiquid);
             Assert.Equal([1, 2, 8], canteen.AllowedLiquidList);
+            Assert.Null(canteen.Stats);
+
+            var sledgehammer = Assert.Single(loaded.Items, i => i.Id == "sledgehammer");
+            Assert.NotNull(sledgehammer.Stats);
+            Assert.False(sledgehammer.Stats!.IsEmpty);
+            Assert.Equal(45, sledgehammer.Stats.Weapon!.DamagePerHit);
+            Assert.True(sledgehammer.Stats.Weapon.IsMelee);
+            Assert.Equal("Blunt_HEAVY", sledgehammer.Stats.Weapon.DamageType);
+            Assert.Equal("rebar", sledgehammer.Stats.Repair!.ItemId);
+            Assert.Equal("woodplank", Assert.Single(sledgehammer.Stats.Salvage!.Drops).ItemId);
+            Assert.Null(sledgehammer.Stats.Armor);
+            Assert.Null(sledgehammer.Stats.Consumable);
 
             var variant = Assert.Single(loaded.ItemVariants!);
             Assert.Equal("poster_0091", variant.RowName);
@@ -100,7 +134,7 @@ public sealed class GameDataRegistryTests
         var registry = SampleRegistry();
         var catalog = ItemCatalog.FromRegistry(registry.Items!, registry.ItemTableRefs!);
 
-        Assert.Equal(2, catalog.Count);
+        Assert.Equal(3, catalog.Count);
         Assert.Equal("Metal Scrap", catalog.Find("scrap_metal")!.DisplayName);
         // Case-insensitive lookup, mirroring the live catalog.
         Assert.NotNull(catalog.Find("SCRAP_METAL"));

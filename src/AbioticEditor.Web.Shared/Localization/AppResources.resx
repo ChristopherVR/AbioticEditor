@@ -554,6 +554,27 @@
   <data name="Slot_SlotEditor" xml:space="preserve"><value>SLOT EDITOR</value></data>
   <data name="Slot_SoldBy" xml:space="preserve"><value>SOLD BY</value></data>
   <data name="Slot_State" xml:space="preserve"><value>STATE</value></data>
+  <data name="Slot_Stats" xml:space="preserve"><value>STATS</value></data>
+  <data name="Slot_Stats_Weapon" xml:space="preserve"><value>WEAPON</value></data>
+  <data name="Slot_Stats_Armor" xml:space="preserve"><value>ARMOR</value></data>
+  <data name="Slot_Stats_Consumable" xml:space="preserve"><value>FOOD &amp; DRINK</value></data>
+  <data name="Slot_Stats_Repair" xml:space="preserve"><value>REPAIR</value></data>
+  <data name="Slot_Stats_Salvage" xml:space="preserve"><value>SALVAGE RESULTS</value></data>
+  <data name="Slot_Stats_Damage" xml:space="preserve"><value>{0:F0} damage</value></data>
+  <data name="Slot_Stats_AttackTime" xml:space="preserve"><value>{0:F1}s per swing</value></data>
+  <data name="Slot_Stats_FireRate" xml:space="preserve"><value>{0:F2}s between shots</value></data>
+  <data name="Slot_Stats_MagazineSize" xml:space="preserve"><value>{0} in a magazine</value></data>
+  <data name="Slot_Stats_ArmorBonus" xml:space="preserve"><value>{0:F0} armor</value></data>
+  <data name="Slot_Stats_HeatResist" xml:space="preserve"><value>+{0:F0} heat resistance</value></data>
+  <data name="Slot_Stats_ColdResist" xml:space="preserve"><value>+{0:F0} cold resistance</value></data>
+  <data name="Slot_Stats_SetBonus" xml:space="preserve"><value>Part of the {0} set</value></data>
+  <data name="Slot_Stats_HungerFill" xml:space="preserve"><value>+{0:F1} hunger</value></data>
+  <data name="Slot_Stats_ThirstFill" xml:space="preserve"><value>+{0:F1} thirst</value></data>
+  <data name="Slot_Stats_FatigueFill" xml:space="preserve"><value>+{0:F1} fatigue</value></data>
+  <data name="Slot_Stats_SanityFill" xml:space="preserve"><value>+{0:F1} sanity</value></data>
+  <data name="Slot_Stats_Buff" xml:space="preserve"><value>Applies {0}</value></data>
+  <data name="Slot_Stats_RepairItem" xml:space="preserve"><value>{0} ({1})</value></data>
+  <data name="Slot_Stats_RepairItemRange" xml:space="preserve"><value>{0} ({1}-{2})</value></data>
   <data name="Slot_SwapToTheUpgradedItemAtFullDurabilityTheEditorEquivalentOfAnUpgradeBenchUpgradeDTItemUpgrades" xml:space="preserve"><value>Swap this for its upgraded version at full durability, just like using an Upgrade Bench.</value></data>
   <data name="Slot_Sync" xml:space="preserve"><value>SYNC</value></data>
   <data name="Slot_TapAnItemForItsEncyclopediaEntryDragOntoAnySlotToSpawnItFullStackDurabilityDoubleTapToGiveToTheFirstEmptySlot" xml:space="preserve"><value>Tap an item for its encyclopedia entry. Drag onto any slot to spawn it (full stack + durability); double-tap to give to the first empty slot.</value></data>

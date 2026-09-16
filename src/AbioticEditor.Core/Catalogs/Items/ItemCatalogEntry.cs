@@ -24,6 +24,13 @@ public sealed record ItemCatalogEntry(
     int MaxLiquid = 0,
     IReadOnlyList<int>? AllowedLiquids = null)
 {
+    /// <summary>
+    /// The wiki-style stat block (weapon/armor/consumable/repair/salvage), when the game data was
+    /// available to build it. Null for every entry built before this was added and for any entry
+    /// whose row carries none of those groups; see <see cref="Items.ItemStats.IsEmpty"/>.
+    /// </summary>
+    public ItemStats? Stats { get; init; }
+
     /// <summary>Liquid types this container accepts (E_LiquidType enumerator numbers).</summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public IReadOnlyList<int> AllowedLiquidList => AllowedLiquids ?? Array.Empty<int>();
