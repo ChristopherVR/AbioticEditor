@@ -30,9 +30,9 @@ public sealed class LiveContainersChannel(ILiveGameChannel channel)
     /// <summary>Applies slot edits to the container with <paramref name="containerId"/> immediately.</summary>
     public Task SetAsync(string containerId, IReadOnlyList<LiveContainerSlotEdit> edits,
         CancellationToken cancellationToken = default)
-        => _channel.RequestAsync<object?>(edits.Any(edit => edit.Details is not null) ? "containers.setfull" : "containers.set",
+        => _channel.RequestAsync<object?>(edits.Any(edit => edit.Details?.InstanceMetadata is not null) ? "containers.setcomplete" : edits.Any(edit => edit.Details is not null) ? "containers.setfull" : "containers.set",
             new SetWire(containerId, edits.Select(e => new EditWire(
-                e.SlotIndex, e.Clear, e.ItemId, e.Stack, e.Durability, e.MaxDurability, ItemTableIndex.TableRefFor(e.ItemId), e.AmmoInMagazine, e.Details)).ToList(), Sort: null),
+                e.SlotIndex, e.Clear, e.ItemId, e.Stack, e.Durability, e.MaxDurability, e.Details?.InstanceMetadata?.ItemDataTable ?? ItemTableIndex.TableRefFor(e.ItemId), e.AmmoInMagazine, e.Details)).ToList(), Sort: null),
             cancellationToken);
 
     /// <summary>
@@ -41,6 +41,11 @@ public sealed class LiveContainersChannel(ILiveGameChannel channel)
     /// </summary>
     public Task SortAsync(string containerId, CancellationToken cancellationToken = default)
         => _channel.RequestAsync<object?>("containers.set", new SetWire(containerId, [], Sort: true), cancellationToken);
+
+    /// <summary>Trades the current contents of two slots in one host operation.</summary>
+    public Task TransferAsync(LiveInventoryEndpoint first, LiveInventoryEndpoint second,
+        CancellationToken cancellationToken = default)
+        => _channel.RequestAsync<object?>("inventory.transfer", new { first, second }, cancellationToken);
 
     private sealed record DirectoryWire(IReadOnlyList<ContainerWire>? Containers, bool IsHost);
     private sealed record ContainerWire(string Id, string Label, double X, double Y, double Z, IReadOnlyList<SlotWire>? Slots);
@@ -66,3 +71,6 @@ public sealed record LiveContainerDirectory(IReadOnlyList<LiveContainer> Contain
 public sealed record LiveContainerSlotEdit(int SlotIndex, bool? Clear = null, string? ItemId = null,
     int? Stack = null, double? Durability = null, double? MaxDurability = null,
     int? AmmoInMagazine = null, LiveItemDetails? Details = null);
+
+/// <summary>A live slot address. ContainerId identifies a loaded crate; otherwise Kind and PlayerId identify a player inventory.</summary>
+public sealed record LiveInventoryEndpoint(int SlotIndex, string? ContainerId = null, string? Kind = null, string? PlayerId = null);

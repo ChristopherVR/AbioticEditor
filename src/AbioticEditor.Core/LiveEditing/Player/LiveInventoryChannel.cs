@@ -34,9 +34,9 @@ public sealed class LiveInventoryChannel(ILiveGameChannel channel)
     /// when <paramref name="playerId"/> is omitted).</summary>
     public Task SetAsync(IReadOnlyList<LiveInventoryEdit> edits, string? playerId = null,
         CancellationToken cancellationToken = default)
-        => _channel.RequestAsync<object?>(edits.Any(edit => edit.Details is not null) ? "inventory.setfull" : "inventory.set",
+        => _channel.RequestAsync<object?>(edits.Any(edit => edit.Details?.InstanceMetadata is not null) ? "inventory.setcomplete" : edits.Any(edit => edit.Details is not null) ? "inventory.setfull" : "inventory.set",
             new SetWire(edits.Select(e => new EditWire(
-                e.Kind, e.SlotIndex, e.Clear, e.ItemId, e.Stack, e.Durability, e.MaxDurability, ItemTableIndex.TableRefFor(e.ItemId), e.AmmoInMagazine, e.Details)).ToList(), playerId),
+                e.Kind, e.SlotIndex, e.Clear, e.ItemId, e.Stack, e.Durability, e.MaxDurability, e.Details?.InstanceMetadata?.ItemDataTable ?? ItemTableIndex.TableRefFor(e.ItemId), e.AmmoInMagazine, e.Details)).ToList(), playerId),
             cancellationToken);
 
     private sealed record PlayerIdWire(string PlayerId);

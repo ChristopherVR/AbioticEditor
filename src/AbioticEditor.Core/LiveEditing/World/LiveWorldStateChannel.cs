@@ -18,7 +18,7 @@ public sealed class LiveWorldStateChannel(ILiveGameChannel channel)
             .ConfigureAwait(false);
         return new LiveWorldState(wire.Day, wire.TimeSeconds, wire.IsNight, wire.Paused,
             string.IsNullOrEmpty(wire.CurrentWeather) ? "None" : wire.CurrentWeather,
-            wire.WeatherOptions ?? [], wire.IsHost);
+            wire.WeatherOptions ?? [], wire.IsHost, wire.MinutesPassed, wire.CanSetMinutesPassed);
     }
 
     /// <summary>Applies whichever fields of <paramref name="edit"/> are non-null, immediately.</summary>
@@ -26,8 +26,14 @@ public sealed class LiveWorldStateChannel(ILiveGameChannel channel)
         => _channel.RequestAsync<object?>("world.set",
             new SetWire(edit.TimeSeconds, edit.Day, edit.Weather, edit.NextWeather), cancellationToken);
 
+    public Task SetMinutesPassedAsync(int minutes, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(minutes);
+        return _channel.RequestAsync<object?>("world.setPlaytime", new { MinutesPassed = minutes }, cancellationToken);
+    }
+
     private sealed record StateWire(int Day, double TimeSeconds, bool IsNight, bool Paused,
-        string? CurrentWeather, IReadOnlyList<string>? WeatherOptions, bool IsHost);
+        string? CurrentWeather, IReadOnlyList<string>? WeatherOptions, bool IsHost, int? MinutesPassed, bool CanSetMinutesPassed);
     private sealed record SetWire(double? TimeSeconds, int? Day, string? Weather, string? NextWeather);
 }
 
@@ -39,7 +45,7 @@ public sealed class LiveWorldStateChannel(ILiveGameChannel channel)
 /// <param name="WeatherOptions">Every weather event row the game knows (always starting with
 /// <c>None</c>), for a picker.</param>
 public sealed record LiveWorldState(int Day, double TimeSeconds, bool IsNight, bool Paused,
-    string CurrentWeather, IReadOnlyList<string> WeatherOptions, bool IsHost)
+    string CurrentWeather, IReadOnlyList<string> WeatherOptions, bool IsHost, int? MinutesPassed = null, bool CanSetMinutesPassed = false)
 {
     public int Hour => (int)(Math.Clamp(TimeSeconds, 0, 86399) / 3600);
     public int Minute => (int)(Math.Clamp(TimeSeconds, 0, 86399) % 3600 / 60);

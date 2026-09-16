@@ -32,6 +32,7 @@ public sealed class LiveBasesSession : IWorldBasesSession
     public IReadOnlyList<WorldDeployable> Deployables { get; private set; } = [];
     public bool IsHost { get; private set; }
     private bool _supportsBenchUpgrades;
+    private bool _supportsBenchUpgradeRemoval;
     public string? Status { get; private set; }
 
     /// <summary>Always false: a rename or upgrade install already reached the running game by
@@ -51,6 +52,7 @@ public sealed class LiveBasesSession : IWorldBasesSession
             .ToList();
         IsHost = directory.IsHost;
         _supportsBenchUpgrades = directory.SupportsBenchUpgrades;
+        _supportsBenchUpgradeRemoval = directory.SupportsBenchUpgradeRemoval;
         Changed?.Invoke();
     }
 
@@ -68,23 +70,25 @@ public sealed class LiveBasesSession : IWorldBasesSession
     bool IWorldBasesSession.SupportsContainerPeek => false;
 
     bool IWorldBasesSession.BenchSupportsUpgrades(string deployableId)
-        => _supportsBenchUpgrades && _byId.TryGetValue(deployableId, out var deployable) && deployable.SupportsUpgrades;
+        => _supportsBenchUpgrades && IsHost && _byId.TryGetValue(deployableId, out var deployable) && deployable.SupportsUpgrades && deployable.CanEditUpgrades;
 
     IReadOnlyList<string> IWorldBasesSession.BenchInstalledUpgrades(string deployableId)
         => _byId.TryGetValue(deployableId, out var deployable) ? deployable.InstalledUpgrades : [];
 
     async Task<bool> IWorldBasesSession.SetBenchUpgradeAsync(string deployableId, string row, bool installed, CancellationToken cancellationToken)
     {
-        if (!_supportsBenchUpgrades) throw new NotSupportedException("Bench upgrades are available in the offline editor only.");
-        if (!installed)
+        if (!IsHost || !_supportsBenchUpgrades || !_byId.TryGetValue(deployableId, out var current) || !current.CanEditUpgrades)
+            throw new NotSupportedException("This bench cannot be edited by the connected agent.");
+        if (!installed && !_supportsBenchUpgradeRemoval)
         {
             throw new NotSupportedException(
                 "Removing an installed bench upgrade live isn't supported - no game function does it. Edit the save file instead.");
         }
 
-        await _channel.SetBenchUpgradeAsync(deployableId, row, installed: true, cancellationToken).ConfigureAwait(false);
+        await _channel.SetBenchUpgradeAsync(deployableId, row, installed, cancellationToken).ConfigureAwait(false);
         Status = null;
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
-        return _byId.TryGetValue(deployableId, out var deployable) && deployable.InstalledUpgrades.Contains(row);
+        var tagRow = row.StartsWith("ItemTransporter", StringComparison.Ordinal) ? "ItemTransporter" : row;
+        return _byId.TryGetValue(deployableId, out var deployable) && deployable.InstalledUpgrades.Contains(tagRow) == installed;
     }
 }

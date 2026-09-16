@@ -25,14 +25,15 @@
         <div class="tab-divider" aria-hidden="true"></div>
 
         <p class="tab-section-label">@L.Resource("PlayerCharacter_Traits")</p>
-        @if (Session.CanEditTraits && FileSession is { } file)
+        @if (_traitError is not null) { <p class="error" role="alert">@_traitError</p> }
+        @if (Session.CanEditTraits)
         {
             <div class="trait-chips">
-                @foreach (var id in file.Traits.ToArray())
+                @foreach (var id in Session.Traits.ToArray())
                 {
                     <span class="trait-chip @(_selectedTraitId == id ? "selected" : null)" title="@ChipTooltip(id)">
                         <button class="trait-chip-name" type="button" @onclick="() => SelectTrait(id)">@DisplayNameFor(id)</button>
-                        <button class="trait-chip-remove" type="button" aria-label="@($"{L.Detail("remove")} {DisplayNameFor(id)}")" @onclick="() => RemoveTrait(id)">&#x2715;</button>
+                        <button class="trait-chip-remove" type="button" aria-label="@($"{L.Detail("remove")} {DisplayNameFor(id)}")" title="@(CanEditTrait(id) ? null : L.Resource("PlayerCharacter_TraitsCatalogRequired"))" disabled="@(!CanEditTrait(id) || _traitBusy)" @onclick="() => RemoveTrait(id)">&#x2715;</button>
                     </span>
                 }
             </div>
@@ -65,7 +66,7 @@
                             <span class="trait-browser-name">@row.DisplayName</span>
                             <span class="trait-browser-cost">@CostText(row)</span>
                             <span class="trait-browser-description">@row.Description</span>
-                            <button class="trait-browser-add" type="button" @onclick="() => AddTrait(row.Id)">@L.Resource("PlayerCharacter_Add")</button>
+                            <button class="trait-browser-add" type="button" title="@(CanEditTrait(row.Id) ? null : L.Resource("PlayerCharacter_TraitsCatalogRequired"))" disabled="@(!CanEditTrait(row.Id) || _traitBusy)" @onclick="() => AddTrait(row.Id)">@L.Resource("PlayerCharacter_Add")</button>
                         </div>
                     }
                 </div>
@@ -73,9 +74,7 @@
         }
         else
         {
-            @* No safe live function exists to add or remove a single trait (see
-               LivePlayerGeneralChannel's remarks) - a plain readout stands in for the chip
-               editor/browser above instead of offering buttons that could never do anything. *@
+            @* Older agents and remote clients expose the current traits as a readout. *@
             <div class="trait-chips">
                 @foreach (var id in Session.Traits)
                 {
@@ -92,6 +91,10 @@
     {
         <PlayerAppearanceEditor Player="appearanceSession" />
     }
+    else if (Session.Appearance is { } liveAppearance)
+    {
+        <LivePlayerAppearanceEditor @key="Session.OwnerId" Session="liveAppearance" />
+    }
     else
     {
         <section class="editor-card appearance-panel" aria-label="@L.Resource("PlayerCharacter_AppearanceHeadHairClothing")">
@@ -104,10 +107,8 @@
 @code {
     [Parameter, EditorRequired] public IPlayerGeneralSession Session { get; set; } = null!;
     [Parameter] public EventCallback OnChanged { get; set; }
-    // The trait chip editor/browser and the appearance panel both need the concrete file session
-    // (full List<string> mutation for traits; the appearance save lives beside the player save
-    // file, never a live game) - null live, exactly like the player editor's own ACHIEVEMENTS/
-    // DATA tab gating.
+    // Offline appearance edits use the profile file beside the player save. Live appearance
+    // binds to the current character and offers a separate local-profile save action.
     private PlayerSaveSession? FileSession => Session as PlayerSaveSession;
 
     private async Task OnBackgroundChangedAsync(ChangeEventArgs e)
@@ -131,7 +132,8 @@
         // name catalog renders, then the rows refresh with full detail.
         try
         {
-            Details = await Task.Run(Progression.GetTraitDetails);
+            var details = await Task.Run(Progression.GetTraitDetails);
+            Details = new Dictionary<string, TraitDetail>(details, StringComparer.OrdinalIgnoreCase);
             _allRows = null;
         }
         finally
@@ -249,7 +251,7 @@
                 rows = rows.Where(row => row.DisplayName.Contains(filter, StringComparison.OrdinalIgnoreCase)
                                       || (row.Description?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false));
             }
-            var have = new HashSet<string>(Session.Traits, StringComparer.Ordinal);
+            var have = new HashSet<string>(Session.Traits, StringComparer.OrdinalIgnoreCase);
             return rows.Where(row => !have.Contains(row.Id)).ToList();
         }
     }
@@ -267,9 +269,25 @@
         .OrderBy(row => row.DisplayName, StringComparer.OrdinalIgnoreCase)
         .ToList();
 
-    private async Task Changed() { FileSession?.MarkChanged(); await OnChanged.InvokeAsync(); }
-    private async Task AddTrait(string id) { if (FileSession is { } file && !file.Traits.Contains(id, StringComparer.Ordinal)) { file.Traits.Add(id); await Changed(); } }
-    private async Task RemoveTrait(string id) { if (FileSession is { } file && file.Traits.Remove(id)) await Changed(); }
+    private bool _traitBusy;
+    private string? _traitError;
+    private bool CanEditTrait(string id) => FileSession is not null || Details.TryGetValue(id, out var detail) && detail.BuffRowName is not null;
+    private Task AddTrait(string id) => ChangeTraitAsync(id, true);
+    private Task RemoveTrait(string id) => ChangeTraitAsync(id, false);
+    private async Task ChangeTraitAsync(string id, bool enabled)
+    {
+        if (_traitBusy || !CanEditTrait(id)) return;
+        _traitBusy = true;
+        _traitError = null;
+        try
+        {
+            Details.TryGetValue(id, out var detail);
+            await Session.SetTraitAsync(id, enabled, detail?.BuffRowName);
+            await OnChanged.InvokeAsync();
+        }
+        catch (Exception exception) { _traitError = Errors.Present(exception, "Update these traits.", "Try reconnecting to the game."); }
+        finally { _traitBusy = false; }
+    }
 
     /// <summary>The cost badge on an add-trait row. 0 is real data (traits picked up in the
     /// world, like Forbidden Diet), so it is shown rather than hidden.</summary>

@@ -18,9 +18,9 @@ public sealed class LiveBasesChannel(ILiveGameChannel channel)
             .ConfigureAwait(false);
         var deployables = (wire.Deployables ?? [])
             .Select(d => new LiveDeployable(d.Id, d.ClassName, d.X, d.Y, d.Z, d.CustomName, d.HasInventory,
-                d.StoredItemCount, d.SupportsUpgrades, d.InstalledUpgrades ?? []))
+                d.StoredItemCount, d.SupportsUpgrades, d.InstalledUpgrades ?? [], d.CanEditUpgrades ?? wire.SupportsBenchUpgrades))
             .ToList();
-        return new LiveDeployableDirectory(deployables, wire.IsHost, wire.SupportsBenchUpgrades);
+        return new LiveDeployableDirectory(deployables, wire.IsHost, wire.SupportsBenchUpgrades, wire.SupportsBenchUpgradeRemoval);
     }
 
     /// <summary>Renames one deployable immediately. Host only.</summary>
@@ -32,10 +32,10 @@ public sealed class LiveBasesChannel(ILiveGameChannel channel)
     public Task SetBenchUpgradeAsync(string deployableId, string row, bool installed, CancellationToken cancellationToken = default)
         => _channel.RequestAsync<object?>("bases.set", new SetWire(deployableId, null, row, installed), cancellationToken);
 
-    private sealed record DirectoryWire(IReadOnlyList<DeployableWire>? Deployables, bool IsHost, bool SupportsBenchUpgrades);
+    private sealed record DirectoryWire(IReadOnlyList<DeployableWire>? Deployables, bool IsHost, bool SupportsBenchUpgrades, bool SupportsBenchUpgradeRemoval);
     private sealed record DeployableWire(string Id, string ClassName, double X, double Y, double Z,
         string? CustomName, bool HasInventory, int StoredItemCount, bool SupportsUpgrades,
-        IReadOnlyList<string>? InstalledUpgrades);
+        IReadOnlyList<string>? InstalledUpgrades, bool? CanEditUpgrades);
     private sealed record SetWire(string Id, string? CustomName, string? UpgradeRow, bool? UpgradeInstalled);
 }
 
@@ -46,10 +46,10 @@ public sealed class LiveBasesChannel(ILiveGameChannel channel)
 /// reports <c>false</c>/empty.</summary>
 public sealed record LiveDeployable(string Id, string ClassName, double X, double Y, double Z,
     string? CustomName, bool HasInventory, int StoredItemCount, bool SupportsUpgrades,
-    IReadOnlyList<string> InstalledUpgrades);
+    IReadOnlyList<string> InstalledUpgrades, bool CanEditUpgrades = false);
 
 /// <summary>Every loaded deployable, whether this process has host authority to change them, and
 /// whether bench-upgrade installation is available live (yes, since round 77 - see
 /// <see cref="LiveDeployable.SupportsUpgrades"/> per-row; removal is never available).</summary>
 public sealed record LiveDeployableDirectory(IReadOnlyList<LiveDeployable> Deployables, bool IsHost,
-    bool SupportsBenchUpgrades);
+    bool SupportsBenchUpgrades, bool SupportsBenchUpgradeRemoval = false);

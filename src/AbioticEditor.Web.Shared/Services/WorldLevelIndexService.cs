@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using AbioticEditor.Core.WorldSaves;
 
 namespace AbioticEditor.Web.Services;
@@ -28,8 +28,7 @@ public sealed class WorldLevelIndexService(ISaveFileSystem files)
     /// </summary>
     private static readonly int[] TailSizes = [64 * 1024, 1024 * 1024, 8 * 1024 * 1024];
 
-    private readonly ConcurrentDictionary<string, Task<IReadOnlyList<WorldLevel>>> _byFolder =
-        new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConditionalWeakTable<IReadOnlyList<WorkspaceSave>, Lazy<Task<IReadOnlyList<WorldLevel>>>> _byWorkspace = new();
 
     /// <summary>
     /// The regions of the world <paramref name="workspace"/> has open, read once and remembered
@@ -39,15 +38,20 @@ public sealed class WorldLevelIndexService(ISaveFileSystem files)
         SaveWorkspace? workspace, CancellationToken cancellationToken = default)
     {
         if (workspace is null) return Task.FromResult<IReadOnlyList<WorldLevel>>([]);
-        return _byFolder.GetOrAdd(workspace.WorldFolder, _ => ScanAsync(workspace, cancellationToken));
+        cancellationToken.ThrowIfCancellationRequested();
+        // A caller leaving the tab cancels its wait, not the scan shared with other tabs.
+        // Cache by workspace lifetime so reopening a folder cannot reuse an old region list.
+        return _byWorkspace.GetValue(workspace.Saves, saves => new Lazy<Task<IReadOnlyList<WorldLevel>>>(
+            () => ScanAsync(saves, CancellationToken.None), LazyThreadSafetyMode.ExecutionAndPublication))
+            .Value.WaitAsync(cancellationToken);
     }
 
     private async Task<IReadOnlyList<WorldLevel>> ScanAsync(
-        SaveWorkspace workspace, CancellationToken cancellationToken)
+        IReadOnlyList<WorkspaceSave> saves, CancellationToken cancellationToken)
     {
         var levels = new List<WorldLevel>();
         // The metadata save is world-wide bookkeeping, not a place anyone spawns.
-        var regions = workspace.Saves.Where(save => save.Kind == SaveDocumentKind.World);
+        var regions = saves.Where(save => save.Kind == SaveDocumentKind.World);
         foreach (var save in regions)
         {
             cancellationToken.ThrowIfCancellationRequested();

@@ -1,7 +1,7 @@
 -- ItemsPickedUpArray/CurrentMaps use the existing discovery RPCs. Hosts can
 -- append to CraftedItems through UE4SS FName-array assignment and OnRep_CraftedItems.
--- PhD is an FName on PlayerState. Traits remains a readout: its initialization has
--- gameplay side effects that need dedicated verification before enabling mid-game edits.
+-- Trait edits update only the persistent trait buff and replicated trait-name array.
+-- Never replay InitializeTraits: it also grants starting items, skill XP and random rewards.
 return function(ctx)
     local replication = require("replication")
     local names = require("name_arrays")
@@ -48,6 +48,77 @@ return function(ctx)
         return result
     end
 
+    local function traitRuntime(payload)
+        if not ctx.isHost() then error("trait editing requires host authority") end
+        local helper = replication.requireHelper()
+        local library = StaticFindObject("/Script/AbioticFactor.Default__BuffDebuffHandleFunctionLibrary")
+        local class = StaticFindObject("/Script/AbioticFactor.CharacterBuffComponent")
+        if not library or not library:IsValid() or not class or not class:IsValid() then
+            error("trait buff support is unavailable")
+        end
+        local player = ctx.resolvePlayer(payload)
+        local buffs = player and player:GetComponentByClass(class)
+        if not buffs or not buffs:IsValid() then error("no character buff component found") end
+        return helper, library, buffs
+    end
+
+    ctx.handlers["general.trait.set"] = function(payload, respond)
+        ctx.runOnGameThread(function()
+            if type(payload.id) ~= "string" or payload.id == "" or type(payload.enabled) ~= "boolean" then
+                error("trait id and enabled state are required")
+            end
+            if type(payload.buffRowName) ~= "string" then error("installed trait buff row is required") end
+            local helper, library, buffs = traitRuntime(payload)
+            local component = getProgressionComponent(payload)
+            if not component then error("no CharacterProgressionComponent found") end
+            local targetName = FName(payload.id, EFindName.FNAME_Find)
+            if targetName:ToString() == "None" then error("unknown trait row: " .. payload.id) end
+            local targetId = targetName:ToString():lower()
+            local current, replacement, present = {}, {}, false
+            for index = 1, #component.Traits do
+                local name = FName(component.Traits[index]:ToString(), EFindName.FNAME_Find)
+                current[#current + 1] = name
+                local matches = name:ToString():lower() == targetId
+                if matches then present = true end
+                if payload.enabled or not matches then replacement[#replacement + 1] = name end
+            end
+            if present == payload.enabled then return nil end
+            if payload.enabled then replacement[#replacement + 1] = targetName end
+            local handle
+            if payload.buffRowName ~= "" and payload.buffRowName ~= "None" then
+                local buffName = FName(payload.buffRowName, EFindName.FNAME_Find)
+                if buffName:ToString() == "None" then error("unknown trait buff row: " .. payload.buffRowName) end
+                handle = library:MakeBuffDebuffRowHandle(buffName)
+                local path = handle.DataTablePath:ToString()
+                path = path:match("'([^']+)'$") or path
+                local dataTable = StaticFindObject(path)
+                local tables = StaticFindObject("/Script/Engine.Default__DataTableFunctionLibrary")
+                if not dataTable or not dataTable:IsValid() or not tables or not tables:IsValid() then
+                    error("trait buff table is unavailable")
+                end
+                if not tables:DoesDataTableRowExist(dataTable, handle.RowName) then
+                    error("unknown trait buff row: " .. payload.buffRowName)
+                end
+            end
+            local function applyBuff(enabled)
+                if not handle then return end
+                if enabled then buffs:Server_AddTraitBuff(handle)
+                else buffs:Server_RemoveTraitBuff(handle) end
+            end
+            local ok, err = pcall(function()
+                applyBuff(payload.enabled)
+                component.Traits = replacement
+                replication.mark(helper, component, "Traits")
+            end)
+            if not ok then
+                pcall(function() component.Traits = current; replication.mark(helper, component, "Traits") end)
+                pcall(function() applyBuff(not payload.enabled) end)
+                error(err)
+            end
+            return nil
+        end, respond)
+    end
+
     ctx.handlers["general.get"] = function(payload, respond)
         ctx.runOnGameThread(function()
             local component = getProgressionComponent(payload)
@@ -62,11 +133,10 @@ return function(ctx)
                 itemsSeen = readNameArray(function() return component.ItemsPickedUpArray end),
                 itemsCrafted = readNameArray(function() return component.CraftedItems end),
                 maps = readNameArray(function() return component.CurrentMaps end),
-                -- Read-only here (see the file header comment) - progressionComponen.Traits is
-                -- the same array the reference mod's "traits" console command reads.
                 traits = readNameArray(function() return component.Traits end),
                 background = background,
                 canDiscoverCrafted = ctx.isHost() and replication.available(),
+                canEditTraits = pcall(function() traitRuntime(payload) end),
             }
         end, respond)
     end
@@ -100,7 +170,7 @@ return function(ctx)
                     pcall(function() state.PhD = FName(payload.background, EFindName.FNAME_Find) end)
                 end
             end
-            -- payload.traits is deliberately not accepted - see the file header comment.
+            -- Trait edits use their dedicated command with an installed catalog buff row.
             return nil
         end, respond)
     end

@@ -262,7 +262,7 @@
             s => Session.ItemUpgrades.UpgradeFor(s.ItemId) is not null,
             s => Session.ItemUpgrades.SourceOf(s.ItemId) is not null)
         {
-            SupportsCoatingEdits = !Session.AppliesImmediately,
+            SupportsCoatingEdits = !Session.AppliesImmediately || slot.InstanceMetadata is not null,
             SupportsLiquidTypeEdits = Session.AppliesImmediately,
             PlayerArea = area,
             Role = RoleFor(area, slot.Index),

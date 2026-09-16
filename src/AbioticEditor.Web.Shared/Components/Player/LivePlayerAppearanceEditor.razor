@@ -1,0 +1,90 @@
+@namespace AbioticEditor.Web.Components.Player
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Core.PlayerSaves
+@inject AbioticEditor.Web.Services.CustomizationCatalogService Catalog
+
+<section class="editor-card appearance-panel" aria-label="@L.Resource("PlayerCharacter_AppearanceHeadHairClothing")">
+    <p class="tab-section-label">@L.Resource("PlayerCharacter_AppearanceHeadHairClothing")</p>
+    @if (_loading)
+    {
+        <p class="general-loading" role="status">@L.Resource("Customization_LoadingOptions")</p>
+    }
+    @if (_error is not null) { <p class="error" role="alert">@_error</p> }
+    @if (!_loading)
+    {
+        @if (Session.CanSaveProfile)
+        {
+            <small class="general-help">@L.Resource("Customization_LiveLocalCaption")</small>
+            <button type="button" class="primary appearance-save" disabled="@(_busy || !Session.HasProfileChanges)" @onclick="SaveProfileAsync">@L.Resource("PlayerCharacter_SaveAppearance")</button>
+        }
+        else
+        {
+            <small class="general-help">@L.Resource("Customization_LiveRemoteCaption")</small>
+        }
+        <div class="appearance-fields">
+            @foreach (var field in Session.Fields)
+            {
+                var options = OptionsFor(field.TableName);
+                var selected = options.FirstOrDefault(option => option.RowName == field.CurrentValue);
+                <div class="appearance-field">
+                    <label class="appearance-field-label" for="@($"live-{field.PropertyName}")">@field.Label</label>
+                    <div class="appearance-field-body">
+                        @if (selected?.IconAssetPath is { } icon)
+                        {
+                            <span class="appearance-preview"><GameArtImage GameRef="@icon" Alt="@selected.DisplayName" /></span>
+                        }
+                        else if (selected?.ColorHex is { } color)
+                        {
+                            <span class="appearance-preview" style="@($"background:#{color.TrimStart('#')}")" aria-hidden="true"></span>
+                        }
+                        <select id="@($"live-{field.PropertyName}")" value="@field.CurrentValue" disabled="@(_busy || !Session.CanEdit || options.Count == 0)" @onchange="e => ChangeAsync(field.PropertyName, e.Value?.ToString())">
+                            @if (!options.Any(option => option.RowName == field.CurrentValue))
+                            {
+                                <option value="@field.CurrentValue">@field.CurrentValue</option>
+                            }
+                            @foreach (var option in options) { <option value="@option.RowName">@option.DisplayName</option> }
+                        </select>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public IPlayerAppearanceSession Session { get; set; } = null!;
+    private bool _loading = true;
+    private bool _busy;
+    private string? _error;
+    private IReadOnlyDictionary<string, IReadOnlyList<CustomizationOption>> _options = new Dictionary<string, IReadOnlyList<CustomizationOption>>();
+    private IReadOnlyList<CustomizationOption> OptionsFor(string tableName) => _options.TryGetValue(tableName, out var options) ? options : [];
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await Session.RefreshAsync();
+            _options = await Task.Run(() => Session.Fields.Select(field => field.TableName).Distinct(StringComparer.Ordinal)
+                .ToDictionary(name => name, name => Catalog.OptionsFor(name), StringComparer.Ordinal));
+        }
+        catch (Exception exception) { _error = Errors.Present(exception, "Update this appearance.", "Try reconnecting to the game."); }
+        finally { _loading = false; }
+    }
+    private async Task SaveProfileAsync()
+    {
+        if (_busy) return;
+        _busy = true;
+        _error = null;
+        try { await Session.SaveProfileAsync(); }
+        catch (Exception exception) { _error = Errors.Present(exception, "Update this appearance.", "Try reconnecting to the game."); }
+        finally { _busy = false; }
+    }
+    private async Task ChangeAsync(string propertyName, string? rowName)
+    {
+        if (_busy || string.IsNullOrEmpty(rowName)) return;
+        _busy = true;
+        _error = null;
+        try { await Session.SetAsync(propertyName, rowName); }
+        catch (Exception exception) { _error = Errors.Present(exception, "Update this appearance.", "Try reconnecting to the game."); }
+        finally { _busy = false; }
+    }
+}

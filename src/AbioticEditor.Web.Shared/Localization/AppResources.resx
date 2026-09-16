@@ -179,7 +179,7 @@
   <data name="PlayerCharacter_SearchTraitsPlaceholder" xml:space="preserve"><value>Search traits to add...</value></data>
   <data name="PlayerCharacter_TraitPointsFormat" xml:space="preserve"><value>{0:+#;-#;0} pts</value></data>
   <data name="PlayerCharacter_Traits" xml:space="preserve"><value>TRAITS</value></data>
-  <data name="PlayerCharacter_TraitsLiveReadOnlyHelp" xml:space="preserve"><value>Traits can only be added or removed by editing the save file directly, not while connected to a running game.</value></data>
+  <data name="PlayerCharacter_TraitsLiveReadOnlyHelp" xml:space="preserve"><value>Trait editing requires a current live agent running as the host.</value></data>
   <data name="PlayerCharacter_AppearanceLiveReadOnlyHelp" xml:space="preserve"><value>A character's look (head, hair and clothing) lives in a separate file next to your saves and can only be changed there, not while connected to a running game.</value></data>
 
   <!-- PlayerCodex -->
@@ -4178,4 +4178,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="PlayerUi_PetBed" xml:space="preserve"><value>Pet bed</value></data>
   <data name="PlayerUi_PetWorld" xml:space="preserve"><value>World region</value></data>
   <data name="PlayerUi_Details" xml:space="preserve"><value>Details</value></data>
+  <data name="Customization_LiveLocalCaption" xml:space="preserve"><value>Changes appear immediately. Save Appearance keeps this look in your local character profile and backs up the previous profile.</value></data>
+  <data name="Customization_LiveRemoteCaption" xml:space="preserve"><value>Changes apply for this session. Other players keep their appearance profiles on their own computers.</value></data>
+  <data name="PlayerCharacter_TraitsCatalogRequired" xml:space="preserve"><value>Read this trait's details from the installed game before changing it live.</value></data>
 </root>

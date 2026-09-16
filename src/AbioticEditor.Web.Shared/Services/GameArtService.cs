@@ -21,12 +21,12 @@ public sealed class GameArtService : IDisposable
 {
     private readonly Lazy<GameAssetProvider?> _provider = new(CreateProvider, LazyThreadSafetyMode.ExecutionAndPublication);
     private readonly ConcurrentDictionary<string, Lazy<Task<string?>>> _paths = new(StringComparer.Ordinal);
-    private readonly ConcurrentDictionary<string, Task<(double X, double Y, double Z)?>> _doorPositions = new(StringComparer.OrdinalIgnoreCase);
-    private readonly ConcurrentDictionary<string, Task<IReadOnlyDictionary<string, DoorWorldLocation>>> _doorMapPositions = new(StringComparer.OrdinalIgnoreCase);
-    private readonly ConcurrentDictionary<string, Task<string?>> _wikiImages = new(StringComparer.OrdinalIgnoreCase);
-    private readonly ConcurrentDictionary<string, Task<ActorTransform?>> _actorTransforms = new(StringComparer.OrdinalIgnoreCase);
-    private readonly ConcurrentDictionary<string, Task<IReadOnlyDictionary<string, DoorStoryGate>>> _doorGates = new(StringComparer.OrdinalIgnoreCase);
-    private readonly ConcurrentDictionary<string, Task<SectorMap?>> _sectorMaps = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, Lazy<Task<(double X, double Y, double Z)?>>> _doorPositions = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, Lazy<Task<IReadOnlyDictionary<string, DoorWorldLocation>>>> _doorMapPositions = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, Lazy<Task<string?>>> _wikiImages = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, Lazy<Task<ActorTransform?>>> _actorTransforms = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, Lazy<Task<IReadOnlyDictionary<string, DoorStoryGate>>>> _doorGates = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, Lazy<Task<SectorMap?>>> _sectorMaps = new(StringComparer.OrdinalIgnoreCase);
     private Lazy<Task<IReadOnlyList<string>>>? _npcStates;
 
     private readonly bool _extractsLive;
@@ -105,7 +105,7 @@ public sealed class GameArtService : IDisposable
     {
         if (string.IsNullOrWhiteSpace(actorName)) return Task.FromResult<(double, double, double)?>(null);
         var key = $"{mapName}|{actorName}";
-        return _doorPositions.GetOrAdd(key, _ => ResolveDoorPositionAsync(mapName, actorName));
+        return _doorPositions.GetOrAdd(key, _ => new Lazy<Task<(double X, double Y, double Z)?>>(() => ResolveDoorPositionAsync(mapName, actorName))).Value;
     }
 
     private async Task<(double X, double Y, double Z)?> ResolveDoorPositionAsync(string? mapName, string actorName) => await Task.Run(() =>
@@ -130,7 +130,7 @@ public sealed class GameArtService : IDisposable
     public Task<IReadOnlyDictionary<string, DoorWorldLocation>> GetDoorPositionsForMapAsync(string? mapName)
     {
         var key = mapName ?? string.Empty;
-        return _doorMapPositions.GetOrAdd(key, _ => ResolveMapPositionsAsync(mapName));
+        return _doorMapPositions.GetOrAdd(key, _ => new Lazy<Task<IReadOnlyDictionary<string, DoorWorldLocation>>>(() => ResolveMapPositionsAsync(mapName))).Value;
     }
 
     private async Task<IReadOnlyDictionary<string, DoorWorldLocation>> ResolveMapPositionsAsync(string? mapName) => await Task.Run(() =>
@@ -163,7 +163,7 @@ public sealed class GameArtService : IDisposable
     /// "nothing known" rather than proof.
     /// </summary>
     public Task<IReadOnlyDictionary<string, DoorStoryGate>> GetDoorGatesForMapAsync(string? mapName)
-        => _doorGates.GetOrAdd(mapName ?? string.Empty, _ => Task.Run(() =>
+        => _doorGates.GetOrAdd(mapName ?? string.Empty, _ => new Lazy<Task<IReadOnlyDictionary<string, DoorStoryGate>>>(() => Task.Run(() =>
         {
             try
             {
@@ -175,7 +175,7 @@ public sealed class GameArtService : IDisposable
                 return DoorGateResolver.ForMap(provider, mapName);
             }
             catch { return new Dictionary<string, DoorStoryGate>(); }
-        }));
+        }))).Value;
 
     /// <summary>
     /// The in-game sector map that depicts <paramref name="mapName"/>, with everything needed
@@ -185,7 +185,7 @@ public sealed class GameArtService : IDisposable
     public Task<SectorMap?> GetSectorMapAsync(string? mapName)
     {
         if (string.IsNullOrWhiteSpace(mapName)) return Task.FromResult<SectorMap?>(null);
-        return _sectorMaps.GetOrAdd(mapName, static (name, service) => Task.Run(() =>
+        return _sectorMaps.GetOrAdd(mapName, static (name, service) => new Lazy<Task<SectorMap?>>(() => Task.Run(() =>
         {
             try
             {
@@ -199,7 +199,7 @@ public sealed class GameArtService : IDisposable
                 return info is null ? null : new SectorMap(fit, info.TexturePath);
             }
             catch { return null; }
-        }), this);
+        })), this).Value;
     }
 
     /// <summary>
@@ -218,7 +218,7 @@ public sealed class GameArtService : IDisposable
             return Task.FromResult(Core.Assets.WikiImageManifest.Contains(fileName) ? fileName : null);
         }
 
-        return _wikiImages.GetOrAdd(fileName, static f => Core.Assets.WikiImageCache.Default.GetAsync(f));
+        return _wikiImages.GetOrAdd(fileName, static f => new Lazy<Task<string?>>(() => Core.Assets.WikiImageCache.Default.GetAsync(f))).Value;
     }
 
     /// <summary>
@@ -230,7 +230,7 @@ public sealed class GameArtService : IDisposable
     public Task<ActorTransform?> TryGetActorTransformAsync(string? actorObjectPath)
     {
         if (string.IsNullOrWhiteSpace(actorObjectPath)) return Task.FromResult<ActorTransform?>(null);
-        return _actorTransforms.GetOrAdd(actorObjectPath, static (path, service) => Task.Run(() =>
+        return _actorTransforms.GetOrAdd(actorObjectPath, static (path, service) => new Lazy<Task<ActorTransform?>>(() => Task.Run(() =>
         {
             try
             {
@@ -238,7 +238,7 @@ public sealed class GameArtService : IDisposable
                 return provider is not { HasMappings: true } ? null : provider.TryGetActorTransform(path);
             }
             catch { return null; }
-        }), this);
+        })), this).Value;
     }
 
     /// <summary>

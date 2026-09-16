@@ -49,6 +49,36 @@ return function(H)
     H.ok(H.dispatch("bases.set", { id = lockerId, customName = "Renamed Locker" }), "rename the locker")
     H.eq(H.field(locker, "AlternativeObjectName"):ToString(), "Renamed Locker", "the new name was actually written and reads back through FText")
 
+    local upgradedBench = H.world.add(H.object("AbioticDeployed_CraftingBench_ParentBP_C", {
+        __bases = { "AbioticDeployed_ParentBP_C" }, SupportsUpgrades = true,
+        UpgradeTagContainer = { GameplayTags = { {TagName=H.fname("BenchUpgrade.TougherBench")}, {TagName=H.fname("Other.Tag")} } },
+    }, { K2_GetActorLocation = function() return H.vector(0,0,0) end }))
+    local upgraded = H.ok(H.dispatch("bases.list"))
+    for _, row in ipairs(upgraded.deployables) do
+        if row.id == upgradedBench:GetFullName() then H.eq(row.installedUpgrades[1], "TougherBench", "installed tags read without native handles") end
+    end
+
+    local tagData = { GameplayTags = {{TagName=H.fname("Other.Tag")}}, ParentTags = {{TagName=H.fname("Other")}} }
+    H.world.static("/Script/Engine.Default__NetPushModelHelpers", H.object("NetPushModelHelpers", {}, { MarkPropertyDirty=function() end }))
+    local writable = H.world.add(H.object("AbioticDeployed_CraftingBench_ParentBP_C", {
+        __bases={"AbioticDeployed_ParentBP_C"}, SupportsUpgrades=true,
+        UpgradeTagContainer={GameplayTags={},ParentTags={}},
+        ChangeableData={GameplayTags_45_1A018E824E25CC7BA608A6B2835209A1=tagData},
+    }, {
+        K2_GetActorLocation=function() return H.vector(0,0,0) end,
+        FlushNetDormancy=function() end, OnRep_UpgradeTagContainer=function() end, SaveDeployable=function() end,
+    }))
+    H.ok(H.dispatch("bases.set",{id=writable:GetFullName(),upgradeRow="TougherBench",upgradeInstalled=true}), "install through replicated and saved tags")
+    H.eq(writable.UpgradeTagContainer.GameplayTags[1].TagName:ToString(), "BenchUpgrade.TougherBench", "replicated tag installed")
+    H.eq(tagData.GameplayTags[1].TagName:ToString(), "Other.Tag", "unrelated saved tag retained")
+    H.eq(tagData.GameplayTags[2].TagName:ToString(), "BenchUpgrade.TougherBench", "saved tag installed")
+    H.eq(H.calls(writable,"SaveDeployable"),1,"bench save requested")
+    H.ok(H.dispatch("bases.set",{id=writable:GetFullName(),upgradeRow="TougherBench",upgradeInstalled=false}), "remove tag and refresh components")
+    H.eq(#writable.UpgradeTagContainer.GameplayTags,0,"replicated tag removed")
+    H.eq(#writable.UpgradeTagContainer.ParentTags,0,"stale parent tag removed")
+    H.eq(#tagData.GameplayTags,1,"only selected saved tag removed")
+    H.eq(H.calls(writable,"OnRep_UpgradeTagContainer"),2,"upgrade components refresh on install and removal")
+
     -- Missing deployable id: player-safe failure, not a Lua error.
     H.fails(H.dispatch("bases.set", { id = "no-such-deployable", customName = "X" }), "not found", "unknown deployable id fails cleanly")
 

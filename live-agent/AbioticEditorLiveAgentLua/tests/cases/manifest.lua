@@ -16,6 +16,8 @@ return {
     "pets",
     "transmog",
     "bases",
+    "care",
+    "playtime",
     "vehicles",
     "doors",
     "players",
@@ -23,4 +25,7 @@ return {
     "world_gaps",
     "parity",
     "mailbox",
+    "inventory_metadata",
+    "traits",
+    "appearance",
 }

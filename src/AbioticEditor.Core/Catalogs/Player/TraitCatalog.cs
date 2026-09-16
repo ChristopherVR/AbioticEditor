@@ -12,7 +12,8 @@ public sealed record TraitDetail(
     string? Description,
     int PointCost,
     bool IsBackground,
-    bool AvailableOnStart = true);
+    bool AvailableOnStart = true,
+    string? BuffRowName = null);
 
 /// <summary>
 /// Internal-id -> display-name catalog for traits and backgrounds (jobs/PhDs), dumped from
@@ -96,7 +97,7 @@ public static class TraitCatalog
 
     public static IReadOnlyDictionary<string, TraitDetail> LoadDetailsFrom(GameAssetProvider provider)
     {
-        var result = new Dictionary<string, TraitDetail>(StringComparer.Ordinal);
+        var result = new Dictionary<string, TraitDetail>(StringComparer.OrdinalIgnoreCase);
         if (!provider.HasMappings) return result;
 
         string? structName = null;
@@ -128,7 +129,7 @@ public static class TraitCatalog
             var id = kv.Key.Text;
             if (string.IsNullOrEmpty(id) || result.ContainsKey(id)) continue;
 
-            string? name = null, description = null;
+            string? name = null, description = null, buffRowName = null;
             var cost = 0;
             var availableOnStart = true;
             foreach (var p in kv.Value.Properties)
@@ -141,6 +142,10 @@ public static class TraitCatalog
                 else if (n.StartsWith("TraitDescription_", StringComparison.Ordinal))
                 {
                     description = p.Tag?.GenericValue?.ToString();
+                }
+                else if (n.StartsWith("TraitBuffRowName_", StringComparison.Ordinal))
+                {
+                    buffRowName = p.Tag?.GenericValue?.ToString();
                 }
                 else if (n.StartsWith("PointCost_", StringComparison.Ordinal))
                 {
@@ -155,7 +160,7 @@ public static class TraitCatalog
             // descriptions - normalize to null so the UI can fall back.
             if (string.IsNullOrWhiteSpace(description)) description = null;
             var isBackground = Backgrounds.ContainsKey(id) || !id.StartsWith("Trait_", StringComparison.Ordinal);
-            result[id] = new TraitDetail(id, name ?? DisplayNameFor(id), description, cost, isBackground, availableOnStart);
+            result[id] = new TraitDetail(id, name ?? DisplayNameFor(id), description, cost, isBackground, availableOnStart, buffRowName);
         }
     }
 }

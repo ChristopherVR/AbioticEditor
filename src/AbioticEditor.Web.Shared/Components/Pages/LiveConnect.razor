@@ -143,6 +143,10 @@ else
                     <button role="tab" aria-selected="@(_worldTab == "pets")" class="@(_worldTab == "pets" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("pets")'>@L.Resource("WorldEditor_TabPets")</button>
                     <button role="tab" aria-selected="@(_worldTab == "narrativenpcs")" class="@(_worldTab == "narrativenpcs" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("narrativenpcs")'>@L.Resource("WorldEditor_TabNpcs")</button>
                     <button role="tab" aria-selected="@(_worldTab == "portals")" class="@(_worldTab == "portals" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("portals")'>@L.Resource("Live_TabPortals")</button>
+                    @foreach (var feature in CareFeatures)
+                    {
+                        <button role="tab" aria-selected="@(_worldTab == feature.Id)" class="@(_worldTab == feature.Id ? "selected" : null)" @onclick="() => SelectWorldTabAsync(feature.Id)">@feature.Title</button>
+                    }
                     <button role="tab" aria-selected="@(_worldTab == "raw")" class="@(_worldTab == "raw" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("raw")'>@L.Resource("WorldEditor_TabRawJson")</button>
                 }
             </nav>
@@ -167,7 +171,7 @@ else
             {
                 @* Same tab the offline editor uses (IWorldContainersSession is the shared
                    boundary) - see LiveContainersSession for the live implementation. *@
-                <WorldContainersTab Session="_containers" Title="@L.Resource("LiveContainers_Title")" />
+                <WorldContainersTab Session="_containers" LivePlayerSession="_inventory" Title="@L.Resource("LiveContainers_Title")" InitialFilter="@_careContainerFilter" />
             }
             else if (_worldTab == "dropped" && _dropped is not null)
             {
@@ -217,6 +221,10 @@ else
                    only; every other feature id (power sockets, resource nodes, ...) has no live
                    equivalent and is not offered here. *@
                 <WorldFeaturesTab Session="_portals" FeatureId="@LivePortalsFeatureSession.PortalsFeatureId" OnError="SetError" />
+            }
+            else if (_care.TryGetValue(_worldTab, out var careSession))
+            {
+                <WorldFeaturesTab Session="careSession" FeatureId="@_worldTab" OnError="SetError" OnOpenLink="OpenCareContainerAsync" />
             }
             else if (_worldTab == "entitlements")
             {
@@ -296,6 +304,16 @@ else
     private LiveContainmentSession? _containment;
     private LiveTradersSession? _traders;
     private LivePortalsFeatureSession? _portals;
+    private readonly Dictionary<string, LiveDeployedCareSession> _care = new(StringComparer.Ordinal);
+    private static readonly (string Id, string Title)[] CareFeatures =
+        [("garden-plots", "Garden plots"), ("power-chairs", "Power chairs"), ("chemistry-benches", "Chemistry benches")];
+    private string? _careContainerFilter;
+
+    private async Task OpenCareContainerAsync(string id)
+    {
+        _careContainerFilter = id;
+        await SelectWorldTabAsync("containers");
+    }
     private string? _selectedPlayerId;
 
     private string? ActiveStatus => _playerActiveTab switch
@@ -607,6 +625,9 @@ else
                     break;
                 case "containers":
                     _containers ??= await TryConnectWorldAreaAsync(() => LiveContainersSession.ConnectAsync(new LiveContainersChannel(channel)));
+                    _inventory ??= await LiveInventorySession.ConnectAsync(new LiveInventoryChannel(channel), _selectedPlayerId, Upgrades.Get(),
+                        new LiveTransmogVisibilityChannel(channel));
+                    _playerFacade.InventorySession = _inventory;
                     break;
                 case "dropped":
                     _dropped ??= await TryConnectWorldAreaAsync(() => LiveDroppedItemsSession.ConnectAsync(new LiveDroppedItemsChannel(channel)));
@@ -633,6 +654,15 @@ else
                     break;
                 case "portals":
                     _portals ??= await TryConnectWorldAreaAsync(() => LivePortalsFeatureSession.ConnectAsync(new LivePortalsChannel(channel)));
+                    break;
+                case "garden-plots":
+                case "power-chairs":
+                case "chemistry-benches":
+                    if (!_care.ContainsKey(_worldTab))
+                    {
+                        var care = await TryConnectWorldAreaAsync(() => LiveDeployedCareSession.ConnectAsync(new LiveDeployedCareChannel(channel), _worldTab));
+                        if (care is not null) _care[care.FeatureId] = care;
+                    }
                     break;
             }
         }
@@ -847,6 +877,11 @@ else
                 case "containment": yield return _containment; break;
                 case "traders": yield return _traders; break;
                 case "portals": yield return _portals; break;
+                case "garden-plots":
+                case "power-chairs":
+                case "chemistry-benches":
+                    if (_care.TryGetValue(_worldTab, out var care)) yield return care;
+                    break;
                 // "entitlements"/"raw" have no live session backing them - offline-only.
             }
         }
@@ -901,7 +936,7 @@ else
         _vitals, _skills, _spawn, _companions, _npcs, _inventory, _story, _recipes, _codex, _general,
         _flags, _doors, _containers, _dropped, _bases, _vehicles, _pets, _narrativeNpcs, _containment,
         _traders, _portals,
-    };
+    }.Concat(_care.Values);
 
     /// <summary>Subscribes to every connected session's <c>Changed</c> event that is not already
     /// subscribed to. Safe to call repeatedly (called after <see cref="ConnectAsync"/> and after
@@ -1046,6 +1081,8 @@ else
         _containment = null;
         _traders = null;
         _portals = null;
+        _care.Clear();
+        _careContainerFilter = null;
         _selectedPlayerId = null;
         if (_channel is not null) await _channel.DisposeAsync();
         _channel = null;

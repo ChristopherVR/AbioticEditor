@@ -530,6 +530,8 @@
     /// </summary>
     private async Task ItemRowChanged()
     {
+        if (Selection.Current?.Slot is { InstanceMetadata: { } metadata } slot)
+            slot.InstanceMetadata = metadata with { ItemDataTable = ItemTableIndex.TableRefFor(slot.ItemId) };
         if (Selection.Current is { } current
             && Catalog.Find(current.Slot.ItemId) is { MaxDurability: > 0 } entry
             && current.Slot.MaxDurability <= 0)

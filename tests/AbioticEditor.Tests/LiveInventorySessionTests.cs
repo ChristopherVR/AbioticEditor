@@ -1,5 +1,6 @@
 using System.Text.Json;
 using AbioticEditor.Core.LiveEditing;
+using AbioticEditor.Core.PlayerSaves;
 using AbioticEditor.Core.LiveEditing.Player;
 using AbioticEditor.Web.Models;
 using Xunit;
@@ -18,6 +19,31 @@ namespace AbioticEditor.Tests;
 /// </summary>
 public sealed class LiveInventorySessionTests
 {
+    [Fact]
+    public async Task Complete_metadata_and_coatings_survive_occupied_swaps_and_sorting()
+    {
+        var channel = new FakeInventoryChannel();
+        var metadata = new InventoryInstanceMetadata([
+            new("EDynamicProperty::WeaponCoating", 2), new("EDynamicProperty::CoatingDurability", 30),
+            new("EDynamicProperty::XP", 400)], ["Item.Special"], "/Game/Mods/Items.Items", null, ["Item"]);
+        channel.SetSlot("backpack", 0, "z_item", 1, details: new(InstanceMetadata: metadata));
+        channel.SetSlot("backpack", 1, "a_item", 1, details: new(InstanceMetadata: new([], [])));
+        var session = await LiveInventorySession.ConnectAsync(new LiveInventoryChannel(channel));
+        var first = session.Backpack[0];
+        Assert.Equal(2, first.CoatingIndex);
+        first.CoatingDurability = 17;
+        await session.PushSlotAsync(PlayerInventoryArea.Backpack, first);
+        Assert.True(await session.TrySwapInventorySlotsAsync(PlayerInventoryArea.Backpack, 0, PlayerInventoryArea.Backpack, 1));
+        await session.SortInventorySlotsAsync(PlayerInventoryArea.Backpack);
+        var moved = session.Backpack[1];
+        Assert.Equal("z_item", moved.ItemId);
+        Assert.Equal(17, moved.CoatingDurability);
+        Assert.Equal(400, moved.InstanceMetadata!.DynamicProperties.Single(p => p.Key.EndsWith("::XP", StringComparison.Ordinal)).Value);
+        Assert.Equal(metadata.GameplayTags, moved.InstanceMetadata.GameplayTags);
+        Assert.Equal(metadata.ParentGameplayTags, moved.InstanceMetadata.ParentGameplayTags);
+        Assert.Equal(metadata.ItemDataTable, moved.InstanceMetadata.ItemDataTable);
+    }
+
     [Fact]
     public async Task Instance_details_survive_a_move_and_edits_are_sent_to_the_agent()
     {
@@ -243,7 +269,7 @@ public sealed class LiveInventorySessionTests
                     ammoInMagazine = kv.Value.AmmoInMagazine,
                     details = kv.Value.Details,
                 }).ToList(),
-                "inventory.set" or "inventory.setfull" => ApplySet(payloadElement),
+                "inventory.set" or "inventory.setfull" or "inventory.setcomplete" => ApplySet(payloadElement),
                 "transmog.get" => new { visibility = Array.Empty<object>() },
                 _ => throw new LiveAgentException($"unknown command '{command}' in fake channel"),
             };

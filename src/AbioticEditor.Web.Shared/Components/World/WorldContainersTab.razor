@@ -105,7 +105,7 @@
                        layout changes. *@
                     <SlotMoveBar Touch="@_touch" Holding="@IsHolding" CanStart="@CanStartMove"
                                  Message="@HoldingMessage" OnStart="StartMove" OnCancel="CancelMove" />
-                    @if (_touch && PlayerSession is not null && Selection.Current?.Slot is { IsEmpty: false } sendable && _slotEdits?.Contains(sendable) == true)
+                    @if (_touch && (PlayerSession is not null || LivePlayerSession is not null) && Selection.Current?.Slot is { IsEmpty: false } sendable && _slotEdits?.Contains(sendable) == true)
                     {
                         <div class="editor-actions">
                             <button type="button" class="secondary" @onclick="() => SendToPlayerAsync(sendable)">@L.Resource("WorldPets_SendToPlayer")</button>
@@ -134,6 +134,7 @@
 @code {
     [Parameter, EditorRequired] public IWorldContainersSession Session { get; set; } = null!;
     [Parameter] public PlayerSaveSession? PlayerSession { get; set; }
+    [Parameter] public LiveInventorySession? LivePlayerSession { get; set; }
     [Parameter] public string Title { get; set; } = "World editor";
     [Parameter] public EventCallback<string?> OnError { get; set; }
     // Set only while an edit is talking to a live game; the file session's own methods
@@ -390,17 +391,12 @@
     /// <summary>
     /// Puts an item carried over from the character's inventory into one slot of the crate
     /// being viewed. Whatever was in that slot goes back to the character, which is the same
-    /// straight trade the SEND TO PLAYER button makes in the other direction. Both saves stay
-    /// staged until each is saved.
+    /// straight trade the SEND TO PLAYER button makes in the other direction. File saves stay
+    /// staged; a connected host transfers both current slots in one operation.
     /// </summary>
     private async Task TakeFromCharacterAsync(SlotDragSource carried, PlayerInventorySlotEdit target)
     {
         Dnd.End();
-        // Trading with a player's own file save only makes sense when that save is staged
-        // in this same editor - a live container has no such save to trade with, so this
-        // whole path is out of scope live rather than pretending a stale carried slot (from
-        // some other tab) still applies. See IWorldContainersSession.AppliesImmediately.
-        if (Session.AppliesImmediately) { _moveStatus = L.Resource("WorldContainers_LivePlayerTransferUnavailable"); return; }
         if (_slotEdits is null || _selectedKey is not { } key) return;
         var position = _slotEdits.IndexOf(target);
         if (position < 0) return;
@@ -411,7 +407,6 @@
     private async Task TakeFromCharacterAsync(SlotDragSource carried, WorldContainer container)
     {
         Dnd.End();
-        if (Session.AppliesImmediately) { _moveStatus = L.Resource("WorldContainers_LivePlayerTransferUnavailable"); return; }
         if (FirstEmptySlot(container) is not { } position)
         {
             _moveStatus = L.Resource("WorldContainers_ContainerFullFormat", DisplayName(container));
@@ -422,10 +417,17 @@
 
     private async Task TransferFromCharacterAsync(SlotDragSource carried, WorldContainerSource source, string containerId, int position)
     {
-        // InventoryTransferService coordinates an atomic swap against the concrete staged
-        // session type - it has no live counterpart (see IWorldContainersSession.AppliesImmediately
-        // and the callers above, which never reach here for a live session). This is a
-        // defensive fallback, not the normal guard.
+        if (Session is LiveContainersSession live)
+        {
+            var player = carried.Session as LiveInventorySession ?? (carried.Session as LivePlayerEditorSession)?.InventorySession as LiveInventorySession;
+            if (player is null || !ReferenceEquals(player, LivePlayerSession))
+            { _moveStatus = L.Resource("WorldContainers_LivePlayerTransferUnavailable"); return; }
+            if (!await TryLiveTransferAsync(live, PlayerEndpoint(player, carried.Area, carried.Slot.Index),
+                new(position, ContainerId: containerId), player)) return;
+            InvalidateSummaries(); SyncEditsFromSession();
+            return;
+        }
+        // File sessions stage both sides together; connected inventories use the host operation above.
         if (Session is not WorldSaveSession worldSession) { _moveStatus = L.Resource("WorldContainers_LivePlayerTransferUnavailable"); return; }
         var moved = SlotName(carried.Slot);
         // Any typing still sitting in the slot editor is written into the world first, so the
@@ -624,7 +626,7 @@
             slotEdit => UpgradeCatalog.UpgradeFor(slotEdit.ItemId) is not null,
             slotEdit => UpgradeCatalog.SourceOf(slotEdit.ItemId) is not null)
         {
-            SupportsCoatingEdits = !Session.AppliesImmediately,
+            SupportsCoatingEdits = !Session.AppliesImmediately || edit.InstanceMetadata is not null,
             SupportsLiquidTypeEdits = Session.AppliesImmediately,
             QuickGiveFallback = _ => _slotEdits.FirstOrDefault(candidate => candidate.IsEmpty) is { } empty ? new(empty, null, null) : null,
             SelectSlot = SelectSibling,
@@ -652,6 +654,7 @@
         if (edge is null) return;
         edit.ItemId = action.Downgrade ? edge.SourceId : edge.OutputId;
         edit.AssetId = null;
+        if (edit.InstanceMetadata is { } metadata) edit.InstanceMetadata = metadata with { ItemDataTable = ItemTableIndex.TableRefFor(edit.ItemId) };
         await ApplyEditsAsync();
     }
 
@@ -701,6 +704,13 @@
             return;
         }
         var moved = SlotName(source);
+        if (Session is LiveContainersSession live)
+        {
+            if (!await TryLiveTransferAsync(live, new(source.Index, ContainerId: key.Id), new(emptyIndex, ContainerId: target.Id))) return;
+            InvalidateSummaries(); SyncEditsFromSession();
+            _moveStatus = L.Resource("WorldContainers_MovedIntoFormat", moved, DisplayName(target));
+            return;
+        }
         await ApplyEditsAsync();
         if (!await TrySetSlotAsync(target.Source, target.Id, 0, emptyIndex, source.ToInventorySlot()))
         {
@@ -718,6 +728,16 @@
     private async Task SendToPlayerAsync(PlayerInventorySlotEdit edit)
     {
         if (edit.IsEmpty) return;
+        if (Session is LiveContainersSession live && LivePlayerSession is { } livePlayer && _selectedKey is { } key)
+        {
+            var liveDestination = livePlayer.Backpack.FirstOrDefault(slot => slot.IsEmpty);
+            var liveArea = PlayerInventoryArea.Backpack;
+            if (liveDestination is null) { liveDestination = livePlayer.Hotbar.FirstOrDefault(slot => slot.IsEmpty); liveArea = PlayerInventoryArea.Hotbar; }
+            if (liveDestination is null) return;
+            if (!await TryLiveTransferAsync(live, new(edit.Index, ContainerId: key.Id), PlayerEndpoint(livePlayer, liveArea, liveDestination.Index), livePlayer)) return;
+            InvalidateSummaries(); SyncEditsFromSession();
+            return;
+        }
         if (PlayerSession is not { } player) { _moveStatus = L.Resource("WorldContainers_NoPlayerSaveFound"); return; }
         var (destination, whereKey) = player.Backpack.FirstOrDefault(slot => slot.IsEmpty) is { } backpack
             ? (backpack, "PlayerInventory_Backpack")
@@ -733,6 +753,22 @@
         // not something a player recognises.
         _moveStatus = L.Resource("WorldContainers_SentItemFormat", itemLabel, PlainNames.Player(L, player.SteamIdentifier), L.Resource(whereKey));
     }
+
+    private async Task<bool> TryLiveTransferAsync(LiveContainersSession live,
+        AbioticEditor.Core.LiveEditing.World.LiveInventoryEndpoint first,
+        AbioticEditor.Core.LiveEditing.World.LiveInventoryEndpoint second, LiveInventorySession? player = null)
+    {
+        _busy = true;
+        try { await live.TransferAsync(first, second, player); _liveError = null; return true; }
+        catch (Exception exception) when (IsLiveTransportFailure(exception))
+        { _liveError = Errors.Present(exception, "Move this item.", "The connection may have dropped; try reconnecting."); return false; }
+        finally { _busy = false; }
+    }
+
+    private static AbioticEditor.Core.LiveEditing.World.LiveInventoryEndpoint PlayerEndpoint(
+        LiveInventorySession player, PlayerInventoryArea area, int index)
+        => new(index, Kind: area switch { PlayerInventoryArea.Equipment => "equip", PlayerInventoryArea.Hotbar => "hotbar",
+            PlayerInventoryArea.Transmog => "transmog", _ => "backpack" }, PlayerId: player.PlayerId);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

@@ -142,6 +142,24 @@ public sealed class LiveContainersSession : IWorldContainersSession
         finally { Interlocked.Decrement(ref _pendingOperations); }
     }
 
+    public async Task TransferAsync(LiveInventoryEndpoint first, LiveInventoryEndpoint second,
+        LiveInventorySession? player = null, CancellationToken cancellationToken = default)
+    {
+        Interlocked.Increment(ref _pendingOperations);
+        try
+        {
+            async Task Apply()
+            {
+                await _channel.TransferAsync(first, second, cancellationToken).ConfigureAwait(false);
+                await RefreshAsync(cancellationToken).ConfigureAwait(false);
+            }
+            if (player is null) await Apply().ConfigureAwait(false);
+            else await player.ApplyExternalTransferAsync(Apply, cancellationToken).ConfigureAwait(false);
+            Status = null;
+        }
+        finally { Interlocked.Decrement(ref _pendingOperations); }
+    }
+
     /// <summary>Maps the live wire shape onto the same <see cref="WorldContainer"/>/
     /// <see cref="WorldInventory"/>/<see cref="InventoryItemSlot"/> domain records the file
     /// editor uses, so the shared tab's display and icon lookups work unchanged. A live
@@ -157,7 +175,8 @@ public sealed class LiveContainersSession : IWorldContainersSession
         slot.SlotIndex, slot.IsEmpty ? null : slot.ItemId, slot.Stack, slot.Durability, slot.MaxDurability,
         slot.AmmoInMagazine, slot.Details?.LiquidLevel ?? 0, slot.Details?.LiquidType,
         slot.Details?.DynamicState ?? false, slot.Details?.PlayerMadeString, slot.Details?.AssetId,
-        slot.Details?.VariantRowName);
+        slot.Details?.VariantRowName, slot.Details?.DynamicValue("WeaponCoating"),
+        slot.Details?.DynamicValue("CoatingDurability"), slot.Details?.InstanceMetadata);
 
     private static LiveContainerSlotEdit ToEdit(int index, InventoryItemSlot slot) => slot.IsEmpty
         ? new(index, Clear: true)

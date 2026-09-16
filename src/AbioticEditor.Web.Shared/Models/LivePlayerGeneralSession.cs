@@ -4,7 +4,7 @@ namespace AbioticEditor.Web.Models;
 
 /// <summary>
 /// Immediate live discovery/background editing. Crafted-item discovery is enabled
-/// by the host agent capability. Owner identity is save-only and traits remain read-only.
+/// by the host agent capability. Owner identity is save-only; traits require the native buff capability.
 /// </summary>
 public sealed class LivePlayerGeneralSession : IPlayerGeneralSession
 {
@@ -19,6 +19,7 @@ public sealed class LivePlayerGeneralSession : IPlayerGeneralSession
     {
         _channel = channel;
         _playerId = playerId;
+        Appearance = new LivePlayerAppearanceSession(channel.Appearance, () => _playerId);
         OwnerId = ownerId;
 
         ItemsSeen = new DelegateDiscoverySection(() => _itemsSeen, canDiscoverAll: true,
@@ -80,6 +81,7 @@ public sealed class LivePlayerGeneralSession : IPlayerGeneralSession
     public bool CanChangeBackground => true;
 
     public IReadOnlyList<string> Traits => _traits;
+    public IPlayerAppearanceSession Appearance { get; }
 
     /// <summary>False here: nothing is staged client-side, every mutation (background, discover)
     /// already reached the running game by the time its awaiting call returns - the same
@@ -88,8 +90,7 @@ public sealed class LivePlayerGeneralSession : IPlayerGeneralSession
     /// never clobbers an edit still in flight.</summary>
     public bool IsDirty => false;
 
-    /// <summary>False live - see <see cref="IPlayerGeneralSession.CanEditTraits"/>'s remarks.</summary>
-    public bool CanEditTraits => false;
+    public bool CanEditTraits { get; private set; }
 
     /// <summary>Raised after <see cref="RefreshAsync"/> re-reads the running character, and after
     /// every mutation below applies - lets a bound UI (the GENERAL and CHARACTER tabs) redraw
@@ -106,6 +107,15 @@ public sealed class LivePlayerGeneralSession : IPlayerGeneralSession
         Changed?.Invoke();
     }
 
+    public async Task SetTraitAsync(string id, bool enabled, string? buffRowName = null)
+    {
+        if (!CanEditTraits) throw new InvalidOperationException("Trait editing requires an updated host agent.");
+        if (buffRowName is null) throw new InvalidOperationException("Read the installed game's trait details before editing this trait.");
+        await _channel.SetTraitAsync(id, enabled, buffRowName, _playerId).ConfigureAwait(false);
+        await RefreshAsync().ConfigureAwait(false);
+        Status = null;
+    }
+
     /// <summary>Re-reads the live player's known items/maps/traits and background.</summary>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
@@ -115,6 +125,7 @@ public sealed class LivePlayerGeneralSession : IPlayerGeneralSession
         _maps.Clear(); foreach (var id in directory.Maps) _maps.Add(id);
         _traits = directory.Traits.ToList();
         Background = directory.Background;
+        CanEditTraits = directory.CanEditTraits;
         if (ItemsCrafted.CanDiscoverAll != directory.CanDiscoverCrafted)
             ItemsCrafted = new DelegateDiscoverySection(() => _itemsCrafted, directory.CanDiscoverCrafted, DiscoverCraftedAsync);
         Changed?.Invoke();

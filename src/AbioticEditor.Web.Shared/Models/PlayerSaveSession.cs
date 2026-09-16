@@ -228,14 +228,21 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         return Task.CompletedTask;
     }
 
-    /// <summary>Read-only through <see cref="IPlayerGeneralSession"/> - see that member's
-    /// remarks. Full add/remove is still <see cref="Traits"/> above, used directly by
-    /// <c>PlayerCharacterTab</c>.</summary>
+    /// <summary>Current trait names; shared character controls edit them through SetTraitAsync.</summary>
     IReadOnlyList<string> IPlayerGeneralSession.Traits => Traits;
 
     /// <summary>True here: trait add/remove is a plain staged list edit. See
     /// <see cref="IPlayerGeneralSession.CanEditTraits"/>'s remarks.</summary>
     public bool CanEditTraits => true;
+    public Task SetTraitAsync(string id, bool enabled, string? buffRowName = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        if (enabled && !Traits.Contains(id, StringComparer.OrdinalIgnoreCase)) Traits.Add(id);
+        else if (!enabled) Traits.RemoveAll(value => string.Equals(value, id, StringComparison.OrdinalIgnoreCase));
+        MarkChanged();
+        return Task.CompletedTask;
+    }
+
     public string Path => _path;
     public string JsonPath => _path + ".json";
     public bool JsonFileExists => File.Exists(JsonPath);
@@ -702,6 +709,7 @@ public sealed class PlayerInventorySlotEdit
     public string? VariantRowName { get; set; }
     public int? CoatingIndex { get; set; }
     public int? CoatingDurability { get; set; }
+    public InventoryInstanceMetadata? InstanceMetadata { get; set; }
     public bool IsEmpty => string.IsNullOrWhiteSpace(ItemId) || ItemId is "None" or "Empty";
     public string DisplayName => IsEmpty ? "Empty" : ItemId!;
     public bool IsDirty => !Equals(ToInventorySlot(), _original);
@@ -710,10 +718,10 @@ public sealed class PlayerInventorySlotEdit
     // as LiquidLevel = -1; normalizing them would make a newly opened session dirty and cause
     // unrelated player edits to rewrite every such slot.
     public InventoryItemSlot ToInventorySlot() => new(Index, string.IsNullOrWhiteSpace(ItemId) ? PlayerSaveWriter.EmptySlotRowName : ItemId,
-        Count, Durability, MaxDurability, AmmoInMagazine, LiquidLevel, LiquidType, DynamicState, PlayerMadeString, AssetId, VariantRowName, CoatingIndex, CoatingDurability);
+        Count, Durability, MaxDurability, AmmoInMagazine, LiquidLevel, LiquidType, DynamicState, PlayerMadeString, AssetId, VariantRowName, CoatingIndex, CoatingDurability, InstanceMetadata);
     public void AcceptCurrentAsBaseline() => _original = ToInventorySlot();
     public void Revert() => Load(_original);
-    public void LoadFrom(InventoryItemSlot source) { ItemId = source.ItemId; Count = source.Count; Durability = source.Durability; MaxDurability = source.MaxDurability; AmmoInMagazine = source.AmmoInMagazine; LiquidLevel = source.LiquidLevel; LiquidType = source.LiquidType; DynamicState = source.DynamicState; PlayerMadeString = source.PlayerMadeString; AssetId = source.AssetId; VariantRowName = source.VariantRowName; CoatingIndex = source.CoatingIndex; CoatingDurability = source.CoatingDurability; }
+    public void LoadFrom(InventoryItemSlot source) { ItemId = source.ItemId; Count = source.Count; Durability = source.Durability; MaxDurability = source.MaxDurability; AmmoInMagazine = source.AmmoInMagazine; LiquidLevel = source.LiquidLevel; LiquidType = source.LiquidType; DynamicState = source.DynamicState; PlayerMadeString = source.PlayerMadeString; AssetId = source.AssetId; VariantRowName = source.VariantRowName; CoatingIndex = source.CoatingIndex; CoatingDurability = source.CoatingDurability; InstanceMetadata = source.InstanceMetadata; }
     private void Load(InventoryItemSlot source) => LoadFrom(source);
 }
 

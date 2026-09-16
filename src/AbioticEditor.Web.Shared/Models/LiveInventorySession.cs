@@ -138,6 +138,19 @@ public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTrans
 
     public bool AppliesImmediately => true;
 
+    public string? PlayerId => _playerId;
+
+    internal async Task ApplyExternalTransferAsync(Func<Task> transfer, CancellationToken cancellationToken)
+    {
+        Interlocked.Increment(ref _pendingOperations);
+        try
+        {
+            await transfer().ConfigureAwait(false);
+            await RefreshAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally { Interlocked.Decrement(ref _pendingOperations); }
+    }
+
     /// <summary>No-op: a live session has nothing to stage - every mutation method already set
     /// <see cref="Status"/> itself before this would run.</summary>
     public void MarkChanged() { }
@@ -150,10 +163,8 @@ public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTrans
         return false;
     }
 
-    /// <summary>Updates only the local mirror. The two callers of this method
-    /// (<c>InventoryTransferService</c>'s world-container/dropped-item transfers) never run
-    /// against a live session in practice - they require a (file-only) world session that
-    /// <c>LiveConnect.razor</c> never attaches - so there is nothing live to push here.</summary>
+    /// <summary>Updates only the local mirror. Connected container transfers use the host's
+    /// authoritative inventory.transfer operation instead of this staging interface.</summary>
     public bool TrySetInventorySlot(PlayerInventoryArea area, int index, InventoryItemSlot slot)
     {
         var edit = FindSlot(area, index);
@@ -227,7 +238,9 @@ public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTrans
         Interlocked.Increment(ref _pendingOperations);
         try
         {
-            var updated = slot with { ItemId = downgrade ? edge.SourceId : edge.OutputId, AssetId = null };
+            var itemId = downgrade ? edge.SourceId : edge.OutputId;
+            var updated = slot with { ItemId = itemId, AssetId = null,
+                InstanceMetadata = slot.InstanceMetadata is { } metadata ? metadata with { ItemDataTable = ItemTableIndex.TableRefFor(itemId) } : null };
             await _channel.SetAsync([ToEdit(area, updated)], _playerId, cancellationToken).ConfigureAwait(false);
             Status = AppliedLiveStatus;
             await RefreshAsync(cancellationToken).ConfigureAwait(false);
@@ -318,7 +331,8 @@ public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTrans
         slot.SlotIndex, slot.IsEmpty ? PlayerSaveWriter.EmptySlotRowName : slot.ItemId,
         slot.Stack, slot.Durability, slot.MaxDurability, slot.AmmoInMagazine, slot.Details?.LiquidLevel ?? 0,
         slot.Details?.LiquidType, slot.Details?.DynamicState ?? false, slot.Details?.PlayerMadeString,
-        slot.Details?.AssetId, slot.Details?.VariantRowName);
+        slot.Details?.AssetId, slot.Details?.VariantRowName, slot.Details?.DynamicValue("WeaponCoating"),
+        slot.Details?.DynamicValue("CoatingDurability"), slot.Details?.InstanceMetadata);
 
     private static LiveInventoryEdit ToEdit(PlayerInventoryArea area, InventoryItemSlot slot) => slot.IsEmpty
         ? new LiveInventoryEdit(WireKind(area), slot.Index, Clear: true)

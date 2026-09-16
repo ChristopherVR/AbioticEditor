@@ -250,6 +250,7 @@ end
 -- components every player area expects. Returns the pawn.
 function H.itemTable(path, rows)
     local obj = H.object("/Script/Engine.DataTable", { __rows = rows }, {})
+    rawset(obj, "__fullName", "DataTable " .. path)
     H.world.static(path, obj)
     return obj
 end

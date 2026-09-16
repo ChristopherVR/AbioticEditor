@@ -21,8 +21,15 @@ public sealed record InventoryItemSlot(
     // ...): the RowName of the item struct's TextureVariantRow_ handle into
     // DT_TextureVariants, independent of ItemId. Null when the game never wrote one for this
     // instance (most items), in which case there is nothing here yet to change.
-    string? VariantRowName = null, int? CoatingIndex = null, int? CoatingDurability = null)
+    string? VariantRowName = null, int? CoatingIndex = null, int? CoatingDurability = null, InventoryInstanceMetadata? InstanceMetadata = null)
 {
     public bool IsEmpty => string.IsNullOrEmpty(ItemId) || ItemId is "None" or "Empty";
     public double DurabilityPercent => MaxDurability > 0 ? Durability / MaxDurability : 0;
 }
+
+/// <summary>Complete extra instance state retained by connected inventories during moves.</summary>
+public sealed record InventoryInstanceMetadata(IReadOnlyList<InventoryDynamicProperty> DynamicProperties,
+    IReadOnlyList<string> GameplayTags, string? ItemDataTable = null, string? VariantDataTable = null, IReadOnlyList<string>? ParentGameplayTags = null);
+
+/// <summary>A game-defined dynamic property, including pet progress and weapon coatings.</summary>
+public sealed record InventoryDynamicProperty(string Key, int Value);

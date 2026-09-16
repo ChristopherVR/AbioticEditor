@@ -19,6 +19,21 @@ namespace AbioticEditor.Tests;
 public sealed class LiveContainersSessionTests
 {
     [Fact]
+    public async Task Transfer_uses_one_authoritative_request_and_refreshes_both_containers()
+    {
+        var channel = new FakeContainersChannel();
+        channel.SetContainer("first", "Crate", 0, 0, 0);
+        channel.SetContainer("second", "Crate", 0, 0, 0);
+        channel.SetSlot("first", 0, "weapon", 1, ammo: 9);
+        channel.SetSlot("second", 0, "food", 2);
+        var session = await LiveContainersSession.ConnectAsync(new(channel));
+        await session.TransferAsync(new(0, ContainerId: "first"), new(0, ContainerId: "second"));
+        Assert.Equal(1, channel.WriteRequests);
+        Assert.Equal("food", session.Containers[0].Inventories[0].Slots[0].ItemId);
+        Assert.Equal(9, session.Containers[1].Inventories[0].Slots[0].AmmoInMagazine);
+    }
+
+    [Fact]
     public async Task Swap_sends_both_sides_in_one_request_and_refreshes_once()
     {
         var channel = new FakeContainersChannel();
@@ -148,11 +163,23 @@ public sealed class LiveContainersSessionTests
                     }).ToList(),
                     isHost = true,
                 },
-                "containers.set" or "containers.setfull" => ApplySet(payloadElement),
+                "containers.set" or "containers.setfull" or "containers.setcomplete" => ApplySet(payloadElement),
+                "inventory.transfer" => ApplyTransfer(payloadElement),
                 _ => throw new LiveAgentException($"unknown command '{command}' in fake channel"),
             };
             var element = JsonSerializer.SerializeToElement(result, JsonOptions);
             return Task.FromResult(element.Deserialize<TResponse>(JsonOptions)!);
+        }
+
+        private object? ApplyTransfer(JsonElement payload)
+        {
+            WriteRequests++;
+            var first = payload.GetProperty("first").Deserialize<LiveInventoryEndpoint>(JsonOptions)!;
+            var second = payload.GetProperty("second").Deserialize<LiveInventoryEndpoint>(JsonOptions)!;
+            var firstKey = (first.ContainerId!, first.SlotIndex);
+            var secondKey = (second.ContainerId!, second.SlotIndex);
+            (_slots[firstKey], _slots[secondKey]) = (_slots[secondKey], _slots[firstKey]);
+            return null;
         }
 
         private object? ApplySet(JsonElement payload)

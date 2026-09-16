@@ -147,11 +147,16 @@ public sealed class LiveStorySession : IWorldStorySession
         return (flagsToSet, flagsToClear);
     }
 
-    public int? MinutesPassed => null;
-    public bool CanSetMinutesPassed => false;
+    public int? MinutesPassed => _world.MinutesPassed;
+    public bool CanSetMinutesPassed => IsHost && _world.CanSetMinutesPassed;
 
-    public Task SetMinutesPassedAsync(int minutes, CancellationToken cancellationToken = default)
-        => throw new InvalidOperationException("Total playtime is not exposed by the live agent.");
+    public async Task SetMinutesPassedAsync(int minutes, CancellationToken cancellationToken = default)
+    {
+        if (!CanSetMinutesPassed) throw new InvalidOperationException("World playtime editing is unavailable from the connected agent.");
+        await _worldChannel.SetMinutesPassedAsync(minutes, cancellationToken).ConfigureAwait(false);
+        await RefreshWorldAsync(cancellationToken).ConfigureAwait(false);
+        Changed?.Invoke();
+    }
 
     public string? LastPlayedText => null;
 

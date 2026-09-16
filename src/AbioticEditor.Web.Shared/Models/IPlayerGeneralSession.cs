@@ -44,20 +44,17 @@ public interface IPlayerGeneralSession
     /// the live session writes it to the running character immediately.</summary>
     Task SetBackgroundAsync(string? background);
 
-    /// <summary>The chosen trait row names. Read-only through this interface: full add/remove is
-    /// still exposed elsewhere for a session where <see cref="CanEditTraits"/> is true (the file
-    /// session's own <c>PlayerSaveSession.Traits</c> list, used directly by
-    /// <c>PlayerCharacterTab.razor</c>) - this member is just a readout, so the CHARACTER tab can
-    /// show what a character actually has even for a session that can't change one (see
-    /// <c>LivePlayerGeneralChannel</c>'s remarks for why there is no live write path for a single
-    /// trait).</summary>
+    /// <summary>The chosen trait row names.</summary>
     IReadOnlyList<string> Traits { get; }
 
-    /// <summary>True for the file session: trait add/remove is a plain list edit staged until
-    /// Save. False live - see <see cref="Traits"/>'s remarks for why no safe live write path
-    /// exists for a single trait. <c>PlayerCharacterTab.razor</c> shows the add/remove trait
-    /// browser only when this is true, and a plain read-only list otherwise.</summary>
+    /// <summary>Whether trait edits are available in this session.</summary>
     bool CanEditTraits { get; }
+
+    IPlayerAppearanceSession? Appearance => null;
+
+    /// <summary>Changes one trait. The installed catalog supplies its persistent buff row for live edits.</summary>
+    Task SetTraitAsync(string id, bool enabled, string? buffRowName = null);
+
 }
 
 /// <summary>One bulk-discovery row (items seen, items crafted, maps): how many are already known

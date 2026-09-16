@@ -144,6 +144,9 @@ public static class SlotDropRules
         target.LiquidType = null;
         target.DynamicState = false;
         target.PlayerMadeString = null;
+        target.VariantRowName = null;
+        if (target.InstanceMetadata is not null)
+            target.InstanceMetadata = new([], []);
         if (target.CoatingIndex is not null || target.CoatingDurability is not null) { target.CoatingIndex = -1; target.CoatingDurability = 0; }
         // Every item instance needs its own AssetID GUID: the game tracks/renders items by
         // it, so a blank or duplicated id occupies the slot but never shows in-game.

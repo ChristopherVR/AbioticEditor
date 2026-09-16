@@ -1,61 +1,8 @@
--- ===== World bases / deployables (AbioticDeployed_ParentBP_C) =====
--- Round 76. Every player-placed object (benches, furniture, defenses, containers) derives from
--- this one blueprint class - confirmed from the game's own pak layout
--- (tests/AbioticEditor.Probes/LiveClassPropsProbe.cs, fragment "AbioticDeployed_ParentBP"):
---   AlternativeObjectName : FTextProperty   -- the player-given custom name (file: CustomTextDisplay_)
---   CurrentDurability / MaxDurability : FDoubleProperty, with OnRep_CurrentDurability/OnRep_MaxDurability
---   DestroyDeployable(), GetItemNameText() functions
--- FindAllOf("AbioticDeployed_ParentBP_C") is hierarchy-inclusive (confirmed live already by
--- containers.list, which finds every Deployed_Container_* subclass through the narrower
--- Deployed_Container_ParentBP_C the same way), so this one scan covers every deployable a base
--- is built from - no per-subclass enumeration needed.
---
--- ===== Bench upgrades (round 77, closing the round-76 gap) =====
--- Round 76 reported supportsBenchUpgrades = false because no function library could enumerate a
--- real BenchUpgradeRowHandle the way flags.lua/world.lua enumerate WorldFlagRowHandle/
--- WeatherEventRowHandle. Re-checked this round against AbioticDeployed_CraftingBench_ParentBP_C's
--- own class layout (LiveClassPropsProbe, fragment "BenchUpgrade") instead of a function library,
--- and it carries everything needed directly:
---   SupportsUpgrades : FBoolProperty        -- whether THIS deployable can take upgrades at all
---   UpgradeTagContainer : FStructProperty   -- read via the functions below, not parsed directly
---   func AddUpgrade(Upgrade: <RowHandle struct>)          -- installs one upgrade module
---   func "Has Upgrade"(Upgrade: <RowHandle struct>) : bool -- NOTE THE LITERAL SPACE in this
---     function's own compiled name (confirmed in the dump: "func Has Upgrade", not
---     "func HasUpgrade") - UE4SS Lua's `obj:HasUpgrade()` sugar would look up a member that does
---     not exist, so this module calls it as `obj["Has Upgrade"](obj, ...)` instead. Worth
---     flagging plainly since every other function this project has called so far happened to have
---     a space-free name.
---   func OnRep_UpgradeTagContainer                          -- called after AddUpgrade, best-effort
--- There is no "RemoveUpgrade"/"Server_RemoveUpgrade" anywhere in this class's ~90 functions, so
--- removing an installed upgrade still has no evidenced live path - bases.set rejects a removal
--- request with a clear error instead of guessing at a raw GameplayTagContainer edit (the mistake
--- this project got burned by once already, GetMyPlayerController).
---
--- The remaining unknown: AddUpgrade's own "Upgrade" parameter is a row-handle struct
--- ({RowName, DataTablePath}, the same two-field shape as WorldFlagRowHandle/WeatherEventRowHandle
--- - all three are the engine's own FDataTableRowHandle under a game-specific type alias) but,
--- unlike flags/weather, there is no enumeration function anywhere to fetch a REAL handle from -
--- every previous use of a row handle in this project (flags.lua, main.lua's world.set) copied one
--- straight from a live GetAll*RowHandles() call, never built one from scratch. DataTablePath here
--- is reconstructed from the pak's own asset location instead
--- (Content/Blueprints/DataTables/DT_BenchUpgrades.uasset -> the standard UE soft-object-path form
--- "/Game/Blueprints/DataTables/DT_BenchUpgrades.DT_BenchUpgrades", the same
--- package-path-plus-object-name shape every enumerated handle in this project already carries) -
--- plausible and grounded in the pak layout, but genuinely UNVERIFIED against the running game.
---
--- CRASH REPORT (round 79): a player reported the Bases tab crashing the game with a fatal error
--- every time it was opened. bases.list used to call "Has Upgrade" with this same fabricated
--- handle for every bench, for all 11 known rows, unconditionally, on every single list/refresh -
--- unlike AddUpgrade below (only reached when a player explicitly clicks to install one upgrade on
--- one bench), that made the unverified handle's native marshaling run constantly and
--- automatically the moment the tab opened. A UFunction call through UE4SS's reflection bridge
--- with a struct whose shape does not match the engine's real parameter type does not raise a Lua
--- error pcall can catch - it corrupts memory or reads through a bad pointer on the C++ side,
--- which is exactly what a "Fatal error" (not a Lua stack trace) looks like. Both the list-time
--- probe AND this install call share the identical fabricated handle, so both are disabled below
--- until someone can find (or build, live, field-by-field) a REAL handle to compare against -
--- see benchInstalledUpgrades' and bases.set's own comments for what each now does instead.
+-- Bases and deployables. Bench state reads replicated GameplayTags directly.
+-- Never call Has Upgrade/AddUpgrade with Lua-built row handles: both fabricated and
+-- real-enumerated-handle copies crashed the native bridge during Cascade verification.
 return function(ctx)
+    local benchTags = require("bench_tags")
     -- The 11 known upgrade rows (DT_BenchUpgrades), matching
     -- AbioticEditor.Core.WorldSaves.BenchUpgradeCatalog.All row-for-row so live and file report
     -- the same catalog. Kept here rather than fetched live since there is no enumeration
@@ -71,14 +18,19 @@ return function(ctx)
         return ok and supports
     end
 
-    -- DISABLED (round 79, see header comment): this used to call "Has Upgrade" with a hand-built,
-    -- unverified row-handle struct for every one of the 11 known rows, for every bench, on every
-    -- bases.list call - the reproducible cause of the game crashing with a fatal error every time
-    -- the Bases tab was opened. Always reports "nothing known installed" now rather than probing;
-    -- SupportsUpgrades itself (a plain, proven boolean property read) still tells the UI whether a
-    -- bench can take upgrades at all.
-    local function benchInstalledUpgrades(_)
-        return { __forceArray = true }
+    -- Read the actual replicated tags without invoking Has Upgrade. Even real native
+    -- handles passed through a Lua table caused a fatal native error in Cascade.
+    local function benchInstalledUpgrades(obj)
+        local result = { __forceArray = true }
+        if not benchSupportsUpgrades(obj) then return result end
+        local ok, tags = pcall(function() return obj.UpgradeTagContainer.GameplayTags end)
+        if not ok or not tags then return result end
+        for i = 1, #tags do
+            local tag = tags[i].TagName:ToString()
+            local row = tag:match("^BenchUpgrade%.(.+)$")
+            if row then table.insert(result, row) end
+        end
+        return result
     end
 
     local function deployableRows()
@@ -108,6 +60,7 @@ return function(ctx)
                         hasInventory = hasInventory,
                         storedItemCount = stored,
                         supportsUpgrades = benchSupportsUpgrades(obj),
+                        canEditUpgrades = benchSupportsUpgrades(obj) and benchTags.available(obj),
                         installedUpgrades = benchInstalledUpgrades(obj),
                     })
                 end
@@ -118,8 +71,10 @@ return function(ctx)
 
     ctx.handlers["bases.list"] = function(_, respond)
         ctx.runOnGameThread(function()
-            return { deployables = deployableRows(), isHost = ctx.isHost(), supportsBenchUpgrades = false,
-                supportsBenchUpgradeRemoval = false }
+            local rows, available = deployableRows(), false
+            for _, row in ipairs(rows) do if row.canEditUpgrades then available = true break end end
+            return { deployables = rows, isHost = ctx.isHost(), supportsBenchUpgrades = available,
+                supportsBenchUpgradeRemoval = available }
         end, respond)
     end
 
@@ -142,24 +97,14 @@ return function(ctx)
                 if not ok then error("could not set this object's custom name on this game build") end
             end
             if payload.upgradeRow ~= nil then
-                if payload.upgradeInstalled == false then
-                    -- No RemoveUpgrade/Server_RemoveUpgrade exists anywhere on this class (see
-                    -- header comment) - refuse rather than guess at a raw tag-container edit.
-                    error("removing an installed bench upgrade isn't supported on this game build " ..
-                        "(no game function does it) - edit the save file instead")
-                end
                 if not benchSupportsUpgrades(obj) then error("this deployable does not support upgrades") end
                 local found = false
                 for _, row in ipairs(BENCH_UPGRADE_ROWS) do
                     if row == payload.upgradeRow then found = true break end
                 end
                 if not found then error("unknown bench upgrade row") end
-                -- DISABLED (round 79, see header comment): AddUpgrade takes the exact same
-                -- fabricated, unverified row-handle struct that made bases.list crash the game -
-                -- refuse rather than risk the same fatal error from installing one, until a real
-                -- handle can be found to check the struct shape against.
-                error("installing a bench upgrade isn't supported on this game build yet " ..
-                    "(the row-handle shape this needs is unverified) - edit the save file instead")
+                if not benchTags.available(obj) then error("editing a bench upgrade isn't supported by this runtime") end
+                benchTags.set(obj, payload.upgradeRow, payload.upgradeInstalled ~= false)
             end
             return nil
         end, respond)

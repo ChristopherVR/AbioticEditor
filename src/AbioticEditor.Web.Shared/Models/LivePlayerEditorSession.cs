@@ -144,6 +144,11 @@ public sealed class LivePlayerEditorSession : IPlayerEditorSession
     public Task SetBackgroundAsync(string? background) => GeneralSession?.SetBackgroundAsync(background) ?? Task.CompletedTask;
     IReadOnlyList<string> IPlayerGeneralSession.Traits => GeneralSession?.Traits ?? [];
     public bool CanEditTraits => GeneralSession?.CanEditTraits ?? false;
+    public IPlayerAppearanceSession? Appearance => GeneralSession?.Appearance;
+    public Task SetTraitAsync(string id, bool enabled, string? buffRowName = null) =>
+        GeneralSession?.SetTraitAsync(id, enabled, buffRowName)
+        ?? Task.FromException(new InvalidOperationException("The live character session is unavailable."));
+
 
     private static readonly IPlayerDiscoverySection EmptyDiscovery =
         new DelegateDiscoverySection(() => Array.Empty<string>(), false, _ => Task.CompletedTask);

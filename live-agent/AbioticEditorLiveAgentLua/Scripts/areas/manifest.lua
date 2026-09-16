@@ -3,6 +3,8 @@
 return {
     "areas.story",
     "areas.bases",
+    "areas.care",
+    "areas.playtime",
     "areas.vehicles",
     "areas.pets",
     "areas.containment",
@@ -13,6 +15,7 @@ return {
     "areas.recipes",
     "areas.codex",
     "areas.general",
+    "areas.appearance",
     "areas.worldunlocks",
     "areas.transmog",
     "areas.narrative",
