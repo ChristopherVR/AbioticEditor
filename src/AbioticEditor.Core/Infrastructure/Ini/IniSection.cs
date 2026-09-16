@@ -52,17 +52,24 @@ public sealed class IniSection
         }
     }
 
-    /// <summary>The FIRST value for <paramref name="key"/> (case-insensitive), or null.</summary>
+    /// <summary>
+    /// The LAST value for <paramref name="key"/> (case-insensitive), or null when the key is
+    /// absent. UE's ini loader applies repeated <c>Key=Value</c> lines in file order, so a later
+    /// occurrence overwrites an earlier one in the game's own effective config; the last line is
+    /// therefore the one that actually takes effect (unlike <c>+Key=</c> accumulation into an
+    /// array-typed setting, which this type does not attempt to distinguish from a plain repeat).
+    /// </summary>
     public string? GetValue(string key)
     {
+        string? last = null;
         foreach (var entry in Entries)
         {
             if (string.Equals(entry.Key, key, StringComparison.OrdinalIgnoreCase))
             {
-                return entry.Value;
+                last = entry.Value;
             }
         }
-        return null;
+        return last;
     }
 
     /// <summary>Every value for <paramref name="key"/> in file order (duplicate-key form).</summary>
@@ -72,9 +79,13 @@ public sealed class IniSection
                   .ToList();
 
     /// <summary>
-    /// Replaces the FIRST occurrence's value in place (key text and spacing before the
+    /// Replaces the LAST occurrence's value in place (key text and spacing before the
     /// <c>=</c> stay verbatim), or appends <c>key=value</c> at the end of the section
-    /// when the key is absent.
+    /// when the key is absent. The last occurrence is the one that matters: the game
+    /// applies repeated <c>Key=Value</c> lines in file order, so it is the last line's
+    /// value that is actually in effect (see <see cref="GetValue"/>'s remarks) - editing
+    /// an earlier duplicate would leave the game reading its own untouched last line.
+    /// Earlier duplicate lines, and everything else in the file, are left byte-identical.
     /// </summary>
     public void SetValue(string key, string value)
     {
@@ -82,7 +93,7 @@ public sealed class IniSection
         ArgumentNullException.ThrowIfNull(value);
 
         var (start, end) = _file.BodyRange(_headerLine);
-        for (var i = start; i < end; i++)
+        for (var i = end - 1; i >= start; i--)
         {
             var line = _file.Lines[i];
             if (line.Kind == IniLineKind.KeyValue
