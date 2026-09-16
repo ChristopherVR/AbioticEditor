@@ -59,8 +59,10 @@ Each folder belongs to one Xbox account. The discovered-worlds list shows the ac
 
 Choose **Settings ▸ Convert** to convert a world either way. Difficulty settings travel with it. You can enter a player account ID if you want to hand a character to a different account; leave it blank to retain its current ID.
 
+Converting also copies your cosmetic unlocks, achievement stats, saved character appearance and in-game settings, in either direction, whenever they are found. If the world you picked sits where the game keeps it (inside a `Worlds` folder), the editor finds those account-wide files next to `Worlds` on its own; converting a world you built or extracted by hand needs them dropped beside the world's own saves instead, since there is no account folder to find. The editor never overwrites one of your existing files with different content; if it finds one already there, it leaves it alone and says so.
+
 ::: warning Give converted saves a safe destination
-A converted Steam world belongs in `%LOCALAPPDATA%\AbioticFactor\Saved\SaveGames\<your steam id>\Worlds\`.
+A converted Steam world belongs in `%LOCALAPPDATA%\AbioticFactor\Saved\SaveGames\<your steam id>\Worlds\`. Point the conversion at that `Worlds\<world name>\` path (or a matching one) and any cosmetic unlocks, achievement stats, saved appearance or in-game settings carried along land in the account folder automatically, not inside `Worlds\`.
 
 A converted Game Pass save must be merged into an existing Xbox save folder with `gamepass to-gamepass --into`. Do not drag it over your existing Game Pass save folder, because that can hide the worlds already there. Close the game and Xbox app first.
 :::

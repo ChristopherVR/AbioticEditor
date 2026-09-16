@@ -736,6 +736,223 @@ public class GamePassTests
         }
     }
 
+    // ---- account-level profile containers (cosmetic unlocks, achievement stats, settings) ----
+
+    /// <summary>
+    /// A minimal Steam world folder (metadata + one player, no region save) - the profile
+    /// container tests below only care about what travels beside the world, not the world itself.
+    /// </summary>
+    private static string MinimalWorld(string root, string folderName = "W")
+    {
+        var steam = Path.Combine(root, folderName);
+        Directory.CreateDirectory(Path.Combine(steam, "PlayerData"));
+        File.Copy(
+            Path.Combine(Fixtures.CascadeDir!, "WorldSave_MetaData.sav"),
+            Path.Combine(steam, "WorldSave_MetaData.sav"));
+        var playerName = FixturePlayerNames()[0];
+        File.Copy(
+            Path.Combine(Fixtures.CascadeDir!, "PlayerData", playerName),
+            Path.Combine(steam, "PlayerData", playerName));
+        return steam;
+    }
+
+    /// <summary>A real account-level profile file from the Steam client fixture (<c>Unlocks.sav</c>,
+    /// <c>PlayerStatsSave.sav</c>, <c>UserSettings.sav</c>), or null when the client fixture is not
+    /// in this checkout or does not have that file.</summary>
+    private static byte[]? RealProfileFile(string fileName)
+    {
+        if (Fixtures.ClientSavedDir is null) return null;
+        var path = Directory.EnumerateFiles(Fixtures.ClientSavedDir, fileName, SearchOption.AllDirectories).FirstOrDefault();
+        return path is null ? null : File.ReadAllBytes(path);
+    }
+
+    /// <summary>
+    /// Each account-level Game Pass container (cosmetic unlocks, achievement stats, in-game
+    /// settings) round-trips Steam -&gt; Game Pass -&gt; Steam byte-for-byte, under the Steam file
+    /// name it started with, the same way <c>ProfileScientistCustomization_&lt;n&gt;</c> already
+    /// does for appearance presets.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData("Unlocks.sav", "cosmetic unlocks")]
+    [InlineData("PlayerStatsSave.sav", "achievement stats")]
+    [InlineData("UserSettings.sav", "in-game settings")]
+    public void A_profile_container_round_trips_through_conversion_byte_identical(string steamFileName, string friendlyName)
+    {
+        Skip.IfNot(Fixtures.CascadeDir is not null, "the Steam world fixture is not in this checkout");
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
+
+        var original = RealProfileFile(steamFileName);
+        Skip.IfNot(original is not null, $"the Steam client fixture has no {steamFileName}");
+
+        var tmp = Directory.CreateTempSubdirectory("gp-profile-" + Path.GetFileNameWithoutExtension(steamFileName));
+        try
+        {
+            var steam = MinimalWorld(tmp.FullName);
+            File.WriteAllBytes(Path.Combine(steam, steamFileName), original!);
+
+            // Steam -> Game Pass: the loose file becomes an account-level container.
+            var wgs = GamePassConverter.SteamWorldToGamePass(steam, Path.Combine(tmp.FullName, "gp"), worldName: "W");
+            Assert.Contains(friendlyName, GamePassConverter.ProfileItemsInGamePass(wgs));
+
+            // Game Pass -> Steam: the container becomes a loose file again, byte for byte, under
+            // the same name it started with.
+            var back = GamePassConverter.GamePassToSteamWorld(wgs, "W-WC", Path.Combine(tmp.FullName, "back"));
+            var restoredPath = Path.Combine(back, steamFileName);
+            Assert.True(File.Exists(restoredPath), $"{steamFileName} did not come back from the round-trip");
+            Assert.Equal(original, File.ReadAllBytes(restoredPath));
+            var report = GamePassConverter.ProfileItemsInSteamFolder(wgs, back);
+            Assert.Contains(friendlyName, report.Copied);
+            Assert.Empty(report.KeptExisting);
+        }
+        finally
+        {
+            tmp.Delete(recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// None of the three profile containers is required: a world that never carried any of them
+    /// (an older save, or one that simply has not unlocked anything) still converts cleanly in
+    /// both directions instead of failing over an optional cosmetic.
+    /// </summary>
+    [SkippableFact]
+    public void A_missing_profile_container_is_skipped_not_failed()
+    {
+        Skip.IfNot(Fixtures.CascadeDir is not null, "the Steam world fixture is not in this checkout");
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
+
+        var tmp = Directory.CreateTempSubdirectory("gp-profile-missing");
+        try
+        {
+            // No Unlocks.sav / PlayerStatsSave.sav / UserSettings.sav dropped beside the world.
+            var steam = MinimalWorld(tmp.FullName);
+            var wgs = GamePassConverter.SteamWorldToGamePass(steam, Path.Combine(tmp.FullName, "gp"), worldName: "W");
+            Assert.Empty(GamePassConverter.ProfileItemsInGamePass(wgs));
+
+            var back = GamePassConverter.GamePassToSteamWorld(wgs, "W-WC", Path.Combine(tmp.FullName, "back"));
+            Assert.False(File.Exists(Path.Combine(back, "Unlocks.sav")));
+            Assert.False(File.Exists(Path.Combine(back, "PlayerStatsSave.sav")));
+            Assert.False(File.Exists(Path.Combine(back, "UserSettings.sav")));
+            var report = GamePassConverter.ProfileItemsInSteamFolder(wgs, back);
+            Assert.True(report.IsEmpty);
+        }
+        finally
+        {
+            tmp.Delete(recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// The real Steam client layout: a world nested two levels under the account
+    /// (<c>SaveGames/&lt;id&gt;/Worlds/&lt;World&gt;/WorldSave_*.sav</c>), with the account-level
+    /// files sitting beside <c>Worlds</c>, never inside it. A conversion has to resolve that
+    /// account folder from the world folder it is given, in both directions, or the profile items
+    /// either never get found (Steam -&gt; Game Pass) or land in the wrong place next to the world
+    /// itself (Game Pass -&gt; Steam) instead of where the game actually looks for them.
+    /// </summary>
+    [SkippableFact]
+    public void Profile_containers_resolve_the_real_account_folder_not_the_world_folder()
+    {
+        Skip.IfNot(Fixtures.CascadeDir is not null, "the Steam world fixture is not in this checkout");
+        Skip.IfNot(Fixtures.ClientSavedDir is not null, "the Steam client fixture is not in this checkout");
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
+
+        var unlocks = RealProfileFile("Unlocks.sav");
+        var stats = RealProfileFile("PlayerStatsSave.sav");
+        var settings = RealProfileFile("UserSettings.sav");
+        var appearance = RealProfileFile("ScientistCustomization_1.sav");
+        Skip.IfNot(unlocks is not null && stats is not null && settings is not null && appearance is not null,
+            "the Steam client fixture is missing one of the account-level files");
+
+        var tmp = Directory.CreateTempSubdirectory("gp-profile-real-layout");
+        try
+        {
+            // Source: SaveGames/76500.../Worlds/W/ holding the world, with the account-level
+            // files one level up, beside Worlds - never inside it.
+            var sourceAccount = Path.Combine(tmp.FullName, "Src", "SaveGames", "76500000000000001");
+            var sourceWorld = Path.Combine(sourceAccount, "Worlds", "W");
+            Directory.CreateDirectory(sourceAccount);
+            var steam = MinimalWorld(sourceWorld, folderName: "");
+            File.WriteAllBytes(Path.Combine(sourceAccount, "Unlocks.sav"), unlocks!);
+            File.WriteAllBytes(Path.Combine(sourceAccount, "PlayerStatsSave.sav"), stats!);
+            File.WriteAllBytes(Path.Combine(sourceAccount, "UserSettings.sav"), settings!);
+            File.WriteAllBytes(Path.Combine(sourceAccount, "ScientistCustomization_1.sav"), appearance!);
+
+            var wgs = GamePassConverter.SteamWorldToGamePass(steam, Path.Combine(tmp.FullName, "gp"), worldName: "W");
+            var set = GamePassSaveSet.Open(wgs);
+            Assert.Equal(unlocks, set.ReadProfileUnlocks());
+            Assert.Equal(stats, set.ReadProfilePlayerStats());
+            Assert.Equal(settings, set.ReadProfileUserSettings());
+            Assert.Equal(appearance, set.ReadProfileCustomization(1));
+            var expectedNames = new[] { "achievement stats", "cosmetic unlocks", "in-game settings", "saved appearance presets" };
+            Assert.Equal(expectedNames, GamePassConverter.ProfileItemsInGamePass(wgs).OrderBy(n => n, StringComparer.Ordinal));
+
+            // Destination: the same Worlds/<world> nesting under a different account root. The
+            // world's own saves land inside Worlds/W; the account-level files must land beside
+            // Worlds, not inside it.
+            var destAccount = Path.Combine(tmp.FullName, "Dest", "SaveGames", "76500000000000002");
+            var destWorld = Path.Combine(destAccount, "Worlds", "W");
+            var back = GamePassConverter.GamePassToSteamWorld(wgs, "W-WC", destWorld);
+
+            Assert.True(File.Exists(Path.Combine(back, "WorldSave_MetaData.sav")));
+            Assert.False(File.Exists(Path.Combine(destWorld, "Unlocks.sav")), "profile files must not land inside Worlds/<world>");
+            Assert.Equal(unlocks, File.ReadAllBytes(Path.Combine(destAccount, "Unlocks.sav")));
+            Assert.Equal(stats, File.ReadAllBytes(Path.Combine(destAccount, "PlayerStatsSave.sav")));
+            Assert.Equal(settings, File.ReadAllBytes(Path.Combine(destAccount, "UserSettings.sav")));
+            Assert.Equal(appearance, File.ReadAllBytes(Path.Combine(destAccount, "ScientistCustomization_1.sav")));
+
+            var report = GamePassConverter.ProfileItemsInSteamFolder(wgs, back);
+            Assert.Equal(expectedNames, report.Copied.OrderBy(n => n, StringComparer.Ordinal));
+            Assert.Empty(report.KeptExisting);
+        }
+        finally
+        {
+            tmp.Delete(recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// A player's real account folder can already hold its own <c>Unlocks.sav</c>. Converting a
+    /// Game Pass world into place must never silently clobber it with whatever the Xbox save
+    /// happened to carry - the existing file is kept, and reported as kept rather than copied.
+    /// </summary>
+    [SkippableFact]
+    public void An_existing_profile_file_with_different_content_is_kept_not_overwritten()
+    {
+        Skip.IfNot(Fixtures.CascadeDir is not null, "the Steam world fixture is not in this checkout");
+        Skip.IfNot(Fixtures.ClientSavedDir is not null, "the Steam client fixture is not in this checkout");
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
+
+        var unlocks = RealProfileFile("Unlocks.sav");
+        Skip.IfNot(unlocks is not null, "the Steam client fixture has no Unlocks.sav");
+
+        var tmp = Directory.CreateTempSubdirectory("gp-profile-kept");
+        try
+        {
+            var steam = MinimalWorld(tmp.FullName);
+            File.WriteAllBytes(Path.Combine(steam, "Unlocks.sav"), unlocks!);
+            var wgs = GamePassConverter.SteamWorldToGamePass(steam, Path.Combine(tmp.FullName, "gp"), worldName: "W");
+
+            var destAccount = Path.Combine(tmp.FullName, "Dest", "SaveGames", "76500000000000003");
+            var destWorld = Path.Combine(destAccount, "Worlds", "W");
+            Directory.CreateDirectory(destAccount);
+            var existing = new byte[] { 1, 2, 3, 4, 5 };
+            File.WriteAllBytes(Path.Combine(destAccount, "Unlocks.sav"), existing);
+
+            var back = GamePassConverter.GamePassToSteamWorld(wgs, "W-WC", destWorld);
+
+            // The pre-existing file is untouched, not replaced by the wgs container's content.
+            Assert.Equal(existing, File.ReadAllBytes(Path.Combine(destAccount, "Unlocks.sav")));
+            var report = GamePassConverter.ProfileItemsInSteamFolder(wgs, back);
+            Assert.Contains("cosmetic unlocks", report.KeptExisting);
+            Assert.DoesNotContain("cosmetic unlocks", report.Copied);
+        }
+        finally
+        {
+            tmp.Delete(recursive: true);
+        }
+    }
+
     // ---- helpers: build a minimal but real wgs container folder + ABF bundle ----
 
     private static AbfSaveBundle TestBundle(params (string Path, string Class, byte[] Body)[] members)

@@ -2307,6 +2307,12 @@ This writes to the save straight away and reloads the editor, so anything you ha
 {0}
 Your original was not changed. Verify it loads in-game before relying on it.</value>
   </data>
+  <data name="Settings_ConvertProfileCarried" xml:space="preserve">
+    <value>Also copied: {0}.</value>
+  </data>
+  <data name="Settings_ConvertProfileKept" xml:space="preserve">
+    <value>Kept your existing {0} rather than overwrite it with different content.</value>
+  </data>
   <data name="Settings_ConvertFailed" xml:space="preserve">
     <value>Couldn't convert the selected save.</value>
   </data>

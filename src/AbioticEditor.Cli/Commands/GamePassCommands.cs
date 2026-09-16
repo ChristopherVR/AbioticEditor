@@ -581,9 +581,13 @@ internal static class GamePassCommands
             var outDir = GamePassConverter.SteamWorldToGamePass(
                 src, dest, pr.GetValue(worldOpt), pr.GetValue(idOpt), mergeIntoExisting: into,
                 sourcePlayerId: pr.GetValue(fromOpt));
+            var profileCarried = GamePassConverter.ProfileItemsInGamePass(outDir);
+            var profileNote = profileCarried.Count > 0
+                ? $" Also copied: {string.Join(", ", profileCarried)}."
+                : "";
             Cli.Info(pr.GetValue(quiet), into
-                ? $"Added the world to the Xbox save folder at {outDir}. Launch the game offline to check it loads."
-                : $"Converted Steam world -> Game Pass container at {outDir}. This is a save folder of its own: "
+                ? $"Added the world to the Xbox save folder at {outDir}.{profileNote} Launch the game offline to check it loads."
+                : $"Converted Steam world -> Game Pass container at {outDir}.{profileNote} This is a save folder of its own: "
                     + "to put it in the game, run this again with --into pointing at your real Xbox save folder "
                     + "(find it with 'gamepass discover'), with the game and the Xbox app closed.");
             return Cli.Ok;
@@ -624,9 +628,20 @@ internal static class GamePassCommands
 
             var outDir = GamePassConverter.GamePassToSteamWorld(
                 src, pr.GetValue(containerOpt), dest, pr.GetValue(idOpt), pr.GetValue(fromOpt));
+            var profileReport = GamePassConverter.ProfileItemsInSteamFolder(src, outDir);
+            var profileNote = "";
+            if (profileReport.Copied.Count > 0)
+            {
+                profileNote += $" Also copied into your Steam account folder: {string.Join(", ", profileReport.Copied)}.";
+            }
+            if (profileReport.KeptExisting.Count > 0)
+            {
+                profileNote += $" Kept what was already in your Steam account folder rather than overwrite it: "
+                    + $"{string.Join(", ", profileReport.KeptExisting)}.";
+            }
             Cli.Info(pr.GetValue(quiet),
-                $"Converted Game Pass container -> Steam world folder at {outDir}. Place it under "
-                + "%LOCALAPPDATA%\\AbioticFactor\\Saved\\SaveGames\\<steamid>\\Worlds\\.");
+                $"Converted Game Pass container -> Steam world folder at {outDir}.{profileNote} Place the world "
+                + "folder under %LOCALAPPDATA%\\AbioticFactor\\Saved\\SaveGames\\<steamid>\\Worlds\\.");
             return Cli.Ok;
         }));
         return cmd;

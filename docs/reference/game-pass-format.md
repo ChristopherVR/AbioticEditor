@@ -68,6 +68,40 @@ game's own backup of it), `GameUserSettings`, `Settings`, `ProfilePlayerStatsSav
 `-WC` containers as worlds and reads/writes `ProfileScientistCustomization_<n>` for character looks.
 `GameUserSettings` and `Settings` are ini text stored with every byte incremented by one.
 
+**2026-09-17:** `gamepass to-steam` and `gamepass to-gamepass` now also carry all four
+account-level containers when they are present: `ProfileUnlocks` (cosmetic unlocks) becomes
+`Unlocks.sav`, `ProfilePlayerStatsSave` (achievements and lifetime stats) becomes
+`PlayerStatsSave.sav`, `ProfileUserSettings` (in-game settings) becomes `UserSettings.sav`, and
+every `ProfileScientistCustomization_<n>` slot becomes its matching `ScientistCustomization_<n>.sav`.
+All are raw, uncompressed GVAS with no wrapping, so carrying one is a straight byte copy
+(`GamePassSaveSet.ReadProfileUnlocks`/`WriteProfileUnlocks` and the matching
+`ReadProfilePlayerStats`/`WriteProfilePlayerStats`, `ReadProfileUserSettings`/`WriteProfileUserSettings`,
+`ReadProfileCustomization`/`WriteProfileCustomization` pairs; wired into
+`GamePassConverter.SteamWorldToGamePass` and `GamePassToSteamWorld`). A container that is missing
+is skipped rather than failing the conversion, since losing an optional cosmetic must never lose
+the world with it.
+
+Because these containers sit outside any one world on Steam (`SaveGames/<steamid>/Unlocks.sav`, a
+sibling of `Worlds/`, not a member of it), both directions resolve the real Steam **account**
+folder from the world folder path they are given, rather than reading or writing beside the
+world's own saves: `GamePassConverter.AccountFolderFor` walks up from the world folder, and when
+its parent is literally named `Worlds` (the shape a real client save always has -
+`SaveGames/<steamid>/Worlds/<World>/WorldSave_*.sav`) resolves to that parent's parent. A world
+folder with no such nesting (a hand-built or extracted-standalone one, which is also what the
+fixture-driven tests in `GamePassTests.cs` build) falls back to the world folder itself, since
+there is nowhere else to look - so a player converting a folder that is not sitting under a real
+`Worlds/` directory still needs to drop the loose account files beside the world's own saves for
+them to be found. `GamePassConverter.ProfileItemsInGamePass(wgsDir)` /
+`ProfileItemsInSteamFolder(wgsDir, steamWorldDir)` report which of the four a caller can see on
+either side, for the CLI's and the desktop conversion screen's "also copied" summary;
+`ProfileItemsInSteamFolder` is also what performs the actual Game Pass -> Steam write (it is safe
+to call again afterward purely to re-read its own report).
+
+The Game Pass -> Steam write never silently overwrites a file already sitting in the resolved
+account folder: if the bytes differ from what the wgs container carries, the existing file is left
+alone and reported under `ProfileCarryReport.KeptExisting` rather than `.Copied`, since a real
+player's own `Unlocks.sav` etc is exactly the kind of thing a silent overwrite must not clobber.
+
 ## `containers.index` is a sync protocol, not a file listing
 
 This is the part that matters most, and the part the editor got wrong for a long time. The index is

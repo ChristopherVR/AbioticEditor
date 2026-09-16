@@ -376,8 +376,25 @@ walker + PDB public-symbol reader + capstone disassembler); none were kept in th
    currently documents `MinKnownVersion=MaxKnownVersion=1` for a field that is
    `sizeof(uint8)`. The real character-save compatibility signal is the metadata's
    `SaveVersion` property.
-4. **Carry the `Profile*` containers** (or at least tell the user they are being left
-   behind). Cosmetics and achievements are cheap to lose but surprising to lose silently.
+4. ~~**Carry the `Profile*` containers** (or at least tell the user they are being left
+   behind). Cosmetics and achievements are cheap to lose but surprising to lose silently.~~
+   **Done (2026-09-17):** `ProfileUnlocks`, `ProfilePlayerStatsSave`, `ProfileUserSettings`
+   and every `ProfileScientistCustomization_<n>` slot now carry through both
+   `GamePassConverter.SteamWorldToGamePass` and `GamePassToSteamWorld` as `Unlocks.sav`,
+   `PlayerStatsSave.sav`, `UserSettings.sav` and `ScientistCustomization_<n>.sav`
+   respectively - the same raw-GVAS-byte-copy way customization was already exposed on
+   `GamePassSaveSet`, now also wired into the conversion itself. A missing container is
+   skipped, not a failure. Both directions resolve the real Steam account folder
+   (`SaveGames/<steamid>/`) from the world folder they are given
+   (`GamePassConverter.AccountFolderFor`: parent named `Worlds` -> that parent's parent;
+   otherwise the world folder itself, for a hand-built layout with nothing else to
+   resolve against) rather than assuming these files sit beside the world's own saves,
+   since on a real install they never do. The Game Pass -> Steam write also never
+   silently overwrites a file already in that account folder: a byte-different existing
+   file is left alone and reported as kept rather than copied
+   (`GamePassConverter.ProfileCarryReport`). `ProfileItemsInGamePass`/
+   `ProfileItemsInSteamFolder` let the CLI and the desktop conversion screen say what
+   came along either way.
 5. ~~**Bed claims across a different-length id change** need a reserialize-based rewrite
    before a converted multiplayer world can be fully re-homed.~~ **Done (round-61):**
    `WorldSteamIdPatcher` re-serializes when the ids differ in length, and both conversion

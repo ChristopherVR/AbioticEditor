@@ -713,11 +713,7 @@ public sealed class GamePassSaveSet
     /// Reads the raw GVAS bytes of the <c>ProfileScientistCustomization_&lt;slot&gt;</c>
     /// container, or null when the container does not exist (character never customized in-game).
     /// </summary>
-    public byte[]? ReadProfileCustomization(int slot)
-    {
-        var container = _store.Find($"{ProfileCustomizationPrefix}{slot}");
-        return container is null ? null : _store.ReadBlob(container);
-    }
+    public byte[]? ReadProfileCustomization(int slot) => ReadNamedContainer($"{ProfileCustomizationPrefix}{slot}");
 
     /// <summary>
     /// Writes updated GVAS bytes back into the <c>ProfileScientistCustomization_&lt;slot&gt;</c>
@@ -725,13 +721,73 @@ public sealed class GamePassSaveSet
     /// </summary>
     public void WriteProfileCustomization(int slot, byte[] gvasBytes)
     {
+        WriteNamedContainer($"{ProfileCustomizationPrefix}{slot}", gvasBytes);
+        Diagnostics.EditorLog.Info("GamePass", $"Wrote profile customization slot {slot} ({gvasBytes.Length} bytes).");
+    }
+
+    private const string ProfileUnlocksContainer = "ProfileUnlocks";
+    private const string ProfilePlayerStatsContainer = "ProfilePlayerStatsSave";
+    private const string ProfileUserSettingsContainer = "ProfileUserSettings";
+
+    /// <summary>
+    /// Reads the raw GVAS bytes of the <c>ProfileUnlocks</c> container (account-wide cosmetic
+    /// unlocks - clothing, hair, ID badges and the like), or null when the container does not
+    /// exist (nothing unlocked in-game yet). The Game Pass equivalent of the per-Steam-account
+    /// <c>Unlocks.sav</c>.
+    /// </summary>
+    public byte[]? ReadProfileUnlocks() => ReadNamedContainer(ProfileUnlocksContainer);
+
+    /// <summary>Writes updated GVAS bytes back into the <c>ProfileUnlocks</c> container (new blob
+    /// generation). Backs up the whole wgs folder on the first write.</summary>
+    public void WriteProfileUnlocks(byte[] gvasBytes)
+    {
+        WriteNamedContainer(ProfileUnlocksContainer, gvasBytes);
+        Diagnostics.EditorLog.Info("GamePass", $"Wrote {ProfileUnlocksContainer} ({gvasBytes.Length} bytes).");
+    }
+
+    /// <summary>
+    /// Reads the raw GVAS bytes of the <c>ProfilePlayerStatsSave</c> container (achievements and
+    /// lifetime stats), or null when the container does not exist. The Game Pass equivalent of
+    /// the per-Steam-account <c>PlayerStatsSave.sav</c>.
+    /// </summary>
+    public byte[]? ReadProfilePlayerStats() => ReadNamedContainer(ProfilePlayerStatsContainer);
+
+    /// <summary>Writes updated GVAS bytes back into the <c>ProfilePlayerStatsSave</c> container
+    /// (new blob generation). Backs up the whole wgs folder on the first write.</summary>
+    public void WriteProfilePlayerStats(byte[] gvasBytes)
+    {
+        WriteNamedContainer(ProfilePlayerStatsContainer, gvasBytes);
+        Diagnostics.EditorLog.Info("GamePass", $"Wrote {ProfilePlayerStatsContainer} ({gvasBytes.Length} bytes).");
+    }
+
+    /// <summary>
+    /// Reads the raw GVAS bytes of the <c>ProfileUserSettings</c> container (in-game settings),
+    /// or null when the container does not exist. The Game Pass equivalent of the
+    /// per-Steam-account <c>UserSettings.sav</c>.
+    /// </summary>
+    public byte[]? ReadProfileUserSettings() => ReadNamedContainer(ProfileUserSettingsContainer);
+
+    /// <summary>Writes updated GVAS bytes back into the <c>ProfileUserSettings</c> container (new
+    /// blob generation). Backs up the whole wgs folder on the first write.</summary>
+    public void WriteProfileUserSettings(byte[] gvasBytes)
+    {
+        WriteNamedContainer(ProfileUserSettingsContainer, gvasBytes);
+        Diagnostics.EditorLog.Info("GamePass", $"Wrote {ProfileUserSettingsContainer} ({gvasBytes.Length} bytes).");
+    }
+
+    private byte[]? ReadNamedContainer(string name)
+    {
+        var container = _store.Find(name);
+        return container is null ? null : _store.ReadBlob(container);
+    }
+
+    private void WriteNamedContainer(string name, byte[] gvasBytes)
+    {
         _store.EnsureWritable();
         BackupOnce();
-        var name = $"{ProfileCustomizationPrefix}{slot}";
         var container = _store.Find(name)
             ?? throw new InvalidOperationException($"Container '{name}' not found in this wgs folder.");
         _store.WriteBlob(container, gvasBytes);
-        Diagnostics.EditorLog.Info("GamePass", $"Wrote profile customization slot {slot} ({gvasBytes.Length} bytes).");
     }
 
     private void BackupOnce()

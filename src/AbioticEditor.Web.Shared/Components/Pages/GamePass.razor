@@ -513,6 +513,26 @@
             () => SaveConversionService.Convert(
                 _direction!.Value, sourceFolder, playerAccountId: null, container, sourcePlayerId: null, rehomes: rehomes));
         _status = R("Settings_ConvertDone", _outputFolder);
+        if (_direction!.Value == SaveConversionDirection.ToSteam)
+        {
+            var profileReport = GamePassConverter.ProfileItemsInSteamFolder(sourceFolder, _outputFolder);
+            if (profileReport.Copied.Count > 0)
+            {
+                _status += "\n" + R("Settings_ConvertProfileCarried", string.Join(", ", profileReport.Copied));
+            }
+            if (profileReport.KeptExisting.Count > 0)
+            {
+                _status += "\n" + R("Settings_ConvertProfileKept", string.Join(", ", profileReport.KeptExisting));
+            }
+        }
+        else
+        {
+            var profileCarried = GamePassConverter.ProfileItemsInGamePass(_outputFolder);
+            if (profileCarried.Count > 0)
+            {
+                _status += "\n" + R("Settings_ConvertProfileCarried", string.Join(", ", profileCarried));
+            }
+        }
         ClearPending();
     }
 

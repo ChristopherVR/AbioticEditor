@@ -139,11 +139,217 @@ public static class GamePassConverter
         {
             WgsContainerStore.WriteNewContainer(destWgsDir, containerName, blob);
         }
+
+        // Account-level items (cosmetic unlocks, achievements, saved appearance, settings) are not
+        // part of any one world on Steam - a real install keeps them in the account folder
+        // (SaveGames/<steamid>/), a sibling of Worlds/, never inside a world's own folder. A
+        // player who wants them along for the ride can drop the loose Steam files there (or, for a
+        // hand-built world with no Worlds/ nesting to resolve an account folder from, beside the
+        // world itself - see AccountFolderFor); anything present is carried in, anything absent is
+        // quietly skipped rather than failing the conversion.
+        var profileCarried = CarryProfileContainersToGamePass(steamWorldDir, destWgsDir);
+
         Diagnostics.EditorLog.Info("GamePass",
             $"Converted Steam world '{worldName}' ({members.Count} member(s)"
             + (rehomedClaims > 0 ? $", {rehomedClaims} bed claim(s) re-homed" : "")
+            + (profileCarried.Count > 0 ? $", plus {string.Join(", ", profileCarried)}" : "")
             + $") -> Game Pass container at {destWgsDir}.");
         return destWgsDir;
+    }
+
+    /// <summary>The loose Steam files the three fixed-name account-level Game Pass containers
+    /// become, keyed by container name. All are raw, uncompressed GVAS bytes with no wrapping - the
+    /// same shape <see cref="GamePassSaveSet.ReadProfileCustomization"/> already carries for
+    /// <c>ProfileScientistCustomization_&lt;n&gt;</c> - so carrying one is a straight byte copy.
+    /// <c>ProfileScientistCustomization_&lt;n&gt;</c> itself is not in this table because there can
+    /// be several (one per character slot); it is carried alongside these by slot number instead
+    /// (see <see cref="CarryProfileContainersToGamePass"/> / <see cref="ProfileItemsInSteamFolder"/>).</summary>
+    private static readonly (string Container, string SteamFileName, string FriendlyName)[] ProfileContainers =
+    {
+        ("ProfileUnlocks", "Unlocks.sav", "cosmetic unlocks"),
+        ("ProfilePlayerStatsSave", "PlayerStatsSave.sav", "achievement stats"),
+        ("ProfileUserSettings", "UserSettings.sav", "in-game settings"),
+    };
+
+    private const string ProfileCustomizationContainerPrefix = "ProfileScientistCustomization_";
+    private const string CustomizationFriendlyName = "saved appearance presets";
+
+    /// <summary>
+    /// The Steam account folder (<c>SaveGames/&lt;steamid&gt;/</c>) that <paramref name="worldDir"/>
+    /// belongs under. A real Steam install nests a world two levels below the account
+    /// (<c>SaveGames/&lt;steamid&gt;/Worlds/&lt;World&gt;/WorldSave_*.sav</c>), with the
+    /// account-level files (<c>Unlocks.sav</c>, <c>PlayerStatsSave.sav</c>, <c>UserSettings.sav</c>,
+    /// <c>ScientistCustomization_&lt;n&gt;.sav</c>) sitting beside <c>Worlds</c>, never inside it.
+    /// When <paramref name="worldDir"/>'s parent is literally named <c>Worlds</c> this resolves to
+    /// that parent's parent; otherwise (a hand-built world with no such nesting - the shape the
+    /// tests in this file and a caller's own scratch folder use) it falls back to the world folder
+    /// itself, since there is nowhere else to look.
+    /// </summary>
+    private static string AccountFolderFor(string worldDir)
+    {
+        var full = Path.GetFullPath(Path.TrimEndingDirectorySeparator(worldDir));
+        var parent = Directory.GetParent(full);
+        if (parent is not null
+            && string.Equals(parent.Name, "Worlds", StringComparison.OrdinalIgnoreCase)
+            && parent.Parent is not null)
+        {
+            return parent.Parent.FullName;
+        }
+        return full;
+    }
+
+    /// <summary>
+    /// Copies whichever of <see cref="ProfileContainers"/>, plus any
+    /// <c>ScientistCustomization_&lt;n&gt;.sav</c> slots, exist as loose Steam files in the Steam
+    /// account folder resolved from <paramref name="steamWorldDir"/> (see
+    /// <see cref="AccountFolderFor"/>) into <paramref name="destWgsDir"/> as account-level
+    /// containers. A file that does not exist (never unlocked / an older save) is skipped, not an
+    /// error: losing a cosmetic must never fail the whole conversion. Returns the friendly names
+    /// actually carried.
+    /// </summary>
+    private static List<string> CarryProfileContainersToGamePass(string steamWorldDir, string destWgsDir)
+    {
+        var carried = new List<string>();
+        WgsContainerStore store;
+        try
+        {
+            store = WgsContainerStore.Open(destWgsDir);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            return carried;
+        }
+
+        var accountDir = AccountFolderFor(steamWorldDir);
+
+        foreach (var (container, fileName, friendlyName) in ProfileContainers)
+        {
+            var path = Path.Combine(accountDir, fileName);
+            if (!File.Exists(path)) continue;
+            store.AddOrReplaceContainer(container, File.ReadAllBytes(path));
+            carried.Add(friendlyName);
+        }
+
+        if (Directory.Exists(accountDir))
+        {
+            var anyCustomization = false;
+            foreach (var file in Directory.EnumerateFiles(accountDir, "ScientistCustomization_*.sav"))
+            {
+                var stem = Path.GetFileNameWithoutExtension(file);
+                if (!int.TryParse(stem["ScientistCustomization_".Length..], out var slot)) continue;
+                store.AddOrReplaceContainer($"{ProfileCustomizationContainerPrefix}{slot}", File.ReadAllBytes(file));
+                anyCustomization = true;
+            }
+            if (anyCustomization) carried.Add(CustomizationFriendlyName);
+        }
+        return carried;
+    }
+
+    /// <summary>
+    /// The account-level items present in the wgs folder at <paramref name="wgsDir"/> - the three
+    /// fixed containers in <see cref="ProfileContainers"/> plus any
+    /// <c>ProfileScientistCustomization_&lt;n&gt;</c> slots - by their friendly names, so a caller
+    /// can tell the player what came along besides the world itself. Call it on a source before a
+    /// Steam-&gt;Game Pass conversion to say what would be carried, or on the destination after a
+    /// Game Pass-&gt;Steam one to say what was. Empty when none of them are present, or the folder
+    /// cannot be opened.
+    /// </summary>
+    public static IReadOnlyList<string> ProfileItemsInGamePass(string wgsDir)
+    {
+        var names = new List<string>();
+        try
+        {
+            var set = GamePassSaveSet.Open(wgsDir);
+            if (set.ReadProfileUnlocks() is not null) names.Add("cosmetic unlocks");
+            if (set.ReadProfilePlayerStats() is not null) names.Add("achievement stats");
+            if (set.ReadProfileUserSettings() is not null) names.Add("in-game settings");
+            if (set.CustomizationSlots().Any(slot => set.ReadProfileCustomization(slot) is not null))
+            {
+                names.Add(CustomizationFriendlyName);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            // Only a summary rides on this; the conversion itself already succeeded or failed for
+            // its own reason by the time a caller asks.
+        }
+        return names;
+    }
+
+    /// <summary>What happened to the account-level items a Game Pass-&gt;Steam conversion tried to
+    /// carry: the friendly names of the ones freshly written, and of the ones left alone because a
+    /// different file was already sitting in the destination account folder.</summary>
+    public readonly record struct ProfileCarryReport(IReadOnlyList<string> Copied, IReadOnlyList<string> KeptExisting)
+    {
+        public bool IsEmpty => Copied.Count == 0 && KeptExisting.Count == 0;
+    }
+
+    /// <summary>
+    /// Carries the account-level items present in the wgs folder at <paramref name="wgsDir"/> (the
+    /// three fixed containers plus any <c>ProfileScientistCustomization_&lt;n&gt;</c> slots) into
+    /// the Steam account folder resolved from <paramref name="steamWorldDir"/> (see
+    /// <see cref="AccountFolderFor"/>), and reports what happened by friendly name.
+    ///
+    /// <para>Never overwrites a file that is already there with different content: a real player's
+    /// account folder can already hold its own <c>Unlocks.sav</c> etc, and silently replacing it
+    /// with whatever the wgs folder carried would be its own kind of data loss. A missing
+    /// destination file is written and reported as copied; an existing one with identical bytes
+    /// counts as copied too (nothing to lose); an existing one with different bytes is left alone
+    /// and reported as kept existing instead.</para>
+    ///
+    /// <para>Called once by <see cref="GamePassToSteamWorld"/> to perform the actual carry, and
+    /// safe to call again afterward (e.g. from a CLI or UI summary) purely to read back the same
+    /// report: a second pass sees its own first pass's files already matching and reports them as
+    /// copied again, never re-triggering a conflict.</para>
+    /// </summary>
+    public static ProfileCarryReport ProfileItemsInSteamFolder(string wgsDir, string steamWorldDir)
+    {
+        var copied = new List<string>();
+        var keptExisting = new List<string>();
+
+        GamePassSaveSet set;
+        try
+        {
+            set = GamePassSaveSet.Open(wgsDir);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            return new ProfileCarryReport(copied, keptExisting);
+        }
+
+        var accountDir = AccountFolderFor(steamWorldDir);
+
+        void CarryOne(byte[]? sourceBytes, string fileName, string friendlyName)
+        {
+            if (sourceBytes is null) return;
+            var path = Path.Combine(accountDir, fileName);
+            if (File.Exists(path))
+            {
+                if (File.ReadAllBytes(path).AsSpan().SequenceEqual(sourceBytes))
+                {
+                    if (!copied.Contains(friendlyName)) copied.Add(friendlyName);
+                    return;
+                }
+                if (!keptExisting.Contains(friendlyName)) keptExisting.Add(friendlyName);
+                Diagnostics.EditorLog.Warn("GamePass",
+                    $"'{fileName}' already exists at '{accountDir}' with different contents; "
+                    + "kept the existing file rather than overwrite it.");
+                return;
+            }
+            Directory.CreateDirectory(accountDir);
+            File.WriteAllBytes(path, sourceBytes);
+            if (!copied.Contains(friendlyName)) copied.Add(friendlyName);
+        }
+
+        CarryOne(set.ReadProfileUnlocks(), "Unlocks.sav", "cosmetic unlocks");
+        CarryOne(set.ReadProfilePlayerStats(), "PlayerStatsSave.sav", "achievement stats");
+        CarryOne(set.ReadProfileUserSettings(), "UserSettings.sav", "in-game settings");
+        foreach (var slot in set.CustomizationSlots())
+        {
+            CarryOne(set.ReadProfileCustomization(slot), $"ScientistCustomization_{slot}.sav", CustomizationFriendlyName);
+        }
+
+        return new ProfileCarryReport(copied, keptExisting);
     }
 
     /// <summary>The world difficulty settings file that sits next to a world's saves.</summary>
@@ -291,8 +497,21 @@ public static class GamePassConverter
             }
         }
 
+        // Account-level items (cosmetic unlocks, achievements, saved appearance, settings) belong
+        // to the Xbox account, not to any one world, so they are carried whenever they exist in
+        // this wgs folder rather than only for the container being converted. On a real Steam
+        // install they belong one level up from the Worlds folder (SaveGames/<steamid>/), a
+        // sibling of it rather than a member, which is why this writes into the account folder
+        // resolved from destSteamDir (see AccountFolderFor) instead of destSteamDir itself.
+        var profileReport = ProfileItemsInSteamFolder(wgsDir, destSteamDir);
+
         Diagnostics.EditorLog.Info("GamePass",
-            $"Converted Game Pass container '{container}' -> Steam world folder at {destSteamDir}.");
+            $"Converted Game Pass container '{container}' -> Steam world folder at {destSteamDir}"
+            + (profileReport.Copied.Count > 0 ? $" (plus {string.Join(", ", profileReport.Copied)})" : "")
+            + (profileReport.KeptExisting.Count > 0
+                ? $" (kept existing rather than overwrite: {string.Join(", ", profileReport.KeptExisting)})"
+                : "")
+            + ".");
         return destSteamDir;
     }
 
