@@ -13,6 +13,17 @@ return function(ctx)
         end)
         return ok and supported
     end
+    -- Short machine-readable reason the app can turn into a localized, player-facing
+    -- explanation (WorldStoryTab.razor) instead of just disabling the control with no context.
+    -- "runtime-unsupported" is the one this exists for: an older UE4SS build without
+    -- TSet.Add/Remove/ForEach on the game state's recipe sets, fixed by updating UE4SS, not by
+    -- anything the player can do in-game.
+    local function globalRecipeEditsUnavailableReason(state)
+        if not ctx.isHost() then return "not-host" end
+        if not replication.available() then return "no-replication" end
+        if not canEditRecipes(state) then return "runtime-unsupported" end
+        return nil
+    end
     local function readSet(set)
         local result = { __forceArray = true }
         set:ForEach(function(element) result[#result + 1] = element:get():ToString() end)
@@ -43,6 +54,7 @@ return function(ctx)
             return {
                 isHost = ctx.isHost(),
                 canEditRecipes = ctx.isHost() and replication.available() and canEditRecipes(gameState),
+                globalRecipeEditsUnavailableReason = globalRecipeEditsUnavailableReason(gameState),
                 -- FSetProperty: best-effort, same optimistic-pcall caveat as codex.lua's old
                 -- Local_AllCompendiumEntries read (see header comment).
                 recipesUnlocked = canEditRecipes(gameState) and readSet(gameState.GlobalRecipesUnlocked)

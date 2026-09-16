@@ -81,6 +81,13 @@ public interface IWorldStorySession
     /// an updated agent, and a UE4SS runtime with TSet editing support.</summary>
     bool CanEditGlobalRecipes { get; }
 
+    /// <summary>Short reason <see cref="CanEditGlobalRecipes"/> is false, when known (null offline,
+    /// where it is always true, and null live once the game reports edits are supported). Live
+    /// values include "not-host", "no-replication", and "runtime-unsupported" (an older UE4SS
+    /// build lacking TSet editing support - see <c>areas/worldunlocks.lua</c>'s header comment).
+    /// The default implementation covers the file session, which never has a reason to show.</summary>
+    string? GlobalRecipeEditsUnavailableReason => null;
+
     Task SetGlobalRecipesAsync(IEnumerable<string> ids, bool unlocked, CancellationToken cancellationToken = default)
         => throw new NotSupportedException("This session cannot edit global recipes.");
 

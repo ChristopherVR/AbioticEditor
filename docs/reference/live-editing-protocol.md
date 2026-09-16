@@ -759,7 +759,8 @@ section, `WorldSaveSession.GlobalRecipes` / the save's `GlobalUnlocks` struct). 
 takes no payload and returns:
 
 ```json
-{"isHost":true,"recipesUnlocked":["recipe_bandage"],"recipesResearched":[],
+{"isHost":true,"canEditRecipes":false,"globalRecipeEditsUnavailableReason":"runtime-unsupported",
+ "recipesUnlocked":["recipe_bandage"],"recipesResearched":[],
  "itemsPickedUp":["scrap_metal"],"emailsRead":["Email_Crossbow"],"journalEntries":[],
  "compendiumEmail":[],"compendiumNarrative":[],"compendiumExploration":["Compendium_Office"]}
 ```
@@ -773,7 +774,12 @@ arrays `codex.get`/`recipes.get` already read. The array fields use indexed read
 `TSet.ForEach` API when available, with the legacy read fallback on older runtimes.
 
 `worldunlocks.get` reports `canEditRecipes`, requiring host authority, TSet editing support,
-and replication notification support. `worldunlocks.set` accepts
+and replication notification support. When `canEditRecipes` is `false` it also reports
+`globalRecipeEditsUnavailableReason`: `"not-host"`, `"no-replication"`, or
+`"runtime-unsupported"` (an older UE4SS build without `TSet.Add`/`Remove`/`ForEach` on the recipe
+sets - update UE4SS to fix it) - `null` once edits are supported. `WorldStoryTab` turns this into
+a specific, localized message next to the disabled controls instead of just disabling them with
+no explanation. `worldunlocks.set` accepts
 `{"recipes":[{"id":"recipe_bandage","unlocked":true}]}`. Names and values are validated
 before writes. Add/remove applies to both unlocked and researched sets, matching offline
 world recipe editing, and both properties are marked dirty for replication. Other global

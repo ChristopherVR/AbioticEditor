@@ -17,7 +17,7 @@ public sealed class LiveWorldUnlocksChannel(ILiveGameChannel channel)
             wire.RecipesUnlocked ?? [], wire.RecipesResearched ?? [], wire.ItemsPickedUp ?? [],
             wire.EmailsRead ?? [], wire.JournalEntries ?? [],
             wire.CompendiumEmail ?? [], wire.CompendiumNarrative ?? [], wire.CompendiumExploration ?? [],
-            wire.IsHost, wire.CanEditRecipes);
+            wire.IsHost, wire.CanEditRecipes, wire.GlobalRecipeEditsUnavailableReason);
     }
 
     /// <summary>Legacy empty request. Use SetRecipesAsync to specify edits.</summary>
@@ -31,14 +31,22 @@ public sealed class LiveWorldUnlocksChannel(ILiveGameChannel channel)
         IReadOnlyList<string>? RecipesUnlocked, IReadOnlyList<string>? RecipesResearched,
         IReadOnlyList<string>? ItemsPickedUp, IReadOnlyList<string>? EmailsRead, IReadOnlyList<string>? JournalEntries,
         IReadOnlyList<string>? CompendiumEmail, IReadOnlyList<string>? CompendiumNarrative,
-        IReadOnlyList<string>? CompendiumExploration, bool IsHost, bool CanEditRecipes = false);
+        IReadOnlyList<string>? CompendiumExploration, bool IsHost, bool CanEditRecipes = false,
+        string? GlobalRecipeEditsUnavailableReason = null);
 }
 
-/// <summary>World-wide (not per-player) unlock lists, as read by <see cref="LiveWorldUnlocksChannel.GetAsync"/>.</summary>
+/// <summary>
+/// World-wide (not per-player) unlock lists, as read by <see cref="LiveWorldUnlocksChannel.GetAsync"/>.
+/// </summary>
+/// <param name="GlobalRecipeEditsUnavailableReason">Short machine-readable reason
+/// <paramref name="CanEditRecipes"/> is false (null when it is true): "not-host",
+/// "no-replication", or "runtime-unsupported" (an older UE4SS build without
+/// TSet.Add/Remove/ForEach - see <c>areas/worldunlocks.lua</c>'s header comment).</param>
 public sealed record LiveWorldUnlocks(
     IReadOnlyList<string> RecipesUnlocked, IReadOnlyList<string> RecipesResearched,
     IReadOnlyList<string> ItemsPickedUp, IReadOnlyList<string> EmailsRead, IReadOnlyList<string> JournalEntries,
     IReadOnlyList<string> CompendiumEmail, IReadOnlyList<string> CompendiumNarrative,
-    IReadOnlyList<string> CompendiumExploration, bool IsHost, bool CanEditRecipes = false);
+    IReadOnlyList<string> CompendiumExploration, bool IsHost, bool CanEditRecipes = false,
+    string? GlobalRecipeEditsUnavailableReason = null);
 
 public sealed record LiveWorldRecipeEdit(string Id, bool Unlocked);

@@ -103,7 +103,9 @@ off.
 
 These limits are deliberate:
 
-- Pet species, world-wide recipe unlocks, and some missing skill entries cannot be changed live.
+- Pet species and some missing skill entries cannot be changed live. World-wide recipe unlocks
+  need a UE4SS build that exposes `TSet.Add`/`Remove`/`ForEach`; on an older build the world
+  recipes list shows why the unlock control is disabled instead of just hiding it.
 - Objects outside loaded sectors cannot appear. Move close to them and refresh, or edit their region save offline.
 
 The [live-editing protocol](/reference/live-editing-protocol) records the technical status of each action. Live editing is still experimental, so a game update can change what works.

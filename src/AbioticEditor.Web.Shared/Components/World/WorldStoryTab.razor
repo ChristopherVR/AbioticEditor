@@ -181,7 +181,7 @@
 
             @if (!CanEditRecipes)
             {
-                <p class="muted ws-recipes-readonly">@L.Resource("WorldStory_LiveGlobalRecipesReadOnlyHelp")</p>
+                <p class="muted ws-recipes-readonly">@RecipesReadOnlyText</p>
             }
 
             <div class="ws-recipe-list" role="listbox" aria-label="@L.Resource("WorldStory_WorldRecipes")">
@@ -783,6 +783,18 @@
     /// <see cref="IWorldStorySession.CanEditGlobalRecipes"/>'s remarks), independent of whether the
     /// list itself has anything to show (<see cref="IWorldStorySession.SupportsRecipes"/>).</summary>
     private bool CanEditRecipes => Session.CanEditGlobalRecipes;
+
+    /// <summary>Muted help text shown under the recipe browser while <see cref="CanEditRecipes"/>
+    /// is false. Live, a specific reason from the agent (<see
+    /// cref="IWorldStorySession.GlobalRecipeEditsUnavailableReason"/>) picks a targeted, localized
+    /// explanation; anything else (offline read-only, or an older agent with no reason at all)
+    /// falls back to the generic help text.</summary>
+    private string RecipesReadOnlyText => Session.GlobalRecipeEditsUnavailableReason switch
+    {
+        "runtime-unsupported" => L.Resource("WorldStory_LiveGlobalRecipesRuntimeUnsupported"),
+        "not-host" => L.Resource("WorldStory_LiveGlobalRecipesNotHost"),
+        _ => L.Resource("WorldStory_LiveGlobalRecipesReadOnlyHelp"),
+    };
 
     private bool RecipeIsUnlocked(string id) => Session.GlobalRecipeIds.Contains(id);
 

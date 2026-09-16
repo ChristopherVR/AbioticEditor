@@ -847,6 +847,8 @@
   <data name="WorldStory_MovePlayersCaption" xml:space="preserve"><value>When ticked, SET also moves every character's respawn point to the punch-card terminal in that chapter's sector. Off by default, so leave it unticked if you only want the story itself changed.</value></data>
   <data name="WorldStory_NoRecipes" xml:space="preserve"><value>No recipes match (or game data is unavailable).</value></data>
   <data name="WorldStory_LiveGlobalRecipesReadOnlyHelp" xml:space="preserve"><value>World recipes are read-only live: the running game has no button anywhere to unlock one world-wide, so this only shows what has already been researched. Use a character's own RECIPES tab to give them a recipe directly.</value></data>
+  <data name="WorldStory_LiveGlobalRecipesRuntimeUnsupported" xml:space="preserve"><value>Your UE4SS build cannot change world-wide recipes; update UE4SS to a newer build.</value></data>
+  <data name="WorldStory_LiveGlobalRecipesNotHost" xml:space="preserve"><value>Only the host of this world can change world-wide recipes.</value></data>
   <data name="WorldStory_SearchRecipes" xml:space="preserve"><value>Search recipes…</value></data>
   <data name="WorldStory_Set" xml:space="preserve"><value>SET</value></data>
   <data name="WorldStory_StorySplitIntro" xml:space="preserve"><value>SET moves the story to that chapter and brings everything else in line. Earlier events are marked as done and later ones are undone. Emails, journal pages and codex entries you would no longer have seen are taken back, for the world and for every character.</value></data>

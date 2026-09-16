@@ -235,8 +235,10 @@ catalog recognizes it.
 
 ### Still unmapped (and why)
 
-- `painting_a_*` (11 rows, `M_WallArt_*` materials): no item table row or blueprint references
-  `WallArt` by name or mesh. Candidate but ungrounded.
+- `painting_a_4` and `painting_a_5` (`M_WallArt_04`/`M_WallArt_05` materials): resolved to the
+  same `Deployed_Painting_Landscape` family as the rest of the `painting_a_*` series (see
+  "`painting_a_*` resolved" below), but never observed set on any placed actor in any available
+  save or backup, so they were left out of `CuratedRows` rather than assumed.
 - `armchair_fancy_bloodstain` and `armchair_IS0018` (`M_ChairFancy_*` materials): the mesh name
   `ChairFancy` does not exactly match any catalogued armchair's own mesh name (`Armchair_Fancy_01`,
   `_02`, `Chair_Fancy_03`/`_04` also exist and were not individually probed). `armchair_IS0018` is
@@ -254,3 +256,31 @@ current 575-row `DT_TextureVariants` dump, including every row referenced by the
 above (`painting_L_JJ`, `tv_channel5`, `photoframe_acahn`, etc., all present). `CuratedRows` is
 hand-written code in `ItemVariantCatalog`, not registry data, so this change needed no regeneration.
 Regeneration would only be needed if a future game patch adds or renames `DT_TextureVariants` rows.
+
+## `painting_a_*` resolved (2026-09-17)
+
+The static, pak-only method that grounded every other family in this document (grep the item
+table and blueprints for a name/mesh match) could not find a base item for `painting_a_*` because
+neither the item table nor any blueprint's own default mesh/material references `WallArt`: the
+name only appears as the *replacement* material a row swaps in (`DT_TextureVariants`'
+`painting_a_2`..`painting_a_12` each carry exactly one `TextureVariants` entry,
+`/Game/Models/Items/Misc/M_WallArt_0N.M_WallArt_0N`), not as anything belonging to the base item
+itself. A real save settled it instead: every `TextureVariantRow="painting_a_N"` found in the
+Cascade fixtures and the `cascade-live-backup-20260915-073257` artifact sits inside a placed
+actor's own `ChangableData` struct, in the same contiguous property block as that actor's
+`Class_77` (soft class reference) and `ActorPath`, which name the actor's blueprint unambiguously:
+
+- `Deployed_Painting_Landscape` (item id `Painting_Landscape`): `painting_a_2`, `_3`, `_6`, `_8`,
+  `_9`, `_10`, `_12`.
+- `Deployed_Painting_Landscape_Fancy` (item id `Painting_Landscape_Fancy`): `painting_a_7`, `_11`.
+- `Deployed_Painting_Square_Fancy` (item id `Painting_Square_Fancy`): `painting_a_3` (in addition
+  to landscape actors - the same row was found set on both an actor of this class and one of
+  `Deployed_Painting_Landscape` in the same file).
+
+`painting_a_4` and `painting_a_5` were searched for the same way, across every `.sav` under
+`tests/fixtures/` and every backup under `artifacts/` available at probe time (428 files), and
+never appear - see the "Still unmapped" note above. Added to `ItemVariantCatalog.CuratedRows`
+with `tests/AbioticEditor.Tests/ItemVariantCatalogTests.cs`'s
+`ForItem_LandscapePaintingsIncludeTheWallArtSeriesFoundOnRealPlacedInstances`. No other
+`DT_TextureVariants` row or `ItemTable_Global` entry references `painting_a_4`/`_5` or
+`M_WallArt_04`/`_05` either, so there is nothing to fall back on for them.

@@ -202,6 +202,11 @@ public sealed class LiveStorySession : IWorldStorySession
     public IReadOnlyCollection<string> GlobalRecipeIds => _unlocks?.RecipesUnlocked ?? [];
     public bool CanEditGlobalRecipes => IsHost && _unlocks?.CanEditRecipes == true;
 
+    /// <summary>Short reason <see cref="CanEditGlobalRecipes"/> is false, straight from the agent
+    /// (<c>worldunlocks.get</c>'s <c>globalRecipeEditsUnavailableReason</c>) so <c>WorldStoryTab</c>
+    /// can show a specific, localized explanation instead of just disabling the control.</summary>
+    public string? GlobalRecipeEditsUnavailableReason => _unlocks?.GlobalRecipeEditsUnavailableReason;
+
     public async Task SetGlobalRecipesAsync(IEnumerable<string> ids, bool unlocked, CancellationToken cancellationToken = default)
     {
         if (!CanEditGlobalRecipes) throw new InvalidOperationException("Global recipes require host authority and UE4SS TSet support.");

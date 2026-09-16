@@ -158,16 +158,27 @@ public sealed class ItemVariantCatalog
                 "photoframe_votv_02", "photoframe_votv_03", "photoframe_votv_04", "photoframe_votv_05",
                 "photoframe_votv_06", "photoframe_zig", "photoframe_zig2", "photoframe_zig3",
             ],
+            // painting_a_2..12 (11 rows, M_WallArt_* materials - see the "painting_a_*" note in
+            // docs/reference/research/research-item-visual-variants.md) were previously unmapped:
+            // no item-table row or blueprint referenced "WallArt" by name, so a static pak-only
+            // search could not find the base item. Real Cascade saves settled it instead: every
+            // TextureVariantRow="painting_a_N" found on a placed actor sits on a
+            // Deployed_Painting_Landscape/_Fancy or Deployed_Painting_Square_Fancy instance's own
+            // ChangableData, alongside the class's Class_77/ActorPath fields (unambiguous, one
+            // contiguous property block per actor). painting_a_4 and painting_a_5 were searched for
+            // the same way and never found in any available save or backup, so they stay out.
             ["Painting_Landscape"] =
-                ["painting_coldmountains", "painting_desertclouds", "painting_is0042", "painting_moodypines", "painting_sunsetswamp"],
+                ["painting_coldmountains", "painting_desertclouds", "painting_is0042", "painting_moodypines", "painting_sunsetswamp",
+                 "painting_a_2", "painting_a_3", "painting_a_6", "painting_a_8", "painting_a_9", "painting_a_10", "painting_a_12"],
             ["Painting_Landscape_Fancy"] =
-                ["painting_coldmountains", "painting_desertclouds", "painting_is0042", "painting_moodypines", "painting_sunsetswamp"],
+                ["painting_coldmountains", "painting_desertclouds", "painting_is0042", "painting_moodypines", "painting_sunsetswamp",
+                 "painting_a_7", "painting_a_11"],
             ["Painting_Landscape_Large"] =
                 ["painting_L_JJ", "painting_L_orb", "painting_L_pig", "painting_L_rabbit"],
             ["Painting_Landscape_Large_Fancy"] =
                 ["painting_L_JJ", "painting_L_orb", "painting_L_pig", "painting_L_rabbit"],
             ["Painting_Square"] = ["painting_S_plague"],
-            ["Painting_Square_Fancy"] = ["painting_S_plague"],
+            ["Painting_Square_Fancy"] = ["painting_S_plague", "painting_a_3"],
             ["Painting_Vertical"] =
                 ["painting_V_jack", "painting_V_kitten", "painting_V_medieval_01", "painting_V_Med_Cliffs", "painting_V_serpents"],
             ["Painting_Vertical_Fancy"] =

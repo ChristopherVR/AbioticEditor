@@ -92,6 +92,26 @@ public sealed class ItemVariantCatalogTests
     }
 
     [Fact]
+    public void ForItem_LandscapePaintingsIncludeTheWallArtSeriesFoundOnRealPlacedInstances()
+    {
+        // painting_a_2..12 (M_WallArt_* materials) were unmapped until a real Cascade save
+        // showed TextureVariantRow="painting_a_N" on Deployed_Painting_Landscape/_Fancy and
+        // Deployed_Painting_Square_Fancy actors - see ItemVariantCatalog's CuratedRows comment.
+        var catalog = Catalog();
+
+        Assert.Contains(catalog.ForItem("Painting_Landscape"), v => v.RowName == "painting_a_2");
+        Assert.Contains(catalog.ForItem("Painting_Landscape"), v => v.RowName == "painting_a_12");
+        Assert.Contains(catalog.ForItem("Painting_Landscape_Fancy"), v => v.RowName == "painting_a_7");
+        Assert.Contains(catalog.ForItem("Painting_Landscape_Fancy"), v => v.RowName == "painting_a_11");
+        Assert.Contains(catalog.ForItem("Painting_Square_Fancy"), v => v.RowName == "painting_a_3");
+
+        // painting_a_4 and painting_a_5 were searched for the same way and never found in any
+        // available save or backup; they stay unmapped.
+        Assert.DoesNotContain(catalog.ForItem("Painting_Landscape"), v => v.RowName == "painting_a_4");
+        Assert.DoesNotContain(catalog.ForItem("Painting_Landscape"), v => v.RowName == "painting_a_5");
+    }
+
+    [Fact]
     public void ForItem_OfficeFurnitureFamiliesShareTheirRows()
     {
         var catalog = Catalog();
