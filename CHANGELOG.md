@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here.
 
+## [2.12.0] - 2026-09-16
+
+### Bug Fixes
+- Ship the bundled UE4SS files beside the Windows editor
+
+
+### Features
+- Offer colour and artwork choices for many more items
+- Change weapon coatings while connected to a running game
+
+
 ## [2.11.0] - 2026-09-16
 
 ### Bug Fixes
