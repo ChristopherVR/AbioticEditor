@@ -54,6 +54,17 @@ public static class PetCatalog
     /// <summary>Highest pet level.</summary>
     public const int MaxLevel = 20;
 
+    /// <summary>
+    /// The largest mutation-progress counter (<see cref="PlayerSaves.CarriedPet.MutationProgress"/>)
+    /// this project has observed in a real save: 3, from the only two carried pets found across
+    /// every checked-in fixture (<c>tests/AbioticEditor.Probes/PetMutationProgressProbe.cs</c>,
+    /// run 2026-09-16). Neither <c>DT_Pets</c> nor <see cref="PetCareCatalog"/> carries an explicit
+    /// threshold field, so this is a HINT shown next to the editor, never a clamp: two pets is far
+    /// too small a sample to justify rewriting a higher value found in a longer-lived save.
+    /// Only negative values are rejected.
+    /// </summary>
+    public const int ObservedMaxMutationProgress = 3;
+
     private static volatile PetGameData? _gameData;
 
     /// <summary>

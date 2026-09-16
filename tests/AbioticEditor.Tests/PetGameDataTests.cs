@@ -134,6 +134,50 @@ public class PetGameDataTests
         finally { dir.Delete(recursive: true); }
     }
 
+    // ---------- MutationProgress round-trips through the file format ----------
+
+    /// <summary>Carried-pet MutationProgress persists through ApplyCarriedPet -&gt; write -&gt;
+    /// read, including at PetCatalog.ObservedMaxMutationProgress (the evidenced upper bound the editor
+    /// clamps edits to - see that constant's own remarks) - the same boundary style
+    /// PetCatalogTests already uses for the XP-&gt;level curve's MaxLevel.</summary>
+    [Fact]
+    public void ApplyCarriedPet_round_trips_MutationProgress_at_the_evidenced_max()
+    {
+        var player = FindAnyPlayerSave();
+        if (player is null) return; // fixtures absent: skip
+
+        var dir = Directory.CreateTempSubdirectory("pet-mutation-progress");
+        try
+        {
+            var copy = Path.Combine(dir.FullName, Path.GetFileName(player));
+            File.Copy(player, copy);
+
+            var data = PlayerSaveReader.ReadFromFile(copy);
+            PlayerSaveWriter.RemoveCarriedPet(data, PetSlotKind.Equipment, 12);
+            var placed = PlayerSaveWriter.AddCarriedPetToSlot(data, PetSlotKind.Equipment, 12,
+                new CarriedPet(PetSlotKind.Equipment, 12, "pet_skink", "Progress Test", 80, 100, 42,
+                    PetCatalog.ObservedMaxMutationProgress, 0));
+            if (placed != 12) return; // fixture has no companion slot to use: skip
+            PlayerSaveWriter.WriteToFile(data, copy);
+
+            var afterAdd = PlayerSaveReader.ReadFromFile(copy);
+            var pet = afterAdd.CarriedPets.First(p => p.IsCompanionSlot);
+            Assert.Equal(PetCatalog.ObservedMaxMutationProgress, pet.MutationProgress);
+
+            // ApplyCarriedPet (the edit path, not just initial placement) also round-trips a
+            // changed value, including PetMutation staying whatever is written (read-only in the
+            // UI, but still a plain int the file format itself never refuses).
+            var edited = pet with { MutationProgress = 1, PetMutation = 6 };
+            PlayerSaveWriter.ApplyCarriedPet(afterAdd, edited);
+            PlayerSaveWriter.WriteToFile(afterAdd, copy);
+
+            var reloaded = PlayerSaveReader.ReadFromFile(copy).CarriedPets.First(p => p.IsCompanionSlot);
+            Assert.Equal(1, reloaded.MutationProgress);
+            Assert.Equal(6, reloaded.PetMutation);
+        }
+        finally { dir.Delete(recursive: true); }
+    }
+
     private static string? FindAnyPlayerSave()
     {
         var seed = Fixtures.ServerWorldsDir ?? Fixtures.CascadeDir ?? Fixtures.ClientSavedDir;

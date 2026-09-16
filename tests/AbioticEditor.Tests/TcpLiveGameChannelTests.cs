@@ -275,6 +275,27 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
         Assert.Equal(1, pet.PetMutation);
     }
 
+    /// <summary>The live COMPANIONS session (not just the raw channel above) surfaces
+    /// MutationProgress through the same clamped CarriedPetEdit type the offline tab uses - see
+    /// CarriedPetMutationProgressTests for the clamp itself - and commits an edit to it the same
+    /// way the new mutation-progress input in PlayerCompanionsTab.razor does.</summary>
+    [Fact]
+    public async Task LivePlayerCompanionsSession_surfaces_and_commits_MutationProgress()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var session = await AbioticEditor.Web.Models.LivePlayerCompanionsSession.ConnectAsync(
+            new AbioticEditor.Core.LiveEditing.Player.LiveCompanionsChannel(channel));
+
+        var pet = Assert.Single(session.CarriedPets);
+        // The fixture value (3) sits exactly at PetCatalog.ObservedMaxMutationProgress, so it passes
+        // through unclamped - the boundary case, not an over-limit one.
+        Assert.Equal(AbioticEditor.Core.WorldSaves.PetCatalog.ObservedMaxMutationProgress, pet.MutationProgress);
+
+        pet.MutationProgress = 1;
+        await session.ApplyPetAsync(pet);
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
     [Fact]
     public async Task LiveCompanionsChannel_SetAsync_and_ClearAsync_send_well_formed_requests()
     {

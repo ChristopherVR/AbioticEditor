@@ -47,9 +47,12 @@ public sealed class LiveCompanionsChannel(ILiveGameChannel channel)
     /// sent - the caller must have already confirmed this with the player. Round 78: when
     /// <paramref name="kind"/>/<paramref name="slotIndex"/> is the active Companion slot
     /// (<see cref="CarriedPet.IsCompanionSlot"/>), <c>companions.lua</c> also tries to despawn the
-    /// matching live follower actor - <see cref="LiveClearResult.DespawnedFollower"/> says whether
-    /// that succeeded, so the caller can tell the player if a Peccary/WinterSprite-family follower
-    /// (no evidenced live match, unlike Pest/Skink) might still be standing around.</summary>
+    /// matching live follower actor (Pest/Skink family, matched by its own <c>FollowingOwner</c>
+    /// reference; round 79 re-checked Peccary/Lamogi against the installed game's own class data
+    /// and confirmed neither exposes an equivalent field, so they stay unmatched - a verified
+    /// limit, not an unexplored one) - <see cref="LiveClearResult.DespawnedFollower"/> says
+    /// whether a match was found, so the caller can tell the player if a follower might still be
+    /// standing around.</summary>
     public async Task<LiveClearResult> ClearAsync(string kind, int slotIndex, string? playerId = null,
         CancellationToken cancellationToken = default)
     {

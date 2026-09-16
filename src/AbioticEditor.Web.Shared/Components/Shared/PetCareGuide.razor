@@ -3,7 +3,26 @@
 @inject AbioticEditor.Web.Services.ItemCatalogService Items
 <details class="pet-care-guide" @onclick="Load">
     <summary>Feeding and mutation</summary>
-    @if (MutationProgress is { } progress) { <p>Saved mutation progress: @progress</p> }
+    @if (MutationProgress is { } progress)
+    {
+        @* Editable only when a caller binds MutationProgressChanged (both the offline and the
+           live COMPANIONS tab do - see PlayerCompanionsTab.razor); read-only text otherwise so
+           a future caller with nothing to write back to still gets a sane readout. The value is
+           the game's own stored counter, not an invented percentage - see this file's own
+           feeding-cooldown note below. *@
+        @if (MutationProgressChanged.HasDelegate)
+        {
+            <label class="pet-mutation-field">Mutation progress
+                <input type="number" min="0" step="1"
+                       value="@progress" @onchange="OnMutationProgressChanged" />
+            </label>
+            <small>The game's own stored counter. Saves seen so far go up to @PetCatalog.ObservedMaxMutationProgress.</small>
+        }
+        else
+        {
+            <p>Saved mutation progress: @progress</p>
+        }
+    }
     @if (_loading) { <p role="status">Loading pet care...</p> }
     else if (Care is { } care)
     {
@@ -19,6 +38,17 @@
     [Parameter] public string? ItemRow { get; set; }
     [Parameter] public string? ClassPath { get; set; }
     [Parameter] public int? MutationProgress { get; set; }
+    /// <summary>Bound by a caller that can persist the edit (offline stages it, live commits it
+    /// immediately) - see <see cref="MutationProgress"/>'s own remarks above. Left unbound, the
+    /// value renders as plain read-only text.</summary>
+    [Parameter] public EventCallback<int> MutationProgressChanged { get; set; }
+    private Task OnMutationProgressChanged(ChangeEventArgs args)
+    {
+        var value = int.TryParse(args.Value?.ToString(), out var parsed)
+            ? Math.Max(0, parsed)
+            : 0;
+        return MutationProgressChanged.InvokeAsync(value);
+    }
     private IReadOnlyList<PetCareDefinition> _care = [];
     private bool _loading, _loaded;
     private PetCareDefinition? Care => _care.FirstOrDefault(c => ItemRow is not null && c.ItemRow.Equals(ItemRow, StringComparison.OrdinalIgnoreCase)

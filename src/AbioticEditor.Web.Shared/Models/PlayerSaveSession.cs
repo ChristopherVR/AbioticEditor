@@ -737,7 +737,20 @@ public sealed class CarriedPetEdit
     public double Health { get; set; }
     public double MaxHealth { get; set; }
     public int Xp { get; set; }
-    public int MutationProgress { get; set; }
+    private int _mutationProgress;
+    /// <summary>Never negative. Deliberately NOT capped: the game's own threshold is not in its
+    /// tables and the saves seen so far are too few to justify rewriting a higher stored value on
+    /// load (see <see cref="PetCatalog.ObservedMaxMutationProgress"/>, which the editor only shows
+    /// as a hint).</summary>
+    public int MutationProgress
+    {
+        get => _mutationProgress;
+        set => _mutationProgress = Math.Max(0, value);
+    }
+    /// <summary>The mutation target the game has already applied. Read-only by design: this
+    /// mirrors what <c>review-features.md</c> documents for the offline tab (the value is kept
+    /// as the game's own value, never edited here), because picking a *different* target safely
+    /// needs the game's own mutation-graph validation this editor does not have.</summary>
     public int PetMutation { get; set; }
     public bool IsDeleted { get; set; }
     public bool IsNew { get; private set; }

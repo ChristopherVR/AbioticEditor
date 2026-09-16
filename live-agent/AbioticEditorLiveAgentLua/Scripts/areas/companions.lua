@@ -32,29 +32,59 @@
 -- live follower (by comparing GetFullName() strings, the same object-identity technique
 -- ctx.findByFullName already uses) and destroy it with `K2_DestroyActor()`, the same standard
 -- AActor function the reference CheatConsoleCommands mod's own "deleteobject" console command
--- already uses on an arbitrary world actor (CommandsManager.lua). FollowingOwner only exists on
--- the Pest/Skink family (same limitation pets.lua's own research already documents), so a
--- Peccary/WinterSprite companion still can't be matched and may still be left behind - a known,
--- pre-existing gap, not something this fix makes worse. Scoped to slot 12 specifically (not every
--- cleared slot) so a hotbar/backpack pet - never a live follower - can never trigger a search.
+-- already uses on an arbitrary world actor (CommandsManager.lua). FollowingOwner was only
+-- confirmed live on the Pest/Skink family at the time, so a Peccary/WinterSprite companion could
+-- not be matched and might still be left behind.
+--
+-- Round-79: re-checked whether that gap could be widened, against the installed game's own class
+-- data (LiveClassPropsProbe, run 2026-09-16 with LIVE_CLASS_PROBE_OUT against the mounted paks -
+-- see tests/AbioticEditor.Probes/LiveClassPropsProbe.cs, fragments "NPC_Monster_Peccary.",
+-- "NPC_Monster_WinterSprite"). The dump is conclusive, not a guess: both
+-- NPC_Monster_Peccary_C and NPC_Monster_WinterSprite_C declare `super=NPC_Base_ParentBP_C`
+-- directly (NOT a subclass of NPC_Monster_Pest_C, unlike Skink), and NEITHER their own declared
+-- properties NOR NPC_Base_ParentBP_C's ~150 inherited properties include FollowingOwner, Guid,
+-- PetName, or DynamicProperties, or any other player-identity reference. There is no live object-
+-- identity path to a Peccary/Lamogi companion's owning player anywhere in the class hierarchy
+-- today - this is a confirmed, hard limit of the current game build, not an unexplored one. A
+-- future safe approach would need the game itself to add an equivalent owner reference to those
+-- classes (matching pets.lua's own note on why this project refuses to guess at constructing one).
+--
+-- What DID change this round: FOLLOWER_FAMILY_CLASSES below now lists NPC_Skink_Basic_C
+-- explicitly alongside NPC_Monster_Pest_C. NPC_Monster_Pest_C already hierarchy-matches every
+-- Pest variant AND NPC_Skink_Basic_C (FindAllOf is hierarchy-inclusive - confirmed above and by
+-- bases.lua/containers.list scanning the same way, and by this same probe run: NPC_Skink_Basic_C
+-- declares `super=NPC_Monster_Pest_C`), so this makes no functional difference today - it only
+-- protects against that one hierarchy fact ever changing, and is covered by its own Lua harness
+-- case (tests/cases/companions.lua) matching a Skink actor by its own class name rather than by
+-- falling through the Pest search.
 return function(ctx)
     local PET_KINDS = { "equip", "hotbar", "backpack" }
     local COMPANION_SLOT_KIND, COMPANION_SLOT_INDEX = "equip", 12
-    local FOLLOWER_FAMILY_CLASS = "NPC_Monster_Pest_C" -- hierarchy-inclusive: also finds NPC_Skink_Basic_C.
+    local FOLLOWER_FAMILY_CLASSES = {
+        "NPC_Monster_Pest_C", -- Pest family root; hierarchy-inclusive also finds every Pest
+                               -- variant and NPC_Skink_Basic_C (see header above).
+        "NPC_Skink_Basic_C",  -- Skink family root, listed explicitly for robustness against that
+                               -- inheritance relationship ever changing (redundant today).
+        -- Peccary and Lamogi/WinterSprite are deliberately NOT listed: confirmed this round
+        -- (see header above) to expose no owner-identity field at all, so searching their
+        -- classes here could never find a match - it would just be dead code dressed up as a fix.
+    }
 
-    -- Finds the live follower actor for `player` among Pest/Skink-family pets (the only family
-    -- that exposes FollowingOwner) and destroys it. Best-effort and silent: no match (a
-    -- Peccary/WinterSprite companion, or no live actor at all) just returns false so the caller
-    -- still clears the inventory slot as before.
+    -- Finds the live follower actor for `player` across every known pet family root
+    -- (FOLLOWER_FAMILY_CLASSES above) and destroys it. Best-effort and silent: no match (a family
+    -- that turns out not to expose FollowingOwner, or no live actor at all) just returns false so
+    -- the caller still clears the inventory slot as before.
     local function despawnFollowerFor(player)
         if not player then return false end
         local playerName = ctx.fullName(player)
         if not playerName then return false end
-        for _, candidate in ipairs(ctx.findAll(FOLLOWER_FAMILY_CLASS)) do
-            if candidate:IsValid() then
-                local ok, owner = pcall(function() return candidate.FollowingOwner end)
-                if ok and owner and owner:IsValid() and ctx.fullName(owner) == playerName then
-                    if pcall(function() candidate:K2_DestroyActor() end) then return true end
+        for _, familyClass in ipairs(FOLLOWER_FAMILY_CLASSES) do
+            for _, candidate in ipairs(ctx.findAll(familyClass)) do
+                if candidate:IsValid() then
+                    local ok, owner = pcall(function() return candidate.FollowingOwner end)
+                    if ok and owner and owner:IsValid() and ctx.fullName(owner) == playerName then
+                        if pcall(function() candidate:K2_DestroyActor() end) then return true end
+                    end
                 end
             end
         end

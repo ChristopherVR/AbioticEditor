@@ -39,7 +39,7 @@ implementation pass, not a complete gameplay certification or a measured memory 
 | World story | Flags, clock, metadata, global unlock arrays | Global recipe editing is implemented for hosts with TSet support. World play time is now settable (`world.setPlaytime`), implemented 2026-09-16, still needs in-game verification. Full cross-file revert equivalence remains open. |
 | Bases | Bench upgrades and deployable data | Bench-upgrade installation and removal are both implemented (2026-09-16), writing the bench's own GameplayTag container directly instead of the crash-prone native calls. Still needs in-game verification. |
 | Deployed care | Garden plots, Power Chairs, chemistry benches | Watering/fertilising/growth-stage edits, Power Chair charge, and chemistry-bench flask readouts are implemented (2026-09-16) via each deployable's own save-aware functions. Still needs in-game verification. |
-| Pets | Saved species and state | Species changes unsupported. Some companion follower families cannot be matched for despawning. |
+| Pets | Saved species and state | Species changes unsupported. Companion follower despawn on clear is confirmed Pest/Skink-family only (round 79 re-checked Peccary/Lamogi against the installed game's own class data: neither exposes an owner-identity field, a verified limit, not an unresearched one). Carried-pet mutation progress is now editable, offline and live (non-negative, otherwise uncapped; the largest fixture value is shown as a hint). |
 | Doors, containers, vehicles, NPCs, portals | All persisted region entries | Live scope is loaded actors and available host authority; not all saved fields have live equivalents. |
 | Raw data, entitlements, identity, backup/undo | Save-file operations | No general live equivalent. These should not be enabled through speculative game writes. |
 
@@ -126,6 +126,27 @@ Lua tests, but none has been exercised against a running game yet.
    calls that crashed the bridge. Needs in-game verification that install/remove/reconnect all
    report the same state.
 
+### Round 79 (2026-09-16): pet follow-ups
+
+- **Carried-pet mutation progress is now editable**, offline and live, through the shared
+  "Feeding and mutation" panel (`PetCareGuide.razor`) both tabs already used for read-only
+  guidance. Negative values are rejected; the value is otherwise not capped, since `DT_Pets` has
+  no explicit threshold field and `PetCatalog.ObservedMaxMutationProgress` (`3`, the largest value
+  observed across this project's fixture saves, two pets) is only shown as a hint. `PetMutation` (the mutation target already applied) stays read-only in the UI on both
+  sides, unchanged from before. Covered by `.NET` fixture round-trip and bound tests; not yet
+  exercised against a running game.
+- **Companion follower despawn family coverage was investigated, not widened.** The previous
+  entry here described "some companion follower families cannot be matched for despawning" as an
+  open gap. Re-checked against the installed game's own class data this round (`LiveClassPropsProbe`
+  against the mounted paks): `NPC_Monster_Peccary_C` and `NPC_Monster_WinterSprite_C` both derive
+  directly from `NPC_Base_ParentBP_C` and expose no `FollowingOwner` (or any other owner-identity
+  field) anywhere in their class hierarchy, unlike `NPC_Skink_Basic_C` (which does, by inheriting
+  from `NPC_Monster_Pest_C`). `companions.lua` now lists `NPC_Skink_Basic_C` explicitly alongside
+  `NPC_Monster_Pest_C` (redundant today, given hierarchy-inclusive `FindAllOf`, but resilient to
+  that inheritance relationship changing), with a Lua harness case proving that explicit entry
+  works on its own. Peccary and Lamogi companions remain unmatched for despawn - a confirmed limit
+  of the current game build, not an unexplored one; see item 3 below for what would close it.
+
 ### Remaining implementation and game verification
 
 1. Multiplayer propagation of every new write above (item metadata, traits, appearance, bench
@@ -133,7 +154,18 @@ Lua tests, but none has been exercised against a running game yet.
    second connected client sees each change, not just the host's own readback.
 2. Save/reload persistence for each new write: confirm the change survives a world save and
    reload, not only an immediate in-session readback.
-3. Pet species changes, and matching the remaining companion follower families for despawning.
+3. Pet species changes: `SpawnPet` needs a constructed `FTransform` this project has no working
+   precedent for building over UE4SS Lua reflection (see `areas/pets.lua`'s and `areas/bases.lua`'s
+   own crash-history notes on hand-built structs), so `supportsSpeciesChange` stays `false`. A safe
+   future approach would need either a confirmed, tested `FTransform`-construction technique, or a
+   game-exposed blueprint function that takes simpler arguments (e.g. just a target location) and
+   does the despawn/respawn itself - neither exists today. Companion follower despawn-on-clear
+   coverage was re-checked this round (round 79) against the installed game's own class data and
+   confirmed to be a real, verified limit: `NPC_Monster_Peccary_C` and `NPC_Monster_WinterSprite_C`
+   both derive directly from `NPC_Base_ParentBP_C`, and neither they nor that base class expose
+   `FollowingOwner` or any other owner-identity field, so there is no live object-identity path to
+   a Peccary/Lamogi companion's owner today. Closing this would need the game itself to add an
+   equivalent reference to those classes.
 4. Owner identity: renaming which save file a character belongs to has no running in-game
    concept to change, and stays a file-only operation.
 5. Raw save data, entitlements, backups, and undo: these are save-file operations with no live

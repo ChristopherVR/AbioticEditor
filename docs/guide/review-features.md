@@ -71,11 +71,17 @@ Select a carried pet under **Companions**, or a placed pet under **Pets**, and e
 **Feeding and mutation**. The guide shows taming foods and mutation foods listed for
 that variant in the installed game. Item names come from the item catalog.
 
-Carried pets also show their stored mutation-progress value. It is kept as the game's
-value, not presented as an invented percentage. Existing variant controls remain the
-way to choose a different pet form. This addition does not change feeding cooldowns or
-write guessed mutation targets. A save does not provide a reliable live feeding countdown.
-If a variant has no mutation recipes in its table, the guide says so.
+Carried pets also show their stored mutation-progress value, and it is now editable, both
+in a saved file and in a running game (COMPANIONS). Negative values are rejected. The
+game's own tables carry no explicit maximum for this counter, so the editor does not cap it;
+it only shows the highest value seen in real saves so far (3) as a hint, and a higher value
+already in your save is kept as it is.
+The mutation target itself (`PetMutation`, which mutation the pet has already become) stays
+read-only in both places - it is kept as the game's value, never guessed at by the editor.
+Existing variant controls remain the way to choose a different pet form. This addition does
+not change feeding cooldowns or write guessed mutation targets. A save does not provide a
+reliable live feeding countdown. If a variant has no mutation recipes in its table, the
+guide says so.
 
 
 ![Carried companions](/screenshots/18-player-companions.png)

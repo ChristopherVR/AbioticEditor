@@ -93,4 +93,26 @@ return function(H)
     -- Missing slot: player-safe failure, not a Lua error.
     H.fails(H.dispatch("companions.set", { kind = "equip", slotIndex = 999, health = 1 }), "slot not found", "an out-of-range slot fails cleanly")
     H.fails(H.dispatch("companions.set", { kind = "nope", slotIndex = 0, health = 1 }), "slot not found", "an unknown inventory kind fails cleanly")
+
+    -- Round-79: FOLLOWER_FAMILY_CLASSES now lists NPC_Skink_Basic_C explicitly alongside
+    -- NPC_Monster_Pest_C (see this module's own header comment - Peccary/Lamogi were also
+    -- investigated this round and confirmed, via the installed game's own class data, to expose
+    -- no owner-identity field at all, so they are deliberately not searched). The scenario above
+    -- already proves a Pest-class actor matches; this proves the SECOND list entry works too, by
+    -- matching an actor whose runtime class is exactly "NPC_Skink_Basic_C" (not reached through
+    -- the Pest hierarchy fallback) - a real second family, not a hypothetical one.
+    local companionSlot2 = pawn.CharacterEquipSlotInventory.CurrentInventory[13]
+    companionSlot2.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B.RowName = H.fname("pet_skink")
+    local skinkMethods = { K2_DestroyActor = function(self) rawset(self, "__valid", false) end }
+    local skinkFollower = H.world.add(H.object("NPC_Skink_Basic_C",
+        { Guid = H.fstring("55555555-5555-5555-5555-555555555555"), FollowingOwner = pawn }, skinkMethods))
+    local strangerSkink = H.world.add(H.object("NPC_Skink_Basic_C",
+        { Guid = H.fstring("66666666-6666-6666-6666-666666666666"), FollowingOwner = strangerPawn }, skinkMethods))
+
+    local skinkClear = H.ok(H.dispatch("companions.set", { kind = "equip", slotIndex = 12, clear = true }),
+        "companions.set clear (Companion slot, explicit Skink class entry)")
+    H.eq(skinkClear.despawnedFollower, true, "the explicit NPC_Skink_Basic_C list entry matches and despawns too")
+    H.eq(H.calls(skinkFollower, "K2_DestroyActor"), 1, "the Skink follower actor was destroyed")
+    H.eq(skinkFollower:IsValid(), false, "the Skink follower is gone")
+    H.eq(strangerSkink:IsValid(), true, "a different player's Skink follower is left alone")
 end

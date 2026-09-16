@@ -541,11 +541,21 @@ real fix instead: Pest/Skink-family NPCs carry their own `FollowingOwner` refere
 clearing the Companion slot now also searches Pest/Skink-family actors for one whose
 `FollowingOwner` matches the resolved player (compared by `GetFullName()`, the same object-identity
 technique `findByFullName` already uses) and destroys it with `K2_DestroyActor()` - the same call
-`pets.remove` uses. `despawnedFollower` says whether a match was found and destroyed: still `false`
-for a Peccary/WinterSprite-family companion (no evidenced live id for that family, the same gap
-`pets.list` has), so the caller can tell the player a stray actor might remain instead of claiming
-a clean removal it can't back up. A pet merely carried in the hotbar/backpack (not the active
-follower) has no such live actor, so clearing those slots never searches at all - only `kind:"equip"`,
+`pets.remove` uses. `despawnedFollower` says whether a match was found and destroyed.
+
+**Round-79: re-checked whether Peccary/Lamogi could be added to that search, against the
+installed game's own class data (`LiveClassPropsProbe`, run against the mounted paks).** The
+result is conclusive, not unexplored: `NPC_Monster_Peccary_C` and `NPC_Monster_WinterSprite_C`
+both declare `super=NPC_Base_ParentBP_C` directly (unlike `NPC_Skink_Basic_C`, which declares
+`super=NPC_Monster_Pest_C`), and neither their own properties nor `NPC_Base_ParentBP_C`'s ~150
+inherited properties include `FollowingOwner`, `Guid`, `PetName`, or `DynamicProperties`, or any
+other player-identity reference. `companions.lua` now searches `NPC_Monster_Pest_C` and
+`NPC_Skink_Basic_C` explicitly (the second entry is redundant today, since `FindAllOf` is
+hierarchy-inclusive, but protects against that inheritance relationship ever changing), and
+deliberately does not search Peccary/Lamogi classes at all: `despawnedFollower` still comes back
+`false` for those companions, and this is now a confirmed limit of the current game build rather
+than an unresearched gap. A pet merely carried in the hotbar/backpack (not the active follower)
+has no such live actor, so clearing those slots never searches at all - only `kind:"equip"`,
 `slotIndex:12` does.
 
 **Honesty about `xp`/`mutationProgress`/`petMutation`**: the `DynamicProperties_` array itself is
