@@ -18,9 +18,11 @@ silently changed to another coating.
 
 The picker loads names and order from the installed `DT_WeaponCoatings` table. A coating
 is stored as an index, so the editor does not substitute a guessed item identifier.
-Weapons tagged by the game as incompatible do not show the picker. These new controls
-are available for offline player inventories and containers. Live coating controls are
-not included in this change.
+Weapons tagged by the game as incompatible do not show the picker. These controls are
+available for offline player inventories and containers, and, while connected to a running
+game with an up to date live helper installed, for live player inventories and world
+containers too, still awaiting in-game verification. An older helper simply hides the
+coating picker rather than accepting an edit it cannot carry.
 
 
 ![Expanded weapon coating selector](/screenshots/11-weapon-coating.png)

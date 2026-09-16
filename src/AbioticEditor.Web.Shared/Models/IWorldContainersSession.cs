@@ -36,6 +36,16 @@ public interface IWorldContainersSession
     bool IsHost { get; }
 
     /// <summary>
+    /// True when a slot edit can carry complete instance metadata (weapon coatings, pet
+    /// progress, gameplay tags, custom variants) as one atomic write - see the
+    /// <c>containers.setcomplete</c> wire command in <see cref="AbioticEditor.Core.LiveEditing.World.LiveContainersChannel"/>.
+    /// Always true for the file session; a live session starts false and only turns on once it
+    /// has actually seen the connected agent hand back <c>instanceMetadata</c> on a real slot, so
+    /// an older agent never has a coating (or other metadata) edit silently dropped.
+    /// </summary>
+    bool SupportsCompleteItemWrites => true;
+
+    /// <summary>
     /// Freeform status from the last edit. Null for a file session (the shell's own
     /// unsaved-changes wording already covers that); a live session uses it to say what just
     /// happened in the running game.

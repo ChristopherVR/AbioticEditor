@@ -34,6 +34,7 @@ public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTrans
     private string? _playerId;
     private bool _initialized;
     private int _pendingOperations;
+    private bool _supportsCompleteItemWrites;
 
     /// <summary>
     /// Raised after every refresh (the host's own periodic poll included) and after every
@@ -137,6 +138,11 @@ public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTrans
     public string? Status { get; private set; }
 
     public bool AppliesImmediately => true;
+
+    /// <summary>Sticky once observed true: the connected agent's mod version does not change
+    /// mid-session, so one slot proving <c>instanceMetadata</c> support is proof for all of
+    /// them - see <see cref="IPlayerInventorySession.SupportsCompleteItemWrites"/>.</summary>
+    public bool SupportsCompleteItemWrites => _supportsCompleteItemWrites;
 
     public string? PlayerId => _playerId;
 
@@ -259,6 +265,8 @@ public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTrans
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var wire = await _channel.GetAsync(_playerId, cancellationToken).ConfigureAwait(false);
+        if (!_supportsCompleteItemWrites && wire.Any(slot => slot.Details?.InstanceMetadata is not null))
+            _supportsCompleteItemWrites = true;
         if (!_initialized)
         {
             Equipment = Build(wire, "equip");

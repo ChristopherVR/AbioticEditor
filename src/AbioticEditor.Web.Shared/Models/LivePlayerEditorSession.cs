@@ -86,6 +86,7 @@ public sealed class LivePlayerEditorSession : IPlayerEditorSession
     public IReadOnlyList<PlayerInventorySlotEdit> Transmog => InventorySession?.Transmog ?? [];
     public IReadOnlyList<string> ItemVocabulary => InventorySession?.ItemVocabulary ?? [];
     public ItemUpgradeCatalog ItemUpgrades => InventorySession?.ItemUpgrades ?? ItemUpgradeCatalog.Empty;
+    public bool SupportsCompleteItemWrites => InventorySession?.SupportsCompleteItemWrites ?? false;
     public string? SteamIdentifier => null;
     public string Path => string.Empty;
     public IReadOnlyList<TransmogVisibilityEdit> TransmogVisibility => InventorySession?.TransmogVisibility ?? [];

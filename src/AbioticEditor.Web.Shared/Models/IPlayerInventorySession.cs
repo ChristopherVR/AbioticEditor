@@ -61,6 +61,17 @@ public interface IPlayerInventorySession
     /// </summary>
     bool AppliesImmediately { get; }
 
+    /// <summary>
+    /// True when a slot edit can carry complete instance metadata (weapon coatings, pet
+    /// progress, gameplay tags, custom variants) as one atomic write - see the
+    /// <c>inventory.setcomplete</c> wire command in <see cref="AbioticEditor.Core.LiveEditing.Player.LiveInventoryChannel"/>.
+    /// Always true for the file session, whose writer always serializes complete metadata. A
+    /// live session starts false and only turns on once it has actually seen the connected
+    /// agent hand back <c>instanceMetadata</c> on a real slot, so an older agent that predates
+    /// that wire shape never has a coating (or other metadata) edit silently dropped.
+    /// </summary>
+    bool SupportsCompleteItemWrites => true;
+
     /// <summary>Recomputes <see cref="Status"/> from whatever changed. For the file session this
     /// is the existing "Unsaved changes" staging signal; a live session has nothing to stage, so
     /// this is a no-op there (its mutation methods set <see cref="Status"/> themselves).</summary>

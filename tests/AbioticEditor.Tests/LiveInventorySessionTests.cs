@@ -45,6 +45,57 @@ public sealed class LiveInventorySessionTests
     }
 
     [Fact]
+    public async Task Setting_a_coating_sends_setcomplete_and_merges_into_existing_metadata()
+    {
+        var channel = new FakeInventoryChannel();
+        var metadata = new InventoryInstanceMetadata(
+            [new("EDynamicProperty::XP", 400)], ["Item.Weapon"], "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global");
+        channel.SetSlot("backpack", 0, "weapon_test", 1, details: new(InstanceMetadata: metadata));
+        var session = await LiveInventorySession.ConnectAsync(new LiveInventoryChannel(channel));
+        Assert.True(session.SupportsCompleteItemWrites);
+
+        var slot = session.Backpack.Single(s => s.Index == 0);
+        Assert.Null(slot.CoatingIndex);
+        slot.CoatingIndex = 3;
+        slot.CoatingDurability = 60;
+        await session.PushSlotAsync(PlayerInventoryArea.Backpack, slot);
+
+        Assert.Single(channel.LastSetEdits);
+        Assert.Equal("inventory.setcomplete", channel.LastCommand);
+        var refreshed = session.Backpack.Single(s => s.Index == 0);
+        Assert.Equal(3, refreshed.CoatingIndex);
+        Assert.Equal(60, refreshed.CoatingDurability);
+        // The pre-existing XP dynamic property must survive the coating-only edit.
+        Assert.Equal(400, refreshed.InstanceMetadata!.DynamicProperties.Single(p => p.Key.EndsWith("::XP", StringComparison.Ordinal)).Value);
+
+        // Clearing sets both dynamic properties to their zeroed sentinel values (matching the
+        // offline writer's PetDynamicProperties.ApplyCoating semantics) instead of removing them.
+        refreshed.CoatingIndex = -1;
+        refreshed.CoatingDurability = 0;
+        await session.PushSlotAsync(PlayerInventoryArea.Backpack, refreshed);
+        var cleared = session.Backpack.Single(s => s.Index == 0);
+        Assert.Equal(-1, cleared.CoatingIndex);
+        Assert.Equal(0, cleared.CoatingDurability);
+        Assert.Contains(cleared.InstanceMetadata!.DynamicProperties, p => p.Key.EndsWith("::WeaponCoating", StringComparison.Ordinal) && p.Value == -1);
+        Assert.Contains(cleared.InstanceMetadata!.DynamicProperties, p => p.Key.EndsWith("::CoatingDurability", StringComparison.Ordinal) && p.Value == 0);
+    }
+
+    [Fact]
+    public async Task SupportsCompleteItemWrites_stays_false_for_an_agent_that_never_reports_instance_metadata()
+    {
+        // An older live-agent build answers inventory.list without an "instanceMetadata" field
+        // at all (Details is either null or carries no InstanceMetadata) - the coating picker
+        // must never assume setcomplete support in that case, or an edit would be silently lost.
+        var channel = new FakeInventoryChannel();
+        channel.SetSlot("backpack", 0, "weapon_test", 1);
+        var session = await LiveInventorySession.ConnectAsync(new LiveInventoryChannel(channel));
+        Assert.False(session.SupportsCompleteItemWrites);
+
+        await session.RefreshAsync();
+        Assert.False(session.SupportsCompleteItemWrites);
+    }
+
+    [Fact]
     public async Task Instance_details_survive_a_move_and_edits_are_sent_to_the_agent()
     {
         var channel = new FakeInventoryChannel();
@@ -243,6 +294,10 @@ public sealed class LiveInventorySessionTests
         /// assert the wire actually got the mutation - not just that the local mirror changed.</summary>
         public IReadOnlyList<SentEdit> LastSetEdits { get; private set; } = [];
 
+        /// <summary>The wire command name of the most recent "inventory.set*" call, so a test can
+        /// assert which of the set/setfull/setcomplete aliases an edit actually used.</summary>
+        public string? LastCommand { get; private set; }
+
         public LiveConnectionState State => LiveConnectionState.Connected;
         public event Action<LiveConnectionState>? StateChanged { add { } remove { } }
         public Task ConnectAsync(LiveConnectionInfo info, CancellationToken cancellationToken = default) => Task.CompletedTask;
@@ -269,7 +324,7 @@ public sealed class LiveInventorySessionTests
                     ammoInMagazine = kv.Value.AmmoInMagazine,
                     details = kv.Value.Details,
                 }).ToList(),
-                "inventory.set" or "inventory.setfull" or "inventory.setcomplete" => ApplySet(payloadElement),
+                "inventory.set" or "inventory.setfull" or "inventory.setcomplete" => ApplySet(command, payloadElement),
                 "transmog.get" => new { visibility = Array.Empty<object>() },
                 _ => throw new LiveAgentException($"unknown command '{command}' in fake channel"),
             };
@@ -277,8 +332,9 @@ public sealed class LiveInventorySessionTests
             return Task.FromResult(element.Deserialize<TResponse>(JsonOptions)!);
         }
 
-        private object? ApplySet(JsonElement payload)
+        private object? ApplySet(string command, JsonElement payload)
         {
+            LastCommand = command;
             if (!payload.TryGetProperty("edits", out var edits)) return null;
             var sent = new List<SentEdit>();
             foreach (var edit in edits.EnumerateArray())

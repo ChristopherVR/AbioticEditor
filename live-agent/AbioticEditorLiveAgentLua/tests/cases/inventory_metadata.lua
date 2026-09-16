@@ -63,4 +63,41 @@ return function(H)
         second = { kind = "backpack", slotIndex = 9999 } }), "unavailable", "invalid destination rejects transfer")
     H.eq(processingInventory.CurrentInventory[1][I].RowName:ToString(), "test_item", "failed transfer preserves source")
 
+    -- Weapon coating round trip: a coating index/durability written through
+    -- inventory.setcomplete must read back through inventory.list, and clearing (index -1,
+    -- durability 0) must zero both values rather than leave the old coating behind - see
+    -- InventoryItemSlot.CoatingIndex/CoatingDurability and LiveItemDetails.FromSlot on the
+    -- editor side, which merge exactly this shape into an existing instance's metadata.
+    slots[1][I].DataTable = normal
+    slots[1][I].RowName = H.fname("test_item")
+    slots[1][C].CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 1
+    slots[1][C][D] = {}
+    slots[1][C][T] = { GameplayTags = {}, ParentTags = {} }
+    local function dynamicValue(instanceMetadata, key)
+        for _, prop in ipairs(instanceMetadata.dynamicProperties) do if prop.key == key then return prop.value end end
+        return nil
+    end
+    local function backpackSlotZero(list)
+        for _, entry in ipairs(list) do if entry.kind == "backpack" and entry.slotIndex == 0 then return entry end end
+    end
+
+    H.ok(H.dispatch("inventory.setcomplete", { edits = {
+        { kind = "backpack", slotIndex = 0, itemId = "test_item", details = { instanceMetadata = {
+            dynamicProperties = { { key = "EDynamicProperty::WeaponCoating", value = 3 },
+                { key = "EDynamicProperty::CoatingDurability", value = 60 } },
+            gameplayTags = {}, parentGameplayTags = {} } } },
+    } }), "coating write accepted")
+    local coatedSlot = backpackSlotZero(H.ok(H.dispatch("inventory.list")))
+    H.eq(dynamicValue(coatedSlot.details.instanceMetadata, "EDynamicProperty::WeaponCoating"), 3, "coating index reads back")
+    H.eq(dynamicValue(coatedSlot.details.instanceMetadata, "EDynamicProperty::CoatingDurability"), 60, "coating durability reads back")
+
+    H.ok(H.dispatch("inventory.setcomplete", { edits = {
+        { kind = "backpack", slotIndex = 0, itemId = "test_item", details = { instanceMetadata = {
+            dynamicProperties = { { key = "EDynamicProperty::WeaponCoating", value = -1 },
+                { key = "EDynamicProperty::CoatingDurability", value = 0 } },
+            gameplayTags = {}, parentGameplayTags = {} } } },
+    } }), "coating clear accepted")
+    local clearedSlot = backpackSlotZero(H.ok(H.dispatch("inventory.list")))
+    H.eq(dynamicValue(clearedSlot.details.instanceMetadata, "EDynamicProperty::WeaponCoating"), -1, "clearing zeroes the coating index instead of leaving the old value")
+    H.eq(dynamicValue(clearedSlot.details.instanceMetadata, "EDynamicProperty::CoatingDurability"), 0, "clearing zeroes the coating durability instead of leaving the old value")
 end

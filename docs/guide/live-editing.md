@@ -91,11 +91,12 @@ now send one grouped request instead of a separate request for every entry.
 
 The editor can now also change traits, character appearance, and bench upgrades while
 connected, and moving or editing an item keeps every extra detail it carries (things like pet
-progress, weapon coatings, and custom variants) instead of losing them on the way. You can also
-move an item directly between your own inventory and a nearby container, water and fertilise
-garden plots, charge Power Chairs, and adjust the world's total play time. These are new and
-still being checked against a running game, so keep an eye on them and update the agent if
-something looks off.
+progress, weapon coatings, and custom variants) instead of losing them on the way. Weapon
+coatings themselves can now be changed live too, the same coating picker offline saves use. You
+can also move an item directly between your own inventory and a nearby container, water and
+fertilise garden plots, charge Power Chairs, and adjust the world's total play time. These are
+new and still being checked against a running game, so keep an eye on them and update the agent
+if something looks off.
 
 These limits are deliberate:
 

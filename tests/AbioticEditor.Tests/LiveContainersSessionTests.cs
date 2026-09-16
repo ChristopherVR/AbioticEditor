@@ -116,9 +116,53 @@ public sealed class LiveContainersSessionTests
         Assert.Null(session.Status);
     }
 
+    [Fact]
+    public async Task Setting_a_container_coating_sends_setcomplete_and_zeroes_on_clear()
+    {
+        var channel = new FakeContainersChannel();
+        channel.SetContainer("c1", "Locker", 0, 0, 0);
+        var metadata = new InventoryInstanceMetadata([new("EDynamicProperty::XP", 12)], ["Item.Weapon"]);
+        channel.SetSlot("c1", 0, "weapon_test", 1, details: new(InstanceMetadata: metadata));
+        var session = await LiveContainersSession.ConnectAsync(new LiveContainersChannel(channel));
+        Assert.True(session.SupportsCompleteItemWrites);
+
+        var slot = session.Containers[0].Inventories[0].Slots[0];
+        Assert.Null(slot.CoatingIndex);
+        var applied = await session.TrySetContainerSlotAsync(
+            AbioticEditor.Core.WorldSaves.WorldContainerSource.Live, "c1", 0, 0, slot with { CoatingIndex = 4, CoatingDurability = 80 });
+        Assert.True(applied);
+        Assert.Equal("containers.setcomplete", channel.LastCommand);
+        var coated = session.Containers[0].Inventories[0].Slots[0];
+        Assert.Equal(4, coated.CoatingIndex);
+        Assert.Equal(80, coated.CoatingDurability);
+        Assert.Equal(12, coated.InstanceMetadata!.DynamicProperties.Single(p => p.Key.EndsWith("::XP", StringComparison.Ordinal)).Value);
+
+        await session.TrySetContainerSlotAsync(
+            AbioticEditor.Core.WorldSaves.WorldContainerSource.Live, "c1", 0, 0, coated with { CoatingIndex = -1, CoatingDurability = 0 });
+        var cleared = session.Containers[0].Inventories[0].Slots[0];
+        Assert.Equal(-1, cleared.CoatingIndex);
+        Assert.Equal(0, cleared.CoatingDurability);
+        Assert.Contains(cleared.InstanceMetadata!.DynamicProperties, p => p.Key.EndsWith("::WeaponCoating", StringComparison.Ordinal) && p.Value == -1);
+        Assert.Contains(cleared.InstanceMetadata!.DynamicProperties, p => p.Key.EndsWith("::CoatingDurability", StringComparison.Ordinal) && p.Value == 0);
+    }
+
+    [Fact]
+    public async Task SupportsCompleteItemWrites_stays_false_for_an_agent_that_never_reports_instance_metadata()
+    {
+        var channel = new FakeContainersChannel();
+        channel.SetContainer("c1", "Locker", 0, 0, 0);
+        channel.SetSlot("c1", 0, "weapon_test", 1);
+        var session = await LiveContainersSession.ConnectAsync(new LiveContainersChannel(channel));
+        Assert.False(session.SupportsCompleteItemWrites);
+
+        await session.RefreshAsync();
+        Assert.False(session.SupportsCompleteItemWrites);
+    }
+
     private sealed class FakeContainersChannel : ILiveGameChannel
     {
         public int WriteRequests { get; private set; }
+        public string? LastCommand { get; private set; }
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
         private readonly Dictionary<string, (string Label, double X, double Y, double Z)> _containers = new(StringComparer.Ordinal);
         private readonly Dictionary<(string ContainerId, int SlotIndex), SlotState> _slots = new();
@@ -163,7 +207,7 @@ public sealed class LiveContainersSessionTests
                     }).ToList(),
                     isHost = true,
                 },
-                "containers.set" or "containers.setfull" or "containers.setcomplete" => ApplySet(payloadElement),
+                "containers.set" or "containers.setfull" or "containers.setcomplete" => ApplySet(command, payloadElement),
                 "inventory.transfer" => ApplyTransfer(payloadElement),
                 _ => throw new LiveAgentException($"unknown command '{command}' in fake channel"),
             };
@@ -182,9 +226,10 @@ public sealed class LiveContainersSessionTests
             return null;
         }
 
-        private object? ApplySet(JsonElement payload)
+        private object? ApplySet(string command, JsonElement payload)
         {
             WriteRequests++;
+            LastCommand = command;
             var containerId = payload.GetProperty("id").GetString()!;
             if (!payload.TryGetProperty("edits", out var edits)) return null;
             foreach (var edit in edits.EnumerateArray())

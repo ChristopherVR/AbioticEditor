@@ -18,12 +18,14 @@ public sealed class LiveContainersSession : IWorldContainersSession
 {
     private readonly LiveContainersChannel _channel;
     private int _pendingOperations;
+    private bool _supportsCompleteItemWrites;
 
     private LiveContainersSession(LiveContainersChannel channel, LiveContainerDirectory directory)
     {
         _channel = channel;
         Containers = ToWorldContainers(directory.Containers);
         IsHost = directory.IsHost;
+        UpdateCapability(directory);
     }
 
     public static async Task<LiveContainersSession> ConnectAsync(
@@ -41,6 +43,10 @@ public sealed class LiveContainersSession : IWorldContainersSession
     public IReadOnlyList<WorldDeployable> Deployables => [];
     public bool AppliesImmediately => true;
     public bool IsHost { get; private set; }
+
+    /// <summary>Sticky once observed true - see <see cref="IWorldContainersSession.SupportsCompleteItemWrites"/>
+    /// and <see cref="LiveInventorySession.SupportsCompleteItemWrites"/>'s remarks.</summary>
+    public bool SupportsCompleteItemWrites => _supportsCompleteItemWrites;
     public string? Status { get; private set; }
 
     /// <summary>
@@ -64,7 +70,15 @@ public sealed class LiveContainersSession : IWorldContainersSession
         var directory = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
         Containers = ToWorldContainers(directory.Containers);
         IsHost = directory.IsHost;
+        UpdateCapability(directory);
         Changed?.Invoke();
+    }
+
+    private void UpdateCapability(LiveContainerDirectory directory)
+    {
+        if (!_supportsCompleteItemWrites
+            && directory.Containers.Any(c => c.Slots.Any(s => s.Details?.InstanceMetadata is not null)))
+            _supportsCompleteItemWrites = true;
     }
 
     public bool TryGetContainerSlot(WorldContainerSource source, string id, int inventoryIndex, int slotIndex, out InventoryItemSlot slot)
