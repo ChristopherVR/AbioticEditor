@@ -32,4 +32,6 @@ After a successful transfer, reload either save in the main editor before editin
 
 Some items remember an appearance, such as poster artwork or a helmet colour. The editor carries that saved appearance across with the item when the game recorded one. It will not guess an appearance for an item that did not already have one.
 
+The picker now also covers wall paintings and desk photo frames, televisions, and the coloured office chairs, couches, stools, fridges, cafeteria furniture, residential beds, and military cots, alongside the hats, coats, backpacks, and posters it already offered.
+
 For regular container editing, see the [desktop app tour](./desktop-app#edit-a-world).

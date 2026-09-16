@@ -121,8 +121,57 @@ public sealed class ItemVariantCatalog
             ["ArcadeMachine"] = ["arcademachine_DETOUR", "arcademachine_TDL", "arcademachine_USM", "arcade_IS0083"],
             ["Bench_Locker"] = ["lockerroombench_brown"],
             ["Deployable_Chair_Executive_01"] = ["office_chair_executive_black"],
-            ["Deployable_Couch_Office_Armchair_01"] = ["office_couch_black", "office_couch_blue"],
-            ["Deployable_Couch_Office_Long_01"] = ["office_couch_blue"],
+            ["Deployable_Chair_Office_01"] =
+                ["office_chair_black", "office_chair_blue", "office_chair_leather", "Office_Chair_Order"],
+            ["Deployable_Couch_Office_Armchair_01"] =
+                ["office_couch_black", "office_couch_blue", "office_couch_grey", "office_couch_plaid"],
+            ["Deployable_Couch_Office_Long_01"] =
+                ["office_couch_black", "office_couch_blue", "office_couch_grey", "office_couch_plaid"],
+            ["Deployable_Couch_Office_Medium_01"] =
+                ["office_couch_black", "office_couch_blue", "office_couch_grey", "office_couch_plaid"],
+            ["Deployable_Couch_fancy_01"] = ["couch_fancy_01_black", "couch_fancy_01_red", "couch_fancy_01_teal"],
+            ["Couch_Modern_01"] = ["couch_modern_blue", "couch_modern_gray", "couch_modern_yellow"],
+            ["Deployable_Stool_Office_01"] = ["stool_office_blue", "stool_office_red"],
+            ["Deployable_Fridge"] = ["fridge_office_blue", "fridge_office_gray", "fridge_office_red"],
+            ["Deployable_Table_Cafeteria"] = ["cafeteria_table_blue", "cafeteria_table_red"],
+            ["cafeteriatray"] = ["cafeteria_tray_beige", "cafeteria_tray_blue"],
+            ["Deployable_Cot_Military"] = ["military_cot_blue"],
+            ["Bed_Res_01"] =
+                ["Bed_Res_01_blue", "Bed_Res_01_green", "Bed_Res_01_purple", "Bed_Res_01_redblack"],
+            ["bed_votv_sleepingbag"] = ["bed_votv_sleepingbag_02", "bed_votv_sleepingbag_03"],
+            ["rug_arcade"] = ["rug_oval_arcade"],
+            ["stapler"] = ["stapler_blue"],
+            ["Deployable_Toolbox"] = ["toolbox_red"],
+            ["Deployable_WarningSign"] = ["warningsign_rad"],
+            ["TV"] =
+            [
+                "tv_channel5", "tv_standby", "tv_tips_cafeteria", "tv_tips_designations",
+                "tv_tips_exploration", "tv_tips_gk", "tv_tips_resting", "tv_tips_static",
+                "tv_tips_trams", "tv_tips_vehicles", "tv_tips_wayseeker",
+            ],
+            ["Painting_Desk"] =
+            [
+                "photoframe_acahn", "photoframe_alexander", "photoframe_clock", "photoframe_cozycat",
+                "photoframe_digby", "photoframe_ela", "photoframe_hopia", "photoframe_jacat",
+                "photoframe_jim", "photoframe_jimmy", "photoframe_jordog", "photoframe_kingsley",
+                "photoframe_KM", "photoframe_kyliesdog", "photoframe_rowan", "photoframe_votv_01",
+                "photoframe_votv_02", "photoframe_votv_03", "photoframe_votv_04", "photoframe_votv_05",
+                "photoframe_votv_06", "photoframe_zig", "photoframe_zig2", "photoframe_zig3",
+            ],
+            ["Painting_Landscape"] =
+                ["painting_coldmountains", "painting_desertclouds", "painting_is0042", "painting_moodypines", "painting_sunsetswamp"],
+            ["Painting_Landscape_Fancy"] =
+                ["painting_coldmountains", "painting_desertclouds", "painting_is0042", "painting_moodypines", "painting_sunsetswamp"],
+            ["Painting_Landscape_Large"] =
+                ["painting_L_JJ", "painting_L_orb", "painting_L_pig", "painting_L_rabbit"],
+            ["Painting_Landscape_Large_Fancy"] =
+                ["painting_L_JJ", "painting_L_orb", "painting_L_pig", "painting_L_rabbit"],
+            ["Painting_Square"] = ["painting_S_plague"],
+            ["Painting_Square_Fancy"] = ["painting_S_plague"],
+            ["Painting_Vertical"] =
+                ["painting_V_jack", "painting_V_kitten", "painting_V_medieval_01", "painting_V_Med_Cliffs", "painting_V_serpents"],
+            ["Painting_Vertical_Fancy"] =
+                ["painting_V_jack", "painting_V_kitten", "painting_V_medieval_01", "painting_V_Med_Cliffs", "painting_V_serpents"],
             ["fish_antefish"] = ["fish_ante_koi", "fish_ante_rare1"],
             ["fish_crab_gem"] = ["fish_crab_gem_rare1"],
             ["fish_darkwater"] = ["fish_darkwater_rare1"],
