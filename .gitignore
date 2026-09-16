@@ -51,3 +51,12 @@ src/AbioticEditor.Web.Wasm/wwwroot/wiki/
 
 # Temporary fixture copy used only for browser end-to-end checks; never committed.
 src/AbioticEditor.Web.Wasm/wwwroot/e2e-fixture/
+
+# Local research and verification output: screenshots, scratch builds, probe dumps and
+# personal save backups written by agent sessions. Multi-GB and never repo content.
+/artifacts/
+__pycache__/
+
+# The pinned UE4SS runtime package the Windows release bundles. Fetched by
+# tools/fetch-ue4ss.ps1 (CI does this before publishing); only its manifest is committed.
+/live-agent/ue4ss/*.zip

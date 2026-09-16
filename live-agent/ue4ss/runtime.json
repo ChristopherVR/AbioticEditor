@@ -1,0 +1,11 @@
+{
+  "name": "UE4SS (RE-UE4SS)",
+  "version": "v3.0.1-1135-gf6d5f942",
+  "asset": "UE4SS_v3.0.1-1135-gf6d5f942.zip",
+  "url": "https://github.com/UE4SS-RE/RE-UE4SS/releases/download/experimental-latest/UE4SS_v3.0.1-1135-gf6d5f942.zip",
+  "sha256": "e96640054e0da71232ea63d105eeefb96de1ece609b113f0c6e617b83addbac2",
+  "size": 8717962,
+  "license": "MIT",
+  "source": "https://github.com/UE4SS-RE/RE-UE4SS",
+  "notes": "Pinned by exact file name and SHA-256. The experimental-latest tag is rolling: when upstream replaces its assets, tools/fetch-ue4ss.ps1 fails until a maintainer verifies a new build in game and updates this file."
+}
