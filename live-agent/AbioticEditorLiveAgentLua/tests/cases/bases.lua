@@ -1,6 +1,6 @@
--- World bases / deployables (areas/bases.lua): AlternativeObjectName (FText) rename, and
+-- World bases / deployables (areas/bases.lua): AlternativeObjectName (FText) rename,
 -- container-backed deployables reporting hasInventory/storedItemCount via the same slot helpers
--- containers.list already uses.
+-- containers.list already uses, and PaintedColor (plain EPaintColor property + OnRep) reads/writes.
 return function(H)
     H.hostSession()
 
@@ -10,6 +10,7 @@ return function(H)
     local bench = H.world.add(H.object("Deployed_Bench_ParentBP_C", {
         __bases = { "AbioticDeployed_ParentBP_C" },
         AlternativeObjectName = H.fstring(""),
+        PaintedColor = 12, -- EPaintColor::None
     }, {
         K2_GetActorLocation = function() return H.vector(1, 2, 3) end,
     }))
@@ -27,6 +28,7 @@ return function(H)
         __bases = { "AbioticDeployed_ParentBP_C" },
         AlternativeObjectName = H.fstring("Loot Locker"),
         ContainerInventory = containerInv,
+        PaintedColor = 5, -- EPaintColor::Purple
     }, { K2_GetActorLocation = function() return H.vector(4, 5, 6) end }))
 
     local list = H.ok(H.dispatch("bases.list"), "bases.list")
@@ -44,6 +46,8 @@ return function(H)
     H.eq(lockerRow.customName, "Loot Locker", "the locker's custom name converted from FText")
     H.eq(lockerRow.hasInventory, true, "the locker has a container inventory")
     H.eq(lockerRow.storedItemCount, 1, "one non-empty slot counted")
+    H.eq(benchRow.paintColor, nil, "EPaintColor::None reads as unpainted (nil), not 12")
+    H.eq(lockerRow.paintColor, 5, "a real paint colour value reads through as a number")
 
     -- bases.set: rename via FText(text) (a real UE4SS global, unlike FVector()/FRotator()).
     H.ok(H.dispatch("bases.set", { id = lockerId, customName = "Renamed Locker" }), "rename the locker")
@@ -59,7 +63,8 @@ return function(H)
     end
 
     local tagData = { GameplayTags = {{TagName=H.fname("Other.Tag")}}, ParentTags = {{TagName=H.fname("Other")}} }
-    H.world.static("/Script/Engine.Default__NetPushModelHelpers", H.object("NetPushModelHelpers", {}, { MarkPropertyDirty=function() end }))
+    local netHelper = H.object("NetPushModelHelpers", {}, { MarkPropertyDirty=function() end })
+    H.world.static("/Script/Engine.Default__NetPushModelHelpers", netHelper)
     local writable = H.world.add(H.object("AbioticDeployed_CraftingBench_ParentBP_C", {
         __bases={"AbioticDeployed_ParentBP_C"}, SupportsUpgrades=true,
         UpgradeTagContainer={GameplayTags={},ParentTags={}},
@@ -78,6 +83,51 @@ return function(H)
     H.eq(#writable.UpgradeTagContainer.ParentTags,0,"stale parent tag removed")
     H.eq(#tagData.GameplayTags,1,"only selected saved tag removed")
     H.eq(H.calls(writable,"OnRep_UpgradeTagContainer"),2,"upgrade components refresh on install and removal")
+
+    -- bases.set: paint colour - a plain property write + OnRep replay + replication notify,
+    -- never the Blueprint SetPaintColor function (see the header comment).
+    -- The fake EDynamicProperty enum: PaintColor is value 6 in the real game (usmap); the
+    -- other entry stands in for an unrelated property that must survive the repaint untouched.
+    H.world.static("/Script/AbioticFactor.EDynamicProperty", H.object("UEnum", {}, {
+        ForEachName = function(_, fn)
+            fn("EDynamicProperty::XP", 7)
+            fn("EDynamicProperty::PaintColor", 6)
+        end,
+    }))
+    local savedDynamic = { { Key = 7, Value = 250 }, { Key = 6, Value = 12 } }
+    local paintable = H.world.add(H.object("Deployed_CraftingBench_Default_C", {
+        __bases = { "AbioticDeployed_ParentBP_C" }, PaintedColor = 12,
+        ChangeableData = { DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7 = savedDynamic },
+    }, {
+        K2_GetActorLocation = function() return H.vector(9, 9, 9) end,
+        OnRep_PaintedColor = function() end,
+        SaveDeployable = function() end,
+    }))
+    local marksBefore = H.calls(netHelper, "MarkPropertyDirty")
+    H.ok(H.dispatch("bases.set", { id = paintable:GetFullName(), paintColor = 8 }), "paint the crafting bench")
+    H.eq(paintable.PaintedColor, 8, "paint colour written to the plain replicated property")
+    H.eq(H.calls(paintable, "OnRep_PaintedColor"), 1, "OnRep replayed after the direct write")
+    H.eq(H.calls(netHelper, "MarkPropertyDirty"), marksBefore + 2, "push-model replication notified for the live property and the saved data")
+    local saved = paintable.ChangeableData.DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7
+    H.eq(#saved, 2, "the saved dynamic-property array keeps its other entry")
+    H.eq(saved[1].Value, 250, "the unrelated saved entry is untouched")
+    H.eq(saved[2].Key, 6, "the saved paint entry keeps the PaintColor key")
+    H.eq(saved[2].Value, 8, "the saved paint entry carries the new colour")
+    H.eq(H.calls(paintable, "SaveDeployable"), 1, "the deployable is asked to save after the repaint")
+
+    -- A deployable without a saved dynamic-property array still repaints live (no error).
+    local plainPaintable = H.world.add(H.object("Deployed_Rug_Default_C", {
+        __bases = { "AbioticDeployed_ParentBP_C" }, PaintedColor = 12,
+    }, {
+        K2_GetActorLocation = function() return H.vector(8, 8, 8) end,
+        OnRep_PaintedColor = function() end,
+    }))
+    H.ok(H.dispatch("bases.set", { id = plainPaintable:GetFullName(), paintColor = 2 }), "repaint an object with no saved array")
+    H.eq(plainPaintable.PaintedColor, 2, "live property still written without a saved array")
+    local repainted = H.ok(H.dispatch("bases.list"))
+    for _, row in ipairs(repainted.deployables) do
+        if row.id == paintable:GetFullName() then H.eq(row.paintColor, 8, "the new colour reads back through bases.list") end
+    end
 
     -- Missing deployable id: player-safe failure, not a Lua error.
     H.fails(H.dispatch("bases.set", { id = "no-such-deployable", customName = "X" }), "not found", "unknown deployable id fails cleanly")

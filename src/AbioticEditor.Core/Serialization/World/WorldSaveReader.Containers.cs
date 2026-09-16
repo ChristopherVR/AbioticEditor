@@ -63,9 +63,20 @@ public static partial class WorldSaveReader
 
             var upgrades = BenchUpgradeCatalog.ReadInstalledRows(ps.Properties);
 
+            // Paint colour lives in ChangableData_.DynamicProperties_ (an
+            // {Key:EDynamicProperty,Value:int} array), the same mechanism item slots use for
+            // weapon coatings - see DeployablePaintCatalog and PetDynamicProperties.
+            int? paintColor = null;
+            if (ps.Properties.FindByPrefix("ChangableData_")?.Property is StructProperty changableSp
+                && changableSp.Value is PropertiesStruct changablePs)
+            {
+                paintColor = PetDynamicProperties.Read(changablePs.Properties, DeployablePaintCatalog.DynamicPropertyKey);
+            }
+
             result.Add(new WorldDeployable(id, className, x, y, z, hasInventory, itemCount,
                 string.IsNullOrWhiteSpace(customName) ? null : customName,
-                upgrades.Count > 0 ? upgrades : null));
+                upgrades.Count > 0 ? upgrades : null,
+                paintColor));
         }
         return result;
     }

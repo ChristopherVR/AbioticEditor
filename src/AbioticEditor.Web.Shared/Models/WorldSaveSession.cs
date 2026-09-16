@@ -574,6 +574,17 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
         }
     }
 
+    /// <summary>Stages a paint-colour edit; flushed to <c>ChangableData_.DynamicProperties_</c>
+    /// on SAVE (see <see cref="WorldSaveWriter.ApplyDeployablePaintColor"/>).</summary>
+    public void SetDeployablePaintColor(string id, int? colorValue)
+    {
+        if (_deployables.TryGetValue(id, out var deployable))
+        {
+            _deployables[id] = deployable with { PaintColorValue = colorValue };
+            UpdateStatus();
+        }
+    }
+
     // ---------- IWorldBasesSession / IWorldVehiclesSession / IWorldPetsSession ----------
     // Thin async wrappers so WorldBasesTab/WorldVehiclesTab/WorldPetsTab can bind to the same
     // narrow interfaces a live session implements (see Models/WorldBasesSession.cs and friends).
@@ -589,6 +600,11 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
     }
     Task<bool> IWorldBasesSession.SetBenchUpgradeAsync(string deployableId, string row, bool installed, CancellationToken cancellationToken)
         => Task.FromResult(SetBenchUpgrade(deployableId, row, installed));
+    Task IWorldBasesSession.SetPaintColorAsync(string deployableId, int? colorValue, CancellationToken cancellationToken)
+    {
+        SetDeployablePaintColor(deployableId, colorValue);
+        return Task.CompletedTask;
+    }
 
     bool IWorldVehiclesSession.AppliesImmediately => false;
     bool IWorldVehiclesSession.SupportsWreckedState => true;
@@ -1006,6 +1022,9 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
                 if (_originalDeployables.TryGetValue(deployable.Id, out var original) && original.CustomName != deployable.CustomName
                     && !WorldSaveWriter.ApplyDeployableCustomText(workingData, deployable.Id, deployable.CustomName ?? string.Empty))
                     throw new InvalidOperationException($"Deployable '{deployable.DisplayName}' does not support custom text edits.");
+                if (original?.PaintColorValue != deployable.PaintColorValue
+                    && !WorldSaveWriter.ApplyDeployablePaintColor(workingData, deployable.Id, deployable.PaintColorValue))
+                    throw new InvalidOperationException($"Deployable '{deployable.DisplayName}' does not support paint edits.");
             }
         }
         if (StoryIsDirty())

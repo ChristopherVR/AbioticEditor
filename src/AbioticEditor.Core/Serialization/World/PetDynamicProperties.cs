@@ -85,16 +85,28 @@ internal static class PetDynamicProperties
         if (index < -1 || durability < 0) throw new ArgumentOutOfRangeException(nameof(index));
         foreach (var (key, value) in new[] { ("WeaponCoating", index), ("CoatingDurability", durability) })
         {
-            if (value is null || Read(props, key) == value) continue;
-            if (SetOrAdd(props, key, value.Value)) continue;
-            if (save is null) throw new InvalidOperationException("This save cannot supply the item property layout.");
-            using var buffer = new MemoryStream();
-            save.WriteTo(buffer); buffer.Position = 0;
-            var clone = SaveGame.LoadFrom(buffer);
-            var template = FindTemplate(clone.Properties ?? []);
-            if (!WriteArray(props, template, [("EDynamicProperty::" + key, value.Value)]))
-                throw new InvalidOperationException("No compatible item property layout was found in this save.");
+            if (value is null) continue;
+            ApplyOne(props, key, value.Value, save);
         }
+    }
+
+    /// <summary>
+    /// Sets one <c>{Key:EDynamicProperty::&lt;key&gt;,Value:int}</c> entry, in place when the
+    /// array already exists, else grafted from a compatible array elsewhere in the save (see
+    /// class remarks). Used for deployable paint colour (<see cref="DeployablePaintCatalog"/>)
+    /// as well as the coating keys above - same struct, same array, different key.
+    /// </summary>
+    internal static void ApplyOne(IList<FPropertyTag> props, string key, int value, SaveGame? save)
+    {
+        if (Read(props, key) == value) return;
+        if (SetOrAdd(props, key, value)) return;
+        if (save is null) throw new InvalidOperationException("This save cannot supply the item property layout.");
+        using var buffer = new MemoryStream();
+        save.WriteTo(buffer); buffer.Position = 0;
+        var clone = SaveGame.LoadFrom(buffer);
+        var template = FindTemplate(clone.Properties ?? []);
+        if (!WriteArray(props, template, [("EDynamicProperty::" + key, value)]))
+            throw new InvalidOperationException("No compatible item property layout was found in this save.");
     }
 
     private static Template? FindTemplate(IEnumerable<FPropertyTag> tags)

@@ -94,9 +94,12 @@ connected, and moving or editing an item keeps every extra detail it carries (th
 progress, weapon coatings, and custom variants) instead of losing them on the way. Weapon
 coatings themselves can now be changed live too, the same coating picker offline saves use. You
 can also move an item directly between your own inventory and a nearby container, water and
-fertilise garden plots, charge Power Chairs, and adjust the world's total play time. These are
-new and still being checked against a running game, so keep an eye on them and update the agent
-if something looks off.
+fertilise garden plots, charge Power Chairs, adjust the world's total play time, and edit a
+carried pet's stored mutation progress in the Companions tab (negative values are rejected; the
+mutation target itself stays read-only). The host can also repaint a
+placed object from the Bases tab's new **Painted objects** list. These are new and still being
+checked against a running game, so keep an eye on them and update the agent if something looks
+off.
 
 These limits are deliberate:
 

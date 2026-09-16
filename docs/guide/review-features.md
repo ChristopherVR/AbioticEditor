@@ -29,6 +29,23 @@ coating picker rather than accepting an edit it cannot carry.
 
 *Select a compatible weapon, then expand Weapon coating.*
 
+## Painted objects
+
+Select a base in **World editor -> Bases** to see a **Painted objects** list of every placed
+object in that group the game lets you paint (crafting benches, storage crates, cubicles,
+barricades, beds, rugs, lamps and more). Choose a colour, or **Unpainted / default** to remove
+one. The picker only appears for classes the game's own data confirms can be painted; anything
+else is left alone.
+
+Paint colour is stored the same way weapon coatings are: as an entry in the object's own dynamic
+properties, not a separate saved field, so clearing it removes the entry rather than leaving a
+stray default behind. These controls are available for offline world saves, and, while connected
+to a running game with an up to date live helper installed, for live bases too (host only), still
+awaiting in-game verification.
+
+See `docs/reference/research/research-deployable-paint.md` for how the colour list and paintable
+classes were confirmed from the game's own data and from real saves.
+
 ## Garden plots
 
 Open a region and choose **Garden plots**. This tab appears when the region contains

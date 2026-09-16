@@ -158,6 +158,33 @@
                     <p class="wt-muted">@L.Resource("WorldBases_NoCraftingBenchInThisGroup")</p>
                 }
                 <hr class="wt-divider" />
+                @{ var paintable = worldBaseDetail.Deployables.Where(deployable => deployable.SupportsPaint).ToList(); }
+                @if (paintable.Count > 0)
+                {
+                    <span class="wt-label accent-orange-text">@L.Resource("WorldBases_PaintedObjects")</span>
+                    @foreach (var deployable in paintable)
+                    {
+                        <div class="bench-row" @key="deployable.Id">
+                            <span class="bench-name">@deployable.DisplayName</span>
+                            <label class="wt-field paint-colour-field">
+                                <span class="wt-label">@L.Resource("WorldBases_PaintColour")</span>
+                                <select class="wt-input" value="@(deployable.PaintColorValue?.ToString() ?? "")"
+                                        @onchange="e => SetPaintColor(deployable.Id, e.Value?.ToString())">
+                                    <option value="">@L.Resource("WorldBases_Unpainted")</option>
+                                    @foreach (var color in DeployablePaintCatalog.Colors)
+                                    {
+                                        <option value="@color.Value">@color.DisplayName</option>
+                                    }
+                                </select>
+                            </label>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="wt-muted">@L.Resource("WorldBases_NoPaintableObjectsInThisGroup")</p>
+                }
+                <hr class="wt-divider" />
                 <span class="wt-label">@L.Resource("WorldBases_Composition")</span>
                 <p class="base-composition">@Composition(worldBaseDetail)</p>
             </div>
@@ -497,6 +524,22 @@
         catch (Exception exception)
         {
             Toasts.Show(Errors.Present(exception, "Change this bench upgrade.", "The connection may have dropped; try reconnecting."), ToastKind.Error);
+        }
+    }
+
+    /// <summary>Same one-off-action-as-toast treatment as <see cref="SetUpgrade"/>: a failed
+    /// paint edit on one object shouldn't blank the whole tab.</summary>
+    private async Task SetPaintColor(string deployableId, string? rawValue)
+    {
+        try
+        {
+            var colorValue = int.TryParse(rawValue, out var parsed) ? parsed : (int?)null;
+            await Session.SetPaintColorAsync(deployableId, colorValue);
+            if (!Session.AppliesImmediately) Workspace.NotifyEdited();
+        }
+        catch (Exception exception)
+        {
+            Toasts.Show(Errors.Present(exception, "Change this object's paint colour.", "The connection may have dropped; try reconnecting."), ToastKind.Error);
         }
     }
 

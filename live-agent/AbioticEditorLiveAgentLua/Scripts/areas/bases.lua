@@ -3,6 +3,13 @@
 -- real-enumerated-handle copies crashed the native bridge during Cascade verification.
 return function(ctx)
     local benchTags = require("bench_tags")
+    local replication = require("replication")
+
+    -- EPaintColor::None (see AbioticEditor.Core.WorldSaves.DeployablePaintCatalog.NoneValue) -
+    -- the CDO default, meaning "unpainted". Paintability itself is decided client-side from the
+    -- deployable's class name, the same DeployablePaintCatalog the file editor uses, so this file
+    -- only ever reports/writes the raw colour value.
+    local PAINT_NONE = 12
     -- The 11 known upgrade rows (DT_BenchUpgrades), matching
     -- AbioticEditor.Core.WorldSaves.BenchUpgradeCatalog.All row-for-row so live and file report
     -- the same catalog. Kept here rather than fetched live since there is no enumeration
@@ -31,6 +38,62 @@ return function(ctx)
             if row then table.insert(result, row) end
         end
         return result
+    end
+
+    -- PaintedColor is a plain top-level EPaintColor property on AbioticDeployed_ParentBP_C (no
+    -- hash suffix - confirmed via the probe in
+    -- tests/AbioticEditor.Probes/DeployablePaintProbeTests.cs), read here purely for display; the
+    -- save's own paint field lives elsewhere (ChangableData_.DynamicProperties_), so this value is
+    -- NOT expected to match a freshly-loaded save until the game itself round-trips it.
+    -- The saved side of a paint colour: {Key = EDynamicProperty::PaintColor, Value = colour} in
+    -- the deployable's ChangeableData dynamic-property array (same struct and field names as an
+    -- inventory item's ChangeableData - see item_metadata.lua and DeployablePaintCatalog).
+    local SAVED_DYNAMIC = "DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7"
+    local savedPaint = {}
+    local function paintKey()
+        local enum = StaticFindObject("/Script/AbioticFactor.EDynamicProperty")
+        if not enum or not enum:IsValid() then return nil end
+        local key
+        enum:ForEachName(function(name, value)
+            local text = type(name) == "string" and name or name:ToString()
+            if text == "EDynamicProperty::PaintColor" then key = value end
+        end)
+        return key
+    end
+    -- Returns true when the saved entry was updated, false when this object has no saved
+    -- dynamic-property array to update (an older build, or a class that never saves one).
+    function savedPaint.write(obj, colour)
+        local okData, data = pcall(function() return obj.ChangeableData end)
+        if not okData or not data then return false end
+        local okArray, array = pcall(function() return data[SAVED_DYNAMIC] end)
+        if not okArray or not array then return false end
+        local key = paintKey()
+        if key == nil then error("dynamic property enum is unavailable") end
+        local entries, replaced = {}, false
+        for i = 1, #array do
+            local entry = array[i]
+            local entryKey = tonumber(entry.Key) or tonumber(tostring(entry.Key))
+            if entryKey == key then
+                if not replaced then entries[#entries + 1] = { Key = key, Value = colour }; replaced = true end
+            else
+                entries[#entries + 1] = { Key = entry.Key, Value = entry.Value }
+            end
+        end
+        if not replaced then entries[#entries + 1] = { Key = key, Value = colour } end
+        data[SAVED_DYNAMIC] = entries
+        return true
+    end
+
+    local function deployablePaintColor(obj)
+        local ok, value = pcall(function() return obj.PaintedColor end)
+        if not ok or value == nil then return nil end
+        local numeric = tonumber(value)
+        if numeric == nil then
+            local okStr, str = pcall(function() return tostring(value) end)
+            numeric = okStr and tonumber(str) or nil
+        end
+        if numeric == nil or numeric == PAINT_NONE then return nil end
+        return numeric
     end
 
     local function deployableRows()
@@ -62,6 +125,7 @@ return function(ctx)
                         supportsUpgrades = benchSupportsUpgrades(obj),
                         canEditUpgrades = benchSupportsUpgrades(obj) and benchTags.available(obj),
                         installedUpgrades = benchInstalledUpgrades(obj),
+                        paintColor = deployablePaintColor(obj),
                     })
                 end
             end
@@ -105,6 +169,27 @@ return function(ctx)
                 if not found then error("unknown bench upgrade row") end
                 if not benchTags.available(obj) then error("editing a bench upgrade isn't supported by this runtime") end
                 benchTags.set(obj, payload.upgradeRow, payload.upgradeInstalled ~= false)
+            end
+            if payload.paintColor ~= nil then
+                -- Plain replicated enum property with its own OnRep (see the probe cited above),
+                -- so this follows the same set-then-notify shape as every other direct-property
+                -- write in this file - never SetPaintColor itself, which is a Blueprint function
+                -- and untested from Lua. The save keeps paint in the deployable's own
+                -- ChangeableData dynamic-property array (the field the file editor writes), so
+                -- that entry is updated too, the same both-sides approach bench_tags.lua takes for
+                -- upgrade tags; without it a live repaint could be lost on the next world save.
+                -- Awaiting in-game verification.
+                local ok, err = pcall(function()
+                    local helper = replication.requireHelper()
+                    obj.PaintedColor = payload.paintColor
+                    pcall(function() obj:OnRep_PaintedColor() end)
+                    replication.mark(helper, obj, "PaintedColor")
+                    if savedPaint.write(obj, payload.paintColor) then
+                        replication.mark(helper, obj, "ChangeableData")
+                        pcall(function() obj:SaveDeployable() end)
+                    end
+                end)
+                if not ok then error("could not set this object's paint colour on this game build: " .. tostring(err)) end
             end
             return nil
         end, respond)

@@ -181,6 +181,40 @@ public static partial class WorldSaveWriter
     }
 
     /// <summary>
+    /// Sets (or clears) a deployable's paint colour by <c>DeployedObjectMap</c> key. Writes a
+    /// <c>{Key:EDynamicProperty::PaintColor,Value:&lt;colour&gt;}</c> entry into its
+    /// <c>ChangableData_.DynamicProperties_</c> array (see <see cref="DeployablePaintCatalog"/>
+    /// and <see cref="PetDynamicProperties"/>); null clears it back to
+    /// <see cref="DeployablePaintCatalog.NoneValue"/> ("unpainted"). Returns false when the
+    /// deployable or its <c>ChangableData_</c> struct doesn't exist.
+    /// </summary>
+    public static bool ApplyDeployablePaintColor(WorldSaveData data, string deployableId, int? colorValue)
+    {
+        var pairs = WorldSaveReader.GetMapPairs(data.Raw.Properties, "DeployedObjectMap");
+        if (pairs is null) return false;
+
+        foreach (var kvp in pairs)
+        {
+            if (!string.Equals(WorldSaveReader.ExtractMapKeyString(kvp.Key), deployableId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+            if (kvp.Value is not StructProperty sp || sp.Value is not PropertiesStruct ps) return false;
+            if (ps.Properties.FindByPrefix("ChangableData_")?.Property is not StructProperty cdSp
+                || cdSp.Value is not PropertiesStruct cdPs)
+            {
+                return false;
+            }
+
+            PetDynamicProperties.ApplyOne(
+                cdPs.Properties, DeployablePaintCatalog.DynamicPropertyKey,
+                colorValue ?? DeployablePaintCatalog.NoneValue, data.Raw);
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
     /// Re-homes every claim held by <paramref name="oldOwnerId"/> in <c>DeployedObjectMap</c> to
     /// <paramref name="newOwnerId"/> and returns how many were rewritten. Everything from the
     /// separator onwards is carried over untouched, so the claimer's name survives exactly -

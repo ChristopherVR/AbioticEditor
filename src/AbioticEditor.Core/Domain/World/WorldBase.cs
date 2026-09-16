@@ -14,8 +14,21 @@ public sealed record WorldDeployable(
     bool HasInventory,
     int StoredItemCount,
     string? CustomName = null,
-    IReadOnlyList<string>? Upgrades = null)
+    IReadOnlyList<string>? Upgrades = null,
+    int? PaintColorValue = null)
 {
+    /// <summary>True when this deployable is currently painted (a confirmed non-default
+    /// <c>EDynamicProperty::PaintColor</c> entry was read from its <c>ChangableData_</c>).
+    /// See <see cref="DeployablePaintCatalog"/>.</summary>
+    public bool IsPainted => PaintColorValue is { } v && v != DeployablePaintCatalog.NoneValue;
+
+    /// <summary>The paint colour's display name, or null when unpainted.</summary>
+    public string? PaintColorName => IsPainted ? DeployablePaintCatalog.DisplayName(PaintColorValue!.Value) : null;
+
+    /// <summary>True when this deployable's class has a confirmed paint profile
+    /// (<see cref="DeployablePaintCatalog.IsPaintable"/>), so the editor can offer a colour picker.</summary>
+    public bool SupportsPaint => DeployablePaintCatalog.IsPaintable(ClassName);
+
     /// <summary>
     /// Installed bench upgrade rows (e.g. <c>TougherBench</c>) read from the deployable's
     /// gameplay-tag container; empty for deployables with no upgrades. See

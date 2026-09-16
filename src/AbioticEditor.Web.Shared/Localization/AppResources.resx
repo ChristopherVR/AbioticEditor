@@ -595,6 +595,10 @@
   <data name="WorldBases_NoCraftingBenchInThisGroup" xml:space="preserve"><value>No crafting bench in this group.</value></data>
   <data name="WorldBases_SlotEditorHint" xml:space="preserve"><value>Tap a slot to edit it in the slot editor; drag the catalog onto slots to add items.</value></data>
   <data name="WorldBases_Upgrades" xml:space="preserve"><value>UPGRADES</value></data>
+  <data name="WorldBases_PaintedObjects" xml:space="preserve"><value>PAINTED OBJECTS</value></data>
+  <data name="WorldBases_PaintColour" xml:space="preserve"><value>Paint colour</value></data>
+  <data name="WorldBases_Unpainted" xml:space="preserve"><value>Unpainted / default</value></data>
+  <data name="WorldBases_NoPaintableObjectsInThisGroup" xml:space="preserve"><value>No paintable objects in this group.</value></data>
   <data name="WorldBases_SlotEditHint" xml:space="preserve"><value>Tap to edit this slot in the side panel</value></data>
   <data name="WorldBases_BenchEditHint" xml:space="preserve"><value>Tap to open this bench in the side panel</value></data>
   <data name="WorldBases_DetailPosition" xml:space="preserve"><value>Position</value></data>

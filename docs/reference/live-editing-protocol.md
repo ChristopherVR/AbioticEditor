@@ -273,16 +273,39 @@ calls it with. Not exercised by any mod, so genuinely unproven end-to-end; the i
 wherever the game's own `FindBestItemDropLocation` puts it (near the player), not at a
 caller-chosen position - unlike the file editor's own explicit-`x`/`y`/`z` add. Host only.
 
-## `bases.list` / `bases.set` - deployables (round 76, bench upgrades round 77, upgrade removal 2026-09-16)
+## `bases.list` / `bases.set` - deployables (round 76, bench upgrades round 77, upgrade removal 2026-09-16, paint colour 2026-09-16)
 
 `bases.list` returns `{"deployables":[{"id","className","x","y","z","customName","hasInventory",
-"storedItemCount","supportsUpgrades","canEditUpgrades","installedUpgrades":[...]}],"isHost":bool,
-"supportsBenchUpgrades":bool,"supportsBenchUpgradeRemoval":bool}` for every deployable currently
-loaded (`AbioticDeployed_ParentBP` and every subclass - benches, furniture, defenses,
-containers). `supportsUpgrades`/`canEditUpgrades`/`installedUpgrades` are meaningful only for
-benches; every other deployable reports `false`/`false`/`[]`. `bases.set` takes `{"id",
-"customName"?,"upgradeRow"?,"upgradeInstalled"?}` and renames the object and/or installs or
-removes a bench upgrade immediately. Host only, like `containers.set`/`doors.set`.
+"storedItemCount","supportsUpgrades","canEditUpgrades","installedUpgrades":[...],"paintColor"?}],
+"isHost":bool,"supportsBenchUpgrades":bool,"supportsBenchUpgradeRemoval":bool}` for every
+deployable currently loaded (`AbioticDeployed_ParentBP` and every subclass - benches, furniture,
+defenses, containers). `supportsUpgrades`/`canEditUpgrades`/`installedUpgrades` are meaningful
+only for benches; every other deployable reports `false`/`false`/`[]`. `paintColor` is the raw
+`EPaintColor` integer value (0-11 or 13; omitted/`null` when unpainted - `EPaintColor::None`,
+value 12, is never sent). `bases.set` takes `{"id","customName"?,"upgradeRow"?,
+"upgradeInstalled"?,"paintColor"?}` and renames the object, installs or removes a bench upgrade,
+and/or sets its paint colour immediately. Host only, like `containers.set`/`doors.set`.
+
+**Paint colour** (implemented, awaiting in-game verification): a plain property write, not a
+function call. `AbioticDeployed_ParentBP_C` carries a bare `PaintedColor` `EPaintColor` property
+(no hash suffix in the compiled class layout) with its own `OnRep_PaintedColor()` (no
+parameters - a normal `RepNotify`), confirmed from the game's own class layout (see
+`docs/reference/research/research-deployable-paint.md`). `bases.set` writes
+`obj.PaintedColor = paintColor`, replays `OnRep_PaintedColor()` via `pcall`, then marks the
+property dirty with `NetPushModelHelpers.MarkPropertyDirty` - the same set-then-notify shape
+`bases.set`'s rename and `vehicles.set`'s `driveable` already use. This deliberately never calls
+the Blueprint `SetPaintColor(Color, SkipSave)` function: it is a real, plain-parameter function
+(no struct argument, unlike the bench-upgrade functions that crashed the bridge), but nothing in
+this codebase has exercised calling a Blueprint function with a byte-enum parameter from Lua yet,
+so the direct-property path already proven for other fields was used instead. The save's own
+paint field lives elsewhere entirely (`ChangableData_.DynamicProperties_`, an
+`EDynamicProperty::PaintColor` entry - see the research note), so `bases.set` also upserts that
+entry in the live object's own `ChangeableData` dynamic-property array (same field names as an
+inventory item's, see `item_metadata.lua`), marks `ChangeableData` dirty and calls
+`SaveDeployable()` best-effort - the same both-sides shape `bench_tags.lua` uses for upgrade tags.
+An object without that array is still repainted live. Whether the game itself would also have
+re-derived the entry from `PaintedColor` on the next save (as `SetPaintColor`'s internal
+`SetDynamicProperty` call implies) is unverified without a running game.
 
 **Bench-upgrade editing no longer calls the native `AddUpgrade`/`"Has Upgrade"` functions at
 all** (implemented, awaiting in-game verification). Round 77 grounded installation in those two
@@ -564,6 +587,14 @@ uses), but no reference-mod command reads or writes it over UE4SS Lua, so readin
 struct array's `Key`/`Value` this way is genuinely new and unverified against the real game until
 tested. `itemId`/`name`/`health`/`maxHealth` carry the same confidence as `inventory.list`/`.set`'s
 fields (round 74), since they are the identical hash-suffixed struct members.
+
+**Round 79: `mutationProgress` is now editable, not just a readout.** Both the offline and the
+live COMPANIONS tab expose it through the shared "Feeding and mutation" panel. Negative values are
+rejected; nothing else is capped, because `DT_Pets` carries no explicit threshold field and the
+largest value observed across this project's fixture saves (`PetCatalog.ObservedMaxMutationProgress`,
+currently `3`) comes from only two pets, so it is shown as a hint rather than enforced. `petMutation` (the mutation target already applied)
+still travels over the wire and can still technically be sent, but no UI offers an editor for it -
+it stays the game's own value, matching the offline tab's existing rule.
 ## `recipes.get` / `recipes.set`
 
 Live recipe-unlock editing, the counterpart to the file editor's RECIPES tab. `recipes.get` takes

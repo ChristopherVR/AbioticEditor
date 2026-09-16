@@ -31,6 +31,14 @@ public interface IWorldBasesSession
     /// <summary>Sets (or clears, with null/blank) a deployable's player-visible custom name.</summary>
     Task SetCustomNameAsync(string deployableId, string? customName, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Sets (or clears, with null) a deployable's paint colour. <paramref name="colorValue"/> is
+    /// an <c>EPaintColor</c> value from <see cref="AbioticEditor.Core.WorldSaves.DeployablePaintCatalog.Colors"/>;
+    /// null resets it to unpainted. Only meaningful when the deployable's class is paintable
+    /// (<see cref="AbioticEditor.Core.WorldSaves.WorldDeployable.SupportsPaint"/>).
+    /// </summary>
+    Task SetPaintColorAsync(string deployableId, int? colorValue, CancellationToken cancellationToken = default);
+
     /// <summary>True when this deployable can carry bench upgrade modules.</summary>
     bool BenchSupportsUpgrades(string deployableId);
 

@@ -21,35 +21,50 @@ public sealed class LiveBasesChannel(ILiveGameChannel channel)
             .ConfigureAwait(false);
         var deployables = (wire.Deployables ?? [])
             .Select(d => new LiveDeployable(d.Id, d.ClassName, d.X, d.Y, d.Z, d.CustomName, d.HasInventory,
-                d.StoredItemCount, d.SupportsUpgrades, d.InstalledUpgrades ?? [], d.CanEditUpgrades ?? wire.SupportsBenchUpgrades))
+                d.StoredItemCount, d.SupportsUpgrades, d.InstalledUpgrades ?? [], d.CanEditUpgrades ?? wire.SupportsBenchUpgrades,
+                d.PaintColor))
             .ToList();
         return new LiveDeployableDirectory(deployables, wire.IsHost, wire.SupportsBenchUpgrades, wire.SupportsBenchUpgradeRemoval);
     }
 
     /// <summary>Renames one deployable immediately. Host only.</summary>
     public Task SetCustomNameAsync(string deployableId, string? customName, CancellationToken cancellationToken = default)
-        => _channel.RequestAsync<object?>("bases.set", new SetWire(deployableId, customName, null, null), cancellationToken);
+        => _channel.RequestAsync<object?>("bases.set", new SetWire(deployableId, customName, null, null, null), cancellationToken);
 
     /// <summary>Installs or removes one bench upgrade module immediately (<paramref name="installed"/>
     /// selects which). Host only, and only on deployables reporting <c>CanEditUpgrades</c>.</summary>
     public Task SetBenchUpgradeAsync(string deployableId, string row, bool installed, CancellationToken cancellationToken = default)
-        => _channel.RequestAsync<object?>("bases.set", new SetWire(deployableId, null, row, installed), cancellationToken);
+        => _channel.RequestAsync<object?>("bases.set", new SetWire(deployableId, null, row, installed, null), cancellationToken);
+
+    /// <summary>
+    /// Sets a deployable's paint colour immediately (an <c>EPaintColor</c> value - see
+    /// <see cref="AbioticEditor.Core.WorldSaves.DeployablePaintCatalog"/>; pass
+    /// <see cref="AbioticEditor.Core.WorldSaves.DeployablePaintCatalog.NoneValue"/> to clear it).
+    /// Host only. Writes the deployable's own <c>PaintedColor</c> property directly and replays
+    /// its <c>OnRep_PaintedColor</c> - awaiting in-game verification (see
+    /// <c>docs/reference/research/research-deployable-paint.md</c>).
+    /// </summary>
+    public Task SetPaintColorAsync(string deployableId, int colorValue, CancellationToken cancellationToken = default)
+        => _channel.RequestAsync<object?>("bases.set", new SetWire(deployableId, null, null, null, colorValue), cancellationToken);
 
     private sealed record DirectoryWire(IReadOnlyList<DeployableWire>? Deployables, bool IsHost, bool SupportsBenchUpgrades, bool SupportsBenchUpgradeRemoval);
     private sealed record DeployableWire(string Id, string ClassName, double X, double Y, double Z,
         string? CustomName, bool HasInventory, int StoredItemCount, bool SupportsUpgrades,
-        IReadOnlyList<string>? InstalledUpgrades, bool? CanEditUpgrades);
-    private sealed record SetWire(string Id, string? CustomName, string? UpgradeRow, bool? UpgradeInstalled);
+        IReadOnlyList<string>? InstalledUpgrades, bool? CanEditUpgrades, int? PaintColor);
+    private sealed record SetWire(string Id, string? CustomName, string? UpgradeRow, bool? UpgradeInstalled, int? PaintColor);
 }
 
 /// <summary>One loaded deployable. <paramref name="Id"/> is the game's own full object name for
 /// this exact actor; <paramref name="ClassName"/> is its class name (e.g.
 /// <c>Deployed_CraftingBench_Default_C</c>). <paramref name="SupportsUpgrades"/> and
 /// <paramref name="InstalledUpgrades"/> are meaningful only for benches; every other deployable
-/// reports <c>false</c>/empty.</summary>
+/// reports <c>false</c>/empty. <paramref name="PaintColor"/> is the raw <c>EPaintColor</c> value
+/// (or null when unpainted/not reported); paintability itself is decided client-side from
+/// <paramref name="ClassName"/> via <see cref="AbioticEditor.Core.WorldSaves.DeployablePaintCatalog"/>,
+/// the same catalog the file session uses, so live and file report identical paintable classes.</summary>
 public sealed record LiveDeployable(string Id, string ClassName, double X, double Y, double Z,
     string? CustomName, bool HasInventory, int StoredItemCount, bool SupportsUpgrades,
-    IReadOnlyList<string> InstalledUpgrades, bool CanEditUpgrades = false);
+    IReadOnlyList<string> InstalledUpgrades, bool CanEditUpgrades = false, int? PaintColor = null);
 
 /// <summary>Every loaded deployable, whether this process has host authority to change them, and
 /// whether bench-upgrade installation is available live (yes, since round 77 - see

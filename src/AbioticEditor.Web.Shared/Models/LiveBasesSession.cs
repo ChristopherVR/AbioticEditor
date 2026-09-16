@@ -48,7 +48,7 @@ public sealed class LiveBasesSession : IWorldBasesSession
         _byId = directory.Deployables.ToDictionary(d => d.Id, StringComparer.Ordinal);
         Deployables = directory.Deployables
             .Select(d => new WorldDeployable(d.Id, d.ClassName, d.X, d.Y, d.Z, d.HasInventory, d.StoredItemCount, d.CustomName,
-                d.InstalledUpgrades.Count > 0 ? d.InstalledUpgrades : null))
+                d.InstalledUpgrades.Count > 0 ? d.InstalledUpgrades : null, d.PaintColor))
             .ToList();
         IsHost = directory.IsHost;
         _supportsBenchUpgrades = directory.SupportsBenchUpgrades;
@@ -62,6 +62,15 @@ public sealed class LiveBasesSession : IWorldBasesSession
     public async Task SetCustomNameAsync(string deployableId, string? customName, CancellationToken cancellationToken = default)
     {
         await _channel.SetCustomNameAsync(deployableId, customName, cancellationToken).ConfigureAwait(false);
+        Status = null;
+        await RefreshAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    async Task IWorldBasesSession.SetPaintColorAsync(string deployableId, int? colorValue, CancellationToken cancellationToken)
+    {
+        if (!IsHost) throw new NotSupportedException("Only the host can change deployables.");
+        await _channel.SetPaintColorAsync(deployableId, colorValue ?? DeployablePaintCatalog.NoneValue, cancellationToken)
+            .ConfigureAwait(false);
         Status = null;
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
