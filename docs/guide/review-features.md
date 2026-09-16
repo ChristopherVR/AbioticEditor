@@ -150,12 +150,34 @@ wiki display names is used as configuration keys.
 
 *Settings stay staged until you choose Save settings.*
 
+## Breakable objects
+
+Open a region and choose **Breakable objects**. This tab lists every ice wall, spore web,
+ceiling tile and other breakable prop the world save has recorded as broken. The save only
+remembers an object once it stops being intact, so an untouched prop never shows up here at
+all. Toggle **Broken** off to repair one.
+
+There is no bulk "restore all"; each object is repaired one at a time, the same way every
+other world-map tab in the editor works.
+
+## Corpses
+
+Open a region and choose **Corpses**. Every NPC body still lying around in that region is
+listed by its creature type (Human, Monster Generic, Order Grunt, and so on), along with
+whether it was gibbed and whether you already looted it. **Remove this Corpse** clears one
+from the save, useful for tidying up a base after a fight.
+
+Corpses are removed one at a time; there is no bulk clear. The game itself decides whether
+a cleared corpse's actor respawns.
+
 ## Verification and limits
 
 Automated checks cover coating writes and removal, garden save/reload behavior and
 unrelated-plot preservation, invalid values, chemistry readouts, INI additions and backups,
-and existing pet/inventory behavior. Browser checks use copied saves at desktop and phone
-widths. A copied INI was saved to verify the exact added key and its default.
+existing pet/inventory behavior, and breakable-object/corpse edits (toggle and removal,
+re-read, and save/reload round trips) against real dedicated-server region saves. Browser
+checks use copied saves at desktop and phone widths. A copied INI was saved to verify the
+exact added key and its default.
 
 These checks do not establish runtime replication or in-game rendering. No connected game
 was used for this implementation's smoke test. The supplied world has no deployed Power

@@ -199,7 +199,12 @@ All three load and round-trip byte-identical with plain `SaveGame`.
    (and `Fish_Unread` when present) - should be updated alongside the recipe/compendium/
    journal editors so edited entries don't show stale badges.
 6. `RecipesRequiringResearch_` - complements the recipe editor.
-7. `DestructibleMap` (world) - new map, `ActorPath`+`Broken`.
+7. `DestructibleMap` (world) - new map, `ActorPath`+`Broken`. **Implemented 2026-09-17**:
+   `DestructibleMapFeature` ("Breakable Objects" tab, id `destructibles`) exposes a `broken`
+   toggle per entry; every entry seen across the server fixture and a live backup carries
+   `Broken=true` (the game only persists an entry once it deviates from the intact default),
+   so per-entry removal is disabled in favor of the toggle. See
+   `src/AbioticEditor.Core/Services/WorldMapFeatures/DestructibleMapFeature.cs`.
 8. `TransmogDisabledArray_`, `CompletedIntro_`, `LastControlRotation_` (player).
 9. NarrativeNPC extras (`CurrentHealthMap`, `CustomName`) and slot
    `TextureVariantRow`/`GameplayTags` if skin/NPC editing is pursued.

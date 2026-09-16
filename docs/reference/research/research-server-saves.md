@@ -173,7 +173,15 @@ same file/format exists in client worlds too.
    `research-new-save-gaps.md` §4 is confirmed fixed.)
 2. **Adopt this tree as the checked-in fixture** (see below).
 3. Doc/test upkeep: add `DayDiscovered` + `CorpseMap` to `world-save-schema.md` and to
-   `KnownUnmodeledWorldKeys` in the deep-dive tests.
+   `KnownUnmodeledWorldKeys` in the deep-dive tests. **Implemented 2026-09-17**: `CorpseMap`
+   is now modeled by `CorpseMapFeature` ("Corpses" tab, id `corpses`) - confirmed
+   `{ActorPath, IsGibbed, IsLooted}` per entry across the server fixture (Facility,
+   Dam/Dam_Hydroplant/Dam_Lower/Dam_Waterfall, DarkFusion, DF_Labs, DF_RadWaste,
+   Labs_Adjustment, MFHQ, MFWest) and a live server backup. `IsGibbed`/`IsLooted` are shown
+   read-only (no in-game reason to flip them by hand); the row label is the NPC class parsed
+   from the `CharacterCorpse_<Class>_C_*` actor name, and per-entry removal is the edit
+   (clearing corpse clutter). `DayDiscovered` remains unmodeled. See
+   `src/AbioticEditor.Core/Services/WorldMapFeatures/CorpseMapFeature.cs`.
 4. `QuestFlagCatalog`/`StoryProgressionCatalog`: extend with the 105 endgame flags and
    the `EndGame` story row (first sample of a completed story).
 5. SandboxSettings.ini + Admin.ini editor panel (last-wins parse, canonical rewrite).
