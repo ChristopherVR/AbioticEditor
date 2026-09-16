@@ -1,5 +1,7 @@
 using UeSaveGame;
+using UeSaveGame.DataTypes;
 using UeSaveGame.PropertyTypes;
+using UeSaveGame.StructData;
 
 namespace AbioticEditor.Core.Saves;
 
@@ -38,6 +40,26 @@ internal static class GvasTags
             items[i] = new FString(values[i]);
         }
         array.Value = items;
+    }
+
+    /// <summary>
+    /// Snapshot of a Name/Str array's current string values; empty (never null) when the
+    /// tag is absent. Used to diff an array's old and new contents (e.g. syncing the
+    /// "NEW" badge arrays to a recipe/codex/journal/fish unlock edit).
+    /// </summary>
+    public static IReadOnlyList<string> ReadNameArray(IList<FPropertyTag> tags, string prefix)
+    {
+        if (tags.FindByPrefix(prefix)?.Property is not ArrayProperty array || array.Value is null)
+        {
+            return Array.Empty<string>();
+        }
+
+        var result = new List<string>(array.Value.Length);
+        for (var i = 0; i < array.Value.Length; i++)
+        {
+            if (array.Value.GetValue(i) is { } v) result.Add(v.ToString() ?? string.Empty);
+        }
+        return result;
     }
 
     /// <summary>
@@ -115,5 +137,34 @@ internal static class GvasTags
     {
         var p = FindOrCreate(tags, prefix, createFullName, nameof(NameProperty));
         p?.Value = new FString(value);
+    }
+
+    /// <summary>
+    /// Sets a top-level Rotator StructProperty (e.g. <c>LastControlRotation_</c>) - stored the
+    /// same way the player save stores <c>LastSafeWorldLocation_</c> Vector structs, just with
+    /// <c>StructType</c> "Rotator" instead of "Vector" (both deserialize to the same
+    /// <see cref="VectorStruct"/> data, X/Y/Z holding pitch/yaw/roll). Creates the tag with
+    /// <paramref name="createFullName"/> when absent.
+    /// </summary>
+    public static void SetRotator(
+        IList<FPropertyTag> tags, string prefix, double pitch, double yaw, double roll, string? createFullName = null)
+    {
+        if (tags.FindByPrefix(prefix)?.Property is StructProperty existing)
+        {
+            existing.Value = new VectorStruct { Value = new FVector { X = pitch, Y = yaw, Z = roll } };
+            return;
+        }
+        if (createFullName is null) return;
+
+        var name = new FString(createFullName);
+        var structType = new FPropertyTypeName(new FString("Rotator"));
+        var type = new FPropertyTypeName(new FString(nameof(StructProperty)), new[] { structType });
+        var property = new StructProperty(name)
+        {
+            StructType = structType,
+            StructGuid = Guid.Empty,
+            Value = new VectorStruct { Value = new FVector { X = pitch, Y = yaw, Z = roll } },
+        };
+        tags.Add(new FPropertyTag(name, type, EPropertyTagFlags.None) { Property = property });
     }
 }

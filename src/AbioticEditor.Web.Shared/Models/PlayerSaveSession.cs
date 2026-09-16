@@ -28,6 +28,12 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
     private HashSet<string> _originalCompendium;
     private HashSet<string> _originalFish;
     private Dictionary<string, int> _originalKills;
+    private readonly List<string> _researchQueue;
+    private HashSet<string> _originalResearchQueue;
+    private bool _originalCompletedIntro;
+    private double _originalRotationPitch;
+    private double _originalRotationYaw;
+    private double _originalRotationRoll;
     private readonly Func<string, object?[], string>? _codexLocalize;
     // Exact-name primitive overrides from the Raw tab. They are validated on a cloned
     // tree, then applied only to the writer's working data at Save time.
@@ -81,6 +87,16 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         _originalCompendium = Codex.CurrentCompendium();
         _originalFish = Codex.CurrentFish();
         _originalKills = Codex.CurrentKills();
+        _researchQueue = data.RecipesRequiringResearch.ToList();
+        _originalResearchQueue = new HashSet<string>(_researchQueue, StringComparer.Ordinal);
+        CompletedIntro = data.CompletedIntro;
+        _originalCompletedIntro = CompletedIntro;
+        LastControlRotationPitch = data.LastControlRotationPitch;
+        LastControlRotationYaw = data.LastControlRotationYaw;
+        LastControlRotationRoll = data.LastControlRotationRoll;
+        _originalRotationPitch = LastControlRotationPitch;
+        _originalRotationYaw = LastControlRotationYaw;
+        _originalRotationRoll = LastControlRotationRoll;
         SteamIdentifier = PlayerIdentifier.TryParseFromPlayerFileName(path, out var id) ? id : null;
         ItemUpgrades = itemUpgrades ?? ItemUpgradeCatalog.Empty;
         ItemsSeen = new DelegateDiscoverySection(() => ItemsPickedUp, canDiscoverAll: true,
@@ -110,6 +126,38 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
             if (!string.IsNullOrWhiteSpace(id) && known.Add(id)) _recipes.Add(new PlayerRecipeEdit(id, false));
         }
     }
+
+    /// <summary>
+    /// Recipes waiting on the research bench (<c>RecipesRequiringResearch_</c>) rather than
+    /// fully unlocked. Shown on the RECIPES tab as a collapsed "awaiting research" list.
+    /// </summary>
+    public IReadOnlyList<string> ResearchQueue => _researchQueue;
+
+    /// <summary>Adds a recipe id to the research queue; a no-op if it's already queued.</summary>
+    public void AddToResearchQueue(string recipeId)
+    {
+        if (string.IsNullOrWhiteSpace(recipeId) || _researchQueue.Contains(recipeId, StringComparer.Ordinal)) return;
+        _researchQueue.Add(recipeId);
+        MarkChanged();
+    }
+
+    /// <summary>Removes a recipe id from the research queue.</summary>
+    public void RemoveFromResearchQueue(string recipeId)
+    {
+        if (_researchQueue.RemoveAll(id => string.Equals(id, recipeId, StringComparison.Ordinal)) > 0) MarkChanged();
+    }
+
+    /// <summary><c>CompletedIntro_</c>: whether the character has finished the intro cinematic/tutorial.</summary>
+    public bool CompletedIntro { get; set; }
+
+    /// <summary><c>LastControlRotation_</c>.X - last saved camera/control pitch, in degrees.</summary>
+    public double LastControlRotationPitch { get; set; }
+
+    /// <summary><c>LastControlRotation_</c>.Y - last saved camera/control yaw, in degrees.</summary>
+    public double LastControlRotationYaw { get; set; }
+
+    /// <summary><c>LastControlRotation_</c>.Z - last saved camera/control roll, in degrees.</summary>
+    public double LastControlRotationRoll { get; set; }
 
     /// <summary>False here: file edits stage until Save. <c>LivePlayerRecipesSession</c>/
     /// <c>LivePlayerCodexSession</c> report true - their writes apply to the running game
@@ -264,6 +312,11 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         || !Codex.CurrentCompendium().SetEquals(_originalCompendium)
         || !Codex.CurrentFish().SetEquals(_originalFish)
         || !Codex.CurrentKills().OrderBy(x => x.Key).SequenceEqual(_originalKills.OrderBy(x => x.Key))
+        || !new HashSet<string>(_researchQueue, StringComparer.Ordinal).SetEquals(_originalResearchQueue)
+        || CompletedIntro != _originalCompletedIntro
+        || LastControlRotationPitch != _originalRotationPitch
+        || LastControlRotationYaw != _originalRotationYaw
+        || LastControlRotationRoll != _originalRotationRoll
         || _rawEdits.Count > 0;
     public string? Status { get; private set; }
 
@@ -308,6 +361,9 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         PlayerSaveWriter.ApplyCompendium(_data, compendium.Email, compendium.Narrative, compendium.Exploration);
         PlayerSaveWriter.ApplyFishCaught(_data, Codex.CurrentFish().OrderBy(id => id, StringComparer.Ordinal).ToList());
         PlayerSaveWriter.ApplyKillCounts(_data, Codex.CurrentKills().Select(k => new KillCount(k.Key, k.Value)).ToList());
+        PlayerSaveWriter.ApplyResearchQueue(_data, _researchQueue.OrderBy(id => id, StringComparer.Ordinal).ToList());
+        PlayerSaveWriter.ApplyCompletedIntro(_data, CompletedIntro);
+        PlayerSaveWriter.ApplyLastControlRotation(_data, LastControlRotationPitch, LastControlRotationYaw, LastControlRotationRoll);
         ApplyRawEdits(_data);
         await AbioticEditor.Web.Services.SaveFilePersistence
             .WriteAsync(_files, _path, _data.Raw, cancellationToken).ConfigureAwait(false);
@@ -332,6 +388,11 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         _originalCompendium = Codex.CurrentCompendium();
         _originalFish = Codex.CurrentFish();
         _originalKills = Codex.CurrentKills();
+        _originalResearchQueue = new HashSet<string>(_researchQueue, StringComparer.Ordinal);
+        _originalCompletedIntro = CompletedIntro;
+        _originalRotationPitch = LastControlRotationPitch;
+        _originalRotationYaw = LastControlRotationYaw;
+        _originalRotationRoll = LastControlRotationRoll;
         _rawEdits.Clear();
         Status = "Saved (a .bak backup was created).";
     }
@@ -353,6 +414,11 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         CarriedPets.RemoveAll(pet => pet.IsNew);
         foreach (var pet in CarriedPets) pet.Revert();
         Codex.SetFrom(_originalEmails, _originalJournals, _originalCompendium, _originalFish, _originalKills);
+        _researchQueue.Clear(); _researchQueue.AddRange(_originalResearchQueue);
+        CompletedIntro = _originalCompletedIntro;
+        LastControlRotationPitch = _originalRotationPitch;
+        LastControlRotationYaw = _originalRotationYaw;
+        LastControlRotationRoll = _originalRotationRoll;
         _rawEdits.Clear();
         Status = "Changes reverted.";
     }

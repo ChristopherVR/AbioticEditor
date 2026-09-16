@@ -807,9 +807,14 @@ h1[tabindex="-1"]:focus{outline:none}
 .spawn-status{margin:0;color:var(--terminal);font-size:11px}
 .spawn-help{margin:0;color:var(--muted);font-size:10px}
 .spawn-coord-grid select,.spawn-row select,.spawn-bed-row select{min-width:0;width:100%}
+.spawn-rotation-advanced{border:1px solid var(--line);background:var(--panel);padding:8px 12px;display:grid;gap:6px}
+.spawn-rotation-advanced>summary{cursor:pointer;color:var(--section);font:600 11px var(--font-ui);letter-spacing:.08em}
+.spawn-rotation-grid{display:grid;grid-template-columns:auto 110px auto 110px auto 110px;gap:8px;align-items:end}
+.spawn-rotation-grid .sp-label{align-self:end;padding-bottom:12px}
+.spawn-rotation-grid input{width:110px;font-family:var(--font-num)!important;font-size:15px!important;color:var(--terminal)!important;text-align:center}
 /* The native AdaptiveGrid stacks its columns when the tab is narrow; the pane width (not
    the viewport) is what matters here, so these are container queries on the panel. */
-@container(max-width:720px){.spawn-coord-grid{grid-template-columns:auto minmax(0,1fr)}.spawn-coord-grid input{width:100%}.spawn-region-label{margin-left:0}.spawn-bed-row{grid-template-columns:auto minmax(0,1fr)}.spawn-bed-row .spawn-set-btn{grid-column:2;justify-self:start}}
+@container(max-width:720px){.spawn-coord-grid{grid-template-columns:auto minmax(0,1fr)}.spawn-coord-grid input{width:100%}.spawn-region-label{margin-left:0}.spawn-bed-row{grid-template-columns:auto minmax(0,1fr)}.spawn-bed-row .spawn-set-btn{grid-column:2;justify-self:start}.spawn-rotation-grid{grid-template-columns:auto minmax(0,1fr)}.spawn-rotation-grid input{width:100%}}
 
 /* RECIPE BOOK panel (native PlayerRecipesTab.xaml: header row with the count readout
    and hazard-yellow UNLOCK ALL, search + ALL/LOCKED/UNLOCKED radios, category chips,
@@ -855,6 +860,11 @@ h1[tabindex="-1"]:focus{outline:none}
 .rb-detail-upgrade{margin:0;color:var(--section);font-size:12px;overflow-wrap:anywhere}
 .rb-detail-tags{margin:0;color:var(--muted);font-size:10px;letter-spacing:.04em;overflow-wrap:anywhere}
 .rb-help{margin:0;color:var(--muted);font-size:10px}
+.rb-research-queue{display:grid;gap:6px;padding:8px 14px;border:1px solid var(--line);background:var(--panel)}
+.rb-research-queue>summary{cursor:pointer;color:var(--section);font:600 11px var(--font-ui);letter-spacing:.08em}
+.rb-research-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 0;color:var(--ink);font-size:12px}
+.rb-research-add{display:flex;gap:6px;align-items:center}
+.rb-research-add select{flex:1;min-width:0}
 .rb-list .editor-loading{min-height:200px}
 @container(max-width:860px){.rb-split{grid-template-columns:minmax(0,1fr)}.rb-detail{height:auto;max-height:420px}}
 @container(max-width:640px){.rb-header{grid-template-columns:minmax(0,1fr) auto}.rb-count{grid-column:1/-1}.rb-toolbar{grid-template-columns:minmax(0,1fr)}}

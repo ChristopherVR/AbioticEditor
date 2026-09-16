@@ -174,6 +174,8 @@
   <data name="PlayerCharacter_Background" xml:space="preserve"><value>BACKGROUND</value></data>
   <data name="PlayerCharacter_BackgroundHelp" xml:space="preserve"><value>Changes your listed job only. Starting gear and skill bonuses stay the same.</value></data>
   <data name="PlayerCharacter_Character" xml:space="preserve"><value>Character</value></data>
+  <data name="PlayerCharacter_CompletedIntro" xml:space="preserve"><value>Completed the intro</value></data>
+  <data name="PlayerCharacter_CompletedIntroHelp" xml:space="preserve"><value>Ticked once the character has finished the opening cinematic/tutorial. Untick to have them see it again next time they load in.</value></data>
   <data name="PlayerCharacter_Description" xml:space="preserve"><value>DESCRIPTION</value></data>
   <data name="PlayerCharacter_NoTraitsMatch" xml:space="preserve"><value>No traits match (or all are already applied).</value></data>
   <data name="PlayerCharacter_SaveAppearance" xml:space="preserve"><value>SAVE APPEARANCE</value></data>
@@ -432,6 +434,11 @@
   <data name="PlayerRecipes_Ingredients" xml:space="preserve"><value>INGREDIENTS</value></data>
   <data name="PlayerRecipes_NoRecipesMatch" xml:space="preserve"><value>No recipes match (or game data is unavailable).</value></data>
   <data name="PlayerRecipes_RecipeBook" xml:space="preserve"><value>Recipe book</value></data>
+  <data name="PlayerRecipes_ResearchQueue" xml:space="preserve"><value>Awaiting research</value></data>
+  <data name="PlayerRecipes_ResearchQueueAdd" xml:space="preserve"><value>ADD</value></data>
+  <data name="PlayerRecipes_ResearchQueueEmpty" xml:space="preserve"><value>Nothing is waiting on the research bench.</value></data>
+  <data name="PlayerRecipes_ResearchQueueHelp" xml:space="preserve"><value>Recipes here still need to be researched at the bench before they can be crafted, even though they're not fully locked.</value></data>
+  <data name="PlayerRecipes_ResearchQueuePickPlaceholder" xml:space="preserve"><value>Add a recipe to the queue…</value></data>
   <data name="PlayerRecipes_SearchPlaceholder" xml:space="preserve"><value>Search recipes by item name or id…</value></data>
   <data name="PlayerRecipes_SoldBy" xml:space="preserve"><value>SOLD BY</value></data>
   <data name="PlayerRecipes_Tags" xml:space="preserve"><value>TAGS</value></data>
@@ -453,13 +460,17 @@
 
   <!-- PlayerSpawn -->
   <data name="PlayerSpawn_Beds" xml:space="preserve"><value>BEDS</value></data>
+  <data name="PlayerSpawn_CameraRotation" xml:space="preserve"><value>CAMERA ROTATION (ADVANCED)</value></data>
+  <data name="PlayerSpawn_CameraRotationHelp" xml:space="preserve"><value>Where the camera was pointed the moment this save was written. Purely cosmetic on load-in - safe to leave alone.</value></data>
   <data name="PlayerSpawn_ChooseBedTitle" xml:space="preserve"><value>Choose a bed…</value></data>
   <data name="PlayerSpawn_HomeAndRespawn" xml:space="preserve"><value>HOME &amp; RESPAWN</value></data>
   <data name="PlayerSpawn_HomeBed" xml:space="preserve"><value>HOME BED:</value></data>
   <data name="PlayerSpawn_LiveCurrentPosition" xml:space="preserve"><value>You're currently at X {0}, Y {1}, Z {2}.</value></data>
   <data name="PlayerSpawn_PickRegionTitle" xml:space="preserve"><value>Pick the area the spawn point is in…</value></data>
   <data name="PlayerSpawn_PickTerminalTitle" xml:space="preserve"><value>Pick the punch-card terminal to respawn at…</value></data>
+  <data name="PlayerSpawn_Pitch" xml:space="preserve"><value>PITCH</value></data>
   <data name="PlayerSpawn_Region" xml:space="preserve"><value>REGION</value></data>
+  <data name="PlayerSpawn_Roll" xml:space="preserve"><value>ROLL</value></data>
   <data name="PlayerSpawn_RespawnTerminal" xml:space="preserve"><value>RESPAWN TERMINAL</value></data>
   <data name="PlayerSpawn_SetAsMyRespawnPoint" xml:space="preserve"><value>SET AS MY RESPAWN POINT</value></data>
   <data name="PlayerSpawn_SetSpawnHere" xml:space="preserve"><value>SET SPAWN HERE</value></data>

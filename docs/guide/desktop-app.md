@@ -29,10 +29,10 @@ Open a player from the sidebar. Each tab is a station on your survivor's workben
 | **Vitals** | Top up hunger, thirst, sanity, fatigue, continence, body health, and money. **HEAL ALL** restores body health in one go. |
 | **Inventory** | Inspect pockets, equipment, hotbar, backpack, and deployed backpack storage. Change an item, quantity, or durability, swap slots, and use the searchable item catalogue. |
 | **Skills** | Adjust level or exact XP, use **MAX** on one skill, or **MAX ALL**. |
-| **Recipes** | Search your crafting book, unlock or hide individual recipes, or use **UNLOCK ALL**. |
-| **Character** | Set background, add or remove traits, and change saved hair, clothing, and other appearance choices. |
-| **GatePal** | Review e-mail, notes, compendium entries, and fish records. |
-| **Transmog and Spawn** | Adjust appearance overrides, respawn information, and teleporter-pad tags. |
+| **Recipes** | Search your crafting book, unlock or hide individual recipes, or use **UNLOCK ALL**. Unlocking or hiding a recipe keeps the in-game "NEW" highlight in sync automatically, and an **Awaiting research** list lets you queue (or drop) recipes that still need a trip to the research bench. |
+| **Character** | Set background, add or remove traits, change saved hair, clothing and other appearance choices, and tick whether the character has already sat through the opening cinematic. |
+| **GatePal** | Review e-mail, notes, compendium entries, and fish records. Marking something as read or caught keeps its in-game "NEW" highlight in sync too. |
+| **Transmog and Spawn** | Adjust appearance overrides, respawn information, and teleporter-pad tags. An **advanced** section on Spawn also holds the last saved camera angle, for the rare case you need to nudge it. |
 | **Achievements** | View the Steam information the editor can read locally. |
 | **General and Data** | Change a player SteamID or inspect information that does not yet have a friendly control. |
 

@@ -40,6 +40,12 @@ public sealed class PlayerSaveWriterByteImpactTests(ITestOutputHelper output)
                 ("ApplyEmailsRead", d => PlayerSaveWriter.ApplyEmailsRead(d, d.EmailsRead)),
                 ("ApplyJournals", d => PlayerSaveWriter.ApplyJournals(d, d.Journals)),
                 ("ApplyFishCaught", d => PlayerSaveWriter.ApplyFishCaught(d, d.FishCaught)),
+                ("ApplyRecipes", d => PlayerSaveWriter.ApplyRecipes(d, d.Recipes)),
+                ("ApplyCompendium", d => PlayerSaveWriter.ApplyCompendium(d, d.CompendiumEmail, d.CompendiumNarrative, d.CompendiumExploration)),
+                ("ApplyResearchQueue", d => PlayerSaveWriter.ApplyResearchQueue(d, d.RecipesRequiringResearch)),
+                ("ApplyCompletedIntro", d => PlayerSaveWriter.ApplyCompletedIntro(d, d.CompletedIntro)),
+                ("ApplyLastControlRotation", d => PlayerSaveWriter.ApplyLastControlRotation(
+                    d, d.LastControlRotationPitch, d.LastControlRotationYaw, d.LastControlRotationRoll)),
             };
             foreach (var (name, apply) in steps)
             {

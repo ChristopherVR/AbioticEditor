@@ -10,8 +10,9 @@ namespace AbioticEditor.Core.PlayerSaves;
 // PlayerSaveWriter - low-level GVAS tag helpers (find-or-create by full name, typed setters).
 public static partial class PlayerSaveWriter
 {
-    private static void ReplaceNameArray(IList<FPropertyTag> tags, string prefix, IReadOnlyList<string> values)
-        => GvasTags.ReplaceNameArray(tags, prefix, values);
+    private static void ReplaceNameArray(
+        IList<FPropertyTag> tags, string prefix, IReadOnlyList<string> values, string? createFullName = null)
+        => GvasTags.ReplaceNameArray(tags, prefix, values, createFullName);
 
     /// <summary>
     /// Finds the property matching <paramref name="prefix"/>. When absent and

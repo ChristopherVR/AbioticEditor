@@ -89,6 +89,39 @@
 
     </div>
 
+    @if (Session as PlayerSaveSession is { } fileSession)
+    {
+        <details class="rb-research-queue">
+            <summary>@L.Resource("PlayerRecipes_ResearchQueue") (@fileSession.ResearchQueue.Count)</summary>
+            <p class="rb-help">@L.Resource("PlayerRecipes_ResearchQueueHelp")</p>
+            @if (fileSession.ResearchQueue.Count == 0)
+            {
+                <p class="rb-empty">@L.Resource("PlayerRecipes_ResearchQueueEmpty")</p>
+            }
+            else
+            {
+                @foreach (var recipeId in fileSession.ResearchQueue)
+                {
+                    <div class="rb-research-row" @key="recipeId">
+                        <span>@ResearchDisplayName(recipeId)</span>
+                        <button type="button" class="detail-close" aria-label="@($"{L.Detail("remove")} {ResearchDisplayName(recipeId)}")"
+                                @onclick="() => RemoveFromResearch(fileSession, recipeId)">✕</button>
+                    </div>
+                }
+            }
+            <div class="rb-research-add">
+                <select aria-label="@L.Resource("PlayerRecipes_ResearchQueuePickPlaceholder")" @bind="_researchPick">
+                    <option value="">@L.Resource("PlayerRecipes_ResearchQueuePickPlaceholder")</option>
+                    @foreach (var row in ResearchCandidates(fileSession))
+                    {
+                        <option value="@row.Info.Id">@DisplayName(row)</option>
+                    }
+                </select>
+                <button type="button" disabled="@string.IsNullOrEmpty(_researchPick)" @onclick="() => AddToResearch(fileSession)">@L.Resource("PlayerRecipes_ResearchQueueAdd")</button>
+            </div>
+        </details>
+    }
+
     <p class="rb-help">@L.Resource("PlayerRecipes_FooterHelp")</p>
     @if (Session.AppliesImmediately)
     {
@@ -521,5 +554,37 @@
     {
         Session.MarkChanged();
         await OnChanged.InvokeAsync();
+    }
+
+    // ---------- research queue (RecipesRequiringResearch_) - file editor only ----------
+
+    private string? _researchPick;
+
+    /// <summary>Recipes the catalog knows that aren't already queued - the add picker's options.</summary>
+    private IEnumerable<RecipeRow> ResearchCandidates(PlayerSaveSession fileSession)
+    {
+        var queued = new HashSet<string>(fileSession.ResearchQueue, StringComparer.Ordinal);
+        return (_rows ?? []).Where(row => !queued.Contains(row.Info.Id)).OrderBy(DisplayName, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>The crafted item's display name for a queued recipe id, falling back to a
+    /// plain-worded version of the id itself when the catalog hasn't loaded (or doesn't know it).</summary>
+    private string ResearchDisplayName(string recipeId)
+        => _rows?.FirstOrDefault(row => string.Equals(row.Info.Id, recipeId, StringComparison.Ordinal)) is { } row
+            ? DisplayName(row)
+            : PlainNames.Words(recipeId);
+
+    private async Task AddToResearch(PlayerSaveSession fileSession)
+    {
+        if (string.IsNullOrEmpty(_researchPick)) return;
+        fileSession.AddToResearchQueue(_researchPick);
+        _researchPick = null;
+        await Changed();
+    }
+
+    private async Task RemoveFromResearch(PlayerSaveSession fileSession, string recipeId)
+    {
+        fileSession.RemoveFromResearchQueue(recipeId);
+        await Changed();
     }
 }

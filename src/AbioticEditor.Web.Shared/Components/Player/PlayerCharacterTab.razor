@@ -22,6 +22,18 @@
             </select>
             <small class="general-help">@L.Resource("PlayerCharacter_BackgroundHelp")</small>
         </div>
+
+        @if (FileSession is { } completedIntroSession)
+        {
+            <div class="character-background-row">
+                <label class="general-field-label">
+                    <input type="checkbox" checked="@completedIntroSession.CompletedIntro"
+                           @onchange="e => OnCompletedIntroChanged(completedIntroSession, e)" />
+                    @L.Resource("PlayerCharacter_CompletedIntro")
+                </label>
+                <small class="general-help">@L.Resource("PlayerCharacter_CompletedIntroHelp")</small>
+            </div>
+        }
         <div class="tab-divider" aria-hidden="true"></div>
 
         <p class="tab-section-label">@L.Resource("PlayerCharacter_Traits")</p>
@@ -116,6 +128,13 @@
         var background = e.Value?.ToString();
         if (string.IsNullOrEmpty(background)) return;
         await Session.SetBackgroundAsync(background);
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task OnCompletedIntroChanged(PlayerSaveSession fileSession, ChangeEventArgs e)
+    {
+        fileSession.CompletedIntro = e.Value is bool value && value;
+        fileSession.MarkChanged();
         await OnChanged.InvokeAsync();
     }
     private string Search { get; set; } = string.Empty;

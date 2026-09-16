@@ -57,6 +57,18 @@ public static partial class PlayerSaveWriter
         // identical across all fixture player saves.
         public const string CurrentSkillXp = "CurrentSkillXP_20_8F7934CD4A4542F036AE5C9649362556";
         public const string CurrentXPMultiplier = "CurrentXPMultiplier_15_9DA8B8A24B4F5B134743CDBE828520F0";
+
+        // "NEW" badge arrays, the research queue and the two small CharacterSaveData
+        // fields added for the badge-sync / research-queue feature. Harvested the same
+        // way as the rest of this table (verified identical across every fixture player
+        // save that carries the tag, including the newest -2146453647 build).
+        public const string NewestRecipes = "NewestRecipes_141_C7277E904ACCEB6C26F1FB967CADCAFA";
+        public const string CompendiumUnread = "Compendium_Unread_149_38D44AA044D8087E1B4026B3D3723202";
+        public const string JournalUnread = "Journal_Unread_158_D78ED364437E5F530D2BD9A60F06DCE7";
+        public const string FishUnread = "Fish_Unread_157_A91CA2374071D28DF6671F9816A63CA5";
+        public const string RecipesRequiringResearch = "RecipesRequiringResearch_89_0A2778A74B6F1090075D8A9BEE7A0361";
+        public const string CompletedIntro = "CompletedIntro_26_7F0FCDEA4BA0DD4D229BF38724FF442C";
+        public const string LastControlRotation = "LastControlRotation_69_33E2359F425EBFDFB5CE2D84DCE6AD1B";
     }
 
     /// <summary>

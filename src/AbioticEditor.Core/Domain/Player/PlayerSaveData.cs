@@ -36,8 +36,26 @@ public sealed class PlayerSaveData
         double respawnZ = 0,
         string? respawnLevelGuid = null,
         string? terminalRespawnId = null,
-        IReadOnlyList<CarriedPet>? carriedPets = null)
+        IReadOnlyList<CarriedPet>? carriedPets = null,
+        IReadOnlyList<string>? newestRecipes = null,
+        IReadOnlyList<string>? compendiumUnread = null,
+        IReadOnlyList<string>? journalUnread = null,
+        IReadOnlyList<string>? fishUnread = null,
+        IReadOnlyList<string>? recipesRequiringResearch = null,
+        bool completedIntro = false,
+        double lastControlRotationPitch = 0,
+        double lastControlRotationYaw = 0,
+        double lastControlRotationRoll = 0)
     {
+        NewestRecipes = newestRecipes ?? Array.Empty<string>();
+        CompendiumUnread = compendiumUnread ?? Array.Empty<string>();
+        JournalUnread = journalUnread ?? Array.Empty<string>();
+        FishUnread = fishUnread ?? Array.Empty<string>();
+        RecipesRequiringResearch = recipesRequiringResearch ?? Array.Empty<string>();
+        CompletedIntro = completedIntro;
+        LastControlRotationPitch = lastControlRotationPitch;
+        LastControlRotationYaw = lastControlRotationYaw;
+        LastControlRotationRoll = lastControlRotationRoll;
         CarriedPets = carriedPets ?? Array.Empty<CarriedPet>();
         KillCounts = killCounts;
         FishCaught = fishCaught;
@@ -171,6 +189,39 @@ public sealed class PlayerSaveData
     /// registered at (a static actor baked into the cooked level - not a save object).
     /// </summary>
     public string? TerminalRespawnId { get; }
+
+    /// <summary>
+    /// Row names of <c>NewestRecipes_</c> - recipes the game still shows a "NEW" toast/badge
+    /// for. The writer keeps this in sync with <see cref="Recipes"/> edits.
+    /// </summary>
+    public IReadOnlyList<string> NewestRecipes { get; }
+
+    /// <summary>Row names of <c>Compendium_Unread_</c> - compendium entries still flagged unread.</summary>
+    public IReadOnlyList<string> CompendiumUnread { get; }
+
+    /// <summary>Row names of <c>Journal_Unread_</c> - journal entries still flagged unread.</summary>
+    public IReadOnlyList<string> JournalUnread { get; }
+
+    /// <summary>Row names of <c>Fish_Unread_</c> - caught fish still flagged unread.</summary>
+    public IReadOnlyList<string> FishUnread { get; }
+
+    /// <summary>
+    /// Row names of <c>RecipesRequiringResearch_</c>: recipes waiting on the research bench
+    /// rather than fully unlocked. Pairs with <see cref="Recipes"/>.
+    /// </summary>
+    public IReadOnlyList<string> RecipesRequiringResearch { get; }
+
+    /// <summary><c>CompletedIntro_</c>: whether the character has finished the intro cinematic/tutorial.</summary>
+    public bool CompletedIntro { get; }
+
+    /// <summary><c>LastControlRotation_</c>.X - the last saved camera/control pitch, in degrees.</summary>
+    public double LastControlRotationPitch { get; }
+
+    /// <summary><c>LastControlRotation_</c>.Y - the last saved camera/control yaw, in degrees.</summary>
+    public double LastControlRotationYaw { get; }
+
+    /// <summary><c>LastControlRotation_</c>.Z - the last saved camera/control roll, in degrees (normally 0).</summary>
+    public double LastControlRotationRoll { get; }
 }
 
 /// <summary>

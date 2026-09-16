@@ -13,10 +13,17 @@ public static partial class PlayerSaveWriter
     /// <summary>
     /// Replaces the <c>RecipesUnlock_</c> name array (recipe row names like
     /// <c>recipe_bandage</c>). Same swap-the-buffer pattern as traits/flags.
+    ///
+    /// When <paramref name="syncNewBadge"/> is true (default - matches what the game itself
+    /// does on discovery), a recipe that becomes newly unlocked is also added to
+    /// <c>NewestRecipes_</c> so the in-game "NEW" toast still fires, and a recipe that gets
+    /// relocked is removed from it so the badge doesn't linger on content the player no
+    /// longer has.
     /// </summary>
-    public static void ApplyRecipes(PlayerSaveData data, IReadOnlyList<string> recipes)
+    public static void ApplyRecipes(PlayerSaveData data, IReadOnlyList<string> recipes, bool syncNewBadge = true)
     {
         var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
+        if (syncNewBadge) SyncNewBadge(root, "RecipesUnlock_", recipes, "NewestRecipes_", FullNames.NewestRecipes);
         ReplaceNameArray(root, "RecipesUnlock_", recipes);
     }
 
@@ -27,24 +34,43 @@ public static partial class PlayerSaveWriter
         ReplaceNameArray(root, "EmailsRead_", emails);
     }
 
-    /// <summary>Replaces the <c>JournalEntries_</c> name array.</summary>
-    public static void ApplyJournals(PlayerSaveData data, IReadOnlyList<string> journals)
+    /// <summary>
+    /// Replaces the <c>JournalEntries_</c> name array. <paramref name="syncNewBadge"/> keeps
+    /// <c>Journal_Unread_</c> in sync the same way <see cref="ApplyRecipes"/> keeps
+    /// <c>NewestRecipes_</c> in sync.
+    /// </summary>
+    public static void ApplyJournals(PlayerSaveData data, IReadOnlyList<string> journals, bool syncNewBadge = true)
     {
         var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
+        if (syncNewBadge) SyncNewBadge(root, "JournalEntries_", journals, "Journal_Unread_", FullNames.JournalUnread);
         ReplaceNameArray(root, "JournalEntries_", journals);
     }
 
     /// <summary>
     /// Replaces the three compendium section arrays. An entry counts as unlocked when
     /// its row name is present in the array matching each of its sections' unlock types.
+    /// <paramref name="syncNewBadge"/> keeps <c>Compendium_Unread_</c> in sync against the
+    /// combined (email + narrative + exploration) set, the same way <see cref="ApplyRecipes"/>
+    /// keeps <c>NewestRecipes_</c> in sync.
     /// </summary>
     public static void ApplyCompendium(
         PlayerSaveData data,
         IReadOnlyList<string> emailSections,
         IReadOnlyList<string> narrativeSections,
-        IReadOnlyList<string> explorationSections)
+        IReadOnlyList<string> explorationSections,
+        bool syncNewBadge = true)
     {
         var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
+        if (syncNewBadge)
+        {
+            var combined = emailSections.Concat(narrativeSections).Concat(explorationSections)
+                .Distinct(StringComparer.Ordinal).ToList();
+            var before = GvasTags.ReadNameArray(root, "Compendium_EmailSections_")
+                .Concat(GvasTags.ReadNameArray(root, "Compendium_NarrativeSections_"))
+                .Concat(GvasTags.ReadNameArray(root, "Compendium_ExplorationSections_"))
+                .Distinct(StringComparer.Ordinal).ToList();
+            SyncNewBadgeFromSnapshot(root, before, combined, "Compendium_Unread_", FullNames.CompendiumUnread);
+        }
         ReplaceNameArray(root, "Compendium_EmailSections_", emailSections);
         ReplaceNameArray(root, "Compendium_NarrativeSections_", narrativeSections);
         ReplaceNameArray(root, "Compendium_ExplorationSections_", explorationSections);
@@ -101,10 +127,15 @@ public static partial class PlayerSaveWriter
         }
     }
 
-    /// <summary>Replaces the <c>Compendium_Fish_</c> name array (DT_Fish rows).</summary>
-    public static void ApplyFishCaught(PlayerSaveData data, IReadOnlyList<string> fish)
+    /// <summary>
+    /// Replaces the <c>Compendium_Fish_</c> name array (DT_Fish rows). <paramref name="syncNewBadge"/>
+    /// keeps <c>Fish_Unread_</c> in sync the same way <see cref="ApplyRecipes"/> keeps
+    /// <c>NewestRecipes_</c> in sync.
+    /// </summary>
+    public static void ApplyFishCaught(PlayerSaveData data, IReadOnlyList<string> fish, bool syncNewBadge = true)
     {
         var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
+        if (syncNewBadge) SyncNewBadge(root, "Compendium_Fish_", fish, "Fish_Unread_", FullNames.FishUnread);
         ReplaceNameArray(root, "Compendium_Fish_", fish);
     }
 }

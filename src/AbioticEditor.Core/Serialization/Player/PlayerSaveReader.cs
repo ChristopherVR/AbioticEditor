@@ -63,6 +63,7 @@ public static class PlayerSaveReader
             Main: ReadInventoryArray(root, "Inventory_"));
 
         var respawn = ReadVector(root, "LastSafeWorldLocation_");
+        var lastControlRotation = ReadVector(root, "LastControlRotation_");
 
         var data = new PlayerSaveData(
             save, stats, inventory,
@@ -88,7 +89,16 @@ public static class PlayerSaveReader
             respawnZ: respawn.Z,
             respawnLevelGuid: root.GetString("LastSafeWorldGUID_"),
             terminalRespawnId: root.GetString("TerminalRespawnID_"),
-            carriedPets: ReadCarriedPets(root));
+            carriedPets: ReadCarriedPets(root),
+            newestRecipes: ReadNameArray(root, "NewestRecipes_"),
+            compendiumUnread: ReadNameArray(root, "Compendium_Unread_"),
+            journalUnread: ReadNameArray(root, "Journal_Unread_"),
+            fishUnread: ReadNameArray(root, "Fish_Unread_"),
+            recipesRequiringResearch: ReadNameArray(root, "RecipesRequiringResearch_"),
+            completedIntro: root.GetBool("CompletedIntro_"),
+            lastControlRotationPitch: lastControlRotation.X,
+            lastControlRotationYaw: lastControlRotation.Y,
+            lastControlRotationRoll: lastControlRotation.Z);
 
         LogUnmodeledKeys(root);
         return data;
@@ -107,14 +117,14 @@ public static class PlayerSaveReader
         "ItemsPickedUp_", "CraftedItems_", "MapsUnlocked_",
         "TransmogInventory_", "TransmogVisibility_",
         "LastSafeWorldLocation_", "LastSafeWorldGUID_", "TerminalRespawnID_",
-        // Understood bookkeeping, intentionally preserved rather than edited: unread
-        // markers for codex content, UI slot favorites, distillery history, the
-        // newest-recipe toast list, research queue, per-slot transmog disables, the
-        // intro-cinematic bool and the last camera rotation.
-        "Compendium_Unread_", "Fish_Unread_", "Journal_Unread_",
-        "FavoritedSlots_", "ItemsDistilled_", "NewestRecipes_",
-        "RecipesRequiringResearch_", "TransmogDisabledArray_",
-        "CompletedIntro_", "LastControlRotation_",
+        // "NEW" badge lists (kept in sync by the writer when the matching unlock array
+        // is edited), the research queue, the intro-cinematic bool and the last camera
+        // rotation. See PlayerSaveWriter.Badges/.Progression for the editing side.
+        "NewestRecipes_", "Compendium_Unread_", "Fish_Unread_", "Journal_Unread_",
+        "RecipesRequiringResearch_", "CompletedIntro_", "LastControlRotation_",
+        // Understood bookkeeping, intentionally preserved rather than edited: UI slot
+        // favorites, distillery history, per-slot transmog disables.
+        "FavoritedSlots_", "ItemsDistilled_", "TransmogDisabledArray_",
     };
 
     private static void LogUnmodeledKeys(IList<FPropertyTag> root)

@@ -197,8 +197,17 @@ All three load and round-trip byte-identical with plain `SaveGame`.
 4. `LastHotbarSelection_` (new in current build, Int - trivial).
 5. Unread/NEW-badge arrays: `NewestRecipes_`, `Compendium_Unread_`, `Journal_Unread_`
    (and `Fish_Unread` when present) - should be updated alongside the recipe/compendium/
-   journal editors so edited entries don't show stale badges.
-6. `RecipesRequiringResearch_` - complements the recipe editor.
+   journal editors so edited entries don't show stale badges. **Implemented 2026-09-17**:
+   `PlayerSaveWriter.ApplyRecipes`/`ApplyJournals`/`ApplyCompendium`/`ApplyFishCaught` each
+   take an optional `syncNewBadge` flag (default true, matching what the game does on
+   discovery) that adds newly-unlocked entries to the matching badge array and removes
+   relocked/cleared ones. See `PlayerSaveWriter.Badges.cs`'s `SyncNewBadge`.
+6. `RecipesRequiringResearch_` - complements the recipe editor. **Implemented 2026-09-17**:
+   modeled as `PlayerSaveData.RecipesRequiringResearch`, written by
+   `PlayerSaveWriter.ApplyResearchQueue`, and shown on the RECIPES tab as a collapsed
+   "Awaiting research" list with per-entry remove and a catalog-limited add picker (file
+   editor only). An empty queue against a save that never had the tag is left alone rather
+   than manufacturing it (several real characters never queue anything).
 7. `DestructibleMap` (world) - new map, `ActorPath`+`Broken`. **Implemented 2026-09-17**:
    `DestructibleMapFeature` ("Breakable Objects" tab, id `destructibles`) exposes a `broken`
    toggle per entry; every entry seen across the server fixture and a live backup carries
@@ -206,6 +215,12 @@ All three load and round-trip byte-identical with plain `SaveGame`.
    so per-entry removal is disabled in favor of the toggle. See
    `src/AbioticEditor.Core/Services/WorldMapFeatures/DestructibleMapFeature.cs`.
 8. `TransmogDisabledArray_`, `CompletedIntro_`, `LastControlRotation_` (player).
+   **`CompletedIntro_`/`LastControlRotation_` implemented 2026-09-17**: modeled as
+   `PlayerSaveData.CompletedIntro` (bool) and `LastControlRotationPitch`/`Yaw`/`Roll`
+   (the `Rotator` struct's X/Y/Z), written by `PlayerSaveWriter.ApplyCompletedIntro`/
+   `ApplyLastControlRotation`. `CompletedIntro_` is a checkbox on the Character tab;
+   the rotation is under an "advanced" disclosure on the Spawn tab. `TransmogDisabledArray_`
+   is still unmodeled (out of scope for this pass).
 9. NarrativeNPC extras (`CurrentHealthMap`, `CustomName`) and slot
    `TextureVariantRow`/`GameplayTags` if skin/NPC editing is pursued.
 10. Account files: `Unlocks.sav` (customization unlocks), `PlayerStatsSave.sav`

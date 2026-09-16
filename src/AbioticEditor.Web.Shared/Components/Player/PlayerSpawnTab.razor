@@ -77,6 +77,28 @@
         }
     </div>
 
+    @if (Session as PlayerSaveSession is { } rotationSession)
+    {
+        <details class="spawn-rotation-advanced">
+            <summary>@L.Resource("PlayerSpawn_CameraRotation")</summary>
+            <small class="general-help">@L.Resource("PlayerSpawn_CameraRotationHelp")</small>
+            <div class="spawn-rotation-grid">
+                <span class="sp-label">@L.Resource("PlayerSpawn_Pitch")</span>
+                <input type="number" step="0.1" aria-label="@L.Resource("PlayerSpawn_Pitch")"
+                       value="@Coordinate(rotationSession.LastControlRotationPitch)"
+                       @onchange="e => SetCoordinate(e, value => rotationSession.LastControlRotationPitch = value)" />
+                <span class="sp-label">@L.Resource("PlayerSpawn_Yaw")</span>
+                <input type="number" step="0.1" aria-label="@L.Resource("PlayerSpawn_Yaw")"
+                       value="@Coordinate(rotationSession.LastControlRotationYaw)"
+                       @onchange="e => SetCoordinate(e, value => rotationSession.LastControlRotationYaw = value)" />
+                <span class="sp-label">@L.Resource("PlayerSpawn_Roll")</span>
+                <input type="number" step="0.1" aria-label="@L.Resource("PlayerSpawn_Roll")"
+                       value="@Coordinate(rotationSession.LastControlRotationRoll)"
+                       @onchange="e => SetCoordinate(e, value => rotationSession.LastControlRotationRoll = value)" />
+            </div>
+        </details>
+    }
+
     <div class="spawn-row">
         <span class="sp-label">@L.Resource("PlayerSpawn_RespawnTerminal")</span>
         <span class="spawn-picker-stack">
