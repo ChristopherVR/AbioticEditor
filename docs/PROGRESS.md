@@ -1,5 +1,38 @@
 # Abiotic Editor - Session history
 
+## Release v2.12.0, live coatings, paint colours, more variants, pet progress (2026-09-16)
+
+Pushed the session's commits. The first Release run failed in the Windows build: the
+single-file bundler swallowed the bundled UE4SS zip and manifest into the executable and left
+`live-agent/ue4ss` empty. Marked those files and the helper `ExcludeFromSingleFile`, made the
+release check require the helper too, and v2.12.0 published with all ten assets (the v2.11.0
+tag is the failed attempt and has no release). Note for CI watching: `jq` is not installed on
+this PC; use `gh --jq`.
+
+Four Sonnet packages closed documented limits, each grounded in game data or real saves:
+
+- Weapon coatings are editable in live player inventories and containers. A sticky
+  per-session flag turns on only once the connected agent has returned complete item metadata,
+  so an older agent hides the picker instead of dropping the edit.
+- Placed objects can be repainted (13 `EPaintColor` values plus Unpainted). The save keeps
+  paint as an `EDynamicProperty::PaintColor` entry in the deployable's `ChangableData_`
+  dynamic-property array, confirmed on 75 already-painted objects across the fixtures, and
+  46 `Deployed_*_C` classes map to `DT_PaintedDeployables` rows via their compiled defaults.
+  Live, `bases.set` writes `PaintedColor`, replays its OnRep, and also upserts the saved entry
+  and calls `SaveDeployable()` (the bench_tags both-sides shape). Research note:
+  `docs/reference/research/research-deployable-paint.md`.
+- The item variant picker gained paintings by frame family (desk photo frames resolved to
+  `Painting_Desk`), all eleven TV screens, and the office, cafeteria, bed and cot families, with
+  pak and save evidence recorded in the variant research note. `painting_a_*` stays unmapped.
+- Carried-pet mutation progress is editable offline and live. The setter rejects negatives but
+  does not cap: the largest fixture value (3, two pets) is shown as a hint only, after a review
+  caught that clamping on load would rewrite a higher saved value. Peccary and Lamogi followers
+  carry no owner link in the installed class data, so that despawn limit is now a confirmed one.
+
+Verification: full suite 1,356 passed, one Lua-wrapper skip; Lua harness 720 checks through
+lupa; host builds clean; Release run for the fix commit green end to end. Everything live above
+is still awaiting an in-game check, as is whether a live repaint survives a real world save.
+
 ## Full live parity landed, bundled UE4SS, artifacts ignored (2026-09-16)
 
 Resumed the interrupted parity session. Committed its uncommitted work: live trait editing
