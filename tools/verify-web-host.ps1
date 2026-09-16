@@ -36,7 +36,8 @@ if ($RequireLiveSupport) {
     $required += @(
         'live-agent\ue4ss\UE4SS.zip',
         'live-agent\ue4ss\runtime.json',
-        'live-agent\Lua\Scripts\main.lua'
+        'live-agent\Lua\Scripts\main.lua',
+        'live-agent\AbioticEditorLiveAgentHelper.exe'
     )
 }
 # Loose assemblies beside the exe mean single-file publishing silently regressed.

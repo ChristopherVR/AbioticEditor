@@ -210,7 +210,10 @@
        present, LiveAgentSetup installs it into the game folder after consent
        (Ue4ssBundledRuntime); when it is absent (a dev build, or any non-Windows release), setup
        falls back to LiveAgentSetup.NeedsUe4ss and the player installs UE4SS by hand. Windows-only:
-       UE4SS and this game's live editing are both Windows-only today. -->
+       UE4SS and this game's live editing are both Windows-only today.
+       ExcludeFromSingleFile on the helper, manifest and package: the single-file bundler
+       otherwise swallows them into the executable (the first bundled release attempt shipped an
+       empty live-agent/ue4ss folder), and LiveAgentSetup needs them as real files on disk. -->
   <ItemGroup Condition="'$(RuntimeIdentifier)' == '' or $(RuntimeIdentifier.StartsWith('win'))">
     <Content Include="..\..\live-agent\AbioticEditorLiveAgentLua\Scripts\**"
              Link="live-agent\Lua\Scripts\%(RecursiveDir)%(Filename)%(Extension)"
@@ -219,15 +222,18 @@
     <Content Include="..\..\live-agent\AbioticEditorLiveAgentHelper\build\Release\AbioticEditorLiveAgentHelper.exe"
              Condition="Exists('..\..\live-agent\AbioticEditorLiveAgentHelper\build\Release\AbioticEditorLiveAgentHelper.exe')"
              Link="live-agent\AbioticEditorLiveAgentHelper.exe"
+             ExcludeFromSingleFile="true"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\live-agent\ue4ss\runtime.json"
              Link="live-agent\ue4ss\runtime.json"
+             ExcludeFromSingleFile="true"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\live-agent\ue4ss\UE4SS.zip"
              Condition="Exists('..\..\live-agent\ue4ss\UE4SS.zip')"
              Link="live-agent\ue4ss\UE4SS.zip"
+             ExcludeFromSingleFile="true"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
