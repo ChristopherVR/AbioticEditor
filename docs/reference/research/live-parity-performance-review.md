@@ -29,15 +29,16 @@ implementation pass, not a complete gameplay certification or a measured memory 
 
 | Area | Offline | Live gaps after this pass |
 | --- | --- | --- |
-| Inventory | Full saved slot data | Ammo now crosses the live channel. Liquid type/level, custom strings, asset IDs, and visual variants now cross both inventory channels. Dynamic property arrays, gameplay tags, coating fields, and complete moved-item fidelity remain open; the new metadata paths still need in-game persistence verification. |
-| Character | Appearance, background, traits | Background supported; traits remain read-only and full saved appearance is not exposed through the live player facade. |
+| Inventory | Full saved slot data | Ammo, liquid type/level, custom strings, asset IDs, visual variants, dynamic property arrays, gameplay tags, coating fields, and item-table overrides now all cross both inventory channels (`inventory.setcomplete`/`containers.setcomplete`), including a direct player-to-container transfer (`inventory.transfer`). Implemented 2026-09-16; still needs in-game persistence verification. |
+| Character | Appearance, background, traits | Background, traits, and appearance are all editable live now (`general.trait.set`, `appearance.get/set/save`). Implemented 2026-09-16; still needs in-game verification. |
 | General | Owner ID, discoveries, counters | Owner identity remains save-only. Hosts can now add crafted-item discoveries when the agent reports support. |
 | Recipes | Unlock and relock | Hosts can now relock. Bulk unlock retains batching through the shared player facade. |
 | GatePal | Set and clear known state | Hosts can now clear supported known entries. Kill-only compendium entries remain read-only. Mark All is batched. |
 | Skills | Saved skills and progress | Live writes depend on existing supported game skill entries. |
 | Spawn | Saved region, bed, terminal, coordinates | Live teleport and terminal selection exist; saved-world integration is unavailable. |
-| World story | Flags, clock, metadata, global unlock arrays | Global recipe editing is implemented for hosts with TSet support. Minutes-passed editing and full cross-file revert equivalence remain open. |
-| Bases | Bench upgrades and deployable data | Bench-upgrade installation remains disabled after a native crash report. Requires grounded game API research before enabling. |
+| World story | Flags, clock, metadata, global unlock arrays | Global recipe editing is implemented for hosts with TSet support. World play time is now settable (`world.setPlaytime`), implemented 2026-09-16, still needs in-game verification. Full cross-file revert equivalence remains open. |
+| Bases | Bench upgrades and deployable data | Bench-upgrade installation and removal are both implemented (2026-09-16), writing the bench's own GameplayTag container directly instead of the crash-prone native calls. Still needs in-game verification. |
+| Deployed care | Garden plots, Power Chairs, chemistry benches | Watering/fertilising/growth-stage edits, Power Chair charge, and chemistry-bench flask readouts are implemented (2026-09-16) via each deployable's own save-aware functions. Still needs in-game verification. |
 | Pets | Saved species and state | Species changes unsupported. Some companion follower families cannot be matched for despawning. |
 | Doors, containers, vehicles, NPCs, portals | All persisted region entries | Live scope is loaded actors and available host authority; not all saved fields have live equivalents. |
 | Raw data, entitlements, identity, backup/undo | Save-file operations | No general live equivalent. These should not be enabled through speculative game writes. |
@@ -100,26 +101,46 @@ passed after adding container metadata and world-recipe interface coverage. The 
 These are protocol/session checks, not proof of game persistence or client replication.
 No game was running and no existing game save was edited during this follow-up.
 
+### Implemented, pending in-game verification (2026-09-16)
+
+The four items below were the top of the previous "remaining implementation" list; all four
+landed in the feature/live-editing-parity change and pass the editor's own protocol/session and
+Lua tests, but none has been exercised against a running game yet.
+
+1. **Item metadata fidelity.** All item dynamic properties, gameplay tags, coatings, and
+   item-table overrides now travel through `inventory.setcomplete`/`containers.setcomplete`
+   (`Scripts/item_metadata.lua`) across swaps, sorting, upgrades, and the new cross-inventory
+   `inventory.transfer`. Needs in-game verification that clear/reuse does not carry old item
+   state into a new item.
+2. **Traits.** `general.trait.set` updates `CharacterProgressionComponent.Traits` and calls
+   `Server_AddTraitBuff`/`Server_RemoveTraitBuff` with the row's real buff handle, without
+   replaying `InitializeTraits` (which also grants items and changes skills). Needs in-game
+   add/remove, reconnect, and save/reload verification.
+3. **Appearance.** `appearance.get`/`appearance.set`/`appearance.save` write
+   `HumanCustomizationComponent`'s real per-slot row-handle fields directly and call each
+   field's own `OnRep_<Property>`, with `appearance.save` persisting the local profile through
+   the game's own `SaveGameToSlot`. Needs in-game verification of both visible appearance and
+   saved-profile state.
+4. **Bench upgrades.** `Scripts/bench_tags.lua` installs and removes upgrades by writing the
+   bench's own `GameplayTag` container directly, replacing the native `Has Upgrade`/`AddUpgrade`
+   calls that crashed the bridge. Needs in-game verification that install/remove/reconnect all
+   report the same state.
+
 ### Remaining implementation and game verification
 
-1. Preserve all item dynamic properties, gameplay tags, coatings, and item-table overrides
-   through swaps, sorting, upgrades, and cross-inventory transfers. Verify that clear/reuse
-   does not carry old item state into a new item.
-2. Traits: the exported SetTraits writes the list and preserves Sundisk. InitializeTraits
-   calls Server_AddTraitBuff, but also grants items and changes skills. Implement incremental
-   effect updates using real buff row handles, then test add/remove, reconnect, and save/reload.
-   This corrects earlier notes claiming trait buffs were unrelated to selected traits.
-3. Appearance: map Server_ApplyCustomizationChange's real row-handle, customization enum,
-   voice object, and vector parameters, then verify both visible appearance and saved state.
-4. Bench upgrades: obtain real upgrade handles and trace install/remove effects. Keep the
-   previously crashing path disabled until an isolated runtime test establishes safety.
-5. Complete world clock counters, species changes, follower despawning, loaded/unloaded actor
-   behavior, and story-revert consequences. Check each against the offline writer's fields.
-6. Decide explicit live semantics for save-file operations: account identity, raw file data,
-   entitlements, backups, and undo cannot be represented as arbitrary connected-player edits.
-7. In a disposable copied world, verify every new edit via agent readback, visible game state,
-   a second connected client where applicable, and save/reload. Exercise host/client capability
-   changes and an older agent. A test-world/launch question is pending in the conversation.
+1. Multiplayer propagation of every new write above (item metadata, traits, appearance, bench
+   upgrades, deployed care, world play time, and the player/container transfer): confirm a
+   second connected client sees each change, not just the host's own readback.
+2. Save/reload persistence for each new write: confirm the change survives a world save and
+   reload, not only an immediate in-session readback.
+3. Pet species changes, and matching the remaining companion follower families for despawning.
+4. Owner identity: renaming which save file a character belongs to has no running in-game
+   concept to change, and stays a file-only operation.
+5. Raw save data, entitlements, backups, and undo: these are save-file operations with no live
+   equivalent, and should not be simulated through speculative game writes.
+6. In a disposable copied world, verify every implemented-pending-verification item above via
+   agent readback, visible game state, a second connected client where applicable, and
+   save/reload. Exercise host/client capability changes and an older agent.
 
 Research is reproducible with LiveParityClassProbe and LIVE_PARITY_PROBE_OUT. The generated
 exports stay under uncommitted artifacts; only the opt-in probe is source-controlled.

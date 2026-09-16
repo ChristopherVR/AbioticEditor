@@ -4,9 +4,12 @@ namespace AbioticEditor.Core.LiveEditing.World;
 /// Live world-bases editing: lists every deployable currently loaded (anything deriving from
 /// <c>AbioticDeployed_ParentBP</c> - benches, furniture, defenses, containers) with its world
 /// position, player-given name, and (round 77) bench-upgrade state, and lets a host rename one
-/// and install an upgrade module - see <c>bases.list</c>/<c>bases.set</c> in
-/// <c>live-agent/AbioticEditorLiveAgentLua/Scripts/areas/bases.lua</c>. Removing an installed
-/// upgrade has no evidenced live function and is refused by the Lua side itself.
+/// and install or remove an upgrade module - see <c>bases.list</c>/<c>bases.set</c> in
+/// <c>live-agent/AbioticEditorLiveAgentLua/Scripts/areas/bases.lua</c>. Both directions write the
+/// bench's own GameplayTag container directly (never the native Has Upgrade/AddUpgrade calls,
+/// which crashed the bridge); whether removal is available on the connected runtime is reported
+/// per deployable as <see cref="LiveDeployable.CanEditUpgrades"/> and overall as
+/// <see cref="LiveDeployableDirectory.SupportsBenchUpgradeRemoval"/>.
 /// </summary>
 public sealed class LiveBasesChannel(ILiveGameChannel channel)
 {
@@ -27,8 +30,8 @@ public sealed class LiveBasesChannel(ILiveGameChannel channel)
     public Task SetCustomNameAsync(string deployableId, string? customName, CancellationToken cancellationToken = default)
         => _channel.RequestAsync<object?>("bases.set", new SetWire(deployableId, customName, null, null), cancellationToken);
 
-    /// <summary>Installs one bench upgrade module immediately. Host only; there is no live
-    /// removal (the Lua side itself refuses <paramref name="installed"/> = false).</summary>
+    /// <summary>Installs or removes one bench upgrade module immediately (<paramref name="installed"/>
+    /// selects which). Host only, and only on deployables reporting <c>CanEditUpgrades</c>.</summary>
     public Task SetBenchUpgradeAsync(string deployableId, string row, bool installed, CancellationToken cancellationToken = default)
         => _channel.RequestAsync<object?>("bases.set", new SetWire(deployableId, null, row, installed), cancellationToken);
 
@@ -50,6 +53,9 @@ public sealed record LiveDeployable(string Id, string ClassName, double X, doubl
 
 /// <summary>Every loaded deployable, whether this process has host authority to change them, and
 /// whether bench-upgrade installation is available live (yes, since round 77 - see
-/// <see cref="LiveDeployable.SupportsUpgrades"/> per-row; removal is never available).</summary>
+/// <see cref="LiveDeployable.SupportsUpgrades"/> per-row). Whether upgrade *removal* is also
+/// available depends on <see cref="SupportsBenchUpgradeRemoval"/>: it writes the bench's
+/// GameplayTag container directly instead of the crash-prone Has Upgrade/AddUpgrade calls, so an
+/// older live agent that predates that change reports it unsupported.</summary>
 public sealed record LiveDeployableDirectory(IReadOnlyList<LiveDeployable> Deployables, bool IsHost,
     bool SupportsBenchUpgrades, bool SupportsBenchUpgradeRemoval = false);

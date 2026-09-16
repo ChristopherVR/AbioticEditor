@@ -147,10 +147,27 @@ waiting for the player to press the button.
 | `currentWeather` | string | Active weather event row (`None` when clear) |
 | `weatherOptions` | string[] | Every weather row the game knows, `None` first |
 | `isHost` | bool | Whether this process can change any of it |
+| `minutesPassed` | number? | Total world play time in minutes (2026-09-16, see `world.setPlaytime` below) |
+| `canSetMinutesPassed` | bool | Whether this process can change `minutesPassed` |
 
 `world.set` takes any subset of `{"timeSeconds","day","weather","nextWeather"}`. `weather`
 triggers that event immediately (`None` ends the current one); `nextWeather` queues it for the
 next in-game day. Host only.
+
+### `world.setPlaytime` - total world play time (2026-09-16)
+
+**Implemented, awaiting in-game verification.** The counterpart to the file editor's world
+playtime field (`WorldSave_MetaData.sav`'s `MinutesPassed`, which `DayNightCycle`/
+`GameMode.ApplyWorldSaveData` load into `AbioticGameState.SavedElapsedMinutes`, and
+`SetTimeOfDayOnWorldSave` persists back from `GetElapsedMinutes()`). `world.get` wraps its
+existing handler (`ctx.worldGetWithoutPlaytime`) to add `minutesPassed`/`canSetMinutesPassed`
+without disturbing the rest of the response. `world.setPlaytime` takes
+`{"minutesPassed"}` (a nonnegative whole number of minutes), host only: it computes the offset
+needed so `GetElapsedMinutes()` reports the requested total, writes it to
+`SavedElapsedMinutes`, marks the property for replication, and flushes net dormancy - the
+running session clock itself keeps advancing normally from that new base. The write is verified
+by an immediate readback; a mismatch (or an offset outside the 32-bit range the field can hold)
+is reported as an error rather than silently applied.
 
 ## `world.info` - current region (round 78)
 
@@ -256,37 +273,44 @@ calls it with. Not exercised by any mod, so genuinely unproven end-to-end; the i
 wherever the game's own `FindBestItemDropLocation` puts it (near the player), not at a
 caller-chosen position - unlike the file editor's own explicit-`x`/`y`/`z` add. Host only.
 
-## `bases.list` / `bases.set` - deployables (round 76, bench upgrades round 77)
+## `bases.list` / `bases.set` - deployables (round 76, bench upgrades round 77, upgrade removal 2026-09-16)
 
 `bases.list` returns `{"deployables":[{"id","className","x","y","z","customName","hasInventory",
-"storedItemCount","supportsUpgrades","installedUpgrades":[...]}],"isHost":bool,
-"supportsBenchUpgrades":true,"supportsBenchUpgradeRemoval":false}` for every deployable currently
+"storedItemCount","supportsUpgrades","canEditUpgrades","installedUpgrades":[...]}],"isHost":bool,
+"supportsBenchUpgrades":bool,"supportsBenchUpgradeRemoval":bool}` for every deployable currently
 loaded (`AbioticDeployed_ParentBP` and every subclass - benches, furniture, defenses,
-containers). `supportsUpgrades`/`installedUpgrades` are meaningful only for benches; every other
-deployable reports `false`/`[]`. `bases.set` takes `{"id","customName"?,"upgradeRow"?,
-"upgradeInstalled"?}` and renames the object and/or installs a bench upgrade immediately. Host
-only, like `containers.set`/`doors.set`.
+containers). `supportsUpgrades`/`canEditUpgrades`/`installedUpgrades` are meaningful only for
+benches; every other deployable reports `false`/`false`/`[]`. `bases.set` takes `{"id",
+"customName"?,"upgradeRow"?,"upgradeInstalled"?}` and renames the object and/or installs or
+removes a bench upgrade immediately. Host only, like `containers.set`/`doors.set`.
 
-Bench-upgrade **installation, and the `installedUpgrades` probe, are both disabled (round 79)**.
-Round 77 grounded installation in the bench class's own real functions -
-`AddUpgrade(Upgrade: <RowHandle struct>)` and `"Has Upgrade"(Upgrade: <RowHandle struct>) : bool`
-(note the literal space in that second function's own compiled name: UE4SS Lua calls it as
-`bench["Has Upgrade"](bench, handle)`, not `bench:HasUpgrade()`) - but the row-handle struct's
-`DataTablePath` was reconstructed from the pak's own asset location
-(`Content/Blueprints/DataTables/DT_BenchUpgrades.uasset` -> `/Game/Blueprints/DataTables/
-DT_BenchUpgrades.DT_BenchUpgrades`) rather than fetched from a live enumeration function (none
-exists for this table, unlike weather/flags), and stayed flagged "genuinely unverified against the
-running game" ever since. A player reported the BASES tab crashing the game with a fatal error
-every time it was opened; `bases.list` used to call `"Has Upgrade"` with this same fabricated
-handle for every one of the 11 known rows, for every bench, on every list/refresh - unconditional
-native reflection calls with a struct whose shape does not match the engine's real parameter type
-do not raise a catchable Lua error, they crash the process, which is consistent with the report.
-`installedUpgrades` is now always `[]`; `bases.set`'s `upgradeRow` (install) branch now refuses
-with an error instead of calling `AddUpgrade` with the same handle, until someone finds (or
-builds, live, field-by-field) a real handle to check the struct shape against. `supportsUpgrades`
-(a plain boolean property read, not the risky call) still reports correctly. **Removal** was
-already refused outright (`upgradeInstalled:false` is rejected with an error) - there is no
-`RemoveUpgrade`/`Server_RemoveUpgrade` anywhere in the bench's ~90 functions.
+**Bench-upgrade editing no longer calls the native `AddUpgrade`/`"Has Upgrade"` functions at
+all** (implemented, awaiting in-game verification). Round 77 grounded installation in those two
+real functions, but the row-handle struct fed to them had to be reconstructed by hand (no live
+enumeration function exists for `DT_BenchUpgrades`), and a player reported the BASES tab crashing
+the game with a fatal error every time it was opened - `bases.list` used to call `"Has Upgrade"`
+with that fabricated handle for every known row, for every bench, on every list/refresh, and an
+unconditional native reflection call with a struct whose shape does not match the engine's real
+parameter type does not raise a catchable Lua error, it crashes the process. `Scripts/bench_tags.lua`
+replaces both calls: a bench upgrade is really just one `BenchUpgrade.<Row>` `GameplayTag` on the
+bench's own `UpgradeTagContainer` (plus its saved mirror in `ChangeableData`'s tags struct), so
+installing or removing one now means writing that tag container directly - append the tag to
+install, filter it out to remove - then marking both properties for replication, flushing net
+dormancy, calling `OnRep_UpgradeTagContainer()`, and calling the bench's own `SaveDeployable()`.
+See `Scripts/areas/bases.lua`'s header comment: "Never call Has Upgrade/AddUpgrade with Lua-built
+row handles: both fabricated and real-enumerated-handle copies crashed the native bridge during
+Cascade verification." `installedUpgrades` is read back the same direct way, from the tag
+container's `BenchUpgrade.<Row>` entries, instead of probing with `"Has Upgrade"`.
+
+Availability is reported per deployable (`canEditUpgrades`, true only when the bench supports
+upgrades AND its tag containers are readable/replication is available) and overall
+(`supportsBenchUpgrades`/`supportsBenchUpgradeRemoval` on the directory, both true exactly when at
+least one loaded bench reports `canEditUpgrades`) so an older client or runtime degrades to
+read-only instead of guessing. `upgradeRow` must be one of the 11 known `DT_BenchUpgrades` rows
+(mirrored in Lua as `BENCH_UPGRADE_ROWS`, row-for-row the same as
+`AbioticEditor.Core.WorldSaves.BenchUpgradeCatalog.All`); `upgradeInstalled` defaults to `true`
+when omitted, so passing `false` removes it.
+
 Opening a bench or crate's contents inline (the file editor's slot grid) is still file-only - it
 shares the CONTAINERS tab's staged slot model; use the CONTAINERS tab for live slot editing.
 
@@ -428,6 +452,38 @@ level-baked linking ids (read-only). `portals.set` takes
 installed mod exercises this actor class; this is the first live write to it. Same partial-apply
 behavior as `doors.set`: a row with an unresolved `id` does not block the others in the same
 call, but the overall reply becomes an error naming it.
+
+## `care.list` / `care.set` - deployed-object care: gardens, Power Chairs, chemistry benches (2026-09-16)
+
+**Implemented, awaiting in-game verification.** The live counterpart of watering/fertilizing a
+garden plot, charging a Power Chair, and reading a chemistry bench's flask contents. Unlike most
+world areas this one covers three unrelated deployable classes behind one `featureId`:
+`"garden-plots"` (`GardenPlot_ParentBP_C`), `"power-chairs"`
+(`Deployed_Furniture_Chair_PowerChair_C`), and `"chemistry-benches"` (`Deployed_ChemistryBench_C`).
+Each uses only the deployable's own save-aware functions (`Server_ModifyFillState`,
+`SetPlantFertilized`/`SetCurrentGrowthProgress`/`SetCurrentGrowthStage`/`SavePlot`,
+`RechargeableComponent:Server_ModifyBattery`); no native row handles are constructed.
+
+`care.list` takes `{"featureId"}` and returns `{"entries":[{"id","label","fields":[...],
+"containerId"?}],"isHost":bool}` for every loaded object of that feature's class. Each field is
+`{"id","label","value","kind","editable","options"?,"maximum"?}` (`kind` is `"integer"`,
+`"enum"`, or `"text"`; `editable` is false for host-only or read-only fields on a non-host
+connection). Garden plots report a `water` field plus, per planted spot, `fertilizer:<index>`,
+`crop:<index>` (read-only class label) and `stage:<index>`/`growth:<index>` for spots that
+currently have a plant. Power Chairs report a single `charge` field (0-200). Chemistry benches
+report their input/output flask slots (`flask:0`..`flask:3`) as read-only row-name text; a
+chemistry bench entry also carries `containerId` equal to its own `id`, since its flask
+inventory is the same slot data `containers.list`/`.set` already reads - use that pair, not
+`care.set`, to change what is loaded in a flask.
+
+`care.set` takes `{"featureId","id","fieldId","value"}`, host only, and applies exactly one field:
+`water` (0..the plot's `Liquid_MaxFill`), `fertilizer:<index>` (0..10000), `growth:<index>`
+(0..10000, only on a spot with a plant), `stage:<index>` (one of the eight named growth stages,
+only on a spot with a plant), or a Power Chair's `charge` (0..200). Every other field, including
+all chemistry-bench fields, is read-only and rejected. After writing, the handler re-reads the
+object's fields and errors if the requested value was not retained instead of reporting success
+on a write the game silently ignored.
+
 ## `spawn.get` / `spawn.set` - player position and respawn point
 
 `spawn.get` takes no payload (or `{"playerId":"…"}`) and returns:
@@ -596,13 +652,23 @@ player's `PlayerState` (found via `APawn.PlayerState`, the base-engine property 
 needed because a replicated UPROPERTY changed on the server's own authoritative object replicates
 to owning clients on the next network update.
 
-**Traits remain read-only pending in-game validation.** The 2026-09-15 bytecode probe
-corrected the earlier claim that trait buffs were unrelated. `InitializeTraits` explicitly
-calls `Server_AddTraitBuff` using each trait row's buff handle. `SetTraits` changes the trait
-array and marks it for replication, preserving the Sundisk trait. It does not itself run
-initialization. `InitializeTraits` also grants items and changes skill state, so replaying it
-is unsuitable for an incremental edit. A complete setter needs to update the trait list and
-apply/remove the corresponding effects without replaying those rewards.
+### `general.trait.set` - toggle a character trait (2026-09-16)
+
+**Traits are now editable live** (implemented, awaiting in-game verification), replacing the
+earlier read-only state. The 2026-09-15 bytecode probe found that `InitializeTraits` calls
+`Server_AddTraitBuff` using each trait row's buff handle, but also grants starting items and
+skill XP, so replaying it whole is unsuitable for an incremental edit. `general.trait.set`
+instead does only the incremental part: it takes `{"playerId"?, "id", "enabled", "buffRowName"}`
+where `id` is the trait row name (as reported in `general.get`'s `traits` array), `enabled`
+selects add/remove, and `buffRowName` is the row's installed trait buff (an empty or `"None"`
+value skips the buff call and only updates the trait list, for a trait with no buff of its own).
+The host rebuilds `CharacterProgressionComponent.Traits` with the trait added or removed and
+marks it for replication, and calls `Server_AddTraitBuff`/`Server_RemoveTraitBuff` with the row's
+handle from `BuffDebuffHandleFunctionLibrary` on the player's `CharacterBuffComponent` - never
+`InitializeTraits`, so no rewards replay. A failed buff call rolls the trait list back to its
+original value before returning the error. `general.get` reports `canEditTraits` (host authority
+plus these classes being available on the connected runtime); older agents omit it and traits
+stay read-only there.
 
 **The account/owner-id change has no live path at all** and is not part of this wire protocol:
 renaming which save file a character belongs to is purely a file-system operation, with no running
@@ -610,10 +676,40 @@ in-game concept to change. The desktop app hides that section's CHANGE button wh
 and shows the connected player's own id (the live directory id `players.list` handed out - a
 SteamID64 for a Steam player) as a plain readout instead.
 
-**Appearance remains unimplemented live.** The file editor edits `ScientistCustomization`.
-The exported `HumanCustomizationComponent.Server_ApplyCustomizationChange` provides a research
-path for live updates, but its row handles, enum values, voice object, and color vectors need
-in-game round-trip and persistence tests before enabling the controls.
+## `appearance.get` / `appearance.set` / `appearance.save` - character look (2026-09-16)
+
+**Appearance is now editable live** (implemented, awaiting in-game verification). The file
+editor edits `ScientistCustomization`; live editing instead writes the running
+`HumanCustomizationComponent`'s own fields, the same ones `Server_ApplyCustomizationChange`
+assigns, then calls each field's real `OnRep_<Property>` so local meshes refresh immediately
+without waiting for a remote-client-style replication callback.
+
+`appearance.get` takes an optional `{"playerId":"…"}` payload and returns:
+
+```json
+{"fields":{"Customization_Head":"Head_01", "Customization_HairStyle":"Hair_03", "..."},
+ "canEdit":true, "canSaveProfile":true, "hasProfileChanges":false}
+```
+
+`fields` covers every customization slot the component exposes: head, head accessory, wristwatch,
+tie, upper body, lower body, hair style, hair color, shirt color, shoes, belt, beard (`FacialTrait`
+under the wire key `customization_beard`), and ID card. `canEdit` requires host authority and
+replication support. `canSaveProfile`/`hasProfileChanges` report whether this connected player is
+the local computer's own character (only that profile can be saved - see `appearance.save`) and
+whether its live values differ from the saved local profile.
+
+`appearance.set` takes `{"playerId"?, "propertyName", "rowName"}`, host only: `propertyName` is one
+of the `fields` keys above, `rowName` is a row from that field's own customization DataTable
+(rejected if the row does not exist). The host writes the component's property, marks it for
+replication, and calls its `OnRep_<Property>` function directly; a failed write rolls the field
+back to its previous value.
+
+`appearance.save` takes an optional `{"playerId"?}` payload, host only, and only for the local
+computer's own character (the same restriction `canSaveProfile` reports): it copies the running
+component's current field values into the local `CurrentCustomizationSave` profile through the
+game's own `SaveGameToSlot` API (so platform-specific save storage is still handled correctly),
+after first backing up the existing profile to a `.bak` slot; a failed save restores the backed-up
+values.
 
 ## `worldunlocks.get` / `worldunlocks.set` - world-wide (not per-player) unlocks (round 77)
 
@@ -713,8 +809,7 @@ command names make older agents reject these writes rather than silently ignore 
 Empty text clears a custom label; empty/None variant resets its override. Liquid names map
 through the actual UEnum values, not their numeric-looking suffix. All edits in a batch
 validate before the first slot changes, including variant DataTable row existence. Rich
-writes require replication notification support. Dynamic property arrays, gameplay tags,
-and weapon coatings are not yet carried by this details object.
+writes require replication notification support.
 
 `codex.get` reports `canUnsetKnown`. A host may send
 `codex.set` with `{"clear":{"section":"emails","ids":["Email_Row"]}}`. Sections are
@@ -727,6 +822,49 @@ Set operations follow the [UE4SS TSet API](https://docs.ue4ss.com/dev/lua-api/cl
 Direct replicated writes use [UNetPushModelHelpers.MarkPropertyDirty](https://dev.epicgames.com/documentation/unreal-engine/API/Runtime/Engine/Net/UNetPushModelHelpers/MarkPropertyDirty?application_version=5.5).
 These additions pass the stub harness, but actual multiplayer propagation and save/reload
 persistence still require an installed-game verification run.
+
+## Complete item instance metadata, and moving items into a container (2026-09-16)
+
+**Implemented, awaiting in-game verification.** `Scripts/item_metadata.lua` extends `details`
+with `instanceMetadata`, the same complete per-instance state a save-file edit already keeps
+(pet progress, weapon coatings, custom variant/item DataTable overrides, and every gameplay tag),
+so moving or editing an item live no longer quietly drops it:
+
+```json
+{"instanceMetadata":{
+  "dynamicProperties":[{"key":"EDynamicProperty::WeaponCoating","value":2},
+    {"key":"EDynamicProperty::CoatingDurability","value":30}],
+  "gameplayTags":["Item.Special"], "parentGameplayTags":["Item"],
+  "itemDataTable":"/Game/Mods/Items.Items", "variantDataTable":"/Game/Mods/Variants.Variants"}}
+```
+
+`dynamicProperties` is read from `Abiotic_InventoryChangeableDataStruct`'s
+`DynamicProperties`/`GameplayTags` fields, with each dynamic property's numeric `EDynamicProperty`
+key resolved to its enum name through `EDynamicProperty:GetNameByValue`. `itemDataTable`/
+`variantDataTable` are the instance's own DataTable object paths (not the field-default table),
+read via `GetFullName()`; a `.set` write that changes `itemId` while keeping `instanceMetadata`'s
+`itemDataTable` unset falls back to preserving the slot's existing table, the same as before
+this change, but an explicit `itemDataTable` always wins (needed for a moved item whose row lives
+in a modded table the field default does not point at).
+
+Edits carrying `instanceMetadata` use `inventory.setcomplete`/`containers.setcomplete` -
+distinct command names, the same pattern as `inventory.setfull`/`containers.setfull` above, so
+that an older agent rejects the payload outright instead of silently dropping the metadata
+fields it does not understand. All three command names (`.set`/`.setfull`/`.setcomplete`) are
+aliases of the exact same handler; only the name differs, purely to gate what an older runtime
+accepts. Writing `instanceMetadata` validates every dynamic-property key against the live
+`EDynamicProperty` enum, rejects duplicate keys, and range-checks known keys (a weapon coating
+below `-1`, or a coating durability below `0`, is refused) before any slot is touched.
+
+`inventory.transfer` (host only) moves whatever is in one slot directly into another, including
+across a player inventory and a world container in one call: `{"first":{"slotIndex","containerId"?,
+"kind"?,"playerId"?}, "second":{...}}`. `containerId` addresses a loaded container slot (the same
+`id` `containers.list` returns); otherwise `kind` (`backpack`/`equip`/`hotbar`/`transmog`) and
+optional `playerId` address a player inventory slot, exactly like `inventory.set`. Both
+endpoints are resolved and their full complete-metadata snapshots taken on one game-thread
+callback before either is written, so a failed validation on one side cannot duplicate or lose the
+item on the other; requesting `instanceMetadata` fails outright if either resolved slot's details
+predate this change (an older agent). Swapping a slot with itself is a no-op.
 
 ## Related screens
 

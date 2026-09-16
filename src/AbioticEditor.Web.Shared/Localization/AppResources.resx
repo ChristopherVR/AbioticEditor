@@ -174,6 +174,7 @@
   <data name="PlayerCharacter_Background" xml:space="preserve"><value>BACKGROUND</value></data>
   <data name="PlayerCharacter_BackgroundHelp" xml:space="preserve"><value>Changes your listed job only. Starting gear and skill bonuses stay the same.</value></data>
   <data name="PlayerCharacter_Character" xml:space="preserve"><value>Character</value></data>
+  <data name="PlayerCharacter_Description" xml:space="preserve"><value>DESCRIPTION</value></data>
   <data name="PlayerCharacter_NoTraitsMatch" xml:space="preserve"><value>No traits match (or all are already applied).</value></data>
   <data name="PlayerCharacter_SaveAppearance" xml:space="preserve"><value>SAVE APPEARANCE</value></data>
   <data name="PlayerCharacter_SearchTraitsPlaceholder" xml:space="preserve"><value>Search traits to add...</value></data>
@@ -4048,6 +4049,9 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Live_TabPortals" xml:space="preserve"><value>WORLD TELEPORTERS</value></data>
   <data name="Live_TabEntitlements" xml:space="preserve"><value>ENTITLEMENTS</value></data>
   <data name="Live_TabWildlife" xml:space="preserve"><value>CREATURES</value></data>
+  <data name="Live_TabGardenPlots" xml:space="preserve"><value>Garden plots</value></data>
+  <data name="Live_TabPowerChairs" xml:space="preserve"><value>Power chairs</value></data>
+  <data name="Live_TabChemistryBenches" xml:space="preserve"><value>Chemistry benches</value></data>
   <data name="LiveTraders_Title" xml:space="preserve"><value>TRADERS</value></data>
   <data name="LiveTraders_Intro" xml:space="preserve"><value>The trader roster and what still gates each one. Unlocking sets the missing quest flags through the running game's own flag system - the same effect as reaching that moment in the story.</value></data>
   <data name="LiveTraders_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to unlock traders. Editing here as a joined client would not stick.</value></data>

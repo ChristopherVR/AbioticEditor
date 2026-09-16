@@ -145,7 +145,7 @@ else
                     <button role="tab" aria-selected="@(_worldTab == "portals")" class="@(_worldTab == "portals" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("portals")'>@L.Resource("Live_TabPortals")</button>
                     @foreach (var feature in CareFeatures)
                     {
-                        <button role="tab" aria-selected="@(_worldTab == feature.Id)" class="@(_worldTab == feature.Id ? "selected" : null)" @onclick="() => SelectWorldTabAsync(feature.Id)">@feature.Title</button>
+                        <button role="tab" aria-selected="@(_worldTab == feature.Id)" class="@(_worldTab == feature.Id ? "selected" : null)" @onclick="() => SelectWorldTabAsync(feature.Id)">@L.Resource(feature.TitleKey)</button>
                     }
                     <button role="tab" aria-selected="@(_worldTab == "raw")" class="@(_worldTab == "raw" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("raw")'>@L.Resource("WorldEditor_TabRawJson")</button>
                 }
@@ -305,8 +305,8 @@ else
     private LiveTradersSession? _traders;
     private LivePortalsFeatureSession? _portals;
     private readonly Dictionary<string, LiveDeployedCareSession> _care = new(StringComparer.Ordinal);
-    private static readonly (string Id, string Title)[] CareFeatures =
-        [("garden-plots", "Garden plots"), ("power-chairs", "Power chairs"), ("chemistry-benches", "Chemistry benches")];
+    private static readonly (string Id, string TitleKey)[] CareFeatures =
+        [("garden-plots", "Live_TabGardenPlots"), ("power-chairs", "Live_TabPowerChairs"), ("chemistry-benches", "Live_TabChemistryBenches")];
     private string? _careContainerFilter;
 
     private async Task OpenCareContainerAsync(string id)

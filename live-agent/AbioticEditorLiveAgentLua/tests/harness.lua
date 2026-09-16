@@ -291,7 +291,8 @@ function H.hostSession()
         Compendium_ExplorationSections = { H.fname("Compendium_Office") },
         Compendium_EmailSections = {},
         Compendium_NarrativeNPCSections = {},
-        -- Round 77: read-only through general.get - see general.lua's header comment.
+        -- Traits are now editable through general.trait.set, which needs an installed trait
+        -- buff row to toggle against - see general.lua's header comment.
         Traits = { H.fname("Trait_Chef") },
     }, {
         Request_UnlockNewRecipe = function() end,

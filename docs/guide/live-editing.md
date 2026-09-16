@@ -89,10 +89,17 @@ or sorting it. Update the helper while the game is closed before using this addi
 This new field still needs in-game verification. Recipe **Unlock All** and GatePal **Mark All**
 now send one grouped request instead of a separate request for every entry.
 
+The editor can now also change traits, character appearance, and bench upgrades while
+connected, and moving or editing an item keeps every extra detail it carries (things like pet
+progress, weapon coatings, and custom variants) instead of losing them on the way. You can also
+move an item directly between your own inventory and a nearby container, water and fertilise
+garden plots, charge Power Chairs, and adjust the world's total play time. These are new and
+still being checked against a running game, so keep an eye on them and update the agent if
+something looks off.
+
 These limits are deliberate:
 
-- Bench-upgrade installation is disabled after a reported native game crash.
-- Traits, world-wide recipe unlocks, pet species, and some missing skill entries cannot be changed live.
+- Pet species, world-wide recipe unlocks, and some missing skill entries cannot be changed live.
 - Objects outside loaded sectors cannot appear. Move close to them and refresh, or edit their region save offline.
 
 The [live-editing protocol](/reference/live-editing-protocol) records the technical status of each action. Live editing is still experimental, so a game update can change what works.

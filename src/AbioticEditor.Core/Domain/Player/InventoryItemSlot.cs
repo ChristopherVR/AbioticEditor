@@ -29,7 +29,34 @@ public sealed record InventoryItemSlot(
 
 /// <summary>Complete extra instance state retained by connected inventories during moves.</summary>
 public sealed record InventoryInstanceMetadata(IReadOnlyList<InventoryDynamicProperty> DynamicProperties,
-    IReadOnlyList<string> GameplayTags, string? ItemDataTable = null, string? VariantDataTable = null, IReadOnlyList<string>? ParentGameplayTags = null);
+    IReadOnlyList<string> GameplayTags, string? ItemDataTable = null, string? VariantDataTable = null, IReadOnlyList<string>? ParentGameplayTags = null)
+{
+    // The record keyword generates reference equality for list-typed positional members, so
+    // dirty-tracking (PlayerInventorySlotEdit.IsDirty, WorldContainersTab, PlayerTransmogTab,
+    // PlayerSaveSession.IsDirty) would treat every fresh live-refresh copy as changed. Override
+    // with sequence equality instead; a null ParentGameplayTags is treated the same as empty.
+    public bool Equals(InventoryInstanceMetadata? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return DynamicProperties.SequenceEqual(other.DynamicProperties)
+            && GameplayTags.SequenceEqual(other.GameplayTags, StringComparer.Ordinal)
+            && string.Equals(ItemDataTable, other.ItemDataTable, StringComparison.Ordinal)
+            && string.Equals(VariantDataTable, other.VariantDataTable, StringComparison.Ordinal)
+            && (ParentGameplayTags ?? []).SequenceEqual(other.ParentGameplayTags ?? [], StringComparer.Ordinal);
+    }
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        foreach (var property in DynamicProperties) hash.Add(property);
+        foreach (var tag in GameplayTags) hash.Add(tag, StringComparer.Ordinal);
+        hash.Add(ItemDataTable, StringComparer.Ordinal);
+        hash.Add(VariantDataTable, StringComparer.Ordinal);
+        foreach (var tag in ParentGameplayTags ?? []) hash.Add(tag, StringComparer.Ordinal);
+        return hash.ToHashCode();
+    }
+}
 
 /// <summary>A game-defined dynamic property, including pet progress and weapon coatings.</summary>
 public sealed record InventoryDynamicProperty(string Key, int Value);
