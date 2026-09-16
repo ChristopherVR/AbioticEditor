@@ -1,5 +1,39 @@
 # Abiotic Editor - Session history
 
+## Full live parity landed, bundled UE4SS, artifacts ignored (2026-09-16)
+
+Resumed the interrupted parity session. Committed its uncommitted work: live trait editing
+through the installed trait buff row (never replaying trait initialization), live appearance
+editing with a profile save, bench upgrade install and removal by writing the bench's own
+upgrade tags (the native Has Upgrade/AddUpgrade calls crashed the game in Cascade, even with
+real handles), complete item instance metadata (dynamic properties, gameplay tags, table
+paths) over new `inventory.setcomplete`/`containers.setcomplete` names, one-request player
+to container transfers, processing benches listed with containers, garden/Power Chair/
+chemistry care tabs, and live play-time editing. An audit found every layer wired and one
+real bug: list-backed record equality made metadata-bearing slots read as dirty after each
+live refresh, causing needless re-sends. Fixed with sequence equality plus tests. Care tab
+names are now translatable. Protocol reference, live guide and the parity review document
+the new commands; all are marked as implemented but awaiting in-game verification.
+
+The Windows release now bundles a pinned UE4SS package (`live-agent/ue4ss/runtime.json`,
+exact asset name, size and SHA-256; `tools/fetch-ue4ss.ps1` fetches it in release CI). When
+UE4SS is missing, This PC shows a consent screen naming the version and folder, installs
+only the runtime plus shared files with an empty mods list, then deploys the agent. Existing
+loader traces are never overwritten; builds without the bundle keep the manual guide. UE4SS
+(MIT) is listed in the third-party notices. Caveat: the pinned build v3.0.1-1135-gf6d5f942
+has not been run against the game; the install every live check used is v3.0.1 Beta, Git SHA
+01e0a584, which upstream no longer publishes. The experimental-latest tag is rolling, so the
+fetch fails loudly when upstream moves and a maintainer must re-verify and bump the pin.
+
+Housekeeping: `artifacts/` (7 GB of screenshots, scratch builds and save backups) and
+`__pycache__/` are ignored; `AGENTS.md` now points at `CLAUDE.md`; `tools/run-lua-tests.py`
+runs the Lua harness through the lupa runtime when no Lua executable is installed.
+
+Verification: full suite 1,338 passed, one Lua-wrapper skip; Lua harness 692 checks passed
+through lupa; host builds with no warnings. Not done: browser walk-through of the new UE4SS
+consent screen (needs a game folder without UE4SS), in-game runs of the new live tools,
+multiplayer propagation and save/reload persistence. No game files or saves were changed.
+
 ## Cascade live verification (2026-09-15)
 
 With permission to launch Cascade, backed up all 75 save files and verified their SHA256
