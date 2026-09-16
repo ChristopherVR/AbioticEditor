@@ -21,21 +21,29 @@ Live changes happen as you make them. There is no universal **SAVE**, undo butto
 
 Live setup works in the complete Windows desktop release. The Linux desktop app can edit save files, but cannot run the Windows helper locally. The browser edition cannot connect to a live game.
 
-The editor needs **UE4SS**, a separate mod loader. It does not bundle, download, or install UE4SS for you.
+Live editing needs **UE4SS**, a separate open-source mod loader (MIT licensed). The Windows release includes a pinned copy of it and installs it into your game folder with your permission; it never touches an existing UE4SS install.
 
 1. Close Abiotic Factor, or stop the server.
 2. In the editor, open the editing-mode button, choose **Set up live editing**, then **This PC**.
-3. If prompted, choose **Get UE4SS**. Download the standard `UE4SS_*.zip` from the [official experimental release page](https://github.com/UE4SS-RE/RE-UE4SS/releases/tag/experimental-latest). Do not use `zDEV` or a source-code archive.
-4. Choose **Open game folder** and extract the ZIP contents into the `Binaries/Win64` folder the editor shows. For a usual Steam install, that is `<Steam library>/steamapps/common/AbioticFactor/AbioticFactor/Binaries/Win64/`.
-5. Keep the ZIP's folder structure. The folder needs `dwmapi.dll`, `ue4ss/UE4SS.dll`, and `ue4ss/Mods/shared/UEHelpers/UEHelpers.lua`. Do not put them inside an extra ZIP-named folder and do not put them in your saves folder.
-6. Return to the editor and choose **Check again**. When it detects UE4SS, choose **Set up editor helper** while the game is still closed.
-7. Start the game, load a world, and wait for the editor to connect.
+3. If UE4SS is not already installed, the editor shows a consent screen naming the bundled UE4SS version and the exact `Binaries/Win64` folder it would install into. Review it, make sure the game is closed, then choose **Install**.
+4. The editor installs UE4SS and its own editor helper in one step, then starts the helper.
+5. Start the game, load a world, and wait for the editor to connect.
 
 If the editor cannot find Abiotic Factor, set the **installed game folder** in **Settings ▸ Game Data ▸ Set game folder**, then try again. This is not your saves folder.
 
 ::: warning Existing mods
-If you already use UE4SS, keep its settings and other mods. Follow the loader publisher's upgrade guidance instead of overwriting files blindly. The editor recognises the usual nested `ue4ss/` layout and older flat installs, but custom redirected paths are not detected automatically.
+If you already use UE4SS, keep its settings and other mods. Follow the loader publisher's upgrade guidance instead of overwriting files blindly. The editor recognises the usual nested `ue4ss/` layout and older flat installs, and never overwrites an install it finds there, but custom redirected paths are not detected automatically.
 :::
+
+### If your copy of the editor has no bundled UE4SS
+
+A dev build of the editor, or a build without live-support files, has no UE4SS to install for you. In that case the editor shows the manual steps instead:
+
+1. Choose **Get UE4SS**. Download the standard `UE4SS_*.zip` from the [official experimental release page](https://github.com/UE4SS-RE/RE-UE4SS/releases/tag/experimental-latest). Do not use `zDEV` or a source-code archive.
+2. Choose **Open game folder** and extract the ZIP contents into the `Binaries/Win64` folder the editor shows. For a usual Steam install, that is `<Steam library>/steamapps/common/AbioticFactor/AbioticFactor/Binaries/Win64/`.
+3. Keep the ZIP's folder structure. The folder needs `dwmapi.dll`, `ue4ss/UE4SS.dll`, and `ue4ss/Mods/shared/UEHelpers/UEHelpers.lua`. Do not put them inside an extra ZIP-named folder and do not put them in your saves folder.
+4. Return to the editor and choose **Check again**. When it detects UE4SS, choose **Set up editor helper** while the game is still closed.
+5. Start the game, load a world, and wait for the editor to connect.
 
 The linked UE4SS channel is experimental and game updates can change compatibility. Read its [official installation guide](https://docs.ue4ss.com/dev/installation-guide.html) if your install uses a different layout.
 
@@ -51,7 +59,9 @@ The linked UE4SS channel is experimental and game updates can change compatibili
 
 ## Updating or reconnecting
 
-Choose **This PC** again. The editor checks its bundled agent files and offers an update when needed. Close the game, run **Set up editor helper**, then restart the game and load your world. Update UE4SS separately through its publisher.
+Choose **This PC** again. The editor checks its bundled agent files and offers an update when needed. Close the game, run **Set up editor helper**, then restart the game and load your world.
+
+UE4SS updates ship together with editor releases, and the editor never replaces an install it finds already there. To move to a newer bundled UE4SS build, close the game, delete the `ue4ss` folder and `dwmapi.dll` from `Binaries/Win64`, then choose **This PC** again to install the newer bundled build. If you manage UE4SS yourself instead, keep updating it separately through its publisher.
 
 If the `live-agent` folder is missing from a Windows release, extract the complete release again. Source-build help is in the [agent source instructions](https://github.com/ChristopherVR/AbioticEditor/tree/main/live-agent).
 

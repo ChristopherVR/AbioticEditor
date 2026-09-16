@@ -4002,11 +4002,15 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Live_LearnMore" xml:space="preserve"><value>Set-up guide ↗</value></data>
   <data name="Live_WaitingForLocalGame" xml:space="preserve"><value>Waiting for the game on this PC…</value></data>
   <data name="Live_WaitingForLocalGameHint" xml:space="preserve"><value>Start the game and load a world to connect.</value></data>
-  <data name="Live_NeedsUe4ss" xml:space="preserve"><value>UE4SS lets the editor talk to the game. Install it separately; this app does not bundle or download it.</value></data>
+  <data name="Live_NeedsUe4ss" xml:space="preserve"><value>This copy of the editor does not include UE4SS. Install it separately, then check again.</value></data>
   <data name="Live_ConfirmDeployTitle" xml:space="preserve"><value>Set up live editing</value></data>
   <data name="Live_ConfirmDeployBody" xml:space="preserve"><value>Close the game first. The app will install or update its own game agent in {0} and start its helper. Your UE4SS installation stays unchanged.</value></data>
   <data name="Live_ConfirmDeployYes" xml:space="preserve"><value>Set up editor helper</value></data>
   <data name="Live_ConfirmDeployNo" xml:space="preserve"><value>Back</value></data>
+  <data name="Live_ConfirmInstallUe4ssTitle" xml:space="preserve"><value>Install UE4SS and the editor helper</value></data>
+  <data name="Live_ConfirmInstallUe4ssBody" xml:space="preserve"><value>Close the game first. This release includes UE4SS {0}, the separate open-source mod loader (MIT licensed) that live editing needs. The app will install it into {1}, then install or update its own game agent there and start its helper. If UE4SS is already installed there, it is left unchanged.</value></data>
+  <data name="Live_ConfirmInstallUe4ssYes" xml:space="preserve"><value>Install</value></data>
+  <data name="Live_ConfirmInstallUe4ssNo" xml:space="preserve"><value>Back</value></data>
   <data name="Live_GameNotFound" xml:space="preserve"><value>Couldn't find Abiotic Factor installed on this PC automatically. If it's installed somewhere unusual, set its folder in SETTINGS first.</value></data>
   <data name="Live_NotSupportedOnThisPlatform" xml:space="preserve"><value>Automatic set-up for a game on this PC isn't available on this operating system yet. Connecting to a dedicated server someone else hosts still works normally.</value></data>
   <data name="Live_StillNotRespondingHint" xml:space="preserve"><value>This is taking longer than usual. If the game has been open for a while already, try fully restarting it - live editing support sometimes only starts responding on a fresh game session.</value></data>

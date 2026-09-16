@@ -12,14 +12,23 @@ built and shipped as its own standalone artifact(s), not something `dotnet build
 ## Player setup
 
 Live editing is experimental. With the complete Windows desktop release, choose
-**Live editing > This PC**. The app checks for UE4SS and, if needed, opens a guided step with
-the official download, exact game folder, and a check-again action. UE4SS is not bundled,
-downloaded, or installed by the editor. Players install it separately using its publisher's
-instructions. Both standard nested and flat runtime layouts are detected.
+**Live editing > This PC**. The app checks for UE4SS and, if it is missing, shows a consent
+screen naming the bundled UE4SS version (pinned in `live-agent/ue4ss/runtime.json`) and the
+exact game folder it would install into. Nothing is written until the player confirms and the
+game is closed. An existing UE4SS install (standard nested or flat runtime layout) is always
+left unchanged; the editor never overwrites it, and installs its bundled copy only when no
+loader trace is found at all.
 
-Once UE4SS is present, the editor offers to deploy its own Lua modules, enable its agent,
-and start its bundled helper. No compilation or manual agent copying is needed. Close the
-game before agent setup or updates. UE4SS runtime updates remain manual.
+A build without a bundled UE4SS package (a dev build, or any non-Windows release) falls back to
+the fully manual flow instead: a guided step with the official download, exact game folder, and
+a check-again action. Players install UE4SS separately using its publisher's instructions in
+that case.
+
+Once UE4SS is present (bundled or manual), the editor offers to deploy its own Lua modules,
+enable its agent, and start its bundled helper. No compilation or manual agent copying is
+needed. Close the game before agent setup or updates. UE4SS itself updates alongside editor
+releases when bundled (see "Bumping the bundled UE4SS" in the maintainer-commands reference);
+a manually installed UE4SS still updates separately through its publisher.
 
 See the [player guide](https://christophervr.github.io/AbioticEditor/guide/live-editing) for
 installation steps, supported tools, limitations, troubleshooting, and remote setup.

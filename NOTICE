@@ -28,3 +28,8 @@ maintained in THIRD-PARTY-NOTICES.txt.
       Copyright (c) the CUE4Parse contributors
       https://github.com/FabianFG/CUE4Parse
       Licensed under the Apache License, Version 2.0.
+
+  * UE4SS (RE-UE4SS) - Windows desktop release only, bundled with player consent
+      Copyright (c) 2022 Narknon
+      https://github.com/UE4SS-RE/RE-UE4SS
+      Licensed under the MIT License.

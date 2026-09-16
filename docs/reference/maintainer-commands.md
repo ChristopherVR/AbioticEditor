@@ -35,6 +35,22 @@ uses the same dump-and-replace flow an end user follows to
 replaces the file bundled in `assets/` and commits it, rather than dropping it in the per-user
 mappings folder.
 
+## Bumping the bundled UE4SS
+
+The Windows desktop release bundles a pinned build of UE4SS, the third-party mod loader live
+editing needs, pinned in `live-agent/ue4ss/runtime.json` by exact file name and SHA-256 (see
+`Ue4ssBundledRuntime` in Core). To move to a newer upstream build:
+
+1. Edit `live-agent/ue4ss/runtime.json`: update `version`, `asset`, `url`, `sha256`, and `size`
+   for the new release.
+2. Run `pwsh tools/fetch-ue4ss.ps1`. It downloads the new package into
+   `live-agent/ue4ss/UE4SS.zip` (gitignored) and verifies it against the manifest you just edited.
+3. Test it in game: run the local host, use **This PC** against a game folder with no existing
+   UE4SS install, confirm the consent screen shows the new version, install, and confirm the
+   game actually loads with the mod working.
+4. Commit the updated `runtime.json`. `UE4SS.zip` itself is not committed; release CI fetches it
+   fresh with the same script before publishing.
+
 ## Related screens
 
 See the [screenshot tour](/guide/screenshots) for the player-facing controls. Screenshots illustrate the interface; the schemas and behavior above remain the reference.

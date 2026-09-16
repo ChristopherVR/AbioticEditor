@@ -27,6 +27,10 @@ public enum LiveAgentSetupState
     /// Detail names the game folder. Nothing has been written yet.</summary>
     NeedsConsentToDeploy,
 
+    /// <summary>UE4SS is missing but this release bundles it; Detail is the Win64 folder it would
+    /// be installed into. Nothing has been written.</summary>
+    NeedsConsentToInstallUe4ss,
+
     /// <summary>This host's operating system cannot run either half of live editing's in-game
     /// side (the bundled helper is a Windows binary, and UE4SS itself is Windows-only) - not to
     /// be confused with <see cref="GameNotFound"/>, which means the same OS just couldn't locate
@@ -40,8 +44,9 @@ public enum LiveAgentSetupState
 
 public sealed record LiveAgentSetupResult(LiveAgentSetupState State, string? Detail = null);
 
-/// <summary>Checks for UE4SS, updates the bundled agent after consent, and starts the helper.
-/// UE4SS is installed separately by the player.</summary>
+/// <summary>Checks for UE4SS (installing the bundled copy after consent when this release ships
+/// one), updates the bundled agent after consent, and starts the helper. A build without a
+/// bundled UE4SS package falls back to asking the player to install it separately.</summary>
 public static class LiveAgentSetup
 {
     private const string ModFolderName = "AbioticEditorLiveAgentLua";
@@ -65,6 +70,13 @@ public static class LiveAgentSetup
     /// </summary>
     private static string BundledScriptsDir => Path.Combine(AppContext.BaseDirectory, "live-agent", "Lua", "Scripts");
     private static string BundledHelperPath => Path.Combine(AppContext.BaseDirectory, "live-agent", $"{HelperProcessName}.exe");
+    private static string BundledUe4ssDir => Path.Combine(AppContext.BaseDirectory, "live-agent", "ue4ss");
+
+    private static readonly Lazy<Ue4ssRuntimeManifest?> LazyBundledUe4ss = new(() => Ue4ssBundledRuntime.TryLoad(BundledUe4ssDir)?.Manifest);
+
+    /// <summary>The pinned UE4SS package this build bundles, or null when this build (a dev build,
+    /// or a non-Windows release) has none. See <see cref="Ue4ssBundledRuntime"/>.</summary>
+    public static Ue4ssRuntimeManifest? BundledUe4ss => LazyBundledUe4ss.Value;
 
     /// <param name="deployConsentGiven">
     /// True once the player has agreed to let this write the bundled script into their game's
@@ -73,7 +85,17 @@ public static class LiveAgentSetup
     /// call again with true to actually deploy. Irrelevant (never even checked) when the mod is
     /// already there and up to date, so a normal reconnect never re-prompts.
     /// </param>
-    public static async Task<LiveAgentSetupResult> EnsureReadyAsync(bool deployConsentGiven, CancellationToken cancellationToken = default)
+    /// <param name="installUe4ssConsentGiven">
+    /// True once the player has agreed to let this install the bundled UE4SS package. Pass false
+    /// the first time; if the result is <see cref="LiveAgentSetupState.NeedsConsentToInstallUe4ss"/>,
+    /// nothing was written - ask, then call again with true to actually install. Only relevant
+    /// when UE4SS is missing and this build bundles it (see <see cref="BundledUe4ss"/>); when
+    /// UE4SS is already present, or this build has no bundle, it is never even checked. Consenting
+    /// to install UE4SS also counts as consent to deploy this editor's own agent - the one dialog
+    /// covers both.
+    /// </param>
+    public static async Task<LiveAgentSetupResult> EnsureReadyAsync(
+        bool deployConsentGiven, bool installUe4ssConsentGiven = false, CancellationToken cancellationToken = default)
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -96,7 +118,30 @@ public static class LiveAgentSetup
 
         var win64 = Path.Combine(projectRoot, "Binaries", "Win64");
         var modsDir = Ue4ssInstallation.FindModsDirectory(win64);
-        if (modsDir is null) return new(LiveAgentSetupState.NeedsUe4ss, win64);
+        if (modsDir is null)
+        {
+            var bundle = Ue4ssBundledRuntime.TryLoad(BundledUe4ssDir);
+            if (bundle is null) return new(LiveAgentSetupState.NeedsUe4ss, win64);
+            if (!installUe4ssConsentGiven) return new(LiveAgentSetupState.NeedsConsentToInstallUe4ss, win64);
+            if (IsGameRunning())
+                return new(LiveAgentSetupState.SetupFailed, "Close Abiotic Factor or stop its server, then retry setup.");
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await bundle.InstallAsync(win64, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+            {
+                return new(LiveAgentSetupState.SetupFailed, ex.Message);
+            }
+
+            // One consent dialog covers both installing UE4SS and deploying this editor's own
+            // agent into the Mods folder that install just created.
+            deployConsentGiven = true;
+            modsDir = Ue4ssInstallation.FindModsDirectory(win64);
+            if (modsDir is null) return new(LiveAgentSetupState.SetupFailed, "UE4SS setup did not finish. Retry setup.");
+        }
+
         if (!Directory.Exists(BundledScriptsDir) || (!File.Exists(BundledHelperPath) && !IsHelperRunning()))
             return new(LiveAgentSetupState.HelperUnavailable,
                 "This copy of the editor is missing live-support files. Extract the full Windows release and try again.");

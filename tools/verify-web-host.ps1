@@ -2,7 +2,11 @@
 param(
     [Parameter(Mandatory)]
     [string]$PublishDir,
-    [switch]$SkipSmoke
+    [switch]$SkipSmoke,
+    # Set by release CI's Windows builds, which always bundle the live-editing in-game side. A
+    # plain local build (or a non-release CI job) has no reason to fail this check over files that
+    # need the one-time native helper build and tools/fetch-ue4ss.ps1 to exist.
+    [switch]$RequireLiveSupport
 )
 
 $ErrorActionPreference = 'Stop'
@@ -28,6 +32,13 @@ $required = @(
     'Templates\blank-world-template.sav',
     'Templates\blank-player-template.sav'
 )
+if ($RequireLiveSupport) {
+    $required += @(
+        'live-agent\ue4ss\UE4SS.zip',
+        'live-agent\ue4ss\runtime.json',
+        'live-agent\Lua\Scripts\main.lua'
+    )
+}
 # Loose assemblies beside the exe mean single-file publishing silently regressed.
 $strayDlls = Get-ChildItem -LiteralPath $root -Filter *.dll -File -ErrorAction SilentlyContinue
 if ($strayDlls) { throw "Expected a single-file publish, found $($strayDlls.Count) loose DLL(s), e.g. $($strayDlls[0].Name)." }

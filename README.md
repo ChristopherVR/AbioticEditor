@@ -67,7 +67,7 @@ Compare two saves, move items between worlds, repair Game Pass save containers, 
 
 Save editing is powerful, and the game may not enjoy every possible combination of story flags, items, or modded content. Change one thing at a time, keep a copy of the original, and test in game. The editor keeps ordinary file edits staged until you select **SAVE**.
 
-Live editing is different: it is experimental, changes the running game immediately, has fewer features, and has no editor backup or universal undo. It needs a separately installed UE4SS prerequisite on Windows. [Use the live-editing guide](https://christophervr.github.io/AbioticEditor/guide/live-editing) before setting it up.
+Live editing is different: it is experimental, changes the running game immediately, has fewer features, and has no editor backup or universal undo. On Windows it needs UE4SS, a separate open-source mod loader; the Windows release now includes a pinned copy and installs it into your game folder with your permission (an existing UE4SS install is left alone). [Use the live-editing guide](https://christophervr.github.io/AbioticEditor/guide/live-editing) before setting it up.
 
 ## Need help?
 

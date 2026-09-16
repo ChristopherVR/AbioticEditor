@@ -67,12 +67,24 @@
         }
         else if (_step == Step.ConfirmDeploy)
         {
-            <h2 id="mode-select-title">@L.Resource("Live_ConfirmDeployTitle")</h2>
-            <p class="muted mode-select-path">@L.Resource("Live_ConfirmDeployBody", _deployTarget)</p>
-            <footer class="mode-select-back-row">
-                <button class="primary" type="button" @onclick="ConsentAndDeployAsync">@L.Resource("Live_ConfirmDeployYes")</button>
-                <button class="secondary" type="button" @onclick="BackToTarget">@L.Resource("Live_ConfirmDeployNo")</button>
-            </footer>
+            @if (_needsUe4ssConsent)
+            {
+                <h2 id="mode-select-title">@L.Resource("Live_ConfirmInstallUe4ssTitle")</h2>
+                <p class="muted mode-select-path">@L.Resource("Live_ConfirmInstallUe4ssBody", LiveAgentSetup.BundledUe4ss?.Version ?? "?", _deployTarget)</p>
+                <footer class="mode-select-back-row">
+                    <button class="primary" type="button" @onclick="ConsentAndInstallUe4ssAsync">@L.Resource("Live_ConfirmInstallUe4ssYes")</button>
+                    <button class="secondary" type="button" @onclick="BackToTarget">@L.Resource("Live_ConfirmInstallUe4ssNo")</button>
+                </footer>
+            }
+            else
+            {
+                <h2 id="mode-select-title">@L.Resource("Live_ConfirmDeployTitle")</h2>
+                <p class="muted mode-select-path">@L.Resource("Live_ConfirmDeployBody", _deployTarget)</p>
+                <footer class="mode-select-back-row">
+                    <button class="primary" type="button" @onclick="ConsentAndDeployAsync">@L.Resource("Live_ConfirmDeployYes")</button>
+                    <button class="secondary" type="button" @onclick="BackToTarget">@L.Resource("Live_ConfirmDeployNo")</button>
+                </footer>
+            }
         }
         else if (_step == Step.RemoteForm)
         {
@@ -171,6 +183,7 @@
     private LiveAgentSetupState? _setupState;
     private string? _setupError;
     private string? _deployTarget;
+    private bool _needsUe4ssConsent;
     private CancellationTokenSource? _waitCts;
     private bool _slowToRespond;
 
@@ -195,6 +208,7 @@
     {
         _step = Step.Connecting;
         _setupState = null;
+        _needsUe4ssConsent = false;
         _ = ConnectLocalAsync();
     }
 
@@ -229,7 +243,7 @@
     /// <see cref="LiveAgentSetupState.NeedsConsentToDeploy"/> result stops here and shows
     /// <see cref="Step.ConfirmDeploy"/> instead of deploying silently.</para>
     /// </summary>
-    private async Task ConnectLocalAsync(bool deployConsentGiven = false)
+    private async Task ConnectLocalAsync(bool deployConsentGiven = false, bool installUe4ssConsentGiven = false)
     {
         _waitCts?.Cancel();
         var cts = new CancellationTokenSource();
@@ -248,7 +262,7 @@
         LiveAgentSetupResult setup;
         try
         {
-            setup = await LiveAgentSetup.EnsureReadyAsync(deployConsentGiven, cts.Token);
+            setup = await LiveAgentSetup.EnsureReadyAsync(deployConsentGiven, installUe4ssConsentGiven, cts.Token);
         }
         catch (Exception)
         {
@@ -262,8 +276,9 @@
         }
         if (Superseded()) return;
 
-        if (setup.State == LiveAgentSetupState.NeedsConsentToDeploy)
+        if (setup.State is LiveAgentSetupState.NeedsConsentToDeploy or LiveAgentSetupState.NeedsConsentToInstallUe4ss)
         {
+            _needsUe4ssConsent = setup.State == LiveAgentSetupState.NeedsConsentToInstallUe4ss;
             _deployTarget = setup.Detail;
             _step = Step.ConfirmDeploy;
             await InvokeAsync(StateHasChanged);
@@ -399,6 +414,13 @@
         _step = Step.Connecting;
         _setupState = null;
         return ConnectLocalAsync(deployConsentGiven: true);
+    }
+
+    private Task ConsentAndInstallUe4ssAsync()
+    {
+        _step = Step.Connecting;
+        _setupState = null;
+        return ConnectLocalAsync(deployConsentGiven: true, installUe4ssConsentGiven: true);
     }
 
     public async ValueTask DisposeAsync()

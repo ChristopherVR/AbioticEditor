@@ -627,6 +627,13 @@ jobs:
           cmake --build live-agent/AbioticEditorLiveAgentHelper/build --config Release
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      # Bundles the pinned UE4SS package (live-agent/ue4ss/UE4SS.zip) so the Windows release can
+      # install live editing's mod loader for the player with no network access at runtime. Fatal
+      # on failure: a release must never silently ship without the bundle it expects to have.
+      - name: Fetch pinned UE4SS runtime
+        shell: pwsh
+        run: ./tools/fetch-ue4ss.ps1
+
       - name: Publish desktop app (Windows, self-contained)
         run: >-
           dotnet publish src/AbioticEditor.Web
@@ -638,7 +645,7 @@ jobs:
 
       - name: Verify local-only publish contract
         shell: pwsh
-        run: ./tools/verify-web-host.ps1 -PublishDir out
+        run: ./tools/verify-web-host.ps1 -PublishDir out -RequireLiveSupport
 
       - name: Zip local Razor host (Windows)
         shell: pwsh
@@ -668,7 +675,7 @@ jobs:
       - name: Verify Nexus build carries no updater
         shell: pwsh
         run: |
-          ./tools/verify-web-host.ps1 -PublishDir out-nexus -SkipSmoke
+          ./tools/verify-web-host.ps1 -PublishDir out-nexus -SkipSmoke -RequireLiveSupport
           $exe = 'out-nexus/AbioticEditor.Web.exe'
           $bytes = [IO.File]::ReadAllBytes($exe)
           $text = [Text.Encoding]::ASCII.GetString($bytes)

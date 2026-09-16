@@ -199,15 +199,18 @@
              CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <!-- Live editing's in-game side (live-agent/, see its README): bundled so the desktop host can
-       set up a detected local game for live editing itself, with nothing for the player to
-       install by hand beyond UE4SS (a separate, third-party framework this cannot install for
-       them - see LiveAgentSetup.NeedsUe4ss). The Lua mod is plain text with no build step, so it
-       always ships. The small native helper only ships when this particular build actually has
-       one to bundle: `windows-latest` release CI builds it fresh (see the build-web-win job)
-       before publishing, but a plain local `dotnet build` that never ran the one-time native
-       build in live-agent/README.md simply ships without it - live editing on that machine then
-       falls back to the fully manual setup this feature replaces, exactly as it worked before.
-       Windows-only: UE4SS and this game's live editing are both Windows-only today. -->
+       set up a detected local game for live editing itself. The Lua mod is plain text with no
+       build step, so it always ships. The small native helper only ships when this particular
+       build actually has one to bundle: `windows-latest` release CI builds it fresh (see the
+       build-web-win job) before publishing, but a plain local `dotnet build` that never ran the
+       one-time native build in live-agent/README.md simply ships without it - live editing on
+       that machine then falls back to the fully manual setup this feature replaces, exactly as it
+       worked before. The pinned UE4SS package (live-agent/ue4ss/, see tools/fetch-ue4ss.ps1) ships
+       the same way: only when `UE4SS.zip` has actually been fetched for this build. When it is
+       present, LiveAgentSetup installs it into the game folder after consent
+       (Ue4ssBundledRuntime); when it is absent (a dev build, or any non-Windows release), setup
+       falls back to LiveAgentSetup.NeedsUe4ss and the player installs UE4SS by hand. Windows-only:
+       UE4SS and this game's live editing are both Windows-only today. -->
   <ItemGroup Condition="'$(RuntimeIdentifier)' == '' or $(RuntimeIdentifier.StartsWith('win'))">
     <Content Include="..\..\live-agent\AbioticEditorLiveAgentLua\Scripts\**"
              Link="live-agent\Lua\Scripts\%(RecursiveDir)%(Filename)%(Extension)"
@@ -216,6 +219,15 @@
     <Content Include="..\..\live-agent\AbioticEditorLiveAgentHelper\build\Release\AbioticEditorLiveAgentHelper.exe"
              Condition="Exists('..\..\live-agent\AbioticEditorLiveAgentHelper\build\Release\AbioticEditorLiveAgentHelper.exe')"
              Link="live-agent\AbioticEditorLiveAgentHelper.exe"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\live-agent\ue4ss\runtime.json"
+             Link="live-agent\ue4ss\runtime.json"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\live-agent\ue4ss\UE4SS.zip"
+             Condition="Exists('..\..\live-agent\ue4ss\UE4SS.zip')"
+             Link="live-agent\ue4ss\UE4SS.zip"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
