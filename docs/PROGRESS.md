@@ -1,5 +1,43 @@
 # Abiotic Editor - Session history
 
+## Limitation sweep: item stats, badges, Game Pass profiles, crops, corpses (2026-09-17)
+
+v2.13.0 shipped (paint colours, pet progress). A read-only survey of docs, UI hints, the Lua
+agent, unexposed domain fields and GitHub issues (none open) produced the work below, run as
+six Sonnet packages on disjoint files and committed one per package.
+
+- Item details gained a Stats block from `ItemTable_Global`: `WeaponData_` (damage, time
+  between shots, magazine, ammo), `EquipmentData_` (armour, heat/cold resist, set bonus row),
+  `ConsumableData_` (hunger/thirst/fatigue/sanity, buffs), `RepairItem_`, and `SalvageData_`
+  resolved through `DT_Salvage`. No research-material column exists in this build. All ten
+  bundled registries regenerated (roughly 2 MB to 3-4 MB each).
+- Recipe, compendium, journal and fish edits now maintain the game's NEW badge arrays
+  (`NewestRecipes_`, `*_Unread_`); `RecipesRequiringResearch_`, `CompletedIntro_` and
+  `LastControlRotation_` are modelled and editable. An empty research queue never creates a
+  missing tag.
+- Game Pass conversion carries `ProfileUnlocks`, `ProfilePlayerStatsSave`,
+  `ProfileUserSettings` and `ProfileScientistCustomization_<n>` both ways, resolving the Steam
+  account folder above `Worlds`, never overwriting a differing existing file (reported as kept).
+- Garden planting spots offer the 24 real crops (the eight `Plant_` ammo cartridges belong to
+  the digital plot and are excluded by mesh); a crop change resets growth to Sprout/0.
+  Planting an empty spot or clearing one is still unsupported: no fixture shows the empty shape.
+- Pet mutation target is a picker: `PetMutation` = 1 + index into the owning `DT_Pets` row's
+  `Mutations_` list, verified on both fixture pets (crafted lineages own their own list).
+- `DestructibleMap` (`ActorPath_`, `Broken_`) and `CorpseMap` (`ActorPath_`, `IsGibbed_`,
+  `IsLooted_`) are new world-map features: unbreak objects, remove corpses. Every observed
+  destructible entry is Broken=true, so there is no "break" use case.
+- Live world-wide recipe controls now say why they are unavailable (not host, no replication,
+  or a UE4SS build without TSet support) instead of vanishing.
+- Wall-art rows `painting_a_*` resolved from placed instances in real saves to the landscape
+  and square-fancy paintings (`_4`/`_5` never appear anywhere).
+- Bug fixed: `IniSection.GetValue`/`SetValue` used the first duplicate key while the game reads
+  the last; the CLI `ini set` path was affected (the desktop editor already worked around it).
+
+Verification: full suite 1,392 passed, one Lua-wrapper skip; Lua harness 737 checks passed through lupa; host builds clean. Nothing
+live above was exercised in a running game. Still open and needing a game session for
+mechanism discovery: live pet species change (FTransform construction) and containment
+stability level. Browser-edition cross-region transfer needs an architecture spike.
+
 ## Release v2.12.0, live coatings, paint colours, more variants, pet progress (2026-09-16)
 
 Pushed the session's commits. The first Release run failed in the Windows build: the
