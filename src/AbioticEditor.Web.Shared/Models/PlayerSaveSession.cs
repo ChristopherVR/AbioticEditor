@@ -813,10 +813,12 @@ public sealed class CarriedPetEdit
         get => _mutationProgress;
         set => _mutationProgress = Math.Max(0, value);
     }
-    /// <summary>The mutation target the game has already applied. Read-only by design: this
-    /// mirrors what <c>review-features.md</c> documents for the offline tab (the value is kept
-    /// as the game's own value, never edited here), because picking a *different* target safely
-    /// needs the game's own mutation-graph validation this editor does not have.</summary>
+    /// <summary>The mutation the pet has applied: 0 means not mutated, otherwise a 1-based
+    /// position in this pet's own DT_Pets mutation family (verified against two real carried
+    /// pets across the fixtures - see <see cref="AbioticEditor.Core.WorldSaves.PetCareCatalog.MutationOptionsFor"/>
+    /// and <c>docs/reference/research/</c>). <c>PetCareGuide</c> renders this as a picker limited
+    /// to that pet's own valid targets, plus "not mutated" and the current value when it does not
+    /// match any resolved option.</summary>
     public int PetMutation { get; set; }
     public bool IsDeleted { get; set; }
     public bool IsNew { get; private set; }

@@ -480,6 +480,7 @@
   <data name="PlayerSpawn_UseCurrentPosition" xml:space="preserve"><value>USE MY CURRENT POSITION</value></data>
   <data name="PlayerSpawn_X" xml:space="preserve"><value>X</value></data>
   <data name="PlayerSpawn_Y" xml:space="preserve"><value>Y</value></data>
+  <data name="PlayerSpawn_Yaw" xml:space="preserve"><value>YAW</value></data>
   <data name="PlayerSpawn_Z" xml:space="preserve"><value>Z</value></data>
 
   <!-- PlayerTransmog -->

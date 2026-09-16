@@ -35,6 +35,42 @@ public sealed class DeployedCareFeatureTests
     }
 
     [Fact]
+    public void Garden_crop_change_round_trips_and_resets_growth()
+    {
+        var path = Path.Combine(Fixtures.CascadeDir ?? "", "WorldSave_Facility.sav");
+        if (!File.Exists(path)) return;
+        var save = WorldSaveReader.ReadFromFile(path).Raw;
+        var feature = new GardenPlotsFeature();
+        var before = feature.Read(save);
+        var entry = before.First(e => e.Fields.Any(f => f.Id.StartsWith("crop:", StringComparison.Ordinal)));
+        var cropField = entry.Fields.First(f => f.Id.StartsWith("crop:", StringComparison.Ordinal));
+        Assert.Equal(WorldFieldKind.Enum, cropField.Kind);
+        Assert.NotNull(cropField.Options);
+        Assert.Contains("Plant_Carrot", cropField.Options!);
+        var stageField = entry.Fields.First(f => f.Id == $"stage:{cropField.Id[5..]}");
+        var growthField = entry.Fields.First(f => f.Id == $"growth:{cropField.Id[5..]}");
+
+        var newCrop = cropField.Value == "Plant_Carrot" ? "Plant_Wheat" : "Plant_Carrot";
+        Assert.True(feature.SetField(save, entry.Key, cropField.Id, newCrop).Changed);
+
+        using var bytes = new MemoryStream(); save.WriteTo(bytes); bytes.Position = 0;
+        var reloaded1 = SaveGame.LoadFrom(bytes);
+        var after = feature.Read(reloaded1).Single(e => e.Key == entry.Key);
+        Assert.Equal(newCrop, after.Fields.Single(f => f.Id == cropField.Id).Value);
+        Assert.Equal("Sprout", after.Fields.Single(f => f.Id == stageField.Id).Value);
+        Assert.Equal("0", after.Fields.Single(f => f.Id == growthField.Id).Value);
+        foreach (var untouched in before.Where(e => e.Key != entry.Key))
+            Assert.Equal(untouched.Fields, feature.Read(reloaded1).Single(e => e.Key == untouched.Key).Fields);
+
+        // An unrecognized (modded/future) saved row stays selectable rather than being dropped.
+        Assert.True(feature.SetField(save, entry.Key, cropField.Id, "Plant_ModFuture").Changed);
+        using var bytes2 = new MemoryStream(); save.WriteTo(bytes2); bytes2.Position = 0;
+        var reread = feature.Read(SaveGame.LoadFrom(bytes2)).Single(e => e.Key == entry.Key);
+        var reReadCropField = reread.Fields.Single(f => f.Id == cropField.Id);
+        Assert.Equal("Plant_ModFuture", reReadCropField.Value);
+    }
+
+    [Fact]
     public void Power_chair_charge_is_bounded_and_round_trips_in_a_deployable_layout()
     {
         var path = Path.Combine(Fixtures.CascadeDir ?? "", "WorldSave_Facility.sav");

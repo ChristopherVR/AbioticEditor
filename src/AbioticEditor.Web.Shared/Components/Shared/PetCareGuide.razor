@@ -23,6 +23,30 @@
             <p>Saved mutation progress: @progress</p>
         }
     }
+    @if (PetMutation is { } mutationValue)
+    {
+        @* Editable only when a caller binds PetMutationChanged, same convention as
+           MutationProgress above. Options come from this pet's own DT_Pets Mutations_ family
+           (see PetCareCatalog.MutationOptionsFor); an unrecognized saved value (a mod, a future
+           game update, or simply a variant the picker can't resolve yet) is kept selectable as
+           its own option rather than silently dropped. *@
+        @if (PetMutationChanged.HasDelegate)
+        {
+            <label class="pet-mutation-field">Mutation target
+                <select value="@mutationValue" @onchange="OnPetMutationChanged">
+                    <option value="0">Not mutated</option>
+                    @if (mutationValue != 0 && !MutationOptions.Any(o => o.Value == mutationValue))
+                    { <option value="@mutationValue">Saved value @mutationValue</option> }
+                    @foreach (var option in MutationOptions)
+                    { <option value="@option.Value">@option.DisplayName</option> }
+                </select>
+            </label>
+        }
+        else if (mutationValue != 0)
+        {
+            <p>Mutated into: @(MutationOptions.FirstOrDefault(o => o.Value == mutationValue)?.DisplayName ?? $"saved value {mutationValue}")</p>
+        }
+    }
     @if (_loading) { <p role="status">Loading pet care...</p> }
     else if (Care is { } care)
     {
@@ -42,6 +66,13 @@
     /// immediately) - see <see cref="MutationProgress"/>'s own remarks above. Left unbound, the
     /// value renders as plain read-only text.</summary>
     [Parameter] public EventCallback<int> MutationProgressChanged { get; set; }
+    /// <summary>The pet's saved <c>PetMutation</c> value: 0 means not mutated; otherwise a
+    /// 1-based position in this pet's own DT_Pets mutation family (see
+    /// <see cref="AbioticEditor.Core.WorldSaves.PetCareCatalog.MutationOptionsFor"/>).</summary>
+    [Parameter] public int? PetMutation { get; set; }
+    /// <summary>Bound by a caller that can persist the edit, same convention as
+    /// <see cref="MutationProgressChanged"/>. Left unbound, the value renders as read-only text.</summary>
+    [Parameter] public EventCallback<int> PetMutationChanged { get; set; }
     private Task OnMutationProgressChanged(ChangeEventArgs args)
     {
         var value = int.TryParse(args.Value?.ToString(), out var parsed)
@@ -49,7 +80,13 @@
             : 0;
         return MutationProgressChanged.InvokeAsync(value);
     }
+    private Task OnPetMutationChanged(ChangeEventArgs args)
+    {
+        var value = int.TryParse(args.Value?.ToString(), out var parsed) ? Math.Max(0, parsed) : 0;
+        return PetMutationChanged.InvokeAsync(value);
+    }
     private IReadOnlyList<PetCareDefinition> _care = [];
+    private IReadOnlyList<AbioticEditor.Core.WorldSaves.PetMutationOption> MutationOptions { get; set; } = [];
     private bool _loading, _loaded;
     private PetCareDefinition? Care => _care.FirstOrDefault(c => ItemRow is not null && c.ItemRow.Equals(ItemRow, StringComparison.OrdinalIgnoreCase)
         || ClassPath is not null && string.Equals(c.ClassPath, ClassPath, StringComparison.OrdinalIgnoreCase));
@@ -58,7 +95,12 @@
     {
         if (_loaded || _loading) return;
         _loading = true;
-        try { _care = await Items.GetPetCareAsync(); _loaded = true; }
+        try
+        {
+            _care = await Items.GetPetCareAsync();
+            MutationOptions = ItemRow is not null ? await Items.GetPetMutationOptionsAsync(ItemRow) : [];
+            _loaded = true;
+        }
         finally { _loading = false; }
     }
 }

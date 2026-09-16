@@ -54,12 +54,21 @@ supported placed plots. Choose a plot, then choose a **Planting spot**.
 - Water belongs to the whole plot. The editor enforces the supported plot's capacity.
 - Fertilizer belongs to an individual spot. Zero means no fertilizer; 1,000 is the
   game's stored value for a 1x multiplier.
-- The crop name is a readout. This editor does not create or replace plant actors.
+- The crop is a picker, limited to the growable plants the installed game itself defines
+  (fruit, vegetables and the other planet-grown crops - the "digital farm plot" ammo
+  cartridges are a different item family and are not offered here). Choosing a different
+  crop resets that spot's growth stage and progress back to a fresh planting. A crop
+  already saved that the picker does not recognise (a mod, or a future game update) is
+  kept as its own selectable option rather than dropped.
 - Growth stage uses the game's names: Sprout, Budding, Juvenile, Flowering, Grown,
   Harvested, Regrowing and Dead. Growth progress is 0 to 10,000 toward the next stage.
 
 Only fields actually present in the save are offered. Digital garden plots are excluded:
 their water and growth behavior differs. Unsupported or future layouts remain intact.
+Planting into a spot that has never held a crop, and clearing a spot back to empty, are
+not supported yet: no real save so far shows what that field looks like, and guessing the
+shape risks a save the game cannot read (see `docs/reference/research/` for what was
+checked).
 
 
 ![Garden plot water, fertilizer and growth controls](/screenshots/26-world-garden.png)
@@ -93,12 +102,14 @@ in a saved file and in a running game (COMPANIONS). Negative values are rejected
 game's own tables carry no explicit maximum for this counter, so the editor does not cap it;
 it only shows the highest value seen in real saves so far (3) as a hint, and a higher value
 already in your save is kept as it is.
-The mutation target itself (`PetMutation`, which mutation the pet has already become) stays
-read-only in both places - it is kept as the game's value, never guessed at by the editor.
-Existing variant controls remain the way to choose a different pet form. This addition does
-not change feeding cooldowns or write guessed mutation targets. A save does not provide a
-reliable live feeding countdown. If a variant has no mutation recipes in its table, the
-guide says so.
+The mutation target itself (`PetMutation`, which mutation the pet has already become) is now
+a picker too, in both places. Options come from the installed game's own mutation table for
+that pet's family (the same one the food list above is built from), plus "Not mutated" and
+the current saved value when it is not one of the resolved options. Existing variant controls
+remain the way to choose a different pet *form*; this picker only changes which mutation is
+recorded as applied, it does not change feeding cooldowns, apply mutation food, or validate
+that the pet could actually reach that mutation in game. A save does not provide a reliable
+live feeding countdown. If a variant has no mutation recipes in its table, the guide says so.
 
 
 ![Carried companions](/screenshots/18-player-companions.png)

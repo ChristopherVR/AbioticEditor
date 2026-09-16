@@ -592,9 +592,16 @@ fields (round 74), since they are the identical hash-suffixed struct members.
 live COMPANIONS tab expose it through the shared "Feeding and mutation" panel. Negative values are
 rejected; nothing else is capped, because `DT_Pets` carries no explicit threshold field and the
 largest value observed across this project's fixture saves (`PetCatalog.ObservedMaxMutationProgress`,
-currently `3`) comes from only two pets, so it is shown as a hint rather than enforced. `petMutation` (the mutation target already applied)
-still travels over the wire and can still technically be sent, but no UI offers an editor for it -
-it stays the game's own value, matching the offline tab's existing rule.
+currently `3`) comes from only two pets, so it is shown as a hint rather than enforced.
+
+**Session 2026-09-17: `petMutation` is now editable too, through the same panel.** Cross-checking
+this project's two real carried pets against the installed game's own `DT_Pets` mutation lists
+(`PetCareCatalog.MutationOptionsFor`, see `docs/reference/research/research-garden-crops-and-pet-mutation.md`)
+showed the stored int is a 1-based position in the pet's own mutation family, resolvable back to
+the pet's exact current identity in both cases. The UI now offers a picker built from that
+resolution (plus "Not mutated" = 0, plus the current saved value when it does not resolve),
+wired identically for the offline session and the live COMPANIONS tab - no Lua change was needed,
+since `companions.lua` already read and wrote `petMutation` symmetrically with `mutationProgress`.
 ## `recipes.get` / `recipes.set`
 
 Live recipe-unlock editing, the counterpart to the file editor's RECIPES tab. `recipes.get` takes

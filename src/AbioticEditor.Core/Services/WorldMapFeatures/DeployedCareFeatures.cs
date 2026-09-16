@@ -33,6 +33,30 @@ public abstract class DeployedCareFeature : WorldMapFeatureBase
 public sealed class GardenPlotsFeature : DeployedCareFeature
 {
     private static readonly string[] Stages = ["Sprout", "Budding", "Juvenile", "Flowering", "Grown", "Harvested", "Regrowing", "Dead"];
+
+    /// <summary>
+    /// Every genuine growable crop row in <c>ItemTable_Global</c> (game version surveyed
+    /// 2026-09-17, see <c>docs/reference/research/</c>). Found by loading every
+    /// <c>Plant_</c>-prefixed row and excluding the ones whose <c>WorldStaticMesh_</c>
+    /// resolves to <c>SM_FarmPlot_Digital_Cartridge</c> - those are ammo cartridges for the
+    /// separate "digital" farm plot (<c>Deployed_GardenPlot_Digital</c>, a different class this
+    /// feature's own <c>/Farming/GardenPlot_</c> filter already excludes), not crops: e.g.
+    /// <c>Plant_Blank</c>/<c>Plant_Pepper</c>/<c>Plant_9mm</c>/<c>Plant_Magnum</c>/
+    /// <c>Plant_556</c>/<c>Plant_308</c>/<c>Plant_12g</c>/<c>Plant_Lamogi</c>. GameplayTags_ was
+    /// tried first and rejected: both families are tagged <c>Item.Plant</c> (most cartridges are
+    /// even tagged <c>Item.Material.Biological</c> too), so tags alone do not tell them apart.
+    /// <c>Plant_Dead</c> is also excluded (a fallback identity, not a choosable planting).
+    /// A saved row not in this list (a mod, or a future game update) stays selectable as the
+    /// current value; see <see cref="ReadFields"/>.
+    /// </summary>
+    private static readonly string[] CropRows =
+    [
+        "Plant_Corn", "Plant_Tomato", "Plant_Wheat", "Plant_Greyeb", "Plant_Nyxshade", "Plant_Super_Tomato",
+        "Plant_RopePlant", "Plant_Egg", "Plant_SpaceLettuce", "Plant_VinePlant", "Plant_Potato", "Plant_Rice",
+        "Plant_Antelight", "Plant_Antelight_GRN", "Plant_Antelight_pink", "Plant_Antelight_red",
+        "Plant_Antelight_orange", "Plant_Antelight_blue", "Plant_Antelight_RGB", "Plant_Antelight_space",
+        "Plant_Pumpkin", "Plant_GlowTulip", "Plant_Shadowberry", "Plant_Carrot",
+    ];
     public override string Id => "garden-plots";
     public override string DisplayName => "Garden plots";
     public override string Description => "Water, fertilizer and planted crops. Save changes before opening the world in game.";
@@ -51,7 +75,8 @@ public sealed class GardenPlotsFeature : DeployedCareFeature
         {
             if (proxy.FindByPrefix("SpotIndex_")?.Property?.Value is not int spot) continue;
             var crop = Struct(proxy, "ItemRow_")?.FindByPrefix("RowName")?.Property?.Value?.ToString();
-            fields.Add(WorldMapField.ReadOnly($"crop:{spot}", $"Spot {spot + 1} crop", crop));
+            fields.Add(WorldMapField.Choice($"crop:{spot}", $"Spot {spot + 1} crop", crop, CropRows,
+                hint: "Changing the crop resets this spot's growth back to a fresh planting."));
             var changeable = Struct(proxy, "ChangeableData_");
             if (Dynamic(changeable, "GrowthStage") is int stage)
                 fields.Add(new($"stage:{spot}", $"Spot {spot + 1} stage", stage >= 0 && stage < Stages.Length ? Stages[stage] : Number(stage), WorldFieldKind.Enum, true, Stages));
@@ -69,6 +94,27 @@ public sealed class GardenPlotsFeature : DeployedCareFeature
         if (field is null) return WorldEditResult.Failure("That garden field is not available in this save.");
         if (field.Value == value) return WorldEditResult.NoChange;
         var parts = fieldId.Split(':');
+        if (parts[0] == "crop")
+        {
+            if (string.IsNullOrWhiteSpace(value)) return WorldEditResult.Failure("Choose a crop.");
+            var spot = int.Parse(parts[1], CultureInfo.InvariantCulture);
+            var proxy = Elements(props, "ItemProxies_").FirstOrDefault(p => p.FindByPrefix("SpotIndex_")?.Property?.Value is int i && i == spot);
+            var itemRow = proxy is null ? null : Struct(proxy, "ItemRow_");
+            if (itemRow?.FindByPrefix("RowName") is null)
+                return WorldEditResult.Failure("This spot has nothing planted to change crops on.");
+            GvasTags.SetName(itemRow, "RowName", value);
+            // Reset to a fresh planting: stage 0 is "Sprout" (this array's own first entry) and
+            // progress 0 is the start of that stage. This only changes an already-planted spot's
+            // crop identity; planting into a never-used spot is not supported (no fixture shows
+            // that field shape - see the research note).
+            var changeable = Struct(proxy!, "ChangeableData_");
+            if (changeable is not null)
+            {
+                PetDynamicProperties.SetOrAdd(changeable, "GrowthStage", 0);
+                PetDynamicProperties.SetOrAdd(changeable, "GrowthProgress", 0);
+            }
+            return WorldEditResult.Success;
+        }
         var number = parts[0] == "stage" ? Array.IndexOf(Stages, value) : int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) ? parsed : -1;
         if (number < 0 || (parts[0] is "growth" or "fertilizer" && number > 10000)) return WorldEditResult.Failure("Choose a valid value between 0 and 10,000.");
         if (fieldId == "water" && number > WaterCapacity(props)) return WorldEditResult.Failure($"This plot holds up to {WaterCapacity(props)} water units.");

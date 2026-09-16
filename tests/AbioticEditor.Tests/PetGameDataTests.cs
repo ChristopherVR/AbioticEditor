@@ -101,6 +101,42 @@ public class PetGameDataTests
         Assert.DoesNotContain(variants, v => v.ShortClass.Contains("WinterSprite_BOSS", StringComparison.OrdinalIgnoreCase));
     }
 
+    // ---------- MutationOptionsFor: the PetMutation picker's catalog resolution ----------
+
+    /// <summary>
+    /// Grounds <see cref="PetCareCatalog.MutationOptionsFor"/> against the two real carried pets
+    /// found across every fixture (session 2026-09-17, see <c>docs/reference/research/</c>): a
+    /// Leyak Pest (PetMutation=6) and a crafted Magma Skink (PetMutation=1). Both resolve to the
+    /// pet's own current identity, confirming the encoding is a 1-based position within the
+    /// owning DT_Pets row's Mutations_ list (found by self-row-first, then a search for whichever
+    /// row's Mutations_ targets this pet - the crafted lineage owns a separate list from the held
+    /// one, not one inherited via DefaultParent_).
+    /// </summary>
+    [Theory]
+    [InlineData("Pest_Leyak", 6, "Pest_Leyak")]
+    [InlineData("Skink_Magma_Crafted", 1, "Skink_Magma_Crafted")]
+    public void MutationOptionsFor_resolves_the_pets_own_identity(string itemRow, int observedPetMutation, string expectedTarget)
+    {
+        using var provider = GameAssetProvider.CreateForLocalInstall();
+        if (provider is null || !provider.HasMappings) return; // no install: skip
+
+        var options = PetCareCatalog.MutationOptionsFor(provider, itemRow);
+        Assert.NotEmpty(options);
+        var match = options.FirstOrDefault(o => o.Value == observedPetMutation);
+        Assert.NotNull(match);
+        Assert.Equal(expectedTarget, match!.TargetRow);
+    }
+
+    [Fact]
+    public void MutationOptionsFor_is_empty_for_an_unknown_row()
+    {
+        using var provider = GameAssetProvider.CreateForLocalInstall();
+        if (provider is null || !provider.HasMappings) return; // no install: skip
+
+        Assert.Empty(PetCareCatalog.MutationOptionsFor(provider, "Definitely_Not_A_Pet_Row"));
+        Assert.Empty(PetCareCatalog.MutationOptionsFor(provider, null));
+    }
+
     // ---------- reader gate: unknown rows in the Companion slot are kept ----------
 
     [Fact]
@@ -165,8 +201,8 @@ public class PetGameDataTests
             Assert.Equal(PetCatalog.ObservedMaxMutationProgress, pet.MutationProgress);
 
             // ApplyCarriedPet (the edit path, not just initial placement) also round-trips a
-            // changed value, including PetMutation staying whatever is written (read-only in the
-            // UI, but still a plain int the file format itself never refuses).
+            // changed value, including PetMutation (a picker in the UI now - see
+            // PetCareCatalog.MutationOptionsFor - but the file format itself never refuses any int).
             var edited = pet with { MutationProgress = 1, PetMutation = 6 };
             PlayerSaveWriter.ApplyCarriedPet(afterAdd, edited);
             PlayerSaveWriter.WriteToFile(afterAdd, copy);

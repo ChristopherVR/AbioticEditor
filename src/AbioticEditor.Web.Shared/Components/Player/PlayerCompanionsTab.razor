@@ -104,7 +104,8 @@
                 </div>
 
                 <hr class="af-divider" />
-                <PetCareGuide ItemRow="@pet.ItemRow" MutationProgress="@pet.MutationProgress" MutationProgressChanged="@(value => SetMutationProgress(pet, value))" />
+                <PetCareGuide ItemRow="@pet.ItemRow" MutationProgress="@pet.MutationProgress" MutationProgressChanged="@(value => SetMutationProgress(pet, value))"
+                              PetMutation="@pet.PetMutation" PetMutationChanged="@(value => SetPetMutation(pet, value))" />
                 <hr class="af-divider" />
                 @if (!pet.IsDeleted) { <button class="accent-alert" type="button" @onclick="() => ToggleDeleted(pet)">@L.Resource("PlayerPets_RemoveFromInventory")</button> }
                 else { <button class="accent-hazard" type="button" @onclick="() => ToggleDeleted(pet)">@L.Resource("PlayerPets_UndoRemove")</button> }
@@ -355,6 +356,7 @@
     private async Task Heal(CarriedPetEdit pet) { pet.Heal(); await CommitAsync(pet); }
     private async Task StepLevel(CarriedPetEdit pet, int delta) { pet.Level = pet.Level + delta; await CommitAsync(pet); }
     private Task SetMutationProgress(CarriedPetEdit pet, int value) { pet.MutationProgress = value; return CommitAsync(pet); }
+    private Task SetPetMutation(CarriedPetEdit pet, int value) { pet.PetMutation = value; return CommitAsync(pet); }
 
     /// <summary>Removes (file: stages, reversible) or clears (live: immediate, no undo - see
     /// <see cref="IPlayerCompanionsSession.RemovePetAsync"/>) a carried pet.</summary>

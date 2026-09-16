@@ -84,6 +84,16 @@ public sealed class ItemCatalogService : IDisposable
             catch (Exception) { return []; }
         });
 
+    private readonly ConcurrentDictionary<string, Task<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetMutationOption>>> _petMutationOptions = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>The valid <c>PetMutation</c> targets for a carried pet (item row) - see
+    /// <see cref="AbioticEditor.Core.WorldSaves.PetCareCatalog.MutationOptionsFor"/>.</summary>
+    public Task<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetMutationOption>> GetPetMutationOptionsAsync(string itemRow)
+        => _petMutationOptions.GetOrAdd(itemRow, row => Task.Run<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetMutationOption>>(() =>
+        {
+            try { return _extractsIconsLive && _provider.Value is { } provider ? AbioticEditor.Core.WorldSaves.PetCareCatalog.MutationOptionsFor(provider, row) : []; }
+            catch (Exception) { return []; }
+        }));
+
     private readonly ConcurrentDictionary<string, Task<string?>> _characterNames = new(StringComparer.Ordinal);
     public Task<string?> GetCharacterNameAsync(string actorPath) => _characterNames.GetOrAdd(actorPath, path => Task.Run(() =>
     {
