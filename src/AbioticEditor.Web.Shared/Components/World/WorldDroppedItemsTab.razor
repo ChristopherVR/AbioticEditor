@@ -69,6 +69,18 @@
     [Parameter, EditorRequired] public IWorldDroppedItemsSession Session { get; set; } = null!;
     [Parameter] public string Title { get; set; } = "World editor";
     [Parameter] public EventCallback<string?> OnError { get; set; }
+    /// <summary>
+    /// The connected character's current position (live only - the live-connect page passes
+    /// _spawn?.LivePosition; null for the file session, which has no "right now"). Abiotic
+    /// Factor's Facility level is one persistent level, not streamed per region - dropped items
+    /// anywhere on the whole map are always ALL returned by dropped.list regardless of where the
+    /// player currently is (reported live as items dropped somewhere else entirely, like the
+    /// Botanical Gardens, showing up while standing in a completely different sector). Combined
+    /// with the 200-row cap below, an item you just dropped a moment ago could be pushed off the
+    /// visible list entirely by hundreds of older items elsewhere on the map in arbitrary order -
+    /// sorting by distance when this is available keeps what is actually near the player first.
+    /// </summary>
+    [Parameter] public (double X, double Y, double Z)? PlayerPosition { get; set; }
     private string _filter = string.Empty;
     private string _spawnItemId = string.Empty;
     private int _spawnStack = 1;
@@ -81,13 +93,22 @@
     // everything itself) resets the counter.
     private readonly List<WorldDroppedItem> _removed = [];
 
-    /// <summary>Capped at 200 rows like native - long-lived worlds accumulate 1000+ ground items.</summary>
-    private List<WorldDroppedItem> Visible => Session.DroppedItems
-        .Where(item => string.IsNullOrWhiteSpace(_filter)
-            || DisplayName(item).Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase)
-            || (item.Slot.ItemId?.Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase) ?? false))
-        .Take(200)
-        .ToList();
+    /// <summary>Capped at 200 rows like native - long-lived worlds accumulate 1000+ ground items.
+    /// Sorted nearest-first when <see cref="PlayerPosition"/> is known, so the cap drops distant
+    /// items instead of whatever the world happened to enumerate first.</summary>
+    private List<WorldDroppedItem> Visible
+    {
+        get
+        {
+            IEnumerable<WorldDroppedItem> items = Session.DroppedItems
+                .Where(item => string.IsNullOrWhiteSpace(_filter)
+                    || DisplayName(item).Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase)
+                    || (item.Slot.ItemId?.Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase) ?? false));
+            if (PlayerPosition is { } position)
+                items = items.OrderBy(item => item.DistanceTo(position.X, position.Y, position.Z));
+            return items.Take(200).ToList();
+        }
+    }
 
     private string Summary
     {
@@ -104,9 +125,16 @@
     private string DisplayName(WorldDroppedItem item)
         => Items.Find(item.Slot.ItemId)?.DisplayName ?? item.Slot.ItemId ?? L.Editor("workspace.unknown");
 
-    /// <summary>"Deployable_Chair_Office_01 · ×1 · no despawn" - the native SubText verbatim.</summary>
-    private static string SubText(WorldDroppedItem item)
-        => $"{item.Slot.ItemId} · ×{item.Slot.Count}" + (item.NoDespawn ? " · no despawn" : "");
+    /// <summary>"Deployable_Chair_Office_01 · ×1 · no despawn" - the native SubText verbatim,
+    /// plus a distance-from-the-player suffix when <see cref="PlayerPosition"/> is known (the
+    /// live surface only - see that parameter's own remarks).</summary>
+    private string SubText(WorldDroppedItem item)
+    {
+        var text = $"{item.Slot.ItemId} · ×{item.Slot.Count}" + (item.NoDespawn ? " · no despawn" : "");
+        if (PlayerPosition is { } position)
+            text += $" · {item.DistanceTo(position.X, position.Y, position.Z):F0} cm away";
+        return text;
+    }
 
     private Task SpawnItem() => RunAsync(async () =>
     {

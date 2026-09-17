@@ -215,11 +215,33 @@
     {
         var cacheKey = ContainerKey(container);
         if (_names.TryGetValue(cacheKey, out var cached)) return cached;
-        var name = container.ClassName is { Length: > 0 } className
-            ? PlainNames.Thing(className)
-            : PlainNames.Words(container.Id);
+        var name = ItemNameForDeployedClass(container.ClassName)
+            ?? (container.ClassName is { Length: > 0 } className ? PlainNames.Thing(className) : PlainNames.Words(container.Id));
         _names[cacheKey] = name;
         return name;
+    }
+
+    /// <summary>
+    /// The real, player-facing name for a deployed container - "Void Chest" rather than
+    /// "Deployed Storage Crate Void" - resolved through the item that places it, when a
+    /// deployed class follows the game's own <c>Deployed_&lt;ItemId in PascalCase&gt;_C</c>
+    /// naming (confirmed live for <c>Deployed_StorageCrate_Void_C</c> -> item id
+    /// <c>storagecrate_void</c>, DisplayName "Void Chest" - see
+    /// <c>assets/registry/registry.en.json</c>). <see cref="PlainNames.Thing"/> stays the
+    /// fallback for named storage that has no placing item (trams, built-in furniture) or a
+    /// class this naming guess does not match, since a wrong guess here is just a slightly
+    /// worse label, never a broken one.
+    /// </summary>
+    private string? ItemNameForDeployedClass(string? className)
+    {
+        if (string.IsNullOrWhiteSpace(className)) return null;
+        var tail = className;
+        if (tail.EndsWith("_C", StringComparison.Ordinal)) tail = tail[..^2];
+        foreach (var prefix in new[] { "Deployed_", "Deployable_" })
+        {
+            if (tail.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) { tail = tail[prefix.Length..]; break; }
+        }
+        return Items.Find(tail.ToLowerInvariant())?.DisplayName;
     }
 
     private readonly Dictionary<string, string> _names = new(StringComparer.Ordinal);
