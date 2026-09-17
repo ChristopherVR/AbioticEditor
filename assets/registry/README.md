@@ -10,14 +10,19 @@ in icons only when the game is present.
 
 ## Regenerating (maintainer step, per game patch)
 
-Run the CLI against a real install, then copy the result here and commit it:
+This folder holds one file per language the game ships (`registry.<culture>.json`) plus a
+culture-less `registry.json`, the fallback every host loads when the player's own language did
+not ship. Regenerate all of them together, then copy the result here and commit it:
 
 ```console
-dotnet run --project src/AbioticEditor.Cli -- dump-registry --output assets/registry/registry.json --game-version <build>
+dotnet run --project src/AbioticEditor.Cli -- dump-registry --all-cultures --output assets/registry --game-version <build>
 ```
 
 `--game-dir <folder>` points at a non-Steam install; otherwise it auto-detects via Steam or
-`ABIOTIC_GAME_DIR`. The build needs `Mappings.usmap` next to the CLI (it is bundled).
+`ABIOTIC_GAME_DIR`. The build needs `Mappings.usmap` next to the CLI (it is bundled). A single
+culture can still be dumped on its own with `dump-registry --culture <code> --output <file>`, but
+`--all-cultures` is what keeps this folder's file set matching every language the editor's
+language picker (`HostLanguageService.SupportedGameDataCodes`) offers.
 
 ## How it's loaded
 

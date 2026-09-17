@@ -7,6 +7,8 @@ in the [command-line tool guide](/guide/cli).
 
 ```console
 abioticeditor dump-registry -o registry.json        # dump the game's data tables (needs the game installed)
+abioticeditor dump-icons -o assets/icons             # dump every item icon as a PNG (browser build only)
+abioticeditor dump-art -o assets/art                 # dump every other picture the editor draws (browser build only)
 abioticeditor download-wiki-images -o assets/wiki    # fetch the offline wiki-image fallback (needs network)
 ```
 
@@ -14,7 +16,26 @@ abioticeditor download-wiki-images -o assets/wiki    # fetch the offline wiki-im
 
 Dumps the game's item / recipe / skill / flag / fish / trait data tables to JSON. Needs the game
 installed (it reads the pak archives through the bundled type-mappings). This is the registry the
-editor falls back on, so regenerate and commit it when a game update changes the catalogs.
+editor falls back on, so regenerate and commit it when a game update changes the catalogs. Pass
+`--all-cultures` to write one registry per language the installed game ships (`registry.<culture>.json`
+plus the culture-less `registry.json` fallback); the browser build bundles every one of them, so this
+is the form to run before a release.
+
+## `dump-icons` and `dump-art`
+
+The desktop app extracts item icons and other pictures (skill icons, trader portraits, chapter cards,
+sector maps, creature and pet portraits, the logo) straight out of the installed game on demand, so it
+never needs these dumps. The browser build cannot mount the paks in a tab, so it ships pre-extracted
+copies instead: `dump-icons` writes every item icon as a PNG into `assets/icons/`, and `dump-art` writes
+everything else into `assets/art/` alongside a `manifest.json` the browser build consults to decide
+whether a picture exists before asking for one. Both need the game installed. Regenerate and commit
+both whenever a game update adds items or changes the pictures the editor draws, the same trigger as
+`dump-registry`.
+
+`src/AbioticEditor.Web.Wasm/AbioticEditor.Web.Wasm.csproj` copies `assets/registry/`, `assets/icons/`,
+`assets/art/` and `assets/wiki/` into the browser build's `wwwroot` automatically at build time (see its
+`CopyBrowserDataAssets` target), so once these are regenerated and committed, no other wiring is
+needed for the browser build to pick them up.
 
 ## `download-wiki-images`
 

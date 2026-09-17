@@ -138,6 +138,14 @@ public static class SkillCatalog
     }
 
     /// <summary>
+    /// DT_Skills rows the game retired. English marks them with DONOTUSE in the display name, but
+    /// that name comes from a string table and a translation can reword the marker away
+    /// (Traditional Chinese does), so the rows are also named here by their language-independent id.
+    /// </summary>
+    private static readonly HashSet<string> RetiredRowIds =
+        new(StringComparer.OrdinalIgnoreCase) { "Engineering", "Resilience" };
+
+    /// <summary>
     /// Loads skill display metadata (name, description, icon) from the game's <c>DT_Skills</c>
     /// DataTable and arranges it in the save's positional order (<see cref="CanonicalOrder"/>,
     /// the in-game panel order), skipping rows whose display name carries the DONOTUSE marker.
@@ -177,7 +185,9 @@ public static class SkillCatalog
                         case "Icon": icon = p.Tag?.GenericValue?.ToString(); break;
                     }
                 }
-                if (display is null || display.Contains("DONOTUSE", StringComparison.OrdinalIgnoreCase))
+                if (display is null
+                    || RetiredRowIds.Contains(kv.Key.Text)
+                    || display.Contains("DONOTUSE", StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }

@@ -121,6 +121,12 @@ public sealed class BundledGameDataTests
         var original = NameOf(fallback!, "scrap_metal");
         Assert.False(string.IsNullOrWhiteSpace(translated));
         Assert.NotEqual(original, translated);
+
+        // Skills are positional in the save, so every language must list exactly the same rows.
+        // A translation once reworded the retired-skill marker away and shipped two extra skills.
+        Assert.Equal(
+            fallback!.Skills!.Select(skill => skill.Id).ToArray(),
+            localized.Skills!.Select(skill => skill.Id).ToArray());
     }
 
     /// <summary>

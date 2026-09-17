@@ -60808,7 +60808,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_keypadhacker",
@@ -60832,7 +60833,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 3
     },
     {
       "Id": "recipe_crossbow",
@@ -60860,7 +60862,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 3
     },
     {
       "Id": "recipe_bench_crafting",
@@ -60882,7 +60885,8 @@
           "Count": 2
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_lcd_screen",
@@ -60910,7 +60914,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_controller",
@@ -60938,7 +60943,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_infrared_emitter",
@@ -60962,7 +60968,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_bandage",
@@ -60976,7 +60983,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 0.5
     },
     {
       "Id": "recipe_bolts",
@@ -60994,7 +61002,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 0.5
     },
     {
       "Id": "recipe_armor_chest_makeshift",
@@ -61018,7 +61027,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 4
     },
     {
       "Id": "recipe_armor_legs_makeshift",
@@ -61038,7 +61048,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 3
     },
     {
       "Id": "recipe_armor_arms_makeshift",
@@ -61062,7 +61073,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 3
     },
     {
       "Id": "recipe_armor_helmet_makeshift",
@@ -61086,7 +61098,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 3
     },
     {
       "Id": "recipe_armor_helmet_carbuncle",
@@ -61108,7 +61121,8 @@
           "Count": 2
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_helmet_peccary",
@@ -61130,7 +61144,8 @@
           "Count": 12
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_bench_repair",
@@ -61158,7 +61173,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_waterbottle",
@@ -61172,7 +61188,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_soilbag",
@@ -61192,7 +61209,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_gardenplot_small",
@@ -61220,7 +61238,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_gardenplot_large",
@@ -61248,7 +61267,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_backpack_makeshift",
@@ -61268,7 +61288,8 @@
       ],
       "Benches": [
         "None"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_armor_helmet_forge",
@@ -61296,7 +61317,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_chest_forge",
@@ -61320,7 +61342,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_arms_forge",
@@ -61344,7 +61367,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_legs_forge",
@@ -61368,7 +61392,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_ducttape",
@@ -61390,7 +61415,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 0.7
     },
     {
       "Id": "recipe_stove_makeshift",
@@ -61418,7 +61444,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_barricade_half",
@@ -61438,7 +61465,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_barricade_full",
@@ -61458,7 +61486,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_bagwall_s",
@@ -61472,7 +61501,8 @@
           "Count": 5
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_bagwall_c",
@@ -61486,7 +61516,8 @@
           "Count": 5
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_bagwall_cu",
@@ -61500,7 +61531,8 @@
           "Count": 4
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_bagwall_halfcu",
@@ -61514,7 +61546,8 @@
           "Count": 3
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_bagwall_b",
@@ -61528,7 +61561,8 @@
           "Count": 4
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_peccarysausages",
@@ -61552,7 +61586,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 4
     },
     {
       "Id": "recipe_glowstick",
@@ -61570,7 +61605,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_tripmine",
@@ -61598,7 +61634,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_fan",
@@ -61626,7 +61663,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_heater",
@@ -61654,7 +61692,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_shield_heater",
@@ -61682,7 +61721,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_pesttrap",
@@ -61706,7 +61746,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_plugstrip",
@@ -61730,7 +61771,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_scrapshot",
@@ -61754,7 +61796,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_ammo_scrapshot",
@@ -61774,7 +61817,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 0.6
     },
     {
       "Id": "recipe_clothrope",
@@ -61798,7 +61842,8 @@
       ],
       "Benches": [
         "None"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_jumppad",
@@ -61826,7 +61871,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_teethclub",
@@ -61854,7 +61900,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_bed_tier1",
@@ -61878,7 +61925,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_personalteleporter",
@@ -61906,7 +61954,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 3
     },
     {
       "Id": "recipe_clothscrap",
@@ -61922,7 +61971,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 0.75
     },
     {
       "Id": "recipe_chargingstation",
@@ -61946,7 +61996,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_magbow",
@@ -61974,7 +62025,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_rebarbolt",
@@ -61994,7 +62046,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_shiv",
@@ -62012,7 +62065,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_brick_power",
@@ -62040,7 +62094,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_brick_cpu",
@@ -62068,7 +62123,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_brick_memory",
@@ -62096,7 +62152,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_hose_reinforced",
@@ -62120,7 +62177,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_woodplank_reinforced",
@@ -62140,7 +62198,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_aircompressor",
@@ -62168,7 +62227,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_carbonplating",
@@ -62188,7 +62248,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_quantumglass",
@@ -62208,7 +62269,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_projectionmatrix",
@@ -62236,7 +62298,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_megalight",
@@ -62260,7 +62323,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_alienthermite",
@@ -62288,7 +62352,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_ramp",
@@ -62308,7 +62373,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.25
     },
     {
       "Id": "recipe_hotwirekit_securitycart",
@@ -62336,7 +62402,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 3
     },
     {
       "Id": "recipe_hotwirekit_suv",
@@ -62364,7 +62431,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 3
     },
     {
       "Id": "recipe_tripmine_t2",
@@ -62388,7 +62456,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_lantern",
@@ -62416,7 +62485,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_testtube",
@@ -62436,7 +62506,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_storagecrate_makeshift",
@@ -62456,7 +62527,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_splint",
@@ -62478,7 +62550,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_arms_biometric",
@@ -62502,7 +62575,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 4
     },
     {
       "Id": "recipe_keypadhacker_t2",
@@ -62530,7 +62604,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 3
     },
     {
       "Id": "recipe_ammo_quill",
@@ -62550,7 +62625,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 0.75
     },
     {
       "Id": "recipe_quillrifle",
@@ -62578,7 +62654,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_noisemaker",
@@ -62596,7 +62673,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 0.7
     },
     {
       "Id": "recipe_headlamp",
@@ -62620,7 +62698,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_keypadhacker_t3",
@@ -62644,7 +62723,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 3
     },
     {
       "Id": "recipe_vacuum",
@@ -62672,7 +62752,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_explosive_sledgehammer",
@@ -62700,7 +62781,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_binoculars",
@@ -62728,7 +62810,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_bed_tier2",
@@ -62752,7 +62835,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_teslacoil",
@@ -62780,7 +62864,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_storagecrate_makeshift_t2",
@@ -62800,7 +62885,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_keypadhacker_t4",
@@ -62828,7 +62914,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 3
     },
     {
       "Id": "recipe_keypadhacker_t5",
@@ -62856,7 +62943,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 3
     },
     {
       "Id": "recipe_gatekey",
@@ -62884,7 +62972,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 3
     },
     {
       "Id": "recipe_storagecrate_makeshift_t3",
@@ -62908,7 +62997,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_waterfilter",
@@ -62936,7 +63026,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_raw_pestpie",
@@ -62960,7 +63051,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_oven",
@@ -62988,7 +63080,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_circuitboard",
@@ -63004,7 +63097,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_pistol_pipe",
@@ -63032,7 +63126,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_syringe",
@@ -63056,7 +63151,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_sign",
@@ -63080,7 +63176,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_shield_plastic",
@@ -63104,7 +63201,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_makeshift_spear",
@@ -63132,7 +63230,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_slushiebomb",
@@ -63150,7 +63249,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 0.7
     },
     {
       "Id": "recipe_armor_chest_cushion",
@@ -63174,7 +63274,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_makeshift_screwdriver",
@@ -63196,7 +63297,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 1.25
     },
     {
       "Id": "recipe_grenade_mug",
@@ -63224,7 +63326,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_disclauncher",
@@ -63248,7 +63351,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_disc",
@@ -63268,7 +63372,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_autosalvager",
@@ -63296,7 +63401,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_hydromace",
@@ -63324,7 +63430,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_nvg",
@@ -63352,7 +63459,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_portaltoilet",
@@ -63380,7 +63488,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_net",
@@ -63394,7 +63503,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 0.6
     },
     {
       "Id": "recipe_shocktrap",
@@ -63418,7 +63528,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_raw_dough",
@@ -63438,7 +63549,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_flashlight",
@@ -63464,7 +63576,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_pan",
@@ -63484,7 +63597,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_pot",
@@ -63504,7 +63618,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_screws",
@@ -63520,7 +63635,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 0.6
     },
     {
       "Id": "recipe_gardenplot_medium",
@@ -63548,7 +63664,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_barricade_office",
@@ -63568,7 +63685,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_light_wall",
@@ -63592,7 +63710,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_light_lamp",
@@ -63616,7 +63735,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_makeshifttoilet",
@@ -63644,7 +63764,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_plugboard",
@@ -63672,7 +63793,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_tramkey",
@@ -63692,7 +63814,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_backpack_research",
@@ -63720,7 +63843,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_sceptre_tech",
@@ -63748,7 +63872,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_trinket_light_green",
@@ -63774,7 +63899,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_trinket_light_red",
@@ -63800,7 +63926,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_trinket_light_orange",
@@ -63818,7 +63945,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_trinket_light_purple",
@@ -63840,7 +63968,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_trinket_light_white",
@@ -63858,7 +63987,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_trinket_geiger",
@@ -63880,7 +64010,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_megalight_turret",
@@ -63908,7 +64039,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 3
     },
     {
       "Id": "recipe_syringe_acid",
@@ -63936,7 +64068,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_electrothrower",
@@ -63964,7 +64097,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 3
     },
     {
       "Id": "recipe_battery_makeshift",
@@ -63988,7 +64122,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_battery_industrial",
@@ -64016,7 +64151,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_battery_carbon",
@@ -64044,7 +64180,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_battery_quantum",
@@ -64072,7 +64209,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_pestwheel",
@@ -64096,7 +64234,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_laser_emitter",
@@ -64120,7 +64259,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_laser_reflector",
@@ -64148,7 +64288,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_laser_converter",
@@ -64176,7 +64317,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_laser_collector",
@@ -64204,7 +64346,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_laser_prism",
@@ -64228,7 +64371,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_spear_tech",
@@ -64256,7 +64400,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_helmet_mushroom",
@@ -64280,7 +64425,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_burner",
@@ -64308,7 +64454,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_discturret",
@@ -64336,7 +64483,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 4
     },
     {
       "Id": "recipe_laser_turret",
@@ -64364,7 +64512,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 4
     },
     {
       "Id": "recipe_bridge_t1",
@@ -64382,7 +64531,8 @@
           "Count": 4
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_bridge_t2",
@@ -64398,7 +64548,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_bridge_hardlight_small",
@@ -64422,7 +64573,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_rebreather",
@@ -64450,7 +64602,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_backpack_voidpack",
@@ -64478,7 +64631,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_healingsuitcase",
@@ -64506,7 +64660,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_bandage_t2",
@@ -64532,7 +64687,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 0.5
     },
     {
       "Id": "recipe_lever",
@@ -64560,7 +64716,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.2
     },
     {
       "Id": "recipe_paper",
@@ -64576,7 +64733,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 0.75
     },
     {
       "Id": "recipe_teleporterpad",
@@ -64604,7 +64762,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2.5
     },
     {
       "Id": "recipe_distributionpad",
@@ -64632,7 +64791,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_inhibitor_pest",
@@ -64660,7 +64820,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_inhibitor_order",
@@ -64688,7 +64849,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_inhibitor_exor",
@@ -64716,7 +64878,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_netlauncher",
@@ -64744,7 +64907,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_grenade_electron",
@@ -64768,7 +64932,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_armor_carapace_chest",
@@ -64796,7 +64961,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_carapace_helm",
@@ -64824,7 +64990,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_carapace_arms",
@@ -64852,7 +65019,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_carapace_legs",
@@ -64880,7 +65048,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_ramp_makeshift",
@@ -64898,7 +65067,8 @@
           "Count": 4
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 1.25
     },
     {
       "Id": "recipe_legs_bionic",
@@ -64926,7 +65096,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_barricade_carbon",
@@ -64954,7 +65125,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_pistol_energy",
@@ -64982,7 +65154,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_seed_nyx",
@@ -65010,7 +65183,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_dropshield",
@@ -65038,7 +65212,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_trinket_spuddy",
@@ -65060,7 +65235,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_gardenplot_round",
@@ -65088,7 +65264,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_molotov",
@@ -65112,7 +65289,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_cart",
@@ -65140,7 +65318,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 4
     },
     {
       "Id": "recipe_suit_powerC",
@@ -65168,7 +65347,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 5
     },
     {
       "Id": "recipe_motionmod",
@@ -65192,7 +65372,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 4
     },
     {
       "Id": "recipe_238",
@@ -65220,7 +65401,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armorstand",
@@ -65244,7 +65426,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_helmet_horned",
@@ -65272,7 +65455,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_hat_swamp",
@@ -65300,7 +65484,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_grenade_null",
@@ -65326,7 +65511,8 @@
           "Count": 3
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_soupbowl",
@@ -65354,7 +65540,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_thermocell",
@@ -65382,7 +65569,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_moistureteleporter",
@@ -65410,7 +65598,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_club_fire",
@@ -65438,7 +65627,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_spear_fire",
@@ -65466,7 +65656,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_flamethrower",
@@ -65494,7 +65685,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_biocannon",
@@ -65522,7 +65714,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_cushion",
@@ -65546,7 +65739,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.25
     },
     {
       "Id": "recipe_jetpack",
@@ -65574,7 +65768,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_shelf_s",
@@ -65594,7 +65789,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.25
     },
     {
       "Id": "recipe_shelf_m",
@@ -65614,7 +65810,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.6
     },
     {
       "Id": "recipe_shelf_l",
@@ -65638,7 +65835,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_supertomato",
@@ -65662,7 +65860,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.35
     },
     {
       "Id": "recipe_biometricwraps_t2",
@@ -65690,7 +65889,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 4
     },
     {
       "Id": "recipe_paint_white",
@@ -65714,7 +65914,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_paint_blue",
@@ -65738,7 +65939,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_paint_red",
@@ -65762,7 +65964,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_paint_green",
@@ -65786,7 +65989,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_paint_orange",
@@ -65810,7 +66014,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_paint_purple",
@@ -65834,7 +66039,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_paint_yellow",
@@ -65858,7 +66064,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_paint_black",
@@ -65882,7 +66089,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_paint_cyan",
@@ -65906,7 +66114,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_paint_lime",
@@ -65930,7 +66139,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_paint_pink",
@@ -65954,7 +66164,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_paint_brown",
@@ -65978,7 +66189,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_plantfood_t1",
@@ -65998,7 +66210,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_plantfood_t2",
@@ -66022,7 +66235,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_plantfood_t3",
@@ -66046,7 +66260,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_grimoire",
@@ -66074,7 +66289,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_carbcasserole",
@@ -66102,7 +66318,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_plt",
@@ -66130,7 +66347,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_cosmatosalad",
@@ -66154,7 +66372,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_anteburger",
@@ -66182,7 +66401,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_rootbearfloat",
@@ -66202,7 +66422,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_pestpotpie",
@@ -66230,7 +66451,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_hash",
@@ -66258,7 +66480,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_englishbreakfast",
@@ -66286,7 +66509,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_meatpie",
@@ -66314,7 +66538,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_sandwich_cheese",
@@ -66334,7 +66559,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_pizza_carb",
@@ -66362,7 +66588,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_roastpecc",
@@ -66390,7 +66617,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_pestato",
@@ -66410,7 +66638,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_fries",
@@ -66430,7 +66659,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_antepasta",
@@ -66446,7 +66676,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_cake",
@@ -66470,7 +66701,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_cookies_gum",
@@ -66498,7 +66730,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_bench_chemistry",
@@ -66526,7 +66759,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_walkietalkie",
@@ -66554,7 +66788,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_helmet_peccalpha",
@@ -66576,7 +66811,8 @@
           "Count": 2
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_helmet_sow",
@@ -66598,7 +66834,8 @@
           "Count": 2
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_shield_tech",
@@ -66626,7 +66863,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_pestdummy",
@@ -66650,7 +66888,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_helm_tarasque",
@@ -66674,7 +66913,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_storagecrate_hazard",
@@ -66702,7 +66942,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_tmog",
@@ -66730,7 +66971,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_pest_teleporter",
@@ -66758,7 +67000,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_helmet_scarbuncle",
@@ -66784,7 +67027,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_trinket_gravcube",
@@ -66802,7 +67046,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_hat_egg",
@@ -66826,7 +67071,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_itemstand",
@@ -66846,7 +67092,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_brainsync",
@@ -66874,7 +67121,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_barrel",
@@ -66898,7 +67146,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 3
     },
     {
       "Id": "recipe_armor_composer_helm",
@@ -66922,7 +67171,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_composer_chest",
@@ -66946,7 +67196,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_composer_arms",
@@ -66970,7 +67221,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_composer_legs",
@@ -66994,7 +67246,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_scarecrow_symph",
@@ -67022,7 +67275,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_bait_antefish",
@@ -67042,7 +67296,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_bait_portal",
@@ -67062,7 +67317,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_bait_radfish",
@@ -67082,7 +67338,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_bait_is98",
@@ -67102,7 +67359,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_bait_dw",
@@ -67122,7 +67380,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_bait_moonfish",
@@ -67142,7 +67401,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_crumbedfish",
@@ -67166,7 +67426,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_creamyfish",
@@ -67190,7 +67451,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_ricebowl",
@@ -67218,7 +67480,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_friedrice",
@@ -67246,7 +67509,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_norisheet",
@@ -67270,7 +67534,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_norisnack",
@@ -67286,7 +67551,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_nigiri_fog",
@@ -67306,7 +67572,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_temaki",
@@ -67330,7 +67597,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_maki",
@@ -67354,7 +67622,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_organ",
@@ -67370,7 +67639,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_neutrinoemitter",
@@ -67398,7 +67668,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_fishingrod_t1",
@@ -67426,7 +67697,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_snipercowl",
@@ -67446,7 +67718,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_puffycoat",
@@ -67474,7 +67747,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_snowgloves",
@@ -67502,7 +67776,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_snowpants",
@@ -67530,7 +67805,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_helmet_yeti",
@@ -67558,7 +67834,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_bench_cooking",
@@ -67586,7 +67863,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 3
     },
     {
       "Id": "recipe_seed_antelight_red",
@@ -67610,7 +67888,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_seed_antelight_RGB",
@@ -67638,7 +67917,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_seed_antelight_space",
@@ -67666,7 +67946,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_tacklebox",
@@ -67694,7 +67975,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_goggles",
@@ -67714,7 +67996,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_crowbar20",
@@ -67742,7 +68025,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_pickaxe_carbon",
@@ -67766,7 +68050,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_impacthammer",
@@ -67794,7 +68079,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_helmet_tech",
@@ -67822,7 +68108,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_chest_tech",
@@ -67850,7 +68137,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_arms_tech",
@@ -67878,7 +68166,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_legs_tech",
@@ -67906,7 +68195,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_helmet_crystal",
@@ -67934,7 +68224,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_chest_crystal",
@@ -67962,7 +68253,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_arms_crystal",
@@ -67990,7 +68282,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_legs_crystal",
@@ -68018,7 +68311,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_hat_luckyhat",
@@ -68046,7 +68340,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_ammo_explosivecartridge",
@@ -68074,7 +68369,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_heavy_laser",
@@ -68102,7 +68398,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_katana_laser",
@@ -68130,7 +68427,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_storagechip",
@@ -68158,7 +68456,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_reaperhelm",
@@ -68178,7 +68477,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_legs_waders",
@@ -68206,7 +68506,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_bleach",
@@ -68230,7 +68531,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_polishedskull",
@@ -68250,7 +68552,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_taxidermy_pest",
@@ -68274,7 +68577,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_taxidermy_electropest",
@@ -68302,7 +68606,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_wallmount_peccary",
@@ -68330,7 +68635,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_wallmount_exormonk",
@@ -68358,7 +68664,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_wallmount_exor",
@@ -68386,7 +68693,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_wallmount_tarasque",
@@ -68414,7 +68722,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_cart_t2",
@@ -68442,7 +68751,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 4
     },
     {
       "Id": "recipe_cart_haz",
@@ -68462,7 +68772,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 4
     },
     {
       "Id": "recipe_cart_aqua",
@@ -68482,7 +68793,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 4
     },
     {
       "Id": "recipe_fridge_haz",
@@ -68510,7 +68822,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_freezer",
@@ -68538,7 +68851,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_aquarium_large",
@@ -68566,7 +68880,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_acidbolt",
@@ -68588,7 +68903,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 0.5
     },
     {
       "Id": "recipe_bucket_wooden",
@@ -68612,7 +68928,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_fishingrod_insulated",
@@ -68640,7 +68957,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_cauldron",
@@ -68668,7 +68986,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_trinket_cornhusk",
@@ -68688,7 +69007,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_leyak_containment",
@@ -68716,7 +69036,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_nigiri_eel",
@@ -68736,7 +69057,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_ricebowl_eel",
@@ -68764,7 +69086,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_temaki_eel",
@@ -68788,7 +69111,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armorstand_wood_M",
@@ -68812,7 +69136,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armorstand_wood_F",
@@ -68836,7 +69161,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_bait_eel",
@@ -68856,7 +69182,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_crossbow_lode",
@@ -68884,7 +69211,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_bolt_lodestone",
@@ -68912,7 +69240,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_pumpkin_carved",
@@ -68928,7 +69257,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_raw_dough_pumpkin",
@@ -68952,7 +69282,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_cookies_pumpkin_raw",
@@ -68980,7 +69311,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_icecream_pumpkin",
@@ -69000,7 +69332,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_pumpkinpie_raw",
@@ -69028,7 +69361,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_fishtrap",
@@ -69056,7 +69390,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 3
     },
     {
       "Id": "recipe_pie_apple_raw",
@@ -69084,7 +69419,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_armor_helmet_hex",
@@ -69112,7 +69448,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_chest_hex",
@@ -69140,7 +69477,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_arms_hex",
@@ -69164,7 +69502,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_legs_hex",
@@ -69192,7 +69531,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_Sign_Small",
@@ -69216,7 +69556,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_bolt_shock",
@@ -69244,7 +69585,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_hat_jack",
@@ -69268,7 +69610,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_trinket_neutrinolantern",
@@ -69294,7 +69637,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_fieldbattery",
@@ -69322,7 +69666,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_bridge_hardlight_large",
@@ -69346,7 +69691,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_taxidermy_volatilepest",
@@ -69374,7 +69720,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_gastromeds",
@@ -69398,7 +69745,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_beehive",
@@ -69426,7 +69774,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_suit_beekeeper",
@@ -69454,7 +69803,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_bait_ice",
@@ -69478,7 +69828,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_nigiri_ice",
@@ -69498,7 +69849,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_pie_honey_raw",
@@ -69526,7 +69878,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_icecream_honey",
@@ -69550,7 +69903,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_xmastree",
@@ -69578,7 +69932,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_throwknife_dart",
@@ -69606,7 +69961,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_throwknife_crystal",
@@ -69634,7 +69990,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_throwknife_quill",
@@ -69662,7 +70019,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_nvg_t2",
@@ -69690,7 +70048,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_chest_reactor",
@@ -69718,7 +70077,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_legs_reactor",
@@ -69746,7 +70106,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_arms_reactor",
@@ -69774,7 +70135,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_helmet_reactor",
@@ -69802,7 +70164,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_chest_exor",
@@ -69830,7 +70193,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_helm_exor",
@@ -69858,7 +70222,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_legs_exor",
@@ -69886,7 +70251,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_arms_exor",
@@ -69914,7 +70280,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_trinket_censer",
@@ -69942,7 +70309,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_detcord",
@@ -69966,7 +70334,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_parchment",
@@ -69986,7 +70355,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_rocketlauncher",
@@ -70014,7 +70384,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_rocket_standard",
@@ -70042,7 +70413,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_rocket_penetrator",
@@ -70062,7 +70434,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_rocket_cluster",
@@ -70086,7 +70459,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_grenade_cluster",
@@ -70106,7 +70480,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_backpack_dimension",
@@ -70134,7 +70509,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_digital_gold",
@@ -70162,7 +70538,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_shield_hardlight",
@@ -70190,7 +70567,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_flail",
@@ -70218,7 +70596,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_bait_silk",
@@ -70238,7 +70617,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_biometric_t3",
@@ -70266,7 +70646,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 4
     },
     {
       "Id": "recipe_crunchy_crystal",
@@ -70286,7 +70667,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_jotunhelm",
@@ -70314,7 +70696,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_grenade_laser",
@@ -70342,7 +70725,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_butter",
@@ -70366,7 +70750,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_spear_harpoon",
@@ -70394,7 +70779,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_popcorn_buttery",
@@ -70418,7 +70804,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_pie_sberry_raw",
@@ -70446,7 +70833,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_milkshake_sberry",
@@ -70466,7 +70854,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_salad_gooeytulip",
@@ -70486,7 +70875,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_blackholegrenade",
@@ -70514,7 +70904,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_glimmersteak",
@@ -70534,7 +70925,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_bait_umbra",
@@ -70554,7 +70946,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_nigiri_mushycrab",
@@ -70578,7 +70971,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_nigiri_umbra",
@@ -70598,7 +70992,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_silkyflorentine",
@@ -70626,7 +71021,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_maki_umbra",
@@ -70650,7 +71046,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_temaki_silk",
@@ -70674,7 +71071,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_suit_larva",
@@ -70702,7 +71100,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_disc_lode",
@@ -70722,7 +71121,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_disc_plasma",
@@ -70746,7 +71146,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_trinket_core",
@@ -70766,7 +71167,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_trinket_shieldgenerator",
@@ -70794,7 +71196,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_trinket_ogredoll",
@@ -70822,7 +71225,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_hammer",
@@ -70846,7 +71250,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_trinket_carbuncle",
@@ -70874,7 +71279,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_backpack_longjump",
@@ -70902,7 +71308,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_helmet_behemoth",
@@ -70930,7 +71337,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_bench_upgrade",
@@ -70958,7 +71366,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 3
     },
     {
       "Id": "recipe_shield_hexwood",
@@ -70986,7 +71395,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_backpack_hiking",
@@ -71014,7 +71424,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_helmet_mage",
@@ -71042,7 +71453,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_chest_mage",
@@ -71070,7 +71482,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_arms_mage",
@@ -71098,7 +71511,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_legs_mage",
@@ -71126,7 +71540,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_offhand_mageglove",
@@ -71154,7 +71569,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_charging_pad",
@@ -71178,7 +71594,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_decon_shower",
@@ -71206,7 +71623,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_storagecrate_t4",
@@ -71234,7 +71652,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_storagecrate_void",
@@ -71262,7 +71681,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_hardlightsaber",
@@ -71290,7 +71710,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_knife_super",
@@ -71318,7 +71739,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_quantum_pick",
@@ -71346,7 +71768,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_database",
@@ -71374,7 +71797,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_beacon",
@@ -71402,7 +71826,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_stove_4spot",
@@ -71430,7 +71855,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1.5
     },
     {
       "Id": "recipe_throwknife_shard",
@@ -71458,7 +71884,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_cubicle_full",
@@ -71482,7 +71909,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_cubicle_full_half",
@@ -71506,7 +71934,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_cubicle_full_nowindow",
@@ -71530,7 +71959,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_cubicle_full_window",
@@ -71558,7 +71988,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_cubicle_half",
@@ -71582,7 +72013,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_cubicle_half_half",
@@ -71606,7 +72038,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_cubicle_half_nowindow",
@@ -71630,7 +72063,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_cubicle_half_window",
@@ -71658,7 +72092,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_icecream",
@@ -71682,7 +72117,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_lodestone_cracked",
@@ -71706,7 +72142,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_warming_drawer",
@@ -71734,7 +72171,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_armor_helmet_peccary_snow",
@@ -71756,7 +72194,8 @@
           "Count": 4
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_spear_hardlight",
@@ -71784,7 +72223,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_benchpress",
@@ -71812,7 +72252,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_exercisebike",
@@ -71840,7 +72281,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_mushroomfarm",
@@ -71868,7 +72310,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_bench_ammo",
@@ -71896,7 +72339,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 3
     },
     {
       "Id": "recipe_gunpowder",
@@ -71920,7 +72364,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Ammo"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_ammo_9mm",
@@ -71940,7 +72385,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Ammo"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_ammo_12g",
@@ -71960,7 +72406,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Ammo"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_ammo_magnum",
@@ -71980,7 +72427,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Ammo"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_ammo_556",
@@ -72000,7 +72448,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Ammo"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_ammo_308",
@@ -72020,7 +72469,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Ammo"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_crate_charging",
@@ -72048,7 +72498,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_pumpkin_tray",
@@ -72064,7 +72515,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 5
     },
     {
       "Id": "recipe_cake_carrot",
@@ -72092,7 +72544,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_fries_carrot",
@@ -72112,7 +72565,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_snowman_tophatscarf",
@@ -72130,7 +72584,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_itemstand_wall",
@@ -72150,7 +72605,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_snowman_crafted",
@@ -72172,7 +72628,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_electropest",
@@ -72200,7 +72657,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_petbed_small",
@@ -72224,7 +72682,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_petbed",
@@ -72248,7 +72707,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_powerchair",
@@ -72276,7 +72736,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_electropeccary",
@@ -72304,7 +72765,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_ratpest",
@@ -72332,7 +72794,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_bench_distillation",
@@ -72360,7 +72823,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_mop",
@@ -72388,7 +72852,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_watch_stealth",
@@ -72416,7 +72881,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_watch_decoy",
@@ -72444,7 +72910,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_watch_hauling",
@@ -72472,7 +72939,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_biocannon_magma",
@@ -72500,7 +72968,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_cubicle_gate",
@@ -72528,7 +72997,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_cubicle_gate_half",
@@ -72556,7 +73026,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_petbed_luxury",
@@ -72584,7 +73055,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_hammer_endothermic",
@@ -72612,7 +73084,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_mace_acid",
@@ -72640,7 +73113,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_helmet_volatile",
@@ -72662,7 +73136,8 @@
           "Count": 4
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_cloakscrambler",
@@ -72688,7 +73163,8 @@
           "Count": 2
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_hardlightsledge",
@@ -72716,7 +73192,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_flail_plasma",
@@ -72744,7 +73221,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_wallmount_snowpecc",
@@ -72772,7 +73250,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_taxidermy_snowpest",
@@ -72796,7 +73275,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_gardenplot_digital",
@@ -72824,7 +73304,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_gardencartridge_blank",
@@ -72852,7 +73333,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_gardencartridge_pepper",
@@ -72876,7 +73358,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_oven_t2",
@@ -72904,7 +73387,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_petpointer",
@@ -72932,7 +73416,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_biocannon_mushroom",
@@ -72960,7 +73445,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_testdummy",
@@ -72988,7 +73474,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_cake_anniversary",
@@ -73016,7 +73503,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_pepper_stuffed",
@@ -73044,7 +73532,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_mushroom_stuffed",
@@ -73072,7 +73561,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Cooking"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_watch_employeelocator",
@@ -73100,7 +73590,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_watch_geiger",
@@ -73128,7 +73619,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_watch_communicator",
@@ -73156,7 +73648,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_gardencartridge_lamogi",
@@ -73180,7 +73673,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_testtarget",
@@ -73208,7 +73702,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_gardencartridge_9mm",
@@ -73232,7 +73727,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_gardencartridge_magnum",
@@ -73256,7 +73752,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_gardencartridge_556",
@@ -73280,7 +73777,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_gardencartridge_308",
@@ -73304,7 +73802,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_gardencartridge_12g",
@@ -73328,7 +73827,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_lamogi_plated",
@@ -73356,7 +73856,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "recipe_scarecrow",
@@ -73384,7 +73885,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 1
     },
     {
       "Id": "recipe_trowel",
@@ -73412,7 +73914,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_pestgoulash",
@@ -73438,7 +73941,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_glue",
@@ -73456,7 +73960,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_solder",
@@ -73478,7 +73983,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_pea",
@@ -73500,7 +74006,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_poop",
@@ -73518,7 +74025,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_splitpea",
@@ -73544,7 +74052,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_creamytomato",
@@ -73570,7 +74079,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_simpletomato",
@@ -73592,7 +74102,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_supertomato",
@@ -73614,7 +74125,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_carbdumplings",
@@ -73640,7 +74152,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_veggie",
@@ -73666,7 +74179,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_meaty",
@@ -73692,7 +74206,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_hearty",
@@ -73718,7 +74233,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_balanced",
@@ -73744,7 +74260,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_sustenance",
@@ -73762,7 +74279,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_greyebchowder",
@@ -73788,7 +74306,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_potatosausage",
@@ -73810,7 +74329,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_sweetporridge",
@@ -73832,7 +74352,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_peccmush",
@@ -73858,7 +74379,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_armandleg",
@@ -73884,7 +74406,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_sugarslop",
@@ -73910,7 +74433,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_pasta_homey",
@@ -73936,7 +74460,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_mashedpotatoes",
@@ -73962,7 +74487,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_cheesewheel",
@@ -73988,7 +74514,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_fishglue",
@@ -74010,7 +74537,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_fishstew",
@@ -74036,7 +74564,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_rice",
@@ -74054,7 +74583,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_risotto",
@@ -74080,7 +74610,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_peccnoodles",
@@ -74106,7 +74637,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_radchowder",
@@ -74132,7 +74664,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_lunarbisque",
@@ -74158,7 +74691,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_inkyeggdrop",
@@ -74184,7 +74718,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_anteversegumbo",
@@ -74210,7 +74745,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_harmonyrice",
@@ -74236,7 +74772,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_reservoir_reserve",
@@ -74262,7 +74799,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_peccarygoulash",
@@ -74288,7 +74826,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_meatrio",
@@ -74314,7 +74853,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_pumpkin",
@@ -74340,7 +74880,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_ravioli_pumpkin_raw",
@@ -74366,7 +74907,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_glacialgazpacho",
@@ -74392,7 +74934,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_creamycorn_raw",
@@ -74418,7 +74961,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_gooeymushroom_raw",
@@ -74444,7 +74988,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_witchinghour_raw",
@@ -74470,7 +75015,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_silkyconsomme_raw",
@@ -74496,7 +75042,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_pestgoulash_test",
@@ -74522,7 +75069,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_solder_test",
@@ -74544,7 +75092,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_carrot_pumpkin",
@@ -74570,7 +75119,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "srecipe_pepper",
@@ -74596,7 +75146,8 @@
           "Count": 1
         }
       ],
-      "Benches": []
+      "Benches": [],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "frecipe_noxious",
@@ -74620,7 +75171,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "trecipe_electrifying",
@@ -74644,7 +75196,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "trecipe_reinforcing",
@@ -74668,7 +75221,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "trecipe_berserker",
@@ -74692,7 +75246,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "trecipe_antiheat",
@@ -74716,7 +75271,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "crecipe_holy",
@@ -74740,7 +75296,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "crecipe_reforging",
@@ -74764,7 +75321,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "crecipe_electromagnetic",
@@ -74788,7 +75346,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "crecipe_thermal",
@@ -74812,7 +75371,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "crecipe_bounce",
@@ -74836,7 +75396,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "crecipe_somnivorous",
@@ -74860,7 +75421,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "crecipe_acid",
@@ -74884,7 +75446,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "crecipe_disruptor",
@@ -74908,7 +75471,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "crecipe_quantum",
@@ -74932,7 +75496,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "frecipe_restorative",
@@ -74956,7 +75521,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "frecipe_concussive",
@@ -74980,7 +75546,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "frecipe_charging",
@@ -75004,7 +75571,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "frecipe_holy",
@@ -75028,7 +75596,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "trecipe_curative",
@@ -75052,7 +75621,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "frecipe_panic",
@@ -75076,7 +75646,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "frecipe_portal",
@@ -75100,7 +75671,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "frecipe_megaton",
@@ -75124,7 +75696,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "frecipe_pheromone",
@@ -75148,7 +75721,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "trecipe_giganto",
@@ -75172,7 +75746,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "trecipe_speedy",
@@ -75196,7 +75771,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "crecipe_foggy",
@@ -75220,7 +75796,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "trecipe_restorative",
@@ -75244,7 +75821,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "frecipe_updraft",
@@ -75268,7 +75846,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "trecipe_phasing",
@@ -75292,7 +75871,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "frecipe_blizzard",
@@ -75316,7 +75896,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "frecipe_corrosive",
@@ -75340,7 +75921,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "trecipe_brainpower",
@@ -75364,7 +75946,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     },
     {
       "Id": "frecipe_unstable",
@@ -75388,7 +75971,8 @@
       ],
       "Benches": [
         "Deployable_Bench_Crafting"
-      ]
+      ],
+      "CraftDurationSeconds": 2
     }
   ],
   "ItemUpgrades": [
