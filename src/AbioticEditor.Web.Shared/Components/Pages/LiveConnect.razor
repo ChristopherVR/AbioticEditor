@@ -797,7 +797,23 @@ else
         try
         {
             var info = await worldInfo.GetAsync();
+            var previousToken = LiveSession.CurrentRegionToken;
             LiveSession.SetCurrentRegion(info.LevelToken);
+            // Every per-region world area (containers, doors, dropped items, creatures, bases,
+            // vehicles, pets, narrative NPCs, portals, the care features) is backed by an
+            // in-game FindAllOf sweep, which only ever sees whatever region the game currently
+            // has loaded/streamed - see main.lua's loadedContainers()/allNpcs()/etc. Teleporting
+            // (or walking) into a different region used to leave every one of those sessions
+            // showing the PREVIOUS region's data forever: they connect once per LiveConnect
+            // page lifetime (the `??=` in EnsureAreaConnectedAsync), not once per region, and
+            // nothing ever told them the ground moved out from under them. Reset them all here
+            // the moment the game's own region token actually changes, so the next tab visit
+            // re-fetches fresh - world-wide state (story/flags/traders/containment/entitlements)
+            // is untouched, since that is not region-scoped at all.
+            if (previousToken is not null && !string.Equals(previousToken, info.LevelToken, StringComparison.OrdinalIgnoreCase))
+            {
+                ResetRegionScopedWorldSessions();
+            }
         }
         catch (Exception)
         {
@@ -881,7 +897,10 @@ else
                 // A tab visit still gets one fetch (EnsureAreaConnectedAsync); after that it only
                 // updates from the player's own edits, not a periodic re-poll.
                 case "dropped": yield return _dropped; break;
-                case "bases": yield return _bases; break;
+                // bases: same reasoning as containers/npcs above - AbioticDeployed_ParentBP_C
+                // covers every placeable in the world (crafting benches, storage, decorations,
+                // everything), not only benches, so this is at least as large a sweep as
+                // containers.list on a built-up base.
                 case "vehicles": yield return _vehicles; break;
                 case "pets": yield return _pets; break;
                 case "narrativenpcs": yield return _narrativeNpcs; break;
@@ -982,6 +1001,47 @@ else
             catch (Exception) { }
         }
         _changedSubscriptions.Clear();
+    }
+
+    /// <summary>Unsubscribes and forgets one session (see <see cref="UnsubscribeAllChangedEvents"/>
+    /// for the same thing done to every session at once) - used by
+    /// <see cref="ResetRegionScopedWorldSessions"/>, which only wants to drop a few of them.</summary>
+    private void UnsubscribeChangedEvent(object? session)
+    {
+        if (session is null || !_changedSubscriptions.Remove(session)) return;
+        var handler = MakeChangedHandler(LiveSessionReflection.ChangedEvent(session));
+        if (handler is null) return;
+        try { LiveSessionReflection.ChangedEvent(session)!.RemoveEventHandler(session, handler); }
+        catch (Exception) { }
+    }
+
+    /// <summary>Drops every world session backed by a FindAllOf sweep of whatever region the game
+    /// currently has loaded, so the next tab visit reconnects and fetches that region's own data
+    /// instead of silently going on showing the region the player just left - see
+    /// <see cref="PollCurrentRegionAsync"/>, the only caller. World-wide state (story/flags/
+    /// traders/containment/entitlements) is untouched: none of it is region-scoped.</summary>
+    private void ResetRegionScopedWorldSessions()
+    {
+        foreach (object? session in new object?[] { _containers, _doors, _dropped, _npcs, _bases, _vehicles, _pets, _narrativeNpcs, _portals }.Concat(_care.Values))
+        {
+            UnsubscribeChangedEvent(session);
+        }
+        _containers = null;
+        _doors = null;
+        _dropped = null;
+        _npcs = null;
+        _bases = null;
+        _vehicles = null;
+        _pets = null;
+        _narrativeNpcs = null;
+        _portals = null;
+        _care.Clear();
+        // Only the tab actually on screen right now gets re-fetched immediately - the other
+        // eight get EnsureAreaConnectedAsync's usual lazy `??=` fetch whenever they are next
+        // opened, rather than all firing a world scan on the game thread at once the moment the
+        // player finishes teleporting. Skipped for the metadata tab set (story/traders/
+        // containment/entitlements) - never touched by this reset in the first place.
+        if (_surface == LiveSurface.World && !_worldIsMetadata) _ = EnsureAreaConnectedAsync(_worldTab);
     }
 
     /// <summary>Builds a delegate matching whichever event-handler shape a session's own

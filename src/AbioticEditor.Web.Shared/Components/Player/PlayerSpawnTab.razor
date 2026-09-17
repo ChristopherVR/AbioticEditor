@@ -377,14 +377,31 @@
     private string? SelectedLevelGuid => Levels.FirstOrDefault(level =>
         string.Equals(level.LevelGuid, Session.Respawn.LevelGuid, StringComparison.OrdinalIgnoreCase))?.LevelGuid;
 
+    /// <summary>
+    /// Live-only nudge added on top of a terminal's stored Z when snapping the live TELEPORT
+    /// target to one (see <see cref="RegionSelected"/>/<see cref="TerminalSelected"/>). The
+    /// catalog's coordinate is the terminal actor's own root-component position (see
+    /// <c>RespawnTerminalCatalog</c>'s doc comment and <c>docs/reference/research/
+    /// research-respawn-terminals.md</c>) - reported live as landing the player INSIDE the
+    /// terminal prop's own collision, not beside it. The game's own respawn-at-terminal flow
+    /// (a file-stored respawn point, used only when the character actually dies) presumably
+    /// resolves that itself the way a native PlayerStart would; a live TELEPORT is a bare
+    /// K2_TeleportTo/TeleportPlayer to the exact coordinate with no such resolution, so only the
+    /// live path gets this adjustment - the file-stored value is left exactly as extracted.
+    /// Matches the same "stand clear of the geometry, not inside it" idea <see
+    /// cref="ApplyBedAsync"/>'s own +90 already uses for beds; unverified against a running game
+    /// past that live spawn.lua report and may need tuning.
+    /// </summary>
+    private const double LiveTerminalStandoffZ = 100;
+
     private async Task RegionSelected(ChangeEventArgs args)
     {
         var guid = args.Value?.ToString();
         if (string.IsNullOrWhiteSpace(guid)) return;
         Session.Respawn.LevelGuid = guid;
         // A user-picked region keeps the spawn coordinates honest: snap to that region's
-        // punch-card terminal (a guaranteed-walkable anchor) when one exists. Guarded
-        // against the save's own region.
+        // punch-card terminal (a walkable-enough anchor for the file-stored respawn point) when
+        // one exists. Guarded against the save's own region.
         var level = Levels.FirstOrDefault(candidate => string.Equals(candidate.LevelGuid, guid, StringComparison.OrdinalIgnoreCase));
         if (!string.Equals(guid, _regionBaseline, StringComparison.OrdinalIgnoreCase)
             && level is not null
@@ -392,7 +409,7 @@
         {
             Session.Respawn.X = anchor.X;
             Session.Respawn.Y = anchor.Y;
-            Session.Respawn.Z = anchor.Z;
+            Session.Respawn.Z = anchor.Z + (Session.SupportsLiveActions ? LiveTerminalStandoffZ : 0);
         }
         await Changed();
     }
@@ -409,7 +426,7 @@
         {
             Session.Respawn.X = terminal.X;
             Session.Respawn.Y = terminal.Y;
-            Session.Respawn.Z = terminal.Z;
+            Session.Respawn.Z = terminal.Z + (Session.SupportsLiveActions ? LiveTerminalStandoffZ : 0);
         }
         await Changed();
     }

@@ -25,12 +25,23 @@ public sealed class LivePlayerVitalsSession : IPlayerVitalsSession
         _original = initial.Clone();
     }
 
-    /// <summary>Connects and reads the current vitals for <paramref name="playerId"/> (or the
-    /// local player when omitted) to seed the session.</summary>
+    /// <summary>
+    /// Connects and reads the current vitals for <paramref name="playerId"/> (or the local
+    /// player when omitted) to seed the session. Reads twice, a short beat apart, and keeps only
+    /// the second read: connecting right as a world finishes loading in can catch the health
+    /// component mid-replication, and unlike the "missing field" shape main.lua's vitals.get
+    /// already guards against (see its own comment on the body-health-showing-0 report), a
+    /// genuinely valid-looking but stale number - reported live as HEAD reading a flat 50% moments
+    /// after loading in, when the character was actually at full health - passes that guard
+    /// without tripping it. Best-effort: there is no way to prove replication has actually
+    /// finished, only that it is more likely to have after a short wait.
+    /// </summary>
     public static async Task<LivePlayerVitalsSession> ConnectAsync(
         LivePlayerVitalsChannel channel, string? playerId = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(channel);
+        await channel.GetAsync(playerId, cancellationToken).ConfigureAwait(false);
+        await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
         var (stats, health) = await channel.GetAsync(playerId, cancellationToken).ConfigureAwait(false);
         return new LivePlayerVitalsSession(channel, playerId, ToVitals(stats, health));
     }
