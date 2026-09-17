@@ -30,6 +30,12 @@ needed. Close the game before agent setup or updates. UE4SS itself updates along
 releases when bundled (see "Bumping the bundled UE4SS" in the maintainer-commands reference);
 a manually installed UE4SS still updates separately through its publisher.
 
+**Security scanning.** The native helper, the Lua mod, and the bundled UE4SS package are the one
+part of this app that installs into your actual game folder and runs alongside the game, so every
+release scans that exact bundle with Windows Defender before it ships (the release fails outright
+if Defender finds anything) and, when the project's VirusTotal key is configured, again against
+70+ engines - see each release's own notes on GitHub for that run's result and links.
+
 See the [player guide](https://christophervr.github.io/AbioticEditor/guide/live-editing) for
 installation steps, supported tools, limitations, troubleshooting, and remote setup.
 The instructions below are for contributors and manual server installations. Historical
