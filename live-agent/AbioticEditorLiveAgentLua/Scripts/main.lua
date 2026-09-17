@@ -1510,6 +1510,23 @@ local function containerInventory(container)
     -- directly (the old behavior here) found that per-actor component, which a Void Chest never
     -- actually stores anything in, so it always looked empty regardless of its real contents.
     local directOk, direct = pcall(function() return container.ContainerInventory end)
+    -- Round 90: a Void Chest goes straight to the GameState's own Inventory_Void (an
+    -- Abiotic_InventoryComponent_C ObjectProperty on Abiotic_Survival_GameState_C, per the game's
+    -- own Blueprint exports - the one pool every placed Void Chest is meant to share). Calling
+    -- the chest's GetContainerInventory() override from here was silently falling through to the
+    -- per-actor ContainerInventory below: a live test (rename one chest, write into one chest,
+    -- re-read all four) proved each chest read and wrote its own separate, unused component,
+    -- which is exactly why nothing the editor put in a Void Chest ever showed up in the game or
+    -- in any other Void Chest. UEHelpers.GetGameStateBase() is the same proven route
+    -- currentWorldFlags() already takes to this object.
+    local name = fullName(container)
+    if type(name) == "string" and name:find("Deployed_StorageCrate_Void_C", 1, true) == 1 then
+        local okState, gameState = pcall(function() return UEHelpers.GetGameStateBase() end)
+        if okState and gameState and gameState:IsValid() then
+            local okPool, pool = pcall(function() return gameState.Inventory_Void end)
+            if okPool and pool and pool:IsValid() then return pool, true end
+        end
+    end
     local ok, inv = pcall(function() return container:GetContainerInventory() end)
     if not ok or not inv or not inv:IsValid() then ok, inv = pcall(function() return direct end) end
     if not ok or not inv or not inv:IsValid() then ok, inv = pcall(function() return container.BenchInventory end) end
@@ -1703,6 +1720,11 @@ handlers["containers.set"] = function(payload, respond)
         -- confirm, which was not available this round (the live-agent helper's single connection
         -- could not be reached this round - see this file's own round-87 notes elsewhere).
         pcall(function() inv:OnRep_CurrentInventory() end)
+        -- Round 90: a shared pool (a Void Chest's GameState-owned Inventory_Void) is watched by
+        -- every chest and every player's open container screen at once, not one actor's own
+        -- widget - Server_ForceInventoryUpdate is the component's own "everyone re-read me now"
+        -- RPC, best-effort on top of the OnRep above.
+        if shared then pcall(function() inv:Server_ForceInventoryUpdate() end) end
         return nil
     end, respond)
 end
@@ -1747,10 +1769,11 @@ handlers["containers.rename"] = function(payload, respond)
         -- and refuse to rename it rather than risk silently renaming every instance again. A
         -- confirmed real per-instance name mechanism for Void Chest, if one exists, can lift this
         -- once someone can verify it live.
-        local _, sharedIdentity = containerInventory(container)
-        if sharedIdentity then
-            error("this container shares its contents with every other one of its kind, so it cannot be given its own name")
-        end
+        -- Round 90: the round-87 refusal for a shared-inventory container was removed. A live
+        -- test proved PlayerMadeString is genuinely per-actor even for a Void Chest (renaming one
+        -- and re-reading all four left the other three untouched) - what the container STORES
+        -- being shared says nothing about what it is CALLED, and coupling the two blocked a
+        -- write that was correct all along.
         local newName = tostring(payload.name or "")
         -- Try a plain string first (StrProperty, unlike bases.lua's FText-typed
         -- AlternativeObjectName - textValue above already shows a plain string is a real shape

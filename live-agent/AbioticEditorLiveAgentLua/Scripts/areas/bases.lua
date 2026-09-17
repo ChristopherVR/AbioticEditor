@@ -162,10 +162,9 @@ return function(ctx)
                 -- protected. Reuses containerInventory's own shared-detection (the same function
                 -- deployableRows already calls for storedItemCount, just above) rather than
                 -- re-implementing it here.
-                local _, sharedIdentity = ctx.containerInventory(obj)
-                if sharedIdentity then
-                    error("this object shares its contents with every other one of its kind, so it cannot be given its own name")
-                end
+                -- Round 90: the shared-inventory refusal added the round before was removed here
+                -- too - see containers.rename's own remarks in main.lua (a live test proved the
+                -- name write is per-actor; only the contents are shared).
                 local text = payload.customName
                 -- No precedent anywhere in the reference mod for writing an FText property from
                 -- Lua. FText(...) is UE4SS's own documented constructor but nothing here has

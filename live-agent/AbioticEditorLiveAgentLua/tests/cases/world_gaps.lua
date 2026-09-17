@@ -381,8 +381,33 @@ return function(H)
     local sharedNameId
     for _, entry in ipairs(sharedNameListing) do if entry.x == 11 then sharedNameId = entry.id end end
     H.check(sharedNameId ~= nil, "the shared-identity test container is listed")
-    H.fails(H.dispatch("containers.rename", { id = sharedNameId, name = "Mine Only" }),
-        "shares its contents", "a shared-identity container refuses a rename instead of applying it to every instance")
+    -- Round 90: a shared-inventory container CAN be renamed - a live test proved the name is
+    -- per-actor even for a Void Chest, so the round-87 refusal is gone.
+    H.ok(H.dispatch("containers.rename", { id = sharedNameId, name = "Mine Only" }),
+        "a shared-inventory container still takes its own name")
+
+    -- ---------- containers: a Void Chest resolves to the GameState's Inventory_Void directly
+    -- (round 90) - even when its own GetContainerInventory() hands back a per-actor decoy, which
+    -- is what a live test showed actually happening. ----------
+    local voidPool = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {
+        { ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B = { RowName = H.fname("void_pool_item") },
+          ChangeableData_12_2B90E1F74F648135579D39A49F5A2313 = { CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 1,
+          CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = 0, MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = 0 } },
+    } })
+    H.gameState.Inventory_Void = voidPool
+    local voidDecoy = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {} })
+    H.world.add(H.object("Deployed_StorageCrate_Void_C", { __bases = { "Deployed_Container_ParentBP_C" }, ContainerInventory = voidDecoy }, {
+        GetContainerInventory = function() return voidDecoy end,
+        K2_GetActorLocation = function() return H.vector(12, 12, 12) end,
+    }))
+    local voidListing = H.ok(H.dispatch("containers.list")).containers
+    local sawPoolItem = false
+    for _, entry in ipairs(voidListing) do
+        if entry.x == 12 then
+            for _, slot in ipairs(entry.slots) do if slot.itemId == "void_pool_item" then sawPoolItem = true end end
+        end
+    end
+    H.check(sawPoolItem, "a Void Chest lists the GameState's Inventory_Void, not its own decoy component")
 
     -- ---------- narrative NPCs ----------
     local narrative = H.world.add(H.object("NarrativeNPC_ParentBP_C", { IsCorpse = false, NarrativeState = 1 }, {

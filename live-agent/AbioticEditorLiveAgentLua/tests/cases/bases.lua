@@ -146,8 +146,9 @@ return function(H)
         GetContainerInventory = function() return sharedBaseInv end,
         K2_GetActorLocation = function() return H.vector(13, 13, 13) end,
     }))
-    H.fails(H.dispatch("bases.set", { id = sharedBase:GetFullName(), customName = "Mine Only" }),
-        "shares its contents", "a shared-identity deployable refuses a rename from the BASES screen too")
+    -- Round 90: renaming is per-actor and allowed again (see containers.rename's remarks).
+    H.ok(H.dispatch("bases.set", { id = sharedBase:GetFullName(), customName = "Mine Only" }),
+        "a shared-inventory deployable still takes its own name from the BASES screen")
 
     -- Non-host refusal.
     H.clientSession()
