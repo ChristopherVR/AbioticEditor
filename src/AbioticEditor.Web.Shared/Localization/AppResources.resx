@@ -210,8 +210,8 @@
   <data name="PlayerEditor_Achieve" xml:space="preserve"><value>Achievements</value></data>
   <data name="PlayerEditor_Character" xml:space="preserve"><value>Character</value></data>
   <data name="PlayerEditor_Companions" xml:space="preserve"><value>Companions</value></data>
-  <data name="PlayerEditor_Data" xml:space="preserve"><value>Advanced data</value></data>
-  <data name="PlayerEditor_Gatepal" xml:space="preserve"><value>GATEPAL</value></data>
+  <data name="PlayerEditor_Data" xml:space="preserve"><value>Advanced Data</value></data>
+  <data name="PlayerEditor_Gatepal" xml:space="preserve"><value>Gatepal</value></data>
   <data name="PlayerEditor_General" xml:space="preserve"><value>General</value></data>
   <data name="PlayerEditor_Inventory" xml:space="preserve"><value>Inventory</value></data>
   <data name="PlayerEditor_Recipes" xml:space="preserve"><value>Recipes</value></data>
@@ -3617,9 +3617,9 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
     <value>see the log for details.</value>
   </data>
   <data name="WorldEditor_TabContainers" xml:space="preserve"><value>Containers</value></data>
-  <data name="WorldEditor_TabQuestFlags" xml:space="preserve"><value>Story events</value></data>
+  <data name="WorldEditor_TabQuestFlags" xml:space="preserve"><value>Story Events</value></data>
   <data name="WorldEditor_TabDoors" xml:space="preserve"><value>Doors</value></data>
-  <data name="WorldEditor_TabDropped" xml:space="preserve"><value>Ground items</value></data>
+  <data name="WorldEditor_TabDropped" xml:space="preserve"><value>Ground Items</value></data>
   <data name="WorldEditor_TabNpcs" xml:space="preserve"><value>Characters</value></data>
   <data name="WorldEditor_TabPets" xml:space="preserve"><value>Pets</value></data>
   <data name="WorldEditor_TabVehicles" xml:space="preserve"><value>Vehicles</value></data>
@@ -3627,7 +3627,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldEditor_TabStory" xml:space="preserve"><value>Story</value></data>
   <data name="WorldEditor_TabTraders" xml:space="preserve"><value>Traders</value></data>
   <data name="WorldEditor_TabContainment" xml:space="preserve"><value>Containment</value></data>
-  <data name="WorldEditor_TabRawJson" xml:space="preserve"><value>Advanced data</value></data>
+  <data name="WorldEditor_TabRawJson" xml:space="preserve"><value>Advanced Data</value></data>
   <data name="WorldFeature_TitleFormat" xml:space="preserve"><value>{0} IN THIS WORLD</value></data>
   <data name="WorldEditor_ExportingJson" xml:space="preserve"><value>Writing the raw JSON... (the main facility save makes a file of about 100 MB, so this can take a moment)</value></data>
   <data name="WorldEditor_ExportedJsonFormat" xml:space="preserve"><value>Done - wrote {0:F1} MB → {1}</value></data>
@@ -4093,12 +4093,12 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="LiveNpcs_SelectToPreview" xml:space="preserve"><value>Select a creature to see it here.</value></data>
   <data name="LiveNpcs_ClassLabel" xml:space="preserve"><value>Class</value></data>
   <data name="LiveNpcs_NoAppearanceDataNote" xml:space="preserve"><value>The running game does not report this creature's position, health or appearance - only its name, life/death state, disabled/invincible flags and faction.</value></data>
-  <data name="Live_TabPortals" xml:space="preserve"><value>WORLD TELEPORTERS</value></data>
-  <data name="Live_TabEntitlements" xml:space="preserve"><value>ENTITLEMENTS</value></data>
-  <data name="Live_TabWildlife" xml:space="preserve"><value>CREATURES</value></data>
-  <data name="Live_TabGardenPlots" xml:space="preserve"><value>Garden plots</value></data>
-  <data name="Live_TabPowerChairs" xml:space="preserve"><value>Power chairs</value></data>
-  <data name="Live_TabChemistryBenches" xml:space="preserve"><value>Chemistry benches</value></data>
+  <data name="Live_TabPortals" xml:space="preserve"><value>World Teleporters</value></data>
+  <data name="Live_TabEntitlements" xml:space="preserve"><value>Entitlements</value></data>
+  <data name="Live_TabWildlife" xml:space="preserve"><value>Creatures</value></data>
+  <data name="Live_TabGardenPlots" xml:space="preserve"><value>Garden Plots</value></data>
+  <data name="Live_TabPowerChairs" xml:space="preserve"><value>Power Chairs</value></data>
+  <data name="Live_TabChemistryBenches" xml:space="preserve"><value>Chemistry Benches</value></data>
   <data name="LiveTraders_Title" xml:space="preserve"><value>TRADERS</value></data>
   <data name="LiveTraders_Intro" xml:space="preserve"><value>The trader roster and what still gates each one. Unlocking sets the missing quest flags through the running game's own flag system - the same effect as reaching that moment in the story.</value></data>
   <data name="LiveTraders_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to unlock traders. Editing here as a joined client would not stick.</value></data>
