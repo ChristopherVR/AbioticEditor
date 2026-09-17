@@ -545,9 +545,7 @@
   <data name="WorldFlags_QuestFlags" xml:space="preserve"><value>ÉVÉNEMENTS DE L'HISTOIRE</value></data>
 
   <!-- WorldNpcs -->
-  <data name="WorldNpcs_NpcsIntro" xml:space="preserve"><value>Les personnages de l'histoire et les marchands de cette zone. RANIMER en ramène un après qu'il a été retiré. Son étape de l'histoire indique où en est sa propre partie du récit : ne la changez que si vous savez quelle étape vous voulez. Les familiers apprivoisés ont leur propre onglet FAMILIERS.</value></data>
-  <data name="WorldNpcs_Revive" xml:space="preserve"><value>RANIMER</value></data>
-  <data name="WorldNpcs_ReviveTooltip" xml:space="preserve"><value>Ramène ce personnage à la vie à son étape d'histoire habituelle. La plupart des morts sont partis dans le cadre du récit : le ranimer peut donc faire revenir quelqu'un que l'intrigue a déjà laissé derrière elle.</value></data>
+  <data name="WorldNpcs_NpcsIntro" xml:space="preserve"><value>Les personnages de l'histoire et les marchands de cette zone. Décochez MORT pour ramener un personnage qui a été retiré. Son étape de l'histoire indique où en est sa propre partie du récit : ne la changez que si vous savez quelle étape vous voulez. Les familiers apprivoisés ont leur propre onglet FAMILIERS.</value></data>
   <data name="WorldNpcs_ScriptPhase" xml:space="preserve"><value>ÉTAPE DE L'HISTOIRE</value></data>
   <data name="WorldNpcs_ScriptPhaseTooltip" xml:space="preserve"><value>Où en est ce personnage dans ses propres moments scénarisés, de 0 à 5. Ce n'est pas votre progression de quête. Tous ceux encore en vie sont à 3.</value></data>
   <data name="WorldNpcs_StoryNpcsAndTraders" xml:space="preserve"><value>PNJ D'HISTOIRE &amp; MARCHANDS DANS CE MONDE</value></data>

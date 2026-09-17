@@ -51,13 +51,13 @@
                         <span class="wt-label">@L.Resource("WorldPets_Location")</span>
                         <span class="wt-muted">X @selected.X.ToString("0"), Y @selected.Y.ToString("0"), Z @selected.Z.ToString("0")</span>
                     </div>
+                    @* Round 92: one Dead toggle does the whole job - unchecking it is the revive
+                       action (there used to be a second "Revive" button next to this checkbox
+                       that only ever called the exact same SetDead(selected, false)). *@
                     <label class="wt-check">
                         <input type="checkbox" checked="@selected.IsDead" disabled="@(_busy || (Session.AppliesImmediately && !Session.IsHost))" @onchange="e => SetDead(selected, e.Value is bool value && value)" />
                         @L.Resource("WorldPets_Dead")
                     </label>
-                    <div class="wt-button-row">
-                        <button type="button" class="wt-btn wt-green" title="@L.Resource("WorldNpcs_ReviveTooltip")" disabled="@(_busy || (Session.AppliesImmediately && !Session.IsHost))" @onclick="() => SetDead(selected, false)">@L.Resource("WorldNpcs_Revive")</button>
-                    </div>
                     <details>
                         <summary>Story stage</summary>
                         <p class="wt-muted">Stage numbers belong to this character's dialogue script. Changing one can skip conversations.</p>

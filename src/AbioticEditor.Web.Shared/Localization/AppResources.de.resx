@@ -545,9 +545,7 @@
   <data name="WorldFlags_QuestFlags" xml:space="preserve"><value>STORY-EREIGNISSE</value></data>
 
   <!-- WorldNpcs -->
-  <data name="WorldNpcs_NpcsIntro" xml:space="preserve"><value>Die Story-Figuren und Händler in diesem Gebiet. WIEDERBELEBEN holt eine zurück, nachdem sie entfernt wurde. Die Story-Stufe legt fest, wie weit ihr eigener Teil der Geschichte fortgeschritten ist; ändern Sie sie nur, wenn Sie wissen, welche Stufe Sie wollen. Gezähmte Haustiere haben ihren eigenen Reiter HAUSTIERE.</value></data>
-  <data name="WorldNpcs_Revive" xml:space="preserve"><value>WIEDERBELEBEN</value></data>
-  <data name="WorldNpcs_ReviveTooltip" xml:space="preserve"><value>Holt diese Figur auf ihrer üblichen Story-Stufe ins Leben zurück. Die meisten Toten sind im Rahmen der Story abgetreten, eine Wiederbelebung kann also jemanden zurückholen, über den die Handlung längst hinweg ist.</value></data>
+  <data name="WorldNpcs_NpcsIntro" xml:space="preserve"><value>Die Story-Figuren und Händler in diesem Gebiet. Schalten Sie TOT aus, um eine entfernte Figur zurückzuholen. Die Story-Stufe legt fest, wie weit ihr eigener Teil der Geschichte fortgeschritten ist; ändern Sie sie nur, wenn Sie wissen, welche Stufe Sie wollen. Gezähmte Haustiere haben ihren eigenen Reiter HAUSTIERE.</value></data>
   <data name="WorldNpcs_ScriptPhase" xml:space="preserve"><value>STORY-STUFE</value></data>
   <data name="WorldNpcs_ScriptPhaseTooltip" xml:space="preserve"><value>Wie weit diese Figur in ihren eigenen vorgeschriebenen Momenten ist, von 0 bis 5. Das ist nicht Ihr Quest-Fortschritt. Alle Lebenden stehen auf 3.</value></data>
   <data name="WorldNpcs_StoryNpcsAndTraders" xml:space="preserve"><value>STORY-NPCS &amp; HÄNDLER IN DIESER WELT</value></data>

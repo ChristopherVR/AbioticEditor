@@ -545,9 +545,7 @@
   <data name="WorldFlags_QuestFlags" xml:space="preserve"><value>СЮЖЕТНЫЕ СОБЫТИЯ</value></data>
 
   <!-- WorldNpcs -->
-  <data name="WorldNpcs_NpcsIntro" xml:space="preserve"><value>Сюжетные персонажи и торговцы в этой зоне. ВОСКРЕСИТЬ возвращает того, кого убрали. Этап истории показывает, как далеко продвинулась его собственная часть сюжета, поэтому меняйте его, только если знаете, какой этап вам нужен. У прирученных питомцев есть своя вкладка ПИТОМЦЫ.</value></data>
-  <data name="WorldNpcs_Revive" xml:space="preserve"><value>ВОСКРЕСИТЬ</value></data>
-  <data name="WorldNpcs_ReviveTooltip" xml:space="preserve"><value>Возвращает этого персонажа к жизни на его обычном этапе истории. Большинство погибших ушли по сюжету, поэтому воскрешение может вернуть того, кого история уже проводила.</value></data>
+  <data name="WorldNpcs_NpcsIntro" xml:space="preserve"><value>Сюжетные персонажи и торговцы в этой зоне. Снимите флажок МЁРТВ, чтобы вернуть персонажа, которого убрали. Этап истории показывает, как далеко продвинулась его собственная часть сюжета, поэтому меняйте его, только если знаете, какой этап вам нужен. У прирученных питомцев есть своя вкладка ПИТОМЦЫ.</value></data>
   <data name="WorldNpcs_ScriptPhase" xml:space="preserve"><value>ЭТАП ИСТОРИИ</value></data>
   <data name="WorldNpcs_ScriptPhaseTooltip" xml:space="preserve"><value>Насколько далеко этот персонаж прошёл свои сценарные моменты, от 0 до 5. Это не ваш прогресс заданий. У всех живых стоит 3.</value></data>
   <data name="WorldNpcs_StoryNpcsAndTraders" xml:space="preserve"><value>СЮЖЕТНЫЕ NPC &amp; ТОРГОВЦЫ В ЭТОМ МИРЕ</value></data>

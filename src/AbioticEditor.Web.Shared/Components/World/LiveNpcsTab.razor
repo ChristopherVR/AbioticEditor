@@ -65,12 +65,15 @@
                     <h3 class="wt-h3">@DisplayName(selected)</h3>
                     <p class="wt-muted">@L.Resource("LiveNpcs_ClassLabel"): @selected.Label</p>
                     <p class="rb-detail-stats">@(selected.IsDead ? L.Resource("WorldPets_StatusDead") : L.Resource("WorldPets_StatusHealthy"))</p>
-                    <div class="wt-button-row">
-                        <button type="button" class="wt-btn wt-green" disabled="@(!Session.IsHost || _busy)"
-                                @onclick="() => ToggleDeadAsync(selected)">
-                            @(selected.IsDead ? L.Resource("LiveNpcs_Revive") : L.Resource("LiveNpcs_Kill"))
-                        </button>
-                    </div>
+                    @* Round 92: one Dead toggle for kill/revive, matching the offline "Characters"
+                       tab's own checkbox (there used to be a separate KILL/REVIVE button here).
+                       Unchecking it on a dead creature runs the full round-91 revive path server
+                       side (npcs.set -> reviveNpc in main.lua), not just a bare IsDead flip. *@
+                    <label class="wt-check">
+                        <input type="checkbox" checked="@selected.IsDead" disabled="@(!Session.IsHost || _busy)"
+                               @onchange="e => SetDeadAsync(selected, e.Value is bool value && value)" />
+                        @L.Resource("WorldPets_Dead")
+                    </label>
                     <label class="wt-check">
                         <input type="checkbox" checked="@selected.IsDisabled" disabled="@(!Session.IsHost || _busy)"
                                @onchange="e => SetDisabledAsync(selected, (bool)e.Value!)" />
@@ -171,8 +174,8 @@
 
     private async Task RefreshAsync() => await RunAsync(() => Session.RefreshAsync());
 
-    private Task ToggleDeadAsync(LiveNpc npc) =>
-        RunAsync(() => Session.ApplyAsync(new LiveNpcEdit(npc.Id, IsDead: !npc.IsDead)));
+    private Task SetDeadAsync(LiveNpc npc, bool isDead) =>
+        RunAsync(() => Session.ApplyAsync(new LiveNpcEdit(npc.Id, IsDead: isDead)));
 
     private Task SetDisabledAsync(LiveNpc npc, bool value) =>
         RunAsync(() => Session.ApplyAsync(new LiveNpcEdit(npc.Id, IsDisabled: value)));

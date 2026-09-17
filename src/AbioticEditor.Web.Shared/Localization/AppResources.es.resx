@@ -546,9 +546,7 @@
   <data name="WorldFlags_QuestFlags" xml:space="preserve"><value>SUCESOS DE LA HISTORIA</value></data>
 
   <!-- WorldNpcs -->
-  <data name="WorldNpcs_NpcsIntro" xml:space="preserve"><value>Los personajes de la historia y los comerciantes de esta zona. REVIVIR trae de vuelta a uno después de que lo hayan quitado. Su etapa de la historia indica cuánto ha avanzado su propia parte del relato, así que cámbiala solo si sabes qué etapa quieres. Las mascotas domesticadas tienen su propia pestaña MASCOTAS.</value></data>
-  <data name="WorldNpcs_Revive" xml:space="preserve"><value>REVIVIR</value></data>
-  <data name="WorldNpcs_ReviveTooltip" xml:space="preserve"><value>Devuelve a la vida a este personaje en su etapa de historia habitual. La mayoría de los muertos se fueron como parte del relato, así que revivir puede traer de vuelta a alguien que la trama ya dejó atrás.</value></data>
+  <data name="WorldNpcs_NpcsIntro" xml:space="preserve"><value>Los personajes de la historia y los comerciantes de esta zona. Desactiva MUERTA para traer de vuelta a un personaje que haya sido quitado. Su etapa de la historia indica cuánto ha avanzado su propia parte del relato, así que cámbiala solo si sabes qué etapa quieres. Las mascotas domesticadas tienen su propia pestaña MASCOTAS.</value></data>
   <data name="WorldNpcs_ScriptPhase" xml:space="preserve"><value>ETAPA DE LA HISTORIA</value></data>
   <data name="WorldNpcs_ScriptPhaseTooltip" xml:space="preserve"><value>Cuánto ha avanzado este personaje en sus propios momentos guionizados, del 0 al 5. No es tu progreso de misión. Todos los que siguen vivos están en 3.</value></data>
   <data name="WorldNpcs_StoryNpcsAndTraders" xml:space="preserve"><value>NPCS DE HISTORIA &amp; COMERCIANTES EN ESTE MUNDO</value></data>
