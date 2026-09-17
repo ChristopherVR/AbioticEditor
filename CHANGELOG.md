@@ -2,6 +2,79 @@
 
 All notable changes to this project are documented here.
 
+## [2.14.0] - 2026-09-17
+
+### Bug Fixes
+- No console window behind the editor, and a dropped tab switch no longer breaks the live connection
+- A failed action no longer freezes the editor, and story chapter changes only use flags the game really has
+- The Game Pass locked-folder message now simply tells you to turn on mods in the Xbox app
+- Revived creatures move and fight again, and far more creatures have a preview picture
+- Adding to a container no longer freezes the game, and a chemistry flask can be sent to a nearby chest
+- Items removed from the ground no longer linger on the GROUND ITEMS tab
+- A close button on the mode dialog once you have chosen, "Advanced" instead of "Experimental", and one place to change your background
+- Void Chests work the same when editing a save file as they do live
+- Renaming a Void Chest renames every Void Chest, the way the game shows it
+- Void Chests now read and write the one pool every Void Chest actually shares
+- Find and remove the real cause of the container list clipping
+- Extend the slow-request timeout to writes and chemistry/garden/power-chair fields too
+- A slow world-wide scan could time out before the game finished answering it
+- Rebuild the container row layout with explicit named areas
+- Actually show disconnected once the running game closes
+- Undo the change that made Void Chest writes invisible, and stop renaming spreading to every chest
+- A long container name could crowd the count/health/position lines under it
+- Stop the freeze when putting something into a Void Chest, and a nonsense health number
+- A Void Chest right in front of you could still go missing, show a fake 0/42, and drop what you put in it
+- Show trader pictures again on the live Traders screen
+- Stop hiding empty containers by default
+- Void Chests now show their real, shared contents live
+- Several live editing screens that looked broken or did nothing
+- Refresh every live tab, not just a couple, when the game itself changes something
+- Stop hiding containers and dropped items you just interacted with
+- Make every tab name use the same capitalization
+- Dropped items and container names live, and a real explanation for the region mix-up
+- Stale live world data after teleporting, and terminal teleports landing you inside the wall
+- The CONTAINERS screen was still freezing and timing out while live
+- Stop the game freezing every couple of seconds on the live CONTAINERS screen
+- Teleporting, dropping items, and freezing while editing live
+- Settings-file edits from the command line now change the line the game reads
+
+
+### Documentation
+- The live-editing connection token goes inside the hello payload, not top-level
+- Record the limitation sweep
+
+
+### Features
+- Choose which copy of the game to live-edit, with Game Pass now supported
+- A START MIXING button for chemistry benches
+- List chemistry benches closest to you first, and clean up the intro text
+- Show a picture of each container next to its name
+- Chemistry bench output updates live, and can send straight to a player
+- A real recipe browser and pictures for chemistry benches and garden plots
+- Write live-editing connection activity into the app's own log
+- Show what's new the first time you open an updated app
+- Let you back out of the mode-switch screen if you already had something open
+- Rename containers, both in a save file and live in the running game
+- Bundle a lot more creature pictures for offline use
+- Change a garden plot's crop live, and see what's planted
+- Give chemistry benches their own live editing screen
+- Scan the live-editing helper for viruses before every release
+- A "nearby only" filter for live containers and dropped items
+- Show every region a co-op player is in, not just your own
+- Show a picture of each creature on the live CREATURES screen
+- Choose what a garden plot grows and which mutation a pet is working toward
+- Carry your unlocks, stats, settings and looks between Game Pass and Steam
+- Keep NEW badges in step with edits and expose the research queue
+- Explain why world-wide recipe edits are unavailable and add wall-art choices
+- Show what an item does in its details
+- Repair broken walls and clear corpses in a saved world
+
+
+### Miscellaneous Tasks
+- Temporary diagnostic logging for the still-missing Void Chest report
+- Point bucket at v2.13.0 [skip ci]
+
+
 ## [2.13.0] - 2026-09-16
 
 ### Documentation
