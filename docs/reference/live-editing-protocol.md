@@ -15,14 +15,16 @@ object itself is the unit, and neither side's payloads ever contain a raw embedd
 ## Request
 
 ```json
-{"id":"3","cmd":"vitals.get","token":"…","payload":{…}}
+{"id":"3","cmd":"vitals.get","payload":{…}}
 ```
 
 - `id`: a string the response echoes back. The client assigns it; the agent does not need to
   interpret it, only return it unchanged.
 - `cmd`: the command name, `"hello"` for the initial handshake, otherwise `"<area>.<action>"`
   (e.g. `"vitals.get"`, `"vitals.set"`).
-- `token`: only present on `"hello"`. Every later request on the same connection relies on that
+- `token`: sent only inside `"hello"`'s own `payload` (see below), never as a top-level field -
+  the agent reads it from the payload and answers `bad token` otherwise. Every later request on
+  the same connection relies on that
   connection already being authenticated - the agent tracks this per-connection, not per-request.
 - `payload`: present when the command needs one (e.g. `vitals.set`'s new values); absent (or
   `null`) for a command with no input, like `vitals.get`. Usually a flat object, but a flat JSON
