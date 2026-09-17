@@ -140,6 +140,13 @@ return function(H)
     H.fails(H.dispatch("inventory.drop", { kind = "backpack", index = 0 }), "slotIndex is required",
         "the old wrong field name (\"index\") is not silently accepted")
 
+    -- Round 84: containers.set now unconditionally requires the replication helper (see that
+    -- handler's own remarks on why a details-only requirement used to miss plain writes), so every
+    -- container test below it needs this stub registered up front, not only the rename test that
+    -- originally introduced it.
+    local netHelper = H.object("NetPushModelHelpers", {}, { MarkPropertyDirty = function() end })
+    H.world.static("/Script/Engine.Default__NetPushModelHelpers", netHelper)
+
     -- ---------- containers: sort ----------
     local sortableInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {
         { ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B = { RowName = H.fname("scrap_metal") },
@@ -203,11 +210,13 @@ return function(H)
     end
     H.check(sawSharedItem, "the shared inventory GetContainerInventory() returns wins over the decoy ContainerInventory property")
 
-    -- ---------- containers: health/durability, when the game tracks it (round 83) ----------
+    -- ---------- containers: health/durability, when the game tracks it (round 83, gated by
+    -- CanLoseDurability() as of round 84 - see containerHealth's own remarks on why the raw
+    -- fields alone were not trustworthy) ----------
     local healthyInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {} })
     H.world.add(H.object("Deployed_Container_ParentBP_C",
         { ContainerInventory = healthyInv, CurrentDurability = 40, MaxDurability = 80 },
-        { K2_GetActorLocation = function() return H.vector(5, 5, 5) end }))
+        { K2_GetActorLocation = function() return H.vector(5, 5, 5) end, CanLoseDurability = function() return true end }))
     local withHealth = H.ok(H.dispatch("containers.list"), "containers.list reports health when the game tracks it")
     local healthyEntry
     for _, entry in ipairs(withHealth.containers) do if entry.health == 40 then healthyEntry = entry end end
@@ -217,7 +226,7 @@ return function(H)
     local noDurabilityInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {} })
     H.world.add(H.object("Deployed_Container_ParentBP_C",
         { ContainerInventory = noDurabilityInv, MaxDurability = 0 },
-        { K2_GetActorLocation = function() return H.vector(6, 6, 6) end }))
+        { K2_GetActorLocation = function() return H.vector(6, 6, 6) end, CanLoseDurability = function() return false end }))
     local withoutHealth = H.ok(H.dispatch("containers.list"), "containers.list survives a container with no durability tracking")
     local noHealthEntry
     for _, entry in ipairs(withoutHealth.containers) do
@@ -226,15 +235,43 @@ return function(H)
     H.check(noHealthEntry ~= nil, "the no-durability container still appears")
     H.eq(noHealthEntry.health, nil, "health omitted (not reported as 0) when MaxDurability is 0")
 
+    -- A deployable whose CanLoseDurability() reports false - the Void Chest's own real shape,
+    -- see containerHealth's remarks - must omit health even though it still has real, nonzero-
+    -- looking CurrentDurability/MaxDurability fields sitting on the actor (round 84).
+    local cannotLoseInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {} })
+    H.world.add(H.object("Deployed_Container_ParentBP_C",
+        { ContainerInventory = cannotLoseInv, CurrentDurability = 0, MaxDurability = 42 },
+        { K2_GetActorLocation = function() return H.vector(7, 7, 7) end, CanLoseDurability = function() return false end }))
+    local cannotLoseResult = H.ok(H.dispatch("containers.list"), "containers.list survives a deployable that cannot lose durability")
+    local cannotLoseEntry
+    for _, entry in ipairs(cannotLoseResult.containers) do
+        if entry.x == 7 then cannotLoseEntry = entry end
+    end
+    H.check(cannotLoseEntry ~= nil, "the CanLoseDurability()-false container still appears")
+    H.eq(cannotLoseEntry.health, nil, "health omitted even with a nonzero MaxDurability when CanLoseDurability() is false")
+
+    -- ---------- containers: still listed (with empty slots) when the inventory itself cannot be
+    -- resolved, instead of vanishing outright (round 84) ----------
+    H.world.add(H.object("Deployed_Container_ParentBP_C", {},
+        { K2_GetActorLocation = function() return H.vector(8, 8, 8) end,
+          GetContainerInventory = function() error("simulated: inventory not resolved yet") end,
+          CanLoseDurability = function() return false end }))
+    local unresolvable = H.ok(H.dispatch("containers.list"), "containers.list survives a container whose inventory cannot be resolved")
+    local unresolvableEntry
+    for _, entry in ipairs(unresolvable.containers) do
+        if entry.x == 8 then unresolvableEntry = entry end
+    end
+    H.check(unresolvableEntry ~= nil, "the container still appears even though its inventory could not be read")
+    H.eq(#unresolvableEntry.slots, 0, "its slots are simply empty rather than the whole row being dropped")
+
     -- ---------- containers: rename via the real, genuinely replicated field (round 84) ----------
     -- PlayerMadeString (Net | RepNotify on AbioticDeployed_Furniture_ParentBP, verified against
     -- the game's own Blueprint exports) is deliberately NOT the same field bases.lua's own rename
     -- reads/writes (AlternativeObjectName, which carries no Net flag at all) - PlayerMadeString is
     -- the one candidate that is actually networked, so a rename here needs the same push-model
     -- MarkPropertyDirty notification bases.lua's PaintedColor write already demonstrates in this
-    -- suite, not just a direct property set.
-    local netHelper = H.object("NetPushModelHelpers", {}, { MarkPropertyDirty = function() end })
-    H.world.static("/Script/Engine.Default__NetPushModelHelpers", netHelper)
+    -- suite, not just a direct property set. (netHelper/static registration now happens up top,
+    -- before the sort test - see that comment.)
     local namedInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {} })
     local renameable = H.world.add(H.object("Deployed_Container_ParentBP_C", {
         ContainerInventory = namedInv, PlayerMadeString = H.fstring(""),

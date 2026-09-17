@@ -79,6 +79,10 @@ return function(H)
     H.ok(H.dispatch("doors.set", { doors = { { id = doors.doors[1].id, kind = "simple", state = 1 } } }), "doors.set")
     H.eq(H.field(door, "DoorState"), 1, "door opened"); H.eq(H.calls(door, "OnRep_DoorState"), 1, "door OnRep")
 
+    -- containers.set unconditionally marks the container's inventory dirty for replication after
+    -- a write (round 84 - see that handler's own remarks), which needs this stub registered.
+    H.world.static("/Script/Engine.Default__NetPushModelHelpers",
+        H.object("NetPushModelHelpers", {}, { MarkPropertyDirty = function() end }))
     local container = H.world.add(H.object("Deployed_Container_ParentBP_C", {
         ContainerInventory = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {
             { ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B = { RowName = H.fname("None") },

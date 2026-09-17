@@ -27,7 +27,9 @@ public sealed class VoidChestProbe
         Directory.CreateDirectory(output);
 
         string[] names = ["AbioticDeployed_Furniture_ParentBP", "Deployed_Container_ParentBP", "Deployed_StorageCrate_ParentBP",
-            "AbioticDeployed_ParentBP", "Abiotic_HUD_Widget_RenameObject", "Abiotic_PlayerController", "Abiotic_Character"];
+            "AbioticDeployed_ParentBP", "Abiotic_HUD_Widget_RenameObject", "Abiotic_PlayerController", "Abiotic_Character",
+            "Deployed_StorageCrate_Void", "Inventory_Void", "Abiotic_Survival_GameState", "W_Container", "W_ContainerHealthBar",
+            "Abiotic_InventoryComponent"];
         foreach (var path in provider.Files.Keys.Where(p => p.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase)
                      && names.Contains(Path.GetFileNameWithoutExtension(p), StringComparer.OrdinalIgnoreCase)))
         {
@@ -50,5 +52,41 @@ public sealed class VoidChestProbe
                     || Path.GetFileNameWithoutExtension(p).Contains("ObjectName", StringComparison.OrdinalIgnoreCase)))
             .ToArray();
         File.WriteAllLines(Path.Combine(output, "_rename_candidates.txt"), candidates);
+
+        // Round 84: every uasset whose bare name suggests a Void Chest variant, or a container
+        // health/durability widget, so we can check each variant's real parent class and each
+        // widget's real data binding instead of assuming only one Void Chest blueprint exists or
+        // that "health" means CurrentDurability/MaxDurability.
+        var voidCandidates = provider.Files.Keys
+            .Where(p => p.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase)
+                && Path.GetFileNameWithoutExtension(p).Contains("Void", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        File.WriteAllLines(Path.Combine(output, "_void_candidates.txt"), voidCandidates);
+
+        var healthWidgetCandidates = provider.Files.Keys
+            .Where(p => p.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase)
+                && (Path.GetFileNameWithoutExtension(p).Contains("Durabil", StringComparison.OrdinalIgnoreCase)
+                    || (Path.GetFileNameWithoutExtension(p).Contains("Container", StringComparison.OrdinalIgnoreCase)
+                        && Path.GetFileNameWithoutExtension(p).Contains("Health", StringComparison.OrdinalIgnoreCase))
+                    || (Path.GetFileNameWithoutExtension(p).StartsWith("W_", StringComparison.OrdinalIgnoreCase)
+                        && Path.GetFileNameWithoutExtension(p).Contains("Container", StringComparison.OrdinalIgnoreCase))))
+            .ToArray();
+        File.WriteAllLines(Path.Combine(output, "_health_widget_candidates.txt"), healthWidgetCandidates);
+
+        // Dump every distinct Void Chest blueprint class found above (up to a sane cap) so we can
+        // check each one's actual parent chain and GetContainerInventory override.
+        foreach (var path in voidCandidates.Where(p => p.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase)).Take(20))
+        {
+            try
+            {
+                var exports = provider.LoadPackage(path).GetExports().ToArray();
+                var safeName = Path.GetFileNameWithoutExtension(path).Replace('/', '_').Replace('\\', '_');
+                File.WriteAllText(Path.Combine(output, "void_" + safeName + ".json"), JsonConvert.SerializeObject(exports, Formatting.Indented));
+            }
+            catch (Exception ex)
+            {
+                File.WriteAllText(Path.Combine(output, "void_" + Path.GetFileNameWithoutExtension(path) + ".error.txt"), ex.ToString());
+            }
+        }
     }
 }

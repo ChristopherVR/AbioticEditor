@@ -1384,7 +1384,21 @@ end
 -- inherits from - verified against the game's own Blueprint exports. Omitted (nil) rather than
 -- reported as 0/0 for a deployable that does not track durability at all (MaxDurability stays 0
 -- for those), so the editor can tell "no health to show" apart from "destroyed".
+--
+-- Round 84: reading the raw fields alone was not enough - a live report showed every Void Chest
+-- reading 0/42, which does not match a chest the player could see was only part-damaged in game.
+-- CanLoseDurability() (a real, zero-argument, BlueprintCallable function on this same base class,
+-- verified against the game's own Blueprint exports - it looks up the deployable's own item data
+-- row for a durability-tracking flag) is the actor's own answer to "does my durability value mean
+-- anything at all", and is checked first: a deployable this returns false for (map-placed set
+-- dressing that was never meant to take damage is the leading theory for Void Chest specifically,
+-- though this was not confirmed against a live game - CanLoseDurability() could not be probed
+-- directly without a fresh game restart, since this game's Lua hot-reload is off) now reports no
+-- health at all instead of a 0 current value that looks like "destroyed" but may just mean "never
+-- tracked". A deployable this returns true for still reports its real current/max as before.
 local function containerHealth(container)
+    local trackOk, tracksDurability = pcall(function() return container:CanLoseDurability() end)
+    if not trackOk or tracksDurability ~= true then return nil, nil end
     local ok, current, maximum = pcall(function() return container.CurrentDurability, container.MaxDurability end)
     if ok and type(current) == "number" and type(maximum) == "number" and maximum > 0 then return current, maximum end
     return nil, nil
@@ -1459,24 +1473,43 @@ handlers["containers.list"] = function(_, respond)
             -- unguarded - one actor in an unusual state (mid-destruction, a modded/DLC deployable
             -- with a different slot shape) used to raise an uncaught Lua error that failed this
             -- ENTIRE request, which the editor could only show as "not available", indistinguishable
-            -- from no world being loaded at all. A skipped container simply does not appear in the
-            -- list now - the same as a genuinely unloaded/destroyed one already looks like from the
-            -- editor's side, and this handler has no per-item error channel (unlike dropped.remove's
-            -- batch result) to report one through instead.
+            -- from no world being loaded at all. A container this still throws an uncaught error
+            -- for (not just an unreadable inventory, see the inv/slots handling below for that
+            -- narrower case) simply does not appear in the list - the same as a genuinely
+            -- unloaded/destroyed one already looks like from the editor's side, and this handler
+            -- has no per-item error channel (unlike dropped.remove's batch result) to report one
+            -- through instead.
             pcall(function()
                 if not container:IsValid() then return end
                 local name = fullName(container)
+                if not name then return end
+                -- Round 84: a live report showed a Void Chest the player was standing right in
+                -- front of missing from this list entirely (not "shown empty" - simply absent).
+                -- The old code below dropped a container completely whenever containerInventory()
+                -- came back nil/invalid, which folded "no such container" together with "this
+                -- container exists but its inventory could not be resolved right now" - and a
+                -- Void Chest's inventory is GetContainerInventory()'s own redirect to a single
+                -- GameState-owned component (see that function's remarks), which is exactly the
+                -- kind of lookup that can transiently fail for one specific client/session in a
+                -- way a normal per-actor inventory does not. Now the container still gets a row
+                -- (position included, so it is at least findable) with empty slots instead of
+                -- vanishing outright - this could not be confirmed against a live repro of the
+                -- original failure (this game's Lua hot-reload is off, so nothing here could be
+                -- tested against the user's already-running game without a restart), but "visible
+                -- with no readable contents" is a strictly more honest failure mode than "not
+                -- listed at all" either way.
                 local inv = containerInventory(container)
-                if not (name and inv and inv.CurrentInventory) then return end
                 local x, y, z = actorLocation(container)
                 local slots = { __forceArray = true }
-                for i = 1, #inv.CurrentInventory do
-                    -- Same per-slot guard: one bad slot should not drop every other slot in an
-                    -- otherwise-healthy container.
-                    -- skipMetadata=true: this is the bulk world listing (see slotRow's own
-                    -- comment) - inventory.transfer's own slotRow call keeps full detail.
-                    local slotOk, row = pcall(slotRow, inv.CurrentInventory[i], i - 1, true)
-                    if slotOk then table.insert(slots, row) end
+                if inv and inv.CurrentInventory then
+                    for i = 1, #inv.CurrentInventory do
+                        -- Same per-slot guard: one bad slot should not drop every other slot in an
+                        -- otherwise-healthy container.
+                        -- skipMetadata=true: this is the bulk world listing (see slotRow's own
+                        -- comment) - inventory.transfer's own slotRow call keeps full detail.
+                        local slotOk, row = pcall(slotRow, inv.CurrentInventory[i], i - 1, true)
+                        if slotOk then table.insert(slots, row) end
+                    end
                 end
                 local health, maxHealth = containerHealth(container)
                 -- "label" is the auto-generated class-based name (e.g. "Storage Crate"), always
@@ -1498,11 +1531,24 @@ handlers["containers.set"] = function(payload, respond)
         local inv = containerInventory(container)
         if not inv or not inv.CurrentInventory then error("container has no inventory") end
         local rows, prepared = payload.edits or {}, {}
+        -- Round 84: this used to only acquire the replication helper (and so only mark
+        -- CurrentInventory dirty) when at least one edit carried full item .details - a plain
+        -- item-id-and-stack write (the common case for just dropping something into a slot) never
+        -- got marked at all. inventory.transfer (the other handler that writes a container's
+        -- CurrentInventory) has always marked unconditionally - see its own remarks - and this now
+        -- matches it. The gap mattered most for a Void Chest specifically: a live report showed an
+        -- item added through the editor never appearing in the running game, and never showing up
+        -- in the OTHER three Void Chests sharing the same pool either - GetContainerInventory()
+        -- redirects every Void Chest to one inventory owned by the world's GameState (see that
+        -- function's own remarks), and a GameState-owned component is exactly the kind of thing
+        -- every connected client (including the host's own UI, which very plausibly reads it
+        -- through the same replicated path everyone else does, unlike a normal per-actor-owned
+        -- inventory the host can bind to directly) needs a real network update for. This could not
+        -- be confirmed by re-testing this exact fix against the live game (this game's Lua
+        -- hot-reload is off, so nothing here takes effect until a full restart), but it closes a
+        -- real, confirmed gap in the marking logic that plain writes were falling through either way.
         local replication = require("replication")
-        local helper
-        for _, row in ipairs(rows) do
-            if row.details then helper = replication.requireHelper(); break end
-        end
+        local helper = replication.requireHelper()
         for i = 1, #rows do
             local row = rows[i]
             if type(row.slotIndex) ~= "number" or row.slotIndex < 0 or row.slotIndex % 1 ~= 0 then
@@ -1521,7 +1567,7 @@ handlers["containers.set"] = function(payload, respond)
             local ok = pcall(function() inv:SortInventory() end)
             if not ok then error("could not sort this container on this game build") end
         end
-        if helper then replication.mark(helper, inv, "CurrentInventory") end
+        if #rows > 0 or payload.sort then replication.mark(helper, inv, "CurrentInventory") end
         pcall(function() inv:OnRep_CurrentInventory() end)
         return nil
     end, respond)

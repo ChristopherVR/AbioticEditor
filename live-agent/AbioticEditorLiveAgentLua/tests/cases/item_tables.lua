@@ -59,6 +59,10 @@ return function(H)
         { kind = "equip", slotIndex = 999, itemId = "bandage" },
     } }), "slot is unavailable", "invalid slots are not silently successful")
 
+    -- containers.set unconditionally marks the container's inventory dirty for replication after
+    -- a write (round 84 - see that handler's own remarks), which needs this stub registered.
+    H.world.static("/Script/Engine.Default__NetPushModelHelpers",
+        H.object("NetPushModelHelpers", {}, { MarkPropertyDirty = function() end }))
     local inv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = pawn.CharacterHotbarInventory.CurrentInventory },
         { OnRep_CurrentInventory = function() end })
     local container = H.world.add(H.object("Deployed_Container_ParentBP_C", { ContainerInventory = inv }, {}))
