@@ -34,6 +34,7 @@ public static partial class WorldSaveWriter
                     if (deployedById.TryGetValue(container.Id, out var deployableProps))
                     {
                         ApplyContainerInventoriesArray(deployableProps, container.Inventories, data.Raw);
+                        ApplyContainerCustomName(deployableProps, container.Name);
                     }
                     break;
                 case WorldContainerSource.Custom:
@@ -51,6 +52,37 @@ public static partial class WorldSaveWriter
                     break;
             }
         }
+    }
+
+    /// <summary>
+    /// Exact, hash-suffixed name of <c>CustomTextDisplay_</c> on <c>SaveData_Deployable_Struct</c>
+    /// (surveyed 2026-09-17 against a real save - every one of over 600 deployed objects checked
+    /// already carried this tag, empty or not, so creating it is a rare defensive fallback rather
+    /// than the common case). Used only when a container's own tag is missing entirely; an
+    /// existing tag is mutated in place via <see cref="SetCustomTextDisplay"/> instead, which
+    /// preserves whichever of the two shapes (plain string or localizable text) that entry already
+    /// uses - see that method's own remarks.
+    /// </summary>
+    private const string CustomTextDisplayFullName = "CustomTextDisplay_152_B59A50C74001B5D2234D9E9B0D7CAB7F";
+
+    /// <summary>
+    /// Sets (or clears) a deployed container's player-given name - the same
+    /// <c>CustomTextDisplay_</c> field <see cref="ApplyDeployableCustomText"/> writes for a bed
+    /// claim or sign, applied here as part of the container's own bulk <see cref="ApplyContainers"/>
+    /// pass instead of that method's single-field immediate write, since a file edit stages until
+    /// Save like every other container field. A null/empty name on an entry that never had the
+    /// tag is a no-op - nothing to create a tag for.
+    /// </summary>
+    private static void ApplyContainerCustomName(IList<FPropertyTag> deployableProps, string? name)
+    {
+        var text = name ?? string.Empty;
+        var existing = deployableProps.FindByPrefix("CustomTextDisplay_")?.Property;
+        if (existing is null)
+        {
+            if (text.Length == 0) return;
+            existing = FindOrCreate(deployableProps, "CustomTextDisplay_", CustomTextDisplayFullName, nameof(StrProperty));
+        }
+        SetCustomTextDisplay(existing, text);
     }
 
     private static Dictionary<string, IList<FPropertyTag>> BuildMapLookup(WorldSaveData data, string mapName)

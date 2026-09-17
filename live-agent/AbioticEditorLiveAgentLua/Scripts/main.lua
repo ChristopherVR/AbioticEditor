@@ -1390,6 +1390,27 @@ local function containerHealth(container)
     return nil, nil
 end
 
+-- PlayerMadeString is a replicated (Net | RepNotify) StrProperty on AbioticDeployed_Furniture_ParentBP
+-- - verified against the game's own Blueprint exports. It is the real, networked source of a
+-- container's player-given label: the game's own DeliverString(String, FromSave) Blueprint event
+-- sets it, then manually calls NewPlayerMadeString() (which AbioticDeployed_Furniture_ParentBP's
+-- OnRep_PlayerMadeString also calls, so every client that receives the replicated change reaches
+-- the same code) to copy it into AlternativeDisplayName and refresh the container's own 3D text
+-- label. Two other name-shaped candidates were checked and rejected: AlternativeDisplayName
+-- itself, and AlternativeObjectName (the field bases.lua's own deployable rename already reads
+-- and writes) - both are "Edit | BlueprintVisible | DisableEditOnInstance" only, no Net flag at
+-- all, so a direct Lua write to either would only ever be consistent on whichever machine touched
+-- it. PlayerMadeString is the one candidate that is genuinely networked.
+local function containerName(container)
+    local ok, value = pcall(function() return container.PlayerMadeString end)
+    -- textValue (defined above, shared with the per-slot PlayerMadeString_ field) already handles
+    -- both shapes UE4SS hands back for a StrProperty - sometimes a plain Lua string, sometimes
+    -- FString-like userdata needing :ToString() - so this does not assume either one.
+    local text = ok and textValue(value)
+    if not text or text == "" then return nil end
+    return text
+end
+
 local function containerInventory(container)
     -- GetContainerInventory() (a BlueprintPure function every container class exports, verified
     -- against the game's own Blueprint exports) is preferred over reading ContainerInventory/
@@ -1458,8 +1479,11 @@ handlers["containers.list"] = function(_, respond)
                     if slotOk then table.insert(slots, row) end
                 end
                 local health, maxHealth = containerHealth(container)
+                -- "label" is the auto-generated class-based name (e.g. "Storage Crate"), always
+                -- present; "name" is the optional player-given label (see containerName's own
+                -- remarks), nil when nothing has ever been typed.
                 table.insert(result, { id = name, label = classLabel(name), x = x, y = y, z = z, slots = slots,
-                    health = health, maxHealth = maxHealth })
+                    health = health, maxHealth = maxHealth, name = containerName(container) })
             end)
         end
         return { containers = result, isHost = isHost() }
@@ -1499,6 +1523,62 @@ handlers["containers.set"] = function(payload, respond)
         end
         if helper then replication.mark(helper, inv, "CurrentInventory") end
         pcall(function() inv:OnRep_CurrentInventory() end)
+        return nil
+    end, respond)
+end
+
+-- Sets a container's player-given name via PlayerMadeString - checked against the game's own
+-- Blueprint exports specifically to find a property that is genuinely networked, not just any
+-- name-shaped field: AbioticDeployed_Furniture_ParentBP declares it "Edit | BlueprintVisible |
+-- Net | DisableEditOnInstance | RepNotify" with RepNotifyFunc "OnRep_PlayerMadeString", unlike
+-- AlternativeDisplayName or the separate AlternativeObjectName property bases.lua's own rename
+-- reads/writes (both plain "Edit | BlueprintVisible | DisableEditOnInstance" - no Net flag at
+-- all on either). The game's own rename flow (DeliverString(String, FromSave), the Blueprint
+-- event the container's in-world "type a name" prompt calls) sets this same PlayerMadeString,
+-- then calls OnRep_PlayerMadeString -> NewPlayerMadeString to refresh AlternativeDisplayName and
+-- the floating 3D label from it - the same two calls made below.
+--
+-- A direct Lua property write bypasses the generated code path that would normally flag a
+-- replicated property as changed, so it needs an explicit push - this game (UE 5.4, push-model
+-- replication) exposes exactly that through NetPushModelHelpers.MarkPropertyDirty, already used
+-- elsewhere in this file for the same reason (see bases.lua's PaintedColor write, which marks
+-- dirty after a direct property set for the identical cause). Without this mark, other already-
+-- connected clients would not see the new name until something else caused this container to
+-- replicate again - this mark is what makes it reach every connected player, not only the host.
+handlers["containers.rename"] = function(payload, respond)
+    runOnGameThread(function()
+        if not isHost() then error("only the host can rename containers") end
+        local container = payload.id and findContainer(payload.id)
+        if not container then error("container not found (it may have been unloaded or destroyed)") end
+        local newName = tostring(payload.name or "")
+        -- Try a plain string first (StrProperty, unlike bases.lua's FText-typed
+        -- AlternativeObjectName - textValue above already shows a plain string is a real shape
+        -- this field hands back), falling back to the FString(...) constructor some UE4SS builds
+        -- require instead, the same defensive order bases.lua uses for its own text write.
+        local ok = pcall(function() container.PlayerMadeString = newName end)
+        if not ok then ok = pcall(function() container.PlayerMadeString = FString(newName) end) end
+        if not ok then error("could not set this container's name on this game build") end
+        local replication = require("replication")
+        local markOk = pcall(function()
+            local helper = replication.requireHelper()
+            replication.mark(helper, container, "PlayerMadeString")
+        end)
+        -- Mirrors OnRep_PlayerMadeString -> NewPlayerMadeString, which every OTHER client already
+        -- runs automatically once PlayerMadeString replicates to them (the mark above is what
+        -- causes that to happen); the host itself never gets its own RepNotify (that only fires
+        -- on receiving a replicated change), so this call is what makes the host's own view (and
+        -- AlternativeDisplayName/the 3D label it derives) catch up immediately too.
+        pcall(function() container:NewPlayerMadeString() end)
+        if not markOk then
+            error("the name was set but could not be confirmed as sent to other connected players on this game build")
+        end
+        -- Not the "cond and nil or x" idiom: when newName is "" that always evaluates to x
+        -- (nil is falsy, so "or" falls through to it), silently defeating the empty-name case.
+        local expected = newName
+        if newName == "" then expected = nil end
+        if containerName(container) ~= expected then
+            error("the game did not retain the new name; refresh to see its current state")
+        end
         return nil
     end, respond)
 end

@@ -57,6 +57,21 @@ public enum WorldContainerSource
 /// The durability <see cref="Health"/> is measured against, null exactly when
 /// <see cref="Health"/> is (either both are known or neither is).
 /// </param>
+/// <param name="Name">
+/// The player-given name shown on the container itself (e.g. a label typed on a storage
+/// crate), distinct from <see cref="ClassName"/>'s generic "what kind of object this is".
+/// Unlike <see cref="X"/>/<see cref="Health"/>, this is real for BOTH sources: a
+/// <see cref="WorldContainerSource.Deployed"/> container reads and writes it from the save's
+/// own <c>CustomTextDisplay_</c> field (see <c>WorldSaveReader.ReadDeployedContainers</c> /
+/// <c>WorldSaveWriter.ApplyContainers</c>), and a <see cref="WorldContainerSource.Live"/>
+/// container reads/writes the running actor's own <c>PlayerMadeString</c> property (see
+/// <c>LiveContainersChannel</c>) - a different underlying field on each side of that boundary
+/// for the same player-facing idea, the same way the save's <c>CustomTextDisplay_</c> differs
+/// from the actor's own <c>AlternativeDisplayName</c> at runtime. Null means no custom name is
+/// set (the class-based label is all there is to show). Never populated for
+/// <see cref="WorldContainerSource.Custom"/> (its own <see cref="Id"/> already is the name) or
+/// <see cref="WorldContainerSource.Vehicle"/> (a vehicle's storage is not player-nameable).
+/// </param>
 public sealed record WorldContainer(
     string Id,
     WorldContainerSource Source,
@@ -66,7 +81,8 @@ public sealed record WorldContainer(
     double Y = 0,
     double Z = 0,
     double? Health = null,
-    double? MaxHealth = null)
+    double? MaxHealth = null,
+    string? Name = null)
 {
     /// <summary>Straight-line distance to a point (player position), in UE units (cm). Only
     /// meaningful for <see cref="WorldContainerSource.Live"/> - a file-save container's X/Y/Z are

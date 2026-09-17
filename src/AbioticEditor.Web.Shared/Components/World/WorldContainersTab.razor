@@ -75,6 +75,16 @@
                     <h3 class="wc-title">@DisplayName(selected)</h3>
                     @if (HealthText(selected) is { Length: > 0 } detailHealth) { <p class="wc-health">@detailHealth</p> }
                     <p class="wc-id">@WhereText(selected)</p>
+                    @if (selected.Source == WorldContainerSource.Deployed || selected.Source == WorldContainerSource.Live)
+                    {
+                        <label class="wc-rename">
+                            <span class="wc-rename-label">@L.Resource("WorldContainers_DetailCustomName")</span>
+                            <input class="wt-input" value="@selected.Name" placeholder="@AutoDisplayName(selected)"
+                                   disabled="@(Session.AppliesImmediately && !Session.IsHost)"
+                                   @onchange="e => RenameContainerAsync(selected, e.Value?.ToString())" />
+                        </label>
+                        <small class="wt-muted">@L.Resource("WorldContainers_DetailCustomNameHint")</small>
+                    }
                     <button type="button" class="wt-btn wt-yellow" disabled="@(Session.AppliesImmediately && !Session.IsHost)" @onclick="() => SortAsync(selected)">@L.Resource("WorldContainers_Sort")</button>
                     <div class="wc-divider"></div>
                     <div class="wc-slot-grid">
@@ -251,11 +261,18 @@
             ? L.Resource("WorldContainers_HealthFormat", current.ToString("0", System.Globalization.CultureInfo.InvariantCulture), max.ToString("0", System.Globalization.CultureInfo.InvariantCulture))
             : null;
 
-    /// <summary>What this crate is, in words. Deployed containers are named after the thing
-    /// the player built; the named storage the game keeps separately already has a name.
-    /// A crate never changes what it is, so each name is worked out once and kept: the list
-    /// redraws on every keystroke in the search box and there can be hundreds of crates.</summary>
+    /// <summary>What to show for this crate: the name a player actually typed on it, when
+    /// there is one - a container search already matched real ones like "Food/Cooking" or
+    /// "Liquid/Meds" - else <see cref="AutoDisplayName"/>'s generic guess.</summary>
     private string DisplayName(WorldContainer container)
+        => container.Name is { Length: > 0 } custom ? custom : AutoDisplayName(container);
+
+    /// <summary>What this crate is, in words, ignoring any player-given name. Deployed
+    /// containers are named after the thing the player built; the named storage the game keeps
+    /// separately already has a name. A crate never changes what it is, so each guess is worked
+    /// out once and kept: the list redraws on every keystroke in the search box and there can be
+    /// hundreds of crates.</summary>
+    private string AutoDisplayName(WorldContainer container)
     {
         var cacheKey = ContainerKey(container);
         if (_names.TryGetValue(cacheKey, out var cached)) return cached;
@@ -350,8 +367,12 @@
         DropSummariesIfLanguageChanged();
         var cacheKey = ContainerKey(container);
         if (_searchTexts.TryGetValue(cacheKey, out var cached)) return cached;
+        // Both names are searchable: DisplayName alone would drop the auto-generated guess
+        // entirely once a player-given name is set, and a crate is still "that storage crate"
+        // to someone who never saw what it was later renamed to.
         var builder = new System.Text.StringBuilder()
             .Append(DisplayName(container)).Append('\n')
+            .Append(AutoDisplayName(container)).Append('\n')
             .Append(container.Id);
         foreach (var slot in FirstInventorySlots(container))
         {
@@ -649,6 +670,34 @@
         catch (Exception exception) when (IsLiveTransportFailure(exception))
         {
             _liveError = Errors.Present(exception, "Sort this container.", "The connection may have dropped; try reconnecting.");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    /// <summary>Renames a container. Applies immediately for a live session (see
+    /// <c>LiveContainersSession.TryRenameContainerAsync</c> for how that reaches every connected
+    /// player, not only the host), otherwise stages the edit like every other field here.</summary>
+    private async Task RenameContainerAsync(WorldContainer container, string? name)
+    {
+        _busy = true;
+        try
+        {
+            var renamed = await Session.TryRenameContainerAsync(container.Source, container.Id, name ?? string.Empty);
+            if (renamed)
+            {
+                _liveError = null;
+                // Not AutoDisplayName's own cache (_names) - the class-based guess never changes,
+                // only what search/row text shows alongside it does.
+                InvalidateSummaries();
+                if (!Session.AppliesImmediately) Workspace.NotifyEdited();
+            }
+        }
+        catch (Exception exception) when (IsLiveTransportFailure(exception))
+        {
+            _liveError = Errors.Present(exception, "Rename this container.", "The connection may have dropped; try reconnecting.");
         }
         finally
         {

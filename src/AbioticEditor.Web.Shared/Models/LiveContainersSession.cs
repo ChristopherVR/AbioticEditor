@@ -144,6 +144,25 @@ public sealed class LiveContainersSession : IWorldContainersSession
         return ApplyAsync(id, new LiveContainerSlotEdit(slotIndex, Stack: count), cancellationToken);
     }
 
+    /// <summary>Renames a live container immediately - see <c>containers.rename</c> in
+    /// <c>main.lua</c>. Only <see cref="WorldContainerSource.Live"/> is ever passed here in
+    /// practice, but any other source is rejected the same way the other mutators above reject a
+    /// source/inventory shape that does not apply to a live session.</summary>
+    public async Task<bool> TryRenameContainerAsync(WorldContainerSource source, string id, string name, CancellationToken cancellationToken = default)
+    {
+        if (source != WorldContainerSource.Live || Containers.All(c => !string.Equals(c.Id, id, StringComparison.Ordinal)))
+            return false;
+        Interlocked.Increment(ref _pendingOperations);
+        try
+        {
+            await _channel.RenameAsync(id, name.Trim(), cancellationToken).ConfigureAwait(false);
+            Status = null;
+            await RefreshAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        finally { Interlocked.Decrement(ref _pendingOperations); }
+    }
+
     private async Task ApplyAsync(string containerId, LiveContainerSlotEdit edit, CancellationToken cancellationToken)
     {
         Interlocked.Increment(ref _pendingOperations);
@@ -183,7 +202,7 @@ public sealed class LiveContainersSession : IWorldContainersSession
         => containers.Select(c => new WorldContainer(
             c.Id, WorldContainerSource.Live, c.Label,
             [new WorldInventory(c.Slots.Select(ToSlot).ToArray())],
-            c.X, c.Y, c.Z, c.Health, c.MaxHealth)).ToArray();
+            c.X, c.Y, c.Z, c.Health, c.MaxHealth, c.Name)).ToArray();
 
     private static InventoryItemSlot ToSlot(LiveContainerSlot slot) => new(
         slot.SlotIndex, slot.IsEmpty ? null : slot.ItemId, slot.Stack, slot.Durability, slot.MaxDurability,

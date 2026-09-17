@@ -226,6 +226,60 @@ return function(H)
     H.check(noHealthEntry ~= nil, "the no-durability container still appears")
     H.eq(noHealthEntry.health, nil, "health omitted (not reported as 0) when MaxDurability is 0")
 
+    -- ---------- containers: rename via the real, genuinely replicated field (round 84) ----------
+    -- PlayerMadeString (Net | RepNotify on AbioticDeployed_Furniture_ParentBP, verified against
+    -- the game's own Blueprint exports) is deliberately NOT the same field bases.lua's own rename
+    -- reads/writes (AlternativeObjectName, which carries no Net flag at all) - PlayerMadeString is
+    -- the one candidate that is actually networked, so a rename here needs the same push-model
+    -- MarkPropertyDirty notification bases.lua's PaintedColor write already demonstrates in this
+    -- suite, not just a direct property set.
+    local netHelper = H.object("NetPushModelHelpers", {}, { MarkPropertyDirty = function() end })
+    H.world.static("/Script/Engine.Default__NetPushModelHelpers", netHelper)
+    local namedInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {} })
+    local renameable = H.world.add(H.object("Deployed_Container_ParentBP_C", {
+        ContainerInventory = namedInv, PlayerMadeString = H.fstring(""),
+    }, {
+        K2_GetActorLocation = function() return H.vector(7, 7, 7) end,
+        NewPlayerMadeString = function() end,
+    }))
+    local beforeRename = H.ok(H.dispatch("containers.list"), "containers.list before any rename")
+    local renameableEntry
+    for _, entry in ipairs(beforeRename.containers) do if entry.x == 7 then renameableEntry = entry end end
+    H.check(renameableEntry ~= nil, "the renameable container appears")
+    H.eq(renameableEntry.name, nil, "no custom name yet reads as nil, not an empty string")
+
+    local marksBefore = H.calls(netHelper, "MarkPropertyDirty")
+    H.ok(H.dispatch("containers.rename", { id = renameableEntry.id, name = "Food/Cooking" }), "rename the container")
+    -- Written as a plain Lua string (StrProperty, the write handler's first attempt - see its own
+    -- remarks), not the H.fstring(...) wrapper the initial empty-name seed above uses.
+    H.eq(H.field(renameable, "PlayerMadeString"), "Food/Cooking", "the new name was actually written")
+    H.eq(H.calls(renameable, "NewPlayerMadeString"), 1, "the host's own view is refreshed immediately, mirroring OnRep")
+    H.eq(H.calls(netHelper, "MarkPropertyDirty"), marksBefore + 1,
+        "push-model replication notified, so other already-connected players see the new name too")
+
+    local afterRename = H.ok(H.dispatch("containers.list"), "containers.list after rename")
+    local renamedEntry
+    for _, entry in ipairs(afterRename.containers) do if entry.x == 7 then renamedEntry = entry end end
+    H.eq(renamedEntry.name, "Food/Cooking", "the new name is reported back")
+
+    H.ok(H.dispatch("containers.rename", { id = renameableEntry.id, name = "" }), "clear the container's name")
+    local afterClear = H.ok(H.dispatch("containers.list"), "containers.list after clearing")
+    local clearedEntry
+    for _, entry in ipairs(afterClear.containers) do if entry.x == 7 then clearedEntry = entry end end
+    H.eq(clearedEntry.name, nil, "an empty name clears back to nil, not an empty string")
+
+    H.fails(H.dispatch("containers.rename", { id = "no-such-container", name = "X" }),
+        "not found", "unknown container id fails cleanly")
+    -- Toggling host status directly (not H.clientSession(), which resets the whole world - this
+    -- file shares one world across every section from pets onward) - see isHost()'s own
+    -- world.AuthorityGameMode check in main.lua, which the harness's GetWorld() stub reads
+    -- straight from H.gameMode.
+    local savedGameMode = H.gameMode
+    H.gameMode = nil
+    H.fails(H.dispatch("containers.rename", { id = renameableEntry.id, name = "Y" }),
+        "only the host", "a client cannot rename containers")
+    H.gameMode = savedGameMode
+
     -- ---------- narrative NPCs ----------
     local narrative = H.world.add(H.object("NarrativeNPC_ParentBP_C", { IsCorpse = false, NarrativeState = 1 }, {
         SetNewNarrativeState = function(self, value) self.NarrativeState = value end,

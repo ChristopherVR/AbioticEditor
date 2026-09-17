@@ -63,4 +63,15 @@ public interface IWorldContainersSession
     Task<bool> SortContainerSlotsAsync(WorldContainerSource source, string id, int inventoryIndex, CancellationToken cancellationToken = default);
 
     Task SetContainerSlotCountAsync(WorldContainerSource source, string id, int inventoryIndex, int slotIndex, int count, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sets (or, given an empty/whitespace-only name, clears) a container's player-given name -
+    /// see <see cref="WorldContainer.Name"/> for what backs this on each side. A file session
+    /// stages the change like every other container field; a live session sends it to the
+    /// running game immediately, then the caller should refresh. Only
+    /// <see cref="WorldContainerSource.Deployed"/> supports this - returns false for
+    /// <see cref="WorldContainerSource.Custom"/> (its own id is already the name) and
+    /// <see cref="WorldContainerSource.Vehicle"/> (not player-nameable).
+    /// </summary>
+    Task<bool> TryRenameContainerAsync(WorldContainerSource source, string id, string name, CancellationToken cancellationToken = default);
 }

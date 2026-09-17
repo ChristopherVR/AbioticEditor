@@ -242,4 +242,53 @@ public class WorldSaveReaderTests
             if (File.Exists(tempPath)) File.Delete(tempPath);
         }
     }
+
+    [Fact]
+    public void RenameContainer_PersistsThroughWrite_WithoutDisturbingOtherContainers()
+    {
+        Assert.NotNull(Fixtures.CascadeDir);
+        if (!File.Exists(FacilitySavePath)) return;
+
+        var tempPath = Path.Combine(Path.GetTempPath(), $"abf-world-rename-test-{Guid.NewGuid():N}.sav");
+        try
+        {
+            File.Copy(FacilitySavePath, tempPath);
+            var data = WorldSaveReader.ReadFromFile(tempPath);
+            var deployed = data.Containers.Where(c => c.Source == WorldContainerSource.Deployed).ToList();
+            Assert.NotEmpty(deployed);
+
+            // A container that already has a real player-given name, to prove renaming replaces
+            // it rather than merely appending or leaving the old value behind.
+            var named = deployed.First(c => !string.IsNullOrEmpty(c.Name));
+            // A container that has never been named, to prove the tag can be created from
+            // nothing (the CustomTextDisplayFullName fallback path) as well as mutated in place.
+            var unnamed = deployed.First(c => string.IsNullOrEmpty(c.Name) && c.Id != named.Id);
+
+            const string newName = "Renamed by test";
+            WorldSaveWriter.ApplyContainers(data, new[] { named with { Name = newName }, unnamed with { Name = "Brand new label" } });
+            WorldSaveWriter.WriteToFile(data, tempPath);
+
+            var reread = WorldSaveReader.ReadFromFile(tempPath);
+            Assert.Equal(newName, reread.Containers.First(c => c.Id == named.Id).Name);
+            Assert.Equal("Brand new label", reread.Containers.First(c => c.Id == unnamed.Id).Name);
+
+            // Every other container's name is untouched.
+            foreach (var untouched in deployed.Where(c => c.Id != named.Id && c.Id != unnamed.Id))
+            {
+                Assert.Equal(untouched.Name, reread.Containers.First(c => c.Id == untouched.Id).Name);
+            }
+
+            // Clearing a name back to null removes the visible label without erroring.
+            var recheck = WorldSaveReader.ReadFromFile(tempPath);
+            var current = recheck.Containers.First(c => c.Id == named.Id);
+            WorldSaveWriter.ApplyContainers(recheck, new[] { current with { Name = null } });
+            WorldSaveWriter.WriteToFile(recheck, tempPath);
+            var cleared = WorldSaveReader.ReadFromFile(tempPath);
+            Assert.Null(cleared.Containers.First(c => c.Id == named.Id).Name);
+        }
+        finally
+        {
+            if (File.Exists(tempPath)) File.Delete(tempPath);
+        }
+    }
 }

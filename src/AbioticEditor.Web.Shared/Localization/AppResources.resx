@@ -656,6 +656,8 @@
   <data name="WorldContainers_SelectAContainer" xml:space="preserve"><value>SELECT A CONTAINER</value></data>
   <data name="WorldContainers_SelectContainerHelp" xml:space="preserve"><value>Pick a container from the list to inspect or edit its slots. Tap a slot to edit it in the right panel.</value></data>
   <data name="WorldContainers_Sort" xml:space="preserve"><value>SORT</value></data>
+  <data name="WorldContainers_DetailCustomName" xml:space="preserve"><value>Name you gave it</value></data>
+  <data name="WorldContainers_DetailCustomNameHint" xml:space="preserve"><value>Leave this empty to go back to the standard name.</value></data>
 
   <!-- WorldContainment -->
   <data name="WorldContainment_Compendium" xml:space="preserve"><value>COMPENDIUM</value></data>

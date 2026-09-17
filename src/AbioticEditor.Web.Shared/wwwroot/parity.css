@@ -1274,6 +1274,8 @@ button.world-feature-row{flex:0 0 auto}
 .wc-select-help{margin:0;color:var(--muted);font-size:11px}
 .wc-title{margin:0;color:var(--section);font-size:18px;font-weight:600;letter-spacing:.04em}
 .wc-id{margin:0;overflow:hidden;color:var(--faint);font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+.wc-rename{display:flex;flex-direction:column;gap:4px;margin:4px 0}
+.wc-rename-label{color:var(--muted);font:600 10px var(--font-ui);letter-spacing:.08em;text-transform:uppercase}
 .wc-divider{flex:0 0 1px;background:var(--divider)}
 /* overflow-x is pinned shut and the vertical scrollbar's gutter is always reserved. Leaving
    overflow-x at its default turned it into "auto" the moment overflow-y did, and the two then

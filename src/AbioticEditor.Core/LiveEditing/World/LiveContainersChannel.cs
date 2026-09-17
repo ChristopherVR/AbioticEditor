@@ -23,7 +23,7 @@ public sealed class LiveContainersChannel(ILiveGameChannel channel)
             .Select(c => new LiveContainer(c.Id, c.Label, c.X, c.Y, c.Z,
                 (c.Slots ?? []).Select(s => new LiveContainerSlot(s.SlotIndex, s.ItemId, s.IsEmpty,
                     s.Stack, s.Durability, s.MaxDurability, s.AmmoInMagazine, s.Details)).ToList(),
-                c.Health, c.MaxHealth))
+                c.Health, c.MaxHealth, c.Name))
             .ToList();
         return new LiveContainerDirectory(containers, wire.IsHost);
     }
@@ -48,9 +48,16 @@ public sealed class LiveContainersChannel(ILiveGameChannel channel)
         CancellationToken cancellationToken = default)
         => _channel.RequestAsync<object?>("inventory.transfer", new { first, second }, cancellationToken);
 
+    /// <summary>Sets (empty string clears) the container's player-given name immediately - see
+    /// <c>containers.rename</c> in <c>main.lua</c> for how this reaches every connected player,
+    /// not just the host.</summary>
+    public Task RenameAsync(string containerId, string name, CancellationToken cancellationToken = default)
+        => _channel.RequestAsync<object?>("containers.rename", new RenameWire(containerId, name), cancellationToken);
+
     private sealed record DirectoryWire(IReadOnlyList<ContainerWire>? Containers, bool IsHost);
     private sealed record ContainerWire(string Id, string Label, double X, double Y, double Z, IReadOnlyList<SlotWire>? Slots,
-        double? Health = null, double? MaxHealth = null);
+        double? Health = null, double? MaxHealth = null, string? Name = null);
+    private sealed record RenameWire(string Id, string Name);
     private sealed record SlotWire(int SlotIndex, string ItemId, bool IsEmpty, int Stack, double Durability, double MaxDurability, int AmmoInMagazine = 0, LiveItemDetails? Details = null);
     private sealed record SetWire(string Id, IReadOnlyList<EditWire> Edits, bool? Sort);
     private sealed record EditWire(int SlotIndex, bool? Clear, string? ItemId, int? Stack, double? Durability, double? MaxDurability, string? DataTable, int? AmmoInMagazine, LiveItemDetails? Details);
@@ -60,9 +67,11 @@ public sealed class LiveContainersChannel(ILiveGameChannel channel)
 /// exact actor; <paramref name="Label"/> is its class name (e.g. <c>Deployed_StorageCrate_Makeshift_C</c>).
 /// <paramref name="Health"/>/<paramref name="MaxHealth"/> are null for a deployable that does not
 /// track durability at all (most containers do, per the game's own Blueprint data - verified),
-/// not for a destroyed one (that reads 0/positive instead).</summary>
+/// not for a destroyed one (that reads 0/positive instead). <paramref name="Name"/> is the
+/// player-given label (null when never set), distinct from <paramref name="Label"/>'s
+/// auto-generated class name - see <c>LiveContainersChannel.RenameAsync</c>.</summary>
 public sealed record LiveContainer(string Id, string Label, double X, double Y, double Z, IReadOnlyList<LiveContainerSlot> Slots,
-    double? Health = null, double? MaxHealth = null)
+    double? Health = null, double? MaxHealth = null, string? Name = null)
 {
     public int OccupiedCount => Slots.Count(s => !s.IsEmpty);
 }

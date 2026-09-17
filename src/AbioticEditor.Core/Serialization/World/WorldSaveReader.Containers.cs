@@ -134,7 +134,12 @@ public static partial class WorldSaveReader
             var inventories = ReadContainerInventoriesArray(ps.Properties);
             if (inventories.Count == 0) continue;
 
-            yield return new WorldContainer(key, WorldContainerSource.Deployed, className, inventories);
+            // Same field ReadDeployables reads for the base-manager summary (see its own
+            // customName line) - a container's player-given label, empty when never renamed.
+            var name = ps.Properties.FindByPrefix("CustomTextDisplay_")?.Property?.Value?.ToString();
+
+            yield return new WorldContainer(key, WorldContainerSource.Deployed, className, inventories,
+                Name: string.IsNullOrEmpty(name) ? null : name);
         }
     }
 

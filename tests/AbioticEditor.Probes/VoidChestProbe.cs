@@ -26,7 +26,8 @@ public sealed class VoidChestProbe
         provider.SubmitKey(new FGuid(), new FAesKey("0x" + new string('0', 64)));
         Directory.CreateDirectory(output);
 
-        string[] names = ["AbioticDeployed_Furniture_ParentBP", "Deployed_Container_ParentBP", "Deployed_StorageCrate_ParentBP"];
+        string[] names = ["AbioticDeployed_Furniture_ParentBP", "Deployed_Container_ParentBP", "Deployed_StorageCrate_ParentBP",
+            "AbioticDeployed_ParentBP", "Abiotic_HUD_Widget_RenameObject", "Abiotic_PlayerController", "Abiotic_Character"];
         foreach (var path in provider.Files.Keys.Where(p => p.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase)
                      && names.Contains(Path.GetFileNameWithoutExtension(p), StringComparer.OrdinalIgnoreCase)))
         {
@@ -40,5 +41,14 @@ public sealed class VoidChestProbe
                 File.WriteAllText(Path.Combine(output, "furn_" + Path.GetFileNameWithoutExtension(path) + ".error.txt"), ex.ToString());
             }
         }
+
+        // Also list every uasset whose bare name contains "Rename" or "ObjectName" - the actual
+        // rename widget/RPC might not be named anything in this guessed list above.
+        var candidates = provider.Files.Keys
+            .Where(p => p.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase)
+                && (Path.GetFileNameWithoutExtension(p).Contains("Rename", StringComparison.OrdinalIgnoreCase)
+                    || Path.GetFileNameWithoutExtension(p).Contains("ObjectName", StringComparison.OrdinalIgnoreCase)))
+            .ToArray();
+        File.WriteAllLines(Path.Combine(output, "_rename_candidates.txt"), candidates);
     }
 }

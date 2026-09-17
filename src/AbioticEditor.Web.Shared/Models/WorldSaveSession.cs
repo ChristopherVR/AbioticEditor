@@ -383,6 +383,21 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
         return true;
     }
 
+    /// <summary>Stages a container's player-given name (empty/null clears it). Only
+    /// <see cref="WorldContainerSource.Deployed"/> supports this - a
+    /// <see cref="WorldContainerSource.Custom"/> container's own <see cref="WorldContainer.Id"/>
+    /// already is its name, and a vehicle's storage is not player-nameable in this game.</summary>
+    public bool TryRenameContainer(WorldContainerSource source, string id, string name)
+    {
+        if (source != WorldContainerSource.Deployed) return false;
+        var key = $"{source}:{id}";
+        if (!_containers.TryGetValue(key, out var container)) return false;
+        var trimmed = name.Trim();
+        _containers[key] = container with { Name = trimmed.Length == 0 ? null : trimmed };
+        UpdateStatus();
+        return true;
+    }
+
     public bool TrySetContainerSlot(WorldContainerSource source, string id, int inventoryIndex, int slotIndex, InventoryItemSlot slot)
     {
         if (!TryGetContainerInventory(source, id, inventoryIndex, out var container, out var inventory)) return false;
@@ -421,6 +436,9 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
         SetContainerSlotCount(source, id, inventoryIndex, slotIndex, count);
         return Task.CompletedTask;
     }
+
+    Task<bool> IWorldContainersSession.TryRenameContainerAsync(WorldContainerSource source, string id, string name, CancellationToken cancellationToken)
+        => Task.FromResult(TryRenameContainer(source, id, name));
 
     public bool SortContainerSlots(WorldContainerSource source, string id, int inventoryIndex)
     {
