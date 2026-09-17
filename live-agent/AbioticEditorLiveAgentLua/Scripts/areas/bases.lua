@@ -150,6 +150,22 @@ return function(ctx)
             local obj = payload.id and ctx.findByFullName("AbioticDeployed_ParentBP_C", payload.id)
             if not obj then error("deployable not found (it may have been unloaded or destroyed)") end
             if payload.customName ~= nil then
+                -- containers.rename already refuses to rename a container whose inventory is
+                -- shared (a Void Chest, whose GetContainerInventory() redirects every placed
+                -- instance to one pool owned by the world's GameState - see that function's own
+                -- remarks in main.lua) because a live report showed renaming ONE bleeding into
+                -- every one of them. This BASES screen reaches the exact same actors through its
+                -- own, wider AbioticDeployed_ParentBP_C sweep (a Void Chest is a deployable too)
+                -- and had its own, completely separate customName write here with no such check -
+                -- a live report confirmed renaming from here still bled across every Void Chest
+                -- even after containers.rename's own block landed, because this path was never
+                -- protected. Reuses containerInventory's own shared-detection (the same function
+                -- deployableRows already calls for storedItemCount, just above) rather than
+                -- re-implementing it here.
+                local _, sharedIdentity = ctx.containerInventory(obj)
+                if sharedIdentity then
+                    error("this object shares its contents with every other one of its kind, so it cannot be given its own name")
+                end
                 local text = payload.customName
                 -- No precedent anywhere in the reference mod for writing an FText property from
                 -- Lua. FText(...) is UE4SS's own documented constructor but nothing here has

@@ -132,6 +132,23 @@ return function(H)
     -- Missing deployable id: player-safe failure, not a Lua error.
     H.fails(H.dispatch("bases.set", { id = "no-such-deployable", customName = "X" }), "not found", "unknown deployable id fails cleanly")
 
+    -- Round 88: renaming a Void-Chest-shaped deployable through THIS screen must refuse the same
+    -- way containers.rename already does (see world_gaps.lua's own shared-identity rename test) -
+    -- a live report showed the cross-instance rename bleed persisting even after that block
+    -- landed, because bases.lua reaches the same actors through its own, wider
+    -- AbioticDeployed_ParentBP_C sweep with a completely separate, unprotected customName write.
+    local sharedBaseInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {} })
+    local sharedBaseDecoy = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {} })
+    local sharedBase = H.world.add(H.object("Deployed_Container_ParentBP_C", {
+        __bases = { "AbioticDeployed_ParentBP_C" },
+        ContainerInventory = sharedBaseDecoy, AlternativeObjectName = H.fstring(""),
+    }, {
+        GetContainerInventory = function() return sharedBaseInv end,
+        K2_GetActorLocation = function() return H.vector(13, 13, 13) end,
+    }))
+    H.fails(H.dispatch("bases.set", { id = sharedBase:GetFullName(), customName = "Mine Only" }),
+        "shares its contents", "a shared-identity deployable refuses a rename from the BASES screen too")
+
     -- Non-host refusal.
     H.clientSession()
     H.world.add(locker)
