@@ -1274,10 +1274,16 @@ button.world-feature-row{flex:0 0 auto}
 .wc-tab .wc-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:0 10px;padding:8px 12px;border:0;background:transparent;cursor:pointer}
 .wc-tab .wc-row:hover{background:var(--hover);border:0}
 .wc-tab .wc-row.selected{background:var(--elevated);box-shadow:inset 3px 0 0 var(--orange)}
-.wc-tab .wc-row strong{overflow:hidden;color:var(--ink);font-size:13px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
-.wc-tab .wc-row .wc-count{color:var(--terminal);font:13px var(--font-lcd);letter-spacing:.06em}
-.wc-tab .wc-row .wc-health{grid-column:1/-1;color:var(--muted);font-size:10px}
-.wc-tab .wc-row small{grid-column:1/-1;overflow:hidden;color:var(--faint);font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+/* Round 89: this block used to also style strong/.wc-count/.wc-health/small directly (as
+   descendants of .wc-row, reached straight through the .wc-row-select button in between) with
+   its own grid-column values, predating .wc-row-select's later explicit named-area layout
+   (search this file for "grid-template-areas:\"name count\"") and never removed once that
+   landed - a real specificity conflict (this block's selectors carry an extra .wc-row class, so
+   the OLDER rules here were winning over the NEWER ones on .wc-row-select's own children for
+   several properties, most likely the actual cause of a position-line-clips-under-the-name
+   report that two earlier attempts at fixing .wc-row-select alone did not resolve). Removed
+   rather than reconciled again: .wc-row-select's own rules already cover strong/.wc-count/
+   .wc-health/small/.wc-row-name completely, so there is nothing left for this block to add. */
 .wc-detail .wc-health{margin:0;color:var(--muted);font-size:11px}
 .wc-empty,.wf-empty,.wg-empty{margin:0;padding:16px;color:var(--muted)}
 .wc-tab .wc-detail{display:flex;flex-direction:column;grid-template-columns:none;gap:8px;box-sizing:border-box;margin:0;padding:12px 14px;border:1px solid var(--line);background:var(--shell);min-height:0}
@@ -2114,7 +2120,7 @@ button.wd-sector-map:hover{opacity:1;transform:none}
   width:100%; padding:0; border:0; background:transparent; text-align:left; color:inherit; cursor:pointer; text-transform:none;
 }
 .wc-row-select small { grid-area:where; color:var(--muted); }
-.wc-row-select .wc-count { grid-area:count; align-self:start; }
+.wc-row-select .wc-count { grid-area:count; align-self:start; color:var(--terminal); font:13px var(--font-lcd); letter-spacing:.06em; }
 .wc-row-select .wc-health { grid-area:health; }
 /* The name area holds the container's own picture (round 88) and its label together, as a small
    flex row, not the label alone - see WorldContainersTab.razor's own comment on why the icon
