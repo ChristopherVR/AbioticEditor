@@ -22,6 +22,14 @@ public interface IWorldContainmentSession
     /// not be read, so the list may be incomplete.</summary>
     IReadOnlyList<string> ContainmentScanFailures { get; }
 
+    /// <summary>
+    /// True when the host could not even attempt to look for units, as opposed to looking and
+    /// finding none. Only a file session on a host with no disk to walk (the browser) can be in
+    /// this state, when the open workspace never handed it any sibling region saves to read; a
+    /// live session always attempts to read the running game and so is never true here.
+    /// </summary>
+    bool ContainmentScanUnavailable { get; }
+
     /// <summary>Creature row -> unit id entries, matching whichever units are currently occupied.</summary>
     IReadOnlyList<KeyValuePair<string, string>> Containments { get; }
 

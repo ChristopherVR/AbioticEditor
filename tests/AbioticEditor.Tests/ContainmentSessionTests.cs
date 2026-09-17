@@ -1,5 +1,6 @@
 using AbioticEditor.Core.WorldSaves;
 using AbioticEditor.Web.Models;
+using AbioticEditor.Web.Services;
 
 namespace AbioticEditor.Tests;
 
@@ -207,5 +208,112 @@ public sealed class ContainmentSessionTests
         await session.SaveAsync();
 
         Assert.False(File.Exists(Path.Combine(world.Folder, "WorldSave_Facility.sav.bak")));
+    }
+
+    // ---------- browser host (no disk to walk) ----------
+    //
+    // The browser's save "paths" are opaque handle identifiers, not real file-system paths
+    // (ISaveFileSystem.HasLocalPaths is false there), so ContainmentDirectory.Survey's disk walk
+    // finds nothing. These simulate that host with an in-memory ISaveFileSystem instead of the
+    // real DesktopSaveFileSystem every other test in this file uses.
+
+    /// <summary>A minimal in-memory stand-in for the browser's file system, with
+    /// <see cref="HasLocalPaths"/> false so <see cref="WorldSaveSession"/> takes the same code
+    /// path it does in a real browser tab.</summary>
+    private sealed class FakeBrowserFileSystem(IReadOnlyDictionary<string, byte[]> files) : ISaveFileSystem
+    {
+        public bool HasLocalPaths => false;
+        public bool CanWrite => true;
+
+        public Task<bool> FolderExistsAsync(string folder, CancellationToken cancellationToken = default)
+            => Task.FromResult(true);
+
+        public Task<IReadOnlyList<SaveFileEntry>> ListSavesAsync(string folder, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<SaveFileEntry>>(
+                files.Select(pair => new SaveFileEntry(pair.Key, pair.Key, Path.GetFileName(pair.Key), pair.Value.LongLength)).ToArray());
+
+        public Task<byte[]> ReadAllBytesAsync(string path, CancellationToken cancellationToken = default)
+            => files.TryGetValue(path, out var bytes)
+                ? Task.FromResult(bytes)
+                : throw new FileNotFoundException($"'{path}' is not one of this fake's files.", path);
+
+        public Task<string?> GetVersionStampAsync(string path, CancellationToken cancellationToken = default)
+            => Task.FromResult<string?>(files.ContainsKey(path) ? files[path].Length.ToString(System.Globalization.CultureInfo.InvariantCulture) : null);
+
+        public Task<byte[]> ReadHeaderAsync(string path, int maxBytes, CancellationToken cancellationToken = default)
+            => ReadAllBytesAsync(path, cancellationToken);
+
+        public Task<byte[]> ReadTailAsync(string path, int maxBytes, CancellationToken cancellationToken = default)
+            => ReadAllBytesAsync(path, cancellationToken);
+
+        public Task WriteAllBytesAsync(string path, byte[] contents, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException("This test double is read-only.");
+    }
+
+    [Fact]
+    public async Task Browser_host_reads_sibling_region_saves_through_the_file_system_seam()
+    {
+        var worldFolder = Fixtures.ServerWorldsDir;
+        var metadataDiskPath = worldFolder is null ? null : Path.Combine(worldFolder, "WorldSave_MetaData.sav");
+        var facilityDiskPath = worldFolder is null ? null : Path.Combine(worldFolder, "WorldSave_Facility.sav");
+        if (metadataDiskPath is null || facilityDiskPath is null
+            || !File.Exists(metadataDiskPath) || !File.Exists(facilityDiskPath))
+        {
+            return;
+        }
+
+        // Browser-shaped identifiers ("folder/Name.sav"), never real paths - proving the survey
+        // does not secretly lean on System.IO to find them.
+        const string browserMetadataPath = "cascade-world/WorldSave_MetaData.sav";
+        const string browserFacilityPath = "cascade-world/WorldSave_Facility.sav";
+        var files = new FakeBrowserFileSystem(new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            [browserMetadataPath] = File.ReadAllBytes(metadataDiskPath),
+            [browserFacilityPath] = File.ReadAllBytes(facilityDiskPath),
+        });
+
+        var data = WorldSaveReader.ReadFromFile(metadataDiskPath);
+        var session = new WorldSaveSession(data, browserMetadataPath, files, [browserFacilityPath]);
+
+        Assert.False(session.ContainmentUnitsLoaded);
+        await session.LoadContainmentUnitsAsync();
+
+        Assert.True(session.ContainmentUnitsLoaded);
+        Assert.False(session.ContainmentScanUnavailable);
+        Assert.Empty(session.ContainmentScanFailures);
+        Assert.NotEmpty(session.ContainmentUnits);
+        Assert.All(session.ContainmentUnits,
+            unit => Assert.Equal("WorldSave_Facility.sav", unit.RegionSaveFileName, ignoreCase: true));
+
+        // Matches what the desktop's disk-walking survey finds for the very same world.
+        var diskSurvey = ContainmentDirectory.Survey(metadataDiskPath);
+        Assert.Equal(diskSurvey.Units.Count, session.ContainmentUnits.Count);
+        Assert.Equal(
+            diskSurvey.Units.Select(unit => unit.Id).OrderBy(id => id, StringComparer.OrdinalIgnoreCase),
+            session.ContainmentUnits.Select(unit => unit.Id).OrderBy(id => id, StringComparer.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task Browser_host_with_no_known_sibling_saves_reports_the_scan_as_unavailable_not_empty()
+    {
+        var worldFolder = Fixtures.ServerWorldsDir;
+        var metadataDiskPath = worldFolder is null ? null : Path.Combine(worldFolder, "WorldSave_MetaData.sav");
+        if (metadataDiskPath is null || !File.Exists(metadataDiskPath)) return;
+
+        const string browserMetadataPath = "cascade-world/WorldSave_MetaData.sav";
+        var files = new FakeBrowserFileSystem(new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            [browserMetadataPath] = File.ReadAllBytes(metadataDiskPath),
+        });
+
+        var data = WorldSaveReader.ReadFromFile(metadataDiskPath);
+        // No sibling paths handed in - nothing told this session where the region saves are.
+        var session = new WorldSaveSession(data, browserMetadataPath, files);
+
+        await session.LoadContainmentUnitsAsync();
+
+        Assert.True(session.ContainmentUnitsLoaded);
+        Assert.True(session.ContainmentScanUnavailable);
+        Assert.Empty(session.ContainmentUnits);
     }
 }

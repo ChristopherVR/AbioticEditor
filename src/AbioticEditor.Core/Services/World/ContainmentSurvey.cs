@@ -101,6 +101,25 @@ public static class ContainmentDirectory
             }
         }
 
+        return Assemble(assignments, units, unreadable);
+    }
+
+    /// <summary>
+    /// Joins already-read region units with metadata assignments into a
+    /// <see cref="ContainmentSurvey"/>, without touching disk itself.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Survey"/> calls this after reading every sibling region save from local disk.
+    /// A host with no disk to walk (the browser, whose save paths are opaque handle identifiers
+    /// rather than real file-system paths) can read the same region saves through its own
+    /// <c>ISaveFileSystem</c> abstraction instead and hand the result here, so both hosts share
+    /// one joining/orphan/sort implementation rather than the browser reimplementing it.
+    /// </remarks>
+    public static ContainmentSurvey Assemble(
+        IReadOnlyDictionary<string, string> assignments,
+        IReadOnlyList<WorldContainmentUnit> units,
+        IReadOnlyList<string> unreadableSaves)
+    {
         var claimed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var joined = new List<WorldContainmentUnit>(units.Count);
         foreach (var unit in units)
@@ -121,7 +140,7 @@ public static class ContainmentDirectory
             var byFile = string.Compare(a.RegionSaveFileName, b.RegionSaveFileName, StringComparison.OrdinalIgnoreCase);
             return byFile != 0 ? byFile : string.Compare(a.Id, b.Id, StringComparison.OrdinalIgnoreCase);
         });
-        return new ContainmentSurvey(joined, orphans, unreadable);
+        return new ContainmentSurvey(joined, orphans, unreadableSaves);
     }
 
     /// <summary>What <see cref="SyncUnitRecords"/> did, so a caller can report it honestly.</summary>

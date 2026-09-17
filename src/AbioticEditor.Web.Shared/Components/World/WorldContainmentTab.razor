@@ -30,7 +30,13 @@
             <p class="wm-status">@L.Resource("WorldContainment_ScanIncompleteFormat", string.Join(", ", Session.ContainmentScanFailures))</p>
         }
 
-        @if (units.Count == 0)
+        @if (units.Count == 0 && Session.ContainmentScanUnavailable)
+        {
+            @* Not "none built" - this host had no way to check the region saves the units
+               actually live in (see IWorldContainmentSession.ContainmentScanUnavailable). *@
+            <p class="wm-status">@L.Resource("WorldContainment_ScanUnavailable")</p>
+        }
+        else if (units.Count == 0)
         {
             <p class="wm-status">@L.Resource("WorldContainment_NoUnitsBuilt")</p>
         }

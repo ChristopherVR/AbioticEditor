@@ -619,12 +619,28 @@ public sealed class SaveWorkspaceSessionService : IDisposable
             : SaveDocumentKind.Unknown;
     }
 
-    private async Task<SaveSelection> ReadSelectionAsync(WorkspaceSave save, CancellationToken cancellationToken)
+    private Task<SaveSelection> ReadSelectionAsync(WorkspaceSave save, CancellationToken cancellationToken)
+        => ReadSelectionAsync(save, Current?.Saves ?? [], cancellationToken);
+
+    private async Task<SaveSelection> ReadSelectionAsync(
+        WorkspaceSave save, IReadOnlyList<WorkspaceSave> siblingSaves, CancellationToken cancellationToken)
     {
         if (save.Kind is not (SaveDocumentKind.Player or SaveDocumentKind.World or SaveDocumentKind.WorldMetadata))
             throw new InvalidOperationException($"'{save.Name}' is not a supported player or world save.");
 
         var bytes = await _files.ReadAllBytesAsync(save.Path, cancellationToken).ConfigureAwait(false);
+
+        // The region saves next to this one, so a world session opened on a host with no disk to
+        // walk (the browser) can still read them through the same ISaveFileSystem the workspace
+        // already used to list them, instead of the CONTAINMENT tab's unit survey coming back
+        // empty just because it has no folder of its own to search. Harmless to compute for a
+        // player save or a desktop workspace: nothing here reads them unless a browser world
+        // session actually needs to.
+        var siblingRegionSavePaths = siblingSaves
+            .Where(sibling => sibling.Kind == SaveDocumentKind.World
+                && !string.Equals(sibling.Path, save.Path, StringComparison.OrdinalIgnoreCase))
+            .Select(sibling => sibling.Path)
+            .ToArray();
 
         // Parsing a region save is the slow part (the Facility save is ~16 MB), so it stays off
         // the caller's thread exactly as it did when the reader opened the file itself.
@@ -644,7 +660,8 @@ public sealed class SaveWorkspaceSessionService : IDisposable
             }
 
             var world = WorldSaveReader.ReadFromStream(stream);
-            return new SaveSelection(WorldSummary(save, world), null, new WorldSaveSession(world, save.Path, _files));
+            return new SaveSelection(WorldSummary(save, world), null,
+                new WorldSaveSession(world, save.Path, _files, siblingRegionSavePaths));
         }, cancellationToken).ConfigureAwait(false);
     }
 

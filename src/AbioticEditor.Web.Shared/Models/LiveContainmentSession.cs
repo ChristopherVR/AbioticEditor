@@ -53,6 +53,9 @@ public sealed class LiveContainmentSession : IWorldContainmentSession
     /// <summary>Nothing to fail to read live: the running game answers or the request throws.</summary>
     public IReadOnlyList<string> ContainmentScanFailures => [];
 
+    /// <summary>Always false: a live session always attempts the read, never skips it.</summary>
+    public bool ContainmentScanUnavailable => false;
+
     public IReadOnlyList<KeyValuePair<string, string>> Containments => Units
         .Where(u => u.Creature is not null)
         .Select(u => new KeyValuePair<string, string>(u.Creature!, u.Id))

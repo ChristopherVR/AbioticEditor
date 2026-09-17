@@ -6,11 +6,12 @@ using AbioticEditor.Core.WorldSaves.Features;
 namespace AbioticEditor.Web.Models;
 
 /// <summary>Razor-hosted staged edit session for a world save.</summary>
-public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSession, IWorldDroppedItemsSession, IWorldFlagsSession, IWorldStorySession, IWorldBasesSession, IWorldVehiclesSession, IWorldPetsSession, IWorldContainmentSession, IWorldFeaturesSession, IWorldNpcsSession
+public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSession, IWorldDroppedItemsSession, IWorldFlagsSession, IWorldStorySession, IWorldBasesSession, IWorldVehiclesSession, IWorldPetsSession, IWorldContainmentSession, IWorldFeaturesSession, IWorldNpcsSession, IWorldTradersSession
 {
     private WorldSaveData _data;
     private readonly string _path;
     private readonly AbioticEditor.Web.Services.ISaveFileSystem? _files;
+    private readonly IReadOnlyList<string> _siblingWorldSavePaths;
     private HashSet<string> _originalFlags;
     private HashSet<string> _originalGlobalRecipes;
     private Dictionary<string, WorldDoor> _originalDoors;
@@ -62,11 +63,24 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
     /// Where the save is written back to. Null means write straight to the local file system
     /// (what the tests and any caller holding a real path expect); the hosts pass their own.
     /// </param>
-    public WorldSaveSession(WorldSaveData data, string path, AbioticEditor.Web.Services.ISaveFileSystem? files = null)
+    /// <param name="siblingWorldSavePaths">
+    /// The other <c>WorldSave_*.sav</c> region saves (not this one, never the metadata save)
+    /// known to sit alongside this save in the same open workspace, as <paramref name="files"/>
+    /// identifies them. Used only when <paramref name="files"/> cannot reach the disk directly
+    /// (<see cref="AbioticEditor.Web.Services.ISaveFileSystem.HasLocalPaths"/> is false) - the
+    /// browser host has no folder to walk on its own, so the containment unit survey has nothing
+    /// to read unless the workspace that already listed these files hands the list over. Empty
+    /// or null on every other path, where <see cref="ContainmentDirectory.Survey"/> walks the
+    /// real disk itself.
+    /// </param>
+    public WorldSaveSession(
+        WorldSaveData data, string path, AbioticEditor.Web.Services.ISaveFileSystem? files = null,
+        IReadOnlyList<string>? siblingWorldSavePaths = null)
     {
         _data = data;
         _path = path;
         _files = files;
+        _siblingWorldSavePaths = siblingWorldSavePaths ?? [];
         Flags = new HashSet<string>(data.Flags, StringComparer.Ordinal);
         _originalFlags = new HashSet<string>(Flags, StringComparer.Ordinal);
         GlobalRecipes = new HashSet<string>(data.GlobalRecipes, StringComparer.Ordinal);
@@ -486,6 +500,19 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
         return Task.CompletedTask;
     }
 
+    // ---------- IWorldTradersSession ----------
+    // The trader roster is static game data fetched by WorldTradersTab itself (see that
+    // interface's own remarks); this session only ever answers "is this flag set" and, for a
+    // metadata save, still just its own flags - the sibling-Facility-region resolution and the
+    // actual unlock write (staged EnableFlagWithPrerequisites vs a direct sibling-file write)
+    // stay in the tab, which already has the services (RecipeProgressGateService,
+    // StoryFlagSyncService) that do that.
+    bool IWorldTradersSession.AppliesImmediately => false;
+    bool IWorldTradersSession.IsHost => true;
+    string? IWorldTradersSession.Status => null;
+    bool IWorldTradersSession.HasWorldFlag(string flag) => Flags.Contains(flag);
+    Task IWorldTradersSession.RefreshAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
     /// <summary>Stages a pet's persisted fields. Limb keys are retained exactly as read.</summary>
     public void SetPet(string id, bool isDead, string? npcClass, string? customName, int xp, IReadOnlyDictionary<string, double> limbHealth)
     {
@@ -737,6 +764,15 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
     /// <summary>Region saves the unit survey could not read, so the list may be incomplete.</summary>
     public IReadOnlyList<string> ContainmentScanFailures => _containmentSurvey?.UnreadableSaves ?? [];
 
+    /// <summary>
+    /// True when the survey never looked for units at all, rather than looked and found none.
+    /// Only possible on a host with no disk to walk (the browser): if the open workspace did not
+    /// hand this session any sibling region saves to read (<see cref="_siblingWorldSavePaths"/>),
+    /// an empty <see cref="ContainmentUnits"/> does not mean the world truly has no units - it
+    /// means this host could not check. The tab uses this to avoid claiming none are built.
+    /// </summary>
+    public bool ContainmentScanUnavailable { get; private set; }
+
     /// <summary>True once <see cref="LoadContainmentUnitsAsync"/> has finished a survey.</summary>
     public bool ContainmentUnitsLoaded => _containmentSurvey is not null;
 
@@ -744,14 +780,66 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
     private Task? _containmentSurveyTask;
 
     /// <summary>
-    /// Surveys the world folder for containment units. Safe to call from every render: the scan
-    /// runs once and later calls await the same task.
+    /// Surveys the world for containment units. Safe to call from every render: the scan runs
+    /// once and later calls await the same task.
     /// </summary>
+    /// <remarks>
+    /// A real local path lets <see cref="ContainmentDirectory.Survey"/> walk the world folder
+    /// itself, exactly as it always has. Without one (the browser, whose save paths are opaque
+    /// handle identifiers rather than real file-system paths -
+    /// <see cref="AbioticEditor.Web.Services.ISaveFileSystem.HasLocalPaths"/> is false) that walk
+    /// finds nothing to walk and used to come back with an empty, unremarked survey - which the
+    /// CONTAINMENT tab then reported as "no units have been built", even when the world plainly
+    /// had some. Reading the sibling region saves the workspace already knows about through the
+    /// same <see cref="AbioticEditor.Web.Services.ISaveFileSystem"/> the rest of the browser host
+    /// uses gives the honest answer instead.
+    /// </remarks>
     public Task LoadContainmentUnitsAsync()
-        => _containmentSurveyTask ??= Task.Run(() =>
+        => _containmentSurveyTask ??= RunContainmentSurveyAsync();
+
+    private async Task RunContainmentSurveyAsync()
+    {
+        if (_files is null || _files.HasLocalPaths)
         {
-            _containmentSurvey = ContainmentDirectory.Survey(_path);
-        });
+            _containmentSurvey = await Task.Run(() => ContainmentDirectory.Survey(_path)).ConfigureAwait(false);
+            return;
+        }
+
+        if (_siblingWorldSavePaths.Count == 0)
+        {
+            // Nothing to read at all - not even this session's own region save is one, because
+            // the CONTAINMENT tab only opens against the metadata save (units live in region
+            // saves, a different file). Say so honestly rather than claiming the world is empty.
+            ContainmentScanUnavailable = true;
+            _containmentSurvey = ContainmentDirectory.Assemble(_containments, [], []);
+            return;
+        }
+
+        var units = new List<WorldContainmentUnit>();
+        var unreadable = new List<string>();
+        foreach (var siblingPath in _siblingWorldSavePaths)
+        {
+            try
+            {
+                var bytes = await _files.ReadAllBytesAsync(siblingPath).ConfigureAwait(false);
+                var name = FileNameOf(siblingPath);
+                var save = await Task.Run(
+                    () => WorldSaveReader.ReadFromStream(new MemoryStream(bytes, writable: false))).ConfigureAwait(false);
+                units.AddRange(WorldSaveReader.ReadContainmentUnits(save.Raw, name));
+            }
+            catch (Exception ex)
+            {
+                AbioticEditor.Core.Diagnostics.EditorLog.Warn(
+                    "Containment", $"Could not scan {FileNameOf(siblingPath)}: {ex.Message}");
+                unreadable.Add(FileNameOf(siblingPath));
+            }
+        }
+        _containmentSurvey = ContainmentDirectory.Assemble(_containments, units, unreadable);
+    }
+
+    /// <summary>Trailing path segment, for a browser identifier ("folder/WorldSave_Facility.sav")
+    /// exactly as for a real path - <see cref="Path.GetFileName(string)"/> handles both shapes.</summary>
+    private static string FileNameOf(string path) => System.IO.Path.GetFileName(path);
 
     /// <summary>The creature staged into a given unit, or null when the unit is empty.</summary>
     public string? CreatureInUnit(string unitId)
