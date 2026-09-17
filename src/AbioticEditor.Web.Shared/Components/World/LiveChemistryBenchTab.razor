@@ -6,6 +6,8 @@
 @using AbioticEditor.Core.LiveEditing.World
 @using AbioticEditor.Core.Items
 @using AbioticEditor.Core.PlayerSaves
+@using AbioticEditor.Core.WorldSaves
+@using AbioticEditor.Web.Components.Shared
 @inject ItemCatalogService Catalog
 @inject RecipeVocabularyService Recipes
 @implements IDisposable
@@ -63,12 +65,13 @@
                                 <div class="wt-field" @key="flask.Id">
                                     <span class="wt-label">@flask.Label</span>
                                     <span class="wt-field-inline">
-                                        @* Right-click sends this flask's contents straight to a player, same gesture
-                                           WorldContainersTab already uses for a container slot - scoped to the icon
-                                           only (not the input box next to it) so it never steals the input's own
-                                           right-click (copy/paste). *@
+                                        @* Right-click opens the "send to..." choice for this flask (a player, or a
+                                           chest picked from the ones nearest this bench) - the same gesture the
+                                           containers screen uses for a slot - scoped to the icon only (not the input
+                                           box next to it) so it never steals the input's own right-click
+                                           (copy/paste). *@
                                         <span class="rb-row-icon" title="@SendToPlayerHint(flask)"
-                                              @oncontextmenu="() => SendFlaskToPlayerAsync(bench, flask)" @oncontextmenu:preventDefault>
+                                              @oncontextmenu="() => OpenSendPicker(bench, flask)" @oncontextmenu:preventDefault>
                                             <ItemIcon ItemId="@flask.Value" Alt="@ItemName(flask.Value)" />
                                         </span>
                                         @if (flask.Editable)
@@ -85,6 +88,40 @@
                                         }
                                     </span>
                                 </div>
+                                @if (_sendPicker is { } picker && picker.BenchId == bench.Id && picker.FlaskId == flask.Id && !IsEmptySlot(flask.Value))
+                                {
+                                    <div class="cb-send-picker" role="group" aria-label="@L.Resource("LiveChemistryBenches_SendTitleFormat", ItemName(flask.Value))">
+                                        <p class="wt-muted">@L.Resource("LiveChemistryBenches_SendTitleFormat", ItemName(flask.Value))</p>
+                                        <div class="cb-send-row">
+                                            @if (LivePlayerSession is not null || PlayerSession is not null)
+                                            {
+                                                <button class="wt-btn wt-yellow" type="button" disabled="@_busy"
+                                                        @onclick="() => SendFlaskToPlayerAsync(bench, flask)">@L.Resource("LiveChemistryBenches_SendToPlayerButton")</button>
+                                            }
+                                            @{ var chests = NearbyChests(bench); }
+                                            @if (Containers is null || !Containers.IsHost)
+                                            {
+                                                <span class="wt-muted">@L.Resource("LiveChemistryBenches_SendToChestNeedsHost")</span>
+                                            }
+                                            else if (chests.Count == 0)
+                                            {
+                                                <span class="wt-muted">@L.Resource("LiveChemistryBenches_NoChestsNearby")</span>
+                                            }
+                                            else
+                                            {
+                                                <select class="wt-input cb-send-select" disabled="@_busy" @bind="_sendChestId" aria-label="@L.Resource("LiveChemistryBenches_SendChestPickerLabel")">
+                                                    @foreach (var chest in chests)
+                                                    {
+                                                        <option value="@chest.Id">@ChestOption(bench, chest)</option>
+                                                    }
+                                                </select>
+                                                <button class="wt-btn wt-yellow" type="button" disabled="@(_busy || string.IsNullOrEmpty(_sendChestId))"
+                                                        @onclick="() => SendFlaskToChestAsync(bench, flask)">@L.Resource("LiveChemistryBenches_SendToChestButton")</button>
+                                            }
+                                            <button class="wt-btn wt-plain" type="button" disabled="@_busy" @onclick="CloseSendPicker">@L.Resource("Slot_Cancel")</button>
+                                        </div>
+                                    </div>
+                                }
                             }
                             @{ var hint = RecipeHint(bench); }
                             @if (hint is not null)
@@ -180,6 +217,11 @@
     // wiring this tab up can offer either without this component caring which one it got.
     [Parameter] public PlayerSaveSession? PlayerSession { get; set; }
     [Parameter] public LiveInventorySession? LivePlayerSession { get; set; }
+    /// <summary>The live containers session (round 91) - the "send to a chest" half of the
+    /// flask picker lists its containers nearest this bench and moves the flask through the same
+    /// one-request transfer the containers screen itself uses. Null (no picker chest half) when
+    /// the host page could not connect it.</summary>
+    [Parameter] public LiveContainersSession? Containers { get; set; }
     /// <summary>The connected character's current position (round 89) - when known, benches list
     /// closest-first instead of whatever order the game happens to report them in, the same
     /// "nearby" convenience containers/dropped items already have (see those tabs' own
@@ -195,6 +237,13 @@
     private bool _busy;
     private string? _error;
     private string? _selectedId;
+    /// <summary>Which flask the "send to..." choice is open for, if any, and the chest currently
+    /// picked in it. Opened by right-clicking a flask's icon; closed by any send or CANCEL.</summary>
+    private (string BenchId, string FlaskId)? _sendPicker;
+    private string? _sendChestId;
+    /// <summary>How many of the nearest chests the picker offers - enough to always include the
+    /// crates around a base's chemistry corner without becoming a scroll through the whole map.</summary>
+    private const int NearbyChestLimit = 30;
     private string _recipeFilter = string.Empty;
     private readonly Dictionary<string, string> _fieldErrors = new(StringComparer.Ordinal);
     private IReadOnlyList<RecipeInfo>? _chemistryRecipes;
@@ -325,8 +374,90 @@
     }
 
     private string? SendToPlayerHint(LiveCareField flask)
-        => !IsEmptySlot(flask.Value) && (LivePlayerSession is not null || PlayerSession is not null)
+        => !IsEmptySlot(flask.Value) && (LivePlayerSession is not null || PlayerSession is not null || Containers is not null)
             ? L.Resource("LiveChemistryBenches_SendToPlayerHelp") : null;
+
+    private void OpenSendPicker(LiveCareEntry bench, LiveCareField flask)
+    {
+        if (IsEmptySlot(flask.Value)) return;
+        _fieldErrors.Remove(bench.Id);
+        _sendPicker = (bench.Id, flask.Id);
+        _sendChestId = NearbyChests(bench).FirstOrDefault()?.Id;
+    }
+
+    private void CloseSendPicker()
+    {
+        _sendPicker = null;
+        _sendChestId = null;
+    }
+
+    /// <summary>The live containers nearest this bench (the bench's own position when the game
+    /// reported one, else the player's), never the bench itself. Distance is from the bench, not
+    /// the player, because "a nearby chest" means near where the output is.</summary>
+    private IReadOnlyList<WorldContainer> NearbyChests(LiveCareEntry bench)
+    {
+        if (Containers is null) return [];
+        var others = Containers.Containers.Where(c => !string.Equals(c.Id, bench.Id, StringComparison.Ordinal));
+        var origin = bench.X != 0 || bench.Y != 0 || bench.Z != 0 ? (bench.X, bench.Y, bench.Z) : PlayerPosition;
+        return origin is { } o
+            ? others.OrderBy(c => c.DistanceTo(o.Item1, o.Item2, o.Item3)).Take(NearbyChestLimit).ToList()
+            : others.Take(NearbyChestLimit).ToList();
+    }
+
+    private string ChestOption(LiveCareEntry bench, WorldContainer chest)
+    {
+        var name = chest.Name is { Length: > 0 } custom ? custom
+            : chest.ClassName is { Length: > 0 } className ? PlainNames.Thing(className) : PlainNames.Words(chest.Id);
+        var free = chest.Inventories.Count > 0 ? chest.Inventories[0].Slots.Count(s => s.IsEmpty) : 0;
+        var origin = bench.X != 0 || bench.Y != 0 || bench.Z != 0 ? (bench.X, bench.Y, bench.Z) : PlayerPosition;
+        return origin is { } o
+            ? L.Resource("LiveChemistryBenches_ChestOptionFormat", name, chest.DistanceTo(o.Item1, o.Item2, o.Item3) / 100, free)
+            : L.Resource("LiveChemistryBenches_ChestOptionNoDistanceFormat", name, free);
+    }
+
+    /// <summary>Moves the flask into the picked chest's first empty slot as ONE real move in the
+    /// running game (the same transfer the containers screen uses between two crates), so the
+    /// flask's own durability, liquid and any other instance data travel with it - nothing is
+    /// duplicated from the catalog and nothing is cleared separately. The bench and the chest
+    /// are each re-read on their own afterwards; the bench's flask fields follow on this
+    /// session's next refresh.</summary>
+    private async Task SendFlaskToChestAsync(LiveCareEntry bench, LiveCareField flask)
+    {
+        if (Containers is null || IsEmptySlot(flask.Value) || _sendChestId is not { Length: > 0 } chestId) return;
+        if (!TryFlaskSlotIndex(flask, out var flaskIndex)) return;
+        _fieldErrors.Remove(bench.Id);
+        var chest = Containers.Containers.FirstOrDefault(c => string.Equals(c.Id, chestId, StringComparison.Ordinal));
+        if (chest is null) { _fieldErrors[bench.Id] = L.Resource("LiveChemistryBenches_ChestGone"); return; }
+        var free = chest.Inventories.Count > 0 ? chest.Inventories[0].Slots.FirstOrDefault(s => s.IsEmpty) : null;
+        if (free is null) { _fieldErrors[bench.Id] = L.Resource("LiveChemistryBenches_ChestFull"); return; }
+        _busy = true;
+        try
+        {
+            await Containers.TransferAsync(new LiveInventoryEndpoint(flaskIndex, ContainerId: bench.Id),
+                new LiveInventoryEndpoint(free.Index, ContainerId: chestId));
+            CloseSendPicker();
+            await Session.RefreshAsync();
+            await OnChanged.InvokeAsync();
+        }
+        catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
+            or IOException or OperationCanceledException)
+        {
+            _fieldErrors[bench.Id] = Errors.Present(exception, "Send this to a chest.", "The connection may have dropped; try reconnecting.");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    /// <summary>A flask field's id is "flask:N" where N is its slot in the bench's own inventory
+    /// (three inputs then the output) - the exact slot index a transfer endpoint needs.</summary>
+    private static bool TryFlaskSlotIndex(LiveCareField flask, out int index)
+    {
+        index = -1;
+        return flask.Id.StartsWith("flask:", StringComparison.Ordinal)
+            && int.TryParse(flask.Id.AsSpan("flask:".Length), out index) && index >= 0;
+    }
 
     /// <summary>Right-click send, the exact same destination logic WorldContainersTab's own
     /// SendToPlayerAsync uses (a connected live player's first empty backpack slot, else the
@@ -339,6 +470,7 @@
     {
         if (IsEmptySlot(flask.Value) || Catalog.Find(flask.Value!) is not { } entry) return;
         _fieldErrors.Remove(bench.Id);
+        CloseSendPicker();
         if (LivePlayerSession is { } livePlayer)
         {
             var (destination, area) = livePlayer.Backpack.FirstOrDefault(slot => slot.IsEmpty) is { } backpack

@@ -72,6 +72,29 @@ return function(H)
         second = { kind = "backpack", slotIndex = 9999 } }), "unavailable", "invalid destination rejects transfer")
     H.eq(processingInventory.CurrentInventory[1][I].RowName:ToString(), "test_item", "failed transfer preserves source")
 
+    -- Round 91: the chemistry bench's "send to a chest" picker moves a bench flask straight into
+    -- a chosen container's empty slot through this same command (bench as the first endpoint, a
+    -- plain container as the second) - no new command, so make sure this direction works too.
+    local sendToInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {
+        { [I] = { RowName = H.fname("Empty") }, [C] = { CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 0, [D] = {}, [T] = { GameplayTags = {}, ParentTags = {} } } },
+    } }, { OnRep_CurrentInventory = function() end })
+    H.world.add(H.object("Deployed_Container_ParentBP_C", { ContainerInventory = sendToInv },
+        { K2_GetActorLocation = function() return H.vector(30, 30, 30) end }))
+    local sendToId
+    for _, entry in ipairs(H.ok(H.dispatch("containers.list")).containers) do
+        if entry.x == 30 then sendToId = entry.id end
+    end
+    H.check(sendToId ~= nil, "the chest to send the flask to is listed")
+    H.ok(H.dispatch("inventory.transfer", { first = { containerId = id, slotIndex = 0 },
+        second = { containerId = sendToId, slotIndex = 0 } }), "bench flask to chest transfer")
+    H.eq(sendToInv.CurrentInventory[1][I].RowName:ToString(), "test_item", "the chest received the flask")
+    H.eq(processingInventory.CurrentInventory[1][I].RowName:ToString(), "Empty", "the bench slot is empty after sending")
+    H.eq(sendToInv.CurrentInventory[1][C][D][1].Value, 321, "the flask's metadata travelled with it")
+    -- Put it back for the checks below, which expect the bench to still hold the item.
+    H.ok(H.dispatch("inventory.transfer", { first = { containerId = sendToId, slotIndex = 0 },
+        second = { containerId = id, slotIndex = 0 } }), "chest back to bench transfer")
+    H.eq(processingInventory.CurrentInventory[1][I].RowName:ToString(), "test_item", "the bench holds the flask again")
+
     -- Round 85 skipped the manual OnRep_CurrentInventory() refresh for a shared/Void-Chest-shaped
     -- destination, to fix a reported freeze on exactly this (dragging an item into a Void Chest).
     -- Round 87: a live report showed that made the moved item invisible to its own author instead

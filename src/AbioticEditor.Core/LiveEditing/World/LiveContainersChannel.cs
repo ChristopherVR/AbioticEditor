@@ -19,14 +19,31 @@ public sealed class LiveContainersChannel(ILiveGameChannel channel)
     {
         var wire = await _channel.RequestAsync<DirectoryWire>("containers.list", payload: null, cancellationToken)
             .ConfigureAwait(false);
-        var containers = (wire.Containers ?? [])
-            .Select(c => new LiveContainer(c.Id, c.Label, c.X, c.Y, c.Z,
-                (c.Slots ?? []).Select(s => new LiveContainerSlot(s.SlotIndex, s.ItemId, s.IsEmpty,
-                    s.Stack, s.Durability, s.MaxDurability, s.AmmoInMagazine, s.Details)).ToList(),
-                c.Health, c.MaxHealth, c.Name))
-            .ToList();
+        var containers = (wire.Containers ?? []).Select(ToContainer).ToList();
         return new LiveContainerDirectory(containers, wire.IsHost);
     }
+
+    /// <summary>
+    /// Re-reads ONE container (<c>containers.get</c>, round 91): a single actor lookup plus one
+    /// row, in exactly the shape <see cref="GetAsync"/> reports. This is what lets the editor
+    /// follow a slot write, rename or transfer with a refresh of just the container touched, and
+    /// poll the container being looked at every couple of seconds, instead of re-scanning every
+    /// placed container in the world each time (the freeze players felt after dropping an item
+    /// into a chest, and the "whole tab reloads" flicker that followed it). Throws when the game
+    /// no longer has that container loaded.
+    /// </summary>
+    public async Task<LiveContainer> GetContainerAsync(string containerId, CancellationToken cancellationToken = default)
+    {
+        var wire = await _channel.RequestAsync<SingleWire>("containers.get", new IdWire(containerId), cancellationToken)
+            .ConfigureAwait(false);
+        if (wire.Container is null) throw new LiveAgentException("container not found (it may have been unloaded or destroyed)");
+        return ToContainer(wire.Container);
+    }
+
+    private static LiveContainer ToContainer(ContainerWire c) => new(c.Id, c.Label, c.X, c.Y, c.Z,
+        (c.Slots ?? []).Select(s => new LiveContainerSlot(s.SlotIndex, s.ItemId, s.IsEmpty,
+            s.Stack, s.Durability, s.MaxDurability, s.AmmoInMagazine, s.Details)).ToList(),
+        c.Health, c.MaxHealth, c.Name);
 
     /// <summary>Applies slot edits to the container with <paramref name="containerId"/> immediately.</summary>
     public Task SetAsync(string containerId, IReadOnlyList<LiveContainerSlotEdit> edits,
@@ -55,6 +72,8 @@ public sealed class LiveContainersChannel(ILiveGameChannel channel)
         => _channel.RequestAsync<object?>("containers.rename", new RenameWire(containerId, name), cancellationToken);
 
     private sealed record DirectoryWire(IReadOnlyList<ContainerWire>? Containers, bool IsHost);
+    private sealed record SingleWire(ContainerWire? Container, bool IsHost);
+    private sealed record IdWire(string Id);
     private sealed record ContainerWire(string Id, string Label, double X, double Y, double Z, IReadOnlyList<SlotWire>? Slots,
         double? Health = null, double? MaxHealth = null, string? Name = null);
     private sealed record RenameWire(string Id, string Name);

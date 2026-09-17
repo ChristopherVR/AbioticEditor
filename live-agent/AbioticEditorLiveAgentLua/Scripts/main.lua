@@ -1601,6 +1601,56 @@ require("inventory_transfer")({ handlers = handlers, runOnGameThread = runOnGame
 -- delete once the missing-chest report is actually resolved.
 local function logVoidChestDiagnostic(line) print("[AbioticEditorLiveAgentLua] containers.list (Void Chest diagnostic) " .. line .. "\n") end
 
+-- Builds the one row containers.list reports for a container (and the one containers.get
+-- reports on its own). Returns nil for an actor that is no longer valid or has no readable name.
+-- Shared by both handlers so a single-container re-read is guaranteed to have exactly the shape
+-- of the full listing; any field added here shows up in both.
+local function containerRow(container)
+    if not container:IsValid() then return nil end
+    local name = fullName(container)
+    if not name then return nil end
+    -- Round 84: a live report showed a Void Chest the player was standing right in
+    -- front of missing from this list entirely (not "shown empty" - simply absent).
+    -- The old code below dropped a container completely whenever containerInventory()
+    -- came back nil/invalid, which folded "no such container" together with "this
+    -- container exists but its inventory could not be resolved right now" - and a
+    -- Void Chest's inventory is GetContainerInventory()'s own redirect to a single
+    -- GameState-owned component (see that function's remarks), which is exactly the
+    -- kind of lookup that can transiently fail for one specific client/session in a
+    -- way a normal per-actor inventory does not. Now the container still gets a row
+    -- (position included, so it is at least findable) with empty slots instead of
+    -- vanishing outright - this could not be confirmed against a live repro of the
+    -- original failure (this game's Lua hot-reload is off, so nothing here could be
+    -- tested against the user's already-running game without a restart), but "visible
+    -- with no readable contents" is a strictly more honest failure mode than "not
+    -- listed at all" either way.
+    local inv = containerInventory(container)
+    local x, y, z = actorLocation(container)
+    if name:find("Void", 1, true) then
+        logVoidChestDiagnostic("reached row-build: name=" .. name
+            .. " inv=" .. tostring(inv ~= nil) .. " invValid=" .. tostring(inv ~= nil and inv:IsValid())
+            .. " slotCount=" .. tostring(inv and inv.CurrentInventory and #inv.CurrentInventory or -1)
+            .. " x=" .. tostring(x) .. " y=" .. tostring(y) .. " z=" .. tostring(z))
+    end
+    local slots = { __forceArray = true }
+    if inv and inv.CurrentInventory then
+        for i = 1, #inv.CurrentInventory do
+            -- Same per-slot guard: one bad slot should not drop every other slot in an
+            -- otherwise-healthy container.
+            -- skipMetadata=true: this is the bulk world listing (see slotRow's own
+            -- comment) - inventory.transfer's own slotRow call keeps full detail.
+            local slotOk, row = pcall(slotRow, inv.CurrentInventory[i], i - 1, true)
+            if slotOk then table.insert(slots, row) end
+        end
+    end
+    local health, maxHealth = containerHealth(container)
+    -- "label" is the auto-generated class-based name (e.g. "Storage Crate"), always
+    -- present; "name" is the optional player-given label (see containerName's own
+    -- remarks), nil when nothing has ever been typed.
+    return { id = name, label = classLabel(name), x = x, y = y, z = z, slots = slots,
+        health = health, maxHealth = maxHealth, name = containerName(container) }
+end
+
 handlers["containers.list"] = function(_, respond)
     runOnGameThread(function()
         local result = { __forceArray = true }
@@ -1622,56 +1672,14 @@ handlers["containers.list"] = function(_, respond)
             -- with a different slot shape) used to raise an uncaught Lua error that failed this
             -- ENTIRE request, which the editor could only show as "not available", indistinguishable
             -- from no world being loaded at all. A container this still throws an uncaught error
-            -- for (not just an unreadable inventory, see the inv/slots handling below for that
-            -- narrower case) simply does not appear in the list - the same as a genuinely
-            -- unloaded/destroyed one already looks like from the editor's side, and this handler
-            -- has no per-item error channel (unlike dropped.remove's batch result) to report one
-            -- through instead.
+            -- for (not just an unreadable inventory, see containerRow for that narrower case)
+            -- simply does not appear in the list - the same as a genuinely unloaded/destroyed one
+            -- already looks like from the editor's side, and this handler has no per-item error
+            -- channel (unlike dropped.remove's batch result) to report one through instead.
             local ok, err = pcall(function()
-                if not container:IsValid() then return end
-                local name = fullName(container)
-                diagnosticName = name
-                if not name then return end
-                -- Round 84: a live report showed a Void Chest the player was standing right in
-                -- front of missing from this list entirely (not "shown empty" - simply absent).
-                -- The old code below dropped a container completely whenever containerInventory()
-                -- came back nil/invalid, which folded "no such container" together with "this
-                -- container exists but its inventory could not be resolved right now" - and a
-                -- Void Chest's inventory is GetContainerInventory()'s own redirect to a single
-                -- GameState-owned component (see that function's remarks), which is exactly the
-                -- kind of lookup that can transiently fail for one specific client/session in a
-                -- way a normal per-actor inventory does not. Now the container still gets a row
-                -- (position included, so it is at least findable) with empty slots instead of
-                -- vanishing outright - this could not be confirmed against a live repro of the
-                -- original failure (this game's Lua hot-reload is off, so nothing here could be
-                -- tested against the user's already-running game without a restart), but "visible
-                -- with no readable contents" is a strictly more honest failure mode than "not
-                -- listed at all" either way.
-                local inv = containerInventory(container)
-                local x, y, z = actorLocation(container)
-                if name:find("Void", 1, true) then
-                    logVoidChestDiagnostic("reached row-build: name=" .. name
-                        .. " inv=" .. tostring(inv ~= nil) .. " invValid=" .. tostring(inv ~= nil and inv:IsValid())
-                        .. " slotCount=" .. tostring(inv and inv.CurrentInventory and #inv.CurrentInventory or -1)
-                        .. " x=" .. tostring(x) .. " y=" .. tostring(y) .. " z=" .. tostring(z))
-                end
-                local slots = { __forceArray = true }
-                if inv and inv.CurrentInventory then
-                    for i = 1, #inv.CurrentInventory do
-                        -- Same per-slot guard: one bad slot should not drop every other slot in an
-                        -- otherwise-healthy container.
-                        -- skipMetadata=true: this is the bulk world listing (see slotRow's own
-                        -- comment) - inventory.transfer's own slotRow call keeps full detail.
-                        local slotOk, row = pcall(slotRow, inv.CurrentInventory[i], i - 1, true)
-                        if slotOk then table.insert(slots, row) end
-                    end
-                end
-                local health, maxHealth = containerHealth(container)
-                -- "label" is the auto-generated class-based name (e.g. "Storage Crate"), always
-                -- present; "name" is the optional player-given label (see containerName's own
-                -- remarks), nil when nothing has ever been typed.
-                table.insert(result, { id = name, label = classLabel(name), x = x, y = y, z = z, slots = slots,
-                    health = health, maxHealth = maxHealth, name = containerName(container) })
+                if container:IsValid() then diagnosticName = fullName(container) end
+                local row = containerRow(container)
+                if row then table.insert(result, row) end
             end)
             if not ok then
                 if diagnosticName and diagnosticName:find("Void", 1, true) then
@@ -1685,6 +1693,22 @@ handlers["containers.list"] = function(_, respond)
             end
         end
         return { containers = result, isHost = isHost() }
+    end, respond)
+end
+
+-- Round 91: one container, re-read on its own. The editor used to follow EVERY slot write,
+-- rename and transfer with a full containers.list (every placed container in the world, every
+-- slot, on the game thread), which was the momentary freeze players felt after dropping an item
+-- into a chest, and replacing the whole list was the "tab reloads" flicker that followed. This
+-- costs one actor lookup plus one row, so the editor can refresh just the container being
+-- looked at after a write and on its periodic tick. Same row shape as containers.list.
+handlers["containers.get"] = function(payload, respond)
+    runOnGameThread(function()
+        local container = payload.id and findContainer(payload.id)
+        if not container then error("container not found (it may have been unloaded or destroyed)") end
+        local row = containerRow(container)
+        if not row then error("container not found (it may have been unloaded or destroyed)") end
+        return { container = row, isHost = isHost() }
     end, respond)
 end
 

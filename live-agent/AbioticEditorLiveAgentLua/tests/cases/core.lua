@@ -94,6 +94,15 @@ return function(H)
     H.eq(containers.containers[1].slots[1].isEmpty, true, "None row counts as empty")
     H.ok(H.dispatch("containers.set", { id = containers.containers[1].id, edits = { { slotIndex = 0, itemId = "scrap_metal", stack = 2 } } }), "containers.set")
     H.eq(H.ok(H.dispatch("containers.list")).containers[1].slots[1].itemId, "scrap_metal", "container slot written")
+    -- Round 91: containers.get re-reads ONE container with exactly the row shape the listing
+    -- uses, so the editor no longer has to re-scan the whole world after every single write.
+    local one = H.ok(H.dispatch("containers.get", { id = containers.containers[1].id }), "containers.get")
+    H.eq(one.container.id, containers.containers[1].id, "containers.get returns the asked-for container")
+    H.eq(one.container.slots[1].itemId, "scrap_metal", "containers.get sees the written slot")
+    H.eq(one.container.x, 4, "containers.get carries the position like the listing")
+    H.eq(one.container.label, containers.containers[1].label, "containers.get carries the label like the listing")
+    H.eq(one.isHost, true, "containers.get reports authority like the listing")
+    H.fails(H.dispatch("containers.get", { id = "no such container" }), "not found", "containers.get rejects an unknown id")
 
     local item = H.world.add(H.object("Abiotic_Item_Dropped_C", { HasBeenPickedUp = false, ItemDataRow = { RowName = H.fname("scrap_cloth") },
         ChangeableData = { CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 3 } },

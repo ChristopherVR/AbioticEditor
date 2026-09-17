@@ -660,6 +660,14 @@
     {
         _selectedKey = (container.Source, container.Id);
         _slotEdits = FirstInventorySlots(container).Select(slot => new PlayerInventorySlotEdit(slot)).ToList();
+        // Live: the open container is the one the host's periodic tick re-reads on its own (one
+        // cheap read, not the world scan) so its health and contents follow the game.
+        if (Session is LiveContainersSession live) live.WatchedContainerId = container.Id;
+    }
+
+    private void ClearWatchedContainer()
+    {
+        if (Session is LiveContainersSession live) live.WatchedContainerId = null;
     }
 
     /// <summary>Reloads any slot whose session record changed underneath us (revert, save,
@@ -668,7 +676,7 @@
     private void SyncEditsFromSession()
     {
         if (_slotEdits is null) return;
-        if (SelectedContainer is not { } container) { _selectedKey = null; _slotEdits = null; return; }
+        if (SelectedContainer is not { } container) { _selectedKey = null; _slotEdits = null; ClearWatchedContainer(); return; }
         var slots = FirstInventorySlots(container);
         if (slots.Count != _slotEdits.Count) { SelectContainer(container); return; }
         for (var i = 0; i < slots.Count; i++)
@@ -984,6 +992,7 @@
     {
         Selection.Changed -= Refresh;
         Dnd.Changed -= Refresh;
+        ClearWatchedContainer();
         // Leaving the tab retires the sidebar editor for these slots.
         if (_slotEdits is not null && Selection.Current is { } current && ReferenceEquals(current.Slots, _slotEdits)) Selection.Clear();
         try { if (_dnd is not null) await _dnd.DisposeAsync(); }

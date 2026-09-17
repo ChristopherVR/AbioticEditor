@@ -257,6 +257,13 @@ component class as a player's backpack. `containers.set` takes `{"id","edits":[{
 `SortInventory()` function - the same reorder the in-game "sort" button performs; not exercised
 by any mod before round 77. Host only.
 
+`containers.get` (round 91) takes `{"id"}` and returns `{"container":{...},"isHost":bool}` - ONE
+row in exactly the `containers.list` shape (the mod builds both from the same function). It is a
+single actor lookup plus one row, not a world scan, and is what the editor uses after every slot
+write, rename and transfer, and on its periodic tick for the container the player has open;
+`containers.list` is only sent by an explicit refresh or a fresh tab visit. Errors with
+"container not found" when the game no longer has that actor loaded. Not host-gated (a read).
+
 ## `dropped.list` / `dropped.remove` / `dropped.add`
 
 `dropped.list` returns `{"items":[{"id","itemId","stack","x","y","z"}],"isHost":bool}` for every

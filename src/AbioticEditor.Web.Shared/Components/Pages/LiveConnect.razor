@@ -232,7 +232,7 @@ else
                 @* Dedicated tab instead of the generic WorldFeaturesTab reuse below - see
                    LiveChemistryBenchTab's own header comment for why the "open flask contents"
                    deep link into the containers tab was replaced with slot editing built in. *@
-                <LiveChemistryBenchTab Session="chemistrySession" LivePlayerSession="_inventory" PlayerPosition="_spawn?.LivePosition" OnChanged="() => {}" />
+                <LiveChemistryBenchTab Session="chemistrySession" LivePlayerSession="_inventory" Containers="_containers" PlayerPosition="_spawn?.LivePosition" OnChanged="() => {}" />
             }
             else if (_care.TryGetValue(_worldTab, out var careSession))
             {
@@ -723,6 +723,14 @@ else
                         try { _spawn = await LivePlayerSpawnSession.ConnectAsync(new LiveSpawnChannel(channel), _selectedPlayerId); _playerFacade.SpawnSession = _spawn; }
                         catch (Exception) { }
                     }
+                    // And the containers session (round 91) for the flask picker's "send to a
+                    // chest" half - one containers.list here, the same as visiting the CONTAINERS
+                    // tab once, and equally failure-tolerant.
+                    if (_worldTab == "chemistry-benches" && _containers is null)
+                    {
+                        try { _containers = await LiveContainersSession.ConnectAsync(new LiveContainersChannel(channel)); }
+                        catch (Exception) { }
+                    }
                     break;
             }
         }
@@ -943,12 +951,17 @@ else
                 case "world": yield return _story; yield return _flags; break;
                 case "flags": yield return _flags; break;
                 case "doors": yield return _doors; break;
-                // containers/npcs deliberately NOT auto-refreshed here: both back onto a full
-                // world scan (every placed container/bench, or every loaded creature) with a
-                // detail read per slot/actor, which on a long-played world can take several
-                // seconds - reported live as the CONTAINERS tab freezing and timing out every
-                // couple of seconds while it (or the player surface right next to it) was on
-                // screen, since this loop re-ran that same expensive call on every 2-second tick.
+                // containers (round 91): its zero-argument RefreshAsync() is deliberately NOT the
+                // full world scan (every placed container/bench with a detail read per slot,
+                // which reported live as the tab freezing and timing out every couple of seconds
+                // when this loop used to re-run it each tick). It re-reads only the ONE container
+                // the tab has open (LiveContainersSession.WatchedContainerId, one containers.get)
+                // and does nothing when none is, so health and slot contents follow the game
+                // without the sweep. The sweep itself stays behind the REFRESH button.
+                case "containers": yield return _containers; break;
+                // npcs deliberately NOT auto-refreshed here: it backs onto a full world scan
+                // (every loaded creature with a detail read per actor), which on a long-played
+                // world can take several seconds - the same freeze/timeout story containers had.
                 // A tab visit still gets one fetch (EnsureAreaConnectedAsync); after that it only
                 // updates from the player's own edits, not a periodic re-poll.
                 case "dropped": yield return _dropped; break;

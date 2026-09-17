@@ -850,6 +850,10 @@ h1[tabindex="-1"]:focus{outline:none}
 /* Live chemistry bench: the bench's own picture, and a browsable "what could this make" recipe
    list, both added alongside the existing flask editor. */
 .cb-portrait{width:64px;height:64px;margin-bottom:8px}
+.cb-send-picker{margin:4px 0 10px;padding:8px;border:1px solid var(--line);background:var(--panel)}
+.cb-send-picker .wt-muted{margin:0 0 6px}
+.cb-send-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cb-send-select{flex:1 1 200px;min-width:0;max-width:100%}
 .cb-recipe-browser{margin-top:12px}
 .cb-recipe-browser h4{margin:0 0 8px;color:var(--terminal);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
 .cb-recipe-list{display:grid;gap:6px;margin-top:8px;max-height:280px;overflow-y:auto}

@@ -1,3 +1,4 @@
+using AbioticEditor.Core.LiveEditing;
 using AbioticEditor.Core.LiveEditing.World;
 using AbioticEditor.Core.LiveEditing.Player;
 using AbioticEditor.Core.PlayerSaves;
@@ -11,8 +12,8 @@ namespace AbioticEditor.Web.Models;
 /// widget binds to, so that widget needs zero changes to work against a running game instead of
 /// a loaded file. A live container has exactly one inventory (unlike a file container, whose
 /// underlying property is an array); an edit or swap sends <c>containers.set</c> immediately,
-/// then the container list is re-read so what is on screen stays honest - there is no local
-/// "staged until Save" backup the way a file session has.
+/// then just that container is re-read (<c>containers.get</c>) so what is on screen stays honest
+/// - there is no local "staged until Save" backup the way a file session has.
 /// </summary>
 public sealed class LiveContainersSession : IWorldContainersSession
 {
@@ -60,12 +61,29 @@ public sealed class LiveContainersSession : IWorldContainersSession
     /// </summary>
     public bool IsDirty => Volatile.Read(ref _pendingOperations) > 0;
 
-    /// <summary>Raised after <see cref="RefreshAsync"/> re-reads the world and after every
-    /// mutation (each of which already ends by refreshing), so the tab that renders this session
-    /// can redraw without needing to know which specific edit path fired.</summary>
+    /// <summary>Raised after <see cref="RefreshAsync(CancellationToken)"/> re-reads the world,
+    /// after <see cref="RefreshContainerAsync"/> re-reads one container, and after every
+    /// mutation (each of which already ends by refreshing the container it touched), so the tab
+    /// that renders this session can redraw without needing to know which specific edit path
+    /// fired.</summary>
     public event Action? Changed;
 
-    public async Task RefreshAsync(CancellationToken cancellationToken = default)
+    /// <summary>
+    /// The container the tab currently has open, or null. Round 91: this is what the host's
+    /// periodic background tick (the zero-argument <see cref="RefreshAsync()"/>) re-reads - one
+    /// container, one cheap <c>containers.get</c> - so the health and slot contents of the
+    /// container being looked at follow the game every couple of seconds while every OTHER
+    /// container is left alone. The full world scan is reserved for an explicit refresh.
+    /// </summary>
+    public string? WatchedContainerId { get; set; }
+
+    /// <summary>
+    /// The full re-read: every loaded container, every slot, a world scan on the game thread.
+    /// This is what the REFRESH button and a fresh tab visit do; nothing else calls it any more
+    /// (round 91) because on a built-up world it is what froze the game for a moment after every
+    /// single slot write and made the whole list flicker.
+    /// </summary>
+    public async Task RefreshAsync(CancellationToken cancellationToken)
     {
         var directory = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
         Containers = ToWorldContainers(directory.Containers);
@@ -73,6 +91,62 @@ public sealed class LiveContainersSession : IWorldContainersSession
         UpdateCapability(directory);
         Changed?.Invoke();
     }
+
+    /// <summary>
+    /// The periodic tick's entry point - the zero-argument overload the host finds by reflection
+    /// (see <c>LiveSessionPeriodicRefreshContractTests</c>). Deliberately NOT the world scan:
+    /// it re-reads only <see cref="WatchedContainerId"/> and does nothing at all when no
+    /// container is open, so leaving the CONTAINERS tab on screen costs the game one small read
+    /// every couple of seconds instead of a full sweep.
+    /// </summary>
+    public Task RefreshAsync()
+        => WatchedContainerId is { } id ? RefreshContainerAsync(id, CancellationToken.None) : Task.CompletedTask;
+
+    /// <summary>
+    /// Re-reads one container and swaps it into <see cref="Containers"/> in place (same position,
+    /// nothing else touched), then raises <see cref="Changed"/>. A container the game reports as
+    /// gone is dropped from the list. For a Void Chest, the freshly-read contents are mirrored
+    /// onto every other Void Chest row too - they are one shared pool in the game (see
+    /// <c>containerInventory</c> in <c>main.lua</c>), so a write through one is visible through
+    /// all of them without a world scan.
+    /// </summary>
+    public async Task RefreshContainerAsync(string containerId, CancellationToken cancellationToken = default)
+    {
+        LiveContainer fresh;
+        try
+        {
+            fresh = await _channel.GetContainerAsync(containerId, cancellationToken).ConfigureAwait(false);
+        }
+        catch (LiveAgentException exception) when (exception.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
+        {
+            if (Containers.Any(c => string.Equals(c.Id, containerId, StringComparison.Ordinal)))
+            {
+                Containers = Containers.Where(c => !string.Equals(c.Id, containerId, StringComparison.Ordinal)).ToArray();
+                if (string.Equals(WatchedContainerId, containerId, StringComparison.Ordinal)) WatchedContainerId = null;
+                Changed?.Invoke();
+            }
+            return;
+        }
+        var updated = ToWorldContainer(fresh);
+        var list = Containers.ToList();
+        var index = list.FindIndex(c => string.Equals(c.Id, containerId, StringComparison.Ordinal));
+        if (index >= 0) list[index] = updated; else list.Add(updated);
+        if (IsVoidChest(updated))
+        {
+            for (var i = 0; i < list.Count; i++)
+            {
+                if (i != index && IsVoidChest(list[i]))
+                    list[i] = list[i] with { Inventories = updated.Inventories, Name = updated.Name };
+            }
+        }
+        Containers = list.ToArray();
+        if (!_supportsCompleteItemWrites && fresh.Slots.Any(s => s.Details?.InstanceMetadata is not null))
+            _supportsCompleteItemWrites = true;
+        Changed?.Invoke();
+    }
+
+    private static bool IsVoidChest(WorldContainer container)
+        => container.ClassName?.Contains("StorageCrate_Void", StringComparison.OrdinalIgnoreCase) == true;
 
     private void UpdateCapability(LiveContainerDirectory directory)
     {
@@ -111,7 +185,7 @@ public sealed class LiveContainersSession : IWorldContainersSession
         {
             await _channel.SetAsync(id, [ToEdit(firstIndex, second), ToEdit(secondIndex, first)], cancellationToken).ConfigureAwait(false);
             Status = null;
-            await RefreshAsync(cancellationToken).ConfigureAwait(false);
+            await RefreshContainerAsync(id, cancellationToken).ConfigureAwait(false);
             return true;
         }
         finally { Interlocked.Decrement(ref _pendingOperations); }
@@ -131,7 +205,7 @@ public sealed class LiveContainersSession : IWorldContainersSession
         {
             await _channel.SortAsync(id, cancellationToken).ConfigureAwait(false);
             Status = null;
-            await RefreshAsync(cancellationToken).ConfigureAwait(false);
+            await RefreshContainerAsync(id, cancellationToken).ConfigureAwait(false);
             return true;
         }
         finally { Interlocked.Decrement(ref _pendingOperations); }
@@ -157,7 +231,9 @@ public sealed class LiveContainersSession : IWorldContainersSession
         {
             await _channel.RenameAsync(id, name.Trim(), cancellationToken).ConfigureAwait(false);
             Status = null;
-            await RefreshAsync(cancellationToken).ConfigureAwait(false);
+            // One re-read of the renamed container; for a Void Chest RefreshContainerAsync mirrors
+            // the new name onto every other Void Chest row, which is what the game did to them.
+            await RefreshContainerAsync(id, cancellationToken).ConfigureAwait(false);
             return true;
         }
         finally { Interlocked.Decrement(ref _pendingOperations); }
@@ -170,7 +246,7 @@ public sealed class LiveContainersSession : IWorldContainersSession
         {
             await _channel.SetAsync(containerId, [edit], cancellationToken).ConfigureAwait(false);
             Status = null;
-            await RefreshAsync(cancellationToken).ConfigureAwait(false);
+            await RefreshContainerAsync(containerId, cancellationToken).ConfigureAwait(false);
         }
         finally { Interlocked.Decrement(ref _pendingOperations); }
     }
@@ -184,7 +260,11 @@ public sealed class LiveContainersSession : IWorldContainersSession
             async Task Apply()
             {
                 await _channel.TransferAsync(first, second, cancellationToken).ConfigureAwait(false);
-                await RefreshAsync(cancellationToken).ConfigureAwait(false);
+                // Only the container end(s) of the move are re-read; a player end is the player
+                // session's own business (ApplyExternalTransferAsync below refreshes it).
+                if (first.ContainerId is { } firstId) await RefreshContainerAsync(firstId, cancellationToken).ConfigureAwait(false);
+                if (second.ContainerId is { } secondId && !string.Equals(secondId, first.ContainerId, StringComparison.Ordinal))
+                    await RefreshContainerAsync(secondId, cancellationToken).ConfigureAwait(false);
             }
             if (player is null) await Apply().ConfigureAwait(false);
             else await player.ApplyExternalTransferAsync(Apply, cancellationToken).ConfigureAwait(false);
@@ -199,10 +279,12 @@ public sealed class LiveContainersSession : IWorldContainersSession
     /// container always has exactly one inventory and carries its real world position
     /// (<see cref="WorldContainerSource.Live"/> is the only source that does).</summary>
     private static WorldContainer[] ToWorldContainers(IReadOnlyList<LiveContainer> containers)
-        => containers.Select(c => new WorldContainer(
-            c.Id, WorldContainerSource.Live, c.Label,
-            [new WorldInventory(c.Slots.Select(ToSlot).ToArray())],
-            c.X, c.Y, c.Z, c.Health, c.MaxHealth, c.Name)).ToArray();
+        => containers.Select(ToWorldContainer).ToArray();
+
+    private static WorldContainer ToWorldContainer(LiveContainer c) => new(
+        c.Id, WorldContainerSource.Live, c.Label,
+        [new WorldInventory(c.Slots.Select(ToSlot).ToArray())],
+        c.X, c.Y, c.Z, c.Health, c.MaxHealth, c.Name);
 
     private static InventoryItemSlot ToSlot(LiveContainerSlot slot) => new(
         slot.SlotIndex, slot.IsEmpty ? null : slot.ItemId, slot.Stack, slot.Durability, slot.MaxDurability,

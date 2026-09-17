@@ -84,6 +84,9 @@ public sealed class LiveContainersSessionTests
         var raised = 0;
         session.Changed += () => raised++;
 
+        // Round 91: the periodic tick (this zero-argument overload) re-reads only the container
+        // the tab has open, so the tab tells the session which one that is.
+        session.WatchedContainerId = "c1";
         await session.RefreshAsync();
 
         var refreshed = Assert.Single(session.Containers);
@@ -114,6 +117,140 @@ public sealed class LiveContainersSessionTests
         Assert.Equal(1, raised);
         Assert.Equal("Item_Torch", session.Containers[0].Inventories[0].Slots[0].ItemId);
         Assert.Null(session.Status);
+    }
+
+    // ---- round 91: writes and the periodic tick re-read ONE container, never the world ----
+
+    [Fact]
+    public async Task Setting_a_slot_re_reads_only_that_container_not_the_world()
+    {
+        var channel = new FakeContainersChannel();
+        channel.SetContainer("c1", "Locker", 0, 0, 0);
+        channel.SetContainer("c2", "Crate", 5, 5, 5);
+        channel.SetSlot("c1", 0, isEmpty: true);
+        channel.SetSlot("c2", 0, "Item_Rope", 1);
+        var session = await LiveContainersSession.ConnectAsync(new LiveContainersChannel(channel));
+        Assert.Equal(1, channel.ListRequests);
+
+        var slot = new InventoryItemSlot(0, "Item_Torch", 1, 0, 0, 0, 0, null, false, null, null);
+        Assert.True(await session.TrySetContainerSlotAsync(AbioticEditor.Core.WorldSaves.WorldContainerSource.Live, "c1", 0, 0, slot));
+
+        Assert.Equal(1, channel.ListRequests);
+        Assert.Equal(1, channel.GetRequests);
+        Assert.Equal("Item_Torch", session.Containers[0].Inventories[0].Slots[0].ItemId);
+        // The other container is untouched and still in its place.
+        Assert.Equal("c2", session.Containers[1].Id);
+        Assert.Equal("Item_Rope", session.Containers[1].Inventories[0].Slots[0].ItemId);
+    }
+
+    [Fact]
+    public async Task Transfer_re_reads_both_container_ends_only()
+    {
+        var channel = new FakeContainersChannel();
+        channel.SetContainer("first", "Crate", 0, 0, 0);
+        channel.SetContainer("second", "Crate", 0, 0, 0);
+        channel.SetContainer("third", "Crate", 0, 0, 0);
+        channel.SetSlot("first", 0, "weapon", 1);
+        channel.SetSlot("second", 0, isEmpty: true);
+        var session = await LiveContainersSession.ConnectAsync(new(channel));
+        await session.TransferAsync(new(0, ContainerId: "first"), new(0, ContainerId: "second"));
+        Assert.Equal(1, channel.ListRequests);
+        Assert.Equal(2, channel.GetRequests);
+        Assert.True(session.Containers[0].Inventories[0].Slots[0].IsEmpty);
+        Assert.Equal("weapon", session.Containers[1].Inventories[0].Slots[0].ItemId);
+    }
+
+    [Fact]
+    public async Task The_periodic_tick_re_reads_the_watched_container_and_nothing_when_none_is_open()
+    {
+        var channel = new FakeContainersChannel();
+        channel.SetContainer("c1", "Locker", 0, 0, 0);
+        channel.SetHealth("c1", 600, 600);
+        channel.SetSlot("c1", 0, isEmpty: true);
+        var session = await LiveContainersSession.ConnectAsync(new LiveContainersChannel(channel));
+        var raised = 0;
+        session.Changed += () => raised++;
+
+        // Nothing open: the tick costs the game nothing at all.
+        await session.RefreshAsync();
+        Assert.Equal(0, channel.GetRequests);
+        Assert.Equal(1, channel.ListRequests);
+        Assert.Equal(0, raised);
+
+        // The player opens the container, then the game damages it and someone drops an item in.
+        session.WatchedContainerId = "c1";
+        channel.SetHealth("c1", 150, 600);
+        channel.SetSlot("c1", 0, "Item_Bandage", 2);
+        await session.RefreshAsync();
+
+        Assert.Equal(1, channel.GetRequests);
+        Assert.Equal(1, channel.ListRequests);
+        Assert.Equal(1, raised);
+        Assert.Equal(150, session.Containers[0].Health);
+        Assert.Equal("Item_Bandage", session.Containers[0].Inventories[0].Slots[0].ItemId);
+    }
+
+    [Fact]
+    public async Task The_explicit_refresh_is_still_the_full_world_scan()
+    {
+        var channel = new FakeContainersChannel();
+        channel.SetContainer("c1", "Locker", 0, 0, 0);
+        var session = await LiveContainersSession.ConnectAsync(new LiveContainersChannel(channel));
+        channel.SetContainer("c2", "Crate", 1, 1, 1);
+        await session.RefreshAsync(CancellationToken.None);
+        Assert.Equal(2, channel.ListRequests);
+        Assert.Equal(2, session.Containers.Count);
+    }
+
+    [Fact]
+    public async Task Refreshing_one_void_chest_mirrors_its_contents_and_name_onto_every_void_chest()
+    {
+        var channel = new FakeContainersChannel();
+        channel.SetContainer("void1", "Deployed_StorageCrate_Void_C", 0, 0, 0);
+        channel.SetContainer("void2", "Deployed_StorageCrate_Void_C", 9, 9, 9);
+        channel.SetContainer("plain", "Deployed_StorageCrate_Makeshift_C", 1, 1, 1);
+        channel.SetSlot("void1", 0, isEmpty: true);
+        channel.SetSlot("void2", 0, isEmpty: true);
+        channel.SetSlot("plain", 0, isEmpty: true);
+        var session = await LiveContainersSession.ConnectAsync(new LiveContainersChannel(channel));
+
+        var slot = new InventoryItemSlot(0, "Item_Carrot", 3, 0, 0, 0, 0, null, false, null, null);
+        Assert.True(await session.TrySetContainerSlotAsync(AbioticEditor.Core.WorldSaves.WorldContainerSource.Live, "void1", 0, 0, slot));
+        Assert.True(await session.TryRenameContainerAsync(AbioticEditor.Core.WorldSaves.WorldContainerSource.Live, "void1", "Pool"));
+
+        Assert.Equal(1, channel.ListRequests);
+        foreach (var id in new[] { "void1", "void2" })
+        {
+            var chest = session.Containers.Single(c => c.Id == id);
+            Assert.Equal("Item_Carrot", chest.Inventories[0].Slots[0].ItemId);
+            Assert.Equal("Pool", chest.Name);
+        }
+        var ordinary = session.Containers.Single(c => c.Id == "plain");
+        Assert.True(ordinary.Inventories[0].Slots[0].IsEmpty);
+        Assert.Null(ordinary.Name);
+    }
+
+    [Fact]
+    public async Task Refreshing_a_container_the_game_no_longer_has_drops_it_and_stops_watching_it()
+    {
+        var channel = new FakeContainersChannel();
+        channel.SetContainer("c1", "Locker", 0, 0, 0);
+        channel.SetContainer("c2", "Crate", 1, 1, 1);
+        var session = await LiveContainersSession.ConnectAsync(new LiveContainersChannel(channel));
+        session.WatchedContainerId = "c1";
+        var raised = 0;
+        session.Changed += () => raised++;
+
+        channel.RemoveContainer("c1");
+        await session.RefreshAsync();
+
+        Assert.Equal(1, raised);
+        Assert.Null(session.WatchedContainerId);
+        Assert.Equal("c2", Assert.Single(session.Containers).Id);
+        // A second tick with nothing watched is free.
+        await session.RefreshAsync();
+        Assert.Equal(1, channel.GetRequests);
+        Assert.Equal(1, raised);
     }
 
     [Fact]
@@ -184,35 +321,71 @@ public sealed class LiveContainersSessionTests
             var payloadElement = payload is null ? default : JsonSerializer.SerializeToElement(payload, JsonOptions);
             object? result = command switch
             {
-                "containers.list" => new
-                {
-                    containers = _containers.Select(kv => new
-                    {
-                        id = kv.Key,
-                        label = kv.Value.Label,
-                        x = kv.Value.X,
-                        y = kv.Value.Y,
-                        z = kv.Value.Z,
-                        slots = _slots.Where(s => s.Key.ContainerId == kv.Key).Select(s => new
-                        {
-                            slotIndex = s.Key.SlotIndex,
-                            itemId = s.Value.ItemId,
-                            isEmpty = s.Value.IsEmpty,
-                            stack = s.Value.Stack,
-                            durability = s.Value.Durability,
-                            maxDurability = s.Value.MaxDurability,
-                            ammoInMagazine = s.Value.Ammo,
-                            details = s.Value.Details,
-                        }).ToList(),
-                    }).ToList(),
-                    isHost = true,
-                },
+                "containers.list" => List(),
+                "containers.get" => GetOne(payloadElement),
                 "containers.set" or "containers.setfull" or "containers.setcomplete" => ApplySet(command, payloadElement),
+                "containers.rename" => ApplyRename(payloadElement),
                 "inventory.transfer" => ApplyTransfer(payloadElement),
                 _ => throw new LiveAgentException($"unknown command '{command}' in fake channel"),
             };
             var element = JsonSerializer.SerializeToElement(result, JsonOptions);
             return Task.FromResult(element.Deserialize<TResponse>(JsonOptions)!);
+        }
+
+        public int ListRequests { get; private set; }
+        public int GetRequests { get; private set; }
+        private readonly Dictionary<string, string> _names = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, (double Health, double MaxHealth)> _health = new(StringComparer.Ordinal);
+
+        public void SetHealth(string id, double health, double maxHealth) => _health[id] = (health, maxHealth);
+        public void RemoveContainer(string id) => _containers.Remove(id);
+
+        private object Row(string id)
+        {
+            var value = _containers[id];
+            return new
+            {
+                id,
+                label = value.Label,
+                x = value.X,
+                y = value.Y,
+                z = value.Z,
+                slots = _slots.Where(s => s.Key.ContainerId == id).Select(s => new
+                {
+                    slotIndex = s.Key.SlotIndex,
+                    itemId = s.Value.ItemId,
+                    isEmpty = s.Value.IsEmpty,
+                    stack = s.Value.Stack,
+                    durability = s.Value.Durability,
+                    maxDurability = s.Value.MaxDurability,
+                    ammoInMagazine = s.Value.Ammo,
+                    details = s.Value.Details,
+                }).ToList(),
+                health = _health.TryGetValue(id, out var h) ? h.Health : (double?)null,
+                maxHealth = _health.TryGetValue(id, out var m) ? m.MaxHealth : (double?)null,
+                name = _names.TryGetValue(id, out var n) ? n : null,
+            };
+        }
+
+        private object GetOne(JsonElement payload)
+        {
+            GetRequests++;
+            var id = payload.GetProperty("id").GetString()!;
+            if (!_containers.ContainsKey(id)) throw new LiveAgentException("container not found (it may have been unloaded or destroyed)");
+            return new { container = Row(id), isHost = true };
+        }
+
+        private object? ApplyRename(JsonElement payload)
+        {
+            WriteRequests++;
+            var id = payload.GetProperty("id").GetString()!;
+            var name = payload.GetProperty("name").GetString() ?? "";
+            // The mod fans a Void Chest's name out to every Void Chest (see main.lua).
+            var targets = _containers[id].Label.Contains("StorageCrate_Void", StringComparison.OrdinalIgnoreCase)
+                ? _containers.Where(c => c.Value.Label.Contains("StorageCrate_Void", StringComparison.OrdinalIgnoreCase)).Select(c => c.Key).ToList()
+                : [id];
+            foreach (var target in targets) _names[target] = name;
+            return null;
         }
 
         private object? ApplyTransfer(JsonElement payload)
@@ -251,6 +424,12 @@ public sealed class LiveContainersSessionTests
                     edit.TryGetProperty("details", out var details) ? details.Deserialize<LiveItemDetails>(JsonOptions) : null);
             }
             return null;
+        }
+
+        private object List()
+        {
+            ListRequests++;
+            return new { containers = _containers.Keys.Select(Row).ToList(), isHost = true };
         }
 
         private sealed record SlotState(string ItemId, bool IsEmpty, int Stack, double Durability, double MaxDurability,
