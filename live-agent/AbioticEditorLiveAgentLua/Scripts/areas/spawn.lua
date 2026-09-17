@@ -74,17 +74,24 @@ return function(ctx)
                     return vector
                 end)
                 if not okVector then target = { X = payload.teleport.x, Y = payload.teleport.y, Z = payload.teleport.z } end
-                -- K2_TeleportTo is the native AActor teleport the reference mod uses for any actor
-                -- (BaseUtils.TeleportActorToActor) and the one this protocol's vehicle move already
-                -- proved live. The blueprint TeleportPlayer takes five parameters on the current
-                -- game build (DestLocation, DestRotation, Force, SkipAdjustment, ExitChairs) and
-                -- UE4SS refused the reference mod's four-argument form, so it is only the fallback.
-                local okCall, success = pcall(function() return player:K2_TeleportTo(target, rotation) end)
-                if not okCall or not success then
-                    local okBp, bpSuccess = pcall(function() return player:TeleportPlayer(target, rotation, true, false, true) end)
-                    if not okBp then
-                        error("teleport failed: " .. tostring(success) .. " / " .. tostring(bpSuccess))
-                    elseif not bpSuccess then
+                -- TeleportPlayer is the reference mod's OWN player-teleport call (see the header
+                -- comment) and now the primary path again: it takes five parameters on the current
+                -- game build (DestLocation, DestRotation, Force, SkipAdjustment, ExitChairs), which
+                -- is what broke the reference mod's original four-argument form - not the function
+                -- itself. Unlike the generic AActor K2_TeleportTo (proven live for vehicles, which
+                -- have no CharacterMovementComponent to desync), TeleportPlayer is the player-pawn-
+                -- specific call the game's own blueprints use, and it is the one actually built to
+                -- reset/reconcile that component - a bare K2_TeleportTo on a locally-controlled
+                -- character can report success while movement prediction quietly snaps the
+                -- character back next tick, which would look exactly like "teleport does nothing".
+                -- K2_TeleportTo stays as the fallback for a game build where TeleportPlayer's own
+                -- shape changes again.
+                local okBp, bpSuccess = pcall(function() return player:TeleportPlayer(target, rotation, true, false, true) end)
+                if not okBp or not bpSuccess then
+                    local okCall, success = pcall(function() return player:K2_TeleportTo(target, rotation) end)
+                    if not okCall then
+                        error("teleport failed: " .. tostring(bpSuccess) .. " / " .. tostring(success))
+                    elseif not success then
                         error("teleport failed (the destination may be blocked, or outside the loaded world)")
                     end
                 end

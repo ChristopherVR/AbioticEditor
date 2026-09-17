@@ -120,6 +120,26 @@ return function(H)
     H.eq(hotbarSlot0.stack, 5, "scratch slot carried the stack")
     H.fails(H.dispatch("dropped.add", {}), "itemId is required", "dropped.add needs an itemId")
 
+    -- ---------- inventory: drop an EXISTING slot (round 79, PlayerInventoryTab's DROP ITEM) ----------
+    -- Field name is "slotIndex" throughout, matching the real wire shape LiveInventoryChannel.
+    -- DropSlotAsync's DropWire record sends (camelCased by System.Text.Json) - NOT "index". An
+    -- earlier version of both this handler AND this test used "index" on both sides, so the
+    -- mismatch against the REAL .NET-side field name never showed up here; every live DROP ITEM
+    -- click failed with "index is required" regardless.
+    droppedInv, droppedIndex = nil, nil
+    H.ok(H.dispatch("inventory.set", { edits = {
+        { kind = "backpack", slotIndex = 0, itemId = "scrap_metal", stack = 3 },
+    } }), "seed backpack slot 0 for the drop test")
+    H.ok(H.dispatch("inventory.drop", { kind = "backpack", slotIndex = 0 }), "inventory.drop")
+    local backpackInv = H.field(pawn, "CharacterInventory")
+    H.check(droppedInv == backpackInv, "existing-slot drop targets the named inventory directly")
+    H.eq(droppedIndex, 0, "existing-slot drop used the exact slot named, no scratch-slot routing")
+    H.fails(H.dispatch("inventory.drop", { kind = "backpack", slotIndex = 1 }), "already empty", "dropping an empty slot is rejected")
+    H.fails(H.dispatch("inventory.drop", { slotIndex = 0 }), "kind is required", "inventory.drop needs a kind")
+    H.fails(H.dispatch("inventory.drop", { kind = "backpack" }), "slotIndex is required", "inventory.drop needs a slotIndex")
+    H.fails(H.dispatch("inventory.drop", { kind = "backpack", index = 0 }), "slotIndex is required",
+        "the old wrong field name (\"index\") is not silently accepted")
+
     -- ---------- containers: sort ----------
     local sortableInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {
         { ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B = { RowName = H.fname("scrap_metal") },
@@ -132,6 +152,32 @@ return function(H)
     H.ok(H.dispatch("containers.set", { id = sortContainerId, edits = {}, sort = true }), "containers.set sort")
     H.eq(H.calls(sortableInv, "SortInventory"), 1, "SortInventory called")
     H.eq(H.calls(sortableInv, "OnRep_CurrentInventory"), 1, "container OnRep pushed after sort")
+
+    -- ---------- containers: one corrupt slot does not fail the whole list (round 79) ----------
+    -- slotRow (and readItemDetails underneath it) index several ItemDataTable/ChangeableData
+    -- fields directly, unlike slotRowName/containerInventory/actorLocation next to them which are
+    -- all pcall-guarded - one slot in a bad state (a container mid-destruction, a modded/DLC
+    -- deployable with a different shape) used to raise an uncaught error that failed the ENTIRE
+    -- containers.list request, which the editor could only show as a generic "not available",
+    -- indistinguishable from no world being loaded. See the per-slot pcall guard added around
+    -- slotRow in this handler.
+    local corruptSlot = setmetatable({}, { __index = function() error("simulated corrupt slot") end })
+    local mixedInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {
+        corruptSlot,
+        { ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B = { RowName = H.fname("bandage") },
+          ChangeableData_12_2B90E1F74F648135579D39A49F5A2313 = { CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 1,
+          CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = 0, MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = 0 } },
+    } }, { OnRep_CurrentInventory = function() end })
+    H.world.add(H.object("Deployed_Container_ParentBP_C",
+        { ContainerInventory = mixedInv }, { K2_GetActorLocation = function() return H.vector(3, 3, 3) end }))
+    local afterCorrupt = H.ok(H.dispatch("containers.list"), "containers.list survives a corrupt slot instead of failing outright")
+    local sawGoodSlot = false
+    for _, entry in ipairs(afterCorrupt.containers) do
+        for _, slot in ipairs(entry.slots) do
+            if slot.itemId == "bandage" then sawGoodSlot = true end
+        end
+    end
+    H.check(sawGoodSlot, "the sibling well-formed slot next to the corrupt one still comes back")
 
     -- ---------- narrative NPCs ----------
     local narrative = H.world.add(H.object("NarrativeNPC_ParentBP_C", { IsCorpse = false, NarrativeState = 1 }, {
@@ -150,11 +196,17 @@ return function(H)
     H.eq(H.field(narrative, "NarrativeState"), 2, "narrative state written")
 
     -- ---------- a joined client cannot write any of this new world state ----------
-    H.clientSession()
+    local clientPawn = H.clientSession()
     H.fails(H.dispatch("pets.set", { id = "x", isDead = true }), "only the host", "client cannot edit pets")
     H.fails(H.dispatch("vehicles.set", { id = "x", wrecked = true }), "only the host", "client cannot wreck vehicles")
     H.fails(H.dispatch("bases.set", { id = "x", upgradeRow = "TougherBench" }), "only the host", "client cannot install upgrades")
     H.fails(H.dispatch("dropped.add", { itemId = "scrap_metal" }), "only the host", "client cannot spawn dropped items")
+    -- Not host-gated (matching inventory.set - see main.lua's own comment on that handler): a
+    -- client editing their own connected pawn's own inventory has authority over it.
+    rawget(clientPawn, "__methods").Request_DropInventorySlot = function() return true end
+    H.ok(H.dispatch("inventory.set", { edits = { { kind = "backpack", slotIndex = 0, itemId = "scrap_metal", stack = 1 } } }),
+        "seed the client's own backpack slot 0")
+    H.ok(H.dispatch("inventory.drop", { kind = "backpack", slotIndex = 0 }), "a client can still drop from their own inventory")
     H.fails(H.dispatch("containers.set", { id = "x", edits = {}, sort = true }), "only the host", "client cannot sort containers")
     H.fails(H.dispatch("narrativenpcs.set", { npcs = {} }), "only the host", "client cannot edit narrative NPCs")
 end

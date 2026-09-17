@@ -61,9 +61,10 @@ public sealed class WorldLiveAreaParityContractTests
         // Traders got a dedicated tab instead (documented deviation - see LiveTradersTab.razor's
         // own header comment for why WorldTradersTab could not be reused safely here).
         Assert.Contains("<LiveTradersTab Session=\"_traders\"", source, StringComparison.Ordinal);
-        // Entitlements and raw have no live equivalent at all.
+        // Entitlements has no live equivalent at all. Raw JSON has none either, but unlike
+        // entitlements it isn't offered as a dead placeholder tab live - see LiveConnect.razor's
+        // own comment on why that tab is omitted entirely there.
         Assert.Contains("Live_EntitlementsOfflineOnly", source, StringComparison.Ordinal);
-        Assert.Contains("Live_RawOfflineOnly", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -75,7 +76,7 @@ public sealed class WorldLiveAreaParityContractTests
         foreach (var key in new[]
         {
             "LiveTraders_Title", "LiveTraders_Intro", "LiveTraders_NotHostWarning", "LiveTraders_Unlock",
-            "LiveContainment_OfflineWorldUnlocksNote", "Live_EntitlementsOfflineOnly", "Live_RawOfflineOnly",
+            "LiveContainment_OfflineWorldUnlocksNote", "Live_EntitlementsOfflineOnly",
             "Live_TabPortals", "Live_TabEntitlements",
         })
         {

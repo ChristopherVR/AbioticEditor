@@ -46,4 +46,13 @@ public interface IPlayerCompanionsSession
     /// <c>LivePlayerCompanionsSession.RemovePetAsync</c>'s own remarks for how, and for the one
     /// pet family that can't be matched yet.</summary>
     Task RemovePetAsync(CarriedPetEdit pet, CancellationToken cancellationToken = default);
+
+    /// <summary>Live only: re-reads every carried pet from the running game. A no-op default so
+    /// the file session - which never renders the REFRESH button that calls this - does not need
+    /// to implement it. <see cref="LivePlayerEditorSession"/> (the facade <c>PlayerEditor.razor</c>
+    /// actually binds <c>Session</c> to live) must delegate this to its own
+    /// <c>CompanionsSession</c> the same way <see cref="IPlayerSpawnSession.TeleportAsync"/> now
+    /// does - see that member's remarks for why a concrete-type check on <c>Session</c> silently
+    /// no-ops through this facade instead.</summary>
+    Task RefreshAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 }

@@ -234,7 +234,7 @@
                     <span class="chip chip--orange">@PointsText(detail.PointCost)</span>
                 }
                 <span class="detail-label">@L.Resource("PlayerCharacter_Description")</span>
-                <p class="detail-value">@((hasDetail ? detail!.Description : null) ?? L.Resource("PlayerUi_TraitDescriptionUnavailable"))</p>
+                <p class="detail-value">@DescriptionFor(hasDetail ? detail : null)</p>
             </div>
         }
     };
@@ -250,10 +250,30 @@
     /// so it says exactly that rather than falling back to the stored name.</summary>
     private string ChipTooltip(string id)
     {
-        if (!Details.TryGetValue(id, out var detail) || detail.Description is not { Length: > 0 } description)
-            return L.Resource("PlayerUi_TraitDescriptionUnavailable");
+        Details.TryGetValue(id, out var detail);
+        if (detail?.Description is not { Length: > 0 } description) return DescriptionFor(detail);
         return detail.PointCost != 0 ? $"{description}  [{PointsText(detail.PointCost)}]" : description;
     }
+
+    /// <summary>
+    /// The description shown for a trait with no text of its own: a small, curated set of traits
+    /// (Agoraphobic, Fumbler, Claustrophobic, ...) genuinely have no description or character-creator
+    /// entry in the game's own data, and most of them (7 of the 9) also carry a placeholder
+    /// "icon_missing" icon rather than a real one - they were cut/disabled
+    /// (<see cref="TraitDetail.AvailableOnStart"/> is false for every one of them, confirmed against
+    /// the game's CDT_AllTraits table - see docs/reference/research/research-backpack-traits.md
+    /// TASK 2; Clumsy and Hemophobic are the two exceptions that do ship a real icon). Naming that
+    /// plainly reads very differently from the generic "no description is available", which looks
+    /// like an editor bug rather than the game's own missing data. <see cref="BuildRows"/> already
+    /// does this for the add-trait browser; this is the same fallback for the selected-trait detail
+    /// panel and the chip's hover tooltip.
+    /// </summary>
+    private string DescriptionFor(TraitDetail? detail) => detail switch
+    {
+        { Description.Length: > 0 } d => d.Description!,
+        { AvailableOnStart: false } => L.Resource("PlayerEditor_CutTraitDescription"),
+        _ => L.Resource("PlayerUi_TraitDescriptionUnavailable"),
+    };
 
     /// <summary>"+2 pts" / "-1 pts": the wording and the sign both come from the catalogue.</summary>
     private string PointsText(int points) => L.Resource("PlayerCharacter_TraitPointsFormat", points);

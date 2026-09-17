@@ -255,6 +255,27 @@ public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTrans
         finally { Interlocked.Decrement(ref _pendingOperations); }
     }
 
+    /// <summary>True: a live session has no attached world save, so the file editor's own DROP
+    /// ITEM path (which needs one) is never available here - see <see cref="TryDropSlotLiveAsync"/>.</summary>
+    public bool SupportsLiveDrop => true;
+
+    /// <summary>Drops the item already in <paramref name="index"/> straight onto the ground in the
+    /// running game (<c>inventory.drop</c>) and re-reads the slot, which the game has since
+    /// emptied.</summary>
+    public async ValueTask<bool> TryDropSlotLiveAsync(PlayerInventoryArea area, int index, CancellationToken cancellationToken = default)
+    {
+        if (FindSlot(area, index) is not { IsEmpty: false }) return false;
+        Interlocked.Increment(ref _pendingOperations);
+        try
+        {
+            await _channel.DropSlotAsync(WireKind(area), index, _playerId, cancellationToken).ConfigureAwait(false);
+            Status = "Dropped on the ground near the player - this took effect in the running game immediately.";
+            await RefreshAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        finally { Interlocked.Decrement(ref _pendingOperations); }
+    }
+
     /// <summary>Re-reads every slot from the running game. The first call (from
     /// <see cref="ConnectAsync"/>) builds the four lists; every later call updates the SAME
     /// <see cref="PlayerInventorySlotEdit"/> objects in place instead of replacing the lists, so

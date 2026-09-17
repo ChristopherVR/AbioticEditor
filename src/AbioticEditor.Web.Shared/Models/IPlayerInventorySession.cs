@@ -101,4 +101,23 @@ public interface IPlayerInventorySession
     ValueTask SortInventorySlotsAsync(PlayerInventoryArea area, CancellationToken cancellationToken = default);
 
     ValueTask<bool> TryApplyItemUpgradeAsync(PlayerInventoryArea area, int index, bool downgrade, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// True when this session can drop an already-occupied slot straight onto the ground in the
+    /// running game via <see cref="TryDropSlotLiveAsync"/>, with no separate world save required -
+    /// the live counterpart to <c>InventoryTransferService.TryDropPlayerSlot</c>, which needs a
+    /// file-backed world session instead (there is never one attached to a live session - see
+    /// <see cref="Respawn"/>'s remarks). False for the file session, whose own DROP ITEM affordance
+    /// already goes through that world session.
+    /// </summary>
+    bool SupportsLiveDrop => false;
+
+    /// <summary>
+    /// Drops the item already in <paramref name="index"/> onto the ground in the running game
+    /// immediately (the game decides exactly where, the same as every other live drop) and clears
+    /// the slot. Only meaningful when <see cref="SupportsLiveDrop"/> is true; the file session
+    /// never overrides this default no-op.
+    /// </summary>
+    ValueTask<bool> TryDropSlotLiveAsync(PlayerInventoryArea area, int index, CancellationToken cancellationToken = default)
+        => ValueTask.FromResult(false);
 }

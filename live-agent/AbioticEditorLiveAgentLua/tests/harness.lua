@@ -360,6 +360,10 @@ function H.hostSession()
         Request_ModifyMoney = function() end,
         K2_GetActorLocation = function() return H.vector(100, 200, 300) end,
         K2_GetActorRotation = function() return H.rotator(0, 90, 0) end,
+        -- TeleportPlayer is the primary teleport call (areas/spawn.lua) - K2_TeleportTo is only
+        -- the fallback, but both are mocked identically so a test can prove whichever path a
+        -- game build actually takes still moves the pawn.
+        TeleportPlayer = function(self, location) rawget(self, "__methods").K2_GetActorLocation = function() return { X = location.X, Y = location.Y, Z = location.Z } end return true end,
         K2_TeleportTo = function(self, location) rawget(self, "__methods").K2_GetActorLocation = function() return { X = location.X, Y = location.Y, Z = location.Z } end return true end,
     })
     local state = H.object("Abiotic_PlayerState_C", {

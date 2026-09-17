@@ -238,20 +238,27 @@
         Session.Respawn.Z = position.Z;
     }
 
-    private Task TeleportHereAsync() => RunLiveActionAsync(live => live.TeleportAsync());
-    private Task ClaimRespawnTerminalAsync() => RunLiveActionAsync(live => live.ClaimRespawnTerminalAsync());
+    private Task TeleportHereAsync() => RunLiveActionAsync(session => session.TeleportAsync());
+    private Task ClaimRespawnTerminalAsync() => RunLiveActionAsync(session => session.ClaimRespawnTerminalAsync());
 
-    /// <summary>Runs one explicit live action (teleport / claim respawn point) - both are no-ops
-    /// when <see cref="Session"/> is not actually a live session (defensive; the buttons that call
-    /// these are only shown when <c>Session.SupportsLiveActions</c> is true).</summary>
-    private async Task RunLiveActionAsync(Func<LivePlayerSpawnSession, Task> action)
+    /// <summary>
+    /// Runs one explicit live action (teleport / claim respawn point) through the shared
+    /// <see cref="IPlayerSpawnSession"/> boundary, not a concrete-type cast: live editing's
+    /// <c>Session</c> is actually <c>LivePlayerEditorSession</c>, a facade wrapping the real
+    /// <c>LivePlayerSpawnSession</c> (see the LiveConnect page's own doc comment on why), so a
+    /// <c>Session is LivePlayerSpawnSession</c> check here was always false and silently no-opped
+    /// every click - TELEPORT ME HERE and SET AS MY RESPAWN POINT never actually reached the game.
+    /// A no-op when <see cref="Session"/> cannot do this (defensive; the buttons that call this are
+    /// only shown when <c>Session.SupportsLiveActions</c> is true).
+    /// </summary>
+    private async Task RunLiveActionAsync(Func<IPlayerSpawnSession, Task> action)
     {
-        if (Session is not LivePlayerSpawnSession live) return;
+        if (!Session.SupportsLiveActions) return;
         _liveBusy = true;
         _liveError = null;
         try
         {
-            await action(live);
+            await action(Session);
         }
         catch (Exception exception) when (exception is AbioticEditor.Core.LiveEditing.LiveAgentException
             or System.Net.Sockets.SocketException or IOException or OperationCanceledException)

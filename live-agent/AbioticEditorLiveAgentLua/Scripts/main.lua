@@ -226,7 +226,7 @@ handlers["vitals.get"] = function(payload, respond)
         if not hasLoadedWorldState(getMyPlayer()) then error("no world loaded") end
         local myPlayer = resolvePlayer(payload)
         if not myPlayer then error("player not found") end
-        return {
+        local result = {
             hunger = myPlayer.CurrentHunger,
             thirst = myPlayer.CurrentThirst,
             sanity = myPlayer.CurrentSanity,
@@ -240,6 +240,18 @@ handlers["vitals.get"] = function(payload, respond)
             leftLeg = myPlayer.CurrentHealth_LeftLeg,
             rightLeg = myPlayer.CurrentHealth_RightLeg,
         }
+        -- A transient nil read (the pawn's health component not fully replicated/initialized
+        -- yet, e.g. right after a world finishes loading) must fail loudly rather than silently
+        -- go missing: Lua drops a table key entirely when its value is nil, and the .NET side's
+        -- VitalsWire record has no default for these fields, so a missing key used to silently
+        -- deserialize to 0.0 - "body health shows as 0 even though we're full" was this exact
+        -- shape (a genuinely full Torso momentarily read as nil, not a real 0).
+        for key, value in pairs(result) do
+            if type(value) ~= "number" then
+                error("could not read " .. key .. " right now (try again)")
+            end
+        end
+        return result
     end, respond)
 end
 
@@ -457,19 +469,26 @@ handlers["npcs.list"] = function(_, respond)
         local npcs = allNpcs()
         local result = { __forceArray = true }
         for _, npc in ipairs(npcs) do
-            if npc:IsValid() then
+            -- pcall per NPC (matching containers.list's own per-container guard, see that
+            -- handler's comment): this walks every wildlife/monster actor loaded in the world, and
+            -- IsDead/IsDisabled/Invincible/Faction below are read directly with no guard - one
+            -- actor in an unusual state (mid-death, mid-despawn, a modded/DLC creature) used to
+            -- raise an uncaught Lua error that failed this ENTIRE request, which the editor could
+            -- only show as "not available" for the whole CREATURES tab. A bad NPC is skipped
+            -- instead now.
+            pcall(function()
+                if not npc:IsValid() then return end
                 local fullName = npcFullName(npc)
-                if fullName then
-                    table.insert(result, {
-                        id = fullName,
-                        label = npcLabel(fullName),
-                        isDead = npc.IsDead == true,
-                        isDisabled = npc.IsDisabled == true,
-                        invincible = npc.Invincible == true,
-                        faction = npc.Faction,
-                    })
-                end
-            end
+                if not fullName then return end
+                table.insert(result, {
+                    id = fullName,
+                    label = npcLabel(fullName),
+                    isDead = npc.IsDead == true,
+                    isDisabled = npc.IsDisabled == true,
+                    invincible = npc.Invincible == true,
+                    faction = npc.Faction,
+                })
+            end)
         end
         return { npcs = result, isHost = isHost() }
     end, respond)
@@ -752,18 +771,25 @@ handlers["inventory.list"] = function(payload, respond)
                     local slot = inv.CurrentInventory[i]
                     local rowName = slotRowName(slot)
                     local changeableData = slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313
+                    -- "Empty" (confirmed real, capitalized) is this game's own empty-slot
+                    -- sentinel. Accept None as well for uninitialized slots.
+                    local isEmpty = rowName == "" or rowName == "Empty" or rowName == "None"
                     table.insert(result, {
                         kind = kind,
                         slotIndex = i - 1,
                         itemId = rowName,
-                        -- "Empty" (confirmed real, capitalized) is this game's own empty-slot
-                        -- sentinel. Accept None as well for uninitialized slots.
-                        isEmpty = rowName == "" or rowName == "Empty" or rowName == "None",
+                        isEmpty = isEmpty,
                         stack = changeableData and changeableData.CurrentStack_9_D443B69044D640B0989FD8A629801A49 or 0,
                         durability = changeableData and changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 or 0,
                         maxDurability = changeableData and changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B or 0,
                         ammoInMagazine = changeableData and changeableData.CurrentAmmoInMagazine_12_D68C190F4B2FA78A4B1D57835B95C53D or 0,
-                        details = readItemDetails(changeableData, slot),
+                        -- Skipped for an empty slot: there is nothing for it to report (no tags,
+                        -- no dynamic properties), and this walks several TArrays with a native
+                        -- call per entry - real cost per slot, and most inventories/containers are
+                        -- mostly empty slots. A big base's CONTAINERS listing paying that cost on
+                        -- every empty slot in every container was the main contributor to the
+                        -- multi-second freeze (and outright timeout) reported live.
+                        details = isEmpty and nil or readItemDetails(changeableData, slot),
                     })
                 end
             end
@@ -1247,17 +1273,20 @@ end
 local function slotRow(slot, index)
     local rowName = slotRowName(slot)
     local changeableData = slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313
+    -- "Empty" is the sentinel the game writes; "None" also shows up on loot-spill bags in a
+    -- real world (confirmed live, round 75) and the file editor treats both as empty.
+    local isEmpty = rowName == "" or rowName == "Empty" or rowName == "None"
     return {
         slotIndex = index,
         itemId = rowName,
-        -- "Empty" is the sentinel the game writes; "None" also shows up on loot-spill bags in a
-        -- real world (confirmed live, round 75) and the file editor treats both as empty.
-        isEmpty = rowName == "" or rowName == "Empty" or rowName == "None",
+        isEmpty = isEmpty,
         stack = changeableData and changeableData.CurrentStack_9_D443B69044D640B0989FD8A629801A49 or 0,
         durability = changeableData and changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 or 0,
         maxDurability = changeableData and changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B or 0,
         ammoInMagazine = changeableData and changeableData.CurrentAmmoInMagazine_12_D68C190F4B2FA78A4B1D57835B95C53D or 0,
-        details = readItemDetails(changeableData, slot),
+        -- Skipped for an empty slot - see the matching comment on inventory.list's own copy of
+        -- this same shortcut for why this is the main lever on containers.list's freeze/timeout.
+        details = isEmpty and nil or readItemDetails(changeableData, slot),
     }
 end
 
@@ -1295,18 +1324,31 @@ handlers["containers.list"] = function(_, respond)
     runOnGameThread(function()
         local result = { __forceArray = true }
         for _, container in ipairs(loadedContainers()) do
-            if container:IsValid() then
+            -- pcall per container (not one pcall around the whole loop, matching the DELETE ALL
+            -- SHOWN handler's own reasoning below): this walks every placed container/bench in the
+            -- world, and slotRow/readItemDetails touch several ItemDataTable/ChangeableData fields
+            -- unguarded - one actor in an unusual state (mid-destruction, a modded/DLC deployable
+            -- with a different slot shape) used to raise an uncaught Lua error that failed this
+            -- ENTIRE request, which the editor could only show as "not available", indistinguishable
+            -- from no world being loaded at all. A skipped container simply does not appear in the
+            -- list now - the same as a genuinely unloaded/destroyed one already looks like from the
+            -- editor's side, and this handler has no per-item error channel (unlike dropped.remove's
+            -- batch result) to report one through instead.
+            pcall(function()
+                if not container:IsValid() then return end
                 local name = fullName(container)
                 local inv = containerInventory(container)
-                if name and inv and inv.CurrentInventory then
-                    local x, y, z = actorLocation(container)
-                    local slots = { __forceArray = true }
-                    for i = 1, #inv.CurrentInventory do
-                        table.insert(slots, slotRow(inv.CurrentInventory[i], i - 1))
-                    end
-                    table.insert(result, { id = name, label = classLabel(name), x = x, y = y, z = z, slots = slots })
+                if not (name and inv and inv.CurrentInventory) then return end
+                local x, y, z = actorLocation(container)
+                local slots = { __forceArray = true }
+                for i = 1, #inv.CurrentInventory do
+                    -- Same per-slot guard: one bad slot should not drop every other slot in an
+                    -- otherwise-healthy container.
+                    local slotOk, row = pcall(slotRow, inv.CurrentInventory[i], i - 1)
+                    if slotOk then table.insert(slots, row) end
                 end
-            end
+                table.insert(result, { id = name, label = classLabel(name), x = x, y = y, z = z, slots = slots })
+            end)
         end
         return { containers = result, isHost = isHost() }
     end, respond)
@@ -1384,15 +1426,25 @@ handlers["dropped.remove"] = function(payload, respond)
     runOnGameThread(function()
         if not isHost() then error("only the host can remove dropped items") end
         local ids = payload.ids or {}
+        -- ONE scan of every dropped item in the world, not one per id: findByFullName does a
+        -- fresh FindAllOf("Abiotic_Item_Dropped_C") walk on every call, and DELETE ALL SHOWN can
+        -- send dozens of ids in a single request - that used to mean dozens of full-world rescans
+        -- for one click, which on a long-played world (hundreds of loose items) was slow enough to
+        -- freeze the game and blow past the helper's own response timeout, showing up as "delete
+        -- all shown" silently doing nothing (the request never got an answer back at all, not even
+        -- a partial one).
+        local byName = {}
+        for _, obj in ipairs(findAll("Abiotic_Item_Dropped_C")) do
+            if obj:IsValid() then byName[fullName(obj)] = obj end
+        end
         local removed = 0
         for i = 1, #ids do
-            local item = findByFullName("Abiotic_Item_Dropped_C", ids[i])
+            local item = byName[ids[i]]
             if item then
-                -- pcall per item (not one pcall around the whole loop): DELETE ALL SHOWN sends
-                -- every visible item in one call, and one item raising here (already mid-pickup,
-                -- an odd blueprint override, ...) used to abort the loop early and leave every
-                -- later item in the batch undeleted with no sign why - matching a player report
-                -- that "delete all shown" looked like it silently did nothing.
+                -- pcall per item (not one pcall around the whole loop): one item raising here
+                -- (already mid-pickup, an odd blueprint override, ...) used to abort the loop early
+                -- and leave every later item in the batch undeleted with no sign why - matching a
+                -- player report that "delete all shown" looked like it silently did nothing.
                 local ok = pcall(function() item:InitDespawn() item:OnItemDespawn() end)
                 if ok then removed = removed + 1 end
             end
@@ -1451,6 +1503,37 @@ handlers["dropped.add"] = function(payload, respond)
         pcall(function() targetInv:OnRep_CurrentInventory() end)
 
         local ok, err = pcall(function() player:Request_DropInventorySlot(targetInv, targetIndex) end)
+        if not ok then error("could not drop this item on this game build: " .. tostring(err)) end
+        return nil
+    end, respond)
+end
+
+-- ===== inventory.drop: drop an item the player ALREADY has (round 79) =====
+-- The counterpart to dropped.add above for the common case: the player's INVENTORY tab has a
+-- DROP ITEM button for a slot that already holds something, so there is no need to route it
+-- through a scratch slot first - this calls the exact same Request_DropInventorySlot(Inventory,
+-- Index) RPC directly on the slot the caller names. Same not-host-gated reasoning as
+-- inventory.set (a client editing their own pawn's own inventory has authority over it).
+handlers["inventory.drop"] = function(payload, respond)
+    runOnGameThread(function()
+        -- Wire field is "slotIndex" (see LiveInventoryChannel.DropSlotAsync's DropWire record on
+        -- the .NET side, camelCased by System.Text.Json) - NOT "index". Every call used to fail
+        -- with "index is required" regardless of what was clicked, which is exactly why DROP ITEM
+        -- looked enabled but did nothing: the request always errored before it ever reached
+        -- Request_DropInventorySlot.
+        if not payload.kind then error("kind is required") end
+        if payload.slotIndex == nil then error("slotIndex is required") end
+        local player = resolvePlayer(payload)
+        if not player then error("player not found") end
+
+        local inv = inventoryComponent(player, payload.kind)
+        if not inv or not inv.CurrentInventory then error("no " .. tostring(payload.kind) .. " inventory on this pawn") end
+        local slot = inv.CurrentInventory[payload.slotIndex + 1]
+        if not slot then error("slot index out of range") end
+        local rowName = slotRowName(slot)
+        if rowName == "" or rowName == "Empty" or rowName == "None" then error("that slot is already empty") end
+
+        local ok, err = pcall(function() player:Request_DropInventorySlot(inv, payload.slotIndex) end)
         if not ok then error("could not drop this item on this game build: " .. tostring(err)) end
         return nil
     end, respond)

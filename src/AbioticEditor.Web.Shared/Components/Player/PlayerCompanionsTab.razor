@@ -311,14 +311,22 @@
         return area is { Length: > 0 } ? $"{label} - {area}" : label;
     }
 
-    /// <summary>Live only: re-reads every carried pet from the running game.</summary>
+    /// <summary>
+    /// Live only: re-reads every carried pet from the running game, through the shared
+    /// <see cref="IPlayerCompanionsSession"/> boundary rather than a concrete-type cast - live
+    /// editing's <c>Session</c> is actually <c>LivePlayerEditorSession</c>, a facade wrapping the
+    /// real <c>LivePlayerCompanionsSession</c> (see the SPAWN tab's own <c>RunLiveActionAsync</c>
+    /// for the identical bug this used to have: a
+    /// <c>Session is LivePlayerCompanionsSession</c> check here was always false through that
+    /// wrapper, so REFRESH silently did nothing).
+    /// </summary>
     private async Task RefreshAsync()
     {
-        if (Session is not LivePlayerCompanionsSession live) return;
+        if (!Session.AppliesImmediately) return;
         _refreshing = true;
         try
         {
-            await live.RefreshAsync();
+            await Session.RefreshAsync();
             _selected = null;
         }
         catch (Exception exception) when (IsLiveTransportException(exception))

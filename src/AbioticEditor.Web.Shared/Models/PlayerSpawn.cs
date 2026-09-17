@@ -45,4 +45,22 @@ public interface IPlayerSpawnSession
     void MarkChanged();
     ValueTask SaveAsync(CancellationToken cancellationToken = default);
     void Revert();
+
+    /// <summary>
+    /// Live only (<see cref="SupportsLiveActions"/>): moves the character to <see cref="Respawn"/>'s
+    /// current X/Y/Z immediately. A no-op default so the file session - which never renders the
+    /// button that calls this - does not need to implement it. <see cref="LivePlayerSpawnSession"/>
+    /// overrides this with the real teleport; <see cref="LivePlayerEditorSession"/> (the facade
+    /// <c>PlayerEditor.razor</c> actually binds <c>Session</c> to live) must ALSO delegate it to its
+    /// own <c>SpawnSession</c> - without that delegation, calling this through the facade silently
+    /// does nothing (this is exactly the shape of bug <c>IPlayerInventorySession.SupportsLiveDrop</c>
+    /// hit earlier this session: a live-only capability that only the concrete class implements is
+    /// invisible through any wrapper around it).
+    /// </summary>
+    Task TeleportAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    /// <summary>Live only: claims <see cref="Respawn"/>'s current
+    /// <see cref="PlayerRespawnEdit.TerminalGuid"/> as the respawn point immediately. Same no-op
+    /// default and same facade-delegation requirement as <see cref="TeleportAsync"/>.</summary>
+    Task ClaimRespawnTerminalAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 }

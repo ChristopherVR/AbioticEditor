@@ -129,11 +129,23 @@ public sealed class TcpLiveGameChannel : ILiveGameChannel
                 return default!;
             return result.Deserialize<TResponse>(JsonOptions)!;
         }
-        catch (Exception) when (State == LiveConnectionState.Connected)
+        catch (Exception exception) when (State == LiveConnectionState.Connected && exception is not LiveAgentException)
         {
-            // A mid-request failure (dropped socket, malformed line) leaves the connection
-            // unusable even though State still said Connected a moment ago - reflect that so
-            // the next caller sees Faulted instead of silently hanging on a dead stream.
+            // A mid-request failure (dropped socket, malformed line, a cancelled/timed-out read)
+            // leaves the connection unusable even though State still said Connected a moment ago -
+            // reflect that so the next caller sees Faulted instead of silently hanging on a dead
+            // stream. A LiveAgentException is deliberately excluded: it means the round trip itself
+            // completed fine (a well-formed response line came back, just with Ok:false, e.g. the
+            // in-game script's own handler called error()) - that proves the connection is healthy,
+            // not broken, so it must not fault the whole channel. Before this exclusion, ANY
+            // in-game handler error (a container mid-destruction, a bad row id, anything a Lua
+            // handler legitimately rejects with error()) would silently mark the entire live
+            // connection Faulted, so every later request - including the sidebar's world.info
+            // region poll - failed immediately with "Not connected to a live game" instead of its
+            // own real error, until a full reconnect. That is the most likely explanation for a
+            // world-area tab going "not available" and the sidebar's live region badge dropping out
+            // right after it, in the same session, with no actual disconnect (see the containers.list
+            // per-container pcall fix in main.lua for the specific error that used to trigger this).
             State = LiveConnectionState.Faulted;
             throw;
         }

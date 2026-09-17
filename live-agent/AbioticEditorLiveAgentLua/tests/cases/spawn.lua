@@ -1,5 +1,6 @@
--- Player spawn / position (areas/spawn.lua). Teleport goes through the native K2_TeleportTo (a
--- plain X/Y/Z table, not an FVector() constructor - there is no such UE4SS global); the
+-- Player spawn / position (areas/spawn.lua). Teleport goes through the player-specific
+-- TeleportPlayer blueprint call first, falling back to the generic native K2_TeleportTo (both take
+-- a plain X/Y/Z table, not an FVector() constructor - there is no such UE4SS global); the
 -- respawn-terminal claim writes the LOCAL controller's TerminalRespawnID (FName) regardless of
 -- which player a request names, since UEHelpers has no "get that OTHER player's controller" form.
 return function(H)
@@ -12,8 +13,8 @@ return function(H)
     H.eq(got.terminalGuid, "E57CB02C4853F46D2BB7CA80303EB6A3", "respawn terminal guid read")
     H.eq(got.isHost, true, "host authority reported")
 
-    -- spawn.set teleport: K2_TeleportTo with plain tables, not FVector()/FRotator() (neither
-    -- exists as a UE4SS global - see harness.lua's own comment on this).
+    -- spawn.set teleport: TeleportPlayer (primary) with plain tables, not FVector()/FRotator()
+    -- (neither exists as a UE4SS global - see harness.lua's own comment on this).
     H.ok(H.dispatch("spawn.set", { teleport = { x = 111, y = 222, z = 333 } }), "teleport")
     local afterTeleport = H.ok(H.dispatch("spawn.get"))
     H.eq(afterTeleport.x, 111, "x moved"); H.eq(afterTeleport.y, 222, "y moved"); H.eq(afterTeleport.z, 333, "z moved")
@@ -28,6 +29,7 @@ return function(H)
     local otherPawn = H.object("Abiotic_PlayerCharacter_C", {}, {
         K2_GetActorLocation = function() return H.vector(9, 8, 7) end,
         K2_GetActorRotation = function() return H.rotator(0, 0, 0) end,
+        TeleportPlayer = function(self, location) rawget(self, "__methods").K2_GetActorLocation = function() return { X = location.X, Y = location.Y, Z = location.Z } end return true end,
         K2_TeleportTo = function(self, location) rawget(self, "__methods").K2_GetActorLocation = function() return { X = location.X, Y = location.Y, Z = location.Z } end return true end,
     })
     local otherState = H.object("Abiotic_PlayerState_C", { PawnPrivate = otherPawn, PlayerNamePrivate = H.fstring("Guest"), UniquePlayerID = H.fstring("999") })

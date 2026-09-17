@@ -70,6 +70,14 @@ public sealed class LivePlayerEditorSession : IPlayerEditorSession
     public bool SupportsWorldIntegration => false;
     public bool SupportsLiveActions => SpawnSession?.SupportsLiveActions ?? false;
     public (double X, double Y, double Z)? LivePosition => SpawnSession?.LivePosition;
+    // Without these two, PlayerSpawnTab.razor's TELEPORT ME HERE / SET AS MY RESPAWN POINT
+    // buttons - bound to THIS facade, never directly to LivePlayerSpawnSession, see the class
+    // remarks - silently did nothing: they used to reach the real session through a
+    // `Session is LivePlayerSpawnSession` type check, which is never true for this wrapper.
+    public Task TeleportAsync(CancellationToken cancellationToken = default) =>
+        SpawnSession?.TeleportAsync(cancellationToken) ?? Task.CompletedTask;
+    public Task ClaimRespawnTerminalAsync(CancellationToken cancellationToken = default) =>
+        SpawnSession?.ClaimRespawnTerminalAsync(cancellationToken) ?? Task.CompletedTask;
 
     // ---- IPlayerCompanionsSession ----
     public IReadOnlyList<CarriedPetEdit> CarriedPets => CompanionsSession?.CarriedPets ?? [];
@@ -78,6 +86,8 @@ public sealed class LivePlayerEditorSession : IPlayerEditorSession
         CompanionsSession?.ApplyPetAsync(pet, cancellationToken) ?? Task.CompletedTask;
     public Task RemovePetAsync(CarriedPetEdit pet, CancellationToken cancellationToken = default) =>
         CompanionsSession?.RemovePetAsync(pet, cancellationToken) ?? Task.CompletedTask;
+    public Task RefreshAsync(CancellationToken cancellationToken = default) =>
+        CompanionsSession?.RefreshAsync(cancellationToken) ?? Task.CompletedTask;
 
     // ---- IPlayerInventorySession / IPlayerTransmogSession ----
     public IReadOnlyList<PlayerInventorySlotEdit> Equipment => InventorySession?.Equipment ?? [];
@@ -109,6 +119,15 @@ public sealed class LivePlayerEditorSession : IPlayerEditorSession
         InventorySession?.SortInventorySlotsAsync(area, cancellationToken) ?? ValueTask.CompletedTask;
     public ValueTask<bool> TryApplyItemUpgradeAsync(PlayerInventoryArea area, int index, bool downgrade, CancellationToken cancellationToken = default) =>
         InventorySession?.TryApplyItemUpgradeAsync(area, index, downgrade, cancellationToken) ?? ValueTask.FromResult(false);
+    // Without these two overrides, PlayerInventoryTab.razor's Session parameter (bound to THIS
+    // facade, never directly to LiveInventorySession - see the class remarks) would see the
+    // IPlayerInventorySession interface's own default members (false / no-op) instead of the real
+    // live session's, since default interface members are not delegated automatically just because
+    // InventorySession itself overrides them. That silently disabled the live DROP ITEM path this
+    // facade exists to expose.
+    public bool SupportsLiveDrop => InventorySession?.SupportsLiveDrop ?? false;
+    public ValueTask<bool> TryDropSlotLiveAsync(PlayerInventoryArea area, int index, CancellationToken cancellationToken = default) =>
+        InventorySession?.TryDropSlotLiveAsync(area, index, cancellationToken) ?? ValueTask.FromResult(false);
 
     // ---- IPlayerRecipesSession ----
     public IReadOnlyList<PlayerRecipeEdit> Recipes => RecipesSession?.Recipes ?? [];

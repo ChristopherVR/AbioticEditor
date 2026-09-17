@@ -25,7 +25,7 @@
                     <input id="skill-lv-@skill.Definition.SaveIndex" class="skill-lv" aria-label="@(skill.Name + " " + L.Resource("PlayerSkills_Lv"))" type="number" min="0" max="@SkillCatalog.MaxLevel" value="@skill.Level" @onchange="e => SetLevel(skill, e)" />
                     <button class="secondary skill-max" type="button" disabled="@skill.IsMaxed" @onclick="() => Max(skill)">@L.Resource("PlayerSkills_Max")</button>
                 </div>
-                <details class="editor-disclosure skill-details">
+                <details class="editor-disclosure skill-details" open>
                     <summary>@L.Resource("Editing_SkillDetails")</summary>
                     @if (passive is not null) { <p class="skill-passive">@passive</p> }
                 <div class="skill-xp-row">

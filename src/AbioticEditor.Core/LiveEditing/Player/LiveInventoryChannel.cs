@@ -39,12 +39,23 @@ public sealed class LiveInventoryChannel(ILiveGameChannel channel)
                 e.Kind, e.SlotIndex, e.Clear, e.ItemId, e.Stack, e.Durability, e.MaxDurability, e.Details?.InstanceMetadata?.ItemDataTable ?? ItemTableIndex.TableRefFor(e.ItemId), e.AmmoInMagazine, e.Details)).ToList(), playerId),
             cancellationToken);
 
+    /// <summary>Drops the item already sitting in one slot straight onto the ground, immediately -
+    /// exactly what pressing "drop" on that slot does in the game's own inventory UI (see
+    /// <c>inventory.drop</c> in <c>main.lua</c>, which calls the same
+    /// <c>Request_DropInventorySlot(Inventory, Index)</c> RPC <c>dropped.add</c> uses, but directly
+    /// on this already-occupied slot instead of writing a fresh item into a scratch one first).
+    /// Like every other live drop, the item lands wherever the game's own drop logic puts it, not
+    /// at a caller-chosen position.</summary>
+    public Task DropSlotAsync(string kind, int slotIndex, string? playerId = null, CancellationToken cancellationToken = default)
+        => _channel.RequestAsync<object?>("inventory.drop", new DropWire(kind, slotIndex, playerId), cancellationToken);
+
     private sealed record PlayerIdWire(string PlayerId);
     private sealed record SlotWire(string Kind, int SlotIndex, string ItemId, bool IsEmpty,
         int Stack, double Durability, double MaxDurability, int AmmoInMagazine = 0, LiveItemDetails? Details = null);
     private sealed record SetWire(IReadOnlyList<EditWire> Edits, string? PlayerId);
     private sealed record EditWire(string Kind, int SlotIndex, bool? Clear, string? ItemId,
         int? Stack, double? Durability, double? MaxDurability, string? DataTable, int? AmmoInMagazine, LiveItemDetails? Details);
+    private sealed record DropWire(string Kind, int SlotIndex, string? PlayerId);
 }
 
 /// <summary>One inventory slot, as listed by <see cref="LiveInventoryChannel.GetAsync"/>.</summary>

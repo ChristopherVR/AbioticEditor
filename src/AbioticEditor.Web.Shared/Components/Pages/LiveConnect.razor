@@ -147,7 +147,10 @@ else
                     {
                         <button role="tab" aria-selected="@(_worldTab == feature.Id)" class="@(_worldTab == feature.Id ? "selected" : null)" @onclick="() => SelectWorldTabAsync(feature.Id)">@L.Resource(feature.TitleKey)</button>
                     }
-                    <button role="tab" aria-selected="@(_worldTab == "raw")" class="@(_worldTab == "raw" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("raw")'>@L.Resource("WorldEditor_TabRawJson")</button>
+                    @* No "Advanced data" (raw JSON) tab here: unlike the file editor, live editing
+                       has no file tree to show at all, so this tab only ever rendered an "open the
+                       world's save to use it" placeholder - a tab that never does anything is
+                       worse than no tab. *@
                 }
             </nav>
             @* No extra wrapper div here, matching SaveEditorSurface.razor exactly - each world tab's
@@ -229,10 +232,6 @@ else
             else if (_worldTab == "entitlements")
             {
                 <p class="muted">@L.Resource("Live_EntitlementsOfflineOnly")</p>
-            }
-            else if (_worldTab == "raw")
-            {
-                <p class="muted">@L.Resource("Live_RawOfflineOnly")</p>
             }
             else if (_connectingTabId == _worldTab)
             {
@@ -597,7 +596,13 @@ else
                     _recipes ??= await LivePlayerRecipesSession.ConnectAsync(new LivePlayerRecipesChannel(channel), _selectedPlayerId);
                     _playerFacade.RecipesSession = _recipes;
                     break;
-                case "codex":
+                case "gatepal":
+                    // PlayerEditor's own tab strip calls this tab "gatepal" (the in-game
+                    // GATEPAL device PlayerCodexTab represents), not "codex" - the mismatched
+                    // case label here meant this switch never matched when that tab was opened,
+                    // so _codex/_playerFacade.CodexSession were never connected and the tab
+                    // always rendered empty ("Nothing matches (or game data is unavailable)"),
+                    // regardless of what was actually unlocked in the running game.
                     _codex ??= await LivePlayerCodexSession.ConnectAsync(new LivePlayerCodexChannel(channel), _selectedPlayerId);
                     _playerFacade.CodexSession = _codex;
                     break;
@@ -853,7 +858,7 @@ else
                 "spawn" => _spawn,
                 "companions" => _companions,
                 "recipes" => _recipes,
-                "codex" => _codex,
+                "gatepal" => _codex,
                 "general" or "character" => _general,
                 _ => null,
             };
@@ -882,7 +887,7 @@ else
                 case "chemistry-benches":
                     if (_care.TryGetValue(_worldTab, out var care)) yield return care;
                     break;
-                // "entitlements"/"raw" have no live session backing them - offline-only.
+                // "entitlements" has no live session backing it - offline-only.
             }
         }
     }

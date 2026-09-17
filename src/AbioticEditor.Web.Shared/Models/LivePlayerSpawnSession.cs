@@ -14,12 +14,16 @@ public sealed class LivePlayerSpawnSession : IPlayerSpawnSession
 {
     private readonly LiveSpawnChannel _channel;
     private string? _playerId;
+    // What the game last reported, so IsDirty can tell an in-progress pick (a bed, a terminal, a
+    // typed coordinate) from nothing to protect - see IsDirty's own remarks.
+    private PlayerRespawnEdit _lastKnownRespawn;
 
     private LivePlayerSpawnSession(LiveSpawnChannel channel, string? playerId)
     {
         _channel = channel;
         _playerId = playerId;
         Respawn = new PlayerRespawnEdit(0, 0, 0, null, null);
+        _lastKnownRespawn = Respawn.Clone();
     }
 
     public static async Task<LivePlayerSpawnSession> ConnectAsync(
@@ -37,9 +41,17 @@ public sealed class LivePlayerSpawnSession : IPlayerSpawnSession
     public bool SupportsLiveActions => true;
     public (double X, double Y, double Z)? LivePosition { get; private set; }
 
-    /// <summary>Always false: nothing here is ever "unsaved" - every field the tab shows was
-    /// either just read from the game or is about to be sent by an explicit action.</summary>
-    public bool IsDirty => false;
+    /// <summary>
+    /// True while <see cref="Respawn"/> differs from what the game last reported - a bed, region
+    /// or terminal pick, or a typed coordinate, that has not been applied yet via
+    /// <see cref="TeleportAsync"/>/<see cref="ClaimRespawnTerminalAsync"/>. The host's own live
+    /// refresh loop (<c>LiveConnect.razor</c>'s <c>RefreshActiveAreaAsync</c>) skips a session
+    /// while this is true, the same way it already skips one mid-push - without it, that loop's
+    /// periodic <see cref="RefreshAsync"/> replaced <see cref="Respawn"/> with the character's
+    /// current position every couple of seconds, snapping a pick back before TELEPORT ME HERE
+    /// ever got a chance to send it anywhere.
+    /// </summary>
+    public bool IsDirty => Respawn.IsDifferentFrom(_lastKnownRespawn);
     public string? Status { get; private set; }
 
     /// <summary>Raised after <see cref="RefreshAsync"/> re-reads the character's position/respawn
@@ -64,6 +76,7 @@ public sealed class LivePlayerSpawnSession : IPlayerSpawnSession
         var state = await _channel.GetAsync(_playerId, cancellationToken).ConfigureAwait(false);
         LivePosition = (state.X, state.Y, state.Z);
         Respawn = new PlayerRespawnEdit(state.X, state.Y, state.Z, state.LevelName, state.TerminalGuid);
+        _lastKnownRespawn = Respawn.Clone();
         Status = null;
         Changed?.Invoke();
     }

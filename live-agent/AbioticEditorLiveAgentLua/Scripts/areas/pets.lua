@@ -142,23 +142,27 @@ return function(ctx)
     local function petRows()
         local result = { __forceArray = true }
         for _, npc in ipairs(ctx.findAll(PET_FAMILY_CLASS)) do
-            if npc:IsValid() then
+            -- pcall per pet actor (matching main.lua containers.list's own per-container guard):
+            -- isDead below is a direct, unguarded property read, and this walks every Pest/Skink
+            -- actor loaded in the world - one actor in an unusual state should skip only itself,
+            -- not fail the whole PETS tab listing with an uncaught Lua error.
+            pcall(function()
+                if not npc:IsValid() then return end
                 local okGuid, guid = pcall(function() return npc.Guid:ToString() end)
-                if okGuid and guid and guid ~= "" then
-                    local x, y, z = ctx.actorLocation(npc)
-                    local okName, name = pcall(function() return npc.PetName:ToString() end)
-                    local fullName = ctx.fullName(npc)
-                    table.insert(result, {
-                        id = guid,
-                        npcClass = ctx.classLabel(fullName),
-                        isDead = npc.IsDead == true,
-                        customName = (okName and name ~= "" and name) or nil,
-                        x = x, y = y, z = z,
-                        limbHealth = readLimbHealth(npc),
-                        xp = dynamicInt(npc, "XP"),
-                    })
-                end
-            end
+                if not (okGuid and guid and guid ~= "") then return end
+                local x, y, z = ctx.actorLocation(npc)
+                local okName, name = pcall(function() return npc.PetName:ToString() end)
+                local fullName = ctx.fullName(npc)
+                table.insert(result, {
+                    id = guid,
+                    npcClass = ctx.classLabel(fullName),
+                    isDead = npc.IsDead == true,
+                    customName = (okName and name ~= "" and name) or nil,
+                    x = x, y = y, z = z,
+                    limbHealth = readLimbHealth(npc),
+                    xp = dynamicInt(npc, "XP"),
+                })
+            end)
         end
         return result
     end

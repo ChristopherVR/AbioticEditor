@@ -66,6 +66,29 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
         Assert.Equal("simulated agent failure", exception.Message);
     }
 
+    /// <summary>
+    /// A LiveAgentException means the round trip itself completed fine (a well-formed response
+    /// line came back with Ok:false - an in-game handler legitimately rejecting one command, e.g.
+    /// "that slot is already empty" or the containers.list crash this session's live-editing work
+    /// fixed) - that proves the connection is healthy, not broken. Before this behavior existed,
+    /// ANY such rejection faulted the whole channel, so every later request - including the
+    /// sidebar's periodic world.info region poll - failed immediately with "Not connected to a
+    /// live game" until a full reconnect, which is what made one area erroring out look like the
+    /// whole live connection (or the in-game mod) had crashed.
+    /// </summary>
+    [Fact]
+    public async Task RequestAsync_after_an_agent_rejected_command_leaves_the_connection_usable()
+    {
+        await using var channel = new TcpLiveGameChannel();
+        await channel.ConnectAsync(new LiveConnectionInfo("127.0.0.1", _agent.Port, "correct-token"));
+
+        await Assert.ThrowsAsync<LiveAgentException>(() => channel.RequestAsync<object?>("boom", payload: null));
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+
+        var reply = await channel.RequestAsync<EchoPayload>("echo", new EchoPayload("hunger", 42.5));
+        Assert.Equal("hunger", reply.Name);
+    }
+
     [Fact]
     public async Task LivePlayerSkillsChannel_GetAsync_deserializes_a_real_JSON_array()
     {

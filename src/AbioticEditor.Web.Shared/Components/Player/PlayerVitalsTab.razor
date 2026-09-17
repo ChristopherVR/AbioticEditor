@@ -8,7 +8,7 @@
         <h3>@L.Resource("PlayerVitals_CharacterStats")</h3>
         <hr class="af-divider" />
         <div class="vital-list">
-            <VitalSlider Label="@L.Resource("PlayerVitals_Hunger")" @bind-Value="Vitals.Hunger" OnChanged="Changed" /><VitalSlider Label="@L.Resource("PlayerVitals_Thirst")" @bind-Value="Vitals.Thirst" OnChanged="Changed" /><VitalSlider Label="@L.Resource("PlayerVitals_Sanity")" Hint="@L.Resource("PlayerVitals_SanityTooltip")" @bind-Value="Vitals.Sanity" OnChanged="Changed" /><VitalSlider Label="@L.Resource("PlayerVitals_Fatigue")" @bind-Value="Vitals.Fatigue" OnChanged="Changed" /><VitalSlider Label="@L.Resource("PlayerVitals_Continence")" @bind-Value="Vitals.Continence" OnChanged="Changed" />
+            <VitalSlider Label="@L.Resource("PlayerVitals_Hunger")" @bind-Value="Vitals.Hunger" OnChanged="Changed" /><VitalSlider Label="@L.Resource("PlayerVitals_Thirst")" @bind-Value="Vitals.Thirst" OnChanged="Changed" /><VitalSlider Label="@L.Resource("PlayerVitals_Sanity")" Hint="@L.Resource("PlayerVitals_SanityTooltip")" @bind-Value="Vitals.Sanity" OnChanged="Changed" /><VitalSlider Label="@L.Resource("PlayerVitals_Fatigue")" Hint="@L.Resource("PlayerVitals_FatigueTooltip")" @bind-Value="Vitals.Fatigue" OnChanged="Changed" /><VitalSlider Label="@L.Resource("PlayerVitals_Continence")" @bind-Value="Vitals.Continence" OnChanged="Changed" />
         </div>
         <hr class="af-divider" />
         @* No saved/unsaved wording next to the amount: the shell header already says whether

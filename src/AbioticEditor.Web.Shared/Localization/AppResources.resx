@@ -384,6 +384,7 @@
   <data name="PlayerInventory_DropItem" xml:space="preserve"><value>DROP ITEM</value></data>
   <data name="PlayerInventory_DropItemTooltip" xml:space="preserve"><value>Select a slot with something in it, then DROP puts that item on the ground near you. Press SAVE and it shows up under ON THE GROUND NEARBY.</value></data>
   <data name="PlayerInventory_DropItemNeedsWorld" xml:space="preserve"><value>Dropping an item puts it on the ground in the world, so a world save has to be open too. Pick one under WORLD REGIONS in the sidebar, then come back.</value></data>
+  <data name="PlayerInventory_DeleteItem" xml:space="preserve"><value>DELETE ITEM</value></data>
   <data name="PlayerInventory_Equipment" xml:space="preserve"><value>EQUIPMENT</value></data>
   <data name="PlayerInventory_GroundNearbyHelp" xml:space="preserve"><value>Items lying within reach of where this character last stood. PICK UP puts one in the first empty backpack slot, and SAVE writes it and clears it off the ground. DISCARD leaves it where it is.</value></data>
   <data name="PlayerInventory_Hotbar" xml:space="preserve"><value>HOTBAR</value></data>
@@ -496,6 +497,7 @@
   <data name="PlayerVitals_Continence" xml:space="preserve"><value>CONTINENCE</value></data>
   <data name="PlayerVitals_CurrentMoney" xml:space="preserve"><value>Money</value></data>
   <data name="PlayerVitals_Fatigue" xml:space="preserve"><value>FATIGUE</value></data>
+  <data name="PlayerVitals_FatigueTooltip" xml:space="preserve"><value>Unlike the other survival stats, higher is worse here: this is how tired the character is, not how rested. 0 is fully rested, 100 is exhausted.</value></data>
   <data name="PlayerVitals_Head" xml:space="preserve"><value>HEAD</value></data>
   <data name="PlayerVitals_HealAll" xml:space="preserve"><value>HEAL ALL</value></data>
   <data name="PlayerVitals_Hunger" xml:space="preserve"><value>HUNGER</value></data>
@@ -2027,7 +2029,7 @@ Pick the folder the game is installed in, or the AbioticFactor folder inside it.
     <value>This is not a Steam ID, so the Steam-only extras (persona name, achievements) stay switched off. You can still change the id here.</value>
   </data>
   <data name="PlayerEditor_CutTraitDescription" xml:space="preserve">
-    <value>(unused/cut trait - the game has no description or creator entry for it)</value>
+    <value>(unused/cut trait - the game never finished it: no in-game description, no character-creator entry, and in most cases no icon either)</value>
   </data>
   <data name="PlayerGeneral_ChangeSteamIdTitle" xml:space="preserve">
     <value>Change SteamID?</value>
@@ -4103,7 +4105,6 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="LiveTraders_Unlock" xml:space="preserve"><value>UNLOCK</value></data>
   <data name="LiveContainment_OfflineWorldUnlocksNote" xml:space="preserve"><value>World-wide discovery counts (items seen, emails read, journal pages, compendium entries) live only in the save file, not in the running game - open this world's save to edit those.</value></data>
   <data name="Live_EntitlementsOfflineOnly" xml:space="preserve"><value>Entitlements (Early Access, Supporter's Edition ownership) live only in the save file's server metadata - there is no running-game object to read or write, so this is edit-the-file only. Open the world's metadata save to change it.</value></data>
-  <data name="Live_RawOfflineOnly" xml:space="preserve"><value>The RAW SAVE JSON tab exports and imports the save file itself - there is nothing to show for a running game with no file open. Open the world's save to use it.</value></data>
   <data name="LiveInventory_Title" xml:space="preserve"><value>INVENTORY</value></data>
   <data name="LiveInventory_Intro" xml:space="preserve"><value>The backpack, equipment and hotbar for the selected player. Type an item row id (or pick one from the list), set the count and durability, then APPLY - each slot applies on its own.</value></data>
   <data name="LiveInventory_Backpack" xml:space="preserve"><value>BACKPACK</value></data>

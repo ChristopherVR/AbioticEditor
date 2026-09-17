@@ -2,6 +2,7 @@
 @using AbioticEditor.Web.Models
 @using AbioticEditor.Web.Services
 @using AbioticEditor.Core.Items
+@using AbioticEditor.Core.LiveEditing
 @using Microsoft.JSInterop
 @implements IAsyncDisposable
 @inject ItemCatalogService Catalog
@@ -81,8 +82,10 @@
                 <button class="accent-alert" type="button" disabled="@(!CanDropActive)" title="@DropTooltip" @onclick="DropActive">@L.Resource("PlayerInventory_DropItem")</button>
             </div>
             @* Browsers do not show a tooltip for a disabled button, so the reason has to be on
-               the page or it may as well not exist. *@
-            @if (WorldSession is null)
+               the page or it may as well not exist. A live session never has a world save
+               attached (see IPlayerInventorySession.Respawn's remarks) but can drop straight
+               into the running game instead - see SupportsLiveDrop. *@
+            @if (WorldSession is null && !Session.SupportsLiveDrop)
             {
                 <p class="muted drop-needs-world">@L.Resource("PlayerInventory_DropItemNeedsWorld")</p>
             }
@@ -117,6 +120,18 @@
             </div>
         </div>
     }
+
+    @* Right-click menu on a non-empty slot: DROP ITEM/DELETE ITEM without opening the sidebar
+       editor first. The backdrop closes it on any outside click, same pattern as the file
+       sidebar's own save-row context menu (WorkspaceShell.razor). *@
+    @if (_menuArea is not null && _menuSlot is not null)
+    {
+        <div class="slot-menu-backdrop" role="presentation" @onclick="CloseSlotMenu" @oncontextmenu="CloseSlotMenu" @oncontextmenu:preventDefault></div>
+        <div class="slot-context-menu" role="menu" style="@_menuStyle">
+            <button type="button" role="menuitem" disabled="@(!(WorldSession is not null || Session.SupportsLiveDrop))" @onclick="DropFromMenu">@L.Resource("PlayerInventory_DropItem")</button>
+            <button type="button" role="menuitem" @onclick="DeleteFromMenu">@L.Resource("PlayerInventory_DeleteItem")</button>
+        </div>
+    }
 </section>
 
 @code {
@@ -132,6 +147,10 @@
     private string? _status;
     private PlayerInventorySlotEdit? _dragOverSlot;
     private IJSObjectReference? _dnd;
+    // ---------- right-click menu on a slot (DROP ITEM / DELETE ITEM) ----------
+    private PlayerInventoryArea? _menuArea;
+    private PlayerInventorySlotEdit? _menuSlot;
+    private string _menuStyle = string.Empty;
     /// <summary>True on a device whose pointer cannot hover (a phone or tablet). Dragging a
     /// tile is not possible there, so those devices get the two-tap bar instead.</summary>
     private bool _touch;
@@ -201,7 +220,9 @@
                 @ondragleave="() => DragLeave(slot)"
                 @ondragover:preventDefault
                 @ondrop="() => Drop(area, slot)"
-                @onclick="() => Tap(area, slot)">
+                @onclick="() => Tap(area, slot)"
+                @oncontextmenu="args => OpenSlotMenu(area, slot, args)"
+                @oncontextmenu:preventDefault>
             @if (!slot.IsEmpty && slot.ItemId is { } itemId) { <span class="inv-slot-icon"><ItemIcon ItemId="@itemId" Alt="@name" /></span> }
             @if (area == PlayerInventoryArea.Hotbar) { <span class="inv-slot-hotkey">@slot.Index</span> }
             else if (area == PlayerInventoryArea.Equipment) { @if (slot.IsEmpty && role is not null) { <span class="inv-slot-role">@role</span> } }
@@ -533,20 +554,44 @@
         }
     }
 
-    private bool CanDropActive => WorldSession is not null && ActiveSlot is { Slot.IsEmpty: false };
+    private bool CanDropActive => (WorldSession is not null || Session.SupportsLiveDrop) && ActiveSlot is { Slot.IsEmpty: false };
 
     /// <summary>
-    /// A dropped item is stored in the world, not on the player, so this needs a world save open
-    /// as well as a chosen slot. Say which of the two is missing rather than always naming the
-    /// slot.
+    /// A dropped item is stored in the world, not on the player, so the file session needs a
+    /// world save open as well as a chosen slot - say which of the two is missing rather than
+    /// always naming the slot. A live session drops straight into the running game instead, so it
+    /// only ever needs the slot.
     /// </summary>
-    private string DropTooltip => WorldSession is null
+    private string DropTooltip => WorldSession is null && !Session.SupportsLiveDrop
         ? L.Resource("PlayerInventory_DropItemNeedsWorld")
         : L.Resource("PlayerInventory_DropItemTooltip");
 
     private async Task DropActive()
     {
-        if (WorldSession is null || ActiveSlot is not { } active) return;
+        if (ActiveSlot is not { } active) return;
+
+        if (Session.SupportsLiveDrop)
+        {
+            try
+            {
+                if (!await Session.TryDropSlotLiveAsync(active.Area, active.Slot.Index))
+                {
+                    _status = L.Resource("PlayerUi_DropStageFailed");
+                    return;
+                }
+            }
+            catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
+                or IOException or OperationCanceledException)
+            {
+                _status = Errors.Present(exception, "Drop this item.", "The connection may have dropped; try reconnecting.");
+                return;
+            }
+            _status = L.Resource("PlayerUi_DropStaged");
+            await OnChanged.InvokeAsync();
+            return;
+        }
+
+        if (WorldSession is null) return;
         if (!InventoryTransferService.TryDropPlayerSlot(Session, active.Area, active.Slot.Index,
                 WorldSession, Session.Respawn.X, Session.Respawn.Y, Session.Respawn.Z, out _))
         {
@@ -555,6 +600,41 @@
         }
         _status = L.Resource("PlayerUi_DropStaged");
         await OnChanged.InvokeAsync();
+    }
+
+    // ---------- right-click menu on a slot (DROP ITEM / DELETE ITEM) ----------
+
+    private void OpenSlotMenu(PlayerInventoryArea area, PlayerInventorySlotEdit slot, MouseEventArgs args)
+    {
+        if (slot.IsEmpty) return;
+        _menuArea = area;
+        _menuSlot = slot;
+        // Positioned against the viewport, which is what the click coordinates are relative to -
+        // same fixed-position pattern the file sidebar's own save-row context menu uses.
+        _menuStyle = FormattableString.Invariant($"left:{args.ClientX}px; top:{args.ClientY}px;");
+    }
+
+    private void CloseSlotMenu() { _menuArea = null; _menuSlot = null; }
+
+    /// <summary>Selecting the menu's slot first (exactly what a click on the tile already does)
+    /// means DROP/DELETE reuse the same Select/Changed/DropActive plumbing every other mutation
+    /// on this tab already goes through, live push included, instead of a second code path.</summary>
+    private async Task DropFromMenu()
+    {
+        if (_menuArea is not { } area || _menuSlot is not { } slot) return;
+        CloseSlotMenu();
+        Select(area, slot);
+        await DropActive();
+    }
+
+    private async Task DeleteFromMenu()
+    {
+        if (_menuArea is not { } area || _menuSlot is not { } slot) return;
+        CloseSlotMenu();
+        Select(area, slot);
+        slot.Clear();
+        Selection.NotifyItemCommitted();
+        await Changed();
     }
 
     private string GroundName(AbioticEditor.Core.WorldSaves.WorldDroppedItem item)
