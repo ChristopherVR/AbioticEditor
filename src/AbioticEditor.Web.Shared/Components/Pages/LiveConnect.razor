@@ -232,7 +232,7 @@ else
                 @* Dedicated tab instead of the generic WorldFeaturesTab reuse below - see
                    LiveChemistryBenchTab's own header comment for why the "open flask contents"
                    deep link into the containers tab was replaced with slot editing built in. *@
-                <LiveChemistryBenchTab Session="chemistrySession" OnChanged="() => {}" />
+                <LiveChemistryBenchTab Session="chemistrySession" LivePlayerSession="_inventory" OnChanged="() => {}" />
             }
             else if (_care.TryGetValue(_worldTab, out var careSession))
             {
@@ -699,6 +699,21 @@ else
                     {
                         var care = await TryConnectWorldAreaAsync(() => LiveDeployedCareSession.ConnectAsync(new LiveDeployedCareChannel(channel), _worldTab));
                         if (care is not null) _care[care.FeatureId] = care;
+                    }
+                    // Chemistry benches offer a right-click "send to player" on each flask (see
+                    // LiveChemistryBenchTab's own remarks) - the same eager, failure-tolerant
+                    // inventory connect the "containers" case above already does, so that works
+                    // the moment this tab opens instead of only after the player's own Inventory
+                    // tab has been visited separately.
+                    if (_worldTab == "chemistry-benches" && _inventory is null)
+                    {
+                        try
+                        {
+                            _inventory = await LiveInventorySession.ConnectAsync(new LiveInventoryChannel(channel), _selectedPlayerId, Upgrades.Get(),
+                                new LiveTransmogVisibilityChannel(channel));
+                            _playerFacade.InventorySession = _inventory;
+                        }
+                        catch (Exception) { }
                     }
                     break;
             }

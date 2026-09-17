@@ -1,11 +1,14 @@
 @namespace AbioticEditor.Web.Components.World
 @using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Services
 @using AbioticEditor.Web.Components.Player
 @using AbioticEditor.Core.LiveEditing
 @using AbioticEditor.Core.LiveEditing.World
 @using AbioticEditor.Core.Items
+@using AbioticEditor.Core.PlayerSaves
 @inject ItemCatalogService Catalog
 @inject RecipeVocabularyService Recipes
+@implements IDisposable
 
 @* Dedicated live tab, not the generic WorldFeaturesTab: a chemistry bench's four flask slots
    (three inputs, one computed output) used to show as bare "flask:0".."flask:3" text fields that
@@ -60,7 +63,14 @@
                                 <div class="wt-field" @key="flask.Id">
                                     <span class="wt-label">@flask.Label</span>
                                     <span class="wt-field-inline">
-                                        <span class="rb-row-icon"><ItemIcon ItemId="@flask.Value" Alt="@ItemName(flask.Value)" /></span>
+                                        @* Right-click sends this flask's contents straight to a player, same gesture
+                                           WorldContainersTab already uses for a container slot - scoped to the icon
+                                           only (not the input box next to it) so it never steals the input's own
+                                           right-click (copy/paste). *@
+                                        <span class="rb-row-icon" title="@SendToPlayerHint(flask)"
+                                              @oncontextmenu="() => SendFlaskToPlayerAsync(bench, flask)" @oncontextmenu:preventDefault>
+                                            <ItemIcon ItemId="@flask.Value" Alt="@ItemName(flask.Value)" />
+                                        </span>
                                         @if (flask.Editable)
                                         {
                                             <input class="wt-input" list="chembench-item-palette" value="@(IsEmptySlot(flask.Value) ? string.Empty : flask.Value)"
@@ -80,6 +90,14 @@
                             @if (hint is not null)
                             {
                                 <p class="wt-muted">@hint</p>
+                            }
+                            @* An empty output with a matched recipe is not stuck - the game's own mixing
+                               genuinely takes real time (the recipe's own craft duration), and the running
+                               game's own view of the flasks only reaches this screen on the next refresh
+                               anyway. Naming the wait instead of leaving a blank output looking broken. *@
+                            @if (OutputPendingDuration(bench) is { } pendingSeconds)
+                            {
+                                <p class="wt-muted">@L.Resource("LiveChemistryBenches_MixingTakesFormat", pendingSeconds)</p>
                             }
                             @if (_fieldErrors.TryGetValue(bench.Id, out var benchError))
                             {
@@ -145,6 +163,11 @@
 @code {
     [Parameter, EditorRequired] public LiveDeployedCareSession Session { get; set; } = null!;
     [Parameter] public EventCallback OnChanged { get; set; }
+    // "Send to player" destinations - exactly the same two-way shape WorldContainersTab already
+    // exposes (a connected live player, or a player save staged alongside this world), so a host
+    // wiring this tab up can offer either without this component caring which one it got.
+    [Parameter] public PlayerSaveSession? PlayerSession { get; set; }
+    [Parameter] public LiveInventorySession? LivePlayerSession { get; set; }
 
     private bool _busy;
     private string? _error;
@@ -152,6 +175,19 @@
     private string _recipeFilter = string.Empty;
     private readonly Dictionary<string, string> _fieldErrors = new(StringComparer.Ordinal);
     private IReadOnlyList<RecipeInfo>? _chemistryRecipes;
+
+    /// <summary>
+    /// The periodic background refresh in the page hosting this tab re-reads this session every
+    /// couple of seconds (so a bench's output flask catches up once the game finishes mixing), but
+    /// only that page's own StateHasChanged call is guaranteed to reach this component - if
+    /// anything between it and here ever short-circuits a re-render (a `@key`, a future
+    /// ShouldRender override), an expanded bench would keep showing stale flask values with no
+    /// other signal telling it otherwise. Subscribing directly, the same way every other live tab
+    /// with a Changed event already does, removes that assumption entirely.
+    /// </summary>
+    protected override void OnInitialized() => Session.Changed += Refresh;
+    public void Dispose() => Session.Changed -= Refresh;
+    private void Refresh() => InvokeAsync(StateHasChanged);
 
     /// <summary>The bench's own item id (a real, placeable item with its own catalog icon -
     /// Deployable_Bench_Chemistry), not to be confused with any of the items INSIDE it. This
@@ -223,14 +259,84 @@
     /// </summary>
     private string? RecipeHint(LiveCareEntry bench)
     {
-        var inputs = bench.Fields.Where(f => f.Id != "flask:3" && !IsEmptySlot(f.Value)).Select(f => f.Value!).ToList();
+        var inputs = InputItemIds(bench);
         if (inputs.Count == 0) return null;
-        var inputSet = new HashSet<string>(inputs, StringComparer.Ordinal);
-        var match = ChemistryRecipes.FirstOrDefault(r =>
-            new HashSet<string>(r.IngredientList.Select(i => i.ItemId), StringComparer.Ordinal).SetEquals(inputSet));
+        var match = MatchedRecipe(bench);
         if (match?.CreatesItemId is { Length: > 0 } createsId)
             return L.Resource("LiveChemistryBenches_WouldProduce", ItemName(createsId));
         return L.Resource("LiveChemistryBenches_NoMatchingRecipe");
+    }
+
+    private static IReadOnlyList<string> InputItemIds(LiveCareEntry bench)
+        => bench.Fields.Where(f => f.Id != "flask:3" && !IsEmptySlot(f.Value)).Select(f => f.Value!).ToList();
+
+    /// <summary>Shared by <see cref="RecipeHint"/> (which only needs the output name) and <see
+    /// cref="OutputPendingDuration"/> (which also needs the matched recipe's own craft time) so
+    /// both read the same match instead of two copies of the same set-equality check drifting
+    /// apart.</summary>
+    private RecipeInfo? MatchedRecipe(LiveCareEntry bench)
+    {
+        var inputSet = new HashSet<string>(InputItemIds(bench), StringComparer.Ordinal);
+        if (inputSet.Count == 0) return null;
+        return ChemistryRecipes.FirstOrDefault(r =>
+            new HashSet<string>(r.IngredientList.Select(i => i.ItemId), StringComparer.Ordinal).SetEquals(inputSet));
+    }
+
+    /// <summary>How many seconds the game's own recipe says this mix takes, only while that is
+    /// actually useful information: real inputs are set, they match a known recipe, the output
+    /// flask has not produced anything yet, and the recipe's own duration is known at all. Null
+    /// in every other case - an already-full output, an unmatched combination, or a recipe this
+    /// game's data does not carry a duration for all mean this has nothing worth saying.</summary>
+    private double? OutputPendingDuration(LiveCareEntry bench)
+    {
+        var output = bench.Fields.FirstOrDefault(f => f.Id == "flask:3");
+        if (output is null || !IsEmptySlot(output.Value)) return null;
+        return MatchedRecipe(bench)?.CraftDurationSeconds;
+    }
+
+    private string? SendToPlayerHint(LiveCareField flask)
+        => !IsEmptySlot(flask.Value) && (LivePlayerSession is not null || PlayerSession is not null)
+            ? L.Resource("LiveChemistryBenches_SendToPlayerHelp") : null;
+
+    /// <summary>Right-click send, the exact same destination logic WorldContainersTab's own
+    /// SendToPlayerAsync uses (a connected live player's first empty backpack slot, else the
+    /// hotbar; failing that, a staged offline player save the same way) - adapted for a flask's
+    /// bare item id instead of an existing PlayerInventorySlotEdit to copy, via the same
+    /// SlotDropRules.FillFromCatalog a palette give already uses to build a fresh item instance
+    /// from a catalog entry. The flask is only cleared after the player side genuinely accepted
+    /// the item - a failed send leaves the flask alone rather than losing what was in it.</summary>
+    private async Task SendFlaskToPlayerAsync(LiveCareEntry bench, LiveCareField flask)
+    {
+        if (IsEmptySlot(flask.Value) || Catalog.Find(flask.Value!) is not { } entry) return;
+        _fieldErrors.Remove(bench.Id);
+        if (LivePlayerSession is { } livePlayer)
+        {
+            var (destination, area) = livePlayer.Backpack.FirstOrDefault(slot => slot.IsEmpty) is { } backpack
+                ? (backpack, PlayerInventoryArea.Backpack)
+                : (livePlayer.Hotbar.FirstOrDefault(slot => slot.IsEmpty), PlayerInventoryArea.Hotbar);
+            if (destination is null) { _fieldErrors[bench.Id] = L.Resource("LiveChemistryBenches_PlayerInventoryFull"); return; }
+            try
+            {
+                SlotDropRules.FillFromCatalog(destination, entry);
+                await livePlayer.PushSlotAsync(area, destination);
+            }
+            catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
+                or IOException or OperationCanceledException)
+            {
+                _fieldErrors[bench.Id] = Errors.Present(exception, "Send this to a player.", "The connection may have dropped; try reconnecting.");
+                return;
+            }
+            await SetFlaskAsync(bench.Id, flask.Id, string.Empty);
+            return;
+        }
+        if (PlayerSession is not { } player) { _fieldErrors[bench.Id] = L.Resource("WorldContainers_NoPlayerSaveFound"); return; }
+        var (offlineDestination, _) = player.Backpack.FirstOrDefault(slot => slot.IsEmpty) is { } offlineBackpack
+            ? (offlineBackpack, PlayerInventoryArea.Backpack)
+            : (player.Hotbar.FirstOrDefault(slot => slot.IsEmpty), PlayerInventoryArea.Hotbar);
+        if (offlineDestination is null) { _fieldErrors[bench.Id] = L.Resource("LiveChemistryBenches_PlayerInventoryFull"); return; }
+        SlotDropRules.FillFromCatalog(offlineDestination, entry);
+        player.MarkChanged();
+        await SetFlaskAsync(bench.Id, flask.Id, string.Empty);
     }
 
     private async Task RefreshAsync() => await RunAsync(() => Session.RefreshAsync());
