@@ -23,6 +23,9 @@ public sealed class TcpLiveGameChannel : ILiveGameChannel
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
+    /// <summary>A response line still on its way for a request whose caller stopped waiting
+    /// (see SendAsync); collected before the next request is sent so replies stay in step.</summary>
+    private Task<string?>? _owedResponse;
     private readonly SemaphoreSlim _requestGate = new(1, 1);
     private TcpClient? _client;
     private StreamReader? _reader;
@@ -93,6 +96,7 @@ public sealed class TcpLiveGameChannel : ILiveGameChannel
         _reader = null;
         _writer = null;
         _client = null;
+        _owedResponse = null;
         if (State != LiveConnectionState.Faulted) State = LiveConnectionState.Disconnected;
         if (wasConnected) EditorLog.Info("LiveAgent", "Disconnected.");
         return Task.CompletedTask;
@@ -122,13 +126,34 @@ public sealed class TcpLiveGameChannel : ILiveGameChannel
                 ? null
                 : JsonSerializer.SerializeToElement(payload, JsonOptions));
 
+            // A caller that stopped waiting (a tab switched away, a component disposed) leaves
+            // its response still on its way. Cancelling the socket read itself used to abort the
+            // socket (Windows error 995) and fault the whole connection, and skipping the line
+            // would have handed the next request the wrong answer. So the read is never
+            // cancelled: the caller stops waiting for it, the line is collected here before
+            // anything else is sent, and the connection stays in step.
+            while (_owedResponse is { } owed)
+            {
+                await owed.WaitAsync(cancellationToken).ConfigureAwait(false);
+                _owedResponse = null;
+            }
+
             var line = JsonSerializer.Serialize(envelope, JsonOptions);
             await writer.WriteLineAsync(line.AsMemory(), cancellationToken).ConfigureAwait(false);
 
-            var responseLine = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false)
-                ?? throw new IOException("The live agent closed the connection.");
-            var response = JsonSerializer.Deserialize<ResponseEnvelope>(responseLine, JsonOptions)
-                ?? throw new IOException("The live agent sent an empty response.");
+            ResponseEnvelope response;
+            while (true)
+            {
+                var read = reader.ReadLineAsync(CancellationToken.None).AsTask();
+                _owedResponse = read;
+                var responseLine = await read.WaitAsync(cancellationToken).ConfigureAwait(false)
+                    ?? throw new IOException("The live agent closed the connection.");
+                _owedResponse = null;
+                response = JsonSerializer.Deserialize<ResponseEnvelope>(responseLine, JsonOptions)
+                    ?? throw new IOException("The live agent sent an empty response.");
+                // Only a stale line from an abandoned request can carry another id; read on.
+                if (response.Id is null || response.Id == id) break;
+            }
 
             if (!response.Ok)
                 throw new LiveAgentException(response.Error ?? $"The live agent rejected '{command}'.");
@@ -136,7 +161,8 @@ public sealed class TcpLiveGameChannel : ILiveGameChannel
                 return default!;
             return result.Deserialize<TResponse>(JsonOptions)!;
         }
-        catch (Exception exception) when (State == LiveConnectionState.Connected && exception is not LiveAgentException)
+        catch (Exception exception) when (State == LiveConnectionState.Connected
+                                          && exception is not LiveAgentException and not OperationCanceledException)
         {
             // A mid-request failure (dropped socket, malformed line, a cancelled/timed-out read)
             // leaves the connection unusable even though State still said Connected a moment ago -

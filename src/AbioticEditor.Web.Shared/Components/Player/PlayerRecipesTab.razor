@@ -301,10 +301,12 @@
         _itemUpgrades = itemUpgrades;
         Session.EnsureRecipeRows(infos.Select(info => info.Id));
         var editsById = Session.Recipes.ToDictionary(edit => edit.Id, StringComparer.Ordinal);
+        // A session that could not add rows (a live one whose connection dropped mid-way, so the
+        // page still holds the placeholder) shows every recipe as locked rather than throwing.
         _rows = infos
             .Select(info => new RecipeRow(info,
                 info.CreatesItemId is { } created ? Items.Find(created) : null,
-                editsById[info.Id]))
+                editsById.TryGetValue(info.Id, out var edit) ? edit : new PlayerRecipeEdit(info.Id, false)))
             .OrderBy(row => DisplayName(row), StringComparer.OrdinalIgnoreCase)
             .ToArray();
         _usedIn = infos

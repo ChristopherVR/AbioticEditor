@@ -73,6 +73,28 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
         Assert.Contains(LiveConnectionState.Faulted, states);
     }
 
+    /// <summary>
+    /// A caller that stops waiting (a tab switched away mid-request) must neither fault the
+    /// connection (cancelling the socket read used to abort the socket) nor leave its late
+    /// reply to be handed to the next request as if it were that request's answer.
+    /// </summary>
+    [Fact]
+    public async Task A_request_whose_caller_stops_waiting_neither_faults_nor_misdelivers_the_next_reply()
+    {
+        await using var channel = new TcpLiveGameChannel();
+        await channel.ConnectAsync(new LiveConnectionInfo("127.0.0.1", _agent.Port, "correct-token"));
+        using var cts = new CancellationTokenSource(50);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => channel.RequestAsync<ValueWire>("slow", payload: null, cts.Token));
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+
+        var next = await channel.RequestAsync<ValueWire>("quick", payload: null);
+        Assert.Equal("quick", next.Value);
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
+    private sealed record ValueWire(string Value);
+
     [Fact]
     public async Task RequestAsync_round_trips_a_typed_payload()
     {
@@ -697,6 +719,13 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
                     continue;
                 }
 
+                if (cmd == "slow" || cmd == "quick")
+                {
+                    if (cmd == "slow") await Task.Delay(300, cancellationToken).ConfigureAwait(false);
+                    var answered = "{\"Id\":\"" + id + "\",\"Ok\":true,\"Result\":{\"Value\":\"" + cmd + "\"}}";
+                    await writer.WriteLineAsync(answered.AsMemory(), cancellationToken).ConfigureAwait(false);
+                    continue;
+                }
                 if (cmd == "boom")
                 {
                     var failed = "{\"Id\":\"" + id + "\",\"Ok\":false,\"Error\":\"simulated agent failure\"}";
