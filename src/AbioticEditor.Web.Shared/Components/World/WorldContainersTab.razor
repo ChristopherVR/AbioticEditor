@@ -164,8 +164,14 @@
     private string _filter = string.Empty;
     // Native default: empty containers are hidden until the user unticks HIDE EMPTY.
     private bool _hideEmpty = true;
-    // Same reasoning and same default radius as the ground-items tab's own "nearby only".
-    private bool _nearbyOnly = true;
+    // Off by default (round 81): a live report showed the nearby-only filter defaulting ON broke
+    // the care-feature "EDIT" links below (OpenCareContainerAsync/InitialFilter jump straight to
+    // one specific container by id, wherever it actually is - a chemistry bench, garden plot, or
+    // power chair is exactly as likely to be far from the player as a Void Chest is) - the filter
+    // silently hid the very thing the player just clicked to open, with the search box already
+    // matching it. Left available (never removed) for someone who genuinely wants it on a very
+    // cluttered map, just no longer surprising anyone by default.
+    private bool _nearbyOnly;
     private double _nearbyRadius = 10000;
     private (WorldContainerSource Source, string Id)? _selectedKey;
     private List<PlayerInventorySlotEdit>? _slotEdits;
@@ -189,6 +195,10 @@
             // Native OpenVehicleInventory: the jump target is usually empty, so HIDE EMPTY
             // would drop it before the keyword filter even runs.
             _hideEmpty = false;
+            // Belt and suspenders alongside the field's own off-by-default (see its remarks):
+            // a jump-to-this-container link must never be defeated by a distance filter, however
+            // far away that specific container turns out to be.
+            _nearbyOnly = false;
         }
         // A redraw driven from outside this tab means the world moved on (a save, an undo, an
         // edit made elsewhere), so the kept crate summaries are read again.

@@ -110,13 +110,14 @@
     private string _filter = string.Empty;
     private string _spawnItemId = string.Empty;
     private int _spawnStack = 1;
-    // On by default when PlayerPosition is known - see the "wg-nearby" markup's own comment for
-    // why a distance cutoff is the closest this can get to "just this area" without real region
-    // boundaries in the data. 10,000 cm (100 m) is a rough middle ground: large enough to cover
-    // a player's immediate base/room, small enough to exclude a genuinely different named area
-    // (observed live: neighbouring sectors are tens of thousands of cm apart) - adjustable
-    // because there's no single right answer for every base's layout.
-    private bool _nearbyOnly = true;
+    // Off by default (round 81) - see the "wg-nearby" markup's own comment for why a distance
+    // cutoff is the closest this can get to "just this area" without real region boundaries in
+    // the data. It defaulted ON at first, but a live report of "the item I just dropped isn't
+    // showing up" turned out to be this filter quietly hiding it (whatever guessed radius is set
+    // is still a guess, and the drop can land outside it) - same lesson as the containers tab's
+    // own default flip, see that field's remarks. 10,000 cm (100 m) is kept as the starting
+    // radius for whenever someone does turn it on.
+    private bool _nearbyOnly;
     private double _nearbyRadius = 10000;
     // Set only while a removal is talking to a live game; the file session's own methods
     // complete synchronously so this never has anything to wait on there.
