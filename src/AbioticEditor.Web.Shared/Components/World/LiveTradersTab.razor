@@ -3,6 +3,7 @@
 @using AbioticEditor.Core.LiveEditing
 @using AbioticEditor.Core.Codex
 @using AbioticEditor.Web.Components.Player
+@using AbioticEditor.Web.Components.Shared
 @inject ItemCatalogService Items
 
 @* Dedicated live tab rather than a reuse of WorldTradersTab: that component's right-hand detail
@@ -37,7 +38,17 @@
                  role="button" tabindex="0" aria-expanded="@(expanded ? "true" : "false")"
                  @onclick="() => ToggleStock(trader)" @onkeydown="e => StockKeyDown(e, trader)">
                 <span class="save-kind-marker" aria-hidden="true"></span>
-                <strong class="save-file-name">@DisplayName(trader)</strong>
+                @* save-file-name keeps the shared row grid's own column/row placement (see
+                   parity.css); the portrait lives INSIDE it as a small flex row rather than as
+                   its own grid child, so it does not disturb that placement. *@
+                <span class="save-file-name wt-live-name">
+                    <span class="wt-live-portrait">
+                        <GameArtImage GameRef="@trader.ImageAssetPath" Alt="@DisplayName(trader)">
+                            <span class="material-symbol" aria-hidden="true">person</span>
+                        </GameArtImage>
+                    </span>
+                    <strong>@DisplayName(trader)</strong>
+                </span>
                 <div class="live-npc-controls">
                     <span>@(available ? L.Resource("WorldTraders_Card_AvailableHere") : L.Resource("WorldTraders_Card_NotYetHere", PlainNames.Flags(L, missing)))</span>
                     @if (missing.Count > 0)
