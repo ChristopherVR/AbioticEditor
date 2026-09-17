@@ -43,6 +43,36 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
         Assert.Equal(LiveConnectionState.Faulted, channel.State);
     }
 
+    /// <summary>
+    /// The exact signal LiveConnect.razor's periodic background refresh loop now listens for
+    /// (round 87): before this, a genuinely dead connection - the game process exiting mid-
+    /// session, not an in-game handler rejecting one request - was swallowed silently by that
+    /// loop forever, so the header/sidebar kept claiming "connected" no matter how long the game
+    /// had actually been gone. This proves the channel itself already raises the right signal for
+    /// that loop to react to: a post-connect transport failure (the agent's socket closing out
+    /// from under an already-established connection, not the "hello" step
+    /// Connect_with_wrong_token_throws_and_faults already covers) both throws AND flips State to
+    /// Faulted with a matching StateChanged notification, the same way the doc comment on
+    /// TcpLiveGameChannel's catch clause already describes.
+    /// </summary>
+    [Fact]
+    public async Task RequestAsync_after_the_agent_disconnects_faults_and_raises_StateChanged()
+    {
+        await using var channel = new TcpLiveGameChannel();
+        var states = new List<LiveConnectionState>();
+        channel.StateChanged += states.Add;
+        await channel.ConnectAsync(new LiveConnectionInfo("127.0.0.1", _agent.Port, "correct-token"));
+
+        // Simulates the real failure mode this test exists for: the game (or the live-agent
+        // helper) closing out from under an already-connected channel - the same thing that
+        // happens when the game process exits while the editor is mid-session.
+        await _agent.DisposeAsync();
+
+        await Assert.ThrowsAnyAsync<Exception>(() => channel.RequestAsync<object?>("echo", payload: null));
+        Assert.Equal(LiveConnectionState.Faulted, channel.State);
+        Assert.Contains(LiveConnectionState.Faulted, states);
+    }
+
     [Fact]
     public async Task RequestAsync_round_trips_a_typed_payload()
     {

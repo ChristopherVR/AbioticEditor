@@ -448,6 +448,17 @@ else
             _playerFacade.VitalsSession = _vitals;
             _playerFacade.SkillsSession = _skills;
             _channel = channel;
+            // The channel already tells the truth about whether the transport itself is still
+            // alive (Faulted, set only for a genuine transport failure - a dropped socket, not
+            // an in-game handler rejecting one request, see TcpLiveGameChannel's own remarks on
+            // that distinction) - nothing here used to listen. Every background read that hit a
+            // dead connection (the periodic refresh loop, the region poll) silently swallowed the
+            // failure and just tried again next tick forever, so the header/sidebar kept showing
+            // "connected" no matter how long the game had actually been closed. Reusing
+            // DisconnectAsync's own cleanup (the same path a manual DISCONNECT already takes)
+            // instead of building a second one keeps there being exactly one way this page ever
+            // leaves a connection behind.
+            _channel.StateChanged += OnChannelStateChanged;
             _worldInfo = new LiveWorldInfoChannel(channel);
             _selectedPlayerId = localPlayerId;
             _surface = LiveSurface.Player;
@@ -1130,6 +1141,19 @@ else
         return InvokeAsync(StateHasChanged);
     }
 
+    /// <summary>The channel's own signal that the transport itself has genuinely died (see the
+    /// subscription in <see cref="ConnectAsync"/> for why nothing used to react to this at all).
+    /// Runs the exact same cleanup a manual DISCONNECT already does, so a closed game actually
+    /// shows as disconnected instead of the header/sidebar going on claiming "connected" forever
+    /// while every background read silently fails and retries. <paramref name="state"/> only
+    /// ever matters as Faulted here - Connecting/Connected/Disconnected are already handled by
+    /// whichever caller drove that transition directly, not by this passive listener.</summary>
+    private void OnChannelStateChanged(LiveConnectionState state)
+    {
+        if (state != LiveConnectionState.Faulted || _channel is null) return;
+        _ = DisconnectAsync();
+    }
+
     private async Task DisconnectAsync()
     {
         StopLiveRefreshLoop();
@@ -1176,7 +1200,11 @@ else
         _care.Clear();
         _careContainerFilter = null;
         _selectedPlayerId = null;
-        if (_channel is not null) await _channel.DisposeAsync();
+        if (_channel is not null)
+        {
+            _channel.StateChanged -= OnChannelStateChanged;
+            await _channel.DisposeAsync();
+        }
         _channel = null;
         _error = null;
         // DISCONNECT is a fresh start - back to "where's the game running", which lives in the
@@ -1196,6 +1224,10 @@ else
         UnsubscribeAllChangedEvents();
         LiveSession.Disconnected();
         Selection.SetPaletteContext(null);
-        if (_channel is not null) await _channel.DisposeAsync();
+        if (_channel is not null)
+        {
+            _channel.StateChanged -= OnChannelStateChanged;
+            await _channel.DisposeAsync();
+        }
     }
 }
