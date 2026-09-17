@@ -1493,10 +1493,31 @@ require("inventory_transfer")({ handlers = handlers, runOnGameThread = runOnGame
     resolvePlayer = resolvePlayer, inventoryComponent = inventoryComponent, slotRow = slotRow,
     prepareSlotWrite = prepareSlotWrite, applySlotWrite = applySlotWrite })
 
+-- Round 86: temporary, narrowly-scoped diagnostic logging for Void Chests only - a live report
+-- shows one still missing from containers.list even after round 84's "always insert a row" fix,
+-- and this could not be chased further without a live connection to the running game (see round
+-- 85's own note on why the live-agent helper could not be reached a second time). Every log line
+-- below is gated to an actor whose full path contains "Void" (Void Chest's real class is
+-- Deployed_StorageCrate_Void_C, so this matches only the actor in question, never an ordinary
+-- container), writes through the same print() -> UE4SS log path every other diagnostic line in
+-- this file already uses, and costs nothing for anyone not standing near a Void Chest. Safe to
+-- delete once the missing-chest report is actually resolved.
+local function logVoidChestDiagnostic(line) print("[AbioticEditorLiveAgentLua] containers.list (Void Chest diagnostic) " .. line .. "\n") end
+
 handlers["containers.list"] = function(_, respond)
     runOnGameThread(function()
         local result = { __forceArray = true }
-        for _, container in ipairs(loadedContainers()) do
+        local containers = loadedContainers()
+        do
+            local voidCount = 0
+            for _, actor in ipairs(containers) do
+                local n = fullName(actor)
+                if n and n:find("Void", 1, true) then voidCount = voidCount + 1 end
+            end
+            logVoidChestDiagnostic("loadedContainers() returned " .. #containers .. " total, " .. voidCount .. " with 'Void' in the name")
+        end
+        for _, container in ipairs(containers) do
+            local diagnosticName
             -- pcall per container (not one pcall around the whole loop, matching the DELETE ALL
             -- SHOWN handler's own reasoning below): this walks every placed container/bench in the
             -- world, and slotRow/readItemDetails touch several ItemDataTable/ChangeableData fields
@@ -1509,9 +1530,10 @@ handlers["containers.list"] = function(_, respond)
             -- unloaded/destroyed one already looks like from the editor's side, and this handler
             -- has no per-item error channel (unlike dropped.remove's batch result) to report one
             -- through instead.
-            pcall(function()
+            local ok, err = pcall(function()
                 if not container:IsValid() then return end
                 local name = fullName(container)
+                diagnosticName = name
                 if not name then return end
                 -- Round 84: a live report showed a Void Chest the player was standing right in
                 -- front of missing from this list entirely (not "shown empty" - simply absent).
@@ -1530,6 +1552,12 @@ handlers["containers.list"] = function(_, respond)
                 -- listed at all" either way.
                 local inv = containerInventory(container)
                 local x, y, z = actorLocation(container)
+                if name:find("Void", 1, true) then
+                    logVoidChestDiagnostic("reached row-build: name=" .. name
+                        .. " inv=" .. tostring(inv ~= nil) .. " invValid=" .. tostring(inv ~= nil and inv:IsValid())
+                        .. " slotCount=" .. tostring(inv and inv.CurrentInventory and #inv.CurrentInventory or -1)
+                        .. " x=" .. tostring(x) .. " y=" .. tostring(y) .. " z=" .. tostring(z))
+                end
                 local slots = { __forceArray = true }
                 if inv and inv.CurrentInventory then
                     for i = 1, #inv.CurrentInventory do
@@ -1548,6 +1576,16 @@ handlers["containers.list"] = function(_, respond)
                 table.insert(result, { id = name, label = classLabel(name), x = x, y = y, z = z, slots = slots,
                     health = health, maxHealth = maxHealth, name = containerName(container) })
             end)
+            if not ok then
+                if diagnosticName and diagnosticName:find("Void", 1, true) then
+                    logVoidChestDiagnostic("per-container pcall FAILED for " .. diagnosticName .. ": " .. tostring(err))
+                elseif not diagnosticName then
+                    -- Could not even read this actor's own name before failing - can't tell if it
+                    -- was a Void Chest, but still worth a line since this is exactly the kind of
+                    -- failure that makes a container vanish from the list with no other trace.
+                    logVoidChestDiagnostic("per-container pcall FAILED before a name could be read: " .. tostring(err))
+                end
+            end
         end
         return { containers = result, isHost = isHost() }
     end, respond)
