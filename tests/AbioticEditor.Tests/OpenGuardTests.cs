@@ -215,6 +215,79 @@ public sealed class OpenGuardTests
         Assert.Empty(navigation.OpenedUrls);
     }
 
+    // ---- mod disclaimer, shown only in the browser build -----------------------------------
+
+    [Fact]
+    public async Task The_desktop_host_shows_no_mod_disclaimer_at_all()
+    {
+        var gate = new DesktopModDisclaimerGate();
+        var opened = 0;
+
+        await gate.ShowAsync(() => { opened++; return Task.CompletedTask; }, () => Task.CompletedTask);
+
+        Assert.Equal(1, opened);
+    }
+
+    [Fact]
+    public async Task The_browser_host_asks_before_every_open_and_never_remembers_the_answer()
+    {
+        var modals = new ModalService();
+        var gate = new BrowserModDisclaimerGate(modals, new HostLanguageService());
+        var opened = 0;
+
+        await gate.ShowAsync(() => { opened++; return Task.CompletedTask; });
+        var first = Assert.IsType<ModalRequest>(modals.Current);
+        Assert.NotNull(first.OnConfirm);
+        await first.OnConfirm!();
+        Assert.Equal(1, opened);
+        modals.Close();
+
+        // Unlike the Game Pass cloud-sync warning, there is deliberately no "don't show again" -
+        // the very next open asks again.
+        await gate.ShowAsync(() => { opened++; return Task.CompletedTask; });
+        var second = Assert.IsType<ModalRequest>(modals.Current);
+        Assert.NotNull(second.OnConfirm);
+        await second.OnConfirm!();
+        Assert.Equal(2, opened);
+    }
+
+    [Fact]
+    public async Task Backing_out_of_the_mod_disclaimer_opens_nothing_and_says_so()
+    {
+        var modals = new ModalService();
+        var gate = new BrowserModDisclaimerGate(modals, new HostLanguageService());
+        var opened = 0;
+        var declined = 0;
+
+        await gate.ShowAsync(() => { opened++; return Task.CompletedTask; }, () => { declined++; return Task.CompletedTask; });
+        var modal = Assert.IsType<ModalRequest>(modals.Current);
+        Assert.NotNull(modal.OnCancel);
+        await modal.OnCancel!();
+
+        Assert.Equal(0, opened);
+        Assert.Equal(1, declined);
+    }
+
+    /// <summary>
+    /// Both sidebar routes that load a save into the editor (the ordinary file row, and the
+    /// live sidebar's offline-player row) must ask the mod disclaimer before the unsaved-edits
+    /// question, and must hand it the same decline callback the unsaved-edits question gets -
+    /// otherwise a player who backs out of the disclaimer on the browser build leaves the
+    /// sidebar's "a switch is in flight" guard stuck and every row dead for the rest of the
+    /// session.
+    /// </summary>
+    [Theory]
+    [InlineData("() => Unsaved.ConfirmAsync(() => OpenAsync(save), DoneSwitchingSaveAsync)")]
+    [InlineData("() => Unsaved.ConfirmAsync(() => OpenOfflinePlayerAsync(save), DoneSwitchingSaveAsync)")]
+    public void Switching_saves_in_the_sidebar_asks_the_mod_disclaimer_first(string innerProceed)
+    {
+        var source = Flatten(UiSource.ReadAllText("Components/Shared/WorkspaceShell.razor"));
+
+        Assert.Contains(
+            $"return ModDisclaimer.ShowAsync( {innerProceed}, DoneSwitchingSaveAsync);",
+            source, StringComparison.Ordinal);
+    }
+
     // ---- the screens' side of the bargain ---------------------------------------------------
 
     /// <summary>

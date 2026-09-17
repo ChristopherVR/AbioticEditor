@@ -65,6 +65,10 @@ public static class Program
         builder.Services.AddScoped<UnsavedChangesGuard>();
         builder.Services.AddScoped<GamePassSafetyGuard>();
         builder.Services.AddScoped<IGamePassSafetyGuard>(provider => provider.GetRequiredService<GamePassSafetyGuard>());
+        // Desktop reads the installed game (and its mods) directly, so the mod disclaimer the
+        // browser build shows before every open has nothing to warn about here - see
+        // BrowserModDisclaimerGate for the browser host's registration.
+        builder.Services.AddScoped<IModDisclaimerGate, DesktopModDisclaimerGate>();
         builder.Services.AddScoped<StoryFlagSyncService>();
         // Both of these are seams the shared screens reach the outside world through, so the
         // browser host can substitute its own. On this host they are the local machine.

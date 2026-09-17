@@ -73,6 +73,12 @@ builder.Services.AddScoped<UnsavedChangesGuard>();
 // registered anyway because the shared start screen injects it, and a service a shared component
 // asks for and does not get is not a quiet no-op: it fails the moment that page renders.
 builder.Services.AddScoped<IGamePassSafetyGuard, BrowserGamePassBlockGuard>();
+// Marks this host as the browser deployment for shared screens that must behave differently
+// here - see IBrowserHostMarker. Absent from the desktop host on purpose.
+builder.Services.AddScoped<IBrowserHostMarker, BrowserHostMarker>();
+// The browser build cannot see the player's installed game or its mods, so every save open here
+// gets a disclaimer first - see BrowserModDisclaimerGate. The desktop host registers a no-op.
+builder.Services.AddScoped<IModDisclaimerGate, BrowserModDisclaimerGate>();
 
 var host = builder.Build();
 UseBrowserStorageForPreferences(host.Services);

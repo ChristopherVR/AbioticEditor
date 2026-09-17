@@ -816,8 +816,6 @@
   <!-- WorldNpcs -->
   <data name="WorldNpcs_NoNarrativeNpcs" xml:space="preserve"><value>No story NPCs or traders found here.</value></data>
   <data name="WorldNpcs_NpcsIntro" xml:space="preserve"><value>Select a character to restore them or inspect their story stage.</value></data>
-  <data name="WorldNpcs_Revive" xml:space="preserve"><value>REVIVE</value></data>
-  <data name="WorldNpcs_ReviveTooltip" xml:space="preserve"><value>Bring this character back to life at their usual story stage. Most of the dead ones left as part of the story, so reviving can bring back someone the plot already moved on from.</value></data>
   <data name="WorldNpcs_ScriptPhase" xml:space="preserve"><value>STORY STAGE</value></data>
   <data name="WorldNpcs_ScriptPhaseTooltip" xml:space="preserve"><value>How far along this character is in their own scripted moments, from 0 to 5. It is not your quest progress. Everyone still alive sits at 3.</value></data>
   <data name="WorldNpcs_StoryNpcsAndTraders" xml:space="preserve"><value>STORY NPCS &amp; TRADERS IN THIS WORLD</value></data>
@@ -1848,6 +1846,20 @@ Download the desktop app from the GitHub releases page to edit this save.</value
   </data>
   <data name="Main_GpBrowserUnsupportedOpenReleases" xml:space="preserve">
     <value>Open GitHub releases</value>
+  </data>
+  <data name="ModDisclaimer_Title" xml:space="preserve">
+    <value>Played with mods? Read this first</value>
+  </data>
+  <data name="ModDisclaimer_Message" xml:space="preserve">
+    <value>If this save was played with mods, editing it here can have unexpected consequences.
+The web version can't see your installed game or its mods, so modded items, recipes and flags may not show up the way they do in-game.
+If this save has modded content, use the desktop app instead.</value>
+  </data>
+  <data name="ModDisclaimer_Continue" xml:space="preserve">
+    <value>I understand, continue</value>
+  </data>
+  <data name="ModDisclaimer_DesktopLink" xml:space="preserve">
+    <value>Get the desktop app</value>
   </data>
   <data name="Main_GpMidSyncTitle" xml:space="preserve">
     <value>Tidy up this save first?</value>
@@ -3866,6 +3878,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldContainment_ScanningUnits" xml:space="preserve"><value>Looking through the world for containment units…</value></data>
   <data name="WorldContainment_ScanIncompleteFormat" xml:space="preserve"><value>Some region saves could not be read, so a unit may be missing from this list: {0}</value></data>
   <data name="WorldContainment_NoUnitsBuilt" xml:space="preserve"><value>No containment units have been built anywhere in this world yet. Craft one in-game and place it, then it shows up here.</value></data>
+  <data name="WorldContainment_ScanUnavailable" xml:space="preserve"><value>Containment units live in the world's other save files, and this editor could not check them from here, so this is not necessarily the whole picture. Open the whole world folder to see every unit.</value></data>
   <data name="WorldContainment_Empty" xml:space="preserve"><value>EMPTY</value></data>
   <data name="WorldContainment_EmptyUnit" xml:space="preserve"><value>Empty containment unit</value></data>
   <data name="WorldContainment_HoldsLabel" xml:space="preserve"><value>HOLDS</value></data>
@@ -4102,8 +4115,6 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="LiveNpcs_Intro" xml:space="preserve"><value>Every creature and hostile NPC currently loaded in the game - not just wildlife. Click one to see it. Changes apply immediately, one at a time - there is no APPLY step here.</value></data>
   <data name="LiveNpcs_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to edit creatures. Editing here as a joined client would not stick.</value></data>
   <data name="LiveNpcs_NoneFound" xml:space="preserve"><value>No creatures are currently loaded.</value></data>
-  <data name="LiveNpcs_Kill" xml:space="preserve"><value>KILL</value></data>
-  <data name="LiveNpcs_Revive" xml:space="preserve"><value>REVIVE</value></data>
   <data name="LiveNpcs_Disabled" xml:space="preserve"><value>Disabled</value></data>
   <data name="LiveNpcs_Invincible" xml:space="preserve"><value>Invincible</value></data>
   <data name="LiveNpcs_Faction" xml:space="preserve"><value>Faction</value></data>
@@ -4111,6 +4122,8 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="LiveNpcs_ClassLabel" xml:space="preserve"><value>Class</value></data>
   <data name="LiveNpcs_NoAppearanceDataNote" xml:space="preserve"><value>The running game itself does not report this creature's position, health or appearance - only its name, life/death state, disabled/invincible flags and faction. The picture above (when there is one) comes from the community wiki, not the game.</value></data>
   <data name="Live_TabPortals" xml:space="preserve"><value>World Teleporters</value></data>
+  <data name="Live_TabElevators" xml:space="preserve"><value>Elevators</value></data>
+  <data name="Live_TabButtons" xml:space="preserve"><value>Buttons</value></data>
   <data name="Live_TabWildlife" xml:space="preserve"><value>Creatures</value></data>
   <data name="Live_TabGardenPlots" xml:space="preserve"><value>Garden Plots</value></data>
   <data name="Live_TabPowerChairs" xml:space="preserve"><value>Power Chairs</value></data>
@@ -4142,10 +4155,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="LiveChemistryBenches_SendToChestNeedsHost" xml:space="preserve"><value>Sending to a chest needs you to be hosting this game.</value></data>
   <data name="LiveChemistryBenches_ChestFull" xml:space="preserve"><value>That chest has no free slot. Pick another one.</value></data>
   <data name="LiveChemistryBenches_ChestGone" xml:space="preserve"><value>That chest is no longer loaded. Refresh the containers and pick again.</value></data>
-  <data name="LiveTraders_Title" xml:space="preserve"><value>TRADERS</value></data>
-  <data name="LiveTraders_Intro" xml:space="preserve"><value>The trader roster and what still gates each one. Unlocking sets the missing quest flags through the running game's own flag system - the same effect as reaching that moment in the story.</value></data>
   <data name="LiveTraders_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to unlock traders. Editing here as a joined client would not stick.</value></data>
-  <data name="LiveTraders_Unlock" xml:space="preserve"><value>UNLOCK</value></data>
   <data name="LiveContainment_OfflineWorldUnlocksNote" xml:space="preserve"><value>World-wide discovery counts (items seen, emails read, journal pages, compendium entries) live only in the save file, not in the running game - open this world's save to edit those.</value></data>
   <data name="LiveInventory_Title" xml:space="preserve"><value>INVENTORY</value></data>
   <data name="LiveInventory_Intro" xml:space="preserve"><value>The backpack, equipment and hotbar for the selected player. Type an item row id (or pick one from the list), set the count and durability, then APPLY - each slot applies on its own.</value></data>

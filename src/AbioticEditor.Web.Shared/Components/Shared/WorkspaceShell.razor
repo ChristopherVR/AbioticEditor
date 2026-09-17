@@ -13,6 +13,7 @@
 @inject IniEditorSessionService IniSessions
 @inject ToastService Toasts
 @inject UnsavedChangesGuard Unsaved
+@inject IModDisclaimerGate ModDisclaimer
 @inject ModalService Modals
 @inject NavigationManager Navigation
 @inject AbioticEditor.Ui.IExternalNavigationService External
@@ -510,6 +511,10 @@
     /// as soon as it is on screen, so without this a player clicking down the list while that
     /// question was up started a parse of every save they touched, each finishing later and
     /// replacing what was on the editor surface.
+    ///
+    /// <para>The mod disclaimer (browser build only - see <see cref="IModDisclaimerGate"/>) is
+    /// asked first, ahead of the unsaved-edits question, so a player backing out of it never
+    /// touches the currently open session at all.</para>
     /// </remarks>
     private Task SelectAsync(WorkspaceSave save)
     {
@@ -517,7 +522,9 @@
         if (string.Equals(save.Path, Workspace.Current?.SelectedSave?.Path, StringComparison.OrdinalIgnoreCase))
             return Task.CompletedTask;
         _switchingSave = true;
-        return Unsaved.ConfirmAsync(() => OpenAsync(save), DoneSwitchingSaveAsync);
+        return ModDisclaimer.ShowAsync(
+            () => Unsaved.ConfirmAsync(() => OpenAsync(save), DoneSwitchingSaveAsync),
+            DoneSwitchingSaveAsync);
     }
 
     /// <summary>A player row is "live" only when it is BOTH currently connected to the running
@@ -701,7 +708,9 @@
     {
         if (_switchingSave || IsSelectedOfflinePlayerFile(save)) return Task.CompletedTask;
         _switchingSave = true;
-        return Unsaved.ConfirmAsync(() => OpenOfflinePlayerAsync(save), DoneSwitchingSaveAsync);
+        return ModDisclaimer.ShowAsync(
+            () => Unsaved.ConfirmAsync(() => OpenOfflinePlayerAsync(save), DoneSwitchingSaveAsync),
+            DoneSwitchingSaveAsync);
     }
 
     private async Task OpenOfflinePlayerAsync(WorkspaceSave save)

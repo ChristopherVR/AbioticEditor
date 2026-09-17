@@ -3,47 +3,59 @@
 @using AbioticEditor.Core.WorldSaves
 @using AbioticEditor.Web.Components.Player
 @using AbioticEditor.Web.Models
+@using Microsoft.Extensions.DependencyInjection
 @inject SaveWorkspaceSessionService Workspace
 @inject AbioticEditor.Ui.IFilePicker FilePicker
 @inject ItemCatalogService Catalog
 @inject ISaveFileSystem Files
 @inject HostLanguageService L
+@inject IServiceProvider Services
+@inject NavigationManager Navigation
 
 <PageTitle>@L.Resource("Transfer_Title") · @L.Resource("App_Title")</PageTitle>
 
-<section class="tool-scaffold">
-    <header class="tool-scaffold-heading"><p class="eyebrow">@L.Resource("Transfer_Eyebrow")</p><h1>@L.Resource("Transfer_ScaffoldTitle")</h1></header>
+@* "Move items between worlds" is desktop-only - see IBrowserHostMarker. A deep link straight to
+   this route on the web deployment is sent back to the workspace in OnInitialized below instead
+   of rendering anything here, so a bookmarked/typed URL can never reach the tool. *@
+@if (!IsBrowserHost)
+{
+    <section class="tool-scaffold">
+        <header class="tool-scaffold-heading"><p class="eyebrow">@L.Resource("Transfer_Eyebrow")</p><h1>@L.Resource("Transfer_ScaffoldTitle")</h1></header>
 
-    @* Picking an arbitrary .sav file from anywhere on disk needs a real file system, exactly
-       like the file-vs-file half of Compare - a browser tab without local paths cannot reach a
-       second world's files at all. *@
-    @if (!Workspace.HasLocalPaths)
-    {
-        <section class="compare-card">
-            <h2>@L.Resource("Host_NeedsDesktopTitle")</h2>
-            <p class="muted">@L.Resource("Host_NeedsDesktopBody")</p>
-        </section>
-    }
-    else
-    {
-        <p class="muted">@L.Resource("Transfer_Description")</p>
+        @* Picking an arbitrary .sav file from anywhere on disk needs a real file system, exactly
+           like the file-vs-file half of Compare - a browser tab without local paths cannot reach a
+           second world's files at all. *@
+        @if (!Workspace.HasLocalPaths)
+        {
+            <section class="compare-card">
+                <h2>@L.Resource("Host_NeedsDesktopTitle")</h2>
+                <p class="muted">@L.Resource("Host_NeedsDesktopBody")</p>
+            </section>
+        }
+        else
+        {
+            <p class="muted">@L.Resource("Transfer_Description")</p>
 
-        @SidePanel(_left, other: _right)
-        <section class="compare-card transfer-held-card">
-            @if (_held is { } held)
-            {
-                <p class="muted">@L.Resource("Transfer_HoldingFormat", held.ItemLabel, held.Side == _left ? "A" : "B")</p>
-            }
-            else
-            {
-                <p class="muted">@L.Resource("Transfer_HoldingNone")</p>
-            }
-        </section>
-        @SidePanel(_right, other: _left)
-    }
-</section>
+            @SidePanel(_left, other: _right)
+            <section class="compare-card transfer-held-card">
+                @if (_held is { } held)
+                {
+                    <p class="muted">@L.Resource("Transfer_HoldingFormat", held.ItemLabel, held.Side == _left ? "A" : "B")</p>
+                }
+                else
+                {
+                    <p class="muted">@L.Resource("Transfer_HoldingNone")</p>
+                }
+            </section>
+            @SidePanel(_right, other: _left)
+        }
+    </section>
+}
 
 @code {
+    /// <summary>True on the browser (WebAssembly) deployment - see IBrowserHostMarker.</summary>
+    private bool IsBrowserHost => Services.GetService<IBrowserHostMarker>() is not null;
+
     private sealed class Side
     {
         public string Label = string.Empty;
@@ -64,6 +76,15 @@
 
     protected override void OnInitialized()
     {
+        // "Move items between worlds" does not exist on the web deployment at all (see
+        // IBrowserHostMarker) - send a deep link straight back to the workspace rather than
+        // rendering anything a browser tab could not use anyway.
+        if (IsBrowserHost)
+        {
+            Navigation.NavigateTo("browse", replace: true);
+            return;
+        }
+
         // A world already open in the main editor is the most likely thing someone wants to
         // move items out of - pre-fill side A with it rather than making them browse for a
         // file they are currently looking at in another tab.

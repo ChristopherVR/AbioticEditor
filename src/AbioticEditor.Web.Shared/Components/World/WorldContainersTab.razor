@@ -7,6 +7,7 @@
 @using AbioticEditor.Core.PlayerSaves
 @using AbioticEditor.Core.WorldSaves
 @using Microsoft.JSInterop
+@using Microsoft.Extensions.DependencyInjection
 @implements IAsyncDisposable
 @inject IJSRuntime Js
 @inject InventorySelectionService Selection
@@ -14,6 +15,7 @@
 @inject ItemCatalogService Items
 @inject ItemUpgradeVocabularyService Upgrades
 @inject SaveWorkspaceSessionService Workspace
+@inject IServiceProvider Services
 
 @* Faithful port of the native WorldContainersTab.xaml: filter + HIDE EMPTY row, then the
    two-column master/detail body (container list on the left, the selected container's
@@ -156,7 +158,10 @@
         @* Sending to a sibling player only reaches a save already open next to this one. Moving
            items into a wholly different world (another region set, another playthrough) is a
            separate tool, since it needs its own file picker rather than this tab's session. *@
-        @if (!Session.AppliesImmediately)
+        @* Moving items into a wholly different world save needs real local file access to pick
+           the second world with, which the browser deployment never has - see
+           IBrowserHostMarker and TransferItems.razor's own route guard. *@
+        @if (!Session.AppliesImmediately && !IsBrowserHost)
         {
             <p class="wc-help"><NavLink href="transfer-items">@L.Resource("WorldContainers_TransferItemsLink")</NavLink></p>
         }
@@ -175,6 +180,8 @@
     // Set only while an edit is talking to a live game; the file session's own methods
     // complete synchronously so this never has anything to wait on there.
     private bool _busy;
+    /// <summary>True on the browser (WebAssembly) deployment - see IBrowserHostMarker.</summary>
+    private bool IsBrowserHost => Services.GetService<IBrowserHostMarker>() is not null;
     private string? _liveError;
     /// <summary>Set by the host (e.g. a "view on-board storage" jump from the Vehicles tab) to
     /// pre-fill the filter box once when this tab is shown; the user's own typing after that
