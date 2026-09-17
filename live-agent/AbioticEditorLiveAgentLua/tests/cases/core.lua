@@ -50,7 +50,13 @@ return function(H)
     H.eq(#flags.flags, 2, "two known flags"); H.eq(flags.flags[1].isSet, true, "set flag"); H.eq(flags.flags[2].isSet, false, "unset flag")
     H.ok(H.dispatch("flags.set", { flags = { { name = "MapReveal_Security", isSet = true } } }), "flags.set")
     H.eq(H.calls(subsystem, "SetWorldFlag"), 1, "SetWorldFlag called once")
-    H.fails(H.dispatch("flags.set", { flags = { { name = "Nope", isSet = true } } }), "unknown quest flag", "unknown flag rejected")
+    -- A name the game's flag table lacks is skipped and reported, never a hard failure: the
+    -- rest of the batch still applies (Office_PowerOn here), and the editor names what was left.
+    local partial = H.ok(H.dispatch("flags.set", { flags = { { name = "Nope", isSet = true }, { name = "Office_PowerOn", isSet = false } } }), "flags.set with an unknown name")
+    H.eq(#partial.skipped, 1, "one flag skipped"); H.eq(partial.skipped[1], "Nope", "the unknown name is reported")
+    H.eq(H.calls(subsystem, "SetWorldFlag"), 2, "the known flag in the same batch still applied")
+    local clean = H.ok(H.dispatch("flags.set", { flags = { { name = "MapReveal_Security", isSet = false } } }), "flags.set all known")
+    H.eq(#clean.skipped, 0, "nothing skipped when every flag is known")
 
     -- world clock/weather.
     local manager = H.world.add(H.object("DayNightManager_C", {

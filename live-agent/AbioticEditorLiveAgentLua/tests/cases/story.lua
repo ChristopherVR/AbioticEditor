@@ -37,9 +37,11 @@ return function(H)
     H.eq(H.field(H.gameState, "CurrentQuest").RowName:ToString(), "Office2", "CurrentQuest.RowName nudged")
     H.eq(H.calls(H.gameState, "OnRep_CurrentQuest"), 1, "OnRep_CurrentQuest pushed once")
 
-    -- An unknown flag name in either list is rejected the same way flags.set rejects one.
-    H.fails(H.dispatch("story.set", { currentQuestRow = "Office2", flagsToSet = { "Nope" } }),
-        "unknown quest flag", "unknown flag in flagsToSet rejected")
+    -- An unknown flag name in either list is skipped and reported the same way flags.set does
+    -- (a chapter's own trigger list can name a flag the game's table no longer carries).
+    local partial = H.ok(H.dispatch("story.set", { currentQuestRow = "Office2", flagsToSet = { "Nope" } }),
+        "story.set with an unknown flag still succeeds")
+    H.eq(#partial.skipped, 1, "the unknown flag is reported"); H.eq(partial.skipped[1], "Nope", "by name")
 
     -- A joined client cannot move the story (host is checked before anything else is touched, so
     -- this still fails correctly even though H.clientSession() resets the world and drops the

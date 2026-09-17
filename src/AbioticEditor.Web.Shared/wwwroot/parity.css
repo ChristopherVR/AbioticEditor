@@ -2224,3 +2224,10 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 .world-advanced-fields input { flex:1; min-width:120px; }
 
 .ini-workspace .shell-status { display:none!important; }
+/* App-wide error banner (AppErrorBoundary): a failed action stays a dismissable strip above the
+   screen it came from instead of taking the whole window down. */
+.app-error{display:flex;align-items:flex-start;gap:12px;margin:12px 16px 0;padding:10px 12px;border:1px solid var(--alert);border-left-width:5px;background:color-mix(in srgb,var(--alert) 14%,var(--hover));color:var(--ink);font:12px var(--font-ui)}
+.app-error-icon{flex:0 0 auto;color:var(--alert);font-size:22px}
+.app-error-text{display:grid;gap:3px;flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+.app-error-text strong{font-size:13px;letter-spacing:.04em;text-transform:uppercase}
+.app-error-dismiss{flex:0 0 auto;align-self:center}

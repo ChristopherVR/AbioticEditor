@@ -66,8 +66,8 @@ public static class QuestFlagDependencies
             ["Labs_MetWitch"] = new[] { "Labs_AbeJanetElectroPestScene" },
             ["LABS_MetAbe"] = new[] { "Labs_MetWitch" },
             ["LABS_ElectroPests"] = new[] { "LABS_MetAbe" },
-            ["Labs_Containment"] = new[] { "Labs_MiddleProgression" },
-            ["Labs_DiracGoal"] = new[] { "Labs_Containment" },
+            ["Labs_Containment_Entered"] = new[] { "Labs_MiddleProgression" },
+            ["Labs_DiracGoal"] = new[] { "Labs_Containment_Entered" },
             ["LABS_ActivateWarehouseLift"] = new[] { "Labs_DiracGoal" },
             ["LABS_ReachedCommandCenter"] = new[] { "LABS_ActivateWarehouseLift" },
             ["LABS_TurretsDeactivated"] = new[] { "LABS_ReachedCommandCenter" },
@@ -79,7 +79,7 @@ public static class QuestFlagDependencies
             ["LABS_OpenVacuumDoor"] = new[] { "LABS_CompletedAnteverseB" },
             // Tram stations: the Containment station unlocks during the Labs containment phase; the
             // Dam/Office station only after leaving the Labs (a Security + Hydroplant gap sits between).
-            ["Tram_Containment"] = new[] { "Labs_Containment" },
+            ["Tram_Containment"] = new[] { "Labs_Containment_Entered" },
             ["Tram_DamOffice"] = new[] { "Tram_Containment", "LABS_OpenVacuumDoor" },
 
             // --- Security (the numeric gate order is unverified, so each gate only needs region entry) ---

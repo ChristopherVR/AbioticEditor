@@ -94,11 +94,16 @@ public sealed class LiveStorySession : IWorldStorySession
     {
         var directory = await _flagsChannel.GetAsync(cancellationToken).ConfigureAwait(false);
         var currentlySet = directory.Flags.Where(f => f.IsSet).Select(f => f.Name).ToList();
-        var (flagsToSet, flagsToClear) = ComputeFlagPlan(row, currentlySet);
+        // The running game's own flag table is the truth about which names exist: anything the
+        // curated catalogs name that the game does not know is left out of the request rather
+        // than sent for the game to reject (a mistyped prerequisite once failed the whole
+        // chapter change this way). The mod skips such names too, as a second line of defence.
+        var known = new HashSet<string>(directory.Flags.Select(f => f.Name), StringComparer.OrdinalIgnoreCase);
+        var (flagsToSet, flagsToClear) = ComputeFlagPlan(row, currentlySet, known);
 
-        await _storyChannel.SetAsync(row, flagsToSet, flagsToClear, cancellationToken).ConfigureAwait(false);
-        Status = null;
+        var skipped = await _storyChannel.SetAsync(row, flagsToSet, flagsToClear, cancellationToken).ConfigureAwait(false);
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
+        Status = LiveWorldFlagsSession.SkippedFlagsStatus(skipped);
     }
 
     /// <summary>
@@ -113,10 +118,13 @@ public sealed class LiveStorySession : IWorldStorySession
     /// no-op when moving forward, since none of those flags are set yet.
     /// </summary>
     public static (IReadOnlyList<string> FlagsToSet, IReadOnlyList<string> FlagsToClear) ComputeFlagPlan(
-        string targetRow, IReadOnlyCollection<string> currentlySet)
+        string targetRow, IReadOnlyCollection<string> currentlySet, IReadOnlySet<string>? knownFlags = null)
     {
         var targetIndex = StoryProgressionCatalog.IndexOf(targetRow);
         if (targetIndex < 0) throw new InvalidOperationException($"Unknown chapter '{targetRow}'.");
+        // When the caller knows which flag names the game actually has (the live directory),
+        // the plan is limited to those; null means "trust the catalogs" (tests, offline).
+        bool IsKnown(string flag) => knownFlags is null || knownFlags.Contains(flag);
 
         var haveSet = new HashSet<string>(currentlySet, StringComparer.OrdinalIgnoreCase);
 
@@ -133,7 +141,7 @@ public sealed class LiveStorySession : IWorldStorySession
         {
             if (seen.Add(prereq)) triggersThroughTarget.Add(prereq);
         }
-        var flagsToSet = triggersThroughTarget.Where(f => !haveSet.Contains(f)).ToList();
+        var flagsToSet = triggersThroughTarget.Where(f => !haveSet.Contains(f) && IsKnown(f)).ToList();
 
         var forwardTriggers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         for (var i = targetIndex + 1; i < StoryProgressionCatalog.Chapters.Count; i++)
@@ -142,7 +150,7 @@ public sealed class LiveStorySession : IWorldStorySession
         }
         var toClear = new HashSet<string>(FlagGate.DependentsOf(forwardTriggers, currentlySet), StringComparer.OrdinalIgnoreCase);
         toClear.UnionWith(FlagGate.FlagsPastChapter(targetIndex, currentlySet));
-        var flagsToClear = toClear.Where(haveSet.Contains).ToList();
+        var flagsToClear = toClear.Where(f => haveSet.Contains(f) && IsKnown(f)).ToList();
 
         return (flagsToSet, flagsToClear);
     }

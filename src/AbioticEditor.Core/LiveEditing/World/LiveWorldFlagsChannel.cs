@@ -21,14 +21,23 @@ public sealed class LiveWorldFlagsChannel(ILiveGameChannel channel)
             (wire.Flags ?? []).Select(f => new LiveWorldFlag(f.Name, f.IsSet)).ToList(), wire.IsHost);
     }
 
-    /// <summary>Sets or clears one or more flags immediately.</summary>
-    public Task SetAsync(IReadOnlyList<LiveWorldFlag> flags, CancellationToken cancellationToken = default)
-        => _channel.RequestAsync<object?>("flags.set",
-            new SetWire(flags.Select(f => new FlagWire(f.Name, f.IsSet)).ToList()), cancellationToken);
+    /// <summary>
+    /// Sets or clears one or more flags immediately. Returns the names the game did not know
+    /// and therefore left alone (a chapter's trigger list can name a flag the game's flag table
+    /// no longer carries); empty when every flag applied. An older mod bundle answers with no
+    /// body at all, which reads as "nothing skipped".
+    /// </summary>
+    public async Task<IReadOnlyList<string>> SetAsync(IReadOnlyList<LiveWorldFlag> flags, CancellationToken cancellationToken = default)
+    {
+        var wire = await _channel.RequestAsync<SetResultWire?>("flags.set",
+            new SetWire(flags.Select(f => new FlagWire(f.Name, f.IsSet)).ToList()), cancellationToken).ConfigureAwait(false);
+        return wire?.Skipped ?? [];
+    }
 
     private sealed record DirectoryWire(IReadOnlyList<FlagWire>? Flags, bool IsHost);
     private sealed record FlagWire(string Name, bool IsSet);
     private sealed record SetWire(IReadOnlyList<FlagWire> Flags);
+    private sealed record SetResultWire(IReadOnlyList<string>? Skipped);
 }
 
 /// <summary>One world flag: its raw row name and whether the running world has it set.</summary>

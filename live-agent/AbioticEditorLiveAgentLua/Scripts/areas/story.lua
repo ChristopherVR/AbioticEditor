@@ -74,7 +74,8 @@ return function(ctx)
             for _, name in ipairs(payload.flagsToClear or {}) do
                 table.insert(rows, { name = name, isSet = false })
             end
-            if #rows > 0 then ctx.applyWorldFlagRows(rows) end
+            local skipped = { __forceArray = true }
+            if #rows > 0 then skipped = ctx.applyWorldFlagRows(rows) end
 
             -- Belt-and-braces nudge only: no installed mod writes a struct member directly, so
             -- this is wrapped in pcall and is not what makes the story move - the flags above are
@@ -86,7 +87,7 @@ return function(ctx)
                 pcall(function() gameState:OnRep_CurrentQuest() end)
             end
 
-            return nil
+            return { skipped = skipped }
         end, respond)
     end
 end

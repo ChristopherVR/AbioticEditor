@@ -88,8 +88,18 @@ public sealed class LiveWorldFlagsSession : IWorldFlagsSession
     public async Task ApplyAsync(IReadOnlyList<LiveWorldFlag> edits, CancellationToken cancellationToken = default)
     {
         if (edits.Count == 0) return;
-        await _channel.SetAsync(edits, cancellationToken).ConfigureAwait(false);
-        Status = null;
+        var skipped = await _channel.SetAsync(edits, cancellationToken).ConfigureAwait(false);
+        Status = SkippedFlagsStatus(skipped);
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// The status line for flag names the game did not know and left alone, or null when every
+    /// flag applied. Shared with the story session (a chapter move is the same flag write) so a
+    /// player reads the same sentence from either screen.
+    /// </summary>
+    internal static string? SkippedFlagsStatus(IReadOnlyList<string> skipped)
+        => skipped.Count == 0
+            ? null
+            : $"Applied, except for {skipped.Count} flag{(skipped.Count == 1 ? "" : "s")} the running game does not know and left unchanged: {string.Join(", ", skipped)}.";
 }

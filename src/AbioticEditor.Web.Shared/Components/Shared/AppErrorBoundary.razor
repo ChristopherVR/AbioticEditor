@@ -1,0 +1,26 @@
+@inherits Microsoft.AspNetCore.Components.ErrorBoundaryBase
+
+@* One failed action used to end the whole window: an error thrown from a button handler in
+   any screen tore down the Blazor circuit, which shows up as the app freezing with every
+   control dead until it is restarted (a live report hit this from a story-chapter change the
+   game rejected). This boundary keeps the screen mounted and shows the failure as a banner the
+   player can dismiss and carry on from, instead of replacing the screen with an error page. *@
+@if (CurrentException is { } failure)
+{
+    <div class="app-error" role="alert">
+        <span class="material-symbol app-error-icon" aria-hidden="true">error</span>
+        <div class="app-error-text">
+            <strong>@L.Resource("AppError_Title")</strong>
+            <span>@Errors.Present(failure, L.Resource("AppError_Action"), L.Resource("AppError_Guidance"))</span>
+            <small class="muted">@L.Resource("AppError_Help")</small>
+        </div>
+        <button type="button" class="secondary app-error-dismiss" @onclick="Recover">@L.Resource("AppError_Dismiss")</button>
+    </div>
+}
+@ChildContent
+
+@code {
+    @* Errors.Present (in the markup above) records the technical cause to the log and picks
+       the wording a player can act on, so nothing more is needed here. *@
+    protected override Task OnErrorAsync(Exception failure) => Task.CompletedTask;
+}

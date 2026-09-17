@@ -72,4 +72,55 @@ public class QuestFlagCatalogCoverageTests
         Assert.True(fromAreas.SetEquals(known),
             "FlagsByArea values do not match KnownFlags exactly");
     }
+
+    /// <summary>
+    /// The game's own flag table (tests/fixtures/world-flag-table.txt, from a running game) is
+    /// the truth about which names are real flags. The offline flag screens list
+    /// <see cref="QuestFlagCatalog.KnownFlags"/>, so every row the game has must be in it -
+    /// 148 later-region flags (Reactors, Residence, Fracture, the ending) were missing before.
+    /// </summary>
+    [Fact]
+    public void KnownFlags_covers_the_game_flag_table()
+    {
+        if (Fixtures.GameWorldFlags.Count == 0) return;
+        var known = new HashSet<string>(QuestFlagCatalog.KnownFlags, StringComparer.Ordinal);
+        var missing = Fixtures.GameWorldFlags.Where(flag => !known.Contains(flag)).ToList();
+        Assert.True(missing.Count == 0, "flags the game has but KnownFlags lacks: " + string.Join(", ", missing));
+    }
+
+    /// <summary>
+    /// Every name the curated prerequisite graph uses must be a real flag. A mistyped node
+    /// ("Labs_Containment", which is only an area prefix; the flag is "Labs_Containment_Entered")
+    /// once reached the running game through a chapter change and was rejected, which used to
+    /// fail the whole edit.
+    /// </summary>
+    [Fact]
+    public void Every_curated_prerequisite_names_a_real_flag()
+    {
+        if (Fixtures.GameWorldFlags.Count == 0) return;
+        var real = new HashSet<string>(Fixtures.GameWorldFlags, StringComparer.OrdinalIgnoreCase);
+        var unknown = QuestFlagDependencies.Direct
+            .SelectMany(pair => pair.Value.Append(pair.Key))
+            .Where(flag => !real.Contains(flag))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        Assert.True(unknown.Count == 0, "curated prerequisite names that are not flags: " + string.Join(", ", unknown));
+    }
+
+    /// <summary>Every chapter trigger, and every flag a chapter move would set or clear, is a
+    /// name the game actually has.</summary>
+    [Fact]
+    public void Every_chapter_plan_only_names_real_flags()
+    {
+        if (Fixtures.GameWorldFlags.Count == 0) return;
+        var real = new HashSet<string>(Fixtures.GameWorldFlags, StringComparer.OrdinalIgnoreCase);
+        var unknown = new List<string>();
+        foreach (var chapter in StoryProgressionCatalog.Chapters)
+        {
+            if (chapter.TriggerFlag is { } trigger && !real.Contains(trigger)) unknown.Add(chapter.Row + " trigger: " + trigger);
+            var (flagsToSet, flagsToClear) = AbioticEditor.Web.Models.LiveStorySession.ComputeFlagPlan(chapter.Row, []);
+            unknown.AddRange(flagsToSet.Concat(flagsToClear).Where(flag => !real.Contains(flag)).Select(flag => chapter.Row + ": " + flag));
+        }
+        Assert.True(unknown.Count == 0, "chapter plans naming flags the game does not have: " + string.Join(", ", unknown.Distinct()));
+    }
 }

@@ -91,4 +91,16 @@ public sealed class LiveStorySessionFlagPlanTests
             Assert.DoesNotContain(trigger, flagsToClear);
         }
     }
+
+    [Fact]
+    public void Plan_is_limited_to_the_flags_the_game_reports_when_given_them()
+    {
+        var full = LiveStorySession.ComputeFlagPlan("Containment", currentlySet: []);
+        Assert.NotEmpty(full.FlagsToSet);
+        // Pretend the game only knows the chapter's own trigger: everything else falls away.
+        var known = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Labs_Containment_Entered" };
+        var limited = LiveStorySession.ComputeFlagPlan("Containment", currentlySet: [], known);
+        Assert.Equal("Labs_Containment_Entered", Assert.Single(limited.FlagsToSet));
+        Assert.Empty(limited.FlagsToClear);
+    }
 }

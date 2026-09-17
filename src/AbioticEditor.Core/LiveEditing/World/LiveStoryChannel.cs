@@ -28,16 +28,21 @@ public sealed class LiveStoryChannel(ILiveGameChannel channel)
     /// Moves the story chapter to <paramref name="targetQuestRow"/> by setting/clearing the flags
     /// the caller already computed, then nudging the replicated <c>CurrentQuest</c> row (best
     /// effort - see the Lua module's header comment). The flags are the real, game-native write;
-    /// the row nudge is a belt-and-braces extra.
+    /// the row nudge is a belt-and-braces extra. Returns the flag names the game did not know
+    /// and left alone (see <see cref="LiveWorldFlagsChannel.SetAsync"/>); empty when all applied.
     /// </summary>
-    public Task SetAsync(
+    public async Task<IReadOnlyList<string>> SetAsync(
         string targetQuestRow, IReadOnlyList<string> flagsToSet, IReadOnlyList<string> flagsToClear,
         CancellationToken cancellationToken = default)
-        => _channel.RequestAsync<object?>(
-            "story.set", new SetWire(targetQuestRow, flagsToSet, flagsToClear), cancellationToken);
+    {
+        var wire = await _channel.RequestAsync<SetResultWire?>(
+            "story.set", new SetWire(targetQuestRow, flagsToSet, flagsToClear), cancellationToken).ConfigureAwait(false);
+        return wire?.Skipped ?? [];
+    }
 
     private sealed record StateWire(string? CurrentQuestRow, bool IsHost);
     private sealed record SetWire(string CurrentQuestRow, IReadOnlyList<string> FlagsToSet, IReadOnlyList<string> FlagsToClear);
+    private sealed record SetResultWire(IReadOnlyList<string>? Skipped);
 }
 
 /// <summary>The running game's current-quest row name, as read by <see cref="LiveStoryChannel.GetAsync"/>.

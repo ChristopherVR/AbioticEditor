@@ -194,6 +194,9 @@ knows (the same names as the world save's `WorldFlags` array and `QuestFlagCatal
 set flag the table does not list. `flags.set` takes `{"flags":[{"name","isSet"}]}` and applies
 them in order through the game's own world-flag subsystem, so dependent doors, effects and
 triggers react exactly as if the flag had been earned in play. Host only.
+Both `flags.set` and `story.set` answer `{"skipped":[...]}`: names the game's flag table does not
+carry are left alone and listed there instead of failing the request, so the rest of the batch still
+applies and the editor can say which names the game did not know.
 
 ## `story.get` / `story.set` - main-quest indicator and setter
 

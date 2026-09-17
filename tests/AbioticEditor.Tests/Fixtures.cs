@@ -81,6 +81,28 @@ internal static class Fixtures
             .ToArray();
     }
 
+    /// <summary>
+    /// Every quest/story flag row the game's own world-flag table carries, from
+    /// <c>tests/fixtures/world-flag-table.txt</c> (a running game's <c>flags.list</c> answer,
+    /// one row name per line, <c>#</c> comments). Empty when the file is absent, so tests
+    /// that use it as the truth skip instead of failing.
+    /// </summary>
+    public static IReadOnlyList<string> GameWorldFlags { get; } = LoadWorldFlagTable();
+
+    private static string[] LoadWorldFlagTable()
+    {
+        foreach (var root in FixtureRoots())
+        {
+            var path = Path.Combine(root, "world-flag-table.txt");
+            if (!File.Exists(path)) continue;
+            return File.ReadAllLines(path)
+                .Select(line => line.Trim())
+                .Where(line => line.Length > 0 && !line.StartsWith('#'))
+                .ToArray();
+        }
+        return [];
+    }
+
     /// <summary>Walks up from the test binary looking for <c>tests/fixtures</c> (or <c>fixtures</c>).</summary>
     private static IEnumerable<string> FixtureRoots()
     {

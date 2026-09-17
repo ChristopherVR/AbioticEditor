@@ -91,7 +91,7 @@
         </nav>
     </header>
     <div class="hazard" aria-hidden="true"></div>
-    <main id="main-content" tabindex="-1" inert="@((_modeSelectOpen || _settingsOpen || _releaseNotesOpen) ? "" : null)"><WorkspaceShell>@Body</WorkspaceShell></main>
+    <main id="main-content" tabindex="-1" inert="@((_modeSelectOpen || _settingsOpen || _releaseNotesOpen) ? "" : null)"><WorkspaceShell><AppErrorBoundary>@Body</AppErrorBoundary></WorkspaceShell></main>
     <footer class="status-footer" inert="@((_modeSelectOpen || _settingsOpen || _releaseNotesOpen) ? "" : null)">
         <div class="live-status">
             <span aria-hidden="true"></span>

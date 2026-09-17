@@ -110,7 +110,10 @@ local function runOnGameThread(work, respond)
     ExecuteInGameThread(function()
         local ok, result, err = pcall(work)
         if not ok then
-            respond(nil, "handler error: " .. tostring(result))
+            -- error("...") prefixes the script path and line; the editor shows this text to
+            -- the player, who has no use for either, so only the message itself travels.
+            local text = (tostring(result):gsub("^.-%.lua:%d+: ", ""))
+            respond(nil, "handler error: " .. text)
         else
             respond(result, err)
         end
@@ -1417,25 +1420,34 @@ local function applyWorldFlagRows(rows)
         end
     end
     local instigator = getMyPlayer()
+    -- Names the game's flag table does not carry. A chapter's trigger list comes from the
+    -- game's own story table and can name a flag the world-flag table no longer has (a live
+    -- report hit "Labs_Containment" this way); erroring out on it used to abandon the whole
+    -- edit half-applied AND surface as an unhandled failure in the editor. Such names are
+    -- skipped and reported back so the editor can say which ones the game did not know.
+    local skipped = { __forceArray = true }
     for i = 1, #rows do
         local row = rows[i]
         local handle = row.name and handles[row.name]
-        if not handle then error("unknown quest flag " .. tostring(row.name)) end
-        local value = row.isSet == true
-        -- Same struct-as-table pattern the reference mod uses for TriggerWeatherEvent; the
-        -- raw handle userdata is the fallback if the table form is rejected.
-        local okCall = pcall(function()
-            subsystem:SetWorldFlag({ RowName = handle.RowName, DataTablePath = handle.DataTablePath }, value, instigator)
-        end)
-        if not okCall then subsystem:SetWorldFlag(handle, value, instigator) end
+        if not handle then
+            table.insert(skipped, tostring(row.name))
+        else
+            local value = row.isSet == true
+            -- Same struct-as-table pattern the reference mod uses for TriggerWeatherEvent; the
+            -- raw handle userdata is the fallback if the table form is rejected.
+            local okCall = pcall(function()
+                subsystem:SetWorldFlag({ RowName = handle.RowName, DataTablePath = handle.DataTablePath }, value, instigator)
+            end)
+            if not okCall then subsystem:SetWorldFlag(handle, value, instigator) end
+        end
     end
+    return skipped
 end
 
 handlers["flags.set"] = function(payload, respond)
     runOnGameThread(function()
         if not isHost() then error("only the host can change quest flags") end
-        applyWorldFlagRows(payload.flags or {})
-        return nil
+        return { skipped = applyWorldFlagRows(payload.flags or {}) }
     end, respond)
 end
 
