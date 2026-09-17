@@ -135,7 +135,8 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
     /// unlike the live session's <c>IsHost</c>.</summary>
     bool IWorldDoorsSession.IsHost => true;
     IReadOnlySet<string> IWorldDoorsSession.Flags => Flags;
-    public IReadOnlyList<WorldContainer> Containers => _containers.Values.OrderBy(container => container.Source).ThenBy(container => container.Id, StringComparer.OrdinalIgnoreCase).ToArray();
+    public IReadOnlyList<WorldContainer> Containers => _containers.Values.Select(WithVoidPoolContents)
+        .OrderBy(container => container.Source).ThenBy(container => container.Id, StringComparer.OrdinalIgnoreCase).ToArray();
     public IReadOnlyList<WorldNpc> Npcs => _npcs.Values.OrderBy(npc => npc.IsPet).ThenBy(npc => npc.ActorName, StringComparer.OrdinalIgnoreCase).ToArray();
     /// <summary>Tamed companions from the PetNPC map, with edits staged until save.</summary>
     public IReadOnlyList<WorldPet> Pets => _pets.Values.Concat(_pendingPetPlacements.Select(placement => placement.Pet))
@@ -362,7 +363,7 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
     /// <summary>Stages a stack-count change while preserving every other slot field.</summary>
     public void SetContainerSlotCount(WorldContainerSource source, string id, int inventoryIndex, int slotIndex, int count)
     {
-        var key = $"{source}:{id}";
+        var key = ContainerStorageKey(source, id);
         if (!_containers.TryGetValue(key, out var container) || inventoryIndex < 0 || inventoryIndex >= container.Inventories.Count) return;
         var inventory = container.Inventories[inventoryIndex];
         if (slotIndex < 0 || slotIndex >= inventory.Slots.Count) return;
@@ -393,7 +394,15 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
         var key = $"{source}:{id}";
         if (!_containers.TryGetValue(key, out var container)) return false;
         var trimmed = name.Trim();
-        _containers[key] = container with { Name = trimmed.Length == 0 ? null : trimmed };
+        var newName = trimmed.Length == 0 ? null : trimmed;
+        _containers[key] = container with { Name = newName };
+        // One chest in the game means one name: a Void Chest's name is applied to every Void
+        // Chest, the same as the live editor does (see main.lua's voidChestSiblings).
+        if (IsVoidChest(container))
+        {
+            foreach (var sibling in _containers.Where(pair => pair.Key != key && IsVoidChest(pair.Value)).ToArray())
+                _containers[sibling.Key] = sibling.Value with { Name = newName };
+        }
         UpdateStatus();
         return true;
     }
@@ -1221,10 +1230,33 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
         _containments.Any(pair => !_originalContainments.TryGetValue(pair.Key, out var original) || original != pair.Value);
     private static string ContainerKey(WorldContainer container) => $"{container.Source}:{container.Id}";
 
+    /// <summary>
+    /// Every placed Void Chest is one chest in the game: its real contents are the world-wide
+    /// <c>CustomInventoryMap</c> entry named <c>Void</c> (the save-file copy of the GameState's
+    /// <c>Inventory_Void</c>, next to the <c>Boxy</c> one), and the per-chest inventory each
+    /// <c>Deployed_StorageCrate_Void_C</c> entry carries is a decoy the game never reads. Round 90:
+    /// the live editor learned this the hard way (see main.lua's <c>containerInventory</c>), and
+    /// the file editor had the exact same bug - every read and edit of a Void Chest's own row goes
+    /// to that shared entry instead, so what you see and change offline is what the game loads.
+    /// Falls back to the chest's own row only when a save has no <c>Void</c> entry at all.
+    /// </summary>
+    private const string VoidPoolKey = "Custom:Void";
+    private static bool IsVoidChest(WorldContainer container)
+        => container.Source == WorldContainerSource.Deployed
+           && container.ClassName?.Contains("StorageCrate_Void", StringComparison.OrdinalIgnoreCase) == true;
+    private string ContainerStorageKey(WorldContainerSource source, string id)
+    {
+        var key = $"{source}:{id}";
+        return _containers.TryGetValue(key, out var container) && IsVoidChest(container) && _containers.ContainsKey(VoidPoolKey)
+            ? VoidPoolKey : key;
+    }
+    private WorldContainer WithVoidPoolContents(WorldContainer container)
+        => IsVoidChest(container) && _containers.TryGetValue(VoidPoolKey, out var pool)
+            ? container with { Inventories = pool.Inventories } : container;
     private bool TryGetContainerInventory(WorldContainerSource source, string id, int inventoryIndex, out WorldContainer container, out WorldInventory inventory)
     {
         inventory = default!;
-        if (!_containers.TryGetValue($"{source}:{id}", out container!) || inventoryIndex < 0 || inventoryIndex >= container.Inventories.Count) return false;
+        if (!_containers.TryGetValue(ContainerStorageKey(source, id), out container!) || inventoryIndex < 0 || inventoryIndex >= container.Inventories.Count) return false;
         inventory = container.Inventories[inventoryIndex];
         return true;
     }
@@ -1233,7 +1265,7 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
     {
         var inventories = container.Inventories.ToArray();
         inventories[inventoryIndex] = inventory;
-        _containers[$"{source}:{id}"] = container with { Inventories = inventories };
+        _containers[ContainerStorageKey(source, id)] = container with { Inventories = inventories };
     }
 
     private static WorldSaveData CloneForFeatures(WorldSaveData source)

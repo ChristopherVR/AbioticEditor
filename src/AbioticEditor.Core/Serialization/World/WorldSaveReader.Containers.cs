@@ -132,7 +132,14 @@ public static partial class WorldSaveReader
 
             var className = ExtractClassName(ps.Properties);
             var inventories = ReadContainerInventoriesArray(ps.Properties);
-            if (inventories.Count == 0) continue;
+            // A placed Void Chest saves NO ContainerInventories_ at all: every Void Chest is one
+            // chest in the game, whose real contents are the CustomInventoryMap entry named "Void"
+            // (read below). Dropping it here (as every other inventory-less deployable is dropped)
+            // made Void Chests vanish from the offline container list entirely - round 90 keeps
+            // them, with no inventories of their own, and WorldSaveSession presents that shared
+            // entry's contents on each one.
+            var isVoidChest = className?.Contains("StorageCrate_Void", StringComparison.OrdinalIgnoreCase) == true;
+            if (inventories.Count == 0 && !isVoidChest) continue;
 
             // Same field ReadDeployables reads for the base-manager summary (see its own
             // customName line) - a container's player-given label, empty when never renamed.
