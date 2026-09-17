@@ -1,5 +1,6 @@
 @namespace AbioticEditor.Web.Components.World
 @using AbioticEditor.Core.WorldSaves.Features
+@using AbioticEditor.Web.Components.Player
 @using AbioticEditor.Web.Models
 @using Microsoft.AspNetCore.Components.Web.Virtualization
 @inject AbioticEditor.Web.Services.SaveWorkspaceSessionService Workspace
@@ -87,6 +88,16 @@ else
                                 @foreach (var spot in GardenSpots(selected)) { <option value="@spot">Spot @(int.Parse(spot, System.Globalization.CultureInfo.InvariantCulture) + 1)</option> }
                             </select>
                         </label>
+                        @* The crop field already stores an item-table row id (see care.lua/
+                           DeployedCareFeatures.cs), so the same icon lookup every item slot
+                           already uses just works here, no separate artwork source needed. *@
+                        @if (CurrentCropItemId(selected) is { Length: > 0 } cropItemId)
+                        {
+                            <div class="world-feature-crop-preview">
+                                <ItemIcon ItemId="@cropItemId" Alt="@CropDisplayName(cropItemId)" Class="world-feature-crop-icon" />
+                                <span>@CropDisplayName(cropItemId)</span>
+                            </div>
+                        }
                     }
                     <div class="world-feature-fields">
                         @foreach (var field in VisibleFields(selected))
@@ -422,6 +433,13 @@ else
     /// </summary>
     private string _gardenSpot = "0";
     private static IEnumerable<string> GardenSpots(WorldMapEntry entry) => entry.Fields.Where(f => f.Id.Contains(':')).Select(f => f.Id.Split(':')[1]).Distinct();
+
+    /// <summary>The item id currently planted in the selected spot, or null when that spot is
+    /// empty (the crop field is only present at all while something is planted there).</summary>
+    private string? CurrentCropItemId(WorldMapEntry entry)
+        => entry.Fields.FirstOrDefault(f => f.Id == $"crop:{_gardenSpot}") is { Value.Length: > 0 } field ? field.Value : null;
+
+    private string CropDisplayName(string cropItemId) => Items.Find(cropItemId)?.DisplayName ?? PlainNames.Words(cropItemId);
     private IEnumerable<WorldMapField> VisibleFields(WorldMapEntry entry)
     {
         if (FeatureId != "garden-plots") return entry.Fields;

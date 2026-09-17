@@ -1229,6 +1229,9 @@ button.world-feature-row.selected{background:var(--elevated);box-shadow:inset 2p
 .world-feature-field-row select,.world-feature-field-row input[type=text],.world-feature-field-row input[type=number]{max-width:240px;background:var(--elevated);border:1px solid var(--line);color:var(--ink);padding:5px 8px}
 .world-feature-hint{color:var(--muted);font-size:10px}
 .world-feature-error{color:#ff6b6b;font-size:10px}
+.world-feature-crop-preview{display:flex;align-items:center;gap:10px;margin:8px 0 4px;color:var(--ink);font-size:12px}
+.world-feature-crop-preview .item-artwork.world-feature-crop-icon{width:56px;height:56px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--elevated);border:1px solid var(--line)}
+.world-feature-crop-preview .item-artwork.world-feature-crop-icon img{max-width:100%;max-height:100%;object-fit:contain}
 @media (max-width:960px){.world-feature-panes{grid-template-columns:1fr}.world-feature-list{max-height:440px}}
 /* Entry rows are data (labels, areas, field summaries), not chrome: undo the global
    uppercase button styling so they read like the native list. */

@@ -1,7 +1,7 @@
 return function(H)
     H.hostSession()
     local progress, stage = 123, 1
-    local crop = H.object("Plant_Proxy_Tomato_C")
+    local crop = H.object("Plant_Proxy_Tomato_C", { ItemRow = { RowName = H.fname("Plant_Tomato") } })
     local spot = H.object("FarmingPlot_BP_C", { PlotIndex = 0, VisualFertilizeQuality = 1000, PlantProxy = crop }, {
         HasPlant = function() return true end,
         GetCurrentGrowthProgress = function() return progress end,
@@ -10,6 +10,14 @@ return function(H)
         SetCurrentGrowthStage = function(_, value, skip) H.eq(skip, false, "stage saves crop"); stage = value end,
         SetPlantFertilized = function(self, value, skip) H.eq(skip, false, "fertilizer saves crop"); self.VisualFertilizeQuality = value * 1000 end,
         SavePlot = function() end,
+        ClearPlant = function() end,
+        -- Real game spawns a fresh PlantProxy here; the fake just swaps the row name in place.
+        SetPlantFromItemData = function(self, itemRow, changeableData, skipSave)
+            H.eq(itemRow.DataTable ~= nil, true, "crop set carries a resolved DataTable")
+            H.eq(skipSave, false, "crop set saves the plot")
+            self.PlantProxy = H.object("Plant_Proxy_C", { ItemRow = { RowName = itemRow.RowName } })
+            return true
+        end,
     })
     local garden = H.world.add(H.object("GardenPlot_ParentBP_C", {
         FarmingPlots = { spot }, Liquid_FillLevel = 10, Liquid_MaxFill = 400,
@@ -23,6 +31,11 @@ return function(H)
     local listing = H.ok(H.dispatch("care.list", {featureId="garden-plots"}))
     H.eq(#listing.entries, 1, "garden listed")
     H.eq(#listing.entries[1].fields, 5, "garden care fields listed")
+    local cropField
+    for _, f in ipairs(listing.entries[1].fields) do if f.id == "crop:0" then cropField = f end end
+    H.eq(cropField.value, "Plant_Tomato", "crop field reports the planted row, not a display label")
+    H.eq(cropField.kind, "enum", "crop field is a choice, not plain text")
+    H.eq(cropField.editable, true, "host sees crop field as editable")
     local id = garden:GetFullName()
     local function set(field, value) return H.dispatch("care.set", {featureId="garden-plots", id=id, fieldId=field, value=value}) end
     H.ok(set("water", 300), "water set with readback")
@@ -36,7 +49,13 @@ return function(H)
     H.eq(spot.VisualFertilizeQuality, 2500, "fertilizer readback")
     H.fails(set("stage:0", "Unknown"), "unknown growth stage", "invalid stage rejected")
     H.fails(set("growth:1", 50), "spot not found", "foreign spot rejected")
-    H.fails(set("crop:0", "Seed"), "unknown garden field", "crop identity is read-only")
+    H.fails(set("crop:0", "Seed"), "unknown crop", "unrecognised crop rejected")
+    H.ok(set("crop:0", "Plant_Corn"), "crop changed to a known row")
+    H.eq(H.calls(spot, "ClearPlant"), 1, "changing crop uproots the old plant first")
+    H.eq(H.calls(spot, "SetPlantFromItemData"), 1, "changing crop plants the new row")
+    H.eq(spot.PlantProxy.ItemRow.RowName:ToString(), "Plant_Corn", "new crop row readback")
+    H.eq(stage, 0, "changing crop resets growth stage")
+    H.eq(progress, 0, "changing crop resets growth progress")
     local data = { LiquidLevel_46_D6414A6E49082BC020AADC89CC29E35A = 25 }
     local component = H.object("RechargeableComponent_C", {}, { Server_ModifyBattery = function(_, delta, notOwned)
         H.eq(notOwned, true, "placed chair uses deployed battery path")

@@ -3,6 +3,16 @@
 -- are constructed here. Each request changes one field and checks the immediate readback.
 return function(ctx)
     local stages = { "Sprout", "Budding", "Juvenile", "Flowering", "Grown", "Harvested", "Regrowing", "Dead" }
+    -- Mirrors DeployedCareFeatures.cs's GardenPlotsFeature.CropRows (kept in sync by hand; see
+    -- that list's own comment for how it was derived). A planted row missing from this list
+    -- still shows correctly, it just cannot be chosen as a new selection here.
+    local cropRows = {
+        "Plant_Corn", "Plant_Tomato", "Plant_Wheat", "Plant_Greyeb", "Plant_Nyxshade", "Plant_Super_Tomato",
+        "Plant_RopePlant", "Plant_Egg", "Plant_SpaceLettuce", "Plant_VinePlant", "Plant_Potato", "Plant_Rice",
+        "Plant_Antelight", "Plant_Antelight_GRN", "Plant_Antelight_pink", "Plant_Antelight_red",
+        "Plant_Antelight_orange", "Plant_Antelight_blue", "Plant_Antelight_RGB", "Plant_Antelight_space",
+        "Plant_Pumpkin", "Plant_GlowTulip", "Plant_Shadowberry", "Plant_Carrot",
+    }
     local classes = {
         ["garden-plots"] = "GardenPlot_ParentBP_C",
         ["power-chairs"] = "Deployed_Furniture_Chair_PowerChair_C",
@@ -48,7 +58,10 @@ return function(ctx)
                 if spot:HasPlant() then
                     local stage = spot:GetCurrentGrowthStage()
                     local stageName = type(stage) == "number" and stages[stage + 1] or text(stage):match("([^:]+)$")
-                    table.insert(fields, field("crop:" .. index, "Spot " .. (index + 1) .. " crop", ctx.classLabel(ctx.fullName(spot.PlantProxy))))
+                    -- The item-table row name (e.g. "Plant_Corn"), not a display label, so it
+                    -- round-trips against cropRows the same way file-mode's crop field does.
+                    local cropRow = valid(spot.PlantProxy) and text(spot.PlantProxy.ItemRow.RowName) or ""
+                    table.insert(fields, field("crop:" .. index, "Spot " .. (index + 1) .. " crop", cropRow, "enum", host, cropRows))
                     table.insert(fields, field("stage:" .. index, "Spot " .. (index + 1) .. " stage", stageName, "enum", host, stages))
                     table.insert(fields, field("growth:" .. index, "Spot " .. (index + 1) .. " growth", spot:GetCurrentGrowthProgress(), "integer", host, nil, 10000))
                 end
@@ -118,6 +131,23 @@ return function(ctx)
                         for i, name in ipairs(stages) do if name == value then stage = i - 1 break end end
                         if stage == nil then error("unknown growth stage") end
                         spot:SetCurrentGrowthStage(stage, false)
+                    elseif kind == "crop" then
+                        if not spot:HasPlant() then error("this spot has no crop") end
+                        local wanted = tostring(value)
+                        local known = false
+                        for _, row in ipairs(cropRows) do if row == wanted then known = true break end end
+                        if not known then error("unknown crop: " .. wanted) end
+                        local dataTable, name = ctx.resolveDataTableRow(ctx.itemTableGlobal, wanted)
+                        -- Uproot the current plant before spawning a replacement, mirroring how
+                        -- the game's own planting flow always pairs these two functions: a spot
+                        -- that already HasPlant() keeps its old PlantProxy actor otherwise.
+                        spot:ClearPlant()
+                        local planted = spot:SetPlantFromItemData({ DataTable = dataTable, RowName = name }, {}, false)
+                        if planted ~= true then error("the game rejected the new crop") end
+                        -- Fresh planting: reset back to the very start, same as file-mode edits.
+                        spot:SetCurrentGrowthStage(0, false)
+                        spot:SetCurrentGrowthProgress(0)
+                        spot:SavePlot()
                     else error("unknown garden field") end
                 end
             elseif feature == "power-chairs" and id == "charge" then

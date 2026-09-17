@@ -258,7 +258,7 @@ end
 function H.hostSession()
     H.world.reset()
     H.itemTable("/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global",
-        { scrap_metal = true, bandage = true, pet_skink = true })
+        { scrap_metal = true, bandage = true, pet_skink = true, Plant_Corn = true, Plant_Tomato = true })
     H.world.static("/Script/Engine.Default__DataTableFunctionLibrary", H.object("DataTableFunctionLibrary", {}, {
         DoesDataTableRowExist = function(_, dataTable, name) return dataTable.__rows[name:ToString()] == true end,
     }))

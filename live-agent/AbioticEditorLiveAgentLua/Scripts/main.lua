@@ -628,6 +628,33 @@ local function isDataTable(value)
     return ok and valid
 end
 
+-- Resolves any DataTable row by asset path + row name, with the LoadAsset fallback a not-yet-
+-- loaded table needs. Shared with areas/care.lua (via ctx) for setting a garden plot's crop,
+-- which needs the exact same "find or load, then verify the row really exists" behavior.
+local function resolveDataTableRow(path, itemId)
+    local library = StaticFindObject("/Script/Engine.Default__DataTableFunctionLibrary")
+    if not library or not library:IsValid() then error("cannot validate item data on this game build") end
+    if type(path) ~= "string" or path:sub(1, 1) ~= "/" then error("invalid item DataTable path") end
+    local dataTable = StaticFindObject(path)
+    if not isDataTable(dataTable) then
+        -- LoadAsset is a documented UE4SS global; this helper only runs on the game thread.
+        -- Find the object again because LoadAsset's return value varies between UE4SS builds.
+        if type(LoadAsset) == "function" then pcall(function() LoadAsset(path) end) end
+        dataTable = StaticFindObject(path)
+    end
+    if not isDataTable(dataTable) then
+        error("item DataTable is unavailable: " .. path .. ". Check matching game data in Settings.")
+    end
+    -- Loading the table interns its names. FNAME_Find before loading can return None.
+    local name = FName(itemId, EFindName.FNAME_Find)
+    local ok, exists = pcall(function() return library:DoesDataTableRowExist(dataTable, name) end)
+    if not ok then error("cannot validate the item's DataTable on this game build") end
+    if name:ToString() == "None" or exists ~= true then
+        error("item '" .. itemId .. "' was not found in " .. path .. ". Reload game data in Settings.")
+    end
+    return dataTable, name
+end
+
 local function resolveItemHandle(slot, row)
     local library = StaticFindObject("/Script/Engine.Default__DataTableFunctionLibrary")
     if not library or not library:IsValid() then error("cannot validate item data on this game build") end
@@ -644,24 +671,7 @@ local function resolveItemHandle(slot, row)
         and slotRowName(slot) == row.itemId and hasRow(handle.DataTable, name) then
         return handle.DataTable, name
     end
-    local path = row.dataTable or ITEM_TABLE_GLOBAL
-    if type(path) ~= "string" or path:sub(1, 1) ~= "/" then error("invalid item DataTable path") end
-    local dataTable = StaticFindObject(path)
-    if not isDataTable(dataTable) then
-        -- LoadAsset is a documented UE4SS global; this helper only runs on the game thread.
-        -- Find the object again because LoadAsset's return value varies between UE4SS builds.
-        if type(LoadAsset) == "function" then pcall(function() LoadAsset(path) end) end
-        dataTable = StaticFindObject(path)
-    end
-    if not isDataTable(dataTable) then
-        error("item DataTable is unavailable: " .. path .. ". Check matching game data in Settings.")
-    end
-    -- Loading the table interns its names. FNAME_Find before loading can return None.
-    name = FName(row.itemId, EFindName.FNAME_Find)
-    if name:ToString() == "None" or not hasRow(dataTable, name) then
-        error("item '" .. row.itemId .. "' was not found in " .. path .. ". Reload game data in Settings.")
-    end
-    return dataTable, name
+    return resolveDataTableRow(row.dataTable or ITEM_TABLE_GLOBAL, row.itemId)
 end
 
 -- Field names and types are verified against Abiotic_InventoryChangeableDataStruct's
@@ -1657,6 +1667,8 @@ local ctx = {
     currentWorldFlags = currentWorldFlags,
     applyWorldFlagRows = applyWorldFlagRows,
     containerInventory = containerInventory,
+    resolveDataTableRow = resolveDataTableRow,
+    itemTableGlobal = ITEM_TABLE_GLOBAL,
 }
 
 local okManifest, areaModules = pcall(require, "areas.manifest")
