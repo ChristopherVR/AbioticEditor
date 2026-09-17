@@ -70,7 +70,10 @@ return function(H)
     data[variantKey] = { RowName = H.fname("None") }
     local details = { liquidLevel = 25, liquidType = liquids[3], dynamicState = true,
         playerMadeString = "My item", assetId = "instance-guid", variantRowName = "Poster_Art" }
-    H.ok(H.dispatch("inventory.setfull", { edits = { { kind = "backpack", slotIndex = 0, details = details } } }), "write instance details")
+    -- A real itemId (round 79: an empty slot's details are no longer read/reported at all - see
+    -- readItemDetails' skipMetadata comment - so this has to be a real, non-empty slot like any
+    -- item that actually carries liquid/text/variant data in the real game would be).
+    H.ok(H.dispatch("inventory.setfull", { edits = { { kind = "backpack", slotIndex = 0, itemId = "scrap_metal", details = details } } }), "write instance details")
     H.eq(data["CurrentLiquid_19_3E1652F448223AAE5F405FB510838109"], 3, "enum uses actual value, not suffix 13")
     H.eq(data[variantKey].DataTable, variants, "variant table is paired with row")
     local inventory = H.ok(H.dispatch("inventory.list"))

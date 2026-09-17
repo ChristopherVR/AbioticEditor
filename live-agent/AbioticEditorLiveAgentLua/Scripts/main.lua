@@ -637,15 +637,32 @@ local function liquidEnum()
     return enum
 end
 local itemMetadata = require("item_metadata")
-local function readItemDetails(data, slot)
+-- skipMetadata (round 79): itemMetadata.read() walks the DynamicProperties array (a fresh
+-- StaticFindObject enum lookup PER ENTRY, no caching) plus the GameplayTags/ParentTags arrays (an
+-- FName:ToString() per entry) - real, compounding cost for every NON-EMPTY slot it touches.
+-- containers.list can be asked to do this for every slot of every placed container/bench in the
+-- whole world in one call; on a well-built base that was slow enough to freeze the game and blow
+-- past the live-agent helper's own 5-second response timeout outright (reported live: the
+-- CONTAINERS tab permanently "not available" even after the empty-slot skip above). A plain
+-- field edit (writeSlot with no `details`) never touches existing metadata either way - see
+-- applyItemDetails's own `if not prepared then return end` guard - so omitting it here from a
+-- LIST response cannot lose data, only the "this item has a coating/pet XP" read for BROWSING a
+-- container; inventory.list (one player's own ~50 slots, inherently bounded) keeps full detail.
+local function readItemDetails(data, slot, skipMetadata)
     if not data then return nil end
     local liquid = data[LIQUID_FIELD]
     local liquidName = liquid ~= nil and liquidEnum():GetNameByValue(liquid):ToString() or nil
     local variant = data[VARIANT_FIELD]
+    -- Not "skipMetadata and nil or itemMetadata.read(...)": that classic Lua ternary idiom
+    -- breaks the moment the "true" branch is nil/false, since `nil` is itself falsy and the
+    -- `or` then always falls through to the right-hand side regardless of skipMetadata - it was
+    -- silently reading metadata every time despite this flag (caught by the Lua test suite).
+    local metadata = nil
+    if not skipMetadata then metadata = itemMetadata.read(data, slot) end
     return { liquidLevel = data[LEVEL_FIELD] or 0, liquidType = liquidName,
         dynamicState = data[STATE_FIELD] == true, playerMadeString = textValue(data[TEXT_FIELD]),
         assetId = textValue(data[ASSET_FIELD]), variantRowName = variant and textValue(variant.RowName) or nil,
-        instanceMetadata = itemMetadata.read(data, slot) }
+        instanceMetadata = metadata }
 end
 local function prepareItemDetails(data, details)
     if details == nil then return nil end
@@ -774,6 +791,18 @@ handlers["inventory.list"] = function(payload, respond)
                     -- "Empty" (confirmed real, capitalized) is this game's own empty-slot
                     -- sentinel. Accept None as well for uninitialized slots.
                     local isEmpty = rowName == "" or rowName == "Empty" or rowName == "None"
+                    -- Skipped for an empty slot: there is nothing for it to report (no tags,
+                    -- no dynamic properties), and this walks several TArrays with a native
+                    -- call per entry - real cost per slot, and most inventories/containers are
+                    -- mostly empty slots. A big base's CONTAINERS listing paying that cost on
+                    -- every empty slot in every container was a real contributor to the
+                    -- multi-second freeze (and outright timeout) reported live. NOT
+                    -- "isEmpty and nil or readItemDetails(...)": that classic Lua ternary idiom
+                    -- breaks the moment the "true" branch is nil - `nil` is itself falsy, so the
+                    -- `or` always falls through to readItemDetails regardless of isEmpty, which
+                    -- silently read it for every slot anyway (caught by the Lua test suite).
+                    local details = nil
+                    if not isEmpty then details = readItemDetails(changeableData, slot) end
                     table.insert(result, {
                         kind = kind,
                         slotIndex = i - 1,
@@ -783,13 +812,7 @@ handlers["inventory.list"] = function(payload, respond)
                         durability = changeableData and changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 or 0,
                         maxDurability = changeableData and changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B or 0,
                         ammoInMagazine = changeableData and changeableData.CurrentAmmoInMagazine_12_D68C190F4B2FA78A4B1D57835B95C53D or 0,
-                        -- Skipped for an empty slot: there is nothing for it to report (no tags,
-                        -- no dynamic properties), and this walks several TArrays with a native
-                        -- call per entry - real cost per slot, and most inventories/containers are
-                        -- mostly empty slots. A big base's CONTAINERS listing paying that cost on
-                        -- every empty slot in every container was the main contributor to the
-                        -- multi-second freeze (and outright timeout) reported live.
-                        details = isEmpty and nil or readItemDetails(changeableData, slot),
+                        details = details,
                     })
                 end
             end
@@ -1270,12 +1293,23 @@ end
 -- hash-suffixed field names). OnRep_CurrentInventory exists on the component and is called after
 -- a write so clients/UI refresh (pcall - no mod precedent for calling it directly).
 
-local function slotRow(slot, index)
+-- skipMetadata defaults to false (full detail) because slotRow is shared with
+-- inventory_transfer.lua's snapshot(), which genuinely needs instanceMetadata to correctly carry
+-- a coating/pet-XP/tags across a move - only containers.list opts into skipping it, one slot pair
+-- at a time is never the expensive case a bulk world listing is.
+local function slotRow(slot, index, skipMetadata)
     local rowName = slotRowName(slot)
     local changeableData = slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313
     -- "Empty" is the sentinel the game writes; "None" also shows up on loot-spill bags in a
     -- real world (confirmed live, round 75) and the file editor treats both as empty.
     local isEmpty = rowName == "" or rowName == "Empty" or rowName == "None"
+    -- Skipped for an empty slot (see inventory.list's matching comment), and instance metadata
+    -- is skipped too when the caller asked for it (see readItemDetails's own comment on
+    -- skipMetadata) - both are the main levers on containers.list's freeze/timeout. Not the
+    -- "isEmpty and nil or ..." idiom - see inventory.list's comment on why that silently never
+    -- skips anything when the skipped value is nil.
+    local details = nil
+    if not isEmpty then details = readItemDetails(changeableData, slot, skipMetadata) end
     return {
         slotIndex = index,
         itemId = rowName,
@@ -1284,9 +1318,7 @@ local function slotRow(slot, index)
         durability = changeableData and changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 or 0,
         maxDurability = changeableData and changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B or 0,
         ammoInMagazine = changeableData and changeableData.CurrentAmmoInMagazine_12_D68C190F4B2FA78A4B1D57835B95C53D or 0,
-        -- Skipped for an empty slot - see the matching comment on inventory.list's own copy of
-        -- this same shortcut for why this is the main lever on containers.list's freeze/timeout.
-        details = isEmpty and nil or readItemDetails(changeableData, slot),
+        details = details,
     }
 end
 
@@ -1344,7 +1376,9 @@ handlers["containers.list"] = function(_, respond)
                 for i = 1, #inv.CurrentInventory do
                     -- Same per-slot guard: one bad slot should not drop every other slot in an
                     -- otherwise-healthy container.
-                    local slotOk, row = pcall(slotRow, inv.CurrentInventory[i], i - 1)
+                    -- skipMetadata=true: this is the bulk world listing (see slotRow's own
+                    -- comment) - inventory.transfer's own slotRow call keeps full detail.
+                    local slotOk, row = pcall(slotRow, inv.CurrentInventory[i], i - 1, true)
                     if slotOk then table.insert(slots, row) end
                 end
                 table.insert(result, { id = name, label = classLabel(name), x = x, y = y, z = z, slots = slots })

@@ -59,6 +59,15 @@ return function(H)
     H.eq(slots[1][I].RowName:ToString(), "Empty", "source emptied after transfer")
     H.eq(processingInventory.CurrentInventory[1][I].RowName:ToString(), "test_item", "destination receives item")
     H.eq(processingInventory.CurrentInventory[1][C][D][1].Value, 321, "dynamic metadata transferred")
+
+    -- containers.list deliberately omits instanceMetadata (round 79 perf fix, see main.lua's
+    -- readItemDetails skipMetadata comment) - confirm the metadata is still really there on the
+    -- live object (checked above) even though this listing does not report it, and that the
+    -- ordinary fields a container browser needs are still present.
+    local afterTransfer = H.ok(H.dispatch("containers.list")).containers[1].slots[1]
+    H.eq(afterTransfer.itemId, "test_item", "containers.list still reports the item id")
+    H.eq(afterTransfer.details.instanceMetadata, nil, "containers.list omits instance metadata for speed")
+
     H.fails(H.dispatch("inventory.transfer", { first = { containerId = id, slotIndex = 0 },
         second = { kind = "backpack", slotIndex = 9999 } }), "unavailable", "invalid destination rejects transfer")
     H.eq(processingInventory.CurrentInventory[1][I].RowName:ToString(), "test_item", "failed transfer preserves source")
