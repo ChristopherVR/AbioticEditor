@@ -1,3 +1,4 @@
+@using AbioticEditor.Core.Assets
 @using AbioticEditor.Core.LiveEditing
 @using AbioticEditor.Core.LiveEditing.Player
 @using AbioticEditor.Web.Services
@@ -9,6 +10,8 @@
 @inject NavigationManager Navigation
 @inject IServiceProvider Services
 @inject LiveSessionService LiveSession
+@inject HostSettingsService HostSettings
+@inject AbioticEditor.Ui.IFolderPicker FolderPicker
 
 <div class="settings-subdialog-backdrop mode-select-backdrop" role="presentation">
     <section @ref="_dialog" class="settings-subdialog mode-select-dialog" role="dialog" aria-modal="true" aria-labelledby="mode-select-title" tabindex="-1">
@@ -69,6 +72,47 @@
             </div>
             <footer class="mode-select-back-row">
                 <button class="secondary" type="button" @onclick="() => _step = Step.Choose">@L.Resource("Live_Back")</button>
+            </footer>
+        }
+        else if (_step == Step.LocalFolder)
+        {
+            @* Asked every time, not just the first: a PC can carry both a Steam and a Game Pass
+               copy (or a second Steam library), and the helper only ever goes into one of them.
+               The copy used last time is preselected, so the usual answer is one click. *@
+            <h2 id="mode-select-title">@L.Resource("Live_FolderQuestion")</h2>
+            <p class="muted">@L.Resource("Live_FolderSubtitle")</p>
+            @if (_installs.Count == 0)
+            {
+                <p class="muted">@L.Resource("Live_FolderNoneFound")</p>
+            }
+            <div class="mode-select-installs" role="radiogroup" aria-label="@L.Resource("Live_FolderQuestion")">
+                @foreach (var install in _installs)
+                {
+                    var selected = ReferenceEquals(install, _selectedInstall);
+                    <button type="button" class="mode-select-card mode-select-install @(selected ? "selected" : "")" role="radio" aria-checked="@(selected ? "true" : "false")" @onclick="() => _selectedInstall = install">
+                        <span class="material-symbol mode-select-card-icon" aria-hidden="true">@InstallIcon(install)</span>
+                        <span class="mode-select-card-body">
+                            <span class="mode-select-card-title">
+                                @InstallKindLabel(install)
+                                @if (IsRemembered(install))
+                                {
+                                    <span class="mode-badge">@L.Resource("Live_FolderLastUsedBadge")</span>
+                                }
+                            </span>
+                            <span class="mode-select-card-note mode-select-path">@install.Root</span>
+                            <span class="mode-select-card-note mode-select-path">@L.Resource("Live_FolderInstallsInto", install.BinariesDirectory)</span>
+                        </span>
+                    </button>
+                }
+            </div>
+            @if (_folderError is not null)
+            {
+                <p class="error-text" role="alert">@_folderError</p>
+            }
+            <footer class="mode-select-back-row">
+                <button class="primary" type="button" @onclick="ContinueWithFolder" disabled="@(_selectedInstall is null || _pickingFolder)">@L.Resource("Live_FolderContinue")</button>
+                <button class="secondary" type="button" @onclick="PickOtherFolderAsync" disabled="@_pickingFolder">@L.Resource("Live_FolderChooseAnother")</button>
+                <button class="secondary" type="button" @onclick="() => _step = Step.LiveTarget" disabled="@_pickingFolder">@L.Resource("Live_Back")</button>
             </footer>
         }
         else if (_step == Step.ConfirmDeploy)
@@ -164,7 +208,7 @@
             <footer class="mode-select-back-row">
                 @if (_setupState == LiveAgentSetupState.NeedsUe4ss)
                 {
-                    <button class="primary" type="button" @onclick="ChooseLocal">@L.Resource("Live_Ue4ssCheckAgain")</button>
+                    <button class="primary" type="button" @onclick="StartLocalConnect">@L.Resource("Live_Ue4ssCheckAgain")</button>
                 }
                 <button class="secondary" type="button" @onclick="BackToTarget">@L.Resource("Live_Back")</button>
             </footer>
@@ -195,8 +239,14 @@
         await Js.InvokeVoidAsync("abiotic.modal.activate", _dialog);
     }
 
-    private enum Step { Choose, LiveTarget, ConfirmDeploy, RemoteForm, Connecting }
+    private enum Step { Choose, LiveTarget, LocalFolder, ConfirmDeploy, RemoteForm, Connecting }
     private Step _step = Step.Choose;
+
+    private IReadOnlyList<GameInstall> _installs = Array.Empty<GameInstall>();
+    private GameInstall? _selectedInstall;
+    private GameInstall? _rememberedInstall;
+    private string? _folderError;
+    private bool _pickingFolder;
     private LiveAgentSetupState? _setupState;
     private string? _setupError;
     private string? _deployTarget;
@@ -228,7 +278,96 @@
         return Close();
     }
 
+    /// <summary>
+    /// "This PC": list every copy of the game on this machine (each Steam library, each Game
+    /// Pass install, plus the folder saved in Settings) and let the player confirm which one to
+    /// set up, with the one saved from last time already selected. On an operating system where
+    /// the local set-up is not available at all there is nothing to choose, so it goes straight
+    /// to the connecting step and its "not supported here" message.
+    /// </summary>
     private void ChooseLocal()
+    {
+        if (!OperatingSystem.IsWindows()) { StartLocalConnect(); return; }
+        _installs = GameInstallLocator.FindAll();
+        _rememberedInstall = GameInstallLocator.Resolve(HostSettings.SavedGamePath);
+        _selectedInstall = _rememberedInstall is null
+            ? _installs.FirstOrDefault()
+            : _installs.FirstOrDefault(install => install.IsSameInstallAs(_rememberedInstall)) ?? _rememberedInstall;
+        if (_selectedInstall is not null && !_installs.Contains(_selectedInstall))
+        {
+            _installs = _installs.Append(_selectedInstall).ToList();
+        }
+        _folderError = null;
+        _step = Step.LocalFolder;
+    }
+
+    private bool IsRemembered(GameInstall install) => _rememberedInstall is not null && install.IsSameInstallAs(_rememberedInstall);
+
+    private string InstallKindLabel(GameInstall install) => L.Resource(install.Kind switch
+    {
+        GameInstallKind.Steam => "Live_FolderKindSteam",
+        GameInstallKind.GamePass => "Live_FolderKindGamePass",
+        _ => "Live_FolderKindCustom",
+    });
+
+    private static string InstallIcon(GameInstall install) => install.Kind switch
+    {
+        GameInstallKind.GamePass => "sports_esports",
+        GameInstallKind.Steam => "storefront",
+        _ => "folder",
+    };
+
+    /// <summary>Remembers the chosen copy (the same setting the Game Data card in Settings
+    /// keeps, so the two never disagree about which install this PC uses) and starts setup.</summary>
+    private void ContinueWithFolder()
+    {
+        if (_selectedInstall is null) return;
+        if (!HostSettings.SaveGamePath(_selectedInstall.Root))
+        {
+            _folderError = L.Resource("Live_FolderNotAGame", _selectedInstall.Root);
+            return;
+        }
+        StartLocalConnect();
+    }
+
+    private async Task PickOtherFolderAsync()
+    {
+        if (_pickingFolder) return;
+        _pickingFolder = true;
+        _folderError = null;
+        try
+        {
+            var picked = await FolderPicker.PickFolderAsync(new() { Title = L.Resource("Live_FolderChooseAnother") });
+            if (picked?.Path is null) return;
+            var install = GameInstallLocator.Resolve(picked.Path);
+            if (install is null)
+            {
+                _folderError = L.Resource("Live_FolderNotAGame", picked.Path);
+                return;
+            }
+            if (_installs.FirstOrDefault(existing => existing.IsSameInstallAs(install)) is { } known)
+            {
+                _selectedInstall = known;
+                return;
+            }
+            _installs = _installs.Append(install).ToList();
+            _selectedInstall = install;
+        }
+        catch (Exception exception)
+        {
+            // Same split as the header's OPEN button: a host with no folder picker at all is
+            // not a folder that could not be read.
+            _folderError = UserFacingErrorService.IsFolderPickerUnavailable(exception)
+                ? L.Resource("Host_NoFolderPicker")
+                : L.Resource("Live_FolderPickFailed");
+        }
+        finally
+        {
+            _pickingFolder = false;
+        }
+    }
+
+    private void StartLocalConnect()
     {
         _step = Step.Connecting;
         _setupState = null;
@@ -286,7 +425,7 @@
         LiveAgentSetupResult setup;
         try
         {
-            setup = await LiveAgentSetup.EnsureReadyAsync(deployConsentGiven, installUe4ssConsentGiven, cts.Token);
+            setup = await LiveAgentSetup.EnsureReadyAsync(deployConsentGiven, installUe4ssConsentGiven, _selectedInstall?.Root, cts.Token);
         }
         catch (Exception)
         {

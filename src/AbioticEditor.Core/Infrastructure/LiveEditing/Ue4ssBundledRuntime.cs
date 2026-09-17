@@ -124,7 +124,7 @@ public sealed class Ue4ssBundledRuntime
     private static void EnsureEmptyTarget(string win64)
     {
         if (!Directory.Exists(win64))
-            throw new DirectoryNotFoundException("The game's Win64 folder was not found. Choose the game folder in Settings.");
+            throw new DirectoryNotFoundException("The folder the game runs from was not found. Choose the game folder again.");
         if (Directory.Exists(Path.Combine(win64, "ue4ss")) || File.Exists(Path.Combine(win64, "dwmapi.dll"))
             || File.Exists(Path.Combine(win64, "UE4SS.dll")) || File.Exists(Path.Combine(win64, "xinput1_3.dll"))
             || File.Exists(Path.Combine(win64, "override.txt")))

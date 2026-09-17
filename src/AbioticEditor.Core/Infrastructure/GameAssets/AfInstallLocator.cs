@@ -175,23 +175,33 @@ public static class AfInstallLocator
     /// </summary>
     public static string? FindInstallRoot() => FindSteamInstallRoot() ?? FindGamePassInstallRoot();
 
-    private static string? FindSteamInstallRoot()
+    private static string? FindSteamInstallRoot() => First(FindSteamInstallRoots());
+
+    private static string? First(IReadOnlyList<string> roots) => roots.Count > 0 ? roots[0] : null;
+
+    /// <summary>
+    /// Every Steam library copy of the game (a player can have the game in more than one
+    /// library, or a library on a second drive), in library order. Empty when Steam isn't
+    /// installed or no library holds the game. <see cref="FindInstallRoot"/> takes the first.
+    /// </summary>
+    public static IReadOnlyList<string> FindSteamInstallRoots()
     {
         var steam = FindSteamInstallPath();
         if (steam is null)
         {
-            return null;
+            return Array.Empty<string>();
         }
 
+        var result = new List<string>();
         foreach (var library in EnumerateSteamLibraries(steam))
         {
             var candidate = Path.Combine(library, "steamapps", "common", GameFolderName);
             if (Directory.Exists(candidate))
             {
-                return candidate;
+                result.Add(candidate);
             }
         }
-        return null;
+        return result;
     }
 
     /// <summary>
@@ -202,13 +212,19 @@ public static class AfInstallLocator
     /// can resolve, or null. (The <c>C:\Program Files\WindowsApps</c> copy is ACL-locked and not
     /// readable without elevation, so it is not used.)
     /// </summary>
-    public static string? FindGamePassInstallRoot()
+    public static string? FindGamePassInstallRoot() => First(FindGamePassInstallRoots());
+
+    /// <summary>Every Game Pass / Microsoft Store copy across the fixed drives (the Xbox app
+    /// installs to whichever drive the player chose), in drive order. See
+    /// <see cref="FindGamePassInstallRoot"/> for the layout.</summary>
+    public static IReadOnlyList<string> FindGamePassInstallRoots()
     {
         if (!OperatingSystem.IsWindows())
         {
-            return null;
+            return Array.Empty<string>();
         }
 
+        var result = new List<string>();
         foreach (var drive in SafeFixedDrives())
         {
             var xboxGames = Path.Combine(drive, "XboxGames");
@@ -222,12 +238,13 @@ public static class AfInstallLocator
                 {
                     if (ResolvePaksDirectory(root) is not null)
                     {
-                        return root;
+                        result.Add(root);
+                        break;
                     }
                 }
             }
         }
-        return null;
+        return result;
     }
 
     private static IEnumerable<string> SafeFixedDrives()

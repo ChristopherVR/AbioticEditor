@@ -14,7 +14,9 @@ public enum LiveAgentSetupState
     /// A local connection attempt can proceed exactly as before.</summary>
     Ready,
 
-    /// <summary>UE4SS is missing or incomplete. Detail is the game's Win64 installation folder.</summary>
+    /// <summary>UE4SS is missing or incomplete. Detail is the folder the game's executable runs
+    /// from (<c>Binaries\Win64</c> on Steam, <c>Binaries\WinGDK</c> on Game Pass) - the one
+    /// UE4SS has to be installed into.</summary>
     NeedsUe4ss,
 
     /// <summary>No local Abiotic Factor install could be found at all (see
@@ -28,8 +30,8 @@ public enum LiveAgentSetupState
     /// Detail names the game folder. Nothing has been written yet.</summary>
     NeedsConsentToDeploy,
 
-    /// <summary>UE4SS is missing but this release bundles it; Detail is the Win64 folder it would
-    /// be installed into. Nothing has been written.</summary>
+    /// <summary>UE4SS is missing but this release bundles it; Detail is the executable folder it
+    /// would be installed into (see <see cref="NeedsUe4ss"/>). Nothing has been written.</summary>
     NeedsConsentToInstallUe4ss,
 
     /// <summary>This host's operating system cannot run either half of live editing's in-game
@@ -95,41 +97,43 @@ public static class LiveAgentSetup
     /// to install UE4SS also counts as consent to deploy this editor's own agent - the one dialog
     /// covers both.
     /// </param>
+    /// <param name="gameFolder">
+    /// The game install to set up, as the player chose it on the "This PC" step (any folder
+    /// shape <see cref="AfInstallLocator.ResolvePaksDirectory"/> accepts). Null means the
+    /// configured install (<see cref="GameInstallLocator.FindConfigured"/>): the folder saved
+    /// in Settings, else the first copy detected on this machine. A Game Pass copy is set up in
+    /// its <c>Binaries\WinGDK</c> folder, a Steam copy in <c>Binaries\Win64</c> - see
+    /// <see cref="GameInstall.BinariesDirectory"/>.
+    /// </param>
     public static async Task<LiveAgentSetupResult> EnsureReadyAsync(
-        bool deployConsentGiven, bool installUe4ssConsentGiven = false, CancellationToken cancellationToken = default)
+        bool deployConsentGiven, bool installUe4ssConsentGiven = false, string? gameFolder = null,
+        CancellationToken cancellationToken = default)
     {
         if (!OperatingSystem.IsWindows())
         {
             return new(LiveAgentSetupState.NotSupportedOnThisPlatform);
         }
 
-        var paksDirectory = AfInstallLocator.FindPaksDirectory();
-        if (paksDirectory is null)
+        var install = gameFolder is null ? GameInstallLocator.FindConfigured() : GameInstallLocator.Resolve(gameFolder);
+        if (install is null)
         {
             return new(LiveAgentSetupState.GameNotFound);
         }
 
-        // <root>/Content/Paks -> <root>/Content -> <root>, the project folder that Binaries sits
-        // beside - true regardless of which of the two shapes ResolvePaksDirectory matched.
-        var projectRoot = Path.GetDirectoryName(Path.GetDirectoryName(paksDirectory));
-        if (string.IsNullOrEmpty(projectRoot))
-        {
-            return new(LiveAgentSetupState.GameNotFound);
-        }
-
-        var win64 = Path.Combine(projectRoot, "Binaries", "Win64");
-        var modsDir = Ue4ssInstallation.FindModsDirectory(win64);
+        var binaries = install.BinariesDirectory;
+        var modsDir = Ue4ssInstallation.FindModsDirectory(binaries);
         if (modsDir is null)
         {
             var bundle = Ue4ssBundledRuntime.TryLoad(BundledUe4ssDir);
-            if (bundle is null) return new(LiveAgentSetupState.NeedsUe4ss, win64);
-            if (!installUe4ssConsentGiven) return new(LiveAgentSetupState.NeedsConsentToInstallUe4ss, win64);
+            if (bundle is null) return new(LiveAgentSetupState.NeedsUe4ss, binaries);
+            if (!installUe4ssConsentGiven) return new(LiveAgentSetupState.NeedsConsentToInstallUe4ss, binaries);
             if (IsGameRunning())
                 return new(LiveAgentSetupState.SetupFailed, "Close Abiotic Factor or stop its server, then retry setup.");
+            if (LockedFolderMessage(install) is { } locked) return new(LiveAgentSetupState.SetupFailed, locked);
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                await bundle.InstallAsync(win64, cancellationToken).ConfigureAwait(false);
+                await bundle.InstallAsync(binaries, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
             {
@@ -139,7 +143,7 @@ public static class LiveAgentSetup
             // One consent dialog covers both installing UE4SS and deploying this editor's own
             // agent into the Mods folder that install just created.
             deployConsentGiven = true;
-            modsDir = Ue4ssInstallation.FindModsDirectory(win64);
+            modsDir = Ue4ssInstallation.FindModsDirectory(binaries);
             if (modsDir is null) return new(LiveAgentSetupState.SetupFailed, "UE4SS setup did not finish. Retry setup.");
         }
 
@@ -153,6 +157,7 @@ public static class LiveAgentSetup
                 return new(LiveAgentSetupState.NeedsConsentToDeploy, Path.Combine(modsDir, ModFolderName));
             if (IsGameRunning())
                 return new(LiveAgentSetupState.SetupFailed, "Close Abiotic Factor or stop its server, then retry setup.");
+            if (LockedFolderMessage(install) is { } locked) return new(LiveAgentSetupState.SetupFailed, locked);
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -191,6 +196,23 @@ public static class LiveAgentSetup
         // 2-second retry, but there is no signal to await instead, and the process just started.
         await Task.Delay(500, cancellationToken).ConfigureAwait(false);
         return new(LiveAgentSetupState.Ready);
+    }
+
+    /// <summary>
+    /// A plain-words explanation when nothing can be written into the game's executable folder,
+    /// or null when it is writable. Checked before every write rather than after it fails: the
+    /// Xbox app installs a Game Pass game into a folder it keeps locked until the player turns on
+    /// mods for that game, and the bare "access denied" a write throws there tells a player
+    /// nothing about that switch.
+    /// </summary>
+    private static string? LockedFolderMessage(GameInstall install)
+    {
+        if (GameInstallLocator.CanWriteTo(install.BinariesDirectory)) return null;
+        if (!Directory.Exists(install.BinariesDirectory))
+            return $"The folder the game runs from was not found at {install.BinariesDirectory}. Choose the game folder again, or repair the game in its store app.";
+        return install.Kind == GameInstallKind.GamePass
+            ? "The Xbox app keeps this Game Pass copy's folder locked, so nothing can be installed into it. In the Xbox app, open Abiotic Factor, use the ... menu and turn on Enable mods, then retry. If that option is not offered for this game, this copy can't be modded and live editing can't be set up on it."
+            : $"Nothing can be written into {install.BinariesDirectory}. Check that folder's permissions, then retry.";
     }
 
     // Guarded by the OperatingSystem.IsWindows() check at the top of EnsureReadyAsync (the only

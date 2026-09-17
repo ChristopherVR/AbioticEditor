@@ -4073,7 +4073,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Live_ConfirmInstallUe4ssBody" xml:space="preserve"><value>Close the game first. This release includes UE4SS {0}, the separate open-source mod loader (MIT licensed) that live editing needs. The app will install it into {1}, then install or update its own game agent there and start its helper. If UE4SS is already installed there, it is left unchanged.</value></data>
   <data name="Live_ConfirmInstallUe4ssYes" xml:space="preserve"><value>Install</value></data>
   <data name="Live_ConfirmInstallUe4ssNo" xml:space="preserve"><value>Back</value></data>
-  <data name="Live_GameNotFound" xml:space="preserve"><value>Couldn't find Abiotic Factor installed on this PC automatically. If it's installed somewhere unusual, set its folder in SETTINGS first.</value></data>
+  <data name="Live_GameNotFound" xml:space="preserve"><value>Couldn't find Abiotic Factor in that folder. Go back and pick the copy of the game to use, or choose the folder it's installed in.</value></data>
   <data name="Live_NotSupportedOnThisPlatform" xml:space="preserve"><value>Automatic set-up for a game on this PC isn't available on this operating system yet. Connecting to a dedicated server someone else hosts still works normally.</value></data>
   <data name="Live_StillNotRespondingHint" xml:space="preserve"><value>This is taking longer than usual. If the game has been open for a while already, try fully restarting it - live editing support sometimes only starts responding on a fresh game session.</value></data>
   <data name="Live_Back" xml:space="preserve"><value>‹ BACK</value></data>
@@ -4277,4 +4277,16 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Customization_LiveLocalCaption" xml:space="preserve"><value>Changes appear immediately. Save Appearance keeps this look in your local character profile and backs up the previous profile.</value></data>
   <data name="Customization_LiveRemoteCaption" xml:space="preserve"><value>Changes apply for this session. Other players keep their appearance profiles on their own computers.</value></data>
   <data name="PlayerCharacter_TraitsCatalogRequired" xml:space="preserve"><value>Read this trait's details from the installed game before changing it live.</value></data>
+  <data name="Live_FolderQuestion" xml:space="preserve"><value>Which copy of the game?</value></data>
+  <data name="Live_FolderSubtitle" xml:space="preserve"><value>Live editing installs its helper into the copy you pick. The copy you used last time is already selected.</value></data>
+  <data name="Live_FolderNoneFound" xml:space="preserve"><value>Couldn't find Abiotic Factor on this PC. Choose the folder it's installed in below.</value></data>
+  <data name="Live_FolderKindSteam" xml:space="preserve"><value>Steam</value></data>
+  <data name="Live_FolderKindGamePass" xml:space="preserve"><value>Game Pass</value></data>
+  <data name="Live_FolderKindCustom" xml:space="preserve"><value>Chosen folder</value></data>
+  <data name="Live_FolderLastUsedBadge" xml:space="preserve"><value>Last used</value></data>
+  <data name="Live_FolderInstallsInto" xml:space="preserve"><value>Helper goes into {0}</value></data>
+  <data name="Live_FolderContinue" xml:space="preserve"><value>Use this copy</value></data>
+  <data name="Live_FolderChooseAnother" xml:space="preserve"><value>Choose another folder</value></data>
+  <data name="Live_FolderNotAGame" xml:space="preserve"><value>{0} doesn't look like an Abiotic Factor install (there's no Content\Paks folder inside it).</value></data>
+  <data name="Live_FolderPickFailed" xml:space="preserve"><value>That folder couldn't be opened. Check that it still exists and that you can read it, then try again.</value></data>
 </root>
