@@ -35,21 +35,22 @@ uses the same dump-and-replace flow an end user follows to
 replaces the file bundled in `assets/` and commits it, rather than dropping it in the per-user
 mappings folder.
 
-## Bumping the bundled UE4SS
+## The bundled UE4SS
 
-The Windows desktop release bundles a pinned build of UE4SS, the third-party mod loader live
-editing needs, pinned in `live-agent/ue4ss/runtime.json` by exact file name and SHA-256 (see
-`Ue4ssBundledRuntime` in Core). To move to a newer upstream build:
+The Windows desktop release bundles a build of UE4SS, the third-party mod loader live editing
+needs. `tools/fetch-ue4ss.ps1` always follows upstream's rolling `experimental-latest` tag: it
+asks the GitHub API for whatever asset is published there right now, downloads it into
+`live-agent/ue4ss/UE4SS.zip` (gitignored), and rewrites `live-agent/ue4ss/runtime.json`
+(`version`/`asset`/`url`/`sha256`/`size`) to match. There is no manual pin to bump, and CI can no
+longer fail just because upstream renamed its asset. `Ue4ssBundledRuntime` in Core re-checks the
+SHA-256 in `runtime.json` against the bundled zip before installing it for a player, which still
+catches a corrupted download but not a bad upstream build.
 
-1. Edit `live-agent/ue4ss/runtime.json`: update `version`, `asset`, `url`, `sha256`, and `size`
-   for the new release.
-2. Run `pwsh tools/fetch-ue4ss.ps1`. It downloads the new package into
-   `live-agent/ue4ss/UE4SS.zip` (gitignored) and verifies it against the manifest you just edited.
-3. Test it in game: run the local host, use **This PC** against a game folder with no existing
-   UE4SS install, confirm the consent screen shows the new version, install, and confirm the
-   game actually loads with the mod working.
-4. Commit the updated `runtime.json`. `UE4SS.zip` itself is not committed; release CI fetches it
-   fresh with the same script before publishing.
+Because nothing gates a new upstream build before it ships to players, periodically re-verify it
+in game: run `pwsh tools/fetch-ue4ss.ps1` to pick up whatever is current, then run the local host,
+use **This PC** against a game folder with no existing UE4SS install, confirm the consent screen
+shows the version you expect, install, and confirm the game actually loads with the mod working.
+Commit the `runtime.json` changes `fetch-ue4ss.ps1` made; `UE4SS.zip` itself is never committed.
 
 ## Related screens
 
