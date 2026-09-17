@@ -56,7 +56,18 @@
                          @ondragover:preventDefault
                          @ondrop="() => DropOnContainer(container)">
                         <button class="wc-row-select" type="button" @onclick="() => TapContainer(container)">
-                        <strong>@DisplayName(container)</strong>
+                        @* Same "name" grid-area the row's own named-area layout already reserves
+                           for the label alone - the icon and the name share it as a small flex
+                           row instead of the area gaining a second track, so the row's own
+                           grid-template-areas/grid-template-columns (fixed this round to stop the
+                           position line clipping under the name) is untouched. *@
+                        <span class="wc-row-name">
+                            @if (ContainerItemId(container) is { Length: > 0 } previewId)
+                            {
+                                <ItemIcon ItemId="@previewId" Alt="" Class="wc-row-icon" />
+                            }
+                            <strong>@DisplayName(container)</strong>
+                        </span>
                         <span class="wc-count">@CountText(container)</span>
                         @if (HealthText(container) is { Length: > 0 } rowHealth) { <span class="wc-health">@rowHealth</span> }
                         <small>@WhereText(container)</small>
@@ -270,6 +281,62 @@
     /// "Liquid/Meds" - else <see cref="AutoDisplayName"/>'s generic guess.</summary>
     private string DisplayName(WorldContainer container)
         => container.Name is { Length: > 0 } custom ? custom : AutoDisplayName(container);
+
+    /// <summary>
+    /// A container's own picture, if this session can tell which real placeable item it is - a
+    /// deployed container's <see cref="WorldContainer.ClassName"/> is a Blueprint asset name
+    /// (e.g. <c>Deployed_StorageCrate_Void_C</c>), not the item id <see cref="ItemCatalogService"/>
+    /// knows icons by (e.g. <c>storagecrate_void</c>), and the two do not follow one single
+    /// mechanical rule - some strip cleanly ("Deployed_" prefix and "_C" suffix off, matched
+    /// case-insensitively: Void/Freezer/the numbered storage-crate tiers/the two named "HGatekeeper"/
+    /// "HOrnate" event crates all work this way), several genuinely do not (a "Deployed_Container_"
+    /// actor is a "Deployable_" item; the T4 storage crate and the charging/hazard crates drop or
+    /// swap words entirely; a bench's own item id puts "Bench" first, the actor class does not) -
+    /// verified for real against this game's own registry data and a real save fixture's actually
+    /// observed classes, not guessed. Every entry below is a confirmed real id; a class not listed
+    /// here is either genuinely not its own separate placeable item (e.g. a locker-room fixture) or
+    /// simply not yet catalogued - either way this returns null and the row shows no picture rather
+    /// than a guessed, possibly wrong one (<see cref="ItemIcon"/> already renders nothing sensible
+    /// for an id that is not real, so a wrong guess would not even fail loudly).
+    /// </summary>
+    private static readonly Dictionary<string, string> ContainerClassItemIds = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Deployed_Bench_AmmoStation_C"] = "Deployable_Bench_Ammo",
+        ["Deployed_Bench_CookingStation_C"] = "Deployable_Bench_Cooking",
+        ["Deployed_ChemistryBench_C"] = "Deployable_Bench_Chemistry",
+        ["Deployed_Container_FilingCabinet_Small_C"] = "Deployable_FilingCabinet_Small",
+        ["Deployed_Container_FilingCabinet_Medium_C"] = "Deployable_FilingCabinet_Medium",
+        ["Deployed_Container_FilingCabinet_Large_C"] = "Deployable_FilingCabinet_Large",
+        ["Deployed_Container_FilingCabinet_Huge_C"] = "Deployable_FilingCabinet_Huge",
+        ["Deployed_Container_Medkit_C"] = "Deployable_Medkit",
+        ["Deployed_Container_Stocking_C"] = "stocking",
+        ["Deployed_Container_TrashCan_C"] = "Deployable_TrashCan_01",
+        ["Deployed_Container_TrashCan_Small_C"] = "Deployable_TrashCan_Small",
+        ["Deployed_CraftingBench_Default_C"] = "Deployable_Bench_Crafting",
+        ["Deployed_CraftingBench_Repair_C"] = "Deployable_Bench_Repair",
+        ["Deployed_CraftingBench_Upgrade_C"] = "Deployable_Bench_Upgrade",
+        ["Deployed_DistillationBench_C"] = "Deployable_Bench_Distillation",
+        ["Deployed_HazardCrate_C"] = "storage_hazardcrate",
+        ["Deployed_LiquidContainer_Barrel_C"] = "Deployable_Barrel",
+        ["Deployed_LiquidContainer_Cauldron_Tech_C"] = "cauldron",
+        ["Deployed_StorageCrate_Charging_C"] = "crate_charging",
+        ["Deployed_StorageCrate_Makeshift_T4_C"] = "storagecrate_t4",
+        ["Deployed_ArmoryLocker_C"] = "Deployable_ArmoryLocker",
+    };
+
+    private string? ContainerItemId(WorldContainer container)
+    {
+        if (container.ClassName is not { Length: > 0 } className) return null;
+        if (ContainerClassItemIds.TryGetValue(className, out var mapped)) return Items.Find(mapped) is not null ? mapped : null;
+        // The general case: most classes really are just "Deployed_" + the item id + "_C" - see
+        // this method's own remarks for which ones are not, and are covered by the table above
+        // instead. Only returned when that guess actually resolves to a real, icon-bearing item -
+        // an unmatched guess is exactly as "no picture" as a class this method has never heard of.
+        var guess = className;
+        if (guess.StartsWith("Deployed_", StringComparison.OrdinalIgnoreCase)) guess = guess["Deployed_".Length..];
+        if (guess.EndsWith("_C", StringComparison.OrdinalIgnoreCase)) guess = guess[..^"_C".Length];
+        return Items.Find(guess) is not null ? guess : null;
+    }
 
     /// <summary>What this crate is, in words, ignoring any player-given name. Deployed
     /// containers are named after the thing the player built; the named storage the game keeps

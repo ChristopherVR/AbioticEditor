@@ -2116,11 +2116,18 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 .wc-row-select small { grid-area:where; color:var(--muted); }
 .wc-row-select .wc-count { grid-area:count; align-self:start; }
 .wc-row-select .wc-health { grid-area:health; }
+/* The name area holds the container's own picture (round 88) and its label together, as a small
+   flex row, not the label alone - see WorldContainersTab.razor's own comment on why the icon
+   shares this area instead of claiming a new grid track. */
+.wc-row-select .wc-row-name { grid-area:name; display:flex; align-items:center; gap:8px; min-width:0; }
+.wc-row-name .item-artwork.wc-row-icon { width:24px; height:24px; flex:none; display:flex; align-items:center; justify-content:center; }
+.wc-row-name .item-artwork.wc-row-icon img { max-width:100%; max-height:100%; object-fit:contain; }
+.wc-row-name .item-artwork.wc-row-icon .item-artwork-fallback { display:none; }
 /* A container's player-given name (round 85) can run noticeably longer than the short
    auto-generated label ("Storage Crate") this row was originally sized around - clamp it to one
    line with an ellipsis instead of letting it wrap and crowd the count/health/position lines
    underneath it. */
-.wc-row-select strong { grid-area:name; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.wc-row-select strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .world-tab-viewport .wt-row, .world-tab-viewport .wc-row { padding:12px; }
 .world-tab-viewport .wt-detail, .world-tab-viewport .wc-detail { min-width:0; }
 .world-tab-viewport .wt-intro, .world-tab-viewport .wm-intro, .world-flags-intro { max-width:78ch; }
