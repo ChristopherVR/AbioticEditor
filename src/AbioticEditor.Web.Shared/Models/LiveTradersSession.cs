@@ -11,7 +11,7 @@ namespace AbioticEditor.Web.Models;
 /// See <see cref="LiveTradersChannel"/> for why this reuses the world-flag write path rather than
 /// a trader-specific one.
 /// </summary>
-public sealed class LiveTradersSession
+public sealed class LiveTradersSession : IWorldTradersSession
 {
     private readonly LiveTradersChannel _channel;
 
@@ -43,6 +43,9 @@ public sealed class LiveTradersSession
     public event Action? Changed;
 
     public bool IsHost => Flags.IsHost;
+
+    /// <summary>Always true: see <see cref="IWorldTradersSession.AppliesImmediately"/>.</summary>
+    public bool AppliesImmediately => true;
 
     public bool HasWorldFlag(string flag) => Flags.HasFlag(flag);
 

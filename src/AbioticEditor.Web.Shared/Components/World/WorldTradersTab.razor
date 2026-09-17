@@ -1,6 +1,7 @@
 @namespace AbioticEditor.Web.Components.World
 @using AbioticEditor.Web.Models
 @using AbioticEditor.Core.Codex
+@using AbioticEditor.Core.LiveEditing
 @using AbioticEditor.Core.WorldSaves
 @using AbioticEditor.Web.Components.Player
 @inject ItemCatalogService Items
@@ -16,10 +17,24 @@
 @* Native WorldTradersTab.xaml: the barter roster as wrapping reference cards (portrait +
    lore + stock summary + availability). Tapping an available card opens the full stock
    detail (the native SlotSidebarView trader detail panel) in the right-hand pane, with
-   per-item unlock checkboxes; a sealed trader prompts a clearance override dialog instead. *@
+   per-item unlock checkboxes; a sealed trader prompts a clearance override dialog instead.
+   Shared with live editing the same way WorldDoorsTab/WorldBasesTab already are
+   (IWorldTradersSession) - the right-hand detail pane is WorkspaceShell's own InventorySlotEditor
+   sidebar, hosted around every page (both the file editor and LiveConnect), not something local
+   to this tab, so it needs nothing special to work live. *@
 <section class="world-editor world-meta-panel" aria-label="@L.Resource("WorldTraders_Traders")">
-    <h3 class="wm-h2">@L.Resource("WorldTraders_Traders")</h3>
+    <div class="card-title-row">
+        <h3 class="wm-h2">@L.Resource("WorldTraders_Traders")</h3>
+        @if (Session.AppliesImmediately)
+        {
+            <button class="secondary" type="button" disabled="@_busy" @onclick="RefreshAsync">@L.Resource("LiveNpcs_Refresh")</button>
+        }
+    </div>
     <p class="wm-intro">@L.Resource("WorldTraders_TradersIntro")</p>
+    @if (Session.AppliesImmediately && !Session.IsHost)
+    {
+        <p class="error-text" role="alert">@L.Resource("LiveTraders_NotHostWarning")</p>
+    }
     <div class="wm-divider" role="presentation"></div>
 
     @if (IsSnapshotRoster)
@@ -67,30 +82,63 @@
         }
     </div>
 
+    @if (Session.AppliesImmediately && Session.Status is not null) { <p class="status-text">@Session.Status</p> }
+    @if (_liveError is not null) { <p class="error-text" role="alert">@_liveError</p> }
 </section>
 
 @code {
-    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter, EditorRequired] public IWorldTradersSession Session { get; set; } = null!;
     [Parameter] public string Title { get; set; } = "World editor";
+    [Parameter] public EventCallback<string?> OnError { get; set; }
     private readonly Dictionary<string, string> _inspecting = new(StringComparer.Ordinal);
     private readonly Dictionary<string, HashSet<string>> _selectedOfferFlags = new(StringComparer.Ordinal);
     private TraderInfo? _selected;
     private bool _unlocking;
+    private bool _busy;
+    private string? _liveError;
     // Native prefers the live trader roster from the installed game's paks; the built-in
     // snapshot remains the fallback. Loading mounts paks, so it happens off the render path.
+    // Static curated game data - see IWorldTradersSession's own remarks on why this is never
+    // read from Session, live or file.
     private IReadOnlyList<TraderInfo> _roster = TraderCatalog.Fallback;
-    // Trader gating reads the world's quest flags; on the metadata save those live in the
-    // sibling WorldSave_Facility.sav (native HasWorldFlag rule).
+    // Trader gating reads the world's quest flags; on a metadata save those live in the sibling
+    // WorldSave_Facility.sav (native HasWorldFlag rule) - resolved here only for a file session,
+    // never for a live one, whose Session.HasWorldFlag is already the complete, current truth
+    // (see LiveTradersSession's own remarks).
     private IReadOnlySet<string>? _worldFlags;
 
     protected override async Task OnInitializedAsync()
     {
         Selection.Changed += SelectionChanged;
-        var path = Session.Path;
         _roster = await Task.Run(Traders.GetTraders);
-        _worldFlags = await Gate.ResolveWorldFlagsAsync(path);
+        if (Session is WorldSaveSession worldSession)
+        {
+            _worldFlags = await Gate.ResolveWorldFlagsAsync(worldSession.Path);
+        }
         RefreshTraderDetail();
     }
+
+    private async Task RefreshAsync()
+    {
+        _busy = true;
+        try
+        {
+            await Session.RefreshAsync();
+            _liveError = null;
+        }
+        catch (Exception exception) when (IsLiveTransportFailure(exception))
+        {
+            _liveError = Errors.Present(exception, "Refresh traders.", "The connection may have dropped; try reconnecting.");
+            await OnError.InvokeAsync(_liveError);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static bool IsLiveTransportFailure(Exception exception) => exception is LiveAgentException
+        or System.Net.Sockets.SocketException or IOException or OperationCanceledException;
 
     /// <summary>Another surface took over the right-hand pane: drop the card highlight.</summary>
     private void SelectionChanged()
@@ -118,9 +166,10 @@
     /// trades and unlock flags stay accurate, item names/icons need the game.</summary>
     private bool IsSnapshotRoster => ReferenceEquals(_roster, TraderCatalog.Fallback);
 
-    /// <summary>Case-insensitive world-flag lookup; metadata saves read the sibling Facility flags.</summary>
+    /// <summary>Case-insensitive world-flag lookup; a metadata save also reads the separately
+    /// resolved sibling Facility flags (see <see cref="_worldFlags"/>'s own remarks).</summary>
     private bool HasWorldFlag(string flag)
-        => Session.Flags.Contains(flag) || _worldFlags?.Contains(flag) == true;
+        => Session.HasWorldFlag(flag) || _worldFlags?.Contains(flag) == true;
 
     private bool IsAvailableHere(TraderInfo trader)
         => trader.RequiredFlags.Count == 0 || trader.RequiredFlags.All(HasWorldFlag);
@@ -311,12 +360,12 @@
             <div class="wt-detail-actions">
                 @if (tickedFlags.Count > 0)
                 {
-                    <button type="button" class="wm-hazard-btn" disabled="@_unlocking"
+                    <button type="button" class="wm-hazard-btn" disabled="@(_unlocking || (Session.AppliesImmediately && !Session.IsHost))"
                             @onclick="() => RequestUnlockSelected(trader)">@L.Resource("WorldTraders_Card_UnlockSelected", tickedFlags.Count)</button>
                 }
                 @if (MissingGatingFlags(trader).Count > 0)
                 {
-                    <button type="button" class="secondary" disabled="@_unlocking"
+                    <button type="button" class="secondary" disabled="@(_unlocking || (Session.AppliesImmediately && !Session.IsHost))"
                             @onclick="() => RequestUnlockAll(trader)">@L.Resource("Slot_UnlockAll")</button>
                 }
             </div>
@@ -376,16 +425,16 @@
         => RequestUnlock(trader, MissingGatingFlags(trader), clearSelection: false);
 
     /// <summary>
-    /// The exact flags the write path will produce, so the preview never under-reports:
-    /// a directly-loaded world save expands story prerequisites the way
-    /// <see cref="WorldSaveSession.EnableFlagWithPrerequisites"/> will, while the metadata
-    /// path writes the flags verbatim (matching <see cref="UnlockFlagsAsync"/>).
+    /// The exact flags the write path will produce, so the preview never under-reports: a
+    /// directly-loaded world save expands story prerequisites the way
+    /// <see cref="WorldSaveSession.EnableFlagWithPrerequisites"/> will, while a metadata save or
+    /// a live session writes the flags verbatim (matching <see cref="UnlockFlagsAsync"/>).
     /// </summary>
     private IReadOnlyList<string> FlagsThatWillBeWritten(IReadOnlyCollection<string> flags)
     {
-        var expanded = Session.IsMetadataSave
-            ? flags
-            : flags.SelectMany(flag => FlagGate.PrerequisitesFor(flag).Append(flag));
+        var expanded = Session is WorldSaveSession { IsMetadataSave: false }
+            ? flags.SelectMany(flag => FlagGate.PrerequisitesFor(flag).Append(flag))
+            : flags;
         return expanded
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Where(flag => !HasWorldFlag(flag))
@@ -464,9 +513,13 @@
         </div>;
 
     /// <summary>
-    /// Writes trader-gating/stock flags. On the metadata save (where this tab lives) they
-    /// belong to the sibling WorldSave_Facility.sav - written immediately with a .bak, like
-    /// the native app. On a directly-loaded world save they stage until SAVE.
+    /// Writes trader-gating/stock flags: on a metadata save (where this tab most often lives)
+    /// they belong to the sibling WorldSave_Facility.sav - written immediately with a .bak, like
+    /// the native app; on a directly-loaded world save they stage until SAVE; live, they are
+    /// sent straight to the running game's own world-flag subsystem. Three different write
+    /// mechanics with no shared shape worth forcing onto <see cref="IWorldTradersSession"/> - see
+    /// that interface's own remarks - so this stays a type-checked branch, the same way
+    /// <c>WorldContainersTab</c> branches on its live/file session types.
     /// </summary>
     private async Task UnlockFlagsAsync(IReadOnlyCollection<string> flags)
     {
@@ -475,17 +528,26 @@
         RefreshTraderDetail();
         try
         {
-            if (Session.IsMetadataSave)
+            switch (Session)
             {
-                var path = Session.Path;
-                await FlagSync.AddFlagsAsync(path, flags);
-                _worldFlags = await Gate.ResolveWorldFlagsAsync(path);
+                case LiveTradersSession live:
+                    await live.UnlockAsync(flags);
+                    break;
+                case WorldSaveSession { IsMetadataSave: true } metadataSession:
+                    await FlagSync.AddFlagsAsync(metadataSession.Path, flags);
+                    _worldFlags = await Gate.ResolveWorldFlagsAsync(metadataSession.Path);
+                    break;
+                case WorldSaveSession directSession:
+                    foreach (var flag in flags) directSession.EnableFlagWithPrerequisites(flag);
+                    Workspace.NotifyEdited();
+                    break;
             }
-            else
-            {
-                foreach (var flag in flags) Session.EnableFlagWithPrerequisites(flag);
-                Workspace.NotifyEdited();
-            }
+            _liveError = null;
+        }
+        catch (Exception exception) when (IsLiveTransportFailure(exception))
+        {
+            _liveError = Errors.Present(exception, "Unlock this trader.", "The connection may have dropped; try reconnecting.");
+            await OnError.InvokeAsync(_liveError);
         }
         finally { _unlocking = false; RefreshTraderDetail(); }
     }

@@ -20,8 +20,9 @@
    elsewhere) hid the very container the link pointed at. This tab lists every chemistry bench and
    lets the three input slots be set directly, with a recipe hint computed from the same chemistry
    recipe table the file editor's recipe browser reads (RecipeCatalog, Source == "Chemistry") -
-   see LiveTradersTab's own remarks for why a dedicated flat tab exists instead of reusing the
-   split-pane layout the offline world tabs use. *@
+   a flat list plus inline flask editing that has no offline-tab equivalent to share (the file
+   editor manages a bench's contents through the CONTAINERS tab instead), so unlike TRADERS
+   (WorldTradersTab, shared via IWorldTradersSession) this stays its own dedicated live tab. *@
 <section class="editor-card" aria-label="@L.Resource("LiveChemistryBenches_Title")">
     <div class="card-title-row">
         <h3>@L.Resource("LiveChemistryBenches_Title")</h3>
