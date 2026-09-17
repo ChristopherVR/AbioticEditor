@@ -174,8 +174,12 @@
     [Parameter] public (double X, double Y, double Z)? PlayerPosition { get; set; }
     private string? _appliedInitialFilter;
     private string _filter = string.Empty;
-    // Native default: empty containers are hidden until the user unticks HIDE EMPTY.
-    private bool _hideEmpty = true;
+    // Off by default (round 83): the native app hid empty containers until unticked, but a live
+    // report showed this defeating the same "jump straight to one specific container" links the
+    // nearby-only filter's own round-81 fix already protects (see that field's remarks right
+    // below) - a container someone just clicked EDIT on can easily be empty (a chemistry bench
+    // with no flask contents yet, an unused chest). Left available for anyone who wants it.
+    private bool _hideEmpty = false;
     // Off by default (round 81): a live report showed the nearby-only filter defaulting ON broke
     // the care-feature "EDIT" links below (OpenCareContainerAsync/InitialFilter jump straight to
     // one specific container by id, wherever it actually is - a chemistry bench, garden plot, or
