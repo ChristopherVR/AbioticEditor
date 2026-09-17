@@ -1379,8 +1379,27 @@ local function slotRow(slot, index, skipMetadata)
     }
 end
 
+-- CurrentDurability/MaxDurability are plain (non-hash-suffixed) replicated DoubleProperty fields
+-- on AbioticDeployed_ParentBP, the shared base every placed deployable (not just containers)
+-- inherits from - verified against the game's own Blueprint exports. Omitted (nil) rather than
+-- reported as 0/0 for a deployable that does not track durability at all (MaxDurability stays 0
+-- for those), so the editor can tell "no health to show" apart from "destroyed".
+local function containerHealth(container)
+    local ok, current, maximum = pcall(function() return container.CurrentDurability, container.MaxDurability end)
+    if ok and type(current) == "number" and type(maximum) == "number" and maximum > 0 then return current, maximum end
+    return nil, nil
+end
+
 local function containerInventory(container)
-    local ok, inv = pcall(function() return container.ContainerInventory end)
+    -- GetContainerInventory() (a BlueprintPure function every container class exports, verified
+    -- against the game's own Blueprint exports) is preferred over reading ContainerInventory/
+    -- BenchInventory directly: a Void Chest overrides it to redirect to a single inventory owned
+    -- by the world's GameState (Inventory_Void) instead of a per-actor component, since every
+    -- placed Void Chest shares one storage pool. Reading its own ContainerInventory property
+    -- directly (the old behavior here) found that per-actor component, which a Void Chest never
+    -- actually stores anything in, so it always looked empty regardless of its real contents.
+    local ok, inv = pcall(function() return container:GetContainerInventory() end)
+    if not ok or not inv or not inv:IsValid() then ok, inv = pcall(function() return container.ContainerInventory end) end
     if not ok or not inv or not inv:IsValid() then ok, inv = pcall(function() return container.BenchInventory end) end
     if ok and inv and inv:IsValid() then return inv end
     return nil
@@ -1438,7 +1457,9 @@ handlers["containers.list"] = function(_, respond)
                     local slotOk, row = pcall(slotRow, inv.CurrentInventory[i], i - 1, true)
                     if slotOk then table.insert(slots, row) end
                 end
-                table.insert(result, { id = name, label = classLabel(name), x = x, y = y, z = z, slots = slots })
+                local health, maxHealth = containerHealth(container)
+                table.insert(result, { id = name, label = classLabel(name), x = x, y = y, z = z, slots = slots,
+                    health = health, maxHealth = maxHealth })
             end)
         end
         return { containers = result, isHost = isHost() }

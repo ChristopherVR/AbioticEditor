@@ -22,7 +22,8 @@ public sealed class LiveContainersChannel(ILiveGameChannel channel)
         var containers = (wire.Containers ?? [])
             .Select(c => new LiveContainer(c.Id, c.Label, c.X, c.Y, c.Z,
                 (c.Slots ?? []).Select(s => new LiveContainerSlot(s.SlotIndex, s.ItemId, s.IsEmpty,
-                    s.Stack, s.Durability, s.MaxDurability, s.AmmoInMagazine, s.Details)).ToList()))
+                    s.Stack, s.Durability, s.MaxDurability, s.AmmoInMagazine, s.Details)).ToList(),
+                c.Health, c.MaxHealth))
             .ToList();
         return new LiveContainerDirectory(containers, wire.IsHost);
     }
@@ -48,15 +49,20 @@ public sealed class LiveContainersChannel(ILiveGameChannel channel)
         => _channel.RequestAsync<object?>("inventory.transfer", new { first, second }, cancellationToken);
 
     private sealed record DirectoryWire(IReadOnlyList<ContainerWire>? Containers, bool IsHost);
-    private sealed record ContainerWire(string Id, string Label, double X, double Y, double Z, IReadOnlyList<SlotWire>? Slots);
+    private sealed record ContainerWire(string Id, string Label, double X, double Y, double Z, IReadOnlyList<SlotWire>? Slots,
+        double? Health = null, double? MaxHealth = null);
     private sealed record SlotWire(int SlotIndex, string ItemId, bool IsEmpty, int Stack, double Durability, double MaxDurability, int AmmoInMagazine = 0, LiveItemDetails? Details = null);
     private sealed record SetWire(string Id, IReadOnlyList<EditWire> Edits, bool? Sort);
     private sealed record EditWire(int SlotIndex, bool? Clear, string? ItemId, int? Stack, double? Durability, double? MaxDurability, string? DataTable, int? AmmoInMagazine, LiveItemDetails? Details);
 }
 
 /// <summary>One loaded container. <paramref name="Id"/> is the game's full object name for this
-/// exact actor; <paramref name="Label"/> is its class name (e.g. <c>Deployed_StorageCrate_Makeshift_C</c>).</summary>
-public sealed record LiveContainer(string Id, string Label, double X, double Y, double Z, IReadOnlyList<LiveContainerSlot> Slots)
+/// exact actor; <paramref name="Label"/> is its class name (e.g. <c>Deployed_StorageCrate_Makeshift_C</c>).
+/// <paramref name="Health"/>/<paramref name="MaxHealth"/> are null for a deployable that does not
+/// track durability at all (most containers do, per the game's own Blueprint data - verified),
+/// not for a destroyed one (that reads 0/positive instead).</summary>
+public sealed record LiveContainer(string Id, string Label, double X, double Y, double Z, IReadOnlyList<LiveContainerSlot> Slots,
+    double? Health = null, double? MaxHealth = null)
 {
     public int OccupiedCount => Slots.Count(s => !s.IsEmpty);
 }

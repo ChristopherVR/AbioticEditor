@@ -183,7 +183,7 @@ public sealed class LiveContainersSession : IWorldContainersSession
         => containers.Select(c => new WorldContainer(
             c.Id, WorldContainerSource.Live, c.Label,
             [new WorldInventory(c.Slots.Select(ToSlot).ToArray())],
-            c.X, c.Y, c.Z)).ToArray();
+            c.X, c.Y, c.Z, c.Health, c.MaxHealth)).ToArray();
 
     private static InventoryItemSlot ToSlot(LiveContainerSlot slot) => new(
         slot.SlotIndex, slot.IsEmpty ? null : slot.ItemId, slot.Stack, slot.Durability, slot.MaxDurability,

@@ -1265,7 +1265,9 @@ button.world-feature-row{flex:0 0 auto}
 .wc-tab .wc-row.selected{background:var(--elevated);box-shadow:inset 3px 0 0 var(--orange)}
 .wc-tab .wc-row strong{overflow:hidden;color:var(--ink);font-size:13px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
 .wc-tab .wc-row .wc-count{color:var(--terminal);font:13px var(--font-lcd);letter-spacing:.06em}
+.wc-tab .wc-row .wc-health{grid-column:1/-1;color:var(--muted);font-size:10px}
 .wc-tab .wc-row small{grid-column:1/-1;overflow:hidden;color:var(--faint);font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+.wc-detail .wc-health{margin:0;color:var(--muted);font-size:11px}
 .wc-empty,.wf-empty,.wg-empty{margin:0;padding:16px;color:var(--muted)}
 .wc-tab .wc-detail{display:flex;flex-direction:column;grid-template-columns:none;gap:8px;box-sizing:border-box;margin:0;padding:12px 14px;border:1px solid var(--line);background:var(--shell);min-height:0}
 .wc-select-label{margin:0;color:var(--muted);font:600 10px var(--font-ui);letter-spacing:.16em;text-transform:uppercase}

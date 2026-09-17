@@ -47,6 +47,16 @@ public enum WorldContainerSource
 /// <see cref="WorldContainerSource.Live"/> containers carry a real position, read straight
 /// from the running game.
 /// </param>
+/// <param name="Health">
+/// Current durability, null when unknown. Like <see cref="X"/>, only a
+/// <see cref="WorldContainerSource.Live"/> container ever populates this - a save file does not
+/// store a deployed object's durability anywhere this editor reads, so file-mode sources always
+/// leave it null rather than guess at a value.
+/// </param>
+/// <param name="MaxHealth">
+/// The durability <see cref="Health"/> is measured against, null exactly when
+/// <see cref="Health"/> is (either both are known or neither is).
+/// </param>
 public sealed record WorldContainer(
     string Id,
     WorldContainerSource Source,
@@ -54,7 +64,9 @@ public sealed record WorldContainer(
     IReadOnlyList<WorldInventory> Inventories,
     double X = 0,
     double Y = 0,
-    double Z = 0)
+    double Z = 0,
+    double? Health = null,
+    double? MaxHealth = null)
 {
     /// <summary>Straight-line distance to a point (player position), in UE units (cm). Only
     /// meaningful for <see cref="WorldContainerSource.Live"/> - a file-save container's X/Y/Z are

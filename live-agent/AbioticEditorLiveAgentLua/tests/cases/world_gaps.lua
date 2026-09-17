@@ -179,6 +179,53 @@ return function(H)
     end
     H.check(sawGoodSlot, "the sibling well-formed slot next to the corrupt one still comes back")
 
+    -- ---------- containers: a Void Chest reads through GetContainerInventory(), not its own
+    -- ContainerInventory property (round 83). Verified against the game's real Blueprint exports:
+    -- Deployed_StorageCrate_Void_C overrides GetContainerInventory() to return an inventory owned
+    -- by the world's GameState (every placed Void Chest shares one storage pool), while its own
+    -- ContainerInventory property stays a genuinely empty, unused decoy - reading that property
+    -- directly (the old behavior) always found nothing, no matter what the shared pool held.
+    local decoyInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {} })
+    local sharedInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {
+        { ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B = { RowName = H.fname("rotten_food") },
+          ChangeableData_12_2B90E1F74F648135579D39A49F5A2313 = { CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 1,
+          CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = 0, MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = 0 } },
+    } })
+    H.world.add(H.object("Deployed_Container_ParentBP_C",
+        { ContainerInventory = decoyInv },
+        { GetContainerInventory = function() return sharedInv end, K2_GetActorLocation = function() return H.vector(4, 4, 4) end }))
+    local voidChest = H.ok(H.dispatch("containers.list"), "containers.list with a Void-Chest-shaped container")
+    local sawSharedItem = false
+    for _, entry in ipairs(voidChest.containers) do
+        for _, slot in ipairs(entry.slots) do
+            if slot.itemId == "rotten_food" then sawSharedItem = true end
+        end
+    end
+    H.check(sawSharedItem, "the shared inventory GetContainerInventory() returns wins over the decoy ContainerInventory property")
+
+    -- ---------- containers: health/durability, when the game tracks it (round 83) ----------
+    local healthyInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {} })
+    H.world.add(H.object("Deployed_Container_ParentBP_C",
+        { ContainerInventory = healthyInv, CurrentDurability = 40, MaxDurability = 80 },
+        { K2_GetActorLocation = function() return H.vector(5, 5, 5) end }))
+    local withHealth = H.ok(H.dispatch("containers.list"), "containers.list reports health when the game tracks it")
+    local healthyEntry
+    for _, entry in ipairs(withHealth.containers) do if entry.health == 40 then healthyEntry = entry end end
+    H.check(healthyEntry ~= nil, "a container with real durability reports it")
+    H.eq(healthyEntry.maxHealth, 80, "max health reported alongside current")
+
+    local noDurabilityInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {} })
+    H.world.add(H.object("Deployed_Container_ParentBP_C",
+        { ContainerInventory = noDurabilityInv, MaxDurability = 0 },
+        { K2_GetActorLocation = function() return H.vector(6, 6, 6) end }))
+    local withoutHealth = H.ok(H.dispatch("containers.list"), "containers.list survives a container with no durability tracking")
+    local noHealthEntry
+    for _, entry in ipairs(withoutHealth.containers) do
+        if entry.x == 6 then noHealthEntry = entry end
+    end
+    H.check(noHealthEntry ~= nil, "the no-durability container still appears")
+    H.eq(noHealthEntry.health, nil, "health omitted (not reported as 0) when MaxDurability is 0")
+
     -- ---------- narrative NPCs ----------
     local narrative = H.world.add(H.object("NarrativeNPC_ParentBP_C", { IsCorpse = false, NarrativeState = 1 }, {
         SetNewNarrativeState = function(self, value) self.NarrativeState = value end,
