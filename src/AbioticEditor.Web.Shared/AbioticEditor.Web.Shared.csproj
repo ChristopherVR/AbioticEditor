@@ -44,4 +44,13 @@
     <ProjectReference Include="..\AbioticEditor.Ui.Abstractions\AbioticEditor.Ui.Abstractions.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Player-facing "what's new" content (see ChangelogService), embedded rather than read from
+         disk at runtime: a published build has no guarantee the repo root exists nearby, and the
+         file never changes after publish anyway. Lives at the repo root, not under this project,
+         since it is git-cliff's own output covering the whole repo's history, not something owned
+         by this library. -->
+    <EmbeddedResource Include="..\..\CHANGELOG.md" LogicalName="CHANGELOG.md" Link="CHANGELOG.md" />
+  </ItemGroup>
+
 </Project>

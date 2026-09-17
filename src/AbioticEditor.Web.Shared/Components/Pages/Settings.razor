@@ -76,6 +76,11 @@
                             </article>
                         }
                         <article class="settings-card">
+                            <h2>@R("Settings_WhatsNew")</h2>
+                            <p class="muted">@R("Settings_WhatsNewHint")</p>
+                            <button class="secondary" type="button" @onclick="ShowReleaseNotesAsync">@R("Settings_WhatsNewButton")</button>
+                        </article>
+                        <article class="settings-card">
                             <h2>@R("Settings_Diagnostics")</h2>
                             <p class="muted">@R("Settings_DiagnosticsHint")</p>
                             <label class="settings-switch-row"><span>@R("Settings_DiagnosticLogging")</span><input type="checkbox" role="switch" checked="@HostSettings.DiagnosticLoggingEnabled" @onchange="SetDiagnostics" /></label>
@@ -189,6 +194,11 @@
     private void ModalChanged() { _focusedLanguage = null; _ = InvokeAsync(StateHasChanged); }
 
     [Parameter] public EventCallback OnClose { get; set; }
+    /// <summary>The header's own "what's new" reopen (MainLayout owns the dialog itself, since it
+    /// is also what shows it automatically on a fresh update - see its own remarks). Closes this
+    /// screen first rather than stacking a second overlay on top of it.</summary>
+    [Parameter] public EventCallback OnShowReleaseNotes { get; set; }
+    private async Task ShowReleaseNotesAsync() { await CloseAsync(); await OnShowReleaseNotes.InvokeAsync(); }
 
     private readonly record struct TabChoice(SettingsTab Id, string ResourceKey);
     private static readonly TabChoice[] AllTabs =

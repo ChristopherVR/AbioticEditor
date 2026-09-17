@@ -28,7 +28,7 @@
         </div>
     }
     <a class="skip-link" href="#main-content">@Languages.Text("skip")</a>
-    <header class="masthead" inert="@((_modeSelectOpen || _settingsOpen) ? "" : null)">
+    <header class="masthead" inert="@((_modeSelectOpen || _settingsOpen || _releaseNotesOpen) ? "" : null)">
         <a class="brand-lockup" href="browse?home" aria-label="@Languages.Text("brand.home")">
             <GameArtImage GameRef="@LogoPrimaryRef" Alt="">
                 <ChildContent>
@@ -91,8 +91,8 @@
         </nav>
     </header>
     <div class="hazard" aria-hidden="true"></div>
-    <main id="main-content" tabindex="-1" inert="@((_modeSelectOpen || _settingsOpen) ? "" : null)"><WorkspaceShell>@Body</WorkspaceShell></main>
-    <footer class="status-footer" inert="@((_modeSelectOpen || _settingsOpen) ? "" : null)">
+    <main id="main-content" tabindex="-1" inert="@((_modeSelectOpen || _settingsOpen || _releaseNotesOpen) ? "" : null)"><WorkspaceShell>@Body</WorkspaceShell></main>
+    <footer class="status-footer" inert="@((_modeSelectOpen || _settingsOpen || _releaseNotesOpen) ? "" : null)">
         <div class="live-status">
             <span aria-hidden="true"></span>
             @(IsPureLiveMode
@@ -114,11 +114,15 @@
     <ToastHost />
     @if (_settingsOpen)
     {
-        <Settings OnClose="CloseSettings" />
+        <Settings OnClose="CloseSettings" OnShowReleaseNotes="ShowLatestReleaseNotes" />
     }
     @if (_modeSelectOpen)
     {
         <ModeSelectDialog OnClose="CloseModeSelect" AllowClose="@ModeSelectAllowClose" />
+    }
+    @if (_releaseNotesOpen)
+    {
+        <ReleaseNotesDialog OnClose="CloseReleaseNotes" Releases="@_releaseNotesToShow" />
     }
 </div>
 
@@ -152,12 +156,46 @@
         // the same "only when the app just started" moment ModeSelect's now-removed "/" page
         // used to own before the dialog replaced it.
         if (_liveEditingAvailable) _modeSelectOpen = true;
+
+        // "What's new" on the first launch after an update - see ReleaseNotesStore's own remarks
+        // on why this is a version comparison, not a "did we show it this session" flag. A
+        // brand-new install (nothing recorded yet) just silently records the current version
+        // instead of showing one: someone who just installed the editor for the first time has
+        // no prior version to compare against, and a wall of every past release's notes reads as
+        // noise, not a welcome. Deferred behind mode-select when that is also about to open (see
+        // CloseModeSelect) rather than stacked on top of it or racing it - the player answered
+        // "where's the game running" is a question this dialog should never interrupt.
+        var lastShown = ReleaseNotesStore.LastShownVersion();
+        if (lastShown is null)
+        {
+            ReleaseNotesStore.MarkShown(AppVersion);
+        }
+        else if (!string.Equals(lastShown, AppVersion, StringComparison.OrdinalIgnoreCase))
+        {
+            var releases = ChangelogService.Since(lastShown);
+            if (releases.Count > 0)
+            {
+                _releaseNotesToShow = releases;
+                if (_modeSelectOpen) _releaseNotesPendingAfterModeSelect = true;
+                else _releaseNotesOpen = true;
+            }
+            else
+            {
+                // Nothing player-facing changed since they last looked (an all-housekeeping
+                // release, say) - still record the new version so this check does not keep
+                // firing every launch until something worth showing finally ships.
+                ReleaseNotesStore.MarkShown(AppVersion);
+            }
+        }
     }
 
     private bool _openingFolder;
     private bool _settingsOpen;
     private bool _modeSelectOpen;
     private bool _liveEditingAvailable;
+    private bool _releaseNotesOpen;
+    private bool _releaseNotesPendingAfterModeSelect;
+    private IReadOnlyList<ChangelogRelease> _releaseNotesToShow = [];
     private void OpenSettings() => _settingsOpen = true;
     private void CloseSettings() => _settingsOpen = false;
     // Refuses while a confirm dialog (e.g. the "you have unsaved changes" prompt a save switch
@@ -166,7 +204,28 @@
     // stacking the mode dialog over it made it easy to navigate away instead of answering, which
     // used to leave the sidebar unresponsive for the rest of the session.
     private void OpenModeSelect() { if (Modals.Current is null) _modeSelectOpen = true; }
-    private void CloseModeSelect() => _modeSelectOpen = false;
+    private void CloseModeSelect()
+    {
+        _modeSelectOpen = false;
+        if (!_releaseNotesPendingAfterModeSelect) return;
+        _releaseNotesPendingAfterModeSelect = false;
+        _releaseNotesOpen = true;
+    }
+    private void CloseReleaseNotes()
+    {
+        _releaseNotesOpen = false;
+        ReleaseNotesStore.MarkShown(AppVersion);
+    }
+    /// <summary>The Settings screen's own "what's new" button reaches this - always shows just
+    /// the latest release (not "since last seen", which could be empty for a player who is
+    /// already caught up and just wants a reminder of what shipped most recently), and does not
+    /// touch <see cref="ReleaseNotesStore"/> at all: a manual look back is not "the player has now
+    /// seen the newest release" the way the automatic dialog closing is.</summary>
+    private void ShowLatestReleaseNotes()
+    {
+        _releaseNotesToShow = ChangelogService.Releases.Take(1).ToArray();
+        _releaseNotesOpen = true;
+    }
     // The dialog itself only ever offers a close button when this is true (see its own remarks
     // on why not always) - a file workspace already open, or an already-live session, is
     // somewhere real to go back to; the very first launch with neither yet has nowhere to send

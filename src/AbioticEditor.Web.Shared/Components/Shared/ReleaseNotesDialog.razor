@@ -1,0 +1,60 @@
+@using AbioticEditor.Web.Services
+@using Microsoft.JSInterop
+@inject IJSRuntime Js
+
+@* Matches ModeSelectDialog's own modal shell (.settings-subdialog-backdrop/.settings-subdialog,
+   abiotic.modal.activate/deactivate for focus handling) rather than inventing a new one. Unlike
+   that dialog, this one always has somewhere safe to go back to on close - it never blocks a
+   choice the rest of the app is waiting on - so it always shows a close button. *@
+<div class="settings-subdialog-backdrop release-notes-backdrop" role="presentation">
+    <section @ref="_dialog" class="settings-subdialog release-notes-dialog" role="dialog" aria-modal="true" aria-labelledby="release-notes-title" tabindex="-1">
+        <button class="mode-select-close" type="button" @onclick="Close" title="@L.Resource("Common_Close")" aria-label="@L.Resource("Common_Close")">
+            <span class="material-symbol" aria-hidden="true">close</span>
+        </button>
+        <h2 id="release-notes-title">@L.Resource("ReleaseNotes_Title")</h2>
+        @if (Releases.Count == 0)
+        {
+            <p class="muted">@L.Resource("ReleaseNotes_Empty")</p>
+        }
+        else
+        {
+            @foreach (var release in Releases)
+            {
+                <article class="release-notes-entry" @key="release.Version">
+                    <h3>@L.Resource("ReleaseNotes_VersionHeading", release.Version, release.Date)</h3>
+                    <ul>
+                        @foreach (var highlight in release.Highlights)
+                        {
+                            <li>@highlight</li>
+                        }
+                    </ul>
+                </article>
+            }
+        }
+        <footer class="mode-select-back-row">
+            <button class="primary" type="button" @onclick="Close">@L.Resource("Common_Close")</button>
+        </footer>
+    </section>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ChangelogRelease> Releases { get; set; } = [];
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private ElementReference _dialog;
+    private bool _focused;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focused) return;
+        _focused = true;
+        await Js.InvokeVoidAsync("abiotic.modal.activate", _dialog);
+    }
+
+    private async Task Close()
+    {
+        try { await Js.InvokeVoidAsync("abiotic.modal.deactivate"); }
+        catch (JSDisconnectedException) { }
+        await OnClose.InvokeAsync();
+    }
+}

@@ -67,7 +67,7 @@ public sealed class RazorVisualParityTests
         var css = Source("wwwroot", "parity.css");
 
         Assert.DoesNotContain("@page \"/settings\"", settings, StringComparison.Ordinal);
-        Assert.Contains("<Settings OnClose=\"CloseSettings\" />", layout, StringComparison.Ordinal);
+        Assert.Contains("<Settings OnClose=\"CloseSettings\" OnShowReleaseNotes=\"ShowLatestReleaseNotes\" />", layout, StringComparison.Ordinal);
         Assert.Contains("class=\"settings-sheet\"", settings, StringComparison.Ordinal);
         Assert.Contains("class=\"settings-sheet-header\"", settings, StringComparison.Ordinal);
         Assert.Contains("class=\"settings-tab-rail\"", settings, StringComparison.Ordinal);

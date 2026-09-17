@@ -36,7 +36,7 @@ public sealed class RazorHostAcceptanceTests
         // can no longer distinguish "clicked Home" from "picked a save while already here".
         Assert.Contains("href=\"browse?home\"", layout, StringComparison.Ordinal);
         Assert.Contains("@onclick=\"OpenSettings\"", layout, StringComparison.Ordinal);
-        Assert.Contains("<Settings OnClose=\"CloseSettings\" />", layout, StringComparison.Ordinal);
+        Assert.Contains("<Settings OnClose=\"CloseSettings\" OnShowReleaseNotes=\"ShowLatestReleaseNotes\" />", layout, StringComparison.Ordinal);
         Assert.DoesNotContain("more-menu", layout, StringComparison.Ordinal);
         Assert.DoesNotContain("href=\"/compare\"", layout, StringComparison.Ordinal);
     }

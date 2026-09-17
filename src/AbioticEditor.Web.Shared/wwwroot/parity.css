@@ -1874,6 +1874,14 @@ button.wd-sector-map:hover{opacity:1;transform:none}
    has no single shared header across its five steps to anchor a margin-left:auto button to. */
 .mode-select-close{position:absolute;top:14px;right:14px;display:grid;place-items:center;min-width:36px;min-height:36px;padding:6px;border:1px solid var(--line);border-radius:6px;background:var(--elevated);color:var(--ink);cursor:pointer}
 .mode-select-close:hover,.mode-select-close:focus-visible{background:var(--hover);border-color:var(--section)}
+/* Reuses .mode-select-close's own look/position (see its remarks) - this dialog is the second,
+   not the first, place that button style is needed. */
+.release-notes-dialog{position:relative;width:min(640px,100%);text-align:left}
+.release-notes-dialog h2{padding-right:40px}
+.release-notes-entry{margin:18px 0}
+.release-notes-entry h3{margin:0 0 8px;color:var(--section);font-size:13px;letter-spacing:.06em;text-transform:none}
+.release-notes-entry ul{margin:0;padding-left:20px;display:grid;gap:6px}
+.release-notes-entry li{color:var(--ink);font-size:13px;line-height:1.5}
 .mode-select-dialog h2{text-transform:none;letter-spacing:0;font-size:26px;line-height:1.2}
 .mode-select-cards{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin:20px 0}
 .mode-select-card{display:flex;align-items:flex-start;gap:14px;box-sizing:border-box;flex:1;min-width:240px;padding:18px;border:1px solid var(--line);border-radius:6px;background:var(--elevated);color:var(--ink);cursor:pointer;text-align:left;text-transform:none;transition:background .12s,border-color .12s}
