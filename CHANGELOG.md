@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.14.1] - 2026-09-17
+
+### Bug Fixes
+- Keep the game up to date automatically instead of stopping releases
+
+
 ## [2.14.0] - 2026-09-17
 
 ### Bug Fixes
