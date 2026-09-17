@@ -32,8 +32,25 @@ namespace
     // explain every earlier live report about Void Chests, but a request that keeps timing out
     // cannot produce a correct read OR see a write's own result either, so this is worth trying
     // before assuming those are still-open, separate bugs.
+    //
+    // containers.set/containers.rename pay the exact same cost before they ever get to write
+    // anything: both start with findContainer(id), which walks CONTAINER_CLASSES calling
+    // findByFullName the same way loadedContainers() walks every actor for containers.list - a
+    // single-container write is not cheap just because it only touches one container in the end,
+    // if finding that one container in a well-built world is itself the slow part. A write that
+    // times out here explains "I set this and nothing happened" just as well as a read timing out
+    // explains "existing contents don't show" - both were reported live after containers.list's
+    // own timeout was already extended, which is why these two are added now rather than assumed
+    // to be a separate bug.
+    //
+    // care.list/care.set (garden plots, power chairs, chemistry benches) do the exact same two
+    // things - care.list's own for-loop is ctx.findAll(class), care.set's is
+    // ctx.findByFullName(class, id) - so a chemistry bench report ("output never updates even
+    // after waiting") is exactly as explained by this same timeout as a container report is,
+    // not necessarily a separate chemistry-bench-specific bug.
     const std::unordered_set<std::string> SlowCommands = {
         "containers.list", "npcs.list", "bases.list", "pets.list", "vehicles.list", "narrativenpcs.list",
+        "containers.set", "containers.rename", "care.list", "care.set",
     };
     constexpr int SlowCommandTimeoutMs = 20000;
 }
