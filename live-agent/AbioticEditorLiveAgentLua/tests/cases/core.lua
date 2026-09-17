@@ -120,4 +120,17 @@ return function(H)
     H.fails(H.dispatch("dropped.remove", { ids = {} }), "only the host", "client cannot remove items")
     H.fails(H.dispatch("containers.set", { id = "x", edits = {} }), "only the host", "client cannot edit containers")
     H.eq(H.ok(H.dispatch("players.list")).isHost, false, "client reports no authority")
+
+    -- Round 87: logLine() is the shared print()-and-append-to-disk diagnostic helper every area
+    -- module can reach via ctx - it must never error even when the log directory does not exist
+    -- (this test harness's stubbed LOCALAPPDATA resolves to a path with no
+    -- AbioticEditorLiveAgent\ folder underneath it, exactly the "the file cannot be opened"
+    -- shape a real machine could also hit, e.g. a locked-down profile), and must still print the
+    -- exact line it was given so UE4SS's own log keeps working for anyone who already reads it
+    -- there, unaffected by whether the file-append side succeeds.
+    local printedBefore = #H.printed
+    local logOk = pcall(H.mod.ctx.logLine, "diagnostic test line")
+    H.eq(logOk, true, "logLine does not error without a writable log directory")
+    H.eq(#H.printed, printedBefore + 1, "logLine still printed exactly one line")
+    H.eq(H.printed[#H.printed], "diagnostic test line", "logLine printed the exact line given")
 end

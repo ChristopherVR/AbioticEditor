@@ -93,6 +93,11 @@ public static class Program
         // decide whether to offer live in-game editing at all (absent on the WASM/browser host).
         builder.Services.AddSingleton<ILiveEditingCapability, DesktopLiveEditingCapability>();
         builder.Services.AddSingleton<LiveSessionService>();
+        // Same desktop-only reasoning: the files it tails only ever exist next to a live-agent
+        // helper this host can launch, and a browser host has nowhere to read %LOCALAPPDATA% from
+        // in the first place. Runs for the app's whole lifetime, not just while live editing is
+        // actually open - see its own remarks.
+        builder.Services.AddHostedService<LiveAgentLogBridgeService>();
 #if !NEXUSMODS
         // Absent from the Nexus Mods build: that channel manages its own file versions and its
         // guidelines discourage bundled auto-updaters, so no update code ships there at all.

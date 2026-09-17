@@ -28,8 +28,14 @@ int main()
     auto localAppData = LocalAppDataDir();
     auto rootDir = localAppData + "\\AbioticEditorLiveAgent";
     auto token = LoadOrCreateToken(rootDir);
+    // The token itself is deliberately NOT printed here: this console output is piped into a
+    // rolling log file by the editor's own launcher (see LaunchHelperHidden in LiveAgentSetup.cs),
+    // and a live-edit connection secret has no business sitting in a log file on disk. The file it
+    // was already written to (token.txt) is the one place a player who needs to see it (a remote-
+    // server operator copying it to the client machine) should ever look.
     std::cout << "AbioticEditorLiveAgentHelper\n"
-              << "Token (also written to " << rootDir << "\\token.txt): " << token << "\n"
+              << "Token written to " << rootDir << "\\token.txt (open that file if you need it - "
+              << "never printed here, since this window's output is saved to a log file).\n"
               << "Preferred port: " << PreferredPort
               << " (falls back to a nearby one automatically if that's already taken).\n"
               << "Keep this window open while you live-edit.\n"

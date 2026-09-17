@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.Versioning;
 using AbioticEditor.Core.Assets;
+using AbioticEditor.Core.Diagnostics;
 using AbioticEditor.Core.LiveEditing;
 
 namespace AbioticEditor.Web.Services;
@@ -176,10 +177,12 @@ public static class LiveAgentSetup
 
         try
         {
+            EditorLog.Info("LiveAgent", "No helper process found running - launching one.");
             LaunchHelperHidden();
         }
         catch (Exception ex) when (ex is Win32Exception or IOException)
         {
+            EditorLog.Warn("LiveAgent", "Could not launch the live-agent helper.", ex);
             return new(LiveAgentSetupState.HelperUnavailable, ex.Message);
         }
 

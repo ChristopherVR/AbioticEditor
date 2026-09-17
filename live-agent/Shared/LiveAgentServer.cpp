@@ -126,7 +126,9 @@ namespace LiveAgent
         {
             SOCKET client = accept(listenSocket, nullptr, nullptr);
             if (client == INVALID_SOCKET) break; // Stop() closed the listening socket.
+            m_log("Live agent: client connected.");
             ServeClient(static_cast<std::uintptr_t>(client));
+            m_log("Live agent: client disconnected.");
         }
     }
 
@@ -166,6 +168,15 @@ namespace LiveAgent
                 ok = false;
                 error = std::string("malformed request: ") + exception.what();
             }
+
+            // Command name and the (fixed, player-safe - see CommandFailed's own contract) error
+            // message only, never `payload` or `line`: the raw request for "hello" specifically
+            // carries the connection token, and logging the parsed request/payload wholesale here
+            // would put it in a file on disk. A rejected "hello" itself is still worth a line (the
+            // error text is always one of a small set of fixed strings like "bad token", never the
+            // token's own value - see Dispatch), since that is exactly the kind of mismatch a
+            // player debugging a stuck connection needs to see.
+            if (!ok) m_log("Live agent: '" + command + "' failed: " + error);
 
             JsonObject response;
             response.emplace("id", id);

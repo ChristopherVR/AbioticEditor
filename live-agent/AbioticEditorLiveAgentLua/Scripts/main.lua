@@ -51,6 +51,56 @@ local requestPath = ipcDir .. "\\request.json"
 local responsePath = ipcDir .. "\\response.json"
 local responseTempPath = responsePath .. ".tmp"
 
+-- Round 87: this mod's own print() output only ever reached UE4SS's own log, which the editor
+-- never reads - every past diagnostic investigation this session needed a throwaway print() call,
+-- a full game restart (Lua hot-reload is off in a typical install), and someone manually finding
+-- and reading a separate log file. logLine() below is a drop-in replacement for a bare print()
+-- call: it still prints (UE4SS's own log keeps working exactly as before for anyone who already
+-- reads it there), and ALSO appends the same line to a small file next to this mod's other
+-- %LOCALAPPDATA% files, which the editor's own log tailer (see LiveAgentLogBridgeService.cs)
+-- copies into its own unified log file - but ONLY while the player has diagnostic logging turned
+-- on, the exact same opt-in switch every other diagnostic log line in the editor already respects.
+-- Deliberately a SEPARATE file from the native helper's own log (see main.cpp/LiveAgentServer.cpp,
+-- piped into helper.log by the editor's launcher already): two different OS processes appending to
+-- the same file without coordinating locks risks interleaved/corrupted lines, and the editor's own
+-- tailer already merges the two files back together by timestamp, so there is no real cost to
+-- keeping them apart.
+local luaLogPath = (os.getenv("LOCALAPPDATA") or "") .. "\\AbioticEditorLiveAgent\\lua.log"
+-- A rough cap so a long play session can never grow this file without bound - not exact rotation
+-- (checking the real size on every single line would mean an extra file stat per log line), just
+-- "large enough that something has clearly gone very wrong" (see PruneOldLogs's own reasoning in
+-- EditorLog.cs for the same spirit, a much simpler version of it since one Lua-side text file
+-- growing slowly is a very different problem than the editor's own multi-day log history).
+local LUA_LOG_MAX_BYTES = 5 * 1024 * 1024
+local luaLogLinesSinceSizeCheck = 0
+local function logLine(line)
+    print(line)
+    local ok, file = pcall(io.open, luaLogPath, "a")
+    if not ok or not file then return end
+    -- os.date with no format gives a locale-formatted local time, plenty for a diagnostic
+    -- timestamp - this file is for a person reading it directly, not machine parsing.
+    file:write("[" .. os.date() .. "] " .. line)
+    if line:sub(-1) ~= "\n" then file:write("\n") end
+    file:close()
+    luaLogLinesSinceSizeCheck = luaLogLinesSinceSizeCheck + 1
+    if luaLogLinesSinceSizeCheck >= 200 then
+        luaLogLinesSinceSizeCheck = 0
+        local sizeOk, sizeFile = pcall(io.open, luaLogPath, "r")
+        if sizeOk and sizeFile then
+            local size = sizeFile:seek("end")
+            sizeFile:close()
+            if type(size) == "number" and size > LUA_LOG_MAX_BYTES then
+                local truncateOk, truncateFile = pcall(io.open, luaLogPath, "w")
+                if truncateOk and truncateFile then
+                    truncateFile:write("[" .. os.date() .. "] (earlier lines truncated - this file passed "
+                        .. LUA_LOG_MAX_BYTES .. " bytes)\n")
+                    truncateFile:close()
+                end
+            end
+        end
+    end
+end
+
 -- Every call that touches a live UObject MUST run on the game thread - LoopAsync's own callback
 -- does not run on it, and calling reflection APIs off-thread deadlocked the whole game in an
 -- earlier round (see docs/PROGRESS.md round-67). ExecuteInGameThread is fire-and-forget/async
@@ -1898,11 +1948,12 @@ local ctx = {
     containerInventory = containerInventory,
     resolveDataTableRow = resolveDataTableRow,
     itemTableGlobal = ITEM_TABLE_GLOBAL,
+    logLine = logLine,
 }
 
 local okManifest, areaModules = pcall(require, "areas.manifest")
 if not okManifest or type(areaModules) ~= "table" then
-    print("[AbioticEditorLiveAgentLua] no areas/manifest.lua (" .. tostring(areaModules) .. ")\n")
+    logLine("[AbioticEditorLiveAgentLua] no areas/manifest.lua (" .. tostring(areaModules) .. ")\n")
     areaModules = {}
 end
 for _, moduleName in ipairs(areaModules) do
@@ -1910,12 +1961,12 @@ for _, moduleName in ipairs(areaModules) do
     if okLoad and type(area) == "function" then
         local okInit, initErr = pcall(area, ctx)
         if okInit then
-            print("[AbioticEditorLiveAgentLua] area loaded: " .. moduleName .. "\n")
+            logLine("[AbioticEditorLiveAgentLua] area loaded: " .. moduleName .. "\n")
         else
-            print("[AbioticEditorLiveAgentLua] area FAILED to initialise: " .. moduleName .. ": " .. tostring(initErr) .. "\n")
+            logLine("[AbioticEditorLiveAgentLua] area FAILED to initialise: " .. moduleName .. ": " .. tostring(initErr) .. "\n")
         end
     else
-        print("[AbioticEditorLiveAgentLua] area FAILED to load: " .. moduleName .. ": " .. tostring(area) .. "\n")
+        logLine("[AbioticEditorLiveAgentLua] area FAILED to load: " .. moduleName .. ": " .. tostring(area) .. "\n")
     end
 end
 
@@ -1994,9 +2045,9 @@ end
 LoopAsync(50, function()
     local ok, err = pcall(handleOneRequest)
     if not ok then
-        print("[AbioticEditorLiveAgentLua] poll error: " .. tostring(err) .. "\n")
+        logLine("[AbioticEditorLiveAgentLua] poll error: " .. tostring(err) .. "\n")
     end
     return false
 end)
 
-print("[AbioticEditorLiveAgentLua] Ready. Polling " .. ipcDir .. " every 50ms.\n")
+logLine("[AbioticEditorLiveAgentLua] Ready. Polling " .. ipcDir .. " every 50ms.\n")

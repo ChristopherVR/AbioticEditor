@@ -2,6 +2,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using AbioticEditor.Core.Diagnostics;
 
 namespace AbioticEditor.Core.LiveEditing;
 
@@ -48,6 +49,8 @@ public sealed class TcpLiveGameChannel : ILiveGameChannel
         await DisconnectAsync().ConfigureAwait(false);
 
         State = LiveConnectionState.Connecting;
+        // Host and port only - never info.Token, which is the live-edit connection secret.
+        EditorLog.Info("LiveAgent", $"Connecting to {info.Host}:{info.Port}.");
         try
         {
             var client = new TcpClient();
@@ -70,10 +73,12 @@ public sealed class TcpLiveGameChannel : ILiveGameChannel
                     $"The live-agent mod speaks protocol version {hello.ProtocolVersion}, this editor speaks 1.");
 
             State = LiveConnectionState.Connected;
+            EditorLog.Info("LiveAgent", $"Connected to {info.Host}:{info.Port} (agent {hello.AgentVersion}).");
         }
-        catch
+        catch (Exception exception)
         {
             State = LiveConnectionState.Faulted;
+            EditorLog.Warn("LiveAgent", $"Connecting to {info.Host}:{info.Port} failed.", exception);
             await DisconnectAsync().ConfigureAwait(false);
             throw;
         }
@@ -81,6 +86,7 @@ public sealed class TcpLiveGameChannel : ILiveGameChannel
 
     public Task DisconnectAsync()
     {
+        var wasConnected = _client is not null;
         _reader?.Dispose();
         _writer?.Dispose();
         _client?.Dispose();
@@ -88,6 +94,7 @@ public sealed class TcpLiveGameChannel : ILiveGameChannel
         _writer = null;
         _client = null;
         if (State != LiveConnectionState.Faulted) State = LiveConnectionState.Disconnected;
+        if (wasConnected) EditorLog.Info("LiveAgent", "Disconnected.");
         return Task.CompletedTask;
     }
 
@@ -147,6 +154,9 @@ public sealed class TcpLiveGameChannel : ILiveGameChannel
             // right after it, in the same session, with no actual disconnect (see the containers.list
             // per-container pcall fix in main.lua for the specific error that used to trigger this).
             State = LiveConnectionState.Faulted;
+            // The command name only, never `payload` - "hello"'s own payload carries the
+            // connection token, and no command's payload belongs in a log file on disk.
+            EditorLog.Warn("LiveAgent", $"'{command}' faulted the connection.", exception);
             throw;
         }
         finally
