@@ -211,7 +211,7 @@ public static class LiveAgentSetup
         if (!Directory.Exists(install.BinariesDirectory))
             return $"The folder the game runs from was not found at {install.BinariesDirectory}. Choose the game folder again, or repair the game in its store app.";
         return install.Kind == GameInstallKind.GamePass
-            ? "The Xbox app keeps this Game Pass copy's folder locked, so nothing can be installed into it. In the Xbox app, open Abiotic Factor, use the ... menu and turn on Enable mods, then retry. If that option is not offered for this game, this copy can't be modded and live editing can't be set up on it."
+            ? "The Xbox app keeps this Game Pass copy's folder locked until mods are turned on for the game. In the Xbox app, open Abiotic Factor, use the ... menu and choose Enable mods, then retry."
             : $"Nothing can be written into {install.BinariesDirectory}. Check that folder's permissions, then retry.";
     }
 
