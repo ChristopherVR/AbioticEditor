@@ -39,7 +39,7 @@
     else
     {
         <div class="shell-save-list" role="listbox" aria-label="@L.Resource("LiveChemistryBenches_Title")">
-            @foreach (var bench in Session.Entries)
+            @foreach (var bench in OrderedEntries)
             {
                 var expanded = _selectedId == bench.Id;
                 <div @key="bench.Id">
@@ -168,6 +168,17 @@
     // wiring this tab up can offer either without this component caring which one it got.
     [Parameter] public PlayerSaveSession? PlayerSession { get; set; }
     [Parameter] public LiveInventorySession? LivePlayerSession { get; set; }
+    /// <summary>The connected character's current position (round 89) - when known, benches list
+    /// closest-first instead of whatever order the game happens to report them in, the same
+    /// "nearby" convenience containers/dropped items already have (see those tabs' own
+    /// PlayerPosition parameter). Null until the eager spawn connect this tab's own host page
+    /// makes resolves, in which case the list just keeps the game's own order.</summary>
+    [Parameter] public (double X, double Y, double Z)? PlayerPosition { get; set; }
+
+    private IReadOnlyList<LiveCareEntry> OrderedEntries
+        => PlayerPosition is { } position
+            ? Session.Entries.OrderBy(bench => bench.DistanceTo(position.X, position.Y, position.Z)).ToList()
+            : Session.Entries;
 
     private bool _busy;
     private string? _error;

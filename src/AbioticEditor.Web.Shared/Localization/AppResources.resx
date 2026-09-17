@@ -4116,7 +4116,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Live_TabPowerChairs" xml:space="preserve"><value>Power Chairs</value></data>
   <data name="Live_TabChemistryBenches" xml:space="preserve"><value>Chemistry Benches</value></data>
   <data name="LiveChemistryBenches_Title" xml:space="preserve"><value>CHEMISTRY BENCHES</value></data>
-  <data name="LiveChemistryBenches_Intro" xml:space="preserve"><value>Every chemistry bench loaded in the world. Pick a bench to see its three input flasks and the output, and set what's in each input directly - no more following a link into the containers tab.</value></data>
+  <data name="LiveChemistryBenches_Intro" xml:space="preserve"><value>Every chemistry bench loaded in the world, closest to you first. Pick a bench to see its three input flasks and the output, and set what's in each input directly.</value></data>
   <data name="LiveChemistryBenches_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to change what's in a chemistry bench. Editing here as a joined client would not stick.</value></data>
   <data name="LiveChemistryBenches_NoneFound" xml:space="preserve"><value>No chemistry benches are loaded in this area right now.</value></data>
   <data name="LiveChemistryBenches_WouldProduce" xml:space="preserve"><value>These inputs would produce: {0}</value></data>

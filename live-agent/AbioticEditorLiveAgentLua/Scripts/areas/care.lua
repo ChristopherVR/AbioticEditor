@@ -94,8 +94,13 @@ return function(ctx)
                 if valid(obj) then
                     local id = ctx.fullName(obj)
                     if id then
+                        -- Round 89: chemistry benches want to list closest-to-the-player first,
+                        -- the same "nearby" convenience containers/dropped items already have -
+                        -- x/y/z were never reported here before since none of these three
+                        -- features previously needed a real world position.
+                        local x, y, z = ctx.actorLocation(obj)
                         table.insert(entries, { id = id, label = ctx.classLabel(id), fields = fieldsFor(feature, obj, host),
-                            containerId = feature == "chemistry-benches" and id or nil })
+                            containerId = feature == "chemistry-benches" and id or nil, x = x, y = y, z = z })
                     end
                 end
             end

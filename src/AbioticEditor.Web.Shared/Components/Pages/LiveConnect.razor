@@ -232,7 +232,7 @@ else
                 @* Dedicated tab instead of the generic WorldFeaturesTab reuse below - see
                    LiveChemistryBenchTab's own header comment for why the "open flask contents"
                    deep link into the containers tab was replaced with slot editing built in. *@
-                <LiveChemistryBenchTab Session="chemistrySession" LivePlayerSession="_inventory" OnChanged="() => {}" />
+                <LiveChemistryBenchTab Session="chemistrySession" LivePlayerSession="_inventory" PlayerPosition="_spawn?.LivePosition" OnChanged="() => {}" />
             }
             else if (_care.TryGetValue(_worldTab, out var careSession))
             {
@@ -713,6 +713,14 @@ else
                                 new LiveTransmogVisibilityChannel(channel));
                             _playerFacade.InventorySession = _inventory;
                         }
+                        catch (Exception) { }
+                    }
+                    // Also seeds the player's own position for chemistry-benches' own closest-first
+                    // ordering (round 89) - see the "containers"/"dropped" cases' identical comment
+                    // for why this is cheap and never lets a failure here take down the connect.
+                    if (_worldTab == "chemistry-benches" && _spawn is null)
+                    {
+                        try { _spawn = await LivePlayerSpawnSession.ConnectAsync(new LiveSpawnChannel(channel), _selectedPlayerId); _playerFacade.SpawnSession = _spawn; }
                         catch (Exception) { }
                     }
                     break;
