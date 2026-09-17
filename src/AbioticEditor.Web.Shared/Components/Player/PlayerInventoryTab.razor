@@ -661,6 +661,13 @@
         // Drags can begin on other surfaces (sidebar palette, transmog tab); re-render so
         // the per-slot dropzone verdicts appear the moment a shared drag starts.
         Dnd.Changed += Refresh;
+        // A live session's own data can change from a DIFFERENT tab's write (a container-to-
+        // player transfer started from the world containers screen) or the host's periodic
+        // background poll; the file session never raises this (see the interface member's own
+        // remarks), so subscribing is harmless there. Without this, a transfer that landed
+        // correctly in the running game kept showing the old, pre-transfer slot here until
+        // something unrelated forced a re-render.
+        Session.Changed += Refresh;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -684,6 +691,7 @@
     {
         Selection.Changed -= Refresh;
         Dnd.Changed -= Refresh;
+        Session.Changed -= Refresh;
         try { if (_dnd is not null) await _dnd.DisposeAsync(); }
         catch (JSDisconnectedException) { }
     }

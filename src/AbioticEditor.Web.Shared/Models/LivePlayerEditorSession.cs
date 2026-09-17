@@ -128,6 +128,20 @@ public sealed class LivePlayerEditorSession : IPlayerEditorSession
     public bool SupportsLiveDrop => InventorySession?.SupportsLiveDrop ?? false;
     public ValueTask<bool> TryDropSlotLiveAsync(PlayerInventoryArea area, int index, CancellationToken cancellationToken = default) =>
         InventorySession?.TryDropSlotLiveAsync(area, index, cancellationToken) ?? ValueTask.FromResult(false);
+    // Same facade-delegation trap as the two overrides above: PlayerInventoryTab.razor's Session
+    // parameter is bound to THIS facade, so without an explicit forward it would only ever see
+    // IPlayerInventorySession's own default no-op event, never the live event the real
+    // LiveInventorySession already raises after a cross-tab write (a container-to-player transfer
+    // started from WorldContainersTab). Reported live as "moving an item into a player's inventory
+    // doesn't show up on their inventory screen" - the write reached the game, this tab just never
+    // heard about it. Connects lazily: by the time PlayerInventoryTab subscribes, InventorySession
+    // is already set (see the class remarks on connect ordering), so this forwards to whichever
+    // instance is live at subscribe time.
+    public event Action? Changed
+    {
+        add { if (InventorySession is not null) InventorySession.Changed += value; }
+        remove { if (InventorySession is not null) InventorySession.Changed -= value; }
+    }
 
     // ---- IPlayerRecipesSession ----
     public IReadOnlyList<PlayerRecipeEdit> Recipes => RecipesSession?.Recipes ?? [];

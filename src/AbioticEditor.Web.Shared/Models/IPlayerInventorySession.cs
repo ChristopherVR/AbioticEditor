@@ -54,6 +54,21 @@ public interface IPlayerInventorySession
     string? Status { get; }
 
     /// <summary>
+    /// Raised when this session's slot data changed for a reason other than whatever the
+    /// currently-open tab itself just did (a live session refreshing after a DIFFERENT tab wrote
+    /// to it, e.g. a container-to-player transfer started from <c>WorldContainersTab</c>, or the
+    /// host's own periodic background poll). No-op by default: the file session's every write
+    /// already happens synchronously inside the same tab that made it, and that tab's own explicit
+    /// <c>StateHasChanged()</c> after each edit already covers it, so it never needs to raise this.
+    /// A live session's own <c>Changed</c> event (already raised after every refresh) fills this in.
+    /// </summary>
+    event Action? Changed
+    {
+        add { }
+        remove { }
+    }
+
+    /// <summary>
     /// True for a session backed by a running game: every mutation below already reached the
     /// game by the time it returns, so the shared tab shows an "applied live" <see cref="Status"/>
     /// instead of relying on the host's page-level SAVE button. False for the file session,

@@ -194,7 +194,7 @@
                     var unlocked = RecipeIsUnlocked(row.Id);
                     <div class="ws-recipe-row @(row.Id == _selectedWorldRecipeId ? "selected" : null)" @key="row.Id"
                          role="option" aria-selected="@(row.Id == _selectedWorldRecipeId ? "true" : "false")" tabindex="0"
-                         @onclick="() => ToggleRecipeDetail(row.Id)" @onkeydown="e => RecipeKeyDown(e, row.Id)">
+                         @onclick="() => SelectRecipe(row)" @onkeydown="e => RecipeKeyDown(e, row)">
                         <input type="checkbox" checked="@unlocked" aria-label="@row.DisplayName" disabled="@(!CanEditRecipes)" @key="@($"{row.Id}:{_gateNonce}")"
                                @onclick:stopPropagation="true" @onchange="e => SetRecipe(row.Id, e.Value is bool value && value)" />
                         <span class="ws-recipe-icon">
@@ -212,43 +212,10 @@
                 }
             </div>
 
-            @if (SelectedWorldRecipeRow is { } selected)
-            {
-                var unlocked = RecipeIsUnlocked(selected.Id);
-                <div class="detail-card detail-card--orange">
-                    <div class="detail-head">
-                        <span class="offer-icon">
-                            @if (selected.Info?.CreatesItemId is { } createdItemId)
-                            {
-                                <ItemIcon ItemId="@createdItemId" Alt="@selected.DisplayName" />
-                            }
-                            else
-                            {
-                                <span class="material-symbol" aria-hidden="true">auto_fix_high</span>
-                            }
-                        </span>
-                        @* What one craft yields and where it is made. The stored recipe name is not
-                           shown anywhere, not even on hover: it means nothing to a player. *@
-                        <span class="detail-title"><strong>@selected.DisplayName</strong><small>@SubText(selected)</small></span>
-                    </div>
-                    <p class="detail-value">@L.Resource("PlayerRecipes_MakesCount", selected.Info is { Count: > 1 } info ? info.Count : 1)</p>
-
-                    <span class="detail-label">@L.Resource("PlayerRecipes_Ingredients")</span>
-                    <p class="detail-value">@IngredientsText(selected.Info)</p>
-
-                    <span class="detail-label">@L.Resource("PlayerRecipes_CraftedAt")</span>
-                    <p class="detail-value">@BenchesText(selected.Info)</p>
-
-                    @if (UsedInText(selected.Info) is { Length: > 0 } usedIn)
-                    {
-                        <span class="detail-label">@L.Resource("PlayerRecipes_UsedIn")</span>
-                        <p class="detail-value">@usedIn</p>
-                    }
-
-                    <label class="door-toggle"><input type="checkbox" checked="@unlocked" disabled="@(!CanEditRecipes)" @onchange="e => SetRecipe(selected.Id, e.Value is bool value && value)" /> @L.Resource("PlayerRecipes_BadgeUnlocked")</label>
-                </div>
-            }
-
+            @* Tapping a row opens the same shared right-hand detail pane a chapter row does
+               (SelectRecipe/RecipeDetail below), rather than a second, inconsistent inline card
+               buried under the full chapter list and recipe list - reported live as "clicking a
+               recipe doesn't do anything" (it did, just far below the fold where nobody looked). *@
             <p class="wm-note">@L.Resource("WorldStory_WhyMetadata")</p>
         }
     }
@@ -323,12 +290,19 @@
             _selectedChapter = null;
             _ = InvokeAsync(StateHasChanged);
         }
+        if (_selectedWorldRecipeId is { } recipeId && Selection.DetailKey != RecipeKey(recipeId))
+        {
+            _selectedWorldRecipeId = null;
+            _ = InvokeAsync(StateHasChanged);
+        }
     }
 
     public void Dispose()
     {
         Selection.Changed -= SelectionChanged;
-        if (Selection.DetailKey?.StartsWith("story-chapter:", StringComparison.Ordinal) == true) Selection.CloseDetail();
+        if (Selection.DetailKey?.StartsWith("story-chapter:", StringComparison.Ordinal) == true
+            || Selection.DetailKey?.StartsWith("story-recipe:", StringComparison.Ordinal) == true)
+            Selection.CloseDetail();
     }
 
     // ---------- chapter checklist state (native StoryChapterItemViewModel) ----------
@@ -855,12 +829,79 @@
         return makes + BenchesText(info);
     }
 
-    private void ToggleRecipeDetail(string id)
-        => _selectedWorldRecipeId = _selectedWorldRecipeId == id ? null : id;
+    private static string RecipeKey(string id) => $"story-recipe:{id}";
 
-    private void RecipeKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs args, string id)
+    /// <summary>Tap-to-toggle, mirroring <see cref="SelectChapter"/>: a second tap on the open
+    /// recipe closes the pane. Opens the SAME shared right-hand detail pane a chapter row does,
+    /// rather than the inline card this used to show below the whole recipe list.</summary>
+    private void SelectRecipe(WorldRecipeRow row)
     {
-        if (args.Key is "Enter" or " ") ToggleRecipeDetail(id);
+        if (_selectedWorldRecipeId == row.Id && Selection.DetailKey == RecipeKey(row.Id))
+        {
+            CloseRecipeDetail();
+            return;
+        }
+        _selectedWorldRecipeId = row.Id;
+        Selection.ShowDetail(RecipeKey(row.Id), RecipeDetail(row));
+    }
+
+    private void CloseRecipeDetail()
+    {
+        _selectedWorldRecipeId = null;
+        Selection.CloseDetail();
+    }
+
+    /// <summary>Re-publishes the open recipe detail so the pane re-renders fresh state (the
+    /// unlocked toggle in particular) after an edit made from either side - the list checkbox or
+    /// the pane's own, mirroring <see cref="RefreshChapterDetail"/>.</summary>
+    private void RefreshRecipeDetail()
+    {
+        if (_selectedWorldRecipeId is { } id && SelectedWorldRecipeRow is { } row && Selection.DetailKey == RecipeKey(id))
+            Selection.ShowDetail(RecipeKey(id), RecipeDetail(row));
+    }
+
+    /// <summary>The recipe detail panel: what it makes, its ingredients, where it's crafted, what
+    /// it's used in, and the unlock toggle - the same content the old inline card showed, now in
+    /// the shared pane so a recipe click behaves exactly like a chapter click.</summary>
+    private RenderFragment RecipeDetail(WorldRecipeRow row) =>
+        @<aside class="ws-chapter-detail detail-card--orange" aria-label="@row.DisplayName">
+            @{ var unlocked = RecipeIsUnlocked(row.Id); }
+            <header class="ws-detail-head">
+                <span class="offer-icon">
+                    @if (row.Info?.CreatesItemId is { } createdItemId)
+                    {
+                        <ItemIcon ItemId="@createdItemId" Alt="@row.DisplayName" />
+                    }
+                    else
+                    {
+                        <span class="material-symbol" aria-hidden="true">auto_fix_high</span>
+                    }
+                </span>
+                @* What one craft yields and where it is made. The stored recipe name is not
+                   shown anywhere, not even on hover: it means nothing to a player. *@
+                <span class="ws-detail-title"><strong>@row.DisplayName</strong><small>@SubText(row)</small></span>
+                <button type="button" class="wm-close" aria-label="@L.Resource("Common_Cancel")" @onclick="CloseRecipeDetail">✕</button>
+            </header>
+            <p class="detail-value">@L.Resource("PlayerRecipes_MakesCount", row.Info is { Count: > 1 } info ? info.Count : 1)</p>
+
+            <span class="detail-label">@L.Resource("PlayerRecipes_Ingredients")</span>
+            <p class="detail-value">@IngredientsText(row.Info)</p>
+
+            <span class="detail-label">@L.Resource("PlayerRecipes_CraftedAt")</span>
+            <p class="detail-value">@BenchesText(row.Info)</p>
+
+            @if (UsedInText(row.Info) is { Length: > 0 } usedIn)
+            {
+                <span class="detail-label">@L.Resource("PlayerRecipes_UsedIn")</span>
+                <p class="detail-value">@usedIn</p>
+            }
+
+            <label class="door-toggle"><input type="checkbox" checked="@unlocked" disabled="@(!CanEditRecipes)" @onchange="e => SetRecipe(row.Id, e.Value is bool value && value)" /> @L.Resource("PlayerRecipes_BadgeUnlocked")</label>
+        </aside>;
+
+    private void RecipeKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs args, WorldRecipeRow row)
+    {
+        if (args.Key is "Enter" or " ") SelectRecipe(row);
     }
 
     private async Task SetRecipe(string id, bool unlocked)
@@ -876,6 +917,7 @@
         }
         await Session.SetGlobalRecipesAsync([id], unlocked);
         NotifyEdited();
+        RefreshRecipeDetail();
     }
 
     private async Task UnlockAllRecipes()
@@ -890,6 +932,7 @@
         }
         await Session.SetGlobalRecipesAsync(allowed, true);
         NotifyEdited();
+        RefreshRecipeDetail();
         if (lastBlock is not null)
             Toasts.Show(L.Resource("Progress_RecipeGated", PlainNames.Words(lastBlock.RecipeId), lastBlock.EmailSubject, lastBlock.ChapterTitle, PlainNames.Flag(L, lastBlock.TriggerFlag)), ToastKind.Warning);
     }

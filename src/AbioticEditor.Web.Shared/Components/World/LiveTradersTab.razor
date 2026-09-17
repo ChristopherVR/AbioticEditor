@@ -2,13 +2,18 @@
 @using AbioticEditor.Web.Models
 @using AbioticEditor.Core.LiveEditing
 @using AbioticEditor.Core.Codex
+@using AbioticEditor.Web.Components.Player
+@inject ItemCatalogService Items
 
 @* Dedicated live tab rather than a reuse of WorldTradersTab: that component's right-hand detail
    pane leans on InventorySelectionService's master-detail split (a layout LiveConnect.razor's
    flat single-column page does not have) plus file-only services (StoryFlagSyncService,
    RecipeProgressGateService) for cross-region flag resolution a live session does not need
    (the running game's flags ARE the current truth, no sibling-file merge required). The roster
-   and gating logic are the same (TraderCatalog/TraderLore, HasWorldFlag), just presented flat. *@
+   and gating logic are the same (TraderCatalog/TraderLore, HasWorldFlag), just presented flat -
+   including a trader's stock: what a trader sells/accepts is curated game data
+   (TraderInfo.Sells/Accepts), the same as the file tab, never something a live read is needed
+   for, so tapping a row to expand it needs no new wire command. *@
 <section class="editor-card" aria-label="@L.Resource("LiveTraders_Title")">
     <div class="card-title-row">
         <h3>@L.Resource("LiveTraders_Title")</h3>
@@ -27,7 +32,10 @@
         {
             var missing = Session.MissingFlags(trader);
             var available = Session.IsAvailable(trader);
-            <div class="save-file-row kind-player" @key="trader.Id">
+            var expanded = _expandedTraderId == trader.Id;
+            <div class="save-file-row kind-player wt-live-row @(expanded ? "selected" : null)" @key="trader.Id"
+                 role="button" tabindex="0" aria-expanded="@(expanded ? "true" : "false")"
+                 @onclick="() => ToggleStock(trader)" @onkeydown="e => StockKeyDown(e, trader)">
                 <span class="save-kind-marker" aria-hidden="true"></span>
                 <strong class="save-file-name">@DisplayName(trader)</strong>
                 <div class="live-npc-controls">
@@ -35,10 +43,45 @@
                     @if (missing.Count > 0)
                     {
                         <button class="secondary" type="button" disabled="@(!Session.IsHost || _busy)"
-                                @onclick="() => UnlockAsync(missing)">@L.Resource("LiveTraders_Unlock")</button>
+                                @onclick:stopPropagation="true" @onclick="() => UnlockAsync(missing)">@L.Resource("LiveTraders_Unlock")</button>
                     }
                 </div>
             </div>
+            @if (expanded)
+            {
+                <div class="wt-live-stock" @onclick:stopPropagation="true">
+                    <span class="wm-label">@L.Resource("Slot_WhatTheyAcceptAsPayment")</span>
+                    <p class="wt-accepts">@AcceptsText(trader)</p>
+                    <span class="wm-label">@L.Resource("Slot_WhatTheySellTapAnItemToInspectTickLockedItemsToUnlock")</span>
+                    @if (trader.Sells.Count == 0)
+                    {
+                        <p class="muted">@L.Resource("WorldTraders_Card_NoStockTable")</p>
+                    }
+                    else
+                    {
+                        <div class="wt-offer-list">
+                            @foreach (var offer in trader.Sells)
+                            {
+                                var name = Items.Find(offer.ItemId)?.DisplayName ?? PlainNames.Words(offer.ItemId);
+                                var text = offer.Count > 1 ? $"{offer.Count}× {name}" : name;
+                                var unlocked = offer.RequiredFlag is null || Session.HasWorldFlag(offer.RequiredFlag);
+                                var status = offer.RequiredFlag is null ? L.Resource("WorldTraders_Card_AlwaysStocked")
+                                    : unlocked ? L.Resource("WorldTraders_Card_UnlockedFlagSet", PlainNames.Flag(L, offer.RequiredFlag))
+                                    : L.Resource("WorldTraders_Card_LockedNeedsFlag", PlainNames.Flag(L, offer.RequiredFlag));
+                                <div class="wt-offer-row wt-live-offer-row" @key="offer.ItemId">
+                                    <span class="wt-offer-icon"><ItemIcon ItemId="@offer.ItemId" Alt="@text" /></span>
+                                    <span class="wt-offer-text"><strong>@text</strong><small>@status</small></span>
+                                    @if (!unlocked && offer.RequiredFlag is { } flag)
+                                    {
+                                        <button type="button" class="secondary" disabled="@(!Session.IsHost || _busy)"
+                                                @onclick="() => UnlockAsync([flag])">@L.Resource("LiveTraders_Unlock")</button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
         }
     </div>
 
@@ -58,12 +101,33 @@
 
     private bool _busy;
     private string? _error;
+    private string? _expandedTraderId;
 
     // Full localized lore names (WorldTraders_Lore_{id}_Name) are the file tab's job; this
     // dedicated live view keeps to plain, always-available names instead of duplicating that
     // resx-driven lookup for a tab that exists only because the split-pane detail view does not
     // fit this page's layout.
     private static string DisplayName(TraderInfo trader) => PlainNames.Words(trader.Id);
+
+    /// <summary>Tap-to-toggle, no shared detail pane on this flat page (see the class remarks):
+    /// the stock list just expands inline under the tapped row instead.</summary>
+    private void ToggleStock(TraderInfo trader) => _expandedTraderId = _expandedTraderId == trader.Id ? null : trader.Id;
+
+    private void StockKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs args, TraderInfo trader)
+    {
+        if (args.Key is "Enter" or " ") ToggleStock(trader);
+    }
+
+    private string AcceptsText(TraderInfo trader)
+    {
+        var names = trader.Accepts
+            .Select(offer => offer.Count > 1
+                ? $"{offer.Count}× {Items.Find(offer.ItemId)?.DisplayName ?? PlainNames.Words(offer.ItemId)}"
+                : Items.Find(offer.ItemId)?.DisplayName ?? PlainNames.Words(offer.ItemId))
+            .Distinct()
+            .ToList();
+        return names.Count == 0 ? L.Resource("WorldTraders_Card_AcceptsVaries") : string.Join(", ", names);
+    }
 
     private async Task RefreshAsync() => await RunAsync(() => Session.RefreshAsync());
 

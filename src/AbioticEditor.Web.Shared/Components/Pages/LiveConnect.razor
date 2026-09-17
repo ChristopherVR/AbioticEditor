@@ -129,7 +129,9 @@ else
                     <button role="tab" aria-selected="@(_worldTab == "world")" class="@(_worldTab == "world" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("world")'>@L.Resource("WorldEditor_TabStory")</button>
                     <button role="tab" aria-selected="@(_worldTab == "containment")" class="@(_worldTab == "containment" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("containment")'>@L.Resource("WorldEditor_TabContainment")</button>
                     <button role="tab" aria-selected="@(_worldTab == "traders")" class="@(_worldTab == "traders" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("traders")'>@L.Resource("WorldEditor_TabTraders")</button>
-                    <button role="tab" aria-selected="@(_worldTab == "entitlements")" class="@(_worldTab == "entitlements" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("entitlements")'>@L.Resource("Live_TabEntitlements")</button>
+                    @* No ENTITLEMENTS tab here: it only ever showed an "edit the file instead"
+                       placeholder in live mode, same reasoning as the removed live Advanced Data
+                       tab above - a tab that never does anything is worse than no tab. *@
                 }
                 else
                 {
@@ -228,10 +230,6 @@ else
             else if (_care.TryGetValue(_worldTab, out var careSession))
             {
                 <WorldFeaturesTab Session="careSession" FeatureId="@_worldTab" OnError="SetError" OnOpenLink="OpenCareContainerAsync" />
-            }
-            else if (_worldTab == "entitlements")
-            {
-                <p class="muted">@L.Resource("Live_EntitlementsOfflineOnly")</p>
             }
             else if (_connectingTabId == _worldTab)
             {

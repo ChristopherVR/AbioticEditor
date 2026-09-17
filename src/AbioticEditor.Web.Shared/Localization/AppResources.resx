@@ -4101,7 +4101,6 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="LiveNpcs_ClassLabel" xml:space="preserve"><value>Class</value></data>
   <data name="LiveNpcs_NoAppearanceDataNote" xml:space="preserve"><value>The running game itself does not report this creature's position, health or appearance - only its name, life/death state, disabled/invincible flags and faction. The picture above (when there is one) comes from the community wiki, not the game.</value></data>
   <data name="Live_TabPortals" xml:space="preserve"><value>World Teleporters</value></data>
-  <data name="Live_TabEntitlements" xml:space="preserve"><value>Entitlements</value></data>
   <data name="Live_TabWildlife" xml:space="preserve"><value>Creatures</value></data>
   <data name="Live_TabGardenPlots" xml:space="preserve"><value>Garden Plots</value></data>
   <data name="Live_TabPowerChairs" xml:space="preserve"><value>Power Chairs</value></data>
@@ -4111,7 +4110,6 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="LiveTraders_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to unlock traders. Editing here as a joined client would not stick.</value></data>
   <data name="LiveTraders_Unlock" xml:space="preserve"><value>UNLOCK</value></data>
   <data name="LiveContainment_OfflineWorldUnlocksNote" xml:space="preserve"><value>World-wide discovery counts (items seen, emails read, journal pages, compendium entries) live only in the save file, not in the running game - open this world's save to edit those.</value></data>
-  <data name="Live_EntitlementsOfflineOnly" xml:space="preserve"><value>Entitlements (Early Access, Supporter's Edition ownership) live only in the save file's server metadata - there is no running-game object to read or write, so this is edit-the-file only. Open the world's metadata save to change it.</value></data>
   <data name="LiveInventory_Title" xml:space="preserve"><value>INVENTORY</value></data>
   <data name="LiveInventory_Intro" xml:space="preserve"><value>The backpack, equipment and hotbar for the selected player. Type an item row id (or pick one from the list), set the count and durability, then APPLY - each slot applies on its own.</value></data>
   <data name="LiveInventory_Backpack" xml:space="preserve"><value>BACKPACK</value></data>

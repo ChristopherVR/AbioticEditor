@@ -1647,6 +1647,12 @@ button.base-slot.selected{border-color:var(--orange);box-shadow:inset 0 0 0 1px 
 .wt-offer-text small{color:var(--faint);font-size:8px;letter-spacing:.04em}
 .wt-detail-actions{display:flex;flex-wrap:wrap;gap:8px}
 .wt-offer-detail{display:grid;gap:6px;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--line);background:var(--panel)}
+/* LIVE TRADERS: the same stock content as the file tab's right-hand pane (see WorldTradersTab's
+   .wt-trader-detail rules above), just expanded inline under the tapped row instead - this
+   page's flat single-column layout has no split-pane to open it in. */
+.wt-live-row{cursor:pointer}
+.wt-live-stock{display:grid;gap:6px;box-sizing:border-box;margin:4px 0 10px;padding:10px 12px;border:1px solid var(--section);background:var(--shell)}
+.wt-live-offer-row{grid-template-columns:44px minmax(0,1fr) auto;cursor:default}
 /* CONTAINMENT: one row per deployed unit (CONTAINED / EMPTY badge, the HOLDS picker and,
    when occupied, RELEASE), the inline creature detail, and the WORLD UNLOCKS grid. */
 .wc-list{display:grid;gap:8px}
