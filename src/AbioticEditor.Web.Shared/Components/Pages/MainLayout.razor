@@ -203,10 +203,11 @@
     // on top of it - answering that prompt is what frees the sidebar's own "switching" flag, and
     // stacking the mode dialog over it made it easy to navigate away instead of answering, which
     // used to leave the sidebar unresponsive for the rest of the session.
-    private void OpenModeSelect() { if (Modals.Current is null) _modeSelectOpen = true; }
+    private void OpenModeSelect() { if (Modals.Current is null) { _modeSelectOpen = true; _modeSelectFromUser = true; } }
     private void CloseModeSelect()
     {
         _modeSelectOpen = false;
+        _modeSelectFromUser = false;
         if (!_releaseNotesPendingAfterModeSelect) return;
         _releaseNotesPendingAfterModeSelect = false;
         _releaseNotesOpen = true;
@@ -227,11 +228,15 @@
         _releaseNotesOpen = true;
     }
     // The dialog itself only ever offers a close button when this is true (see its own remarks
-    // on why not always) - a file workspace already open, or an already-live session, is
-    // somewhere real to go back to; the very first launch with neither yet has nowhere to send
-    // the player back to if they dismissed without choosing, which is the one case this stays
-    // false for.
-    private bool ModeSelectAllowClose => Workspace.Current is not null || Live.IsConnected;
+    // on why not always). The one case it stays false for is the automatic prompt on launch,
+    // when nothing has been chosen yet and dismissing would leave the player on an empty page.
+    // Once they have picked a way of working, reopening the dialog from the header button (or
+    // being sent back to it by the live session) always has somewhere real to go back to - the
+    // browse page they were on, an open file workspace or a live session - so the close button
+    // no longer waits for a save to actually be loaded, which used to leave the dialog with no
+    // way out right after choosing "edit a save file" and before opening one.
+    private bool ModeSelectAllowClose => _modeSelectFromUser || Workspace.Current is not null || Live.IsConnected;
+    private bool _modeSelectFromUser;
     private void Refresh(object? sender, EventArgs args) => _ = InvokeAsync(StateHasChanged);
     private void RefreshWorkspace() => _ = InvokeAsync(StateHasChanged);
     /// <summary>

@@ -4198,7 +4198,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="LiveDropped_RemoveAll" xml:space="preserve"><value>REMOVE ALL ({0})</value></data>
   <data name="WorldContainers_LivePlayerTransferUnavailable" xml:space="preserve"><value>Trading items with a player save is not available while editing a container live.</value></data>
   <data name="Editing_Recommended" xml:space="preserve"><value>Recommended for most players</value></data>
-  <data name="Editing_Experimental" xml:space="preserve"><value>Experimental</value></data>
+  <data name="Editing_Experimental" xml:space="preserve"><value>Advanced</value></data>
   <data name="Editing_OfflineTitle" xml:space="preserve"><value>Offline save editor</value></data>
   <data name="Editing_OfflineDescription" xml:space="preserve"><value>Edit a saved world with the game closed.</value></data>
   <data name="Editing_OfflineTiming" xml:space="preserve"><value>Changes wait for Save.</value></data>
