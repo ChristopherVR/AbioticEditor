@@ -145,6 +145,8 @@ else
                     <button role="tab" aria-selected="@(_worldTab == "pets")" class="@(_worldTab == "pets" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("pets")'>@L.Resource("WorldEditor_TabPets")</button>
                     <button role="tab" aria-selected="@(_worldTab == "narrativenpcs")" class="@(_worldTab == "narrativenpcs" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("narrativenpcs")'>@L.Resource("WorldEditor_TabNpcs")</button>
                     <button role="tab" aria-selected="@(_worldTab == "portals")" class="@(_worldTab == "portals" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("portals")'>@L.Resource("Live_TabPortals")</button>
+                    <button role="tab" aria-selected="@(_worldTab == "elevators")" class="@(_worldTab == "elevators" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("elevators")'>@L.Resource("Live_TabElevators")</button>
+                    <button role="tab" aria-selected="@(_worldTab == "buttons")" class="@(_worldTab == "buttons" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("buttons")'>@L.Resource("Live_TabButtons")</button>
                     @foreach (var feature in CareFeatures)
                     {
                         <button role="tab" aria-selected="@(_worldTab == feature.Id)" class="@(_worldTab == feature.Id ? "selected" : null)" @onclick="() => SelectWorldTabAsync(feature.Id)">@L.Resource(feature.TitleKey)</button>
@@ -217,7 +219,10 @@ else
             }
             else if (_worldTab == "traders" && _traders is not null)
             {
-                <LiveTradersTab Session="_traders" OnChanged="() => {}" />
+                @* Same shared tab the file editor uses (IWorldTradersSession is the shared
+                   boundary) - see LiveTradersSession for the live implementation. The roster
+                   itself is static game data, fetched the same way regardless of session. *@
+                <WorldTradersTab Session="_traders" OnError="ShowWorldAreaError" />
             }
             else if (_worldTab == "portals" && _portals is not null)
             {
@@ -226,6 +231,20 @@ else
                    only; every other feature id (power sockets, resource nodes, ...) has no live
                    equivalent and is not offered here. *@
                 <WorldFeaturesTab Session="_portals" FeatureId="@LivePortalsFeatureSession.PortalsFeatureId" OnError="SetError" />
+            }
+            else if (_worldTab == "elevators" && _elevators is not null)
+            {
+                @* Also the same shared tab the file editor's "Elevators" feature uses -
+                   LiveElevatorsFeatureSession implements IWorldFeaturesSession for this one
+                   feature only; see its header comment for what is confirmed vs. guessed. *@
+                <WorldFeaturesTab Session="_elevators" FeatureId="@LiveElevatorsFeatureSession.ElevatorsFeatureId" OnError="SetError" />
+            }
+            else if (_worldTab == "buttons" && _buttons is not null)
+            {
+                @* Also the same shared tab the file editor's "Buttons" feature uses -
+                   LiveButtonsFeatureSession implements IWorldFeaturesSession for this one feature
+                   only; see its header comment for what is confirmed vs. best-effort/unconfirmed. *@
+                <WorldFeaturesTab Session="_buttons" FeatureId="@LiveButtonsFeatureSession.ButtonsFeatureId" OnError="SetError" />
             }
             else if (_worldTab == "chemistry-benches" && _care.TryGetValue("chemistry-benches", out var chemistrySession))
             {
@@ -308,6 +327,8 @@ else
     private LiveContainmentSession? _containment;
     private LiveTradersSession? _traders;
     private LivePortalsFeatureSession? _portals;
+    private LiveElevatorsFeatureSession? _elevators;
+    private LiveButtonsFeatureSession? _buttons;
     private readonly Dictionary<string, LiveDeployedCareSession> _care = new(StringComparer.Ordinal);
     private static readonly (string Id, string TitleKey)[] CareFeatures =
         [("garden-plots", "Live_TabGardenPlots"), ("power-chairs", "Live_TabPowerChairs"), ("chemistry-benches", "Live_TabChemistryBenches")];
@@ -692,6 +713,12 @@ else
                 case "portals":
                     _portals ??= await TryConnectWorldAreaAsync(() => LivePortalsFeatureSession.ConnectAsync(new LivePortalsChannel(channel)));
                     break;
+                case "elevators":
+                    _elevators ??= await TryConnectWorldAreaAsync(() => LiveElevatorsFeatureSession.ConnectAsync(new LiveElevatorsChannel(channel)));
+                    break;
+                case "buttons":
+                    _buttons ??= await TryConnectWorldAreaAsync(() => LiveButtonsFeatureSession.ConnectAsync(new LiveButtonsChannel(channel)));
+                    break;
                 case "garden-plots":
                 case "power-chairs":
                 case "chemistry-benches":
@@ -975,6 +1002,8 @@ else
                 case "containment": yield return _containment; break;
                 case "traders": yield return _traders; break;
                 case "portals": yield return _portals; break;
+                case "elevators": yield return _elevators; break;
+                case "buttons": yield return _buttons; break;
                 case "garden-plots":
                 case "power-chairs":
                 case "chemistry-benches":
@@ -1033,7 +1062,7 @@ else
     {
         _vitals, _skills, _spawn, _companions, _npcs, _inventory, _story, _recipes, _codex, _general,
         _flags, _doors, _containers, _dropped, _bases, _vehicles, _pets, _narrativeNpcs, _containment,
-        _traders, _portals,
+        _traders, _portals, _elevators, _buttons,
     }.Concat(_care.Values);
 
     /// <summary>Subscribes to every connected session's <c>Changed</c> event that is not already
@@ -1090,7 +1119,7 @@ else
     /// traders/containment/entitlements) is untouched: none of it is region-scoped.</summary>
     private void ResetRegionScopedWorldSessions()
     {
-        foreach (object? session in new object?[] { _containers, _doors, _dropped, _npcs, _bases, _vehicles, _pets, _narrativeNpcs, _portals }.Concat(_care.Values))
+        foreach (object? session in new object?[] { _containers, _doors, _dropped, _npcs, _bases, _vehicles, _pets, _narrativeNpcs, _portals, _elevators, _buttons }.Concat(_care.Values))
         {
             UnsubscribeChangedEvent(session);
         }
@@ -1103,6 +1132,8 @@ else
         _pets = null;
         _narrativeNpcs = null;
         _portals = null;
+        _elevators = null;
+        _buttons = null;
         _care.Clear();
         // Only the tab actually on screen right now gets re-fetched immediately - the other
         // eight get EnsureAreaConnectedAsync's usual lazy `??=` fetch whenever they are next
@@ -1233,6 +1264,8 @@ else
         _containment = null;
         _traders = null;
         _portals = null;
+        _elevators = null;
+        _buttons = null;
         _care.Clear();
         _careContainerFilter = null;
         _selectedPlayerId = null;

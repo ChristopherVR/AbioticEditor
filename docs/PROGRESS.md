@@ -1,5 +1,357 @@
 # Abiotic Editor - Session history
 
+## Round-97: web-only safeguards, containment scan in the browser, bundled data refresh (2026-09-18)
+
+Coordinator round that landed alongside rounds 92-96 (all seven workstreams ran as parallel
+subagents; the coordinator built and tested centrally: 1473 tests green, Lua harness 985 checks).
+
+- **Mod disclaimer (browser build only)**: `IModDisclaimerGate` (`DesktopModDisclaimerGate` is a
+  passthrough, `BrowserModDisclaimerGate` shows a modal) wraps both "open a save" call sites in
+  `WorkspaceShell.razor`, ahead of the unsaved-changes guard. It fires on every open, with no
+  "don't show again". `OpenAsync` only scans a folder and never selects a save, so the first save
+  opened after picking files also goes through it.
+- **Move items between worlds is gone from the browser build**: `IBrowserHostMarker` (registered
+  only by `Web.Wasm/Program.cs`) hides the link in `WorldContainersTab.razor` and makes
+  `TransferItems.razor` redirect to `browse`.
+- **CONTAINMENT said "no units built" in the browser**: `ContainmentDirectory.Survey` walks the
+  disk, and a browser save "path" is an opaque handle, so the survey came back empty without an
+  error. `WorldSaveSession` now takes the sibling region-save identifiers from the workspace and,
+  when `ISaveFileSystem.HasLocalPaths` is false, reads them through the file-system seam and joins
+  with the new disk-free `ContainmentDirectory.Assemble`. With no sibling saves to read it reports
+  `ContainmentScanUnavailable` and the tab says it could not check, instead of claiming none exist.
+- **Bundled browser data**: audit found icons (1622), art (351) and wiki pictures (126) in sync,
+  and the registry stale (no `CraftDurationSeconds` on recipes). Regenerated with
+  `dump-registry --all-cultures`. `registry.zh-Hant.json` carried 17 skills because the DONOTUSE
+  marker is string-table text and that translation rewords it; `SkillCatalog.RetiredRowIds` now
+  names the two retired rows by id, and `BundledGameDataTests` asserts every language lists the
+  same skill ids.
+- **Live property names come from a probe, not from save leaf names**: the first elevator cut
+  guessed a `TopOpen` property that does not exist. `tests/AbioticEditor.Probes/ElevatorButtonProbe.cs`
+  dumps the elevator and button blueprints with bytecode (set `ELEVATOR_BUTTON_PROBE_OUT`). Owner
+  rule recorded this round: discover actors through the parent class with fallbacks, never a list
+  of leaf blueprint names.
+- **Not yet exercised in the running game**: live buttons, live elevators, the shared TRADERS tab
+  when connected live, and the Dead toggle on live creatures.
+
+
+## Round-96: live Buttons - property/function names confirmed from the coordinator's class dump (2026-09-18)
+
+Round-94's live Buttons area shipped with every state-field property name a pcall-probed guess.
+The coordinator then ran `LiveClassPropsProbe`/a new `tests/AbioticEditor.Probes/
+ElevatorButtonProbe.cs` against the installed game and handed over the full CUE4Parse class dump
+(properties + functions) and, for `Button_Generic.uasset`/`Button_Keypad.uasset`/
+`Button_LightSwitch.uasset`, the complete blueprint bytecode as JSON. Replaced every guess with the
+confirmed names.
+
+**Class discovery switched from a hardcoded leaf list to a hierarchy sweep (owner request, same
+round).** The first pass of this confirmation still enumerated 15 concrete `Button_Generic_C`
+subclasses by name (down from 17 once the two non-buttons below were excluded) - correct today,
+but silently stale the moment the game ships a new button type. Checked how other areas in this
+mod already handle this: `pets.lua`'s own header comment documents "FindAllOf is
+hierarchy-inclusive - confirmed already by `bases.lua`/`containers.list` scanning this same way".
+`buttons.lua` now calls `FindAllOf("Button_Generic_C")` alone (`BUTTON_ROOT_CLASS`) - every current
+subclass (`Button_DFWarReactor_C`, `Button_Keypad_C` and its own subclasses, `Button_LightSwitch_C`
+and its subclass, `Button_ORDER_C`, `Button_Torii_Lantern_C[_Hanging]`, `Button_Tram_C` and its
+subclass, `Button_ValveWheel_C`, `Button_VehicleRecall_C`, `Button_WeatherEnd_C`) comes back
+automatically, and so will any future one, with no code change here. A second, currently-empty
+`ADDITIONAL_ROOT_CLASSES` table (data, not logic - one line to extend) exists for a button-shaped
+class that does NOT chain up to `Button_Generic_C`; nothing qualifies for it today. Every
+property/function read or write is per-instance `pcall`-feature-detected rather than assumed
+present, so a class this module has never heard of (through either root) still lists with whatever
+it actually has and reports the rest unavailable rather than erroring or being dropped, and its
+real runtime class name always comes through as the row's `label` (`ctx.classLabel`, off
+`GetFullName()`) so an unfamiliar type stays visible to the player and in logs. Two names that
+looked like buttons are excluded because they genuinely are not part of this system, confirmed
+from their own `super=` chain, not because of the leaf list: `Button_SpecialImageButton_C` is a UMG
+widget (`WidgetBlueprintGeneratedClass`, `super=AbioticWidget`), never a placed level actor, so it
+can never appear in a `FindAllOf` sweep of the world at all; `CartRecallButton_C` derives from
+`VehicleRecallStation_C`, not `Button_Generic_C`, and its own dump has no
+`Activated`/`ButtonDisabled`/`ButtonSaveData` at all - it is not part of `ButtonMap` and does not
+belong under "buttons" even as an id/position-only row. The C# side (`LiveButtonsChannel`/
+`LiveButtonsFeatureSession`) never had a class-name switch/whitelist of its own - the wire only
+ever carried id/label/state, so nothing there needed to change for this.
+
+**Field mapping, read straight off `Button_Generic_C`'s own `UpdateButtonSaveData(Force)`
+bytecode** (gated on `Force OR CanButtonSave()`; `CanButtonSave` checks per-actor
+`ShouldSave`/`ToggleSwitch` design flags, so `Force=true` - the same idea `portals.lua`'s
+`SavePortalState(true)` already uses - bypasses that gate entirely, and is what this module always
+passes):
+- `ButtonSaveData.ButtonIsEnabled_ = NOT ButtonDisabled` - offline "enabled" is the INVERSE of the
+  live top-level `ButtonDisabled` bool (replicated, `OnRep_ButtonDisabled`).
+- `ButtonSaveData.ButtonActivated_ = Activated` - direct copy of the live top-level `Activated`
+  bool (replicated, `OnRep_Activated`).
+- `ButtonSaveData.NoReset_ = NoVignetteReset` - direct copy of a live top-level bool that is NOT
+  replicated (no `OnRep_` exists for it at all) and, notably, is not named anything close to
+  "NoReset" live - this could not have been guessed.
+- `ButtonSaveData.ButtonHasBeenPressedOnce_ = true` - UNCONDITIONALLY, every single time
+  `UpdateButtonSaveData` runs at all, regardless of `Force`/`CanButtonSave()`. There is no other
+  place in the bytecode that touches this field. This means "pressed once" cannot be set
+  independently live at all, in either direction, and every successful `enabled`/`activated`/
+  `noReset` edit on a button unavoidably also forces it `true` as a side effect of the same
+  persistence call. `buttons.set` now refuses any request that tries to set `pressedOnce`, with a
+  named error, rather than silently ignoring it or pretending it worked; it stays READABLE though
+  (`button.ButtonSaveData.ButtonHasBeenPressedOnce_110_C4AE20D34162FCD3FA3323907300CB1F`, the exact
+  hash-suffixed leaf name confirmed from `SaveData_ButtonStruct`'s own `ChildProperties`, accessed
+  the same struct-nested-leaf way `main.lua`'s `SKILL_XP_FIELD` already documents).
+
+**State-change choice, made deliberately, not by default**: `Button_Generic_C` also has
+`TriggerButtonWithoutUser()`, but its bytecode is a single jump into the shared interaction
+ubergraph (`ExecuteUbergraph_Button_Generic[6719]`) - the same entry point a player's own
+interaction uses, which fires linked-button chains, cooldown checks and whatever else that graph
+does. That is not what a state editor wants, so this module instead writes the property directly,
+calls the matching `OnRep_` (a server never gets its own `OnRep` for something it just wrote
+locally - `transmog.lua`/`portals.lua` already document the same reasoning), then calls
+`UpdateButtonSaveData(true)` - exactly the shape the game's own save path already takes.
+
+**Files changed**: `live-agent/AbioticEditorLiveAgentLua/Scripts/areas/buttons.lua` (rewritten twice
+this round - confirmed field mapping first, then hardcoded leaf-class list replaced with the
+hierarchy sweep + fallback-roots table + per-instance feature detection),
+`live-agent/AbioticEditorLiveAgentLua/tests/cases/buttons.lua` (fakes rewritten to the real
+property names; added a fake subclass buttons.lua has never heard of, declared only via
+`__bases = { "Button_Generic_C" }`, to prove it lists AND is settable, plus a non-button fake with
+no such ancestry to prove exclusion, plus new coverage for the forced-`pressedOnce`-true side
+effect and the refusal path), `Core/LiveEditing/World/LiveButtonsChannel.cs` and
+`Web.Shared/Models/LiveButtonsFeatureSession.cs` (doc comments updated to the confirmed mapping;
+`pressedOnce` now always renders read-only in the BUTTONS tab and is rejected locally before any
+round trip to the game), `docs/reference/live-editing-protocol.md`'s buttons section, and
+`tests/AbioticEditor.Tests/TcpLiveGameChannelTests.cs` (comment wording only - the wire shape did
+not change either time). The wire shape (`LiveButton`/`LiveButtonEdit`/JSON field names) is
+unchanged from Round-94, so no other C# registration points needed touching, and the C# side never
+had a concrete-class switch/whitelist to begin with.
+
+**Lua harness**: **985 checks passed, 0 failed** via `python tools/run-lua-tests.py` (up from 936 at
+Round-94; a couple of intermediate runs this round briefly showed 1-2 failures in `elevators.lua`,
+a sibling live area under concurrent, unrelated edits at the same time - resolved by the time of
+this final run, and never anything in this entry's own buttons coverage). C# not built or tested
+this round either (still out of scope; the coordinator builds centrally).
+
+**Still not yet exercised in the running game.** Everything above is grounded in the class dump and
+bytecode, which is real evidence the property names and the mapping exist - but nobody has yet
+run this against the actual live game to confirm a `buttons.set` call visibly changes a button's
+in-game behavior (lights up/unlocks/etc.), confirm `UpdateActorToWorldSave`'s byte-4 argument
+really is the ButtonMap enum entry assumed here, or confirm the forced-`pressedOnce`-true side
+effect matches what a player would expect to see reflected in the file afterward.
+
+## Round-95: live ELEVATORS - list/set `topOpen` via the game's own buttons, subclass-generic discovery (2026-09-18)
+
+**Before this round, elevators had NO live path at all.** Confirmed by grep: no `elevators.*`
+handler existed in any `live-agent/AbioticEditorLiveAgentLua/Scripts/areas/*.lua`, no
+`LiveElevators*` type existed under `Core/LiveEditing` or `Web.Shared/Models`, and
+`LivePortalsFeatureSession`'s own header comment explicitly listed "elevators" among the feature
+ids with no live equivalent. The offline feature (`Core/WorldSaves/Features/ElevatorMapFeature.cs`,
+the save's `ElevatorMap`) exposes one field, `topOpen` (bool - parked at the top vs. the bottom).
+
+Added the live twin end to end, following the `portals` area as the template: `elevators.lua`
+(new area module, registered in `areas/manifest.lua`), `LiveElevatorsChannel`
+(`Core/LiveEditing/World`), `LiveElevatorsFeatureSession` (`Web.Shared/Models`, implementing the
+same `IWorldFeaturesSession` boundary `WorldFeaturesTab` already binds to), and wiring in
+`LiveConnect.razor` - the offline WORLD > Elevators screen now works unchanged when connected
+live. This entry replaces the original write-up: the first pass guessed a live `TopOpen`
+property from the saved leaf name alone; the coordinator then ran a real CUE4Parse class+bytecode
+probe against the installed game (`tests/AbioticEditor.Probes/ElevatorButtonProbe.cs`) and the
+guess was wrong. Corrected below, twice - first the mechanics, then discovery.
+
+**What the probe actually shows.** `Elevator_ParentBP_C` (super `Actor`) has no `TopOpen`
+property and no `OnRep_TopOpen`. The real live state is a replicated byte enum,
+`ElevatorCurrentMode` (`E_ElevatorMovementTypes`: 0 StoppedAtBottom, 1 StoppedAtTop, 2
+MovingToTop, 3 MovingToBottom - read straight from the enum asset's own `DisplayNameMap`/`Names`
+tables). Traced from the blueprint's own bytecode (JSON export with `ScriptBytecode`, not
+guessed):
+- `OnLoadedFromSave(Top: bool)` sets `ElevatorCurrentMode` via a plain `EX_SwitchValue`/Select:
+  `Top ? 1 (StoppedAtTop) : 0 (StoppedAtBottom)`. That is the save's own load-time mapping, so the
+  saved `TopOpen_` leaf means exactly `ElevatorCurrentMode == StoppedAtTop`. The reverse,
+  save-time direction runs through `SaveElevatorStateToWorldSave` -> the game mode's own
+  `UpdateActorToWorldSave`, outside this class and not itself traced; the live module relies on
+  the load-time mapping by symmetry.
+- `TryPressTopButton(Activated: bool)`/`TryPressBottomButton(Activated: bool)` only act when
+  `Activated` is true and check neither `IsServer()` nor `IsPowered()` internally - traced the
+  full switch-on-`ElevatorCurrentMode` cascade for both. `TryPressTopButton`: mode 0 -> 2 (start
+  moving up), mode 3 -> 2 (redirect up), mode 2 -> unchanged (prints "Elevator is already on its
+  way up"), mode 1 -> 3 (**a real toggle-AWAY quirk**: pressing the top button while already
+  parked at the top sends it back down). `TryPressBottomButton` is the exact mirror. Both set
+  `ElevatorCurrentMode` then call `OnRep_ElevatorCurrentMode()`.
+- `IsElevatorMoving()` = `(mode == 2) OR (mode == 3)`; `IsPowered()` returns a plain `PowerOn`
+  bool - both confirmed present and used as the safety gates the press functions themselves do
+  not apply.
+
+`elevators.lua` never presses the button for the side the elevator already occupies (avoiding the
+toggle-away quirk when the caller only wanted to confirm it is already there), refuses with a
+named reason if the elevator is currently moving or not powered, and - because moving the
+platform is asynchronous (real travel time) - accepts a press that starts or continues the
+correct direction as success rather than requiring an already-arrived read-back. A press with no
+confirmed effect (the real honesty branch a wrong property/function name would hit) is reported
+as an error, not a false success.
+
+**Discovery is subclass-generic, not a hardcoded class list** (second coordinator correction, so
+a future DLC elevator variant needs no code change here). The asset list shows at least
+`Elevator_Office_BP_C` (confirmed `super=Elevator_ParentBP_C` from the class dump) plus
+`Elevator_ORD_BP`/`Elevator_VWinter` in the same folder with the same naming pattern (not
+independently confirmed as subclasses, never special-cased either way) and
+`BucketElevator_Spline_BP` (deliberately excluded - a spline-based "bucket" actor reads as a
+different, conveyor-like actor family with no evidence it is part of `ElevatorMap` at all).
+`elevators.lua` sweeps only the parent class, `ctx.findAll("Elevator_ParentBP_C")` - UE4SS
+`FindAllOf` returns subclass instances too, the same idiom `main.lua`'s `npcs.list` already relies
+on for `NPC_Base_ParentBP_C` (every concrete wildlife/monster class from one query). A short,
+explicitly-labelled fallback class list (data, not logic) only runs if that parent sweep itself
+comes back empty. Every instance, known class or not, is read through `pcall`
+feature-detection (does it expose `ElevatorCurrentMode`? does pressing change it?): an elevator
+type this module does not recognize still lists - with its real class name as its label, the
+existing convention for these unnamed fixed actors - flagged `controllable: false` instead of
+erroring or being dropped, and a set attempt against it is refused by name. `LiveElevator` gained
+`Controllable`/`Moving` alongside `TopOpen`; `LiveElevatorsFeatureSession` renders an
+uncontrollable entry's `topOpen` as a read-only "not controllable" field instead of an editable
+one, and refuses `SetMapFeatureField` on it up front.
+
+Added Lua harness coverage (`tests/cases/elevators.lua`, registered in `tests/cases/manifest.lua`):
+list across a parent instance and a `__bases`-declared subclass, a press that starts a move is
+accepted before arrival, the toggle-away quirk is never triggered by a same-side request, a
+currently-moving elevator refuses a new call, an unpowered one refuses to move, a press with no
+confirmed effect is an honest error, **a brand-new subclass this module has never heard of is
+still fully listed and settable through the parent sweep alone**, **an elevator lacking the
+expected capabilities lists as `controllable: false` and refuses a set attempt by name**, the
+fallback class list is exercised directly (world reset, only a bare subclass instance present),
+an unresolved id fails cleanly without blocking other rows in the same call, and a non-host client
+is refused. **985 checks passed, 0 failed** (`python tools/run-lua-tests.py`, includes every other
+area's existing cases plus this round's additions and the concurrently-landed buttons area).
+
+Updated C# tests in `WorldLiveAreaParityContractTests` (interface/scoping, `LiveConnect.razor`
+wiring, the `Live_TabElevators` resource key, the Lua manifest registration, and the protocol doc
+section) and the `elevators.list`/`elevators.set` wire-shape section in
+`docs/reference/live-editing-protocol.md`, both now describing the confirmed mechanics instead of
+the original guess. Also added an `"Elevator_ParentBP"`/`"Elevator_Office_BP"` fragment to
+`tests/AbioticEditor.Probes/LiveClassPropsProbe.cs` before the correction landed; superseded by
+the coordinator's own `tests/AbioticEditor.Probes/ElevatorButtonProbe.cs`, which is the citation
+for everything confirmed above. **Not run**: `dotnet build`/`dotnet test` (coordinator builds
+centrally after concurrent sessions land) and the live game itself was never launched - **none of
+this has been exercised against the running game yet**; the save-direction mapping (inferred by
+symmetry, not independently traced) and whether a press's effect is felt by players riding the
+platform are the two open questions a real in-game run would settle.
+
+## Round-94: live "Buttons" area added - id/position grounded, state fields best-effort (2026-09-18)
+
+World buttons (offline `buttons` world-map feature, `Core/WorldSaves/Features/ButtonMapFeature.cs`,
+the save's `ButtonMap`) had **no live equivalent before this round**: no Lua area module, no C#
+live channel/session, and `LiveButtonsFeatureSession`/`LiveButtonsChannel` did not exist -
+`LivePortalsFeatureSession`'s own header comment explicitly listed "buttons" among the features
+with no live path (`MapFeature` returned null for it). Confirmed by searching `live-agent/` and
+`src/AbioticEditor.Core/LiveEditing/World/` before starting: only `portals`/`elevators` had a
+`Live*Channel` at all.
+
+Added end to end, following the portals/elevators pattern exactly:
+- `live-agent/AbioticEditorLiveAgentLua/Scripts/areas/buttons.lua` (new area module, registered in
+  `areas/manifest.lua`) - `buttons.list`/`buttons.set`.
+- `Core/LiveEditing/World/LiveButtonsChannel.cs`, `Web.Shared/Models/LiveButtonsFeatureSession.cs`
+  (implements the same `IWorldFeaturesSession` boundary `WorldFeaturesTab` already binds to - the
+  offline BUTTONS tab now shows real data when connected live, no new UI).
+- `LiveConnect.razor` wiring (tab button, render branch, field, connect switch, periodic-refresh
+  yield, `AllKnownLiveSessions`/`ResetRegionScopedWorldSessions`/disconnect resets),
+  `Live_TabButtons` resource key, `docs/reference/live-editing-protocol.md`'s new section.
+- Lua harness cases (`tests/cases/buttons.lua`, registered in `tests/cases/manifest.lua`): **936
+  checks passed, 0 failed** via `python tools/run-lua-tests.py` (was 692 as of the last recorded
+  run; other areas added checks too this round). C# tests added but **not run** (`dotnet test` was
+  out of scope this round - shared `obj/` collision risk with concurrent sessions):
+  `TcpLiveGameChannelTests.LiveButtonsChannel_GetAsync_reads_buttons`,
+  `LiveSessionPeriodicRefreshContractTests` (added `LiveButtonsFeatureSession` to the tracked
+  list), and a new `WorldLiveButtonsAreaTests.cs` (kept separate from the shared
+  `WorldLiveAreaParityContractTests.cs` to avoid colliding with concurrent live-area work there).
+
+**What is live-settable and what is not, and why - read this before trusting the BUTTONS tab
+live**: `id`/`label`/position are a plain `FindAllOf` sweep across the ~17 concrete button
+Blueprint classes found in the installed game's own pak listing this round (`Button_Generic`,
+`Button_Keypad[_VOTV[_Terminal]]`, `Button_LightSwitch`, `Button_VOTV_Lightswitch`, `Button_Tram`,
+`Button_TramRecall`, `Button_ValveWheel`, `Button_VehicleRecall`, `Button_WeatherEnd`,
+`Button_DFWarReactor`, `Button_ORDER`, `Button_SpecialImageButton`,
+`Button_Torii_Lantern[_Hanging]`, `CartRecallButton` - scanned directly from
+`pakchunk0-Windows.utoc` with a small Python script, since running `LiveClassPropsProbe` via
+`dotnet test` to add a "Button" fragment and reflect the real class layout was out of scope this
+round) - as grounded as any other actor listing in this mod. The four state fields (enabled,
+activated, pressed-once, no-reset) are **not confirmed**: unlike portals (`IsTeleporterActive`)
+and elevators (`TopOpen`), no CUE4Parse reflection dump and no installed mod cover any button
+class at all, and the save's own leaf names (`ButtonIsEnabled_`, etc.) are hash-suffixed Blueprint
+variables this mod's own discipline (see `main.lua`'s `SKILL_XP_FIELD` comment) refuses to guess
+blind. `buttons.list` instead pcall-probes a short list of plausible clean (non-suffixed) property
+names per field at runtime and reports a value only when one actually resolved on that exact
+button; a field with none is simply left off that entry (decodes as `null`, never a guessed
+`false`), and the BUTTONS tab renders it as a read-only "not available live" row instead of a
+toggle. `buttons.set` mirrors this: it writes whichever candidate resolved and best-effort calls
+its matching `OnRep_<name>()`, and fails by name (not silently) when nothing resolved for a
+requested field. Every button-related file this round says this plainly in its own header comment
+so the next person does not mistake "loaded" for "confirmed".
+
+**Not yet exercised in the running game** - this was all built and harness-tested against the fake
+UE4SS stub (`tests/harness.lua`) and read-only pak/usmap inspection, with no dotnet build/test and
+no game launch this round (both were out of scope for this task). Whether any of the four state
+fields' candidate names actually resolve on a real button, and whether world buttons even remain
+loaded/interactive after a live edit, is unknown until someone runs this against the game.
+
+## Round-93: TRADERS tab merged into the shared live/offline component (2026-09-18)
+
+The live TRADERS tab (`LiveTradersTab.razor`) looked nothing like the offline one
+(`WorldTradersTab.razor`, wrapping reference cards with a right-hand stock detail) - it was a
+flat expand-in-place list with no spoiler concealment, its own compact row markup and its own
+CSS (`wt-live-*`). Its header comment claimed the offline layout could not be reused because its
+detail pane needs `InventorySelectionService`'s master-detail split pane, which the live page's
+"flat single-column page does not have." That premise no longer held: `WorldDoorsTab` and
+`WorldBasesTab` already prove the split pane is shared, because the pane is `WorkspaceShell`'s
+own `InventorySlotEditor` sidebar, rendered around every page (`MainLayout.razor` wraps `@Body`
+in `<WorkspaceShell>`, which renders `<InventorySlotEditor />` next to the page content) - not
+something local to the offline world-editor screen.
+
+Merged the same way containers/doors/bases/vehicles/pets/narrative-NPCs already are: a new narrow
+`IWorldTradersSession` (`AppliesImmediately`, `IsHost`, `Status`, `HasWorldFlag`, `RefreshAsync`),
+implemented by `WorldSaveSession` (staged, or a direct sibling-Facility-file write for a metadata
+save - unchanged behavior) and by `LiveTradersSession` (immediate, against the running game).
+`WorldTradersTab` now takes `IWorldTradersSession Session` instead of the concrete
+`WorldSaveSession`; the trader roster itself stays session-independent (static curated game
+data, fetched by the tab the same way either way, per the deleted tab's own correct observation).
+The three genuinely different unlock-write mechanics (staged file, direct metadata-save write,
+live wire command) stay a type-checked branch in the tab, the same pattern `WorldContainersTab`
+already uses for its own live/file divergence - forcing them onto the shared interface would have
+meant giving `WorldSaveSession` a dependency on host-level services (`StoryFlagSyncService`,
+`RecipeProgressGateService`) it doesn't otherwise have.
+
+Live-only additions folded into the shared tab behind `Session.AppliesImmediately`: a REFRESH
+button (re-reads the running game's current flags) and a "not hosting" warning that disables the
+unlock actions for a joined client. Spoiler concealment (a trader not yet met stays hidden),
+localization, icons/art and the confirm-before-unlock flow are now identical in both modes.
+Deleted `LiveTradersTab.razor` and its now-dead `wt-live-*` CSS rules and
+`LiveTraders_Title`/`LiveTraders_Intro`/`LiveTraders_Unlock` resource keys (`LiveTraders_NotHostWarning`
+is reused, not dead). Updated `WorldLiveAreaParityContractTests` (traders is no longer a
+"dedicated" live deviation - only chemistry benches remain one) and `LiveConnect.razor`/
+`SaveEditorSurface.razor`'s wiring. Not run: `dotnet build`/`dotnet test` (coordinator builds
+centrally after concurrent sessions land).
+
+## Round-92: Characters/Creatures tab review, and one Dead toggle instead of a Revive button (2026-09-18)
+
+Asked to compare the offline "Characters" world tab (`WorldNpcsTab.razor`) against the live
+"Creatures" tab (`LiveNpcsTab.razor`) and merge them if they are the same concept. They are not:
+`WorldNpcsTab` already reads/writes only the save's `NarrativeNPCMap` (named story characters and
+traders, `IsDead`/story-stage state) and is already the ONE shared tab for that data in both
+modes (round 77's `IWorldNpcsSession`, backed live by `LiveNarrativeNpcsSession` over
+`narrativenpcs.list`/`.set` in `areas/narrative.lua`). `LiveNpcsTab` covers a disjoint, live-only
+universe: every `NPC_Base_ParentBP_C` actor currently loaded (wildlife, monsters, robots), via
+`main.lua`'s `npcs.list`/`.set` - state the save file never persists at all, so there is no
+offline counterpart to merge it with. The code already documents this split in-line
+(`LiveConnect.razor`'s own comment next to the `narrativenpcs`/`npcs` tab wiring). Left both tabs
+as-is per the task's own fallback rule for genuinely different concepts.
+
+Did apply the Dead-toggle cleanup to both, since each had grown a redundant control:
+- `WorldNpcsTab` had a `Dead` checkbox AND a separate REVIVE button that called the exact same
+  setter with `false`. Removed the button; the checkbox alone now does both directions.
+- `LiveNpcsTab` had a single KILL/REVIVE button (not a checkbox) toggling the same `IsDead`
+  field. Replaced it with the same `Dead` checkbox idiom the rest of the app uses (WORLD Pets,
+  Characters), for one consistent control across every creature-ish tab. Confirmed end to end
+  that unchecking it already invokes the full round-91 `reviveNpc` pipeline, not a bare flag
+  flip: `LiveNpcsTab` -> `LiveNpcSession.ApplyAsync` -> `LiveNpcChannel.SetAsync` ->
+  `npcs.set` in `main.lua`, whose handler already branches `isDead == false` into `reviveNpc()`
+  (controller respawn, un-ragdoll, health reinit, fade-delay disarm) rather than a plain
+  `IsDead = false` write - no Lua or C# behavior changed, only the UI.
+
+Removed the now-dead `WorldNpcs_Revive`/`WorldNpcs_ReviveTooltip` and `LiveNpcs_Kill`/
+`LiveNpcs_Revive` resource keys from every language file, and reworded `WorldNpcs_NpcsIntro` in
+de/es/fr/ru (the English copy never named the button) since those translations called the old
+REVIVE button out by name.
+
 ## Limitation sweep: item stats, badges, Game Pass profiles, crops, corpses (2026-09-17)
 
 v2.13.0 shipped (paint colours, pet progress). A read-only survey of docs, UI hints, the Lua

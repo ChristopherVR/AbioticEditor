@@ -7,8 +7,10 @@ namespace AbioticEditor.Web.Models;
 /// Host-neutral boundary for the world-map features browser (buttons, elevators, resource nodes,
 /// power sockets, teleporter pads, world teleporters/portals, entitlements, ...), implemented by
 /// the file session (<see cref="WorldSaveSession"/>, every feature the loaded save carries) and a
-/// live session (<see cref="LivePortalsFeatureSession"/>, only the one feature that has an
-/// evidenced live UObject path: the "World Teleporters" pads). <c>WorldFeaturesTab</c> binds to
+/// live session per feature that has one: <see cref="LivePortalsFeatureSession"/> (the "World
+/// Teleporters" pads, evidenced live UObject path) and <see cref="LiveButtonsFeatureSession"/>
+/// (world buttons - id/position are evidenced the same way, but its four state fields are
+/// best-effort/unconfirmed, see that class's own remarks). <c>WorldFeaturesTab</c> binds to
 /// this interface alone.
 /// </summary>
 public interface IWorldFeaturesSession

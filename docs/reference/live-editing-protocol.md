@@ -488,6 +488,95 @@ installed mod exercises this actor class; this is the first live write to it. Sa
 behavior as `doors.set`: a row with an unresolved `id` does not block the others in the same
 call, but the overall reply becomes an error naming it.
 
+## `elevators.list` / `elevators.set` - fixed elevator platforms (round 79, mechanics confirmed and discovery made subclass-generic round 95)
+
+The live twin of the `elevators` world-map feature
+(`Core/WorldSaves/Features/ElevatorMapFeature.cs`, the save's `ElevatorMap`, whose only persisted
+leaf is `TopOpen_<hash>`). `elevators.list` returns
+`{"elevators":[{"id","label","controllable","topOpen","moving","x","y","z"}],"isHost":bool}`.
+`elevators.set` takes `{"elevators":[{"id","topOpen"?}]}`. Host only.
+
+**Confirmed from a real class+bytecode probe** (`tests/AbioticEditor.Probes/ElevatorButtonProbe.cs`),
+correcting an earlier guess (a live `TopOpen` bool with `OnRep_TopOpen`) that was wrong -
+`Elevator_ParentBP_C` (super `Actor`) has neither. The real live state is a replicated byte enum,
+`ElevatorCurrentMode` (`E_ElevatorMovementTypes`: 0 StoppedAtBottom, 1 StoppedAtTop, 2
+MovingToTop, 3 MovingToBottom), with `OnRep_ElevatorCurrentMode` as its notify.
+`OnLoadedFromSave(Top: bool)` sets `ElevatorCurrentMode` to 1 when `Top` is true and 0 otherwise
+(a plain Select in its bytecode), so `topOpen` means exactly `ElevatorCurrentMode ==
+StoppedAtTop`; the reverse, save-time direction runs through `SaveElevatorStateToWorldSave` and
+the game mode's own `UpdateActorToWorldSave`, outside this class and not itself traced - inferred
+by symmetry with the confirmed load-time mapping, not independently confirmed. `topOpen` is
+written by pressing the game's own `TryPressTopButton(Activated: bool)`/
+`TryPressBottomButton(Activated: bool)`, never `TopOpen` directly. Both only act when `Activated`
+is true and check neither `IsServer()` nor `IsPowered()` internally; traced per-mode:
+`TryPressTopButton` mode 0 -> 2 (start moving up), mode 3 -> 2 (redirect up), mode 2 -> unchanged
+("already on its way up"), mode 1 -> 3 (a real **toggle-away quirk**: pressing the top button
+while already at the top sends it back down). `TryPressBottomButton` is the exact mirror.
+`elevators.set` never presses the button for the side the elevator already occupies (avoiding
+that quirk when the caller only wanted to confirm arrival), refuses with a named reason if
+`IsElevatorMoving()` or not `IsPowered()`, and - since moving the platform takes real travel time
+- accepts a press that starts or continues the right direction as success rather than requiring
+an already-arrived read-back; a press with no confirmed effect is an error, not a false success
+(same partial-apply shape as `doors.set`/`portals.set` for an unresolved id).
+
+**Discovery is subclass-generic, not a hardcoded class list.** `elevators.list` sweeps only the
+parent class, `FindAllOf("Elevator_ParentBP_C")` - UE4SS returns subclass instances too, the same
+idiom `npcs.list` already relies on for `NPC_Base_ParentBP_C` - so `Elevator_Office_BP_C`
+(confirmed `super=Elevator_ParentBP_C`), any other elevator variant the game ships, and a future
+DLC addition are all found with no class name anywhere in this module. A short, explicitly
+data-only fallback class list is consulted only if that parent sweep returns nothing. Every
+instance is read through `pcall` feature-detection: an elevator type this module cannot read
+`ElevatorCurrentMode` from still lists (`controllable: false`, its real class name as `label`)
+instead of erroring or being dropped, and a set attempt against it is refused by name. Not yet
+exercised in the running game.
+
+## `buttons.list` / `buttons.set` - world buttons (round 80, property/function names confirmed round 95, hierarchy-based discovery round 96)
+
+The live twin of the `buttons` world-map feature (`Core/WorldSaves/Features/ButtonMapFeature.cs`,
+the save's `ButtonMap`, whose leaves are `ButtonID_`/`ButtonHasBeenPressedOnce_`/
+`ButtonIsEnabled_`/`ButtonActivated_`/`NoReset_`). `buttons.list` returns
+`{"buttons":[{"id","label","enabled"?,"activated"?,"pressedOnce"?,"noReset"?,"x","y","z"}],"isHost":bool}`
+for every loaded actor found by a single `FindAllOf("Button_Generic_C")` sweep - `FindAllOf` is
+hierarchy-inclusive (the same idiom `bases.lua`/`main.lua`'s `CONTAINER_CLASSES` and `pets.lua`
+already rely on), so every current subclass (`Button_Keypad[_VOTV[_Terminal]]`,
+`Button_LightSwitch`/`Button_VOTV_Lightswitch`, `Button_Tram`/`Button_TramRecall`,
+`Button_ValveWheel`, `Button_VehicleRecall`, `Button_WeatherEnd`, `Button_DFWarReactor`,
+`Button_ORDER`, `Button_Torii_Lantern[_Hanging]`, confirmed from each class's own `super=` chain)
+comes back with no class name hardcoded anywhere, and so will any future one the game adds. A
+second, currently-empty table of additional root classes exists for a button-shaped class that
+does NOT chain up to `Button_Generic_C` (data, not logic - see `buttons.lua`'s own header
+comment); nothing qualifies today. Every property read/write is per-instance feature-detected
+(`pcall`), never assumed present, so a class this area has never seen still lists with whatever it
+has and reports the rest unavailable rather than erroring or being silently dropped, and its real
+runtime class always comes through as `label`. Two look-alikes are excluded because their own
+`super=` chain shows they are not part of this system at all, not because of a missing list entry:
+`Button_SpecialImageButton_C` is a UMG widget (`WidgetBlueprintGeneratedClass`, never a placed
+level actor, so it could never match the sweep anyway), and `CartRecallButton_C` derives from
+`VehicleRecallStation_C`, not `Button_Generic_C`, and has none of these properties at all.
+
+Confirmed this round against the coordinator's own CUE4Parse class dump and `Button_Generic_C`'s
+own blueprint bytecode (`UpdateButtonSaveData`, `CanButtonSave`, the two `OnRep_` functions - see
+`live-agent/AbioticEditorLiveAgentLua/Scripts/areas/buttons.lua`'s own header comment for the full
+citations): `enabled` is `NOT ButtonDisabled` (inverted; replicated, `OnRep_ButtonDisabled`),
+`activated` is `Activated` (direct; replicated, `OnRep_Activated`), `noReset` is `NoVignetteReset`
+(direct; plain, not replicated - no `OnRep_` exists for it). `buttons.set` writes the matching
+property directly, calls its `OnRep_` where one exists, then calls `UpdateButtonSaveData(true)` -
+the same "Force" idea `portals.lua`'s `SavePortalState(true)` already uses, and the exact shape the
+game's own save path takes (bypassing the `CanButtonSave()` gate entirely). A `null` field in a
+`buttons.list` row means this specific actor could not be read just now, not a guessed `false`.
+
+`pressedOnce` is different and stays weaker: it is readable
+(`ButtonSaveData.ButtonHasBeenPressedOnce_110_C4AE20D34162FCD3FA3323907300CB1F`, a struct-nested
+leaf accessed by its exact hash-suffixed name - the same discipline `main.lua`'s `SKILL_XP_FIELD`
+already documents) but the bytecode shows `UpdateButtonSaveData` always sets it `true`
+unconditionally, the moment it runs at all - there is no live path that sets it independently or
+clears it back to `false`. `buttons.set` refuses any request that sets `pressedOnce` outright
+(`"'pressed once' cannot be set independently live..."`) rather than silently ignoring it or lying
+about the result; note that a successful edit to `enabled`/`activated`/`noReset` on the SAME
+button still forces `pressedOnce` true as an unavoidable side effect of the same persistence call.
+Host only. Same partial-apply behavior as `doors.set`/`portals.set` (a row with an unresolved `id`
+does not block the others in the same call). Not yet exercised in the running game.
+
 ## `care.list` / `care.set` - deployed-object care: gardens, Power Chairs, chemistry benches (2026-09-16)
 
 **Implemented, awaiting in-game verification.** The live counterpart of watering/fertilizing a

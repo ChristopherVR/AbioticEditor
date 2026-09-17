@@ -99,6 +99,14 @@ public class LiveClassPropsProbe
             // Round-77 world-gaps research: pet health/heal RPCs, vehicle wrecked/repair, bench
             // upgrades, dropped-item spawning, inventory sort, narrative NPC state.
             "BenchUpgrade",
+            // Round-79 live elevators: this fragment pair predates the real class+bytecode probe
+            // that superseded it - see tests/AbioticEditor.Probes/ElevatorButtonProbe.cs (added
+            // by the coordinator), which confirmed the actual live state (ElevatorCurrentMode,
+            // not a TopOpen property) and is now the citation areas/elevators.lua cites. Left
+            // here too so a general class-layout dump still picks up both classes.
+            "Elevator_ParentBP", "Elevator_Office_BP",
+            // Live buttons: every concrete button blueprint plus the saved button struct.
+            "/Button_", "CartRecallButton", "SaveData_ButtonStruct", "SaveData_Elevator",
         ];
 
         var outPath = Environment.GetEnvironmentVariable("LIVE_CLASS_PROBE_OUT");

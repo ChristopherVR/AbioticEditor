@@ -9,6 +9,7 @@ return {
     "containment",
     "traders",
     "portals",
+    "elevators",
     "spawn",
     "worldinfo",
     "skills",
@@ -30,4 +31,5 @@ return {
     "traits",
     "appearance",
     "npc_revive",
+    "buttons",
 }

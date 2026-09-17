@@ -51,21 +51,35 @@ public sealed class WorldLiveAreaParityContractTests
     }
 
     [Fact]
-    public void LiveConnect_wires_the_shared_tabs_and_the_dedicated_traders_tab()
+    public void LiveConnect_wires_the_shared_tabs_and_the_dedicated_chemistry_tab()
     {
         var source = PagesSource("LiveConnect.razor");
-        // Containment and world-teleporters reuse the exact same tab the file editor renders.
+        // Containment, world-teleporters and traders reuse the exact same tab the file editor renders.
         Assert.Contains("<WorldContainmentTab Session=\"_containment\"", source, StringComparison.Ordinal);
         Assert.Contains("<WorldFeaturesTab Session=\"_portals\" FeatureId=\"@LivePortalsFeatureSession.PortalsFeatureId\"",
             source, StringComparison.Ordinal);
-        // Traders and chemistry benches got dedicated tabs instead (documented deviations - see
-        // each dedicated component's own header comment for why the generic tab could not be
-        // reused safely here).
-        Assert.Contains("<LiveTradersTab Session=\"_traders\"", source, StringComparison.Ordinal);
+        Assert.Contains("<WorldTradersTab Session=\"_traders\"", source, StringComparison.Ordinal);
+        // Chemistry benches still get a dedicated tab (a documented deviation - see that
+        // component's own header comment for why the generic tab could not be reused safely
+        // there).
         Assert.Contains("<LiveChemistryBenchTab Session=\"chemistrySession\"", source, StringComparison.Ordinal);
         // Neither Entitlements nor Raw JSON has a live equivalent, and neither is offered as a
         // dead placeholder tab live either - see LiveConnect.razor's own comment on why both are
         // omitted entirely there instead.
+    }
+
+    [Fact]
+    public void WorldTradersTab_binds_to_the_narrow_traders_interface_not_the_concrete_session()
+    {
+        var source = WorldSource("WorldTradersTab.razor");
+        Assert.Contains("public IWorldTradersSession Session", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void WorldSaveSession_and_LiveTradersSession_implement_the_same_traders_boundary()
+    {
+        Assert.Contains("IWorldTradersSession", ModelSource("WorldSaveSession.cs"), StringComparison.Ordinal);
+        Assert.Contains(": IWorldTradersSession", ModelSource("LiveTradersSession.cs"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -76,7 +90,7 @@ public sealed class WorldLiveAreaParityContractTests
             .Where(name => name is not null).ToHashSet(StringComparer.Ordinal);
         foreach (var key in new[]
         {
-            "LiveTraders_Title", "LiveTraders_Intro", "LiveTraders_NotHostWarning", "LiveTraders_Unlock",
+            "LiveTraders_NotHostWarning",
             "LiveContainment_OfflineWorldUnlocksNote",
             "Live_TabPortals",
             "LiveChemistryBenches_Title", "LiveChemistryBenches_Intro", "LiveChemistryBenches_NotHostWarning",
@@ -105,6 +119,50 @@ public sealed class WorldLiveAreaParityContractTests
     {
         var doc = File.ReadAllText(Path.Combine(UiSource.RepositoryRoot, "docs", "reference", "live-editing-protocol.md"));
         foreach (var heading in new[] { "containment.list", "containment.set", "traders.list", "traders.unlock", "portals.list", "portals.set" })
+        {
+            Assert.Contains(heading, doc, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void LiveElevatorsFeatureSession_implements_the_same_interface_and_is_scoped_to_elevators_only()
+    {
+        var source = ModelSource("LiveElevatorsFeatureSession.cs");
+        Assert.Contains(": IWorldFeaturesSession", source, StringComparison.Ordinal);
+        Assert.Contains("ElevatorsFeatureId", source, StringComparison.Ordinal);
+        Assert.Contains("this feature has no live equivalent", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LiveConnect_wires_the_elevators_feature_tab()
+    {
+        var source = PagesSource("LiveConnect.razor");
+        Assert.Contains("<WorldFeaturesTab Session=\"_elevators\" FeatureId=\"@LiveElevatorsFeatureSession.ElevatorsFeatureId\"",
+            source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Live_elevators_resource_key_exists_in_AppResources()
+    {
+        var resources = System.Xml.Linq.XDocument.Load(UiSource.Resolve("Localization", "AppResources.resx"))
+            .Descendants("data").Select(node => node.Attribute("name")?.Value)
+            .Where(name => name is not null).ToHashSet(StringComparer.Ordinal);
+        Assert.Contains("Live_TabElevators", resources);
+    }
+
+    [Fact]
+    public void Live_elevators_lua_module_is_registered_in_the_areas_manifest()
+    {
+        var manifest = File.ReadAllText(LiveAgentPath("Scripts", "areas", "manifest.lua"));
+        Assert.Contains("areas.elevators", manifest, StringComparison.Ordinal);
+        Assert.True(File.Exists(LiveAgentPath("Scripts", "areas", "elevators.lua")));
+    }
+
+    [Fact]
+    public void Live_editing_protocol_doc_describes_the_elevators_wire_shapes()
+    {
+        var doc = File.ReadAllText(Path.Combine(UiSource.RepositoryRoot, "docs", "reference", "live-editing-protocol.md"));
+        foreach (var heading in new[] { "elevators.list", "elevators.set" })
         {
             Assert.Contains(heading, doc, StringComparison.Ordinal);
         }

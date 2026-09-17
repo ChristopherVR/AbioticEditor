@@ -539,6 +539,26 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task LiveButtonsChannel_GetAsync_reads_buttons()
+    {
+        await using var channel = await ConnectedChannelAsync();
+        var buttons = new AbioticEditor.Core.LiveEditing.World.LiveButtonsChannel(channel);
+
+        var directory = await buttons.GetAsync();
+        Assert.True(directory.IsHost);
+        var button = Assert.Single(directory.Buttons);
+        Assert.Equal(true, button.Enabled);
+        Assert.Equal(false, button.Activated);
+        Assert.Equal(false, button.PressedOnce);
+        // "noReset" was absent from the canned reply - decodes as null (this actor's property
+        // could not be read just now), never a guessed false. See LiveButtonsChannel's own remarks.
+        Assert.Null(button.NoReset);
+
+        await buttons.SetAsync([new AbioticEditor.Core.LiveEditing.World.LiveButtonEdit(button.Id, Enabled: false)]);
+        Assert.Equal(LiveConnectionState.Connected, channel.State);
+    }
+
+    [Fact]
     public async Task LivePlayerRecipesChannel_round_trips_unlocks()
     {
         await using var channel = await ConnectedChannelAsync();
@@ -775,6 +795,11 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
                         + "{\"id\":\"Deployed_LeyakContainment_C /Game/Maps/Facility.Facility:PersistentLevel.Deployed_LeyakContainment_C_2\",\"x\":40,\"y\":50,\"z\":60,\"stability\":null,\"creature\":null}],\"isHost\":true}",
                     "traders.list" => "{\"setFlags\":[\"Office_PowerOn\"],\"isHost\":true}",
                     "portals.list" => "{\"portals\":[{\"id\":\"BP_Teleporter_ParentBP_C /Game/Maps/Facility.Facility:PersistentLevel.BP_Teleporter_ParentBP_C_4\",\"label\":\"BP_Teleporter_ParentBP_C\",\"active\":true,\"teleporterId\":\"TP_A\",\"destinationId\":\"TP_B\",\"x\":7,\"y\":8,\"z\":9}],\"isHost\":false}",
+                    // World buttons: enabled/activated/pressedOnce map to confirmed live properties
+                    // (see LiveButtonsChannel's own remarks) - "noReset" is deliberately absent
+                    // here to prove a field this particular actor could not read decodes as null,
+                    // not a guessed false.
+                    "buttons.list" => "{\"buttons\":[{\"id\":\"Button_DFWarReactor_C /Game/Maps/Facility.Facility:PersistentLevel.Button_DFWarReactor_C_1\",\"label\":\"Button_DFWarReactor_C\",\"enabled\":true,\"activated\":false,\"pressedOnce\":false,\"x\":11,\"y\":12,\"z\":13}],\"isHost\":true}",
                     // Round-76 player areas: SPAWN (position + claimed respawn terminal) and
                     // COMPANIONS (carried pets, reusing the same slot shape as inventory.list plus
                     // name/xp/mutation).

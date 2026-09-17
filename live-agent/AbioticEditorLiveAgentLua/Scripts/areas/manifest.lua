@@ -10,6 +10,7 @@ return {
     "areas.containment",
     "areas.traders",
     "areas.portals",
+    "areas.elevators",
     "areas.spawn",
     "areas.companions",
     "areas.recipes",
@@ -19,4 +20,5 @@ return {
     "areas.worldunlocks",
     "areas.transmog",
     "areas.narrative",
+    "areas.buttons",
 }

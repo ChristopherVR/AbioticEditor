@@ -35,6 +35,7 @@ public sealed class LiveSessionPeriodicRefreshContractTests
         // Round 91: back in the loop, with a zero-arg overload that re-reads only the watched
         // container (see LiveContainersSession.WatchedContainerId), never the world scan.
         typeof(LiveContainersSession),
+        typeof(LiveButtonsFeatureSession),
     ];
 
     [Theory]
