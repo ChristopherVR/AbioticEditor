@@ -4121,6 +4121,8 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="LiveChemistryBenches_NoneFound" xml:space="preserve"><value>No chemistry benches are loaded in this area right now.</value></data>
   <data name="LiveChemistryBenches_WouldProduce" xml:space="preserve"><value>These inputs would produce: {0}</value></data>
   <data name="LiveChemistryBenches_NoMatchingRecipe" xml:space="preserve"><value>These inputs don't match a known chemistry recipe.</value></data>
+  <data name="LiveChemistryBenches_StartMixing" xml:space="preserve"><value>START MIXING</value></data>
+  <data name="LiveChemistryBenches_MixingInProgress" xml:space="preserve"><value>Mixing is running. The output appears here when it finishes.</value></data>
   <data name="LiveChemistryBenches_RecipesTitle" xml:space="preserve"><value>Recipes</value></data>
   <data name="LiveChemistryBenches_RecipesSearch" xml:space="preserve"><value>Search by what it makes</value></data>
   <data name="LiveChemistryBenches_RecipeDurationFormat" xml:space="preserve"><value>{0:0.#}s to mix</value></data>

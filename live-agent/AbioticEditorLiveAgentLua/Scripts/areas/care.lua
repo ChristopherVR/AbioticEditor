@@ -80,6 +80,13 @@ return function(ctx)
                         ctx.slotRowName(inv.CurrentInventory[i]), "item", not isOutput and host))
                 end
             end
+            -- Round 90: placing inputs never starts a mix on its own - in game the player turns
+            -- the valve, which runs the parent processing bench's AttemptToActivateProcessing
+            -- (Deployed_ProcessingBench_ParentBP, per the game's own exports); ProcessingActive
+            -- is its replicated "a mix is running" flag. Reported as a plain token the editor
+            -- turns into words, so it can also offer the "start" action (see care.set).
+            local okActive, active = pcall(function() return obj.ProcessingActive end)
+            table.insert(fields, field("mixing", "Mixing", (okActive and active == true) and "active" or "idle"))
         end
         return fields
     end
@@ -160,6 +167,21 @@ return function(ctx)
                 local component = obj.RechargeableComponent
                 if not valid(component) then error("chair battery is unavailable") end
                 component:Server_ModifyBattery(value - charge(obj), true)
+            elseif feature == "chemistry-benches" and id == "process" then
+                -- The editor's "start mixing": the same AttemptToActivateProcessing(InteractCharacter)
+                -- the valve interaction ends up calling, handed the local player's own character
+                -- the way an in-person interaction would be. The bench itself decides whether the
+                -- inputs make a recipe; its replicated ProcessingActive flag is the readback.
+                if value ~= "start" then error("unknown mixing action") end
+                local character = ctx.getMyPlayer()
+                if not valid(character) then error("no local player character is loaded") end
+                local okCall, callErr = pcall(function() obj:AttemptToActivateProcessing(character) end)
+                if not okCall then error("could not start this bench on this game build: " .. tostring(callErr)) end
+                local okActive, active = pcall(function() return obj.ProcessingActive end)
+                if not (okActive and active == true) then
+                    error("the bench did not start mixing - check that the inputs make a real recipe and the bench is powered")
+                end
+                return nil
             elseif feature == "chemistry-benches" then
                 local kind, index = tostring(id):match("^(%a+):(%d+)$")
                 if kind ~= "flask" then error("this field is read-only") end

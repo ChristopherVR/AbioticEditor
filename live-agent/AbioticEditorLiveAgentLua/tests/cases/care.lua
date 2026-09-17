@@ -74,10 +74,16 @@ return function(H)
         { ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B = { RowName = H.fname("Empty") },
           ChangeableData_12_2B90E1F74F648135579D39A49F5A2313 = { CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 0, DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7 = {} } },
     } }, { OnRep_CurrentInventory = function() end })
-    local bench = H.world.add(H.object("Deployed_ChemistryBench_C", { BenchInventory = benchInv }))
+    local bench = H.world.add(H.object("Deployed_ChemistryBench_C", { BenchInventory = benchInv, ProcessingActive = false }, {
+        AttemptToActivateProcessing = function(self, character) if character ~= nil then self.ProcessingActive = true end end,
+    }))
     local benchId = bench:GetFullName()
     local benchListing = H.ok(H.dispatch("care.list", {featureId="chemistry-benches"}))
-    H.eq(#benchListing.entries[1].fields, 4, "bench flask fields listed")
+    local flaskFieldCount = 0
+    for _, f in ipairs(benchListing.entries[1].fields) do
+        if f.id:sub(1, 6) == "flask:" then flaskFieldCount = flaskFieldCount + 1 end
+    end
+    H.eq(flaskFieldCount, 4, "bench flask fields listed")
     H.eq(benchListing.entries[1].fields[1].editable, true, "bench input slot is editable for the host")
     H.eq(benchListing.entries[1].fields[4].editable, false, "bench output slot is always read-only")
     H.eq(benchListing.entries[1].containerId, benchId, "bench still exposes a container id for the deep link")
@@ -87,6 +93,15 @@ return function(H)
     H.ok(setBench("flask:0", ""), "bench input slot cleared")
     H.eq(benchInv.CurrentInventory[1].ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B.RowName:ToString(), "Empty", "cleared bench slot reads back empty")
     H.fails(setBench("flask:3", "bandage"), "computed by the game", "bench output slot rejects writes")
+    -- Round 90: the "mixing" state field and the start action.
+    local function mixingField(listing)
+        for _, f in ipairs(listing.entries[1].fields) do if f.id == "mixing" then return f end end
+    end
+    H.eq(mixingField(H.ok(H.dispatch("care.list", {featureId="chemistry-benches"}))).value, "idle", "bench reports idle before a mix")
+    H.ok(setBench("process", "start"), "bench mixing started through AttemptToActivateProcessing")
+    H.eq(H.calls(bench, "AttemptToActivateProcessing"), 1, "AttemptToActivateProcessing called once")
+    H.eq(mixingField(H.ok(H.dispatch("care.list", {featureId="chemistry-benches"}))).value, "active", "bench reports an active mix")
+    H.fails(setBench("process", "stop"), "unknown mixing action", "only start is a known mixing action")
 
     H.clientSession()
     H.world.add(garden)

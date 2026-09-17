@@ -58,7 +58,7 @@
                             <div class="wt-portrait cb-portrait">
                                 <ItemIcon ItemId="@BenchItemId" Alt="@bench.Label" />
                             </div>
-                            @foreach (var flask in bench.Fields)
+                            @foreach (var flask in bench.Fields.Where(f => f.Id.StartsWith("flask:", StringComparison.Ordinal)))
                             {
                                 <div class="wt-field" @key="flask.Id">
                                     <span class="wt-label">@flask.Label</span>
@@ -90,6 +90,18 @@
                             @if (hint is not null)
                             {
                                 <p class="wt-muted">@hint</p>
+                            }
+                            @* Placing inputs never starts a mix by itself - in game you turn the bench's
+                               valve. This is that valve: the game's own activation call, which decides
+                               for itself whether the inputs make a recipe. *@
+                            @if (IsMixing(bench))
+                            {
+                                <p class="wt-muted">@L.Resource("LiveChemistryBenches_MixingInProgress")</p>
+                            }
+                            else if (InputItemIds(bench).Count > 0)
+                            {
+                                <button class="wt-btn wt-yellow" type="button" disabled="@(_busy || !Session.IsHost)"
+                                        @onclick='() => SetFlaskAsync(bench.Id, "process", "start")'>@L.Resource("LiveChemistryBenches_StartMixing")</button>
                             }
                             @* An empty output with a matched recipe is not stuck - the game's own mixing
                                genuinely takes real time (the recipe's own craft duration), and the running
@@ -279,7 +291,14 @@
     }
 
     private static IReadOnlyList<string> InputItemIds(LiveCareEntry bench)
-        => bench.Fields.Where(f => f.Id != "flask:3" && !IsEmptySlot(f.Value)).Select(f => f.Value!).ToList();
+        => bench.Fields.Where(f => f.Id.StartsWith("flask:", StringComparison.Ordinal) && f.Id != "flask:3" && !IsEmptySlot(f.Value))
+            .Select(f => f.Value!).ToList();
+
+    /// <summary>The bench's own replicated "a mix is running" flag, reported by the live side
+    /// as the plain token "active" (anything else, including a missing field on an older mod
+    /// build, reads as idle).</summary>
+    private static bool IsMixing(LiveCareEntry bench)
+        => bench.Fields.FirstOrDefault(f => f.Id == "mixing")?.Value == "active";
 
     /// <summary>Shared by <see cref="RecipeHint"/> (which only needs the output name) and <see
     /// cref="OutputPendingDuration"/> (which also needs the matched recipe's own craft time) so
