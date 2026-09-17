@@ -18,13 +18,13 @@ public sealed class LivePlayerDirectoryChannel(ILiveGameChannel channel)
         var wire = await _channel.RequestAsync<DirectoryWire>("players.list", payload: null, cancellationToken)
             .ConfigureAwait(false);
         var players = wire.Players
-            .Select(p => new LivePlayerSummary(p.Id, p.Name, p.IsLocal))
+            .Select(p => new LivePlayerSummary(p.Id, p.Name, p.IsLocal, p.Region))
             .ToList();
         return new LivePlayerDirectory(players, wire.IsHost);
     }
 
     private sealed record DirectoryWire(IReadOnlyList<PlayerWire> Players, bool IsHost);
-    private sealed record PlayerWire(string Id, string Name, bool IsLocal);
+    private sealed record PlayerWire(string Id, string Name, bool IsLocal, string? Region);
 }
 
 /// <summary>One connected player, as listed by <see cref="LivePlayerDirectoryChannel"/>.</summary>
@@ -33,7 +33,17 @@ public sealed class LivePlayerDirectoryChannel(ILiveGameChannel channel)
 /// player instead of the local one.</param>
 /// <param name="Name">The player's in-game display name.</param>
 /// <param name="IsLocal">Whether this is the player this process is running as.</param>
-public sealed record LivePlayerSummary(string Id, string Name, bool IsLocal);
+/// <param name="Region">
+/// This player's own current streaming level token (the same shape <c>world.info</c> reports for
+/// the local player - e.g. <c>Facility_MFWest</c>), read from THEIR OWN controller rather than
+/// assumed to match the local player's. Null when this process could not find a controller
+/// belonging to this player at all - expected for a joined client looking at anyone but itself
+/// (a controller only replicates to its own owning connection in Unreal by default; only a
+/// hosting process is expected to see everyone's), not a sign anything is broken. See
+/// <c>players.list</c>'s own <c>regionForController</c> comment in <c>main.lua</c> for the full
+/// reasoning and its own unproven-for-clients caveat.
+/// </param>
+public sealed record LivePlayerSummary(string Id, string Name, bool IsLocal, string? Region = null);
 
 /// <summary>
 /// The full result of <see cref="LivePlayerDirectoryChannel.GetAsync"/>: who is connected, and

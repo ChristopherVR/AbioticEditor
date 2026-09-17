@@ -100,11 +100,15 @@
                     {
                         @foreach (var region in LiveRegionSaves.Where(IsCurrentLiveRegion))
                         {
+                            @* Other co-op players can be in THIS same region too (not just
+                               elsewhere) - the chip counts everyone besides the local client so
+                               "HERE" alone still reads correctly for the common solo case. *@
+                            var withMe = PlayersInRegion(region).Count(player => !player.IsLocal);
                             <button type="button" class="save-file-row kind-world @(Live.Surface == LiveSurface.World && !Live.WorldSurfaceIsMetadata ? "selected" : null)"
                                     title="@region.RelativePath" @onclick="() => SelectLiveRegionAsync(region)">
                                 <span class="save-kind-marker" aria-hidden="true"></span>
                                 <strong class="save-file-name">@MiddleTruncation.Truncate(SaveDisplayName(region), SaveNameBudget)</strong>
-                                <span class="save-file-meta"><b>@L.Resource("Live_HereChip")</b></span>
+                                <span class="save-file-meta"><b>@(withMe > 0 ? L.Resource("Live_AlsoHereFormat", withMe) : L.Resource("Live_HereChip"))</b></span>
                             </button>
                         }
                     }
@@ -116,9 +120,16 @@
                     {
                         @foreach (var region in LiveRegionSaves.Where(region => !IsCurrentLiveRegion(region)))
                         {
-                            <button type="button" class="save-file-row kind-world region-disabled" disabled title="@L.Resource("Live_RegionNotHereHint")">
+                            @* Round 80: occupied-but-not-loaded-here regions still show who is
+                               there, instead of silently looking empty just because the LOCAL
+                               connection has not loaded that area - see PlayersInRegion's own
+                               remarks on what a joined client can and cannot see here. *@
+                            var occupants = PlayersInRegion(region);
+                            <button type="button" class="save-file-row kind-world region-disabled" disabled
+                                    title="@(occupants.Count > 0 ? L.Resource("Live_RegionOccupiedHintFormat", OccupantsSummary(occupants)) : L.Resource("Live_RegionNotHereHint"))">
                                 <span class="save-kind-marker" aria-hidden="true"></span>
                                 <strong class="save-file-name">@MiddleTruncation.Truncate(SaveDisplayName(region), SaveNameBudget)</strong>
+                                @if (occupants.Count > 0) { <span class="save-file-meta"><b>@L.Resource("Live_PlayersHereFormat", OccupantsSummary(occupants))</b></span> }
                             </button>
                         }
                     }
@@ -127,10 +138,13 @@
                         @foreach (var token in FallbackRegionTokens)
                         {
                             var isCurrent = string.Equals(NormalizeLevelToken(Live.CurrentRegionToken), token, StringComparison.OrdinalIgnoreCase);
-                            <button type="button" class="save-file-row kind-world region-disabled" disabled title="@L.Resource("Live_RegionNotHereHint")">
+                            var occupants = isCurrent ? [] : PlayersInRegionToken(token);
+                            <button type="button" class="save-file-row kind-world region-disabled" disabled
+                                    title="@(occupants.Count > 0 ? L.Resource("Live_RegionOccupiedHintFormat", OccupantsSummary(occupants)) : L.Resource("Live_RegionNotHereHint"))">
                                 <span class="save-kind-marker" aria-hidden="true"></span>
                                 <strong class="save-file-name">@(WorldAreaCatalog.FriendlyName(token) ?? token)</strong>
                                 @if (isCurrent) { <span class="save-file-meta"><b>@L.Resource("Live_HereChip")</b></span> }
+                                else if (occupants.Count > 0) { <span class="save-file-meta"><b>@L.Resource("Live_PlayersHereFormat", OccupantsSummary(occupants))</b></span> }
                             </button>
                         }
                     }
@@ -624,6 +638,33 @@
         if (t.StartsWith(editorPlayPrefix, StringComparison.OrdinalIgnoreCase)) t = t[editorPlayPrefix.Length..];
         return t.Length == 0 ? null : t;
     }
+
+    /// <summary>
+    /// Every connected player whose OWN reported region matches <paramref name="token"/> - not
+    /// just the local client's own, unlike <see cref="IsCurrentLiveRegion"/>. Co-op players can be
+    /// standing in a completely different area at the same time (round 80); this is what lets a
+    /// region row the local client has NOT loaded still show it is occupied. Always empty for a
+    /// joined client looking at anyone but itself - the mod-side <c>players.list</c> handler's own
+    /// comment explains why a controller other than this process's own typically is not visible at
+    /// all there, so an empty result here does not necessarily mean the area is actually empty.
+    /// </summary>
+    private IReadOnlyList<AbioticEditor.Core.LiveEditing.Player.LivePlayerSummary> PlayersInRegionToken(string? token)
+    {
+        if (string.IsNullOrEmpty(token) || Live.Directory is not { } directory) return [];
+        return directory.Players.Where(player => string.Equals(NormalizeLevelToken(player.Region), token, StringComparison.OrdinalIgnoreCase)).ToArray();
+    }
+
+    private IReadOnlyList<AbioticEditor.Core.LiveEditing.Player.LivePlayerSummary> PlayersInRegion(WorkspaceSave save)
+        => PlayersInRegionToken(WorldAreaCatalog.TokenFromSaveFile(save.Path));
+
+    /// <summary>A short, player-facing summary of who is standing in a region - "Alex" for one,
+    /// "Alex, Sam" for a few, "3 players" once it gets crowded enough that names stop being the
+    /// clearer read. Never empty when called - check <see cref="PlayersInRegionToken"/>'s own
+    /// count first.</summary>
+    private static string OccupantsSummary(IReadOnlyList<AbioticEditor.Core.LiveEditing.Player.LivePlayerSummary> players)
+        => players.Count <= 3
+            ? string.Join(", ", players.Select(player => player.Name))
+            : players.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     /// <summary>The static region list shown (all disabled) when this world's folder could not be
     /// found on this PC - a curated subset of the game's own Facility sub-levels, named through

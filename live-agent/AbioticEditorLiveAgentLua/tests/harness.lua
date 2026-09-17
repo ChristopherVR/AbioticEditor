@@ -376,10 +376,17 @@ function H.hostSession()
     -- localPlayerId() already reads off the CONTROLLER for a different purpose.
     pawn.PlayerState = state
     H.playerStates = { state }
-    H.playerController = H.object("Abiotic_PlayerController_C", {
+    -- __bases = { "PlayerController" } + H.world.add: round 80's regionForController walks
+    -- FindAllOf("PlayerController") directly (not through UEHelpers.GetPlayerController(), which
+    -- this harness mocks as a plain field return below rather than a real FindAllOf-backed
+    -- lookup) - so the local controller needs to be a genuinely findable world object here too,
+    -- matching how it already is in the real game (see that function's own comment for why this
+    -- is expected to work there).
+    H.playerController = H.world.add(H.object("Abiotic_PlayerController_C", {
+        __bases = { "PlayerController" },
         MyPlayerCharacter = pawn, PlayerState = state,
         ActiveLevelName = H.fname("Facility"), TerminalRespawnID = H.fname("E57CB02C4853F46D2BB7CA80303EB6A3"),
-    })
+    }))
     H.gameMode = H.object("Abiotic_Survival_GameMode_C", { AI_Director = nil })
     H.gameState = H.object("Abiotic_Survival_GameState_C", {
         PlayerArray = { state }, WorldFlags = { H.fname("Office_PowerOn") },

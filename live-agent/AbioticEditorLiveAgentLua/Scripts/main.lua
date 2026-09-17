@@ -142,6 +142,48 @@ local function localPlayerId()
     return playerId(state, 0)
 end
 
+-- ===== Per-player region (round 80: which area of the map each connected player is standing
+-- in, for the sidebar's "who's where" display - previously only ever answerable for the LOCAL
+-- player, since UEHelpers.GetPlayerController() (used by world.info/spawn.get's levelName) has
+-- no "for a different connected player" form) =====
+--
+-- This file's own "Player access" comment above already established that
+-- UEHelpers.GetPlayerController() "uses FindAllOf('PlayerController')/IsPlayerController() checks
+-- only" and then picks out the local one - the underlying FindAllOf call is proven, real, and
+-- already running on every single command that resolves the local player. What's new here is
+-- simply NOT filtering that list down to one: calling FindAllOf("PlayerController") directly and
+-- walking every result, matching each back to a connected player via its own PlayerState
+-- back-reference (the same UniquePlayerID players.list already keys everyone by).
+--
+-- Unproven for a joined CLIENT: standard Unreal networking only replicates a PlayerController to
+-- its OWNING connection, so a client's own game process most likely only ever finds its own
+-- controller in this list, not other players' - the same "client sees less than host" limitation
+-- already documented for several other commands in this mod (see vitals.set's own comment). A
+-- controller this process cannot see just means that player's region comes back nil below rather
+-- than a guess.
+local function allPlayerControllers()
+    local ok, list = pcall(function() return FindAllOf("PlayerController") end)
+    if not ok or not list then return {} end
+    return list
+end
+
+---The ActiveLevelName of whichever controller in `controllers` belongs to the player with id
+---`targetId`, or nil when no controller could be matched (not visible to this process, or the
+---match failed) - never a guess.
+local function regionForController(controllers, targetId)
+    for _, controller in ipairs(controllers) do
+        if controller:IsValid() then
+            local ok, state = pcall(function() return controller.PlayerState end)
+            if ok and state and state:IsValid() and playerId(state, -1) == targetId then
+                local okLevel, level = pcall(function() return controller.ActiveLevelName:ToString() end)
+                if okLevel and level and level ~= "" then return level end
+                return nil
+            end
+        end
+    end
+    return nil
+end
+
 ---Resolves which player character a request targets: payload.playerId when given (matched
 ---against the same id players.list handed out, any connected player - not just the local one),
 ---otherwise getMyPlayer() - unchanged default behavior for every command from before player
@@ -164,9 +206,13 @@ local handlers = {}
 -- Lists every connected player (name + a stable id) plus whether THIS process currently has
 -- authority (see the "Host/client authority" note above handlers["vitals.set"] below) - the UI
 -- uses this both to offer a player picker and to show whether edits here are expected to stick.
+-- Round 80: also reports each player's own region (see regionForController's own comment above
+-- for what this can and cannot see), so the sidebar can show every occupied area, not only
+-- wherever the LOCAL player happens to be standing.
 handlers["players.list"] = function(_, respond)
     runOnGameThread(function()
         local myId = localPlayerId()
+        local controllers = allPlayerControllers()
         local players = { __forceArray = true }
         for index, state in ipairs(allPlayerStates()) do
             if state:IsValid() then
@@ -176,6 +222,7 @@ handlers["players.list"] = function(_, respond)
                     id = id,
                     name = (ok and name and name ~= "") and name or ("Player " .. tostring(index)),
                     isLocal = id == myId,
+                    region = regionForController(controllers, id),
                 })
             end
         end

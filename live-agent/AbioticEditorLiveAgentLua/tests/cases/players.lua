@@ -45,6 +45,28 @@ return function(H)
     H.eq(guestRow.isLocal, false, "the guest is not flagged as local")
     H.eq(list.isHost, true, "this process still reports its own authority correctly")
 
+    -- Round 80: each player's own region, for the sidebar's "who's where" display - the local
+    -- player's controller is a real findable world object (see harness.lua's own comment on
+    -- H.playerController), so its region resolves; the guest has no matching controller in this
+    -- world at all, which must come back nil rather than guessed from the local one's.
+    H.eq(localRow.region, "Facility", "local player's own region read from their controller")
+    H.eq(guestRow.region, nil, "a player with no matching controller in the world gets no region, not a wrong guess")
+
+    -- A second connected player's OWN controller, in a different area - proves this isn't just
+    -- reporting the local controller's region for everyone.
+    local otherController = H.world.add(H.object("Abiotic_PlayerController_C", {
+        __bases = { "PlayerController" },
+        PlayerState = guestState, ActiveLevelName = H.fname("Facility_DF_Central"),
+    }))
+    local listWithGuestRegion = H.ok(H.dispatch("players.list"))
+    local localRowAfter, guestRowAfter
+    for _, p in ipairs(listWithGuestRegion.players) do
+        if p.name == "Tribbes" then localRowAfter = p end
+        if p.name == "Guest" then guestRowAfter = p end
+    end
+    H.eq(guestRowAfter.region, "Facility_DF_Central", "the guest's own controller's region is read, not the local player's")
+    H.eq(localRowAfter.region, "Facility", "the local player's own row from the same call is untouched by the guest's controller existing")
+
     -- vitals.get/set targeting the guest by playerId: reads/writes THAT pawn, not the local one.
     local guestVitals = H.ok(H.dispatch("vitals.get", { playerId = guestRow.id }), "vitals.get for the guest")
     H.eq(guestVitals.hunger, 10, "the guest's own hunger read, not the local player's")
