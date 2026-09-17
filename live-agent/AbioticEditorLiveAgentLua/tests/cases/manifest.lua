@@ -29,4 +29,5 @@ return {
     "inventory_metadata",
     "traits",
     "appearance",
+    "npc_revive",
 }

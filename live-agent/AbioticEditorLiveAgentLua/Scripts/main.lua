@@ -591,6 +591,147 @@ handlers["npcs.list"] = function(_, respond)
     end, respond)
 end
 
+-- ===== Reviving a killed creature (round 91) =====
+-- A live report: "killing and reviving a creature (Robot Defense) leaves it as if revived but it
+-- can no longer attack or move". Flipping IsDead back to false was all the old revive did, and
+-- that only undoes what the shared character parent's own OnRep_IsDead does on death (capsule
+-- collision, gravity, movement mode, mesh collision profile - it is the same path a respawning
+-- PLAYER takes). Everything an NPC's death does on top of that was left standing, read from the
+-- game's own blueprints (NPC_Base_ParentBP / Abiotic_AI_Controller_ParentBP, dumped by
+-- tests/AbioticEditor.Probes/NpcDeathProbe.cs):
+--   - the AI controller's decision tick sees the pawn's IsDead and runs Despawn(): it
+--     UnPossesses the pawn and destroys itself (the pawn also flags it IsPendingDespawn), so the
+--     "revived" creature has no brain at all - no behavior tree, no movement, no attacks. This
+--     is the reported symptom.
+--   - the body ragdolls (mesh SetSimulatePhysics(true) under the hips), which nothing reverses;
+--   - every limb's health stays at 0;
+--   - Server_TryFadeOutCorpse starts a DefaultNPCBodyFadeOutTime (500 s) retriggerable delay
+--     after which the body fades and the actor is destroyed - with no "is it still dead?" check.
+-- The game has no NPC revive of its own (its only revive is the player's DBNO one), so this
+-- rebuilds one from the pieces it does expose: a fresh controller through the engine's own
+-- APawn.SpawnDefaultController (it spawns the blueprint's AIControllerClass and possesses the
+-- pawn; the controller's BeginPlay retries until it finds its pawn, then runs the behavior
+-- tree), the un-ragdoll calls OnRep_DeathData itself makes for a non-ragdoll death, the limb
+-- health fields pets.set/vitals.set already write, and the corpse-fade delay re-armed to an
+-- effectively infinite duration (RetriggerableDelay restarts with whatever duration it is called
+-- with, and the duration is read from DefaultNPCBodyFadeOutTime at call time).
+-- Blueprint-side calls are verified from the dumped bytecode, not exercised live yet.
+local NPC_LIMB_HEALTH_PROPERTIES = {
+    "CurrentHealth_Head", "CurrentHealth_Torso", "CurrentHealth_LeftArm",
+    "CurrentHealth_RightArm", "CurrentHealth_LeftLeg", "CurrentHealth_RightLeg",
+}
+-- Full name -> what the creature looked like right before the editor killed it (its limb health
+-- and its mesh's rest pose), so a revive can put it back exactly. A creature that died on its own
+-- has no snapshot and falls back to re-running the game's own health initialisation and to the
+-- rest pose of a living creature of the same class.
+local npcPreDeathSnapshots = {}
+
+local function snapshotNpcBeforeDeath(npc, fullName)
+    local snapshot = { limbs = {} }
+    for _, property in ipairs(NPC_LIMB_HEALTH_PROPERTIES) do
+        local ok, value = pcall(function() return npc[property] end)
+        if ok and type(value) == "number" and value > 0 then snapshot.limbs[property] = value end
+    end
+    pcall(function()
+        local location, rotation = npc.Mesh.RelativeLocation, npc.Mesh.RelativeRotation
+        snapshot.meshLocation = { X = location.X, Y = location.Y, Z = location.Z }
+        snapshot.meshRotation = { Pitch = rotation.Pitch, Yaw = rotation.Yaw, Roll = rotation.Roll }
+    end)
+    npcPreDeathSnapshots[fullName] = snapshot
+end
+
+-- The mesh's rest pose relative to the capsule (a per-class blueprint default, e.g. the robots
+-- sit at Z -110): the pre-death snapshot when there is one, else borrowed from any living
+-- creature of the same class, else nil (the creature still revives, its body may just stand a
+-- little off its collision capsule).
+local function npcMeshRestPose(fullName)
+    local snapshot = npcPreDeathSnapshots[fullName]
+    if snapshot and snapshot.meshLocation then return snapshot.meshLocation, snapshot.meshRotation end
+    local label = npcLabel(fullName)
+    for _, other in ipairs(allNpcs()) do
+        local ok, location, rotation = pcall(function()
+            if not other:IsValid() or other.IsDead == true then return nil end
+            local otherName = npcFullName(other)
+            if not otherName or npcLabel(otherName) ~= label then return nil end
+            local l, r = other.Mesh.RelativeLocation, other.Mesh.RelativeRotation
+            return { X = l.X, Y = l.Y, Z = l.Z }, { Pitch = r.Pitch, Yaw = r.Yaw, Roll = r.Roll }
+        end)
+        if ok and location then return location, rotation end
+    end
+    return nil
+end
+
+local function reviveNpc(npc, fullName)
+    local okGibbed, gibbed = pcall(function() return npc.IsGibbed == true end)
+    if okGibbed and gibbed then error("this creature was blown apart - there is no body left to revive") end
+    local okFading, fading = pcall(function() return npc.BodyFadingOut == true end)
+    if okFading and fading then error("this creature's body is already fading away and can't be revived") end
+
+    -- 1. Alive again. The shared character parent's OnRep_IsDead(false) path restores capsule
+    --    collision, gravity, the movement mode and the mesh's Pawn collision profile.
+    npc.IsDead = false
+    pcall(function()
+        local replication = require("replication")
+        replication.mark(replication.requireHelper(), npc, "IsDead")
+    end)
+    pcall(function() npc:OnRep_IsDead() end)
+
+    -- 2. The body: stop the ragdoll and put the mesh back on its capsule - the same calls the
+    --    game's own OnRep_DeathData makes when a death is NOT meant to ragdoll.
+    local mesh
+    pcall(function() mesh = npc.Mesh end)
+    if mesh then
+        pcall(function() mesh:SetSimulatePhysics(false) end)
+        pcall(function() mesh:SetAllBodiesSimulatePhysics(false) end)
+        pcall(function() mesh:SetPhysicsAsset(nil, true) end)
+        pcall(function() mesh:SetCollisionProfileName(FName("CharacterMesh"), false) end)
+        pcall(function() mesh:SetEnableGravity(false) end)
+        pcall(function() mesh.bNoSkeletonUpdate = false end)
+        local location, rotation = npcMeshRestPose(fullName)
+        if location then
+            pcall(function() mesh:K2_SetRelativeLocationAndRotation(location, rotation, false, {}, true) end)
+        end
+    end
+    pcall(function() npc.bCanBeDamaged = true end)
+    pcall(function() npc.CombatState = false end)
+
+    -- 3. Health: the game's own spawn-time initialisation (rebuilds every limb from the NPC's
+    --    data row and the current difficulty), then the exact pre-death values when the editor
+    --    was the one that killed it.
+    pcall(function() npc:InitalizeHealthValues(true) end)
+    local snapshot = npcPreDeathSnapshots[fullName]
+    if snapshot then
+        for property, value in pairs(snapshot.limbs) do pcall(function() npc[property] = value end) end
+    end
+    pcall(function() npc:OnRep_CurrentHealth() end)
+
+    -- 4. Disarm the corpse-fade countdown (see the header comment).
+    pcall(function()
+        local original = npc.DefaultNPCBodyFadeOutTime
+        npc.DefaultNPCBodyFadeOutTime = 1e9
+        npc:Server_TryFadeOutCorpse()
+        npc.DefaultNPCBodyFadeOutTime = original
+    end)
+
+    -- 5. A brain. If the old controller never got round to noticing the death (its decision
+    --    tick runs on a timer) it is still possessing and thinking: just cancel its pending
+    --    despawn. Otherwise it has unpossessed and destroyed itself, and a fresh one is spawned.
+    local okController, controller = pcall(function() return npc.Controller end)
+    if okController and controller and controller:IsValid() then
+        pcall(function() controller.IsPendingDespawn = false end)
+    else
+        local okSpawn, err = pcall(function() npc:SpawnDefaultController() end)
+        if not okSpawn then
+            error("this creature is alive again but could not be given a new brain (it won't move or attack): " .. tostring(err))
+        end
+        local okCheck, spawned = pcall(function() return npc.Controller end)
+        if not okCheck or not spawned or not spawned:IsValid() then
+            error("this creature is alive again but the game refused to give it a new brain (it won't move or attack)")
+        end
+    end
+    npcPreDeathSnapshots[fullName] = nil
+end
+
 handlers["npcs.set"] = function(payload, respond)
     runOnGameThread(function()
         if not isHost() then error("only the host can edit NPCs") end
@@ -600,11 +741,16 @@ handlers["npcs.set"] = function(payload, respond)
             local npc = row.id and findNpcByFullName(row.id)
             if npc then
                 if row.isDead ~= nil and npc.IsDead ~= row.isDead then
-                    npc.IsDead = row.isDead
-                    -- Mirrors the real mod's kill command: pushes the change out through
-                    -- replication/UI instead of leaving it locally-set only (the same pattern
-                    -- vitals.set already uses for OnRep_CurrentHealth).
-                    pcall(function() npc:OnRep_IsDead() end)
+                    if row.isDead then
+                        snapshotNpcBeforeDeath(npc, row.id)
+                        npc.IsDead = true
+                        -- Mirrors the real mod's kill command: pushes the change out through
+                        -- replication/UI instead of leaving it locally-set only (the same pattern
+                        -- vitals.set already uses for OnRep_CurrentHealth).
+                        pcall(function() npc:OnRep_IsDead() end)
+                    else
+                        reviveNpc(npc, row.id)
+                    end
                 end
                 if row.isDisabled ~= nil then npc.IsDisabled = row.isDisabled end
                 if row.invincible ~= nil then npc.Invincible = row.invincible end

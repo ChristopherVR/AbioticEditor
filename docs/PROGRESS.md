@@ -4100,6 +4100,18 @@ from the original ask.
 4. NU1903 advisory: Microsoft.Bcl.Memory 9.0.0 transitive inside CUE4Parse upstream.
 5. Nothing is committed - entire working tree awaits user review/commit (submodule
    moves are staged by necessity of git mv semantics).
+6. **Live creature REVIVE (round 91, 2026-09-17)**: reviving a killed creature used to leave a
+   standing corpse (no AI, no movement, no attacks) because the game's NPC death despawns the
+   AI controller, ragdolls the body, zeroes limb health and arms a 500 s corpse-fade destroy
+   with no revive of its own. `reviveNpc` in main.lua now spawns a fresh controller
+   (`SpawnDefaultController`), un-ragdolls the mesh and returns it to its rest pose, re-runs
+   the game's own health initialisation (plus the exact pre-death limb values when the editor
+   did the killing) and re-arms the fade delay to never. Evidence: the blueprint bytecode dumps
+   from `tests/AbioticEditor.Probes/NpcDeathProbe.cs`; harness-tested (`tests/cases/npc_revive.lua`),
+   **not yet exercised in the running game** (needs a game restart to load the Lua). Creature
+   pictures: every DT_NPCList class now has a curated wiki file where the wiki has one
+   (`NpcRosterProbe.cs` + the wiki API); ~100 classes resolve, the imageless rest are listed
+   in `CreatureWikiImages.cs`.
 
 ## Conventions / gotchas (see also memory: abiotic-save-schema-facts)
 - Property names hash-suffixed -> always prefix-match; delta-serialization omits

@@ -20,19 +20,13 @@ namespace AbioticEditor.Core.Codex;
 /// here yet), and two pages upload their art with an uppercase <c>.PNG</c> extension (Peccary,
 /// Symphonist) rather than lowercase.
 ///
-/// About 49 of the roughly 85 wiki creatures are curated here so far (round 82); the wiki's rate
-/// limiter cut this session's verification pass short before the full roster, so the Gatekeeper
-/// faction (Chieftain, Jotun, Mystagogue, Neophyte, Witch, ...), the Combat Robots besides
-/// Security Bot, and a handful of others remain unverified - re-run the same
-/// <c>Special:FilePath</c> probing (with a multi-second delay between requests, exactly what
-/// <c>download-wiki-images</c> already does) to keep growing this table. Four names were checked
-/// and found to NOT follow the plain title pattern with no obvious alternative (Grunt, Guard
-/// Grunt, Rook, Shield Trooper all answered a genuine 404, not a rate limit) - their real file
-/// names need a page read to find, not another guess. "Exor Pikeman" (a real in-game creature,
-/// confirmed present in the game's own assets under
-/// <c>Content/Models/Characters/NPCs/ExorPikeman/</c>) was searched for directly and does not
-/// have a wiki page at all yet, curated or guessable - it has no image available under this
-/// class's wiki-sourcing approach until the wiki gets one.
+/// Round 91 walked the whole shipped roster instead: every NPC class the game's own
+/// <c>DT_NPCList</c> table spawns (about 120 classes) keyed by the exact display name the live
+/// CREATURES tab derives from the class, with each file read out of the wiki page's infobox
+/// through the wiki API. About 100 of those classes now resolve to a picture; the rest have no
+/// wiki page or an image-less one and are listed in the block's own comment below. ("Exor
+/// Pikeman", searched for by that name in an earlier round and not found, turned out to be what
+/// the game and the wiki both call "Exor Cha".)
 ///
 /// <see cref="CandidatesFor"/> tries the curated file first, then the page-title guess, then - for
 /// a multi-word name - the words in reverse order, since a live class name's own word order (e.g.
@@ -128,6 +122,92 @@ public static class CreatureWikiImages
             ["Niketas"] = "Niketas.png",
             ["Torchbearer"] = "Torchbearer.png",
             ["Woodsman"] = "Woodsman.png",
+            // Round 91, keyed by what the LIVE tab actually derives from a class name (a live
+            // report: "Robot Defense" showed no picture - the class is NPC_Robot_Defense_C, the
+            // game calls it "Defense Robot" and the wiki "Defense Bot", so no guess could reach
+            // it, and "Security Bot" above never matched the live "Robot Security" either).
+            // Every shipped NPC class was walked (tests/AbioticEditor.Probes/NpcRosterProbe.cs
+            // dumps DT_NPCList, the game's own class -> display-name table), its wiki page found
+            // from that display name against the wiki's Creatures roster, and the file below
+            // read straight out of each page's infobox through the wiki's own API (action=parse)
+            // rather than guessed. The three Combat Robots' infoboxes use tier icons (T1/T2/T3),
+            // the Order humanoids use render shots with irregular names, and a few pages spell
+            // their file differently from their title (Tarecarry, Rattis Pestis, Winter Peccary).
+            // Classes with no wiki page or an image-less page (Reaper Scout, Thespian, Clericus,
+            // the Dark Lens "of the Fallow" variants, the Magma/Verdant Skinks, Zombie Scientist /
+            // Dam Worker, Sir Ogi, Order Trooper's page, the training dummy and hologram, the
+            // VOTV UFO/Wisp cameos) are deliberately left out rather than pointed at a wrong file.
+            ["Robot Defense"] = "T3.png",
+            ["Robot Containment"] = "T2.png",
+            ["Robot Security"] = "T1.png",
+            ["Robot Corrupt"] = "Corrupt_Robot.png",
+            ["Reaper"] = "ReaperCalm.png",
+            ["Assassin"] = "Crystalisk.png",
+            ["Interfector"] = "Order_Interfector.png",
+            ["Bog Man"] = "Bogman.png",
+            ["Boxy"] = "The_Moving_Box.png",
+            ["Exor Ally"] = "Exor_Spirit.png",
+            ["Exor Pikeman"] = "Exor_Cha.png",
+            ["Gatekeeper Chieftain"] = "Chieftain.png",
+            ["Gatekeeper Grunt"] = "Neophyte.png",
+            ["Gatekeeper Heavy"] = "Jotun.png",
+            ["Gatekeeper Heavy Banner Speech"] = "Jotun.png",
+            ["Gatekeeper Witch"] = "Witch.png",
+            ["Mage"] = "Mystagogue.png",
+            ["Mage Eye"] = "Mystagogue_Eye.png",
+            ["Mage Eye Ally"] = "Mystagogue_Eye.png",
+            ["Groupe Shield"] = "Rook_Enemy.png",
+            ["Groupe Shotgunner"] = "Close-Quarters_Combatant.png",
+            ["NPC Groupe Mountaineer"] = "Mountaineer.png",
+            ["Lab Rat Garage"] = "Garage_Rat.png",
+            ["Mgt Larva"] = "Larva.png",
+            ["Mgt Larva Big"] = "Big_Larva.png",
+            ["Mgt Larva Big Hive"] = "Big_Hive_Larva.png",
+            ["Mgt Larva Hive"] = "Hive_Larva.png",
+            ["Order Grunt Shot Trooper"] = "Shock_Trooper.png",
+            ["Peccary Armored"] = "Tarecarry.png",
+            ["Pest Rat"] = "Rattis_Pestis.png",
+            ["Pillager Farmer"] = "Farmer.png",
+            ["Pillager Musketeer"] = "Guard.png",
+            ["Pillager Musketeer Guard"] = "Guard.png",
+            ["Pillager Preacher"] = "Lodeite.png",
+            ["Pillager Preacher Niketas BOSS"] = "Niketas.png",
+            ["Pillager Torchbearer"] = "Torchbearer.png",
+            ["Pillager Woodsman"] = "Woodsman.png",
+            ["Power Leech"] = "Power_Leech_Small.png",
+            ["Power Leech Boss"] = "Power_Leech.png",
+            ["Skink Basic"] = "Skink.png",
+            ["Skink Crafted"] = "Skink.png",
+            ["Soldier Captain"] = "Captain_render.png",
+            ["Soldier Grunt"] = "Grunt_Order_render.png",
+            ["Soldier Grunt Medic"] = "Medic.png",
+            ["Soldier Grunt Shotgun"] = "Breacher.png",
+            ["Soldier Grunt Sniper"] = "Sniper.png",
+            ["VOTV Corpsewalker"] = "Corpsewalker.png",
+            ["VOTV Furfur"] = "Furfur.png",
+            ["Winter Sprite"] = "Lamogi.png",
+            ["Winter Sprite BOSS"] = "Bigogi.png",
+            ["Winter Sprite Bomb"] = "Bombogi.png",
+            ["Snowman"] = "T_Compendium_Snowman.png",
+            ["Leyak"] = "Leyak.PNG",
+            ["Pest"] = "Pest.png",
+            ["Yeti"] = "Yeti.png",
+            ["Coworker"] = "Coworker.png",
+            ["Flame Rat"] = "Flame_Rat.png",
+            ["Peccary Alpha"] = "Alpha_Peccary.png",
+            ["Peccary Sow"] = "Sow_Peccary.PNG",
+            ["Peccary Snow"] = "Winter_Peccary.png",
+            ["Peccary Mushroom"] = "Mushroom_Peccary.png",
+            ["Peccary Electro"] = "Electro_Peccary.png",
+            ["Peccary Volatile"] = "Volatile_Peccary.png",
+            ["Pest Snow"] = "Winter_Pest.png",
+            ["Pest Carbonated"] = "Carbonated_Pest.png",
+            ["Pest Enlightened"] = "Enlightened_Pest.png",
+            ["Pest Volatile"] = "Volatile_Pest.png",
+            ["Exor Armored"] = "Armored_Exor.png",
+            ["Exor Volatile"] = "Volatile_Exor.png",
+            ["Carbuncle Tainted"] = "Tainted_Carbuncle.png",
+            ["Carbuncle Mushroom"] = "Mushroom_Carbuncle.png",
         };
 
     /// <summary>The verified display-name -> wiki-file table (for coverage tests).</summary>
