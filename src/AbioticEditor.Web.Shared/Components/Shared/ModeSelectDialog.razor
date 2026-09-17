@@ -12,6 +12,12 @@
 
 <div class="settings-subdialog-backdrop mode-select-backdrop" role="presentation">
     <section @ref="_dialog" class="settings-subdialog mode-select-dialog" role="dialog" aria-modal="true" aria-labelledby="mode-select-title" tabindex="-1">
+        @if (AllowClose)
+        {
+            <button class="mode-select-close" type="button" @onclick="CancelAndClose" title="@L.Resource("ModeSelect_CancelButton")" aria-label="@L.Resource("ModeSelect_CancelButton")">
+                <span class="material-symbol" aria-hidden="true">close</span>
+            </button>
+        }
         @if (_step == Step.Choose)
         {
             <h2 id="mode-select-title">@L.Resource("ModeSelect_Title")</h2>
@@ -168,6 +174,17 @@
 
 @code {
     [Parameter] public EventCallback OnClose { get; set; }
+    /// <summary>
+    /// Whether the close button above renders at all. True only when there is somewhere real to
+    /// send the player back to (an already-open file workspace, or an already-connected live
+    /// session) - the caller works this out, this component just trusts it. False on the very
+    /// first launch, when this dialog auto-opens with neither yet: dismissing without choosing
+    /// used to leave the player looking at whatever page happened to be underneath with no clear
+    /// way forward, which is why there was never a close button here at all until this parameter
+    /// existed. There is still no Escape-to-dismiss either way - a deliberate choice, not
+    /// something covered by <see cref="AllowClose"/>.
+    /// </summary>
+    [Parameter] public bool AllowClose { get; set; }
 
     private ElementReference _dialog;
     private Step? _focusedStep;
@@ -196,13 +213,20 @@
     // Navigating first and closing after: picking a card while the dialog was reopened from
     // some other screen (the header button, not just the initial launch) should actually take
     // the player there, not merely dismiss the dialog over whatever page they already had open.
-    //
-    // There is deliberately no CLOSE button and no Escape-to-dismiss here: this dialog is the
-    // one place that decides which of the two very different editing surfaces to show, and
-    // dismissing it without choosing either used to leave the player looking at whatever page
-    // happened to be underneath with no clear way forward.
     private Task ChooseFile() { Navigation.NavigateTo("browse"); return Close(); }
     private Task Close() => OnClose.InvokeAsync();
+
+    /// <summary>The close button's own handler (see <see cref="AllowClose"/> for when it even
+    /// renders): cancels whatever this dialog might be mid-way through - a running local wait
+    /// loop, or a remote connection attempt - the same way BackToTarget already does, before
+    /// closing, so a cancelled attempt never lands after the dialog is already gone.</summary>
+    private Task CancelAndClose()
+    {
+        _waitCts?.Cancel();
+        _waitCts = null;
+        _isConnecting = false;
+        return Close();
+    }
 
     private void ChooseLocal()
     {

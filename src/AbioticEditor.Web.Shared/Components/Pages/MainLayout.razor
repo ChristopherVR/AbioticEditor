@@ -118,7 +118,7 @@
     }
     @if (_modeSelectOpen)
     {
-        <ModeSelectDialog OnClose="CloseModeSelect" />
+        <ModeSelectDialog OnClose="CloseModeSelect" AllowClose="@ModeSelectAllowClose" />
     }
 </div>
 
@@ -167,6 +167,12 @@
     // used to leave the sidebar unresponsive for the rest of the session.
     private void OpenModeSelect() { if (Modals.Current is null) _modeSelectOpen = true; }
     private void CloseModeSelect() => _modeSelectOpen = false;
+    // The dialog itself only ever offers a close button when this is true (see its own remarks
+    // on why not always) - a file workspace already open, or an already-live session, is
+    // somewhere real to go back to; the very first launch with neither yet has nowhere to send
+    // the player back to if they dismissed without choosing, which is the one case this stays
+    // false for.
+    private bool ModeSelectAllowClose => Workspace.Current is not null || Live.IsConnected;
     private void Refresh(object? sender, EventArgs args) => _ = InvokeAsync(StateHasChanged);
     private void RefreshWorkspace() => _ = InvokeAsync(StateHasChanged);
     /// <summary>
