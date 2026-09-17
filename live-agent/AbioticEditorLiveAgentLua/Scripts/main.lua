@@ -1501,6 +1501,22 @@ end
 -- not reliably support "==" for identity, so a real object hasn't been assumed equal to itself
 -- through it) - genuinely the same object means ordinary per-actor storage; anything else means
 -- GetContainerInventory() redirected somewhere shared.
+-- Round 90: every placed Void Chest is one logical chest in the game (one shared pool, and a
+-- live report showed the game presenting a name change on a different Void Chest than the one
+-- written to, even though the write itself provably lands on one actor). The editor treats a
+-- name the same way the game presents it: a rename of any Void Chest is applied to every Void
+-- Chest, so the list, the saved data and whatever label the game shows all agree. Returns the
+-- OTHER Void Chest actors for a Void Chest, an empty list for anything else.
+local function voidChestSiblings(container)
+    local name = fullName(container)
+    if type(name) ~= "string" or name:find("Deployed_StorageCrate_Void_C", 1, true) ~= 1 then return {} end
+    local siblings = {}
+    for _, other in ipairs(findAll("Deployed_StorageCrate_Void_C")) do
+        if other:IsValid() and fullName(other) ~= name then siblings[#siblings + 1] = other end
+    end
+    return siblings
+end
+
 local function containerInventory(container)
     -- GetContainerInventory() (a BlueprintPure function every container class exports, verified
     -- against the game's own Blueprint exports) is preferred over reading ContainerInventory/
@@ -1787,6 +1803,14 @@ handlers["containers.rename"] = function(payload, respond)
             local helper = replication.requireHelper()
             replication.mark(helper, container, "PlayerMadeString")
         end)
+        -- See voidChestSiblings: a Void Chest's name is applied to every Void Chest, each one
+        -- written, marked and refreshed exactly like the one that was asked for.
+        for _, sibling in ipairs(voidChestSiblings(container)) do
+            local okSibling = pcall(function() sibling.PlayerMadeString = newName end)
+            if not okSibling then pcall(function() sibling.PlayerMadeString = FString(newName) end) end
+            pcall(function() replication.mark(replication.requireHelper(), sibling, "PlayerMadeString") end)
+            pcall(function() sibling:NewPlayerMadeString() end)
+        end
         -- Mirrors OnRep_PlayerMadeString -> NewPlayerMadeString, which every OTHER client already
         -- runs automatically once PlayerMadeString replicates to them (the mark above is what
         -- causes that to happen); the host itself never gets its own RepNotify (that only fires
@@ -1992,6 +2016,7 @@ local ctx = {
     currentWorldFlags = currentWorldFlags,
     applyWorldFlagRows = applyWorldFlagRows,
     containerInventory = containerInventory,
+    voidChestSiblings = voidChestSiblings,
     resolveDataTableRow = resolveDataTableRow,
     itemTableGlobal = ITEM_TABLE_GLOBAL,
     logLine = logLine,

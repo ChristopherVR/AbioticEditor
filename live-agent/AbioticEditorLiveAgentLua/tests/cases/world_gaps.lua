@@ -409,6 +409,24 @@ return function(H)
     end
     H.check(sawPoolItem, "a Void Chest lists the GameState's Inventory_Void, not its own decoy component")
 
+    -- ---------- containers: renaming one Void Chest renames every Void Chest (round 90 - the
+    -- game presents them as one chest, so the editor keeps every instance's name in step). ----------
+    local voidA = H.world.add(H.object("Deployed_StorageCrate_Void_C", { __bases = { "Deployed_Container_ParentBP_C" },
+        ContainerInventory = voidDecoy, PlayerMadeString = H.fstring("") }, {
+        GetContainerInventory = function() return voidDecoy end,
+        K2_GetActorLocation = function() return H.vector(14, 14, 14) end,
+        NewPlayerMadeString = function() end,
+    }))
+    local voidB = H.world.add(H.object("Deployed_StorageCrate_Void_C", { __bases = { "Deployed_Container_ParentBP_C" },
+        ContainerInventory = voidDecoy, PlayerMadeString = H.fstring("") }, {
+        GetContainerInventory = function() return voidDecoy end,
+        K2_GetActorLocation = function() return H.vector(15, 15, 15) end,
+        NewPlayerMadeString = function() end,
+    }))
+    H.ok(H.dispatch("containers.rename", { id = voidA:GetFullName(), name = "Shared Name" }), "rename one Void Chest")
+    H.eq(H.writes(voidB, "PlayerMadeString"), 1, "the other Void Chest was renamed too")
+    H.eq(H.calls(voidB, "NewPlayerMadeString"), 1, "the other Void Chest refreshed its label too")
+
     -- ---------- narrative NPCs ----------
     local narrative = H.world.add(H.object("NarrativeNPC_ParentBP_C", { IsCorpse = false, NarrativeState = 1 }, {
         SetNewNarrativeState = function(self, value) self.NarrativeState = value end,

@@ -95,6 +95,10 @@
                                    @onchange="e => RenameContainerAsync(selected, e.Value?.ToString())" />
                         </label>
                         <small class="wt-muted">@L.Resource("WorldContainers_DetailCustomNameHint")</small>
+                        @if (IsVoidChest(selected))
+                        {
+                            <small class="wt-muted">@L.Resource("WorldContainers_VoidChestSharedNameHint")</small>
+                        }
                     }
                     <button type="button" class="wt-btn wt-yellow" disabled="@(Session.AppliesImmediately && !Session.IsHost)" @onclick="() => SortAsync(selected)">@L.Resource("WorldContainers_Sort")</button>
                     <div class="wc-divider"></div>
@@ -281,6 +285,11 @@
     /// "Liquid/Meds" - else <see cref="AutoDisplayName"/>'s generic guess.</summary>
     private string DisplayName(WorldContainer container)
         => container.Name is { Length: > 0 } custom ? custom : AutoDisplayName(container);
+
+    /// <summary>Every placed Void Chest is one chest in the game (one shared pool, one name) -
+    /// the live side renames all of them together, and this is where the box says so.</summary>
+    private static bool IsVoidChest(WorldContainer container)
+        => container.ClassName?.Contains("StorageCrate_Void", StringComparison.OrdinalIgnoreCase) == true;
 
     /// <summary>
     /// A container's own picture, if this session can tell which real placeable item it is - a

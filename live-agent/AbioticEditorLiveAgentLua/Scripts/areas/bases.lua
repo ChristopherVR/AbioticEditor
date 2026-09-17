@@ -174,6 +174,12 @@ return function(ctx)
                 local ok = pcall(function() obj.AlternativeObjectName = FText(text) end)
                 if not ok then ok = pcall(function() obj.AlternativeObjectName = text end) end
                 if not ok then error("could not set this object's custom name on this game build") end
+                -- See main.lua's voidChestSiblings: a Void Chest's name is applied to every
+                -- Void Chest, from this screen the same as from the CONTAINERS one.
+                for _, sibling in ipairs(ctx.voidChestSiblings(obj)) do
+                    local okSibling = pcall(function() sibling.AlternativeObjectName = FText(text) end)
+                    if not okSibling then pcall(function() sibling.AlternativeObjectName = text end) end
+                end
             end
             if payload.upgradeRow ~= nil then
                 if not benchSupportsUpgrades(obj) then error("this deployable does not support upgrades") end

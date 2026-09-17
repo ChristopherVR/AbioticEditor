@@ -4122,6 +4122,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="LiveChemistryBenches_WouldProduce" xml:space="preserve"><value>These inputs would produce: {0}</value></data>
   <data name="LiveChemistryBenches_NoMatchingRecipe" xml:space="preserve"><value>These inputs don't match a known chemistry recipe.</value></data>
   <data name="LiveChemistryBenches_StartMixing" xml:space="preserve"><value>START MIXING</value></data>
+  <data name="WorldContainers_VoidChestSharedNameHint" xml:space="preserve"><value>Every Void Chest is the same chest, so this name applies to all of them.</value></data>
   <data name="LiveChemistryBenches_MixingInProgress" xml:space="preserve"><value>Mixing is running. The output appears here when it finishes.</value></data>
   <data name="LiveChemistryBenches_RecipesTitle" xml:space="preserve"><value>Recipes</value></data>
   <data name="LiveChemistryBenches_RecipesSearch" xml:space="preserve"><value>Search by what it makes</value></data>
