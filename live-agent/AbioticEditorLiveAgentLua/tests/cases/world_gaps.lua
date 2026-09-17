@@ -265,10 +265,12 @@ return function(H)
     H.check(overflowEntry ~= nil, "the container still appears")
     H.eq(overflowEntry.health, nil, "health omitted when current exceeds max, a reading that cannot be genuine health")
 
-    -- ---------- containers: a shared inventory's write is still network-marked, but does not
-    -- force the expensive synchronous OnRep_CurrentInventory() refresh a live report showed
-    -- freezing the game for a moment on a Void Chest write (round 85, see containers.set's own
-    -- remarks) ----------
+    -- ---------- containers: a shared inventory's write is both network-marked AND still
+    -- refreshes the host's own view immediately (round 87 - round 85's "skip the synchronous
+    -- OnRep_CurrentInventory() refresh for a shared inventory" fix, meant to stop a reported
+    -- freeze, turned out to make writes into a Void Chest invisible to their own author: marking
+    -- a property dirty only pushes it to OTHER clients via replication, it does nothing for the
+    -- host's own already-authoritative state - see containers.set's own remarks) ----------
     local sharedWriteInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {
         { ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B = { RowName = H.fname("Empty") },
           ChangeableData_12_2B90E1F74F648135579D39A49F5A2313 = { CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 0,
@@ -288,8 +290,8 @@ return function(H)
     H.ok(H.dispatch("containers.set", { id = sharedWriteId, edits = {
         { slotIndex = 0, itemId = "scrap_metal", stack = 1 },
     } }), "containers.set on a shared/Void-Chest-shaped inventory")
-    H.eq(H.calls(sharedWriteInv, "OnRep_CurrentInventory"), 0,
-        "a shared inventory is not forced through a synchronous OnRep refresh")
+    H.eq(H.calls(sharedWriteInv, "OnRep_CurrentInventory"), 1,
+        "a shared inventory still gets its host-side refresh, or the write is invisible to the player who made it")
     H.eq(H.calls(netHelper, "MarkPropertyDirty"), markCallsBefore + 1,
         "the write is still marked dirty for real network replication")
 
@@ -359,6 +361,28 @@ return function(H)
     H.fails(H.dispatch("containers.rename", { id = renameableEntry.id, name = "Y" }),
         "only the host", "a client cannot rename containers")
     H.gameMode = savedGameMode
+
+    -- ---------- containers: renaming a shared/Void-Chest-shaped container is refused, not
+    -- silently applied everywhere (round 87 - a live report showed renaming one Void Chest
+    -- renamed every Void Chest in the world; no per-instance PlayerMadeString redirect could be
+    -- found in the game's own Blueprint exports the way GetContainerInventory() has one, so the
+    -- safer call is to refuse rather than risk repeating that, using the same shared-inventory
+    -- detection containers.list/containers.set already rely on) ----------
+    local sharedNameInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {} })
+    local sharedNameDecoy = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {} })
+    H.world.add(H.object("Deployed_Container_ParentBP_C", {
+        ContainerInventory = sharedNameDecoy, PlayerMadeString = H.fstring(""),
+    }, {
+        GetContainerInventory = function() return sharedNameInv end,
+        K2_GetActorLocation = function() return H.vector(11, 11, 11) end,
+        NewPlayerMadeString = function() end,
+    }))
+    local sharedNameListing = H.ok(H.dispatch("containers.list")).containers
+    local sharedNameId
+    for _, entry in ipairs(sharedNameListing) do if entry.x == 11 then sharedNameId = entry.id end end
+    H.check(sharedNameId ~= nil, "the shared-identity test container is listed")
+    H.fails(H.dispatch("containers.rename", { id = sharedNameId, name = "Mine Only" }),
+        "shares its contents", "a shared-identity container refuses a rename instead of applying it to every instance")
 
     -- ---------- narrative NPCs ----------
     local narrative = H.world.add(H.object("NarrativeNPC_ParentBP_C", { IsCorpse = false, NarrativeState = 1 }, {

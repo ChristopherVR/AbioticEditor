@@ -1686,21 +1686,23 @@ handlers["containers.set"] = function(payload, respond)
             if not ok then error("could not sort this container on this game build") end
         end
         if #rows > 0 or payload.sort then replication.mark(helper, inv, "CurrentInventory") end
-        -- Round 85: a live report showed the game freezing for a moment specifically when adding
-        -- an item into a Void Chest through the editor. This manual OnRep_CurrentInventory() call
-        -- exists only so the HOST's own view catches up immediately (a host never gets its own
-        -- RepNotify - that only fires on receiving a replicated change from elsewhere - the same
-        -- reasoning containers.rename's NewPlayerMadeString() call documents). For an ordinary
-        -- per-actor container that is cheap. For a shared inventory (see containerInventory's own
-        -- remarks) it is the one inventory every placed instance sharing it reads from, so forcing
-        -- its refresh synchronously here plausibly does much more work than a single crate's own
-        -- update ever would - this could not be measured directly against the user's actual game
-        -- this round (the live-agent helper accepts only one connection at a time, and the
-        -- editor's own session held it throughout this investigation), so this is a reasoned
-        -- mitigation, not a proven fix. Skipped for a shared inventory: the mark above still queues
-        -- the real network update everyone (host included) receives shortly after, just not
-        -- synchronously inside this handler.
-        if not shared then pcall(function() inv:OnRep_CurrentInventory() end) end
+        -- Round 85 skipped this call entirely for a shared inventory (a Void Chest) to fix a
+        -- reported freeze, reasoning the mark above would still queue the real network update for
+        -- everyone "shortly after". Round 87: a live report showed that was wrong for the write's
+        -- own author - marking a property dirty only pushes it to OTHER clients via replication;
+        -- it does nothing for the HOST's own already-authoritative in-memory state, which the
+        -- host's own UI reads directly (the exact point that justified this call existing at all
+        -- for an ordinary container, and what containers.rename's own NewPlayerMadeString() call
+        -- documents for PlayerMadeString). Skipping it meant items added to a Void Chest never
+        -- appeared anywhere, for anyone, not delayed - a strictly worse bug than the freeze this
+        -- was meant to fix. Restored unconditionally: a write that works but is briefly slow beats
+        -- one that silently does nothing. If the freeze is reported again, the actual cost is
+        -- likely inside OnRep_CurrentInventory()'s own InventoryUpdated delegate broadcast (every
+        -- placed Void Chest's UI may be bound to this same shared component and so may all
+        -- refresh on any change to it) rather than this call itself - that needs a live game to
+        -- confirm, which was not available this round (the live-agent helper's single connection
+        -- could not be reached this round - see this file's own round-87 notes elsewhere).
+        pcall(function() inv:OnRep_CurrentInventory() end)
         return nil
     end, respond)
 end
@@ -1728,6 +1730,27 @@ handlers["containers.rename"] = function(payload, respond)
         if not isHost() then error("only the host can rename containers") end
         local container = payload.id and findContainer(payload.id)
         if not container then error("container not found (it may have been unloaded or destroyed)") end
+        -- Round 87: a live report showed renaming ONE Void Chest applying that name to every
+        -- Void Chest in the world. Pak-asset research (dumping Deployed_StorageCrate_Void's own
+        -- Blueprint exports) found no override or redirect for PlayerMadeString the way
+        -- GetContainerInventory() has one for the shared inventory (that one appears 19 times in
+        -- the class's own bytecode; PlayerMadeString appears zero times, inherited unchanged from
+        -- the base furniture class) - so there is no known software-level reason this should
+        -- cross instances, and this could not be re-confirmed against the user's actual running
+        -- game this round (the live-agent helper's single connection could not be reached - see
+        -- this round's own notes). Given every other Void Chest behavior investigated this
+        -- session turned out to be genuinely shared at the engine level despite looking like N
+        -- separate objects, and the previous two "looked shared, wasn't (or was)" surprises both
+        -- came from digging past what pak bytecode alone could show, the safer call is to treat
+        -- containerInventory's own "shared" detection (already proven correct for the inventory
+        -- redirect) as the general signal for "this container's identity is not really its own",
+        -- and refuse to rename it rather than risk silently renaming every instance again. A
+        -- confirmed real per-instance name mechanism for Void Chest, if one exists, can lift this
+        -- once someone can verify it live.
+        local _, sharedIdentity = containerInventory(container)
+        if sharedIdentity then
+            error("this container shares its contents with every other one of its kind, so it cannot be given its own name")
+        end
         local newName = tostring(payload.name or "")
         -- Try a plain string first (StrProperty, unlike bases.lua's FText-typed
         -- AlternativeObjectName - textValue above already shows a plain string is a real shape

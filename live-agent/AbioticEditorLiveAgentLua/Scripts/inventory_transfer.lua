@@ -40,14 +40,20 @@ return function(ctx)
             local intoSecond = ctx.prepareSlotWrite(second, firstValue)
             ctx.applySlotWrite(intoFirst)
             ctx.applySlotWrite(intoSecond)
-            -- Round 85: a live report showed the game freezing for a moment when a drag-and-drop
-            -- moved an item into a Void Chest - see containers.set's matching remarks on why the
-            -- manual OnRep_CurrentInventory() call below is skipped for a shared inventory (the
-            -- mark above still queues its real network update either way).
-            local touched = { [firstInv] = firstShared, [secondInv] = secondShared }
-            for inv, shared in pairs(touched) do
+            -- Round 85 skipped the manual OnRep_CurrentInventory() call below for a shared
+            -- inventory (a Void Chest) to fix a reported freeze. Round 87: a live report showed a
+            -- drag-and-drop move into a Void Chest then never actually appearing anywhere, for
+            -- anyone - marking a property dirty only pushes it to OTHER clients via replication,
+            -- it does nothing for the HOST's own already-authoritative state, so skipping this
+            -- call meant the write's own author never saw it land. Restored unconditionally - see
+            -- containers.set's matching remarks for the full reasoning and what to investigate if
+            -- the freeze itself is reported again (most likely OnRep_CurrentInventory()'s own
+            -- InventoryUpdated delegate broadcast doing more work when every placed Void Chest's
+            -- UI is bound to the same shared component, not this call itself).
+            local touched = { [firstInv] = true, [secondInv] = true }
+            for inv in pairs(touched) do
                 replication.mark(helper, inv, "CurrentInventory")
-                if not shared then inv:OnRep_CurrentInventory() end
+                inv:OnRep_CurrentInventory()
             end
             return nil
         end, respond)

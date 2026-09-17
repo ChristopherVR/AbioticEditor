@@ -72,12 +72,11 @@ return function(H)
         second = { kind = "backpack", slotIndex = 9999 } }), "unavailable", "invalid destination rejects transfer")
     H.eq(processingInventory.CurrentInventory[1][I].RowName:ToString(), "test_item", "failed transfer preserves source")
 
-    -- Round 85: a shared/Void-Chest-shaped destination does not get forced through a synchronous
-    -- OnRep_CurrentInventory() refresh the way an ordinary container does - a live report showed
-    -- exactly this (dragging an item into a Void Chest) freezing the game for a moment. See
-    -- containers.set's matching remarks in main.lua for the full reasoning; ctx.containerInventory
-    -- reports which endpoints are shared, and this handler only skips the manual OnRep call for
-    -- those, the network mark still applies either way.
+    -- Round 85 skipped the manual OnRep_CurrentInventory() refresh for a shared/Void-Chest-shaped
+    -- destination, to fix a reported freeze on exactly this (dragging an item into a Void Chest).
+    -- Round 87: a live report showed that made the moved item invisible to its own author instead
+    -- - see containers.set's matching remarks in main.lua for the full reasoning. Both endpoints
+    -- now get their refresh unconditionally; the network mark still applies either way.
     local transferSourceInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {
         { [I] = { DataTable = normal, RowName = H.fname("test_item") }, [C] = { CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 1, [D] = {}, [T] = { GameplayTags = {}, ParentTags = {} } } },
     } }, { OnRep_CurrentInventory = function() end })
@@ -100,7 +99,7 @@ return function(H)
         second = { containerId = sharedDestId, slotIndex = 0 } }), "container to shared-container transfer")
     H.eq(sharedDestInv.CurrentInventory[1][I].RowName:ToString(), "test_item", "item really moved into the shared inventory")
     H.eq(H.calls(transferSourceInv, "OnRep_CurrentInventory"), 1, "the ordinary source still gets its synchronous refresh")
-    H.eq(H.calls(sharedDestInv, "OnRep_CurrentInventory"), 0, "the shared destination does not")
+    H.eq(H.calls(sharedDestInv, "OnRep_CurrentInventory"), 1, "the shared destination gets one too, or the moved item is invisible to whoever moved it")
 
     -- Weapon coating round trip: a coating index/durability written through
     -- inventory.setcomplete must read back through inventory.list, and clearing (index -1,
