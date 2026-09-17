@@ -872,9 +872,15 @@ else
                 case "world": yield return _story; yield return _flags; break;
                 case "flags": yield return _flags; break;
                 case "doors": yield return _doors; break;
-                case "containers": yield return _containers; break;
+                // containers/npcs deliberately NOT auto-refreshed here: both back onto a full
+                // world scan (every placed container/bench, or every loaded creature) with a
+                // detail read per slot/actor, which on a long-played world can take several
+                // seconds - reported live as the CONTAINERS tab freezing and timing out every
+                // couple of seconds while it (or the player surface right next to it) was on
+                // screen, since this loop re-ran that same expensive call on every 2-second tick.
+                // A tab visit still gets one fetch (EnsureAreaConnectedAsync); after that it only
+                // updates from the player's own edits, not a periodic re-poll.
                 case "dropped": yield return _dropped; break;
-                case "npcs": yield return _npcs; break;
                 case "bases": yield return _bases; break;
                 case "vehicles": yield return _vehicles; break;
                 case "pets": yield return _pets; break;
