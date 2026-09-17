@@ -847,6 +847,17 @@ h1[tabindex="-1"]:focus{outline:none}
 .rb-row-text{display:grid;gap:1px;min-width:0}
 .rb-row-text strong{color:var(--ink);font-size:13px;font-weight:400;overflow-wrap:anywhere}
 .rb-row-text small{color:var(--muted);font-size:10px;letter-spacing:.04em;overflow-wrap:anywhere}
+/* Live chemistry bench: the bench's own picture, and a browsable "what could this make" recipe
+   list, both added alongside the existing flask editor. */
+.cb-portrait{width:64px;height:64px;margin-bottom:8px}
+.cb-recipe-browser{margin-top:12px}
+.cb-recipe-browser h4{margin:0 0 8px;color:var(--terminal);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.cb-recipe-list{display:grid;gap:6px;margin-top:8px;max-height:280px;overflow-y:auto}
+.cb-recipe-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 8px;border:1px solid var(--line);background:var(--panel)}
+.cb-recipe-ingredients{display:flex;gap:3px;flex-wrap:wrap}
+.cb-recipe-arrow{color:var(--muted)}
+.cb-recipe-name{flex:1 1 auto;min-width:0;color:var(--ink);font-size:12px}
+.cb-recipe-duration{color:var(--muted);font-size:10px;white-space:nowrap}
 .rb-row-status{color:var(--terminal);font:600 10px var(--font-ui);letter-spacing:.12em;white-space:nowrap}
 .rb-detail{box-sizing:border-box;height:600px;overflow:auto;border:1px solid var(--terminal);background:var(--shell);padding:12px 14px;display:grid;gap:8px;align-content:start;scrollbar-color:var(--faint) var(--shell)}
 .rb-detail-icon{height:96px;display:grid;place-items:center}

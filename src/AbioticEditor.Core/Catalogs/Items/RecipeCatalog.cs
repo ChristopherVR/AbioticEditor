@@ -17,6 +17,14 @@ namespace AbioticEditor.Core.Items;
 /// Misc for rows from dynamically discovered <c>DT_*Recipes</c> tables.</param>
 /// <param name="Ingredients">What the craft consumes.</param>
 /// <param name="Benches">Item rows of required benches, e.g. <c>Deployable_Bench_Crafting</c>.</param>
+/// <param name="CraftDurationSeconds">How long one craft of this recipe takes once the game
+/// actually starts mixing/crafting it, read from the row's own <c>CraftDuration_</c> field
+/// (present on chemistry, soup, and crafting recipes alike - not chemistry-specific). Null when
+/// the row carries none (an older bundled registry entry from before this was read, or a genuinely
+/// absent column on a modded table). This is a property of the RECIPE, not of a placed bench - a
+/// bench has no separate, live-readable timer of its own beyond this (see
+/// <c>DeployedCareFeatures.cs</c>'s own note that mixing progress "is available only while the
+/// game is running" and is not stored in a save at all).</param>
 public sealed record RecipeInfo(
     string Id,
     string? CreatesItemId,
@@ -24,7 +32,8 @@ public sealed record RecipeInfo(
     string? Category,
     string Source,
     IReadOnlyList<RecipeIngredient>? Ingredients = null,
-    IReadOnlyList<string>? Benches = null)
+    IReadOnlyList<string>? Benches = null,
+    double? CraftDurationSeconds = null)
 {
     // Derived from the fields above, so writing them into the bundled registry would only make
     // the download bigger and could not be read back (they have no setter).
@@ -176,11 +185,23 @@ public static class RecipeCatalog
         string? category = null;
         var ingredients = new List<RecipeIngredient>();
         var benches = new List<string>();
+        double? craftDuration = null;
 
         foreach (var p in row.Properties)
         {
             var name = p.Name.Text;
-            if (name.StartsWith("ItemToCreate_", StringComparison.Ordinal))
+            if (name.StartsWith("CraftDuration_", StringComparison.Ordinal))
+            {
+                craftDuration = p.Tag?.GenericValue switch
+                {
+                    int i => i,
+                    float f => f,
+                    double d => d,
+                    byte b => b,
+                    _ => (double?)null,
+                };
+            }
+            else if (name.StartsWith("ItemToCreate_", StringComparison.Ordinal))
             {
                 createsItem = RowNameOf(p.Tag?.GenericValue);
             }
@@ -232,7 +253,7 @@ public static class RecipeCatalog
                 }
             }
         }
-        return new RecipeInfo(id, createsItem, count, category, source, ingredients, benches);
+        return new RecipeInfo(id, createsItem, count, category, source, ingredients, benches, craftDuration);
     }
 
     private static IEnumerable<FStructFallback> StructArray(object? value)

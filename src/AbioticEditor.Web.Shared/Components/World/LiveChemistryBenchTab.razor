@@ -48,6 +48,13 @@
                     @if (expanded)
                     {
                         <div class="detail-card detail-card--terminal" aria-label="@bench.Label">
+                            @* The bench itself is a real, placeable item (Deployable_Bench_Chemistry)
+                               with its own catalog icon, the same as any item - no separate
+                               wiki/game-texture lookup needed, matching how the garden-plot crop
+                               preview reuses ItemIcon instead of a new artwork source. *@
+                            <div class="wt-portrait cb-portrait">
+                                <ItemIcon ItemId="@BenchItemId" Alt="@bench.Label" />
+                            </div>
                             @foreach (var flask in bench.Fields)
                             {
                                 <div class="wt-field" @key="flask.Id">
@@ -83,6 +90,44 @@
                 </div>
             }
         </div>
+
+        @if (_selectedId is { } selectedBenchId)
+        {
+            @* Browsing what CAN be made, not just reacting to what is already in the flasks -
+               RecipeHint above only ever answers "what would these inputs make", which is no help
+               deciding what to build toward in the first place. *@
+            <div class="detail-card detail-card--terminal cb-recipe-browser" aria-label="@L.Resource("LiveChemistryBenches_RecipesTitle")">
+                <h4>@L.Resource("LiveChemistryBenches_RecipesTitle")</h4>
+                <input type="search" class="wt-input" value="@_recipeFilter" @oninput="e => _recipeFilter = e.Value?.ToString() ?? string.Empty"
+                       placeholder="@L.Resource("LiveChemistryBenches_RecipesSearch")" aria-label="@L.Resource("LiveChemistryBenches_RecipesSearch")" />
+                <div class="cb-recipe-list">
+                    @foreach (var recipe in FilteredRecipes)
+                    {
+                        <div class="cb-recipe-row" @key="recipe.Id">
+                            <span class="cb-recipe-ingredients">
+                                @foreach (var ingredient in recipe.IngredientList)
+                                {
+                                    <span class="rb-row-icon" title="@ItemName(ingredient.ItemId)"><ItemIcon ItemId="@ingredient.ItemId" Alt="@ItemName(ingredient.ItemId)" /></span>
+                                }
+                            </span>
+                            <span class="cb-recipe-arrow" aria-hidden="true">-></span>
+                            <span class="rb-row-icon" title="@ItemName(recipe.CreatesItemId)"><ItemIcon ItemId="@recipe.CreatesItemId" Alt="@ItemName(recipe.CreatesItemId)" /></span>
+                            <span class="cb-recipe-name">@ItemName(recipe.CreatesItemId)</span>
+                            @if (recipe.CraftDurationSeconds is { } seconds)
+                            {
+                                <span class="cb-recipe-duration">@L.Resource("LiveChemistryBenches_RecipeDurationFormat", seconds)</span>
+                            }
+                            <button class="wt-btn wt-plain" type="button" disabled="@(_busy || recipe.IngredientList.Count == 0 || recipe.IngredientList.Count > 3)"
+                                    @onclick="() => ApplyRecipeAsync(selectedBenchId, recipe)">@L.Resource("LiveChemistryBenches_SetInputs")</button>
+                        </div>
+                    }
+                    @if (FilteredRecipes.Count == 0)
+                    {
+                        <p class="muted">@L.Resource("LiveChemistryBenches_NoRecipesMatch")</p>
+                    }
+                </div>
+            </div>
+        }
     }
     <datalist id="chembench-item-palette">
         @foreach (var item in ChemistryIngredientItems)
@@ -104,8 +149,15 @@
     private bool _busy;
     private string? _error;
     private string? _selectedId;
+    private string _recipeFilter = string.Empty;
     private readonly Dictionary<string, string> _fieldErrors = new(StringComparer.Ordinal);
     private IReadOnlyList<RecipeInfo>? _chemistryRecipes;
+
+    /// <summary>The bench's own item id (a real, placeable item with its own catalog icon -
+    /// Deployable_Bench_Chemistry), not to be confused with any of the items INSIDE it. This
+    /// game has exactly one chemistry bench item, unlike garden plots' several size variants, so
+    /// a single constant is enough here.</summary>
+    private const string BenchItemId = "Deployable_Bench_Chemistry";
 
     private static bool IsEmptySlot(string? value) => string.IsNullOrEmpty(value) || value is "Empty" or "None";
 
@@ -131,6 +183,36 @@
 
     private IReadOnlyList<RecipeInfo> ChemistryRecipes
         => _chemistryRecipes ??= Recipes.GetRecipeInfos().Where(r => string.Equals(r.Source, "Chemistry", StringComparison.Ordinal)).ToList();
+
+    /// <summary>Recipes with a real output and at least one real ingredient, filtered by the
+    /// search box against the output item's own name - matching by what you are trying to MAKE,
+    /// since that is what a player browsing this list is actually looking for.</summary>
+    private IReadOnlyList<RecipeInfo> FilteredRecipes
+    {
+        get
+        {
+            var candidates = ChemistryRecipes.Where(r => r.CreatesItemId is { Length: > 0 } && r.IngredientList.Count > 0);
+            if (string.IsNullOrWhiteSpace(_recipeFilter)) return candidates.ToList();
+            var filter = _recipeFilter.Trim();
+            return candidates.Where(r => ItemName(r.CreatesItemId).Contains(filter, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+    }
+
+    /// <summary>Fills a bench's three input slots with one recipe's ingredients (each distinct
+    /// ingredient into its own slot, up to three) - the same one-item-per-slot, no-stack-count
+    /// limitation RecipeHint's own remarks already document, since the flask fields have no
+    /// stack-count to set even if a recipe calls for more than one of something. Applies the
+    /// writes one at a time and stops at the first rejection, same as any other flask edit.</summary>
+    private async Task ApplyRecipeAsync(string benchId, RecipeInfo recipe)
+    {
+        var inputs = recipe.IngredientList.Take(3).ToList();
+        for (var i = 0; i < 3; i++)
+        {
+            var value = i < inputs.Count ? inputs[i].ItemId : string.Empty;
+            await SetFlaskAsync(benchId, $"flask:{i}", value);
+            if (_fieldErrors.ContainsKey(benchId)) return;
+        }
+    }
 
     /// <summary>
     /// Which chemistry recipe the bench's current inputs would match, purely by which items are

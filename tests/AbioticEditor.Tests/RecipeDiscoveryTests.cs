@@ -64,4 +64,23 @@ public class RecipeDiscoveryTests
             Assert.Equal(0, miscRows);
         }
     }
+
+    /// <summary>DT_ChemistryRecipes carries a CraftDuration_ column RecipeCatalog did not used
+    /// to read at all (round 87) - a player asked for a chemistry bench's mixing time and there
+    /// was nothing to show. Confirms at least one real chemistry recipe now reports it.</summary>
+    [Fact]
+    public void LoadInfos_ChemistryRecipes_ReportACraftDuration()
+    {
+        using var provider = GameAssetProvider.CreateForLocalInstall();
+        if (provider is null || !provider.HasMappings)
+        {
+            _output.WriteLine("No install/mappings; skipping.");
+            return;
+        }
+
+        var infos = RecipeCatalog.LoadInfosFrom(provider);
+        var chemistry = infos.Where(r => r.Source == "Chemistry").ToList();
+        Assert.NotEmpty(chemistry);
+        Assert.Contains(chemistry, r => r.CraftDurationSeconds is > 0);
+    }
 }

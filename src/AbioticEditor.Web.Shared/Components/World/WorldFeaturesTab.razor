@@ -83,6 +83,13 @@ else
                     <hr class="world-feature-divider" />
                     @if (FeatureId == "garden-plots")
                     {
+                        @* The plot itself (the "pot"), separate from whatever is growing in it -
+                           a real, placeable item with its own catalog icon, the same reasoning as
+                           the crop icon right below it. *@
+                        <div class="world-feature-crop-preview">
+                            <ItemIcon ItemId="@GardenPlotItemId(selected)" Alt="@selected.Label" Class="world-feature-crop-icon" />
+                            <span>@selected.Label</span>
+                        </div>
                         <label class="world-feature-field-row">Planting spot
                             <select @bind="_gardenSpot" aria-label="Planting spot">
                                 @foreach (var spot in GardenSpots(selected)) { <option value="@spot">Spot @(int.Parse(spot, System.Globalization.CultureInfo.InvariantCulture) + 1)</option> }
@@ -434,16 +441,44 @@ else
     private string _gardenSpot = "0";
     private static IEnumerable<string> GardenSpots(WorldMapEntry entry) => entry.Fields.Where(f => f.Id.Contains(':')).Select(f => f.Id.Split(':')[1]).Distinct();
 
+    /// <summary>
+    /// Which spot is actually being shown for this entry - <see cref="_gardenSpot"/> is one field
+    /// shared across every plot in the list, so a spot picked while looking at an 8-spot large
+    /// plot (e.g. "5") can easily not exist on the 1-spot plot selected next. This is the single
+    /// source of truth both <see cref="VisibleFields"/> and <see cref="CurrentCropItemId"/> must
+    /// use - they used to disagree (VisibleFields already fell back to a real spot; the crop
+    /// image lookup used the raw, possibly-invalid <see cref="_gardenSpot"/> directly), which is
+    /// exactly why the crop image could silently fail to show even though the field text below it
+    /// rendered correctly for the same plot.
+    /// </summary>
+    private string ResolvedSpot(WorldMapEntry entry)
+        => GardenSpots(entry).Contains(_gardenSpot) ? _gardenSpot : GardenSpots(entry).FirstOrDefault() ?? "0";
+
     /// <summary>The item id currently planted in the selected spot, or null when that spot is
     /// empty (the crop field is only present at all while something is planted there).</summary>
     private string? CurrentCropItemId(WorldMapEntry entry)
-        => entry.Fields.FirstOrDefault(f => f.Id == $"crop:{_gardenSpot}") is { Value.Length: > 0 } field ? field.Value : null;
+        => entry.Fields.FirstOrDefault(f => f.Id == $"crop:{ResolvedSpot(entry)}") is { Value.Length: > 0 } field ? field.Value : null;
 
     private string CropDisplayName(string cropItemId) => Items.Find(cropItemId)?.DisplayName ?? PlainNames.Words(cropItemId);
+
+    /// <summary>
+    /// The garden plot's own item id (Square/Round/Medium/Large all have their own real catalog
+    /// icon), guessed from the live actor's own instance path the same way DeployedCareFeatures.cs's
+    /// file-mode WaterCapacity already tells the size variants apart from a class-name substring -
+    /// not verified against a live game this round, so if a size's real class name spells itself
+    /// differently than guessed here, that one size simply falls back to the plain Square icon
+    /// instead of showing the wrong picture.
+    /// </summary>
+    private static string GardenPlotItemId(WorldMapEntry entry)
+        => entry.Key.Contains("GardenPlot_Large", StringComparison.OrdinalIgnoreCase) ? "Deployable_GardenPlot_Large"
+            : entry.Key.Contains("GardenPlot_Medium", StringComparison.OrdinalIgnoreCase) ? "Deployable_GardenPlot_Medium"
+            : entry.Key.Contains("GardenPlot_Round", StringComparison.OrdinalIgnoreCase) ? "Deployable_GardenPlot_Round"
+            : "Deployable_GardenPlot";
+
     private IEnumerable<WorldMapField> VisibleFields(WorldMapEntry entry)
     {
         if (FeatureId != "garden-plots") return entry.Fields;
-        var spot = GardenSpots(entry).Contains(_gardenSpot) ? _gardenSpot : GardenSpots(entry).FirstOrDefault();
+        var spot = ResolvedSpot(entry);
         return entry.Fields.Where(f => !f.Id.Contains(':') || f.Id.EndsWith(":" + spot, StringComparison.Ordinal));
     }
     private string Summary(WorldMapEntry entry)
