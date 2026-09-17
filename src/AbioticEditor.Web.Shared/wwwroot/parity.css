@@ -2100,13 +2100,27 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 .world-editor-summary > summary { cursor:pointer; font-size:13px; font-weight:600; color:var(--muted); }
 .world-editor-summary[open] > summary { margin-bottom:16px; }
 .world-tab-viewport .editor-heading .eyebrow { display:none; }
-.wc-row-select { display:grid; grid-auto-flow:row; grid-auto-rows:min-content; gap:5px; width:100%; padding:0; border:0; background:transparent; text-align:left; color:inherit; cursor:pointer; text-transform:none; }
-.wc-row-select small { color:var(--muted); }
+/* Explicit named areas, not auto-placement: a previous attempt at this row (implicit
+   single-column grid, relying on DOM order alone) still let the position line clip under the
+   name in practice, and without being able to render this page to see why, an unambiguous
+   named-area layout removes the guesswork entirely rather than tweaking the same implicit
+   layout again. wc-health's row is simply empty (not collapsed) when that span is absent -
+   a few px of blank space, never an overlap, regardless of which fields are present. */
+.wc-row-select {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  grid-template-areas:"name count" "health health" "where where";
+  column-gap:10px; row-gap:4px;
+  width:100%; padding:0; border:0; background:transparent; text-align:left; color:inherit; cursor:pointer; text-transform:none;
+}
+.wc-row-select small { grid-area:where; color:var(--muted); }
+.wc-row-select .wc-count { grid-area:count; align-self:start; }
+.wc-row-select .wc-health { grid-area:health; }
 /* A container's player-given name (round 85) can run noticeably longer than the short
    auto-generated label ("Storage Crate") this row was originally sized around - clamp it to one
    line with an ellipsis instead of letting it wrap and crowd the count/health/position lines
    underneath it. */
-.wc-row-select strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.wc-row-select strong { grid-area:name; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .world-tab-viewport .wt-row, .world-tab-viewport .wc-row { padding:12px; }
 .world-tab-viewport .wt-detail, .world-tab-viewport .wc-detail { min-width:0; }
 .world-tab-viewport .wt-intro, .world-tab-viewport .wm-intro, .world-flags-intro { max-width:78ch; }
