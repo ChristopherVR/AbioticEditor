@@ -744,6 +744,10 @@
   <data name="WorldDropped_GroundItemsIntro" xml:space="preserve"><value>Find and remove loose items from this region. Search by item name to narrow the list.</value></data>
   <data name="WorldDropped_ItemsOnTheGround" xml:space="preserve"><value>ITEMS ON THE GROUND</value></data>
   <data name="WorldDropped_NoGroundItems" xml:space="preserve"><value>No ground items match.</value></data>
+  <data name="WorldDropped_NearbyOnly" xml:space="preserve"><value>Nearby only</value></data>
+  <data name="WorldDropped_NearbyRadius" xml:space="preserve"><value>Radius (cm)</value></data>
+  <data name="WorldDropped_NearbyRadiusHelp" xml:space="preserve"><value>Only show items within this distance of where you're standing. The Facility is one continuous map with no real area boundaries in the data, so this is the closest thing to "just this area" - turn it off to search everywhere.</value></data>
+  <data name="WorldDropped_NoneNearby" xml:space="preserve"><value>Nothing within range. There are items elsewhere on the map - turn off "Nearby only" or widen the radius to see them.</value></data>
   <data name="WorldDropped_Restore" xml:space="preserve"><value>RESTORE</value></data>
   <data name="WorldDropped_SpawnItemIdPlaceholder" xml:space="preserve"><value>Item id, e.g. scrap_metal</value></data>
   <data name="WorldDropped_SpawnStack" xml:space="preserve"><value>Stack</value></data>
@@ -4075,14 +4079,17 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Live_SidebarSubtitle" xml:space="preserve"><value>Live-editing a running game.</value></data>
   <data name="Live_OfflineChip" xml:space="preserve"><value>OFFLINE</value></data>
   <data name="Live_HereChip" xml:space="preserve"><value>HERE</value></data>
+  <data name="Live_AlsoHereFormat" xml:space="preserve"><value>HERE · +{0}</value></data>
+  <data name="Live_PlayersHereFormat" xml:space="preserve"><value>{0} HERE</value></data>
   <data name="Live_RegionNotHereHint" xml:space="preserve"><value>The game isn't in this area right now.</value></data>
+  <data name="Live_RegionOccupiedHintFormat" xml:space="preserve"><value>{0} is in this area right now, but you can only browse the area your own connection has loaded.</value></data>
   <data name="Live_RegionUnknown" xml:space="preserve"><value>Finding out where you are...</value></data>
   <data name="Live_LiveChip" xml:space="preserve"><value>LIVE</value></data>
   <data name="Live_Disconnect" xml:space="preserve"><value>DISCONNECT</value></data>
   <data name="Live_Sections" xml:space="preserve"><value>Live editor sections</value></data>
   <data name="LiveNpcs_Title" xml:space="preserve"><value>CREATURES</value></data>
   <data name="LiveNpcs_Refresh" xml:space="preserve"><value>REFRESH</value></data>
-  <data name="LiveNpcs_Intro" xml:space="preserve"><value>Every creature and hostile NPC currently loaded in the game - not just wildlife. Click one to see it in the side panel. Changes apply immediately, one at a time - there is no APPLY step here. No health, position or appearance data yet.</value></data>
+  <data name="LiveNpcs_Intro" xml:space="preserve"><value>Every creature and hostile NPC currently loaded in the game - not just wildlife. Click one to see it. Changes apply immediately, one at a time - there is no APPLY step here.</value></data>
   <data name="LiveNpcs_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to edit creatures. Editing here as a joined client would not stick.</value></data>
   <data name="LiveNpcs_NoneFound" xml:space="preserve"><value>No creatures are currently loaded.</value></data>
   <data name="LiveNpcs_Kill" xml:space="preserve"><value>KILL</value></data>
@@ -4092,7 +4099,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="LiveNpcs_Faction" xml:space="preserve"><value>Faction</value></data>
   <data name="LiveNpcs_SelectToPreview" xml:space="preserve"><value>Select a creature to see it here.</value></data>
   <data name="LiveNpcs_ClassLabel" xml:space="preserve"><value>Class</value></data>
-  <data name="LiveNpcs_NoAppearanceDataNote" xml:space="preserve"><value>The running game does not report this creature's position, health or appearance - only its name, life/death state, disabled/invincible flags and faction.</value></data>
+  <data name="LiveNpcs_NoAppearanceDataNote" xml:space="preserve"><value>The running game itself does not report this creature's position, health or appearance - only its name, life/death state, disabled/invincible flags and faction. The picture above (when there is one) comes from the community wiki, not the game.</value></data>
   <data name="Live_TabPortals" xml:space="preserve"><value>World Teleporters</value></data>
   <data name="Live_TabEntitlements" xml:space="preserve"><value>Entitlements</value></data>
   <data name="Live_TabWildlife" xml:space="preserve"><value>Creatures</value></data>
