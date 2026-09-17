@@ -1,0 +1,197 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Components.Player
+@using AbioticEditor.Core.LiveEditing
+@using AbioticEditor.Core.LiveEditing.World
+@using AbioticEditor.Core.Items
+@inject ItemCatalogService Catalog
+@inject RecipeVocabularyService Recipes
+
+@* Dedicated live tab, not the generic WorldFeaturesTab: a chemistry bench's four flask slots
+   (three inputs, one computed output) used to show as bare "flask:0".."flask:3" text fields that
+   were also read-only in the running game, and finding the bench at all meant following an "open
+   flask contents" link into the CONTAINERS tab filtered to this bench's id - a link a player
+   reported breaking when the containers tab's own "nearby only" filter (now off by default
+   elsewhere) hid the very container the link pointed at. This tab lists every chemistry bench and
+   lets the three input slots be set directly, with a recipe hint computed from the same chemistry
+   recipe table the file editor's recipe browser reads (RecipeCatalog, Source == "Chemistry") -
+   see LiveTradersTab's own remarks for why a dedicated flat tab exists instead of reusing the
+   split-pane layout the offline world tabs use. *@
+<section class="editor-card" aria-label="@L.Resource("LiveChemistryBenches_Title")">
+    <div class="card-title-row">
+        <h3>@L.Resource("LiveChemistryBenches_Title")</h3>
+        <button class="secondary" type="button" disabled="@_busy" @onclick="RefreshAsync">@L.Resource("LiveNpcs_Refresh")</button>
+    </div>
+
+    @if (!Session.IsHost)
+    {
+        <p class="error-text" role="alert">@L.Resource("LiveChemistryBenches_NotHostWarning")</p>
+    }
+    <p class="muted">@L.Resource("LiveChemistryBenches_Intro")</p>
+
+    @if (Session.Entries.Count == 0)
+    {
+        <p class="muted">@L.Resource("LiveChemistryBenches_NoneFound")</p>
+    }
+    else
+    {
+        <div class="shell-save-list" role="listbox" aria-label="@L.Resource("LiveChemistryBenches_Title")">
+            @foreach (var bench in Session.Entries)
+            {
+                var expanded = _selectedId == bench.Id;
+                <div @key="bench.Id">
+                    <button type="button" role="option" aria-selected="@(expanded ? "true" : "false")"
+                            class="save-file-row kind-player @(expanded ? "selected" : null)" @onclick="() => Toggle(bench.Id)">
+                        <span class="save-kind-marker" aria-hidden="true"></span>
+                        <strong class="save-file-name">@bench.Label</strong>
+                    </button>
+                    @if (expanded)
+                    {
+                        <div class="detail-card detail-card--terminal" aria-label="@bench.Label">
+                            @foreach (var flask in bench.Fields)
+                            {
+                                <div class="wt-field" @key="flask.Id">
+                                    <span class="wt-label">@flask.Label</span>
+                                    <span class="wt-field-inline">
+                                        <span class="rb-row-icon"><ItemIcon ItemId="@flask.Value" Alt="@ItemName(flask.Value)" /></span>
+                                        @if (flask.Editable)
+                                        {
+                                            <input class="wt-input" list="chembench-item-palette" value="@(IsEmptySlot(flask.Value) ? string.Empty : flask.Value)"
+                                                   placeholder="@L.Inventory("empty")" disabled="@_busy"
+                                                   @onchange="e => SetFlaskAsync(bench.Id, flask.Id, e.Value?.ToString())" />
+                                            <button class="wt-btn wt-plain" type="button" disabled="@(_busy || IsEmptySlot(flask.Value))"
+                                                    @onclick="() => SetFlaskAsync(bench.Id, flask.Id, string.Empty)">@L.Inventory("clear").ToUpperInvariant()</button>
+                                        }
+                                        else
+                                        {
+                                            <span class="world-feature-field-value">@ItemName(flask.Value)</span>
+                                        }
+                                    </span>
+                                </div>
+                            }
+                            @{ var hint = RecipeHint(bench); }
+                            @if (hint is not null)
+                            {
+                                <p class="wt-muted">@hint</p>
+                            }
+                            @if (_fieldErrors.TryGetValue(bench.Id, out var benchError))
+                            {
+                                <p class="error-text" role="alert">@benchError</p>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+    <datalist id="chembench-item-palette">
+        @foreach (var item in ChemistryIngredientItems)
+        {
+            <option value="@item.Id">@item.DisplayName</option>
+        }
+    </datalist>
+
+    @if (_error is not null)
+    {
+        <p class="error-text" role="alert">@_error</p>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public LiveDeployedCareSession Session { get; set; } = null!;
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private bool _busy;
+    private string? _error;
+    private string? _selectedId;
+    private readonly Dictionary<string, string> _fieldErrors = new(StringComparer.Ordinal);
+    private IReadOnlyList<RecipeInfo>? _chemistryRecipes;
+
+    private static bool IsEmptySlot(string? value) => string.IsNullOrEmpty(value) || value is "Empty" or "None";
+
+    private string ItemName(string? itemId)
+        => IsEmptySlot(itemId) ? L.Inventory("empty") : Catalog.Find(itemId!)?.DisplayName ?? PlainNames.Words(itemId!);
+
+    private void Toggle(string id)
+    {
+        _selectedId = _selectedId == id ? null : id;
+        _fieldErrors.Remove(id);
+    }
+
+    /// <summary>Every item this game's chemistry recipes actually consume, so the picker suggests
+    /// real chemistry ingredients instead of the whole ~1,600-item catalog.</summary>
+    private IEnumerable<ItemCatalogEntry> ChemistryIngredientItems
+    {
+        get
+        {
+            var ids = new HashSet<string>(ChemistryRecipes.SelectMany(r => r.IngredientList).Select(i => i.ItemId), StringComparer.Ordinal);
+            return Catalog.Entries.Where(item => ids.Contains(item.Id)).OrderBy(item => item.DisplayName, StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
+    private IReadOnlyList<RecipeInfo> ChemistryRecipes
+        => _chemistryRecipes ??= Recipes.GetRecipeInfos().Where(r => string.Equals(r.Source, "Chemistry", StringComparison.Ordinal)).ToList();
+
+    /// <summary>
+    /// Which chemistry recipe the bench's current inputs would match, purely by which items are
+    /// in the three input slots (the flask fields carry no stack-count, so a recipe needing more
+    /// than one of an ingredient cannot be told apart from needing just one here - the hint says
+    /// "would produce", not "will produce", for exactly that reason). The actual mixing still runs
+    /// in the game; this is a legibility aid, not a simulation of it.
+    /// </summary>
+    private string? RecipeHint(LiveCareEntry bench)
+    {
+        var inputs = bench.Fields.Where(f => f.Id != "flask:3" && !IsEmptySlot(f.Value)).Select(f => f.Value!).ToList();
+        if (inputs.Count == 0) return null;
+        var inputSet = new HashSet<string>(inputs, StringComparer.Ordinal);
+        var match = ChemistryRecipes.FirstOrDefault(r =>
+            new HashSet<string>(r.IngredientList.Select(i => i.ItemId), StringComparer.Ordinal).SetEquals(inputSet));
+        if (match?.CreatesItemId is { Length: > 0 } createsId)
+            return L.Resource("LiveChemistryBenches_WouldProduce", ItemName(createsId));
+        return L.Resource("LiveChemistryBenches_NoMatchingRecipe");
+    }
+
+    private async Task RefreshAsync() => await RunAsync(() => Session.RefreshAsync());
+
+    private async Task SetFlaskAsync(string benchId, string fieldId, string? value)
+    {
+        _busy = true;
+        _fieldErrors.Remove(benchId);
+        try
+        {
+            var result = await Session.SetFieldAsync(benchId, fieldId, value);
+            if (result.IsError)
+            {
+                _fieldErrors[benchId] = result.Error is { Length: > 0 } explanation ? explanation : L.Resource("WorldFeature_ChangeRefused");
+            }
+            else
+            {
+                await OnChanged.InvokeAsync();
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            await action();
+            await OnChanged.InvokeAsync();
+        }
+        catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
+            or IOException or OperationCanceledException)
+        {
+            _error = Errors.Present(exception, "Edit chemistry benches.", "The connection may have dropped; try reconnecting.");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

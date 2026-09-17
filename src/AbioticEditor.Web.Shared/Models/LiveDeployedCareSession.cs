@@ -1,4 +1,5 @@
 using System.Globalization;
+using AbioticEditor.Core.LiveEditing;
 using AbioticEditor.Core.LiveEditing.World;
 using AbioticEditor.Core.WorldSaves;
 using AbioticEditor.Core.WorldSaves.Features;
@@ -30,6 +31,35 @@ public sealed class LiveDeployedCareSession : IWorldFeaturesSession
     public bool IsHost => _directory.IsHost;
     public bool IsDirty => Volatile.Read(ref _pendingOperations) > 0;
     public event Action? Changed;
+
+    /// <summary>The raw directory entries, for a dedicated tab (e.g. chemistry benches) that
+    /// needs more than the generic label/field-list shape <see cref="MapFeature"/> exposes.</summary>
+    public IReadOnlyList<LiveCareEntry> Entries => _directory.Entries;
+
+    /// <summary>
+    /// A narrower write path than <see cref="SetMapFeatureField"/>: no integer/enum shape
+    /// checking, for a field kind the generic map-feature editor does not know about (a chemistry
+    /// bench flask, which takes a free-form item row id). Catches a rejected write from the game
+    /// itself and reports it, instead of letting it surface as an unhandled exception the way
+    /// <see cref="SetMapFeatureField"/> currently leaves to its own callers.
+    /// </summary>
+    public async Task<WorldEditResult> SetFieldAsync(string entryKey, string fieldId, string? value, CancellationToken cancellationToken = default)
+    {
+        if (!IsHost) return WorldEditResult.Failure("Only the host can change deployed objects.");
+        Interlocked.Increment(ref _pendingOperations);
+        try
+        {
+            await _channel.SetAsync(FeatureId, entryKey, fieldId, value ?? string.Empty, cancellationToken).ConfigureAwait(false);
+            await RefreshAsync(cancellationToken).ConfigureAwait(false);
+            return WorldEditResult.Success;
+        }
+        catch (LiveAgentException exception)
+        {
+            await RefreshAsync(cancellationToken).ConfigureAwait(false);
+            return WorldEditResult.Failure(exception.Message);
+        }
+        finally { Interlocked.Decrement(ref _pendingOperations); }
+    }
 
     public Task RefreshAsync() => RefreshAsync(CancellationToken.None);
     public async Task RefreshAsync(CancellationToken cancellationToken)

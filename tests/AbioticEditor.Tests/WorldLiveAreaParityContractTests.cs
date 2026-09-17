@@ -58,9 +58,11 @@ public sealed class WorldLiveAreaParityContractTests
         Assert.Contains("<WorldContainmentTab Session=\"_containment\"", source, StringComparison.Ordinal);
         Assert.Contains("<WorldFeaturesTab Session=\"_portals\" FeatureId=\"@LivePortalsFeatureSession.PortalsFeatureId\"",
             source, StringComparison.Ordinal);
-        // Traders got a dedicated tab instead (documented deviation - see LiveTradersTab.razor's
-        // own header comment for why WorldTradersTab could not be reused safely here).
+        // Traders and chemistry benches got dedicated tabs instead (documented deviations - see
+        // each dedicated component's own header comment for why the generic tab could not be
+        // reused safely here).
         Assert.Contains("<LiveTradersTab Session=\"_traders\"", source, StringComparison.Ordinal);
+        Assert.Contains("<LiveChemistryBenchTab Session=\"chemistrySession\"", source, StringComparison.Ordinal);
         // Neither Entitlements nor Raw JSON has a live equivalent, and neither is offered as a
         // dead placeholder tab live either - see LiveConnect.razor's own comment on why both are
         // omitted entirely there instead.
@@ -77,6 +79,8 @@ public sealed class WorldLiveAreaParityContractTests
             "LiveTraders_Title", "LiveTraders_Intro", "LiveTraders_NotHostWarning", "LiveTraders_Unlock",
             "LiveContainment_OfflineWorldUnlocksNote",
             "Live_TabPortals",
+            "LiveChemistryBenches_Title", "LiveChemistryBenches_Intro", "LiveChemistryBenches_NotHostWarning",
+            "LiveChemistryBenches_NoneFound", "LiveChemistryBenches_WouldProduce", "LiveChemistryBenches_NoMatchingRecipe",
         })
         {
             Assert.Contains(key, resources);

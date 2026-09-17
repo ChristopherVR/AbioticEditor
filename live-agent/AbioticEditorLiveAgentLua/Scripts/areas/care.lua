@@ -59,8 +59,12 @@ return function(ctx)
             local inv = obj.BenchInventory
             if inv and inv.CurrentInventory then
                 for i = 1, math.min(4, #inv.CurrentInventory) do
-                    table.insert(fields, field("flask:" .. (i - 1), i == 4 and "Output" or "Input " .. i,
-                        ctx.slotRowName(inv.CurrentInventory[i])))
+                    -- The output (slot 4) is computed by the game's own mixing logic and stays
+                    -- read-only here; the three inputs are host-editable "item" fields so the
+                    -- editor can offer a picker instead of a plain text box.
+                    local isOutput = i == 4
+                    table.insert(fields, field("flask:" .. (i - 1), isOutput and "Output" or "Input " .. i,
+                        ctx.slotRowName(inv.CurrentInventory[i]), "item", not isOutput and host))
                 end
             end
         end
@@ -121,6 +125,25 @@ return function(ctx)
                 local component = obj.RechargeableComponent
                 if not valid(component) then error("chair battery is unavailable") end
                 component:Server_ModifyBattery(value - charge(obj), true)
+            elseif feature == "chemistry-benches" then
+                local kind, index = tostring(id):match("^(%a+):(%d+)$")
+                if kind ~= "flask" then error("this field is read-only") end
+                index = tonumber(index)
+                if index == 3 then error("the output flask is computed by the game and cannot be set directly") end
+                if index < 0 or index > 2 then error("bench slot not found") end
+                local inv = obj.BenchInventory
+                if not inv or not inv.CurrentInventory then error("this bench has no inventory") end
+                local slot = inv.CurrentInventory[index + 1]
+                if not slot then error("bench slot is unavailable; refresh and retry") end
+                -- writeSlot's own contract (see prepareSlotWrite) rejects itemId = "Empty"/"None"
+                -- outright and requires the explicit clear = true path to empty a slot instead.
+                if value == nil or value == "" or value == "Empty" or value == "None" then
+                    ctx.writeSlot(slot, { clear = true })
+                    value = "Empty"
+                else
+                    ctx.writeSlot(slot, { itemId = value, stack = 1 })
+                end
+                pcall(function() inv:OnRep_CurrentInventory() end)
             else error("this field is read-only") end
             local expected = tostring(value)
             for _, f in ipairs(fieldsFor(feature, obj, true)) do

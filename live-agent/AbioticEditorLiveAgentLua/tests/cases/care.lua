@@ -45,6 +45,30 @@ return function(H)
     local chair = H.world.add(H.object("Deployed_Furniture_Chair_PowerChair_C", {ChangeableData=data, RechargeableComponent=component}))
     H.ok(H.dispatch("care.set", {featureId="power-chairs",id=chair:GetFullName(),fieldId="charge",value=200}), "chair charge set")
     H.eq(data.LiquidLevel_46_D6414A6E49082BC020AADC89CC29E35A, 200, "chair charge delta applied")
+    local benchInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {
+        { ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B = { RowName = H.fname("Empty") },
+          ChangeableData_12_2B90E1F74F648135579D39A49F5A2313 = { CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 0, DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7 = {} } },
+        { ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B = { RowName = H.fname("Empty") },
+          ChangeableData_12_2B90E1F74F648135579D39A49F5A2313 = { CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 0, DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7 = {} } },
+        { ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B = { RowName = H.fname("Empty") },
+          ChangeableData_12_2B90E1F74F648135579D39A49F5A2313 = { CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 0, DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7 = {} } },
+        { ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B = { RowName = H.fname("Empty") },
+          ChangeableData_12_2B90E1F74F648135579D39A49F5A2313 = { CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 0, DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7 = {} } },
+    } }, { OnRep_CurrentInventory = function() end })
+    local bench = H.world.add(H.object("Deployed_ChemistryBench_C", { BenchInventory = benchInv }))
+    local benchId = bench:GetFullName()
+    local benchListing = H.ok(H.dispatch("care.list", {featureId="chemistry-benches"}))
+    H.eq(#benchListing.entries[1].fields, 4, "bench flask fields listed")
+    H.eq(benchListing.entries[1].fields[1].editable, true, "bench input slot is editable for the host")
+    H.eq(benchListing.entries[1].fields[4].editable, false, "bench output slot is always read-only")
+    H.eq(benchListing.entries[1].containerId, benchId, "bench still exposes a container id for the deep link")
+    local function setBench(field, value) return H.dispatch("care.set", {featureId="chemistry-benches", id=benchId, fieldId=field, value=value}) end
+    H.ok(setBench("flask:0", "bandage"), "bench input slot set")
+    H.eq(benchInv.CurrentInventory[1].ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B.RowName:ToString(), "bandage", "bench slot readback")
+    H.ok(setBench("flask:0", ""), "bench input slot cleared")
+    H.eq(benchInv.CurrentInventory[1].ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B.RowName:ToString(), "Empty", "cleared bench slot reads back empty")
+    H.fails(setBench("flask:3", "bandage"), "computed by the game", "bench output slot rejects writes")
+
     H.clientSession()
     H.world.add(garden)
     local clientList = H.ok(H.dispatch("care.list", {featureId="garden-plots"}))

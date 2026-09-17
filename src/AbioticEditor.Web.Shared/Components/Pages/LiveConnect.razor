@@ -227,6 +227,13 @@ else
                    equivalent and is not offered here. *@
                 <WorldFeaturesTab Session="_portals" FeatureId="@LivePortalsFeatureSession.PortalsFeatureId" OnError="SetError" />
             }
+            else if (_worldTab == "chemistry-benches" && _care.TryGetValue("chemistry-benches", out var chemistrySession))
+            {
+                @* Dedicated tab instead of the generic WorldFeaturesTab reuse below - see
+                   LiveChemistryBenchTab's own header comment for why the "open flask contents"
+                   deep link into the containers tab was replaced with slot editing built in. *@
+                <LiveChemistryBenchTab Session="chemistrySession" OnChanged="() => {}" />
+            }
             else if (_care.TryGetValue(_worldTab, out var careSession))
             {
                 <WorldFeaturesTab Session="careSession" FeatureId="@_worldTab" OnError="SetError" OnOpenLink="OpenCareContainerAsync" />
