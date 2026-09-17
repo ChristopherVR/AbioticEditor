@@ -68,6 +68,12 @@ public sealed class LiveContainmentSession : IWorldContainmentSession
     public string? CreatureInUnit(string unitId)
         => Units.FirstOrDefault(u => string.Equals(u.Id, unitId, StringComparison.Ordinal))?.Creature;
 
+    // A genuine zero-arg overload: LiveConnect's periodic refresh loop finds this by reflection
+    // (GetMethod("RefreshAsync", Type.EmptyTypes)), which requires a true no-parameter method -
+    // the optional parameter below does not count. Without this the loop silently never refreshes
+    // this session, so a containment unit changed in the running game never shows up here on its own.
+    public Task RefreshAsync() => RefreshAsync(CancellationToken.None);
+
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var directory = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);

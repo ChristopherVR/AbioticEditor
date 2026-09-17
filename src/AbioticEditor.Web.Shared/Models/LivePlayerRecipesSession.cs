@@ -110,6 +110,12 @@ public sealed class LivePlayerRecipesSession : IPlayerRecipesSession
     /// that already call it unconditionally (shared with the file session) need no branch.</summary>
     public void MarkChanged() { }
 
+    // A genuine zero-arg overload: LiveConnect's periodic refresh loop finds this by reflection
+    // (GetMethod("RefreshAsync", Type.EmptyTypes)), which requires a true no-parameter method -
+    // the optional parameter below does not count. Without this the loop silently never refreshes
+    // this session, so a recipe unlocked in the running game never shows up here on its own.
+    public Task RefreshAsync() => RefreshAsync(CancellationToken.None);
+
     /// <summary>Re-reads the live player's unlocked recipes, replacing this session's known set
     /// (any locked rows added by <see cref="EnsureRecipeRows"/> for catalog ids are kept).</summary>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)

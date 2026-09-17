@@ -80,6 +80,12 @@ public sealed class LivePlayerSkillsSession : IPlayerSkillsSession
     /// <see cref="LivePlayerVitalsSession.RefreshAsync"/> - used to pick up progress made in the
     /// running game (levelling up, say) while this tab is open and nothing is being edited right
     /// now.</summary>
+    // A genuine zero-arg overload: LiveConnect's periodic refresh loop finds this by reflection
+    // (GetMethod("RefreshAsync", Type.EmptyTypes)), which requires a true no-parameter method -
+    // the optional parameter below does not count. Without this the loop silently never refreshes
+    // this session, so skill progress made in the running game never shows up here on its own.
+    public Task RefreshAsync() => RefreshAsync(CancellationToken.None);
+
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var skills = await _channel.GetAsync(_playerId, cancellationToken).ConfigureAwait(false);

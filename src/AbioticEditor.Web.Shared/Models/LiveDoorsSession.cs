@@ -53,6 +53,12 @@ public sealed class LiveDoorsSession : IWorldDoorsSession
     /// mutation (each of which already ends by refreshing).</summary>
     public event Action? Changed;
 
+    // A genuine zero-arg overload: LiveConnect's periodic refresh loop finds this by reflection
+    // (GetMethod("RefreshAsync", Type.EmptyTypes)), which requires a true no-parameter method -
+    // the optional parameter below does not count. Without this the loop silently never refreshes
+    // this session, so a door opened/locked in the running game never shows up here on its own.
+    public Task RefreshAsync() => RefreshAsync(CancellationToken.None);
+
     /// <summary>Re-reads every loaded door from the running game, discarding nothing (there is
     /// nothing staged to discard).</summary>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)

@@ -56,6 +56,12 @@ public sealed class LivePlayerCompanionsSession : IPlayerCompanionsSession
 
     /// <summary>Re-reads every carried pet from the running game, discarding local UI state for
     /// any row not currently mid-edit (there is nothing staged to lose - see <see cref="AppliesImmediately"/>).</summary>
+    // A genuine zero-arg overload: LiveConnect's periodic refresh loop finds this by reflection
+    // (GetMethod("RefreshAsync", Type.EmptyTypes)), which requires a true no-parameter method -
+    // the optional parameter below does not count. Without this the loop silently never refreshes
+    // this session, so a pet change made in the running game never shows up here on its own.
+    public Task RefreshAsync() => RefreshAsync(CancellationToken.None);
+
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var rows = await _channel.ListAsync(_playerId, cancellationToken).ConfigureAwait(false);

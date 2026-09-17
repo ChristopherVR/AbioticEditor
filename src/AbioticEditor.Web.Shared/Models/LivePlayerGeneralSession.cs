@@ -116,6 +116,12 @@ public sealed class LivePlayerGeneralSession : IPlayerGeneralSession
         Status = null;
     }
 
+    // A genuine zero-arg overload: LiveConnect's periodic refresh loop finds this by reflection
+    // (GetMethod("RefreshAsync", Type.EmptyTypes)), which requires a true no-parameter method -
+    // the optional parameter below does not count. Without this the loop silently never refreshes
+    // this session, so a trait/item/map picked up in the running game never shows up here on its own.
+    public Task RefreshAsync() => RefreshAsync(CancellationToken.None);
+
     /// <summary>Re-reads the live player's known items/maps/traits and background.</summary>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {

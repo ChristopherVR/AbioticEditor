@@ -70,6 +70,12 @@ public sealed class LivePlayerSpawnSession : IPlayerSpawnSession
     /// <summary>Nothing is staged, so there is nothing to revert.</summary>
     public void Revert() { }
 
+    // A genuine zero-arg overload: LiveConnect's periodic refresh loop finds this by reflection
+    // (GetMethod("RefreshAsync", Type.EmptyTypes)), which requires a true no-parameter method -
+    // the optional parameter below does not count. Without this the loop silently never refreshes
+    // this session, so moving around in the running game never updates the position shown here.
+    public Task RefreshAsync() => RefreshAsync(CancellationToken.None);
+
     /// <summary>Re-reads the connected character's position and claimed respawn terminal.</summary>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {

@@ -283,6 +283,13 @@ public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTrans
     /// objects) does not go stale the instant this session applies its own edit and refreshes.
     /// Also the host's own periodic background poll (see <see cref="IsDirty"/>), so every caller
     /// - our own mutation methods and that poll alike - ends by raising <see cref="Changed"/>.</summary>
+    // A genuine zero-arg overload: LiveConnect's periodic refresh loop finds this by reflection
+    // (GetMethod("RefreshAsync", Type.EmptyTypes)), which requires a true no-parameter method -
+    // the optional parameter below does not count. Without this the loop silently never refreshes
+    // this session, so an item picked up (or moved) in the running game never shows up here on
+    // its own until some unrelated re-render happens to occur.
+    public Task RefreshAsync() => RefreshAsync(CancellationToken.None);
+
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var wire = await _channel.GetAsync(_playerId, cancellationToken).ConfigureAwait(false);

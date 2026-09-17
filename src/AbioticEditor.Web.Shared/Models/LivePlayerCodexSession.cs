@@ -146,6 +146,12 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
         Changed?.Invoke();
     }
 
+    // A genuine zero-arg overload: LiveConnect's periodic refresh loop finds this by reflection
+    // (GetMethod("RefreshAsync", Type.EmptyTypes)), which requires a true no-parameter method -
+    // the optional parameter below does not count. Without this the loop silently never refreshes
+    // this session, so a new codex entry seen in the running game never shows up here on its own.
+    public Task RefreshAsync() => RefreshAsync(CancellationToken.None);
+
     /// <summary>Re-reads the live player's known e-mails/notes/fish/compendium entries.</summary>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {

@@ -225,6 +225,12 @@ public sealed class LiveStorySession : IWorldStorySession
     public ValueTask SaveAsync(CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
     public void Revert() { }
 
+    // A genuine zero-arg overload: LiveConnect's periodic refresh loop finds this by reflection
+    // (GetMethod("RefreshAsync", Type.EmptyTypes)), which requires a true no-parameter method -
+    // the optional parameter below does not count. Without this the loop silently never refreshes
+    // this session, so story progress made in the running game never shows up here on its own.
+    public Task RefreshAsync() => RefreshAsync(CancellationToken.None);
+
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         _story = await _storyChannel.GetAsync(cancellationToken).ConfigureAwait(false);

@@ -55,6 +55,12 @@ public sealed class LiveTradersSession
         .Where(flag => !HasWorldFlag(flag))
         .ToArray();
 
+    // A genuine zero-arg overload: LiveConnect's periodic refresh loop finds this by reflection
+    // (GetMethod("RefreshAsync", Type.EmptyTypes)), which requires a true no-parameter method -
+    // the optional parameter below does not count. Without this the loop silently never refreshes
+    // this session, so a trader unlocked in the running game never shows up here on its own.
+    public Task RefreshAsync() => RefreshAsync(CancellationToken.None);
+
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         Flags = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
