@@ -63,6 +63,17 @@ public sealed class VoidChestProbe
             .ToArray();
         File.WriteAllLines(Path.Combine(output, "_void_candidates.txt"), voidCandidates);
 
+        // Round 85: broader than "Void" - every Blueprint (not material/texture) whose name
+        // suggests any kind of chest, in case the specific damaged one the player is standing at
+        // is a different class entirely (a boss-reward chest, say) rather than the ordinary
+        // Deployed_StorageCrate_Void_C this file already confirmed is the only "Void"-named one.
+        var chestCandidates = provider.Files.Keys
+            .Where(p => p.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase)
+                && p.Contains("Blueprint", StringComparison.OrdinalIgnoreCase)
+                && Path.GetFileNameWithoutExtension(p).Contains("Chest", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        File.WriteAllLines(Path.Combine(output, "_chest_blueprint_candidates.txt"), chestCandidates);
+
         var healthWidgetCandidates = provider.Files.Keys
             .Where(p => p.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase)
                 && (Path.GetFileNameWithoutExtension(p).Contains("Durabil", StringComparison.OrdinalIgnoreCase)

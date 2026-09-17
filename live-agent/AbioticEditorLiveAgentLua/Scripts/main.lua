@@ -1388,19 +1388,33 @@ end
 -- Round 84: reading the raw fields alone was not enough - a live report showed every Void Chest
 -- reading 0/42, which does not match a chest the player could see was only part-damaged in game.
 -- CanLoseDurability() (a real, zero-argument, BlueprintCallable function on this same base class,
--- verified against the game's own Blueprint exports - it looks up the deployable's own item data
--- row for a durability-tracking flag) is the actor's own answer to "does my durability value mean
--- anything at all", and is checked first: a deployable this returns false for (map-placed set
--- dressing that was never meant to take damage is the leading theory for Void Chest specifically,
--- though this was not confirmed against a live game - CanLoseDurability() could not be probed
--- directly without a fresh game restart, since this game's Lua hot-reload is off) now reports no
--- health at all instead of a 0 current value that looks like "destroyed" but may just mean "never
--- tracked". A deployable this returns true for still reports its real current/max as before.
+-- verified against the game's own Blueprint exports) is the actor's own answer to "does my
+-- durability value mean anything at all", and is checked first.
+--
+-- Round 85: CanLoseDurability() alone was still not enough - restarted and re-tested, a live
+-- report now shows CurrentDurability/MaxDurability for a Void Chest as something like 1200/600,
+-- current nearly double the max, which cannot be genuine structural health under this game's own
+-- rules (nothing else in this codebase's durability handling - item slot durability, vitals -
+-- ever lets current exceed max). Traced CanLoseDurability()'s real bytecode (game export dump):
+-- it looks up this actor's own DeconstructedItemData row (what item you get for scrapping this
+-- deployable) and returns true whenever that row resolves at all, regardless of whether the
+-- CurrentDurability/MaxDurability values that follow mean anything sensible for THIS class - a
+-- Void Chest's DeconstructedItemData row still resolving to something valid does not mean its
+-- durability fields were ever meant to be read as a literal 0-to-max health bar the way an
+-- ordinary wood/metal crate's are (this could not be confirmed further live: the game only
+-- accepts one client connection at a time, and the editor's own live session was holding it for
+-- the whole of this investigation, so no direct read against the user's actual Void Chest was
+-- possible this round either). Rather than keep guessing at what the raw numbers mean for this
+-- specific class, treat a current-exceeds-maximum reading as self-evidently not real health and
+-- omit it, the same as the "no health at all" case just above - a wrong number is worse than no
+-- number.
 local function containerHealth(container)
     local trackOk, tracksDurability = pcall(function() return container:CanLoseDurability() end)
     if not trackOk or tracksDurability ~= true then return nil, nil end
     local ok, current, maximum = pcall(function() return container.CurrentDurability, container.MaxDurability end)
-    if ok and type(current) == "number" and type(maximum) == "number" and maximum > 0 then return current, maximum end
+    if ok and type(current) == "number" and type(maximum) == "number" and maximum > 0 and current >= 0 and current <= maximum then
+        return current, maximum
+    end
     return nil, nil
 end
 
@@ -1425,6 +1439,18 @@ local function containerName(container)
     return text
 end
 
+-- Round 85: also reports whether the returned inventory is SHARED (owned by something other
+-- than this specific actor, e.g. a Void Chest's redirect to the world GameState's single pool)
+-- rather than an ordinary per-actor one - see the two write handlers that read this for why:
+-- forcing an immediate OnRep_CurrentInventory() refresh on a shared inventory a live report
+-- showed freezing the game for a moment on write, plausibly because that inventory is watched by
+-- every placed instance sharing it (four Void Chests' worth of UI/replication, not one crate's).
+-- Detected by identity, not by class name: this actor's own (always-present, but for a Void
+-- Chest always-empty) ContainerInventory property is compared against whatever
+-- GetContainerInventory() actually returned, via GetFullName() (this Lua environment's objects do
+-- not reliably support "==" for identity, so a real object hasn't been assumed equal to itself
+-- through it) - genuinely the same object means ordinary per-actor storage; anything else means
+-- GetContainerInventory() redirected somewhere shared.
 local function containerInventory(container)
     -- GetContainerInventory() (a BlueprintPure function every container class exports, verified
     -- against the game's own Blueprint exports) is preferred over reading ContainerInventory/
@@ -1433,11 +1459,15 @@ local function containerInventory(container)
     -- placed Void Chest shares one storage pool. Reading its own ContainerInventory property
     -- directly (the old behavior here) found that per-actor component, which a Void Chest never
     -- actually stores anything in, so it always looked empty regardless of its real contents.
+    local directOk, direct = pcall(function() return container.ContainerInventory end)
     local ok, inv = pcall(function() return container:GetContainerInventory() end)
-    if not ok or not inv or not inv:IsValid() then ok, inv = pcall(function() return container.ContainerInventory end) end
+    if not ok or not inv or not inv:IsValid() then ok, inv = pcall(function() return direct end) end
     if not ok or not inv or not inv:IsValid() then ok, inv = pcall(function() return container.BenchInventory end) end
-    if ok and inv and inv:IsValid() then return inv end
-    return nil
+    if ok and inv and inv:IsValid() then
+        local shared = not (directOk and direct and direct:IsValid() and fullName(direct) == fullName(inv))
+        return inv, shared
+    end
+    return nil, false
 end
 
 local CONTAINER_CLASSES = { "Deployed_Container_ParentBP_C", "Deployed_ProcessingBench_ParentBP_C" }
@@ -1528,7 +1558,7 @@ handlers["containers.set"] = function(payload, respond)
         if not isHost() then error("only the host can change containers") end
         local container = payload.id and findContainer(payload.id)
         if not container then error("container not found (it may have been unloaded or destroyed)") end
-        local inv = containerInventory(container)
+        local inv, shared = containerInventory(container)
         if not inv or not inv.CurrentInventory then error("container has no inventory") end
         local rows, prepared = payload.edits or {}, {}
         -- Round 84: this used to only acquire the replication helper (and so only mark
@@ -1568,7 +1598,21 @@ handlers["containers.set"] = function(payload, respond)
             if not ok then error("could not sort this container on this game build") end
         end
         if #rows > 0 or payload.sort then replication.mark(helper, inv, "CurrentInventory") end
-        pcall(function() inv:OnRep_CurrentInventory() end)
+        -- Round 85: a live report showed the game freezing for a moment specifically when adding
+        -- an item into a Void Chest through the editor. This manual OnRep_CurrentInventory() call
+        -- exists only so the HOST's own view catches up immediately (a host never gets its own
+        -- RepNotify - that only fires on receiving a replicated change from elsewhere - the same
+        -- reasoning containers.rename's NewPlayerMadeString() call documents). For an ordinary
+        -- per-actor container that is cheap. For a shared inventory (see containerInventory's own
+        -- remarks) it is the one inventory every placed instance sharing it reads from, so forcing
+        -- its refresh synchronously here plausibly does much more work than a single crate's own
+        -- update ever would - this could not be measured directly against the user's actual game
+        -- this round (the live-agent helper accepts only one connection at a time, and the
+        -- editor's own session held it throughout this investigation), so this is a reasoned
+        -- mitigation, not a proven fix. Skipped for a shared inventory: the mark above still queues
+        -- the real network update everyone (host included) receives shortly after, just not
+        -- synchronously inside this handler.
+        if not shared then pcall(function() inv:OnRep_CurrentInventory() end) end
         return nil
     end, respond)
 end

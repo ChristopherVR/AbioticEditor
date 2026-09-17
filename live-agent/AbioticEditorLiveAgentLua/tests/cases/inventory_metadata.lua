@@ -72,6 +72,36 @@ return function(H)
         second = { kind = "backpack", slotIndex = 9999 } }), "unavailable", "invalid destination rejects transfer")
     H.eq(processingInventory.CurrentInventory[1][I].RowName:ToString(), "test_item", "failed transfer preserves source")
 
+    -- Round 85: a shared/Void-Chest-shaped destination does not get forced through a synchronous
+    -- OnRep_CurrentInventory() refresh the way an ordinary container does - a live report showed
+    -- exactly this (dragging an item into a Void Chest) freezing the game for a moment. See
+    -- containers.set's matching remarks in main.lua for the full reasoning; ctx.containerInventory
+    -- reports which endpoints are shared, and this handler only skips the manual OnRep call for
+    -- those, the network mark still applies either way.
+    local transferSourceInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {
+        { [I] = { DataTable = normal, RowName = H.fname("test_item") }, [C] = { CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 1, [D] = {}, [T] = { GameplayTags = {}, ParentTags = {} } } },
+    } }, { OnRep_CurrentInventory = function() end })
+    H.world.add(H.object("Deployed_Container_ParentBP_C", { ContainerInventory = transferSourceInv },
+        { K2_GetActorLocation = function() return H.vector(20, 20, 20) end }))
+    local sharedDestInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {
+        { [I] = { RowName = H.fname("Empty") }, [C] = { CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 0, [D] = {}, [T] = { GameplayTags = {}, ParentTags = {} } } },
+    } }, { OnRep_CurrentInventory = function() end })
+    local decoyDestInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {} })
+    H.world.add(H.object("Deployed_Container_ParentBP_C", { ContainerInventory = decoyDestInv },
+        { GetContainerInventory = function() return sharedDestInv end, K2_GetActorLocation = function() return H.vector(21, 21, 21) end }))
+    local transferListing = H.ok(H.dispatch("containers.list")).containers
+    local sourceId, sharedDestId
+    for _, entry in ipairs(transferListing) do
+        if entry.x == 20 then sourceId = entry.id end
+        if entry.x == 21 then sharedDestId = entry.id end
+    end
+    H.check(sourceId ~= nil and sharedDestId ~= nil, "both transfer endpoints are listed")
+    H.ok(H.dispatch("inventory.transfer", { first = { containerId = sourceId, slotIndex = 0 },
+        second = { containerId = sharedDestId, slotIndex = 0 } }), "container to shared-container transfer")
+    H.eq(sharedDestInv.CurrentInventory[1][I].RowName:ToString(), "test_item", "item really moved into the shared inventory")
+    H.eq(H.calls(transferSourceInv, "OnRep_CurrentInventory"), 1, "the ordinary source still gets its synchronous refresh")
+    H.eq(H.calls(sharedDestInv, "OnRep_CurrentInventory"), 0, "the shared destination does not")
+
     -- Weapon coating round trip: a coating index/durability written through
     -- inventory.setcomplete must read back through inventory.list, and clearing (index -1,
     -- durability 0) must zero both values rather than leave the old coating behind - see

@@ -250,6 +250,49 @@ return function(H)
     H.check(cannotLoseEntry ~= nil, "the CanLoseDurability()-false container still appears")
     H.eq(cannotLoseEntry.health, nil, "health omitted even with a nonzero MaxDurability when CanLoseDurability() is false")
 
+    -- A container whose CurrentDurability exceeds its own MaxDurability - self-evidently not real
+    -- health under this game's own rules, no matter what CanLoseDurability() says (round 85, see
+    -- containerHealth's own remarks on the live report this came from).
+    local overflowInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {} })
+    H.world.add(H.object("Deployed_Container_ParentBP_C",
+        { ContainerInventory = overflowInv, CurrentDurability = 1200, MaxDurability = 600 },
+        { K2_GetActorLocation = function() return H.vector(9, 9, 9) end, CanLoseDurability = function() return true end }))
+    local overflowResult = H.ok(H.dispatch("containers.list"), "containers.list survives a container with an impossible durability reading")
+    local overflowEntry
+    for _, entry in ipairs(overflowResult.containers) do
+        if entry.x == 9 then overflowEntry = entry end
+    end
+    H.check(overflowEntry ~= nil, "the container still appears")
+    H.eq(overflowEntry.health, nil, "health omitted when current exceeds max, a reading that cannot be genuine health")
+
+    -- ---------- containers: a shared inventory's write is still network-marked, but does not
+    -- force the expensive synchronous OnRep_CurrentInventory() refresh a live report showed
+    -- freezing the game for a moment on a Void Chest write (round 85, see containers.set's own
+    -- remarks) ----------
+    local sharedWriteInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {
+        { ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B = { RowName = H.fname("Empty") },
+          ChangeableData_12_2B90E1F74F648135579D39A49F5A2313 = { CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 0,
+          CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = 0, MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = 0 } },
+    } }, { OnRep_CurrentInventory = function() end })
+    local decoyWriteInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {} })
+    H.world.add(H.object("Deployed_Container_ParentBP_C",
+        { ContainerInventory = decoyWriteInv },
+        { GetContainerInventory = function() return sharedWriteInv end, K2_GetActorLocation = function() return H.vector(10, 10, 10) end }))
+    local sharedWriteListing = H.ok(H.dispatch("containers.list")).containers
+    local sharedWriteId
+    for _, entry in ipairs(sharedWriteListing) do
+        if entry.x == 10 then sharedWriteId = entry.id end
+    end
+    H.check(sharedWriteId ~= nil, "the shared-write test container is listed")
+    local markCallsBefore = H.calls(netHelper, "MarkPropertyDirty")
+    H.ok(H.dispatch("containers.set", { id = sharedWriteId, edits = {
+        { slotIndex = 0, itemId = "scrap_metal", stack = 1 },
+    } }), "containers.set on a shared/Void-Chest-shaped inventory")
+    H.eq(H.calls(sharedWriteInv, "OnRep_CurrentInventory"), 0,
+        "a shared inventory is not forced through a synchronous OnRep refresh")
+    H.eq(H.calls(netHelper, "MarkPropertyDirty"), markCallsBefore + 1,
+        "the write is still marked dirty for real network replication")
+
     -- ---------- containers: still listed (with empty slots) when the inventory itself cannot be
     -- resolved, instead of vanishing outright (round 84) ----------
     H.world.add(H.object("Deployed_Container_ParentBP_C", {},
