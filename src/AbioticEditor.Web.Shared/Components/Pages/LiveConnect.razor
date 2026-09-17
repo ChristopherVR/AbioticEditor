@@ -174,7 +174,7 @@ else
             {
                 @* Same tab the offline editor uses (IWorldContainersSession is the shared
                    boundary) - see LiveContainersSession for the live implementation. *@
-                <WorldContainersTab Session="_containers" LivePlayerSession="_inventory" Title="@L.Resource("LiveContainers_Title")" InitialFilter="@_careContainerFilter" />
+                <WorldContainersTab Session="_containers" LivePlayerSession="_inventory" Title="@L.Resource("LiveContainers_Title")" InitialFilter="@_careContainerFilter" PlayerPosition="_spawn?.LivePosition" />
             }
             else if (_worldTab == "dropped" && _dropped is not null)
             {
@@ -633,6 +633,14 @@ else
                     _inventory ??= await LiveInventorySession.ConnectAsync(new LiveInventoryChannel(channel), _selectedPlayerId, Upgrades.Get(),
                         new LiveTransmogVisibilityChannel(channel));
                     _playerFacade.InventorySession = _inventory;
+                    // Also seeds the player's own position for PlayerPosition below (nearby-only
+                    // filter) - see the "dropped" case's identical comment for why this is cheap
+                    // and never lets a failure here take down the containers connect itself.
+                    if (_spawn is null)
+                    {
+                        try { _spawn = await LivePlayerSpawnSession.ConnectAsync(new LiveSpawnChannel(channel), _selectedPlayerId); _playerFacade.SpawnSession = _spawn; }
+                        catch (Exception) { }
+                    }
                     break;
                 case "dropped":
                     _dropped ??= await TryConnectWorldAreaAsync(() => LiveDroppedItemsSession.ConnectAsync(new LiveDroppedItemsChannel(channel)));

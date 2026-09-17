@@ -47,6 +47,27 @@
             </div>
         }
         <input class="wg-filter" aria-label="@L.Resource("WorldDropped_FilterPlaceholder")" @bind="_filter" @bind:event="oninput" placeholder="@L.Resource("WorldDropped_FilterPlaceholder")" />
+        @if (PlayerPosition is not null)
+        {
+            @* The Facility is one continuous map with no real per-area boundaries in the data
+               (see PlayerPosition's own remarks) - "nearby only" is a distance cutoff, the
+               closest honest stand-in for "just this area" the live protocol can offer. On by
+               default so opening this tab shows what is actually around the player, not
+               everything dropped anywhere on the whole map; turn it off for a global search
+               (e.g. hunting one specific item id regardless of where it ended up). *@
+            <div class="wg-nearby">
+                <label class="wt-check">
+                    <input type="checkbox" checked="@_nearbyOnly" @onchange="e => _nearbyOnly = (bool)e.Value!" />
+                    @L.Resource("WorldDropped_NearbyOnly")
+                </label>
+                @if (_nearbyOnly)
+                {
+                    <input type="number" min="100" step="100" class="wt-readout-input" aria-label="@L.Resource("WorldDropped_NearbyRadius")"
+                           value="@_nearbyRadius" @onchange="e => SetNearbyRadius(e)" />
+                    <small class="wt-muted">@L.Resource("WorldDropped_NearbyRadiusHelp")</small>
+                }
+            </div>
+        }
         <div class="wg-list" role="list" aria-label="@L.Resource("WorldDropped_ItemsOnTheGround")">
             @foreach (var item in Visible)
             {
@@ -58,7 +79,12 @@
                     <button class="wg-delete" type="button" disabled="@(_busy || (Session.AppliesImmediately && !Session.IsHost))" @onclick="() => Delete(item)" @onclick:stopPropagation>@L.Resource("WorldDropped_Delete")</button>
                 </div>
             }
-            @if (Visible.Count == 0) { <p class="wg-empty">@L.Resource("WorldDropped_NoGroundItems")</p> }
+            @if (Visible.Count == 0)
+            {
+                <p class="wg-empty">@(_nearbyOnly && PlayerPosition is not null && Session.DroppedItems.Count > 0
+                    ? L.Resource("WorldDropped_NoneNearby")
+                    : L.Resource("WorldDropped_NoGroundItems"))</p>
+            }
         </div>
         @if (Session.AppliesImmediately && Session.Status is not null) { <p class="status-text">@Session.Status</p> }
         @if (_liveError is not null) { <p class="error-text" role="alert">@_liveError</p> }
@@ -84,6 +110,14 @@
     private string _filter = string.Empty;
     private string _spawnItemId = string.Empty;
     private int _spawnStack = 1;
+    // On by default when PlayerPosition is known - see the "wg-nearby" markup's own comment for
+    // why a distance cutoff is the closest this can get to "just this area" without real region
+    // boundaries in the data. 10,000 cm (100 m) is a rough middle ground: large enough to cover
+    // a player's immediate base/room, small enough to exclude a genuinely different named area
+    // (observed live: neighbouring sectors are tens of thousands of cm apart) - adjustable
+    // because there's no single right answer for every base's layout.
+    private bool _nearbyOnly = true;
+    private double _nearbyRadius = 10000;
     // Set only while a removal is talking to a live game; the file session's own methods
     // complete synchronously so this never has anything to wait on there.
     private bool _busy;
@@ -105,7 +139,11 @@
                     || DisplayName(item).Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase)
                     || (item.Slot.ItemId?.Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase) ?? false));
             if (PlayerPosition is { } position)
+            {
+                if (_nearbyOnly)
+                    items = items.Where(item => item.DistanceTo(position.X, position.Y, position.Z) <= _nearbyRadius);
                 items = items.OrderBy(item => item.DistanceTo(position.X, position.Y, position.Z));
+            }
             return items.Take(200).ToList();
         }
     }
@@ -134,6 +172,11 @@
         if (PlayerPosition is { } position)
             text += $" · {item.DistanceTo(position.X, position.Y, position.Z):F0} cm away";
         return text;
+    }
+
+    private void SetNearbyRadius(ChangeEventArgs args)
+    {
+        if (double.TryParse(args.Value?.ToString(), out var value) && value > 0) _nearbyRadius = value;
     }
 
     private Task SpawnItem() => RunAsync(async () =>

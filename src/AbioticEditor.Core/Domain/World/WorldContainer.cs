@@ -54,7 +54,15 @@ public sealed record WorldContainer(
     IReadOnlyList<WorldInventory> Inventories,
     double X = 0,
     double Y = 0,
-    double Z = 0);
+    double Z = 0)
+{
+    /// <summary>Straight-line distance to a point (player position), in UE units (cm). Only
+    /// meaningful for <see cref="WorldContainerSource.Live"/> - a file-save container's X/Y/Z are
+    /// always 0 (see this record's own X remarks), so this returns raw distance-from-origin for
+    /// those, not a real distance.</summary>
+    public double DistanceTo(double x, double y, double z)
+        => Math.Sqrt((X - x) * (X - x) + (Y - y) * (Y - y) + (Z - z) * (Z - z));
+}
 
 /// <summary>
 /// A single inventory grid (one <c>SaveData_Inventories_Struct</c>) with its slots.

@@ -33,6 +33,14 @@
         <div class="wc-filter-row">
             <input aria-label="@L.Resource("WorldContainers_FilterPlaceholder")" @bind="_filter" @bind:event="oninput" placeholder="@L.Resource("WorldContainers_FilterPlaceholder")" />
             <label class="wc-hide-empty"><input type="checkbox" @bind="_hideEmpty" /> <span>@L.Resource("WorldContainers_HideEmpty")</span></label>
+            @if (PlayerPosition is not null)
+            {
+                <label class="wc-hide-empty"><input type="checkbox" @bind="_nearbyOnly" /> <span>@L.Resource("WorldDropped_NearbyOnly")</span></label>
+                @if (_nearbyOnly)
+                {
+                    <input type="number" min="100" step="100" class="wt-readout-input" aria-label="@L.Resource("WorldDropped_NearbyRadius")" @bind="_nearbyRadius" />
+                }
+            }
         </div>
         <div class="wc-split">
             <div class="wc-master" role="list" aria-label="@L.Resource("WorldContainers_SelectAContainer")">
@@ -145,10 +153,20 @@
     /// pre-fill the filter box once when this tab is shown; the user's own typing after that
     /// is never overwritten.</summary>
     [Parameter] public string? InitialFilter { get; set; }
+    /// <summary>The connected character's current position (live only - null for the file
+    /// session). See the matching parameter on the ground-items tab for why a distance cutoff,
+    /// not a real area boundary, is the best this can do: the Facility is one continuous map, and
+    /// containers.list always reports every placed container anywhere on it, not just nearby
+    /// ones (reported live: a container search finding things from a completely different area
+    /// while standing somewhere else entirely).</summary>
+    [Parameter] public (double X, double Y, double Z)? PlayerPosition { get; set; }
     private string? _appliedInitialFilter;
     private string _filter = string.Empty;
     // Native default: empty containers are hidden until the user unticks HIDE EMPTY.
     private bool _hideEmpty = true;
+    // Same reasoning and same default radius as the ground-items tab's own "nearby only".
+    private bool _nearbyOnly = true;
+    private double _nearbyRadius = 10000;
     private (WorldContainerSource Source, string Id)? _selectedKey;
     private List<PlayerInventorySlotEdit>? _slotEdits;
     private PlayerInventorySlotEdit? _dragEdit;
@@ -196,6 +214,12 @@
             {
                 var f = _filter.Trim();
                 q = q.Where(container => SearchText(container).Contains(f, StringComparison.OrdinalIgnoreCase));
+            }
+            if (PlayerPosition is { } position)
+            {
+                if (_nearbyOnly)
+                    q = q.Where(container => container.DistanceTo(position.X, position.Y, position.Z) <= _nearbyRadius);
+                q = q.OrderBy(container => container.DistanceTo(position.X, position.Y, position.Z));
             }
             return q.ToList();
         }
