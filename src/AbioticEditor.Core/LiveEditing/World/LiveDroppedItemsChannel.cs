@@ -22,12 +22,14 @@ public sealed class LiveDroppedItemsChannel(ILiveGameChannel channel)
             wire.IsHost);
     }
 
-    /// <summary>Despawns the given items immediately; returns how many were actually found and removed.</summary>
-    public async Task<int> RemoveAsync(IReadOnlyList<string> ids, CancellationToken cancellationToken = default)
+    /// <summary>Despawns the given items immediately; returns how many were actually found and
+    /// confirmed destroyed, and how many ran their despawn yet stayed standing (see
+    /// <see cref="LiveDroppedRemoveResult"/>).</summary>
+    public async Task<LiveDroppedRemoveResult> RemoveAsync(IReadOnlyList<string> ids, CancellationToken cancellationToken = default)
     {
         var wire = await _channel.RequestAsync<RemovedWire>("dropped.remove", new RemoveWire(ids), cancellationToken)
             .ConfigureAwait(false);
-        return wire.Removed;
+        return new LiveDroppedRemoveResult(wire.Removed, wire.Stuck);
     }
 
     /// <summary>
@@ -43,13 +45,20 @@ public sealed class LiveDroppedItemsChannel(ILiveGameChannel channel)
     private sealed record DirectoryWire(IReadOnlyList<ItemWire>? Items, bool IsHost);
     private sealed record ItemWire(string Id, string ItemId, int Stack, double X, double Y, double Z);
     private sealed record RemoveWire(IReadOnlyList<string> Ids);
-    private sealed record RemovedWire(int Removed);
+    // Stuck is absent (0) from a Lua bundle older than round 91, which only ever counted Removed.
+    private sealed record RemovedWire(int Removed, int Stuck = 0);
     private sealed record AddWire(string ItemId, int Stack, string? DataTable);
 }
 
 /// <summary>One loose item in the world. <paramref name="Id"/> is the game's full object name
 /// for this exact actor; <paramref name="ItemId"/> is its item row (e.g. <c>scrap_metal</c>).</summary>
 public sealed record LiveDroppedItem(string Id, string ItemId, int Stack, double X, double Y, double Z);
+
+/// <summary>What one <c>dropped.remove</c> did. <paramref name="Removed"/> items were found and
+/// are now being destroyed by the engine. <paramref name="Stuck"/> items ran their despawn without
+/// error yet still report themselves as not being destroyed - the game kept them, so the list
+/// will keep showing them and the player should be told rather than shown a success.</summary>
+public sealed record LiveDroppedRemoveResult(int Removed, int Stuck);
 
 /// <summary>Every loose item plus whether this process has host authority to remove them.</summary>
 public sealed record LiveDroppedItemDirectory(IReadOnlyList<LiveDroppedItem> Items, bool IsHost);

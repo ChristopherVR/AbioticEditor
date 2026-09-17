@@ -53,22 +53,30 @@ public sealed class LiveDroppedItemsSession : IWorldDroppedItemsSession
     // this session, so an item dropped in the running game never shows up here on its own.
     public Task RefreshAsync() => RefreshAsync(CancellationToken.None);
 
+    /// <summary>Ids this session removed that the game has since confirmed destroyed, kept only
+    /// while the live list still reports them. A destroyed actor lingers in the game's object
+    /// list until its garbage collector runs (the Lua side now filters those out itself, but a
+    /// game still running an older bundle does not), so a refresh right after a delete would
+    /// otherwise put the row straight back. Each id is forgotten the moment a list no longer
+    /// contains it, so a later actor that happens to reuse the same name is never hidden.</summary>
+    private readonly HashSet<string> _removedIds = new(StringComparer.Ordinal);
+
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var directory = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
-        DroppedItems = ToWorldDroppedItems(directory.Items);
+        IReadOnlyList<LiveDroppedItem> items = directory.Items;
+        if (_removedIds.Count > 0)
+        {
+            _removedIds.IntersectWith(items.Select(i => i.Id));
+            if (_removedIds.Count > 0) items = items.Where(i => !_removedIds.Contains(i.Id)).ToList();
+        }
+        DroppedItems = ToWorldDroppedItems(items);
         IsHost = directory.IsHost;
         Changed?.Invoke();
     }
 
-    public async Task RemoveDroppedItemAsync(string id, CancellationToken cancellationToken = default)
-    {
-        var removed = await _channel.RemoveAsync([id], cancellationToken).ConfigureAwait(false);
-        Status = removed > 0
-            ? "Removed from the running game."
-            : "Already gone - someone else picked it up or it despawned first.";
-        await RefreshAsync(cancellationToken).ConfigureAwait(false);
-    }
+    public Task RemoveDroppedItemAsync(string id, CancellationToken cancellationToken = default)
+        => RemoveDroppedItemsAsync([id], cancellationToken);
 
     /// <summary>Despawns every given item in one <c>dropped.remove</c> call, then refreshes once -
     /// see <see cref="IWorldDroppedItemsSession.RemoveDroppedItemsAsync"/>'s remarks for why this
@@ -77,10 +85,19 @@ public sealed class LiveDroppedItemsSession : IWorldDroppedItemsSession
     {
         var idList = ids as IReadOnlyList<string> ?? ids.ToArray();
         if (idList.Count == 0) return;
-        var removed = await _channel.RemoveAsync(idList, cancellationToken).ConfigureAwait(false);
-        Status = removed > 0
-            ? $"Removed {removed} of {idList.Count} from the running game."
-            : "Already gone - someone else picked it up or it despawned first.";
+        var result = await _channel.RemoveAsync(idList, cancellationToken).ConfigureAwait(false);
+        // The game does not say WHICH ids were removed, only how many. When every requested id
+        // was confirmed, all of them can safely be hidden until the list itself drops them; a
+        // partial result hides nothing and lets the next list decide.
+        if (result.Removed == idList.Count) _removedIds.UnionWith(idList);
+        Status = (result.Removed, result.Stuck, idList.Count) switch
+        {
+            (0, 0, _) => "Already gone - someone else picked it up or it despawned first.",
+            (0, > 0, _) => "The game did not let go of it - it is still lying there.",
+            (_, > 0, _) => $"Removed {result.Removed} of {idList.Count} from the running game; the game kept {result.Stuck}.",
+            (1, 0, 1) => "Removed from the running game.",
+            _ => $"Removed {result.Removed} of {idList.Count} from the running game.",
+        };
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
 

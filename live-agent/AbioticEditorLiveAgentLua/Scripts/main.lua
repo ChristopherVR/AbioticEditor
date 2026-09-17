@@ -1019,6 +1019,20 @@ local function findByFullName(className, target)
     return nil
 end
 
+-- True when the engine has already been told to destroy this actor (K2_DestroyActor and
+-- friends set AActor's own bActorIsBeingDestroyed, which the reflected
+-- IsActorBeingDestroyed() reports) but the garbage collector has not yet freed it. Until that
+-- collection runs - which can be a minute or more - FindAllOf still returns the actor and
+-- :IsValid() still says yes, so a list built from those two alone keeps showing things that
+-- are, as far as every player is concerned, gone. A live report: "delete an item off the
+-- ground and it disappears in the game but stays on the GROUND ITEMS list". Any failure to
+-- ask (an object without the function, a build where the call errors) counts as "not being
+-- destroyed" so a broken check can only ever over-list, never hide a real actor.
+local function isActorBeingDestroyed(actor)
+    local ok, destroyed = pcall(function() return actor:IsActorBeingDestroyed() end)
+    return ok and destroyed == true
+end
+
 -- Reads the FName elements of an out-param TArray<FName> the way AFUtils.lua:553-567 /
 -- WeatherManager.lua:22-25 read GetAllWeatherEventRowNames/RowHandles: each element is a
 -- LocalUnrealParam whose :get() is the value.
@@ -1840,7 +1854,11 @@ handlers["dropped.list"] = function(_, respond)
     runOnGameThread(function()
         local result = { __forceArray = true }
         for _, item in ipairs(findAll("Abiotic_Item_Dropped_C")) do
-            if item:IsValid() then
+            -- Both a pickup and a despawn end in K2_DestroyActor (OnItemDespawn is exactly
+            -- SaveItem + K2_DestroyActor on this blueprint), and a destroyed actor lingers in
+            -- FindAllOf as a still-"valid" object until the next garbage collection - see
+            -- isActorBeingDestroyed. HasBeenPickedUp alone only covers the pickup half.
+            if item:IsValid() and not isActorBeingDestroyed(item) then
                 local name = fullName(item)
                 local okPicked, picked = pcall(function() return item.HasBeenPickedUp == true end)
                 if name and not (okPicked and picked) then
@@ -1875,9 +1893,11 @@ handlers["dropped.remove"] = function(payload, respond)
         -- a partial one).
         local byName = {}
         for _, obj in ipairs(findAll("Abiotic_Item_Dropped_C")) do
-            if obj:IsValid() then byName[fullName(obj)] = obj end
+            -- An actor already on its way out (see isActorBeingDestroyed) is not despawned a
+            -- second time; it simply is not found, and reports as "already gone".
+            if obj:IsValid() and not isActorBeingDestroyed(obj) then byName[fullName(obj)] = obj end
         end
-        local removed = 0
+        local removed, stuck = 0, 0
         for i = 1, #ids do
             local item = byName[ids[i]]
             if item then
@@ -1886,10 +1906,23 @@ handlers["dropped.remove"] = function(payload, respond)
                 -- and leave every later item in the batch undeleted with no sign why - matching a
                 -- player report that "delete all shown" looked like it silently did nothing.
                 local ok = pcall(function() item:InitDespawn() item:OnItemDespawn() end)
-                if ok then removed = removed + 1 end
+                if ok then
+                    -- OnItemDespawn ends in K2_DestroyActor, so a despawn that worked leaves
+                    -- the actor flagged as being destroyed. One that ran without error but left
+                    -- the actor standing (a blueprint override, a build where OnItemDespawn no
+                    -- longer destroys) is reported separately instead of being counted as done.
+                    -- An actor that cannot answer the question at all (the call itself fails)
+                    -- is given the benefit of the doubt, exactly as before this check existed.
+                    local okAsk, destroyed = pcall(function() return item:IsActorBeingDestroyed() end)
+                    if okAsk and destroyed == false then
+                        stuck = stuck + 1
+                    else
+                        removed = removed + 1
+                    end
+                end
             end
         end
-        return { removed = removed }
+        return { removed = removed, stuck = stuck }
     end, respond)
 end
 

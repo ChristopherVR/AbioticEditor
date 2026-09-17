@@ -374,7 +374,8 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
         Assert.Equal("scrap_cloth", item.ItemId);
         Assert.Equal(3, item.Stack);
 
-        Assert.Equal(1, await dropped.RemoveAsync([item.Id]));
+        // The fake agent answers with the pre-round-91 shape (removed only): stuck defaults to 0.
+        Assert.Equal(new AbioticEditor.Core.LiveEditing.World.LiveDroppedRemoveResult(1, 0), await dropped.RemoveAsync([item.Id]));
 
         // Fallback path (unspecial-cased command echoes payload back as ok:true) proves
         // dropped.add's request itself encodes as well-formed JSON the agent could parse.

@@ -20,6 +20,7 @@ return {
     "playtime",
     "vehicles",
     "doors",
+    "dropped",
     "players",
     "player_gaps",
     "world_gaps",
