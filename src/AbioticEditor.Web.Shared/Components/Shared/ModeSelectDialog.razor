@@ -21,7 +21,38 @@
                 <span class="material-symbol" aria-hidden="true">close</span>
             </button>
         }
-        @if (_step == Step.Choose)
+        @if (_step == Step.Language)
+        {
+            @* First run only (see MainLayout's ShowLanguageStep) - the very first question, ahead
+               of "what do you want to do", so that step and everything after it renders in the
+               language the player actually reads. Reuses the same setter (and the same three resx
+               strings, unused until now) the old MAUI app's own first-run LanguagePage did - see
+               HostLanguageService.HasChosenLanguage. There is no back/close from here: AllowClose
+               is false for the whole of a first launch, same as the Choose step always was. *@
+            <h2 id="mode-select-title">@L.Resource("Language_Title")</h2>
+            <p class="muted">@L.Resource("Language_Subtitle")</p>
+            <div class="language-options">
+                @foreach (var language in L.Available)
+                {
+                    <label class="language-option">
+                        <input type="radio" name="mode-select-language" checked="@(_selectedLanguage == language.Code)" @onchange="() => SelectLanguage(language.Code)" />
+                        <span>@language.NativeName</span>
+                        @if (language.Code == L.OsDefaultCode)
+                        {
+                            <span class="mode-badge">@L.Resource("Language_SystemDefault")</span>
+                        }
+                        else
+                        {
+                            <code>@language.Code</code>
+                        }
+                    </label>
+                }
+            </div>
+            <footer class="mode-select-back-row">
+                <button class="primary" type="button" @onclick="ContinueFromLanguage">@L.Resource("Language_Continue")</button>
+            </footer>
+        }
+        else if (_step == Step.Choose)
         {
             <h2 id="mode-select-title">@L.Resource("ModeSelect_Title")</h2>
             <p class="muted">@L.Resource("ModeSelect_Subtitle")</p>
@@ -247,8 +278,21 @@
     /// </summary>
     [Parameter] public bool AllowClose { get; set; }
 
+    /// <summary>True only on a first-run launch (see <c>MainLayout.OnInitialized</c>'s own
+    /// <c>_firstRunPending</c>): opens this dialog on <see cref="Step.Language"/> instead of
+    /// straight to <see cref="Step.Choose"/>. A later reopen within the same running session
+    /// (the header button, a dropped live connection) never sets this, so the language step is a
+    /// true one-time prompt, not something every reopen shows again.</summary>
+    [Parameter] public bool ShowLanguageStep { get; set; }
+
     private ElementReference _dialog;
     private Step? _focusedStep;
+    protected override void OnInitialized()
+    {
+        if (!ShowLanguageStep) return;
+        _step = Step.Language;
+        _selectedLanguage = L.CurrentCode;
+    }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_focusedStep == _step) return;
@@ -256,8 +300,29 @@
         await Js.InvokeVoidAsync("abiotic.modal.activate", _dialog);
     }
 
-    private enum Step { Choose, LiveTarget, LocalFolder, ConfirmDeploy, RemoteForm, Connecting }
+    private enum Step { Language, Choose, LiveTarget, LocalFolder, ConfirmDeploy, RemoteForm, Connecting }
     private Step _step = Step.Choose;
+    private string _selectedLanguage = string.Empty;
+
+    /// <summary>The language step's own radio row click - applies and persists the choice right
+    /// away (see <see cref="HostLanguageService.SetLanguage"/>), the same setter the dedicated
+    /// <c>/language</c> page uses, so this dialog (and the Choose step right after it) re-localizes
+    /// immediately instead of waiting for CONTINUE.</summary>
+    private void SelectLanguage(string code)
+    {
+        _selectedLanguage = code;
+        L.SetLanguage(code);
+    }
+
+    /// <summary>CONTINUE: the language was already applied by <see cref="SelectLanguage"/> (or,
+    /// if the player never touched a row, the OS default it was preselected to is confirmed here
+    /// so a language is always explicitly recorded before Choose renders) - this only advances the
+    /// step.</summary>
+    private void ContinueFromLanguage()
+    {
+        L.SetLanguage(_selectedLanguage);
+        _step = Step.Choose;
+    }
 
     /// <summary>True on the browser (WebAssembly) deployment - see <see cref="IBrowserHostMarker"/>.
     /// Drives the Choose step's live-editing card between the real "set up live editing" flow and

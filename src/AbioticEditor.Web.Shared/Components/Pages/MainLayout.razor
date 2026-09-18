@@ -100,7 +100,17 @@
         </nav>
     </header>
     <div class="hazard" aria-hidden="true"></div>
-    <main id="main-content" tabindex="-1" inert="@((_modeSelectOpen || _settingsOpen || _releaseNotesOpen) ? "" : null)"><WorkspaceShell><AppErrorBoundary>@Body</AppErrorBoundary></WorkspaceShell></main>
+    @* Nothing under here is even instantiated while _firstRunPending is true - see its own
+       remarks below. A skipped @Body is not merely invisible; the routed page's OnInitialized(Async)
+       never runs at all, which is what actually stops save discovery, Steam/Game Pass scanning
+       and everything else the "choose a world" screen kicks off from starting in the background
+       before the player has answered the language and mode questions. *@
+    <main id="main-content" tabindex="-1" inert="@((_modeSelectOpen || _settingsOpen || _releaseNotesOpen) ? "" : null)">
+        @if (!_firstRunPending)
+        {
+            <WorkspaceShell><AppErrorBoundary>@Body</AppErrorBoundary></WorkspaceShell>
+        }
+    </main>
     <footer class="status-footer" inert="@((_modeSelectOpen || _settingsOpen || _releaseNotesOpen) ? "" : null)">
         <div class="live-status">
             <span aria-hidden="true"></span>
@@ -127,7 +137,7 @@
     }
     @if (_modeSelectOpen)
     {
-        <ModeSelectDialog OnClose="CloseModeSelect" AllowClose="@ModeSelectAllowClose" />
+        <ModeSelectDialog OnClose="CloseModeSelect" AllowClose="@ModeSelectAllowClose" ShowLanguageStep="@_firstRunPending" />
     }
     @if (_releaseNotesOpen)
     {
@@ -157,6 +167,16 @@
         // chrome below would keep showing whatever was true the one time this ran.
         Navigation.LocationChanged += NavigationChanged;
 
+        // First run: nothing has been written to HostPreferenceStore's language key yet (a
+        // genuinely fresh install/profile, on either host - the browser keeps the same key in
+        // localStorage, see UseBrowserStorageForPreferences). _firstRunPending stays true for the
+        // whole of this one-time language-then-mode prompt and is only ever cleared by
+        // CloseModeSelect, so a LATER reopen of this dialog within the same running session (the
+        // header button, a dropped live connection bouncing back here) never re-blocks @Body or
+        // shows the language step again - only the very first prompt does either.
+        _firstRun = !Languages.HasChosenLanguage;
+        _firstRunPending = _firstRun;
+
         // Absent on the WASM/browser host (see ILiveEditingCapability's doc comment), so a
         // browser tab gets no automatic prompt below - there is nothing to actually choose
         // between without a local game to live-edit. It still gets an informational header
@@ -166,8 +186,11 @@
         _isBrowserHost = Services.GetService<IBrowserHostMarker>() is not null;
         // MainLayout is created once per circuit, so this runs exactly once per app launch -
         // the same "only when the app just started" moment ModeSelect's now-removed "/" page
-        // used to own before the dialog replaced it.
-        if (_liveEditingAvailable) _modeSelectOpen = true;
+        // used to own before the dialog replaced it. A first run always opens it too (with the
+        // language step first - see ShowLanguageStep below), even on a browser host that would
+        // otherwise never open it automatically at all: "choose a world to edit" must not start
+        // loading before that player has answered either question.
+        if (_liveEditingAvailable || _firstRun) _modeSelectOpen = true;
 
         // "What's new" on the first launch after an update - see ReleaseNotesStore's own remarks
         // on why this is a version comparison, not a "did we show it this session" flag. A
@@ -207,6 +230,11 @@
     private bool _liveEditingAvailable;
     private bool _isBrowserHost;
     private bool _releaseNotesOpen;
+    // First-run gating - see the remarks in OnInitialized. _firstRun records the fact for the
+    // rest of the session (it never changes); _firstRunPending is what actually blocks @Body and
+    // is cleared for good the first time CloseModeSelect runs.
+    private bool _firstRun;
+    private bool _firstRunPending;
     private bool _releaseNotesPendingAfterModeSelect;
     private IReadOnlyList<ChangelogRelease> _releaseNotesToShow = [];
     private void OpenSettings() => _settingsOpen = true;
@@ -221,6 +249,11 @@
     {
         _modeSelectOpen = false;
         _modeSelectFromUser = false;
+        // Cleared unconditionally, not only on a first run: harmless once it is already false,
+        // and this is the one place the whole first-run prompt (language, then choose) is known
+        // to have actually finished - only after this does @Body (and whatever the player picked)
+        // get to render at all.
+        _firstRunPending = false;
         if (!_releaseNotesPendingAfterModeSelect) return;
         _releaseNotesPendingAfterModeSelect = false;
         _releaseNotesOpen = true;

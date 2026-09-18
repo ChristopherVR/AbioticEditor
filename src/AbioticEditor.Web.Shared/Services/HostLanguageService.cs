@@ -23,6 +23,14 @@ public sealed class HostLanguageService
 
     private const string ConfigFileName = "weblanguage.txt";
 
+    /// <summary>Exposed (matching <c>ReleaseNotesStore.ConfigPath</c>'s own precedent) so a test
+    /// can back up and restore this real per-user file around itself instead of needing an
+    /// injectable path this store has no other reason to support. Only meaningful on a host that
+    /// has not installed a browser-storage-backed <see cref="HostPreferenceStore"/> - see that
+    /// type's own remarks.</summary>
+    public static readonly string ConfigPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AbioticEditor", ConfigFileName);
+
     /// <summary>
     /// Each language's name in its own words, spelled out here rather than looked up.
     /// </summary>
@@ -53,6 +61,16 @@ public sealed class HostLanguageService
     public event EventHandler? Changed;
     public string CurrentCode { get; private set; } = ReadSavedCode() ?? Normalize(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
     public string OsDefaultCode => Normalize(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
+
+    /// <summary>True once the player has explicitly chosen (or confirmed) a display language -
+    /// the first-run signal the shell (<c>MainLayout</c>) uses to decide whether to show the
+    /// language step ahead of "what do you want to do" at all, and whether anything else may start
+    /// loading in the background yet. False only on a genuinely fresh install/profile: nothing has
+    /// been written to <see cref="HostPreferenceStore"/> under <see
+    /// cref="HostPreferenceStore.Keys.Language"/> yet, so <see cref="CurrentCode"/> is showing the
+    /// OS default rather than a real choice. Mirrors the original MAUI app's own
+    /// <c>LocalizationService.HasChosenLanguage</c>, which drove the same first-run prompt there.</summary>
+    public bool HasChosenLanguage => ReadSavedCode() is not null;
     public string? GameDataLanguage => GameDataLanguageStore.Saved;
     public string EffectiveGameDataLanguage => GameDataLanguage ?? MapEditorToGameData(CurrentCode);
 
