@@ -353,10 +353,20 @@ public static class LiveAgentSetup
         // that just started it, and an ever-growing log nobody rotates helps nobody.
         var writer = new StreamWriter(new FileStream(logPath, FileMode.Create, FileAccess.Write, FileShare.Read)) { AutoFlush = true };
         var sync = new object();
+        var closed = false;
         void WriteLine(string? line)
         {
             if (line is null) return;
-            lock (sync) writer.WriteLine(line);
+            lock (sync)
+            {
+                // Output callbacks can still be in flight after Exited has closed the log: a
+                // helper that dies right after its last error line (a misconfigured Wine on
+                // Linux is the typical case) must not take the whole editor down with it.
+                if (closed) return;
+                try { writer.WriteLine(line); }
+                catch (ObjectDisposedException) { }
+                catch (IOException) { }
+            }
         }
 
         var startInfo = OperatingSystem.IsLinux()
@@ -378,7 +388,15 @@ public static class LiveAgentSetup
         };
         process.OutputDataReceived += (_, e) => WriteLine(e.Data);
         process.ErrorDataReceived += (_, e) => WriteLine(e.Data);
-        process.Exited += (_, _) => { lock (sync) { writer.Flush(); writer.Dispose(); } };
+        process.Exited += (_, _) =>
+        {
+            lock (sync)
+            {
+                closed = true;
+                try { writer.Flush(); writer.Dispose(); }
+                catch (IOException) { }
+            }
+        };
         process.Start();
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
