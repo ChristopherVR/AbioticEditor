@@ -182,6 +182,25 @@ public sealed class WorldLiveAreaParityContractTests
     }
 
     [Fact]
+    public void WorldNpcsTab_disables_the_dead_checkbox_for_classes_that_cannot_be_killed()
+    {
+        // Round 124: the checkbox must not imply an action the game never honours (holograms,
+        // static trader stands) - see NpcIdentityCatalog.CanBeKilled and
+        // docs/reference/research/research-narrative-npcs.md. It stays disabled in both file and
+        // live mode (this tab is the same component for both - see the test above), and shows a
+        // tooltip explaining why instead of just going silently inert - the tooltip is built from
+        // the same plain-language catalog label already shown under the character's name (round
+        // 124 follow-up), so a hologram's tooltip actually says "recorded projection", not a
+        // generic message.
+        var source = WorldSource("WorldNpcsTab.razor");
+        Assert.Contains("CanKillSelected(selected)", source, StringComparison.Ordinal);
+        Assert.Contains("disabled=\"@(_storyBusy || (Session.AppliesImmediately && !Session.IsHost) || !CanKillSelected(selected))\"", source, StringComparison.Ordinal);
+        Assert.Contains("CannotDieTooltip(selected)", source, StringComparison.Ordinal);
+        Assert.Contains("L.Resource(\"WorldNpcs_CannotDieTooltipFormat\", NpcIdentityCatalog.LabelFor(npc.Id, npc.ActorName))", source, StringComparison.Ordinal);
+        Assert.Contains("NpcIdentityCatalog.CanBeKilled(npc.Id, npc.ActorName)", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void LiveConnect_wires_both_npc_sessions_into_the_merged_tab()
     {
         var source = PagesSource("LiveConnect.razor");
@@ -195,7 +214,7 @@ public sealed class WorldLiveAreaParityContractTests
         var resources = System.Xml.Linq.XDocument.Load(UiSource.Resolve("Localization", "AppResources.resx"))
             .Descendants("data").Select(node => node.Attribute("name")?.Value)
             .Where(name => name is not null).ToHashSet(StringComparer.Ordinal);
-        foreach (var key in new[] { "WorldNpcs_SectionStory", "WorldNpcs_SectionCreatures", "WorldNpcs_CreaturesNeedLiveConnection" })
+        foreach (var key in new[] { "WorldNpcs_SectionStory", "WorldNpcs_SectionCreatures", "WorldNpcs_CreaturesNeedLiveConnection", "WorldNpcs_CannotDieTooltipFormat" })
         {
             Assert.Contains(key, resources);
         }

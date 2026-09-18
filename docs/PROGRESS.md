@@ -1,5 +1,261 @@
 # Abiotic Editor - Session history
 
+## Round-125: live ELEVATORS retry storm, and a stuck TRAMS refusal against a real, working recall (2026-09-18)
+
+Two live-mode bugs from the same editor log window (`editor-20260918.log`, 14:47-14:48), both on
+`WorldFeaturesTab.razor` (the shared master-detail editor every live/file world-feature area uses):
+the owner toggled an elevator's "At top stop" and the tab spammed the same "elevator is not powered"
+error toast roughly every two seconds until they left the tab; separately, a tram recall the owner
+confirmed was actually working in-game was refused with "could not confirm the tram started moving
+toward that station".
+
+**A. Elevator retry storm - root cause.** `LiveElevatorsFeatureSession.SetMapFeatureField`
+(`Web.Shared/Models/LiveElevatorsFeatureSession.cs`) called `_channel.SetTopOpenAsync(...)` with no
+try/catch around it, so the Lua handler's own `error("elevator is not powered: ...")` reached it as
+an uncaught `LiveAgentException` instead of a returned `WorldEditResult.Failure` - every OTHER
+settable live area (buttons/npcspawns/triggers/destructibles/resourcenodes/trams) already wraps its
+own channel call in `catch (LiveAgentException ex) { return WorldEditResult.Failure(ex.Message); }`;
+elevators was the one area that never picked up that pattern (and, checked while investigating,
+`LivePortalsFeatureSession.SetMapFeatureField` had the identical gap, just not yet observed live).
+The escaped exception skipped `WorldFeaturesTab.SetFieldAsync`'s (`Web.Shared/Components/World/
+WorldFeaturesTab.razor:610`, pre-round-125 line number) own error handling AND its
+`RefreshSnapshot()` call at the end - the one call that snaps a checkbox/select back to the
+confirmed value. Left un-reverted, the control kept showing the click the game never accepted, and
+the live world's own 2-second periodic refresh (`LiveConnect.razor`'s `LiveRefreshLoopAsync` ->
+`RefreshActiveAreaAsync`, plus the elevator session's own `Changed` event firing a second,
+near-simultaneous `StateHasChanged` from `RefreshAsync`) re-rendered that same stale, unreverted
+field on every tick - matching the log's exact cadence (two `SetFieldAsync` calls a couple of
+milliseconds apart, repeating every ~2 seconds, for as long as the tab stayed open).
+
+**Fix.** Two layers, so this class of bug cannot recur silently for a future live area either:
+- `LiveElevatorsFeatureSession.SetMapFeatureField` and `LivePortalsFeatureSession.SetMapFeatureField`
+  both gained the same `catch (LiveAgentException ex) -> WorldEditResult.Failure(ex.Message)` every
+  sibling area already had.
+- `WorldFeaturesTab.SetFieldAsync` is now defensive on top of that, not just reactive to it: a
+  try/catch treats ANY exception from `Session.SetMapFeatureField` as a Failure result (so a future
+  session with the same gap fails once instead of hanging the whole render), `RefreshSnapshot()`
+  now runs in a `finally` (so a throw can never skip the revert), and a new `_pendingFieldSends` set
+  refuses a second send for the same entry+field while one is already in flight (so even a genuine
+  double-dispatch of one UI event can only ever reach the game once). Refusal reasons are also
+  translated to plain language for the toast/inline error now (`FriendlyReason`, matching "not
+  powered"/"currently moving"/"not controllable" substrings to new resx strings
+  `WorldFeature_ReasonNotPowered`/`_ReasonMoving`/`_ReasonNotControllable`) - the raw agent text
+  still reaches the log via `EditorLog.Warn("WorldFeatures", ...)`, and an unrecognised reason still
+  shows verbatim rather than being swallowed.
+- `LiveElevatorsFeatureSession`/`LiveElevatorsChannel`/`elevators.lua` gained a new read-only
+  `powered` row field (off the same confirmed `IsPowered()` function `elevators.set` already gates
+  a press on), so the player can see an elevator has no power before clicking, not only from the
+  refusal afterward.
+
+**B. Trams: a real recall being refused - root cause.** `trams.lua`'s `recallTramToStation` pressed
+the linked `TramSystem_RecallStation_C`'s own `TramRecallPressed(true)` and then immediately
+re-read `Moving`/`PreviousStation`, refusing ("could not confirm...") when neither had visibly
+changed yet. That is the expected case for a real, working recall, not evidence of failure:
+`TramRecallPressed` hands off to the recall station's own multi-hop pathfinding
+(`FindNextStation`/`GetDirectionFromStation`/`GetNextStopPoint`/`IsStationLocked`, a counted loop -
+see the module's own header comment) before it ever touches the tram, and every station stop is a
+confirmed full stop (`TramReachedLocation`'s own bytecode) - a synchronous read immediately after
+the call can easily land before any of that has moved anything yet.
+
+**Fix.** `recallTramToStation` still refuses up front for the same two concrete, pre-press reasons
+as before (the tram's moving state cannot be read at all, or it is already moving) and still refuses
+when no recall station links the requested tram/station pair - but a press that changes none of
+`Moving`/`TargetStation`/the recall station's own `TramRecallStatus` synchronously is now accepted
+(`nil`, no error) instead of refused; a changed value on any of the three is still read back as a
+same-tick confirmation when the game happens to be fast enough to show one, but is no longer
+required. The next `trams.list` poll (or the live editor's own periodic refresh) shows whatever the
+tram and recall station end up actually reporting - the same "the write already reached the game" 
+acceptance `elevators.set` uses for a move that has not yet arrived, extended to a press that has
+not yet even started moving.
+
+**Power property: not found.** Re-checked the earlier tram dump
+(`Tram_ParentBP.json`/`TramSystem_Station.json`/`Button_Tram.json`/`Button_TramRecall.json`/
+`layouts.txt`) for a `power`/`Powered`/`IsPowered` property on any of
+`Tram_ParentBP_C`/`TramSystem_Station_C`/`TramSystem_RecallStation_C`/`Button_Tram_C`/
+`Button_TramRecall_C` - there is none; a case-insensitive "power" search across every file in that
+dump comes back empty. Trams have no analogous "not powered" refusal to add. The dump does show a
+real `TramSystem_Station_C:IsStationLocked()` function (checks a world flag,
+`CallFunc_HasWorldFlag_ReturnValue`) - a story/progress gate, not electrical power - and
+`TramRecallPressed`'s own local-variable list includes `CallFunc_IsStationLocked_Locked`, strong
+evidence the button itself already checks it internally. **Still not independently confirmed**:
+`TramSystem_RecallStation_C.json`'s own `ScriptBytecode` was never part of any dump (only its
+properties/function list), so whether `TramRecallPressed` surfaces a locked-station refusal in any
+observable way (as opposed to silently no-op'ing) is unproven - a future round could close this with
+that one file's bytecode. No new "station locked" refusal was added to `trams.set` without that
+evidence.
+
+**Tests.** `python tools/run-lua-tests.py`: 1327 checks passing (up from 1314 before this round) -
+new elevator `powered`-field cases (a normal fixture reporting `true`, an explicitly-unpowered
+fixture reporting `false`, and an unfamiliar/no-`IsPowered()` fixture reporting absent rather than a
+guessed `false`), plus the trams "no synchronous effect is now accepted, not refused" cases
+(including one that only changes `TramRecallStatus`, proving the read-back actually checks the
+recall station's own status and not only the tram's `Moving`/`TargetStation`). C#: new
+`WorldLiveElevatorsAreaTests.cs` (this area had none before - the same convention every other
+settable live area already has one of; its absence is plausibly why the round-123-class gap went
+unnoticed here for as long as it did) and a new cross-area `WorldLiveEditFailureContractTests.cs`
+that (1) enumerates every `Live*FeatureSession.cs` under `Models/` and asserts any one that calls
+into its channel from `SetMapFeatureField` also catches `LiveAgentException` there, and (2) asserts
+`WorldFeaturesTab.SetFieldAsync` still has its catch/finally/revert/pending-guard shape - so a
+future area or a future edit to the shared tab that reintroduces either half of this bug fails a
+test instead of waiting for another live retry storm to surface it. Both are source-text contract
+tests (this repo's existing style for these live-area checks; there is no bUnit/component-render
+harness here to drive an actual click), not `dotnet test`-verified this round (the desktop app was
+running live for the owner's own testing, so the build was left untouched - identifiers were
+re-checked by hand against each file's actual current contents, including the concurrently-landing
+round-122/round-124-adjacent dedupe and `@key` work in the same files).
+
+**Docs.** `docs/reference/live-editing-protocol.md`: the elevators section gained the `powered`
+field and a note on the round-125 exception-handling fix; the trams section's confirmation
+paragraph was rewritten to describe the tolerant read-back and the "no power property found"
+finding. English resx only (`WorldFeature_ReasonNotPowered`/`_ReasonMoving`/`_ReasonNotControllable`);
+de/es/fr left for a follow-up localization pass, matching how other rounds have handled new
+English-only strings.
+
+**Risk.** Low for the C# fix (adds a catch/finally/guard around an existing call path; no change to
+what a successful edit does). Low-moderate for the trams tolerance change: a recall that the game
+genuinely, silently refuses (not observed, but not disprovable without `TramSystem_RecallStation_C`'s
+bytecode - see above) would now report success instead of an honest error, with the real state only
+surfacing on the next list/refresh instead of immediately - an explicit, documented trade accepted
+per this round's instructions, matching what the owner asked for. Not verified against the running
+game this round (see the Tests note); the owner is running live and can confirm both on the next
+session.
+
+## Round-124: NPCS tab - the Dead checkbox let you "kill" a hologram the game never actually kills (2026-09-18)
+
+Owner report, NPCS tab (story-character section): the hint text already says "Story hologram
+(scripted scene, cannot die)" and "Static trader stand", yet the Dead checkbox next to those rows
+was fully interactive - a dishonest control, since toggling it did nothing the game would honour.
+
+**Decision, from evidence.** `docs/reference/research/research-narrative-npcs.md` shows all 62
+fixture holograms were alive across 27 fixture saves; every observed `IsDead = true` entry was a
+`Human_ParentBP` or `Ela` row, never a hologram, and the two `Human_TRADER` rows are static stand
+actors, not combatants. Nothing in that research shows the game visually honouring `IsDead`/
+`IsCorpse` for a hologram (no "the actor disappears" evidence) - the opposite: holograms are
+described as non-interactive scripted scenes players cannot kill in-game at all. So the fix is to
+make the control honest by disabling it, not to relabel it as a working kill switch.
+
+**Fix.** `NpcIdentityCatalog` (`Core/Catalogs/World/NpcIdentityCatalog.cs`) gained a
+`CanBeKilled(id, actorName)` lookup on the same curated hint table the labels already use:
+`Human_Hologram` and `Human_TRADER` are `false`; `Human_Killable`, `Human_ParentBP`, `Ela_`,
+`HastaTria`, `Larva_`, `MGT_CKCore`, and every unrecognised class default to `true` (the table only
+ever turns the control off on positive evidence, never as a default-deny for an unknown class).
+`WorldNpcsTab.razor`'s Dead checkbox now adds `!CanKillSelected(selected)` to its existing disabled
+condition and shows a `title` tooltip when disabled, built from `WorldNpcs_CannotDieTooltipFormat`
+- the same `title="@(cond ? null : ...)"` pattern `PlayerCharacterTab.razor` already uses for its
+own catalog-gated controls. This is one component for both file and live mode (round 77/92), so
+both hosts get the fix for free. The checkbox still shows whatever `IsDead`/`IsCorpse` a row already
+carries (a hologram or trader row that legitimately has story-scripted data keeps displaying it) -
+only the toggle is gated, not the underlying data.
+
+**Follow-up, same round: "hologram" is jargon (owner).** The owner pointed out players do not know
+the word "hologram", so `NpcIdentityCatalog`'s labels were rewritten as plain one-line explanations
+instead of game-internal class names: `Human_Hologram` is now "Recorded projection that plays a
+scene - not a living character" and `Human_TRADER` is "Trading stall fixed in one spot - not a
+character you can fight" (the other labels got a lighter pass for the same clarity). These labels
+are what the tab already shows as the row's primary name (when no real character name resolved
+from the round-99 registry) or its secondary line under a resolved name like "Dr. Manse" (see
+`WorldNpcsTab.CharacterName`/`CharacterSecondary`), so the plain-language fix reaches the tab with
+no template change. The Dead checkbox's tooltip now reuses the same label text
+(`WorldNpcs_CannotDieTooltipFormat`, a localized "Can't be killed here: {0}." wrapper around
+`NpcIdentityCatalog.LabelFor`) instead of a separate generic sentence, so a hologram's tooltip and
+its row both say the same "recorded projection, not a living character" thing - one source of
+truth. `NpcIdentityCatalog`'s labels themselves stay English-only curated game-content data (same
+as before this round; they were never run through the resx pipeline), matching how the rest of
+`Catalogs/` is documented in CLAUDE.md.
+
+**Live write path, investigated, not changed.** `narrative.lua`'s `narrativenpcs.set` writes
+`IsCorpse` directly with no confirmed setter (already documented there as "genuinely unproven
+whether this alone updates the NPC's ragdoll/visual state live without a game restart") - that
+caveat applies uniformly to every narrative-NPC class, not specifically to holograms, so there is
+no evidence basis for turning the write into a per-class refusal. In practice no row reaches this
+handler from the tab any more for the disabled classes, since the UI never sends the request. Added
+a comment on the handler explaining the reasoning so a future probe that does find a class-specific
+difference knows to add a named refusal there instead of leaving a silent no-op.
+
+**Tests.** `tests/AbioticEditor.Tests/NpcIdentityCatalogTests.cs` (new): hologram/trader-stand
+`false`, killable/named/generic-ParentBP `true`, and an explicit unknown-class-defaults-to-`true`
+case. `tests/AbioticEditor.Tests/WorldLiveAreaParityContractTests.cs` gained a source-text check
+that the tab's disabled condition and tooltip resource key are actually wired up, plus the new
+resource key in the existing `Merged_npcs_tab_resource_keys_exist_in_AppResources` check.
+`python tools/run-lua-tests.py`: 1314 checks passing, unchanged (the Lua edit is comment-only).
+English resx only (`WorldNpcs_CannotDieTooltipFormat`); de/es/fr/ru left for a follow-up
+localization pass.
+
+**Risk.** Low - additive data table plus a UI gate on an existing control; no writer/reader/GVAS
+format touched, no change to what the checkbox does when it is enabled. The app was running live
+during this change (owner testing), so it was not rebuilt or restarted to verify in the UI; the
+source-text test pins the wiring instead.
+
+## Round-122: a duplicate `@key` crashes the whole page, made structurally impossible, not just fixed (2026-09-18)
+
+Second crash of this exact class in one day (`editor-20260918.log`, 14:48:12): `CircuitHost:
+Unhandled exception ... More than one sibling of element 'button' has the same key value,
+'CA_PunchCard_TutorialPanelTrigger'`, thrown by Blazor's `RenderTreeDiffBuilder` on the live
+TRIGGERS tab (`WorldFeaturesTab.razor`, shared by every world-feature area). The game places
+several trigger volumes that share one game-authored `UniqueTriggerID`; the row list keyed
+straight off that id, so two loaded volumes with the same id produced two sibling rows with the
+same `@key`. A renderer diff exception like this cannot be caught by any `ErrorBoundary` - it kills
+the whole page circuit, which is what "clicking between the tabs breaks the app again" was: the
+first instance of this class was the Bases tab, fixed in Round-118 by namespacing its keys, but
+that fix only prevented one specific collision, not the underlying pattern.
+
+**Fix, three layers so a future tab cannot reintroduce this:**
+
+1. **`RenderKeys` (`Web.Shared/Services/RenderKeys.cs`, new, static, pure)** turns any sequence
+   into `(item, uniqueKey)` pairs: the first item with a given id keeps that id as its key, the
+   2nd/3rd/... item sharing the same id gets `"{id}#2"`, `"{id}#3"`, ... so a key can never repeat.
+   Audited every `@key=` under `Web.Shared/Components` (48 sites) and routed every loop keyed by
+   data this app does not fully control - live-agent rows, save-file entries, catalog/game-registry
+   ids - through it: `WorldFeaturesTab` (entries via a new `FeatureRow.RenderKey`, and fields),
+   `WorldNpcsTab` (both the story-character and live-creature lists), `WorldBasesTab` (benches,
+   painted objects, base containers - on top of Round-118's own "bench:"/"paint:" namespacing, which
+   only prevented cross-list collisions, not same-list ones), `WorldContainersTab`,
+   `WorldContainmentTab` (units, and orphaned assignments keyed by creature name, which can repeat),
+   `WorldDoorsTab`, `WorldDroppedItemsTab`, `WorldFlagsTab`, `WorldPetsTab`, `WorldStoryTab` (both
+   recipe lists), `WorldTradersTab` (traders, and an item a trader can legitimately sell under two
+   different unlock flags), `WorldVehiclesTab` (regrouped so ids are deduped across the WHOLE list,
+   not just within one region group), `LiveChemistryBenchTab` (benches, flasks, recipes), and the
+   Player tabs (Achievements, Codex, Inventory ground items, Recipes list + research queue,
+   ReleaseNotesDialog). Left alone, with a comment recorded at each site, wherever the key is
+   provably safe: a real `Dictionary` key (`WorldPetsTab`'s limb health), a hardcoded C# catalog
+   array (`BenchUpgradeCatalog.All`, `StoryProgressionCatalog.Chapters`,
+   `SkillLocalization.MilestonesFor`), a counter this app owns (`BaseDetector`'s "Base 1"/"Base 2"
+   naming), a `GroupBy` key (inherently distinct), or a reference-typed object used as its own key
+   (`IniEditor`'s section/entry drafts). `LiveConnect.razor`/`SaveEditorSurface.razor`'s
+   `AppErrorBoundary @key="_worldTab"` is a single element, not a loop, so it was left as-is.
+
+2. **Data-layer model fix for triggers.** `areas/triggers.lua`'s `triggerRows()` now merges every
+   placed volume sharing a `UniqueTriggerID` into ONE row - matching the save's own `TriggerMap`,
+   which only ever has one entry per id: `timesTriggered` takes the highest count seen across the
+   volumes, `hasBeenTriggeredOnce` is true if any of them is. `triggers.set` now finds and edits
+   EVERY volume sharing an id (`findTriggersById`, replacing the old first-match-only
+   `findTrigger`), so a fire-count write or reset stays in lockstep across all of them. New harness
+   case in `tests/cases/triggers.lua` places two volumes under one id and asserts exactly one merged
+   row plus both volumes reset. Checked the other new live areas (buttons, elevators,
+   resourcenodes, destructibles, corpses, npcspawns, powersockets, trams, portals) for the same
+   possibility: all nine already key by `ctx.fullName(actor)` (`GetFullName()`, engine-guaranteed
+   unique per loaded actor), confirmed by reading each module's own `id = name` assignment -
+   triggers is the one documented exception. Added a shared `LiveFeatureRows.DistinctById`
+   (`Web.Shared/Models/LiveFeatureRows.cs`) as a second, independent backstop in all ten
+   `Live*FeatureSession` classes anyway (including triggers, on top of the Lua-side merge), so even
+   an engine edge case or a future area that forgets this convention cannot reach the render tree.
+
+3. **Regression guard.** `RenderKeySafetyContractTests` (new) scans every `.razor` file under
+   `Components` in both front-end projects for a bare `loopVariable.Id`/`.Key`/`.Row`/`.Name` `@key`
+   expression - exactly the shape that crashed - and fails unless that exact site is on an explicit,
+   commented allowlist (the four provably-safe catalog/Dictionary/counter sites above); it also
+   fails if an allowlist entry goes stale (the site it names no longer exists). `RenderKeysTests`
+   covers the helper directly: unique ids pass through unchanged, repeats get `#2`/`#3`/... in
+   order, a null id selector result is treated as `""`, and `KeyLookup` gives distinct dictionary
+   keys to distinct row instances that happen to share an id.
+
+**Risk left on the table:** the UI-layer fix accepts a cosmetic multi-select edge case as the price
+of never crashing - if two rows still end up sharing the same *domain* id (not just render key) in
+some area nobody has audited yet, clicking one can visually select both, since `WorldFeaturesTab`'s
+selection still compares the real domain key (`row.Key`), not the render key. That is a UI glitch,
+not a crash, and is the intended trade-off; the actual fix for a *known* offender (triggers) is the
+Lua-side merge in step 2, which removes the domain-level duplicate entirely.
+
 ## Round-121: BASES tab - benches renamed in-game showed no name, and "nearest to me" was missing (2026-09-18)
 
 Owner report, live mode, BASES tab: the tab showed bases for places unrelated to the region being

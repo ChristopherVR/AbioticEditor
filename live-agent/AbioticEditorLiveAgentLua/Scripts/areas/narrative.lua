@@ -51,6 +51,16 @@ return function(ctx)
         end, respond)
     end
 
+    -- Round 124: the NPCS tab now disables its Dead checkbox in the UI for classes the game
+    -- never lets players kill (holograms, static trader stands - see
+    -- NpcIdentityCatalog.CanBeKilled and docs/reference/research/research-narrative-npcs.md), so
+    -- in practice no row for those classes reaches this write path from the tab any more. This
+    -- handler is intentionally left permissive rather than re-checking the class here: nothing in
+    -- the research probes shows the game treats an IsCorpse write differently per class (the
+    -- "unproven whether this alone updates the ragdoll/visual state" caveat above applies
+    -- uniformly, not just to holograms), so there is no evidence basis for turning a generic
+    -- write into a refusal. If a future probe finds the game actually ignores IsCorpse for a
+    -- specific class, add a named refusal here instead of a silent no-op.
     ctx.handlers["narrativenpcs.set"] = function(payload, respond)
         ctx.runOnGameThread(function()
             if not ctx.isHost() then error("only the host can edit narrative NPCs") end
