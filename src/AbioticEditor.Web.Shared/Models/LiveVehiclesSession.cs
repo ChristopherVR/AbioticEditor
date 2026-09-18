@@ -9,7 +9,11 @@ namespace AbioticEditor.Web.Models;
 /// grounded in the vehicle's own <c>PendingDestroy</c> property (round 77, see
 /// <c>areas/vehicles.lua</c>'s own comment) - read/write both go through it, but whether flipping
 /// it alone updates the vehicle's wreck visuals live (versus only the value the save later
-/// persists) is unverified against the running game.
+/// persists) is unverified against the running game. On-board storage's <c>HasInventory</c>/
+/// <c>InventoryItemCount</c> are real (coordinator round, see <c>vehicles.lua</c>'s own comment
+/// for the class-layout evidence): the "open storage" button reuses <see cref="WorldVehicle.ContainerId"/>,
+/// which <c>WorldContainersTab</c>'s existing live <see cref="LiveContainersSession"/> already
+/// serves unchanged - no vehicle-specific container code exists anywhere in this stack.
 /// </summary>
 public sealed class LiveVehiclesSession : IWorldVehiclesSession
 {
@@ -45,7 +49,8 @@ public sealed class LiveVehiclesSession : IWorldVehiclesSession
     {
         Vehicles = directory.Vehicles
             .Select(v => new WorldVehicle(v.Id, v.VehicleId, v.VehicleClass, v.Driveable, v.Wrecked,
-                v.X, v.Y, v.Z, QuatX: 0, QuatY: 0, QuatZ: 0, QuatW: 1, InventoryItemCount: 0, HasInventory: false))
+                v.X, v.Y, v.Z, QuatX: 0, QuatY: 0, QuatZ: 0, QuatW: 1,
+                InventoryItemCount: v.InventoryItemCount, HasInventory: v.HasInventory, ContainerId: v.ContainerId))
             .ToList();
         IsHost = directory.IsHost;
         Changed?.Invoke();

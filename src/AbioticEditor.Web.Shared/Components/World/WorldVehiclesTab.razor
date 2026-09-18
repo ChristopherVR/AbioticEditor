@@ -236,7 +236,11 @@
         }
     }
 
-    private Task OpenContainer(WorldVehicle vehicle) => OnOpenContainer.InvokeAsync(vehicle.Id);
+    // Offline, the on-board container is embedded in this same VehicleMap entry, so its id is the
+    // vehicle's own Id (ContainerId stays null - see WorldVehicle's own remarks). Live, it is a
+    // separate actor (the StorageContainer ChildActorComponent's resolved child) with its own,
+    // different id, which LiveVehiclesSession populates onto ContainerId.
+    private Task OpenContainer(WorldVehicle vehicle) => OnOpenContainer.InvokeAsync(vehicle.ContainerId ?? vehicle.Id);
 
     public void Dispose() { _selectionLoad?.Cancel(); _selectionLoad?.Dispose(); }
 }

@@ -14,6 +14,16 @@ namespace AbioticEditor.Core.WorldSaves;
 /// <param name="Destroyed">Whether the vehicle is wrecked.</param>
 /// <param name="InventoryItemCount">Non-empty on-board item count (0 when it carries no storage).</param>
 /// <param name="HasInventory">Whether the vehicle has any on-board container.</param>
+/// <param name="ContainerId">
+/// The id to open in the CONTAINERS tab for this vehicle's on-board storage, or null when
+/// <paramref name="HasInventory"/> is false. Null (the default) also covers the file session,
+/// where the container is embedded in this same <c>VehicleMap</c> entry and so shares this
+/// record's own <paramref name="Id"/> - <c>WorldVehiclesTab</c> falls back to <see cref="Id"/>
+/// when this is null. The live session sets this explicitly: the on-board container is a
+/// separate actor there (the vehicle's <c>StorageContainer</c> ChildActorComponent's resolved
+/// child, a real <c>Deployed_Container_ParentBP_C</c> instance), with its own, different id - see
+/// <c>LiveVehiclesSession</c>.
+/// </param>
 public sealed record WorldVehicle(
     string Id,
     string? VehicleId,
@@ -28,7 +38,8 @@ public sealed record WorldVehicle(
     double QuatZ,
     double QuatW,
     int InventoryItemCount,
-    bool HasInventory)
+    bool HasInventory,
+    string? ContainerId = null)
 {
     /// <summary>Class tail without the <c>_C</c> suffix (e.g. <c>ABF_Vehicle_Forklift</c>).</summary>
     public string ShortClass

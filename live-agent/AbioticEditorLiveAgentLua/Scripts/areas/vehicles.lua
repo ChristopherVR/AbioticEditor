@@ -29,7 +29,60 @@
 -- Move / reset-to-spawn is grounded in K2_TeleportTo(Location, Rotation), used verbatim in
 -- CheatConsoleCommands' AFUtils/BaseUtils/BaseUtils.lua (TeleportActorToActor) with the actor's
 -- own K2_GetActorRotation() kept unchanged, exactly as done here.
+--
+-- On-board storage (coordinator round, closing the "vehicle storage not editable live" gap): the
+-- game's own class layout was re-probed (fragment "ABF_Vehicle_ParentBP") and this is NOT a
+-- guess. ABF_Vehicle_ParentBP_C carries `StorageContainer : FObjectProperty` (a plain
+-- ChildActorComponent, unsuffixed, confirmed from the pak class dump) and a BlueprintPure
+-- GetVehicleContainers() whose own bytecode does exactly this: dynamic-cast
+-- StorageContainer.ChildActor to Deployed_Container_ParentBP_C and read its ContainerInventory.
+-- The forklift's own placed child-actor default is Deployed_Container_ForkliftCargo_C (confirmed
+-- from the BP export's ChildActorTemplate), which chains
+-- Deployed_Container_ForkliftCargo_C -> Deployed_Container_Cargo_C -> Deployed_Container_ParentBP_C
+-- - the exact class containers.lua's own CONTAINER_CLASSES sweep already scans for. That means a
+-- vehicle's cargo hold is a genuine, independently-loaded Deployed_Container_ParentBP_C actor, not
+-- a bespoke vehicle-only structure: it is already listed, read and written by the existing
+-- containers.list/containers.get/containers.set handlers with no changes there at all. This module
+-- only needs to report which container id belongs to which vehicle, so vehicles.list's
+-- hasInventory/inventoryItemCount/containerId are real instead of hardcoded, and the app can jump
+-- straight to that id in the CONTAINERS tab (one slot-edit code path, not a second one here).
+-- ctx.containerInventory is the same GetContainerInventory()-preferring helper containers.lua uses
+-- for every other container (handles a class override the same way, though none is known for
+-- vehicle cargo); ctx.slotRowName is the same "" / "Empty" / "None" sentinel check slotRow uses.
+-- Feature-detected per vehicle via pcall: a vehicle type with no StorageContainer child actor
+-- resolved (cast fails, e.g. no cargo model wired up) reports hasInventory=false/containerId=nil
+-- rather than erroring the whole list.
 return function(ctx)
+    local function vehicleContainer(obj)
+        local okComp, comp = pcall(function() return obj.StorageContainer end)
+        if not okComp or not comp or not comp:IsValid() then return nil end
+        local okChild, child = pcall(function() return comp.ChildActor end)
+        if not okChild or not child or not child:IsValid() then return nil end
+        return child
+    end
+
+    local function vehicleStorage(obj)
+        local ok, containerId, hasInventory, itemCount = pcall(function()
+            local container = vehicleContainer(obj)
+            if not container then return nil, false, 0 end
+            local cid = ctx.fullName(container)
+            if not cid then return nil, false, 0 end
+            local count = 0
+            local inv = ctx.containerInventory(container)
+            if inv and inv.CurrentInventory then
+                for i = 1, #inv.CurrentInventory do
+                    local okRow, rowName = pcall(ctx.slotRowName, inv.CurrentInventory[i])
+                    if okRow and rowName ~= "" and rowName ~= "Empty" and rowName ~= "None" then
+                        count = count + 1
+                    end
+                end
+            end
+            return cid, true, count
+        end)
+        if not ok then return nil, false, 0 end
+        return containerId, hasInventory, itemCount
+    end
+
     local function vehicleRows()
         local result = { __forceArray = true }
         for _, obj in ipairs(ctx.findAll("ABF_Vehicle_ParentBP_C")) do
@@ -42,6 +95,7 @@ return function(ctx)
                     local okId, vehicleId = pcall(function() return obj.VehicleID:ToString() end)
                     local okDrive, driveable = pcall(function() return obj.VehicleDriveable == true end)
                     local okWrecked, wrecked = pcall(function() return obj.PendingDestroy == true end)
+                    local containerId, hasInventory, inventoryItemCount = vehicleStorage(obj)
                     table.insert(result, {
                         id = name,
                         vehicleId = (okId and vehicleId ~= "") and vehicleId or nil,
@@ -49,6 +103,9 @@ return function(ctx)
                         driveable = okDrive and driveable or false,
                         wrecked = okWrecked and wrecked or false,
                         x = x, y = y, z = z,
+                        containerId = containerId,
+                        hasInventory = hasInventory,
+                        inventoryItemCount = inventoryItemCount,
                     })
                 end
             end

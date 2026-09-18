@@ -18,7 +18,8 @@ public sealed class LiveVehiclesChannel(ILiveGameChannel channel)
         var wire = await _channel.RequestAsync<DirectoryWire>("vehicles.list", payload: null, cancellationToken)
             .ConfigureAwait(false);
         var vehicles = (wire.Vehicles ?? [])
-            .Select(v => new LiveVehicle(v.Id, v.VehicleId, v.VehicleClass, v.Driveable, v.Wrecked, v.X, v.Y, v.Z))
+            .Select(v => new LiveVehicle(v.Id, v.VehicleId, v.VehicleClass, v.Driveable, v.Wrecked, v.X, v.Y, v.Z,
+                v.ContainerId, v.HasInventory, v.InventoryItemCount))
             .ToList();
         return new LiveVehicleDirectory(vehicles, wire.IsHost, wire.SupportsWreckedState);
     }
@@ -30,15 +31,21 @@ public sealed class LiveVehiclesChannel(ILiveGameChannel channel)
 
     private sealed record DirectoryWire(IReadOnlyList<VehicleWire>? Vehicles, bool IsHost, bool SupportsWreckedState);
     private sealed record VehicleWire(string Id, string? VehicleId, string? VehicleClass, bool Driveable, bool Wrecked,
-        double X, double Y, double Z);
+        double X, double Y, double Z, string? ContainerId = null, bool HasInventory = false, int InventoryItemCount = 0);
     private sealed record SetWire(string Id, bool? Driveable, bool? Wrecked, double? X, double? Y, double? Z);
 }
 
 /// <summary>One loaded vehicle. <paramref name="Id"/> is the game's own full object name for this
 /// exact actor; <paramref name="VehicleClass"/> is its class name (e.g.
-/// <c>ABF_Vehicle_Forklift_C</c>).</summary>
+/// <c>ABF_Vehicle_Forklift_C</c>). <paramref name="ContainerId"/> is the game's own full object
+/// name for the vehicle's on-board cargo actor (the <c>StorageContainer</c> ChildActorComponent's
+/// resolved child, e.g. <c>Deployed_Container_ForkliftCargo_C</c> for the forklift), null when the
+/// vehicle has none - it is a genuine <c>Deployed_Container_ParentBP_C</c> instance, so it already
+/// works with <see cref="LiveContainersChannel"/>'s <c>containers.get</c>/<c>containers.set</c>
+/// unchanged; see <c>vehicles.lua</c>'s own header comment for how this was confirmed from the
+/// game's own class layout, not guessed.</summary>
 public sealed record LiveVehicle(string Id, string? VehicleId, string? VehicleClass, bool Driveable, bool Wrecked,
-    double X, double Y, double Z);
+    double X, double Y, double Z, string? ContainerId = null, bool HasInventory = false, int InventoryItemCount = 0);
 
 /// <summary>Every loaded vehicle, whether this process has host authority to change them, and
 /// whether the wrecked/destroyed state can be edited live (yes, since round 77 - grounded in
