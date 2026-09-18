@@ -9,16 +9,26 @@ namespace AbioticEditor.Core.LiveEditing.World;
 /// <c>NPC_Base_ParentBP_C</c> that has no <c>Guid</c> of its own - see <see cref="LivePet.Matched"/>.
 /// Those rows carry no stable id (their <see cref="LivePet.Id"/> is the live actor's own full path,
 /// valid only for that actor's current lifetime) and can only have <c>IsDead</c>/limb health
-/// changed (both are real, universal <c>AbioticCharacter</c> fields), never a name or XP (the class
-/// exposes neither). There is no live species change - see
-/// <see cref="LivePetDirectory.SupportsSpeciesChange"/>, always false: the game's own
-/// <c>Abiotic_Survival_GameMode_C.SpawnPet(Class, SpawnTransform, Guid, Name, Owner,
-/// DynamicProperties, Tamed)</c> is a real function (found in this round's class dump) but its
-/// <c>SpawnTransform</c> parameter is an <c>FTransform</c>, a struct this project has no working
-/// construction precedent for over UE4SS Lua reflection anywhere (unlike the flat
-/// <c>FVector</c>/<c>FRotator</c> tables round 76 proved) - guessing that shape live is exactly
-/// what caused the BASES tab's fatal crash (round 79), so this stays refused. Removal (round 78)
-/// IS supported for every row, matched or not - see <see cref="RemoveAsync"/>.
+/// changed (both are real, universal <c>AbioticCharacter</c> fields), never a name, XP, or species
+/// (the class exposes neither the identity fields nor a way to verify a species-change result).
+/// Round 109 stopped refusing live species change outright for MATCHED (Pest/Skink-family) rows -
+/// see <see cref="LivePetDirectory.SupportsSpeciesChange"/>, now reported by the live agent itself
+/// (older agent builds that omit the field still report <c>false</c>, so the app's control stays
+/// hidden against them). The game's own <c>Abiotic_Survival_GameMode_C.SpawnPet(Class,
+/// SpawnTransform, Guid, Name, Owner, DynamicProperties, Tamed)</c> needs an <c>FTransform</c> for
+/// <c>SpawnTransform</c>, which round 76/105 refused because this project had no construction
+/// precedent for a HAND-BUILT FTransform table (guessing that shape live is exactly what caused
+/// the BASES tab's fatal crash, round 79). <c>pets.lua</c>'s <c>trySpeciesChange</c> does not build
+/// one: it reads the OLD pet actor's own current transform fresh via the standard, zero-argument
+/// <c>K2_GetActorTransform</c> (the same category of call as the already-proven
+/// <c>K2_GetActorLocation</c>/<c>K2_GetActorRotation</c> round trip <c>spawn.lua</c>/
+/// <c>vehicles.lua</c> use) and passes it straight back UNCHANGED - never a fabricated struct. See
+/// that file's own header comment for the full reasoning, the safety ordering (the new actor's
+/// Guid is verified to match before the old one is destroyed - any failure leaves the old pet
+/// untouched), and the one honest caveat: a wrong-shaped native-call argument is the one class of
+/// failure in this project <c>pcall</c> cannot be trusted to catch, and this exact call has never
+/// run against the real game yet - it is proven only against the Lua stub harness so far. Removal
+/// (round 78) IS supported for every row, matched or not - see <see cref="RemoveAsync"/>.
 /// </summary>
 public sealed class LivePetsChannel(ILiveGameChannel channel)
 {
@@ -38,14 +48,19 @@ public sealed class LivePetsChannel(ILiveGameChannel channel)
 
     /// <summary>Stages/applies a Pest- or Skink-family pet's fields immediately. Host only. Some
     /// fields can genuinely fail without the whole call failing (round 78 - e.g. raising the level
-    /// of a pet that has never earned real XP, which cannot be fabricated live): those come back
-    /// as <see cref="LivePetSetResult.Warnings"/> rather than an exception, so the fields that DID
-    /// apply are never thrown away along with the one that didn't.</summary>
+    /// of a pet that has never earned real XP, which cannot be fabricated live; round 109 - a
+    /// species change that can't be resolved or verified): those come back as
+    /// <see cref="LivePetSetResult.Warnings"/> rather than an exception, so the fields that DID
+    /// apply are never thrown away along with the one that didn't. <paramref name="npcClass"/> is
+    /// only ever treated as a real species-change REQUEST when it differs from the pet's own
+    /// current class (see <c>pets.lua</c>'s own header comment) - resending the pet's current class
+    /// unchanged is always a safe no-op.</summary>
     public async Task<LivePetSetResult> SetAsync(string id, bool isDead, string? customName, int xp,
-        IReadOnlyDictionary<string, double> limbHealth, CancellationToken cancellationToken = default)
+        IReadOnlyDictionary<string, double> limbHealth, string? npcClass = null,
+        CancellationToken cancellationToken = default)
     {
         var wire = await _channel.RequestAsync<SetResultWire>("pets.set",
-            new SetWire(id, isDead, customName, xp, limbHealth), cancellationToken).ConfigureAwait(false);
+            new SetWire(id, isDead, customName, xp, limbHealth, npcClass), cancellationToken).ConfigureAwait(false);
         return new LivePetSetResult(wire?.Warnings ?? []);
     }
 
@@ -62,7 +77,7 @@ public sealed class LivePetsChannel(ILiveGameChannel channel)
     private sealed record PetWire(string Id, string? NpcClass, bool IsDead, string? CustomName,
         double X, double Y, double Z, Dictionary<string, double>? LimbHealth, int Xp, bool Matched = true);
     private sealed record SetWire(string Id, bool IsDead, string? CustomName, int Xp,
-        IReadOnlyDictionary<string, double> LimbHealth);
+        IReadOnlyDictionary<string, double> LimbHealth, string? NpcClass = null);
     private sealed record SetResultWire(IReadOnlyList<string>? Warnings);
     private sealed record IdWire(string Id);
 }
@@ -86,7 +101,12 @@ public sealed record LivePet(string Id, string? NpcClass, bool IsDead, string? C
 
 /// <summary>Every live pet row found (matched and unmatched - see <see cref="LivePet.Matched"/>),
 /// whether this process has host authority, and whether pet editing is available at all (always
-/// true now, but partial - see <paramref name="Reason"/>). Species change has no evidenced safe
-/// live path (see <see cref="LivePetsChannel"/>'s remarks); removal works for every row.</summary>
+/// true now, but partial - see <paramref name="Reason"/>). <paramref name="SupportsSpeciesChange"/>
+/// (round 109) reflects what the connected live agent itself reports - an older agent build that
+/// never sends the field deserializes to <c>false</c> here (the wire's default), so the app's
+/// creature-type control stays hidden against it automatically; a newer one that reports
+/// <c>true</c> can still only apply it to a MATCHED row (see <see cref="LivePetsChannel"/>'s
+/// remarks for the mechanism and its one remaining unverified assumption). Removal works for every
+/// row regardless.</summary>
 public sealed record LivePetDirectory(IReadOnlyList<LivePet> Pets, bool IsHost, bool Available, string? Reason,
     bool SupportsSpeciesChange, bool SupportsRemoval);

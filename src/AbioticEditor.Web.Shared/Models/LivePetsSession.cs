@@ -12,10 +12,12 @@ namespace AbioticEditor.Web.Models;
 /// <c>Guid</c>) entirely: they are now listed too, found by the game's own
 /// <c>AbioticFunctionLibrary::IsTamedPet</c> check rather than a hardcoded class list, with
 /// <see cref="WorldPet.Matched"/> false - see that record's remarks for exactly what stays
-/// editable on those rows (health/alive-state, never name/XP). There is no live species change
-/// (the game's own <c>GameMode.SpawnPet</c> needs an <c>FTransform</c> this project has no safe
-/// construction precedent for - see <see cref="LivePetsChannel"/>'s remarks) -
-/// <see cref="SupportsSpeciesChange"/> is always false so the shared tab hides that control.
+/// editable on those rows (health/alive-state, never name/XP/species). Round 109: live species
+/// change is attempted for MATCHED rows now (the game's own <c>GameMode.SpawnPet</c> needs an
+/// <c>FTransform</c>, which used to have no safe construction precedent - see
+/// <see cref="LivePetsChannel"/>'s remarks for how that changed) -
+/// <see cref="SupportsSpeciesChange"/> relays what the connected live agent itself reports, so an
+/// older agent build that never reports it still hides the shared tab's control.
 /// Round 78 added real removal (<see cref="SupportsRemoval"/>, always true here, matched or not)
 /// via <see cref="LivePetsChannel.RemoveAsync"/> - see that class's remarks.
 /// </summary>
@@ -42,6 +44,7 @@ public sealed class LivePetsSession : IWorldPetsSession
     public bool IsAvailable { get; private set; }
     public string? UnavailableReason { get; private set; }
     public string? Status { get; private set; }
+    private bool _supportsSpeciesChange;
 
     /// <summary>Always false: every row shown was either just read from the game or already
     /// applied by <see cref="SetPetAsync"/>/removal, so there is never a client-side staged copy.
@@ -62,6 +65,7 @@ public sealed class LivePetsSession : IWorldPetsSession
         IsHost = directory.IsHost;
         IsAvailable = directory.Available;
         UnavailableReason = directory.Reason;
+        _supportsSpeciesChange = directory.SupportsSpeciesChange;
         Changed?.Invoke();
     }
 
@@ -75,21 +79,24 @@ public sealed class LivePetsSession : IWorldPetsSession
         => Apply(await _channel.GetAsync(cancellationToken).ConfigureAwait(false));
 
     bool IWorldPetsSession.AppliesImmediately => true;
-    bool IWorldPetsSession.SupportsSpeciesChange => false;
+    bool IWorldPetsSession.SupportsSpeciesChange => _supportsSpeciesChange;
     bool IWorldPetsSession.SupportsRemoval => true;
 
     async Task IWorldPetsSession.SetPetAsync(string id, bool isDead, string? npcClass, string? customName, int xp,
         IReadOnlyDictionary<string, double> limbHealth, CancellationToken cancellationToken)
     {
-        // npcClass is accepted by the shared interface but ignored here: the tab's species
-        // dropdown is hidden (SupportsSpeciesChange is false), so this is always the pet's own
-        // current class, never a real change request.
-        var result = await _channel.SetAsync(id, isDead, customName, xp, limbHealth, cancellationToken).ConfigureAwait(false);
+        // Round 109: npcClass is now forwarded to the live agent. pets.lua only ever treats it as
+        // a real species-change REQUEST when it differs from the pet's own current class, so
+        // resending the pet's own unchanged class (every non-species-change Apply() call in
+        // WorldPetsTab.razor does exactly that) is always a safe no-op live, same as it is offline.
+        var result = await _channel.SetAsync(id, isDead, customName, xp, limbHealth, npcClass, cancellationToken)
+            .ConfigureAwait(false);
         // Round 78: a field that couldn't be applied (most commonly: raising the level of a pet
-        // that has never earned real XP, which can't be fabricated live - see pets.lua's own
-        // remarks) is a WARNING, not a thrown exception, so the fields that DID apply (health,
-        // name, dead) are never thrown away along with it, and the tab always refreshes to show
-        // what actually happened instead of going stale.
+        // that has never earned real XP, which can't be fabricated live; round 109: a species
+        // change that couldn't be resolved or verified - see pets.lua's own remarks) is a WARNING,
+        // not a thrown exception, so the fields that DID apply (health, name, dead) are never
+        // thrown away along with it, and the tab always refreshes to show what actually happened
+        // instead of going stale.
         Status = result.Warnings.Count == 0 ? null : string.Join(" ", result.Warnings);
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }

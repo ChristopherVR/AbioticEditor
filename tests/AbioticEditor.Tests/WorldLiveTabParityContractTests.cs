@@ -62,13 +62,15 @@ public sealed class WorldLiveTabParityContractTests
         var liveVehicles = ModelsSource("LiveVehiclesSession.cs");
         Assert.Contains("SupportsWreckedState => true", liveVehicles, StringComparison.Ordinal);
 
-        // Round 77: pets ARE now partially available (Pest/Skink family, matched by Guid) -
-        // species change still has no grounded live path. Round 78: removal IS now grounded too
-        // (K2_DestroyActor on the matched actor - see LivePetsChannel.RemoveAsync's remarks); only
-        // UNDOING a live removal has no path (the actor is already gone), which is what the
-        // remaining NotSupportedException below covers.
+        // Round 77: pets ARE now partially available (Pest/Skink family, matched by Guid).
+        // Round 78: removal IS now grounded too (K2_DestroyActor on the matched actor - see
+        // LivePetsChannel.RemoveAsync's remarks). Round 109: species change is grounded on the
+        // game's own SpawnPet and negotiated per agent build, so the session relays the wire
+        // capability instead of hardcoding false. Only UNDOING a live removal has no path (the
+        // actor is already gone), which is what the remaining NotSupportedException below covers.
         var livePets = ModelsSource("LivePetsSession.cs");
-        Assert.Contains("SupportsSpeciesChange => false", livePets, StringComparison.Ordinal);
+        Assert.Contains("SupportsSpeciesChange", livePets, StringComparison.Ordinal);
+        Assert.DoesNotContain("SupportsSpeciesChange => false", livePets, StringComparison.Ordinal);
         Assert.Contains("SupportsRemoval => true", livePets, StringComparison.Ordinal);
         Assert.Contains("NotSupportedException", livePets, StringComparison.Ordinal);
     }

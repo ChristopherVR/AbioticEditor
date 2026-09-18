@@ -56,7 +56,9 @@ return function(H)
     local list = H.ok(H.dispatch("pets.list"), "pets.list")
     H.eq(#list.pets, 2, "both Pest-family pets listed")
     H.eq(list.available, true, "pets area reports available")
-    H.eq(list.supportsSpeciesChange, false, "no live species change")
+    -- Round 109: this agent build now attempts species change for matched pets - see the
+    -- dedicated section near the bottom of this file for the full success/failure coverage.
+    H.eq(list.supportsSpeciesChange, true, "live species change is attempted for matched pets")
     H.eq(list.supportsRemoval, true, "live removal supported (round 78: K2_DestroyActor)")
 
     local function findRow(rows, id) for _, r in ipairs(rows) do if r.id == id then return r end end end
@@ -214,4 +216,121 @@ return function(H)
     H.ok(H.dispatch("pets.remove", { id = peccaryFullName }), "pets.remove on an unmatched Peccary")
     H.eq(H.calls(peccary, "K2_DestroyActor"), 1, "the Peccary's actor was destroyed")
     H.check(findRow(H.ok(H.dispatch("pets.list")).pets, peccaryFullName) == nil, "the removed Peccary no longer appears")
+
+    -- ===== Round 109: live species change (matched pets only) =====
+    -- See areas/pets.lua's own header comment for the full reasoning (SpawnTransform is read
+    -- fresh off the old actor via K2_GetActorTransform and passed through unchanged, never
+    -- fabricated). The harness's default GameMode.SpawnPet fake (tests/harness.lua) spawns a real
+    -- new fake actor carrying the given guid/name/owner/dynamicProperties - a "clean" success;
+    -- individual cases below override it per H.gameMode's own documented technique to exercise the
+    -- failure paths that must leave the original pet untouched.
+    local skinkClassPath = "/Game/Blueprints/Characters/NPCs/NPC_Skink_Basic.NPC_Skink_Basic_C"
+    -- NPC_Skink_Basic_C really does extend NPC_Monster_Pest_C (see this file's header comment) -
+    -- __resultBases matches that so the spawned fake stays hierarchy-findable by PET_FAMILY_CLASS,
+    -- the same way the real class hierarchy keeps it findable by FindAllOf("NPC_Monster_Pest_C").
+    H.world.static(skinkClassPath, H.object("Class",
+        { __resultClass = "NPC_Skink_Basic_C", __resultBases = { "NPC_Monster_Pest_C" } }, {}))
+
+    local function speciesPet(guid, name)
+        return H.world.add(H.object("NPC_Monster_Pest_C", {
+            Guid = H.fstring(guid), PetName = H.fstring(name), FollowingOwner = nil, IsDead = false,
+            CurrentHealth_Head = 100, CurrentHealth_Torso = 100, CurrentHealth_LeftArm = 100,
+            CurrentHealth_RightArm = 100, CurrentHealth_LeftLeg = 100, CurrentHealth_RightLeg = 100,
+            DynamicProperties = { { Key = enumKey("XP"), Value = 40 } },
+        }, {
+            OnRep_IsDead = function() end, OnRep_PetName = function() end, OnRep_CurrentHealth = function() end,
+            K2_GetActorTransform = function() return { __transform = true } end,
+            K2_DestroyActor = function(self) rawset(self, "__valid", false) end,
+        }))
+    end
+
+    -- ---- success: a real species change, old actor destroyed, new one takes over the same id ----
+    local changeling = speciesPet("77777777-7777-7777-7777-777777777777", "Changeling")
+    local changed = H.ok(H.dispatch("pets.set", {
+        id = "77777777-7777-7777-7777-777777777777", isDead = false, customName = "Changeling",
+        limbHealth = fullHealth, xp = 40, npcClass = skinkClassPath,
+    }), "pets.set with a species change")
+    H.eq(#changed.warnings, 0, "a clean species change reports no warnings")
+    H.eq(H.calls(changeling, "K2_DestroyActor"), 1, "the old actor was destroyed after a confirmed swap")
+    H.eq(H.calls(H.gameMode, "SpawnPet"), 1, "SpawnPet was called exactly once")
+    local afterChange = findRow(H.ok(H.dispatch("pets.list")).pets, "77777777-7777-7777-7777-777777777777")
+    H.check(afterChange ~= nil, "the pet is still listed at the SAME id after a species change (Guid preserved)")
+    H.eq(afterChange.npcClass, "NPC_Skink_Basic_C", "the listed creature type reflects the new species")
+    H.eq(afterChange.xp, 40, "XP carried over via the pet's own DynamicProperties array")
+
+    -- ---- resending the CURRENT species is a no-op: never calls SpawnPet at all ----
+    local unchangedPet = speciesPet("88888888-8888-8888-8888-888888888888", "Steady")
+    local unchangedList = H.ok(H.dispatch("pets.list")).pets
+    local unchangedRow = findRow(unchangedList, "88888888-8888-8888-8888-888888888888")
+    H.ok(H.dispatch("pets.set", {
+        id = "88888888-8888-8888-8888-888888888888", isDead = false, customName = "Steady",
+        limbHealth = fullHealth, xp = 40, npcClass = unchangedRow.npcClass,
+    }), "pets.set resending the pet's own current species")
+    H.eq(H.calls(unchangedPet, "K2_DestroyActor"), 0, "resending the same species never destroys the actor")
+
+    -- ---- unknown/unresolvable species: old pet untouched, named warning ----
+    local unknownTarget = speciesPet("99999999-9999-9999-9999-999999999999", "Steadfast")
+    local unknownApplied = H.ok(H.dispatch("pets.set", {
+        id = "99999999-9999-9999-9999-999999999999", isDead = false, customName = "Steadfast",
+        limbHealth = fullHealth, xp = 40, npcClass = "/Game/Blueprints/Characters/NPCs/NPC_DoesNotExist.NPC_DoesNotExist_C",
+    }), "pets.set with an unresolvable species still succeeds overall")
+    H.eq(#unknownApplied.warnings, 1, "one warning: the species could not be resolved")
+    H.check(unknownApplied.warnings[1]:find("unknown or not-yet-loaded creature type", 1, true) ~= nil,
+        "the warning names the real failure reason")
+    H.eq(H.calls(unknownTarget, "K2_DestroyActor"), 0, "the old pet was never touched")
+    H.check(findRow(H.ok(H.dispatch("pets.list")).pets, "99999999-9999-9999-9999-999999999999") ~= nil,
+        "the original pet is still listed, unchanged")
+
+    -- ---- SpawnPet returns an invalid actor: old pet untouched ----
+    local invalidResultPet = speciesPet("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "Steadier")
+    -- rawset (not a fields-table {__valid=false}, which lands in __fields, not the object's own
+    -- top-level validity flag ObjectMeta.IsValid actually reads) - same technique K2_DestroyActor
+    -- fakes throughout this file already use.
+    rawget(H.gameMode, "__methods").SpawnPet = function()
+        local invalid = H.object("Invalid", {}, {})
+        rawset(invalid, "__valid", false)
+        return invalid
+    end
+    local invalidApplied = H.ok(H.dispatch("pets.set", {
+        id = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", isDead = false, customName = "Steadier",
+        limbHealth = fullHealth, xp = 40, npcClass = skinkClassPath,
+    }), "pets.set when SpawnPet returns an invalid actor still succeeds overall")
+    H.eq(#invalidApplied.warnings, 1, "one warning: the game would not spawn the new creature type")
+    H.check(invalidApplied.warnings[1]:find("would not spawn", 1, true) ~= nil, "the warning names the real failure reason")
+    H.eq(H.calls(invalidResultPet, "K2_DestroyActor"), 0, "the old pet was never touched")
+
+    -- ---- SpawnPet "succeeds" but the new actor reports a DIFFERENT identity: old pet untouched ----
+    local mismatchPet = speciesPet("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "Steadiest")
+    rawget(H.gameMode, "__methods").SpawnPet = function(_, _, _, _, name, owner, dynamicProperties)
+        return H.world.add(H.object("NPC_Skink_Basic_C",
+            { Guid = H.fstring("00000000-0000-0000-0000-000000000000"), PetName = name,
+              FollowingOwner = owner, DynamicProperties = dynamicProperties or {}, IsDead = false }, {}))
+    end
+    local mismatchApplied = H.ok(H.dispatch("pets.set", {
+        id = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", isDead = false, customName = "Steadiest",
+        limbHealth = fullHealth, xp = 40, npcClass = skinkClassPath,
+    }), "pets.set when the spawned actor comes back with a different identity still succeeds overall")
+    H.eq(#mismatchApplied.warnings, 1, "one warning: the new creature didn't come back with the same identity")
+    H.check(mismatchApplied.warnings[1]:find("didn't come back with the same identity", 1, true) ~= nil,
+        "the warning names the real failure reason")
+    H.eq(H.calls(mismatchPet, "K2_DestroyActor"), 0, "the old pet was kept - a spawn with the wrong identity is never trusted")
+    H.check(findRow(H.ok(H.dispatch("pets.list")).pets, "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb") ~= nil,
+        "the original pet is still listed under its own guid")
+
+    -- ---- unmatched (Peccary/Lamogi-shaped) pet: species change refused with a named warning ----
+    local secondPeccary = H.object("NPC_Monster_Peccary_C", {
+        __bases = { "NPC_Base_ParentBP_C" }, __tamed = true, IsDead = false,
+        CurrentHealth_Head = 100, CurrentHealth_Torso = 100, CurrentHealth_LeftArm = 100,
+        CurrentHealth_RightArm = 100, CurrentHealth_LeftLeg = 100, CurrentHealth_RightLeg = 100,
+    }, { OnRep_IsDead = function() end, OnRep_CurrentHealth = function() end,
+         K2_DestroyActor = function(self) rawset(self, "__valid", false) end })
+    H.world.add(secondPeccary)
+    local secondPeccaryFullName = secondPeccary:GetFullName()
+    local peccarySpeciesApplied = H.ok(H.dispatch("pets.set", {
+        id = secondPeccaryFullName, isDead = false, limbHealth = fullHealth, npcClass = skinkClassPath,
+    }), "pets.set species change on an unmatched Peccary still succeeds overall")
+    H.eq(#peccarySpeciesApplied.warnings, 1, "one warning: unmatched pets can't have their species changed live")
+    H.check(peccarySpeciesApplied.warnings[1]:find("can't be matched to a save record", 1, true) ~= nil,
+        "the warning explains why the species couldn't be changed")
+    H.eq(H.calls(secondPeccary, "K2_DestroyActor"), 0, "the unmatched pet was never touched")
 end

@@ -30,7 +30,10 @@ return function(H)
 
     local petDir = H.ok(H.dispatch("pets.list"), "pets.list")
     H.eq(petDir.available, true, "pets available (partial)")
-    H.eq(petDir.supportsSpeciesChange, false, "no live species change")
+    -- Round 109: species change is now attempted for matched (Pest/Skink) pets - see
+    -- tests/cases/pets.lua for the dedicated success/failure coverage; this file only asserts the
+    -- capability flag itself, matching its own narrower scope (five round-77 gaps).
+    H.eq(petDir.supportsSpeciesChange, true, "live species change is now attempted for matched pets")
     H.eq(petDir.supportsRemoval, true, "live removal supported (round 78: K2_DestroyActor)")
     H.eq(#petDir.pets, 2, "only Pest/Skink family listed (Peccary excluded)")
     local sparky
@@ -119,6 +122,67 @@ return function(H)
     H.eq(hotbarSlot0.itemId, "scrap_metal", "scratch slot carried the item before the drop RPC")
     H.eq(hotbarSlot0.stack, 5, "scratch slot carried the stack")
     H.fails(H.dispatch("dropped.add", {}), "itemId is required", "dropped.add needs an itemId")
+
+    -- ---------- dropped items: add with an optional position (round 111) ----------
+    -- dropped.add never calls SpawnItem (its ItemRow parameter is a DataTableRowHandle struct fed
+    -- across a function-call boundary with no enumerated-handle precedent, the exact class of
+    -- marshaling that crashed the game for bench upgrades - see main.lua's header comment above
+    -- dropped.add and areas/bases.lua's). Instead it snapshots Abiotic_Item_Dropped_C actors
+    -- before the drop RPC, diffs after it to find the one the RPC just created, and moves that
+    -- actor with K2_TeleportTo (the same proven call vehicles.set/spawn.set already use).
+    do
+        local movedTo
+        rawget(pawn, "__methods").Request_DropInventorySlot = function(_, inv, index)
+            droppedInv, droppedIndex = inv, index
+            local loc = H.vector(0, 0, 0)
+            H.world.add(H.object("Abiotic_Item_Dropped_C", {}, {
+                K2_GetActorLocation = function() return loc end,
+                K2_GetActorRotation = function() return H.rotator(0, 0, 0) end,
+                K2_TeleportTo = function(_, target) loc = H.vector(target.X, target.Y, target.Z); movedTo = loc end,
+            }))
+            return true
+        end
+        H.ok(H.dispatch("dropped.add", { itemId = "scrap_metal", stack = 1, x = 100, y = 200, z = 300 }),
+            "dropped.add with a position")
+        H.check(movedTo ~= nil and movedTo.X == 100 and movedTo.Y == 200 and movedTo.Z == 300,
+            "the newly dropped item was told apart from the rest and moved to the requested position")
+    end
+
+    do
+        -- No new dropped-item actor appears at all (e.g. the drop merged into an existing ground
+        -- stack) - refused with an honest reason instead of silently leaving it wherever it landed.
+        rawget(pawn, "__methods").Request_DropInventorySlot = function(_, inv, index)
+            droppedInv, droppedIndex = inv, index
+            return true
+        end
+        H.fails(H.dispatch("dropped.add", { itemId = "scrap_metal", stack = 1, x = 1, y = 2, z = 3 }),
+            "could not be told apart", "a position request with no identifiable new actor is refused")
+    end
+
+    do
+        -- Two new dropped-item actors appear in the same instant - ambiguous, refused rather than
+        -- guessing which one to move.
+        rawget(pawn, "__methods").Request_DropInventorySlot = function(_, inv, index)
+            droppedInv, droppedIndex = inv, index
+            for _ = 1, 2 do
+                H.world.add(H.object("Abiotic_Item_Dropped_C", {}, {
+                    K2_GetActorLocation = function() return H.vector(0, 0, 0) end,
+                    K2_GetActorRotation = function() return H.rotator(0, 0, 0) end,
+                    K2_TeleportTo = function() end,
+                }))
+            end
+            return true
+        end
+        H.fails(H.dispatch("dropped.add", { itemId = "scrap_metal", stack = 1, x = 1, y = 2, z = 3 }),
+            "could not be told apart", "an ambiguous new-actor match is refused")
+    end
+
+    -- No position given still behaves exactly as before this round (no snapshot/diff cost paid).
+    rawget(pawn, "__methods").Request_DropInventorySlot = function(_, inv, index)
+        droppedInv, droppedIndex = inv, index
+        return true
+    end
+    H.ok(H.dispatch("dropped.add", { itemId = "scrap_metal", stack = 1 }), "dropped.add with no position, unchanged")
 
     -- ---------- inventory: drop an EXISTING slot (round 79, PlayerInventoryTab's DROP ITEM) ----------
     -- Field name is "slotIndex" throughout, matching the real wire shape LiveInventoryChannel.

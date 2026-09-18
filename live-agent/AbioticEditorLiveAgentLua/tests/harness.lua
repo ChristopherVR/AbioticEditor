@@ -396,7 +396,41 @@ function H.hostSession()
         MyPlayerCharacter = pawn, PlayerState = state,
         ActiveLevelName = H.fname("Facility"), TerminalRespawnID = H.fname("E57CB02C4853F46D2BB7CA80303EB6A3"),
     }))
-    H.gameMode = H.object("Abiotic_Survival_GameMode_C", { AI_Director = nil })
+    H.gameMode = H.object("Abiotic_Survival_GameMode_C", { AI_Director = nil }, {
+        -- Round 110: buttons.lua's pressedOnce write path calls this directly (bypassing
+        -- UpdateButtonSaveData, which always forces pressedOnce true) - see areas/buttons.lua's
+        -- own header comment. Records the arguments received so a test can assert the real
+        -- SaveType constant (4) confirmed from the game's own bytecode; otherwise a no-op, like
+        -- every other "persist this now" fake in this harness.
+        UpdateActorToWorldSave = function(self, actor, removeFromSave, saveType)
+            rawget(self, "__fields").__lastUpdateActorToWorldSave =
+                { actor = actor, removeFromSave = removeFromSave, saveType = saveType }
+        end,
+        -- Round 109: areas/pets.lua's live species-change path (trySpeciesChange). Default
+        -- behavior spawns a real new fake NPC actor carrying the given guid/name/owner/
+        -- dynamicProperties (a "clean" successful call) and adds it to the fake world, matching
+        -- what the real game's SpawnPet is grounded to do (see that file's own header comment).
+        -- A test exercising a failure path (invalid result, mismatched identity, the call itself
+        -- erroring) overrides this per-case via `rawget(H.gameMode, "__methods").SpawnPet = ...`,
+        -- the same override technique this harness already uses for TeleportPlayer/K2_TeleportTo
+        -- above.
+        SpawnPet = function(self, class, transform, guid, name, owner, dynamicProperties, tamed)
+            rawget(self, "__fields").__lastSpawnPet =
+                { class = class, transform = transform, guid = guid, name = name, owner = owner,
+                  dynamicProperties = dynamicProperties, tamed = tamed }
+            local resultClass = "NPC_Monster_Pest_C"
+            local resultBases = nil
+            local classFields = class and rawget(class, "__fields")
+            if classFields and classFields.__resultClass then resultClass = classFields.__resultClass end
+            if classFields and classFields.__resultBases then resultBases = classFields.__resultBases end
+            local newPet = H.object(resultClass, {
+                __bases = resultBases,
+                Guid = H.fstring(guid), PetName = name, FollowingOwner = owner,
+                DynamicProperties = dynamicProperties or {}, IsDead = false,
+            }, {})
+            return H.world.add(newPet)
+        end,
+    })
     H.gameState = H.object("Abiotic_Survival_GameState_C", {
         PlayerArray = { state }, WorldFlags = { H.fname("Office_PowerOn") },
         CurrentQuest = { RowName = H.fname("quest_RES_EndInterlude") },

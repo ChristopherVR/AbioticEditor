@@ -78,10 +78,12 @@ public sealed class WorldLivePetsGapContractTests
     }
 
     [Fact]
-    public void pets_lua_still_refuses_species_change_and_explains_why_with_the_new_evidence()
+    public void pets_lua_documents_the_round_105_SpawnPet_evidence_that_round_109_later_acted_on()
     {
+        // Round 109 (see WorldLivePetsSpeciesChangeContractTests) stopped refusing species change
+        // outright, but this exact evidence - the real SpawnPet signature round 105 found - is
+        // still the grounding both rounds cite, so it stays pinned here too.
         var source = File.ReadAllText(LiveAgentPath("Scripts", "areas", "pets.lua"));
-        Assert.Contains("supportsSpeciesChange = false", source, StringComparison.Ordinal);
         Assert.Contains("SpawnPet(Class, SpawnTransform, Guid, Name,", source, StringComparison.Ordinal);
         Assert.Contains("FTransform", source, StringComparison.Ordinal);
     }

@@ -28,9 +28,10 @@ public interface IWorldPetsSession
     /// <summary>Player-safe explanation shown by the tab when <see cref="IsAvailable"/> is false.</summary>
     string? UnavailableReason { get; }
 
-    /// <summary>False when this session has no way to change a pet's species/creature type (a
-    /// live session never does - see <see cref="LivePetsSession"/>'s remarks). The tab hides the
-    /// creature-type dropdown when this is false.</summary>
+    /// <summary>False when this session has no way to change a pet's species/creature type. A live
+    /// session reports this from the connected live agent (round 109: true for a MATCHED pet on a
+    /// current-enough agent build, false against an older one - see <see cref="LivePetsSession"/>'s
+    /// remarks). The tab hides the creature-type dropdown when this is false.</summary>
     bool SupportsSpeciesChange { get; }
 
     /// <summary>False when this session has no way to remove a pet (a live session never does -
