@@ -6,14 +6,18 @@ namespace AbioticEditor.Web.Models;
 /// <summary>
 /// Live PETS editing session, implementing the same <see cref="IWorldPetsSession"/> the file
 /// session does so <c>WorldPetsTab</c> renders unchanged for either host. Round 77 replaced the
-/// round-76 blanket "not available" with a partial one: only Pest- and Skink-family pets can be
-/// matched to a stable id live (their own <c>Guid</c> field - see <c>areas/pets.lua</c>'s own
-/// research comment); Peccary and Lamogi pets stay file-only. There is no live species change
-/// (no confirmed despawn/respawn round trip for a living NPC - the file writer's class-change is
-/// a plain field edit, but doing that live would desync the actor's actual blueprint class from
-/// what the property claims) - <see cref="SupportsSpeciesChange"/> is always false so the shared
-/// tab hides that control. Round 78 added real removal (<see cref="SupportsRemoval"/>, always
-/// true here) via <see cref="LivePetsChannel.RemoveAsync"/> - see that class's remarks.
+/// round-76 blanket "not available" with a partial one: Pest- and Skink-family pets are matched
+/// to a stable id live (their own <c>Guid</c> field - see <c>areas/pets.lua</c>'s own research
+/// comment). Round 105 stopped omitting Peccary/Lamogi (and any other tamed creature with no
+/// <c>Guid</c>) entirely: they are now listed too, found by the game's own
+/// <c>AbioticFunctionLibrary::IsTamedPet</c> check rather than a hardcoded class list, with
+/// <see cref="WorldPet.Matched"/> false - see that record's remarks for exactly what stays
+/// editable on those rows (health/alive-state, never name/XP). There is no live species change
+/// (the game's own <c>GameMode.SpawnPet</c> needs an <c>FTransform</c> this project has no safe
+/// construction precedent for - see <see cref="LivePetsChannel"/>'s remarks) -
+/// <see cref="SupportsSpeciesChange"/> is always false so the shared tab hides that control.
+/// Round 78 added real removal (<see cref="SupportsRemoval"/>, always true here, matched or not)
+/// via <see cref="LivePetsChannel.RemoveAsync"/> - see that class's remarks.
 /// </summary>
 public sealed class LivePetsSession : IWorldPetsSession
 {
@@ -52,7 +56,8 @@ public sealed class LivePetsSession : IWorldPetsSession
     private void Apply(LivePetDirectory directory)
     {
         Pets = directory.Pets
-            .Select(p => new WorldPet(p.Id, p.IsDead, p.NpcClass, p.X, p.Y, p.Z, p.CustomName, p.LimbHealth, p.Xp, State: null))
+            .Select(p => new WorldPet(p.Id, p.IsDead, p.NpcClass, p.X, p.Y, p.Z, p.CustomName, p.LimbHealth, p.Xp,
+                State: null, Matched: p.Matched))
             .ToList();
         IsHost = directory.IsHost;
         IsAvailable = directory.Available;

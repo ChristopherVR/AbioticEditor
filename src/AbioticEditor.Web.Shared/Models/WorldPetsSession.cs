@@ -5,10 +5,11 @@ namespace AbioticEditor.Web.Models;
 /// <summary>
 /// Host-neutral boundary for an open PETS editing session, implemented by
 /// <see cref="WorldSaveSession"/> (staged, always available) and <see cref="LivePetsSession"/>
-/// (against a running game - see that class for why it reports <see cref="IsAvailable"/> false
-/// today: the game exposes tame/name/health data inconsistently between creature families, with
-/// no safe way to match a live actor back to this file's pet records). See
-/// <see cref="IWorldBasesSession"/> for the pattern this copies.
+/// (against a running game - see that class's remarks: pet editing is available live, but some
+/// rows are <see cref="WorldPet.Matched"/> false because the game exposes tame/name/health data
+/// inconsistently between creature families, with no safe way to tie a Peccary/Lamogi live actor
+/// back to this file's pet records - only a Pest/Skink-family pet's own <c>Guid</c> gives that).
+/// See <see cref="IWorldBasesSession"/> for the pattern this copies.
 /// </summary>
 public interface IWorldPetsSession
 {

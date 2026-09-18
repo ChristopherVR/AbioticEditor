@@ -17,6 +17,15 @@ namespace AbioticEditor.Core.WorldSaves;
 /// <c>EBodyLimbs::*</c> enum string (e.g. <c>EBodyLimbs::Head</c>).</param>
 /// <param name="Xp">The pet's experience (<c>EDynamicProperty::XP</c>).</param>
 /// <param name="State">The <c>NarrativeState_</c> enum value as stored (game-internal).</param>
+/// <param name="Matched">True when this row can be tied to the save's own <c>PetNPC</c> record by
+/// <paramref name="Id"/> - always true for the file session and for a live Pest/Skink-family
+/// pet (its <c>Guid</c> field). False only for a live row read via a Peccary/Lamogi (or any other
+/// creature family that still carries no <c>Guid</c>/<c>PetName</c>/<c>DynamicProperties</c> of its
+/// own) - see <c>areas/pets.lua</c>'s remarks on the tamed-marker sweep. Those rows use the live
+/// actor's own full path as <see cref="Id"/>, which is stable only for that actor's lifetime, not a
+/// save key, so <see cref="CustomName"/>/<see cref="Xp"/> can never be read or written for them
+/// (the class exposes no such fields at all); only <see cref="IsDead"/>/<see cref="LimbHealth"/>
+/// are real, universal <c>AbioticCharacter</c> fields and stay editable.</param>
 public sealed record WorldPet(
     string Id,
     bool IsDead,
@@ -27,7 +36,8 @@ public sealed record WorldPet(
     string? CustomName,
     IReadOnlyDictionary<string, double> LimbHealth,
     int Xp,
-    string? State)
+    string? State,
+    bool Matched = true)
 {
     /// <summary>
     /// The class tail without the <c>_C</c> suffix, e.g. <c>NPC_Monster_Pest_Electro</c>.

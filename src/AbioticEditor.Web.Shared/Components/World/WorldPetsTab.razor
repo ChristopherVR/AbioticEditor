@@ -57,6 +57,11 @@
             else
             {
                 var editable = !PetCatalog.IsSummon(pet.NpcClass);
+                // Round 105: a live row this session could not tie back to the save's own PetNPC
+                // record (Peccary/Lamogi families and any other tamed creature with no Guid of its
+                // own - see LivePetsChannel's remarks). The class genuinely has no name/XP field to
+                // read or write live, so those controls are hidden here rather than shown disabled.
+                var identityEditable = editable && pet.Matched;
                 <h3 class="wt-h3">@PetName(pet)</h3>
                 <p class="wt-status-text">@FriendlyClass(pet)</p>
 
@@ -74,7 +79,12 @@
                     <p class="wt-notice">@L.Resource("WorldPets_ArmorSetSummonNotice")</p>
                 }
 
-                @if (editable)
+                @if (editable && !identityEditable)
+                {
+                    <p class="wt-notice">@L.Resource("WorldPets_UnmatchedLiveNotice")</p>
+                }
+
+                @if (identityEditable)
                 {
                     <label class="wt-field">
                         <span class="wt-label">@L.Resource("WorldPets_Name")</span>
@@ -122,7 +132,10 @@
                     </div>
 
                     <hr class="wt-divider" />
+                }
 
+                @if (editable)
+                {
                     <div class="wt-field">
                         <span class="wt-label accent-terminal-text">@L.Resource("WorldPets_Health")</span>
                         <div class="pet-health-row">

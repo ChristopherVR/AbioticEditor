@@ -575,6 +575,7 @@
   <data name="WorldPets_SendToPlayerHelp" xml:space="preserve"><value>La santé, le niveau et le nom sont conservés ; le familier quitte le monde. Enregistrez d'abord les autres modifications du monde.</value></data>
   <data name="WorldPets_TamedPetsInThisWorld" xml:space="preserve"><value>FAMILIERS APPRIVOISÉS DANS CE MONDE</value></data>
   <data name="WorldPets_UndoDelete" xml:space="preserve"><value>ANNULER LA SUPPRESSION</value></data>
+  <data name="WorldPets_UnmatchedLiveNotice" xml:space="preserve"><value>Pour ce type de créature, le jeu ne fournit aucun identifiant stable à associer en direct, donc son nom et son niveau ne peuvent pas être lus ni modifiés ici. La santé et le statut vivant/mort le peuvent toujours. Modifiez le fichier de sauvegarde pour le reste.</value></data>
   <data name="WorldPets_Xp" xml:space="preserve"><value>XP</value></data>
 
   <!-- WorldRaw -->

@@ -1,6 +1,9 @@
 -- Live tamed pets (areas/pets.lua): Pest-family NPCs matched by their own Guid, with per-limb
 -- health (universal AbioticCharacter fields) and DynamicProperties XP - see that file's own
--- header comment for the round-77 research and the round-78 bug fix this exercises.
+-- header comment for the round-77 research and the round-78 bug fix this exercises. Round 105
+-- (bottom of this file) added the generic tamed-marker sweep: Peccary/Lamogi-shaped creatures
+-- (no Guid of their own) listed via a fake AbioticFunctionLibrary.IsTamedPet, matching=false,
+-- health/dead editable but name/xp refused as warnings.
 return function(H)
     H.hostSession()
 
@@ -116,4 +119,99 @@ return function(H)
     H.ok(H.dispatch("pets.remove", { id = zeroRow.id }), "pets.remove")
     H.eq(H.calls(levelZero, "K2_DestroyActor"), 1, "the pet's actor was destroyed")
     H.eq(#H.ok(H.dispatch("pets.list")).pets, 1, "the removed pet no longer appears")
+
+    -- ===== Round 105: generic tamed-marker sweep (Peccary/Lamogi-shaped classes with no Guid) =====
+    -- AbioticFunctionLibrary::IsTamedPet(Actor) is a real static function (see areas/pets.lua's
+    -- own header comment) - faked here the same way every other static library this project
+    -- already drives is faked (H.world.static). The fake NPCs carry a harness-only `__tamed`
+    -- marker field since this stub environment has no real engine to natively tell tamed from
+    -- wild - only the CALL SHAPE (`lib:IsTamedPet(npc)`) and the resulting matched=false row shape
+    -- are under test here, not the game's own internal tamed-detection logic.
+    local library = H.object("AbioticFunctionLibrary", {}, {
+        IsTamedPet = function(_, npc) return rawget(npc, "__fields").__tamed == true end,
+    })
+    H.world.static("/Script/AbioticFactor.Default__AbioticFunctionLibrary", library)
+
+    -- A tamed Peccary: NPC_Base_ParentBP_C hierarchy (via __bases, the same hierarchy-faking
+    -- convention harness.lua's own H.hostSession() already uses for PlayerController), with NONE
+    -- of Guid/PetName/DynamicProperties - exactly what areas/pets.lua's header comment documents.
+    local peccary = H.object("NPC_Monster_Peccary_C", {
+        __bases = { "NPC_Base_ParentBP_C" },
+        __tamed = true,
+        IsDead = false,
+        CurrentHealth_Head = 100, CurrentHealth_Torso = 100,
+        CurrentHealth_LeftArm = 100, CurrentHealth_RightArm = 100,
+        CurrentHealth_LeftLeg = 100, CurrentHealth_RightLeg = 100,
+    }, {
+        OnRep_IsDead = function() end,
+        OnRep_CurrentHealth = function() end,
+        K2_DestroyActor = function(self) rawset(self, "__valid", false) end,
+    })
+    H.world.add(peccary)
+
+    -- A wild (untamed) creature of the same hierarchy - must never appear in pets.list.
+    local wildCreature = H.object("NPC_Monster_Peccary_C", {
+        __bases = { "NPC_Base_ParentBP_C" },
+        __tamed = false,
+        IsDead = false,
+    }, {})
+    H.world.add(wildCreature)
+
+    -- A Pest-family pet ALSO tagged with the generic hierarchy marker - proves the generic sweep
+    -- skips anything with its own Guid instead of double-listing an already-matched pet.
+    local pestWithBases = H.object("NPC_Monster_Pest_C", {
+        __bases = { "NPC_Base_ParentBP_C" },
+        Guid = H.fstring("33333333-3333-3333-3333-333333333333"),
+        PetName = H.fstring("Sparky"),
+        IsDead = false,
+        CurrentHealth_Head = 100, CurrentHealth_Torso = 100,
+        CurrentHealth_LeftArm = 100, CurrentHealth_RightArm = 100,
+        CurrentHealth_LeftLeg = 100, CurrentHealth_RightLeg = 100,
+        DynamicProperties = {},
+    }, {
+        OnRep_IsDead = function() end,
+        OnRep_PetName = function() end,
+        OnRep_CurrentHealth = function() end,
+    })
+    H.world.add(pestWithBases)
+
+    local peccaryFullName = peccary:GetFullName()
+    local afterSweep = H.ok(H.dispatch("pets.list"), "pets.list after the generic tamed sweep")
+    local unmatchedCount = 0
+    for _, r in ipairs(afterSweep.pets) do
+        if r.matched == false then unmatchedCount = unmatchedCount + 1 end
+    end
+    H.eq(unmatchedCount, 1,
+        "only the tamed Peccary is listed unmatched - the wild one and the Guid-bearing Pest are excluded")
+
+    local peccaryRow = findRow(afterSweep.pets, peccaryFullName)
+    H.check(peccaryRow ~= nil, "the tamed Peccary is listed, keyed by its own full path")
+    H.eq(peccaryRow.matched, false, "the Peccary row reports matched=false")
+    H.eq(peccaryRow.customName, nil, "no customName - the class has no PetName field")
+    H.eq(peccaryRow.xp, 0, "no xp - the class has no DynamicProperties field")
+    H.eq(peccaryRow.limbHealth.Head, 100, "universal AbioticCharacter health is still read")
+    H.check(findRow(afterSweep.pets, wildCreature:GetFullName()) == nil, "the wild (untamed) creature is never listed")
+
+    local pestRow = findRow(afterSweep.pets, "33333333-3333-3333-3333-333333333333")
+    H.check(pestRow ~= nil, "the Guid-bearing Pest is still listed once, by its own Guid")
+    H.eq(pestRow.matched, true, "a Guid-matched pet reports matched=true")
+
+    -- pets.set on an unmatched row: health/dead apply exactly as for a matched pet; name/xp are
+    -- refused with a warning (the round-78 non-fatal shape), not silently dropped or a hard error.
+    local peccaryApplied = H.ok(H.dispatch("pets.set", { id = peccaryFullName, isDead = false, customName = "Truffles",
+        xp = 40, limbHealth = { Head = 60, Torso = 100, LeftArm = 100, RightArm = 100, LeftLeg = 100, RightLeg = 100 } }),
+        "pets.set on an unmatched Peccary still succeeds overall")
+    H.eq(#peccaryApplied.warnings, 2, "two warnings: no name field, no xp field")
+    H.check((peccaryApplied.warnings[1] .. peccaryApplied.warnings[2]):find("no name field", 1, true) ~= nil,
+        "one warning explains the missing name field")
+    H.check((peccaryApplied.warnings[1] .. peccaryApplied.warnings[2]):find("no XP", 1, true) ~= nil,
+        "one warning explains the missing xp field")
+    local peccaryUpdated = findRow(H.ok(H.dispatch("pets.list")).pets, peccaryFullName)
+    H.eq(peccaryUpdated.limbHealth.Head, 60, "health still writes for an unmatched pet - it is a universal field")
+    H.eq(peccaryUpdated.customName, nil, "the name never changed - there was nothing to write it to")
+
+    -- pets.remove works for an unmatched row too - no stable save id is needed, only the live actor.
+    H.ok(H.dispatch("pets.remove", { id = peccaryFullName }), "pets.remove on an unmatched Peccary")
+    H.eq(H.calls(peccary, "K2_DestroyActor"), 1, "the Peccary's actor was destroyed")
+    H.check(findRow(H.ok(H.dispatch("pets.list")).pets, peccaryFullName) == nil, "the removed Peccary no longer appears")
 end

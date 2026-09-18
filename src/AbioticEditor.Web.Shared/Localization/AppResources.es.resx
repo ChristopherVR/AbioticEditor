@@ -576,6 +576,7 @@
   <data name="WorldPets_SendToPlayerHelp" xml:space="preserve"><value>La salud, el nivel y el nombre se transfieren; la mascota abandona el mundo. Guarda primero otras ediciones del mundo.</value></data>
   <data name="WorldPets_TamedPetsInThisWorld" xml:space="preserve"><value>MASCOTAS DOMESTICADAS EN ESTE MUNDO</value></data>
   <data name="WorldPets_UndoDelete" xml:space="preserve"><value>DESHACER ELIMINAR</value></data>
+  <data name="WorldPets_UnmatchedLiveNotice" xml:space="preserve"><value>Este tipo de criatura no le da al juego un id estable para emparejar en vivo, así que su nombre y nivel no se pueden leer ni cambiar aquí. La salud y el estado vivo/muerto sí pueden. Edita el archivo de guardado para lo demás.</value></data>
   <data name="WorldPets_Xp" xml:space="preserve"><value>XP</value></data>
 
   <!-- WorldRaw -->

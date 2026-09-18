@@ -575,6 +575,7 @@
   <data name="WorldPets_SendToPlayerHelp" xml:space="preserve"><value>Здоровье, уровень и имя сохраняются; питомец покидает мир. Сначала сохраните другие изменения мира.</value></data>
   <data name="WorldPets_TamedPetsInThisWorld" xml:space="preserve"><value>ПРИРУЧЁННЫЕ ПИТОМЦЫ В ЭТОМ МИРЕ</value></data>
   <data name="WorldPets_UndoDelete" xml:space="preserve"><value>ОТМЕНИТЬ УДАЛЕНИЕ</value></data>
+  <data name="WorldPets_UnmatchedLiveNotice" xml:space="preserve"><value>Для этого вида существ игра не даёт устойчивого id для сопоставления в реальном времени, поэтому имя и уровень здесь нельзя прочитать или изменить. Здоровье и статус живой/мёртвый по-прежнему можно. Остальное меняйте в файле сохранения.</value></data>
   <data name="WorldPets_Xp" xml:space="preserve"><value>ОПЫТ</value></data>
 
   <!-- WorldRaw -->

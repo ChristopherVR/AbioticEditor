@@ -575,6 +575,7 @@
   <data name="WorldPets_SendToPlayerHelp" xml:space="preserve"><value>Gesundheit, Stufe und Name werden übernommen; das Haustier verlässt die Welt. Speichern Sie zuerst andere Weltänderungen.</value></data>
   <data name="WorldPets_TamedPetsInThisWorld" xml:space="preserve"><value>GEZÄHMTE HAUSTIERE IN DIESER WELT</value></data>
   <data name="WorldPets_UndoDelete" xml:space="preserve"><value>LÖSCHEN RÜCKGÄNGIG</value></data>
+  <data name="WorldPets_UnmatchedLiveNotice" xml:space="preserve"><value>Für diese Kreaturenart gibt das Spiel keine feste ID zur Live-Zuordnung, daher können Name und Stufe hier nicht gelesen oder geändert werden. Gesundheit und Lebend/Tot-Status funktionieren weiterhin. Für den Rest bearbeiten Sie die Speicherdatei.</value></data>
   <data name="WorldPets_Xp" xml:space="preserve"><value>XP</value></data>
 
   <!-- WorldRaw -->
