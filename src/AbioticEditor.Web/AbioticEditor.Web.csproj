@@ -220,8 +220,10 @@
        UE4SS and this game's live editing are both Windows-only today.
        ExcludeFromSingleFile on the helper, manifest and package: the single-file bundler
        otherwise swallows them into the executable (the first bundled release attempt shipped an
-       empty live-agent/ue4ss folder), and LiveAgentSetup needs them as real files on disk. -->
-  <ItemGroup Condition="'$(RuntimeIdentifier)' == '' or $(RuntimeIdentifier.StartsWith('win'))">
+       empty live-agent/ue4ss folder), and LiveAgentSetup needs them as real files on disk.
+       Linux ships it too: a Steam Play player runs the same Windows game binary under Proton, so
+       the same UE4SS package, Lua scripts and helper are what get installed there. -->
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == '' or $(RuntimeIdentifier.StartsWith('win')) or $(RuntimeIdentifier.StartsWith('linux'))">
     <Content Include="..\..\live-agent\AbioticEditorLiveAgentLua\Scripts\**"
              Link="live-agent\Lua\Scripts\%(RecursiveDir)%(Filename)%(Extension)"
              CopyToOutputDirectory="PreserveNewest"

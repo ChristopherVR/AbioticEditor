@@ -89,6 +89,35 @@ public class ProtonLiveAgentEnvironmentTests
     }
 
     [Fact]
+    public void LocalAppDataCandidates_lists_the_expected_folder_first_then_every_prefix_user_in_both_layouts()
+    {
+        using var tmp = new TempDir();
+        var prefix = Path.Combine(tmp.Path, "pfx");
+        Directory.CreateDirectory(Path.Combine(prefix, "drive_c", "users", "steamuser", "AppData", "Local"));
+        // A plain Wine prefix (not Proton) names its user after the Linux account, and Wine 6 was
+        // seen writing under the legacy layout - both must be probed, after the expected folder.
+        Directory.CreateDirectory(Path.Combine(prefix, "drive_c", "users", "christopher", "Local Settings", "Application Data"));
+
+        var candidates = ProtonLiveAgentEnvironment.LocalAppDataCandidates(prefix).ToList();
+
+        Assert.Equal(ProtonLiveAgentEnvironment.LocalAppDataIn(prefix), candidates[0]);
+        Assert.Contains(Path.Combine(prefix, "drive_c", "users", "steamuser", "Local Settings", "Application Data"), candidates);
+        Assert.Contains(Path.Combine(prefix, "drive_c", "users", "christopher", "AppData", "Local"), candidates);
+        Assert.Contains(Path.Combine(prefix, "drive_c", "users", "christopher", "Local Settings", "Application Data"), candidates);
+        Assert.Equal(candidates.Count, candidates.Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
+    public void LocalAppDataCandidates_without_a_users_folder_still_yields_the_expected_one()
+    {
+        var prefix = Path.Combine("nowhere", "pfx");
+
+        var candidates = ProtonLiveAgentEnvironment.LocalAppDataCandidates(prefix).ToList();
+
+        Assert.Equal([ProtonLiveAgentEnvironment.LocalAppDataIn(prefix)], candidates);
+    }
+
+    [Fact]
     public void End_to_end_resolves_the_AbioticEditorLiveAgent_folder_from_an_install_path()
     {
         using var tmp = new TempDir();

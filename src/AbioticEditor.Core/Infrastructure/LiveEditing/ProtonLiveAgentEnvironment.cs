@@ -94,4 +94,37 @@ public static class ProtonLiveAgentEnvironment
     /// <c>LOCALAPPDATA</c> actually reads and writes files on the real Linux filesystem.</summary>
     public static string LocalAppDataIn(string prefixRoot)
         => Path.Combine(prefixRoot, "drive_c", "users", PrefixUser, "AppData", "Local");
+
+    /// <summary>
+    /// Every folder a process inside <paramref name="prefixRoot"/> may actually have resolved
+    /// <c>%LOCALAPPDATA%</c> to, most likely first. <see cref="LocalAppDataIn"/> is the expected
+    /// one (a Proton prefix's <c>steamuser</c>), but a plain Wine prefix names its user after the
+    /// Linux account, and Wine 6 (the Ubuntu 22.04 package) was observed writing the helper's
+    /// files under the legacy <c>Local Settings\Application Data</c> layout despite the
+    /// <c>LOCALAPPDATA</c> it was handed (tools/verify-linux-live-setup.sh reproduces it). Readers
+    /// probe all of these so a live helper is found wherever Wine put its files.
+    /// </summary>
+    public static IEnumerable<string> LocalAppDataCandidates(string prefixRoot)
+    {
+        var expected = LocalAppDataIn(prefixRoot);
+        yield return expected;
+
+        var usersRoot = Path.Combine(prefixRoot, "drive_c", "users");
+        string[] users;
+        try
+        {
+            users = Directory.Exists(usersRoot) ? Directory.GetDirectories(usersRoot) : [];
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            yield break;
+        }
+
+        foreach (var user in users)
+        {
+            var modern = Path.Combine(user, "AppData", "Local");
+            if (!string.Equals(modern, expected, StringComparison.Ordinal)) yield return modern;
+            yield return Path.Combine(user, "Local Settings", "Application Data");
+        }
+    }
 }

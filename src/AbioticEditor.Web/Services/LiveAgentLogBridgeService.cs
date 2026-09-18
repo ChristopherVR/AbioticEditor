@@ -68,7 +68,15 @@ public sealed class LiveAgentLogBridgeService : BackgroundService
             var libraryRoot = install is null ? null : ProtonLiveAgentEnvironment.FindSteamLibraryRoot(install.Root);
             var prefixRoot = libraryRoot is null ? null : ProtonLiveAgentEnvironment.FindPrefixRoot(libraryRoot, SteamAchievements.AppId);
             if (prefixRoot is not null)
+            {
+                // Prefer whichever candidate already holds a lua.log; otherwise the expected one.
+                foreach (var localAppData in ProtonLiveAgentEnvironment.LocalAppDataCandidates(prefixRoot))
+                {
+                    var candidate = Path.Combine(localAppData, "AbioticEditorLiveAgent");
+                    if (File.Exists(Path.Combine(candidate, "lua.log"))) return candidate;
+                }
                 return Path.Combine(ProtonLiveAgentEnvironment.LocalAppDataIn(prefixRoot), "AbioticEditorLiveAgent");
+            }
         }
 
         return Path.Combine(

@@ -88,7 +88,10 @@ public sealed class DesktopLiveEditingCapability : ILiveEditingCapability
             var libraryRoot = install is null ? null : ProtonLiveAgentEnvironment.FindSteamLibraryRoot(install.Root);
             var prefixRoot = libraryRoot is null ? null : ProtonLiveAgentEnvironment.FindPrefixRoot(libraryRoot, SteamAchievements.AppId);
             if (prefixRoot is not null)
-                yield return Path.Combine(ProtonLiveAgentEnvironment.LocalAppDataIn(prefixRoot), "AbioticEditorLiveAgent");
+            {
+                foreach (var localAppData in ProtonLiveAgentEnvironment.LocalAppDataCandidates(prefixRoot))
+                    yield return Path.Combine(localAppData, "AbioticEditorLiveAgent");
+            }
         }
 
         yield return Path.Combine(

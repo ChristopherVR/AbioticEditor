@@ -278,17 +278,21 @@ public static class LiveAgentSetup
         return false;
     }
 
-    // Same Linux caveat as IsGameRunning above: a helper launched through Wine may not show up
-    // under Linux as a process literally named "AbioticEditorLiveAgentHelper" (Wine's own process
-    // naming for the child Windows executable is not confirmed here) - unverified.
+    // Verified under Wine 6 in WSL (tools/verify-linux-live-setup.sh): the kernel reports the
+    // Wine-hosted helper's name truncated to 15 bytes ("AbioticEditorLi"), so an exact
+    // GetProcessesByName match never finds it and every connect would launch another copy.
+    // Match on the prefix instead, the same way IsGameRunning already tolerates.
     [SupportedOSPlatform("windows")]
     [SupportedOSPlatform("linux")]
     private static bool IsHelperRunning()
     {
-        foreach (var process in Process.GetProcessesByName(HelperProcessName))
+        var prefix = HelperProcessName.Length > 15 && OperatingSystem.IsLinux() ? HelperProcessName[..15] : HelperProcessName;
+        foreach (var process in Process.GetProcesses())
         {
-            process.Dispose();
-            return true;
+            using (process)
+            {
+                if (process.ProcessName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return true;
+            }
         }
         return false;
     }
