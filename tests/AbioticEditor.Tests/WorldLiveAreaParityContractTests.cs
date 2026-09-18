@@ -168,6 +168,41 @@ public sealed class WorldLiveAreaParityContractTests
         }
     }
 
+    [Fact]
+    public void WorldNpcsTab_binds_to_the_narrow_interface_plus_an_optional_live_creatures_session()
+    {
+        // Round 99: the old dedicated "Creatures" tab (LiveNpcsTab.razor) was folded into the
+        // same shared story-character tab as a second chip - Creatures is optional (null offline,
+        // and null live until connected) rather than a second required parameter.
+        var source = WorldSource("WorldNpcsTab.razor");
+        Assert.Contains("public IWorldNpcsSession Session", source, StringComparison.Ordinal);
+        Assert.Contains("public LiveNpcSession? Creatures", source, StringComparison.Ordinal);
+        Assert.False(File.Exists(UiSource.Resolve("Components", "World", "LiveNpcsTab.razor")),
+            "LiveNpcsTab.razor should be deleted - its roster is now the Creatures chip inside WorldNpcsTab.");
+    }
+
+    [Fact]
+    public void LiveConnect_wires_both_npc_sessions_into_the_merged_tab()
+    {
+        var source = PagesSource("LiveConnect.razor");
+        Assert.Contains("<WorldNpcsTab Session=\"_narrativeNpcs\" Creatures=\"_npcs\"", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("<LiveNpcsTab", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Merged_npcs_tab_resource_keys_exist_in_AppResources()
+    {
+        var resources = System.Xml.Linq.XDocument.Load(UiSource.Resolve("Localization", "AppResources.resx"))
+            .Descendants("data").Select(node => node.Attribute("name")?.Value)
+            .Where(name => name is not null).ToHashSet(StringComparer.Ordinal);
+        foreach (var key in new[] { "WorldNpcs_SectionStory", "WorldNpcs_SectionCreatures", "WorldNpcs_CreaturesNeedLiveConnection" })
+        {
+            Assert.Contains(key, resources);
+        }
+        // The dedicated live-only "Creatures" tab button is gone - merged into the chip above.
+        Assert.DoesNotContain("Live_TabWildlife", resources);
+    }
+
     private static string WorldSource(string file) => UiSource.ReadAllText("Components", "World", file);
     private static string PagesSource(string file) => UiSource.ReadAllText("Components", "Pages", file);
     private static string ModelSource(string file) => UiSource.ReadAllText("Models", file);

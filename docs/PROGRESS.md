@@ -1,5 +1,212 @@
 # Abiotic Editor - Session history
 
+## Round-99: Characters and Creatures merged into one NPCS tab, real names for creatures (2026-09-18)
+
+Round-92 compared the offline "Characters" tab (`WorldNpcsTab.razor`, the save's `NarrativeNPCMap`
+- story NPCs/traders) against the live-only "Creatures" tab (`LiveNpcsTab.razor`, every
+`NPC_Base_ParentBP_C` actor currently loaded - wildlife, monsters, robots, humanoid NPCs) and left
+them as two tabs: the data is genuinely disjoint (the save never persists what is loaded in the
+world). The owner disagreed with two tabs for one concept and separately flagged that neither
+section names who occupies a slot. This round merges the UI (the data split from Round-92 still
+stands and is unaffected) and adds a real name source for creatures.
+
+**Merge**: `WorldNpcsTab.razor` now renders both rosters behind a `world-tabs`-styled chip pair
+("Story characters" / "Creatures and NPCs nearby") in one section, instead of two separate tabs.
+Story characters keep the exact Round-92 behavior (one Dead checkbox doing kill/revive, story
+stage picker) unchanged. The creatures chip is the old `LiveNpcsTab.razor` body, renamed into the
+same component: REFRESH button, host warning, Disabled/Invincible/Faction fields, wiki picture via
+`CreatureWikiImages`, and the same Round-92 Dead checkbox. `LiveNpcsTab.razor` is deleted; its
+session (`LiveNpcSession`, `main.lua`'s `npcs.list`/`npcs.set`) and every Lua/C# wire type are
+unchanged - only the razor component and its wiring moved. Offline, the creatures chip shows a
+plain note ("connect to your running game...") instead of existing as a dead separate tab, the
+same capability-gated idiom `WorldTradersTab`/`WorldContainmentTab` already use for a live-only
+half of a shared tab; `Creatures` is a new optional `LiveNpcSession?` parameter (null offline, null
+live until `LiveConnect.razor` finishes connecting it) alongside the existing `IWorldNpcsSession
+Session` parameter for the story half. `LiveConnect.razor`: the dedicated "npcs"
+(`Live_TabWildlife`) nav button and render branch are gone; the "narrativenpcs" branch now passes
+`Creatures="_npcs"` alongside `Session="_narrativeNpcs"`, and `EnsureAreaConnectedAsync`'s
+`"narrativenpcs"` case also connects `_npcs` (moved out of the deleted `"npcs"` case) so the
+creatures chip has data the moment a player switches to it. Deliberately did **not** add `_npcs` to
+`ActiveLiveSessions()`'s periodic-refresh switch - that switch already documents skipping it
+("backs onto a full world scan ... the same freeze/timeout story containers had"); the REFRESH
+button and the Round-92 revive path are the only ways it re-fetches, unchanged from before the
+merge. `SaveEditorSurface.razor` needed no change: `Creatures` defaults to null, so passing only
+`Session="@world"` there still renders correctly with the offline note.
+
+**Real names (corrected same day, see follow-up below)**: this entry originally said
+story-character names were already as good as the data allows, citing
+`docs/reference/research/research-narrative-npcs.md`'s "anonymous slot" verdict. That verdict was
+wrong - it reasoned from the actor class alone and never checked what the level file itself sets
+per placed instance. The coordinator's own level probe proved every placed actor DOES carry its
+own conversation row. See the follow-up write-up below for what actually shipped.
+
+The creatures section got a genuine upgrade: new `NpcDisplayNameCatalog`
+(`Core/Catalogs/World/NpcDisplayNameCatalog.cs`) reads `DT_NPCList` in full (row -> `DisplayName_`
++ `NPCSpawnClass_`), generalizing what `PetGameData.cs` already does for pets alone into every
+spawnable NPC class. This is the game's own name, not a guess: `NPC_Robot_Defense_C` naively
+derives to "Robot Defense" (the old `LiveNpcsTab.DisplayName` heuristic, kept as `HeuristicName` -
+still the `CreatureWikiImages` lookup key, that catalog is curated against exactly this
+derivation, and the last-resort fallback), but `DT_NPCList` itself calls the row "Defense Robot"
+(see `CreatureWikiImages`'s own header comment, which already documented this exact mismatch from
+Round 91's wiki-art pass without fixing the tab's display name). Bundled into the game-data
+registry as `GameDataRegistry.NpcDisplayNames` (`string -> string`, no schema bump - the existing
+"nullable, absent means not dumped" convention) so a browser build with no game install resolves
+the same names; `ItemCatalogService.GetNpcDisplayNameAsync` prefers a mounted install (freshest,
+picks up mods/DLC) and falls back to the bundled dictionary, mirroring `GetCharacterNameAsync`'s
+existing shape. **Update, later same round: the coordinator re-ran `dump-registry --all-cultures`**
+- `assets/registry/registry.json` now carries 117 `NpcDisplayNames` entries (confirmed by reading
+the committed file directly), so the browser build already has real creature names with no further
+action needed for this part. `DumpRegistryCommand` itself needed no change either way (it already
+calls `GameDataRegistry.BuildFromInstall` for every culture, which picked up the new catalog
+automatically).
+
+Added `tests/AbioticEditor.Tests/NpcDisplayNameCatalogTests.cs`: pure `Resolve` matching (short
+class, full soft-object path, case-insensitivity, null/empty handling - no game install needed), a
+live-table cross-check against `PetGameDataTests`' own already-asserted `NPC_Monster_LamogiSpeedy`
+-> "Speedogi" fact (skips without an install), and a `GameDataRegistry.NpcDisplayNames` save/load
+round-trip. Extended `WorldLiveAreaParityContractTests.cs` with three facts: `WorldNpcsTab.razor`
+binds to `IWorldNpcsSession Session` plus optional `LiveNpcSession? Creatures` and
+`LiveNpcsTab.razor` no longer exists, `LiveConnect.razor` wires `Creatures="_npcs"` on the merged
+tab with no leftover `<LiveNpcsTab`, and the three new resource keys exist while
+`Live_TabWildlife` does not.
+
+**Resources**: added `WorldNpcs_SectionStory`, `WorldNpcs_SectionCreatures`,
+`WorldNpcs_CreaturesNeedLiveConnection` (English only, matching this repo's existing convention of
+not back-filling de/es/fr/ru for brand-new keys - confirmed none of the keys touched this round
+existed in those four files to begin with, so nothing there needed editing). Changed
+`WorldEditor_TabNpcs`'s English value from "Characters" to "NPCs" (same key, not renamed).
+Removed the now-dead `Live_TabWildlife` key. Every other key from both source tabs
+(`WorldNpcs_*`, `LiveNpcs_*`, `Editing_SelectNpc`) is still referenced by the merged component
+and was left alone - `LiveNpcs_SelectToPreview` in particular had zero usages before this round
+(a pre-existing orphan) and is now actually wired to the creatures chip's select-hint.
+
+Not run: `dotnet build`/`dotnet test` (coordinator builds centrally after concurrent sessions
+land) and `python tools/run-lua-tests.py` (no Lua touched this round - the wire protocol and
+`main.lua` are unchanged). Not exercised in a running game.
+
+### Round-99 follow-up: story-character names ARE resolvable - the "anonymous slot" verdict was wrong
+
+Same day, same round. The coordinator ran `tests/AbioticEditor.Probes/NarrativeNpcLevelProbe.cs`
+against a real install (all 77 `.umap` level packages, ~85s) and found every placed
+`NarrativeNPC_*` actor carries its own **instance-level** `NarrativeNPC_ConversationRow` - not
+just inherited from the class default. E.g. in `Facility_Pens`: `NarrativeNPC_Ela_C_1` -> row
+`Labs_Ela_Pest` -> `DT_NPC_Conversations`'s `NPCName` "Ela"; `NarrativeNPC_Human_ParentBP_C_2` ->
+row `LABS_Abe` -> "Abe"; the generic-looking `NarrativeNPC_Human_Hologram_C_0` -> row `Manse_DL_03`
+-> "Dr. Manse". The class being generic (`Human_ParentBP`/`Human_Hologram`) never meant the *slot*
+was anonymous - the level file always knew exactly who was there; the save file just never
+repeated it. Confirmed independently against the real fixture: grepping the raw bytes of
+`tests/fixtures/SteamSaves/Legacy/Cascade/WorldSave_Facility_Pens.sav` for `NarrativeNPC` finds the
+literal key `/Game/Maps/Facility_Pens.Facility_Pens:PersistentLevel.NarrativeNPC_Ela_C_1` - the
+exact (map, actor) pair the probe evidence names.
+
+Added `AbioticEditor.Core.WorldSaves.NarrativeNpcNameCatalog`
+(`Core/Catalogs/World/NarrativeNpcNameCatalog.cs`), `DoorLocationResolver`'s counterpart for names
+instead of positions: `BuildFrom(provider)` walks every `.umap` under
+`AbioticFactor/Content/Maps`, reads each `NarrativeNPC_*` export's own
+`NarrativeNPC_ConversationRow.RowName`, and resolves it against `DT_NPC_Conversations`'s `NPCName`
+(localized). Keyed by `"<LevelFileName>:<ActorInstanceName>"` (e.g.
+`Facility_Pens:NarrativeNPC_Ela_C_1`) via `KeyFor`; `KeyForActorPath` parses a `WorldNpc.Id` into
+the same key using **`DoorIdParser.Parse`, reused unchanged** - the exact same generic UE
+actor-path parser `WorldDoorsTab` already relies on for `WorldDoor.Id`, since `WorldNpc.Id` is the
+identical actor-path shape (`/Game/Maps/X.X:PersistentLevel.Actor_C_N`, also accepts the live
+`GetFullName()` form). This is deliberately **dump-time only** - `BuildFrom` is slow (~85s, walks
+77 level packages) and must never run inside the live app; it is called exactly once, from
+`GameDataRegistry.BuildFromInstall` (i.e. only by the maintainer `dump-registry` CLI command).
+
+New nullable `GameDataRegistry.NarrativeNpcNames` (`string -> string`, no schema bump, same
+"absent means not dumped" convention as `NpcDisplayNames`). At runtime **both** hosts read only
+the bundled registry for this field - `ItemCatalogService.GetNarrativeNpcName` is a plain
+synchronous dictionary lookup with **no live-provider fallback at all** (unlike
+`GetCharacterNameAsync`/`GetNpcDisplayNameAsync`), because there is no fast per-actor path: the
+registry itself only exists because building it means loading every level once, and neither the
+desktop app nor the browser build may repeat that at runtime. `WorldNpcsTab`'s story rows now call
+`Items.GetNarrativeNpcName(npc.Id)` first; when it resolves, the bold primary label becomes the
+real name and the small secondary line becomes the `NpcIdentityCatalog` hint/class context that
+used to be the primary label, with the full raw actor id moved to the row/detail's `title`
+tooltip. When it does not resolve (older bundled registry, or an actor the probe's own sweep
+couldn't reach), everything falls back to the exact pre-follow-up chain (live desktop lookup, then
+the curated hint, raw id visible inline) - zero behavior change until the registry is re-dumped.
+
+Updated `docs/reference/research/research-narrative-npcs.md`'s "NPC identity" section: replaced
+the wrong "anonymous slots" verdict with the corrected finding and a caveat that a wandering
+trader's conversation row may not track which trader currently occupies that spawn point (that
+identity is `NarrativeNPCDirectorComponent`'s own runtime state, not this map or the conversation
+row) - the resolved name is the *placed actor's* identity, not necessarily "whoever is standing
+there today" for the handful of roaming trader slots.
+
+Added `tests/AbioticEditor.Tests/NarrativeNpcNameCatalogTests.cs`: `KeyFor`/`KeyForActorPath`
+against the literal id grepped out of the real Cascade fixture's `WorldSave_Facility_Pens.sav` raw
+bytes (both the file-form and live `GetFullName()`-form ids), `Resolve` against an inline sample
+dictionary, a `GameDataRegistry.NarrativeNpcNames` save/load round-trip, and a fixture test that
+reads `WorldSave_Facility_Pens.sav` through the real `WorldSaveReader`, confirms the real
+`WorldNpc.Id` values for the Ela and Abe entries normalize to the expected composite key, resolves
+them against an inline sample dictionary (proving the shape end to end right now), and separately
+checks the real bundled registry's `NarrativeNpcNames` only when present (skipped until the
+registry is re-dumped).
+
+`NarrativeNpcNameCatalog` is brand new this follow-up, so the registry re-dump the coordinator
+already ran for `NpcDisplayNames` (see the update above) predates this field - confirmed by reading
+`assets/registry/registry.json` directly: it has `NpcDisplayNames` but no `NarrativeNpcNames` key
+at all yet. **Coordinator: re-run `dump-registry --all-cultures` once more and commit the refresh**
+so story-character rows actually show real names; until then every row keeps showing today's
+hint-based label (`NarrativeNpcNameCatalogTests`' bundled-registry check is written to skip
+gracefully in exactly this situation, not fail). Not run: `dotnet build`/`dotnet test` (coordinator
+builds centrally). Not exercised in a running game.
+
+## Round-98: live editing for Linux players (Steam Play/Proton) (2026-09-18)
+
+Live editing's in-game side (UE4SS + the bundled Lua mod + the native
+`AbioticEditorLiveAgentHelper.exe`) was Windows-only even on the Linux desktop app, which already
+supports offline editing and already detects Unix Steam libraries and Proton `compatdata` saves
+(`AbioticEditor.Core.Saves.SaveDiscovery.DiscoverProtonClientWorlds`). Abiotic Factor has no
+native Linux build, so a Linux copy of the game is always the same Windows binary running under
+Steam Play - the same bundled UE4SS package and the same Lua mod install into the same
+`Binaries/Win64` folder as on Windows, no code changes needed there (`Ue4ssBundledRuntime` was
+already pure `System.IO`, no platform checks).
+
+**Blockers found**: `LiveAgentSetup.EnsureReadyAsync` hard-returned `NotSupportedOnThisPlatform`
+for any non-Windows OS (`src/AbioticEditor.Web.Shared/Services/LiveAgentSetup.cs`, was line 112).
+Deeper down, the native helper resolves its IPC mailbox and token/port files from
+`%LOCALAPPDATA%` via a raw Win32 `GetEnvironmentVariableA` call
+(`live-agent/AbioticEditorLiveAgentHelper/src/TokenStore.h`), and the in-game Lua mod resolves the
+same folder via its own `os.getenv("LOCALAPPDATA")` - both only meaningful from *inside* the
+game's own Proton (Wine) prefix, which is a different filesystem location from this editor's own
+native Linux `%LOCALAPPDATA%` (`~/.local/share` by .NET convention). `DesktopLiveEditingCapability`
+and `LiveAgentLogBridgeService` both read that native path unconditionally, so even if the helper
+somehow ran, the editor would never find its token/port/log files on Linux.
+
+**What changed**: new `AbioticEditor.Core.LiveEditing.ProtonLiveAgentEnvironment` resolves a Steam
+library root from any install path (`FindSteamLibraryRoot`, walking for a `steamapps/common`
+segment pair - robust to whichever install shape the player picked, mirroring
+`GameInstallLocator.InferKind`'s technique) and that library's Proton prefix for Abiotic Factor's
+fixed Steam app id (`SteamAchievements.AppId` = 427410; a beta/demo build with a different app id
+is not handled - a known gap, matching `SaveDiscovery`'s own compatdata-scanning code not existing
+yet for this specific lookup). `LiveAgentSetup.EnsureReadyAsync` now allows Linux past the
+platform gate (macOS stays blocked - no bundled helper/UE4SS build and no Proton-equivalent path),
+resolves that prefix before launching the helper, and launches it through `wine` (or a binary named
+by the new `ABIOTIC_LIVE_WINE` env var) with `WINEPREFIX` and an explicit `LOCALAPPDATA` set to the
+prefix's own `C:\users\steamuser\AppData\Local`, so the helper's token/port/mailbox files land
+exactly where the Lua mod (running inside that same prefix) looks for them. A missing Proton
+profile or missing Wine binary now returns a plain-language `HelperUnavailable` message instead of
+a generic "not supported" state. `DesktopLiveEditingCapability.TryReadLocalToken/Port` and
+`LiveAgentLogBridgeService`'s `lua.log` tail now check the same Proton-mapped folder first on
+Linux (falling back to the native path); `helper.log` stays at the native path since this editor's
+own process writes that file directly, not through Wine.
+
+**Not verified against a real Linux/Proton box** (no such machine available this round - flagged
+loudly in the code and in `docs/guide/live-editing.md`'s new Linux/Proton section): whether
+`Process.GetProcesses()`/`GetProcessesByName` actually see the Wine-wrapped game and helper
+process under their expected names (`IsGameRunning`/`IsHelperRunning` in `LiveAgentSetup.cs` -
+Wine's own process-naming and the Linux kernel's 15-byte `comm` limit could mean neither ever
+matches, silently defeating the "already running" fast paths without breaking a first launch);
+whether Wine's console stdout/stderr redirection through .NET's `Process` class behaves the same
+as a native Windows child; and whether Steam's Proton always uses the `steamuser`/`pfx` layout
+this assumes (matches `SaveDiscovery`'s already-relied-upon `ProtonSaveGamesSubPath`, so treated as
+established, not a fresh guess). Tests added in
+`tests/AbioticEditor.Tests/ProtonLiveAgentEnvironmentTests.cs` cover the pure path-resolution logic
+against fake `steamapps/common/.../compatdata/<appid>/pfx` fixture trees only, not the wine launch
+or process-detection code, which needs a real box.
+
 ## Round-97: web-only safeguards, containment scan in the browser, bundled data refresh (2026-09-18)
 
 Coordinator round that landed alongside rounds 92-96 (all seven workstreams ran as parallel

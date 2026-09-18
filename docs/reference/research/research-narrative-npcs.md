@@ -57,21 +57,46 @@ Field values observed:
   an empty map. `NPCClass`: always `None.None`. These are reserve fields the current
   game build never fills for these actors - the editor should not display them.
 
-## NPC identity: why the actor paths are anonymous
+## NPC identity: the actor paths are NOT anonymous (superseded 2026-09-18, round 99)
+
+**This section's original verdict was wrong.** It reasoned from the actor *class* alone
+(`NarrativeNPC_Human_ParentBP_C`, `_Hologram_C`, generic and reused by many placed slots) and
+concluded a save entry could not be traced to a specific character. It never looked at what the
+*level file* itself sets per placed instance. The coordinator's
+`tests/AbioticEditor.Probes/NarrativeNpcLevelProbe.cs` walked all 77 `.umap` level packages and
+found that **every placed `NarrativeNPC_*` actor carries its own instance-level
+`NarrativeNPC_ConversationRow`** (a `DT_NPC_Conversations` row handle, set per placed actor in
+the level, not just inherited from the class default) - e.g. in `Facility_Pens`,
+`NarrativeNPC_Ela_C_1` -> row `Labs_Ela_Pest`, and the generic
+`NarrativeNPC_Human_Hologram_C_0` -> row `Manse_DL_03`. `DT_NPC_Conversations` itself carries
+each row's `NPCName` (localized text) - `Labs_Ela_Pest` -> "Ela", `Manse_DL_03` -> "Dr. Manse".
+So the class being generic never meant the *slot* was anonymous: the level file always knew
+exactly which character occupies it, the save file just never needed to repeat that.
 
 The map key is the **level actor instance** (`...PersistentLevel.NarrativeNPC_Human_ParentBP_C_1`).
-The named character blueprints exist in the cooked data
-(`Blueprints/Characters/NarrativeNPCs/`): `NarrativeNPC_Human_ChefTrader` (Dr. Carson),
-`_GraysonTrader`, `_MarionTrader`, `_TravelingTrader_Jimmy`, `_TravelingTrader_Thule`,
-`NarrativeNPC_Larva`, plus story NPCs (`_Ela`, `_HastaTria`, `_HammeringHank` = Hank
-Kettle, `_ForkliftOperator` = wounded Grayson, `_Nibbles`, `_UnlostMage`, `_ExorChieftain`,
-`_BossAlly_*` incl. Kylie, `_Waterbot`, `_Kyliebot`, Vignette props like
-`_Penguin_VWinter`). But the *placed actors* that end up in `NarrativeNPCMap` are nearly
-all the generic `Human_ParentBP` / `Human_Hologram` classes, so **a save entry cannot be
-mapped to a specific character** except for the handful of dedicated classes (Ela,
-HastaTria, Larva, CKCore, TRADER). Which trader currently occupies a wandering slot is
-tracked by `NarrativeNPCDirectorComponent` (`NarrativeNPCSpawns_Struct`: trader
-`NPCRowName` + `TradeItemsRow` + `TradeStock` + `NarrativeState`), not by this map.
+`AbioticEditor.Core.WorldSaves.NarrativeNpcNameCatalog` (added round 99) walks every level once
+at dump time (see `dump-registry`), keyed by level file name + actor instance name (the same
+(map, actor) pair `DoorIdParser.Parse` already extracts from this exact actor-path shape for
+`WorldDoor.Id`), and bundles the result as `GameDataRegistry.NarrativeNpcNames` so neither host
+re-walks 77 levels at runtime (~85s measured). `WorldNpcsTab`'s story-character rows show this
+name as the primary label when the registry has it, falling back to the pre-existing hint/live
+lookup chain below when it does not (an older bundled registry, or a level this build cannot
+read).
+
+The named character blueprints exist in the cooked data (`Blueprints/Characters/NarrativeNPCs/`):
+`NarrativeNPC_Human_ChefTrader` (Dr. Carson), `_GraysonTrader`, `_MarionTrader`,
+`_TravelingTrader_Jimmy`, `_TravelingTrader_Thule`, `NarrativeNPC_Larva`, plus story NPCs (`_Ela`,
+`_HastaTria`, `_HammeringHank` = Hank Kettle, `_ForkliftOperator` = wounded Grayson, `_Nibbles`,
+`_UnlostMage`, `_ExorChieftain`, `_BossAlly_*` incl. Kylie, `_Waterbot`, `_Kyliebot`, Vignette
+props like `_Penguin_VWinter`) - these are a different thing from the conversation-row names
+above (a placed actor's *class*, evidenced only for the handful of dedicated non-generic
+classes), and `NpcIdentityCatalog`'s curated hints (still the fallback when no conversation row
+resolves) are keyed off this class list. Which trader currently occupies a wandering slot is
+still tracked separately by `NarrativeNPCDirectorComponent` (`NarrativeNPCSpawns_Struct`: trader
+`NPCRowName` + `TradeItemsRow` + `TradeStock` + `NarrativeState`), not by this map or by the
+conversation row - a wandering trader's `ConversationRow` may not track which trader is currently
+assigned to that spawn point, so the resolved name here is the *placed actor's* identity, not
+necessarily "whichever trader is standing there today" for the handful of roaming trader slots.
 
 Trader identities themselves (DT_NPC_Traders -> wiki names) are already in
 `TraderLore.cs`: Warren Bunning (Office plaza kiosk, stationary), the Blacksmith

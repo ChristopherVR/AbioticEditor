@@ -154,6 +154,24 @@ public sealed class GameDataRegistry
     public IReadOnlyList<SectorMapInfo>? SectorMaps { get; init; }
 
     /// <summary>
+    /// Spawned-NPC class (short name, e.g. <c>NPC_Monster_Peccary</c>) -> the friendly name
+    /// <c>DT_NPCList</c> itself gives it; null if not dumped. Lets the live "NPCs" tab's Creatures
+    /// section show the game's own name for a class instead of a guess derived from it - see
+    /// <see cref="WorldSaves.NpcDisplayNameCatalog"/>.
+    /// </summary>
+    public IReadOnlyDictionary<string, string>? NpcDisplayNames { get; init; }
+
+    /// <summary>
+    /// Placed story-NPC actor (<see cref="WorldSaves.NarrativeNpcNameCatalog.KeyFor"/>: level name
+    /// + actor instance name) -> the real character name that actor's own conversation row gives
+    /// it (localized); null if not dumped. Lets the merged NPCS tab's story-character section show
+    /// e.g. "Dr. Manse" instead of a generic class hint - see
+    /// <see cref="WorldSaves.NarrativeNpcNameCatalog"/>. Built by walking every level package
+    /// (slow, ~85s), so this is populated at dump time only, never resolved live by either host.
+    /// </summary>
+    public IReadOnlyDictionary<string, string>? NarrativeNpcNames { get; init; }
+
+    /// <summary>
     /// Builds a registry from a mounted game install. Requires usmap mappings (each catalog's
     /// own loader throws without them). Adding a catalog: load it here and assign the payload.
     /// </summary>
@@ -188,6 +206,10 @@ public sealed class GameDataRegistry
             Fish = Optional("fish", () => CodexCatalog.LoadFish(provider)),
             Traders = Optional("traders", () => TraderCatalog.LoadFrom(provider)),
             SectorMaps = Optional("sector maps", () => SectorMapCatalog.LoadFrom(provider)),
+            NpcDisplayNames = Optional("NPC display names", () => NpcDisplayNameCatalog.LoadFrom(provider) is { Count: > 0 } names ? names : null),
+            // Slow (walks every level package, ~85s) - fine for a dump-time maintainer command,
+            // never called by the running app (see NarrativeNpcNameCatalog's own remarks).
+            NarrativeNpcNames = Optional("narrative NPC names", () => NarrativeNpcNameCatalog.BuildFrom(provider) is { Count: > 0 } names ? names : null),
         };
     }
 

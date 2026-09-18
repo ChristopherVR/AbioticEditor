@@ -1,120 +1,408 @@
 @namespace AbioticEditor.Web.Components.World
 @using AbioticEditor.Web.Models
 @using AbioticEditor.Core.WorldSaves
+@using AbioticEditor.Core.Codex
+@using AbioticEditor.Core.LiveEditing
+@using AbioticEditor.Core.LiveEditing.World
 @inject SaveWorkspaceSessionService Workspace
+@inject GameArtService Art
 
 @* Round 77: the first tab for narrative NPCs (story characters/traders) - the offline session
    already carried this data (WorldSaveSession.Npcs/SetNpc) with nothing to edit it with.
    Shared with live editing the same way WorldBasesTab/WorldVehiclesTab are (IWorldNpcsSession),
    grounded in NarrativeNPC_ParentBP_C's own IsCorpse/NarrativeState fields - see
-   areas/narrative.lua. Tamed pets have their own PETS tab (WorldPetsTab). *@
-<section class="world-editor world-native-tab" aria-label="@L.Resource("WorldNpcs_StoryNpcsAndTraders")">
-    <h2 class="wt-h2">@L.Resource("WorldNpcs_StoryNpcsAndTraders")</h2>
-    <p class="wt-intro">@L.Resource("WorldNpcs_NpcsIntro")</p>
+   areas/narrative.lua. Tamed pets have their own PETS tab (WorldPetsTab).
 
-    @if (Session.AppliesImmediately && !Session.IsHost)
-    {
-        <p class="error-text" role="alert">@L.Resource("LiveDropped_NotHostWarning")</p>
-    }
+   Round 99: the owner asked why "Characters" (this tab, the save's NarrativeNPCMap) and
+   "Creatures" (the old dedicated LiveNpcsTab, every NPC_Base_ParentBP_C actor currently loaded -
+   wildlife/monsters/robots AND humanoid NPCs) were two separate tabs when they read as the same
+   idea. Round 92 looked at merging them and found the data genuinely disjoint - the save never
+   persists what is loaded in the world, so there is no offline counterpart for that half - but
+   "two tabs for one concept" was still the wrong shape for the player. This is the merge: one
+   NPCS tab, a chip picks which roster is showing. The story-character section works in both
+   modes exactly as before; the creatures section is live-only and shows a plain note instead of
+   existing as its own tab when there is no live connection (the same "no separate tab for an
+   unavailable capability" rule WorldTradersTab/WorldContainmentTab already follow). LiveNpcsTab
+   is deleted; its session (LiveNpcSession) and Lua/C# wire protocol are unchanged. *@
+<section class="world-editor world-native-tab" aria-label="@L.Resource("WorldEditor_TabNpcs")">
+    <div class="world-tabs" role="tablist" aria-label="@L.Resource("WorldEditor_TabNpcs")">
+        <button type="button" role="tab" aria-selected="@(_section == NpcSection.Story ? "true" : "false")"
+                class="@(_section == NpcSection.Story ? "selected" : null)" @onclick="() => _section = NpcSection.Story">
+            @L.Resource("WorldNpcs_SectionStory")
+        </button>
+        <button type="button" role="tab" aria-selected="@(_section == NpcSection.Creatures ? "true" : "false")"
+                class="@(_section == NpcSection.Creatures ? "selected" : null)" @onclick="() => _section = NpcSection.Creatures">
+            @L.Resource("WorldNpcs_SectionCreatures")
+        </button>
+    </div>
 
-    @if (Session.Npcs.Count == 0)
+    @if (_section == NpcSection.Story)
     {
-        <p class="wt-empty">@L.Resource("WorldNpcs_NoNarrativeNpcs")</p>
+        <p class="wt-intro">@L.Resource("WorldNpcs_NpcsIntro")</p>
+
+        @if (Session.AppliesImmediately && !Session.IsHost)
+        {
+            <p class="error-text" role="alert">@L.Resource("LiveDropped_NotHostWarning")</p>
+        }
+
+        @if (Session.Npcs.Count == 0)
+        {
+            <p class="wt-empty">@L.Resource("WorldNpcs_NoNarrativeNpcs")</p>
+        }
+        else
+        {
+            <div class="wt-md">
+                <div class="wt-list" role="listbox" aria-label="@L.Resource("WorldNpcs_StoryNpcsAndTraders")">
+                    @foreach (var npc in Session.Npcs)
+                    {
+                        <button type="button" role="option" aria-selected="@(_storySelectedId == npc.Id ? "true" : "false")"
+                                class="wt-row @(_storySelectedId == npc.Id ? "selected" : null)" @key="npc.Id" title="@npc.Id"
+                                @onclick="() => _storySelectedId = npc.Id">
+                            <span class="wt-row-text">
+                                <strong>@CharacterName(npc)</strong>
+                                <small>@CharacterSecondary(npc)</small>
+                            </span>
+                            <span class="wt-row-status">@(npc.IsDead ? L.Resource("WorldPets_StatusDead") : L.Resource("WorldPets_StatusHealthy"))</span>
+                        </button>
+                    }
+                </div>
+                <div class="wt-detail">
+                    @if (StorySelected is not { } selected)
+                    {
+                        <p class="wt-select-hint">@L.Resource("Editing_SelectNpc")</p>
+                    }
+                    else
+                    {
+                        <h3 class="wt-h3" title="@selected.Id">@CharacterName(selected)</h3>
+                        <p class="wt-muted">@CharacterSecondary(selected)</p>
+                        <div class="wt-field">
+                            <span class="wt-label">@L.Resource("WorldPets_Location")</span>
+                            <span class="wt-muted">X @selected.X.ToString("0"), Y @selected.Y.ToString("0"), Z @selected.Z.ToString("0")</span>
+                        </div>
+                        @* Round 92: one Dead toggle does the whole job - unchecking it is the revive
+                           action (there used to be a second "Revive" button next to this checkbox
+                           that only ever called the exact same SetDead(selected, false)). *@
+                        <label class="wt-check">
+                            <input type="checkbox" checked="@selected.IsDead" disabled="@(_storyBusy || (Session.AppliesImmediately && !Session.IsHost))" @onchange="e => SetDead(selected, e.Value is bool value && value)" />
+                            @L.Resource("WorldPets_Dead")
+                        </label>
+                        <details>
+                            <summary>Story stage</summary>
+                            <p class="wt-muted">Stage numbers belong to this character's dialogue script. Changing one can skip conversations.</p>
+                            <label class="wt-field"><span class="wt-label">Stage</span>
+                                <select class="wt-input" value="@selected.State" disabled="@(_storyBusy || (Session.AppliesImmediately && !Session.IsHost))" @onchange="e => SetState(selected, e.Value?.ToString())">
+                                    @if (!StoryStages.Contains(selected.State)) { <option value="@selected.State">Unknown saved stage (@selected.State)</option> }
+                                    @for (var i = 0; i < StoryStages.Length; i++) { <option value="@StoryStages[i]">Stage @i</option> }
+                                </select>
+                            </label>
+                        </details>
+                    }
+                </div>
+            </div>
+        }
+        @if (Session.AppliesImmediately && Session.Status is not null) { <p class="status-text">@Session.Status</p> }
+        @if (_storyError is not null) { <p class="error-text" role="alert">@_storyError</p> }
     }
     else
     {
-        <div class="wt-md">
-            <div class="wt-list" role="listbox" aria-label="@L.Resource("WorldNpcs_StoryNpcsAndTraders")">
-                @foreach (var npc in Session.Npcs)
-                {
-                    <button type="button" role="option" aria-selected="@(_selectedId == npc.Id ? "true" : "false")"
-                            class="wt-row @(_selectedId == npc.Id ? "selected" : null)" @key="npc.Id"
-                            @onclick="() => _selectedId = npc.Id">
-                        <span class="wt-row-text">
-                            <strong>@CharacterName(npc)</strong>
-                            <small>@npc.ActorName</small>
-                        </span>
-                        <span class="wt-row-status">@(npc.IsDead ? L.Resource("WorldPets_StatusDead") : L.Resource("WorldPets_StatusHealthy"))</span>
-                    </button>
-                }
+        @* Live-only: the save never records what is currently loaded in the world, so there is
+           no file-mode data to show here at all - a plain note instead of an empty-looking tab. *@
+        if (Creatures is null)
+        {
+            <p class="wt-empty">@L.Resource("WorldNpcs_CreaturesNeedLiveConnection")</p>
+        }
+        else
+        {
+            <div class="card-title-row">
+                <h3 class="wt-h3">@L.Resource("LiveNpcs_Title")</h3>
+                <button class="secondary" type="button" disabled="@_creatureBusy" @onclick="RefreshCreaturesAsync">@L.Resource("LiveNpcs_Refresh")</button>
             </div>
-            <div class="wt-detail">
-                @if (Selected is not { } selected)
-                {
-                    <p class="wt-select-hint">@L.Resource("Editing_SelectNpc")</p>
-                }
-                else
-                {
-                    <h3 class="wt-h3">@CharacterName(selected)</h3>
-                    <p class="wt-muted">@selected.ActorName</p>
-                    <div class="wt-field">
-                        <span class="wt-label">@L.Resource("WorldPets_Location")</span>
-                        <span class="wt-muted">X @selected.X.ToString("0"), Y @selected.Y.ToString("0"), Z @selected.Z.ToString("0")</span>
+
+            @if (!Creatures.IsHost)
+            {
+                <p class="error-text" role="alert">@L.Resource("LiveNpcs_NotHostWarning")</p>
+            }
+            <p class="wt-intro">@L.Resource("LiveNpcs_Intro")</p>
+
+            @if (Creatures.Npcs.Count == 0)
+            {
+                <p class="wt-empty">@L.Resource("LiveNpcs_NoneFound")</p>
+            }
+            else
+            {
+                <div class="wt-md">
+                    <div class="wt-list" role="listbox" aria-label="@L.Resource("LiveNpcs_Title")">
+                        @foreach (var npc in Creatures.Npcs)
+                        {
+                            <button type="button" role="option" aria-selected="@(_creatureSelectedId == npc.Id ? "true" : "false")"
+                                    class="wt-row @(_creatureSelectedId == npc.Id ? "selected" : null)" @key="npc.Id"
+                                    @onclick="() => SelectCreatureRow(npc)">
+                                <span class="wt-row-text">
+                                    <strong>@CreatureName(npc)</strong>
+                                    <small>@npc.Label</small>
+                                </span>
+                                <span class="wt-row-status">@(npc.IsDead ? L.Resource("WorldPets_StatusDead") : L.Resource("WorldPets_StatusHealthy"))</span>
+                            </button>
+                        }
                     </div>
-                    @* Round 92: one Dead toggle does the whole job - unchecking it is the revive
-                       action (there used to be a second "Revive" button next to this checkbox
-                       that only ever called the exact same SetDead(selected, false)). *@
-                    <label class="wt-check">
-                        <input type="checkbox" checked="@selected.IsDead" disabled="@(_busy || (Session.AppliesImmediately && !Session.IsHost))" @onchange="e => SetDead(selected, e.Value is bool value && value)" />
-                        @L.Resource("WorldPets_Dead")
-                    </label>
-                    <details>
-                        <summary>Story stage</summary>
-                        <p class="wt-muted">Stage numbers belong to this character's dialogue script. Changing one can skip conversations.</p>
-                        <label class="wt-field"><span class="wt-label">Stage</span>
-                            <select class="wt-input" value="@selected.State" disabled="@(_busy || (Session.AppliesImmediately && !Session.IsHost))" @onchange="e => SetState(selected, e.Value?.ToString())">
-                                @if (!StoryStages.Contains(selected.State)) { <option value="@selected.State">Unknown saved stage (@selected.State)</option> }
-                                @for (var i = 0; i < StoryStages.Length; i++) { <option value="@StoryStages[i]">Stage @i</option> }
-                            </select>
-                        </label>
-                    </details>
-                }
-            </div>
-        </div>
+                    <div class="wt-detail">
+                        @if (CreatureSelected is not { } selected)
+                        {
+                            <p class="wt-select-hint">@L.Resource("LiveNpcs_SelectToPreview")</p>
+                        }
+                        else
+                        {
+                            @* Same fixed-frame-while-loading / attribution pattern the GATEPAL fish tab
+                               already uses for its own wiki art - see that tab's own remarks on why the
+                               frame stays a fixed size while the image downloads. *@
+                            @if (_creatureWikiLoading || _creatureWikiFile is not null)
+                            {
+                                <figure class="codex-wiki">
+                                    @if (_creatureWikiFile is { } wikiFile) { <img src="@Art.WikiImageUrl(wikiFile)" alt="@CreatureName(selected)" /> }
+                                    else { <span class="codex-wiki-frame" role="status" aria-label="@L.Resource("PlayerCodex_FetchingImage")"><span class="header-busy-spinner"></span></span> }
+                                    <figcaption class="muted">@(_creatureWikiFile is null ? L.Resource("PlayerCodex_FetchingImage") : L.Resource("Slot_ImageAbioticfactorWikiGg"))</figcaption>
+                                </figure>
+                            }
+                            <h3 class="wt-h3">@CreatureName(selected)</h3>
+                            <p class="wt-muted">@L.Resource("LiveNpcs_ClassLabel"): @selected.Label</p>
+                            <p class="rb-detail-stats">@(selected.IsDead ? L.Resource("WorldPets_StatusDead") : L.Resource("WorldPets_StatusHealthy"))</p>
+                            @* Round 92: one Dead toggle for kill/revive, matching the story-character
+                               section's own checkbox (there used to be a separate KILL/REVIVE button
+                               here). Unchecking it on a dead creature runs the full round-91 revive
+                               path server side (npcs.set -> reviveNpc in main.lua), not just a bare
+                               IsDead flip. *@
+                            <label class="wt-check">
+                                <input type="checkbox" checked="@selected.IsDead" disabled="@(!Creatures.IsHost || _creatureBusy)"
+                                       @onchange="e => SetCreatureDeadAsync(selected, e.Value is bool value && value)" />
+                                @L.Resource("WorldPets_Dead")
+                            </label>
+                            <label class="wt-check">
+                                <input type="checkbox" checked="@selected.IsDisabled" disabled="@(!Creatures.IsHost || _creatureBusy)"
+                                       @onchange="e => SetCreatureDisabledAsync(selected, (bool)e.Value!)" />
+                                @L.Resource("LiveNpcs_Disabled")
+                            </label>
+                            <label class="wt-check">
+                                <input type="checkbox" checked="@selected.Invincible" disabled="@(!Creatures.IsHost || _creatureBusy)"
+                                       @onchange="e => SetCreatureInvincibleAsync(selected, (bool)e.Value!)" />
+                                @L.Resource("LiveNpcs_Invincible")
+                            </label>
+                            <label class="wt-field">
+                                <span class="wt-label">@L.Resource("LiveNpcs_Faction")</span>
+                                <input class="wt-input" type="number" value="@selected.Faction" disabled="@(!Creatures.IsHost || _creatureBusy)"
+                                       @onchange="e => SetCreatureFactionAsync(selected, e)" />
+                            </label>
+                            <p class="wt-muted">@L.Resource("LiveNpcs_NoAppearanceDataNote")</p>
+                        }
+                    </div>
+                </div>
+            }
+
+            @if (Creatures.Status is not null)
+            {
+                <p class="status-text">@Creatures.Status</p>
+            }
+            @if (_creatureError is not null)
+            {
+                <p class="error-text" role="alert">@_creatureError</p>
+            }
+        }
     }
-    @if (Session.AppliesImmediately && Session.Status is not null) { <p class="status-text">@Session.Status</p> }
-    @if (_liveError is not null) { <p class="error-text" role="alert">@_liveError</p> }
 </section>
 
 @code {
     [Parameter, EditorRequired] public IWorldNpcsSession Session { get; set; } = null!;
     [Parameter] public EventCallback<string?> OnError { get; set; }
 
-    [Inject] private AbioticEditor.Web.Services.ItemCatalogService Items { get; set; } = null!;
-    private static readonly string[] StoryStages = Enumerable.Range(0, 6).Select(i => $"E_NarrativeNPCStates::NewEnumerator{i}").ToArray();
-    private readonly Dictionary<string, string> _names = new(StringComparer.Ordinal);
-    private string CharacterName(WorldNpc npc) => _names.GetValueOrDefault(npc.Id, npc.FriendlyLabel);
-    protected override async Task OnParametersSetAsync()
-    {
-        foreach (var npc in Session.Npcs.Where(n => !_names.ContainsKey(n.Id)).ToArray())
-            _names[npc.Id] = await Items.GetCharacterNameAsync(npc.Id) ?? npc.FriendlyLabel;
-    }
-    private string? _selectedId;
-    private bool _busy;
-    private string? _liveError;
+    /// <summary>The live "every currently-loaded NPC" roster (old LiveNpcsTab/CREATURES) - null
+    /// offline, and null live until the caller finishes connecting it (the live connect page does this).
+    /// The save never persists this data, so there is nothing to show here in file mode at all.</summary>
+    [Parameter] public LiveNpcSession? Creatures { get; set; }
 
-    private WorldNpc? Selected => _selectedId is null ? null : Session.Npcs.FirstOrDefault(npc => npc.Id == _selectedId);
+    [Inject] private AbioticEditor.Web.Services.ItemCatalogService Items { get; set; } = null!;
+
+    private enum NpcSection { Story, Creatures }
+    private NpcSection _section = NpcSection.Story;
+
+    private static readonly string[] StoryStages = Enumerable.Range(0, 6).Select(i => $"E_NarrativeNPCStates::NewEnumerator{i}").ToArray();
+
+    // ----- Story characters (NarrativeNPCMap) -----
+
+    private readonly Dictionary<string, string> _names = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Round 99 follow-up: the save's own placed-actor id resolves to a real character name via
+    /// the bundled registry (<see cref="ItemCatalogService.GetNarrativeNpcName"/>, built by
+    /// walking every level's own <c>NarrativeNPC_ConversationRow</c> - see
+    /// <c>NarrativeNpcNameCatalog</c>) - "Dr. Manse" instead of a generic hint. Falls back to the
+    /// pre-existing chain (a mounted desktop install's own live lookup, then the curated
+    /// <c>NpcIdentityCatalog</c> hint) exactly as before whenever the registry has nothing for
+    /// this actor, so this degrades to the old behavior until the bundled registry is re-dumped.
+    /// </summary>
+    private string CharacterName(WorldNpc npc) => Items.GetNarrativeNpcName(npc.Id) ?? _names.GetValueOrDefault(npc.Id, npc.FriendlyLabel);
+
+    /// <summary>The row's secondary line: once a real name resolved above, this becomes the
+    /// hint/class context that used to be the primary label (<c>NpcIdentityCatalog.LabelFor</c>);
+    /// otherwise it stays today's raw actor-id tail. The full raw id is never hidden - it's the
+    /// row/detail's <c>title</c> tooltip either way.</summary>
+    private string CharacterSecondary(WorldNpc npc) => Items.GetNarrativeNpcName(npc.Id) is not null
+        ? NpcIdentityCatalog.LabelFor(npc.Id, npc.ActorName)
+        : npc.ActorName;
+
+    private string? _storySelectedId;
+    private bool _storyBusy;
+    private string? _storyError;
+    private WorldNpc? StorySelected => _storySelectedId is null ? null : Session.Npcs.FirstOrDefault(npc => npc.Id == _storySelectedId);
 
     private Task SetDead(WorldNpc npc, bool isDead) => Apply(npc, isDead: isDead);
     private Task SetState(WorldNpc npc, string? state) => Apply(npc, state: state);
 
     private async Task Apply(WorldNpc npc, bool? isDead = null, string? state = null)
     {
-        _busy = true;
+        _storyBusy = true;
         try
         {
             await Session.SetNpcAsync(npc.Id, isDead ?? npc.IsDead, state ?? npc.State);
-            _liveError = null;
+            _storyError = null;
             if (!Session.AppliesImmediately) Workspace.NotifyEdited();
         }
         catch (Exception exception)
         {
-            _liveError = Errors.Present(exception, "Change this NPC.", "The connection may have dropped; try reconnecting.");
-            await OnError.InvokeAsync(_liveError);
+            _storyError = Errors.Present(exception, "Change this NPC.", "The connection may have dropped; try reconnecting.");
+            await OnError.InvokeAsync(_storyError);
         }
         finally
         {
-            _busy = false;
+            _storyBusy = false;
+        }
+    }
+
+    // ----- Creatures and NPCs nearby (live-only, main.lua's npcs.list/.set) -----
+
+    // Live class names for this actor type are "NPC_Monster_<...>_C" or "NPC_<...>_C" (see
+    // PetCatalog.cs's own identical stripping for the same family of classes) - PlainNames.Thing
+    // alone does not know either prefix (only "ABF_NPC_"), so left unstripped this used to read
+    // "NPC Monster Peccary" instead of "Peccary" for most creatures, and CreatureWikiImages needs
+    // exactly this clean name to find a matching wiki page.
+    private static readonly string[] ClassPrefixes = ["ABF_NPC_", "NPC_Monster_", "NPC_"];
+
+    /// <summary>The old class-derived guess ("Robot Defense" for <c>NPC_Robot_Defense_C</c>) -
+    /// kept as the <see cref="CreatureWikiImages"/> lookup key (that catalog is curated against
+    /// exactly this derivation, see its own header comment) and as the fallback shown when the
+    /// game's own <c>DT_NPCList</c> name (<see cref="_creatureNames"/>) has nothing for this
+    /// class.</summary>
+    private static string HeuristicName(string label)
+    {
+        var tail = label;
+        if (tail.EndsWith("_C", StringComparison.Ordinal)) tail = tail[..^2];
+        foreach (var prefix in ClassPrefixes)
+        {
+            if (tail.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) { tail = tail[prefix.Length..]; break; }
+        }
+        return PlainNames.Words(tail) is { Length: > 0 } name ? name : label;
+    }
+
+    /// <summary>Class (<see cref="LiveNpc.Label"/>) -> the game's own <c>DT_NPCList</c> display
+    /// name (<see cref="NpcDisplayNameCatalog"/>), resolved once per class and reused across every
+    /// instance of it. The row's bold name prefers this real name; the old heuristic guess above
+    /// stays the wiki-lookup key and the last-resort fallback.</summary>
+    private readonly Dictionary<string, string> _creatureNames = new(StringComparer.OrdinalIgnoreCase);
+    private string CreatureName(LiveNpc npc)
+        => _creatureNames.GetValueOrDefault(npc.Label) is { Length: > 0 } dtName ? dtName : HeuristicName(npc.Label);
+
+    private string? _creatureSelectedId;
+    private bool _creatureBusy;
+    private string? _creatureError;
+    private string? _creatureWikiFile;
+    private bool _creatureWikiLoading;
+
+    private LiveNpc? CreatureSelected => _creatureSelectedId is null ? null : Creatures?.Npcs.FirstOrDefault(npc => npc.Id == _creatureSelectedId);
+
+    private void SelectCreatureRow(LiveNpc npc)
+    {
+        // Tapping the open row again closes its preview, matching every other list in the editor.
+        if (_creatureSelectedId == npc.Id) { _creatureSelectedId = null; _creatureWikiFile = null; _creatureWikiLoading = false; return; }
+        _creatureSelectedId = npc.Id;
+        _ = LoadCreatureWikiImageAsync(npc);
+    }
+
+    /// <summary>Resolves the selected creature's wiki art, download-once-then-cached like the
+    /// GATEPAL fish tab's own identical flow - see that tab's Select method's remarks.</summary>
+    private async Task LoadCreatureWikiImageAsync(LiveNpc npc)
+    {
+        _creatureWikiFile = null;
+        _creatureWikiLoading = false;
+        var candidates = CreatureWikiImages.CandidatesFor(HeuristicName(npc.Label));
+        if (candidates.Count == 0) return;
+        _creatureWikiLoading = true;
+        var selected = npc.Id;
+        StateHasChanged();
+        foreach (var candidate in candidates)
+        {
+            var path = await Art.GetWikiImagePathAsync(candidate);
+            if (_creatureSelectedId != selected) return;
+            if (path is not null) { _creatureWikiFile = candidate; break; }
+        }
+        _creatureWikiLoading = false;
+        StateHasChanged();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        foreach (var npc in Session.Npcs.Where(n => !_names.ContainsKey(n.Id)).ToArray())
+            _names[npc.Id] = await Items.GetCharacterNameAsync(npc.Id) ?? npc.FriendlyLabel;
+
+        if (Creatures is { } creatures)
+        {
+            foreach (var npc in creatures.Npcs.Where(n => !_creatureNames.ContainsKey(n.Label)).DistinctBy(n => n.Label, StringComparer.OrdinalIgnoreCase).ToArray())
+            {
+                if (await Items.GetNpcDisplayNameAsync(npc.Label) is { Length: > 0 } dtName) _creatureNames[npc.Label] = dtName;
+            }
+        }
+
+        // Drops a stale creature selection when it unloaded or died out of the roster, the same
+        // way the story-character section's own selection just goes stale quietly.
+        if (_creatureSelectedId is not null && CreatureSelected is null)
+        {
+            _creatureSelectedId = null;
+            _creatureWikiFile = null;
+            _creatureWikiLoading = false;
+        }
+    }
+
+    private Task RefreshCreaturesAsync() => RunCreatureAsync(() => Creatures!.RefreshAsync());
+
+    private Task SetCreatureDeadAsync(LiveNpc npc, bool isDead) =>
+        RunCreatureAsync(() => Creatures!.ApplyAsync(new LiveNpcEdit(npc.Id, IsDead: isDead)));
+
+    private Task SetCreatureDisabledAsync(LiveNpc npc, bool value) =>
+        RunCreatureAsync(() => Creatures!.ApplyAsync(new LiveNpcEdit(npc.Id, IsDisabled: value)));
+
+    private Task SetCreatureInvincibleAsync(LiveNpc npc, bool value) =>
+        RunCreatureAsync(() => Creatures!.ApplyAsync(new LiveNpcEdit(npc.Id, Invincible: value)));
+
+    private Task SetCreatureFactionAsync(LiveNpc npc, ChangeEventArgs args)
+    {
+        if (!int.TryParse(args.Value?.ToString(), out var faction)) return Task.CompletedTask;
+        return RunCreatureAsync(() => Creatures!.ApplyAsync(new LiveNpcEdit(npc.Id, Faction: faction)));
+    }
+
+    private async Task RunCreatureAsync(Func<Task> action)
+    {
+        _creatureBusy = true;
+        _creatureError = null;
+        try
+        {
+            await action();
+        }
+        catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
+            or IOException or OperationCanceledException)
+        {
+            _creatureError = Errors.Present(exception, "Edit this creature.", "The connection may have dropped; try reconnecting.");
+            await OnError.InvokeAsync(_creatureError);
+        }
+        finally
+        {
+            _creatureBusy = false;
         }
     }
 }

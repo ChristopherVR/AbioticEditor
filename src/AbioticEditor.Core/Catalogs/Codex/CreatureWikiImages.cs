@@ -1,9 +1,11 @@
 namespace AbioticEditor.Core.Codex;
 
 /// <summary>
-/// Maps a creature's display name (see <c>LiveNpcsTab.razor</c>'s own <c>DisplayName</c>, which
-/// strips the <c>NPC_Monster_</c>/<c>NPC_</c> class prefix and title-cases what's left) to its
-/// image file name on abioticfactor.wiki.gg.
+/// Maps a creature's display name (round 99 moved the old <c>LiveNpcsTab.razor</c> into the
+/// merged <c>WorldNpcsTab.razor</c>'s Creatures chip - see that component's own
+/// <c>HeuristicName</c>, which strips the <c>NPC_Monster_</c>/<c>NPC_</c> class prefix and
+/// title-cases what's left; unchanged logic, just relocated) to its image file name on
+/// abioticfactor.wiki.gg.
 ///
 /// Researched 2026-09-17 against the roster on <c>/wiki/Creatures</c> (Combat Creatures, Combat
 /// Humanoids, Combat Robots, Non-Combat Creatures - roughly 85 entries at the time), expanded the

@@ -139,7 +139,6 @@ else
                     <button role="tab" aria-selected="@(_worldTab == "doors")" class="@(_worldTab == "doors" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("doors")'>@L.Resource("WorldEditor_TabDoors")</button>
                     <button role="tab" aria-selected="@(_worldTab == "containers")" class="@(_worldTab == "containers" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("containers")'>@L.Resource("WorldEditor_TabContainers")</button>
                     <button role="tab" aria-selected="@(_worldTab == "dropped")" class="@(_worldTab == "dropped" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("dropped")'>@L.Resource("WorldEditor_TabDropped")</button>
-                    <button role="tab" aria-selected="@(_worldTab == "npcs")" class="@(_worldTab == "npcs" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("npcs")'>@L.Resource("Live_TabWildlife")</button>
                     <button role="tab" aria-selected="@(_worldTab == "bases")" class="@(_worldTab == "bases" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("bases")'>@L.Resource("WorldEditor_TabBases")</button>
                     <button role="tab" aria-selected="@(_worldTab == "vehicles")" class="@(_worldTab == "vehicles" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("vehicles")'>@L.Resource("WorldEditor_TabVehicles")</button>
                     <button role="tab" aria-selected="@(_worldTab == "pets")" class="@(_worldTab == "pets" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("pets")'>@L.Resource("WorldEditor_TabPets")</button>
@@ -186,10 +185,6 @@ else
                    boundary) - see LiveDroppedItemsSession for the live implementation. *@
                 <WorldDroppedItemsTab Session="_dropped" Title="@L.Resource("LiveDropped_Title")" PlayerPosition="_spawn?.LivePosition" />
             }
-            else if (_worldTab == "npcs" && _npcs is not null)
-            {
-                <LiveNpcsTab Session="_npcs" OnChanged="() => {}" />
-            }
             else if (_worldTab == "bases" && _bases is not null)
             {
                 <WorldBasesTab Session="_bases" Title="@L.Resource("WorldBases_BaseManager")" OnError="ShowWorldAreaError" />
@@ -204,10 +199,11 @@ else
             }
             else if (_worldTab == "narrativenpcs" && _narrativeNpcs is not null)
             {
-                @* Same shared tab the file editor uses (IWorldNpcsSession) - not to be confused
-                   with the "npcs" tab above (LiveNpcsTab, CREATURES), which is every creature and
-                   hostile NPC currently loaded, not story characters/traders. *@
-                <WorldNpcsTab Session="_narrativeNpcs" OnError="ShowWorldAreaError" />
+                @* Same shared tab the file editor uses (IWorldNpcsSession) - round 99 folded the
+                   old dedicated "npcs" tab (LiveNpcsTab, every creature/hostile NPC currently
+                   loaded) into this same component as a second chip, so _npcs is now passed
+                   alongside _narrativeNpcs rather than rendered by a separate tab. *@
+                <WorldNpcsTab Session="_narrativeNpcs" Creatures="_npcs" OnError="ShowWorldAreaError" />
             }
             else if (_worldTab == "containment" && _containment is not null)
             {
@@ -613,9 +609,6 @@ else
         {
             switch (tab)
             {
-                case "npcs":
-                    _npcs ??= await LiveNpcSession.ConnectAsync(new LiveNpcChannel(channel));
-                    break;
                 case "inventory" or "transmog":
                     _inventory ??= await LiveInventorySession.ConnectAsync(new LiveInventoryChannel(channel), _selectedPlayerId, Upgrades.Get(),
                         new LiveTransmogVisibilityChannel(channel));
@@ -701,6 +694,11 @@ else
                     break;
                 case "narrativenpcs":
                     _narrativeNpcs ??= await TryConnectWorldAreaAsync(() => LiveNarrativeNpcsSession.ConnectAsync(new LiveNarrativeNpcsChannel(channel)));
+                    // Round 99: the old dedicated "npcs"/CREATURES tab folded into this same
+                    // merged NPCS tab as a second chip - connect its session here too so it is
+                    // ready the moment a player switches to that chip, not only after a separate
+                    // tab visit that no longer exists.
+                    _npcs ??= await LiveNpcSession.ConnectAsync(new LiveNpcChannel(channel));
                     break;
                 case "containment":
                     _containment ??= await TryConnectWorldAreaAsync(() => LiveContainmentSession.ConnectAsync(new LiveContainmentChannel(channel)));

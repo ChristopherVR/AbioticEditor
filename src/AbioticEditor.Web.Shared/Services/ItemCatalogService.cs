@@ -38,6 +38,8 @@ public sealed class ItemCatalogService : IDisposable
     {
         _extractsIconsLive = files is null || files.HasLocalPaths;
         var registry = GameDataRegistry.LoadBundled();
+        _bundledNpcDisplayNames = registry?.NpcDisplayNames;
+        _narrativeNpcNames = registry?.NarrativeNpcNames;
         var merged = (registry?.Items ?? []).ToDictionary(entry => entry.Id, StringComparer.OrdinalIgnoreCase);
         // The slot editor is always present in the desktop shell. Do not make resolving it
         // mount and scan the installed game paks before a save can open. Bundled registry
@@ -100,6 +102,50 @@ public sealed class ItemCatalogService : IDisposable
         try { return _extractsIconsLive ? _provider.Value?.TryGetNarrativeCharacterName(path) : null; }
         catch (Exception) { return null; }
     }));
+
+    private readonly IReadOnlyDictionary<string, string>? _narrativeNpcNames;
+
+    /// <summary>
+    /// The real character name a placed story-NPC actor's own conversation row gives it (e.g.
+    /// "Dr. Manse" for a <c>NarrativeNPC_Human_Hologram</c> slot), or null when this actor isn't
+    /// in the bundled registry - see <see cref="AbioticEditor.Core.WorldSaves.NarrativeNpcNameCatalog"/>.
+    /// Registry-only and synchronous: unlike <see cref="GetCharacterNameAsync"/> above, this never
+    /// falls back to a mounted install - resolving it live would mean loading the actor's whole
+    /// level package on demand, and there is no fast per-actor path for that (the registry itself
+    /// is built by walking all 77 level packages at once, ~85s - see that catalog's own remarks).
+    /// </summary>
+    public string? GetNarrativeNpcName(string? actorId)
+        => AbioticEditor.Core.WorldSaves.NarrativeNpcNameCatalog.Resolve(_narrativeNpcNames, actorId);
+
+    private readonly IReadOnlyDictionary<string, string>? _bundledNpcDisplayNames;
+    private IReadOnlyDictionary<string, string>? _liveNpcDisplayNames;
+    private readonly ConcurrentDictionary<string, Task<string?>> _npcDisplayNames = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The friendly name <c>DT_NPCList</c> gives a spawned NPC's class (e.g. "Defense Robot" for
+    /// <c>NPC_Robot_Defense_C</c>), or null when no row matches - see
+    /// <see cref="AbioticEditor.Core.WorldSaves.NpcDisplayNameCatalog"/>. A mounted install is
+    /// read first (freshest, picks up mods/DLC), falling back to the bundled registry so a
+    /// browser build with no game resolves the same names.
+    /// </summary>
+    public Task<string?> GetNpcDisplayNameAsync(string? classOrShort)
+    {
+        if (string.IsNullOrWhiteSpace(classOrShort)) return Task.FromResult<string?>(null);
+        return _npcDisplayNames.GetOrAdd(classOrShort!, key => Task.Run(() =>
+        {
+            if (_extractsIconsLive && _provider.Value is { HasMappings: true } provider)
+            {
+                try
+                {
+                    _liveNpcDisplayNames ??= AbioticEditor.Core.WorldSaves.NpcDisplayNameCatalog.LoadFrom(provider);
+                    if (AbioticEditor.Core.WorldSaves.NpcDisplayNameCatalog.Resolve(_liveNpcDisplayNames, key) is { } liveName)
+                        return liveName;
+                }
+                catch (Exception) { /* fall through to the bundled registry below */ }
+            }
+            return AbioticEditor.Core.WorldSaves.NpcDisplayNameCatalog.Resolve(_bundledNpcDisplayNames, key);
+        }));
+    }
 
     public IReadOnlyList<ItemCatalogEntry> Entries => _entries;
     public ItemCatalogEntry? Find(string? itemId) => itemId is not null && _byId.TryGetValue(itemId, out var entry) ? entry : null;

@@ -820,6 +820,9 @@
   <data name="WorldNpcs_ScriptPhaseTooltip" xml:space="preserve"><value>How far along this character is in their own scripted moments, from 0 to 5. It is not your quest progress. Everyone still alive sits at 3.</value></data>
   <data name="WorldNpcs_StoryNpcsAndTraders" xml:space="preserve"><value>STORY NPCS &amp; TRADERS IN THIS WORLD</value></data>
   <data name="WorldNpcs_TradersMoved" xml:space="preserve"><value>Looking for traders? Open the world's story save and use its TRADERS tab to unlock their stock for everyone.</value></data>
+  <data name="WorldNpcs_SectionStory" xml:space="preserve"><value>Story characters</value></data>
+  <data name="WorldNpcs_SectionCreatures" xml:space="preserve"><value>Creatures and NPCs nearby</value></data>
+  <data name="WorldNpcs_CreaturesNeedLiveConnection" xml:space="preserve"><value>Connect to your running game to see every creature and NPC currently loaded nearby. This roster isn't saved in the file, so there's nothing to show here until you connect.</value></data>
 
   <!-- WorldPets -->
   <data name="WorldPets_ArmorSetSummonNotice" xml:space="preserve"><value>This is an armor-set summon. It is shown for reference but is not editable.</value></data>
@@ -3639,7 +3642,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldEditor_TabQuestFlags" xml:space="preserve"><value>Story Events</value></data>
   <data name="WorldEditor_TabDoors" xml:space="preserve"><value>Doors</value></data>
   <data name="WorldEditor_TabDropped" xml:space="preserve"><value>Ground Items</value></data>
-  <data name="WorldEditor_TabNpcs" xml:space="preserve"><value>Characters</value></data>
+  <data name="WorldEditor_TabNpcs" xml:space="preserve"><value>NPCs</value></data>
   <data name="WorldEditor_TabPets" xml:space="preserve"><value>Pets</value></data>
   <data name="WorldEditor_TabVehicles" xml:space="preserve"><value>Vehicles</value></data>
   <data name="WorldEditor_TabBases" xml:space="preserve"><value>Bases</value></data>
@@ -4124,7 +4127,6 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Live_TabPortals" xml:space="preserve"><value>World Teleporters</value></data>
   <data name="Live_TabElevators" xml:space="preserve"><value>Elevators</value></data>
   <data name="Live_TabButtons" xml:space="preserve"><value>Buttons</value></data>
-  <data name="Live_TabWildlife" xml:space="preserve"><value>Creatures</value></data>
   <data name="Live_TabGardenPlots" xml:space="preserve"><value>Garden Plots</value></data>
   <data name="Live_TabPowerChairs" xml:space="preserve"><value>Power Chairs</value></data>
   <data name="Live_TabChemistryBenches" xml:space="preserve"><value>Chemistry Benches</value></data>
@@ -4235,6 +4237,9 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Editing_OfflinePlayerNote" xml:space="preserve"><value>Editing an offline player save: changes wait until you choose Save, which keeps a backup. This player is not being edited live.</value></data>
   <data name="Editing_OfflineModeLabel" xml:space="preserve"><value>Offline editing</value></data>
   <data name="Editing_LiveModeLabel" xml:space="preserve"><value>Live editing</value></data>
+  <data name="Editing_LiveDesktopOnlyBadge" xml:space="preserve"><value>Desktop app only</value></data>
+  <data name="Editing_LiveBrowserHint" xml:space="preserve"><value>Live editing connects to your running game and needs the desktop app.</value></data>
+  <data name="Editing_LiveInfoButtonTitle" xml:space="preserve"><value>About live editing (desktop app only)</value></data>
   <data name="Editing_HomeTitle" xml:space="preserve"><value>Choose a world to edit</value></data>
   <data name="Editing_HomeSteps" xml:space="preserve"><value>Close the game, choose a world, then save your changes.</value></data>
   <data name="Editing_FindWorld" xml:space="preserve"><value>Cannot find your world?</value></data>
