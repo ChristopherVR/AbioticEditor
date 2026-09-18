@@ -36,6 +36,8 @@ Think of it as a [b]cheat menu[/b], a [b]save-repair kit[/b], and a [b]save insp
 
 You can edit your vitals, inventory, skills, traits, recipes, journal, appearance, respawn point, quest progress, containers, doors, dropped items, NPCs and tamed pets, your base, and more.
 
+[b]New:[/b] you don't have to close the game to do any of this any more. See [b]Live editing[/b] below.
+
 [center][img]https://christophervr.github.io/AbioticEditor/screenshots/11-player-inventory.png[/img]
 [i]Inventory: every slot, the real item icons, and the full item catalogue to add from.[/i]
 
@@ -119,6 +121,23 @@ It also remembers the last few worlds you opened, so coming back is one click. T
 
 [line]
 
+[size=5][b]NEW: Live editing - change a world while it's actually running[/b][/size]
+
+The Windows desktop app can now connect straight to a world that's already loaded in-game, so you don't need to close Abiotic Factor to make a change. It's a separate mode from the save-file editor above, not a replacement for it.
+
+[list]
+[*][b]Windows only, and experimental.[/b] The browser editor can't connect to a live game, and the Linux app can edit saves but can't run the Windows-side helper. Works with a local game or a dedicated server you have access to.
+[*][b]No SAVE button, no undo, no backup.[/b] Live changes apply the moment you make them. Make your own in-game backup before experimenting, offline editing is still the safer workbench for anything you want to review first.
+[*][b]Needs UE4SS,[/b] a separate open-source mod loader. The Windows release bundles a pinned copy and installs it into your game folder with your permission - it never touches an existing UE4SS install.
+[*][b]What's supported:[/b] vitals, skills, inventories, transmog, recipes, GatePal records, background and spawn fields, story flags, clock and weather, loaded containers and ground items, creatures, story NPCs, traders, pets, doors, portals, vehicles, containment, deployables, traits, appearance, and bench upgrades - all while playing.
+[/list]
+
+To try it: open the editing-mode button in the app, choose [b]Set up live editing[/b] -> [b]This PC[/b], then follow the on-screen steps. It's still being checked against a live game, so keep an eye on anything that looks off and update the helper when a new release offers one.
+
+Full setup and troubleshooting: https://christophervr.github.io/AbioticEditor/guide/live-editing
+
+[line]
+
 [size=5][b]How do I use it?[/b][/size]
 
 [list=1]
@@ -134,6 +153,8 @@ It also remembers the last few worlds you opened, so coming back is one click. T
 Your edits are only staged until you press SAVE, every save keeps a backup, and the editor refuses to create impossible situations (for example, it offers to set a quest's requirements for you instead of letting you skip ahead into a broken story). It also writes the save in the game's exact format, so anything you do not touch is left exactly as the game wrote it.
 
 That said, it is still a save editor. Please keep your own backups of any saves you really care about.
+
+[b]Live editing is the exception:[/b] it changes a running game immediately, with no SAVE, no undo, and no editor backup. Make your own in-game backup before using it. See [b]Live editing[/b] above.
 
 [line]
 
@@ -213,6 +234,7 @@ There is also a command-line version for scripting and server admins, and the pl
 [*][b]Edit in your browser (no download):[/b] https://christophervr.github.io/AbioticEditor/app/
 [*][b]Full guide and FAQ:[/b] https://christophervr.github.io/AbioticEditor/
 [*][b]Getting started:[/b] https://christophervr.github.io/AbioticEditor/guide/getting-started
+[*][b]Live editing (experimental):[/b] https://christophervr.github.io/AbioticEditor/guide/live-editing
 [*][b]Game Pass saves:[/b] https://christophervr.github.io/AbioticEditor/guide/game-pass
 [*][b]Plugins / custom tools:[/b] https://christophervr.github.io/AbioticEditor/plugins
 [*][b]Reporting a bug:[/b] https://christophervr.github.io/AbioticEditor/guide/desktop-app#reporting-a-bug
