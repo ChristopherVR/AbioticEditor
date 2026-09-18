@@ -91,6 +91,66 @@ public interface IWorldStorySession
     Task SetGlobalRecipesAsync(IEnumerable<string> ids, bool unlocked, CancellationToken cancellationToken = default)
         => throw new NotSupportedException("This session cannot edit global recipes.");
 
+    // ---------- world-wide seen/read/found lists (round 112) ----------
+    //
+    // The round-107 live backend (LiveWorldUnlocksChannel.SetGlobalListAsync, LiveStorySession's
+    // matching members) predates this: it was built outside this interface because the file
+    // session had no browser for these six lists to mirror. It does now (WorldStoryTab's
+    // "WORLD-WIDE SEEN" section, next to the recipes browser above), so the members move onto the
+    // shared boundary the same way the recipe members already sit here.
+
+    /// <summary>Whether the world-wide seen/read/found browser has anything to show at all: true
+    /// for the file session once its save carries an editable <c>GlobalUnlocks</c> struct (see
+    /// <see cref="CanEditGlobalLists"/>'s remarks), true live once a world is connected and the
+    /// agent reports the six lists - an older agent build without them leaves this false, hiding
+    /// the section entirely rather than showing empty lists.</summary>
+    bool SupportsGlobalLists { get; }
+
+    /// <summary>Every catalog item id picked up world-wide at least once (the save's
+    /// <c>GlobalItemsPickedUp_</c> array).</summary>
+    IReadOnlyCollection<string> GlobalItemsPickedUpIds { get; }
+
+    /// <summary>Every email id read world-wide (<c>GlobalEmailsRead_</c>).</summary>
+    IReadOnlyCollection<string> GlobalEmailsReadIds { get; }
+
+    /// <summary>Every journal entry id found world-wide (<c>GlobalJournalEntries_</c>).</summary>
+    IReadOnlyCollection<string> GlobalJournalEntryIds { get; }
+
+    /// <summary>Every compendium entry id unlocked world-wide through its email section
+    /// (<c>GlobalCompendiumEmail_</c>).</summary>
+    IReadOnlyCollection<string> GlobalCompendiumEmailIds { get; }
+
+    /// <summary>Every compendium entry id unlocked world-wide through its narrative section
+    /// (<c>GlobalCompendiumNarrative_</c>).</summary>
+    IReadOnlyCollection<string> GlobalCompendiumNarrativeIds { get; }
+
+    /// <summary>Every compendium entry id unlocked world-wide through its exploration section
+    /// (<c>GlobalCompendiumExploration_</c>).</summary>
+    IReadOnlyCollection<string> GlobalCompendiumExplorationIds { get; }
+
+    /// <summary>Whether the six lists above can be changed. The file session allows it once its
+    /// save carries a <c>GlobalUnlocks</c> struct (the same limitation
+    /// <see cref="CanEditGlobalRecipes"/> already has - a save that has never recorded any
+    /// world-wide unlock has nothing to add to yet); live requires host authority and
+    /// replication-notification support, but no TSet capability (these are plain arrays, unlike
+    /// the recipe sets).</summary>
+    bool CanEditGlobalLists { get; }
+
+    /// <summary>Short reason <see cref="CanEditGlobalLists"/> is false, when known (null offline,
+    /// and null live once the game reports edits are supported). Live values are "not-host" or
+    /// "no-replication" - never "runtime-unsupported", since plain array assignment needs no TSet
+    /// support. The default implementation covers the file session, which never has a reason to
+    /// show.</summary>
+    string? GlobalListEditsUnavailableReason => null;
+
+    /// <summary>Adds/removes rows in one of the six lists above. <paramref name="list"/> is the
+    /// wire field name (<c>"itemsPickedUp"</c>, <c>"emailsRead"</c>, <c>"journalEntries"</c>,
+    /// <c>"compendiumEmail"</c>, <c>"compendiumNarrative"</c>, or
+    /// <c>"compendiumExploration"</c>) - shared between both session kinds so the tab needs no
+    /// per-kind branching.</summary>
+    Task SetGlobalListAsync(string list, IEnumerable<string> ids, bool present, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException("This session cannot edit world-wide lists.");
+
     // ---------- whole-session save (file session only; live applies per action) ----------
 
     bool IsDirty { get; }

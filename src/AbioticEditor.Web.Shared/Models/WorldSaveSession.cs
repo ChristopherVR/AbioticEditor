@@ -187,6 +187,30 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
     public int WorldJournalsFoundCount => WorldUnlockCount(GlobalUnlockPrefix.Journals);
     public int WorldCompendiumUnlockedCount => WorldUnlockCount(GlobalUnlockPrefix.CompEmail)
         + WorldUnlockCount(GlobalUnlockPrefix.CompNarrative) + WorldUnlockCount(GlobalUnlockPrefix.CompExploration);
+    // ---------- IWorldStorySession: world-wide seen/read/found lists (round 112) ----------
+    //
+    // Same staged-until-Save storage the bulk CONTAINMENT-tab sweeps above already use
+    // (_stagedWorldUnlocks), just also readable/editable one row at a time from WorldStoryTab's
+    // browsable "WORLD-WIDE SEEN" section - see StageWorldUnlockEdit below.
+    public bool SupportsGlobalLists => CanEditGlobalLists;
+    public bool CanEditGlobalLists => _data.Raw.Properties.FindByPrefix("GlobalUnlocks") is not null;
+    public IReadOnlyCollection<string> GlobalItemsPickedUpIds => WorldUnlockValues(GlobalUnlockPrefix.Items);
+    public IReadOnlyCollection<string> GlobalEmailsReadIds => WorldUnlockValues(GlobalUnlockPrefix.Emails);
+    public IReadOnlyCollection<string> GlobalJournalEntryIds => WorldUnlockValues(GlobalUnlockPrefix.Journals);
+    public IReadOnlyCollection<string> GlobalCompendiumEmailIds => WorldUnlockValues(GlobalUnlockPrefix.CompEmail);
+    public IReadOnlyCollection<string> GlobalCompendiumNarrativeIds => WorldUnlockValues(GlobalUnlockPrefix.CompNarrative);
+    public IReadOnlyCollection<string> GlobalCompendiumExplorationIds => WorldUnlockValues(GlobalUnlockPrefix.CompExploration);
+
+    /// <summary>Adds/removes rows in one of the six world-wide lists, by the same wire field
+    /// names <c>LiveWorldUnlocksChannel.SetGlobalListAsync</c> uses live, so the shared tab needs
+    /// no per-session branching to pick a list.</summary>
+    public Task SetGlobalListAsync(string list, IEnumerable<string> ids, bool present, CancellationToken cancellationToken = default)
+    {
+        if (!GlobalUnlockPrefixByWireName.TryGetValue(list, out var prefix))
+            throw new ArgumentException($"Unknown world-wide list '{list}'.", nameof(list));
+        StageWorldUnlockEdit(prefix, ids, present);
+        return Task.CompletedTask;
+    }
     public IReadOnlyList<RawSaveProperty> RawProperties => RawSavePropertyEditor.List(_data.Raw)
         .Select(property => _rawEdits.TryGetValue(property.Name, out var staged)
             ? property with { Value = staged } : property).ToArray();
@@ -587,7 +611,7 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
     /// <summary>File sessions use <see cref="TryAddDroppedItem"/> instead - see the interface
     /// remarks.</summary>
     bool IWorldDroppedItemsSession.SupportsLiveAdd => false;
-    Task IWorldDroppedItemsSession.AddDroppedItemLiveAsync(string itemId, int stack, CancellationToken cancellationToken)
+    Task IWorldDroppedItemsSession.AddDroppedItemLiveAsync(string itemId, int stack, double? x, double? y, double? z, CancellationToken cancellationToken)
         => throw new NotSupportedException("Spawning a ground item this way is only available while editing live.");
 
     /// <summary>Stages a new ground item. Save uses Core's clone-an-existing-entry writer.</summary>
@@ -646,6 +670,7 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
     // the file session's own staged/save-on-SAVE behaviour.
 
     bool IWorldBasesSession.AppliesImmediately => false;
+    bool IWorldBasesSession.IsHost => true;
     bool IWorldBasesSession.SupportsContainerPeek => true;
     Task IWorldBasesSession.SetCustomNameAsync(string deployableId, string? customName, CancellationToken cancellationToken)
     {
@@ -942,6 +967,27 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
         ? staged.Count
         : WorldSaveReader.ReadGlobalUnlockArray(_data.Raw, prefix).Count;
 
+    /// <summary>The current (staged, or as-read) rows of one of the six world-wide arrays - the
+    /// per-row counterpart of <see cref="WorldUnlockCount"/>, backing the
+    /// <c>IWorldStorySession</c> id collections (<c>GlobalItemsPickedUpIds</c>, etc.).</summary>
+    private IReadOnlyList<string> WorldUnlockValues(string prefix) => _stagedWorldUnlocks.TryGetValue(prefix, out var staged)
+        ? staged
+        : WorldSaveReader.ReadGlobalUnlockArray(_data.Raw, prefix);
+
+    /// <summary>Maps the wire field names <c>LiveWorldUnlocksChannel.SetGlobalListAsync</c> and
+    /// <c>WorldStoryTab</c> use (<c>"itemsPickedUp"</c>, etc.) onto this save's array prefixes,
+    /// so <see cref="SetGlobalListAsync"/> can share the same names the live session already
+    /// speaks over the wire.</summary>
+    private static readonly Dictionary<string, string> GlobalUnlockPrefixByWireName = new(StringComparer.Ordinal)
+    {
+        ["itemsPickedUp"] = GlobalUnlockPrefix.Items,
+        ["emailsRead"] = GlobalUnlockPrefix.Emails,
+        ["journalEntries"] = GlobalUnlockPrefix.Journals,
+        ["compendiumEmail"] = GlobalUnlockPrefix.CompEmail,
+        ["compendiumNarrative"] = GlobalUnlockPrefix.CompNarrative,
+        ["compendiumExploration"] = GlobalUnlockPrefix.CompExploration,
+    };
+
     /// <summary>Stages every supplied catalog item id as world-wide picked-up; returns the number newly added.</summary>
     public int EnableWorldItemsSeen(IEnumerable<string> ids) => StageWorldUnlock(GlobalUnlockPrefix.Items, ids);
 
@@ -976,6 +1022,37 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
         _stagedWorldUnlocks[prefix] = merged;
         UpdateStatus();
         return merged.Count - before;
+    }
+
+    /// <summary>Adds or removes rows in one of the six world-wide arrays, staged until Save -
+    /// the read/write counterpart of the add-only <see cref="StageWorldUnlock"/> above (kept
+    /// separate rather than folded together: the CONTAINMENT tab's "unlock everything" sweeps only
+    /// ever add and have no reason to pay for a present/absent branch).</summary>
+    private void StageWorldUnlockEdit(string prefix, IEnumerable<string> ids, bool present)
+    {
+        if (!IsMetadataSave) return;
+        var current = _stagedWorldUnlocks.TryGetValue(prefix, out var staged) ? staged : WorldSaveReader.ReadGlobalUnlockArray(_data.Raw, prefix);
+        var merged = current.ToList();
+        var changed = false;
+        if (present)
+        {
+            var seen = new HashSet<string>(merged, StringComparer.OrdinalIgnoreCase);
+            foreach (var id in ids.Where(id => !string.IsNullOrWhiteSpace(id)))
+                if (seen.Add(id)) { merged.Add(id); changed = true; }
+        }
+        else
+        {
+            var remove = new HashSet<string>(ids.Where(id => !string.IsNullOrWhiteSpace(id)), StringComparer.OrdinalIgnoreCase);
+            if (remove.Count > 0)
+            {
+                var before = merged.Count;
+                merged.RemoveAll(id => remove.Contains(id));
+                changed = merged.Count != before;
+            }
+        }
+        if (!changed) return;
+        _stagedWorldUnlocks[prefix] = merged;
+        UpdateStatus();
     }
 
     /// <summary>Stages an existing primitive top-level property after validation on an isolated clone.</summary>
@@ -1028,6 +1105,11 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
     public bool BenchSupportsUpgrades(string deployableId)
         => WorldMapAccessor.FindEntry(ReadableFeatureRaw, "DeployedObjectMap", deployableId) is { } props
             && BenchUpgradeCatalog.SupportsUpgrades(props);
+
+    /// <summary>Same check as <see cref="BenchSupportsUpgrades"/> - a file session can always
+    /// stage an edit once a bench has the slot at all, so there is no separate "has it but can't
+    /// edit it right now" state here (that only exists live).</summary>
+    public bool BenchHasUpgradeSlot(string deployableId) => BenchSupportsUpgrades(deployableId);
 
     /// <summary>The upgrade rows currently installed on a bench, staged edits included.</summary>
     public IReadOnlyList<string> BenchInstalledUpgrades(string deployableId)

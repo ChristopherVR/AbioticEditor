@@ -8,6 +8,7 @@
 @using AbioticEditor.Web.Components.Player
 @inject RecipeVocabularyService RecipeVocabulary
 @inject ItemCatalogService Items
+@inject CodexVocabularyService CodexData
 @inject RecipeProgressGateService Gate
 @inject StoryFlagSyncService FlagSync
 @inject ToastService Toasts
@@ -218,6 +219,55 @@
                recipe doesn't do anything" (it did, just far below the fold where nobody looked). *@
             <p class="wm-note">@L.Resource("WorldStory_WhyMetadata")</p>
         }
+
+        @if (Session.SupportsGlobalLists)
+        {
+            <div class="wm-divider" role="presentation"></div>
+
+            <div class="ws-recipes-head">
+                <span class="wm-label">@L.Resource("WorldStory_WorldWideSeen")</span>
+                <span class="wm-readout">@GlobalListCountText</span>
+                <select @bind="_globalListKind" aria-label="@L.Resource("WorldStory_WorldWideSeen")">
+                    @foreach (var def in GlobalListDefs)
+                    {
+                        <option value="@def.Kind">@L.Resource(def.LabelKey)</option>
+                    }
+                </select>
+                <input type="search" placeholder="@L.Resource("WorldStory_SearchWorldWideSeen")" aria-label="@L.Resource("WorldStory_SearchWorldWideSeen")"
+                       @bind="_globalListSearch" @bind:event="oninput" />
+            </div>
+
+            @if (!Session.CanEditGlobalLists)
+            {
+                <p class="muted ws-recipes-readonly">@GlobalListReadOnlyText</p>
+            }
+
+            <div class="ws-recipe-list" role="listbox" aria-label="@L.Resource(CurrentGlobalListDef.LabelKey)">
+                @if (!VisibleGlobalListRows.Any())
+                {
+                    <p class="ws-recipes-empty">@L.Resource("WorldStory_NoWorldWideSeen")</p>
+                }
+                @foreach (var row in VisibleGlobalListRows)
+                {
+                    var present = GlobalListRowIsPresent(row.Id);
+                    <div class="ws-recipe-row" @key="row.Id">
+                        <input type="checkbox" checked="@present" aria-label="@row.DisplayName" disabled="@(!Session.CanEditGlobalLists)"
+                               @onchange="e => SetGlobalListRowAsync(row.Id, e.Value is bool value && value)" />
+                        <span class="ws-recipe-icon">
+                            @if (CurrentGlobalListDef.Kind == "itemsPickedUp")
+                            {
+                                <ItemIcon ItemId="@row.Id" Alt="" />
+                            }
+                        </span>
+                        <span class="ws-recipe-text">
+                            <strong>@row.DisplayName</strong>
+                            <small>@row.Id</small>
+                        </span>
+                        <span class="ws-recipe-status">@L.Resource(present ? "PlayerRecipes_BadgeUnlocked" : "PlayerRecipes_BadgeLocked")</span>
+                    </div>
+                }
+            </div>
+        }
     }
     @if (!Session.AppliesImmediately)
     {
@@ -258,6 +308,13 @@
     private int _clockDay;
     private string _weather = "None";
     private IWorldStorySession? _clockSeededFrom;
+    private string _globalListKind = "itemsPickedUp";
+    private string _globalListSearch = string.Empty;
+    /// <summary>Email/journal/compendium names for the "WORLD-WIDE SEEN" browser, loaded the same
+    /// on-demand off-thread way <c>PlayerCodexTab</c> loads them (mounting the game's paks never
+    /// happens on the render path). Item names come from <see cref="Items"/> instead, which is
+    /// already resolved by the time this tab renders.</summary>
+    private CodexVocabulary _codexVocabulary = CodexVocabulary.Empty;
 
     /// <summary>Escape hatch for the recipe browser and the sibling-save flag sync, both of which
     /// only exist for the file editor - live has no save file to read alongside, and the running
@@ -279,6 +336,10 @@
             await Task.Run(Gate.Warm);
             _worldFlags = await Gate.ResolveWorldFlagsAsync(path);
             _traders = await Task.Run(TraderVocabulary.GetTraders);
+        }
+        if (Session.SupportsGlobalLists)
+        {
+            _codexVocabulary = CodexData.TryGet(out var vocabulary) ? vocabulary : await Task.Run(CodexData.Get);
         }
     }
 
@@ -961,4 +1022,99 @@
     // unconditionally, unlike NotifyEdited() elsewhere in this file.)
 
     private sealed record WorldRecipeRow(string Id, RecipeInfo? Info, string DisplayName);
+
+    // ---------- world-wide seen/read/found browser (round 112; both session kinds) ----------
+    //
+    // One generic browser, not six copies of the recipe list's markup: a dropdown picks which of
+    // the six IWorldStorySession id collections is on screen, reusing the same ws-recipe-list/row
+    // CSS the recipes browser above already defines. Friendly names come from the same services
+    // the player CODEX tab (PlayerCodexTab) uses to name its rows - ItemCatalogService for items,
+    // CodexVocabularyService (Emails/Journals/Compendium) for the other five.
+
+    private sealed record GlobalListRow(string Id, string DisplayName);
+
+    private sealed record GlobalListDef(string Kind, string LabelKey,
+        Func<IWorldStorySession, IReadOnlyCollection<string>> Ids, Func<string, string> Name, Func<IEnumerable<string>> KnownIds);
+
+    private GlobalListDef[]? _globalListDefs;
+
+    private GlobalListDef[] GlobalListDefs => _globalListDefs ??=
+    [
+        new("itemsPickedUp", "WorldStory_WorldItemsPickedUp", s => s.GlobalItemsPickedUpIds, ItemName,
+            () => Items.Entries.Select(entry => entry.Id)),
+        new("emailsRead", "WorldStory_WorldEmailsRead", s => s.GlobalEmailsReadIds, EmailName,
+            () => _codexVocabulary.Emails.Select(e => e.Id)),
+        new("journalEntries", "WorldStory_WorldJournalEntries", s => s.GlobalJournalEntryIds, JournalName,
+            () => _codexVocabulary.Journals.Select(j => j.Id)),
+        new("compendiumEmail", "WorldStory_WorldCompendiumEmail", s => s.GlobalCompendiumEmailIds, CompendiumName,
+            () => _codexVocabulary.Compendium.Where(c => c.SectionTypes.Contains("Email", StringComparer.OrdinalIgnoreCase)).Select(c => c.Id)),
+        new("compendiumNarrative", "WorldStory_WorldCompendiumNarrative", s => s.GlobalCompendiumNarrativeIds, CompendiumName,
+            () => _codexVocabulary.Compendium.Where(c => c.SectionTypes.Contains("Narrative", StringComparer.OrdinalIgnoreCase)).Select(c => c.Id)),
+        new("compendiumExploration", "WorldStory_WorldCompendiumExploration", s => s.GlobalCompendiumExplorationIds, CompendiumName,
+            () => _codexVocabulary.Compendium.Where(c => c.SectionTypes.Contains("Exploration", StringComparer.OrdinalIgnoreCase)).Select(c => c.Id)),
+    ];
+
+    private GlobalListDef CurrentGlobalListDef => GlobalListDefs.FirstOrDefault(def => def.Kind == _globalListKind) ?? GlobalListDefs[0];
+
+    private string ItemName(string id) => Items.Find(id)?.DisplayName ?? PlainNames.Words(id);
+    private string EmailName(string id) => _codexVocabulary.Emails.FirstOrDefault(e => e.Id == id)?.Subject ?? PlainNames.Words(id);
+    private string JournalName(string id) => _codexVocabulary.Journals.FirstOrDefault(j => j.Id == id)?.Title ?? PlainNames.Words(id);
+    private string CompendiumName(string id) => _codexVocabulary.Compendium.FirstOrDefault(c => c.Id == id)?.Title ?? PlainNames.Words(id);
+
+    private bool GlobalListRowIsPresent(string id) => CurrentGlobalListDef.Ids(Session).Contains(id);
+
+    /// <summary>Every row worth showing for the selected list: every id the installed game's own
+    /// data knows for that kind (so an unseen id can be added), plus any id already present in
+    /// this world that game data does not recognise (a renamed/legacy row, or game data
+    /// unavailable) - the same "known catalog ids plus whatever the save already has" rule
+    /// <see cref="AllWorldRecipeRows"/> uses for the recipes browser above.</summary>
+    private IEnumerable<GlobalListRow> AllGlobalListRows
+    {
+        get
+        {
+            var def = CurrentGlobalListDef;
+            var ids = def.KnownIds().Concat(def.Ids(Session)).Distinct(StringComparer.Ordinal);
+            return ids.Select(id => new GlobalListRow(id, def.Name(id)));
+        }
+    }
+
+    private IEnumerable<GlobalListRow> VisibleGlobalListRows
+    {
+        get
+        {
+            var term = _globalListSearch.Trim();
+            var rows = AllGlobalListRows;
+            if (!string.IsNullOrWhiteSpace(term))
+                rows = rows.Where(row => row.Id.Contains(term, StringComparison.OrdinalIgnoreCase) || row.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase));
+            return rows.OrderBy(row => row.DisplayName, StringComparer.OrdinalIgnoreCase).ThenBy(row => row.Id, StringComparer.Ordinal);
+        }
+    }
+
+    private string GlobalListCountText
+    {
+        get
+        {
+            var def = CurrentGlobalListDef;
+            var rows = AllGlobalListRows.ToList();
+            return rows.Count > 0
+                ? L.Resource("WorldStory_WorldWideSeenCountFormat", def.Ids(Session).Count, rows.Count)
+                : L.Resource("PlayerRecipes_GameDataUnavailable");
+        }
+    }
+
+    /// <summary>Muted help text under the browser while <see cref="IWorldStorySession.CanEditGlobalLists"/>
+    /// is false, mirroring <see cref="RecipesReadOnlyText"/>: a specific reason live when the agent
+    /// reports one, a generic fallback otherwise (offline read-only, or an older agent with none).</summary>
+    private string GlobalListReadOnlyText => Session.GlobalListEditsUnavailableReason switch
+    {
+        "not-host" => L.Resource("WorldStory_LiveGlobalListsNotHost"),
+        _ => L.Resource("WorldStory_LiveGlobalListsReadOnlyHelp"),
+    };
+
+    private async Task SetGlobalListRowAsync(string id, bool present)
+    {
+        if (!Session.CanEditGlobalLists) return;
+        await Session.SetGlobalListAsync(CurrentGlobalListDef.Kind, [id], present);
+        NotifyEdited();
+    }
 }

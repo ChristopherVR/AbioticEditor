@@ -235,6 +235,12 @@ public sealed class LiveStorySession : IWorldStorySession
     // These are plain members on the concrete live session instead, ready for a future
     // WorldStoryTab surface without touching the file-session boundary.
 
+    /// <summary>Round 112: whether the "WORLD-WIDE SEEN" section of the shared <c>WorldStoryTab</c>
+    /// has anything to show at all, mirroring <see cref="SupportsRecipes"/> - false only when the
+    /// connected agent build predates <c>worldunlocks.get</c>'s six list fields (or the read
+    /// failed), in which case the section stays hidden rather than showing empty lists.</summary>
+    public bool SupportsGlobalLists => _unlocks is not null;
+
     /// <summary>Whether the six world-wide item/codex lists below can be edited: host authority
     /// and replication-notification support, same as recipes but without the extra TSet-capability
     /// check (these are plain <c>FArrayProperty</c> lists, not TSets) - see
