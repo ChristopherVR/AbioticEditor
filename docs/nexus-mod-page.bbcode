@@ -123,16 +123,16 @@ It also remembers the last few worlds you opened, so coming back is one click. T
 
 [size=5][b]NEW: Live editing - change a world while it's actually running[/b][/size]
 
-The Windows desktop app can now connect straight to a world that's already loaded in-game, so you don't need to close Abiotic Factor to make a change. It's a separate mode from the save-file editor above, not a replacement for it.
+The desktop app can connect straight to a world that's already loaded in-game, so you don't need to close Abiotic Factor to make a change. It's a separate mode from the save-file editor above, not a replacement for it.
 
 [list]
-[*][b]Windows only, and experimental.[/b] The browser editor can't connect to a live game, and the Linux app can edit saves but can't run the Windows-side helper. Works with a local game or a dedicated server you have access to.
+[*][b]Desktop app only.[/b] Works on Windows, and on Linux when the game runs through Steam Play (Proton; you also need Wine installed, and the editor's own window needs a recent Linux such as Ubuntu 24.04 or newer). The browser editor can't connect to a live game. Works with a local game or a dedicated server you have access to.
 [*][b]No SAVE button, no undo, no backup.[/b] Live changes apply the moment you make them. Make your own in-game backup before experimenting, offline editing is still the safer workbench for anything you want to review first.
-[*][b]Needs UE4SS,[/b] a separate open-source mod loader. The Windows release bundles a pinned copy and installs it into your game folder with your permission - it never touches an existing UE4SS install.
-[*][b]What's supported:[/b] vitals, skills, inventories, transmog, recipes, GatePal records, background and spawn fields, story flags, clock and weather, loaded containers and ground items, creatures, story NPCs, traders, pets, doors, portals, vehicles, containment, deployables, traits, appearance, and bench upgrades - all while playing.
+[*][b]Needs UE4SS,[/b] a separate open-source mod loader. The release bundles a pinned copy and installs it into your game folder with your permission - it never touches an existing UE4SS install.
+[*][b]What's supported:[/b] vitals, skills, inventories, transmog, recipes, GatePal records including kill-tracked entries, background, traits, appearance and spawn fields, story flags and chapters, clock and weather, loaded containers and ground items, creatures and story NPCs, traders, pets (including changing a Pest or Skink pet's species), doors, portals, elevators, buttons, resource nodes, breakable objects, corpses, NPC spawners, scripted triggers, power sockets, trams, vehicles and their cargo, containment units, placed objects with bench upgrades, garden plots, Power Chairs, chemistry benches, and the world-wide seen lists - all while playing. Some changes need you to be the host, and a few things stay read-only because the game itself does not allow them; the guide lists every one.
 [/list]
 
-To try it: open the editing-mode button in the app, choose [b]Set up live editing[/b] -> [b]This PC[/b], then follow the on-screen steps. It's still being checked against a live game, so keep an eye on anything that looks off and update the helper when a new release offers one.
+To try it: open the editing-mode button in the app, choose [b]Set up live editing[/b] -> [b]This PC[/b], then follow the on-screen steps. Update the helper when a new release offers one.
 
 Full setup and troubleshooting: https://christophervr.github.io/AbioticEditor/guide/live-editing
 
@@ -234,7 +234,7 @@ There is also a command-line version for scripting and server admins, and the pl
 [*][b]Edit in your browser (no download):[/b] https://christophervr.github.io/AbioticEditor/app/
 [*][b]Full guide and FAQ:[/b] https://christophervr.github.io/AbioticEditor/
 [*][b]Getting started:[/b] https://christophervr.github.io/AbioticEditor/guide/getting-started
-[*][b]Live editing (experimental):[/b] https://christophervr.github.io/AbioticEditor/guide/live-editing
+[*][b]Live editing:[/b] https://christophervr.github.io/AbioticEditor/guide/live-editing
 [*][b]Game Pass saves:[/b] https://christophervr.github.io/AbioticEditor/guide/game-pass
 [*][b]Plugins / custom tools:[/b] https://christophervr.github.io/AbioticEditor/plugins
 [*][b]Reporting a bug:[/b] https://christophervr.github.io/AbioticEditor/guide/desktop-app#reporting-a-bug
