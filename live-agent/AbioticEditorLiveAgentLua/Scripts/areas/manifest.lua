@@ -21,4 +21,11 @@ return {
     "areas.transmog",
     "areas.narrative",
     "areas.buttons",
+    "areas.resourcenodes",
+    "areas.destructibles",
+    "areas.corpses",
+    "areas.powersockets",
+    "areas.trams",
+    "areas.npcspawns",
+    "areas.triggers",
 }

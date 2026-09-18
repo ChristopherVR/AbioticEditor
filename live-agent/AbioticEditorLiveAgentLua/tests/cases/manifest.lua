@@ -32,4 +32,12 @@ return {
     "appearance",
     "npc_revive",
     "buttons",
+    "resourcenodes",
+    "powersockets",
+    "trams",
+    "destructibles",
+    "corpses",
+    "recipes",
+    "npcspawns",
+    "triggers",
 }

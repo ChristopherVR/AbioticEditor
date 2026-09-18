@@ -349,11 +349,12 @@ when omitted, so passing `false` removes it.
 Opening a bench or crate's contents inline (the file editor's slot grid) is still file-only - it
 shares the CONTAINERS tab's staged slot model; use the CONTAINERS tab for live slot editing.
 
-## `vehicles.list` / `vehicles.set` - round 76, wrecked state round 77
+## `vehicles.list` / `vehicles.set` - round 76, wrecked state round 77, on-board storage the coordinator round after 79
 
 `vehicles.list` returns `{"vehicles":[{"id","vehicleId","vehicleClass","driveable","wrecked",
-"x","y","z"}],"isHost":bool,"supportsWreckedState":true}` for every vehicle currently loaded
-(`ABF_Vehicle_ParentBP` and its subclasses). `vehicles.set` takes `{"id","driveable"?,"wrecked"?,
+"x","y","z","containerId"?,"hasInventory","inventoryItemCount"}],"isHost":bool,
+"supportsWreckedState":true}` for every vehicle currently loaded (`ABF_Vehicle_ParentBP` and its
+subclasses). `vehicles.set` takes `{"id","driveable"?,"wrecked"?,
 "x"?,"y"?,"z"?}` - `driveable` is a direct property write (`VehicleDriveable` +
 `OnRep_VehicleDriveable`, confirmed on the live class layout); a position takes effect via
 `K2_TeleportTo` (confirmed real, used the same way in
@@ -368,14 +369,32 @@ is fed from a local variable inside the vehicle's own `UpdateWorldSave` function
 rename. **Genuinely unverified against the running game**: no mod anywhere reads or writes this
 field, and whether flipping it alone updates the vehicle's wreck visuals live (versus only the
 value the save later persists) is unknown without launching the game.
-On-board vehicle storage is still not exposed here (`hasInventory`/`inventoryItemCount` are
-always `false`/`0` for a live vehicle) - it is a different inventory component than the world
-containers this protocol's `containers.*` commands already cover.
 
-## `pets.list` / `pets.set` / `pets.remove` - round 76 (no path), partially closed round 77, removal added round 78
+**On-board storage** (closed the coordinator round after round 79, re-probing the game's own
+class layout - fragment `ABF_Vehicle_ParentBP` - rather than guessing from the save's own field
+names). `ABF_Vehicle_ParentBP_C` carries a plain, unsuffixed `StorageContainer` property (a
+`ChildActorComponent`) and a BlueprintPure `GetVehicleContainers()` whose own bytecode dynamic-
+casts `StorageContainer.ChildActor` to `Deployed_Container_ParentBP_C` and reads its
+`ContainerInventory`. The forklift's own placed child-actor default is
+`Deployed_Container_ForkliftCargo_C` (confirmed from the Blueprint export's `ChildActorTemplate`),
+which chains `Deployed_Container_ForkliftCargo_C` -> `Deployed_Container_Cargo_C` ->
+`Deployed_Container_ParentBP_C` - the exact class `containers.lua`'s own `CONTAINER_CLASSES` sweep
+already scans for (the security cart's `Deployed_Container_SecurityCartCargo_C` chains the same
+way). **A vehicle's on-board cargo is therefore a genuine, independently-loaded
+`Deployed_Container_ParentBP_C` actor, not a bespoke vehicle-only structure**: it is already
+listed, read and written by the existing `containers.list`/`containers.get`/`containers.set`
+handlers with no changes there at all. `vehicles.lua` only resolves `StorageContainer.ChildActor`
+(pcall-guarded - a vehicle type with no cargo child actor reports no storage instead of erroring)
+and reports its own `fullName()` as `containerId`, plus `hasInventory`/`inventoryItemCount` read
+the same way `containers.lua` counts a container's own non-empty slots. The app's VEHICLES tab
+"open storage" button now jumps straight to that `containerId` in the CONTAINERS tab (one
+slot-edit code path, the same one every other placed container already uses) instead of the old
+hardcoded `hasInventory: false`. **Not yet exercised in the running game.**
+
+## `pets.list` / `pets.set` / `pets.remove` - round 76 (no path), partially closed round 77, removal added round 78, generic tamed sweep added round 105
 
 `pets.list` returns `{"pets":[{"id","npcClass","isDead","customName","x","y","z","limbHealth":
-{...},"xp"}],"isHost":bool,"available":true,"supportsSpeciesChange":false,
+{...},"xp","matched"}],"isHost":bool,"available":true,"supportsSpeciesChange":false,
 "supportsRemoval":true,"reason":"..."}`. Round 76 found no general live path for tamed pets: the
 fields a world save's `PetNPC` record needs are exposed wildly inconsistently between creature
 families. Round 77 re-checked the game's own class layout and found a real, **partial** path
@@ -387,21 +406,48 @@ instead of guessing a universal one:
   `companions.list`'s carried-pet XP already reads/writes), and `FollowingOwner`
   (`FObjectProperty`, a reference to the player it is currently following - see `companions.set`
   below for what this unlocked). `pets.list` only lists actors of this family, matched by `id` =
-  their own `Guid` string.
+  their own `Guid` string. These rows come back `matched:true`.
 - Per-limb health is **universal**, not pet-specific: `AbioticCharacter` (the native base of
   every player AND every NPC) carries `CurrentHealth_Head/Torso/LeftArm/RightArm/LeftLeg/
   RightLeg` as plain unsuffixed floats with one shared `OnRep_CurrentHealth` - the exact fields
   `vitals.set` already writes for the local player, confirmed live. `pets.set` writes these the
-  same way.
+  same way, for both matched and unmatched rows (see below).
 - Peccary and Lamogi family pets were re-checked and confirmed to still carry none of
   `Guid`/`PetName`/`DynamicProperties`/`FollowingOwner` as their own properties - there is still no
-  stable id for them, so they are never listed; `reason` says so. `supportsSpeciesChange` is always
-  `false` - no confirmed despawn/respawn round trip exists for a living NPC with a species change
-  in mind.
+  stable id for them. `supportsSpeciesChange` is always `false` (see the round-105 note below for
+  why, with sharper evidence than the original "no confirmed despawn/respawn round trip").
+
+**Round 105: Peccary/Lamogi pets are listed now, not omitted.** Rather than re-confirming round
+77/79's conclusion unchanged, this round found a real, generic tamed-creature marker:
+`NPC_Monster_WinterSprite_C`'s own compiled graph calls a static library function,
+`AbioticFunctionLibrary::IsTamedPet(Actor)` (bool, one parameter), from three of its own
+overridden functions. It is a general-purpose actor query, not specific to any one creature
+family, so `pets.list` now also sweeps `NPC_Base_ParentBP_C` (the same hierarchy-inclusive parent
+class `npcs.list` already sweeps for the whole CREATURES tab - no Peccary/Lamogi/future-family
+class list needed) and feature-detects per instance: anything with its own `Guid` is skipped
+(already covered by the Pest/Skink path above), anything else `IsTamedPet` reports true for is
+listed with `matched:false` and `id` set to the live actor's own full path (the same id scheme
+`npcs.list` uses) rather than a save key, since these creatures still expose no stable id a save
+row could share. Calling `IsTamedPet` on a non-WinterSprite actor is new and unverified against
+the real game until tested live, wrapped in `pcall` like every other first-use call in this
+project. An unmatched row's `customName` is always `null` and `xp` is always `0` (the class has
+neither field); `isDead`/`limbHealth` are real and stay editable exactly like a matched row's.
+
+**Round 105: species change stays refused, now with sharper evidence.** The game's own
+`Abiotic_Survival_GameMode_C.SpawnPet(Class, SpawnTransform, Guid, Name, Owner, DynamicProperties,
+Tamed)` is a real function with exactly the shape a "respawn as a different class" edit would
+need - but `SpawnTransform` is an `FTransform`, a nested struct (rotation/translation/scale) this
+project has no working construction precedent for anywhere over UE4SS Lua reflection, unlike the
+flat `FVector`/`FRotator` tables round 76 proved out for `spawn.set`. Guessing an unverified
+struct shape for a native-bridged call is exactly what caused the BASES tab's fatal, non-catchable
+crash in round 79, so this stays refused project-wide and `supportsSpeciesChange` stays `false`.
 
 `pets.set` takes `{"id","isDead"?,"customName"?,"limbHealth"?,"xp"?}` - `npcClass` is never
 accepted (no live species change). Host only. It replies `{"warnings":[...]}` rather than failing
-outright when one field could not be applied - see the round-78 bug fix below.
+outright when one field could not be applied - see the round-78 bug fix below. On an unmatched
+(`matched:false`) row, a requested `customName`/`xp` change is never attempted (the class has no
+such field) and comes back as a warning instead of a silent no-op or a thrown error; `isDead`/
+`limbHealth` apply the same way as a matched row.
 
 `pets.remove` takes `{"id"}` and destroys the pet's actor outright
 (`npc:K2_DestroyActor()` - the same standard `AActor` call the reference CheatConsoleCommands
@@ -409,7 +455,8 @@ mod's own "deleteobject" console command already uses on an arbitrary world acto
 function cleanly "releases" a tamed world pet back into the wild (checked `CreatePetItem`/
 `ReleaseFromAIDirector`/`IsFollower` on `NPC_Base_ParentBP_C` - none of them detach-and-vanish an
 already-world-placed NPC), so this is the closest evidenced removal there is. Host only, and there
-is no undo once it returns.
+is no undo once it returns. Works on matched and unmatched rows alike - removal never needed a
+save-matchable id, only a live actor reference.
 
 **Round-78 bug fix (reported live: "pet health and level editing doesn't seem to work").** The
 root cause was not that the writes themselves failed live - it was that a combined `pets.set` call
@@ -577,6 +624,351 @@ button still forces `pressedOnce` true as an unavoidable side effect of the same
 Host only. Same partial-apply behavior as `doors.set`/`portals.set` (a row with an unresolved `id`
 does not block the others in the same call). Not yet exercised in the running game.
 
+## `resourcenodes.list` / `resourcenodes.set` - harvestable resource nodes (round 101)
+
+The live twin of the `resource-nodes` world-map feature
+(`Core/WorldSaves/Features/ResourceNodeMapFeature.cs`, the save's `ResourceNodeMap`, whose leaves
+are `HasBeenPickedUp_`/`DayPickedUp_`/`CurrentPosition_`). `resourcenodes.list` takes an optional
+`{"classFilter":string}` payload (a case-insensitive substring match against the actor's own class
+name, e.g. `"GlassPane"`) and returns
+`{"nodes":[{"id","label","harvested"?,"dayPickedUp"?,"x","y","z"}],"isHost":bool}` for every
+currently-loaded resource node found by a single `FindAllOf("ResourceNode_ParentBP_C")` sweep.
+`resourcenodes.set` takes `{"nodes":[{"id","harvested"?,"dayPickedUp"?}]}`. Host only.
+
+**Discovery is a single hierarchy sweep, not a hardcoded class list.** `ResourceNode_ParentBP_C`
+(super `AbioticActor_C`) is the root nearly every harvestable in the game chains up to - confirmed
+from the coordinator's class dump across dozens of concrete classes
+(`ResourceNode_WoodCrate_Manufacturing_C`, `ResourceNode_GlassPane_C`,
+`ResourceNode_AnalysisMachine_C`, `ResourceNode_Hydropanel_C`, `ResourceNode_Turbine_C`, and more) -
+and its own subclass `Resource_MicroNode_ParentBP_C` (every `Resource_MicroNode_*`/
+`Resource_Micronode_*` class, e.g. `Resource_MicroNode_DuctTape_C`,
+`Resource_Micronode_LeyakEssence_TWO_C`), so the one sweep already covers both families with no
+class name hardcoded anywhere in this module, and so will any future harvestable the game adds.
+Every property read is per-instance `pcall`-feature-detected, so a class this module has never
+heard of still lists (with its real class name as `label`) instead of erroring or being dropped.
+
+**Field mapping, confirmed from `ResourceNode_ParentBP_C`'s own `ChildProperties` and
+`SaveNodeToWorldSave`'s own bytecode** (not guessed from the save's leaf names):
+- `harvested` = the live `IsDepleted` bool (replicated, `OnRep_IsDepleted`).
+  `SaveNodeToWorldSave`'s own bytecode reads exactly this property before persisting a node,
+  grounding the mapping directly.
+- `dayPickedUp` = the live `DayWasDepleted` int - **plain, not replicated** (confirmed from its own
+  `PropertyFlags` carrying no `Net` flag, so it has no `OnRep_`).
+  `SaveNodeToWorldSave`'s bytecode sets it to `DayNightManager.CurrentDay` at the moment it
+  persists a depleted node, confirming both the field and its meaning.
+- `position`/`x,y,z` = the live actor transform (the same `K2_GetActorLocation` read every other
+  fixed-actor feature in this protocol uses) - `ResourceNode_ParentBP_C` carries no separate
+  position property of its own, unlike the save's `CurrentPosition_` leaf.
+
+**`harvested` is never a bare property write.** `ResourceNode_ParentBP_C` exposes two real,
+zero-parameter `FUNC_BlueprintCallable | FUNC_BlueprintEvent` functions, `RespawnResourceNode()`
+and `Force_DepleteNode()`. Traced through the shared ubergraph both jump into: for the ordinary
+case (no `ContinualRespawnFlag` world flag configured on the node), `RespawnResourceNode` calls
+`FlushNetDormancy()`, sets `IsDepleted=false`, re-places the node on the ground (`PlaceOnGround`,
+gated on the streaming location being loaded), then calls `OnRep_IsDepleted()` and
+`NetPushModelHelpers.MarkPropertyDirtyFromRepIndex(self, IsDepleted)` - the game's own "make this
+node visibly reappear" path, used here rather than a bare field write. `Force_DepleteNode` is the
+exact mirror (`FlushNetDormancy()`, `IsDepleted=true`, the same confirmed `OnRep_IsDepleted()`/
+`MarkPropertyDirtyFromRepIndex` tail). `resourcenodes.set` presses whichever function moves
+`IsDepleted` toward the requested value (skipping the call entirely when the node is already
+there, the same "already parked" idiom `elevators.set` uses) and re-reads `IsDepleted` afterward,
+only reporting success once it actually matches - the same "a call with no confirmed effect is an
+error, not a false success" honesty `elevators.set` established, not a blind fire-and-forget.
+
+**Known, documented quirk (not silently papered over):** a node that carries a valid,
+currently-set `ContinualRespawnFlag` world flag takes a different branch inside
+`RespawnResourceNode` - it calls `Server_SetDormant()`, plays a portal-vanish effect/sound, and
+then falls into the SAME depleting tail `Force_DepleteNode` uses, i.e. the node ends up depleted,
+not respawned, for that one call. There is no exposed function to read whether that flag is
+currently set from outside the node's own bytecode, so this is not specially detected - the
+readback check above catches it (and any other unconfirmed call) as an honest failure rather than
+a false success.
+
+`dayPickedUp` is a direct write (no confirmed setter function, and none needed since the field is
+not replicated) - the same `NoVignetteReset` precedent `buttons.set` already documents for a
+plain, non-replicated bool.
+
+**Deliberately excluded from the desktop app's periodic live refresh loop.** A single loaded region
+can carry well over a thousand resource-node entries in the save (more than any other live world
+area this protocol covers), so `LiveConnect.razor` only fetches this area once per world-surface
+visit (or after a region change), never on a timer - see that file's `ActiveLiveSessions` switch
+and `resourcenodes.lua`'s own header comment. `resourcenodes.list`'s optional `classFilter` exists
+for a caller that wants to narrow a request to one harvestable type instead of paying for every
+node in the loaded area, though the desktop app's own `WORLD > Resource Nodes` tab does not use it
+today (it lists everything, matching the file editor's own unfiltered `ResourceNodeMap` view, and
+relies on that tab's own virtualized/filterable row list for the resulting size). Same partial-apply
+behavior as `doors.set`/`portals.set`/`buttons.set` (an unresolved `id`, or a field that failed its
+readback check, does not block other rows in the same call). Removal is refused live (unlike the
+offline feature, which drops the whole map entry so the game recreates the actor at its blueprint
+default) - `RespawnResourceNode` only clears the harvested flag and re-places the existing actor, it
+does not reset position or any other persisted state, so mapping "remove" onto it would overstate
+what actually happens. Not yet exercised in the running game.
+
+## `destructibles.list` / `destructibles.set` - breakable world objects (round 100)
+
+The live twin of the `destructibles` world-map feature (`Core/WorldSaves/Features/DestructibleMapFeature.cs`,
+the save's `DestructibleMap`, whose only editable leaf is `Broken_`). `destructibles.list` returns
+`{"destructibles":[{"id","label","broken","x","y","z"}],"isHost":bool}` for every loaded actor found
+by a single `FindAllOf("Abiotic_GenericDestructible_BP_C")` sweep (hierarchy-inclusive, the same
+idiom `buttons.lua`/`elevators.lua` already document), so every current subclass (ice walls, spore
+webbing, ceiling tiles, security doors, x-ray fields, and every other fixture-confirmed
+`Destructible_*`/`IceWall_*`/`Webbing_*` class, confirmed from each class's own `super=` chain)
+comes back with no class name hardcoded anywhere, and so will any future one the game adds.
+`destructibles.set` takes `{"destructibles":[{"id","broken"?}]}`. Host only.
+
+Confirmed against the coordinator's own CUE4Parse class dump and
+`Abiotic_GenericDestructible_BP_C`'s own blueprint bytecode (see `destructibles.lua`'s own header
+comment for the full citations): `broken` is `actor.Broken` (direct, replicated, RepNotify
+`OnRep_Broken`). The class's own ubergraph (the code a world-flag-triggered break and
+`TryApplyDamage` reaching zero health both jump into) does exactly `Broken = true; OnRep_Broken();
+SetStateBroken(NoFX)`, so `destructibles.set` mirrors that shape for `broken: true` - write
+`Broken = true`, then call the real `OnRep_Broken()` (which itself calls `SetStateBroken(NoFX)`,
+with `NoFX` computed from whether the actor "just loaded", so a live-triggered break plays FX/SFX
+the same as a real player-caused one).
+
+**Repair has no live path, confirmed not assumed.** `OnRep_Broken`'s own bytecode starts with an
+unconditional "if not Broken then return" - there is no branch at all for the false case, and
+nothing else in the class (every function in the dump was checked: `SetStateBroken`,
+`TryApplyDamage`, `Server_InitialBreakEvent`, `WorldFlagBreakCheck`, `HealthUpdated`,
+`UserConstructionScript`) ever re-enables the intact mesh's collision/visibility or disables the
+destroyed mesh's once `SetStateBroken` has run - `SetStateBroken` itself takes only a `NoFX` bool,
+never a "which state" argument, so it is a one-way break, not a toggle. `destructibles.set` refuses
+any request that sets `broken: false` outright (`"this object cannot be repaired live..."`) before
+writing anything, rather than desyncing the save's own flag from what the player still sees (a
+permanently broken mesh/collision) - the same "refuse before writing anything" shape
+`buttons.set`'s `pressedOnce` refusal already documents. A `null` `broken` field in a
+`destructibles.list` row means this specific actor could not be read just now, not a guessed
+`false`. Same partial-apply behavior as `doors.set`/`buttons.set` (a row with an unresolved `id`
+does not block the others in the same call; a `broken: false` request in the same batch as
+resolvable `broken: true` rows still lets those apply before the whole reply becomes an error).
+
+**Deliberately excluded from the desktop app's periodic live refresh loop**, for the same reason
+`resourcenodes` is: a loaded region can carry a great many `Webbing_BP`/`IceWall_BP` actors at once
+- see `LiveConnect.razor`'s `ActiveLiveSessions` switch. Removal is not offered live (the offline
+feature disables it too, for the same reason: an entry only exists once broken, so removing it
+would have the same effect as `broken: false`, which is refused live anyway). Not yet exercised in
+the running game.
+
+## `corpses.list` / `corpses.remove` - NPC corpses (round 100)
+
+The live twin of the `corpses` world-map feature (`Core/WorldSaves/Features/CorpseMapFeature.cs`,
+the save's `CorpseMap`, which has no editable field offline either - only removal). `corpses.list`
+returns `{"corpses":[{"id","label","gibbed"?,"looted"?,"x","y","z"}],"isHost":bool}` for every
+loaded actor found by a single `FindAllOf("CharacterCorpse_ParentBP_C")` sweep (hierarchy-inclusive,
+the same idiom `buttons.lua`/`elevators.lua`/`destructibles.lua` already document), so every current
+subclass (`CharacterCorpse_Human_BP_C` and its own named variants - `CharacterCorpse_OrderGrunt_C`,
+`CharacterCorpse_OrderSniper_C`, `CharacterCorpse_OrderBreacher_C`, `CharacterCorpse_OrderCaptain_C`,
+`CharacterCorpse_LabRat_C`, `CharacterCorpse_Human_GATESecurity_C` - plus `CharacterCorpse_MonsterGeneric_C`,
+confirmed from each class's own `super=` chain) comes back with no class name hardcoded anywhere,
+and so will any future one the game adds. `corpses.remove` takes `{"id"}`. Host only.
+
+Confirmed against the coordinator's own CUE4Parse class dump of `CharacterCorpse_ParentBP_C`:
+`gibbed` is `actor.IsGibbed` (direct, replicated, RepNotify `OnRep_IsGibbed`) and `looted` is
+`actor.HasBeenLooted` (direct, replicated, no RepNotify) - one field name apart from the save's own
+leaves (`IsGibbed_`/`IsLooted_`), same meaning. Both stay read-only here too, matching
+`CorpseMapFeature.cs`'s own reasoning ("no in-game reason to flip either by hand"); a `null` field
+in a `corpses.list` row means this specific actor could not be read just now, not a guessed `false`.
+
+**Removal, confirmed not guessed.** Every function `CharacterCorpse_ParentBP_C` declares
+(`SaveCorpse`, `DropLoot`, `RefreshGibbedState`, `OnRep_IsGibbed`/`OnRep_CurrentGibCuts`,
+`GetTypeOfInteractableCorpse`, `MergeAndClearSkeletals`, `GetAttackerLootChance`, ...) was checked
+against the dump and none of them cleanly despawns an already-placed corpse - there is no
+"DespawnCorpse" or equivalent, matching round 78's identical finding for tamed pets
+(`pets.remove`). `corpses.remove` therefore uses the same standard `K2_DestroyActor()` the reference
+CheatConsoleCommands mod's own "deleteobject" command already uses on an arbitrary world actor. No
+undo once this runs, matching the offline feature's own remove description ("clear the clutter, and
+any loot still on it"). This is the first live world-map feature session
+(`LiveCorpsesFeatureSession`) where removal really is supported, rather than every field/removal
+combination the file editor supports having no live equivalent.
+
+Not yet exercised in the running game.
+
+## `powersockets.list` / `powersockets.set` - power sockets (round 103)
+
+The live twin of the `power-sockets` world-map feature
+(`Core/WorldSaves/Services/WorldMapFeatures/PowerSocketMapFeature.cs`, the save's `PowerSocketMap`).
+`powersockets.list` returns
+`{"sockets":[{"id","label","socketId"?,"pluggedInDevice","hasTimer"?,"timerMode"?,"powered"?,"x","y","z"}],"isHost":bool}`
+for every loaded actor found by a single `FindAllOf("PowerSocket_ParentBP_C")` sweep
+(hierarchy-inclusive, the same idiom every other area here uses), so every current subclass
+(`PowerSocket_MgtCore_C`, `PowerSocket_ORDER_C`, `PowerSocket_VWinter_C`, `PowerSocket_XMAS25_C`,
+confirmed from each class's own `super=` chain) comes back with no class name hardcoded anywhere.
+`socketId` is the actor's own `GetPowerSocketID()` value (confirmed by bytecode to be
+`BreakSoftObjectPath(MakeSavedObjectPath(Self)).PathString` - the same id space the save's
+`PowerSocket_<hash>` leaf stores). `pluggedInDevice` reads the live `PluggedInDevice` object
+reference directly and reports its real class name ("nothing plugged in" when free) - it needs no
+game-data catalog, unlike the offline feature's asset-id resolution.
+
+**Read-only, and confirmed to have no live-settable path at all** (`powersockets.set` exists only
+to give a named, evidenced refusal rather than a generic "unknown command" - the C# session
+(`LivePowerSocketsFeatureSession`) already refuses every field locally before ever reaching it).
+Traced `PowerSocket_ParentBP_C`'s own bytecode exhaustively (every hash-suffixed struct-member
+write in the class): `LatestSaveData.HasTimer_<hash>` and `LatestSaveData.TimerMode_<hash>` are
+written in exactly one place, `Update_SaveData` (called from `SavePowerSocketToWorldSave`, the
+actor's own "persist me now" entry point), and in BOTH branches of that function's own if/else
+(attach vs. detach) they are set unconditionally to `false`/`0` - there is no branch, gate, or other
+write site that ever sets either to anything else, and no read of either leaf exists in this class
+either. This means whatever a save file carries for these two leaves is only ever what load-time
+code restored (not itself traced; inferred by symmetry with every other area's load/save pairing),
+and the very next time anything triggers a save on that socket both are forced back to false/0
+regardless of what this module or a player wrote. `hasTimer`/`timerMode` are exposed read-only for
+this reason (a `null` value means this specific actor's `LatestSaveData` struct could not be read
+just now, not a guessed default). The full `E_PowerTimerModes` enum dump (9 real values plus
+`E_MAX`) shows every enumerator is still an auto-generated `NewEnumeratorN` name with no meaningful
+English label, so `timerMode` is reported as the raw byte rather than an invented friendly name -
+offline's own `PowerSocketMapFeature` was left unchanged for the same reason (the fuller enum dump
+does not add a meaningful choice list, only confirms the offline "cannot be determined" note was
+already correct). `powered` is a bonus read-only field off the confirmed `IsPowered()` function.
+Not yet exercised in the running game.
+
+## `trams.list` / `trams.set` - trams (round 103, recall write path added round-103 follow-up, Facility only)
+
+The live twin of the `trams` world-map feature
+(`Core/WorldSaves/Services/WorldMapFeatures/TramMapFeature.cs`, the save's `TramMap`).
+`trams.list` returns
+`{"trams":[{"id","label","previousStation"?,"targetStation"?,"moving"?,"positiveDirection"?,"isAtStation"?,"hasPassengers"?,"containers","recallStations","x","y","z"}],"isHost":bool}`
+for every loaded actor found by a single `FindAllOf("Tram_ParentBP_C")` sweep (hierarchy-inclusive),
+covering both confirmed subclasses (`Tram_Default_C`, `Tram_ContainmentLift_C`). `previousStation`/
+`targetStation` are the friendly station labels (`TramMapFeature`'s own `FriendlyStation` shape,
+"PersistentLevel." stripped) read from the live `PreviousStation`/`TargetStation` object references.
+`containers` is the on-board storage count off the confirmed `GetTramContainers()` function.
+`recallStations` is the (possibly empty) array of friendly station labels a real
+`TramSystem_RecallStation_C` actor links to this specific tram (see below). `trams.set` takes
+`{"trams":[{"id","targetStation"?}]}`. Host only.
+
+**`previousStation` is confirmed, not inferred by symmetry**: tracing `Tram_ParentBP_C`'s own
+arrival sequence in its ubergraph bytecode shows that on reaching a stop the graph sets
+`PreviousStation = TargetStation` (a plain instance-to-instance property copy), marks it dirty and
+calls `OnRep_PreviousStation()`, then immediately calls
+`GameMode:UpdateActorToWorldSave(Self, false, 14)` - the actual "persist this tram now" call, run
+right after `PreviousStation` is updated. This is exactly the save-time mapping
+`TramMapFeature.cs`'s own doc comment describes for `LastStation_`. Separately confirmed this round:
+`TramSystem_Station_C:TramReachedLocation`'s own bytecode is a short, unbranching function whose
+only meaningful statement sets its `ContinueMoving` out-param to `false` unconditionally - every
+station stop is a real, full stop; a tram never sails through an intermediate station toward a
+farther target on its own.
+
+**`trams.set` (round-103 follow-up): a real recall write path, not fully bytecode-confirmed end to
+end.** `Button_TramRecall_C` (super `Button_Tram_C`, itself super `Button_Generic_C` with no
+properties/functions of its own) overrides only `GetInteractText` (confirmed from its own bytecode -
+calls `TramReference:FindNextStation(Positive)` purely to build display text) and has no other
+logic; `Tram_ParentBP_C`'s own bytecode never references the recall system at all. The real trigger
+is `TramSystem_RecallStation_C` (a leaf class, no parent of its own beyond `Actor` - discovered with
+a plain `FindAllOf`, no hierarchy sweep needed), with `LinkedTram`/`LinkedStation` object properties
+and a `TramRecallPressed(Activated: bool)` function whose own local-variable list (properties-only
+view; its `ScriptBytecode` was not part of this round's dump) - `FindNextStation`/
+`GetDirectionFromStation`/`GetNextStopPoint`/`IsStationLocked` calls plus a counted loop - proves it
+performs real multi-hop pathfinding to determine whether `LinkedStation` is reachable and which
+direction reaches it, not a guessed name. `SetNextStopPoint(Positive, CurrentPoint)` on the tram
+itself IS fully traced this round: it calls the rail's `GetNextStopPoint`, writes `TargetStation`,
+and calls `SetMoving(true)` - a real, working one-hop "start heading this way" call.
+
+`trams.set`'s `targetStation` finds a `TramSystem_RecallStation_C` whose `LinkedTram` is the
+requested tram and whose `LinkedStation` (by friendly label) is the requested station, then calls
+that instance's own `TramRecallPressed(true)` - the game's own function, never reimplemented.
+Refuses up front if the tram's moving state cannot be confirmed or the tram is already moving, and
+refuses if no recall station links this exact tram/station pair (live can only reach a station some
+placed recall station actually serves - narrower than offline's "any station the save has ever
+referenced", but real). After pressing, re-reads `Moving`/`PreviousStation` and accepts either the
+tram now moving (a hop toward the target started - the journey may still be in progress; every
+station is a confirmed full stop, so a distant recall is asynchronous and multi-step) or the tram
+already at the requested station as success; a press with no confirmed effect is an honest error,
+matching `elevators.set`'s own discipline. **Still open for a future round**: `TramRecallPressed`'s
+own bytecode (to confirm exactly what it calls on `LinkedTram` and whether it gates on
+host/`IsServer()` itself) and `TramSystem_Rail_C`'s bytecode (`GetNextStopPoint`/
+`GetDirectionFromStation`) were not part of this dump - the coordinator can supply
+`TramSystem_RecallStation.json`/`TramSystem_Rail.json` to close this with full certainty. Not yet
+exercised in the running game.
+
+## `npcspawns.list` / `npcspawns.set` - NPC spawners (round 102)
+
+The live twin of the `npc-spawns` world-map feature (`Core/WorldSaves/Features/NpcSpawnMapFeature.cs`,
+the save's `NPCSpawnMap`, whose leaves are `CurrentCooldownRemaining_`/`LastDayOnCooldown_`/
+`SpawnCount_`/`HasSpawnedOnce_`/`MinutesPassedCooldownStarted_`/`HasBeenEncounteredOnce_`).
+`npcspawns.list` returns
+`{"spawners":[{"id","label","controllable","onCooldown"?,"cooldownRemainingSeconds"?,"cooldownDaysRemaining"?,"hasSpawnedOnce"?,"hasBeenEncounteredOnce"?,"spawnCount"?,"x","y","z"}],"isHost":bool}`.
+`npcspawns.set` takes `{"spawners":[{"id","resetCooldown"?:true,"forceSpawn"?:true}]}`. Host only.
+
+**Class discovery covers three roots**, a genuine correction against the round's own task brief
+(which assumed a single hierarchy): the coordinator's CUE4Parse dump shows the overwhelming
+majority of spawner classes (every zombie/pest/gatekeeper/order/pillager/darklens/security-bot/
+peccary/winter-sprite/single-grunt family, confirmed one by one from each class's own `super=`)
+chain up to `Abiotic_NPCSpawn_ParentBP_C`, so a single `FindAllOf` on that root covers them. But
+`NPCSpawn_Entity_C` and `NPCSpawn_Narrative_C` both declare `super=Actor` directly in the dump -
+two genuinely separate roots (`NPCSpawn_Trader_Chef_C`/`NPCSpawn_Trader_Marion_C` chain from the
+narrative one; `NPCSpawn_VOTV_UFO_C`/`NPCSpawn_VOTV_Wisp_C` from the entity one), swept as
+additional roots. Neither exposes any of the cooldown/count system below at all, so their rows
+always report `controllable:false` with every state field absent.
+
+**Cooldown/count state lives partly on the spawner actor itself and partly on a native world
+subsystem, `AIDirectorSubsystem`** (`/Script/AbioticFactor`, obtained the same way the spawner's
+own bytecode gets it: `SubsystemBlueprintLibrary::GetWorldSubsystem`, passing itself as the
+spawner argument to the subsystem's own per-spawner functions):
+- `onCooldown` - the spawner's own `IsOnCooldown()` (confirmed bytecode:
+  `GetCurrentCooldownRemainingFromSpawner > 0 OR GetCooldownDaysRemainingFromSpawner > 0`).
+- `cooldownRemainingSeconds` - `AIDirectorSubsystem:GetCurrentCooldownRemainingFromSpawner(spawner)`.
+- `cooldownDaysRemaining` - `AIDirectorSubsystem:GetCooldownDaysRemainingFromSpawner(spawner)`.
+- `hasBeenEncounteredOnce` - `AIDirectorSubsystem:GetHasBeenEncounteredOnceForSpawner(spawner)`.
+- `hasSpawnedOnce` - the spawner's own direct `HasSpawnedOnce` property.
+- `spawnCount` - the spawner's own `GetCurrentSpawnedCount(false)`.
+
+The offline leaf `MinutesPassedCooldownStarted_` has no confirmed live counterpart in the dump and
+is not exposed here.
+
+**Both write actions are momentary "do it now" toggles, not persistent state.** `resetCooldown`
+calls the spawner's own real `SetSpawnOnCooldown(0.0, 0)` - confirmed from its bytecode that
+passing `InCurrentDay=0` makes the function look up "today" itself (via a feature-detected
+`AI Director.DayNightManager.CurrentDay`), so this one call means exactly "let this spawner fire
+again right now"; the function then calls `AIDirectorSubsystem:SetCooldownForSpawner` itself, so
+this module never calls that subsystem function directly. `forceSpawn` calls the spawner's own
+`TrySpawnNPCNew(false, true, false)`, falling back to the older `TrySpawnNPC` with the same
+arguments when the newer function is absent - `ForceSuccessByTrigger=true` is confirmed from the
+bytecode to gate multiple individual spawn-check `JumpIfNot` branches, matching what a `Trigger_*`
+volume would pass to force a spawn. **Genuinely unverified against the running game**: whether the
+resulting NPC actually appears is not confirmed by any live capture, only by this bytecode
+reading - a call that does not error is reported as requested, not a confirmed spawn.
+
+Large map: 918 entries in the Facility fixture. Deliberately excluded from the desktop app's
+periodic live-tab refresh loop, the same performance care `containers`/`resourcenodes`/
+`destructibles` already document - a tab visit still fetches once, and the REFRESH pattern those
+areas use applies here too. Not yet exercised in the running game.
+
+## `triggers.list` / `triggers.set` - scripted world triggers (round 102)
+
+The live twin of the `triggers` world-map feature (`Core/WorldSaves/Features/TriggerMapFeature.cs`,
+the save's `TriggerMap`, whose leaves are `UniqueTriggerID_`/`TimesTriggered_`). `triggers.list`
+returns
+`{"triggers":[{"id","label","timesTriggered"?,"hasBeenTriggeredOnce"?,"triggerLimit"?,"x","y","z"}],"isHost":bool}`.
+`triggers.set` takes `{"triggers":[{"id","timesTriggered"?,"reset"?:true}]}`. Host only.
+
+**Rows are identified by `id` = the trigger's own `UniqueTriggerID` string** (e.g.
+`WF_NewGameStarted`, `CA_PunchCard_TutorialPanelTrigger`), NOT the actor's `GetFullName()` the way
+every other live world area in this file keys its rows - deliberate, and confirmed directly off
+`Abiotic_TriggerVolume_ParentBP_C`'s own declared, unsuffixed `UniqueTriggerID` property
+(`FNameProperty`, set per placed instance in the level) - it matches the save file's own
+`TriggerMap` key exactly. The round's own task brief guessed the live counts might live in a
+single map on the game mode/game state; checked and wrong: `Abiotic_WorldSave_C` does carry its
+own `TriggerMap` (confirmed in the dump), but each placed trigger actor keeps and persists its own
+entry directly (see below) - there is no separate live map object to read or write through.
+
+**Class discovery** sweeps one confirmed root, `Abiotic_TriggerVolume_ParentBP_C` (the dump's own
+example subclass, `Trigger_CompendiumExploration_C`, chains to it directly). `FindAllOf` is
+hierarchy-inclusive, so every one of the offline feature's ~17 `Trigger_*` classes is expected to
+come back from that single sweep with no leaf-class list, though the probe's package set only
+happened to include the one confirmed example.
+
+**Field mapping**, read straight off the class's own declared properties and its
+`ResetTriggerState()`/`SaveTriggerData()` bytecode: `timesTriggered` is the direct `TimesTriggered`
+property; `hasBeenTriggeredOnce`/`triggerLimit` are informational reads of the matching direct
+properties (`triggerLimit` is never written here). `timesTriggered` writes directly then calls the
+trigger's own real, no-argument, actor-level `SaveTriggerData()` to persist it - the same
+persistence call `ResetTriggerState()` itself calls internally. `reset` instead calls the trigger's
+own real, no-argument `ResetTriggerState()`, confirmed from its own bytecode to do exactly:
+`TimesTriggered = 0`, `HasBeenTriggeredOnce = false`, re-enable the trigger volume's collision and
+re-allow overlap on its linked trigger arrays, then call `SaveTriggerData()` - a strictly more
+complete reset than a bare `timesTriggered=0` write, so `reset` on the same row as a
+`timesTriggered` value ignores the latter. Not yet exercised in the running game.
+
 ## `care.list` / `care.set` - deployed-object care: gardens, Power Chairs, chemistry benches (2026-09-16)
 
 **Implemented, awaiting in-game verification.** The live counterpart of watering/fertilizing a
@@ -718,6 +1110,19 @@ replication support, replaces the FName array after validating all names, marks
 `RecipesUnlockedArray` dirty for replication, and invokes its RepNotify. Older agents
 omit `canLock`, which the editor treats as false.
 
+**Round 106 re-grounding: `canLock` is already as wide as the game honestly allows.** Re-checked
+against a fresh pak dump (`pass2\Abiotic_CharacterProgressionComponent.json`/`layouts.txt`):
+`RecipesUnlockedArray` is confirmed a plain `FArrayProperty`, `OnRep_RecipesUnlockedArray` is a
+real exported function, and no dedicated "forget"/"lock"/"remove recipe" RPC exists anywhere on
+this class - array-replace-then-RepNotify is the only relock path the game exposes. Host authority
+stays a hard requirement, not just a cautious default: a non-host client's own write to a
+replicated property never actually persists (only the server's authoritative copy does, and it
+would simply overwrite the client's local change on the next network update), so there is no
+honest way to widen `canLock` to a non-host client even with replication support present. Added
+`tests/cases/recipes.lua` to the Lua harness to cover this (previously untested: no `recipes` case
+file existed, and the host relock branch's `OnRep_RecipesUnlockedArray()` call had no fixture
+method to call, so a real bug there would not have failed any test).
+
 ## `codex.get` / `codex.set`
 
 Live journal/codex ("GATEPal") editing, the counterpart to the file editor's EMAIL, NOTES, FISH and
@@ -770,6 +1175,23 @@ this round switched to the better-grounded per-category arrays instead.
 
 `canUnsetKnown` reports whether this host supports clearing known state. See the expanded
 codex edit schema below. Older agents omit the capability and remain unlock-only.
+
+**Round 106: kill-requirement compendium sections are settable too.** The table row above ("3 |
+`KilLRequirement` | no") reflected round 77's assumption, based on no installed mod ever calling
+the RPC that way - not on reading the function it forwards to. This round disassembled the full
+bytecode of that private function, `Server Try Unlock Compendium Section` (dumped whole in
+`pass2\Abiotic_CharacterProgressionComponent.json`): it runs an `EX_SwitchValue` on the unlock
+type with four cases, not three - 0/1/2 select `Compendium_ExplorationSections`/`EmailSections`/
+`NarrativeNPCSections` exactly as already documented, and case 3 selects `Compendium_KillSections`
+(an `FArrayProperty` with the same `Net | RepNotify` shape as the other three, `RepNotifyFunc`
+`OnRep_Compendium_KillSections`), then calls `KismetArrayLibrary.Array_Add` with `CompendiumRow`
+on whichever array the switch selected. The only gate before that add is a duplicate check
+(`HasCompendiumSectionUnlocked`) shared by all four cases - nothing in this path reads
+`Compendium_KillCount`/`AllowedCompendiumKills`, so the RPC adds the row unconditionally, the same
+as the other three types. `codex.get` now also reports `canUnlockKillSections`
+(`sectionType: "KillRequirement"` is accepted by `codex.set`'s `compendium` array, and
+`Compendium_KillSections` is included in the `compendium` read/clear arrays); older agents omit
+the field, and the desktop app keeps a kill-requirement-only row read-only against them.
 
 ## `general.get` / `general.set`
 
@@ -893,6 +1315,27 @@ before writes. Add/remove applies to both unlocked and researched sets, matching
 world recipe editing, and both properties are marked dirty for replication. Other global
 unlock lists remain read-only. The shared story tab now calls the session interface for
 single and bulk recipe edits, retaining its existing story prerequisite gate.
+
+**Round 106: the six `FArrayProperty` global lists are settable too** (`itemsPickedUp`,
+`emailsRead`, `journalEntries`, `compendiumEmail`, `compendiumNarrative`,
+`compendiumExploration`), independent of the recipe `TSet`s' extra runtime-capability check.
+`worldunlocks.get` now also reports `canEditGlobalLists` and, when false,
+`globalListEditsUnavailableReason` (`"not-host"` or `"no-replication"` - never
+`"runtime-unsupported"`, since plain array assignment needs no `TSet` methods and works on every
+runtime the recipe TSets themselves need an updated UE4SS build for). `worldunlocks.set` accepts
+any of `{"itemsPickedUp":[{"id":"scrap_metal","present":true}], "emailsRead":[...], ...}` in the
+same request as `recipes`, or on their own. Each list writes through the exact array-replace
+technique `codex.lua`'s per-player `clear` path already uses (snapshot the current array, apply
+additions/removals, validate every name, reassign the whole array), then a best-effort
+replication-dirty mark: the pak dump shows none of these six properties (nor the two recipe
+`TSet`s beside them) carries a `Net`/`RepNotify` flag, and no `OnRep_Global*` function exists
+anywhere on the class, so no RepNotify is called after the write. This does not block real,
+durable editing: the host's own authoritative `Abiotic_Survival_GameState_C` is what
+`WorldSave_MetaData.sav` is written from, so a host write to any of these six lists is real
+regardless of whether other connected clients' own local copies pick it up live. No UI surfaces
+these six lists yet (the offline file editor has no browser for them either - only world recipes
+get one); `LiveWorldUnlocksChannel.SetGlobalListAsync`/`LiveStorySession`'s matching members are
+ready for a future `WorldStoryTab` extension.
 
 ## Recipes/codex/general evidence
 

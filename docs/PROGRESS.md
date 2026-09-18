@@ -1,5 +1,610 @@
 # Abiotic Editor - Session history
 
+## Round-107: three partial live-editing gaps closed as far as the game allows - recipe relock re-grounded, kill-tracked compendium sections, world-wide item/codex lists (2026-09-18)
+
+Closed the three partial gaps the coordinator's fresh pak dump (`pass2\Abiotic_CharacterProgressionComponent.json`/`layouts.txt`,
+`Abiotic_Survival_GameState.json`) was scoped for. **Not yet exercised in the running game** - proven
+against the Lua stub harness only.
+
+**A. Recipe relock (`recipes.get`/`recipes.set`).** Re-checked, not changed: `canLock` was already
+`ctx.isHost() and replication.available()`, and the fresh dump confirms `RecipesUnlockedArray` is a
+plain `FArrayProperty`, `OnRep_RecipesUnlockedArray` is real, and no dedicated relock/forget RPC
+exists anywhere on `Abiotic_CharacterProgressionComponent_C` - array-replace-then-RepNotify is the
+only path the game exposes, and a non-host client's own write to a replicated property never
+persists, so `canLock` is already as wide as honestly possible. The real gap was test coverage: no
+`tests/cases/recipes.lua` existed, and the harness's progression fixture had no
+`OnRep_RecipesUnlockedArray` method for the host-relock branch to call - a real regression there
+would not have failed any test. Added both (`live-agent/AbioticEditorLiveAgentLua/tests/cases/recipes.lua`,
+new; `tests/harness.lua`, one added fixture method) and registered it in `tests/cases/manifest.lua`.
+
+**B. Compendium kill-tracked entries (`codex.get`/`codex.set`).** Real gap, now closed. Round 77
+assumed `ECompendiumUnlockType::KilLRequirement` (enum value 3) was never reachable through
+`Request_UnlockCompendiumSection` because no installed mod calls it that way - but the RPC's own
+private target function, `Server Try Unlock Compendium Section`, disassembles (full bytecode in the
+coordinator's dump) to a 4-case switch on the unlock type, and case 3 adds the row to
+`Compendium_KillSections` (an `FArrayProperty` with the same `Net | RepNotify` shape as the other
+three section arrays) unconditionally - gated only by the same already-unlocked check the other
+three share, with no read of `Compendium_KillCount`/`AllowedCompendiumKills` anywhere in that path.
+`codex.lua` now maps `sectionType: "KillRequirement"` to value 3, reads/clears
+`Compendium_KillSections` alongside the other three section arrays, and reports a new
+`canUnlockKillSections` capability (older agents omit it, kept read-only). On the app side,
+`LivePlayerCodexChannel`/`LiveCodexDirectory` carry the new capability, and
+`LivePlayerCodexSession.BuildCompendiumRows` adds a live-only `"KillRequirement"` section type for
+a row with `CompendiumEntry.KillRequired` set - the shared `CodexCatalog` model is untouched, so
+offline editing (which unlocks a kill-only row through its own kill-count field) is unaffected.
+
+**C. World-wide item/codex lists (`worldunlocks.get`/`worldunlocks.set`).** Real gap, now closed at
+the backend/session layer (no UI yet - see below). `GlobalItemsPickedUp`/`GlobalEmailsRead`/
+`GlobalJournalEntries`/`GlobalCompendiumEmail`/`GlobalCompendiumNarrative`/`GlobalCompendiumExploration`
+on `Abiotic_Survival_GameState_C` are confirmed plain `FArrayProperty` (matching what was already
+read), and - like the two recipe `TSet`s beside them - carry no `Net`/`RepNotify` flag in the pak
+dump and no `OnRep_Global*` function exists anywhere on the class. `worldunlocks.set` now
+add/removes rows in any of the six lists via the same array-replace technique `codex.lua`'s
+per-player `clear` already uses, gated by a new `canEditGlobalLists` capability (host authority +
+replication support only - no `TSet` capability check needed, so these six lists are editable even
+on a runtime too old for `canEditRecipes`). The handler was restructured so a recipe-only edit still
+needs `canEditRecipes` but a list-only edit does not, and an empty `worldunlocks.set{}` is now a
+no-op success instead of an unconditional error. `LiveWorldUnlocksChannel` gained
+`SetGlobalListAsync`/`LiveWorldListEdit` and `LiveWorldUnlocks` gained `CanEditGlobalLists`/
+`GlobalListEditsUnavailableReason`; `LiveStorySession` gained matching read/write members
+(`GlobalItemsPickedUpIds`, `SetGlobalListAsync`, etc.) **outside** `IWorldStorySession` on purpose -
+the offline file session has no UI for these six lists either (only world recipes get an offline
+browser), so widening the shared interface would force an offline implementation with nothing to
+mirror. No `WorldStoryTab` UI wiring yet; the channel/session plumbing is ready for it.
+
+Harness coverage: `tests/cases/recipes.lua` (new, ~20 checks), `tests/cases/codex.lua` (extended:
+KillRequirement accepted/still-ignored-when-unmapped, `canUnlockKillSections` reported),
+`tests/cases/worldunlocks.lua` (extended: list edits on a TSet-unsupported runtime, combined
+recipe+list request, validation errors, non-host denial for lists too). `python
+tools/run-lua-tests.py` passes in full (1150+ checks; the small number of unrelated failures seen
+mid-session belonged to other agents' concurrent in-flight areas, not these three).
+
+Risks / what's unverified: everything above is proven against the Lua stub harness only, not the
+real game - `Compendium_KillSections`/`OnRep_Compendium_KillSections` and the six
+`Global*` array writes have never run against a live server. The bytecode-switch evidence for gap B
+is strong (a direct disassembly of the exact function the existing, working three-type unlock
+already calls) but still unconfirmed in-game. Gap C ships with no UI, so it is exercised only by
+the harness and by any future direct API caller.
+
+## Round-106: live RESOURCE NODES - harvest/respawn via the game's own functions (2026-09-18)
+
+Resource nodes (`Core/WorldSaves/Features/ResourceNodeMapFeature.cs`, the save's
+`ResourceNodeMap`) had no live path at all before this round, and are the largest world-map feature
+in the game: 1413 entries in the Facility region fixture alone, across dozens of concrete classes
+(`ResourceNode_WoodCrate_Manufacturing`, `ResourceNode_GlassPane`, `Resource_MicroNode_DuctTape`,
+`ResourceNode_MetalVent`, `Resource_Micronode_LeyakEssence_TWO`, `ResourceNode_Hydropanel`,
+`ResourceNode_Turbine`, `ResourceNode_AnalysisMachine`, and more). Owner rules for this round: never
+hardcode a leaf blueprint class name (discover through the parent class, `FindAllOf` is
+hierarchy-inclusive), feature-detect every property per instance with `pcall`, and never guess a
+live property name from the save's own leaf name - read it from the coordinator's real CUE4Parse
+class+bytecode probe (`ResourceNode_ParentBP.json`, `Resource_MicroNode_ParentBP.json`,
+`ResourceNode_WoodCrate_Office.json`).
+
+**Discovery**: a single `FindAllOf("ResourceNode_ParentBP_C")` sweep (super `AbioticActor_C`)
+covers every concrete node class AND the `Resource_MicroNode_ParentBP_C` family, since that class
+itself declares `super=ResourceNode_ParentBP_C` in the dump - confirmed, not assumed, so nothing in
+`resourcenodes.lua` names a single concrete class.
+
+**Field mapping, read from `ResourceNode_ParentBP_C`'s own `ChildProperties` and
+`SaveNodeToWorldSave`'s own bytecode** (not the save leaf names):
+- offline `harvested` (`HasBeenPickedUp_`) = live `IsDepleted` (bool, replicated,
+  `OnRep_IsDepleted`) - `SaveNodeToWorldSave`'s bytecode reads exactly this property before
+  persisting a node, grounding the mapping directly.
+- offline `dayPickedUp` (`DayPickedUp_`) = live `DayWasDepleted` (int, **not replicated** - no
+  `Net` flag, no `OnRep_`) - `SaveNodeToWorldSave`'s bytecode sets it to
+  `DayNightManager.CurrentDay` at the moment it persists a depleted node.
+- offline `position` (`CurrentPosition_`) = the live actor transform (no separate position
+  property on the class), the same `K2_GetActorLocation` read every other fixed-actor feature uses.
+
+**`harvested` is never a bare property write** - `ResourceNode_ParentBP_C` exposes two real,
+zero-parameter `FUNC_BlueprintCallable | FUNC_BlueprintEvent` functions. Traced through the shared
+ubergraph both jump into (not guessed): `RespawnResourceNode()` calls `FlushNetDormancy()`, sets
+`IsDepleted=false`, re-places the node on the ground (`PlaceOnGround`, gated on the streaming
+location being loaded), then calls `OnRep_IsDepleted()` and
+`NetPushModelHelpers.MarkPropertyDirtyFromRepIndex(self, IsDepleted)` - the game's own "make this
+node visibly reappear" path, preferred over a direct write per the owner's own instruction.
+`Force_DepleteNode()` is the exact mirror (confirmed via its own unconditional jump straight into
+that same tail). A documented, honestly-flagged quirk: a node carrying a valid, currently-set
+`ContinualRespawnFlag` world flag takes a different branch inside `RespawnResourceNode` (plays a
+portal-vanish effect and falls into the depleting tail instead of respawning) - there is no exposed
+way to detect this ahead of time from Lua, so `resourcenodes.set` always re-reads `IsDepleted`
+after calling either function and only reports success once it actually matches what was asked,
+the same "no confirmed effect = an honest error, not a false success" rule `elevators.set`
+established. `dayPickedUp` is a direct write (not replicated, no setter function needed), the same
+`NoVignetteReset` precedent `buttons.lua` already documents.
+
+**Performance**: this is the largest sweep any live area performs, so it is deliberately excluded
+from `LiveConnect.razor`'s periodic `ActiveLiveSessions` refresh loop (same reasoning as
+containers/npcs/bases) - only an explicit tab visit or a region change re-fetches it.
+`resourcenodes.list` also accepts an optional `classFilter` (case-insensitive substring against the
+class name) for a caller that wants to narrow the sweep to one harvestable type; the desktop app's
+own tab does not use it today (it lists everything, like the file editor, and relies on
+`WorldFeaturesTab`'s existing virtualized/filterable row list - already built for exactly this
+scale, confirmed by reading that component, so no UI change was needed there).
+
+**Files added**: `live-agent/AbioticEditorLiveAgentLua/Scripts/areas/resourcenodes.lua` (registered
+in `areas/manifest.lua`), `live-agent/AbioticEditorLiveAgentLua/tests/cases/resourcenodes.lua`
+(registered in `tests/cases/manifest.lua`), `Core/LiveEditing/World/LiveResourceNodesChannel.cs`,
+`Web.Shared/Models/LiveResourceNodesFeatureSession.cs` (implements `IWorldFeaturesSession` scoped
+to the `resource-nodes` feature id only, so the existing offline `WorldFeaturesTab`/
+`ResourceNodeNaming.FriendlyType` render it live with no new UI), wiring in `LiveConnect.razor`
+(nav tab, field, `EnsureAreaConnectedAsync` case, render branch, region-scoped reset/disconnect
+cleanup - deliberately no `ActiveLiveSessions` case), `Live_TabResourceNodes` resx key (English
+only, matching this repo's convention for brand-new keys), the `resourcenodes.list`/
+`resourcenodes.set` section in `docs/reference/live-editing-protocol.md`, and
+`tests/AbioticEditor.Tests/WorldLiveResourceNodesAreaTests.cs` (standalone, mirrors
+`WorldLiveButtonsAreaTests.cs`; also asserts there is no `case "resourcenodes":` inside
+`ActiveLiveSessions` specifically, not just that the string is absent from the whole file, since
+`EnsureAreaConnectedAsync` legitimately has its own case with that same name). Removal is refused
+live (offline "remove" drops the whole map entry and lets the game recreate the actor at its
+blueprint default; `RespawnResourceNode` does not reset position or anything beyond the harvested
+flag, so mapping "remove" onto it would overstate what actually happens).
+
+**Lua harness**: 1036 checks passed, 0 failed via `python tools/run-lua-tests.py` (a couple of
+transient, unrelated failures in `codex`/`parity` were observed in an intermediate run - sibling
+areas under concurrent, unrelated edits at the same time - and gone by the final clean run this
+entry reports). C# not built or tested this round (coordinator builds centrally, per instruction).
+**Not yet exercised in the running game** - everything above is grounded in the real class dump and
+bytecode, but nobody has confirmed a `resourcenodes.set` call visibly un-depletes/depletes a node
+in the actual game, or that the `ContinualRespawnFlag` quirk behaves exactly as traced.
+
+## Round-105: Peccary/Lamogi pets are listed live now, not silently omitted (2026-09-18)
+
+Closed the last real live-pets gap round 77/79 had re-confirmed but not closed: Peccary and
+Lamogi family pets carry none of `Guid`/`PetName`/`DynamicProperties`/`FollowingOwner`, so
+`pets.list` never listed them at all - "renamed, healed and levelled up in the save file" was the
+best it offered. Owner rules for this round: never hardcode a leaf blueprint class name (discover
+through the parent class, `FindAllOf` is hierarchy-inclusive), feature-detect per instance with
+`pcall`, and never guess a live property name - read it from the game's own class dump
+(`tests/AbioticEditor.Probes/LiveGapProbe.cs`, `NPC_Monster_Peccary`/`NPC_Monster_WinterSprite`
+fragments with function bytecode).
+
+**A real, generic tamed marker exists.** `NPC_Monster_WinterSprite_C`'s own compiled graph calls a
+static library function, `AbioticFunctionLibrary::IsTamedPet(Actor)` (bool, one parameter), from
+three of its own overridden functions (`IsInvincible`, `TargetBlockedAttack`,
+`UpdateHealthTextureIndex`). It is a general-purpose actor query, not Pest/Skink-specific, so
+`pets.list` now also sweeps `NPC_Base_ParentBP_C` - the same hierarchy-inclusive parent class
+`npcs.list` already sweeps for the whole CREATURES tab, so no Peccary/Lamogi/future-family class
+list is needed at all - and feature-detects per instance: skip anything with its own `Guid`
+(already covered by the existing Pest/Skink path), keep anything `IsTamedPet` reports true for.
+Those rows come back `matched:false` with `id` set to the live actor's own full path (the same id
+scheme `npcs.list` already uses), since there is still no stable id they could share with a save's
+`PetNPC` record - never silently reused as if it were one. `isDead`/per-limb health are real,
+universal `AbioticCharacter` fields on these actors too (the same fields already proven for the
+player and for Pest/Skink pets), so those stay editable; `customName`/`xp` are refused with a
+non-fatal warning (the round-78 pattern) since the class genuinely has neither field, not because
+of a policy choice.
+
+**Species change re-examined with sharper evidence, still refused.** The game's own
+`Abiotic_Survival_GameMode_C.SpawnPet(Class, SpawnTransform, Guid, Name, Owner, DynamicProperties,
+Tamed)` is a real function shaped exactly like a "respawn as a different class" edit would need -
+but `SpawnTransform` is an `FTransform`, a nested struct this project has no working construction
+precedent for anywhere over UE4SS Lua reflection (unlike the flat `FVector`/`FRotator` tables round
+76 proved out for `spawn.set`). Guessing an unverified struct shape for a native-bridged call is
+exactly what caused the BASES tab's fatal, non-catchable crash in round 79, so `SupportsSpeciesChange`
+stays `false` - now backed by a concrete blocker instead of the older, vaguer "no confirmed
+despawn/respawn round trip" reasoning.
+
+**Threaded a new `Matched` flag through the whole live-pets stack** rather than inventing a
+parallel "unmatched pet" type: `WorldPet` (`Core/Domain/World/WorldPet.cs`) gained a trailing
+`bool Matched = true` parameter (every existing constructor call - the save reader, `PetTransfer`,
+`WorldSaveSession`'s pending-pet staging - keeps compiling unchanged and stays `true`);
+`LivePetsChannel`'s wire records and `LivePet` carry it through from `pets.lua`; `LivePetsSession`
+passes it into `WorldPet`. The shared `WorldPetsTab.razor` (used by both the file and live
+sessions) now computes `identityEditable = editable && pet.Matched` and gates the Name and
+Level/XP controls on it, showing a new `WorldPets_UnmatchedLiveNotice` notice instead when a row
+is live-editable but unmatched; the Health section stays gated by `editable` alone, unchanged,
+since it is real for every tamed pet regardless of match state.
+
+**Tests**: new `tests/AbioticEditor.Tests/WorldLivePetsGapContractTests.cs` (source-text contract
+tests, the same style `WorldLiveAreaParityContractTests` already uses - deliberately a new file,
+not an addition to that one) pinning the `Matched` flag's plumbing end to end, the generic
+(not-hardcoded) tamed sweep in `pets.lua`, the still-refused species change with its new evidence,
+the new resource key across all five shipped locales (en/de/es/fr/ru), and the protocol doc's own
+description of this round. `docs/reference/live-editing-protocol.md`'s `pets.list`/`pets.set`/
+`pets.remove` section rewritten with the round-105 findings. Lua harness cases added to
+`tests/cases/pets.lua` (see that file's own notes) and `python tools/run-lua-tests.py` run clean.
+**Not yet exercised in the running game** - calling `IsTamedPet` on a Peccary/Lamogi actor is new
+and genuinely unverified until tested live, same as every other first-use call in this project;
+the C# side only got `dotnet build`/`dotnet test` run by the coordinator, not by this round itself.
+
+## Round-104: a vehicle's on-board storage is now editable live, no new UI needed (2026-09-18)
+
+Closed a gap the round-76/77/79 write-ups all flagged: offline, the VEHICLES tab exposes a
+vehicle's on-board storage fully (a link into the CONTAINERS tab's own slot editor), but live
+`LiveVehiclesSession` hardcoded `HasInventory: false`/`InventoryItemCount: 0` for every vehicle, so
+the button never appeared. Owner rules for this round: never hardcode a leaf blueprint class name
+(discover through the parent class, `FindAllOf` is hierarchy-inclusive), and never guess a live
+property/component name from a save leaf name - read it from the game's own class dump.
+
+**The evidence, not a guess.** Re-probed the installed game's own class layout (fragment
+`ABF_Vehicle_ParentBP`, full bytecode JSON). `ABF_Vehicle_ParentBP_C` carries a plain, unsuffixed
+`StorageContainer` property - a `ChildActorComponent` - and a BlueprintPure `GetVehicleContainers()`
+function whose own bytecode dynamic-casts `StorageContainer.ChildActor` to
+`Deployed_Container_ParentBP_C` and reads its `ContainerInventory`. The forklift's own placed
+child-actor default (`ChildActorTemplate`) is `Deployed_Container_ForkliftCargo_C`, which chains
+`Deployed_Container_ForkliftCargo_C` -> `Deployed_Container_Cargo_C` -> `Deployed_Container_ParentBP_C`
+(the security cart's `Deployed_Container_SecurityCartCargo_C` chains the same way) - the exact
+class `containers.lua`'s own `CONTAINER_CLASSES` sweep already scans for. **A vehicle's on-board
+cargo is therefore a genuine, independently-loaded `Deployed_Container_ParentBP_C` actor, not a
+bespoke vehicle-only structure.**
+
+**Approach chosen, and why.** That finding collapses the two options the task offered into one:
+since the cargo actor is already discoverable and editable by the existing
+`containers.list`/`containers.get`/`containers.set` handlers with zero changes there, the fix is
+to expose it through `vehicles.list` with a `containerId` those handlers already accept, rather
+than teaching `containers.list` a vehicle-specific "kind" field. This keeps exactly one slot-edit
+code path in the whole stack - the same one every placed crate, locker and bench already uses -
+instead of adding a second one for vehicles alone.
+
+**Changes.** `live-agent/AbioticEditorLiveAgentLua/Scripts/areas/vehicles.lua`: resolves
+`StorageContainer.ChildActor` per vehicle (pcall-guarded throughout - a vehicle type with no cargo
+child actor resolved reports no storage instead of erroring the whole list), reports its own
+`fullName()` as `containerId`, and counts non-empty slots the same "" / `Empty` / `None` sentinel
+way `containers.lua`'s own `slotRow` does (via the shared `ctx.containerInventory`/
+`ctx.slotRowName` helpers - no new container-reading logic). `Core/LiveEditing/World/
+LiveVehiclesChannel.cs`: `LiveVehicle`/`VehicleWire` gained `ContainerId`/`HasInventory`/
+`InventoryItemCount` (trailing, defaulted, so an older live-agent build that never sends them still
+deserializes to "no storage" instead of throwing). `Core/Domain/World/WorldVehicle.cs`: gained a
+trailing `ContainerId` (default null - every existing positional constructor call still compiles,
+the established pattern this repo uses for this exact situation, see round 79's `VariantRowName`).
+Offline, `ContainerId` stays null and `WorldVehiclesTab`'s "open storage" button falls back to the
+vehicle's own `Id` (unchanged behavior - the file format embeds the container in the same
+`VehicleMap` entry, so the vehicle's own id already is the container's id there).
+`Web.Shared/Models/LiveVehiclesSession.cs`: maps the wire's real `HasInventory`/
+`InventoryItemCount`/`ContainerId` instead of the old hardcoded values.
+`Web.Shared/Components/World/WorldVehiclesTab.razor`: `OpenContainer` now opens
+`vehicle.ContainerId ?? vehicle.Id`. `Web.Shared/Components/Pages/LiveConnect.razor`: the live
+VEHICLES tab render gained `OnOpenContainer="OpenCareContainerAsync"` - reusing the exact same
+"open this container id in the CONTAINERS tab, connecting that area first if needed" method the
+garden-plot/power-chair/chemistry-bench live features already call, rather than adding a second,
+near-identical method.
+
+**Tests.** Lua harness: extended `tests/cases/vehicles.lua` (already registered in
+`tests/cases/manifest.lua`, no manifest edit needed) with a no-storage vehicle (the existing
+forklift fake, which never set `StorageContainer`, degrading cleanly), a real cargo child actor
+with one non-empty and one empty slot, and proof that `containers.list`/`containers.set` already
+see and can write that exact same container id with no vehicle-specific handling at all - **999
+checks passed, 0 failed** (`python tools/run-lua-tests.py`, up from 996 before this round's
+addition). C# (not run this round; coordinator builds centrally): new
+`tests/AbioticEditor.Tests/WorldLiveVehicleStorageTests.cs` (kept separate from
+`WorldLiveAreaParityContractTests.cs` on purpose, matching round 94's `WorldLiveButtonsAreaTests`
+precedent) - a fake-channel test proving `LiveVehiclesChannel` parses the new fields and degrades
+to "no storage" when an older build omits them entirely, a `LiveVehiclesSession` test proving the
+container id reaches `WorldVehicle` and is never confused with the vehicle's own id, a
+`WorldVehicle` construction test proving the new field defaults to null, and source-text checks
+that `WorldVehiclesTab.razor` and `LiveConnect.razor` actually wire the fallback/callback described
+above. Updated `docs/reference/live-editing-protocol.md`'s vehicles section with the same evidence.
+
+**Not yet exercised in the running game.** Everything above is grounded in the game's own class
+dump and confirmed bytecode (the same standard of evidence `elevators`/`buttons` shipped under),
+and reuses `containers.set`'s already-live-proven write path rather than any new native call - but
+nobody has yet opened a real vehicle's cargo hold through this exact `containerId` hookup against
+the actual running game to confirm the button appears and the slot editor round-trips a real item.
+
+## Round-103: live POWER SOCKETS and TRAMS - both fully read-only live, with hard evidence for why (2026-09-18)
+
+Added the live twins of two offline world-map features that had none: `power-sockets`
+(`Core/WorldSaves/Services/WorldMapFeatures/PowerSocketMapFeature.cs`, the save's
+`PowerSocketMap`) and `trams` (`TramMapFeature.cs`, the save's `TramMap`, Facility only).
+Followed the buttons/elevators template end to end: `powersockets.lua`/`trams.lua` (new area
+modules under `live-agent/AbioticEditorLiveAgentLua/Scripts/areas/`, registered in
+`areas/manifest.lua`), `LivePowerSocketsChannel`/`LiveTramsChannel`
+(`Core/LiveEditing/World/`), `LivePowerSocketsFeatureSession`/`LiveTramsFeatureSession`
+(`Web.Shared/Models/`, each scoped to its one feature id so the existing offline
+`WorldFeaturesTab` renders it live with zero new UI), and wiring in `LiveConnect.razor` at
+every touch point the portals/buttons/elevators sessions have (nav tab, render branch, field
+declarations, `EnsureAreaConnectedAsync`, the periodic-refresh switch, `AllKnownLiveSessions()`,
+`ResetRegionScopedWorldSessions()`, and the full disconnect reset). New `Live_TabPowerSockets`/
+`Live_TabTrams` resx keys (English only, matching this repo's existing convention for brand-new
+keys). Owner rule followed throughout: discovery is a hierarchy sweep on the parent class alone
+(`PowerSocket_ParentBP_C`, `Tram_ParentBP_C` - both `FindAllOf` calls are hierarchy-inclusive, no
+leaf class list), every property/function read is per-instance `pcall`-feature-detected so an
+unfamiliar subclass still lists with its real class name, and no property/function name below was
+guessed - every one is copied verbatim from the coordinator's CUE4Parse class dump plus the full
+blueprint bytecode (`ScriptBytecode` JSON) of the relevant functions.
+
+**A. Power sockets - both offline fields' live equivalents are read-only, and now have hard proof
+why.** `socketId` reads the actor's own `GetPowerSocketID()`, whose bytecode is exactly
+`BreakSoftObjectPath(MakeSavedObjectPath(Self)).PathString` - the same id space the save's
+`PowerSocket_<hash>` leaf stores (`PowerSocketMapFeature`'s own doc comment already said this
+"matches the map entry key"). `pluggedInDevice` reads the live `PluggedInDevice` object reference
+directly and reports the plugged actor's own real class name - needs no game-data catalog, unlike
+resolving the save's asset-id string. `hasTimer`/`timerMode` are read-only: an exhaustive grep of
+every hash-suffixed struct-member write in `PowerSocket_ParentBP_C`'s own bytecode finds exactly
+one write site for each, `Update_SaveData` (called from `SavePowerSocketToWorldSave`, the actor's
+own "persist me now" entry point) - and in BOTH branches of that function's own attach/detach
+if-else, traced statement by statement, `LatestSaveData.HasTimer_` and `LatestSaveData.TimerMode_`
+are set unconditionally to `false`/`0`. There is no other write site, no gate, and no read of
+either leaf anywhere in the class. This means the very next time anything triggers a save on a
+socket (plugging/unplugging a device, or any other save-triggering event), both fields are forced
+back to false/0 regardless of what a player or this module wrote - so nothing live could ever make
+`hasTimer` stick. The offline `PowerSocketMapFeature.cs` doc comment was updated (comment only, no
+behavior change) to record this: the coordinator's own request to consider exposing `timerMode` as
+a real offline choice, now that the full `E_PowerTimerModes` enum dump is available, was
+deliberately **not** taken - the dump shows 9 real enumerator values (indices 0-8) plus `E_MAX`,
+but every one is still an auto-generated `NewEnumeratorN` name with no meaningful English label
+anywhere in the asset, so a fuller list would only replace "cannot be determined" with "determined,
+and meaningless" - not a safe improvement. `powered` is a bonus read-only field off the confirmed
+`IsPowered()` function.
+
+**B. Trams - `previousStation` is confirmed by tracing the actual arrival bytecode, not inferred by
+symmetry, but no live write path exists.** `Tram_ParentBP_C`'s own ubergraph, on reaching a stop,
+sets `PreviousStation = TargetStation` (a plain instance-to-instance property copy), marks it
+dirty, calls `OnRep_PreviousStation()`, then immediately calls
+`GameMode:UpdateActorToWorldSave(Self, false, 14)` - the real "persist this tram now" call, run
+right after `PreviousStation` updates. That is exactly the save-time mapping `TramMapFeature.cs`'s
+own doc comment describes for `LastStation_`, traced end to end. `targetStation`/`moving`/
+`positiveDirection`/`isAtStation`/`hasPassengers` are bonus read-only fields off confirmed
+properties; `inventories` (on-board container count) reads the confirmed `GetTramContainers()`.
+**No live write path for `lastStation` exists or was attempted.** `Tram_ParentBP_C`'s own functions
+(`PositiveButtonPressed`/`NegativeButtonPressed`, `SetNextStopPoint`/`FindNextStation`) only toggle
+or continue travel along the current rail - none takes an arbitrary destination station. The game
+does ship a `Button_TramRecall` actor (the owner's own tip) that a player uses to summon a tram to
+a specific platform, but its class was **not** part of this round's probe dump (no
+`Button_TramRecall.uasset`/`.json` was produced by the coordinator's sweep), so its actual
+mechanism is completely unconfirmed - per the owner's own rule against guessing a live function
+from a hunch, `trams.set` refuses every request with a named, evidenced reason instead of
+attempting a call nobody has verified. A future round with a real `Button_TramRecall` dump can
+revisit this.
+
+**Lua harness**: **1156 checks passed, 0 failed** via `python tools/run-lua-tests.py` (both new
+area's fakes cover subclass-only discovery via `__bases`, an "unfamiliar" instance missing every
+expected property/function still listing with fields absent rather than erroring or being dropped,
+and the refusal path for both `.set` handlers). C# not built or tested this round (out of scope;
+the coordinator builds centrally) - reviewed every new type/using by hand against the exact
+existing buttons/elevators/resourcenodes files instead. New contract tests
+`tests/AbioticEditor.Tests/WorldLivePowerSocketsAreaTests.cs` /
+`WorldLiveTramsAreaTests.cs` (mirroring `WorldLiveButtonsAreaTests.cs`, not touching the shared
+`WorldLiveAreaParityContractTests.cs` per the coordinator's own instruction that other agents own
+that file this round).
+
+**Not yet exercised in the running game.** Both areas are grounded in the class dump and bytecode
+(the strongest evidence tier this project has for an unverified area), but nobody has yet run
+`powersockets.list`/`trams.list` against the actual live game to confirm the read side reports
+real values, or confirmed in-game that no plugin/mod ever manages to arm a socket's timer or send a
+tram somewhere through a path this round could not see.
+
+### Round-103 follow-up: trams gained a real recall write path (2026-09-18)
+
+Same day. The coordinator dumped the tram recall chain (`gapprobe/tram/`: `Button_TramRecall.json`,
+`Button_Tram.json`, `TramSystem_Station.json`, `Tram_ParentBP.json`, plus `layouts.txt` property/
+function signatures - not bytecode - for `TramSystem_RecallStation_C` and `TramSystem_Rail_C`), so
+the "no evidence at all" verdict above is superseded for trams (power sockets are unaffected and
+stay exactly as described above).
+
+**Traced**: `Button_TramRecall_C` (super `Button_Tram_C`, itself super `Button_Generic_C` with no
+properties/functions of its own) overrides only `GetInteractText` - confirmed from its own bytecode,
+which calls `TramReference:FindNextStation(Positive)` purely to build display text and touches
+nothing else; `Tram_ParentBP_C`'s own bytecode never references the recall system at all, ruling out
+both classes as the actual trigger. That trigger is `TramSystem_RecallStation_C` - a leaf class (no
+parent of its own beyond `Actor`, so discovery is a plain `FindAllOf`, no hierarchy sweep) with
+`LinkedTram`/`LinkedStation` object properties and a `TramRecallPressed(Activated: bool)` function.
+Its own `ExecuteUbergraph` (properties-only view) casts something to `Button_Tram_Recall` and
+creates delegates right next to its own `RecallButton` property - the same "cast the button, bind
+its Activated delegate" shape `Tram_ParentBP_C` itself uses for its own Positive/NegativeButton,
+confirmed by direct comparison, not assumed. `TramRecallPressed`'s own local-variable list (not its
+bytecode, which was not part of this dump) - `FindNextStation`/`GetDirectionFromStation`/
+`GetNextStopPoint`/`IsStationLocked` calls inside a counted loop - proves it performs real multi-hop
+pathfinding, not a vestigial stub. Separately, this round fully traced
+`TramSystem_Station_C:TramReachedLocation`'s bytecode: a short, unbranching function whose only
+meaningful statement sets `ContinueMoving = false` unconditionally - every station stop is a real,
+full stop, confirming a distant recall must be an asynchronous, multi-step journey rather than a
+single atomic teleport. Also fully traced this round: `Tram_ParentBP_C:SetNextStopPoint(Positive,
+CurrentPoint)` calls the rail's `GetNextStopPoint`, writes `TargetStation`, and calls
+`SetMoving(true)` - a genuine, working one-hop "start heading this way" call, though not itself
+enough to reach a distant station.
+
+**What shipped**: `trams.list` rows gained `recallStations` (the friendly station labels a real
+`TramSystem_RecallStation_C` links to that specific tram, empty when none do).
+`trams.set{id,targetStation}` finds the recall station whose `LinkedTram`/`LinkedStation` match the
+request and calls its own `TramRecallPressed(true)` - the game's own function, never reimplemented.
+Refuses up front if the tram's moving state cannot be confirmed or it is already moving, and if no
+recall station links that exact tram/station pair (an honest, narrower reachable set than offline's
+"any station the save has ever referenced"). After pressing, re-reads `Moving`/`PreviousStation` and
+accepts either the tram now moving or already at the requested station as success (the `elevators.set`
+"a press with no confirmed effect is an error, not a false success" discipline) - it does not assert
+anything about `TramRecallPressed`'s own internals, since those were not independently confirmed.
+`LiveTramsFeatureSession`'s `lastStation` field is now an editable `Choice` (options =
+`recallStations`) when a tram has at least one linked recall station, and stays read-only (per-tram,
+not per-area) otherwise - the same per-instance-degradation idiom `LiveResourceNodesFeatureSession`
+already uses. Wire shape changed, so `LiveTramsChannel`/`LiveTramsFeatureSession` were updated (new
+`SetTargetStationAsync`, `LiveTram.RecallStations`); `LivePowerSocketsChannel`/
+`LivePowerSocketsFeatureSession` are untouched.
+
+**Still not fully bytecode-confirmed, flagged loudly rather than asserted as certain**:
+`TramRecallPressed`'s own `ScriptBytecode` (exactly what it calls on `LinkedTram`, and whether it
+gates on host/`IsServer()` itself) and `TramSystem_Rail_C`'s `GetNextStopPoint`/
+`GetDirectionFromStation` bytecode were not part of this dump - the coordinator can supply
+`TramSystem_RecallStation.json`/`TramSystem_Rail.json` to close this with full certainty in a future
+round. Until then this write path is evidenced by real, dumped property/function names and shapes,
+not by a hunch, but is a step below the byte-level certainty `elevators.set`/`buttons.set` reached
+after their own follow-up rounds.
+
+**Lua harness**: **1252 checks passed, 0 failed** via `python tools/run-lua-tests.py` (new
+`trams.lua` coverage: successful recall through the correctly-matched linked recall station,
+already-there no-op that never presses any recall station, currently-moving refusal that runs before
+any recall lookup, unlinked tram/station pair refusal, a press-with-no-effect honesty refusal, and
+an unfamiliar tram with an unreadable `Moving` state refusing rather than guessing). Caught and fixed
+a real bug in the first draft during this pass: checking the `pcall` "ok" flag alone for `Moving`
+does not detect a genuinely missing property (the fake, and per `buttons.lua`'s own documented trap,
+possibly real UE4SS too, returns `nil` without erroring) - fixed to use the same `boolOrNil`
+type-check idiom every other area in this mod already relies on for exactly this reason. C# not
+built or tested this round (out of scope; the coordinator builds centrally) - the two changed C#
+files were reviewed by hand against `LiveButtonsChannel.cs`/`LiveButtonsFeatureSession.cs` (the one
+other area with a real settable field and a `LiveAgentException` catch) line for line. Not yet
+exercised in the running game.
+
+## Round-102: live NPC spawners and world triggers - cooldown/count state confirmed on a native subsystem, trigger rows keyed by a game-authored id, not an actor path (2026-09-18)
+
+Closed two of the remaining offline-only world-map features from a real CUE4Parse class+bytecode
+probe (`tests/AbioticEditor.Probes/LiveGapProbe.cs` output, `pass2\Abiotic_NPCSpawn_ParentBP.json`/
+`NPCSpawn_Narrative.json`/`Abiotic_TriggerVolume_ParentBP.json` plus `layouts.txt`), following the
+buttons/elevators template end to end: Lua area modules
+(`live-agent/AbioticEditorLiveAgentLua/Scripts/areas/npcspawns.lua`,
+`.../areas/triggers.lua`, registered in `areas/manifest.lua`), C# channels
+(`Core/LiveEditing/World/LiveNpcSpawnsChannel.cs`, `.../LiveTriggersChannel.cs`), C# sessions
+(`Web.Shared/Models/LiveNpcSpawnsFeatureSession.cs`, `.../LiveTriggersFeatureSession.cs`, both
+implementing `IWorldFeaturesSession` scoped to one feature id each so the existing offline
+`WorldFeaturesTab` renders them live with zero new UI), wiring in `LiveConnect.razor` (nav buttons,
+render branches, `EnsureAreaConnectedAsync`, session field list, region-scoped reset, DISCONNECT
+reset), `Live_TabNpcSpawns`/`Live_TabTriggers` resx keys (English only, matching the existing
+"no back-fill for brand-new keys" convention), and two new protocol doc sections. C# contract
+tests `tests/AbioticEditor.Tests/WorldLiveNpcSpawnsAreaTests.cs` /
+`WorldLiveTriggersAreaTests.cs` (standalone files, mirroring `WorldLiveButtonsAreaTests.cs`, not
+touching the shared `WorldLiveAreaParityContractTests.cs`).
+
+**NPC spawners (`npcspawns.list`/`npcspawns.set`, feature id `npc-spawns`).** **Class discovery
+needed three roots, correcting the task brief's own assumption of one hierarchy**: the dump shows
+`NPCSpawn_Entity_C` and `NPCSpawn_Narrative_C` both declare `super=Actor` directly, not
+`super=Abiotic_NPCSpawn_ParentBP_C` - two genuinely separate roots (confirmed subclasses:
+`NPCSpawn_Trader_Chef_C`/`NPCSpawn_Trader_Marion_C` from the narrative one,
+`NPCSpawn_VOTV_UFO_C`/`NPCSpawn_VOTV_Wisp_C` from the entity one), added as
+`ADDITIONAL_ROOT_CLASSES` (data, not logic - same idiom buttons.lua already uses). The
+overwhelming majority of real spawner classes (every zombie/pest/gatekeeper/order/pillager/
+darklens/security-bot/peccary/winter-sprite/single-grunt family, checked one by one against the
+dump's own `super=` chain) do chain to `Abiotic_NPCSpawn_ParentBP_C`, so one `FindAllOf` on that
+root covers them; the two additional roots never expose any of the cooldown/count system, so their
+rows always report `controllable:false`.
+
+**Cooldown/count state is split between the spawner actor and a native world subsystem,
+`AIDirectorSubsystem`** (`/Script/AbioticFactor`) - confirmed from the spawner's own
+`ExecuteUbergraph`/`CheckSpawnProximity*` bytecode, which fetches it via
+`SubsystemBlueprintLibrary::GetWorldSubsystem` and calls
+`GetCurrentCooldownRemainingFromSpawner`/`GetCooldownDaysRemainingFromSpawner`/
+`GetHasBeenEncounteredOnceForSpawner` on it, passing itself as the spawner argument. `onCooldown`
+is instead the spawner's own real `IsOnCooldown()` function (bytecode confirms it is exactly
+`remaining > 0 OR daysRemaining > 0`); `hasSpawnedOnce` is a direct actor property;
+`spawnCount` is the spawner's own `GetCurrentSpawnedCount(false)`. The offline leaf
+`MinutesPassedCooldownStarted_` has **no confirmed live counterpart** anywhere in the dump and is
+not exposed.
+
+**Both writes are momentary "do it now" toggles.** `resetCooldown` calls the spawner's own real,
+actor-level `SetSpawnOnCooldown(TimeRemaining: double, InCurrentDay: int)` with `(0.0, 0)` -
+traced its full bytecode: passing `InCurrentDay=0` makes the function look up "today" itself off
+a feature-detected `AI Director.DayNightManager.CurrentDay` rather than requiring the caller to
+know it, then it calls `AIDirectorSubsystem:SetCooldownForSpawner` internally, so this module
+never calls that subsystem function directly. `forceSpawn` calls the spawner's own
+`TrySpawnNPCNew(false, true, false)`, falling back to the older `TrySpawnNPC` with identical
+arguments when the newer one is absent - `ForceSuccessByTrigger=true` is confirmed (traced
+multiple `JumpIfNot` branches gated on it) to bypass individual spawn-check jumps, matching what a
+`Trigger_*` volume would pass. **Genuinely unverified against the running game**: a call that does
+not error is reported as requested, not a confirmed spawn - no live capture confirms an NPC
+actually appears. Deliberately excluded from the desktop app's periodic live-tab refresh loop
+(`ActiveLiveSessions` in `LiveConnect.razor`), matching `containers`/`resourcenodes`/
+`destructibles` - the Facility fixture alone carries 918 `NPCSpawn_*` entries.
+
+**World triggers (`triggers.list`/`triggers.set`, feature id `triggers`).** **Rows are keyed by
+the trigger's own `UniqueTriggerID` string** (e.g. `WF_NewGameStarted`), not an actor path - the
+one deliberate exception to this project's own convention, confirmed directly off
+`Abiotic_TriggerVolume_ParentBP_C`'s declared, unsuffixed `UniqueTriggerID` property and matching
+the save file's `TriggerMap` key exactly. The task brief's own guess that live counts might live
+in a single map on the game mode/game state was checked and is wrong: `Abiotic_WorldSave_C` does
+carry a `TriggerMap` (confirmed in the dump), but each placed trigger actor keeps and persists its
+own entry directly - there is no separate live map object to go through. Class discovery sweeps
+one confirmed root, `Abiotic_TriggerVolume_ParentBP_C` (the dump's own example subclass,
+`Trigger_CompendiumExploration_C`, chains to it directly); the probe's package set did not happen
+to include the other ~16 `Trigger_*` blueprints, so only that one subclass relationship is
+independently confirmed, though the hierarchy sweep is expected to cover the rest with no code
+change.
+
+`timesTriggered`/`hasBeenTriggeredOnce`/`triggerLimit` are all direct, unsuffixed instance
+properties (only `timesTriggered` is written). Writing an arbitrary count patches
+`TimesTriggered` directly then calls the trigger's own real, no-argument, actor-level
+`SaveTriggerData()` - confirmed `FUNC_Public|FUNC_BlueprintCallable|FUNC_BlueprintEvent`. `reset`
+instead calls the trigger's own real, no-argument `ResetTriggerState()`, whose bytecode was traced
+in full: it sets `TimesTriggered=0`, `HasBeenTriggeredOnce=false`, re-enables the trigger volume's
+collision, re-allows overlap on its linked trigger arrays, and calls `SaveTriggerData()` itself -
+strictly more complete than a bare count write, so it is preferred whenever a full reset (not an
+arbitrary count) is wanted, and wins over a `timesTriggered` value sent on the same row.
+
+**Lua harness**: 1217 checks passed, 0 failed (`python tools/run-lua-tests.py`, up from 1186
+before this round). Both new test-case files use fakes with an unfamiliar subclass declared only
+via `__bases` (proving the hierarchy sweep finds it and it is fully listable/settable) and a fake
+lacking the expected properties/functions entirely (proving it still lists, with every
+unsupported field reported absent rather than erroring or being dropped, per the owner's standing
+rule). Not run: `dotnet build`/`dotnet test` (coordinator builds centrally) - every C# identifier
+above was hand-checked against the real files it references (`ILiveGameChannel.RequestAsync`,
+`WorldMapAccessor.TryParseBool/TryParseInt`, `WorldMapField.Bool/Integer/ReadOnly`,
+`IWorldFeaturesSession`) since this round could not build to verify. **Not yet exercised in the
+running game.**
+
+## Round-100: live Breakable Objects and Corpses (2026-09-18)
+
+Two new live world-map areas, both simple bool-state actor sweeps mirroring buttons/elevators'
+established shape exactly. Owner rules for this round: never hardcode a leaf blueprint class name
+(discover through the parent class, `FindAllOf` is hierarchy-inclusive, with a small data-only
+table for any additional root classes), feature-detect every property per instance with `pcall`
+(unsupported fields report as not available live, never dropped), report the real class name in
+each row, and never guess a live property name from a save leaf name - read it from the probe dump.
+
+**DESTRUCTIBLES** (`Core/WorldSaves/Features/DestructibleMapFeature.cs`, id `destructibles`, one
+editable leaf `Broken_`). Confirmed against the coordinator's own CUE4Parse class dump and
+`Abiotic_GenericDestructible_BP_C`'s own blueprint bytecode: every fixture-confirmed class
+(`Destructible_CeilingTile_C`, `Webbing_BP_C`, `IceWall_BP_C`, `Destructible_Fracture_MageEye_C`,
+`Destructible_InvisibleWall_C`, `XRayField_BP_C`, `Destructible_CafeteriaDoor_C`,
+`Destructible_PortablePortal_C`, `Destructible_SyncrotronHole_C`,
+`Destructible_SecurityContainerDoor_C`, `Destructible_BookCartStack_C`,
+`Destructible_ContainmentShield_C`) declares `super=Abiotic_GenericDestructible_BP_C` either
+directly or one step removed (`Webbing_Marshmallow_BP_C` etc. chain through `Webbing_BP_C`), so a
+single `FindAllOf("Abiotic_GenericDestructible_BP_C")` sweep finds every one with no class name
+hardcoded anywhere - `ADDITIONAL_ROOT_CLASSES` stays empty this round, same as `buttons.lua`'s.
+`broken` maps to `actor.Broken` (direct, replicated BoolProperty, RepNotify `OnRep_Broken`) -
+**settable, one-way only**: `broken: true` writes `Broken = true` then calls the real
+`OnRep_Broken()`, which itself calls `SetStateBroken(NoFX)` exactly the way the class's own break
+path (world-flag trigger or damage reaching zero health) already does, so a live break gets the
+real mesh swap, collision change, and FX/SFX. `broken: false` ("repair") is refused with a named,
+player-safe error, **confirmed impossible, not assumed**: `OnRep_Broken`'s own bytecode is `if not
+Broken then return` with no other branch - nothing else in the class (every function in the dump
+was checked) ever restores the intact mesh's collision/visibility once `SetStateBroken` has run, so
+writing `Broken = false` would silently desync the save flag from what the player still sees.
+Deliberately excluded from the desktop app's periodic live refresh loop, for the same "a region can
+carry a great many of these" reason `resourcenodes` already documents. Removal is not offered live
+(matches the offline feature, which disables it for the same reason: an entry only exists once
+broken, and un-breaking is refused anyway).
+
+**CORPSES** (`CorpseMapFeature.cs`, id `corpses`, leaves `IsGibbed_`/`IsLooted_` read-only offline,
+offline action is remove). Confirmed against the coordinator's own CUE4Parse class dump of
+`CharacterCorpse_ParentBP_C`: every fixture-confirmed class (`CharacterCorpse_Human_BP_C`,
+`CharacterCorpse_MonsterGeneric_C`, `CharacterCorpse_OrderGrunt_C`, `CharacterCorpse_OrderSniper_C`)
+declares `super=CharacterCorpse_ParentBP_C` either directly (`MonsterGeneric`) or through
+`CharacterCorpse_Human_BP_C` (every other named human-shaped variant, including
+`CharacterCorpse_OrderBreacher_C`/`OrderCaptain_C`/`LabRat_C`/`Human_GATESecurity_C`), so one
+`FindAllOf("CharacterCorpse_ParentBP_C")` sweep finds every one, `ADDITIONAL_ROOT_CLASSES` empty
+again. `gibbed`/`looted` map to `actor.IsGibbed` (replicated, RepNotify `OnRep_IsGibbed`) and
+`actor.HasBeenLooted` (replicated, no RepNotify) - one field-name step from the save's own
+`IsGibbed_`/`IsLooted_` leaves, same meaning, both stay **read-only live too**, matching the file
+editor's own "no in-game reason to flip either by hand". **Removal is real and live** - checked
+every function `CharacterCorpse_ParentBP_C` declares against the dump and, matching round 78's
+identical finding for tamed pets, none of them cleanly despawns an already-placed corpse (no
+"DespawnCorpse" or equivalent), so `corpses.remove` uses the same `K2_DestroyActor()` technique
+`pets.remove` already established (the reference CheatConsoleCommands mod's own "deleteobject"
+path) - no undo. `LiveCorpsesFeatureSession` is the first live `IWorldFeaturesSession` where
+`SupportsRemoval` is genuinely `true` rather than every offline removal having no live equivalent.
+Corpses stay on the periodic live refresh loop (a region typically holds few of them, unlike
+resource nodes/destructibles).
+
+**Files**: `live-agent/AbioticEditorLiveAgentLua/Scripts/areas/{destructibles,corpses}.lua` (+
+`areas/manifest.lua`), `live-agent/AbioticEditorLiveAgentLua/tests/cases/{destructibles,corpses}.lua`
+(+ `tests/cases/manifest.lua`), `Core/LiveEditing/World/Live{Destructibles,Corpses}Channel.cs`,
+`Web.Shared/Models/Live{Destructibles,Corpses}FeatureSession.cs`, `LiveConnect.razor` (tab
+buttons, render blocks, fields, connect switch, periodic-refresh switch - corpses only),
+`Live_TabDestructibles`/`Live_TabCorpses` in `AppResources.resx`,
+`docs/reference/live-editing-protocol.md`, `WorldLiveDestructiblesAreaTests.cs`/
+`WorldLiveCorpsesAreaTests.cs` (standalone contract tests, same shape as
+`WorldLiveButtonsAreaTests.cs`).
+
+**Verified**: both new `tests/cases/*.lua` harness cases pass in isolation (`python
+tools/run-lua-tests.py`, 42 checks: hierarchy-sweep discovery including an unfamiliar future
+subclass and a non-matching actor, per-field feature-detection, the repair refusal - both alone and
+mixed with a real break in the same batch, missing-id handling, non-host refusal, and - for corpses -
+real removal plus a destroy-call failure path). **Not yet exercised in the running game** (no
+UE4SS/live-game verification this round, matching every other live area's own "not yet exercised"
+caveat until an owner with the game running confirms it - see `live-world-editing.md` memory for
+the harness's own limits: it proves the module resolves the fields/functions it expects and
+respects host gating, never that a name is correct against the real running game beyond what the
+CUE4Parse dump already confirms).
+
 ## Round-99: Characters and Creatures merged into one NPCS tab, real names for creatures (2026-09-18)
 
 Round-92 compared the offline "Characters" tab (`WorldNpcsTab.razor`, the save's `NarrativeNPCMap`

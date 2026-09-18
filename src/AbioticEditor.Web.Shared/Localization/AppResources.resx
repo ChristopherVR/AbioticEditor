@@ -849,6 +849,7 @@
   <data name="WorldPets_SendToPlayerHelp" xml:space="preserve"><value>Health, level and name carry over; the pet leaves the world. Save other world edits first.</value></data>
   <data name="WorldPets_TamedPetsInThisWorld" xml:space="preserve"><value>TAMED PETS IN THIS WORLD</value></data>
   <data name="WorldPets_UndoDelete" xml:space="preserve"><value>UNDO DELETE</value></data>
+  <data name="WorldPets_UnmatchedLiveNotice" xml:space="preserve"><value>This pet's creature type gives the game no stable id to match live, so its name and level can't be read or changed here. Health and alive/dead status still can. Edit the save file for the rest.</value></data>
   <data name="WorldPets_Xp" xml:space="preserve"><value>XP</value></data>
 
   <!-- WorldRaw -->
@@ -4127,6 +4128,13 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Live_TabPortals" xml:space="preserve"><value>World Teleporters</value></data>
   <data name="Live_TabElevators" xml:space="preserve"><value>Elevators</value></data>
   <data name="Live_TabButtons" xml:space="preserve"><value>Buttons</value></data>
+  <data name="Live_TabResourceNodes" xml:space="preserve"><value>Resource Nodes</value></data>
+  <data name="Live_TabDestructibles" xml:space="preserve"><value>Breakable Objects</value></data>
+  <data name="Live_TabCorpses" xml:space="preserve"><value>Corpses</value></data>
+  <data name="Live_TabPowerSockets" xml:space="preserve"><value>Power Sockets</value></data>
+  <data name="Live_TabTrams" xml:space="preserve"><value>Trams</value></data>
+  <data name="Live_TabNpcSpawns" xml:space="preserve"><value>NPC Spawns</value></data>
+  <data name="Live_TabTriggers" xml:space="preserve"><value>Triggers</value></data>
   <data name="Live_TabGardenPlots" xml:space="preserve"><value>Garden Plots</value></data>
   <data name="Live_TabPowerChairs" xml:space="preserve"><value>Power Chairs</value></data>
   <data name="Live_TabChemistryBenches" xml:space="preserve"><value>Chemistry Benches</value></data>

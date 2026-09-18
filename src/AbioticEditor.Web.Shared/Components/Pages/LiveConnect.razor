@@ -146,6 +146,13 @@ else
                     <button role="tab" aria-selected="@(_worldTab == "portals")" class="@(_worldTab == "portals" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("portals")'>@L.Resource("Live_TabPortals")</button>
                     <button role="tab" aria-selected="@(_worldTab == "elevators")" class="@(_worldTab == "elevators" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("elevators")'>@L.Resource("Live_TabElevators")</button>
                     <button role="tab" aria-selected="@(_worldTab == "buttons")" class="@(_worldTab == "buttons" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("buttons")'>@L.Resource("Live_TabButtons")</button>
+                    <button role="tab" aria-selected="@(_worldTab == "resourcenodes")" class="@(_worldTab == "resourcenodes" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("resourcenodes")'>@L.Resource("Live_TabResourceNodes")</button>
+                    <button role="tab" aria-selected="@(_worldTab == "destructibles")" class="@(_worldTab == "destructibles" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("destructibles")'>@L.Resource("Live_TabDestructibles")</button>
+                    <button role="tab" aria-selected="@(_worldTab == "corpses")" class="@(_worldTab == "corpses" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("corpses")'>@L.Resource("Live_TabCorpses")</button>
+                    <button role="tab" aria-selected="@(_worldTab == "powersockets")" class="@(_worldTab == "powersockets" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("powersockets")'>@L.Resource("Live_TabPowerSockets")</button>
+                    <button role="tab" aria-selected="@(_worldTab == "trams")" class="@(_worldTab == "trams" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("trams")'>@L.Resource("Live_TabTrams")</button>
+                    <button role="tab" aria-selected="@(_worldTab == "npc-spawns")" class="@(_worldTab == "npc-spawns" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("npc-spawns")'>@L.Resource("Live_TabNpcSpawns")</button>
+                    <button role="tab" aria-selected="@(_worldTab == "triggers")" class="@(_worldTab == "triggers" ? "selected" : null)" @onclick='() => SelectWorldTabAsync("triggers")'>@L.Resource("Live_TabTriggers")</button>
                     @foreach (var feature in CareFeatures)
                     {
                         <button role="tab" aria-selected="@(_worldTab == feature.Id)" class="@(_worldTab == feature.Id ? "selected" : null)" @onclick="() => SelectWorldTabAsync(feature.Id)">@L.Resource(feature.TitleKey)</button>
@@ -191,7 +198,11 @@ else
             }
             else if (_worldTab == "vehicles" && _vehicles is not null)
             {
-                <WorldVehiclesTab Session="_vehicles" Title="@L.Resource("WorldVehicles_VehiclesInThisWorld")" OnError="ShowWorldAreaError" />
+                @* OnOpenContainer reuses OpenCareContainerAsync (same "open this container id in
+                   the CONTAINERS tab" shape the garden-plot/power-chair/chemistry-bench features
+                   already use) - a vehicle's on-board cargo is a genuine
+                   Deployed_Container_ParentBP_C actor, so it needs no dedicated container path. *@
+                <WorldVehiclesTab Session="_vehicles" Title="@L.Resource("WorldVehicles_VehiclesInThisWorld")" OnError="ShowWorldAreaError" OnOpenContainer="OpenCareContainerAsync" />
             }
             else if (_worldTab == "pets" && _pets is not null)
             {
@@ -224,8 +235,9 @@ else
             {
                 @* Also the same shared tab the file editor's "World Teleporters" feature uses -
                    LivePortalsFeatureSession implements IWorldFeaturesSession for this one feature
-                   only; every other feature id (power sockets, resource nodes, ...) has no live
-                   equivalent and is not offered here. *@
+                   only; most other feature ids (power sockets, ...) still have no live equivalent
+                   and are not offered here (resource nodes gained one - see the "resourcenodes"
+                   branch below). *@
                 <WorldFeaturesTab Session="_portals" FeatureId="@LivePortalsFeatureSession.PortalsFeatureId" OnError="SetError" />
             }
             else if (_worldTab == "elevators" && _elevators is not null)
@@ -241,6 +253,71 @@ else
                    LiveButtonsFeatureSession implements IWorldFeaturesSession for this one feature
                    only; see its header comment for what is confirmed vs. best-effort/unconfirmed. *@
                 <WorldFeaturesTab Session="_buttons" FeatureId="@LiveButtonsFeatureSession.ButtonsFeatureId" OnError="SetError" />
+            }
+            else if (_worldTab == "resourcenodes" && _resourceNodes is not null)
+            {
+                @* Also the same shared tab the file editor's "Resource Nodes" feature uses -
+                   LiveResourceNodesFeatureSession implements IWorldFeaturesSession for this one
+                   feature only; see its header comment for what is confirmed vs. guessed, and
+                   the module's own header comment in resourcenodes.lua for why this area is
+                   deliberately excluded from the periodic refresh loop (see ActiveLiveSessions
+                   below) - a loaded region can carry far more of these than any other live
+                   world area. *@
+                <WorldFeaturesTab Session="_resourceNodes" FeatureId="@LiveResourceNodesFeatureSession.ResourceNodesFeatureId" OnError="SetError" />
+            }
+            else if (_worldTab == "destructibles" && _destructibles is not null)
+            {
+                @* Also the same shared tab the file editor's "Breakable Objects" feature uses -
+                   LiveDestructiblesFeatureSession implements IWorldFeaturesSession for this one
+                   feature only; see its header comment for the confirmed field mapping and why
+                   "repair" is refused rather than attempted live. Deliberately excluded from the
+                   periodic refresh loop (see ActiveLiveSessions below) for the same reason
+                   resourcenodes is - a loaded region can carry a great many spore webbing/ice wall
+                   actors at once. *@
+                <WorldFeaturesTab Session="_destructibles" FeatureId="@LiveDestructiblesFeatureSession.DestructiblesFeatureId" OnError="SetError" />
+            }
+            else if (_worldTab == "corpses" && _corpses is not null)
+            {
+                @* Also the same shared tab the file editor's "Corpses" feature uses -
+                   LiveCorpsesFeatureSession implements IWorldFeaturesSession for this one feature
+                   only; see its header comment for the confirmed field mapping. This is the first
+                   live world-map feature session where removal really is supported (no undo). *@
+                <WorldFeaturesTab Session="_corpses" FeatureId="@LiveCorpsesFeatureSession.CorpsesFeatureId" OnError="SetError" />
+            }
+            else if (_worldTab == "powersockets" && _powerSockets is not null)
+            {
+                @* Also the same shared tab the file editor's "Power Sockets" feature uses -
+                   LivePowerSocketsFeatureSession implements IWorldFeaturesSession for this one
+                   feature only; see its header comment for the confirmed field mapping and why
+                   every field renders read-only live. *@
+                <WorldFeaturesTab Session="_powerSockets" FeatureId="@LivePowerSocketsFeatureSession.PowerSocketsFeatureId" OnError="SetError" />
+            }
+            else if (_worldTab == "trams" && _trams is not null)
+            {
+                @* Also the same shared tab the file editor's "Trams" feature uses -
+                   LiveTramsFeatureSession implements IWorldFeaturesSession for this one feature
+                   only; see its header comment for the confirmed field mapping and why every
+                   field renders read-only live (no confirmed function sends a tram to an
+                   arbitrary station). *@
+                <WorldFeaturesTab Session="_trams" FeatureId="@LiveTramsFeatureSession.TramsFeatureId" OnError="SetError" />
+            }
+            else if (_worldTab == "npc-spawns" && _npcSpawns is not null)
+            {
+                @* Also the same shared tab the file editor's "NPC Spawns" feature uses -
+                   LiveNpcSpawnsFeatureSession implements IWorldFeaturesSession for this one
+                   feature only; see its header comment for the confirmed field mapping. Deliberately
+                   excluded from the periodic refresh loop (see ActiveLiveSessions below) for the
+                   same reason resourcenodes/destructibles are - a loaded region can carry hundreds
+                   of NPC spawner actors at once (918 in the Facility fixture). *@
+                <WorldFeaturesTab Session="_npcSpawns" FeatureId="@LiveNpcSpawnsFeatureSession.NpcSpawnsFeatureId" OnError="SetError" />
+            }
+            else if (_worldTab == "triggers" && _triggers is not null)
+            {
+                @* Also the same shared tab the file editor's "Triggers" feature uses -
+                   LiveTriggersFeatureSession implements IWorldFeaturesSession for this one feature
+                   only; see its header comment for why rows are keyed by UniqueTriggerID rather
+                   than an actor path, and for the confirmed field mapping. *@
+                <WorldFeaturesTab Session="_triggers" FeatureId="@LiveTriggersFeatureSession.TriggersFeatureId" OnError="SetError" />
             }
             else if (_worldTab == "chemistry-benches" && _care.TryGetValue("chemistry-benches", out var chemistrySession))
             {
@@ -325,6 +402,13 @@ else
     private LivePortalsFeatureSession? _portals;
     private LiveElevatorsFeatureSession? _elevators;
     private LiveButtonsFeatureSession? _buttons;
+    private LiveResourceNodesFeatureSession? _resourceNodes;
+    private LiveDestructiblesFeatureSession? _destructibles;
+    private LiveCorpsesFeatureSession? _corpses;
+    private LivePowerSocketsFeatureSession? _powerSockets;
+    private LiveTramsFeatureSession? _trams;
+    private LiveNpcSpawnsFeatureSession? _npcSpawns;
+    private LiveTriggersFeatureSession? _triggers;
     private readonly Dictionary<string, LiveDeployedCareSession> _care = new(StringComparer.Ordinal);
     private static readonly (string Id, string TitleKey)[] CareFeatures =
         [("garden-plots", "Live_TabGardenPlots"), ("power-chairs", "Live_TabPowerChairs"), ("chemistry-benches", "Live_TabChemistryBenches")];
@@ -717,6 +801,27 @@ else
                 case "buttons":
                     _buttons ??= await TryConnectWorldAreaAsync(() => LiveButtonsFeatureSession.ConnectAsync(new LiveButtonsChannel(channel)));
                     break;
+                case "resourcenodes":
+                    _resourceNodes ??= await TryConnectWorldAreaAsync(() => LiveResourceNodesFeatureSession.ConnectAsync(new LiveResourceNodesChannel(channel)));
+                    break;
+                case "destructibles":
+                    _destructibles ??= await TryConnectWorldAreaAsync(() => LiveDestructiblesFeatureSession.ConnectAsync(new LiveDestructiblesChannel(channel)));
+                    break;
+                case "corpses":
+                    _corpses ??= await TryConnectWorldAreaAsync(() => LiveCorpsesFeatureSession.ConnectAsync(new LiveCorpsesChannel(channel)));
+                    break;
+                case "powersockets":
+                    _powerSockets ??= await TryConnectWorldAreaAsync(() => LivePowerSocketsFeatureSession.ConnectAsync(new LivePowerSocketsChannel(channel)));
+                    break;
+                case "trams":
+                    _trams ??= await TryConnectWorldAreaAsync(() => LiveTramsFeatureSession.ConnectAsync(new LiveTramsChannel(channel)));
+                    break;
+                case "npc-spawns":
+                    _npcSpawns ??= await TryConnectWorldAreaAsync(() => LiveNpcSpawnsFeatureSession.ConnectAsync(new LiveNpcSpawnsChannel(channel)));
+                    break;
+                case "triggers":
+                    _triggers ??= await TryConnectWorldAreaAsync(() => LiveTriggersFeatureSession.ConnectAsync(new LiveTriggersChannel(channel)));
+                    break;
                 case "garden-plots":
                 case "power-chairs":
                 case "chemistry-benches":
@@ -1002,6 +1107,26 @@ else
                 case "portals": yield return _portals; break;
                 case "elevators": yield return _elevators; break;
                 case "buttons": yield return _buttons; break;
+                // resourcenodes deliberately has NO case here (same exclusion as npcs/bases
+                // above, not just the same comment): a single loaded region can carry well over a
+                // thousand resource-node entries in the save, more than any other live world area
+                // this loop touches, and even a cheap-per-row sweep at that scale is not worth
+                // repeating on a timer. A tab visit still gets one fetch (EnsureAreaConnectedAsync);
+                // after that only a region change (ResetRegionScopedWorldSessions) or leaving and
+                // re-entering the WORLD surface fetches again - see resourcenodes.lua's own header
+                // comment.
+                //
+                // destructibles has the exact same exclusion, for the exact same reason
+                // (potentially many Webbing_BP/IceWall_BP actors per region) - see
+                // destructibles.lua's own header comment.
+                //
+                // npc-spawns has the exact same exclusion too, for the same reason and an even
+                // larger real number: the Facility fixture alone carries 918 NPCSpawn_* entries -
+                // see npcspawns.lua's own header comment. No case for "npc-spawns" here.
+                case "corpses": yield return _corpses; break;
+                case "powersockets": yield return _powerSockets; break;
+                case "trams": yield return _trams; break;
+                case "triggers": yield return _triggers; break;
                 case "garden-plots":
                 case "power-chairs":
                 case "chemistry-benches":
@@ -1060,7 +1185,7 @@ else
     {
         _vitals, _skills, _spawn, _companions, _npcs, _inventory, _story, _recipes, _codex, _general,
         _flags, _doors, _containers, _dropped, _bases, _vehicles, _pets, _narrativeNpcs, _containment,
-        _traders, _portals, _elevators, _buttons,
+        _traders, _portals, _elevators, _buttons, _powerSockets, _trams, _triggers,
     }.Concat(_care.Values);
 
     /// <summary>Subscribes to every connected session's <c>Changed</c> event that is not already
@@ -1117,7 +1242,7 @@ else
     /// traders/containment/entitlements) is untouched: none of it is region-scoped.</summary>
     private void ResetRegionScopedWorldSessions()
     {
-        foreach (object? session in new object?[] { _containers, _doors, _dropped, _npcs, _bases, _vehicles, _pets, _narrativeNpcs, _portals, _elevators, _buttons }.Concat(_care.Values))
+        foreach (object? session in new object?[] { _containers, _doors, _dropped, _npcs, _bases, _vehicles, _pets, _narrativeNpcs, _portals, _elevators, _buttons, _resourceNodes, _powerSockets, _trams, _npcSpawns, _triggers }.Concat(_care.Values))
         {
             UnsubscribeChangedEvent(session);
         }
@@ -1132,12 +1257,17 @@ else
         _portals = null;
         _elevators = null;
         _buttons = null;
+        _resourceNodes = null;
+        _powerSockets = null;
+        _trams = null;
+        _npcSpawns = null;
+        _triggers = null;
         _care.Clear();
-        // Only the tab actually on screen right now gets re-fetched immediately - the other
-        // eight get EnsureAreaConnectedAsync's usual lazy `??=` fetch whenever they are next
-        // opened, rather than all firing a world scan on the game thread at once the moment the
-        // player finishes teleporting. Skipped for the metadata tab set (story/traders/
-        // containment/entitlements) - never touched by this reset in the first place.
+        // Only the tab actually on screen right now gets re-fetched immediately - the rest get
+        // EnsureAreaConnectedAsync's usual lazy `??=` fetch whenever they are next opened, rather
+        // than all firing a world scan on the game thread at once the moment the player finishes
+        // teleporting. Skipped for the metadata tab set (story/traders/containment/entitlements) -
+        // never touched by this reset in the first place.
         if (_surface == LiveSurface.World && !_worldIsMetadata) _ = EnsureAreaConnectedAsync(_worldTab);
     }
 
@@ -1264,6 +1394,11 @@ else
         _portals = null;
         _elevators = null;
         _buttons = null;
+        _resourceNodes = null;
+        _powerSockets = null;
+        _trams = null;
+        _npcSpawns = null;
+        _triggers = null;
         _care.Clear();
         _careContainerFilter = null;
         _selectedPlayerId = null;

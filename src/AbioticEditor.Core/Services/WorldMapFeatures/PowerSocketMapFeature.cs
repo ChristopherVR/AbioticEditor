@@ -14,7 +14,20 @@ namespace AbioticEditor.Core.WorldSaves.Features;
 /// was observed across all available fixture saves; the full set of valid enumerators
 /// cannot be determined from save data alone, so <c>timerMode</c> is exposed as a
 /// read-only display field rather than an editable choice to avoid corrupting saves with
-/// invented names.</para>
+/// invented names. <b>Confirmed still correct (round 103)</b> by a real CUE4Parse class+enum
+/// dump of the game itself: <c>E_PowerTimerModes</c> does have 9 real values (indices 0-8)
+/// plus <c>E_MAX</c>, but every one of them is still an auto-generated
+/// <c>NewEnumeratorN</c> name with no meaningful English label anywhere in the asset - so a
+/// fuller enumerator list would not actually let this become a real named choice, it would
+/// only replace "cannot be determined" with "determined, and meaningless". The same round's
+/// live probe of <c>PowerSocket_ParentBP_C</c>'s own bytecode separately found that the
+/// game's only save path for this actor (<c>Update_SaveData</c>) unconditionally resets
+/// <c>HasTimer_</c>/<c>TimerMode_</c> to <c>false</c>/<c>0</c> every time it runs, in both
+/// branches of its own if/else - see
+/// <c>live-agent/AbioticEditorLiveAgentLua/Scripts/areas/powersockets.lua</c>'s header
+/// comment and <c>docs/reference/live-editing-protocol.md</c>'s <c>powersockets.list</c>
+/// section for the full citation trail (this offline editor is unaffected either way: it
+/// edits the save file directly, bypassing that live reset entirely).</para>
 ///
 /// <para>This follows the same pattern as <see cref="ElevatorMapFeature"/>: derive from
 /// <see cref="WorldMapFeatureBase"/>, expose typed fields in <see cref="ReadFields"/>,
