@@ -118,10 +118,17 @@ public sealed class LiveDroppedItemsSession : IWorldDroppedItemsSession
 
     public bool SupportsLiveAdd => true;
 
-    public async Task AddDroppedItemLiveAsync(string itemId, int stack, CancellationToken cancellationToken = default)
+    /// <summary>See <see cref="IWorldDroppedItemsSession.AddDroppedItemLiveAsync"/>. Passing
+    /// <paramref name="x"/>/<paramref name="y"/>/<paramref name="z"/> (all three or none) asks the
+    /// Lua module to move the newly dropped item there afterwards and confirm it landed there -
+    /// see <c>dropped.add</c>'s own remarks. A position that could not be honored fails this call
+    /// (the game may still have dropped the item somewhere else - a refresh shows where).</summary>
+    public async Task AddDroppedItemLiveAsync(string itemId, int stack, double? x = null, double? y = null, double? z = null, CancellationToken cancellationToken = default)
     {
-        await _channel.AddAsync(itemId, stack, cancellationToken).ConfigureAwait(false);
-        Status = "Spawned on the ground near the player - this took effect in the running game immediately.";
+        await _channel.AddAsync(itemId, stack, x, y, z, cancellationToken).ConfigureAwait(false);
+        Status = x is not null && y is not null && z is not null
+            ? "Spawned on the ground and moved to the requested position - this took effect in the running game immediately."
+            : "Spawned on the ground near the player - this took effect in the running game immediately.";
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
 

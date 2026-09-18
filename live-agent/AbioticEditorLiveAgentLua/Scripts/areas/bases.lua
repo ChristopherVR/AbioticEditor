@@ -1,6 +1,15 @@
 -- Bases and deployables. Bench state reads replicated GameplayTags directly.
 -- Never call Has Upgrade/AddUpgrade with Lua-built row handles: both fabricated and
 -- real-enumerated-handle copies crashed the native bridge during Cascade verification.
+-- Round 111 re-check: canEditUpgrades below is not wider than needed - it already requires both
+-- the class-level SupportsUpgrades flag AND bench_tags.available (replication support plus both
+-- of this exact instance's own tag containers being readable), so it cannot report an unsafe
+-- bench as editable; see bench_tags.lua's own header for the new evidence that its tag-write path
+-- matches AddUpgrade's own internal implementation. supportsBenchUpgrades and
+-- supportsBenchUpgradeRemoval are intentionally reported as the same value below: since removal
+-- uses the identical tag-write path as install (no separate native call, unlike the old
+-- AddUpgrade-only round 77 shape), there is no longer any capability removal needs that install
+-- does not already have.
 return function(ctx)
     local benchTags = require("bench_tags")
     local replication = require("replication")

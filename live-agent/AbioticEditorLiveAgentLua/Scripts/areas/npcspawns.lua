@@ -50,17 +50,27 @@
 -- in the dump (the closest actor-level properties, LastCooldownSaveTimestamp/CooldownSaveInterval,
 -- are a different, unconfirmed concept) - this module reports nothing for it rather than guessing.
 --
--- ACTIONS (both write-only "do it now" toggles, not persistent state - see npcspawns.set):
---   resetCooldown - spawner:SetSpawnOnCooldown(0.0, 0) - a real, actor-level BlueprintCallable
---                    function (TimeRemaining: double, InCurrentDay: int). Its own bytecode: when
---                    InCurrentDay is 0 it looks up the CURRENT in-game day itself (via
---                    `AI Director.DayNightManager.CurrentDay`, both feature-detected with IsValid
---                    checks in the real bytecode) rather than requiring the caller to supply one,
---                    so passing (0, 0) sets TimeRemaining=0 and CooldownDay=today in one call -
---                    exactly "allow this spawner to fire again right now". It then calls
---                    AIDirectorSubsystem:SetCooldownForSpawner(spawner, TimeRemaining, CooldownDay,
---                    spawner.OnlySpawnOnce) itself, so this module never has to call that subsystem
---                    function directly.
+-- ACTIONS AND WRITES (see npcspawns.set):
+--   cooldownRemainingSeconds - ROUND-110: now a real editable value, not just a read-only figure.
+--                    spawner:SetSpawnOnCooldown(TimeRemaining: double, InCurrentDay: int) is a real,
+--                    actor-level BlueprintCallable function whose own bytecode was fully traced this
+--                    round (Abiotic_NPCSpawn_ParentBP.SetSpawnOnCooldown): it unconditionally sets
+--                    `CooldownDay = InCurrentDay` first, THEN - only when InCurrentDay==0 AND
+--                    `AI Director`/`AI Director.DayNightManager` are both valid - overwrites
+--                    CooldownDay with the real current game day looked up from the DayNightManager;
+--                    it then calls AIDirectorSubsystem:SetCooldownForSpawner(spawner, TimeRemaining,
+--                    CooldownDay, spawner.OnlySpawnOnce) passing TimeRemaining THROUGH UNCHANGED (no
+--                    clamping/zeroing anywhere in the traced bytecode) - confirming arbitrary values
+--                    really do reach the subsystem. `npcspawns.set` calls
+--                    spawner:SetSpawnOnCooldown(wanted, 0) for an explicit cooldownRemainingSeconds
+--                    request - InCurrentDay=0 so CooldownDay resolves to "today" the same way
+--                    resetCooldown already relies on, changing only the remaining-seconds figure,
+--                    never inventing a day value this module cannot itself confirm.
+--   resetCooldown  - spawner:SetSpawnOnCooldown(0.0, 0) - the same function above, called with
+--                    TimeRemaining=0 - exactly "allow this spawner to fire again right now". Wins
+--                    over a cooldownRemainingSeconds value sent in the SAME row (matches
+--                    triggers.lua's own "the more complete reset action wins" precedent), since it
+--                    is applied second below.
 --   forceSpawn     - spawner:TrySpawnNPCNew(IsNight=false, ForceSuccessByTrigger=true,
 --                    CheckOnlyNoSpawn=false), falling back to the older TrySpawnNPC with the same
 --                    three arguments if TrySpawnNPCNew is not present on a given game build (both
@@ -75,6 +85,13 @@
 --                    NPC actually appears is not confirmed by any live capture, only by this
 --                    bytecode reading - a call that does not error is reported as "requested", not
 --                    a confirmed spawn (see forceSpawn below).
+--
+-- MinutesPassedCooldownStarted_ REVISITED (round 110): SetSpawnOnCooldown's own `InCurrentDay`
+-- argument (and the CooldownDay it feeds) is DAY granularity only (a whole in-game day number,
+-- confirmed from its IntProperty type and its direct assignment from
+-- `AI Director.DayNightManager.CurrentDay`, itself a whole-day counter) - it has no minutes-within-
+-- the-day component at all, so it cannot derive or set the offline leaf's minutes-elapsed value.
+-- Still not exposed, for the same reason as before, now doubly confirmed.
 return function(ctx)
     local SPAWNER_ROOT_CLASS = "Abiotic_NPCSpawn_ParentBP_C"
     -- Data, not logic - see the header comment for why these two are listed separately rather than
@@ -202,6 +219,23 @@ return function(ctx)
                 local row = rows[i]
                 local spawner = row.id and findSpawner(row.id)
                 if spawner then
+                    -- ROUND-110: an explicit seconds value applies FIRST so a resetCooldown sent in
+                    -- the same row still wins (matches triggers.lua's own "reset wins over an
+                    -- arbitrary value in the same row" precedent) - see the header comment.
+                    if row.cooldownRemainingSeconds ~= nil then
+                        if type(row.cooldownRemainingSeconds) ~= "number" then
+                            failedId = failedId or row.id
+                            failedReason = failedReason or "cooldownRemainingSeconds must be a number"
+                        else
+                            -- InCurrentDay=0: let the game's own bytecode resolve CooldownDay to
+                            -- "today" itself (see header comment) - only TimeRemaining changes.
+                            local ok = pcall(function() spawner:SetSpawnOnCooldown(row.cooldownRemainingSeconds, 0) end)
+                            if not ok then
+                                failedId = failedId or row.id
+                                failedReason = failedReason or "this spawner type has no known live cooldown control"
+                            end
+                        end
+                    end
                     if row.resetCooldown then
                         local ok = pcall(function() spawner:SetSpawnOnCooldown(0.0, 0) end)
                         if not ok then

@@ -35,8 +35,15 @@ return function(H)
         local methods = {
             IsOnCooldown = function() return onCooldown end,
             GetCurrentSpawnedCount = function(_, _checkDead) return spawnCount end,
+            -- ROUND-110: mirrors the real bytecode closely enough to prove
+            -- cooldownRemainingSeconds passes through UNCLAMPED (see the module's own header
+            -- comment) - the subsystem's own tracked "remaining" is updated to whatever
+            -- timeRemaining was actually passed, not just reset to 0.
             SetSpawnOnCooldown = function(self, timeRemaining, inCurrentDay)
-                onCooldown = false
+                onCooldown = timeRemaining > 0
+                local state = subsystemState[self] or {}
+                state.remaining = timeRemaining
+                subsystemState[self] = state
                 rawget(self, "__fields").__lastSetCooldown = { timeRemaining = timeRemaining, inCurrentDay = inCurrentDay }
             end,
             TrySpawnNPCNew = function() return true, nil end,
@@ -98,6 +105,36 @@ return function(H)
     local afterReset = H.ok(H.dispatch("npcspawns.list"), "npcspawns.list after reset")
     H.eq(rowFor(afterReset.spawners, "NPCSpawn_SingleGrunt_C").onCooldown, false, "grunt no longer on cooldown after the reset call")
 
+    -- ROUND-110: cooldownRemainingSeconds is now settable to an arbitrary number, not just reset
+    -- to 0 - the spawner's own real SetSpawnOnCooldown(seconds, 0), confirmed from its bytecode to
+    -- pass TimeRemaining through unclamped.
+    H.ok(H.dispatch("npcspawns.set", { spawners = { { id = gruntRow.id, cooldownRemainingSeconds = 45.5 } } }),
+        "set the grunt spawner's cooldown to an exact number of seconds")
+    H.eq(H.field(grunt, "__lastSetCooldown").timeRemaining, 45.5, "the exact requested seconds value is passed through, unclamped")
+    H.eq(H.field(grunt, "__lastSetCooldown").inCurrentDay, 0, "InCurrentDay=0 so the day resolves to 'today', matching resetCooldown")
+    local afterSet = H.ok(H.dispatch("npcspawns.list"), "npcspawns.list after setting an exact cooldown")
+    H.eq(rowFor(afterSet.spawners, "NPCSpawn_SingleGrunt_C").cooldownRemainingSeconds, 45.5, "the new value reads back from the subsystem")
+
+    -- resetCooldown in the SAME row wins over an explicit cooldownRemainingSeconds value sent
+    -- alongside it (matches triggers.lua's own "reset wins" precedent for timesTriggered) - see
+    -- the module's own header comment: the value is applied first, reset second.
+    H.ok(H.dispatch("npcspawns.set",
+        { spawners = { { id = gruntRow.id, cooldownRemainingSeconds = 999, resetCooldown = true } } }),
+        "a combined cooldownRemainingSeconds + resetCooldown request succeeds")
+    H.eq(H.field(grunt, "__lastSetCooldown").timeRemaining, 0.0,
+        "resetCooldown applied second, winning over the explicit value sent in the same row")
+
+    -- Non-numeric cooldownRemainingSeconds: an honest, named failure, not a Lua error.
+    local badCooldownReply = H.dispatch("npcspawns.set", { spawners = { { id = gruntRow.id, cooldownRemainingSeconds = "soon" } } })
+    H.fails(badCooldownReply, "must be a number", "a non-numeric cooldownRemainingSeconds fails cleanly")
+
+    -- The narrative-family spawner has no SetSpawnOnCooldown at all - an explicit-value request
+    -- fails the same named way a resetCooldown request against it already does (see below).
+    local narrativeCooldownReply = H.dispatch("npcspawns.set",
+        { spawners = { { id = traderRow.id, cooldownRemainingSeconds = 10 } } })
+    H.fails(narrativeCooldownReply, "no known live cooldown control",
+        "narrative-family spawner refuses an explicit cooldown value by name too")
+
     -- forceSpawn: TrySpawnNPCNew is tried first.
     H.ok(H.dispatch("npcspawns.set", { spawners = { { id = gruntRow.id, forceSpawn = true } } }),
         "force-spawn via the grunt spawner")
@@ -133,12 +170,13 @@ return function(H)
 
     -- Missing spawner id: player-safe failure, not a Lua error - any resolvable row in the same
     -- call still applies first.
+    local callsBeforeMissing = H.calls(grunt, "SetSpawnOnCooldown")
     local missingReply = H.dispatch("npcspawns.set", { spawners = {
         { id = gruntRow.id, resetCooldown = true },
         { id = "no-such-spawner", forceSpawn = true },
     } })
     H.fails(missingReply, "not found", "unknown spawner id fails cleanly")
-    H.eq(H.calls(grunt, "SetSpawnOnCooldown"), 2, "the resolvable row in the same batch still applied")
+    H.eq(H.calls(grunt, "SetSpawnOnCooldown"), callsBeforeMissing + 1, "the resolvable row in the same batch still applied")
 
     -- Non-host refusal.
     H.clientSession()

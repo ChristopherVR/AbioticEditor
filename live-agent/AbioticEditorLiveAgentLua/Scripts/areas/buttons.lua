@@ -41,11 +41,41 @@
 --   offline "activated"   <- live `button.Activated` (direct; replicated, RepNotify OnRep_Activated)
 --   offline "noReset"     <- live `button.NoVignetteReset` (direct; plain, NOT replicated - no
 --                             OnRep exists for it, confirmed from its own PropertyFlags in the dump)
---   offline "pressedOnce" <- live `button.ButtonSaveData.ButtonHasBeenPressedOnce_110_...`
---                             (read-only: the bytecode never sets this to anything but `true`, and
---                             only as a side effect of UpdateButtonSaveData running at all - there
---                             is no live path that sets it independently, so buttons.set refuses
---                             this field outright rather than silently no-op or lie about it)
+--   offline "pressedOnce" <- live `button.ButtonSaveData.ButtonHasBeenPressedOnce_110_...` (see the
+--                             ROUND-110 note below for how this became settable)
+--
+-- ROUND-110: `pressedOnce` is now settable, honestly, both directions. UpdateButtonSaveData's own
+-- unconditional `= true` is a property of THAT wrapper function, not of the underlying save data,
+-- so this module writes the leaf directly then persists by calling
+-- `GameMode:UpdateActorToWorldSave(Self, false, 4)` ITSELF - the exact same "persist this now"
+-- call UpdateButtonSaveData already ends with (confirmed from `Abiotic_Survival_GameMode_C`'s own
+-- ChildProperties/FunctionFlags in the coordinator's dump: `FUNC_Public | FUNC_BlueprintCallable |
+-- FUNC_BlueprintEvent`, params `(Actor, RemoveFromSave: bool, SaveType: E_SaveType byte)`) -
+-- deliberately SKIPPING UpdateButtonSaveData, since calling that wrapper would immediately re-force
+-- the leaf back to `true` (the whole reason it was refused outright before this round).
+-- `UpdateActorToWorldSave` itself only serializes whatever the actor's own SaveGame-tagged
+-- properties already hold at call time; it does not recompute ButtonSaveData the way
+-- UpdateButtonSaveData does (confirmed by the fact UpdateButtonSaveData calls it as a separate,
+-- later statement, after already writing every leaf itself) - so calling it directly after our own
+-- leaf write persists exactly the value just written, nothing recomputed. The `4` constant is
+-- copied verbatim from the one call site inside UpdateButtonSaveData's own bytecode (not derived
+-- from the E_SaveType enum's own names, which were not part of this dump) - the same "reuse the
+-- game's own literal, never invent one" discipline trams.lua's header comment documents for its
+-- own `14`.
+--
+-- HONEST CAVEAT, confirmed not assumed: `UpdateButtonSaveData` is called from exactly one place in
+-- the whole class - `ExecuteUbergraph_Button_Generic` (checked all five call sites in the bytecode;
+-- every one falls inside that one function's statement range), the shared interaction graph a
+-- player's own press (or `TriggerButtonWithoutUser()`, which jumps straight into the same graph -
+-- see the STATE-CHANGE CHOICE note below) runs. So a `pressedOnce: false` write made here is real
+-- and persists immediately, but it is only durable until the next time this exact button is really
+-- interacted with (by a player, a linked-button chain, or a future `TriggerButtonWithoutUser()`
+-- call) - that re-runs `UpdateButtonSaveData` and unconditionally forces the leaf back to `true`
+-- again, the same as it always has. Setting `pressedOnce: true` has no such caveat - nothing in the
+-- game ever clears it back to `false` on its own, live or offline. `buttons.set` writes whatever is
+-- requested and reads the leaf back before reporting success (never trusts the write blind); if the
+-- write or the persistence call itself fails (or the read-back does not match), the row fails with
+-- a named, player-safe reason rather than a false success.
 -- Every one of these reads/writes is pcall-guarded per instance (see boolOrNil below and the
 -- inline pcall around each write in buttons.set), not assumed present: a class this module has
 -- never heard of (whether reached through the
@@ -84,6 +114,11 @@ return function(ctx)
     -- matching main.lua's own SKILL_XP_FIELD precedent: a struct-instance field name is only ever
     -- hardcoded against a real confirmed dump, never guessed.
     local PRESSED_ONCE_LEAF = "ButtonHasBeenPressedOnce_110_C4AE20D34162FCD3FA3323907300CB1F"
+
+    -- The literal SaveType byte UpdateButtonSaveData's own bytecode passes to
+    -- GameMode:UpdateActorToWorldSave for a button - see the ROUND-110 header note for the
+    -- citation and why this module now calls that same function directly for pressedOnce.
+    local BUTTON_SAVE_TYPE = 4
 
     local function allButtons()
         local result, seen = {}, {}
@@ -132,6 +167,35 @@ return function(ctx)
         return boolOrNil(ok, value)
     end
 
+    -- Same world->game-mode lookup main.lua's own isHost() and containment.lua's own gameMode()
+    -- already use and this codebase has already proven works live - reused rather than introducing
+    -- a second, untested path to the same object (containment.lua's own header comment documents
+    -- the same reasoning).
+    local function gameMode()
+        local ok, world = pcall(function() return ctx.UEHelpers.GetWorld() end)
+        if not ok or not world or not world:IsValid() then return nil end
+        local ok2, gm = pcall(function() return world.AuthorityGameMode end)
+        if ok2 and gm and gm:IsValid() then return gm end
+        return nil
+    end
+
+    -- Writes the struct leaf directly, then persists by calling the GAME MODE's own
+    -- UpdateActorToWorldSave DIRECTLY - deliberately never button:UpdateButtonSaveData(true), which
+    -- would immediately re-force this same leaf back to true. See the ROUND-110 header note for the
+    -- full citation. Never trusts the write blind: only returns true once a read-back confirms the
+    -- leaf actually holds `wanted` now.
+    local function writePressedOnce(button, wanted)
+        local okData, data = pcall(function() return button.ButtonSaveData end)
+        if not okData or data == nil then return false end
+        local okWrite = pcall(function() data[PRESSED_ONCE_LEAF] = wanted end)
+        if not okWrite then return false end
+        local gm = gameMode()
+        if not gm then return false end
+        local okPersist = pcall(function() gm:UpdateActorToWorldSave(button, false, BUTTON_SAVE_TYPE) end)
+        if not okPersist then return false end
+        return readPressedOnce(button) == wanted
+    end
+
     local function buttonRows()
         local result = { __forceArray = true }
         for _, button in ipairs(allButtons()) do
@@ -167,18 +231,17 @@ return function(ctx)
     end
 
     -- Matching doors.set/portals.set: every resolvable row in the batch is applied first; only
-    -- once every row has run does an unresolved id (or a rejected pressedOnce request) turn the
-    -- whole reply into an error, rather than a silent partial no-op.
+    -- once every row has run does an unresolved id (or a failed field write) turn the whole reply
+    -- into an error, rather than a silent partial no-op.
     ctx.handlers["buttons.set"] = function(payload, respond)
         ctx.runOnGameThread(function()
             if not ctx.isHost() then error("only the host can change world buttons") end
             local rows = payload.buttons or {}
-            local missingId, pressedOnceRequested = nil, false
+            local missingId, failedId, failedReason = nil, nil, nil
             for i = 1, #rows do
                 local row = rows[i]
                 local button = row.id and findButton(row.id)
                 if button then
-                    if row.pressedOnce ~= nil then pressedOnceRequested = true end
                     local touched = false
                     if row.enabled ~= nil then
                         -- pcall-guarded, not assumed: a class reached only through
@@ -203,23 +266,32 @@ return function(ctx)
                         touched = true
                     end
                     if touched then
-                        -- The one real persistence call - see the file header. It ALSO
-                        -- unconditionally marks pressedOnce true as a side effect; there is no way
-                        -- to avoid that and still make the other field(s) stick. pcall-guarded: a
-                        -- class without this function still gets its property write above (a
-                        -- visible live change), just without persistence confirmed.
+                        -- The one real persistence call for the three fields above - see the file
+                        -- header. It ALSO unconditionally marks pressedOnce true as a side effect;
+                        -- the pressedOnce block below runs AFTER this on purpose so an explicit
+                        -- pressedOnce request in the same row still wins. pcall-guarded: a class
+                        -- without this function still gets its property write above (a visible live
+                        -- change), just without persistence confirmed.
                         pcall(function() button:UpdateButtonSaveData(true) end)
+                    end
+                    -- ROUND-110: pressedOnce is now genuinely settable - see the header note for
+                    -- the mechanism (direct leaf write + our own UpdateActorToWorldSave call,
+                    -- deliberately bypassing UpdateButtonSaveData) and the honest "durable until the
+                    -- next real interaction with this button" caveat for a false write. Applied
+                    -- after the block above so it wins over UpdateButtonSaveData's own forced-true
+                    -- side effect when both are requested on the same row.
+                    if row.pressedOnce ~= nil then
+                        if not writePressedOnce(button, row.pressedOnce) then
+                            failedId = failedId or row.id
+                            failedReason = failedReason or "could not set 'pressed once' on this button right now"
+                        end
                     end
                 else
                     missingId = missingId or row.id
                 end
             end
             if missingId then error("button not found (it may have been unloaded or destroyed): " .. tostring(missingId)) end
-            if pressedOnceRequested then
-                error("'pressed once' cannot be set independently live - the game always marks it true "
-                    .. "the moment any other field on the same button is saved, and there is no live path "
-                    .. "to clear it back to false (edit the save file directly for that)")
-            end
+            if failedId then error(tostring(failedReason) .. ": " .. tostring(failedId)) end
             return nil
         end, respond)
     end

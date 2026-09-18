@@ -2108,7 +2108,7 @@ handlers["dropped.remove"] = function(payload, respond)
     end, respond)
 end
 
--- ===== dropped.add: spawn a NEW item on the ground (round 77) =====
+-- ===== dropped.add: spawn a NEW item on the ground (round 77; optional position, round 111) =====
 -- No SpawnDroppedItem/"give item" precedent exists anywhere in the reference mod - checked, and
 -- there is no additem/spawnitem/give-style command in it at all, only "givexp" for skill XP (not
 -- items). So this does not construct an Abiotic_Item_Dropped_C actor from scratch (guessing an
@@ -2121,15 +2121,39 @@ end
 --      "Abiotic_PlayerCharacter."), with exactly two simple parameters (an object reference and
 --      an int) - the same action pressing "drop" on that slot performs in the inventory UI.
 -- Not exercised by any mod, so pcall-guarded; the item lands wherever the game's own
--- FindBestItemDropLocation puts it (near the player), NOT at a caller-chosen position - unlike
--- the file editor's TryAddDroppedItem, which takes an explicit x/y/z. Genuinely unproven
--- end-to-end against the running game.
+-- FindBestItemDropLocation puts it (near the player) first.
+--
+-- Round 111: an optional x/y/z now moves the item there afterwards. The game mode's own
+-- Abiotic_Survival_GameMode_C.SpawnItem(InTransform, ItemRow, StackSize, Durability, NoPhysics,
+-- NoCollision, ConnectToComponent, ConnectToBone, ...) was considered and rejected: its ItemRow
+-- parameter is a DataTableRowHandle struct that must be built and passed ACROSS a function-call
+-- boundary, exactly the class of struct-marshaling that crashed the whole game outright for bench
+-- upgrades (see areas/bases.lua's header comment - a fabricated/reconstructed row-handle argument
+-- does not raise a catchable Lua error, it corrupts memory on the C++ side). The only proven
+-- DataTableRowHandle-shaped table ever passed as a function ARGUMENT in this project
+-- (weatherRowHandleToTable, world.set) copies its fields from a handle the engine itself already
+-- enumerated (GetAllWeatherEventRowHandles) - there is no equivalent enumeration function for the
+-- item table, so building SpawnItem's ItemRow here would be exactly the fabricated-handle
+-- situation that already crashed the bridge once, on a function with SIX more parameters (several
+-- of them object/component references) than the one that already crashed. writeSlot's own
+-- DataTable+RowName writes are proven safe live (round 74) only as PROPERTY assignments onto an
+-- existing slot struct, never as a function argument, so they cannot ground SpawnItem either.
+-- Instead this moves the actor the drop RPC already created, with K2_TeleportTo(Location,
+-- Rotation) - a real AActor function, used verbatim by the reference mod's own
+-- BaseUtils.TeleportActorToActor, and already proven live for vehicles.set/spawn.set with exactly
+-- the plain {X=,Y=,Z=} table this uses. The new dropped-item actor is told apart from every item
+-- already lying on the ground by snapshotting Abiotic_Item_Dropped_C actors before the drop RPC
+-- and diffing after it - if the drop merged into an existing stack (no new actor) or the snapshot
+-- diff is ambiguous (more than one new actor - another drop landed in the same instant), this
+-- reports an honest failure instead of silently leaving the item wherever it actually landed.
+-- Genuinely unproven end-to-end against the running game.
 handlers["dropped.add"] = function(payload, respond)
     runOnGameThread(function()
         if not isHost() then error("only the host can add dropped items") end
         if not payload.itemId or payload.itemId == "" then error("itemId is required") end
         local player = resolvePlayer(payload)
         if not player then error("player not found") end
+        local wantsPosition = payload.x ~= nil and payload.y ~= nil and payload.z ~= nil
 
         -- Hotbar first (smallest, closest to what a player would actually drop), then backpack.
         local targetInv, targetSlot, targetIndex
@@ -2157,8 +2181,49 @@ handlers["dropped.add"] = function(payload, respond)
         })
         pcall(function() targetInv:OnRep_CurrentInventory() end)
 
+        -- Snapshot BEFORE the drop RPC so the actor it creates can be told apart from every item
+        -- already lying on the ground - only needed when a position was actually requested, since
+        -- this is a full-world scan (see dropped.remove's own remarks on why that cost matters).
+        local before = nil
+        if wantsPosition then
+            before = {}
+            for _, obj in ipairs(findAll("Abiotic_Item_Dropped_C")) do
+                if obj:IsValid() and not isActorBeingDestroyed(obj) then
+                    local name = fullName(obj)
+                    if name then before[name] = true end
+                end
+            end
+        end
+
         local ok, err = pcall(function() player:Request_DropInventorySlot(targetInv, targetIndex) end)
         if not ok then error("could not drop this item on this game build: " .. tostring(err)) end
+        if not wantsPosition then return nil end
+
+        local newActor, matches = nil, 0
+        for _, obj in ipairs(findAll("Abiotic_Item_Dropped_C")) do
+            if obj:IsValid() and not isActorBeingDestroyed(obj) then
+                local name = fullName(obj)
+                if name and not before[name] then matches = matches + 1; newActor = obj end
+            end
+        end
+        if matches ~= 1 then
+            error("the item was dropped, but the new item on the ground could not be told apart from "
+                .. tostring(matches) .. " other new items to move it to the requested position"
+                .. " (it may also have merged into an existing stack already lying there)")
+        end
+
+        local target = { X = payload.x, Y = payload.y, Z = payload.z }
+        local okRot, rotation = pcall(function() return newActor:K2_GetActorRotation() end)
+        if not okRot then rotation = { Pitch = 0, Yaw = 0, Roll = 0 } end
+        local okMove = pcall(function() newActor:K2_TeleportTo(target, rotation) end)
+        if not okMove then
+            error("the item was dropped, but could not be moved to the requested position on this game build")
+        end
+        local ax, ay, az = actorLocation(newActor)
+        local epsilon = 5.0
+        if math.abs(ax - payload.x) > epsilon or math.abs(ay - payload.y) > epsilon or math.abs(az - payload.z) > epsilon then
+            error("the item was dropped, but the game did not move it to the requested position")
+        end
         return nil
     end, respond)
 end

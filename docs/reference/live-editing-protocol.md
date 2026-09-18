@@ -273,17 +273,40 @@ write, rename and transfer, and on its periodic tick for the container the playe
 item lying loose in the loaded world that nobody has picked up. `dropped.remove` takes
 `{"ids":[...]}` and returns `{"removed":n}` - the count actually found and despawned. Host only.
 
-`dropped.add` (round 77) takes `{"itemId","stack"?,"durability"?,"maxDurability"?,"playerId"?}`
-and spawns a brand-new item on the ground. There is no `SpawnDroppedItem`/"give item" precedent
-anywhere in the reference mod (checked: no additem/spawnitem/give-style command exists in it at
-all), so this chains two already-proven mechanisms instead of constructing a dropped-item actor
-from scratch: it writes the item into a free slot of the target player's own inventory (the same
-`writeSlot` `inventory.set` already uses live), then calls the player's own
+`dropped.add` (round 77; optional position, round 111) takes
+`{"itemId","stack"?,"durability"?,"maxDurability"?,"playerId"?,"x"?,"y"?,"z"?}` and spawns a
+brand-new item on the ground. There is no `SpawnDroppedItem`/"give item" precedent anywhere in the
+reference mod (checked: no additem/spawnitem/give-style command exists in it at all), so this
+chains two already-proven mechanisms instead of constructing a dropped-item actor from scratch: it
+writes the item into a free slot of the target player's own inventory (the same `writeSlot`
+`inventory.set` already uses live), then calls the player's own
 `Request_DropInventorySlot(Inventory, Index)` RPC - a real function confirmed from the game's own
 class layout with exactly the two simple parameters (an object reference and an int) this module
-calls it with. Not exercised by any mod, so genuinely unproven end-to-end; the item lands
-wherever the game's own `FindBestItemDropLocation` puts it (near the player), not at a
-caller-chosen position - unlike the file editor's own explicit-`x`/`y`/`z` add. Host only.
+calls it with. Not exercised by any mod, so genuinely unproven end-to-end; with no `x`/`y`/`z` the
+item lands wherever the game's own `FindBestItemDropLocation` puts it (near the player), unchanged
+from round 77.
+
+**Position (round 111, all three of `x`/`y`/`z` or none)**: the game mode's own
+`SpawnItem(InTransform, ItemRow, StackSize, Durability, NoPhysics, NoCollision, ConnectToComponent,
+ConnectToBone, ...)` was considered and rejected - its `ItemRow` parameter is a `DataTableRowHandle`
+struct that has to be built and passed ACROSS a function-call boundary, exactly the class of
+struct-marshaling that crashed the whole game for bench upgrades (see `bases.lua` below); the one
+proven precedent for passing a `DataTableRowHandle`-shaped table as a function *argument*
+(`weatherRowHandleToTable`, `world.set`) only works because its fields are copied from a handle the
+engine itself already enumerated (`GetAllWeatherEventRowHandles`) - there is no equivalent
+enumeration function for the item table, so building `SpawnItem`'s `ItemRow` here would repeat the
+fabricated-handle situation that already crashed the bridge once, on a function with several more
+parameters. Instead `dropped.add` moves the actor the drop RPC itself already created, with
+`K2_TeleportTo(Location, Rotation)` - a real `AActor` function, used verbatim by the reference
+mod's own `BaseUtils.TeleportActorToActor`, and already proven live for `vehicles.set`/`spawn.set`
+with exactly the plain `{X=,Y=,Z=}` table this reuses. The new dropped-item actor is told apart
+from every item already on the ground by snapshotting `Abiotic_Item_Dropped_C` actors just before
+the drop RPC and diffing after it; if that diff finds no new actor (the drop may have merged into
+an existing ground stack) or more than one (another drop landed in the same instant), the whole
+call fails with an honest reason instead of silently leaving the item wherever it actually landed.
+On success the moved actor's position is read back with `K2_GetActorLocation` and checked against
+the request before reporting success. Genuinely unproven end-to-end against the running game. Host
+only.
 
 ## `bases.list` / `bases.set` - deployables (round 76, bench upgrades round 77, upgrade removal 2026-09-16, paint colour 2026-09-16)
 
@@ -346,6 +369,29 @@ read-only instead of guessing. `upgradeRow` must be one of the 11 known `DT_Benc
 `AbioticEditor.Core.WorldSaves.BenchUpgradeCatalog.All`); `upgradeInstalled` defaults to `true`
 when omitted, so passing `false` removes it.
 
+**Round 111 re-check of `canEditUpgrades`**: re-examined against a fresh class probe rather than
+assumed still correct. Two findings. First, new grounding: `AddUpgrade`'s own disassembly
+(`AbioticDeployed_CraftingBench_ParentBP_C`) ends its success path in a local
+`CallFunc_AddTagToChangeableData_ReturnValue` call - the native function's own internal
+implementation is itself a tag write into `ChangeableData`, so `bench_tags.lua`'s direct write is
+not an approximation of `AddUpgrade`, it is the same operation `AddUpgrade` performs internally,
+just reached without marshaling the crash-prone row-handle struct across the function-call
+boundary. Second, the gate itself was checked for being wider than it needs to be and is not: it
+already requires exactly the two things a tag write needs (replication support, and this specific
+instance's `UpgradeTagContainer` and `ChangeableData` tag struct both being readable) rather than a
+loose class-level check, so it was left unchanged. `supportsBenchUpgradeRemoval` reporting the
+identical value to `supportsBenchUpgrades` (see `bases.lua`) is intentional, not a leftover: since
+round 79/80 removal uses the exact same tag-write path as install (no separate native call the way
+round 77's `AddUpgrade`-only shape needed), removal genuinely needs nothing install does not
+already have. The desktop app's own explanation of this gate was stale and has been fixed: the
+BASES tab used to show a blanket "Bench upgrades: offline editor only" line even in a live session
+where several benches usually could be edited, and had no "you are not the host" banner at all
+(every other live world tab has one) - see `WorldBasesTab.razor`'s `WorldBases_LiveUpgradeCaveat`/
+`LiveBases_NotHostWarning`/`WorldBases_UpgradesUnavailableLive` strings and
+`IWorldBasesSession.BenchHasUpgradeSlot` (the class-level "has upgrade slots at all" question,
+kept separate from `BenchSupportsUpgrades`'s "can edit them right now" so a bench with slots that
+just can't be confirmed on this connection gets an explanation instead of silently vanishing).
+
 Opening a bench or crate's contents inline (the file editor's slot grid) is still file-only - it
 shares the CONTAINERS tab's staged slot model; use the CONTAINERS tab for live slot editing.
 
@@ -391,11 +437,14 @@ the same way `containers.lua` counts a container's own non-empty slots. The app'
 slot-edit code path, the same one every other placed container already uses) instead of the old
 hardcoded `hasInventory: false`. **Not yet exercised in the running game.**
 
-## `pets.list` / `pets.set` / `pets.remove` - round 76 (no path), partially closed round 77, removal added round 78, generic tamed sweep added round 105
+## `pets.list` / `pets.set` / `pets.remove` - round 76 (no path), partially closed round 77, removal added round 78, generic tamed sweep added round 105, species change added round 109
 
 `pets.list` returns `{"pets":[{"id","npcClass","isDead","customName","x","y","z","limbHealth":
-{...},"xp","matched"}],"isHost":bool,"available":true,"supportsSpeciesChange":false,
-"supportsRemoval":true,"reason":"..."}`. Round 76 found no general live path for tamed pets: the
+{...},"xp","matched"}],"isHost":bool,"available":true,"supportsSpeciesChange":true,
+"supportsRemoval":true,"reason":"..."}`. `supportsSpeciesChange` is reported by the live agent
+itself (round 109 - see below); an older agent build that never sends the field is read as `false`
+by the app, so its creature-type control stays hidden automatically. Round 76 found no general
+live path for tamed pets: the
 fields a world save's `PetNPC` record needs are exposed wildly inconsistently between creature
 families. Round 77 re-checked the game's own class layout and found a real, **partial** path
 instead of guessing a universal one:
@@ -414,8 +463,9 @@ instead of guessing a universal one:
   same way, for both matched and unmatched rows (see below).
 - Peccary and Lamogi family pets were re-checked and confirmed to still carry none of
   `Guid`/`PetName`/`DynamicProperties`/`FollowingOwner` as their own properties - there is still no
-  stable id for them. `supportsSpeciesChange` is always `false` (see the round-105 note below for
-  why, with sharper evidence than the original "no confirmed despawn/respawn round trip").
+  stable id for them, so species change is refused for these rows even though it is now attempted
+  for matched ones (round 109, see below): there is no Guid to hand the game to preserve identity
+  with, and nothing to verify a "same pet" result against.
 
 **Round 105: Peccary/Lamogi pets are listed now, not omitted.** Rather than re-confirming round
 77/79's conclusion unchanged, this round found a real, generic tamed-creature marker:
@@ -433,21 +483,62 @@ the real game until tested live, wrapped in `pcall` like every other first-use c
 project. An unmatched row's `customName` is always `null` and `xp` is always `0` (the class has
 neither field); `isDead`/`limbHealth` are real and stay editable exactly like a matched row's.
 
-**Round 105: species change stays refused, now with sharper evidence.** The game's own
-`Abiotic_Survival_GameMode_C.SpawnPet(Class, SpawnTransform, Guid, Name, Owner, DynamicProperties,
-Tamed)` is a real function with exactly the shape a "respawn as a different class" edit would
-need - but `SpawnTransform` is an `FTransform`, a nested struct (rotation/translation/scale) this
-project has no working construction precedent for anywhere over UE4SS Lua reflection, unlike the
-flat `FVector`/`FRotator` tables round 76 proved out for `spawn.set`. Guessing an unverified
-struct shape for a native-bridged call is exactly what caused the BASES tab's fatal, non-catchable
-crash in round 79, so this stays refused project-wide and `supportsSpeciesChange` stays `false`.
+**Round 105: species change stayed refused through this round, with sharper evidence.** The game's
+own `Abiotic_Survival_GameMode_C.SpawnPet(Class, SpawnTransform, Guid, Name, Owner,
+DynamicProperties, Tamed)` is a real function with exactly the shape a "respawn as a different
+class" edit would need - but `SpawnTransform` is an `FTransform`, a nested struct
+(rotation/translation/scale) this project had no working construction precedent for anywhere over
+UE4SS Lua reflection, unlike the flat `FVector`/`FRotator` tables round 76 proved out for
+`spawn.set`. Guessing an unverified struct shape for a native-bridged call is exactly what caused
+the BASES tab's fatal, non-catchable crash in round 79, so this stayed refused project-wide through
+round 105.
 
-`pets.set` takes `{"id","isDead"?,"customName"?,"limbHealth"?,"xp"?}` - `npcClass` is never
-accepted (no live species change). Host only. It replies `{"warnings":[...]}` rather than failing
-outright when one field could not be applied - see the round-78 bug fix below. On an unmatched
-(`matched:false`) row, a requested `customName`/`xp` change is never attempted (the class has no
-such field) and comes back as a warning instead of a silent no-op or a thrown error; `isDead`/
-`limbHealth` apply the same way as a matched row.
+**Round 109: species change, for MATCHED (Pest/Skink-family) pets only, no longer refused.**
+Re-examined against a fresh pak dump of `Abiotic_Survival_GameMode_C.SpawnPet` (full bytecode, not
+just its signature) rather than re-asserting the round-76/105 conclusion unchanged. The blocker was
+never "structs are unsafe to pass" in general - round 76 already proved that an engine-*returned*
+`FVector`/`FRotator` struct (from `K2_GetActorLocation`/`K2_GetActorRotation`) can be handed
+straight back into another native call's matching struct parameter, unchanged or with individual
+leaf fields overwritten (`spawn.lua`'s `TeleportPlayer` path, `vehicles.lua`'s `K2_TeleportTo`
+path). The round-79 BASES crash came from a *hand-fabricated* struct **table** for a parameter type
+nobody had ever seen a real instance of - a categorically different risk. `pets.lua`'s
+`trySpeciesChange` avoids that mistake entirely: it reads the OLD pet actor's own current transform
+fresh via `npc:K2_GetActorTransform()` - a standard, zero-argument, `BlueprintPure` `AActor`
+function, the same category of call as the already-proven `K2_GetActorLocation`/
+`K2_GetActorRotation` - and passes the result to `SpawnPet` completely UNCHANGED (no field is ever
+read, guessed, or written on it), which is a strictly *smaller* risk than the already-proven
+vector/rotator case. Every other `SpawnPet` argument is likewise read straight off the OLD actor,
+never fabricated: `Guid`/`Tamed` are plain scalars, `Name` is the OLD pet's own `PetName` `FText`
+userdata passed through unchanged, `Owner` is its own `FollowingOwner` object reference (confirmed
+real and readable on this family by `companions.lua`, round 78/79), and `DynamicProperties` is its
+own live array passed by reference (which is why XP/mutation progress survive a species change
+without this module touching them directly). Health/limb state is *not* part of `SpawnPet`'s
+signature, so it does **not** carry over - the new actor spawns with its class's normal health.
+
+Safety ordering: `SpawnPet` is called first; the returned actor must be valid **and** report back
+the *same* `Guid` that was passed in before the OLD actor is destroyed. Any failure at any step
+(unresolved target class, an unreadable transform, the call itself erroring, an invalid or
+mismatched-identity result) leaves the OLD pet completely untouched and comes back as a warning,
+never a thrown error and never a destroy without a confirmed replacement - a spawn that "worked"
+but reports the wrong identity is the one case that can leave a stray, unmatched extra actor behind
+even though the edit itself is reported as failed. The one honest caveat that sets this call apart
+from almost everything else in this project: a wrong-shaped argument to a native `UFunction` call
+is the one class of failure `pcall` cannot be trusted to catch (that is exactly what made round
+79's BASES crash non-catchable) - every reasoning step above argues why this specific call should
+not hit that failure mode, but `K2_GetActorTransform`/`SpawnPet` have never actually run against
+the real game; this is proven only against the Lua stub harness so far. `supportsSpeciesChange` is
+now `true` when the connected live agent supports this path (a matched row only - unmatched rows
+are refused with a named warning, since there is no Guid to preserve identity with).
+
+`pets.set` takes `{"id","isDead"?,"customName"?,"limbHealth"?,"xp"?,"npcClass"?}`. `npcClass` is
+only ever treated as a real species-change *request* when it differs from the pet's own current
+class (`WorldPetsTab.razor`'s own `Apply()` resends the pet's current class unchanged on every
+other edit, so a plain health/name/xp call never attempts one by accident) - and only for a matched
+row; an unmatched row's requested change is refused with a warning naming why. Host only. It
+replies `{"warnings":[...]}` rather than failing outright when one field could not be applied - see
+the round-78 bug fix below. On an unmatched (`matched:false`) row, a requested `customName`/`xp`
+change is never attempted (the class has no such field) and comes back as a warning instead of a
+silent no-op or a thrown error; `isDead`/`limbHealth` apply the same way as a matched row.
 
 `pets.remove` takes `{"id"}` and destroys the pet's actor outright
 (`npc:K2_DestroyActor()` - the same standard `AActor` call the reference CheatConsoleCommands
@@ -577,7 +668,7 @@ instance is read through `pcall` feature-detection: an elevator type this module
 instead of erroring or being dropped, and a set attempt against it is refused by name. Not yet
 exercised in the running game.
 
-## `buttons.list` / `buttons.set` - world buttons (round 80, property/function names confirmed round 95, hierarchy-based discovery round 96)
+## `buttons.list` / `buttons.set` - world buttons (round 80, property/function names confirmed round 95, hierarchy-based discovery round 96, pressedOnce made settable round 110)
 
 The live twin of the `buttons` world-map feature (`Core/WorldSaves/Features/ButtonMapFeature.cs`,
 the save's `ButtonMap`, whose leaves are `ButtonID_`/`ButtonHasBeenPressedOnce_`/
@@ -612,17 +703,39 @@ the same "Force" idea `portals.lua`'s `SavePortalState(true)` already uses, and 
 game's own save path takes (bypassing the `CanButtonSave()` gate entirely). A `null` field in a
 `buttons.list` row means this specific actor could not be read just now, not a guessed `false`.
 
-`pressedOnce` is different and stays weaker: it is readable
+**`pressedOnce` is genuinely settable, honestly, as of round 110.** It is readable
 (`ButtonSaveData.ButtonHasBeenPressedOnce_110_C4AE20D34162FCD3FA3323907300CB1F`, a struct-nested
 leaf accessed by its exact hash-suffixed name - the same discipline `main.lua`'s `SKILL_XP_FIELD`
-already documents) but the bytecode shows `UpdateButtonSaveData` always sets it `true`
-unconditionally, the moment it runs at all - there is no live path that sets it independently or
-clears it back to `false`. `buttons.set` refuses any request that sets `pressedOnce` outright
-(`"'pressed once' cannot be set independently live..."`) rather than silently ignoring it or lying
-about the result; note that a successful edit to `enabled`/`activated`/`noReset` on the SAME
-button still forces `pressedOnce` true as an unavoidable side effect of the same persistence call.
-Host only. Same partial-apply behavior as `doors.set`/`portals.set` (a row with an unresolved `id`
-does not block the others in the same call). Not yet exercised in the running game.
+already documents) and the bytecode shows `UpdateButtonSaveData` always sets it `true`
+unconditionally the moment it runs at all - but that is a property of that wrapper function, not of
+the underlying save data. `buttons.set` writes the leaf directly, then persists by calling
+`Abiotic_Survival_GameMode_C:UpdateActorToWorldSave(Self, false, 4)` **itself**, deliberately
+skipping `UpdateButtonSaveData` (calling it would immediately re-force the leaf back to `true`).
+`UpdateActorToWorldSave` is confirmed real and callable (`FUNC_Public | FUNC_BlueprintCallable |
+FUNC_BlueprintEvent`, params `(Actor, RemoveFromSave: bool, SaveType: E_SaveType byte)`) and is the
+exact same "persist this now" call `UpdateButtonSaveData` already ends with - it only serializes
+whatever the actor's SaveGame-tagged properties already hold, it does not recompute them, so a
+direct leaf write followed by this call persists exactly the value just written. The `4` is copied
+verbatim from the one call site inside `UpdateButtonSaveData`'s own bytecode (not derived from the
+`E_SaveType` enum's own names, which were not part of the dump) - the same "reuse the game's own
+literal" discipline `trams.lua`'s header comment documents for its own `14`. `buttons.set` reads
+the leaf back after writing and only reports success once it matches what was requested.
+
+**Honest caveat, confirmed not assumed**: `UpdateButtonSaveData` is called from exactly one place
+in the whole class - `ExecuteUbergraph_Button_Generic` (every one of its five call sites falls
+inside that one function's statement range), the shared interaction graph a player's own press (or
+`TriggerButtonWithoutUser()`, which jumps straight into the same graph) runs. So a `pressedOnce:
+false` write is real and persists immediately, but is only durable until this exact button is next
+actually interacted with (by a player, a linked-button chain, or a future
+`TriggerButtonWithoutUser()` call) - that re-runs `UpdateButtonSaveData` and forces the leaf back to
+`true` again. A `pressedOnce: true` write has no such caveat - nothing ever clears it back to
+`false` on its own, live or offline. Note that a successful edit to `enabled`/`activated`/`noReset`
+on the SAME button (via the same batched `buttons.set` call) still forces `pressedOnce` true as a
+side effect of `UpdateButtonSaveData`, but an explicit `pressedOnce` value in that same row is
+applied AFTER that and wins. Host only. Same partial-apply behavior as `doors.set`/`portals.set` (a
+row with an unresolved `id` does not block the others in the same call; a failed `pressedOnce`
+write - e.g. a class with no live `ButtonSaveData` struct at all - fails that row by name without
+blocking the rest). Not yet exercised in the running game.
 
 ## `resourcenodes.list` / `resourcenodes.set` - harvestable resource nodes (round 101)
 
@@ -880,14 +993,16 @@ host/`IsServer()` itself) and `TramSystem_Rail_C`'s bytecode (`GetNextStopPoint`
 `TramSystem_RecallStation.json`/`TramSystem_Rail.json` to close this with full certainty. Not yet
 exercised in the running game.
 
-## `npcspawns.list` / `npcspawns.set` - NPC spawners (round 102)
+## `npcspawns.list` / `npcspawns.set` - NPC spawners (round 102, cooldownRemainingSeconds made settable round 110)
 
 The live twin of the `npc-spawns` world-map feature (`Core/WorldSaves/Features/NpcSpawnMapFeature.cs`,
 the save's `NPCSpawnMap`, whose leaves are `CurrentCooldownRemaining_`/`LastDayOnCooldown_`/
 `SpawnCount_`/`HasSpawnedOnce_`/`MinutesPassedCooldownStarted_`/`HasBeenEncounteredOnce_`).
 `npcspawns.list` returns
 `{"spawners":[{"id","label","controllable","onCooldown"?,"cooldownRemainingSeconds"?,"cooldownDaysRemaining"?,"hasSpawnedOnce"?,"hasBeenEncounteredOnce"?,"spawnCount"?,"x","y","z"}],"isHost":bool}`.
-`npcspawns.set` takes `{"spawners":[{"id","resetCooldown"?:true,"forceSpawn"?:true}]}`. Host only.
+`npcspawns.set` takes
+`{"spawners":[{"id","cooldownRemainingSeconds"?:number,"resetCooldown"?:true,"forceSpawn"?:true}]}`.
+Host only.
 
 **Class discovery covers three roots**, a genuine correction against the round's own task brief
 (which assumed a single hierarchy): the coordinator's CUE4Parse dump shows the overwhelming
@@ -913,20 +1028,38 @@ spawner argument to the subsystem's own per-spawner functions):
 - `spawnCount` - the spawner's own `GetCurrentSpawnedCount(false)`.
 
 The offline leaf `MinutesPassedCooldownStarted_` has no confirmed live counterpart in the dump and
-is not exposed here.
+is not exposed here - **re-checked round 110** against `SetSpawnOnCooldown`'s own day argument
+(see below): it is whole-day granularity only (fed straight from `AI
+Director.DayNightManager.CurrentDay`, itself a whole-day counter), with no minutes-within-the-day
+component to derive or set this leaf from, so the conclusion stands.
 
-**Both write actions are momentary "do it now" toggles, not persistent state.** `resetCooldown`
-calls the spawner's own real `SetSpawnOnCooldown(0.0, 0)` - confirmed from its bytecode that
-passing `InCurrentDay=0` makes the function look up "today" itself (via a feature-detected
-`AI Director.DayNightManager.CurrentDay`), so this one call means exactly "let this spawner fire
-again right now"; the function then calls `AIDirectorSubsystem:SetCooldownForSpawner` itself, so
-this module never calls that subsystem function directly. `forceSpawn` calls the spawner's own
-`TrySpawnNPCNew(false, true, false)`, falling back to the older `TrySpawnNPC` with the same
-arguments when the newer function is absent - `ForceSuccessByTrigger=true` is confirmed from the
-bytecode to gate multiple individual spawn-check `JumpIfNot` branches, matching what a `Trigger_*`
-volume would pass to force a spawn. **Genuinely unverified against the running game**: whether the
-resulting NPC actually appears is not confirmed by any live capture, only by this bytecode
-reading - a call that does not error is reported as requested, not a confirmed spawn.
+**`cooldownRemainingSeconds` is a real, persistent editable value (round 110), not just a
+read-only figure.** `SetSpawnOnCooldown(TimeRemaining: double, InCurrentDay: int)` is a real,
+actor-level `BlueprintCallable` function whose full bytecode was traced this round: it
+unconditionally sets `CooldownDay = InCurrentDay` first, then - only when `InCurrentDay==0` and
+`AI Director`/`AI Director.DayNightManager` are both valid - overwrites `CooldownDay` with the real
+current game day looked up from the `DayNightManager`. It then calls
+`AIDirectorSubsystem:SetCooldownForSpawner(spawner, TimeRemaining, CooldownDay,
+spawner.OnlySpawnOnce)`, passing `TimeRemaining` through **unchanged** (no clamping or zeroing
+anywhere in the traced bytecode) - confirming arbitrary values really do reach the subsystem, not
+just `0`. `npcspawns.set` calls `spawner:SetSpawnOnCooldown(wanted, 0)` for an explicit
+`cooldownRemainingSeconds` request - `InCurrentDay=0` so the day resolves to "today" the same way
+`resetCooldown` already relies on, changing only the seconds figure. A non-numeric value fails
+with a named error (`"cooldownRemainingSeconds must be a number"`).
+
+**The other two writes remain momentary "do it now" toggles, not persistent state.** `resetCooldown`
+calls the same `SetSpawnOnCooldown(0.0, 0)` - exactly "let this spawner fire again right now"; the
+function calls `AIDirectorSubsystem:SetCooldownForSpawner` itself, so this module never calls that
+subsystem function directly. **When both `cooldownRemainingSeconds` and `resetCooldown` are sent
+in the same row, `resetCooldown` wins** (applied second, matching `triggers.lua`'s own "the more
+complete reset action wins over an arbitrary value sent in the same row" precedent). `forceSpawn`
+calls the spawner's own `TrySpawnNPCNew(false, true, false)`, falling back to the older
+`TrySpawnNPC` with the same arguments when the newer function is absent - `ForceSuccessByTrigger=true`
+is confirmed from the bytecode to gate multiple individual spawn-check `JumpIfNot` branches,
+matching what a `Trigger_*` volume would pass to force a spawn. **Genuinely unverified against the
+running game**: whether the resulting NPC actually appears is not confirmed by any live capture,
+only by this bytecode reading - a call that does not error is reported as requested, not a
+confirmed spawn.
 
 Large map: 918 entries in the Facility fixture. Deliberately excluded from the desktop app's
 periodic live-tab refresh loop, the same performance care `containers`/`resourcenodes`/

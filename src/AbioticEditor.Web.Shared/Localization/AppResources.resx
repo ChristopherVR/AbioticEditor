@@ -755,7 +755,8 @@
   <data name="WorldDropped_SpawnItemIdPlaceholder" xml:space="preserve"><value>Item id, e.g. scrap_metal</value></data>
   <data name="WorldDropped_SpawnStack" xml:space="preserve"><value>Stack</value></data>
   <data name="WorldDropped_SpawnNearMe" xml:space="preserve"><value>SPAWN NEAR ME</value></data>
-  <data name="WorldDropped_SpawnNearMeHelp" xml:space="preserve"><value>Drops the item near the player currently editing - the game decides exactly where, not you.</value></data>
+  <data name="WorldDropped_SpawnNearMeHelp" xml:space="preserve"><value>Drops the item near the player currently editing - the game decides exactly where, unless you tick the position option below.</value></data>
+  <data name="WorldDropped_SpawnAtMyPosition" xml:space="preserve"><value>Move it to my exact position after dropping</value></data>
 
   <!-- WorldEditor -->
   <data name="WorldEditor_Containers" xml:space="preserve"><value>CONTAINERS</value></data>
@@ -889,6 +890,18 @@
   <data name="WorldStory_UnlockThroughAndMore" xml:space="preserve"><value>...and {0} more.</value></data>
   <data name="WorldStory_WhyMetadata" xml:space="preserve"><value>Research is shared. Once a recipe is researched at a bench, everyone in this world can craft it, so unlocking one here unlocks it for all of them. To give a recipe to a single character, use their own RECIPES tab.</value></data>
   <data name="WorldStory_WorldRecipes" xml:space="preserve"><value>WORLD RECIPES</value></data>
+  <data name="WorldStory_WorldWideSeen" xml:space="preserve"><value>WORLD-WIDE SEEN</value></data>
+  <data name="WorldStory_SearchWorldWideSeen" xml:space="preserve"><value>Search…</value></data>
+  <data name="WorldStory_NoWorldWideSeen" xml:space="preserve"><value>No entries match (or game data is unavailable).</value></data>
+  <data name="WorldStory_WorldWideSeenCountFormat" xml:space="preserve"><value>{0} of {1} known</value></data>
+  <data name="WorldStory_WorldItemsPickedUp" xml:space="preserve"><value>Items picked up</value></data>
+  <data name="WorldStory_WorldEmailsRead" xml:space="preserve"><value>Emails read</value></data>
+  <data name="WorldStory_WorldJournalEntries" xml:space="preserve"><value>Journal entries found</value></data>
+  <data name="WorldStory_WorldCompendiumEmail" xml:space="preserve"><value>Compendium (email)</value></data>
+  <data name="WorldStory_WorldCompendiumNarrative" xml:space="preserve"><value>Compendium (narrative)</value></data>
+  <data name="WorldStory_WorldCompendiumExploration" xml:space="preserve"><value>Compendium (exploration)</value></data>
+  <data name="WorldStory_LiveGlobalListsNotHost" xml:space="preserve"><value>Only the host of this world can change these world-wide lists.</value></data>
+  <data name="WorldStory_LiveGlobalListsReadOnlyHelp" xml:space="preserve"><value>This list is read-only right now: either you are not hosting this world, or the connected game build cannot confirm the change took effect.</value></data>
   <data name="WorldStory_StatusDone" xml:space="preserve"><value>DONE</value></data>
   <data name="WorldStory_StatusReady" xml:space="preserve"><value>READY</value></data>
   <data name="WorldStory_StatusLocked" xml:space="preserve"><value>LOCKED</value></data>
@@ -4260,7 +4273,9 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Editing_SkillDetails" xml:space="preserve"><value>XP and perks</value></data>
   <data name="Editing_AccountDetails" xml:space="preserve"><value>Account and background</value></data>
   <data name="Editing_AdvancedGameData" xml:space="preserve"><value>Advanced game data</value></data>
-  <data name="Editing_BenchLimit" xml:space="preserve"><value>Bench upgrades: offline editor only.</value></data>
+  <data name="WorldBases_LiveUpgradeCaveat" xml:space="preserve"><value>Bench upgrades can be installed or removed live, but only on a bench the connected game build can safely confirm - see each bench's own note below if its upgrades are missing.</value></data>
+  <data name="WorldBases_UpgradesUnavailableLive" xml:space="preserve"><value>This bench supports upgrades, but the connected game build can't confirm or edit them safely right now.</value></data>
+  <data name="LiveBases_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to change bases and bench upgrades. Changing them here as a joined client would not stick.</value></data>
   <data name="Live_Ue4ssTitle" xml:space="preserve"><value>Install UE4SS first</value></data>
   <data name="Live_Ue4ssDownloadStep" xml:space="preserve"><value>Close the game. Get the standard UE4SS ZIP from the official release page (not zDEV or Source code).</value></data>
   <data name="Live_Ue4ssExtractStep" xml:space="preserve"><value>Extract the ZIP contents into the game folder shown below. Keep its folders together; do not put it in your saves folder.</value></data>

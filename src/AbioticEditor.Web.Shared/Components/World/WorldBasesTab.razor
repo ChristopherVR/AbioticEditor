@@ -16,7 +16,16 @@
    (benches orange, containers green), bench upgrades, composition, and the base's
    containers which open as a slot grid over the map. *@
 <section class="world-editor world-native-tab" aria-label="@L.Resource("WorldBases_BaseManager")">
-    @if (Session.AppliesImmediately) { <p class="muted">@L.Resource("Editing_BenchLimit")</p> }
+    @* Round 111: this used to unconditionally say "Bench upgrades: offline editor only" here -
+       stale since round 77 added live installs and round 79/80 grounded live removal too, so it
+       actively told a live-session player upgrades were unavailable when several of them usually
+       were. Replaced with an accurate, per-bench-aware caveat plus the same not-host banner every
+       other live world tab already shows (this tab never had one). *@
+    @if (Session.AppliesImmediately && !Session.IsHost)
+    {
+        <p class="error-text" role="alert">@L.Resource("LiveBases_NotHostWarning")</p>
+    }
+    @if (Session.AppliesImmediately) { <p class="muted">@L.Resource("WorldBases_LiveUpgradeCaveat")</p> }
     <h2 class="wt-h2">@L.Resource("WorldBases_BaseManager")</h2>
     <p class="wt-intro">@L.Resource("WorldBases_BaseManagerIntro")</p>
     @* The tab's how-to, worded so it reads the same with a mouse or by touch. *@
@@ -150,6 +159,15 @@
                                     </label>
                                 }
                             </div>
+                        }
+                        else if (Session.BenchHasUpgradeSlot(bench.Id))
+                        {
+                            @* This bench genuinely has upgrade slots (BenchHasUpgradeSlot), but
+                               BenchSupportsUpgrades came back false - live only, since the file
+                               session's two checks are identical. Explain why instead of just
+                               making the whole section vanish with no trace it was ever there. *@
+                            <span class="wt-label bench-upgrades-label">@L.Resource("WorldBases_Upgrades")</span>
+                            <p class="wt-muted">@L.Resource("WorldBases_UpgradesUnavailableLive")</p>
                         }
                     </div>
                 }

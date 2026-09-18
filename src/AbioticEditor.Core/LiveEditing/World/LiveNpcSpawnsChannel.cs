@@ -34,17 +34,27 @@ namespace AbioticEditor.Core.LiveEditing.World;
 /// <c>MinutesPassedCooldownStarted_</c> has no confirmed live counterpart anywhere in the dump and
 /// is not exposed here.</para>
 ///
-/// <para><b>The two write actions are momentary, not persistent state</b> - see
-/// <see cref="ResetCooldownAsync"/>/<see cref="ForceSpawnAsync"/>. <c>resetCooldown</c> calls the
-/// spawner's own real <c>SetSpawnOnCooldown(0.0, 0)</c> function (confirmed: passing
-/// <c>InCurrentDay=0</c> makes the function look up "today" itself off the level's
-/// <c>DayNightManager</c>, so this one call means exactly "let this spawner fire again right
-/// now"). <c>forceSpawn</c> calls the spawner's own <c>TrySpawnNPCNew(false, true, false)</c>
-/// (falling back to the older <c>TrySpawnNPC</c> with the same arguments on a build that lacks
-/// it) - <c>ForceSuccessByTrigger=true</c> is confirmed from the bytecode to bypass multiple
-/// individual spawn-gating checks, but whether the resulting NPC actually appears is NOT
-/// confirmed by any live capture, only by this bytecode reading - a call that does not error is
-/// reported as requested, not a confirmed spawn.</para>
+/// <para><see cref="ResetCooldownAsync"/>/<see cref="ForceSpawnAsync"/> are momentary, not
+/// persistent state. <c>resetCooldown</c> calls the spawner's own real
+/// <c>SetSpawnOnCooldown(0.0, 0)</c> function (confirmed: passing <c>InCurrentDay=0</c> makes the
+/// function look up "today" itself off the level's <c>DayNightManager</c>, so this one call means
+/// exactly "let this spawner fire again right now"). <c>forceSpawn</c> calls the spawner's own
+/// <c>TrySpawnNPCNew(false, true, false)</c> (falling back to the older <c>TrySpawnNPC</c> with the
+/// same arguments on a build that lacks it) - <c>ForceSuccessByTrigger=true</c> is confirmed from
+/// the bytecode to bypass multiple individual spawn-gating checks, but whether the resulting NPC
+/// actually appears is NOT confirmed by any live capture, only by this bytecode reading - a call
+/// that does not error is reported as requested, not a confirmed spawn.</para>
+///
+/// <para><b>Round 110:</b> <see cref="SetCooldownRemainingAsync"/> is a genuine, persistent value
+/// write (not a momentary toggle): <c>SetSpawnOnCooldown</c>'s own bytecode was fully traced and
+/// confirmed to pass its <c>TimeRemaining</c> argument through to
+/// <c>AIDirectorSubsystem:SetCooldownForSpawner</c> unchanged (no clamping or zeroing), so calling
+/// it with an arbitrary value and <c>InCurrentDay=0</c> sets <c>CooldownRemainingSeconds</c> to
+/// exactly that value while the cooldown day resolves to "today" the same way a reset already
+/// does. The offline save leaf <c>MinutesPassedCooldownStarted_</c> still has no live counterpart:
+/// the function's day argument is whole-day granularity only (fed from the level's
+/// <c>DayNightManager.CurrentDay</c>, itself a whole-day counter), with no minutes-within-the-day
+/// component to derive or set it from.</para>
 /// </summary>
 public sealed class LiveNpcSpawnsChannel(ILiveGameChannel channel)
 {
@@ -64,21 +74,32 @@ public sealed class LiveNpcSpawnsChannel(ILiveGameChannel channel)
     /// <summary>Resets one spawner's cooldown immediately (the game's own <c>SetSpawnOnCooldown(0, 0)</c>).</summary>
     public Task ResetCooldownAsync(string id, CancellationToken cancellationToken = default)
         => _channel.RequestAsync<object?>("npcspawns.set",
-            new SetWire([new EditWire(id, ResetCooldown: true, ForceSpawn: null)]), cancellationToken);
+            new SetWire([new EditWire(id, ResetCooldown: true, ForceSpawn: null, CooldownRemainingSeconds: null)]),
+            cancellationToken);
 
     /// <summary>Attempts to force one spawner to spawn immediately (the game's own
     /// <c>TrySpawnNPCNew</c>/<c>TrySpawnNPC</c> with <c>ForceSuccessByTrigger=true</c>). See the
     /// class remarks: a call that does not error is reported as requested, not a confirmed spawn.</summary>
     public Task ForceSpawnAsync(string id, CancellationToken cancellationToken = default)
         => _channel.RequestAsync<object?>("npcspawns.set",
-            new SetWire([new EditWire(id, ResetCooldown: null, ForceSpawn: true)]), cancellationToken);
+            new SetWire([new EditWire(id, ResetCooldown: null, ForceSpawn: true, CooldownRemainingSeconds: null)]),
+            cancellationToken);
+
+    /// <summary>Sets one spawner's cooldown to an exact number of seconds remaining immediately
+    /// (round 110; the game's own <c>SetSpawnOnCooldown(seconds, 0)</c> - see the class remarks).
+    /// Unlike <see cref="ResetCooldownAsync"/>/<see cref="ForceSpawnAsync"/>, this is a real
+    /// persistent value, not a momentary toggle.</summary>
+    public Task SetCooldownRemainingAsync(string id, double seconds, CancellationToken cancellationToken = default)
+        => _channel.RequestAsync<object?>("npcspawns.set",
+            new SetWire([new EditWire(id, ResetCooldown: null, ForceSpawn: null, CooldownRemainingSeconds: seconds)]),
+            cancellationToken);
 
     private sealed record DirectoryWire(IReadOnlyList<SpawnerWire>? Spawners, bool IsHost);
     private sealed record SpawnerWire(string Id, string Label, bool Controllable, bool? OnCooldown,
         double? CooldownRemainingSeconds, double? CooldownDaysRemaining, bool? HasSpawnedOnce,
         bool? HasBeenEncounteredOnce, double? SpawnCount, double X, double Y, double Z);
     private sealed record SetWire(IReadOnlyList<EditWire> Spawners);
-    private sealed record EditWire(string Id, bool? ResetCooldown, bool? ForceSpawn);
+    private sealed record EditWire(string Id, bool? ResetCooldown, bool? ForceSpawn, double? CooldownRemainingSeconds);
 }
 
 /// <summary>One loaded NPC spawner actor of any class (see the discovery note on

@@ -81,6 +81,15 @@ public sealed class LiveBasesSession : IWorldBasesSession
     bool IWorldBasesSession.BenchSupportsUpgrades(string deployableId)
         => _supportsBenchUpgrades && IsHost && _byId.TryGetValue(deployableId, out var deployable) && deployable.SupportsUpgrades && deployable.CanEditUpgrades;
 
+    /// <summary>The class-level question only - ignores host authority and
+    /// <see cref="LiveDeployable.CanEditUpgrades"/>, so the tab can explain "can't edit this
+    /// bench's upgrades right now" instead of just hiding the section when a bench genuinely has
+    /// upgrade slots but this connection cannot confirm/edit them safely (see
+    /// <c>bench_tags.lua</c>'s own availability check: replication support, and the bench's tag
+    /// containers both being readable).</summary>
+    bool IWorldBasesSession.BenchHasUpgradeSlot(string deployableId)
+        => _byId.TryGetValue(deployableId, out var deployable) && deployable.SupportsUpgrades;
+
     IReadOnlyList<string> IWorldBasesSession.BenchInstalledUpgrades(string deployableId)
         => _byId.TryGetValue(deployableId, out var deployable) ? deployable.InstalledUpgrades : [];
 

@@ -18,11 +18,13 @@ namespace AbioticEditor.Web.Models;
 /// mapping. <c>enabled</c>/<c>activated</c>/<c>noReset</c> are real, independently settable live
 /// properties (<c>NOT ButtonDisabled</c>, <c>Activated</c>, <c>NoVignetteReset</c>); a null value
 /// only means this particular actor could not be read right now (renders as a read-only "not
-/// available live" row rather than a toggle). <c>pressedOnce</c> is different: it is readable
-/// (<c>ButtonSaveData.ButtonHasBeenPressedOnce_...</c>) but genuinely NOT independently settable -
-/// the game's own save path forces it <c>true</c> as an unconditional side effect of persisting
-/// any other field, with no live path found that clears it back to <c>false</c> - so it always
-/// renders read-only here, never a toggle, regardless of whether its value is known.</para>
+/// available live" row rather than a toggle). <c>pressedOnce</c> (round 110) is now also a real
+/// toggle: the game's own save path (<c>UpdateButtonSaveData</c>) forces it <c>true</c> as an
+/// unconditional side effect of persisting any OTHER field, so this session writes the leaf and
+/// persists it through a direct call to the game mode's own <c>UpdateActorToWorldSave</c> instead,
+/// bypassing that wrapper entirely - see <see cref="LiveButtonsChannel"/>'s remarks for the honest
+/// caveat that a <c>false</c> write is only durable until the button is next really interacted
+/// with.</para>
 /// </summary>
 public sealed class LiveButtonsFeatureSession : IWorldFeaturesSession
 {
@@ -80,14 +82,19 @@ public sealed class LiveButtonsFeatureSession : IWorldFeaturesSession
                 hint: "Could not read this property off this button actor right now (it may have just "
                     + "unloaded). Try again after the next refresh, or edit it in the save file instead.");
 
-    /// <summary>"Pressed once" always renders read-only, whether or not its value is known - see
-    /// the class remarks for why there is no live write path for it at all.</summary>
+    /// <summary>Round 110: a real toggle now, not just a display. Renders read-only only when this
+    /// specific actor could not be read right now (see the class remarks) - a known value is always
+    /// editable, in either direction.</summary>
     private static WorldMapField PressedOnceField(bool? value)
-        => WorldMapField.ReadOnly("pressedOnce", "Pressed once",
-            value is { } known ? (known ? "true" : "false") : "not available live",
-            hint: "True once the button has been triggered at least once. The game always sets this the "
-                + "moment ANY other field on this button is saved, live or offline, and no live path was "
-                + "found that clears it back to false - edit the save file directly for that.");
+        => value is { } known
+            ? WorldMapField.Bool("pressedOnce", "Pressed once", known,
+                hint: "True once the button has been triggered at least once. Applies live immediately by "
+                    + "writing the save data directly (the game's own persistence path always sets this true "
+                    + "as a side effect of saving any OTHER field on this button, so setting it back to false "
+                    + "here only lasts until this button is next actually interacted with in-game).")
+            : WorldMapField.ReadOnly("pressedOnce", "Pressed once", "not available live",
+                hint: "Could not read this property off this button actor right now (it may have just "
+                    + "unloaded). Try again after the next refresh, or edit it in the save file instead.");
 
     public WorldMapFeatureSnapshot? MapFeature(string featureId)
     {
@@ -105,8 +112,9 @@ public sealed class LiveButtonsFeatureSession : IWorldFeaturesSession
             })).ToArray();
         return new WorldMapFeatureSnapshot(
             ButtonsFeatureId, "Buttons",
-            "Interactive world buttons: toggle whether each is enabled or activated, and whether it skips the "
-                + "next reset. \"Pressed once\" is shown for reference only - the game itself decides it.",
+            "Interactive world buttons: toggle whether each is enabled or activated, whether it skips the "
+                + "next reset, and whether it has been pressed once (a \"false\" write here only lasts "
+                + "until the button is next actually interacted with in-game).",
             MapName: "ButtonMap", SupportsRemoval: false, RemoveActionLabel: string.Empty, entries);
     }
 
@@ -115,15 +123,6 @@ public sealed class LiveButtonsFeatureSession : IWorldFeaturesSession
         if (!string.Equals(featureId, ButtonsFeatureId, StringComparison.Ordinal))
         {
             return WorldEditResult.Failure("this feature has no live equivalent.");
-        }
-        // Rejected before even parsing the value: no live path sets this independently, ever -
-        // see the class remarks and buttons.lua's own header comment. A round trip to the game
-        // would only come back with the exact same refusal.
-        if (string.Equals(fieldId, "pressedOnce", StringComparison.Ordinal))
-        {
-            return WorldEditResult.Failure("'pressed once' cannot be set independently live - the game "
-                + "always marks it true the moment any other field on the same button is saved, and no "
-                + "live path was found that clears it back to false.");
         }
         if (!WorldMapAccessor.TryParseBool(value, out var wanted))
         {
@@ -141,6 +140,10 @@ public sealed class LiveButtonsFeatureSession : IWorldFeaturesSession
             "enabled" => (current.Enabled, new LiveButtonEdit(entryKey, Enabled: wanted)),
             "activated" => (current.Activated, new LiveButtonEdit(entryKey, Activated: wanted)),
             "noReset" => (current.NoReset, new LiveButtonEdit(entryKey, NoReset: wanted)),
+            // Round 110: genuinely settable, in either direction - see the class remarks. A null
+            // current value never matches wanted, so the edit is still attempted (same as the
+            // other three fields), and a false write is honestly transient (see the hint text).
+            "pressedOnce" => (current.PressedOnce, new LiveButtonEdit(entryKey, PressedOnce: wanted)),
             _ => (null, null),
         };
         if (resolved.Edit is not { } edit) return WorldEditResult.Failure($"'{fieldId}' cannot be changed live.");

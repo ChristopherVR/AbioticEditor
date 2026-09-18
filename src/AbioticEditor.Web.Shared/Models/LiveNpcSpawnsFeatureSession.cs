@@ -11,14 +11,16 @@ namespace AbioticEditor.Web.Models;
 /// implements the same <see cref="IWorldFeaturesSession"/> boundary <c>WorldFeaturesTab</c>
 /// already binds to, the same shape <see cref="LiveButtonsFeatureSession"/> uses.
 ///
-/// <para>See <see cref="LiveNpcSpawnsChannel"/> for the full field mapping and citations. In
-/// short: most state fields are read-only info (<c>onCooldown</c>/<c>cooldownRemainingSeconds</c>/
-/// <c>cooldownDaysRemaining</c>/<c>hasSpawnedOnce</c>/<c>hasBeenEncounteredOnce</c>/
-/// <c>spawnCount</c>), each null when this actor could not be read right now rather than a guessed
-/// value. The two write actions, <c>resetCooldown</c> and <c>forceSpawn</c>, are momentary "do it
-/// now" toggles rather than persistent state - each always reads back <c>false</c> so the checkbox
-/// resets after a refresh, matching how the game itself has no notion of these as stored
-/// values.</para>
+/// <para>See <see cref="LiveNpcSpawnsChannel"/> for the full field mapping and citations. Most
+/// state fields are read-only info (<c>onCooldown</c>/<c>cooldownDaysRemaining</c>/
+/// <c>hasSpawnedOnce</c>/<c>hasBeenEncounteredOnce</c>/<c>spawnCount</c>), each null when this
+/// actor could not be read right now rather than a guessed value. <c>resetCooldown</c> and
+/// <c>forceSpawn</c> are momentary "do it now" toggles rather than persistent state - each always
+/// reads back <c>false</c> so the checkbox resets after a refresh, matching how the game itself has
+/// no notion of these as stored values. <c>cooldownRemainingSeconds</c> (round 110) is different: a
+/// real, persistent editable number (the game's own <c>SetSpawnOnCooldown(seconds, 0)</c>, its
+/// <c>TimeRemaining</c> argument confirmed to pass through unclamped) - it reads back whatever the
+/// game now reports, not a reset checkbox.</para>
 /// </summary>
 public sealed class LiveNpcSpawnsFeatureSession : IWorldFeaturesSession
 {
@@ -83,6 +85,28 @@ public sealed class LiveNpcSpawnsFeatureSession : IWorldFeaturesSession
             : WorldMapField.ReadOnly(id, label, "not available live",
                 hint: "Could not read this off this spawner actor right now (it may have just unloaded).");
 
+    /// <summary>Round 110: unlike the other numeric fields on this row, cooldown remaining is a
+    /// real editable value (the game's own <c>SetSpawnOnCooldown</c>, confirmed to pass its
+    /// seconds argument through unclamped) - editable whenever this spawner type is controllable
+    /// and a current value could be read; otherwise read-only, matching <see cref="ActionField"/>'s
+    /// own "no known live control" / "could not read right now" split.</summary>
+    private static WorldMapField CooldownRemainingField(double? value, bool controllable)
+    {
+        if (!controllable)
+        {
+            return WorldMapField.ReadOnly("cooldownRemainingSeconds", "Cooldown remaining (s)", "not available live",
+                hint: "This spawner type has no known live cooldown control.");
+        }
+        if (value is { } known)
+        {
+            return WorldMapField.Number("cooldownRemainingSeconds", "Cooldown remaining (s)", known,
+                hint: "Seconds left on this spawner's cooldown, read live from the game's own spawn director. "
+                    + "Editable: set an exact value (the game's own SetSpawnOnCooldown). Applies live immediately.");
+        }
+        return WorldMapField.ReadOnly("cooldownRemainingSeconds", "Cooldown remaining (s)", "not available live",
+            hint: "Could not read this off this spawner actor right now (it may have just unloaded).");
+    }
+
     private static WorldMapField ActionField(string id, string label, bool controllable, string hint)
         => controllable
             ? WorldMapField.Bool(id, label, false, hint: hint)
@@ -98,8 +122,7 @@ public sealed class LiveNpcSpawnsFeatureSession : IWorldFeaturesSession
             new[]
             {
                 BoolInfo("onCooldown", "On cooldown", s.OnCooldown, "Whether this spawner is currently waiting out its cooldown."),
-                NumberInfo("cooldownRemainingSeconds", "Cooldown remaining (s)", s.CooldownRemainingSeconds,
-                    "Seconds left on this spawner's cooldown, read live from the game's own spawn director."),
+                CooldownRemainingField(s.CooldownRemainingSeconds, s.Controllable),
                 NumberInfo("cooldownDaysRemaining", "Cooldown days remaining", s.CooldownDaysRemaining,
                     "In-game days left on this spawner's day-based cooldown (a different figure from the offline "
                         + "save's \"last day on cooldown\" field - this is a live days-REMAINING count)."),
@@ -118,7 +141,8 @@ public sealed class LiveNpcSpawnsFeatureSession : IWorldFeaturesSession
             })).ToArray();
         return new WorldMapFeatureSnapshot(
             NpcSpawnsFeatureId, "NPC Spawns",
-            "NPC spawner actors currently loaded in this region: reset a spawner's cooldown or force it to spawn now.",
+            "NPC spawner actors currently loaded in this region: set an exact cooldown, reset a spawner's "
+                + "cooldown, or force it to spawn now.",
             MapName: "NPCSpawnMap", SupportsRemoval: false, RemoveActionLabel: string.Empty, entries);
     }
 
@@ -128,13 +152,9 @@ public sealed class LiveNpcSpawnsFeatureSession : IWorldFeaturesSession
         {
             return WorldEditResult.Failure("this feature has no live equivalent.");
         }
-        if (fieldId is not ("resetCooldown" or "forceSpawn"))
+        if (fieldId is not ("resetCooldown" or "forceSpawn" or "cooldownRemainingSeconds"))
         {
             return WorldEditResult.Failure($"'{fieldId}' cannot be changed live.");
-        }
-        if (!WorldMapAccessor.TryParseBool(value, out var wanted))
-        {
-            return WorldEditResult.Failure($"'{value}' is not a boolean (use true/false).");
         }
 
         var current = Spawners.FirstOrDefault(s => string.Equals(s.Id, entryKey, StringComparison.Ordinal));
@@ -143,25 +163,47 @@ public sealed class LiveNpcSpawnsFeatureSession : IWorldFeaturesSession
         {
             return WorldEditResult.Failure("this spawner type has no known live control (unrecognized class).");
         }
-        // Unticking the momentary action box is a no-op: there is nothing to undo, it was never
-        // "set" as persistent state to begin with.
-        if (!wanted) return WorldEditResult.NoChange;
 
         try
         {
-            if (fieldId == "resetCooldown")
+            if (fieldId == "cooldownRemainingSeconds")
             {
-                await _channel.ResetCooldownAsync(entryKey).ConfigureAwait(false);
+                // Round 110: a real persistent value, not a momentary toggle - see the class
+                // remarks. Parsed/compared the same way every other Number field in this codebase
+                // is (WorldMapAccessor.TryParseDouble, matching NpcSpawnMapFeature's own offline
+                // ApplyCooldownRemaining).
+                if (!WorldMapAccessor.TryParseDouble(value, out var wantedSeconds))
+                {
+                    return WorldEditResult.Failure($"'{value}' is not a valid number.");
+                }
+                if (current.CooldownRemainingSeconds == wantedSeconds) return WorldEditResult.NoChange;
+                await _channel.SetCooldownRemainingAsync(entryKey, wantedSeconds).ConfigureAwait(false);
             }
             else
             {
-                await _channel.ForceSpawnAsync(entryKey).ConfigureAwait(false);
+                if (!WorldMapAccessor.TryParseBool(value, out var wanted))
+                {
+                    return WorldEditResult.Failure($"'{value}' is not a boolean (use true/false).");
+                }
+                // Unticking the momentary action box is a no-op: there is nothing to undo, it was
+                // never "set" as persistent state to begin with.
+                if (!wanted) return WorldEditResult.NoChange;
+
+                if (fieldId == "resetCooldown")
+                {
+                    await _channel.ResetCooldownAsync(entryKey).ConfigureAwait(false);
+                }
+                else
+                {
+                    await _channel.ForceSpawnAsync(entryKey).ConfigureAwait(false);
+                }
             }
         }
         catch (LiveAgentException ex)
         {
             // The Lua side reports a named, player-safe error when it could not find a live
-            // control for this action (see npcspawns.lua's own header comment) - surface it as-is.
+            // control for this field/action (see npcspawns.lua's own header comment) - surface it
+            // as-is.
             return WorldEditResult.Failure(ex.Message);
         }
         await RefreshAsync().ConfigureAwait(false);

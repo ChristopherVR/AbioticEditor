@@ -127,20 +127,40 @@ return function(H)
     H.fails(missingReply, "not found", "unknown button id fails cleanly")
     H.eq(H.field(reactor, "NoVignetteReset"), true, "the resolvable row in the same batch still applied")
 
-    -- "pressed once" cannot be requested at all: an honest, named failure - never a silent no-op,
-    -- and never a call to UpdateButtonSaveData just to force it true for a field-only request.
-    local pressedOnlyReply = H.dispatch("buttons.set", { buttons = { { id = orderRow.id, pressedOnce = true } } })
-    H.fails(pressedOnlyReply, "cannot be set independently", "pressed-once-only request fails by name")
+    -- ROUND-110: "pressed once" is now genuinely settable, on its own, bypassing
+    -- UpdateButtonSaveData entirely (that wrapper is never called for a pressedOnce-only request -
+    -- calling it would immediately re-force the leaf true). Instead the leaf is written directly
+    -- and persisted through the fake GameMode's own UpdateActorToWorldSave. weatherEnd starts
+    -- pressedOnce=true (see the fixture above); flip it to false directly.
+    local updateCallsBeforeClear = H.calls(weatherEnd, "UpdateButtonSaveData")
+    local clearReply = H.dispatch("buttons.set", { buttons = { { id = weatherEndRow.id, pressedOnce = false } } })
+    H.ok(clearReply, "pressedOnce can be cleared back to false live")
+    H.eq(H.field(weatherEnd, "ButtonSaveData")[PRESSED_ONCE_LEAF], false,
+        "the leaf actually holds false now, not forced true")
+    H.eq(H.calls(weatherEnd, "UpdateButtonSaveData"), updateCallsBeforeClear,
+        "the wrapper that would force it back to true was never called for this pressedOnce-only request")
+    local lastPersist = H.field(H.gameMode, "__lastUpdateActorToWorldSave")
+    H.check(lastPersist ~= nil and lastPersist.actor == weatherEnd, "GameMode:UpdateActorToWorldSave was called with this exact button")
+    H.eq(lastPersist.removeFromSave, false, "RemoveFromSave is false, matching the game's own call")
+    H.eq(lastPersist.saveType, 4, "SaveType is the literal 4 copied from UpdateButtonSaveData's own bytecode")
+
+    -- A button with no ButtonSaveData at all (orderRow/unresolvable, see the fixture above): the
+    -- write target genuinely does not exist, so this fails honestly by name rather than lying
+    -- about success - never a Lua error, never a silent no-op.
+    local noStructReply = H.dispatch("buttons.set", { buttons = { { id = orderRow.id, pressedOnce = true } } })
+    H.fails(noStructReply, "could not set 'pressed once'", "a button without ButtonSaveData fails cleanly")
     H.eq(H.calls(unresolvable, "UpdateButtonSaveData"), 0,
         "no persistence call was made for a button with no other field touched")
 
-    -- A pressedOnce request alongside a real field: the real field still applies, but the whole
-    -- reply is still an error (the pressedOnce side effect cannot be guaranteed to match the
-    -- requested value).
+    -- A pressedOnce request alongside a real field: the real field applies AND pressedOnce ends up
+    -- exactly as requested - UpdateButtonSaveData's own forced-true side effect (from the "touched"
+    -- block) is overridden by the pressedOnce write that runs after it in the same row.
     local mixedReply = H.dispatch("buttons.set",
         { buttons = { { id = reactorRow.id, activated = false, pressedOnce = false } } })
-    H.fails(mixedReply, "cannot be set independently", "a mixed request still reports the pressedOnce refusal")
+    H.ok(mixedReply, "a mixed request (real field + pressedOnce=false) now succeeds")
     H.eq(H.field(reactor, "Activated"), false, "the real field in the same mixed request still applied")
+    H.eq(H.field(reactor, "ButtonSaveData")[PRESSED_ONCE_LEAF], false,
+        "pressedOnce ends up false, winning over UpdateButtonSaveData's own forced-true side effect")
 
     -- Non-host refusal.
     H.clientSession()

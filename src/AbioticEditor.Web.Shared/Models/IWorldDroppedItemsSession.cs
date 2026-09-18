@@ -69,13 +69,16 @@ public interface IWorldDroppedItemsSession
     /// through a free inventory slot and the character's own drop RPC - see
     /// <see cref="AddDroppedItemLiveAsync"/> and <c>dropped.add</c> in
     /// <c>live-agent/AbioticEditorLiveAgentLua/Scripts/main.lua</c> for exactly what that does and
-    /// its caveats (no caller-chosen position, unlike <see cref="TryAddDroppedItem"/>). Always
-    /// false for a file session, which uses <see cref="TryAddDroppedItem"/> instead.
+    /// its caveats. Always false for a file session, which uses <see cref="TryAddDroppedItem"/>
+    /// instead.
     /// </summary>
     bool SupportsLiveAdd { get; }
 
     /// <summary>Live only: spawns <paramref name="itemId"/> (stack <paramref name="stack"/>) on
-    /// the ground near the local player. Throws <see cref="NotSupportedException"/> when
+    /// the ground near the local player, then (round 111, all three or none) moves it to
+    /// <paramref name="x"/>/<paramref name="y"/>/<paramref name="z"/> if given - see
+    /// <c>dropped.add</c>'s own remarks for exactly how and what happens when the game cannot
+    /// confirm the move. Throws <see cref="NotSupportedException"/> when
     /// <see cref="SupportsLiveAdd"/> is false.</summary>
-    Task AddDroppedItemLiveAsync(string itemId, int stack, CancellationToken cancellationToken = default);
+    Task AddDroppedItemLiveAsync(string itemId, int stack, double? x = null, double? y = null, double? z = null, CancellationToken cancellationToken = default);
 }

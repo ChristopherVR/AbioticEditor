@@ -19,6 +19,10 @@ public interface IWorldBasesSession
     /// false when it only stages an edit applied on SAVE (file).</summary>
     bool AppliesImmediately { get; }
 
+    /// <summary>True when this client may change deployables: always for the file session, only
+    /// for the hosting player in a live session (the game refuses a client's writes).</summary>
+    bool IsHost { get; }
+
     /// <summary>
     /// False when a live session has no confirmed way to open a bench/crate's contents inline
     /// (the file session always supports this - it shares the CONTAINERS tab's staged slot
@@ -39,16 +43,33 @@ public interface IWorldBasesSession
     /// </summary>
     Task SetPaintColorAsync(string deployableId, int? colorValue, CancellationToken cancellationToken = default);
 
-    /// <summary>True when this deployable can carry bench upgrade modules.</summary>
+    /// <summary>True when this deployable can carry bench upgrade modules AND upgrades can
+    /// actually be edited right now (see <see cref="BenchHasUpgradeSlot"/> for the weaker,
+    /// class-level question). Always equal to <see cref="BenchHasUpgradeSlot"/> for the file
+    /// session, which can always stage an edit; live, this also requires host authority and the
+    /// connected runtime to support the direct gameplay-tag write (round 111: re-confirmed
+    /// grounded, not loosened or tightened - see <c>bench_tags.lua</c>'s header comment).</summary>
     bool BenchSupportsUpgrades(string deployableId);
+
+    /// <summary>
+    /// True when this deployable's class carries upgrade slots at all, regardless of whether they
+    /// can be edited right now. Lets the shared tab tell "this bench has no upgrade slots" (hide
+    /// the section entirely) apart from "this bench has upgrade slots but they cannot be edited on
+    /// this connection right now" (show why instead of just vanishing) - see
+    /// <see cref="BenchSupportsUpgrades"/>.
+    /// </summary>
+    bool BenchHasUpgradeSlot(string deployableId);
 
     /// <summary>The upgrade rows currently installed on a bench.</summary>
     IReadOnlyList<string> BenchInstalledUpgrades(string deployableId);
 
     /// <summary>
-    /// Installs or removes one upgrade module. Live installs are grounded in the bench's own
-    /// <c>AddUpgrade</c> function; live removal has no evidenced game-side call and throws
-    /// <see cref="NotSupportedException"/> there instead of guessing at a raw tag-container edit.
+    /// Installs or removes one upgrade module. Neither direction calls the bench's own native
+    /// <c>AddUpgrade</c>/<c>"Has Upgrade"</c> functions live (round 79: a fabricated row-handle
+    /// struct crashed the game outright) - both install and removal write the bench's own
+    /// <c>BenchUpgrade.&lt;Row&gt;</c> gameplay tag directly instead, the same both-sides
+    /// technique for both directions, so removal is no longer any more restricted than install -
+    /// see <c>Scripts/bench_tags.lua</c>.
     /// </summary>
     Task<bool> SetBenchUpgradeAsync(string deployableId, string row, bool installed, CancellationToken cancellationToken = default);
 }

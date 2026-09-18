@@ -1,5 +1,16 @@
 -- Mirrors AddUpgrade's tag, replication, component refresh and save steps without
 -- marshaling BenchUpgradeRowHandle through the native function bridge.
+--
+-- Round 111 re-check: this is not just an equivalent workaround, it is what AddUpgrade's OWN
+-- bytecode does internally. AbioticDeployed_CraftingBench_ParentBP_C.AddUpgrade's disassembly
+-- (coordinator's class probe) ends its success path in a local
+-- CallFunc_AddTagToChangeableData_ReturnValue call - the game's own native "install this bench
+-- upgrade" path is itself a tag write into ChangeableData, confirming this module's direct write
+-- matches the engine's real implementation rather than approximating it from the outside. The
+-- canEditUpgrades gate (bases.lua: SupportsUpgrades + M.available below) was re-examined against
+-- that same evidence and left unchanged - it is already no wider than the two things a tag write
+-- actually needs (replication support, and both tag containers being readable on this instance),
+-- not a blanket "this class supports upgrades" check.
 local M = {}
 local replication = require("replication")
 local SAVED_TAGS = "GameplayTags_45_1A018E824E25CC7BA608A6B2835209A1"

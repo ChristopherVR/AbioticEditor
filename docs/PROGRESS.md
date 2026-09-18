@@ -1,5 +1,377 @@
 # Abiotic Editor - Session history
 
+## Round-113: Linux live editing verified in WSL as far as WSL allows - three real bugs fixed (2026-09-18)
+
+A Sonnet agent ran the Linux host and the real Windows helper under Wine 6 inside this PC's WSL2
+Ubuntu 22.04 (fake Steam library + `wineboot` prefix; reusable as
+`tools/verify-linux-live-setup.sh`). `LiveAgentSetup.EnsureReadyAsync` reached `Ready`, the helper
+launched through Wine and listened on TCP, and the Proton/save-discovery tests passed on Linux
+(44/44). Three bugs surfaced and are fixed:
+
+- **The Linux publish shipped no live agent at all.** `AbioticEditor.Web.csproj`'s live-agent
+  bundle item group was gated on `win*` runtime identifiers, so a `linux-x64` publish had no
+  `live-agent/` folder and `EnsureReadyAsync` could only ever answer `HelperUnavailable`. Linux
+  now bundles the same package (a Steam Play player runs the same Windows game binary).
+- **The helper's token/port files were never found.** Wine 6 wrote them under the legacy
+  `Local Settings\Application Data` layout (and a plain Wine prefix names its user after the
+  Linux account, not `steamuser`). `ProtonLiveAgentEnvironment.LocalAppDataCandidates` now lists
+  the expected folder first and then every prefix user in both layouts; the capability and the
+  Lua log bridge probe all of them.
+- **`IsHelperRunning` never matched under Wine.** The kernel truncates the process name to 15
+  bytes (`AbioticEditorLi`), so the exact-name match found nothing and every connect launched
+  another helper. It matches on the prefix now.
+
+Still untestable here: the native GTK window needs glibc 2.38 (Ubuntu 24.04+; this WSL is
+22.04), and whether UE4SS itself loads under a real Proton prefix. WSL cannot host the game under
+Proton, so the in-game mailbox path remains unexercised.
+
+
+## Round-112: world-wide seen/read/found lists get a browsable UI on the shared STORY tab (2026-09-18)
+
+Round 107 built the live backend for the six world-wide (`Abiotic_Survival_GameState_C`)
+discovery lists - items picked up, emails read, journal entries, and the three compendium
+unlock-type arrays - but deliberately kept the new session members (`LiveStorySession.
+CanEditGlobalLists`, `GlobalItemsPickedUpIds`, etc.) **outside** `IWorldStorySession`, because the
+offline file session had nothing to mirror: only the world recipes browser existed on the STORY
+tab, and the offline `WorldSaveSession` only staged these six lists for the CONTAINMENT tab's
+add-only "unlock everything" sweeps (`EnableWorldItemsSeen`/`EnableWorldEmailsRead`/
+`EnableWorldJournalsFound`/`EnableWorldCompendium`, still there, unchanged). This round gives them
+a real per-row browser and moves the members onto the shared interface.
+
+**Session boundary.** `IWorldStorySession` gains `SupportsGlobalLists`, six read-only id
+collections (`GlobalItemsPickedUpIds`, `GlobalEmailsReadIds`, `GlobalJournalEntryIds`,
+`GlobalCompendiumEmailIds`/`GlobalCompendiumNarrativeIds`/`GlobalCompendiumExplorationIds`),
+`CanEditGlobalLists`, `GlobalListEditsUnavailableReason` (defaults to null), and
+`SetGlobalListAsync(list, ids, present, ct)` - shaped exactly like the existing world-recipes
+members, and `SetGlobalListAsync`'s wire-name parameter (`"itemsPickedUp"`, `"emailsRead"`,
+`"journalEntries"`, `"compendiumEmail"`, `"compendiumNarrative"`, `"compendiumExploration"`)
+matches `LiveWorldUnlocksChannel.SetGlobalListAsync`'s existing wire names exactly, so one method
+serves both session kinds with no per-kind branching in the tab. `LiveStorySession` already had
+every member except `SupportsGlobalLists` (added, mirroring `SupportsRecipes`) - round 107's work
+satisfies the rest of the interface unchanged.
+
+**Offline (`WorldSaveSession`).** New members reuse the existing `_stagedWorldUnlocks` storage
+(the same dictionary the CONTAINMENT tab's bulk sweeps already stage into) rather than a second
+staging path. `CanEditGlobalLists` mirrors `CanEditGlobalRecipes` exactly (`FindByPrefix
+("GlobalUnlocks") is not null`, the same "no unlock ever recorded yet" limitation the recipe gate
+already has). A new `StageWorldUnlockEdit(prefix, ids, present)` sits beside the old add-only
+`StageWorldUnlock` (kept unchanged - the CONTAINMENT sweeps only ever add) and supports removal
+too; `SetGlobalListAsync` maps the wire list name to a `GlobalUnlockPrefix` constant through a new
+`GlobalUnlockPrefixByWireName` dictionary and stages the edit. Save still goes through the
+existing per-prefix `WorldSaveWriter.ApplyGlobalUnlockArray` loop, unchanged - it already creates
+a missing `GlobalUnlocks` struct and array using the exact hash-suffixed `FullNames` (verified
+against the `DedicatedServerSaves/Worlds/Cascade` fixture, which already carries
+`GlobalItemsPickedUp_32_0D99146044C3330A30A4C4AB8980DAF4` etc. byte-for-byte), so no writer changes
+were needed at all this round - only the session/UI layer had no way to reach it per-row.
+
+**UI (`WorldStoryTab.razor`, both hosts).** One "WORLD-WIDE SEEN" section, not six copies of the
+recipes browser: a dropdown picks which of the six lists is on screen, reusing the recipes
+browser's own `ws-recipe-list`/`ws-recipe-row`/`ws-recipes-head` CSS classes verbatim (no new
+styles). Friendly names come from the same services the player CODEX tab uses to name its rows -
+`ItemCatalogService` for items, `CodexVocabularyService` (loaded the same on-demand,
+off-render-thread way `PlayerCodexTab` already loads it) for emails/journals/compendium. Each row
+list is "every id the installed game's data knows for that kind, plus any id already present that
+game data doesn't recognise" - the same rule the recipes browser's `AllWorldRecipeRows` already
+uses. Read-only help text mirrors the recipes browser's pattern (a specific reason when the live
+agent reports one, a generic fallback otherwise).
+
+**New resx keys (English only, matching this repo's convention for brand-new keys - the
+adjacent `WorldStory_LiveGlobalRecipesNotHost`/`ReadOnlyHelp` keys from round 77 are English-only
+for the same reason despite sitting next to translated recipe-browser keys):**
+`WorldStory_WorldWideSeen`, `WorldStory_SearchWorldWideSeen`, `WorldStory_NoWorldWideSeen`,
+`WorldStory_WorldWideSeenCountFormat`, `WorldStory_WorldItemsPickedUp`,
+`WorldStory_WorldEmailsRead`, `WorldStory_WorldJournalEntries`, `WorldStory_WorldCompendiumEmail`,
+`WorldStory_WorldCompendiumNarrative`, `WorldStory_WorldCompendiumExploration`,
+`WorldStory_LiveGlobalListsNotHost`, `WorldStory_LiveGlobalListsReadOnlyHelp`.
+
+**Tests** (`tests/AbioticEditor.Tests/WorldStoryGlobalListsBrowserTests.cs`, new): an offline
+add-then-save-then-reread round trip and a remove-then-save-then-reread round trip against the
+`ServerWorldsDir` fixture (asserting the `.bak` matches the pre-edit bytes exactly, the established
+"nothing else changed" idiom this repo's other session round-trip tests already use), an
+unknown-list-name refusal, live `SupportsGlobalLists` true/false coverage (a stubbed agent that
+fails `worldunlocks.get` entirely, simulating a pre-round-107 build) plus a live add via the
+shared interface, and source-text checks that `WorldStoryTab.razor` renders the section off
+`Session.SupportsGlobalLists`/`CanEditGlobalLists`/`SetGlobalListAsync` and that both
+`WorldSaveSession.cs` and `LiveStorySession.cs` implement the new members. Not built or run this
+round (coordinator builds centrally, per instruction); every C# identifier was cross-checked
+against the existing source instead.
+
+**Risks / what's unverified:** the UI has not been opened in a running app or against a live game
+- everything above is grounded in the round-107 backend (already covered by
+`LiveCodexKillSectionsAndWorldGlobalListsTests`) and the existing writer coverage
+(`GlobalUnlockWriterTests`), plus the new tests above, but nobody has clicked the new "WORLD-WIDE
+SEEN" section in the actual app or against a live game. Only English strings exist for the new
+keys, matching the repo's brand-new-key convention; no other locale is aware of the section yet.
+
+## Round-111: dropped-item positioning live, and a stale/missing explanation on the BASES tab fixed (2026-09-18)
+
+Closed the two remaining live-editing parity gaps the coordinator scoped for this round: dropped
+items always landed wherever the game chose (no caller-chosen position, unlike the file editor),
+and the BASES tab's bench-upgrade gate had no honest explanation for the player. **Not yet
+exercised in the running game** - proven against the Lua stub harness only.
+
+**A. Dropped-item positioning (`dropped.add`).** `dropped.add` still routes through a scratch
+inventory slot plus the character's own `Request_DropInventorySlot` RPC (round 77, unchanged), but
+now accepts an optional `x`/`y`/`z` (all three or none) and moves the item there afterwards. The
+game mode's own `SpawnItem(InTransform, ItemRow, StackSize, Durability, NoPhysics, NoCollision,
+ConnectToComponent, ConnectToBone, ...)` (evidence: coordinator's `gapprobe/pass3/layouts.txt`
+~line 5441) was considered and rejected: its `ItemRow` parameter is a `DataTableRowHandle` struct
+that has to be built and passed ACROSS a function-call boundary - exactly the class of
+struct-marshaling that crashed the whole game outright for bench upgrades (see gap B and
+`bases.lua`'s header comment). The only proven precedent in this codebase for passing a
+`DataTableRowHandle`-shaped table as a function *argument* (`weatherRowHandleToTable`, `world.set`)
+only works because its fields are copied from a handle the engine itself already enumerated
+(`GetAllWeatherEventRowHandles`); there is no equivalent enumeration function for the item table,
+so building `SpawnItem`'s `ItemRow` here would repeat the fabricated-handle situation that already
+crashed the bridge once, on a function with six more parameters than the one that already crashed
+(several of them object/component references). `writeSlot`'s own proven-live `DataTable`/`RowName`
+writes (round 74) are only proven as PROPERTY assignments onto an existing slot struct, never as a
+function argument, so they cannot ground `SpawnItem` either.
+
+Instead `dropped.add` moves the actor the drop RPC itself already created, with
+`K2_TeleportTo(Location, Rotation)` - a real `AActor` function, used verbatim by the reference
+mod's own `BaseUtils.TeleportActorToActor`, and already proven live for `vehicles.set`/`spawn.set`
+with exactly the plain `{X=,Y=,Z=}` table this reuses (no new struct shape, no new call). The new
+dropped-item actor is told apart from every item already on the ground by snapshotting
+`Abiotic_Item_Dropped_C` actors just before the drop RPC and diffing after it - a full-world scan
+only paid when a position was actually requested. If that diff finds no new actor (the drop may
+have merged into an existing ground stack) or more than one (another drop landed in the same
+instant), the whole call fails with an honest reason instead of silently leaving the item wherever
+it actually landed; on success the moved actor's position is read back with `K2_GetActorLocation`
+and checked against the request before reporting success - the same "no confirmed effect = an
+honest error" rule `resourcenodes.set`/`elevators.set` already established. No position given
+behaves exactly as before this round. `LiveDroppedItemsChannel.AddAsync`/
+`IWorldDroppedItemsSession.AddDroppedItemLiveAsync` gained optional `x`/`y`/`z` parameters (default
+null, every existing call site unaffected); `WorldDroppedItemsTab` gained a "move it to my exact
+position after dropping" checkbox next to SPAWN NEAR ME, shown only when a live position is known
+(there is no world-map position picker in this tab, so reusing the player's own known position is
+the one caller-chosen spot this can honestly offer without inventing a raw x/y/z form with no way
+to judge a sensible value).
+
+**B. Bench-upgrade gate (`canEditUpgrades`) re-examined, and the BASES tab's own explanation
+fixed.** Evidence: coordinator's `classprobe.txt` (`Deployed_Bench`/`BenchUpgrade`/
+`Deployed_CraftingBench` fragments). Two findings, neither changing the write path itself.
+First, new grounding for the existing tag-write approach: `AddUpgrade`'s own disassembly
+(`AbioticDeployed_CraftingBench_ParentBP_C`) ends its success path in a local
+`CallFunc_AddTagToChangeableData_ReturnValue` call - the native function's own internal
+implementation IS a tag write into `ChangeableData`, so `bench_tags.lua`'s direct write (round 79)
+is not an outside approximation of `AddUpgrade`, it is the same operation reached without
+marshaling the crash-prone row-handle struct across a function-call boundary. Second, the gate
+itself (`benchSupportsUpgrades(obj) and benchTags.available(obj)` in `bases.lua`) was checked for
+being wider than it needs to be and is not: it already requires exactly the two things a tag write
+needs (replication support, and this specific instance's `UpgradeTagContainer` and `ChangeableData`
+tag struct both being readable), not a loose class-level check, so it was left unchanged.
+`supportsBenchUpgradeRemoval` reporting the identical value to `supportsBenchUpgrades` is
+intentional (not a leftover): since round 79/80 removal already uses the exact same tag-write path
+as install, removal genuinely needs nothing install does not already have.
+
+What the C# side got wrong, now fixed: `WorldBasesTab` showed an unconditional "Bench upgrades:
+offline editor only" line even in a live session where several benches usually could be edited -
+stale since round 77 added live installs, actively misleading since round 79/80 grounded live
+removal too - and had no "you are not the host" banner at all (every other live world tab has
+one). Replaced with an accurate caveat (`WorldBases_LiveUpgradeCaveat`) and the missing
+`LiveBases_NotHostWarning` banner. A bench that genuinely has upgrade slots but cannot be edited on
+this connection right now (`canEditUpgrades` false) used to just have its whole upgrades section
+vanish with no trace it was ever there; `IWorldBasesSession` gained `BenchHasUpgradeSlot` (the
+class-level "has slots at all" question, kept apart from `BenchSupportsUpgrades`'s "can edit them
+right now") so the tab can show `WorldBases_UpgradesUnavailableLive` instead of silence. The stale
+`SetBenchUpgradeAsync`/`SetWorldFlag`-era XML doc comments claiming installs go through `AddUpgrade`
+and removal has no game-side call were also fixed to describe the actual round-79/80 tag-write path
+for both directions.
+
+Harness: `live-agent/AbioticEditorLiveAgentLua/tests/cases/world_gaps.lua` extended with
+`dropped.add` position cases (moved-and-verified, no-new-actor refusal, ambiguous-new-actor
+refusal, no-position-unchanged). `python tools/run-lua-tests.py` passes for every case this round
+touched (world_gaps, bases, dropped, item_tables); the small number of failures seen mid-session
+belonged to other agents' concurrent in-flight areas (pets species change, buttons), not this
+round's changes.
+
+Risks / what's unverified: everything above is proven against the Lua stub harness only.
+`K2_TeleportTo` on a fresh `Abiotic_Item_Dropped_C` actor (versus the vehicle/player actors it has
+actually moved before) and the snapshot/diff actor-identification technique are genuinely unproven
+against the running game; a `SpawnItem`-based rewrite remains a real option for a future round IF a
+DataTableRowHandle enumeration function for the item table is ever found (removing the fabricated-
+handle risk this round declined to take). Gap B changed no write path, only its own gate's
+grounding-in-evidence and the app's explanation of it, so its live-verification risk is unchanged
+from round 79/80.
+
+## Round-110: live Buttons' "pressed once" made settable, live NPC spawners' cooldown made an exact editable value (2026-09-18)
+
+Closed the two remaining live-editing parity gaps against buttons/NPC spawners, both grounded in
+evidence already gathered by earlier rounds (`ebprobe/Button_Generic.json`, `classprobe.txt`
+~line 40011, `gapprobe/pass3/Abiotic_Survival_GameMode.json`, `gapprobe/pass2/
+Abiotic_NPCSpawn_ParentBP.json`), re-traced further this round rather than re-probed fresh.
+
+**A. Buttons `pressedOnce` (was read-only, now settable, honestly).** Round-96 found
+`Button_Generic_C:UpdateButtonSaveData(Force)` unconditionally sets
+`ButtonSaveData.ButtonHasBeenPressedOnce_110_C4AE20D34162FCD3FA3323907300CB1F = true` on every
+call and concluded there was no live write path at all. Re-examined: that forced-`true` behavior
+belongs to `UpdateButtonSaveData` specifically, not to the underlying save data, so the fix is to
+never call that wrapper for a `pressedOnce` write. `GameMode:UpdateActorToWorldSave(Self, false,
+4)` - the actual "persist this now" call `UpdateButtonSaveData` already ends with - is a real,
+independently callable function, confirmed from `Abiotic_Survival_GameMode_C`'s own
+`ChildProperties`/`FunctionFlags` in `gapprobe/pass3/Abiotic_Survival_GameMode.json`:
+`FUNC_Public | FUNC_BlueprintCallable | FUNC_BlueprintEvent`, signature `(Actor, RemoveFromSave:
+bool, SaveType: E_SaveType byte)`. `buttons.lua` now writes the struct leaf directly (the same
+struct-instance-by-hash-suffixed-name precedent `main.lua`'s `SKILL_XP_FIELD` already established
+for reads, now used for a write too - no other write of this shape existed in the codebase before
+this round, so it is new territory backed by the confirmed leaf name plus UE4SS's uniform
+FProperty-indexed accessor behavior, not a guess) then calls `UpdateActorToWorldSave` itself,
+deliberately bypassing `UpdateButtonSaveData` - reads the leaf back afterward and only reports
+success once it matches. **Confirmed the caveat is real, not hypothetical**: checked every one of
+`UpdateButtonSaveData`'s five call sites in the bytecode and all five fall inside
+`ExecuteUbergraph_Button_Generic` (the shared interaction graph a player's press, or
+`TriggerButtonWithoutUser()`, runs) - no other caller exists anywhere in the class. So a
+`pressedOnce: false` write is real and applies immediately, but only lasts until this exact button
+is next actually interacted with in-game, which re-runs `UpdateButtonSaveData` and forces it back
+to `true`; `pressedOnce: true` has no such caveat. Exposed as a normal, honest, settable field
+(never framed as fully persistent) rather than kept read-only. Files: `live-agent/
+AbioticEditorLiveAgentLua/Scripts/areas/buttons.lua` (header + `buttons.set`),
+`live-agent/AbioticEditorLiveAgentLua/tests/harness.lua` (added `UpdateActorToWorldSave` to the
+shared `H.gameMode` fixture, recording its arguments), `live-agent/AbioticEditorLiveAgentLua/tests/
+cases/buttons.lua`, `Core/LiveEditing/World/LiveButtonsChannel.cs`, `Web.Shared/Models/
+LiveButtonsFeatureSession.cs` (`pressedOnce` now `WorldMapField.Bool`, not `ReadOnly`), and this
+doc's `buttons.set` section.
+
+**B. NPC spawners `cooldownRemainingSeconds` (was read-only info, now an editable exact value).**
+Round-102 confirmed `SetSpawnOnCooldown(TimeRemaining: double, InCurrentDay: int)` accepts
+arbitrary values in principle but only ever called it with `(0.0, 0)` for `resetCooldown`. Traced
+the function's full bytecode this round (`gapprobe/pass2/Abiotic_NPCSpawn_ParentBP.json`,
+`SetSpawnOnCooldown`): `CooldownDay` is set to `InCurrentDay` unconditionally, then - only when
+`InCurrentDay==0` and `AI Director`/`AI Director.DayNightManager` are both valid - overwritten with
+today's real day from the `DayNightManager`; the function then calls
+`AIDirectorSubsystem:SetCooldownForSpawner(spawner, TimeRemaining, CooldownDay,
+spawner.OnlySpawnOnce)` passing `TimeRemaining` through with no clamping or zeroing anywhere in the
+traced bytecode - confirming an arbitrary seconds value really does reach the subsystem unchanged.
+`npcspawns.set` now accepts `cooldownRemainingSeconds: number` per row and calls
+`spawner:SetSpawnOnCooldown(wanted, 0)` (day left at `0` so it resolves to "today", changing only
+the seconds figure). A `resetCooldown` sent in the same row is applied second and wins, matching
+`triggers.lua`'s own "the more complete reset action wins over an arbitrary value sent in the same
+row" precedent. **`MinutesPassedCooldownStarted_` re-checked and still not exposed**: the day
+argument is whole-day granularity only (fed straight from `DayNightManager.CurrentDay`, itself a
+whole-day counter), with no minutes-within-the-day component to derive or set this leaf from - the
+conclusion from round 102 stands, now doubly confirmed rather than just not found. Files:
+`live-agent/AbioticEditorLiveAgentLua/Scripts/areas/npcspawns.lua` (header + `npcspawns.set`),
+`live-agent/AbioticEditorLiveAgentLua/tests/cases/npcspawns.lua` (fixture's `SetSpawnOnCooldown`
+mock now tracks the requested seconds value instead of only ever zeroing it),
+`Core/LiveEditing/World/LiveNpcSpawnsChannel.cs` (new `SetCooldownRemainingAsync`,
+`EditWire.CooldownRemainingSeconds`), `Web.Shared/Models/LiveNpcSpawnsFeatureSession.cs`
+(`cooldownRemainingSeconds` now an editable `WorldMapField.Number` when the spawner is
+controllable and a value is known, not always `ReadOnly`), and this doc's `npcspawns.set` section.
+The `resetCooldown`/`forceSpawn` momentary actions are unchanged.
+
+Neither offline feature's own doc comment (`Core/WorldSaves/Features/ButtonMapFeature.cs`,
+`NpcSpawnMapFeature.cs`) made any claim about live editing, so neither needed correcting.
+
+**Lua harness**: 1273 checks passed, 0 failed (`python tools/run-lua-tests.py`), up from 1270
+before this round (two transient failures seen mid-run belonged to a concurrent pets-area change,
+not this round's own areas, and were gone by the final run). C# not built or tested this round
+(three other agents were editing concurrently; every identifier above was hand-checked against the
+real files it references - `WorldMapField.Bool/Number/ReadOnly`, `WorldMapAccessor.TryParseDouble`,
+`ILiveGameChannel.RequestAsync`, `IWorldFeaturesSession` - since a build could not safely be run
+mid-edit). **Not yet exercised in the running game.**
+
+## Round-109: live species change for tamed pets, for matched (Pest/Skink-family) rows only (2026-09-18)
+
+Closed the live-pets species-change gap round 76/77/105 all re-examined and left refused: the
+game's own `Abiotic_Survival_GameMode_C.SpawnPet(Class, SpawnTransform, Guid, Name, Owner,
+DynamicProperties, Tamed)` needs an `FTransform` for `SpawnTransform`, and this project had no
+working construction precedent for one - guessing an unverified struct shape for a native-bridged
+call is exactly what caused the BASES tab's fatal, non-catchable crash in round 79, so every prior
+round stopped there rather than guess. **Not yet exercised in the running game** - proven only
+against the Lua stub harness.
+
+**The re-examination, not a re-guess.** The round-79 crash came from a *hand-fabricated Lua table*
+standing in for a struct nobody had ever seen a real instance of. That is a categorically different
+risk from what round 76 already separately proved: an engine-*returned* struct (an `FVector`/
+`FRotator` handed back by `K2_GetActorLocation`/`K2_GetActorRotation`) can be passed straight into
+another native call's matching struct parameter, unchanged or with individual leaf fields
+overwritten (`spawn.lua`'s `TeleportPlayer` path, `vehicles.lua`'s `K2_TeleportTo` path - both
+confirmed live). `AActor` also exposes a standard, zero-argument, `BlueprintPure` function for the
+*combined* transform - `K2_GetActorTransform` - in exactly the same category as those two calls,
+just for `FTransform` instead of two flat structs. `pets.lua`'s new `trySpeciesChange` reads the
+OLD pet actor's own current transform fresh via that call and passes it to `SpawnPet` completely
+UNCHANGED - no field on it is ever read, guessed, or written - which is a strictly *smaller* risk
+than the already-proven vector/rotator round trip (that one also mutates individual leaf fields
+before passing it back). Every other `SpawnPet` argument is likewise read straight off the OLD
+actor, never fabricated: `Guid`/`Tamed` are plain scalars already proven writable elsewhere in this
+file; `Name` is the OLD pet's own `PetName` `FText` userdata, passed through unchanged (never
+re-encoded via a Lua string); `Owner` is its own `FollowingOwner` object reference (confirmed real
+and `pcall`-readable on this exact family by `companions.lua`, round 78/79); `DynamicProperties` is
+its own live array, passed by reference unchanged - which is *why* XP/mutation progress survive a
+species change even though nothing here touches them directly. Health/limb state is **not** part of
+`SpawnPet`'s signature, so a species change does not carry the pet's current health over - the new
+actor spawns with its class's normal health.
+
+**Evidence, from a fresh pak dump of `Abiotic_Survival_GameMode_C`** (full bytecode, not just the
+signature round 105 already had): `SpawnPet`'s `FunctionFlags` is `FUNC_Public | FUNC_HasOutParms |
+FUNC_HasDefaults | FUNC_BlueprintCallable | FUNC_BlueprintEvent` - the exact same combination as
+every other function this project already calls live (`TeleportPlayer`, `TrySpawnNPCNew`,
+`SetSpawnOnCooldown`, ...), not some special/unreachable kind of function. `SpawnTransform`'s own
+struct type is confirmed `Class'Transform'` from `/Script/CoreUObject` with `ElementSize: 96` bytes
+(matching the engine's real double-precision `FTransform`), not a guess.
+
+**Safety ordering, never destroy-then-verify.** `trySpeciesChange` calls `SpawnPet` first; the
+returned actor must be valid **and** report back the *same* `Guid` that was passed in before the
+OLD actor is destroyed. Any failure at any step (an unresolved/not-yet-loaded target class, an
+unreadable transform, the call itself erroring, an invalid or mismatched-identity result) leaves
+the OLD pet completely untouched and comes back as a non-fatal warning (the same round-78 "apply
+every field independently, never abort the whole call" shape `pets.set` already uses for XP), never
+a thrown error and never a destroy without a confirmed replacement. The one acknowledged rough edge:
+a spawn that "worked" but reports the wrong identity is the one case that can leave a stray,
+unmatched extra actor behind in the world even though the edit itself is reported as failed - a
+later `pets.list` sweep will list it via the round-105 generic tamed-marker path, never silently
+lost track of.
+
+**Species change is refused for unmatched (Peccary/Lamogi-shaped) pets**, with a named warning:
+there is no Guid to hand the game to preserve identity with, and nothing to verify a "same pet"
+result against.
+
+**THE ONE ASSUMPTION STILL NEEDING REAL-GAME CONFIRMATION**, more loudly flagged here than almost
+anything else in this project: a wrong-shaped argument to a native `UFunction` call is the one
+class of failure `pcall` cannot be trusted to catch - that is exactly what made round 79's BASES
+crash non-catchable rather than an ordinary Lua error. Every reasoning step above argues why THIS
+call should not hit that failure mode (nothing in it is a fabricated struct table, unlike the BASES
+case), but `K2_GetActorTransform` and `SpawnPet` have never actually run against the real game -
+this round is proven only against the Lua stub harness (`python tools/run-lua-tests.py`, new
+success/no-op/unknown-species/spawn-invalid/mismatched-identity/unmatched-refusal cases in
+`tests/cases/pets.lua`, a new `GameMode.SpawnPet` fake in `tests/harness.lua`). Treat the first
+real-game use of `pets.set{npcClass=...}` as a genuine test, ideally on a low-stakes/replaceable
+pet in a singleplayer or otherwise easily-restartable session, before trusting it broadly.
+
+**Capability negotiation.** `pets.list` now reports `supportsSpeciesChange: true` (reusing the
+existing wire field, not a redundant new one - it already meant exactly this); an older agent build
+that omits the field is read as `false` by `LivePetsSession` (which previously hardcoded `false`
+regardless of what the agent said - now it actually relays `LivePetDirectory.SupportsSpeciesChange`),
+so the shared `WorldPetsTab`'s creature-type control stays hidden against an older agent
+automatically, and `LivePetsChannel.SetAsync`/the `pets.set` wire's `SetWire` record gained a
+trailing `npcClass` so a species-change request can actually reach the live agent (previously
+accepted by the shared `IWorldPetsSession` interface but silently dropped by the live session).
+
+**Files changed:** `live-agent/AbioticEditorLiveAgentLua/Scripts/areas/pets.lua` (header comment
+rewritten with the round-109 findings; new `gameMode`/`resolveClass`/`shortClassTag`/
+`trySpeciesChange` helpers; `pets.list`/`pets.set` wired up), `live-agent/AbioticEditorLiveAgentLua/
+tests/harness.lua` (new `GameMode.SpawnPet` fake), `live-agent/AbioticEditorLiveAgentLua/tests/
+cases/pets.lua` (new species-change section) and `tests/cases/world_gaps.lua` (updated capability
+assertion), `src/AbioticEditor.Core/LiveEditing/World/LivePetsChannel.cs` (doc comments, `SetAsync`/
+`SetWire` gained `npcClass`), `src/AbioticEditor.Web.Shared/Models/LivePetsSession.cs`
+(`SupportsSpeciesChange` now relays the agent's own report; `SetPetAsync` forwards `npcClass`),
+`src/AbioticEditor.Web.Shared/Models/WorldPetsSession.cs` (interface doc comment),
+`docs/reference/live-editing-protocol.md`'s `pets.list`/`pets.set` section, and a new
+`tests/AbioticEditor.Tests/WorldLivePetsSpeciesChangeContractTests.cs` (source-text contract tests,
+mirroring `WorldLivePetsGapContractTests`'s own style - deliberately a new file; that existing
+file's own stale `supportsSpeciesChange = false` assertion was also updated so it does not now
+fail against this round's change). `WorldPetsTab.razor` was deliberately **not** changed - its
+existing `Session.SupportsSpeciesChange`/`VariantOptions()` gating already does the right thing
+generically; no leaf class list was added anywhere in this round (the target species class is
+resolved from whatever path the C#/UI side already sends, via `StaticFindObject`/`LoadAsset`, the
+same technique `main.lua`'s own data-table lookup already uses for a not-yet-loaded asset).
+
+**Lua harness**: `python tools/run-lua-tests.py` - 1304 checks passed, 0 failed. C# not built or
+tested this round (coordinator builds centrally, per instruction) - every C# assertion above was
+verified by direct text search against the edited files instead, since a build was out of scope
+for this round.
+
 ## Round-107: three partial live-editing gaps closed as far as the game allows - recipe relock re-grounded, kill-tracked compendium sections, world-wide item/codex lists (2026-09-18)
 
 Closed the three partial gaps the coordinator's fresh pak dump (`pass2\Abiotic_CharacterProgressionComponent.json`/`layouts.txt`,

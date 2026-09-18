@@ -36,18 +36,26 @@ public sealed class LiveDroppedItemsChannel(ILiveGameChannel channel)
     /// Spawns <paramref name="itemId"/> (stack <paramref name="stack"/>) on the ground near the
     /// local player - see <c>dropped.add</c> in <c>main.lua</c> for exactly how (a scratch
     /// inventory slot plus the character's own <c>Request_DropInventorySlot</c> RPC, since no
-    /// direct "spawn a dropped item" function has any precedent). Host only. There is no
-    /// caller-chosen position - the item lands wherever the game's own drop logic puts it.
+    /// direct "spawn a dropped item" function has any precedent). Host only.
+    /// <paramref name="x"/>/<paramref name="y"/>/<paramref name="z"/> (round 111, all three or
+    /// none) ask the Lua module to move the just-dropped item there afterwards with
+    /// <c>K2_TeleportTo</c> and read its position back to confirm; omitted, the item lands
+    /// wherever the game's own drop logic puts it, same as before. A position request that the
+    /// game could not honor (an ambiguous new-actor match, a stack merge, a failed move, or a
+    /// mismatched final position) fails the whole call rather than silently leaving the item
+    /// somewhere else - see <c>dropped.add</c>'s own header comment for exactly what is checked
+    /// and why <c>SpawnItem</c> (the game mode's own item-spawn function) was rejected in favor of
+    /// moving the RPC's own actor.
     /// </summary>
-    public Task AddAsync(string itemId, int stack, CancellationToken cancellationToken = default)
-        => _channel.RequestAsync<object?>("dropped.add", new AddWire(itemId, stack, ItemTableIndex.TableRefFor(itemId)), cancellationToken);
+    public Task AddAsync(string itemId, int stack, double? x = null, double? y = null, double? z = null, CancellationToken cancellationToken = default)
+        => _channel.RequestAsync<object?>("dropped.add", new AddWire(itemId, stack, ItemTableIndex.TableRefFor(itemId), x, y, z), cancellationToken);
 
     private sealed record DirectoryWire(IReadOnlyList<ItemWire>? Items, bool IsHost);
     private sealed record ItemWire(string Id, string ItemId, int Stack, double X, double Y, double Z);
     private sealed record RemoveWire(IReadOnlyList<string> Ids);
     // Stuck is absent (0) from a Lua bundle older than round 91, which only ever counted Removed.
     private sealed record RemovedWire(int Removed, int Stuck = 0);
-    private sealed record AddWire(string ItemId, int Stack, string? DataTable);
+    private sealed record AddWire(string ItemId, int Stack, string? DataTable, double? X, double? Y, double? Z);
 }
 
 /// <summary>One loose item in the world. <paramref name="Id"/> is the game's full object name

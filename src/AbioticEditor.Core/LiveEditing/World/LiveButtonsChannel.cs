@@ -16,12 +16,21 @@ namespace AbioticEditor.Core.LiveEditing.World;
 /// module's own header comment for the full mapping and citations). <see cref="LiveButton"/>'s
 /// four state properties stay nullable because a specific actor can still fail to read right now
 /// (unloaded mid-request, a future game patch, etc.) - null means "could not read this property
-/// off this button just now", not "false". <c>PressedOnce</c> is genuinely different: it is
-/// readable (the save struct's own <c>ButtonHasBeenPressedOnce_</c> leaf) but not independently
-/// settable at all - the game's own persistence call forces it <c>true</c> as an unconditional
-/// side effect of saving any other field, with no live path found that clears it back to
-/// <c>false</c>; <see cref="LiveButtonEdit.PressedOnce"/> exists for wire-shape symmetry only and
-/// the Lua side always refuses a request that sets it (see <see cref="SetAsync"/>'s remarks).</para>
+/// off this button just now", not "false".</para>
+///
+/// <para><b>Round 110:</b> <c>PressedOnce</c> is now genuinely, independently settable, in either
+/// direction. The game's own persistence wrapper (<c>UpdateButtonSaveData</c>) forces this leaf
+/// <c>true</c> unconditionally the moment it runs at all, so the Lua side never calls that wrapper
+/// for a <c>PressedOnce</c> request; instead it writes the save struct's own
+/// <c>ButtonHasBeenPressedOnce_</c> leaf directly and persists by calling the game mode's own
+/// <c>UpdateActorToWorldSave</c> itself (the exact same "persist this now" call
+/// <c>UpdateButtonSaveData</c> already ends with) - see the Lua module's own header comment for the
+/// full mapping and citations, including a read-back-confirmed write. <b>Honest caveat</b>: a
+/// <c>PressedOnce: false</c> write is real but only durable until the next time this exact button
+/// is actually interacted with (a player press, a linked-button chain, or a future
+/// <c>TriggerButtonWithoutUser()</c> call) - that re-runs <c>UpdateButtonSaveData</c> and forces the
+/// leaf back to <c>true</c> again, same as always. A <c>PressedOnce: true</c> write has no such
+/// caveat.</para>
 /// </summary>
 public sealed class LiveButtonsChannel(ILiveGameChannel channel)
 {
@@ -38,11 +47,12 @@ public sealed class LiveButtonsChannel(ILiveGameChannel channel)
     }
 
     /// <summary>Applies edits to one or more buttons (matched by <see cref="LiveButton.Id"/>)
-    /// immediately. A null field in <paramref name="edits"/> is left untouched. A request that
-    /// sets <see cref="LiveButtonEdit.PressedOnce"/> always fails by name (see the Lua module's
-    /// own header comment for why); <c>LiveButtonsFeatureSession</c> (a different project) already
-    /// rejects that case locally before ever reaching here, but this channel does not assume every
-    /// caller does.</summary>
+    /// immediately. A null field in <paramref name="edits"/> is left untouched.
+    /// <see cref="LiveButtonEdit.PressedOnce"/> is genuinely settable (round 110) - see the class
+    /// remarks and the Lua module's own header comment for the mechanism and the "durable until the
+    /// next real interaction" caveat on a <c>false</c> write. A failed write (e.g. a class with no
+    /// live <c>ButtonSaveData</c> struct at all) surfaces as a named, player-safe
+    /// <see cref="LiveAgentException"/> rather than a silent no-op.</summary>
     public Task SetAsync(IReadOnlyList<LiveButtonEdit> edits, CancellationToken cancellationToken = default)
         => _channel.RequestAsync<object?>("buttons.set",
             new SetWire(edits.Select(e => new EditWire(e.Id, e.Enabled, e.Activated, e.PressedOnce, e.NoReset)).ToList()),
