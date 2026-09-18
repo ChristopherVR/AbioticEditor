@@ -76,8 +76,10 @@ The Linux desktop app can set up live editing for a Steam copy of the game runni
 
 Everything else follows the same steps as [Set up this PC (Windows)](#set-up-this-pc-windows) above: close the game, choose **This PC**, pick the detected copy, and let the editor install UE4SS and its own helper.
 
-::: warning Not yet confirmed on a real Steam Play session
-The Proton prefix lookup, the Wine-launched helper, and the shared `%LOCALAPPDATA%` mapping described above have been built and reviewed but not yet exercised against an actual running game under Proton. If **This PC** setup gets stuck or the game never connects after UE4SS and the helper both report ready, please file an issue with the editor's diagnostics log attached - it is the fastest way to find what is different about a real Proton install. `docs/PROGRESS.md`'s Linux live-editing round has the implementation notes.
+::: tip Linux notes
+The desktop editor's own window needs a recent Linux (glibc 2.38 or newer, roughly Ubuntu 24.04 and up, or an equivalent on other distributions). Live editing on Steam Play also needs Wine installed, so the editor can run its small helper inside the game's Proton folder.
+
+If **This PC** setup gets stuck, or the game never connects after UE4SS and the helper both report ready, please file an issue with the editor's diagnostics log attached.
 :::
 
 macOS is not supported for live editing (there is no bundled UE4SS or helper for it, and no Proton-equivalent path to run the Windows ones). Offline save editing still works there.
@@ -105,35 +107,56 @@ Only the server owner can make the helper reachable through their network and fi
 
 ## What you can change
 
-Live controls depend on the selected player, your host authority, and what the game currently has loaded. Hosts can work with other connected players and world objects. A client can change supported parts of their own character.
+Live controls depend on the selected player, your host authority, and what the game currently has loaded. Hosts can work with other connected players and world objects. A client can change supported parts of their own character. Objects outside loaded sectors cannot appear at all; move close to them and refresh, or edit their region save offline instead.
 
-You can currently use supported controls for vitals, skills, inventories, transmog, recipes, GatePal records, selected background and spawn fields, story flags, clock and weather, loaded containers and ground items, creatures, story NPCs, traders, pets, doors, portals, vehicles, containment, and deployables.
+### Player
 
-The updated agent adds player magazine-ammo editing and keeps ammo with a weapon when moving
-or sorting it. Update the helper while the game is closed before using this addition.
-This new field still needs in-game verification. Recipe **Unlock All** and GatePal **Mark All**
-now send one grouped request instead of a separate request for every entry.
+| Area | Works live | Host-only | Not possible live, or read-only, and why |
+|---|---|---|---|
+| Vitals and limb health | Hunger, thirst, sanity, fatigue, continence, money, and every limb's health | No, for your own character (a host can also reach other players) | |
+| Skills | XP and XP multiplier for each skill | No, for your own character (a host can also reach other players) | |
+| Inventory, transmog and weapon coatings | Item, stack, durability and magazine ammo in your backpack, equipped, hotbar and transmog slots; moving an item into or out of a nearby container keeps every extra detail it carries (pet progress, weapon coatings, custom variants); the six "hide this armor piece" transmog toggles; weapon coatings themselves | No, this is your own inventory (a host can also reach other players') | |
+| Companions (carried pets) | A carried pet's name, health, XP, mutation progress, and its mutation target, from the Companions tab | No, this is player-owned data | Clearing the active Companion slot only makes a Pest- or Skink-family pet's matching world creature disappear too. A carried Peccary or Lamogi carries none of the id information the game needs to find and remove its matching world creature, so it is left behind, still wandering around, after you clear the slot |
+| Recipes | Unlocking any recipe (**Unlock All** sends one request, not one per recipe) | Unlocking: no. Relocking a recipe: yes | Relocking needs a game/agent build that can read the recipe list back; an older one explains why instead of just hiding the control |
+| Codex / GatePal (emails, journal, fish, compendium) | Marking any entry known, including kill-tracked compendium sections now (**Mark All** sends one request); on a supporting agent, marking an entry unknown again | No, this is player-owned data | Marking an entry unknown again needs an updated agent; an older one keeps this read-only |
+| Traits | Adding or removing a trait, and its matching buff | Yes, even for your own traits | |
+| Appearance | Every customization slot: head, hair style, hair color, shirt color, upper and lower body, shoes, belt, beard, wristwatch, tie, ID card, and head accessory | Yes | Only the local computer's own character can permanently save the new look to its profile; another connected player's look can be changed live but not saved from here |
+| Spawn point and respawn terminal | Teleporting a character to exact coordinates; claiming a different respawn terminal | Teleporting another connected player: yes. Your own position: no | Claiming a respawn terminal only ever applies to your own character, never another player's - the game gives no way to reach anyone else's for this |
+| Discoveries (items seen, maps, background) | Marking an item seen, a map discovered, and changing your background; on a supporting agent, marking an item crafted | No, this is player-owned data | Crafted-item discovery needs an updated agent |
+| Account (which save file a character belongs to) | Nothing | | This only exists as a file rename made before the save is ever loaded, so there is nothing running in the game to change - the editor shows your connected id as a read-only line here instead |
 
-The editor can now also change traits, character appearance, and bench upgrades while
-connected, and moving or editing an item keeps every extra detail it carries (things like pet
-progress, weapon coatings, and custom variants) instead of losing them on the way. Weapon
-coatings themselves can now be changed live too, the same coating picker offline saves use. You
-can also move an item directly between your own inventory and a nearby container, water and
-fertilise garden plots, charge Power Chairs, adjust the world's total play time, and edit a
-carried pet's stored mutation progress in the Companions tab (negative values are rejected; the
-mutation target itself stays read-only). The host can also repaint a
-placed object from the Bases tab's new **Painted objects** list. These are new and still being
-checked against a running game, so keep an eye on them and update the agent if something looks
-off.
+### World
 
-These limits are deliberate:
+Every world edit below needs host authority, the same requirement every world area has always had, except where the table says otherwise.
 
-- Pet species and some missing skill entries cannot be changed live. World-wide recipe unlocks
-  need a UE4SS build that exposes `TSet.Add`/`Remove`/`ForEach`; on an older build the world
-  recipes list shows why the unlock control is disabled instead of just hiding it.
-- Objects outside loaded sectors cannot appear. Move close to them and refresh, or edit their region save offline.
+| Area | Works live | Host-only | Not possible live, or read-only, and why |
+|---|---|---|---|
+| Flags and story | Setting or clearing any world flag; moving the main story chapter forward or back (the editor works out the right flags to set and clear on its own) | Yes | |
+| Clock and weather | The day, time of day, current or next weather event, and the world's total play time | Yes | Pausing or resuming the clock can be read but not set live |
+| Doors | Open/closed/locked state, the one-way-unlocked flag, and disabling a door | Yes | Only doors currently loaded near a player respond; move closer and refresh for one that doesn't |
+| Containers | Full slot editing (item, stack, durability, and every extra detail an item carries), sorting a container, moving items in or out | Yes | |
+| Dropped items | Listing, removing, and spawning a new dropped item, optionally at an exact position | Yes | |
+| Bases and bench upgrades | Renaming a placed object, installing or removing a bench upgrade on a bench that has one, repainting a placed object from the **Painted objects** list | Yes | A bench or crate's own stored contents open through the Containers tab, not here; a bench whose upgrade tags can't currently be read explains why instead of silently doing nothing |
+| Vehicles | Driveable state, wrecked state, position, and a vehicle's on-board cargo storage (the same slot editor as any other container) | Yes | |
+| Pets (tamed) | Pest- and Skink-family pets: name, health, XP, and changing which creature species the pet actually is. Every other tamed creature (Peccary, Lamogi, and others with no stable id): health only | Yes | Species change is refused for a pet with no stable id, since the game has no way to confirm afterward that the result is still "the same pet" |
+| NPCs, story characters | Whether they're a corpse, their story stage, and the shared Dead toggle, for named story characters and traders, with real in-game names shown | Yes | Only characters currently loaded nearby respond |
+| NPCs, creatures | Disabled, invincible, faction, and the shared Dead toggle, for any nearby wildlife, monster, robot or humanoid NPC, with real creature names shown | Yes | Only creatures currently loaded nearby appear at all. This side has no offline file equivalent - the save file never remembers what was loaded in the world |
+| Containment (Leyak Containment Units) | Assigning, releasing, or swapping which creature a unit holds | Yes | |
+| Traders | Unlocking a trader (sets the story flags that gate them) | Unlocking: yes. Browsing stock: no | |
+| Portals (World Teleporters) | Whether a pad is active and unlocked | Yes | Which pad links to which destination is baked into the level and can't be changed |
+| Elevators | Sending a platform up or down by pressing the game's own buttons (real travel time, so a request can report success while the platform is still moving) | Yes | An elevator type the editor doesn't recognize lists as "not controllable" instead of a toggle |
+| Buttons | Enabled, activated, the "no vignette reset" flag, and whether it's been pressed once, in both directions | Yes | Setting "pressed once" back off only lasts until the button is genuinely used again in-game (by a player or anything else that presses it), because using a button always marks it pressed once |
+| Resource nodes | Marking a node harvested, or respawning it, through the game's own respawn/deplete functions so it reappears or vanishes with the right effects | Yes | Removing a node entry, the way the offline editor can, isn't offered live, since nothing live resets a node that completely. A node with a "keeps respawning on its own" flag always ends up depleted rather than respawned when asked to respawn, and there's no way to see that flag ahead of time |
+| Breakables (destructible objects) | Breaking an object, with the same effects a real break has | Yes | Repairing a broken object is not possible live - the game has no way to rebuild a broken object's look and collision once it's been broken, until you reload the world |
+| Corpses | Removing a corpse outright, with no undo | Yes | Whether a corpse is gibbed or already looted can't be changed live, since there's no in-game reason to flip either by hand |
+| NPC spawners | Setting the exact cooldown time remaining, resetting the cooldown immediately, forcing a spawn attempt | Yes | The offline "minutes into the day the cooldown started" field has no live match, since the game only tracks cooldowns by whole day. A forced spawn isn't confirmed to always produce a visible creature |
+| Triggers | Setting the exact trigger count, or a full reset that also re-arms the trigger itself | Yes | A trigger's own configured limit is informational only and can't be changed |
+| Power sockets | Nothing is settable | n/a | Everything here (its id, what's plugged into it, whether it's powered, its timer) is read-only, because the game clears a socket's timer state back off every single time anything saves that socket, so nothing written here could ever stick |
+| Trams | Recalling a tram to a station that has a recall point wired to it | Yes | A tram can only be sent to a station with a real recall point placed in the level, a narrower set than the offline editor's "any station the save has ever mentioned". A recall is a real, sometimes multi-stop journey, not a teleport |
+| Garden plots, Power Chairs and chemistry benches | A plot's water level, and its fertilizer and growth stage/progress per planted spot; a Power Chair's charge | Yes | A plot's planted crop and a chemistry bench's flask contents are read-only here, but a chemistry bench's flasks are the same slots as any other container, so open it from the Containers tab to actually change them. Planting an empty garden spot, or clearing a planted one, still isn't supported at all, the same as offline |
+| World-wide seen lists (items picked up, emails read, journal entries, and the three compendium categories, tracked for the whole world rather than one player) | Adding or removing any entry, browsable and searchable from the Story tab | Yes | |
 
-The [live-editing protocol](/reference/live-editing-protocol) records the technical status of each action. Live editing is still experimental, so a game update can change what works.
+The [live-editing protocol](/reference/live-editing-protocol) records the technical status of each action in full. Live editing is still experimental, so a game update can change what works.
 
 ## Field fixes
 

@@ -106,7 +106,7 @@ affect your save or the rest of the editor.
 
 ## Live editing
 
-The desktop app can also connect to a running game on Windows. Live edits apply while you play, have fewer tools, and do not receive editor backups. Treat it as an experiment and make your own world backup first. [Read the live editing guide](./live-editing) before setting it up.
+The desktop app can also connect to a running game on Windows, and on Linux for a copy running through Steam Play (Proton). Live edits apply while you play, have fewer tools, and do not receive editor backups. Treat it as an experiment and make your own world backup first. [Read the live editing guide](./live-editing) before setting it up.
 
 ## Reporting a bug
 

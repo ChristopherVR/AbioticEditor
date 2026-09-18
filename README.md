@@ -22,7 +22,7 @@ Repair a world. Repack a backpack. Bring a lost friend home. Abiotic Editor is a
 | --- | --- | --- |
 | **Browser editor** | You want a quick edit with no install. | [Open it in your browser](https://christophervr.github.io/AbioticEditor/app/) |
 | **Desktop app** | You play on Windows, Linux, or Steam Deck and want save discovery, transfers, Game Pass tools, and more. | [Download the latest release](https://github.com/ChristopherVR/AbioticEditor/releases/latest) |
-| **Live editing** | You are comfortable with an experimental Windows tool that changes a running game. | [Read the live-editing briefing](https://christophervr.github.io/AbioticEditor/guide/live-editing) |
+| **Live editing** | You are comfortable with an experimental tool (Windows, or Linux through Steam Play) that changes a running game. | [Read the live-editing briefing](https://christophervr.github.io/AbioticEditor/guide/live-editing) |
 
 The browser editor works entirely in your browser. The desktop app works locally too. Your saves are not uploaded to a server.
 
@@ -67,7 +67,7 @@ Compare two saves, move items between worlds, repair Game Pass save containers, 
 
 Save editing is powerful, and the game may not enjoy every possible combination of story flags, items, or modded content. Change one thing at a time, keep a copy of the original, and test in game. The editor keeps ordinary file edits staged until you select **SAVE**.
 
-Live editing is different: it is experimental, changes the running game immediately, has fewer features, and has no editor backup or universal undo. On Windows it needs UE4SS, a separate open-source mod loader; the Windows release now includes a pinned copy and installs it into your game folder with your permission (an existing UE4SS install is left alone). [Use the live-editing guide](https://christophervr.github.io/AbioticEditor/guide/live-editing) before setting it up.
+Live editing is different: it is experimental, changes the running game immediately, has fewer features, and has no editor backup or universal undo. It needs UE4SS, a separate open-source mod loader; the Windows release (and the Linux release, for a game running through Steam Play/Proton) now includes a pinned copy and installs it into your game folder with your permission (an existing UE4SS install is left alone). [Use the live-editing guide](https://christophervr.github.io/AbioticEditor/guide/live-editing) before setting it up.
 
 ## Need help?
 

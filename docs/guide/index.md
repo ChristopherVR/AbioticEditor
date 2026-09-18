@@ -14,7 +14,7 @@ Start with [Getting started](./getting-started) if this is your first visit. The
 | Edit without installing anything | [Edit in your browser](./browser-editor) |
 | Use the full editor on Windows, Linux, or Steam Deck | [Desktop app](./desktop-app) |
 | Move gear between two world saves | [Transfer items](./transfer-items) |
-| Edit a running game on Windows | [Live editing](./live-editing) |
+| Edit a running game on Windows or Linux (Steam Play) | [Live editing](./live-editing) |
 
 ## Useful stations
 

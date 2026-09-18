@@ -1,5 +1,260 @@
 # Abiotic Editor - Session history
 
+## Round-120: live DELETE/remove buttons no longer leave the item on screen for several seconds (2026-09-18)
+
+Owner report, live mode: clicking DELETE on an inventory/container slot (and removing a dropped
+item, pet, or corpse) did not clear the row right away - it stayed visible for a few seconds
+before disappearing.
+
+**Root cause.** Every live delete/remove path (`LiveInventorySession.PushSlotAsync`/
+`TryDropSlotLiveAsync`, `LiveContainersSession`'s `ApplyAsync` behind
+`TrySetContainerSlotAsync`/`SetContainerSlotCountAsync`, `LiveDroppedItemsSession.RemoveDroppedItemsAsync`,
+`LivePetsSession.RemovePetAsync`, `LiveCorpsesFeatureSession.RemoveMapFeatureEntry`) sent the
+write, then AWAITED a second, full re-read (a four-inventory `inventory.list`, a `containers.get`,
+or a world-scanning `dropped.list`/`pets.list`/`corpses.list`) before returning - and the owning
+tab's own `StateHasChanged()` only fires once that whole chain completes. The wire itself is fast
+(the Lua agent polls its ipc folder every 50 ms), but stacking a second full-mailbox round trip
+behind the first is what showed up as "a few seconds", worst for the player inventory since its
+re-read lists all four inventories' slots every time.
+
+**Fix.** Each of those five methods now applies the write's own already-known result to the
+session's local model and raises `Changed` the instant the write is confirmed, then kicks off the
+old full re-read in the background as reconciliation only (`_ = ReconcileAsync(...)`, never
+awaited by the caller). A background reconciliation failure is swallowed rather than surfaced,
+since the edit already succeeded by the time it runs. File-mode sessions are untouched (this is
+all inside the `Live*Session` classes only).
+
+**Tests**: one fake-channel test per touched session (`LiveInventorySessionTests`,
+`LiveContainersSessionTests`, the new `LiveDroppedItemsSessionTests` case, and two new files
+`LivePetsSessionTests`/`LiveCorpsesFeatureSessionTests`) arms a gate that blocks the reconciling
+read and proves the session's collection already reflects the delete right after the awaited call
+returns, before that read is ever allowed to complete. No Lua changed, so
+`python tools/run-lua-tests.py` was not re-run. Could not run `dotnet build`/`dotnet test` this
+round (desktop app was running live against the game); the new tests should be run once the app is
+closed.
+
+## Round-119: fixed MoonFish_AllDay/MoonFish_rare1_AllDay never sticking in the FISH codex (2026-09-18)
+
+Owner report: in the player CODEX tab's FISH list, ticking `MoonFish_AllDay` or
+`MoonFish_rare1_AllDay` never took (live mode most likely, but it never worked offline either),
+while the plain `MoonFish`/`MoonFish_rare1` rows worked fine.
+
+**Root cause.** `DT_Fish` carries a second row for Moon Fish and Pelagic Moon Fish suffixed
+`_AllDay` (see `assets/registry/registry.en.json`): same item/recipe/bait tag/XP as the plain row,
+only the time-of-day catch-chance multipliers differ (an "always bites" schedule vs. the plain
+row's midnight-only one - almost certainly swapped in by a world setting). Real save fixtures
+confirm the game only ever records the base id in `Compendium_Fish_`/`FishCaughtArray`, never the
+`_AllDay` one, no matter which schedule was active when the fish was caught. So the `_AllDay` row
+was a dead-end GATEPal checkbox: live, marking it known wrote to an id the game's own
+`FishCaughtArray` never reads back, so the next periodic refresh reverted the tick; offline, the id
+staged into `Compendium_Fish_` but the native game's own journal, which tracks the same base id,
+never showed it caught either.
+
+**Fix.** `Core/Catalogs/Codex/CodexCatalog.cs`: `LoadFish` now runs its rows through a new
+`CollapseAllDayVariants` step that drops an `_AllDay` row when its plain sibling is present, kept
+public so it can be unit-tested with synthetic rows and no game install. Both the live and file
+codex sessions read fish through this same `CodexCatalog.LoadFish`/`CodexVocabularyService` path,
+so the fix applies to both modes from one place; no changes needed in `LivePlayerCodexSession`,
+`PlayerCodexEdit` or `codex.lua`.
+
+**Tests** (`tests/AbioticEditor.Tests/CodexTests.cs`): `CollapseAllDayVariants_...` proves the real
+`MoonFish`/`MoonFish_rare1`/`MoonFish_AllDay`/`MoonFish_rare1_AllDay` ids collapse to the two real
+fish (and that an "_AllDay" row with no plain sibling is kept rather than dropped);
+`PlayerCodexEdit_TogglesEachCollapsedFishRowIndependently` proves the two surviving fish toggle
+known/unknown independently of each other through the session-facing model. Ran
+`python tools/run-lua-tests.py` (1304 checks, all passing, unchanged) since `codex.lua` was not
+touched. Could not run `dotnet build`/`dotnet test` this round (desktop app was running live against
+the game); the new tests should be run once the app is closed.
+
+## Round-118: the bench-upgrade crash that killed every button, and the app can no longer go silently dead (2026-09-18)
+
+A live report: upgrading a bench crashed the app so hard nothing could be clicked afterwards. The
+editor log pinned the actual throw to `RenderTreeDiffBuilder`: "More than one sibling of element
+'div' has the same key value" for a `Deployed_CraftingBench_Default_C` actor's own id.
+
+**Root cause.** Not duplicated live-agent data. `WorldBasesTab.razor` renders two separate
+`@foreach` loops as direct siblings under one shared `wt-card` - "Crafting Benches", then a little
+further down the same base's "Painted Objects" - each producing a `<div class="bench-row">` keyed
+on the bare deployable id. `Deployed_CraftingBench_Default_C` is both a crafting bench
+(`WorldDeployable.IsCraftingBench`) and paintable (`DeployablePaintCatalog`), so it rendered in
+*both* lists with the identical `@key`, and Blazor's diff algorithm requires unique keys among
+every sibling one render pass produces, even across two unrelated loops, once they land in the
+same parent. Fixed by namespacing each loop's key (`"bench:" + bench.Id` / `"paint:" + deployable.Id`).
+That duplicate-key error is raised by the renderer's own diff pass while applying a render batch,
+*not* as a normal per-component render exception, so it can escape even an `ErrorBoundary`
+wrapping the whole page - the keys themselves had to be the fix, not a boundary.
+
+Belt-and-braces on the data side too, since a genuinely duplicated id from the live agent is still
+a real possibility independent of this bug: `bases.lua`'s `deployableRows()` was the one
+single-class `findAll()` sweep in the whole live-agent that had no `seen`-table dedupe (every other
+one - corpses, destructibles, buttons, etc. - already defends against `FindAllOf` itself returning
+a duplicate, even with only one root class); added the same guard there. `LiveBasesSession.Apply`
+built its id dictionary with a raw `ToDictionary`, which throws uncaught on any duplicate key with
+nothing on the calling side watching for it; it now dedupes (first entry wins) before building
+anything. Audited every other `@key=` in `Components/` for the same "two loops, one parent, one id
+field" shape (containers, doors, dropped items, pets, vehicles, npcs, features, story) - all clear
+project-wide: the story/NPC tabs that reuse `npc.Id`/`row.Id` twice are always mutually exclusive
+branches, and every other repeated-field list lives in its own separate parent element.
+
+**The app must not go silently dead again, whatever throws next.** MainLayout already wraps the
+whole routed page in one `AppErrorBoundary`, but that only ever showed one page-wide failure card
+and (per the finding above) cannot even guarantee that for a duplicate-key error specifically. Gave
+both the file editor's world/player tab strips (`SaveEditorSurface.razor`, `PlayerEditor.razor`)
+and the live one (`LiveConnect.razor`) their own `<AppErrorBoundary @key="<active tab>">` around
+just the active tab's content: an ordinary exception in one tab now shows an inline retry card
+without taking the sidebar, tab strip or any other tab down with it, and switching tabs remounts a
+fresh boundary on its own.
+
+Separately, `App.razor` never defined the `components-reconnect-modal` element `blazor.web.js`
+expects - it only ever toggles CSS classes (`components-reconnect-show`/`-failed`/`-rejected`) on
+an element with that id; it never creates the element or styles it. So a dead circuit (this crash,
+a lost connection, the process restarting) rendered as a frozen window with literally nothing on
+screen to explain why. Added the element, its reload button, and CSS for all three states, so a
+lost connection now shows "Connection lost" with a working Reload button inside the Photino window.
+
+Also found and fixed the two other crash-log entries from the same session: `ModalHost.razor`'s
+`Dispose()` fired an unawaited, unguarded `abiotic.modal.deactivate` JS call - unlike every other
+modal shell in the editor (`ModeSelectDialog`, `Settings`, `ReleaseNotesDialog`), which already use
+`async ValueTask DisposeAsync()` with a `try/catch (JSDisconnectedException)`. Worse, ModalHost is
+mounted unconditionally in MainLayout, so its very first instance is disposed on *every single
+launch* when the framework replaces the static-prerendered tree with the interactive one, long
+before any modal was ever shown - that is exactly the "JavaScript interop calls cannot be issued at
+this time... the component is being statically rendered" unobserved-task-exception pair the log
+showed at 13:20. Fixed to match the established `DisposeAsync` pattern and to skip the call
+entirely when nothing was ever activated. `CrashLog`'s `TaskScheduler.UnobservedTaskException`
+handler logged every one of these as `"Crash"`, burying the one entry that actually mattered under
+expected disconnect noise; it now recognizes a fault that is *entirely* `JSDisconnectedException`
+and quietly marks it observed instead.
+
+New tests: `LiveBasesSessionTests.ConnectAsync_dedupes_a_deployable_the_agent_reports_twice`,
+`WorldBasesTabKeyUniquenessTests`, `PerTabErrorBoundaryTests`, `ReconnectionUiWiringTests`.
+
+## Round-117: player-facing live-editing docs caught up to rounds 92-113 (2026-09-18)
+
+The player-facing live-editing documentation had fallen well behind the last several weeks of
+live-editing work (rounds 92-113: buttons, elevators, resource nodes, breakables, corpses, NPC
+spawners, triggers, power sockets, trams, a vehicle's on-board storage, tamed-pet species change,
+garden plots/Power Chairs/chemistry benches, traits, appearance, bench-upgrade paint and the
+tag-write rewrite, world-wide seen lists, and the Linux/Steam Play work). Read `docs/PROGRESS.md`
+rounds 92-113 and `docs/reference/live-editing-protocol.md` end to end and rewrote the player-facing
+material to match.
+
+**`docs/guide/live-editing.md`.** The old "What you can change" section was a short prose list that
+predated most of the above. Replaced it with a Player table and a World table (area, what works
+live, whether it needs host authority, and a plain-language reason for anything read-only or
+impossible), covering every area named in the coordinator's brief: on the player side vitals,
+skills, inventory/transmog/companions, recipes, codex/GatePal (including the now-settable
+kill-tracked compendium sections), traits, appearance, and spawn; on the world side flags, story,
+clock/weather, doors, containers, dropped items, bases and bench upgrades, vehicles (including
+on-board storage), pets (including the Peccary/Lamogi limitation and the now-live species change for
+matched pets), story characters and creatures, containment, traders, portals, elevators, buttons,
+resource nodes, breakables, corpses, NPC spawners, triggers, power sockets (genuinely fully
+read-only, and why), trams, garden plots/Power Chairs/chemistry benches, and the world-wide seen
+lists browser. Added the honest note that most of the newer world-object areas were built by reading
+the game's own code but have not yet been tried against a running game, and the "try a pet species
+change on one you can afford to lose first" caveat. The Linux/Steam Play warning box now reflects
+round 113: tested through Wine on a non-Proton stand-in (three real bugs found and fixed there), with
+a real Proton game session and the desktop app's own window (needs glibc 2.38, roughly Ubuntu 24.04+)
+both still unconfirmed.
+
+**Other stale claims fixed.** `docs/guide/desktop-app.md`, `docs/guide/index.md` and `README.md`
+each still said live editing was Windows-only; all three now also mention the Linux/Steam Play path
+round 98 added. `docs/nexus-mod-page.bbcode` has the same stale Windows-only claim plus a supported-
+areas list that predates most of rounds 92-113, but the file has the owner's own uncommitted edits in
+progress, so it was deliberately left alone; the owner should update it directly (see this round's
+handback report for the exact lines).
+
+**`AppResources.resx` (English only).** Fixed four keys whose live-limitation claims were plainly
+wrong: `WorldPets_LiveSpeciesChangeUnavailable` (used to say species change "isn't available while
+editing live" full stop; it now is, for matched Pest/Skink-family pets on an up-to-date agent),
+`PlayerCodex_LiveCompendiumReadOnlyHelp` (used to say kill-tracked compendium entries "stay read-only
+live" unconditionally; round 106 made them settable on a supporting agent),
+`WorldStory_LiveGlobalRecipesReadOnlyHelp` (used to say "the running game has no button anywhere to
+unlock [a recipe] world-wide"; it does now, this text was only ever the generic fallback for an
+unmapped reason), and `PlayerGeneral_ItemsCraftedLiveReadOnlyHelp` (used to say the running game "has
+no function to mark [an item] crafted on demand"; it does, an older agent just doesn't expose it).
+Did not touch the General tab's traits-readout key, per the coordinator's note that another agent
+owns it this round.
+
+Not run: `dotnet build`/`dotnet test` (docs and resx text only, coordinator builds centrally after
+concurrent sessions land).
+
+## Round-115: a genuinely fresh install asks language, then mode, before anything loads (2026-09-18)
+
+A brand-new install used to land straight on the "choose a world to edit" screen, which on the
+desktop host kicked off its Steam/Game Pass save-folder scan in the background before the player
+had even picked a display language or said whether they meant to edit a save file or connect to a
+running game. This closes that gap by giving the existing "what do you want to do" prompt
+(`ModeSelectDialog`) a first step of its own, and by making sure nothing else starts until it is
+answered.
+
+**First-run detection.** No separate marker file: "first run" is exactly "nothing has been written
+to `HostPreferenceStore`'s language key yet" (`HostLanguageService.HasChosenLanguage`), the same
+signal the original MAUI app's own first-run `LanguagePage` used before the Razor port
+(`LocalizationService.HasChosenLanguage`, found in the initial commit's `AbioticEditor.App`). It
+holds on both hosts unchanged - the browser keeps the same key in `localStorage` via
+`HostPreferenceStore.UseStore`, wired up in `AbioticEditor.Web.Wasm/Program.cs`'s
+`UseBrowserStorageForPreferences` before any screen renders.
+
+**The flow.** `ModeSelectDialog` gets a new first step, `Step.Language`, entered only when
+`MainLayout` passes it `ShowLanguageStep="true"` (on `_firstRunPending`, computed once in
+`OnInitialized` from `!Languages.HasChosenLanguage`). It reuses three resx strings that have sat
+translated into all four other shipped languages since the initial commit and were never wired up
+anywhere (`Language_Title`/`Language_Subtitle`/`Language_Continue`/`Language_SystemDefault`) - a
+leftover from the exact same first-run prompt in the old app. Picking a language calls
+`HostLanguageService.SetLanguage` immediately (the same setter the dedicated `/language` page
+uses), so CONTINUE and the Choose step right after it already render in the chosen language.
+CONTINUE moves to `Step.Choose`, the existing offline/live picker, completely unchanged.
+
+**Nothing loads in the background until then.** `MainLayout` no longer renders `<WorkspaceShell>
+<AppErrorBoundary>@Body</AppErrorBoundary></WorkspaceShell>` unconditionally - it sits behind
+`@if (!_firstRunPending)`. Because `@Body` is a `RenderFragment` the router hands down, skipping
+its invocation means the routed page (`Home.razor`, whose `OnInitializedAsync` runs
+`SaveLibraryService.DiscoverAsync` - the Steam/Game Pass folder scan - plus its own recently-opened
+list and the `ABIOTIC_EDITOR_FOLDER` auto-open test hook) is never instantiated at all, not merely
+hidden behind the dialog the way it already was for every later mode-select reopen. The browser
+host previously never auto-opened `ModeSelectDialog` at all (only `_liveEditingAvailable`, which is
+always false there, used to gate it); a first run now opens it there too
+(`if (_liveEditingAvailable || _firstRun) _modeSelectOpen = true;`), so the same gate applies on
+both hosts. `_firstRunPending` is cleared for good the moment `CloseModeSelect` runs (whichever way
+the player finished: offline or live), so a later reopen within the same session - the header
+button, a dropped live connection bouncing back to the dialog - never blocks `@Body` or shows the
+language step again; only the very first prompt does either. Subsequent launches are unchanged
+(language remembered, mode select behaves exactly as before this round).
+
+**Tests** (`tests/AbioticEditor.Tests/FirstRunTests.cs`, new): `HostLanguageService.HasChosenLanguage`
+round-tripped against the real per-user file (backed up and restored the same way
+`ReleaseNotesTests` already handles `ReleaseNotesStore.ConfigPath`) - a fresh profile is a first
+run, saving a language ends it for that instance and for a fresh one reading the same file - plus
+source-text checks, in the style of `LiveEditingBrowserHintTests`/`OpenGuardTests`, that
+`MainLayout` computes `_firstRun`/`_firstRunPending` from `HasChosenLanguage`, gates `@Body` behind
+it, opens the dialog on a first run on every host, passes `ShowLanguageStep` through, and clears
+`_firstRunPending` in `CloseModeSelect`; and that `ModeSelectDialog` accepts `ShowLanguageStep`,
+lists every language by its own name via `L.Available`/`language.NativeName`, applies a pick
+immediately through `HostLanguageService.SetLanguage`, and only ever continues into the unchanged
+Choose step. Not built or run this round (the desktop app was running from this checkout's own
+`bin` folder while this work happened, and a build rewrites the scoped-CSS bundle it serves) -
+every identifier was cross-checked against the current source by hand instead.
+
+**Risks / what's unverified:** untested in a running app or browser tab - the reasoning above is
+grounded in how Blazor's `RenderFragment`/`RouteView` model actually skips instantiating a
+component whose containing fragment is never invoked, not in an observed run. Worth an explicit
+first-run click-through (ideally with the language config file removed first) before release.
+
+## Round-114: player GENERAL tab drops its stale traits readout, always shows ACCOUNT (2026-09-18)
+
+The GENERAL tab's ACCOUNT block was hidden behind a "Account and background" disclosure toggle
+that also carried a read-only TRAITS list underneath, with a footnote claiming traits could only
+be added or removed on the file-based CHARACTER tab while connected to a running game. Neither
+half of that was true any more: the background field had already moved to the CHARACTER tab in an
+earlier round (leaving the disclosure's own label half-orphaned), and live trait add/remove had
+since shipped on the CHARACTER tab itself (`Session.CanEditTraits`, gated on the host agent's
+`general.trait.set` support). `PlayerGeneralTab.razor` now shows the ACCOUNT block plainly, with
+no collapsible label and no traits section; traits stay exactly where they already fully work, on
+the CHARACTER tab, for both file and live sessions. Removed the now-dead
+`Editing_AccountDetails`/`PlayerGeneral_Traits`/`PlayerGeneral_TraitsHelp`/`PlayerGeneral_TraitsNone`
+resource keys (English-only; no other locale resx had translated them).
+
 ## Round-113: Linux live editing verified in WSL as far as WSL allows - three real bugs fixed (2026-09-18)
 
 A Sonnet agent ran the Linux host and the real Windows helper under Wine 6 inside this PC's WSL2
