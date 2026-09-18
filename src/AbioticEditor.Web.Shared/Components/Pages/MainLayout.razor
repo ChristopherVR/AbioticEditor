@@ -79,6 +79,15 @@
             {
                 <button class="secondary mode-switch-action" type="button" @onclick="OpenModeSelect" title="@Languages.Resource("ModeSelect_ReopenButton")"><span class="material-symbol" aria-hidden="true">swap_horiz</span>@Languages.Resource(IsPureLiveMode ? "Editing_LiveModeLabel" : "Editing_OfflineModeLabel")</button>
             }
+            else if (_isBrowserHost)
+            {
+                @* The browser build can never live-edit (see ILiveEditingCapability's doc comment),
+                   but hiding the feature entirely means a web player never learns the desktop app
+                   can do more. This opens the same mode-select dialog the desktop host uses, whose
+                   Choose step shows the live-editing card as an informational "desktop app only"
+                   dead end instead of a working flow - see ModeSelectDialog.IsBrowserHost. *@
+                <button class="secondary mode-switch-action" type="button" @onclick="OpenModeSelect" title="@Languages.Resource("Editing_LiveInfoButtonTitle")"><span class="material-symbol" aria-hidden="true">swap_horiz</span>@Languages.Resource("Editing_LiveModeLabel")</button>
+            }
             @* OPEN FOLDER is a file-workspace action, and /live is never the place for it: it stays
                off the header for the whole time that route is active, loaded folder or not, the
                same way the rest of the file chrome does. A bare live session reached some other
@@ -149,9 +158,12 @@
         Navigation.LocationChanged += NavigationChanged;
 
         // Absent on the WASM/browser host (see ILiveEditingCapability's doc comment), so a
-        // browser tab gets neither the automatic prompt below nor the header button to
-        // re-open it - there is nothing to choose between without a local game to live-edit.
+        // browser tab gets no automatic prompt below - there is nothing to actually choose
+        // between without a local game to live-edit. It still gets an informational header
+        // button (see _isBrowserHost below), so the feature stays discoverable instead of
+        // silently vanishing.
         _liveEditingAvailable = Services.GetService<ILiveEditingCapability>()?.IsAvailable == true;
+        _isBrowserHost = Services.GetService<IBrowserHostMarker>() is not null;
         // MainLayout is created once per circuit, so this runs exactly once per app launch -
         // the same "only when the app just started" moment ModeSelect's now-removed "/" page
         // used to own before the dialog replaced it.
@@ -193,6 +205,7 @@
     private bool _settingsOpen;
     private bool _modeSelectOpen;
     private bool _liveEditingAvailable;
+    private bool _isBrowserHost;
     private bool _releaseNotesOpen;
     private bool _releaseNotesPendingAfterModeSelect;
     private IReadOnlyList<ChangelogRelease> _releaseNotesToShow = [];

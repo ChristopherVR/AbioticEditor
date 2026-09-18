@@ -1953,7 +1953,8 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 .mode-option p{margin:0;color:var(--muted)}
 .mode-option ul{padding-left:18px;margin:16px 0 24px;color:var(--ink)}
 .mode-option li+li{margin-top:8px}
-.mode-option>button{margin-top:auto;width:100%;min-height:44px;text-transform:none;letter-spacing:0;font-size:14px}
+.mode-option>button,.mode-option>a.button-link{margin-top:auto;width:100%;min-height:44px;text-transform:none;letter-spacing:0;font-size:14px}
+.mode-option-live p.mode-step-note{margin-top:12px}
 .mode-badge{display:inline-block;padding:4px 8px;border:1px solid var(--divider);border-radius:4px;color:var(--section);font-size:12px;font-weight:600;line-height:1.4;letter-spacing:0;text-transform:none}
 .mode-badge.experimental{color:var(--alert-text);border-color:currentColor}
 .live-editing-guide{margin:0 0 20px;padding:16px 18px;border:1px solid var(--divider);border-left:3px solid var(--alert-text);border-radius:4px;background:var(--elevated);text-align:left}

@@ -38,15 +38,32 @@
                     <button class="primary" type="button" @onclick="ChooseFile">@L.Resource("Editing_ChooseOffline")</button>
                 </article>
                 <article class="mode-option mode-option-live">
-                    <span class="mode-badge experimental">@L.Resource("Editing_Experimental")</span>
-                    <h3>@L.Resource("Editing_LiveTitle")</h3>
-                    <p>@L.Resource("Editing_LiveDescription")</p>
-                    <ul>
-                        <li>@L.Resource("Editing_LiveTiming")</li>
-                        <li>@L.Resource("Editing_LiveBackup")</li>
-                        <li>@L.Resource("Editing_LiveFeatures")</li>
-                    </ul>
-                    <button class="secondary" type="button" @onclick="() => _step = Step.LiveTarget">@L.Resource("Editing_ChooseLive")</button>
+                    @if (IsBrowserHost)
+                    {
+                        @* The browser build has no ILiveEditingCapability (see that interface's own
+                           doc comment) and can never actually reach a running game, so this card
+                           never offers the LiveTarget flow here - it only explains that the desktop
+                           app is what live editing needs, with a link to go get it. Same label and
+                           card shape as the desktop version above, just an informational dead end
+                           instead of a live "set up live editing" button. *@
+                        <span class="mode-badge">@L.Resource("Editing_LiveDesktopOnlyBadge")</span>
+                        <h3>@L.Resource("Editing_LiveTitle")</h3>
+                        <p>@L.Resource("Editing_LiveDescription")</p>
+                        <p class="mode-step-note">@L.Resource("Editing_LiveBrowserHint")</p>
+                        <a class="secondary button-link" href="@BrowserGamePassBlockGuard.ReleasesUrl" target="_blank" rel="noopener noreferrer">@L.Resource("ModDisclaimer_DesktopLink")</a>
+                    }
+                    else
+                    {
+                        <span class="mode-badge experimental">@L.Resource("Editing_Experimental")</span>
+                        <h3>@L.Resource("Editing_LiveTitle")</h3>
+                        <p>@L.Resource("Editing_LiveDescription")</p>
+                        <ul>
+                            <li>@L.Resource("Editing_LiveTiming")</li>
+                            <li>@L.Resource("Editing_LiveBackup")</li>
+                            <li>@L.Resource("Editing_LiveFeatures")</li>
+                        </ul>
+                        <button class="secondary" type="button" @onclick="() => _step = Step.LiveTarget">@L.Resource("Editing_ChooseLive")</button>
+                    }
                 </article>
             </div>
         }
@@ -241,6 +258,11 @@
 
     private enum Step { Choose, LiveTarget, LocalFolder, ConfirmDeploy, RemoteForm, Connecting }
     private Step _step = Step.Choose;
+
+    /// <summary>True on the browser (WebAssembly) deployment - see <see cref="IBrowserHostMarker"/>.
+    /// Drives the Choose step's live-editing card between the real "set up live editing" flow and
+    /// an informational dead end pointing at the desktop download.</summary>
+    private bool IsBrowserHost => Services.GetService<IBrowserHostMarker>() is not null;
 
     private IReadOnlyList<GameInstall> _installs = Array.Empty<GameInstall>();
     private GameInstall? _selectedInstall;
