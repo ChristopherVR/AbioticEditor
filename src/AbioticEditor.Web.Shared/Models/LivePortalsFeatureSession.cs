@@ -1,3 +1,4 @@
+using AbioticEditor.Core.LiveEditing;
 using AbioticEditor.Core.LiveEditing.World;
 using AbioticEditor.Core.WorldSaves;
 using AbioticEditor.Core.WorldSaves.Features;
@@ -23,7 +24,9 @@ public sealed class LivePortalsFeatureSession : IWorldFeaturesSession
     private LivePortalsFeatureSession(LivePortalsChannel channel, LivePortalDirectory directory)
     {
         _channel = channel;
-        Portals = directory.Portals;
+        // Defensive dedupe (round 122): see LiveFeatureRows's own remarks for why this exists
+        // even though portals.lua already keys every row by the actor's own unique full name.
+        Portals = LiveFeatureRows.DistinctById(directory.Portals, p => p.Id);
         IsHost = directory.IsHost;
     }
 
@@ -58,7 +61,9 @@ public sealed class LivePortalsFeatureSession : IWorldFeaturesSession
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var directory = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
-        Portals = directory.Portals;
+        // Defensive dedupe (round 122): see LiveFeatureRows's own remarks for why this exists
+        // even though portals.lua already keys every row by the actor's own unique full name.
+        Portals = LiveFeatureRows.DistinctById(directory.Portals, p => p.Id);
         IsHost = directory.IsHost;
         Changed?.Invoke();
     }
@@ -101,7 +106,18 @@ public sealed class LivePortalsFeatureSession : IWorldFeaturesSession
         if (current is null) return WorldEditResult.Failure("teleporter not found (it may have been unloaded).");
         if (current.Active == wanted) return WorldEditResult.NoChange;
 
-        await _channel.SetActiveAsync(entryKey, wanted).ConfigureAwait(false);
+        try
+        {
+            await _channel.SetActiveAsync(entryKey, wanted).ConfigureAwait(false);
+        }
+        catch (LiveAgentException ex)
+        {
+            // Round 125: same gap the elevators area had (see LiveElevatorsFeatureSession's
+            // identical remark) - an uncaught exception here skips WorldFeaturesTab.SetFieldAsync's
+            // error handling and revert entirely, letting a refused toggle keep re-sending on the
+            // next periodic refresh instead of failing once and snapping back.
+            return WorldEditResult.Failure(ex.Message);
+        }
         await RefreshAsync().ConfigureAwait(false);
         return WorldEditResult.Success;
     }

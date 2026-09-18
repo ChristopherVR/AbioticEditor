@@ -42,10 +42,10 @@
     else
     {
         <div class="shell-save-list" role="listbox" aria-label="@L.Resource("LiveChemistryBenches_Title")">
-            @foreach (var bench in OrderedEntries)
+            @foreach (var (bench, benchRenderKey) in RenderKeys.With(OrderedEntries, b => b.Id))
             {
                 var expanded = _selectedId == bench.Id;
-                <div @key="bench.Id">
+                <div @key="benchRenderKey">
                     <button type="button" role="option" aria-selected="@(expanded ? "true" : "false")"
                             class="save-file-row kind-player @(expanded ? "selected" : null)" @onclick="() => Toggle(bench.Id)">
                         <span class="save-kind-marker" aria-hidden="true"></span>
@@ -61,9 +61,10 @@
                             <div class="wt-portrait cb-portrait">
                                 <ItemIcon ItemId="@BenchItemId" Alt="@bench.Label" />
                             </div>
-                            @foreach (var flask in bench.Fields.Where(f => f.Id.StartsWith("flask:", StringComparison.Ordinal)))
+                            @foreach (var (flask, flaskRenderKey) in RenderKeys.With(
+                                bench.Fields.Where(f => f.Id.StartsWith("flask:", StringComparison.Ordinal)), f => f.Id))
                             {
-                                <div class="wt-field" @key="flask.Id">
+                                <div class="wt-field" @key="flaskRenderKey">
                                     <span class="wt-label">@flask.Label</span>
                                     <span class="wt-field-inline">
                                         @* Right-click opens the "send to..." choice for this flask (a player, or a
@@ -169,9 +170,9 @@
                 <input type="search" class="wt-input" value="@_recipeFilter" @oninput="e => _recipeFilter = e.Value?.ToString() ?? string.Empty"
                        placeholder="@L.Resource("LiveChemistryBenches_RecipesSearch")" aria-label="@L.Resource("LiveChemistryBenches_RecipesSearch")" />
                 <div class="cb-recipe-list">
-                    @foreach (var recipe in FilteredRecipes)
+                    @foreach (var (recipe, recipeRenderKey) in RenderKeys.With(FilteredRecipes, r => r.Id))
                     {
-                        <div class="cb-recipe-row" @key="recipe.Id">
+                        <div class="cb-recipe-row" @key="recipeRenderKey">
                             <span class="cb-recipe-ingredients">
                                 @foreach (var ingredient in recipe.IngredientList)
                                 {

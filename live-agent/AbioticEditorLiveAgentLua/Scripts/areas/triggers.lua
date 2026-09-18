@@ -74,15 +74,20 @@ return function(ctx)
         return nil
     end
 
-    -- Matched by UniqueTriggerID, NOT GetFullName() - see the header comment for why. If two
-    -- placed instances somehow shared the same id (not expected - it is game-authored per
-    -- placement) the first match found wins, the same "first match" behavior findByFullName
-    -- already has for actor-path ids elsewhere in this mod.
-    local function findTrigger(id)
+    -- Matched by UniqueTriggerID, NOT GetFullName() - see the header comment for why. Several
+    -- placed volumes CAN legitimately share one id (round 122: a live report crashed the whole
+    -- editor page - "More than one sibling of element 'button' has the same key value" - once two
+    -- volumes sharing 'CA_PunchCard_TutorialPanelTrigger' were both loaded at once), so this
+    -- returns every match, not just the first. triggerRows() below folds them into one row (the
+    -- save's own TriggerMap only ever has one entry per id, so that is the correct shape to show
+    -- the player); triggers.set applies an edit to every matched volume so they stay in lockstep
+    -- with that merged row.
+    local function findTriggersById(id)
+        local result = {}
         for _, actor in ipairs(allTriggerActors()) do
-            if actor:IsValid() and triggerId(actor) == id then return actor end
+            if actor:IsValid() and triggerId(actor) == id then table.insert(result, actor) end
         end
-        return nil
+        return result
     end
 
     local function boolOrNil(ok, value)
@@ -112,14 +117,42 @@ return function(ctx)
         }
     end
 
+    -- One row per id, not one row per placed volume (round 122). The save's own TriggerMap only
+    -- ever has one entry per UniqueTriggerID, so a save round-trip already treats every volume
+    -- sharing an id as the same logical trigger; showing them as separate rows here would both
+    -- misrepresent that and produce duplicate row ids, which crashes the editor's list (a
+    -- duplicate render key is an uncatchable renderer error, not a recoverable one - see
+    -- RenderKeys.cs on the editor side for the matching defense there). When merging:
+    --   timesTriggered      <- the HIGHEST count seen across the volumes sharing this id, since a
+    --                          lower reading is never a more complete picture of "how many times
+    --                          has this fired" than one already observed.
+    --   hasBeenTriggeredOnce <- true if ANY volume sharing the id reports true.
+    --   label/x/y/z/triggerLimit <- taken from whichever volume was found first; these are
+    --                          informational display fields only, never written back.
     local function triggerRows()
-        local result = { __forceArray = true }
+        local byId = {}
+        local order = {}
         for _, actor in ipairs(allTriggerActors()) do
             if actor:IsValid() then
                 local row = triggerRow(actor)
-                if row then table.insert(result, row) end
+                if row then
+                    local existing = byId[row.id]
+                    if not existing then
+                        byId[row.id] = row
+                        table.insert(order, row.id)
+                    else
+                        if row.timesTriggered and (not existing.timesTriggered or row.timesTriggered > existing.timesTriggered) then
+                            existing.timesTriggered = row.timesTriggered
+                        end
+                        if row.hasBeenTriggeredOnce then
+                            existing.hasBeenTriggeredOnce = true
+                        end
+                    end
+                end
             end
         end
+        local result = { __forceArray = true }
+        for _, id in ipairs(order) do table.insert(result, byId[id]) end
         return result
     end
 
@@ -131,7 +164,9 @@ return function(ctx)
 
     -- Matches doors.set/buttons.set/elevators.set: every resolvable row applies first; only once
     -- every row has run does an unresolved id or a failed write turn the whole reply into an
-    -- error, naming the first one.
+    -- error, naming the first one. Unlike those areas, one row's id here can back MORE THAN ONE
+    -- placed volume (see triggerRows() above), so an edit is applied to every matched volume, not
+    -- just the first, to keep them all in lockstep with the merged row the player sees.
     ctx.handlers["triggers.set"] = function(payload, respond)
         ctx.runOnGameThread(function()
             if not ctx.isHost() then error("only the host can change world triggers") end
@@ -139,21 +174,23 @@ return function(ctx)
             local missingId, failedId, failedReason = nil, nil, nil
             for i = 1, #rows do
                 local row = rows[i]
-                local trigger = row.id and findTrigger(row.id)
-                if trigger then
-                    if row.reset then
-                        local ok = pcall(function() trigger:ResetTriggerState() end)
-                        if not ok then
-                            failedId = failedId or row.id
-                            failedReason = failedReason or "this trigger type has no known live reset control"
-                        end
-                    elseif row.timesTriggered ~= nil then
-                        local okWrite = pcall(function() trigger.TimesTriggered = row.timesTriggered end)
-                        if okWrite then
-                            pcall(function() trigger:SaveTriggerData() end)
-                        else
-                            failedId = failedId or row.id
-                            failedReason = failedReason or "this trigger type has no known live fire-count control"
+                local matches = row.id and findTriggersById(row.id) or {}
+                if #matches > 0 then
+                    for _, trigger in ipairs(matches) do
+                        if row.reset then
+                            local ok = pcall(function() trigger:ResetTriggerState() end)
+                            if not ok then
+                                failedId = failedId or row.id
+                                failedReason = failedReason or "this trigger type has no known live reset control"
+                            end
+                        elseif row.timesTriggered ~= nil then
+                            local okWrite = pcall(function() trigger.TimesTriggered = row.timesTriggered end)
+                            if okWrite then
+                                pcall(function() trigger:SaveTriggerData() end)
+                            else
+                                failedId = failedId or row.id
+                                failedReason = failedReason or "this trigger type has no known live fire-count control"
+                            end
                         end
                     end
                 else

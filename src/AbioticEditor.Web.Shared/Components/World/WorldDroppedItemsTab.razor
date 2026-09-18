@@ -82,9 +82,9 @@
             </div>
         }
         <div class="wg-list" role="list" aria-label="@L.Resource("WorldDropped_ItemsOnTheGround")">
-            @foreach (var item in Visible)
+            @foreach (var (item, itemRenderKey) in RenderKeys.With(Visible, i => i.Id))
             {
-                <div class="wg-row" role="listitem" @key="item.Id" @onclick="() => Inspect(item)">
+                <div class="wg-row" role="listitem" @key="itemRenderKey" @onclick="() => Inspect(item)">
                     <span class="wg-texts">
                         <button class="world-row-name" type="button" @onclick="() => Inspect(item)" @onclick:stopPropagation>@DisplayName(item)</button>
                         <small>@SubText(item)</small>

@@ -30,10 +30,10 @@
             }
             else
             {
-                @foreach (var row in AllPets)
+                @foreach (var (row, petRenderKey) in RenderKeys.With(AllPets, r => r.Id))
                 {
                     <button type="button" role="option" aria-selected="@(_selectedId == row.Id ? "true" : "false")"
-                            class="wt-row pet-row-item @(_selectedId == row.Id ? "selected" : null)" @key="row.Id"
+                            class="wt-row pet-row-item @(_selectedId == row.Id ? "selected" : null)" @key="petRenderKey"
                             @onclick="() => _selectedId = row.Id">
                         <span class="pet-avatar" aria-hidden="true">
                             <span class="pet-avatar-letter">@Avatar(row)</span>

@@ -33,7 +33,9 @@ public sealed class LiveTramsFeatureSession : IWorldFeaturesSession
     private LiveTramsFeatureSession(LiveTramsChannel channel, LiveTramDirectory directory)
     {
         _channel = channel;
-        Trams = directory.Trams;
+        // Defensive dedupe (round 122): see LiveFeatureRows's own remarks for why this exists
+        // even though trams.lua already keys every row by the actor's own unique full name.
+        Trams = LiveFeatureRows.DistinctById(directory.Trams, t => t.Id);
         IsHost = directory.IsHost;
     }
 
@@ -68,7 +70,9 @@ public sealed class LiveTramsFeatureSession : IWorldFeaturesSession
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var directory = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
-        Trams = directory.Trams;
+        // Defensive dedupe (round 122): see LiveFeatureRows's own remarks for why this exists
+        // even though trams.lua already keys every row by the actor's own unique full name.
+        Trams = LiveFeatureRows.DistinctById(directory.Trams, t => t.Id);
         IsHost = directory.IsHost;
         Changed?.Invoke();
     }

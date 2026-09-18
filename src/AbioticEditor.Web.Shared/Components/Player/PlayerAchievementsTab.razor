@@ -60,12 +60,12 @@
     </div>
     <div class="achievement-list">
         @if (!Visible.Any()) { <p class="muted achievements-empty">@L.Resource("PlayerAchievements_NoAchievementData")</p> }
-        @foreach (var achievement in Visible)
+        @foreach (var (achievement, achievementRenderKey) in RenderKeys.With(Visible, a => a.ApiName))
         {
             var concealed = IsConcealed(achievement);
             @* A sealed row reveals itself when tapped (native gesture); a revealed one opens its
                card in the editor's right-hand pane, like every other list in the app. *@
-            <div class="achievement-row @(concealed ? "concealed" : null) @(_selected == achievement.ApiName ? "selected" : null)" @key="achievement.ApiName"
+            <div class="achievement-row @(concealed ? "concealed" : null) @(_selected == achievement.ApiName ? "selected" : null)" @key="achievementRenderKey"
                  role="button" tabindex="0"
                  title="@(concealed ? L.Resource("PlayerAchievements_TapToRevealTooltip") : L.Resource("PlayerAchievements_TapToOpenTooltip"))"
                  @onclick="() => RowTapped(achievement)"

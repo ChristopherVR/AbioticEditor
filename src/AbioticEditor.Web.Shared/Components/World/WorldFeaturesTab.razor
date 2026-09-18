@@ -46,8 +46,14 @@ else
                     @* Only the rows on screen are built. Drawing all four hundred resource nodes
                        at once is what made this tab take seconds to appear. *@
                     <Virtualize Items="_visibleRows" Context="row" ItemSize="58" OverscanCount="6">
+                        @* @key uses row.RenderKey, not row.Key: several entries can legitimately share
+                           one domain key (e.g. several trigger volumes placed under one game-authored
+                           UniqueTriggerID - round 122), and a repeated @key crashes the whole page
+                           circuit (RenderTreeDiffBuilder, uncatchable by any ErrorBoundary). RenderKey
+                           (see RenderKeys.With in RefreshSnapshot) suffixes "#2", "#3", ... onto repeats
+                           so it can never collide; row.Key stays the real domain id for selection/edits. *@
                         <button type="button" role="option" aria-selected="@(_selectedKey == row.Key ? "true" : "false")"
-                                class="world-feature-row @(_selectedKey == row.Key ? "selected" : null)" @key="row.Key"
+                                class="world-feature-row @(_selectedKey == row.Key ? "selected" : null)" @key="row.RenderKey"
                                 @onclick="() => Select(row.Key)">
                             <strong>@row.Label</strong>
                             @if (row.Area is { Length: > 0 }) { <span class="feature-area">@row.Area</span> }
@@ -107,9 +113,12 @@ else
                         }
                     }
                     <div class="world-feature-fields">
-                        @foreach (var field in VisibleFields(selected))
+                        @* Fields are also keyed defensively: a feature entry's field list is expected
+                           to have distinct ids, but a repeated one would crash the render the same way
+                           a repeated row key does, so this goes through RenderKeys.With too. *@
+                        @foreach (var (field, fieldKey) in RenderKeys.With(VisibleFields(selected), f => f.Id))
                         {
-                            <div class="world-feature-field" @key="field.Id">
+                            <div class="world-feature-field" @key="fieldKey">
                                 <div class="world-feature-field-row">
                                     <span class="world-feature-field-label">@FieldLabel(selected, field)</span>
                                     @if (!field.Editable)
@@ -174,7 +183,9 @@ else
     // used to re-sort every deployable in the region each time the panel was drawn.
     private Dictionary<string, WorldDeployable>? _deployablesById;
 
-    private sealed record FeatureRow(WorldMapEntry Entry, string Label, string Area, string Summary, bool PluggedIn)
+    // RenderKey is a render-only, always-unique identity for @key; Key stays the real domain id
+    // used for selection and edits (see the button's @key comment above for why the two differ).
+    private sealed record FeatureRow(WorldMapEntry Entry, string Label, string Area, string Summary, bool PluggedIn, string RenderKey)
     {
         public string Key => Entry.Key;
     }
@@ -271,10 +282,10 @@ else
                         Core.WorldSaves.WorldSaveReader.ReadFromStream(new MemoryStream(bytes, writable: false)));
                     Core.WorldSaves.PowerSocketDeviceResolver.MergeSave(index, SaveName(path), data.Raw);
                 }
-                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
+                catch (Exception caught) when (caught is IOException or UnauthorizedAccessException or InvalidDataException)
                 {
                     // A sibling that cannot be read simply contributes no names.
-                    Core.Diagnostics.EditorLog.Warn("PowerSockets", $"Could not scan '{path}' for plugged-in devices.", exception);
+                    Core.Diagnostics.EditorLog.Warn("PowerSockets", $"Could not scan '{path}' for plugged-in devices.", caught);
                 }
             }
             return index;
@@ -293,8 +304,11 @@ else
         _snapshot = Session.MapFeature(FeatureId);
         _allRows = _snapshot is null
             ? []
-            : _snapshot.Entries.Select(entry => new FeatureRow(
-                entry, entry.Label, AreaFor(entry) ?? string.Empty, Summary(entry), IsPluggedInSocket(entry))).ToList();
+            : RenderKeys.With(_snapshot.Entries, entry => entry.Key)
+                .Select(pair => new FeatureRow(
+                    pair.Item, pair.Item.Label, AreaFor(pair.Item) ?? string.Empty, Summary(pair.Item),
+                    IsPluggedInSocket(pair.Item), pair.Key))
+                .ToList();
         RebuildVisibleRows();
         StartCrossRegionResolve();
     }
@@ -602,29 +616,98 @@ else
     private Task SetBooleanFieldAsync(string featureId, string entryKey, string fieldId, bool value)
         => SetFieldAsync(featureId, entryKey, fieldId, value ? "true" : "false");
 
-    // A refused edit always says so. When the refusal came with its own explanation that is what
-    // the player sees; when it came back with nothing, a plain "that change was not accepted"
-    // still appears, so a rejected edit is never silently swallowed.
+    // Round 125: which entry+field combinations currently have a send in flight - see SetFieldAsync's
+    // own remarks for why this exists on top of the try/catch below.
+    private readonly HashSet<string> _pendingFieldSends = new(StringComparer.Ordinal);
+
+    private static string PendingKey(string entryKey, string fieldId) => entryKey + "||" + fieldId;
+
+    /// <summary>
+    /// Maps a live agent's own English, technically-worded refusal text to a short, player-facing
+    /// sentence - the raw text still reaches the log (see the caller) and, when nothing here
+    /// recognises it, is still shown as-is rather than swallowed: a refusal this table has never
+    /// seen is more useful shown verbatim than silently reworded into something generic. Every
+    /// Live*FeatureSession's refusal text is plain, lowercase English straight off the Lua module
+    /// (see elevators.lua/trams.lua/etc.'s own handlers) - not a resource key itself, so it is
+    /// matched by substring rather than exact string.
+    /// </summary>
+    private string FriendlyReason(string reason)
+    {
+        if (reason.Contains("not powered", StringComparison.OrdinalIgnoreCase))
+            return L.Resource("WorldFeature_ReasonNotPowered");
+        if (reason.Contains("currently moving", StringComparison.OrdinalIgnoreCase))
+            return L.Resource("WorldFeature_ReasonMoving");
+        if (reason.Contains("not controllable", StringComparison.OrdinalIgnoreCase))
+            return L.Resource("WorldFeature_ReasonNotControllable");
+        return reason;
+    }
+
+    // A refused edit always says so, exactly once per click. When the refusal came with its own
+    // explanation that (translated to plain language - see FriendlyReason) is what the player
+    // sees; when it came back with nothing, a plain "that change was not accepted" still appears,
+    // so a rejected edit is never silently swallowed.
+    //
+    // Round 125: this used to only handle a session returning WorldEditResult.Failure - a session
+    // that instead let an exception escape (LiveElevatorsFeatureSession/LivePortalsFeatureSession
+    // both did, before this round's fix to each) skipped every line below, including the final
+    // RefreshSnapshot() that snaps a checkbox/select back to the confirmed value. Left stuck like
+    // that, the control kept showing the click the game never accepted, and the very next
+    // unrelated re-render (the live world's own 2-second periodic refresh, LiveConnect.razor's
+    // LiveRefreshLoopAsync) redrew this same stale field, which is what produced the observed
+    // "elevator is not powered" toast repeating every couple of seconds instead of once (see
+    // docs/PROGRESS.md's Round-125 entry). Two things close that gap for good, for every feature
+    // this tab serves, not only the one that was actually observed misbehaving:
+    // - a try/catch here treats ANY exception from Session.SetMapFeatureField the same as a
+    //   returned Failure, so RefreshSnapshot() (the revert) always runs, in a finally, whether the
+    //   session behaved or not;
+    // - _pendingFieldSends refuses a second send for the same entry+field while the first is still
+    //   in flight, so even a genuine double-dispatch of the same UI event can only ever reach the
+    //   game once.
     private async Task SetFieldAsync(string featureId, string entryKey, string fieldId, string? value)
     {
-        var result = await Session.SetMapFeatureField(featureId, entryKey, fieldId, value);
-        if (result.IsError)
+        var pendingKey = PendingKey(entryKey, fieldId);
+        if (!_pendingFieldSends.Add(pendingKey)) return;
+        try
         {
-            var reason = result.Error is { Length: > 0 } explanation
-                ? explanation
-                : L.Resource("WorldFeature_ChangeRefused");
-            _fieldErrors[fieldId] = reason;
-            await OnError.InvokeAsync(reason);
+            WorldEditResult result;
+            try
+            {
+                result = await Session.SetMapFeatureField(featureId, entryKey, fieldId, value);
+            }
+            catch (Exception caught)
+            {
+                Core.Diagnostics.EditorLog.Warn("WorldFeatures",
+                    $"'{fieldId}' on '{entryKey}' ({featureId}) threw instead of returning a result.", caught);
+                result = WorldEditResult.Failure(caught.Message is { Length: > 0 } message
+                    ? message
+                    : L.Resource("WorldFeature_ChangeRefused"));
+            }
+
+            if (result.IsError)
+            {
+                var reason = result.Error is { Length: > 0 } explanation
+                    ? FriendlyReason(explanation)
+                    : L.Resource("WorldFeature_ChangeRefused");
+                _fieldErrors[fieldId] = reason;
+                await OnError.InvokeAsync(reason);
+            }
+            else
+            {
+                _fieldErrors.Remove(fieldId);
+                // Tell the shell an edit happened, the same way every other world tab does. Without
+                // this, changing a resource node (or any other feature entry) staged the edit but
+                // left SAVE hidden, so the change looked like it had not registered at all.
+                Workspace.NotifyEdited();
+            }
         }
-        else
+        finally
         {
-            _fieldErrors.Remove(fieldId);
-            // Tell the shell an edit happened, the same way every other world tab does. Without
-            // this, changing a resource node (or any other feature entry) staged the edit but
-            // left SAVE hidden, so the change looked like it had not registered at all.
-            Workspace.NotifyEdited();
+            // Always re-reads the confirmed value, success or failure alike - this is what snaps a
+            // failed checkbox/select back to what the game actually reports, in the same render
+            // pass as the refusal, instead of leaving it showing a click the game never accepted.
+            RefreshSnapshot();
+            _pendingFieldSends.Remove(pendingKey);
         }
-        RefreshSnapshot();
     }
 
     private async Task RemoveEntryAsync(string featureId, string entryKey)

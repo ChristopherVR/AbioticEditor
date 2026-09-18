@@ -31,7 +31,9 @@ public sealed class LivePowerSocketsFeatureSession : IWorldFeaturesSession
     private LivePowerSocketsFeatureSession(LivePowerSocketsChannel channel, LivePowerSocketDirectory directory)
     {
         _channel = channel;
-        Sockets = directory.Sockets;
+        // Defensive dedupe (round 122): see LiveFeatureRows's own remarks for why this exists
+        // even though powersockets.lua already keys every row by the actor's own unique full name.
+        Sockets = LiveFeatureRows.DistinctById(directory.Sockets, s => s.Id);
         IsHost = directory.IsHost;
     }
 
@@ -66,7 +68,9 @@ public sealed class LivePowerSocketsFeatureSession : IWorldFeaturesSession
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var directory = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
-        Sockets = directory.Sockets;
+        // Defensive dedupe (round 122): see LiveFeatureRows's own remarks for why this exists
+        // even though powersockets.lua already keys every row by the actor's own unique full name.
+        Sockets = LiveFeatureRows.DistinctById(directory.Sockets, s => s.Id);
         IsHost = directory.IsHost;
         Changed?.Invoke();
     }

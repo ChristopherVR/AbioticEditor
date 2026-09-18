@@ -54,9 +54,9 @@
                    render "01 - OFFICE SECTOR"), so the title alone is not a unique key. *@
                 var groupKey = $"group-{groupIndex++}:{group.Title}";
                 <div class="wf-group-head" @key="groupKey"><span>@group.Title</span><small>@group.Items.Count</small></div>
-                @foreach (var flag in group.Items)
+                @foreach (var (flag, flagRenderKey) in RenderKeys.With(group.Items, f => f.RawName))
                 {
-                    <div class="wf-row @(_selected == flag.RawName ? "selected" : null) @(flag.IsSet ? null : "wf-row-pending")" role="listitem" @key="flag.RawName"
+                    <div class="wf-row @(_selected == flag.RawName ? "selected" : null) @(flag.IsSet ? null : "wf-row-pending")" role="listitem" @key="flagRenderKey"
                          @onclick="() => SelectFlag(flag.RawName)">
                         <span class="wf-chip" style="background:@flag.CategoryColor">@flag.CategoryLabel</span>
                         <span class="wf-texts">

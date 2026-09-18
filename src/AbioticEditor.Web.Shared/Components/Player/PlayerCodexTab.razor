@@ -42,9 +42,9 @@
         <div class="codex-single">
             <div class="codex-list" role="listbox" aria-label="@CountText">
                 @if (!Visible.Any()) { <p class="muted codex-empty">@L.Resource("PlayerCodex_NothingMatches")</p> }
-                @foreach (var row in Visible)
+                @foreach (var (row, codexRenderKey) in RenderKeys.With(Visible, r => r.Id))
                 {
-                    <div class="codex-row @(_selected == row ? "selected" : null)" role="option" aria-selected="@(_selected == row ? "true" : "false")" @key="row.Id" @onclick="() => Select(row)">
+                    <div class="codex-row @(_selected == row ? "selected" : null)" role="option" aria-selected="@(_selected == row ? "true" : "false")" @key="codexRenderKey" @onclick="() => Select(row)">
                         <input type="checkbox" aria-label="@RowTitle(row)" checked="@row.IsKnown" disabled="@(!row.Editable || LockedIn(row))" @onclick:stopPropagation @onchange="e => SetKnown(row, e.Value is bool value && value)" />
                         @if (row.ItemId is { } rowItemId) { <span class="codex-icon"><ItemIcon ItemId="@rowItemId" Alt="@RowTitle(row)" /></span> }
                         <span class="codex-titles"><button class="codex-select" type="button" @onclick="() => Select(row)" @onclick:stopPropagation>@RowTitle(row)</button>@if (RowSubtitle(row) is { Length: > 0 } subtitle) { <small>@subtitle</small> }</span>

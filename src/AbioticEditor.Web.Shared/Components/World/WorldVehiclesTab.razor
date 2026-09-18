@@ -22,16 +22,21 @@
             }
             else
             {
+                @* group.Key values are distinct by construction (GroupBy), so the header's own
+                   "group-" + group.Key key is safe. The row buttons below are RenderKeys.With'd
+                   over the WHOLE vehicle list before grouping (see VehicleGroups), not per group,
+                   because every row across every group renders as a sibling at this same level -
+                   a vehicle id repeating in two different regions would otherwise still collide. *@
                 @foreach (var group in VehicleGroups)
                 {
                     <div class="wt-group-header" @key="@("group-" + group.Key)">
                         <span class="wt-group-title">@group.Key</span>
                         <span class="wt-group-count">@(group.Count() == 1 ? L.Resource("WorldVehicles_CountSingular") : L.Resource("WorldVehicles_CountFormat", group.Count()))</span>
                     </div>
-                    @foreach (var row in group)
+                    @foreach (var (row, rowKey) in group)
                     {
                         <button type="button" role="option" aria-selected="@(_selectedId == row.Id ? "true" : "false")"
-                                class="wt-row @(_selectedId == row.Id ? "selected" : null)" @key="row.Id"
+                                class="wt-row @(_selectedId == row.Id ? "selected" : null)" @key="rowKey"
                                 @onclick="() => Select(row)">
                             <span class="wt-row-text">
                                 <strong>@row.DisplayName</strong>
@@ -152,8 +157,9 @@
     private string? _wikiImageFile;
     private CancellationTokenSource? _selectionLoad;
 
-    private IEnumerable<IGrouping<string, WorldVehicle>> VehicleGroups => Session.Vehicles
-        .GroupBy(vehicle => string.IsNullOrEmpty(vehicle.Region) ? L.Resource("WorldVehicles_UnknownWorld") : PlainNames.Area(vehicle.Region))
+    private IEnumerable<IGrouping<string, (WorldVehicle Item, string Key)>> VehicleGroups => RenderKeys
+        .With(Session.Vehicles, vehicle => vehicle.Id)
+        .GroupBy(pair => string.IsNullOrEmpty(pair.Item.Region) ? L.Resource("WorldVehicles_UnknownWorld") : PlainNames.Area(pair.Item.Region))
         .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase);
 
     private WorldVehicle? Selected => _selectedId is null ? null : Session.Vehicles.FirstOrDefault(vehicle => vehicle.Id == _selectedId);

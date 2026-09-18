@@ -73,6 +73,27 @@ return function(H)
     }), "reset takes priority over a timesTriggered value on the same row")
     H.eq(H.field(punchCard, "TimesTriggered"), 0, "reset wins over the simultaneous timesTriggered=99 request")
 
+    -- Round 122: several placed volumes can share one UniqueTriggerID (a live crash report traced
+    -- to exactly this for 'CA_PunchCard_TutorialPanelTrigger', see areas/triggers.lua's header).
+    -- triggers.list must fold them into ONE row per id - never two rows with the same id, since a
+    -- duplicate row id crashes the editor's list - and triggers.set must edit every volume sharing
+    -- that id, not just the first found.
+    local dupA = trigger("Trigger_DuplicateA_C", "Shared_DuplicateTrigger", 2, false, -1)
+    local dupB = trigger("Trigger_DuplicateB_C", "Shared_DuplicateTrigger", 5, true, -1)
+    local dupList = H.ok(H.dispatch("triggers.list"), "triggers.list with two volumes sharing one id")
+    local dupRows = {}
+    for _, row in ipairs(dupList.triggers) do
+        if row.id == "Shared_DuplicateTrigger" then table.insert(dupRows, row) end
+    end
+    H.eq(#dupRows, 1, "two volumes sharing one id fold into exactly one row, never two")
+    H.eq(dupRows[1].timesTriggered, 5, "merged row takes the highest fire count seen across the volumes")
+    H.eq(dupRows[1].hasBeenTriggeredOnce, true, "merged row is 'has fired' if ANY volume sharing the id has")
+
+    H.ok(H.dispatch("triggers.set", { triggers = { { id = "Shared_DuplicateTrigger", reset = true } } }),
+        "reset a row backed by two volumes")
+    H.eq(H.calls(dupA, "ResetTriggerState"), 1, "reset reaches the first volume sharing the id")
+    H.eq(H.calls(dupB, "ResetTriggerState"), 1, "reset reaches the second volume sharing the id too")
+
     -- A brand-new trigger-shaped class this module has never heard of by name, reached only
     -- through the hierarchy sweep on the one confirmed root - still listed and settable.
     local futureType = trigger("Trigger_FutureDLC_C", "DLC_FutureTrigger", 0, false, -1)
@@ -90,7 +111,8 @@ return function(H)
         K2_GetActorLocation = function() return H.vector(0, 0, 0) end,
     }))
     local unresolvableList = H.ok(H.dispatch("triggers.list"), "triggers.list including a trigger with no UniqueTriggerID")
-    H.eq(#unresolvableList.triggers, 3, "the id-less trigger is omitted, not listed with a blank id (3: newGame, punchCard, futureType)")
+    H.eq(#unresolvableList.triggers, 4, "the id-less trigger is omitted, not listed with a blank id "
+        .. "(4: newGame, punchCard, the merged Shared_DuplicateTrigger row, futureType)")
 
     -- Missing trigger id: player-safe failure, not a Lua error - any resolvable row in the same
     -- call still applies first.

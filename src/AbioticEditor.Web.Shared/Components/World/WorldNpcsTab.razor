@@ -53,10 +53,13 @@
         {
             <div class="wt-md">
                 <div class="wt-list" role="listbox" aria-label="@L.Resource("WorldNpcs_StoryNpcsAndTraders")">
-                    @foreach (var npc in Session.Npcs)
+                    @* @key uses a RenderKeys value, not npc.Id directly: a repeated @key crashes the
+                       whole page circuit (round 122's trigger-volume crash), and this id comes from
+                       the save file, not something this app fully controls. *@
+                    @foreach (var (npc, npcKey) in RenderKeys.With(Session.Npcs, n => n.Id))
                     {
                         <button type="button" role="option" aria-selected="@(_storySelectedId == npc.Id ? "true" : "false")"
-                                class="wt-row @(_storySelectedId == npc.Id ? "selected" : null)" @key="npc.Id" title="@npc.Id"
+                                class="wt-row @(_storySelectedId == npc.Id ? "selected" : null)" @key="npcKey" title="@npc.Id"
                                 @onclick="() => _storySelectedId = npc.Id">
                             <span class="wt-row-text">
                                 <strong>@CharacterName(npc)</strong>
@@ -81,9 +84,15 @@
                         </div>
                         @* Round 92: one Dead toggle does the whole job - unchecking it is the revive
                            action (there used to be a second "Revive" button next to this checkbox
-                           that only ever called the exact same SetDead(selected, false)). *@
-                        <label class="wt-check">
-                            <input type="checkbox" checked="@selected.IsDead" disabled="@(_storyBusy || (Session.AppliesImmediately && !Session.IsHost))" @onchange="e => SetDead(selected, e.Value is bool value && value)" />
+                           that only ever called the exact same SetDead(selected, false)).
+                           Round 124: some classes (holograms, static trader stands) are never
+                           actually killable in-game - see NpcIdentityCatalog.CanBeKilled and
+                           docs/reference/research/research-narrative-npcs.md. The checkbox still
+                           shows whatever IsDead the save/live actor already carries (a row can
+                           legitimately be dead from the game's own story scripting), it just
+                           cannot be toggled for those classes, in either file or live mode. *@
+                        <label class="wt-check" title="@(CanKillSelected(selected) ? null : CannotDieTooltip(selected))">
+                            <input type="checkbox" checked="@selected.IsDead" disabled="@(_storyBusy || (Session.AppliesImmediately && !Session.IsHost) || !CanKillSelected(selected))" @onchange="e => SetDead(selected, e.Value is bool value && value)" />
                             @L.Resource("WorldPets_Dead")
                         </label>
                         <details>
@@ -132,10 +141,12 @@
             {
                 <div class="wt-md">
                     <div class="wt-list" role="listbox" aria-label="@L.Resource("LiveNpcs_Title")">
-                        @foreach (var npc in Creatures.Npcs)
+                        @* Same defensive RenderKeys use as the story-character list above: npc.Id
+                           here is a live-agent-reported actor path, not app-controlled data. *@
+                        @foreach (var (npc, npcKey) in RenderKeys.With(Creatures.Npcs, n => n.Id))
                         {
                             <button type="button" role="option" aria-selected="@(_creatureSelectedId == npc.Id ? "true" : "false")"
-                                    class="wt-row @(_creatureSelectedId == npc.Id ? "selected" : null)" @key="npc.Id"
+                                    class="wt-row @(_creatureSelectedId == npc.Id ? "selected" : null)" @key="npcKey"
                                     @onclick="() => SelectCreatureRow(npc)">
                                 <span class="wt-row-text">
                                     <strong>@CreatureName(npc)</strong>
@@ -247,6 +258,20 @@
     private string CharacterSecondary(WorldNpc npc) => Items.GetNarrativeNpcName(npc.Id) is not null
         ? NpcIdentityCatalog.LabelFor(npc.Id, npc.ActorName)
         : npc.ActorName;
+
+    /// <summary>Round 124: whether the Dead checkbox should be interactive for this row - false
+    /// for classes the game never lets players kill (holograms, static trader stands), so the
+    /// control cannot imply an action that has no effect. See
+    /// <see cref="NpcIdentityCatalog.CanBeKilled"/>.</summary>
+    private static bool CanKillSelected(WorldNpc npc) => NpcIdentityCatalog.CanBeKilled(npc.Id, npc.ActorName);
+
+    /// <summary>Round 124 follow-up: the disabled Dead checkbox's tooltip - builds on the same
+    /// plain-language catalog explanation already shown under the character's name
+    /// (<see cref="NpcIdentityCatalog.LabelFor"/>), so a hologram's tooltip says the same
+    /// "recorded projection, not a living character" thing its row already does, instead of a
+    /// generic one-size-fits-all message.</summary>
+    private string CannotDieTooltip(WorldNpc npc) =>
+        L.Resource("WorldNpcs_CannotDieTooltipFormat", NpcIdentityCatalog.LabelFor(npc.Id, npc.ActorName));
 
     private string? _storySelectedId;
     private bool _storyBusy;

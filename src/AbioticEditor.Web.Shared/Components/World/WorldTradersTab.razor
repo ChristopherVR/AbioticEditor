@@ -46,11 +46,11 @@
     }
 
     <div class="wt-cards">
-        @foreach (var trader in Roster)
+        @foreach (var (trader, traderRenderKey) in RenderKeys.With(Roster, t => t.Id))
         {
             var lore = TraderLore.ById.GetValueOrDefault(trader.Id);
             var concealed = IsConcealed(trader, lore);
-            <article class="wt-card @(IsSelected(trader) ? "selected" : null)" @key="trader.Id" tabindex="0" role="button"
+            <article class="wt-card @(IsSelected(trader) ? "selected" : null)" @key="traderRenderKey" tabindex="0" role="button"
                      aria-label="@ShownName(trader, lore, concealed)"
                      @onclick="() => CardTapped(trader, lore)" @onkeydown="e => CardKeyDown(e, trader, lore)">
                 <span class="wt-portrait">
@@ -329,7 +329,9 @@
             <div class="wm-divider" role="presentation"></div>
             <span class="wm-label">@L.Resource("Slot_WhatTheySellTapAnItemToInspectTickLockedItemsToUnlock")</span>
             <div class="wt-offer-list">
-                @foreach (var offer in trader.Sells)
+                @* A trader can legitimately sell the same item under two different offers (e.g.
+                   unlocked by two different flags), so offer.ItemId alone is not a safe bare key. *@
+                @foreach (var (offer, offerRenderKey) in RenderKeys.With(trader.Sells, o => o.ItemId))
                 {
                     var entry = Items.Find(offer.ItemId);
                     var name = entry?.DisplayName ?? PlainNames.Words(offer.ItemId);
@@ -341,7 +343,7 @@
                     var status = offer.RequiredFlag is null ? L.Resource("WorldTraders_Card_AlwaysStocked")
                         : unlocked ? L.Resource("WorldTraders_Card_UnlockedFlagSet", PlainNames.Flag(L, offer.RequiredFlag))
                         : L.Resource("WorldTraders_Card_LockedNeedsFlag", PlainNames.Flag(L, offer.RequiredFlag));
-                    <button type="button" class="wt-offer-row" @key="offer.ItemId" @onclick="() => Inspect(trader.Id, offer.ItemId)">
+                    <button type="button" class="wt-offer-row" @key="offerRenderKey" @onclick="() => Inspect(trader.Id, offer.ItemId)">
                         @if (canSelect)
                         {
                             <input type="checkbox" checked="@tickedFlags.Contains(offer.RequiredFlag!)" aria-label="@text"

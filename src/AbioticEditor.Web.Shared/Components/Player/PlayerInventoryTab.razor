@@ -110,9 +110,9 @@
             <span class="amber-field-label">@L.Resource("PlayerInventory_OnTheGroundNearby")</span>
             <p class="muted ground-help">@L.Resource("PlayerInventory_GroundNearbyHelp")</p>
             <div class="ground-list">
-                @foreach (var item in NearbyGroundItems)
+                @foreach (var (item, groundRenderKey) in RenderKeys.With(NearbyGroundItems, i => i.Id))
                 {
-                    <div class="ground-row" @key="item.Id">
+                    <div class="ground-row" @key="groundRenderKey">
                         <span class="ground-text"><strong>@GroundName(item)</strong><small>@L.Resource("PlayerUi_GroundItemDistance", item.Slot.Count, item.DistanceTo(Session.Respawn.X, Session.Respawn.Y, Session.Respawn.Z))</small></span>
                         <button class="heal-all-button" type="button" @onclick="() => PickUp(item)">@L.Resource("PlayerInventory_PickUp")</button>
                     </div>

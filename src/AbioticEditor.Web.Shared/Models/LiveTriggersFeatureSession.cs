@@ -29,7 +29,12 @@ public sealed class LiveTriggersFeatureSession : IWorldFeaturesSession
     private LiveTriggersFeatureSession(LiveTriggersChannel channel, LiveTriggerDirectory directory)
     {
         _channel = channel;
-        Triggers = directory.Triggers;
+        // Defensive dedupe (round 122): triggers.lua's own triggerRows() already merges every
+        // volume sharing a UniqueTriggerID into one row (see its header comment for why - the
+        // save's TriggerMap only ever has one entry per id), so this should never actually trim
+        // anything in practice. It stays as a second, independent backstop the same way every
+        // other live area gets one via LiveFeatureRows - see that type's own remarks.
+        Triggers = LiveFeatureRows.DistinctById(directory.Triggers, t => t.Id);
         IsHost = directory.IsHost;
     }
 
@@ -62,7 +67,12 @@ public sealed class LiveTriggersFeatureSession : IWorldFeaturesSession
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var directory = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
-        Triggers = directory.Triggers;
+        // Defensive dedupe (round 122): triggers.lua's own triggerRows() already merges every
+        // volume sharing a UniqueTriggerID into one row (see its header comment for why - the
+        // save's TriggerMap only ever has one entry per id), so this should never actually trim
+        // anything in practice. It stays as a second, independent backstop the same way every
+        // other live area gets one via LiveFeatureRows - see that type's own remarks.
+        Triggers = LiveFeatureRows.DistinctById(directory.Triggers, t => t.Id);
         IsHost = directory.IsHost;
         Changed?.Invoke();
     }

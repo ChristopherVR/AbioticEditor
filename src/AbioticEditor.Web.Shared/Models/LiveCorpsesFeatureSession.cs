@@ -29,7 +29,9 @@ public sealed class LiveCorpsesFeatureSession : IWorldFeaturesSession
     private LiveCorpsesFeatureSession(LiveCorpsesChannel channel, LiveCorpseDirectory directory)
     {
         _channel = channel;
-        Corpses = directory.Corpses;
+        // Defensive dedupe (round 122): see LiveFeatureRows's own remarks for why this exists
+        // even though corpses.lua already keys every row by the actor's own unique full name.
+        Corpses = LiveFeatureRows.DistinctById(directory.Corpses, c => c.Id);
         IsHost = directory.IsHost;
     }
 
@@ -62,7 +64,9 @@ public sealed class LiveCorpsesFeatureSession : IWorldFeaturesSession
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var directory = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
-        Corpses = directory.Corpses;
+        // Defensive dedupe (round 122): see LiveFeatureRows's own remarks for why this exists
+        // even though corpses.lua already keys every row by the actor's own unique full name.
+        Corpses = LiveFeatureRows.DistinctById(directory.Corpses, c => c.Id);
         IsHost = directory.IsHost;
         Changed?.Invoke();
     }

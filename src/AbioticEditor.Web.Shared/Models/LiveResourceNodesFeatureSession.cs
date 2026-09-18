@@ -39,7 +39,9 @@ public sealed class LiveResourceNodesFeatureSession : IWorldFeaturesSession
     private LiveResourceNodesFeatureSession(LiveResourceNodesChannel channel, LiveResourceNodeDirectory directory)
     {
         _channel = channel;
-        Nodes = directory.Nodes;
+        // Defensive dedupe (round 122): see LiveFeatureRows's own remarks for why this exists
+        // even though resourcenodes.lua already keys every row by the actor's own unique full name.
+        Nodes = LiveFeatureRows.DistinctById(directory.Nodes, n => n.Id);
         IsHost = directory.IsHost;
     }
 
@@ -73,7 +75,9 @@ public sealed class LiveResourceNodesFeatureSession : IWorldFeaturesSession
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var directory = await _channel.GetAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        Nodes = directory.Nodes;
+        // Defensive dedupe (round 122): see LiveFeatureRows's own remarks for why this exists
+        // even though resourcenodes.lua already keys every row by the actor's own unique full name.
+        Nodes = LiveFeatureRows.DistinctById(directory.Nodes, n => n.Id);
         IsHost = directory.IsHost;
         Changed?.Invoke();
     }

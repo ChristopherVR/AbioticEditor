@@ -1,3 +1,4 @@
+using AbioticEditor.Core.LiveEditing;
 using AbioticEditor.Core.LiveEditing.World;
 using AbioticEditor.Core.WorldSaves;
 using AbioticEditor.Core.WorldSaves.Features;
@@ -22,7 +23,9 @@ public sealed class LiveElevatorsFeatureSession : IWorldFeaturesSession
     private LiveElevatorsFeatureSession(LiveElevatorsChannel channel, LiveElevatorDirectory directory)
     {
         _channel = channel;
-        Elevators = directory.Elevators;
+        // Defensive dedupe (round 122): see LiveFeatureRows's own remarks for why this exists
+        // even though elevators.lua already keys every row by the actor's own unique full name.
+        Elevators = LiveFeatureRows.DistinctById(directory.Elevators, e => e.Id);
         IsHost = directory.IsHost;
     }
 
@@ -56,10 +59,14 @@ public sealed class LiveElevatorsFeatureSession : IWorldFeaturesSession
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var directory = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
-        Elevators = directory.Elevators;
+        // Defensive dedupe (round 122): see LiveFeatureRows's own remarks for why this exists
+        // even though elevators.lua already keys every row by the actor's own unique full name.
+        Elevators = LiveFeatureRows.DistinctById(directory.Elevators, e => e.Id);
         IsHost = directory.IsHost;
         Changed?.Invoke();
     }
+
+    private static string PoweredText(bool? powered) => powered is { } known ? (known ? "true" : "false") : "not available live";
 
     public WorldMapFeatureSnapshot? MapFeature(string featureId)
     {
@@ -79,6 +86,13 @@ public sealed class LiveElevatorsFeatureSession : IWorldFeaturesSession
                             + "moving or not powered."),
                     WorldMapField.ReadOnly("moving", "Moving", e.Moving ? "true" : "false",
                         hint: "true while the platform is travelling between stops."),
+                    // Round 125: shown so the player can see why a move might be refused (the
+                    // game's own elevators.set already gates a press on this, see IsPowered()
+                    // below) before clicking, not only from the refusal toast afterward.
+                    WorldMapField.ReadOnly("powered", "Powered", PoweredText(e.Powered),
+                        hint: "Whether this elevator currently has power, read from the "
+                            + "elevator's own IsPowered() function. Moving a platform with no "
+                            + "power is refused."),
                 }
                 : new[]
                 {
@@ -118,7 +132,24 @@ public sealed class LiveElevatorsFeatureSession : IWorldFeaturesSession
         }
         if (current.TopOpen == wanted) return WorldEditResult.NoChange;
 
-        await _channel.SetTopOpenAsync(entryKey, wanted).ConfigureAwait(false);
+        try
+        {
+            await _channel.SetTopOpenAsync(entryKey, wanted).ConfigureAwait(false);
+        }
+        catch (LiveAgentException ex)
+        {
+            // Round 125: this used to let the Lua side's own player-safe reason ("elevator is not
+            // powered", "elevator is currently moving", ...) escape as an uncaught exception
+            // instead of a WorldEditResult.Failure - every sibling Live*FeatureSession (buttons,
+            // npcspawns, triggers, destructibles, resourcenodes, trams) already catches this
+            // exact exception here; elevators was the one area that did not. The uncaught
+            // exception meant WorldFeaturesTab.SetFieldAsync's own error handling and
+            // RefreshSnapshot() call were both skipped, so a refused toggle was never reverted
+            // and kept re-sending on the next periodic refresh (see docs/PROGRESS.md's Round-125
+            // entry for the observed retry storm) - surfacing it as a Failure result here, like
+            // every sibling area already does, is the actual fix.
+            return WorldEditResult.Failure(ex.Message);
+        }
         await RefreshAsync().ConfigureAwait(false);
         return WorldEditResult.Success;
     }

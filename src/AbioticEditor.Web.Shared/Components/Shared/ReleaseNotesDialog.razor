@@ -18,9 +18,9 @@
         }
         else
         {
-            @foreach (var release in Releases)
+            @foreach (var (release, releaseRenderKey) in RenderKeys.With(Releases, r => r.Version))
             {
-                <article class="release-notes-entry" @key="release.Version">
+                <article class="release-notes-entry" @key="releaseRenderKey">
                     <h3>@L.Resource("ReleaseNotes_VersionHeading", release.Version, release.Date)</h3>
                     <ul>
                         @foreach (var highlight in release.Highlights)

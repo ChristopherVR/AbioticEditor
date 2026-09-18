@@ -47,6 +47,10 @@
     }
     <div class="wt-md bases-top">
         <div class="wt-list" role="listbox" aria-label="@L.Resource("WorldBases_BaseManager")">
+            @* worldBase.Name is safe as a bare @key: BaseDetector.Detect assigns "Base 1", "Base 2",
+               ... from a strictly increasing counter it owns itself, so it cannot repeat within one
+               Detect() call - unlike bench/deployable/container ids below, it is not data this app
+               reads from the save or the live agent. *@
             @foreach (var worldBase in Bases)
             {
                 <button type="button" role="option" aria-selected="@(_selectedBaseName == worldBase.Name ? "true" : "false")"
@@ -153,7 +157,11 @@
                    can be renamed and its contents opened. Benches are listed apart from the crates
                    below because they are what marks a spot as a base at all; a bench that also
                    holds items appears in both lists, which is why one can look like the other. *@
-                @foreach (var bench in CraftingBenches(worldBaseDetail))
+                @* RenderKeys on top of the "bench:" namespace: that prefix already keeps this
+                   list's keys from colliding with the paint list below (round 118), but two
+                   benches sharing bench.Id (deployable ids come from the save/live agent, not
+                   something this app fully controls) could still collide with each other. *@
+                @foreach (var (bench, benchRenderKey) in RenderKeys.With(CraftingBenches(worldBaseDetail), b => "bench:" + b.Id))
                 {
                     @* Round 118: a bench that is ALSO paintable (e.g. Deployed_CraftingBench_Default_C -
                        see DeployablePaintCatalog) renders a second "bench-row" div for the same
@@ -165,7 +173,7 @@
                        re-rendered this card for the first time that session. Namespacing each section's
                        key by which list it came from is the actual fix; see LiveBasesSession/bases.lua
                        for the belt-and-braces dedupe of the underlying data too. *@
-                    <div class="bench-row" @key="@("bench:" + bench.Id)">
+                    <div class="bench-row" @key="benchRenderKey">
                         <button type="button" class="bench-open" aria-pressed="@(Selection.DetailKey == BenchKey(bench))"
                                 title="@L.Resource("WorldBases_BenchEditHint")" @onclick="() => ShowBench(bench)">
                             <span class="bench-name">@bench.DisplayName</span>
@@ -206,11 +214,12 @@
                 @if (paintable.Count > 0)
                 {
                     <span class="wt-label accent-orange-text">@L.Resource("WorldBases_PaintedObjects")</span>
-                    @foreach (var deployable in paintable)
+                    @foreach (var (deployable, paintRenderKey) in RenderKeys.With(paintable, d => "paint:" + d.Id))
                     {
                         @* See the crafting-bench loop above: this list's rows are siblings of that
-                           one's under the same wt-card, so its key needs its own namespace too. *@
-                        <div class="bench-row" @key="@("paint:" + deployable.Id)">
+                           one's under the same wt-card, so its key needs its own namespace too, and
+                           the same RenderKeys defense against two deployables sharing an id. *@
+                        <div class="bench-row" @key="paintRenderKey">
                             <span class="bench-name">@deployable.DisplayName</span>
                             <label class="wt-field paint-colour-field">
                                 <span class="wt-label">@L.Resource("WorldBases_PaintColour")</span>
@@ -244,9 +253,9 @@
                     }
                     else
                     {
-                        @foreach (var container in baseContainers)
+                        @foreach (var (container, containerRenderKey) in RenderKeys.With(baseContainers, c => c.Id))
                         {
-                            <button type="button" class="wt-row container-jump-row @(_openContainerId == container.Id ? "selected" : null)" @key="container.Id"
+                            <button type="button" class="wt-row container-jump-row @(_openContainerId == container.Id ? "selected" : null)" @key="containerRenderKey"
                                     @onclick="() => OpenContainerFor(container.Id)">
                                 <span class="wt-row-text"><strong>@ContainerDisplayName(container)</strong></span>
                                 <span class="wt-readout">@ContainerCountText(container)</span>

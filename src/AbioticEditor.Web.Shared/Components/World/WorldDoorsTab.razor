@@ -45,7 +45,7 @@
             <p>@L.Resource("WorldDoors_SecurityStateHelp")</p>
         </details>
         <div class="wd-list" role="list" aria-label="@L.Resource("WorldDoors_Title")">
-            @foreach (var door in VisibleDoors)
+            @foreach (var (door, doorRenderKey) in RenderKeys.With(VisibleDoors, d => d.Id))
             {
                 var className = ClassName(door);
                 var info = DoorClassCatalog.Lookup(className);
@@ -53,7 +53,7 @@
                 var (map, actor) = DoorIdParser.Parse(door.Id);
                 var lockKind = LockKindFor(map, actor, info);
                 var isSelected = _selectedDoorId == door.Id;
-                <article class="wd-row @(isSelected ? "selected" : null)" role="listitem" @key="door.Id"
+                <article class="wd-row @(isSelected ? "selected" : null)" role="listitem" @key="doorRenderKey"
                          @onclick="() => ToggleSelectAsync(door, map, actor)">
                     <div class="wd-row-top">
                         <span class="wd-kind-chip">@KindLabel(door)</span>

@@ -48,13 +48,13 @@
             <div class="wc-master" role="list" aria-label="@L.Resource("WorldContainers_SelectAContainer")">
                 @{ var visible = VisibleContainers; }
                 @if (visible.Count == 0) { <p class="wc-empty">@L.Resource("WorldContainers_NoContainersMatch")</p> }
-                @foreach (var container in visible)
+                @foreach (var (container, containerRenderKey) in RenderKeys.With(visible, ContainerKey))
                 {
                     var key = (container.Source, container.Id);
                     @* A crate is named for what it is and what is in it. The long reference
                        the game files it under is not shown anywhere: it is not something a
                        player can act on. *@
-                    <div class="wc-row @(_selectedKey == key ? "selected" : null)" role="listitem" @key="ContainerKey(container)"
+                    <div class="wc-row @(_selectedKey == key ? "selected" : null)" role="listitem" @key="containerRenderKey"
                          @ondragover:preventDefault
                          @ondrop="() => DropOnContainer(container)">
                         <button class="wc-row-select" type="button" @onclick="() => TapContainer(container)">

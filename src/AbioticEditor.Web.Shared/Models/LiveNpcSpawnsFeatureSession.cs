@@ -32,7 +32,9 @@ public sealed class LiveNpcSpawnsFeatureSession : IWorldFeaturesSession
     private LiveNpcSpawnsFeatureSession(LiveNpcSpawnsChannel channel, LiveNpcSpawnDirectory directory)
     {
         _channel = channel;
-        Spawners = directory.Spawners;
+        // Defensive dedupe (round 122): see LiveFeatureRows's own remarks for why this exists
+        // even though npcspawns.lua already keys every row by the actor's own unique full name.
+        Spawners = LiveFeatureRows.DistinctById(directory.Spawners, s => s.Id);
         IsHost = directory.IsHost;
     }
 
@@ -68,7 +70,9 @@ public sealed class LiveNpcSpawnsFeatureSession : IWorldFeaturesSession
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var directory = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
-        Spawners = directory.Spawners;
+        // Defensive dedupe (round 122): see LiveFeatureRows's own remarks for why this exists
+        // even though npcspawns.lua already keys every row by the actor's own unique full name.
+        Spawners = LiveFeatureRows.DistinctById(directory.Spawners, s => s.Id);
         IsHost = directory.IsHost;
         Changed?.Invoke();
     }

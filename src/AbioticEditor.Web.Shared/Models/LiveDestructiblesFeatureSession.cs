@@ -33,7 +33,9 @@ public sealed class LiveDestructiblesFeatureSession : IWorldFeaturesSession
     private LiveDestructiblesFeatureSession(LiveDestructiblesChannel channel, LiveDestructibleDirectory directory)
     {
         _channel = channel;
-        Destructibles = directory.Destructibles;
+        // Defensive dedupe (round 122): see LiveFeatureRows's own remarks for why this exists
+        // even though destructibles.lua already keys every row by the actor's own unique full name.
+        Destructibles = LiveFeatureRows.DistinctById(directory.Destructibles, d => d.Id);
         IsHost = directory.IsHost;
     }
 
@@ -66,7 +68,9 @@ public sealed class LiveDestructiblesFeatureSession : IWorldFeaturesSession
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var directory = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
-        Destructibles = directory.Destructibles;
+        // Defensive dedupe (round 122): see LiveFeatureRows's own remarks for why this exists
+        // even though destructibles.lua already keys every row by the actor's own unique full name.
+        Destructibles = LiveFeatureRows.DistinctById(directory.Destructibles, d => d.Id);
         IsHost = directory.IsHost;
         Changed?.Invoke();
     }

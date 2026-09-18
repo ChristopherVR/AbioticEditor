@@ -36,7 +36,9 @@ public sealed class LiveButtonsFeatureSession : IWorldFeaturesSession
     private LiveButtonsFeatureSession(LiveButtonsChannel channel, LiveButtonDirectory directory)
     {
         _channel = channel;
-        Buttons = directory.Buttons;
+        // Defensive dedupe (round 122): see LiveFeatureRows's own remarks for why this exists
+        // even though buttons.lua already keys every row by the actor's own unique full name.
+        Buttons = LiveFeatureRows.DistinctById(directory.Buttons, b => b.Id);
         IsHost = directory.IsHost;
     }
 
@@ -70,7 +72,9 @@ public sealed class LiveButtonsFeatureSession : IWorldFeaturesSession
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var directory = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
-        Buttons = directory.Buttons;
+        // Defensive dedupe (round 122): see LiveFeatureRows's own remarks for why this exists
+        // even though buttons.lua already keys every row by the actor's own unique full name.
+        Buttons = LiveFeatureRows.DistinctById(directory.Buttons, b => b.Id);
         IsHost = directory.IsHost;
         Changed?.Invoke();
     }

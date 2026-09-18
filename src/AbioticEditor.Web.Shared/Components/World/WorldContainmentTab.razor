@@ -51,12 +51,12 @@
             }
 
             <div class="wc-list">
-                @foreach (var unit in units)
+                @foreach (var (unit, unitRenderKey) in RenderKeys.With(units, u => u.Id))
                 {
                     var creature = Session.CreatureInUnit(unit.Id);
                     var occupied = creature is not null;
                     var concealed = occupied && IsConcealed(creature!);
-                    <div class="wc-entry" @key="unit.Id">
+                    <div class="wc-entry" @key="unitRenderKey">
                         <div class="wc-row" role="button" tabindex="0" aria-label="@UnitAria(unit, creature, concealed)"
                              @onclick="() => EntryTapped(unit)" @onkeydown="e => EntryKeyDown(e, unit)">
                             <span class="wc-badge @(occupied ? "" : "wc-badge-empty")">
@@ -143,9 +143,11 @@
             <p class="wm-status">@L.Resource("WorldContainment_OrphanedFormat",
                 string.Join(", ", Session.OrphanedContainments.Select(pair => DisplayName(pair.Key))))</p>
             <div class="wc-list">
-                @foreach (var orphan in Session.OrphanedContainments)
+                @* orphan.Key is a creature row name, not a per-entry id: two different orphaned
+                   assignments can share the same creature species, so this needs RenderKeys too. *@
+                @foreach (var (orphan, orphanRenderKey) in RenderKeys.With(Session.OrphanedContainments, o => o.Key))
                 {
-                    <div class="wc-row" @key="orphan.Key">
+                    <div class="wc-row" @key="orphanRenderKey">
                         <span class="wc-badge">@L.Resource("WorldContainment_Contained")</span>
                         <span class="wc-text">
                             <strong>@OccupantLabel(orphan.Key, IsConcealed(orphan.Key))</strong>

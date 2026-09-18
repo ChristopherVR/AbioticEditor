@@ -55,18 +55,18 @@
             }
             else
             {
-                @foreach (var row in VisibleRows)
+                @foreach (var (row, recipeRowRenderKey) in RenderKeys.With(VisibleRows, r => r.Info.Id))
                 {
                     var concealed = Concealed(row);
                     @* The hover text is just the item's own description, when it has one. *@
-                    <div class="rb-row @(ReferenceEquals(row, SelectedRow) ? "selected" : null)" @key="row.Info.Id"
+                    <div class="rb-row @(ReferenceEquals(row, SelectedRow) ? "selected" : null)" @key="recipeRowRenderKey"
                          role="option" aria-selected="@(ReferenceEquals(row, SelectedRow) ? "true" : "false")" tabindex="0"
                          title="@(concealed ? L.Resource("Spoiler_ClassifiedHint") : RowTooltip(row))"
                          @onclick="() => SelectRow(row)" @onkeydown="e => RowKeyDown(e, row)">
                         @* The @key includes a nonce so a progress-gated (refused) unlock recreates the
                            checkbox and it visibly snaps back to unchecked, like the native toggle. *@
                         <input class="rb-checkbox" type="checkbox" checked="@row.Edit.IsUnlocked" disabled="@(concealed || LockedIn(row))"
-                               aria-label="@ShownName(row)" @key="@($"{row.Info.Id}:{_gateNonce}")"
+                               aria-label="@ShownName(row)" @key="@($"{recipeRowRenderKey}:{_gateNonce}")"
                                @onclick:stopPropagation @onchange="e => SetUnlocked(row, e.Value is bool value && value)" />
                         <span class="rb-row-icon">
                             @if (!concealed && row.Info.CreatesItemId is { } rowItemId)
@@ -100,9 +100,9 @@
             }
             else
             {
-                @foreach (var recipeId in fileSession.ResearchQueue)
+                @foreach (var (recipeId, researchRenderKey) in RenderKeys.With(fileSession.ResearchQueue, id => id))
                 {
-                    <div class="rb-research-row" @key="recipeId">
+                    <div class="rb-research-row" @key="researchRenderKey">
                         <span>@ResearchDisplayName(recipeId)</span>
                         <button type="button" class="detail-close" aria-label="@($"{L.Detail("remove")} {ResearchDisplayName(recipeId)}")"
                                 @onclick="() => RemoveFromResearch(fileSession, recipeId)">✕</button>

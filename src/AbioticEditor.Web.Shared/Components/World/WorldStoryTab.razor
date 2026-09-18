@@ -190,13 +190,13 @@
                 {
                     <p class="ws-recipes-empty">@L.Resource("WorldStory_NoRecipes")</p>
                 }
-                @foreach (var row in VisibleWorldRecipeRows)
+                @foreach (var (row, recipeRenderKey) in RenderKeys.With(VisibleWorldRecipeRows, r => r.Id))
                 {
                     var unlocked = RecipeIsUnlocked(row.Id);
-                    <div class="ws-recipe-row @(row.Id == _selectedWorldRecipeId ? "selected" : null)" @key="row.Id"
+                    <div class="ws-recipe-row @(row.Id == _selectedWorldRecipeId ? "selected" : null)" @key="recipeRenderKey"
                          role="option" aria-selected="@(row.Id == _selectedWorldRecipeId ? "true" : "false")" tabindex="0"
                          @onclick="() => SelectRecipe(row)" @onkeydown="e => RecipeKeyDown(e, row)">
-                        <input type="checkbox" checked="@unlocked" aria-label="@row.DisplayName" disabled="@(!CanEditRecipes)" @key="@($"{row.Id}:{_gateNonce}")"
+                        <input type="checkbox" checked="@unlocked" aria-label="@row.DisplayName" disabled="@(!CanEditRecipes)" @key="@($"{recipeRenderKey}:{_gateNonce}")"
                                @onclick:stopPropagation="true" @onchange="e => SetRecipe(row.Id, e.Value is bool value && value)" />
                         <span class="ws-recipe-icon">
                             @if (row.Info?.CreatesItemId is { } createdId)
@@ -247,10 +247,10 @@
                 {
                     <p class="ws-recipes-empty">@L.Resource("WorldStory_NoWorldWideSeen")</p>
                 }
-                @foreach (var row in VisibleGlobalListRows)
+                @foreach (var (row, globalRowRenderKey) in RenderKeys.With(VisibleGlobalListRows, r => r.Id))
                 {
                     var present = GlobalListRowIsPresent(row.Id);
-                    <div class="ws-recipe-row" @key="row.Id">
+                    <div class="ws-recipe-row" @key="globalRowRenderKey">
                         <input type="checkbox" checked="@present" aria-label="@row.DisplayName" disabled="@(!Session.CanEditGlobalLists)"
                                @onchange="e => SetGlobalListRowAsync(row.Id, e.Value is bool value && value)" />
                         <span class="ws-recipe-icon">

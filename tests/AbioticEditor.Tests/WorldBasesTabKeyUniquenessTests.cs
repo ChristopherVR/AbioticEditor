@@ -33,15 +33,13 @@ public sealed class WorldBasesTabKeyUniquenessTests
     {
         var source = UiSource.ReadAllText("Components", "World", "WorldBasesTab.razor");
 
-        // Each loop's own "bench-row" div now prefixes the shared deployable id with which list
-        // produced it, so the two can never collapse onto the same key even for a bench that is
-        // also paintable.
-        Assert.Contains(
-            "<div class=\"bench-row\" @key=\"@(\"bench:\" + bench.Id)\">",
-            source, StringComparison.Ordinal);
-        Assert.Contains(
-            "<div class=\"bench-row\" @key=\"@(\"paint:\" + deployable.Id)\">",
-            source, StringComparison.Ordinal);
+        // Each loop's own "bench-row" div prefixes the shared deployable id with which list
+        // produced it (so the two lists can never collapse onto the same key even for a bench
+        // that is also paintable), and RenderKeys.With then makes repeats within one list unique.
+        Assert.Contains("RenderKeys.With(CraftingBenches(worldBaseDetail), b => \"bench:\" + b.Id)", source, StringComparison.Ordinal);
+        Assert.Contains("<div class=\"bench-row\" @key=\"benchRenderKey\">", source, StringComparison.Ordinal);
+        Assert.Contains("RenderKeys.With(paintable, d => \"paint:\" + d.Id)", source, StringComparison.Ordinal);
+        Assert.Contains("<div class=\"bench-row\" @key=\"paintRenderKey\">", source, StringComparison.Ordinal);
 
         // The exact regression: either loop reverting to the bare id would collide again the next
         // time a crafting bench is also painted.
