@@ -45,8 +45,16 @@ public sealed class LiveBasesSession : IWorldBasesSession
 
     private void Apply(LiveDeployableDirectory directory)
     {
-        _byId = directory.Deployables.ToDictionary(d => d.Id, StringComparer.Ordinal);
-        Deployables = directory.Deployables
+        // Round 118: a bench that ends up in the agent's directory twice (a stale re-list racing
+        // a fresh one, or a future findAll-level duplicate the Lua sweep doesn't catch - see
+        // bases.lua's own dedupe) used to throw straight out of ToDictionary here with no caller
+        // watching for it (ConnectAsync/RefreshAsync are awaited from event handlers that don't
+        // all wrap this in try/catch), which killed the live connection with nothing on screen to
+        // explain why. First entry wins, matching bases.lua's own "seen" dedupe so both sides agree
+        // on which copy survives.
+        var deployables = DedupeById(directory.Deployables);
+        _byId = deployables.ToDictionary(d => d.Id, StringComparer.Ordinal);
+        Deployables = deployables
             .Select(d => new WorldDeployable(d.Id, d.ClassName, d.X, d.Y, d.Z, d.HasInventory, d.StoredItemCount, d.CustomName,
                 d.InstalledUpgrades.Count > 0 ? d.InstalledUpgrades : null, d.PaintColor))
             .ToList();
@@ -54,6 +62,27 @@ public sealed class LiveBasesSession : IWorldBasesSession
         _supportsBenchUpgrades = directory.SupportsBenchUpgrades;
         _supportsBenchUpgradeRemoval = directory.SupportsBenchUpgradeRemoval;
         Changed?.Invoke();
+    }
+
+    private static IReadOnlyList<LiveDeployable> DedupeById(IReadOnlyList<LiveDeployable> deployables)
+    {
+        if (deployables.Count < 2) return deployables;
+        var seen = new HashSet<string>(deployables.Count, StringComparer.Ordinal);
+        List<LiveDeployable>? deduped = null;
+        for (var i = 0; i < deployables.Count; i++)
+        {
+            var deployable = deployables[i];
+            if (seen.Add(deployable.Id))
+            {
+                deduped?.Add(deployable);
+            }
+            else if (deduped is null)
+            {
+                deduped = new List<LiveDeployable>(deployables.Count - 1);
+                for (var j = 0; j < i; j++) deduped.Add(deployables[j]);
+            }
+        }
+        return deduped ?? deployables;
     }
 
     public async Task RefreshAsync(CancellationToken cancellationToken = default)

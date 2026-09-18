@@ -17,10 +17,63 @@
     <link rel="stylesheet" href="@Assets["_content/AbioticEditor.Web.Shared/parity.css"]" />
     <link rel="icon" type="image/png" href="@Assets["_content/AbioticEditor.Web.Shared/images/abiotic-factor.png"]" />
     <title>Abiotic Editor</title>
+    @* Round 118: a server-rendered circuit that dies (an unhandled render exception, the process
+       restarting, the window losing its connection) used to leave the player with a window that
+       looked exactly like it had before the crash - every button dead, nothing on screen saying
+       why, because blazor.web.js's own reconnection handling only ever TOGGLES CSS CLASSES on an
+       element with this exact id; it never creates the element or supplies any visible styling of
+       its own. Without both defined here there was nothing for it to show at all - see the crash
+       report this round fixed, where the app "can't click any button anymore" after a render
+       error killed the circuit. The three states blazor.web.js sets
+       (components-reconnect-show/-failed/-rejected) all mean the same thing from here: the
+       running game side of this window is no longer talking to the editor side, and reloading is
+       the one action that always recovers it (this is a local desktop window, not a public site -
+       a full reload is cheap and safe, never a lost multi-user session). *@
+    <style>
+        #components-reconnect-modal { display: none; }
+        #components-reconnect-modal.components-reconnect-show,
+        #components-reconnect-modal.components-reconnect-failed,
+        #components-reconnect-modal.components-reconnect-rejected {
+            display: flex;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 0.75rem;
+            background: rgba(10, 12, 10, 0.88);
+            color: #F0EAD6;
+            font: 15px/1.4 system-ui, sans-serif;
+            text-align: center;
+            padding: 1.5rem;
+        }
+        #components-reconnect-modal strong { font-size: 1.05rem; }
+        #components-reconnect-modal button {
+            margin-top: 0.25rem;
+            padding: 0.5rem 1.25rem;
+            font: inherit;
+            font-weight: 600;
+            color: #101810;
+            background: #F5C518;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #components-reconnect-modal button:hover { filter: brightness(1.08); }
+    </style>
     <HeadOutlet />
 </head>
 <body>
     <Routes />
+    @* Always present, always hidden until blazor.web.js's own reconnection handler adds one of
+       the classes styled above - see the remarks up in <head>. Reload always starts a brand-new
+       circuit against this same local window, which is the only recovery a dead one has. *@
+    <div id="components-reconnect-modal" role="alertdialog" aria-live="assertive">
+        <strong>Connection lost</strong>
+        <span>The editor lost its connection to the running app. Your last saved changes are safe on disk.</span>
+        <button type="button" onclick="location.reload()">Reload</button>
+    </div>
     <script src="@Assets["_content/AbioticEditor.Web.Shared/modal.js"]"></script>
     <script src="@Assets["_framework/blazor.web.js"]"></script>
 </body>

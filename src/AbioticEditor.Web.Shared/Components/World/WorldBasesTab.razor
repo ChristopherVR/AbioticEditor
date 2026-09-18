@@ -140,7 +140,17 @@
                    holds items appears in both lists, which is why one can look like the other. *@
                 @foreach (var bench in worldBaseDetail.Deployables.Where(deployable => deployable.IsCraftingBench))
                 {
-                    <div class="bench-row" @key="bench.Id">
+                    @* Round 118: a bench that is ALSO paintable (e.g. Deployed_CraftingBench_Default_C -
+                       see DeployablePaintCatalog) renders a second "bench-row" div for the same
+                       deployable in the "Painted Objects" list just below, in the SAME wt-card parent.
+                       Both loops used to key on the bare deployable.Id, so those two divs collided as
+                       duplicate siblings and crashed the whole circuit (RenderTreeDiffBuilder: "More
+                       than one sibling ... has the same key value") the instant such a bench first
+                       rendered - a live report traced this to upgrading a bench, which is just what
+                       re-rendered this card for the first time that session. Namespacing each section's
+                       key by which list it came from is the actual fix; see LiveBasesSession/bases.lua
+                       for the belt-and-braces dedupe of the underlying data too. *@
+                    <div class="bench-row" @key="@("bench:" + bench.Id)">
                         <button type="button" class="bench-open" aria-pressed="@(Selection.DetailKey == BenchKey(bench))"
                                 title="@L.Resource("WorldBases_BenchEditHint")" @onclick="() => ShowBench(bench)">
                             <span class="bench-name">@bench.DisplayName</span>
@@ -182,7 +192,9 @@
                     <span class="wt-label accent-orange-text">@L.Resource("WorldBases_PaintedObjects")</span>
                     @foreach (var deployable in paintable)
                     {
-                        <div class="bench-row" @key="deployable.Id">
+                        @* See the crafting-bench loop above: this list's rows are siblings of that
+                           one's under the same wt-card, so its key needs its own namespace too. *@
+                        <div class="bench-row" @key="@("paint:" + deployable.Id)">
                             <span class="bench-name">@deployable.DisplayName</span>
                             <label class="wt-field paint-colour-field">
                                 <span class="wt-label">@L.Resource("WorldBases_PaintColour")</span>

@@ -1,4 +1,4 @@
-@implements IDisposable
+@implements IAsyncDisposable
 @using Microsoft.JSInterop
 @inject ModalService Modals
 @inject IJSRuntime Js
@@ -22,6 +22,18 @@
     private ElementReference _dialog;
     private ElementReference _initialButton;
     private bool _focusPending;
+    // Round 118: only true once "activate" actually ran - see DisposeAsync. ModalHost itself is
+    // mounted unconditionally in MainLayout (it just renders nothing while Modals.Current is
+    // null), so on every app start its very first instance is the one from the initial static
+    // prerender pass, which the framework disposes the moment the interactive instance takes
+    // over - long before any modal was ever shown. That used to fire an unawaited, unguarded
+    // "deactivate" interop call from Dispose() straight into a component that "is being statically
+    // rendered", which is an InvalidOperationException with nobody awaiting the discarded task -
+    // exactly the "Unobserved task exception: JavaScript interop calls cannot be issued at this
+    // time" entries a live report showed right before that session's circuit crash. Skipping the
+    // call entirely when nothing was ever activated removes the interop call from the one path
+    // that hits it on every single launch, not just a rare disconnect race.
+    private bool _activated;
     protected override void OnInitialized() => Modals.Changed += HandleChanged;
     private void HandleChanged() { _focusPending = Modals.Current is not null; _ = InvokeAsync(StateHasChanged); }
     private Task BackdropClicked(ModalRequest modal) => modal.CloseOnBackdrop ? CancelAsync() : Task.CompletedTask;
@@ -52,12 +64,21 @@
         if (_focusPending && Modals.Current is not null)
         {
             _focusPending = false;
+            _activated = true;
             await Js.InvokeVoidAsync("abiotic.modal.activate", _dialog, _initialButton);
         }
     }
-    public void Dispose()
+    // async ValueTask, not the sync IDisposable this used to be - matching every other modal shell
+    // in the editor (ModeSelectDialog, Settings, ReleaseNotesDialog all already do this). A
+    // fire-and-forget interop call from a sync Dispose() cannot be awaited, so any failure - the
+    // circuit already being gone, or this exact instance never having been interactive at all -
+    // became an unobserved task exception with nowhere to go. See _activated's own remarks above.
+    public async ValueTask DisposeAsync()
     {
         Modals.Changed -= HandleChanged;
-        _ = Js.InvokeVoidAsync("abiotic.modal.deactivate");
+        if (!_activated) return;
+        try { await Js.InvokeVoidAsync("abiotic.modal.deactivate"); }
+        catch (JSDisconnectedException) { }
+        catch (InvalidOperationException) { }
     }
 }

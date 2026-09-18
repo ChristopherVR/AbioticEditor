@@ -168,6 +168,12 @@ else
                editor, rather than reusing PlayerEditor's own "player-tab-viewport" wrapper class
                (which did nothing for this content anyway: that class's actual styling is Blazor
                scoped CSS private to PlayerEditor.razor, so it never applied outside that component). *@
+            @* Round 118: per-tab boundary, matching SaveEditorSurface's world-tab-viewport - see
+               its own remarks. A live-editing render exception (WorldBasesTab's own duplicate-@key
+               crash was the one that prompted this) used to be able to take down this whole page,
+               including the tab strip itself, leaving nothing left to click back to a working tab
+               with. @key="_worldTab" remounts a fresh boundary on every tab switch. *@
+            <AppErrorBoundary @key="_worldTab">
             @if (_worldTab == "world" && _story is not null && _flags is not null)
             {
                 <WorldStoryTab Session="_story" Flags="_flags" OnError="e => _error = e" />
@@ -349,6 +355,7 @@ else
                     <p class="muted">@reason</p>
                 }
             }
+            </AppErrorBoundary>
         }
         @if (_error is not null)
         {

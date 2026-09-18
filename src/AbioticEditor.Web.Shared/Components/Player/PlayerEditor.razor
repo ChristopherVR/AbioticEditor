@@ -14,6 +14,9 @@
         @foreach (var tab in Tabs) { <button type="button" id="@($"player-section-{tab.Id}")" aria-controls="player-section-panel" tabindex="@(ActiveTab == tab.Id ? 0 : -1)" role="tab" class="editor-tab @(ActiveTab == tab.Id ? "active" : null)" aria-selected="@(ActiveTab == tab.Id ? "true" : "false")" @onclick="() => ActiveTab = tab.Id">@Languages.Resource(tab.LabelKey)</button> }
     </nav>
     <div class="player-tab-viewport" id="player-section-panel" role="tabpanel" aria-labelledby="@($"player-section-{ActiveTab}")" tabindex="0">
+    @* Round 118: same per-tab boundary as SaveEditorSurface's world-tab-viewport - see its own
+       remarks. @key="ActiveTab" drops any stuck error the moment the player switches tabs. *@
+    <AppErrorBoundary @key="ActiveTab">
     @if (ActiveTab == LoadingTabId && LoadingContent is not null)
     {
         @LoadingContent
@@ -30,6 +33,7 @@
     else if (ActiveTab == "gatepal") { <PlayerCodexTab Session="Session" OnChanged="NotifyChanged" /> }
     else if (ActiveTab == "achievements" && Session is PlayerSaveSession fileSessionForAchievements) { <PlayerAchievementsTab Session="fileSessionForAchievements" /> }
     else if (ActiveTab == "data" && Session is PlayerSaveSession fileSessionForData) { <PlayerRawDataTab Session="fileSessionForData" /> }
+    </AppErrorBoundary>
     </div>
 </section>
 

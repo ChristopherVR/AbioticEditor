@@ -1,4 +1,5 @@
 using AbioticEditor.Core.Diagnostics;
+using Microsoft.JSInterop;
 
 namespace AbioticEditor.Web.Diagnostics;
 
@@ -34,11 +35,33 @@ public static class CrashLog
         // never finished writing, a catalog that never loaded, and no sign of why.
         TaskScheduler.UnobservedTaskException += (_, args) =>
         {
+            // Round 118: once a circuit is gone (a window closed, a lost connection, or the crash
+            // this whole file exists to catch further up the stack), every JS interop call that
+            // was still in flight when it died throws JSDisconnectedException with nobody left to
+            // observe it - a live report showed a run of these logged as "Crash" right alongside
+            // the actual failure that killed the circuit, which buried the one entry worth
+            // reading under noise that just meant "yes, and then it disconnected, as expected".
+            // Only silence a fault that is ENTIRELY disconnect noise (AggregateException can carry
+            // more than one inner exception) - anything else in the same faulted Task still gets
+            // recorded exactly as before.
+            if (IsOnlyDisconnectNoise(args.Exception))
+            {
+                args.SetObserved();
+                return;
+            }
             EditorLog.Error("Crash", "Unobserved task exception", args.Exception);
             // Marking it observed only stops the (already non-fatal) escalation policy; the
             // failure is on disk either way.
             args.SetObserved();
         };
+    }
+
+    /// <summary>True when every exception a faulted, unobserved task carries is exactly the kind
+    /// a JS interop call throws once its circuit is already gone - see the remarks above.</summary>
+    private static bool IsOnlyDisconnectNoise(AggregateException exception)
+    {
+        var flattened = exception.Flatten().InnerExceptions;
+        return flattened.Count > 0 && flattened.All(inner => inner is JSDisconnectedException);
     }
 
     private static int _installed;

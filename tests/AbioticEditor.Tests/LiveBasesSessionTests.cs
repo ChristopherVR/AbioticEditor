@@ -60,6 +60,33 @@ public sealed class LiveBasesSessionTests
         Assert.Null(session.Status);
     }
 
+    /// <summary>
+    /// Round 118: a live report showed the agent's own "bases.list" reply carrying the exact same
+    /// deployable id twice (bases.lua's single-class findAll sweep had no dedupe, unlike every
+    /// other single-sweep area - see that file's own remarks), which used to throw straight out of
+    /// <c>ToDictionary</c> inside <c>LiveBasesSession.Apply</c> with nothing on the calling side
+    /// watching for it. That crash was a red herring for the actual reported symptom (a duplicate
+    /// <c>@key</c> in WorldBasesTab from an unrelated cause - see that component's own remarks),
+    /// but a genuinely duplicated wire id is still a live possibility this session must survive on
+    /// its own, independent of whatever the Lua side does or does not dedupe.
+    /// </summary>
+    [Fact]
+    public async Task ConnectAsync_dedupes_a_deployable_the_agent_reports_twice()
+    {
+        var channel = new FakeBasesChannel { DuplicateFirstEntry = true };
+        channel.SetDeployable("d1", "Deployed_CraftingBench_Default_C", customName: "Bench");
+
+        var session = await LiveBasesSession.ConnectAsync(new LiveBasesChannel(channel));
+
+        var deployable = Assert.Single(session.Deployables);
+        Assert.Equal("d1", deployable.Id);
+        Assert.Equal("Bench", deployable.CustomName);
+
+        // A later refresh replaying the same duplicate must not throw either.
+        await session.RefreshAsync();
+        Assert.Single(session.Deployables);
+    }
+
     [Fact]
     public async Task Unsupported_bench_upgrades_are_unavailable_even_when_the_bench_has_upgrade_slots()
     {
@@ -76,6 +103,10 @@ public sealed class LiveBasesSessionTests
     private sealed class FakeBasesChannel : ILiveGameChannel
     {
         public bool SupportsBenchUpgrades { get; init; } = true;
+        /// <summary>Round 118: reproduces an agent reply that lists the same deployable twice
+        /// (see the dedupe test above) without needing a second distinct id in <see cref="_deployables"/>,
+        /// which - being a dictionary keyed by id - cannot hold a genuine duplicate itself.</summary>
+        public bool DuplicateFirstEntry { get; init; }
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
         private readonly Dictionary<string, DeployableState> _deployables = new(StringComparer.Ordinal);
 
@@ -95,19 +126,7 @@ public sealed class LiveBasesSessionTests
             {
                 "bases.list" => new
                 {
-                    deployables = _deployables.Select(kv => new
-                    {
-                        id = kv.Key,
-                        className = kv.Value.ClassName,
-                        x = 0d,
-                        y = 0d,
-                        z = 0d,
-                        customName = kv.Value.CustomName,
-                        hasInventory = false,
-                        storedItemCount = 0,
-                        supportsUpgrades = kv.Value.SupportsUpgrades,
-                        installedUpgrades = kv.Value.InstalledUpgrades,
-                    }).ToList(),
+                    deployables = BuildDeployableRows(),
                     isHost = true,
                     supportsBenchUpgrades = SupportsBenchUpgrades,
                 },
@@ -116,6 +135,25 @@ public sealed class LiveBasesSessionTests
             };
             var element = JsonSerializer.SerializeToElement(result, JsonOptions);
             return Task.FromResult(element.Deserialize<TResponse>(JsonOptions)!);
+        }
+
+        private List<object> BuildDeployableRows()
+        {
+            var rows = _deployables.Select(kv => (object)new
+            {
+                id = kv.Key,
+                className = kv.Value.ClassName,
+                x = 0d,
+                y = 0d,
+                z = 0d,
+                customName = kv.Value.CustomName,
+                hasInventory = false,
+                storedItemCount = 0,
+                supportsUpgrades = kv.Value.SupportsUpgrades,
+                installedUpgrades = kv.Value.InstalledUpgrades,
+            }).ToList();
+            if (DuplicateFirstEntry && rows.Count > 0) rows.Add(rows[0]);
+            return rows;
         }
 
         private object? ApplySet(JsonElement payload)

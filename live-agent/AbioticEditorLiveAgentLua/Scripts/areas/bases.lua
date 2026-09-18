@@ -106,11 +106,18 @@ return function(ctx)
     end
 
     local function deployableRows()
-        local result = { __forceArray = true }
+        -- Round 118: every other single-sweep area (corpses.lua, destructibles.lua, etc.) already
+        -- dedupes its findAll() result by full name even with one root class, defensively, because
+        -- FindAllOf itself is not guaranteed one entry per actor. This sweep was the one that
+        -- didn't - a live crash report showed the exact same crafting bench id twice in one
+        -- bases.list reply, which the app-side dictionary build then threw on. Kept here too so a
+        -- genuinely duplicated find never reaches the wire at all.
+        local result, seen = { __forceArray = true }, {}
         for _, obj in ipairs(ctx.findAll("AbioticDeployed_ParentBP_C")) do
             if obj:IsValid() then
                 local name = ctx.fullName(obj)
-                if name then
+                if name and not seen[name] then
+                    seen[name] = true
                     local x, y, z = ctx.actorLocation(obj)
                     local okName, customName = pcall(function() return obj.AlternativeObjectName:ToString() end)
                     local inv = ctx.containerInventory(obj)

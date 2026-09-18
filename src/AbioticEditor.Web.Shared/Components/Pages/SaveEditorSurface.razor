@@ -68,6 +68,17 @@
                     }
                 </nav>
                 <div class="world-tab-viewport" id="world-section-panel" role="tabpanel" aria-labelledby="@($"world-section-{_worldTab}")" tabindex="0">
+                @* Round 118: one boundary per selected tab, not just the page-wide one MainLayout
+                   already wraps @Body in. A render exception here (the WorldBasesTab duplicate-key
+                   crash that prompted this, or anything else a future tab throws) used to be able to
+                   escape past even that page-wide boundary in some cases (a duplicate-@key error is
+                   raised by the renderer's own diff pass, not caught as a per-component render
+                   exception at all - see WorldBasesTab's own remarks); this can't fix that class of
+                   bug, but it does mean an ordinary exception from inside one tab no longer has to
+                   take the whole editor with it. @key="_worldTab" remounts a fresh boundary (and
+                   therefore clears any stuck error) the instant the player switches tabs, on top of
+                   the boundary's own dismiss button. *@
+                <AppErrorBoundary @key="_worldTab">
                 @if (_worldTab == "containers") { <WorldContainersTab Title="@workspace.SelectedSave!.Name" Session="@world" PlayerSession="@Workspace.TransferPlayerSession" InitialFilter="@_containersInitialFilter" OnError="WorldError" /> }
                 else if (_worldTab == "flags") { <WorldFlagsTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
                 else if (_worldTab == "doors") { <WorldDoorsTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
@@ -82,6 +93,7 @@
                 else if (_worldTab == FeatureTabPrefix + WorldEntitlementsTab.EntitlementsFeatureId) { <WorldEntitlementsTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
                 else if (_worldTab.StartsWith(FeatureTabPrefix, StringComparison.Ordinal)) { <WorldFeaturesTab Title="@workspace.SelectedSave!.Name" Session="@world" FeatureId="@_worldTab[FeatureTabPrefix.Length..]" OnError="WorldError" OnOpenLink="OpenVehicleContainer" /> }
                 else { <WorldRawTab Title="@workspace.SelectedSave!.Name" Session="@world" /> }
+                </AppErrorBoundary>
                 </div>
             }
         }
