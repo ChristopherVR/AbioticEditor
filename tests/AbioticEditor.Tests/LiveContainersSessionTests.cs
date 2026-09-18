@@ -114,9 +114,39 @@ public sealed class LiveContainersSessionTests
         var applied = await session.TrySetContainerSlotAsync(AbioticEditor.Core.WorldSaves.WorldContainerSource.Live, "c1", 0, 0, slot);
 
         Assert.True(applied);
-        Assert.Equal(1, raised);
+        // Once for the immediate local apply; the background reconciling re-read may add another.
+        Assert.True(raised >= 1, $"Changed was raised {raised} times");
         Assert.Equal("Item_Torch", session.Containers[0].Inventories[0].Slots[0].ItemId);
         Assert.Null(session.Status);
+    }
+
+    /// <summary>
+    /// Regression test for the "Delete doesn't remove the item immediately - it stays for a good
+    /// few seconds" live-mode bug: setting a slot to empty must clear it in
+    /// <see cref="LiveContainersSession.Containers"/> the instant the awaited
+    /// <c>containers.set</c> reply comes back, not after the <c>containers.get</c> re-read it fires
+    /// afterwards as reconciliation. The gate below holds that follow-up read open for the whole
+    /// assertion, so a regression that went back to awaiting it inline would hang instead of just
+    /// happening to pass quickly.
+    /// </summary>
+    [Fact]
+    public async Task Clearing_a_slot_updates_the_container_before_the_reconciling_get_completes()
+    {
+        var channel = new FakeContainersChannel();
+        channel.SetContainer("c1", "Locker", 0, 0, 0);
+        channel.SetSlot("c1", 0, "Item_Rope", stack: 4);
+        var session = await LiveContainersSession.ConnectAsync(new LiveContainersChannel(channel));
+        Assert.False(session.Containers[0].Inventories[0].Slots[0].IsEmpty);
+
+        channel.ArmGetGate();
+        var cleared = new InventoryItemSlot(0, null, 0, 0, 0, 0, 0, null, false, null, null);
+        var applied = await session.TrySetContainerSlotAsync(
+            AbioticEditor.Core.WorldSaves.WorldContainerSource.Live, "c1", 0, 0, cleared);
+
+        Assert.True(applied);
+        Assert.True(session.Containers[0].Inventories[0].Slots[0].IsEmpty);
+
+        channel.ReleaseGetGate();
     }
 
     // ---- round 91: writes and the periodic tick re-read ONE container, never the world ----
@@ -316,8 +346,15 @@ public sealed class LiveContainersSessionTests
             int ammo = 0, LiveItemDetails? details = null)
             => _slots[(containerId, slotIndex)] = new SlotState(itemId ?? "Empty", isEmpty || itemId is null, stack, 0, 0, ammo, details);
 
-        public Task<TResponse> RequestAsync<TResponse>(string command, object? payload, CancellationToken cancellationToken = default)
+        // Lets a test hold "containers.get" open to prove a caller does not (and, after
+        // LiveContainersSession's background-reconciliation fix, no longer needs to) wait on it.
+        private TaskCompletionSource? _getGate;
+        public void ArmGetGate() => _getGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        public void ReleaseGetGate() => _getGate?.TrySetResult();
+
+        public async Task<TResponse> RequestAsync<TResponse>(string command, object? payload, CancellationToken cancellationToken = default)
         {
+            if (command == "containers.get" && _getGate is { } gate) await gate.Task.ConfigureAwait(false);
             var payloadElement = payload is null ? default : JsonSerializer.SerializeToElement(payload, JsonOptions);
             object? result = command switch
             {
@@ -329,7 +366,7 @@ public sealed class LiveContainersSessionTests
                 _ => throw new LiveAgentException($"unknown command '{command}' in fake channel"),
             };
             var element = JsonSerializer.SerializeToElement(result, JsonOptions);
-            return Task.FromResult(element.Deserialize<TResponse>(JsonOptions)!);
+            return element.Deserialize<TResponse>(JsonOptions)!;
         }
 
         public int ListRequests { get; private set; }

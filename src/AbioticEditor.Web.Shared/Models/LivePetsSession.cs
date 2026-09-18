@@ -107,7 +107,22 @@ public sealed class LivePetsSession : IWorldPetsSession
     {
         await _channel.RemoveAsync(id, cancellationToken).ConfigureAwait(false);
         Status = "Removed live - this despawned the pet in the running game immediately.";
-        await RefreshAsync(cancellationToken).ConfigureAwait(false);
+        // Drop the pet from the local list and repaint right away, instead of making the caller
+        // wait on the pets.list world scan below too - a removed pet should disappear from the tab
+        // the moment the game confirms the despawn. That scan still runs right after, in the
+        // background, purely as reconciliation.
+        Pets = Pets.Where(p => !string.Equals(p.Id, id, StringComparison.Ordinal)).ToList();
+        Changed?.Invoke();
+        _ = ReconcileAsync(cancellationToken);
+    }
+
+    /// <summary>Best-effort background re-read after a removal already applied its own result to
+    /// the local model and repainted. Never lets a reconciliation failure surface as an error for a
+    /// removal that already succeeded.</summary>
+    private async Task ReconcileAsync(CancellationToken cancellationToken)
+    {
+        try { await RefreshAsync(cancellationToken).ConfigureAwait(false); }
+        catch { /* best-effort; the confirmed removal already applied to the local model above */ }
     }
 
     Task<bool> IWorldPetsSession.RestorePetAsync(WorldPet pet, CancellationToken cancellationToken)

@@ -71,6 +71,31 @@ public class LiveDroppedItemsSessionTests
         Assert.Equal("Removed 1 of 2 from the running game.", session.Status);
     }
 
+    /// <summary>
+    /// Regression test for the "Delete doesn't remove the item immediately - it stays for a good
+    /// few seconds" live-mode bug: RemoveDroppedItemsAsync must drop the confirmed-removed row
+    /// from <see cref="LiveDroppedItemsSession.DroppedItems"/> the instant the awaited
+    /// <c>dropped.remove</c> reply comes back, not after the "dropped.list" world scan it fires
+    /// afterwards as reconciliation. The gate below holds that follow-up scan open for the whole
+    /// assertion, so a regression that went back to awaiting it inline would hang instead of just
+    /// happening to pass quickly.
+    /// </summary>
+    [Fact]
+    public async Task Remove_hides_the_row_before_the_reconciling_list_scan_completes()
+    {
+        var channel = new ScriptedChannel { List = Listing, Remove = new { removed = 1, stuck = 0 } };
+        var session = await LiveDroppedItemsSession.ConnectAsync(new LiveDroppedItemsChannel(channel));
+        Assert.Equal(2, session.DroppedItems.Count);
+
+        channel.ArmListGate();
+        await session.RemoveDroppedItemAsync("Abiotic_Item_Dropped_C_1");
+
+        Assert.Single(session.DroppedItems);
+        Assert.Equal("Abiotic_Item_Dropped_C_2", session.DroppedItems[0].Id);
+
+        channel.ReleaseListGate();
+    }
+
     private sealed class ScriptedChannel : ILiveGameChannel
     {
         private static readonly System.Text.Json.JsonSerializerOptions Json = new(System.Text.Json.JsonSerializerDefaults.Web);
@@ -81,8 +106,16 @@ public class LiveDroppedItemsSessionTests
         public Task ConnectAsync(LiveConnectionInfo info, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task DisconnectAsync() => Task.CompletedTask;
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
-        public Task<TResponse> RequestAsync<TResponse>(string command, object? payload, CancellationToken cancellationToken = default)
+
+        // Lets a test hold "dropped.list" open to prove a caller does not (and, after this session's
+        // background-reconciliation fix, no longer needs to) wait on it.
+        private TaskCompletionSource? _listGate;
+        public void ArmListGate() => _listGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        public void ReleaseListGate() => _listGate?.TrySetResult();
+
+        public async Task<TResponse> RequestAsync<TResponse>(string command, object? payload, CancellationToken cancellationToken = default)
         {
+            if (command == "dropped.list" && _listGate is { } gate) await gate.Task.ConfigureAwait(false);
             var response = command switch
             {
                 "dropped.list" => List,
@@ -90,7 +123,7 @@ public class LiveDroppedItemsSessionTests
                 _ => throw new InvalidOperationException(command),
             };
             var json = System.Text.Json.JsonSerializer.Serialize(response, Json);
-            return Task.FromResult(System.Text.Json.JsonSerializer.Deserialize<TResponse>(json, Json)!);
+            return System.Text.Json.JsonSerializer.Deserialize<TResponse>(json, Json)!;
         }
     }
 }

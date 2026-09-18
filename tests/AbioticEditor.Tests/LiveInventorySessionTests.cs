@@ -234,6 +234,33 @@ public sealed class LiveInventorySessionTests
         Assert.Equal(0, slot.Count);
     }
 
+    /// <summary>
+    /// Regression test for the "Delete doesn't remove the item immediately - it stays for a good
+    /// few seconds" live-mode bug: PushSlotAsync must clear the local slot the instant the awaited
+    /// <c>inventory.set</c> reply comes back, not after the four-inventory "inventory.list" re-read
+    /// it fires afterwards as reconciliation. The gate below holds that follow-up read open for the
+    /// whole assertion, so a regression that went back to awaiting it inline would hang instead of
+    /// just happening to pass quickly.
+    /// </summary>
+    [Fact]
+    public async Task PushSlotAsync_clears_the_local_slot_before_the_reconciling_list_completes()
+    {
+        var channel = new FakeInventoryChannel();
+        channel.SetSlot("backpack", 2, "Item_Rope", stack: 4);
+
+        var session = await LiveInventorySession.ConnectAsync(new LiveInventoryChannel(channel));
+        var slot = session.Backpack.Single(s => s.Index == 2);
+        Assert.False(slot.IsEmpty);
+
+        channel.ArmListGate();
+        slot.Clear();
+        await session.PushSlotAsync(PlayerInventoryArea.Backpack, slot);
+
+        Assert.True(session.Backpack.Single(s => s.Index == 2).IsEmpty);
+
+        channel.ReleaseListGate();
+    }
+
     [Fact]
     public async Task RefreshAsync_updates_the_same_slot_instances_in_place_and_raises_Changed()
     {
@@ -307,8 +334,15 @@ public sealed class LiveInventorySessionTests
         public void SetSlot(string kind, int index, string? itemId = null, int stack = 0, bool isEmpty = false, int ammo = 0, LiveItemDetails? details = null)
             => _slots[(kind, index)] = new SlotState(itemId ?? "Empty", isEmpty || itemId is null, stack, 0, 0, ammo, details);
 
-        public Task<TResponse> RequestAsync<TResponse>(string command, object? payload, CancellationToken cancellationToken = default)
+        // Lets a test hold "inventory.list" open to prove a caller does not (and, after
+        // LiveInventorySession's background-reconciliation fix, no longer needs to) wait on it.
+        private TaskCompletionSource? _listGate;
+        public void ArmListGate() => _listGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        public void ReleaseListGate() => _listGate?.TrySetResult();
+
+        public async Task<TResponse> RequestAsync<TResponse>(string command, object? payload, CancellationToken cancellationToken = default)
         {
+            if (command == "inventory.list" && _listGate is { } gate) await gate.Task.ConfigureAwait(false);
             var payloadElement = payload is null ? default : JsonSerializer.SerializeToElement(payload, JsonOptions);
             object? result = command switch
             {
@@ -329,7 +363,7 @@ public sealed class LiveInventorySessionTests
                 _ => throw new LiveAgentException($"unknown command '{command}' in fake channel"),
             };
             var element = JsonSerializer.SerializeToElement(result, JsonOptions);
-            return Task.FromResult(element.Deserialize<TResponse>(JsonOptions)!);
+            return element.Deserialize<TResponse>(JsonOptions)!;
         }
 
         private object? ApplySet(string command, JsonElement payload)

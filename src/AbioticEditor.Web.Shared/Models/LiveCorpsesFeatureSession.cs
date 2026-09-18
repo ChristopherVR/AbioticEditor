@@ -116,7 +116,22 @@ public sealed class LiveCorpsesFeatureSession : IWorldFeaturesSession
             // surface it as-is rather than a generic failure.
             return WorldEditResult.Failure(ex.Message);
         }
-        await RefreshAsync().ConfigureAwait(false);
+        // Drop the corpse from the local list and repaint right away, instead of making the caller
+        // wait on the corpses.list world scan below too - a removed corpse should disappear from
+        // the map feature list the moment the game confirms the destroy. That scan still runs
+        // right after, in the background, purely as reconciliation.
+        Corpses = Corpses.Where(c => !string.Equals(c.Id, entryKey, StringComparison.Ordinal)).ToList();
+        Changed?.Invoke();
+        _ = ReconcileAsync();
         return WorldEditResult.Success;
+    }
+
+    /// <summary>Best-effort background re-read after a removal already applied its own result to
+    /// the local model and repainted. Never lets a reconciliation failure surface as an error for a
+    /// removal that already succeeded.</summary>
+    private async Task ReconcileAsync()
+    {
+        try { await RefreshAsync().ConfigureAwait(false); }
+        catch { /* best-effort; the confirmed removal already applied to the local model above */ }
     }
 }

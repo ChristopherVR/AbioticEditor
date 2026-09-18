@@ -171,7 +171,7 @@ public sealed class LiveContainersSession : IWorldContainersSession
     {
         if (inventoryIndex != 0 || !TryGetContainerSlot(source, id, inventoryIndex, slotIndex, out _)) return false;
         var edit = ToEdit(slotIndex, slot);
-        await ApplyAsync(id, edit, cancellationToken).ConfigureAwait(false);
+        await ApplyAsync(id, edit, slot, cancellationToken).ConfigureAwait(false);
         return true;
     }
 
@@ -215,7 +215,7 @@ public sealed class LiveContainersSession : IWorldContainersSession
     {
         if (inventoryIndex != 0 || !TryGetContainerSlot(source, id, inventoryIndex, slotIndex, out var slot) || slot.IsEmpty)
             return Task.CompletedTask;
-        return ApplyAsync(id, new LiveContainerSlotEdit(slotIndex, Stack: count), cancellationToken);
+        return ApplyAsync(id, new LiveContainerSlotEdit(slotIndex, Stack: count), slot with { Count = count }, cancellationToken);
     }
 
     /// <summary>Renames a live container immediately - see <c>containers.rename</c> in
@@ -239,16 +239,54 @@ public sealed class LiveContainersSession : IWorldContainersSession
         finally { Interlocked.Decrement(ref _pendingOperations); }
     }
 
-    private async Task ApplyAsync(string containerId, LiveContainerSlotEdit edit, CancellationToken cancellationToken)
+    /// <summary>Sends one slot edit and applies it to the local model as soon as the game confirms
+    /// it, instead of making the caller wait on <see cref="RefreshContainerAsync"/>'s own
+    /// <c>containers.get</c> round trip too - a DELETE/clear should vanish from the grid the moment
+    /// the game acknowledges it. That re-read still happens right after, in the background, purely
+    /// as reconciliation against whatever the game actually did with the write.</summary>
+    private async Task ApplyAsync(string containerId, LiveContainerSlotEdit edit, InventoryItemSlot resultingSlot, CancellationToken cancellationToken)
     {
         Interlocked.Increment(ref _pendingOperations);
         try
         {
             await _channel.SetAsync(containerId, [edit], cancellationToken).ConfigureAwait(false);
             Status = null;
-            await RefreshContainerAsync(containerId, cancellationToken).ConfigureAwait(false);
         }
+        catch
+        {
+            Interlocked.Decrement(ref _pendingOperations);
+            throw;
+        }
+        ApplyLocalSlotEdit(containerId, resultingSlot with { Index = edit.SlotIndex });
+        Changed?.Invoke();
+        _ = ReconcileContainerAsync(containerId, cancellationToken);
+    }
+
+    /// <summary>Best-effort background re-read after <see cref="ApplyAsync"/> already applied its
+    /// own result to the local model and repainted. Never lets a reconciliation failure surface as
+    /// an error for an edit that already succeeded.</summary>
+    private async Task ReconcileContainerAsync(string containerId, CancellationToken cancellationToken)
+    {
+        try { await RefreshContainerAsync(containerId, cancellationToken).ConfigureAwait(false); }
+        catch { /* best-effort; the confirmed write already applied to the local model above */ }
         finally { Interlocked.Decrement(ref _pendingOperations); }
+    }
+
+    /// <summary>Replaces one slot in one container's single inventory in place, rebuilding just the
+    /// touched container/inventory records (everything else in <see cref="Containers"/> keeps its
+    /// existing reference). No-op if the container or slot is no longer known locally.</summary>
+    private void ApplyLocalSlotEdit(string containerId, InventoryItemSlot value)
+    {
+        var list = Containers.ToList();
+        var index = list.FindIndex(c => string.Equals(c.Id, containerId, StringComparison.Ordinal));
+        if (index < 0 || list[index].Inventories.Count == 0) return;
+        var inventory = list[index].Inventories[0];
+        var slots = inventory.Slots.ToList();
+        var slotPos = slots.FindIndex(s => s.Index == value.Index);
+        if (slotPos < 0) return;
+        slots[slotPos] = value;
+        list[index] = list[index] with { Inventories = [inventory with { Slots = slots }] };
+        Containers = list;
     }
 
     public async Task TransferAsync(LiveInventoryEndpoint first, LiveInventoryEndpoint second,

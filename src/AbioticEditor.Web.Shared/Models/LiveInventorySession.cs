@@ -182,12 +182,36 @@ public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTrans
     public async ValueTask PushSlotAsync(PlayerInventoryArea area, PlayerInventorySlotEdit slot, CancellationToken cancellationToken = default)
     {
         Interlocked.Increment(ref _pendingOperations);
+        InventoryItemSlot value;
         try
         {
-            await _channel.SetAsync([ToEdit(area, slot.ToInventorySlot())], _playerId, cancellationToken).ConfigureAwait(false);
+            value = slot.ToInventorySlot();
+            await _channel.SetAsync([ToEdit(area, value)], _playerId, cancellationToken).ConfigureAwait(false);
             Status = AppliedLiveStatus;
-            await RefreshAsync(cancellationToken).ConfigureAwait(false);
         }
+        catch
+        {
+            Interlocked.Decrement(ref _pendingOperations);
+            throw;
+        }
+        // The write is confirmed at this point (the game has already applied it): apply it to the
+        // local model and repaint right away - a DELETE/clear should vanish from the grid the
+        // moment the game acknowledges it, not after a second file-mailbox round trip that lists
+        // every slot across all four inventories too. That full re-read still happens next, in the
+        // background, purely as reconciliation against whatever the game actually did with the
+        // write - see ReconcileAsync.
+        TrySetInventorySlot(area, slot.Index, value);
+        RaiseChanged();
+        _ = ReconcileAsync(cancellationToken);
+    }
+
+    /// <summary>Best-effort background re-read after a mutation already applied its own result to
+    /// the local model and repainted (see <see cref="PushSlotAsync"/>/<see cref="TryDropSlotLiveAsync"/>).
+    /// Never lets a reconciliation failure surface as an error for an edit that already succeeded.</summary>
+    private async Task ReconcileAsync(CancellationToken cancellationToken)
+    {
+        try { await RefreshAsync(cancellationToken).ConfigureAwait(false); }
+        catch { /* best-effort; the confirmed write already applied to the local model above */ }
         finally { Interlocked.Decrement(ref _pendingOperations); }
     }
 
@@ -264,16 +288,25 @@ public sealed class LiveInventorySession : IPlayerInventorySession, IPlayerTrans
     /// emptied.</summary>
     public async ValueTask<bool> TryDropSlotLiveAsync(PlayerInventoryArea area, int index, CancellationToken cancellationToken = default)
     {
-        if (FindSlot(area, index) is not { IsEmpty: false }) return false;
+        if (FindSlot(area, index) is not { IsEmpty: false } existing) return false;
         Interlocked.Increment(ref _pendingOperations);
         try
         {
             await _channel.DropSlotAsync(WireKind(area), index, _playerId, cancellationToken).ConfigureAwait(false);
             Status = "Dropped on the ground near the player - this took effect in the running game immediately.";
-            await RefreshAsync(cancellationToken).ConfigureAwait(false);
-            return true;
         }
-        finally { Interlocked.Decrement(ref _pendingOperations); }
+        catch
+        {
+            Interlocked.Decrement(ref _pendingOperations);
+            throw;
+        }
+        // The drop is confirmed: the game has already emptied this slot, so clear it locally and
+        // repaint right away instead of waiting on the full re-read too - see PushSlotAsync's
+        // identical remarks for why.
+        existing.Clear();
+        RaiseChanged();
+        _ = ReconcileAsync(cancellationToken);
+        return true;
     }
 
     /// <summary>Re-reads every slot from the running game. The first call (from

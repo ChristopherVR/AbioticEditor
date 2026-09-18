@@ -89,7 +89,16 @@ public sealed class LiveDroppedItemsSession : IWorldDroppedItemsSession
         // The game does not say WHICH ids were removed, only how many. When every requested id
         // was confirmed, all of them can safely be hidden until the list itself drops them; a
         // partial result hides nothing and lets the next list decide.
-        if (result.Removed == idList.Count) _removedIds.UnionWith(idList);
+        if (result.Removed == idList.Count)
+        {
+            _removedIds.UnionWith(idList);
+            // Drop the confirmed-removed rows from the local list and repaint right away, instead
+            // of making the caller wait on the dropped.list world scan below too - a removed item
+            // should disappear from the tab the moment the game confirms the despawn. That scan
+            // still runs right after, in the background, purely as reconciliation.
+            var removedNow = new HashSet<string>(idList, StringComparer.Ordinal);
+            DroppedItems = DroppedItems.Where(i => !removedNow.Contains(i.Id)).ToArray();
+        }
         Status = (result.Removed, result.Stuck, idList.Count) switch
         {
             (0, 0, _) => "Already gone - someone else picked it up or it despawned first.",
@@ -98,7 +107,17 @@ public sealed class LiveDroppedItemsSession : IWorldDroppedItemsSession
             (1, 0, 1) => "Removed from the running game.",
             _ => $"Removed {result.Removed} of {idList.Count} from the running game.",
         };
-        await RefreshAsync(cancellationToken).ConfigureAwait(false);
+        Changed?.Invoke();
+        _ = ReconcileAsync(cancellationToken);
+    }
+
+    /// <summary>Best-effort background re-read after a removal already applied its own result to
+    /// the local model and repainted. Never lets a reconciliation failure surface as an error for a
+    /// removal that already succeeded.</summary>
+    private async Task ReconcileAsync(CancellationToken cancellationToken)
+    {
+        try { await RefreshAsync(cancellationToken).ConfigureAwait(false); }
+        catch { /* best-effort; the confirmed removal already applied to the local model above */ }
     }
 
     /// <summary>No live equivalent - see the class remarks. The shared tab only shows the
