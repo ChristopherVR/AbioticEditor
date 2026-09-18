@@ -4,6 +4,7 @@ using System.Runtime.Versioning;
 using AbioticEditor.Core.Assets;
 using AbioticEditor.Core.Diagnostics;
 using AbioticEditor.Core.LiveEditing;
+using AbioticEditor.Core.Steam;
 
 namespace AbioticEditor.Web.Services;
 
@@ -35,10 +36,13 @@ public enum LiveAgentSetupState
     NeedsConsentToInstallUe4ss,
 
     /// <summary>This host's operating system cannot run either half of live editing's in-game
-    /// side (the bundled helper is a Windows binary, and UE4SS itself is Windows-only) - not to
-    /// be confused with <see cref="GameNotFound"/>, which means the same OS just couldn't locate
-    /// an install. A dedicated server the player connects to remotely is unaffected; only the
-    /// automatic "this PC" setup is unavailable here.</summary>
+    /// side: the bundled helper is a Windows binary, and UE4SS itself is Windows-only. Windows
+    /// and Linux (the game running under Steam Play/Proton, still the same Windows binaries -
+    /// see <see cref="ProtonLiveAgentEnvironment"/>) both support the automatic "this PC" setup;
+    /// this state is for everything else (macOS and any other platform this editor ships on).
+    /// Not to be confused with <see cref="GameNotFound"/>, which means the same OS just couldn't
+    /// locate an install. A dedicated server the player connects to remotely is unaffected; only
+    /// the automatic "this PC" setup is unavailable here.</summary>
     NotSupportedOnThisPlatform,
 
     /// <summary>Setup failed; Detail contains the recovery instructions.</summary>
@@ -109,8 +113,14 @@ public static class LiveAgentSetup
         bool deployConsentGiven, bool installUe4ssConsentGiven = false, string? gameFolder = null,
         CancellationToken cancellationToken = default)
     {
-        if (!OperatingSystem.IsWindows())
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsLinux())
         {
+            // macOS (and anything else): neither the bundled helper nor UE4SS itself has a build
+            // for this platform, and there is no Proton-equivalent way to run the Windows ones
+            // here either (there is a launch-mac.sh for the editor itself, but that is unrelated
+            // to the in-game side). Windows and Linux (Steam Play/Proton) both fall through past
+            // this check - see ProtonLiveAgentEnvironment for how Linux resolves the same
+            // Windows-shaped paths Proton gives the game itself.
             return new(LiveAgentSetupState.NotSupportedOnThisPlatform);
         }
 
@@ -180,10 +190,37 @@ public static class LiveAgentSetup
             return new(LiveAgentSetupState.HelperUnavailable);
         }
 
+        // The helper is still a Windows binary on Linux too - it only ever runs inside the same
+        // Steam Play (Proton) prefix the game itself runs in, with a matching LOCALAPPDATA, so
+        // its token/port files and the request/response file mailbox land where the in-game Lua
+        // mod (running inside that same prefix) can see them. See ProtonLiveAgentEnvironment.
+        string? linuxPrefixRoot = null;
+        if (OperatingSystem.IsLinux())
+        {
+            var libraryRoot = ProtonLiveAgentEnvironment.FindSteamLibraryRoot(install.Root);
+            linuxPrefixRoot = libraryRoot is null
+                ? null
+                : ProtonLiveAgentEnvironment.FindPrefixRoot(libraryRoot, SteamAchievements.AppId);
+            if (linuxPrefixRoot is null)
+            {
+                return new(LiveAgentSetupState.HelperUnavailable,
+                    "Could not find this game's Steam Play (Proton) profile yet. Launch Abiotic Factor through "
+                    + "Steam at least once, close it, then retry live-editing setup.");
+            }
+            if (!IsWineAvailable())
+            {
+                return new(LiveAgentSetupState.HelperUnavailable,
+                    "Live editing on Linux runs a small helper program through Wine alongside the game (the game "
+                    + "itself already has everything it needs - UE4SS and this editor's mod are installed the same "
+                    + "way as on Windows). Install your distro's 'wine' package (or point the ABIOTIC_LIVE_WINE "
+                    + "environment variable at a wine/Proton binary), then retry setup.");
+            }
+        }
+
         try
         {
             EditorLog.Info("LiveAgent", "No helper process found running - launching one.");
-            LaunchHelperHidden();
+            LaunchHelperHidden(linuxPrefixRoot);
         }
         catch (Exception ex) when (ex is Win32Exception or IOException)
         {
@@ -215,12 +252,20 @@ public static class LiveAgentSetup
             : $"Nothing can be written into {install.BinariesDirectory}. Check that folder's permissions, then retry.";
     }
 
-    // Guarded by the OperatingSystem.IsWindows() check at the top of EnsureReadyAsync (the only
-    // caller) - annotated so the platform-compat analyzer can verify that instead of flagging
-    // Process.GetProcessesByName as reachable on every platform this assembly also ships on
-    // (the browser/Wasm host, which never registers ILiveEditingCapability and so never calls in
-    // here at all, but still compiles this file).
+    // Guarded by the OperatingSystem.IsWindows()/IsLinux() check at the top of EnsureReadyAsync
+    // (the only caller) - annotated so the platform-compat analyzer can verify that instead of
+    // flagging Process.GetProcessesByName as reachable on every platform this assembly also ships
+    // on (the browser/Wasm host, which never registers ILiveEditingCapability and so never calls
+    // in here at all, but still compiles this file).
+    //
+    // NOTE (Linux/Proton, unverified against a real install): on Windows this matches the
+    // shipping executable's own process name. Under Proton the game runs inside Wine, and
+    // whether the resulting Linux process is actually named "AbioticFactor..." (rather than a
+    // "wine"/"wine64-preloader" wrapper, or the Windows name truncated by the kernel's 15-byte
+    // comm-name limit) has not been confirmed on a real Steam Play session - see
+    // docs/PROGRESS.md's Linux live-editing round for this open item.
     [SupportedOSPlatform("windows")]
+    [SupportedOSPlatform("linux")]
     private static bool IsGameRunning()
     {
         foreach (var process in Process.GetProcesses())
@@ -233,13 +278,49 @@ public static class LiveAgentSetup
         return false;
     }
 
+    // Same Linux caveat as IsGameRunning above: a helper launched through Wine may not show up
+    // under Linux as a process literally named "AbioticEditorLiveAgentHelper" (Wine's own process
+    // naming for the child Windows executable is not confirmed here) - unverified.
     [SupportedOSPlatform("windows")]
+    [SupportedOSPlatform("linux")]
     private static bool IsHelperRunning()
     {
         foreach (var process in Process.GetProcessesByName(HelperProcessName))
         {
             process.Dispose();
             return true;
+        }
+        return false;
+    }
+
+    private const string WineOverrideEnvVar = "ABIOTIC_LIVE_WINE";
+
+    /// <summary>Whether a Wine binary this editor can hand the native helper to actually exists:
+    /// either <see cref="WineOverrideEnvVar"/> pointing straight at one, or a <c>wine</c> found on
+    /// PATH. Filesystem-only (never launches anything), so a missing Wine install can be reported
+    /// with a clear message instead of a raw process-start failure.</summary>
+    [SupportedOSPlatform("linux")]
+    private static bool IsWineAvailable()
+    {
+        var wineOverride = Environment.GetEnvironmentVariable(WineOverrideEnvVar);
+        if (!string.IsNullOrWhiteSpace(wineOverride))
+        {
+            return File.Exists(wineOverride);
+        }
+
+        var pathVariable = Environment.GetEnvironmentVariable("PATH");
+        if (string.IsNullOrEmpty(pathVariable)) return false;
+        foreach (var directory in pathVariable.Split(Path.PathSeparator))
+        {
+            if (directory.Length == 0) continue;
+            try
+            {
+                if (File.Exists(Path.Combine(directory, "wine"))) return true;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Probe the next PATH entry.
+            }
         }
         return false;
     }
@@ -256,8 +337,13 @@ public static class LiveAgentSetup
     /// into a single rolling log file instead, so a crash or a printed error still leaves
     /// something to look at when live editing does not connect.
     /// </summary>
+    /// <param name="linuxPrefixRoot">On Linux, the Steam Play (Proton) prefix resolved by the
+    /// caller (see <see cref="ProtonLiveAgentEnvironment"/>) - required there, since the helper
+    /// (still a Windows binary) has to run through Wine inside that exact prefix to see the same
+    /// <c>%LOCALAPPDATA%</c> the in-game Lua mod does. Ignored on Windows.</param>
     [SupportedOSPlatform("windows")]
-    private static void LaunchHelperHidden()
+    [SupportedOSPlatform("linux")]
+    private static void LaunchHelperHidden(string? linuxPrefixRoot)
     {
         var logPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -273,16 +359,21 @@ public static class LiveAgentSetup
             lock (sync) writer.WriteLine(line);
         }
 
-        var process = new Process
-        {
-            StartInfo = new ProcessStartInfo(BundledHelperPath)
+        var startInfo = OperatingSystem.IsLinux()
+            ? BuildLinuxWineStartInfo(linuxPrefixRoot
+                ?? throw new InvalidOperationException("Live editing on Linux needs a resolved Proton prefix before launching the helper."))
+            : new ProcessStartInfo(BundledHelperPath)
             {
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 WorkingDirectory = Path.GetDirectoryName(BundledHelperPath),
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
-            },
+            };
+
+        var process = new Process
+        {
+            StartInfo = startInfo,
             EnableRaisingEvents = true,
         };
         process.OutputDataReceived += (_, e) => WriteLine(e.Data);
@@ -292,6 +383,34 @@ public static class LiveAgentSetup
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
         _helperProcess = process;
+    }
+
+    /// <summary>
+    /// Runs the (still-Windows) helper executable through Wine, pinned to the same Proton prefix
+    /// the game itself runs in and given a matching <c>LOCALAPPDATA</c>, so the token/port files
+    /// and the request/response file mailbox it writes land exactly where the in-game Lua mod
+    /// (running inside that same prefix, launched by Steam) looks for them - see
+    /// <see cref="ProtonLiveAgentEnvironment"/>. Not verified against a real Steam Play session;
+    /// see <see cref="IsWineAvailable"/>'s caller for the player-facing fallback message when no
+    /// Wine binary can be found at all.
+    /// </summary>
+    [SupportedOSPlatform("linux")]
+    private static ProcessStartInfo BuildLinuxWineStartInfo(string prefixRoot)
+    {
+        var wineOverride = Environment.GetEnvironmentVariable(WineOverrideEnvVar);
+        var wineExecutable = string.IsNullOrWhiteSpace(wineOverride) ? "wine" : wineOverride;
+        var startInfo = new ProcessStartInfo(wineExecutable)
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WorkingDirectory = Path.GetDirectoryName(BundledHelperPath),
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        startInfo.ArgumentList.Add(BundledHelperPath);
+        startInfo.Environment["WINEPREFIX"] = prefixRoot;
+        startInfo.Environment["LOCALAPPDATA"] = ProtonLiveAgentEnvironment.WindowsLocalAppDataPath;
+        return startInfo;
     }
 
     /// <summary>Checks every bundled script, including area modules updated independently of main.lua.</summary>

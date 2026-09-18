@@ -19,7 +19,7 @@ Live changes happen as you make them. There is no universal **SAVE**, undo butto
 
 ## Set up this PC (Windows)
 
-Live setup works in the complete Windows desktop release. The Linux desktop app can edit save files, but cannot run the Windows helper locally. The browser edition cannot connect to a live game.
+Live setup works in the complete Windows desktop release, and in the Linux desktop release for a game running through Steam Play (Proton) - see [Set up this PC (Linux / Steam Play)](#set-up-this-pc-linux-steam-play) below. The browser edition cannot connect to a live game.
 
 Live editing needs **UE4SS**, a separate open-source mod loader (MIT licensed). The Windows release includes a pinned copy of it and installs it into your game folder with your permission; it never touches an existing UE4SS install.
 
@@ -61,6 +61,26 @@ The linked UE4SS channel is experimental and game updates can change compatibili
 ![Helper setup after UE4SS has been detected](/screenshots/41-live-helper.png)
 
 *UE4SS is already installed separately in this example. This button installs the editor helper, not UE4SS.*
+
+## Set up this PC (Linux / Steam Play)
+
+The Linux desktop app can set up live editing for a Steam copy of the game running through Steam Play (Proton), including on the Steam Deck. Abiotic Factor has no native Linux build, so nothing here is different in principle from Windows: the same bundled UE4SS package and the same editor helper are installed into the same `Binaries/Win64` folder inside the game's Steam library. Two things are specific to Proton:
+
+- **The game must have been launched through Steam at least once already.** Steam only creates the per-game Proton profile (called a "prefix") the first time you actually run the game, and the editor's helper needs that profile to find the same `%LOCALAPPDATA%` the in-game mod uses. If setup reports it cannot find your Steam Play profile, start Abiotic Factor once from Steam, let it reach the main menu, quit, then retry **This PC**.
+- **UE4SS itself may need a Steam launch option to load under Proton.** UE4SS installs the same way it does on Windows - a `dwmapi.dll` next to the game's executable that the game loads automatically - but Wine ships its own built-in `dwmapi.dll` for desktop-compositing calls, and it can take priority over the one UE4SS drops in the game folder unless Proton is told to prefer the game folder's copy. If UE4SS does not appear to load (no `ue4ss/UE4SS.log` appears next to the game after you play), set this game's Steam launch option (right-click Abiotic Factor in your Steam library → **Properties** → **General** → **Launch Options**) to:
+  ```
+  WINEDLLOVERRIDES="dwmapi=n,b" %command%
+  ```
+  This is the standard override the wider UE4SS/Proton community uses for other games with the same DLL-proxy install; it is not something this editor's bundled UE4SS package or its pinned build documents itself (`live-agent/ue4ss/runtime.json` records only the version/checksum, no install notes), so treat it as community guidance to try, not a guarantee.
+- **Wine is needed to run the editor's own small helper program.** UE4SS and the Lua mod install and run exactly like on Windows (the game itself is a Windows program either way), but the tiny separate helper the editor also starts has no Linux build yet, so it runs through Wine, pointed at the same Proton prefix as the game. Most Linux setups that can already run the game through Steam Play also have Wine, or can install it from their distribution's package manager (for example `sudo apt install wine` on Debian/Ubuntu, `sudo pacman -S wine` on Arch). If you use a non-standard Wine build (a custom Proton-GE build, a Bottle, and so on) and want the helper to use that one specifically instead of a system `wine`, set the `ABIOTIC_LIVE_WINE` environment variable to its path before starting the editor.
+
+Everything else follows the same steps as [Set up this PC (Windows)](#set-up-this-pc-windows) above: close the game, choose **This PC**, pick the detected copy, and let the editor install UE4SS and its own helper.
+
+::: warning Not yet confirmed on a real Steam Play session
+The Proton prefix lookup, the Wine-launched helper, and the shared `%LOCALAPPDATA%` mapping described above have been built and reviewed but not yet exercised against an actual running game under Proton. If **This PC** setup gets stuck or the game never connects after UE4SS and the helper both report ready, please file an issue with the editor's diagnostics log attached - it is the fastest way to find what is different about a real Proton install. `docs/PROGRESS.md`'s Linux live-editing round has the implementation notes.
+:::
+
+macOS is not supported for live editing (there is no bundled UE4SS or helper for it, and no Proton-equivalent path to run the Windows ones). Offline save editing still works there.
 
 ## Updating or reconnecting
 

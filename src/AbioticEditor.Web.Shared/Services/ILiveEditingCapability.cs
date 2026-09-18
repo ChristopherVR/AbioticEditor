@@ -1,4 +1,7 @@
 using System.IO;
+using AbioticEditor.Core.Assets;
+using AbioticEditor.Core.LiveEditing;
+using AbioticEditor.Core.Steam;
 
 namespace AbioticEditor.Web.Services;
 
@@ -51,16 +54,45 @@ public sealed class DesktopLiveEditingCapability : ILiveEditingCapability
 
     private static string? TryReadFile(string fileName)
     {
-        try
+        foreach (var root in CandidateRoots())
         {
-            var path = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "AbioticEditorLiveAgent", fileName);
-            if (!File.Exists(path)) return null;
-            var text = File.ReadAllText(path).Trim();
-            return text.Length == 0 ? null : text;
+            try
+            {
+                var path = Path.Combine(root, fileName);
+                if (!File.Exists(path)) continue;
+                var text = File.ReadAllText(path).Trim();
+                if (text.Length > 0) return text;
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
         }
-        catch (IOException) { return null; }
-        catch (UnauthorizedAccessException) { return null; }
+        return null;
+    }
+
+    /// <summary>
+    /// Where the native helper's <c>AbioticEditorLiveAgent</c> folder (token.txt/port.txt) can be
+    /// found. On Windows and macOS this is always this process's own
+    /// <c>%LOCALAPPDATA%\AbioticEditorLiveAgent</c> - the helper runs as a normal process under
+    /// the same user. On Linux the helper is still a Windows binary that only ever runs inside the
+    /// Steam Play (Proton) prefix of the detected game (see
+    /// <see cref="ProtonLiveAgentEnvironment"/> and <c>LiveAgentSetup</c>'s own launch code), so
+    /// its files land under that prefix's own <c>AppData\Local</c>, not this native process's own
+    /// LOCALAPPDATA. The native path is still tried second there too, in case a future non-Proton
+    /// build of the helper ever exists.
+    /// </summary>
+    private static IEnumerable<string> CandidateRoots()
+    {
+        if (OperatingSystem.IsLinux())
+        {
+            var install = GameInstallLocator.FindConfigured();
+            var libraryRoot = install is null ? null : ProtonLiveAgentEnvironment.FindSteamLibraryRoot(install.Root);
+            var prefixRoot = libraryRoot is null ? null : ProtonLiveAgentEnvironment.FindPrefixRoot(libraryRoot, SteamAchievements.AppId);
+            if (prefixRoot is not null)
+                yield return Path.Combine(ProtonLiveAgentEnvironment.LocalAppDataIn(prefixRoot), "AbioticEditorLiveAgent");
+        }
+
+        yield return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "AbioticEditorLiveAgent");
     }
 }

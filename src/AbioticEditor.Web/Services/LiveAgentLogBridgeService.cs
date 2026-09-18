@@ -1,4 +1,7 @@
+using AbioticEditor.Core.Assets;
 using AbioticEditor.Core.Diagnostics;
+using AbioticEditor.Core.LiveEditing;
+using AbioticEditor.Core.Steam;
 using Microsoft.Extensions.Hosting;
 
 namespace AbioticEditor.Web.Services;
@@ -33,8 +36,20 @@ public sealed class LiveAgentLogBridgeService : BackgroundService
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
 
-    private static readonly string RootDir = Path.Combine(
+    // helper.log is written by LiveAgentSetup's own launcher code directly (a normal .NET
+    // FileStream on this process's own filesystem, redirecting the child helper process's
+    // stdout/stderr) - always under this process's own native %LOCALAPPDATA%, on every OS,
+    // regardless of whether the helper itself runs through Wine on Linux.
+    private static readonly string HelperLogRootDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AbioticEditorLiveAgent");
+
+    // lua.log is written by the UE4SS Lua mod itself (see main.lua's logLine()), which runs
+    // inside the GAME's own process. On Windows/macOS that is this same native %LOCALAPPDATA%.
+    // On Linux the game (and so the Lua mod's own os.getenv("LOCALAPPDATA")) runs inside its
+    // Steam Play (Proton) prefix, so lua.log lands under that prefix's AppData\Local instead -
+    // see ProtonLiveAgentEnvironment, and LiveAgentSetup's own helper launch for the matching
+    // LOCALAPPDATA this app hands the helper so both sides agree on where that folder is.
+    private static readonly string LuaLogRootDir = ResolveLuaLogRootDir();
 
     // helper.log: the native helper's own stdout/stderr, already captured by LiveAgentSetup's
     // launcher (see LaunchHelperHidden) - this service only reads it, never writes it.
@@ -42,8 +57,23 @@ public sealed class LiveAgentLogBridgeService : BackgroundService
     // helper.log on purpose, since two different OS processes appending to the very same file
     // without coordinating a lock risks interleaved/corrupted lines; merging the two back together
     // by timestamp happens here instead, where it is one reader's job rather than two writers'.
-    private readonly TailedFile _helper = new(Path.Combine(RootDir, "helper.log"), "LiveAgentHelper");
-    private readonly TailedFile _lua = new(Path.Combine(RootDir, "lua.log"), "LiveAgentLua");
+    private readonly TailedFile _helper = new(Path.Combine(HelperLogRootDir, "helper.log"), "LiveAgentHelper");
+    private readonly TailedFile _lua = new(Path.Combine(LuaLogRootDir, "lua.log"), "LiveAgentLua");
+
+    private static string ResolveLuaLogRootDir()
+    {
+        if (OperatingSystem.IsLinux())
+        {
+            var install = GameInstallLocator.FindConfigured();
+            var libraryRoot = install is null ? null : ProtonLiveAgentEnvironment.FindSteamLibraryRoot(install.Root);
+            var prefixRoot = libraryRoot is null ? null : ProtonLiveAgentEnvironment.FindPrefixRoot(libraryRoot, SteamAchievements.AppId);
+            if (prefixRoot is not null)
+                return Path.Combine(ProtonLiveAgentEnvironment.LocalAppDataIn(prefixRoot), "AbioticEditorLiveAgent");
+        }
+
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AbioticEditorLiveAgent");
+    }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
