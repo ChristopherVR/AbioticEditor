@@ -1,5 +1,4 @@
 @namespace AbioticEditor.Web.Components.Player
-@using AbioticEditor.Core.PlayerSaves
 @using AbioticEditor.Web.Models
 @inject AbioticEditor.Web.Services.SaveWorkspaceSessionService Workspace
 @inject AbioticEditor.Web.Services.ProgressionVocabularyService Progression
@@ -9,13 +8,13 @@
 @inject AbioticEditor.Web.Services.ModalService Modals
 
 @* Faithful port of the native PlayerGeneralTab.xaml: one AfPanel with an ACCOUNT
-   section (owner id surgery) and a BULK UNLOCKS section (recipes + discovery lists). *@
+   section (owner id surgery) and a BULK UNLOCKS section (recipes + discovery lists).
+   The ACCOUNT block always shows here (no collapsible label, no trait readout): traits
+   live entirely on the CHARACTER tab, which already edits them live too. *@
 <section class="editor-card general-tab" aria-label="@L.Resource("PlayerGeneral_General")">
     <h3>@L.Resource("PlayerGeneral_General")</h3>
     <div class="tab-hazard-stripe" aria-hidden="true"></div>
 
-    <details class="editor-disclosure">
-    <summary>@L.Resource("Editing_AccountDetails")</summary>
     <p class="tab-section-label">@L.Resource("PlayerGeneral_Account")</p>
     @if (General.CanChangeOwnerId)
     {
@@ -38,13 +37,8 @@
             <span class="general-readout">@(General.OwnerId ?? L.Resource("PlayerGeneral_OwnerIdUnknown"))</span>
         </div>
     }
-
-    <p class="tab-section-label">@L.Resource("PlayerGeneral_Traits")</p>
-    <p class="general-readout">@TraitsDisplay</p>
-    <small class="general-help">@L.Resource("PlayerGeneral_TraitsHelp")</small>
     <div class="tab-divider" aria-hidden="true"></div>
 
-    </details>
     <p class="tab-section-label">@L.Resource("PlayerGeneral_BulkUnlocks")</p>
     @* Reading the installed game takes a moment on first use, and every readout in this
        section depends on it. Saying so out loud beats four rows that each look broken. *@
@@ -162,10 +156,6 @@
 
     private bool IsSteamSave => General.IsSteamOwnerId;
     private string OwnerIdLabel => L.Resource(IsSteamSave ? "PlayerEditor_SteamId64Label" : "PlayerEditor_AccountIdLabel");
-
-    private string TraitsDisplay => General.Traits.Count == 0
-        ? L.Resource("PlayerGeneral_TraitsNone")
-        : string.Join(", ", General.Traits.Select(TraitCatalog.DisplayNameFor));
 
     private string RecipeCountText
     {
